@@ -6,8 +6,6 @@
 #include "ui.h"
 
 #include "item_db_text.h"       // CTextManager
-#include "ui_gdi.h"
-#include "ui_native.h"
 #include "game_singletons.h"
 #include "world.h"
 #include "world_glue.h"
@@ -64,7 +62,6 @@ void CSaveLoadWindow::RefreshListVanilla() {
     if (cursor_ > static_cast<int>(name.size())) cursor_ = name.size();
     if (cursor_ < 0) cursor_ = 0;
     CUiSurface* surface = surfaces_[0];
-    HDC dc = UiSurfaceGetDC(surface);
     surface->Clear();
     CUiMesh* marker = SceneMesh(kMarkerSprite);
     marker->visible_ = 0;
@@ -84,17 +81,12 @@ void CSaveLoadWindow::RefreshListVanilla() {
                 !SameFolder(entry.folder_, kAutoFolderB)) {
                 const int width = TextWidth(interface_, str::Left(name, cursor_), kFont);
                 if (width < titleRect.right - titleRect.left) {
-                    gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, kCaretColour));
-                    HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());
                     POINT top{titleRect.left + width, titleRect.top};
                     POINT bottom{titleRect.left + width, titleRect.bottom - 3};
                     // WideScreen (XOR ECX,ECX in the original): without the margin.
                     interface_->CallScalePointToScreenNoMargin(&top);
                     interface_->CallScalePointToScreenNoMargin(&bottom);
-                    gameapi::MoveToEx(dc, top.x, top.y, nullptr);
-                    gameapi::LineTo(dc, bottom.x, bottom.y);
-                    gameapi::SelectObject(dc, oldPen);
-                    ui_native::Line(surface, top.x, top.y, bottom.x, bottom.y, 1, kCaretColour);
+                    surface->Line(top.x, top.y, bottom.x, bottom.y, 1, kCaretColour);
                 }
             }
             marker = SceneMesh(kMarkerSprite);
@@ -116,7 +108,6 @@ void CSaveLoadWindow::RefreshListVanilla() {
     // The selected save's details: the allod, the zone, the game's day and time, the folder.
     if (selected_ < 0 || static_cast<unsigned>(selected_) >= static_cast<unsigned>(EntryCount()) ||
         entries_[selected_].broken_) {
-        UiSurfaceReleaseDC(surface);
         return;
     }
     const SaveEntry& entry = entries_[selected_];
@@ -141,5 +132,4 @@ void CSaveLoadWindow::RefreshListVanilla() {
 
     RECT folderRect{340, 360, 580, 385};
     surface->DrawTextIn(entry.folder_, &folderRect, kFont, kTextColour, DT_RIGHT, 1);
-    UiSurfaceReleaseDC(surface);
 }

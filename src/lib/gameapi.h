@@ -315,7 +315,7 @@ using ::ScreenToClient;  // USER32.dll
 using ::ClientToScreen;  // USER32.dll
 using ::GetWindowDC;  // USER32.dll
 using ::TabbedTextOutA;  // USER32.dll
-inline auto& DrawTextA = ei::Imports().DrawTextA;  // USER32.dll, through the slot
+using ::DrawTextA;  // USER32.dll
 using ::GrayStringA;  // USER32.dll
 using ::InflateRect;  // USER32.dll
 using ::EnableWindow;  // USER32.dll
@@ -498,7 +498,7 @@ using ::GetDeviceCaps;  // GDI32.dll
 using ::SetPixel;  // GDI32.dll
 using ::RealizePalette;  // GDI32.dll
 using ::SelectPalette;  // GDI32.dll
-inline auto& GetTextExtentPoint32A = ei::Imports().GetTextExtentPoint32A;  // GDI32.dll, through the slot
+using ::GetTextExtentPoint32A;  // GDI32.dll
 using ::CreateSolidBrush;  // GDI32.dll
 using ::CreatePalette;  // GDI32.dll
 inline auto& GetFileTitleA = ei::Imports().GetFileTitleA;  // comdlg32.dll, through the slot

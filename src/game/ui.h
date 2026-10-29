@@ -14,10 +14,10 @@
 #include "item_db.h"
 #include "object_tables.h"   // g_keyActions
 #include "options.h"
+#include "ui_font.h"
 #include "unit.h"   // LockKey
 
 #include "lib/containers.h"
-#include "lib/gdi.h"
 #include "lib/static_object.h"
 #include "lib/str.h"
 
@@ -139,8 +139,8 @@ public:
     // Enter opens it, Backspace empties the chat lines.
     void ChatKeyEnter();
     void ChatKeyBackspace();
-    // The extent of `text` in interface font `font`, measured on the game window's DC and scaled to the
-    // layout (cx * 800 / width, cy * 600 / height). Rebirth-patched; WideScreen behind its flag.
+    // The extent of `text` in interface font `font` (ui_font.h's TextExtent) scaled to the layout (cx * 800 /
+    // width, cy * 600 / height). Rebirth-patched; WideScreen behind its flag.
     SIZE* TextExtent(SIZE* out, std::string_view text, int font);
     // Sets up the stack, lists, map and texts; nothing else is written.
     CInterface3D* Construct();
@@ -195,8 +195,7 @@ public:
     // Every frame from the main loop: a pending close-all, the backdrop (modes 2-4), the top window's
     // draw, then the fade over it all.
     int Draw();
-    // Rebirth-patched (WideScreen behind its flag). What is drawn over the scene with GDI and blits after
-    // EndScene: the top window's surfaces and tooltips, the status surface, a backdrop asked for (mode 1
+    // Rebirth-patched (WideScreen behind its flag). What is blitted over the scene after EndScene: the top window's surfaces and tooltips, the status surface, a backdrop asked for (mode 1
     // also keeps a 256 x 192 copy and greys it into mode 2; mode 3 puts the old one aside into mode 4), the
     // client's chat overlay, the frame rate and the console.
     void DrawOverlays();
@@ -233,7 +232,7 @@ public:
     int mouseX_;
     int mouseY_;
     // The three interface fonts (Create: "Times New Roman", sized with the screen width).
-    gdi::Font fonts_[3];
+    UiFont fonts_[3];
     // Set by the key-down handler from the scan codes, cleared by key-up and when the windows change.
     bool ctrlDown_;
     std::uint8_t shiftDown_;
@@ -316,7 +315,8 @@ public:
     CUiTooltip* tip_;
 };
 
-// An off-screen DirectDraw surface a window draws into; no destructor: the owners destroy it directly.
+// An off-screen surface a window draws into: its pixels are its holder's canvas on the GPU (render_ui.h), made
+// black with the surface. No destructor: the owners destroy it directly.
 class CUiSurface {
 public:
     // A surface of the layout rectangle with format `format`, scaled to the screen when the low byte of
@@ -324,7 +324,7 @@ public:
     CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
     // Over the layout rectangle `rect` (always scaled) with format `format`.
     CUiSurface(CInterface3D* ui, const RECT* rect, int format);
-    // Releases the kept bytes and the DirectDraw surface. Not virtual (a window's surface list destroys a
+    // Releases the contents put aside and the holder. Not virtual (a window's surface list destroys a
     // scrolling surface as a plain one).
     ~CUiSurface();
     // Onto the render target, when shown.
@@ -335,23 +335,25 @@ public:
     void SetRect(int left, int top, int right, int bottom);
     void MoveTo(int x, int y);
     // Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and '\n') and draws up
-    // to `maxLines` lines one rect height apart with DrawText. The DC must be acquired. Returns the line
-    // count.
+    // to `maxLines` lines one rect height apart with DrawTextIn. Returns the line count.
     int DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
                         int flag);
     // Rebirth-patched (WideScreen behind its flag). `rect` in layout coordinates (empty: the whole surface),
     // grown by two pixels once scaled; `shadow` first draws the text in 0x080808 one pixel right and down.
-    // The DC must be held. Returns the drawn height in layout units, 0 without a surface.
+    // Returns the drawn height in layout units, 0 without a surface.
     int DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
-    HDC GetDC();
-    void ReleaseDC();
+    // DrawText of `text` (UTF-8) in `font` in `rect` (surface pixels) by DrawText's `format` (render_text.h's
+    // Layout), in `colour`, first in 0x080808 one pixel right and down when `shadow`. Returns DrawText's value
+    // (the height laid out, pixels); 0 without a surface or font.
+    int DrawTextPixels(const UiFont& font, std::string_view text, const RECT& rect, UINT format, COLORREF colour,
+                       bool shadow);
     // DrawTextIn's line of text (Rebirth-patched).
     int DrawLine(std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
     // Sets (`frozen` nonzero) or clears the shown flag: setting it puts kept contents back into a surface;
     // clearing it with `restore` keeps the contents in memory and releases the surface.
     void Freeze(int frozen, int restore);
-    // SwapContents: `restore` 0 moves the surface's pixels into kept_ and releases the surface; 1 makes the
-    // surface again and copies them back. Rgb565Copy returns a new[] block of width * height 5:6:5 pixels
+    // SwapContents: `restore` 0 puts the surface's pixels aside (kept_) and releases the holder; 1 makes the
+    // holder again and puts them back. Rgb565Copy returns a new[] block of width * height 5:6:5 pixels
     // (the surface stretched). Greyscale: (2 r + 4 g + b) / 16 per channel.
     void SwapContents(int restore);
     void CaptureScreen();
@@ -362,29 +364,30 @@ public:
     static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze
 
     void CallSwapContents(int restore);
-    // With a surface (and its DC held): a one-pixel frame of `colour` around `rect` (layout coordinates;
-    // empty: the whole surface).
+    // With a surface: a one-pixel frame of `colour` around `rect` (layout coordinates; empty: the whole
+    // surface).
     void FrameRect(const RECT* rect, COLORREF colour);
     // The whole surface; Clear fills with background_.
     void Fill(COLORREF colour);
     void Clear();
+    // In surface pixels, with a surface: `rect` filled (CDC::FillSolidRect); a solid pen's line of `width`
+    // pixels from (x0, y0) to (x1, y1) (MoveTo, LineTo: the game's 1 and 2 pixel pens, render_ui.h's Line); one
+    // pixel (SetPixel).
+    void FillRect(const RECT& rect, COLORREF colour);
+    void Line(int x0, int y0, int x1, int y1, int width, COLORREF colour);
+    void Dot(int x, int y, COLORREF colour);
+    // The holder's canvas, black, of the surface's size in the screen's format.
+    void MakeCanvas();
 
     CInterface3D* interface_;
-    HDC dc_;                         // while the DC is held
     std::uint32_t flags_;            // the constructors store the format here, then set kShown
-    Surface* holder_;             // the DirectDraw surface's holder (null while swapped out)
+    Surface* holder_;                // the holder its canvas belongs to (null while swapped out)
     int width_;
     int height_;
-    std::uint8_t* kept_;             // the contents kept in memory while swapped out
-    std::uint32_t keptSize_;
+    bool kept_;                      // while swapped out: the canvas is kept under the surface's address
     RECT rect_;                      // screen coordinates
     COLORREF background_;            // the colour Clear fills with (0 from the constructors)
 };
-// The surface's DC (null without a DirectDraw surface) and the matching release.
-HDC UiSurfaceGetDC(CUiSurface* surface);
-void UiSurfaceReleaseDC(CUiSurface* surface);
-inline HDC CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
-inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
 // A 3D model shown in a window (an inventory item, a portrait).
 class CUiModel {
@@ -567,13 +570,6 @@ public:
     std::vector<CUiRegion*> regions_;
     std::vector<CUiModel*> models_;
 };
-// The verify build's interface census (tests/verify/ui_census.cpp) is told which window owns each
-// surface: AddSurface (`added`), RemoveSurfaceAt, ClearSurfaces and the destructor. Null otherwise.
-extern void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurface* surface, bool added);
-// ... and when a whole-surface pixel helper runs on a surface (CaptureScreen, Rgb565Copy, Greyscale,
-// PixelAt, SwapContents); `writes` for the ones that change the pixels; `caller` the stack memory of the
-// helper's return address. Null otherwise.
-extern void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bool writes, void* const* caller);
 
 // The tooltip attached to a region; its surface is made while it is shown.
 struct CUiTooltip : CUiWindow {

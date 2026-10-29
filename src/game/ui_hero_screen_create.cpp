@@ -10,7 +10,6 @@
 #include "item_db_text.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
-#include "ui_native.h"
 #include "ui_widescreen.h"
 #include "unit_create.h"
 #include "unit_db.h"
@@ -58,7 +57,6 @@ CUiContainer* AsContainer(CMpHeroScreen* screen) { return screen; }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
     CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
-    ui_native::AdoptUnlessWidescreen(surface, "hero");
     return surface;
 }
 
@@ -322,7 +320,6 @@ void CMpHeroScreen::CreateScreen() {
     // The list's four commands.
     std::string text;
     CUiSurface* commands = surfaces_[kSurfaceCommands];
-    UiSurfaceGetDC(commands);
     commands->Clear();
     const char* const commandKeys[] = {
         "lmp_pers_new",
@@ -337,7 +334,6 @@ void CMpHeroScreen::CreateScreen() {
         commands->DrawTextIn(text, &rect, 1, kWhite, kTextFormat, 1);
         top += 24;
     }
-    UiSurfaceReleaseDC(commands);
 
     // The saved heroes, from the "mp" folder of the game's data.
     SavedParties* heroes = &g_savedParties.Get();

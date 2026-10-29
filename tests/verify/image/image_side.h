@@ -180,7 +180,6 @@ bool FrameInWindow(int* width, int* height);
 void FrameToWindow(int* x, int* y);
 void WindowToFrame(int* x, int* y);
 bool PresentsItself();
-int MissedSurfaceWrites(const char** first);
 void ConfigureRenderer(const char* spec);
 void SetWaitForVsync(bool on);
 void LoseDevice();
@@ -237,43 +236,6 @@ struct CameraState {
     unsigned flags = 0;
 };
 CameraState Camera(const void* camera);
-
-// ---- the interface drawing census (ui_census.cpp; image/harness_census_image.cpp)
-
-void* ClientBitmap(const void* holder);          // a holder's DIB section (an HBITMAP)
-bool IsSurfaceMemoryDc(void* dc);                // a DC 005FDC00 gave out
-bool IsSurfaceType(std::uintptr_t typeDescriptor);   // CUiSurface's or CUiScrollingSurface's type descriptor
-std::size_t SurfaceSize();                       // sizeof(CUiSurface)
-struct SurfaceFields {
-    void* dc = nullptr;
-    void* holder = nullptr;
-    int width = 0, height = 0;
-};
-void ReadSurfaceFields(const void* copy, SurfaceFields* fields);   // of a CUiSurface's copy
-const void* HolderSurfaceField(void* holder);    // a null DirectDraw surface pointer (ours have none)
-void WindowSurfaces(const void* window, const void* const** data, int* size);   // the window's surfaces_ array
-// The interface's own surfaces, and where its console keeps its surface (null without a console).
-struct InterfaceSurfaces {
-    const void* backdrop = nullptr;
-    const void* secondBackdrop = nullptr;
-    const void* fps = nullptr;
-    const void* status = nullptr;
-    const void* consoleSurfaceField = nullptr;
-};
-void ReadInterfaceSurfaces(InterfaceSurfaces* surfaces);
-// g_uiSurfaceOwnerObserver and g_uiSurfacePixelObserver.
-void ObserveSurfaces(void (*owner)(const void* window, const void* surface, bool added),
-                     void (*pixels)(const void* surface, const char* what, bool writes, void* const* frame));
-
-// ---- the interface's two paths compared (harness_ui.cpp; image/harness_ui_image.cpp)
-
-namespace uicompare {
-void Install();
-void Frame();
-bool Step(const std::string& verb, const std::string& argument, std::string* error);
-void Report(std::FILE* f);
-std::string Failure();
-} // namespace uicompare
 
 // ---- the UTF-8 checks (harness_utf8.cpp; image/harness_utf8_image.cpp)
 

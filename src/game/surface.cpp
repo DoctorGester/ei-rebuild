@@ -1,8 +1,9 @@
 // The surface holder (Surface, surface.h): a holder of the screen's pixel format, one from an .mmp picture, the texture
 // holders and the destructor; the pixel formats and their channels. Used for the interface windows, the software
-// cursor, the movies and the textures. No holder has a DirectDraw surface: the pixels live in memory the new renderer
-// owns (render::NewSurfaceMemory, a DIB section), which game code works on directly (DirectPixels); a texture has none
-// (decoded from its file or drawn on the GPU). See docs/notes/renderer.md, sections 6 and 7.
+// cursor and the textures. No holder has a DirectDraw surface: an interface window's pixels are its canvas on the GPU,
+// a picture's live in memory the new renderer owns (render::NewSurfaceMemory), which game code reads directly
+// (DirectPixels); a texture has none (decoded from its file or drawn on the GPU). See docs/notes/renderer.md, sections
+// 6 and 7.
 #include "surface.h"
 
 #include "dx_errors.h"
@@ -170,17 +171,10 @@ void ThrowSurfaceNotMade(int width, int height) {
     ThrowGameError("Can't create DDSurface %d:%d with default BPP.\n", width, height);
 }
 
-HBITMAP ClientBitmap(const void* holder) {
-    const render::SurfaceMemory* memory = render::SurfaceMemoryOf(holder);
-    return memory ? static_cast<HBITMAP>(memory->bitmap) : nullptr;
-}
-
-bool DirectPixels(const void* holder, SurfacePixels* pixels, bool reads) {
+bool DirectPixels(const void* holder, SurfacePixels* pixels) {
     *pixels = {};
     const render::SurfaceMemory* m = holder ? render::SurfaceMemoryOf(holder) : nullptr;
     if (!m) return false;
-    ::GdiFlush();   // GDI may still hold drawing for the memory (not imported by the game)
-    if (!reads) render::SurfaceWritten(holder, nullptr);
     pixels->width = m->width;
     pixels->height = m->height;
     pixels->pitch = m->pitch;
@@ -203,11 +197,10 @@ Surface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, 
 Surface::Surface(CTextureDevice* deviceIn) : device(deviceIn) {}
 
 Surface::Surface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(deviceIn) {
-    const PixelFormat format = ScreenFormatOf(this);
-    if (!AttachMemory(this, widthIn, heightIn, format)) ThrowSurfaceNotMade(widthIn, heightIn);
+    if (widthIn <= 0 || heightIn <= 0) ThrowSurfaceNotMade(widthIn, heightIn);
     width = widthIn;
     height = heightIn;
-    bitsPerPixel = format.bitsPerPixel;
+    bitsPerPixel = ScreenFormatOf(this).bitsPerPixel;
 }
 
 // The renderer keeps the picture's pixels from the file data (render::PictureFromMmp) instead of reading the memory

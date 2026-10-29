@@ -91,7 +91,6 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
     }
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) Sprite(this, i)->visible_ = 0;
-    UiSurfaceGetDC(surfaces_[0]);
     surfaces_[0]->Clear();
 
     if (unit && unit->Object3D()->attached) {
@@ -187,7 +186,6 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
         }
     }
 
-    UiSurfaceReleaseDC(surfaces_[0]);
     widescreen::LeavePanel();        // addon's 10023312, before the base draw
     DrawBase(pass);
     return 1;

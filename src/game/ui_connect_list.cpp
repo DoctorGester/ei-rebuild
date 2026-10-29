@@ -8,8 +8,6 @@
 #include "ui_screens.h"
 
 #include "net_classes.h"
-#include "ui_gdi.h"
-#include "ui_native.h"
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
@@ -107,7 +105,6 @@ void CMpConnectScreen::DrawListVanilla() {
     const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
     std::string text;
     CUiSurface* surface = surfaces_[0];
-    HDC dc = UiSurfaceGetDC(surface);
     surface->Clear();
     sprite(kSpriteSelection)->visible_ = 0;
     // The two buttons' texts.
@@ -136,16 +133,12 @@ void CMpConnectScreen::DrawListVanilla() {
         arrow->Place(SortArrowX((sortKey_ - 1) / 2), 116.0f, 4.0f);
     }
     // The line under the titles.
-    gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, g_connectTextColour));
-    HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());
     POINT from{8, row.bottom - 2};
     POINT to{layout.lineRight, row.bottom - 2};
     // WideScreen: without the margin.
     interface_->CallScalePointToScreenNoMargin(&from);
     interface_->CallScalePointToScreenNoMargin(&to);
-    gameapi::MoveToEx(dc, from.x, from.y, nullptr);
-    gameapi::LineTo(dc, to.x, to.y);
-    ui_native::Line(surface, from.x, from.y, to.x, to.y, 1, g_connectTextColour);
+    surface->Line(from.x, from.y, to.x, to.y, 1, g_connectTextColour);
     Down(&row, 27);
 
     unsigned index = static_cast<unsigned>(scrollTop_);
@@ -252,6 +245,4 @@ void CMpConnectScreen::DrawListVanilla() {
             }
         }
     }
-    gameapi::SelectObject(dc, oldPen);
-    UiSurfaceReleaseDC(surface);
-}   // ~CPen
+}

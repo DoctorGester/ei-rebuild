@@ -143,11 +143,9 @@ void CUiScrollText::Tokenize(const std::string* text) {
 
 void CUiScrollText::DrawLines(int scroll) {
     CUiSurface* surface = !surfaces_.empty() ? surfaces_[0] : nullptr;
-    UiSurfaceGetDC(surface);
     surface->Clear();
     int lineCount = std::ssize(lines_);
     if (lineCount <= 0) {
-        UiSurfaceReleaseDC(surface);
         return;
     }
 
@@ -225,7 +223,6 @@ void CUiScrollText::DrawLines(int scroll) {
         drawn += height;
         ++line;
     } while (drawn < textRect_.bottom - textRect_.top - offset && line < std::ssize(lines_));
-    UiSurfaceReleaseDC(surface);
 }
 
 // --- Construction, texts, layout ----------------------------------------------------------

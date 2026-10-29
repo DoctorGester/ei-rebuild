@@ -98,7 +98,6 @@ void CMpHeroScreen::DrawExperience() {
     CUiSurface* surface = surfaces_[2];
     std::string text;
     std::string line;
-    UiSurfaceGetDC(surface);
     surface->Clear();
     g_clientWorld->texts_->CTextManager::GetString(kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
@@ -110,7 +109,6 @@ void CMpHeroScreen::DrawExperience() {
     line = str::Format(kLabelFormat, text, tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
-    UiSurfaceReleaseDC(surface);
 }
 
 BOOL CMpHeroScreen::Draw(CSceneRenderer* pass) {
@@ -223,7 +221,6 @@ CMpHeroScreen::~CMpHeroScreen() {}
 
 void CMpHeroScreen::DrawHeroList() {
     CUiSurface* surface = surfaces_[0];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     SelectionFrame(*this)->visible_ = 0;
     RECT rect = {12, 13, 265, 33};
@@ -237,12 +234,10 @@ void CMpHeroScreen::DrawHeroList() {
         surface->DrawTextIn(MpHero(index)->members_[0].texts[0], &rect, 1, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 24);
     }
-    UiSurfaceReleaseDC(surface);
 }
 
 void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = surfaces_[2];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     SelectionFrame(*this)->visible_ = 0;
     std::string title;
@@ -262,7 +257,6 @@ void CMpHeroScreen::DrawVoices() {
         surface->DrawTextIn(voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 15);
     }
-    UiSurfaceReleaseDC(surface);
 }
 
 // --- The preview's unit -------------------------------------------------------------------

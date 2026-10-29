@@ -6,7 +6,6 @@
 #include "options.h"
 #include "asset_text.h"
 #include "ui.h"
-#include "ui_native.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -125,7 +124,6 @@ constexpr int kScrollbarTexture = 1;   // objects_: 0 "saveload", 1 "scrollbar"
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
     CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
-    ui_native::Adopt(surface, "connect");
     return surface;
 }
 
@@ -630,11 +628,9 @@ void CMpConnectScreen::CreateScreen() {
     interface_->OpenHelp(0);
     refreshTimer_ = 0.0f;
     CUiSurface* note = AddSurface(NewSurface(interface_, 0, 0, 300, 20));
-    UiSurfaceGetDC(note);
     note->Clear();
     RECT rect{0, 0, 300, 20};
     note->DrawTextIn(texts_[kTextConnecting], &rect, 2, g_connectTextColour, 0, 1);
-    UiSurfaceReleaseDC(note);
 }
 
 // --- the master request box ----------------------------------------------------------------------

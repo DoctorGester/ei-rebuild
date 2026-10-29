@@ -76,7 +76,7 @@ void SetShade(CUiMesh* mesh, float shade) {
     mesh->tint_[2] = shade;
 }
 
-// A white centred line on a surface between GetDC and ReleaseDC (Rebirth-patched).
+// A white centred line on a surface (Rebirth-patched).
 void DrawLine(CUiSurface* surface, std::string_view text, RECT* rect) {
     surface->DrawTextIn(text, rect, 1, 0xFFFFFF, 1, 1);
 }
@@ -290,11 +290,9 @@ void CCampPages::ShowPage(int page) {
         statsPanel_->ShowStats(page);
         trade_->SelectHero(hero_);
         CUiSurface* title = surfaces_[1];
-        UiSurfaceGetDC(title);
         title->Clear();
         RECT rect = {0, 10, 200, 30};
         DrawLine(title, pageTitles_[page_], &rect);
-        UiSurfaceReleaseDC(title);
     }
 
     // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
@@ -582,7 +580,6 @@ void CCampPages::UpdateAction() {
     std::string line;
     CTextManager* texts = g_clientWorld->texts_;
     CUiSurface* draw = surfaces_[0];
-    UiSurfaceGetDC(draw);
     draw->Clear();
     if (action.size() != 0) {
         texts->GetString(action, &text);
@@ -599,7 +596,6 @@ void CCampPages::UpdateAction() {
     line = str::Format("%s %d", text, amount);
     RECT top = {0, 10, 200, 30};
     DrawLine(draw, line, &top);
-    UiSurfaceReleaseDC(draw);
 
     SetShade(SceneMesh(0), actionEnabled_ ? 1.0f : 0.5f);
     SetShade(SceneMesh(1), actionShown_ ? 1.0f : 0.5f);

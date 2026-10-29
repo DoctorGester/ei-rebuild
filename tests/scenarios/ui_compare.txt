@@ -1,74 +1,50 @@
-# The interface's GDI and canvas paths compared (N3, P1; tests/verify/harness_ui.h, docs/notes/ui-native.md
-# section 3). The frame rate surface and the options window's are native (the game draws them on their
-# canvases, src/game/ui_native.h; their text through the glyph atlas in our own font, P2); the harness's
-# mirror gives every other named surface a canvas fed from its memory. Each check must match GDI's drawing
-# exactly (the read-back and the formats' round trip; native text within the comparison's text settings), a
-# fault drawn on one canvas (a mirrored one, else a native one: since P3d every surface here is native) must be
-# found (its pair written to frames\uidiff1_*), and the two paths' frames
-# must match where canvases were blitted (the UI mask) but for native glyphs. The original's run skips these
-# steps.
-render new,present,uiboth
+# The interface's canvases (docs/notes/ui-native.md, "P8 done"): every window surface draws on its GPU canvas.
+# The options window, and the help over it (backdrop mode 3: the options' greyed backdrop put away by
+# SwapContents after the frame blitted it, a new one copied from that frame), each opened twice with the mouse
+# at the same place: the frames must be the same both times (a backdrop or text left over from the first
+# opening, or a copy of the wrong frame, differs). The original's run captures dgVoodoo's frames.
+render new,present
 reject Script error
 waitmenu
-console fps on
-uimirror on
-frames 3
-uidiffcheck 0
 
-# The options window: its surfaces drawn, fed and compared as it opens.
+# The options window and the help over it, the first time.
 clickregion 3
 waitwindow 10 options
-frames 3
-uidiffcheck 0
-uifault
-frames 2
-uidiffcheck 1
-frames 2
-uidiffcheck 0
-
-# The same frozen moment through both paths.
-uipath native
+move 20 20
+frames 5
 freeze
-capture options_native
+capture options
 unfreeze
-uipath cpu
-freeze
-capture options_cpu
-unfreeze
-uimask options
-# (the options', the tooltip's and the frame rate's glyphs, our font against GDI's, are about 1.1% of the 1280x720 frame)
-samecapture options_cpu options_native 0 0.015
-
-# The help over the options (backdrop mode 3: the options' greyed backdrop put away by SwapContents after
-# the frame blitted it, a new one copied from that frame), opened once through each path: the native
-# backdrops must show the same (the frame rate off: its text changes between the two; the help page's and the
-# options' glyphs, our font against GDI's, are about 2% of the frame).
-console fps off
-uipath native
 key h
 waitwindow 10 help
+move 20 20
 frames 10
 freeze
-capture help_native
+capture help
 unfreeze
 clickregion 1
 waitwindow 10 options
-uipath cpu
+
+# The second time: the same frames.
+move 20 20
+frames 5
+freeze
+capture options_again
+unfreeze
+samecapture options options_again 0 0
 key h
 waitwindow 10 help
+move 20 20
 frames 10
 freeze
-capture help_cpu
+capture help_again
 unfreeze
-samecapture help_cpu help_native 0 0.03
+samecapture help help_again 0 0
 clickregion 1
 waitwindow 10 options
-frames 3
-uidiffcheck 0
 
 clickregion 1
 waitwindow 10 menu
 frames 3
-uidiffcheck 0
 report
 quit

@@ -2,6 +2,8 @@
 
 Plan for drawing the interface's window surfaces on the GPU renderer instead of GDI into DIB sections (tickets N0-N5, P1-P8 in docs/tickets.md). Written before the work; update the status lines as tickets land.
 
+**Status (P8, 2026-10-29): done.** Every window surface draws on its GPU canvas and nowhere else; the GDI path, the DIB sections, the switch words and the comparison harness are gone, and the interface measures text with our own fonts. Sections 1-3 and 5 are the plan as written; "P8 done" (end of section 3) and "Overview of the surface canvases" say what is.
+
 
 **Summary.** The interface's art is already drawn on the GPU: sprites, minimap, 3D previews, rectangles, fades and hit points all reach `render::BeginMesh`, `ScreenDraw` or `TlDraw`. What is still CPU-only is the window surfaces (`CUiSurface`, 0x38 bytes). These are text, fills, frames, carets and lines drawn with GDI into a DIB, and today that DIB is re-uploaded (memcmp, convert, upload) whenever it changes.
 
@@ -503,6 +505,66 @@ ei_hook.dll grows by 712,704 bytes (7,173,632 to 7,886,336, release); ei_standal
 LICENSE files: the fonts' SIL Open Font License, sokol's zlib licence, stb's note); play.cmd copies it into run\play; README's
 License section says so.
 
+### P8 done (2026-10-29): the canvas is the only path
+
+**One path** (user 2026-10-29). Every window surface gets its canvas when it is made (`CUiSurface::MakeCanvas`) and
+the canvas is the surface's pixels: no DIB section, no memory for a window, no memcmp or upload at a blit, no families
+to adopt, no `uinative` / `uiboth` words (an EI_RENDER word that is no longer known is logged and ignored). The
+surface functions draw only on the canvas: `Clear` / `Fill` / `FillRect` / `FrameRect`, `Line` (the edit field's,
+the chat's, the save list's and the console's carets, the connect list's rule: the pen's rule, end point left out),
+`Dot` (the minimap marker), `DrawTextIn` / `DrawTextPixels` (glyph runs), `CaptureScreen`, `Greyscale`, `Image`. The
+readers read the GPU: `PixelAt` (`ReadPixel`), `Rgb565Copy` (`ReadRgb565`); `SwapContents` moves the canvas aside
+(`MoveCanvas`; a surface brought back without one gets a new black canvas). P6's parts were on the GPU already
+(R28a: the pick picture, the camp's backdrop modes 3 / 4 through the screen copy, greying and `MoveCanvas`); they
+now call render::ui directly.
+
+**Lost device.** With no memory behind it a canvas must come back by itself: each canvas keeps the commands drawn on
+it since a command last covered it whole (a whole fill or picture starts the list again), and `DropCanvases` queues
+them again, after a Make, for the new device. A screen copy cannot be drawn again (its frame is gone), so once one is
+drawn the canvas's pixels are read back as its history (one whole picture); so is a history past 256 commands.
+`ei_ui_check`'s "lost" holds it (fills, frames, lines, pixels, a picture, a glyph run, a moved canvas, a copy greyed,
+300 pixels); render_device_lost compares the frames before and after a loss.
+
+**Text in our own fonts** (user 2026-10-29). `UiFont` (ui_font.h: a face at an em height in pixels) replaces the
+HFONTs: `PointFont(tenths, face)` is CreatePointFont's size at 96 dots an inch (the interface's sizes are
+width-relative, so the DPI cancels but for rounding), `TextFontOf` the atlas font (smoothed unless
+SPI_GETFONTSMOOTHING says off), `TextExtent` GetTextExtentPoint32's rule on our advances. The interface's text extent
+005F8340 (word wrap, the scroll text, tooltips, the chat, the message box) and the console's prompt width use it, so
+wrapping and drawing use one set of metrics (`GdiPlacedFont`, which placed our glyphs by GDI's advances, is gone).
+The layout follows every format the game uses: DT_END_ELLIPSIS is new (`kEndEllipsis`: the single line cut until it
+and "..." fit; the connect list's Rebirth names), DT_MODIFYSTRING is dropped (the game never reads the shortened
+text back); any other bit is logged once and left out. `ei_text_check --gdi` has the two ellipsis formats.
+
+**Harness.** The comparison (`harness_ui`, the `uipath` / `uimask` / `uidiff` / `uidiffcheck` / `uimirror` /
+`uifault` steps) and the census (`ui_census`, `uicensus`, `tools/ui_census_report.py`) are gone with the GDI path
+they measured; so are the "MISSED WRITE" check and the window-surface upload counts in `renderstats`. The harness
+reports font smoothing off to the image (SPI_GETFONTSMOOTHING), as it makes game.exe's fonts without smoothing.
+`ui_compare` now opens the options and the help over them twice and requires the same frames (mode 3's backdrop
+put away and copied again). P3e's comment (tests/verify/harness_ui.h) went with the file.
+
+**Deleted.** ui_native.{h,cpp}, ui_native_fonts.cpp, ui_gdi.h, ui_surface_dc.cpp (GetDC / ReleaseDC 005FDC00 /
+005FDC60 and every caller's bracket), lib/gdi.{h,cpp}, the surface memory's DIB section, change marks and window
+textures (render_textures.cpp: `WindowSurfaceView`, `Lookup16`, `SurfaceWritten`, `MissedSurfaceWrites`), render_ui's
+switch, comparison views and read-back into memory, system_text's DrawTextA / GetTextExtentPoint32A /
+CreateFontIndirectA routes.
+
+**GDI left.** The titles' scrolling text (`CUiScrollingSurface`, 0065F020): RichEdit formats the RTF text into a
+32-bit DIB section page on a memory DC, whose pixels are written onto the canvas (`Image`) each time it scrolls;
+P8a replaces RichEdit by our own layout of the text. Outside the interface: the tools' references (`ei_ui_check`
+draws GDI's fills and lines to compare, `ei_text_check` GDI's DrawTextA), and gameapi.h's generated import
+declarations.
+
+**Checks.** `--golden`: 145 runs pass, 121 goldens the same, 24 without a golden; `ei_ui_check` 102 checks. Frames
+against main's default (GDI) path, 1280x720 unless said: glyph shapes everywhere (the camp's pages 1.8-3.4% of the
+frame, the deals 2.0-3.2%, the base 0.5-2.6%, menus 0.2-4.3%, 4K widescreen 0.05-2.2%); line breaks moved only in
+three places: the objectives' help page (its first paragraph breaks one word earlier, so the page and its window are
+one line taller: 14.5% of the frame), the objectives' zone description (centred, "Однако," to the next line) and the
+briefing's scroll text (a word back onto the line before; as many lines); the camp's item info, the
+trade lists, the help over the options and the tooltips break as before. The scroll text's lines are one pixel
+closer at 1280x720 (GDI's hinted Times New Roman is taller, section 2). At 4K the HUD tooltip at the bottom row
+(`ui_widescreen_more` tooltip2, 13.5%) now opens above the mouse: the height it is placed by is the height it is drawn
+at, and it no longer runs off the bottom of the screen.
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -526,8 +588,9 @@ they depend on.
   own fonts, the 2-pixel pen caret); **P5** (done, section 3 "P5 done") controls with lines and carets (edit field 0065C2E0, chat typed line 005E3700, connect
   list 0061D780, save/load list 006567A0); **P6** the global-map pick picture (`RefreshSelection` 00630670: frame step, GPU copy,
   readback on click; colours exact, point copy, no dithering) and the camp's backdrop modes 3/4; **P7** (optional) CPU-written
-  textures as GPU sub-image uploads, clouds 00499F10 as a shader (done by R28 / R28b); **P8** make `uinative` the default under `present`, drop the DIB
-  and memcmp for native surfaces (keep a 1x1 metrics DC), docs (renderer.md section 6, ui.md).
+  textures as GPU sub-image uploads, clouds 00499F10 as a shader (done by R28 / R28b); **P8** (done, section 3 "P8 done") the
+  canvas the only path: no DIB, memcmp, GDI text or metrics, switch words or comparison; **P8a** the titles' text laid out by us
+  instead of RichEdit.
 - After P2, P3a-d and P4 touch disjoint files; each one's only shared edit is a line in `ui_native.cpp`. W3 / W4 only decide when
   Rebirth launches can go native; vanilla is not blocked. Porting tickets add no fields (side maps) and leave `ui.h` alone.
 
@@ -566,22 +629,16 @@ they depend on.
 
 ## Overview of the surface canvases
 
-The interface surfaces drawn on GPU canvases (ticket P1; docs/notes/ui-native.md, "P1"). A surface of a
-family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status, menu, msgbox,
-difficulty, options, objectives, credits, console, unitpanel, messagelog, tooltip, hudmap, camp, hero, trade, iteminfo, itemstrip, exchange, briefing, globalmap, help, chat,
-edit, connect, saveload so far) gets a canvas for its holder when it is made (Adopt), and
-the surface functions record their drawing on it
-beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
-truth (a lost device brings canvases back black). The blit draws the canvas when
-render::ui::DrawsCanvas says so.
-Under "uinative" the screen copy (CaptureScreen) goes to the canvas only (no read-back of the frame), and
-greying a surface whose memory is behind its canvas too; that memory is "behind" until Sync reads the
-canvas back, which the code that reads or draws the memory on the CPU calls first (GetDC, PixelAt,
-Rgb565Copy, SwapContents). Without a "ui" word in EI_RENDER nothing is adopted, except the screen copies
-(R28a): a surface CaptureScreen copies into gets a canvas that is its only copy in every mode (CanvasOnly:
-always blitted, left out of the uiboth comparison); its greying, the 5:6:5 picture (ReadRgb565), PixelAt
-(ReadPixel) and SwapContents (the canvas put aside on the GPU, PutAside / TakeBack) work on that canvas
-(docs/notes/renderer.md section 6, "Screen copies on the GPU").
+Every interface window surface's pixels are its holder's canvas on the GPU (P8): made black with the surface
+(`CUiSurface::MakeCanvas`, ui_surface_create.cpp; again in the surface format after SwapContents brings a surface
+back without one), drawn into by the surface functions (`Clear` / `Fill` / `FillRect` / `FrameRect`, `Line` for the
+carets and the connect list's rule, `Dot` for the minimap marker, `DrawTextIn` / `DrawTextPixels` as glyph runs,
+`CaptureScreen`, `Greyscale`, the titles' page as `Image`) and blitted by `CUiSurface::Blit` (`DrawCanvas`). The readers
+read the GPU: `PixelAt` (`ReadPixel`, packed back to the screen format), `Rgb565Copy` (`ReadRgb565`); `SwapContents`
+moves the canvas aside under the surface's address and back (`MoveCanvas`). Text is laid out, measured and drawn in our
+own fonts (ui_font.h). A lost device makes every canvas again and draws on it the commands drawn since it was last
+covered whole (render_ui.cpp's history; after a screen copy or 256 commands the canvas's pixels read back instead), so
+nothing comes back black (docs/notes/renderer.md section 6, "Screen copies on the GPU", and R9c1).
 
 ## DrawText layout rules (render_text.cpp)
 
@@ -611,6 +668,10 @@ cases in tools/text_check check each of them):
   is empty; with DT_VCENTER its top is the rectangle's top plus half the room left (height less the line's), rounded
   towards zero, also when the room is negative. DT_VCENTER's return value and DT_CALCRECT's bottom count from the
   rectangle's top to the line's bottom.
+- DT_END_ELLIPSIS (P8): a line wider than the rectangle loses characters from its end until its width plus "..."'s
+  (three dots' advances and their kerning) is at most the rectangle's; the dots are drawn after it, kerned with the
+  last character kept (DrawText draws the shortened text whole, but leaves that pair out of the fit). `ei_text_check
+  --gdi` font 0: every layout and every game string's pixels the same as DrawText's.
 - Drawing stops after the first line whose bottom is below the rectangle (unless DT_NOCLIP); the
   return value is the height of the lines drawn (one line more when it stopped early and the
   text ends with a line break). DT_CALCRECT lays out every line, returns their height and sets right = left +
@@ -637,17 +698,19 @@ and RunCanvasCommands draws them, outside any pass: render.cpp calls it at the s
 drawing lands before the frame's next pass, and RunCanvasesNow for a read-back. Solid shapes are quads of a colour
 quantised on the CPU; a glyph run is three steps (its coverage into an R8 scratch target with MAX blending, a copy
 of what the canvas held there, the composition of the two into the canvas); greying works on a copy of the canvas;
-the screen copy samples the frame target. Every pixel the shaders write is quantised to the surface format, so a
+the screen copy samples the frame target. Each command drawn joins its canvas's history (cleared when a command covers
+the canvas whole); a screen copy or a history past 256 commands is replaced by the canvas's pixels read back
+(Compact), and DropCanvases queues every canvas's history again for the new device. Every pixel the shaders write is quantised to the surface format, so a
 canvas never holds a colour its surface could not. render.cpp's part: Command::Canvas (DrawCanvasBatch inside the
 frame's passes), SplitFrame (the frame so far drawn before a canvas already blitted in it changes, or before a
 screen copy) and RunCanvasesNow. The offline check tools/ui_check plays that part itself.
 
 ### render_ui.h
 
-The interface's 2D canvases (docs/notes/ui-native.md, section 3): a window surface's pixels kept on the GPU in a
-render target, drawn into by the commands GDI draws with today (fills, frames, lines, pixels, glyph runs) and by
-the surface pixel code (the screen copy, greying), read back into the surface's memory for the readers, and blitted
-onto the frame as SurfaceBlit draws a surface. No GDI here. A canvas belongs to a surface holder (the `Surface` of
+The interface's 2D canvases (docs/notes/ui-native.md, section 3 and "P8 done"): a window surface's pixels, kept only
+on the GPU in a render target, drawn into by the commands GDI drew with (fills, frames, lines, pixels, glyph runs) and
+by the surface pixel code (the screen copy, greying, a picture), read by the readers (one pixel, all of them, the
+5:6:5 picture), and blitted onto the frame by the surface's blit. No GDI here. A canvas belongs to a surface holder (the `Surface` of
 a CUiSurface) and holds what the surface's memory would: every channel cut to the format's bits and widened again
 (render_textures.cpp's Expand), so 16-bit surfaces quantise as GDI does and the colour key compares exactly.
 Commands are queued in call order and drawn on the GPU before the frame's next pass (drawing before a canvas's

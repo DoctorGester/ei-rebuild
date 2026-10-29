@@ -1,16 +1,16 @@
-// The window surface's constructors and destructor (CUiSurface). The holder has no DirectDraw surface, only the new
-// renderer's memory (surface.cpp): the surface is already zero, so the original's colour fill is left out. Making a
-// window asks DirectDraw for nothing. The picture constructor has no caller (config/dead_code.csv). See docs/notes/ui.md,
-// "Surface construction".
+// The window surface's constructors and destructor (CUiSurface). The holder has no DirectDraw surface and no memory:
+// the surface's pixels are its canvas on the GPU (render_ui.h), made black with it, so the original's colour fill is
+// left out. Making a window asks DirectDraw for nothing. The picture constructor has no caller (config/dead_code.csv).
+// See docs/notes/ui.md, "Surface construction".
 #include "app.h"
 #include "ui.h"
-#include "ui_native.h"
 
 #include "base_manager.h"
 #include "surface.h"
 #include "texture.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "render/render_ui.h"
 #include <cstdint>
 
 #include <windows.h>
@@ -38,32 +38,33 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
     // (The interface's renderer is the device object.)
     Surface* made = new Surface(self->interface_->renderer_, self->width_, self->height_);
     ReplaceHolder(self, made);
-    self->kept_ = nullptr;
+    self->MakeCanvas();
+    self->kept_ = false;
     self->flags_ |= CUiSurface::kShown;
-    self->keptSize_ = 0;
     return self;
 }
 
 void Begin(CUiSurface* self, CInterface3D* ui, int format) {
-    ui_native::Forget(self);   // (a surface made again where another was)
     self->holder_ = nullptr;
     self->flags_ = static_cast<std::uint32_t>(format);
     self->background_ = 0;
     self->interface_ = ui;
 }
 
-
 } // namespace
 
+void CUiSurface::MakeCanvas() {
+    if (!holder_) return;
+    const PixelFormat screen = ScreenFormat(holder_->bitsPerPixel);
+    render::ui::Canvas(holder_, width_, height_,
+                       render::ui::PixelFormat{screen.bitsPerPixel, screen.redMask, screen.greenMask, screen.blueMask});
+}
 
-// The destructor: frees the kept bytes (a total), takes the surface's height * pitch off the surface-bytes
-// total, drops the holder and empties the screen rectangle.
+// The destructor: drops the contents put aside and the holder (its canvas with it) and empties the screen
+// rectangle.
 CUiSurface::~CUiSurface() {
-    ui_native::Forget(this);
-    if (std::uint8_t* kept = kept_) {
-        delete[] kept;
-        kept_ = nullptr;
-    }
+    if (kept_) render::ui::DropCanvas(this);
+    kept_ = false;
     Surface* holder = holder_;
     holder_ = nullptr;
     if (holder) holder->Release();

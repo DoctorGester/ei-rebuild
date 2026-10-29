@@ -169,7 +169,7 @@ each step green on the goldens and removing a measured tie:
   `GameAddress` stays the address.
   **Addresses read back from objects** (a vtable, a string pointer) are the storage's in the image: the harness
   prints them as the original's with `ei::OriginalAddress` (game_data.h; DescribeTopWindow, harness_digest's
-  missile vtable, ui_census's window labels and its game-vtable test).
+  missile vtable).
 - **Code** (C20 batch 6): nothing of ours stands at a game.exe code address. Our code calls every function by
   name: the static initialisers (static_init.h), the handler tables, callbacks and factories (`&Fn`), WinMain
   (`app::GameMain`); the CRT's takers of function pointers (atexit, qsort, the eh vector iterators, ostream's
@@ -229,8 +229,7 @@ each step green on the goldens and removing a measured tie:
   S18k; S18f-S18h checked it held only INT3 and our jumps), so no `CALL [slot]` / `JMP [slot]` of the
   original exists. No pointer
   cell of .rdata or .data holds a slot's address (a scan of game.exe's aligned dwords), and our code reaches slots
-  only through `ei::Imports()`, and the harness too (harness_imports.h), which the sealed check covers. Not routed to our table: ui_census's game.exe
-  import hooks (`PatchModule(GetModuleHandleA(nullptr))` is the host in the image, as before S18f).
+  only through `ei::Imports()`, and the harness too (harness_imports.h), which the sealed check covers.
 
 - **.rdata constants as literals** (S18e, `tools/rdata_literals.py`): a float, double or integer cell that no code writes is
   the value in the source, tagged with its address: `0.5f /*0073B86C*/`, `3.141592653589793 /*0073CAE8*/`, a negative one in
@@ -1009,7 +1008,7 @@ the `--no-hooks` suite) keeps the registry.
 - **No function-to-original map** (C20l): the `EI_REWRITTEN` lines (C20d-C20k: {address, &Fn} in the DLL's `.eiorg`
   section, one per address by check_registrations) went with their last readers. What still needs a game address
   of a function of ours has it where it is used: an EI_RECORD names the rewrite its replays call (check_signatures
-  checks its stack arguments), gen_static_init reads config/static_init_ports.csv. The trace tools (coverage, save_trace, ui_census_report, named_data's --emit / --refs) no longer map
+  checks its stack arguments), gen_static_init reads config/static_init_ports.csv. The trace tools (coverage, save_trace, named_data's --emit / --refs) no longer map
   game.exe's functions to ours; progress / the dashboard dropped the port counts.
 - **game.exe's side**: the vector recorders (`EI_RECORD`, tests/vectors/record_*.cpp) are the only hooks;
   InstallHooks installs them in game.exe with EI_VECTORS=1, leaving out (and counting as unexpected) a second one at

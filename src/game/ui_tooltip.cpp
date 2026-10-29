@@ -2,7 +2,6 @@
 // destructor body, SetText and the drawing of the lines; and its showing (Rebirth-patched: its WideScreen is
 // reproduced behind the flag). See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
-#include "ui_native.h"
 #include "options.h"
 #include "ui_widescreen.h"
 
@@ -101,7 +100,6 @@ void CUiTooltip::DrawLines() {
     if (!(!surfaces_.empty())) return;
     CUiSurface* surface = surfaces_[0];
     if (!surface) return;
-    UiSurfaceGetDC(surface);
     surface->Fill(kBackground);
     RECT whole{0, 0, 0, 0};   // empty: the whole surface
     surface->FrameRect(&whole, kTitleColour);
@@ -118,7 +116,6 @@ void CUiTooltip::DrawLines() {
         }
         gameapi::OffsetRect(&row, 0, step);
     }
-    UiSurfaceReleaseDC(surface);
 }
 
 void CUiTooltip::OnMouseMove(int x, int y) {
@@ -160,7 +157,6 @@ void CUiTooltip::OnMouseMove(int x, int y) {
             if (rect.top < 0) gameapi::OffsetRect(&rect, 0, -rect.top);
         }
         CUiSurface* surface = new CUiSurface(interface_, &rect, kSurfaceFormat);
-        ui_native::Adopt(surface, "tooltip");
         AddSurface(surface);
         return;
     }

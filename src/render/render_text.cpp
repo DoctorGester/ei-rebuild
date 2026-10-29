@@ -162,6 +162,9 @@ int Script(char32_t ch) {
     return 0;
 }
 
+// The width of "..." (DT_END_ELLIPSIS).
+int EllipsisWidth(TextFont& font) { return 3 * font.Advance(U'.') + 2 * font.Kerning(U'.', U'.'); }
+
 class LineMaker {
 public:
     LineMaker(TextFont& font, std::u32string_view text, unsigned format)
@@ -442,8 +445,20 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
     int widest = 0;
     int at = 0;
     for (;;) {
-        const LineMaker::Line line = maker.Next(at, rectWidth);
-        const int width = maker.Width(line.begin, line.end);
+        LineMaker::Line line = maker.Next(at, rectWidth);
+        int width = maker.Width(line.begin, line.end);
+        // DT_END_ELLIPSIS: a line wider than the rectangle loses characters from its end until it fits with "..."
+        // after it (the fit measured without the kerning between the last character kept and the dots, which the
+        // drawing has: DrawText draws the shortened text whole).
+        bool ellipsis = false;
+        int dotsKerning = 0;
+        if ((format & kEndEllipsis) && width > rectWidth) {
+            const int dots = EllipsisWidth(font);
+            while (line.end > line.begin && maker.Width(line.begin, line.end) + dots > rectWidth) --line.end;
+            if (line.end > line.begin) dotsKerning = font.Kerning(text[line.end - 1], U'.');
+            width = maker.Width(line.begin, line.end) + dotsKerning + dots;
+            ellipsis = true;
+        }
         widest = std::max(widest, width);
         int x = rect.left;
         if (format & kRight) x = rect.right - width;
@@ -459,14 +474,15 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
                 out.underlines.push_back({underlineX, top, underlineX + underlineWidth, top + 1});
                 underlined = false;
             };
-            maker.Walk(
+            auto place = [&](char32_t ch, int where) {
+                const AtlasGlyph& glyph = atlas.Get(ch);
+                if (glyph.metrics.width <= 0) return;
+                out.quads.push_back({glyph.atlasX, glyph.atlasY, glyph.metrics.width, glyph.metrics.height,
+                                     where + glyph.metrics.left, y + metrics.ascent + glyph.metrics.top});
+            };
+            int lineEnd = maker.Walk(
                 line.begin, line.end, x,
-                [&](int, char32_t ch, int pen) {
-                    const AtlasGlyph& glyph = atlas.Get(ch);
-                    if (glyph.metrics.width <= 0) return;
-                    out.quads.push_back({glyph.atlasX, glyph.atlasY, glyph.metrics.width, glyph.metrics.height,
-                                         pen + glyph.metrics.left, y + metrics.ascent + glyph.metrics.top});
-                },
+                [&](int, char32_t ch, int where) { place(ch, where); },
                 [&](int index, int pen, int advance) {
                     if (index < 0) {
                         flush();
@@ -478,6 +494,11 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
                     underlineWidth = advance;
                 });
             flush();
+            lineEnd += dotsKerning;
+            for (int dot = 0; ellipsis && dot < 3; ++dot) {
+                place(U'.', lineEnd);
+                lineEnd += font.Advance(U'.') + (dot < 2 ? font.Kerning(U'.', U'.') : 0);
+            }
         }
         y += metrics.height;
         if (!line.lastBreak && line.next >= size) break;

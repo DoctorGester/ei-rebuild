@@ -1,8 +1,7 @@
 // Game textures in the new renderer, keyed by their surface holder: .mmp textures from the file's levels (DXT1-5
 // uploaded as their blocks; RGB of any mask layout decoded; the file's levels only) and textures drawn on the GPU
 // (render_compose.cpp), kept as sokol images until the holder goes, with what they were made from for a new
-// device. Also the holders' pixels in memory the renderer owns (render::SurfaceMemory): a window surface is
-// read from it, again into the same image where the memory was marked written and changed.
+// device. Also the cursor pictures' pixels in memory the renderer owns (render::SurfaceMemory).
 #include "render_internal.h"
 #include "render_ui.h"
 
@@ -40,23 +39,18 @@ struct Texture {
     sg_view view{};
     std::uint32_t checkedFrame = 0xFFFFFFFFu;
     std::uint32_t usedFrame = 0;
-    bool keyed = false;              // window surfaces: the colour key it was converted with
-    std::uint32_t key = 0;
     int width = 0, height = 0;
-    TextureSource source;            // textures: what it was made from, to make it again on a new device
-    bool updatable = false;          // window surfaces: rectangles written into the image
+    TextureSource source;            // what it was made from, to make it again on a new device
     std::size_t bytes = 0;           // .mmp textures: the image's bytes on the GPU
 };
 
 std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures (the only copy)
-std::unordered_map<const void*, Texture> g_windows;    // by surface holder: window surfaces
 std::vector<sg_view> g_retiredViews;                   // replaced during the frame: destroyed at Present
 std::vector<sg_image> g_retiredImages;
 std::unordered_map<std::uint32_t, sg_sampler> g_samplers;
 Texture g_white;
 sg_sampler g_linear{};
 int g_failures = 0;
-constexpr std::uint32_t kUnusedFrames = 600;   // entries unused this long are dropped
 
 struct Channel {
     std::uint32_t mask = 0;
@@ -80,96 +74,8 @@ std::uint8_t Expand(std::uint32_t pixel, const Channel& c, std::uint8_t missing)
     return static_cast<std::uint8_t>(out);
 }
 
-// 16-bit pixels of one mask layout as RGBA8 (alpha 255 without an alpha mask), every value looked up (the
-// masks' loop per channel cost more than the rest of a surface's update): the window surfaces at a 16-bit
-// colour depth (5:6:5). A few layouts are ever in use.
-struct Table16 {
-    std::uint32_t masks[4] = {};
-    std::vector<std::uint32_t> rgba;   // 65536 entries, the bytes R, G, B, A in memory order
-};
-std::vector<Table16> g_tables16;
-
-const std::uint32_t* Lookup16(std::uint32_t red, std::uint32_t green, std::uint32_t blue, std::uint32_t alpha) {
-    for (const Table16& t : g_tables16)
-        if (t.masks[0] == red && t.masks[1] == green && t.masks[2] == blue && t.masks[3] == alpha) return t.rgba.data();
-    Table16 t;
-    t.masks[0] = red;
-    t.masks[1] = green;
-    t.masks[2] = blue;
-    t.masks[3] = alpha;
-    t.rgba.resize(65536);
-    Channel r = MakeChannel(red), g = MakeChannel(green), b = MakeChannel(blue), a = MakeChannel(alpha);
-    for (std::uint32_t pixel = 0; pixel < 65536; ++pixel) {
-        std::uint8_t o[4] = {Expand(pixel, r, 0), Expand(pixel, g, 0), Expand(pixel, b, 0), Expand(pixel, a, 255)};
-        std::memcpy(&t.rgba[pixel], o, 4);
-    }
-    g_tables16.push_back(std::move(t));
-    return g_tables16.back().rgba.data();
-}
-
 bool Empty(const Rect& r) { return r.right <= r.left || r.bottom <= r.top; }
 
-Rect Union(const Rect& a, const Rect& b) {
-    if (Empty(a)) return b;
-    if (Empty(b)) return a;
-    return Rect{a.left < b.left ? a.left : b.left, a.top < b.top ? a.top : b.top, a.right > b.right ? a.right : b.right,
-                a.bottom > b.bottom ? a.bottom : b.bottom};
-}
-
-// The rectangle `part` of a holder's memory as RGBA8 rows of its width (after GdiFlush: GDI may still hold
-// drawing for it). With `keyed`, pixels equal to `key` (a DirectDraw source colour key) come out transparent.
-bool Convert(const SurfaceMemory& m, const Rect& part, std::vector<std::uint8_t>& out, bool keyed = false,
-             std::uint32_t key = 0) {
-    GdiFlush();
-    int bytes = m.bitsPerPixel / 8;
-    if (!m.bits || m.width <= 0 || m.height <= 0 || bytes < 2 || bytes > 4) return false;
-    if (part.left < 0 || part.top < 0 || part.right > m.width || part.bottom > m.height || Empty(part)) return false;
-    Channel r = MakeChannel(m.redMask), g = MakeChannel(m.greenMask), b = MakeChannel(m.blueMask);
-    Channel a = MakeChannel(m.alphaMask);
-    std::uint32_t colourBits = m.redMask | m.greenMask | m.blueMask;
-    std::uint32_t keyBits = key & colourBits;
-    // The screen's 8:8:8 layout without alpha (the interface windows at 32 bits) without the masks' loop.
-    bool bgrx = bytes == 4 && m.redMask == 0xFF0000 && m.greenMask == 0xFF00 && m.blueMask == 0xFF && !m.alphaMask;
-    int width = part.right - part.left, height = part.bottom - part.top;
-    out.resize(static_cast<std::size_t>(width) * height * 4);
-    for (int y = 0; y < height; ++y) {
-        const auto* row = static_cast<const std::uint8_t*>(m.bits) + static_cast<std::size_t>(part.top + y) * m.pitch +
-                          static_cast<std::size_t>(part.left) * bytes;
-        std::uint8_t* o = &out[static_cast<std::size_t>(y) * width * 4];
-        if (bgrx) {
-            for (int x = 0; x < width; ++x) {
-                std::uint32_t pixel = 0;
-                std::memcpy(&pixel, row + x * 4, 4);
-                o[x * 4 + 0] = static_cast<std::uint8_t>(pixel >> 16);
-                o[x * 4 + 1] = static_cast<std::uint8_t>(pixel >> 8);
-                o[x * 4 + 2] = static_cast<std::uint8_t>(pixel);
-                o[x * 4 + 3] = keyed && (pixel & colourBits) == keyBits ? 0 : 255;
-            }
-            continue;
-        }
-        if (bytes == 2) {
-            const std::uint32_t* table = Lookup16(m.redMask, m.greenMask, m.blueMask, m.alphaMask);
-            for (int x = 0; x < width; ++x) {
-                std::uint16_t pixel = 0;
-                std::memcpy(&pixel, row + x * 2, 2);
-                std::memcpy(o + x * 4, &table[pixel], 4);
-                if (keyed) o[x * 4 + 3] = (pixel & colourBits) == keyBits ? 0 : 255;
-            }
-            continue;
-        }
-        for (int x = 0; x < width; ++x) {
-            std::uint32_t pixel = 0;
-            std::memcpy(&pixel, row + x * bytes, static_cast<std::size_t>(bytes));
-            o[x * 4 + 0] = Expand(pixel, r, 0);
-            o[x * 4 + 1] = Expand(pixel, g, 0);
-            o[x * 4 + 2] = Expand(pixel, b, 0);
-            o[x * 4 + 3] = keyed ? ((pixel & colourBits) == keyBits ? 0 : 255) : Expand(pixel, a, 255);
-        }
-    }
-    return true;
-}
-
-Rect Whole(const SurfaceMemory& m) { return Rect{0, 0, m.width, m.height}; }
 
 // An image of `format` from `levels` (level 0 first): the levels given only, as the .mmp file has them and the
 // original's texture had them (RGBA8 or the file's DXT blocks).
@@ -220,31 +126,6 @@ void Retire(Texture& t) {
     t.view = sg_view{};
 }
 
-std::unordered_map<const void*, SurfaceMemory> g_memory;   // by holder
-// The snapshots hold the memory as the window surface's texture was last made from it: converted again only where
-// the game marked it written (render::SurfaceWritten, g_written) and that part differs.
-std::unordered_map<const void*, std::vector<std::uint8_t>> g_snapshots;   // by holder
-std::unordered_map<const void*, Rect> g_written;   // by holder: marked written since its window texture was read
-#if defined(EI_RENDER_VALIDATION)
-int g_missedWrites = 0;
-char g_firstMissedWrite[200] = "";
-#endif
-
-std::size_t MemoryBytes(const SurfaceMemory& m) {
-    return static_cast<std::size_t>(m.pitch) * static_cast<std::size_t>(m.height);
-}
-
-// Keeps the memory of `holder` as its window texture was just made from it, or forgets it when that failed.
-void TakeSnapshot(const void* holder, const SurfaceMemory& m, bool made) {
-    if (!made) {
-        g_snapshots.erase(holder);
-        return;
-    }
-    auto& snapshot = g_snapshots[holder];
-    snapshot.resize(MemoryBytes(m));
-    std::memcpy(snapshot.data(), m.bits, snapshot.size());
-}
-
 // The levels of a texture of `width` x `height` down to 1 x 1.
 int LevelCount(int width, int height) {
     int levels = 1;
@@ -256,165 +137,8 @@ int LevelCount(int width, int height) {
     return levels;
 }
 
-// A window surface's image of `rgba` (w x h): a Direct3D 11 texture of default usage handed to sokol, so
-// changed rectangles can be written into it; `*updatable` false when only an immutable image could be made.
-sg_image MakeWindowImage(int w, int h, const std::vector<std::uint8_t>& rgba, bool* updatable) {
-    *updatable = false;
-    auto* device = static_cast<ID3D11Device*>(const_cast<void*>(sg_d3d11_device()));
-    ID3D11Texture2D* texture = nullptr;
-    if (device) {
-        D3D11_TEXTURE2D_DESC d{};
-        d.Width = static_cast<UINT>(w);
-        d.Height = static_cast<UINT>(h);
-        d.MipLevels = 1;
-        d.ArraySize = 1;
-        d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        d.SampleDesc.Count = 1;
-        d.Usage = D3D11_USAGE_DEFAULT;
-        d.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        D3D11_SUBRESOURCE_DATA initial{rgba.data(), static_cast<UINT>(w) * 4, 0};
-        if (FAILED(device->CreateTexture2D(&d, &initial, &texture))) texture = nullptr;
-    }
-    sg_image_desc desc{};
-    desc.width = w;
-    desc.height = h;
-    desc.num_mipmaps = 1;
-    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-    desc.label = "ei-window-surface";
-    if (texture) desc.d3d11_texture = texture;
-    else desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
-    sg_image image = sg_make_image(&desc);
-    if (texture) {
-        texture->Release();   // sokol holds its own reference
-        *updatable = sg_query_image_state(image) == SG_RESOURCESTATE_VALID;
-    }
-    return image;
-}
-
-void ReadWindow(Texture& t, const void* holder, const SurfaceMemory& m, bool keyed, std::uint32_t key) {
-    std::vector<std::uint8_t> pixels;
-    bool ok = Convert(m, Whole(m), pixels, keyed, key);
-    TakeSnapshot(holder, m, ok);
-    t.keyed = keyed;
-    t.key = key;
-    if (!ok) {
-        if (g_failures++ < 10) ei::Log("render: cannot read window holder %p (%d bits)", holder, m.bitsPerPixel);
-        return;
-    }
-    t.width = m.width;
-    t.height = m.height;
-    CountImage(ImageUse::Window, true);
-    CountUpload(FrameStats::WindowSurface, pixels.size());
-    t.image = MakeWindowImage(t.width, t.height, pixels, &t.updatable);
-    t.view = MakeTextureView(t.image);
-    if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
-        if (t.view.id) sg_destroy_view(t.view);
-        if (t.image.id) sg_destroy_image(t.image);
-        t.image = sg_image{};
-        t.view = sg_view{};
-    }
-}
-
-// Whether the pixels `x0` .. `x1` of one row differ between `a` and `b`; if so widens `*left` / `*right`.
-bool RowChange(const std::uint8_t* a, const std::uint8_t* b, int x0, int x1, int bytes, int* left, int* right) {
-    if (x1 <= x0) return false;
-    std::size_t at = static_cast<std::size_t>(x0) * bytes;
-    if (std::memcmp(a + at, b + at, static_cast<std::size_t>(x1 - x0) * bytes) == 0) return false;
-    int first = x0, last = x1;
-    while (std::memcmp(a + static_cast<std::size_t>(first) * bytes, b + static_cast<std::size_t>(first) * bytes,
-                       static_cast<std::size_t>(bytes)) == 0)
-        ++first;
-    while (std::memcmp(a + static_cast<std::size_t>(last - 1) * bytes, b + static_cast<std::size_t>(last - 1) * bytes,
-                       static_cast<std::size_t>(bytes)) == 0)
-        --last;
-    if (first < *left) *left = first;
-    if (last > *right) *right = last;
-    return true;
-}
-
-// The bounding rectangle of the pixels within `within` where the memory differs from `snapshot`.
-Rect ChangedPart(const SurfaceMemory& m, const std::vector<std::uint8_t>& snapshot, const Rect& within) {
-    int bytes = m.bitsPerPixel / 8;
-    Rect changed{m.width, m.height, 0, 0};
-    for (int y = within.top; y < within.bottom; ++y) {
-        std::size_t row = static_cast<std::size_t>(y) * m.pitch;
-        if (!RowChange(static_cast<const std::uint8_t*>(m.bits) + row, snapshot.data() + row, within.left, within.right,
-                       bytes, &changed.left, &changed.right))
-            continue;
-        if (y < changed.top) changed.top = y;
-        changed.bottom = y + 1;
-    }
-    g_stats.comparedBytes += static_cast<std::uint64_t>(within.right - within.left) * bytes * (within.bottom - within.top);
-    return Empty(changed) ? Rect{} : changed;
-}
-
-void UpdateWindow(Texture& t, const SurfaceMemory& m, std::vector<std::uint8_t>& snapshot, const Rect& part) {
-    std::vector<std::uint8_t> pixels;
-    if (!Convert(m, part, pixels, t.keyed, t.key)) return;
-    int width = part.right - part.left;
-    sg_d3d11_image_info info = sg_d3d11_query_image_info(t.image);
-    auto* context = static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context()));
-    if (!info.res || !context) return;
-    D3D11_BOX box{static_cast<UINT>(part.left), static_cast<UINT>(part.top), 0, static_cast<UINT>(part.right),
-                  static_cast<UINT>(part.bottom), 1};
-    context->UpdateSubresource(static_cast<ID3D11Resource*>(const_cast<void*>(info.res)), 0, &box, pixels.data(),
-                               static_cast<UINT>(width) * 4, 0);
-    CountImage(ImageUse::Window, false);
-    CountUpload(FrameStats::WindowSurface, pixels.size());
-    int bytes = m.bitsPerPixel / 8;
-    for (int y = part.top; y < part.bottom; ++y) {
-        std::size_t at = static_cast<std::size_t>(y) * m.pitch + static_cast<std::size_t>(part.left) * bytes;
-        std::memcpy(snapshot.data() + at, static_cast<const std::uint8_t*>(m.bits) + at, static_cast<std::size_t>(width) * bytes);
-    }
-}
-
-// What was marked written in the memory of `holder` since the last call (clipped to it).
-Rect TakeWritten(const void* holder) {
-    auto it = g_written.find(holder);
-    if (it == g_written.end()) return Rect{};
-    Rect r = it->second;
-    g_written.erase(it);
-    return r;
-}
-
-#if defined(EI_RENDER_VALIDATION)
-// Harness build: the memory compared with the snapshot outside `*written`. A difference is a writer that set
-// no mark (the product would show stale pixels): logged and counted (render::MissedSurfaceWrites), and
-// `*written` grown over it so this frame shows it.
-void CheckMarks(const void* holder, const SurfaceMemory& m, const std::vector<std::uint8_t>& snapshot, Rect* written) {
-    StatsTimer timer(&FrameStats::statsMs);
-    int bytes = m.bitsPerPixel / 8;
-    Rect missed{m.width, m.height, 0, 0};
-    const Rect w = *written;
-    for (int y = 0; y < m.height; ++y) {
-        std::size_t row = static_cast<std::size_t>(y) * m.pitch;
-        const auto* a = static_cast<const std::uint8_t*>(m.bits) + row;
-        const std::uint8_t* b = snapshot.data() + row;
-        bool any = false;
-        if (Empty(w) || y < w.top || y >= w.bottom) {
-            any = RowChange(a, b, 0, m.width, bytes, &missed.left, &missed.right);
-        } else {
-            any = RowChange(a, b, 0, w.left, bytes, &missed.left, &missed.right);
-            any = RowChange(a, b, w.right, m.width, bytes, &missed.left, &missed.right) || any;
-        }
-        if (!any) continue;
-        if (y < missed.top) missed.top = y;
-        missed.bottom = y + 1;
-    }
-    if (Empty(missed)) return;
-    if (g_missedWrites++ == 0)
-        std::snprintf(g_firstMissedWrite, sizeof(g_firstMissedWrite),
-                      "window holder %p (%dx%d): pixels (%d,%d)-(%d,%d) changed without a mark (marked (%d,%d)-(%d,%d)), frame %u",
-                      holder, m.width, m.height, missed.left, missed.top, missed.right, missed.bottom, w.left, w.top, w.right,
-                      w.bottom, static_cast<unsigned>(FrameNumber()));
-    if (g_missedWrites <= 10)
-        ei::Log("render: MISSED WRITE: window holder %p (%dx%d): pixels (%d,%d)-(%d,%d) changed without a mark (marked "
-                "(%d,%d)-(%d,%d))",
-                holder, m.width, m.height, missed.left, missed.top, missed.right, missed.bottom, w.left, w.top, w.right, w.bottom);
-    *written = Union(w, missed);
-}
-
-#endif
+std::unordered_map<const void*, SurfaceMemory> g_memory;   // by holder (rows: g_memoryBytes)
+std::unordered_map<const void*, std::vector<std::uint8_t>> g_memoryBytes;
 
 void Remake(Texture& t);
 
@@ -812,44 +536,6 @@ sg_view TextureView(const void* texture) {
     return SurfaceView(static_cast<const CTexture*>(texture)->surface_);
 }
 
-sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height) {
-    *width = *height = 0;
-    StatsTimer timer(&FrameStats::windowMs);
-    auto memory = g_memory.find(holder);
-    if (memory == g_memory.end()) return sg_view{};
-    const SurfaceMemory& m = memory->second;
-    std::uint32_t frame = FrameNumber();
-    Texture& t = g_windows[holder];
-    // A blit of the image is recorded in this frame (drawn at its end): the image is not written again.
-    bool blitThisFrame = t.view.id && t.usedFrame == frame;
-    t.usedFrame = frame;
-    t.checkedFrame = frame;
-    GdiFlush();
-    // Read again where the game marked the memory written since (render::SurfaceWritten; the game may
-    // redraw a surface between two blits of a frame), and there only what differs from the snapshot.
-    Rect written = TakeWritten(holder);
-    auto snapshot = g_snapshots.find(holder);
-    bool whole = !t.view.id || t.keyed != keyed || (keyed && t.key != key) || t.width != m.width || t.height != m.height ||
-                 snapshot == g_snapshots.end() || snapshot->second.size() != MemoryBytes(m);
-#if defined(EI_RENDER_VALIDATION)
-    if (!whole) CheckMarks(holder, m, snapshot->second, &written);
-#endif
-    if (!whole && !Empty(written)) {
-        Rect changed = ChangedPart(m, snapshot->second, written);
-        if (!Empty(changed)) {
-            if (blitThisFrame || !t.updatable) whole = true;
-            else UpdateWindow(t, m, snapshot->second, changed);
-        }
-    }
-    if (whole) {
-        Retire(t);
-        ReadWindow(t, holder, m, keyed, key);
-    }
-    *width = t.width;
-    *height = t.height;
-    return t.view;
-}
-
 sg_sampler LinearSampler() {
     if (!g_linear.id) {
         sg_sampler_desc d{};
@@ -916,41 +602,24 @@ void RetireTextures() {
     for (sg_image i : g_retiredImages) sg_destroy_image(i);
     g_retiredViews.clear();
     g_retiredImages.clear();
-    // Window surfaces unused for a while (read again from their memory when drawn); a texture is the only copy.
-    std::uint32_t frame = FrameNumber();
-    for (auto it = g_windows.begin(); it != g_windows.end();) {
-        if (frame - it->second.usedFrame > kUnusedFrames) {
-            if (it->second.image.id) {
-                sg_destroy_view(it->second.view);
-                sg_destroy_image(it->second.image);
-            }
-            it = g_windows.erase(it);
-        } else {
-            ++it;
-        }
-    }
 }
 
 void ForgetHolder(const void* holder) {
-    for (auto* map : {&g_textures, &g_windows}) {
-        auto it = map->find(holder);
-        if (it == map->end()) continue;
-        Retire(it->second);
-        map->erase(it);
-    }
+    auto it = g_textures.find(holder);
+    if (it == g_textures.end()) return;
+    Retire(it->second);
+    g_textures.erase(it);
 }
 
 void DestroyTextures() {
     RetireTextures();
-    for (auto* map : {&g_textures, &g_windows}) {
-        for (auto& entry : *map) {
-            if (entry.second.image.id) {
-                sg_destroy_view(entry.second.view);
-                sg_destroy_image(entry.second.image);
-            }
+    for (auto& entry : g_textures) {
+        if (entry.second.image.id) {
+            sg_destroy_view(entry.second.view);
+            sg_destroy_image(entry.second.image);
         }
-        map->clear();
     }
+    g_textures.clear();
     if (g_white.image.id) {
         sg_destroy_view(g_white.view);
         sg_destroy_image(g_white.image);
@@ -964,8 +633,7 @@ void DestroyTextures() {
 
 void DropTextures(std::size_t* kept, std::size_t* keptBytes) {
     *kept = *keptBytes = 0;
-    // The textures stay without their images (made again from their sources at their next use); the window
-    // surfaces are read again from their memory when they are next drawn.
+    // The textures stay without their images (made again from their sources at their next use).
     std::unordered_map<const void*, Texture> remaining;
     for (auto& entry : g_textures) {
         Texture& t = entry.second;
@@ -983,7 +651,6 @@ void DropTextures(std::size_t* kept, std::size_t* keptBytes) {
     }
     DestroyTextures();
     g_textures = std::move(remaining);
-    g_snapshots.clear();
 }
 
 } // namespace render::detail
@@ -1099,30 +766,11 @@ const SurfaceMemory* NewSurfaceMemory(const void* holder, int width, int height,
                                       std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
     if (!holder || width <= 0 || height <= 0 || (bitsPerPixel != 16 && bitsPerPixel != 32)) return nullptr;
     FreeSurfaceMemory(holder);
-    // A top-down DIB section with the channels at the format's masks; rows are DWORD-aligned.
-    struct {
-        BITMAPINFOHEADER header;
-        DWORD masks[3];
-    } info{};
-    info.header.biSize = sizeof(BITMAPINFOHEADER);
-    info.header.biWidth = width;
-    info.header.biHeight = -height;
-    info.header.biPlanes = 1;
-    info.header.biBitCount = static_cast<WORD>(bitsPerPixel);
-    info.header.biCompression = BI_BITFIELDS;
-    info.masks[0] = redMask;
-    info.masks[1] = greenMask;
-    info.masks[2] = blueMask;
-    void* bits = nullptr;
-    HBITMAP bitmap = CreateDIBSection(nullptr, reinterpret_cast<BITMAPINFO*>(&info), DIB_RGB_COLORS, &bits, nullptr, 0);
-    if (!bitmap || !bits) {
-        if (bitmap) DeleteObject(bitmap);
-        return nullptr;
-    }
     SurfaceMemory m;
-    m.bits = bits;
-    m.bitmap = bitmap;
     m.pitch = ((width * bitsPerPixel / 8) + 3) & ~3;
+    std::vector<std::uint8_t>& bytes = detail::g_memoryBytes[holder];
+    bytes.assign(static_cast<std::size_t>(m.pitch) * static_cast<std::size_t>(height), 0);
+    m.bits = bytes.data();
     m.width = width;
     m.height = height;
     m.bitsPerPixel = bitsPerPixel;
@@ -1139,37 +787,8 @@ const SurfaceMemory* SurfaceMemoryOf(const void* holder) {
 }
 
 void FreeSurfaceMemory(const void* holder) {
-    auto it = detail::g_memory.find(holder);
-    if (it != detail::g_memory.end()) {
-        DeleteObject(static_cast<HBITMAP>(it->second.bitmap));
-        detail::g_memory.erase(it);
-    }
-    detail::g_snapshots.erase(holder);
-    detail::g_written.erase(holder);
-}
-
-void SurfaceWritten(const void* holder, const Rect* written) {
-    auto memory = detail::g_memory.find(holder);
-    if (memory == detail::g_memory.end()) return;
-    const SurfaceMemory& m = memory->second;
-    Rect r = written ? *written : Rect{0, 0, m.width, m.height};
-    if (r.left < 0) r.left = 0;
-    if (r.top < 0) r.top = 0;
-    if (r.right > m.width) r.right = m.width;
-    if (r.bottom > m.height) r.bottom = m.height;
-    if (detail::Empty(r)) return;
-    auto marked = detail::g_written.try_emplace(holder, r);
-    if (!marked.second) marked.first->second = detail::Union(marked.first->second, r);
-}
-
-int MissedSurfaceWrites(const char** first) {
-#if defined(EI_RENDER_VALIDATION)
-    *first = detail::g_firstMissedWrite;
-    return detail::g_missedWrites;
-#else
-    *first = "";
-    return 0;
-#endif
+    detail::g_memory.erase(holder);
+    detail::g_memoryBytes.erase(holder);
 }
 
 void HolderGone(const void* holder) {

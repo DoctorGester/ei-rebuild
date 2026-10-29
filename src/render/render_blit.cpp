@@ -402,7 +402,7 @@ void CountImage(ImageUse use, bool made) { ++(made ? g_imageMade : g_imageUpdate
 void CountImageRequest(ImageUse use) { ++g_imageRequests[static_cast<int>(use)]; }
 
 void LogImageCounts(const char* when) {
-    static const char* const names[] = {"cursor", "fill", "movie", "window surface", "texture"};
+    static const char* const names[] = {"cursor", "fill", "movie", "texture"};
     for (int i = 0; i < static_cast<int>(ImageUse::Count); ++i)
         ei::Log("render: images %s, frame %u: %s: %ld requested, %ld made, %ld updated in place", when,
                 static_cast<unsigned>(FrameNumber()), names[i], g_imageRequests[i], g_imageMade[i], g_imageUpdated[i]);
@@ -509,19 +509,5 @@ void DropBlits() {
     DestroyBlits();
 }
 } // namespace detail
-
-void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key) {
-    if (!holder) return;
-    Start();
-    FpuGuard fpu;
-    int width = 0, height = 0;
-    sg_view view = WindowSurfaceView(holder, keyed, key, &width, &height);
-    if (!view.id) return;
-    ++g_stats.blits;
-    Frame& f = g_frame;
-    BlitBatch b{view, width, height, destination, source ? *source : Rect{0, 0, width, height}};
-    f.blitBatches.push_back(b);
-    f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
-}
 
 } // namespace render

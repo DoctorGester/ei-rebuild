@@ -56,7 +56,6 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 void ParseSpec(const char* spec) {
     g_smooth = false;
     g_smoothCamera = false;
-    ui::ResetOptions();
 #if defined(EI_RENDER_VALIDATION)
     g_removable = false;
     g_checkAll = false;
@@ -71,7 +70,6 @@ void ParseSpec(const char* spec) {
         if (word == "new" || word == "present" || word == "cpuwindows") {}
         else if (word == "smooth") g_smooth = true;
         else if (word == "smoothcamera") g_smoothCamera = true;
-        else if (ui::ParseOption(word)) {}
 #if defined(EI_RENDER_VALIDATION)
         else if (word == "removable") g_removable = true;
         else if (word == "checkall") g_checkAll = true;
@@ -245,7 +243,7 @@ bool CreateDevice() {
     desc.environment.d3d11.device = g_device;
     desc.environment.d3d11.device_context = g_context;
     desc.logger.func = &SokolLog;
-    // The game's textures, window surfaces and the images replaced within a frame are far more than sokol's
+    // The game's textures, canvases and the images replaced within a frame are far more than sokol's
     // default pools (128 images, 256 views); a full pool made sg_make_image fail.
     desc.image_pool_size = 16384;
     desc.view_pool_size = 16384;
@@ -447,8 +445,8 @@ bool g_lastLossSimulated = false;
 
 // Everything made on the lost device is released (sokol's resources through each module, then sg_shutdown),
 // the device and context with them; a new device gets sokol again and the pipelines. The frame target, the
-// window's swap chain, window surfaces and textures are made again as the next frames ask for them: from the
-// game's memory, or from the file levels kept for them. No new device ends the game.
+// window's swap chain and textures are made again as the next frames ask for them (from the file levels kept for
+// them), the interface canvases from the commands each keeps. No new device ends the game.
 void RecreateDevice() {
     FpuGuard fpu;
     ++g_losses;
@@ -578,7 +576,7 @@ void AddFrameStats() {
                        &FrameStats::flatMeshes, &FrameStats::flatVertexBytes, &FrameStats::matrices, &FrameStats::terrainVertexBytes, &FrameStats::terrainIndexBytes,
                        &FrameStats::meshVertexBytes, &FrameStats::meshIndexBytes, &FrameStats::uniformBytes, &FrameStats::passes,
                        &FrameStats::draws, &FrameStats::pipelineApplies, &FrameStats::pipelineChanges, &FrameStats::bindings,
-                       &FrameStats::textureChanges, &FrameStats::comparedBytes, &FrameStats::morphMeshes,
+                       &FrameStats::textureChanges, &FrameStats::morphMeshes,
                        &FrameStats::morphCorners, &FrameStats::decalShadows, &FrameStats::decalPrints,
                        &FrameStats::decalVertices, &FrameStats::flatDraws,
                        &FrameStats::flatDrawVertices, &FrameStats::shadowBuilds})
@@ -586,7 +584,6 @@ void AddFrameStats() {
     for (int k = 0; k < FrameStats::UploadKinds; ++k) {
         s.uploads[k] += f.uploads[k];
         s.uploadBytes[k] += f.uploadBytes[k];
-        if (f.largestUpload[k] > s.largestUpload[k]) s.largestUpload[k] = f.largestUpload[k];
     }
     for (int k = 0; k < FrameStats::ReuseKinds; ++k) {
         s.terrainReuse[k] += f.terrainReuse[k];
@@ -596,7 +593,6 @@ void AddFrameStats() {
     s.handOverMs += f.handOverMs;
     s.terrainMs += f.terrainMs;
     s.textureMs += f.textureMs;
-    s.windowMs += f.windowMs;
     s.endFrameMs += f.endFrameMs;
     s.statsMs += f.statsMs;
     s.deviceMeshMs += f.deviceMeshMs;
@@ -1169,7 +1165,6 @@ void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key,
 void CountUpload(FrameStats::Upload kind, std::size_t bytes) {
     ++g_stats.uploads[kind];
     g_stats.uploadBytes[kind] += bytes;
-    if (bytes > g_stats.largestUpload[kind]) g_stats.largestUpload[kind] = bytes;
 }
 
 } // namespace detail

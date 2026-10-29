@@ -150,7 +150,6 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
     const char* const kNumber = "%d";
     std::string text;
     CUiSurface* counts = surfaces_[0];
-    counts->GetDC();
     counts->Clear();
     for (int i = 0; i < 8; ++i) {
         if (!shown[i]) continue;
@@ -160,9 +159,7 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
         RECT rect = cellRect(i);
         counts->DrawLine(text, &rect, 1, 0xA7D7E4, 2, 1);
     }
-    counts->ReleaseDC();
     CUiSurface* numbers = surfaces_[1];
-    numbers->GetDC();
     numbers->Clear();
     for (int i = 0; i < 8; ++i) {
         CItem* item = shown[i];
@@ -172,7 +169,6 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
         RECT rect = cellRect(i);
         numbers->DrawLine(text, &rect, 1, 0xA7D7E4, 1, 1);
     }
-    numbers->ReleaseDC();
     return 1;
 }
 

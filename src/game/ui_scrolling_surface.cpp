@@ -1,18 +1,19 @@
 // The titles' scrolling text surface (CUiScrollingSurface, ui_screens.h): a window surface with a hidden
-// RichEdit control holding an RTF text, formatted into the surface at a scroll offset that moves with the game
-// time. See docs/notes/items_spells.md.
+// RichEdit control holding an RTF text, formatted at a scroll offset that moves with the game time into a page of
+// the surface's size on the CPU, whose pixels are then written onto the surface's canvas (the interface's last GDI:
+// docs/notes/ui-native.md, "P8 done"). See docs/notes/items_spells.md.
 #include "app.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
 #include "resource.h"
-#include "ui_gdi.h"
 #include "world.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
+#include "render/render_ui.h"
 
 #include <richedit.h>
 
@@ -43,6 +44,78 @@ DWORD CALLBACK ReadRtf(DWORD_PTR cookie, LPBYTE buffer, LONG wanted, LONG* read)
     source->position += count;
     *read = static_cast<LONG>(count);
     return 0;
+}
+
+// The page the RichEdit formats into: a memory DC on a 32-bit DIB section, kept for the largest surface so far.
+class RichEditPage {
+public:
+    RichEditPage() = default;
+    RichEditPage(const RichEditPage&) = delete;
+    RichEditPage& operator=(const RichEditPage&) = delete;
+    ~RichEditPage() { Release(); }
+
+    // The page of at least `width` x `height` pixels; false when it cannot be made.
+    bool Ensure(int width, int height) {
+        if (dc_ && width <= width_ && height <= height_) return true;
+        Release();
+        BITMAPINFO info{};
+        info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        info.bmiHeader.biWidth = width;
+        info.bmiHeader.biHeight = -height;
+        info.bmiHeader.biPlanes = 1;
+        info.bmiHeader.biBitCount = 32;
+        info.bmiHeader.biCompression = BI_RGB;
+        void* bits = nullptr;
+        bitmap_ = gameapi::CreateDIBSection(nullptr, &info, DIB_RGB_COLORS, &bits, nullptr, 0);
+        dc_ = bitmap_ ? ::CreateCompatibleDC(nullptr) : nullptr;
+        if (!dc_ || !bits) {
+            Release();
+            return false;
+        }
+        old_ = gameapi::SelectObject(dc_, bitmap_);
+        bits_ = static_cast<std::uint32_t*>(bits);
+        width_ = width;
+        height_ = height;
+        return true;
+    }
+
+    HDC Dc() const { return dc_; }
+    int Pitch() const { return width_; }
+    // The page's pixels as 0x00RRGGBB, `Pitch()` apart (GDI's drawing flushed).
+    const std::uint32_t* Pixels() const {
+        ::GdiFlush();
+        return bits_;
+    }
+    // `width` x `height` from the top left filled with `colour` (a COLORREF).
+    void Fill(int width, int height, COLORREF colour) {
+        const std::uint32_t rgb = ((colour & 0xFF) << 16) | (colour & 0xFF00) | ((colour >> 16) & 0xFF);
+        ::GdiFlush();
+        for (int y = 0; y < height; ++y) std::fill_n(bits_ + static_cast<std::size_t>(y) * width_, width, rgb);
+    }
+
+private:
+    void Release() {
+        if (dc_) {
+            gameapi::SelectObject(dc_, old_);
+            gameapi::DeleteDC(dc_);
+        }
+        if (bitmap_) gameapi::DeleteObject(bitmap_);
+        dc_ = nullptr;
+        bitmap_ = nullptr;
+        bits_ = nullptr;
+        width_ = height_ = 0;
+    }
+
+    HDC dc_ = nullptr;
+    HBITMAP bitmap_ = nullptr;
+    HGDIOBJ old_ = nullptr;
+    std::uint32_t* bits_ = nullptr;
+    int width_ = 0, height_ = 0;
+};
+
+RichEditPage& Page() {
+    static RichEditPage page;
+    return page;
 }
 
 int HeightInTwips(const CUiScrollingSurface* surface, HDC dc) {
@@ -91,8 +164,10 @@ bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
 }
 
 void CUiScrollingSurface::RenderText() {
-    HDC dc = UiSurfaceGetDC(this);
-    this->Clear();
+    RichEditPage& page = Page();
+    if (!holder_ || !page.Ensure(width_, height_)) return;
+    HDC dc = page.Dc();
+    page.Fill(width_, height_, background_);
     gameapi::SendMessageA(richEdit_, EM_SETBKGNDCOLOR, 0, static_cast<LPARAM>(background_));
     int width = gameapi::MulDiv(rect_.right - rect_.left, kTwipsPerInch, gameapi::GetDeviceCaps(dc, LOGPIXELSX));
     int height = HeightInTwips(this, dc);
@@ -106,6 +181,7 @@ void CUiScrollingSurface::RenderText() {
     range.chrg.cpMin = 0;
     range.chrg.cpMax = -1;
     LRESULT fitted = gameapi::SendMessageA(richEdit_, EM_FORMATRANGE, 1, reinterpret_cast<LPARAM>(&range));
+    render::ui::Image(holder_, render::Rect{0, 0, width_, height_}, page.Pixels(), page.Pitch());
     if (endOffset_ > 0) {
         if (offset_ > endOffset_ + kExtraTwipsBelow + height) {
             speed_ = 0.0f;
@@ -114,7 +190,6 @@ void CUiScrollingSurface::RenderText() {
     } else if (fitted >= textLength_) {
         endOffset_ = offset_;
     }
-    UiSurfaceReleaseDC(this);
 }
 
 void CUiScrollingSurface::Blit() {
@@ -131,9 +206,8 @@ void CUiScrollingSurface::Blit() {
 void CUiScrollingSurface::Start(float speed, char fromBelow) {
     endOffset_ = 0;
     if (fromBelow) {
-        HDC dc = UiSurfaceGetDC(this);
-        offset_ = -HeightInTwips(this, dc);
-        UiSurfaceReleaseDC(this);
+        RichEditPage& page = Page();
+        offset_ = page.Ensure(width_, height_) ? -HeightInTwips(this, page.Dc()) : 0;
     } else {
         offset_ = 0;
     }

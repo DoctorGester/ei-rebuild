@@ -67,13 +67,11 @@ int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
 
     std::string text;
     auto* surface = surfaces_[0];
-    surface->GetDC();
     surface->Clear();
     DrawItems(this, pass, bought_, surface, text, 150.0f, 48.0f, 24.0f, 0x0F, 0x41,
               buyKind_);
     DrawItems(this, pass, sold_, surface, text, 350.0f, 12.0f, 6.0f, 0xD7, 0x109,
               sellKind_);
-    surface->ReleaseDC();
     ui = interface_;
     RECT whole{0, 0, ui->width_, ui->height_};
     ClearUiDepth(1.0f, &whole, 1);

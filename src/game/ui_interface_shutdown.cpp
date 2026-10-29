@@ -7,7 +7,6 @@
 #include "console.h"
 #include "game_strings.h"
 #include "ui_cursor.h"
-#include "ui_gdi.h"
 
 #include "lib/file_io.h"
 #include "lib/crt.h"
@@ -83,7 +82,7 @@ void CInterface3D::Shutdown() {
         console_ = nullptr;
     }
     keybind::SaveKeyBindings();
-    for (gdi::Font& font : fonts_) font.reset();
+    for (UiFont& font : fonts_) font = UiFont{};
     delete fade_;   // (the pointer is not cleared)
 }
 
@@ -98,5 +97,5 @@ void CInterface3D::DestroyBody() {
 console::ConsoleWindow::~ConsoleWindow() {
     DeleteSurface(surface_);
     surface_ = nullptr;
-    font_.reset();
+    font_ = UiFont{};
 }

@@ -119,7 +119,6 @@ BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
 
     std::string text;
     auto* surface = surfaces_[0];
-    surface->GetDC();
     surface->Clear();
     const std::vector<CItem*>* list = items_;
     for (int i = 0; i < std::ssize(*list); ++i) {
@@ -142,7 +141,6 @@ BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
         RECT r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
         surface->DrawLine(text, &r, 1, kTextColour, 1, 1);
     }
-    surface->ReleaseDC();
     DrawBase(pass);
     ui = interface_;
     RECT whole{0, 0, ui->width_, ui->height_};
@@ -200,7 +198,6 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
         owner_->BestPartySkill(school, &skill, &mana);   // the party's best
     }
     auto* surface = surfaces_[0];
-    surface->GetDC();
     surface->Clear();
     if (hasSpell) {
         std::string text;
@@ -218,7 +215,6 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
         RECT second{10, 20, 200, 40};
         surface->DrawLine(texts_[1], &second, 1, kTextColour, 0, 1);
     }
-    surface->ReleaseDC();
     DrawBase(pass);
 
     CUiMesh* highlight = Highlight(this);

@@ -2,6 +2,8 @@
 
 What each window surface is drawn with, how often, and who reads it back. It was measured on 26 interface scenarios, on vanilla and on Rebirth. The plan this checks is in ui-native.md (section 1 is the inventory).
 
+**Since P8 (2026-10-29) this is a record of the GDI path.** The interface draws on GPU canvases only (ui-native.md, "P8 done"); the census (`tests/verify/ui_census.cpp`, `tools/ui_census_report.py`) went with the GDI path it measured, and the hooks, observers and DCs named below no longer exist.
+
 ## How it was measured
 
 - **`tests/verify/ui_census.cpp`** (verify build only). It is switched on by the scenario step `uicensus` or by `EI_UI_CENSUS=1`, and needs `EI_RENDER=new,cpuwindows`.

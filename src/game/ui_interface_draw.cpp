@@ -9,7 +9,6 @@
 #include "core_maths.h"
 #include "model.h"
 #include "texture.h"
-#include "ui_native.h"
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
@@ -53,7 +52,6 @@ void MakeBackdrop(CInterface3D* ui) {
     } else {
         ui->backdrop_ = new CUiSurface(ui, 0, 0, 800, 600, 4, 1);
     }
-    ui_native::Adopt(ui->backdrop_, "backdrop");
 }
 
 } // namespace
@@ -141,13 +139,11 @@ void CInterface3D::DrawOverlays() {
             float perSecond =
                 static_cast<float>(fpsFrames_) * 1000.0f / static_cast<float>(static_cast<int>(elapsed));
             rate = str::Format("%.1f", static_cast<double>(perSecond));
-            UiSurfaceGetDC(fpsSurface_);
             fpsSurface_->Clear();
             RECT rect{0, 0, 60, 18};
             fpsSurface_->DrawTextIn("FPS:", &rect, kFpsFont, kWhite, 0, 1);
             rect = RECT{0, 0, 60, 18};
             fpsSurface_->DrawTextIn(rate, &rect, kFpsFont, kWhite, 2, 1);
-            UiSurfaceReleaseDC(fpsSurface_);
         }
         fpsTime_ = now;
         fpsFrames_ = 0;

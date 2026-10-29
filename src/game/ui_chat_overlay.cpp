@@ -5,8 +5,6 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "ui.h"
-#include "ui_gdi.h"
-#include "ui_native.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -144,8 +142,6 @@ void CChatOverlay::AddLine(const char* text) {
         added.time = now;
         const int width = TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad;
         CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, kLineSurfaceFormat, 1);
-        ui_native::Adopt(surface, "chat");
-        UiSurfaceGetDC(surface);
         surface->Clear();
         const std::string& codes = formatted[i];
         std::string drawn;
@@ -162,7 +158,6 @@ void CChatOverlay::AddLine(const char* text) {
         }
         piece = str::Mid(codes, start);
         if (piece.size() != 0) DrawPiece(surface, piece, x, colour);
-        UiSurfaceReleaseDC(surface);
         added.surface = surface;
     }
 }
@@ -193,25 +188,18 @@ void CChatOverlay::DrawTyped() {
     if (caret_ > static_cast<int>(typed_.size())) caret_ = typed_.size();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_[0];
-    HDC dc = UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
     surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
     int width = TextWidth(interface_, str::Left(typed_, caret_), kTypedFont);
     if (width < kMaxTypedWidth) {
-        gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, kTypedColour));
-        HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());
         POINT top{width, 0};
         POINT bottom{width, kCaretBottom};
         // WideScreen: without the margin.
         interface_->CallScalePointToScreenNoMargin(&top);
         interface_->CallScalePointToScreenNoMargin(&bottom);
-        gameapi::MoveToEx(dc, top.x, top.y, nullptr);
-        gameapi::LineTo(dc, bottom.x, bottom.y);
-        gameapi::SelectObject(dc, oldPen);
-        ui_native::Line(surface, top.x, top.y, bottom.x, bottom.y, 1, kTypedColour);
+        surface->Line(top.x, top.y, bottom.x, bottom.y, 1, kTypedColour);
     }
-    UiSurfaceReleaseDC(surface);
 }
 
 // --- the chat line's keys -------------------------------------------------------------------------
@@ -276,7 +264,6 @@ void CChatOverlay::OnChar(int key, int, int) {
 // Its own redraw and update; the input side's keys and characters.
 CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
     CUiSurface* typed = new CUiSurface(interface_, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, kTypedFormat, 1);
-    ui_native::Adopt(typed, "chat");
     AddSurface(typed);
     chatOpen_ = false;
     caret_ = 0;

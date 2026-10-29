@@ -58,30 +58,6 @@ struct CanvasImage {
     sg_view attachment{}, texture{};
 };
 
-struct CanvasState {
-    unsigned id = 0;   // queued commands name the canvas they were made for
-    int width = 0, height = 0;
-    ui::PixelFormat format;
-    std::uint32_t bits[3] = {8, 8, 8};   // red, green, blue (at most 8)
-    std::uint32_t greyMode = 2;          // ps_grey: 0 5:6:5, 1 5:5:5, 2 on 8-bit channels
-    CanvasImage gpu;                     // made by RunCanvasCommands
-    bool blitPending = false;            // blitted in the frame, the blit not drawn yet
-    bool only = false;                   // ui::CanvasOnly
-    unsigned version = 0;                // g_version when a command for it was last queued
-    std::vector<Rect> text;              // ui::CanvasInfo::text
-};
-std::unordered_map<const void*, CanvasState> g_canvases;
-unsigned g_nextId = 1;
-unsigned g_version = 0;
-
-// The switch (ui::Mode): its words, the path shown under Both, the families listed.
-ui::Mode g_mode = ui::Mode::Cpu;
-ui::Path g_path = ui::Path::Cpu;
-std::vector<std::string> g_listed;
-// The canvas blits of the frame drawn last (CanvasBlitsDrawn).
-std::vector<Rect> g_drawnRects;
-constexpr std::size_t kMaxTextRects = 64;
-
 struct Op {
     enum Kind : std::uint8_t { Make, Solid, Glyphs, Copy, Grey, Pixels };
     Kind kind = Solid;
@@ -95,6 +71,24 @@ struct Op {
     std::vector<std::uint32_t> pixels;   // Pixels: RGBA8, rect's rows
 };
 std::vector<Op> g_queue;
+
+// A canvas's commands drawn since it was last covered whole are kept (its history) and drawn again on a new
+// device; a history grown past this many is replaced by the canvas's pixels read back (Compact).
+constexpr std::size_t kMaxHistory = 256;
+
+struct CanvasState {
+    unsigned id = 0;   // queued commands name the canvas they were made for
+    int width = 0, height = 0;
+    ui::PixelFormat format;
+    std::uint32_t bits[3] = {8, 8, 8};   // red, green, blue (at most 8)
+    std::uint32_t greyMode = 2;          // ps_grey: 0 5:6:5, 1 5:5:5, 2 on 8-bit channels
+    CanvasImage gpu;                     // made by RunCanvasCommands
+    bool blitPending = false;            // blitted in the frame, the blit not drawn yet
+    std::vector<Op> history;             // drawn on `gpu` since it was made or last covered whole
+    bool copied = false;                 // a screen copy drawn: its pixels become the history (Compact)
+};
+std::unordered_map<const void*, CanvasState> g_canvases;
+unsigned g_nextId = 1;
 
 // Images given up, destroyed at the next RunCanvasCommands (DropCanvas comes from game code at any time).
 std::vector<CanvasImage> g_retired;
@@ -115,31 +109,11 @@ CanvasState* Target(const void* holder) {
     return &it->second;
 }
 
-void Push(Op&& op) {
-    auto it = g_canvases.find(op.holder);
-    if (it != g_canvases.end()) it->second.version = ++g_version;
-    g_queue.push_back(std::move(op));
-}
-
-Rect Union(const Rect& a, const Rect& b) {
-    return Rect{std::min(a.left, b.left), std::min(a.top, b.top), std::max(a.right, b.right), std::max(a.bottom, b.bottom)};
-}
-
-// A glyph run's area kept for the comparison (ui::CanvasInfo::text); a fill of the whole canvas forgets them.
-void AddTextRect(CanvasState& canvas, const Rect& r) {
-    if (canvas.text.size() < kMaxTextRects) {
-        canvas.text.push_back(r);
-        return;
-    }
-    Rect all = r;
-    for (const Rect& t : canvas.text) all = Union(all, t);
-    canvas.text.assign(1, all);
-}
+void Push(Op&& op) { g_queue.push_back(std::move(op)); }
 
 void PushSolid(const void* holder, CanvasState& canvas, const Rect& rect, std::uint32_t rgb) {
     Rect r = Intersect(rect, Rect{0, 0, canvas.width, canvas.height});
     if (Empty(r)) return;
-    if (r.left == 0 && r.top == 0 && r.right == canvas.width && r.bottom == canvas.height) canvas.text.clear();
     Op op;
     op.kind = Op::Solid;
     op.holder = holder;
@@ -619,6 +593,38 @@ void UnmapRegion(Staging& s) {
     sg_reset_state_cache();
 }
 
+// `op`, just drawn on `canvas`, joins its history. One that covers the canvas whole (its making, a fill or
+// picture of all of it) starts the history again. A screen copy is not kept (the frame it copied is gone on a new
+// device): the canvas is marked to be read back (Compact) once the queue is drawn.
+void Remember(CanvasState& canvas, Op&& op) {
+    const bool whole = op.rect.left <= 0 && op.rect.top <= 0 && op.rect.right >= canvas.width && op.rect.bottom >= canvas.height;
+    if (op.kind == Op::Make || op.kind == Op::Copy || ((op.kind == Op::Solid || op.kind == Op::Pixels) && whole))
+        canvas.history.clear();
+    if (op.kind == Op::Copy) canvas.copied = true;
+    if (op.kind != Op::Make && op.kind != Op::Copy) canvas.history.push_back(std::move(op));
+}
+
+// A long or copied history replaced by the canvas's pixels read back: one picture of the whole canvas.
+void Compact(const void* holder, CanvasState& canvas) {
+    canvas.copied = false;
+    ID3D11Texture2D* texture = TextureOf(canvas.gpu.image);
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    const UINT w = static_cast<UINT>(canvas.width), h = static_cast<UINT>(canvas.height);
+    if (!texture || !MapRegion(g_staging, texture, 0, 0, w, h, &mapped)) return;
+    Op op;
+    op.kind = Op::Pixels;
+    op.holder = holder;
+    op.canvas = canvas.id;
+    op.rect = Rect{0, 0, canvas.width, canvas.height};
+    op.pixels.resize(static_cast<std::size_t>(w) * h);
+    for (UINT y = 0; y < h; ++y)   // RGBA8, as the Pixels command holds it
+        std::memcpy(op.pixels.data() + static_cast<std::size_t>(y) * w,
+                    static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch, w * 4u);
+    UnmapRegion(g_staging);
+    canvas.history.clear();
+    canvas.history.push_back(std::move(op));
+}
+
 } // namespace
 
 // ---- The public commands --------------------------------------------------------------------------------
@@ -662,7 +668,7 @@ bool Canvas(const void* holder, int width, int height, const PixelFormat& format
         return true;
     CanvasState* canvas = it != g_canvases.end() ? Target(holder) : &g_canvases[holder];
     canvas->id = g_nextId++;
-    canvas->text.clear();
+    canvas->history.clear();
     canvas->width = width;
     canvas->height = height;
     canvas->format = format;
@@ -689,11 +695,6 @@ void DropCanvas(const void* holder) {
     if (it == g_canvases.end()) return;
     g_retired.push_back(it->second.gpu);
     g_canvases.erase(it);
-}
-
-void CanvasOnly(const void* holder) {
-    auto it = g_canvases.find(holder);
-    if (it != g_canvases.end()) it->second.only = true;
 }
 
 void MoveCanvas(const void* from, const void* to) {
@@ -811,7 +812,6 @@ void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& 
     for (const text::Rect& u : layout.underlines) quad(u.left, u.top, u.right - u.left, u.bottom - u.top, -1.0f, -1.0f);
     op.rect = Intersect(bounds, scissor);
     if (Empty(op.rect)) return;
-    AddTextRect(*canvas, layout.clipped ? scissor : op.rect);
     Push(std::move(op));
 }
 
@@ -918,28 +918,6 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     return true;
 }
 
-bool ReadBack(const void* holder) {
-    const SurfaceMemory* memory = SurfaceMemoryOf(holder);
-    if (!memory || (memory->bitsPerPixel != 16 && memory->bitsPerPixel != 32)) return false;
-    std::vector<std::uint32_t> rgb;
-    int w = 0, h = 0;
-    if (!ReadPixels(holder, &rgb, &w, &h) || w != memory->width || h != memory->height) return false;
-    PixelFormat format{memory->bitsPerPixel, memory->redMask, memory->greenMask, memory->blueMask};
-    for (int y = 0; y < h; ++y) {
-        auto* row = static_cast<std::uint8_t*>(memory->bits) + static_cast<std::size_t>(y) * static_cast<std::size_t>(memory->pitch);
-        const std::uint32_t* in = rgb.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(w);
-        if (memory->bitsPerPixel == 32) {
-            auto* out = reinterpret_cast<std::uint32_t*>(row);
-            for (int x = 0; x < w; ++x) out[x] = Pack(in[x], format) | memory->alphaMask;
-        } else {
-            auto* out = reinterpret_cast<std::uint16_t*>(row);
-            for (int x = 0; x < w; ++x) out[x] = static_cast<std::uint16_t>(Pack(in[x], format) | memory->alphaMask);
-        }
-    }
-    SurfaceWritten(holder, nullptr);
-    return true;
-}
-
 void DrawCanvas(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key) {
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end()) return;
@@ -972,60 +950,6 @@ void Image(const void* holder, const Rect& destination, const std::uint32_t* rgb
     Push(std::move(op));
 }
 
-void ResetOptions() {
-    g_mode = Mode::Cpu;
-    g_listed.clear();
-}
-
-bool ParseOption(const std::string& word) {
-    const std::string name = word.substr(0, word.find('='));
-    if (name != "uiboth" && name != "uinative") return false;
-    g_mode = name == "uiboth" ? Mode::Both : Mode::Native;
-    g_listed.clear();
-    for (std::size_t start = name.size() + 1; start <= word.size();) {
-        std::size_t plus = word.find('+', start);
-        std::string family = word.substr(start, plus == std::string::npos ? std::string::npos : plus - start);
-        if (!family.empty()) g_listed.push_back(family);
-        if (plus == std::string::npos) break;
-        start = plus + 1;
-    }
-    return true;
-}
-
-Mode CurrentMode() { return g_mode; }
-
-bool Listed(const char* name) {
-    if (g_mode == Mode::Cpu) return false;
-    if (g_listed.empty()) return true;
-    return name && std::find(g_listed.begin(), g_listed.end(), name) != g_listed.end();
-}
-
-void SetPath(Path path) { g_path = path; }
-
-bool DrawsCanvas(const void* holder) {
-    auto it = g_canvases.find(holder);
-    if (it == g_canvases.end()) return false;
-    return it->second.only || g_mode == Mode::Native || (g_mode == Mode::Both && g_path == Path::Native);
-}
-
-void Canvases(std::vector<CanvasInfo>* out) {
-    out->clear();
-    out->reserve(g_canvases.size());
-    for (const auto& [holder, canvas] : g_canvases) {
-        CanvasInfo info;
-        info.holder = holder;
-        info.width = canvas.width;
-        info.height = canvas.height;
-        info.format = canvas.format;
-        info.only = canvas.only;
-        info.version = canvas.version;
-        info.text = canvas.text;
-        out->push_back(std::move(info));
-    }
-}
-
-void DrawnCanvasRects(std::vector<Rect>* out) { *out = g_drawnRects; }
-
 } // namespace ui
 
 // ---- render.cpp's side ------------------------------------------------------------------------------------
@@ -1041,6 +965,7 @@ void RunCanvasCommands() {
         return;
     }
     std::size_t k = 0;
+    bool readBack = false;
     while (k < g_queue.size()) {
         const Op& op = g_queue[k];
         CanvasState* canvas = Find(op.holder, op.canvas);
@@ -1050,31 +975,33 @@ void RunCanvasCommands() {
             ++k;
             continue;
         }
+        std::size_t end = k + 1;
         switch (op.kind) {
         case Op::Make: MakeImage(*canvas); break;
-        case Op::Solid: {
-            std::size_t end = k + 1;
+        case Op::Solid:
             while (end < g_queue.size() && g_queue[end].kind == Op::Solid && g_queue[end].holder == op.holder &&
                    g_queue[end].canvas == op.canvas)
                 ++end;
             DrawSolids(*canvas, k, end);
-            k = end;
-            continue;
-        }
+            break;
         case Op::Glyphs: DrawGlyphs(*canvas, op); break;
         case Op::Copy: DrawCopy(*canvas, op); break;
         case Op::Grey: DrawGrey(*canvas); break;
         case Op::Pixels: DrawPixels(*canvas, op); break;
         }
-        ++k;
+        for (; k < end; ++k) Remember(*canvas, std::move(g_queue[k]));
+        readBack = readBack || canvas->copied || canvas->history.size() > kMaxHistory;
     }
     g_queue.clear();
+    if (readBack) {
+        FpuGuard fpu;
+        for (auto& [holder, canvas] : g_canvases)
+            if ((canvas.copied || canvas.history.size() > kMaxHistory) && canvas.gpu.image.id) Compact(holder, canvas);
+    }
 }
 
 void CanvasBlitsDrawn() {
     for (auto& entry : g_canvases) entry.second.blitPending = false;
-    g_drawnRects.clear();
-    for (const CanvasBatch& batch : g_frame.canvasBatches) g_drawnRects.push_back(batch.destination);
 }
 
 void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {
@@ -1108,7 +1035,25 @@ void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {
 }
 
 void DropCanvases() {
-    for (auto& entry : g_canvases) DestroyImage(entry.second.gpu);
+    // Each canvas is queued to be made again on the new device (black) with its history drawn on it, before
+    // what was queued since the last frame.
+    std::vector<Op> replay;
+    for (auto& [holder, canvas] : g_canvases) {
+        DestroyImage(canvas.gpu);
+        Op make;
+        make.kind = Op::Make;
+        make.holder = holder;
+        make.canvas = canvas.id;
+        replay.push_back(std::move(make));
+        for (Op& op : canvas.history) {
+            op.holder = holder;   // (MoveCanvas leaves the history under the key it was drawn with)
+            replay.push_back(std::move(op));
+        }
+        canvas.history.clear();
+        canvas.copied = false;
+    }
+    for (Op& op : g_queue) replay.push_back(std::move(op));
+    g_queue = std::move(replay);
     for (CanvasImage& i : g_retired) DestroyImage(i);
     g_retired.clear();
     for (auto& entry : g_atlases) {

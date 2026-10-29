@@ -198,29 +198,29 @@ MODULATE around it) goes to `render::TlDraw` (line strip, FVF 0xC4), not reached
 (`renderer_rect.cpp`). 0049B140 only appends a line-list point; 0050434F and 00504341 are not functions (inside
 005041F0; a false vtable entry 00747E2C in config/vtables.csv).
 
-## 6. Interface windows and holders on game memory (`cpuwindows`)
+## 6. Interface windows and holders
 
-**Memory** (owned by the new renderer): `render::NewSurfaceMemory / SurfaceMemoryOf / FreeSurfaceMemory / HolderGone`
-(render_textures.cpp): one zeroed top-down DIB section per holder (GDI draws into it through a memory DC) with pitch,
-size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, and `DirectPixels`, which
-describes it as a `SurfacePixels`, in `surface.h`) and read by the renderer after GdiFlush.
-Change detection (R16a): writers mark what they wrote (`render::SurfaceWritten`): the DC release 005FDC60 marks
-GDI's bounds of the DC (`SetBoundsRect` at 005FDC00, `GetBoundsRect`, 2 pixels wider), `DirectPixels` the whole
-memory unless the caller only reads (`reads`: PixelAt, SwapContents' save, SurfaceBytes), a canvas read back
-(`render::ui::ReadBack`) the whole memory. At a blit only the marked rectangle is compared with the copy of what the texture
-holds, and the differing part is converted and written into the texture (a Direct3D 11 default-usage texture handed
-to sokol, `UpdateSubresource`); a surface already blitted in this frame gets a new texture instead. The harness
-build compares the rest of the memory at every blit: a change outside the marks is logged ("MISSED WRITE") and fails
-the run (`render::MissedSurfaceWrites`; its time counts as "counting").
+**Interface windows on GPU canvases (P8).** A window surface's pixels live only in its interface canvas
+(`render_ui.cpp`, docs/notes/ui-native.md, "P8 done"): an RGBA8 render target per holder, made with the surface
+(`CUiSurface::MakeCanvas`), drawn into by the surface functions (fills, frames, lines, pixels, glyph runs in our own
+fonts, the screen copy, greying, the titles' page) and blitted by 005FDA80 (`render::ui::DrawCanvas`). There is no
+memory, no DIB section, no GDI, no comparison or upload at a blit. The readers get pixels from the GPU: PixelAt
+(`ReadPixel`), the save picture (`ReadRgb565`); SwapContents moves the canvas aside (`MoveCanvas`). A lost device
+brings every canvas back from the commands drawn on it since it was last covered whole (a screen copy's and a long
+history's pixels read back instead; R9c1).
+
+**Memory** (owned by the new renderer) is left for the cursor's pictures: `render::NewSurfaceMemory / SurfaceMemoryOf /
+FreeSurfaceMemory / HolderGone` (render_textures.cpp): zeroed top-down memory per holder with pitch, size, bit count and
+channel masks, written by 004F0060 and read by 005E4EB0 through `DirectPixels` (surface.h).
 
 **Holders without a surface**: the holder is our own `Surface` (surface.h: device, width, height, bits per pixel; R27b
-replaced `CDXSurface` and its always-null DirectDraw surface pointer): the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the cursor's background and
-composition surfaces 005E60B0, the movies' decode surfaces), the picture holders of 004F0060 (cursor images via
-004EFC60 from 005E4EB0; dead picture windows) and the textures (section 7) have only the renderer's memory, written
-and read through `DirectPixels` (no Lock / Unlock, GetDC, Blt or colour fill). Without memory a holder is not made:
-the original's DDSurface error is thrown (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` of the
-device object's colour depth (`bitsPerPixel_`: 16 bits 5:6:5, else X8R8G8B8). If the renderer fails later the game ends (section 1, "When
-the renderer fails").
+replaced `CDXSurface` and its always-null DirectDraw surface pointer): the holders of 004EF7B0 (windows 005FCC00 /
+005FCDD0 / 005FD7A0: a canvas, no memory; the cursor's background and composition surfaces 005E60B0), the picture holders
+of 004F0060 (cursor images via 004EFC60 from 005E4EB0: the renderer's memory; dead picture windows) and the textures
+(section 7); no Lock / Unlock, GetDC, Blt or colour fill. A window of no size is not made: the original's DDSurface
+error is thrown (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` of the device object's colour depth
+(`bitsPerPixel_`: 16 bits 5:6:5, else X8R8G8B8): a canvas quantises to it. If the renderer fails later the game ends
+(section 1, "When the renderer fails").
 
 | Address | Name / change |
 |---|---|
@@ -228,12 +228,13 @@ the renderer fails").
 | 004F0060 `DXSurfaceLoadPicture` (RET 8) | 8888 pictures only; fills the surface (32 bits a row copy, 16 bits each pixel cut to the screen format's channels, as 2DintMMX slots 1, 2 did); a system request with memory fills it directly; only live caller 004EFC60 from 005E4EB0 (flag byte `00784756` is 1 in the exe, never written); S on a scratch holder |
 | 005E4EB0 `CursorImage::Construct` (`ui_cursor.cpp`) | picture, holder, frames = width / height, hot spot x cursor size (007C7C90 / 94) / 32, mask (16 bits all ones where the pixel is 0; 32 bits low 24 bits 0) |
 | 005DBA50 `CBinkVideo::Open` | no BinkDDSurfaceType (the holder has no surface): 4, the CPU copy's type |
-| 005FCC00 / 005FCDD0 / 005FCF80 / 005FD120 | the colour-fill Blt that clears a new window is left out (a new DIB section is zero) |
-| 005FDC00 / 005FDC60 | GDI through a memory DC on the DIB |
-| 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy, save picture, Greyscale on the GPU (R28a, "Screen copies on the GPU" below); SwapContents (a screen copy's canvas put aside on the GPU), pixel read (a screen copy's from the GPU): no Lock / GetSurfaceDesc |
+| 005FCC00 / 005FCDD0 / 005FCF80 / 005FD120 | the colour-fill Blt that clears a new window is left out (a new canvas is black) |
+| 005FDC00 / 005FDC60 | gone (P8): no DC; the callers' GetDC / ReleaseDC brackets are left out |
+| 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy, save picture, Greyscale on the GPU (R28a, "Screen copies on the GPU" below); SwapContents (the canvas put aside on the GPU), pixel read (from the GPU): no Lock / GetSurfaceDesc |
 | 005FDA80, 005E54A0 / 005E5690 / 005E6630, 005DBD80 / 005DB3F0 / 005DA400 | the original's Blt, composition 005E5C40, background save, Lock / BinkCopyToBuffer / Unlock are gone (R11a); the new renderer gets the blits, the cursor and the frames |
 
-Scenarios: render_cpuwindows, render_present / render_present_cpuwindows, render_titles_present, render_movie_present.
+Scenarios: render_cpuwindows, render_present / render_present_cpuwindows, render_titles_present, render_movie_present,
+ui_compare, render_device_lost.
 Not reproduced: the unwinding when 004EFC60 / 004EF7B0 throw and the fallback to 004EF7B0 when 004EFA60's
 video-memory holder throws (only with 00784756 0; 004EFA60, the holder from a DirectDraw description, and 004EFEA0
 are not ported: config/dead_code.csv, R11b). The original quirks kept (failed Locks returning with the device
@@ -259,8 +260,8 @@ averages; the original's: at most 22 per channel, a cleared one 145+).
 
 **Screen copies on the GPU (R28a).** A surface the screen is copied into (CaptureScreen 005FD3D0: the escape menu's
 and the camp's backdrops 005F5320, the global map's pick picture 00630670, the quick save's copy 006570E0) keeps its
-pixels in its interface canvas only (`render_ui.cpp`, docs/notes/ui-native.md section 3), whatever EI_RENDER says
-(`ui_native::Capture` makes the canvas, `render::ui::CanvasOnly`): the copy is the canvas's `ps_copy` from the frame
+pixels in its interface canvas only (`render_ui.cpp`, docs/notes/ui-native.md section 3; since P8 every window surface
+does): the copy is the canvas's `ps_copy` from the frame
 target (x * source / size, as DirectDraw's Blt and the old CPU copy picked), the greying 005FE440 its `ps_grey` (the
 format's own bits, 005FE440's formulas), and the blit draws the canvas. Rgb565Copy 005FD440 draws the canvas into an
 R16_UINT target of the picture's size (`ps_rgb565`: the pixel under each centre, (2x+1) * source / (2 * size), each
@@ -268,11 +269,10 @@ channel's top bits) and reads only that back (`render::ui::ReadRgb565`, a row co
 `screenCopy_` and the quick save's shot.sav keep their 5:6:5 format. PixelAt 005FD240 on such a surface reads its
 one pixel from the GPU (`ReadPixel`, packed to the memory's format: the pick picture's zone colours exact), and
 SwapContents 005FD7A0 (the camp's backdrop put aside in mode 3) moves the canvas aside under the surface's address
-and back (`MoveCanvas`) instead of keeping the bytes. The memory of these surfaces is not written (the CPU loops and
-`render::CopyFrameTo` are gone); a CPU reader (GetDC) gets the canvas read back first (`ui_native::Sync`). A lost
-device brings such a canvas back black (the copied frame is gone): the menu's backdrop shows nothing until the next
-window opens. Checked by ui_quicksave (checksave), ui_global_map_pick (the zone under the click), the gallery's
-escmenu / map_escmenu frames and `ei_ui_check` ("picture").
+and back (`MoveCanvas`) instead of keeping the bytes (the CPU loops and `render::CopyFrameTo` are gone). Once a
+copy is drawn the canvas's pixels are read back as its history (P8), so a lost device brings it back as it was.
+Checked by ui_quicksave (checksave), ui_global_map_pick (the zone under the click), the gallery's escmenu /
+map_escmenu frames, ui_compare and `ei_ui_check` ("picture", "lost").
 
 ## 7. Textures without DirectDraw
 
@@ -287,8 +287,7 @@ own format, a DXT code outside the list in the RGB format its channel bit counts
 the original's "Can't find texture format" error); a .bmp texture by its kind (1:5:5:5, 4:4:4:4 or 5:6:5). The file
 formats (MMP, BMP, shot.sav's 5:6:5 picture) are read and written as before; the renderer uploads a DXT .mmp file's
 blocks as they are (BC1 / BC2 / BC3, R28c) and decodes the others to RGBA8;
-no game code writes a texture's pixels (R28b). The 16-bit table `Lookup16` (render_textures.cpp) is left for the
-window surfaces at a 16-bit colour depth (5:6:5, the options' default `VideoColorDepthInBits` 16).
+no game code writes a texture's pixels (R28b).
 
 **No memory textures (R28b).** The textures in the renderer's memory (R16b: read again at their first bind of a frame
 when marked written and changed, written in place with `UpdateSubresource` and `GenerateMips`, the harness's
@@ -593,8 +592,9 @@ is what to read it for.
   `DropBlits`, `DropTextures`), then `sg_shutdown`, the context cleared and released, the device released (the log
   gives the references left: 0 in the runs), a new device (up to five tries 200 ms apart), `sg_setup` and the
   pipelines. The next frames make the frame target, the swap chain (the game's gamma ramp is kept: the lookup table is
-  not reset to the identity when the present pipeline is made), window surfaces (read again from
-  the game's memory) and the composed and drawn-into textures (their recipes drawn again, `RemakeComposed`). A movie shows again from its next frame. No new device: the game ends (section 1, "When the
+  not reset to the identity when the present pipeline is made), the interface canvases (`DropCanvases`: each made
+  again and the commands drawn on it since it was last covered whole drawn again, P8) and the composed and drawn-into
+  textures (their recipes drawn again, `RemakeComposed`). A movie shows again from its next frame. No new device: the game ends (section 1, "When the
   renderer fails").
 - The decoded textures keep what they were decoded from (`TextureSource`, render_textures.cpp):
   the header and the file's bytes of the levels it holds;

@@ -524,7 +524,7 @@ void NoteCasterPart(const void* part);
 void ShadowFrameEnd();
 void ShadowFrameDone();
 
-// The window surfaces' blits and the depth clear in the middle of the pass.
+// The cursor's and the movies' blits and the depth clear in the middle of the pass.
 bool CreateBlitPipeline();
 void DrawBlitBatch(const Frame& frame, const BlitBatch& batch, int width, int height);
 void DrawClearDepth(const ClearBatch& clear, int width, int height);
@@ -565,7 +565,7 @@ void CountReuse(bool terrain, const void* key, int page, const Vertex* vertices,
 
 // The interface canvases (render_ui.cpp). RunCanvasCommands draws the queued canvas commands outside any pass
 // (at the start of DrawPending, under the present's lock); CanvasBlitsDrawn: the commands recorded so far are
-// drawn; DropCanvases: the device is lost (the canvases come back black at their next command).
+// drawn; DropCanvases: the device is lost (each canvas is made again on the new one and its history drawn).
 void RunCanvasCommands();
 void CanvasBlitsDrawn();
 void DrawCanvasBatch(const CanvasBatch& batch, int width, int height);
@@ -576,7 +576,7 @@ void SplitFrame();
 void RunCanvasesNow();
 
 // Images made and updated in place by purpose, logged in the verify build.
-enum class ImageUse { Cursor, Fill, Movie, Window, Texture, Count };
+enum class ImageUse { Cursor, Fill, Movie, Texture, Count };
 void CountImage(ImageUse use, bool made);
 void CountImageRequest(ImageUse use);
 void LogImageCounts(const char* when);
@@ -588,9 +588,6 @@ sg_view SurfaceView(const void* holder);
 // render::TextureFromMmp: kept until the holder goes.
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
 void ForgetHolder(const void* holder);
-// A window surface (CUiSurface's holder) as one level, read from its SurfaceMemory when that changed (none
-// without memory); texels equal to `key` transparent when `keyed`.
-sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height);
 // render::PictureFromMmp: level 0 as RGBA8, kept until the holder goes.
 struct Picture {
     int width = 0, height = 0;

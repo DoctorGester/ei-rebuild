@@ -2,7 +2,6 @@
 // docs/notes/items_spells.md.
 
 #include "ui.h"
-#include "ui_native.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -24,7 +23,6 @@ const char* const kOkSound = "buttons\\messbox\\ok.wav";
 CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) {
     rect_ = rect;
     CUiSurface* surface = new CUiSurface(ui, &rect, kSurfaceFormat);
-    ui_native::Adopt(surface, "options");
     AddSurface(surface);
     texts_.push_back(text ? text : game::kEmptyText);
     changed_ = false;
@@ -44,13 +42,11 @@ bool CUiSpin::GetValue(int* value) {
 void CUiSpin::SetValue(int value) {
     value_ = value < static_cast<int>(texts_.size()) ? value : 0;
     CUiSurface* surface = surfaces_[0];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect = layout_;
     gameapi::OffsetRect(&rect, -layout_.left, -layout_.top);
     // DrawText is Rebirth-patched: through its address.
     surface->DrawTextIn(texts_[value_], &rect, kTextFormat, kTextColour, 0, 1);
-    UiSurfaceReleaseDC(surface);
     changed_ = true;
 }
 

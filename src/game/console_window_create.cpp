@@ -1,6 +1,5 @@
 // The console window's constructor. See console.h and docs/notes/console.md.
 #include "console.h"
-#include "ui_gdi.h"
 
 #include <new>
 
@@ -24,7 +23,7 @@ ConsoleWindow::ConsoleWindow(CInterface3D* screen) {
     shown_ = false;
     ctrl_ = false;
     shift_ = false;
-    font_ = gdi::PointFont(kFontSize, kFontFace);
+    font_ = PointFont(kFontSize, kFontFace);
     RECT rect = kInitialRect;
     SetRect(&rect);
     history_ = kHistory;
