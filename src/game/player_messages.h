@@ -286,9 +286,9 @@ struct PlayerLoginMessage {
 };
 static_assert(sizeof(PlayerLoginMessage) == 0x88);
 
-// 1 when the first `maxLength` bytes of `text` are printable characters, each a valid UTF-8 sequence of a printable
-// code point; a terminator before that gives whether at least `minLength` characters came first; 0 at the first
-// unprintable one. (The original took the game's isprint of each signed char.)
+// The login's name and password filter: 1 when `text`, within the login field's 0x3F bytes, is printable characters
+// (each a valid UTF-8 sequence of a printable code point) and not empty; 0 at the first unprintable one. (The
+// original took the game's isprint of each signed char.)
 bool IsPrintableText(const char* text);
 
 // |a - b| squared, unrounded (the use order's nearest-unit test).

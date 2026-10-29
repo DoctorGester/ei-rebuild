@@ -108,15 +108,15 @@ public:
     virtual void CopyFigure(const CFigureMesh* other);
     // Loads the mesh from memory at *cursor once (FigureMeshFlag::Loaded set afterwards): data whose first dword starts
     // with "FIG" through LoadFig, other data through LoadOld.
-    virtual void LoadFromMemory(char** cursor, float s, float t, float u);
-    virtual void LoadFig(char** cursor, float s, float t, float u) = 0;   // "FIG" data
-    virtual void LoadOld(char** cursor, float s, float t, float u) = 0;   // the older format
+    virtual void LoadFromMemory(char** cursor);
+    virtual void LoadFig(char** cursor) = 0;   // "FIG" data
+    virtual void LoadOld(char** cursor) = 0;   // the older format
     // The deleting destructors free into the game's heap.
 
-    // Reads the bounding volume (centre, box, radius) that follows the mesh header and morphs it: "FIG8" files
-    // hold 8 corner versions of each value, blended trilinearly by the figure's three morph coefficients; other
-    // versions hold one. Sets the box and centre of `box_.bounds`.
-    void LoadBounds(char** cursor, float s, float t, float u, std::uint32_t magic);
+    // Reads the bounding volume (centre, box, radius) that follows the mesh header: "FIG8" files hold 8 versions
+    // of each value (the morph's corners; the first is taken), other versions one. Sets the box and centre of
+    // `box_.bounds`.
+    void LoadBounds(char** cursor, std::uint32_t magic);
 
     // Fits box_.bounds around the vertices; nothing without vertices.
     void FitVertexBounds();
@@ -207,9 +207,9 @@ public:
     void Destroy() override;
     // The FIG loader. CPlainFigureMesh's, but only the vertices and records are copied; the other
     // buffers point into the file data.
-    void LoadFig(char** cursor, float s, float t, float u) override;
+    void LoadFig(char** cursor) override;
     // The older-format loader. CPlainFigureMesh's, the last four buffers pointing into the data.
-    void LoadOld(char** cursor, float s, float t, float u) override;
+    void LoadOld(char** cursor) override;
 };
 
 // Figure type 0x42: a mesh that owns all its arrays (the figure manager's attached parts). CUiMesh (type 0x43, class id
@@ -222,12 +222,12 @@ public:
     // Clear: the mesh's own arrays emptied, then CFigureMesh's Clear.
     void Destroy() override;
     void LoadTransform(lib::File* file) override;
-    // Loads a "FIG" mesh from memory at *cursor (advanced past it), morphing FIG8 vertices; once only (flag
+    // Loads a "FIG" mesh from memory at *cursor (advanced past it), the first of FIG8's 8 versions of every vertex; once only (flag
     // 0x20).
-    void LoadFig(char** cursor, float s, float t, float u) override;
+    void LoadFig(char** cursor) override;
     // The older format without a FIG header, chosen by the LoadFromMemory virtual when the data does not start
-    // with "FIG": 6 corner versions of the bounds and of every vertex, each array preceded by its count.
-    void LoadOld(char** cursor, float s, float t, float u) override;
+    // with "FIG": 6 versions of the bounds and of every vertex (the first taken), each array preceded by its count.
+    void LoadOld(char** cursor) override;
     // Mirror the mesh in x / y (negates that component of every vertex and normal) and swap the first two corners
     // of every triangle.
     virtual void MirrorX();
@@ -260,8 +260,7 @@ static_assert(sizeof(FigHeader) == 0x20);
 constexpr std::uint32_t kFig8Magic = 0x38474946;   // "FIG8"
 
 // The figure loader's bounding volume of a FIG figure part: `data` holds the centre, box minimum, box maximum
-// and radius, 8 versions each for FIG8 (morphed as in CFigureMesh::LoadBounds, except that the radius keeps
-// its lower blend on the FPU) or one otherwise. The loader argument is not used.
+// and radius, 8 versions each for FIG8 (blended trilinearly by the weights s, t and u) or one otherwise.
 void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic);
 // The same for figure parts without a FIG header: 6 corner versions of each value, blended as the bones are.
 void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u);
