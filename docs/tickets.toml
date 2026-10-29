@@ -6070,6 +6070,24 @@ model = "opus"
 note = "User 2026-10-29. Run on a quiet machine (no other worker, suite or build). Profile build.cmd verify / release / debug / asan / play: wall time per step (cmake configure, compile, link, the build's checks: check_x87, check_signatures, check_stolen, gen_iat, perf_check, ui_check, the generators), compile time per file (/Bt+ or /d1reportTime, or MSBuild/ninja timings), header cost (heaviest includes per TU: windows.h, <format>, <iostream>, sokol, big game headers), PCH use, parallelism (/MP, ninja -j, link /CGTHREADS), incremental rebuild after touching one .cpp and one widely included header. Also the 8 MB ei_hook.dll (5.8 MB .text): /OPT:NOREF is from the hook era (hooks registered by unreferenced static objects, gone since S21): try /OPT:REF,ICF and check nothing reached only through static registration is dropped (goldens, harness, vectors); report the size before and after; iostream/locale machinery and other big contributors from ei_hook.map. Take the easy wins (no behaviour change, goldens unchanged), list the rest with numbers."
 
 [[ticket]]
+id = "H33a"
+title = "Build time: header diet (windows.h through gameapi.h, the big game headers)"
+group = "harness"
+note = "From H33's profile (docs/notes/cleanup-tooling.md, Build time): headers are ~1.1 s of each file's ~1.5 s compile. lib/import_table.h pulls windows.h, mmsystem.h, shellapi.h, objbase.h and dsound.h into almost every file through lib/gameapi.h (windows.h alone 0.25 s per file), and gameapi.h's ~150 inline references are each a dynamic initialiser compiled in every file that includes it (dropped at link since /OPT:REF). The big game headers cost ~0.35 s each where included: map_object_figures.h (449 files; it includes windows.h for RECT), ai_map.h / ai_event_table.h (347), unit.h (404), world.h (295), ui.h (0.57 s). Forward declarations / splitting the import slots by DLL could take 15-25% off the compiler time (clean verify ~59 s -> ~47-50 s) and more off a touched header's rebuild. Check: the code of every object unchanged (dumpbin /disasm per function, scratchpad objdiff.py of H33) or goldens."
+
+[[ticket]]
+id = "H33b"
+title = "Build time: precompiled header, if a code change is acceptable"
+group = "harness"
+note = "H33 measured a precompiled header of the standard headers (target_precompile_headers on ei_hook, image_data.cpp left out for its init_seg): clean verify 58 -> 47 s (-18%), compiler time -22%. Not taken: it changes the code of ~120 objects (std::basic_string members inlined differently; dumpbin /disasm per function compared), so x87 code around them may round differently; it needs the goldens and the user's OK. Game headers in the PCH: tests/verify must be left out (the harness's own views clash: harness_address_order.cpp), and adding unit.h / ai_map.h / world.h broke per-file names (model_db_open.cpp). Gain with the core game headers (lib/crt.h, vecmath.h, engine_object.h, maths.h, script.h, model.h ...) not measured cleanly; estimate another ~10%."
+
+[[ticket]]
+id = "H33c"
+title = "ei_hook.dll size after /OPT:REF: zero bytes, fonts, ICF"
+group = "harness"
+note = "After H33 ei_hook.dll is 5.1 MB (release): .text 2.9 MB (ours 2.6 MB, ei_render 0.33 MB, ucrt 0.15 MB; the iostream / locale code is gone with /OPT:REF), .rdata 1.5 MB. Left: image_data.cpp's kInitialData 384 KB, mostly zeros (the image's .rdata / .data copy with the committed cells): as .bss plus the cells written at start-up, ~380 KB less on disk; render_fonts' two Liberation TTFs 696 KB (compressed or subset to the glyphs the game's code pages can show: ~400-600 KB); the charconv ryu tables 112 KB (floating std::to_chars / format of doubles: who uses it); /OPT:ICF another 316 KB but two identical functions share one address (audit function-pointer comparisons first; crash / profile names become ambiguous)."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"
