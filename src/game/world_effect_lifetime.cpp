@@ -58,30 +58,21 @@ CEffectSound::CEffectSound() {
     Reset();
 }
 
-CEffectSound::~CEffectSound() {
-    Reset();
-    Reset();   // again, the virtual
-}
+CEffectSound::~CEffectSound() { Reset(); }
 
 CEffectSoundSeq::CEffectSoundSeq() {
     sound_ = -1;
     Reset();
 }
 
-CEffectSoundSeq::~CEffectSoundSeq() {
-    Reset();
-    Reset();   // again, the virtual
-}
+CEffectSoundSeq::~CEffectSoundSeq() { Reset(); }
 
 CEffectAmbientSound::CEffectAmbientSound() {
     sound_ = -1;
     Reset();
 }
 
-CEffectAmbientSound::~CEffectAmbientSound() {
-    Reset();
-    Reset();   // again, the virtual
-}
+CEffectAmbientSound::~CEffectAmbientSound() { Reset(); }
 
 CEffectPointLight::CEffectPointLight() {
     Reset();

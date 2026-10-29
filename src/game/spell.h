@@ -234,27 +234,26 @@ public:
     void Load(CStream* stream);
     void Save(CStream* stream);
 
-    CWorldServer* world;
-    std::uint32_t flags;        // bit 0: the caster gets no credit for the hit
-    Vector3 position;
+    CWorldServer* world = nullptr;
+    std::uint32_t flags = 0;    // bit 0: the caster gets no credit for the hit
+    Vector3 position{};
     Ref<CMapObject> target; // a unit or another map object
     Ref<CUnit> caster;      // null for traps and scripts
     Vector3 targetPoint;
     int state;                  // 0 casting, 1 missile, 2 lasting, else ends
-    // Constructed and destroyed in the constructor's and destructor's order.
-    lib::AbstractInPlace<CSpell> spell_;
-    CEffect* visual;            // particle source, wall, lightning or missile (counted)
-    CEffect* sound;             // a sound or a sound sequence (counted)
-    CEffectPointLight* light;   // counted
-    std::uint8_t footprintStamped;
-    int timer;                  // ticks left in the next state
-    std::uint8_t silentEnd;     // copied into the buff record; healing: skip when at full health
+    CSpell spell_;
+    CEffect* visual = nullptr;            // particle source, wall, lightning or missile (counted)
+    CEffect* sound = nullptr;             // a sound or a sound sequence (counted)
+    CEffectPointLight* light = nullptr;   // counted
+    std::uint8_t footprintStamped = 0;
+    int timer = 0;                        // ticks left in the next state
+    std::uint8_t silentEnd = 0;           // copied into the buff record; healing: skip when at full health
 
     // The visual as the effect class its spell type creates.
     template <class T> T* Visual() const { return static_cast<T*>(visual); }
 
-    CSpell* Spell() { return spell_.Get(); }
-    const CSpell* Spell() const { return spell_.Get(); }
+    CSpell* Spell() { return &spell_; }
+    const CSpell* Spell() const { return &spell_; }
 };
 
 // Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5

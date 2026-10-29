@@ -522,10 +522,10 @@ public:
     Vector3 startPosition_;               // where joining players start
     CAIMap aiMap_;
     // Its globals_ hold the "Heroes" group.
-    lib::InPlace<CScript> commandsA_;
-    CScript* MainScript() { return commandsA_.Get(); }
-    lib::InPlace<CScript> commandsB_;
-    CScript* SecondScript() { return commandsB_.Get(); }
+    CScript commandsA_;
+    CScript* MainScript() { return &commandsA_; }
+    CScript commandsB_;
+    CScript* SecondScript() { return &commandsB_; }
     CDiplomacy diplomacy_;
     // The session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld updates the
     // players' "gtime" first. Joining players take it (CPlayer::sessionKind_). Also the campaign mode

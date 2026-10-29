@@ -114,10 +114,10 @@ public:
     // Clear(1, 0), then `source` saved into a memory stream and loaded back (variables included).
     CParty* Assign(CParty* source);
 
-    CItemManager* itemManager_;
-    CItemConstructor* itemConstructor_;
-    CSpellManager* spellManager_;
-    CSpellConstructor* spellConstructor_;
+    CItemManager* itemManager_ = nullptr;
+    CItemConstructor* itemConstructor_ = nullptr;
+    CSpellManager* spellManager_ = nullptr;
+    CSpellConstructor* spellConstructor_ = nullptr;
     std::vector<PartyUnitRecord> members_;
     std::vector<CItem*> items_;
     int money_;                 // the party's money (money_; cleared by Clear, saved masked)

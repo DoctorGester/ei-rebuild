@@ -252,8 +252,8 @@ Create / Destroy call them through their addresses. terrain.h now declares `arch
 
 The decal projector 0056C750 is `CWorldClient::ProjectDecal` (world_client_decals.cpp; S: the original into private copies of
 the three arrays, ours into the caller's, sizes / capacities / used elements compared; callers call it directly).
-Statics: the builder 007AF488 and the part points (Vector4 array 007AF478),
-guard 007AF504, exit handlers 0056CE30 / 0056CE10. The platform pass walks the platform faces (an object with several faces
+The original's statics: the builder 007AF488 and the part points (Vector4 array 007AF478), guard 007AF504, exit
+handlers 0056CE30 / 0056CE10; ours are plain globals (C50b). The platform pass walks the platform faces (an object with several faces
 adds its parts once per face, kept), pushes the object's and each part's matrix on the scene pipeline's stack 14
 (`kDecalStack`), transforms the part's packets with the transposed top through the transform object's slot 26
 (`TransformPoints`) and adds each triangle (AddTriangle through its unhooked original). GetPartData's result is not checked

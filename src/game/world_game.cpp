@@ -83,15 +83,6 @@ double VariableGet(NamedFloatTable* table, std::string_view name) { return table
 void VariableSet(NamedFloatTable* table, std::string_view name, float value) { table->Set(name, value); }
 void ScriptsReset(CMemoryStream* scripts) { scripts->Resize(0); }
 
-struct LocalRecords {
-    lib::InPlace<CParty> storage;
-    CParty* Party() { return storage.Get(); }
-    LocalRecords() { new (Party()) CParty(); }
-    ~LocalRecords() { Party()->~CParty(); }
-    LocalRecords(const LocalRecords&) = delete;
-    LocalRecords& operator=(const LocalRecords&) = delete;
-};
-
 // Copies saves\current\<zone>.sav of every visited zone that has to be kept (the current map's
 // zones and bz7g) into the slot folder; a zone whose file could not be copied, and every other
 // zone, is marked not visited ("zs.<zone>" = 0).
@@ -355,13 +346,13 @@ int GameFlow::SaveGame(const std::string& slot) {
         if (CPlayer* player = g_serverWorld->GetPlayer(0))
             g_partyManager->BeginRedeploy(player->Party());
     }
-    LocalRecords records;
-    g_partyManager->EndRedeploy(records.Party());
+    CParty records;
+    g_partyManager->EndRedeploy(&records);
     std::string currentMap;
-    currentMap = FindZone(records.Party()->zone_)->allod;
+    currentMap = FindZone(records.zone_)->allod;
 
-    CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.Party()->variables_);
-    g_partyManager->BeginRedeploy(records.Party());
+    CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.variables_);
+    g_partyManager->BeginRedeploy(&records);
 
     bool opened;
     {
@@ -388,7 +379,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     file.Close();
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
-    int kind = FindZone(records.Party()->zone_)->kind;
+    int kind = FindZone(records.zone_)->kind;
     if (kind == 0 || kind == 2) {
         {
             std::string path = slotFolder + kMissionFile;
@@ -817,29 +808,29 @@ void GameFlow::SwitchMultiplayerZone() {
             in.cur = begin;
         }
     }
-    LocalRecords records;
+    CParty records;
     CPlayer* player = g_serverWorld->GetPlayer(0);
     if (player && player->Server()->partyDeployed_) {
         g_serverWorld->SyncPartyRecords(player);
-        records.Party()->Assign(player->Party());
+        records.Assign(player->Party());
         g_serverWorld->ClearPlayerItems(player);
     } else {
-        records.Party()->Assign(GlobalParty());
+        records.Assign(GlobalParty());
     }
-    records.Party()->zone_ = multiplayerZone_;
+    records.zone_ = multiplayerZone_;
     RequestKind(3);
     if (Active(net::g_gameServer)) {
         state_ = 6;
         requestTarget_ = multiplayerZone_;
-        RequestParty()->Assign(records.Party());
+        RequestParty()->Assign(&records);
     } else {
         net::HostMessage* host = net::g_gameClient->info_;
-        if (Active(host)) records.Party()->zone_ = host->zone_.data();
+        if (Active(host)) records.zone_ = host->zone_.data();
         host = net::g_gameClient->info_;
         if (Active(host)) {
             state_ = 5;
             requestTarget_ = host->address_.data();
-            RequestParty()->Assign(records.Party());
+            RequestParty()->Assign(&records);
         }
     }
     zoneSwitchStarted_ = 1;
@@ -1031,11 +1022,11 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         result = kResultPlaying;
     } else {
         // The party enters the zone, then the clock is set from its "gtime".
-        LocalRecords records;
-        g_partyManager->EndRedeploy(records.Party());
-        EnterZone(records.Party());
-        g_partyManager->BeginRedeploy(records.Party());
-        g_serverWorld->SetTime(HoursOfDay(VariableGet(&records.Party()->variables_, kGTime)));
+        CParty records;
+        g_partyManager->EndRedeploy(&records);
+        EnterZone(&records);
+        g_partyManager->BeginRedeploy(&records);
+        g_serverWorld->SetTime(HoursOfDay(VariableGet(&records.variables_, kGTime)));
         if (zoneRecord) {
             g_serverWorld->SetClimate(zoneRecord->climate);
             g_serverWorld->SetCave(zoneRecord->cave);
@@ -1060,9 +1051,9 @@ void GameFlow::StartNewGame() {
     std::string folder;
     folder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
-    LocalRecords records;
-    g_partyManager->EndRedeploy(records.Party());
-    StartZone(records.Party()->zone_, 0);
+    CParty records;
+    g_partyManager->EndRedeploy(&records);
+    StartZone(records.zone_, 0);
 }
 
 // ---- The flow's requests -------------------------------------------------------------
@@ -1101,14 +1092,14 @@ void GameFlow::ProcessRequest() {
     if (state == 0) return;
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (g_serverWorld->gameResult_ == 1 && (g_serverWorld->sessionKind_ == 1 || g_serverWorld->sessionKind_ == 3) && state == kStateZone) {
-        LocalRecords records;
-        g_partyManager->EndRedeploy(records.Party());
-        ::LeaveZone(records.Party());
-        g_partyManager->BeginRedeploy(records.Party());
+        CParty records;
+        g_partyManager->EndRedeploy(&records);
+        ::LeaveZone(&records);
+        g_partyManager->BeginRedeploy(&records);
     }
     if (g_serverWorld->gameResult_ == 2 && g_serverWorld->sessionKind_ == 1 && state == kStateZone) {
-        LocalRecords records;
-        ::LeaveZone(records.Party());
+        CParty records;
+        ::LeaveZone(&records);
     }
     g_interface->CloseAll();
     g_serverWorld->TeardownZone();
@@ -1223,11 +1214,11 @@ int GameFlow::LoadGame(const std::string& slot) {
 
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
     // zone, and one whose file could not be copied, is marked not visited.
-    LocalRecords records;
-    g_partyManager->EndRedeploy(records.Party());
+    CParty records;
+    g_partyManager->EndRedeploy(&records);
     std::string currentMap;
-    currentMap = FindZone(records.Party()->zone_)->allod;
-    NamedFloatTable* variables = &records.Party()->variables_;
+    currentMap = FindZone(records.zone_)->allod;
+    NamedFloatTable* variables = &records.variables_;
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
         bool visited;
@@ -1258,13 +1249,13 @@ int GameFlow::LoadGame(const std::string& slot) {
         std::string variable = prefix + record->name;
         VariableSet(variables, variable, 0.0f);
     }
-    g_partyManager->BeginRedeploy(records.Party());
+    g_partyManager->BeginRedeploy(&records);
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
-    MapRecord* zoneRecord = FindZone(records.Party()->zone_);
+    MapRecord* zoneRecord = FindZone(records.zone_);
     int kind = zoneRecord->kind;
     if (kind != 0 && kind != 2) {
-        StartZone(records.Party()->zone_, 0);
+        StartZone(records.zone_, 0);
     } else {
         {
             std::string path = slotFolder + kMissionFile;

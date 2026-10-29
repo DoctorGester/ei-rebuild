@@ -647,7 +647,7 @@ kinds given.
       - C18k3 (1,190 -> 1,180 game data addresses after the draw lists) named the frame's eleven draw lists
         (world_client_view.cpp, 007AF508-007AF5A8: plain `std::vector<CEngineObject*>` 0x10 apart, the word after
         each no one's; the last one ends where the deferred unit list 007AF5B4 starts, so there is no 16-byte
-        struct; their stores stay generated, the exit functions 0056A510-0056A830 are ported; world.h's
+        struct; their stores stay generated, the exit functions 0056A510-0056A830 were ported (plain globals since C50b); world.h's
         FrameObjects picks one from a table of the names; 0056A840, which clears them all, has no caller) and the
         CArrays whose tables C19 compiled: the sector spiral's lengths, radius tree and offsets (sector_spiral.cpp, a
         file of its own so the path vectors' replay links them) and the path smoother's node pool and 81 transition
@@ -696,17 +696,22 @@ kinds given.
       TYPES `LogicSettings`; the stats recorder reads game.exe's copy), and the constructed statics as
       `lib::StaticObject<T>` (zero storage, STATIC_OBJECT_BYTES) whose initialiser and exit function are ported on the
       name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc: the
-      particles' draw order 007A9C50, the terrain's projection outcodes 007C88D0, the sector spiral's builder
-      005BF8E0. A function-local static's exit function is ported beside it and the port registers its own
-      (`GameAtExit(DestroyX)`): the glow's and the particles' sprite arrays, UseResources' CString.
-    - **Plain globals and locals instead (C50, C50a)**: an object of ours that needs no game order is a plain global
-      (constructed and destroyed by the C++ runtime), a function-local static or a local, with no address: the unit
-      shape cache (ai_movement.cpp), the AI events' pool (ai_events.cpp; the free list 007C53F0 stays named), the spells'
-      footprint set, the sector spiral's tables and the smoother's pool and tables. Their initialisers are
-      UNUSED_INITIALISERS (the exit functions go with them); a function whose port builds none of the original's
-      function-local statics is in RETIRED_STATICS (Aggression's candidates, LabelRegions' flood lists, ReachesRegion's
-      block list, StampWaterPatch's patch). The spiral caches of PlanLongPath and FindFreeCellNear are function-local
-      statics of ours (constant-initialised, no guard).
+      terrain's projection outcodes 007C88D0, the sector spiral's builder 005BF8E0. A function-local static's exit
+      function is ported beside it and the port registers its own (`GameAtExit(DestroyX)`).
+    - **Plain globals and locals instead (C50, C50a, C50b)**: an object of ours that needs no game order is a plain
+      global (constructed and destroyed by the C++ runtime), a function-local static or a local, with no address: the
+      unit shape cache (ai_movement.cpp), the AI events' pool (ai_events.cpp; the free list 007C53F0 stays named), the
+      spells' footprint set, the sector spiral's tables and the smoother's pool and tables; the frame's draw lists and
+      deferred units (world_client_view.cpp), the decal builder, the draw work arrays (particles, glow, fog, shadow,
+      draw order), the lever table, the quest's objectives and name, the received messages' stream, the client's
+      party id set, the zone table and the quest files / folders. Their initialisers are UNUSED_INITIALISERS (the exit
+      functions go with them); a function whose port builds none of the original's function-local statics is in
+      RETIRED_STATICS (Aggression's candidates, LabelRegions' flood lists, ReachesRegion's block list,
+      StampWaterPatch's patch, SyncPlayer's diff arrays, UpdateUnits' id lists, the fog's dead cells, the draws' work
+      arrays, UseResources' string). The spiral caches of PlanLongPath, FindFreeCellNear and WakeUnitsAround are
+      function-local statics of ours (constant-initialised, no guard); so is UseResources' string. The objects the
+      interface's files spell with `->` (g_gameFlow, g_savedParties, g_partyManager, g_saveStream) stay
+      `lib::StaticObject` until those files are converted, but their classes construct and destroy themselves.
     - **gen_static_init**: REVIEWED_SPLIT splits one initialiser's stores where they are two objects (005229C0: the hit
       log pointer 007AF284 is read, the ln folds above it are not); RETIRED_STATICS lists functions whose port builds
       none of the original's function-local statics, so their runtime atexit sites never run (006BFF40, the terrain

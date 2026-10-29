@@ -58,8 +58,6 @@ CWorldServer::~CWorldServer() {
     ReleaseAndClear(counted_);
     projectiles_.clear();
     diplomacy_.Reset();
-    std::destroy_at(SecondScript());
-    std::destroy_at(MainScript());
     Messages()->Destroy();
     exits_.clear();
 }

@@ -368,8 +368,4 @@ CEffectArrowFigure::CEffectArrowFigure() {
     Reset();
 }
 
-CEffectArrowFigure::~CEffectArrowFigure() {
-    Reset();
-    Reset();   // again, the virtual
-    figure_.Reset();
-}
+CEffectArrowFigure::~CEffectArrowFigure() { Reset(); }

@@ -362,7 +362,7 @@ public:
     // whose tick returned 0, then the connection's TickDone.
     void Tick();
 
-    CParty* Party() { return party_.Get(); }
+    CParty* Party() { return &party_; }
     // The connection as the server's view of it (a CPlayerServer on the server world, null for none).
     CPlayerServer* Server() const { return static_cast<CPlayerServer*>(connection_); }
 
@@ -375,7 +375,7 @@ public:
     int maxUnitId_;                             // highest id put in units_
     TimedObjectMap knownTimed_;                 // timed objects (effects) sent to the client
     int maxTimedId_;
-    lib::InPlace<CParty> party_;                        // an embedded CParty
+    CParty party_;
     std::list<CItem*> items_;           // items given to the player (counted)
     int partyId_;                               // the party's key in the party manager; sent with the client's login
     int sessionKind_;                        // 3: the client runs a setup on the controllers of new units

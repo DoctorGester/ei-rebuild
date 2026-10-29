@@ -35,8 +35,6 @@ PlatformSet::PlatformSet() {
 
 CWorldServer::CWorldServer() {
     Messages()->Construct();
-    std::construct_at(MainScript());
-    std::construct_at(SecondScript());
     diplomacy_.Reset();
     ResetState();
 }

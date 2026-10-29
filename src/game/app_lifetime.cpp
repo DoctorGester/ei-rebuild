@@ -39,16 +39,9 @@ CRefCounted* CreateClassTemplate() {
 
 // ---- The party record -----------------------------------------------------------------------------
 
-PartyRecord::PartyRecord() {
-    new (Party()) CParty();
-    Party()->Create();
-}
+PartyRecord::PartyRecord() { party.Create(); }
 
-// The name is destroyed after the party's destructor (it is a member).
-PartyRecord::~PartyRecord() {
-    Party()->Destroy();
-    Party()->~CParty();
-}
+PartyRecord::~PartyRecord() { party.Destroy(); }
 
 // ---- The DirectInput mouse ------------------------------------------------------------------------
 

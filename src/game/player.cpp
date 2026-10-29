@@ -21,7 +21,6 @@ CPlayer::CPlayer() {
     maxObjectId_ = 0;
     maxUnitId_ = 0;
     maxTimedId_ = 0;
-    new (Party()) CParty();
     partyId_ = 0;
     connection_ = nullptr;
     logTraffic_ = 0;
@@ -47,7 +46,6 @@ CPlayer::~CPlayer() {
     Party()->Destroy();
     recharging_.clear();
     items_.clear();
-    Party()->~CParty();
     if (link_ != nullptr) link_->Release();
 }
 
