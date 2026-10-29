@@ -121,16 +121,14 @@ void LoadSystemMessages(std::vector<std::string>& messages) {
         return;
     }
     const std::size_t length = static_cast<std::size_t>(_filelength(_fileno(file)));
-    char* text = new char[length];
-    std::memset(text, 0, length);
-    std::fread(text, 1, length, file);
+    std::vector<char> text(length);
+    std::fread(text.data(), 1, length, file);
     std::fclose(file);
-    text::Split(text, &messages, '\n');
+    text::Split(text.data(), &messages, '\n');
     if (messages.size() < kMessageLines) {
         messages.clear();
         AppendDefaultMessages(messages);
     }
-    delete[] text;
 }
 
 std::string Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }

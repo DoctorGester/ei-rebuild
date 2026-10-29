@@ -2,6 +2,7 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <string>
 
 // The text of a DirectDraw / Direct3D / COM result, as the game's error reports print it (FatalErrorCode), and the
 // thrown error object. See dx_errors.cpp.
@@ -18,7 +19,7 @@ public:
     virtual ~CGameException();
 
 
-    char* message = nullptr;   // operator new copy of the formatted text
+    std::string message;       // the formatted text
 
 protected:
     CGameException() {}

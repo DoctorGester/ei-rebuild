@@ -241,22 +241,6 @@ bool SameText(std::string_view a, std::string_view b) {
     return str::Compare(a, b) == 0;
 }
 
-// A list of entry pointers on the game's heap (the game keeps STLport lists of copies).
-struct EntryPicks {
-    const ZoneEntry** items = nullptr;
-    int count = 0;
-    explicit EntryPicks(int capacity) {
-        items = new const ZoneEntry*[static_cast<std::size_t>(capacity > 0 ? capacity : 1)];
-    }
-    ~EntryPicks() { delete[] items; }
-    EntryPicks(const EntryPicks&) = delete;
-    EntryPicks& operator=(const EntryPicks&) = delete;
-    void RemoveAt(int i) {
-        for (int k = i + 1; k < count; ++k) items[k - 1] = items[k];
-        --count;
-    }
-};
-
 constexpr unsigned kMagicMissionFile = 0x102;
 
 // StartZone's modes (also stored as the campaign mode, the server world's sessionKind_).
@@ -860,31 +844,27 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
 
 std::vector<std::string> PickZones(int id, const char* exclude) {
     std::vector<std::string> out;
-    const std::vector<ZoneEntry>& table = g_zoneTable;
-    int total = static_cast<int>(table.size());
-    EntryPicks pending(total);
-    EntryPicks group(total);
-    for (const ZoneEntry* e = table.data(); e != table.data() + table.size(); ++e)
-        if (e->id == id) pending.items[pending.count++] = e;
-    while (pending.count) {
+    // The entry lists (the game keeps STLport lists of copies).
+    std::vector<const ZoneEntry*> pending;
+    for (const ZoneEntry& e : g_zoneTable)
+        if (e.id == id) pending.push_back(&e);
+    std::vector<const ZoneEntry*> group;
+    while (!pending.empty()) {
         // The group of the first pending entry's second name, in table order.
-        const std::string& key = pending.items[0]->second;
-        group.count = 0;
-        for (int i = 0; i < pending.count;) {
-            if (SameText(pending.items[i]->second, key)) {
-                group.items[group.count++] = pending.items[i];
-                pending.RemoveAt(i);
+        const std::string& key = pending[0]->second;
+        group.clear();
+        for (auto it = pending.begin(); it != pending.end();) {
+            if (SameText((*it)->second, key)) {
+                group.push_back(*it);
+                it = pending.erase(it);
             } else {
-                ++i;
+                ++it;
             }
         }
         // With a choice, never the excluded first name.
-        if (group.count > 1)
-            for (int i = 0; i < group.count;)
-                if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
-                else ++i;
-        unsigned pick = ((&g_random))->Next() % static_cast<unsigned>(group.count);
-        out.push_back(group.items[pick]->first);
+        if (group.size() > 1) std::erase_if(group, [exclude](const ZoneEntry* e) { return SameText(e->first, exclude); });
+        unsigned pick = g_random.Next() % static_cast<unsigned>(group.size());
+        out.push_back(group[pick]->first);
     }
     return out;
 }

@@ -6,6 +6,7 @@
 #include <intrin.h>
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -131,10 +132,9 @@ void CStream::ReadSized(CStream* to) {
     to->Clear();
     to->Seek(0);
     if (!size) return;
-    auto* block = new std::uint8_t[size];
-    Read(block, size);
-    to->Write(block, size);
-    delete[] block;
+    std::vector<std::uint8_t> block(size);
+    Read(block.data(), size);
+    to->Write(block.data(), size);
 }
 
 void CStream::WriteSized(CStream* from) {
@@ -147,11 +147,10 @@ void CStream::WriteSized(CStream* from) {
         word = static_cast<std::uint32_t>(size) * 2;
         Write(&word, 2);
     }
-    auto* block = new std::uint8_t[static_cast<std::uint32_t>(size)];
+    std::vector<std::uint8_t> block(static_cast<std::uint32_t>(size));
     from->Seek(0);
-    from->Read(block, static_cast<std::uint32_t>(size));
-    Write(block, static_cast<std::uint32_t>(size));
-    delete[] block;
+    from->Read(block.data(), static_cast<std::uint32_t>(size));
+    Write(block.data(), static_cast<std::uint32_t>(size));
 }
 
 bool CStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion) {
