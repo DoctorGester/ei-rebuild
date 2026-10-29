@@ -250,7 +250,7 @@ struct ZoneEntry {
     std::string second;
     int id;
 };
-constinit std::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
+std::vector<ZoneEntry> g_zoneTable;
 bool SameText(std::string_view a, std::string_view b) {
     return str::Compare(a, b) == 0;
 }
@@ -289,16 +289,11 @@ float HoursOfDay(double value) { return static_cast<float>(std::fmod(value, 24.0
 constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone = 4, kStatePartyZone = 5,
               kStateNetworkZone = 6;
 
-// UseResources' function-local static: the resources in use (guard bit 0 of g_lastResourcesGuard),
-// destroyed at exit.
-constinit lib::StaticObject<std::string> g_lastResources = /*007AFDEC*/ {};
-void DestroyLastResources() { g_lastResources.Destroy(); }
-std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 const char* ResourcesPath() { return options::g_options->resourcesPath_.c_str(); }
 
 void StreamLoadScripts(CMemoryStream* a0, CStream* a2) { a0->ReadSized(a2); }
 
-void DestroyGameFlow() { g_gameFlow->Destruct(); }
+void DestroyGameFlow() { g_gameFlow.Destroy(); }
 
 unsigned g_serverStamp = /*007AFED0*/ {};   // the newest variable stamp seen
 unsigned g_appliedStamp = /*007AFED4*/ {};   // the stamp applied up to
@@ -913,8 +908,6 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
     // The list's destructor: every reference released, then the blocks.
 }
 
-void DestroyZoneTable() { lib::FreeStorage(g_zoneTable); }
-
 void PickZones(std::vector<std::string>* out, int id, const char* exclude) {
     const std::vector<ZoneEntry>& table = g_zoneTable;
     int total = static_cast<int>(table.size());
@@ -1088,15 +1081,11 @@ void SwitchResourceDatabases(const std::string& name) {
 }
 
 void GameFlow::UseResources(bool network) {
-    if (!(g_lastResourcesGuard & 1)) {
-        g_lastResourcesGuard |= 1;
-        g_lastResources.Construct(kResourcesSingle);
-        std::atexit(DestroyLastResources);
-    }
+    static std::string lastResources = kResourcesSingle;   // the resources in use
     std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
-    if (str::Compare(wanted, *g_lastResources) == 0)
+    if (str::Compare(wanted, lastResources) == 0)
         return;
-    *g_lastResources = wanted;
+    lastResources = wanted;
     SwitchResourceDatabases(wanted);
     if (network) {
         int value = options::g_options->difficulty_;
@@ -1290,26 +1279,12 @@ int GameFlow::LoadGame(const std::string& slot) {
     return 1;
 }
 
-GameFlow* GameFlow::Construct() {
-    std::construct_at(&requestTarget_);
-    new (RequestParty()) CParty();
-    std::construct_at(&multiplayerZone_);
-    state_ = 0;
-    return this;
-}
-
-void GameFlow::Destruct() {
-    std::destroy_at(&multiplayerZone_);
-    RequestParty()->~CParty();
-    std::destroy_at(&requestTarget_);
-}
-
 // The flow, zero at the start: built by a static initialiser and destroyed by the exit function it
 // registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<GameFlow> g_gameFlow = /*007AFE20*/ {};
 
 void ConstructGameFlow() {
-    g_gameFlow->Construct();
+    g_gameFlow.Construct();
     std::atexit(DestroyGameFlow);
 }
 

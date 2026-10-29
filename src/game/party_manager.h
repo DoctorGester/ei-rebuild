@@ -22,9 +22,6 @@ struct PartyManagerEntry {
     std::string name;               // chunk field 1
     std::string text;               // chunk field 2
     std::vector<int> ids;          // chunk 3
-
-    // What the destructor does: frees the ids' storage, then destroys the texts.
-    void Destruct();
 };
 
 // The parties by key, walked in the game's order (the save's chunks).
@@ -46,12 +43,6 @@ struct PartyManager {
     // Writes the same archive into a memory stream (version `to`'s) and appends
     // it to `to` as a sized block (CStream::WriteSized).
     void Save(CMemoryStream* to);
-    // The destructor the C runtime runs at exit: the templates and the records released and their vectors
-    // freed, the records' two strings, the entries, then the parties.
-    void Destruct();
-    // The constructor: no parties (193 buckets), no entries, no records with two empty strings, no templates;
-    // unreadField is left as it is. It runs from a static initialiser. Returns this.
-    PartyManager* Construct();
     // The records' BeginRedeploy / EndRedeploy the script's redeploy.
     void BeginRedeploy(CParty* party);
     void EndRedeploy(CParty* party);

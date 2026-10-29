@@ -62,35 +62,16 @@ CDirectInputMouse::~CDirectInputMouse() {
 
 // ---- The party manager ----------------------------------------------------------------------------
 
-void PartyManager::Destruct() {
-    std::destroy_at(&templates);
-    std::destroy_at(&records.currentName);
-    std::destroy_at(&records.requestedName);
-    std::destroy_at(&records.records);
-    std::destroy_at(&entries);
-    std::destroy_at(&parties);
-}
-
-PartyManager* PartyManager::Construct() {
-    std::construct_at(&parties);
-    std::construct_at(&entries);
-    std::construct_at(&records.records);
-    std::construct_at(&records.requestedName);
-    std::construct_at(&records.currentName);
-    std::construct_at(&templates);
-    return this;
-}
-
 // The manager, empty at the start: built by a static initialiser in the list's order and destroyed by the exit
 // function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
 
 // A second block: it uses g_partyManager (defined above).
 namespace {
-void DestroyPartyManager() { g_partyManager->Destruct(); }
+void DestroyPartyManager() { g_partyManager.Destroy(); }
 } // namespace
 
 void ConstructPartyManager() {
-    g_partyManager->Construct();
+    g_partyManager.Construct();
     std::atexit(DestroyPartyManager);
 }

@@ -339,7 +339,7 @@ int CPlayerServer::ReceiveMessages() {
     if (state_ == kStateLeaving) return 0;
     netlink::NetLink* link = player_->link_;
     if (link == nullptr) return 0;
-    CMemoryStream& in = *g_receivedMessages;
+    CMemoryStream& in = g_receivedMessages;
     while (link->HasIncoming()) {
         CMemoryStream packet;
         if (!link->Receive(&packet)) return 0;

@@ -159,7 +159,7 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
                     if (!drawAllUnits && !(object->flags_ & kFlagAlwaysDrawn)) process = false;
                 } else {
                     // First pass: units wait on the deferred list (which holds a reference).
-                    g_deferredUnits->emplace_back(object);
+                    g_deferredUnits.emplace_back(object);
                     process = false;
                 }
             }
@@ -258,3 +258,4 @@ std::vector<CMapObject*> g_visibleUnits;
 std::vector<CMapObject*> g_visibleLevers;
 std::vector<CMapObject*> g_visibleOther;
 std::vector<CMapObject*> g_visibleBuildings;
+std::list<HeldRef<CMapObject>> g_deferredUnits;

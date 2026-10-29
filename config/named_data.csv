@@ -162,7 +162,6 @@ address,size,name,file
 0079BB24,256,g_windowTitle,src/game/app_main.cpp
 0079BC24,4,g_instance,src/game/app_main.cpp
 0079BC28,4,g_mainWindow,src/game/app_main.cpp
-0079BC2C,4,g_protectionChecks,src/game/static_lists.cpp
 0079BC54,1,g_recordingFrames,src/game/app_main.cpp
 0079BC58,4,g_movieFrame,src/game/app_frame.cpp
 0079BC5C,1,g_active,src/game/app_main.cpp
@@ -173,7 +172,6 @@ address,size,name,file
 0079BC70,620,g_options,src/game/options_global.cpp
 0079BF00,40,g_mapDatabase,src/game/map_database.cpp
 0079BF70,512,g_keyActions,src/game/object_tables.h
-0079C1A0,32,g_leverTable,src/game/lever_table.cpp
 0079C1F8,1600,g_noiseSide,src/game/lightning.cpp
 0079C838,1600,g_noiseUp,src/game/lightning.cpp
 007A9694,4,g_lightningNoiseLoaded,src/game/class_slots.cpp
@@ -190,8 +188,6 @@ address,size,name,file
 007A9CE0,16,g_lineVertices,src/game/renderer_lines.cpp
 007A9D40,2068,g_random,src/game/random.cpp
 007AA5A0,68,g_partyManager,src/game/app_lifetime.cpp
-007AA608,20,g_scriptQuestObjectives,src/game/script_exec_helpers.cpp
-007AA61C,4,g_scriptQuestName,src/game/script_exec_helpers.cpp
 007AA620,4,g_streamedScript,src/game/script.h
 007AB8D8,20,g_unreadSet,src/game/buffered_file.cpp
 007AB8F0,4,g_twoPi,src/game/sys_info.cpp
@@ -256,14 +252,8 @@ address,size,name,file
 007AF458,4,g_discFolder,src/game/game_folders.cpp
 007AF45C,4,g_textFolder,src/game/game_folders.cpp
 007AF460,4,g_dataFolder,src/game/game_folders.cpp
-007AF5B4,4,g_deferredUnits,src/game/static_lists.cpp
 007AF5B8,2020,g_clientWorld,src/game/world_construct.cpp
 007AFDB0,12,kOrigin,src/game/world_data.h
-007AFDC0,12,g_questFolders,src/game/world_briefing.cpp
-007AFDD0,12,g_questFiles,src/game/world_briefing.cpp
-007AFDE0,12,g_zoneTable,src/game/world_game.cpp
-007AFDEC,4,g_lastResources,src/game/world_game.cpp
-007AFDF0,1,g_lastResourcesGuard,src/game/world_game.cpp
 007AFDF8,40,g_saveStream,src/game/world_game.cpp
 007AFE20,132,g_gameFlow,src/game/world_game.cpp
 007AFECC,4,g_guardKey,src/game/world_guard.cpp
@@ -336,10 +326,7 @@ address,size,name,file
 007C8258,8,kCursorOffset,src/game/ui_tooltip.cpp
 007C82A0,132,g_savedParties,src/game/party_file.cpp
 007C8344,4,g_loadingParty,src/game/party.h
-007C8370,20,g_partyIdSet,src/game/player_client.cpp
 007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
-007C83C8,1,g_receivedMessagesDestroyed,src/game/player_server_handlers.cpp
-007C83D0,40,g_receivedMessages,src/game/player_server_handlers.cpp
 007C84EC,4,g_loadingProjectileWorld,src/game/world.h
 007C8510,100,g_spellDatabase,src/game/database_globals.cpp
 007C8640,12,g_takenMaterials,src/game/item_stock.cpp

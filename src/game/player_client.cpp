@@ -178,9 +178,7 @@ constexpr HandlerEntry<CPlayerClient> kClientHandlers[] = {
 constexpr std::uint32_t kUnitInClientParty = 0x400000;
 constexpr int kSessionKindSingle = 1;
 
-// Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
-constinit lib::StaticObject<std::unordered_set<int>> g_partyIdSet = /*007C8370*/ {};
-void DestroyPartyIdSet() { g_partyIdSet.Destroy(); }
+std::unordered_set<int> g_partyIdSet;
 int ReadDword(CMemoryStream* in) {
     int value;
     in->ReadValue(value);
@@ -685,15 +683,10 @@ ClassId CPlayerClient::GetClassId() { return ClassId::PlayerClient; }
 
 // --- The party state ---------------------------------------------------------------------
 
-void ConstructPartyIdSet() {
-    g_partyIdSet.Construct();
-    std::atexit(DestroyPartyIdSet);
-}
-
 int CPlayerClient::OnPartyState() {
     CPlayer* player = player_;
     for (int i = 0; i < std::ssize(partyUnitIds_); ++i) {
-        g_partyIdSet->insert(partyUnitIds_[i]);
+        g_partyIdSet.insert(partyUnitIds_[i]);
         CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
@@ -711,11 +704,11 @@ int CPlayerClient::OnPartyState() {
         auto* unit = player->WorldContext()->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
-        if (!g_partyIdSet->contains(id) && player->sessionKind_ == kSessionKindSingle && unit->player == nullptr &&
+        if (!g_partyIdSet.contains(id) && player->sessionKind_ == kSessionKindSingle && unit->player == nullptr &&
             g_clientWorld->ticksRun_ >= 1)
             unit->Controller()->RestartFadeIn();
     }
-    g_partyIdSet->clear();
+    g_partyIdSet.clear();
 
     player->ClientWorld()->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);

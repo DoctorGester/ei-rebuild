@@ -782,6 +782,20 @@ UNUSED_INITIALISERS = {
     0x005C4460: "the path smoother's node pool 007C3038 (exit function 005C4480): ai_path_smooth.cpp's g_smoothPool",
     0x005C8F90: "the AI events' pool 007C43A8 (exit function 005C8FB0): ai_events.cpp's g_eventPool",
     0x0067E4C0: "the spells' footprint set 007C8478 (exit function 0067E500): ai_footprint.cpp's g_spellFootprint",
+    # C50b: plain globals of ours in place of the static objects.
+    0x004630F0: "the lever table 0079C1A0 (exit function 00463110): lever_table.cpp's g_leverTable",
+    0x004B17C0: "the quest's objectives 007AA608 (exit function 004B17E0): script_exec_helpers.cpp's "
+                "g_scriptQuestObjectives",
+    0x004B1790: "the quest's name 007AA61C (exit function 004B17B0): script_exec_helpers.cpp's g_scriptQuestName",
+    0x0066C4D0: "the received messages' stream 007C83D0 (exit function 0066C520, guard bit 0 of 007C83C8): "
+                "player_server_handlers.cpp's g_receivedMessages",
+    0x00668B40: "the client's party id set 007C8370 (exit function 00668B60): player_client.cpp's g_partyIdSet",
+    0x0056A3F0: "the frame's deferred units 007AF5B4 (exit function 0056A4C0): world_client_view.cpp's g_deferredUnits",
+    0x00455E30: "the copy protection's check list 0079BC2C (exit function 00455F00): nothing fills it, so "
+                "DelayedProtectionCheck (app_helpers.cpp) only draws its number",
+    0x0057F460: "the zone table 007AFDE0 (exit function 0057F4A0): world_game.cpp's g_zoneTable",
+    0x00580980: "the quest text files 007AFDD0 (exit function 005809C0): world_briefing.cpp's g_questFiles",
+    0x00581050: "the quest folders 007AFDC0 (exit function 00581090): world_briefing.cpp's g_questFolders",
     # C50b: the draw work arrays are plain globals of ours.
     0x00498910: "the particles' draw order 007A9C50 (exit function 00498930): particle_draw.cpp's g_drawOrder",
     0x0051CBD0: "the shadow's ground quad 007AF208 (exit function 0051CC00): map_object_shadow.cpp's g_quads",
@@ -1127,6 +1141,11 @@ RUNTIME_SITES = set()
 # runtime atexit sites never run, like dead code's. begin -> (end, why).
 RETIRED_STATICS = {
     # C50b
+    0x0057C700: (0x0057CB50, "GameFlow::ProcessRequest (world_game.cpp) calls UseResources, which the original inlines "
+                             "with its function-local string 007AFDEC (guard bit 0 of 007AFDF0, destroyed by 0057E6A0)"),
+    0x0057DEE0: (0x0057E1A0, "GameFlow::UseResources (world_game.cpp) keeps the resources in use in a function-local "
+                             "static of ours: the original's string 007AFDEC (guard bit 0 of 007AFDF0, destroyed by "
+                             "0057E6A0) is never made"),
     0x00467590: (0x004679B0, "CLightning::DrawGlow (lightning_draw.cpp) uses plain globals of ours: the original's "
                              "sprite records 0079C1E0 and points 0079C1D0 (guard bits 0 / 1 of 0079C1F4, destroyed by "
                              "00467A10 / 004679F0) are never made"),

@@ -147,14 +147,9 @@ void GameFlow::MarkBriefing(const char* briefing) {
 
 // ---- Forgetting briefings, unloading quest texts --------------------------------------------------
 
-// The quest text files (world.h) and the quest folders (g_questFolders, below): empty at the start, as the static
-// initialisers leave them; the exit functions they register destroy them
-// (docs/notes/standalone.md, "The static initialisers' objects").
-constinit std::vector<std::string> g_questFiles = /*007AFDD0*/ {};
-constinit std::vector<std::string> g_questFolders = /*007AFDC0*/ {};
-
-void DestroyQuestFiles() { lib::FreeStorage(g_questFiles); }
-void DestroyQuestFolders() { lib::FreeStorage(g_questFolders); }
+// The quest text files (world.h) and the quest folders.
+std::vector<std::string> g_questFiles;
+std::vector<std::string> g_questFolders;
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = g_clientWorld->LocalView()->player_;

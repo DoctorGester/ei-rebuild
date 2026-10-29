@@ -78,7 +78,7 @@ void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
 
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
 int MoveUnits(MoveCommand command) {
-    CMemoryStream& in = *g_receivedMessages;
+    CMemoryStream& in = g_receivedMessages;
     std::vector<CUnit*> units{};
     std::vector<Vector3> offsets{};
     ReadUnits(in, &units);
@@ -106,25 +106,8 @@ const char* const kResendingParty = "Resending party of player ";
 
 } // namespace
 
-// The stream the received packets are decompressed into: built by the static initialiser and destroyed once by
-// the exit function it registers (docs/notes/standalone.md).
-constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
-
-// A second block: it uses g_receivedMessages (defined above).
-namespace {
-std::uint8_t g_receivedMessagesDestroyed = /*007C83C8*/ {};
-void DestroyReceivedMessages() {
-    std::uint8_t flags = g_receivedMessagesDestroyed;
-    if (flags & 1) return;
-    g_receivedMessagesDestroyed = static_cast<std::uint8_t>(flags | 1);
-    g_receivedMessages->~CMemoryStream();
-}
-} // namespace
-
-void ConstructReceivedMessages() {
-    new (&*g_receivedMessages) CMemoryStream();
-    std::atexit(DestroyReceivedMessages);
-}
+// The stream the received packets are decompressed into.
+CMemoryStream g_receivedMessages;
 
 // --- The leader died ----------------------------------------------------------------------
 
@@ -228,7 +211,7 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
 }
 
 int CPlayerServer::OnUseOrder() {
-    CMemoryStream& in = *g_receivedMessages;
+    CMemoryStream& in = g_receivedMessages;
     std::vector<CUnit*> units{};
     int count = 0;
     in.ReadValue(count);
@@ -401,7 +384,7 @@ int CPlayerServer::OnTakeExit() {
     std::string zone;
     int exit = 0;
     int entrance = 0;
-    g_receivedMessages->ReadValue(exit);
+    g_receivedMessages.ReadValue(exit);
     if (!g_serverWorld->GetZoneExit(exit, &zone, &entrance)) return 0;
     LeaveToZone(zone, entrance);
     return 1;
@@ -421,11 +404,11 @@ int CPlayerServer::OnLeaveToZone() {
     std::string zone;
     {
         std::string text;
-        std::string* read = g_receivedMessages->ReadString(&text);
+        std::string* read = g_receivedMessages.ReadString(&text);
         zone = *read;
     }
     int entrance = 0;
-    g_receivedMessages->ReadValue(entrance);
+    g_receivedMessages.ReadValue(entrance);
     LeaveToZone(zone, entrance);
     return 1;
 }
@@ -434,7 +417,7 @@ int CPlayerServer::OnBriefingDone() {
     std::string name;
     {
         std::string text;
-        std::string* read = g_receivedMessages->ReadString(&text);
+        std::string* read = g_receivedMessages.ReadString(&text);
         name = *read;
     }
     g_serverWorld->CompleteBriefing(player_->playerId_, name);
@@ -444,7 +427,7 @@ int CPlayerServer::OnBriefingDone() {
 int CPlayerServer::OnNewParty() {
     CParty local;
     CParty* party = &local;
-    party->LoadParty(&g_receivedMessages.Get(), 1);
+    party->LoadParty(&g_receivedMessages, 1);
     if (std::ssize(party->members_) != 1) return 0;
     int* key = &player_->partyId_;
     PartyNextId(key);
@@ -470,7 +453,7 @@ int CPlayerServer::OnWalk() { return MoveUnits(&PlayerMode::CommandWalk); }
 int CPlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
 
 int CPlayerServer::OnAttack() {
-    CMemoryStream& in = *g_receivedMessages;
+    CMemoryStream& in = g_receivedMessages;
     std::vector<CUnit*> units{};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
@@ -489,7 +472,7 @@ int CPlayerServer::OnAttack() {
 
 int CPlayerServer::OnPartyUpdate() {
     CMemoryStream block;
-    CMemoryStream& in = *g_receivedMessages;
+    CMemoryStream& in = g_receivedMessages;
     in.ReadSized(&block);
     block.CMemoryStream::Seek(0);
     if (in.ok_) player_->Party()->LoadParty(&block, 0);
@@ -515,7 +498,7 @@ bool IsPrintableText(const char* text, int maxLength, int minLength) {
 int CPlayerServer::OnLogin() {
     PlayerLoginMessage login;
     login.partyId = 0;
-    g_receivedMessages->ReadValue(login);
+    g_receivedMessages.ReadValue(login);
     if (state_ != 0) return 0;
     CPlayer* player = player_;
     if (login.version != kClientVersion) {
