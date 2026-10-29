@@ -170,14 +170,12 @@ float g_nearestCaster = 1e30f;
 
 // --- GPU side ---------------------------------------------------------------------------------------
 
-struct CasterVs {
-    Matrix4 light;
-    float uvOffset[4];   // a mesh kept on the GPU's texture offsets (MeshBatch::uOffset, vOffset)
-};
-struct CasterFs {
-    float alpha[4];
-};
-
+// The casters' pipelines (CasterDraws): MeshLayout's position and texture coordinates in vertex buffers 0 and 1,
+// the draw's CasterInstance in kInstanceBuffer as kInstanceAttrs float4s (shaders/shadow_caster.hlsl's TEXCOORD1-5).
+constexpr int kInstanceBuffer = 2;
+constexpr int kInstanceAttrs = 5;
+static_assert(sizeof(CasterInstance) == 16 * kInstanceAttrs);
+CasterDraws g_casterDraws("ei-shadow-casters");   // the sun map's
 sg_shader g_casterShader{};
 sg_pipeline g_casterPipelines[2]{};   // the frame's stream, the meshes kept on the GPU (MeshLayout)
 sg_shader g_terrainCasterShader{};    // the ground's casters (shaders/shadow_terrain.hlsl)
@@ -202,14 +200,11 @@ bool MakeCasterPipelines() {
     SetBytecode(s, kCasterShader);
     s.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
     s.attrs[0].hlsl_sem_name = "POSITION";
-    s.attrs[1].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-    s.attrs[1].hlsl_sem_name = "TEXCOORD";
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(CasterVs);
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.uniform_blocks[1].size = sizeof(CasterFs);
-    s.uniform_blocks[1].hlsl_register_b_n = 0;
+    for (int k = 1; k <= kInstanceAttrs + 1; ++k) {   // the texture coordinates, then the instance's
+        s.attrs[k].base_type = SG_SHADERATTRBASETYPE_FLOAT;
+        s.attrs[k].hlsl_sem_name = "TEXCOORD";
+        s.attrs[k].hlsl_sem_index = static_cast<std::uint8_t>(k - 1);
+    }
     s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
     s.views[0].texture.image_type = SG_IMAGETYPE_2D;
     s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
@@ -231,6 +226,14 @@ bool MakeCasterPipelines() {
         sg_pipeline_desc p{};
         p.shader = g_casterShader;
         MeshLayout(p, cached != 0, true);
+        p.layout.buffers[kInstanceBuffer].stride = sizeof(CasterInstance);
+        p.layout.buffers[kInstanceBuffer].step_func = SG_VERTEXSTEP_PER_INSTANCE;
+        for (int k = 0; k < kInstanceAttrs; ++k) {   // the light matrix's rows, then the offsets and the cut
+            sg_vertex_attr_state& a = p.layout.attrs[2 + k];
+            a.buffer_index = kInstanceBuffer;
+            a.offset = 16 * k;
+            a.format = SG_VERTEXFORMAT_FLOAT4;
+        }
         p.index_type = SG_INDEXTYPE_UINT32;
         p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
         p.cull_mode = SG_CULLMODE_NONE;
@@ -919,6 +922,83 @@ void NoteCasterPart(const void* part) {
     if (part && !g_walkedOnly) g_drawnParts.insert(part);
 }
 
+void CasterDraws::Add(const sg_bindings& geometry, bool kept, sg_view texture, sg_sampler sampler, int firstIndex,
+                      int indexCount, const CasterInstance& instance) {
+    Entry e{};
+    for (int k = 0; k < 2; ++k) {
+        e.vertices[k] = geometry.vertex_buffers[k];
+        e.vertexOffsets[k] = geometry.vertex_buffer_offsets[k];
+    }
+    e.indices = geometry.index_buffer;
+    e.indexOffset = geometry.index_buffer_offset;
+    e.texture = texture;
+    e.sampler = sampler;
+    e.kept = kept ? 1 : 0;
+    e.firstIndex = firstIndex;
+    e.indexCount = indexCount;
+    e.instance = static_cast<int>(instanceData.size());
+    draws.push_back(e);
+    instanceData.push_back(instance);
+}
+
+void CasterDraws::Sort(std::size_t from, std::size_t to) {
+    std::sort(draws.begin() + static_cast<std::ptrdiff_t>(from), draws.begin() + static_cast<std::ptrdiff_t>(to),
+              [](const Entry& a, const Entry& b) {
+                  const auto ka = BindingKey(a), kb = BindingKey(b);
+                  return ka != kb ? ka < kb : a.instance < b.instance;
+              });
+}
+
+bool CasterDraws::Upload() {
+    applied = nullptr;
+    appliedPipeline = -1;
+    instanceOffset = -1;
+    if (draws.empty() || !MakeCasterPipelines()) return false;
+    instanceOffset = instances.Append(instanceData.data(), instanceData.size() * sizeof(CasterInstance));
+    return instanceOffset >= 0;
+}
+
+void CasterDraws::Draw(std::size_t from, std::size_t to) {
+    if (instanceOffset < 0) return;
+    for (std::size_t k = from; k < to; ++k) {
+        const Entry& e = draws[k];
+        if (e.kept != appliedPipeline) {
+            sg_apply_pipeline(g_casterPipelines[e.kept]);
+            appliedPipeline = e.kept;
+            applied = nullptr;   // sokol takes the bindings again after a pipeline
+        }
+        if (!applied || BindingKey(*applied) != BindingKey(e)) {
+            sg_bindings b{};
+            for (int v = 0; v < 2; ++v) {
+                b.vertex_buffers[v] = e.vertices[v];
+                b.vertex_buffer_offsets[v] = e.vertexOffsets[v];
+            }
+            b.vertex_buffers[kInstanceBuffer] = instances.Buffer();
+            b.vertex_buffer_offsets[kInstanceBuffer] = instanceOffset;
+            b.index_buffer = e.indices;
+            b.index_buffer_offset = e.indexOffset;
+            b.views[0] = e.texture;
+            b.samplers[0] = e.sampler;
+            sg_apply_bindings(&b);
+            applied = &e;
+        }
+        sg_draw_ex(e.firstIndex, e.indexCount, 1, 0, e.instance);
+    }
+}
+
+void CasterDraws::Clear() {
+    draws.clear();
+    instanceData.clear();
+    applied = nullptr;
+    appliedPipeline = -1;
+    instanceOffset = -1;
+}
+
+void CasterDraws::Destroy() {
+    Clear();
+    instances.Destroy();
+}
+
 void ShadowFrameDone() {
     g_lastInfo = g_info;
     g_info = ShadowInfo{};
@@ -1064,8 +1144,9 @@ void DrawShadowMap(Frame& f) {
             sg_begin_pass(&pass);
             ++g_stats.passes;
             std::unordered_map<const void*, bool> counted;
+            g_casterDraws.Clear();
             const CachedMesh* lastMesh = nullptr;
-            int lastFirst = -1, lastLayout = -1;
+            int lastFirst = -1;
             for (const MeshBatch& batch : f.meshBatches) {
                 if (batch.light < 0 || !batch.caster || batch.indexCount <= 0) continue;
                 auto it = casters.find(batch.caster);
@@ -1076,60 +1157,41 @@ void DrawShadowMap(Frame& f) {
                 sg_bindings b{};
                 int first = 0;
                 if (!BindMeshBatch(batch, b, &first)) continue;
-                int layout = batch.cached ? 1 : 0;
-                if (layout != lastLayout) {
-                    sg_apply_pipeline(g_casterPipelines[layout]);
-                    lastLayout = layout;
-                }
                 const PassState& s = batch.state;
                 const StageState& st = s.stages[0];
-                CasterFs fs{};
+                CasterInstance instance{f.shadow.lights[static_cast<std::size_t>(batch.light)], {batch.uOffset, batch.vOffset}, {}};
                 if ((s.alphaTest || s.blend) && st.hasTexture) {
-                    fs.alpha[0] = 1.0f;
-                    fs.alpha[1] = s.alphaTest ? (s.alphaReference + 0.5f) / 255.0f : 0.5f;
+                    instance.alpha[0] = 1.0f;
+                    instance.alpha[1] = s.alphaTest ? (s.alphaReference + 0.5f) / 255.0f : 0.5f;
                 }
                 if (st.hasTexture && st.texture.id) {
                     if (g_cuts.size() >= kMostCuts) g_cuts.clear();
-                    g_cuts[st.texture.id] = AlphaCut{fs.alpha[0] > 0.5f, fs.alpha[1]};
+                    g_cuts[st.texture.id] = AlphaCut{instance.alpha[0] > 0.5f, instance.alpha[1]};
                 }
                 if (g_walkedOnly) continue;   // the walk hands this caster over instead
-                b.views[0] = st.texture.id ? st.texture : SurfaceView(nullptr);
-                b.samplers[0] = StageSampler(st);
-                sg_apply_bindings(&b);
-                CasterVs vs{f.shadow.lights[static_cast<std::size_t>(batch.light)], {batch.uOffset, batch.vOffset, 0.0f, 0.0f}};
-                sg_range vr{&vs, sizeof(vs)};
-                sg_apply_uniforms(0, &vr);
-                sg_range fr{&fs, sizeof(fs)};
-                sg_apply_uniforms(1, &fr);
-                sg_draw(first, batch.indexCount, 1);
+                g_casterDraws.Add(b, batch.cached != nullptr, st.texture.id ? st.texture : SurfaceView(nullptr),
+                                  StageSampler(st), first, batch.indexCount, instance);
                 ++g_stats.shadowDraws;
                 ++g_info.casterDraws;
                 counted[batch.caster] = true;
             }
             if (!g_outside.empty()) {
-                sg_apply_pipeline(g_casterPipelines[1]);
                 std::unordered_map<const void*, bool> outside;
                 int corners = 0;
+                const sg_sampler sampler = StageSampler(StageState{});
                 for (const OutsideCaster& e : g_outside) {
                     sg_bindings b{};
                     int first = 0;
                     if (!BindCachedMesh(*e.mesh, b, &first)) continue;
-                    b.views[0] = e.hasTexture && e.texture.id ? e.texture : SurfaceView(nullptr);
-                    b.samplers[0] = StageSampler(StageState{});
-                    sg_apply_bindings(&b);
-                    CasterVs vs{Product(g_fit.light, e.model), {e.uOffset, e.vOffset, 0.0f, 0.0f}};
-                    sg_range vr{&vs, sizeof(vs)};
-                    sg_apply_uniforms(0, &vr);
-                    CasterFs fs{};
+                    CasterInstance instance{Product(g_fit.light, e.model), {e.uOffset, e.vOffset}, {}};
                     if (e.hasTexture && e.texture.id) {
                         auto cut = g_cuts.find(e.texture.id);
                         AlphaCut a = cut != g_cuts.end() ? cut->second : AlphaCut{true, 0.5f};
-                        fs.alpha[0] = a.cut ? 1.0f : 0.0f;
-                        fs.alpha[1] = a.least;
+                        instance.alpha[0] = a.cut ? 1.0f : 0.0f;
+                        instance.alpha[1] = a.least;
                     }
-                    sg_range fr{&fs, sizeof(fs)};
-                    sg_apply_uniforms(1, &fr);
-                    sg_draw(first, CachedIndexCount(*e.mesh), 1);
+                    g_casterDraws.Add(b, true, e.hasTexture && e.texture.id ? e.texture : SurfaceView(nullptr), sampler,
+                                      first, CachedIndexCount(*e.mesh), instance);
                     ++g_stats.shadowDraws;
                     ++g_info.outsideDraws;
                     corners += CachedVertexCount(*e.mesh);
@@ -1139,6 +1201,8 @@ void DrawShadowMap(Frame& f) {
                 g_info.outsideCasters = static_cast<int>(outside.size());
                 g_info.outsideCorners = corners;
             }
+            g_casterDraws.Sort(0, g_casterDraws.Count());
+            if (g_casterDraws.Upload()) g_casterDraws.Draw(0, g_casterDraws.Count());
             if (TerrainCasterCount() != 0) {
                 Matrix4 light = g_fit.light;
                 sg_range vr{&light, sizeof(light)};
@@ -1230,6 +1294,7 @@ void DestroyShadows() {
     ReleaseQueries();
 #endif
     DestroyPointShadows();
+    g_casterDraws.Destroy();
     DestroyTarget(&g_map, &g_mapAttachment, &g_mapTexture);
     DestroyTarget(&g_rangeDummy, &g_rangeDummyAttachment, &g_rangeDummyTexture);
     DestroyTarget(&g_dummy, &g_dummyAttachment, &g_dummyTexture);

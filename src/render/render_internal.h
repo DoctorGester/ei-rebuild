@@ -11,6 +11,7 @@
 #include <memory>
 #include <utility>
 #include <span>
+#include <tuple>
 #include <vector>
 
 class TextureDevice;
@@ -610,6 +611,55 @@ bool WorldCamera(const Frame& frame, Matrix4* clip, Vector3* eye);
 bool MakeShadowDepth(int width, int height, const char* label, sg_image* image, sg_view* attachment, sg_view* texture);
 sg_sampler ShadowCompareSampler();
 sg_view NoShadowTexture();
+// The casters' draws into a depth map (shaders/shadow_caster.hlsl), the sun's and the point lights'. Each draw's
+// own data (CasterInstance) goes into one instance buffer uploaded once a pass and is read at the draw's first
+// instance; the draws are sorted by what they bind (a depth map does not depend on the order its casters are
+// drawn in) and the pipeline and bindings are applied only when they change.
+struct CasterInstance {
+    Matrix4 light;       // model space -> the map's clip space
+    float uvOffset[2];   // a kept mesh's texture offsets (MeshBatch::uOffset, vOffset)
+    float alpha[2];      // cut out (1) where stage 0's alpha is below [1]
+};
+static_assert(sizeof(CasterInstance) == 80, "the instance layout in CasterDraws' pipelines");
+class CasterDraws {
+public:
+    explicit CasterDraws(const char* label) : instances(false, label) {}
+    // A draw of `indexCount` indices from `firstIndex` in the buffers `geometry` binds (BindMeshBatch,
+    // BindCachedMesh; `kept`: the kept meshes' pool, MeshLayout's `cached`).
+    void Add(const sg_bindings& geometry, bool kept, sg_view texture, sg_sampler sampler, int firstIndex, int indexCount,
+             const CasterInstance& instance);
+    std::size_t Count() const { return draws.size(); }
+    // Sorts the draws in [from, to) by what they bind.
+    void Sort(std::size_t from, std::size_t to);
+    // Uploads the instances, before the pass's first Draw (whose pipeline and bindings are then applied anew);
+    // false when they could not be (nothing is drawn).
+    bool Upload();
+    void Draw(std::size_t from, std::size_t to);
+    void Clear();
+    void Destroy();
+
+private:
+    struct Entry {
+        sg_buffer vertices[2], indices;
+        int vertexOffsets[2], indexOffset;
+        sg_view texture;
+        sg_sampler sampler;
+        int kept;
+        int firstIndex, indexCount;
+        int instance;   // in instanceData
+    };
+    // What a draw binds: the order Sort puts the draws in, the same key for draws with the same bindings.
+    static auto BindingKey(const Entry& e) {
+        return std::make_tuple(e.kept, e.texture.id, e.sampler.id, e.vertices[0].id, e.vertexOffsets[0], e.vertices[1].id,
+                               e.vertexOffsets[1], e.indices.id, e.indexOffset);
+    }
+    std::vector<Entry> draws;
+    std::vector<CasterInstance> instanceData;
+    StreamBuffer instances;
+    int instanceOffset = -1;   // Upload's, in `instances`
+    const Entry* applied = nullptr;
+    int appliedPipeline = -1;
+};
 // Point-light shadows (docs/notes/renderer.md section 13, item 9). PreparePointShadows (from PrepareShadows)
 // picks the strongest point lights in view that something shadows and gives the meshes lit on the GPU their
 // matrix into the landscape's space. PointShadowSlot: the map of a kept scene light, -1 none.

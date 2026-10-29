@@ -105,14 +105,6 @@ std::vector<UnitMesh> g_units;
 MappedLight g_mapped[kMostPointShadows];
 int g_mappedCount = 0;
 
-struct CasterVs {
-    Matrix4 light;
-    float uvOffset[4];
-};
-struct CasterFs {
-    float alpha[4];
-};
-
 // A caster as drawn into a face: what its depth there depends on besides the face's light.
 struct FaceCaster {
     const CachedMesh* mesh;   // null: the frame's stream (never taken as unchanged)
@@ -120,7 +112,7 @@ struct FaceCaster {
     int firstIndex, indexCount;
     Matrix4 model;
     std::uint32_t texture, sampler;
-    CasterFs fs;
+    float alpha[2];   // CasterInstance's
     float uv[2];
 };
 
@@ -144,7 +136,7 @@ bool CloseModel(const Matrix4& a, const Matrix4& b) {
 bool SameCaster(const FaceCaster& a, const FaceCaster& b) {
     return a.mesh && a.mesh == b.mesh && a.version == b.version && a.firstIndex == b.firstIndex &&
            a.indexCount == b.indexCount && a.texture == b.texture && a.sampler == b.sampler && CloseModel(a.model, b.model) &&
-           std::memcmp(&a.fs, &b.fs, sizeof(a.fs)) == 0 && std::memcmp(a.uv, b.uv, sizeof(a.uv)) == 0;
+           std::memcmp(a.alpha, b.alpha, sizeof(a.alpha)) == 0 && std::memcmp(a.uv, b.uv, sizeof(a.uv)) == 0;
 }
 
 // The atlas's rows are kept across frames: a row keeps the light it was last given and each face what was
@@ -216,10 +208,10 @@ const FaceCaster& DrawOf(const PointShadowFrame& ps, int index) {
     d.model = ps.models[static_cast<std::size_t>(c.model)];
     d.texture = st.texture.id;
     d.sampler = StageSampler(st).id;
-    d.fs = CasterFs{};
+    d.alpha[0] = d.alpha[1] = 0.0f;
     if ((s.alphaTest || s.blend) && st.hasTexture) {
-        d.fs.alpha[0] = 1.0f;
-        d.fs.alpha[1] = s.alphaTest ? (static_cast<float>(s.alphaReference) + 0.5f) / 255.0f : 0.5f;
+        d.alpha[0] = 1.0f;
+        d.alpha[1] = s.alphaTest ? (static_cast<float>(s.alphaReference) + 0.5f) / 255.0f : 0.5f;
     }
     d.uv[0] = batch.uOffset;
     d.uv[1] = batch.vOffset;
@@ -235,8 +227,16 @@ bool Unchanged(const PointShadowFrame& ps, const AtlasFace& face, const std::vec
     return true;
 }
 
-sg_shader g_shader{};
-sg_pipeline g_pipelines[2]{};   // the frame's stream, the meshes kept on the GPU
+// The casters drawn into the faces (with the sun map's pipelines), a face's draws one range of them; the faces
+// drawn again this frame: each one's place in the atlas, whether it is cleared first, and its range.
+CasterDraws g_faceDraws("ei-point-shadow-casters");
+struct RedrawnFace {
+    AtlasFace* face;
+    int x, y;
+    bool clear;
+    std::size_t from, to;
+};
+std::vector<RedrawnFace> g_redrawn;   // kept across frames for its room
 // A face cleared alone (shaders/solid.hlsl: a rectangle at a depth, written whatever is there).
 struct ClearVs {
     float rect[4];
@@ -249,52 +249,9 @@ sg_image g_atlas{};
 sg_view g_atlasAttachment{}, g_atlasTexture{};
 
 bool MakePipelines() {
-    if (g_pipelines[0].id) return sg_query_pipeline_state(g_clearPipeline) == SG_RESOURCESTATE_VALID;
-    if (!g_shader.id) {
-        sg_shader_desc s{};
-        SetBytecode(s, kCasterShader);
-        s.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-        s.attrs[0].hlsl_sem_name = "POSITION";
-        s.attrs[1].base_type = SG_SHADERATTRBASETYPE_FLOAT;
-        s.attrs[1].hlsl_sem_name = "TEXCOORD";
-        s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-        s.uniform_blocks[0].size = sizeof(CasterVs);
-        s.uniform_blocks[0].hlsl_register_b_n = 0;
-        s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.uniform_blocks[1].size = sizeof(CasterFs);
-        s.uniform_blocks[1].hlsl_register_b_n = 0;
-        s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-        s.views[0].texture.image_type = SG_IMAGETYPE_2D;
-        s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-        s.views[0].texture.hlsl_register_t_n = 0;
-        s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
-        s.samplers[0].hlsl_register_s_n = 0;
-        s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-        s.texture_sampler_pairs[0].view_slot = 0;
-        s.texture_sampler_pairs[0].sampler_slot = 0;
-        s.label = "ei-point-shadow-caster";
-        g_shader = sg_make_shader(&s);
-    }
-    bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
-    for (int cached = 0; cached < 2 && ok; ++cached) {
-        sg_pipeline_desc p{};
-        p.shader = g_shader;
-        MeshLayout(p, cached != 0, true);
-        p.index_type = SG_INDEXTYPE_UINT32;
-        p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
-        p.cull_mode = SG_CULLMODE_NONE;
-        p.colors[0].pixel_format = SG_PIXELFORMAT_NONE;   // depth only
-        p.depth.pixel_format = kDepthFormat;
-        p.depth.compare = SG_COMPAREFUNC_LESS_EQUAL;
-        p.depth.write_enabled = true;
-        p.depth.bias_slope_scale = 1.5f;
-        p.sample_count = 1;
-        p.label = "ei-point-shadow-caster";
-        g_pipelines[cached] = sg_make_pipeline(&p);
-        ok = sg_query_pipeline_state(g_pipelines[cached]) == SG_RESOURCESTATE_VALID;
-    }
-    if (ok) {
+    if (g_clearPipeline.id) return sg_query_pipeline_state(g_clearPipeline) == SG_RESOURCESTATE_VALID;
+    bool ok = true;
+    {
         sg_shader_desc s{};
         SetBytecode(s, kSolidShader);
         s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
@@ -599,8 +556,9 @@ void DrawPointShadows(Frame& f) {
     }
     g_draws.resize(g_casters.size());
     g_drawMade.assign(g_casters.size(), 0);
-    bool begun = false;
-    int lastPipeline = -1;   // 0, 1: g_pipelines, 2: the clear
+    std::vector<RedrawnFace>& redrawn = g_redrawn;
+    redrawn.clear();
+    g_faceDraws.Clear();
     for (int i = 0; i < g_mappedCount; ++i) {
         const MappedLight& light = g_mapped[i];
         AtlasRow& row = g_rows[light.row];
@@ -608,30 +566,8 @@ void DrawPointShadows(Frame& f) {
             const std::vector<int>& casters = light.faces[face];
             AtlasFace& kept = row.faces[face];
             if (Unchanged(ps, kept, casters)) continue;
-            if (!begun) {
-                sg_pass pass{};
-                pass.action.depth.load_action = fresh ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
-                pass.action.depth.clear_value = 1.0f;
-                pass.action.depth.store_action = SG_STOREACTION_STORE;
-                pass.attachments.depth_stencil = g_atlasAttachment;
-                pass.label = "ei-point-shadows";
-                sg_begin_pass(&pass);
-                ++g_stats.passes;
-                begun = true;
-            }
-            sg_apply_viewport(face * kPointFaceTexels, light.row * kPointFaceTexels, kPointFaceTexels, kPointFaceTexels,
-                              true);
-            if (!(kept.known && kept.casters.empty())) {
-                if (lastPipeline != 2) {
-                    sg_apply_pipeline(g_clearPipeline);
-                    lastPipeline = 2;
-                }
-                const auto side = static_cast<float>(kPointFaceTexels);
-                ClearVs vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
-                sg_range vr{&vs, sizeof(vs)};
-                sg_apply_uniforms(0, &vr);
-                sg_draw(0, 6, 1);
-            }
+            RedrawnFace r{&kept, face * kPointFaceTexels, light.row * kPointFaceTexels,
+                          !(kept.known && kept.casters.empty()), g_faceDraws.Count(), 0};
             kept.known = true;
             kept.casters.clear();
             const Matrix4 view = FaceMatrix(kCubeFaces[face], light.at, light.range);
@@ -644,27 +580,53 @@ void DrawPointShadows(Frame& f) {
                     kept.known = false;   // drawn again next frame
                     continue;
                 }
-                const int layout = batch.cached ? 1 : 0;
-                if (layout != lastPipeline) {
-                    sg_apply_pipeline(g_pipelines[layout]);
-                    lastPipeline = layout;
-                }
                 const StageState& st = batch.state.stages[0];
-                b.views[0] = st.texture.id ? st.texture : SurfaceView(nullptr);
-                b.samplers[0] = sg_sampler{d.sampler};
-                sg_apply_bindings(&b);
-                CasterVs vs{Product(view, d.model), {d.uv[0], d.uv[1], 0.0f, 0.0f}};
-                sg_range vr{&vs, sizeof(vs)};
-                sg_apply_uniforms(0, &vr);
-                sg_range fr{&d.fs, sizeof(d.fs)};
-                sg_apply_uniforms(1, &fr);
-                sg_draw(first, batch.indexCount, 1);
+                g_faceDraws.Add(b, batch.cached != nullptr, st.texture.id ? st.texture : SurfaceView(nullptr),
+                                sg_sampler{d.sampler}, first, batch.indexCount,
+                                CasterInstance{Product(view, d.model), {d.uv[0], d.uv[1]}, {d.alpha[0], d.alpha[1]}});
                 ++g_stats.shadowDraws;
                 kept.casters.push_back(d);
             }
+            r.to = g_faceDraws.Count();
+            g_faceDraws.Sort(r.from, r.to);
+            redrawn.push_back(r);
         }
     }
-    if (begun) sg_end_pass();
+    if (redrawn.empty()) return;
+    const bool haveDraws = g_faceDraws.Upload();
+    if (!haveDraws)
+        for (const RedrawnFace& r : redrawn)
+            if (r.from != r.to) r.face->known = false;   // cleared only: drawn again next frame
+    sg_pass pass{};
+    pass.action.depth.load_action = fresh ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
+    pass.action.depth.clear_value = 1.0f;
+    pass.action.depth.store_action = SG_STOREACTION_STORE;
+    pass.attachments.depth_stencil = g_atlasAttachment;
+    pass.label = "ei-point-shadows";
+    sg_begin_pass(&pass);
+    ++g_stats.passes;
+    // The faces' clears first (the faces do not overlap), then their casters.
+    bool clearApplied = false;
+    for (const RedrawnFace& r : redrawn) {
+        if (!r.clear) continue;
+        if (!clearApplied) {
+            sg_apply_pipeline(g_clearPipeline);
+            clearApplied = true;
+        }
+        sg_apply_viewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels, true);
+        const auto side = static_cast<float>(kPointFaceTexels);
+        ClearVs vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
+        sg_range vr{&vs, sizeof(vs)};
+        sg_apply_uniforms(0, &vr);
+        sg_draw(0, 6, 1);
+    }
+    if (haveDraws)
+        for (const RedrawnFace& r : redrawn) {
+            if (r.from == r.to) continue;
+            sg_apply_viewport(r.x, r.y, kPointFaceTexels, kPointFaceTexels, true);
+            g_faceDraws.Draw(r.from, r.to);
+        }
+    sg_end_pass();
 }
 
 void PointShadowUniforms(const Frame& f, PointShadowParams* params) { *params = f.shadow.point.params; }
@@ -699,12 +661,7 @@ void DestroyPointShadows() {
     if (g_atlas.id) sg_destroy_image(g_atlas);
     g_atlas = sg_image{};
     g_atlasAttachment = g_atlasTexture = sg_view{};
-    for (sg_pipeline& p : g_pipelines) {
-        if (p.id) sg_destroy_pipeline(p);
-        p = sg_pipeline{};
-    }
-    if (g_shader.id) sg_destroy_shader(g_shader);
-    g_shader = sg_shader{};
+    g_faceDraws.Destroy();
     if (g_clearPipeline.id) sg_destroy_pipeline(g_clearPipeline);
     if (g_clearShader.id) sg_destroy_shader(g_clearShader);
     g_clearPipeline = sg_pipeline{};
