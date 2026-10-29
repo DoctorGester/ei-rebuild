@@ -15,12 +15,12 @@ constexpr const char* kClassName = "CTextureManager";
 constexpr const char* kFolder = "textures";
 
 // The flag CreateObject gives a new texture of `type` (0x3D and unknown types 0x40).
-std::uint32_t CreateFlag(int type) {
+TextureFlag CreateFlag(int type) {
     switch (type) {
-    case 0x3E: return 0x80;
-    case 0x3F: return 0x100;
-    case 0x40: return 0x200;
-    default: return 0x40;
+    case 0x3E: return TextureFlag::Type3E;
+    case 0x3F: return TextureFlag::Type3F;
+    case 0x40: return TextureFlag::Type40;
+    default: return TextureFlag::OtherType;
     }
 }
 

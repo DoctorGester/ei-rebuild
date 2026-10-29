@@ -5698,3 +5698,11 @@ title = "C54c rest: the text reader's free functions and the global map's counts
 group = "cleanup"
 depends = ["C54c"]
 note = "TextNextLine / TextSkipLine (text_reader.h, the last free functions on CTextManager; callers ui_battle_update, ui_help_page, ui_help_window, ui_item_info, ui_objectives*, ui_global_map_places) -> CTextManager members (TextSkipLine has no caller outside text_reader.cpp: a local helper), text_reader.h folded into item_db_text.h. CGlobalMap: zoneCount_ / questCount_ / linkCount_ repeat the vectors' sizes (markerCount_ their sum); the D() double casts and Ftol truncations in ui_global_map.cpp (x87 mirroring, golden-check under /arch:IA32); MapBuilder::Layer's Vector3::Construct; RefreshSelection's colour expression. Goldens: ui_camp, ui_global_map_pick, ui_gallery_deals."
+
+[[ticket]]
+id = "C45d6a"
+title = "Magic numbers: the interface's copies of the engine object bits"
+group = "cleanup"
+model = "sonnet"
+depends = ["C45d6"]
+note = "C45d6 named FigureMeshFlag (figure_mesh.h), MaterialFlag (material.h), LightFlag (spell.h), ParticleSourceFlag (effects.h), TextureFlag (texture.h), WorldClientFlag / EnvironmentFlag (world.h) and MapObjectFlag Selected 0x10 / Shown 0x20 / BoxMarked 0x100 / Stationary 0x200 / Static 0x400 outside src/game/ui_*. Left in the interface (C54d / C54f were running there): MapObjectFlag::Selected in ui_battle_keys.cpp / ui_battle_slots.cpp kUnitSelected, ui_battle_update.cpp (0x10, 0x100 BoxMarked; its comment calls 0x10 dead), ui_hud.cpp, ui_hud_panels.cpp; FigureMeshFlag::Drawn in ui_flying_hit_points.cpp kPartOwnMesh; FigureMeshFlag::Flat (0x100 on CUiMesh) in ui_briefing_create.cpp kPlainFlag, ui_help_page.cpp kPlainColour, ui_hud_build.cpp kPlainFlag, ui_hero_panels.cpp SetPlainFlag, ui_hud_portrait_setup.cpp, ui_global_map_places.cpp, ui.h's CUiMesh comment. Spelling only; goldens unchanged."

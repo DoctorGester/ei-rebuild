@@ -24,8 +24,11 @@ namespace {
 
 // The lists' block size (10).
 constexpr int kListBlockSize = 10;
-// The client's flags after construction.
-constexpr std::uint32_t kClientFlags = 0x3DC0;
+// The client's flags after construction: every draw but the shadows (Create decides them).
+constexpr WorldClientFlag kClientFlags = WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits | WorldClientFlag::DrawTerrain |
+                                         WorldClientFlag::DrawEffects | WorldClientFlag::Draw800 | WorldClientFlag::DrawSky |
+                                         WorldClientFlag::DrawNumbers;
+static_assert(lib::Bits(kClientFlags) == 0x3DC0);
 
 } // namespace
 

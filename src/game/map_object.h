@@ -61,8 +61,15 @@ enum class MapObjectFlag : std::uint32_t {
     Removed = 0x1,              // gone from the world: its id is sent on
     Changed = 0x2,              // MarkChanged: the network state is not written yet
     Hidden = 0x8,               // not drawn (a spec with visible 0; the client's draw test sets and clears it)
+    Selected = 0x10,            // client: selected (CWorldClient::Select; its figure lit and highlighted)
+    Shown = 0x20,               // client: in view this frame (the view pass), a part drawn through its drawer (the
+                                // draw); screen picking takes only such objects
     NotDrawn = 0x40,            // never drawn (traps)
     FiguresLoaded = 0x80,       // the figure is loaded
+    BoxMarked = 0x100,          // client party units: inside the selection box being dragged (their figure lit)
+    Stationary = 0x200,         // client objects but units: the figure's parts are FigureMeshFlag::Stationary; only
+                                // such objects are drawn static and have their models kept loaded
+    Static = 0x400,             // client: drawn static (every part kept its lighting; no object matrix pushed)
     Detached = 0x1000,          // its parts are passed to the figure manager
     Invisible = 0x10000,        // HideObject
     Synchronised = 0x20000,     // IsSynchronised

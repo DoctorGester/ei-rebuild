@@ -18,7 +18,6 @@
 
 namespace {
 
-constexpr std::uint32_t kLightHidden = 0x80;   // CEngineObject::flags_ of a light
 constexpr int kPointLightClass = 0x31;         // the light factory's point lights
 constexpr int kWarmUpTicks = 0x3C;
 constexpr float kShowFarFactor = 3.0f;
@@ -77,8 +76,8 @@ void CTorchObjectClientSpec::DestroyClient() {
 
 void CTorchObjectClientSpec::ShowEffects() {
     if (particles_) particles_->StartEmitting();
-    if (light_ && (light_->flags_ & kLightHidden)) {
-        light_->flags_ &= ~kLightHidden;
+    if (light_ && (light_->flags_ & LightFlag::Hidden)) {
+        light_->flags_ &= ~LightFlag::Hidden;
         g_clientWorld->terrain_->AddLight(light_);
     }
     if (sound_) g_clientWorld->sounds_->StopSound(sound_);
@@ -88,8 +87,8 @@ void CTorchObjectClientSpec::ShowEffects() {
 
 void CTorchObjectClientSpec::HideEffects() {
     if (particles_) particles_->StopEmitting();
-    if (light_ && !(light_->flags_ & kLightHidden)) {
-        light_->flags_ |= kLightHidden;
+    if (light_ && !(light_->flags_ & LightFlag::Hidden)) {
+        light_->flags_ |= LightFlag::Hidden;
         g_clientWorld->terrain_->RemoveLight(light_);
     }
     if (sound_) {

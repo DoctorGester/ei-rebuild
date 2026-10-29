@@ -168,10 +168,10 @@ void DropAndDelete(T*& slot) {
     }
 }
 
-// The selection highlight off: flags 0x10 and 0x100 cleared, the side half's empty virtual and SetLit
+// The selection highlight off: Selected and BoxMarked cleared, the side half's empty virtual and SetLit
 // with 0 (its light goes off).
 void Unhighlight(CMapObject* object) {
-    object->flags_ &= ~0x110u;
+    object->flags_ &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
     CObject3DSpecific* half = object->attached;
     half->Unused25(0);
     half = object->attached;
@@ -734,7 +734,7 @@ void CWorldClient::Deselect(CMapObject* object) {
     if (!object) {
         for (auto& node : selected) {
             CMapObject* found = objects->FindMapObject(static_cast<unsigned>(node));
-            if (found && (found->flags_ & 0x10)) Unhighlight(found);
+            if (found && (found->flags_ & MapObjectFlag::Selected)) Unhighlight(found);
         }
         selected.clear();
         return;
@@ -744,15 +744,15 @@ void CWorldClient::Deselect(CMapObject* object) {
     while (node != selected.end() && (*node) != id) ++node;
     if (node == selected.end()) return;
     selected.erase(node);
-    if (object->flags_ & 0x10) Unhighlight(object);
+    if (object->flags_ & MapObjectFlag::Selected) Unhighlight(object);
 }
 
 void CWorldClient::Select(CMapObject* object) {
     if (!object) return;
     object->Object3D()->UpdatePartBounds();
-    if (!(object->flags_ & 0x10)) {
-        if (!(object->flags_ & 0x100)) object->attached->SetLit(1);
-        object->flags_ |= 0x10;
+    if (!(object->flags_ & MapObjectFlag::Selected)) {
+        if (!(object->flags_ & MapObjectFlag::BoxMarked)) object->attached->SetLit(1);
+        object->flags_ |= MapObjectFlag::Selected;
         object->attached->Unused25(1);
     }
     std::list<int>& selected = selectedIds_;
@@ -851,9 +851,9 @@ void CWorldClient::Create() {
     rainSnow_.world = this;
     platforms_.Create();
     if (worlddata::ShadowSetting() > 0)
-        flags_ |= 0x200;
+        flags_ |= WorldClientFlag::DrawShadows;
     else
-        flags_ &= ~0x200u;
+        flags_ &= ~WorldClientFlag::DrawShadows;
     {
         std::string path = *g_dataFolder + worlddata::CursorFileText();
         cursor_ = text::utf8::LoadCursorFromFileA(path.c_str());

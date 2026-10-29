@@ -22,7 +22,6 @@
 namespace {
 
 constexpr int kFigureClass = 0x43;
-constexpr std::uint32_t kLoaded = 0x20;            // CFigureMesh::flags_
 constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG"
 constexpr const char* kFiguresArchive = "figures.res";
 constexpr const char* kMenusArchive = "menus.res";
@@ -96,10 +95,10 @@ int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator
 }
 
 void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) {
-    if (flags_ & kLoaded) return;
+    if (flags_ & FigureMeshFlag::Loaded) return;
     std::uint32_t magic;
     lib::LoadBytes(magic, *cursor);
     if ((magic & 0xFFFFFF) == kFigMagic) LoadFig(cursor, s, t, u);
     else LoadOld(cursor, s, t, u);
-    flags_ |= kLoaded;
+    flags_ |= FigureMeshFlag::Loaded;
 }

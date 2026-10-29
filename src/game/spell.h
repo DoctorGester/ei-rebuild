@@ -227,7 +227,7 @@ public:
     // `first`, then `pattern` itself (count < 1) or `pattern` formatted with 1..count. It becomes the sound.
     void CreateSoundSequence(const Vector3* position, const Vector3* velocity, const char* first,
                              const char* pattern, int count, float volume, float radius);
-    // Light flags 0x840; it becomes the light.
+    // Light flags Specular | Strong; it becomes the light.
     void CreatePointLight(const Vector3* position, const Vector3* color, float range, const Vector3* velocity);
 
     // One tick. Returns 0 when the effect has ended (the world then removes it) or without a world.
@@ -397,6 +397,22 @@ public:
     Ref<CSpellContainer> container_;
 };
 
+// The bits of CEngineObject::flags_ on a light. A point light effect's lightFlags_ (saved) are ored in: the spells'
+// and missiles' lights take Specular | Strong.
+enum class LightFlag : std::uint32_t {
+    Changed = 0x8,          // SetPoint / SetDirectional; nothing reads it
+    Active = 0x20,          // cleared by Destroy; nothing sets or reads it
+    Specular = 0x40,        // lights the terrain water's specular and the GPU's specular (a quest light, the spells')
+    Hidden = 0x80,          // not lighting: the objects' and the terrain's lighting skip it (a torch's or an object's
+                            // light turned off; the factory's CreateObject clears it)
+    Moving = 0x100,         // a moving effect's light, an object's own light: an object it reaches is not drawn
+                            // static
+    Held = 0x200,           // held on by an object's light mode 1: hiding and showing leave it alone
+    Off = 0x400,            // casts no shadow: a point light effect of negative range, an object's own light
+    Strong = 0x800,         // counts ten times in a shadow's light direction
+};
+template <> inline constexpr bool lib::kBitFlags<LightFlag> = true;
+
 // A light. type_ 0x31 is a point light. localPosition_ is the light's position (where a directional light is
 // drawn from); worldPosition_ holds it in the space of the mesh being lit.
 class CLight : public CTransformObject {
@@ -408,12 +424,12 @@ public:
     CLight();
     ~CLight() override;
     void Create() override;
-    void Destroy() override;                // flags_ bit 5 cleared
+    void Destroy() override;                // LightFlag::Active cleared
     const char* ClassName() override;
     ClassId GetClassId() override;
-    // Kind 1; flags_ bit 3 (changed).
+    // Kind 1; LightFlag::Changed.
     void SetPoint(const Vector3* color, const Vector3* position);
-    // Kind 3; the light also tilts towards `direction`; flags_ bit 3.
+    // Kind 3; the light also tilts towards `direction`; LightFlag::Changed.
     void SetDirectional(const Vector3* color, const Vector3* direction);
     // The terrain water layer's specular lighting: `base` plus the light's colour times `scale` and a factor,
     // each channel clamped at 1; w is then not written (the callers do not read it). Unlit, `out` is `base`. The
@@ -444,7 +460,7 @@ public:
 
     // Other types are logged and give null.
     CEngineObject* NewObject(int type) override;
-    // flags_ bit 7 cleared (no null check).
+    // LightFlag::Hidden cleared (no null check).
     CEngineObject* CreateObject(int type, int id) override;
     CLight* LightWithId(unsigned id) const { return FindObjectAs<CLight>(id); }
     CLight* CreateLight(int type, int id = -1) { return CreateObjectAs<CLight>(type, id); }

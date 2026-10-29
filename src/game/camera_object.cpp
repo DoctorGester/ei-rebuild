@@ -124,8 +124,8 @@ const Vector3* CameraAnchor(const CCamera* self) {
 // Starts recording into ".\camera\" + `name`. When ".\camera\camera.cam" exists it is
 // first renamed to the next numbered file: the number after the highest found, where each found
 // name's number is read from its title past the fourth character ("ra0005": always 0, so the
-// rename goes to camera0001.cam; kept as the game has it). Sets bit 0x10 of a global flags word either
-// way. Returns 1 (file name kept in fileName_, flag 0x10 set) when the file can be created, else 0.
+// rename goes to camera0001.cam; kept as the game has it). Sets the client world's
+// WorldClientFlag::RecordingCamera either way. Returns 1 (file name kept in fileName_, flag 0x10 set) when the file can be created, else 0.
 int CCamera::OpenFile(const char* name) {
     lib::FileFind find;
     lib::File file;
@@ -148,7 +148,7 @@ int CCamera::OpenFile(const char* name) {
         path = str::Format(kNumberedRecord, last + 1);
         gameapi::MoveFileA(kCurrentRecord, path.c_str());
     }
-    g_clientWorld->flags_ |= 0x10;
+    g_clientWorld->flags_ |= WorldClientFlag::RecordingCamera;
     bool failed;
     {
         std::string folder = kRecordFolder;

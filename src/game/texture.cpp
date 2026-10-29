@@ -67,7 +67,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't load texture to NULL pointer.\n");
         return 0;
     }
-    if (texture->flags_ & kTextureLoaded) {
+    if (texture->flags_ & TextureFlag::Loaded) {
         game::DebugLog("Load already loaded texture \"%s\".\n", texture->GetName());
         return 1;
     }

@@ -51,11 +51,6 @@ std::vector<Vector2> g_points;
 std::vector<VertexPacket> g_quads;
 constexpr int kTypePointLight = 0x31;
 constexpr std::uint32_t kFlagRefresh = 8;           // this->flags_: build the shadow again
-constexpr std::uint32_t kObjectHidden = 0x48;       // object->flags_
-constexpr std::uint32_t kLightOff = 0x400;          // light->flags_
-constexpr std::uint32_t kLightRemoved = 0x80;
-constexpr std::uint32_t kLightStrong = 0x800;       // a point light counting ten times
-constexpr std::uint32_t kPartHidden = 0x80;         // part->flags_
 constexpr int kPointBufferSize = 0x1000;
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;
 constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
@@ -117,7 +112,7 @@ bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
         towards.z = static_cast<float>(towards.z * inverse);
     }
     double scale = intensity;
-    if (light->flags_ & kLightStrong) scale = scale * kStrongFactor;
+    if (light->flags_ & LightFlag::Strong) scale = scale * kStrongFactor;
     out->z = static_cast<float>(towards.z * scale);
     out->y = static_cast<float>(towards.y * scale);
     out->x = static_cast<float>(towards.x * scale);
@@ -192,7 +187,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     sum = kDefaultLight;
     ObjectListIteratorOf<CLight> lights{};
     for (CLight* light = lights.First(g_clientWorld->lightFactory_); light; light = lights.Next()) {
-        if (light->flags_ & kLightOff || light->flags_ & kLightRemoved) continue;
+        if ((light->flags_ & LightFlag::Off) || (light->flags_ & LightFlag::Hidden)) continue;
         Vector3 share;
         if (light->type_ == kTypePointLight) {
             if (!PointLightShare(self->object, light, &share)) continue;
@@ -240,7 +235,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     for (int i = 0; i < std::ssize(self->object->parts); ++i) {
         CFigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
-        if (part->flags_ & kPartHidden) continue;
+        if (part->flags_ & FigureMeshFlag::Hidden) continue;
         ObjectWorldMatrix(&part->localRotation_, &part->localPosition_, &part->worldMatrix_);
         view = PartAt(self->object, i)->worldMatrix_;
         pipeline->PushMatrixProduct(view, kShadowStack);
@@ -353,7 +348,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
 bool ShadowCastStrength(CObject3D* object, float* strength) {
     if (options::g_options->shadowQuality_ <= 0) return false;
     if (!ShadowSwitch(object->GetClassId())) return false;
-    if (object->flags_ & kObjectHidden) return false;
+    if (object->flags_ & (MapObjectFlag::Hidden | MapObjectFlag::NotDrawn)) return false;
     if (object->InvisibleSlot()) return false;
     *strength = 1.0f;
     if (CUnit* unit = UnitOrNull(object)) *strength = unit->ClientController()->fadeIn;
@@ -368,9 +363,9 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     render::CastsShadow(object, strength);
 
     // The build: its decal's sphere decides the object's shadow visibility (ShadowInView). Built the first time
-    // after Create / ClearShadow, for an object that moves and when the half asks (flag 8).
-    std::uint32_t objectFlags = object->flags_;
-    const bool gameBuilds = !shadowMade || (objectFlags & 0x600) == 0x200 || !(objectFlags & 0x200) || (flags_ & kFlagRefresh);
+    // after Create / ClearShadow, for an object not drawn static and when the half asks (flag 8).
+    const bool drawnStatic = lib::Has(object->flags_, MapObjectFlag::Stationary) && lib::Has(object->flags_, MapObjectFlag::Static);
+    const bool gameBuilds = !shadowMade || !drawnStatic || (flags_ & kFlagRefresh);
     shadowMade = true;
     if (gameBuilds) {
         render::BeginShadowBuildTime();

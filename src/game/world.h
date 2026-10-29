@@ -29,6 +29,7 @@
 #include "unit_looks.h"
 #include "water_tweens.h"
 
+#include "lib/bit_flags.h"
 #include "lib/hash_map.h"
 
 #include <cstddef>
@@ -709,6 +710,43 @@ struct ClientArrayManager : CBaseManager {
 void VisFogManagerDestroy(ClientArrayManager* manager);
 CEngineObject* VisFogManagerAdd(ClientArrayManager* manager);
 
+// The bits of CEngineObject::flags_ on the client world. The constructor sets the draw bits but DrawShadows (the
+// shadow setting decides it at Create).
+enum class WorldClientFlag : std::uint32_t {
+    NoCamOption = 0x8,      // cleared by the command line's "-nocam"; nothing sets or reads it
+    RecordingCamera = 0x10, // a camera file is being recorded (CCamera::OpenFile; the command line's camera options
+                            // are skipped meanwhile)
+    MoviePathOption = 0x20, // cleared by the command line's "-moviepath_"; nothing sets or reads it
+    DrawObjects = 0x40,     // the objects but units
+    DrawUnits = 0x80,       // the units and the selection markers
+    DrawTerrain = 0x100,    // the ground and the water
+    DrawShadows = 0x200,
+    DrawEffects = 0x400,    // the alpha pass: the client arrays, the particles, the lightning lists, the rain and snow
+    Draw800 = 0x800,        // set by the constructor; nothing reads it
+    DrawSky = 0x1000,
+    DrawNumbers = 0x2000,   // the flying hit numbers
+};
+template <> inline constexpr bool lib::kBitFlags<WorldClientFlag> = true;
+
+// CWorldClient::EnvironmentFlags: what an environment speech (acks.db) asks of the surroundings.
+enum class EnvironmentFlag : std::uint32_t {
+    MoveMode3 = 0x1,        // the unit's moveMode2 (1 walk, 2 run; 0 and 3 not named)
+    Run = 0x2,
+    Walk = 0x4,
+    MoveMode0 = 0x8,
+    Gipat = 0x10,           // the zone's map database name
+    Ingos = 0x20,
+    Suslanger = 0x40,
+    Day = 0x80,
+    Night = 0x100,
+    Outdoors = 0x200,
+    Cave = 0x400,
+    Rain = 0x800,
+    Snow = 0x1000,
+    NoWeather = 0x2000,
+};
+template <> inline constexpr bool lib::kBitFlags<EnvironmentFlag> = true;
+
 // The drawing side.
 class CWorldClient : public CWorld {
 public:
@@ -807,8 +845,8 @@ public:
     // Every filed object with a name gets the visibility level of its variable (ObjectVariableName) in the
     // local session's variables; run when the party variables arrive.
     void ApplyObjectVariables();
-    // Flags describing the current environment for `unit`: unit state, island (gipat/ingos/suslanger),
-    // night (0x100) or day (0x80), and two world settings.
+    // The EnvironmentFlag bits of the current environment for `unit`: its move mode, the island, day or night, a
+    // cave or not, the weather.
     std::uint32_t EnvironmentFlags(CUnit* unit);
 
     // Files each object of `list` with a model inside the view frustum in the frame's draw lists; with
@@ -993,7 +1031,7 @@ public:
     LightColour frameSun_;
     int lightingMark_;                    // 0 after Setup, 0x80 once UpdateLighting runs outside a cave; never read
     // 1: a cave zone (the map's flag: LightsCave.ini, the sky "Sky01", light fixed at hour 0;
-    // EnvironmentFlags 0x400 instead of 0x200).
+    // EnvironmentFlag::Cave instead of Outdoors).
     int cave_;
     int partyDanger_;                     // 0 after Setup; the party state's danger (message 0x60: 2 fighting)
     int ticksRun_;                        // Segment's count; AddObject fades units in when >= 1

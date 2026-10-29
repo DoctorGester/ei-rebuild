@@ -152,7 +152,7 @@ void CEffectPointLight::Start(int update) {
         SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
         LightFlags(light_) |= lightFlags_;
         g_clientWorld->terrain_->AddLight(light_);
-        if (moving_ != 0) LightFlags(light_) |= 0x100;
+        if (moving_ != 0) LightFlags(light_) |= LightFlag::Moving;
     } else {
         light_->color_[0] = color_.x;
         light_->color_[1] = color_.y;
@@ -178,11 +178,11 @@ void CEffectPointLight::Start(int update) {
             g_clientWorld->terrain_->AddLight(light_);
         }
     }
-    // A negative range (or NaN) sets flag 0x400.
+    // A negative range (or NaN) sets LightFlag::Off.
     if (range_ >= ConstAt(worlddata::ZeroRef()))
-        LightFlags(light_) &= ~0x400u;
+        LightFlags(light_) &= ~LightFlag::Off;
     else
-        LightFlags(light_) |= 0x400;
+        LightFlags(light_) |= LightFlag::Off;
 }
 
 int CEffectPointLight::Unpack(int update, DeltaField* field) {

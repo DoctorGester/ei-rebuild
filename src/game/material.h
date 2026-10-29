@@ -3,6 +3,7 @@
 #include "engine_object.h"
 #include "resource_manager.h"
 
+#include "lib/bit_flags.h"
 #include "lib/bytes.h"
 #include "lib/vecmath.h"
 
@@ -29,6 +30,13 @@ static_assert(sizeof(MaterialColors) == 0x44);
 struct MaterialEntry {
     Vector4 emissive;
 };
+
+// The bits of CEngineObject::flags_ on a material.
+enum class MaterialFlag : std::uint32_t {
+    Keyed = 0x8,            // set by CMaterialManager::NewMaterial (its colours from the table by type); nothing reads it
+    KeepSpecular = 0x10,    // a figure part drawn with it keeps its speculars (draw flag 8; the stun / light pulses set it)
+};
+template <> inline constexpr bool lib::kBitFlags<MaterialFlag> = true;
 
 // A material (class id 5, "CMaterial"; material.cpp), made by the material manager (the world's
 // pointer, CMaterialManager::NewMaterial; the file's vectors are the ambient, diffuse and specular
@@ -79,7 +87,7 @@ public:
     void Create() override;
     // A new CMaterial with type_ = `type`; null when the allocation fails.
     CEngineObject* NewObject(int type) override;
-    // A material of `type` (created with id -1, flags_ |= 8 before the null check) given the table's colours
+    // A material of `type` (created with id -1, MaterialFlag::Keyed set before the null check) given the table's colours
     // for its type_ (an absent key is entered first, its colours the key's bits in every dword).
     CMaterial* NewMaterial(int type);
     // The table's colours for `key` (entered as NewMaterial does when absent)

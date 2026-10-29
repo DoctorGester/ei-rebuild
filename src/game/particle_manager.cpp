@@ -72,7 +72,7 @@ CParticleSource* CParticleManager::CreateSource(int type) {
 
 int CParticleManager::TickSources(char paused) {
     ReleaseHeld(this, [paused](CEngineObject* object) {
-        if (paused != 0 && !(object->flags_ & 8)) return false;
+        if (paused != 0 && !(object->flags_ & ParticleSourceFlag::TicksWhilePaused)) return false;
         return !object->RunTick();
     });
     return 0;

@@ -308,20 +308,20 @@ float* CWorldClient::ExitCentre(float* out, int index) {
 std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     std::uint32_t flags = 0;
     switch (static_cast<std::uint32_t>(unit->moveMode2)) {
-    case 0: flags = 8; break;
-    case 1: flags = 4; break;
-    case 2: flags = 2; break;
-    case 3: flags = 1; break;
+    case 0: flags = lib::Bits(EnvironmentFlag::MoveMode0); break;
+    case 1: flags = lib::Bits(EnvironmentFlag::Walk); break;
+    case 2: flags = lib::Bits(EnvironmentFlag::Run); break;
+    case 3: flags = lib::Bits(EnvironmentFlag::MoveMode3); break;
     }
-    if (str::Compare(zoneName_, "gipat") == 0) flags |= 0x10;
-    else if (str::Compare(zoneName_, "ingos") == 0) flags |= 0x20;
-    else if (str::Compare(zoneName_, "suslanger") == 0) flags |= 0x40;
-    flags |= IsNight() ? 0x100 : 0x80;
-    flags |= cave_ == 1 ? 0x400 : 0x200;
+    if (str::Compare(zoneName_, "gipat") == 0) flags |= EnvironmentFlag::Gipat;
+    else if (str::Compare(zoneName_, "ingos") == 0) flags |= EnvironmentFlag::Ingos;
+    else if (str::Compare(zoneName_, "suslanger") == 0) flags |= EnvironmentFlag::Suslanger;
+    flags |= IsNight() ? EnvironmentFlag::Night : EnvironmentFlag::Day;
+    flags |= cave_ == 1 ? EnvironmentFlag::Cave : EnvironmentFlag::Outdoors;
     const int weather = rainSnow_.mode;
-    if (weather == 1) return flags | 0x800;
-    if (weather == 2) return flags | 0x1000;
-    return flags | 0x2000;
+    if (weather == 1) return flags | EnvironmentFlag::Rain;
+    if (weather == 2) return flags | EnvironmentFlag::Snow;
+    return flags | EnvironmentFlag::NoWeather;
 }
 
 // ---- Segment --------------------------------------------------------------------------
@@ -406,7 +406,7 @@ bool CWorldClient::Segment() {
                     float level = sun->GetIntensityAt(&worlddata::kOrigin);
                     ObjectListIteratorOf<CLight> lights{};
                     for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
-                        if (light == sun || (light->flags_ & 0x80)) continue;
+                        if (light == sun || (light->flags_ & LightFlag::Hidden)) continue;
                         float nodeX = effect.position_.x, nodeY = effect.position_.y;
                         double dy = static_cast<double>(light->localPosition_.y) - nodeY;
                         double dx = static_cast<double>(light->localPosition_.x) - nodeX;

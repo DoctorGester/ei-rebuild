@@ -83,8 +83,8 @@ Facts not in the code comments:
 - **Mesh draws**: callers are figures (005A7A70, 005A7640) and the 3D library's meshes (004F3C60 ...); flag 4 overwrites the
   mesh's own colour and specular arrays with the device's +0x150 colour / alpha << 24; `DeviceDrawFlat` is used by shadows
   (0051CE60), the renderer (00503A40) and 006CEDE0.
-- **Figure parts**: mesh +8 flags 0x40 drawn (cleared first), 0x80 hidden (nothing more, not even the finishing call), 0x10
-  lit, 0x100 flat colours; +0x98 owner (CObject3D, its figure at +0xF0 draws the mesh when present), +0x15C mesh type
+- **Figure parts**: mesh +8 flags (FigureMeshFlag, figure_mesh.h) 0x40 drawn (cleared first), 0x80 hidden (nothing
+  more, not even the finishing call), 0x10 lit, 0x100 flat colours; +0x98 owner (CObject3D, its figure at +0xF0 draws the mesh when present), +0x15C mesh type
   (13..16 animated), +0x188 clip bounds. With 0079BD28 set the mesh named "crown" has every colour pulled 0.6 of the way (0073CDE0) to the
   average. The plain variant (005A7640) clears the drawn flag only after the hidden test, has its own moved-positions static
   (007C2E60, guard 007C2E70, freed by 005A7A50; ours a plain global) and sets the drawn flag whenever the draw did not return 2.

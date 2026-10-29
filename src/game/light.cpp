@@ -18,9 +18,6 @@ constexpr int kLightDefault = 0x2E;
 constexpr int kLightPoint = 0x31;
 constexpr int kKindPoint = 1;
 constexpr int kKindDirectional = 3;
-constexpr std::uint32_t kFlagChanged = 0x08;
-constexpr std::uint32_t kFlagCreatedLight = 0x80;   // cleared by the manager's CreateObject
-constexpr std::uint32_t kFlagDestroyed = 0x20;   // cleared by Destroy
 
 constexpr const char* kUnknownLightType = "CLightManager::CreateInstant.\n Request for light with unknown type %d.\n";
 
@@ -55,7 +52,7 @@ void CLight::SetPoint(const Vector3* color, const Vector3* position) {
     color_[2] = color->z;
     pointPosition_ = *position;
     localPosition_ = *position;
-    flags_ |= kFlagChanged;
+    flags_ |= LightFlag::Changed;
 }
 
 void CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
@@ -66,7 +63,7 @@ void CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     direction_ = *direction;
     const Vector3 target = *direction;
     TiltTowards(target);
-    flags_ |= kFlagChanged;
+    flags_ |= LightFlag::Changed;
 }
 
 void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
@@ -88,7 +85,7 @@ void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vect
 }
 
 void CLight::Create() {}
-void CLight::Destroy() { flags_ &= ~kFlagDestroyed; }
+void CLight::Destroy() { flags_ &= ~LightFlag::Active; }
 const char* CLight::ClassName() { return "CLight"; }
 ClassId CLight::GetClassId() { return ClassId::Light; }
 
@@ -117,7 +114,7 @@ CEngineObject* CLightFactory::NewObject(int type) {
 
 CEngineObject* CLightFactory::CreateObject(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObject(type, id);
-    object->flags_ &= ~kFlagCreatedLight;
+    object->flags_ &= ~LightFlag::Hidden;
     return object;
 }
 

@@ -6,6 +6,7 @@
 #include "resource_manager.h"
 #include "surface.h"
 
+#include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/static_object.h"
@@ -109,7 +110,7 @@ struct MmpHeader {
     std::uint32_t bitsPerPixel;
     std::uint32_t alphaMask;
     std::uint32_t alphaShift;
-    std::uint32_t alphaKind;    // the alpha bit count: 0, 1, 4 or 8 (texture flags 0x4000..0x20000)
+    std::uint32_t alphaKind;    // the alpha bit count: 0, 1, 4 or 8 (TextureFlag::Alpha0..Alpha8)
     std::uint32_t redMask;
     std::uint32_t redShift;
     std::uint32_t redBits;
@@ -144,6 +145,27 @@ bool IsTextureFormat(std::uint32_t id);
 // The pixel format of an RGB texture format; none (all zero) for a compressed or unknown one.
 PixelFormat TextureFormat(std::uint32_t id);
 
+// The bits of CEngineObject::flags_ on a texture.
+enum class TextureFlag : std::uint32_t {
+    Loaded = 0x8,
+    // With Loaded the mask that makes a released texture cacheable: nothing in the game sets 0x10 or 0x20.
+    Cacheable = 0x38,
+    // The texture manager's CreateObject by the type: 0x3E, 0x3F, 0x40, any other. Nothing reads them.
+    Type3E = 0x80,
+    Type3F = 0x100,
+    Type40 = 0x200,
+    OtherType = 0x40,
+    Tree = 0x2000,          // a tree's part texture (CObject3DClientSpecific's part sets); nothing reads it
+    // The .mmp header's alpha bit count (MarkLoaded): 0, 1, 4, 8. Nothing reads them.
+    Alpha0 = 0x4000,
+    Alpha1 = 0x8000,
+    Alpha4 = 0x10000,
+    Alpha8 = 0x20000,
+    AlphaBits = Alpha0 | Alpha1 | Alpha4 | Alpha8,
+    Keep = 0x40000,         // the hit numbers' digits texture (CWorldClient::SetUpGraphics); nothing reads it
+};
+template <> inline constexpr bool lib::kBitFlags<TextureFlag> = true;
+
 // Class id 6, "CTexture".
 class CTexture : public CEngineObject {
 public:
@@ -156,7 +178,7 @@ public:
     // From mip level `mip` on: a holder for the levels the new renderer composes from the layer textures (no
     // check that the level exists, as the original's load of its cache file); copies the extra block. Returns 1.
     int CreateComposed(CTextureDevice* device, const ComposedTexture& composed, unsigned mip);
-    // The alpha kind from the header (flags 0x4000..0x20000), and the texture loaded.
+    // The alpha kind from the header (TextureFlag::Alpha0..Alpha8), and the texture loaded.
     void MarkLoaded(const MmpHeader* header);
     // With its alpha from "a_<file>" beside it. 1 without loading when this texture is loaded and named `path`.
     int LoadBmp(CTextureDevice* device, const char* path);
@@ -195,8 +217,6 @@ int EnsureTextureLoaded(CTexture* texture);
 // missing.
 void LoadNamedTexture(Ref<CTexture>& slot, int kind, const char* name);
 
-constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
-
 // A texture the texture manager composes from layer textures on the GPU (CTextureManager::Compose): what the
 // original drew on the CPU into <data path>textures\<name>.mmp. `header` is that file's (format, size, levels, the
 // extra block's size), `extra` its extra block (the request's layer bytes), `layers` the layer textures, bottom first.
@@ -223,7 +243,7 @@ public:
     void Create() override;
     // As the destructor up to CResourceManager::Destroy (without SetDevice).
     void Destroy() override;
-    // flags_ by type: 0x3E 0x80, 0x3F 0x100, 0x40 0x200, any other 0x40 (no null check).
+    // flags_ by type: TextureFlag::Type3E, Type3F, Type40, any other OtherType (no null check).
     CEngineObject* CreateObject(int type, int id) override;
     // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else the composed texture
     // `name` (Compose).
@@ -235,7 +255,7 @@ public:
     // another kind keeps a zero format), square at `width`. FatalError's result when the device has no such
     // format.
     CTexture* NewTexture(int width, int height, int kind);
-    // A registered texture with a flag of 0x38 goes into the cache, any other is destroyed and kept as a
+    // A registered texture with a TextureFlag::Cacheable bit goes into the cache, any other is destroyed and kept as a
     // spare. Returns 0.
     int ReleaseObject(CEngineObject* object) override;
     CEngineObject* NewObject(int type) override;

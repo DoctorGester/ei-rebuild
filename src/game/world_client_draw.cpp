@@ -170,7 +170,7 @@ void DrawLightEffects(std::list<T>& list) {
 const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
 
 int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued) {
-    if (!(object->flags_ & 0x20) || (object->flags_ & 0x40)) return 0;
+    if (!(object->flags_ & MapObjectFlag::Shown) || (object->flags_ & MapObjectFlag::NotDrawn)) return 0;
     const CObject3D* figure = object;
     ScreenEntry entry;
     entry.classId = object->GetClassId();
@@ -209,7 +209,7 @@ int CWorldClient::Render() {
 
     std::uint32_t flags = flags_;
     void* sky = skyDome_;
-    if ((flags & 0x1000) && sky) {
+    if ((flags & WorldClientFlag::DrawSky) && sky) {
         state.alphaTest = false;
         state.stages[0].combiner = kSceneStage;
         state.depthWrite = false;
@@ -223,7 +223,7 @@ int CWorldClient::Render() {
         state.depthWrite = true;
     }
     net::Pump();
-    if ((flags_ & 0x100) && terrain_) {
+    if ((flags_ & WorldClientFlag::DrawTerrain) && terrain_) {
         Vector3 frame;
         camera_->GroundPoint(&frame);
         CCamera* camera = camera_;
@@ -233,7 +233,7 @@ int CWorldClient::Render() {
     }
     DrawPass();
     net::Pump();
-    if ((flags_ & 0x100) && terrain_) {
+    if ((flags_ & WorldClientFlag::DrawTerrain) && terrain_) {
         Vector3 frame;
         camera_->GroundPoint(&frame);
         CCamera* camera = camera_;
@@ -244,10 +244,10 @@ int CWorldClient::Render() {
     }
     // The shadow map's casters the game did not draw (the map is fitted to the ground drawn above),
     // and the ground's own.
-    if (flags_ & 0x100) HandOverTerrainCasters(this);
+    if (flags_ & WorldClientFlag::DrawTerrain) HandOverTerrainCasters(this);
     HandOverOutsideCasters(this);
     net::Pump();
-    if (flags_ & 0x400) {
+    if (flags_ & WorldClientFlag::DrawEffects) {
         state.stages[0].combiner = kAlphaPassStage;
         state.blend = true;
         state.alphaTest = false;
@@ -275,7 +275,7 @@ int CWorldClient::Render() {
     PopMatrix(device->stacks_[kStackScene2]);
     PopMatrix(device->stacks_[kStackScene1]);
     g_haveSceneCamera = false;
-    if (flags_ & 0x2000) {
+    if (flags_ & WorldClientFlag::DrawNumbers) {
         state.depthTest = false;
         state.stages[0].combiner = kAlphaPassStage;
         renderer->distanceFog_ = 0;
@@ -346,7 +346,7 @@ int CWorldClient::DrawPass() {
     g_deferredUnits.clear();
     touched += CollectVisible(&heroes_, view, animTime, now, 1, 1);
 
-    // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
+    // Models in view stay loaded: the most recently used max(10, n / 8) lose MapObjectFlag::Static.
     std::vector<CMapObject*>& models = FrameObjects(FrameList::TouchedModels);
     if (models.begin() != models.end()) {
         // The most recently used first; the models used in the same frame stay in the game's sort's order.
@@ -357,13 +357,13 @@ int CWorldClient::DrawPass() {
         if (count < 10) count = 10;
         for (CMapObject** p = models.data(); p != models.data() + models.size() && count != 0; --count) {
             CMapObject* object = *p++;
-            object->flags_ &= ~0x400u;
+            object->flags_ &= ~MapObjectFlag::Static;
         }
     }
 
     // The frame's window rectangles (an STLport list of 32-byte nodes).
     std::list<ScreenEntry>& queued = screenEntries_;
-    if (flags_ & 0xC0) {
+    if (flags_ & (WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits)) {
         state.stages[0].combiner = kAlphaPassStage;
         queued.clear();
         state.sourceBlend = render::Blend::SourceAlpha;
@@ -371,7 +371,7 @@ int CWorldClient::DrawPass() {
         state.blend = true;
         state.alphaTest = true;
     }
-    if (flags_ & 0x40) {
+    if (flags_ & WorldClientFlag::DrawObjects) {
         SortByModel(FrameList::VisibleBuildings);
         SortByModel(FrameList::VisibleOther);
         SortByModel(FrameList::VisibleLevers);
@@ -384,7 +384,7 @@ int CWorldClient::DrawPass() {
         DrawEach(FrameList::VisibleBuildings, kDraw);
         DrawEach(FrameList::VisibleTrees, kDraw);
     }
-    if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
+    if ((flags_ & WorldClientFlag::DrawUnits) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
         SortByModel(FrameList::VisibleUnits);
         state.alphaReference = 10;
         state.stages[0].combiner = kAlphaPassStage;
@@ -405,7 +405,7 @@ int CWorldClient::DrawPass() {
     }
 
     // Shadows: projected along the camera's Z axis (its rotation) scaled by a constant.
-    if (flags_ & 0x200) {
+    if (flags_ & WorldClientFlag::DrawShadows) {
         SortByModel(FrameList::ShadowBuildings);
         SortByModel(FrameList::ShadowOther);
         SortByModel(FrameList::ShadowLevers);
@@ -442,7 +442,7 @@ int CWorldClient::DrawPass() {
     // Selection markers (selectedIds_ of object ids) in single-player mode 1 with units drawn: a marker at
     // each living object (at its named part when it has one); dead ones leave the list.
     std::list<int>& selected = selectedIds_;
-    if (!selected.empty() && options::g_options->selectionType_ == 1 && (flags_ & 0x80)) {
+    if (!selected.empty() && options::g_options->selectionType_ == 1 && (flags_ & WorldClientFlag::DrawUnits)) {
         state.alphaTest = false;
         g_sceneRenderer->SetTexture(0, nullptr);
         CMapObjectManager* manager = objectManager_;
@@ -466,8 +466,8 @@ int CWorldClient::DrawPass() {
                     orientation->AxisX(&axisX);
                     g_sceneRenderer->DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
                 } else {
-                    if (object->flags_ & 0x10) {
-                        object->flags_ &= ~0x110u;
+                    if (object->flags_ & MapObjectFlag::Selected) {
+                        object->flags_ &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
                         // The side half's empty virtual and SetLit with 0: the marker light goes off.
                         object->attached->Unused25(0);
                         object->attached->SetLit(0);

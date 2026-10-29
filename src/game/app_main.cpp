@@ -135,8 +135,8 @@ void LoadSystemMessages(std::vector<std::string>& messages) {
 
 std::string Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }
 
-// The command line: "-moviepath_<folder>" (the client's flag 0x20 off), "-nocam" (flag 8 off; only while flag
-// 0x10 is off), a ".cam", ".scr", ".mob" or ".mpr" file, "-benchmark_<frames>" and "-devicetarget_<driver>".
+// The command line: "-moviepath_<folder>" (the client's WorldClientFlag::MoviePathOption off), "-nocam" (NoCamOption
+// off; only while not RecordingCamera), a ".cam", ".scr", ".mob" or ".mpr" file, "-benchmark_<frames>" and "-devicetarget_<driver>".
 void ReadCommandLine(const char* commandLine) {
     std::vector<std::string> arguments;
     text::Split(commandLine, &arguments, ' ');
@@ -148,7 +148,7 @@ void ReadCommandLine(const char* commandLine) {
     GameOptions* options = &options::g_options.Get();
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
-            client->flags_ &= ~0x20u;
+            client->flags_ &= ~WorldClientFlag::MoviePathOption;
             {
                 std::string folder = Tail(arguments[i], 11);
                 g_movieFolder = folder;
@@ -156,13 +156,13 @@ void ReadCommandLine(const char* commandLine) {
             if (g_movieFolder.back() != '\\') g_movieFolder += '\\';
             continue;
         }
-        if (!(client->flags_ & 0x10)) {
+        if (!(client->flags_ & WorldClientFlag::RecordingCamera)) {
             if (text::CompareIgnoringCase(arguments[i],
                                 "-nocam") == 0) {
-                client->flags_ &= ~8u;
+                client->flags_ &= ~WorldClientFlag::NoCamOption;
                 continue;
             }
-            if (!(client->flags_ & 0x10) && str::Find(arguments[i], ".cam") != -1) {
+            if (!(client->flags_ & WorldClientFlag::RecordingCamera) && str::Find(arguments[i], ".cam") != -1) {
                 g_cameraFile = arguments[i].c_str();
                 continue;
             }

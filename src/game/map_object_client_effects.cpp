@@ -27,7 +27,6 @@
 
 namespace {
 
-constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 constexpr int kWarmUpTicks = 0x1E;                    // a source arriving with the object runs ahead
 constexpr float kPowerScale = 0.0625f;                // power / 16
 
@@ -130,10 +129,8 @@ bool OtherRecordOfType(const std::vector<EffectParticle>& particles, int index, 
 }
 
 
-constexpr std::uint32_t kLightHidden = 0x80;     // CEngineObject::flags_ of a light
-constexpr std::uint32_t kLightHeld = 0x200;      // held on by the light effect (mode 1)
-constexpr std::uint32_t kLightNew = 0x580;
-constexpr std::uint32_t kLightFlag40 = 0x40;
+// A new light's flags (ShowLight then clears Hidden).
+constexpr LightFlag kLightNew = LightFlag::Hidden | LightFlag::Moving | LightFlag::Off;
 constexpr int kPointLight = 0x31;
 constexpr float kLightHeight = 2.0f;
 
@@ -146,9 +143,9 @@ CObject3DSpecific* SideHalf(CMapObject* owner) {
 
 // The light goes out for good: no longer held, hidden, its id off the list, released.
 void DropLight(CMapObjectClientSpecific* self) {
-    self->light->flags_ &= ~kLightHeld;
+    self->light->flags_ &= ~LightFlag::Held;
     self->HideLight();
-    self->light->flags_ |= kLightHeld;
+    self->light->flags_ |= LightFlag::Held;
     int id = self->light->id_;
     g_clientWorld->lightFactory_->litIds_.remove(id);
     self->light.Reset();
@@ -362,21 +359,21 @@ void CObject3DClientSpecific::ClearPartTints() {
         part->colors.specular.x = 0.0f;
         part->colors.specular.y = 0.0f;
         part->colors.specular.z = 0.0f;
-        materials[i]->flags_ &= ~kPartTinted;
+        materials[i]->flags_ &= ~MaterialFlag::KeepSpecular;
     }
 }
 
 void CMapObjectClientSpecific::HideLight() {
-    if (!light || (light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
-    light->flags_ |= kLightHidden;
+    if (!light || (light->flags_ & LightFlag::Hidden) || (light->flags_ & LightFlag::Held)) return;
+    light->flags_ |= LightFlag::Hidden;
     g_clientWorld->terrain_->RemoveLight(light);
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(0);
 }
 
 void CMapObjectClientSpecific::ShowLight() {
-    if (!light || !(light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
-    light->flags_ &= ~kLightHidden;
+    if (!light || !(light->flags_ & LightFlag::Hidden) || (light->flags_ & LightFlag::Held)) return;
+    light->flags_ &= ~LightFlag::Hidden;
     g_clientWorld->terrain_->AddLight(light);
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && mapObject->GetClassId() == ClassId::Unit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
@@ -397,7 +394,7 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
     point->rangeSquared_ = static_cast<float>(squared);
     point->inverseRangeSquared_ = static_cast<float>(1.0 / squared);
     light->flags_ |= kLightNew;
-    if (flag) light->flags_ |= kLightFlag40;
+    if (flag) light->flags_ |= LightFlag::Specular;
     ShowLight();
 }
 
@@ -407,10 +404,10 @@ void CMapObjectClientSpecific::SetLightMode(int mode) {
             float colour[4] = {DefaultLightColour()[0], DefaultLightColour()[1], DefaultLightColour()[2], 1.0f};
             CreateLight(colour, options::g_options->questLight_.radius, true);
         } else {
-            light->flags_ &= ~kLightHeld;
+            light->flags_ &= ~LightFlag::Held;
             ShowLight();
         }
-        light->flags_ |= kLightHeld;
+        light->flags_ |= LightFlag::Held;
         int id = light->id_;
         g_clientWorld->lightFactory_->litIds_.insert(g_clientWorld->lightFactory_->litIds_.end(), id);
         return;

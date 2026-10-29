@@ -15,9 +15,6 @@
 
 namespace {
 
-// Texture flags that make a released texture cacheable (8: loaded).
-constexpr std::uint32_t kCacheable = 0x38;
-
 } // namespace
 
 // Returns 0 (the result is the priority call's, or a list node, on the cache path;
@@ -27,7 +24,7 @@ int CTextureManager::ReleaseObject(CEngineObject* object) {
     auto* texture = static_cast<CTexture*>(object);
     if (auto node = objects_.find(static_cast<unsigned>(object->id_)); node != objects_.end()) {
         Unregister(node->second->id_);
-        if (object->flags_ & kCacheable) {
+        if (object->flags_ & TextureFlag::Cacheable) {
             cache_.push_back(texture);
             cachedBytes_ += texture->uploadResult_;
             return 0;

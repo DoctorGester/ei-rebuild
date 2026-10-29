@@ -56,9 +56,9 @@ const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
 // (empty when off screen). Returns 1.
 int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
                                    RECT* rect) {
-    if (mesh_->flags_ & 0x80) return 1;
+    if (mesh_->flags_ & FigureMeshFlag::Hidden) return 1;
     int drawFlags = 0;
-    mesh_->flags_ &= ~0x40u;
+    mesh_->flags_ &= ~FigureMeshFlag::Drawn;
     int visibility = device->pipeline_->ClipTest(&mesh_->box_.bounds);
     if (visibility == 2) return 1;
     int type = static_cast<int>(mesh_->meshType_);
@@ -70,10 +70,10 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
     }
 
     std::uint32_t meshFlags = mesh_->flags_;
-    if (meshFlags & 0x100) {
+    if (meshFlags & FigureMeshFlag::Flat) {
         Fill(mesh_->colorsA_, mesh_->flatColour_);
         Fill(mesh_->colorsB_, mesh_->flatSpecular_);
-    } else if (!(meshFlags & 0x10)) {
+    } else if (!(meshFlags & FigureMeshFlag::Lit)) {
         drawFlags = 4;
     }
     if (visibility == 1) drawFlags |= 2;
@@ -85,7 +85,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
     CFigureMesh* m = mesh_;
     const MeshBuffers& b = m->buffers_;
     // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
-    const render::MeshSource source{m, nullptr, !m->offsets_.empty(), (meshFlags & 0x100) != 0};
+    const render::MeshSource source{m, nullptr, !m->offsets_.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat)};
     render::SetMeshSource(&source);
     int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA_.data(), m->colorsB_.data(),
                                         b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words, b.wordCount,
@@ -102,7 +102,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
             *rect = *own;
         }
     }
-    if (result != 2) mesh_->flags_ |= 0x40;
+    if (result != 2) mesh_->flags_ |= FigureMeshFlag::Drawn;
     DrawBounds(&g_sceneRenderer.Get());
     return 1;
 }

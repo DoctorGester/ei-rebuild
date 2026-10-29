@@ -23,7 +23,6 @@
 // The light's distance test and position must round like the original's.
 
 namespace {
-constexpr std::uint32_t kFlagHidden = 0x80;          // the light's flags_: not shown
 constexpr int kEndSoundTicks = 0x1E;                 // end sound when fewer ticks are left
 constexpr std::uint32_t kStenchPeriod = 0x10;
 constexpr float kLightHeight = 2.0f;
@@ -121,7 +120,7 @@ bool CMapObjectClientSpecific::RunTick() {
 
     // The light follows the object, kLightHeight above it, aimed down at it.
     CLight* lamp = light;
-    if (lamp && !(lamp->flags_ & kFlagHidden)) {
+    if (lamp && !(lamp->flags_ & LightFlag::Hidden)) {
         Vector3 lightPosition;
         lib::LoadBytes(lightPosition, &lamp->localPosition_.x);
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float

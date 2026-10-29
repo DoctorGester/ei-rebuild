@@ -32,7 +32,6 @@ constexpr float kPulseFold = 15.0f;
 constexpr float kPulseFull = 30.0f;
 constexpr float kPulseScale = 0.06666667f;            // 1/15
 constexpr float kPulseBase = 0.2f;
-constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 
 // The pulse's value after the clock moved on by `frames`.
 float Pulse(float& clock, float frames) {
@@ -57,7 +56,7 @@ void CObject3DClientSpecific::StunnedPulse(float frames) {
         part->colors.specular.x = value;
         part->colors.specular.y = 0.0f;
         part->colors.specular.z = 0.0f;
-        part->flags_ |= kPartTinted;
+        part->flags_ |= MaterialFlag::KeepSpecular;
     }
 }
 

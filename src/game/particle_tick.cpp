@@ -177,8 +177,8 @@ struct TickSteps {
     void Emit() {
         int tries = x87::fistp(static_cast<float>(D(s->distance) / D(s->emitSpacing)));
         if (tries <= s->emitCount) tries = s->emitCount;
-        if (!(s->flags_ & 1)) return;
-        if ((s->flags_ & 2) && !s->attachedTo) return;
+        if (!(s->flags_ & ParticleSourceFlag::Emitting)) return;
+        if ((s->flags_ & ParticleSourceFlag::AttachedOnly) && !s->attachedTo) return;
         int emitted = 0;
         if (tries > 0) {
             for (int i = 0; i < tries; ++i) {
@@ -233,9 +233,9 @@ void CParticleSource::AddParticle(Particle* p) {
 }
 
 // Returns 1 while the source is still needed: a free source while it keeps
-// alive (flag 4) or has particles, an attached one while it emits or has particles.
+// alive (ParticleSourceFlag::KeepAlive) or has particles, an attached one while it emits or has particles.
 bool CParticleSource::RunTick() {
-    if (hiddenTicks > 0x38 && (flags_ & 0x20)) return true;
+    if (hiddenTicks > 0x38 && (flags_ & ParticleSourceFlag::IdlesOffScreen)) return true;
     const CWorldClient* world = &g_clientWorld.Get();
     lib::LoadBytes(windDirection, world->windDirection_);
     windStrength = std::bit_cast<float>(world->windStrength_);
@@ -245,7 +245,7 @@ bool CParticleSource::RunTick() {
     boundsMax.x = kNearBits;
     boundsMax.y = kNearBits;
     boundsMax.z = kNearBits;
-    if (attachedTo && (attachedTo->flags_ & 1)) Attach(nullptr);
+    if (attachedTo && (attachedTo->flags_ & MapObjectFlag::Removed)) Attach(nullptr);
 
     TickSteps steps{this};
     steps.Follow();
@@ -256,9 +256,9 @@ bool CParticleSource::RunTick() {
     steps.FinishBounds();
 
     if (!attachedTo) {
-        if (flags_ & 4) return true;
+        if (flags_ & ParticleSourceFlag::KeepAlive) return true;
         return !particles.empty();
     }
-    if (flags_ & 1) return true;
+    if (flags_ & ParticleSourceFlag::Emitting) return true;
     return !particles.empty();
 }

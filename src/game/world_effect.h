@@ -148,9 +148,9 @@ public:
     virtual double LightRadius();
 
     Vector3 color_;
-    float range_;              // negative: flag 0x400 on the light
+    float range_;              // negative: LightFlag::Off on the light
     Ref<CLight> light_; // reference counted, null: none
-    std::uint32_t lightFlags_; // ored into the light's flags
+    std::uint32_t lightFlags_; // LightFlag bits ored into the light's flags (saved)
 };
 
 // A particle source (class id 0x4A; CreateParticleSource).

@@ -463,14 +463,14 @@ void CParticleSource::TickGroundPlane(ParticleElement* e) {
         g_clientWorld->platforms_.SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
         if (plane.normal.z != 0.0f) plane.normal.z = static_cast<float>(D(EI_ONE) / D(plane.normal.z));   // a NaN stays the same NaN
     }
-    if (++e->ticks > 1) flags_ &= ~1u;
+    if (++e->ticks > 1) flags_ &= ~ParticleSourceFlag::Emitting;
 }
 
 // Portal: particles spiral up (their offset rotated by the turn in velocity.x/y each tick) and fade above 8
 // units; the spare ones (state set) flicker in size while the portal is on.
 int CParticleSource::UpdatePortal(Particle* p) {
     if (p->state != 0) {
-        if (!(flags_ & 1)) return 0;
+        if (!(flags_ & ParticleSourceFlag::Emitting)) return 0;
         EI_NAN_AUDIT(size);
         if (size < EI_ONE) {
             p->size = 0.0f;
@@ -607,12 +607,12 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
     return 1;
 }
 
-// StartTrans: once the element's countdown runs out the source stops (flags 1 and 4 off) and detaches; the
+// StartTrans: once the element's countdown runs out the source stops (Emitting and KeepAlive off) and detaches; the
 // ring widens, and element 0's trans.count grows by 0.4 a tick and sets the tries per tick (at most 8).
 void CParticleSource::TickStartTrans(ParticleElement* e) {
     int ticks = e->ticks--;
     if (ticks < 0) {
-        flags_ &= ~5u;
+        flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
         Attach(nullptr);
     }
     e->trans.scale = static_cast<float>(D(size) * D(EI_TRANS_GROWTH) + D(e->trans.scale));

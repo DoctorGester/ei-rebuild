@@ -23,16 +23,7 @@
 // The light range test keeps its sums on the FPU stack like the original.
 
 namespace {
-constexpr std::uint32_t kObjectNotDrawn = 0x40;     // object->flags_
-constexpr std::uint32_t kObjectAnimated = 0x200;
-constexpr std::uint32_t kObjectStatic = 0x400;
-constexpr std::uint32_t kObjectUnlit = 0x800;
-constexpr std::uint32_t kObjectDirty = 0x20;
-constexpr std::uint32_t kLightRemoved = 0x80;       // light->flags_
-constexpr std::uint32_t kLightMoving = 0x100;
-constexpr std::uint32_t kPartMoving = 0x10;         // part->flags_
-constexpr std::uint32_t kPartDirty = 0x40;
-constexpr std::uint32_t kPartHidden = 0x80;
+constexpr std::uint32_t kObjectUnlit = 0x800;      // object->flags_
 constexpr std::uint32_t kRedrawStatic = 8;          // this->flags_
 constexpr float kNearSquared = 1e9f;
 constexpr float kLightMargin = 10.0f;
@@ -76,13 +67,13 @@ void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, M
 }
 
 int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
-    if (object->flags_ & kObjectNotDrawn) return 1;
-    std::uint32_t anyDirty = 0;
+    if (object->flags_ & MapObjectFlag::NotDrawn) return 1;
+    bool anyDrawn = false;
     CTransformPipeline* pipeline = context->pipeline_;
     Vector3 at;
     at = object->localPosition_;
     object->LoadFigures();
-    if (!(object->flags_ & kObjectAnimated)) object->flags_ &= ~kObjectStatic;
+    if (!(object->flags_ & MapObjectFlag::Stationary)) object->flags_ &= ~MapObjectFlag::Static;
     if (dirty) {
         gameapi::SetRectEmpty(&drawnRect);
         gameapi::SetRectEmpty(&object->dirtyRect);
@@ -97,8 +88,8 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     for (; light; light = lights.Next()) {
         if (context->sun_ == light) continue;
         if (!InReach(object, light)) continue;
-        if (light->flags_ & kLightRemoved) continue;
-        if (light->flags_ & kLightMoving) object->flags_ &= ~kObjectStatic;
+        if (light->flags_ & LightFlag::Hidden) continue;
+        if (light->flags_ & LightFlag::Moving) object->flags_ &= ~MapObjectFlag::Static;
         list.push_back(light);
     }
 
@@ -107,7 +98,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     Matrix4 m = object->worldMatrix;
     pipeline->PushMatrix(m.m, kStackView);
     pipeline->PushMatrix(m.m, kStackWorld);
-    if (!(object->flags_ & kObjectStatic)) pipeline->PushMatrixProduct(m, kStackObject);
+    if (!(object->flags_ & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, kStackObject);
     const Vector3& extraScale = figureScale;
     bool scaled = !(std::bit_cast<std::uint32_t>(extraScale.x) == kOne &&
                     std::bit_cast<std::uint32_t>(extraScale.y) == kOne &&
@@ -120,7 +111,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
         m.m[15] = std::bit_cast<float>(kOne);
         pipeline->PushMatrix(m.m, kStackView);
         pipeline->PushMatrix(m.m, kStackWorld);
-        if (!(object->flags_ & kObjectStatic)) pipeline->PushMatrixProduct(m, kStackObject);
+        if (!(object->flags_ & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, kStackObject);
     }
     std::uint8_t lit = 0xFF;
     if (!(object->flags_ & kObjectUnlit)) {
@@ -129,8 +120,8 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     }
 
     // The parts of both sets.
-    std::uint32_t allStatic = kPartMoving;
-    std::uint32_t wasStatic = object->flags_ & kObjectStatic;
+    bool allLit = true;
+    const bool wasStatic = lib::Has(object->flags_, MapObjectFlag::Static);
     RECT partRect;
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k];
@@ -148,8 +139,8 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
             for (int p = 0; p < std::ssize(set->groups[g]->parts); ++p) {
                 CFigureMesh* part = set->groups[g]->parts[p];
                 if (PartTooFar(part)) continue;
-                if (!(object->flags_ & kObjectStatic)) part->flags_ &= ~kPartMoving;
-                bool pushed = !(part->flags_ & kPartMoving);
+                if (!(object->flags_ & MapObjectFlag::Static)) part->flags_ &= ~FigureMeshFlag::Lit;
+                bool pushed = !(part->flags_ & FigureMeshFlag::Lit);
                 ObjectWorldMatrix(&part->localRotation_, &part->localPosition_, &part->worldMatrix_);
                 m = part->worldMatrix_;
                 pipeline->PushMatrix(m.m, kStackView);
@@ -163,42 +154,42 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
                     Finish(lights, list);
                     return result;
                 }
-                anyDirty |= part->flags_ & kPartDirty;
-                if (dirty && !gameapi::IsRectEmpty(&partRect) && (part->flags_ & kPartDirty)) {
+                anyDrawn = anyDrawn || lib::Has(part->flags_, FigureMeshFlag::Drawn);
+                if (dirty && !gameapi::IsRectEmpty(&partRect) && (part->flags_ & FigureMeshFlag::Drawn)) {
                     RECT* total = &drawnRect;
                     gameapi::UnionRect(total, total, &partRect);
                 }
                 if (pushed) pipeline->PopMatrix(kStackObject);
                 pipeline->PopMatrix(kStackView);
                 pipeline->PopMatrix(kStackWorld);
-                allStatic &= part->flags_ & kPartMoving;
+                allLit = allLit && lib::Has(part->flags_, FigureMeshFlag::Lit);
             }
         }
     }
     if (scaled) {
-        if (!(object->flags_ & kObjectStatic)) pipeline->PopMatrix(kStackObject);
+        if (!(object->flags_ & MapObjectFlag::Static)) pipeline->PopMatrix(kStackObject);
         pipeline->PopMatrix(kStackView);
         pipeline->PopMatrix(kStackWorld);
     }
-    if (!(object->flags_ & kObjectStatic)) pipeline->PopMatrix(kStackObject);
+    if (!(object->flags_ & MapObjectFlag::Static)) pipeline->PopMatrix(kStackObject);
     pipeline->PopMatrix(kStackView);
     pipeline->PopMatrix(kStackWorld);
 
-    if (allStatic) {
-        object->flags_ |= kObjectStatic;
+    if (allLit) {
+        object->flags_ |= MapObjectFlag::Static;
         if (!wasStatic) {
             touchTime = gameapi::timeGetTime();
             flags_ |= kRedrawStatic;
         }
     } else {
-        object->flags_ &= ~kObjectStatic;
+        object->flags_ &= ~MapObjectFlag::Static;
     }
     if (dirty) {
         object->dirtyRect = drawnRect;
         *dirty = object->dirtyRect;
     }
-    if (anyDirty) object->flags_ |= kObjectDirty;
-    else object->flags_ &= ~kObjectDirty;
+    if (anyDrawn) object->flags_ |= MapObjectFlag::Shown;
+    else object->flags_ &= ~MapObjectFlag::Shown;
     g_sceneRenderer->device_->SetMaterial(nullptr);
     Finish(lights, list);
     return 1;

@@ -50,7 +50,7 @@ std::vector<std::uint32_t> ReadPixels(int width, int height, const std::uint8_t*
 // file is silent. No texture format: the error for a surface that cannot be made (the staging
 // surface's: sizes zero) ends the game.
 int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath) {
-    if (flags_ & kTextureLoaded) return 1;
+    if (flags_ & TextureFlag::Loaded) return 1;
     lib::File file;
     lib::File alphaFile;
     CDib colour;
@@ -84,6 +84,6 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     const render::TextureImage image{nullptr, pixels.data(), static_cast<std::uint32_t>(pixels.size() * 4), width, height,
                                      render::ImageLayout::Argb};
     render::DrawIntoTexture(surface_, &image, 0, 0, width, height);
-    flags_ |= kTextureLoaded;
+    flags_ |= TextureFlag::Loaded;
     return 1;
 }
