@@ -1619,7 +1619,8 @@ of the 0.5-1.6 ms hand-over).
     R37b (point shadows kept across frames, their preparation: up to 0.6 ms in the crowd), R37g (the frustum test:
     0.2-0.5 ms in forests; done, docs/notes/models.md: zone7 -0.27 ms, zone11 -0.12 ms, the same answers), R37c (caster boxes and outside casters kept: 0.2-0.4; done:
     in-frame old / new, zone1, town night, crowd: outside casters 0.07-0.12 / 0.010-0.016 ms not counting the old
-    stream's upload, boxes 0.005-0.04 / 0.002-0.013), R37e (shadow casters' calls: 0.3),
+    stream's upload, boxes 0.005-0.04 / 0.002-0.013), R37e (shadow casters' calls: 0.3; done, the source files'
+    render_shadows.cpp: crowd sun + point submission 0.54-0.65 -> 0.21-0.23 ms),
     R37d (the fit: 0.1-0.25; done: 0.07-0.13 / 0.04-0.086 ms, most of zone1's runs are crossed by the view's sides
     and still walked), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility).
 
@@ -1917,7 +1918,8 @@ drawn over it): 101 / 378 draws, but the copies' GPU time outweighed the 40 draw
 against the sun map's 0.55 -> 0.8). PreparePointShadows (R37b) keeps its working lists across frames, makes one sphere per mesh
 (BoxSphere: one root of the largest corner square) and compares squared distances, taking a root only where a
 test is too close to tell (`NotFurther`: the image's CRT root is a call with control-word work); its results are
-bit-equal to the plain distances'.
+bit-equal to the plain distances'. The faces drawn again are drawn in one pass: their clears first (the faces do
+not overlap), then each face's casters through `CasterDraws` (render_shadows.cpp below), sorted within the face.
 
 ### render_shadows.cpp: object shadows through a sun shadow map
 
@@ -1933,6 +1935,23 @@ unit's meshes compare from the unit's nearest depth in the map (FigureFronts): n
 caster's on every face, no normal offset. The point lights' shadows (render_point_shadows.cpp) are prepared and
 drawn from here, inside the shadow map's time. Space: the meshes' matrices are clip matrices, the terrain's the
 same for the landscape's space, in which the map is fitted.
+
+The casters' draws (R37e; both maps, `CasterDraws` in render_internal.h): a draw's own data (`CasterInstance`: the
+light x model matrix, the texture offsets, the alpha cut) goes into an instance-rate vertex buffer (`StreamBuffer`,
+appended once a pass), read at the draw's first instance (`sg_draw_ex`; D3D11's SV_InstanceID leaves the first
+instance out, an instance-step attribute does not), so a draw applies no uniforms. The draws are sorted by what
+they bind (pool or stream, texture, sampler, buffers) and the pipeline and bindings are applied only when these
+change: a depth-only map with LESS_EQUAL keeps the nearest depth whatever the order, so the maps are bit-equal to
+the unsorted per-draw ones (render_shadows*, render_lighting and render_options_shadows captures: 0 pixels
+differ). sokol's `sg_apply_bindings` still sets every slot, so a texture change costs a whole bindings call.
+Measured with R37's probe (Rebirth, 4K, msaa 8, r37f_town / r37f_zone1, before and after alternated, two runs
+each, per frame; sun map / point map): town crowd CPU 0.32-0.37 / 0.23-0.28 -> 0.13-0.14 / 0.08-0.09 ms, bindings
+572 / 415 -> 47 / 37, constant buffer updates 1144 / 836 -> 0 / 6 (the face clears), pipelines 2 / 12 -> 1 / 2,
+draws the same (572 / 421); town at night 0.21-0.27 / 0.07-0.10 -> 0.09-0.10 / 0.03; zone1 sun 0.10-0.14 ->
+0.04-0.05 (191-233 draws, 12-14 bindings). The GPU frame stayed the same (crowd 2.63-2.75 -> 2.63-2.66 ms), as
+did the two maps' sum (0.57-0.68 -> 0.55-0.59), but the probe's stamps now give the crowd's sun map 0.54-0.58
+and its point map 0.008 (before 0.34-0.40 / 0.22-0.28): open, the sorted order's overdraw in the sun map or the
+stamps' attribution (the town without the crowd: sun 0.09-0.15 -> 0.08-0.09).
 
 ### render_terrain.cpp: the terrain
 

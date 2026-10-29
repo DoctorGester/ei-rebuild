@@ -6327,3 +6327,10 @@ title = "Render stats: the object-shadow decal split removed (dead since R37f)"
 group = "renderer"
 depends = ["R37f"]
 note = "Since R37f no object shadow projects a decal: FrameStats::decalShadowMs / decalShadows and BeginDecalTime's shadow flag (render.h, render.cpp, harness_render_image.cpp's renderstats line) always read 0; ProjectDecal passes false. render.h is a harness header (tests/verify/harness.cpp includes it), so do it with the next harness change to avoid a --no-hooks suite of its own."
+
+[[ticket]]
+id = "R37e1"
+title = "Sun map GPU stamps in the crowd after R37e"
+group = "renderer"
+depends = ["R37e"]
+note = "After R37e (casters sorted by texture, one instance buffer) R37's probe gives the town crowd's sun map 0.54-0.58 ms GPU and its point map 0.008 (before 0.34-0.40 / 0.22-0.28); the two maps' sum and the GPU frame are unchanged (renderer.md, the source files' render_shadows.cpp). Find out whether the sorted order costs the sun map overdraw (try front to back within a texture, or the draws unsorted with the instance buffer) or the stamps only moved; keep the CPU gain. Check: render_shadows*, render_lighting frames identical."
