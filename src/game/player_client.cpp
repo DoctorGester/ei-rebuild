@@ -624,11 +624,6 @@ int CPlayerClient::OnNewObject() {
 
 // --- Clearing the connection ---------------------------------------------------------------
 
-void CoderState::Reset() {
-    out.End();
-    Construct();
-}
-
 void CPlayerClient::CreateClient() {
     state_ = 0;
     partyUnitIds_.clear();
@@ -666,16 +661,12 @@ CPlayerConnection::~CPlayerConnection() { player_ = nullptr; }
 
 // The streams are members (constructed before the body; the original builds them after the handler table).
 CPlayerClient::CPlayerClient() {
-    compressor_.Construct();
-    decompressor_.Construct();
     Clear();
 }
 
-// The streams are members, destroyed after the body (the original frees them before the handler table).
+// The streams and coders are members, destroyed after the body (the original frees them before the handler table).
 CPlayerClient::~CPlayerClient() {
     Clear();
-    decompressor_.out.End();
-    compressor_.out.End();
 }
 
 const char* CPlayerClient::ClassName() { return "CPlayerClient"; }

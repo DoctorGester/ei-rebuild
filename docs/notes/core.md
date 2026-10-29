@@ -156,7 +156,7 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
 Rewritten (grep the address): `CMemoryStream` (a real class since C28e) constructor 0041DD70 / 0066C4F0, destructor 004173D0 / 004790A0
 (two copies) and the deleting copies 004173B0 / 004790D0, Clear 00417350; `CStream` constructor 0047A200, destructor 004174E0 / 00417400; `CRefObject` / `RefValue` base
 destructors and deleting destructors 00412720 / 00413430, 00412730, 00419720, 00412700; `AlignedPointerArrayAlloc` 0047B940 and
-`AlignedObjectArray::Clear` 0047B620 (32-byte aligned blocks, header pointer before the data); `CoderState::Construct` 0042FCA0; the `Chunk`
+`AlignedObjectArray::Clear` 0047B620 (32-byte aligned blocks, header pointer before the data); CoderState's constructor 0042FCA0; the `Chunk`
 family 0042BEC0-0042D0E0 (Construct, Destruct, Advance, File, Begin/EndWrite, WriteHeader, SkipContent, ReadHeader, ForEachChild, Read / Write
 Float / Int / Byte / Vector3 / Quad / Quaternion / Bytes / Blob; ReadString 0042C580, ReadEncodedString 0042C650 (content decoded by 004D8E10),
 WriteString 0042C820, ReadStringArray 0042CA20, WriteStringArray 0042CB80; RootChunk Open / its destructor); the `ChunkArchive` family

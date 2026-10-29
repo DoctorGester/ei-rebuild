@@ -528,18 +528,15 @@ kinds given.
     replay compares from entry 1 and fills ours). A bound must be decimal: `[0x22]` read as no bound (one element,
     zero bytes) and named nothing; named_data now refuses it. The network globals: net_classes.h's g_gamePort
     00783E30 (8888; the harness writes its free port to ours in the image, game.exe's in --no-hooks), g_netLog,
-    g_currentSession, g_currentConnection, g_gameClient / g_gameServer 0079B5D8 / 0079B5DC (counted pointers: their
-    static initialisers 00412230 / 00412280 and exit functions 00412250 / 004122A0 are ported in net_session.cpp,
-    rows in config/extra_function_sizes.csv; GameServer() / GameClient() stay as accessors of the names), the pump
-    time, the player / variable serials, CollectChanges's vector and guard 0079B8D0 / 0079B8DC (its exit function
-    00434980 beside it), the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
+    g_currentSession, g_currentConnection, the pump
+    time, the player / variable serials, the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
     readers take `g_serverWorld->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
     CRT's "C" locale since C26 (nothing reads it since C35b), the old iostream's shared lock and ios count and ostream's virtual base table (C35d: console::Stream has none;
     crt_file's zero mode constants went with C35a). **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
-    yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
+    yet), 007B00BC (inside the server world
     007AFF60). The CRT's allocator state is named since C18r (below).
   - **The static initialisers' objects** (C18j). Most game data addresses left were named only by the generated
     static_init.cpp / static_exit.cpp. Two rules in tools/gen_static_init.py (each is a decision of the generator):
@@ -703,14 +700,18 @@ kinds given.
       spells' footprint set, the sector spiral's tables and the smoother's pool and tables; the frame's draw lists and
       deferred units (world_client_view.cpp), the decal builder, the draw work arrays (particles, glow, fog, shadow,
       draw order), the lever table, the quest's objectives and name, the received messages' stream, the client's
-      party id set, the zone table and the quest files / folders. Their initialisers are UNUSED_INITIALISERS (the exit
+      party id set, the zone table and the quest files / folders; the prints database, the network's send and receive
+      buffers and the game server / client Refs (C50c). Their initialisers are UNUSED_INITIALISERS (the exit
       functions go with them); a function whose port builds none of the original's function-local statics is in
       RETIRED_STATICS (Aggression's candidates, LabelRegions' flood lists, ReachesRegion's block list,
       StampWaterPatch's patch, SyncPlayer's diff arrays, UpdateUnits' id lists, the fog's dead cells, the draws' work
-      arrays, UseResources' string). The spiral caches of PlanLongPath, FindFreeCellNear and WakeUnitsAround are
+      arrays, UseResources' string, CollectChanges' {object, priority} vector, a local since C50c). Locals since C50c:
+      the trader stock's five scratch vectors (item_stock.cpp; their initialisers 00698E50-00698F90 unused). The spiral caches of PlanLongPath, FindFreeCellNear and WakeUnitsAround are
       function-local statics of ours (constant-initialised, no guard); so is UseResources' string. The objects the
       interface's files spell with `->` (g_gameFlow, g_savedParties, g_partyManager, g_saveStream) stay
-      `lib::StaticObject` until those files are converted, but their classes construct and destroy themselves.
+      `lib::StaticObject` until those files are converted, but their classes construct and destroy themselves; so do
+      the databases the interface reads (spells, items, quests, acks, units, skills: no Construct / Destruct, the
+      resource switch assigns each a new empty one).
     - **gen_static_init**: REVIEWED_SPLIT splits one initialiser's stores where they are two objects (005229C0: the hit
       log pointer 007AF284 is read, the ln folds above it are not); RETIRED_STATICS lists functions whose port builds
       none of the original's function-local statics, so their runtime atexit sites never run (006BFF40, the terrain
@@ -730,7 +731,7 @@ kinds given.
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
       007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
       (renderer_lifetime.cpp), the map database 0079BF00, the class registry
-      0079B270 (chunk_archive.cpp), clip's work words 0079B668, the network buffers 0079B8E0 / 0079B900, the save stream
+      0079B270 (chunk_archive.cpp), clip's work words 0079B668, the save stream
       007AFDF8 and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
       out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow; render_game.h's Addresses hold
@@ -1238,11 +1239,10 @@ camera view stack that nothing ever pushed to is deleted.
 
 ### Compiler-written helpers of game types (S3b, S3c, S7a, S13, S13a, S13b)
 
-The global constructors only static initialisers call (the six databases, logic settings 005CDFC0, SavedParties,
-both worlds: database_construct.cpp, world_construct.cpp), the exit callees (database_destruct.cpp, the worlds'
+The global constructors only static initialisers call (logic settings 005CDFC0, SavedParties,
+both worlds: world_construct.cpp; the databases' are their classes' own since C50c), the exit callees (the worlds'
 and Terrain / Sector / particle manager destructors in world_destructors.cpp), record destructors / copies /
-assignments (record_lifetime.h, gone with C14n), the database resets
-(database_reset.cpp) and the script lists' by-value copies (game_lists). Bodies that are library rows are called
+assignments (record_lifetime.h, gone with C14n) and the script lists' by-value copies (game_lists). Bodies that are library rows are called
 through the library's address or inlined from lib/, never registered on the game side. Quirks kept: the link queue's
 stream copy 00479410 reads the new block's uninitialised bytes into the source; 004CC0C0 copies a command's float
 arguments as dwords (ours through the FPU: only a signalling NaN differs).

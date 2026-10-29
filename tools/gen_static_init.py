@@ -871,6 +871,12 @@ UNUSED_INITIALISERS = {
                 "ItemStock::GenerateItems (item_stock.cpp)",
     0x00698F90: "the trader stock's taken materials 007C8640 (exit function 00698FD0): a local of "
                 "ItemStock::GenerateMaterials (item_stock.cpp)",
+    0x00432CA0: "the network's send buffer 0079B900 (exit function 00432CC0, bit 0 of 0079B8FC): net_session.cpp's "
+                "g_sendBuffer",
+    0x00432CE0: "the network's receive buffer 0079B8E0 (exit function 00432D00, bit 1 of 0079B8FC): net_session.cpp's "
+                "g_receiveBuffer",
+    0x00412230: "the game server's counted pointer 0079B5DC (exit function 00412250): net_classes.h's g_gameServer",
+    0x00412280: "the game client's counted pointer 0079B5D8 (exit function 004122A0): net_classes.h's g_gameClient",
 }
 
 
@@ -1152,6 +1158,10 @@ RUNTIME_SITES = set()
 # Functions whose port registers none of the original's function-local statics' exit functions (C18): their
 # runtime atexit sites never run, like dead code's. begin -> (end, why).
 RETIRED_STATICS = {
+    # C50c
+    0x004346D0: (0x00434980, "Connection::CollectChanges (net_connection.cpp) lists the replicated objects in a local: "
+                             "the original's static vector 0079B8D0 (guard bit 0 of 0079B8DC, freed by 00434980) is "
+                             "never made"),
     # C50b
     0x0057C700: (0x0057CB50, "GameFlow::ProcessRequest (world_game.cpp) calls UseResources, which the original inlines "
                              "with its function-local string 007AFDEC (guard bit 0 of 007AFDF0, destroyed by 0057E6A0)"),

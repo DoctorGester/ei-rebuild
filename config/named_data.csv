@@ -126,8 +126,6 @@ address,size,name,file
 0079B2A8,776,g_camera,src/game/camera_object.cpp
 0079B5B8,16,kIdentityRotation,src/game/camera.h
 0079B5C8,12,kZeroVector,src/game/camera.h
-0079B5D8,4,g_gameClient,src/game/net_classes.h
-0079B5DC,4,g_gameServer,src/game/net_classes.h
 0079B604,4,g_lastPumpTime,src/game/net_session.cpp
 0079B608,4,g_variableSerial,src/game/net_messages.h
 0079B60C,4,g_playerSerial,src/game/net_server_join.cpp
@@ -138,11 +136,6 @@ address,size,name,file
 0079B738,136,g_offsetCodes,src/game/net_coder.cpp
 0079B7C0,136,g_lengthBits,src/game/net_coder.cpp
 0079B848,136,g_lengthCodes,src/game/net_coder.cpp
-0079B8D0,12,g_replicated,src/game/net_connection.cpp
-0079B8DC,1,g_replicatedGuard,src/game/net_connection.cpp
-0079B8E0,28,g_receiveBuffer,src/game/net_session.cpp
-0079B8FC,1,g_bufferFlags,src/game/net_session.cpp
-0079B900,28,g_sendBuffer,src/game/net_session.cpp
 0079B91C,4,g_netLog,src/game/net_classes.h
 0079B920,4,g_currentSession,src/game/net_classes.h
 0079B924,4,g_currentConnection,src/game/net_classes.h

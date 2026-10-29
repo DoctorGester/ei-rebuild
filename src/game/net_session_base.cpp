@@ -29,7 +29,6 @@ Message* TypeRegistry::Create(std::uint32_t type) {
 }
 
 SessionBase::SessionBase() {
-    socket_.Construct();
     time_ = 0.0;
     frame_ = 1;
     magic_ = 0;

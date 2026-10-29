@@ -50,7 +50,7 @@ void SessionBase::Tick(double dt) {
     g_currentSession = this;
     time_ = dt + time_;
     NetAddress from{};
-    GameBuffer* buffer = &g_receiveBuffer.Get();
+    GameBuffer* buffer = &g_receiveBuffer;
     while (socket_.Receive(&from, buffer)) {
         BufferUpdateHigh(buffer);
         if (buffer->PositionOf(buffer->high) == 0) {
@@ -213,8 +213,8 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
 
 namespace net {
 
-// Every client is sent a leave packet; the connections are released (the owner's release) after the socket
-// and the type registry.
+// Every client is sent a leave packet; the members then close the socket, free the type registry and release the
+// connections.
 SessionBase::~SessionBase() {
     for (auto& node : clients_) {
         Connection* connection = node.Get();
@@ -231,10 +231,6 @@ SessionBase::~SessionBase() {
         }
         socket_.SendTo(&connection->address_, buffer);
     }
-    socket_.Destruct();
-    types_.byType.clear();
-    types_.byVtable.clear();
-    clients_.clear();
 }
 
 } // namespace net
