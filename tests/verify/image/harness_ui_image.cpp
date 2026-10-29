@@ -69,6 +69,7 @@ struct Fed {
 };
 std::unordered_map<const void*, Fed> g_fed;   // the mirror's canvases, by holder
 bool g_mirror = false;
+const void* g_faulted = nullptr;   // a native canvas uifault drew on: its memory written back once a check found it
 
 unsigned g_checks = 0, g_differing = 0, g_settled = 0, g_dumped = 0;
 std::map<std::string, unsigned> g_checkedNames;   // name: checks
@@ -235,6 +236,11 @@ void Compare(const ui::CanvasInfo& canvas, const render::SurfaceMemory& memory, 
     if (g_firstUnsettled.empty()) g_firstUnsettled = verdict;
     auto fed = g_fed.find(canvas.holder);
     if (fed != g_fed.end()) fed->second.stale = true;   // the mirror feeds it again: the next check passes
+    if (canvas.holder == g_faulted && memory.width == canvas.width && memory.height == canvas.height) {
+        const std::vector<std::uint32_t> rgb = Widened(memory);   // GDI's drawing: the next check passes
+        ui::Image(canvas.holder, Rect{0, 0, memory.width, memory.height}, rgb.data(), memory.width);
+        g_faulted = nullptr;
+    }
 }
 
 // The mirror: every named surface's canvas fed from its memory when that changed (or it was marked stale).
@@ -339,7 +345,17 @@ bool Step(const std::string& verb, const std::string& argument, std::string* err
         std::string name;
         for (const auto& [holder, fed] : g_fed)
             if (ui::HasCanvas(holder) && (!target || NameOf(names, holder) < name)) target = holder, name = NameOf(names, holder);
-        if (!target) *error = "uifault: no mirrored canvas (\"uimirror on\" and a frame first)";
+        // No mirrored canvas (every surface shown is native): a native surface's, whose memory the check that
+        // finds the square writes back onto it.
+        if (!target) {
+            std::vector<ui::CanvasInfo> canvases;
+            ui::Canvases(&canvases);
+            for (const ui::CanvasInfo& canvas : canvases)
+                if (!canvas.only && names.count(canvas.holder) && (!target || NameOf(names, canvas.holder) < name))
+                    target = canvas.holder, name = NameOf(names, canvas.holder);
+            g_faulted = target;
+        }
+        if (!target) *error = "uifault: no canvas to fault (\"uimirror on\" or a native surface, and a frame first)";
         else ui::Fill(target, Rect{0, 0, 4, 4}, RGB(255, 0, 255));
         if (target) Log("harness: uifault: a magenta square on %s", name.c_str());
     } else if (verb == "uidiff") {

@@ -6,6 +6,7 @@
 #include "net_messages.h"
 #include "ui.h"
 #include "ui_gdi.h"
+#include "ui_native.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -143,6 +144,7 @@ void CChatOverlay::AddLine(const char* text) {
         added.time = now;
         const int width = TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad;
         CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, kLineSurfaceFormat, 1);
+        ui_native::Adopt(surface, "chat");
         UiSurfaceGetDC(surface);
         surface->Clear();
         const std::string& codes = formatted[i];
