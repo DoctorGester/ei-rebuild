@@ -4,7 +4,7 @@
 //
 // usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_harness.dll>]
 //                  [--harness <scenario.txt>] [--wait] [--no-hooks] [--rebirth <spec>] [--out <dir>]
-//                  [--standalone] [game args...]
+//                  [--standalone] [--drop-in] [game args...]
 // --out puts what the run writes (ei_hook.log, the harness report and saves, ...) in <dir> instead
 // of next to ei_launch.exe (EI_OUT_DIR), so several runs can go at once.
 // game.exe is always the original game (the original's harness: goldens, EI_VECTORS recording, addon's
@@ -21,6 +21,12 @@
 // output (imports, the INT3 hit) comes through ei_launch's. Game args go after "--" (WinMain gets them as
 // game.exe would). EI_LAUNCH_STANDALONE=1 in the environment does the same as --standalone (a test batch's
 // environment reaches ei_launch when the scheduler's run_all does not know the install yet; S19).
+// --drop-in runs the image as an exe dropped into the game folder (S23a; docs/notes/standalone.md, "The drop-in exe"):
+// ei_launch makes <out>\dropin like the --game install (DropInFolder: nothing is written to the install) with a copy
+// of the build's ei_standalone.exe, and starts that copy from the output folder with no EI_GAME_ROOT and no EI_REBIRTH,
+// so the exe enters its own folder and takes the folder's profile. EI_DROPIN names the install for the harness's
+// "dropin" step (tests/verify/harness_dropin.h). The folder is removed when the game has ended. A --standalone run of
+// a scenario with a line "# drop-in: <why>" is one too (run_all's runs of tests/scenarios/dropin_*.txt).
 //
 // A run with --harness ends whatever state the game is in: the harness's watchdog thread ends it at the
 // scenario's "timeout" (60 s unless the scenario says otherwise); if that thread cannot run, ei_launch ends
@@ -29,6 +35,7 @@
 // not started, 3 and 4 below.
 #include <windows.h>
 #include <tlhelp32.h>
+#include <winioctl.h>
 
 #include <cstdint>
 #include <cstdio>
@@ -88,6 +95,120 @@ static std::wstring SharedStandaloneHost(const std::wstring& built, const std::w
     return SameFile(built, shared) ? shared : built;
 }
 
+// A junction `link` (a new folder) to the folder `target` (an absolute path; another volume is fine). Making it writes
+// nothing to the target.
+static bool MakeJunction(const std::wstring& link, const std::wstring& target) {
+    if (!CreateDirectoryW(link.c_str(), nullptr)) return false;
+    HANDLE h = CreateFileW(link.c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING,
+                           FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+    if (h == INVALID_HANDLE_VALUE) {
+        RemoveDirectoryW(link.c_str());
+        return false;
+    }
+    // REPARSE_DATA_BUFFER's mount point form (ntifs.h): the header, four offsets and lengths in bytes, then the
+    // substitute name ("\??\<target>") and the print name, each ending in a zero.
+    const std::wstring substitute = L"\\??\\" + target;
+    std::wstring names = substitute + L'\0' + target + L'\0';
+    const WORD pathBytes = static_cast<WORD>(names.size() * sizeof(wchar_t));
+    std::vector<BYTE> buffer(16 + pathBytes);
+    auto word = [&](std::size_t at, WORD value) { std::memcpy(buffer.data() + at, &value, sizeof(value)); };
+    const DWORD tag = IO_REPARSE_TAG_MOUNT_POINT;
+    std::memcpy(buffer.data(), &tag, sizeof(tag));
+    word(4, static_cast<WORD>(8 + pathBytes));                                       // ReparseDataLength
+    word(8, 0);                                                                      // SubstituteNameOffset
+    word(10, static_cast<WORD>(substitute.size() * sizeof(wchar_t)));                // SubstituteNameLength
+    word(12, static_cast<WORD>((substitute.size() + 1) * sizeof(wchar_t)));          // PrintNameOffset
+    word(14, static_cast<WORD>(target.size() * sizeof(wchar_t)));                    // PrintNameLength
+    std::memcpy(buffer.data() + 16, names.data(), pathBytes);
+    DWORD returned = 0;
+    const bool ok = DeviceIoControl(h, FSCTL_SET_REPARSE_POINT, buffer.data(), static_cast<DWORD>(buffer.size()), nullptr,
+                                    0, &returned, nullptr) != FALSE;
+    CloseHandle(h);
+    if (!ok) RemoveDirectoryW(link.c_str());
+    return ok;
+}
+
+// Removes `dir` and what is in it without following a junction or link: a reparse point is removed itself, never
+// what it names (the drop-in folder's junctions name the install's folders).
+static void RemoveTree(const std::wstring& dir) {
+    WIN32_FIND_DATAW found;
+    HANDLE f = FindFirstFileW((dir + L"\\*").c_str(), &found);
+    if (f != INVALID_HANDLE_VALUE) {
+        do {
+            const std::wstring name = found.cFileName;
+            if (name == L"." || name == L"..") continue;
+            const std::wstring path = dir + L"\\" + name;
+            const bool folder = (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+            if (found.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+                if (folder) RemoveDirectoryW(path.c_str());
+                else DeleteFileW(path.c_str());
+            } else if (folder) {
+                RemoveTree(path);
+            } else {
+                SetFileAttributesW(path.c_str(), FILE_ATTRIBUTE_NORMAL);
+                DeleteFileW(path.c_str());
+            }
+        } while (FindNextFileW(f, &found));
+        FindClose(f);
+    }
+    RemoveDirectoryW(dir.c_str());
+}
+
+// --drop-in: `folder` made like the game folder `install` with the build's exe in it: each of the install's folders a
+// junction to it, each of its files a copy but game.exe and the files of ours a drop-in exe starts without (the
+// settings, the Rebirth flags' ini, the log), then `builtExe` (and ASan's runtime beside it, which its build needs).
+// The game writes nothing through the junctions: the harness's guard refuses writes under its working directory and
+// the installs (tests/verify/harness_install.h). Returns the exe's copy, or empty (said why on stderr).
+static std::wstring DropInFolder(const std::wstring& folder, const std::wstring& install, const std::wstring& builtExe) {
+    RemoveTree(folder);   // a run's leftover
+    if (!CreateDirectoryW(folder.c_str(), nullptr)) {
+        std::fwprintf(stderr, L"ei_launch: cannot make the drop-in folder %s (error %lu)\n", folder.c_str(), GetLastError());
+        return std::wstring();
+    }
+    WIN32_FIND_DATAW found;
+    HANDLE f = FindFirstFileW((install + L"\\*").c_str(), &found);
+    if (f == INVALID_HANDLE_VALUE) {
+        std::fwprintf(stderr, L"ei_launch: cannot list the install %s (error %lu)\n", install.c_str(), GetLastError());
+        return std::wstring();
+    }
+    bool ok = true;
+    do {
+        const std::wstring name = found.cFileName;
+        if (name == L"." || name == L"..") continue;
+        const std::wstring from = install + L"\\" + name, to = folder + L"\\" + name;
+        if (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            if (!MakeJunction(to, from)) {
+                std::fwprintf(stderr, L"ei_launch: cannot make the junction %s to %s (error %lu)\n", to.c_str(), from.c_str(),
+                              GetLastError());
+                ok = false;
+            }
+            continue;
+        }
+        bool ours = false;
+        for (const wchar_t* skipped : {L"game.exe", L"ei_standalone.exe", L"ei_settings.ini", L"ei_rebirth.ini", L"ei_hook.log"})
+            ours = ours || _wcsicmp(name.c_str(), skipped) == 0;
+        if (!ours && !CopyFileW(from.c_str(), to.c_str(), FALSE)) {
+            std::fwprintf(stderr, L"ei_launch: cannot copy %s (error %lu)\n", from.c_str(), GetLastError());
+            ok = false;
+        }
+    } while (FindNextFileW(f, &found));
+    FindClose(f);
+    const std::wstring exe = folder + L"\\ei_standalone.exe";
+    if (!CopyFileW(builtExe.c_str(), exe.c_str(), FALSE)) {
+        std::fwprintf(stderr, L"ei_launch: cannot copy %s (error %lu)\n", builtExe.c_str(), GetLastError());
+        ok = false;
+    }
+    f = FindFirstFileW((Dir(builtExe) + L"\\clang_rt.asan*.dll").c_str(), &found);
+    if (f != INVALID_HANDLE_VALUE) {
+        do CopyFileW((Dir(builtExe) + L"\\" + found.cFileName).c_str(), (folder + L"\\" + found.cFileName).c_str(), FALSE);
+        while (FindNextFileW(f, &found));
+        FindClose(f);
+    }
+    if (ok) return exe;
+    RemoveTree(folder);
+    return std::wstring();
+}
+
 // The windows a game still has open when it is terminated (a dialog it waits on says why), one line
 // each: class, title and the text of its child controls.
 static void PrintOpenWindows(DWORD pid) {
@@ -126,6 +247,17 @@ constexpr ULONGLONG kTimeoutMarginMs = 20000;
 constexpr ULONGLONG kDefaultTimeLimitMs = 60000;
 
 // The scenario's "timeout <seconds>" line (the last one counts, as in the harness), else the default.
+// Whether the scenario has a line "# drop-in: <why>": its image runs are drop-in runs (--drop-in).
+static bool ScenarioDropIn(const wchar_t* scenario) {
+    FILE* f = nullptr;
+    if (_wfopen_s(&f, scenario, L"r") != 0 || !f) return false;
+    char line[1024];
+    bool found = false;
+    while (!found && std::fgets(line, sizeof(line), f)) found = std::strncmp(line, "# drop-in:", 10) == 0;
+    std::fclose(f);
+    return found;
+}
+
 static ULONGLONG ScenarioTimeLimitMs(const wchar_t* scenario) {
     ULONGLONG limit = kDefaultTimeLimitMs;
     FILE* f = nullptr;
@@ -579,6 +711,7 @@ int wmain(int argc, wchar_t** argv) {
     std::wstring outDir;
     bool wait = false;
     bool standalone = false;
+    bool dropIn = false;
     std::wstring gameArgs;
     for (int i = 1; i < argc; ++i) {
         std::wstring a = argv[i];
@@ -591,10 +724,12 @@ int wmain(int argc, wchar_t** argv) {
         else if (a == L"--rebirth" && i + 1 < argc) SetEnvironmentVariableW(L"EI_REBIRTH", argv[++i]);
         else if (a == L"--out" && i + 1 < argc) outDir = argv[++i];
         else if (a == L"--standalone") standalone = true;
+        else if (a == L"--drop-in") dropIn = standalone = wait = true;   // waits: the folder goes when the game has ended
         else gameArgs += L" \"" + a + L"\"";
     }
     wchar_t standaloneValue[4];
     if (GetEnvironmentVariableW(L"EI_LAUNCH_STANDALONE", standaloneValue, 4) == 1 && standaloneValue[0] == L'1') standalone = true;
+    if (standalone && !harness.empty() && ScenarioDropIn(harness.c_str())) dropIn = wait = true;
     wchar_t full[MAX_PATH];
     GetFullPathNameW(dll.c_str(), MAX_PATH, full, nullptr);
     dll = full;
@@ -616,9 +751,31 @@ int wmain(int argc, wchar_t** argv) {
         // so the game's registry path lookups point there instead of at another install.
         exe = exeOverride;
         SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
+    } else if (dropIn) {
+        // The exe finds its game folder and its flags itself: nothing of ei_launch's or the caller's names them.
+        SetEnvironmentVariableW(L"EI_GAME_ROOT", nullptr);
+        SetEnvironmentVariableW(L"EI_REBIRTH", nullptr);
     } else if (standalone) {
         // The image reads no game.exe (S18k): no exe needed, the data folder is the install's.
         SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
+    }
+    std::wstring dropInFolder, dropInExe;
+    if (dropIn) {
+        GetFullPathNameW(gameDir.c_str(), MAX_PATH, full, nullptr);
+        std::wstring install = full;
+        while (install.size() > 3 && install.back() == L'\\') install.pop_back();
+        dropInFolder = outDir + L"\\dropin";
+        dropInExe = DropInFolder(dropInFolder, install, Dir(self) + L"\\ei_standalone.exe");
+        if (dropInExe.empty()) return 2;
+        // The harness finds the checkout's config\harness two folders above its module (harness_settings.cpp): from
+        // the copy, the build's.
+        if (GetEnvironmentVariableW(L"EI_HARNESS_SETTINGS", nullptr, 0) == 0) {
+            GetFullPathNameW((Dir(self) + L"\\..\\..\\config\\harness").c_str(), MAX_PATH, full, nullptr);
+            SetEnvironmentVariableW(L"EI_HARNESS_SETTINGS", full);
+        }
+        SetEnvironmentVariableW(L"EI_DROPIN", _wcsicmp(install.c_str(), kRebirthInstall) == 0   ? L"rebirth"
+                                              : _wcsicmp(install.c_str(), kVanillaInstall) == 0 ? L"vanilla"
+                                                                                                : L"other");
     }
     if (!harness.empty()) {
         wchar_t scenario[MAX_PATH];
@@ -629,7 +786,9 @@ int wmain(int argc, wchar_t** argv) {
         }
         SetEnvironmentVariableW(L"EI_HARNESS", scenario);
         // The installs no harness run may write in, whichever it plays (tests/verify/harness_install.h).
-        SetEnvironmentVariableW(L"EI_INSTALL_ROOTS", (gameDir + L";" + kVanillaInstall + L";" + kRebirthInstall).c_str());
+        // A drop-in run's folder too: its junctions lead into the install.
+        SetEnvironmentVariableW(L"EI_INSTALL_ROOTS", ((dropIn ? dropInFolder + L";" : std::wstring()) + gameDir + L";" +
+                                                      kVanillaInstall + L";" + kRebirthInstall).c_str());
         wait = true;
     }
     // The games: the scenario's own, and with a "peer" line the pair's other game (above).
@@ -675,7 +834,7 @@ int wmain(int argc, wchar_t** argv) {
         GetFullPathNameW(exe.c_str(), MAX_PATH, full, nullptr);
         const std::wstring built = Dir(self) + L"\\ei_standalone.exe";
         // The shared copy needs --exe: the run folder it sits in is found from there (never from the install's).
-        program = harness.empty() && !exeOverride.empty() ? SharedStandaloneHost(built, full) : built;
+        program = dropIn ? dropInExe : harness.empty() && !exeOverride.empty() ? SharedStandaloneHost(built, full) : built;
         cmd = L"\"" + program + L"\"";   // the exe reads no game.exe (S18k) and has the game linked in (S23)
         if (!gameArgs.empty()) cmd += L" --" + gameArgs;
         // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.
@@ -741,8 +900,9 @@ int wmain(int argc, wchar_t** argv) {
             if (side > 0) SetEnvironmentVariableW(L"EI_OUT_DIR", game.outDir.c_str());
         }
         std::wstring line = cmd;
+        // A drop-in exe starts in the output folder: it must enter its own (EnterGameFolder), as from a shortcut.
         if (!CreateProcessW(program.c_str(), line.data(), nullptr, nullptr, inherit, CREATE_SUSPENDED, nullptr,
-                            gameDir.c_str(), &si, &game.pi)) {
+                            dropIn ? outDir.c_str() : gameDir.c_str(), &si, &game.pi)) {
             for (Game& started : games)
                 if (started.running) EndGame(started.pi.hProcess, job, started.pi.dwProcessId, 1);
             return Fail(L"CreateProcess");
@@ -852,6 +1012,7 @@ int wmain(int argc, wchar_t** argv) {
         CloseHandle(game.pi.hProcess);
     }
     if (job) CloseHandle(job);   // ends whatever the games left running
+    if (dropIn) RemoveTree(dropInFolder);
     if (peerSlot) CloseHandle(peerSlot);
     DWORD code = games[0].code;
     if (harness.empty()) {

@@ -16,7 +16,15 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    scenario with a step for one install, rebirthflags, addonpath or widescreen) or the named
                    scenarios, --rebirth-only runs those alone, --all-rebirth every scenario on both. An address
                    with no rewrite ends the run: "standalone: no code at ...".
-  --no-hooks       game.exe with the original code only (ei_launch --no-hooks: the harness, no rewrite), on the
+  drop-in          a scenario with a line "# drop-in: <why>" (tests/scenarios/dropin_*.txt) checks the exe dropped
+                   into a game folder (S23a; docs/notes/standalone.md, "The drop-in exe"): ei_launch sees the line and
+                   (as with --drop-in) copies the build's ei_standalone.exe into <run folder>\\dropin, a folder made
+                   like the install (its folders junctions, its files copies, no game.exe; nothing is written to the
+                   install), and starts it from the run folder with no EI_GAME_ROOT, EI_REBIRTH or ei_rebirth.ini.
+                   On both of the image's installs (standalone, standalone-rebirth) by default (--vanilla-only /
+                   --rebirth-only: one); never with --no-hooks or --widescreen, and no goldens (the plain profile turns
+                   WideScreen on).
+  --no-hooks      game.exe with the original code only (ei_launch --no-hooks: the harness, no rewrite), on the
                    vanilla install (install "vanilla": with Rebirth's bug fixes, which ei_launch has addon.dll apply;
                    docs/notes/rebirth.md "One test profile") and on Rebirth's (install "rebirth", with --rebirth as
                    above): the runs goldens are recorded from
@@ -283,6 +291,42 @@ def no_original(scenario):
     return installs
 
 
+DROP_IN_PREFIX = '# drop-in:'
+
+
+def drop_in(scenario):
+    """Whether the scenario has a line "# drop-in: <why>": it checks the drop-in exe (S23a). ei_launch makes its image
+    runs drop-in runs (--drop-in); plan() runs it on both of the image's installs by default and never on the original
+    (--no-hooks)."""
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            return any(text.startswith(DROP_IN_PREFIX) for text in f)
+    return False
+
+
+def remove_drop_in_folder(out):
+    """Removes a drop-in run's <out>/dropin (ei_launch's, left when it was killed) without following its junctions:
+    each junction is removed itself, never the install folder it names."""
+    def remove(path):
+        for entry in os.scandir(path):
+            if entry.is_junction():
+                os.rmdir(entry.path)   # the junction, not the folder it names
+            elif entry.is_symlink():
+                (os.rmdir if entry.is_dir() else os.unlink)(entry.path)
+            elif entry.is_dir():
+                remove(entry.path)
+            else:
+                os.chmod(entry.path, 0o666)
+                os.unlink(entry.path)
+        os.rmdir(path)
+    folder = os.path.join(out, 'dropin')
+    with contextlib.suppress(OSError):
+        if os.path.isjunction(folder) or os.path.islink(folder):
+            os.rmdir(folder)
+        elif os.path.isdir(folder):
+            remove(folder)
+
+
 def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None, fresh=False,
         held=1, slots=None):
     """One game of a scenario on an install (a pair's two games for a scenario with a "peer" line, the peer's in
@@ -396,6 +440,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
                              f'code: {", ".join(ORIGINAL_INSTALLS)})'], {}, []
     if low_disk := wait_for_disk(build):
         return 'FAIL', 0.0, [low_disk], {}, []
+    remove_drop_in_folder(out)   # its junctions first: nothing may reach into the install
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out, exist_ok=True)
     prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
@@ -446,6 +491,8 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
             if slots:
                 slots.release()       # the game has ended: the rest of the run needs no slot
         seconds = time.time() - start
+    if our_code(install):
+        remove_drop_in_folder(out)   # a drop-in run's: ei_launch removes it, not when it was killed
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
     result = next((l[8:] for l in report.splitlines() if l.startswith('RESULT: ')), 'NO REPORT')
@@ -1096,15 +1143,24 @@ def plan(args, root=ROOT):
         rebirth = rebirth_scenarios(names, root)
     else:
         rebirth = set()
+    path = lambda name: os.path.join(root, 'tests', 'scenarios', name + '.txt')
+    # The drop-in exe's scenarios (S23a): the image only, on both installs unless one is asked for alone.
+    drop_ins = {n for n in names if drop_in(path(n))}
+    if args.no_hooks or args.widescreen:
+        for n in sorted(drop_ins):
+            print(f'{n}: left out, a drop-in scenario ("{DROP_IN_PREFIX}") runs the image\'s exe in a copy of the install',
+                  file=sys.stderr)
+        names = [n for n in names if n not in drop_ins]
+        drop_ins = set()
+    drop_in_installs = installs if args.vanilla_only or args.rebirth_only else list(STANDALONE_INSTALLS)
     if args.rebirth_only:
-        names = [n for n in names if n in rebirth]
-    jobs = [(name, install) for name in names for install in installs
-            if install not in ('rebirth', 'standalone-rebirth') or name in rebirth]
+        names = [n for n in names if n in rebirth or n in drop_ins]
+    jobs = [(name, install) for name in names for install in (drop_in_installs if name in drop_ins else installs)
+            if install not in ('rebirth', 'standalone-rebirth') or name in rebirth or name in drop_ins]
     if args.widescreen:
         # addon's WideScreen exists on the Rebirth install only: the image there, or addon's runs to record
         names = args.scenarios or WIDESCREEN_SCENARIOS
         jobs = [(name, 'rebirth-nohooks' if args.record else 'standalone-rebirth') for name in names]
-    path = lambda name: os.path.join(root, 'tests', 'scenarios', name + '.txt')
     kept = [(n, i) for n, i in jobs if not switches_display(path(n)) or our_code(i)]
     for n, i in jobs:
         if (n, i) not in kept:

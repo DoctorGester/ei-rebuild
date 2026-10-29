@@ -190,6 +190,11 @@ the Rebirth data and
 goldens, the flags of `config/ei_rebirth_standalone.ini`; only on demand: `--rebirth` adds the smoke set of
 config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
 `--all-rebirth` every scenario); an address the image has no code for ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
+A scenario with a line `# drop-in: <why>` (dropin_boot, dropin_profile) runs on both of the image's installs by
+default, as a drop-in run: ei_launch sees the line (as `--drop-in`), copies the build's exe into `<run folder>\dropin`,
+a folder made like the install, and starts it from the run folder with no EI_GAME_ROOT (docs/notes/standalone.md,
+"The drop-in exe"); not with `--no-hooks`, no goldens. The line is read by ei_launch, not run_all, so the
+scheduler's run_all (main's) runs a worktree's drop-in scenarios with the worktree's ei_launch.
 The vanilla runs of the original carry Rebirth's bug fixes, the standalone's defaults (docs/notes/rebirth.md, "One test profile").
 Harness games never take the foreground (harness.cpp, `noforeground::`), and every run (the image's and the
 original's) keeps every window out of sight (cloaked tool windows: no window, taskbar button or Alt+Tab entry; `EI_HARNESS_SHOW_WINDOW=1` shows
