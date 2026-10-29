@@ -62,7 +62,7 @@ class CLinkFigureLoader;
 class CTexture;
 class CTextureManager;
 class CMaterialManager;
-class Terrain;
+namespace terrain { class Terrain; }
 class CCamera;
 class CMaterial;
 struct LineBatch;
@@ -794,11 +794,11 @@ public:
                      int visible, int bloodKind);
     // A scorch mark of `alpha` (made when it is positive and the scorch entry has a life).
     void AddScorchMark(float x, float y, float halfWidth, float halfLength, float angle, float alpha);
-    // Lays a decal on the ground into the three arrays (shadows, ground prints): the quad `corners` projected along
+    // Lays a decal on the ground into the three arrays (shadows, ground prints): the quad's corners projected along
     // `direction` from `point`; the terrain under it adds its triangles unless `skipOnPlatform` is set and the point
     // lies on a platform; with `objects`, the platform faces' objects the decal can touch add the triangles of each
     // part of their figure (once per face).
-    void ProjectDecal(const Vector3& direction, const Vector3& point, float depth, VertexPacket* const* corners,
+    void ProjectDecal(const Vector3& direction, const Vector3& point, float depth, const VertexPacket& quad,
                       std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
                       std::vector<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
     // The ambient sounds' time of day: "day" from 6 to 18 o'clock (and for a NaN hour), "morning" before 6 and
@@ -986,7 +986,7 @@ public:
     SectorGrid objectGrid_;               // the objects by sector (MoveObject moves them)
     std::uint32_t rangeFirstX_, rangeFirstY_, rangeLastX_, rangeLastY_, rangeX_, rangeY_;
     SectorGrid secondGrid_;               // (MoveObject2 moves objects in it)
-    Terrain* terrain_;                    // counted
+    terrain::Terrain* terrain_;           // counted
     // The zone's allod in lower case ("gipath" after Setup; the zone load takes it from the map
     // database's record of the local player's zone, "gipat" without one). It names the terrain's
     // texture pages, the lights table and the music theme.

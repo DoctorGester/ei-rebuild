@@ -231,7 +231,7 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
 
 Vector3* CWorldClient::PickGround(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
-        return terrain_->HeightAt(px, py, 0);
+        return terrain_->HeightAt(px, py, terrain::Layer::Ground);
     });
 }
 

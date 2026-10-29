@@ -25,10 +25,10 @@ struct DecalTexCoord {
 class DecalBuilder {
 public:
     // Starts a decal: empties the arrays (keeping their buffers) and sets the projection up from the quad's
-    // corners (a row-major 4x4 matrix whose columns 3, 2 and 0 are the origin, the u and the v corner), the
-    // direction (normalised in the copy) and the cut-off plane's point, `depth` * 0.33 back along it.
+    // corners (3, 2 and 0 are the origin, the u and the v corner), the direction (normalised in the copy) and
+    // the cut-off plane's point, `depth` * 0.33 back along it.
     void Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
-               std::vector<std::uint16_t>* indices, float* const* corners, const Vector3& direction,
+               std::vector<std::uint16_t>* indices, const VertexPacket& quad, const Vector3& direction,
                const Vector3& point, float depth);
     // Whether a sphere around `center` can touch the decal: its u and v ranges widened by radius * the axis
     // lengths overlap [0, 1].

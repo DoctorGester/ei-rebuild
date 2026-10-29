@@ -50,7 +50,7 @@ float CWorldClient::ClampedGroundHeight(float x, float y) {
     float cy = 0.0f >= y ? 0.0f : y;
     float maxY = static_cast<float>(terrain_->height - 1.0f);
     cy = maxY >= cy ? cy : maxY;
-    return terrain_->HeightAt(cx, cy, 0);
+    return terrain_->HeightAt(cx, cy, terrain::Layer::Ground);
 }
 
 double CWorldClient::RawSurfaceHeightAt(float x, float y) { return terrain_->SurfaceHeight(x, y); }
@@ -423,7 +423,7 @@ bool CWorldClient::RunTick() {
                         double radius = light->rangeSquared_;
                         if (squared > radius) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
-                        point.z = static_cast<float>(terrain_->HeightAt(nodeX, nodeY, 0));
+                        point.z = static_cast<float>(terrain_->HeightAt(nodeX, nodeY, terrain::Layer::Ground));
                         float intensity = light->GetIntensityAt(point);
                         level = SelectLess(level, intensity, intensity, level);
                     }

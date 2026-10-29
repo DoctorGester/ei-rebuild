@@ -116,7 +116,7 @@ void WaterTweens::ReadEntries(CStream* stream, int unread) {
     for (int i = 0; i < std::ssize(*this); ++i) stream->ReadValue((*this)[i]);
 }
 
-void WaterTweens::Load(CStream* stream, Terrain* terrain) {
+void WaterTweens::Load(CStream* stream, terrain::Terrain* terrain) {
     ReadEntries(stream, 0);
     for (int i = 0; i < std::ssize(*this); ++i) terrain->SetWaterLevel((*this)[i].key, (*this)[i].value);
 }

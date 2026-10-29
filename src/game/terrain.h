@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <list>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -18,22 +19,9 @@ class CLight;
 class CSceneRenderer;
 class CTexture;
 class DecalBuilder;
+struct VertexPacket;
 
 namespace terrain {
-struct SectorData;
-struct SectorPosition;
-struct TerrainMaterial;
-
-// The tiles (of the sector's 16 x 16) that share a vertex; only the first `count` are set.
-struct VertexTiles {
-    int count;
-    int tiles[4];
-};
-
-// For every sound class with its own vote, how many of ambient\<set>\<class>\day\1.wav, 2.wav, ... the wave
-// sources have, counted until the first one missing.
-void CountAmbientVariants(const char* set);
-}
 
 // Terrain::landscapeFlags.
 enum class LandscapeFlag : std::uint32_t {
@@ -45,8 +33,6 @@ enum class LandscapeFlag : std::uint32_t {
     SunShadows = 0x10,
     All = 0xFFFF,     // a loaded map's
 };
-template <>
-inline constexpr bool lib::kBitFlags<LandscapeFlag> = true;
 
 // What of a sector is built (SectorData::built; the stages Terrain::SectorAt asks for).
 enum class SectorStage : std::uint32_t {
@@ -55,8 +41,24 @@ enum class SectorStage : std::uint32_t {
     Built = 2,   // the geometry
     Lit = 4,     // the edge fade (SectorData::Light); dropped by the relight countdowns
 };
+
+} // namespace terrain
+
 template <>
-inline constexpr bool lib::kBitFlags<SectorStage> = true;
+inline constexpr bool lib::kBitFlags<terrain::LandscapeFlag> = true;
+template <>
+inline constexpr bool lib::kBitFlags<terrain::SectorStage> = true;
+
+namespace terrain {
+
+struct MapHeader;
+struct SectorData;
+struct TerrainMaterial;
+struct TileUv;
+struct VertexTiles;
+
+// The two vertex layers of a sector: the ground and the water surface.
+enum class Layer { Ground, Water };
 
 // Landscape: answers height queries for a world position. The vertex grid has unit spacing, but vertices
 // can be displaced sideways, so a point may lie in a neighbouring cell. The client world's Setup makes it.
@@ -69,23 +71,13 @@ public:
     void Destroy() override;
     const char* ClassName() override;   // "CTerrain"
     ClassId GetClassId() override;
-    // No map, texts "none", frame 1, waves upwards at strength 0, phase 2 pi.
-    void Reset();
-    // Per water vertex of a sector, the phase offsets of 40 random ripples; each edge matches the opposite one,
-    // so neighbouring sectors join.
-    void BuildWavePhases();
     // Clamped to 0..1: glow, height and speed scale with it, and the waves' step along the direction.
     void SetWaveStrength(float strength);
     void SetWaves(const Vector3& direction, float strength);
-    // `count` pages <map>NNN, then up to two extra pages <map>L00 / L01 while their .mmp exists. 0 when a
-    // texture does not load, else 1.
-    int SetupPages(int count);
     // The ambient sound set is "Dungeon" when `dungeon`, else "Ingos" / "Suslanger" by `zone`, else "Gipat".
     // 0 when the archive does not open or a texture does not load; a missing or malformed map file is
     // FatalError's result after ClearMap.
     int LoadMap(std::string_view path, std::string_view zone, bool dungeon);
-    // Per vertex of a sector (33 x 33): two tiles across a tile edge, four at a corner, one inside.
-    void BuildVertexTiles();
     // No map: sizes -1, the ambient loops stopped.
     void ClearMap();
 
@@ -105,8 +97,6 @@ public:
     // (MapEdgeFade, plus one cell) of the map's borders, corners by the distance.
     std::uint8_t EdgeFade(const Vector3& point);
 
-    // 9 u, then 9 v.
-    const float* TileUv(int rotation, int index, int page);
     // Texture class (sound / prints material): the water tile's when the point is under water, 8 outside the
     // map.
     int SurfaceClass(float x, float y);
@@ -114,24 +104,8 @@ public:
     // The ground pages, then (after the objects) the water pages.
     void DrawGround(CSceneRenderer* renderer);
     void DrawWater(CSceneRenderer* renderer);
-    // The visible sectors not culled, per page; the page's texture is page % LayerPages(). Nothing without a
-    // map.
-    void DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage);
 
-    // Height of `layer` (0 = ground, 1 = water surface) at (x, y).
-    float HeightAt(float x, float y, int layer);
-
-    // Null outside the map or where the sector has no such layer.
-    const Vector3* VertexAt(int ix, int iy, int layer);
-
-    // Sector (sx, sy) when it has any of the `wanted` stages (SectorStage) built, else
-    // null. Sectors live in an LRU cache: a hit moves to the front (stamped with the frame); with `create`
-    // a missing sector is loaded (the least recently used one reused when older than 240 frames, older ones
-    // freed) and the wanted stages are built.
-    terrain::SectorData* SectorAt(int sx, int sy, SectorStage wanted, bool create);
-    // The cached sector (sx, sy) of the grid, without a lookup's side effects; null when not cached.
-    terrain::SectorData* CachedSector(int sx, int sy) const { return sectorGrid[sx * sectorsY + sy]; }
-
+    float HeightAt(float x, float y, Layer layer);
     // The ground height at (x, y), raised to the water surface where it is under water.
     float SurfaceHeight(float x, float y);
 
@@ -146,19 +120,26 @@ public:
     // countdowns spread over it (sorted; 0 drops the lighting at once), without one every sector's lighting is
     // dropped.
     void SetSun(CLight* sun, const Vector4* ambient);
-    // With LandscapeFlag::Ambience: the 3x3 sectors around the listener vote a sound class, weighted by
-    // distance; up to three classes play a looping circle.wav and random one-shots
-    // (ambient\<set>\<class>\<time of day>\<n>.wav).
-    void PlayAmbience();
     // Clears LandscapeFlag::Ambience and stops the loops.
     void StopAmbience();
-    void StopAmbientLoops();
     // Slides the decal quad along the builder's slope until its lowest point meets the lowest ground vertex
     // of the cells under it (one cell of margin), then hands those cells' ground triangles to the builder.
-    void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
+    void AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad);
 
+    // The sectors' part (terrain_sector.h).
+    // Sector (sx, sy) when it has any of the `wanted` stages (SectorStage) built, else
+    // null. Sectors live in an LRU cache: a hit moves to the front (stamped with the frame); with `create`
+    // a missing sector is loaded (the least recently used one reused when older than 240 frames, older ones
+    // freed) and the wanted stages are built.
+    SectorData* SectorAt(int sx, int sy, SectorStage wanted, bool create);
+    // The cached sector (sx, sy) of the grid, without a lookup's side effects; null when not cached.
+    SectorData* CachedSector(int sx, int sy) const { return sectorGrid[sx * sectorsY + sy]; }
+    // The texture coordinates of tile texture `index` of a page (the extra pages' table for those).
+    const TileUv& TileUvAt(int rotation, int index, int page) const;
     // The texture pages of one tile layer.
     int LayerPages() const;
+    // Sector (sx, sy)'s pending water level change per material.
+    std::span<float> SectorWaterLevels(int sx, int sy);
 
     // The visible sectors (SetVisibleSectors): columns firstX..lastX of rows firstY..lastY.
     struct SectorRect {
@@ -170,6 +151,7 @@ public:
         int soundClass = -1;
     };
     static constexpr int kAmbientLoops = 3;
+    static constexpr int kSoundClasses = 16;
 
     LandscapeFlag landscapeFlags;
     std::vector<CTexture*> pageTextures;     // held
@@ -183,17 +165,17 @@ public:
     int pages;
     int tilesPerRow;
     int perPage;                    // tilesPerRow squared
-    std::vector<terrain::TerrainMaterial> materials;   // the water materials
+    std::vector<TerrainMaterial> materials;   // the water materials
     // Per tile texture: its class 0..15 (sounds, prints), with sixteen entries of class 15 after the map's
     // own; its frame count when animated, else 0.
     std::vector<int> textureClass;
     std::vector<int> textureFrames;
     CMMIOResource archive;          // the map's sector archive
-    std::vector<float> uvTables[4];       // per rotation, 18 floats per texture (TileUv)
-    std::vector<float> uvTablesLast[4];   // the same for the extra pages
-    std::vector<terrain::VertexTiles> vertexTiles;   // 33 x 33
-    std::vector<terrain::SectorData*> sectorGrid;      // [sx * sectorsY + sy]: the cached sector, or null
-    std::list<terrain::SectorData*> sectorCache;        // most recently used first
+    std::vector<TileUv> uvTables[4];       // per rotation, per texture of a page
+    std::vector<TileUv> uvTablesLast[4];   // the same for the extra pages
+    std::vector<VertexTiles> vertexTiles;   // 33 x 33
+    std::vector<SectorData*> sectorGrid;      // [sx * sectorsY + sy]: the cached sector, or null
+    std::list<SectorData*> sectorCache;        // most recently used first
     int frame;
     int lightInterval;              // frames between sun updates
     int lightCountdown;
@@ -210,5 +192,41 @@ public:
     SectorRect visible;
     AmbientLoop ambientLoops[kAmbientLoops];
     std::string ambientSet;           // the ambient sound set (ambient\<set>\...)
-    std::vector<std::vector<float>> waterLevels;   // per sector, per material
+    // Per sound class, how many one-shots ambient\<set>\<class>\day\1.wav, 2.wav, ... the map's set has.
+    int ambientVariants[kSoundClasses] = {};
+    std::vector<float> waterLevels;   // per sector (sy * sectorsX + sx), per material
+
+private:
+    // No map, texts "none", frame 1, waves upwards at strength 0, phase 2 pi.
+    void Reset();
+    // Per water vertex of a sector, the phase offsets of 40 random ripples; each edge matches the opposite one,
+    // so neighbouring sectors join.
+    void BuildWavePhases();
+    // Per vertex of a sector (33 x 33): two tiles across a tile edge, four at a corner, one inside.
+    void BuildVertexTiles();
+    // The sizes, materials, tile texture classes and animated textures of a map file whose header is checked.
+    void ReadMap(const MapHeader& header, const std::uint8_t* file);
+    // `count` pages <map>NNN, then up to two extra pages <map>L00 / L01 while their .mmp exists. 0 when a
+    // texture does not load, else 1.
+    int SetupPages(int count);
+    // The tile texture coordinates of every rotation, for tiles `tileSize` pixels wide.
+    void BuildUvTables(int tileSize);
+    // For every sound class, the one-shots of the ambient set (ambientVariants), counted until the first one
+    // missing.
+    void CountAmbientVariants();
+    // With LandscapeFlag::Ambience: the 3x3 sectors around the listener vote a sound class, weighted by
+    // distance; up to three classes play a looping circle.wav and random one-shots
+    // (ambient\<set>\<class>\<time of day>\<n>.wav).
+    void PlayAmbience();
+    void StopAmbientLoops();
+    // A pass: the landscape's matrix (rotation, the position in the last column) on the clip and projection
+    // stacks around DrawPages.
+    void DrawPass(CSceneRenderer* renderer, int firstPage, int lastPage);
+    // The visible sectors not culled, per page; the page's texture is page % LayerPages(). Nothing without a
+    // map.
+    void DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage);
+    // Null outside the map or where the sector has no such layer.
+    const Vector3* VertexAt(int ix, int iy, Layer layer);
 };
+
+} // namespace terrain

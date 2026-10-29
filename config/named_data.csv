@@ -116,7 +116,7 @@ address,size,name,file
 007947A8,52,kNames,src/game/ui_layouts.cpp
 00794E3C,4,g_nextRecordObjectId,src/game/player_server_handlers.cpp
 00796960,64,kAnimationSpeeds,src/game/terrain_sector.cpp
-007969D0,384,g_soundClasses,src/game/terrain_ambience.cpp
+007969D0,384,kAmbientSounds,src/game/terrain_ambience.cpp
 0079AE60,348,kPow10Positive,src/lib/crt_format.cpp
 0079AFC0,348,kPow10Negative,src/lib/crt_format.cpp
 0079B1B8,4,kHeadingOffset,src/game/core_transform_math.cpp

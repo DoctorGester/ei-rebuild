@@ -19,7 +19,7 @@ class CTextureManager;
 class CFigureManager;
 class CParticleManager;
 class CLightFactory;
-class Terrain;
+namespace terrain { class Terrain; }
 class CMaterialManager;
 struct CSoundManager;
 struct CMusicSystem;

@@ -191,8 +191,7 @@ int GroundPrint::Draw() {
         }
         Vector3 down{0.0f, 0.0f, -1.0f};
         Vector3 above{position_.x, position_.y, z + 1.0f};
-        VertexPacket* quadCorners = quad.data();
-        world->ProjectDecal(down, above, 0.0f, &quadCorners, &positions_, &texCoords_, &indices_, static_cast<unsigned char>(1), static_cast<unsigned char>(1));
+        world->ProjectDecal(down, above, 0.0f, corners, &positions_, &texCoords_, &indices_, static_cast<unsigned char>(1), static_cast<unsigned char>(1));
 
         // The texture coordinates turned about the tile's centre, then into the tile. The loop is
         // unrolled four times: the fourth vertex stores its u part to a float before scaling

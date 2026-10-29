@@ -5,7 +5,7 @@
 #include <vector>
 
 class CStream;
-class Terrain;
+namespace terrain { class Terrain; }
 
 // A gradual change of one water level (script SetWaterLevel(index, level, time)): `value` moves
 // by `step` per world update for `steps` updates.
@@ -29,7 +29,7 @@ struct WaterTweens : std::vector<TweenEntry> {
     // The count, then the entries (identical copies).
     void Save(CStream* stream) const;
     // Reads the array and applies each entry's value to `terrain`.
-    void Load(CStream* stream, Terrain* terrain);
+    void Load(CStream* stream, terrain::Terrain* terrain);
     // Reads the array only (the resize of another array instantiation).
     void LoadEntries(CStream* stream);
     // The read part of both loads: the count (the game reads it into a slot that still holds

@@ -225,7 +225,7 @@ constexpr int kCave = 1;
 
 // A sector grid sized for the terrain, in cells of 16: emptied to one cell first, the new size
 // stored, then allocated.
-void FitGrid(SectorGrid& grid, const Terrain* terrain) {
+void FitGrid(SectorGrid& grid, const terrain::Terrain* terrain) {
     const std::uint32_t height = static_cast<std::uint32_t>(x87::fistp(terrain->height));
     const std::uint32_t width = static_cast<std::uint32_t>(x87::fistp(terrain->width));
     grid.Resize(1, 1);
@@ -785,7 +785,7 @@ void CWorldClient::Create() {
 
     texts_ = new CTextManager();
     texts_->AddRef();
-    terrain_ = new Terrain();
+    terrain_ = new terrain::Terrain();
     terrain_->AddRef();
     zoneName_ = worlddata::GipathText();
 
@@ -989,7 +989,7 @@ int CWorldClient::LoadZone(CStream* block) {
     ClientParticleManager()->ReleaseUnheld();
     session_->sessionKind_ = 0;
     ShowLoadingMovie(kProgressZoneCleared);
-    Terrain* terrain = terrain_;
+    terrain::Terrain* terrain = terrain_;
     if (static_cast<int>(map.size()) > 1 && map[1] != ':') {
         modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
         map = MapsFolder() + map;
@@ -1011,9 +1011,9 @@ int CWorldClient::LoadZone(CStream* block) {
 
     FitGrid(objectGrid_, terrain);
     FitGrid(secondGrid_, terrain);
-    if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~LandscapeFlag::Waves;
-    if (cave == kCave) terrain->landscapeFlags |= LandscapeFlag::Waves;
-    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~LandscapeFlag::SunShadows;
+    if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~terrain::LandscapeFlag::Waves;
+    if (cave == kCave) terrain->landscapeFlags |= terrain::LandscapeFlag::Waves;
+    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~terrain::LandscapeFlag::SunShadows;
     terrain->SetLightInterval(worlddata::LightingFrequencyOption() / kFrameMilliseconds);
     if (skyDome_) {
         Ref<CTexture>& sky = skyDome_->texture;

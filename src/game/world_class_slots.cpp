@@ -43,8 +43,8 @@ ClassId CParticleManager::GetClassId() { return ClassId::ParticleManager; }
 const char* CTextManager::ClassName() { return kTextManagerName; }
 ClassId CTextManager::GetClassId() { return ClassId::TextManager; }
 
-const char* Terrain::ClassName() { return kTerrainName; }
-ClassId Terrain::GetClassId() { return ClassId::Terrain; }
+const char* terrain::Terrain::ClassName() { return kTerrainName; }
+ClassId terrain::Terrain::GetClassId() { return ClassId::Terrain; }
 
 const char* CLightningManager::ClassName() { return kLightningManagerName; }
 ClassId CLightningManager::GetClassId() { return ClassId::LightningManager; }
