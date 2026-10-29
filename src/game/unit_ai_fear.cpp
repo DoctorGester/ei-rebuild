@@ -92,7 +92,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     double way = DistanceZXY(dest, me);
     float wayRounded = static_cast<float>(way);
     float range = static_cast<float>(way * kThree + kRangeBase);
-    if (!g_serverWorld->aiMap_.FindPath(self, &dest, &path, range, kMinDistance)) return false;
+    if (!g_serverWorld.aiMap_.FindPath(self, &dest, &path, range, kMinDistance)) return false;
     double scale = 0.5;
     double limit = 1.0f / scale * wayRounded * kSmoothingScale;
     EI_NAN_AUDIT(limit);
@@ -159,11 +159,11 @@ int FearMode::Evaluate(AIBrain* brain) {
     if (brain->memory.seesEnemy) return kSeesEnemy;
     const Vector3* here = &self->localPosition_;
     EI_NAN_AUDIT(PrototypeSize(self));
-    if (g_serverWorld->aiMap_.HasSpellAreaAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < 0.5f)) {
+    if (g_serverWorld.aiMap_.HasSpellAreaAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < 0.5f)) {
         shelter = *here;
         return kShelter;
     }
-    if (!IsUnset(shelter) && g_serverWorld->aiMap_.HasSpellAreaAt(&shelter)) return kShelter;
+    if (!IsUnset(shelter) && g_serverWorld.aiMap_.HasSpellAreaAt(&shelter)) return kShelter;
 
     if (flag) {
         // The nearest player unit in sight (2D).
@@ -213,9 +213,9 @@ void FearMode::Execute(AIBrain* brain) {
             from = enemy->localPosition_;
             brain->CallAllies(&enemy->localPosition_);
         }
-    } else if (g_serverWorld->aiMap_.HasSpellAreaAt(here)) {
+    } else if (g_serverWorld.aiMap_.HasSpellAreaAt(here)) {
         from = *here;
-    } else if (!IsUnset(shelter) && g_serverWorld->aiMap_.HasSpellAreaAt(&shelter)) {
+    } else if (!IsUnset(shelter) && g_serverWorld.aiMap_.HasSpellAreaAt(&shelter)) {
         from = shelter;
     } else if (!flag || brain->memory.noticedLevel <= kKeepLevel) {
         brain->memory.noticedLevel = 0;
@@ -260,7 +260,7 @@ void FearMode::Execute(AIBrain* brain) {
         AIPath path;
         double way = DistanceZYX(dest, *here);
         float range = static_cast<float>(way * kThree + kRangeBase);
-        if (g_serverWorld->aiMap_.FindPath(brain->owner->unit, &dest, &path, range, kMinDistance)) {
+        if (g_serverWorld.aiMap_.FindPath(brain->owner->unit, &dest, &path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(&dest, 0, 0, kMoveTime);
         }

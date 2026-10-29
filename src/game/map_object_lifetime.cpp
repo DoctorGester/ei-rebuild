@@ -167,13 +167,13 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
         light->flags_ &= ~LightFlag::Held;
         if (CLight* shown = light; shown && !(shown->flags_ & LightFlag::Hidden) && !(shown->flags_ & LightFlag::Held)) {
             shown->flags_ |= LightFlag::Hidden;
-            g_clientWorld->terrain_->RemoveLight(light);
+            g_clientWorld.terrain_->RemoveLight(light);
             if (CUnit* unit = Unit()) {
                 if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(0);
             }
         }
         int id = light->id_;
-        g_clientWorld->lightFactory_->litIds_.remove(id);
+        g_clientWorld.lightFactory_->litIds_.remove(id);
         light.Reset();
     }
     owner = nullptr;

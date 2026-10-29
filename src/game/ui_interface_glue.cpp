@@ -32,11 +32,11 @@ constexpr char* kNoExtra = nullptr;
 } // namespace
 
 int CInterface3D::PlaySound(std::string_view name, bool loop) {
-    return g_clientWorld->sounds_->Play2D(name, kInterfacePriority, kFullVolume, 0, loop, 0, 0, 0);
+    return g_clientWorld.sounds_->Play2D(name, kInterfacePriority, kFullVolume, 0, loop, 0, 0, 0);
 }
 
 void CInterface3D::StopSound(int handle) {
-    if (handle != kNoSound) g_clientWorld->sounds_->StopSound(handle);
+    if (handle != kNoSound) g_clientWorld.sounds_->StopSound(handle);
 }
 
 void CInterface3D::ConsoleAddText(std::string_view text) {

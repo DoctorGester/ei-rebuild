@@ -155,7 +155,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (!part || !(unit->flags_ & MapObjectFlag::FiguresLoaded)) return;
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood >= 1 && blood <= 8) {
-        auto* source = g_clientWorld->particleManager_->CreateSource(kBloodParticles[blood - 1]);
+        auto* source = g_clientWorld.particleManager_->CreateSource(kBloodParticles[blood - 1]);
         source->localPosition_ = {0.0f, 0.0f, kBloodHeight};
         source->ScaleSize(part->box_.bounds.radius * kBloodScale);
         source->typeParam = kBloodRate;
@@ -180,11 +180,11 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     offset = libcrt::RandBelow(x87::fistp(spread));
     at.y = static_cast<float>(offset * kSpreadStep - reach + at.y);
     std::uint32_t variant = DecalVariant();
-    g_clientWorld->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
+    g_clientWorld.AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
 
 void CUnitClientSpecific::Wound() {
-    auto* source = g_clientWorld->particleManager_->CreateSource(kSparks);
+    auto* source = g_clientWorld.particleManager_->CreateSource(kSparks);
     source->localPosition_ = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->bounds.radius);
     source->alpha = kSparkAlpha;
@@ -213,7 +213,7 @@ void CUnitClientSpecific::Died() {
         at.z = unit->localPosition_.z;
     }
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
-    g_clientWorld->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
+    g_clientWorld.AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
 }
 
 void CUnitClientSpecific::PlayerChanged(void* player) {

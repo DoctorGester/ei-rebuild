@@ -44,7 +44,7 @@ LRESULT OnActivate(WPARAM wParam) {
         g_active = 0;
         return 1;
     }
-    auto* sounds = g_clientWorld->sounds_;
+    auto* sounds = g_clientWorld.sounds_;
     unsigned state = wParam & 0xFFFF;
     if (state == 0) {   // WA_INACTIVE
         g_active = 0;
@@ -248,14 +248,14 @@ int StartFirstMap() {
         MenuOpen(&g_gameFlow);
         return 1;
     }
-    CWorldServer* world = &g_serverWorld.Get();
+    CWorldServer* world = &g_serverWorld;
     if (!world->NewZone(map, cmdMode, std::nullopt))
         return game::FatalError("Can't load map \"%s\".\n", map);
     world->SetGameResult(1);
-    CWorldClient* client = &g_clientWorld.Get();
-    client->SetPlayer(g_serverWorld->worldHandle_.Get());
+    CWorldClient* client = &g_clientWorld;
+    client->SetPlayer(g_serverWorld.worldHandle_.Get());
     client->LocalView()->sendParty_ = 0;
-    g_serverWorld->sessionKind_ = 7;
+    g_serverWorld.sessionKind_ = 7;
     if (cmdScript.size() == 0) return 1;
     CScript* script = TheMissionScript();
     BOOL loaded;

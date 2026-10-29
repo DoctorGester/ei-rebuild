@@ -196,13 +196,11 @@ address,size,name,file
 007AF2D0,12,kDefaultColour,src/game/torch_spec.cpp
 007AF330,4,kFullTurn,src/game/unit_client_path.cpp
 007AF40C,4,g_squaredCallRadius,src/game/combat_actions.cpp
-007AF5B8,2020,g_clientWorld,src/game/world_construct.cpp
 007AFDB0,12,kOrigin,src/game/world_data.h
 007AFECC,4,g_guardKey,src/game/world_guard.cpp
 007AFED0,4,g_serverStamp,src/game/world_game.cpp
 007AFED4,4,g_appliedStamp,src/game/world_game.cpp
 007AFED8,4,kFacingOffset,src/game/world_party.cpp
-007AFF60,77436,g_serverWorld,src/game/world_construct.cpp
 007C2DE0,16,kNewUnitRotation,src/game/world.h
 007C2DFC,4,g_weatherDelay,src/game/world_weather.cpp
 007C2F8C,4,g_dampScale,src/game/ai_refresh.cpp

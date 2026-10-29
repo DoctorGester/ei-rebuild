@@ -36,7 +36,7 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-bool GamePaused() { return g_clientWorld->paused_ != 0; }
+bool GamePaused() { return g_clientWorld.paused_ != 0; }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;

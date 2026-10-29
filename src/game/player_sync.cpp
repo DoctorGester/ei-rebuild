@@ -300,7 +300,7 @@ int CPlayerServer::SendPartyState() {
     // The objects shared with the hero of a multiplayer client that plays one.
     ScriptGroup shared;
     if (IsMultiplayerClient() && std::ssize(player->Party()->members_) == 1)
-        g_serverWorld->CollectSharedObjects(static_cast<int>(player->Party()->members_[0].unitId), &shared);
+        g_serverWorld.CollectSharedObjects(static_cast<int>(player->Party()->members_[0].unitId), &shared);
     WriteDword(&out_, static_cast<std::uint32_t>(shared.size()));
     for (const ScriptObjectRef& member : shared) WriteDword(&out_, static_cast<std::uint32_t>(member.AsUnit()->id_));
     return 1;

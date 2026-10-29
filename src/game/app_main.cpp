@@ -144,7 +144,7 @@ void ReadCommandLine(const char* commandLine) {
     g_commandLineScript.clear();
     g_commandLineMob.clear();
     g_commandLineMap.clear();
-    CWorldClient* client = &g_clientWorld.Get();
+    CWorldClient* client = &g_clientWorld;
     GameOptions* options = &options::g_options.Get();
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
@@ -316,27 +316,27 @@ std::uintptr_t OpenSound() {
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
     std::string discFolder = g_discFolder;
-    g_clientWorld->sounds_->Open(g_mainWindow, 1, -1, 44100);
+    g_clientWorld.sounds_->Open(g_mainWindow, 1, -1, 44100);
     {
         std::string registry = textFolder + "streamsn.reg";
         std::string folder = dataFolder + "stream\\";
-        g_clientWorld->sounds_->SetPath(folder, registry);
+        g_clientWorld.sounds_->SetPath(folder, registry);
     }
     {
         std::string effects = textFolder + "sfx.res";
-        CSoundManager* sound = g_clientWorld->sounds_;
+        CSoundManager* sound = g_clientWorld.sounds_;
         sound->ClearWaveSources();
         sound->AddWaveSource(effects);
     }
     {
         std::string unused = discFolder + "res\\speech.res";   // "res\speech.res" (built twice)
         std::string speech = discFolder + "res\\speech.res";
-        g_clientWorld->sounds_->AddWaveSource(speech);
+        g_clientWorld.sounds_->AddWaveSource(speech);
     }
-    g_clientWorld->sounds_->SetEffectsVolume(options->audioSfx_);
-    g_clientWorld->sounds_->SetSpeechVolume(options->audioSpeech_);
-    g_clientWorld->sounds_->SetMusicVolume(options->audioStreaming_);
-    g_clientWorld->sounds_->panDirect = options->reverseStereo_ != 0;
+    g_clientWorld.sounds_->SetEffectsVolume(options->audioSfx_);
+    g_clientWorld.sounds_->SetSpeechVolume(options->audioSpeech_);
+    g_clientWorld.sounds_->SetMusicVolume(options->audioStreaming_);
+    g_clientWorld.sounds_->panDirect = options->reverseStereo_ != 0;
     return reinterpret_cast<std::uintptr_t>(discFolder.c_str());
 }
 
@@ -441,12 +441,12 @@ bool RunWorlds() {
         bool settled = true;
         if (g_serverBacklog >= TickLength()) {
             settled = false;
-            if (!ServerUpdate()(&g_serverWorld.Get(), nullptr)) return false;
+            if (!ServerUpdate()(&g_serverWorld, nullptr)) return false;
             g_serverBacklog -= TickLength();
             net::Pump();
         }
-        if (g_clientBacklog >= TickLength() && (g_clientWorld->PumpHasIncoming() || !g_clientWorld->IsLocalViewMode2())) {
-            if (!ClientSegment()(&g_clientWorld.Get(), nullptr)) return false;
+        if (g_clientBacklog >= TickLength() && (g_clientWorld.PumpHasIncoming() || !g_clientWorld.IsLocalViewMode2())) {
+            if (!ClientSegment()(&g_clientWorld, nullptr)) return false;
             const std::uint32_t tick = TickLength();
             g_clientBacklog -= tick;
             g_clientTicksMs += tick;
@@ -494,7 +494,7 @@ bool RunPass() {
         return false;
     }
     GuardPlayerData(1);
-    CWorldClient* client = &g_clientWorld.Get();
+    CWorldClient* client = &g_clientWorld;
     if (client->IsLocalPlayerIdle()) {
         if (IsMultiplayerClient()) g_gameFlow.RecreateClientSession();
         else g_gameFlow.CloseSessions();
@@ -574,6 +574,15 @@ int RunMainLoop(bool interfaceInput) {
 
 // ---- Shutdown --------------------------------------------------------------------------------------
 
+// Both worlds emptied (their players disconnected, their sessions and managers released): ShutDown's last step,
+// and an exit function GameMain registers, so that an exit that skips ShutDown (a fatal error's) still empties
+// them before the game's exit functions release the network sessions, the camera and the renderer (the original's
+// world exit functions ran first). The worlds' own destructors run after those.
+void EmptyWorlds() {
+    g_serverWorld.Destroy();
+    g_clientWorld.Destroy();
+}
+
 void ShutDown() {
     ForgetComposedTextures();
     g_interface.Shutdown();
@@ -584,9 +593,8 @@ void ShutDown() {
     g_sceneRenderer->SetGamma(0.0f, 0.0f, 0.0f);
     g_sceneRenderer->DestroyRenderer();
     options::g_options->SaveToRegistry(g_registryRoot.c_str());
-    g_clientWorld->SetCamera(nullptr);
-    g_serverWorld->Destroy();
-    g_clientWorld->Destroy();
+    g_clientWorld.SetCamera(nullptr);
+    EmptyWorlds();
 }
 
 } // namespace
@@ -628,13 +636,14 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
         g_logicSettings.Load(settings);
     }
     options->LoadFromRegistry(g_registryRoot.c_str());
-    g_clientWorld->Create();
-    g_serverWorld->Create();
+    std::atexit(EmptyWorlds);
+    g_clientWorld.Create();
+    g_serverWorld.Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
     g_camera->Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance_),
                    std::bit_cast<std::uint32_t>(options->farClipDistance_),
                    std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 * 0.2857142857142857)));
-    g_clientWorld->SetCamera(&g_camera.Get());
+    g_clientWorld.SetCamera(&g_camera.Get());
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();
 
@@ -662,7 +671,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     CloseLoadingMovie();
     LoadDatabases();
     g_mouse->Setup(g_mainWindow, instance);
-    g_clientWorld->SetUpGraphics(g_sceneRenderer->device_);
+    g_clientWorld.SetUpGraphics(g_sceneRenderer->device_);
     SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0);
     g_interface.Create(g_sceneRenderer->device_);
     g_mapDatabase.LoadAll();

@@ -295,7 +295,7 @@ void FollowMode::OnObjectDeleted(CEngineObject* object) {
     if (leader == object && leader) leader.Reset();
 }
 
-void FollowMode::Load(CStream* stream) { LoadRef(leader, stream, &g_serverWorld.Get()); }
+void FollowMode::Load(CStream* stream) { LoadRef(leader, stream, &g_serverWorld); }
 
 void FollowMode::Save(CStream* stream) { SaveRef(leader, stream); }
 
@@ -305,7 +305,7 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
     if (CEngineObject* seen = brain->seen) {
         bool allied = false;
         if (CUnit* seenUnit = UnitOrNull(seen)) {
-            allied = g_serverWorld->diplomacy_.IsAllied(brain->owner->unit->side, seenUnit->side);
+            allied = g_serverWorld.diplomacy_.IsAllied(brain->owner->unit->side, seenUnit->side);
         }
         if (!allied) {
             Vector3 where;
@@ -395,7 +395,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
             if (CMapObject* seen = brain->seen) {
                 bool allied = false;
                 if (CUnit* seenUnit = UnitOrNull(seen)) {
-                    allied = g_serverWorld->diplomacy_.IsAllied(brain->owner->unit->side, seenUnit->side);
+                    allied = g_serverWorld.diplomacy_.IsAllied(brain->owner->unit->side, seenUnit->side);
                 }
                 if (!allied && seen != brain->owner->unit && !brain->memory.reports.Contains(seen))
                     enemy.Assign(seen);
@@ -481,7 +481,7 @@ void AggressionMode::Leave(AIBrain* brain) {
 }
 
 void AggressionMode::Load(CStream* stream) {
-    LoadRef(enemy, stream, &g_serverWorld.Get());
+    LoadRef(enemy, stream, &g_serverWorld);
     stream->ReadValue(fixed);
 }
 
@@ -707,8 +707,8 @@ void PlayerMode::OnObjectDeleted(CEngineObject* object) {
 
 void PlayerMode::Load(CStream* stream) {
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
-    LoadRef(target, stream, &g_serverWorld.Get());
-    LoadRef(leader, stream, &g_serverWorld.Get());
+    LoadRef(target, stream, &g_serverWorld);
+    LoadRef(leader, stream, &g_serverWorld);
     stream->ReadValue(point);
     stream->ReadValue(state);
     if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {

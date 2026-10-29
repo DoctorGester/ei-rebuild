@@ -904,9 +904,9 @@ constexpr float kDustAxisY[4] = /*0078AAC8*/ {0.707f, -0.707f, 0.707f, -0.707f};
 
 // The unit's point `index`, and the ground's and the platforms' surface heights there (left unrounded).
 Vector3* UnitPoint(CObject3D* unit, Vector3* out, int index) { return Carrier(unit)->PositionAt(out, index); }
-double TerrainHeight(float x, float y) { return g_clientWorld->RawSurfaceHeightAt(x, y); }
+double TerrainHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
 double PlatformHeight(const Vector3* at, float ground) {
-    return g_clientWorld->platforms_.SurfaceHeight(at, ground);
+    return g_clientWorld.platforms_.SurfaceHeight(at, ground);
 }
 
 bool Same(float a, float b) {
@@ -4038,7 +4038,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     if (!unit) return 0;
     if (static_cast<double>(index) > D(typeParam)) return 0;
     Vector3 scratch;
-    Vector3 point = *UnitPoint(unit, &scratch, index + g_clientWorld->tick_);
+    Vector3 point = *UnitPoint(unit, &scratch, index + g_clientWorld.tick_);
     float* mark = &elements[0].glow.mark.x;
     if (Same(mark[0], point.x) && Same(mark[1], point.y) && Same(mark[2], point.z)) return 0;
     elements[0].glow.mark = point;

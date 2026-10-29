@@ -159,7 +159,7 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     }
     std::string header;
     std::vector<std::string> words;
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     texts->Open(kMapText);
     header = str::Format(kQuestHeader, std::string(name));
     if (texts->FindLine(header)) {

@@ -46,7 +46,7 @@ CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0]
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
     std::string text;
-    g_clientWorld->texts_->CTextManager::GetString("reserved_04", &text);
+    g_clientWorld.texts_->CTextManager::GetString("reserved_04", &text);
     g_interface.ShowStatusText(text);
     ui->PlaySound(game::CancelSoundText());
     g_gameFlow.EndSession();

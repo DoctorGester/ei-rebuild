@@ -24,7 +24,7 @@ template <typename F> void ForEachPlayer(CPlayerManager* manager, F f) {
 // the player gets the highest number of the server world's other players + 1 (signed), or `id` when
 // there is no player list, no other player or none numbered 0 or more. Written straight into +0x24.
 int NextPlayerNumber(CPlayer* self, int id) {
-    CPlayerManager* players = g_serverWorld->PlayerList();
+    CPlayerManager* players = g_serverWorld.PlayerList();
     if (!players) return id;
     int highest = -1;
     ForEachPlayer(players, [&](CPlayer* other) {

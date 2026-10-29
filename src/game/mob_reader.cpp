@@ -85,7 +85,7 @@ void ReadWeather(Chunk* parent) {
     chunk.ReadFloat();
     chunk.ReadHeader();
     chunk.ReadFloat();
-    CWorldServer* server = &g_serverWorld.Get();
+    CWorldServer* server = &g_serverWorld;
     server->CWorldServer::SetTime(time);
     float limit = options::g_options->defaultWindForce_;
     server->ChangeWind(&direction, limit >= strength ? strength : limit);
@@ -142,7 +142,7 @@ bool MobFile::Load(int keepIds) {
     std::string scripts;
 
     if (ReadChunks(&records, diplomacy, &scripts)) {
-        CDiplomacy* table = &g_serverWorld->diplomacy_;
+        CDiplomacy* table = &g_serverWorld.diplomacy_;
         for (int i = 0; i < 32; ++i)
             for (int j = 0; j < 32; ++j) table->SetRelation(i, j, diplomacy->relations[i][j], 1);
     }
@@ -160,7 +160,7 @@ bool MobFile::Load(int keepIds) {
             for (int c = 0; c < 32; ++c)
                 record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
-        g_serverWorld->CreateObject(spec);
+        g_serverWorld.CreateObject(spec);
         auto* object = static_cast<ObjectSpec*>(spec);
         bool skip = spec->id == 2 && str::Compare(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {

@@ -513,7 +513,7 @@ void CCampPages::UpdateAction() {
 
     std::string text;
     std::string line;
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     CUiSurface* draw = surfaces_[0];
     draw->Clear();
     if (action.size() != 0) {
@@ -992,7 +992,7 @@ void CCampPages::PreviousHero() {
 
 void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
-    CTextManager* table = g_clientWorld->texts_;
+    CTextManager* table = g_clientWorld.texts_;
     std::string name;
     std::string own = unit->GetName();
     if (own.size() == 0) {

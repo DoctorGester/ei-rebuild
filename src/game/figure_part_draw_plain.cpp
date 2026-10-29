@@ -27,7 +27,7 @@ void AddOffset(const float* offset, float* target) { *target = *offset + *target
 
 // The world time: whole ticks plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
-    const CWorldClient* world = &g_clientWorld.Get();
+    const CWorldClient* world = &g_clientWorld;
     *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 

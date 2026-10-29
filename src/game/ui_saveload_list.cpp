@@ -119,7 +119,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const int hour = minuteOfDay / 60;
     const int minute = minuteOfDay - hour * 60;
     std::string dayText;
-    g_clientWorld->texts_->GetString(kDayText, &dayText);
+    g_clientWorld.texts_->GetString(kDayText, &dayText);
     line = str::Format(kGameTimeFormat, dayText, day + 1, hour, minute);
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
 

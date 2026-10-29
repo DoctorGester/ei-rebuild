@@ -23,7 +23,7 @@ constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
 bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, bool quick) {
     CUnit* target = unit;
     if (spell->IsOffensive()) {
-        target = g_clientWorld->NearestVisibleUnit(unit);
+        target = g_clientWorld.NearestVisibleUnit(unit);
         if (!target) {
             ui->PlaySound(kSoundNoMagic);
             screen->SetPendingAction(kPendingNone, -1, -1);

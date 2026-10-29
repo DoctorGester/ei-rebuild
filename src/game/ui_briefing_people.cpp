@@ -64,13 +64,13 @@ Vector3 Normalised(const Vector3& v) {
 
 void CBriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector3& direction, bool waited,
                                  bool immediate, bool run) {
-    auto* serverUnit = g_serverWorld->FindUnit(unit->id_);
+    auto* serverUnit = g_serverWorld.FindUnit(unit->id_);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     if (!controller) return;
     Vector3 target{place.x, place.y, serverUnit->localPosition_.z};
     if (immediate) {
-        g_serverWorld->aiMap_.sectorMap.Move(serverUnit, &target);
+        g_serverWorld.aiMap_.sectorMap.Move(serverUnit, &target);
         Vector3 facing = Normalised(direction);
         serverUnit->SetHeading(&facing.x);
         unit->SetHeading(&facing.x);
@@ -89,9 +89,9 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
         auto entry = std::find_if(speakers_.begin(), speakers_.end(), [unit](const BriefingSpeaker& s) { return s.unit == unit; });
         if (entry != speakers_.end()) speakers_.erase(entry);
         speakers_.push_back(BriefingSpeaker{unit, std::string(name)});
-        auto* player = g_serverWorld->GetPlayer(0);
+        auto* player = g_serverWorld.GetPlayer(0);
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
-        if (auto* serverUnit = g_serverWorld->FindUnit(unit->id_)) {
+        if (auto* serverUnit = g_serverWorld.FindUnit(unit->id_)) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->ShowHelmet(false);
             serverUnit->ServerController()->actionDone = SpeakerAnimationDone;
         }

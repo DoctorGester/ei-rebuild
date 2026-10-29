@@ -1068,13 +1068,13 @@ int CWorldClient::LoadZone(CStream* block) {
     }
 
     // The local server's pending messages follow this block in the view's stream.
-    LocalView()->AppendReceived(&g_serverWorld->zoneHeader_);
+    LocalView()->AppendReceived(&g_serverWorld.zoneHeader_);
     ticksRun_ = 0;
     BuildUnitSkins(&looks.figured, &looks.dressed);
     // A wind option other than 0 sets the waves.
     const float wind = worlddata::DefaultWindForceOption();
     EI_NAN_AUDIT(wind);
-    if (wind != 0.0f) g_clientWorld->terrain_->SetWaveStrength(wind);
+    if (wind != 0.0f) g_clientWorld.terrain_->SetWaveStrength(wind);
     ShowLoadingMovie(kProgressZoneReady);
     LocalView()->SendResume();
     CloseLoadingMovie();

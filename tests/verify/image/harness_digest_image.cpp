@@ -29,7 +29,7 @@ namespace ei::verify::digest::image_side {
 
 namespace {
 
-CWorldClient* ClientWorld() { return &g_clientWorld.Get(); }
+CWorldClient* ClientWorld() { return &g_clientWorld; }
 
 // The generators: ours (named globals, C18l).
 void ReadRandom(Builder& b) {

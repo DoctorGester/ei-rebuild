@@ -79,7 +79,7 @@ bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
 } // namespace
 
 void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     UnitParams* params = &unit->params;
     std::string suffix;
     Panel panel;
@@ -107,7 +107,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
     panel.text = str::Format(kSpeedLine, panel.labels[2], speed, suffix);
     panel.DrawLine();
 
-    float dayTime = static_cast<float>(g_clientWorld->NightLevel());
+    float dayTime = static_cast<float>(g_clientWorld.NightLevel());
     int vision = x87::fistp(static_cast<float>(params->VisionRange(dayTime)));
     panel.text = str::Format(kValueUnit, panel.labels[6], vision, panel.labels[13]);
     panel.DrawLine();

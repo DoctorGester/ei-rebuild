@@ -13,7 +13,7 @@
 namespace {
 
 // The server world's object by id.
-CEngineObject* FindObject(int id) { return g_serverWorld->FindObject(static_cast<unsigned>(id)); }
+CEngineObject* FindObject(int id) { return g_serverWorld.FindObject(static_cast<unsigned>(id)); }
 
 
 // The members' order (the game's qsort by object address, unsigned; ours ScriptGroup::After, by id). The live

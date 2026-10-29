@@ -207,7 +207,7 @@ bool CPlayerClient::Pump() {
     case kStateLoggedIn:
         return true;
     case kStateSendingCamera: {
-        const Vector3* anchor = CameraAnchor(g_clientWorld->camera_);
+        const Vector3* anchor = CameraAnchor(g_clientWorld.camera_);
         float point[2] = {anchor->x, anchor->y};
         WriteByte(&out_, kRequestCamera);
         out_.Write(point, sizeof(point));
@@ -277,7 +277,7 @@ int CPlayerClient::OnSetVariable() {
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
         g_interface.OnQuestVariable(name, std::bit_cast<float>(value));
-        g_clientWorld->OnQuestVariable(name, std::bit_cast<float>(value));
+        g_clientWorld.OnQuestVariable(name, std::bit_cast<float>(value));
     }
     return 1;
 }
@@ -288,7 +288,7 @@ int CPlayerClient::OnDeleteVariable() {
     player_->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
         g_interface.OnQuestVariable(name, 0.0f);
-        g_clientWorld->OnQuestVariable(name, 0.0f);
+        g_clientWorld.OnQuestVariable(name, 0.0f);
     }
     return 1;
 }
@@ -305,7 +305,7 @@ int CPlayerClient::OnZoneChange() {
 int CPlayerClient::OnJingle() {
     std::string name;
     in_.ReadString(&name);
-    g_clientWorld->music_->PlayJingle(name);
+    g_clientWorld.music_->PlayJingle(name);
     return 1;
 }
 
@@ -313,21 +313,21 @@ int CPlayerClient::OnZone() {
     CMemoryStream block;
     if (in_.ReadStream(&block) == 0) return 0;
     player_->Clear();
-    g_clientWorld->LoadZone(&block);
+    g_clientWorld.LoadZone(&block);
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock3() {
     CMemoryStream block;
     if (in_.ReadStream(&block) == 0) return 0;
-    g_clientWorld->LoadItemsAndSpells(&block);
+    g_clientWorld.LoadItemsAndSpells(&block);
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock5() {
     CMemoryStream block;
     if (in_.ReadStream(&block) == 0) return 0;
-    g_clientWorld->LoadNewItemsAndSpells(&block);
+    g_clientWorld.LoadNewItemsAndSpells(&block);
     return 1;
 }
 
@@ -351,7 +351,7 @@ int CPlayerClient::OnExperienceAll() {
     CPlayer::UnitMap& units = player_->units_;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
-        g_clientWorld->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
+        g_clientWorld.ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
 }
@@ -361,8 +361,8 @@ int CPlayerClient::OnExperience() {
     float amount;
     in_.ReadValue(id);
     in_.ReadValue(amount);
-    auto* unit = g_clientWorld->FindUnit(id);
-    if (unit != nullptr) g_clientWorld->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
+    auto* unit = g_clientWorld.FindUnit(id);
+    if (unit != nullptr) g_clientWorld.ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
 
@@ -384,7 +384,7 @@ int CPlayerClient::OnItemsReceived() {
             result = 0;
             break;
         }
-        auto* manager = g_clientWorld->itemManager_;
+        auto* manager = g_clientWorld.itemManager_;
         if (CItem* item = FindItem(manager, static_cast<unsigned>(id))) items.push_front(item);
     }
     if (result != 0) {
@@ -417,7 +417,7 @@ int CPlayerClient::OnParty() {
             // A multiplayer client keeps its variables.
             party->variables_ = saved;
         }
-        g_clientWorld->ApplyObjectVariables();
+        g_clientWorld.ApplyObjectVariables();
         console::EndLine(console::g_netLogOut << TextPartyReceived());
         g_gameFlow.ReturnLocalParty();
     }
@@ -447,7 +447,7 @@ int CPlayerClient::OnPathMarker() {
     float value;
     in_.ReadValue(value);
     if (kind != kKindNoPath) {
-        auto* walker = g_clientWorld->objectManager_->CreateObjectAs<CUnit>(MapObjectType::Hero, -1);
+        auto* walker = g_clientWorld.objectManager_->CreateObjectAs<CUnit>(MapObjectType::Hero, -1);
         walker->AddRef();
         PathOrder* path = &walker->ClientController()->motion;
         DeltaField* writing = field.BeginWriteB(0);
@@ -458,7 +458,7 @@ int CPlayerClient::OnPathMarker() {
         reading->EndField();
         if (MarkersShown()) {
             walker->SetMotionSpeeds(kMarkerSpeedA, std::bit_cast<float>(kMarkerSpeedB));
-            auto* source = g_clientWorld->particleManager_->CreateSource(kPathParticles);
+            auto* source = g_clientWorld.particleManager_->CreateSource(kPathParticles);
             pathSource = source;
             source->Attach(walker);
             source->typeParam = value;
@@ -471,7 +471,7 @@ int CPlayerClient::OnPathMarker() {
         walker->Release();
     }
     if (MarkersShown()) {
-        auto* marker = g_clientWorld->particleManager_->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
+        auto* marker = g_clientWorld.particleManager_->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->localPosition_ = at;
         CEngineObject* owner = player_;
         CUnit* unit = owner->WorldContext()->FindUnit(unitId);
@@ -573,7 +573,7 @@ int CPlayerClient::OnNewObject() {
     }
     if (Same(model, TextWisp())) {
         auto* source =
-            g_clientWorld->particleManager_->CreateSource(kWispParticles);
+            g_clientWorld.particleManager_->CreateSource(kWispParticles);
         source->Attach(object);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;
@@ -608,9 +608,9 @@ int CPlayerClient::OnNewObject() {
         object->TakePrototype(model);
     object->WriteFullState();
     if (object->ReadState(0, &in_) == 0) return 0;
-    g_clientWorld->AddObject(object);
+    g_clientWorld.AddObject(object);
     if (object->name2[0] != 0) {
-        const std::string variable = g_clientWorld->ObjectVariableName(object->name2);
+        const std::string variable = g_clientWorld.ObjectVariableName(object->name2);
         object->SetVisibilityLevel(player->Party()->variables_.Get(variable));
     }
     if (player->sessionKind_ == kSessionClient) {
@@ -692,7 +692,7 @@ int CPlayerClient::OnPartyState() {
         if (unit == nullptr) continue;
         unit->flags_ |= MapObjectFlag::InParty;
         if (!g_partyIdSet.contains(id) && player->sessionKind_ == kSessionKindSingle && unit->player == nullptr &&
-            g_clientWorld->ticksRun_ >= 1)
+            g_clientWorld.ticksRun_ >= 1)
             unit->Controller()->RestartFadeIn();
     }
     g_partyIdSet.clear();

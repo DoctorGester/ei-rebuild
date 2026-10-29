@@ -121,7 +121,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         float range = static_cast<float>(self->ScaledValue(distance));
         float targetRadius = static_cast<float>(target->Radius());
         float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
-        CWorldServer* server = &g_serverWorld.Get();
+        CWorldServer* server = &g_serverWorld;
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap_.sectorMap.Remove(target);
         if (server->aiMap_.FindPath(self, &target->localPosition_, &path, range, minDistance)) {
@@ -168,7 +168,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
         double dy = static_cast<double>(at.y) - other->localPosition_.y;
         double dx = static_cast<double>(at.x) - other->localPosition_.x;
         EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
-        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld->diplomacy_.IsAllied(other->side, self->side)) {
+        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy_.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (PrototypeSize(other) < 0.5f) return false;
         }
@@ -304,7 +304,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candi
         allies.push_back(self);
         for (auto& node : brain->memory.nearby) {
             CUnit* other = node;
-            if (other->IsDead() == 0 && !brain->memory.reports.Contains(other) && g_serverWorld->diplomacy_.IsAllied(self->side, other->side))
+            if (other->IsDead() == 0 && !brain->memory.reports.Contains(other) && g_serverWorld.diplomacy_.IsAllied(self->side, other->side))
                 allies.push_back(other);
         }
         for (auto& node : allies) {

@@ -1,7 +1,6 @@
-// The two worlds (g_serverWorld, g_clientWorld) and their constructors: CWorldServer and CWorldClient. Only
-// their static initialisers (defined here on the names) call them. The members with C++ constructors (the
-// strings, the zone header) are the compiler's; the others' constructors are written out in the original's
-// order (the ones written out in the constructors) or called (the out-of-line ones).
+// The two worlds (g_serverWorld, g_clientWorld) and their constructors: CWorldServer and CWorldClient. The
+// members with C++ constructors (the strings, the zone header) are the compiler's; the others' constructors are
+// written out in the original's order (the ones written out in the constructors) or called (the out-of-line ones).
 #include "world.h"
 
 #include "ai_map.h"
@@ -14,16 +13,11 @@
 #include "spell.h"         // CSpellEffect: the missiles
 #include "texture.h"       // CTexture: the fog texture (ClientArrayManager)
 
-#include "lib/static_object.h"
-
-#include <cstdlib>
 #include <initializer_list>
 #include <new>
 
 namespace {
 
-// The lists' block size (10).
-constexpr int kListBlockSize = 10;
 // The client's flags after construction: every draw but the shadows (Create decides them).
 constexpr WorldClientFlag kClientFlags = WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits | WorldClientFlag::DrawTerrain |
                                          WorldClientFlag::DrawEffects | WorldClientFlag::Draw800 | WorldClientFlag::DrawSky |
@@ -72,23 +66,7 @@ CWorldClient::CWorldClient() {
 
 // ---- The two worlds -------------------------------------------------------------------------------
 
-// Zero at the start: built by their static initialisers in the list's order and destroyed by the
-// exit functions those register; all defined on the names
-// (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<CWorldServer> g_serverWorld = /*007AFF60*/ {};
-constinit lib::StaticObject<CWorldClient> g_clientWorld = /*007AF5B8*/ {};
-
-// A second block: it uses g_serverWorld and g_clientWorld (defined above).
-namespace {
-void DestroyServerWorld() { g_serverWorld.Destroy(); }
-void DestroyClientWorld() { g_clientWorld.Destroy(); }
-} // namespace
-
-void ConstructServerWorld() {
-    g_serverWorld.Construct();
-    std::atexit(DestroyServerWorld);
-}
-void ConstructClientWorld() {
-    g_clientWorld.Construct();
-    std::atexit(DestroyClientWorld);
-}
+// Constructed by the C++ runtime (the client first, as the original's static initialisers did) and destroyed
+// after the game's exit functions; GameMain empties them at exit before those run (EmptyWorlds, app_main.cpp).
+CWorldClient g_clientWorld;
+CWorldServer g_serverWorld;

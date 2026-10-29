@@ -41,14 +41,14 @@ constexpr float kBlinkBase = 1.4f;
 constexpr float kPulseAmplitude = 0.3f;
 constexpr float kPulseMiddle = 0.7f;
 constexpr float kSlideTime = 0.3f;   // 0.3 seconds for a full slide
-bool GamePaused() { return g_clientWorld->paused_ != 0; }
+bool GamePaused() { return g_clientWorld.paused_ != 0; }
 
 constexpr float kHandDepth = 8.0f;
 constexpr float kSpriteDepth = 8.106086f;   // 8.106: the dial marks, the top panel sling
 
 // The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod), stored.
 float TimeOfDay() {
-    const CWorldClient* world = &g_clientWorld.Get();
+    const CWorldClient* world = &g_clientWorld;
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 

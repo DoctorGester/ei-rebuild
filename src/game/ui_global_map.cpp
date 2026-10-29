@@ -146,7 +146,7 @@ void CGlobalMap::CreateScreen() {
     bool autosave = false;
     if (g_saveStream.size_ != 0)
         g_saveStream.Resize(0);
-    else if (g_clientWorld->LocalView()->player_->lastScreen_ != 5)
+    else if (g_clientWorld.LocalView()->player_->lastScreen_ != 5)
         autosave = true;
 
     MapRecord* current = g_mapDatabase.FindMap(LocalPlayerZone());
@@ -307,7 +307,7 @@ void CGlobalMap::CreateScreen() {
     minutes -= hour * 60;
     std::string clock;
     std::string dayText;
-    g_clientWorld->texts_->GetString("save_day", &dayText);
+    g_clientWorld.texts_->GetString("save_day", &dayText);
     clock = str::Format("%s  %d,  %d:%02d", dayText, day + 1, hour, minutes);
     {
         CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, SurfaceBlend::Keyed, true);
@@ -347,7 +347,7 @@ void CGlobalMap::CreateScreen() {
     selectPending_ = true;
     SelectZone(-1, false);
     GameSetWeather(0, 0.0f);   // clear
-    g_clientWorld->music_->Stop();
+    g_clientWorld.music_->Stop();
     weather_ = new CGlobalMapClouds();
     weather_->Start();
     // The weather: the display's colour (the original first set 0xFF3C005A) and the clouds' ramp.

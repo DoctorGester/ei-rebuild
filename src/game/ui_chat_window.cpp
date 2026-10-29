@@ -60,7 +60,7 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     portraits_ = 0;
     std::string text;
     for (const char* key : kTextKeys) {
-        g_clientWorld->texts_->GetString(key, &text);
+        g_clientWorld.texts_->GetString(key, &text);
         texts_.push_back(text);
     }
 }

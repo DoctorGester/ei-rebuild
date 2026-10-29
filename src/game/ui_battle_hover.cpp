@@ -45,12 +45,12 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead(); };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = g_clientWorld->PickSurface(&out, x, y);
+        Vector3* p = g_clientWorld.PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto objectAt = [x, y]() {
         POINT point = {x, y};
-        return static_cast<CUnit*>(g_clientWorld->PickAt2(&point));
+        return static_cast<CUnit*>(g_clientWorld.PickAt2(&point));
     };
     auto unitPosition = [](CUnit* u) {
         Vector3 at;
@@ -90,7 +90,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     if (interface_->altDown_) {
         Vector3 at = pick();
         int exit;
-        if (!g_clientWorld->FindExitAt(&at.x, &exit)) return;
+        if (!g_clientWorld.FindExitAt(&at.x, &exit)) return;
         g_cursor.SetShape(kCursorExit);
         return;
     }
@@ -128,7 +128,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             // is asked as is).
             Vector3 at = pick();
             int exit;
-            if (!g_clientWorld->FindExitAt(&at.x, &exit)) return;
+            if (!g_clientWorld.FindExitAt(&at.x, &exit)) return;
             std::string name = GameExitTarget(exit);
             if (text::CompareIgnoringCase(name,
                                 game::NoneText()) != 0) {

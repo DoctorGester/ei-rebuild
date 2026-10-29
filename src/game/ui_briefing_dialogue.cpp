@@ -68,16 +68,16 @@ constexpr int kEventLeaves = 2;
 
 
 void CBriefingScreen::StartPhrases() {
-    if (voice_ != -1) g_clientWorld->sounds_->StopSound(voice_);
+    if (voice_ != -1) g_clientWorld.sounds_->StopSound(voice_);
     voice_ = -1;
-    g_clientWorld->music_->FadeOut();
+    g_clientWorld.music_->FadeOut();
     std::string key = kBriefingSection;
     key += topic_;
-    if (!g_clientWorld->texts_->CTextManager::Open(key)) {
+    if (!g_clientWorld.texts_->CTextManager::Open(key)) {
         state_ = 0;
         return;
     }
-    CPlayerServer* server = g_serverWorld->GetPlayer(0)->Server();
+    CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
     if (server) server->SendPair19(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
@@ -113,7 +113,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     } else {
         number = human ? kHumanListen[g_random.Next() & 3] : kListen;
     }
-    auto* serverUnit = g_serverWorld->FindUnit(unit->id_);
+    auto* serverUnit = g_serverWorld.FindUnit(unit->id_);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     controller->StopAction();
@@ -128,7 +128,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
 // briefing screen unchecked; the count is read again after each call.
 void SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
-    auto* unit = g_clientWorld->FindUnit(serverUnit->id_);
+    auto* unit = g_clientWorld.FindUnit(serverUnit->id_);
     if (!unit) return;
     auto* screen = g_interface.ActiveWindowAs<CBriefingScreen>();
     for (std::size_t i = 0; i < screen->speakers_.size(); ++i)
@@ -192,7 +192,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     at.x = static_cast<float>(eye.x + alongX);
     at.y = static_cast<float>(eye.y + alongY);
     at.z = static_cast<float>(eye.z + height);
-    g_serverWorld->GetPlayer(0)->Server()->SendPosition0F(&at, &eye, 1);
+    g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(&at, &eye, 1);
 }
 
 void CBriefingScreen::ViewPreset(int preset) {
@@ -270,12 +270,12 @@ void CBriefingScreen::HideSpeaker(std::string_view name, bool immediate, bool ru
     }
     auto entry = std::find_if(speakers_.begin(), speakers_.end(), [person](const BriefingSpeaker& s) { return s.unit == person; });
     if (entry != speakers_.end()) {
-        CPlayerServer* server = g_serverWorld->GetPlayer(0)->Server();
+        CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
         if (server) server->SendPair19(kEventLeaves, person->id_);
         CUnitClientSpecific* model = person->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
-        if (auto* serverUnit = g_serverWorld->FindUnit(person->id_)) {
+        if (auto* serverUnit = g_serverWorld.FindUnit(person->id_)) {
             serverUnit->ShowHelmet(true);
             GameSetUnitHeight(person->id_, 0.0f);
             auto* controller = serverUnit->ServerController();

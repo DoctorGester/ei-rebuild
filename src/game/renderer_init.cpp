@@ -154,7 +154,7 @@ void SetRenderState(const GameOptions* settings) {
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
 // +0x100 = 1e12, +0x104 = 1e-12.
 void AddDefaultLight(CSceneRenderer* renderer) {
-    CLight* light = g_clientWorld->lightFactory_->CreateLight(0x2E);
+    CLight* light = g_clientWorld.lightFactory_->CreateLight(0x2E);
     Vector3 colour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
     light->SetDirectional(&colour, &position);

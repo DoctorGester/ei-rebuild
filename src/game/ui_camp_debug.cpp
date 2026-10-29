@@ -64,13 +64,13 @@ bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
 void CCampPages::DebugFill() {
     std::vector<std::string> names;
     std::vector<std::string> materials;
-    g_clientWorld->itemManager_->ListMaterialNames(&materials);
+    g_clientWorld.itemManager_->ListMaterialNames(&materials);
     const int materialCount = static_cast<int>(materials.size());
 
     if (CParty* items = itemParts_[0]) {
         items->Clear(1, 0);
 
-        g_clientWorld->itemManager_->ListWeaponNames(&names);
+        g_clientWorld.itemManager_->ListWeaponNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             AddNamed(items, "Instruction Weapon", static_cast<std::uint32_t>(i), kInstructionCount);
             CResourceManager* manager = items->ItemFactory();
@@ -79,7 +79,7 @@ void CCampPages::DebugFill() {
             AddInMaterials(items, manager, maker, weapon, ItemKind::Weapon, materialCount);
         }
 
-        g_clientWorld->itemManager_->ListArmorNames(&names);
+        g_clientWorld.itemManager_->ListArmorNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             CResourceManager* manager = items->ItemFactory();
             itemdb::ItemRecordHead* armor = itemdb::ArmorAt(static_cast<std::uint32_t>(i));
@@ -89,7 +89,7 @@ void CCampPages::DebugFill() {
             AddInMaterials(items, manager, maker, armor, ItemKind::Armor, materialCount);
         }
 
-        g_clientWorld->itemManager_->ListQuickItemNames(&names);
+        g_clientWorld.itemManager_->ListQuickItemNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             itemdb::ItemRecordHead* quick = itemdb::QuickItemAt(static_cast<std::uint32_t>(i));
             if (NameHas(quick, "wand"))
@@ -97,7 +97,7 @@ void CCampPages::DebugFill() {
         }
 
         // "Material.<name>", twenty each, the record index left as made.
-        g_clientWorld->itemManager_->ListMaterialNames(&names);
+        g_clientWorld.itemManager_->ListMaterialNames(&names);
         for (const std::string& material : names) {
             auto* item = items->ItemFactory()->CreateItem("Material." + material);
             item->count_ = kMaterialCount;
@@ -107,10 +107,10 @@ void CCampPages::DebugFill() {
 
     if (CParty* spells = spellParts_[0]) {
         spells->Clear(1, 0);
-        g_clientWorld->spellManager_->ListModifierNames(&names);
+        g_clientWorld.spellManager_->ListModifierNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i)
             AddNamed(spells, "Rune", static_cast<std::uint32_t>(i), kInstructionCount);
-        g_clientWorld->spellManager_->ListSpellNames(&names);
+        g_clientWorld.spellManager_->ListSpellNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i)
             AddNamed(spells, "Prototype", static_cast<std::uint32_t>(i), kInstructionCount);
     }

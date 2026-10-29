@@ -50,8 +50,8 @@ void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
 void GuardPlayerData(char plain) {
     if (plain == g_guardPlain) return;
     if (!plain) g_guardKey = g_random.Next();   // a new key each time the data is hidden
-    GuardPlayers(g_clientWorld->players_, 0, g_guardKey);
-    GuardPlayers(g_serverWorld->players_, 1, g_guardKey);
+    GuardPlayers(g_clientWorld.players_, 0, g_guardKey);
+    GuardPlayers(g_serverWorld.players_, 1, g_guardKey);
     std::uint32_t key = g_guardKey;
     GlobalGold() ^= static_cast<int>(key);
     for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(&GlobalParty()->members_[i].stats, key);

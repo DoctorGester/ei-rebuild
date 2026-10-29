@@ -99,7 +99,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
         app::FrameStep(false, true);
     }
     if (stack_.size() == 1) {   // one window open
-        serverFlag_ = static_cast<std::uint8_t>(g_serverWorld->paused_);
+        serverFlag_ = static_cast<std::uint8_t>(g_serverWorld.paused_);
         if (!IsMultiplayerClient()) GameSetServerPaused(1);
         if (first && second) {
             backdropMode_ = 1;

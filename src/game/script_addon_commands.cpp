@@ -35,7 +35,7 @@ namespace scriptaddon {
 namespace {
 
 
-CPlayer* GetPlayer(int number) { return g_serverWorld->GetPlayer(number); }
+CPlayer* GetPlayer(int number) { return g_serverWorld.GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
 const char* Text(Call* call, int i) { return call->cmd->stringArgs[i].c_str(); }
 CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
@@ -109,7 +109,7 @@ bool GSGetPlayerVar(Call* call) {
 // the player exists: null takes the multiplayer path).
 bool GiveExp(Call* call) {
     CPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
-    g_serverWorld->AwardExperience(player, Floats(call)[1]);
+    g_serverWorld.AwardExperience(player, Floats(call)[1]);
     return true;
 }
 
@@ -167,8 +167,8 @@ bool Loot(Call* call) {
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("Loot", "Object must be a unit");
     if (unit->IsDead() == 0) return Report("Loot", "Object must be dead");
-    g_serverWorld->Loot(unit, player);
-    g_serverWorld->RemoveObject(unit->id_);
+    g_serverWorld.Loot(unit, player);
+    g_serverWorld.RemoveObject(unit->id_);
     return true;
 }
 
@@ -225,7 +225,7 @@ bool GiveUnitWeapon(Call* call) {
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", object->id_);
     const char* name = Text(call, 0);
-    auto* item = AsWeapon(g_serverWorld->CreateItemNamed(name));
+    auto* item = AsWeapon(g_serverWorld.CreateItemNamed(name));
     if (override && unit->id_ >= 1000000000) override = false;   // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
     int slot = unit->AddWeapon(item);
@@ -264,7 +264,7 @@ bool GiveUnitArmor(Call* call) {
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", object->id_);
     const char* name = Text(call, 0);
-    CItem* item = g_serverWorld->CreateItemNamed(name);
+    CItem* item = g_serverWorld.CreateItemNamed(name);
     if (override && unit->id_ >= 1000000000) override = false;
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
     unit->EquipArmour(item);
@@ -315,7 +315,7 @@ bool ShowAllUnits(Call* call) {
 
 // PauseGame(value): outside network games, the client's pause request with (value == 0).
 bool PauseGame(Call* call) {
-    if (!IsMultiplayerClient()) g_clientWorld->SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
+    if (!IsMultiplayerClient()) g_clientWorld.SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
     return true;
 }
 
@@ -332,7 +332,7 @@ bool SetWeather(Call* call) {
         kind = 2;
         strength = 40.0f;
     }
-    g_serverWorld->SetWeather(kind, strength);
+    g_serverWorld.SetWeather(kind, strength);
     return true;
 }
 
@@ -344,7 +344,7 @@ bool AddMobEx(Call* call) {
     file = Text(call, 0);
     bool keepIds = std::ssize(call->cmd->floatArgs) != 0 && Equals(1.0f, Floats(call)[0]);
     g_loadingMovieOff = 1;
-    int loaded = g_serverWorld->LoadMapObjects(file, keepIds ? 1 : 0);
+    int loaded = g_serverWorld.LoadMapObjects(file, keepIds ? 1 : 0);
     g_loadingMovieOff = 0;
     if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", file.c_str());
     return true;

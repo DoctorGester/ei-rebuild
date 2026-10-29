@@ -120,7 +120,7 @@ public:
     void School(int school) {
         std::string key;
         key = str::Format("school_%d", school);
-        g_clientWorld->texts_->GetString(key, &line);
+        g_clientWorld.texts_->GetString(key, &line);
         std::string text = line;
         Joined(18, text);
     }
@@ -196,7 +196,7 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
 }
 
 void PerkLines(Writer& w, const ItemHoverInfo& info, std::string& title) {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string name = info.text;
     str::TrimRight(name, "0");
     name += "1";
@@ -298,7 +298,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo& info) {
 } // namespace
 
 DamageLists ItemDamageLists(const float* values, bool integer) {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     DamageLists lists;
     std::string key, text;
     float threshold = values[6];
@@ -361,7 +361,7 @@ void CItemInfoPanel::DescribeItem() {
         return;
     }
 
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
     std::string material;
     material = itemdb::MaterialAt(MaterialIndex(item->prototypeId_))->key;
@@ -477,7 +477,7 @@ tail:
 
 void CItemInfoPanel::DescribeMaterial() {
     CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(AsLoot(item)->index_);
     if (!material) return;
     std::string name, description, kindText;
@@ -505,7 +505,7 @@ void CItemInfoPanel::DescribeMaterial() {
 
 void CItemInfoPanel::DescribeBlueprint() {
     CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     // The record by the blueprint's kind: weapons, armour, quick items. The dispatcher calls this only
     // for kinds 0-2; the original leaves the record and kind uninitialised otherwise (here: none, and it
     // faults reading the record like a missing one).
@@ -570,7 +570,7 @@ void CItemInfoPanel::DescribeBlueprint() {
 
 void CItemInfoPanel::DescribeSpellRecord() {
     CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     const itemdb::SpellRecord* record = itemdb::SpellAt(AsLoot(item)->index_);
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
@@ -610,7 +610,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
 
 void CItemInfoPanel::DescribeModifierRecord() {
     CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
     const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(AsLoot(item)->index_);
@@ -624,7 +624,7 @@ void CItemInfoPanel::DescribeModifierRecord() {
 
 void CItemInfoPanel::DescribeQuickItem() {
     CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
@@ -644,7 +644,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     if (!spell) {
         return;
     }
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string title, description, kindText;
     {
         std::string key("spell ");
@@ -725,7 +725,7 @@ void CItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
     itemParty_.Clear(1, 0);
     DescribeItem();
     if (info.kind == HoverKind::None) return;
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     Writer w(this);
     std::string text, title, description;
     if (info.kind <= HoverKind::Perk) {
@@ -842,7 +842,7 @@ void CItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
 void CItemInfoPanel::ShowHelp(int topic) {
     itemParty_.Clear(1, 0);
     DescribeItem();
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     Writer w(this);
     std::string title, description, key;
     key = str::Format("camphelp %d", topic);
@@ -880,7 +880,7 @@ void CItemInfoPanel::Build(int x, int y) {
     y_ = y;
     CUiSurface* surface = new CUiSurface(interface_, x_, y_, x_ + 200, y_ + 300, SurfaceBlend::Keyed, true);
     AddSurface(surface);
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string text, key;
     for (int i = 0; i < 45; ++i) {
         key = str::Format("infoitem_%d", i);

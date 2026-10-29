@@ -42,7 +42,7 @@ CUnit* ReadUnit(CStream* stream, const CBaseManager* objects) {
 void LoadOrder(CStream* stream, UnitAction* order) {
     stream->ReadValue(order->kind);
     stream->ReadValue(order->source);
-    LoadRef(order->target, stream, &g_serverWorld.Get());
+    LoadRef(order->target, stream, &g_serverWorld);
     stream->ReadValue(order->point);
     stream->ReadValue(order->param);
     stream->ReadValue(order->modifier);
@@ -106,7 +106,7 @@ void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream) {
     for (auto node = list->begin(); node != list->end();) {
         auto current = node;
         ++node;
-        current->item.Assign(ReadItem(stream, g_serverWorld->itemManager_));
+        current->item.Assign(ReadItem(stream, g_serverWorld.itemManager_));
         stream->ReadValue(current->countdown);
     }
 }
@@ -152,7 +152,7 @@ void CUnitServer::Load(CStream* stream) {
     effectObject.Assign(ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->ReadValue(followsLeader);
-    followedLeader.Assign(ReadUnit(stream, g_serverWorld->objectManager_));
+    followedLeader.Assign(ReadUnit(stream, g_serverWorld.objectManager_));
 
     if (stream->version_ < kVersionActingCheckTime) return;
     stream->ReadValue(actingCheckTime);

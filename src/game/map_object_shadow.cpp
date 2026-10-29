@@ -186,7 +186,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     Vector3 sum;
     sum = kDefaultLight;
     ObjectListIteratorOf<CLight> lights{};
-    for (CLight* light = lights.First(g_clientWorld->lightFactory_); light; light = lights.Next()) {
+    for (CLight* light = lights.First(g_clientWorld.lightFactory_); light; light = lights.Next()) {
         if ((light->flags_ & LightFlag::Off) || (light->flags_ & LightFlag::Hidden)) continue;
         Vector3 share;
         if (light->type_ == kTypePointLight) {
@@ -325,7 +325,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
     VertexPacket* quads = g_quads.data();
-    g_clientWorld->ProjectDecal(&direction, &point, self->object->bounds.radius, &quads,
+    g_clientWorld.ProjectDecal(&direction, &point, self->object->bounds.radius, &quads,
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (!self->vertices.empty()) {

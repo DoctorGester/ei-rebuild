@@ -387,7 +387,7 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, const HeroFaceCell& cell) {
 // --- An item's figure texture -------------------------------------------------------------
 
 CTexture* ItemFigureTexture(std::string_view name) {
-    CTextureManager* manager = g_clientWorld->textureManager_;
+    CTextureManager* manager = g_clientWorld.textureManager_;
     CTexture* texture = manager->NewTexture(0x100, 0x100, TextureKind::Blank1555);
     if (!texture) return nullptr;
     ++texture->refCount_;
@@ -411,7 +411,7 @@ CTexture* ItemFigureTexture(std::string_view name) {
 
 bool CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y) {
-    CTextureManager* manager = g_clientWorld->textureManager_;
+    CTextureManager* manager = g_clientWorld.textureManager_;
     const std::string file = std::string(name) + ".mmp";
     std::uint32_t size = 0;
     const auto* image = static_cast<const MmpHeader*>(manager->GetFile(file, &size));

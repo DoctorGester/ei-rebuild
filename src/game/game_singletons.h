@@ -39,9 +39,9 @@ extern GameFlow g_gameFlow;   // world_game.cpp
 // The interface manager (windows, the quest log, status text, the console window).
 extern CInterface3D g_interface;   // ui_small_members.cpp
 
-extern lib::StaticObject<CWorldClient> g_clientWorld;   // world_construct.cpp
+extern CWorldClient g_clientWorld;   // world_construct.cpp
 
-extern lib::StaticObject<CWorldServer> g_serverWorld;   // world_construct.cpp
+extern CWorldServer g_serverWorld;   // world_construct.cpp
 
 // The scene renderer.
 extern lib::StaticObject<CSceneRenderer> g_sceneRenderer;   // renderer_lifetime.cpp

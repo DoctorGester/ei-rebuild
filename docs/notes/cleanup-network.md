@@ -106,7 +106,7 @@ functions are STLport's `vector<Query>` instantiation: 004439C0 `_M_insert_overf
 - `LoopbackLink::CreatePair` takes the `CWorldHandle*`; every link's Receive takes the `CMemoryStream*`.
 - `SocketDriver::addresses` is a `std::vector<NetAddress>`.
 - The world's helpers are `RefPtrTo<CWorldHandle> worldHandle_`, `RefPtrTo<netlink::DriverSession> netSession_` and
-  `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `g_serverWorld->worldHandle_`.
+  `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `g_serverWorld.worldHandle_`.
 
 ## C21 batch 23: typed server records (2026-10-22)
 

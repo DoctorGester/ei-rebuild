@@ -51,10 +51,10 @@ void SaveLooks(const std::vector<AILook>* looks, CStream* stream) {
 
 void AIMemory::Load(CStream* stream) {
     noticedKind = -1;
-    CountedListLoad(&nearby, stream, &g_serverWorld.Get());
-    CountedListLoad(&visible, stream, &g_serverWorld.Get());
-    CountedListLoad(&seenCorpses, stream, &g_serverWorld.Get());
-    CountedListLoad(&corpses, stream, &g_serverWorld.Get());
+    CountedListLoad(&nearby, stream, &g_serverWorld);
+    CountedListLoad(&visible, stream, &g_serverWorld);
+    CountedListLoad(&seenCorpses, stream, &g_serverWorld);
+    CountedListLoad(&corpses, stream, &g_serverWorld);
     stream->Read(&noticedX, 8);         // x and y
     stream->ReadValue(noticedLevel);
     stream->ReadValue(nearbyCountdown);
@@ -62,7 +62,7 @@ void AIMemory::Load(CStream* stream) {
     stream->ReadValue(count);
     reports.resize(count);
     for (int i = 0; i < count; ++i) {
-        LoadRef(reports[i].object, stream, &g_serverWorld.Get());
+        LoadRef(reports[i].object, stream, &g_serverWorld);
         stream->ReadValue(reports[i].what);
     }
     stream->ReadValue(count);

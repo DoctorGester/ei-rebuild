@@ -84,7 +84,7 @@ std::string MapFilePath(const std::string& file) {
 } // namespace
 
 std::string* BriefingSpeakerInto(std::string* out, const std::string& briefing) {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     bool missing;
     {
         std::string prefix = game::briefingwords::BriefingSection();
@@ -129,7 +129,7 @@ std::string* BriefingVariableInto(std::string* out, const std::string& briefing)
 }
 
 void GameFlow::MarkBriefing(const char* briefing) {
-    CPlayer* player = g_clientWorld->LocalView()->player_;
+    CPlayer* player = g_clientWorld.LocalView()->player_;
     // "<zone>_N": the zone's quests are loaded first.
     std::size_t length = std::strlen(briefing);
     if (static_cast<int>(length) > 2 && briefing[length - 2] == '_') {
@@ -152,14 +152,14 @@ std::vector<std::string> g_questFiles;
 std::vector<std::string> g_questFolders;
 
 void GameFlow::ForgetBriefing(const char* briefing) {
-    CPlayer* player = g_clientWorld->LocalView()->player_;
+    CPlayer* player = g_clientWorld.LocalView()->player_;
     std::string variable;
     BriefingVariableInto(&variable, briefing);
     player->Party()->variables_.Remove(variable);
 }
 
 void UnloadQuestTexts() {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     if (!texts) return;
     std::vector<std::string>& files = g_questFiles;
     for (auto& file : files) texts->RemoveSource(file);
@@ -170,7 +170,7 @@ void UnloadQuestTexts() {
 // ---- The quest file of a zone ---------------------------------------------------
 
 bool LoadZoneQuests(std::string_view zone) {
-    auto* texts = g_clientWorld->texts_;
+    auto* texts = g_clientWorld.texts_;
     if (!texts) return false;
     std::string file(zone);
     file += kQuestFileSuffix;
@@ -208,7 +208,7 @@ void GameFlow::OnVariableChanged(const net::VariableMessage* record) {
     }
     if (quest) {
         g_interface.OnQuestVariable(name, value);
-        g_clientWorld->OnQuestVariable(name, value);
+        g_clientWorld.OnQuestVariable(name, value);
     }
 }
 
@@ -225,7 +225,7 @@ bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CR
 } // namespace
 
 void GameFlow::RegisterQuests(const std::string& folder) {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     if (!texts) return;
     if (!LoadZoneQuests(folder)) return;
     std::vector<std::string>& folders = g_questFolders;
@@ -265,7 +265,7 @@ std::string* SessionMapNameInto(std::string* out) {
         return out;
     }
     name = peer->text_.data();
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     int found;
     {
         std::string prefix = game::briefingwords::QuestSection();

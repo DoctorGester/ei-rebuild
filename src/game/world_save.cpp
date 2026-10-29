@@ -541,7 +541,7 @@ void SharedObject::Load(CStream* stream) {
     int count = ReadAs<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadAs<int>(stream);
-        CItem* object = FindItem(g_serverWorld->itemManager_, id);
+        CItem* object = FindItem(g_serverWorld.itemManager_, id);
         if (object) entry->objects.emplace_back(object);
     }
 }

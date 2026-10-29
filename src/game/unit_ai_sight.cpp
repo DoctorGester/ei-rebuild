@@ -151,7 +151,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         if (seen && dead) {
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
             memory->seenCorpses.push_back(other);
-            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
+            if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
             continue;
         }
         if (alive) {
@@ -185,14 +185,14 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
                   static_cast<float>(static_cast<double>(other->localPosition_.z) - self->localPosition_.z)};
         float distance = LengthZYX(d);
         if (IsDead(other)) {
-            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) {
+            if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) {
                 // AddTail (a second copy follows below).
                 memory->seenCorpses.push_back(other);
                 if (memory->noticedLevel < kCorpseLevel) NoticeAt(memory, other, kCorpseLevel, kCorpseKind);
             }
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
             memory->seenCorpses.push_back(other);
-            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
+            if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
             CUnitServer* theirs = other->ServerController();
@@ -232,7 +232,7 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     EI_NAN_AUDIT(sight);
     float radius = 0.0f < sight ? sight : 0.0f;
     float height = static_cast<float>(observer->ModeSpeed());
-    CAIMap* map = &g_serverWorld->aiMap_;
+    CAIMap* map = &g_serverWorld.aiMap_;
     map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.perception[2].current) * theirs->stats.conspicuity[2].current;
     if (!IsZero(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);

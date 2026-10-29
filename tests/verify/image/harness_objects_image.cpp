@@ -93,8 +93,8 @@ bool ScreenFade(bool* running, float* alpha) {
     *alpha = fade->alpha_;
     return true;
 }
-int CampaignMode() { return g_serverWorld->sessionKind_; }
-void* ClientWorldObject() { return &g_clientWorld.Get(); }
+int CampaignMode() { return g_serverWorld.sessionKind_; }
+void* ClientWorldObject() { return &g_clientWorld; }
 void* SceneDevice() { return g_sceneRenderer->device_.Get(); }
 // Our renderer takes no device lock: the harness locks game.exe's only (in its original run).
 void* DeviceLock() { return nullptr; }
@@ -119,9 +119,9 @@ void SetFixedSeed(void (*fill)(std::uint32_t* results)) {
     IsaacRandom::SetSeedHook(&FixedSeed);
 }
 int TextKey(const char* name) { return TextKeyFromName(name); }
-void* LocalWorldPlayer(int player) { return g_serverWorld->GetPlayer(player); }
-void* WorldHandle() { return g_serverWorld->worldHandle_.Get(); }
-const char* ServerZoneName() { return g_serverWorld->zoneName_.c_str(); }
+void* LocalWorldPlayer(int player) { return g_serverWorld.GetPlayer(player); }
+void* WorldHandle() { return g_serverWorld.worldHandle_.Get(); }
+const char* ServerZoneName() { return g_serverWorld.zoneName_.c_str(); }
 
 void* PickAt2(void* world, int x, int y) {
     const POINT p{x, y};
@@ -167,7 +167,7 @@ void BlinkOpen(void* half) { static_cast<CUnitClientSpecific*>(half)->BlinkOpen(
 void BlinkClose(void* half) { static_cast<CUnitClientSpecific*>(half)->BlinkClose(true); }
 
 bool UnitFaceHalves(std::vector<void*>* halves) {
-    CWorldClient* world = &g_clientWorld.Get();
+    CWorldClient* world = &g_clientWorld;
     if (!world) return false;
     for (CMapObject* object : world->objects_) {
         if (!object || object->GetClassId() != ClassId::Unit) continue;

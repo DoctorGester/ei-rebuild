@@ -212,7 +212,7 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
         descPanel_->Describe(nullptr);
     }
 
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string text, line;
     net::ClientSession* client = net::g_gameClient;
 

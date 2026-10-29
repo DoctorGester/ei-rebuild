@@ -155,7 +155,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
     UnitList nearby;
     InitList(nearby);
     CUnit* unit = brain->owner->unit;
-    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &nearby,
+    g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &nearby,
                                g_logicSettings.playerCallForHelp);
     for (auto node = nearby.begin(); node != nearby.end();) {
         auto* other = *node;

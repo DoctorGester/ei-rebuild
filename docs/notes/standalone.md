@@ -334,13 +334,12 @@ kinds given.
   A `char` buffer is `char g_x[256] = /*addr*/ {""};` (the tool packs char arrays as names), a function pointer
   `void* g_hook = /*addr*/ {nullptr};` cast at the call.
 - **Global objects (C18n)**: `--check` refuses a named range inside a singleton the code reaches by field offset
-  (config/global_objects.csv: address, size, name, class; g_serverWorld 007AFF60 +0x12E7C, g_clientWorld, g_camera,
-  g_sceneRenderer, ...) and says which object and field: C18i's 007C2CC4 is
-  `g_serverWorld + 0x12D64 (CWorldServer::sessionKind_)`; the world also holds TheMissionScript 007C27D4 (commandsA_),
+  (config/global_objects.csv: address, size, name, class; g_camera 0079B2A8 +0x308, g_sceneRenderer) and says which
+  object and field. The worlds were such objects until C50b1 made them plain globals with no address: C18i's 007C2CC4
+  is the server world's sessionKind_ (007AFF60 + 0x12D64), which also held TheMissionScript 007C27D4 (commandsA_),
   007C29CC (commandsB_), TheSectorMap 007B01F4 (sectorMap_), the AI map 007B00D0 and the diplomacy 007C2BC4. Naming the
   whole object is allowed. `python tools/named_data.py --owner BEGIN [END]` asks the same of any address. The CSV's sizes
-  come from `static_assert(sizeof(T) == N)` where the sources have one (checked against it); CWorldServer 0x12E7C,
-  CCamera 0x308 and CSceneRenderer 0x5C have none and were read off the compiler. A new GamePointer<T>(addr) accessor in
+  come from `static_assert(sizeof(T) == N)` where the sources have one (checked against it); CCamera 0x308 and CSceneRenderer 0x5C have none and were read off the compiler. A new GamePointer<T>(addr) accessor in
   game_singletons.h must lie in a listed object. Before naming a lone address, `--owner` it.
 - **C18h (the small areas)**: three kinds of reads went away. (1) Members of blocks read by their base: the logic
   settings 007C53F8 (`GameLogicSettings()`: guard / follow radii, the hit point curve's hpVal, skillVal, lost money /
@@ -533,7 +532,7 @@ kinds given.
     rows in config/extra_function_sizes.csv), the pump time, the player / variable serials, the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
-    readers take `g_serverWorld->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
+    readers take `g_serverWorld.sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
     CRT's "C" locale since C26 (nothing reads it since C35b), the old iostream's shared lock and ios count and ostream's virtual base table (C35d: console::Stream has none;
     crt_file's zero mode constants went with C35a). **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
@@ -688,7 +687,7 @@ kinds given.
   - **The remaining objects** (C18, 2026-10-22; 247 -> 130):
     - **Singletons' fields read as members**: what was left of the client / server worlds', the scene renderer's and
       the camera's fields (managers, tick and its fraction, terrain, scripts, diplomacy, flags, wind, platforms) is
-      read through the object (`g_clientWorld->figureManager_`); the accessors that need world.h are out of line in
+      read through the object (`g_clientWorld.figureManager_`); the accessors that need world.h are out of line in
       world_singletons.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
       vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
       007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with
@@ -710,7 +709,7 @@ kinds given.
       (game_folders.cpp; the disc and data folders too since C50e: plain std::string), the
       chunk archive's class registry, clip's work words and the console's command maps; the interface manager and the
       cursor (C54g: CInterface3D and CCursor construct themselves); the flow, the party manager, the saved parties and
-      the save stream (C54g1); the draws' work arrays (line
+      the save stream (C54g1); the two worlds (C50b1, below); the draws' work arrays (line
       lists, the device's mesh buffers, sprites, strip, terrain projection, the part draws' moved positions, the moved
       packets and offset vertices) and SetSun's sorted sectors, a local (C50d; the unread set 007AB8D8, which only the
       original read, went); the console's eight streambufs and streams (C50d1, below); the logic settings
@@ -724,7 +723,14 @@ kinds given.
       game's list (the runtime runs the DLL's atexit table backwards), so a line logged by a later exit function (the
       session Refs' release) still finds them. Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
       exit functions (net_session.cpp) release the sessions, which send leave packets, so they keep the game's exit
-      order; at our CRT's exit the harness's network pair has ended (net_pair_zone's mailbox overflowed). Their initialisers are UNUSED_INITIALISERS (the exit
+      order; at our CRT's exit the harness's network pair has ended (net_pair_zone's mailbox overflowed).
+      **The worlds** (g_serverWorld, g_clientWorld, world_construct.cpp; plain since C50b1, initialisers 00560620 /
+      00589BE0 unused): their Destroy disconnects the players and releases the sessions, managers and textures, so
+      they are emptied in the game's exit order, not by their destructors: GameMain registers `EmptyWorlds` (both
+      Destroys, ShutDown's last step too) with atexit before it creates them, so it runs before every exit function of
+      the list (as the original's world exit functions, the list's last, did) also on an exit that skips ShutDown (a
+      fatal error). Their destructors then find them empty. The vector replay links no world: replay_unlinked.cpp
+      resolves g_serverWorld to zero bytes of its size (`/alternatename`). Their initialisers are UNUSED_INITIALISERS (the exit
       functions go with them); a function whose port builds none of the original's function-local statics is in
       RETIRED_STATICS (Aggression's candidates, LabelRegions' flood lists, ReachesRegion's block list,
       StampWaterPatch's patch, SyncPlayer's diff arrays, UpdateUnits' id lists, the fog's dead cells, the draws' work
@@ -753,8 +759,7 @@ kinds given.
       the stream (unit_hits' kHitLog, ai_alarm's kAlarmLog, combat's kCombatLog, unit_ai's kAiLog and kModeLog); game.exe's
       cells 007AF284 / 007C2EB8 / 007AF3E8 / 007C53C4 / 007C54E8 are unread data (REVIEWED_READ: only the original's
       ported code read them).
-    - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
-      007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060
+    - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the camera 0079B2A8, the scene renderer 007AF060
       (renderer_lifetime.cpp) and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
       out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow, which the renderer reads too), the loading
@@ -1260,8 +1265,8 @@ camera view stack that nothing ever pushed to is deleted.
 
 ### Compiler-written helpers of game types (S3b, S3c, S7a, S13, S13a, S13b)
 
-The global constructors only static initialisers call (SavedParties,
-both worlds: world_construct.cpp; the databases' are their classes' own since C50c), the exit callees (the worlds'
+The global constructors only static initialisers called (SavedParties; the worlds' are their classes' own,
+world_construct.cpp, since C50b1; the databases' since C50c), the exit callees (the worlds'
 and Terrain / Sector / particle manager destructors in world_destructors.cpp), record destructors / copies /
 assignments (record_lifetime.h, gone with C14n) and the script lists' by-value copies (game_lists). Bodies that are library rows are called
 through the library's address or inlined from lib/, never registered on the game side. Quirks kept: the link queue's

@@ -107,7 +107,7 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
 
             savedPosition = model->localPosition_;
             savedOrientation = model->localRotation_;
-            unit->AdvanceTime(static_cast<float>(g_clientWorld->tick_) + g_clientWorld->tickFraction_);
+            unit->AdvanceTime(static_cast<float>(g_clientWorld.tick_) + g_clientWorld.tickFraction_);
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.

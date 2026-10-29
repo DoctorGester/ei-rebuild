@@ -90,11 +90,11 @@ bool CMapObjectClientSpecific::RunTick() {
             if (left >= kEndSoundTicks || effect.ending) continue;
             if (!IsTextKey(OwnerOf(this)->id_)) continue;
             int handle = endSound;
-            CSoundManager* soundSystem = g_clientWorld->sounds_;
+            CSoundManager* soundSystem = g_clientWorld.sounds_;
             if (handle != -1 &&
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;
-            endSound = g_clientWorld->sounds_->Play3D(kEndSoundName, 0, &OwnerOf(this)->localPosition_.x,
+            endSound = g_clientWorld.sounds_->Play3D(kEndSoundName, 0, &OwnerOf(this)->localPosition_.x,
                                                   kEndSoundNear, kEndSoundFar, 0, 0);
         }
     }
@@ -112,9 +112,9 @@ bool CMapObjectClientSpecific::RunTick() {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            g_clientWorld->sounds_->Play3D(name, 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
+            g_clientWorld.sounds_->Play3D(name, 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
-            g_clientWorld->sounds_->MoveSequence(sound->handle, &OwnerOf(this)->localPosition_.x);
+            g_clientWorld.sounds_->MoveSequence(sound->handle, &OwnerOf(this)->localPosition_.x);
         }
     }
 
@@ -135,7 +135,7 @@ bool CMapObjectClientSpecific::RunTick() {
             direction.x = followed->localPosition_.x - lightPosition.x;
             direction.y = followed->localPosition_.y - lightPosition.y;
             direction.z = followed->localPosition_.z - lightZ;
-            g_clientWorld->terrain_->MoveLight(lamp, &direction);
+            g_clientWorld.terrain_->MoveLight(lamp, &direction);
             followed = OwnerOf(this);
             float* position = &light->localPosition_.x;
             std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));

@@ -33,7 +33,7 @@ constexpr int kLayers = 3;
 // --- A labelled value ----------------------------------------------------------------------------
 
 void CHeroStatsPanel::DrawRow(const RECT& rect, std::string_view label, int value, int maximum) {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string key = kPerkPrefix;
     key += label;
     std::string name;
@@ -68,7 +68,7 @@ void CHeroStatsPanel::DrawPart(const RECT& rect, std::string_view name, int part
     std::string key = kPartPrefix;
     key += name;
     std::string label;
-    g_clientWorld->texts_->CTextManager::GetString(key, &label);
+    g_clientWorld.texts_->CTextManager::GetString(key, &label);
     label = kPartIndent + label;
     CUiSurface* surface = surfaces_[0];
     surface->DrawTextIn(label, &rect, 0, kRowColour, kLeft, 1);

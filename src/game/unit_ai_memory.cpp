@@ -65,7 +65,7 @@ void AIMemory::FindEnemiesNear(CUnit* self, UnitList* out, const Vector3* point,
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(AIModeType::Aggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
             CUnit* enemy = UnitOrNull(theirs->AggressionEnemy());
-            if (enemy && !g_serverWorld->diplomacy_.IsAllied(self->side, enemy->side)) continue;
+            if (enemy && !g_serverWorld.diplomacy_.IsAllied(self->side, enemy->side)) continue;
             if (!theirs->memory.seesEnemy) continue;
         }
         out->push_back(other);
@@ -112,7 +112,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     if (IsDead(object)) {
         console::EndLine(kAiLog << "Unit " << self->id_ << " sees corpse of unit " << other->id_);
         seenCorpses.push_back(object);
-        if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) corpses.push_back(object);
+        if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) corpses.push_back(object);
     } else {
         visible.push_front(object);
         kAiLog << "Unit " << self->id_ << " is forced to see unit " << other->id_ << " from ";
@@ -123,7 +123,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
 void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     console::EndLine(kAiLog << "Unit " << self->id_ << " sees corpse of unit " << corpse->id_);
     seenCorpses.push_back(corpse);
-    if (g_serverWorld->diplomacy_.IsAllied(self->side, corpse->side)) corpses.push_back(corpse);
+    if (g_serverWorld.diplomacy_.IsAllied(self->side, corpse->side)) corpses.push_back(corpse);
 }
 
 void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
@@ -145,7 +145,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
         if (distance < sight) {
             Vector3 theirEye;
             Vector3 to = *other->EyePoint(&theirEye);
-            double range = g_serverWorld->aiMap_.LineOfSight(&eye, &to) * sight;
+            double range = g_serverWorld.aiMap_.LineOfSight(&eye, &to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }
         KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.perception[2].current) * self->stats.conspicuity[2].current));

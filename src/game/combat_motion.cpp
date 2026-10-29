@@ -76,7 +76,7 @@ void ShowHead(CUnitServer* self) {
 
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    g_serverWorld->RemoveTimedObject(self->effectObject->id_);
+    g_serverWorld.RemoveTimedObject(self->effectObject->id_);
     self->effectObject.Reset();
 }
 
@@ -396,18 +396,18 @@ bool CUnitServer::ChangeMoveMode() {
     if (moveMode.mode == moveMode2.mode && moveMode.onGuard == moveMode2.onGuard) return false;
     bool modeChanged = moveMode.mode != moveMode2.mode;
     MoveModeState saved = moveMode;
-    g_serverWorld->aiMap_.sectorMap.Remove(unit);
-    bool passableBefore = g_serverWorld->aiMap_.IsUnitCellPassable(unit);
+    g_serverWorld.aiMap_.sectorMap.Remove(unit);
+    bool passableBefore = g_serverWorld.aiMap_.IsUnitCellPassable(unit);
     bool sameMode = moveMode.mode == moveMode2.mode;
     moveMode = moveMode2;
     unit->moveMode = UnitModeOf(moveMode);
     unit->UpdateSizeClass();
     bool placed;
     if (!sameMode &&
-        !(passableBefore ? g_serverWorld->aiMap_.IsUnitCellPassable(unit) : g_serverWorld->aiMap_.CanLeaveCell(unit)))
+        !(passableBefore ? g_serverWorld.aiMap_.IsUnitCellPassable(unit) : g_serverWorld.aiMap_.CanLeaveCell(unit)))
         placed = false;
     else
-        placed = g_serverWorld->aiMap_.sectorMap.Add(unit);
+        placed = g_serverWorld.aiMap_.sectorMap.Add(unit);
     unit->MarkChanged(6);
     if (!placed) {
         // The new mode does not fit here: back to the old one, and the party is told.
@@ -417,7 +417,7 @@ bool CUnitServer::ChangeMoveMode() {
         if (moveMode.mode != 2) moveMode2.wasMode3 = 0;
         unit->moveMode2 = UnitModeOf(moveMode2);
         unit->UpdateSizeClass();
-        g_serverWorld->aiMap_.sectorMap.Add(unit);
+        g_serverWorld.aiMap_.sectorMap.Add(unit);
         CUnit* self = unit;
         if (self->player) PlayerMessage(self->player->Server(), self, AckKind::CantChangePosition);
         return false;
@@ -523,7 +523,7 @@ void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char
         if (!lift) continue;
         auto added = list->emplace(list->end());
         *added = member;
-        g_serverWorld->aiMap_.sectorMap.Remove(member);
+        g_serverWorld.aiMap_.sectorMap.Remove(member);
     }
 }
 

@@ -110,7 +110,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     }
     person_ = nullptr;
     third_ = nullptr;
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string key = kBriefingSection;
     if (!texts->Open((key + topic_))) {
         state_ = 0;
@@ -206,19 +206,19 @@ void CBriefingScreen::ClearShownItems() {
 }
 
 void CBriefingScreen::FinishDialogue() {
-    if (voice_ != -1) g_clientWorld->sounds_->StopSound(voice_);
+    if (voice_ != -1) g_clientWorld.sounds_->StopSound(voice_);
     voice_ = -1;
-    g_clientWorld->music_->FadeIn();
+    g_clientWorld.music_->FadeIn();
     ClearShownItems();
 
     for (const BriefingSpeaker& speaker : speakers_) {
         CUnit* unit = speaker.unit;
-        CPlayerServer* server = g_serverWorld->GetPlayer(0)->Server();
+        CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
         if (server) server->SendPair19(kEventLeaves, unit->id_);
         CUnitClientSpecific* model = unit->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
-        auto* serverUnit = g_serverWorld->FindUnit(unit->id_);
+        auto* serverUnit = g_serverWorld.FindUnit(unit->id_);
         if (!serverUnit) continue;
         serverUnit->ShowHelmet(true);
         GameSetUnitHeight(unit->id_, 0.0f);
@@ -246,19 +246,19 @@ void CBriefingScreen::FinishDialogue() {
     for (auto& node : variables) {
         text::Split(node.first, &parts, '.');
         if (parts.size() != kTopicNameParts || text::CompareIgnoringCase(topic_, parts[2]) != 0) continue;
-        g_serverWorld->CompleteBriefing(0, node.first);
+        g_serverWorld.CompleteBriefing(0, node.first);
         break;
     }
 
     state_ = kStateWalking;
-    CPlayerServer* server = g_serverWorld->GetPlayer(0)->Server();
+    CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
     if (server) server->SendPair19(kEventEnds, leader_->id_);
     Vector3 at = leader_->localPosition_;
     if (briefingStarted_) {
-        g_serverWorld->GetPlayer(0)->Server()->SendPosition04(&at, 0, 1);
+        g_serverWorld.GetPlayer(0)->Server()->SendPosition04(&at, 0, 1);
         g_camera->flags_ &= ~CCamera::kFree;
         briefingStarted_ = false;
     } else {
-        g_serverWorld->GetPlayer(0)->Server()->SendPosition0F(&savedCamera_, &lookAt_, 0);
+        g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(&savedCamera_, &lookAt_, 0);
     }
 }

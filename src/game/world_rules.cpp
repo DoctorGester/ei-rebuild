@@ -22,7 +22,7 @@
 namespace {
 
 // The local player record through the client's local view (no null checks).
-CPlayer* LocalPlayer() { return g_clientWorld->LocalView()->player_; }
+CPlayer* LocalPlayer() { return g_clientWorld.LocalView()->player_; }
 
 // A player's named float variable (its party's variables_).
 float Variable(CPlayer* player, std::string_view name) { return player->Party()->variables_.Get(name); }
@@ -59,7 +59,7 @@ bool IsMultiplayerClient() {
 }
 
 float GameTime() {
-    CWorldClient* client = &g_clientWorld.Get();
+    CWorldClient* client = &g_clientWorld;
     return static_cast<float>(client->tick_) + client->tickFraction_;
 }
 
@@ -71,7 +71,7 @@ float LocalPlayerVariable(std::string_view name) { return Variable(LocalPlayer()
 
 float PlayerZeroVariable(std::string_view name) {
     if (IsMultiplayerClient()) return Variable(LocalPlayer(), name);
-    CPlayer* player = g_serverWorld->GetPlayer(0);
+    CPlayer* player = g_serverWorld.GetPlayer(0);
     if (!player) return 0.0f;
     return Variable(player, name);
 }

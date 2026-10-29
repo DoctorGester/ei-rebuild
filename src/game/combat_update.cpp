@@ -69,7 +69,7 @@ void StartQueueIfUnset(CUnitServer* self) {
 
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    g_serverWorld->RemoveTimedObject(self->effectObject->id_);
+    g_serverWorld.RemoveTimedObject(self->effectObject->id_);
     self->effectObject.Reset();
 }
 
@@ -136,13 +136,13 @@ bool CUnitServer::RunTick() {
             unit->MarkChanged(4);
         }
         // Every (speedClass + 1) updates the unit's step noise (it returns 0: no record).
-        if ((static_cast<std::uint32_t>(g_serverWorld->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
+        if ((static_cast<std::uint32_t>(g_serverWorld.tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
             AIEventPresence*& presence = aiPresence;
             if (presence) {
                 presence->x = unit->localPosition_.x;
                 presence->y = unit->localPosition_.y;
             }
-            presence = g_serverWorld->aiMap_.events.StepNoise(&unit->localPosition_, this);
+            presence = g_serverWorld.aiMap_.events.StepNoise(&unit->localPosition_, this);
         }
         TickItemSpells();
         if (unit->player != nullptr) {
@@ -449,7 +449,7 @@ void CUnitServer::TickAction() {
         PopFinishedSteps();
         ShowCurrentStep();
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
-            auto* objects = g_serverWorld->timedObjectManager_;
+            auto* objects = g_serverWorld.timedObjectManager_;
             auto* particle = objects->CreateObjectAs<CEffectParticle>(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {static_cast<int>(ParticleType::CastingFire), static_cast<int>(ParticleType::CastingElectricity), static_cast<int>(ParticleType::CastingAcid), static_cast<int>(ParticleType::CastingIllusion), static_cast<int>(ParticleType::CastingDivination), static_cast<int>(ParticleType::CastingEnchantment), static_cast<int>(ParticleType::CastingHealing), static_cast<int>(ParticleType::CastingDomination)};
             int kind = plan.castKind;

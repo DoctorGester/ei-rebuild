@@ -106,8 +106,8 @@ S on text), `WeaponBaseFigure`, `ArmorModelName` (S), `CSpellManager::CreateSpel
 `CItemManager::MakeItem` 006AD000 (item_constructor.cpp; CItemManager derives CResourceManager, context slot 16 on
 CManagerContext; O).
 
-- Build's temporary record is built like the game's record classes (vtables 00744054..00744068); the extra members of the
-  quick / quest / loot records leak as in the original. Build reads operands into locals before multiplying;
+- Build's temporary record is a `std::unique_ptr<ItemRecordHead>` of the item's kind (the head's destructor is virtual
+  since C50c2; the original destroyed only the head and leaked the quick / quest records' members, empty there). Build reads operands into locals before multiplying;
   `InitFromRecord` copies +0x40 / +0x48 through FLD / FSTP so a signalling NaN is quieted the same way.
 - Name builders with an unknown weapon / armor type: the original formats an uninitialised 4-byte stack buffer, ours ""
   (no such types in the databases).

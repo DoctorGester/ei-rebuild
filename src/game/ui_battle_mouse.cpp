@@ -50,7 +50,7 @@ void CBattleScreen::MouseMove(int buttons, int x, int y) {
     }
     // The (x, y) pair is read back through its address.
     POINT point = {x, y};
-    CUnit* unit = g_clientWorld->UnitAt(&point);
+    CUnit* unit = g_clientWorld.UnitAt(&point);
     HoverUnit(unit, point.x, point.y);
 }
 
@@ -75,7 +75,7 @@ void CBattleScreen::LeftDown(int buttons, int x, int y) {
 
 // Each text is copied up to its first NUL.
 std::string CBattleScreen::UnitName(CUnit* unit) {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string name = unit->GetName();
     if (name.size() != 0) return name.c_str();
     if (IsTextKey(unit->id_)) {

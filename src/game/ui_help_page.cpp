@@ -105,7 +105,7 @@ void CHelpWindow::ShowPage() {
     ClearRegions();
     ClearSceneObjects();
 
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::vector<std::string> words;
     if (!texts->Open(std::string(kTutorialSection) + text_)) {
         interface_->SetPendingValue(0);

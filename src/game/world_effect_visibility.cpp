@@ -44,7 +44,7 @@ void CEffectShowVisibility::SetUnits(int observerId, int seerId) {
 
 void CEffectShowVisibility::Start(int update) {
     if (update == 0) {
-        auto* created = static_cast<CVisibilityFog*>(VisFogManagerAdd(g_clientWorld->arrayManager_));
+        auto* created = static_cast<CVisibilityFog*>(VisFogManagerAdd(g_clientWorld.arrayManager_));
         fog_.Assign(created);
     }
     if (fog_ != nullptr) fog_->Reveal(&grid_);

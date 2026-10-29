@@ -10,4 +10,4 @@
 #include "world.h"
 #include "world_data.h"
 
-CScript* TheMissionScript() { return g_serverWorld->MainScript(); }
+CScript* TheMissionScript() { return g_serverWorld.MainScript(); }

@@ -8,7 +8,7 @@
 namespace ei::verify::image {
 
 void* ClientUnit(unsigned id, std::uint32_t** flags, std::uint32_t** rotation) {
-    CWorldClient* c = &g_clientWorld.Get();
+    CWorldClient* c = &g_clientWorld;
     if (!c) return nullptr;
     for (CMapObject* object : c->objects_) {
         if (object && static_cast<unsigned>(object->id_) == id && object->GetClassId() == ClassId::Unit) {

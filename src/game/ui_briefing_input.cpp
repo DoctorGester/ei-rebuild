@@ -63,7 +63,7 @@ constexpr const char* kZoneVariablePrefix = "z.";
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
 bool CanTalk(CEngineObject* person) {
-    CUnit* unit = g_serverWorld->FindUnit(person->id_);
+    CUnit* unit = g_serverWorld.FindUnit(person->id_);
     if (!unit || !unit->controller) return true;
     CUnitServer* controller = unit->ServerController();
     return (controller->action.kind == UnitOrderKind::Stop || controller->action.kind == UnitOrderKind::Idle) &&
@@ -78,10 +78,10 @@ bool IsPerson(CMapObject* object) { return object && object->IsDead() == 0; }
 // The leader walks (or runs) to the ground point under the screen point (x, y), unless blocked.
 static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, bool run) {
     Vector3 picked;
-    Vector3* p = g_clientWorld->PickSurface(&picked, x, y);
+    Vector3* p = g_clientWorld.PickSurface(&picked, x, y);
     Vector3 point{p->x, p->y, p->z};
     if (!screen->leader_) return;
-    CUnit* unit = g_serverWorld->FindUnit(screen->leader_->id_);
+    CUnit* unit = g_serverWorld.FindUnit(screen->leader_->id_);
     if (!unit || (unit->flags_ & MapObjectFlag::Blocked)) return;
     unit->ServerController()->brain.Walk(&point, run, 0);
 }
@@ -97,7 +97,7 @@ void CBriefingScreen::LeftDown(int buttons, int x, int y) {
     switch (state_) {
     case 0: {
         POINT point = {x, y};
-        CUnit* object = g_clientWorld->UnitAt2(&point);
+        CUnit* object = g_clientWorld.UnitAt2(&point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 interface_->PlaySound(kClickSound);
@@ -155,7 +155,7 @@ void CBriefingScreen::MouseMove(int buttons, int x, int y) {
     if (interface_->rightDown_ || state_ != 0) return;
 
     POINT point = {x, y};
-    CUnit* object = g_clientWorld->UnitAt2(&point);
+    CUnit* object = g_clientWorld.UnitAt2(&point);
     if (IsPerson(object)) {
         int id = object->id_;
         if (IsMultiplayerClient() && leader_ && leader_->id_ == id) return;
@@ -175,10 +175,10 @@ void CBriefingScreen::MouseMove(int buttons, int x, int y) {
         return;
     }
     Vector3 picked;
-    Vector3* p = g_clientWorld->PickSurface(&picked, x, y);
+    Vector3* p = g_clientWorld.PickSurface(&picked, x, y);
     Vector3 ground{p->x, p->y, p->z};
     int exit = 0;
-    if (!g_clientWorld->FindExitAt(&ground.x, &exit)) return;
+    if (!g_clientWorld.FindExitAt(&ground.x, &exit)) return;
     std::string zone = GameExitTarget(exit_);
     if (text::CompareIgnoringCase(zone,
                         kNoZone) == 0)
@@ -200,7 +200,7 @@ void CBriefingScreen::LeftDouble(int buttons, int x, int y) {
         return;
     }
     POINT point = {x, y};
-    CUnit* object = g_clientWorld->UnitAt2(&point);
+    CUnit* object = g_clientWorld.UnitAt2(&point);
     if (IsPerson(object)) {
         for (const BriefingMover& mover : movers_)
             if (mover.person->id_ == object->id_) return;
@@ -218,7 +218,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
         return;
     }
     if (leader_ && !noWalk_) {
-        CUnit* unit = g_serverWorld->FindUnit(leader_->id_);
+        CUnit* unit = g_serverWorld.FindUnit(leader_->id_);
         if (unit && !(unit->flags_ & MapObjectFlag::Blocked)) unit->ServerController()->brain.StopAction();
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
@@ -236,7 +236,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
 
 void CBriefingScreen::DrawTopics() {
     std::string prefix;
-    g_clientWorld->texts_->GetString(kTopicPrefixKey, &prefix);
+    g_clientWorld.texts_->GetString(kTopicPrefixKey, &prefix);
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
     int row = topicTop_;

@@ -36,7 +36,7 @@ constexpr int kMaxQuickItems = 8;
 // The tooltips' labels: the texts "infoitem_<id>" in order.
 template <int N>
 std::vector<std::string> Labels(const int (&ids)[N]) {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::vector<std::string> labels;
     std::string text;
     for (int id : ids) {
@@ -270,7 +270,7 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUi
     for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0);
     unit_ = nullptr;
     std::string text;
-    g_clientWorld->texts_->GetString("infoitem_16", &text);
+    g_clientWorld.texts_->GetString("infoitem_16", &text);
     labels_.push_back(text);
     widescreen::LeavePanel();        // addon's 10023430
 }

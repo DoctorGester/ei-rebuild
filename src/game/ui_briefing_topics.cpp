@@ -77,7 +77,7 @@ std::string CBriefingScreen::TopicTitle(std::string_view topic) {
         isConstructor = str::Compare(start, kConstructorTopic) == 0;
     }
     if (isConstructor) key = kConstructorTopic;
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string section = kBriefingSection;
     section += key;
     if (texts->CTextManager::Open(section)) texts->ReadLine(&title, 1);

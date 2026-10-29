@@ -203,7 +203,7 @@ void Loader::Line() {
 
 bool CMapDatabase::Load(const char* fileName) {
     using namespace mapdb;
-    CTextManager* reader = g_clientWorld->texts_;
+    CTextManager* reader = g_clientWorld.texts_;
     Loader loader(this, reader);
     if (!reader->Open(fileName)) return false;
     while (reader->FindHeader()) loader.Line();

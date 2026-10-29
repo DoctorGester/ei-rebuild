@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <new>
+#include <memory>
 #include <string>
 
 using namespace itemdb;
@@ -40,25 +40,17 @@ constexpr float kDefaultChargeRate = 0.001f;
 // destroys it again. The prototype and material records are read without a null check where the game reads them
 // without one (a missing record faults there).
 
-// The temporary record for an item of class `classId` (the base record's construction inline in
-// Build); null for other classes (and when the allocation fails).
-ItemRecordHead* NewRecord(ClassId classId) {
+// The temporary record for an item of class `classId`; null for other classes.
+std::unique_ptr<ItemRecordHead> NewRecord(ClassId classId) {
     switch (classId) {
-    case ClassId::ItemWeapon: return new WeaponRecord();
-    case ClassId::ItemArmor: return new ArmorRecord();
+    case ClassId::ItemWeapon: return std::make_unique<WeaponRecord>();
+    case ClassId::ItemArmor: return std::make_unique<ArmorRecord>();
     case ClassId::ItemQuick:
-    case ClassId::ItemSpell: return new QuickItemRecord();
-    case ClassId::ItemQuest: return new QuestItemRecord();
-    case ClassId::ItemLoot: return new LootItemRecord();
+    case ClassId::ItemSpell: return std::make_unique<QuickItemRecord>();
+    case ClassId::ItemQuest: return std::make_unique<QuestItemRecord>();
+    case ClassId::ItemLoot: return std::make_unique<LootItemRecord>();
     default: return nullptr;
     }
-}
-
-// Destroys what every record has (the extra members of the quick, quest and loot records are not destroyed: the
-// game leaks them, though they hold nothing here; the head's destructor is not virtual) and frees it.
-void DeleteRecord(ItemRecordHead* record) {
-    record->~ItemRecordHead();
-    ::operator delete(record);
 }
 
 template <typename Record>
@@ -302,11 +294,11 @@ bool CItemConstructor::Build() {
 
     const ItemRecordHead* prototype = prototype_;
     const MaterialRecordHead* material = material_;
-    ItemRecordHead* record = NewRecord(item_->GetClassId());
-    FillCommon(record, prototype, material);
-    std::uint32_t index = FillClass(item_->GetClassId(), record, prototype, material);
+    std::unique_ptr<ItemRecordHead> record = NewRecord(item_->GetClassId());
+    FillCommon(record.get(), prototype, material);
+    std::uint32_t index = FillClass(item_->GetClassId(), record.get(), prototype, material);
 
-    item_->InitFromRecord(record);
+    item_->InitFromRecord(record.get());
     if (item_->GetClassId() == ClassId::ItemQuick &&
         static_cast<QuickItemCategory>(prototype->category) == QuickItemCategory::Potion) {
         CSpellManager* spellManager = manager_->context_->SpellManager();
@@ -316,7 +308,6 @@ bool CItemConstructor::Build() {
     } else if (spell_) {
         item_->AttachSpell(spell_);
     }
-    if (record) DeleteRecord(record);
 
     if (material)
         item_->prototypeId_ = (material->number & 0xFFFF) | index << 16;

@@ -221,7 +221,7 @@ void CWorldClient::CreateExitMarkers() {
                             game::NoneText()) == 0) {
             continue;
         }
-        auto* source = g_clientWorld->particleManager_->CreateSource(kExitParticles);
+        auto* source = g_clientWorld.particleManager_->CreateSource(kExitParticles);
         exitMarkers_[i] = source;
         const ZoneExit& exit = exits_[i];
         source->localPosition_ = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
@@ -334,7 +334,7 @@ bool CWorldClient::RunTick() {
         sounds_->SetEffectsVolume(options::g_options->audioSfx_);
         sounds_->SetSpeechVolume(options::g_options->audioSpeech_);
         sounds_->SetMusicVolume(options::g_options->audioStreaming_);
-    } else if (frames == 90 || (frames < 90 && g_clientWorld->partyDanger_ == 2)) {
+    } else if (frames == 90 || (frames < 90 && g_clientWorld.partyDanger_ == 2)) {
         music_->holding = 0;
     }
     if (terrain_) terrain_->RunTick();

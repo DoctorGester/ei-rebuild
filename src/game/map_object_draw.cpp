@@ -83,7 +83,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     std::vector<CLight*> list;
     list.reserve(0x10);
     ObjectListIteratorOf<CLight> lights{};
-    CLight* light = lights.First(g_clientWorld->lightFactory_);
+    CLight* light = lights.First(g_clientWorld.lightFactory_);
     for (; light; light = lights.Next()) {
         if (context->sun_ == light) continue;
         if (!InReach(object, light)) continue;

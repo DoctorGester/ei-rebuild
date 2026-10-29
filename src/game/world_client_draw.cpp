@@ -128,7 +128,7 @@ float Reload(float v) { return v; }
 int Ftol(float v) { return static_cast<int>(libcrt::Ftol(v)); }
 // The client world's time: (float)(int)tick + the tick's fraction, rounded once.
 float AnimationTime() {
-    const CWorldClient* world = &g_clientWorld.Get();
+    const CWorldClient* world = &g_clientWorld;
     return static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 

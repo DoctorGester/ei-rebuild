@@ -112,7 +112,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The same string serves as the second and third texts.
-        g_clientWorld->texts_->GetItemTexts(item, &tip, &description, &description);
+        g_clientWorld.texts_->GetItemTexts(item, &tip, &description, &description);
         regions_[slot]->SetTipString(tip);
         place(slot);
         ++slot;
@@ -142,7 +142,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         const int unitId = player->id_;
         const int playerId = player->serial_;
         if (player->state_ == 0 && unitId >= 0) {
-            if (!g_clientWorld->FindUnit(unitId)) {
+            if (!g_clientWorld.FindUnit(unitId)) {
                 ids.without.push_back(playerId);
                 continue;
             }
@@ -163,10 +163,10 @@ void RebuildClientParty(CBattleScreen* screen) {
         bool cameraFirst = false;
         for (auto& id : ids.withUnit) {
             int unitId = id;
-            CUnit* unit = g_clientWorld->FindUnit(unitId);
+            CUnit* unit = g_clientWorld.FindUnit(unitId);
             if (!unit) continue;
             if (unitId == ids.camera) {
-                g_clientWorld->Select(unit);
+                g_clientWorld.Select(unit);
                 // Insert at the front.
                 int n = std::ssize(*party);
                 if (n <= 0) {
@@ -259,7 +259,7 @@ void CBattleScreen::Update() {
     // with 1), the others unmarked (with 0); selected ones are left alone.
     if (boxSelecting_) {
         std::list<CMapObject*> units;
-        g_clientWorld->UnitsInBox(&selectionBox_, &units);
+        g_clientWorld.UnitsInBox(&selectionBox_, &units);
         std::list<std::uintptr_t> inside;
         for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*party); ++i) {
@@ -314,7 +314,7 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
         return;
     }
     viewPressed_ = false;
-    CWorldClient* world = &g_clientWorld.Get();
+    CWorldClient* world = &g_clientWorld;
     if (!boxSelecting_ || IsMultiplayerClient()) {
         // The (x, y) pair is read back through its address.
         POINT point = {x, y};
@@ -375,7 +375,7 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
 // --- a quest variable's notice -------------------------------------------------------------------
 
 void CBattleScreen::QuestVariable(std::string_view name, float value) {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::vector<std::string> parts;
     std::string text;
     std::string title;

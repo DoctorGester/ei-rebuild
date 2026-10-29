@@ -780,6 +780,9 @@ UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread 
 # constructor call and the atexit (or the one call); the object's range and the exit function's guard byte are in no
 # named range or source, and nothing reads them.
 UNUSED_INITIALISERS = {
+    # C50b1: the worlds are plain globals of ours (GameMain registers EmptyWorlds for the exit order).
+    0x00560620: "the client world 007AF5B8 (exit function 00560640): world_construct.cpp's g_clientWorld",
+    0x00589BE0: "the server world 007AFF60 (exit function 00589C00): world_construct.cpp's g_serverWorld",
     # C54g1: the party manager, the flow, the save stream and the saved parties are plain globals of ours.
     0x004A56D0: "the party manager 007AA5A0 (exit function 004A56F0): app_lifetime.cpp's g_partyManager",
     0x00578440: "the flow 007AFE20 (exit function 005784C0): world_game.cpp's g_gameFlow",

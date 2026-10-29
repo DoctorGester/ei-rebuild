@@ -205,7 +205,7 @@ void CHudPortraits::Rebuild(bool wide) {
     for (auto node = net::g_gameClient->players_.begin(); node != net::g_gameClient->players_.end(); ++node) {
         auto* player = node->Get();
         CEngineObject* unit = nullptr;
-        if (player->id_ >= 0) unit = g_clientWorld->FindUnit(player->id_);
+        if (player->id_ >= 0) unit = g_clientWorld.FindUnit(player->id_);
         if (player->state_ == 0 && player->id_ >= 0 && unit) continue;
 
         UnitPrototypeRecord* prototype;

@@ -84,7 +84,7 @@ void CMainMenu::AddVersionLine() {
     CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
     surface->Clear();
     std::string text;
-    g_clientWorld->texts_->CTextManager::GetString(kVersionKey, &text);
+    g_clientWorld.texts_->CTextManager::GetString(kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
     surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
     AddSurface(surface);
@@ -118,7 +118,7 @@ void CMainMenu::CreateScreen() {
     GameStartAmbience();
     GameShowCameraPath(kCameraPath);
     hour_ = 0.0f;
-    g_clientWorld->music_->PlayMainMenu();
+    g_clientWorld.music_->PlayMainMenu();
 }
 
 // --- Update (every frame) ---------------------------------------------------
@@ -183,7 +183,7 @@ void CMainMenu::MessageResult(int result) {
 // --- The mouse move and the keys -------------------------------------------
 
 void CMainMenu::MouseMove(int buttons, int x, int y) {
-    if (auto* stones = g_clientWorld->objectManager_->FindObjectAs<CObject3D>(kStonesObject)) {
+    if (auto* stones = g_clientWorld.objectManager_->FindObjectAs<CObject3D>(kStonesObject)) {
         int region = RegionAt(x, y);
         std::string name(stones->name);
         if (region != hovered_) {
@@ -191,7 +191,7 @@ void CMainMenu::MouseMove(int buttons, int x, int y) {
             if (region >= 0 && region < 6)
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
-                animation = g_clientWorld->objectManager_->FindAnimation(&name, kRestPoseKind);
+                animation = g_clientWorld.objectManager_->FindAnimation(&name, kRestPoseKind);
             stones->PlayAnimation(animation);
             interface_->PlaySound(kStoneSound);
         }

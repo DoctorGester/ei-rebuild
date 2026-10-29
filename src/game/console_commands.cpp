@@ -40,9 +40,9 @@ bool ArgIs(const std::vector<std::string>* args, int i, const char* text) { retu
 bool ArgOn(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
-CPlayer* GetPlayer(int id) { return g_serverWorld->GetPlayer(id); }
+CPlayer* GetPlayer(int id) { return g_serverWorld.GetPlayer(id); }
 CPlayer* LocalPlayer() {
-    return g_clientWorld->LocalView()->player_;
+    return g_clientWorld.LocalView()->player_;
 }
 
 bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
@@ -317,7 +317,7 @@ void Disconnect(std::vector<std::string>*) { g_gameFlow.DisconnectClient(); }
 
 void LootAll(std::vector<std::string>*) {
     PrintLine("Looting...");
-    g_serverWorld->LootDeadUnits();
+    g_serverWorld.LootDeadUnits();
 }
 
 // Fadeout <milliseconds>.
