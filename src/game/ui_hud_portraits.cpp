@@ -12,9 +12,9 @@
 #include "random.h"
 #include "unit.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include <bit>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -75,9 +75,9 @@ void SetBar(EngineObject* object, double fraction, std::uint32_t v0, std::uint32
 Quaternion TargetProduct(const Quaternion& q1, const Quaternion& q2) {
     Quaternion r;
     r.w = static_cast<float>(D(q1.w) * D(q2.w) - DotUnrounded<Sum3::ZYX, double>(q1.x, q1.y, q1.z, q2.x, q2.y, q2.z));
-    r.x = static_cast<float>(((D(q2.y) * D(q1.z) - D(q1.y) * D(q2.z)) + D(q1.w) * D(q2.x)) + D(q1.x) * D(q2.w));
-    r.y = static_cast<float>(((D(q1.x) * D(q2.z) - D(q2.x) * D(q1.z)) + D(q1.w) * D(q2.y)) + D(q1.y) * D(q2.w));
-    r.z = static_cast<float>(((D(q1.y) * D(q2.x) - D(q1.x) * D(q2.y)) + D(q2.w) * D(q1.z)) + D(q2.z) * D(q1.w));
+    r.x = ((q2.y * q1.z - q1.y * q2.z) + q1.w * q2.x) + q1.x * q2.w;
+    r.y = ((q1.x * q2.z - q2.x * q1.z) + q1.w * q2.y) + q1.y * q2.w;
+    r.z = ((q1.y * q2.x - q1.x * q2.y) + q2.w * q1.z) + q2.z * q1.w;
     return r;
 }
 
@@ -85,9 +85,9 @@ Quaternion TargetProduct(const Quaternion& q1, const Quaternion& q2) {
 Quaternion RestProduct(const Quaternion& a, const Quaternion& b) {
     Quaternion r;
     r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
-    r.x = static_cast<float>(((D(a.y) * D(b.z) - D(a.z) * D(b.y)) + D(a.x) * D(b.w)) + D(b.x) * D(a.w));
-    r.y = static_cast<float>(((D(a.z) * D(b.x) - D(a.x) * D(b.z)) + D(a.y) * D(b.w)) + D(a.w) * D(b.y));
-    r.z = static_cast<float>(((D(a.x) * D(b.y) - D(b.x) * D(a.y)) + D(a.z) * D(b.w)) + D(b.z) * D(a.w));
+    r.x = ((a.y * b.z - a.z * b.y) + a.x * b.w) + b.x * a.w;
+    r.y = ((a.z * b.x - a.x * b.z) + a.y * b.w) + a.w * b.y;
+    r.z = ((a.x * b.y - b.x * a.y) + a.z * b.w) + b.z * a.w;
     return r;
 }
 
@@ -95,14 +95,14 @@ Quaternion RestProduct(const Quaternion& a, const Quaternion& b) {
 Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
     Quaternion r;
     r.w = static_cast<float>(D(f.w) * D(w.w) - DotUnrounded<Sum3::ZYX, double>(f.x, f.y, f.z, w.x, w.y, w.z));
-    r.x = static_cast<float>(((D(w.z) * D(f.y) - D(f.z) * D(w.y)) + D(w.x) * D(f.w)) + D(f.x) * D(w.w));
-    r.y = static_cast<float>(((D(f.z) * D(w.x) - D(w.z) * D(f.x)) + D(w.y) * D(f.w)) + D(f.y) * D(w.w));
-    r.z = static_cast<float>(((D(w.y) * D(f.x) - D(w.x) * D(f.y)) + D(w.z) * D(f.w)) + D(f.z) * D(w.w));
+    r.x = ((w.z * f.y - f.z * w.y) + w.x * f.w) + f.x * w.w;
+    r.y = ((f.z * w.x - w.z * f.x) + w.y * f.w) + f.y * w.w;
+    r.z = ((w.y * f.x - w.x * f.y) + w.z * f.w) + f.z * w.w;
     return r;
 }
 
 float RandomTilt(std::uint32_t r) {
-    return static_cast<float>((x87::FromUnsigned(r) * kRandomScale31 - 1.0f) * D(kHudQuarterTurn) * kTwelfth);
+    return static_cast<float>((static_cast<double>(r) * kRandomScale31 - 1.0f) * D(kHudQuarterTurn) * kTwelfth);
 }
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
@@ -115,7 +115,7 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 } // namespace
 
 void HudPortraits::Wobble(int index, int kind) {
-    slots[index].wobbleTime = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
+    slots[index].wobbleTime = static_cast<float>(static_cast<double>(g_clientRandom.Next()) * kRandomDelayScale);
     slots[index].wobbleKind = kind;
 }
 
@@ -132,9 +132,9 @@ void HudPortraits::Update() {
 
         // Health bar (object 5i+2) and mana bar (5i+3).
         int hitPoints = unit->packedVitals.hitPoints < 0 ? 0 : unit->packedVitals.hitPoints;
-        double health = unit->packedVitals.maxHitPoints > 0
-                            ? static_cast<double>(hitPoints) / static_cast<double>(unit->packedVitals.maxHitPoints)
-                            : 0.0;
+        float health = unit->packedVitals.maxHitPoints > 0
+                            ? static_cast<float>(hitPoints) / static_cast<float>(unit->packedVitals.maxHitPoints)
+                            : 0.0f;
         SetBar(object(2), health, kHealthV0, kHealthV1);
         std::uint16_t maxMana = unit->packedVitals.maxMana;
         double mana = 0.0;
@@ -152,7 +152,7 @@ void HudPortraits::Update() {
             slot.faceTimer = 0.0f;
             slot.faceMode = 2;
         } else if (slot.flash > 0.0f) {
-            slot.flash = static_cast<float>(D(slot.flash) - D(dt));
+            slot.flash = slot.flash - dt;
         }
         slot.flash = slot.flash >= 0.0f ? slot.flash : 0.0f;
         EngineObject* flash = object(5);
@@ -168,7 +168,7 @@ void HudPortraits::Update() {
         // The face picture: a timed one (hit, mode 1) while it lasts, else low mana or normal.
         int state = 0;
         if (slot.faceMode != 0) {
-            slot.faceTimer = static_cast<float>(D(dt) + D(slot.faceTimer));
+            slot.faceTimer = dt + slot.faceTimer;
             if (slot.faceMode == 1) {
                 if (slot.faceTimer > kMode1PictureTime) slot.faceMode = 0;
             } else if (slot.faceMode == 2) {
@@ -213,39 +213,39 @@ void HudPortraits::Update() {
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind == 0 && dt > 0.0f) {
             std::uint32_t roll = g_clientRandom.Next();
-            if (D(dt) * kWobbleRate > x87::FromUnsigned(roll) * kRandomScale32) {
-                slot.wobbleTime = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
+            if (D(dt) * kWobbleRate > static_cast<double>(roll) * kRandomScale32) {
+                slot.wobbleTime = static_cast<float>(static_cast<double>(g_clientRandom.Next()) * kRandomDelayScale);
                 slot.wobbleKind = 3;
                 std::uint32_t r1 = g_clientRandom.Next();
                 std::uint32_t r2 = g_clientRandom.Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget = TargetProduct(q1, q2);
-                slot.wobbleSpeed = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomScale31 + 1.0f);
+                slot.wobbleSpeed = static_cast<float>(static_cast<double>(g_clientRandom.Next()) * kRandomScale31 + 1.0f);
             }
         }
         if (slot.wobbleKind != 0) {
-            slot.wobbleTime = static_cast<float>(D(dt) + D(slot.wobbleTime));
+            slot.wobbleTime = dt + slot.wobbleTime;
             if (slot.wobbleTime >= 0.0f) {
                 float t = slot.wobbleTime;
                 switch (slot.wobbleKind) {
                 case 1:   // nod
-                    if (static_cast<float>(D(kPi) * kWobbleSpan) > t)
+                    if ((kPi * kWobbleSpan) > t)
                         wobble = AxisAngle(1.0f, 0.0f, 0.0f,
-                                           static_cast<float>(D(kHudQuarterTurn) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
+                                           kHudQuarterTurn * std::sin(t * kWobbleFrequency) * kWobbleAmplitude);
                     else
                         slot.wobbleKind = 0;
                     break;
                 case 2:   // shake
-                    if (static_cast<float>(D(kHudFullTurn) * kWobbleSpan) > t)
+                    if ((kHudFullTurn * kWobbleSpan) > t)
                         wobble = AxisAngle(0.0f, 1.0f, 0.0f,
-                                           static_cast<float>(D(kHudQuarterTurn) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
+                                           kHudQuarterTurn * std::sin(t * kWobbleFrequency) * kWobbleAmplitude);
                     else
                         slot.wobbleKind = 0;
                     break;
                 case 3:   // turn towards the target and back
                     if (D(kHudFullTurn) / D(slot.wobbleSpeed) > D(t)) {
-                        float w = static_cast<float>(0.5f - x87::fcos(D(t) * D(slot.wobbleSpeed)) * 0.5f);
+                        float w = 0.5f - std::cos(t * slot.wobbleSpeed) * 0.5f;
                         wobble.Slerp(w, kHudRestRotation, slot.wobbleTarget);
                     } else {
                         slot.wobbleKind = 0;
@@ -263,7 +263,7 @@ void HudPortraits::Update() {
         Quaternion face;
         EI_NAN_AUDIT(dt);
         if (dt < 0.5f)
-            face.Slerp(static_cast<float>(D(dt) + D(dt)), previous, rest);
+            face.Slerp(dt + dt, previous, rest);
         else
             face = rest;
         slot.current = face;
@@ -275,7 +275,7 @@ void HudPortraits::Update() {
             SceneMesh(0)->visible = true;
             float x, y, depth;
             AsUiMesh(object(4))->GetPlacement(&x, &y, &depth);
-            SceneMesh(0)->Place(x, static_cast<float>(D(y) - kMarkerRise), kMarkerDepth);
+            SceneMesh(0)->Place(x, y - kMarkerRise, kMarkerDepth);
         }
     }
 }

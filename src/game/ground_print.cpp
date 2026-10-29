@@ -19,8 +19,7 @@
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
-#include "ei/x87.h"
-
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -67,7 +66,7 @@ const Record* EntryAt(const std::vector<Record>& table, WorldClient* world, floa
     return surface < table.size() ? &table[surface] : nullptr;
 }
 
-std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(value * kAlphaRange))); }
+std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(std::lround(value * kAlphaRange)); }
 
 } // namespace
 
@@ -106,10 +105,10 @@ GroundPrint::GroundPrint(float x, float y, float newHalfWidth, float newHalfLeng
     lit = g_clientWorld.terrain->EdgeFade(point);
     int quarter = RandomQuarter();
     uvScale = {0.5f, 0.5f};
-    uvOffset.x = static_cast<float>(quarter & 1) * 0.5f;
-    uvOffset.y = static_cast<float>(quarter >> 1) * 0.5f;
+    uvOffset.x = (quarter & 1) * 0.5f;
+    uvOffset.y = (quarter >> 1) * 0.5f;
     angle = newAngle;
-    uvAngle = static_cast<float>(quarter) * kHalfPi;
+    uvAngle = quarter * kHalfPi;
     SetTexture("fireprints");
     growth = 0.0f;
 }
@@ -118,7 +117,7 @@ int GroundPrint::Tick() {
     --life;
     halfWidth = halfWidth + growth;
     halfLength = halfLength + growth;
-    float t = static_cast<float>(static_cast<double>(lifetime - life) / lifetime);
+    float t = static_cast<float>(lifetime - life) / lifetime;
     EI_NAN_AUDIT(t);
     float spent = t > 0.0f ? t : 0.0f;
     alpha = (1.0f - spent) * alphaScale;
@@ -175,17 +174,17 @@ int GroundPrint::Draw() {
         WorldClient* world = &g_clientWorld;
         std::vector<VertexPacket> quad;
         Vector3 at{position.x, position.y, 0.0f};
-        float z = static_cast<float>(world->platforms.SurfaceHeight(at, world->ClampedGroundHeight(position.x, position.y)));
+        float z = world->platforms.SurfaceHeight(at, world->ClampedGroundHeight(position.x, position.y));
         quad.resize(1);
-        double c = x87::fcos(angle);
-        double s = x87::fsin(angle);
+        float c = std::cos(angle);
+        float s = std::sin(angle);
         // Corners (+w, -l), (-w, -l), (-w, +l), (+w, +l) turned by the angle.
         const float across[4] = {halfWidth, -halfWidth, -halfWidth, halfWidth};
         const float along[4] = {-halfLength, -halfLength, halfLength, halfLength};
         VertexPacket& corners = quad[0];
         for (int i = 0; i < 4; ++i) {
-            corners.block[0][i] = static_cast<float>((across[i] * c + position.x) - along[i] * s);
-            corners.block[1][i] = static_cast<float>((across[i] * s + along[i] * c) + position.y);
+            corners.block[0][i] = (across[i] * c + position.x) - along[i] * s;
+            corners.block[1][i] = (across[i] * s + along[i] * c) + position.y;
             corners.block[2][i] = z;
             corners.block[3][i] = 1.0f;
         }
@@ -196,13 +195,13 @@ int GroundPrint::Draw() {
         // The texture coordinates turned about the tile's centre, then into the tile. The loop is
         // unrolled four times: the fourth vertex stores its u part to a float before scaling
         // it, the others their v part.
-        float uc = static_cast<float>(x87::fcos(uvAngle));
-        float us = static_cast<float>(x87::fsin(uvAngle));
+        float uc = std::cos(uvAngle);
+        float us = std::sin(uvAngle);
         int vertices = std::ssize(positions) * 4;
         for (int i = 0; i < vertices; ++i) {
             DecalTexCoord& uv = texCoords[i];
-            double du = uv.u - 0.5f;
-            double dv = uv.v - 0.5f;
+            float du = uv.u - 0.5f;
+            float dv = uv.v - 0.5f;
             double u = (du * uc - dv * us) + 0.5f;
             double v = (dv * uc + du * us) + 0.5f;
             if ((i & 3) == 3) u = static_cast<float>(u);
@@ -214,7 +213,7 @@ int GroundPrint::Draw() {
             for (float& height : positions[i].block[2]) height = height + kLift;
         built = true;
     }
-    std::uint32_t fadeAlpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha * kAlphaRange)));
+    std::uint32_t fadeAlpha = static_cast<std::uint32_t>(std::lround(alpha * kAlphaRange));
     colour = (colour & 0xFFFFFFu) | fadeAlpha << 24;
     TextureDevice* device = g_sceneRenderer.device;
     device->BindNamedTexture(0, &texture);
@@ -236,11 +235,11 @@ Footprint::Footprint(float x, float y, float newHalfWidth, float newHalfLength, 
     lit = g_clientWorld.terrain->EdgeFade(point);
     // The tile's parts are below 2^16: converted as ints.
     int index = static_cast<int>(tile & 0xFFFF);
-    uvOffset.x = static_cast<float>(index & 7) * kEighth + static_cast<float>(static_cast<int>(tile >> 16)) * kSixteenth;
+    uvOffset.x = (index & 7) * kEighth + static_cast<int>(tile >> 16) * kSixteenth;
     angle = newAngle;
     uvScale = {kSixteenth, kEighth};
     uvAngle = 0.0f;
-    uvOffset.y = static_cast<float>(index >> 3) * kEighth;
+    uvOffset.y = (index >> 3) * kEighth;
     if (kind == -1) {
         SetTexture("footprints");
     } else {
@@ -275,22 +274,22 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     lit = g_clientWorld.terrain->EdgeFade(point);
     int index = static_cast<int>(tile & 0xFFFF);
     int high = static_cast<int>(tile >> 16);
-    uvOffset.x = static_cast<float>(index & 1) * kQuarter + static_cast<float>(high & 1) * 0.5f;
+    uvOffset.x = (index & 1) * kQuarter + (high & 1) * 0.5f;
     uvScale = {kQuarter, kQuarter};
-    uvOffset.y = static_cast<float>(index >> 1) * kQuarter + static_cast<float>(high >> 1) * 0.5f;
-    uvAngle = static_cast<float>(RandomQuarter()) * kHalfPi;
-    int steps = x87::fistp(static_cast<float>(kTwoPi * kAngleMilli));
-    angle = static_cast<float>(ClientRandBelow(steps)) * kMilli;
+    uvOffset.y = (index >> 1) * kQuarter + (high >> 1) * 0.5f;
+    uvAngle = RandomQuarter() * kHalfPi;
+    int steps = std::lround(kTwoPi * kAngleMilli);
+    angle = ClientRandBelow(steps) * kMilli;
     SetTexture("bloodprints");
     int spread = life / 2;
     if (spread > kMaxSpreadTicks) spread = kMaxSpreadTicks;
     spreadTicks = static_cast<std::int16_t>(spread);
     kind = high;
     fresh = newFresh;
-    float degrees = static_cast<float>(kSpinDegrees / static_cast<double>(life));
+    float degrees = kSpinDegrees / life;
     float radiansPerDegree = static_cast<float>(kPiDouble * kPerDegree);
     spin = degrees * radiansPerDegree;
-    growth = static_cast<float>((fullSize - halfWidth) / static_cast<double>(spreadTicks));
+    growth = (fullSize - halfWidth) / spreadTicks;
 }
 
 int BloodPrint::Tick() {

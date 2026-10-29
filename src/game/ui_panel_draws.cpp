@@ -44,9 +44,9 @@ struct Pulse {
 Pulse Advance(ConstructorPage* page) {
     double t = UiContainer::FrameTime() + page->pulse;
     page->pulse = static_cast<float>(t);
-    float p = static_cast<float>((x87::fcos(t * 5.0) + 1.0) * 0.5);
-    double a = 1.0 - p;
-    double low = a * 80.0;
+    float p = static_cast<float>((std::cos(t * 5.0) + 1.0) * 0.5);
+    float a = 1.0f - p;
+    float low = a * 80.0f;
     return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};
 }
 
@@ -117,8 +117,8 @@ void RepairGrid::Draw(SceneRenderer* pass) {
         // 1 << (3 - row) as SHL does it (the count masked to five bits).
         auto scale = static_cast<int>(1u << ((3 - (i >> 2)) & 31));
         Item* item = list[i];
-        ItemCell cell{item, static_cast<float>(x) + 250.0f, static_cast<float>(y) + 150.0f,
-                      static_cast<float>(scale) * 6.0f, 100.0f, mode};
+        ItemCell cell{item, x + 250.0f, y + 150.0f,
+                      scale * 6.0f, 100.0f, mode};
         owner->DrawItem(pass, cell);
         int pieces = static_cast<int>(item->count);    // the stack's count
         if (pieces > 1) {
@@ -156,7 +156,7 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
             // A record out of range is read through null, like the original.
             const itemdb::SpellRecord* spell = itemdb::SpellAt(AsLoot(item)->index);
             needed += spell->skill;
-            manaSum = static_cast<float>(static_cast<double>(manaSum) + spell->mana);
+            manaSum = manaSum + spell->mana;
             lastMana = spell->mana;
             school = spell->school;
             cell.x = 350.0f;
@@ -165,10 +165,10 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
             hasSpell = true;
         } else if (IsModifier(item)) {
             const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index);
-            manaSum = static_cast<float>(static_cast<double>(manaSum) + modifier->mana);
+            manaSum = manaSum + modifier->mana;
             needed += modifier->skill;
-            cell.x = static_cast<float>(column) + 450.0f;
-            cell.y = static_cast<float>(row * 100) + 150.0f;
+            cell.x = column + 450.0f;
+            cell.y = (row * 100) + 150.0f;
             owner->DrawItem(pass, cell);
             if (++row > 3) {
                 row = 0;
@@ -242,8 +242,8 @@ void ConstructorPage::Draw(SceneRenderer* pass) {
             hasBlueprint = true;
         } else if (IsMaterial(item)) {
             ++materials;
-            cell.x = static_cast<float>(column) + 450.0f;
-            cell.y = static_cast<float>(row * 100) + 150.0f;
+            cell.x = column + 450.0f;
+            cell.y = (row * 100) + 150.0f;
             owner->DrawItem(pass, cell);
             if (++row > 3) {
                 row = 0;

@@ -56,8 +56,8 @@ struct IconPlace {
 IconPlace IconAt(int n, int firstColumn) { return {firstColumn + (n / 4) * kIconSize, (n % 4) * kIconSize}; }
 
 void SetOffsets(UiMesh* sprite, int x, int bottom) {
-    sprite->textureOffsetU = static_cast<float>(x) * kTexelStep;
-    sprite->textureOffsetV = static_cast<float>(bottom) * kTexelStep;
+    sprite->textureOffsetU = x * kTexelStep;
+    sprite->textureOffsetV = bottom * kTexelStep;
 }
 
 void MakePlain(UiMesh* sprite) {
@@ -118,7 +118,7 @@ void HudWeaponBar::Highlight(int index, bool on) {
     const int left = (index * 5 + 10) * 8;
     const int right = (index * 5 + 15) * 8;
     if (on) {
-        float x = static_cast<float>(index) * 40.0f + 100.0f;
+        float x = index * 40.0f + 100.0f;
         sprite->Place(x, 540.0f, 12.0f);
         sprite->SetScale(0.65f);
         sprite->flatSpecular = kColourOn;
@@ -130,7 +130,7 @@ void HudWeaponBar::Highlight(int index, bool on) {
     float scale = 1.0f;
     for (int i = count; i > 0; --i) scale *= 1.2f;
     float depth = scale * 24.0f;
-    float x = static_cast<float>(index) * 40.0f + 100.0f;
+    float x = index * 40.0f + 100.0f;
     sprite->Place(x, 560.0f, depth);
     sprite->SetScale(scale);
     sprite->flatSpecular = kColourOff;
@@ -235,7 +235,7 @@ void HudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     }
     AddRegion()->SetRect(760, 470, 800, 510);
     for (int i = 0; i < std::ssize(sceneObjects); ++i) {
-        float y = kColumnBottom - static_cast<float>((count - i) * kStep);
+        float y = kColumnBottom - ((count - i) * kStep);
         SceneMesh(i)->Place(780.0f, y, 40.0f);
     }
     const IconPlace at = IconAt(count, 0x80);
@@ -281,8 +281,8 @@ void HudActionColumn::AddAction(std::string_view model, std::string_view image, 
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;
     sprite->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
-    float y = kColumnBottom - static_cast<float>(count * kStep);
-    sprite->Place(20.0f - static_cast<float>(widescreen::EdgeShift()), y, 40.0f);   // WideScreen
+    float y = kColumnBottom - (count * kStep);
+    sprite->Place(20.0f - widescreen::EdgeShift(), y, 40.0f);   // WideScreen
     MakePlain(sprite);
     int place = std::ssize(actions);
     actions.resize(place + 1);

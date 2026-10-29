@@ -22,7 +22,6 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include <cstdint>
@@ -68,7 +67,7 @@ CParty* NewItemList() {
 
 // The time in animation frames: milliseconds / 1024 * 15.
 double FramesNow() {
-    return x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
+    return static_cast<double>(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
 }
 
 } // namespace

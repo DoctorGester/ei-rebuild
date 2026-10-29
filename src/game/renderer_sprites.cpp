@@ -9,8 +9,6 @@
 #include "lib/containers.h"
 #include "lib/vecmath.h"
 
-#include "ei/x87.h"
-
 #include <bit>
 #include <cstddef>
 #include <cstdint>

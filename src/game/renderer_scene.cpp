@@ -1,7 +1,6 @@
 // The renderer's scene bracket: BeginScene with the last frame's time, EndScene closing the frame. The main loop
 // brackets each frame's drawing with them.
 #include "core_maths.h"
-#include "ei/x87.h"
 #include "figure_mesh.h"   // FigureMesh
 #include "game_singletons.h"
 #include "lib/crt.h"
@@ -15,6 +14,7 @@
 #include "world.h"
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
 
 int SceneRenderer::BeginScene() {
@@ -79,9 +79,9 @@ void SceneRenderer::SetSun(CLight* light) { sun.Assign(light); }
 void SceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
     // Each product is stored as a float, then it is rounded to the nearest integer.
-    const std::uint32_t red = static_cast<std::uint32_t>(x87::fistp(r * kColourScale));
-    const std::uint32_t green = static_cast<std::uint32_t>(x87::fistp(g * kColourScale));
-    const std::uint32_t blue = static_cast<std::uint32_t>(x87::fistp(b * kColourScale));
+    const std::uint32_t red = static_cast<std::uint32_t>(std::lround(r * kColourScale));
+    const std::uint32_t green = static_cast<std::uint32_t>(std::lround(g * kColourScale));
+    const std::uint32_t blue = static_cast<std::uint32_t>(std::lround(b * kColourScale));
     SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
 }
 

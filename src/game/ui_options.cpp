@@ -6,7 +6,6 @@
 #include "maths.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -293,7 +292,7 @@ void OptionsWindow::CommitBinding() {
 void OptionsWindow::LoadSettings() {
     std::memcpy(keyOfScan, g_keyActions, sizeof(keyOfScan));
     OptionSetting* s = settings.data();
-    const double fromStep = kFromStep;
+    const float fromStep = kFromStep;
     const float one = 1.0f;
     s[0].value = options::g_options.audioSfx;
     s[1].value = options::g_options.audioStreaming;
@@ -338,15 +337,15 @@ void OptionsWindow::LoadSettings() {
 void OptionsWindow::Apply() {
     std::memcpy(g_keyActions, keyOfScan, sizeof(keyOfScan));
     const OptionSetting* s = settings.data();
-    const double toStep = kToStep;
+    const float toStep = kToStep;
     const float one = 1.0f;
     options::g_options.audioSfx = s[0].value;
     options::g_options.audioStreaming = s[1].value;
     options::g_options.audioSpeech = s[2].value;
     options::g_options.reverseStereo = s[24].value;
     // Each product is rounded once by its float stores.
-    float speedA = static_cast<float>(s[3].value * toStep);
-    float speedB = static_cast<float>(s[4].value * toStep);
+    float speedA = s[3].value * toStep;
+    float speedB = s[4].value * toStep;
     options::g_options.cameraScroll.powerKeyboard = speedA;
     options::g_options.cameraPitch.powerKeyboard = speedA;
     options::g_options.cameraZoom.powerKeyboard = speedA;
@@ -359,7 +358,7 @@ void OptionsWindow::Apply() {
     options::g_options.cameraFlipY = s[23].value == 1 ? -1.0f : 1.0f;
     options::g_options.cameraBorderScrollArea = s[5].value;
     options::g_options.cameraFrameSelectionArea = s[6].value * 10;
-    options::g_options.toolTipTime = static_cast<float>(s[20].value * static_cast<double>(kScrollTo));
+    options::g_options.toolTipTime = s[20].value * kScrollTo;
     options::g_options.unitShadow = s[7].value;
     options::g_options.buildingShadow = s[8].value;
     options::g_options.floraShadow = s[9].value;
@@ -371,9 +370,9 @@ void OptionsWindow::Apply() {
     options::g_options.showTutorial = s[18].value;
     options::g_options.autosave = s[19].value;
     options::g_options.switchFilters = s[21].value;
-    options::g_options.brightness = static_cast<float>(s[14].value * toStep - one);
-    options::g_options.contrast = static_cast<float>(s[15].value * toStep - one);
-    options::g_options.gamma = static_cast<float>(s[16].value * toStep - one);
+    options::g_options.brightness = s[14].value * toStep - one;
+    options::g_options.contrast = s[15].value * toStep - one;
+    options::g_options.gamma = s[16].value * toStep - one;
     if (!IsMultiplayerClient()) {
         options::g_options.difficultyStored = s[25].value;
         options::g_options.difficulty = s[25].value;
@@ -393,7 +392,7 @@ void UiSlider::SetRect(const RECT* newRect) {
     UiMesh* trackMesh = SceneMesh(0);
     trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->right - newRect->left - 8), 8, 4, 0x20,
                         0xFC);
-    trackMesh->Place(static_cast<float>((newRect->right + newRect->left) * 0.5),
+    trackMesh->Place((newRect->right + newRect->left) * 0.5f,
                  static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(trackMesh);
 

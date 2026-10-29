@@ -21,7 +21,6 @@
 #include "lib/text_case.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include <algorithm>
 #include <cstdint>
@@ -94,13 +93,13 @@ double ItemPrice(Item* item) {
 float WornFraction(const Item* item) {
     float durability = item->condition, maximum = item->conditionMax;
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
-        return static_cast<float>(static_cast<double>(kPriceOne) - static_cast<double>(durability) / maximum);
+        return kPriceOne - durability / maximum;
     float a = kPriceZero < durability ? durability : kPriceZero;
     float b = kPriceZero < maximum ? maximum : kPriceZero;
-    double worn = static_cast<double>(kPriceOne) - static_cast<double>(a) / b;
+    float worn = kPriceOne - a / b;
     if (worn > kPriceOne) return kPriceOne;
     if (worn < kPriceZero) return kPriceZero;
-    return static_cast<float>(worn);
+    return worn;
 }
 
 // The stack count of an item.
@@ -299,7 +298,7 @@ bool CampPages::CanEquip(Item* item, int mode) {
     switch (page) {
     case 0: {   // equipment: weapons, armour, spell containers (worn-out ones not to a hero)
         ItemKind itemKind = item->Kind();
-        if ((itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor) && x87::fistp(item->condition) <= 0 && mode == 1) return false;
+        if ((itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor) && std::lround(item->condition) <= 0 && mode == 1) return false;
         return itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor || itemKind == ItemKind::Quick;
     }
     case 1: {   // trade: a spell container only for a hero who can cast its spell
@@ -334,20 +333,20 @@ bool CampPages::CanEquip(Item* item, int mode) {
                 const itemdb::SpellRecord* record = SpellRecordOf(slot);
                 skillSum += record->skill;
                 school = record->school;
-                manaSum = static_cast<float>(D(manaSum) + D(record->mana));
+                manaSum = manaSum + record->mana;
                 // The modifier must suit the spell (the spell's flag byte for the modifier's kind).
                 std::uint32_t kind = ModifierRecordOf(item)->kind;
                 if (kind < 5 && record->allowedModifiers[kind] == 0) return false;
             } else if (IsModifier(slot)) {
                 ++modifiers;
                 const itemdb::SpellModifierRecord* modifier = ModifierRecordOf(slot);
-                manaSum = static_cast<float>(D(manaSum) + D(modifier->mana));
+                manaSum = manaSum + modifier->mana;
                 skillSum += modifier->skill;
             }
         }
         if (!hasSpell || modifiers >= 8) return false;
         const itemdb::SpellModifierRecord* modifier = ModifierRecordOf(item);
-        float manaTotal = static_cast<float>(D(manaSum) + D(modifier->mana));
+        float manaTotal = manaSum + modifier->mana;
         int skillTotal = skillSum + modifier->skill;
         PartySkill best = BestPartySkill(school);
         if (best.skill < skillTotal) return false;

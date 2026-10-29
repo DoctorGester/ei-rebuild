@@ -10,8 +10,8 @@
 
 #include "lib/containers.h"
 #include "world_data.h"
-#include "ei/x87.h"
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -51,17 +51,17 @@ void AppendByGrow(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) 
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(UiMesh* mesh) {
-    double half = D(worlddata::kHalfTexel);
+    float half = worlddata::kHalfTexel;
     for (int i = 0; i < std::ssize(mesh->texCoords); ++i) {
-        mesh->texCoords[i].u = static_cast<float>(D(mesh->texCoords[i].u) + half);
-        mesh->texCoords[i].v = static_cast<float>(D(mesh->texCoords[i].v) - half);
+        mesh->texCoords[i].u = mesh->texCoords[i].u + half;
+        mesh->texCoords[i].v = mesh->texCoords[i].v - half;
     }
     mesh->RefreshBuffers();
 }
 
 // The scale every builder sets: 0.48157 * depth * scale * 0.0025, in the three scale fields.
 void SetBuildScale(UiMesh* mesh, float depth, float scale) {
-    float s = static_cast<float>(D(worlddata::kInterfaceView) * D(depth) * D(scale) * D(worlddata::kLayoutY));
+    float s = worlddata::kInterfaceView * depth * scale * worlddata::kLayoutY;
     mesh->ScaleX() = s;
     mesh->ScaleY() = s;
     mesh->ScaleZ() = s;
@@ -80,28 +80,28 @@ void SetPosition(UiMesh* mesh, double x, double y, float depth) {
 // is used unrounded in the same expression.
 
 double CircleAngle(int j, int n) {
-    const double turn = static_cast<double>(j) * 3.1415927f;
+    const float turn = j * 3.1415927f;
     return (turn + turn) / n;
 }
 
 // cos or sin of the angle, times the float at `factor`, divided by the float at `divisor`; stored as float.
 float CircleScaled(int j, int n, bool sine, const float* factor, const float* divisor) {
     const double angle = CircleAngle(j, n);
-    return static_cast<float>((sine ? x87::fsin(angle) : x87::fcos(angle)) * *factor / *divisor);
+    return static_cast<float>((sine ? std::sin(angle) : std::cos(angle)) * *factor / *divisor);
 }
 // The same with (the float at `r` - the float at `w`) as the factor, computed unrounded.
 float CircleScaledInner(int j, int n, bool sine, const float* r, const float* w, const float* divisor) {
-    const double factor = static_cast<double>(*r) - *w;
+    const float factor = (*r) - *w;
     const double angle = CircleAngle(j, n);
-    return static_cast<float>((sine ? x87::fsin(angle) : x87::fcos(angle)) * factor / *divisor);
+    return static_cast<float>((sine ? std::sin(angle) : std::cos(angle)) * factor / *divisor);
 }
 // A texture coordinate on the circle of radius R around c (integers): (cos * R + c) / 256, or for v
 // 1 - (sin * R + c) / 256 (the scale is the 1/256 texel constant).
 float CircleTexel(int j, int n, bool sine, int radius, int centre) {
     const double angle = CircleAngle(j, n);
-    const double scale = 0.00390625f;
-    if (!sine) return static_cast<float>((x87::fcos(angle) * radius + centre) * scale);
-    return static_cast<float>(1.0f - (x87::fsin(angle) * radius + centre) * scale);
+    const float scale = 0.00390625f;
+    if (!sine) return static_cast<float>((std::cos(angle) * radius + centre) * scale);
+    return static_cast<float>(1.0f - (std::sin(angle) * radius + centre) * scale);
 }
 
 } // namespace
@@ -110,32 +110,32 @@ void UiMesh::Framed(float depth, float scale, float left, float top, float right
                             int u0, int v0, int u1, int v1) {
     ResetVertexColours(this);
     // How far the inner edge lies in texels: the border's share of the width (height) of the texels.
-    float width = static_cast<float>(D(right) - D(left));
-    float du = static_cast<float>(static_cast<double>(u1 - u0) * D(border) / D(width));
-    float height = static_cast<float>(D(bottom) - D(top));
-    float dv = static_cast<float>(static_cast<double>(v1 - v0) * D(border) / D(height));
+    float width = right - left;
+    float du = (u1 - u0) * border / width;
+    float height = bottom - top;
+    float dv = (v1 - v0) * border / height;
 
     // Texture coordinates: the outer corners, then the inner ones.
     SetUvCount(8);
-    double texel = D(worlddata::kTexel);
-    double one = 1.0;
+    float texel = worlddata::kTexel;
+    float one = 1.0f;
     TexCoord* uv = texCoords.data();
-    float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
-    float outerV1 = static_cast<float>(one - static_cast<double>(v1) * texel);
-    uv[0].u = static_cast<float>(static_cast<double>(u0) * texel);
+    float outerV0 = one - v0 * texel;
+    float outerV1 = one - v1 * texel;
+    uv[0].u = u0 * texel;
     uv[0].v = outerV0;
     uv[1].u = uv[0].u;
     uv[1].v = outerV1;
-    uv[2].u = static_cast<float>(static_cast<double>(u1) * texel);
+    uv[2].u = u1 * texel;
     uv[2].v = outerV0;
     uv[3].u = uv[2].u;
     uv[3].v = outerV1;
-    float innerV0 = static_cast<float>(one - (static_cast<double>(static_cast<float>(v0)) + D(dv)) * texel);
-    uv[4].u = static_cast<float>((static_cast<double>(u0) + D(du)) * texel);
+    float innerV0 = one - (v0 + dv) * texel;
+    uv[4].u = (u0 + du) * texel;
     uv[4].v = innerV0;
     uv[5].u = uv[4].u;
-    uv[5].v = static_cast<float>(one - (static_cast<double>(static_cast<float>(v1)) - D(dv)) * texel);
-    uv[6].u = static_cast<float>((static_cast<double>(static_cast<float>(u1)) - D(du)) * texel);
+    uv[5].v = one - (v1 - dv) * texel;
+    uv[6].u = (u1 - du) * texel;
     uv[6].v = innerV0;
     uv[7].u = uv[6].u;
     uv[7].v = uv[5].v;
@@ -157,21 +157,21 @@ void UiMesh::Framed(float depth, float scale, float left, float top, float right
             vertices[q].w()[i] = 1.0f;
         }
     }
-    double half = 0.5;
-    double halfWidth = D(width) * half;
-    double outerX = halfWidth / D(scale);
-    double halfHeight = D(height) * half;
-    float outerY = static_cast<float>(halfHeight / D(scale));
-    float innerX = static_cast<float>((D(static_cast<float>(halfWidth)) - D(border)) / D(scale));
-    float innerY = static_cast<float>((halfHeight - D(border)) / D(scale));
+    float half = 0.5f;
+    float halfWidth = width * half;
+    float outerX = halfWidth / scale;
+    float halfHeight = height * half;
+    float outerY = halfHeight / scale;
+    float innerX = (halfWidth - border) / scale;
+    float innerY = (halfHeight - border) / scale;
     VertexPacket& outer = vertices[0];
-    outer.x()[0] = static_cast<float>(-outerX);
+    outer.x()[0] = -outerX;
     outer.y()[0] = -outerY;
-    outer.x()[1] = static_cast<float>(-outerX);
+    outer.x()[1] = -outerX;
     outer.y()[1] = outerY;
-    outer.x()[2] = static_cast<float>(outerX);
+    outer.x()[2] = outerX;
     outer.y()[2] = -outerY;
-    outer.x()[3] = static_cast<float>(outerX);
+    outer.x()[3] = outerX;
     outer.y()[3] = outerY;
     VertexPacket& inner = vertices[1];
     inner.x()[0] = -innerX;
@@ -184,7 +184,7 @@ void UiMesh::Framed(float depth, float scale, float left, float top, float right
     inner.y()[3] = innerY;
 
     // Placed at the rectangle's centre.
-    double layoutX = D(worlddata::kLayoutX);
+    float layoutX = worlddata::kLayoutX;
     SetPosition(this, (D(left) + D(right)) * layoutX, (D(top) + D(bottom)) * layoutX, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
@@ -223,7 +223,7 @@ void UiMesh::Disc(float depth, float scale, float x, float y, float outerRadius,
     }
     // Placed by the sprite's own Place (Rebirth-patched), scaled through the sprite's scale.
     Place(x, y, depth);
-    float s = static_cast<float>(D(worlddata::kInterfaceView) * D(depth) * D(scale) * D(worlddata::kLayoutY));
+    float s = worlddata::kInterfaceView * depth * scale * worlddata::kLayoutY;
     SetScale(s);
     NudgeAndCommit(this);
 }
@@ -245,14 +245,14 @@ void UiMesh::Ring(float depth, float scale, float x, float y, float outerRadius,
     corners[count * 4 - 1].position = 1;
 
     SetUvCount(4);
-    double texel = D(worlddata::kTexel);
-    double one = 1.0;
-    float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
-    texCoords[0].u = static_cast<float>(static_cast<double>(u0) * texel);
+    float texel = worlddata::kTexel;
+    float one = 1.0f;
+    float outerV0 = one - v0 * texel;
+    texCoords[0].u = u0 * texel;
     texCoords[0].v = outerV0;
     texCoords[1].u = texCoords[0].u;
-    texCoords[1].v = static_cast<float>(one - static_cast<double>(v1) * texel);
-    texCoords[2].u = static_cast<float>(static_cast<double>(u1) * texel);
+    texCoords[1].v = one - v1 * texel;
+    texCoords[2].u = u1 * texel;
     texCoords[2].v = outerV0;
     texCoords[3].u = texCoords[2].u;
     texCoords[3].v = texCoords[1].v;
@@ -297,7 +297,7 @@ void UiMesh::Ring(float depth, float scale, float x, float y, float outerRadius,
         w[3] = 1.0f;
         ++j;
     }
-    double layoutY = D(worlddata::kLayoutY);
+    float layoutY = worlddata::kLayoutY;
     SetPosition(this, D(x) * layoutY, D(y) * layoutY, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);

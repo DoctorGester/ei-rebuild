@@ -83,9 +83,9 @@ void Interface3D::Create(TextureDevice* device) {
 
     // The scale: what a 75-point font is high here, in pixels / 100.
     if (!MakeFont(fonts[0], kMeasureSize)) return;
-    const float scale = static_cast<float>(static_cast<float>(fonts[0].pixels) * widescreen::FontScale());    // 0.01
+    const float scale = fonts[0].pixels * widescreen::FontScale();    // 0.01
     for (int i = 0; i < 3; ++i) {
-        float size = static_cast<float>(width * kFontShares[i]) / scale * 0.00125f;    // 1 / 800
+        float size = (width * kFontShares[i]) / scale * 0.00125f;    // 1 / 800
         if (!MakeFont(fonts[i], static_cast<int>(libcrt::Ftol(size)))) return;
     }
 

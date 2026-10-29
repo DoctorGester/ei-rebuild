@@ -36,11 +36,11 @@ constexpr int kResultLoad = 0x30001;
 double Ease(float slide) {
     EI_NAN_AUDIT(slide);
     if (slide < 0.5f) {
-        double s = slide;
-        double e = s * s;
+        float s = slide;
+        float e = s * s;
         return e + e;
     }
-    double r = 1.0f - static_cast<double>(slide);
+    float r = 1.0f - slide;
     double e = r * r;
     e = e + e;
     return 1.0f - e;
@@ -281,9 +281,9 @@ void OptionsWindow::Update() {
                 g_clientWorld.sounds->SetSpeechVolume(value);
             } else if (definitionId >= kSettingGammaFirst && definitionId <= kSettingGammaLast) {
                 const OptionSetting* gamma = settings.data() + kSettingGammaFirst;
-                float r = static_cast<float>(static_cast<double>(gamma[0].value) * kGammaScale - 1.0f);
-                float g = static_cast<float>(static_cast<double>(gamma[1].value) * kGammaScale - 1.0f);
-                float b = static_cast<float>(static_cast<double>(gamma[2].value) * kGammaScale - 1.0f);
+                float r = gamma[0].value * kGammaScale - 1.0f;
+                float g = gamma[1].value * kGammaScale - 1.0f;
+                float b = gamma[2].value * kGammaScale - 1.0f;
                 g_sceneRenderer.SetGamma(r, g, b);
             }
         }

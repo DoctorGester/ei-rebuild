@@ -36,13 +36,13 @@ constexpr float kSectorTint = 0.7f;
 constexpr float kArrowDepth = 8.2060862f;
 
 // The angle of `turn` steps, as the original computes it (each product a float).
-float ArcAngle(int turn, float step) { return static_cast<float>(static_cast<float>(static_cast<float>(turn) * kPi) * step); }
+float ArcAngle(int turn, float step) { return (turn * kPi) * step; }
 // The cosine / sine as FCOS / FSIN leave them: the precision control does not reach them (only add, subtract,
 // multiply, divide and square root), so they stay unrounded and it is their product with the radius that the
 // FPU rounds to float at its 24-bit precision. That is what makes sin(pi / 2) x radius the whole radius
 // below, and cos(pi / 3) x 34 exactly 17 (a cosine rounded to float first gives 16.999998 and 16).
-double ArcCos(float angle) { return x87::fcos(static_cast<double>(angle)); }
-double ArcSin(float angle) { return x87::fsin(static_cast<double>(angle)); }
+double ArcCos(float angle) { return std::cos(static_cast<double>(angle)); }
+double ArcSin(float angle) { return std::sin(static_cast<double>(angle)); }
 
 // The point at `turn` steps on the circle of `radius` about the origin, truncated (_ftol).
 struct ArcPoint {
@@ -143,10 +143,10 @@ void HudMovePanel::Build() {
         const float startAngle = ArcAngle(moveMode, kEighth);
         const float startUp = static_cast<float>(ArcSin(startAngle) * kSectorRadius);
         const float startAcross = static_cast<float>(ArcCos(startAngle) * kSectorRadius);
-        sector->SetTriangle(10.0f, 100.0f, 0.0f, 600.0f, startAcross, static_cast<float>(kLayoutBottomY - startUp), endAcross,
-                            static_cast<float>(kLayoutBottomY - endUp), 2.0f, 254.0f, static_cast<float>(startAcross + kTexelLeft),
-                            static_cast<float>(kTexelBottom - startUp), static_cast<float>(endAcross + kTexelLeft),
-                            static_cast<float>(kTexelBottom - endUp));
+        sector->SetTriangle(10.0f, 100.0f, 0.0f, 600.0f, startAcross, kLayoutBottomY - startUp, endAcross,
+                            kLayoutBottomY - endUp, 2.0f, 254.0f, startAcross + kTexelLeft,
+                            kTexelBottom - startUp, endAcross + kTexelLeft,
+                            kTexelBottom - endUp);
         sector->tint[0] = kSectorTint;
         sector->tint[1] = kSectorTint;
         sector->tint[2] = kSectorTint;

@@ -20,6 +20,7 @@
 
 #include "../game/app.h"
 
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>

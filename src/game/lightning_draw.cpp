@@ -10,7 +10,6 @@
 #include "random.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 
 #include <cmath>
@@ -38,7 +37,7 @@ void SizePoints() { g_glowPoints.resize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
-    return static_cast<float>(static_cast<int>(g_clientRandom.Next() & 3)) * 0.25f;
+    return static_cast<int>(g_clientRandom.Next() & 3) * 0.25f;
 }
 
 } // namespace
@@ -53,8 +52,8 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     float frames[15][4];
     const float quarter = 0.25f;
     for (int i = 0; i < 15; ++i) {
-        frames[i][0] = static_cast<float>(i & 3) * quarter;
-        frames[i][1] = 0.75f - static_cast<float>((i >> 2) & 3) * quarter;
+        frames[i][0] = (i & 3) * quarter;
+        frames[i][1] = 0.75f - ((i >> 2) & 3) * quarter;
         frames[i][2] = frames[i][0] + quarter;
         frames[i][3] = frames[i][1] + quarter;
     }
@@ -68,16 +67,16 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     EI_NAN_AUDIT(length);
     if (length != 0.0f) towards /= length;
     float scaled = position.x * 15.0f;
-    int shift = x87::fistp(scaled);
+    int shift = std::lround(scaled);
     int frame = (World()->tick + shift) % 15;
     for (int j = 0; j < 8; ++j) {
-        float t = static_cast<float>(j) * 0.125f;   // 1/8
+        float t = j * 0.125f;   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
         LightningPoint& p = g_glowPoints[j];
         p.x = position.x + along.x;
         p.y = position.y + along.y;
         p.z = position.z + along.z;
-        p.w = static_cast<float>(std::sqrt(1.0f - t * t) * size);
+        p.w = std::sqrt(1.0f - t * t) * size;
         SpriteRecord& s = g_sprites[j];
         s.colour = 0xA0FFFFFFu;
         s.rect = frames[frame % 15];
@@ -102,11 +101,11 @@ int Lightning::Draw(SceneRenderer* device) {
         for (LightningSegment& b : branches) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthZXY(main.step) * static_cast<float>(std::ssize(main.points)) * 0.6f;
+        float span = LengthZXY(main.step) * std::ssize(main.points) * 0.6f;
         renderer->DrawStrip(&main.points, main.width, visibility, span, offset, slant);
         for (LightningSegment& b : branches) {
             offset = RandomOffset();
-            span = LengthZXY(b.step) * static_cast<float>(std::ssize(b.points)) * 0.6f;
+            span = LengthZXY(b.step) * std::ssize(b.points) * 0.6f;
             renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
         }
     }
@@ -116,7 +115,7 @@ int Lightning::Draw(SceneRenderer* device) {
     Vector3 run{count * main.step.x, count * main.step.y, count * main.step.z};
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
-    float size = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f);
+    float size = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f;
     if (power > zero) {
         // Clamped to [0.5, 1.2] with selects (NaN keeps the size).
         float low = 0.5f, high = 1.2f;

@@ -14,8 +14,6 @@
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
-#include "ei/x87.h"
-
 #include <bit>
 #include <cmath>
 #include <string>
@@ -97,8 +95,8 @@ double SunElevation(float hour) {
         night = (hour - kSunset) / (kDayLength - kSunset);
     } else {
         float offset = hour - (kSunset + kSunrise) * 0.5f;
-        const float distance = std::fabs(static_cast<float>(offset));
-        const double t = distance / (kSunset - kSunrise);
+        const float distance = std::fabs(offset);
+        const float t = distance / (kSunset - kSunrise);
         return ((1.0f - (t + t)) + 1.0f) * kBaseElevation;
     }
     return night * kNightSpan + kBaseElevation;
@@ -157,7 +155,7 @@ int WorldClient::UpdateLighting() {
         }
         EI_NAN_AUDIT(hour, g_lastLitHour);
         if (hour - g_lastLitHour < 1.0f) return 0;
-        g_lastLitHour = static_cast<float>(std::floor(static_cast<double>(hour)));
+        g_lastLitHour = std::floor(hour);
         if (terrain) {
             const Vector4 ambientColour = Ambient(frameAmbient);
             terrain->SetSun(light, &ambientColour);
@@ -173,14 +171,14 @@ int WorldClient::UpdateLighting() {
     if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
 
     const double elevation = SunElevation(hour) * kRadiansPerDegree;
-    const double turn = hour * kPerHour;
+    const float turn = hour * kPerHour;
     const double azimuth = (turn + turn) * kPiDouble;
-    const double cosElevation = x87::fcos(elevation);
+    const double cosElevation = std::cos(elevation);
     Vector3 direction;
     {
-        float x = static_cast<float>(x87::fcos(azimuth) * cosElevation);
-        float y = static_cast<float>(x87::fsin(azimuth) * cosElevation);
-        float z = static_cast<float>(-x87::fsin(elevation));
+        float x = static_cast<float>(std::cos(azimuth) * cosElevation);
+        float y = static_cast<float>(std::sin(azimuth) * cosElevation);
+        float z = static_cast<float>(-std::sin(elevation));
         direction = {x, y, z};
     }
     double whole;
@@ -218,7 +216,7 @@ int WorldClient::UpdateLighting() {
     }
     EI_NAN_AUDIT(hour, g_lastLitHour);
     if (hour - g_lastLitHour < 1.0f) return 0;
-    g_lastLitHour = static_cast<float>(std::floor(static_cast<double>(hour)));
+    g_lastLitHour = std::floor(hour);
     if (terrain) {
         const Vector4 ambientColour = Ambient(frameAmbient);
         terrain->SetSun(light, &ambientColour);

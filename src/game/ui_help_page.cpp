@@ -252,8 +252,8 @@ void HelpWindow::ShowPage() {
                     }
                     UiMesh* picture = AddBlankSprite();
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
-                    picture->textureOffsetU = static_cast<float>(cellX) * kTexel;
-                    picture->textureOffsetV = static_cast<float>(cellY + kPictureSize) * kTexel;
+                    picture->textureOffsetU = cellX * kTexel;
+                    picture->textureOffsetV = (cellY + kPictureSize) * kTexel;
                     picture->Place(static_cast<float>(pageArea.left + 47 + shift),
                                         static_cast<float>(y + pageArea.top + 95), 3.0f);
                     picture->texture = objects[1];

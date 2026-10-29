@@ -20,8 +20,6 @@
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 
-#include "ei/x87.h"
-
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -88,7 +86,7 @@ double Sway(const WeatherNoiseCurve& curve, int cell, float at) {
     if (cell < 0 || cell >= kSwayCells) return 0.0;
     const WeatherNoiseSegment& segment = curve.segments[cell];
     MotionCubic cubic{segment.value, segment.slope, segment.quadratic, segment.cubic};
-    return cubic.Value(static_cast<float>(at - static_cast<float>(cell)));
+    return cubic.Value(at - cell);
 }
 
 // What both draws start from.
@@ -104,19 +102,19 @@ struct ParticleFrame {
 ParticleFrame Begin(RainSnow& layer, float sink, float rise) {
     ParticleFrame frame;
     frame.wind = layer.wind;
-    frame.wind.z = static_cast<float>(layer.wind.z - sink);
+    frame.wind.z = layer.wind.z - sink;
     const WorldClient* world = layer.world;
-    frame.time = static_cast<float>(static_cast<float>(world->tick) + world->tickFraction);
+    frame.time = world->tick + world->tickFraction;
     const Vector3 eye = camera::FrameView().position;
     // The time a particle takes from `rise` above the camera, and where it starts from then.
-    const float time = static_cast<float>((eye.z - rise) / frame.wind.z);
-    frame.baseX = x87::fistp(static_cast<float>((eye.x - frame.wind.x * time) * kCellsPerUnit));
-    frame.baseY = x87::fistp(static_cast<float>((eye.y - frame.wind.y * time) * kCellsPerUnit));
+    const float time = (eye.z - rise) / frame.wind.z;
+    frame.baseX = std::lround((eye.x - frame.wind.x * time) * kCellsPerUnit);
+    frame.baseY = std::lround((eye.y - frame.wind.y * time) * kCellsPerUnit);
     layer.particleCount = 0;
     layer.positions.resize(kMaxPackets);
-    const float below = static_cast<float>(eye.z - kHalfHeight);
+    const float below = eye.z - kHalfHeight;
     frame.low = below <= 0.0f ? 0.0f : below;
-    frame.high = static_cast<float>(kHalfHeight + eye.z);
+    frame.high = kHalfHeight + eye.z;
     return frame;
 }
 
@@ -148,7 +146,7 @@ void SetCorner(TLVertex& vertex, const Vector4& projected) { std::memcpy(&vertex
 
 // The texture frame's coordinates on a particle's three vertices.
 void SetFrame(TLVertex* triangle, std::uint8_t frame, float top, float bottom) {
-    const float left = static_cast<float>(frame) * kFrameWidth;
+    const float left = frame * kFrameWidth;
     triangle[0].u = left;
     triangle[0].v = top;
     triangle[1].u = left + kFrameWidth;
@@ -170,8 +168,8 @@ int RainSnow::BuildRain(SceneRenderer* renderer) {
     const ParticleFrame frame = Begin(*this, kRainSink, kRainRise);
     // The drop's tail: its length against the wind.
     const float length = LengthXYZ(frame.wind);
-    const float tailX = static_cast<float>(-(frame.wind.x / length * kDropLength));
-    const float tailY = static_cast<float>(-(frame.wind.y / length * kDropLength));
+    const float tailX = -(frame.wind.x / length * kDropLength);
+    const float tailY = -(frame.wind.y / length * kDropLength);
 
     int drops = 0;
     for (int i = 0; i < kGridCells; ++i) {
@@ -183,10 +181,10 @@ int RainSnow::BuildRain(SceneRenderer* renderer) {
             const std::uint32_t column = static_cast<std::uint32_t>(col), line = static_cast<std::uint32_t>(row);
             const std::uint32_t seed =
                 (kRainSeeds[(column * column + line) & (kSeedCount - 1)] + column * 172u + line * 13u) & 0xFFFF;
-            const float phase = static_cast<float>(static_cast<float>(static_cast<int>(seed)) + frame.time);
-            const int cycle = x87::fistp(static_cast<float>(phase / kRainCycle));
+            const float phase = static_cast<int>(seed) + frame.time;
+            const int cycle = std::lround(phase / kRainCycle);
             if ((cycle & kDensitySteps) >= density) continue;
-            const float fall = phase - static_cast<float>(cycle) * kRainCycle;
+            const float fall = phase - cycle * kRainCycle;
             // The height, wrapped into the band around the camera.
             float z = fall * frame.wind.z + kSnowRise;
             if (z > frame.high) {
@@ -201,11 +199,11 @@ int RainSnow::BuildRain(SceneRenderer* renderer) {
                 while (z < frame.low);   // ends on a NaN (the game's did not)
             }
             const float cell = kCellSize;
-            const float x = static_cast<float>(static_cast<float>(col) * cell + fall * frame.wind.x +
-                                       static_cast<float>(Jitter(cycle, kJitterX)) * cell * kJitterScale);
-            const float y = static_cast<float>(static_cast<float>(row) * cell + fall * frame.wind.y +
-                                       static_cast<float>(Jitter(cycle, kJitterY)) * cell * kJitterScale);
-            const float bottom = static_cast<float>(Jitter(cycle, kJitterZ)) * kJitterHeight * kJitterScale + z;
+            const float x = col * cell + fall * frame.wind.x +
+                                       Jitter(cycle, kJitterX) * cell * kJitterScale;
+            const float y = row * cell + fall * frame.wind.y +
+                                       Jitter(cycle, kJitterY) * cell * kJitterScale;
+            const float bottom = Jitter(cycle, kJitterZ) * kJitterHeight * kJitterScale + z;
             frames[drops] = static_cast<std::uint8_t>(cycle & 3);
 
             // The drop's base lies across the direction the cell is seen in, more or less.
@@ -252,28 +250,28 @@ int RainSnow::BuildSnow(SceneRenderer* renderer) {
             const std::uint32_t column = static_cast<std::uint32_t>(col), line = static_cast<std::uint32_t>(row);
             const std::uint32_t seed =
                 (kSnowSeeds[(column * column + line) & (kSeedCount - 1)] - column * 30064u + line * 17843u) & 0xFFFF;
-            const float phase = static_cast<float>(static_cast<float>(static_cast<int>(seed)) + frame.time);
-            const int cycle = x87::fistp(static_cast<float>(phase / kSnowCycle));
+            const float phase = static_cast<int>(seed) + frame.time;
+            const int cycle = std::lround(phase / kSnowCycle);
             if ((cycle & kDensitySteps) >= density) continue;
-            const float fall = static_cast<float>(phase - static_cast<float>(cycle) * kSnowCycle);
-            float z = static_cast<float>(fall * frame.wind.z + kSnowRise);
+            const float fall = phase - cycle * kSnowCycle;
+            float z = fall * frame.wind.z + kSnowRise;
             EI_NAN_AUDIT(z);
             if (z < frame.low) continue;
             if (z > frame.high) continue;
             const float cell = kCellSize;
-            float x = static_cast<float>(static_cast<float>(col) * cell + fall * frame.wind.x +
-                                 static_cast<float>(Jitter(cycle, kJitterX)) * cell * kJitterScale);
-            float y = static_cast<float>(static_cast<float>(row) * cell + fall * frame.wind.y +
-                                 static_cast<float>(Jitter(cycle, kJitterY)) * cell * kJitterScale);
-            z = static_cast<float>(static_cast<float>(Jitter(cycle, kJitterZ)) * kJitterHeight * kJitterScale + z);
+            float x = col * cell + fall * frame.wind.x +
+                                 Jitter(cycle, kJitterX) * cell * kJitterScale;
+            float y = row * cell + fall * frame.wind.y +
+                                 Jitter(cycle, kJitterY) * cell * kJitterScale;
+            z = Jitter(cycle, kJitterZ) * kJitterHeight * kJitterScale + z;
 
             // The sway: by the height on all three axes, and by the place along x and y.
             const int level = static_cast<int>(libcrt::Ftol(z));
             const float swayX = static_cast<float>(Sway(g_swayXByHeight, level, z));
-            const float placeX = static_cast<float>(std::fmod(static_cast<float>(x + kSwayShift), kSwayPeriod));
+            const float placeX = static_cast<float>(std::fmod(x + kSwayShift, kSwayPeriod));
             x = static_cast<float>(swayX + Sway(g_swayXByPlace, static_cast<int>(libcrt::Ftol(placeX)), placeX) + x);
             const float swayY = static_cast<float>(Sway(g_swayYByHeight, level, z));
-            const float placeY = static_cast<float>(std::fmod(static_cast<float>(y + kSwayShift), kSwayPeriod));
+            const float placeY = static_cast<float>(std::fmod(y + kSwayShift, kSwayPeriod));
             y = static_cast<float>(swayY + Sway(g_swayYByPlace, static_cast<int>(libcrt::Ftol(placeY)), placeY) + y);
             Put(*this, x, y, static_cast<float>(Sway(g_swayZByHeight, level, z) + z));
             frames[flakes] = static_cast<std::uint8_t>(cycle & 3);
@@ -292,9 +290,9 @@ int RainSnow::BuildSnow(SceneRenderer* renderer) {
         // A triangle around the point, in the projection's units.
         triangle[0].x = triangle[0].x - kFlakeWidth * 0.5f;
         triangle[1].x = triangle[1].x + kFlakeWidth * 0.5f;
-        triangle[0].y = triangle[0].y - static_cast<float>(kFlakeHeight * kFlakeAbove);
-        triangle[1].y = triangle[1].y - static_cast<float>(kFlakeHeight * kFlakeAbove);
-        triangle[2].y = triangle[2].y + static_cast<float>(kFlakeHeight * kFlakeBelow);
+        triangle[0].y = triangle[0].y - (kFlakeHeight * kFlakeAbove);
+        triangle[1].y = triangle[1].y - (kFlakeHeight * kFlakeAbove);
+        triangle[2].y = triangle[2].y + (kFlakeHeight * kFlakeBelow);
         SetFrame(triangle, *frameOf, kSnowTop, kSnowBottom);
         used += 3;
     }

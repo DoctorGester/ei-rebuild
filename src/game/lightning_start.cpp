@@ -1,5 +1,5 @@
 // Lightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7);
-// random words converted with x87::FromUnsigned. See docs/notes/objects.md ("Rewritten").
+// random words converted to double. See docs/notes/objects.md ("Rewritten").
 #include "game_singletons.h"
 #include "lightning.h"
 #include "random.h"
@@ -9,8 +9,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-
-#include "ei/x87.h"
 
 #include <bit>
 #include <cmath>
@@ -38,7 +36,7 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bool demon) {
     int ticks = g_clientWorld.tick;
     float fraction = g_clientWorld.tickFraction;
-    float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f);
+    float time = (ticks + fraction) / 4.0f;
     power = newPower;
     const float strength = AbsBits(newPower);
     amplitude = power > 0.0f ? 0.05f : 0.3f;     // 0.05 : 0.3
@@ -66,7 +64,7 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
             origin.z = along * from.z + rest * to.z;
             branches[i].Init(origin, to);
             FreshKeys(branches[i], time, newAmplitude);
-            double random = x87::FromUnsigned(g_clientRandom.Next());
+            double random = static_cast<double>(g_clientRandom.Next());
             branches[i].width = static_cast<float>((random * 1.8626451774202136e-10 + 0.7f) * strength *
                                                     0.5f);
         }
@@ -74,18 +72,18 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
         main.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
             float dx = from.x - to.x, dy = from.y - to.y, dz = from.z - to.z;
-            float reach = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f);
+            float reach = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f;
             float low = -reach;
-            const double scale = 2.3283064370807974e-10;
-            float offsetY = static_cast<float>((reach - low) * x87::FromUnsigned(g_clientRandom.Next()) * scale + low);
-            float offsetX = static_cast<float>((reach - low) * x87::FromUnsigned(g_clientRandom.Next()) * scale + low);
-            float offsetZ = static_cast<float>((reach - low) * x87::FromUnsigned(g_clientRandom.Next()) * scale + low);
+            const float scale = 2.3283064e-10f;
+            float offsetY = static_cast<float>((reach - low) * static_cast<double>(g_clientRandom.Next()) * scale + low);
+            float offsetX = static_cast<float>((reach - low) * static_cast<double>(g_clientRandom.Next()) * scale + low);
+            float offsetZ = static_cast<float>((reach - low) * static_cast<double>(g_clientRandom.Next()) * scale + low);
             float newAmplitude = KeyAmplitude(power);
             Vector3 shiftedTo{offsetX + to.x, offsetY + to.y, offsetZ + to.z};
             Vector3 shiftedFrom{offsetX + from.x, offsetY + from.y, offsetZ + from.z};
             branches[i].Init(shiftedFrom, shiftedTo);
             FreshKeys(branches[i], time, newAmplitude);
-            double random = x87::FromUnsigned(g_clientRandom.Next());
+            double random = static_cast<double>(g_clientRandom.Next());
             branches[i].width = static_cast<float>(random * 1.8626451774202136e-10 * 3.5f +
                                                     2.45f);   // 2.45 .. 3.25
         }

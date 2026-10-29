@@ -93,15 +93,15 @@ class StbFont final : public Font {
 public:
     StbFont(std::shared_ptr<FontFile> newFile, int pixels) : file(std::move(newFile)) {
         scale = static_cast<float>(pixels) / static_cast<float>(file->unitsPerEm);
-        metrics.ascent = RoundToInt(static_cast<float>(file->winAscent) * scale);
-        metrics.descent = RoundToInt(static_cast<float>(file->winDescent) * scale);
+        metrics.ascent = RoundToInt(file->winAscent * scale);
+        metrics.descent = RoundToInt(file->winDescent * scale);
         metrics.height = metrics.ascent + metrics.descent;
-        metrics.cellAscent = static_cast<int>(std::ceil(static_cast<float>(file->winAscent) * scale));
-        metrics.cellDescent = static_cast<int>(std::ceil(static_cast<float>(file->winDescent) * scale));
+        metrics.cellAscent = static_cast<int>(std::ceil(file->winAscent * scale));
+        metrics.cellDescent = static_cast<int>(std::ceil(file->winDescent * scale));
         const int hheaHeight = file->hheaAscent - file->hheaDescent + file->hheaLineGap;
         const int winHeight = file->winAscent + file->winDescent;
-        metrics.lineGap = std::max(0, RoundToInt(static_cast<float>(hheaHeight - winHeight) * scale));
-        metrics.averageWidth = RoundToInt(static_cast<float>(file->averageWidth) * scale);
+        metrics.lineGap = std::max(0, RoundToInt((hheaHeight - winHeight) * scale));
+        metrics.averageWidth = RoundToInt(file->averageWidth * scale);
     }
 
     const FontMetrics& Metrics() const override { return metrics; }
@@ -112,7 +112,7 @@ public:
         const int index = stbtt_FindGlyphIndex(&file->info, static_cast<int>(ch));
         int advance = 0, bearing = 0;
         stbtt_GetGlyphHMetrics(&file->info, index, &advance, &bearing);
-        glyph.advance = RoundToInt(static_cast<float>(advance) * scale);
+        glyph.advance = RoundToInt(advance * scale);
         int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
         stbtt_GetGlyphBitmapBox(&file->info, index, scale, scale, &x0, &y0, &x1, &y1);
         if (x1 > x0 && y1 > y0) {
@@ -126,7 +126,7 @@ public:
 
     int Kerning(char32_t left, char32_t right) const override {
         const int kern = stbtt_GetCodepointKernAdvance(&file->info, static_cast<int>(left), static_cast<int>(right));
-        return RoundToInt(static_cast<float>(kern) * scale);
+        return RoundToInt(kern * scale);
     }
 
     void Rasterise(char32_t ch, std::uint8_t* out, int pitch) const override {

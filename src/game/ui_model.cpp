@@ -9,7 +9,6 @@
 #include "unit_create.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/gameapi.h"
 #include <cstdint>
 #include <string>
@@ -31,7 +30,7 @@ void ShowFigurePart(FigureMesh* part, int show) {
 // unsigned qword.
 float InterfaceClock() {
     constexpr float kRate = 0x1.e9131ap-7f;   // 0.0149253728
-    return static_cast<float>(x87::FromUnsigned(gameapi::timeGetTime()) * static_cast<double>(kRate));
+    return static_cast<float>(static_cast<double>(gameapi::timeGetTime()) * static_cast<double>(kRate));
 }
 
 // The preview's map object: class 0x33 under a fixed id; MapObjectFlag::Preview on it.

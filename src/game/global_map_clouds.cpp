@@ -34,12 +34,12 @@ void GlobalMapClouds::Draw(const void* holder, float seconds) {
             ++step;
         }
     }
-    const int blend = static_cast<int>((static_cast<float>(step) + phase) * 0.0625f * 254.0f + 1.0f);
+    const int blend = static_cast<int>((step + phase) * 0.0625f * 254.0f + 1.0f);
     render::DrawClouds(holder, frames[0], frames[1], blend, ramp);
 }
 
 void GlobalMapClouds::SetRamp(int start, int width, float newSpeed) {
-    float base = static_cast<float>(width) * (1.0f / 255.0f);
+    float base = width * (1.0f / 255.0f);
     speed = newSpeed;
     for (int i = 0; i < 0x100; ++i) {
         const int exponent = i - start < 0 ? 0 : i - start;

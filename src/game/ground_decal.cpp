@@ -2,7 +2,6 @@
 // >= 0 -> u <= 1 -> v <= 1, with entry points part way), each stage writing its second triangle into its own
 // function-static buffer. ClipStage is that pipeline with one buffer per stage, so the in-place clipping and
 // the order triangles are emitted in are the same.
-#include "ei/x87.h"
 #include "ground_decal.h"
 
 #include "lib/float_select.h"
@@ -36,12 +35,12 @@ double Vector3::LengthSquared() const { return LengthSquaredUnrounded<Sum3::XYZ>
 namespace decal {
 
 void Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, float dp, float dq) {
-    double scale = 1.0f / (dq - dp);
-    out->position.x = static_cast<float>((dq * p->position.x - dp * q->position.x) * scale);
-    out->position.y = static_cast<float>((dq * p->position.y - dp * q->position.y) * scale);
-    out->position.z = static_cast<float>((dq * p->position.z - dp * q->position.z) * scale);
-    out->u = static_cast<float>((dq * p->u - dp * q->u) * scale);
-    out->v = static_cast<float>((dq * p->v - dp * q->v) * scale);
+    float scale = 1.0f / (dq - dp);
+    out->position.x = (dq * p->position.x - dp * q->position.x) * scale;
+    out->position.y = (dq * p->position.y - dp * q->position.y) * scale;
+    out->position.z = (dq * p->position.z - dp * q->position.z) * scale;
+    out->u = (dq * p->u - dp * q->u) * scale;
+    out->v = (dq * p->v - dp * q->v) * scale;
 }
 
 int ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c) {
@@ -123,9 +122,9 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* newPoints, std::vector<Decal
 
     // The u edge without its part along the direction, over its squared length.
     uAxis = {quad.x()[2] - newOrigin.x, quad.y()[2] - newOrigin.y, quad.z()[2] - newOrigin.z};
-    double along = DotZYX(uAxis, dir);
-    Vector3 part = {static_cast<float>(along * dir.x), static_cast<float>(along * dir.y),
-                    static_cast<float>(along * dir.z)};
+    float along = DotZYX(uAxis, dir);
+    Vector3 part = {along * dir.x, along * dir.y,
+                    along * dir.z};
     uAxis = {uAxis.x - part.x, uAxis.y - part.y, uAxis.z - part.z};
     uAxis.DivideInPlace(static_cast<float>(uAxis.LengthSquared()));
 
@@ -153,13 +152,13 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* newPoints, std::vector<Decal
 }
 
 bool DecalBuilder::Touches(const Vector3& center, float radius) const {
-    double v = DotZYX(vAxis, center) + vOffset;
-    double vReach = radius * vLength;
+    float v = DotZYX(vAxis, center) + vOffset;
+    float vReach = radius * vLength;
     if (v - vReach > 1.0f) return false;
     EI_NAN_AUDIT(v, vReach);
     if (v + vReach < 0.0f) return false;
-    double u = DotZYX(uAxis, center) + uOffset;
-    double uReach = radius * uLength;
+    float u = DotZYX(uAxis, center) + uOffset;
+    float uReach = radius * uLength;
     if (u - uReach > 1.0f) return false;
     return u + uReach >= 0.0f;
 }
@@ -174,11 +173,11 @@ void DecalBuilder::Reserve(int triangles) {
 std::uint16_t DecalBuilder::AddVertex(const DecalVertex* v) {
     int i = vertexCount;
     VertexPacket& packet = (*points)[i / 4];
-    x87::CopyBits(packet.block[0][i & 3], v->position.x);
-    x87::CopyBits(packet.block[1][i & 3], v->position.y);
-    x87::CopyBits(packet.block[2][i & 3], v->position.z);
-    x87::CopyBits((*texCoords)[i].u, v->u);
-    x87::CopyBits((*texCoords)[i].v, v->v);
+    packet.block[0][i & 3] = v->position.x;
+    packet.block[1][i & 3] = v->position.y;
+    packet.block[2][i & 3] = v->position.z;
+    (*texCoords)[i].u = v->u;
+    (*texCoords)[i].v = v->v;
     vertexCount = i + 1;
     return static_cast<std::uint16_t>(i);
 }
@@ -244,9 +243,9 @@ void DecalBuilder::Finish() {
     for (int i = vertexCount; i < std::ssize(*currentPoints) * 4; ++i) {
         VertexPacket& packet = (*currentPoints)[i / 4];
         const VertexPacket& first = (*currentPoints)[0];
-        x87::CopyBits(packet.block[0][i & 3], first.block[0][0]);
-        x87::CopyBits(packet.block[1][i & 3], first.block[1][0]);
-        x87::CopyBits(packet.block[2][i & 3], first.block[2][0]);
+        packet.block[0][i & 3] = first.block[0][0];
+        packet.block[1][i & 3] = first.block[1][0];
+        packet.block[2][i & 3] = first.block[2][0];
     }
     points = nullptr;
     texCoords = nullptr;

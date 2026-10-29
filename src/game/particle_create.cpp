@@ -12,8 +12,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 
-#include "ei/x87.h"
-
+#include <cmath>
 #include <cstring>
 
 namespace {
@@ -125,8 +124,8 @@ void SetupExplosion(ParticleSource* s) {
         float vy = static_cast<float>(speed * D(direction.y));
         double vz = speed * D(direction.z);
         auto& fragment = s->elements[i].fragment;
-        fragment.velocity.x = static_cast<float>(D(vx) * D(EI_POINT_EIGHT));
-        fragment.velocity.y = static_cast<float>(D(vy) * D(EI_POINT_EIGHT));
+        fragment.velocity.x = vx * EI_POINT_EIGHT;
+        fragment.velocity.y = vy * EI_POINT_EIGHT;
         fragment.velocity.z = static_cast<float>(vz * D(EI_POINT_EIGHT));
         fragment.age = 0;
         fragment.radius = 0.0f;
@@ -159,7 +158,7 @@ void SetupTornadoRings(ParticleSource* s) {
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         ParticleElement& e = s->elements[i];
         std::memset(&e.pos, 0, 2 * sizeof(float));
-        e.pos.z = static_cast<float>(static_cast<double>(i) * D(EI_TWELVE) * D(EI_POINT_TWO));
+        e.pos.z = i * EI_TWELVE * EI_POINT_TWO;
         e.ticks = 0;
         e.word[9] = 0;
     }
@@ -195,7 +194,7 @@ void SetupCurseHolder(ParticleSource* s) {
     s->height = 0.2f;
     SetBits(&s->frameDelay, 0x19000000);
     SetupTornadoRings(s);
-    s->elements[0].funnel.height = static_cast<float>(D(EI_TWELVE) * D(EI_POINT_FOUR));
+    s->elements[0].funnel.height = EI_TWELVE * EI_POINT_FOUR;
     s->elements[0].funnel.bend = 0.0f;
     s->elements[0].funnel.damping = 0.997f;     // 0.997
     SetCallbacks(s, &ParticleSource::EmitTornado, &ParticleSource::UpdateTornado, &ParticleSource::TickTornado);
@@ -258,8 +257,8 @@ void SetupClayRing(ParticleSource* s) {
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         double angle = static_cast<double>(i) * EI_RING_STEP;
         float* direction = &s->elements[i].clay.direction.x;
-        direction[0] = static_cast<float>(x87::fsin(angle));
-        direction[1] = static_cast<float>(x87::fcos(angle));
+        direction[0] = static_cast<float>(std::sin(angle));
+        direction[1] = static_cast<float>(std::cos(angle));
         direction[2] = 0.0f;
         s->elements[i].pos = s->localPosition;
         s->elements[i].clay.previous = s->localPosition;
@@ -389,7 +388,7 @@ const char* SetupType(ParticleSource* s) {
         s->lifetime = 16;
         s->frameDelay = 1;
         s->size = 2.5f;
-        s->height = static_cast<float>(D(s->spreadMax.y) * D(EI_SIXTY_FOURTH));
+        s->height = s->spreadMax.y * EI_SIXTY_FOURTH;
         s->growth = 0.99f;
         SetCallbacks(s, &ParticleSource::EmitVulkan, &ParticleSource::UpdateVulkan, nullptr);
         return "Vulkan";
@@ -699,16 +698,16 @@ const char* SetupType(ParticleSource* s) {
 
 // The frames are cells of a grid `columns` wide, row 0 at the top (v = 1), each inset by 1/512.
 void BuildFrames(ParticleSource* s) {
-    float step = static_cast<float>(D(EI_ONE) / static_cast<double>(s->frameColumns));
+    float step = EI_ONE / s->frameColumns;
     s->frames.resize(s->frameCount);
     SourceFrame* rect = s->frames.data();
     for (int i = 0; i < s->frameCount; ++i, ++rect) {
-        double column = static_cast<double>(i % s->frameColumns);
-        float row = static_cast<float>(static_cast<double>(i / s->frameColumns));
-        rect->u0 = static_cast<float>(column * D(step) + D(EI_UV_INSET));
-        rect->v0 = static_cast<float>(D(EI_ONE) - (D(row) * D(step) + D(EI_UV_INSET)));
-        rect->u1 = static_cast<float>((column + D(EI_ONE)) * D(step) - D(EI_UV_INSET));
-        rect->v1 = static_cast<float>(D(EI_ONE) - ((D(row) + D(EI_ONE)) * D(step) - D(EI_UV_INSET)));
+        float column = static_cast<float>(i % s->frameColumns);
+        float row = static_cast<float>(i / s->frameColumns);
+        rect->u0 = column * step + EI_UV_INSET;
+        rect->v0 = EI_ONE - (row * step + EI_UV_INSET);
+        rect->u1 = (column + EI_ONE) * step - EI_UV_INSET;
+        rect->v1 = EI_ONE - ((row + EI_ONE) * step - EI_UV_INSET);
     }
 }
 

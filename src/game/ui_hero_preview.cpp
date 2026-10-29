@@ -12,7 +12,6 @@
 
 #include "lib/vecmath.h"
 #include "render/render_state.h"
-#include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "game_singletons.h"
@@ -31,26 +30,26 @@ constexpr LONG kWideClearBottom[6] = /*00740340*/ {500, 260, 410, 210, 310, 410}
 
 // The game's vector helpers as the original calls them (dot, unrounded; scale; cross; sum; results stored as float).
 double DotCall(const Vector3& a, const Vector3& b) { return DotUnrounded<Sum3::ZYX, double>(a, b); }
-Vector3 Scale(const Vector3& v, float s) { return {static_cast<float>(D(s) * D(v.x)), static_cast<float>(D(s) * D(v.y)), static_cast<float>(D(s) * D(v.z))}; }
+Vector3 Scale(const Vector3& v, float s) { return {s * v.x, s * v.y, s * v.z}; }
 Vector3 CrossStored(const Vector3& a, const Vector3& b) {
-    float z = static_cast<float>(D(a.x) * D(b.y) - D(a.y) * D(b.x));
-    float y = static_cast<float>(D(a.z) * D(b.x) - D(b.z) * D(a.x));
-    float x = static_cast<float>(D(a.y) * D(b.z) - D(a.z) * D(b.y));
+    float z = a.x * b.y - a.y * b.x;
+    float y = a.z * b.x - b.z * a.x;
+    float x = a.y * b.z - a.z * b.y;
     return {x, y, z};
 }
 Vector3 Sum(const Vector3& a, const Vector3& b) {
-    float z = static_cast<float>(D(a.z) + D(b.z));
-    float y = static_cast<float>(D(a.y) + D(b.y));
-    float x = static_cast<float>(D(a.x) + D(b.x));
+    float z = a.z + b.z;
+    float y = a.y + b.y;
+    float x = a.x + b.x;
     return {x, y, z};
 }
 
 // The products the original inlines (q * r), with the two orders of the w sum it uses.
 Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
     Quaternion out;
-    out.z = static_cast<float>(((D(q.x) * D(r.y) - D(q.y) * D(r.x)) + D(q.w) * D(r.z)) + D(q.z) * D(r.w));
-    out.y = static_cast<float>(((D(q.z) * D(r.x) - D(q.x) * D(r.z)) + D(q.y) * D(r.w)) + D(q.w) * D(r.y));
-    out.x = static_cast<float>(((D(q.y) * D(r.z) - D(q.z) * D(r.y)) + D(q.x) * D(r.w)) + D(q.w) * D(r.x));
+    out.z = ((q.x * r.y - q.y * r.x) + q.w * r.z) + q.z * r.w;
+    out.y = ((q.z * r.x - q.x * r.z) + q.y * r.w) + q.w * r.y;
+    out.x = ((q.y * r.z - q.z * r.y) + q.x * r.w) + q.w * r.x;
     if (!second)
         out.w = static_cast<float>(D(q.w) * D(r.w) - DotUnrounded<Sum3::ZYX, double>(q.x, q.y, q.z, r.x, r.y, r.z));
     else
@@ -97,7 +96,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
     model->flags |= MapObjectFlag::NoEdgeFade;
     {
         std::uint32_t now = gameapi::timeGetTime();
-        float time = static_cast<float>(x87::FromUnsigned(now) * D(0.0009765625f) * D(15.0f));
+        float time = static_cast<float>(static_cast<double>(now) * D(0.0009765625f) * D(15.0f));
         model->AdvanceTime(time);
     }
 
@@ -108,17 +107,17 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
     q.SetAxisAngle(up, turn);
     Vector3 v = {q.x, q.y, q.z};
     Vector3 origin = {0.0f, 0.0f, 0.0f};
-    float ww = static_cast<float>(D(q.w) * D(q.w));
+    float ww = q.w * q.w;
     Vector3 along = Scale(v, static_cast<float>(DotCall(v, origin) + DotCall(v, origin)));
-    Vector3 across = Scale(CrossStored(v, origin), static_cast<float>(D(q.w) + D(q.w)));
+    Vector3 across = Scale(CrossStored(v, origin), q.w + q.w);
     Vector3 rotated = Sum(Sum(Scale(origin, static_cast<float>(D(ww) - DotCall(v, v))), across), along);
     // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
-    double dx = ((D(depth) * D(0.0025f) - 1.0) * D(0.48157462f)) *
-                D(6.0f);
-    double dy = static_cast<float>(D(0.48157462f) * D(2.1f));   // rounded to 24 bits as the FPU does (the compiler folds it at 53)
-    float px = static_cast<float>(D(rotated.x) + dx);
-    float py = static_cast<float>(D(rotated.y) + dy);
-    float pz = static_cast<float>(D(rotated.z) + D(6.0f));
+    float dx = ((depth * 0.0025f - 1.0f) * 0.48157462f) *
+                6.0f;
+    float dy = 0.48157462f * 2.1f;   // rounded to 24 bits as the FPU does (the compiler folds it at 53)
+    float px = rotated.x + dx;
+    float py = rotated.y + dy;
+    float pz = rotated.z + 6.0f;
     model->localPosition.x = px;
     model->localPosition.y = py;
     model->localPosition.z = pz;
@@ -131,7 +130,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
         Quaternion side;
         q = Product(q,
                     *side.SetAxisAngle(zAxis,
-                                                    static_cast<float>(D(kTilt) * D(0.15f))),
+                                                    kTilt * 0.15f),
                     true);
     }
     model->localRotation = q;

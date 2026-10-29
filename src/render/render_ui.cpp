@@ -11,6 +11,7 @@
 #include <d3d11.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <unordered_map>
@@ -376,9 +377,9 @@ void DrawSolids(const CanvasState& canvas, std::size_t from, std::size_t to) {
         const Op& op = g_queue[k];
         ApplyRect(op.rect, canvas.width, canvas.height);
         FsParams fs = CanvasParams(canvas);
-        fs.colour[0] = static_cast<float>((op.colour >> 16) & 0xFF) / 255.0f;
-        fs.colour[1] = static_cast<float>((op.colour >> 8) & 0xFF) / 255.0f;
-        fs.colour[2] = static_cast<float>(op.colour & 0xFF) / 255.0f;
+        fs.colour[0] = ((op.colour >> 16) & 0xFF) / 255.0f;
+        fs.colour[1] = ((op.colour >> 8) & 0xFF) / 255.0f;
+        fs.colour[2] = (op.colour & 0xFF) / 255.0f;
         fs.colour[3] = 1.0f;
         ApplyFs(fs);
         sg_draw(0, 6, 1);
@@ -740,7 +741,7 @@ void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& 
         if (w <= 0 || h <= 0) return;
         const float x0 = static_cast<float>(x), y0 = static_cast<float>(y);
         const float x1 = static_cast<float>(x + w), y1 = static_cast<float>(y + h);
-        const float u1 = u < 0.0f ? u : u + static_cast<float>(w), v1 = u < 0.0f ? v : v + static_cast<float>(h);
+        const float u1 = u < 0.0f ? u : u + w, v1 = u < 0.0f ? v : v + h;
         const float corners[6][4] = {{x0, y0, u, v}, {x1, y0, u1, v}, {x1, y1, u1, v1}, {x0, y0, u, v}, {x1, y1, u1, v1}, {x0, y1, u, v1}};
         for (const auto& c : corners) op.vertices.insert(op.vertices.end(), c, c + 4);
         bounds = Rect{std::min(bounds.left, x), std::min(bounds.top, y), std::max(bounds.right, x + w), std::max(bounds.bottom, y + h)};

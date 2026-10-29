@@ -6,12 +6,12 @@
 #include "figure_mesh.h"   // VertexPacket
 #include "ground_decal.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "lib/float_select.h"
 
 #include <climits>
+#include <cmath>
 
 namespace terrain {
 namespace {
@@ -19,7 +19,7 @@ namespace {
 constexpr float kMargin = 1.0f;   // one cell around the quad
 
 // A cell bound: (v -/+ the margin) / cell size, stored as a float first and rounded to nearest.
-int CellBound(double v) { return x87::fistp(static_cast<float>(v)); }
+int CellBound(double v) { return std::lround(v); }
 
 Vector3 Corner(const VertexPacket& quad, int corner) { return {quad.x()[corner], quad.y()[corner], quad.z()[corner]}; }
 
@@ -34,13 +34,13 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad)
     float previous = origin.z;
     int x0 = INT_MAX, y0 = INT_MAX, x1 = 0, y1 = 0;
     for (;;) {
-        float shift = static_cast<float>(previous - lowest);
+        float shift = previous - lowest;
         v = slope * shift + v;
         origin = slope * shift + origin;
         u = slope * shift + u;
         // The fourth corner's x and y (u + v - origin).
-        float fourthX = static_cast<float>(u.x + v.x - origin.x);
-        float fourthY = static_cast<float>(u.y + v.y - origin.y);
+        float fourthX = u.x + v.x - origin.x;
+        float fourthY = u.y + v.y - origin.y;
         int bound = CellBound(MinKeepA(MinKeepA(MinKeepA(fourthX, u.x), v.x), origin.x) - kMargin);
         if (x0 >= bound) x0 = bound;
         bound = CellBound(MinKeepA(MinKeepA(MinKeepA(fourthY, u.y), v.y), origin.y) - kMargin);

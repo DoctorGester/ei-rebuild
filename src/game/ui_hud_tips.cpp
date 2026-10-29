@@ -8,7 +8,6 @@
 #include "spell.h"
 #include "unit.h"
 
-#include "ei/x87.h"
 #include <cstdint>
 #include <string>
 
@@ -127,7 +126,7 @@ std::string HudQuickItems::ItemTip(unsigned index) {
         if (ticks < 2) {
             line = std::format("{} {}  ", labels[5], labels[7]);
         } else {
-            double seconds = x87::FromUnsigned(ticks) * perTick;
+            double seconds = static_cast<double>(ticks) * perTick;
             line = str::Format("%s %.1f%s  ", labels[5], seconds, labels[10]);
         }
         text += line;
@@ -146,7 +145,7 @@ std::string HudQuickItems::ItemTip(unsigned index) {
         if (ticks < 2) {
             line = std::format("{} {}\n", labels[5], labels[7]);
         } else {
-            double seconds = x87::FromUnsigned(ticks) * perTick;
+            double seconds = static_cast<double>(ticks) * perTick;
             line = str::Format("%s %.1f%s\n", labels[5], seconds, labels[10]);
         }
         text += line;

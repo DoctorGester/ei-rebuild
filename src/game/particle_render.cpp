@@ -78,14 +78,14 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
     ParticleSprite* sprite = g_sprites.data();
     auto cursor = particles.begin();
     if (cursor != particles.end()) {
-        float u = static_cast<float>(D(EI_ONE) - D(t));
+        float u = EI_ONE - t;
         ParticleVertex* vertex = g_vertices.data();
         do {
             const Particle* p = *cursor++;
-            vertex->x = static_cast<float>(D(u) * D(p->prevPos.x) + D(t) * D(p->pos.x));
-            vertex->y = static_cast<float>(D(u) * D(p->prevPos.y) + D(t) * D(p->pos.y));
-            vertex->z = static_cast<float>(D(u) * D(p->prevPos.z) + D(t) * D(p->pos.z));
-            vertex->size = static_cast<float>(D(u) * D(p->prevSize) + D(t) * D(p->size));
+            vertex->x = u * p->prevPos.x + t * p->pos.x;
+            vertex->y = u * p->prevPos.y + t * p->pos.y;
+            vertex->z = u * p->prevPos.z + t * p->pos.z;
+            vertex->size = u * p->prevSize + t * p->size;
             std::uint32_t now = p->color;
             std::uint32_t before = p->prevColor;
             std::uint32_t argb = static_cast<std::uint32_t>(MixChannel(now, before, 16, t, u));

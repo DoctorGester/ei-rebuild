@@ -86,8 +86,8 @@ void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, 
     CountPipeline(pipeline);
     SolidParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
                    {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
-                   {static_cast<float>((colour >> 16) & 0xFF) / 255.0f, static_cast<float>((colour >> 8) & 0xFF) / 255.0f,
-                    static_cast<float>(colour & 0xFF) / 255.0f, 1.0f}};
+                   {((colour >> 16) & 0xFF) / 255.0f, ((colour >> 8) & 0xFF) / 255.0f,
+                    (colour & 0xFF) / 255.0f, 1.0f}};
     sg_range vr{&vs, sizeof(vs)};
     sg_apply_uniforms(0, &vr);
     sg_draw(0, 6, 1);

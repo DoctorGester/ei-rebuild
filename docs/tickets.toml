@@ -6185,6 +6185,14 @@ group = "cleanup"
 note = "Left from C63a (it excluded them as C60a's; C60a is done and they still inherit std::vector, unit_ai.h). Hold the vector as a member: about 19 sites outside unit_ai.h (AIMemory Load/Save resize and walk them, unit_ai_senses / unit_ai_targets read them). Goldens unchanged."
 
 [[ticket]]
+id = "C30c"
+title = "Hand-review tail of the SSE2 float rewrite (C30b off-pattern sites)"
+group = "cleanup"
+model = "opus"
+depends = ["C30b"]
+note = "Step 3 of C30's plan. What C30b's script left in the SSE2 files (docs/notes/cleanup-tooling.md 'Plain float maths in the SSE2 files (C30b)'): ~780 static_cast<float> sites: a double variable / member / constexpr double constant among the leaves 335, an int cast outside a float operator 241, double-returning calls 107 (Unsigned, Range, FrameTime, the *Unrounded vector helpers, fmod), double EI_* macros 81 (particle files), 32-bit unsigned / 64-bit ints 14 (times, random words: keep exact), plus ui_connect_screen (not parsed). Also the file comments that still say 'double for values the original keeps on the FPU stack', the per-file D() helpers once unused, and the check_x87 rule narrowed to the files still on IA32. terrain_animation and terrain_shadow stay x87-exact unless terrain_water_waves is re-recorded (user call). Goldens unchanged (121 / 113). Merge 2026-10-29: render_point_shadows.cpp (R37a/b) and map_object_shadow.cpp (R37f) conflicted with C30b and were kept as main had them, so C30b's rewrite is not applied there: rerun the scripts on those two. terrain_water_waves: re-record it and rewrite terrain_animation / terrain_shadow too (user 2026-10-29: tests should not hang on rounding; best judgement on SSE2)."
+
+[[ticket]]
 id = "R34c"
 title = "Client draws still on the game generators: idle animation picks, interface previews"
 group = "renderer"

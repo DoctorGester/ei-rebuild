@@ -7,13 +7,13 @@
 
 #include "random.h"
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
 #include "world.h"
 
 #include <bit>
+#include <cmath>
 #include <cstring>
 #include <list>
 
@@ -83,19 +83,19 @@ struct TickSteps {
         if (s->attachedTo) {
             Vector3 point;
             const Vector3* a = s->AttachmentPoint(&point, s->attachedTo);
-            float wx = static_cast<float>(D(a->x) + D(s->localPosition.x));
-            float wy = static_cast<float>(D(a->y) + D(s->localPosition.y));
-            float wz = static_cast<float>(D(a->z) + D(s->localPosition.z));
-            s->motion.x = static_cast<float>(D(wx) - D(s->origin.x));
-            s->motion.y = static_cast<float>(D(wy) - D(s->origin.y));
-            s->motion.z = static_cast<float>(D(wz) - D(s->origin.z));
+            float wx = a->x + s->localPosition.x;
+            float wy = a->y + s->localPosition.y;
+            float wz = a->z + s->localPosition.z;
+            s->motion.x = wx - s->origin.x;
+            s->motion.y = wy - s->origin.y;
+            s->motion.z = wz - s->origin.z;
             s->origin.x = wx;
             s->origin.y = wy;
             s->origin.z = wz;
         } else {
-            s->motion.x = static_cast<float>(D(s->localPosition.x) - D(s->origin.x));
-            s->motion.y = static_cast<float>(D(s->localPosition.y) - D(s->origin.y));
-            s->motion.z = static_cast<float>(D(s->localPosition.z) - D(s->origin.z));
+            s->motion.x = s->localPosition.x - s->origin.x;
+            s->motion.y = s->localPosition.y - s->origin.y;
+            s->motion.z = s->localPosition.z - s->origin.z;
             s->origin = s->localPosition;
         }
     }
@@ -120,16 +120,16 @@ struct TickSteps {
         EI_NAN_AUDIT(length);
         if (length < EI_DEGENERATE) {
             float mx = m.x;
-            s->side.x = static_cast<float>(D(m.y) - D(m.z));
-            s->side.y = static_cast<float>(-D(mx));
+            s->side.x = m.y - m.z;
+            s->side.y = -mx;
             s->side.z = mx;
             length = LengthYZX(s->side);
         }
         Normalize(s->side, length);
         const Vector3& v = s->side;
-        float ux = static_cast<float>(D(m.y) * D(v.z) - D(m.z) * D(v.y));
-        float uy = static_cast<float>(D(m.z) * D(v.x) - D(v.z) * D(m.x));
-        float uz = static_cast<float>(D(m.x) * D(v.y) - D(m.y) * D(v.x));
+        float ux = m.y * v.z - m.z * v.y;
+        float uy = m.z * v.x - v.z * m.x;
+        float uz = m.x * v.y - m.y * v.x;
         s->up.x = ux;
         s->up.y = uy;
         s->up.z = uz;
@@ -175,7 +175,7 @@ struct TickSteps {
     // max(emitCount, distance / emitSpacing) tries, each emitting with emitChance percent; a
     // source above 50% that emitted nothing gets one particle anyway.
     void Emit() {
-        int tries = x87::fistp(static_cast<float>(D(s->distance) / D(s->emitSpacing)));
+        int tries = std::lround(D(s->distance) / D(s->emitSpacing));
         if (tries <= s->emitCount) tries = s->emitCount;
         if (!(s->flags & ParticleSourceFlag::Emitting)) return;
         if ((s->flags & ParticleSourceFlag::AttachedOnly) && !s->attachedTo) return;
@@ -193,18 +193,18 @@ struct TickSteps {
 
     // Centre and half extents of the bounds.
     void FinishBounds() {
-        float cx = static_cast<float>((D(s->boundsMax.x) + D(s->boundsMin.x)) * D(EI_HALF));
-        float cy = static_cast<float>((D(s->boundsMax.y) + D(s->boundsMin.y)) * D(EI_HALF));
-        float cz = static_cast<float>((D(s->boundsMax.z) + D(s->boundsMin.z)) * D(EI_HALF));
+        float cx = (s->boundsMax.x + s->boundsMin.x) * EI_HALF;
+        float cy = (s->boundsMax.y + s->boundsMin.y) * EI_HALF;
+        float cz = (s->boundsMax.z + s->boundsMin.z) * EI_HALF;
         s->clip.center.x = cx;
         s->clip.center.y = cy;
         s->clip.center.z = cz;
-        s->clip.boxMin.x = static_cast<float>(D(s->boundsMin.x) - D(cx));
-        s->clip.boxMin.y = static_cast<float>(D(s->boundsMin.y) - D(cy));
-        s->clip.boxMin.z = static_cast<float>(D(s->boundsMin.z) - D(cz));
-        s->clip.boxMax.x = static_cast<float>(D(s->boundsMax.x) - D(cx));
-        s->clip.boxMax.y = static_cast<float>(D(s->boundsMax.y) - D(cy));
-        s->clip.boxMax.z = static_cast<float>(D(s->boundsMax.z) - D(cz));
+        s->clip.boxMin.x = s->boundsMin.x - cx;
+        s->clip.boxMin.y = s->boundsMin.y - cy;
+        s->clip.boxMin.z = s->boundsMin.z - cz;
+        s->clip.boxMax.x = s->boundsMax.x - cx;
+        s->clip.boxMax.y = s->boundsMax.y - cy;
+        s->clip.boxMax.z = s->boundsMax.z - cz;
         s->clip.flags |= 2;
     }
 };
