@@ -6154,14 +6154,14 @@ id = "C63b"
 title = "Containers, items: std::list to std::vector, TemplateTable composition"
 group = "cleanup"
 model = "opus"
-note = "C63's method for item_stock*, hoover_loot, class_template_stock and the item lists players are given (CPlayer::GiveItems' std::list<Item*>): 37 std::list uses. TemplateTable (class_templates.h) inherits from std::vector<HeldRef<ClassTemplate>>: composition. Goldens unchanged."
+note = "C63's method for item_stock*, hoover_loot, class_template_stock and the item lists players are given (CPlayer::GiveItems' std::list<Item*>): 37 std::list uses. TemplateTable (class_templates.h) inherits from std::vector<HeldRef<ClassTemplate>>: composition. Goldens unchanged. Done: std::list in src 317 -> 237 (with C63f). Vectors: CPlayer::GiveItems / ItemsGiven / SendItemsGiven and their callers' lists, CPlayer::items and recharging, Hoover::CollectLoot's lists, WorldServer::sharedObjects (new entries inserted at the head), TakeZoneQuestItems / AddSharedObject, ItemsAndSpells, ItemStock's generated items / spells / recipe lists, SpellContainer::modifiers and CreateSpell's list. TemplateTable holds its vector (Build, Find, All, Serialize, which replaces ChunkArchive::SerializeClassTemplates). Left: OnItemsPicked's std::list<Item*> (ui.h and the interface files: C63e; PlayerClient::OnItemsReceived copies its vector into a list for it), UnitServer::armourSpells (TickItemSpells holds an entry across CastSpell: C63c). Container-inheriting types left (with C63f): Speeches, EnvironmentSpeeches, AnimationSteps, WaterTweens, PendingIndex. Goldens 122 the same / 28 without a golden."
 
 [[ticket]]
 id = "C63c"
 title = "Containers, world server: std::list to std::vector, AnimationSteps composition"
 group = "cleanup"
 model = "opus"
-note = "C63's method for world.h and the server world (world_*.cpp but world_client*, persistent_globals, base_manager, magic_trap, combat*, spell*, unit*, object.h): about 130 std::list uses, the most in world.h (30), persistent_globals.cpp (13), base_manager (15), magic_trap (12). Many hold objects whose pointers are kept (world object lists): check each. AnimationSteps (combat.h) inherits from std::vector<AnimationStep>: composition. Goldens unchanged."
+note = "C63's method for world.h and the server world (world_*.cpp but world_client*, persistent_globals, base_manager, magic_trap, combat*, spell*, unit*, object.h): about 130 std::list uses, the most in world.h (30), persistent_globals.cpp (13), base_manager (15), magic_trap (12). Many hold objects whose pointers are kept (world object lists): check each. AnimationSteps (combat.h) inherits from std::vector<AnimationStep>: composition. Goldens unchanged. From C63b: UnitServer::armourSpells (combat.h) stays a list unless TickItemSpells, which holds an entry across world->CastSpell, can be shown not to reach RefreshItemSpells (which appends)."
 
 [[ticket]]
 id = "C63d"
@@ -6176,13 +6176,13 @@ title = "Containers, client world and interface: std::list to std::vector, Speec
 group = "cleanup"
 model = "opus"
 depends = ["C30b"]
-note = "C63's method for the client side, after C30b (it rewrites the SSE2 files): world_client_* (world_client_maps.cpp 31), map_object*, sound*, camera*, model.h, terrain.h, ui.h / ui_*.h and the EI_SSE2_GAME_SOURCES files (14 uses), about 95 std::list uses with the other small headers (chunk_archive.h, text_manager.h, counted_ref.cpp, link_loader.cpp). Types inheriting from containers: Speeches, EnvironmentSpeeches (acks_db.h) and WaterTweens (water_tweens.h): composition. Goldens unchanged."
+note = "C63's method for the client side, after C30b (it rewrites the SSE2 files): world_client_* (world_client_maps.cpp 31), map_object*, sound*, camera*, model.h, terrain.h, ui.h / ui_*.h and the EI_SSE2_GAME_SOURCES files (14 uses), about 95 std::list uses with the other small headers (chunk_archive.h, text_manager.h, counted_ref.cpp, link_loader.cpp). Types inheriting from containers: Speeches, EnvironmentSpeeches (acks_db.h) and WaterTweens (water_tweens.h): composition. Goldens unchanged. From C63b: Interface3D::OnItemsPicked / ItemsPicked (ui.h, ui_interface_glue.cpp, ui_battle_setup.cpp) take a std::list<Item*>: a vector, then PlayerClient::OnItemsReceived passes its vector directly and RefreshQuestLog an empty vector."
 
 [[ticket]]
 id = "C63f"
 title = "Containers, AI memory: AIHeardCalls / AIReports composition"
 group = "cleanup"
-note = "Left from C63a (it excluded them as C60a's; C60a is done and they still inherit std::vector, unit_ai.h). Hold the vector as a member: about 19 sites outside unit_ai.h (AIMemory Load/Save resize and walk them, unit_ai_senses / unit_ai_targets read them). Goldens unchanged."
+note = "Left from C63a (it excluded them as C60a's; C60a is done and they still inherit std::vector, unit_ai.h). Hold the vector as a member: about 19 sites outside unit_ai.h (AIMemory Load/Save resize and walk them, unit_ai_senses / unit_ai_targets read them). Goldens unchanged. Done: both hold their vector (private), with Clear, size (the harness digest reads it), Load / Save, and AIReports Tick / Forget; AIMemory calls those. Goldens 122 the same / 28 without a golden."
 
 [[ticket]]
 id = "C30c"

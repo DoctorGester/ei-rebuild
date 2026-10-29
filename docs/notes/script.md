@@ -290,7 +290,7 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
   `SceneRenderer::SetFogColour` 004BA120 (slot 0 00501AB0, `fogColour` +0x14).
 - Party manager archive (A-S9): `PartyManager::Save` / `Load` 004A8560 / 004A8310 (the manager 007AA5A0: parties
   hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); `ChunkArchive::SerializeParties`
-  / `SerializePartyEntries` / `SerializeClassTemplates` / `IntField` 004ACEC0 / 004AD0C0 / 004ACDC0 / 004AD2C0,
+  / `SerializePartyEntries` / `TemplateTable::Serialize` / `IntField` 004ACEC0 / 004AD0C0 / 004ACDC0 / 004AD2C0,
   `NamedPartyRecords::Serialize` 004A64B0, `PartyRecord::Serialize` 004A5AF0, `ClassTemplate::Serialize` 004A6C40
   (SaveLists 0069BAC0 by address). `BeginRedeploy` / `EndRedeploy` 004A6050 / 004A6360: Begin spreads the variables
   (004A8AD0 operator=), zone and +0x6C to every record; End clears the party when no record matches, then text10 = text0C.

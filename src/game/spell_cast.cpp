@@ -85,7 +85,7 @@ const char* SpellContainer::GetName() { return name.c_str(); }
 
 bool SpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
-    modifiers.insert(modifiers.end(), modifier);
+    modifiers.push_back(modifier);
     return true;
 }
 
@@ -220,7 +220,7 @@ SpellContainer* CSpellManager::NewContainer() {
     return CreateObjectAs<SpellContainer>(SpellObjectType::Container, -1);
 }
 
-CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::list<itemdb::SpellModifierRecord*>* modifiers) {
+CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>* modifiers) {
     CSpellConstructor* constructor = context->SpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->SetManager(this);

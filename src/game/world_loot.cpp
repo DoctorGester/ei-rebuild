@@ -13,7 +13,7 @@
 
 #include "game_singletons.h"
 
-#include <list>
+#include <vector>
 
 namespace {
 
@@ -22,8 +22,8 @@ namespace {
 } // namespace
 
 bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
-    std::list<Item*> items;
-    std::list<Item*> second;
+    std::vector<Item*> items;
+    std::vector<Item*> second;
     int gold;
     // The early returns empty the lists without their destructors' bookkeeping; the others destroy them.
     auto abandon = [&]() {
@@ -44,7 +44,7 @@ bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
 
     if (unit->flags & MapObjectFlag::Shared) {
         // The shared-object list's entry for the object (SharedObject: its unknown_08 is the gold).
-        std::list<SharedObject>& list = sharedObjects;
+        std::vector<SharedObject>& list = sharedObjects;
         auto node = std::ranges::find(list, unit->id, &SharedObject::objectId);
         if (node == list.end()) {
             abandon();
@@ -76,16 +76,12 @@ bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
             }
         }
         if (first) {
-            std::list<Item*> quest;
-            for (auto node = items.begin(); node != items.end();) {
-                auto next = std::next(node);
-                Item* item = *node;
-                if (item->GetClassId() == ClassId::ItemQuest) {
-                    quest.push_back(item);
-                    items.erase(node);
-                }
-                node = next;
-            }
+            std::vector<Item*> quest;
+            std::erase_if(items, [&quest](Item* item) {
+                if (item->GetClassId() != ClassId::ItemQuest) return false;
+                quest.push_back(item);
+                return true;
+            });
             if (!quest.empty()) first->GiveItems(&quest, 0);
             for (Item* item : quest)
                 item->Release();
@@ -116,7 +112,7 @@ void WorldServer::LootDeadUnits() {
     }
     if (!local) return;
 
-    std::list<unsigned> dead;
+    std::vector<unsigned> dead;
     for (; node != objects.map.end(); ++node) {
         EngineObject* object = node->second;
         CUnit* unit = UnitOrNull(object);   // no null test here: the map holds no null

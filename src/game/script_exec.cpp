@@ -42,7 +42,6 @@
 #include <cstdint>
 #include <cstring>
 #include <bit>
-#include <list>
 #include <string>
 #include <vector>
 #include <memory>
@@ -984,7 +983,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::GiveMoney: {   // GiveMoney(player, amount)
             CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
             if (!player) break;
-            std::list<Item*> items;
+            std::vector<Item*> items;
             player->Party()->money += Ftol(f[1]);
             player->GiveItems(&items, 0);
             break;
@@ -993,7 +992,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::GiveItem: {   // GiveItem(player, item)
             CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
             if (!player) break;
-            std::list<Item*> items;
+            std::vector<Item*> items;
             Item* item = g_serverWorld.CreateItemNamed(Text(cmd, 0));
             if (item) {
                 items.push_back(item);

@@ -18,7 +18,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <vector>
 
 class CPlayer;
@@ -58,7 +57,7 @@ public:
     virtual void UnitChanged(CUnit*) {}     // client (the unit's controller); server empty
     virtual void ResetState() {}            // server and client versions
     virtual void Leave() {}                 // server (state 3, flushed); client empty
-    virtual void ItemsGiven(const std::list<Item*>*, int) {}   // server; client empty
+    virtual void ItemsGiven(const std::vector<Item*>*, int) {}   // server; client empty
     virtual void ItemsTaken() {}            // server (message 0x17); client empty
     virtual void ItemTaken(EngineObject*) {}   // server (message 0x0A); client empty
     virtual void LeaderDied() {}            // the player's leader died: server; client empty
@@ -88,7 +87,7 @@ public:
     void ForgetSentObjects() override { ReleaseSentObjects(); }
     void ResetState() override { ClearServerState(); }
     void Leave() override { LeaveAndFlush(); }
-    void ItemsGiven(const std::list<Item*>* items, int flag) override { SendItemsGiven(items, flag); }
+    void ItemsGiven(const std::vector<Item*>* items, int flag) override { SendItemsGiven(items, flag); }
     void ItemsTaken() override { Send17(); }
     void ItemTaken(EngineObject* item) override { SendObject0A(item); }
     void LeaderDied() override { OnLeaderDied(); }
@@ -143,7 +142,7 @@ public:
     void SendItems();
     // For a joined player (state 1): message 0x05, a stream with the given items' spells and then the items,
     // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
-    void SendItemsGiven(const std::list<Item*>* items, int flag);
+    void SendItemsGiven(const std::vector<Item*>* items, int flag);
     // Message 0x60: the world's pause flag, possessedId, the party units (partyUnits) by id and the party's
     // danger (danger: EnemyNear when a unit of the player has an exposure at most 2, InDanger when a party unit
     // fights or is the enemy of a hostile neighbour), then the objects shared with a
@@ -353,7 +352,7 @@ public:
     // null.
     bool IsLeader(const EngineObject* unit);
     // The connection's ItemsGiven, then every item of `items` counted and appended to the given items.
-    void GiveItems(const std::list<Item*>* items, int flag);
+    void GiveItems(const std::vector<Item*>* items, int flag);
     // The connection's ItemsTaken, then every given item taken off the head and released.
     void TakeAllItems();
     // 1 when a given loot item (ItemKind::Quest) has `kind` (ItemLoot::kind), or an item a unit of the player
@@ -393,14 +392,14 @@ public:
     TimedObjectMap knownTimed;                  // timed objects (effects) sent to the client
     int maxTimedId;
     CParty party;
-    std::list<Item*> items;            // items given to the player (counted)
+    std::vector<Item*> items;          // items given to the player (counted)
     int partyId;                                // the party's key in the party manager; sent with the client's login
     int sessionKind;                         // 3: the client runs a setup on the controllers of new units
     std::uint32_t lastScreen;                   // the session kind before the last game-state message (5: the camp)
     std::uint8_t godMode;                       // the script's GodMode(player, on); the combat code tests it
     int logTraffic;                             // logs the size of every flush
     int lastTick;                               // -1 after Create; the world tick last saved or restored for the player
-    std::list<std::uint32_t> recharging;       // ids of items recharging (saved with the world from version 0x55)
+    std::vector<std::uint32_t> recharging;     // ids of items recharging (saved with the world from version 0x55)
     std::uint32_t dirty;                        // PlayerDirty bits
 };
 

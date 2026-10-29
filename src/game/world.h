@@ -364,7 +364,7 @@ public:
     void UpdatePlayerTimes(float offset);
     // Puts a new entry at the head of the shared-object list: `id`, the session player's field for that id in a
     // multiplayer game (else -1), `value`, and references to the objects of `objects`.
-    void AddSharedObject(int id, std::uint32_t value, const std::list<Item*>* objects);
+    void AddSharedObject(int id, std::uint32_t value, const std::vector<Item*>* objects);
     // Before a save: every living unit refills its controller's slots and runs the controller's matching
     // virtual with 0.
     void PrepareSave();
@@ -456,7 +456,7 @@ public:
 
     // Moves quest items (class 0x14) from `items` to `list`: in single player only those whose description
     // names this zone or whose id an object of the zone asks for; otherwise all.
-    void TakeZoneQuestItems(std::vector<Item*>* items, std::list<Item*>* list);
+    void TakeZoneQuestItems(std::vector<Item*>* items, std::vector<Item*>* list);
     // Gives the player fresh copies of the items it brings into the zone (all of them on a client, the
     // zone's quest items otherwise; nothing in a network game).
     void RestorePlayerItems(CPlayer* player);
@@ -543,7 +543,7 @@ public:
     MemoryStream zoneHeader;
     std::list<HeldRef<SpellEffect>> projectiles;
     std::list<EngineObject*> counted; // counted references (released on clear)
-    std::list<SharedObject> sharedObjects;
+    std::vector<SharedObject> sharedObjects;
 };
 
 // One walkable platform (bridge, deck) the client tests positions against.

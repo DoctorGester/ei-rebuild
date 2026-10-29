@@ -324,7 +324,7 @@ def read_party_manager(r):
     r.put('entries', str(n))
     field(r, 3, 'field3', 'i32')
     end = chunk(r, 4)
-    templates = chunk(r, 1)                 # SerializeClassTemplates (004ACDC0)
+    templates = chunk(r, 1)                 # TemplateTable::Serialize (004ACDC0)
     n = 0
     while r.p < templates:
         field(r, 1, f'template{n}', 'i32')

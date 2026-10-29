@@ -257,18 +257,18 @@ const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";
 } // namespace
 
 void AIHeardCalls::Hear(const Vector3& point, int delay, std::string_view text) {
-    std::erase_if(*this, [delay](const AICallRecord& call) { return call.hostileMask == 0 && call.delay >= delay; });
-    push_back({point, delay, 0, std::string(text)});
+    std::erase_if(calls, [delay](const AICallRecord& call) { return call.hostileMask == 0 && call.delay >= delay; });
+    calls.push_back({point, delay, 0, std::string(text)});
 }
 
 void AIHeardCalls::AddClaim(std::uint32_t mask, int delay, std::string_view text) {
     // The point is left as the stack held it (saved as memory.callN.point); 0,0,0 is the
     // canonical value, which the harness gives game.exe too (harness_save_leftovers.cpp).
-    push_back({Vector3{0.0f, 0.0f, 0.0f}, delay, static_cast<int>(mask), std::string(text)});
+    calls.push_back({Vector3{0.0f, 0.0f, 0.0f}, delay, static_cast<int>(mask), std::string(text)});
 }
 
 void AIHeardCalls::RemoveClaims() {
-    std::erase_if(*this, [](const AICallRecord& call) { return call.hostileMask != 0; });
+    std::erase_if(calls, [](const AICallRecord& call) { return call.hostileMask != 0; });
 }
 
 void AIMemory::HearCall(const Vector3& point, int delay, std::string_view text) { calls.Hear(point, delay, text); }

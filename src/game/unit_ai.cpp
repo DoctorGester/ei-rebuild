@@ -486,8 +486,8 @@ void AIMemory::Reset() {
     noticedY = 0.0f;
     noticedLevel = 0;
     nearbyCountdown = 0;
-    reports.clear();
-    calls.clear();
+    reports.Clear();
+    calls.Clear();
     noticedDecay = 0;
 }
 
@@ -552,11 +552,11 @@ void AIMemory::Forget(EngineObject* object) {
     RemoveAllOf(visible, object);
     RemoveAllOf(seenCorpses, object);
     RemoveAllOf(corpses, object);
-    std::erase_if(reports, [object](const AIReport& entry) { return entry.object == object; });
+    reports.Forget(object);
 }
 
 void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
-    for (auto call = begin(); call != end();) {
+    for (auto call = calls.begin(); call != calls.end();) {
         if (--call->delay >= 0) {
             ++call;
             continue;
@@ -580,12 +580,12 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             memory->noticedDecay = kNoticeCallDecay;
             if (changed) console::EndLine(kAiLog << "Delayed sound: " << call->text);
         }
-        call = erase(call);
+        call = calls.erase(call);
     }
 }
 
 void AIMemory::Update(UnitServer* who) {
-    std::erase_if(reports, [](AIReport& entry) { return --entry.ticksLeft < 0; });
+    reports.Tick();
     calls.Update(who->unit, this);
     g_serverWorld.aiMap.events.Update(who, this);
     noticedLevel += noticedDecay;
@@ -598,17 +598,25 @@ bool AIMemory::CanTrack(CUnit* self, CUnit* other) {
 
 void AIReports::Report(CMapObject* object, int ticks) {
     if (!object) return;
-    for (AIReport& entry : *this) {
+    for (AIReport& entry : reports) {
         if (entry.object == object) {
             entry.ticksLeft = (std::max)(entry.ticksLeft, ticks);
             return;
         }
     }
-    push_back({object, ticks});
+    reports.push_back({object, ticks});
 }
 
 bool AIReports::Contains(EngineObject* object) const {
-    return std::ranges::any_of(*this, [object](const AIReport& entry) { return entry.object == object; });
+    return std::ranges::any_of(reports, [object](const AIReport& entry) { return entry.object == object; });
+}
+
+void AIReports::Tick() {
+    std::erase_if(reports, [](AIReport& entry) { return --entry.ticksLeft < 0; });
+}
+
+void AIReports::Forget(EngineObject* object) {
+    std::erase_if(reports, [object](const AIReport& entry) { return entry.object == object; });
 }
 
 // --- Save games -----------------------------------------------------------------------------------
@@ -922,6 +930,12 @@ void AIMemory::Load(ByteStream* stream) {
     stream->Read(&noticedX, 8);         // x and y
     stream->ReadValue(noticedLevel);
     stream->ReadValue(nearbyCountdown);
+    reports.Load(stream);
+    calls.Load(stream);
+    stream->ReadValue(noticedDecay);
+}
+
+void AIReports::Load(ByteStream* stream) {
     int count;
     stream->ReadValue(count);
     reports.resize(count);
@@ -929,17 +943,37 @@ void AIMemory::Load(ByteStream* stream) {
         LoadRef(reports[i].object, stream, &g_serverWorld);
         stream->ReadValue(reports[i].ticksLeft);
     }
+}
+
+void AIReports::Save(ByteStream* stream) const {
+    stream->WriteValue(static_cast<std::int32_t>(reports.size()));
+    for (const AIReport& report : reports) {
+        SaveRef(report.object, stream);
+        stream->WriteValue(report.ticksLeft);
+    }
+}
+
+void AIHeardCalls::Load(ByteStream* stream) {
+    int count;
     stream->ReadValue(count);
     calls.resize(count);
-    for (int i = 0; i < std::ssize(calls); ++i) {
-        AICallRecord& call = calls[i];
+    for (AICallRecord& call : calls) {
         call.hostileMask = 0;
         stream->ReadValue(call.point);
         stream->ReadValue(call.delay);
         call.text = stream->ReadString();
         stream->ReadValue(call.hostileMask);
     }
-    stream->ReadValue(noticedDecay);
+}
+
+void AIHeardCalls::Save(ByteStream* stream) const {
+    stream->WriteValue(static_cast<std::int32_t>(calls.size()));
+    for (const AICallRecord& call : calls) {
+        stream->WriteValue(call.point);
+        stream->WriteValue(call.delay);
+        stream->WriteString(call.text);
+        stream->WriteValue(call.hostileMask);
+    }
 }
 
 void AIMemory::Save(ByteStream* stream) {
@@ -950,17 +984,7 @@ void AIMemory::Save(ByteStream* stream) {
     stream->Write(&noticedX, 8);        // x and y
     stream->WriteValue(noticedLevel);
     stream->WriteValue(nearbyCountdown);
-    stream->WriteValue(static_cast<std::int32_t>(reports.size()));
-    for (const AIReport& report : reports) {
-        SaveRef(report.object, stream);
-        stream->WriteValue(report.ticksLeft);
-    }
-    stream->WriteValue(static_cast<std::int32_t>(calls.size()));
-    for (const AICallRecord& call : calls) {
-        stream->WriteValue(call.point);
-        stream->WriteValue(call.delay);
-        stream->WriteString(call.text);
-        stream->WriteValue(call.hostileMask);
-    }
+    reports.Save(stream);
+    calls.Save(stream);
     stream->WriteValue(noticedDecay);
 }

@@ -16,7 +16,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include <list>
+#include <vector>
 
 namespace net {
 
@@ -46,14 +46,13 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 1: {
-            std::list<Item*> none;
+            std::vector<Item*> none;
             localPlayer->Party()->money += static_cast<int>(libcrt::Ftol(award->value));
             localPlayer->GiveItems(&none, 0);
-            none.clear();
             break;
         }
         case 2: {
-            std::list<Item*> items;
+            std::vector<Item*> items;
             Item* item = localPlayer->Party()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
             items.push_back(item);
@@ -64,28 +63,25 @@ void ClientSession::ApplyAwards() {
         case 3: {
             auto* item = localPlayer->Party()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
-            for (auto position = localPlayer->items.begin(); position != localPlayer->items.end();) {
-                std::list<Item*>::iterator  current = position;
-                ++position;
-                Item* owned = *current;
+            for (Item* owned : localPlayer->items) {
                 if (!owned->IsSameAs(item)) {
                     std::int32_t id = owned->id;
-                    if (id >= 0) localPlayer->TakeItem(id);
+                    if (id >= 0) localPlayer->TakeItem(id);   // (the walk ends here)
                     break;
                 }
             }
             if (item) item->Release();
             break;
         }
-        case 4:
+        case 4: {
             localPlayer->Party()->RemoveQuestItems();
-            for (auto position = localPlayer->items.begin(); position != localPlayer->items.end();) {
-                std::list<Item*>::iterator  current = position;
-                ++position;
-                EngineObject* owned = *current;
-                if (owned->GetClassId() == ClassId::ItemQuest) localPlayer->TakeItem(owned->id);
-            }
+            // TakeItem erases from the list: the quest items' ids first.
+            std::vector<int> quest;
+            for (Item* owned : localPlayer->items)
+                if (owned->GetClassId() == ClassId::ItemQuest) quest.push_back(owned->id);
+            for (int id : quest) localPlayer->TakeItem(id);
             break;
+        }
         default:
             break;
         }

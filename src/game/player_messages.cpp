@@ -252,13 +252,11 @@ PartyUnitRecord* CParty::Find(int unitId) {
 }
 
 void CPlayer::Tick() {
-    auto node = recharging.begin();
-    while (node != recharging.end()) {
-        auto current = node;
-        ++node;
-        int objectId = static_cast<int>(*current);
+    for (std::size_t i = 0; i < recharging.size();) {
+        int objectId = static_cast<int>(recharging[i]);
         EngineObject* object = Party()->ItemFactory()->FindObject(objectId);
-        if (object == nullptr || !object->RunTick()) recharging.erase(current);
+        if (object == nullptr || !object->RunTick()) recharging.erase(recharging.begin() + i);
+        else ++i;
     }
     connection->TickDone();
 }

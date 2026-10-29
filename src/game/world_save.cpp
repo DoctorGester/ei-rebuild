@@ -37,7 +37,6 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -113,14 +112,11 @@ void LoadPlayers(WorldServer* world, ByteStream* stream) {
         }
         stream->ReadValue(player->godMode);
         if (stream->version >= kVersionPlayerLists) {
-            std::list<std::uint32_t>& ids = player->recharging;
+            // `count` zeros appended, then every id read from the head (those already listed too).
+            std::vector<std::uint32_t>& ids = player->recharging;
             int count = ReadAs<int>(stream);
             for (int i = 0; i < count; ++i) ids.push_back(0);
-            for (auto node = ids.begin(); node != ids.end();) {
-                auto next = std::next(node);
-                stream->ReadValue(*node);
-                node = next;
-            }
+            for (std::uint32_t& id : ids) stream->ReadValue(id);
         }
         if (stream->version < kVersionPlayerByte) ReadAs<std::uint8_t>(stream);
         if (stream->version < kVersionPlayerGroup) {
@@ -139,20 +135,12 @@ void SavePlayers(WorldServer* world, ByteStream* stream) {
         stream->WriteValue(player->partyId);
         player->Party()->SaveParty(stream, 1);
         stream->WriteValue(player->sessionKind);
-        for (auto node = player->items.begin(); node != player->items.end();) {
-            auto next = std::next(node);
-            stream->WriteValue((*node)->id);
-            node = next;
-        }
+        for (Item* item : player->items) stream->WriteValue(item->id);
         stream->WriteValue(-1);
         stream->WriteValue(player->godMode);
-        std::list<std::uint32_t>& ids = player->recharging;
+        const std::vector<std::uint32_t>& ids = player->recharging;
         stream->WriteValue(std::ssize(ids));
-        for (auto node = ids.begin(); node != ids.end();) {
-            auto next = std::next(node);
-            stream->WriteValue(*node);
-            node = next;
-        }
+        for (std::uint32_t id : ids) stream->WriteValue(id);
     }
 }
 
@@ -396,7 +384,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
             }
 
             if (stream->version >= kVersionSharedObjects) {
-                std::list<SharedObject>& shared = sharedObjects;
+                std::vector<SharedObject>& shared = sharedObjects;
                 int count = ReadAs<int>(stream);
                 for (int i = 0; i < count; ++i) shared.emplace_back();
                 for (SharedObject& entry : shared) entry.Load(stream);
@@ -533,7 +521,7 @@ void SharedObject::Load(ByteStream* stream) {
     }
 }
 
-void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::list<Item*>* newObjects) {
+void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::vector<Item*>* newObjects) {
     // The session player record's serial in a multiplayer game, else -1.
     int player = -1;
     net::ServerSession* session = net::g_gameServer;
@@ -542,7 +530,7 @@ void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::lis
 
     // Pushing SharedObject() at the head: the new head copies an empty local (whose first three dwords the
     // original leaves unset; they are overwritten below).
-    SharedObject& entry = sharedObjects.emplace_front();
+    SharedObject& entry = *sharedObjects.emplace(sharedObjects.begin());
     entry.objectId = newId;
     entry.player = player;
     entry.money = value;
