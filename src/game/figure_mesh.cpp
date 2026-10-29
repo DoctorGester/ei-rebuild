@@ -216,11 +216,11 @@ void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float 
     Vector3 mx = {CornerPerOpKeptSum(q, s, t, u), CornerPerOpKeptSum(q + 1, s, t, u), CornerPerOpKeptSum(q + 2, s, t, u)};
     float radius = MorphScalar6(p + 0x36, s, t, u);
     bounds.center = c;
-    bounds.flags |= 1;
+    bounds.flags |= BoundsFlag::Sphere;
     bounds.radius = radius;
     bounds.boxMin = mn;
     bounds.boxMax = mx;
-    bounds.flags |= 2;
+    bounds.flags |= BoundsFlag::Box;
 }
 
 // The vertices of a FIG mesh: FIG8 files hold 8 versions of each of the three blocks (0x80 bytes
@@ -360,10 +360,10 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
 
         box_.bounds.center = center_;
         box_.bounds.radius = radius_;
-        box_.bounds.flags |= 1;
+        box_.bounds.flags |= BoundsFlag::Sphere;
         box_.bounds.boxMin = boxMin_;
         box_.bounds.boxMax = boxMax_;
-        box_.bounds.flags |= 2;
+        box_.bounds.flags |= BoundsFlag::Box;
         return;
     }
     std::memcpy(&center_, *cursor, 12);
@@ -375,7 +375,7 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
     std::memcpy(&radius_, *cursor, 4);
     *cursor += 4;
     box_.bounds.center = center_;
-    box_.bounds.flags |= 1;
+    box_.bounds.flags |= BoundsFlag::Sphere;
     box_.bounds.radius = radius_;
     box_.bounds.SetBox(&boxMin_.x, &boxMax_.x);
 }

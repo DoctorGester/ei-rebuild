@@ -1,7 +1,7 @@
 // The footprints of walls and clouds (spell effects): one function fills a cell set with the cells of a disc
 // around a point limited by a line along a direction, the other with the cells of a disc. Positions are
 // scaled to cells by 1 / (0x73FD18 * 0.5) (2: half-metre cells); the radius is grown by a cell. Each cell gets
-// low 0, high 1, kind 3, transparency 3 and is appended without hashing (the buckets are emptied when the set
+// low 0, high 1, kind SpellArea, transparency 3 and is appended without hashing (the buckets are emptied when the set
 // was hashed). See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "core_maths.h"
@@ -30,7 +30,7 @@ void AddCell(FootprintCellSet* set, int x, int y) {
     cell.y = y;
     cell.low = 0;
     cell.high = 1;
-    cell.kind = 3;
+    cell.kind = OccluderKind::SpellArea;
     cell.transparency = 3;
     cell.edge = 0;
     cell.padding = 0;

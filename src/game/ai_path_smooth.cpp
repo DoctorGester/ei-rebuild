@@ -80,7 +80,7 @@ void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, Smooth
     const AIMapCell& a = map->cells[y + step->dy][x + step->dx];
     const AIMapCell& b = map->cells[y + step->dy + step->stepY][x + step->dx + step->stepX];
     if (b.level > level && b.level >= a.level) return;
-    int pass = costs.costs[(b.passable >> (costs.shift & 31)) & 0xF];
+    int pass = costs.costs[b.Passability(costs.shift)];
     if (pass < 0) return;
     int climb = costs.climb[static_cast<int>(b.groundLevel) - static_cast<int>(a.groundLevel)];
     if (climb < 0) return;
@@ -135,7 +135,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCells* path, int start
             PathCell origin{0, 0, 0, 0}, offset;
             origin.Step(&offset, d);
             const AIMapCell& to = map->cells[headY + offset.y][headX + offset.x];
-            int pass = costs.costs[(to.passable >> (costs.shift & 31)) & 0xF];
+            int pass = costs.costs[to.Passability(costs.shift)];
             if (to.level > level && to.level >= head.level) continue;
             if (pass < 0) continue;
             int climb = costs.climb[static_cast<int>(to.groundLevel) - static_cast<int>(head.groundLevel)];

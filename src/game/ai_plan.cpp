@@ -59,7 +59,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         PathCells::iterator owner = previous;
         previous = node;
         std::uint8_t cell = cellRows[node->y][node->x];
-        waypoints.push_back({(cell & 0xF) + node->x * 8, (cell >> 4) + node->y * 8, owner});
+        waypoints.push_back({RepresentativeX(cell) + node->x * 8, RepresentativeY(cell) + node->y * 8, owner});
     }
     waypoints.push_back({toX, toY, previous});
 

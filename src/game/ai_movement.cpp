@@ -128,19 +128,19 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCells* steps) {
         auto next = std::next(node);
         const AIMapCell& cell = cells[node->y][node->x];
         if (next == steps->end()) {
-            int cost = context.costs[(cell.passable >> (context.shift & 31)) & 0xF];
+            int cost = context.costs[cell.Passability(context.shift)];
             node->terrainBits =
-                static_cast<std::uint16_t>((cell.flags >> 7) + (cost > kExpensive ? 2 : 0));
+                static_cast<std::uint16_t>((cell.InWater() ? 1 : 0) + (cost > kExpensive ? 2 : 0));
             return;
         }
         const AIMapCell& to = cells[next->y][next->x];
-        int cost = stepCosts[(to.passable >> (shift & 31)) & 0xF];
-        int contextCost = context.costs[(to.passable >> (context.shift & 31)) & 0xF];
+        int cost = stepCosts[to.Passability(shift)];
+        int contextCost = context.costs[to.Passability(context.shift)];
         if (cost < 0) cost = 0x400;
         int climbCost = climb[static_cast<int>(to.groundLevel) - static_cast<int>(cell.groundLevel)];
         int speed = climbCost < 0 ? 0x200 : static_cast<int>(static_cast<unsigned>(cost) << 9) / climbCost;
         node->flags = static_cast<std::uint16_t>(speed);
-        node->terrainBits = static_cast<std::uint16_t>((to.flags >> 7) + (contextCost > kExpensive ? 2 : 0));
+        node->terrainBits = static_cast<std::uint16_t>((to.InWater() ? 1 : 0) + (contextCost > kExpensive ? 2 : 0));
         node = next;
     }
 }
@@ -159,7 +159,7 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
         CellMark(passability, sizeClass, level, x, y);
         return static_cast<int>(passability[3]) < kExpensive;
     }
-    int cost = context.costs[(cells[y][x].passable >> (context.shift & 31)) & 0xF];
+    int cost = context.costs[cells[y][x].Passability(context.shift)];
     return cost > 0 && cost < kExpensive;
 }
 

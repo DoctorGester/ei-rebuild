@@ -78,12 +78,9 @@ constexpr std::size_t kTileBytes = kTiles * kTiles * sizeof(std::uint16_t);
 constexpr std::uint16_t kNoTile = 0xFFFF;
 constexpr std::uint16_t kTileIndexMask = 0x3FFF;    // the rest of a tile word turns the texture
 constexpr int kTilesPerTexture = 64;
-constexpr std::uint32_t kTypeMask = 0x1F;           // the terrain type in an occluder word
 constexpr std::uint8_t kUnknownTileType = 0xF;      // a tile outside the textures
 constexpr int kWaterKindA = 2, kWaterKindB = 3;
 
-constexpr std::uint8_t kCellDepthMask = 0x3F;       // AIMapCell::flags: the water's depth (object height later)
-constexpr std::uint8_t kCellWater = 0x80;           // AIMapCell::flags: under water
 constexpr int kMaxDepth = 0x3F;
 
 // What the .mp file gives the sectors: its header and copies of the materials and the tile types
@@ -324,7 +321,7 @@ std::uint32_t TileType(const MapDescription& map, std::uint16_t tile) {
     const std::uint32_t index = tile & kTileIndexMask;
     const std::uint8_t type =
         index < map.header.textureCount * kTilesPerTexture ? static_cast<std::uint8_t>(map.tileTypes[static_cast<int>(index)]) : kUnknownTileType;
-    return type & kTypeMask;
+    return occluder::Type(type);
 }
 
 // Whether a sector file of `size` bytes is one: the magic, and the size its layers give.
@@ -385,7 +382,7 @@ void StampSector(CAIMap& map, const MapDescription& description, const void* fil
     for (int ty = 0; ty < kTiles; ++ty)
         for (int tx = 0; tx < kTiles; ++tx) {
             const std::uint32_t type = TileType(description, tiles[ty * kTiles + tx]);
-            forTileCells(tx, ty, [type](AIMapCell&, std::uint32_t& occluder) { occluder = (occluder & ~kTypeMask) | type; });
+            forTileCells(tx, ty, [type](AIMapCell&, std::uint32_t& occluder) { occluder = occluder::WithType(occluder, type); });
         }
     if (hasWater)
         for (int ty = 0; ty < kTiles; ++ty)
@@ -397,7 +394,7 @@ void StampSector(CAIMap& map, const MapDescription& description, const void* fil
                     liquid = kind == kWaterKindA || kind == kWaterKindB;
                 }
                 forTileCells(tx, ty, [liquid](AIMapCell& cell, std::uint32_t&) {
-                    const bool under = liquid && (cell.flags & kCellDepthMask) != 0;
+                    const bool under = liquid && cell.WaterDepth() != 0;
                     cell.flags = static_cast<std::uint8_t>((cell.flags & ~kCellWater) | (under ? kCellWater : 0));
                 });
             }
@@ -408,7 +405,7 @@ void StampSector(CAIMap& map, const MapDescription& description, const void* fil
                 if (tile == kNoTile) continue;
                 const std::uint32_t type = TileType(description, tile);
                 forTileCells(tx, ty, [type](AIMapCell& cell, std::uint32_t& occluder) {
-                    if ((cell.flags & kCellWater) && (cell.flags & kCellDepthMask)) occluder = (occluder & ~kTypeMask) | type;
+                    if (cell.InWater() && cell.WaterDepth() != 0) occluder = occluder::WithType(occluder, type);
                 });
             }
 }

@@ -15,7 +15,6 @@
 namespace {
 
 constexpr std::uint32_t kFlagOnPart = 0x10;     // flags_: sit on a part of a unit
-constexpr std::uint32_t kBoundsSphere = 1;      // CObject3D::boundsFlags: radius valid
 
 // The part each attachPoint 1..12 asks for (0 is the unit's effect point). 2 is the head raised
 // by 1; 7 asks for "bd" twice (the fallback part).
@@ -71,8 +70,8 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
         if (point == 2) out->z = out->z + 1.0f;
         return out;
     }
-    float rise = (object->bounds.flags & kBoundsSphere) ? object->bounds.radius * 1.6f
-                                                         : object->bounds.boxMax.z - object->bounds.boxMin.z;
+    float rise = lib::Has(object->bounds.flags, BoundsFlag::Sphere) ? object->bounds.radius * 1.6f
+                                                                  : object->bounds.boxMax.z - object->bounds.boxMin.z;
     out->x = object->localPosition_.x;
     out->y = object->localPosition_.y;
     out->z = rise + object->localPosition_.z;
@@ -89,7 +88,7 @@ Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
         return out;
     }
     object->ComputeBounds();
-    if (object->bounds.flags & kBoundsSphere) {
+    if (lib::Has(object->bounds.flags, BoundsFlag::Sphere)) {
         *radius = object->bounds.radius;
     } else {
         double dz = object->bounds.boxMax.z - object->bounds.boxMin.z;

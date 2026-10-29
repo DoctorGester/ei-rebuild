@@ -150,13 +150,13 @@ int LocalSearch::StepCost(const SearchNode* node, int factor) {
     const AIMapCell& from = cellRows[current->y][current->x];
     int pass, climb;
     if (backward) {
-        pass = costs.costs[(from.passable >> (costs.shift & 31)) & 0xF];
+        pass = costs.costs[from.Passability(costs.shift)];
         if (pass < 0) return -1;
         if (level < to.level && from.level <= to.level) return -1;
         climb = costs.climb[static_cast<int>(from.groundLevel) - static_cast<int>(to.groundLevel)];
     } else {
         if (level < to.level && from.level <= to.level) return -1;
-        pass = costs.costs[(to.passable >> (costs.shift & 31)) & 0xF];
+        pass = costs.costs[to.Passability(costs.shift)];
         if (pass < 0) return -1;
         climb = costs.climb[static_cast<int>(to.groundLevel) - static_cast<int>(from.groundLevel)];
     }

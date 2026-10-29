@@ -10,6 +10,7 @@
 #include "script.h"   // ScriptStream
 #include "water_tweens.h"
 
+#include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/static_object.h"
 
@@ -24,9 +25,26 @@
 
 // ---- 3D library ---------------------------------------------------------------------------------
 
+// ClipBounds::flags. A figure part's bounds (FootprintPart) also say how the part stands in the AI map: bits 3-5
+// its OccluderKind (BoundsOccluderKind), bits 6-9 its transparency; the part's name sets them
+// (object3d_figure_setup.cpp).
+enum class BoundsFlag : std::uint32_t {
+    Sphere = 0x1,          // the centre and radius are valid
+    Box = 0x2,             // the box is valid
+    Loaded = 0x4,          // a part's bounds are loaded
+    Crown = 0x90,          // a "CROWN..." part: OccluderKind::Crown, transparency 2
+    Base = 0x400,          // a "BASE..." part: its footprint is a bridge deck
+    NoFootprint = 0x800,   // an "EMPTY..." part: no footprint
+};
+template <> inline constexpr bool lib::kBitFlags<BoundsFlag> = true;
+
+// A part's occluder kind (sector_map.h's OccluderKind) and transparency (index into the transparency table).
+inline std::int8_t BoundsOccluderKind(std::uint32_t flags) { return static_cast<std::int8_t>((flags >> 3) & 7); }
+inline std::int8_t BoundsTransparency(std::uint32_t flags) { return static_cast<std::int8_t>((flags >> 6) & 0xF); }
+
 // Bounding volume of a figure part, tested against the view frustum.
 struct ClipBounds {
-    std::uint32_t flags;   // bit 0: centre/radius valid, bit 1: box valid
+    std::uint32_t flags;   // BoundsFlag
     Vector3 center;
     float radius;          // half the side of the cube around the centre
     Vector3 boxMin;        // box corners, relative to the centre
@@ -41,8 +59,7 @@ struct ClipBounds {
 // part boxes (CObject3D::partBoxes).
 struct FootprintPart {
 
-    ClipBounds bounds;      // flags: bits 3-5 kind, 6-9 transparency, 0x400 bridge, 0x800 ignored (bits 0 and 1:
-                            // the sphere and the box are valid); the centre is the part's offset
+    ClipBounds bounds;      // flags: also the part's occluder kind and transparency; the centre is the part's offset
     Vector3 pivot;
 };
 

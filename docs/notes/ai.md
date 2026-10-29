@@ -48,6 +48,13 @@ region grid is cleared, and every block still 0 starts a new region (1, 2, ...) 
   `cells` (+0x2698, the map's size is `cells.width` x `cells.height`), `occluders` (+0x26A8), `marks` (+0x26B8).
   The large-unit layer's Set / Merge also write signed bytes into `waterDepth`'s rows (the small layer writes
   the cells' `level` byte).
+- The packed words have names in ai_map.h (C45d1): AIMapCell::flags is the water's depth (kCellDepthMask, set by
+  the map load; the old "object height" was wrong), kCellBridge and kCellWater (CellFlag80At is "in water");
+  AIMapCell::Passability reads a size class's nibble; namespace `occluder` reads and writes the occluder word;
+  RepresentativeX / Y the region map's cells. The occluder kinds (sector_map.h OccluderKind) come from the part
+  names (model.h BoundsFlag: "CROWN" kind 2, "BASE" a bridge, "EMPTY" no footprint), the spells' walls and clouds
+  (kind 3) and ApplyBridgeDecks (kind 4); no part gives kind 1, whose cost-table entries (20, damping 2) are unused.
+  Open: CellFlag80At and HasKind3Occluder keep their names until a ticket may change signatures.
 - CUnitLayer (CAIMap + 0x27C small, + 0x12A4 large; 0x1028 bytes): MFC CList of every node ever
   allocated, 1024 hash buckets by (block x * 17 + block y), 4x4 blocks; vtable 0073FD74 (small) /
   0073FD6C (large), slots 0 Set / 1 Merge. Shape cache: owner 007C2F70, hash_map 007C2F78, shapes
@@ -80,7 +87,7 @@ By file:
   TopHeightAt, SlopeAt, MaterialAt, CanStandAtFromHere 005B64E0, IsUnitCellPassable, IsPassableForClass, CanLeaveCell), IsPassable
   005B79D0, IsPassableWithoutSelf 005B7A40, CanStandAt 005B80F0, LineOfSight 005BC3E0, SpiralCache::Get 005BFC40, FindFreeCellNear
   005BA9D0. `ai_footprint*.cpp`: FootprintCellSet, MarkFootprint 005B6A80, Apply / Stamp / ClearFootprint, Begin / EndRefresh, the
-  cloud and wall shapes; `ai_bridges.cpp` ApplyBridgeDecks 005B6740 (kind 4, ground >= deck, occluder bits 7); `ai_occluders.cpp`;
+  cloud and wall shapes; `ai_bridges.cpp` ApplyBridgeDecks 005B6740 (OccluderKind::BridgeDeck, ground >= deck, terrain type occluder::kBridgeType); `ai_occluders.cpp`;
   `ai_map_construct.cpp` (CAIMap::CAIMap 005B3C30, CAIMap::Reset 005B5E10: refresh flag off, owner 0, inlined vtables and layer back
   pointers); `ai_area_lists.cpp`, `ai_cost_tables.cpp`; `ai_refresh.cpp` (RefreshArea 005B8FA0, CellMark, LimitSteepCells,
   ClearUnmarkedArea 005B89F0); `ai_water_patch.cpp` StampWaterPatch 005B7EF0; `ai_alarm.cpp` StepAlarm 005AEA80; `ai_shape_cache.cpp`

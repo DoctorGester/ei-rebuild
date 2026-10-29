@@ -16,27 +16,79 @@
 #include <unordered_map>
 #include <vector>
 
-// One AI map cell: a 4-bit passability field per unit size class, then heights.
+// AIMapCell::passable holds a 4-bit passability per size class at bit 4 * sizeClass.
+constexpr std::uint32_t kPassabilityMask = 0xF;
+// AIMapCell::flags: bits 0-5 the water's depth over the ground (AI height units, at most 0x3F), then two bits.
+constexpr std::uint8_t kCellDepthMask = 0x3F;
+constexpr std::uint8_t kCellBridge = 0x40;   // under a bridge (its deck height in CAIMap::bridgeHeights)
+constexpr std::uint8_t kCellWater = 0x80;    // under water (CAIMap::CellFlag80At)
+
+// One AI map cell: a 4-bit passability per unit size class, then heights.
 #pragma pack(push, 1)
 struct AIMapCell {
-    std::uint32_t passable;     // bits 4*sizeClass .. +3: non-zero = passable for that class
+    std::uint32_t passable;     // per size class (Passability): 0 not passable, else the index into its cost table
     std::uint16_t groundLevel;  // terrain height in AI height units; blocks lines of sight
-    std::uint8_t flags;         // bits 0-5: height of what stands on the ground; 0x40: the
-                                // cell is under a bridge (surface height in CAIMap::bridgeHeights)
+    std::uint8_t flags;         // the water's depth, kCellBridge, kCellWater
     std::uint8_t unused_7;
     std::uint8_t level;         // compared with the unit's standing level
+
+    // The passability of the size class whose field starts at bit `shift` (4 * size class; its low 5 bits count):
+    // 0 not passable, else the index into PassCostContext::costs.
+    int Passability(int shift) const { return static_cast<int>((passable >> (shift & 31)) & kPassabilityMask); }
+    int WaterDepth() const { return flags & kCellDepthMask; }
+    bool InWater() const { return (flags & kCellWater) != 0; }
 };
 #pragma pack(pop)
 static_assert(sizeof(AIMapCell) == 9);
-constexpr std::uint8_t kCellBridge = 0x40;
+
+// A cell's occluder word (CAIMap::occluders). Bits 0-4: the cell's terrain type (CAIMap::materials). Bit 8 set:
+// no occluder. Else with bit 7 clear one occluder is packed into the word: bits 5-6 its transparency, 9-11 its
+// kind, 12-21 its top and 22-31 its bottom height; with bit 7 set the occluders are a chain of the records of
+// the cell's sector (SectorOccluder) whose head index is bits 9-28.
+namespace occluder {
+constexpr std::uint32_t kTypeMask = 0x1F;
+constexpr std::uint32_t kTransparencyMask = 0x60;
+constexpr std::uint32_t kChained = 0x80;
+constexpr std::uint32_t kNone = 0x100;
+constexpr std::uint32_t kKindMask = 0xE00;
+constexpr std::uint32_t kTopMask = 0x3FF000;
+constexpr std::uint32_t kBottomMask = 0xFFC00000;
+constexpr std::uint32_t kHeadMask = 0x1FFFFE00;
+constexpr std::uint32_t kBridgeType = 7;   // the terrain type a bridge deck gives its cells (ApplyBridgeDecks)
+
+inline std::uint32_t Type(std::uint32_t word) { return word & kTypeMask; }
+inline int Transparency(std::uint32_t word) { return static_cast<int>((word & kTransparencyMask) >> 5); }
+inline OccluderKind Kind(std::uint32_t word) { return static_cast<OccluderKind>((word & kKindMask) >> 9); }
+inline int Top(std::uint32_t word) { return static_cast<int>((word & kTopMask) >> 12); }
+inline int Bottom(std::uint32_t word) { return static_cast<int>(word >> 22); }
+inline int Head(std::uint32_t word) { return static_cast<int>((word & kHeadMask) >> 9); }
+
+// The word with a field replaced (the value cut to the field's bits).
+inline std::uint32_t WithType(std::uint32_t word, std::uint32_t type) { return (word & ~kTypeMask) | type; }
+inline std::uint32_t WithTransparency(std::uint32_t word, int transparency) {
+    return (word & ~kTransparencyMask) | ((static_cast<std::uint32_t>(transparency) << 5) & kTransparencyMask);
+}
+inline std::uint32_t WithKind(std::uint32_t word, OccluderKind kind) {
+    return (word & ~kKindMask) | ((static_cast<std::uint32_t>(kind) << 9) & kKindMask);
+}
+inline std::uint32_t WithTop(std::uint32_t word, int top) {
+    return (word & ~kTopMask) | ((static_cast<std::uint32_t>(top) << 12) & kTopMask);
+}
+inline std::uint32_t WithBottom(std::uint32_t word, int bottom) {
+    return (word & ~kBottomMask) | (static_cast<std::uint32_t>(bottom) << 22);
+}
+inline std::uint32_t WithHead(std::uint32_t word, int head) {
+    return (word & ~kHeadMask) | ((static_cast<std::uint32_t>(head) << 9) & kHeadMask);
+}
+} // namespace occluder
 
 // A cell an object's footprint covers, collected by CAIMap::MarkFootprint before it is applied to the grid.
 struct FootprintCell {
     int x, y;
     int low;                    // lowest bottom-face height (AI height units), 0x7FFFFFFF if none
     int high;                   // highest top-face height, 0 if none
-    std::int8_t kind;           // occluder kind (part flags bits 3-5; 4 = bridge once applied)
-    std::int8_t transparency;   // index into the transparency table (part flags bits 6-9)
+    OccluderKind kind;          // the part's (FootprintPart); BridgeDeck once applied
+    std::int8_t transparency;   // index into the transparency table (the part's)
     std::uint8_t edge;          // lies on the outline of one of the part's faces
     std::uint8_t padding;               // zeroed by AddCell (uninitialised in the original)
     int next;                   // next index in the same hash bucket, -1 ends
@@ -86,7 +138,7 @@ struct DeltaField;
 struct PathCell {
     std::int16_t x, y;
     std::uint16_t flags;        // 0x200 on a path that is a single cell
-    std::uint16_t terrainBits;          // bit 0 the cell's flags bit 7, bit 1 a costly cell (path state bits 4-5)
+    std::uint16_t terrainBits;          // bit 0 the cell is in water, bit 1 a costly cell (path state bits 4-5)
 
     // The neighbour in direction 1..8 (1 = y - 1, then clockwise towards -x: 2 =
     // (-1, -1), 3 = (-1, 0), 4 = (-1, +1), 5 = (0, +1), 6 = (+1, +1), 7 = (+1, 0), 8 = (+1, -1)) into
@@ -358,6 +410,12 @@ struct BlockSearch {
     bool active;
 };
 
+// A block's representative cell (CRegionMap::cells): its x within the 8x8 block in the low nibble, y in the high one.
+inline int RepresentativeX(std::uint8_t cell) { return cell & 0xF; }
+inline int RepresentativeY(std::uint8_t cell) { return cell >> 4; }
+inline std::uint8_t WithRepresentativeX(std::uint8_t cell, int x) { return static_cast<std::uint8_t>((cell & 0xF0) | (x & 0xF)); }
+inline std::uint8_t WithRepresentativeY(std::uint8_t cell, int y) { return static_cast<std::uint8_t>((cell & 0x0F) | (y << 4)); }
+
 struct CRegionMap {
     // The region of cell (x, y) for a size class, the one most of the reachable 3x3 blocks around the cell belong
     // to (the first seen on a tie; 0 when none).
@@ -412,7 +470,7 @@ struct CRegionMap {
     LocalSearch local;
     ProgressFn progress;
     SearchGrid<std::int16_t> edges[8];          // per size class: 8 edge words per block
-    SearchGrid<std::uint8_t> cells[8];          // representative cell (x | y << 4)
+    SearchGrid<std::uint8_t> cells[8];          // representative cell per block (RepresentativeX / Y)
     SearchGrid<std::uint16_t> regions[8];       // region per block
 };
 CRegionMap* ConstructRegionMap(CRegionMap* self);
@@ -565,10 +623,10 @@ struct AreaOffset {
 };
 
 // The cells under a bridge (CAIMap::bridgeHeights): a hash map keyed (short)x << 16 | (short)y, the
-// value the cell's saved ground level (low word), object height (bits 16-21) and occluder kind (bits 24-28).
+// value the cell's saved ground level (low word), water depth (bits 16-21) and terrain type (bits 24-28).
 struct BridgeHeights : std::unordered_map<std::uint32_t, std::uint32_t> {
-    // Puts back what the cell's bridge map entry saved (ground level, object height, the occluder word's low five
-    // bits) and erases the entry; nothing without one. x and y are read as shorts.
+    // Puts back what the cell's bridge map entry saved (ground level, water depth, terrain type) and erases the
+    // entry; nothing without one. x and y are read as shorts.
     void RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder);
     // Bridge deck height of cell (x, y), 0 if none.
     int HeightAt(short x, short y) const;
@@ -657,10 +715,11 @@ public:
     float LineOfSight(const Vector3* from, const Vector3* to);
 
     float GroundHeight(int x, int y);
-    // Terrain height plus what stands on it, at `position`.
+    // Terrain height plus the water's depth, at `position`.
     float TopHeightAt(const Vector3* position);
     // Largest height step to the 4 neighbours of the cell at `position` (0 at the edge).
     float SlopeAt(const Vector3* position);
+    // Is the cell at `position` under water (kCellWater)? False outside the map.
     bool CellFlag80At(const Vector3* position);
     bool HasKind3Occluder(int x, int y);
     bool HasKind3OccluderAt(const Vector3* position);
@@ -697,7 +756,7 @@ public:
     const int* CostContext(int sizeClass, struct PassCostContext* out);
     // CostContext for `unit`: its size class, speeds and the alternative table with CUnit::altPassCosts.
     void CostContextFor(CUnit* unit, struct PassCostContext* out);
-    // Is the cell under `unit` passable for it at a cost below 12000? (A cell with a kind-3 occluder is
+    // Is the cell under `unit` passable for it at a cost below 12000? (A cell with a SpellArea occluder is
     // evaluated at the size class's level.) Only the low byte of the result is set when the unit is outside the
     // map.
     bool StandsOnCheapCell(CUnit* unit);
@@ -769,7 +828,7 @@ public:
     CRegionMap regionMap;
     LocalSearch forwardSearch;
     LocalSearch backwardSearch;
-    // the world tick of the last StampFootprint: an idle unit standing in a kind-3 occluder replans while its
+    // the world tick of the last StampFootprint: an idle unit standing in a SpellArea occluder replans while its
     // motion order started before it.
     int footprintTick;
     SearchGrid<AIMapCell> cells;        // the map's cells (cells.width x cells.height)
