@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <span>
 #include <vector>
 
 class TextureDevice;
@@ -517,15 +518,20 @@ private:
     std::vector<std::uint32_t> absolute;    // scratch: an item's indices made absolute
 };
 
-// The terrain, inside EndFrame's off-screen pass. For the shadow map's fit: TerrainPieceBox, the box of a
-// piece's vertices in the landscape's space (false when it has none, kept with the page); TerrainPiecePositions,
-// every `step`th position of its vertices. TerrainFrameDone, after a present, drops pages not drawn for a long
-// time. DestroyTerrain keeps the pages (placed again at their next draw).
+// The terrain, inside EndFrame's off-screen pass. For the shadow map's fit: TerrainPieceGroups, a piece's
+// vertices in runs (TerrainGroup: kept with the page, made when its vertices are built or moved);
+// TerrainGroupPositions, every `step`th position of a run. TerrainFrameDone, after a present, drops pages not
+// drawn for a long time. DestroyTerrain keeps the pages (placed again at their next draw).
+struct TerrainGroup {
+    Vector3 low, high;              // the box of its positions in the landscape's space
+    std::uint32_t first, count;     // its vertices in the page's
+};
 bool CreateTerrainShader();
 void UploadTerrain(const Frame& frame);
 void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
-bool TerrainPieceBox(const TerrainPiece& piece, Vector3* low, Vector3* high);
-void TerrainPiecePositions(const TerrainPiece& piece, std::uint32_t step, std::vector<Vector3>* out);
+std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece);
+void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group, std::uint32_t step,
+                           std::vector<Vector3>* out);
 void TerrainFrameDone();
 void DestroyTerrain();
 // The ground's casters (render::ShadowTerrainSector). DrawTerrainCasters draws with `pipeline` (vertex buffer

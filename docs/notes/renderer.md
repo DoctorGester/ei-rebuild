@@ -1063,8 +1063,8 @@ across runs; the goldens check the game state.
    page reads them again through its vertices' records and tile entries and uploads the changed range; the visible
    quarters' colours are compared with the records every frame, the changed range uploaded. The pool (at least 128 K vertices) starts again with the frame's
    pages when full (made larger when they need more than half of it); pages not drawn for 600 frames are dropped.
-   The shadow map's fit reads the pieces' boxes (`TerrainPieceBox`, made when a page's vertices are built or moved)
-   and, for a piece the view's sides cross, its positions (`TerrainPiecePositions`).
+   The shadow map's fit reads a piece's vertices in runs of 72 with their boxes (`TerrainPieceGroups`, made when a
+   page's vertices are built or moved) and, for a run the view's sides cross, its positions (`TerrainGroupPositions`).
    Measured (render_stats, vanilla 4K, per frame): terrain upload before / after menu 268 / 51 KB, zone1 808 / 229,
    fight 808 / 211, town 372 / 74 (indices only when a page is built: none in these scenes); terrain CPU (`renderstats`
    "terrain": hand-over and uploads) zone1 0.44-0.61 ms with every page built and uploaded every frame / 0.24 kept,
@@ -1425,9 +1425,11 @@ across runs; the goldens check the game state.
     inverse times a mesh's clip matrix gives the mesh in the landscape's space; an orthographic view from the sun
     (tilted to at least 20 degrees as 0051CE60's) is fitted around the visible ground (x, y in steps of 8 units,
     origin on whole texels; along the light from the nearest caster that reaches it, below), 4096 x 4096 D32. The
-    ground is taken by terrain piece (a page's quarter; its box kept with the page): a piece wholly inside the view
-    (widened by 5% at its sides) by its box's corners, one the view's sides cross by every second vertex inside them
-    (R37d: before, every second vertex of every piece went through the camera's matrix each frame). The
+    ground is taken in runs of 72 of a terrain piece's vertices (8 tiles at the finest detail; their boxes kept with
+    the page): a run wholly inside the view (widened by 5% at its sides) by its box's corners, one the view's sides
+    cross by every second vertex inside them, tested against the planes it crosses only (R37d: before, every second
+    vertex of every piece went through the camera's matrix each frame). The box's top over a run's low ground
+    widens the fit a little: in render_shadows* the same extents as before, the origin a few texels off. The
     casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha, read from
     the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away;
     render_options_shadows' pine casts a denser shadow so, 0.9% of that frame) go into it in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes

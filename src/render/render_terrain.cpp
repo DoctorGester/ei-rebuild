@@ -182,10 +182,10 @@ PageSource SourceOf(const SectorData* s, int page) {
     return src;
 }
 
-// A quarter's tiles of a page: its vertices and indices within the page's, and its vertices' box.
+// A quarter's tiles of a page: its vertices, indices and runs of vertices (CachedPage::groups) within the page's.
 struct QuarterRange {
     std::uint32_t firstVertex = 0, vertexCount = 0, firstIndex = 0, indexCount = 0;
-    Vector3 low{}, high{};
+    std::uint32_t firstGroup = 0, groupCount = 0;
 };
 
 // A sector's ground layer as a caster: its 33 x 33 vertices with normals from their neighbours, kept while
@@ -259,6 +259,7 @@ struct CachedPage {
     bool readsWater = false;
     bool animatedTiles = false;
     QuarterRange quarters[4];
+    std::vector<TerrainGroup> groups;      // the quarters' vertices in runs of kGroupVertices, with their boxes
     PoolPlace place;
     bool geometryDirty = true;
     std::uint32_t vertexFrom = 0, vertexTo = 0;      // vertices whose positions or texture coordinates to upload
@@ -273,16 +274,24 @@ struct CachedPage {
 // A second block: it uses CachedPage (defined above).
 namespace {
 
-// Each quarter's box of its vertices' positions, after they were built or moved.
-void QuarterBoxes(CachedPage& p) {
+// The quarters' vertices in runs with their boxes, after they were built or moved: a run is a few tiles in a row
+// (8 at the finest level of detail), small enough that its box's top stays close to its ground.
+constexpr std::uint32_t kGroupVertices = 72;
+void MakeGroups(CachedPage& p) {
+    p.groups.clear();
     for (QuarterRange& q : p.quarters) {
-        q.low = Vector3{1e30f, 1e30f, 1e30f};
-        q.high = Vector3{-1e30f, -1e30f, -1e30f};
-        for (std::uint32_t i = q.firstVertex; i < q.firstVertex + q.vertexCount; ++i) {
-            const Vector3& at = p.vertices[i].position;
-            q.low = Vector3{(std::min)(q.low.x, at.x), (std::min)(q.low.y, at.y), (std::min)(q.low.z, at.z)};
-            q.high = Vector3{(std::max)(q.high.x, at.x), (std::max)(q.high.y, at.y), (std::max)(q.high.z, at.z)};
+        q.firstGroup = static_cast<std::uint32_t>(p.groups.size());
+        for (std::uint32_t first = q.firstVertex; first < q.firstVertex + q.vertexCount; first += kGroupVertices) {
+            TerrainGroup g{{1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, first,
+                           (std::min)(kGroupVertices, q.firstVertex + q.vertexCount - first)};
+            for (std::uint32_t i = first; i < first + g.count; ++i) {
+                const Vector3& at = p.vertices[i].position;
+                g.low = Vector3{(std::min)(g.low.x, at.x), (std::min)(g.low.y, at.y), (std::min)(g.low.z, at.z)};
+                g.high = Vector3{(std::max)(g.high.x, at.x), (std::max)(g.high.y, at.y), (std::max)(g.high.z, at.z)};
+            }
+            p.groups.push_back(g);
         }
+        q.groupCount = static_cast<std::uint32_t>(p.groups.size()) - q.firstGroup;
     }
 }
 
@@ -342,7 +351,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
         range.indexCount = static_cast<std::uint32_t>(out.indices.size()) - range.firstIndex;
     }
     out.readsWater = std::any_of(out.records.begin(), out.records.end(), [](std::uint16_t r) { return r >= kWaterRecords; });
-    QuarterBoxes(out);
+    MakeGroups(out);
 }
 
 bool SameGeometry(const CachedPage& a, const CachedPage& b) {
@@ -394,7 +403,7 @@ bool ReadVertices(const SectorData* s, CachedPage& p) {
         MarkVertex(i, p.vertexFrom, p.vertexTo);
         changed = true;
     }
-    if (changed) QuarterBoxes(p);
+    if (changed) MakeGroups(p);
     return changed;
 }
 
@@ -604,6 +613,7 @@ bool BuildAgain(const SectorData* s, int page, int lod, bool seams, CachedPage& 
     p.readsWater = g_scratch.readsWater;
     p.animatedTiles = g_scratch.animatedTiles;
     for (int q = 0; q < 4; ++q) p.quarters[q] = g_scratch.quarters[q];
+    p.groups.swap(g_scratch.groups);
     return true;
 }
 
@@ -751,19 +761,15 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     draw();
 }
 
-void TerrainPiecePositions(const TerrainPiece& piece, std::uint32_t step, std::vector<Vector3>* out) {
-    out->clear();
-    const CachedPage& p = *piece.page;
-    const QuarterRange& q = p.quarters[piece.quarter];
-    for (std::uint32_t i = 0; i < q.vertexCount; i += step) out->push_back(p.vertices[q.firstVertex + i].position);
+std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece) {
+    const QuarterRange& q = piece.page->quarters[piece.quarter];
+    return std::span<const TerrainGroup>(piece.page->groups.data() + q.firstGroup, q.groupCount);
 }
 
-bool TerrainPieceBox(const TerrainPiece& piece, Vector3* low, Vector3* high) {
-    const QuarterRange& q = piece.page->quarters[piece.quarter];
-    if (q.vertexCount == 0) return false;
-    *low = q.low;
-    *high = q.high;
-    return true;
+void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group, std::uint32_t step,
+                           std::vector<Vector3>* out) {
+    out->clear();
+    for (std::uint32_t i = 0; i < group.count; i += step) out->push_back(piece.page->vertices[group.first + i].position);
 }
 
 void TerrainFrameDone() {
