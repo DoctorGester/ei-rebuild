@@ -82,7 +82,7 @@ one value per field chunk (IntListField, InlineStrings).
 - The original's slot 18 (FirstListName) is not in our CItem: nothing called it, and the record lists it read were never
   filled.
 - Decided (user 2026-10-29): the six item subclasses stay (L26 declined: the kinds differ in data and behaviour; revisit
-  later). The same holds for the AI mode classes. Open (style review, build/style_review/items.md): the member naming mix (`CItem::count_`,
+  later). Open (style review, build/style_review/items.md): the member naming mix (`CItem::count_`,
   `CItemLink::value`, `ItemStock::party`). The scroll class is `CItemScroll` / `ItemKind::Scroll` / `ClassId::ItemScroll`
   (C61b; `ClassName()` is only the console's listing, never saved).
 
