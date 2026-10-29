@@ -1848,6 +1848,24 @@ point loop) and the figure parts (shaders/mesh.hlsl's figure_light). The receive
   sun map's only); lights beyond the kept scene lights (render::SceneLighting's nearest kMostSceneLights) cast
   none.
 
+The faces are kept across frames (R37a). A light keeps its row while it stays where it is with the same range
+(`GiveRows`; the strongest-first order may reshuffle, the rows do not), and a face is drawn again only when its
+light or the list of its casters changed. A caster is the same when its kept mesh and `CachedMeshVersion` (bumped
+whenever its corners change), index range, texture, sampler, cut-out and texture offset are, and its model matrix
+is within `kKeptPlace` / `kKeptTurn`: the matrix into the landscape's space is the camera's inverse times the game's
+camera-space matrix, so a building moves by up to ~0.0015 units of rounding from frame to frame (measured in the
+town); a mesh of the frame's stream is never the same. Only the faces drawn are cleared (a solid-shader rectangle
+at depth 1); a face known empty stays clear whatever its light. The units' idle animations move them every frame,
+so a face holding a unit is drawn again whole every frame: in the town at night (Rebirth, 4K) 4 of the 17 faces,
+139 of 174 draws (the crowd of 12: 417 of 450); the point map's CPU and GPU time stayed within the machine's
+noise (alternating runs kept / all drawn, set against the sun map's time in the same frames). Tried and dropped:
+two layers a face (the still casters in an image of their own, copied into the atlas with SV_Depth, the units
+drawn over it): 101 / 378 draws, but the copies' GPU time outweighed the 40 draws (the point map's GPU time
+against the sun map's 0.55 -> 0.8). PreparePointShadows (R37b) keeps its working lists across frames, makes one sphere per mesh
+(BoxSphere: one root of the largest corner square) and compares squared distances, taking a root only where a
+test is too close to tell (`NotFurther`: the image's CRT root is a call with control-word work); its results are
+bit-equal to the plain distances'.
+
 ### render_shadows.cpp: object shadows through a sun shadow map
 
 Object shadows through a sun shadow map (docs/notes/renderer.md section 13). The game hands over the sun, which

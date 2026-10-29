@@ -91,6 +91,7 @@ struct CachedMesh {
     bool relightNext = false;                        // a draw not kept wrote the colours (NoteMeshDraw)
     std::uint32_t lastUsed = 0;
     std::uint32_t mark = 0;
+    std::uint32_t version = 0;                       // CachedMeshVersion
 };
 
 } // namespace detail
@@ -99,6 +100,7 @@ struct CachedMesh {
 namespace {
 
 std::unordered_map<const void*, CachedMesh> g_meshes;
+std::uint32_t g_lastVersion = 0;   // the last CachedMesh::version given
 std::vector<CachedMesh*> g_pending;
 GpuPool g_pool(sizeof(MeshVertex), 1u << 16, 3u << 16, "ei-mesh");
 // A mesh not drawn for this many frames is dropped (its pool room comes back at the next Restart).
@@ -234,6 +236,7 @@ void Check(const MeshDraw& m, CachedMesh& e) {
     e.colours.swap(g_fresh.colours);
     e.indices.swap(g_fresh.indices);
     e.dirty = true;
+    if (geometry) e.version = ++g_lastVersion;
 }
 #endif
 
@@ -328,12 +331,16 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
     FrameStats::Reuse reuse = FrameStats::Same;
     if (build) {
         e.valid = Build(m, e);
+        e.version = ++g_lastVersion;
         if (!e.valid) return nullptr;
         e.dirty = true;
         e.vertexFrom = e.vertexTo = e.colourFrom = e.colourTo = 0;
         reuse = FrameStats::New;
     } else {
-        if (move && ReadPositions(m, e)) reuse = FrameStats::Moved;
+        if (move && ReadPositions(m, e)) {
+            reuse = FrameStats::Moved;
+            e.version = ++g_lastVersion;
+        }
         if (relight && ReadColours(m, e) && reuse == FrameStats::Same) reuse = FrameStats::Relit;
 #if defined(EI_RENDER_VALIDATION)
         if (check) Check(m, e);
@@ -373,6 +380,8 @@ Vector3 CornerNormal(const MeshDraw& m, int index) {
 }
 
 int CachedIndexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.indices.size()); }
+
+std::uint32_t CachedMeshVersion(const CachedMesh& mesh) { return mesh.version; }
 
 void UploadCachedMeshes(const Frame& f) {
     if (g_pending.empty()) return;
