@@ -380,10 +380,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                     if (!object) continue;
                     auto* record = new CItemLink();
                     record->value = value;
-                    CItemLink* old = object->ServerLink();
-                    object->link_ = record;
-                    if (record) record->AddRef();
-                    if (old) old->Release();
+                    object->link_.Assign(record);
                 }
             }
 

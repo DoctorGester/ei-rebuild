@@ -16,12 +16,9 @@ void SetMinusOne(T& field) {
     field = std::bit_cast<T>(kMinusOne);
 }
 
-CRefCounted* Link(CRefObject* value) { return value; }
-
 } // namespace
 
 CItem::CItem() {
-    link_ = nullptr;
     SetMinusOne(condition_);
     SetMinusOne(conditionMax_);
     SetMinusOne(charge_);
@@ -40,16 +37,11 @@ void CItem::Create() {
 
 void CItem::Destroy() {
     spell_.Reset();
-    CRefCounted* link = Link(link_);
-    link_ = nullptr;
-    if (link) link->Release();
+    link_.Reset();
 }
 
 CItem::~CItem() {
     CItem::Destroy();
-    // The link's count dropped, without clearing.
-    CRefCounted* link = Link(link_);
-    if (link) link->Release();
 }
 
 CItemWeapon::CItemWeapon() {

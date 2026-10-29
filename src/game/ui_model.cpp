@@ -65,7 +65,7 @@ void CUiModel::ShowPart(const char* name, int show) {
 // Every part shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
     for (int i = 0; i < std::ssize(object_->parts); ++i)
-        if (auto* part = object_->parts[i]) ShowFigurePart(part, show);
+        if (CFigureMesh* part = object_->parts[i]) ShowFigurePart(part, show);
 }
 
 // Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface clock,

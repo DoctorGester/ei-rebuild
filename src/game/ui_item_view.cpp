@@ -190,7 +190,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
     if (ItemTurnOf(item) == nullptr) {
         auto* turn = new ItemTurn();
         turn->glow = RandomPhase(g_random.Next());
-        AssignCounted(item->link_, turn);
+        item->link_.Assign(turn);
     }
 
     if (cell.mode == 9) {

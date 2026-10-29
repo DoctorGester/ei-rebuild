@@ -53,16 +53,6 @@ public:
     void Shutdown();
 };
 
-// A typed pointer slot holding a counted object: `object` gains a reference, the old one loses one. Only the
-// interface's item view still stores into a raw slot with it; everything else holds a Ref.
-template <typename T>
-void AssignCounted(T*& slot, std::type_identity_t<T>* object) {
-    T* old = slot;
-    slot = object;
-    if (object) object->AddRef();
-    if (old) old->Release();
-}
-
 // Ownership of a shared object. An owner holds its own share of an object others may hold too: sharing a
 // copy-on-share object hands out a clone, and the owner's release of a still-shared object detaches it and shuts
 // it down first (the others see it is gone with IsLive). The network messages, sessions, server entries and links

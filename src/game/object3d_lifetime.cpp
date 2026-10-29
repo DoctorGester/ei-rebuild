@@ -38,13 +38,8 @@ void CObject3D::Destroy3D() {
         }
         animation = nullptr;
     }
-    for (int i = 0; i < std::ssize(parts); ++i) {
-        CEngineObject* part = parts[i];
-        if (part) {
-            part->ForgetReference();
-            parts[i] = nullptr;
-        }
-    }
+    for (HeldRef<CFigureMesh>& part : parts)
+        if (CFigureMesh* forgotten = part.Take()) forgotten->ForgetReference();
     parts.clear();
     if (attached) attached->Release();
     attached = nullptr;

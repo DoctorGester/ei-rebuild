@@ -141,7 +141,7 @@ void CObject3D::CollectPartsByPrefix(std::string_view prefix, std::vector<CFigur
     // The game asks each part for its name twice; parts return the same string both times.
     auto startsWith = [prefix](CFigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
     for (int i = 0; i < std::ssize(parts); ++i) {
-        auto* part = parts[i];
+        CFigureMesh* part = parts[i];
         if (!startsWith(part)) continue;
         int index = std::ssize(*out);
         out->resize(index + 1);
@@ -183,7 +183,6 @@ CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
     for (int i = 0; i < std::ssize(parts) && !present; ++i) present = parts[i] == part;
     if (!present) {
         parts.push_back(part);
-        part->AddRef();
         part->SetObject(this);
         if (animation) animation->AttachMesh(part);
         if (attached) attached->OnPartAdded(part);

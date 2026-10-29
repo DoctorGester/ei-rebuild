@@ -84,11 +84,9 @@ public:
     void Repair() { condition_ = conditionMax_; }
     float Weight() const { return weight_; }
 
-    // a counted link record (a RefPtr slot): the world server's CItemLink (the id the
-    // world's save keeps per item, or the party record's item), the HUD's ItemTurn.
-    CRefObject* link_;
-    // Holds `link` (counted; the previous one released).
-    void SetLink(CRefObject* link);
+    // a link record: the world server's CItemLink (the id the world's save keeps per item, or the party record's
+    // item), the HUD's ItemTurn.
+    Ref<CRefObject> link_;
     CItemLink* ServerLink() const;
     // the condition and its maximum (both from the prototype's; -1 bits, a NaN,
     // until then): at 0 or below (rounded) the item is broken.
@@ -121,7 +119,7 @@ public:
 
     std::uint32_t value;
 };
-inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(link_); }
+inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(link_.Get()); }
 
 class CItemWeapon : public CItem {
 public:

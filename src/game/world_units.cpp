@@ -130,7 +130,7 @@ CItem* MakeItem(CWorldServer* world, CItem* itemRecord) {
     CItem* item = world->DuplicateItem(itemRecord);
     auto* record = new CItemLink();
     record->value = static_cast<std::uint32_t>(itemRecord->id_);
-    item->SetLink(record);
+    item->link_.Assign(record);
     return item;
 }
 

@@ -89,6 +89,11 @@ File `core_refcount.cpp`, `core_refcount.h`.
   that owns its share is a `SharedRef<T>` (copy: share, destructor: DestroyOwned). The network messages' plain counted
   fields are `Ref<T>` (the copy constructors Assign), their plain lists `HeldRef<T>`. The AI's mode list still holds
   raw pointers through the T*& overloads.
+- CItem's `spell_` (Ref<CSpell>) and `link_` (Ref<CRefObject>: the server's CItemLink or the interface's ItemTurn) are
+  Refs. CObject3D's `parts` are a `std::vector<HeldRef<CFigureMesh>>` whose references the original never releases
+  through the vector: CopyFigure copies the pointers uncounted (the old ones taken without a release, each copy's
+  reference forgotten again), Destroy3D takes each and forgets its reference, RemovePart takes the element and releases
+  it after the detach.
 - Not merged yet: `ScriptEffect<T>` (its reset removes the timed object first), the game client's raw counted fields
   (`info_`, `binding_`, `map_`, `trade_`: AssignRef / ClearRef in net_client_handlers.cpp).
 - Counted lists outside the interface: the world's missiles, a CObject3D's effect sources, the joined links (TakeNew)

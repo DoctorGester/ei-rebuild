@@ -207,13 +207,6 @@ void CItem::AttachSpell(CSpell* spell) {
     if (spell_) price_ = spell_->price_ + price_;
 }
 
-void CItem::SetLink(CRefObject* link) {
-    CRefObject* previous = link_;
-    link_ = link;
-    if (link) link->AddRef();
-    if (previous) previous->Release();
-}
-
 // --- CItemConstructor ----------------------------------------------------------------------------
 
 void CItemConstructor::Create() {
