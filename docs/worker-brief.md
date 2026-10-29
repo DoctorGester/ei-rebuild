@@ -67,7 +67,12 @@ Rules:
 - Long commands (both builds, a suite) go in the background (`run_in_background`); then end your
   turn and wait for the completion notice. Never poll: no `until` / `while sleep` loops, no
   Wait-Process, no repeated tail of an output file. Build `verify` while iterating, `release`
-  before each commit.
+  before each commit (debug and asan are the coordinator's, at merge).
+- Every background command runs under a time limit: `python tools/limit.py SECONDS -- COMMAND...` kills
+  its whole process tree at the limit, prints TIMED OUT, posts a board note and exits 124. Limits: a
+  build 900, `work.py test` 5400 (it may queue behind other batches), anything else 600. A timeout is
+  a result: find out why (a hung game, a tool waiting on input, a loop), don't just raise the limit.
+  A command you expect to finish in seconds runs in the foreground.
 - Scratch files go under the scratchpad's folder for your ticket (the scratchpad is shared). So do one-off
   migration scripts (retypes, deletions): never commit them to tools/; give the script's full path in your report
   so the coordinator can re-run it after a merge conflict.

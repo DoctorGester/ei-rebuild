@@ -93,7 +93,7 @@ function ticketCard(t, also = []) {
   const stacked = [t, ...also];
   const newest = list => list.filter(Boolean).sort((x, y) => y.id - x.id)[0];
   const b = newest(stacked.map(s => s.batch));
-  const f = freshness(t);
+  const f = freshness({ ...t, batch: b, notes: stacked.flatMap(s => s.notes).sort((x, y) => (y.time > x.time) - (y.time < x.time)) });
   const sub = [];
   if (a) {
     sub.push(`<span class="who" title="${esc(a.agent)}\n${esc(a.worktree)}\n${esc(a.branch || '')}">${esc(shortAgent(a.agent))}${a.open ? '' : ' (ended)'}</span>`);
