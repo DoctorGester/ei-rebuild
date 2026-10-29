@@ -6106,7 +6106,21 @@ id = "C30a"
 title = "Drawing-only files on /arch:SSE2 (flags only, code untouched)"
 group = "cleanup"
 model = "opus"
-note = "Step 1 of C30's plan (read C30's note). Per-file /arch:SSE2 for the drawing-only list, golden-checked; files that change a golden go back to IA32, listed with the golden; frame time before/after on R37's scenes. User 2026-10-29: sound goes on the SSE2 list (output only). Check first that no game state reads sound results back: speech/sample lengths driving dialogue or script timing, Play return handles used in logic, music state in saves; those paths stay x87 or get the golden check."
+note = "Step 1 of C30's plan (read C30's note). Per-file /arch:SSE2 for the drawing-only list, golden-checked; files that change a golden go back to IA32, listed with the golden; frame time before/after on R37's scenes. User 2026-10-29: sound goes on the SSE2 list (output only). Check first that no game state reads sound results back: speech/sample lengths driving dialogue or script timing, Play return handles used in logic, music state in saves; those paths stay x87 or get the golden check. Done 2026-10-29: SSE2 = ei_render (all) + ei_draw (CMakeLists EI_SSE2_GAME_SOURCES: ui_* but the x87 list, particle_*, effects*, weather_*, lightning*, texture*, surface*, dib*, renderer_* but renderer_init, device_* but device_mesh/bounds/shadow/object, sky_object, global_map_clouds, ground_decal, ground_print, line_batch, map_object_shadow, present_window, scene_renderer, sound_music, terrain_ambience, terrain_animation, terrain_decal, terrain_passes, terrain_shadow, unit_client_sounds, unit_sound_counts, world_client_decals, world_client_lights, world_client_shadow_casters): 160 game files + 26 render. Reverted by a golden: ui_item_strip_setup (ui_hero_screen record 11, the figure strip's click picked the neighbouring figure); with it on judgement ui_item_strip, ui_hero_screen, ui_hero_screen_click, ui_stats_buttons, ui_trade_panel_input. Kept x87 by reading: picking/camera/view files, ui_briefing*, ui_global_map*, sound_manager (Play3D level decides voice use; a speech handle clears the server unit's talking flag), terrain heights/sectors/loading. Goldens 121 same / 28 none, --no-hooks 113 / 13. Seams: 0 control-word writes in SSE2 objects, 0 COMDATs taken from SSE2 (ei_draw whole-archive after the x87 objects). check_x87 skips SSE2 objects and ftol3.obj. Notes: cleanup-tooling.md 'SSE2 build'. Frame time on R37's scenes not measured."
+
+[[ticket]]
+id = "C30a1"
+title = "Frame time before/after C30a on R37's heavy scenes"
+group = "cleanup"
+depends = ["C30a"]
+note = "Optional measurement C30a left out: R37's scenario and probe (main's build/R37: r37_heavy.txt, probe.patch) on main before C30a and after, one game at a time, no display mode switch, runs of at most 60 s (split the scenario by scene). Report the frame and CPU times per scene (zone1 day/night, tilted, crowd)."
+
+[[ticket]]
+id = "C30a2"
+title = "Sound maths on SSE2: separate the voice decision from the output levels"
+group = "cleanup"
+depends = ["C30a"]
+note = "C30a kept sound_manager.cpp x87: Play3D's level (UpdatePositional) decides whether a one-shot takes a voice, and a speech's Play2D handle (-1 when every voice plays at its priority or above) clears the server unit's talking flag (unit_client_speech.cpp). Find every path from a float level to voice use (Play3D's silent one-shot, Tick's restarts and stops), keep those x87 or make them integer-exact, and move the rest (per-frame volumes and pans, the fader, emitters) to an SSE2 file; golden-checked."
 
 [[ticket]]
 id = "R34c"

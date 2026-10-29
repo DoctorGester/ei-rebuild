@@ -12,7 +12,7 @@ Tools (all in `tools/`; each file's docstring says how to run it) and what the c
 | Tool | What it catches |
 |---|---|
 | `check_stolen.py` | the stolen-byte count of every `EI_RECORD` (vector recorders, which run inside game.exe) ends inside an instruction, is under 5, or copies IP-relative instructions (a wrong count crashes only when the function first runs); a recorder not at a known function start, or a second one at an address |
-| `check_x87.py` (after `release`) | unsigned 32-bit to float done the modern way (`FILD` + `FADD 2^32` rounds at the precision control): use `x87::FromUnsigned` |
+| `check_x87.py` (after `release`) | unsigned 32-bit to float done the modern way (`FILD` + `FADD 2^32` rounds at the precision control) in the x87 code: use `x87::FromUnsigned` (the SSE2 code is left out, "SSE2 build" below) |
 | `check_signatures.py` / `check_signatures.cmd` (after `verify`) | a recorder, a forwarder or the rewrite an `EI_RECORD` names (the vectors' replays call it with recorded arguments) whose stack arguments differ from the original's `RET n`; other functions are free (argument order is not checked) |
 | `check_cleanup.py` | per file, the counts of offset access (`At<>` / `Field<>`), `VCall`, `__asm`, `float_control`, raw game addresses and `*At` views may only go down (`config/cleanup_baseline.csv`; a new file starts at zero; `--update` after a cleanup) |
 | `progress.py` | the cleanup artefact counts (below) |
@@ -139,7 +139,46 @@ ours on the standalone, so the helper's flag is passed whole (the constructor re
 `__stdcall` call, and the movement tick's stale local starts at 0 (combat.md, "Movement tick"). `include/ei/x87.h` and `src/hook` (the hook framework) and
 `src/lib/crt_x87.cpp` (Hypot's x87 addition of a NaN) keep theirs by design.
 
-## SSE2 build (C16 experiment)
+## SSE2 build
+
+### The drawing-only code on SSE2 (C30a)
+
+The build is split by file: the renderer (`ei_render`) and the drawing-only game code (`ei_draw`, the list
+`EI_SSE2_GAME_SOURCES` in CMakeLists.txt: the interface, particles and effects, weather, sky, lightning, the terrain's
+draw passes, waves and ambience, decals and prints, the old renderer's glue, textures and surfaces, the music and the
+unit sound names) build with `/arch:SSE2`; everything else, the harness and the vector replays stay `/arch:IA32`. One
+compile option chooses (`$<TARGET_PROPERTY:EI_SSE2>`): cl warns (D9025) when a second `/arch` overrides the first, so
+the two cannot be stacked per file.
+- **Why a whole-archive library:** an inline function kept out of line in both an SSE2 and an x87 object is one COMDAT,
+  and the linker takes the first object's copy. `ei_draw` is linked as `$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_draw>`: every
+  object kept (static initialisers too), all read after ei_hook's own, so the x87 code always gets its x87 copy. An
+  OBJECT library or `$<TARGET_OBJECTS>` puts its objects first on Ninja's link line: the wrong way round.
+- **Checked (verify build, 2026-10-29):** of the 9,448 functions the map takes from SSE2 objects none is also defined
+  by an x87 object, and no SSE2 object loads or resets the x87 control word (FLDCW, FNINIT, `_control87`) other than
+  render.cpp's `FpuGuard` putting back a saved word: SSE2 code leaves the main thread's 24-bit precision alone, and calls
+  into x87 code see it unchanged. (One-off script: dumpbin /disasm and /symbols over the objects plus ei_hook.map.)
+- `check_x87.py` skips the SSE2 objects and the CRT's `ftol3.obj` (`__ltod3` and its kin, which only SSE2 code calls:
+  their 2^32 is SSE arithmetic, not a FADD at the precision control).
+- **What stays x87 and why** (CMakeLists' `EI_X87_DRAW_SOURCES`): picking reads the drawn view and the objects' screen
+  rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
+  and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
+  choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
+  camera keys and mouse, the figure strips), the briefing (camera moves, phrase timing), the hero screen's points and
+  the held buttons' repeat counts (ui_stats_buttons, ui_trade_panel_input), device_object (sets the 24-bit precision),
+  the terrain's heights, sectors and loading, and sound_manager (below).
+- **Golden that sent a file back:** ui_item_strip_setup (`ui_hero_screen`: the figure strip's click
+  `(x - 50) * kSlotsPerPixel + position` in double picked the neighbouring figure, record 11). ui_item_strip (its
+  eased scroll position feeds that sum) went back with it without a golden of its own.
+- **Sound:** a speech's handle reaches the game: `UnitClientSpecific::Say` / `SpeechFilter::Finished` clear the server
+  unit's talking flag (`MapObjectFlag::Blocked`) when the speech's voice is no longer busy, and Play2D answers -1 when
+  every voice plays at the speech's priority or above. Whether a voice is free follows from Play3D's level
+  (`UpdatePositional`, float: a silent one-shot takes no voice), so sound_manager.cpp stays x87. The callers' maths
+  (positions, radii, ambience volumes: terrain_ambience, unit_client_sounds) is on SSE2: it can move a 3D sound's level
+  across 0 only at an exact boundary, and only matters when all 15 voices are taken. Sample lengths (`WaveLength`) are
+  kept on the voice but read by nothing; the harness ends samples by Miles' length on the virtual clock; no save
+  holds music state.
+
+### The whole image on SSE2 (C16 experiment)
 
 What an `/arch:SSE2` image costs against the goldens, and which `x87::` helpers convert for free (2026-10-21). The build switches
 are on branch `c16-sse2-experiment` (not merged): CMake `EI_ARCH=SSE2` and `EI_X87_PLAIN=<bits>` (helper families as plain C++, bits
