@@ -167,9 +167,12 @@ if(EI_HARNESS)
 endif()
 # The NaN audit's log (src/lib/nan_audit.h) in the verify and debug builds.
 target_compile_definitions(ei_hook PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
-# Hooks register themselves via static objects; keep them even if nothing references them.
+# /OPT:REF: code and data nothing references are left out (8.2 MB -> 5.1 MB, mostly the per-file copies of
+# gameapi.h's initialisers and unused library code); the static objects' initialisers stay, as .CRT$XCU references
+# them. No /OPT:ICF: folding identical functions would give two functions one address, and a comparison of function
+# pointers would then change its answer. The debug build keeps the linker's default (no /OPT:REF with /INCREMENTAL).
 # /MAP: ei_hook.map lets the harness crash log (ei_hook+offset) be resolved to functions.
-target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)
+target_link_options(ei_hook PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:NOICF>" /MAP)
 
 add_executable(ei_launch tools/launcher/launch.cpp)
 
