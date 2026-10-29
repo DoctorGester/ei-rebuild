@@ -446,7 +446,7 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported b
 The classification of the 173 functions that were left in the range is in renderer.md (section 12); the plain game code among
 them is below.
 
-- Text manager (`text_sources.cpp`, `item_db_text.h`). 004DEBC0 `TextSourcesFind`: the first source that has the key, its
+- Text manager (`text_sources.cpp`, `text_manager.h`). 004DEBC0 `TextSourcesFind`: the first source that has the key, its
   `GetFile` result (the size through the out pointer); null without one. 004DEC40 `TextSourcesListKeys`: every source's keys
   matching the pattern appended to the caller's array through a temporary `CStringArray` (the original's `CStringArray::Append`,
   006FEB01); Rebirth-patched (ResOverride), so it hooks in the vanilla launch only and

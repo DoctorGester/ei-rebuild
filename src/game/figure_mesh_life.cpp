@@ -7,6 +7,7 @@
 #include "figure_mesh.h"
 #include "item.h"
 #include "link_figure.h"
+#include "manager_context.h"
 
 #include <cstring>
 #include <memory>

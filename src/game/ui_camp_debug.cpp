@@ -1,5 +1,6 @@
 // The camp's debug fill of the constructors' lists. See ui_camp.h and
 // docs/notes/ui.md, section 5.
+#include "item_manager.h"
 #include "spell.h"
 #include "ui_camp.h"
 

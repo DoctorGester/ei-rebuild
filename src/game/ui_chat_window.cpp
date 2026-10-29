@@ -2,7 +2,7 @@
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
 #include "game_data.h"
 #include "game_singletons.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "net_classes.h"
 #include "net_messages.h"
 #include "plugin_fixes.h"

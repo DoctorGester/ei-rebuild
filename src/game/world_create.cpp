@@ -3,6 +3,7 @@
 // The world's paths are taken from the command line globals; every manager is made, referenced and
 // attached to the world (ThisWorld with the world, or the base); a 0x0C-byte helper goes into a
 // counted pointer (worldHandle_); then the ISAAC generator is seeded and countdowns_ set up.
+#include "item_manager.h"
 #include "world.h"
 #include "model.h"   // TweenArray (countdowns_)
 #include "world_data.h"

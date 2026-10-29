@@ -55,8 +55,8 @@ struct ItemStock {
     std::vector<itemdb::SpellModifierRecord*> modifiers;
     StockRecipeMap spellMap;        // recipes by spell name
     std::unordered_map<std::string, itemdb::SpellModifierRecord*> modifierMap;      // modifiers by kind key
-    float baseLevels[8];            // per school; set with scrollLevels (SetLevels)
-    float scrollLevels[8];          // the spell level per school for the scrolls
+    float baseLevels[kSchoolCount];     // per school; set with scrollLevels (SetLevels)
+    float scrollLevels[kSchoolCount];   // the spell level per school for the scrolls
 
     // `record` appended to the armors / weapons / quick items / spells / modifiers unless null or already
     // there.

@@ -1,7 +1,7 @@
 // The briefing / base screen's topics: a person's topics from the "b." variables and a topic's
 // title (CBriefingScreen, ui_briefing.h). See docs/notes/ui.md, "Briefing / base screen".
 #include "game_singletons.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "text_split.h"
 #include "ui_briefing.h"
 #include "world_glue.h"

@@ -5,7 +5,7 @@
 #include "world_glue.h"
 
 #include "console.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "quest_records.h"
 #include "ui_screens.h"
 #include "world.h"

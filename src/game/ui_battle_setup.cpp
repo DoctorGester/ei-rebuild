@@ -10,7 +10,7 @@
 #include "game_strings.h"
 
 #include "console.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "party.h"
 #include "world.h"
 #include "model.h"

@@ -6,7 +6,7 @@
 #include "ui_camp.h"
 
 #include "console.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 
 #include "game_singletons.h"
 #include "render/render_state.h"

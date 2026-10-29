@@ -6,7 +6,7 @@
 #include "game_flow_data.h"
 #include "game_singletons.h"
 #include "game_strings.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "mod_folders.h"
 #include "net_classes.h"
 #include "net_messages.h"   // MapMessage

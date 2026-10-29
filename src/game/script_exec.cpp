@@ -1,6 +1,7 @@
 // ScriptRun::Execute, the switch over every world script command. See docs/notes/script.md.
 // Rebirth patches Execute (it adds commands), CalcParameters and FatalError.
 #include "ai_map.h"
+#include "item_manager.h"
 #include "options.h"
 #include "object_tables.h"
 #include "script.h"

@@ -1,6 +1,7 @@
 // CPlayerClient's remaining message handlers and one virtual. See player_client.h and
 // docs/notes/objects.md ("Players").
 #include "effects.h"
+#include "item_manager.h"
 #include "player_client.h"
 
 #include "angles.h"

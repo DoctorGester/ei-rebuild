@@ -5,7 +5,7 @@
 #include "effects.h"
 #include "figure_manager.h"
 #include "item.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "lightning.h"
 #include "spell.h"   // CLightFactory
 #include "terrain.h"

@@ -9,7 +9,7 @@
 
 #include "camera.h"
 #include "core_maths.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "map_object_figures.h"
 #include "object_tables.h"
 #include "random.h"

@@ -11,6 +11,7 @@
 #include "effects.h"
 #include "game_singletons.h"
 #include "item.h"
+#include "item_manager.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"

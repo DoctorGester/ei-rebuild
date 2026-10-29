@@ -1,6 +1,4 @@
-// Small virtuals of the early classes: the lightning manager, the CUnit virtuals and the item bases. See docs/notes/objects.md.
-#include "game_strings.h"
-#include "item.h"
+// Small virtuals of the early classes: the lightning manager, CUnit and CMapObject. See docs/notes/objects.md.
 #include "lightning.h"
 #include "map_object.h"
 #include "object.h"
@@ -49,13 +47,3 @@ int CMapObject::SetVisibilityMode(int mode) {
     companion->SetLightMode(mode);
     return 0;
 }
-
-// ---- CItem's base names and use ----------------------------------------------------------------
-
-// The names a plain item does not have (three identical copies): an empty text.
-std::string CItem::ModelName() { return std::string(game::kEmptyText); }
-std::string CItem::FigureName() { return std::string(game::kEmptyText); }
-std::string CItem::PictureName() { return std::string(game::kEmptyText); }
-
-// Which every class but the quest item keeps: no key.
-LockKey CItem::GetUse() { return LockKey{0, 0, 0}; }

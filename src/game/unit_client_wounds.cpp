@@ -5,6 +5,7 @@
 #include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"
+#include "item_names.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "model.h"     // CSceneRenderer, CRenderHelper

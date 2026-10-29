@@ -11,7 +11,7 @@
 #include "ui.h"
 
 #include "console.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "maths.h"
 #include "model.h"
 #include "net_second_master.h"

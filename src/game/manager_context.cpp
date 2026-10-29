@@ -3,6 +3,7 @@
 #include "manager_context.h"
 
 #include "item.h"
+#include "item_manager.h"
 
 #include <cstdint>
 

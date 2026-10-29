@@ -1,5 +1,8 @@
-#include "item_db_text.h"
+// The text manager's string lookup and the item texts (names, descriptions, kinds). The line reader is
+// text_reader.cpp, the archive list text_sources.cpp. See text_manager.h.
+#include "text_manager.h"
 
+#include "item.h"
 #include "resource.h"
 #include "spell.h"
 #include "text_split.h"

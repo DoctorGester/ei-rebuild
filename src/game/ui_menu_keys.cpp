@@ -8,7 +8,7 @@
 #include "ui_screens.h"
 
 #include "console.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 
 #include <cstdint>
 #include <string>

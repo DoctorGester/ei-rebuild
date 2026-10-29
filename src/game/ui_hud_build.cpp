@@ -6,7 +6,7 @@
 // docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
 
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "ui_widescreen.h"
 
 #include <cstdint>

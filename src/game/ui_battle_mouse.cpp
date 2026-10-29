@@ -4,7 +4,7 @@
 #include "ui.h"
 #include "ui_camp.h"
 
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "object_tables.h"
 #include "ui_cursor.h"
 #include "unit.h"

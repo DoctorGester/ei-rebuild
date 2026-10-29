@@ -3,6 +3,7 @@
 #include "ai_map.h"
 #include "base_manager.h"
 #include "combat.h"
+#include "item_manager.h"
 
 #include "map_object.h"
 #include "object.h"

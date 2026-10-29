@@ -2,11 +2,12 @@
 // by two curtain sprites over the screen's margins (widescreen::AddCurtains), which this reproduces; nothing
 // in our code calls it but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "app.h"
+#include "item_manager.h"
 #include "unit_create.h"
 #include "ui_camp.h"
 
 #include "class_templates.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "map_object_figures.h"
 #include "object_tables.h"
 #include "party.h"
@@ -40,7 +41,6 @@ namespace {
 
 constexpr std::uint32_t kRecordBias = 100000000;   // added to the records' ids while the client world takes them
 constexpr SkillAnimation kIdleAnimation = SkillAnimation::Special14;    // what the heroes play in the camp
-constexpr int kSchools = 8;
 constexpr int kPriceWeights = 9;
 
 // The pages (CCampPages::page_) and the strips' action modes.
@@ -327,9 +327,9 @@ void CCampPages::BuildPages() {
     // A constructor's stock on the first visit: from the party's lowest and highest skill in each
     // spell school.
     if (constructor_ && constructor_->restockDue) {
-        float lowest[kSchools];
-        float highest[kSchools];
-        for (int school = 0; school < kSchools; ++school) {
+        float lowest[kSchoolCount];
+        float highest[kSchoolCount];
+        for (int school = 0; school < kSchoolCount; ++school) {
             lowest[school] = 1e20f;
             highest[school] = -1e20f;
             for (int i = 0; i < std::ssize(LocalPlayerData()->members_); ++i) {

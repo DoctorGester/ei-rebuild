@@ -3,7 +3,7 @@
 #include "ui.h"
 #include "ui_camp.h"
 
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "unit.h"
 
 #include <cstdint>

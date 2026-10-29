@@ -11,7 +11,7 @@
 #include "console.h"
 #include "item.h"
 #include "item_db.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "spell.h"
 #include "unit.h"
 #include "unit_db.h"

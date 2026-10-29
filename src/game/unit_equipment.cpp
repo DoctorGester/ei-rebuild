@@ -1,6 +1,7 @@
 // A new unit's starting equipment from its prototype (the world adds zone units with it after
 // ApplyPrototype). See unit_create.h (CMapObjectManager) and docs/notes/units.md ("Rewritten").
 #include "item.h"
+#include "item_manager.h"
 #include "unit_create.h"
 #include "game_strings.h"
 
@@ -21,7 +22,7 @@ namespace {
 
 // Through their game addresses (defined elsewhere; their verify wrappers stay in the path, and Rebirth's patches
 // still run): the prototype table's name lookup (UnitPrototypeTable::FindByName, unit_create.cpp; inserts unknown
-// names); the item manager's item by name (item_constructor.cpp); FatalError (app.cpp); CUnit's EquipArmour /
+// names); the item manager's item by name (item_manager.cpp); FatalError (app.cpp); CUnit's EquipArmour /
 // AddWeapon / AddSpell (unit_items.cpp, unit.cpp). The item manager's spell by name (with the world's manager
 // context) is not defined here.
 

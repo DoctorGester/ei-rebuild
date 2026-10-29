@@ -5,7 +5,7 @@
 // point scaling and the sprite's Place. See ui.h (CSaveLoadWindow) and docs/notes/items_spells.md.
 #include "ui.h"
 
-#include "item_db_text.h"       // CTextManager
+#include "text_manager.h"       // CTextManager
 #include "game_singletons.h"
 #include "world.h"
 #include "world_glue.h"

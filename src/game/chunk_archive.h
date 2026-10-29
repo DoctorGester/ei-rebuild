@@ -24,17 +24,6 @@ class ClassTemplate;
 struct TemplateTable;
 struct LeverRecord;
 class CParty;
-namespace itemdb {
-struct QuickItemRecord;
-struct QuestItemRecord;
-struct LootItemRecord;
-struct MaterialRecordHead;
-struct WeaponRecord;
-struct ArmorRecord;
-struct SpellRecord;
-struct SpellModifierRecord;
-struct SpellListRecord;
-}
 struct PartyManagerEntry;
 struct PrintRecord;
 struct PrintRecord2;
@@ -144,19 +133,6 @@ public:
     // The lever records as chunk `id`, one chunk 1 per
     // record (emptied and resized to the number of chunks when loading).
     void SerializeLevers(int id, std::vector<LeverRecord>* list);
-
-    // The item database's vectors, one chunk 1 per record.
-    void SerializeMaterials(int id, std::vector<itemdb::MaterialRecordHead>* records);
-    void SerializeWeapons(int id, std::vector<itemdb::WeaponRecord>* records);
-    void SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* records);
-
-    // The spell database's vectors, as the item database's.
-    void SerializeSpells(int id, std::vector<itemdb::SpellRecord>* records);
-    void SerializeSpellModifiers(int id, std::vector<itemdb::SpellModifierRecord>* records);
-    void SerializeSpellLists(int id, std::vector<itemdb::SpellListRecord>* records);
-    // vector<int> as chunk `id`: one field 1 per
-    // value; loading empties the vector and refills it with as many zeros as there are fields.
-    void IntVectorField(int id, std::vector<int>* values);
 
     // The quest database's vectors: one chunk 1 per record (its Serialize); loading destroys the records and
     // resizes the vector to the record chunks first.

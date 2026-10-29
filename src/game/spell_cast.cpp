@@ -5,6 +5,7 @@
 // SetManager(null).
 #include "item.h"
 #include "item_db.h"
+#include "manager_context.h"
 #include "spell.h"
 
 #include "lib/crt.h"

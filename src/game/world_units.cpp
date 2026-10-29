@@ -5,6 +5,7 @@
 #include "app.h"
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "item_manager.h"
 #include "lever.h"
 #include "magic_trap.h"
 #include "map_object_figures.h"

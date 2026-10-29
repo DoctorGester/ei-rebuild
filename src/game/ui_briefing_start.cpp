@@ -7,7 +7,7 @@
 #include "console.h"
 #include "core_maths.h"
 #include "game_singletons.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "object_tables.h"
 #include "party_manager.h"
 #include "player_messages.h"

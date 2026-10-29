@@ -23,7 +23,7 @@ public:
     // Fields 1 class (4 bytes), 2 / 3 the flags (1 byte each), 4 the weights and weightsTail, 5 (both parties
     // without variables, then both stocks' lists: SaveLists / LoadLists), 6 restockDue (1 byte).
     void Serialize(ChunkArchive* ar) override;
-    // Both stocks take the 8 base and 8 scroll levels.
+    // Both stocks take the kSchoolCount base and scroll levels.
     void SetLevels(const float* base, const float* scroll);
 
     CParty* ItemsParty() { return &items; }

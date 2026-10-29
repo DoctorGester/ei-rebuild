@@ -1,6 +1,7 @@
 // A party's unit records: adding one from a prototype (its texts, statistics and starting items),
 // removing one, the record's assignment and the copy of another record's items; the record lists' copies of
 // item arrays' SetAtGrow. See party.h, unit.h and docs/notes/items_spells.md ("Party").
+#include "item_manager.h"
 #include "party.h"
 
 #include "game_strings.h"

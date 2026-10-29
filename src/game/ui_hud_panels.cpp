@@ -5,7 +5,7 @@
 #include "ui.h"
 
 #include "item.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "map_object.h"
 #include "party.h"
 #include "player_client.h"

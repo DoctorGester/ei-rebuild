@@ -1,5 +1,6 @@
 // CUnit's Load and Save slots. See unit.h and docs/notes/units.md ("Creation, databases, save").
 #include "base_manager.h"
+#include "item_manager.h"
 #include "unit.h"
 
 #include "ai_motion.h"

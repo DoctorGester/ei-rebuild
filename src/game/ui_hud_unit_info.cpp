@@ -9,7 +9,7 @@
 #include "ui_item_info.h"
 #include "unit.h"
 #include "unit_db.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 
 #include "ei/x87.h"
 #include "lib/gameapi.h"
