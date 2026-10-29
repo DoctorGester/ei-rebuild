@@ -1,7 +1,6 @@
 // Particle drawing: each visible source fills the shared vertex array (position and size interpolated between
 // the last two ticks) and sprite array (interpolated colour, texture frame), binds its texture and hands both
-// arrays to the renderer. Names are provisional. Floating point follows the original's x87 code: `double`
-// for values the original keeps on the FPU stack, static_cast<float> where it stores to a float.
+// arrays to the renderer. Names are provisional.
 #include "effects.h"
 #include "texture.h"
 
@@ -20,14 +19,6 @@
 
 namespace {
 
-inline double D(float f) { return f; }
-
-// A zero-extended dword as a double (exact).
-double Unsigned(std::uint32_t value) {
-    volatile std::int64_t wide = value;
-    return static_cast<double>(wide);
-}
-
 #define EI_ONE 1.0f
 
 // The draw's work arrays, reused by every source.
@@ -38,17 +29,14 @@ constexpr int kReserve = 0x1000;
 
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
-    double ticks = g_clientWorld.tick;
-    float fraction = static_cast<float>((ticks + D(g_clientWorld.tickFraction)) - ticks);
-    float one;
-    one = 1.0f;
-    float clamped = fraction <= one ? fraction : one;
+    float fraction = g_clientWorld.tickFraction;
+    float clamped = fraction <= 1.0f ? fraction : 1.0f;
     return clamped >= 0.0f ? clamped : 0.0f;
 }
 
 // One colour channel (at `shift`) between the previous and the current colour, truncated.
 int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t, float u) {
-    return static_cast<int>(libcrt::Ftol(Unsigned((current >> shift) & 0xFF) * D(t) + Unsigned((previous >> shift) & 0xFF) * D(u)));
+    return static_cast<int>(((current >> shift) & 0xFF) * t + ((previous >> shift) & 0xFF) * u);
 }
 
 } // namespace

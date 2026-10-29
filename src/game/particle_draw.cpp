@@ -69,7 +69,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
         const Vector3* p = source->WorldPosition(&scratch);
         ParticleDepth entry;
         entry.source = source;
-        entry.depth = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis, *p));
+        entry.depth = DotUnrounded<Sum3::ZYX>(axis, *p);
         lib::SetAtGrow(order, std::ssize(order), entry);
         source = node != objectList.end() ? sourceOf(*node) : nullptr;
     }

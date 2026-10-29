@@ -1,7 +1,7 @@
 // ParticleSource's per-frame tick and the particle pool. Each tick: copy the world's wind, follow the attachment
 // (or the source's own position) and derive the motion since the last tick with a basis (side, up) around it,
 // run the element callback on every element, the update callback on every particle (rebuilding the bounding
-// box), then emit new particles. `double` holds what the original keeps on the FPU stack.
+// box), then emit new particles.
 #include "effects.h"
 #include "map_object_figures.h"
 
@@ -19,32 +19,24 @@
 
 namespace {
 
-inline double D(float f) { return f; }
-
 // Constants the original reads from memory at run time.
 #define EI_ZERO 0.0f   // the z of the up axis the side is crossed with
 #define EI_ONE 1.0f
 #define EI_HALF 0.5f
-#define EI_STILL 0.001   // below this the source is not moving
-#define EI_DEGENERATE 1e-10
+#define EI_STILL 0.001f   // below this the source is not moving
+#define EI_DEGENERATE 1e-10f
 
 constexpr float kFarBits = 100000.0f;
 constexpr float kNearBits = -100000.0f;
 
 void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 
-// sqrt((x*x + y*y) + z*z), all on the FPU.
-double LengthDouble(const Vector3& v) { return std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(v)); }
-
-// sqrt((y*y + z*z) + x*x): the order the original uses after rebuilding a degenerate side.
-double LengthYZX(const Vector3& v) { return std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v)); }
-
-// v *= 1 / length, the reciprocal kept on the FPU.
-void Normalize(Vector3& v, double length) {
-    double scale = D(EI_ONE) / length;
-    v.x = static_cast<float>(scale * D(v.x));
-    v.y = static_cast<float>(scale * D(v.y));
-    v.z = static_cast<float>(scale * D(v.z));
+// v *= 1 / length.
+void Normalize(Vector3& v, float length) {
+    float scale = EI_ONE / length;
+    v.x = scale * v.x;
+    v.y = scale * v.y;
+    v.z = scale * v.z;
 }
 
 // The bounding-box fold of the tick and AddParticle: the minimum takes the particle when it is
@@ -104,26 +96,26 @@ struct TickSteps {
     // up = normalize(motion x side); both zero when the source barely moved.
     void BuildBasis() {
         const Vector3& m = s->motion;
-        double distance = LengthDouble(m);
-        s->distance = static_cast<float>(distance);
+        float distance = LengthXYZ(m);
+        s->distance = distance;
         EI_NAN_AUDIT(distance);
         if (distance <= EI_STILL) {
             s->side = {};
             s->up = {};
             return;
         }
-        double zero = EI_ZERO;
-        s->side.x = static_cast<float>(D(m.y) - zero);
-        s->side.y = static_cast<float>(zero - D(m.x));
+        float zero = EI_ZERO;
+        s->side.x = m.y - zero;
+        s->side.y = zero - m.x;
         s->side.z = 0.0f;
-        double length = LengthDouble(s->side);
+        float length = LengthXYZ(s->side);
         EI_NAN_AUDIT(length);
         if (length < EI_DEGENERATE) {
             float mx = m.x;
             s->side.x = m.y - m.z;
             s->side.y = -mx;
             s->side.z = mx;
-            length = LengthYZX(s->side);
+            length = LengthZYX(s->side);
         }
         Normalize(s->side, length);
         const Vector3& v = s->side;
@@ -133,7 +125,7 @@ struct TickSteps {
         s->up.x = ux;
         s->up.y = uy;
         s->up.z = uz;
-        Normalize(s->up, LengthDouble(s->up));
+        Normalize(s->up, LengthXYZ(s->up));
     }
 
     void RunElements() {
@@ -175,7 +167,7 @@ struct TickSteps {
     // max(emitCount, distance / emitSpacing) tries, each emitting with emitChance percent; a
     // source above 50% that emitted nothing gets one particle anyway.
     void Emit() {
-        int tries = std::lround(D(s->distance) / D(s->emitSpacing));
+        int tries = std::lround(s->distance / s->emitSpacing);
         if (tries <= s->emitCount) tries = s->emitCount;
         if (!(s->flags & ParticleSourceFlag::Emitting)) return;
         if ((s->flags & ParticleSourceFlag::AttachedOnly) && !s->attachedTo) return;
