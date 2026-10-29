@@ -17,21 +17,12 @@
 
 // --- Footprint cell sets -------------------------------------------------------------------------
 
-FootprintCellSet* FootprintCellSet::Construct() {
-    std::construct_at(&cells);
-    hashed = true;
-    return this;
-}
-
-// The spells' footprint set, empty at the start: built by a static initialiser, freed by its exit function.
+// The spells' footprint set, empty at the start.
 namespace spellfx {
-constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {};
+FootprintCellSet g_spellFootprint;
 }
-using spellfx::g_spellFootprint;
 
 namespace {
-void FreeSpellFootprint() { lib::FreeStorage(g_spellFootprint->cells); }
-
 FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
     for (int i = set->buckets[(x + y) & 15]; i >= 0; i = set->cells[i].next) {
         if (set->cells[i].x == x && set->cells[i].y == y) return &set->cells[i];
@@ -58,11 +49,6 @@ void ResetCellSet(FootprintCellSet* set) {
 }
 
 } // namespace
-
-void ConstructSpellFootprint() {
-    g_spellFootprint->Construct();
-    std::atexit(FreeSpellFootprint);
-}
 
 void FootprintCellSet::SetSize(int size) { cells.resize(static_cast<std::size_t>(size)); }
 

@@ -429,24 +429,24 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
     case SpellType::FireWall: {
         Vector3 direction;
         direction = (Visual<CEffectWall>()->direction_);
-        g_spellFootprint->AlongDirection(aiMap, &position, kHalfBits, &direction);
+        g_spellFootprint.AlongDirection(aiMap, &position, kHalfBits, &direction);
         break;
     }
     case SpellType::LightningWall: {
         Vector3 half;
         HalfSpan(Visual<CEffectLightning>(), &half);
-        g_spellFootprint->AlongDirection(aiMap, &position, kHalfBits, &half);
+        g_spellFootprint.AlongDirection(aiMap, &position, kHalfBits, &half);
         break;
     }
     case SpellType::AcidFog:
-    case SpellType::Campfire: g_spellFootprint->DiscAt(aiMap, &position, Spell()->radius_); break;
+    case SpellType::Campfire: g_spellFootprint.DiscAt(aiMap, &position, Spell()->radius_); break;
     default: return;
     }
     if (stamp) {
-        aiMap->StampFootprint(world->tick_, &g_spellFootprint.Get());
+        aiMap->StampFootprint(world->tick_, &g_spellFootprint);
         footprintStamped = 1;
     } else {
-        aiMap->ClearFootprint(&g_spellFootprint.Get());
+        aiMap->ClearFootprint(&g_spellFootprint);
         footprintStamped = 0;
     }
 }

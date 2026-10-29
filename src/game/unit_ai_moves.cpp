@@ -3,7 +3,6 @@
 #include "unit_ai.h"
 
 #include "ai_map.h"
-#include "ai_scoped_path.h"
 #include "combat.h"
 #include "core_maths.h"
 #include "map_object.h"
@@ -150,16 +149,16 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
 
     bool result = true;
     {
-        ScopedPath local;
+        AIPath path;
         double ux = self->localPosition_.x - out->x;
         double uy = self->localPosition_.y - out->y;
         double uz = self->localPosition_.z - out->z;
         float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz)));
         float range = static_cast<float>(distance * kRangePerDistance + kRangeBase);
-        bool found = map->FindPath(self, out, &local.path, range, 0.0f);
+        bool found = map->FindPath(self, out, &path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
         EI_NAN_AUDIT(distance);
-        if (!found || 2.0f * distance * kDetourFactor < static_cast<double>(local.path.smoothing)) {
+        if (!found || 2.0f * distance * kDetourFactor < static_cast<double>(path.smoothing)) {
             result = false;
             long cooldown = x87::RoundToInt(static_cast<float>(distance * kCooldownPerDistance));
             standCooldown = static_cast<int>(std::min<long>(cooldown, kMaxCooldown));
@@ -264,13 +263,13 @@ void AIBrain::UpdateFollow() {
         side.z = -side.z;
     }
 
-    ScopedPath local;
+    AIPath path;
     Vector3 aside{static_cast<float>(passing.x + side.x), static_cast<float>(passing.y + side.y), static_cast<float>(side.z + passing.z)};
-    g_serverWorld->aiMap_.FindPath(self, &aside, &local.path, kPassRange, 0.0f);
+    g_serverWorld->aiMap_.FindPath(self, &aside, &path, kPassRange, 0.0f);
     double half = 0.5;
-    float targetY = static_cast<float>(half * local.path.targetY);
+    float targetY = static_cast<float>(half * path.targetY);
     float offY = static_cast<float>(aside.y - targetY);
-    double offX = aside.x - half * local.path.targetX;
+    double offX = aside.x - half * path.targetX;
     EI_NAN_AUDIT(offX, offY);
     if (LengthSquared2DUnrounded<double>(offX, offY) < kReachedSq) {
         owner->OrderMove(&aside, 0, 0, kPassRange);
@@ -290,7 +289,7 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     double fx = from->x - to->x;
     EI_NAN_AUDIT(fx, fy);
     if (LengthSquared2DUnrounded(fx, fy) < kSamePointSq) return false;
-    ScopedPath local;
+    AIPath path;
     double dx = from->x - to->x;
     double dy = from->y - to->y;
     double dz = from->z - to->z;
@@ -298,7 +297,7 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     Vector3 saved = unit->localPosition_;
     float range = static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     g_serverWorld->aiMap_.sectorMap.Move(unit, from);
-    bool found = g_serverWorld->aiMap_.FindPath(unit, to, &local.path, range, 0.0f);
+    bool found = g_serverWorld->aiMap_.FindPath(unit, to, &path, range, 0.0f);
     g_serverWorld->aiMap_.sectorMap.Move(unit, &saved);
     return found;
 }

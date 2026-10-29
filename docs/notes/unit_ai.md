@@ -96,8 +96,7 @@ the callees use rand(), release objects and share buffers).
 
 - Moves: PlanLooks' wait of the seventh (untested) draw is kept when all six line-of-sight tests fail; UpdateFollow ignores
   the result of its side-step path search and only reads the path's target; PathClear ignores its `this`. Test paths on the
-  stack (`ScopedPath`, `ai_scoped_path.h`) mirror the original's constructors (two cell lists of 0x80, the point array,
-  Clear).
+  stack are plain `AIPath` locals (its constructor clears it, as the original's did).
 - The mode adders (005D6300-005D65B0) write the new mode's +4 before testing the allocation and pass a failed one to AddMode,
   which calls its GetType (ours tests first, then also passes null). A new Suspection mode's point and level and a new Fear
   mode's +0x14..+0x20 stay uninitialised. CallAllies formats its message only for the console filter but always builds it.

@@ -13,7 +13,6 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include "lib/static_object.h"
 #include "map_object.h"
 #include "unit.h"
 #include "world.h"
@@ -47,7 +46,7 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 
 // Footprints of the walls and clouds, along a direction or a disc, then stamped into / cleared from the AI
 // map.
-extern lib::StaticObject<FootprintCellSet> g_spellFootprint;
+extern FootprintCellSet g_spellFootprint;
 
 // --- x87 sequences ------------------------------------------------------------------------------
 // Plain C++ in the x87 order: double intermediates are the unrounded register values.

@@ -109,7 +109,7 @@ bool CheckTables(Reader& r, char* d, std::size_t n) {
         const Range range = r.Get<Range>();
         const std::uint8_t* bytes = r.Bytes(range.size);
         if (!bytes) continue;
-        if (i + 1 == kTableRangeCount && range.size == kRadiusTreeBytes) std::memcpy(&g_spiralRadii->depth, bytes, kRadiusTreeBytes);
+        if (i + 1 == kTableRangeCount && range.size == kRadiusTreeBytes) std::memcpy(&g_spiralRadii.depth, bytes, kRadiusTreeBytes);
         else std::memcpy(ei::ReplayGameData(range.address, range.size), bytes, range.size);
     }
     // The three CArrays, in the record's order, into ours.
@@ -119,11 +119,11 @@ bool CheckTables(Reader& r, char* d, std::size_t n) {
         std::uint32_t count = 0;
         const std::uint8_t* bytes = GetArray(r, range.size, &count);
         if (!bytes && count) break;
-        if (i == 0) FillArray(*g_spiralLengths, bytes, count);
-        else if (i == 1) FillArray(g_spiralRadii->keys, bytes, count);
-        else if (i == 2) FillArray(*g_spiralOffsets, bytes, count);
+        if (i == 0) FillArray(g_spiralLengths, bytes, count);
+        else if (i == 1) FillArray(g_spiralRadii.keys, bytes, count);
+        else if (i == 2) FillArray(g_spiralOffsets, bytes, count);
     }
-    SmoothTable* tables = g_smoothTables.Get();
+    SmoothTable* tables = g_smoothTables;
     for (int i = 0; i < kSmoothTableCount && r.ok(); ++i) {
         std::uint32_t count = 0;
         const std::uint8_t* bytes = GetArray(r, kSmoothCopySize, &count);
@@ -136,7 +136,6 @@ bool CheckTables(Reader& r, char* d, std::size_t n) {
     if (!r.ok()) return true;   // RunBytes reports the short payload
 
     static SmoothTable ours[kSmoothTableCount];
-    for (SmoothTable& t : ours) t.Construct();
     BuildSmoothTablesAt(ours);
     for (int i = 0; i < kSmoothTableCount; ++i) {
         if (SameArray(ours[i].copies, tables[i].copies) && SameArray(ours[i].steps, tables[i].steps) &&
@@ -267,9 +266,9 @@ void BuildMap(const SavedMap& s) {
         SizeGrid(r.cells[c], s.representatives[c].width, s.representatives[c].height);
         SizeGrid(r.regions[c], s.regions[c].width, s.regions[c].height);
     }
-    r.local.Construct(map);
-    map->forwardSearch.Construct(map);
-    map->backwardSearch.Construct(nullptr);
+    std::construct_at(&r.local);
+    std::construct_at(&map->forwardSearch);
+    std::construct_at(&map->backwardSearch);
     g_map = map;
     g_mapOf = &s;
 }

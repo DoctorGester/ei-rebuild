@@ -10,7 +10,6 @@
 #include "lib/containers.h"
 #include <cstddef>
 #include <cstdint>
-#include "lib/static_object.h"
 
 #include <list>
 #include <unordered_map>
@@ -98,10 +97,6 @@ struct FootprintCell {
 struct FootprintCellSet {
     void AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction);
     void DiscAt(CAIMap* map, const Vector3* position, float radius);
-    // An empty array, `hashed` set; the buckets are not written (the spells' global set's are zero until the
-    // first footprint empties them).
-    FootprintCellSet* Construct();
-
     // Resizes the array to `size`.
     void SetSize(int size);
 
@@ -117,8 +112,9 @@ struct FootprintCellSet {
     void GetBounds(int* bounds) const;
 
     std::vector<FootprintCell> cells;
-    int buckets[16];        // first index per (x + y) & 15, -1 when empty
-    bool hashed;            // set by Construct and by every insertion, never cleared
+    // first index per (x + y) & 15, -1 when empty; zero until the first footprint empties them
+    int buckets[16] = {};
+    bool hashed = true;     // set again by every insertion, never cleared
 };
 
 // The passability cost tables of one size class, filled by CAIMap::CostContext.
@@ -293,13 +289,13 @@ struct SearchNode {
     std::int8_t direction;      // 1..8: the way back to the cell it was reached from; 0 none
 };
 
-template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight);
-template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight);
-
 // The local search (the AI map's forward and backward ones, and the region map's): Dijkstra over a 34 x 34
 // window of map cells whose border is never entered. Open nodes wait in four sorted lists chosen by the low two
 // bits of the node's x; `current` is the cheapest head.
 struct LocalSearch {
+    // A 1 x 1 node grid and level grid, no map (Attach sizes them).
+    LocalSearch();
+
     // Puts every settled and queued node back to unreached; the search is inactive.
     void Reset();
     // `current` = the cheapest bucket head (null when every bucket is empty).
@@ -343,25 +339,22 @@ struct LocalSearch {
     // (without) the settled stay and the reached are queued. False when the window cannot be placed
     // (unchanged) or moved 31 cells or more (the window and row table are already moved, the nodes not).
     bool Recenter(int x0, int y0, int x1, int y1, bool settleInside);
-    // Attach(owner, false) when `owner` is not null.
-    LocalSearch* Construct(CAIMap* owner);
-    void Destruct();
 
-    bool active;
-    bool levelsSaved;                   // the window's cell levels are in `levels`
+    bool active = false;
+    bool levelsSaved = false;           // the window's cell levels are in `levels`
     SearchGrid<SearchNode> nodes;       // 34 x 34
     SearchGrid<std::uint8_t> levels;    // saved cell levels
-    CAIMap* map;
+    CAIMap* map = nullptr;
     std::vector<AIMapCell*> cellRows;   // cellRows[i] = &map cell (originX, originY + i): the window's map rows
-    SearchNode* settledList;            // linked through `next`
-    SearchNode* buckets[4];             // open nodes by x & 3, sorted by cost
-    SearchNode* current;                // the cheapest open node
-    int originX, originY;               // map cell of window cell (0, 0)
-    int currentCost;                    // cost of the node being expanded
-    PassCostContext costs;
-    int sizeClass;
-    bool backward;                      // searching from the target (prices steps reversed)
-    std::uint8_t level;                 // standing level
+    SearchNode* settledList = nullptr;  // linked through `next`
+    SearchNode* buckets[4] = {};        // open nodes by x & 3, sorted by cost
+    SearchNode* current = nullptr;      // the cheapest open node
+    int originX = 0, originY = 0;       // map cell of window cell (0, 0)
+    int currentCost = 0;                // cost of the node being expanded
+    PassCostContext costs = {};
+    int sizeClass = 0;
+    bool backward = false;              // searching from the target (prices steps reversed)
+    std::uint8_t level = 0;             // standing level
 };
 
 // The standing height of each of the 8 levels (size classes): the occluders' refresh and the
@@ -387,6 +380,9 @@ struct BlockRecord {
 // Dijkstra over the blocks of one size class (the region map's forward and backward search):
 // open records in eight buckets by x & 7, each sorted by cost.
 struct BlockSearch {
+    // A 1 x 1 record grid, inactive, no region map (Attach sizes it).
+    BlockSearch();
+
     // Attaches to the region map: one record per block, all unreached.
     void Attach(CRegionMap* regionMap, bool fromTarget);
     // The path from the search's start to block (x, y) into `path` (emptied first).
@@ -400,14 +396,14 @@ struct BlockSearch {
     void Expand();
 
     SearchGrid<BlockRecord> records;
-    CRegionMap* map;
-    SearchGrid<std::int16_t>* edges;    // the size class's edge words (8 per block)
-    BlockRecord* touched;               // settled and excluded records
-    BlockRecord* open[8];
-    BlockRecord* best;
-    int bestCost;                       // cost of the record being expanded
-    bool fromTarget;
-    bool active;
+    CRegionMap* map = nullptr;
+    SearchGrid<std::int16_t>* edges = nullptr;  // the size class's edge words (8 per block)
+    BlockRecord* touched = nullptr;     // settled and excluded records
+    BlockRecord* open[8] = {};
+    BlockRecord* best = nullptr;
+    int bestCost = 0;                   // cost of the record being expanded
+    bool fromTarget = false;
+    bool active = false;
 };
 
 // A block's representative cell (CRegionMap::cells): its x within the 8x8 block in the low nibble, y in the high one.
@@ -417,6 +413,9 @@ inline std::uint8_t WithRepresentativeX(std::uint8_t cell, int x) { return stati
 inline std::uint8_t WithRepresentativeY(std::uint8_t cell, int y) { return static_cast<std::uint8_t>((cell & 0x0F) | (y << 4)); }
 
 struct CRegionMap {
+    // The block grids 1 x 1 (edges -1, representative cells zeroed) with both block searches attached to them.
+    CRegionMap();
+
     // The region of cell (x, y) for a size class, the one most of the reachable 3x3 blocks around the cell belong
     // to (the first seen on a tie; 0 when none).
     int DominantRegion(int sizeClass, int x, int y);
@@ -468,12 +467,11 @@ struct CRegionMap {
     BlockSearch forward;
     BlockSearch backward;
     LocalSearch local;
-    ProgressFn progress;
+    ProgressFn progress = nullptr;
     SearchGrid<std::int16_t> edges[8];          // per size class: 8 edge words per block
     SearchGrid<std::uint8_t> cells[8];          // representative cell per block (RepresentativeX / Y)
     SearchGrid<std::uint16_t> regions[8];       // region per block
 };
-CRegionMap* ConstructRegionMap(CRegionMap* self);
 
 // The path smoother's trellis: per path cell nine states, one per direction the unit leaves the cell in (index
 // direction - 1; index 8 unused), each the cheapest cost so far and its back-pointer chain.
@@ -522,8 +520,6 @@ struct SmoothEdges : std::vector<SmoothEdge> {
 // One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end), built by a
 // static initialiser.
 struct SmoothTable {
-    SmoothTable* Construct();
-    void Destruct();
     // The table between a cell with the states `from` and the next one with the
     // states `to`: a copy for every state both have, a step from every `from` state to every `to`
     // state that starts where it ends, and the same between the `to` states themselves.
@@ -538,12 +534,13 @@ struct SmoothPool {
     void SetSize(int size);
 
     std::vector<SmoothNode> nodes;
-    int zeroed;                     // set to 0 by each pass, not read
-    SmoothNode* next;                   // the next free node
+    int zeroed = 0;                     // set to 0 by each pass, not read
+    SmoothNode* next = nullptr;         // the next free node
 };
-extern lib::StaticObject<SmoothPool> g_smoothPool;
-extern lib::StaticObject<SmoothTable[81]> g_smoothTables;
-inline const SmoothTable* SmoothTables() { return g_smoothTables.Get(); }
+extern SmoothPool g_smoothPool;
+// Built by a static initialiser (BuildSmoothTables, ai_path_smooth.cpp).
+extern SmoothTable g_smoothTables[81];
+inline const SmoothTable* SmoothTables() { return g_smoothTables; }
 // The direction (1..8 counter-clockwise from (0, -1), 0 for none) of the step (dx, dy) in -1..1:
 // DirectionSteps()[dy * 3 + dx], from the middle of the table.
 inline constexpr int kDirectionSteps[9] = /*00791978*/ {2, 1, 8, 3, 0, 7, 4, 5, 6};
@@ -585,10 +582,6 @@ struct UnitLayerNode {
 // large-unit one the signed bytes of CAIMap::waterDepth.
 class CUnitLayer {
 public:
-    // `map` is the owner's to set.
-    CUnitLayer();
-    ~CUnitLayer();
-
     virtual void Set(const UnitLayerNode* block) = 0;
     virtual void Merge(const UnitLayerNode* block) = 0;
 
@@ -599,9 +592,9 @@ public:
     // block it had, Set gets the block with the other units' levels merged (maximum).
     void Remove(CUnit* unit, int x, int y);
     std::list<UnitLayerNode> nodes;
-    UnitLayerNode* buckets[1024];   // by (key x * 17 + key y) & 0x3FF
-    UnitLayerNode* freeNodes;       // unused nodes
-    CAIMap* map;
+    UnitLayerNode* buckets[1024] = {};  // by (key x * 17 + key y) & 0x3FF
+    UnitLayerNode* freeNodes = nullptr; // unused nodes
+    CAIMap* map = nullptr;              // the owner's to set
 };
 
 class CSmallUnitLayer : public CUnitLayer {
@@ -637,15 +630,15 @@ struct AIDirtyRect {
     // Empty: the minimums 10000, the maximums 0.
     void Reset();
 
-    int minX, maxX;
-    int minY, maxY;
+    int minX = 10000, maxX = 0;
+    int minY = 10000, maxY = 0;
 };
 
 // The navigation grid of the current map (Rebirth patches Load).
 class CAIMap {
 public:
     CAIMap();
-    ~CAIMap();
+    // Destroyed and constructed again in place.
     void Reset();
 
     // Loads the map archive `path`: LoadTerrain, then AttachTerrain. Returns 1; 0 when the archive cannot be opened;
@@ -801,9 +794,9 @@ public:
     // Refresh the rectangle now, or add it to the dirty rectangle while batching.
     void QueueRefresh(int minX, int maxX, int minY, int maxY);
 
-    bool loaded;                        // set by Load
-    bool batching;                      // refreshes collect into the dirty rectangle
-    std::uint8_t refreshUnits;          // non-zero: a refresh also re-registers the units around it
+    bool loaded = false;                // set by Load
+    bool batching = false;              // refreshes collect into the dirty rectangle
+    std::uint8_t refreshUnits = 0;      // non-zero: a refresh also re-registers the units around it
     AIDirtyRect dirty;                  // the area to refresh when batching ends
     int passCosts[16];                  // cost per passability nibble (1/1024)
     int passCostsAlt[16];               // the same for units with CUnit::altPassCosts set
@@ -830,7 +823,7 @@ public:
     LocalSearch backwardSearch;
     // the world tick of the last StampFootprint: an idle unit standing in a SpellArea occluder replans while its
     // motion order started before it.
-    int footprintTick;
+    int footprintTick = 0;
     SearchGrid<AIMapCell> cells;        // the map's cells (cells.width x cells.height)
     SearchGrid<std::uint32_t> occluders;  // per-cell occluder words (see LineOfSight)
     SearchGrid<std::int8_t> marks;      // per-cell marks: path directions (BuildCellsTo), reach answers

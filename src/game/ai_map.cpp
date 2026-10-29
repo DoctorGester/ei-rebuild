@@ -34,15 +34,13 @@ constexpr float kMinVisibility = 0.0001f;
 // as raw float bits) to the number of offsets within it. (sector_map.h's tables, sector_spiral.cpp).
 std::int32_t SpiralKey(std::uint32_t node) {
     std::int32_t key;
-    key = std::bit_cast<std::int32_t>(g_spiralRadii->keys[node]);
+    key = std::bit_cast<std::int32_t>(g_spiralRadii.keys[node]);
     return key;
 }
-std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(g_spiralRadii->mask); }
-const int* SpiralLengthTable() { return g_spiralLengths->data(); }
-const std::int16_t* SpiralOffsets() { return &g_spiralOffsets->data()->x; }
+std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(g_spiralRadii.mask); }
+const int* SpiralLengthTable() { return g_spiralLengths.data(); }
+const std::int16_t* SpiralOffsets() { return &g_spiralOffsets.data()->x; }
 
-SpiralCache g_findFreeSpiral = /*007C2F48*/ {};   // FindFreeCellNear's function-local static
-std::uint8_t g_findFreeGuard = /*007C2F50*/ {};
 
 } // namespace
 
@@ -304,7 +302,7 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
         return SpiralOffsets();
     }
     std::uint32_t node = 1;
-    for (int depth = g_spiralRadii->depth; depth > 0; --depth) {
+    for (int depth = g_spiralRadii.depth; depth > 0; --depth) {
         // The radius is compared as an integer with the tree's keys.
         int bits;
         bits = std::bit_cast<std::int32_t>(r);
@@ -318,13 +316,7 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
 }
 
 bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target) {
-    auto& guard = g_findFreeGuard;
-    auto* cache = &g_findFreeSpiral;
-    if (!(guard & 1)) {
-        guard |= 1;
-        cache->radius = -1.0f;
-        cache->length = 0;
-    }
+    static SpiralCache cache{0, -1.0f};
 
     int sizeClass = unit->sizeClass;
     int x = WorldToCell(from->x), y = WorldToCell(from->y);
@@ -336,7 +328,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
     float radius;
     std::uint32_t radiusBits = 0x60AD78EC;   // about 1e20: the whole spiral
     radius = std::bit_cast<float>(radiusBits);
-    const std::int16_t* offset = cache->Get(radius, &count);
+    const std::int16_t* offset = cache.Get(radius, &count);
     for (int i = 0; i < count; ++i, offset += 2) {
         int cx = offset[0] + tx, cy = offset[1] + ty;
         int reason;

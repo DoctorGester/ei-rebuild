@@ -5,26 +5,13 @@
 #include "core_streams.h"
 
 #include "lib/crt.h"
-#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <initializer_list>
 
 namespace {
-
-constinit lib::StaticObject<std::vector<BlockPoint>> g_blocks = /*007C2EE0*/ {};
-std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
-void DestroyBlocks() { g_blocks.Destroy(); }
-
-// LabelRegions' function-local statics: the flood queue (guard bit 0 of g_floodGuard) and its second list (bit 1).
-constinit lib::StaticObject<std::vector<BlockPoint>> g_floodSecond = /*007C2EF8*/ {};
-constinit lib::StaticObject<std::vector<BlockPoint>> g_floodQueue = /*007C2F10*/ {};
-std::uint8_t g_floodGuard = /*007C2F24*/ {};
-void DestroyFloodQueue() { g_floodQueue.Destroy(); }
-void DestroyFloodSecond() { g_floodSecond.Destroy(); }
 
 constexpr int kUnreached = 0x7FFFFFFF;
 
@@ -35,16 +22,6 @@ int BlocksHigh(const CRegionMap* map) { return map->edges[0].height; }
 // The direction steps of block directions 0..7 (the tables from their index 1).
 const int* StepX() { return kDirectionDx + 1; }
 const int* StepY() { return kDirectionDy + 1; }
-
-// A per size class grid of the region map reallocated for the map's size.
-template <typename T>
-void Fit(SearchGrid<T>& grid, int width, int height, void (*allocate)(SearchGrid<T>*)) {
-    if (grid.width == width && grid.height == height) return;
-    FreeGrid(grid);
-    grid.width = width;
-    grid.height = height;
-    allocate(&grid);
-}
 
 void ResetChain(BlockRecord* record) {
     while (record) {
@@ -86,13 +63,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
     if (by < 0) by = 0;
 
-    std::vector<BlockPoint>& blocks = *g_blocks;
-    if (!(g_blocksGuard & 1)) {
-        g_blocksGuard |= 1;
-        g_blocks.Construct();
-        std::atexit(DestroyBlocks);
-    }
-    lib::FreeStorage(blocks);
+    std::vector<BlockPoint> blocks;
     for (int yy = by - 1; yy < by + 2; ++yy) {
         if (yy < 0 || yy >= BlocksHigh(this)) continue;
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
@@ -147,19 +118,8 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
 }
 
 void CRegionMap::LabelRegions() {
-    std::vector<BlockPoint>& queue = *g_floodQueue;
-    std::vector<BlockPoint>& second = *g_floodSecond;
-    if (!(g_floodGuard & 1)) {
-        g_floodGuard |= 1;
-        g_floodQueue.Construct();
-        std::atexit(DestroyFloodQueue);
-    }
-    if (!(g_floodGuard & 2)) {
-        g_floodGuard |= 2;
-        g_floodSecond.Construct();
-        std::atexit(DestroyFloodSecond);
-    }
-    queue.clear();
+    std::vector<BlockPoint> queue;
+    std::vector<BlockPoint> second;
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
         SearchGrid<std::uint16_t>& grid = regions[sizeClass];
         std::memset(grid.data, 0, static_cast<std::size_t>(grid.height * grid.width * 2));
@@ -254,9 +214,9 @@ bool CRegionMap::LoadBlocks(CStream* stream) {
         SearchGrid<std::int16_t>& edgeGrid = edges[c];
         SearchGrid<std::uint8_t>& cellGrid = cells[c];
         SearchGrid<std::uint16_t>& regionGrid = regions[c];
-        Fit(edgeGrid, width, height, &AllocateEdgeGrid);
-        Fit(cellGrid, width, height, &AllocateZeroedByteGrid);
-        Fit(regionGrid, width, height, &AllocateRegionGrid);
+        ResizeGrid(edgeGrid, width, height, &AllocateEdgeGrid);
+        ResizeGrid(cellGrid, width, height, &AllocateZeroedByteGrid);
+        ResizeGrid(regionGrid, width, height);
         for (int y = 0; y < BlocksHigh(this); ++y) {
             read(edgeGrid.rows[y], width * 16);
             read(cellGrid.rows[y], width);
@@ -465,8 +425,8 @@ void CRegionMap::Attach(CAIMap* map) {
     local.Attach(map, false);
     int width = map->cells.width / 8, height = map->cells.height / 8;
     for (int c = 0; c < 8; ++c) {
-        Fit(edges[c], width, height, &AllocateEdgeGrid);
-        Fit(cells[c], width, height, &AllocateZeroedByteGrid);
+        ResizeGrid(edges[c], width, height, &AllocateEdgeGrid);
+        ResizeGrid(cells[c], width, height, &AllocateZeroedByteGrid);
         // The region grid's allocation is inlined here: u16 per block, rows of `width`.
         SearchGrid<std::uint16_t>& grid = regions[c];
         if (grid.width == width && grid.height == height) continue;
@@ -482,33 +442,12 @@ void CRegionMap::Attach(CAIMap* map) {
     backward.Attach(this, true);
 }
 
-CRegionMap* ConstructRegionMap(CRegionMap* self) {
-    for (BlockSearch* search : {&self->forward, &self->backward}) {
-        SearchGrid<BlockRecord>& records = search->records;
-        records.width = 1;
-        records.height = 1;
-        records.data = new BlockRecord[1];
-        records.rows = new BlockRecord*[static_cast<std::size_t>(records.height)];
-        for (int y = 0; y < records.height; ++y) records.rows[y] = records.data + y * records.width;
-        search->active = false;
-        search->map = nullptr;
-    }
-    LocalSearch& local = self->local;
-    local.nodes.width = 1;
-    local.nodes.height = 1;
-    AllocateNodeGrid(&local.nodes);
-    local.levels.width = 1;
-    local.levels.height = 1;
-    AllocateByteGrid(&local.levels);
-    local.map = nullptr;
-    // The CRT's eh vector constructor iterator over each grid array, in order.
-    for (SearchGrid<std::int16_t>& grid : self->edges) ConstructEdgeGrid(&grid);
-    for (SearchGrid<std::uint8_t>& grid : self->cells) ConstructRepresentativeGrid(&grid);
-    for (SearchGrid<std::uint16_t>& grid : self->regions) ConstructRegionGrid(&grid);
-    self->forward.Attach(self, false);
-    self->backward.Attach(self, true);
-    self->progress = nullptr;
-    return self;
+CRegionMap::CRegionMap() {
+    for (SearchGrid<std::int16_t>& grid : edges) ResizeGrid(grid, 1, 1, &AllocateEdgeGrid);
+    for (SearchGrid<std::uint8_t>& grid : cells) ResizeGrid(grid, 1, 1, &AllocateZeroedByteGrid);
+    for (SearchGrid<std::uint16_t>& grid : regions) ResizeGrid(grid, 1, 1);
+    forward.Attach(this, false);
+    backward.Attach(this, true);
 }
 
 bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy) {

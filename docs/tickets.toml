@@ -5458,3 +5458,10 @@ title = "SpellType parameters instead of ints"
 group = "cleanup"
 depends = ["C45d4"]
 note = "C45d4 left the int / uint32 signatures (C51's rule) and cast at the call sites: CMapObject::HasEffect / EffectValue(std::uint32_t) (static_cast<std::uint32_t>(SpellType::X) at 13 calls in map_object.cpp, map_object_companion.cpp, combat.cpp, unit.cpp, unit_client_sounds.cpp, unit_vitals.cpp), CSpellEffect::Start / UpdateMissile / UpdateLasting / UpdateFootprint(int type) and the Start* helpers' int type, map_object_client_effects.cpp's MergesParticles / ParticleSourceType / SoundFolder / SpawnRing / RingSize / PlayEffectSound(int kind), AIAttackOption::effect (int), EffectParticle::type / EffectSoundRecord::kind. Take SpellType there and drop the casts. MapEffect::type stays a byte (saved and sent). ui_camp_deals.cpp's PrototypeIndex(spell) is the P track's. Goldens unchanged."
+
+[[ticket]]
+id = "C50a1"
+title = "AI static tables built where they are used"
+group = "cleanup"
+depends = ["C50a"]
+note = "C50a follow-up. The smoother's 81 tables (ai_path_smooth.cpp, BuildSmoothTables 005C42B0) and the sector spiral's tables (sector_spiral.cpp, BuildSectorSpiralStatic 005BF8E0 / BuildSectorSpiral 005BF8F0) are plain globals since C50a but still filled by ported static initialisers in list order. Pure computation: build them once on first use (a function-local static object whose constructor builds them, or a class owning the three spiral tables), add both initialisers to gen_static_init's UNUSED_INITIALISERS, drop their static_init_ports rows, and keep tests/vectors/replay_path.cpp's @PathTables check (it fills ours from the record, then compares with what our builder makes). Also: CUnitLayer's map pointer could be a constructor argument of the two layers, and AIViewer (ai_event_table.h) has no member initialisers. Goldens unchanged."
