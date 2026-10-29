@@ -155,15 +155,15 @@ const Built& Build() {
                 existing->function = nullptr;
                 existing->command = nullptr;
                 (function ? existing->function : existing->command) = record.signature;
-                b.recordById[existing->id] = static_cast<signed char>(r);
+                b.recordById[static_cast<int>(existing->id)] = static_cast<signed char>(r);
             } else {
                 int id = kFirstNewId + r;
-                b.table.push_back({record.name, id, function ? record.signature : nullptr,
+                b.table.push_back({record.name, static_cast<ScriptFunction>(id), function ? record.signature : nullptr,
                                    function ? nullptr : record.signature});
                 b.recordById[id] = static_cast<signed char>(r);
             }
         }
-        b.table.push_back({nullptr, 0, nullptr, nullptr});
+        b.table.push_back({nullptr, ScriptFunction{}, nullptr, nullptr});
         return b;
     }();
     return built;

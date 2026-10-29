@@ -64,12 +64,12 @@ int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
 
 // Particle types that play once (no warm-up limit, a lifetime of 60 ticks; 0x2019: 120).
 bool IsOneShotType(int type) {
-    switch (type) {
-    case 0x2002: case 0x2006: case 0x200B: case 0x200C: case 0x200D: case 0x200E: case 0x200F:
-    case 0x2018: case 0x2019: case 0x201B: case 0x201C: case 0x201D: case 0x201E: case 0x201F:
-    case 0x2020: case 0x2021: case 0x2022: case 0x2023: case 0x2024: case 0x2025: case 0x2026:
-    case 0x2030: case 0x2031: case 0x2032: case 0x2033: case 0x203F: case 0x2040: case 0x2041:
-    case 0x2042: case 0x2043:
+    switch (ParticleTypeOf(type)) {
+    case ParticleType::FireBlast: case ParticleType::Healing: case ParticleType::Casting: case ParticleType::Nuke: case ParticleType::Banshee: case ParticleType::Mushroom: case ParticleType::Shower1:
+    case ParticleType::ClayRing: case ParticleType::Teleport: case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3: case ParticleType::Modifier4: case ParticleType::Modifier5:
+    case ParticleType::Modifier6: case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9: case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
+    case ParticleType::LightningBlast: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4: case ParticleType::Cylinder1: case ParticleType::Cylinder2: case ParticleType::FireStar:
+    case ParticleType::AcidStar: case ParticleType::Sparks:
         return true;
     default:
         return false;
@@ -330,13 +330,13 @@ void CEffectParticle::Spawn() {
         for (int left = age - 1; left != 0; --left) source_->RunTick();
     }
 
-    if (type_ == 0x2002) {
+    if (ParticleTypeOf(type_) == ParticleType::FireBlast) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         float radius = typeParam_;
         float angle = RandomAngle(((&g_random))->Next());
         g_clientWorld->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
     }
-    if (type_ == 0x2030) {
+    if (ParticleTypeOf(type_) == ParticleType::LightningBlast) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t random = InlineRandom();
         float radius = size_;
@@ -456,7 +456,7 @@ bool CEffectParticle::RunTick() {
         }
     }
     if (!IsOneShotType(type_)) return true;
-    int lifetime = type_ == 0x2019 ? 0x78 : 0x3C;
+    int lifetime = ParticleTypeOf(type_) == ParticleType::Teleport ? 0x78 : 0x3C;
     int now = WorldOf(this)->tick_;
     return now <= startTick_ + lifetime;
 }
@@ -493,7 +493,7 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
     field->ReadFloat16x3(&direction_.x);
     if (!SnapshotReadToEnd()) return 0;
     if (source_ != nullptr) source_->extent = direction_;
-    if (update == 0 && type_ == 0x2010) {
+    if (update == 0 && ParticleTypeOf(type_) == ParticleType::Tendril) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         float half = static_cast<float>(size_ * ConstAt(worlddata::HalfRef()));

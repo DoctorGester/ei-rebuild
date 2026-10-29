@@ -200,7 +200,7 @@ void SetBits(void* dst, std::uint32_t bits) { lib::StoreBytes(dst, bits); }
 Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
     Vector3 axis;
     axis = {};
-    switch (s->type_ - 0x201B) {
+    switch (s->type_ - static_cast<int>(ParticleType::Modifier1)) {
     case 0:
         axis.z = 1.0f;
         break;
@@ -351,7 +351,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     const int fade = points[0].ticks;
     p->color = (static_cast<std::uint32_t>(kFadeAlpha[fade]) << 24) | 0xFFFFFF;
     if (points[0].ticks == 0 && index < std::ssize(elements)) {
-        unsigned kind = static_cast<unsigned>(type_ - 0x201B);
+        unsigned kind = static_cast<unsigned>(type_ - static_cast<int>(ParticleType::Modifier1));
         if (kind <= 11) p->frame = static_cast<int>(kind);
         p->state = index;
         p->pos = points[index].pos;

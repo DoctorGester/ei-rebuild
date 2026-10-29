@@ -88,7 +88,7 @@ void FireballFlight(CSpellEffect* e) {
         float curve;
         AreaCurve(&e->Spell()->radius_, &Prototype(e)->area, &curve);
         float size = curve >= power ? curve : power;
-        CEffectParticle* blast = e->CreateParticle(0, 0x2002, &at, size, 1.0f, &kZeroVector, nullptr);
+        CEffectParticle* blast = e->CreateParticle(0, static_cast<int>(ParticleType::FireBlast), &at, size, 1.0f, &kZeroVector, nullptr);
         float radius = e->Spell()->radius_;
         float alpha = Power(e);
         blast->SetColors(alpha, radius);
@@ -281,7 +281,7 @@ void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
     e->timer = ticks;
     if (ticks < 0 || !e->caster) e->state = 3;
     if (ticks == 10) {
-        e->CreateParticle(0, 0x2018, &e->targetPoint, -e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
+        e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), &e->targetPoint, -e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
         e->CreateSound(0, "magic\\Clairvoyence\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
     }
 }
@@ -390,11 +390,11 @@ void CSpellEffect::UpdateMissile(int type) {
     switch (type) {
     case 0x00:
     case 0x28:
-        MissileImpact(this, 0x2041, "magic\\Firearrow\\end.wav", true);
+        MissileImpact(this, static_cast<int>(ParticleType::FireStar), "magic\\Firearrow\\end.wav", true);
         CountDown(this);
         break;
     case 0x02:
-        MissileImpact(this, 0x2042, "magic\\Acidray\\end.wav", false);
+        MissileImpact(this, static_cast<int>(ParticleType::AcidStar), "magic\\Acidray\\end.wav", false);
         CountDown(this);
         break;
     case 0x03: FireballFlight(this); break;

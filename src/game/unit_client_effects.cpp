@@ -44,7 +44,7 @@ constexpr float kSpreadStep = 0.02f;
 constexpr float kDecalLength = 3.0f;
 constexpr double kDeathDecalScale = 0.75;
 constexpr int kDeathVariantBase = 2;
-constexpr int kSparks = 0x2043;
+constexpr int kSparks = static_cast<int>(ParticleType::Sparks);
 constexpr float kSparkAlpha = 10.0f;
 constexpr int kSparkAttach = 7;
 constexpr int kMinFlashTicks = 4;
@@ -62,7 +62,7 @@ struct HitPart {
 constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, {"ll2", 5}, {"rl2", 6}};
 
 // The particle type of each blood kind (1..8).
-constexpr int kBloodParticles[8] = {0x200F, 0x2031, 0x2032, 0x2033, 0x200F, 0x2031, 0x2032, 0x2033};
+constexpr int kBloodParticles[8] = {static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4), static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4)};
 
 // The party light (r, g, b; radius).
 const float* PartyLightColour() { return &options::g_options->heroLight_.red; }

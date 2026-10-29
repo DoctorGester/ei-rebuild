@@ -457,9 +457,9 @@ void CUnitServer::TickAction() {
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
             auto* objects = g_serverWorld->timedObjectManager_;
             auto* particle = objects->CreateObjectAs<CEffectParticle>(kCastEffectKind, -1);
-            static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
+            static constexpr int kEffects[8] = {static_cast<int>(ParticleType::CastingFire), static_cast<int>(ParticleType::CastingElectricity), static_cast<int>(ParticleType::CastingAcid), static_cast<int>(ParticleType::CastingIllusion), static_cast<int>(ParticleType::CastingDivination), static_cast<int>(ParticleType::CastingEnchantment), static_cast<int>(ParticleType::CastingHealing), static_cast<int>(ParticleType::CastingDomination)};
             int kind = plan.castKind;
-            particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
+            particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : static_cast<int>(ParticleType::Casting);
             particle->size_ = 1.0f;
             particle->SetAttachedTo(unit->id_);
             world->AddTimedObject(particle);

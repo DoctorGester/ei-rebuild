@@ -27,7 +27,7 @@
 
 namespace {
 
-constexpr int kBirdParticles = 0x203C;        // the particle type the figure carries
+constexpr int kBirdParticles = static_cast<int>(ParticleType::Bag);        // the particle type the figure carries
 constexpr float kBirdParticleScale = 0.5f;
 
 enum MoshkaState { kPerched = 0, kCircling = 1, kFlyingOff = 2 };

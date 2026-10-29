@@ -177,26 +177,26 @@ void ScriptQuestFinish(CScript* script) {
         }
         const ScriptQuestObjective& objective = QuestObjectives()[i];
         const std::string& argument = objective.text;
-        switch (objective.type) {
-        case 0xD7:   // QObjArea
+        switch (static_cast<ScriptFunction>(objective.type)) {
+        case ScriptFunction::QObjArea:
             condition = str::Format("any( i, Heroes, IsInArea( %f, GetX(i), GetY(i) ) )", static_cast<double>(objective.value));
             break;
-        case 0xD8:   // QObjSeeObject
+        case ScriptFunction::QObjSeeObject:
             condition = str::Format("any( i, Heroes, IsLess( DistanceUnitUnit( i, %s ), 7 ) )", argument);
             break;
-        case 0xD9:   // QObjSeeUnit
+        case ScriptFunction::QObjSeeUnit:
             condition = str::Format("IsUnitVisible( %s )", argument);
             break;
-        case 0xDA:   // QObjKillUnit
+        case ScriptFunction::QObjKillUnit:
             condition = str::Format("Not( IsAlive( %s ) )", argument);
             break;
-        case 0xDB:   // QObjKillGroup
+        case ScriptFunction::QObjKillGroup:
             condition = str::Format("Not( any( i, %s, IsAlive(i) ) )", argument);
             break;
-        case 0xDC:   // QObjUse
+        case ScriptFunction::QObjUse:
             condition = str::Format("IsEqual( GetLeverState(%s), %f )", argument, static_cast<double>(objective.value));
             break;
-        case 0xDD:   // QObjGetItem
+        case ScriptFunction::QObjGetItem:
             condition = str::Format("HaveItem( 0, %f )", static_cast<double>(objective.value));
             break;
         default:

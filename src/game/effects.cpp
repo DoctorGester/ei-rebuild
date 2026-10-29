@@ -57,14 +57,6 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-constexpr int kTypeFire = 0x2003;
-constexpr int kTypeSmoke = 0x2004;
-constexpr int kTypePoisonCloud = 0x2008;
-constexpr int kTypeMushroom = 0x200E;
-constexpr int kTypeTendril = 0x2010;
-constexpr int kTypeSphereElectricity = 0x2016;
-constexpr int kTypeSphereFire = 0x2017;
-constexpr int kTypeAntimagic = 0x201A;
 
 } // namespace
 
@@ -134,7 +126,7 @@ int CParticleSource::UpdateCloud(Particle* p) {
     if (a <= 9) return 0;
     int step = x87::fistp(alpha * kCloudAlpha);
     if (step < 1) step = 1;
-    std::uint32_t rgb = type_ == kTypePoisonCloud ? 0xFFAF7Fu : 0xFFFFFFu;
+    std::uint32_t rgb = ParticleTypeOf(type_) == ParticleType::PoisonCloud ? 0xFFAF7Fu : 0xFFFFFFu;
     p->color = ((static_cast<std::uint32_t>(step) * 255 + a) << 24) | rgb;
     return 1;
 }
@@ -148,7 +140,7 @@ int CParticleSource::UpdateSmoke(Particle* p) {
         if (frame >= frameCount) return 0;
         p->frameTimer = frameDelay;
         if (frame > 7) {
-            if (type_ == kTypeFire || type_ == kTypeTendril) return 0;
+            if (ParticleTypeOf(type_) == ParticleType::Fire || ParticleTypeOf(type_) == ParticleType::Tendril) return 0;
             p->frameTimer = frameDelay << 2;
             if ((g_random.Next() & 3) == 0) return 0;
         }
@@ -182,7 +174,7 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     float extra = 0.0f;
     p->color = 0xFFFFFFFFu;
     p->life = lifetime;
-    p->frame = type_ != kTypeSmoke ? 0 : 8;
+    p->frame = ParticleTypeOf(type_) != ParticleType::Smoke ? 0 : 8;
     p->frameTimer = frameDelay;
     p->size = size;
     if (g_random.Next() % 100 + 1 <= 40) {
@@ -283,14 +275,14 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     p->pos.y = offset.y + by;
     p->pos.z = offset.z + bz;
     p->pos.x = px;
-    switch (type_) {
-    case kTypeSphereFire:
+    switch (ParticleTypeOf(type_)) {
+    case ParticleType::SphereFire:
         p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale * 2.0f;
         break;
-    case kTypeAntimagic:
+    case ParticleType::Antimagic:
         p->size = ByLife(kAntimagicSizeByLife, p->life, kSphereSizeByLife[15]) * p->drift.x * scale;
         break;
-    case kTypeSphereElectricity:
+    case ParticleType::SphereElectricity:
         p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale;
         break;
     default:
@@ -322,7 +314,7 @@ void CParticleSource::TickTendril(ParticleElement*) {
 // Mushroom cloud: the cap widens with ln(ticks + 1) and rises; the Mushroom shakes the camera on
 // its first tick; emission stops after 30 ticks.
 void CParticleSource::TickMushroom(ParticleElement* e) {
-    if (type_ == kTypeMushroom && e->ticks == 0 && e == elements.data())
+    if (ParticleTypeOf(type_) == ParticleType::Mushroom && e->ticks == 0 && e == elements.data())
         g_camera->Shake(&origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
     e->pos.x = static_cast<float>(x87::flog(ticks + 1) * size * kMushroomWidth);

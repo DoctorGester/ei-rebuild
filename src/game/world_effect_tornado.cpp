@@ -22,7 +22,7 @@
 
 namespace {
 
-constexpr int kTornadoParticles = 0x200A;
+constexpr int kTornadoParticles = static_cast<int>(ParticleType::Tornado);
 constexpr float kSoundNear = 10.0f;
 constexpr float kSoundFar = 40.0f;
 // The speed per tick: a random word * 2^-32 * 0.12 + 0.096.
