@@ -5259,3 +5259,11 @@ group = "cleanup"
 model = "opus"
 depends = ["P8"]
 note = "Style review Tier 2 (G9-G15) for src/game/ui_*.* and src/render/render_ui*, left out of C49-C53 for the native UI track. Whatever the P tickets did not already rewrite."
+
+[[ticket]]
+id = "C55"
+title = "Delete the debug panel"
+group = "cleanup"
+model = "sonnet"
+depends = ["P3b"]
+note = "User 2026-10-29: delete it. The debug panel (string_map.cpp, debug_panel.h, strmap::g_debugPanel) is never shown in 1.06 (nothing calls Show) but is filled every frame. Delete the class, its static initialiser (static_init.cpp), its Set calls in renderer_scene.cpp EndScene and ui_interface_draw.cpp DrawOverlays (and the values computed only for them), Init/Release/SetRect in ui_interface_*.cpp, CInterface3D::SetDebugInfoRect and the console's SetDebugInfoRect shortcuts, RemoveDebugLine in world_client_draw.cpp, and the debug family in ui_native and docs/notes (ui-native.md P4 section, app.md). The visible FPS surface (fpsSurface_) stays. Goldens unchanged."
