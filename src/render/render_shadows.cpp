@@ -137,26 +137,19 @@ ShadowInfo g_info, g_lastInfo;
 
 // --- Casters outside the view --------------------------------------------------------------------
 
-// A corner of a caster handed over by ShadowCasterMesh: as a kept mesh's (MeshLayout's cached layout).
-struct CasterVertex {
-    Vector3 position;
-    float u, v;
-    Vector3 normal;   // unused (the kept meshes' layout, MeshLayout)
-};
-static_assert(sizeof(CasterVertex) == kCachedVertexBytes);
-// A mesh of ShadowCasterMesh: its model matrix into the landscape's space and its triangles in the stream.
+// A mesh of ShadowCasterMesh: its model matrix into the landscape's space, its corners kept on the GPU by
+// part (KeepCasterMesh) and its texture offsets.
 struct OutsideCaster {
     double model[16];
-    int firstIndex, indexCount;
+    const CachedMesh* mesh;
+    float uOffset, vOffset;
     sg_view texture;
     bool hasTexture;
     const void* object;
 };
-std::vector<CasterVertex> g_outsideVertices;
-std::vector<std::uint32_t> g_outsideIndices;
 std::vector<OutsideCaster> g_outside;
-// More corners than this in one frame (no present for a long time) are dropped.
-constexpr std::size_t kMostOutsideCorners = 2'000'000;
+// More casters than this in one frame (no present for a long time) are dropped.
+constexpr std::size_t kMostOutside = 100'000;
 std::unordered_set<const void*> g_drawnParts;   // NoteCasterPart, this frame
 // CastsShadow's strengths by object, made at the first CasterStrength of a frame.
 std::unordered_map<const void*, float> g_strengths;
@@ -208,7 +201,6 @@ sg_sampler g_rangeLinear{};   // the receivers read the range filtered
 sg_image g_rangeDummy{};      // the range's 1 x 1 stand-in without a map (an image the filtered read accepts)
 sg_view g_rangeDummyAttachment{}, g_rangeDummyTexture{};
 int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
-StreamBuffer g_outsideVertexBuffer(false, "ei-shadow-outside"), g_outsideIndexBuffer(true, "ei-shadow-outside");
 
 bool MakeCasterPipelines() {
     if (g_casterShader.id) return sg_query_pipeline_state(g_casterPipelines[1]) == SG_RESOURCESTATE_VALID;
@@ -796,40 +788,19 @@ float CasterStrength(const void* object) {
 }
 
 void ShadowCasterMesh(const void* object, const ShadowMesh& m) {
-    if (!g_outsideOn || !m.positions || !m.corners || !m.indices || m.cornerCount <= 0 || m.indexCount < 3)
-        return;
-    if (g_outsideVertices.size() + static_cast<std::size_t>(m.cornerCount) > kMostOutsideCorners) return;
+    if (!g_outsideOn || m.indexCount < 3 || g_outside.size() >= kMostOutside) return;
     StatsTimer timer(&FrameStats::shadowMs);
-    const std::size_t base = g_outsideVertices.size();
-    for (int i = 0; i < m.cornerCount; ++i) {
-        const std::uint16_t* c = m.corners + i * 3;
-        if (c[0] >= m.positionCount) {
-            g_outsideVertices.resize(base);
-            return;
-        }
-        const float* block = m.positions + (c[0] / 4) * 16;
-        int lane = c[0] % 4;
-        CasterVertex v{{block[lane], block[4 + lane], block[8 + lane]}, m.uOffset, m.vOffset, {}};
-        if (m.uvs && c[2] < m.uvCount) {
-            v.u = m.uOffset + m.uvs[c[2] * 2];
-            v.v = m.vOffset + m.uvs[c[2] * 2 + 1];
-        }
-        g_outsideVertices.push_back(v);
-    }
-    const std::size_t first = g_outsideIndices.size();
-    for (int k = 0; k + 2 < m.indexCount; k += 3) {
-        if (m.indices[k] >= m.cornerCount || m.indices[k + 1] >= m.cornerCount || m.indices[k + 2] >= m.cornerCount) continue;
-        for (int j = 0; j < 3; ++j) g_outsideIndices.push_back(static_cast<std::uint32_t>(base + m.indices[k + j]));
-    }
+    const CachedMesh* kept = KeepCasterMesh(m);
+    if (!kept) return;
     OutsideCaster e{};
     for (int k = 0; k < 16; ++k) e.model[k] = m.model[k];
-    e.firstIndex = static_cast<int>(first);
-    e.indexCount = static_cast<int>(g_outsideIndices.size() - first);
+    e.mesh = kept;
+    e.uOffset = m.uOffset;
+    e.vOffset = m.vOffset;
     e.hasTexture = m.texture != nullptr;
     if (e.hasTexture) e.texture = SurfaceView(m.texture);
     e.object = object;
-    if (e.indexCount > 0) g_outside.push_back(e);
-    else g_outsideVertices.resize(base);
+    g_outside.push_back(e);
 }
 
 void BeginShadowWalk() {
@@ -884,8 +855,6 @@ void NoteCasterPart(const void* part) {
 void ShadowFrameDone() {
     g_lastInfo = g_info;
     g_info = ShadowInfo{};
-    g_outsideVertices.clear();
-    g_outsideIndices.clear();
     g_outside.clear();
     g_drawnParts.clear();
     g_nearestCaster = 1e30;
@@ -1018,13 +987,6 @@ void DrawShadowMap(Frame& f) {
             f.shadow.on = false;
             g_info.made = false;
         } else {
-            int outsideVertices = -1, outsideIndices = -1;
-            if (!g_outside.empty()) {
-                outsideVertices = g_outsideVertexBuffer.Append(g_outsideVertices.data(),
-                                                               g_outsideVertices.size() * sizeof(CasterVertex));
-                outsideIndices = g_outsideIndexBuffer.Append(g_outsideIndices.data(),
-                                                             g_outsideIndices.size() * sizeof(std::uint32_t));
-            }
             UploadTerrainCasters();
             sg_pass pass{};
             pass.action.depth.load_action = SG_LOADACTION_CLEAR;
@@ -1077,21 +1039,20 @@ void DrawShadowMap(Frame& f) {
                 ++g_info.casterDraws;
                 counted[batch.caster] = true;
             }
-            if (outsideVertices >= 0 && outsideIndices >= 0) {
+            if (!g_outside.empty()) {
                 sg_apply_pipeline(g_casterPipelines[1]);
                 std::unordered_map<const void*, bool> outside;
+                int corners = 0;
                 for (const OutsideCaster& e : g_outside) {
                     sg_bindings b{};
-                    b.vertex_buffers[0] = g_outsideVertexBuffer.Buffer();
-                    b.vertex_buffer_offsets[0] = outsideVertices;
-                    b.index_buffer = g_outsideIndexBuffer.Buffer();
-                    b.index_buffer_offset = outsideIndices;
+                    int first = 0;
+                    if (!BindCachedMesh(*e.mesh, b, &first)) continue;
                     b.views[0] = e.hasTexture && e.texture.id ? e.texture : SurfaceView(nullptr);
                     b.samplers[0] = StageSampler(StageState{});
                     sg_apply_bindings(&b);
                     M4 model;
                     for (int k = 0; k < 16; ++k) model.m[k] = e.model[k];
-                    CasterVs vs{ToMatrix(Multiply(g_fit.light, model)), {0.0f, 0.0f, 0.0f, 0.0f}};
+                    CasterVs vs{ToMatrix(Multiply(g_fit.light, model)), {e.uOffset, e.vOffset, 0.0f, 0.0f}};
                     sg_range vr{&vs, sizeof(vs)};
                     sg_apply_uniforms(0, &vr);
                     CasterFs fs{};
@@ -1103,14 +1064,15 @@ void DrawShadowMap(Frame& f) {
                     }
                     sg_range fr{&fs, sizeof(fs)};
                     sg_apply_uniforms(1, &fr);
-                    sg_draw(e.firstIndex, e.indexCount, 1);
+                    sg_draw(first, CachedIndexCount(*e.mesh), 1);
                     ++g_stats.shadowDraws;
                     ++g_info.outsideDraws;
+                    corners += CachedVertexCount(*e.mesh);
                     outside[e.object] = true;
                     counted[e.object] = true;
                 }
                 g_info.outsideCasters = static_cast<int>(outside.size());
-                g_info.outsideCorners = static_cast<int>(g_outsideVertices.size());
+                g_info.outsideCorners = corners;
             }
             if (TerrainCasterCount() != 0) {
                 Matrix4 light = ToMatrix(g_fit.light);
@@ -1203,8 +1165,6 @@ void DestroyShadows() {
     ReleaseQueries();
 #endif
     DestroyPointShadows();
-    g_outsideVertexBuffer.Destroy();
-    g_outsideIndexBuffer.Destroy();
     DestroyTarget(&g_map, &g_mapAttachment, &g_mapTexture);
     DestroyTarget(&g_rangeDummy, &g_rangeDummyAttachment, &g_rangeDummyTexture);
     DestroyTarget(&g_dummy, &g_dummyAttachment, &g_dummyTexture);

@@ -175,6 +175,9 @@ void HandOverParts(CObject3D* object, Object3DClientSpecific* half, const Matrix
                 const Matrix model = Multiply(objectMatrix, Placement(part->localRotation, part->localPosition));
                 for (int k = 0; k < 16; ++k) mesh.model[k] = model.m[k];
                 mesh.texture = holder;
+                mesh.owner = part;
+                mesh.shared = figure;
+                mesh.moved = !part->offsets.empty();
                 render::ShadowCasterMesh(object, mesh);
             }
         }

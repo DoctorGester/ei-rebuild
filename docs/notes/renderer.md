@@ -1491,7 +1491,10 @@ across runs; the goldens check the game state.
     flagged hidden 0x80 or farther than 0073DE58 skipped; a link figure's part through its ranges, a plain one
     through its buffers, per-vertex offsets added), with its part set's texture; a part the game drew as a
     caster's mesh this frame is left out (`render::CasterPartDrawn`). Cut out by alpha as the on-screen meshes with
-    the same texture were (remembered per texture), else at alpha 0.5. Check: scenario render_shadows_outside
+    the same texture were (remembered per texture), else at alpha 0.5. A part's corners are kept on the GPU by part
+    in the kept meshes' pool and read again only when the game says the part or its link figure moved or was
+    rebuilt (R37c, render_mesh_cache.cpp's KeepCasterMesh); each frame only the part's matrix and texture offsets
+    are handed over. Check: scenario render_shadows_outside
     (image only): zone1's start, the town bz1g, and the town with the camera moved towards the viewer until the
     gate is above the screen; each frozen with the outside casters (`shadowcasters all`, the default), without them
     (`view`, as before R20) and with every caster taken from the walk and none from the game's draws (`walked`: the
@@ -1860,8 +1863,13 @@ built and uploaded again is what the game says changed:
 - all of it, when the mesh's buffers changed (MeshChanged Rebuilt) or the draw hands over other arrays or counts
   than it was built from. Interface sprites (render::SetInterfaceDraw) and a mesh drawn again in the same frame
   with other data go into the frame's stream. The texture offsets (an animated mesh's frame of its sheet) are the
-  draw's, added in the shader. The harness build compares every kept mesh with a fresh build every 16th frame
-  (`meshcache check`); `meshcache off` builds every mesh into the frame's stream.
+  draw's, added in the shader. A kept mesh also keeps the box of its positions (CachedMeshBox: a caster's box for
+  the point shadows' spheres and the units' fronts), taken again only when they were built or moved. The casters
+  outside the view (render::ShadowCasterMesh) are kept the same way by part (KeepCasterMesh: a map of their own,
+  positions and texture coordinates only, no colours; read at most once a frame), drawn from the pool with the
+  part's matrix and texture offsets. The harness build compares every kept mesh, box and caster with a fresh build
+  every 16th frame (`meshcache check`); `meshcache off` builds every mesh into the frame's stream (and every
+  caster again each frame).
 
 ### render_point_shadows.cpp: point-light shadows
 

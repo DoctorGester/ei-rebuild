@@ -558,6 +558,15 @@ constexpr std::size_t kCachedVertexBytes = 32;   // a kept corner's geometry: po
 void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
+int CachedVertexCount(const CachedMesh& mesh);
+// The box of a mesh's positions in model space (low xyz, high xyz); false without positions. CachedMeshBox:
+// the kept mesh's, taken again only when its positions changed (`mesh` is the draw KeepMesh kept it from).
+bool PositionBox(const MeshDraw& mesh, float box[6]);
+void CachedMeshBox(CachedMesh& kept, const MeshDraw& mesh, float box[6]);
+// A caster outside the view (render::ShadowCasterMesh) kept by its part as KeepMesh keeps a drawn mesh (its
+// positions and texture coordinates without the offsets, which the caster pass adds; no colours), read once
+// a frame; null when a corner is out of range or nothing is left to draw.
+CachedMesh* KeepCasterMesh(const ShadowMesh& mesh);
 // Changes whenever the kept mesh's corners (positions, texture coordinates) or triangles change; no two kept
 // meshes ever share one (render_point_shadows.cpp keeps faces drawn from them).
 std::uint32_t CachedMeshVersion(const CachedMesh& mesh);

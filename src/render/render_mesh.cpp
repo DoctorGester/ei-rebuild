@@ -31,7 +31,7 @@ struct Pending {
     float fogScale = 0.0f;
     const void* caster = nullptr;   // render::BeginCaster's object
     bool figure = false;            // ... a unit's
-    bool boxed = false;             // its corners' box in model space taken (a caster's)
+    bool boxed = false;             // its positions' box in model space taken (a caster's: MeshPass)
     float box[6] = {};
     CachedMesh* cached = nullptr;   // kept on the GPU, else built into the frame's stream
     int lighting = -1;              // Frame::meshLights
@@ -67,25 +67,6 @@ Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
 }
 
 const Matrix4 kIdentity = {{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}};
-
-// The box of a mesh's positions in model space (low xyz, high xyz); false without positions.
-bool PositionBox(const MeshDraw& m, float box[6]) {
-    if (!m.positions || m.positionCount <= 0) return false;
-    for (int k = 0; k < 3; ++k) {
-        box[k] = 1e30f;
-        box[3 + k] = -1e30f;
-    }
-    for (int i = 0; i < m.positionCount; ++i) {
-        const float* block = m.positions + (i / 4) * 16;
-        int lane = i % 4;
-        for (int k = 0; k < 3; ++k) {
-            float v = block[4 * k + lane];
-            box[k] = v < box[k] ? v : box[k];
-            box[3 + k] = v > box[3 + k] ? v : box[3 + k];
-        }
-    }
-    return true;
-}
 
 // The mesh's corners as vertices and its triangles, once per mesh (the passes share them).
 bool Build(Frame& f, Pending& p) {
@@ -371,8 +352,8 @@ void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly) {
 }
 
 void UploadMeshes(const Frame& f) {
+    UploadCachedMeshes(f);   // the casters outside the view too
     if (f.meshBatches.empty()) return;
-    UploadCachedMeshes(f);
     if (!f.meshVertices.empty()) g_geometry.Upload(f.meshVertices, f.meshIndices);
 }
 
@@ -526,8 +507,8 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending.device = static_cast<char*>(device);
     g_pending.matrix = AddMatrix(clip);
     g_pending.caster = CurrentCaster();
-    // A caster's box (its point shadows), and a unit's.
-    g_pending.boxed = g_pending.caster && PositionBox(mesh, g_pending.box);
+    // A caster's box (its point shadows), and a unit's: taken in MeshPass (a kept mesh keeps it).
+    g_pending.boxed = g_pending.caster && mesh.positions && mesh.positionCount > 0;
     g_pending.figure = CurrentCasterFigure() && g_pending.boxed;
     // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
     // normals are read (the other mesh draws' callers may pass anything there).
@@ -576,6 +557,10 @@ void MeshPass(void* device) {
                 ++g_stats.flatMeshes;
                 g_stats.flatVertexBytes += (f.meshVertices.size() - first) * sizeof(Vertex);
             }
+        }
+        if (g_pending.boxed) {
+            if (g_pending.cached) CachedMeshBox(*g_pending.cached, g_pending.mesh, g_pending.box);
+            else PositionBox(g_pending.mesh, g_pending.box);
         }
     }
     if (g_pending.indexCount > 0) {
