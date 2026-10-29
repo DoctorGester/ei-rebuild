@@ -111,7 +111,7 @@ constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
 
 } // namespace
 
-SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, int create) {
+SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, bool create) {
     if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
     std::list<terrain::SectorData*>::iterator node = sectorGrid[sx][sy];
     if (node != std::list<terrain::SectorData*>::iterator{}) {
@@ -251,14 +251,13 @@ Terrain::~Terrain() {
     // archive: destroyed after this body (~CMMIOResource())
 }
 
-int Terrain::Create() {
+void Terrain::Create() {
     Reset();
     BuildVertexTiles();
     BuildWavePhases();
     for (int i = 0; i < 512; ++i) sine[i] = static_cast<float>(x87::fsin(i * kPiDouble * kSineStep));
     localPosition_ = kZeroPosition;
     localRotation_ = kIdentityRotation;
-    return 1;
 }
 
 void Terrain::Destroy() {
@@ -500,12 +499,12 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
         int index = 0;
         for (int row = 0; row < tilesPerRow; ++row)
             for (int column = 0; column < tilesPerRow; ++column, ++index)
-                BuildTileUv(uvTables[rotation] + index * kUvFloats, rotation, column, row, tileSide, margin, 0);
+                BuildTileUv(uvTables[rotation] + index * kUvFloats, rotation, column, row, tileSide, margin, false);
     }
     for (int rotation = 0; rotation < 4; ++rotation) {
         uvTablesLast[rotation] = new float[tableBytes / sizeof(float)];
         for (int column = 0; column < tilesPerRow; ++column)
-            BuildTileUv(uvTablesLast[rotation] + column * kUvFloats, rotation, column, 0, tileSide, margin, 1);
+            BuildTileUv(uvTablesLast[rotation] + column * kUvFloats, rotation, column, 0, tileSide, margin, true);
     }
     mapLoaded = 1;
 
@@ -548,7 +547,7 @@ void Terrain::SetWaterLevel(int material, float level) {
     }
 }
 
-void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, char wholePage) {
+void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, bool wholePage) {
     constexpr int kSide = 3;                  // a tile's vertices per row
     constexpr int kTileVertices = kSide * kSide;
     float* u = uv;

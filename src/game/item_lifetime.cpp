@@ -42,10 +42,9 @@ CItem::CItem() {
     DropSpell(spell_);
 }
 
-int CItem::Create() {
+void CItem::Create() {
     count_ = 1;
     DropSpell(spell_);
-    return 1;
 }
 
 void CItem::Destroy() {
@@ -99,7 +98,6 @@ ClassId CItemSpell::GetClassId() { return ClassId::ItemSpell; }
 
 // --- The item manager's Create and factory -------------------------------------------------
 
-int CItemManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 
 
 CEngineObject* CItemManager::NewObject(int kind) {

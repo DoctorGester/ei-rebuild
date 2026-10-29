@@ -33,7 +33,7 @@ public:
     // The same object, one more reference.
     ReplicaEntry(const ReplicaEntry& other);
     ~ReplicaEntry() override;
-    int OnShutdown() override;              // Reset: the object let go, version and id cleared
+    void OnShutdown() override;              // Reset: the object let go, version and id cleared
     ReplicaEntry* Clone() override;
 
     Message* Object() const { return object_.Get(); }
@@ -108,7 +108,7 @@ public:
     ~Connection() override;
 
     // Torn down and built again with id 0.
-    int OnShutdown() override;
+    void OnShutdown() override;
     Connection* Clone() override;
 
     // Builds and sends one update packet of at most `budget` entry bytes. False when entries had to be left

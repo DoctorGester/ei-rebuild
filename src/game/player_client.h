@@ -15,12 +15,11 @@ public:
     CPlayerClient();
     ~CPlayerClient() override;
 
-    int Create() override {
+    void Create() override {
         CreateClient();
-        return 1;
     }
     void Destroy() override { Clear(); }
-    int RunTick() override { return Pump(); }
+    bool RunTick() override { return Pump(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
     void ForgetSentObjects() override {}
@@ -78,10 +77,10 @@ public:
     // and the login (message 0: version 100, "Tango", "Very top secret", the player's partyId_) are queued,
     // state 1, and everything is sent (SendToServer's result); without a connected link 1. State 1: 1.
     // State 2: the camera's anchor x, y as message 0x40, then sent. Other states: sent.
-    int Pump();
+    bool Pump();
     // Compresses the queued requests and sends them on the link; the queue is emptied unless there is no
     // link. 1 without a link, 0 when it is not connected, else the send's result.
-    int SendToServer();
+    bool SendToServer();
     // Runs every message of in_ (from its start) through the handlers by type. 1 at the end of the stream;
     // a read past the end, a type without a handler or a refusing handler ends in the fatal error (its
     // result returned).

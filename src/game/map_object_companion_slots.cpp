@@ -17,13 +17,11 @@ constexpr std::uint32_t kShowsNumbers = 0x400000;   // CMapObject::flags_: hits 
 
 CMapObjectCompanion::~CMapObjectCompanion() { owner = nullptr; }
 
-int CMapObjectCompanion::Create() {
+void CMapObjectCompanion::Create() {
     owner = nullptr;
-    return 1;
 }
 void CMapObjectCompanion::Destroy() { owner = nullptr; }
 
-int CMapObjectCompanion::UpdateCompanion() { return 0; }
 // Query (all three classes): 0.
 int CMapObjectCompanion::Query(int, int) { return 0; }
 

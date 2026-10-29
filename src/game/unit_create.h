@@ -77,7 +77,7 @@ MapObjectType PrototypeObjectClass(std::string_view name);
 struct CMapObjectManager : CResourceManager {
     CMapObjectManager();
     ~CMapObjectManager() override;
-    int Create() override;
+    void Create() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     // A new object of the factory's type `type` (a MapObjectType), constructed; null for other ids.
@@ -88,7 +88,7 @@ struct CMapObjectManager : CResourceManager {
     // The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
     int GiveStartingEquipment(CUnit* unit, const std::string& name);
 
-    int CreateManager();
+    void CreateManager();
     // The base manager's CreateObject; a new object gets an animation state (the figure manager's) and its side
     // halves from the world's specific manager: Object3D and MapObject, then Unit for the three unit types and
     // Torch for the torch. Returns the object or null.
@@ -100,7 +100,7 @@ struct CMapObjectManager : CResourceManager {
     // (with a debug message when there is no database).
     FigureAnimation* FindAnimation(const std::string* figure, std::uint32_t key);
     // The defaults of an object without a prototype (SetDefaults): a unit (class 0x50) gets the statistics
-    // (SetStats), any other object the vitals (SetServerData); then ScaleEffectChanged(0) and no prototype
+    // (SetStats), any other object the vitals (SetServerData); then ScaleEffectChanged(false) and no prototype
     // index. Returns 1.
     int GiveDefaults(CMapObject* object);
 
@@ -118,7 +118,7 @@ struct CMapObjectManager : CResourceManager {
     // Gives map object `object` the prototype `name`: units get their vitals and statistics
     // (BuildFromPrototype, SetServerData and SetStats), their height offset, scale (the base scale and
     // ApplyBaseScale) and second prototype; every object its prototype index. Without a prototype: defaults,
-    // ScaleEffectChanged(0), index 0 and a debug message. Returns 1.
+    // ScaleEffectChanged(false), index 0 and a debug message. Returns 1.
     int ApplyPrototype(CMapObject* object, const std::string& name);
 };
 

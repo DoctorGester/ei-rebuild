@@ -12,7 +12,7 @@ void CEngineObject::CopyFrom(const CEngineObject& other) {
 // The default slots: the destructor lets go of the owner; 1 is CopyFrom, 5 / 9 / 10 empty, 6 returns 0.
 CEngineObject::~CEngineObject() { owner_ = nullptr; }
 void CEngineObject::ClearState() {}
-int CEngineObject::RunTick() { return 0; }
+bool CEngineObject::RunTick() { return false; }
 void CEngineObject::Load(CStream*) {}
 void CEngineObject::Save(CStream*) {}
 

@@ -55,7 +55,7 @@ const char* CTexture::GetName() { return name_.c_str(); }
 const char* CTexture::ClassName() { return "CTexture"; }
 ClassId CTexture::GetClassId() { return ClassId::Texture; }
 
-int CTexture::Create() {
+void CTexture::Create() {
     name_.clear();
     DropSurface(this);
     height_ = 0;
@@ -63,7 +63,6 @@ int CTexture::Create() {
     uploadResult_ = 0;
     format_ = 0;
     extra_.clear();
-    return 1;
 }
 
 void CTexture::Destroy() {

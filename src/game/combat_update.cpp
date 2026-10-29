@@ -130,7 +130,7 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
 
 // --- The update ---------------------------------------------------------------------------------
 
-int CUnitServer::RunTick() {
+bool CUnitServer::RunTick() {
     CUnit* self = unit;
     if (self->dead == 0) {
         if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
@@ -173,12 +173,12 @@ int CUnitServer::RunTick() {
             UpdateOrders();
             UpdateState();
             AdvanceAnimation();
-            return 1;
+            return true;
         }
         if (state == kStateActing && action2.kind == UnitOrderKind::Move) EndOrder(1);
         UpdateState();
         AdvanceAnimation();
-        return 1;
+        return true;
     }
 
     // Dead: the body sinks (accelerating) until it is at height 0; once the death animation is
@@ -208,7 +208,7 @@ int CUnitServer::RunTick() {
         EmptyAction(&action2);
     }
     AdvanceAnimation();
-    return 1;
+    return true;
 }
 
 // --- The state of the unit's animation --------------------------------------------------------

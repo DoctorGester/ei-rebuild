@@ -18,25 +18,25 @@ class CTrapObject : public CMapObject {
 public:
     CTrapObject();
 
-    int Create() override { return CreateTrap(); }
-    int RunTick() override { return UpdateTrap(); }
+    void Create() override { CreateTrap(); }
+    bool RunTick() override { return UpdateTrap(); }
     void Load(CStream* stream) override;                      // LoadTrapObject
     void Save(CStream* stream) override;                      // SaveTrapObject
     const char* ClassName() override;                         // "CTrapObject"
     ClassId GetClassId() override;
-    bool IsSynchronised() override { return Slot29True(); }
-    bool IsUsable() override { return Slot38One(); }
+    bool IsSynchronised() override { return true; }
+    bool IsUsable() override { return true; }
     // Disarm with the key record.
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     bool AcceptsKey(const LockKey* key) override { return KeyFits(key); }
 
     // The map object's Create, flags_ bit 0x40 cleared; returns Create's result.
-    int CreateTrap();
+    void CreateTrap();
     // The map object's update; then, armed (flags_ 0x80000) on the server (the
     // context's query): the units within 1 of the position (the sector map). With any, the
     // world script above runs (on the mission script, z = what the world's virtual gives at x, y)
     // and the trap disarms; with none, flags_ 0x100000 is cleared. Returns 0.
-    int UpdateTrap();
+    bool UpdateTrap();
     // An armed trap disarms when `key` accepts (always); returns true. The second argument is not read.
     bool Disarm(const LockKey* key);
     // The check's result (1).
@@ -45,8 +45,6 @@ public:
     // +0x238.
     void LoadTrapObject(CStream* stream);
     void SaveTrapObject(CStream* stream);
-    bool Slot29True();   // true
-    bool Slot38One();    // true
 
     std::uint32_t savedValue_;   // only loaded and saved; nothing sets it (not even the constructor)
 };

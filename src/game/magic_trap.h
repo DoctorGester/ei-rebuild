@@ -18,9 +18,9 @@ public:
     MagicTrap();
     ~MagicTrap() override;
 
-    int Create() override { return CreateTrap(); }
+    void Create() override { CreateTrap(); }
     void Destroy() override { DestroyTrap(); }
-    int RunTick() override { return UpdateTrap(); }
+    bool RunTick() override { return UpdateTrap(); }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* ClassName() override;   // "CMagicTrapObject"
@@ -36,11 +36,11 @@ public:
 
     // The map object's Create, then sides -1, flags_ |= 0x80040, no spell, no circles, points or units, period
     // 10, countdown and singleTarget 0.
-    int CreateTrap();
+    void CreateTrap();
     void DestroyTrap();
     // On the server world with a spell: a period not above 0 updates the units inside; otherwise the countdown
     // goes down by one (not below 0) and, once it is not above 0, the trap fires at what is in it.
-    int UpdateTrap();
+    bool UpdateTrap();
     // An armed trap casts its spell at the living units of its sides found in its circles, when there are
     // any. The context is fetched even when the trap is not armed.
     void FireAtOccupants();

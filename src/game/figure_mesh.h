@@ -77,7 +77,7 @@ class CLight;
 // CSharedFigureMesh, 0x42 CPlainFigureMesh, 0x43 CUiMesh (ui.h), 0x44 CSkyObject (sky_object.h).
 class CFigureMesh : public CTransformObject {
 public:
-    int Create() override;                 // CreateMesh (the derived classes' Create jumps to it)
+    void Create() override;                 // CreateMesh (the derived classes' Create jumps to it)
     void Destroy() override;               // Clear
     const char* GetName() override;
     const char* ClassName() override;
@@ -126,7 +126,7 @@ public:
 
     // The create virtual of every figure class: no drawer, flags, buffers or bounds; white flat colours.
     // Returns 1.
-    int CreateMesh();
+    void CreateMesh();
     // Names and colour arrays emptied, the buffer descriptor cleared, the drawer released, no flags.
     void Clear();
     // Lets the old drawer go (released) and takes `drawer` (one more reference, its mesh_ set).

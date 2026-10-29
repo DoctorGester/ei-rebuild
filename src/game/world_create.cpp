@@ -38,7 +38,7 @@ void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
 
 } // namespace
 
-int CWorld::Create() {
+void CWorld::Create() {
     paused_ = 0;
     *g_dataFolder = worlddata::ConfiguredDataPath();
     *g_textFolder = worlddata::ConfiguredTextPath();
@@ -70,7 +70,6 @@ int CWorld::Create() {
     worldHandle_.ShareAssign(new CWorldHandle());
     g_random.Init();
     countdowns_.clear();
-    return 1;
 }
 
 CWorld::CWorld() {
@@ -90,7 +89,7 @@ CWorld::CWorld() {
     secondsPerTick_ = 0.0f;
 }
 
-int CWorld::RunTick() { return 1; }
+bool CWorld::RunTick() { return true; }
 
 CUnit* CWorld::FindUnit(int id) {
     return UnitOrNull(ObjectWithId(id));

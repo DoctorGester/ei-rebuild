@@ -159,9 +159,8 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
 const char* CSoundManager::ClassName() { return kSoundManagerClassNameAddress; }
 ClassId CSoundManager::GetClassId() { return ClassId::SoundManager; }
 
-int CSoundManager::CreateBody() {
+void CSoundManager::CreateBody() {
     Reset();
-    return 1;
 }
 
 // The head taken off the list, then the archive's deleting destructor.

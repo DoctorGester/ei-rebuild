@@ -94,10 +94,9 @@ void CUnitServer::Resettle() {
     g_serverWorld->aiMap_.sectorMap.Add(unit);
 }
 
-int CUnitServer::Create() {
+void CUnitServer::Create() {
     ResetController();
     BrainOf(this)->SetOwner(this);
-    return 1;
 }
 
 void CUnitServer::ClearState() { ResetController(); }

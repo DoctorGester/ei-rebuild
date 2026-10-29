@@ -21,7 +21,7 @@ public:
     CHoover();              // the engine object's fields cleared
     ~CHoover() override;
 
-    int Create() override;
+    void Create() override;
     void Destroy() override {}              // empty
     const char* ClassName() override;
     ClassId GetClassId() override;

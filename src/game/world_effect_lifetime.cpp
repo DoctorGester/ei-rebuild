@@ -24,7 +24,7 @@ CEffect::CEffect() {
 
 CEffect::~CEffect() = default;
 
-int CEffect::RunTick() { return 1; }
+bool CEffect::RunTick() { return true; }
 
 // --- The class names and ids (ClassName / GetClassId; the exe's strings) ------------------------------------
 

@@ -114,15 +114,15 @@ void CEffectPointLight::Reset() {
     lightFlags_ = 0;
 }
 
-int CEffectPointLight::RunTick() {
-    if (moving_ == 0) return 1;
+bool CEffectPointLight::RunTick() {
+    if (moving_ == 0) return true;
     float x = localPosition_.x + velocity_.x;
     float y = localPosition_.y + velocity_.y;
     float z = localPosition_.z + velocity_.z;
     localPosition_.x = x;
     localPosition_.y = y;
     localPosition_.z = z;
-    if (light_ == nullptr) return 1;
+    if (light_ == nullptr) return true;
     Vector3 delta;
     delta = velocity_;
     if ((FrameCounter() & 0xF) == 0) {
@@ -130,11 +130,11 @@ int CEffectPointLight::RunTick() {
         g_clientWorld->terrain_->RemoveLight(light_);
         LightPosition(light_) = localPosition_;
         g_clientWorld->terrain_->AddLight(light_);
-        return 1;
+        return true;
     }
     g_clientWorld->terrain_->MoveLight(light_, &delta);
     LightPosition(light_) = localPosition_;
-    return 1;
+    return true;
 }
 
 void CEffectPointLight::Start(int update) {
@@ -431,7 +431,7 @@ void CEffectParticle::Save(CStream* stream) {
     stream->WriteValue(typeParam_);
 }
 
-int CEffectParticle::RunTick() {
+bool CEffectParticle::RunTick() {
     unitId_ = -1;
     if (moving_ != 0) {
         Vector3 d;
@@ -455,10 +455,10 @@ int CEffectParticle::RunTick() {
             if (source_ != nullptr) source_->localPosition_ = localPosition_;
         }
     }
-    if (!IsOneShotType(type_)) return 1;
+    if (!IsOneShotType(type_)) return true;
     int lifetime = type_ == 0x2019 ? 0x78 : 0x3C;
     int now = WorldOf(this)->tick_;
-    return now > startTick_ + lifetime ? 0 : 1;
+    return now <= startTick_ + lifetime;
 }
 
 
@@ -641,9 +641,9 @@ void CEffectLightning::SetFlag(std::uint8_t flag) {
     MarkChanged();
 }
 
-int CEffectLightning::RunTick() {
-    if (bolt_ == nullptr || (toObject_ == -1 && fromObject_ == -1)) return 1;
+bool CEffectLightning::RunTick() {
+    if (bolt_ == nullptr || (toObject_ == -1 && fromObject_ == -1)) return true;
     UpdateEnds();
     bolt_->SetEndpoints(&from_, &to_);
-    return 1;
+    return true;
 }

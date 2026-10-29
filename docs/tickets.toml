@@ -5444,3 +5444,10 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C51"]
 note = "Left by C45d1 (no signature changes while C51 ran): CAIMap::CellFlag80At -> InWaterAt (kCellWater), HasKind3Occluder / HasKind3OccluderAt -> a SpellArea name, FootprintCellSet::AddTop / AddBottom and Sector::RemoveOccluder take OccluderKind instead of int8 / int, BoundsOccluderKind returns OccluderKind, ai_refresh's CellMark scratch MarkState typed. Goldens unchanged."
+
+[[ticket]]
+id = "C51b"
+title = "C51a rest: Create/RunTick helper forwarders, Query, remaining Returns-1 helpers"
+group = "cleanup"
+depends = ["C51a"]
+note = "Left by C51a. (1) The Create/RunTick overrides that only forward to a named helper (CreateTrack, CreateDrawer, CreateState, Create3D, CreateUnit, CreateTorch, CreateSpec, CreateClient, CreateBody, CreateLever, CreateTrap x2, LoadThemes, CreateWithArchives, CreateManager, CreateSprite, UiObjectCreate, VisFogManagerCreate/Tick, UpdateLever, UpdateTrap x2, UpdateCells, Pump, Segment): fold the helper into the override where nothing else calls it (C53's forwarder rule; ui_* ones wait for C54). (2) CMapObjectCompanion::Query is always 0 and CMapObject::CompanionQuery drops it: void or delete. (3) Other always-1 helpers still commented 'Returns 1' (unit_create.h, party.h Create, unit_client_models.h) to void. Not bool: CanCastSpell/CanUseQuickItem return codes, IncomingCount is a count (LoopbackLink returns the queue size), Alive is bool already."

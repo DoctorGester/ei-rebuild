@@ -49,18 +49,20 @@ static void ReleaseTextures(CTextureManager* manager) {
     if (device) device->Release();
 }
 
-int CTextureManager::Create() {
-    if (!CBaseManager::Create()) return 0;
+void CTextureManager::Create() {
+    CBaseManager::Create();
     ForgetComposedTextures();
     const std::string folder = *g_textFolder;
     bool opened = AddArchive((folder + "textures.res"));
-    opened = AddArchive((folder + "redress.res")) && opened ? 1 : 0;
-    if (!AddArchive((folder + "menus.res")) || !opened) return 0;
+    opened = AddArchive((folder + "redress.res")) && opened;
+    if (!AddArchive((folder + "menus.res")) || !opened) {
+        context_ = nullptr;   // the original's Init cleared the context after this failed Create
+        return;
+    }
     // Rebirth's ResOverride: when all three opened, the mod's texture archives follow.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::TextureArchives()) CResourceManager::AddArchive(path);
     }
-    return 1;
 }
 
 void CTextureManager::Destroy() {

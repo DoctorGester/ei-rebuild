@@ -67,9 +67,9 @@ public:
     CCamera();
     ~CCamera() override;
 
-    int Create() override;
+    void Create() override;
     void Destroy() override;
-    int RunTick() override { return 1; }
+    bool RunTick() override { return true; }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* ClassName() override;

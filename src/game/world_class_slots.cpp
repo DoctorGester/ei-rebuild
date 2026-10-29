@@ -62,7 +62,7 @@ const char* I3DFigureClassName(CEngineObject*) { return kI3DFigureName; }
 
 const char* FigureClientSpecificClassName(CEngineObject*) { return kFigureClientSpecificName; }
 
-int UiObjectCreate(CEngineObject*) { return 1; }
+void UiObjectCreate(CEngineObject*) {}
 const char* UiObjectClassName(CEngineObject*) { return kUiObjectName; }
 
 bool CWorldServer::IsServer() { return true; }

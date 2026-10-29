@@ -60,7 +60,7 @@ void CWorldServer::Tick(char force) {
     std::list<unsigned> finished;
     for (auto& node : timed) {
         CEngineObject* object = node.second;
-        if (object->RunTick() == 0) {
+        if (!object->RunTick()) {
             finished.push_back(static_cast<unsigned>(object->id_));
             object->Release();
         }
@@ -188,7 +188,7 @@ void CWorldServer::UpdateUnits() {
     // The counted objects run too; those whose Update returns 0 leave the list (their reference released).
     for (auto position = counted_.begin(); position != counted_.end();) {
         auto current = position++;
-        if ((*current)->RunTick() == 0) {
+        if (!(*current)->RunTick()) {
             (*current)->Release();
             counted_.erase(current);
         }

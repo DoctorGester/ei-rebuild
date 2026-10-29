@@ -41,10 +41,9 @@ CUnitShape::CUnitShape() {
     OnShutdown();
 }
 
-int CUnitShape::OnShutdown() {
+void CUnitShape::OnShutdown() {
     std::memset(levels, 0, sizeof(levels));
     radius = -1.0f;
-    return 0;
 }
 
 CUnitShape* CUnitShape::Clone() {

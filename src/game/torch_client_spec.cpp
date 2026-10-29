@@ -54,7 +54,7 @@ CTorchObjectClientSpec::~CTorchObjectClientSpec() {
     // The members' destructors find both null; then the spec's destructor.
 }
 
-int CTorchObjectClientSpec::CreateClient() {
+void CTorchObjectClientSpec::CreateClient() {
     CreateSpec();
     light_.Reset();
     if (CParticleSource* old = particles_) {
@@ -62,7 +62,6 @@ int CTorchObjectClientSpec::CreateClient() {
         ReleaseSource(old);
     }
     sound_ = 0;
-    return 1;
 }
 
 void CTorchObjectClientSpec::DestroyClient() {
@@ -151,6 +150,6 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
 
 // The update returns 1; the class name and id.
 
-int CTorchObjectClientSpec::RunTick() { return 1; }
+bool CTorchObjectClientSpec::RunTick() { return true; }
 const char* CTorchObjectClientSpec::ClassName() { return ClassNameText(); }
 ClassId CTorchObjectClientSpec::GetClassId() { return ClassId::TorchObjectClientSpec; }

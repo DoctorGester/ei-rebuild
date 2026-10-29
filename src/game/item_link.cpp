@@ -8,7 +8,7 @@ CItemLink::CItemLink() {
     flags7_ = 0;
 }
 
-int CItemLink::OnShutdown() { return 0; }
+void CItemLink::OnShutdown() {}
 
 CItemLink* CItemLink::Clone() {
     auto* copy = new CItemLink();

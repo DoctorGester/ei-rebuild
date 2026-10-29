@@ -38,9 +38,9 @@ public:
     CTorchObjectSpec();
     ~CTorchObjectSpec() override;
 
-    int Create() override { return CreateSpec(); }
+    void Create() override { CreateSpec(); }
     void Destroy() override { DestroySpec(); }
-    int RunTick() override;                          // returns 1
+    bool RunTick() override;                          // true
     void Load(CStream* stream) override;                // LoadSpec
     void Save(CStream* stream) override;                // SaveSpec
     // "CTorchObjectSpec". 12: 0x42.
@@ -63,7 +63,7 @@ public:
     // +0x20, the name (written with its terminator), +0x28, +0x2C, the
     // four values +0x30 and both colours. The setters: set +0x20, the first
     // colour and +0x28; the second colour, +0x2C and the four values; the name.
-    int CreateSpec();
+    void CreateSpec();
     void DestroySpec();
     void LoadSpec(CStream* stream);
     void SaveSpec(CStream* stream);

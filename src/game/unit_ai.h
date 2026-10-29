@@ -158,7 +158,7 @@ public:
     GuardMode() { failures = 0; }
     GuardMode(const Vector3* point, float radius, float wander);
     ~GuardMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     GuardMode* Clone() override;
     // Sets the point and the two radii (negative: the globals).
     void Set(const Vector3* point, float radius, float wander);
@@ -185,7 +185,7 @@ class PatrolMode : public AIMode {
 public:
     PatrolMode();
     ~PatrolMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     PatrolMode* Clone() override;
     // 50; without points: FatalError "Unit %i has no patrol points, switching to guard", a point at the
     // unit's position, and -1000.
@@ -213,7 +213,7 @@ public:
     SentryMode() {}   // a mode AIBrain::Load fills
     explicit SentryMode(const Vector3* point);
     ~SentryMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     SentryMode* Clone() override;
     void Set(const Vector3* point);
     void Execute(AIBrain* brain) override;
@@ -229,7 +229,7 @@ class FollowMode : public AIMode {
 public:
     explicit FollowMode(CMapObject* leader = nullptr);
     ~FollowMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     FollowMode* Clone() override;
     void Execute(AIBrain* brain) override;
     AIModeType GetType() override;
@@ -244,7 +244,7 @@ public:
 class SuspectionMode : public AIActionMode {
 public:
     ~SuspectionMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     SuspectionMode* Clone() override;
     // Remembers a non-allied seen object, then takes over the brain's noticed point and level (the level only
     // grows down to the noticed one while the point is the same).
@@ -278,7 +278,7 @@ public:
     AggressionMode();
     explicit AggressionMode(std::uint8_t fixed);
     ~AggressionMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     AggressionMode* Clone() override;
     // 10000 while there is an enemy to fight (the script's, or the best one in sight), else -1000.
     int Evaluate(AIBrain* brain) override;
@@ -302,7 +302,7 @@ class CorpseWatcherMode : public AIActionMode {
 public:
     CorpseWatcherMode();
     ~CorpseWatcherMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     CorpseWatcherMode* Clone() override;
     // Takes one seen corpse off the brain's list and notes it as noticed (level 800, kind -3). Never takes
     // charge (-1000).
@@ -319,7 +319,7 @@ public:
     // alike).
     explicit FearMode(std::uint8_t flag);
     ~FearMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     FearMode* Clone() override;
     AIModeType GetType() override;
     // Remembers a seen object and calms `spread`; 15000 for a ranged unit that can run, 3000 while it sees an
@@ -356,7 +356,7 @@ public:
 
     PlayerMode();
     ~PlayerMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     PlayerMode* Clone() override;
     int Evaluate(AIBrain* brain) override;
     AIModeType GetType() override;
@@ -424,7 +424,7 @@ class TamedMode : public PlayerMode {
 public:
     TamedMode() {}
     ~TamedMode() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     TamedMode* Clone() override;
     int Evaluate(AIBrain* brain) override;   // always 100000000
     AIModeType GetType() override;

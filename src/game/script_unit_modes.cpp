@@ -25,9 +25,8 @@ GuardMode::GuardMode(const Vector3* newPoint, float newRadius, float newWander) 
 
 GuardMode::~GuardMode() {}
 
-int GuardMode::OnShutdown() {
+void GuardMode::OnShutdown() {
     failures = 0;
-    return 0;
 }
 
 // Floats are copied bit for bit (memcpy).
@@ -44,7 +43,7 @@ SentryMode::SentryMode(const Vector3* newPoint) { Set(newPoint); }
 
 SentryMode::~SentryMode() {}
 
-int SentryMode::OnShutdown() { return 0; }
+void SentryMode::OnShutdown() {}
 
 SentryMode* SentryMode::Clone() {
     auto* copy = new SentryMode();
@@ -58,9 +57,8 @@ FollowMode::FollowMode(CMapObject* newLeader) { leader.Assign(newLeader); }
 
 FollowMode::~FollowMode() { leader.Reset(); }
 
-int FollowMode::OnShutdown() {
+void FollowMode::OnShutdown() {
     leader.Reset();
-    return 0;
 }
 
 FollowMode* FollowMode::Clone() { return new FollowMode(leader.Get()); }
@@ -69,7 +67,7 @@ AIModeType FollowMode::GetType() { return AIModeType::Follow; }
 
 SuspectionMode::~SuspectionMode() {}
 
-int SuspectionMode::OnShutdown() { return 0; }
+void SuspectionMode::OnShutdown() {}
 
 SuspectionMode* SuspectionMode::Clone() {
     auto* copy = new SuspectionMode();
@@ -90,12 +88,11 @@ AggressionMode::AggressionMode(std::uint8_t newFixed) {
 
 AggressionMode::~AggressionMode() { enemy.Reset(); }
 
-int AggressionMode::OnShutdown() {
+void AggressionMode::OnShutdown() {
     enemy.Reset();
     chosen.object = nullptr;
     chosen.part = kNoPart;
     fixed = 0;
-    return 0;
 }
 
 AggressionMode* AggressionMode::Clone() {
@@ -116,7 +113,7 @@ CorpseWatcherMode::CorpseWatcherMode() {}
 
 CorpseWatcherMode::~CorpseWatcherMode() {}
 
-int CorpseWatcherMode::OnShutdown() { return 0; }
+void CorpseWatcherMode::OnShutdown() {}
 
 CorpseWatcherMode* CorpseWatcherMode::Clone() { return new CorpseWatcherMode(); }
 

@@ -65,16 +65,16 @@ void CEffectShowVisibility::Pack(DeltaField* field) {
     field->WriteStreamBoth(&stream);
 }
 
-int CEffectShowVisibility::RunTick() {
-    if (!WorldContext()->IsServer()) return 1;
+bool CEffectShowVisibility::RunTick() {
+    if (!WorldContext()->IsServer()) return true;
     CUnit* seer = ObjectWorld(this)->FindUnit(seerId_);
     CUnit* observer = ObjectWorld(this)->FindUnit(observerId_);
-    if (seer == nullptr || observer == nullptr) return 0;
+    if (seer == nullptr || observer == nullptr) return false;
     std::memcpy(&localPosition_, &seer->localPosition_.x, sizeof(Vector3));
     // The squares `seer` sees, with `observer`'s skills.
     MarkSightCells(seer, observer, &grid_);
     MarkChanged();
-    return 1;
+    return true;
 }
 
 void CEffectShowVisibility::Load(CStream* s) {

@@ -91,7 +91,7 @@ CSpellConstructor* CParty::SpellConstructor() { return spellConstructor_; }
 CItemManager* CParty::ItemFactory() { return itemManager_; }
 CSpellManager* CParty::SpellManager() { return spellManager_; }
 
-int CParty::Create() {
+void CParty::Create() {
     itemManager_ = new CItemManager();
     itemManager_->AddRef();   // not tested for null
     itemManager_->Init(this);
@@ -109,7 +109,6 @@ int CParty::Create() {
     spellConstructor_->Create();
 
     Clear(1, 0);
-    return 1;
 }
 
 void CParty::Destroy() {

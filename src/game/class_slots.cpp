@@ -21,12 +21,12 @@ int g_lightningNoiseLoaded = /*007A9694*/ {};
 
 // ---- The lightning manager --------------------------------------------------------------------------
 
-int CLightningManager::Create() {
+void CLightningManager::Create() {
     if (!g_lightningNoiseLoaded) {
         g_lightningNoiseLoaded = 1;
         LoadLightningNoise();
     }
-    return CBaseManager::Create();
+    CBaseManager::Create();
 }
 
 // ---- CUnit slots ----------------------------------------------------------------------------

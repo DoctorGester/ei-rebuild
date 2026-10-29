@@ -33,13 +33,13 @@ public:
     using SpareMap = lib::HashMap<int, std::list<CEngineObject*>*>;
 
     // Empties the tables and sizes them for a new session; returns 1.
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    // Keeps the context and creates; a failed create clears the context again. Returns 1 / 0.
-    virtual bool Init(CManagerContext* context);
+    // Keeps the context and creates.
+    virtual void Init(CManagerContext* context);
     // A new object of `type` (null when the type is unknown).
     virtual CEngineObject* NewObject(int type) = 0;
     // Destroys and releases every object, then empties the registration tables.
@@ -154,8 +154,6 @@ class CEffectManager : public CBaseManager {
 public:
     CEffectManager();
     ~CEffectManager() override;
-    // CBaseManager's Create, as 0 / 1.
-    int Create() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;

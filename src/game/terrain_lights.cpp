@@ -54,11 +54,11 @@ VertexRange RangeIn(const LightArea* area, int sx, int sy) {
 }
 
 SectorData* BuiltSector(Terrain* terrain, int sx, int sy, SectorStage wanted) {
-    return terrain->SectorAt(sx, sy, wanted, 0);
+    return terrain->SectorAt(sx, sy, wanted, false);
 }
 
 // UpdateVertexLights for every built sector of the area.
-void UpdateArea(Terrain* terrain, CLight* light, const Vector3* position, const LightArea* area, int remove) {
+void UpdateArea(Terrain* terrain, CLight* light, const Vector3* position, const LightArea* area, bool remove) {
     for (int sy = area->firstSectorY; sy <= area->lastSectorY; ++sy)
         for (int sx = area->firstSectorX; sx <= area->lastSectorX; ++sx)
             if (SectorData* sector = BuiltSector(terrain, sx, sy, SectorStage::Built))
@@ -127,8 +127,7 @@ SectorVertex::SectorVertex(SectorVertex&& from) noexcept
       lit(from.lit), materialColour(from.materialColour), materialByte(from.materialByte),
       lights(std::exchange(from.lights, nullptr)) {}
 
-void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
-                                  int remove) {
+void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area, bool remove) {
     VertexRange range = RangeIn(area, sector->sx, sector->sy);
     float rangeSquared = static_cast<float>(light->range_ * light->range_);
     for (int y = range.y0; y <= range.y1; ++y) {
@@ -213,7 +212,7 @@ void Terrain::RelightArea(const LightArea* area) {
             SectorData* sector = BuiltSector(this, sx, sy, SectorStage::Lit);
             if (!sector) continue;
             VertexRange range = RangeIn(area, sx, sy);
-            sector->Light(this, 1, range.x0, range.y0, range.x1, range.y1);
+            sector->Light(this, true, range.x0, range.y0, range.x1, range.y1);
         }
     }
 }
@@ -230,7 +229,7 @@ void Terrain::AddLight(CLight* light) {
     if (id > maxLightId) maxLightId = id;
     lights[id] = entry;
     Vector3 position = light->localPosition_;
-    UpdateArea(this, light, &position, &entry.area, 0);
+    UpdateArea(this, light, &position, &entry.area, false);
     RelightArea(&entry.area);
 }
 
@@ -244,7 +243,7 @@ void Terrain::RemoveLight(CLight* light) {
         lights.erase(node);
     }
     Vector3 position = light->localPosition_;
-    UpdateArea(this, light, &position, &area, 1);
+    UpdateArea(this, light, &position, &area, true);
     RelightArea(&area);
     light->Release();
 }
@@ -258,7 +257,7 @@ void Terrain::MoveLight(CLight* light, const Vector3* delta) {
     LightAreaOf(light, delta, area);
     Vector3 position = light->localPosition_;
     if (delta) position = position + *delta;
-    UpdateArea(this, light, &position, area, 0);
+    UpdateArea(this, light, &position, area, false);
     Vector3 old = light->localPosition_;
     light->localPosition_ = old + *delta;
     RelightArea(area);
@@ -271,6 +270,6 @@ void Terrain::LightSector(SectorData* sector) {
         const LightArea& area = entry.area;
         if (area.firstSectorX <= sector->sx && sector->sx <= area.lastSectorX && area.firstSectorY <= sector->sy &&
             sector->sy <= area.lastSectorY)
-            terrain::UpdateVertexLights(sector, entry.light, &entry.light->localPosition_, &area, 0);
+            terrain::UpdateVertexLights(sector, entry.light, &entry.light->localPosition_, &area, false);
     }
 }

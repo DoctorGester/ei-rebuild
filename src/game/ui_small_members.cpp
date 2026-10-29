@@ -103,7 +103,7 @@ void CUiMesh::DestroySprite() {
     CPlainFigureMesh::Destroy();
 }
 
-int ItemTurn::OnShutdown() { return 0; }
+void ItemTurn::OnShutdown() {}
 
 // --- Handlers ----------------------------------------------------------------------------------------------
 

@@ -146,7 +146,7 @@ void Terrain::PlayAmbience() {
         for (int column = 0; column < 3; ++column) {
             int sx = centreX + column - 1;
             Cell& cell = cells[column * 3 + row];
-            auto* sector = SectorAt(sx, sy, SectorStage::Built, 1);
+            auto* sector = SectorAt(sx, sy, SectorStage::Built, true);
             if (!sector) {
                 cell.soundClass = -1;
                 cell.weight = 0.0f;

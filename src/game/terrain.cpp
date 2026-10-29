@@ -18,7 +18,7 @@ const Vector3* Terrain::VertexAt(int ix, int iy, int layer) {
     if (lx == 0 && sx != 0) { --sx; lx = 32; }
     if (ly == 0 && sy != 0) { --sy; ly = 32; }
 
-    terrain::SectorData* sector = SectorAt(sx, sy, SectorStage::Loaded, 1);
+    terrain::SectorData* sector = SectorAt(sx, sy, SectorStage::Loaded, true);
     if (!sector) return nullptr;
     int layerOffset = 0;
     if (layer) {

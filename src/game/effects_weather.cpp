@@ -189,7 +189,7 @@ void CVisibilityFog::ComputeBounds() {
 // Per-frame fade: visible cells halve their distance to opaque, the others halve their alpha and
 // are dropped below 0.01; every cell steps its texture tile. Returns whether the fog is still
 // needed (referenced elsewhere or has cells).
-int CVisibilityFog::UpdateCells() {
+bool CVisibilityFog::UpdateCells() {
     std::vector<std::uint32_t>& dead = g_deadCells;
     if (!(g_deadCellsGuard & 1)) {
         g_deadCellsGuard |= 1;
@@ -209,7 +209,7 @@ int CVisibilityFog::UpdateCells() {
         cell.frame = static_cast<std::int8_t>((cell.frame + 1) % 15);
     }
     for (const std::uint32_t key : dead) cells.erase(key);
-    return (refCount_ > 1 || cells.size() != 0) ? 1 : 0;
+    return refCount_ > 1 || cells.size() != 0;
 }
 
 // Marks the cells of the visible squares (adding new ones, transparent, at a jittered point on
@@ -263,9 +263,8 @@ CVisibilityFog::~CVisibilityFog() {
     ClearCells();
 }
 
-int CVisibilityFog::Create() {
+void CVisibilityFog::Create() {
     ClearCells();
-    return 1;
 }
 const char* CVisibilityFog::ClassName() { return "CVisibilityFog"; }
 ClassId CVisibilityFog::GetClassId() { return ClassId::VisibilityFog; }

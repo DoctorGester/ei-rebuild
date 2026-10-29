@@ -762,7 +762,7 @@ void CParticleSource::Clear() {
 }
 
 // Create. Sets the source up for its type; 1, or for an unknown type the fatal error report's result.
-int CParticleSource::Create() {
+void CParticleSource::Create() {
     Reset();
     float farBound = 100000.0f;     // 100000.0f
     boundsMin.x = farBound;
@@ -778,13 +778,15 @@ int CParticleSource::Create() {
     frameCount = 16;
 
     const char* textureName = SetupType(this);
-    if (!textureName) return game::FatalError("CParticle::Create().\nUnknown ETypeID.\n");
+    if (!textureName) {
+        game::FatalError("CParticle::Create().\nUnknown ETypeID.\n");
+        return;
+    }
 
     char name[268];
     std::memcpy(name, textureName, std::strlen(textureName) + 1);
     LoadNamedTexture(texture, 6, name);
     BuildFrames(this);
-    return 1;
 }
 
 // --- Factory and destructor ----------------------------------------------------------------------

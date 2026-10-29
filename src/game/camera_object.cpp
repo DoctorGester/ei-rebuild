@@ -86,12 +86,11 @@ void ConstructCamera() {
 const char* CCamera::ClassName() { return "CCamera"; }
 ClassId CCamera::GetClassId() { return ClassId::Camera; }
 
-int CCamera::Create() {
+void CCamera::Create() {
     targetId_ = -1;
     nearDistance_ = 1.0f;
     farDistance_ = 2000.0f;
     fieldOfView_ = DefaultAngle();
-    return 1;
 }
 void CCamera::Destroy() { targetId_ = -1; }
 

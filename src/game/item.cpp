@@ -35,17 +35,17 @@ QuickItemCategory CItem::GetCategory() {
     return prototype ? static_cast<QuickItemCategory>(prototype->category) : QuickItemCategory::NoPrototype;
 }
 
-int CItem::RunTick() {
+bool CItem::RunTick() {
     EI_NAN_AUDIT(charge_, chargeMax_);
-    if (charge_ == chargeMax_) return 0;
+    if (charge_ == chargeMax_) return false;
     EI_NAN_AUDIT(chargeRate_);
     if (chargeRate_ <= 0.0f) {
         charge_ = chargeMax_;
-        return 1;
+        return true;
     }
     charge_ = chargeRate_ * chargeMax_ + charge_;
     if (charge_ >= chargeMax_) charge_ = chargeMax_;
-    return 1;
+    return true;
 }
 
 int CItemWeapon::GetType() {

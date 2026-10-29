@@ -167,9 +167,8 @@ CSysInfo::CSysInfo() {
 
 CSysInfo::~CSysInfo() = default;
 
-int CSysInfo::Create() {
+void CSysInfo::Create() {
     Collect();
-    return 1;
 }
 
 const char* CSysInfo::ClassName() { return SysInfoClassNameText(); }

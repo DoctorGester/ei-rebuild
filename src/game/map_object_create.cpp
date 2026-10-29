@@ -32,7 +32,7 @@ void DetachCompanion(CMapObject* object) {
 
 // --- CMapObject's Create / Destroy (A-U) ---------------------------------------------------------
 
-int CMapObject::CreateMapObject() {
+void CMapObject::CreateMapObject() {
     Create3D();
     DetachCompanion(this);
     packedVitals.Reset();
@@ -45,7 +45,6 @@ int CMapObject::CreateMapObject() {
     updateCountdown = kInitialCountdown;
     name2 = game::kEmptyText;
     baseScale.x = baseScale.y = baseScale.z = 0.0f;
-    return 1;
 }
 
 void CMapObject::DestroyMapObject() {
@@ -56,14 +55,13 @@ void CMapObject::DestroyMapObject() {
 
 // --- Units and torches -----------------------------------------------------------------------------
 
-int CUnit::CreateUnit() {
+void CUnit::CreateUnit() {
     CreateMapObject();
     Reset();
     MapObject()->netState_.SetFieldCount(kUnitNetFields);
-    return 1;
 }
 
-int CTorchObject::CreateTorch() {
+void CTorchObject::CreateTorch() {
     CreateMapObject();
     CTorchObjectSpec* old = spec;
     spec = nullptr;
@@ -71,5 +69,4 @@ int CTorchObject::CreateTorch() {
     DeltaState* state = &netState_;
     state->SetFieldCount(kTorchNetFields);
     state->Reset();
-    return 1;
 }

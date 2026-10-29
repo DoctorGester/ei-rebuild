@@ -43,8 +43,8 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
     if (anm) animations->OpenFromMemory(anm);
 }
 
-int CFigureManager::CreateWithArchives() {
-    if (!CBaseManager::Create()) return 0;
+void CFigureManager::CreateWithArchives() {
+    CBaseManager::Create();
     // Rebirth's ResOverride: the mod's figure archives come first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::FigureArchives()) AddArchive(path);
@@ -53,7 +53,6 @@ int CFigureManager::CreateWithArchives() {
     AddArchive((folder + kFiguresArchive));
     AddArchive((folder + kMenusArchive));
     LoadMenuRects(g_menuRects);
-    return 1;
 }
 
 CFigureMesh* CFigureManager::NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached) {

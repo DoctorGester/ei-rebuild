@@ -43,7 +43,7 @@ CFigureMesh::CFigureMesh() {
     CreateMesh();
 }
 
-int CFigureMesh::CreateMesh() {
+void CFigureMesh::CreateMesh() {
     radius_ = 0.0f;
     drawer_ = nullptr;
     flags_ = 0;
@@ -56,7 +56,6 @@ int CFigureMesh::CreateMesh() {
     flatSpecular_ = 0xFFFFFFFF;
     std::memset(&box_.bounds, 0, sizeof(box_.bounds));
     box_.pivot = {};
-    return 1;
 }
 
 // --- Clearing -----------------------------------------------------------------------------------
@@ -122,7 +121,7 @@ CPlainFigureMesh::~CPlainFigureMesh() {
 
 // --- Small virtuals ----------------------------------------------------------------------------
 
-int CFigureMesh::Create() { return CreateMesh(); }
+void CFigureMesh::Create() { CreateMesh(); }
 void CFigureMesh::Destroy() { Clear(); }
 const char* CFigureMesh::GetName() { return name_.c_str(); }
 const char* CFigureMesh::ClassName() { return "CFigure"; }

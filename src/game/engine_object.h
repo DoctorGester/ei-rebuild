@@ -117,11 +117,11 @@ public:
 
     virtual ~CEngineObject();
     virtual void CopyFrom(const CEngineObject& other); // flags_, type_, prototypeId_
-    virtual int Create() = 0;
+    virtual void Create() = 0;
     virtual void Destroy() = 0;
     virtual void Release();                            // refcount; the owner releases it at 0
     virtual void ClearState();
-    virtual int RunTick();
+    virtual bool RunTick();
     virtual const char* GetName();                     // "noname"
     virtual const char* GetDescription();              // "nodesc"
     virtual void Load(CStream* stream);

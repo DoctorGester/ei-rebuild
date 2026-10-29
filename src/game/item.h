@@ -32,10 +32,10 @@ public:
     CItem();
     ~CItem() override;
 
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     // The recharge: charge_ moves towards chargeMax_ by chargeRate_ * chargeMax_. 0 when already full.
-    int RunTick() override;
+    bool RunTick() override;
     // The packed id, condition_..unreadValue_, the spell's id (-1: none; Load finds it in the context's spell
     // manager and counts it), count_ and magicLevel_, four bytes each, in that order.
     void Load(CStream* stream) override;
@@ -113,7 +113,7 @@ public:
     // No references, no flags.
     CItemLink();
     // Built again in place (the count and the value stay): nothing changes. Returns 0.
-    int OnShutdown() override;
+    void OnShutdown() override;
     // A new link with this one's value and no references; null without memory.
     CItemLink* Clone() override;
 
@@ -320,7 +320,7 @@ public:
 
     // The reset: the manager forgotten (its count dropped), the item released, the records and spell cleared.
     // Returns 1.
-    int Create() override;
+    void Create() override;
 
     void Destroy() override;
 
@@ -394,7 +394,6 @@ struct CItemManager : CResourceManager {
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // "items"
 
-    int Create() override;
     // The item factory: a new constructed item for kind ItemKind::Weapon weapon, ItemKind::Armor armour, ItemKind::Quick quick, ItemKind::Loot
     // loot, ItemKind::Spell scroll, ItemKind::Quest quest, its type_ set to the kind; null for another kind or without memory.
     CEngineObject* NewObject(int kind) override;

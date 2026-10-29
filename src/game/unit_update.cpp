@@ -22,10 +22,9 @@ CWorld* WorldOf(CUnit* unit) { return unit->World(); }
 // The map object's (map_object.cpp) and the 3D object's (map_object_figures.cpp) bodies these slots run are
 // called directly.
 
-int CUnit::Tick() {
+void CUnit::Tick() {
     controller->RunTick();
     Update();
-    return 1;
 }
 
 void CUnit::RecomputeScale() {
@@ -65,8 +64,8 @@ int CUnit::StatsChanged() {
     return 1;
 }
 
-void CUnit::ScaleEffectChanged(int value) {
-    if (controller) Controller()->RefreshVitals(static_cast<char>(value));
+void CUnit::ScaleEffectChanged(bool scaleEffect) {
+    if (controller) Controller()->RefreshVitals(scaleEffect);
 }
 
 void CUnit::SetStats(const UnitStats* stats) {
@@ -133,10 +132,13 @@ int CUnit::Level() {
 
 // --- The virtuals -------------------------------------------------------------
 
-int CUnit::Create() { return CreateUnit(); }
+void CUnit::Create() { CreateUnit(); }
 void CUnit::Destroy() { DestroyUnit(); }
 void CUnit::ClearState() { ReleaseUnit(); }
-int CUnit::RunTick() { return Tick(); }
+bool CUnit::RunTick() {
+    Tick();
+    return true;
+}
 const char* CUnit::GetName() { return scriptName.c_str(); }
 void CUnit::Load(CStream* stream) { LoadUnit(stream); }
 void CUnit::Save(CStream* stream) { SaveUnit(stream); }

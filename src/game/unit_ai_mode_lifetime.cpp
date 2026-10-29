@@ -39,10 +39,9 @@ PatrolMode::PatrolMode() { current = 0; }
 PatrolMode::~PatrolMode() = default;
 
 // Emptied in place (the reference count kept).
-int PatrolMode::OnShutdown() {
+void PatrolMode::OnShutdown() {
     points.clear();
     current = 0;
-    return 0;
 }
 
 // A copy with its own points.
@@ -62,9 +61,8 @@ FearMode* FearMode::Clone() {
     return clone;
 }
 
-int FearMode::OnShutdown() {
+void FearMode::OnShutdown() {
     Init(0);
-    return 0;
 }
 
 FearMode::~FearMode() {}

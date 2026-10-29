@@ -418,7 +418,7 @@ CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
     Show(1);
 }
 
-int CUiWindow::Create() { return UiObjectCreate(this); }
+void CUiWindow::Create() { UiObjectCreate(this); }
 const char* CUiWindow::ClassName() { return UiObjectClassName(this); }
 ClassId CUiWindow::GetClassId() { return ClassId::UiWindow; }
 

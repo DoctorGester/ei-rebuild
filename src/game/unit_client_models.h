@@ -82,7 +82,7 @@ public:
 
     // No sources, times, animation or motion order, weapon / arrow shown, heading snapped, fully faded in, no sounds,
     // speech, flash, footprint or blink, every armour and weapon model -1, the face texture released. Returns 1.
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -131,7 +131,7 @@ public:
     bool WeaponPoint(Vector3* out);
 
     // The per-tick update on the client; see docs/notes/units.md, "CUnitClientModels per-tick update". Returns 1.
-    int RunTick() override;
+    bool RunTick() override;
     // The blink. With a face texture and a skin texture (the client half's material), unless the eyes already
     // are so (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye rectangle
     // (the model's eye fields in 256ths of the skin, down the mip chain); eyesClosed becomes 1 / 0.

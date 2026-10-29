@@ -141,12 +141,11 @@ LoopbackLink::~LoopbackLink() { peer_.Reset(); }
 
 // Torn down (the queue cleared rather than destroyed) and built again in place (the reference count
 // and +9 kept): no peer, an empty queue, a closed file, not recording.
-int LoopbackLink::OnShutdown() {
+void LoopbackLink::OnShutdown() {
     peer_.Reset();
     std::destroy_at(&queue_);
     record_.~FileStream();
     new (this) LoopbackLink();
-    return 0;
 }
 
 // Null when the allocation fails.
@@ -322,9 +321,8 @@ DriverLink::~DriverLink() {
 
 // Destroyed (disconnecting) and built again in place with the constructor's code: the
 // reference count and +9 kept, no player, an empty inbox, a closed file.
-int DriverLink::OnShutdown() {
+void DriverLink::OnShutdown() {
     net::Rebuild(this);
-    return 0;
 }
 
 // Null when the allocation fails.

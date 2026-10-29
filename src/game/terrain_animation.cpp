@@ -262,7 +262,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     }
 }
 
-int Terrain::RunTick() {
+bool Terrain::RunTick() {
     if (lightCountdown > 0 && --lightCountdown == 0) {
         lightCountdown = lightInterval;
         SetSun(sun, &ambient);
@@ -277,9 +277,9 @@ int Terrain::RunTick() {
     ++frame;
     for (int row = 0; row < std::ssize(visibleColumnFirst); ++row) {
         for (int column = visibleColumnFirst[row]; column <= visibleColumnLast[row]; ++column) {
-            SectorData* sector = SectorAt(column, visibleRowFirst + row, SectorStage::Lit, 0);
+            SectorData* sector = SectorAt(column, visibleRowFirst + row, SectorStage::Lit, false);
             if (sector && sector->IsDrawn()) sector->Animate(this, frame);
         }
     }
-    return 1;
+    return true;
 }

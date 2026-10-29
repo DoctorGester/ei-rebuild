@@ -48,7 +48,7 @@ void WakeAroundUnits(CWorldServer* world, CPlayer* player) {
 
 } // namespace
 
-int CWorldServer::Update() {
+void CWorldServer::Update() {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         netlink::NetLink* link = player->link_;
@@ -104,5 +104,4 @@ int CWorldServer::Update() {
         if (!SyncPlayer(player)) DropPlayer(this, player);
 
     ++updateCount_;
-    return 1;
 }

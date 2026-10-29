@@ -78,9 +78,8 @@ public:
     CPlayerServer();
     ~CPlayerServer() override;
 
-    int Create() override {
+    void Create() override {
         CreateServer();
-        return 1;
     }
     void Destroy() override { ClearServerState(); }
     const char* ClassName() override;
@@ -309,9 +308,8 @@ public:
     CPlayer();
     ~CPlayer() override;
 
-    int Create() override {
+    void Create() override {
         CreatePlayer();
-        return 1;
     }
     void Destroy() override { DestroyPlayer(); }
     const char* ClassName() override;

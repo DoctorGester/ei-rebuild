@@ -20,7 +20,7 @@ FigureBone::FigureBone() {
     CreateBone();
 }
 
-int FigureBone::CreateBone() {
+void FigureBone::CreateBone() {
     // The original assigns "none" to all three names, not an empty string.
     name = "none";
     name2 = "none";
@@ -36,7 +36,6 @@ int FigureBone::CreateBone() {
     morphS = 0.0f;
     morphT = 0.0f;
     morphU = 0.0f;
-    return 1;
 }
 
 void FigureBone::DestroyBone() {
@@ -56,5 +55,5 @@ FigureBone::~FigureBone() {
     children.clear();
 }
 
-int FigureBone::Create() { return CreateBone(); }
+void FigureBone::Create() { CreateBone(); }
 void FigureBone::Destroy() { DestroyBone(); }

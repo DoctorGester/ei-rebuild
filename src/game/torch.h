@@ -18,27 +18,25 @@ public:
     // The spec released (the pointer kept), then the map object's destructor.
     ~CTorchObject() override;
 
-    int Create() override { return CreateTorch(); }
+    void Create() override { CreateTorch(); }
     void Destroy() override { DestroyTorch(); }
-    int RunTick() override { return UpdateTorch(); }
+    bool RunTick() override { return true; }   // no map object update
     void Load(CStream* stream) override;                      // LoadTorch
     void Save(CStream* stream) override;                      // SaveTorch
     const char* ClassName() override;                         // "CTorchObject"
     ClassId GetClassId() override;
     void AttachObject(CEngineObject* object) override { AttachTorchObject(object); }
-    bool IsSynchronised() override { return Slot29True(); }
+    bool IsSynchronised() override { return true; }
     std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }
     void WriteNetState() override { WriteTorchNetState(); }
 
     // map_object_create.cpp. Create: the map object's Create,
     // the spec released and cleared, 5 network fields (SetSize inlined), then
     // DeltaState::Reset. Returns 1.
-    int CreateTorch();
+    void CreateTorch();
     // Destroy. The spec released and cleared, the network state reset
     // then the map object's Destroy.
     void DestroyTorch();
-    // Returns 1 (no map object update).
-    int UpdateTorch();
     // Load / Save. The map object part, then the spec's Load / Save
     // (its Load / Save; the spec must exist).
     void LoadTorch(CStream* stream);
@@ -54,8 +52,6 @@ public:
     // (the spec's own reader, which applies it through the spec's slots); the result and-ed with "the snapshot
     // was consumed".
     std::uint32_t ReadTorchNetState(int first);
-    // true.
-    bool Slot29True();
 
     CTorchObjectSpec* spec;         // a counted reference
 };

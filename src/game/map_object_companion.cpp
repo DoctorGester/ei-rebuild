@@ -45,8 +45,8 @@ bool IsScaleEffect(int type) {
 } // namespace
 
 
-int CMapObjectServer::RunTick() {
-    if (std::ssize(owner->effects) <= 0) return 0;
+bool CMapObjectServer::RunTick() {
+    if (std::ssize(owner->effects) <= 0) return false;
     int i = 0;
     do {
         if (!owner->effects[i].Tick()) {
@@ -55,7 +55,7 @@ int CMapObjectServer::RunTick() {
             bool scaleEffect = IsScaleEffect(type);
             if (scaleEffect) owner->RecomputeScale();
             owner->MarkChanged(3);
-            owner->ScaleEffectChanged(scaleEffect ? 1 : 0);
+            owner->ScaleEffectChanged(scaleEffect);
             --i;
             owner->EffectsChanged();
             if (!owner->HasEffect(mapeffect::kStun) && !owner->HasEffect(mapeffect::kStun2))
@@ -63,7 +63,7 @@ int CMapObjectServer::RunTick() {
         }
         ++i;
     } while (i < std::ssize(owner->effects));
-    return 0;
+    return false;
 }
 
 void CMapObjectServer::SetData(const UnitVitals* data) {
@@ -81,7 +81,7 @@ bool CMapObjectServer::TakeHit(const DamageInfo* hit) {
     return true;
 }
 
-int CMapObjectClientSpecific::RunTick() {
+bool CMapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
     // to end plays the end sound for text-key objects, unless it is still playing.
     if (std::ssize(OwnerOf(this)->effects) > 0) {
@@ -145,5 +145,5 @@ int CMapObjectClientSpecific::RunTick() {
             position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition_.z);
         }
     }
-    return 1;
+    return true;
 }

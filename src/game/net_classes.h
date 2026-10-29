@@ -181,7 +181,7 @@ public:
     ServerEntry();
     ServerEntry(const ServerEntry& other);
     ~ServerEntry() override {}
-    int OnShutdown() override;   // the result is undefined
+    void OnShutdown() override;   // the result is undefined
     ServerEntry* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;

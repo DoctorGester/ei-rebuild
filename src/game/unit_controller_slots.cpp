@@ -24,9 +24,8 @@ void DropMarker(CParticleSource*& marker) {
 
 CUnitController::~CUnitController() { unit = nullptr; }
 
-int CUnitController::Create() {
+void CUnitController::Create() {
     unit = nullptr;
-    return 1;
 }
 void CUnitController::Destroy() { unit = nullptr; }
 
@@ -36,7 +35,7 @@ void CUnitController::Destroy() { unit = nullptr; }
 int CUnitController::FiguresLoaded() { return 1; }
 
 // The client's too.
-void CUnitController::RefreshVitals(char) {}
+void CUnitController::RefreshVitals(bool) {}
 bool CUnitController::Heal(float) { return false; }
 
 bool CUnitController::TakeHit(DamageInfo*, CUnit*, CUnit*) { return false; }

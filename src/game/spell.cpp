@@ -32,7 +32,7 @@ bool Regards(const CUnit* a, const CUnit* b) {
 }
 } // namespace
 
-int CSpell::Create() {
+void CSpell::Create() {
     speed_ = 0;
     range_ = 0;
     targetCount_ = 0;
@@ -43,7 +43,6 @@ int CSpell::Create() {
     castTime_ = 0;
     skillNeeded_ = 1;
     std::memset(modifiers_, 0, sizeof(modifiers_));
-    return 1;
 }
 
 void CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {

@@ -44,7 +44,7 @@ public:
     ~CMaterial() override = default;
 
     // Empty names, alpha 1, +0x90 / +0x98 0, the entries emptied; returns 1.
-    int Create() override;
+    void Create() override;
     // Empties the entries.
     void Destroy() override;
     // The name's text
@@ -76,7 +76,7 @@ public:
     // metal, cloth, skin, stone, 0x17 magic, 0x19 metal again) entered under the kind: the file's colours
     // (after its name: a 16-bit length and the text), or, without the file, diffuse 0.3 (alpha 1), ambient
     // 0.7, specular 0.2, power 5 and the rest 0; kind 0x17's emissive colour is 1 either way. Returns 1.
-    int Create() override;
+    void Create() override;
     // A new CMaterial with type_ = `type`; null when the allocation fails.
     CEngineObject* NewObject(int type) override;
     // A material of `type` (created with id -1, flags_ |= 8 before the null check) given the table's colours

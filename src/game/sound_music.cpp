@@ -67,7 +67,7 @@ const char* MusicClassNameText() { return "CMusicSystem"; }
 
 // The error message names the file without its path, and its text is FatalError's
 // format string (original).
-int CMusicSystem::LoadThemes() {
+void CMusicSystem::LoadThemes() {
     CFileRegistry reg;
     reg.Construct();
     bool opened;
@@ -77,15 +77,14 @@ int CMusicSystem::LoadThemes() {
         opened = reg.Open(path);
     }
     if (!opened) {
-        int result;
         {
             std::string file = kMusicReg;
             std::string message = "CMusicSystem::Create()\nUnable to open file \"" + file;   // "CMusicSystem::Create()\nUnable to open file \""
             std::string full = message + "\"";    // "\""
-            result = game::FatalError(full);
+            game::FatalError(full);
         }
         reg.Destroy();
-        return result;
+        return;
     }
     const char* const common = "Common";
     credits = reg.GetString(common, "Credits", std::string(game::kEmptyText));
@@ -110,7 +109,6 @@ int CMusicSystem::LoadThemes() {
         }
     }
     reg.Destroy();
-    return 1;
 }
 
 // Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
@@ -175,16 +173,16 @@ void CMusicSystem::PlayJingle(std::string_view name) {
 }
 
 // Every world frame. Always 1.
-int CMusicSystem::UpdateMusic() {
+void CMusicSystem::UpdateMusic() {
     CSoundManager* snd = g_clientWorld->sounds_;
-    if (state != 1 || holding == 1) return 1;
+    if (state != 1 || holding == 1) return;
     std::string current;
     {
         std::string playing = snd->CurrentStreamName();
         current = playing;
     }
     if (jinglePlaying != 0) {
-        if (str::Compare(current, jingle) == 0) return 1;
+        if (str::Compare(current, jingle) == 0) return;
         jinglePlaying = 0;
         inCombat = 0;
         calmDue = CalmDelay();
@@ -220,7 +218,6 @@ int CMusicSystem::UpdateMusic() {
         }
     }
     inCombat = fighting;
-    return 1;
 }
 
 // ---- Lifetime and the engine object's virtuals ----

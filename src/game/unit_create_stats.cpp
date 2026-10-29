@@ -561,7 +561,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& nam
             SetDefaults(&vitals, &stats);
             object->SetStats(&stats);
         }
-        object->ScaleEffectChanged(0);
+        object->ScaleEffectChanged(false);
         object->prototypeId_ = 0;
         game::DebugLog("Can't find prototype \"%s\" for object %d.\n", name, object->id_);
         return 1;

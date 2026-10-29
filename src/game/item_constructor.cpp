@@ -234,9 +234,8 @@ void CItem::SetLink(CRefObject* link) {
 
 // --- CItemConstructor ----------------------------------------------------------------------------
 
-int CItemConstructor::Create() {
+void CItemConstructor::Create() {
     CItemConstructor::Destroy();
-    return 1;
 }
 
 void CItemConstructor::Destroy() {

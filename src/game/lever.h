@@ -52,19 +52,19 @@ public:
     Lever();
     ~Lever() override;
 
-    int Create() override { return CreateLever(); }
-    int RunTick() override { return UpdateLever(); }
+    void Create() override { CreateLever(); }
+    bool RunTick() override { return UpdateLever(); }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    bool IsSynchronised() override { return Slot29True(); }
+    bool IsSynchronised() override { return true; }
     bool IsUsable() override { return NeedsKey(); }
     bool IsDirectUseBlocked() override { return directUseBlocked; }
     // ApplyKey.
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     bool AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
-    bool KeepsMapFlag() override { return KeepsMapFlagSlot(); }
+    bool KeepsMapFlag() override { return keepsMapFlag != 0; }
     void UseSpots(std::vector<Vector3>* out, float userRadius) override;
     std::uint32_t ReadNetState(int first) override { return ReadLeverNetState(first); }
     void WriteNetState() override { WriteLeverNetState(); }
@@ -81,10 +81,10 @@ public:
     // the record's farScale by scale.z, plus userRadius. None for an unknown model.
     void CollectUseSpots(std::vector<Vector3>* out, float userRadius);
 
-    int CreateLever();
+    void CreateLever();
     // The map object's update; on the client, while the move runs, the shown position goes from `from`
     // to `to` and the client world refreshes the object. Returns 1 while moving, else 0.
-    int UpdateLever();
+    bool UpdateLever();
     // The save record: the map object part, then state, count, cycling, the lock (three dwords) and
     // both flag bytes.
     void LoadLever(CStream* stream);
@@ -105,8 +105,6 @@ public:
     // The script's SetScience.
     void SetLock(const LockKey* lock);
 
-    bool Slot29True();
-    bool KeepsMapFlagSlot();
     // 0 when disabled, else whether the lock has a mask.
     bool NeedsKey();
     // The lock's id when its mask has bit 3, else 0.

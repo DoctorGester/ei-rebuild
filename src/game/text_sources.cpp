@@ -136,9 +136,8 @@ void CTextManager::ListKeys(std::vector<std::string>* out, const char* pattern) 
     for (std::string& name : *out) text::FromAssetText(&name);
 }
 
-int CTextManager::Create() {
+void CTextManager::Create() {
     // The original set LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise),
     // then the multibyte code page from it. The text is UTF-8 and the CRT's case and classes do not depend on a
     // locale (lib/text_case.h): the option is not used and LC_CTYPE stays "C".
-    return 1;
 }

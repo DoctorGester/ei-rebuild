@@ -90,7 +90,7 @@ public:
         flags7_ = 0;
     }
     ~ItemTurn() override;
-    int OnShutdown() override;
+    void OnShutdown() override;
     ItemTurn* Clone() override;
 
     float angle;             // radians, wrapped at 2 pi

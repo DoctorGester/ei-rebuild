@@ -90,7 +90,7 @@ CObject3DClientSpecific::CObject3DClientSpecific() {
     pulseClock = 0.0f;
 }
 
-int CObject3DClientSpecific::Create() {
+void CObject3DClientSpecific::Create() {
     materialCursor = -1;
     flags_ = 0;
     shadowMade = false;
@@ -107,7 +107,6 @@ int CObject3DClientSpecific::Create() {
     figureScale.z = 1.0f;
     figureScale.y = 1.0f;
     figureScale.x = 1.0f;
-    return 1;
 }
 
 void CObject3DClientSpecific::Destroy() {

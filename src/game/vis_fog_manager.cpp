@@ -30,7 +30,7 @@ constexpr float kFogTileSize = 0.25f;
 CEngineObject* ClientArrayManager::NewObject(int) { return new CVisibilityFog(); }
 
 // The texture, the tile table, then the manager's own Create (its result).
-int VisFogManagerCreate(ClientArrayManager* self) {
+void VisFogManagerCreate(ClientArrayManager* self) {
     LoadNamedTexture(self->texture, kFogTextureKind, FogTextureName());
     FogTile* tiles = g_fogTiles;
     for (int i = 0; i < kFogTiles; ++i) {
@@ -40,7 +40,7 @@ int VisFogManagerCreate(ClientArrayManager* self) {
         tile.u1 = tile.u0 + kFogTileSize;
         tile.v1 = tile.v0 + kFogTileSize;
     }
-    return self->CBaseManager::Create();
+    self->CBaseManager::Create();
 }
 
 // The texture dropped (null, then released), every fog released, the list emptied.
@@ -50,23 +50,25 @@ void VisFogManagerDestroy(ClientArrayManager* self) {
     self->list.clear();
 }
 
-// Every fog's tick; one that returns 0 (no cells left) leaves the list and is released. Returns 0.
-int VisFogManagerTick(ClientArrayManager* self) {
+// Every fog's tick; one that returns false (no cells left) leaves the list and is released.
+void VisFogManagerTick(ClientArrayManager* self) {
     for (auto node = self->list.begin(); node != self->list.end();) {
         CEngineObject* fog = *node;
-        if (fog->RunTick() != 0) {
+        if (fog->RunTick()) {
             ++node;
             continue;
         }
         node = self->list.erase(node);
         fog->Release();
     }
-    return 0;
 }
 
-int ClientArrayManager::Create() { return VisFogManagerCreate(this); }
+void ClientArrayManager::Create() { VisFogManagerCreate(this); }
 void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
-int ClientArrayManager::RunTick() { return VisFogManagerTick(this); }
+bool ClientArrayManager::RunTick() {
+    VisFogManagerTick(this);
+    return false;
+}
 
 // A new fog (CreateObject(0, -1): registered and created), counted, at the list's end.
 CEngineObject* VisFogManagerAdd(ClientArrayManager* self) {

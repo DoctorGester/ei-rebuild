@@ -107,8 +107,7 @@ struct SectorPosition : Vector3 {};
 
 // `light` is removed from a vertex's list when `remove` is set or the vertex is not nearer than its range to
 // `position`; otherwise it is added at the list's head when missing.
-void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
-                                  int remove);
+void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area, bool remove);
 
 struct SectorData {
     int DrawPage(void* context, int page);
@@ -169,7 +168,7 @@ struct SectorData {
     // The vertices x0..x1, y0..y1 (inclusive, 0..32) of the water layer (where it has a material), then of
     // the ground, with the FPU in chop rounding. Without skipSun relightCountdown becomes -1 (and the sun's ray
     // march runs where it can change the sector cache).
-    void Light(Terrain* owner, int skipSun, int x0, int y0, int x1, int y1);
+    void Light(Terrain* owner, bool skipSun, int x0, int y0, int x1, int y1);
     // The water layer's specular word (maxima per channel of the flag 0x40 lights, the edge fade above them);
     // the GPU lights the colours.
     void LightSpecular(const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);

@@ -36,14 +36,12 @@ void PlayerMode::Reset() {
     run = 0;
 }
 
-int PlayerMode::OnShutdown() {
+void PlayerMode::OnShutdown() {
     Reset();
-    return 0;
 }
 
-int TamedMode::OnShutdown() {
+void TamedMode::OnShutdown() {
     Reset();
-    return 0;
 }
 
 PlayerMode* PlayerMode::Clone() { return CopyPlayer(this, new PlayerMode()); }

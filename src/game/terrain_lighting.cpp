@@ -112,7 +112,7 @@ void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* rec
     }
 }
 
-void SectorData::Light(Terrain* terrain, int skipSun, int x0, int y0, int x1, int y1) {
+void SectorData::Light(Terrain* terrain, bool skipSun, int x0, int y0, int x1, int y1) {
     hasSpecular = 0;
     // The game's _controlfp(_RC_CHOP, _MCW_RC): chop rounding (Channel's rounding truncates), the word restored at
     // the end; loaded only when it changes.
