@@ -43,3 +43,9 @@ void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context) 
         list->push_back(loaded.Take());
     }
 }
+
+void CountedListLoad(HeldUnits* list, CStream* stream, CWorld* context) {
+    int count;
+    stream->ReadValue(count);
+    while (count-- > 0) LoadRef(list->emplace_back(), stream, context);
+}

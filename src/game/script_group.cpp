@@ -176,21 +176,13 @@ void ScriptGroup::RemoveDeleted() {
     }
 }
 
-void ScriptGroup::InsertAll(const std::list<CUnit*>* list) {
+void ScriptGroup::InsertAll(const std::list<HeldRef<CUnit>>* list) {
     for (CUnit* unit : *list) Insert(unit);
 }
 
-void ScriptGroup::CopyToList(std::list<CUnit*>* list) const {
-    for (CUnit*& unit : *list) {
-        if (unit) unit->Release();
-        unit = nullptr;
-    }
+void ScriptGroup::CopyToList(std::list<HeldRef<CUnit>>* list) const {
     list->clear();
-    for (const ScriptObjectRef& ref : *this) {
-        CEngineObject* object = ref.object;
-        if (object) object->AddRef();
-        list->push_back(static_cast<CUnit*>(object));
-    }
+    for (const ScriptObjectRef& ref : *this) list->push_back(static_cast<CUnit*>(ref.object.Get()));
 }
 
 BOOL ScriptGroup::Contains(CEngineObject* object) const {

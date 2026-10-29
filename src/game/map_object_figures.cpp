@@ -31,10 +31,6 @@ float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float Float(T) = delete;
 
-// Figure manager: the model named `name`.
-// Part: remembers its owner.
-// Animation state: a part was added.
-void AnimationAddPart(void* state, CFigureMesh* part) { static_cast<CFigureAnimationState*>(state)->AttachMesh(part); }
 // Animation state: rescale to x, y, z.
 void AnimationSetScale(void* state, float x, float y, float z) {
     static_cast<CFigureAnimationState*>(state)->Rescale(x, y, z);
@@ -67,16 +63,6 @@ void AddPlacedPart(BoxBits& box, const CFigureMesh* p) {
     box.high[2] = KeepHigher(box.high[2], Sum3(p->box_.bounds.boxMax.z, p->localPosition_.z, p->box_.bounds.center.z));
 }
 
-// A pending part (position just reset to 0; the sums keep the original's operand order).
-void AddPendingPart(BoxBits& box, const CFigureMesh* p) {
-    box.low[0] = KeepLower(box.low[0], static_cast<float>(static_cast<double>(p->box_.bounds.boxMin.x) + p->box_.bounds.center.x));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->box_.bounds.boxMax.x, p->box_.bounds.center.x, p->localPosition_.x));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->box_.bounds.boxMin.y, p->box_.bounds.center.y, p->localPosition_.y));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->box_.bounds.boxMax.y, p->box_.bounds.center.y, p->localPosition_.y));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->box_.bounds.boxMin.z, p->localPosition_.z, p->box_.bounds.center.z));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->box_.bounds.boxMax.z, p->localPosition_.z, p->box_.bounds.center.z));
-}
-
 } // namespace
 
 void CObject3D::ComputeBounds() {
@@ -86,12 +72,7 @@ void CObject3D::ComputeBounds() {
         if (DistanceSquared(part) > kNearSquared) continue;   // NaN distances count as near
         AddPlacedPart(box, part);
     }
-    for (int i = 0; i < std::ssize(pendingParts); ++i) {
-        CFigureMesh* part = pendingParts[i];
-        part->localPosition_ = {};
-        AddPendingPart(box, part);
-    }
-    if (parts.empty() && pendingParts.empty()) return;
+    if (parts.empty()) return;
 
     float lowX = Float(box.low[0]), lowY = Float(box.low[1]), lowZ = Float(box.low[2]);
     float highX = Float(box.high[0]), highY = Float(box.high[1]), highZ = Float(box.high[2]);
@@ -154,26 +135,10 @@ void CObject3D::SetFigureScale(const float* newScale) {
 
 void CObject3D::LoadFigures() {
     if (flags_ & MapObjectFlag::FiguresLoaded) return;
-    CFigureManager* manager = FigureManagerOf(this);
-    FigureModel* model;
     {
         std::string key(name);
-        model = manager->FindModel(&key);
+        FigureManagerOf(this)->FindModel(&key);
     }
-    for (int i = 0; i < std::ssize(pendingParts); ++i) {
-        manager->LoadPart(pendingParts[i], model, scale.x, scale.y, scale.z);
-        CFigureMesh* part = pendingParts[i].Take();
-        part->ForgetReference();
-        bool known = false;
-        for (int k = 0; k < std::ssize(parts) && !known; ++k) known = parts[k] == part;
-        if (known) continue;
-        lib::SetAtGrow(parts, std::ssize(parts), part);
-        part->AddRef();
-        part->SetObject(this);
-        if (animation) AnimationAddPart(animation, part);
-        if (attached) attached->OnPartAdded(part);
-    }
-    pendingParts.clear();
     if (GetClassId() != ClassId::Unit) {
         for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags_ |= kPartFlagStatic;
         flags_ |= kFlagPartsMarked;

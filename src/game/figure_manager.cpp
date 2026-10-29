@@ -82,26 +82,6 @@ CFigureMesh* CFigureManager::NewFigure(std::string_view name) {
     return figure;
 }
 
-int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, float t, float u) {
-    void* data;
-    if (model) {
-        CMappedResource* mesh = model->mesh;
-        data = mesh->GetFile(part->GetName(), nullptr);
-    } else {
-        const std::string& directory = part->directory_;
-        std::string path;
-        path = str::Format(game::FigPathFormat(), directory, part->GetName());
-        data = GetFile(path, nullptr);
-    }
-    if (!data) {
-        const std::string& directory = part->directory_;
-        return game::FatalError(game::CantOpenFigText(), directory, part->GetName());
-    }
-    char* cursor = static_cast<char*>(data);
-    part->LoadFromMemory(&cursor, s, t, u);
-    return 1;
-}
-
 int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
     if (!animation) return 0;
     char path[0x200];

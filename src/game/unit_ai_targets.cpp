@@ -54,7 +54,7 @@ std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
 
 // Cases 2 and 3: the damage summed over the group members within the option's radius of the
 // candidate (NaN distances count).
-std::uint32_t GroupExcess(const AIAttackOption* option, CountedUnits* group, CUnit* candidate) {
+std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, CUnit* candidate) {
     std::uint32_t sum = 0;
     if (group->empty()) return sum;
     float radius2 = static_cast<float>(option->radius * option->radius);
@@ -168,7 +168,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     if (self->sizeClass == 0 && PrototypeSize(self) >= 0.5f) return true;
     Vector3 at = target->localPosition_;
     for (auto& node : brain->memory.nearby) {
-        auto* other = node;
+        CUnit* other = node;
         double dy = static_cast<double>(at.y) - other->localPosition_.y;
         double dx = static_cast<double>(at.x) - other->localPosition_.x;
         EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
@@ -184,7 +184,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     return radius * radius < LengthSquared2DUnrounded(dx, dy);
 }
 
-double AIAttention::Score(const Vector3* from, CUnit* self, CountedUnits* group, CEngineObject* current, CUnit* candidate,
+double AIAttention::Score(const Vector3* from, CUnit* self, UnitList* group, CEngineObject* current, CUnit* candidate,
                          float threshold, const AIAttackOption* option) {
     float score = candidate == current ? kCurrentBonus : 0.0f;
     CUnitServer* control = candidate->ServerController();
@@ -261,7 +261,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, CountedUnits* group,
     return result;
 }
 
-void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, CountedUnits* candidates, const Vector3* from, bool alliesOnly,
+void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candidates, const Vector3* from, bool alliesOnly,
                          int reachArg) {
     if (std::ssize(spells) == 0 && (candidates->empty() || std::ssize(weapons) == 0)) {
         choice->object = nullptr;
@@ -304,10 +304,10 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, CountedUnits* c
     }
     if (std::ssize(spells) != 0) {
         // The unit and its allies in sight that are alive and not reported.
-        CountedUnits allies{};
+        UnitList allies{};
         allies.push_back(self);
         for (auto& node : brain->memory.nearby) {
-            auto* other = node;
+            CUnit* other = node;
             if (other->IsDead() == 0 && !brain->memory.reports.Contains(other) && g_serverWorld->diplomacy_.IsAllied(self->side, other->side))
                 allies.push_back(other);
         }

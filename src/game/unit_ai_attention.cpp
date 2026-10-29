@@ -25,7 +25,7 @@ void AIAttention::CurrentAttack(AIBrain* brain, AITargetChoice* choice) {
 }
 
 void AIAttention::LookAround(AIBrain* brain, int reachArg) {
-    CountedUnits candidates{};
+    UnitList candidates{};
     AITargetChoice best{-1, nullptr};
     Vector3 from = *&brain->owner->unit->localPosition_;
     brain->ChooseTarget(&best, &candidates, &from, 1, reachArg);

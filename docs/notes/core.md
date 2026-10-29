@@ -81,10 +81,10 @@ File `core_refcount.cpp`, `refptr_copies.cpp`.
   first), and the raw counted fields the interface files read as plain pointers: CItem's `spell_` (SetSpell) and `link_`
   (SetLink), CObject3D's `parts` (CopyFigure copies them uncounted). `HeldObject` and `CountedPtr` remain as aliases for
   the interface files.
-- Counted lists outside the interface: the world's missiles, a CObject3D's effect sources and pending parts and the
-  joined links (TakeNew) are lists of `HeldRef`; a removal that must release after a later step moves the element out
-  first (RemoveEffectSource detaches before the release). The AI memory's four `std::list<CUnit*>` lists still count by
-  hand.
+- Counted lists outside the interface: the world's missiles, a CObject3D's effect sources, the joined links (TakeNew)
+  and the AI memory's four unit lists (`HeldUnits`: nearby, visible, seen corpses, corpses) are lists of `HeldRef`; a
+  removal that must release after a later step moves the element out first (RemoveEffectSource detaches before the
+  release). The candidate and party lists the AI builds on the stack hold no references (`UnitList`).
 
 ## Object manager (CEngineObject, CBaseManager)
 

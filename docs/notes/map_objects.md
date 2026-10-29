@@ -78,7 +78,7 @@ here is gone. Facts a worker needs:
   00515F70 / 00516080 (2 / 3; Destroy3D drops the parts' references without releasing them), AddEffectSource / RemoveEffectSource
   (particle sources at +0xA8, attached through 004849F0).
 - CObject3D: ComputeBounds 00518310 (+0x124..+0x150 and EAX), FindPartByPrefix 00516A80 (strstr at the name's start,
-  case-sensitive) / FindPart 005169A0 (strcmp), both parts then pending parts; RemovePart 005167E0 (side half's slot 15 first; a
+  case-sensitive) / FindPart 005169A0 (strcmp), over the parts; RemovePart 005167E0 (side half's slot 15 first; a
   placed part forgets its owner; animation 0050D350; released); PartWorldPosition 005188B0 (part position turned by the
   orientation, times the side half's slot 18 scale, plus the position); Animations 00518CA0 ("<name>.adb" through the owner's GetFile on
   first use, +0xA0), AnimationAt 00518F80 (key & 0xFF), FindSkillAnimation 00518FC0 (kind 0x40000, number in bits 22-29; the
@@ -141,7 +141,9 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
   always returns 1.
 - SetFigureScale returns the FPU status word in AX when the scale did not change; ours returns 0.
   ComputeBounds returns the centre's z bits (0 without parts), which SetFigureScale passes on.
-- LoadFigures drops the pending parts' reference without the release check.
+- The original's CObject3D has a second part array (+0xE0) that LoadFigures loads and moves to the parts; only
+  00516650 adds to it and nothing calls that, so the array is always empty: ours has no such list (LoadFigures only
+  loads the model into the figure manager's cache).
 - DrawShadow: point and pixel buffers grow without keeping their contents; the rasteriser's work area
   (first 0x30 bytes) is uninitialised stack (ours zero); the shadow quad's first corner rounds x and y
   to float before adding the position, the other three only y.

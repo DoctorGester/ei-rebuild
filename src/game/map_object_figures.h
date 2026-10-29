@@ -295,15 +295,12 @@ public:
     virtual int DrawFigureShadow(CSceneRenderer* context);
     // Empty; units override it.
     virtual void AdvanceTime(float time);
-    // Loads the figure named by the model name and builds the pending parts at the current scale, each new
-    // one appended to the parts, referenced, told its owner and announced to the animation and to the
-    // attached object; non-units mark every part and themselves (flags_ 8 / 0x200). Then the
-    // half's LoadFigures-done virtual and flags_ 0x80. Nothing when already loaded.
+    // Loads the model named by the object's name into the figure manager; non-units mark every part and themselves
+    // (flags_ 8 / 0x200). Then the half's LoadFigures-done virtual and flags_ 0x80. Nothing when already loaded.
     virtual void LoadFigures();
 
-    // The bounding box of the parts (only those within 1e9 squared of the object) and of the pending parts (whose
-    // positions are reset to 0) into the bounds: centre, box corners relative to it, radius; sets two flag
-    // bits. Nothing changes without parts.
+    // The bounding box of the parts (only those within 1e9 squared of the object) into the bounds: centre, box
+    // corners relative to it, radius; sets two flag bits. Nothing changes without parts.
     void ComputeBounds();
     // The bounds, the bytes after them and the eye height zeroed.
     void ClearBounds();
@@ -312,17 +309,16 @@ public:
     // each part's piece record from it, rescales the animation and recomputes the bounds.
     void SetFigureScale(const float* newScale);
 
-    // The first part (of the parts, then of the pending parts) whose name starts with `prefix`
-    // (case-sensitive), or null.
+    // The first part whose name starts with `prefix` (case-sensitive), or null.
     CFigureMesh* FindPartByPrefix(std::string_view prefix);
-    // The first part (parts, then pending parts) named exactly `partName`, or null.
+    // The first part named exactly `partName`, or null.
     CFigureMesh* FindPart(std::string_view partName);
-    // The first part (parts, then pending parts) whose engine object type_ is `type`, or null.
+    // The first part whose engine object type_ is `type`, or null.
     CFigureMesh* FindPartOfType(int type);
-    // Every part (parts, then pending parts) whose name starts with `prefix` appended to `out`.
+    // Every part whose name starts with `prefix` appended to `out`.
     void CollectPartsByPrefix(std::string_view prefix, std::vector<CFigureMesh*>* out);
-    // Takes `part` out of the parts (it forgets its owner) or else out of the pending parts, tells the animation
-    // state and releases it. The side half hears of it first, found or not. Returns 1 when it was there, else 0.
+    // Takes `part` out of the parts (it forgets its owner), tells the animation state and releases it. The side
+    // half hears of it first, found or not. Returns 1 when it was there, else 0.
     int RemovePart(CFigureMesh* part);
     // FindPart(`partName`), removed by RemovePart. Returns the part (released; the pointer may be dangling)
     // or null.
@@ -356,7 +352,7 @@ public:
     void SetUpAnimatedFigure(std::string_view model);
     // A part object for the figure part `partName` (the figure manager's LoadPart; "Can't load figure" logged
     // and null when missing). With a figure the part must be one of its pieces (else null, the part leaked)
-    // and takes its box; box flags by name prefix as SetUpAnimatedFigure. It joins the parts as LoadFigures' new parts do.
+    // and takes its box; box flags by name prefix as SetUpAnimatedFigure. It joins the parts.
     CFigureMesh* LoadPart(std::string_view partName);
     // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
     // (failures logged). Without a figure manager: FatalError. Returns 1.
@@ -370,7 +366,7 @@ public:
     int MakeFigure(std::string_view model, std::vector<std::string>* partList, std::uint32_t arg);
     // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(std::string_view partName);
-    // The box (CFigureMesh::bounds_) of part `index` of the parts followed by the pending parts.
+    // The box (CFigureMesh::bounds_) of part `index`.
     FootprintPart* PartBox(int index);
 
     // Create (named apart so it is no override): back to an empty object, the figure released. Returns 1.
@@ -426,7 +422,6 @@ public:
     std::list<HeldRef<CParticleSource>> effectSources;   // the particle sources attached to the object
     Vector3 scale;
     std::vector<CFigureMesh*> parts;
-    std::vector<HeldRef<CFigureMesh>> pendingParts;   // built by LoadFigures
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     Ref<CLinkMesh> figure;

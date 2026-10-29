@@ -80,7 +80,6 @@ CObject3D::~CObject3D() { TearDownObject3D(); }
 void CObject3D::TearDownObject3D() {
     Destroy3D();
     figure.Reset();
-    lib::FreeStorage(pendingParts);
     lib::FreeStorage(parts);
 }
 

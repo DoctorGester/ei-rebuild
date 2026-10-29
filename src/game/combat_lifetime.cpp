@@ -25,19 +25,6 @@ void InitAction(UnitAction& action) {
     action.modifier = 0;
 }
 
-// The empty list of counted object references the memory keeps (blocks of 10).
-void InitObjectList(std::list<CUnit*>& list) {
-    list = {};
-}
-
-// Its destructor: the vtable, each element released and cleared, then the list is emptied.
-void DestroyObjectList(std::list<CUnit*>& list) {
-    for (auto& node : list) {
-        if (node) node->Release();
-        node = nullptr;
-    }
-    list.clear();
-}
 
 constexpr SpiralCache kEmptySightCache{0, -1.0f};
 } // namespace
@@ -89,10 +76,10 @@ AIBrain* AIBrain::Construct() {
     // The perception memory (inlined): two sight caches, four object lists, reports and calls.
     memory.spareCells = kEmptySightCache;
     memory.sightCells = kEmptySightCache;
-    InitObjectList(memory.nearby);
-    InitObjectList(memory.visible);
-    InitObjectList(memory.seenCorpses);
-    InitObjectList(memory.corpses);
+    memory.nearby.clear();
+    memory.visible.clear();
+    memory.seenCorpses.clear();
+    memory.corpses.clear();
     memory.reports = {};
     memory.calls = {};
     Init();
@@ -102,8 +89,8 @@ AIBrain* AIBrain::Construct() {
 void AIMemory::Destruct() {
     calls.clear();
     reports.clear();   // each reference released
-    DestroyObjectList(corpses);
-    DestroyObjectList(seenCorpses);
-    DestroyObjectList(visible);
-    DestroyObjectList(nearby);
+    corpses.clear();
+    seenCorpses.clear();
+    visible.clear();
+    nearby.clear();
 }

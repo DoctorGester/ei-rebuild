@@ -45,25 +45,20 @@ void KeepLower(float& slot, float value) { slot = value >= slot ? slot : value; 
 
 } // namespace
 
-void CountedUnits::AddCountedTail(CUnit* object) {
-    push_back(object);
-    if (object) object->AddRef();
-}
-
-void AIMemory::FindEnemies(CUnit* self, CountedUnits* out) {
+void AIMemory::FindEnemies(CUnit* self, UnitList* out) {
     out->clear();
     for (auto& node : visible) {
-        auto* other = node;
+        CUnit* other = node;
         if (!self->IsHostileTo(other) || IsDead(other) || reports.Contains(other)) continue;
         out->push_back(other);
     }
 }
 
-void AIMemory::FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* point, float radius) {
+void AIMemory::FindEnemiesNear(CUnit* self, UnitList* out, const Vector3* point, float radius) {
     out->clear();
     float radius2 = radius > 0.0f ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
     for (auto& node : visible) {
-        auto* other = node;
+        CUnit* other = node;
         if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;
         if (Distance2(other, &point->x) >= radius2) {
             AIBrain* theirs = &other->ServerController()->brain;
@@ -81,7 +76,7 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
     CUnit* nearest = nullptr;
     float best = kFar;
     for (auto& node : visible) {
-        auto* other = node;
+        CUnit* other = node;
         if (!self->IsHostileTo(other) || IsDead(other)) continue;
         double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
         double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
@@ -116,11 +111,10 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     }
     if (IsDead(object)) {
         console::EndLine(*kAiLog << "Unit " << self->id_ << " sees corpse of unit " << other->id_);
-        seenCorpses.AddCountedTail(object);
-        if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) corpses.AddCountedTail(object);
+        seenCorpses.push_back(object);
+        if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) corpses.push_back(object);
     } else {
         visible.push_front(object);
-        object->AddRef();
         *kAiLog << "Unit " << self->id_ << " is forced to see unit " << other->id_ << " from ";
         console::EndLine(*kAiLog << distance << "m distance");
     }
@@ -128,8 +122,8 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
 
 void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     console::EndLine(*kAiLog << "Unit " << self->id_ << " sees corpse of unit " << corpse->id_);
-    seenCorpses.AddCountedTail(corpse);
-    if (g_serverWorld->diplomacy_.IsAllied(self->side, corpse->side)) corpses.AddCountedTail(corpse);
+    seenCorpses.push_back(corpse);
+    if (g_serverWorld->diplomacy_.IsAllied(self->side, corpse->side)) corpses.push_back(corpse);
 }
 
 void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
@@ -138,7 +132,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     Vector3 eye;
     unit->EyePoint(&eye);
     for (auto& node : nearby) {
-        auto* other = node;
+        CUnit* other = node;
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;
         CUnitServer* theirs = other->ServerController();
         double dx = static_cast<double>(other->localPosition_.x) - unit->localPosition_.x;

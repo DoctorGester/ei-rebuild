@@ -43,28 +43,20 @@ int IndexOf(const Parts& parts, const CFigureMesh* part) {
 CFigureMesh* CObject3D::FindPartByPrefix(std::string_view prefix) {
     // The original asks for the name twice; the parts return the same string both times.
     auto startsWith = [prefix](CFigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
-    if (CFigureMesh* part = FirstPart(parts, startsWith)) return part;
-    return FirstPart(pendingParts, startsWith);
+    return FirstPart(parts, startsWith);
 }
 
 CFigureMesh* CObject3D::FindPart(std::string_view partName) {
     auto named = [partName](CFigureMesh* part) { return str::Compare(part->GetName(), partName) == 0; };
-    if (CFigureMesh* part = FirstPart(parts, named)) return part;
-    return FirstPart(pendingParts, named);
+    return FirstPart(parts, named);
 }
 
 int CObject3D::RemovePart(CFigureMesh* part) {
     if (attached) attached->OnPartRemoved(part);
     int index = IndexOf(parts, part);
-    if (index >= 0) {
-        RemoveAt(parts, index);
-        part->SetObject(nullptr);
-    } else {
-        index = IndexOf(pendingParts, part);
-        if (index < 0) return 0;
-        pendingParts[index].Take();   // its reference goes with the release below
-        RemoveAt(pendingParts, index);
-    }
+    if (index < 0) return 0;
+    RemoveAt(parts, index);
+    part->SetObject(nullptr);
     if (animation) animation->DetachMesh(part);
     part->Release();
     return 1;

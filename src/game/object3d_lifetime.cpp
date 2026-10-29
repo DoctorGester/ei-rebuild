@@ -47,7 +47,6 @@ void CObject3D::Destroy3D() {
         }
     }
     parts.clear();
-    lib::FreeStorage(pendingParts);   // each part released
     if (attached) attached->Release();
     attached = nullptr;
     animations = nullptr;

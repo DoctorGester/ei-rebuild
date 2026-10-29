@@ -101,7 +101,7 @@ bool CUnitServer::TargetBusy(CMapObject* target) {
     if (target->flags_ & MapObjectFlag::Shared) return !g_serverWorld->IsObjectShared(target->id_, unit->id_);
     AIBrain* ai = &brain;
     for (auto& node : ai->memory.nearby) {
-        auto* other = node;
+        CUnit* other = node;
         if (!other || other->IsDead() != 0) continue;
         auto* controller = other->ServerController();
         const UnitAction& order = controller->action;

@@ -54,9 +54,6 @@ public:
     CFigureMesh* NewFigure(std::string_view name);
     // The empty figure object (no file read).
     CFigureMesh* NewBlankFigure();
-    // `part`'s data from the model's mesh archive or "<directory><name>.fig" at the morph (s, t, u); returns 1.
-    // Missing data: FatalError's result. The data is not closed.
-    int LoadPart(CFigureMesh* part, FigureModel* model, float s, float t, float u);
     // CObject3D::LoadPart. A new figure part (class 0x42 when `attached`, else 0x41) named
     // `partName`; a null part faults, as in the original.
     CFigureMesh* NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached);

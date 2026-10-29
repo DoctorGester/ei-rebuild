@@ -246,7 +246,7 @@ public:
     // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags_ bit 1.
     void OnDamaged(CUnit* attacker, int hitKind);
     // The allied witnesses that see `victim` add `murderer` to their visible list and turn hostile to it.
-    void WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUnit* murderer);
+    void WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer);
     // When the unit's flags_ have 0x80000: clears it, adds its hostile mask to claimedHostile and swaps
     // hostility claims with the allied units nearby.
     void PropagateHostility();

@@ -73,9 +73,9 @@ struct ScriptGroup : std::vector<ScriptObjectRef> {
     void Insert(CEngineObject* object);
     // Also empty slots.
     void RemoveDeleted();
-    void InsertAll(const std::list<CUnit*>* list);
-    // Replaces the list's contents, as counted references.
-    void CopyToList(std::list<CUnit*>* list) const;
+    void InsertAll(const std::list<HeldRef<CUnit>>* list);
+    // Replaces the list's contents (an AI memory list).
+    void CopyToList(std::list<HeldRef<CUnit>>* list) const;
     BOOL Contains(CEngineObject* object) const;
     // A count and that many object ids, then sorted.
     void Load(CStream* stream);

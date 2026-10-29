@@ -33,13 +33,6 @@ constexpr int kControllerStateInactive = 5;
 // The modes' log: the AI stream (its static initialiser stores the address).
 constexpr console::Stream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
 
-// A counted reference destroyed (DestructElements of a counted list): released, the slot cleared.
-template <typename T>
-void DestructRef(T** ref) {
-    if (*ref) (*ref)->Release();
-    *ref = nullptr;
-}
-
 // The mode names of the "new motivation" message (passed by address).
 const char* ModeName(AIModeType type) {
     switch (type) {
@@ -63,20 +56,17 @@ const char* MotivationFormat() { return "Unit %i new motivation %s with power of
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-Ref<CUnit>* AIBrain::PopCorpse(Ref<CUnit>* out) { return memory.corpses.PopHead(out); }
-void AIBrain::ChooseTarget(AITargetChoice* choice, CountedUnits* candidates, const Vector3* from, int a, int b) {
+void AIBrain::ChooseTarget(AITargetChoice* choice, UnitList* candidates, const Vector3* from, int a, int b) {
     // `a` is read as a byte.
     attention.Choose(this, choice, candidates, from, static_cast<std::uint8_t>(a) != 0, b);
 }
 
 // --- The corpse list ---------------------------------------------------------------
 
-// Takes the head off the corpse list into `out`, which takes a reference; then the list's own is released.
-Ref<CUnit>* CountedUnits::PopHead(Ref<CUnit>* out) {
-    CUnit* value = front();
-    pop_front();
-    out->Assign(value);
-    if (value) value->Release();
+Ref<CUnit>* AIBrain::PopCorpse(Ref<CUnit>* out) {
+    HeldRef<CUnit> head = std::move(memory.corpses.front());
+    memory.corpses.pop_front();
+    out->Assign(head);
     return out;
 }
 
@@ -151,8 +141,7 @@ void AIBrain::Think() {
     }
     seen.Reset();
 
-    // The corpses seen this tick are forgotten (the list emptied, elements destroyed).
-    for (auto& node : memory.corpses) DestructRef(&node);
+    // The corpses seen this tick are forgotten (each reference released).
     memory.corpses.clear();
 
     switch (action) {

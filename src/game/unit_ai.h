@@ -27,12 +27,10 @@ struct AIOrder;
 class CUnitServer;
 struct AIEventPresence;
 
-struct CountedUnits : std::list<CUnit*> {
-    // Appends `object`, holding a reference.
-    void AddCountedTail(CUnit* object);
-    // The brain's corpse list's head handed to `out` with a reference (the list's own reference released). Returns `out`.
-    Ref<CUnit>* PopHead(Ref<CUnit>* out);
-};
+// A list of units holding no references (candidates, parties).
+using UnitList = std::list<CUnit*>;
+// A list of units holding a reference to each (the AI memory's lists).
+using HeldUnits = std::list<HeldRef<CUnit>>;
 
 // What an order does (AIOrder::kind). A unit's queued order (CUnitServer::action2) is UnitOrderKind::None when nothing is
 // queued; a queued UnitOrderKind::Idle stops the current order and the unit stands.
@@ -405,11 +403,11 @@ public:
     void UpdateCombat(AIBrain* brain);
     // Adds to `targets` (once each) the units that party members within [Logic] PlayerCallForHelp are
     // attacking (action 3), unless they belong to the same player.
-    void AddPartyTargets(AIBrain* brain, CountedUnits* targets);
+    void AddPartyTargets(AIBrain* brain, UnitList* targets);
     // `party` emptied, then the unit, the chain of leaders above it (Player mode's leader, or the followed
     // unit), and repeatedly every unit of its player whose leader is listed (the player's units in hash
     // order, up to the first null one).
-    void CollectParty(AIBrain* brain, CountedUnits* party);
+    void CollectParty(AIBrain* brain, UnitList* party);
     // False when a unit of the player whose (first) Player mode follows this unit is farther than [Logic]
     // FollowMaxDist x (2 while `moving`, else 1.4) + 1 (3D).
     bool StaysWithParty(AIBrain* brain, bool moving);
@@ -441,6 +439,7 @@ public:
 
 // A count read from `stream`, then that many counted references appended to `list`, each loaded in `context`.
 void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context);
+void CountedListLoad(HeldUnits* list, CStream* stream, CWorld* context);
 
 class CSpell;
 namespace console {
@@ -536,7 +535,7 @@ struct AIAttention {
     // sight; the best that scores above the current one and passes IsUsable, the order check (with
     // `alliesOnly`, for targets not near the path) and CanReach wins; a rejected one seen once is reported
     // (20).
-    void Choose(AIBrain* brain, AITargetChoice* choice, CountedUnits* candidates, const Vector3* from, bool alliesOnly,
+    void Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candidates, const Vector3* from, bool alliesOnly,
                 int reachArg);
     // False when the part has no option or an area option (kinds 2, 3) would also hit an ally near the target
     // or the unit itself; true without an object.
@@ -544,7 +543,7 @@ struct AIAttention {
     // How good `option` is against `candidate` (`group` the others it would hit or help): by kind, minus 25
     // per unit of distance beyond the range (x10 outside kinds 0..4) when it reached `threshold`, minus twice
     // the hits needed for attacks. -1e30 when it cannot apply. Unrounded.
-    double Score(const Vector3* from, CUnit* self, CountedUnits* group, CEngineObject* current, CUnit* candidate,
+    double Score(const Vector3* from, CUnit* self, UnitList* group, CEngineObject* current, CUnit* candidate,
                  float threshold, const AIAttackOption* option);
     // False for a spell aimed at no object against a large unit of size class 0; else the order is checked
     // from the unit's place when `fromHere` (low byte) is set or the target is the unit itself, otherwise
@@ -601,12 +600,12 @@ struct AIMemory {
     void AddClaim(std::uint32_t mask, int kind, std::string_view text);
     // `out` emptied, then the visible units hostile to the unit (its IsHostileTo), alive and not reported, in
     // visible-list order (no references taken).
-    void FindEnemies(CUnit* self, CountedUnits* out);
+    void FindEnemies(CUnit* self, UnitList* out);
     // The same with the visible unit's own IsHostileTo(self); one at or beyond `radius` of `point` (3D; all
     // of them for a radius <= 0) only when it has an aggression mode (not a fixed one without an enemy) whose
     // enemy is none, not a unit, or a unit of a side the unit's side is allied with, and its brain sees an
     // enemy.
-    void FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* point, float radius);
+    void FindEnemiesNear(CUnit* self, UnitList* out, const Vector3* point, float radius);
     CUnit* NearestEnemy(CUnit* self);
     // Forces `object` into sight when it is not visible and attacks the unit or stands at or beyond one of
     // the two sight ranges: a corpse joins the seen corpses (and the corpses when allied), a living unit the
@@ -629,10 +628,10 @@ struct AIMemory {
     int noticedLevel;
     int noticedKind;
     int nearbyCountdown;            // updates until the nearby units are listed again
-    CountedUnits nearby;            // the units in the sight cells around (counted references)
-    CountedUnits visible;           // units in sight
-    CountedUnits seenCorpses;       // corpses seen (counted references)
-    CountedUnits corpses;           // allied corpses seen (counted references)
+    HeldUnits nearby;               // the units in the sight cells around
+    HeldUnits visible;              // units in sight
+    HeldUnits seenCorpses;          // corpses seen
+    HeldUnits corpses;              // allied corpses seen
     AIReports reports;          // objects reported to the alarm code
     AIHeardCalls calls;              // calls heard
     std::uint8_t seesEnemy;
@@ -749,7 +748,8 @@ struct AIBrain {
     // Every allied unit within callRadius of the owner's unit hears a call for help (kind 0x1A) at `point`;
     // the message text is formatted only while the console shows filter bit 0.
     void CallAllies(const Vector3* point);
-    void ChooseTarget(AITargetChoice* choice, CountedUnits* candidates, const Vector3* from, int a, int b);
+    void ChooseTarget(AITargetChoice* choice, UnitList* candidates, const Vector3* from, int a, int b);
+    // The corpse list's head handed to `out` with a reference (the list's own reference released). Returns `out`.
     Ref<CUnit>* PopCorpse(Ref<CUnit>* out);
 
     CUnitServer* owner;
