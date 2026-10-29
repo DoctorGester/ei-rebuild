@@ -8,6 +8,7 @@
 #include "ui.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
+#include "ui_native.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -38,7 +39,9 @@ constexpr int kStripActionTake = 1;
 constexpr int kGridMode = 5;
 
 CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
-    return new CUiSurface(ui, 0, top, 200, bottom, kSurfaceFormat, 1);
+    CUiSurface* surface = new CUiSurface(ui, 0, top, 200, bottom, kSurfaceFormat, 1);
+    ui_native::Adopt(surface, "exchange");
+    return surface;
 }
 
 CUiContainer* AsContainer(CExchangeScreen* screen) { return screen; }

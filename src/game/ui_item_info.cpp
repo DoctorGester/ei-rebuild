@@ -7,6 +7,7 @@
 #include "text_reader.h"
 #include "text_split.h"
 #include "ui_item_info.h"
+#include "ui_native.h"
 
 #include "console.h"
 #include "item.h"
@@ -934,7 +935,9 @@ CItemInfoPanel::CItemInfoPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPa
 void CItemInfoPanel::Build(int x, int y) {
     x_ = x;
     y_ = y;
-    AddSurface(new CUiSurface(interface_, x_, y_, x_ + 200, y_ + 300, 5, 1));
+    CUiSurface* surface = new CUiSurface(interface_, x_, y_, x_ + 200, y_ + 300, 5, 1);
+    ui_native::Adopt(surface, "iteminfo");
+    AddSurface(surface);
     CTextManager* texts = g_clientWorld->texts_;
     std::string text, key;
     for (int i = 0; i < 45; ++i) {

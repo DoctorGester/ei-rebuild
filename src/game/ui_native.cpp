@@ -7,6 +7,7 @@
 #include "ui.h"
 
 #include "system_text.h"
+#include "ui_widescreen.h"
 
 #include "render/render.h"
 #include "render/render_text.h"
@@ -129,6 +130,10 @@ void DrawRun(const CUiSurface* surface, glyphs::TextFont& font, std::u32string_v
 void Adopt(CUiSurface* surface, const char* family) {
     if (!surface || canvas::CurrentMode() == canvas::Mode::Cpu || !canvas::Listed(family)) return;
     if (MakeCanvas(surface)) g_surfaces[surface] = NativeSurface{family, false};
+}
+
+void AdoptUnlessWidescreen(CUiSurface* surface, const char* family) {
+    if (!widescreen::Active()) Adopt(surface, family);
 }
 
 void (*g_goneObserver)(const CUiSurface* surface) = nullptr;

@@ -16,6 +16,7 @@
 #include "ui_briefing.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
+#include "ui_native.h"
 #include "ui_widescreen.h"
 #include "unit.h"
 #include "world.h"
@@ -61,7 +62,9 @@ CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f; }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    ui_native::AdoptUnlessWidescreen(surface, "camp");
+    return surface;
 }
 
 // An item list of the constructors: made through its factory (not checked).

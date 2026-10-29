@@ -23,6 +23,9 @@ namespace ui_native {
 
 // The surface was made (its holder new and black): a canvas for it when `family` goes native.
 void Adopt(CUiSurface* surface, const char* family);
+// Adopt, except while Rebirth's WideScreen layout is active: the camp and hero screens are native on vanilla only
+// for now.
+void AdoptUnlessWidescreen(CUiSurface* surface, const char* family);
 // The surface is released or made again: it is no longer native.
 void Forget(const CUiSurface* surface);
 // The surface's holder has a canvas the surface functions draw on.
