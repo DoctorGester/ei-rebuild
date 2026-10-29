@@ -26,7 +26,7 @@ Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`, `originals_ai.h`.
 - The brain's perception memory is the sub-object at +0xD0, `AIMemory` (005CB0F0 and 005CB700.. take it as `this`;
   registered as its members): lists of counted object references at memory + 0x24 (nearby), +0x40 (visible), +0x5C (seen
   corpses), +0x78 (corpses), `AIReports` +0x94 (reports) and `AIHeardCalls` +0xA8 (heard calls; both CArrays with their
-  own members), + 0x08 `sightCells`, + 0x20 `nearbyCountdown`; the alarm records (`AIAlarmRecordArray` of 0x4C bytes, the
+  own members; ours hold a std::vector), + 0x08 `sightCells`, + 0x20 `nearbyCountdown`; the alarm records (`AIAlarmRecordArray` of 0x4C bytes, the
   map spec's behaviour record) are at +0x90. +0x38 `callRadius` (10 after Init; equal to [Logic]
   CallForHelpRadiusDefault becomes CallForHelpRadius on load, NaN too); +0x68 FindStandPoint's cooldown (after a failure, a
   third of the distance in calls, at most 10, fail at once); +0x6C UpdateFollow's timer (acts from 8; an order sets 0 or 6);

@@ -437,7 +437,8 @@ struct AICallRecord {
 
 struct AIMemory;
 
-struct AIHeardCalls : std::vector<AICallRecord> {
+class AIHeardCalls {
+public:
     // Counts every call down; one that runs out is dropped after it is heard: with a hostility mask the
     // unit takes the mask (logged "hear delayed sound"), else, when the memory's noticed level is below
     // kNoticeCallLevel, the call's point becomes the noticed point (logged when the level rose by more than 100
@@ -449,6 +450,15 @@ struct AIHeardCalls : std::vector<AICallRecord> {
     // Appends {point not set, delay, mask, text}: when it runs out (Update) the unit takes the hostility mask.
     void AddClaim(std::uint32_t mask, int delay, std::string_view text);
     void RemoveClaims();
+    void Clear() { calls.clear(); }
+    std::size_t size() const { return calls.size(); }   // (the harness digest reads it)
+    // From / to a save: the count, then each call's point, delay, text and hostileMask (the mask cleared
+    // before it is read).
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
+
+private:
+    std::vector<AICallRecord> calls;
 };
 
 // An object the memory reported (the object is a counted reference): a target the brain gave up on, which the
@@ -458,7 +468,8 @@ struct AIReport {
     int ticksLeft;                  // updates the report lasts (dropped below 0)
 };
 
-struct AIReports : std::vector<AIReport> {
+class AIReports {
+public:
     // How long a report lasts: a target whose cast the controller stopped, a target the choice rejected.
     static constexpr int kCastStoppedTicks = 0xF;
     static constexpr int kRejectedTicks = 0x14;
@@ -466,6 +477,18 @@ struct AIReports : std::vector<AIReport> {
     // Keeps the larger `ticks` of a listed object, else appends it (with a reference).
     void Report(CMapObject* object, int ticks);
     bool Contains(EngineObject* object) const;
+    // Every report counts down; those below zero are dropped.
+    void Tick();
+    // The reports of `object` dropped.
+    void Forget(EngineObject* object);
+    void Clear() { reports.clear(); }
+    std::size_t size() const { return reports.size(); }   // (the harness digest reads it)
+    // From / to a save: the count (the list resized to it), then each report's object and ticks.
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
+
+private:
+    std::vector<AIReport> reports;
 };
 
 // What an AI attack option does (AIAttackOption::kind). The spells' kinds by spell type: the arrows and the two
