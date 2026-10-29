@@ -263,7 +263,7 @@ and network message), `core_stream_diff.cpp` / `core_stream_chunks.cpp` (WriteDi
 ReadText, ReplaceTagged; world_load, ui_saveload), `game_buffer.cpp` / `game_buffer_strings.cpp` / `net_coder.h` (growing
 byte buffer; save compression, multiplayer, net_lobby), `buffered_file.cpp` (005809D0 reads "quest.reg"),
 `matrix_math.cpp` (MatrixMultiply, Quaternion::ToMatrix, PushMatrix; every frame), `view_matrices.cpp` (CameraViewMatrix
-004F0EF0, LightRotation 004F15C0, LightShearMatrix 004F1440 called by address from map_object_shadow.cpp, 004E5660 a byte
+004F0EF0; LightRotation 004F15C0 and LightShearMatrix 004F1440 went with the shadow's projection, R37f; 004E5660 a byte
 copy of CubicSegment::Evaluate 0040E440, AllocateBlocks32 004E5710 / 8 004F65B0), `text_split.cpp` (Split, SplitWords,
 ReplaceChar, Join; Join has no scenario: loose .bmp only), `text_sources.cpp` (archive list and TextManager sources;
 briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every frame with shadows), `mob_reader.cpp`,

@@ -88,9 +88,6 @@ struct SpritePoint {
 // `m` times the point (x, y, z, 1), each row's sum adding the translation first
 // (((x m[4i] + m[4i + 3]) + y m[4i + 1]) + z m[4i + 2]): the projections' clip space.
 Vector4 ToClip(const Matrix4& m, float x, float y, float z);
-// The points of `blocks` packets of four projected with `m` into `points` (x, y each; the translation added
-// last), `bounds` (min x, min y, max x, max y) grown around them (the shadows' projection).
-void ProjectFlat(const Matrix4& m, const VertexPacket* positions, Vector2* points, int blocks, float* bounds);
 
 // The transform pipeline of the 3D library: the matrix stacks, and the projections of points to clip space and
 // to the screen, with the viewport and the fog's depth range they map with (docs/notes/renderer.md, section 10).

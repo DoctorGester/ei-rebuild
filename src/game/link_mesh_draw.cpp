@@ -198,18 +198,3 @@ int LinkMesh::DrawPartTextured(const std::string* partName, int flags, Surface* 
                                 std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, partName, flags, first, second, true, colours, speculars, nullptr, u, v);
 }
-
-// ---- 13 / 14: the shadow ---------------------------------------------------------------------------
-
-// The part's positions (moved by `offsets` when it has any) through
-// the flat projection (ProjectFlat); four points per packet.
-int LinkMesh::ProjectPart(const std::string* partName, std::vector<Vector3>* offsets, const Matrix4& matrix,
-                           Vector2* points, float* bounds) {
-    auto node = ranges.find(*partName);
-    if (node == ranges.end()) return 0;
-    const LinkPartRanges& r = node->second;
-    const VertexPacket* positions = vertices.data() + r.vertices.start;
-    if (!offsets->empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
-    ProjectFlat(matrix, positions, points, r.vertices.count, bounds);
-    return r.vertices.count << 2;
-}

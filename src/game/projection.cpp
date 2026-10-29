@@ -65,18 +65,6 @@ Vector4 ToClip(const Matrix4& m, float x, float y, float z) {
             ((x * r[8] + r[11]) + y * r[9]) + z * r[10], ((x * r[12] + r[15]) + y * r[13]) + z * r[14]};
 }
 
-void ProjectFlat(const Matrix4& m, const VertexPacket* positions, Vector2* points, int blocks, float* bounds) {
-    for (int i = 0; i < blocks * 4; ++i) {
-        const Vector3 transformed = TransformColumn<Sum3::XYZ>(m, PacketPoint(positions, i));
-        const Vector2 flat = {transformed.x, transformed.y};
-        points[i] = flat;
-        bounds[0] = MinKeepA(bounds[0], flat.x);
-        bounds[2] = MaxKeepB(flat.x, bounds[2]);
-        bounds[1] = MinKeepA(bounds[1], flat.y);
-        bounds[3] = MaxKeepB(flat.y, bounds[3]);
-    }
-}
-
 // The packets from the last to the first (which of two equal extremes stays, +0 or -0, follows from the order).
 void ClipBounds::Fit(const VertexPacket* packets, int blocks) {
     Vector3 low = {FLT_MAX, FLT_MAX, FLT_MAX};

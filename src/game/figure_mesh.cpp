@@ -198,9 +198,6 @@ void ReverseWinding(std::vector<std::uint16_t>& indices) {
     }
 }
 
-// The shared buffer DrawOffset moves the vertices into.
-std::vector<VertexPacket> g_offsetVertices;
-
 } // namespace
 
 // Each value the original stores to a float is rounded with static_cast<float>; everything else
@@ -467,31 +464,3 @@ void FigureMesh::SetOffsets(const OffsetSpan* newOffsets) {
 }
 
 void FigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
-
-int FigureMesh::DrawOffset(const Matrix4& matrix, Vector2* points, float* bounds) {
-    const VertexPacket* buffersVertices = buffers.vertices;
-    if (!offsets.empty()) {
-        const VertexPacket* source = buffers.vertices;
-        std::vector<VertexPacket>& moved = g_offsetVertices;
-        // Every element is rewritten below.
-        moved.resize(static_cast<std::size_t>(buffers.vertexCount));
-        // Vertex i is component i & 3 of packet i >> 2; each coordinate is offset + source.
-        for (int i = 0; i < std::ssize(moved) * 4; ++i) {
-            const float* from = &source[i >> 2].block[0][i & 3];
-            float* to = &moved[i >> 2].block[0][i & 3];
-            if (i < std::ssize(offsets)) {
-                const Vector3& d = offsets[i];
-                to[0] = d.x + from[0];
-                to[4] = d.y + from[4];
-                to[8] = d.z + from[8];
-            } else {
-                x87::CopyBits(to[0], from[0]);
-                x87::CopyBits(to[4], from[4]);
-                x87::CopyBits(to[8], from[8]);
-            }
-        }
-        buffersVertices = moved.data();
-    }
-    ProjectFlat(matrix, buffersVertices, points, buffers.vertexCount, bounds);
-    return buffers.vertexCount << 2;
-}

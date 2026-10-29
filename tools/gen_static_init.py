@@ -836,9 +836,9 @@ UNUSED_INITIALISERS = {
     0x00581050: "the quest folders 007AFDC0 (exit function 00581090): world_briefing.cpp's g_questFolders",
     # C50b: the draw work arrays are plain globals of ours.
     0x00498910: "the particles' draw order 007A9C50 (exit function 00498930): particle_draw.cpp's g_drawOrder",
-    0x0051CBD0: "the shadow's ground quad 007AF208 (exit function 0051CC00): map_object_shadow.cpp's g_quads",
+    0x0051CBD0: "the shadow's ground quad 007AF208 (exit function 0051CC00): gone (R37f: the shadow's sphere from the object's bounds)",
     0x0051CDA0: "the shadow's projected points 007AF1F8 (exit function 0051CDD0, guard bit 0 of 007AF1F0): "
-                "map_object_shadow.cpp's g_points",
+                "gone (R37f: the shadow's sphere from the object's bounds)",
     # C50b: the frame's draw lists are plain globals of ours (world_client_view.cpp).
     0x0056A4D0: "the draw list 007AF5A8 (exit function 0056A510): world_client_view.cpp's g_visibleBuildings",
     0x0056A520: "the draw list 007AF598 (exit function 0056A560): world_client_view.cpp's g_visibleOther",

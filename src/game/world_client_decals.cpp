@@ -1,4 +1,4 @@
-// The client world's decal projector (object shadows, ground prints). The decal builder (ground_decal.h) is a
+// The client world's decal projector (ground prints). The decal builder (ground_decal.h) is a
 // function-local static of the original game, as is the work array of transformed part points; both are made
 // on first use and freed at exit. See docs/notes/models.md ("Ground prints").
 #include "figure_mesh.h"   // VertexPacket, MeshCorner
@@ -90,41 +90,38 @@ void AddPartTriangles(TransformPipeline* pipeline, LinkMesh* figure, FigureMesh*
 
 void WorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, float depth,
                                 const VertexPacket& quad, std::vector<VertexPacket>* points,
-                                std::vector<DecalTexCoord>* texCoords, std::vector<std::uint16_t>* indices,
-                                std::uint8_t skipOnPlatform, std::uint8_t withObjects) {
-    render::BeginDecalTime(!skipOnPlatform);   // the ground prints skip the ground under a platform
+                                std::vector<DecalTexCoord>* texCoords, std::vector<std::uint16_t>* indices) {
+    render::BeginDecalTime(false);   // a ground print's (object shadows project none)
     DecalBuilder& builder = g_builder;
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);
-    if (!skipOnPlatform || !platforms.Contains(point.x, point.y)) terrain->AddDecalTriangles(&builder, quad);
+    if (!platforms.Contains(point.x, point.y)) terrain->AddDecalTriangles(&builder, quad);
 
     TransformPipeline* pipeline = g_sceneRenderer.pipeline;
-    if (withObjects) {
-        PartData data;
-        for (auto face = platforms.list.begin(); face != platforms.list.end();) {
-            auto next = std::next(face);
-            CObject3D* object = ObjectWithId(face->id);
-            face = next;
-            if (!object) continue;
-            // The object's bounding sphere about its origin, then about its centre.
-            if (!builder.Touches(object->localPosition, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
-                continue;
-            BuildNodeMatrix(object->localRotation, object->localPosition, object->worldMatrix);
-            Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->bounds.center) +
-                             object->localPosition;
-            if (!builder.Touches(centre, object->bounds.radius)) continue;
-            PushDecalMatrix(pipeline, object->worldMatrix.m);
-            LinkMesh* figure = object->figure;
-            if (figure) {
-                for (int i = 0; i < std::ssize(object->parts); ++i) {
-                    FigureMesh* part = object->parts[i];
-                    BuildNodeMatrix(part->localRotation, part->localPosition, part->worldMatrix);
-                    PushDecalMatrix(pipeline, part->worldMatrix.m);
-                    AddPartTriangles(pipeline, figure, part, data);
-                    pipeline->PopMatrix(TransformPipeline::kDecalStack);
-                }
+    PartData data;
+    for (auto face = platforms.list.begin(); face != platforms.list.end();) {
+        auto next = std::next(face);
+        CObject3D* object = ObjectWithId(face->id);
+        face = next;
+        if (!object) continue;
+        // The object's bounding sphere about its origin, then about its centre.
+        if (!builder.Touches(object->localPosition, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
+            continue;
+        BuildNodeMatrix(object->localRotation, object->localPosition, object->worldMatrix);
+        Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->bounds.center) +
+                         object->localPosition;
+        if (!builder.Touches(centre, object->bounds.radius)) continue;
+        PushDecalMatrix(pipeline, object->worldMatrix.m);
+        LinkMesh* figure = object->figure;
+        if (figure) {
+            for (int i = 0; i < std::ssize(object->parts); ++i) {
+                FigureMesh* part = object->parts[i];
+                BuildNodeMatrix(part->localRotation, part->localPosition, part->worldMatrix);
+                PushDecalMatrix(pipeline, part->worldMatrix.m);
+                AddPartTriangles(pipeline, figure, part, data);
+                pipeline->PopMatrix(TransformPipeline::kDecalStack);
             }
-            pipeline->PopMatrix(TransformPipeline::kDecalStack);
         }
+        pipeline->PopMatrix(TransformPipeline::kDecalStack);
     }
     builder.Finish();
     render::EndDecalTime(std::ssize(*points) * 4);

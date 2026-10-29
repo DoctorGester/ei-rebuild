@@ -46,5 +46,5 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
 - `ShowHit` (slot 16) and the server's `TakeHit` (slot 20, past the declared slots) are not overrides. These stay free functions registered at
   several addresses: the shared stub bodies in `map_object.cpp` and the companion's empty slots (`CompanionIgnore`,
   `CompanionNothing`, `CompanionHit`).
-- Forwarders that could become direct calls: `LightViewMatrix` / `LightRotation` (004F1440 / 004F15C0) in the shadow; `CallCreate3D` is kept
+- Forwarders that could become direct calls: `CallCreate3D` is kept
   deliberately so the verify wrapper runs.
