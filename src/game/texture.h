@@ -50,12 +50,9 @@ public:
                  std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha, int flags);
     int DrawTwoTextures(Surface* first, Surface* second);
     int DrawIndexed();
-    int BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions,
-                          const std::uint8_t* outcodes);
-    // A mesh crossing the view's edges: its clip-space `positions` (ProjectClipped's) and triangles (`indexCount`
-    // `indices` into the `corners`). False when none of it is on screen; else, with `keep`, its rectangle.
-    bool BoundsOfCrossing(const std::vector<devicebuffers::ProjectedVertex>* positions, const MeshCorner* corners,
-                          const std::uint16_t* indices, int indexCount, bool keep);
+    // Draw flag 1's rectangle: the bounds of the projected `positions` (screen positions, or with `clipSpace` the
+    // clip-space ones inside the depth range, mapped to the screen) clamped to the screen.
+    void BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions, bool clipSpace);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices, int indexCount);
     // The holder the renderer draws the stage with. Returns 1.
     int BindSurface(int stage, Surface* holder);

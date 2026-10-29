@@ -1,0 +1,66 @@
+# Picking at the screen's edges where the image and the original agree (CTextureDevice::BoundsOfProjected,
+# device_bounds.cpp; docs/notes/renderer.md section 3, "Picking"). A figure part's screen rectangle is the bounds of
+# its projected positions clamped to the screen; the battle screen's click picks a unit by those rectangles
+# (CWorldClient::UnitAt). An ogre stands where the view's left edge cuts it (in the start view), then one where the
+# bottom edge cuts it (after SetCPFast, which moves the camera to the hero: groundview), each held still (freeze)
+# while a Ctrl click lands on it: the hero turns on the ogre. At the desktop size, so both sides pick at the same
+# pixels. render_pick_edges_rule has the bottom edge's strip where the two differ.
+reject Script error
+resolution desktop
+timeout 120
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+waitwindow 15 battle
+frames 10
+groundview
+
+# 1. Cut by the view's left edge (the start view).
+console @AddUnitToServer("EdgeOgre1","OgreTutor","EdgeOgre1",63,129,0)
+frames 2
+console @BlockUnit(GetObjectByName("EdgeOgre1"),1)
+frames 6
+freeze
+frames 3
+click 20 400 ctrl
+frames 3
+move 400 300
+frames 2
+unfreeze
+wait 1500
+console #GetX(GetLeader())
+console #GetY(GetLeader())
+console #HP(GetObjectByName("EdgeOgre1"))
+console @RemoveUnitFromServer(GetObjectByName("EdgeOgre1"))
+waitidle 15
+
+# 2. Cut by the bottom edge, the click in the middle of its strip there.
+console @SetCPFast(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy"),GetZValue(GSGetVar(0,"hx"),GSGetVar(0,"hy")))
+waitidle 15
+groundview
+
+console @AddUnitToServer("EdgeOgre2","OgreTutor","EdgeOgre2",61.5,132,0)
+frames 2
+console @BlockUnit(GetObjectByName("EdgeOgre2"),1)
+frames 6
+freeze
+frames 3
+click 276 592 ctrl
+frames 3
+move 400 300
+frames 2
+unfreeze
+wait 1500
+console #GetX(GetLeader())
+console #GetY(GetLeader())
+console #HP(GetObjectByName("EdgeOgre2"))
+console @RemoveUnitFromServer(GetObjectByName("EdgeOgre2"))
+waitidle 15
+check IsAlive(GetLeader())
+report
+quit

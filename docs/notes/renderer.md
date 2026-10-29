@@ -114,13 +114,21 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
   time, pending figure changes 0050D450, model LRU). **Visibility only gates client-side animation, figure changes and
   picking, never server state or timing.**
 - **Picking** uses screen rectangles written during the object draw from projected vertices (004E8900 / 004E86B0 into
-  the device's +0x15C, copied by 005A7A70 into node and figure pieces). Whatever draws the objects
-  must still produce them (approximate is fine, from projected bounds). Since R30f (`device_bounds.cpp`
-  `BoundsOfCrossing`) a mesh crossing the screen's edges is not clipped on the CPU: its rectangle is the bounds of
-  its clip-space positions inside the depth range and of its triangle edges' cuts through the near and far planes,
-  mapped as ToScreen does and clamped to the screen (the original: the bounds of the clipped triangles). The same
-  where a mesh crosses one edge; larger by the corner it misses where it passes a screen corner. Bounds off the
-  screen hand over no pass (the clipper's empty result); the GPU clips the rest.
+  the device's +0x15C, copied by 005A7A70 into node and figure pieces; `CWorldClient::UnitAt` / `PickAt2` test the
+  parts' rectangles only). Whatever draws the objects must still produce them. The rule (`device_bounds.cpp`
+  `BoundsOfProjected`, one path for every mesh): the bounds of the projected positions, clamped to the screen. The
+  projection leaves screen positions when the whole mesh is on screen and clip-space ones when it crosses the view's
+  edges; those count when inside the depth range (nothing behind the camera or past the far plane), mapped as
+  ToScreen maps them. A crossing mesh always hands its passes over (the GPU clips them); a part with no position on
+  screen gets an empty rectangle.
+  - **Accepted difference from the original** (user, 2026-10-29): the original clipped a crossing mesh on the CPU
+    (3DfpFPU slots 36 / 37, ToScreenClipped 34) and took the bounds of the clipped triangles' points that came out
+    inside every plane; an empty clip kept the last draw's rectangle and drew nothing. Ours is larger past a screen
+    corner, and across one edge it can be wider along that edge (points beyond the edge stretch the other axis): at the
+    bottom edge an ogre's part picks a few 800x600 pixels further left or right than in the original. On screen it is
+    the original's rectangle. `render_pick_edges` (golden from the original: left and bottom edge clicks where both
+    agree) and `render_pick_edges_rule` (the image's golden: a bottom edge click in the strip only ours picks) check it.
+    The corners are under the battle screen's HUD, so no click reaches a corner's difference.
 - **One real state change in a draw path:** the terrain page draw applies pending water level changes (006C30E0 from
   006BFF40); the water layer is what height queries read. DrawSectorPage applies them before handing over (the
   game's own draw of the page is gone, R11a).
@@ -1455,11 +1463,11 @@ across runs; the goldens check the game state.
 11. **R16k, R26c The device's mesh draws without the work nothing reads (done).** `device_mesh.cpp`, `device_shadow.cpp`,
     `device_draw.cpp`. The mesh draws 004E9010 / 004E9A50 and the flat draw 004EA4A0 project (the visibility verdict),
     override the colours (flag 4: the hand-over reads them), take the screen rectangle for draw flag 1 (picking:
-    BoundsOfProjected, or for a crossing mesh BoundsOfCrossing of its clip-space positions, section 3) and hand every
-    pass to the device (`DrawIndexed()` / `DrawTwoTextures(first, second)`: the pass state the new renderer reads).
+    BoundsOfProjected of the screen or clip-space positions, section 3) and hand every pass to the device (`DrawIndexed()` / `DrawTwoTextures(first, second)`: the pass state the new renderer reads).
     Not made: TL vertices, the fog, the z scale, and since R30f the CPU clip of a crossing mesh (ClipTriangles,
-    ToScreenClipped; its only readers were the rectangle and the empty result's "no pass", which the bounds give; the
-    flat draw hands a crossing shadow's pass over unclipped). R26c took out the arguments of the Direct3D 7 draws and
+    ToScreenClipped; its readers were the rectangle, now the bounds of the projected positions, and the empty result's
+    "no pass": a crossing mesh's passes always go over, the GPU clips them; the flat draw hands a crossing shadow's
+    pass over unclipped). R26c took out the arguments of the Direct3D 7 draws and
     the work only they needed; until then a harness verb `meshcorners full|read` switched back to all the old work
     for an A/B check, 0 pixels different; R26d dropped the verb.
     R30f measured (render_stats, vanilla 4K, harness build, one run each, main's run of the same morning as before):

@@ -70,16 +70,10 @@ void Submit(CTextureDevice* device, const Textures* textures) {
     }
 }
 
-// On screen: the passes go to the device; draw flag 1's rectangle from the projected positions.
-void DrawOnScreen(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
-    if (a.flags & 1) device->BoundsOfProjected(&g_projected, 0);
-    Submit(device, textures);
-}
-
-// Some vertices off screen: the clip-space positions' screen bounds decide whether anything is on screen (no
-// pass when not) and give draw flag 1's rectangle; the GPU clips the hand-over.
-void DrawCrossing(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
-    if (!device->BoundsOfCrossing(&g_projected, a.corners, a.indices, a.indexCount, (a.flags & 1) != 0)) return;
+// On screen or crossing the view's edges: draw flag 1's rectangle from the projected positions (screen positions,
+// or clip-space ones when the mesh crosses the edges), and the passes go to the device; the GPU clips the hand-over.
+void Draw(CTextureDevice* device, const MeshArgs& a, const Textures* textures, bool crossing) {
+    if (a.flags & 1) device->BoundsOfProjected(&g_projected, crossing);
     Submit(device, textures);
 }
 
@@ -133,11 +127,9 @@ int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* te
     // with; each pass the old path draws below hands over the device's state.
     HandOver(device, a);
     int result = visibility;
-    if (visibility == 0) {
-        DrawOnScreen(device, a, textures);
+    if (visibility == 0 || visibility == 1) {
+        Draw(device, a, textures, visibility == 1);
         result = 1;
-    } else if (visibility == 1) {
-        DrawCrossing(device, a, textures);
     }
     render::EndMesh();
     return result;
