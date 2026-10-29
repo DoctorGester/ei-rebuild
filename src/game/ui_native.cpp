@@ -158,6 +158,10 @@ void FrameRect(const CUiSurface* surface, const RECT& rect, COLORREF colour) {
     if (IsNative(surface)) canvas::FrameRect(surface->holder_, ToRect(rect), colour);
 }
 
+void Line(const CUiSurface* surface, int x0, int y0, int x1, int y1, int width, COLORREF colour) {
+    if (IsNative(surface)) canvas::Line(surface->holder_, x0, y0, x1, y1, width, colour);
+}
+
 TextPath Text(const CUiSurface* surface, HFONT font, std::string_view text, const RECT& rect, UINT format,
               COLORREF colour, bool shadow, int* height) {
     NativeSurface* native = Find(surface);

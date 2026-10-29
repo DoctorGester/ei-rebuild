@@ -376,6 +376,27 @@ the help over the objectives 0.27% (the objectives' text under it), plus the fra
 and titles frames are unchanged (the version string is empty in the harness's install; the titles header is blank at that
 moment).
 
+### P4 done (2026-10-29): the console and the debug panel
+
+**Native now.** The console window's surface (`ui_console_window.cpp`; family `console`) and the debug panel's (`string_map.cpp`;
+family `debug`) are adopted where `Show` makes them. Their fills (`FillArea`: GDI's `FillSolidRect` and `ui_native::Fill`), their
+text (`DrawString`: `ui_native::Text`; the console's lines and "+" marks in 0xB4B4B4, the typed line in white, the panel's
+"key  value" lines with the shadow) and the console's 2-pixel caret (`ui_native::Line`, new in P4: `render::ui::Line`) are
+recorded on the canvas. Layout, colours and scrolling are untouched; the caret and selection positions still come from GDI's
+extent on the surface's memory DC (`PromptWidth`), and the text is placed by GDI's metrics as in P2 (Courier New's metrics,
+Liberation Mono's glyph shapes).
+
+**Still GDI.** The memory DC: the extent for the caret, the fills and the pen are still drawn into the memory too (it stays the
+source of truth; under `uinative` the text is not in it until `Sync`), and `Text`'s fall-back (font file missing, a format the
+layout does not follow) draws with GDI and copies the rectangle onto the canvas (`TextDrawn`).
+
+**Checked.** `console`, `utf8_typing` and `ui_gallery_game` under `EI_RENDER_EXTRA=uiboth`: all pass, the console compared 3
+times in the gallery (0 differing). Under `uinative` the
+gallery's console frame (3840x2160) differs from the default path's in 4712 pixels, all glyph edges inside the console (the
+lines, the typed line); the fill, the selection and the caret are identical. The debug panel cannot be drawn in 1.06 (see
+ui-census.md): it was checked once with a temporary `Show(1)` in `ShowFps` (not committed): 143 uiboth checks of 4 surfaces, 0
+differing, and under `uinative` the same places as the default path with unhinted, a little heavier glyphs.
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -395,7 +416,7 @@ they depend on.
   PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale; first native surfaces: backdrop, FPS, status; needs
   N1, N3). **P2** (done, section 3 "P2 done") text (005FDE20 records glyph runs on native surfaces: our glyphs placed by GDI's metrics; 005FDFA0 unchanged; needs N2, P1).
   **P3a-d** windows by family (menus and dialogs; HUD; camp, hero, trade and item info; briefing, global map titles, help page, chat
-  window), mostly native-table entries plus fixes the diff finds; **P4** console and debug panel (direct FillSolidRect / DrawText,
+  window), mostly native-table entries plus fixes the diff finds; **P4** (done, section 3 "P4 done") console and debug panel (direct FillSolidRect / DrawText,
   own fonts, the 2-pixel pen caret); **P5** controls with lines and carets (edit field 0065C2E0, chat typed line 005E3700, connect
   list 0061D780, save/load list 006567A0); **P6** the global-map pick picture (`RefreshSelection` 00630670: frame step, GPU copy,
   readback on click; colours exact, point copy, no dithering) and the camp's backdrop modes 3/4; **P7** (optional) CPU-written
