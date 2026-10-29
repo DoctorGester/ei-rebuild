@@ -58,13 +58,13 @@ public:
     void Save(CStream* stream) override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    bool IsSynchronised() override { return Slot29True(); }
+    bool IsSynchronised() override { return true; }
     bool IsUsable() override { return NeedsKey(); }
     bool IsDirectUseBlocked() override { return directUseBlocked; }
     // ApplyKey.
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     bool AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
-    bool KeepsMapFlag() override { return KeepsMapFlagSlot(); }
+    bool KeepsMapFlag() override { return keepsMapFlag != 0; }
     void UseSpots(std::vector<Vector3>* out, float userRadius) override;
     std::uint32_t ReadNetState(int first) override { return ReadLeverNetState(first); }
     void WriteNetState() override { WriteLeverNetState(); }
@@ -105,8 +105,6 @@ public:
     // The script's SetScience.
     void SetLock(const LockKey* lock);
 
-    bool Slot29True();
-    bool KeepsMapFlagSlot();
     // 0 when disabled, else whether the lock has a mask.
     bool NeedsKey();
     // The lock's id when its mask has bit 3, else 0.

@@ -106,7 +106,7 @@ int CMapObjectManager::GiveDefaults(CMapObject* object) {
         SetDefaults(&vitals, &stats);
         object->SetStats(&stats);
     }
-    object->ScaleEffectChanged(0);
+    object->ScaleEffectChanged(false);
     object->prototypeId_ = 0;
     return 1;
 }

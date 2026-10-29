@@ -48,9 +48,9 @@ UnitPrototypeRecord* UnitPrototypeTable::FindByName(std::string_view name) {
 void CUnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&stats, source, sizeof(UnitStats));
     unit->MarkChanged(kPartStats);
-    RefreshVitals(0);
+    RefreshVitals(false);
     stats.RefillSlots();
-    RefreshVitals(0);
+    RefreshVitals(false);
     // The companion's vitals: hit points and mana at their maxima (the companion read again).
     auto* companion = unit->ServerCompanion();
     companion->vitals.hitPoints = companion->vitals.maxHitPoints;

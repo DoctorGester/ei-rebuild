@@ -81,10 +81,6 @@ void CTrapObject::Load(CStream* stream) { LoadTrapObject(stream); }
 void CTrapObject::Save(CStream* stream) { SaveTrapObject(stream); }
 bool CTrapObject::ApplyScience(const LockKey* key, CEngineObject*) { return Disarm(key); }
 
-bool CTrapObject::Slot29True() { return true; }
-
-bool CTrapObject::Slot38One() { return true; }
-
 const char* CTrapObject::ClassName() { return kTrapName; }
 ClassId CTrapObject::GetClassId() { return ClassId::TrapObject; }
 const char* MagicTrap::ClassName() { return kMagicTrapName; }

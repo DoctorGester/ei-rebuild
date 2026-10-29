@@ -24,8 +24,8 @@ public:
     void Save(CStream* stream) override;                      // SaveTrapObject
     const char* ClassName() override;                         // "CTrapObject"
     ClassId GetClassId() override;
-    bool IsSynchronised() override { return Slot29True(); }
-    bool IsUsable() override { return Slot38One(); }
+    bool IsSynchronised() override { return true; }
+    bool IsUsable() override { return true; }
     // Disarm with the key record.
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     bool AcceptsKey(const LockKey* key) override { return KeyFits(key); }
@@ -45,8 +45,6 @@ public:
     // +0x238.
     void LoadTrapObject(CStream* stream);
     void SaveTrapObject(CStream* stream);
-    bool Slot29True();   // true
-    bool Slot38One();    // true
 
     std::uint32_t savedValue_;   // only loaded and saved; nothing sets it (not even the constructor)
 };

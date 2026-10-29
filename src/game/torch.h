@@ -26,7 +26,7 @@ public:
     const char* ClassName() override;                         // "CTorchObject"
     ClassId GetClassId() override;
     void AttachObject(CEngineObject* object) override { AttachTorchObject(object); }
-    bool IsSynchronised() override { return Slot29True(); }
+    bool IsSynchronised() override { return true; }
     std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }
     void WriteNetState() override { WriteTorchNetState(); }
 
@@ -52,8 +52,6 @@ public:
     // (the spec's own reader, which applies it through the spec's slots); the result and-ed with "the snapshot
     // was consumed".
     std::uint32_t ReadTorchNetState(int first);
-    // true.
-    bool Slot29True();
 
     CTorchObjectSpec* spec;         // a counted reference
 };

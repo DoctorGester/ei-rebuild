@@ -252,7 +252,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
             unit->AddSpell(MakeItem(this, record->spells[n]));
 
         slots->UpdateSizeClasses();
-        slots->ScaleEffectChanged(0);
+        slots->ScaleEffectChanged(false);
         unit->SetSecondPrototypeByName(record->texts[6]);
         line = str::Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
@@ -453,7 +453,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->SetSecondName(spec->model.c_str());
         companionTexts(companion);
         race(object);
-        object->ScaleEffectChanged(0);
+        object->ScaleEffectChanged(false);
         int type = base.kind;
         if (type == 5) {
             auto* unitSpec = static_cast<UnitSpec*>(message);

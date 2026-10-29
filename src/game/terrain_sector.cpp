@@ -484,7 +484,7 @@ int Terrain::SurfaceClass(float x, float y) {
     int ix = x87::fistp(static_cast<float>(x / unit));
     int iy = x87::fistp(static_cast<float>(y / unit));
     if (ix < 0 || iy < 0 || ix >= sectorsX * 32 || iy >= sectorsY * 32) return 8;
-    terrain::SectorData* sector = SectorAt(ix / 32, iy / 32, SectorStage::Built, 1);
+    terrain::SectorData* sector = SectorAt(ix / 32, iy / 32, SectorStage::Built, true);
     int tile = (iy % 32) / 2 * 16 + (ix % 32) / 2;
     if (!sector) return 8;
     if (sector->hasWater && sector->waterTiles[tile] != -1) {
@@ -510,7 +510,7 @@ void SectorData::Ensure(SectorStage wanted, Terrain* terrain) {
     if (lib::Has(wanted, built)) return;
     if (wanted >= SectorStage::Built && !lib::Has(built, SectorStage::Built)) Build();
     if (wanted >= SectorStage::Lit && !lib::Has(built, SectorStage::Lit))
-        Light(terrain, 0, 0, 0, 0x20, 0x20);
+        Light(terrain, false, 0, 0, 0x20, 0x20);
 }
 
 // Construction and projection

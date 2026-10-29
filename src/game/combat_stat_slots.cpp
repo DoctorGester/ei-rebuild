@@ -25,7 +25,7 @@ AIBrain* BrainOf(CUnitServer* self) { return &self->brain; }
 
 } // namespace
 
-void CUnitServer::RefreshVitals(char withHitPoints) {
+void CUnitServer::RefreshVitals(bool withHitPoints) {
     int now = WorldContext()->tick_;
     float oldRate = stats.rate;
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
@@ -87,5 +87,5 @@ void CUnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(Un
 
 void CUnitServer::AddExperience(float amount) {
     stats.GainExperience(unit, amount);
-    RefreshVitals(0);
+    RefreshVitals(false);
 }

@@ -85,7 +85,7 @@ void CMapObject::ReceiveHit(DamageInfo*, CUnit*, CUnit*) {
     CompanionQuery(0, 0);
 }
 int CMapObject::StatsChanged() { return PackVitals(); }
-void CMapObject::ScaleEffectChanged(int) {
+void CMapObject::ScaleEffectChanged(bool) {
     ScaleEffectChangedDefault();
 }
 void CMapObject::SetStats(const UnitStats*) {}

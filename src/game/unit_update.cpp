@@ -64,8 +64,8 @@ int CUnit::StatsChanged() {
     return 1;
 }
 
-void CUnit::ScaleEffectChanged(int value) {
-    if (controller) Controller()->RefreshVitals(static_cast<char>(value));
+void CUnit::ScaleEffectChanged(bool scaleEffect) {
+    if (controller) Controller()->RefreshVitals(scaleEffect);
 }
 
 void CUnit::SetStats(const UnitStats* stats) {

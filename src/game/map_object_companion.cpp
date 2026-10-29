@@ -55,7 +55,7 @@ bool CMapObjectServer::RunTick() {
             bool scaleEffect = IsScaleEffect(type);
             if (scaleEffect) owner->RecomputeScale();
             owner->MarkChanged(3);
-            owner->ScaleEffectChanged(scaleEffect ? 1 : 0);
+            owner->ScaleEffectChanged(scaleEffect);
             --i;
             owner->EffectsChanged();
             if (!owner->HasEffect(mapeffect::kStun) && !owner->HasEffect(mapeffect::kStun2))

@@ -568,7 +568,7 @@ void CWorldServer::PrepareSave() {
         if (!unit || unit->IsDead()) continue;
         CUnitController* controller = unit->Controller();
         unit->ServerController()->stats.RefillSlots();
-        controller->RefreshVitals(0);
+        controller->RefreshVitals(false);
     }
 }
 

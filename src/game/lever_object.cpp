@@ -181,9 +181,6 @@ void Lever::SetLock(const LockKey* key) {
     MarkChanged(kLeverField);
 }
 
-bool Lever::Slot29True() { return true; }
-
-bool Lever::KeepsMapFlagSlot() { return keepsMapFlag != 0; }
 
 bool Lever::NeedsKey() {
     if (flags_ & MapObjectFlag::Disabled) return false;

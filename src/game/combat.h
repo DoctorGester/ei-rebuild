@@ -313,7 +313,7 @@ public:
     // --- The statistics virtuals.
     // The vitals recomputed (with `withHitPoints` the hit points first) in the server companion's block; a
     // pending attack time is rescaled by the old / new attack rate, rounded; part 0 changed.
-    void RefreshVitals(char withHitPoints) override;
+    void RefreshVitals(bool withHitPoints) override;
     // Protection[1..7] from the body and protection[0], the defence: a party unit with a weapon its weapon
     // skill bonus, others their defence times the difficulty's factor; truncated.
     void UpdateProtection();
@@ -331,7 +331,7 @@ public:
     // The claims dropped (claimedHostile) and the calls heard with a hostility mask.
     void HostileMaskChanged() override;
     void CopyStats(UnitStats* out);
-    // RefreshVitals(0) after (only CUnitServer's vtable has it), whose 1 it returns.
+    // RefreshVitals(false) after (only CUnitServer's vtable has it), whose 1 it returns.
     void AddExperience(float amount);
 
     // Kind 9 and cleared, then kind 0 (Idle and FinishAction).

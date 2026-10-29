@@ -100,12 +100,10 @@ void CMapObject::AddEffect(const MapEffect* effect) {
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
-    // The original keeps the flag in the low byte of its argument's stack memory and passes the whole dword on.
     int type = effect->type;
     bool scales = type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
                   type == mapeffect::kShrink;
-    std::uint32_t argument = (static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(effect)) & ~0xFFu) | (scales ? 1u : 0u);
-    ScaleEffectChanged(static_cast<int>(argument));
+    ScaleEffectChanged(scales);
     if (effect->type == mapeffect::kStun || effect->type == mapeffect::kStun2) SetStunned(1);
     EffectsChanged();
     if (scales) RecomputeScale();
@@ -121,7 +119,7 @@ void CMapObject::ClearEffects() {
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
-    ScaleEffectChanged(1);
+    ScaleEffectChanged(true);
     SetStunned(0);
     RecomputeScale();
 }

@@ -132,7 +132,7 @@ public:
     virtual void ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster);
     virtual int StatsChanged();        // PackVitals (units override); 1
     // Nothing (units hand the argument to their controller's vitals virtual).
-    virtual void ScaleEffectChanged(int scaleEffect);
+    virtual void ScaleEffectChanged(bool scaleEffect);
     // The prototype by name (units: their statistics). Here the vitals of `prototype` are packed into the
     // rounded vitals, from a local the original does not clear either.
     virtual void TakePrototype(std::string_view prototype);

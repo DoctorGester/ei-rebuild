@@ -277,7 +277,7 @@ bool Terrain::RunTick() {
     ++frame;
     for (int row = 0; row < std::ssize(visibleColumnFirst); ++row) {
         for (int column = visibleColumnFirst[row]; column <= visibleColumnLast[row]; ++column) {
-            SectorData* sector = SectorAt(column, visibleRowFirst + row, SectorStage::Lit, 0);
+            SectorData* sector = SectorAt(column, visibleRowFirst + row, SectorStage::Lit, false);
             if (sector && sector->IsDrawn()) sector->Animate(this, frame);
         }
     }

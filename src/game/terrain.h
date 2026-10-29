@@ -135,7 +135,7 @@ public:
     void SetWaterLevel(int material, float level);
     // 9 u then 9 v (rows of three), turned `rotation` quarter turns; with `wholePage` the v run covers the
     // page's whole height (the last pages hold one row). `this` is not used.
-    void BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, char wholePage);
+    void BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, bool wholePage);
 
     // Flag 4: 255, less 255 * depth / fade for a point `depth` inside the fade band (MapEdgeFade, plus one
     // cell) of the map's borders, corners by the distance.
@@ -172,7 +172,7 @@ public:
     // null. Sectors live in an LRU cache: a hit moves to the front (stamped with the frame); with `create`
     // a missing sector is loaded (the least recently used one reused when older than 240 frames, older ones
     // freed) and the wanted stages are built.
-    terrain::SectorData* SectorAt(int sx, int sy, SectorStage wanted, int create);
+    terrain::SectorData* SectorAt(int sx, int sy, SectorStage wanted, bool create);
 
     // Ground height at (x, y), and water depth above it (0 when dry).
     void GroundAndWaterDepth(float x, float y, float* ground, float* depth);

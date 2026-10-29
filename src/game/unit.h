@@ -135,8 +135,7 @@ public:
     virtual PathOrder* Path() = 0;
     virtual void Unused17() = 0;                 // empty everywhere
     virtual void PlayerChanged(void*) {}
-    // CUnit's ScaleEffectChanged passes its whole dword argument on; the bodies read the low byte.
-    virtual void RefreshVitals(char withHitPoints);
+    virtual void RefreshVitals(bool withHitPoints);
     // Either unit may be null.
     virtual bool TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
     virtual bool Heal(float amount);
@@ -318,7 +317,7 @@ public:
     // Statistics changed: the map object's (packs the server object's vitals), then the controller's.
     int StatsChanged() override;
     // The controller's RefreshVitals with `value` (0 without a controller).
-    void ScaleEffectChanged(int value) override;
+    void ScaleEffectChanged(bool scaleEffect) override;
     // A server controller (class 0x3E) copies `stats` in.
     void SetStats(const UnitStats* stats) override;
     void UpdateSizeClasses() override;
