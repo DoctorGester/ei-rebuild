@@ -875,6 +875,26 @@ UNUSED_INITIALISERS = {
                 "g_sendBuffer",
     0x00432CE0: "the network's receive buffer 0079B8E0 (exit function 00432D00, bit 1 of 0079B8FC): net_session.cpp's "
                 "g_receiveBuffer",
+    # C50d: plain globals of ours in place of the static objects.
+    0x00408D30: "the chunk archive's class registry 0079B270 (exit function 00408D50): chunk_archive.cpp's "
+                "g_classRegistry",
+    0x0042D8E0: "the clip work words 0079B668 (exit function 0042D900): clip.cpp's g_workWords",
+    0x00455CE0: "the camera file 0079BA1C (exit function 00455D00): app_main.cpp's app::g_cameraFile",
+    0x00455D10: "the command line's script 0079BA18 (exit function 00455D30): app_main.cpp's app::g_commandLineScript",
+    0x00455D40: "the command line's mob file 0079BA14 (exit function 00455D60): app_main.cpp's app::g_commandLineMob",
+    0x00455D70: "the command line's map 0079BA10 (exit function 00455D90): app_main.cpp's app::g_commandLineMap",
+    0x00455DA0: "the movie folder 0079BA0C (exit function 00455DC0): app_main.cpp's app::g_movieFolder",
+    0x004DB870: "a hash_set 007AB8D8 (exit function 004DB890) that only the original reads",
+    0x0055E760: "the registry root 007AF450 (exit function 0055E780, bit 0 of 007AF438): game_folders.cpp's "
+                "g_registryRoot",
+    0x0055E7A0: "the start folder 007AF454 (exit function 0055E7C0, bit 1 of 007AF438): game_folders.cpp's "
+                "g_startFolder",
+    0x0055E820: "the text folder 007AF45C (exit function 0055E840, bit 3 of 007AF438): game_folders.cpp's "
+                "g_textFolder",
+    0x005DC050: "the cheat command map 007C7B38 (exit function 005DC070): console_streams.cpp's "
+                "console::g_cheatCommands",
+    0x005DC120: "the public command map 007C7B28 (exit function 005DC140): console_streams.cpp's "
+                "console::g_publicCommands",
 }
 
 

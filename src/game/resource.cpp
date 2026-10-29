@@ -233,15 +233,7 @@ void CMappedResource::FreeAllFiles() {
     filesByName_.clear();
 }
 
-CMappedFile::CMappedFile() { Construct(); }
-
-CMappedFile* CMappedFile::Construct() {
-    file_ = INVALID_HANDLE_VALUE;
-    mapping_ = nullptr;
-    view_ = nullptr;
-    size_ = 0;
-    return this;
-}
+CMappedFile::CMappedFile() : file_(INVALID_HANDLE_VALUE) {}
 
 void CMappedFile::Close() {
     if (view_) {

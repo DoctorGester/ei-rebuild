@@ -69,10 +69,9 @@ const char* MusicClassNameText() { return "CMusicSystem"; }
 // format string (original).
 void CMusicSystem::LoadThemes() {
     CFileRegistry reg;
-    reg.Construct();
     bool opened;
     {
-        std::string folder = *g_textFolder;
+        std::string folder = g_textFolder;
         std::string path = folder + kMusicReg;
         opened = reg.Open(path);
     }
@@ -83,7 +82,6 @@ void CMusicSystem::LoadThemes() {
             std::string full = message + "\"";    // "\""
             game::FatalError(full);
         }
-        reg.Destroy();
         return;
     }
     const char* const common = "Common";
@@ -108,7 +106,6 @@ void CMusicSystem::LoadThemes() {
             themes.push_back(read);
         }
     }
-    reg.Destroy();
 }
 
 // Entering a zone: picks the allod's open land or dungeon theme; a missing theme is

@@ -42,15 +42,15 @@ constexpr std::uint32_t kResMagic = 0x019CE23C;
 class CMappedFile {
 public:
     CMappedFile();
-    CMappedFile* Construct();                         // the constructor body
+    ~CMappedFile() { Close(); }
     void Close();                                     // an identical copy of Close's body
     bool Open(const std::string& path, bool writable);
     void Flush();                                     // write back, stamp modification time
 
-    void* file_;         // HANDLE, INVALID_HANDLE_VALUE when closed
-    void* mapping_;      // HANDLE
-    void* view_;         // mapped base address
-    std::uint32_t size_;
+    void* file_;                  // HANDLE, INVALID_HANDLE_VALUE when closed
+    void* mapping_ = nullptr;     // HANDLE
+    void* view_ = nullptr;        // mapped base address
+    std::uint32_t size_ = 0;
 };
 
 // A file loaded from an archive by CMappedResource::GetFile. 0x1C bytes, allocated with operator new.

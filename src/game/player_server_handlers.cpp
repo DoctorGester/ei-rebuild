@@ -504,7 +504,7 @@ int CPlayerServer::OnLogin() {
         int length = 0x100;
         char format[0x100];
         auto* world = player->ServerWorld();
-        world->Messages()->GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
+        world->messages_.GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
         const std::string text = str::Format(format, 1, 0);
         std::uint8_t type = kMessageError;
         out_.WriteValue(type);

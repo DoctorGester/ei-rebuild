@@ -1,6 +1,6 @@
-// The console's static objects: its two command maps, the eight streambufs (one per message filter) and the
-// eight streams on them. Each is built by its static initialiser at the list's place; the maps and streambufs are
-// destroyed by the exit function that initialiser registers with the game's atexit (docs/notes/standalone.md, "The
+// The console's static objects: its two command maps (plain globals), the eight streambufs (one per message filter)
+// and the eight streams on them. Each streambuf and stream is built by its static initialiser at the list's place; the
+// streambufs are destroyed by the exit function that initialiser registers with the game's atexit (docs/notes/standalone.md, "The
 // static initialisers' objects"); a stream only names its streambuf, nothing to destroy. See docs/notes/console.md.
 #include "console.h"
 
@@ -8,8 +8,8 @@
 
 namespace console {
 
-constinit lib::StaticObject<CommandMap> g_publicCommands = /*007C7B28*/ {};
-constinit lib::StaticObject<CommandMap> g_cheatCommands = /*007C7B38*/ {};
+CommandMap g_publicCommands;
+CommandMap g_cheatCommands;
 
 constinit Stream g_consoleOut = /*007C55A8*/ {};
 constinit Stream g_allLogOut = /*007C5600*/ {};
@@ -36,17 +36,11 @@ namespace {
 using console::ConsoleStreambuf;
 using ExitFunction = void(*)();
 
-void BuildCommands(lib::StaticObject<console::CommandMap>& map, ExitFunction exit) {
-    map.Construct();
-    std::atexit(exit);
-}
 void BuildStreambuf(lib::StaticObject<ConsoleStreambuf>& buffer, unsigned filter, ExitFunction exit) {
     buffer.Construct(filter);
     std::atexit(exit);
 }
 
-void DestroyCheatCommands() { console::g_cheatCommands.Destroy(); }
-void DestroyPublicCommands() { console::g_publicCommands.Destroy(); }
 void DestroyAiLogBuf() { console::g_aiLogBuf.Destroy(); }
 void DestroyEventLogBuf() { console::g_eventLogBuf.Destroy(); }
 void DestroyGraphicsLogBuf() { console::g_graphicsLogBuf.Destroy(); }
@@ -57,8 +51,6 @@ void DestroyAllLogBuf() { console::g_allLogBuf.Destroy(); }
 void DestroyConsoleBuf() { console::g_consoleBuf.Destroy(); }
 } // namespace
 
-void ConstructCheatCommands() { BuildCommands(console::g_cheatCommands, DestroyCheatCommands); }
-void ConstructPublicCommands() { BuildCommands(console::g_publicCommands, DestroyPublicCommands); }
 
 void ConstructAiLogBuf() { BuildStreambuf(console::g_aiLogBuf, 1, DestroyAiLogBuf); }
 void ConstructEventLogBuf() { BuildStreambuf(console::g_eventLogBuf, 2, DestroyEventLogBuf); }

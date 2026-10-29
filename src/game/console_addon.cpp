@@ -218,9 +218,9 @@ const CommandRegistration kAddonCommandRegistrations[6] = {
 };
 
 void RegisterAddonCommands() {
-    g_gameHelp = Command(&g_cheatCommands.Get(), "help");
+    g_gameHelp = Command(&g_cheatCommands, "help");
     for (const CommandRegistration& r : kAddonCommandRegistrations)
-        Register(r.cheat ? &g_cheatCommands.Get() : &g_publicCommands.Get(), r.name, r.handler);
+        Register(r.cheat ? &g_cheatCommands : &g_publicCommands, r.name, r.handler);
 }
 
 void ApplyAddonGuiVisibility(CUiContainer* screen) {

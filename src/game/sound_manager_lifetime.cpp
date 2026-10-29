@@ -250,7 +250,6 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
 
 // The stream reader, the strings and the archive are members the compiler constructs before the body.
 CSoundManager::CSoundManager() {
-    soundRegistry.Construct();
     musicFader.volume = kFullVolume;
     musicFader.Recalc();
     musicFader.SetHold(0);
@@ -271,7 +270,6 @@ CSoundManager::~CSoundManager() {
     gameapi::DeleteCriticalSection(&streamLock);
     gameapi::DeleteCriticalSection(&nameLock);
     waveSources.clear();
-    soundRegistry.Destroy();
 }
 
 void CSoundManager::ResetStream() {

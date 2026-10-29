@@ -52,7 +52,7 @@ static void ReleaseTextures(CTextureManager* manager) {
 void CTextureManager::Create() {
     CBaseManager::Create();
     ForgetComposedTextures();
-    const std::string folder = *g_textFolder;
+    const std::string folder = g_textFolder;
     bool opened = AddArchive((folder + "textures.res"));
     opened = AddArchive((folder + "redress.res")) && opened;
     if (!AddArchive((folder + "menus.res")) || !opened) {

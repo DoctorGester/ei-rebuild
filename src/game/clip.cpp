@@ -36,10 +36,8 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
     return (c3 << 24) | (c1 << 8) | (c2 << 16) | c0;
 }
 
-// The work buffer: a word array, zero at the start: built by the static initialiser in the list's order and
-// destroyed by the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<std::vector<std::uint16_t>> g_workWords = /*0079B668*/ {};
-void DestroyWorkWords() { g_workWords.Destroy(); }
+// The work buffer: a word array.
+std::vector<std::uint16_t> g_workWords;
 void Emit(std::uint16_t index) { clip::Buffer()[clip::g_bufferCount++] = index; }
 
 template <std::size_t Axis>
@@ -77,14 +75,9 @@ int ClipPlane(TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int*
 
 } // namespace
 
-void ConstructWorkWords() {
-    g_workWords.Construct();
-    std::atexit(DestroyWorkWords);
-}
-
 namespace clip {
 
-std::uint16_t* Buffer() { return g_workWords->data(); }
+std::uint16_t* Buffer() { return g_workWords.data(); }
 
 void LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVertex* out) {
     out->x = (b->x - a->x) * t + a->x;
@@ -122,7 +115,7 @@ int ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, std::uint16_t
     std::uint8_t c1 = outcodes[tri[1]];
     std::uint8_t c2 = outcodes[tri[2]];
     int combined = c0 | c1 | c2;
-    g_workWords->resize(0x20);
+    g_workWords.resize(0x20);
     *indexCount = 3;
     if (c0 & c1 & c2 & 0x3F) {
         *indexCount = 0;

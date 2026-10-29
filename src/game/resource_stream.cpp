@@ -206,6 +206,4 @@ CMMIOResource::~CMMIOResource() {
     names_ = nullptr;
     mappedImage_ = nullptr;
     header_ = ResHeader{};
-    // The CMappedFile destructor; CMappedResource's follows.
-    file_.Close();
 }

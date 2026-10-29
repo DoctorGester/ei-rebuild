@@ -120,7 +120,6 @@ address,size,name,file
 0079AE60,348,kPow10Positive,src/lib/crt_format.cpp
 0079AFC0,348,kPow10Negative,src/lib/crt_format.cpp
 0079B1B8,4,kHeadingOffset,src/game/core_transform_math.cpp
-0079B270,40,g_classRegistry,src/game/chunk_archive.cpp
 0079B298,1,kEmptyText,src/game/game_strings.h
 0079B2A4,4,kHalfPi,src/game/camera.h
 0079B2A8,776,g_camera,src/game/camera_object.cpp
@@ -132,7 +131,6 @@ address,size,name,file
 0079B608,4,g_variableSerial,src/game/net_messages.h
 0079B60C,4,g_playerSerial,src/game/net_server_join.cpp
 0079B664,4,g_lastRatio,src/game/clip.h
-0079B668,20,g_workWords,src/game/clip.cpp
 0079B68C,4,g_bufferCount,src/game/clip.h
 0079B6B0,136,g_offsetBits,src/game/net_coder.cpp
 0079B738,136,g_offsetCodes,src/game/net_coder.cpp
@@ -147,11 +145,6 @@ address,size,name,file
 0079BA00,4,g_autoPlayMessage,src/game/app.cpp
 0079BA04,1,g_autoPlayGuard,src/game/app.cpp
 0079BA08,4,g_mouse,src/game/app_main.cpp
-0079BA0C,4,g_movieFolder,src/game/app_main.cpp
-0079BA10,4,g_commandLineMap,src/game/app_main.cpp
-0079BA14,4,g_commandLineMob,src/game/app_main.cpp
-0079BA18,4,g_commandLineScript,src/game/app_main.cpp
-0079BA1C,4,g_cameraFile,src/game/app_main.cpp
 0079BA20,2,g_windowClassAtom,src/game/app_main.cpp
 0079BA24,256,g_windowClassName,src/game/app_main.cpp
 0079BB24,256,g_windowTitle,src/game/app_main.cpp
@@ -184,7 +177,6 @@ address,size,name,file
 007A9D40,2068,g_random,src/game/random.cpp
 007AA5A0,68,g_partyManager,src/game/app_lifetime.cpp
 007AA620,4,g_streamedScript,src/game/script.h
-007AB8D8,20,g_unreadSet,src/game/buffered_file.cpp
 007AB8F0,4,g_twoPi,src/game/sys_info.cpp
 007AB8F8,264,g_sysInfo,src/game/sys_info.cpp
 007ABA00,4,g_halfPi,src/game/sys_info.cpp
@@ -242,10 +234,7 @@ address,size,name,file
 007AF3E8,4,kCombatLog,src/game/combat_internal.h
 007AF40C,4,g_squaredCallRadius,src/game/combat_actions.cpp
 007AF438,1,g_destroyed,src/game/game_folders.cpp
-007AF450,4,g_registryRoot,src/game/game_folders.cpp
-007AF454,4,g_startFolder,src/game/game_folders.cpp
 007AF458,4,g_discFolder,src/game/game_folders.cpp
-007AF45C,4,g_textFolder,src/game/game_folders.cpp
 007AF460,4,g_dataFolder,src/game/game_folders.cpp
 007AF5B8,2020,g_clientWorld,src/game/world_construct.cpp
 007AFDB0,12,kOrigin,src/game/world_data.h
@@ -289,8 +278,6 @@ address,size,name,file
 007C6E20,1108,g_graphicsLogBuf,src/game/console_streams.cpp
 007C7278,1108,g_eventLogBuf,src/game/console_streams.cpp
 007C76D0,1108,g_aiLogBuf,src/game/console_streams.cpp
-007C7B28,12,g_publicCommands,src/game/console_streams.cpp
-007C7B38,12,g_cheatCommands,src/game/console_streams.cpp
 007C7B64,1,g_cheatEnabled,src/game/console.h
 007C7B68,4,g_filterMask,src/game/console.h
 007C7BD8,184,g_cursor,src/game/ui_cursor_setup.cpp

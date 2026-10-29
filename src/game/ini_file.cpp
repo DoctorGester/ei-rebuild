@@ -9,8 +9,6 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <memory>
-#include <new>
 #include <string>
 #include <vector>
 
@@ -24,18 +22,9 @@ std::string ReadString(const CIniFile* ini, const char* section, const char* key
 
 } // namespace
 
-// --- Construction ----------------------------------------------------------------------------------
-
-CIniFile* CIniFile::Construct() {
-    std::construct_at(&path_);
-    return this;
-}
-
 void CIniFile::SetPath(std::string_view path) {
     path_ = path;
 }
-
-void CIniFile::Destruct() { std::destroy_at(&path_); }
 
 // --- Readers ---------------------------------------------------------------------------------------
 

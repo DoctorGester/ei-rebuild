@@ -219,7 +219,7 @@ bool RestoreSurfaces(long* result) {
 
 int& GamePort() { return net::g_gamePort; }
 
-const char* TextFolder() { return g_textFolder->c_str(); }
+const char* TextFolder() { return g_textFolder.c_str(); }
 
 long ModFile(const char* path, const char* name) {
     void* memory = ::operator new(sizeof(CMappedResource));

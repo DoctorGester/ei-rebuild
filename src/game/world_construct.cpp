@@ -30,7 +30,6 @@ constexpr std::uint32_t kClientFlags = 0x3DC0;
 } // namespace
 
 CWorldServer::CWorldServer() {
-    Messages()->Construct();
     diplomacy_.Reset();
     ResetState();
 }

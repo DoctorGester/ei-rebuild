@@ -34,11 +34,11 @@ constexpr float kWindStrength = 0.4f;
 void CWorldServer::Create() {
     Destroy();
     CWorld::Create();
-    std::string folder = *g_textFolder;
+    std::string folder = g_textFolder;
     bool opened;
     {
         std::string path = folder + kMessagesFileName;
-        opened = Messages()->Open(path);
+        opened = messages_.Open(path);
     }
     if (!opened) {
         game::FatalError(CantOpenText());
@@ -87,7 +87,7 @@ void CWorldServer::Destroy() {
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     ResetState();
-    Messages()->Close();
+    messages_.Close();
 
     exits_ = {};
     CWorld::Destroy();

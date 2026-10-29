@@ -60,9 +60,9 @@ extern lib::StaticObject<PartyManager> g_partyManager;   // app_lifetime.cpp
 // The registry key of the options and the game's folders (game_folders.cpp): where the game was started,
 // the disc's (the base folder), the text resources' and the data folder (with its trailing backslash; DataFolderText()
 // is its characters for printf-style arguments).
-extern lib::StaticObject<std::string> g_registryRoot;
-extern lib::StaticObject<std::string> g_startFolder;
+extern std::string g_registryRoot;
+extern std::string g_startFolder;
 extern lib::StaticObject<std::string> g_discFolder;
-extern lib::StaticObject<std::string> g_textFolder;
+extern std::string g_textFolder;
 extern lib::StaticObject<std::string> g_dataFolder;
 inline const char* DataFolderText() { return g_dataFolder->c_str(); }

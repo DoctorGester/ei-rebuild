@@ -115,10 +115,8 @@ ResConfig ReadResConfig() {
     const std::string cd = WithSlash(StarterValue(kPathSettings, "CD-ROM PATH", ".\\"));
 
     CFileRegistry registry;
-    registry.Construct();
     const std::string file = mod + "config.reg";
     if (!registry.Open(file) || (registry.data_[4] | (registry.data_[5] << 8)) == 0) {
-        registry.Destroy();
         return config;
     }
     // The game's archives addon knows (its table at 10009100): an archive's mod entries override it,
@@ -151,7 +149,6 @@ ResConfig ReadResConfig() {
     };
     extra({"figures.res", "menus.res"}, config.figures);
     extra({"textures.res", "redress.res", "menus.res"}, config.textures);
-    registry.Destroy();
     return config;
 }
 

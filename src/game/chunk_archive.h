@@ -193,7 +193,7 @@ public:
     std::unordered_map<const CRefCounted*, std::uint32_t> numbers_;
     std::list<CRefCounted*> saved_;              // the objects whose records Close writes
 };
-extern lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry;   // chunk_archive.cpp
+extern ChunkArchive::ClassRegistry g_classRegistry;   // chunk_archive.cpp
 
 // A vector of records as chunk `id`, one chunk 1 per record (the record's occurrence): loading empties the
 // vector and resizes it to the number of chunks 1 first. `fields(record, archive)` (a record's member

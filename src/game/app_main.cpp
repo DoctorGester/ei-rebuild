@@ -58,23 +58,17 @@ namespace app {
 
 // ---- The application's globals that the static initialisers set ------------------------------------
 
-// The command line's strings, built by static initialisers in the list's order and destroyed by the exit
-// functions they register; the mouse object's pointer, null at the start, released by its exit function.
-constinit lib::StaticObject<std::string> g_movieFolder = /*0079BA0C*/ {};
-constinit lib::StaticObject<std::string> g_commandLineMap = /*0079BA10*/ {};
-constinit lib::StaticObject<std::string> g_commandLineMob = /*0079BA14*/ {};
-constinit lib::StaticObject<std::string> g_commandLineScript = /*0079BA18*/ {};
-constinit lib::StaticObject<std::string> g_cameraFile = /*0079BA1C*/ {};
+// The command line's strings; the mouse object's pointer, null at the start, released by its exit function.
+std::string g_movieFolder = ".\\capture\\";
+std::string g_commandLineMap;
+std::string g_commandLineMob;
+std::string g_commandLineScript;
+std::string g_cameraFile;
 constinit CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
 
 
 namespace {
 
-void DestroyCameraFile() { g_cameraFile.Destroy(); }
-void DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
-void DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
-void DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
-void DestroyMovieFolder() { g_movieFolder.Destroy(); }
 
 // Constants of the exe, read when they are used (a literal could be folded at another precision).
 // A step of a float expression kept apart from the next: the value passes through a double, which
@@ -146,10 +140,10 @@ std::string Tail(const std::string& argument, int prefixLength) { return str::Ri
 void ReadCommandLine(const char* commandLine) {
     std::vector<std::string> arguments;
     text::Split(commandLine, &arguments, ' ');
-    *g_cameraFile = ".\\camera.cam";
-    g_commandLineScript->clear();
-    g_commandLineMob->clear();
-    g_commandLineMap->clear();
+    g_cameraFile = ".\\camera.cam";
+    g_commandLineScript.clear();
+    g_commandLineMob.clear();
+    g_commandLineMap.clear();
     CWorldClient* client = &g_clientWorld.Get();
     GameOptions* options = &options::g_options.Get();
     for (std::size_t i = 0; i < arguments.size(); ++i) {
@@ -157,9 +151,9 @@ void ReadCommandLine(const char* commandLine) {
             client->flags_ &= ~0x20u;
             {
                 std::string folder = Tail(arguments[i], 11);
-                *g_movieFolder = folder;
+                g_movieFolder = folder;
             }
-            if (g_movieFolder->back() != '\\') *g_movieFolder += '\\';
+            if (g_movieFolder.back() != '\\') g_movieFolder += '\\';
             continue;
         }
         if (!(client->flags_ & 0x10)) {
@@ -169,16 +163,16 @@ void ReadCommandLine(const char* commandLine) {
                 continue;
             }
             if (!(client->flags_ & 0x10) && str::Find(arguments[i], ".cam") != -1) {
-                *g_cameraFile = arguments[i].c_str();
+                g_cameraFile = arguments[i].c_str();
                 continue;
             }
         }
         if (str::Find(arguments[i], ".scr") != -1) {
-            *g_commandLineScript = arguments[i].c_str();
+            g_commandLineScript = arguments[i].c_str();
         } else if (str::Find(arguments[i], ".mob") != -1) {
-            *g_commandLineMob = arguments[i].c_str();
+            g_commandLineMob = arguments[i].c_str();
         } else if (str::Find(arguments[i], ".mpr") != -1) {
-            *g_commandLineMap = arguments[i].c_str();
+            g_commandLineMap = arguments[i].c_str();
         } else if (str::Find(arguments[i], "-benchmark_") == 0) {
             std::string frames = Tail(arguments[i], 11);
             options->numberOfFrames_ = str::ToInt(frames);
@@ -319,7 +313,7 @@ void CreateRenderer() {
 // the disc folder's text pointer (see the caller).
 std::uintptr_t OpenSound() {
     GameOptions* options = &options::g_options.Get();
-    std::string textFolder = *g_textFolder;
+    std::string textFolder = g_textFolder;
     std::string dataFolder = *g_dataFolder;
     std::string discFolder = *g_discFolder;
     g_clientWorld->sounds_->Open(g_mainWindow, 1, -1, 44100);
@@ -589,35 +583,13 @@ void ShutDown() {
     if (mouse) ReleaseMouse(mouse);
     g_sceneRenderer->SetGamma(0.0f, 0.0f, 0.0f);
     g_sceneRenderer->DestroyRenderer();
-    options::g_options->SaveToRegistry(g_registryRoot->c_str());
+    options::g_options->SaveToRegistry(g_registryRoot.c_str());
     g_clientWorld->SetCamera(nullptr);
     g_serverWorld->Destroy();
     g_clientWorld->Destroy();
 }
 
 } // namespace
-
-// The initialisers: each string empty (".\capture\" for the movie folder), its exit function registered.
-void ConstructCameraFile() {
-    g_cameraFile.Construct();
-    std::atexit(DestroyCameraFile);
-}
-void ConstructCommandLineScript() {
-    g_commandLineScript.Construct();
-    std::atexit(DestroyCommandLineScript);
-}
-void ConstructCommandLineMob() {
-    g_commandLineMob.Construct();
-    std::atexit(DestroyCommandLineMob);
-}
-void ConstructCommandLineMap() {
-    g_commandLineMap.Construct();
-    std::atexit(DestroyCommandLineMap);
-}
-void ConstructMovieFolder() {
-    g_movieFolder.Construct(".\\capture\\");
-    std::atexit(DestroyMovieFolder);
-}
 
 // The mouse's reference dropped (ShutDown has already taken it: null at exit).
 void ReleaseMouseAtExit() {
@@ -640,22 +612,22 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     std::vector<std::string> messages;
     LoadSystemMessages(messages);
     // The classes the chunk archives can hold: 1 the class template, 2 the party record.
-    app::TypeRegistryRegister(&g_classRegistry.Get(), 1, CreateClassTemplate);
-    app::TypeRegistryRegister(&g_classRegistry.Get(), 2, CreatePartyRecord);
+    app::TypeRegistryRegister(&g_classRegistry, 1, CreateClassTemplate);
+    app::TypeRegistryRegister(&g_classRegistry, 2, CreatePartyRecord);
     ReadCommandLine(commandLine);
     RegisterWindowClass(instance);
 
     GameOptions* options = &options::g_options.Get();
     // NivalRegistry: Rebirth's patch names its own key instead.
-    *g_registryRoot = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
+    g_registryRoot = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
                          ? "Software\\Gipat.ru\\EI_Starter\\EvilIslands"
                          : "Software\\Nival Interactive\\EvilIslands";
     StoreStartFolder();
     {
-        std::string settings = *g_startFolder + "config\\ai.reg";
+        std::string settings = g_startFolder + "config\\ai.reg";
         g_logicSettings.Load(settings);
     }
-    options->LoadFromRegistry(g_registryRoot->c_str());
+    options->LoadFromRegistry(g_registryRoot.c_str());
     g_clientWorld->Create();
     g_serverWorld->Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).

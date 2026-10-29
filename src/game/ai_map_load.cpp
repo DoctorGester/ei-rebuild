@@ -110,13 +110,6 @@ struct Archive {
     lib::InPlace<CMappedResource> storage;
 };
 
-struct Registry {
-    Registry() { file.Construct(); }
-    ~Registry() { file.Destroy(); }
-    Registry(const Registry&) = delete;
-    CFileRegistry file;
-};
-
 int Fatal(const std::string& message) { return game::FatalError(message); }
 
 // The .mp file `name`.MP of `archive` into `map`. Returns 1, or the fatal error's result when the
@@ -188,16 +181,16 @@ int ReadTerrainTypes(CAIMap& map) {
     Archive archive;
     bool opened;
     {
-        std::string folder = *g_textFolder;
+        std::string folder = g_textFolder;
         opened = archive.Open((folder + "aiinfo.res"));
     }
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");
     void* file = archive.File("tileDesc.reg", nullptr);
     if (!file) return game::FatalError("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
-    Registry registry;
-    if (!registry.file.Attach(file)) return game::FatalError("CAIMap::Load.\n Can't open aiReg");
+    CFileRegistry registry;
+    if (!registry.Attach(file)) return game::FatalError("CAIMap::Load.\n Can't open aiReg");
     std::vector<std::string> sections;
-    registry.file.GetSectionNames(&sections);
+    registry.GetSectionNames(&sections);
 
     map.materials.resize(kTerrainTypes);
     for (int i = 0; i < std::ssize(map.materials); ++i) {
@@ -213,18 +206,18 @@ int ReadTerrainTypes(CAIMap& map) {
         const char* const section = sectionName.c_str();
         const int index = std::atoi(section);
         {
-            std::string name = registry.file.GetString(section, "Name", std::string(""));
+            std::string name = registry.GetString(section, "Name", std::string(""));
             const char* text = str::Buffer(name, 0);
             std::memcpy(map.materials[index].name, text, std::strlen(text) + 1);
         }
         AITerrainType& type = map.materials[index];
-        type.cost = registry.file.GetInt2(section, "CostMul", -1);
-        type.speed = registry.file.GetInt2(section, "Speed", -1);
-        type.look = static_cast<float>(registry.file.GetInt2(section, "StepLook", 100)) * kHundredth;
-        type.smell = static_cast<float>(registry.file.GetInt2(section, "StepSmell", 100)) * kHundredth;
-        type.noise = static_cast<float>(registry.file.GetInt2(section, "StepSound", 100)) * kHundredth;
+        type.cost = registry.GetInt2(section, "CostMul", -1);
+        type.speed = registry.GetInt2(section, "Speed", -1);
+        type.look = static_cast<float>(registry.GetInt2(section, "StepLook", 100)) * kHundredth;
+        type.smell = static_cast<float>(registry.GetInt2(section, "StepSmell", 100)) * kHundredth;
+        type.noise = static_cast<float>(registry.GetInt2(section, "StepSound", 100)) * kHundredth;
     }
-    registry.file.Close();
+    registry.Close();
     archive.Close(file);
     archive.Get()->CMappedResource::CloseResource();
     return 1;

@@ -12,9 +12,7 @@
 
 class CIniFile {
 public:
-    CIniFile* Construct();                                  // empty path
     void SetPath(std::string_view path);
-    void Destruct();                                         // the path's destructor
 
     // The key names of `section` (the part before '=', trimmed) into `out` (emptied
     // first). Returns 0 for an empty or unreadable section.

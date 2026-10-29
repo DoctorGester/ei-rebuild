@@ -18,10 +18,6 @@ enum RegistryType : std::uint8_t {
 
 class CFileRegistry {
 public:
-    // The constructor: nothing open.
-    CFileRegistry* Construct();
-    // The destructor body: closes the file (when it owns one).
-    void Destroy();
     // Maps the file at `path`. Returns 0 if it cannot be opened or is not a registry.
     bool Open(const std::string& path);
     // Uses a registry image already in memory. Returns 0 if it is not a registry.
@@ -55,9 +51,9 @@ public:
     // A string array (or a single string) into `out`. Without the key `out` is emptied and the result is 0.
     bool GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
 
-    bool attached_;               // 1: the data is not ours (Attach)
+    bool attached_ = false;       // 1: the data is not ours (Attach)
     CMappedFile file_;
-    const std::uint8_t* data_;
+    const std::uint8_t* data_ = nullptr;
 };
 
 constexpr std::uint32_t kRegistryMagic = 0x45AB3EFB;

@@ -357,7 +357,6 @@ private:
 void GameOptions::LoadFromRegistry(const char* path) {
     std::string resolution;   // the game's local is constructed first, read later
     CWinRegistry key;
-    key.Construct();
     key.Open(path, kCurrentUser);
     Loader l(this, key);
 
@@ -393,13 +392,11 @@ void GameOptions::LoadFromRegistry(const char* path) {
     l.Read(kFogValues);
     masterServerName_ = GetString(key, l.Key(&GameOptions::keyNetwork_), "Master Server Name", masterServerName_);
     key.Close();
-    key.Destroy();
 }
 
 void GameOptions::SaveToRegistry(const char* path) {
     std::string resolution;
     CWinRegistry key;
-    key.Construct();
     key.Open(path, kCurrentUser);
     Saver s(this, key);
 
@@ -427,7 +424,6 @@ void GameOptions::SaveToRegistry(const char* path) {
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
         SetString(key, s.Key(&GameOptions::keyNetwork_), "Master Server Name", masterServerName_);
     key.Close();
-    key.Destroy();
 }
 
 } // namespace options
