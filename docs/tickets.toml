@@ -4925,6 +4925,12 @@ size = 1
 model = "sonnet"
 note = "Done: harness game windows get the title '<title> (harness)' (harness.cpp CreateWithoutActivating) so a play launch's FindWindowA check never matches them; harness runs already answer the check themselves (NoOtherGameWindow, game.exe's too), so harness runs never see each other or a play window. The image logs 'app: another game window exists' in ei_hook.log before Exit(-1); ei_launch (no harness) prints a line for exit -1. Suites: 121 and 114 goldens the same. Not covered by a scenario (check is in WinMain)."
 
+[[ticket]]
+id = "S22"
+title = "Trim game.exe's import table: only the imports the game still reaches"
+group = "standalone"
+note = "User 2026-10-29. The standalone resolves all of game.exe's imports (src/standalone/image_imports.inc: kernel32 159, user32 151, gdi32 83, mss32 47, wsock32 22, binkw32 12, advapi32 11, winmm 5, ole32 3, ddraw 2, shell32 2, dinput, dsound, comctl32, comdlg32), so every listed DLL loads even where our code replaced the calls (gdi32 after P8, ddraw behind the renderer). Count which slots are still reached from game code not yet named in our source (the image's code and data) and which are routed to our wrappers (ImageRoute) or never called; resolve only those, leave the rest as traps (OnTrap already reports a call through an unresolved slot). Report per DLL what is left; a DLL with no reached imports stops loading. Follow-ups per DLL (ddraw, dinput, dsound first) go in as S22a.... Check: goldens unchanged, play.cmd starts, ei_launch the same; no trap fires in the full suite."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
