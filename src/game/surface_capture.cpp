@@ -44,7 +44,7 @@ CDib* CaptureScreen(const CTextureDevice* device) {
         return nullptr;
     }
     const int bitsPerPixel = device->bitsPerPixel_;
-    const PixelFormat format = ScreenFormat(bitsPerPixel);
+    const render::PixelFormat format = ScreenFormat(bitsPerPixel);
     const int width = device->screen_.right, height = device->screen_.bottom;
     auto* dib = new CDib(width, height, bitsPerPixel, format.redMask, format.greenMask, format.blueMask);
     std::uint8_t* out = dib->AllocateBits();

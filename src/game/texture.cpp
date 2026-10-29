@@ -41,13 +41,13 @@ bool IsTextureFormat(std::uint32_t id) {
     return (id & 0x00FFFFFF) == kDxtCode && digit >= '1' && digit <= '5';
 }
 
-PixelFormat TextureFormat(std::uint32_t id) {
+render::PixelFormat TextureFormat(std::uint32_t id) {
     switch (id) {
-    case kFormat565: return PixelFormat{16, 0xF800, 0x07E0, 0x001F, 0};
-    case kFormat1555: return PixelFormat{16, 0x7C00, 0x03E0, 0x001F, 0x8000};
-    case kFormat4444: return PixelFormat{16, 0x0F00, 0x00F0, 0x000F, 0xF000};
-    case kFormat8888: return PixelFormat{32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000u};
-    default: return PixelFormat{};
+    case kFormat565: return render::PixelFormat{16, 0xF800, 0x07E0, 0x001F, 0};
+    case kFormat1555: return render::PixelFormat{16, 0x7C00, 0x03E0, 0x001F, 0x8000};
+    case kFormat4444: return render::PixelFormat{16, 0x0F00, 0x00F0, 0x000F, 0xF000};
+    case kFormat8888: return render::PixelFormat{32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000u};
+    default: return render::PixelFormat{};
     }
 }
 

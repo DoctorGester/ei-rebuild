@@ -7,7 +7,7 @@
 # data the save loads the same zone. Frame checks only (image).
 # no original: vanilla rebirth (the shadow map is our renderer's)
 # prepare: copy_save.py tests/saves/shadow_mound save2
-render new,present,smooth,checkall
+render smooth,checkall
 timeout 120
 reject Script error
 waitmenu

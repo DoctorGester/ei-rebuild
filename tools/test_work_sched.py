@@ -708,8 +708,8 @@ class SchedTest(unittest.TestCase):
         run_all.subprocess.run = fake_subprocess_run
         try:
             for install, kw in (('vanilla', {'fresh': True}), ('rebirth', {'fresh': True}),
-                                ('vanilla', {'fresh': True, 'game_env': {'EI_RENDER': 'new,present', 'EI_VECTORS': '1'}}),
-                                ('standalone', {'game_env': {'EI_RENDER': 'new'}})):
+                                ('vanilla', {'fresh': True, 'game_env': {'EI_RENDER': 'smooth', 'EI_VECTORS': '1'}}),
+                                ('standalone', {'game_env': {'EI_RENDER': 'smooth'}})):
                 run_all.run('plain', install, root=self.tmp, build=build, take_slot=False, **kw)
             native = run_all.run('plain', 'native', root=self.tmp, build=build, take_slot=False)
             row = {'worktree': self.tmp, 'build': build, 'env': None}
@@ -725,7 +725,7 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(seen[2][1]['EI_VECTORS'], '1')                 # vector recording: the original's runs
         self.assertIn('--standalone', seen[3][0])
         self.assertNotIn('--no-hooks', seen[3][0])
-        self.assertEqual(seen[3][1]['EI_RENDER'], 'new,present')
+        self.assertNotIn('EI_RENDER', seen[3][1])                       # the scenario's "render" step decides
         self.assertEqual(native[0], 'FAIL')
         self.assertIn('unknown install', native[2][0])
         self.assertEqual(hooked[0], 'FAIL')
@@ -743,7 +743,7 @@ class SchedTest(unittest.TestCase):
             return subprocess.CompletedProcess(cmd, 0, 'ei_standalone: 504 imports resolved, 0 missing\n'
                                                'ei_standalone: the game returned 0\n', '')
         self.scenario('boot', 'waitmenu\nquit\n')
-        wide = self.scenario('wide', 'render new\nresolution 800x600\nfullscreen 1\n')
+        wide = self.scenario('wide', 'render smooth\nresolution 800x600\nfullscreen 1\n')
         # The vanilla data only unless the Rebirth data is asked for (SV9)
         vanilla = [('boot', 'standalone'), ('wide', 'standalone')]
         both = [('boot', 'standalone'), ('boot', 'standalone-rebirth'), ('wide', 'standalone'), ('wide', 'standalone-rebirth')]
@@ -791,14 +791,14 @@ class SchedTest(unittest.TestCase):
         run_all.subprocess.run = fake_subprocess_run
         try:
             notes = run_all.run('boot', 'standalone', root=self.tmp, build=build, take_slot=False,
-                                game_env={'EI_RENDER': 'new'})[4]
+                                game_env={'EI_RENDER': 'smooth'})[4]
         finally:
             run_all.subprocess.run = old_run
         cmd, env = seen[0]
         self.assertIn('--standalone', cmd)
         self.assertNotIn('--exe', cmd)                  # the image reads no game.exe: --game is its data (EI_GAME_ROOT)
         self.assertEqual(cmd[cmd.index('--game') + 1], r'F:\games\EvilIslands')
-        self.assertEqual(env['EI_RENDER'], 'new,present')
+        self.assertNotIn('EI_RENDER', env)
         self.assertEqual(notes, ['ei_standalone: the game returned 0'])
         # standalone-rebirth: ei_launch's default (Rebirth) game folder, the ini's flags
         os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)
@@ -813,7 +813,8 @@ class SchedTest(unittest.TestCase):
         self.assertIn('--standalone', cmd)
         self.assertNotIn('--game', cmd)
         self.assertNotIn('--exe', cmd)
-        self.assertEqual((env['EI_RENDER'], env['EI_REBIRTH']), ('new,present', 'NivalRegistry,WideScreen'))
+        self.assertNotIn('EI_RENDER', env)
+        self.assertEqual(env['EI_REBIRTH'], 'NivalRegistry,WideScreen')
         self.assertEqual(run_all.GOLDEN_INSTALL['standalone-rebirth'], 'rebirth')
 
     def test_reference_cache(self):

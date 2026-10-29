@@ -42,7 +42,7 @@ const BlankFormat* FormatOfKind(TextureKind kind) {
 
 
 void CTexture::TakeBlankHolder(CTextureDevice* device, int width, int height, bool mipmapped) {
-    const PixelFormat format = TextureFormat(format_);
+    const render::PixelFormat format = TextureFormat(format_);
     // Without a format (another kind's texture) the error for a surface that cannot be made ends the game.
     Surface* holder = format.bitsPerPixel ? NewDecodedTextureHolder(device, width, height, format.bitsPerPixel) : nullptr;
     if (!holder) ThrowSurfaceNotMade(0, 0);

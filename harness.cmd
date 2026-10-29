@@ -8,13 +8,13 @@ setlocal
 if not defined EI_GAME_VANILLA set "EI_GAME_VANILLA=F:\games\EvilIslands"
 rem The image reads no game.exe (S18k1); --no-hooks runs run\vanilla's original game.exe with dgVoodoo.
 set "EXE="
-rem The image draws with our renderer (no display mode change); the original code draws through dgVoodoo.
+rem The image draws with our renderer (no display mode change); the original code draws through dgVoodoo. EI_RENDER
+rem reaches neither: a scenario's "render" step sets the image's renderer options.
 set MODE=--standalone
-set EI_RENDER=new,present
+set EI_RENDER=
 if /i "%~2"=="--no-hooks" (
     if not exist "%~dp0run\vanilla\game.exe" call "%~dp0tools\setup_vanilla_run.cmd" || exit /b 2
     set MODE=
-    set EI_RENDER=
     set EXE=--exe "%~dp0run\vanilla\game.exe"
 )
 rem A scenario's "# prepare:" lines write files the game reads from saves\ (tools\prepare_scenario.py).

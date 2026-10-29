@@ -1,4 +1,4 @@
-# frames_basic with the switch-over ("render new,present", docs/notes/renderer.md): the old path
+# frames_basic with the switch-over (docs/notes/renderer.md): the old path
 # draws only what is not handed over yet, the new frame is copied into the game's render target and
 # the old present shows it; captures are the new frames. Compare with a frames_basic run of the old
 # path:
@@ -10,7 +10,7 @@
 # second part (section 7) no texture has one: the .mmp textures are the new renderer's decoded
 # copy, the object shadows' textures its memory (ei_hook.log: "... .mmp textures in the switch-over
 # get no DirectDraw texture ...").
-render new,present,checkall
+render checkall
 reject Script error
 waitmenu
 console thingamabob

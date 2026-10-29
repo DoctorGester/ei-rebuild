@@ -14,7 +14,8 @@ for %%f in (ei_launch.exe ei_launch.pdb ei_hook.dll ei_hook.pdb ei_standalone.ex
 )
 rem The default Rebirth flags (play.cmd may have left an ei_rebirth.ini there).
 del "%PLAY%\ei_rebirth.ini" 2>nul
-set EI_RENDER=new,present
+rem The renderer's default options (play.cmd turns on the smooth option and the smooth camera).
+set EI_RENDER=
 cd /d "%PLAY%"
 rem No --exe: ei_launch starts the ei_standalone.exe next to it.
 "%PLAY%\ei_launch.exe" --game "%EI_GAME_VANILLA%" --standalone %*

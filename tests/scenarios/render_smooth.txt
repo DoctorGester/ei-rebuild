@@ -12,7 +12,7 @@
 # with the world split in two at its middle command (smooth_split, the later half drawn over the copy
 # of the resolved first half) only where both halves' edges meet in a pixel.
 # no original: vanilla rebirth (the smooth option is our renderer's)
-render new,present,smooth,checkall
+render smooth,checkall
 reject Script error
 waitmenu
 console thingamabob

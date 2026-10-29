@@ -142,7 +142,7 @@ static_assert(sizeof(MmpHeader) == 0x4C);
 // compressed DXT1 .. DXT5 by their four-character codes (texture.cpp).
 bool IsTextureFormat(std::uint32_t id);
 // The pixel format of an RGB texture format; none (all zero) for a compressed or unknown one.
-PixelFormat TextureFormat(std::uint32_t id);
+render::PixelFormat TextureFormat(std::uint32_t id);
 
 // A texture's kind: its type_, the texture manager's object type. Neither the data nor the strings name them; the
 // callers pass a figure part's meshType_ (1..0x10, CObject3DClientSpecific's part sets; 1 and 2 also the units'

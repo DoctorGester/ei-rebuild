@@ -12,7 +12,7 @@
 # moments with the shadows as they started, off (or on, when they started off), and back. (R16b compared
 # each moment with the classic shadows' textures made again as new images; R16i removed the classic
 # shadows.)
-render new,present,checkall
+render checkall
 reject Script error
 waitmenu
 frames 5
