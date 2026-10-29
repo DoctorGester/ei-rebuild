@@ -5,7 +5,7 @@
 // come from its settings file (game/settings_file.h): the same change is made to each read of them there.
 #include "log.h"
 #include "ei/hook.h"
-#include "lib/gameapi.h"
+#include "lib/import_table.h"
 
 #include <cstdint>
 
@@ -54,7 +54,7 @@ void RedirectGamePaths() {
         return;
     }
 
-    auto* slot = &gameapi::RegQueryValueExA;   // game.exe's import table entry
+    auto* slot = &OriginalImport(&ImportTable::RegQueryValueExA);
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     g_original = *slot;

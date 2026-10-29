@@ -2,6 +2,7 @@
 #define DIRECTINPUT_VERSION 0x0700
 #include "harness_input.h"
 #include "harness_imports.h"
+#include "image/image_side.h"
 
 #include <dinput.h>
 #include <windowsx.h>
@@ -81,11 +82,16 @@ HRESULT STDMETHODCALLTYPE RoutedCreateDeviceEx(IDirectInput7A* input, REFGUID gu
     return result;
 }
 
+// The game's DirectInput object: its devices made through RoutedCreateDeviceEx.
+void RouteInput(IDirectInput7A* input) {
+    void** slot = &Vtable(input)[kCreateDeviceExSlot];
+    if (*slot != reinterpret_cast<void*>(&RoutedCreateDeviceEx)) PatchSlot(slot, &RoutedCreateDeviceEx, g_createDeviceEx);
+}
+
+// game.exe's DirectInputCreateEx slot.
 HRESULT WINAPI RoutedCreate(HINSTANCE instance, DWORD version, REFIID iid, void** out, IUnknown* outer) {
     const HRESULT result = g_create(instance, version, iid, out, outer);
-    if (FAILED(result) || !out || !*out) return result;
-    void** slot = &Vtable(*out)[kCreateDeviceExSlot];
-    if (*slot != reinterpret_cast<void*>(&RoutedCreateDeviceEx)) PatchSlot(slot, &RoutedCreateDeviceEx, g_createDeviceEx);
+    if (SUCCEEDED(result) && out && *out) RouteInput(static_cast<IDirectInput7A*>(*out));
     return result;
 }
 
@@ -95,7 +101,8 @@ void Install() {
     static bool installed = false;
     if (installed) return;
     installed = true;
-    PatchImport(&ImportTable::DirectInputCreateEx, &RoutedCreate, g_create);
+    if (ei::Standalone()) image::ObserveDirectInput(&RouteInput);   // our code calls the system's dinput.dll directly
+    else PatchOriginalImport(&ImportTable::DirectInputCreateEx, &RoutedCreate, g_create);
 }
 
 bool RealMouse(HWND, UINT message, WPARAM, LPARAM lParam, LRESULT* result) {

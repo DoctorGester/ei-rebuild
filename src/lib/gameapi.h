@@ -11,6 +11,7 @@
 #include "lib/import_table.h"
 
 #pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "dsound.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "kernel32.lib")
 #pragma comment(lib, "shell32.lib")
@@ -101,7 +102,7 @@ inline auto& gethostbyname = ei::Imports().gethostbyname;  // WSOCK32.dll, throu
 inline auto& htons = ei::Imports().htons;  // WSOCK32.dll, through the slot
 inline auto& ioctlsocket = ei::Imports().ioctlsocket;  // WSOCK32.dll, through the slot
 inline auto& sendto = ei::Imports().sendto;  // WSOCK32.dll, through the slot
-inline auto& DirectSoundEnumerateA = ei::Imports().DirectSoundEnumerateA;  // DSOUND.dll, through the slot
+using ::DirectSoundEnumerateA;  // DSOUND.dll
 inline auto& DirectDrawEnumerateExA = ei::Imports().DirectDrawEnumerateExA;  // DDRAW.dll, through the slot
 inline auto& DirectDrawCreateEx = ei::Imports().DirectDrawCreateEx;  // DDRAW.dll, through the slot
 inline auto& DirectInputCreateEx = ei::Imports().DirectInputCreateEx;  // DINPUT.dll, through the slot
@@ -147,9 +148,9 @@ inline auto& GetSystemTime = ei::Imports().GetSystemTime;  // KERNEL32.dll, thro
 using ::GetModuleHandleA;  // KERNEL32.dll
 using ::LeaveCriticalSection;  // KERNEL32.dll
 inline auto& GetPrivateProfileSectionA = ei::Imports().GetPrivateProfileSectionA;  // KERNEL32.dll, through the slot
-inline auto& GetPrivateProfileIntA = ei::Imports().GetPrivateProfileIntA;  // KERNEL32.dll, through the slot
+using ::GetPrivateProfileIntA;  // KERNEL32.dll
 inline auto& GetPrivateProfileStringA = ei::Imports().GetPrivateProfileStringA;  // KERNEL32.dll, through the slot
-inline auto& WritePrivateProfileStringA = ei::Imports().WritePrivateProfileStringA;  // KERNEL32.dll, through the slot
+using ::WritePrivateProfileStringA;  // KERNEL32.dll
 using ::GlobalFree;  // KERNEL32.dll
 using ::GlobalUnlock;  // KERNEL32.dll
 using ::lstrcmpA;  // KERNEL32.dll
@@ -157,7 +158,7 @@ using ::lstrlenA;  // KERNEL32.dll
 using ::WideCharToMultiByte;  // KERNEL32.dll
 using ::MultiByteToWideChar;  // KERNEL32.dll
 using ::DuplicateHandle;  // KERNEL32.dll
-inline auto& GetPrivateProfileSectionNamesA = ei::Imports().GetPrivateProfileSectionNamesA;  // KERNEL32.dll, through the slot
+using ::GetPrivateProfileSectionNamesA;  // KERNEL32.dll
 using ::ReadFile;  // KERNEL32.dll
 inline auto& WriteFile = ei::Imports().WriteFile;  // KERNEL32.dll, through the slot
 using ::SetFilePointer;  // KERNEL32.dll
@@ -213,20 +214,20 @@ using ::GetCPInfo;  // KERNEL32.dll
 using ::GetOEMCP;  // KERNEL32.dll
 using ::RtlUnwind;  // KERNEL32.dll
 inline auto& GetTickCount = ei::Imports().GetTickCount;  // KERNEL32.dll, through the slot
-inline auto& CreateThread = ei::Imports().CreateThread;  // KERNEL32.dll, through the slot
+using ::CreateThread;  // KERNEL32.dll
 using ::ExitThread;  // KERNEL32.dll
 using ::ExitProcess;  // KERNEL32.dll
 using ::TerminateProcess;  // KERNEL32.dll
 using ::GetACP;  // KERNEL32.dll
-inline auto& HeapFree = ei::Imports().HeapFree;  // KERNEL32.dll, through the slot
-inline auto& HeapAlloc = ei::Imports().HeapAlloc;  // KERNEL32.dll, through the slot
+using ::HeapFree;  // KERNEL32.dll
+using ::HeapAlloc;  // KERNEL32.dll
 using ::GetFileType;  // KERNEL32.dll
 using ::GetStartupInfoA;  // KERNEL32.dll
 using ::GetCommandLineA;  // KERNEL32.dll
 using ::SetStdHandle;  // KERNEL32.dll
-inline auto& HeapReAlloc = ei::Imports().HeapReAlloc;  // KERNEL32.dll, through the slot
-inline auto& GetTimeZoneInformation = ei::Imports().GetTimeZoneInformation;  // KERNEL32.dll, through the slot
-inline auto& HeapSize = ei::Imports().HeapSize;  // KERNEL32.dll, through the slot
+using ::HeapReAlloc;  // KERNEL32.dll
+using ::GetTimeZoneInformation;  // KERNEL32.dll
+using ::HeapSize;  // KERNEL32.dll
 using ::SetUnhandledExceptionFilter;  // KERNEL32.dll
 using ::UnhandledExceptionFilter;  // KERNEL32.dll
 using ::FatalAppExitA;  // KERNEL32.dll
@@ -242,8 +243,8 @@ using ::GetLocaleInfoA;  // KERNEL32.dll
 using ::EnumSystemLocalesA;  // KERNEL32.dll
 using ::GetUserDefaultLCID;  // KERNEL32.dll
 using ::GetEnvironmentVariableA;  // KERNEL32.dll
-inline auto& HeapDestroy = ei::Imports().HeapDestroy;  // KERNEL32.dll, through the slot
-inline auto& HeapCreate = ei::Imports().HeapCreate;  // KERNEL32.dll, through the slot
+using ::HeapDestroy;  // KERNEL32.dll
+using ::HeapCreate;  // KERNEL32.dll
 using ::VirtualFree;  // KERNEL32.dll
 using ::VirtualAlloc;  // KERNEL32.dll
 using ::IsBadWritePtr;  // KERNEL32.dll
@@ -352,7 +353,7 @@ using ::GetWindowTextLengthA;  // USER32.dll
 using ::SetWindowLongA;  // USER32.dll
 using ::MoveWindow;  // USER32.dll
 using ::SetWindowPos;  // USER32.dll
-inline auto& SetFocus = ei::Imports().SetFocus;  // USER32.dll, through the slot
+using ::SetFocus;  // USER32.dll
 using ::LoadCursorA;  // USER32.dll
 using ::GetSysColorBrush;  // USER32.dll
 using ::GetSysColor;  // USER32.dll
@@ -366,7 +367,7 @@ using ::LoadBitmapA;  // USER32.dll
 using ::GetMenuCheckMarkDimensions;  // USER32.dll
 using ::GetWindowPlacement;  // USER32.dll
 using ::GetMessagePos;  // USER32.dll
-inline auto& GetMessageTime = ei::Imports().GetMessageTime;  // USER32.dll, through the slot
+using ::GetMessageTime;  // USER32.dll
 using ::RemovePropA;  // USER32.dll
 using ::CallWindowProcA;  // USER32.dll
 using ::GetPropA;  // USER32.dll
@@ -399,7 +400,7 @@ using ::DeferWindowPos;  // USER32.dll
 using ::EqualRect;  // USER32.dll
 using ::AdjustWindowRectEx;  // USER32.dll
 using ::IsWindow;  // USER32.dll
-inline auto& SetActiveWindow = ei::Imports().SetActiveWindow;  // USER32.dll, through the slot
+using ::SetActiveWindow;  // USER32.dll
 using ::MapWindowPoints;  // USER32.dll
 using ::PostMessageA;  // USER32.dll
 using ::DestroyMenu;  // USER32.dll
@@ -423,7 +424,7 @@ using ::CombineRgn;  // GDI32.dll
 using ::SetRectRgn;  // GDI32.dll
 using ::PatBlt;  // GDI32.dll
 using ::CreateBitmap;  // GDI32.dll
-inline auto& CreateFontIndirectA = ei::Imports().CreateFontIndirectA;  // GDI32.dll, through the slot
+using ::CreateFontIndirectA;  // GDI32.dll
 using ::GetMapMode;  // GDI32.dll
 using ::Escape;  // GDI32.dll
 using ::ExtTextOutA;  // GDI32.dll

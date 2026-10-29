@@ -143,7 +143,7 @@ DWORD WINAPI DateTimeZone(LPTIME_ZONE_INFORMATION zone) {
 }
 
 void InstallDateTimeZone() {
-    if (!g_getTimeZoneInformation) PatchImport(&ImportTable::GetTimeZoneInformation, &DateTimeZone, g_getTimeZoneInformation);
+    if (!g_getTimeZoneInformation) PatchOriginalImport(&ImportTable::GetTimeZoneInformation, &DateTimeZone, g_getTimeZoneInformation);
 }
 
 // Whether a timeGetTime call is the main loop's frame time: the original WinMain's by its return
@@ -563,17 +563,24 @@ void TraceSlot(F ImportTable::* slot) {
     PatchImport(slot, &T::Call, T::inner);
 }
 
+// The same in game.exe's runs only (PatchOriginalImport): an import our code calls as the Windows function, traced
+// in the image among the other modules' imports.
+template <class T, class F>
+void TraceOriginalSlot(F ImportTable::* slot) {
+    PatchOriginalImport(slot, &T::Call, T::inner);
+}
+
 void TraceGameImports() {
     using S = TracedSet<true>;
     TraceSlot<S::TimeGetTime>(&ImportTable::timeGetTime);
     TraceSlot<S::GetTickCount>(&ImportTable::GetTickCount);
     TraceSlot<S::Sleep>(&ImportTable::Sleep);
     TraceSlot<S::WaitForSingleObject>(&ImportTable::WaitForSingleObject);
-    TraceSlot<S::GetMessageTime>(&ImportTable::GetMessageTime);
+    TraceOriginalSlot<S::GetMessageTime>(&ImportTable::GetMessageTime);
     TraceSlot<S::GetMessageA>(&ImportTable::GetMessageA);
     TraceSlot<S::GetLocalTime>(&ImportTable::GetLocalTime);
     TraceSlot<S::GetSystemTime>(&ImportTable::GetSystemTime);
-    TraceSlot<S::CreateThread>(&ImportTable::CreateThread);
+    TraceOriginalSlot<S::CreateThread>(&ImportTable::CreateThread);
 }
 
 // Other modules' imports, by name, wrapped around the real export.

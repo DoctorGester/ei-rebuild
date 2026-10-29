@@ -4000,8 +4000,8 @@ struct Harness {
         PatchImport(&ImportTable::FindWindowA, &NoOtherGameWindow, g_findWindow);
         PatchImport(&ImportTable::SetForegroundWindow, &NoForeground, g_setForegroundWindow);
         PatchImport(&ImportTable::BringWindowToTop, &NoBringToTop, g_bringWindowToTop);
-        PatchImport(&ImportTable::SetFocus, &NoFocus, g_setFocus);
-        PatchImport(&ImportTable::SetActiveWindow, &NoActivate, g_setActiveWindow);
+        PatchOriginalImport(&ImportTable::SetFocus, &NoFocus, g_setFocus);
+        PatchOriginalImport(&ImportTable::SetActiveWindow, &NoActivate, g_setActiveWindow);
         PatchImport(&ImportTable::ShowWindow, &ShowWithoutActivating, g_showWindow);
         PatchImport(&ImportTable::CreateWindowExA, &CreateWithoutActivating, g_createWindowEx);
         PatchImport(&ImportTable::SetCursorPos, &NoCursorMove, g_setCursorPos);
@@ -4035,15 +4035,15 @@ struct Harness {
         PatchImport(&ImportTable::CreateDirectoryA, &RedirectedCreateDirectory, g_createDirectory);
         PatchImport(&ImportTable::RemoveDirectoryA, &RedirectedRemoveDirectory, g_removeDirectory);
         PatchImport(&ImportTable::GetFileAttributesA, &RedirectedGetFileAttributes, g_getFileAttributes);
-        PatchImport(&ImportTable::SetFileAttributesA, &RedirectedSetFileAttributes, g_setFileAttributes);
-        PatchImport(&ImportTable::RegSetValueExA, &SkippedRegSetValue, g_regSetValue);
+        PatchOriginalImport(&ImportTable::SetFileAttributesA, &RedirectedSetFileAttributes, g_setFileAttributes);
+        PatchOriginalImport(&ImportTable::RegSetValueExA, &SkippedRegSetValue, g_regSetValue);
         PatchImport(&ImportTable::SystemParametersInfoA, &HarnessSystemParametersInfo, g_systemParametersInfo);
-        PatchImport(&ImportTable::CreateFontIndirectA, &HarnessCreateFontIndirect, g_createFontIndirect);
+        PatchOriginalImport(&ImportTable::CreateFontIndirectA, &HarnessCreateFontIndirect, g_createFontIndirect);
         PatchImport(&ImportTable::GetPrivateProfileStringA, &HarnessGetProfileString, g_getProfileString);
         PatchImport(&ImportTable::GetPrivateProfileSectionA, &RedirectedGetProfileSection, g_getProfileSection);
-        PatchImport(&ImportTable::GetPrivateProfileIntA, &RedirectedGetProfileInt, g_getProfileInt);
-        PatchImport(&ImportTable::WritePrivateProfileStringA, &RedirectedWriteProfileString, g_writeProfileString);
-        PatchImport(&ImportTable::GetPrivateProfileSectionNamesA, &RedirectedGetProfileSectionNames, g_getProfileSectionNames);
+        PatchOriginalImport(&ImportTable::GetPrivateProfileIntA, &RedirectedGetProfileInt, g_getProfileInt);
+        PatchOriginalImport(&ImportTable::WritePrivateProfileStringA, &RedirectedWriteProfileString, g_writeProfileString);
+        PatchOriginalImport(&ImportTable::GetPrivateProfileSectionNamesA, &RedirectedGetProfileSectionNames, g_getProfileSectionNames);
         // Every other module's writes into the install go to the overlay too, and what still reaches an install
         // is refused and fails the run (harness_install.h).
         install::Install({&WritePath, &ReadPath, &InInstall});

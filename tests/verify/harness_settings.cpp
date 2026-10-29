@@ -657,7 +657,7 @@ void Install() {
     HookExport(advapi, "RegEnumKeyExW", &EnumKeyW, g_enumKeyW);
     HookExport(advapi, "RegGetValueA", &GetA, g_getA);
     HookExport(advapi, "RegGetValueW", &GetW, g_getW);
-    PatchImport(&ImportTable::RegCreateKeyExA, &GameCreate, g_gameCreate);
+    PatchOriginalImport(&ImportTable::RegCreateKeyExA, &GameCreate, g_gameCreate);
 }
 
 bool PinnedFile(const char* relative, char (&out)[260]) {

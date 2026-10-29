@@ -2,7 +2,7 @@
 
 // The prototypes of game.exe's imports that the Windows SDK headers we compile against do not declare, or declare
 // differently: Miles (mss32.dll), Bink (binkw32.dll), Winsock 1.1 by ordinal (WSOCK32.dll), DirectInput,
-// DirectDraw, DirectSound's enumerator, the common controls, comdlg32, the print spooler, GetVersion (deprecated in
+// DirectDraw, the common controls, comdlg32, the print spooler, GetVersion (deprecated in
 // the SDK) and the Interlocked pair (macros for the compiler's intrinsics there). tools/gen_iat.py types
 // lib/import_table.h's ImportTable member of each `using` here's name with it; gameapi.h calls them through the
 // slot. A Winsock SOCKET is a std::uint32_t, its addresses and sets untyped.
@@ -118,12 +118,11 @@ using htons = std::uint16_t(__stdcall*)(std::uint16_t v);
 using ioctlsocket = int(__stdcall*)(std::uint32_t s, long command, std::uint32_t* argument);
 using sendto = int(__stdcall*)(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength);
 
-// DINPUT.dll, DDRAW.dll, DSOUND.dll (#2) and COMCTL32.dll (#17).
+// DINPUT.dll, DDRAW.dll and COMCTL32.dll (#17).
 using DirectInputCreateEx = long(__stdcall*)(void* instance, unsigned long version, const void* iid, void** out,
                                              void* outer);
 using DirectDrawEnumerateExA = long(__stdcall*)(void* callback, void* context, unsigned long flags);
 using DirectDrawCreateEx = long(__stdcall*)(void* guid, void** out, const void* iid, void* outer);
-using DirectSoundEnumerateA = long(__stdcall*)(void* callback, void* context);
 using InitCommonControls = void(__stdcall*)();
 
 // WINSPOOL.DRV and comdlg32.dll.
