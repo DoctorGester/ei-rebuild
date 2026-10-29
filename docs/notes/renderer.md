@@ -1430,6 +1430,8 @@ across runs; the goldens check the game state.
     cross by every second vertex inside them, tested against the planes it crosses only (R37d: before, every second
     vertex of every piece went through the camera's matrix each frame). The box's top over a run's low ground
     widens the fit a little: in render_shadows* the same extents as before, the origin a few texels off. The
+    crossed runs' boxes cut to the view instead of their vertices (as the pieces' quarters' before) grew the extent
+    by a step in 6 of render_shadows*'s 9 shadowchecks: the boxes reach too far above and below the ground. The
     casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha, read from
     the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away;
     render_options_shadows' pine casts a denser shadow so, 0.9% of that frame) go into it in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
@@ -1615,8 +1617,11 @@ of the 0.5-1.6 ms hand-over).
     Follow-ups by expected gain: R37f (the game's projection replaced by a sphere, the user's call: 0.3-1.2 ms;
     done, item 5: 0.5-1.0 ms of main thread saved, no GPU growth), R37a /
     R37b (point shadows kept across frames, their preparation: up to 0.6 ms in the crowd), R37g (the frustum test:
-    0.2-0.5 ms in forests; done, docs/notes/models.md: zone7 -0.27 ms, zone11 -0.12 ms, the same answers), R37c (caster boxes and outside casters kept: 0.2-0.4), R37e (shadow casters' calls: 0.3),
-    R37d (the fit: 0.1-0.25), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility).
+    0.2-0.5 ms in forests; done, docs/notes/models.md: zone7 -0.27 ms, zone11 -0.12 ms, the same answers), R37c (caster boxes and outside casters kept: 0.2-0.4; done:
+    in-frame old / new, zone1, town night, crowd: outside casters 0.07-0.12 / 0.010-0.016 ms not counting the old
+    stream's upload, boxes 0.005-0.04 / 0.002-0.013), R37e (shadow casters' calls: 0.3),
+    R37d (the fit: 0.1-0.25; done: 0.07-0.13 / 0.04-0.086 ms, most of zone1's runs are crossed by the view's sides
+    and still walked), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility).
 
 ### Loose .bmp textures (A-I23a)
 
