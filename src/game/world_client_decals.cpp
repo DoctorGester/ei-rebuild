@@ -89,12 +89,11 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMe
 } // namespace
 
 void CWorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, float depth,
-                                VertexPacket* const* corners, std::vector<VertexPacket>* points,
+                                const VertexPacket& quad, std::vector<VertexPacket>* points,
                                 std::vector<DecalTexCoord>* texCoords, std::vector<std::uint16_t>* indices,
                                 std::uint8_t skipOnPlatform, std::uint8_t objects) {
     render::BeginDecalTime(!skipOnPlatform);   // the ground prints skip the ground under a platform
     DecalBuilder& builder = g_builder;
-    auto* quad = reinterpret_cast<float* const*>(corners);
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);
     if (!skipOnPlatform || !platforms_.Contains(point.x, point.y)) terrain_->AddDecalTriangles(&builder, quad);
 

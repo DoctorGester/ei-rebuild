@@ -25,6 +25,26 @@ constexpr int kSectorVertices = kSectorRow * kSectorRow;   // per layer
 constexpr int kSectorTiles = 16;                       // tiles per sector side (2 x 2 cells each)
 constexpr int kLayerTiles = kSectorTiles * kSectorTiles;
 
+// The tiles (of the sector's 16 x 16) that share a vertex; only the first `count` are set.
+struct VertexTiles {
+    int count;
+    int tiles[4];
+};
+
+// A tile's texture coordinates: its 3 x 3 vertices row by row, u then v.
+struct TileUv {
+    static constexpr int kVertices = 9;
+    float u[kVertices];
+    float v[kVertices];
+};
+
+// Tile edge flags (SectorData::tileFlags): the tile is on the sector's first / last row, first / last column.
+// The seams towards a coarser neighbour are drawn along these edges (render_terrain.cpp).
+constexpr std::uint8_t kFirstRowTile = 1;
+constexpr std::uint8_t kLastRowTile = 2;
+constexpr std::uint8_t kFirstColumnTile = 4;
+constexpr std::uint8_t kLastColumnTile = 8;
+
 // Texture pages: the map's `pages` pages hold `perPage` tile textures each, then come kExtraPages pages
 // (<map>L00, <map>L01) of kExtraPageTextures each. The ground tiles use pages 0 .. LayerPages() - 1, the
 // water tiles the same pages numbered after them.
@@ -100,8 +120,6 @@ struct SectorData {
     bool hasWaterTiles = false;         // a second tile layer (water tiles)
     const std::uint8_t* data = nullptr;   // the .sec file after its header
     Terrain* owner = nullptr;
-    int pages = -1;                     // the owner's
-    int perPage = -1;                   // the owner's
     SectorBox box{};
     int clipMode = kCulled;             // the box's clip test verdict (kCrossing, kCulled)
     SectorBox quarters[4]{};
@@ -130,11 +148,11 @@ struct SectorData {
     SectorData(const SectorData&) = delete;
     SectorData& operator=(const SectorData&) = delete;
 
-    // The texture pages of one tile layer.
-    int LayerPages() const { return pages + kExtraPages; }
+    // The owner's texture pages of one tile layer.
+    int LayerPages() const { return owner->LayerPages(); }
 
     // Vertex positions and water tiles. Returns 1, or FatalError's result for a missing or malformed file.
-    int Load(CMappedResource* archive, int sx, int sy, int pages, int perPage, const char* prefix, Terrain* owner);
+    int Load(CMappedResource* archive, int sx, int sy, const char* prefix, Terrain* owner);
 
     // Builds the vertex records, tile lists, bounding boxes and water materials.
     void Build();
@@ -153,8 +171,8 @@ struct SectorData {
     // water only where it has a material); the sector is lit and its relight countdown ends.
     void Light();
 
-    // The records and tile lists emptied (the per-quarter arrays keep their sizes); no sector (-1, -1),
-    // nothing built, culled, pages / perPage -1, the rest of the scalar state 0. Build sets the boxes and
+    // The records and tile lists emptied (the per-quarter arrays keep their sizes); no sector (-1, -1), no
+    // owner, nothing built, culled, the rest of the scalar state 0. Build sets the boxes and
     // heights again.
     void Clear();
     // Starts or shortens the relight countdown to `frames`.

@@ -20,48 +20,13 @@
 
 #include <cstdint>
 #include <cstring>
+#include <format>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <vector>
-#include <format>
 
-using terrain::SectorData;
-using terrain::kSectorCells;
-using terrain::kSectorRow;
-using terrain::kSectorTiles;
-using terrain::kSectorVertices;
-
-namespace {
-
-// A sector bound: the value rounded to nearest, divided by 32 towards zero, clamped to 0..count - 1 in this
-// order (a map without sectors gives -1).
-int SectorBound(float value, int count) {
-    int sector = x87::fistp(value) / kSectorCells;
-    if (sector < 0) return 0;
-    if (sector > count - 1) return count - 1;
-    return sector;
-}
-
-// How many frames an unused sector stays cached before a load may reuse or free it.
-constexpr int kSectorAge = 240;
-
-// Appends tile (x, y) of the sector when it exists.
-void AddTile(terrain::VertexTiles& entry, int x, int y) {
-    if (x >= 0 && y >= 0 && x < kSectorTiles && y < kSectorTiles) entry.tiles[entry.count++] = y * kSectorTiles + x;
-}
-
-constexpr double kSineStep = 1.0 / 256;
-constexpr float kWaveStepTurn = 0.500250161f;
-constexpr int kRipples = 40;
-
-// The position and rotation Create gives the landscape, and the waves' scales.
-constexpr Vector3 kZeroPosition = /*007C8988*/ {0.0f, 0.0f, 0.0f};
-constexpr Quaternion kIdentityRotation = /*007C8978*/ {1.0f, 0.0f, 0.0f, 0.0f};
-constexpr float kWaveHeightScale = /*007C8970*/ 0.3f;
-constexpr float kWaveDirectionScale = /*007C896C*/ 0.44879898f;   // pi / 7
-constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
-
-constexpr int kPageTexture = static_cast<int>(TextureKind::TerrainPage);     // texture kind of the terrain pages
+namespace terrain {
 
 // The map file (<map>.MP in the map's archive): this header, the materials, a class per tile
 // texture, then the animated textures.
@@ -81,6 +46,39 @@ struct MapHeader {
 #pragma pack(pop)
 static_assert(sizeof(MapHeader) == 0x26);
 
+namespace {
+
+// A sector bound: the value rounded to nearest, divided by 32 towards zero, clamped to 0..count - 1 in this
+// order (a map without sectors gives -1).
+int SectorBound(float value, int count) {
+    int sector = x87::fistp(value) / kSectorCells;
+    if (sector < 0) return 0;
+    if (sector > count - 1) return count - 1;
+    return sector;
+}
+
+// How many frames an unused sector stays cached before a load may reuse or free it.
+constexpr int kSectorAge = 240;
+
+// Appends tile (x, y) of the sector when it exists.
+void AddTile(VertexTiles& entry, int x, int y) {
+    if (x >= 0 && y >= 0 && x < kSectorTiles && y < kSectorTiles) entry.tiles[entry.count++] = y * kSectorTiles + x;
+}
+
+constexpr double kSineStep = 1.0 / 256;
+constexpr float kWaveStepTurn = 0.500250161f;
+constexpr int kRipples = 40;
+
+// The position and rotation Create gives the landscape, and the waves' scales.
+constexpr Vector3 kZeroPosition = /*007C8988*/ {0.0f, 0.0f, 0.0f};
+constexpr Quaternion kIdentityRotation = /*007C8978*/ {1.0f, 0.0f, 0.0f, 0.0f};
+constexpr float kWaveHeightScale = /*007C8970*/ 0.3f;
+constexpr float kWaveDirectionScale = /*007C896C*/ 0.44879898f;   // pi / 7
+constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
+
+constexpr int kPageTexture = static_cast<int>(TextureKind::TerrainPage);     // texture kind of the terrain pages
+
+// The map file's material and animated texture entries.
 struct MapMaterial {
     int kind;
     Vector3 colour;
@@ -98,23 +96,22 @@ struct MapAnimatedTexture {
 };
 
 constexpr std::uint32_t kMapMagic = 0xCE4AF672;
-constexpr int kExtraTextures = terrain::kExtraPages * terrain::kExtraPageTextures;   // after the map's own
+constexpr int kExtraTextures = kExtraPages * kExtraPageTextures;   // after the map's own
 constexpr int kExtraClass = 0xF;
-constexpr int kUvFloats = 18;           // per texture: 9 u, 9 v
 constexpr float kMarginPixels = 8.0f;
 constexpr double kByteScale = 255.0;
 
 // The map file's extension.
 constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
 
-// 9 u then 9 v (rows of three) of the tile at (column, row) of a page with tiles `size` wide and `margin`
-// pixels inside their edges, turned `rotation` quarter turns; with `wholePage` the v run covers the page's
-// whole height (the extra pages hold one row).
-void BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, bool wholePage) {
+// The tile at (column, row) of a page with tiles `size` wide and `margin` pixels inside their edges, turned
+// `rotation` quarter turns; with `wholePage` the v run covers the page's whole height (the extra pages hold
+// one row).
+TileUv BuildTileUv(int rotation, int column, int row, float size, float margin, bool wholePage) {
     constexpr int kSide = 3;                  // a tile's vertices per row
-    constexpr int kTileVertices = kSide * kSide;
-    float* u = uv;
-    float* v = uv + kTileVertices;
+    TileUv uv;
+    float* u = uv.u;
+    float* v = uv.v;
     // u runs along each row, v down the rows: the margin, the middle, the far side less the margin.
     const float vSize = wholePage ? 1.0f : size;
     for (int i = 0; i < kSide; ++i) {
@@ -144,15 +141,37 @@ void BuildTileUv(float* uv, int rotation, int column, int row, float size, float
     }
     const float uBase = static_cast<float>(column) * size;
     const float vBase = wholePage ? 0.0f : static_cast<float>(row) * size;
-    for (int i = 0; i < kTileVertices; ++i) {
+    for (int i = 0; i < TileUv::kVertices; ++i) {
         u[i] = uBase + u[i];
         v[i] = vBase + v[i];
     }
+    return uv;
+}
+
+// The map file's header when the file is a map file: the magic and the size the header's counts give (wrapping
+// at 32 bits, as the counts are not checked).
+std::optional<MapHeader> ReadMapHeader(const std::uint8_t* file, std::uint32_t size) {
+    if (size < sizeof(MapHeader)) return std::nullopt;
+    MapHeader header;
+    lib::LoadBytes(header, file);
+    const std::uint32_t expected = sizeof(MapHeader) + header.materials * sizeof(MapMaterial) +
+                                   static_cast<std::uint32_t>(header.textures) * sizeof(std::int32_t) +
+                                   header.animated * sizeof(MapAnimatedTexture);
+    if (header.magic != kMapMagic || size != expected) return std::nullopt;
+    return header;
+}
+
+// The ambient sound set of a zone.
+const char* AmbientSetOf(std::string_view zone, bool dungeon) {
+    if (dungeon) return "Dungeon";
+    if (text::CompareIgnoringCase(zone, "Ingos") == 0) return "Ingos";
+    if (text::CompareIgnoringCase(zone, "Suslanger") == 0) return "Suslanger";
+    return "Gipat";
 }
 
 } // namespace
 
-int Terrain::LayerPages() const { return pages + terrain::kExtraPages; }
+int Terrain::LayerPages() const { return pages + kExtraPages; }
 
 SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, bool create) {
     if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
@@ -176,7 +195,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, bool create) {
                 delete old;
             }
         }
-        if (!sector->Load(&archive, sx, sy, pages, perPage, mapName.c_str(), this)) {
+        if (!sector->Load(&archive, sx, sy, mapName.c_str(), this)) {
             delete sector;
             return nullptr;
         }
@@ -203,10 +222,10 @@ void Terrain::SetVisibleSectors(float x, float y, float radius) {
 
 void Terrain::BuildVertexTiles() {
     vertexTiles.resize(kSectorVertices);
-    terrain::VertexTiles* out = vertexTiles.data();
+    VertexTiles* out = vertexTiles.data();
     for (int y = 0; y < kSectorRow; ++y) {
         for (int x = 0; x < kSectorRow; ++x) {
-            terrain::VertexTiles entry{};
+            VertexTiles entry{};
             int tx = x / 2;
             int ty = y / 2;
             bool xEdge = (x & 1) == 0;
@@ -240,8 +259,8 @@ void Terrain::ClearMap() {
     sectorsX = -1;
     sectorsY = -1;
     mapLoaded = false;
-    for (std::vector<float>& table : uvTables) table.clear();
-    for (std::vector<float>& table : uvTablesLast) table.clear();
+    for (std::vector<TileUv>& table : uvTables) table.clear();
+    for (std::vector<TileUv>& table : uvTablesLast) table.clear();
 }
 
 Terrain::Terrain() {
@@ -355,7 +374,7 @@ void Terrain::SetWaves(const Vector3& direction, float strength) {
 
 int Terrain::SetupPages(int count) {
     pageTextures.resize(count);
-    for (int i = 0; i < count + terrain::kExtraPages; ++i) {
+    for (int i = 0; i < count + kExtraPages; ++i) {
         std::string name;
         if (i < count) {
             name = std::format("{}{:03}", mapName, i);
@@ -391,21 +410,27 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon)
         ClearMap();
         return game::FatalError("Unable to open file \"" + name + "\"");
     }
-    if (size < sizeof(MapHeader)) {
+    const std::optional<MapHeader> header = ReadMapHeader(file, size);
+    if (!header) {
         ClearMap();
         return game::FatalError("Wrong file format: " + name);
     }
-    MapHeader header;
-    lib::LoadBytes(header, file);
-    // The sizes wrap at 32 bits, as the header's counts are not checked.
-    const std::uint32_t expected = sizeof(MapHeader) + header.materials * sizeof(MapMaterial) +
-                                   static_cast<std::uint32_t>(header.textures) * sizeof(std::int32_t) +
-                                   header.animated * sizeof(MapAnimatedTexture);
-    if (header.magic != kMapMagic || size != expected) {
+    ReadMap(*header, file);
+    if (!SetupPages(pages)) {
         ClearMap();
-        return game::FatalError("Wrong file format: " + name);
+        return 0;
     }
+    BuildUvTables(header->tileSize);
+    mapLoaded = true;
 
+    ambientSet = AmbientSetOf(zone, dungeon);
+    CountAmbientVariants();
+    landscapeFlags |= LandscapeFlag::All;
+    waterLevels.assign(static_cast<std::size_t>(sectorsY * sectorsX) * materials.size(), 0.0f);
+    return 1;
+}
+
+void Terrain::ReadMap(const MapHeader& header, const std::uint8_t* file) {
     sectorsX = header.sectorsX;
     sectorsY = header.sectorsY;
     sectorGrid.assign(static_cast<std::size_t>(sectorsX * sectorsY), nullptr);
@@ -422,7 +447,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon)
     for (int i = 0; i < materialCount; ++i, cursor += sizeof(MapMaterial)) {
         MapMaterial source;
         lib::LoadBytes(source, cursor);
-        terrain::TerrainMaterial& material = materials[i];
+        TerrainMaterial& material = materials[i];
         material.kind = source.kind;
         material.waveColour = source.colour;
         material.opacity = source.opacity;
@@ -448,41 +473,24 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon)
         lib::LoadBytes(entry, animated);
         textureFrames[entry.texture] = entry.frames;
     }
+}
 
-    if (!SetupPages(pages)) {
-        ClearMap();
-        return 0;
-    }
-
+void Terrain::BuildUvTables(int tileSize) {
     // A tile's side as a part of the page, and 8 pixels of the page inside each of its edges.
     const float tileSide = static_cast<float>(1.0 / tilesPerRow);
-    const float margin = static_cast<float>(static_cast<float>(static_cast<double>(tileSide) / header.tileSize) * kMarginPixels);
+    const float margin = static_cast<float>(static_cast<float>(static_cast<double>(tileSide) / tileSize) * kMarginPixels);
     for (int rotation = 0; rotation < 4; ++rotation) {
-        uvTables[rotation].assign(static_cast<std::size_t>(perPage * kUvFloats), 0.0f);
+        uvTables[rotation].assign(static_cast<std::size_t>(perPage), TileUv{});
         int index = 0;
         for (int row = 0; row < tilesPerRow; ++row)
             for (int column = 0; column < tilesPerRow; ++column, ++index)
-                BuildTileUv(uvTables[rotation].data() + index * kUvFloats, rotation, column, row, tileSide, margin, false);
+                uvTables[rotation][index] = BuildTileUv(rotation, column, row, tileSide, margin, false);
     }
     for (int rotation = 0; rotation < 4; ++rotation) {
-        uvTablesLast[rotation].assign(static_cast<std::size_t>(perPage * kUvFloats), 0.0f);
+        uvTablesLast[rotation].assign(static_cast<std::size_t>(perPage), TileUv{});
         for (int column = 0; column < tilesPerRow; ++column)
-            BuildTileUv(uvTablesLast[rotation].data() + column * kUvFloats, rotation, column, 0, tileSide, margin, true);
+            uvTablesLast[rotation][column] = BuildTileUv(rotation, column, 0, tileSide, margin, true);
     }
-    mapLoaded = true;
-
-    const char* set = "Gipat";
-    if (dungeon) set = "Dungeon";
-    else if (text::CompareIgnoringCase(zone, "Ingos") == 0) set = "Ingos";
-    else if (text::CompareIgnoringCase(zone, "Suslanger") == 0) set = "Suslanger";
-    ambientSet = set;
-    terrain::CountAmbientVariants(ambientSet.c_str());
-
-    const int sectors = sectorsY * sectorsX;
-    landscapeFlags |= LandscapeFlag::All;
-    waterLevels.resize(sectors);
-    for (std::vector<float>& levels : waterLevels) levels.assign(materials.size(), 0.0f);
-    return 1;
 }
 
 // ---- The point lights, light interval, water levels, tile texture coordinates --------------------------
@@ -499,9 +507,14 @@ void Terrain::RemoveLight(CLight* light) {
     light->Release();
 }
 
-const float* Terrain::TileUv(int rotation, int index, int page) {
-    if (page % LayerPages() >= pages) return uvTablesLast[rotation].data() + index * kUvFloats;
-    return uvTables[rotation].data() + index * kUvFloats;
+const TileUv& Terrain::TileUvAt(int rotation, int index, int page) const {
+    if (page % LayerPages() >= pages) return uvTablesLast[rotation][index];
+    return uvTables[rotation][index];
+}
+
+std::span<float> Terrain::SectorWaterLevels(int sx, int sy) {
+    const std::size_t count = materials.size();
+    return std::span<float>(waterLevels).subspan(static_cast<std::size_t>(sy * sectorsX + sx) * count, count);
 }
 
 void Terrain::SetLightInterval(int frames) {
@@ -514,8 +527,7 @@ void Terrain::SetWaterLevel(int material, float level) {
     if (material < 0 || material >= std::ssize(materials)) return;
     float change = static_cast<float>(level - materials[material].level);
     materials[material].level = change + materials[material].level;
-    for (int sector = 0; sector < sectorsY * sectorsX; ++sector) {
-        float& sectorLevel = waterLevels[sector][material];
-        sectorLevel = change + sectorLevel;
-    }
+    for (std::size_t i = material; i < waterLevels.size(); i += materials.size()) waterLevels[i] = change + waterLevels[i];
 }
+
+} // namespace terrain

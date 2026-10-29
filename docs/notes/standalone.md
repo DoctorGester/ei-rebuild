@@ -387,7 +387,7 @@ kinds given.
   light, the two LOD distances, the camera's terrain area, keyboard layout, the objects' lighting coefficient, the hero and
   quest lights). Check a new candidate against these two structs first (an offset from 007C53F8 / 0079BC70 is a member).
   (2) Struct tables with string pointers: TYPES has `OptionDefinition` / `ActionDefinition` (ui_options.cpp), `ScriptParticleType`
-  (script_effects.cpp), `AmbientSoundClass` (terrain_ambience.cpp, written by CountAmbientVariants: not const). (3) Lone
+  (script_effects.cpp), `AmbientSoundClass` (terrain_ambience.cpp; the per-map one-shot counts are Terrain's). (3) Lone
   variables, guards and scratch arrays (lightning's noise curves, terrain's animation speeds and light-block lists, the
   mouse drag, shot counter, party id counter, ...); a header's global is `inline T g_x = /*addr*/ {};`.
   A table that follows another (the key actions 00787070 right after the 88 key names from 007857B0, whose code took the actions'

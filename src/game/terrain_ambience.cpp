@@ -21,21 +21,21 @@
 #include <format>
 #include <string>
 
-using terrain::kSectorCells;
-
+namespace terrain {
 namespace {
 
-// A sound class (indexed by the sectors' texture classes).
+// A sound class (indexed by the sectors' texture classes), in the layout of game.exe's table. Its one-shots are
+// counted per map (Terrain::ambientVariants).
 struct AmbientSoundClass {
     const char* name;       // the folder ("Grass", "water", ...)
-    int variants;           // one-shots to pick from (0: none); counted per map (CountAmbientVariants)
+    int unused_04;          // the original's per-map one-shot count
     float weight;           // per texture of the class in a sector
-    int countsAs;           // the class whose vote it adds to, -1 its own
+    int unused_0C;          // the class whose vote it adds to: -1 (its own) in every entry
     float panLimit;
     int chance;             // percent per frame for a one-shot
 };
-constexpr int kClasses = 16;
-AmbientSoundClass g_soundClasses[kClasses] = /*007969D0*/ {
+constexpr int kClasses = Terrain::kSoundClasses;
+constexpr AmbientSoundClass kAmbientSounds[kClasses] = /*007969D0*/ {
     {"Grass", -1, 1.0f, -1, 30.0f, 6},
     {"Ground", -1, 1.0f, -1, 30.0f, 6},
     {"Stone", -1, 1.0f, -1, 30.0f, 6},
@@ -111,6 +111,32 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     if (axis.x * offset.y > axis.y * offset.x) angle = -angle;
     return static_cast<float>(angle);
 }
+
+// Now and then (the class's chance) a one-shot of sound class `soundClass` (of `variants`) in a random sector
+// of the class (3x3 draws until one matches), somewhere within kSpotCells of that sector's offset.
+void PlayOneShot(CSoundManager* sounds, const Cell (&cells)[3][3], int soundClass, int variants, const std::string& set,
+                 const Vector3& listener) {
+    const AmbientSoundClass& sound = kAmbientSounds[soundClass];
+    if (static_cast<int>(g_random.Next() % 100 + 1) > sound.chance) return;
+    const Cell* pick;
+    do {
+        std::uint32_t column = g_random.Next() % 3;
+        std::uint32_t row = g_random.Next() % 3;
+        pick = &cells[column][row];
+    } while (pick->soundClass != soundClass);
+    if (variants == 0) return;
+    std::uint32_t variant = g_random.Next();
+    const char* time = g_clientWorld.AmbienceTimeOfDay();
+    const std::string name = std::format("ambient\\{}\\{}\\{}\\{}.wav", set, sound.name, time,
+                                         variant % static_cast<std::uint32_t>(variants) + 1);
+    Vector3 position = listener + pick->offset;
+    float spot = kSpotCells;
+    float spotLow = static_cast<float>(-spot);
+    position.x = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.x);
+    position.y = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.y);
+    sounds->Play3D(name, 1, &position.x, static_cast<float>(spot + spot), kRadiusCells, 0, 0);
+}
+
 } // namespace
 
 void Terrain::PlayAmbience() {
@@ -119,8 +145,7 @@ void Terrain::PlayAmbience() {
     Vector3 axis = {sounds->listenerAxis.x, sounds->listenerAxis.y, sounds->listenerAxis.z};
     int centreX = SectorOf(listener.x);
     int centreY = SectorOf(listener.y);
-    float radius = kRadiusCells;
-    float radiusSquared = static_cast<float>(radius * radius);
+    const float radiusSquared = kRadiusCells * kRadiusCells;
 
     // Each sector votes for the class with the most weighted textures (the first of equals).
     ClassVotes votes[kClasses];
@@ -143,16 +168,13 @@ void Terrain::PlayAmbience() {
             }
             cell.x = static_cast<float>((sx + 0.5f) * kSectorCells);
             cell.y = static_cast<float>((sy + 0.5f) * kSectorCells);
-            float ground = HeightAt(cell.x, cell.y, 0);
-            float water = HeightAt(cell.x, cell.y, 1);
+            float ground = HeightAt(cell.x, cell.y, Layer::Ground);
+            float water = HeightAt(cell.x, cell.y, Layer::Water);
             cell.z = water >= ground ? water : ground;
             cell.offset = {static_cast<float>(cell.x - listener.x), static_cast<float>(cell.y - listener.y),
                            static_cast<float>(cell.z - listener.z)};
-            float weights[kClasses] = {};
-            for (int i = 0; i < kClasses; ++i) {
-                int target = g_soundClasses[i].countsAs < 0 ? i : g_soundClasses[i].countsAs;
-                weights[target] = static_cast<float>(sector->classCounts[i] * g_soundClasses[i].weight + weights[target]);
-            }
+            float weights[kClasses];
+            for (int i = 0; i < kClasses; ++i) weights[i] = static_cast<float>(sector->classCounts[i] * kAmbientSounds[i].weight);
             float best = -1.0f;
             for (int i = 0; i < kClasses; ++i) {
                 EI_NAN_AUDIT(weights[i]);
@@ -189,33 +211,13 @@ void Terrain::PlayAmbience() {
         }
         vote.volume = x87::fistp(static_cast<float>(std::sqrt(vote.weightSum)));
         if (vote.volume > kMaxVolume) vote.volume = kMaxVolume;
-        const AmbientSoundClass& soundClass = g_soundClasses[vote.soundClass];
         float pan = PanOf(vote.offset, axis);
-        float limit = soundClass.panLimit;
+        float limit = kAmbientSounds[vote.soundClass].panLimit;
         float low = static_cast<float>(-limit);
         pan = pan >= low ? pan : low;
         pan = limit >= pan ? pan : limit;
         vote.pan = x87::fistp(pan);
-
-        // A one-shot now and then, in a random sector of the class (3x3 draws until one matches).
-        if (static_cast<int>(g_random.Next() % 100 + 1) > soundClass.chance) continue;
-        const Cell* pick;
-        do {
-            std::uint32_t column = g_random.Next() % 3;
-            std::uint32_t row = g_random.Next() % 3;
-            pick = &cells[column][row];
-        } while (pick->soundClass != vote.soundClass);
-        if (soundClass.variants == 0) continue;
-        std::uint32_t variant = g_random.Next();
-        const char* time = g_clientWorld.AmbienceTimeOfDay();
-        const std::string name = std::format("ambient\\{}\\{}\\{}\\{}.wav", ambientSet, soundClass.name, time,
-                                             variant % static_cast<std::uint32_t>(soundClass.variants) + 1);
-        Vector3 position = listener + pick->offset;
-        float spot = kSpotCells;
-        float spotLow = static_cast<float>(-spot);
-        position.x = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.x);
-        position.y = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.y);
-        sounds->Play3D(name, 1, &position.x, static_cast<float>(spot + spot), radius, 0, 0);
+        PlayOneShot(sounds, cells, vote.soundClass, ambientVariants[vote.soundClass], ambientSet, listener);
     }
 
     // The loops: a class already playing keeps its sound (volume and pan updated), a new one starts.
@@ -228,7 +230,7 @@ void Terrain::PlayAmbience() {
             vote.sound = ambientLoops[slot].sound;
             sounds->SetSoundVolume(vote.sound, vote.volume, vote.pan);
         } else {
-            const std::string name = std::format("ambient\\{}\\{}\\circle.wav", ambientSet, g_soundClasses[vote.soundClass].name);
+            const std::string name = std::format("ambient\\{}\\{}\\circle.wav", ambientSet, kAmbientSounds[vote.soundClass].name);
             vote.sound = sounds->Play2D(name, 1000, vote.volume, vote.pan, 1, 1, 0, 0);
         }
     }
@@ -252,16 +254,18 @@ void Terrain::StopAmbientLoops() {
     }
 }
 
-// The map loader's part: a class that votes for another keeps its count.
-void terrain::CountAmbientVariants(const char* set) {
-    for (AmbientSoundClass& soundClass : g_soundClasses) {
-        if (soundClass.countsAs >= 0) continue;
-        soundClass.variants = 0;
+void Terrain::CountAmbientVariants() {
+    for (int i = 0; i < kClasses; ++i) {
+        int& variants = ambientVariants[i];
+        variants = 0;
         for (;;) {
             char name[260];
-            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\day\\%i.wav", set, soundClass.name, soundClass.variants + 1);
+            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\day\\%i.wav", ambientSet.c_str(), kAmbientSounds[i].name,
+                          variants + 1);
             if (g_clientWorld.sounds_->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
-            ++soundClass.variants;
+            ++variants;
         }
     }
 }
+
+} // namespace terrain

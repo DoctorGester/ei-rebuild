@@ -32,13 +32,13 @@ constexpr int kLod0Entries[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 constexpr int kLod1Entries[6] = {0, 2, 3, 5, 6, 8};
 constexpr int kLod2Entries[4] = {0, 2, 6, 8};
 // Triangles per tile, relative to the tile's first emitted vertex; the variants leave out the
-// triangles along an edge to a coarser neighbour (tile edge flags, see FillTiles in terrain_sector.cpp).
+// triangles along an edge to a coarser neighbour (the tile edge flags of terrain_sector.h).
 constexpr std::uint16_t kLod0[24] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 3, 4, 7, 3, 7, 6, 4, 5, 8, 4, 8, 7};
-constexpr std::uint16_t kLod0Edge1[21] = {0, 2, 4, 0, 4, 3, 2, 5, 4, 3, 4, 7, 3, 7, 6, 4, 5, 8, 4, 8, 7};
-constexpr std::uint16_t kLod0Edge2[21] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 3, 4, 6, 4, 8, 6, 4, 5, 8};
+constexpr std::uint16_t kLod0FirstRow[21] = {0, 2, 4, 0, 4, 3, 2, 5, 4, 3, 4, 7, 3, 7, 6, 4, 5, 8, 4, 8, 7};
+constexpr std::uint16_t kLod0LastRow[21] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 3, 4, 6, 4, 8, 6, 4, 5, 8};
 constexpr std::uint16_t kLod1[12] = {0, 1, 3, 0, 3, 2, 2, 3, 5, 2, 5, 4};
-constexpr std::uint16_t kLod1Edge4[9] = {0, 1, 3, 0, 3, 4, 3, 5, 4};
-constexpr std::uint16_t kLod1Edge8[9] = {0, 1, 2, 1, 5, 2, 2, 5, 4};
+constexpr std::uint16_t kLod1FirstColumn[9] = {0, 1, 3, 0, 3, 4, 3, 5, 4};
+constexpr std::uint16_t kLod1LastColumn[9] = {0, 1, 2, 1, 5, 2, 2, 5, 4};
 constexpr std::uint16_t kLod2[6] = {0, 1, 3, 0, 3, 2};
 
 template <int N>
@@ -52,12 +52,12 @@ void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod,
     if (lod == 2) {
         PutTriangles(out, base, kLod2);
     } else if (lod == 1) {
-        if (seams && s->seamBefore != 0 && (edge & 4)) PutTriangles(out, base, kLod1Edge4);
-        else if (seams && s->seamAfter != 0 && (edge & 8)) PutTriangles(out, base, kLod1Edge8);
+        if (seams && s->seamBefore && (edge & terrain::kFirstColumnTile)) PutTriangles(out, base, kLod1FirstColumn);
+        else if (seams && s->seamAfter && (edge & terrain::kLastColumnTile)) PutTriangles(out, base, kLod1LastColumn);
         else PutTriangles(out, base, kLod1);
     } else {
-        if (seams && s->seamBefore != 0 && (edge & 1)) PutTriangles(out, base, kLod0Edge1);
-        else if (seams && s->seamAfter != 0 && (edge & 2)) PutTriangles(out, base, kLod0Edge2);
+        if (seams && s->seamBefore && (edge & terrain::kFirstRowTile)) PutTriangles(out, base, kLod0FirstRow);
+        else if (seams && s->seamAfter && (edge & terrain::kLastRowTile)) PutTriangles(out, base, kLod0LastRow);
         else PutTriangles(out, base, kLod0);
     }
 }
@@ -79,7 +79,7 @@ const void* PageTexture(const SectorData* s, int page) {
 struct SectorChanges {
     std::uint32_t rebuilt = 0, moved = 0, waterMoved = 0;
 };
-constexpr int kWaterRecords = 33 * 33;
+constexpr int kWaterRecords = terrain::kSectorVertices;
 std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
 // --- Pages kept on the GPU ----------------------------------------------------------------------
@@ -110,7 +110,7 @@ PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e) {
     if (index < kWaterRecords) {
         v.loss = 0.0f;
         if (const SectorVertex* water = WaterAbove(s, index)) {
-            const Terrain* owner = s->owner;
+            const terrain::Terrain* owner = s->owner;
             if (owner && water->waterMaterial < std::ssize(owner->materials)) {
                 float absorption = owner->materials[water->waterMaterial].absorption;
                 v.loss = terrain::kWaterFalloff * absorption * record.depth * record.depth;
@@ -209,9 +209,10 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
     const Vector3* v = s->vertices.data();
     c.vertices.resize(static_cast<std::size_t>(kWaterRecords));
     double lo[3] = {1e30, 1e30, 1e30}, hi[3] = {-1e30, -1e30, -1e30};
-    auto at = [&](int x, int y) { return v[std::clamp(y, 0, 32) * 33 + std::clamp(x, 0, 32)]; };
-    for (int y = 0; y < 33; ++y)
-        for (int x = 0; x < 33; ++x) {
+    using terrain::kLastVertex, terrain::kSectorRow;
+    auto at = [&](int x, int y) { return v[std::clamp(y, 0, kLastVertex) * kSectorRow + std::clamp(x, 0, kLastVertex)]; };
+    for (int y = 0; y < kSectorRow; ++y)
+        for (int x = 0; x < kSectorRow; ++x) {
             Vector3 p = at(x, y);
             Vector3 a = at(x + 1, y), b = at(x - 1, y), e = at(x, y + 1), g = at(x, y - 1);
             Vector3 dx{a.x - b.x, a.y - b.y, a.z - b.z}, dy{e.x - g.x, e.y - g.y, e.z - g.z};
@@ -223,7 +224,7 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
             } else {
                 n = Vector3{0.0f, 0.0f, 1.0f};
             }
-            c.vertices[static_cast<std::size_t>(y * 33 + x)] = TerrainCasterVertex{p, n};
+            c.vertices[static_cast<std::size_t>(y * kSectorRow + x)] = TerrainCasterVertex{p, n};
             const double q[3] = {p.x, p.y, p.z};
             for (int k = 0; k < 3; ++k) {
                 lo[k] = (std::min)(lo[k], q[k]);
@@ -234,9 +235,9 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
     for (int k = 0; k < 3; ++k) r2 += (hi[k] - lo[k]) * (hi[k] - lo[k]) * 0.25;
     c.sphere = ShadowCasterSphere{(lo[0] + hi[0]) * 0.5, (lo[1] + hi[1]) * 0.5, (lo[2] + hi[2]) * 0.5, std::sqrt(r2)};
     if (g_gridIndices.empty()) {
-        for (int y = 0; y < 32; ++y)
-            for (int x = 0; x < 32; ++x) {
-                std::uint32_t a = static_cast<std::uint32_t>(y * 33 + x), b = a + 1, d = a + 33, e = d + 1;
+        for (int y = 0; y < terrain::kSectorCells; ++y)
+            for (int x = 0; x < terrain::kSectorCells; ++x) {
+                std::uint32_t a = static_cast<std::uint32_t>(y * kSectorRow + x), b = a + 1, d = a + kSectorRow, e = d + 1;
                 for (std::uint32_t i : {a, b, e, a, e, d}) g_gridIndices.push_back(i);
             }
     }
@@ -820,11 +821,11 @@ void TerrainPage(const SectorData* s, const CSceneRenderer* renderer, int page) 
     int matrix = AddMatrix(clipStack.matrices[depth - 1]);
     const void* texture = PageTexture(s, page);
     bool water = page >= s->LayerPages();
-    bool seams = lod != 2 && (s->seamBefore != 0 || s->seamAfter != 0);
+    bool seams = lod != 2 && (s->seamBefore || s->seamAfter);
     bool inView = false;
     for (int q = 0; q < 4 && !inView; ++q) {
         const auto& lists = s->tiles[q];
-        inView = s->quarterMode[q] != 2 && page < std::ssize(lists) && !lists[page].empty() &&
+        inView = s->quarterMode[q] != terrain::kCulled && page < std::ssize(lists) && !lists[page].empty() &&
                  std::ssize(lists[page]) >= 9;
     }
     if (!inView) return;
@@ -874,7 +875,7 @@ void TerrainPage(const SectorData* s, const CSceneRenderer* renderer, int page) 
     std::size_t firstPiece = f.terrainPieces.size();
     for (int q = 0; q < 4; ++q) {
         const QuarterRange& range = p.quarters[q];
-        if (s->quarterMode[q] == 2 || range.indexCount == 0) continue;
+        if (s->quarterMode[q] == terrain::kCulled || range.indexCount == 0) continue;
         if (!upload && ReadColours(s, p, range.firstVertex, range.firstVertex + range.vertexCount)) relit = true;
         f.terrainPieces.push_back(TerrainPiece{&p, q});
     }
@@ -910,7 +911,7 @@ void TerrainPage(const SectorData* s, const CSceneRenderer* renderer, int page) 
 // --- The ground's casters into the shadow map ------------------------------------------------------
 
 void ShadowTerrainSector(const SectorData* s) {
-    if (!s || !lib::Has(s->built, SectorStage::Loaded) || s->vertices.empty() || std::ssize(s->vertices) < kWaterRecords) return;
+    if (!s || !lib::Has(s->built, terrain::SectorStage::Loaded) || s->vertices.empty() || std::ssize(s->vertices) < kWaterRecords) return;
     StatsTimer timer(&FrameStats::shadowMs);
     std::uint32_t rebuilt = 0;
     if (auto it = g_changes.find(s); it != g_changes.end()) rebuilt = it->second.rebuilt;

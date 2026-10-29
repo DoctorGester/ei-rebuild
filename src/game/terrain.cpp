@@ -7,9 +7,7 @@
 
 #include <cmath>
 
-using terrain::kLastVertex;
-using terrain::kSectorCells;
-
+namespace terrain {
 namespace {
 
 // The height at (x, y) of the plane through the three vertices; the average of their heights when the
@@ -31,30 +29,36 @@ float PlaneHeight(const Vector3& v0, const Vector3& v1, float x, float y, const 
 // The texture class outside the map.
 constexpr int kOutsideClass = 8;
 
+// A vertex column (or row) of the map as a sector's and its vertex in that sector. Vertex 32 of a sector is
+// vertex 0 of the next; such a shared vertex is the earlier sector's (the first sector keeps its vertex 0).
+struct SplitVertex {
+    int sector, vertex;
+};
+SplitVertex SplitOf(int v) {
+    const int sector = v / kSectorCells, vertex = v - sector * kSectorCells;
+    if (vertex == 0 && sector != 0) return {sector - 1, kLastVertex};
+    return {sector, vertex};
+}
+
 } // namespace
 
-const Vector3* Terrain::VertexAt(int ix, int iy, int layer) {
+const Vector3* Terrain::VertexAt(int ix, int iy, Layer layer) {
     if (ix < 0 || iy < 0) return nullptr;
     EI_NAN_AUDIT(width, height);
     if (width < static_cast<float>(ix) || height < static_cast<float>(iy)) return nullptr;
 
-    // Vertex 32 of one sector is vertex 0 of the next; the last sector owns its far edge.
-    int sx = ix / kSectorCells, sy = iy / kSectorCells;
-    int lx = ix - sx * kSectorCells, ly = iy - sy * kSectorCells;
-    if (lx == 0 && sx != 0) { --sx; lx = kLastVertex; }
-    if (ly == 0 && sy != 0) { --sy; ly = kLastVertex; }
-
-    terrain::SectorData* sector = SectorAt(sx, sy, SectorStage::Loaded, true);
+    const SplitVertex x = SplitOf(ix), y = SplitOf(iy);
+    SectorData* sector = SectorAt(x.sector, y.sector, SectorStage::Loaded, true);
     if (!sector) return nullptr;
     int layerOffset = 0;
-    if (layer) {
+    if (layer == Layer::Water) {
         if (!sector->hasWater) return nullptr;
-        layerOffset = terrain::kSectorVertices;
+        layerOffset = kSectorVertices;
     }
-    return &sector->vertices[lx + ly * terrain::kSectorRow + layerOffset];
+    return &sector->vertices[x.vertex + y.vertex * kSectorRow + layerOffset];
 }
 
-float Terrain::HeightAt(float x, float y, int layer) {
+float Terrain::HeightAt(float x, float y, Layer layer) {
     int ix0 = x87::fistp(x), iy0 = x87::fistp(y);
     int ix1 = ix0 + 1, iy1 = iy0 + 1;
 
@@ -106,8 +110,8 @@ float Terrain::HeightAt(float x, float y, int layer) {
 }
 
 float Terrain::SurfaceHeight(float x, float y) {
-    float water = HeightAt(x, y, 1);
-    double ground = HeightAt(x, y, 0);
+    float water = HeightAt(x, y, Layer::Water);
+    double ground = HeightAt(x, y, Layer::Ground);
     float depth = water > ground ? static_cast<float>(water - ground) : 0.0f;
     return static_cast<float>(static_cast<float>(ground) + depth);
 }
@@ -116,14 +120,16 @@ int Terrain::SurfaceClass(float x, float y) {
     int ix = x87::fistp(x);
     int iy = x87::fistp(y);
     if (ix < 0 || iy < 0 || ix >= sectorsX * kSectorCells || iy >= sectorsY * kSectorCells) return kOutsideClass;
-    terrain::SectorData* sector = SectorAt(ix / kSectorCells, iy / kSectorCells, SectorStage::Built, true);
-    int tile = (iy % kSectorCells) / 2 * terrain::kSectorTiles + (ix % kSectorCells) / 2;
+    SectorData* sector = SectorAt(ix / kSectorCells, iy / kSectorCells, SectorStage::Built, true);
+    int tile = (iy % kSectorCells) / 2 * kSectorTiles + (ix % kSectorCells) / 2;
     if (!sector) return kOutsideClass;
     if (sector->hasWater && sector->waterTiles[tile] != -1) {
-        float water = HeightAt(x, y, 1);
-        const double ground = HeightAt(x, y, 0);
+        float water = HeightAt(x, y, Layer::Water);
+        const double ground = HeightAt(x, y, Layer::Ground);
         EI_NAN_AUDIT(ground, water);
-        if (ground < water) return textureClass[sector->tileTextures[tile + terrain::kLayerTiles]];
+        if (ground < water) return textureClass[sector->tileTextures[tile + kLayerTiles]];
     }
     return textureClass[sector->tileTextures[tile]];
 }
+
+} // namespace terrain

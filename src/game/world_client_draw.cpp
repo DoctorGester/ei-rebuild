@@ -298,7 +298,7 @@ int CWorldClient::DrawLineLists() {
 
 int CWorldClient::DrawPass() {
     render::RenderState& state = render::g_renderState;
-    Terrain* terrain = terrain_;
+    terrain::Terrain* terrain = terrain_;
     if (!terrain || !terrain->mapLoaded) return 0;
     CTransformPipeline* device = g_sceneRenderer.pipeline_;
     std::uint32_t now = gameapi::timeGetTime();

@@ -154,7 +154,7 @@ void GameStopSounds(int stopStream) { g_clientWorld.sounds_->StopAll(static_cast
 
 void GameStopAmbience() { g_clientWorld.terrain_->StopAmbience(); }
 
-void GameStartAmbience() { g_clientWorld.terrain_->landscapeFlags |= LandscapeFlag::Ambience; }
+void GameStartAmbience() { g_clientWorld.terrain_->landscapeFlags |= terrain::LandscapeFlag::Ambience; }
 
 int GamePlayMusic(const char* name) {
     return g_clientWorld.sounds_->RequestStream(name ? name : DefaultMusic(), 4);

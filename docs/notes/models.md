@@ -295,7 +295,7 @@ sector that has tiles on it. They do not touch the device (matrix
 pushes, the renderer's SetTexture, DrawSectorPage), so they are ported; the sector's clip test 006BFB20 and seams 006BFB80
 (below 006C0000) are ported there too (A-Z1, items_spells.md). Level of detail: 0 / 1 below the squared distances 0079BD2C /
 0079BD30 from the camera to the sector's centre, else 2 (the original's `minDetail` +0xAA0 was always 0).
-Terrain members: `materials` (+0x12C in the original), `waterLevels` (+0xAE8; per sector, per material). Gone as written
+Terrain members: `materials` (+0x12C in the original), `waterLevels` (+0xAE8; per sector, per material; ours one flat vector). Gone as written
 but never read (C62): the draw and world matrices, the "Wood" page materials (each page made a material of kind 0x12 that
 nothing used), page / tile sizes, the highest light id, the extra page count, `minDetail`, the per-row visible column
 vectors (one rectangle now), and `lightingSector / X / Y` (+0x24C, the ray march's). `CDib` (0x3C bytes, dib.h): colour table, bits,
@@ -334,10 +334,11 @@ file's light factor x colour capped at 1, priority, +0x30 from the record's +0x1
 `textureFrames` (0, or the frame count of an animated texture), both aligned int arrays; SetupPages (0 and ClearMap when a
 texture does not load); the uv tables (tile side 1 / tilesPerRow, margin side / tileSize x 8: BuildTileUv per rotation for
 every tile, and with "whole page" for one row of the last pages' tables); +0x100 `mapLoaded` = 1; the ambient sound set
-(+0xAE0: "Dungeon", or "Ingos" / "Suslanger" by `zone`, else "Gipat"); for each of the sixteen sound classes with its own
-vote (table 007969D0, +0x0C negative) the one-shot count +0x04 = how many of `ambient\<set>\<class>\day\<n>.wav`
-(n from 1) the wave sources have (`terrain::CountAmbientVariants`, terrain_ambience.cpp; each probe takes a reference on
-the wave file that is never given back); flags |= 0xFFFF; a water level per sector and material, zeroed (ours `std::vector<std::vector<float>>`; game.exe's outer
+(+0xAE0: "Dungeon", or "Ingos" / "Suslanger" by `zone`, else "Gipat"); for each of the sixteen sound classes (table 007969D0;
+its +0x0C "votes as" class is -1 in every entry, so every class votes for itself) the one-shot count (the table's +0x04 in
+the original, ours `Terrain::ambientVariants`; the constant table `kAmbientSounds` keeps both fields unread) = how many of `ambient\<set>\<class>\day\<n>.wav`
+(n from 1) the wave sources have (`Terrain::CountAmbientVariants`, terrain_ambience.cpp; each probe takes a reference on
+the wave file that is never given back); flags |= 0xFFFF; a water level per sector and material, zeroed (ours one flat vector, `Terrain::SectorWaterLevels`; game.exe's outer
 CArray's elements are CArray<float>, vtable 0073D3E8, built and destroyed by 00575690 / 005755A0).
 Float note (rule 7): the quotients and products are rounded to float where the original's FPU does at 24-bit precision
 

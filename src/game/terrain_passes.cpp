@@ -16,8 +16,7 @@
 
 #include <cstdint>
 
-using terrain::SectorData;
-
+namespace terrain {
 namespace {
 
 constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
@@ -40,8 +39,8 @@ bool HasTilesOn(const SectorData* sector, int page) {
 // The sector's level of detail from the squared distance of its centre (mid height) to the camera: 0 within
 // the options' lod1, 1 within lod2, else 2.
 void ChooseDetail(const Terrain* terrain, SectorData* sector) {
-    const Vector3 centre = {(static_cast<float>(sector->sx) + 0.5f) * terrain::kSectorCells,
-                            (static_cast<float>(sector->sy) + 0.5f) * terrain::kSectorCells,
+    const Vector3 centre = {(static_cast<float>(sector->sx) + 0.5f) * kSectorCells,
+                            (static_cast<float>(sector->sy) + 0.5f) * kSectorCells,
                             (sector->maxZ + sector->minZ) * 0.5f};
     // (z^2 + y^2) + x^2. The sum is kept unrounded; the passes run on the main thread (24-bit precision),
     // where the helper's stores change nothing.
@@ -53,39 +52,20 @@ void ChooseDetail(const Terrain* terrain, SectorData* sector) {
     sector->detail = level;
 }
 
-// The body the two passes share: the landscape's matrix (rotation, the position in the last
-// column) on the stacks 2 and 1 around the pages' draw.
-void DrawPass(Terrain* terrain, CSceneRenderer* renderer, int firstPage, int lastPage) {
-    Matrix4 matrix;
-    terrain->localRotation_.ToMatrix(matrix.m);
-    matrix.m[3] = terrain->localPosition_.x;
-    matrix.m[7] = terrain->localPosition_.y;
-    matrix.m[11] = terrain->localPosition_.z;
-    matrix.m[12] = matrix.m[13] = matrix.m[14] = 0.0f;
-    matrix.m[15] = 1.0f;
-    CTransformPipeline* pipeline = renderer->pipeline_;
-    pipeline->PushMatrixProduct(matrix, CTransformPipeline::kClipStack);
-    pipeline->PushMatrixProduct(matrix, kProjectStack);
-    terrain->DrawPages(renderer, firstPage, lastPage);
-    pipeline = renderer->pipeline_;
-    pipeline->PopMatrix(CTransformPipeline::kClipStack);
-    pipeline->PopMatrix(kProjectStack);
-}
-
 } // namespace
 
 // --- The sector's part of the passes -------------------------------------
 
-bool SectorData::IsDrawn() const { return clipMode == 0 || clipMode == terrain::kCrossing; }
+bool SectorData::IsDrawn() const { return clipMode == 0 || clipMode == kCrossing; }
 
 void SectorData::ClipTest(CSceneRenderer* renderer) {
     // The verdict as it is stored: -1 counts as outside.
-    const auto verdict = [&](const terrain::SectorBox& bounds) {
+    const auto verdict = [&](const SectorBox& bounds) {
         const int where = renderer->pipeline_->ClipTest(&bounds);
-        return where == -1 ? terrain::kCulled : where;
+        return where == -1 ? kCulled : where;
     };
     clipMode = verdict(box);
-    if (clipMode == terrain::kCulled) return;
+    if (clipMode == kCulled) return;
     for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
 }
 
@@ -109,12 +89,29 @@ void SectorData::FindSeams() {
 }
 
 void SectorData::DrawPage(const CSceneRenderer* renderer, int page) {
-    if (clipMode == terrain::kCulled) return;
+    if (clipMode == kCulled) return;
     if (hasWater) ApplyWaterLevels();
     render::TerrainPage(this, renderer, page);
 }
 
 // --- The passes ------------------------------------------------------------------------------------
+
+void Terrain::DrawPass(CSceneRenderer* renderer, int firstPage, int lastPage) {
+    Matrix4 matrix;
+    localRotation_.ToMatrix(matrix.m);
+    matrix.m[3] = localPosition_.x;
+    matrix.m[7] = localPosition_.y;
+    matrix.m[11] = localPosition_.z;
+    matrix.m[12] = matrix.m[13] = matrix.m[14] = 0.0f;
+    matrix.m[15] = 1.0f;
+    CTransformPipeline* pipeline = renderer->pipeline_;
+    pipeline->PushMatrixProduct(matrix, CTransformPipeline::kClipStack);
+    pipeline->PushMatrixProduct(matrix, kProjectStack);
+    DrawPages(renderer, firstPage, lastPage);
+    pipeline = renderer->pipeline_;
+    pipeline->PopMatrix(CTransformPipeline::kClipStack);
+    pipeline->PopMatrix(kProjectStack);
+}
 
 void Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return;
@@ -138,6 +135,8 @@ void Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     }
 }
 
-void Terrain::DrawGround(CSceneRenderer* renderer) { DrawPass(this, renderer, 0, LayerPages() - 1); }
+void Terrain::DrawGround(CSceneRenderer* renderer) { DrawPass(renderer, 0, LayerPages() - 1); }
 
-void Terrain::DrawWater(CSceneRenderer* renderer) { DrawPass(this, renderer, LayerPages(), 2 * LayerPages() - 1); }
+void Terrain::DrawWater(CSceneRenderer* renderer) { DrawPass(renderer, LayerPages(), 2 * LayerPages() - 1); }
+
+} // namespace terrain

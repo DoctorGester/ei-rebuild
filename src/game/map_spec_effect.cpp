@@ -70,7 +70,7 @@ void EffectSpec::Move(float dx, float dy, float dz) {
     p.x = dx + p.x;
     p.y = dy + p.y;
     p.z = dz + p.z;
-    double ground = g_clientWorld.terrain_->HeightAt(p.x, p.y, 0);
+    double ground = g_clientWorld.terrain_->HeightAt(p.x, p.y, terrain::Layer::Ground);
     if (ground > p.z) p.z = static_cast<float>(ground);
     Apply();
 }

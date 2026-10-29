@@ -41,13 +41,7 @@ constexpr int kTextureClasses = 16;
 constexpr int kFallbackClass = 0xF;
 
 // A tile's entries (3 x 3 vertices).
-constexpr int kTileEntries = 9;
-
-// Tile edge flags (SectorData::tileFlags): the tile on the sector's first / last row, first / last column.
-constexpr std::uint8_t kFirstRow = 1;
-constexpr std::uint8_t kLastRow = 2;
-constexpr std::uint8_t kFirstColumn = 4;
-constexpr std::uint8_t kLastColumn = 8;
+constexpr int kTileEntries = TileUv::kVertices;
 
 // Where a tile texture is: its page and its index in the page.
 struct PageSlot {
@@ -163,7 +157,7 @@ int CountTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                 lib::LoadBytes(word, source);
                 if (layer == 0) s.tileRotation[tile] = static_cast<std::uint8_t>(word >> kTileRotationShift);
                 int texture = word & kTileTextureMask;
-                int page = SlotOf(texture, s.perPage, s.pages).page + layer * s.LayerPages();
+                int page = SlotOf(texture, owner->perPage, owner->pages).page + layer * s.LayerPages();
                 *out = texture;
                 if (IsAnimated(owner, texture)) ++animated;
                 ++counts[QuarterOf(column, row)][page];
@@ -189,10 +183,10 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                 if (word == kNoTile) continue;
                 int texture = word & kTileTextureMask;
                 int rotation = word >> kTileRotationShift;
-                PageSlot slot = SlotOf(texture, s.perPage, s.pages);
+                PageSlot slot = SlotOf(texture, owner->perPage, owner->pages);
                 int page = slot.page + layer * s.LayerPages();
                 int quarter = QuarterOf(column, row);
-                const float* uv = owner->TileUv(rotation, slot.index, page);
+                const TileUv* uv = &owner->TileUvAt(rotation, slot.index, page);
 
                 int& count = counts[quarter][page];
                 TileVertex* entry = s.tiles[quarter][page].data() + count * kTileEntries;
@@ -208,20 +202,20 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                         tile.frames = frames;
                         tile.frame = static_cast<int>(draw % static_cast<std::uint32_t>(frames));
                         tile.speed = kAnimationSpeeds[ClassOf(owner, texture)];
-                        uv = owner->TileUv(rotation, tile.frame + slot.index, 0);
+                        uv = &owner->TileUvAt(rotation, tile.frame + slot.index, 0);
                     }
                 }
                 for (int entryRow = 0; entryRow < 3; ++entryRow, record += kSectorRow) {
                     for (int entryColumn = 0; entryColumn < 3; ++entryColumn, ++entry) {
-                        entry->u = uv[entryRow * 3 + entryColumn];
+                        entry->u = uv->u[entryRow * 3 + entryColumn];
                         entry->vertex = record + entryColumn;
-                        entry->v = static_cast<float>(1.0 - uv[entryRow * 3 + entryColumn + kTileEntries]);
+                        entry->v = static_cast<float>(1.0 - uv->v[entryRow * 3 + entryColumn]);
                     }
                 }
                 std::uint8_t& flags = s.tileFlags[quarter][page][count];
-                flags = row == 0 ? kFirstRow : (row == kSectorTiles - 1 ? kLastRow : 0);
-                if (column == 0) flags |= kFirstColumn;
-                else if (column == kSectorTiles - 1) flags |= kLastColumn;
+                flags = row == 0 ? kFirstRowTile : (row == kSectorTiles - 1 ? kLastRowTile : 0);
+                if (column == 0) flags |= kFirstColumnTile;
+                else if (column == kSectorTiles - 1) flags |= kLastColumnTile;
                 ++count;
             }
         }
@@ -272,14 +266,11 @@ void ComputeBounds(SectorData& s) {
 
 // Loading
 
-int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pageCount, int texturesPerPage,
-                     const char* prefix, Terrain* terrain) {
+int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, const char* prefix, Terrain* terrain) {
     Clear();
     owner = terrain;
     sx = sectorX;
-    pages = pageCount;
     sy = sectorY;
-    perPage = texturesPerPage;
 
     char name[0x100];
     std::snprintf(name, sizeof(name), "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
@@ -394,7 +385,7 @@ void SectorData::Build() {
             if (std::find(waterMaterials.begin(), waterMaterials.end(), id) == waterMaterials.end())
                 waterMaterials.push_back(static_cast<std::uint8_t>(id));
         }
-        std::vector<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
+        const std::span<float> levels = owner->SectorWaterLevels(sx, sy);
         for (std::uint8_t id : waterMaterials) levels[id] = owner->materials[id].level;
         ApplyWaterLevels();
     }
@@ -402,7 +393,7 @@ void SectorData::Build() {
 }
 
 void SectorData::ApplyWaterLevels() {
-    std::vector<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
+    const std::span<float> levels = owner->SectorWaterLevels(sx, sy);
     for (std::uint8_t id : waterMaterials) {
         const double level = levels[id];
         EI_NAN_AUDIT(level);

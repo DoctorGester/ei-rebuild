@@ -9,6 +9,8 @@
 #include <cmath>
 #include <cstdint>
 
+namespace terrain {
+
 std::uint8_t Terrain::EdgeFade(const Vector3& point) {
     if (!lib::Has(landscapeFlags, LandscapeFlag::EdgeFade)) return 0xFF;
     const float fade = options::g_options.borderFogDistance_;
@@ -30,3 +32,5 @@ std::uint8_t Terrain::EdgeFade(const Vector3& point) {
     int amount = x87::fistp(static_cast<float>(depth / fade * 255.0f));
     return static_cast<std::uint8_t>(0xFF - static_cast<std::uint8_t>(amount));
 }
+
+} // namespace terrain

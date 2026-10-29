@@ -213,7 +213,7 @@ const HighestObject& Highest(const CWorldClient* world) {
 } // namespace
 
 void HandOverSceneLights(CWorldClient* world) {
-    Terrain* terrain = world->terrain_;
+    terrain::Terrain* terrain = world->terrain_;
     CLight* sun = terrain && terrain->sun ? terrain->sun : g_sceneRenderer.sun_;
     if (!sun) return;
     static std::vector<render::ScenePointLight> points;
@@ -243,8 +243,8 @@ void HandOverSceneLights(CWorldClient* world) {
 }
 
 void HandOverTerrainCasters(CWorldClient* world) {
-    Terrain* terrain = world->terrain_;
-    if (!terrain || !terrain->mapLoaded || !lib::Has(terrain->landscapeFlags, LandscapeFlag::SunShadows) || terrain->sectorGrid.empty()) return;
+    terrain::Terrain* terrain = world->terrain_;
+    if (!terrain || !terrain->mapLoaded || !lib::Has(terrain->landscapeFlags, terrain::LandscapeFlag::SunShadows) || terrain->sectorGrid.empty()) return;
     render::ShadowCasterRect area;
     if (!render::ShadowTerrainArea(terrain->heightRange, &area)) return;
     constexpr float kSector = 32.0f;   // vertices a sector side, one unit apart

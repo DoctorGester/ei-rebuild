@@ -72,7 +72,6 @@ void SectorData::Clear() {
     hasWaterTiles = false;
     data = nullptr;
     owner = nullptr;
-    pages = perPage = -1;
     built = SectorStage::None;
     lastUsed = 0;
     relightCountdown = 0;
@@ -102,10 +101,10 @@ void SectorData::AnimateTiles(int frame) {
         }
         tile.frame = (tile.frame + 1) % tile.frames;
         stepped = true;
-        const float* uv = owner->TileUv(tile.rotation, tile.frameBase + tile.frame, 0);
-        for (int k = 0; k < 9; ++k) {
-            tile.vertices[k].u = uv[k];
-            tile.vertices[k].v = 1.0f - uv[k + 9];
+        const TileUv& uv = owner->TileUvAt(tile.rotation, tile.frameBase + tile.frame, 0);
+        for (int k = 0; k < TileUv::kVertices; ++k) {
+            tile.vertices[k].u = uv.u[k];
+            tile.vertices[k].v = 1.0f - uv.v[k];
         }
     }
     if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the pages kept on the GPU
@@ -182,10 +181,6 @@ void SectorData::AnimateWaves() {
     render::TerrainChanged(this, render::TerrainChange::WaterMoved);
 }
 
-} // namespace terrain
-
-using terrain::SectorData;
-
 void Terrain::SetSun(CLight* light, const Vector4* colour) {
     ambient = *colour;
     sun = light;
@@ -197,7 +192,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     std::vector<SectorData*> sorted;
     for (SectorData* sector : sectorCache)
         if (lib::Has(sector->built, SectorStage::Lit)) sorted.push_back(sector);
-    std::sort(sorted.begin(), sorted.end(), terrain::SectorBefore);
+    std::sort(sorted.begin(), sorted.end(), SectorBefore);
     if (sorted.empty()) return;
     float step = static_cast<float>(static_cast<double>(lightInterval - 1) / std::ssize(sorted));
     float at = 0.0f;
@@ -230,3 +225,5 @@ bool Terrain::RunTick() {
     }
     return true;
 }
+
+} // namespace terrain

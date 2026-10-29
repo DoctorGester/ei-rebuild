@@ -102,7 +102,7 @@ int ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c) 
 } // namespace decal
 
 void DecalBuilder::Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
-                         std::vector<std::uint16_t>* indices, float* const* corners, const Vector3& direction,
+                         std::vector<std::uint16_t>* indices, const VertexPacket& quad, const Vector3& direction,
                          const Vector3& point, float depth) {
     direction_ = direction;
     point_ = point;
@@ -115,15 +115,14 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* points, std::vector<DecalTex
     points_->clear();
     indices_->clear();
 
-    const float* m = *corners;
-    Vector3 origin = {m[3], m[7], m[11]};
-    Vector3 vCorner = {m[0], m[4], m[8]};
+    Vector3 origin = {quad.x()[3], quad.y()[3], quad.z()[3]};
+    Vector3 vCorner = {quad.x()[0], quad.y()[0], quad.z()[0]};
 
     Vector3& dir = direction_;
     dir = Normalised<Sum3::XYZ>(dir);
 
     // The u edge without its part along the direction, over its squared length.
-    uAxis_ = {m[2] - origin.x, m[6] - origin.y, m[10] - origin.z};
+    uAxis_ = {quad.x()[2] - origin.x, quad.y()[2] - origin.y, quad.z()[2] - origin.z};
     double along = DotZYX(uAxis_, dir);
     Vector3 part = {static_cast<float>(along * dir.x), static_cast<float>(along * dir.y),
                     static_cast<float>(along * dir.z)};
