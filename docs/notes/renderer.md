@@ -423,13 +423,15 @@ movie (the harness empties movie.ini's lists). Scenario render_movie_present (Pl
 game); 005DA400 runs in every new game; 005E5690 presents only with FpsIndependentCursor (render_cursor_present
 sets it).
 
-Images kept across frames (`render_blit.cpp`): the cursor's composite, `render::Fill`'s 1x1 colours and the movie frames
-are dynamic images updated with `sg_update_image`, not made per blit. Cursor and fills share a cache of at most 64
+Images kept across frames (`render_blit.cpp`): the cursor's composite and the movie frames are dynamic images updated
+with `sg_update_image`, not made per blit. The cursor's composites are a cache of at most 64
 images (one per size, several of a size when one frame draws different contents), each keeping a copy of its pixels: a
 blit with the same pixels uploads nothing, else a free image of that size (not blitted in this frame, not updated
 since the last commit; sokol allows one update per image and frame, and the blits are drawn at the end of the frame)
 is rewritten; only when every image is in use is a one-frame image made. A movie keeps one image per player, updated
 in place unless it was already blitted or updated in this frame (then a new one replaces it after the present).
+`render::Fill` (the movie player's black) is a solid rectangle command, drawn with the depth clear's shader
+(`solid.hlsl`) through a pipeline that writes the colour only (R30c).
 Harness build: counts per purpose in ei_hook.log (`render: images ...`, every 300 frames and at exit) and every
 in-place upload is read back from the GPU and compared with the pixels written (`render: MISMATCH` on a difference;
 sampled like the gamma ramp check: the first 64 of each kind, then every 16th, all with `checkall`).
@@ -462,8 +464,7 @@ come first, then what holds for the present path (the subsection names are cited
   went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
 - Trimming after P8 / R28 (R30's survey, build/style_review/renderer_trim.md): R30b the cursor's pictures without
-  the renderer's memory, R30c no PresentsItself flag and Fill as a solid draw, R30d the duplicate helpers (channels,
-  PixelFormat, MmpFile, staging read-backs), R30e EI_RENDER's no-op words, R30f mesh draws without the CPU clip.
+  the renderer's memory, R30d the duplicate helpers (channels, PixelFormat, MmpFile, staging read-backs), R30e EI_RENDER's no-op words, R30f mesh draws without the CPU clip.
 - No ticket yet: weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before

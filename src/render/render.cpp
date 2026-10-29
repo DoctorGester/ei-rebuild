@@ -43,7 +43,6 @@ using namespace detail;
 // --- The switch ------------------------------------------------------------------------------------
 
 bool g_configured = false;
-bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
 bool g_smooth = false;
 bool g_smoothCamera = false;
 #if defined(EI_RENDER_VALIDATION)
@@ -721,6 +720,7 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
         }
         case Command::Blit: DrawBlitBatch(g_frame, g_frame.blitBatches[i], width, height); break;
         case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
+        case Command::Fill: DrawFill(g_frame.fills[i], width, height); break;
         case Command::Canvas: DrawCanvasBatch(g_frame.canvasBatches[i], width, height); break;
         }
     }
@@ -785,7 +785,6 @@ bool DrawPending() {
 // itself, so it takes none of it while a pass is in progress: the present's lock, no cursor presents until
 // the frame's own present.
 bool DrawPendingAlone() {
-    if (!g_presentsItself) return DrawPending();
     BeginWindowPresent();
     bool drawn = DrawPending();
     EndWindowPresent(false);
@@ -1028,14 +1027,7 @@ void EndShadowBuildTime() {
 #endif
 }
 
-void StartPresenting() {
-    if (g_presentsItself) return;
-    Start();
-    g_presentsItself = true;
-    ei::Log("render: the switch-over without DirectDraw: the new renderer presents the frames itself");
-}
-
-bool PresentsItself() { return g_presentsItself; }
+void StartPresenting() { Start(); }
 
 void SetSmooth(bool on) {
     EnsureConfigured();
@@ -1176,18 +1168,14 @@ void SplitFrame() {
 void RunCanvasesNow() {
     Start();
     FpuGuard fpu;
-    if (g_presentsItself) BeginWindowPresent();
+    BeginWindowPresent();
     RunCanvasCommands();
-    if (g_presentsItself) EndWindowPresent(false);
+    EndWindowPresent(false);
 }
 
-GpuWorkAlone::GpuWorkAlone() {
-    if (g_presentsItself) BeginWindowPresent();
-}
+GpuWorkAlone::GpuWorkAlone() { BeginWindowPresent(); }
 
-GpuWorkAlone::~GpuWorkAlone() {
-    if (g_presentsItself) EndWindowPresent(false);
-}
+GpuWorkAlone::~GpuWorkAlone() { EndWindowPresent(false); }
 
 } // namespace detail
 
@@ -1198,29 +1186,24 @@ void EndFrame() {
     FpuGuard fpu;
     StatsTimer timer(&FrameStats::endFrameMs);
     perf::CpuTimer submitTime(perf::Cpu::Submit);
-    // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in turn with
-    // the cursor thread's presents, which draw the frame as it is (the present draws the cursor over the frame).
-    bool toWindow = false;
-    if (g_presentsItself) {
-        BeginWindowPresent();
-        if (!DrawPending()) {
-            EndWindowPresent(false);
-            return;
-        }
-        perf::Stamp(perf::Mark::FrameEnd);
-        toWindow = DrawToWindow(g_frame.haveCursor ? &g_frame.cursor : nullptr);
-        perf::Stamp(perf::Mark::PresentEnd);
-        g_frame.haveCursor = false;
-    } else if (!DrawPending()) {
+    // Onto the game window through the renderer's swap chain, in turn with the cursor thread's presents, which
+    // draw the frame as it is (the present draws the cursor over the frame).
+    BeginWindowPresent();
+    if (!DrawPending()) {
+        EndWindowPresent(false);
         return;
     }
+    perf::Stamp(perf::Mark::FrameEnd);
+    bool toWindow = DrawToWindow(g_frame.haveCursor ? &g_frame.cursor : nullptr);
+    perf::Stamp(perf::Mark::PresentEnd);
+    g_frame.haveCursor = false;
     ShadowFrameEnd();
     perf::EndGpuFrame();
     sg_commit();
     submitTime.Stop();   // the present's wait for the display is not the renderer's work
     ++g_commits;
     if (toWindow) PresentWindow();
-    if (g_presentsItself) EndWindowPresent(toWindow && !g_deviceLost);
+    EndWindowPresent(toWindow && !g_deviceLost);
     g_haveFrame = true;
 }
 
@@ -1241,6 +1224,7 @@ void Present() {
     g_frame.meshLights.clear();
     g_frame.blitBatches.clear();
     g_frame.clears.clear();
+    g_frame.fills.clear();
     g_frame.canvasBatches.clear();
     g_frame.commands.clear();
     g_frame.worldRanges.clear();

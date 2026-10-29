@@ -9,8 +9,8 @@ namespace {
 
 #include "shaders/blit_vs.h"
 #include "shaders/blit_ps.h"
-#include "shaders/clear_depth_vs.h"
-#include "shaders/clear_depth_ps.h"
+#include "shaders/solid_vs.h"
+#include "shaders/solid_ps.h"
 #include "shaders/mesh_vs.h"
 #include "shaders/mesh_ps.h"
 #include "shaders/terrain_vs.h"
@@ -52,7 +52,7 @@ static_assert(kSmoothSamples == 8, "a depth_from_multisampled shader for each co
 } // namespace
 
 const ShaderBytecode kBlitShader{SG_RANGE(blit_vs), SG_RANGE(blit_ps)};
-const ShaderBytecode kClearDepthShader{SG_RANGE(clear_depth_vs), SG_RANGE(clear_depth_ps)};
+const ShaderBytecode kSolidShader{SG_RANGE(solid_vs), SG_RANGE(solid_ps)};
 const ShaderBytecode kMeshShader{SG_RANGE(mesh_vs), SG_RANGE(mesh_ps)};
 const ShaderBytecode kTerrainShader{SG_RANGE(terrain_vs), SG_RANGE(terrain_ps)};
 const ShaderBytecode kPresentShader{SG_RANGE(present_vs), SG_RANGE(present_ps)};

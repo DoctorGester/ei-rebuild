@@ -60,7 +60,7 @@ StagePatch PatchOf(const void* holder);
 struct ShaderBytecode {
     sg_range vs, ps;
 };
-extern const ShaderBytecode kBlitShader, kClearDepthShader;
+extern const ShaderBytecode kBlitShader, kSolidShader;
 extern const ShaderBytecode kMeshShader;
 extern const ShaderBytecode kTerrainShader;
 extern const ShaderBytecode kPresentShader;
@@ -167,6 +167,12 @@ struct ClearBatch {
     Rect rect;                // screen pixels; right 0: the whole frame
 };
 
+// render::Fill.
+struct FillBatch {
+    Rect rect;                // screen pixels
+    std::uint32_t colour;     // D3DCOLOR, alpha ignored
+};
+
 // render::ui::DrawCanvas; the canvas is looked up by its holder when drawn.
 struct CanvasBatch {
     const void* holder;
@@ -177,9 +183,9 @@ struct CanvasBatch {
 };
 
 struct Command {
-    enum Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Canvas };
+    enum Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Fill, Canvas };
     Kind kind;
-    int index;                // into terrainBatches / meshBatches / blitBatches / clears / canvasBatches
+    int index;                // into terrainBatches / meshBatches / blitBatches / clears / fills / canvasBatches
 };
 
 // The receivers' shader parameters of the shadow map (shaders/shadow_receiver.hlsli).
@@ -269,6 +275,7 @@ struct Frame {
     std::vector<MeshLightParams> meshLights;   // MeshBatch::lighting
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
+    std::vector<FillBatch> fills;
     std::vector<CanvasBatch> canvasBatches;
     std::vector<Command> commands;
 // The world view's commands (render::BeginWorld .. EndWorld), the last range open (end SIZE_MAX) while the
@@ -524,10 +531,11 @@ void NoteCasterPart(const void* part);
 void ShadowFrameEnd();
 void ShadowFrameDone();
 
-// The cursor's and the movies' blits and the depth clear in the middle of the pass.
+// The movies' blits, the depth clear in the middle of the pass and the movie player's fill.
 bool CreateBlitPipeline();
 void DrawBlitBatch(const Frame& frame, const BlitBatch& batch, int width, int height);
 void DrawClearDepth(const ClearBatch& clear, int width, int height);
+void DrawFill(const FillBatch& fill, int width, int height);
 void RetireFrameImages();
 void DestroyBlits();
 struct Picture;
@@ -576,7 +584,7 @@ void SplitFrame();
 void RunCanvasesNow();
 
 // Images made and updated in place by purpose, logged in the verify build.
-enum class ImageUse { Cursor, Fill, Movie, Texture, Count };
+enum class ImageUse { Cursor, Movie, Texture, Count };
 void CountImage(ImageUse use, bool made);
 void CountImageRequest(ImageUse use);
 void LogImageCounts(const char* when);

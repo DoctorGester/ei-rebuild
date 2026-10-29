@@ -179,7 +179,6 @@ bool ReadCursorPresent(int* width, int* height, std::vector<std::uint8_t>* bgr);
 bool FrameInWindow(int* width, int* height);
 void FrameToWindow(int* x, int* y);
 void WindowToFrame(int* x, int* y);
-bool PresentsItself();
 void ConfigureRenderer(const char* spec);
 void SetWaitForVsync(bool on);
 void LoseDevice();

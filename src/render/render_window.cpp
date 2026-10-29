@@ -270,7 +270,6 @@ Rect Placed(int clientWidth, int clientHeight, int frameWidth, int frameHeight) 
 
 // The client area, the frame's size and its place; false when there is no frame or window.
 bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameHeight, Rect* placed) {
-    if (!PresentsItself()) return false;
     HWND window = GameWindow();
     RECT client{};
     if (!window || !GetClientRect(window, &client)) return false;

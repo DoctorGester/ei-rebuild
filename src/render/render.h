@@ -225,10 +225,9 @@ void HolderGone(const void* holder);
 // picture's pixels from the file data.
 void PictureFromMmp(const void* holder, const void* data);
 
-// The device object is being built: the renderer starts presenting through its own swap chain. When it cannot
+// The device object is being built: the renderer starts (it presents through its own swap chain). When it cannot
 // start the game ends here.
 void StartPresenting();
-bool PresentsItself();
 // Default on; the harness turns it off under its virtual clock.
 void SetWaitForVsync(bool on);
 // The settings file's "VSync" (after StartPresenting, before the first present): off presents with sync

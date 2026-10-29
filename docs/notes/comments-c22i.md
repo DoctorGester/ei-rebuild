@@ -128,7 +128,7 @@ See docs/notes/rebirth.md ("PersistentGlobalVars").
 
 ## present_window.h
 
-The game window in the switch-over without DirectDraw (render::PresentsItself): full
+The game window the renderer presents on (render::StartPresenting): full
 screen without a display mode change, and the game's mouse coordinates when the frame does not
 fill the window one to one. docs/notes/renderer.md, section 9.
 The game takes its mouse positions as screen coordinates of a window at 0, 0 the size of its

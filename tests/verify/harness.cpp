@@ -2763,13 +2763,13 @@ void RunSteps() {
     if (g_waitingNewDevice) {
         const image::WindowPresents now = HarnessWindowPresents();
         // Made again, and (presenting on the game window) a frame presented on the new device.
-        bool presented = !ei::Standalone() || !image::PresentsItself() || now.presents > now.presentsAtRecovery;
+        bool presented = !ei::Standalone() || now.presents > now.presentsAtRecovery;
         const char* verb = g_newDeviceRemoved ? "removedevice" : "losedevice";
         if (now.deviceRecoveries > g_newDeviceFrom && presented) {
             Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX, removed reason %08lX%s)%s",
                 verb, now.deviceLosses, now.deviceRecoveries, static_cast<unsigned long>(now.lastLossResult),
                 static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated ? ", simulated" : "",
-                ei::Standalone() && image::PresentsItself() ? " presents on the game window" : "");
+                ei::Standalone() ? " presents on the game window" : "");
             // A real removal: reported by the device itself (not LoseDevice's stand-in), and the new
             // device removable again.
             if (g_newDeviceRemoved &&
