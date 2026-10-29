@@ -4,15 +4,16 @@
 // manager), its parts (scene nodes, one per figure piece) and their bounding box, and the scale the figure
 // was built for. See docs/notes/map_objects.md ("Figures").
 
-#include "ref.h"
 #include "core_transform.h"
 #include "engine_object.h"
 #include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
 #include "model.h"   // FootprintPart (the part boxes)
+#include "ref.h"
 #include "unit_create.h"   // MapObjectType
 
+#include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
 
@@ -32,13 +33,97 @@ inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
 class CLinkMesh;
 struct tagRECT;
 
+// FigureAnimation::key, as the figures' animation databases (database.res, "<figure>.adb") give it, and the
+// keys the units ask for (docs/notes/combat.md, "Animation keys"):
+//   bits 0..7    the weapon types the animation is for (AnimationWeaponBit; 0x7F: any)
+//   bits 15..17  the movement mode's bits (CUnitServer::MoveModeMask; the data does not name them)
+//   bits 18..21  the kind (AnimationKind)
+//   bits 22..29  the number (AnimationNumber): a Special's SkillAnimation, a walk's or run's DamageLevel bits,
+//                an attack's height band, a death's BlowSide and fall bits
+//   bit 30       played once (AnimationKeyFlag::Once: the "s..." names, "scross13")
+//   bit 31       looped (AnimationKeyFlag::Looped: the "c..." names, "cwalk01", "cidle"); "u..." names have neither
+
+// The kind of an animation, bits 0x3C0000 of its key. Names from the databases' animation names (1.06's
+// database.res: "uattack01", "crun02", "udeath12", ...); a few unnamed entries have kind None.
+enum class AnimationKind : std::uint32_t {
+    None = 0,
+    Special = 0x40000,   // "uspecial", "ubriefing": the skills (SkillAnimation) and the briefings' gestures
+    Attack = 0x80000,
+    Cast = 0xC0000,
+    Run = 0x100000,    // "crun", the once-played "scross" into a run, "cflight"
+    Walk = 0x140000,   // "cwalk", "ccrawl", the once-played "scross" into a walk, "cflight"
+    Idle = 0x180000,   // "cidle", "crest"
+    Death = 0x1C0000,
+    Hit = 0x200000,
+    Cross = 0x240000,   // "ucross": the movement mode changes (LogicSettings::humanCrossAnimationSpeed)
+};
+inline constexpr std::uint32_t kAnimationKindMask = 0x3C0000;
+constexpr AnimationKind AnimationKindOf(std::uint32_t key) {
+    return static_cast<AnimationKind>(key & kAnimationKindMask);
+}
+constexpr std::uint32_t AnimationKeyOf(AnimationKind kind) { return static_cast<std::uint32_t>(kind); }
+
+// The key's number field (bits 22..29).
+inline constexpr int kAnimationNumberShift = 22;
+inline constexpr std::uint32_t kAnimationNumberMask = 0x3FC00000;
+constexpr int AnimationNumber(std::uint32_t key) { return static_cast<int>((key >> kAnimationNumberShift) & 0xFF); }
+constexpr std::uint32_t AnimationNumberBits(int number) {
+    return static_cast<std::uint32_t>(number) << kAnimationNumberShift;
+}
+
+// The weapon bit of weapon type `type` (the original's shift takes the count's low 5 bits).
+constexpr std::uint32_t AnimationWeaponBit(int type) { return 1u << (type & 0x1F); }
+
+// Flag bits of the key. DamageLevel1 / DamageLevel2 pick a hero's tired walk or run (LogicSettings'
+// DamageLevel1Value / DamageLevel2Value against its load factor; "cwalk08" / "cwalk06"); they are the number
+// field's low bits.
+enum class AnimationKeyFlag : std::uint32_t {
+    DamageLevel1 = 0x400000,
+    DamageLevel2 = 0x800000,
+    Once = 0x40000000,
+    Looped = 0x80000000,
+};
+template <>
+inline constexpr bool lib::kBitFlags<AnimationKeyFlag> = true;
+
+// The skills' animation numbers (Special animations; CUnitServer's use orders, the skill sounds). Names from the
+// use sources (UseSource) and the sounds (heroes\human\skills\*.wav); the four SearchBody animations ("loot.wav")
+// differ by the movement mode (2 or another) and whether the weapon is ranged.
+enum class SkillAnimation : int {
+    Tame = 0x13,    // "tame.wav"
+    Steal = 0x14,   // "steal.wav"
+    Use = 0x15,     // "science.wav"
+    SearchBodyRanged = 0x16,
+    SearchBodyMode2 = 0x30,
+    SearchBodyMode2Ranged = 0x34,
+    SearchBody = 0x35,
+};
+
+// The side a blow came from (CUnitServer::HitDirection), bits 0x1C00000 of a death animation's flags (and of the
+// key a unit asks for). In the unit's axes, whose Y points backwards; the death animation's point (CUnit's action
+// point) lies away from the blow: +Y for Front, -Y for Back, +X for MinusX, -X for PlusX. Which of X's sides is
+// the unit's left the code does not say.
+enum class BlowSide : std::uint32_t {
+    None = 0,
+    Back = 0x400000,
+    Front = 0x800000,
+    MinusX = 0xC00000,   // the attacker on the unit's -X side
+    PlusX = 0x1000000,
+};
+inline constexpr std::uint32_t kBlowSideMask = 0x1C00000;
+constexpr std::uint32_t AnimationKeyOf(BlowSide side) { return static_cast<std::uint32_t>(side); }
+
 // One animation of a figure's animation database.
 struct FigureAnimation {
+    AnimationKind Kind() const { return AnimationKindOf(key); }
+    int Number() const { return AnimationNumber(key); }
+    BlowSide Side() const { return static_cast<BlowSide>(flags & kBlowSideMask); }
+
     char name[0x10];                // (the figure manager takes the entry as an animation's name)
     std::uint8_t index;             // its index in the database (a unit keeps it)
     std::uint8_t unused_11[3];
-    std::uint32_t key;              // animation key bits (docs/notes/combat.md): kind 0x3C0000, number 0x3FC00000
-    std::uint32_t flags;            // bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
+    std::uint32_t key;              // the animation key (above)
+    std::uint32_t flags;            // bit 0: a bow's arrow shows from frame arrowFrom to arrowTo; a death's BlowSide
     std::uint32_t chance;           // percent (a random pick drops entries below a random percent)
     std::uint32_t frameCount;       // the animation's length in frames
     // The distance one play of the animation moves the unit (0: the speed comes from the unit instead).

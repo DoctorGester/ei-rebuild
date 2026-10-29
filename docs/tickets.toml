@@ -5482,3 +5482,17 @@ group = "cleanup"
 model = "opus"
 depends = ["C50b"]
 note = "C50b follow-up. g_serverWorld / g_clientWorld (world_construct.cpp) stay lib::StaticObject built and destroyed in list order: their destructors release objects into managers and databases the list destroys around them, so a plain global (destroyed by the C++ runtime after every list exit function) needs the exit order checked first (or the worlds emptied by the shutdown before exit). CWorldServer's messages_ (InPlace<CFileRegistry>, registry is C50d's) goes with it. g_gameFlow, g_savedParties, g_partyManager and g_saveStream construct and destroy themselves since C50b but stay StaticObject because ui_* files spell them with ->: after C54, retype them to plain globals (whole-tree g_x-> to g_x.), add their initialisers 00578440 / 0065F2A0 / 004A56D0 / 00578530 to gen_static_init's UNUSED_INITIALISERS and drop their static_init_ports rows and named_data tags. MpHeroRecord's InPlace<CParty> (ctor in ui_hero_screen_click.cpp) is C54's. Goldens unchanged."
+
+[[ticket]]
+id = "C45d5a"
+title = "Animation keys: the composite key constants on the new names"
+group = "cleanup"
+depends = ["C45d5"]
+note = "C45d5 named the key's kinds, flags, skill numbers and blow sides in map_object_figures.h (AnimationKind, AnimationKeyFlag, SkillAnimation, BlowSide; layout comment there). Still local hex: combat_steps.cpp's attack / cast / death / fall keys (kKeyAttack 0x90000, kKeyCast*, kKeyDeath 0x6000000, kKeyFall*, the height bands 0x1000000..0x3000000, kKeyFlag10000) and the movement mode bits (LeaveBits / EnterBits, CUnitServer::MoveModeMask 0x30000 / 0x20000 / 0x10000 / 0x8000; unit_client_update.cpp kKeyMovement*), combat_motion.cpp kKeyIdle 0x80580000, unit_client_animation.cpp kKeyNotHero / kKeySpecialIdle, map_object_animation_state.cpp kKeyEndMask / kKeyLoops and combat_order_setters.cpp kEmoteKeyBit (= AnimationKeyFlag::Looped), the weapon-bit shifts in combat.cpp WeaponTypeMask / combat_steps.cpp WeaponBit (AnimationWeaponBit). Names from the .adb animation names (scratch reader: dump database.res's *.adb names with keys) where they give one. ui_* FindSkillAnimation numbers (briefing / menu gestures) are UI-track. Goldens unchanged."
+
+[[ticket]]
+id = "C45d5b"
+title = "BlowSide and SkillAnimation parameters instead of uint32"
+group = "cleanup"
+depends = ["C45d5"]
+note = "Signature follow-up of C45d5: CUnitServer::HitDirection returns, BuildDeathAnimation's direction and CUnitServer::hitDirection hold a BlowSide (map_object_figures.h) as std::uint32_t; CObject3D::FindSkillAnimation(int) could take SkillAnimation for the skill callers. The saved field keeps its 4 bytes. Goldens unchanged."

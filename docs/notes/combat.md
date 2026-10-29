@@ -49,7 +49,8 @@ item slot | 0x80000000); +0x1D8 / +0x1DC "waiting for" link (followsLeader / fol
 `armourSpells` (CList, vtable 0073F010); +0x938 boredom counter; +0x940 / +0x944 movement animation key / list; +0x95C /
 +0x960 / +0x974 idle key / list / time (0x666DEAD: no key yet); +0x978 `actionDone`, the callback run when state 3 ends;
 +0x984 brain's mode (6: no path reports); +0xB10 `voice` (005AEA50 zeroes it). The brain's +0xD0 and +0xD8 are both sight
-caches {0, -1.0}. Animation keys (005301B0): weapon bit (1 << type, natural below 7) | movement bits (0x30000 / 0x20000 /
+caches {0, -1.0}. Animation keys (005301B0; the layout and AnimationKind / BlowSide / SkillAnimation in
+map_object_figures.h, names from database.res's *.adb): weapon bit (1 << type, natural below 7) | movement bits (0x30000 / 0x20000 /
 0x10000 / 0x8000) | action bits (0x90000 attack with height band 0x1000000 / 0x2000000 / 0x3000000 | 0x800000, 0x40000
 skill, 0xC0000 cast, 0x240000 mode transition, 0x6000000 death, 0x80580000 idle ...); movement | 0x40000000 once or
 0x80000000 looped. A step is {animation, 0xFF, 0, uninitialised, duration, +8}; duration = entry frames (+0x20; +0x40 the

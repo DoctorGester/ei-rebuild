@@ -36,8 +36,13 @@ struct UnitAction : AIOrder {
 // duration -1, kind 0. The padding byte is never set: the original's steps carried a stack byte there, ours
 // carry 0, and so does the original in harness runs (harness_save_leftovers.cpp).
 struct AnimationStep {
-    std::uint8_t animation = 0xFF;
-    std::uint8_t variant = 0xFF;
+    static constexpr std::uint8_t kNone = 0xFF;   // no animation (a pause) / no variant
+
+    // Neither an animation nor a variant (nothing to show).
+    bool IsBlank() const { return animation == kNone && variant == kNone; }
+
+    std::uint8_t animation = kNone;
+    std::uint8_t variant = kNone;
     std::uint8_t flags = 0;
     std::uint8_t padding = 0;
     int duration = -1;

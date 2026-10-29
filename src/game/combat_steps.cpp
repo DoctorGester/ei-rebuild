@@ -2,19 +2,18 @@
 // when the action happens). See combat.h, combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "combat_plan.h"
-
 #include "item.h"
 #include "map_object_figures.h"
 #include "maths.h"
 #include "random.h"
+#include "unit.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/gameapi.h"
+#include "lib/nan_audit.h"
 
 #include "ei/x87.h"
-#include "unit.h"
-#include "lib/nan_audit.h"
-#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -42,16 +41,14 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr int kNoSizeClasses = 2;         // UnitStats::movementKind
 
-constexpr std::uint32_t kKeyAction = 0x40000;
+constexpr std::uint32_t kKeyAction = AnimationKeyOf(AnimationKind::Special);
 constexpr std::uint32_t kKeyAttack = 0x90000;
-constexpr std::uint32_t kKeyCast = 0xC0000;
 constexpr std::uint32_t kKeyCastStanding = 0x2820000;
 constexpr std::uint32_t kKeyCastA = 0x2800000;
 constexpr std::uint32_t kKeyCastB = 0x1800000;
 constexpr std::uint32_t kKeyNoUnitCast = 0x2890000;
 constexpr std::uint32_t kKeyFlag10000 = 0x10000;
 constexpr std::uint32_t kKeyFallback = 0x2890000;    // | weapon bit: any attack of the weapon
-constexpr std::uint32_t kKeyTransition = 0x240000;
 constexpr std::uint32_t kKeyNoWeapon = 0x20;
 constexpr std::uint32_t kKeyHigh = 0x1000000;
 constexpr std::uint32_t kKeyMiddle = 0x2000000;
@@ -60,6 +57,11 @@ constexpr std::uint32_t kKeyBlow = 0x800000;
 constexpr std::uint32_t kKeyNonHeroLow = 0x3800000;
 constexpr std::uint32_t kKeyNonHeroHigh = 0x2800000;
 constexpr std::uint32_t kKeyNoTarget = 0x2800000;
+
+// The key of a skill's animation (any weapon).
+constexpr std::uint32_t SkillKey(SkillAnimation skill) {
+    return AnimationNumberBits(static_cast<int>(skill)) | kKeyAction;
+}
 
 // Hit locations picked for a skill order (source 6), uniformly from these 20.
 constexpr int kSkillLocations[20] = {0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5};
@@ -138,24 +140,24 @@ std::uint32_t OrderKey(CUnitServer* self, UnitOrderKind kind, std::uint32_t sour
     switch (static_cast<UseSource>(source)) {
     case UseSource::Use:
         *frame = leavesWalk;
-        return 0x5400000 | kKeyAction;
+        return SkillKey(SkillAnimation::Use);
     case UseSource::Steal:
         *frame = leavesWalk;
-        return 0x5000000 | kKeyAction;
+        return SkillKey(SkillAnimation::Steal);
     case UseSource::Tame:
         *frame = leavesWalk;
-        return 0x4C00000 | kKeyAction;
+        return SkillKey(SkillAnimation::Tame);
     case UseSource::SearchBody: {
         std::uint32_t key;
         if (self->moveMode.mode == 2) {
-            key = HasRangedWeapon(self->unit) ? 0xD000000 : 0xC000000;
+            key = SkillKey(HasRangedWeapon(self->unit) ? SkillAnimation::SearchBodyMode2Ranged
+                                                       : SkillAnimation::SearchBodyMode2);
         } else {
-            key = HasRangedWeapon(self->unit) ? 0x5800000 : 0xD400000;
+            key = SkillKey(HasRangedWeapon(self->unit) ? SkillAnimation::SearchBodyRanged : SkillAnimation::SearchBody);
             *frame = leavesWalk;
         }
-        if (!ActiveWeapon(self->unit) && self->stats.naturalWeapon >= kNoNaturalWeapon)
-            return key | kKeyNoWeapon | kKeyAction;
-        return key | WeaponBit(self) | kKeyAction;
+        if (!ActiveWeapon(self->unit) && self->stats.naturalWeapon >= kNoNaturalWeapon) return key | kKeyNoWeapon;
+        return key | WeaponBit(self);
     }
     default:
         // sic: the address of `steps` where the source belongs.
@@ -201,22 +203,18 @@ double RandomHeight(double to, float from, float low, float high) {
     return high;
 }
 
-constexpr std::uint32_t kDirectionFront = 0xC00000;   // HitDirection's bits that need no extra key bit
-constexpr std::uint32_t kDirectionBack = 0x1000000;
 constexpr std::uint32_t kKeyDeath = 0x6000000;
 constexpr std::uint32_t kKeyDeathStanding = 0x6030000;
 constexpr std::uint32_t kKeyFallWalking = 0x2010000;
 constexpr std::uint32_t kKeyFall = 0x4000000;
-constexpr std::uint32_t kKeyDying = 0x1C0000;
-constexpr std::uint32_t kKeyNotDying = 0x200000;
 constexpr std::uint32_t kKeySideMask = 0xC03FFFFF;
 constexpr std::uint32_t kKeyNoSide = 0xFE3FFFFF;
 constexpr int kStepLying = 2;   // the kind of every step of a fall
 
-// A random side for a hero's fall (0x400000 or 0x800000).
+// A random side for a hero's fall (Back or Front).
 std::uint32_t RandomSide(std::uint32_t key) {
     key &= kKeySideMask;
-    return key | ((g_random.Next() & 1) ? 0x800000u : 0x400000u);
+    return key | AnimationKeyOf((g_random.Next() & 1) ? BlowSide::Front : BlowSide::Back);
 }
 
 } // namespace
@@ -234,7 +232,7 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
     if (unit->MapType() != MapObjectType::Hero && to->mode != 4 && from->mode != 4) return false;
     if (from->mode == to->mode && (from->mode != 2 || from->onGuard == to->onGuard)) return false;
 
-    std::uint32_t key = WeaponBit(this) | (LeaveBits(from, unit) | kKeyTransition);
+    std::uint32_t key = WeaponBit(this) | (LeaveBits(from, unit) | AnimationKeyOf(AnimationKind::Cross));
     key |= EnterBits(to, unit);
     FigureAnimation* animation = unit->FindAnimation(key, 1);
     if (!animation) return false;
@@ -296,7 +294,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrder
     *steps = {};
     std::uint32_t key;
     if (unit->MapType() == MapObjectType::Hero) {
-        key = WeaponBit(this) | kKeyCast;
+        key = WeaponBit(this) | AnimationKeyOf(AnimationKind::Cast);
         if (moveMode.mode == 1) {
             key |= kKeyCastStanding;
         } else {
@@ -322,7 +320,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrder
         *duration = EntryTicks(unit, index, &FigureAnimation::moment);
         int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);
         AnimationStep& first = steps->emplace_back();
-        first.animation = 0xFF;
+        first.animation = AnimationStep::kNone;
         first.duration = pause;
         int length = EntryTicks(unit, index, &FigureAnimation::frameCount);
         AnimationStep& second = steps->emplace_back();
@@ -340,11 +338,11 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrder
     first.animation = index;
     first.duration = moment;
     AnimationStep& second = steps->emplace_back();
-    second.animation = 0xFF;
+    second.animation = AnimationStep::kNone;
     second.duration = pause;
     int rest = EntryTicks(unit, index, &FigureAnimation::frameCount) - *duration;
     AnimationStep& third = steps->emplace_back();
-    third.animation = 0xFF;
+    third.animation = AnimationStep::kNone;
     third.duration = rest;
     steps->SetStepFlags(0);
     (*steps)[1].kind = 1;
@@ -508,10 +506,12 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
         }
     } else {
         if (isFall && !isDying) return;
-        if (direction == kDirectionFront || direction == kDirectionBack) key |= kKeyDeath;
+        // A non-hero's death takes the blow's side only from the front or back.
+        auto side = static_cast<BlowSide>(direction);
+        if (side == BlowSide::MinusX || side == BlowSide::PlusX) key |= kKeyDeath;
         else key |= direction | kKeyDeath;
     }
-    key |= isDying ? kKeyDying : kKeyNotDying;
+    key |= AnimationKeyOf(isDying ? AnimationKind::Death : AnimationKind::Hit);
 
     FigureAnimation* animation = unit->FindAnimation(key, 1);
     bool add;

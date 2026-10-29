@@ -1,9 +1,9 @@
 // The 3D object's figure parts by name, their removal and their place in the world, and its
 // animation database. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
+#include "base_manager.h"
 #include "figure_mesh.h"
 #include "map_object_figures.h"
 
-#include "base_manager.h"
 #include "lib/str.h"
 
 #include <cstddef>
@@ -11,13 +11,7 @@
 #include <cstring>
 #include <string>
 
-
 namespace {
-constexpr std::uint32_t kKindMask = 0x3C0000;         // FigureAnimation::key
-constexpr std::uint32_t kKindSkill = 0x40000;
-constexpr std::uint32_t kNumberMask = 0x3FC00000;
-constexpr int kNumberShift = 22;
-
 // The first of `parts` that `matches`, or null.
 template <typename Parts, typename Match>
 CFigureMesh* FirstPart(const Parts& parts, Match matches) {
@@ -106,16 +100,17 @@ AnimationDatabase* CObject3D::Animations() {
 
 FigureAnimation* CObject3D::AnimationAt(std::uint32_t key) {
     if (!Animations()) return nullptr;
-    std::uint32_t index = key & 0xFF;
+    std::uint32_t index = static_cast<std::uint8_t>(key);   // the entry's index is the low byte
     return index < animations->count ? &animations->animations[index] : nullptr;
 }
 
 FigureAnimation* CObject3D::FindSkillAnimation(int number) {
     if (!Animations()) return nullptr;
-    std::uint32_t wanted = static_cast<std::uint32_t>(number) << kNumberShift;
+    std::uint32_t wanted = AnimationNumberBits(number);
     for (int i = 0; i < static_cast<int>(animations->count); ++i) {
-        std::uint32_t key = animations->animations[i].key;
-        if ((key & kKindMask) == kKindSkill && (key & kNumberMask) == wanted) return &animations->animations[i];
+        const FigureAnimation& entry = animations->animations[i];
+        if (entry.Kind() == AnimationKind::Special && (entry.key & kAnimationNumberMask) == wanted)
+            return &animations->animations[i];
     }
     return nullptr;
 }

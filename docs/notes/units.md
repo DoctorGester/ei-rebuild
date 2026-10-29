@@ -412,7 +412,7 @@ The sounds of the animation playing between the last update's frame
 (+0x2C; 0 when the animation changed) and now: attacks (stop the idle sound; at the action's
 moment the prototype's +0x30 shakes the camera; heroes with +0x256 play the miss sound at
 1000) and deaths (stop the idle and speech sounds) and skills play ActionSound at priority
-1000, idles and hits at 0; walk / run (0x100000 / 0x140000) at a step frame play the footstep
+1000, idles and hits at 0; run / walk (0x100000 / 0x140000) at a step frame play the footstep
 of the ground (unless silenced, effect 0x10) and, when not crawling, shake by the prototype's
 +0x30 and leave a footprint (model +0x10C / +0x110, part "ll<n>" / "rl<n>" by the step and
 the model's +0x11C) through the client world. An attack's sound waits for the

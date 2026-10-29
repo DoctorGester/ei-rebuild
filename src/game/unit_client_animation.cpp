@@ -1,14 +1,13 @@
 // The client controller moving a unit's animation through time (CUnitClientSpecific's RestartAnimation and
 // AdvanceTime, the idle animation) and the client half's pulses of invisible and stunned units. See
 // unit_client_models.h, map_object_shadow.h and docs/notes/units.md.
-#include "unit_client_models.h"
-
 #include "item_db.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "random.h"
 #include "unit.h"
+#include "unit_client_models.h"
 #include "world.h"
 
 #include "lib/nan_audit.h"
@@ -131,10 +130,10 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
             // An index beyond the table reads the type at address 0xC (a fault).
             const auto* record =
                 itemdb::WeaponAt(prototype);
-            key = 1u << (record->type & 0x1F);
+            key = AnimationWeaponBit(record->type);
         }
     } else if (unit->params.naturalWeapon < kNaturalWeapons) {
-        key = 1u << unit->params.naturalWeapon;
+        key = AnimationWeaponBit(unit->params.naturalWeapon);
     }
     if (unit->MapType() != MapObjectType::Hero) key |= kKeyNotHero;
     if (unit->secondEntry == kModeSpecialIdle) key |= kKeySpecialIdle;

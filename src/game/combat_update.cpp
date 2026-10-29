@@ -3,25 +3,24 @@
 #include "ai_alarm.h"
 #include "ai_map.h"
 #include "ai_motion.h"
+#include "base_manager.h"
 #include "combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
-
-#include "base_manager.h"
 #include "core_transform.h"
+#include "game_singletons.h"
 #include "item.h"
 #include "map_object.h"
 #include "player_messages.h"
 #include "random.h"
-#include "spell.h"
 #include "sector_map.h"
+#include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
 #include "world_effect.h"
 
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -302,8 +301,7 @@ void CUnitServer::AdvanceAnimation() {
             return;
         }
         const AnimationStep& head = queue[0];
-        if (head.animation != 0xFF || head.variant != 0xFF)
-            unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
+        if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
     }
     if (queue.empty()) {
         unit->SetMotionMode(0);
@@ -327,7 +325,7 @@ bool CUnitServer::PopFinishedSteps() {
         int end = QueueTime(this) + duration;
         if (end > now) break;
         popped = true;
-        if (std::ssize(queue) > 1 && steps[1].animation == 0xFF && steps[1].variant == 0xFF) {
+        if (std::ssize(queue) > 1 && steps[1].IsBlank()) {
             // The pause after it goes on with this step's animation, and lasts as long more.
             steps[1].animation = steps[0].animation;
             queue[1].variant = queue[0].variant;
@@ -348,8 +346,7 @@ bool CUnitServer::PopFinishedSteps() {
 void CUnitServer::ShowCurrentStep() {
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
-    if (head.animation != 0xFF || head.variant != 0xFF)
-        unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
+    if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
 
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
@@ -358,8 +355,7 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     PopFinishedSteps();
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
-    if (head.animation != 0xFF || head.variant != 0xFF)
-        unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
+    if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
 
 // --- States -------------------------------------------------------------------------------------

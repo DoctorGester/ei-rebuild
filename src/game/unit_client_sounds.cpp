@@ -31,13 +31,6 @@ constexpr int kTerrainNoCrawl1 = 6;          // kinds crawling does not change
 constexpr int kTerrainNoCrawl2 = 0xE;
 constexpr float kPlatformGap = 0.01f;
 constexpr int kCrawlSounds = 6;
-constexpr std::uint32_t kKeyKind = 0x3C0000;    // FigureAnimation::key
-constexpr std::uint32_t kKindIdle = 0x180000;
-constexpr std::uint32_t kKindSkill = 0x40000;
-constexpr std::uint32_t kKindAttack = 0x80000;
-constexpr std::uint32_t kKindDeath = 0x1C0000;
-constexpr std::uint32_t kKindHit = 0x200000;
-constexpr int kNumberShift = 22;
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
@@ -49,23 +42,24 @@ const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
     return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }
 
-// The skill sounds by animation number (0x13 tame, 0x14 steal, 0x15 science; loot for 0x16,
-// 0x30, 0x34, 0x35).
-const char* SkillSound(std::uint32_t number) {
-    switch (number) {
-    case 0x13: return "heroes\\human\\skills\\tame.wav";
-    case 0x14: return "heroes\\human\\skills\\steal.wav";
-    case 0x15: return "heroes\\human\\skills\\science.wav";
-    case 0x16:
-    case 0x30:
-    case 0x34:
-    case 0x35: return "heroes\\human\\skills\\loot.wav";
+// The skill sounds by animation (the four SearchBody animations loot).
+const char* SkillSound(SkillAnimation skill) {
+    switch (skill) {
+    case SkillAnimation::Tame:
+        return "heroes\\human\\skills\\tame.wav";
+    case SkillAnimation::Steal:
+        return "heroes\\human\\skills\\steal.wav";
+    case SkillAnimation::Use:
+        return "heroes\\human\\skills\\science.wav";
+    case SkillAnimation::SearchBodyRanged:
+    case SkillAnimation::SearchBodyMode2:
+    case SkillAnimation::SearchBodyMode2Ranged:
+    case SkillAnimation::SearchBody:
+        return "heroes\\human\\skills\\loot.wav";
     default: return nullptr;
     }
 }
 
-constexpr std::uint32_t kKindWalk = 0x100000;
-constexpr std::uint32_t kKindRun = 0x140000;
 constexpr int kPriorityAction = 1000;
 constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
@@ -148,15 +142,15 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     std::string folder = model->soundFolder;   // a missing model's soundFolder is read (sic)
     if (prototype->soundFolder.size() != 0) folder = prototype->soundFolder;
     const char* format = nullptr;
-    switch (animation->key & kKeyKind) {
-    case kKindIdle:
+    switch (animation->Kind()) {
+    case AnimationKind::Idle:
         if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->idleSoundChance) return 1;
         format = "%s\\idle\\%d.wav";
         break;
-    case kKindSkill:
-        if (const char* name = SkillSound((animation->key >> kNumberShift) & 0xFF)) *out = name;
+    case AnimationKind::Special:
+        if (const char* name = SkillSound(static_cast<SkillAnimation>(animation->Number()))) *out = name;
         return 1;
-    case kKindAttack: {
+    case AnimationKind::Attack: {
         std::uint32_t hand = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNone;
         if (unit->MapType() == MapObjectType::Hero && unit->activeWeapon < 4 && hand != kNone &&
             (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow)) {
@@ -167,8 +161,12 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
         format = "%s\\attack\\%d.wav";
         break;
     }
-    case kKindDeath: format = "%s\\death\\%d.wav"; break;
-    case kKindHit: format = "%s\\hit\\%d.wav"; break;
+    case AnimationKind::Death:
+        format = "%s\\death\\%d.wav";
+        break;
+    case AnimationKind::Hit:
+        format = "%s\\hit\\%d.wav";
+        break;
     default: return 0;
     }
     *out = str::Format(format, folder, sound);
@@ -192,12 +190,12 @@ void CUnitClientSpecific::PlayStepSounds() {
     if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
     CSoundManager* sounds = g_clientWorld->sounds_;
-    std::uint32_t kind = current->key & kKeyKind;
+    AnimationKind kind = current->Kind();
 
     bool action = false;     // ActionSound at `priority`
     bool steps = false;
     switch (kind) {
-    case kKindAttack: {
+    case AnimationKind::Attack: {
         if (g_clientWorld->LocalView()->player_->sessionKind_ == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
@@ -208,22 +206,22 @@ void CUnitClientSpecific::PlayStepSounds() {
         action = true;
         break;
     }
-    case kKindDeath:
+    case AnimationKind::Death:
         sounds->StopSound(idleSound);
         sounds->StopSound(speechSound);
         priority = kPriorityAction;
         action = true;
         break;
-    case kKindSkill:
+    case AnimationKind::Special:
         priority = kPriorityAction;
         action = true;
         break;
-    case kKindIdle:
-    case kKindHit:
+    case AnimationKind::Idle:
+    case AnimationKind::Hit:
         action = true;
         break;
-    case kKindWalk:
-    case kKindRun:
+    case AnimationKind::Run:
+    case AnimationKind::Walk:
         steps = true;
         break;
     default:
@@ -296,7 +294,7 @@ void CUnitClientSpecific::PlayStepSounds() {
 
     if (sound.size() != 0) {
         int handle = -1;
-        if (kind == kKindAttack) {
+        if (kind == AnimationKind::Attack) {
             if (!SoundBusy(speechSound)) {
                 handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0, 0);
                 speechSound = handle;
@@ -304,7 +302,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         } else {
             handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0, 0);
         }
-        if (kind == kKindIdle) idleSound = handle;
+        if (kind == AnimationKind::Idle) idleSound = handle;
     }
     lastAnimation = current;
     lastAnimationTime = now;
