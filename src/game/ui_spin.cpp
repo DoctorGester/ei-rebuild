@@ -2,6 +2,7 @@
 // docs/notes/items_spells.md.
 
 #include "ui.h"
+#include "ui_native.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -22,7 +23,9 @@ const char* const kOkSound = "buttons\\messbox\\ok.wav";
 // The window's virtuals; the input side's click and a left double click that does nothing.
 CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) {
     rect_ = rect;
-    AddSurface(new CUiSurface(ui, &rect, kSurfaceFormat));
+    CUiSurface* surface = new CUiSurface(ui, &rect, kSurfaceFormat);
+    ui_native::Adopt(surface, "options");
+    AddSurface(surface);
     texts_.push_back(text ? text : game::kEmptyText);
     changed_ = false;
     layout_ = rect;
