@@ -220,8 +220,9 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     AxisUnrounded<double> axisX = AxisXUnrounded<double>(*rotation);
     double side = -DotUnrounded<Sum3::ZYX, double>(axisX.x, axisX.y, axisX.z, dx, dy, dz);
     float sideStored = static_cast<float>(side);
-    if (AbsBits(sideStored) >= AbsBits(frontStored)) return sideStored > 0.0f ? 0xC00000 : 0x1000000;
-    return frontStored > 0.0f ? 0x800000 : 0x400000;
+    if (AbsBits(sideStored) >= AbsBits(frontStored))
+        return AnimationKeyOf(sideStored > 0.0f ? BlowSide::MinusX : BlowSide::PlusX);
+    return AnimationKeyOf(frontStored > 0.0f ? BlowSide::Front : BlowSide::Back);
 }
 
 void CUnitServer::WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer) {

@@ -1,14 +1,15 @@
 #include "unit.h"
 
 #include "item.h"
-#include "spell.h"
+#include "logic_settings.h"
 #include "party.h"
 #include "player_messages.h"
+#include "spell.h"
 #include "unit_db.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "logic_settings.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>
@@ -352,13 +353,19 @@ std::uint32_t CUnit::SetSecondPrototype(const UnitPrototypeRecord* record) {
 // --- Combat ----------------------------------------------------------------------------------
 
 float CUnit::ActionSpeed(const FigureAnimation* entry) {
-    switch (entry->key & 0x3C0000) {
-    case 0x80000: return actionSpeeds[0];
-    case 0xC0000: return actionSpeeds[1];
-    case 0x200000: return actionSpeeds[2];
-    case 0x1C0000: return actionSpeeds[3];
-    case 0x240000: return MapType() == MapObjectType::Hero ? g_logicSettings.humanCrossAnimationSpeed : actionSpeeds[4];
-    case 0x40000: return actionSpeeds[5];
+    switch (entry->Kind()) {
+    case AnimationKind::Attack:
+        return actionSpeeds[0];
+    case AnimationKind::Cast:
+        return actionSpeeds[1];
+    case AnimationKind::Hit:
+        return actionSpeeds[2];
+    case AnimationKind::Death:
+        return actionSpeeds[3];
+    case AnimationKind::Cross:
+        return MapType() == MapObjectType::Hero ? g_logicSettings.humanCrossAnimationSpeed : actionSpeeds[4];
+    case AnimationKind::Special:
+        return actionSpeeds[5];
     default: return 1.0f;
     }
 }

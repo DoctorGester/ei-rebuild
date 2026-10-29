@@ -110,7 +110,7 @@ const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int rol
 // StopSpeech stops the unit's speech. A party unit walking slowly says its own kinds (PartyKind).
 // ArmourWorn / WeaponWorn only play weapons\timecrash.wav at the unit; ArmourBroken / WeaponBroken play
 // weapons\crash.wav and go on. Kinds up to Bored come from the unit's prototype record in table 0 (Bored:
-// its environment speeches, only while the unit's animation is of kind 0x100000 / 0x140000 / 0x180000),
+// its environment speeches, only while the unit's animation is a run, walk or idle),
 // Scenario..Extra2 from table 2, Aggression..FightingRest from table 1 by the prototype's name, else by its
 // model's name; others say nothing. The speech is picked at random among those whose chance reaches a roll of 0..99.
 const SpeechRecord* SayAck(CUnit* unit, AckKind kind) {
@@ -163,8 +163,10 @@ const SpeechRecord* SayAck(CUnit* unit, AckKind kind) {
     if (environmentList) {
         const FigureAnimation* animation = unit->Object3D()->animation->current;
         if (!animation) return nullptr;
-        std::uint32_t animationKind = animation->key & 0x3C0000;
-        if (animationKind != 0x100000 && animationKind != 0x140000 && animationKind != 0x180000) return nullptr;
+        AnimationKind animationKind = animation->Kind();
+        if (animationKind != AnimationKind::Run && animationKind != AnimationKind::Walk &&
+            animationKind != AnimationKind::Idle)
+            return nullptr;
         std::uint32_t environment = g_clientWorld->EnvironmentFlags(unit);
         speech = environmentList->Pick(environment, Roll());
     } else {

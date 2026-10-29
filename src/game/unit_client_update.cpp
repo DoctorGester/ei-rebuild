@@ -24,8 +24,6 @@ constexpr int kDeadShownTicks = 50;                   // after the unit's +0x254
 constexpr std::uint32_t kKeyLowBits = 0x7FFF;         // FigureAnimation::key
 constexpr std::uint32_t kKeyMovement = 0x38000;
 constexpr std::uint32_t kKeyMovementStill = 0x30000;
-constexpr std::uint32_t kKeyKind = 0x3C0000;
-constexpr std::uint32_t kKeyTransition = 0x240000;
 constexpr float kFadeStep = 0.06666667f;              // 1/15
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
 constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::queue.count
@@ -76,8 +74,8 @@ bool CUnitClientSpecific::RunTick() {
                           static_cast<std::uint8_t>(unit->animationEntry) + kDeadShownTicks) {
         drawn = false;
     } else {
-        drawn = current && ((current->key & kKeyMovement) != kKeyMovementStill ||
-                            (current->key & kKeyKind) == kKeyTransition);
+        drawn =
+            current && ((current->key & kKeyMovement) != kKeyMovementStill || current->Kind() == AnimationKind::Cross);
     }
     if (drawn) unit->flags_ &= ~kFlagNotDrawn;
     else unit->flags_ |= kFlagNotDrawn;

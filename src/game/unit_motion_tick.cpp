@@ -8,19 +8,18 @@
 #include "combat.h"
 #include "combat_plan.h"
 #include "core_maths.h"
+#include "game_singletons.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "player_messages.h"
 #include "sector_map.h"
-#include "unit_ai.h"
-#include "world_data.h"
 #include "unit.h"
+#include "unit_ai.h"
 #include "world.h"
+#include "world_data.h"
 
-
-#include "lib/vecmath.h"
 #include "lib/nan_audit.h"
-#include "game_singletons.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 #include <cstring>
@@ -130,15 +129,14 @@ void HitWhileTurning(CUnitServer* c) {
     }
 }
 
-// A hit while moving: unless the queue's first animation (an attack, flags 0x200000 under
-// 0x3C0000) is still running, the current animation followed by the fall of the last blow
-// replaces the queue.
+// A hit while moving: unless the queue's first animation (a hit) is still running, the current animation
+// followed by the fall of the last blow replaces the queue.
 void HitWhileMoving(CUnitServer* c) {
     if (!Queue(c)->empty()) {
         std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->size()) & 0xFFFFFF00u) |
                             (*Queue(c))[0].animation;
         const FigureAnimation* entry = UnitOf(c)->AnimationEntry(key);
-        if (entry && (entry->key & 0x3C0000) == 0x200000) {
+        if (entry && entry->Kind() == AnimationKind::Hit) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(QueueStart(c));
             if (ends > static_cast<std::uint32_t>(WorldTime(ObjectWorld(c)))) return;
         }
@@ -150,9 +148,9 @@ void HitWhileMoving(CUnitServer* c) {
     for (const AnimationStep& step : current) {
         // The dwords at step + 1 / step + 0 are passed; AddEmote / AddStep keep their low byte only (the
         // variant / the animation).
-        if (step.animation == 0xFF) {
+        if (step.animation == AnimationStep::kNone) {
             fall.AddEmote(step.variant);
-        } else if (step.variant == 0xFF) {
+        } else if (step.variant == AnimationStep::kNone) {
             fall.AddStep(step.animation, step.duration);
         } else {
             fall.push_back(step);

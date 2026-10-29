@@ -5465,3 +5465,17 @@ title = "AI static tables built where they are used"
 group = "cleanup"
 depends = ["C50a"]
 note = "C50a follow-up. The smoother's 81 tables (ai_path_smooth.cpp, BuildSmoothTables 005C42B0) and the sector spiral's tables (sector_spiral.cpp, BuildSectorSpiralStatic 005BF8E0 / BuildSectorSpiral 005BF8F0) are plain globals since C50a but still filled by ported static initialisers in list order. Pure computation: build them once on first use (a function-local static object whose constructor builds them, or a class owning the three spiral tables), add both initialisers to gen_static_init's UNUSED_INITIALISERS, drop their static_init_ports rows, and keep tests/vectors/replay_path.cpp's @PathTables check (it fills ours from the record, then compares with what our builder makes). Also: CUnitLayer's map pointer could be a constructor argument of the two layers, and AIViewer (ai_event_table.h) has no member initialisers. Goldens unchanged."
+
+[[ticket]]
+id = "C45d5a"
+title = "Animation keys: the composite key constants on the new names"
+group = "cleanup"
+depends = ["C45d5"]
+note = "C45d5 named the key's kinds, flags, skill numbers and blow sides in map_object_figures.h (AnimationKind, AnimationKeyFlag, SkillAnimation, BlowSide; layout comment there). Still local hex: combat_steps.cpp's attack / cast / death / fall keys (kKeyAttack 0x90000, kKeyCast*, kKeyDeath 0x6000000, kKeyFall*, the height bands 0x1000000..0x3000000, kKeyFlag10000) and the movement mode bits (LeaveBits / EnterBits, CUnitServer::MoveModeMask 0x30000 / 0x20000 / 0x10000 / 0x8000; unit_client_update.cpp kKeyMovement*), combat_motion.cpp kKeyIdle 0x80580000, unit_client_animation.cpp kKeyNotHero / kKeySpecialIdle, map_object_animation_state.cpp kKeyEndMask / kKeyLoops and combat_order_setters.cpp kEmoteKeyBit (= AnimationKeyFlag::Looped), the weapon-bit shifts in combat.cpp WeaponTypeMask / combat_steps.cpp WeaponBit (AnimationWeaponBit). Names from the .adb animation names (scratch reader: dump database.res's *.adb names with keys) where they give one. ui_* FindSkillAnimation numbers (briefing / menu gestures) are UI-track. Goldens unchanged."
+
+[[ticket]]
+id = "C45d5b"
+title = "BlowSide and SkillAnimation parameters instead of uint32"
+group = "cleanup"
+depends = ["C45d5"]
+note = "Signature follow-up of C45d5: CUnitServer::HitDirection returns, BuildDeathAnimation's direction and CUnitServer::hitDirection hold a BlowSide (map_object_figures.h) as std::uint32_t; CObject3D::FindSkillAnimation(int) could take SkillAnimation for the skill callers. The saved field keeps its 4 bytes. Goldens unchanged."

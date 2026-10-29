@@ -4,13 +4,14 @@
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "combat.h"
-#include "core_maths.h"
-#include "engine_object.h"
-#include "map_object.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
-
+#include "core_maths.h"
+#include "engine_object.h"
+#include "game_singletons.h"
 #include "item.h"
+#include "logic_settings.h"
+#include "map_object.h"
 #include "map_object_figures.h"
 #include "player_messages.h"
 #include "random.h"
@@ -20,10 +21,8 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
-#include "logic_settings.h"
 
 #include <bit>
 #include <cstdint>
@@ -40,8 +39,6 @@ constexpr int kStateActing = 5;
 constexpr int kStateChasing = 6;
 constexpr int kModeRun = 2;
 constexpr std::uint32_t kKeyIdle = 0x80580000;
-constexpr std::uint32_t kKeyMoveOnce = 0x40000000;
-constexpr std::uint32_t kKeyMoveLoop = 0x80000000;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
 constexpr float kNoRange = 1e38f;
 static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
@@ -74,8 +71,7 @@ void ShowHead(CUnitServer* self) {
     AnimationSteps& queue = Queue(self);
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
-    if (head.animation != 0xFF || head.variant != 0xFF)
-        self->unit->SetAnimationEntries(head.animation, head.variant, QueueTime(self), head.flags);
+    if (!head.IsBlank()) self->unit->SetAnimationEntries(head.animation, head.variant, QueueTime(self), head.flags);
 }
 
 void DropEffectObject(CUnitServer* self) {
@@ -103,7 +99,7 @@ int UnitModeOf(const MoveModeState& state) { return (state.wasMode3 & 1) ? 3 : s
 
 // A pause step for an emote (`value` as its variant byte, open-ended), reusing a trailing one.
 void AddEmote(AnimationSteps* steps, std::uint8_t value) {
-    if (steps->empty() || steps->back().variant != 0xFF) steps->emplace_back();
+    if (steps->empty() || steps->back().variant != AnimationStep::kNone) steps->emplace_back();
     AnimationStep& last = steps->back();
     last.variant = value;
     last.duration = -1;
@@ -241,16 +237,17 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
         bits = (!once && self->MapType() == MapObjectType::Hero) ? 0x10000 : 0;
         break;
     }
-    std::uint32_t key = WeaponTypeMask() | bits | (self->moveMode == 3 ? 0x100000u : 0x140000u);
+    std::uint32_t key =
+        WeaponTypeMask() | bits | AnimationKeyOf(self->moveMode == 3 ? AnimationKind::Run : AnimationKind::Walk);
     if (once) {
-        key |= kKeyMoveOnce;
+        key |= AnimationKeyFlag::Once;
     } else {
-        key |= kKeyMoveLoop;
+        key |= AnimationKeyFlag::Looped;
         if (self->MapType() == MapObjectType::Hero) {
             float stamina = stats.loadFactor;
             EI_NAN_AUDIT(stamina, g_logicSettings.damageLevel2Value, g_logicSettings.damageLevel1Value);
-            if (stamina <= g_logicSettings.damageLevel2Value) key |= 0x800000;
-            else if (stamina <= g_logicSettings.damageLevel1Value) key |= 0x400000;
+            if (stamina <= g_logicSettings.damageLevel2Value) key |= AnimationKeyFlag::DamageLevel2;
+            else if (stamina <= g_logicSettings.damageLevel1Value) key |= AnimationKeyFlag::DamageLevel1;
         }
     }
     if (const FigureAnimation* entry = self->FindAnimation(key, 1)) {
@@ -271,14 +268,14 @@ AnimationSteps* CUnitServer::NextAnimation() {
     CUnit* self = unit;
     std::uint32_t key = WeaponAndModeBits(this);
     if (self->moveMode == 3) {
-        key |= 0x100000;
+        key |= AnimationKeyOf(AnimationKind::Run);
     } else {
-        key |= 0x140000;
+        key |= AnimationKeyOf(AnimationKind::Walk);
         if (self->MapType() == MapObjectType::Hero) {
             float stamina = stats.loadFactor;
             EI_NAN_AUDIT(stamina, g_logicSettings.damageLevel2Value, g_logicSettings.damageLevel1Value);
-            if (stamina <= g_logicSettings.damageLevel2Value) key |= 0x800000;
-            else if (stamina <= g_logicSettings.damageLevel1Value) key |= 0x400000;
+            if (stamina <= g_logicSettings.damageLevel2Value) key |= AnimationKeyFlag::DamageLevel2;
+            else if (stamina <= g_logicSettings.damageLevel1Value) key |= AnimationKeyFlag::DamageLevel1;
         }
     }
     if (MoveKey(this) == key) return &MoveSteps(this);
@@ -293,11 +290,11 @@ AnimationSteps* CUnitServer::NextAnimation() {
     AnimationSteps& steps = MoveSteps(this);
     BuildMoveSteps(&steps, 1);
     for (const AnimationStep& step : loop) {
-        if (step.animation == 0xFF) {
+        if (step.animation == AnimationStep::kNone) {
             // A pause: an emote of its variant byte (the original passes a misaligned dword; AddEmote keeps its low byte
             // only).
             steps.AddEmote(step.variant);
-        } else if (step.variant == 0xFF) {
+        } else if (step.variant == AnimationStep::kNone) {
             AnimationStep& last = steps.emplace_back();   // padding 0, not a stack byte (the harness zeroes the original's)
             last.animation = step.animation;
             last.duration = step.duration;

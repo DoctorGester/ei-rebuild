@@ -54,10 +54,9 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
     return out;
 }
 
-// Returns `out` (the callers use it). For a dead unit, the point the unit's current animation acts on: an
-// animation entry of kind 0x1C0000 (bits 0x3C0000 of its key) offsets the position along the orientation by
-// its direction bits (0x1C00000 of its flags): 0x400000 back (-Y), 0x800000 forward (+Y) by above[1],
-// 0xC00000 right (+X), 0x1000000 left (-X) by above[0]. The point is kept only where the AI map lets size
+// Returns `out` (the callers use it). For a dead unit, the point the unit's current animation acts on: a death
+// animation offsets the position along the orientation away from its BlowSide: Back -Y, Front +Y by the
+// box's max Y, MinusX +X, PlusX -X by its max X. The point is kept only where the AI map lets size
 // class 3 stand (on the server); otherwise, and for a living unit, the position.
 static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
     if (!IsDead(unit)) {
@@ -69,22 +68,22 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
     const FigureAnimation* entry = unit->AnimationAt(index);
     if (!entry) {
         game::DebugLog(kNoEntry, static_cast<unsigned>(index), unit->name);
-    } else if ((entry->key & 0x3C0000) == 0x1C0000) {
-        std::uint32_t side = entry->flags & 0x1C00000;
+    } else if (entry->Kind() == AnimationKind::Death) {
+        BlowSide side = entry->Side();
         Vector3 axis;
-        if (side == 0x800000) {
+        if (side == BlowSide::Front) {
             unit->localRotation_.AxisY(&axis);
             float reach = unit->bounds.boxMax.y;
             offset = axis * reach;
-        } else if (side == 0x400000) {
+        } else if (side == BlowSide::Back) {
             unit->localRotation_.AxisY(&axis);
             float reach = unit->bounds.boxMax.y;
             offset = -axis * reach;
-        } else if (side == 0xC00000) {
+        } else if (side == BlowSide::MinusX) {
             unit->localRotation_.AxisX(&axis);
             float reach = unit->bounds.boxMax.x;
             offset = axis * reach;
-        } else if (side == 0x1000000) {
+        } else if (side == BlowSide::PlusX) {
             unit->localRotation_.AxisX(&axis);
             float reach = unit->bounds.boxMax.x;
             offset = -axis * reach;
