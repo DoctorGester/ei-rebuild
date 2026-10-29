@@ -65,10 +65,8 @@ CParty* NewItemList() {
     return list;
 }
 
-// The time in animation frames: milliseconds / 1024 * 15.
-double FramesNow() {
-    return static_cast<double>(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
-}
+// The time in animation frames: milliseconds / 1024 * 15 (a double: the milliseconds since the system started).
+double FramesNow() { return gameapi::timeGetTime() * (15.0 / 1024.0); }
 
 } // namespace
 
@@ -84,7 +82,7 @@ void CampPages::BuildPages() {
     itemParts[0] = nullptr;
     GameSetServerPaused(1);
     constructor = nullptr;
-    int maker = static_cast<int>(libcrt::Ftol(LocalPlayerVariable("constr.current")));
+    int maker = static_cast<int>(LocalPlayerVariable("constr.current"));
     if (maker > 0) {
         constructor = g_partyManager.templates.Find(maker);
         if (!constructor) {
@@ -280,7 +278,7 @@ void CampPages::BuildPages() {
         if (FigureAnimation* animation = unit->FindSkillAnimation(kIdleAnimation)) {
             std::uint32_t random = g_clientRandom.Next();
             double frames = FramesNow();
-            int start = static_cast<int>(libcrt::Ftol(frames - static_cast<int>(random % 51)));
+            int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
         unit->Controller()->ShowWeapon(kNoWeaponSlot);

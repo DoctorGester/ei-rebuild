@@ -24,8 +24,7 @@ void UiContainer::AddInput(UiInputSide* input) {
 
 // --- Per-frame slots ---------------------------------------------------------------------------
 
-// The scene renderer's last frame's milliseconds are loaded as an unsigned qword and multiplied by the float 0.001.
-double UiContainer::FrameTime() { return static_cast<double>(g_sceneRenderer.FrameTime()) * static_cast<double>(0.001f); }
+float UiContainer::FrameTime() { return g_sceneRenderer.FrameTime() * 0.001f; }
 
 int UiContainer::FrameTicks() { return static_cast<int>(g_sceneRenderer.FrameTime()); }
 

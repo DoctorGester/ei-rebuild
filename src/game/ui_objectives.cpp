@@ -1,8 +1,6 @@
 // The objectives window (ObjectivesWindow): its Create, the zone page and the selected quest's description
 // and places. TAB in a zone opens it for the current zone; opened with `listZones` it lists the zones of the
 // zone's allod in which the player has quests and shows one of them. See docs/notes/ui.md.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
 #include "console.h"
 #include "game_singletons.h"
 #include "game_strings.h"
@@ -120,8 +118,8 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
     float heightShare = height / larger;
     float halfHeight = heightShare * kPictureHalf;
     float halfWidth = widthShare * kPictureHalf;
-    int u1 = static_cast<int>(libcrt::Ftol(widthShare * kTexels));
-    int v0 = static_cast<int>(libcrt::Ftol((1.0f - D(heightShare)) * kTexels));
+    int u1 = static_cast<int>(widthShare * kTexels);
+    int v0 = static_cast<int>((1.0f - heightShare) * kTexels);
     UiMesh* picture = SceneMesh(3);
     picture->SetRectangle(10.0f, 100.0f, kPictureCentreX - halfWidth, kPictureCentreY - halfHeight,
                           halfWidth + kPictureCentreX, halfHeight + kPictureCentreY, 0, v0, u1,
@@ -186,10 +184,10 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
         markerScale = marker->scaleMatrix.m[0];
         RECT area;
-        area.left = static_cast<int>(libcrt::Ftol(D(x) - kExitHalf));
-        area.top = static_cast<int>(libcrt::Ftol(D(y) - kExitHalf));
-        area.right = static_cast<int>(libcrt::Ftol(D(x) + kExitHalf));
-        area.bottom = static_cast<int>(libcrt::Ftol(D(y) + kExitHalf));
+        area.left = static_cast<int>(x - kExitHalf);
+        area.top = static_cast<int>(y - kExitHalf);
+        area.right = static_cast<int>(x + kExitHalf);
+        area.bottom = static_cast<int>(y + kExitHalf);
         UiRegion* region = AddRegion();
         region->SetTip(0x138EE);
         // The marker points away from the picture's centre: sideways or up/down by the larger
@@ -319,12 +317,12 @@ void ObjectivesWindow::ShowQuest() {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
         if (experience > 0.0f) {
-            part = std::format("{} {}\n ", costExp, static_cast<int>(libcrt::Ftol(D(experience))));
+            part = std::format("{} {}\n ", costExp, static_cast<int>(experience));
             text += part;
         }
         float money = record->money;
         if (money > 0.0f) {
-            part = std::format("{} {}\n ", costMoney, static_cast<int>(libcrt::Ftol(D(money))));
+            part = std::format("{} {}\n ", costMoney, static_cast<int>(money));
             text += part;
         }
     }
@@ -335,7 +333,7 @@ void ObjectivesWindow::ShowQuest() {
         if (text::CompareIgnoringCase(fields[0], "#subobj") != 0) continue;
         variable = std::format("q.{}.{}.{}", shownZone, currentQuests[selectedQuest],
                         fields[1]);
-        int state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
+        int state = static_cast<int>(LocalPlayerVariable(variable));
         if (state == 0) continue;
         line = texts->ReadLine(true);
         text += "\007C\377\263" "1 ";
@@ -378,10 +376,10 @@ void ObjectivesWindow::ShowQuest() {
         marker->texture = objects[1];
         std::memcpy(marker->tint, red, sizeof(red));
         UiRegion* region = AddRegion();
-        int bottomPixel = static_cast<int>(libcrt::Ftol(D(bottom)));
-        int rightPixel = static_cast<int>(libcrt::Ftol(D(right)));
-        int topPixel = static_cast<int>(libcrt::Ftol(D(top)));
-        int leftPixel = static_cast<int>(libcrt::Ftol(D(left)));
+        int bottomPixel = static_cast<int>(bottom);
+        int rightPixel = static_cast<int>(right);
+        int topPixel = static_cast<int>(top);
+        int leftPixel = static_cast<int>(left);
         region->SetRect(leftPixel, topPixel, rightPixel, bottomPixel);
         region->SetTip(0x138F0);
     }

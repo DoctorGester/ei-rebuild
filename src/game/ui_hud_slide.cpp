@@ -2,7 +2,6 @@
 // current slide offset, their per-frame updates and their setups. Rebirth patches all of them for its WideScreen layout,
 // reproduced behind the flag (ui_widescreen.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
 #include "ui.h"
-#include "ui_float.h"
 
 #include "text_manager.h"
 #include "map_object.h"
@@ -43,7 +42,7 @@ constexpr int kPartY[6] = /*0074244C*/ {35, 105, 70, 70, 140, 140};
 constexpr int kParts = 6;
 constexpr int kEffects = 6;
 
-constexpr double kZoomRate = 2.5;                   // the map's zoom changes 2.5 times a second
+constexpr float kZoomRate = 2.5f;                   // the map's zoom changes 2.5 times a second
 constexpr float kSlingDepthBits = 8.106086f;   // 8.106: the sling buttons and the needle
 constexpr float kSlingY = 20.0f;
 
@@ -70,24 +69,23 @@ void MoveRegions(UiWindow* window, int offsetX) {
 
 // A running slide advanced by the frame's time: slide moves by time * direction / 0.3 and stays
 // within 0..1; offset is travel eased (2 s^2 up to half way, 1 - 2 (1 - s)^2 after), truncated;
-// the slide ends at either end. The original compares on the FPU stack; an offset on a rounding
-// edge may differ by one for a frame.
+// the slide ends at either end.
 template <typename Panel>
 void AdvanceSlide(Panel* panel) {
-    const double moved =
+    const float moved =
         UiContainer::FrameTime() * panel->slideDirection / kSlideTime + panel->slide;
-    panel->slide = static_cast<float>(moved);
-    if (moved > 1.0) panel->slide = 1.0f;
+    panel->slide = moved;
+    if (moved > 1.0f) panel->slide = 1.0f;
     if (panel->slide < 0.0f) panel->slide = 0.0f;
     const float s = panel->slide;
-    double eased;
+    float eased;
     if (panel->slide < 0.5f) {
-        eased = 2.0 * (s * s);
+        eased = 2.0f * (s * s);
     } else {
         const float rest = 1.0f - s;
-        eased = 1.0 - 2.0 * (rest * rest);
+        eased = 1.0f - 2.0f * (rest * rest);
     }
-    panel->offset = static_cast<int>(libcrt::Ftol(panel->travel * eased));
+    panel->offset = static_cast<int>(panel->travel * eased);
     if (panel->slide == 1.0f || panel->slide == 0.0f) panel->sliding = false;
 }
 
@@ -112,9 +110,9 @@ constexpr float kZoneUnit = 32.0f;            // world units per unit of a zone'
 constexpr float kMapSide = 2.0f;             // the map's side in map units
 constexpr float kZoomRange = 0.05f;           // the largest zoom per world unit
 constexpr float kOutlineStep = 0.125f;         // sixteen points round the map
-constexpr double kOutlineRadius = 65.0;
-constexpr double kOutlineCentreX = 700.0;
-constexpr double kOutlineCentreY = 80.0;
+constexpr float kOutlineRadius = 65.0f;
+constexpr float kOutlineCentreX = 700.0f;
+constexpr float kOutlineCentreY = 80.0f;
 constexpr float kDepthUnit = 0.48157462f;           // the layout's half height at depth 1
 constexpr float kBoundsScale = 0.045f;
 constexpr float kMarkersScale = 0.03f;
@@ -160,14 +158,14 @@ void HudMap::Layout() {
 void HudMap::Update() {
     // The zoom runs towards the chosen view's end: up to zoomMax (view 1) or down to 1 (view 2).
     if (view == 1) {
-        const double newZoom = std::pow(kZoomRate, UiContainer::FrameTime()) * zoom;
-        zoom = static_cast<float>(newZoom);
+        const float newZoom = std::pow(kZoomRate, UiContainer::FrameTime()) * zoom;
+        zoom = newZoom;
         if (newZoom > zoomMax) zoom = zoomMax;
     }
     if (view == 2) {
-        const double newZoom = zoom / std::pow(kZoomRate, UiContainer::FrameTime());
-        zoom = static_cast<float>(newZoom);
-        if (newZoom < 1.0) zoom = 1.0f;
+        const float newZoom = zoom / std::pow(kZoomRate, UiContainer::FrameTime());
+        zoom = newZoom;
+        if (newZoom < 1.0f) zoom = 1.0f;
     }
     UpdateView();
     BuildMarkers();
@@ -183,7 +181,7 @@ void HudMap::Update() {
     }
     ui->hudPanelsIn[2] = slideDirection > 0.0f ? 1 : 0;
 
-    if (northTime > 0.0f) northTime = static_cast<float>(northTime - UiContainer::FrameTime());
+    if (northTime > 0.0f) northTime = northTime - UiContainer::FrameTime();
     SetTint(sceneObjects[11], northTime > 0.0f ? 1.0f : 0.5f);
 }
 
@@ -375,15 +373,15 @@ void HudMap::Setup(float newZoom, bool slid) {
     UiRegion* sling = AddRegion();
     sling->SetRect(780, 0, 800, 30);
     sling->SetTip(0x283C, 0x34);
-    // The round map's outline: each product and sum is a float on the game's FPU (24-bit precision; FCOS /
-    // FSIN themselves are not rounded), so the point under the centre is 80 down, not 79 (see OnArc).
+    // The round map's outline (a point whose product falls just short of a whole pixel may truncate one
+    // pixel lower than the original's, see OnArc).
     UiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
         const float angle = (i * kPi) * kOutlineStep;
-        const float down = static_cast<float>(std::cos(static_cast<double>(angle)) * kOutlineRadius);
-        const int y = static_cast<int>(libcrt::Ftol(static_cast<float>(down + kOutlineCentreY)));
-        const float across = static_cast<float>(std::sin(static_cast<double>(angle)) * kOutlineRadius);
-        const int x = static_cast<int>(libcrt::Ftol(static_cast<float>(kOutlineCentreX - across)));
+        const float down = std::cos(angle) * kOutlineRadius;
+        const int y = static_cast<int>((down + kOutlineCentreY));
+        const float across = std::sin(angle) * kOutlineRadius;
+        const int x = static_cast<int>((kOutlineCentreX - across));
         round->AddPoint(x, y);
     }
     AddRegion()->SetRect(620, 0, 780, 160);

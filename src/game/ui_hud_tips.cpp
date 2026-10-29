@@ -118,7 +118,7 @@ std::string HudQuickItems::ItemTip(unsigned index) {
             line = std::format("{} {} \n", labels[4], labels[8]);
         } else {
             float radius = data->radius;
-            double area = static_cast<double>(radius) * radius * pi;
+            float area = radius * radius * pi;
             line = str::Format("%s %.1f%s \n", labels[4], area, labels[9]);
         }
         text += line;
@@ -126,7 +126,7 @@ std::string HudQuickItems::ItemTip(unsigned index) {
         if (ticks < 2) {
             line = std::format("{} {}  ", labels[5], labels[7]);
         } else {
-            double seconds = static_cast<double>(ticks) * perTick;
+            float seconds = ticks * perTick;
             line = str::Format("%s %.1f%s  ", labels[5], seconds, labels[10]);
         }
         text += line;
@@ -145,7 +145,7 @@ std::string HudQuickItems::ItemTip(unsigned index) {
         if (ticks < 2) {
             line = std::format("{} {}\n", labels[5], labels[7]);
         } else {
-            double seconds = static_cast<double>(ticks) * perTick;
+            float seconds = ticks * perTick;
             line = str::Format("%s %.1f%s\n", labels[5], seconds, labels[10]);
         }
         text += line;

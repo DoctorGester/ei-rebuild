@@ -60,7 +60,7 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
     if (letterbox) {
         const int width = screen.right - screen.left;
         const int height = screen.bottom - screen.top;
-        const int bar = static_cast<int>(static_cast<double>(height) * kLetterboxShare);
+        const int bar = static_cast<int>(height * kLetterboxShare);
         render::g_renderState.depthTest = false;
         renderer->DrawRectangle(0, 0, width, bar, -1, 0);
         renderer->DrawRectangle(0, height - bar, width, height, -1, 0);
@@ -71,7 +71,7 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
     EI_NAN_AUDIT(alpha, rate);
     if ((alpha < kOpaque && rate > 0.0f) || (alpha > 0.0f && rate < 0.0f)) {
         const DWORD now = gameapi::timeGetTime();
-        alpha = static_cast<float>(static_cast<double>(now - lastTime) * rate + alpha);
+        alpha = (now - lastTime) * rate + alpha;
         lastTime = gameapi::timeGetTime();
     }
     EI_NAN_AUDIT(alpha);
@@ -134,7 +134,7 @@ void Interface3D::DrawOverlays() {
             std::string rate;
             float perSecond =
                 fpsFrames * 1000.0f / static_cast<int>(elapsed);
-            rate = str::Format("%.1f", static_cast<double>(perSecond));
+            rate = str::Format("%.1f", perSecond);
             fpsSurface->Clear();
             RECT rect{0, 0, 60, 18};
             fpsSurface->DrawTextIn("FPS:", &rect, kFpsFont, kWhite, 0, 1);

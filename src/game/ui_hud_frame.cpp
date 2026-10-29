@@ -2,10 +2,7 @@
 // face with the time of day, moves the hand and the speed dial and makes the pause button blink
 // while the game is paused; the top panel (HudTopPanel::Update) slides in and out.
 // See docs/notes/ui.md.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
 #include "ui.h"
-#include "ui_float.h"
 #include "ui_widescreen.h"
 
 #include "maths.h"
@@ -47,7 +44,7 @@ constexpr float kSpriteDepth = 8.106086f;   // 8.106: the dial marks, the top pa
 // The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod), stored.
 float TimeOfDay() {
     const WorldClient* world = &g_clientWorld;
-    return static_cast<float>(std::fmod(static_cast<double>(world->tick) * world->secondsPerTick + world->timeBase, 24.0));
+    return std::fmod(world->tick * world->secondsPerTick + world->timeBase, 24.0f);
 }
 
 void SetTint(EngineObject* object, float value) {
@@ -84,13 +81,13 @@ void HudClock::Update() {
     EngineObject* face = scene[0];
 
     // The blink phase runs from 0 to 1 once a second.
-    double blinkAt = UiContainer::FrameTime() + D(blink);
-    blink = static_cast<float>(blinkAt);
+    float blinkAt = UiContainer::FrameTime() + blink;
+    blink = blinkAt;
     if (blinkAt >= 1.0f) {
-        double next;
+        float next;
         do {
-            next = D(blink) - 1.0f;
-            blink = static_cast<float>(next);
+            next = blink - 1.0f;
+            blink = next;
         } while (next >= 1.0f);
     }
     float pulse = std::cos(kHudFullTurn * blink) * kPulseAmplitude + kPulseMiddle;
@@ -102,7 +99,7 @@ void HudClock::Update() {
         AsUiMesh(scene[1])->visible = blink > 0.5f;
     } else {
         SetTint(face, 1.0f);
-        double step;
+        float step;
         if (fast != 0) {
             handAngle = kPi * kFastHand;
             step = UiContainer::FrameTime();
@@ -110,17 +107,17 @@ void HudClock::Update() {
             handAngle = kPi * kNormalHand;
             step = UiContainer::FrameTime() * 0.5f;
         }
-        dial = static_cast<float>(step + D(dial));
+        dial = step + dial;
         AsUiMesh(scene[1])->visible = true;
     }
 
     // The dial turns by whole notches' worth and wraps.
     float notch = kPi * kDialStep;
     if (dial > notch) {
-        double next;
+        float next;
         do {
-            next = D(dial) - D(notch);
-            dial = static_cast<float>(next);
+            next = dial - notch;
+            dial = next;
             notch = kPi * kDialStep;
         } while (next > notch);
     }
@@ -154,12 +151,12 @@ void HudClock::Update() {
 
 void HudTopPanel::Update() {
     if (sliding) {
-        double slideAt = UiContainer::FrameTime() * D(slideDirection) / kSlideTime + D(slide);
-        slide = static_cast<float>(slideAt);
+        float slideAt = UiContainer::FrameTime() * slideDirection / kSlideTime + slide;
+        slide = slideAt;
         if (slideAt > 1.0f) slide = 1.0f;
         slide = slide >= 0.0f ? slide : 0.0f;      // NaN too
         // Ease in and out: 2s^2 for the first half, 1 - 2(1-s)^2 for the second.
-        double eased;
+        float eased;
         if (slide < 0.5f) {
             float s = slide;
             eased = s * s;
@@ -169,7 +166,7 @@ void HudTopPanel::Update() {
             float r2 = r * r;
             eased = 1.0f - (r2 + r2);
         }
-        offset = static_cast<int>(libcrt::Ftol(static_cast<double>(travel) * eased));
+        offset = static_cast<int>(travel * eased);
         EI_NAN_AUDIT(slide);
         if (Bits(slide) == 0x3F800000 || slide == 0.0f) sliding = false;
         Layout();

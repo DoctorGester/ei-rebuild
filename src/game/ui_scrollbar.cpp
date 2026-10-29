@@ -22,9 +22,9 @@ constexpr int kDragging = 1;
 constexpr int kSliderThumbHalfWidth = 14;
 constexpr int kSliderThumbHeight = 10;
 
-// The game's _ftol: the low half of a 64-bit truncation (NaN and overflow give 0, where a C++ cast
-// to int gives 0x80000000).
-int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
+// Truncated through a 64-bit integer, keeping the low half: NaN and overflow give 0 (a zero range's 0 / 0),
+// where a cast to int gives 0x80000000.
+int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 // The wheel's step per unit of delta: 1/120.
 constexpr float kWheelStep = 0.008333334f;
 
@@ -58,7 +58,7 @@ void UiScrollbar::SetPosition(int newPosition) {
     // the game's _ftol stores the NaN as a 64-bit integer (0x8000000000000000) and returns its low
     // half, 0, where a C++ cast would give 0x80000000.
     int offset = maximum == 0 ? 0
-                              : static_cast<int>(static_cast<double>((track.bottom - track.top) * newPosition) / maximum);
+                              : static_cast<int>(static_cast<float>((track.bottom - track.top) * newPosition) / maximum);
     SceneMesh(kThumb)->Place(track.left + kThumbInset,
                                 static_cast<float>(offset) + track.top, depth - kThumbLift);
     thumb.left = track.left;
@@ -102,7 +102,7 @@ void UiScrollbar::MouseMove(int, int x, int y) {
         POINT point{x, y};
         ui->ScalePointFromScreenEntry(&point);
         int along = point.y - grabY;
-        SetPosition(Truncate(static_cast<double>(along - track.top) * maxPosition / (track.bottom - track.top)));
+        SetPosition(Truncate(static_cast<float>(along - track.top) * maxPosition / (track.bottom - track.top)));
     }
     handled = true;
 }
@@ -123,7 +123,7 @@ void UiSlider::SetPosition(int newPosition) {
     if (position == newPosition) return;
     position = newPosition;
     // Truncated by _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
-    int offset = Truncate(static_cast<double>((track.right - track.left) * newPosition) / maximum);
+    int offset = Truncate(static_cast<float>((track.right - track.left) * newPosition) / maximum);
     SceneMesh(kThumb)->Place(static_cast<float>(track.left + offset),
                                 track.top + kThumbInset, depth - kThumbLift);
     thumb.top = track.top;
@@ -138,7 +138,7 @@ void UiSlider::MouseMove(int, int x, int y) {
         POINT point{x, y};
         ui->ScalePointFromScreenEntry(&point);
         int along = point.x - grabX;
-        SetPosition(Truncate(static_cast<double>(along - track.left) * maxPosition / (track.right - track.left)));
+        SetPosition(Truncate(static_cast<float>(along - track.left) * maxPosition / (track.right - track.left)));
     }
     handled = true;
 }

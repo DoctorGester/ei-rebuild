@@ -30,7 +30,7 @@ void ShowFigurePart(FigureMesh* part, int show) {
 // unsigned qword.
 float InterfaceClock() {
     constexpr float kRate = 0x1.e9131ap-7f;   // 0.0149253728
-    return static_cast<float>(static_cast<double>(gameapi::timeGetTime()) * static_cast<double>(kRate));
+    return static_cast<float>(static_cast<double>(gameapi::timeGetTime()) * kRate);
 }
 
 // The preview's map object: class 0x33 under a fixed id; MapObjectFlag::Preview on it.

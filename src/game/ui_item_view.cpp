@@ -1,10 +1,6 @@
 // The item screens' model view and the description panel's drawing. See
 // ui_item_info.h and docs/notes/ui.md ("Item descriptions").
-// Floating point follows the original's x87 code: values the original game keeps on the FPU stack stay
-// unrounded (or truncated with the game's _ftol), values it stores as float are rounded with
-// static_cast<float>, products keep their operand order (precise floating point).
 #include "app.h"
-#include "ui_float.h"
 #include "core_refcount.h"
 #include "texture.h"
 #include "ui_item_info.h"
@@ -39,7 +35,7 @@ namespace {
 constexpr float kFullTurn = /*007C7D20*/ 6.2831855f;   // a static initialiser: pi + pi
 
 
-int ScaledFtol(float value, float scale) { return static_cast<int>(libcrt::Ftol(static_cast<double>(value) * scale)); }
+int ScaledFtol(float value, float scale) { return static_cast<int>(value * scale); }
 
 std::uint32_t PackColour(const float* rgb) {
     std::uint32_t r = static_cast<std::uint32_t>(ScaledFtol(rgb[0], 255.0f));
@@ -73,12 +69,11 @@ Object* CachedObject(ItemObjectCache<Object>* cache, std::string_view name, Obje
 // A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 in that order, stored as
 // float.
 float RandomPhase(std::uint32_t random) {
-    return static_cast<float>(static_cast<double>(random) * kFullTurn * 2.3283064370807974e-10);
+    return random * kFullTurn * 2.3283064e-10f;
 }
 
 // The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the school's
-// colour (kSchoolGlow) into 0xFFrrggbb. The phase is stored as float but the sine and the colour use the
-// unrounded value.
+// colour (kSchoolGlow) into 0xFFrrggbb.
 // The spell schools' glow colours (red, green, blue and an unused 1 each).
 constexpr float kSchoolGlow[8][4] = /*00740358*/ {
     {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f},
@@ -89,8 +84,8 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
     const float pi = 3.1415927f;
     const float phase = std::fmod(advanced, pi + pi);
     turn->glow = phase;
-    const double strength = (std::sin(phase) + 1.0) * 0.15000000596046448;
-    const auto channel = [&](int i) { return libcrt::Ftol(strength * colour[i] * 255.0f); };
+    const float strength = (std::sin(phase) + 1.0f) * 0.15f;
+    const auto channel = [&](int i) { return static_cast<std::uint32_t>(strength * colour[i] * 255.0f); };
     const std::uint32_t r = channel(0);
     const std::uint32_t g = channel(1);
     const std::uint32_t b = channel(2);
@@ -99,7 +94,7 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
 
 // The turn: on the hovered item the speed grows by 8 per second; elsewhere it brakes towards the
 // next full turn (4 * (2 pi - angle)), or stops below 0.1. At most 5. The angle advances by
-// dt * speed and wraps at 2 pi (compared unrounded, stored as float).
+// dt * speed and wraps at 2 pi.
 void Turn(ItemTurn* turn, float dt, bool hovered) {
     EI_NAN_AUDIT(turn->speed);
     if (hovered) {
@@ -112,12 +107,12 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
         turn->speed = (pi + pi - turn->angle) * 4.0f;
     }
     if (turn->speed > 5.0f) turn->speed = 5.0f;
-    // The angle is stored and compared unrounded with 2 pi: wraps while above, not when equal or unordered.
-    double angle = static_cast<double>(dt) * turn->speed + turn->angle;
-    turn->angle = static_cast<float>(angle);
+    // Wraps while above 2 pi, not when equal or unordered.
+    float angle = dt * turn->speed + turn->angle;
+    turn->angle = angle;
     while (angle > kFullTurn) {
-        angle = static_cast<double>(turn->angle) - kFullTurn;
-        turn->angle = static_cast<float>(angle);
+        angle = turn->angle - kFullTurn;
+        turn->angle = angle;
     }
 }
 
@@ -131,7 +126,7 @@ Quaternion HalfTurn(float ax, float ay, float az) {
 // The two products the original game inlines (a * b), each with its own order of the w sum.
 Quaternion ProductA(const Quaternion& a, const Quaternion& b) {   // weapons
     Quaternion r;
-    r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::XYZ, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    r.w = a.w * b.w - DotUnrounded<Sum3::XYZ>(a.x, a.y, a.z, b.x, b.y, b.z);
     r.x = ((b.y * a.z - a.y * b.z) + a.w * b.x) + a.x * b.w;
     r.y = ((a.x * b.z - b.x * a.z) + a.w * b.y) + a.y * b.w;
     r.z = ((a.y * b.x - a.x * b.y) + b.w * a.z) + a.w * b.z;
@@ -139,7 +134,7 @@ Quaternion ProductA(const Quaternion& a, const Quaternion& b) {   // weapons
 }
 Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
     Quaternion r;
-    r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    r.w = a.w * b.w - DotUnrounded<Sum3::ZYX>(a.x, a.y, a.z, b.x, b.y, b.z);
     r.x = ((b.y * a.z - b.z * a.y) + a.w * b.x) + b.w * a.x;
     r.y = ((b.z * a.x - b.x * a.z) + a.w * b.y) + b.w * a.y;
     r.z = ((b.x * a.y - b.y * a.x) + a.z * b.w) + a.w * b.z;
@@ -209,7 +204,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
                                         0.00125f / extent);
     } else {
         SetShade(model, 1.0f);
-        float dt = static_cast<float>(FrameTime());
+        float dt = FrameTime();
         ItemTurn* turn = ItemTurnOf(item);
         ItemKind kind = item->Kind();
         CSpell* spell = item->spell;
@@ -283,15 +278,15 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
                 dx = -d;
             else
                 dx = d;
-            double dy;
+            float dy;
             if (i == 2 || i == 6)
-                dy = 0.0;
+                dy = 0.0f;
             else if (i == 0 || i == 1 || i == 7)
                 dy = -d;
             else
                 dy = d;
             float depth = pz * 0.9f;
-            mark->Place(dx + px, static_cast<float>(dy + D(py)), depth);
+            mark->Place(dx + px, dy + py, depth);
             mark->Draw(pass);
         }
         RemoveSceneObject(mark);

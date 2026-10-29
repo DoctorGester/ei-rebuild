@@ -1,7 +1,5 @@
 // The hero panels shared by the camp and the multiplayer hero screen: the statistics column.
 // See docs/notes/ui.md ("Camp, global map, hero screens").
-// Floating point follows the x87 code of the original game: `double` for values it keeps on the FPU
-// stack, static_cast<float> where it stores to a float. Constants are read from memory.
 #include "combat.h"
 #include "console.h"
 #include "game_singletons.h"
@@ -14,7 +12,6 @@
 #include "text_manager.h"
 #include "ui.h"
 #include "ui_camp.h"
-#include "ui_float.h"
 #include "unit.h"
 
 #include <cstdint>
@@ -169,9 +166,9 @@ void HeroStatsPanel::DrawStats() {
 
     if (page == 10) {
         // A new hero's statistics: points left = 75 - (strength + dexterity + intelligence).
-        int strength = static_cast<int>(libcrt::Ftol(D(stats->strengthBase)));
-        int dexterity = static_cast<int>(libcrt::Ftol(D(stats->dexterityBase)));
-        int intelligence = static_cast<int>(libcrt::Ftol(D(stats->intelligenceBase)));
+        int strength = static_cast<int>(stats->strengthBase);
+        int dexterity = static_cast<int>(stats->dexterityBase);
+        int intelligence = static_cast<int>(stats->intelligenceBase);
         int sum = intelligence + dexterity + strength;
         area = RECT{0x14, 0x41, 0x82, 0x50};
         DrawRow(area, "Strength", strength, -1);
@@ -181,7 +178,7 @@ void HeroStatsPanel::DrawStats() {
         DrawRow(area, "Intelligence", intelligence, -1);
         Down(&area);
         float sumF = static_cast<float>(sum);
-        DrawRow(area, texts[5], static_cast<int>(libcrt::Ftol(D(75.0f) - D(sumF))), -1);
+        DrawRow(area, texts[5], static_cast<int>(75.0f - sumF), -1);
         Down(&area);
         Down(&area);
         DrawRow(area, texts[6], points, -1);
@@ -203,12 +200,12 @@ void HeroStatsPanel::DrawStats() {
         draw->DrawTextIn("-", &area, 0, points <= 0 ? kGrey : kBright, 1, 1);
 
         // "+": while below 35 and points are left.
-        int left = static_cast<int>(libcrt::Ftol(D(75.0f) - D(sumF)));
+        int left = static_cast<int>(75.0f - sumF);
         area = RECT{0xA0, 0x41, 0xB4, 0x50};
         float maximum = 35.0f;
         for (int i = 0; i < 3; ++i) {
             EI_NAN_AUDIT(storedStats[i]);
-            bool below = D(storedStats[i]) < maximum;
+            bool below = storedStats[i] < maximum;
             std::uint32_t colour = below && left > 0 ? kBright : kGrey;
             draw->DrawTextIn("+", &area, 0, colour, 1, 1);
             Down(&area);
@@ -253,15 +250,15 @@ void HeroStatsPanel::DrawStats() {
             }
             line = std::format("     {} {}", texts[2], text);
             draw->DrawTextIn(line, &area, 0, kBright, 0, 1);
-            int high = static_cast<int>(libcrt::Ftol(D(info.damageMax)));
-            int low = static_cast<int>(libcrt::Ftol(D(info.damageMin)));
+            int high = static_cast<int>(info.damageMax);
+            int low = static_cast<int>(info.damageMin);
             line = std::format("{}-{}", low, high);
             draw->DrawTextIn(line, &area, 0, kBright, 2, 1);
             Down(&area);
             Down(&area);
         }
-        int weight = static_cast<int>(libcrt::Ftol(hero()->CarriedWeight()));
-        int capacity = static_cast<int>(libcrt::Ftol(D(stats->capacity)));
+        int weight = static_cast<int>(hero()->CarriedWeight());
+        int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
         if (weight > capacity) draw->DrawTextIn(texts[4], &area, 0, 0xFF, 2, 1);
@@ -269,30 +266,30 @@ void HeroStatsPanel::DrawStats() {
         draw->DrawTextIn(texts[7], &area, 0, kBright, 0, 1);
     } else {
         area = RECT{0x14, 0x41, 0xB4, 0x50};
-        DrawRow(area, "Strength", static_cast<int>(libcrt::Ftol(D(stats->strength))), -1);
+        DrawRow(area, "Strength", static_cast<int>(stats->strength), -1);
         Down(&area);
-        DrawRow(area, "Dexterity", static_cast<int>(libcrt::Ftol(D(stats->dexterity))), -1);
+        DrawRow(area, "Dexterity", static_cast<int>(stats->dexterity), -1);
         Down(&area);
-        DrawRow(area, "Intelligence", static_cast<int>(libcrt::Ftol(D(stats->intelligence))), -1);
+        DrawRow(area, "Intelligence", static_cast<int>(stats->intelligence), -1);
         Down(&area);
         Down(&area);
-        DrawRow(area, "Health", static_cast<int>(libcrt::Ftol(stats->HitPointCurve())), -1);
+        DrawRow(area, "Health", static_cast<int>(stats->HitPointCurve()), -1);
         Down(&area);
-        DrawRow(area, "Mana", static_cast<int>(libcrt::Ftol(stats->ManaCurve())), -1);
+        DrawRow(area, "Mana", static_cast<int>(stats->ManaCurve()), -1);
         Down(&area);
-        DrawRow(area, "Actions", static_cast<int>(libcrt::Ftol(D(stats->rate))), -1);
+        DrawRow(area, "Actions", static_cast<int>(stats->rate), -1);
         Down(&area);
         DrawRow(area, "Experience",
-                static_cast<int>(libcrt::Ftol(D(stats->pendingExperience) + D(stats->experience))), -1);
+                static_cast<int>(stats->pendingExperience + stats->experience), -1);
         Down(&area);
-        double carried;
+        float carried;
         if (page == 11) {
             carried = owner->Weight();
         } else {
             carried = hero()->CarriedWeight();
         }
-        int weight = static_cast<int>(libcrt::Ftol(carried));
-        int capacity = static_cast<int>(libcrt::Ftol(D(stats->capacity)));
+        int weight = static_cast<int>(carried);
+        int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
         if (weight > capacity) draw->DrawTextIn(texts[4], &area, 0, 0xFF, 2, 1);

@@ -84,7 +84,7 @@ bool IsBuildable(const Item* item) {
 
 void UiItemStrip::SetTab(int newTab) {
     float& scrollPosition = position[tab];
-    scrollPosition = static_cast<float>(static_cast<int>(libcrt::Ftol(static_cast<double>(pending) + scrollPosition)));
+    scrollPosition = static_cast<float>(static_cast<int>(pending + scrollPosition));
     tab = newTab;
     for (int i = 0; i < 6; ++i) {
         float shade = i == newTab ? 1.0f : 0.5f;
@@ -230,7 +230,7 @@ void UiItemStrip::ScrollToItem(Item* item) {
     EI_NAN_AUDIT(found);
     if (found >= 0.0f) {
         float& scrollPosition = position[tab];
-        float lowest = found - 8.0f + 2.0f;   // kept on the FPU
+        float lowest = found - 8.0f + 2.0f;
         if (lowest > scrollPosition) {
             scrollPosition = lowest;
         } else if (scrollPosition > found) {
@@ -263,11 +263,11 @@ void UiItemStrip::SettleScroll() {
     float currentPending = pending;
     EI_NAN_AUDIT(currentPending);
     if (currentPending < 0.0f) {
-        float fraction = currentPending - static_cast<int>(libcrt::Ftol(currentPending));
+        float fraction = currentPending - static_cast<int>(currentPending);
         pending = fraction;
         if (fraction > -0.5f) pending = fraction - 1.0f;
     } else if (currentPending > 0.0f) {
-        float fraction = currentPending - static_cast<int>(libcrt::Ftol(currentPending));
+        float fraction = currentPending - static_cast<int>(currentPending);
         pending = fraction;
         if (fraction < 0.5f) pending = fraction + 1.0f;
     }
@@ -331,7 +331,7 @@ int HeroSchoolSkill(UnitStats* stats, int school) {
 int HeroManaUnits(UnitStats* stats) {
     // The maximum is stored as a float before the division; the quotient is not rounded.
     float maximum = static_cast<float>(stats->ManaCurve());
-    return static_cast<int>(libcrt::Ftol(maximum / stats->Period20()));
+    return static_cast<int>(maximum / stats->Period20());
 }
 
 bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
@@ -340,7 +340,7 @@ bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
     if (HeroSchoolSkill(stats, spell->GetPrototype()->school) < required) ok = false;
     float cost = spell->manaCost;
     int units = HeroManaUnits(stats);
-    if (units < static_cast<int>(libcrt::Ftol(cost))) ok = false;
+    if (units < static_cast<int>(cost)) ok = false;
     return ok;
 }
 
@@ -419,9 +419,9 @@ void MpHeroScreen::ClampVoiceSelection() {
     DrawVoices();
 }
 
-double MpHeroScreen::Weight() {
+float MpHeroScreen::Weight() {
     PartyUnitRecord* hero = HeroRecord();
-    double weight = 0.0;
+    float weight = 0.0f;
     if (weapon) weight = weapon->Weight();
     if (quickItem) weight += quickItem->Weight();
     if (spellContainer) weight += spellContainer->Weight();

@@ -90,7 +90,7 @@ void HudSpellColumn::SetUnit(CUnit* newUnit) {
             } else {
                 // The area: radius squared times pi (a float).
                 float radius = Get<float>(data, 0x28);
-                double area = static_cast<double>(radius) * radius * 3.1415927f;
+                float area = radius * radius * 3.1415927f;
                 line = str::Format("%s %.1f%s \n", currentLabels[5], area, currentLabels[10]);   // "%s %.1f%s \n"
             }
             tip += line;
@@ -99,7 +99,7 @@ void HudSpellColumn::SetUnit(CUnit* newUnit) {
                 line = std::format("{} {}  ", currentLabels[6], currentLabels[8]);
             } else {
                 // Ticks to seconds (1/15).
-                double seconds = static_cast<double>(ticks) * 0.06666667f;
+                float seconds = ticks * 0.06666667f;
                 line = str::Format("%s %.1f%s  ", currentLabels[6], seconds, currentLabels[11]);
             }
             tip += line;

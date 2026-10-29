@@ -18,9 +18,9 @@ namespace {
 // The constants the original reads from the exe's data.
 constexpr float kSixth = 0.16666667f;             // the clock's sectors: pi / 6
 constexpr float kEighth = 0.125f;            // the movement panel's: pi / 8
-constexpr double kMiddleRadius = 34.0;
-constexpr double kInnerRadius = 35.0;
-constexpr double kOuterRadius = 80.0;
+constexpr float kMiddleRadius = 34.0f;
+constexpr float kInnerRadius = 35.0f;
+constexpr float kOuterRadius = 80.0f;
 constexpr float kSectorRadius = 80.0f;
 constexpr float kTexelBottom = 254.0f;
 constexpr float kTexelLeft = 2.0f;
@@ -37,22 +37,20 @@ constexpr float kArrowDepth = 8.2060862f;
 
 // The angle of `turn` steps, as the original computes it (each product a float).
 float ArcAngle(int turn, float step) { return (turn * kPi) * step; }
-// The cosine / sine as FCOS / FSIN leave them: the precision control does not reach them (only add, subtract,
-// multiply, divide and square root), so they stay unrounded and it is their product with the radius that the
-// FPU rounds to float at its 24-bit precision. That is what makes sin(pi / 2) x radius the whole radius
-// below, and cos(pi / 3) x 34 exactly 17 (a cosine rounded to float first gives 16.999998 and 16).
-double ArcCos(float angle) { return std::cos(static_cast<double>(angle)); }
-double ArcSin(float angle) { return std::sin(static_cast<double>(angle)); }
+// The cosine / sine of the angle. In float, cos(pi / 3) x 34 is 16.999998 and truncates to 16 where the
+// original's unrounded cosine times 34 at 24 bits gave 17: a region's corner one pixel off.
+float ArcCos(float angle) { return std::cos(angle); }
+float ArcSin(float angle) { return std::sin(angle); }
 
 // The point at `turn` steps on the circle of `radius` about the origin, truncated (_ftol).
 struct ArcPoint {
     int across;
     int up;
 };
-ArcPoint OnArc(int turn, float step, double radius) {
+ArcPoint OnArc(int turn, float step, float radius) {
     const float angle = ArcAngle(turn, step);
-    return {static_cast<int>(libcrt::Ftol(static_cast<float>(ArcCos(angle) * radius))),
-            static_cast<int>(libcrt::Ftol(static_cast<float>(ArcSin(angle) * radius)))};
+    return {static_cast<int>((ArcCos(angle) * radius)),
+            static_cast<int>((ArcSin(angle) * radius))};
 }
 
 // The hand of both panels: a small triangle pointing along +x from its first corner.
@@ -138,11 +136,11 @@ void HudMovePanel::Build() {
     for (int moveMode = 0; moveMode < 4; ++moveMode) {
         UiMesh* sector = AddBlankSprite();
         const float endAngle = ArcAngle(moveMode + 1, kEighth);
-        const float endUp = static_cast<float>(ArcSin(endAngle) * kSectorRadius);
-        const float endAcross = static_cast<float>(ArcCos(endAngle) * kSectorRadius);
+        const float endUp = ArcSin(endAngle) * kSectorRadius;
+        const float endAcross = ArcCos(endAngle) * kSectorRadius;
         const float startAngle = ArcAngle(moveMode, kEighth);
-        const float startUp = static_cast<float>(ArcSin(startAngle) * kSectorRadius);
-        const float startAcross = static_cast<float>(ArcCos(startAngle) * kSectorRadius);
+        const float startUp = ArcSin(startAngle) * kSectorRadius;
+        const float startAcross = ArcCos(startAngle) * kSectorRadius;
         sector->SetTriangle(10.0f, 100.0f, 0.0f, 600.0f, startAcross, kLayoutBottomY - startUp, endAcross,
                             kLayoutBottomY - endUp, 2.0f, 254.0f, startAcross + kTexelLeft,
                             kTexelBottom - startUp, endAcross + kTexelLeft,

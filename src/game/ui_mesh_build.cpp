@@ -1,12 +1,6 @@
 // The interface sprites' shape builders (framed rectangle, disc, ring).
 // See ui_mesh_build.h and docs/notes/ui.md ("Sprite shapes").
-// Floating point: the rectangle's values are sums and products of floats and small integers kept in
-// the original's order (precise floating point; values the original stores as float are rounded with
-// static_cast<float>). The circle points use FCOS/FSIN of an angle the original computes on the FPU
-// stack and never stores; they are computed by the same instruction sequence in inline assembly, so
-// they round the same way whatever the FPU's precision. Constants are read from the exe's memory.
 #include "ui.h"
-#include "ui_float.h"
 
 #include "lib/containers.h"
 #include "world_data.h"
@@ -69,39 +63,38 @@ void SetBuildScale(UiMesh* mesh, float depth, float scale) {
 
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
-void SetPosition(UiMesh* mesh, double x, double y, float depth) {
-    mesh->localPosition.x = static_cast<float>((x - 1.0) * D(worlddata::kInterfaceView) * D(depth));
-    mesh->localPosition.y = static_cast<float>((y - D(worlddata::kThreeQuarters)) * D(worlddata::kInterfaceView) * D(depth));
+void SetPosition(UiMesh* mesh, float x, float y, float depth) {
+    mesh->localPosition.x = (x - 1.0f) * worlddata::kInterfaceView * depth;
+    mesh->localPosition.y = (y - worlddata::kThreeQuarters) * worlddata::kInterfaceView * depth;
     mesh->localPosition.z = depth;
 }
 
-// --- Points on a circle, computed on the FPU ---------------------------------------------------------
-// The angle of point j of n is (j * pi + j * pi) / n with the float pi, never stored. The FCOS / FSIN result
-// is used unrounded in the same expression.
+// --- Points on a circle ------------------------------------------------------------------------------
+// The angle of point j of n is (j * pi + j * pi) / n with the float pi.
 
-double CircleAngle(int j, int n) {
+float CircleAngle(int j, int n) {
     const float turn = j * 3.1415927f;
     return (turn + turn) / n;
 }
 
 // cos or sin of the angle, times the float at `factor`, divided by the float at `divisor`; stored as float.
 float CircleScaled(int j, int n, bool sine, const float* factor, const float* divisor) {
-    const double angle = CircleAngle(j, n);
-    return static_cast<float>((sine ? std::sin(angle) : std::cos(angle)) * *factor / *divisor);
+    const float angle = CircleAngle(j, n);
+    return (sine ? std::sin(angle) : std::cos(angle)) * *factor / *divisor;
 }
-// The same with (the float at `r` - the float at `w`) as the factor, computed unrounded.
+// The same with (the float at `r` - the float at `w`) as the factor.
 float CircleScaledInner(int j, int n, bool sine, const float* r, const float* w, const float* divisor) {
     const float factor = (*r) - *w;
-    const double angle = CircleAngle(j, n);
-    return static_cast<float>((sine ? std::sin(angle) : std::cos(angle)) * factor / *divisor);
+    const float angle = CircleAngle(j, n);
+    return (sine ? std::sin(angle) : std::cos(angle)) * factor / *divisor;
 }
 // A texture coordinate on the circle of radius R around c (integers): (cos * R + c) / 256, or for v
 // 1 - (sin * R + c) / 256 (the scale is the 1/256 texel constant).
 float CircleTexel(int j, int n, bool sine, int radius, int centre) {
-    const double angle = CircleAngle(j, n);
+    const float angle = CircleAngle(j, n);
     const float scale = 0.00390625f;
-    if (!sine) return static_cast<float>((std::cos(angle) * radius + centre) * scale);
-    return static_cast<float>(1.0f - (std::sin(angle) * radius + centre) * scale);
+    if (!sine) return (std::cos(angle) * radius + centre) * scale;
+    return 1.0f - (std::sin(angle) * radius + centre) * scale;
 }
 
 } // namespace
@@ -185,7 +178,7 @@ void UiMesh::Framed(float depth, float scale, float left, float top, float right
 
     // Placed at the rectangle's centre.
     float layoutX = worlddata::kLayoutX;
-    SetPosition(this, (D(left) + D(right)) * layoutX, (D(top) + D(bottom)) * layoutX, depth);
+    SetPosition(this, (left + right) * layoutX, (top + bottom) * layoutX, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }
@@ -298,7 +291,7 @@ void UiMesh::Ring(float depth, float scale, float x, float y, float outerRadius,
         ++j;
     }
     float layoutY = worlddata::kLayoutY;
-    SetPosition(this, D(x) * layoutY, D(y) * layoutY, depth);
+    SetPosition(this, x * layoutY, y * layoutY, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }

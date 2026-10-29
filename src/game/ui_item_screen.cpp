@@ -9,7 +9,6 @@
 #include "texture.h"
 #include "ui.h"
 #include "ui_camp.h"
-#include "ui_float.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
@@ -150,7 +149,7 @@ PartySkill ItemScreen::BestPartySkill(int) { return {}; }
 
 CUnit* ItemScreen::HeroUnit(int) { return nullptr; }
 
-double ItemScreen::Weight() { return 0.0; }
+float ItemScreen::Weight() { return 0.0f; }
 
 int ItemScreen::Price(Item*, int) { return 0; }
 

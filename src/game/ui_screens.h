@@ -187,8 +187,8 @@ public:
     void RefreshStats() override;
     // The local player's first hero.
     PartyUnitRecord* HeroRecord() override;
-    // The weight carried by the hero being made (weapon, armour, spell container and the quick items), unrounded.
-    double Weight() override;
+    // The weight carried by the hero being made (weapon, armour, spell container and the quick items).
+    float Weight() override;
     // Keeps the selected hero in the list and visible (ten rows), then shows it.
     void ClampHeroSelection();
     // The same for the voice list (eleven rows), then shows the voice's name.

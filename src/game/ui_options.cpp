@@ -309,7 +309,7 @@ void OptionsWindow::LoadSettings() {
     s[23].value = sign23 == one ? 0 : 1;
     s[5].value = options::g_options.cameraBorderScrollArea;
     s[6].value = options::g_options.cameraFrameSelectionArea / 10;
-    s[20].value = static_cast<int>(options::g_options.toolTipTime * static_cast<double>(kScrollFrom));
+    s[20].value = static_cast<int>(options::g_options.toolTipTime * kScrollFrom);
     s[7].value = options::g_options.unitShadow;
     s[8].value = options::g_options.buildingShadow;
     s[9].value = options::g_options.floraShadow;
@@ -321,9 +321,9 @@ void OptionsWindow::LoadSettings() {
     s[18].value = options::g_options.showTutorial;
     s[19].value = options::g_options.autosave;
     s[21].value = options::g_options.switchFilters;
-    s[14].value = static_cast<int>((static_cast<double>(options::g_options.brightness) + one) * fromStep);
-    s[15].value = static_cast<int>((static_cast<double>(options::g_options.contrast) + one) * fromStep);
-    s[16].value = static_cast<int>((static_cast<double>(options::g_options.gamma) + one) * fromStep);
+    s[14].value = static_cast<int>((options::g_options.brightness + one) * fromStep);
+    s[15].value = static_cast<int>((options::g_options.contrast + one) * fromStep);
+    s[16].value = static_cast<int>((options::g_options.gamma + one) * fromStep);
     s[25].value = options::g_options.difficulty;
 
     for (int i = 0; i < kOptionDefinitionCount; ++i) {

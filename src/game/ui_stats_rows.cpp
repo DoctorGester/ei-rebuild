@@ -53,9 +53,9 @@ float HeroStatsPanel::PartArmour(int part) {
     const UnitStatSlot& slot = owner->HeroRecord()->stats.slots[part];
     float sums[kDamageTypes];
     for (int damageType = 0; damageType < kDamageTypes; ++damageType) {
-        double sum = 0.0;
+        float sum = 0.0f;
         for (int layer = 0; layer < kLayers; ++layer) sum += slot.layers[layer].absorb[damageType];
-        sums[damageType] = static_cast<float>(sum);
+        sums[damageType] = sum;
     }
     // The largest of the first six (a branch-free select that keeps the old value on a NaN).
     float largest = 0.0f;
@@ -71,6 +71,6 @@ void HeroStatsPanel::DrawPart(const RECT& area, std::string_view name, int part)
     label = kPartIndent + label;
     UiSurface* surface = surfaces[0];
     surface->DrawTextIn(label, &area, 0, kRowColour, kLeft, 1);
-    surface->DrawTextIn(str::Format(kArmourFormat, static_cast<double>(PartArmour(part))), &area, 0, kRowColour,
+    surface->DrawTextIn(str::Format(kArmourFormat, PartArmour(part)), &area, 0, kRowColour,
                         kRight, 1);
 }

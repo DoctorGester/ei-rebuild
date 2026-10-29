@@ -1156,8 +1156,8 @@ public:
     void KeyUp(int key, int repeat, int flags) override;
     void Wheel(int flags, int delta, int x, int y) override;
 
-    // Seconds since the last frame (milliseconds * 0.001f, left unrounded).
-    static double FrameTime();
+    // Seconds since the last frame (milliseconds * 0.001f).
+    static float FrameTime();
     // The last frame's whole milliseconds (the ticks the held buttons' repeats count).
     static int FrameTicks();
     // Null is ignored.
