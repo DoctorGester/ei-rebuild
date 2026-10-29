@@ -87,15 +87,16 @@ File `core_refcount.cpp`, `core_refcount.h`.
   `DestroyOwned` (a still-shared object is detached and shut down first, then the Ref emptied) and set with `ShareOwned` /
   `ShareAssignOwned` (a clone of a copy-on-share object; the object held is marked copy-on-share); a container element
   that owns its share is a `SharedRef<T>` (copy: share, destructor: DestroyOwned). The network messages' plain counted
-  fields are `Ref<T>` (the copy constructors Assign), their plain lists `HeldRef<T>`. The AI's mode list still holds
-  raw pointers through the T*& overloads.
+  fields are `Ref<T>` (the copy constructors Assign), their plain lists `HeldRef<T>`. The AI brain's `modes` are a
+  `std::list<SharedRef<AIMode>>` (AddMode and Load emplace_back the new mode; erase and clear release).
 - CItem's `spell_` (Ref<CSpell>) and `link_` (Ref<CRefObject>: the server's CItemLink or the interface's ItemTurn) are
   Refs. CObject3D's `parts` are a `std::vector<HeldRef<CFigureMesh>>` whose references the original never releases
   through the vector: CopyFigure copies the pointers uncounted (the old ones taken without a release, each copy's
   reference forgotten again), Destroy3D takes each and forgets its reference, RemovePart takes the element and releases
   it after the detach.
-- Not merged yet: `ScriptEffect<T>` (its reset removes the timed object first), the game client's raw counted fields
-  (`info_`, `binding_`, `map_`, `trade_`: AssignRef / ClearRef in net_client_handlers.cpp).
+- The game client's `info_`, `binding_`, `map_` and `trade_` are plain `Ref<T>` (the handlers Assign / Reset; the
+  destructor resets them in the original's order between the lists' clears).
+- Not merged: `ScriptEffect<T>` (its reset removes the timed object first).
 - Counted lists outside the interface: the world's missiles, a CObject3D's effect sources, the joined links (TakeNew)
   and the AI memory's four unit lists (`HeldUnits`: nearby, visible, seen corpses, corpses) are lists of `HeldRef`; a
   removal that must release after a later step moves the element out first (RemoveEffectSource detaches before the
@@ -479,7 +480,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   after them) and a token list whose first token carries the tail's line.
 - A record that hands its references on without releasing them (the shared objects' items given at loot: the original
   frees the node and leaks the references) uses `HeldRef::Take()`. Counted elements in a plain list (the world's
-  counted items, the trap's victims, the armour spells' items, the AI's owned modes): the release (or DestroyOwned) is
+  counted items, the trap's victims, the armour spells' items): the release is
   explicit before erase / clear; the original's DestructElements did nothing, so the counts are what they were.
   `ReleaseAndClear(c)` (engine_object.h) releases and clears a list of engine objects.
 - Writes that compile on any pointer and corrupt a std container: memset / memcpy over a struct holding one, a

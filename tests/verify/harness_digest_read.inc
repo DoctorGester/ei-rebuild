@@ -134,7 +134,7 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     // The modes by their kinds' ids (ModeId: game.exe's vtable addresses; the writer names the known ones).
     b.Mode("ai.mode", ModeId(brain.current));
     int i = 0;
-    for (auto* mode : brain.modes) b.Mode("ai.modes#", ModeId(mode), i++);
+    for (const auto& mode : brain.modes) b.Mode("ai.modes#", ModeId(mode), i++);
 }
 
 // A unit's controller (a CUnitServer, class 0x3E) and its AI brain.

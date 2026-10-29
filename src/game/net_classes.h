@@ -606,9 +606,9 @@ public:
     std::list<HeldRef<FileMessage>> files_;
     std::list<HeldRef<FileChunkMessage>> chunks_;
     std::list<SharedRef<FileRequestMessage>> fileRequests_; // file requests for the server
-    HostMessage* info_;                 // the game's description, counted
-    BindingMessage* binding_;           // our binding, counted
-    MapMessage* map_;                   // the map message, counted
+    Ref<HostMessage> info_;             // the game's description
+    Ref<BindingMessage> binding_;       // our binding
+    Ref<MapMessage> map_;               // the map message
     std::list<HeldRef<ZoneMessage>> zones_; // map messages the host may pick
     std::list<HeldRef<VariableMessage>> variables_;
     Ref<LoginMessage> player_;     // the local player's login record
@@ -617,7 +617,7 @@ public:
     Ref<PartyMessage> party_;      // our trade offer (party description)
     std::list<HeldRef<PartyMessage>> offers_; // the other players' trade offers
     std::list<TradeRecord> tradeRecords_;
-    TradeMessage* trade_;               // the current trade, counted
+    Ref<TradeMessage> trade_;           // the current trade
     std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
     lib::InPlace<CParty> parties_[2];           // ours, the partner's
 };
