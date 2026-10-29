@@ -1,7 +1,7 @@
 # Renderer: the sidecar renderer, the hand-over from the game, and the switch-over
 
 The game's own renderer (DirectDraw 7 / Direct3D 7) is replaced by a new renderer in a sidecar module, and only the
-standalone image runs it (`ei_standalone.exe` + `ei_hook.dll`, docs/notes/standalone.md). game.exe runs the original
+standalone image runs it (`ei_standalone.exe`, docs/notes/standalone.md). game.exe runs the original
 code only, on dgVoodoo: its runs are the reference (goldens, function vectors, widescreen frames), never our
 renderer's.
 

@@ -17,7 +17,7 @@
 //     equal / above / below paths.
 //
 // The original's sites are patched after InstallHooks (the first message loop pass), not before:
-// NoteHarnessPatch would leave our rewrites of the five functions out, and a patch the hook DLL
+// NoteHarnessPatch would leave our rewrites of the five functions out, and a patch the harness
 // did not note makes it skip them as Rebirth-patched. So ours stay installed, and
 // --no-hooks runs (game.exe, the original) patch the same bytes at the same point (no group exists before a world loads).
 // Two different members with one id would be a tie the id order cannot settle; the stub logs the

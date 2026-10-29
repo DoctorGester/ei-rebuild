@@ -102,10 +102,11 @@ void QueueSpec(const char* spec) {
     strcat_s(g_queued, ";");
 }
 
-void LoadSettings(const char* iniPath) {
+void LoadSettings(const char* iniPath, const char* profile) {
     const int all = static_cast<int>(GetPrivateProfileIntA("Rebirth", "Default", -1, iniPath));
     if (all >= 0) SetAll(all != 0);
     else SetDefaults();
+    if (profile && GetFileAttributesA(iniPath) == INVALID_FILE_ATTRIBUTES) ApplySpec(profile);
     for (int i = 0; i < kPatchCount; ++i) {
         int value = static_cast<int>(GetPrivateProfileIntA("Rebirth", kNames[i], -1, iniPath));
         if (value >= 0) detail::g_enabled[i] = value != 0;

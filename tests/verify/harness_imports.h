@@ -1,7 +1,7 @@
 #pragma once
 
 // The harness's routes of game.exe's import slots, named by their ImportTable member (lib/import_table.h): the slot
-// through the data seam, in game.exe its own table, in the image ei_hook.dll's (S18f). tools/gen_iat.py's routed()
+// through the data seam, in game.exe its own table, in the image its own (S18f). tools/gen_iat.py's routed()
 // reads the members named here (`ImportTable::X`): our code calls those imports through the slot (lib/gameapi.h),
 // so the route applies in the image too. A route of game.exe's runs only (PatchOriginalImport, TraceOriginalSlot:
 // a function with "Original" in its name taking `&ImportTable::X`) does not count: gen_iat.py leaves its slot out.

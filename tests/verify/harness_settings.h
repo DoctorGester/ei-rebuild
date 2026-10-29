@@ -5,7 +5,7 @@
 // Registry: every key under HKEY_CURRENT_USER or HKEY_LOCAL_MACHINE \Software\Nival Interactive and
 // \Software\Gipat.Ru (the original's settings, Rebirth's game settings and starter switches) is answered from
 // config\harness\registry.reg, the committed snapshot, through advapi32's own import slots (its exports are
-// stubs that jump through them), so the game, the image, ei_hook.dll's own reads and addon.dll all see it.
+// stubs that jump through them), so the game, the image, the harness's own reads and addon.dll all see it.
 // Such keys are never opened, created or written in the real registry: opens and creates get handles of
 // this module's, writes and deletes on them are dropped (as game.exe's RegSetValueExA always is,
 // harness.cpp), and game.exe's import of RegCreateKeyExA never reaches the registry at all. A value or key
@@ -35,7 +35,7 @@
 // config\addrbook.ini: the multiplayer address book): read from config\harness\<vanilla|rebirth>\ unless the
 // run's overlay has its own copy (a "# prepare:" tool's, or the game's own write; harness.cpp ReadPath).
 //
-// The folder: EI_HARNESS_SETTINGS, else config\harness two levels above ei_hook.dll (build\<config>\).
+// The folder: EI_HARNESS_SETTINGS, else config\harness two levels above our module (build\<config>\).
 
 #include <string>
 

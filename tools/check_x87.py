@@ -1,4 +1,4 @@
-"""Fails when the compiled hook DLL converts unsigned 32-bit values to floating point the modern way.
+"""Fails when the compiled game (ei_standalone.exe) converts unsigned 32-bit values to floating point the modern way.
 
 MSVC turns `static_cast<double>(uint32)` into FILD dword + FADD 2^32 (for values >= 2^31). That FADD
 rounds at the FPU's precision control, so the result can differ from the original's exact FILD of
@@ -17,7 +17,7 @@ SSE2_OBJECTS = ('ei_render:', 'ei_draw:', 'libcmt:ftol3.obj')
 
 def main():
     build = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'build', 'release')
-    dll = open(os.path.join(build, 'ei_hook.dll'), 'rb').read()
+    dll = open(os.path.join(build, 'ei_standalone.exe'), 'rb').read()
     pe = struct.unpack_from('<I', dll, 0x3C)[0]
     count = struct.unpack_from('<H', dll, pe + 6)[0]
     opt = struct.unpack_from('<H', dll, pe + 20)[0]
@@ -48,7 +48,7 @@ def main():
                 hits.append(base + va + i)
                 i = code.find(pat, i + 1)
     syms = []
-    for line in open(os.path.join(build, 'ei_hook.map'), errors='replace'):
+    for line in open(os.path.join(build, 'ei_standalone.map'), errors='replace'):
         m = re.match(r'\s*[0-9a-f]{4}:[0-9a-f]{8}\s+(\S+)\s+([0-9a-f]{8})\s.*\s(\S+)$', line)
         if m:
             syms.append((int(m.group(2), 16), m.group(1), m.group(3)))

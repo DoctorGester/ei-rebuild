@@ -4,8 +4,8 @@ Readable C++ source for the Russian `game.exe` 1.06 of Evil Islands, rebuilt wit
 identical game behaviour, not identical bytes: the same world, saves and network play as the original, with a new
 renderer and the Rebirth edition's fixes on top.
 
-The product is the standalone game: `ei_standalone.exe` loads `ei_hook.dll`, which holds all of the game's code. It
-reads the game's data from an existing install and needs no `game.exe`. The original `game.exe` is used only by the
+The product is the standalone game: `ei_standalone.exe`, one exe that holds all of the game's code. Dropped into an
+installed game's folder (GOG or Rebirth) it plays from there, with no other file of ours; it needs no `game.exe`. The original `game.exe` is used only by the
 test harness, as the reference our code is compared with.
 
 ## Status
@@ -42,8 +42,9 @@ The work queue is `docs/tickets.md` (generated from `docs/tickets.toml` by `tool
 ## Build
 
 ```
-build.cmd release        the game: build\release\ei_standalone.exe, ei_hook.dll, ei_launch.exe
-build.cmd verify         the game plus the test harness, into build\verify (what the tests run)
+build.cmd release        the game: build\release\ei_standalone.exe (and ei_launch.exe, the tools' launcher)
+build.cmd verify         the game with the test harness linked in, and ei_harness.dll (the harness for the original
+                         game.exe), into build\verify (what the tests run)
 ```
 
 The build also runs the source checks (`tools/check_*.py`, the generated files' freshness); none reads `game.exe`.
@@ -55,6 +56,11 @@ play.cmd            builds the UTF-8 release and plays it on the Rebirth install
 play.cmd vanilla    the same on the GOG install's data, with Rebirth's bug fixes and widescreen
 launch-vanilla.cmd  plays the last release build on the GOG install's data, default options
 ```
+
+Or copy `build\release\ei_standalone.exe` into the game's folder and start it there: it writes `ei_settings.ini`
+beside itself with the defaults and picks the Rebirth flags from the folder (Rebirth's profile where Rebirth's plugin
+is, else the bug fixes and widescreen; an `ei_rebirth.ini` beside it overrides that). It writes into that folder
+(settings, saves, `ei_hook.log`), so use a copy of the install if you want the original kept as it is.
 
 For example, with the game somewhere else:
 
@@ -91,8 +97,8 @@ The test tools still expect the installs at the default `F:\games` paths (`tools
 - `src/game/` the game code. Each function names the original function it replaces.
 - `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, x87 maths), file and text helpers, byte copies.
 - `src/render/` the renderer (sokol_gfx on Direct3D 11, `third_party/sokol`; `docs/notes/renderer.md`).
-- `src/standalone/` the host exe and the generated parts of the image.
-- `src/hook/` the DLL's start-up inside the standalone exe, logging, and the Rebirth options.
+- `src/standalone/` the exe's start-up and the generated parts of the image.
+- `src/hook/` logging and the Rebirth options (both homes), and the harness's game.exe side (ei_harness.dll).
 - `tests/verify/` the harness; `tests/vectors/` function-level comparisons with the original; `tests/scenarios/`.
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `cleanup-plan.md`), the tickets, and one

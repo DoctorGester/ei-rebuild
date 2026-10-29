@@ -111,7 +111,7 @@ STANDALONE = {
                                   r'|TextOutA|DrawTextA|ExtTextOutA|GetTextExtentPoint32A|GetKeyNameTextA)\b'),
 }
 # Standalone readiness: what ties the image to game.exe at run time (S18k): game.exe's range in the host's
-# image, and reads of game.exe's file by the host and by ei_hook.dll in the image.
+# image, and reads of game.exe's file by the image.
 IMAGE_TIES = [
     ('src/standalone/host.cpp', re.compile(r'\bReadWholeFile\b')),                # the host reads game.exe
     ('src/hook/hook.cpp', re.compile(r'\bStandaloneExePath\b')),                  # InstallHooks reads it in the image

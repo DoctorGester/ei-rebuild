@@ -1,5 +1,5 @@
 // The console's static objects: its two command maps, the eight streambufs (one per message filter) and the eight
-// streams on them, plain globals of ours. The streambufs are built when ei_hook.dll loads and destroyed after the
+// streams on them, plain globals of ours. The streambufs are built when the exe starts and destroyed after the
 // game's exit functions; a stream only names its streambuf (constant-initialised). See docs/notes/console.md.
 #include "console.h"
 

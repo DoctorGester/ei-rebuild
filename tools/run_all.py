@@ -7,7 +7,7 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
   default          the standalone image (S21: game.exe only runs the original, docs/notes/standalone.md section 5), as
                    --standalone: ei_launch --standalone, build\\verify\\ei_standalone.exe lays out game.exe's data
-                   without its code (it reads no game.exe, S18k1) and loads ei_hook.dll, on the vanilla install's data
+                   without its code (it reads no game.exe, S18k1), the game and the harness linked in (S23), on the vanilla install's data
                    (install "standalone", vanilla goldens), and on the Rebirth install's data
                    with the flags of config/ei_rebirth_standalone.ini as EI_REBIRTH (no dgVoodoo, addon.dll or
                    EI_Plugin.asi either way; install "standalone-rebirth", Rebirth goldens). Every scenario runs
@@ -493,26 +493,24 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
 # The original code does not change, so a run of it only needs playing again when its scenario, its install's
 # files, the clock, the game's EI_* settings or the harness change. A passed run's folder (frames, report, log; not
 # harness_saves) is kept in <main checkout>/build/reference/<scenario>-<install>/<key>/ with cached.json (run()'s
-# results); run() copies it into the run folder instead of playing it. The harness is what ei_hook.dll runs in
+# results); run() copies it into the run folder instead of playing it. The harness is what ei_harness.dll runs in
 # game.exe: since H30 only game.exe's own code and the files harness_files() lists (HARNESS_SOURCES, HARNESS_SHARED
 # and the headers they include), so a change of the game's code (src/game, src/lib, src/render) keeps the runs
 # cached and any change of the harness plays them again.
 
-# What game.exe's side of the harness builds from (H30, H30b): the harness, the hook framework, the launcher and the
-# harness's settings; the game's .cpp files it calls in game.exe (HARNESS_SHARED: kept to these); the vector recorders
-# only in EI_VECTORS=1 runs (HARNESS_VECTORS: they record our functions' vectors from game.exe's runs and read our
-# classes); and every header they include. Since H30b the harness reads game.exe's objects through its own views
+# What game.exe's side of the harness builds from (H30, H30b; since S23 ei_harness.dll's sources, CMakeLists.txt): the
+# harness, the hook framework, the image side's absence (tests/verify/original), the launcher and the harness's
+# settings; the game's .cpp file it calls in game.exe (HARNESS_SHARED: kept to it); the vector recorders only in
+# EI_VECTORS=1 runs (HARNESS_VECTORS: they record our functions' vectors from game.exe's runs and read our classes);
+# and every header they include. Since H30b the harness reads game.exe's objects through its own views
 # (tests/verify/exe_objects.h) and reaches our classes only through tests/verify/image (image/image_side.h, functions
-# that name no class of ours), which the image runs alone: tests/verify/* takes no file of that folder, and
-# HARNESS_IMAGE_ONLY leaves out the image's start-up. So no header of src/game, src/render or src/lib is in the key
-# but game_data.h (GameData's shift, 0 in game.exe), lib/intro_sort.h (the draw lists' sort, the game's) and
-# lib/gameapi.h (game.exe's import slots); tools/check_harness_key.py checks it. Nothing else of src/ runs in game.exe
-# (its static initialisers build host state only).
-HARNESS_SOURCES = ('tests/verify/*', 'src/hook/*', 'tools/launcher/*', 'config/harness/**/*')
+# that name no class of ours), which only the image links in: tests/verify/* takes no file of that folder. So no
+# header of src/game, src/render or src/lib is in the key but game_data.h (GameData's shift, 0 in game.exe:
+# hook/original_data.cpp), lib/intro_sort.h (the draw lists' sort, the game's) and lib/gameapi.h (game.exe's import
+# slots); tools/check_harness_key.py checks it. Nothing else of src/ is in ei_harness.dll.
+HARNESS_SOURCES = ('tests/verify/*', 'tests/verify/original/*', 'src/hook/*', 'tools/launcher/*', 'config/harness/**/*')
 HARNESS_VECTORS = ('tests/vectors/record_*.cpp', 'tests/vectors/vectors_record.cpp')
-HARNESS_IMAGE_ONLY = ('src/hook/standalone_main.cpp',)   # EiStandaloneMain: ei_standalone.exe's start-up
-HARNESS_SHARED = ('src/lib/rebirth.cpp',             # the Rebirth flags (harness_addon.cpp, hook/rebirth_hook.cpp)
-                  'src/standalone/image_data.cpp')   # ei::GameData's shift (0 in game.exe)
+HARNESS_SHARED = ('src/lib/rebirth.cpp',)   # the Rebirth flags (harness_addon.cpp, hook/rebirth_hook.cpp)
 QUOTED_INCLUDE = re.compile(rb'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', re.M)
 
 CACHED_NOTE = 'reference cache: '     # the note of a run taken from the cache (no time recorded for it)
@@ -571,12 +569,11 @@ def install_fingerprint(root, install, environ=None):
 
 def harness_files(root, vectors=False):
     """{path relative to root: content} of the files game.exe's side of the harness builds from: HARNESS_SOURCES,
-    HARNESS_SHARED (with vectors, HARNESS_VECTORS) but HARNESS_IMAGE_ONLY, and the files their quoted includes name
-    (from the including file's folder, include/ or src/)."""
-    image_only = {os.path.normpath(os.path.join(root, *name.split('/'))) for name in HARNESS_IMAGE_ONLY}
+    HARNESS_SHARED (with vectors, HARNESS_VECTORS), and the files their quoted includes name (from the including file's
+    folder, include/ or src/)."""
     todo = [path for pattern in HARNESS_SOURCES + HARNESS_SHARED + (HARNESS_VECTORS if vectors else ())
             for path in glob.glob(os.path.join(root, *pattern.split('/')), recursive=True)
-            if os.path.isfile(path) and os.path.normpath(path) not in image_only]
+            if os.path.isfile(path)]
     files = {}
     while todo:
         path = os.path.normpath(todo.pop())

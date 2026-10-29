@@ -10,11 +10,11 @@
 // Defaults (user 2026-10-20): Rebirth's bug fixes (Kind::Fix in rebirth_patches.inc) are on, every
 // other flag is off; each can be switched either way. Every flag is off until LoadSettings, which
 // the standalone image calls once at startup, before any rewritten code runs (ei_vectors.exe, which
-// replays the original's vectors, never does): the defaults, then ei_rebirth.ini next to ei_hook.dll
-// (next to the exe in the standalone build), then the EI_REBIRTH environment variable (ei_launch
-// --rebirth), then a harness scenario's "rebirthflags" line. The standalone image never loads
-// addon.dll or EI_Plugin.asi: these flags alone decide (config/ei_rebirth_standalone.ini for the
-// Rebirth install's runs). "none" is the original 1.06.
+// replays the original's vectors, never does): the defaults, then ei_rebirth.ini next to the exe (without one, an
+// exe dropped into a game folder takes the folder's profile: src/standalone/startup.cpp), then the EI_REBIRTH
+// environment variable (ei_launch --rebirth), then a harness scenario's "rebirthflags" line. The standalone image
+// never loads addon.dll or EI_Plugin.asi: these flags alone decide (config/ei_rebirth_standalone.ini for the
+// Rebirth install's runs and the Rebirth profile). "none" is the original 1.06.
 //
 // ei_rebirth.ini:
 //     [Rebirth]
@@ -51,13 +51,13 @@ Kind KindOf(Patch p);
 inline bool DefaultOn(Patch p) { return KindOf(p) == Kind::Fix; }
 
 // The player count EI_Plugin's NPlayers feature (Patch::EiPluginNPlayers) is configured with
-// (EI_Plugin.ini [CONFIG] NPlayers; the plugin's default 7 until the hook DLL has read the ini).
+// (EI_Plugin.ini [CONFIG] NPlayers; the plugin's default 7 until the start-up has read the settings).
 int PluginNPlayers();
 void SetPluginNPlayers(int players);
 
 // EI_Plugin.ini [CONFIG] Pause, the mode EI_Plugin's Pause feature (Patch::EiPluginPause) runs in: 1 every
 // pause and resume announced (the leader only), 2 also by any player, 3 no pause at all (default 1 until
-// the hook DLL has read the ini; PlayerServer::OnPause, CWorld::SetPaused).
+// the start-up has read the settings; PlayerServer::OnPause, CWorld::SetPaused).
 int PluginPause();
 void SetPluginPause(int mode);
 
@@ -78,8 +78,8 @@ bool ApplySpec(const char* spec);
 // Queues a spec to apply after the ini and the environment (the harness, before WinMain).
 void QueueSpec(const char* spec);
 
-// Reads the settings: the defaults, [Rebirth] of `iniPath` (a missing file changes nothing), the
-// EI_REBIRTH environment variable, then the queued specs. Called once, before hooks are installed.
-void LoadSettings(const char* iniPath);
+// Reads the settings: the defaults, [Rebirth] of `iniPath` (a missing file: the spec `profile` when one is given,
+// else nothing), the EI_REBIRTH environment variable, then the queued specs. Called once, before WinMain.
+void LoadSettings(const char* iniPath, const char* profile = nullptr);
 
 } // namespace ei::rebirth

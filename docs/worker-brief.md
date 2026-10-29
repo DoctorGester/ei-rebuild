@@ -2,7 +2,7 @@
 
 You are working on a C++ rebuild of Evil Islands' game.exe (1.06, MSVC6) in the repo at your
 current working directory (a git worktree of E:\workspace\ei). The product is the standalone image:
-ei_standalone.exe runs our code (ei_hook.dll) with no game.exe code, on the part of game.exe's data not
+ei_standalone.exe runs our code (all of it linked in) with no game.exe code, on the part of game.exe's data not
 yet named in our source; game.exe runs only as the original, for the harness's references. Classes are
 normal C++ (rewrite guide, "Where code goes"). Your task is ONE ticket, given in your prompt;
 do it, commit, report, and stop. Don't start other work.

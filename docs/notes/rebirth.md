@@ -26,7 +26,7 @@ and the two mss32.dll versions, checked against `addon.log`.
 
 `starter\Engine\dinput.dll` ("Addon Loader", a proxy) reads `HKCU\Software\Gipat.Ru\EI_Starter` (`path`, `Settings\AddonPath`), loads
 `starter\addon.dll`, which writes a CALL at 006EC301 (the CRT's call of WinMain). Before WinMain addon makes .text / .rdata writable,
-applies the patch tables and calls WinMain; `ei_hook.dll` installs its hooks when WinMain starts and so sees all of addon's patches.
+applies the patch tables and calls WinMain; `ei_harness.dll` installs its hooks when WinMain starts and so sees all of addon's patches.
 WinMain creates the sound manager (006B6040), whose `AIL_startup` makes Miles load every `*.asi` in the working directory (mp3dec.asi,
 EI_Plugin.asi); EI_Plugin writes CALL 10001BD0 at 006B6272 (right after `AIL_startup`), which applies its features and calls the original
 006B73E0. (More exactly: dinput.dll's DllMain points game.exe's entry 006EC226 at its loader, which loads addon.dll on the main
@@ -212,7 +212,7 @@ computes at 53 bits in both installs (Rebirth does not raise the precision). Ret
 
 `include/ei/rebirth.h` (header comment) documents the flags: one `ei::rebirth::Patch` enumerator per patch named as addon.log names it (52) plus one per EI_Plugin
 feature, `ei::rebirth::Enabled(Patch::X)` in rewritten code (with a flag off the code behaves exactly as the original, bugs included). Defaults: the bug fixes on, the
-rest off ("One test profile"). Sources, in order: the defaults, `ei_rebirth.ini` next to ei_hook.dll (`Default=` sets every flag it does not name), the `EI_REBIRTH`
+rest off ("One test profile"). Sources, in order: the defaults, `ei_rebirth.ini` next to the exe (`Default=` sets every flag it does not name; without one, a dropped-in exe takes its folder's profile: standalone.md, "The drop-in exe"), the `EI_REBIRTH`
 environment variable (`ei_launch --rebirth <spec>`; `none` is the original 1.06, `defaults`), a scenario's `rebirthflags` line. The flags (`src/lib/rebirth.cpp`)
 are plain data; `rebirth_hook::RebirthLaunch()` (a flag other than the fixes on) makes a run of the image count as the Rebirth install.
 
@@ -229,7 +229,7 @@ the second argument in `include/ei/rebirth_patches.inc` and the `standalone` col
   EiPluginGraphGen, EiPluginUnload); the flags stay, nothing implements them.
 
 **Recording "original + fixes"** (`tests/verify/harness_addon.{h,cpp}`): addon.dll has no switch per patch (its main table applies every entry; apply functions
-only return "disabled" for their own settings), so ei_launch loads Rebirth's addon loader (`starter\Engine\dinput.dll`, injected after ei_hook.dll) into every
+only return "disabled" for their own settings), so ei_launch loads Rebirth's addon loader (`starter\Engine\dinput.dll`, injected after ei_harness.dll) into every
 harness run of game.exe on the vanilla data (not with `EI_VECTORS=1`, not with `EI_ADDON_FLAGS=0`) and sets `EI_ADDON_FLAGS=1`. When WinMain is entered the
 harness keeps addon's sites of the patches whose flag is on in the run (`tests/verify/addon_sites.inc`, `tools/rebirth/make_addon_sites.py` from the CSV) and
 writes game.exe's bytes back over the others (an import slot gets the import's address). It then fails the run ("addon: ...") unless every kept site is live

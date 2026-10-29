@@ -10,12 +10,12 @@ A trace of B that ran both sides of a function (a verify wrapper, until S21d) pu
 between, so B drew some positions twice and its lines could not be compared one by one.
 This walks A's draws of the main thread in order and looks for each among B's draws of the same
 generator position: the first that B makes in no frame or in another frame than A ("frame"), or only
-from other callers ("caller"; game.exe callers are originals, so only ei_hook callers count there), is printed with B's draws around it. ISAAC and rand() are walked separately.
+from other callers ("caller"; game.exe callers are originals, so only our callers, <module>+offset, count there), is printed with B's draws around it. ISAAC and rand() are walked separately.
 exit code: 0 the same, 1 a difference, 2 a trace missing
 
 usage: python tools/randtrace.py --kept B [A]
     Draws that only an original made and that stayed: game.exe callers whose draw the
-    generator went on from (the next draw continues the stream) while no rewrite (ei_hook caller) drew
+    generator went on from (the next draw continues the stream) while no rewrite (our caller) drew
     the same position. Those were originals a verify wrapper (until S21d) ran on live state after (or instead of)
     ours with the generators left as the original moved them (SV1a: 005301B0 from 0052EF90's re-read).
     Callers that A (the plain run) also draws from (originals not rewritten) are left out. One line per
@@ -51,11 +51,10 @@ def read(path):
 
 
 class Names:
-    """Callers by name: ei_hook+offset from the build's ei_hook.map, game.exe ones from config/functions.csv."""
+    """Callers by name: <module>+offset from the build's <module>.map, game.exe ones from config/functions.csv."""
 
     def __init__(self):
-        self.syms = resolve_crash.load_map(os.path.join(run_all.BUILD, 'ei_hook.map'))
-        self.offsets = [s[0] for s in self.syms]
+        self.maps = {}   # module -> (offsets, symbols)
         self.gstarts, self.gnames = resolve_crash.load_game_functions()
         self.cache = {}
 
@@ -66,9 +65,14 @@ class Names:
 
     def __call__(self, caller):
         if caller not in self.cache:
-            if caller.startswith('ei_hook+'):
-                i = bisect.bisect_right(self.offsets, int(caller[8:], 16)) - 1
-                name = resolve_crash.undecorate([self.syms[i][1]])[0] if i >= 0 else '?'
+            own = ours(caller)
+            if own:
+                if own.group(1) not in self.maps:
+                    syms = resolve_crash.load_map(os.path.join(run_all.BUILD, own.group(1) + '.map'))
+                    self.maps[own.group(1)] = ([s[0] for s in syms], syms)
+                offsets, syms = self.maps[own.group(1)]
+                i = bisect.bisect_right(offsets, int(own.group(2), 16)) - 1
+                name = resolve_crash.undecorate([syms[i][1]])[0] if i >= 0 else '?'
                 name = re.sub(r'^\S+ __\w+ ', '', name)
             else:
                 a = int(caller, 16)
@@ -78,8 +82,13 @@ class Names:
         return self.cache[caller]
 
 
+def ours(caller):
+    """The match of a caller in our code (<module>+offset), else None."""
+    return resolve_crash.OWN_ADDRESS.fullmatch(caller)
+
+
 def first_difference(a, b, generator):
-    """A's first draw of `generator` that B does not make in the same frame (and from the same ei_hook caller)."""
+    """A's first draw of `generator` that B does not make in the same frame (and from the same caller of ours)."""
     seen = collections.defaultdict(list)
     for d in b:
         if d[4] == generator:
@@ -91,7 +100,7 @@ def first_difference(a, b, generator):
         frames = [t for t in theirs if t[1] == d[1]]
         if not frames:
             return d, 'frame' if theirs else 'missing', theirs
-        if d[2].startswith('ei_hook+') and not any(t[2] == d[2] for t in frames):
+        if ours(d[2]) and not any(t[2] == d[2] for t in frames):
             return d, 'caller', theirs
     return None
 
@@ -110,10 +119,10 @@ def kept(path_b, path_a):
     found = 0
     for generator in ('isaac', 'rand'):
         draws = [d for d in b if d[4] == generator]
-        rewritten = {d[5] for d in draws if d[2].startswith('ei_hook+')}
+        rewritten = {d[5] for d in draws if ours(d[2])}
         stayed = collections.OrderedDict()
         for d, n in zip(draws, draws[1:]):
-            if d[2].startswith('ei_hook+') or d[2] in plain_callers or d[5] in rewritten or not follows(d, n):
+            if ours(d[2]) or d[2] in plain_callers or d[5] in rewritten or not follows(d, n):
                 continue
             stayed.setdefault(d[2], []).append(d)
         for caller, ds in stayed.items():
@@ -125,7 +134,7 @@ def kept(path_b, path_a):
         # next function drew the same numbers again.
         by_position = collections.defaultdict(list)
         for d in draws:
-            if d[2].startswith('ei_hook+'):
+            if ours(d[2]):
                 by_position[d[5]].append(d)
         undone = collections.OrderedDict()
         for position, ds in by_position.items():

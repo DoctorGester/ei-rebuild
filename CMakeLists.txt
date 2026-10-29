@@ -11,7 +11,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # The debug build's containers are the release build's: the checked iterators' proxy is allocated by the
 # constructor, so a constinit std::vector global (the game-order exit functions' containers) fails to compile.
 add_compile_definitions($<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=0>)
-# No incremental linking in the two builds: an incremental relink of ei_hook.dll twice left out new code
+# No incremental linking in the two builds: an incremental relink of the game's DLL twice left out new code
 # from ei_render.lib while reporting success (R16c2), so a run could test stale code.
 foreach(kind EXE SHARED MODULE)
     string(REGEX REPLACE "/INCREMENTAL(:[A-Z]+)?" "" flags "${CMAKE_${kind}_LINKER_FLAGS_RELWITHDEBINFO}")
@@ -22,11 +22,11 @@ endforeach()
 set(EI_INLINE 2 CACHE STRING "Inline expansion level /Ob<n> of the release and verify builds")
 string(REGEX REPLACE "/Ob[0-3]" "/Ob${EI_INLINE}" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 
-# Two builds (build.cmd): `release` is the product, the standalone image (ei_standalone.exe with ei_hook.dll's
-# code); `verify` is the harness build, the same image and code plus the harness (tests/verify: scenario runs
-# of the image, and of the original game.exe with EI_NO_HOOKS for goldens) and the vector recorders
+# Two builds (build.cmd): `release` is the product, the standalone image (ei_standalone.exe, the whole game); `verify`
+# is the harness build, the same image with the harness linked in (tests/verify: scenario runs of the image) and
+# ei_harness.dll, the harness for the original game.exe (EI_NO_HOOKS runs for goldens) with the vector recorders
 # (tests/vectors/record_*.cpp, installed only in the original game.exe with EI_VECTORS=1).
-option(EI_HARNESS "Build ei_hook with the harness and the vector recorders (tests/verify, tests/vectors)" OFF)
+option(EI_HARNESS "Build the harness: linked into ei_standalone.exe, and ei_harness.dll for game.exe" OFF)
 
 # Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/asset_text.h): asset, save and
 # network text is converted from and to EI_ASSET_CODEPAGE where it crosses.
@@ -179,24 +179,39 @@ foreach(part fonts/README.txt fonts/LICENSE sokol/README.txt sokol/LICENSE stb/R
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/third_party/${part})
 endforeach()
 file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
-     "Third-party software built into ei_standalone.exe and ei_hook.dll, with its licences.\n\n${EI_NOTICES}")
+     "Third-party software built into ei_standalone.exe, with its licences.\n\n${EI_NOTICES}")
 
-add_library(ei_hook SHARED
-    src/hook/cover.cpp
-    src/hook/dllmain.cpp
-    src/hook/hook.cpp
-    src/hook/paths.cpp
+# The game (docs/notes/standalone.md section 2): ei_standalone.exe, an ordinary exe (S18k: ASLR as any exe, no read of
+# game.exe) with the whole game linked in (S23: no DLL; dropped into a game folder it plays from there). Its one resource
+# is its version information (src/standalone/host.rc, C23): game.exe's own resources are not used. A windowed program
+# (no console) whose entry is main.
+add_executable(ei_standalone
+    src/hook/log.cpp
     src/hook/profile.cpp
     src/hook/rebirth_hook.cpp
     src/hook/standalone.cpp
-    src/hook/standalone_main.cpp
+    src/standalone/host.cpp
+    src/standalone/host.rc
     src/standalone/image_data.cpp
     src/standalone/image_imports.cpp
+    src/standalone/standalone_main.cpp
+    src/standalone/startup.cpp
     src/standalone/static_exit.cpp
     src/standalone/static_init.cpp
     ${EI_GAME_SOURCES})
-target_include_directories(ei_hook PRIVATE include src)
-target_link_libraries(ei_hook PRIVATE ei_render)
+set_target_properties(ei_standalone PROPERTIES WIN32_EXECUTABLE ON)
+target_include_directories(ei_standalone PRIVATE include src)
+target_link_libraries(ei_standalone PRIVATE ei_render)
+target_link_options(ei_standalone PRIVATE /ENTRY:mainCRTStartup)
+if(EI_ASAN)
+    # ASan's shadow, redzones and quarantine take hundreds of MB: 4 GB of address space, not 2.
+    target_link_options(ei_standalone PRIVATE /LARGEADDRESSAWARE)
+else()
+    # The exe's own imports (Direct3D 11, DXGI, ...) from System32 only: a game folder may hold a wrapper of the same
+    # name (dgVoodoo's DLLs beside the original's game.exe). game.exe's imports load from the game folder on purpose
+    # (image_imports.cpp: Miles, Bink). ASan's runtime is beside the exe, so its build searches as usual.
+    target_link_options(ei_standalone PRIVATE /DEPENDENTLOADFLAG:0x800)
+endif()
 # The initial bytes of the image's own copy of game.exe's .rdata and .data (src/standalone/image_data.cpp, S18d), written
 # at build time into image/ in the build folder (not committed; tools/gen_image_cells.py --bytes): zero but the
 # committed pointer cells. The build reads no game.exe (C25c).
@@ -209,43 +224,83 @@ add_custom_command(OUTPUT ${EI_IMAGE_DATA}
             ${CMAKE_SOURCE_DIR}/src/standalone/image_cells.inc
     COMMENT "Writing the image's .rdata and .data bytes"
     VERBATIM)
-target_sources(ei_hook PRIVATE ${EI_IMAGE_DATA})
+target_sources(ei_standalone PRIVATE ${EI_IMAGE_DATA})
 set_source_files_properties(src/standalone/image_data.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/image
                             OBJECT_DEPENDS ${EI_IMAGE_DATA})
+# The Rebirth install's profile, which an exe dropped into a Rebirth folder without an ei_rebirth.ini takes
+# (src/standalone/startup.cpp): config/ei_rebirth_standalone.ini's flags as a spec (rebirth::ApplySpec), written at
+# configure time into config/rebirth_profile.inc in the build folder.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/config/ei_rebirth_standalone.ini)
+file(STRINGS ${CMAKE_SOURCE_DIR}/config/ei_rebirth_standalone.ini EI_REBIRTH_PROFILE_LINES REGEX "^[A-Za-z]+=[01]$")
+set(EI_REBIRTH_PROFILE)
+foreach(line ${EI_REBIRTH_PROFILE_LINES})
+    string(REGEX MATCH "^([A-Za-z]+)=([01])$" unused ${line})
+    if(CMAKE_MATCH_1 STREQUAL "Default")
+        if(CMAKE_MATCH_2 STREQUAL "0")
+            list(APPEND EI_REBIRTH_PROFILE none)
+        else()
+            list(APPEND EI_REBIRTH_PROFILE all)
+        endif()
+    elseif(NOT CMAKE_MATCH_1 MATCHES "^(NPlayers|Pause)$")
+        list(APPEND EI_REBIRTH_PROFILE ${line})
+    endif()
+endforeach()
+list(JOIN EI_REBIRTH_PROFILE "," EI_REBIRTH_PROFILE)
+file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/config/rebirth_profile.inc CONTENT "\"@EI_REBIRTH_PROFILE@\"\n" @ONLY)
+set_source_files_properties(src/standalone/startup.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
 if(EI_HARNESS)
-    file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp)
-    # Function vector record mode (tests/vectors/vectors.h, EI_VECTORS=1 in game.exe).
-    file(GLOB EI_RECORD_SOURCES CONFIGURE_DEPENDS tests/vectors/record_*.cpp)
-    target_sources(ei_hook PRIVATE ${EI_HARNESS_SOURCES} ${EI_RECORD_SOURCES} tests/vectors/vectors_record.cpp)
+    # The harness (tests/verify; docs/notes/harness.md): its shared part, with what it names of the hook framework's
+    # game.exe side (src/hook/hook.cpp, cover.cpp) and of the vector recordings (vectors_record.cpp: the report
+    # flushes them), built once into both of its homes: linked into this exe with the image's side (tests/verify/image,
+    # which calls our code) for the image's runs, and into ei_harness.dll below for game.exe's.
+    file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
+    add_library(ei_harness_shared OBJECT
+        ${EI_HARNESS_SOURCES} src/hook/hook.cpp src/hook/cover.cpp tests/vectors/vectors_record.cpp)
+    target_include_directories(ei_harness_shared PRIVATE include src)
+    file(GLOB EI_HARNESS_IMAGE_SOURCES CONFIGURE_DEPENDS tests/verify/image/*.cpp)
+    target_sources(ei_standalone PRIVATE $<TARGET_OBJECTS:ei_harness_shared> ${EI_HARNESS_IMAGE_SOURCES})
 endif()
 # The drawing-only game code (EI_SSE2_GAME_SOURCES above), built for SSE2: a library, whole (every object, as if listed),
-# whose objects the linker takes after all of ei_hook's own. An inline function that files of both kinds keep out of
+# whose objects the linker takes after all of the exe's own. An inline function that files of both kinds keep out of
 # line is taken from the first object that defines it, so the x87 code always gets its x87 copy.
 add_library(ei_draw STATIC ${EI_SSE2_GAME_SOURCES})
 set_target_properties(ei_draw PROPERTIES EI_SSE2 ON)
 target_include_directories(ei_draw PRIVATE include src)
-target_link_libraries(ei_hook PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_draw>")
+target_link_libraries(ei_standalone PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_draw>")
 # The NaN audit's log (src/lib/nan_audit.h) in the verify and debug builds.
-target_compile_definitions(ei_hook PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
+target_compile_definitions(ei_standalone PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 target_compile_definitions(ei_draw PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 # /OPT:REF: code and data nothing references are left out (8.2 MB -> 5.1 MB, mostly the per-file copies of
 # gameapi.h's initialisers and unused library code); the static objects' initialisers stay, as .CRT$XCU references
 # them. No /OPT:ICF: folding identical functions would give two functions one address, and a comparison of function
 # pointers would then change its answer. The debug build keeps the linker's default (no /OPT:REF with /INCREMENTAL).
-# /MAP: ei_hook.map lets the harness crash log (ei_hook+offset) be resolved to functions.
-target_link_options(ei_hook PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:NOICF>" /MAP)
+# /MAP: ei_standalone.map lets the harness crash log (ei_standalone+offset) be resolved to functions.
+target_link_options(ei_standalone PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:NOICF>" /MAP)
+
+if(EI_HARNESS)
+    # ei_harness.dll: the harness in game.exe, the original game, for the references (goldens, function vectors,
+    # widescreen frames): ei_launch injects it before game.exe's own code runs (docs/notes/standalone.md section 5).
+    # The shared harness and the hook framework, game.exe's data seam (shift 0), the Rebirth flags the harness reads,
+    # the image side's absence (tests/verify/original) and the vector recorders (tests/vectors/record_*.cpp,
+    # installed with EI_VECTORS=1). None of the game: game.exe's side of the harness calls only game.exe's code (H30).
+    file(GLOB EI_RECORD_SOURCES CONFIGURE_DEPENDS tests/vectors/record_*.cpp)
+    add_library(ei_harness SHARED
+        $<TARGET_OBJECTS:ei_harness_shared>
+        src/hook/dllmain.cpp
+        src/hook/log.cpp
+        src/hook/original_data.cpp
+        src/hook/paths.cpp
+        src/hook/profile.cpp
+        src/hook/rebirth_hook.cpp
+        src/hook/standalone.cpp
+        src/lib/rebirth.cpp
+        tests/verify/original/image_absent.cpp
+        ${EI_RECORD_SOURCES})
+    target_include_directories(ei_harness PRIVATE include src)
+    target_link_options(ei_harness PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:NOICF>" /MAP)
+endif()
 
 add_executable(ei_launch tools/launcher/launch.cpp)
-
-# The standalone host (docs/notes/standalone.md section 2): an ordinary exe (S18k: ASLR as any exe, no read of game.exe)
-# that runs ei_hook.dll's code for it.
-# The host's one resource is its version information (src/standalone/host.rc, C23): game.exe's own resources are not used.
-add_executable(ei_standalone src/standalone/host.cpp src/standalone/host.rc)
-target_include_directories(ei_standalone PRIVATE src)
-if(EI_ASAN)
-    # ASan's shadow, redzones and quarantine take hundreds of MB: 4 GB of address space, not 2.
-    target_link_options(ei_standalone PRIVATE /LARGEADDRESSAWARE)
-endif()
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
 # the families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it.

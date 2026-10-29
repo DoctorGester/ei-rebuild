@@ -1,6 +1,6 @@
-// ei_hook.dll's two runs (ei::Standalone): inside ei_standalone.exe (the image; its start-up is
-// standalone_main.cpp) or inside game.exe (the original's runs). What both runs use: the run's kind, the code
-// addresses as the log names them, and the image's failure reports' handler.
+// The harness's two homes (ei::Standalone): linked into ei_standalone.exe (the image; its start-up is
+// src/standalone/standalone_main.cpp) or ei_harness.dll inside game.exe (the original's runs). What both use: the
+// run's kind, the code addresses as the log names them, and the image's failure reports' handler.
 #include "ei/hook.h"
 #include "log.h"
 #include "game/game_data.h"
@@ -27,7 +27,7 @@ void DescribeCode(std::uintptr_t address, char* out, std::size_t size) {
         GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                            reinterpret_cast<LPCSTR>(address), &module) &&
         GetModuleFileNameA(module, path, MAX_PATH)) {
-        // "ei_hook+offset", as the harness's crash log has it (tools/resolve_crash.py).
+        // "<module>+offset", as the harness's crash log has it (tools/resolve_crash.py).
         const char* slash = std::strrchr(path, '\\');
         const char* name = slash ? slash + 1 : path;
         const char* dot = std::strrchr(name, '.');
@@ -39,11 +39,13 @@ void DescribeCode(std::uintptr_t address, char* out, std::size_t size) {
     std::snprintf(out, size, "%08X", static_cast<unsigned>(address));
 }
 
-// The host exports EiStandaloneHost; game.exe exports nothing.
+// ei_standalone.exe exports EiStandaloneHost; game.exe exports nothing.
 bool Standalone() {
     static const bool standalone = GetProcAddress(GetModuleHandleA(nullptr), "EiStandaloneHost") != nullptr;
     return standalone;
 }
+
+const char* OwnModuleName() { return Standalone() ? "ei_standalone" : "ei_harness"; }
 
 void SetMissingCodeHandler(void (*handler)(const char* what)) { g_missingCodeHandler = handler; }
 

@@ -33,10 +33,10 @@ if errorlevel 1 (
 )
 set PLAY=%~dp0run\play
 if not exist "%PLAY%" mkdir "%PLAY%"
-for %%f in (ei_launch.exe ei_launch.pdb ei_hook.dll ei_hook.pdb ei_standalone.exe ei_standalone.pdb third_party_notices.txt) do (
+for %%f in (ei_launch.exe ei_launch.pdb ei_standalone.exe ei_standalone.pdb third_party_notices.txt) do (
     copy /y "%~dp0build\play\%%f" "%PLAY%\%%f" >nul 2>&1 || echo play: %%f in use, playing the copy already there
 )
-rem The Rebirth flags: ei_rebirth.ini next to ei_hook.dll (docs/notes/rebirth.md).
+rem The Rebirth flags: ei_rebirth.ini next to the exe (docs/notes/rebirth.md).
 if not defined EI_GAME_REBIRTH set "EI_GAME_REBIRTH=F:\games\Evil Islands (Rebirth)"
 if not defined EI_GAME_VANILLA set "EI_GAME_VANILLA=F:\games\EvilIslands"
 set "GAME=%EI_GAME_REBIRTH%"

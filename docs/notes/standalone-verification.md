@@ -316,7 +316,7 @@ happen (the harness logs "share id" if one does).
   user's own heroes; a run starts with none, or a prepare tool's (`make_mp_hero.py`).
   No run reads the user's settings: every registry call on HKCU / HKLM `Software\Nival Interactive` and
   `Software\Gipat.Ru` (the original's settings, Rebirth's game settings and starter switches) from any module
-  (game, image, ei_hook.dll, addon.dll) is answered from the committed snapshot `config/harness/registry.reg`
+  (game, image, the harness, addon.dll) is answered from the committed snapshot `config/harness/registry.reg`
   (advapi32's exports are stubs jumping through its own import slots, which the harness takes); such keys are never
   opened, created or written for real (game.exe's RegCreateKeyExA slot 0073B010 and RegSetValueExA slot 0073B018 too).
   A value or key a run reads that the snapshot lacks fails the run ("settings: registry value not in the snapshot");
@@ -337,7 +337,7 @@ happen (the harness logs "share id" if one does).
   ei_launch sets to both installs) opened for writing (write access or any disposition but FILE_OPEN), created,
   renamed, linked or deleted is refused and fails the run (`install: write refused: <call> <path> (<module>+<offset>)`).
   The report's stack lists return addresses (words just after a call) from the refused call up, e.g.
-  `ei_hook.dll+B8AA5, addon.dll+7BD60, ...`; `ei_hook.map` names ei_hook's. The game's root itself is written to the
+  `ei_standalone.exe+B8AA5, addon.dll+7BD60, ...`; `ei_standalone.map` (`ei_harness.map` in game.exe) names ours. The game's root itself is written to the
   overlay's root (emptying mp\ the game deletes every entry FindFirstFile lists, `mp\..` too: a directory, the delete
   fails in both). A log (*.log) or a file over 16 MB is not copied into the overlay before a keeping write (the write
   starts empty). Checked (2026-10-20) by adding the run's own `harness_saves\Starter` as a root for one Rebirth
@@ -345,7 +345,7 @@ happen (the harness logs "share id" if one does).
   What wrote into the installs before (2026-10-20): addon.dll's DllMain (addon+1000FFDE, AddonInit) opens
   `starter\addon.log` and appends ~60 KB per launch (1.3 GB by then; the user removed it) and its crash handler wrote
   minidumps to `starter\Dumps\` (58 from runs of 2026-10-02..15). addon.dll is loaded at game.exe's entry point (the
-  dinput.dll proxy's DllMain makes the entry jump to its loader), after ei_launch injected ei_hook.dll, so the harness
+  dinput.dll proxy's DllMain makes the entry jump to its loader), after ei_launch injected ei_harness.dll, so the harness
   sees all its writes; in the image no addon.dll loads.
 - **Starter answers** (harness_starter.cpp): resolution, widescreen, and CtfMon answered 0 (addon.dll otherwise closes
   the user's ctfmon at start and restarts it from DLL_PROCESS_DETACH, which hung every Rebirth exit; S3e). A game hung
@@ -360,7 +360,7 @@ happen (the harness logs "share id" if one does).
   part, field by field; with `digest 1` and `randtrace` on the scenario this finds the first update and draw.
 - `heaptrace` (EI_HARNESS_CLOCK) writes every CRT heap call with callers until world update `EI_HEAPTRACE` (default 40),
   then every object's place; `EI_HEAPSEQ=<update>` keeps the events in memory and writes heapseq.txt (faster).
-- `EI_HEAP_FILL=<spec>` (or `heapfill.txt` beside ei_hook.dll, since a variable of its own moves the blocks: the CRT
+- `EI_HEAP_FILL=<spec>` (or `heapfill.txt` beside our module, ei_standalone.exe or ei_harness.dll, since a variable of its own moves the blocks: the CRT
   copies the environment onto its heap): fill chosen blocks (by number), byte ranges and resized tails with a byte or
   seeded bytes; bisect the block number, then the offset, to name an uninitialised field (how SV7b7 was found).
 - `EI_WATCH_CUNIT=<id>[,flags]` (a client unit's orientation or flags writes, by debug registers), `EI_WATCH_ADDR=<hex>
