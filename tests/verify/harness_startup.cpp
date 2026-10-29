@@ -82,7 +82,7 @@ void AtWindowClass() {
     if (ei::Standalone()) {
         image::AddSettingsReadFilter(&DiscPathRead);
     } else {
-        PatchImport(&ImportTable::RegQueryValueExA, &DiscPathQuery, g_query);
+        PatchOriginalImport(&ImportTable::RegQueryValueExA, &DiscPathQuery, g_query);
     }
     PatchImport(&ImportTable::GetVolumeInformationA, &DiscVolumeInformation, g_volumeInformation);
     Log("harness: discprompt: %d box(es) of the second disc to answer", g_discPrompts);

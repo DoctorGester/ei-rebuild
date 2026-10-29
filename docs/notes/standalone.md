@@ -206,25 +206,35 @@ each step green on the goldens and removing a measured tie:
   spooler, GetVersion, the Interlocked pair); gen_iat.py fails on an import with neither. The harness names its
   slots by member too: tests/verify/harness_imports.h's `PatchImport(&ImportTable::X, hook, original)` (clock,
   heap, Winsock, Miles, window, files, profile, registry), `TraceSlot<T>(&ImportTable::X)`, `crash::WatchWrites()`;
+  `PatchOriginalImport` / `TraceOriginalSlot` (S22b, S22c) for game.exe's runs only (do nothing in the image);
   only addon_sites.inc's MoviesPatch site (BinkOpen's slot, a Rebirth patch site) is an address. `iat` is sealed in config/data_seam.csv (76 raw uses -> 0;
   data_seam.py's helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
   **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
   routes it (the `TEXT_ROUTE` list of game/system_text.cpp), the
-  harness takes it (any `ImportTable::X` tests/ names: window focus, cursor, files and saves, profile, registry,
-  clocks, heap, Winsock, Miles) or our code takes it by address (`&gameapi::X`: hook/paths.cpp's RegQueryValueExA in
-  game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (68, with gen_iat's KEEP:
-  GetVersionExA, deprecated in the SDK: a direct call warns), and so are the 91 of import_prototypes.h (no import
-  library; not the Interlocked pair, which our code takes as the compiler's intrinsics); the other 343 are `using ::X;`, the Windows function through ei_hook.dll's own imports
+  harness takes it (any `ImportTable::X` tests/ names but game.exe's own routes, below: window, cursor, files and
+  saves, profile reads, clocks, Winsock, Miles) or our code takes it by address (`&gameapi::X`; none since S22c).
+  Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (50, with gen_iat's KEEP:
+  GetVersionExA, deprecated in the SDK: a direct call warns), and so are the 90 of import_prototypes.h (no import
+  library; not the Interlocked pair, which our code takes as the compiler's intrinsics); the other 362 are `using ::X;`, the Windows function through ei_hook.dll's own imports
   (`#pragma comment(lib)` for the eight DLLs). A harness route on a new slot makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
   gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. In game.exe our code does not run (S21), except
-  hook/paths.cpp and the harness, which keep the slots they patch. Rebirth's only import slot patch (MoviesPatch,
+  hook/paths.cpp and the harness, which keep the slots they patch. **game.exe's own routes** (S22b, S22c): a slot only
+  the original calls through is named through a function with "Original" in its name taking `&ImportTable::X`
+  (harness_imports.h's `PatchOriginalImport`, harness_clock.cpp's `TraceOriginalSlot`, import_table.h's
+  `OriginalImport` for hook/paths.cpp); those do nothing in the image, and gen_iat.py's `ORIGINAL` leaves the slot out
+  of `routed()` and `reached()` (a trap in the image). gen_iat.py fails when our code reaches such a slot: the image
+  would need the route. They are the heap (repeatable addresses in the original; the image's layout is not kept),
+  SetFocus / SetActiveWindow, SetFileAttributesA, the profile's Int / SectionNames reads and its writes, RegCreateKeyExA /
+  RegSetValueExA / RegQueryValueExA (the image's settings are its file: harness_settings, settings_file.h),
+  CreateFontIndirectA, GetTimeZoneInformation, the clock trace's CreateThread / GetMessageTime, and
+  DirectInputCreateEx (the image's harness takes the seam `g_directInputObserver`). Our code calls each as the Windows
+  function or not at all. Rebirth's only import slot patch (MoviesPatch,
   BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp); Miles, Bink and Winsock stay table
   calls: the table loads them from the game folder (Miles, Bink), which ei_hook.dll's own imports would not.
   DirectSound's enumerator is the Windows function (S22a, dsound.lib); DirectInputCreateEx is the System32 dinput.dll's
   export, loaded by input_mouse.cpp (S22b: the SDK has no import library of DirectInput 7's dinput.dll, and a static
   import would take Rebirth's proxy dinput.dll beside the exe, which loads addon.dll). The table is still needed as it is:
-  the harness patches it and those families call through it; the slots of the direct functions are only resolved
-  (and could go once the harness names its routes by import).
+  the harness patches it and those families call through it; the slots of the direct functions are traps (S22).
   **game.exe's own table** is not there, as the rest of the old .rdata (S18h, S18k) (the read of an old slot names its
   import, above; S18f had an INT3 trap per old slot instead); a slot of ours whose import did not resolve leads to a
   trap (`OnTrap`), and the launch-free check fails. **Direct callers**: none run: the image has no .text (S18i,
@@ -239,7 +249,7 @@ each step green on the goldens and removing a measured tie:
   a trap and loads a DLL only for a reached slot of it (the log: "... N traps (no call reaches them); M DLLs loaded").
   A new `gameapi::X` call of a slot function makes `gen_iat.py --check` fail until `python tools/gen_iat.py` is rerun;
   a trap that fires anyway names its import and says so. The harness's ones count (the release image resolves them
-  too: one list). `python tools/gen_iat.py --counts` prints the table (UTF-8 route: the slot holds `text::utf8`'s
+  too: one list), but game.exe's own routes (above). `python tools/gen_iat.py --counts` prints the table (UTF-8 route: the slot holds `text::utf8`'s
   version; harness only: no call of src/ reaches it, only tests/):
 
 | DLL | slots | reached | UTF-8 route | harness only | traps |
@@ -247,27 +257,26 @@ each step green on the goldens and removing a measured tie:
   | binkw32.dll | 12 | 10 | 0 | 0 | 2 |
   | mss32.dll | 47 | 40 | 0 | 0 | 7 |
   | WSOCK32.dll | 22 | 19 | 0 | 0 | 3 |
-  | DSOUND.dll | 1 | 1 | 0 | 0 | 0 |
+  | DSOUND.dll | 1 | 0 | 0 | 0 | 1 |
   | DDRAW.dll | 2 | 0 | 0 | 0 | 2 |
-  | DINPUT.dll | 1 | 1 | 0 | 0 | 0 |
+  | DINPUT.dll | 1 | 0 | 0 | 0 | 1 |
   | WINMM.dll | 5 | 2 | 1 | 0 | 3 |
-  | KERNEL32.dll | 159 | 35 | 16 | 12 | 124 |
-  | USER32.dll | 151 | 19 | 9 | 3 | 132 |
-  | GDI32.dll | 83 | 1 | 0 | 1 | 82 |
+  | KERNEL32.dll | 159 | 23 | 15 | 0 | 136 |
+  | USER32.dll | 151 | 16 | 9 | 0 | 135 |
+  | GDI32.dll | 83 | 0 | 0 | 0 | 83 |
   | comdlg32.dll | 1 | 0 | 0 | 0 | 1 |
   | WINSPOOL.DRV | 3 | 0 | 0 | 0 | 3 |
-  | ADVAPI32.dll | 11 | 3 | 3 | 2 | 8 |
+  | ADVAPI32.dll | 11 | 0 | 0 | 0 | 11 |
   | SHELL32.dll | 2 | 0 | 0 | 0 | 2 |
   | COMCTL32.dll | 1 | 0 | 0 | 0 | 1 |
   | ole32.dll | 3 | 0 | 0 | 0 | 3 |
-  | all | 504 | 131 | 29 | 18 | 373 |
+  | all | 504 | 110 | 25 | 0 | 394 |
 
-  Not loaded any more: DDRAW (the renderer creates no DirectDraw object: both slots, DirectDrawCreateEx and
-  DirectDrawEnumerateExA, have no caller; dgVoodoo's ddraw.dll in the game folder stays out of the image), comdlg32,
-  WINSPOOL, SHELL32, COMCTL32, ole32. KERNEL32, USER32, GDI32, ADVAPI32 and WINMM are ei_hook.dll's own imports anyway.
-  GDI32's one slot is the harness's (CreateFontIndirectA); 18 slots are reached only from the harness (heap,
-  profile writes, focus calls), whose patches of them catch nothing of our code (it calls those directly or not at
-  all). Follow-ups per DLL: S22a (DSOUND), S22b (DINPUT), S22c (the harness-only slots); DDRAW needs none.
+  The table loads binkw32, mss32, WSOCK32, WINMM, KERNEL32 and USER32 (the last three are ei_hook.dll's own imports
+  anyway). Not loaded: DDRAW (the renderer creates no DirectDraw object: both slots, DirectDrawCreateEx and
+  DirectDrawEnumerateExA, have no caller; dgVoodoo's ddraw.dll in the game folder stays out of the image), DSOUND
+  (S22a: ei_hook.dll's own import), DINPUT (S22b: input_mouse.cpp loads System32's), GDI32 and ADVAPI32 (S22c: their
+  slots were the harness's only, now game.exe's own routes), comdlg32, WINSPOOL, SHELL32, COMCTL32, ole32.
 
 - **.rdata constants as literals** (S18e, `tools/rdata_literals.py`): a float, double or integer cell that no code writes is
   the value in the source, tagged with its address: `0.5f /*0073B86C*/`, `3.141592653589793 /*0073CAE8*/`, a negative one in
@@ -1402,7 +1411,8 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by image_imports.cpp as it
   resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's `routed()` reads). A route whose slot no call
   reaches (S22: CharUpperA, CharLowerA, LoadCursorFromFileA, LoadStringA, RegOpenKeyExA, called as `text::utf8::`
-  by name instead) stays in the list, so a new `gameapi::` call of it is routed too. So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
+  by name instead; S22c: SetFileAttributesA, RegCreateKeyExA, RegSetValueExA, RegQueryValueExA, which only the harness
+  reached, and our code calls by name or not at all) stays in the list, so a new `gameapi::` call of it is routed too. So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
   `CStdioFile` and the CRT's `fopen` / `_findfirst` / `_access` (they call through the slots). The harness takes the
   same slots afterwards and wraps the UTF-8 versions, so its saves redirect, overlay and registry snapshot work
   unchanged (they work on the bytes; advapi32's and kernel32's wide exports are taken too: harness_settings.h,
@@ -1413,7 +1423,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   RegCreateKeyEx, RegQueryValueEx and RegSetValueEx: string values as UTF-8, their sizes in UTF-8 bytes),
   CreateWindowEx (a non-ASCII title is set as UTF-16 with `DefWindowProcW(WM_SETTEXT)`), FindWindow, MessageBox,
   GetKeyNameText, LoadString, the window's class and messages (U4), the text draw and fonts (U3), CharUpperA /
-  CharLowerA (U5). The image's log names the routes: "131 resolved (29 routed)" (S22: the reached slots).
+  CharLowerA (U5). The image's log names the routes: "110 resolved (25 routed)" (S22c: the reached slots).
 - **Direct calls** (not through the slots): our own code calls `text::utf8::<Name>A` by name (mod_folders,
   script_addon_commands, script_addon_strings, console_addon, settings_file, world_client_maps). The console's
   clipboard and addon's AutoExec lines convert with UTF-8; `GetFullPathNameA` (system_text.cpp) takes the current folder

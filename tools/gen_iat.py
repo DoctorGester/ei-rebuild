@@ -273,6 +273,9 @@ def import_table_text(table):
             'struct ImportTable {\n' + '\n'.join(lines) + '\n};\n'
             'static_assert(sizeof(ImportTable) == kImportsEnd - kImportsBegin);\n\n'
             'inline ImportTable& Imports() { return GameData<ImportTable>(kImportsBegin); }\n\n'
+            '// game.exe\'s own slot of `member`, for what runs only there (hook/paths.cpp): tools/gen_iat.py leaves a\n'
+            '// slot named through a function with "Original" in its name out of the image\'s reached ones (a trap there).\n'
+            'template <class F>\nF& OriginalImport(F ImportTable::* member) {\n    return Imports().*member;\n}\n\n'
             '} // namespace ei\n')
 
 

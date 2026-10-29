@@ -569,12 +569,12 @@ void Install() {
         g_selfBase = reinterpret_cast<std::uintptr_t>(self);
         g_selfEnd = g_selfBase + nt->OptionalHeader.SizeOfImage;
     }
-    PatchImport(&ImportTable::HeapCreate, &RepeatableHeapCreate, g_heapCreate);
-    PatchImport(&ImportTable::HeapDestroy, &RepeatableHeapDestroy, g_heapDestroy);
-    PatchImport(&ImportTable::HeapAlloc, &RepeatableHeapAlloc, g_heapAlloc);
-    PatchImport(&ImportTable::HeapFree, &RepeatableHeapFree, g_heapFree);
-    PatchImport(&ImportTable::HeapReAlloc, &RepeatableHeapReAlloc, g_heapReAlloc);
-    PatchImport(&ImportTable::HeapSize, &RepeatableHeapSize, g_heapSize);
+    PatchOriginalImport(&ImportTable::HeapCreate, &RepeatableHeapCreate, g_heapCreate);
+    PatchOriginalImport(&ImportTable::HeapDestroy, &RepeatableHeapDestroy, g_heapDestroy);
+    PatchOriginalImport(&ImportTable::HeapAlloc, &RepeatableHeapAlloc, g_heapAlloc);
+    PatchOriginalImport(&ImportTable::HeapFree, &RepeatableHeapFree, g_heapFree);
+    PatchOriginalImport(&ImportTable::HeapReAlloc, &RepeatableHeapReAlloc, g_heapReAlloc);
+    PatchOriginalImport(&ImportTable::HeapSize, &RepeatableHeapSize, g_heapSize);
 }
 
 } // namespace ei::verify::heap

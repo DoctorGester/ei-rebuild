@@ -550,4 +550,11 @@ static_assert(sizeof(ImportTable) == kImportsEnd - kImportsBegin);
 
 inline ImportTable& Imports() { return GameData<ImportTable>(kImportsBegin); }
 
+// game.exe's own slot of `member`, for what runs only there (hook/paths.cpp): tools/gen_iat.py leaves a
+// slot named through a function with "Original" in its name out of the image's reached ones (a trap there).
+template <class F>
+F& OriginalImport(F ImportTable::* member) {
+    return Imports().*member;
+}
+
 } // namespace ei
