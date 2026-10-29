@@ -1113,6 +1113,12 @@ size = 0.25
 depends = ["P8a"]
 note = "Since P8a the titles' text is drawn unsmoothed by our own layout, so the only reason left for CCreditsScreen switching the system's font smoothing off (SPI_SETFONTSMOOTHING in its constructor, restored in OnClose, ui_credits.cpp / ui_layouts.cpp) is the header line's DrawTextIn (TextFontOf asks SPI_GETFONTSMOOTHING). Draw the header with an unsmoothed font explicitly and drop the session-wide setting change (the harness reports smoothing off anyway). Also render::ui::Image (render_ui.h) has no game caller since P8a (only ei_ui_check's pictures): keep it as a test path or fold the checks onto Pixels ops and delete it."
 
+[[ticket]]
+id = "P8c"
+title = "The titles scale with the window size, not the DPI"
+group = "native-ui"
+note = "User 2026-10-29: the titles (end credits, CCreditsScreen, ui_credits.cpp) size their text by the window's size like the rest of the interface, instead of by the system DPI. Check: the titles at two window sizes and two DPI settings (same layout across DPI, scaled with the window); goldens unchanged."
+
 # ---------------------------------------------------------------- widescreen
 
 [[ticket]]
@@ -5808,7 +5814,7 @@ note = "Style review G17 (REPORT.md Tier 3): about 1,120 lines with new/delete; 
 id = "C59"
 title = "Regroup files by feature and one naming rule (G16, G18)"
 group = "cleanup"
-note = "Style review Tier 3 (REPORT.md G16, G18): 37 *_slots / *_lifetime / *_small_records files, the AI over 16 unit_ai_* files, CItem over 8 by vtable slot, members in another subsystem's file; trailing _ on ~1,311 members vs ~1,134 without, CPrefix on ~450 classes. Needs the naming rule written into docs/rewrite-guide.md first (REPORT suggests plain names on plain-data structs, trailing _ only on classes with invariants, drop C), then scripted renames and merges when no other worker is in the area: conflicts with everything. Ask the user for the naming rule before starting."
+note = "Style review Tier 3 (REPORT.md G16, G18): 37 *_slots / *_lifetime / *_small_records files, the AI over 16 unit_ai_* files, CItem over 8 by vtable slot, members in another subsystem's file; trailing _ on ~1,311 members vs ~1,134 without, CPrefix on ~450 classes. Naming rule (user 2026-10-29): no trailing _ on members at all (private already marks what a class guards); where a member and a parameter or local would share a name, rename the parameter or local, never this->. Also drop the C prefix on classes (REPORT suggestion; user may object). Write the rule into docs/rewrite-guide.md first, then scripted renames and file merges in batches when no other worker is in the area: conflicts with everything, so run it alone between other workers."
 
 [[ticket]]
 id = "C60"
