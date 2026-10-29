@@ -593,7 +593,7 @@ REVIEWED_NEAR = {
     0x0079B680: ('0079B66C', 'the clip work buffer: CWordArray 0079B668, 0x14 bytes, its data pointer'),
     0x007C7E80: ('007C7E78', 'the window surfaces\' byte total (a lone dword, ui.h\'s g_uiSurfaceBytes)'),
     0x0079B690: ('0079B68C', 'the clip buffer count (dword)'),
-    0x0079B978: ('0079B930', 'the debug panel (CDebugPanel, 0x44 bytes)'),
+    0x0079B978: ('0079B930', 'the debug panel (CDebugPanel, 0x44 bytes; deleted in C55)'),
     0x0079BC30: ('0079BC2C', 'the protection check list (an STLport list: one head pointer)'),
     0x0079BEE0: ('0079BED8', 'the options 0079BC70 (GameOptions, 0x26C bytes) end at 0079BEDC; 0079BED8 is its master server CString'),
     0x0079C1C0: ('0079C1AC', 'the lever table 0079C1A0 (0x20 bytes); 0079C1AC is a member'),
@@ -773,6 +773,7 @@ UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread 
 # constructor call and the atexit (or the one call); the object's range and the exit function's guard byte are in no
 # named range or source, and nothing reads them.
 UNUSED_INITIALISERS = {
+    0x00444660: "the debug panel 0079B930 (exit function 00444680; the panel went in C55)",
     0x0051CE00: "DrawShadow 0051CE60's texture pixels 007AF1E0 (exit function 0051CE30, guard bit 2 of 007AF1F0): only "
                 "the 64 x 64 shadow texture read them, which is not made (R26)",
     0x0070D3CE: 'CTempWnd and its allocator 007CA940 (guard byte 007C9138)',

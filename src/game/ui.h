@@ -8,7 +8,6 @@
 #include "ack_kind.h"
 #include "app.h"   // app::g_interfaceHasScreen
 #include "core_transform.h"
-#include "debug_panel.h"
 #include "engine_object.h"
 #include "figure_mesh.h"
 #include "game_strings.h"   // game::kEmptyText
@@ -149,7 +148,6 @@ public:
     void ConsoleAddText(std::string_view text);
     void SetConsoleRect(const RECT* rect);
     void SetConsoleHistory(int lines);
-    void SetDebugInfoRect(const RECT* rect);
     // The console's "fps": a surface for the frame rate at (730, 10)-(800, 28) unless there is one; off
     // frees it.
     void ShowFps(int on);
@@ -387,10 +385,6 @@ HDC UiSurfaceGetDC(CUiSurface* surface);
 void UiSurfaceReleaseDC(CUiSurface* surface);
 inline HDC CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
 inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
-
-// The memory totals the window surfaces keep: bytes kept while swapped out and the surfaces' height * pitch.
-inline std::uint32_t g_uiSurfaceKeptBytes = /*007C7E74*/ {};
-inline std::uint32_t g_uiSurfaceBytes = /*007C7E78*/ {};
 
 // A 3D model shown in a window (an inventory item, a portrait).
 class CUiModel {
@@ -634,10 +628,6 @@ public:
     int mode_;                       // the action mode handed to the owner (ItemCell::mode)
     CItemScreen* owner_;
 };
-
-namespace strmap {
-extern lib::StaticObject<CDebugPanel> g_debugPanel;
-}
 
 // The in-game key bindings' size (g_keyActions).
 constexpr int kKeyActionCount = 0x200;

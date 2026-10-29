@@ -43,9 +43,10 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
   ("thingamabob"), which sets `007C7B64` and prints `Activated!`; with it the cheat map's handler runs (not in a network game);
   anything else prints `Unknown command`. Handlers: `void handler(CStringArray* args)`, args in ECX (ours: `console::Arguments*`, a
   `std::vector<std::string>`; the window's input history and lines are vectors too).
-- **Commands.** Public: console, lastfps, exec, execute, kick, ban, fps, rate, localrate. After the cheat word: help, debuginfo,
+- **Commands.** Public: console, lastfps, exec, execute, kick, ban, fps, rate, localrate. After the cheat word: help,
   history, filter, show, listvar, loadvar, give, fadeout, join, server, memusage, lootall, net, disconnect, generateacks, days,
-  partyresend.
+  partyresend. The original also had DEBUGINFO (it moved the debug panel, which 1.06 never showed); it and the panel are
+  gone (C55): the word prints `Unknown command` and the help screen no longer lists it.
 - AddText (`005E4090`) splits at '\n' (`004DBE40`): the first piece continues the last line, so each message line ends with an empty
   line that the next message fills. The window's visible lines are `(height - 24) / 15 - 1`.
 
@@ -53,7 +54,7 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
 
 Every function carries its address in its source comment (grep it). `ConsoleStreambuf` Overflow / Sync 005DC150 / 005DC1B0, Construct /
 DeletingDestruct / Destruct 005DC200 / 005DC240 / 005DC260; Execute 005DC620, Tokenize 004DC200, RunScriptLine 005DD800 ("Script error" printed
-exactly when the script's file count (+0x1AC) did not grow); the handlers help 005DF5E0, debuginfo 005DD920, console 005DDBE0, history 005DDF80,
+exactly when the script's file count (+0x1AC) did not grow); the handlers help 005DF5E0, console 005DDBE0, history 005DDF80,
 filter 005DDFE0, show 005DE460, listvar 005DEA00, loadvar 005DEC90, lastfps 005DEEE0, days 005E00D0, fps 005E0830, rate 005E0990, localrate
 005E0A10, exec / execute 005DEF50, give 005DF0F0, lootall 005DF5B0, fadeout 005DF8E0, partyresend 005E0570, kick 005E0590, ban 005E06E0, net
 005DF9B0 (the network subcommands are silent and untested); ConsoleWindow SetRect / SetHistory / AddText 005E3E90 / 005E3F90 / 005E4090 (a shown

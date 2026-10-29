@@ -46,9 +46,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073BF38,4,,game,00432DA0 00433060 00433320 004334E0,004334C0,Connection,src/game/net_connection.h,a connection (Connection)
 0073BF4C,4,,game,00434110 004343C0 00434430 004344C0,004344A0,ReplicaEntry,src/game/net_connection.h,a replicated object's tracking record (ReplicaEntry)
 0073BF5C,15,,game,00436770 00436A50,004368D0,SessionBase,src/game/net_classes.h,the session base (SessionBase)
-0073BFA4,2,,game,00444740,004447E0,CDebugPanel,src/game/debug_panel.h,the debug information panel (CDebugPanel)
-0073BFAC,2,,game,00444740,006E73EB,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (the image's CDebugPanel has the one table)
-0073BFB4,3,,game,00444A70 005E3CE0 005F4990,0070BFBF,CFont,-,"stored only by game.exe's 00444A70 / 005E3CE0 / 005F4990, which no code of ours calls (the game's fonts are gdi::Font since C14ze)"
+0073BFA4,2,,game,00444740,004447E0,CDebugPanel,-,"the debug information panel; stored only by game.exe's 00444740 (dead, config/dead_code.csv; ours deleted in C55)"
+0073BFAC,2,,game,00444740,006E73EB,CDebugPanel's base,-,"stored only by game.exe's 00444740 before its own (dead, config/dead_code.csv; ours deleted in C55)"
+0073BFB4,3,,game,00444A70 005E3CE0 005F4990,0070BFBF,CFont,-,"stored only by game.exe's 00444A70 / 005E3CE0 / 005F4990, which no code of ours calls (the game's fonts are gdi::Font since C14ze; 00444A70 was the debug panel's Init, deleted in C55)"
 0073BFE8,63,,game,004466D0 00446910,004468F0,FakeUnitScene,-,"the fake unit (class 0x39); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C0E4,3,,game,004466D0 00446910 00450770,007005E3,FakeUnitRecord9CArrayClass,-,"CArray (the fake unit's 0x9C-byte records); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C0F0,3,,game,004466D0 00446910 00450500,007005E3,FakeUnitBoneArraysClass,-,"CArray (the fake unit's 20-byte CObject elements); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"

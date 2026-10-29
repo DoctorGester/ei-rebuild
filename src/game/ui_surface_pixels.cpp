@@ -91,8 +91,6 @@ void CUiSurface::SwapContents(int restore) {
             holder_ = made;
             if (made) ++made->refs_;
             if (previous) ReleaseHolder(previous);
-            DirectPixels(holder_, &desc, true);   // (no memory: the description stays empty)
-            g_uiSurfaceBytes += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
         }
         if (ui_native::TakeBack(this)) return;   // the pixels were kept on the GPU (PutAside)
         if (!kept_) {
@@ -102,7 +100,6 @@ void CUiSurface::SwapContents(int restore) {
         Surface* holder = holder_;
         gameapi::EnterCriticalSection(&g_deviceLock);
         if (DirectPixels(holder, &desc)) std::memcpy(desc.bits, kept_, keptSize_);
-        g_uiSurfaceKeptBytes -= keptSize_;
         gameapi::LeaveCriticalSection(&g_deviceLock);
         delete[] kept_;
         kept_ = nullptr;
@@ -114,8 +111,6 @@ void CUiSurface::SwapContents(int restore) {
     if (!holder) return;
     if (ui_native::PutAside(this)) {
         // The pixels are kept on the GPU (a screen copy's canvas): only the holder goes.
-        DirectPixels(holder, &desc, true);   // (no memory: the description stays empty)
-        g_uiSurfaceBytes -= static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
         holder_ = nullptr;
         holder->Release();
         return;
@@ -127,9 +122,7 @@ void CUiSurface::SwapContents(int restore) {
     keptSize_ = static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
     kept_ = new std::uint8_t[keptSize_];
     if (direct) std::memcpy(kept_, desc.bits, keptSize_);
-    g_uiSurfaceKeptBytes += keptSize_;
     gameapi::LeaveCriticalSection(&g_deviceLock);
-    g_uiSurfaceBytes -= keptSize_;
     Surface* released = holder_;
     holder_ = nullptr;
     if (released) released->Release();

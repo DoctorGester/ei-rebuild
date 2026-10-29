@@ -63,10 +63,10 @@ Counts are vanilla / Rebirth.
 | about 60,000 | GetTextExtentPoint32A on `GetDC(game window)` | 005F8340 TextExtent. Callers: DrawWrappedText (35k, most in verify), tooltip Construct / CheckSplit (21k), CUiScrollText Layout / Tokenize / DrawLines (2.8k), unit panel (0.7k), edit field, save/load list, difficulty box |
 | 64 | DrawTextA with DT_CALCRECT | BoxText (message box and difficulty box) |
 | 50 | GetTextExtentPoint32A on the console's own surface DC | `console::PromptWidth`, 005E4A10 (not through 005F8340) |
-| 208 + 104 + 2 x 52 | GetDeviceCaps 90 (LOGPIXELSY) / 88 on the screen DC | font creation (CreatePointFont in 005F4990, the console, the debug panel) |
+| 208 + 104 + 2 x 52 | GetDeviceCaps 90 (LOGPIXELSY) / 88 on the screen DC | font creation (CreatePointFont in 005F4990, the console) |
 | 220 | GetDeviceCaps on the surface DC | RichEdit RenderText / HeightInTwips (stays CPU) |
 
-**Fonts made:** Times New Roman, six heights per resolution (h-49 to h-71, plus h-200 for the credits), all from 005F4990, made again at each Create; Courier New h-24 for the console and the debug panel.
+**Fonts made:** Times New Roman, six heights per resolution (h-49 to h-71, plus h-200 for the credits), all from 005F4990, made again at each Create; Courier New h-24 for the console.
 
 **Readers.** Besides the per-frame blit 005FDA80 (a Lock), these read surface pixels:
 - every window's `CUiWindow::ShowSurfaces` 006002C0 swaps every surface out and back (`SwapContents` 005FD7A0) when the window is hidden or shown; `CUiSurface::Freeze` 005FD760 does the same for the hero screen;
@@ -89,7 +89,6 @@ The verify wrappers' pixel helpers read about 11,000 times, most on the item inf
 - **ui_help_page:** the help page 00659420. The help key is H ("tutorial_script"); F1 is "select1", so ui_help never opened help. Only topics with a "tutorial" text open: the options, the objectives (paged) and the camp.
 - **ui_mp_host:** a hero is made, the connect list 0061D780 is clicked, keyed and sorted, a game is hosted, and on the briefing the chat window (player list) is drawn and the chat line typed, edited and sent. Nothing leaves the machine. A "disconnect" box that sometimes followed the chat line was the harness's: parallel games shared UDP port 8888 (ui-native.md section 4, N0); each harness game now has a port of its own and the scenario checks the briefing is still on top at its end.
 - **ui_global_map_pick:** the global map's pick picture and PixelAt, with "fps on" for the FPS surface.
-- **The debug panel (0079B930) cannot be drawn in 1.06.** Only `PanelShow` 00444F50 sets it visible, and its only caller is `PanelSetRect` 00444C10, which calls it only when the panel is already visible (`string_map.cpp`). No console command or key reaches it. A gallery can draw it only by calling 00444F50 itself.
 
 **Heap vtables.** Four owners in ui_trade_hold under Rebirth had vtables on the heap (2FBD6554, 2FBD6A1C, 2FBD6BB4, 2FBD6EE4), drawn by `CHeroStatsPanel::DrawStats` and `TradeDrawLists`. They are verify stand-ins, not Rebirth's: `verify_ui_window_slots.cpp` gives a container's children a heap copy of their vtable (`StandInTable`, the real vtable in the entry before it) while slots 22 / 23 / 24 are dispatched, and `slot_recorder.h` did the same for one object (removed in C19 batch 20). The census labels them with the game vtable. **P3c can key on vtables**: a release build has no stand-ins, and a verify build must look through them (`RealVtable` in `ui_census.cpp`). (C19 batch 19: the stand-ins are gone, and `RealVtable` now names a window built with a compiled table by game.exe's table for its kind, `WindowKinds`.)
 

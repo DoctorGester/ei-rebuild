@@ -650,7 +650,6 @@ src/game/spell_lifetime.cpp
 src/game/spell_manager.cpp
 src/game/spell_save.cpp
 src/game/spell_text.cpp
-src/game/string_map.cpp
 src/game/terrain.cpp
 src/game/terrain.h
 src/game/terrain_ambience.cpp
@@ -778,7 +777,6 @@ src/game/database_destruct.cpp
 src/game/database_file.h
 src/game/database_globals.cpp
 src/game/database_reset.cpp
-src/game/debug_panel.h
 src/game/dib.cpp
 src/game/dib.h
 src/game/dib_file.cpp
@@ -1037,7 +1035,6 @@ src/game/database_destruct.cpp
 src/game/database_file.h
 src/game/database_globals.cpp
 src/game/database_reset.cpp
-src/game/debug_panel.h
 src/game/device.h
 src/game/device_binds.cpp
 src/game/device_bounds.cpp
@@ -1401,7 +1398,6 @@ src/game/spell_save.cpp
 src/game/spell_text.cpp
 src/game/static_lists.cpp
 src/game/static_lists.h
-src/game/string_map.cpp
 src/game/surface_capture.cpp
 src/game/sys_info.cpp
 src/game/sys_info.h

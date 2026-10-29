@@ -73,8 +73,7 @@ Facts not in the code comments:
   rasterise its shadow); 005A7A70's `this` is a `FigureMeshDrawer` (+0x1C the CFigureMesh, +0x20 its screen rect);
   CFigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; CLight (a CTransformObject) +0x28 worldPosition_ / +0x108 position / direction
   in the lit mesh's space, +0xD4 the direction; *007AF748 is `CLightFactory` (spell.h). FigurePart (map_object_figures.h)
-  and CFigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. Debug panel 0079B930: file-local
-  `CDebugPanel` in string_map.cpp. map_object_shadow.cpp (C9b): the ground quads are `VertexPacket`s, the texture's name `CTexture::Name()`. (The
+  and CFigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. map_object_shadow.cpp (C9b): the ground quads are `VertexPacket`s, the texture's name `CTexture::Name()`. (The
   shadow rasteriser's `RasterTarget`, the DLL's keyed triangle path and `keyTexels` are gone, R27e; R28 removed 2DintMMX's interface.) The unit's
   controller through `static_cast<CUnit*>` (CUnit : CMapObject : CObject3D). The work buffers are (C14e / C14h: vectors) of
   `Vector2` and `VertexPacket` (SetSizeDiscard / SetSize equal the inlined resizes; 004545A0,

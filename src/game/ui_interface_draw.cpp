@@ -39,10 +39,6 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
 
 // --- The overlays ---
 
-// The surfaces' memory totals (CUiSurface::SwapContents keeps them).
-int SurfaceBytesKept() { return static_cast<int>(g_uiSurfaceKeptBytes); }
-int SurfaceBytesAllocated() { return static_cast<int>(g_uiSurfaceBytes); }
-
 constexpr DWORD kFpsPeriod = 400;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kFpsFont = 1;
@@ -111,12 +107,6 @@ int CInterface3D::Draw() {
 }
 
 void CInterface3D::DrawOverlays() {
-    std::string text;
-    strmap::CDebugPanel* panel = &strmap::g_debugPanel.Get();
-    text = str::Format("%d", SurfaceBytesKept());
-    panel->Set("surface stored", text);
-    text = str::Format("%d", SurfaceBytesAllocated());
-    panel->Set("surface alloc", text);
     if (!stack_.empty()) {
         stack_.back()->Redraw();       // its surfaces blit themselves
         stack_.back()->RedrawTips();   // its tooltips follow the mouse and redraw
@@ -141,7 +131,6 @@ void CInterface3D::DrawOverlays() {
         backdropMode_ = 4;
     }
     if (IsMultiplayerClient() && std::ssize(stack_) == 1) root_->Redraw();
-    panel->Tick();
 
     ++fpsFrames_;
     const DWORD now = gameapi::timeGetTime();

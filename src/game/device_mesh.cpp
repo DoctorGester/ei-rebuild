@@ -78,23 +78,23 @@ void FillCorners(const MeshArgs& a) {
 }
 
 // One counted draw per pass (the device's vertex-buffer batch never gave a buffer: nothing is batched).
-void Submit(CTextureDevice* device, const Textures* textures, int vertexCount, int indexCount) {
+void Submit(CTextureDevice* device, const Textures* textures) {
     if (textures) {
-        device->DrawTwoTextures(textures->first, textures->second, vertexCount, static_cast<unsigned>(indexCount));
+        device->DrawTwoTextures(textures->first, textures->second);
     } else {
-        device->DrawIndexed(vertexCount, static_cast<unsigned>(indexCount));
+        device->DrawIndexed();
     }
 }
 
 // On screen: nothing to project or clip; the passes go to the device with the corner and index counts.
 void DrawOnScreen(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
     if (a.flags & 1) device->BoundsOfProjected(&g_projected, 0);
-    Submit(device, textures, a.cornerCount, a.indexCount);
+    Submit(device, textures);
 }
 
 // Some vertices off screen: room for ten times the corners and indices, the corners' outcodes, the transform
-// object's clipper writes the clipped triangles to g_clipIndices (its counts go to the device's counters, an
-// empty result draws no pass); the vertices are projected to the screen only for draw flag 1's rectangle.
+// object's clipper writes the clipped triangles to g_clipIndices (an empty result
+// draws no pass); the vertices are projected to the screen only for draw flag 1's rectangle.
 void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
     int capacity = a.cornerCount * 10;
     g_vertices.resize(capacity);
@@ -113,7 +113,7 @@ void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const Me
         transform->ToScreenClipped(g_vertices.data(), vertexCount);
         device->BoundsOfVertices(&g_vertices, g_cornerOutcodes.data());
     }
-    Submit(device, textures, vertexCount, indexCount);
+    Submit(device, textures);
 }
 
 void HandOver(CTextureDevice* device, const MeshArgs& a) {

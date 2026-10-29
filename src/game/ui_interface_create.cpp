@@ -1,6 +1,6 @@
 // The interface manager's start (CInterface3D::Create, called once by the application's start with the
 // renderer's device object): the screen size, the three fonts, the keyboard layout, the console window, the
-// debug information panel, the chat overlay, the fade and the help topics seen (config\tutorial.ini).
+// chat overlay, the fade and the help topics seen (config\tutorial.ini).
 // Rebirth's WideScreen changes the fonts' scale (widescreen::FontScale). See ui.h and docs/notes/ui.md,
 // section 3.
 #include "ui.h"
@@ -97,7 +97,6 @@ void CInterface3D::Create(CTextureDevice* device) {
     ChooseKeyboardLayout();
     keybind::LoadKeyBindings();
     console_ = new console::ConsoleWindow(this);
-    strmap::g_debugPanel->Init(this);
     root_ = new CChatOverlay(this);
     mouseX_ = 0;
     mouseCapture_ = nullptr;

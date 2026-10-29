@@ -47,10 +47,6 @@ CPlayer* LocalPlayer() {
 
 bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
 
-void SetDebugInfoRect(int left, int top, int right, int bottom) {
-    RECT rect = {left, top, right, bottom};
-    g_interface->SetDebugInfoRect(&rect);
-}
 void SetConsoleRect(int left, int top, int right, int bottom) {
     RECT rect = {left, top, right, bottom};
     g_interface->SetConsoleRect(&rect);
@@ -110,8 +106,6 @@ void Help(std::vector<std::string>*) {
         "Commands are:",
         "HELP",
         "  show this screen",
-        "DEBUGINFO [pos]",
-        "  change debug info position; <pos> = l<eft>, r<ight>, rt, righttop, lt, lefttop",
         "CONSOLE [pos]",
         "  change console position; <pos> = l<eft>, r<ight>, t<op>, b<ottom>, c<enter>, f<ullscreen>",
         "HISTORY [N lines]",
@@ -130,21 +124,6 @@ void Help(std::vector<std::string>*) {
         "  exit game",
     };
     for (const char* line : kLines) PrintLine(line);
-}
-
-// Debuginfo l<eft>|r<ight>|lt|lefttop|rt|righttop.
-void DebugInfo(std::vector<std::string>* args) {
-    if (!args->empty()) {
-        if (ArgIs(args, 0, "left") || ArgIs(args, 0, "l"))
-            return SetDebugInfoRect(10, 10, 0x122, 0x24E);
-        if (ArgIs(args, 0, "right") || ArgIs(args, 0, "r"))
-            return SetDebugInfoRect(0x1FE, 10, 0x316, 0x24E);
-        if (ArgIs(args, 0, "lefttop") || ArgIs(args, 0, "lt"))
-            return SetDebugInfoRect(10, 10, 0x122, 0x122);
-        if (ArgIs(args, 0, "righttop") || ArgIs(args, 0, "rt"))
-            return SetDebugInfoRect(0x1FE, 10, 0x316, 0x122);
-    }
-    PrintLine("Invalid debug info position");
 }
 
 // Console l<eft>|r<ight>|t<op>|b<ottom>|c<enter>|f<ullscreen> (800x600 coordinates).

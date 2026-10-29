@@ -284,8 +284,7 @@ public:
     // 0 unless flags_ bit 0 is set. Updates the frame statistics, clears the frame and begins the scene (a
     // scene still open is ended first; other failures are fatal). Returns 1.
     int BeginScene();
-    // Flushes the device's batches and ends the scene, then shows "FPS", "num verts" and "num trias" on the
-    // debug panel. Returns 1.
+    // Ends the scene. Returns 1.
     int EndScene();
     std::uint32_t FrameTime() const { return frameTime_; }
     // Sets the colour the next draws are tinted with (colour_ and the device object's colour_) and the transform

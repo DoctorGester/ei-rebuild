@@ -31,11 +31,9 @@ void SetMaterialBlend(const CDeviceMaterial* material) {
 }
 
 // One pass: the mesh handed over to the renderer (src/render, device_mesh.cpp) gets it with the device's
-// current state; the vertex, triangle and call counters.
-void Draw(CTextureDevice* device, int vertexCount, unsigned triangles) {
+// current state; the call counter.
+void Draw(CTextureDevice* device) {
     render::MeshPass(device);
-    device->vertexCount_ += vertexCount;
-    device->primitiveCount_ += static_cast<int>(triangles);
     device->drawCount_ += 1;
 }
 
@@ -86,7 +84,7 @@ void SetLaterPassStage(CTextureDevice* device, MaterialStage& s) {
     device->BindSurface(0, surface);
 }
 
-void DrawPasses(CTextureDevice* device, CRenderPreset* preset, int vertexCount, unsigned indexCount) {
+void DrawPasses(CTextureDevice* device, CRenderPreset* preset) {
     render::RenderState& state = render::g_renderState;
     const bool savedBlend = state.blend;
     const render::Blend savedSource = state.sourceBlend;
@@ -94,12 +92,11 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, int vertexCount, 
     SetMaterialBlend(CurrentMaterial(device));
     preset->ApplyPass(0);
     for (int stage = 0; stage < preset->stages_; ++stage) SetFirstPassStage(device, stage, CurrentMaterial(device)->stages[stage]);
-    unsigned triangles = indexCount / 3;
-    Draw(device, vertexCount, triangles);
+    Draw(device);
     for (int pass = 1; pass < preset->PassCount(); ++pass) {
         preset->ApplyPass(pass);
         SetLaterPassStage(device, CurrentMaterial(device)->stages[preset->stages_ + pass - 1]);
-        Draw(device, vertexCount, triangles);
+        Draw(device);
     }
     state.blend = savedBlend;
     state.sourceBlend = savedSource;
@@ -116,36 +113,34 @@ void BindStage0(CTextureDevice* device, Surface* holder) {
 
 } // namespace
 
-// Draws `vertexCount` vertices and `indexCount` indices (only counted: the renderer has the mesh) with the
-// current material. Returns 1.
-int CTextureDevice::DrawIndexed(int vertexCount, unsigned indexCount) {
+// Draws the mesh the renderer has with the current material. Returns 1.
+int CTextureDevice::DrawIndexed() {
     CDeviceMaterial* material = CurrentMaterial(this);
     if (material) {
         CRenderPreset* preset = material->preset;
         if (material->blend) SetMaterialBlend(material);
         else if (preset->PassCount() <= 1) render::g_renderState.blend = false;
         if (preset->PassCount() > 1) {
-            DrawPasses(this, preset, vertexCount, indexCount);
+            DrawPasses(this, preset);
             return 1;
         }
         preset->ApplyPass(0);
         for (int stage = 0; stage < preset->stages_; ++stage) SetSinglePassStage(this, stage, material->stages[stage]);
     }
-    Draw(this, vertexCount, indexCount / 3);
+    Draw(this);
     return 1;
 }
 
 // Draws the indexed primitives with `first` on stage 0, then again blended (source
 // alpha / inverse source alpha, blending on) with `second` and texture coordinates 0. Returns 1.
-int CTextureDevice::DrawTwoTextures(Surface* first, Surface* second, int vertexCount, unsigned indexCount) {
+int CTextureDevice::DrawTwoTextures(Surface* first, Surface* second) {
     BindStage0(this, first);
-    unsigned triangles = indexCount / 3;
-    Draw(this, vertexCount, triangles);
+    Draw(this);
     render::RenderState& state = render::g_renderState;
     state.sourceBlend = render::Blend::SourceAlpha;
     state.destBlend = render::Blend::InvSourceAlpha;
     state.blend = true;
     BindStage0(this, second);
-    Draw(this, vertexCount, triangles);
+    Draw(this);
     return 1;
 }

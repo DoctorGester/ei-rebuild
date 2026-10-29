@@ -9,13 +9,13 @@ The proposal is to keep each surface as a persistent GPU canvas, a render target
 
 ## 1. Inventory: how the interface produces pixels
 
-The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndScene) draws the backdrop blit, then the top window's slot 20 (sprites and models), then the fade. After EndScene, `DrawOverlays` 005F5320 runs the top window's slot 22 (`RedrawBase` 005FECC0, which blits every shown surface through 005FDA80; containers recurse in 00601040), then slot 23 (tooltips 005FED00), then the status surface, FPS surface, console, the debug panel and the backdrop captures. The cursor 005E54A0 comes last. So every window surface is drawn above every mesh, in stack and child order.
+The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndScene) draws the backdrop blit, then the top window's slot 20 (sprites and models), then the fade. After EndScene, `DrawOverlays` 005F5320 runs the top window's slot 22 (`RedrawBase` 005FECC0, which blits every shown surface through 005FDA80; containers recurse in 00601040), then slot 23 (tooltips 005FED00), then the status surface, FPS surface, console and the backdrop captures. The cursor 005E54A0 comes last. So every window surface is drawn above every mesh, in stack and child order.
 
 | Primitive | Functions (file) | Users / call sites | Path today |
 |---|---|---|---|
-| Surface blit (plain, colour-keyed, stretched with flag 2) | 005FDA80 `ui_surface_blit.cpp` → `render::SurfaceBlit` → `render_textures.cpp WindowSurfaceView` (memcmp of the DIB at every blit, then convert and upload) | every surface: about 45 `AddSurface` sites in 22 files, plus the console, debug panel (`string_map.cpp`), FPS / status surfaces and backdrops | GPU blit of a CPU texture |
-| Text | 005FDE20 `CUiSurface::DrawTextIn` (`ui_text_draw.cpp`: GDI DrawText on the surface's HDC (the original: MFC's CDC slot 26); with a shadow, first in 0x080808 at +1,+1); 005FDFA0 `DrawWrappedText` (`ui_text.cpp`) | about 71 `SurfaceDrawText` / `DrawWrappedText` sites in 35 files (most: saveload_list 7, exchange 7, hero_screen 6, help_page 6, stats_rows 4); 26 more through `SurfaceDraw::Text` in `ui_item_info.cpp`; direct `dc->DrawText` in the console (4) and debug panel (4, own font) | CPU (GDI) |
-| Fill / Clear / FrameRect | 005FE370, 005FE2F0, 005FDCB0 (`ui_surface_frame.cpp`); `gdi::FillSolidRect` (the original's `CDC::FillSolidRect` 0070BADA / 0070BB04) | about 50 Clear lines in 27 files; Fill and FrameRect only in the tooltip (`ui_tooltip.cpp:131`); FillSolidRect in the console (3) and debug panel (1) | CPU |
+| Surface blit (plain, colour-keyed, stretched with flag 2) | 005FDA80 `ui_surface_blit.cpp` → `render::SurfaceBlit` → `render_textures.cpp WindowSurfaceView` (memcmp of the DIB at every blit, then convert and upload) | every surface: about 45 `AddSurface` sites in 22 files, plus the console, FPS / status surfaces and backdrops | GPU blit of a CPU texture |
+| Text | 005FDE20 `CUiSurface::DrawTextIn` (`ui_text_draw.cpp`: GDI DrawText on the surface's HDC (the original: MFC's CDC slot 26); with a shadow, first in 0x080808 at +1,+1); 005FDFA0 `DrawWrappedText` (`ui_text.cpp`) | about 71 `SurfaceDrawText` / `DrawWrappedText` sites in 35 files (most: saveload_list 7, exchange 7, hero_screen 6, help_page 6, stats_rows 4); 26 more through `SurfaceDraw::Text` in `ui_item_info.cpp`; direct `dc->DrawText` in the console (4) | CPU (GDI) |
+| Fill / Clear / FrameRect | 005FE370, 005FE2F0, 005FDCB0 (`ui_surface_frame.cpp`); `gdi::FillSolidRect` (the original's `CDC::FillSolidRect` 0070BADA / 0070BB04) | about 50 Clear lines in 27 files; Fill and FrameRect only in the tooltip (`ui_tooltip.cpp:131`); FillSolidRect in the console (3) | CPU |
 | Lines and carets (a solid pen, width 1 or 2: gdi::Pen) | MoveTo / LineTo / SelectPen | console 005E4A10, chat typed line 005E3700, edit field 0065C2E0, connect list 0061D780, save/load list (`ui_saveload_list.cpp:104`) | CPU |
 | Single pixel | `SetPixel` | minimap marker: N0 found `CHudMap::SetupVanilla` 00641F20, about 33 pixels on a 24x18 surface (18x18 under Rebirth), drawn again at each HUD setup | CPU |
 | Get / release DC (start and end of drawing) | 005FDC00 / 005FDC60 (`ui_surface_dc.cpp`: a memory DC on the DIB) | about 57 sites in 38 files | CPU |
@@ -43,7 +43,7 @@ Notes on the inventory:
 **Changed 2026-10-14 (user):** the native path does not use GDI at all, for metrics or glyphs, and need not be pixel-exact. N2 loads its own font (TrueType rasteriser plus a font metric-compatible with Times New Roman) and its layout also serves the text extent, so wrapping uses the same metrics as drawing. The GDI notes below describe the original behaviour to approximate.
 
 **Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts_[0..2]` with `gdi::PointFont` (the original's `CFont::CreatePointFont` 0070BBE5): "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
-- The console has its own point font (`console_window_create.cpp`); the debug panel has its own too.
+- The console has its own point font (`console_window_create.cpp`).
 - All text is GDI: no bitmap fonts, quality left at its default, so the system's ClearType / smoothing setting decides the look.
 - The credits switch font smoothing off for the session.
 
@@ -236,7 +236,6 @@ themselves are not in the golden. They are the coverage for N3's per-surface dif
 **Not captured, and why:**
 - The status surface (005F75B0, "saving" / "loading" notices): it is drawn during the save inside one frame and gone by the
   next, so no capture can hold it. `ui_gallery_game`'s save reaches it (the per-surface diff sees it).
-- The debug panel (0079B930): it cannot be drawn in 1.06 (ui-census.md); only a direct call of 00444F50 would show it.
 - The repair grid with an item in it: `ui_gallery_deals` captures page 6's grid drawn empty; only a worn item is offered
   for repair, and no script command or key wears one (ui.md section 5).
 - A global-map link (regions 3 and up): it needs a way of kind 2 open and travels at once (no window to hold).
@@ -336,7 +335,7 @@ or moved: the menus' help page, options, boxes, the HUD, camp and base screens) 
 **API for P3a-d and P4** (`src/game/ui_native.h`):
 - A window family goes native with `ui_native::Adopt(surface, "<family>")` where the surface is made (one line in the
   family's file); its `DrawTextIn` / `DrawLine` / `DrawWrappedText` text then follows on its own.
-- Direct `dc->DrawText` users (the console, the debug panel: P4) call `ui_native::Text(surface, font, text, rect,
+- Direct `dc->DrawText` users (the console: P4) call `ui_native::Text(surface, font, text, rect,
   format, colour, shadow, &height)` and draw with GDI only when it returns `Gdi` / `AlsoGdi`; any HFONT works
   (`TextFontOf` reads its face, height, weight and quality: the console's Courier New becomes Liberation Mono placed
   by Courier New's metrics; a bold or italic font would still get the regular file's shapes: the game makes none).
@@ -376,12 +375,11 @@ the help over the objectives 0.27% (the objectives' text under it), plus the fra
 and titles frames are unchanged (the version string is empty in the harness's install; the titles header is blank at that
 moment).
 
-### P4 done (2026-10-29): the console and the debug panel
+### P4 done (2026-10-29): the console
 
-**Native now.** The console window's surface (`ui_console_window.cpp`; family `console`) and the debug panel's (`string_map.cpp`;
-family `debug`) are adopted where `Show` makes them. Their fills (`FillArea`: GDI's `FillSolidRect` and `ui_native::Fill`), their
-text (`DrawString`: `ui_native::Text`; the console's lines and "+" marks in 0xB4B4B4, the typed line in white, the panel's
-"key  value" lines with the shadow) and the console's 2-pixel caret (`ui_native::Line`, new in P4: `render::ui::Line`) are
+**Native now.** The console window's surface (`ui_console_window.cpp`; family `console`) is adopted where `Show` makes it.
+Its fill (`FillArea`: GDI's `FillSolidRect` and `ui_native::Fill`), its
+text (`DrawString`: `ui_native::Text`; the lines and "+" marks in 0xB4B4B4, the typed line in white) and the 2-pixel caret (`ui_native::Line`, new in P4: `render::ui::Line`) are
 recorded on the canvas. Layout, colours and scrolling are untouched; the caret and selection positions still come from GDI's
 extent on the surface's memory DC (`PromptWidth`), and the text is placed by GDI's metrics as in P2 (Courier New's metrics,
 Liberation Mono's glyph shapes).
@@ -393,9 +391,7 @@ layout does not follow) draws with GDI and copies the rectangle onto the canvas 
 **Checked.** `console`, `utf8_typing` and `ui_gallery_game` under `EI_RENDER_EXTRA=uiboth`: all pass, the console compared 3
 times in the gallery (0 differing). Under `uinative` the
 gallery's console frame (3840x2160) differs from the default path's in 4712 pixels, all glyph edges inside the console (the
-lines, the typed line); the fill, the selection and the caret are identical. The debug panel cannot be drawn in 1.06 (see
-ui-census.md): it was checked once with a temporary `Show(1)` in `ShowFps` (not committed): 143 uiboth checks of 4 surfaces, 0
-differing, and under `uinative` the same places as the default path with unhinted, a little heavier glyphs.
+lines, the typed line); the fill, the selection and the caret are identical.
 
 ### P3b done (2026-10-29): the HUD
 
@@ -471,8 +467,8 @@ they depend on.
   PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale; first native surfaces: backdrop, FPS, status; needs
   N1, N3). **P2** (done, section 3 "P2 done") text (005FDE20 records glyph runs on native surfaces: our glyphs placed by GDI's metrics; 005FDFA0 unchanged; needs N2, P1).
   **P3a-d** windows by family (menus and dialogs; HUD; camp, hero, trade and item info; briefing, global map titles, help page, chat
-  window), mostly native-table entries plus fixes the diff finds; **P4** (done, section 3 "P4 done") console and debug panel (direct FillSolidRect / DrawText,
-  own fonts, the 2-pixel pen caret); **P5** controls with lines and carets (edit field 0065C2E0, chat typed line 005E3700, connect
+  window), mostly native-table entries plus fixes the diff finds; **P4** (done, section 3 "P4 done") console (direct FillSolidRect / DrawText,
+  own font, the 2-pixel pen caret); **P5** controls with lines and carets (edit field 0065C2E0, chat typed line 005E3700, connect
   list 0061D780, save/load list 006567A0); **P6** the global-map pick picture (`RefreshSelection` 00630670: frame step, GPU copy,
   readback on click; colours exact, point copy, no dithering) and the camp's backdrop modes 3/4; **P7** (optional) CPU-written
   textures as GPU sub-image uploads, clouds 00499F10 as a shader (done by R28 / R28b); **P8** make `uinative` the default under `present`, drop the DIB
@@ -517,7 +513,7 @@ they depend on.
 
 The interface surfaces drawn on GPU canvases (ticket P1; docs/notes/ui-native.md, "P1"). A surface of a
 family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status, menu, msgbox,
-difficulty, options, objectives, credits, console, debug, unitpanel, messagelog, tooltip, hudmap, camp, hero, trade, iteminfo, itemstrip, exchange so far) gets a canvas for its holder when it is made (Adopt), and
+difficulty, options, objectives, credits, console, unitpanel, messagelog, tooltip, hudmap, camp, hero, trade, iteminfo, itemstrip, exchange so far) gets a canvas for its holder when it is made (Adopt), and
 the surface functions record their drawing on it
 beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
 truth (a lost device brings canvases back black). The blit draws the canvas when

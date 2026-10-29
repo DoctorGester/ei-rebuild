@@ -67,7 +67,7 @@ int DrawFlat(CTextureDevice* device, const void* positions, const void* uvs, int
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
 
     if (visibility == 0) {
-        device->DrawIndexed(count, static_cast<unsigned>(indexCount));
+        device->DrawIndexed();
         return 0;
     }
     if (visibility == 2) return 2;
@@ -83,7 +83,7 @@ int DrawFlat(CTextureDevice* device, const void* positions, const void* uvs, int
     transform->ClipTriangles(g_vertices.data(), g_cornerOutcodes.data(), indices, g_clipIndices.data(), &vertexCount,
                              &clippedIndices);
     if (vertexCount == 0 || clippedIndices == 0) return 0;
-    device->DrawIndexed(vertexCount, static_cast<unsigned>(clippedIndices));
+    device->DrawIndexed();
     return 0;
 }
 
