@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <list>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,10 @@ class CHeroEquipPanel;
 class CHeroQuickStrip;
 class CHeroStatsPanel;
 class CTradePanel;
+
+namespace render::text {
+struct RichLayout;
+} // namespace render::text
 
 // The input sub-object that captured the mouse (scroll arrows held down), or null.
 inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
@@ -485,14 +490,14 @@ struct TitleLine {
 // The titles' scrolling text surface.
 class CUiScrollingSurface : public CUiSurface {
 public:
-    // A surface of format 5 over the layout rectangle; "Riched20.dll" loaded and a hidden multi-line
-    // "RichEdit20A" child of the game window created; white background, the offsets and the speed 0
-    // (startTime_ and textLength_ are left as they were).
+    // A surface of format 5 over the layout rectangle (keyed on white); no text, the offsets and the speed 0
+    // (startTime_ is left as it was).
     CUiScrollingSurface(CInterface3D* ui, const RECT* rect);
     virtual ~CUiScrollingSurface();
     // Loads the text file `name` of `archive` into the surface (LoadRtf); whether it was found.
     bool Load(CMappedResource* archive, const char* name);
-    // Streams the RTF block into the control (EM_STREAMIN), the offset 0, the text rendered. Returns true.
+    // Reads the RTF block and lays it out at the surface's width (render_rich_text.h), the offset 0, the text
+    // rendered. Returns true.
     bool LoadRtf(const void* data, std::uint32_t size);
     // While the speed is not 0 the offset moves by the game time passed times the speed (truncated) and the
     // text is rendered again; then the surface's own draw.
@@ -500,19 +505,17 @@ public:
     // Starts the text at `speed` (0: still), from below the surface when `fromBelow` (the offset minus the surface's height in
     // twips); the end offset 0, the start time the game time.
     void Start(float speed, char fromBelow);
-    // Renders the RichEdit's text into the surface (EM_FORMATRANGE into its size in twips shifted by the scroll offsets). The
-    // first time the text fits the offset is kept; once the offset has moved 1000 twips plus the height past it, the speed
-    // and the kept offset become 0.
+    // Draws the text onto the canvas, white first, its top `offset_` twips above the surface's. The first time the whole
+    // text fits above 1000 twips below the surface the offset is kept; once the offset has moved 1000 twips plus the
+    // height past it, the speed and the kept offset become 0 (RichEdit's EM_FORMATRANGE end in the original).
     void RenderText();
 
-    HWND richEdit_;             // the RichEdit control holding the text
     float startTime_;
     int offsetX_;               // twips
     int offset_;                // twips scrolled
     float speed_;               // 0 once the text has scrolled through
-    int textLength_;            // characters (set when the text is loaded)
     int endOffset_;             // offset_ when the end of the text came into view (0: not yet)
-    HMODULE richEditLibrary_;   // "Riched20.dll" (null when it did not load)
+    std::unique_ptr<render::text::RichLayout> text_;   // the loaded text laid out (null before LoadRtf)
 };
 
 class CCreditsScreen : public CUiContainer {

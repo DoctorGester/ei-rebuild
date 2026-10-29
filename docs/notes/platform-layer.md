@@ -8,7 +8,7 @@ The counts below come from game.exe's import table and from grepping `src/` at m
 | Area | Original dependency | Size of the surface | Where it stands |
 |---|---|---|---|
 | Window, messages, cursor | USER32 (151 imports) | the main loop, nested message pumps, `gameapi::` calls from 76 files | SDL3 was planned for the standalone exe (not downloaded yet) |
-| 2D text and surfaces | GDI32 (83), RichEdit (credits), comdlg32 / WINSPOOL (1 / 3) | font text drawn through DCs onto interface surfaces; `CDC`, `HDC` | needs a font rasteriser (stb_truetype / FreeType) behind the same calls |
+| 2D text and surfaces | GDI32 (83), comdlg32 / WINSPOOL (1 / 3) | font text drawn through DCs onto interface surfaces; `CDC`, `HDC` | needs a font rasteriser (stb_truetype / FreeType) behind the same calls |
 | Rendering | DDRAW (2 imports), D3D7 through COM | `IDirectDrawSurface7` 38, `IDirect3DDevice7` 28 references | **already isolated**: the new renderer (sokol_gfx) sits behind the DDraw7 / D3D7 boundary; sokol has GL / Metal / Vulkan backends |
 | Sound | Miles mss32 (47), DSOUND (1) | `AIL_*` calls in the sound manager | replace with SDL3 audio or miniaudio |
 | Video | Bink binkw32 (12) | intro and loading movies | Bink 1 decoder needed (FFmpeg has one), or re-encode the movies |

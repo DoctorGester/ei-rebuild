@@ -203,7 +203,7 @@ MODULATE around it) goes to `render::TlDraw` (line strip, FVF 0xC4), not reached
 **Interface windows on GPU canvases (P8).** A window surface's pixels live only in its interface canvas
 (`render_ui.cpp`, docs/notes/ui-native.md, "P8 done"): an RGBA8 render target per holder, made with the surface
 (`CUiSurface::MakeCanvas`), drawn into by the surface functions (fills, frames, lines, pixels, glyph runs in our own
-fonts, the screen copy, greying, the titles' page) and blitted by 005FDA80 (`render::ui::DrawCanvas`). There is no
+fonts, the screen copy, greying) and blitted by 005FDA80 (`render::ui::DrawCanvas`). There is no
 memory, no DIB section, no GDI, no comparison or upload at a blit. The readers get pixels from the GPU: PixelAt
 (`ReadPixel`), the save picture (`ReadRgb565`); SwapContents moves the canvas aside (`MoveCanvas`). A lost device
 brings every canvas back from the commands drawn on it since it was last covered whole (a screen copy's and a long

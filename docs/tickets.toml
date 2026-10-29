@@ -1032,6 +1032,14 @@ depends = ["P8"]
 files = ["src/game/ui_scrolling_surface.cpp"]
 note = "The last GDI of the interface (P8): CUiScrollingSurface (0065F020) formats outro.rtf with a hidden RichEdit into a 32-bit DIB page on a memory DC and writes the pixels onto the canvas each scroll step. Needs: an RTF subset reader for the one Word-made file in outro.res (fonttbl, colortbl, par/pard, plain, b/i, fs, cf, qc/ql, li/fi, tx/tqr, tab, f; stylesheet and info skipped); paragraph layout on render::text (alignment, indents, right tab stops, sizes, colours; bold / italic drawn in the regular Liberation shapes unless bold / italic faces are embedded); the scroll in twips with the end detection (the text fitted, then the extra twips below); glyph runs on the canvas instead of the page. Removes the RichEdit library load, EM_STREAMIN / EM_FORMATRANGE and the page (CreateDIBSection, CreateCompatibleDC, SelectObject, GetDeviceCaps). Check: render_titles_present's frames and the titles' end timing."
 
+[[ticket]]
+id = "P8b"
+title = "The titles without the system font smoothing switch; render::ui::Image without a game caller"
+group = "native-ui"
+size = 0.25
+depends = ["P8a"]
+note = "Since P8a the titles' text is drawn unsmoothed by our own layout, so the only reason left for CCreditsScreen switching the system's font smoothing off (SPI_SETFONTSMOOTHING in its constructor, restored in OnClose, ui_credits.cpp / ui_layouts.cpp) is the header line's DrawTextIn (TextFontOf asks SPI_GETFONTSMOOTHING). Draw the header with an unsmoothed font explicitly and drop the session-wide setting change (the harness reports smoothing off anyway). Also render::ui::Image (render_ui.h) has no game caller since P8a (only ei_ui_check's pictures): keep it as a test path or fold the checks onto Pixels ops and delete it."
+
 # ---------------------------------------------------------------- widescreen
 
 [[ticket]]

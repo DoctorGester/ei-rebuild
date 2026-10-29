@@ -14,6 +14,7 @@
 // --report  the shipped fonts (Liberation through stb_truetype) against GDI's Times New Roman /
 //           Courier New: font metrics, and how many strings break into lines differently or differ in
 //           extent. A report, not a gate (the fonts are stand-ins).
+// --titles  the titles' rich text against RichEdit (titles_check.cpp).
 // Without a mode switch all three run. The game's strings come from texts.res (read only).
 #define NOMINMAX
 #include <windows.h>
@@ -459,6 +460,8 @@ public:
         metrics_.descent = tm.tmDescent;
         metrics_.height = tm.tmHeight;
         metrics_.lineGap = tm.tmExternalLeading;
+        metrics_.cellAscent = tm.tmAscent;
+        metrics_.cellDescent = tm.tmDescent;
         metrics_.averageWidth = tm.tmAveCharWidth;
         pad_ = tm.tmHeight;
         glyphDib_ = std::make_unique<Dib>(tm.tmMaxCharWidth + 4 * pad_, tm.tmHeight + 2 * pad_);
@@ -1064,7 +1067,10 @@ int Pictures(const std::string& outPath, const std::string& textsPath, int fontI
 
 } // namespace
 
+int Titles(int argc, char** argv);   // titles_check.cpp
+
 int main(int argc, char** argv) {
+    if (argc >= 2 && std::string(argv[1]) == "--titles") return Titles(argc, argv);
     if ((argc == 5 || argc == 6) && std::string(argv[1]) == "--explain") {
         const int font = argc == 6 ? std::atoi(argv[5]) : 0;
         if (font < 0 || font >= static_cast<int>(FontSpecs().size())) return 2;
@@ -1091,7 +1097,8 @@ int main(int argc, char** argv) {
         else {
             std::printf("usage: ei_text_check [--rules] [--gdi] [--report] [--texts path] [--threads N] [--pixels-every N] [--examples N] [--font K]\n"
                         "       ei_text_check --explain <text> <rect width> <format> [font K]\n"
-                        "       ei_text_check --pictures <out.bmp> [font K] [count]\n");
+                        "       ei_text_check --pictures <out.bmp> [font K] [count]\n"
+                        "       ei_text_check --titles [--res outro.res] [--width px] [--height px] [--dpi-unaware] [--picture out.bmp offset...]\n");
             return 2;
         }
     }
