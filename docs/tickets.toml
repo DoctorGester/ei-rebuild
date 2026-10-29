@@ -6130,6 +6130,14 @@ depends = ["C30a"]
 note = "C30a kept sound_manager.cpp x87: Play3D's level (UpdatePositional) decides whether a one-shot takes a voice, and a speech's Play2D handle (-1 when every voice plays at its priority or above) clears the server unit's talking flag (unit_client_speech.cpp). Find every path from a float level to voice use (Play3D's silent one-shot, Tick's restarts and stops), keep those x87 or make them integer-exact, and move the rest (per-frame volumes and pans, the fader, emitters) to an SSE2 file; golden-checked."
 
 [[ticket]]
+id = "C30c"
+title = "Hand-review tail of the SSE2 float rewrite (C30b off-pattern sites)"
+group = "cleanup"
+model = "opus"
+depends = ["C30b"]
+note = "Step 3 of C30's plan. What C30b's script left in the SSE2 files (docs/notes/cleanup-tooling.md 'Plain float maths in the SSE2 files (C30b)'): ~780 static_cast<float> sites: a double variable / member / constexpr double constant among the leaves 335, an int cast outside a float operator 241, double-returning calls 107 (Unsigned, Range, FrameTime, the *Unrounded vector helpers, fmod), double EI_* macros 81 (particle files), 32-bit unsigned / 64-bit ints 14 (times, random words: keep exact), plus ui_connect_screen (not parsed). Also the file comments that still say 'double for values the original keeps on the FPU stack', the per-file D() helpers once unused, and the check_x87 rule narrowed to the files still on IA32. terrain_animation and terrain_shadow stay x87-exact unless terrain_water_waves is re-recorded (user call). Goldens unchanged (121 / 113)."
+
+[[ticket]]
 id = "R34c"
 title = "Client draws still on the game generators: idle animation picks, interface previews"
 group = "renderer"
