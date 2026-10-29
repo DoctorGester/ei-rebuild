@@ -37,7 +37,8 @@ add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
 # /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by
 # an ulp (SV7d1). Precise's extra rounding stores change nothing on the main thread, which runs
 # at 24-bit precision; it calls the CRT for sqrt/sin/cos/atan2/exp/log, so game code uses x87::.
-add_compile_options(/arch:IA32 /fp:precise /W4 /permissive- /utf-8)
+# The targets with EI_SSE2 set (the renderer and the drawing-only game code, ei_draw below) build for SSE2.
+add_compile_options("$<IF:$<BOOL:$<TARGET_PROPERTY:EI_SSE2>>,/arch:SSE2,/arch:IA32>" /fp:precise /W4 /permissive- /utf-8)
 
 # AddressSanitizer (build.cmd asan: the verify build with it, into build\asan; docs/notes/harness.md): every target
 # instrumented (the STL's container annotations must match across the libraries), the runtime DLL copied beside the
@@ -51,10 +52,62 @@ endif()
 
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
+# The drawing-only game code on SSE2 (C30a, docs/notes/cleanup-tooling.md "SSE2 build"): what only draws, plays
+# sound or lays out the interface, whose floating point reaches no game state. Whole families by name (a new file of
+# one joins them), less the files that stay x87 because game state or the goldens read their maths:
+# - picking reads the drawn view and the objects' screen rectangles: the camera, the view and projection (renderer_init,
+#   world_client_draw / _view), the projected meshes (device_mesh, device_bounds, device_shadow, the figure and link
+#   mesh draws), and the screens that turn a pixel into a world point or an order (ui_hud, ui_hud_map, ui_hud_pick,
+#   ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the camera keys and mouse);
+# - the briefing moves the camera to its speakers and times its phrases (ui_briefing*);
+# - the figure strips' click picks a figure from the pixel and the eased scroll position (ui_item_strip_setup changed
+#   ui_hero_screen's golden on SSE2: the hero's figure; ui_item_strip eases the position); the hero screen's points and
+#   experience, and the held buttons' repeats (ui_hero_screen, ui_hero_screen_click, ui_stats_buttons,
+#   ui_trade_panel_input: a repeat count from the frame time) change a hero or a trade;
+# - sound_manager: a 3D sound's level decides whether it takes a voice, and a speech's handle (-1 when every voice
+#   is taken) ends a unit's talking flag on the server (unit_client_speech);
+# - terrain heights, sectors and loading (terrain, terrain_sector with its chop rounding, terrain_landscape).
+# A failure this list causes shows in the goldens: a file whose switch changes one goes back here.
+file(GLOB EI_SSE2_GAME_SOURCES CONFIGURE_DEPENDS
+    src/game/ui_*.cpp src/game/particle_*.cpp src/game/texture*.cpp src/game/renderer_*.cpp src/game/lightning*.cpp
+    src/game/weather_*.cpp src/game/effects*.cpp src/game/device_*.cpp src/game/dib*.cpp src/game/surface*.cpp)
+list(APPEND EI_SSE2_GAME_SOURCES
+    src/game/bink_video.cpp
+    src/game/global_map_clouds.cpp
+    src/game/ground_decal.cpp
+    src/game/ground_print.cpp
+    src/game/line_batch.cpp
+    src/game/map_object_shadow.cpp
+    src/game/present_window.cpp
+    src/game/scene_renderer.cpp
+    src/game/sky_object.cpp
+    src/game/sound_music.cpp
+    src/game/terrain_ambience.cpp
+    src/game/terrain_animation.cpp
+    src/game/terrain_decal.cpp
+    src/game/terrain_passes.cpp
+    src/game/terrain_shadow.cpp
+    src/game/unit_client_sounds.cpp
+    src/game/unit_sound_counts.cpp
+    src/game/world_client_decals.cpp
+    src/game/world_client_lights.cpp
+    src/game/world_client_shadow_casters.cpp)
+set(EI_X87_DRAW_SOURCES
+    ui_battle_commands ui_battle_hover ui_briefing ui_briefing_create ui_briefing_dialogue ui_briefing_input
+    ui_briefing_keys ui_briefing_people ui_briefing_phrases ui_briefing_start ui_briefing_topics ui_camera_input
+    ui_camera_keys ui_global_map ui_global_map_input ui_global_map_paths ui_global_map_places ui_hud ui_hud_map
+    ui_hud_pick ui_view_screen renderer_init device_bounds device_mesh device_object device_shadow
+    ui_hero_screen ui_hero_screen_click ui_item_strip ui_item_strip_setup ui_stats_buttons ui_trade_panel_input)
+list(TRANSFORM EI_X87_DRAW_SOURCES REPLACE "(.+)" "${CMAKE_SOURCE_DIR}/src/game/\\1.cpp")
+list(TRANSFORM EI_SSE2_GAME_SOURCES REPLACE "^src/" "${CMAKE_SOURCE_DIR}/src/")
+list(REMOVE_ITEM EI_SSE2_GAME_SOURCES ${EI_X87_DRAW_SOURCES})
+list(REMOVE_ITEM EI_GAME_SOURCES ${EI_SSE2_GAME_SOURCES})
+
 # The new renderer (docs/notes/renderer.md): sokol_gfx on Direct3D 11, switched on with EI_RENDER.
 # The harness build turns on sokol's validation layer (messages go to ei_hook.log).
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
 add_library(ei_render STATIC ${EI_RENDER_SOURCES})
+set_target_properties(ei_render PROPERTIES EI_SSE2 ON)
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
 target_link_libraries(ei_render PUBLIC d3d11 dxgi)
 if(EI_HARNESS)
@@ -165,8 +218,16 @@ if(EI_HARNESS)
     file(GLOB EI_RECORD_SOURCES CONFIGURE_DEPENDS tests/vectors/record_*.cpp)
     target_sources(ei_hook PRIVATE ${EI_HARNESS_SOURCES} ${EI_RECORD_SOURCES} tests/vectors/vectors_record.cpp)
 endif()
+# The drawing-only game code (EI_SSE2_GAME_SOURCES above), built for SSE2: a library, whole (every object, as if listed),
+# whose objects the linker takes after all of ei_hook's own. An inline function that files of both kinds keep out of
+# line is taken from the first object that defines it, so the x87 code always gets its x87 copy.
+add_library(ei_draw STATIC ${EI_SSE2_GAME_SOURCES})
+set_target_properties(ei_draw PROPERTIES EI_SSE2 ON)
+target_include_directories(ei_draw PRIVATE include src)
+target_link_libraries(ei_hook PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_draw>")
 # The NaN audit's log (src/lib/nan_audit.h) in the verify and debug builds.
 target_compile_definitions(ei_hook PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
+target_compile_definitions(ei_draw PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 # /OPT:REF: code and data nothing references are left out (8.2 MB -> 5.1 MB, mostly the per-file copies of
 # gameapi.h's initialisers and unused library code); the static objects' initialisers stay, as .CRT$XCU references
 # them. No /OPT:ICF: folding identical functions would give two functions one address, and a comparison of function
