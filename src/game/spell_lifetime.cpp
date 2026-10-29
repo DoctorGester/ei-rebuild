@@ -75,14 +75,14 @@ CSpellEffect::~CSpellEffect() {
 
 // --- The cast's start values and the object it forgets ------------------------------------
 
-void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster, const Vector3* newPosition,
-                        CMapObject* newTarget, const Vector3* newTargetPoint, std::uint8_t newSilentEnd) {
+void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster, const Vector3& newPosition,
+                        CMapObject* newTarget, const Vector3& newTargetPoint, std::uint8_t newSilentEnd) {
     spell->CopyTo(Spell());
     world = newWorld;
-    position = *newPosition;
+    position = newPosition;
     caster.Assign(newCaster);
     target.Assign(newTarget);
-    targetPoint = *newTargetPoint;
+    targetPoint = newTargetPoint;
     state = 0;
     silentEnd = newSilentEnd;
 }

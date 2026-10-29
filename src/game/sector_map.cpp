@@ -129,17 +129,17 @@ bool CSectorMap::Remove(CMapObject* object) {
     return cleared;
 }
 
-void CSectorMap::FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* result, float radius) {
+std::list<CUnit*> CSectorMap::FindUnitsInRadius(const Vector3& position, float radius) {
+    std::list<CUnit*> result;
     const SectorSpiral& spiral = SectorSpiralTables();
     int length = spiral.lengths[spiral.radii.Find(radius * 0.03125f)];
     const std::int16_t* offset = &spiral.offsets.data()->x;
-    result->clear();
 
-    int cellX = x87::fistp(2.0f * position->x - 0.5f);
-    int cellY = x87::fistp(2.0f * position->y - 0.5f);
+    int cellX = x87::fistp(2.0f * position.x - 0.5f);
+    int cellY = x87::fistp(2.0f * position.y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     float radiusSquared = radius * radius;
-    float px = position->x, py = position->y;
+    float px = position.x, py = position.y;
 
     // The units live in the AI map's own sector grid.
     CSectorMap* grid = &aiMap->sectorMap;
@@ -153,19 +153,20 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* r
             float dx = unit->localPosition_.x - px, dy = unit->localPosition_.y - py;
             const auto distance = LengthSquared2DUnrounded(dy, dx);
             EI_NAN_AUDIT(distance);
-            if (distance < radiusSquared) result->push_front(unit);
+            if (distance < radiusSquared) result.push_front(unit);
         }
     }
+    return result;
 }
 
-bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
+bool CSectorMap::Move(CMapObject* object, const Vector3& position) {
     // Rebirth's FixMoveObject runs first: no move to a negative (or NaN) x or y.
     // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position->x >= 0.0f) || !(position->y >= 0.0f)))
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position.x >= 0.0f) || !(position.y >= 0.0f)))
         return false;
     Vector3& current = object->localPosition_;
-    int cellX = x87::fistp(2.0f * position->x - 0.5f);
-    int cellY = x87::fistp(2.0f * position->y - 0.5f);
+    int cellX = x87::fistp(2.0f * position.x - 0.5f);
+    int cellY = x87::fistp(2.0f * position.y - 0.5f);
     Vector3 saved;
     saved = current;   // bitwise (no x87 round trip)
 
@@ -178,7 +179,7 @@ bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     // Lift the footprint, move, and stamp it again; put it back where it was if it does not fit.
     bool moved = false;
     if (aiMap->MarkFootprint(object, true)) {
-        current = *position;
+        current = position;
         moved = aiMap->MarkFootprint(object, false);
         if (!moved) {
             current = saved;

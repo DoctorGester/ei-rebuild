@@ -83,7 +83,7 @@ void Shake(CUnit* unit) {
     const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)
-        g_camera.Shake(&unit->localPosition_, kShakeDuration, strength,
+        g_camera.Shake(unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
 }
 
@@ -105,7 +105,7 @@ int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
     float y = unit->localPosition_.y;
     float ground = world->ClampedGroundHeight(x, y);   // stored as a float
     Vector3 at{x, y, 0.0f};
-    float surface = world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(x, y));
+    float surface = world->platforms_.SurfaceHeight(at, world->ClampedGroundHeight(x, y));
     float gap = ground - surface;
     if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1) {
@@ -242,7 +242,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)
-                g_camera.Shake(&unit->localPosition_, kShakeDuration, strength,
+                g_camera.Shake(unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
         }
         const auto* model = unit->GetPrototypeModel();

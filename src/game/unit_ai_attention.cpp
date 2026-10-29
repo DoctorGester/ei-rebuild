@@ -20,7 +20,7 @@ void AIAttention::LookAround(AIBrain* brain) {
     UnitList candidates;
     AITargetChoice best;
     Vector3 from = brain->owner->unit->localPosition_;
-    Choose(brain, &best, &candidates, &from, true, false);
+    Choose(brain, &best, &candidates, from, true, false);
     ApplyAttack(brain, &best);
 }
 

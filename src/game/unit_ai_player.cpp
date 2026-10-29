@@ -52,7 +52,6 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         }
     }
 
-    UnitList candidates;
     AITargetChoice best;
     float radius;
     if (state == kStateMoveTo) {
@@ -61,7 +60,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         point = Vector3{0.0f, 0.0f, 0.0f};
         radius = kNoRadius;
     }
-    brain->memory.FindEnemiesNear(unit, &candidates, &point, radius);
+    UnitList candidates = brain->memory.FindEnemiesNear(unit, point, radius);
     // Only enemies that could notice the unit (1.1 x the larger of their sight and hearing).
     for (auto node = candidates.begin(); node != candidates.end();) {
         auto next = std::next(node);
@@ -79,7 +78,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     AddPartyTargets(brain, &candidates);
     unit->flags_ |= MapObjectFlag::ChoosingTarget;
-    brain->attention.Choose(brain, &best, &candidates, &unit->localPosition_, false, false);
+    brain->attention.Choose(brain, &best, &candidates, unit->localPosition_, false, false);
     unit->flags_ &= ~MapObjectFlag::ChoosingTarget;
 
     CUnit* chosen = best.object;
@@ -106,10 +105,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 }
 
 void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
-    UnitList nearby;
     CUnit* unit = brain->owner->unit;
-    g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &nearby,
-                               g_logicSettings.playerCallForHelp);
+    UnitList nearby = g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(unit->localPosition_, g_logicSettings.playerCallForHelp);
     for (auto node = nearby.begin(); node != nearby.end();) {
         auto* other = *node;
         ++node;

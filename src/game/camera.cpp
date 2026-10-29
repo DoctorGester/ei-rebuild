@@ -255,18 +255,18 @@ camera::ViewPose camera::DrawnView(const CCamera* camera) {
     return out;
 }
 
-void SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
-                             float* average, float* minimum, float* maximum) {
-    double centre = g_clientWorld.RawSurfaceHeightAt(p->x, p->y);
+void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float* average, float* minimum,
+                   float* maximum) {
+    double centre = g_clientWorld.RawSurfaceHeightAt(p.x, p.y);
     *minimum = static_cast<float>(centre);
     *maximum = static_cast<float>(centre);
     *average = static_cast<float>(centre);
     int count = 1;
-    float x = static_cast<float>(D(p->x) - halfX);
-    while (x <= D(halfX) + p->x) {
+    float x = static_cast<float>(D(p.x) - halfX);
+    while (x <= D(halfX) + p.x) {
         if (x >= 0.0f && g_clientWorld.terrain_->width > x) {
-            float y = static_cast<float>(D(p->y) - halfY);
-            while (y <= D(halfY) + p->y) {
+            float y = static_cast<float>(D(p.y) - halfY);
+            while (y <= D(halfY) + p.y) {
                 if (y >= 0.0f && g_clientWorld.terrain_->height > y) {
                     float h = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(x, y));
                     float low = *minimum;
@@ -329,7 +329,7 @@ int CCamera::PlaybackStep(float time) {
     return 1;
 }
 
-void CCamera::Pan(const Vector3* direction) {
+void CCamera::Pan(const Vector3& direction) {
     Vector3 right;
     localRotation_.AxisX(&right);
     const Quaternion& r = localRotation_;
@@ -337,10 +337,10 @@ void CCamera::Pan(const Vector3* direction) {
     up.z = static_cast<float>(Dot2DUnrounded<double>(r.w, r.y, r.x, r.z) * 2.0);
     up.y = static_cast<float>((D(r.w) * r.w - LengthSquaredUnrounded<Sum3::ZXY, double>(r.x, r.y, r.z)) + D(r.y) * r.y * 2.0);
     up.x = static_cast<float>((D(r.y) * r.x - D(r.w) * r.z) * 2.0);
-    double k1 = (1.0 / std::sqrt(LengthSquared2DUnrounded<double>(right.y, right.x))) * direction->x;
+    double k1 = (1.0 / std::sqrt(LengthSquared2DUnrounded<double>(right.y, right.x))) * direction.x;
     right.x = static_cast<float>(k1 * right.x);
     double rightY = k1 * right.y;
-    double k2 = (1.0 / std::sqrt(LengthSquared2DUnrounded<double>(up.y, up.x))) * direction->y;
+    double k2 = (1.0 / std::sqrt(LengthSquared2DUnrounded<double>(up.y, up.x))) * direction.y;
     up.x = static_cast<float>(k2 * up.x);
     double upY = k2 * up.y;
     panTarget_.x = static_cast<float>(D(up.x) + right.x);
@@ -373,10 +373,10 @@ void CCamera::StopMotion() {
     zoomTarget_ = 0.0f;
 }
 
-void CCamera::SetFocus(const Vector3* p) {
-    focus_ = *p;
+void CCamera::SetFocus(const Vector3& p) {
+    focus_ = p;
     float average, low, high;
-    SampleTerrain(p, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(options::g_options.cameraTerrainArea_) * 0.5f), options::g_options.cameraTerrainArea_, options::g_options.cameraTerrainArea_, &average,
+    SampleTerrain(p, static_cast<float>(D(options::g_options.cameraTerrainArea_) * 0.5f), options::g_options.cameraTerrainArea_, options::g_options.cameraTerrainArea_, &average,
                   &low, &high);
     focus_.z = static_cast<float>(D(average) + focusHeight_);
 }
@@ -537,7 +537,7 @@ void CCamera::Update(float dt) {
     // The focus height follows the target's or the ground's, a tenth of the way per call (the
     // smooth camera: as far as a call went in the time a call was tuned for).
     float average, low, high;
-    SampleTerrain(&focus_, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(options::g_options.cameraTerrainArea_) * 0.5f), options::g_options.cameraTerrainArea_, options::g_options.cameraTerrainArea_,
+    SampleTerrain(focus_, static_cast<float>(D(options::g_options.cameraTerrainArea_) * 0.5f), options::g_options.cameraTerrainArea_, options::g_options.cameraTerrainArea_,
                   &average, &low, &high);
     double ground = target ? D(targetGround) : D(average);
     const float lag = smooth ? TimeGain(kHeightLag, dt) : kHeightLag;
@@ -714,15 +714,15 @@ void CCamera::LookFrom(const Vector3& from, const Vector3& to) {
     LookDirection(dx, dy, dz);
 }
 
-void CCamera::SetBounds(const Vector3* center, float radius) {
-    boundsCenter_ = *center;
+void CCamera::SetBounds(const Vector3& center, float radius) {
+    boundsCenter_ = center;
     boundsRadius_ = radius;
     flags_ |= kBounded;
 }
 
-void CCamera::Shake(const Vector3* source, float duration, float amplitude, float decay) {
+void CCamera::Shake(const Vector3& source, float duration, float amplitude, float decay) {
     const Vector3& at = (flags_ & kPlaced) ? localPosition_ : focus_;
-    double distance = libcrt::Hypot(D(at.x) - source->x, D(at.y) - source->y);
+    double distance = libcrt::Hypot(D(at.x) - source.x, D(at.y) - source.y);
     float distanceF = static_cast<float>(distance);
     if (distance >= kShakeRange) return;
     double strength = amplitude;

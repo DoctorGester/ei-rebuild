@@ -82,9 +82,8 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     CWorldServer* world = ServerWorld();
     order->point.z = kNoZBits;
     if (order->kind != UnitOrderKind::Use || !order->target || order->source != 0) return true;
-    std::vector<Vector3> spots{};
     float size = static_cast<float>(unit->Radius());
-    order->target->UseSpots(&spots, size);
+    std::vector<Vector3> spots = order->target->UseSpots(size);
     bool result = true;
     if (!spots.empty()) {
         AIPath path;
@@ -95,7 +94,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         for (int i = 0; i < std::ssize(spots); ++i) {
             spot = spots[i];
             path.Clear();
-            if (!map->FindPath(unit, &spot, &path, kFar, 0.0f)) continue;
+            if (!map->FindPath(unit, spot, &path, kFar, 0.0f)) continue;
             // The path must end within 0.2 of the spot.
             float half = kHalfCell;
             float ey = half * path.targetY - spot.y;
@@ -169,7 +168,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
         if (LengthSquared2DUnrounded(sy, sx) < sight.minDistanceSq) break;   // closer
         Vector3 from = {position.x, position.y, position.z};
         from.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + sight.eyeHeight);
-        double visible = MapOf(ServerWorld())->LineOfSight(&from, &sight.point);
+        double visible = MapOf(ServerWorld())->LineOfSight(from, sight.point);
         EI_NAN_AUDIT(visible);
         if (visible >= 0.1f) break;
         t += 5.0f;
@@ -241,7 +240,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             path.mayExcludeRegions = unit->player == nullptr;
             std::uint32_t savedAltPassCosts = unit->altPassCosts;
             unit->altPassCosts = 1;
-            bool found = MapOf(world)->FindPath(unit, &point, &path, kFar, 0.0f);
+            bool found = MapOf(world)->FindPath(unit, point, &path, kFar, 0.0f);
             unit->altPassCosts = savedAltPassCosts;
             if (!found) path.StandStill(unit);
             if (target) {
@@ -266,11 +265,10 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
 
 // --- A party unit's move -----------------------------------------------------------------------
 
-void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float range) {
+void CUnitServer::PlanMove(const Vector3& point, int moving, int run, float range) {
     CWorldServer* world = ServerWorld();
     AIPath path;
-    std::list<CUnit*> lifted{};
-    LiftNearby(&lifted, point, static_cast<char>(moving));
+    std::list<CUnit*> lifted = LiftNearby(point, static_cast<char>(moving));
     int mode = unit->moveMode;
     CSectorMap* sectors = &world->aiMap_.sectorMap;
     CAIMap* map = MapOf(world);
@@ -283,7 +281,7 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
         if (!map->CanLeaveCell(unit)) unit->moveMode = mode;
         sectors->Add(unit);
     }
-    std::uint32_t flag = map->InWaterAt(&unit->localPosition_);
+    std::uint32_t flag = map->InWaterAt(unit->localPosition_);
     CWorldServer* world2 = ServerWorld();
     path.mayExcludeRegions = unit->player == nullptr;
     std::uint32_t savedAltPassCosts = unit->altPassCosts;

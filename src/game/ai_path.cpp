@@ -130,7 +130,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     Vector3 facing;
     unit->localRotation_.AxisY(&facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
-    path->Start(&unit->localPosition_, &backwards, count - 1);
+    path->Start(unit->localPosition_, backwards, count - 1);
 
     PathCells& pathCells = path->cells;
     PathCells& steps = path->steps;
@@ -156,12 +156,12 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     SetStepSpeeds(unit, &path->steps);
 }
 
-bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float range, float minDistance) {
+bool CAIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float range, float minDistance) {
     Vector3 from, goal;
     from = unit->localPosition_;
-    goal = *target;
-    path->goal = *target;
-    if (LengthSquared2DUnrounded(target->x, target->y) > 100000000.0) return false;   // NaN goes on
+    goal = target;
+    path->goal = target;
+    if (LengthSquared2DUnrounded(target.x, target.y) > 100000000.0) return false;   // NaN goes on
 
     sectorMap.Remove(unit);
     if (!SnapTarget(unit, &goal, false, minDistance)) {
@@ -225,7 +225,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         }
         if (!tried) {
             // Far, or the local search failed: snap to a cell in the unit's region and plan.
-            goal = *target;
+            goal = target;
             if (!SnapTarget(unit, &goal, true, minDistance)) {
                 sectorMap.Add(unit);
                 return false;
@@ -278,7 +278,7 @@ done:
 
 bool CAIMap::ContinuePath(CUnit* unit, AIPath* path) {
     bool wasReached = path->reached;
-    if (path->failed && std::ssize(path->cells) == 0) return FindPath(unit, &path->goal, path, 1000000.0f, 0.0f);
+    if (path->failed && std::ssize(path->cells) == 0) return FindPath(unit, path->goal, path, 1000000.0f, 0.0f);
     AdvancePath(unit, path);
     if (path->failed) path->reached = false;
     return !wasReached;

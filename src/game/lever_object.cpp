@@ -1,5 +1,5 @@
 // The lever map object's own functions: lifetime, update, save / load, network state, the zone record set-up
-// and the small slots. SetState and UseSpots are in See docs/notes/units.md ("Levers").
+// and the small slots. SetState and UseSpots are in unit_lever.cpp (docs/notes/units.md, "Levers").
 #include "core_maths.h"
 #include "core_streams.h"
 #include "game_singletons.h"
@@ -102,7 +102,6 @@ void Lever::SaveLever(CStream* stream) {
 void Lever::Load(CStream* stream) { LoadLever(stream); }
 void Lever::Save(CStream* stream) { SaveLever(stream); }
 bool Lever::ApplyScience(const LockKey* key, CEngineObject*) { return ApplyKey(key); }
-void Lever::UseSpots(std::vector<Vector3>* out, float userRadius) { CollectUseSpots(out, userRadius); }
 
 void LockKey::ReadFrom(CStream* stream) {
     stream->ReadValue(mask);

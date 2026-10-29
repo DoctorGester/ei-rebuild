@@ -246,7 +246,7 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
     eye.z = unit->localPosition_.z;
     eye.z = static_cast<float>(unit->GroundHeight(eye.x, eye.y) + sight.eyeHeight);
     CAIMap* map = &ServerWorld()->aiMap_;
-    double visibility = map->LineOfSight(&eye, &sight.point);
+    double visibility = map->LineOfSight(eye, sight.point);
     return visibility >= kPointOne;
 }
 

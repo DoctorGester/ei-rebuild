@@ -237,8 +237,8 @@ called through `double`-returning forwarders (ST0 unrounded); the shake's `exp` 
 inline FLDL2E / FRNDINT / F2XM1 / FSCALE sequence (naked `Exp`).
 
 Kept: `RestoreView` sets distance and pitch only (the saved rotation goes to the settings record but
-never to the heading); `SampleTerrain` counts the centre sample once more than the grid and ignores its
-2nd / 3rd argument; `StopMotion` multiplies the view axes by 0 (so (+-0, +-0, 0), NaN for NaN) and
+never to the heading); `SampleTerrain` counts the centre sample once more than the grid (ours has no 2nd / 3rd argument; the original ignored them);
+`StopMotion` multiplies the view axes by 0 (so (+-0, +-0, 0), NaN for NaN) and
 replaces turn / tilt rate only when NaN; `PlaybackStep` at the last key places the camera without clearing
 the playing flag; `Update` tracks a target only with flag 8 clear and panning clears target and flag 8;
 `SetCameraPosition` (0x13) / `SetCameraOrientation` (0x14) script commands do nothing;

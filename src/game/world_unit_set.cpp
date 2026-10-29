@@ -100,7 +100,7 @@ void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std
         stream->ReadValue(names);
         record->names.resize(names);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
-            stream->ReadInto(&record->names[i]);
+            record->names[i] = stream->ReadString();
     }
     stream->ReadValue(count);
     dressed->resize(count);

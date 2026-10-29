@@ -39,10 +39,10 @@ void SetVertex(VertexPacket* blocks, int index, float x, float y, float z) {
 
 } // namespace
 
-int CSceneRenderer::DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY) {
-    const Vector3& p = *point;
-    const Vector3& x = *axisX;
-    const Vector3& y = *axisY;
+int CSceneRenderer::DrawSelectionMarker(const Vector3& point, float size, const Vector3& axisX, const Vector3& axisY) {
+    const Vector3& p = point;
+    const Vector3& x = axisX;
+    const Vector3& y = axisY;
     float unit = size * kThird;
     float twice = unit + unit;
     float z = p.z + kLift;

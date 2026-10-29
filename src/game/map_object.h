@@ -156,9 +156,8 @@ public:
     // True; levers a flag of theirs (a best guess). The AI map's MarkFootprint refreshes units' passage around
     // the object only when it is true.
     virtual bool KeepsMapFlag();
-    // The spots a user of radius `userRadius` may use the object from, into the array `out`: FreeArray
-    // (none); levers Lever::CollectUseSpots.
-    virtual void UseSpots(std::vector<Vector3>* out, float userRadius);
+    // The spots a user of radius `userRadius` may use the object from: none; levers override it.
+    virtual std::vector<Vector3> UseSpots(float userRadius);
     // Appends a copy of `effect`, marks part 3 changed and the object dirty, then calls the vitals virtual
     // (with whether the effect scales the object), SetStunned(1) for the stun types, the effects-changed
     // virtual and, for a scaling effect, RecomputeScale. Rebirth's FixSpellEffectsOverflow keeps at most 20
@@ -241,9 +240,6 @@ public:
     void LoadMapObject(CStream* stream);
     // Save: the same fields (names with their terminators; the base scale always).
     void SaveMapObject(CStream* stream);
-
-    // Frees the data of `array` and empties it.
-    void FreeArray(std::vector<Vector3>* array);
 
     // SetVisibilityMode with mode 0 for `level` 0 (or NaN), 1 for 1, else 2.
     int SetVisibilityLevel(float level);

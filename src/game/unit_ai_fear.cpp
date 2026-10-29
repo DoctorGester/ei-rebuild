@@ -78,7 +78,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     double way = DistanceZXY(dest, me);
     float wayRounded = static_cast<float>(way);
     float range = static_cast<float>(way * kThree + kRangeBase);
-    if (!g_serverWorld.aiMap_.FindPath(self, &dest, &path, range, kMinDistance)) return false;
+    if (!g_serverWorld.aiMap_.FindPath(self, dest, &path, range, kMinDistance)) return false;
     double scale = 0.5;
     double limit = 1.0f / scale * wayRounded * kSmoothingScale;
     EI_NAN_AUDIT(limit);
@@ -87,7 +87,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
 
     AIOrder order;
     order.MakeAttack(enemy);
-    if (!brain->owner->CanReachAndPlanFrom(&order, &end)) return false;
+    if (!brain->owner->CanReachAndPlanFrom(&order, end)) return false;
     double ex = static_cast<double>(dest.x) - end.x;
     double ey = static_cast<double>(dest.y) - end.y;
     double ez = static_cast<double>(dest.z) - end.z;
@@ -107,7 +107,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     spread = static_cast<float>(static_cast<double>(grown) * kThird);
     if (CMapObject* seen = brain->seen) {
         const Vector3* at = &seen->localPosition_;
-        brain->memory.Notice(at, kNoticeSeenLevel, kNoticeSeenDecay);
+        brain->memory.Notice(*at, kNoticeSeenLevel, kNoticeSeenDecay);
         const Vector3* me = &brain->owner->unit->localPosition_;
         float x = static_cast<float>(static_cast<double>(me->x) - at->x);
         float y = static_cast<float>(static_cast<double>(me->y) - at->y);
@@ -143,11 +143,11 @@ int FearMode::Evaluate(AIBrain* brain) {
     const Vector3* here = &self->localPosition_;
     float height = self->GetPrototype()->height;
     EI_NAN_AUDIT(height);
-    if (g_serverWorld.aiMap_.HasSpellAreaAt(here) && (self->sizeClass != 0 || height < 0.5f)) {
+    if (g_serverWorld.aiMap_.HasSpellAreaAt(*here) && (self->sizeClass != 0 || height < 0.5f)) {
         shelter = *here;
         return kShelter;
     }
-    if (!IsUnset(shelter) && g_serverWorld.aiMap_.HasSpellAreaAt(&shelter)) return kShelter;
+    if (!IsUnset(shelter) && g_serverWorld.aiMap_.HasSpellAreaAt(shelter)) return kShelter;
 
     if (flag) {
         // The nearest player unit in sight (2D).
@@ -166,7 +166,7 @@ int FearMode::Evaluate(AIBrain* brain) {
             }
         }
         if (best < static_cast<double>(distance) * distance)
-            brain->memory.Notice(&nearest, kNoticeSeenLevel, kNoticeSeenDecay);
+            brain->memory.Notice(nearest, kNoticeSeenLevel, kNoticeSeenDecay);
     }
     shelter.x = kUnsetCoordinate;
 
@@ -195,11 +195,11 @@ void FearMode::Execute(AIBrain* brain) {
     if (brain->memory.seesEnemy) {
         if (CUnit* enemy = brain->memory.NearestEnemy(brain->owner->unit)) {
             from = enemy->localPosition_;
-            brain->CallAllies(&enemy->localPosition_);
+            brain->CallAllies(enemy->localPosition_);
         }
-    } else if (g_serverWorld.aiMap_.HasSpellAreaAt(here)) {
+    } else if (g_serverWorld.aiMap_.HasSpellAreaAt(*here)) {
         from = *here;
-    } else if (!IsUnset(shelter) && g_serverWorld.aiMap_.HasSpellAreaAt(&shelter)) {
+    } else if (!IsUnset(shelter) && g_serverWorld.aiMap_.HasSpellAreaAt(shelter)) {
         from = shelter;
     } else if (!flag || brain->memory.noticedLevel <= kKeepLevel) {
         brain->memory.noticedLevel = 0;
@@ -244,9 +244,9 @@ void FearMode::Execute(AIBrain* brain) {
         AIPath path;
         double way = DistanceZYX(dest, *here);
         float range = static_cast<float>(way * kThree + kRangeBase);
-        if (g_serverWorld.aiMap_.FindPath(brain->owner->unit, &dest, &path, range, kMinDistance)) {
+        if (g_serverWorld.aiMap_.FindPath(brain->owner->unit, dest, &path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
-            brain->owner->OrderMove(&dest, 0, 0, kMoveTime);
+            brain->owner->OrderMove(dest, 0, 0, kMoveTime);
         }
         spread = static_cast<float>(static_cast<double>(spread) + spread);
     }
@@ -256,7 +256,7 @@ void FearMode::Execute(AIBrain* brain) {
         UnitList candidates;
         AITargetChoice best;
         Vector3 at = brain->owner->unit->localPosition_;
-        brain->attention.Choose(brain, &best, &candidates, &at, true, true);
+        brain->attention.Choose(brain, &best, &candidates, at, true, true);
         brain->attention.ApplyAttack(brain, &best);
 
         if (brain->action == AIBrain::kActionNone) {
@@ -271,7 +271,7 @@ void FearMode::Execute(AIBrain* brain) {
                 direction.y = static_cast<float>(v.y / twice);
                 direction.z = static_cast<float>(v.z / twice);
             }
-            brain->PlanLooks(&order, &direction, kNoWander, false);
+            brain->PlanLooks(&order, direction, kNoWander, false);
             brain->StartMove(&order);
         }
     }

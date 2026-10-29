@@ -345,12 +345,12 @@ bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, CMemorySt
 } // namespace delta
 
 
-void DeltaField::WritePosition(const Vector3* position) {
-    int q = Quantize(position->x, kWriteOffsetXY, kWriteScaleXY);
+void DeltaField::WritePosition(const Vector3& position) {
+    int q = Quantize(position.x, kWriteOffsetXY, kWriteScaleXY);
     WriteDelta(&q, 2);
-    q = Quantize(position->y, kWriteOffsetXY, kWriteScaleXY);
+    q = Quantize(position.y, kWriteOffsetXY, kWriteScaleXY);
     WriteDelta(&q, 2);
-    q = Quantize(position->z, kWriteOffsetZ, kWriteScaleZ);
+    q = Quantize(position.z, kWriteOffsetZ, kWriteScaleZ);
     WriteDelta(&q, 2);
 }
 

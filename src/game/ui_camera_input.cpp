@@ -88,14 +88,14 @@ void CCameraInput::KeyUp(int, int, int flags) {
         float left = static_cast<float>(-x_);
         float speed = KeyboardSpeed(options::g_options.cameraScroll_);
         Vector3 direction = {static_cast<float>(y_ * speed), static_cast<float>(left * speed), 0.0f};
-        camera->Pan(&direction);
+        camera->Pan(direction);
         camera->SetTurnRate(0.0f);
         camera->SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom_) * z_);
         camera->SetTiltRate(0.0f);
         return;
     }
     Vector3 still = {0.0f, 0.0f, 0.0f};
-    camera->Pan(&still);
+    camera->Pan(still);
     camera->SetTurnRate(KeyboardSpeed(options::g_options.cameraRotate_) * y_);
     camera->SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom_) * z_);
     camera->SetTiltRate(KeyboardSpeed(options::g_options.cameraPitch_) * x_);
@@ -118,7 +118,7 @@ void CCameraInput::RightUp(int, int, int) {
     camera->SetTurnRate(0.0f);
     camera->SetTiltRate(0.0f);
     Vector3 still = {0.0f, 0.0f, 0.0f};
-    camera->Pan(&still);
+    camera->Pan(still);
     int x = g_cursor.position_.x;
     int y = g_cursor.position_.y;
     g_cursor.motion_.y = 0;
@@ -155,7 +155,7 @@ void CCameraInput::MouseMove(int, int x, int y) {
         } else {
             float speed = MouseSpeed(options::g_options.cameraScroll_);
             Vector3 direction{static_cast<float>(across * speed), static_cast<float>(along * speed), 0.0f};
-            camera->Pan(&direction);
+            camera->Pan(direction);
         }
         g_cursor.motion_.y = 0;
         g_cursor.motion_.x = 0;
@@ -193,7 +193,7 @@ void CCameraInput::MouseMove(int, int x, int y) {
             direction.y = static_cast<float>(left + direction.y);
         }
         g_cursor.SetShape(EdgeCursor(edges));
-        camera->Pan(&direction);
+        camera->Pan(direction);
         if (edges) handled_ = true;
     }
     pressLayout_ = POINT{x, y};

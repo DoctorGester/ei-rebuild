@@ -41,15 +41,6 @@ bool ZoneExit::Contains(float x, float y) const {
     return turnedY <= y2;
 }
 
-// ---- Stream form and the string reader ------------------
-
-namespace {
-} // namespace
-
-void CStream::ReadInto(std::string* out) {
-    *out = ReadString();
-}
-
 void ZoneExit::Read(CStream* stream) {
     stream->ReadValue(passTime);
     for (float& value : deploy) stream->ReadValue(value);
@@ -57,7 +48,7 @@ void ZoneExit::Read(CStream* stream) {
     stream->ReadValue(y1);
     stream->ReadValue(x2);
     stream->ReadValue(y2);
-    stream->ReadInto(&target);
+    target = stream->ReadString();
     stream->ReadValue(entrance);
     stream->ReadValue(view);
     hasDeployAngle = 0;

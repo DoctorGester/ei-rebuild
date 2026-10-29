@@ -53,11 +53,11 @@ void WriteUnits(CMemoryStream& out, const std::vector<CUnit*>* units) {
     }
 }
 
-int SendMove(CMemoryStream& out, std::uint8_t type, const std::vector<CUnit*>* units, const Vector3* to, int run) {
+int SendMove(CMemoryStream& out, std::uint8_t type, const std::vector<CUnit*>* units, const Vector3& to, int run) {
     WriteType(out, type);
     WriteUnits(out, units);
     out.WriteValue(run);
-    out.Write(to, sizeof(Vector3));
+    out.Write(&to, sizeof(Vector3));
     return 1;
 }
 
@@ -69,10 +69,10 @@ void SpendPotion(CUnit* user, int slot) {
 
 } // namespace
 
-int CPlayerClient::SendWalk(const std::vector<CUnit*>* units, const Vector3* to, int run) {
+int CPlayerClient::SendWalk(const std::vector<CUnit*>* units, const Vector3& to, int run) {
     return SendMove(out_, kWalk, units, to, run);
 }
-int CPlayerClient::SendGoTo(const std::vector<CUnit*>* units, const Vector3* to, int run) {
+int CPlayerClient::SendGoTo(const std::vector<CUnit*>* units, const Vector3& to, int run) {
     return SendMove(out_, kGoTo, units, to, run);
 }
 
@@ -93,8 +93,8 @@ int CPlayerClient::SendCastOnUnit(int slot, CUnit* caster, CEngineObject* target
     return 1;
 }
 
-int CPlayerClient::SendCastAtPoint(int slot, CUnit* caster, const Vector3* point, int ctrl) {
-    AtPointBlock block{static_cast<std::uint32_t>(slot), caster->id_, *point, static_cast<std::uint8_t>(ctrl)};
+int CPlayerClient::SendCastAtPoint(int slot, CUnit* caster, const Vector3& point, int ctrl) {
+    AtPointBlock block{static_cast<std::uint32_t>(slot), caster->id_, point, static_cast<std::uint8_t>(ctrl)};
     WriteType(out_, kCastAtPoint);
     out_.WriteValue(block);
     return 1;
@@ -109,9 +109,9 @@ int CPlayerClient::SendItemOnUnit(int slot, CUnit* user, CEngineObject* target, 
     return 1;
 }
 
-int CPlayerClient::SendItemAtPoint(int slot, CUnit* user, const Vector3* point, int ctrl) {
+int CPlayerClient::SendItemAtPoint(int slot, CUnit* user, const Vector3& point, int ctrl) {
     SpendPotion(user, slot);
-    AtPointBlock block{static_cast<std::uint32_t>(slot) | kItemSlot, user->id_, *point,
+    AtPointBlock block{static_cast<std::uint32_t>(slot) | kItemSlot, user->id_, point,
                        static_cast<std::uint8_t>(ctrl)};
     WriteType(out_, kCastAtPoint);
     out_.WriteValue(block);

@@ -215,7 +215,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     // and puts it back (a determinism fix; harness_shadow_turn.h does the same in the original).
     const Quaternion kept = object->localRotation_;
     object->localRotation_.PreMultiply(turn);
-    ObjectWorldMatrix(&object->localRotation_, &object->localPosition_, &object->worldMatrix);
+    ObjectWorldMatrix(&object->localRotation_, object->localPosition_, &object->worldMatrix);
     turn.x = -turn.x;   // the turn back, still used for the projector below
     turn.y = -turn.y;
     turn.z = -turn.z;
@@ -235,7 +235,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
         CFigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
         if (part->flags_ & FigureMeshFlag::Hidden) continue;
-        ObjectWorldMatrix(&part->localRotation_, &part->localPosition_, &part->worldMatrix_);
+        ObjectWorldMatrix(&part->localRotation_, part->localPosition_, &part->worldMatrix_);
         view = PartAt(self->object, i)->worldMatrix_;
         pipeline->PushMatrixProduct(view, kShadowStack);
         if (CLinkMesh* figure = self->object->figure) {

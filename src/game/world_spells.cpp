@@ -36,10 +36,10 @@ bool IsHostileType(SpellType type) {
 } // namespace
 
 void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target,
-                                 const Vector3* to, int extra) {
-    const Vector3* aim = target ? &target->localPosition_ : to;
+                                 const Vector3& to, int extra) {
+    const Vector3& aim = target ? target->localPosition_ : to;
     Vector3 end;
-    end = *aim;
+    end = aim;
     if (spell->targetFlags_ & SpellTargetFlag::AtPoint) target = nullptr;
     end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f);
     if (caster) from = caster->localPosition_;
@@ -48,7 +48,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     missile->refs_ = 0;   // the count and flags are cleared before the null test
     missile->flags6_ = 0;
     missile->flags7_ = 0;
-    missile->Init(this, spell, caster, &from, target, &end, static_cast<std::uint8_t>(extra));
+    missile->Init(this, spell, caster, from, target, end, static_cast<std::uint8_t>(extra));
     if (missile->Update()) {
         projectiles_.emplace_back(missile);
     }
@@ -63,8 +63,8 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     }
 }
 
-void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, CMapObject* target,
-                             const Vector3* to, int extra) {
+void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, CMapObject* target,
+                             const Vector3& to, int extra) {
     if (!spell) return;
     if (sessionKind_ != kKindSinglePlayer && caster) return;
     SpellType type = spell->Type();
@@ -72,24 +72,23 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
     std::uint32_t flags = spell->targetFlags_;
     int targets = static_cast<int>(spell->targetCount_);
     if (!(flags & kSpellTargetRestrictions) && targets <= 1) {
-        CreateMissile(spell, caster, *from, target, to, extra);
+        CreateMissile(spell, caster, from, target, to, extra);
         return;
     }
 
     // Several targets: the units around the caster (or `from`), the requested target first.
     CPlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
-    std::list<CUnit*> units;
     if (caster) {
         if (CPlayer* owner = caster->player) heroes = owner->Server();
     }
     if ((flags & SpellTargetFlag::AtPoint) && !(flags & SpellTargetFlag::ItemContinuous)) {
         --targets;
-        CreateMissile(spell, caster, *from, target, to, extra);
+        CreateMissile(spell, caster, from, target, to, extra);
     }
     Vector3 center;
-    center = *(caster ? &caster->localPosition_ : from);
+    center = caster ? caster->localPosition_ : from;
     float radius = spell->range_;
-    aiMap_.sectorMap.FindUnitsInRadius(&center, &units, radius);
+    std::list<CUnit*> units = aiMap_.sectorMap.FindUnitsInRadius(center, radius);
     if (CUnit* targetUnit = UnitOrNull(target)) {
         if (auto found = std::ranges::find(units, target); found != units.end()) units.erase(found);
         units.push_front(targetUnit);
@@ -110,9 +109,9 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
                 bestNode = node;
                 break;
             } else {
-                double dz = static_cast<double>(to->z) - unit->localPosition_.z;
-                double dy = static_cast<double>(to->y) - unit->localPosition_.y;
-                double dx = static_cast<double>(to->x) - unit->localPosition_.x;
+                double dz = static_cast<double>(to.z) - unit->localPosition_.z;
+                double dy = static_cast<double>(to.y) - unit->localPosition_.y;
+                double dx = static_cast<double>(to.x) - unit->localPosition_.x;
                 double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
                 float bestDistance;
                 bestDistance = std::bit_cast<float>(bestBits);
@@ -146,10 +145,10 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
         }
         if (!hit) continue;
         Vector3* at = &best->localPosition_;
-        if (!SpellHasLineOfSight(this, spell, caster, from, best, at))
+        if (!SpellHasLineOfSight(this, spell, caster, from, best, *at))
             continue;
         if (!spell->CanAffect(caster, best)) continue;
-        CreateMissile(spell, caster, *from, best, at, extra);
+        CreateMissile(spell, caster, from, best, *at, extra);
         --targets;
     }
 

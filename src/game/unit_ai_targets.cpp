@@ -68,7 +68,7 @@ struct Scored {
 
 // Whether the controller's order check lets the unit act on `choice` from `from`: an attack for the weapon part,
 // else a cast.
-bool OrderAllowedFrom(AIBrain* brain, const AITargetChoice* choice, const Vector3* from) {
+bool OrderAllowedFrom(AIBrain* brain, const AITargetChoice* choice, const Vector3& from) {
     AIOrder order;
     if (choice->part == kWeaponPart)
         order.MakeAttack(choice->object);
@@ -126,7 +126,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, bool fr
         CWorldServer* server = &g_serverWorld;
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap_.sectorMap.Remove(target);
-        if (server->aiMap_.FindPath(self, &target->localPosition_, &path, range, minDistance)) {
+        if (server->aiMap_.FindPath(self, target->localPosition_, &path, range, minDistance)) {
             float scale = 0.5f;
             point.x = static_cast<float>(scale * path.targetX);
             point.y = static_cast<float>(scale * path.targetY);
@@ -136,7 +136,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, bool fr
         }
         server->aiMap_.sectorMap.Add(target);
     }
-    return OrderAllowedFrom(brain, choice, &point);
+    return OrderAllowedFrom(brain, choice, point);
 }
 
 const AIAttackOption* AIAttention::FindOption(int part) const {
@@ -174,7 +174,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     return radius * radius < LengthSquared2DUnrounded(dx, dy);
 }
 
-double AIAttention::Score(const Vector3* from, CUnit* self, UnitList* group, CEngineObject* current, CUnit* candidate,
+double AIAttention::Score(const Vector3& from, CUnit* self, UnitList* group, CEngineObject* current, CUnit* candidate,
                          float threshold, const AIAttackOption* option) {
     float score = candidate == current ? kCurrentBonus : 0.0f;
     CUnitServer* control = candidate->ServerController();
@@ -240,7 +240,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, UnitList* group, CEn
         reach = option->range;
         scale = 10.0f;
     }
-    float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->localPosition_, *from)) - reach);
+    float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->localPosition_, from)) - reach);
     float penalty = 0.0f >= beyond ? 0.0f : beyond;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);
@@ -252,7 +252,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, UnitList* group, CEn
     return result;
 }
 
-void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candidates, const Vector3* from, bool alliesOnly,
+void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candidates, const Vector3& from, bool alliesOnly,
                          bool fromHere) {
     if (spells.empty() && (candidates->empty() || weapons.empty())) {
         choice->object = nullptr;
@@ -330,8 +330,8 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candi
         CUnit* object = choice->object;
         if (IsUsable(brain, choice)) {
             // Allies only: a target off the path must be in reach from here.
-            bool allowed = !alliesOnly || brain->IsNearPath(&object->localPosition_, kPathNear) ||
-                           OrderAllowedFrom(brain, choice, &self->localPosition_);
+            bool allowed = !alliesOnly || brain->IsNearPath(object->localPosition_, kPathNear) ||
+                           OrderAllowedFrom(brain, choice, self->localPosition_);
             if (allowed && CanReach(brain, choice, fromHere)) return;
         }
         // Rejected: an object scored only once (and not the current target) is reported.

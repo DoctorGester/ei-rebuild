@@ -42,10 +42,9 @@ bool IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit); }
 void CSpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
 
 void CSpellEffect::HitUnitsInRadius() {
-    std::list<CUnit*> list;
     DamageInfo hit;
     GetDamage(&hit);
-    world->aiMap_.sectorMap.FindUnitsInRadius(&position, &list, Spell()->radius_);
+    std::list<CUnit*> list = world->aiMap_.sectorMap.FindUnitsInRadius(position, Spell()->radius_);
     for (auto node = list.begin(); node != list.end();) {
         CUnit* unit = *node;
         ++node;
@@ -54,21 +53,20 @@ void CSpellEffect::HitUnitsInRadius() {
     }
 }
 
-void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
-    std::list<CUnit*> list;
+void CSpellEffect::HitUnitsAlong(const Vector3& direction) {
     DamageInfo hit;
     GetDamage(&hit);
 
     // The wall's normal in the ground plane: s = 2 / sqrt(x^2 + y^2) (rounded to float), normal = (s * -y,
     // s * x, 0). The normal has length 2, so the test against 1 accepts the units within 0.5 of the plane.
-    float x = direction->x;
-    double minusY = -direction->y;
+    float x = direction.x;
+    double minusY = -direction.y;
     float scale = static_cast<float>(2.0f / std::sqrt(x * x + minusY * minusY));
     float normalX = static_cast<float>(scale * minusY);
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    world->aiMap_.sectorMap.FindUnitsInRadius(&position, &list, Spell()->radius_);
+    std::list<CUnit*> list = world->aiMap_.sectorMap.FindUnitsInRadius(position, Spell()->radius_);
     for (auto node = list.begin(); node != list.end();) {
         CUnit* unit = *node;
         ++node;

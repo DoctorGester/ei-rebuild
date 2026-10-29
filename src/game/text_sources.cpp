@@ -120,19 +120,21 @@ void* TextSources::FindKeyText(std::string_view key, std::uint32_t* size) {
     return data ? AsGameText(source, data, size) : nullptr;
 }
 
-void TextSources::ListKeys(std::vector<std::string>* out, const char* pattern) {
+std::vector<std::string> TextSources::ListKeys(const char* pattern) {
+    std::vector<std::string> keys;
     std::vector<std::string> found;
-    out->clear();
     for (const TextSource& archive : archives) {
         archive.source->ListFiles(&found, pattern);
-        out->insert(out->end(), found.begin(), found.end());
+        keys.insert(keys.end(), found.begin(), found.end());
     }
+    return keys;
 }
 
-void CTextManager::ListKeys(std::vector<std::string>* out, const char* pattern) {
-    sources_.ListKeys(out, pattern);
+std::vector<std::string> CTextManager::ListKeys(const char* pattern) {
+    std::vector<std::string> keys = sources_.ListKeys(pattern);
     // The names in UTF-8, as Find takes them (one person's key holds Cyrillic).
-    for (std::string& name : *out) text::FromAssetText(&name);
+    for (std::string& name : keys) text::FromAssetText(&name);
+    return keys;
 }
 
 void CTextManager::Create() {

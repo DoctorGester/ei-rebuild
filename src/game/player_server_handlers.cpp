@@ -74,7 +74,7 @@ void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
     }
 }
 
-using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
+using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, int, int, const Vector3&);
 int MoveUnits(MoveCommand command) {
     CMemoryStream& in = g_receivedMessages;
     std::vector<CUnit*> units{};
@@ -88,7 +88,7 @@ int MoveUnits(MoveCommand command) {
     for (int i = 0; i < std::ssize(units); ++i) {
         AIBrain* brain = &units[i]->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode())
-            (mode->*command)(brain, &to, std::ssize(units) > 1, run != 0, &offsets[i]);
+            (mode->*command)(brain, to, std::ssize(units) > 1, run != 0, offsets[i]);
     }
     return 1;
 }
@@ -261,13 +261,13 @@ int CPlayerServer::OnUseOrder() {
                 break;
             }
             Vector3 from;
-            if (g_serverWorld.aiMap_.FindPath(nearest, &aim, &path, kPathRange, 0.0f)) {
+            if (g_serverWorld.aiMap_.FindPath(nearest, aim, &path, kPathRange, 0.0f)) {
                 Vector3 end;
                 from = *path.TargetPoint(&end);
             } else {
                 from = nearest->localPosition_;
             }
-            if (controller->CanReachAndPlanFrom(&order, &from)) {
+            if (controller->CanReachAndPlanFrom(&order, from)) {
                 chosen = nearest;
                 accepted = true;
                 break;

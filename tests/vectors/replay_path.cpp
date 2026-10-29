@@ -493,7 +493,7 @@ bool CheckFindPath(Reader& r, char* d, std::size_t n) {
     CUnit* u = MakeUnit(unit);
     g_serverWorld.tick_ = tick;   // the search reads the world tick the record gave
     bool actual = false;
-    auto call = [&] { actual = g_map->FindPath(u, &target, &path, range, minDistance); };
+    auto call = [&] { actual = g_map->FindPath(u, target, &path, range, minDistance); };
     if (!Guarded(call, d, n, "FindPath")) return false;
     if (actual != expected) {
         std::snprintf(d, n, "(%g,%g) range %g min %g: ours %d, original %d", target.x, target.y, range, minDistance, actual,

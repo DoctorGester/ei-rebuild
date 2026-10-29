@@ -73,9 +73,9 @@ void CEffectTornado::Reset() {
     source_.Reset();
 }
 
-void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
+void CEffectTornado::Launch(const Vector3& from, const Vector3& to) {
     double speed = x87::FromUnsigned(g_random.Next()) * kRandomScale * kSpeedRange + kSpeedMin;
-    Vector3 way{static_cast<float>(to->x - from->x), static_cast<float>(to->y - from->y), static_cast<float>(to->z - from->z)};
+    Vector3 way{static_cast<float>(to.x - from.x), static_cast<float>(to.y - from.y), static_cast<float>(to.z - from.z)};
     framesLeft_ = 0;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(way));
     if (length > 0.0) {
@@ -90,7 +90,7 @@ void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
     velocity_ = way;
     moving_ = effect::IsMoving(velocity_);
     MarkChanged();
-    localPosition_ = *from;
+    localPosition_ = from;
     launchTick_ = effect::ContextWorld(this)->tick_;
 }
 
@@ -104,8 +104,7 @@ bool CEffectTornado::RunTick() {
     if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) source_->Stop();
     CWorld* world = effect::ContextWorld(this);
     if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
-        std::list<CUnit*> units{};
-        ServerWorld()->aiMap_.sectorMap.FindUnitsInRadius(&localPosition_, &units, kHurtRadius);
+        std::list<CUnit*> units = ServerWorld()->aiMap_.sectorMap.FindUnitsInRadius(localPosition_, kHurtRadius);
         DamageInfo hit = TornadoHit();
         for (auto node = units.begin(); node != units.end();) {
             auto* unit = *node;

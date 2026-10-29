@@ -335,7 +335,7 @@ void CHudMap::LeftUp(int, int x, int y) {
             Vector3 focus = view->focus_;
             focus.x = worldX;
             focus.y = worldY;
-            view->SetFocus(&focus);
+            view->SetFocus(focus);
         }
         handled_ = true;
         return;
@@ -814,8 +814,8 @@ void CBattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     if (!units.empty()) {
         CPlayerClient* view = g_clientWorld.LocalView();
         if (goTo)
-            view->SendGoTo(&units, &point, run);
+            view->SendGoTo(&units, point, run);
         else
-            view->SendWalk(&units, &point, run);
+            view->SendWalk(&units, point, run);
     }
 }

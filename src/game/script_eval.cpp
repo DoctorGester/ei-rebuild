@@ -254,7 +254,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case ScriptFunction::IsUnitInWater: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
         CEngineObject* o = objectArgs[0]->object;
         int inWater = 0;
-        if (o) inWater = g_serverWorld.aiMap_.InWaterAt(&ObjectSlots(o)->localPosition_) ? 1 : 0;
+        if (o) inWater = g_serverWorld.aiMap_.InWaterAt(ObjectSlots(o)->localPosition_) ? 1 : 0;
         *result = static_cast<float>(inWater);
         return;
     }

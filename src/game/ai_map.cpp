@@ -86,11 +86,11 @@ bool CAIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
     return true;
 }
 
-bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
+bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3& position) {
     if (unit->GetClassId() != ClassId::Unit) return true;
     sectorMap.Remove(unit);
-    int y = WorldToCell(position->y);
-    int x = WorldToCell(position->x);
+    int y = WorldToCell(position.y);
+    int x = WorldToCell(position.x);
     bool passable = true;
     if (unit->GetClassId() == ClassId::Unit) {
         int reason;
@@ -107,8 +107,8 @@ bool CAIMap::IsUnitCellPassable(CUnit* unit) {
     return cells[y][x].Passability(unit->sizeClass * 4) != 0;
 }
 
-bool CAIMap::IsPassableForClass(std::uint8_t sizeClass, const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
+bool CAIMap::IsPassableForClass(std::uint8_t sizeClass, const Vector3& position) {
+    int x = WorldToCell(position.x), y = WorldToCell(position.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return cells[y][x].Passability(sizeClass * 4) != 0;
 }
@@ -137,15 +137,15 @@ float CAIMap::GroundHeight(int x, int y) {
     return static_cast<float>(static_cast<int>(cells[y][x].groundLevel)) / heightScale;
 }
 
-float CAIMap::TopHeightAt(const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
+float CAIMap::TopHeightAt(const Vector3& position) {
+    int x = WorldToCell(position.x), y = WorldToCell(position.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return 0.0f;
     const AIMapCell& cell = cells[y][x];
     return static_cast<float>(cell.WaterDepth() + cell.groundLevel) / heightScale;
 }
 
-float CAIMap::SlopeAt(const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
+float CAIMap::SlopeAt(const Vector3& position) {
+    int x = WorldToCell(position.x), y = WorldToCell(position.y);
     if (x < 1 || y < 1 || x > cells.width - 2 || y > cells.height - 2) return 0.0f;
     int here = cells[y][x].groundLevel;
     auto step = [here](int level) {
@@ -164,8 +164,8 @@ float CAIMap::SlopeAt(const Vector3* position) {
     return static_cast<float>(slope) / heightScale;
 }
 
-bool CAIMap::InWaterAt(const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
+bool CAIMap::InWaterAt(const Vector3& position) {
+    int x = WorldToCell(position.x), y = WorldToCell(position.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return cells[y][x].InWater();
 }
@@ -181,20 +181,20 @@ bool CAIMap::HasSpellArea(int x, int y) {
     return false;
 }
 
-bool CAIMap::HasSpellAreaAt(const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
+bool CAIMap::HasSpellAreaAt(const Vector3& position) {
+    int x = WorldToCell(position.x), y = WorldToCell(position.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return HasSpellArea(x, y);
 }
 
-int CAIMap::MaterialAt(const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
+int CAIMap::MaterialAt(const Vector3& position) {
+    int x = WorldToCell(position.x), y = WorldToCell(position.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return -1;
     return static_cast<int>(occluder::Type(occluders[y][x]));
 }
 
-AITerrainType* CAIMap::MaterialRecordAt(const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
+AITerrainType* CAIMap::MaterialRecordAt(const Vector3& position) {
+    int x = WorldToCell(position.x), y = WorldToCell(position.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return materials.data();
     return materials.data() + occluder::Type(occluders[y][x]);
 }
@@ -230,9 +230,9 @@ bool CAIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
 
 // --- Line of sight -------------------------------------------------------------------------------
 
-float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
-    float dx = to->x - from->x, dy = to->y - from->y;
-    float dz = to->z - from->z;
+float CAIMap::LineOfSight(const Vector3& from, const Vector3& to) {
+    float dx = to.x - from.x, dy = to.y - from.y;
+    float dz = to.z - from.z;
     float length = static_cast<float>(std::sqrt(static_cast<double>(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) / 0.5f);   // half-cells
     EI_NAN_AUDIT(length);
     if (length == 0.0f) return 1.0f;
@@ -240,12 +240,12 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
     int steps = x87::fistp(length);
 
     // 16.16 fixed point position and step, in half-cells (x, y) and AI height units (z).
-    int x = x87::fistp(from->x * 65536.0f / 0.5f);
-    int y = x87::fistp(from->y * 65536.0f / 0.5f);
-    int z = x87::fistp(from->z * heightScale) << 16;
+    int x = x87::fistp(from.x * 65536.0f / 0.5f);
+    int y = x87::fistp(from.y * 65536.0f / 0.5f);
+    int z = x87::fistp(from.z * heightScale) << 16;
     int stepX = x87::fistp(dx * inverse * 65536.0f / 0.5f);
     int stepY = x87::fistp(dy * inverse * 65536.0f / 0.5f);
-    int toZ = x87::fistp(to->z * heightScale);
+    int toZ = x87::fistp(to.z * heightScale);
     int stepZ = x87::fistp(static_cast<float>(static_cast<double>((toZ - (z >> 16)) << 16) * inverse));
 
     auto outside = [this](int fx, int fy) {
@@ -302,11 +302,11 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
     return SpiralOffsets();
 }
 
-bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target) {
+bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3& from, Vector3* target) {
     static SpiralCache cache{0, -1.0f};
 
     int sizeClass = unit->sizeClass;
-    int x = WorldToCell(from->x), y = WorldToCell(from->y);
+    int x = WorldToCell(from.x), y = WorldToCell(from.y);
     if (x < 1 || y < 1 || x >= cells.width - 1 || y >= cells.height - 1) return false;
     short region = static_cast<short>(regionMap.DominantRegion(sizeClass, x, y));
 

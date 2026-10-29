@@ -14,17 +14,17 @@ namespace {
 
 // The height at (x, y) of the plane through the three vertices; the average of their heights when the
 // triangle is degenerate.
-float PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2) {
-    float ax = v1->x - v0->x, ay = v1->y - v0->y;
-    float bx = v2->x - v0->x, by = v2->y - v0->y;
+float PlaneHeight(const Vector3& v0, const Vector3& v1, float x, float y, const Vector3& v2) {
+    float ax = v1.x - v0.x, ay = v1.y - v0.y;
+    float bx = v2.x - v0.x, by = v2.y - v0.y;
     float det = by * ax - bx * ay;
-    if (std::fabs(det) < 0.01f) return (v0->z + v1->z + v2->z) * 0.33333334f;
+    if (std::fabs(det) < 0.01f) return (v0.z + v1.z + v2.z) * 0.33333334f;
 
     // Plane normal (nx, ny, det) through v0; solve for z at (x, y).
-    float dz1 = v1->z - v0->z, dz2 = v2->z - v0->z;
+    float dz1 = v1.z - v0.z, dz2 = v2.z - v0.z;
     float nx = dz2 * ay - dz1 * by;
     float ny = dz1 * bx - dz2 * ax;
-    float d = -DotUnrounded<Sum3::XYZ>(nx, ny, det, v0->x, v0->y, v0->z);
+    float d = -DotUnrounded<Sum3::XYZ>(nx, ny, det, v0.x, v0.y, v0.z);
     return -(OffsetDot2DUnrounded(d, nx, ny, x, y) / det);
 }
 
@@ -65,10 +65,10 @@ float Terrain::HeightAt(float x, float y, int layer) {
         const Vector3* v11 = VertexAt(ix1, iy1, layer);
         if (!v00 || !v11) return 0.0f;
         if (!v10) {
-            if (v01) return PlaneHeight(v00, v11, x, y, v01);
+            if (v01) return PlaneHeight(*v00, *v11, x, y, *v01);
             continue;   // the same cell again: the iteration limit below is not reached, so this never ends
         }
-        if (!v01) return PlaneHeight(v00, v10, x, y, v11);
+        if (!v01) return PlaneHeight(*v00, *v10, x, y, *v11);
 
         // Both triangles of the cell must be counter-clockwise, else take the diagonal's midpoint.
         const Vector2 from10to00 = {v00->x - v10->x, v00->y - v10->y};
@@ -87,19 +87,19 @@ float Terrain::HeightAt(float x, float y, int layer) {
         float side = (x - v00->x) * (v11->y - v00->y) - (y - v00->y) * (v11->x - v00->x);
         if (side > 0.0f) {
             // Lower-right triangle (v00, v10, v11); step to a neighbour if the point is outside it.
-            if (iteration >= 10) return PlaneHeight(v00, v10, x, y, v11);
+            if (iteration >= 10) return PlaneHeight(*v00, *v10, x, y, *v11);
             if (from10to00.y * to10.x - from10to00.x * to10.y > 0.0f) { --iy0; --iy1; continue; }
-            if (from10to11.y * to10.x - from10to11.x * to10.y >= 0.0f) return PlaneHeight(v00, v10, x, y, v11);
+            if (from10to11.y * to10.x - from10to11.x * to10.y >= 0.0f) return PlaneHeight(*v00, *v10, x, y, *v11);
             ++ix0; ++ix1;
         } else {
             // Upper-left triangle (v00, v11, v01).
-            if (iteration >= 10) return PlaneHeight(v00, v11, x, y, v01);
+            if (iteration >= 10) return PlaneHeight(*v00, *v11, x, y, *v01);
             float across = from01to00.y * to01.x - from01to00.x * to01.y;
             EI_NAN_AUDIT(across);
             if (across < 0.0f) { --ix0; --ix1; continue; }
             const float beyond = from01to11.y * to01.x - from01to11.x * to01.y;
             EI_NAN_AUDIT(beyond);
-            if (beyond <= 0.0f) return PlaneHeight(v00, v11, x, y, v01);
+            if (beyond <= 0.0f) return PlaneHeight(*v00, *v11, x, y, *v01);
             ++iy0; ++iy1;
         }
     }

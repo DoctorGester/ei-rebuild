@@ -271,7 +271,7 @@ struct CSoundManager : CEngineObject {
     // The first wave source holding `name`; `source` may be null. Null when none has it.
     void* LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source);
     // Rebirth-patched. Source by source.
-    void ListWaveFiles(std::vector<std::string>* out, const char* pattern);
+    std::vector<std::string> ListWaveFiles(const char* pattern);
     // 1 when sound is off; else whether the registry opened.
     int SetPath(std::string_view folder, const std::string& registryPath);
 

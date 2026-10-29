@@ -34,10 +34,9 @@ void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
 
 } // namespace
 
-CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
-    std::list<CUnit*> nearby{};
+CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
     float unitHeight = unit->standingHeight;
-    sectorMap.FindUnitsInRadius(position, &nearby, 10.0f);
+    std::list<CUnit*> nearby = sectorMap.FindUnitsInRadius(position, 10.0f);
 
     CUnit* blocker = nullptr;
     for (auto node = nearby.begin(); node != nearby.end();) {
@@ -45,8 +44,8 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         ++node;
         if (other == unit) continue;
         double reach = static_cast<double>(other->standingHeight) + unitHeight;
-        double dy = static_cast<double>(position->y) - other->localPosition_.y;
-        double dx = static_cast<double>(position->x) - other->localPosition_.x;
+        double dy = static_cast<double>(position.y) - other->localPosition_.y;
+        double dx = static_cast<double>(position.x) - other->localPosition_.x;
         if (LengthSquared2DUnrounded(dx, dy) >= reach * reach) continue;
         if (other->IsDead() != 0) continue;
 
@@ -169,10 +168,10 @@ void FogGrid::Grow(int x, int y, int n) {
     y0 = top;
 }
 
-void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit,
+void CAIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& look, float cosLimit,
                               float targetHeight, FogGrid* grid) {
-    int eyeX = CellOf(eye->x);
-    int eyeY = CellOf(eye->y);
+    int eyeX = CellOf(eye.x);
+    int eyeY = CellOf(eye.y);
     int reach = CellOf(radius) + 1;
     grid->Grow(eyeX, eyeY, reach);
     EI_NAN_AUDIT(cosLimit, targetHeight);
@@ -189,19 +188,19 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
             cell.x = static_cast<float>(static_cast<double>(x) * half);
             cell.y = static_cast<float>(static_cast<double>(y) * half);
             cell.z = 0.0f;
-            float dx = static_cast<float>(static_cast<double>(cell.x) - eye->x);
-            float dy = static_cast<float>(static_cast<double>(cell.y) - eye->y);
-            float dz = static_cast<float>(-static_cast<double>(eye->z));
+            float dx = static_cast<float>(static_cast<double>(cell.x) - eye.x);
+            float dy = static_cast<float>(static_cast<double>(cell.y) - eye.y);
+            float dz = static_cast<float>(-static_cast<double>(eye.z));
             float distance = static_cast<float>(std::sqrt(static_cast<double>(LengthSquared2DUnrounded(dy, dx))));
             EI_NAN_AUDIT(radius, distance);
             if (radius < distance) continue;
             if (!anyDirection) {
-                double dot = DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, look->x, look->y, look->z);
+                double dot = DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, look.x, look.y, look.z);
                 if (static_cast<double>(distance) * cosLimit > dot) continue;
             }
             if (!noLineOfSight) {
                 cell.z = static_cast<float>(static_cast<double>(cells[y][x].groundLevel) / heightScale + targetHeight);
-                double seen = LineOfSight(eye, &cell) * radius;
+                double seen = LineOfSight(eye, cell) * radius;
                 EI_NAN_AUDIT(seen, distance);
                 if (seen < distance) continue;
             }

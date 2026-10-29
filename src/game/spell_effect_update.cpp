@@ -47,8 +47,8 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     at.z = static_cast<float>(target->ModeSpeed());
     at.z = GroundPlus(e, kGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, worlddata::SplashScale());
-    e->CreateParticle(0, particleType, &kZeroVector, size, 1.0f, &kZeroVector, e->target);
-    e->CreateSound(sound, &at, &kZeroVector, kVolume, kHearing);
+    e->CreateParticle(0, particleType, kZeroVector, size, 1.0f, kZeroVector, e->target);
+    e->CreateSound(sound, at, kZeroVector, kVolume, kHearing);
 
     Vector3 velocity;
     if (arrow) {
@@ -63,7 +63,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     }
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
-    e->CreatePointLight(&at, &color, range * ConstAt(worlddata::RiseScale()), &velocity);
+    e->CreatePointLight(at, color, range * ConstAt(worlddata::RiseScale()), velocity);
     e->timer = 0x23;
     e->state = 2;
 }
@@ -85,15 +85,15 @@ void FireballFlight(CSpellEffect* e) {
         float curve;
         AreaCurve(&e->Spell()->radius_, &Prototype(e)->area, &curve);
         float size = curve >= power ? curve : power;
-        CEffectParticle* blast = e->CreateParticle(0, static_cast<int>(ParticleType::FireBlast), &at, size, 1.0f, &kZeroVector, nullptr);
+        CEffectParticle* blast = e->CreateParticle(0, static_cast<int>(ParticleType::FireBlast), at, size, 1.0f, kZeroVector, nullptr);
         float radius = e->Spell()->radius_;
         float alpha = Power(e);
         blast->SetColors(alpha, radius);
-        e->CreateSound("magic\\fireball\\end.wav", &at, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\fireball\\end.wav", at, kZeroVector, kVolume, kHearing);
         Vector3 velocity{0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
-        e->CreatePointLight(&at, &color, range * ConstAt(worlddata::RiseScale()), &velocity);
+        e->CreatePointLight(at, color, range * ConstAt(worlddata::RiseScale()), velocity);
         if (IsUnit(e->caster)) {
             e->world->aiMap_.events.Noise(ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())), &e->targetPoint);
         }
@@ -122,7 +122,7 @@ void Linger(CSpellEffect* e) {
 
 void RiseLight(CSpellEffect* e) {
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
-    e->light->SetVelocity(&rise);   // no null check
+    e->light->SetVelocity(rise);   // no null check
 }
 
 // Lightning / CurseMagic: the bolt and sound go when the timer reaches 0, the light rises away.
@@ -142,7 +142,7 @@ void LightStrikeEcho(CSpellEffect* e) {
         Vector3 top = e->position;
         top.z = top.z + ConstAt(worlddata::StrikeHeight());
         auto* bolt = CreateObject<CEffectLightning>(e, ClassId::EffectLightning);
-        bolt->SetEnds(&top, &e->position, kStrikeWidthImmediate);
+        bolt->SetEnds(top, e->position, kStrikeWidthImmediate);
         e->SetVisual(bolt);
     }
     CountDown(e);
@@ -159,7 +159,7 @@ void FireWall(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
-            e->HitUnitsAlong(&e->Visual<CEffectWall>()->direction_);
+            e->HitUnitsAlong(e->Visual<CEffectWall>()->direction_);
             e->flags |= 1;
         }
         e->timer = e->timer - 1;
@@ -171,7 +171,7 @@ void FireWall(CSpellEffect* e) {
         e->UpdateFootprint(SpellType::FireWall, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
-        e->CreateSound("magic\\Firewall\\end.wav", &at, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Firewall\\end.wav", at, kZeroVector, kVolume, kHearing);
         RiseLight(e);
     }
     Linger(e);
@@ -187,7 +187,7 @@ void LightWall(CSpellEffect* e) {
             along.x = bolt->to_.x - bolt->from_.x;
             along.y = bolt->to_.y - bolt->from_.y;
             along.z = bolt->to_.z - bolt->from_.z;
-            e->HitUnitsAlong(&along);
+            e->HitUnitsAlong(along);
             e->flags |= 1;
         }
         e->timer = e->timer - 1;
@@ -214,7 +214,7 @@ void PoisonCloud(CSpellEffect* e) {
         return;
     }
     if (ticks == -1) {
-        e->CreateSound("magic\\poison\\end.wav", &e->targetPoint, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\poison\\end.wav", e->targetPoint, kZeroVector, kVolume, kHearing);
         RiseLight(e);
         e->UpdateFootprint(SpellType::AcidFog, 0);
         e->ReleaseSound();
@@ -232,24 +232,24 @@ void CountingCloud(CSpellEffect* e) {
 
 // Fireworks wake the units around and frighten those in the radius (their AI memory notices
 // the point at a level falling from 300 to 50 over the duration); at -1 they end.
-void Fireworks(CSpellEffect* e, std::list<CUnit*>& units) {
+void Fireworks(CSpellEffect* e) {
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks >= 0) {
         float wake = e->Spell()->radius_ + ConstAt(worlddata::ImpactWakeMargin());
-        e->world->WakeUnitsAround(&e->position, wake);
-        e->world->aiMap_.sectorMap.FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
+        e->world->WakeUnitsAround(e->position, wake);
+        std::list<CUnit*> units = e->world->aiMap_.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius_);
         for (auto node = units.begin(); node != units.end();) {
             CUnit* unit = *node;
             ++node;
             int duration = static_cast<int>(e->Spell()->duration_);
             int level = FrightLevel(&e->timer, &duration);
-            ControllerOf(unit)->brain.memory.Notice(&e->position, level, -1);
+            ControllerOf(unit)->brain.memory.Notice(e->position, level, -1);
         }
         return;
     }
     if (ticks == -1) {
-        e->CreateSound("magic\\Firework\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Firework\\end.wav", e->position, kZeroVector, kVolume, kHearing);
         e->ReleaseVisual();
         e->ReleaseSound();
         RiseLight(e);
@@ -259,12 +259,12 @@ void Fireworks(CSpellEffect* e, std::list<CUnit*>& units) {
 
 // Clairvoyance shows the caster's player every unit in the radius and wakes them; at timer
 // 10 a closing particle and sound. Ends with the timer or without a caster.
-void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
+void Clairvoyance(CSpellEffect* e) {
     if (IsUnit(e->caster)) {
         auto* player = e->caster->player;
         if (player) {
             ScriptGroup* group = &player->Server()->possessedGroup_;
-            e->world->aiMap_.sectorMap.FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
+            std::list<CUnit*> units = e->world->aiMap_.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius_);
             for (auto node = units.begin(); node != units.end();) {
                 CUnit* unit = *node;
                 ++node;
@@ -272,14 +272,14 @@ void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
             }
         }
         float wake = e->Spell()->radius_ + ConstAt(worlddata::ImpactWakeMargin());
-        e->world->WakeUnitsAround(&e->position, wake);
+        e->world->WakeUnitsAround(e->position, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks < 0 || !e->caster) e->state = 3;
     if (ticks == 10) {
-        e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), &e->targetPoint, -e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
-        e->CreateSound("magic\\Clairvoyence\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), e->targetPoint, -e->Spell()->radius_, 1.0f, kZeroVector, nullptr);
+        e->CreateSound("magic\\Clairvoyence\\end.wav", e->position, kZeroVector, kVolume, kHearing);
     }
 }
 
@@ -305,7 +305,7 @@ void Possession(CSpellEffect* e) {
         float reach = sight >= floor ? sight : floor;
         float wake;
         MultiplyAdd(&reach, ConstPtr(worlddata::PossessWake()), ConstPtr(worlddata::PossessWakeBase()), &wake);
-        e->world->WakeUnitsAround(&target->localPosition_, wake);
+        e->world->WakeUnitsAround(target->localPosition_, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;
@@ -329,9 +329,9 @@ void Link(CSpellEffect* e) {
         int ticks = e->timer - 1;
         e->timer = ticks;
         if (ticks >= 0) return;
-        e->CreateSound("magic\\Link\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Link\\end.wav", e->position, kZeroVector, kVolume, kHearing);
     } else {
-        e->CreateSound("magic\\Link\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Link\\end.wav", e->position, kZeroVector, kVolume, kHearing);
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::LinkEnded);
     }
     e->state = 3;
@@ -351,11 +351,11 @@ void Teleport(CSpellEffect* e) {
     if (arrival < 1) arrival = 1;
     if (e->timer != arrival) return;
     e->targetPoint.z = e->caster->localPosition_.z;
-    if (!e->world->aiMap_.IsPassableWithoutSelf(e->caster, &e->targetPoint)) {
+    if (!e->world->aiMap_.IsPassableWithoutSelf(e->caster, e->targetPoint)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::CantTeleport);
         return;
     }
-    e->world->aiMap_.sectorMap.Move(e->caster, &e->targetPoint);
+    e->world->aiMap_.sectorMap.Move(e->caster, e->targetPoint);
     e->ReleaseVisual();
     e->ReleaseSound();
     if (!IsUnit(e->caster)) return;
@@ -400,8 +400,6 @@ void CSpellEffect::UpdateMissile(SpellType type) {
 }
 
 void CSpellEffect::UpdateLasting(SpellType type) {
-    std::list<CUnit*> units;   // the list the fireworks and clairvoyance fill
-
     switch (type) {
     case SpellType::FireArrow:
     case SpellType::AcidRay:
@@ -415,8 +413,8 @@ void CSpellEffect::UpdateLasting(SpellType type) {
     case SpellType::FireWall: FireWall(this); break;
     case SpellType::LightningWall: LightWall(this); break;
     case SpellType::AcidFog: PoisonCloud(this); break;
-    case SpellType::Fireworks: Fireworks(this, units); break;
-    case SpellType::Clairvoyance: Clairvoyance(this, units); break;
+    case SpellType::Fireworks: Fireworks(this); break;
+    case SpellType::Clairvoyance: Clairvoyance(this); break;
     case SpellType::Possession: Possession(this); break;
     case SpellType::VisionFog: VisionFog(this); break;
     case SpellType::Link: Link(this); break;
@@ -424,8 +422,6 @@ void CSpellEffect::UpdateLasting(SpellType type) {
     case SpellType::Campfire: CountingCloud(this); break;
     default: break;
     }
-
-    units.clear();
 }
 
 void CSpellEffect::ReleaseVisual() { Assign<CEffect>(this, &visual, nullptr); }

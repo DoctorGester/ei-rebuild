@@ -9,10 +9,10 @@
 #include "ei/x87.h"
 #include "world_data.h"
 
-double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
-    float dx = static_cast<float>(to->x - from->x);
-    float dy = static_cast<float>(to->y - from->y);
-    double dz = static_cast<double>(to->z) - from->z;
+double CAIMap::LargestStepAlong(const Vector3& from, const Vector3& to) {
+    float dx = static_cast<float>(to.x - from.x);
+    float dy = static_cast<float>(to.y - from.y);
+    double dz = static_cast<double>(to.z) - from.z;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
     double cell = 0.5;
     double steps = length / cell;
@@ -26,8 +26,8 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
         return x87::fistp(static_cast<float>(value * fixed / (
                                                                          0.5f)));
     };
-    int fx = toFixed(from->x);
-    int fy = toFixed(from->y);
+    int fx = toFixed(from.x);
+    int fy = toFixed(from.y);
     int stepX = toFixed(static_cast<double>(dx) * inverse);
     int stepY = toFixed(static_cast<double>(dy) * inverse);
 

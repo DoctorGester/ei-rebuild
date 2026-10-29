@@ -36,19 +36,19 @@ void MaybeRemark(AIBrain* brain, AIRemark what) {
     if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(what);
 }
 
-void SetPositions(AIBrain* brain, const Vector3* where, float nearRange, float farRange) {
+void SetPositions(AIBrain* brain, const Vector3& where, float nearRange, float farRange) {
     brain->nearX = nearRange;
     brain->nearY = farRange;
     brain->previousPosition = brain->position;
-    brain->position = *where;
-    if (brain->previousPosition.x == kUnsetCoordinate) brain->previousPosition = *where;
+    brain->position = where;
+    if (brain->previousPosition.x == kUnsetCoordinate) brain->previousPosition = where;
 }
 
 // Common start of CommandWalk / CommandGoTo: the point (moved by `offset` when the way is clear), the run flag,
 // and the references dropped (the leader only while the party is not in danger).
-void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, const Vector3* offset) {
-    Vector3 shifted{to->x + offset->x, to->y + offset->y, to->z + offset->z};
-    self->point = self->PathClear(brain, to, &shifted) ? shifted : *to;
+void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3& to, int run, const Vector3& offset) {
+    Vector3 shifted{to.x + offset.x, to.y + offset.y, to.z + offset.z};
+    self->point = self->PathClear(brain, to, shifted) ? shifted : to;
     self->run = static_cast<std::uint8_t>(run);
     if (!PartyInDanger(brain->owner->unit)) self->leader.Reset();
     self->target.Reset();
@@ -76,8 +76,8 @@ void AIActionMode::Enter(AIBrain* brain) { brain->StopAction(); }
 
 // --- Guard ---------------------------------------------------------------------------------------
 
-void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
-    point = *p;
+void GuardMode::Set(const Vector3& p, float newRadius, float newWander) {
+    point = p;
     failures = 0;
     if (newRadius >= 0.0f)
         radius = newRadius;
@@ -92,12 +92,12 @@ void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
 void GuardMode::Execute(AIBrain* brain) {
     AIMode::Execute(brain);
     if (brain->action != AIBrain::kActionNone) return;
-    SetPositions(brain, &point, kNearRange + radius, kFarRange + radius);
+    SetPositions(brain, point, kNearRange + radius, kFarRange + radius);
 
     AIMoveOrder order;
-    if (!brain->FindStandPoint(&point, radius, &order.point)) {
+    if (!brain->FindStandPoint(point, radius, &order.point)) {
         if (++failures <= 100) return;
-        if (!brain->FindStandPoint(&brain->owner->unit->localPosition_, radius, &order.point)) return;
+        if (!brain->FindStandPoint(brain->owner->unit->localPosition_, radius, &order.point)) return;
     }
     failures = 0;
     float dx = order.point.x - point.x;
@@ -113,7 +113,7 @@ void GuardMode::Execute(AIBrain* brain) {
         direction.z = static_cast<float>(direction.z * scale);
     }
     bool farLook = g_random.Next() % 11 == 0;
-    brain->PlanLooks(&order, &direction, wander, farLook);
+    brain->PlanLooks(&order, direction, wander, farLook);
     brain->StartMove(&order);
 }
 
@@ -136,7 +136,7 @@ void GuardMode::Save(CStream* stream) {
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (!points.empty()) return kPriorityIdle;
     game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
-    AppendPoint(&brain->owner->unit->localPosition_);
+    AppendPoint(brain->owner->unit->localPosition_);
     return kPriorityNone;
 }
 
@@ -150,10 +150,10 @@ void PatrolMode::Execute(AIBrain* brain) {
     order.looks = next.looks;
     if (order.looks.empty()) {
         Vector3 none{0.0f, 0.0f, 0.0f};
-        brain->PlanLooks(&order, &none, kNoWander, false);
+        brain->PlanLooks(&order, none, kNoWander, false);
     }
     brain->StartMove(&order);
-    SetPositions(brain, &order.point, kNearRange, kFarRange);
+    SetPositions(brain, order.point, kNearRange, kFarRange);
 }
 
 PatrolPoint* PatrolMode::LastPoint() { return points.empty() ? nullptr : &points.back(); }
@@ -180,7 +180,7 @@ void PatrolMode::Save(CStream* stream) {
 
 // --- Sentry --------------------------------------------------------------------------------------
 
-void SentryMode::Set(const Vector3* p) { point = *p; }
+void SentryMode::Set(const Vector3& p) { point = p; }
 
 void SentryMode::Execute(AIBrain* brain) {
     AIMode::Execute(brain);
@@ -191,9 +191,9 @@ void SentryMode::Execute(AIBrain* brain) {
     Vector3 none{0.0f, 0.0f, 0.0f};
     // A far look waits up to the guards' stay time, a near one the sentries'.
     float stayTime = farLook ? g_logicSettings.guardStayTime : g_logicSettings.sentryStayTime;
-    brain->PlanLooks(&order, &none, stayTime, farLook);
+    brain->PlanLooks(&order, none, stayTime, farLook);
     brain->StartMove(&order);
-    SetPositions(brain, &order.point, kNearRange, kFarRange);
+    SetPositions(brain, order.point, kNearRange, kFarRange);
 }
 
 void SentryMode::Load(CStream* stream) { stream->ReadValue(point); }
@@ -219,7 +219,7 @@ void FollowMode::Save(CStream* stream) { SaveRef(leader, stream); }
 
 int SuspectionMode::Evaluate(AIBrain* brain) {
     if (brain->seen && !brain->IsAlliedUnit(brain->seen))
-        brain->memory.Notice(&brain->seen->localPosition_, kNoticeSeenLevel, kNoticeSeenDecay);
+        brain->memory.Notice(brain->seen->localPosition_, kNoticeSeenLevel, kNoticeSeenDecay);
     EI_NAN_AUDIT(brain->memory.noticedX, point.x, brain->memory.noticedY, point.y);
     if (brain->memory.noticedX == point.x && brain->memory.noticedY == point.y) {
         level = (std::min)(level, brain->memory.noticedLevel);
@@ -251,7 +251,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     if (brain->action == AIBrain::kActionNone) {
         if (brain->owner->orderStopped) level -= 50;
-        if (!brain->FindStandPoint(&point, kStandRadius, &order.point)) {
+        if (!brain->FindStandPoint(point, kStandRadius, &order.point)) {
             level -= 5;
             return;
         }
@@ -259,7 +259,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
         order.point = point;
     }
     Vector3 none{0.0f, 0.0f, 0.0f};
-    brain->PlanLooks(&order, &none, kNoWander, false);
+    brain->PlanLooks(&order, none, kNoWander, false);
     brain->StartMove(&order);
     level = brain->memory.noticedLevel;
 }
@@ -269,7 +269,7 @@ void SuspectionMode::Enter(AIBrain* brain) {
     AIMoveOrder order;
     order.point = point;
     Vector3 none{0.0f, 0.0f, 0.0f};
-    brain->PlanLooks(&order, &none, kNoWander, false);
+    brain->PlanLooks(&order, none, kNoWander, false);
     brain->StartMove(&order);
     brain->owner->voice.Raise(AIRemark::Suspicion);
 }
@@ -314,9 +314,8 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         return kPriorityFight;
     }
     if (!brain->memory.seesEnemy) return kPriorityNone;
-    UnitList candidates;
-    brain->memory.FindEnemies(self, &candidates);
-    brain->attention.Choose(brain, &chosen, &candidates, &self->localPosition_, false, false);
+    UnitList candidates = brain->memory.FindEnemies(self);
+    brain->attention.Choose(brain, &chosen, &candidates, self->localPosition_, false, false);
     enemy.Assign(chosen.object);
     return chosen.object ? kPriorityFight : kPriorityNone;
 }
@@ -324,7 +323,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
 void AggressionMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, AIRemark::FightingIdle);
     if (!chosen.object) return;
-    brain->CallAllies(&chosen.object->localPosition_);
+    brain->CallAllies(chosen.object->localPosition_);
     brain->attention.ApplyAttack(brain, &chosen);
 }
 
@@ -360,7 +359,7 @@ int CorpseWatcherMode::Evaluate(AIBrain* brain) {
     if (!brain->memory.corpses.empty()) {
         HeldRef<CUnit> corpse = std::move(brain->memory.corpses.front());   // the list's reference, now ours
         brain->memory.corpses.pop_front();
-        brain->memory.Notice(&corpse->localPosition_, kNoticeCorpseLevel, kNoticeCorpseDecay);
+        brain->memory.Notice(corpse->localPosition_, kNoticeCorpseLevel, kNoticeCorpseDecay);
     }
     return kPriorityNone;
 }
@@ -437,7 +436,7 @@ void PlayerMode::Execute(AIBrain* brain) {
         } else if (danger || StaysWithParty(brain, false)) {
             point.z = kWalking;
             Vector3 to{point.x, point.y, kUnsetCoordinate};
-            brain->Walk(&to, 0);
+            brain->Walk(to, 0);
         }
         if (state == kStateMoveTo) UpdateCombat(brain);
         return;
@@ -449,24 +448,24 @@ void PlayerMode::Execute(AIBrain* brain) {
     brain->StopAction();
 }
 
-void PlayerMode::CommandWalk(AIBrain* brain, const Vector3* to, int inGroup, int runArg, const Vector3* offset) {
+void PlayerMode::CommandWalk(AIBrain* brain, const Vector3& to, int inGroup, int runArg, const Vector3& offset) {
     state = kStateCommand;
     PrepareWalk(this, brain, to, runArg, offset);
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(&point, run, inGroup, kMoveTime);
+    brain->owner->OrderMove(point, run, inGroup, kMoveTime);
 }
 
-void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int inGroup, int runArg, const Vector3* offset) {
+void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, int inGroup, int runArg, const Vector3& offset) {
     state = kStateMoveTo;
     PrepareWalk(this, brain, to, runArg, offset);
     if (!PartyInDanger(brain->owner->unit) && !StaysWithParty(brain, true)) {
         point.z = 0.0f;
-        brain->owner->PlanMove(&point, inGroup, 0, kMoveTime);
+        brain->owner->PlanMove(point, inGroup, 0, kMoveTime);
         return;
     }
     point.z = kWalking;
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(&point, run, inGroup, kMoveTime);
+    brain->owner->OrderMove(point, run, inGroup, kMoveTime);
 }
 
 void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int calledShot) {
@@ -492,7 +491,7 @@ void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object) {
     brain->CastOn(spell, object, run);
 }
 
-void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at) {
+void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3& at) {
     state = kStateFollow;
     brain->CastAt(spell, at, run);
 }

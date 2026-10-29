@@ -156,7 +156,7 @@ about a fact (a why, a quirk, a layout), keep it, shortened.
    `return 220.0f; } // 220`. A trailer that decodes bits stays (`0x3D23D70A); // 0.04f`). The rdata
    literal tags `0.5f /*0073B86C*/` are gone (C41); the named-data tags after an `=` stay.
 7. **File pointers.** `class CStream;   // core_streams.h`, "(lever_table_load.cpp)", "unit_lever.cpp:
-   SetState, CollectUseSpots; lever_object.cpp the rest". Grep finds them. The file header keeps its one
+   SetState, UseSpots; lever_object.cpp the rest". Grep finds them. The file header keeps its one
    pointer to docs/notes.
 8. **Rulers** that are bare (`// -----`, `// --- ------`) or titled with the one function that follows
    (`// --- Close ---`). Rulers that name a group of functions in a long file stay.

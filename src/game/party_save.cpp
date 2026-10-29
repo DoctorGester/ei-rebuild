@@ -19,11 +19,6 @@
 
 namespace {
 
-template <typename Text>
-void ReadText(CStream* stream, Text& text) {
-    stream->ReadInto(&text);
-}
-
 // A list's count, then each item's id (-1 for an empty entry).
 void WriteItemIds(CStream* stream, const std::vector<CItem*>& list) {
     stream->WriteValue(std::ssize(list));
@@ -73,11 +68,11 @@ void PartyUnitRecord::Load(CStream* stream) {
     leaderId = -1;
     selected = 0;
     fightAtWill = 1;
-    ReadText(stream, texts[0]);
-    ReadText(stream, texts[2]);
-    ReadText(stream, texts[3]);
-    ReadText(stream, texts[4]);
-    ReadText(stream, texts[5]);
+    texts[0] = stream->ReadString();
+    texts[2] = stream->ReadString();
+    texts[3] = stream->ReadString();
+    texts[4] = stream->ReadString();
+    texts[5] = stream->ReadString();
     texts[6] = texts[5];
     stream->ReadValue(unitId);
     stats.LoadFrom(stream);
@@ -86,7 +81,7 @@ void PartyUnitRecord::Load(CStream* stream) {
     ReadItemIds(stream, quickItems, g_loadingParty->ItemFactory());
     ReadItemIds(stream, armor, g_loadingParty->ItemFactory());
     ReadItemIds(stream, spells, g_loadingParty->ItemFactory());
-    ReadText(stream, texts[1]);
+    texts[1] = stream->ReadString();
     if (Version(stream) < kVersionRecordFlags) return;
     stream->ReadValue(moveMode2);
     stream->ReadValue(weaponIndex);
@@ -96,7 +91,7 @@ void PartyUnitRecord::Load(CStream* stream) {
     if (Version(stream) < kVersionRecord780) return;
     stream->ReadValue(fightAtWill);
     if (Version(stream) < kVersionRecordText6) return;
-    ReadText(stream, texts[6]);
+    texts[6] = stream->ReadString();
 }
 
 void PartyUnitRecord::Save(CStream* stream) {
@@ -125,7 +120,7 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     if (itemManager_ == nullptr) Create();
     g_loadingParty = this;
     Clear(loadVariables, 0);
-    ReadText(stream, zone_);
+    zone_ = stream->ReadString();
     stream->ReadValue(entrance_);
     itemManager_->Load(stream);
     spellManager_->Load(stream);

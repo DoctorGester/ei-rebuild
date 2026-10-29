@@ -104,13 +104,12 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     auto& units = player->units_;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
-        std::list<CUnit*> heard;
         auto* controller = unit->ServerController();
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.perception[0].current);
         float minimum = controller->stats.perception[2].current;
         float range = perception >= minimum ? perception : minimum;   // branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * kHearingScale + kHearingMargin);
-        world->aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &heard, radius);
+        std::list<CUnit*> heard = world->aiMap_.sectorMap.FindUnitsInRadius(unit->localPosition_, radius);
         for (auto& entry : heard) *out++ = entry;
         heard.clear();
     }
@@ -234,7 +233,7 @@ int CWorldServer::SendZone(CPlayer* player) {
                 Vector3 start;
                 lib::LoadBytes(start, at);
                 start.z = static_cast<float>(RawSurfaceHeightAt(start.x, start.y));
-                result = state->SendPosition04(&start, 0, sessionKind_);
+                result = state->SendPosition04(start, 0, sessionKind_);
             }
         }
         if (result != 0) player->connection_->ItemsGiven(&player->items_, 0);

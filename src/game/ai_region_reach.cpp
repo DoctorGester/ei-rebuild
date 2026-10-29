@@ -139,13 +139,13 @@ void CRegionMap::LabelRegions() {
     }
 }
 
-void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, std::list<BlockCost>* out) {
+std::list<BlockCost> CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y) {
+    std::list<BlockCost> out;
     int bx = x / 8, by = y / 8;
     if (BlocksWide(this) - 1 < bx) bx = BlocksWide(this) - 1;
     if (bx < 0) bx = 0;
     if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
     if (by < 0) by = 0;
-    out->clear();
 
     local.backward = flag;
     LocalSearch* search = &local;
@@ -161,10 +161,11 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, std::list<
             std::uint8_t cell = cellRows[yy][xx];
             int cost = search->CostAt(RepresentativeX(cell) + xx * 8, RepresentativeY(cell) + yy * 8);
             if (cost >= kUnreached) continue;
-            out->push_back({xx, yy, cost});
+            out.push_back({xx, yy, cost});
         }
     }
     search->Reset();
+    return out;
 }
 
 void CRegionMap::ClampEdgeCosts() {
@@ -292,9 +293,8 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
 }
 
 int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
-    // The reachable blocks around the cell (NearbyBlocks, through its address).
-    std::list<BlockCost> blocks{};
-    NearbyBlocks(sizeClass, false, x, y, &blocks);
+    // The reachable blocks around the cell.
+    std::list<BlockCost> blocks = NearbyBlocks(sizeClass, false, x, y);
     // Count the blocks per region, in first-seen order (the original keeps a list of {region, count}; at most
     // nine entries).
     std::uint16_t seen[9];

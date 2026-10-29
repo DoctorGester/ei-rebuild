@@ -43,7 +43,7 @@ void CViewScreen::CreateScreen() {
     CCamera* camera = &g_camera;
     camera->flags_ &= ~CCamera::kFree;
     Vector3 focus{30.0f, 30.0f, 0.0f};
-    camera->SetFocus(&focus);
+    camera->SetFocus(focus);
     Vector3 axis{1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAngleAxis(TurnAngle(), axis);
@@ -76,7 +76,7 @@ void UnitPickInput::LeftDown(int, int x, int y) {
             auto* member = GameFindClientUnit(picked_[i]);
             if (!member) continue;
             std::vector<CUnit*> order{member};
-            world->LocalView()->SendWalk(&order, &ground, 0);
+            world->LocalView()->SendWalk(&order, ground, 0);
         }
     } else if (unit) {
         for (int i = 0; i < std::ssize(picked_); ++i) {

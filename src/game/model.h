@@ -295,7 +295,7 @@ public:
     // The selection marker under a selected unit (the draw pass): a flat green arrow of half-transparent
     // 0x8000FF00, 0.3 above `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the
     // device's flat geometry draw as six triangles of two vertex blocks.
-    int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY);
+    int DrawSelectionMarker(const Vector3& point, float size, const Vector3& axisX, const Vector3& axisY);
     // A black rectangle (left, top, right, bottom in screen pixels) of `alpha` over the current blend state,
     // with `outline` a white frame. Returns 1.
     int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline);

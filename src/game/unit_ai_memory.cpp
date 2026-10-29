@@ -44,22 +44,23 @@ void KeepLower(float& slot, float value) { slot = value >= slot ? slot : value; 
 
 } // namespace
 
-void AIMemory::FindEnemies(CUnit* self, UnitList* out) {
-    out->clear();
+UnitList AIMemory::FindEnemies(CUnit* self) {
+    UnitList out;
     for (auto& node : visible) {
         CUnit* other = node;
         if (!self->IsHostileTo(other) || other->IsDead() || reports.Contains(other)) continue;
-        out->push_back(other);
+        out.push_back(other);
     }
+    return out;
 }
 
-void AIMemory::FindEnemiesNear(CUnit* self, UnitList* out, const Vector3* point, float radius) {
-    out->clear();
+UnitList AIMemory::FindEnemiesNear(CUnit* self, const Vector3& point, float radius) {
+    UnitList out;
     float radius2 = radius > 0.0f ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
     for (auto& node : visible) {
         CUnit* other = node;
         if (!other->IsHostileTo(self) || other->IsDead() || reports.Contains(other)) continue;
-        if (Distance2(other, &point->x) >= radius2) {
+        if (Distance2(other, &point.x) >= radius2) {
             AIBrain* theirs = &other->ServerController()->brain;
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(AIModeType::Aggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
@@ -67,8 +68,9 @@ void AIMemory::FindEnemiesNear(CUnit* self, UnitList* out, const Vector3* point,
             if (enemy && !g_serverWorld.diplomacy_.IsAllied(self->side, enemy->side)) continue;
             if (!theirs->memory.seesEnemy) continue;
         }
-        out->push_back(other);
+        out.push_back(other);
     }
+    return out;
 }
 
 CUnit* AIMemory::NearestEnemy(CUnit* self) {
@@ -144,7 +146,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
         if (distance < sight) {
             Vector3 theirEye;
             Vector3 to = *other->EyePoint(&theirEye);
-            double range = g_serverWorld.aiMap_.LineOfSight(&eye, &to) * sight;
+            double range = g_serverWorld.aiMap_.LineOfSight(eye, to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }
         KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.perception[2].current) * self->stats.conspicuity[2].current));

@@ -58,7 +58,7 @@ Matrix Multiply(const Matrix& a, const Matrix& b) {
 // The placement it builds (ObjectWorldMatrix of a rotation and a position), into a local.
 Matrix Placement(const Quaternion& rotation, const Vector3& position) {
     Matrix4 m;
-    ObjectWorldMatrix(&rotation, &position, &m);
+    ObjectWorldMatrix(&rotation, position, &m);
     return FromFloat(m);
 }
 

@@ -88,8 +88,8 @@ bool CEffectMoshka::RunTick() {
     return false;
 }
 
-Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {
-    Vector3 eye = *from;
+Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3& from) {
+    Vector3 eye = from;
     eye.z = static_cast<float>(eye.z + kEyeHeight);
     float height = kPerchHeight;
     float distance = kPerchRadius;
@@ -97,10 +97,10 @@ Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {
     for (;;) {
         float radius = distance >= kPerchMinRadius ? distance : kPerchMinRadius;
         double angle = x87::FromUnsigned(g_random.Next()) * kRandomAngle;
-        perch.z = static_cast<float>(from->z + height);
-        perch.x = static_cast<float>(x87::fcos(angle) * radius + from->x);
-        perch.y = static_cast<float>(x87::fsin(angle) * radius + from->y);
-        if (g_serverWorld.aiMap_.LineOfSight(&eye, &perch) > kClearance) break;
+        perch.z = static_cast<float>(from.z + height);
+        perch.x = static_cast<float>(x87::fcos(angle) * radius + from.x);
+        perch.y = static_cast<float>(x87::fsin(angle) * radius + from.y);
+        if (g_serverWorld.aiMap_.LineOfSight(eye, perch) > kClearance) break;
         height = height + kPerchHeightStep;
         distance = radius - kPerchRadiusStep;
     }
@@ -142,7 +142,7 @@ void CEffectMoshka::Update(float now) {
             double outward = kHalfPi + angle;
             perch.x = static_cast<float>(x87::fcos(outward) * kPerchSearchRadius + perch.x);
             perch.y = static_cast<float>(x87::fsin(outward) * kPerchSearchRadius + perch.y);
-            if (g_serverWorld.aiMap_.LineOfSight(&bird->localPosition_, &perch) > kClearance) {
+            if (g_serverWorld.aiMap_.LineOfSight(bird->localPosition_, perch) > kClearance) {
                 state_ = kFlyingOff;
                 timer_ = kFlyingOffFrames;
                 localPosition_ = perch;
@@ -156,7 +156,7 @@ void CEffectMoshka::Update(float now) {
     } else if (state_ == kPerched) {
         if (timeUp) {
             Vector3 perch;
-            FindPerch(&perch, &followed);
+            FindPerch(&perch, followed);
             state_ = kFlyingOff;
             timer_ = kFlyingOffFrames;
             localPosition_ = perch;
@@ -186,7 +186,7 @@ void CEffectMoshka::Update(float now) {
     // Kept above the surface, the bird moves at most its speed towards the target.
     Vector3 ground{target.x, target.y, 0.0f};
     double raw = g_clientWorld.RawSurfaceHeightAt(target.x, target.y);
-    float floor = static_cast<float>(g_clientWorld.platforms_.SurfaceHeight(&ground, static_cast<float>(raw)) + kClearance);
+    float floor = static_cast<float>(g_clientWorld.platforms_.SurfaceHeight(ground, static_cast<float>(raw)) + kClearance);
     float z = target.z >= floor ? target.z : floor;
     Vector3 move{static_cast<float>(target.x - birdAt.x), static_cast<float>(target.y - birdAt.y), static_cast<float>(z - birdAt.z)};
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
@@ -223,7 +223,7 @@ void CEffectMoshka::Follow(int objectId) {
     CObject3D* bird = bird_;
     CObject3DClientSpecific* attached = bird->ClientSpecific();
     Vector3 perch;
-    FindPerch(&perch, &followed->localPosition_);
+    FindPerch(&perch, followed->localPosition_);
     bird->localPosition_ = perch;
     std::vector<std::string> parts;
     bird->MakeFigure(model, &parts, 1);

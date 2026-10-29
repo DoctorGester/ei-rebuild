@@ -35,7 +35,7 @@ void CTorchObjectSpec::DestroySpec() {
 
 void CTorchObjectSpec::LoadSpec(CStream* stream) {
     stream->ReadValue(lightKind_);
-    stream->ReadInto(&name_);
+    name_ = stream->ReadString();
     stream->ReadValue(values_[0]);
     stream->ReadValue(values_[1]);
     stream->Read(&values_[2], 0x10);

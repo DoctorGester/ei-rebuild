@@ -176,18 +176,18 @@ CMapObject* AIBrain::AggressionEnemy() {
 
 // --- Positions -----------------------------------------------------------------------------------
 
-bool AIBrain::IsNearPath(const Vector3* point, float radius) {
+bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     float radiusSq = radius * radius;
     // Kept on the FPU stack (double holds the 24-bit results exactly).
-    double dx = position.x - point->x;
-    double dy = position.y - point->y;
+    double dx = position.x - point.x;
+    double dy = position.y - point.y;
     EI_NAN_AUDIT(dy, dx, radiusSq);
     if (LengthSquared2DUnrounded(dy, dx) < radiusSq) return true;
     // The unit has not moved -> not near.
     EI_NAN_AUDIT(position.x, previousPosition.x, position.y, previousPosition.y);
     if (position.x == previousPosition.x && position.y == previousPosition.y) return false;
-    float pointX = point->x;
-    float pointY = point->y;
+    float pointX = point.x;
+    float pointY = point.y;
     float segX = previousPosition.x - position.x;
     float segY = previousPosition.y - position.y;
     float t = static_cast<float>(((pointX - position.x) * segX + (pointY - position.y) * segY) /
@@ -270,7 +270,7 @@ void AIBrain::UpdateAttack() {
     // A unit without a player gives up a unit it can no longer keep track of and remembers where it was.
     CUnit* unit = UnitOrNull(target);
     if (unit && !owner->unit->player && !memory.CanTrack(owner->unit, unit)) {
-        memory.Notice(&target->localPosition_, kNoticeSeenLevel, kNoticeSeenDecay);
+        memory.Notice(target->localPosition_, kNoticeSeenLevel, kNoticeSeenDecay);
         action = kActionNone;
         return;
     }
@@ -325,20 +325,20 @@ void AIBrain::StartMove(const AIMoveOrder* order) {
     actionTime = kNoTime;
     move.point = order->point;
     move.looks = order->looks;
-    owner->OrderMove(&move.point, 0, 0, kMoveTime);
+    owner->OrderMove(move.point, 0, 0, kMoveTime);
 }
 
-void AIBrain::Walk(const Vector3* point, int run) {
+void AIBrain::Walk(const Vector3& point, int run) {
     action = kActionWalk;
     owner->OrderMove(point, run, 0, kMoveTime);
 }
 
-void AIBrain::TurnTowards(const Vector3* direction, float time) {
+void AIBrain::TurnTowards(const Vector3& direction, float time) {
     action = kActionWalk;
-    owner->OrderTurn(&direction->x, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
+    owner->OrderTurn(&direction.x, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
 }
 
-void AIBrain::CastAt(int spell, const Vector3* point, int run) {
+void AIBrain::CastAt(int spell, const Vector3& point, int run) {
     if (!owner->IsScrollSource(spell)) action = kActionCast;
     actionTime = spell;
     owner->OrderCastAt(spell, point, run);
@@ -359,9 +359,9 @@ void AIBrain::Follow(CMapObject* object) {
 void AIBrain::SetSeen(CMapObject* object) {
     seen.Assign(object);
     if (!object) {
-        CallAllies(&owner->unit->localPosition_);
+        CallAllies(owner->unit->localPosition_);
     } else if (!IsAlliedUnit(object)) {
-        CallAllies(&object->localPosition_);
+        CallAllies(object->localPosition_);
     }
     if (!alerted && alertMode == 1) alerted = 1;
     if (CUnit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);

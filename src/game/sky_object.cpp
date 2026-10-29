@@ -94,9 +94,9 @@ CSky::CSky() {
     LoadNamedTexture(texture, kSkyTextureKind, kSkyTextureName);
 }
 
-void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
+void CSky::Draw(CSceneRenderer* renderer, const Vector3& eye) {
     if (!object) return;
-    const float x = eye->x, y = eye->y, z = eye->z - kSkyDrop;
+    const float x = eye.x, y = eye.y, z = eye.z - kSkyDrop;
     if (turns) {
         const Vector3 up{0.0f, 0.0f, 1.0f};
         Quaternion turn;

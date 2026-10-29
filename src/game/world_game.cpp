@@ -173,7 +173,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
         point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f);
         point.z = 0.0f;
         for (int i = ticks; i != 0; --i) {
-            g_serverWorld.WakeUnitsAround(&point, kCatchUpRadius);
+            g_serverWorld.WakeUnitsAround(point, kCatchUpRadius);
             g_serverWorld.Tick(static_cast<char>(1));
         }
     }

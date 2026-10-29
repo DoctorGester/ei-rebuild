@@ -40,10 +40,9 @@ void Lever::SetState(int wanted, float duration) {
 
     auto* world = ServerWorld();
     if (!world->IsServer()) return;
-    std::list<CUnit*> around{};
     CSectorMap* sectors = &world->aiMap_.sectorMap;
     float reach = bounds.radius + 0.5f;
-    sectors->FindUnitsInRadius(&localPosition_, &around, reach);
+    std::list<CUnit*> around = sectors->FindUnitsInRadius(localPosition_, reach);
     for (auto node = around.begin(); node != around.end();) {
         auto next = std::next(node);
         sectors->Remove(*node);
@@ -80,7 +79,7 @@ void Lever::SetState(int wanted, float duration) {
         if (!map->CanLeaveCell(unit)) {
             Vector3* at = &unit->localPosition_;
             Vector3 free = {at->x, at->y, at->z};
-            map->FindFreeCellNear(unit, at, &free);
+            map->FindFreeCellNear(unit, *at, &free);
             *at = free;
             unit->ServerController()->ResyncWithUnit();
         }
@@ -90,11 +89,10 @@ void Lever::SetState(int wanted, float duration) {
     around.clear();
 }
 
-void Lever::CollectUseSpots(std::vector<Vector3>* out, float userRadius) {
-    // the array emptied.
-    lib::FreeStorage(*out);
+std::vector<Vector3> Lever::UseSpots(float userRadius) {
+    std::vector<Vector3> spots;
     const LeverRecord* record = g_leverTable.Named(name);
-    if (!record || record->spotCount == 0) return;
+    if (!record || record->spotCount == 0) return spots;
     const Quaternion& facing = localRotation_;
     // The count is read again each time; a count above 2 reads on into the record (sic).
     for (std::uint32_t i = 0; i < record->spotCount; ++i) {
@@ -118,6 +116,7 @@ void Lever::CollectUseSpots(std::vector<Vector3>* out, float userRadius) {
         at.x = axis.x * across * distance + at.x;
         at.y = axis.y * across * distance + at.y;
         at.z = axis.z * across * distance + at.z;
-        lib::SetAtGrow(*out, std::ssize(*out), at);
+        spots.push_back(at);
     }
+    return spots;
 }

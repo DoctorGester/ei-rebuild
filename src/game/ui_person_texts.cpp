@@ -21,10 +21,8 @@ constexpr int kPersonPrefixLength = 5;                                          
 
 void LoadPersonTexts(std::map<int, std::string>* map) {
     CTextManager* texts = g_clientWorld.texts_;
-    std::vector<std::string> keys;
     std::string line;
-    texts->ListKeys(&keys, PersonPattern());
-    for (const std::string& textKey : keys) {
+    for (const std::string& textKey : texts->ListKeys(PersonPattern())) {
         if (!texts->CTextManager::Open(textKey)) continue;
         texts->ReadLine(&line, 1);
         int key;

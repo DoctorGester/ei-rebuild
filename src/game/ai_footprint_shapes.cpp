@@ -59,20 +59,20 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
 } // namespace
 
 // The disc limited by a line, at half a unit's width from it.
-void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, const Vector3* direction) {
+void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3& position, const Vector3& direction) {
     constexpr float kWidth = 0.5f;
     double scale = 1.0 /
                    (0.5);
-    float cx = static_cast<float>(scale * position->x);
-    float cy = static_cast<float>(scale * position->y);
-    double dx = direction->x, dy = direction->y, dz = direction->z;
+    float cx = static_cast<float>(scale * position.x);
+    float cy = static_cast<float>(scale * position.y);
+    double dx = direction.x, dy = direction.y, dz = direction.z;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
     double reach = length * scale + 1.0;
     float r = static_cast<float>(reach);
     float r2 = static_cast<float>(reach * r);
     // The side normal (-dy, dx), divided by its length times the scaled width plus one.
-    float nx = -direction->y;
-    float ny = direction->x;
+    float nx = -direction.y;
+    float ny = direction.x;
     double side = std::sqrt(LengthSquared2DUnrounded<double>(ny, nx));
     double divisor = side * (scale * kWidth + 1.0);
     nx = static_cast<float>(nx / divisor);
@@ -92,11 +92,11 @@ void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, cons
 }
 
 // The disc.
-void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius) {
+void FootprintCellSet::DiscAt(CAIMap* map, const Vector3& position, float radius) {
     double scale = 1.0 /
                    (0.5);
-    float cx = static_cast<float>(scale * position->x);
-    float cy = static_cast<float>(scale * position->y);
+    float cx = static_cast<float>(scale * position.x);
+    float cy = static_cast<float>(scale * position.y);
     double reach = scale * radius + 1.0;
     float r = static_cast<float>(reach);
     float r2 = static_cast<float>(reach * r);

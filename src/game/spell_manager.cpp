@@ -18,9 +18,10 @@ constexpr const char* kSpellManagerClassName = "CSpellManager";
 constexpr const char* kSpellManagerFolder = "spells";
 
 template <typename Record>
-void ListRecordNames(const itemdb::CodeIndexedTable<Record>& table, std::vector<std::string>* names) {
-    names->resize(table.Count());
-    for (std::uint32_t i = 0; i < table.Count(); ++i) (*names)[i] = table.At(i)->name;
+std::vector<std::string> ListRecordNames(const itemdb::CodeIndexedTable<Record>& table) {
+    std::vector<std::string> names(table.Count());
+    for (std::uint32_t i = 0; i < table.Count(); ++i) names[i] = table.At(i)->name;
+    return names;
 }
 
 } // namespace
@@ -90,12 +91,8 @@ const char* CSpellManager::ClassName() { return kSpellManagerClassName; }
 ClassId CSpellManager::GetClassId() { return ClassId::SpellManager; }
 const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 
-// The array takes the table's count, then element i the name of record i while i is below the count (read
-// again each time).
-void CSpellManager::ListSpellNames(std::vector<std::string>* names) { ListRecordNames(g_spellDatabase.spells, names); }
-void CSpellManager::ListModifierNames(std::vector<std::string>* names) {
-    ListRecordNames(g_spellDatabase.modifiers, names);
-}
+std::vector<std::string> CSpellManager::ListSpellNames() { return ListRecordNames(g_spellDatabase.spells); }
+std::vector<std::string> CSpellManager::ListModifierNames() { return ListRecordNames(g_spellDatabase.modifiers); }
 
 // The spell and the name are members, constructed before the body (the game builds them after the code
 // string) and destroyed after it (the game: the name and the spell before the string); neither allocates.

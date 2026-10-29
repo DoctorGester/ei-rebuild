@@ -144,7 +144,6 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (!refreshUnits) return;
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
-    std::list<CUnit*> objects{};
     double halfW = static_cast<double>(ox1 - ox0) * 0.5f + 1.0f;
     double halfH = static_cast<double>(oy1 - oy0) * 0.5f + 1.0f;
     float scale = 0.5f;
@@ -155,7 +154,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     centre.x = cx;
     centre.y = cy;
     CSectorMap* sectors = &sectorMap;
-    sectors->FindUnitsInRadius(&centre, &objects, radius);
+    std::list<CUnit*> objects = sectors->FindUnitsInRadius(centre, radius);
     for (auto node = objects.begin(); node != objects.end();) {
         auto next = std::next(node);
         sectors->Remove(*node);

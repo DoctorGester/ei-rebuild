@@ -223,7 +223,7 @@ void CWorldServer::RemoveObject(unsigned id) {
 
 double CWorldServer::RawSurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
-    return aiMap_.TopHeightAt(&point);
+    return aiMap_.TopHeightAt(point);
 }
 
 double CWorldServer::GroundHeightAt(float x, float y) { return GridHeightAt(x, y); }

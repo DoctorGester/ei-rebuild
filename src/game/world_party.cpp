@@ -180,7 +180,7 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
     lastZ = std::bit_cast<std::uint32_t>(state->lastPosition_.z);
     if (lastZ != kNoStart) {
         state->lastPosition_ = start;
-        state->SendPosition04(&start, startValue, sessionKind_);
+        state->SendPosition04(start, startValue, sessionKind_);
     }
     player->lastTick_ = tick_;
     if (sessionKind_ == kKindNoRangeTest) UpdateMercBriefings();

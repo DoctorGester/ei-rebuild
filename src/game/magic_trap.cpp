@@ -116,11 +116,10 @@ void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area,
                                 std::list<CUnit*>* out) {
     out->clear();
     CSectorMap* sectors = &context->aiMap_.sectorMap;
-    std::list<CUnit*> found{};
     for (int i = 0; i < std::ssize(*area); ++i) {
         const TrapCircle& circle = (*area)[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
-        sectors->FindUnitsInRadius(&point, &found, circle.radius);
+        std::list<CUnit*> found = sectors->FindUnitsInRadius(point, circle.radius);
         for (auto node = found.begin(); node != found.end();) {
             CUnit* unit = *node;
             ++node;
@@ -129,7 +128,6 @@ void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area,
             if (sides & (1u << (side & 31))) out->push_back(unit);   // SHL by CL: the count is taken mod 32
         }
     }
-    found.clear();
 }
 
 void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
@@ -142,7 +140,7 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
         for (int i = 0; i < std::ssize(points); ++i) {
             const TrapPoint& point = points[i];
             Vector3 at = {point.x, point.y, 0.0f};
-            g_serverWorld.CastSpell(spell, nullptr, &from, nullptr, &at, 0);
+            g_serverWorld.CastSpell(spell, nullptr, from, nullptr, at, 0);
         }
     } else {
         if (singleTarget != 0) {
@@ -163,8 +161,8 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
         for (auto node = units->begin(); node != units->end();) {
             auto next = std::next(node);
             CUnit* unit = *node;
-            g_serverWorld.CastSpell(spell, nullptr, &from, unit,
-                                   &unit->localPosition_, 0);
+            g_serverWorld.CastSpell(spell, nullptr, from, unit,
+                                   unit->localPosition_, 0);
             node = next;
         }
     }

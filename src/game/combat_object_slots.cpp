@@ -80,7 +80,7 @@ void CUnitServer::Resettle() {
         auto* position = &unit->localPosition_;
         Vector3 spot;
         spot = *position;
-        if (map->FindFreeCellNear(unit, position, &spot)) {
+        if (map->FindFreeCellNear(unit, *position, &spot)) {
             *position = spot;
         } else {
             DamageInfo hit;

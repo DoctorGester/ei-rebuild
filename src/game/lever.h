@@ -65,7 +65,10 @@ public:
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     bool AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
     bool KeepsMapFlag() override { return keepsMapFlag != 0; }
-    void UseSpots(std::vector<Vector3>* out, float userRadius) override;
+    // The spots from which a unit of radius `userRadius` can use the lever: each offset of the model's record
+    // turned into the lever's frame, its length scaled between 1 and the record's farScale by scale.z, plus
+    // userRadius. None for an unknown model.
+    std::vector<Vector3> UseSpots(float userRadius) override;
     std::uint32_t ReadNetState(int first) override { return ReadLeverNetState(first); }
     void WriteNetState() override { WriteLeverNetState(); }
     float Radius() override { return static_cast<float>(bounds.radius); }
@@ -75,11 +78,6 @@ public:
     // else 10; zero or less: at once). The units standing around it are lifted off the sector map
     // while it moves and put back on free cells if they cannot stay where they are.
     void SetState(int state, float duration);
-
-    // The spots from which a unit of radius `userRadius` can use the lever, into `out` (emptied first):
-    // each offset of the model's record turned into the lever's frame, its length scaled between 1 and
-    // the record's farScale by scale.z, plus userRadius. None for an unknown model.
-    void CollectUseSpots(std::vector<Vector3>* out, float userRadius);
 
     // The save record: the map object part, then state, count, cycling, the lock (three dwords) and
     // both flag bytes.

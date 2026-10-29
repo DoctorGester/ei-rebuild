@@ -17,10 +17,6 @@ bool CMapObject::ApplyScience(const LockKey*, CEngineObject*) {
     return false;
 }
 
-void CMapObject::FreeArray(std::vector<Vector3>* array) {
-    lib::FreeStorage(*array);
-}
-
 void CMapObjectClientSpecific::Create() {
     lightStateA = 0;
     lightStateB = 0;

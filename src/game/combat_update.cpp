@@ -133,7 +133,7 @@ bool CUnitServer::RunTick() {
                 presence->x = unit->localPosition_.x;
                 presence->y = unit->localPosition_.y;
             }
-            presence = g_serverWorld.aiMap_.events.StepNoise(&unit->localPosition_, this);
+            presence = g_serverWorld.aiMap_.events.StepNoise(unit->localPosition_, this);
         }
         TickItemSpells();
         if (unit->player != nullptr) {
@@ -227,7 +227,7 @@ void CUnitServer::UpdateState() {
     case kStateIdle:
         SwitchWeaponIfWanted(unit);
         if (motionChanged == 0 ||
-            PathTo(&motion.goal, motion.goal.z)) {
+            PathTo(motion.goal, motion.goal.z)) {
             UpdateMotion(this);
         }
         break;
@@ -365,7 +365,7 @@ void CUnitServer::StandStill() {
     int now = World()->tick_;
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
     Vector3 direction = -RotatedAxisY(unit->localRotation_);
-    if (motion.Start(&unit->localPosition_, &direction, now)) unit->RefreshMotion();
+    if (motion.Start(unit->localPosition_, direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }
 
@@ -486,7 +486,7 @@ void CUnitServer::TickAction() {
     Vector3 axis;
     unit->localRotation_.AxisY(&axis);
     Vector3 backwards = -axis;
-    if (motion.Start(&unit->localPosition_, &backwards, time)) unit->RefreshMotion();
+    if (motion.Start(unit->localPosition_, backwards, time)) unit->RefreshMotion();
     ClearStanding();
 }
 
@@ -543,7 +543,7 @@ void CUnitServer::TickItemSpells() {
         }
         UseItemCharge(item, spell->manaCost_);
         CUnit* self = unit;
-        world->CastSpell(spell, self, &self->localPosition_, self, &self->localPosition_, 1);
+        world->CastSpell(spell, self, self->localPosition_, self, self->localPosition_, 1);
         int countdown = static_cast<int>(spell->duration_) - 3;
         current->countdown = countdown;
         if (countdown <= 0) current->countdown = 8;

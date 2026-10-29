@@ -26,7 +26,7 @@ Quaternion Combine(const Quaternion& r, const Quaternion& t) {
 
 } // namespace
 
-void FigureBone::Place(const Vector3* origin) {
+void FigureBone::Place(const Vector3& origin) {
     if (parent) {
         position = TurnByQuaternion(parent->rotation, offset) + parent->position;
         rotation = Combine(parent->rotation, pose->rotation);
@@ -39,7 +39,7 @@ void FigureBone::Place(const Vector3* origin) {
             position = pose->position;
         }
         rotation = pose->rotation;
-        position -= *origin;
+        position -= origin;
     }
     if (mesh) {
         mesh->localPosition_ = position;

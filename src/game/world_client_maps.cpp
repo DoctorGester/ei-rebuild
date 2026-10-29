@@ -296,7 +296,7 @@ int CWorldClient::AddObject(CMapObject* object) {
         for (int i = 0; i < std::ssize(figure->parts); ++i) {
             if ((figure->PartBox(i)->bounds.flags >> 10) & 1) {
                 int id = object->id_;
-                platforms_.AddBox(id, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
+                platforms_.AddBox(id, figure->PartBox(i), object->localPosition_, &object->localRotation_);
             }
         }
     }
@@ -327,7 +327,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
     CObject3D* figure = object->Object3D();
     for (int i = 0; i < std::ssize(figure->parts); ++i) {
         if (!((figure->PartBox(i)->bounds.flags >> 10) & 1)) continue;
-        platforms_.AddBox(object->id_, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
+        platforms_.AddBox(object->id_, figure->PartBox(i), object->localPosition_, &object->localRotation_);
     }
 }
 
@@ -361,7 +361,7 @@ void CWorldClient::ApplyWind(const Vector3& direction, float strength) {
 int CWorldClient::CentreOn(const Vector3& point) {
     Vector3 focus = point;
     focus.z = camera_->focus_.z;
-    camera_->SetFocus(&focus);
+    camera_->SetFocus(focus);
     camera_->ApplyView();
     camera_->ClampAboveObjects();
     return 1;
@@ -370,13 +370,13 @@ int CWorldClient::CentreOn(const Vector3& point) {
 double CWorldClient::GroundHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     float height = static_cast<float>(GridHeightAt(x, y));
-    return platforms_.SurfaceHeight(&point, height);
+    return platforms_.SurfaceHeight(point, height);
 }
 
 double CWorldClient::SurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     float height = static_cast<float>(RawSurfaceHeightAt(x, y));
-    return platforms_.SurfaceHeight(&point, height);
+    return platforms_.SurfaceHeight(point, height);
 }
 
 void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
@@ -552,13 +552,13 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
     }
 }
 
-void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<CObject3D*>* out) {
+void CWorldClient::ObjectsInRange(const Vector3& point, float radius, std::list<CObject3D*>* out) {
     float maxX = terrain_->width - 1.0f;
     float maxY = terrain_->height - 1.0f;
-    float y1 = MinKeepB(MaxKeepA(0.0f, point->y + radius), maxY);
-    float x1 = MinKeepB(MaxKeepA(0.0f, point->x + radius), maxX);
-    float y0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point->y - radius), maxY));
-    float x0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point->x - radius), maxX));
+    float y1 = MinKeepB(MaxKeepA(0.0f, point.y + radius), maxY);
+    float x1 = MinKeepB(MaxKeepA(0.0f, point.x + radius), maxX);
+    float y0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point.y - radius), maxY));
+    float x0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point.x - radius), maxX));
     std::uint32_t& firstX = rangeFirstX_;
     std::uint32_t& firstY = rangeFirstY_;
     std::uint32_t& lastX = rangeLastX_;
@@ -573,13 +573,13 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<
     SectorGrid& grid = objectGrid_;
     for (std::list<HeldRef<CMapObject>>* cell = &grid.rows_[y][x]; cell;) {
         for (CMapObject* object : *cell) {
-            float pz = point->z;
+            float pz = point.z;
             float ox = object->localPosition_.x + object->bounds.center.x;
             float oy = object->localPosition_.y + object->bounds.center.y;
             double reach = libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
-            float dx = ox - point->x;
-            float dy = oy - point->y;
-            float dz = pz - point->z;
+            float dx = ox - point.x;
+            float dy = oy - point.y;
+            float dz = pz - point.z;
             double distance = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
             double limit = reach * reach;
             // Skipped when the limit is below (or unordered).
@@ -595,21 +595,21 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<
     }
 }
 
-int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out) {
+int PlatformSet::AddFace(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& normal, Platform** out) {
     *out = nullptr;
-    EI_NAN_AUDIT(normal->z);
-    if (normal->z < kSteepest) return 0;
+    EI_NAN_AUDIT(normal.z);
+    if (normal.z < kSteepest) return 0;
     // (Every field is written below or by the caller.)
     Platform* record = &list.emplace_front();
     *out = record;
-    float ux = b->x - a->x, uy = b->y - a->y, uz = b->z - a->z;
-    float vx = c->x - a->x, vy = c->y - a->y, vz = c->z - a->z;
+    float ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z;
+    float vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
     float lengthU = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz)));
     record->sizeU = lengthU;
     float lengthV = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz)));
     record->sizeV = lengthV;
-    record->normal = *normal;
-    record->origin = *a;
+    record->normal = normal;
+    record->origin = a;
     record->axisU.x = ux / lengthU;
     record->axisU.y = uy / lengthU;
     record->axisU.z = uz / lengthU;
@@ -619,7 +619,7 @@ int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, c
     return 1;
 }
 
-void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation) {
+void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3& position, const Quaternion* rotation) {
     const Vector3& offset = item->bounds.center;
     const Vector3& low = item->bounds.boxMin;
     const Vector3& high = item->bounds.boxMax;
@@ -646,19 +646,19 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
     Vector3 corners[8] = {{high.x, low.y, low.z},  {low.x, low.y, low.z},   {low.x, high.y, low.z},
                           {low.x, high.y, high.z}, {high.x, high.y, high.z}, {high.x, low.y, high.z},
                           {high.x, low.y, low.z},  {low.x, low.y, low.z}};
-    for (Vector3& corner : corners) corner = *position + TransformColumnNormal<Sum3::ZYX>(m, (pivot + corner) + offset);
+    for (Vector3& corner : corners) corner = position + TransformColumnNormal<Sum3::ZYX>(m, (pivot + corner) + offset);
     Vector3 normals[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
     for (Vector3& n : normals) n = TransformColumnNormal<Sum3::ZXY>(m, n);
     for (int i = 0; i < 6; ++i) {
         Platform* record;
-        if (!AddFace(&corners[i + 1], &corners[i], &corners[i + 2], &normals[i], &record)) continue;
+        if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
         record->id = id;
         Vector3 moved = pivot + offset;
         Vector3 rotated;
         m.Transform(&rotated, &moved);
-        record->x = rotated.x + position->x;
-        record->y = rotated.y + position->y;
-        record->z = rotated.z + position->z;
+        record->x = rotated.x + position.x;
+        record->y = rotated.y + position.y;
+        record->z = rotated.z + position.z;
         record->radius = item->bounds.radius;   // a dword move
     }
 }
@@ -965,8 +965,8 @@ int CWorldClient::LoadZone(CStream* block) {
 
     // The block: the tick, the map and .mob names, the exits, the cave flag, the unit looks.
     block->ReadValue(tick_);
-    block->ReadInto(&map);
-    block->ReadInto(&mob);
+    map = block->ReadString();
+    mob = block->ReadString();
     int exitCount;
     block->ReadValue(exitCount);
     exits_.resize(exitCount);

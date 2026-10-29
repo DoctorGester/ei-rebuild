@@ -30,17 +30,17 @@ public:
     // The local view's orders, queued for the server (out_), each a type byte and a payload; all return 1.
     // Units go as their ids (-1 for a null entry).
     // 0x30 walk / 0x3A go to: the units, `run`, the point.
-    int SendWalk(const std::vector<CUnit*>* units, const Vector3* to, int run);
-    int SendGoTo(const std::vector<CUnit*>* units, const Vector3* to, int run);
+    int SendWalk(const std::vector<CUnit*>* units, const Vector3& to, int run);
+    int SendGoTo(const std::vector<CUnit*>* units, const Vector3& to, int run);
     // 0x31 attack: the units, `ctrl`, `how`, the target's id.
     int SendAttack(const std::vector<CUnit*>* units, CEngineObject* target, int how, int ctrl);
     // 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at `point`, with the low byte of `ctrl`.
     int SendCastOnUnit(int slot, CUnit* caster, CEngineObject* target, int ctrl);
-    int SendCastAtPoint(int slot, CUnit* caster, const Vector3* point, int ctrl);
+    int SendCastAtPoint(int slot, CUnit* caster, const Vector3& point, int ctrl);
     // The same with quick item `slot` (slot | 0x80000000); a potion (category 8) with a count above 0 loses
     // one at once.
     int SendItemOnUnit(int slot, CUnit* user, CEngineObject* target, int ctrl);
-    int SendItemAtPoint(int slot, CUnit* user, const Vector3* point, int ctrl);
+    int SendItemAtPoint(int slot, CUnit* user, const Vector3& point, int ctrl);
     // 0x34 weapon slot / 0x35 movement mode: the unit's id and the value's low byte; the unit keeps the value
     // (pendingWeapon / moveMode2).
     int SetWeapon(CUnit* unit, int slot);

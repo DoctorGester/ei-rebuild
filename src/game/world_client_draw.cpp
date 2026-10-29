@@ -220,7 +220,7 @@ int CWorldClient::Render() {
         state.cull = render::Cull::None;
         state.specular = true;
         renderer->distanceFog_ = 0;
-        skyDome_->Draw(&g_sceneRenderer, smoothView ? &drawn.position : &camera_->localPosition_);
+        skyDome_->Draw(&g_sceneRenderer, smoothView ? drawn.position : camera_->localPosition_);
         renderer->distanceFog_ = 1;
         state.cull = render::Cull::Clockwise;
         state.specular = false;
@@ -468,7 +468,7 @@ int CWorldClient::DrawPass() {
                     Vector3 axisY, axisX;
                     orientation->AxisY(&axisY);
                     orientation->AxisX(&axisX);
-                    g_sceneRenderer.DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
+                    g_sceneRenderer.DrawSelectionMarker(point, 0.5f, axisX, axisY);
                 } else {
                     if (object->flags_ & MapObjectFlag::Selected) {
                         object->flags_ &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);

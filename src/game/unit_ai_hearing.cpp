@@ -27,9 +27,9 @@ const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";
 
 } // namespace
 
-void AIHeardCalls::Hear(const Vector3* point, int delay, std::string_view text) {
+void AIHeardCalls::Hear(const Vector3& point, int delay, std::string_view text) {
     std::erase_if(*this, [delay](const AICallRecord& call) { return call.hostileMask == 0 && call.delay >= delay; });
-    push_back({*point, delay, 0, std::string(text)});
+    push_back({point, delay, 0, std::string(text)});
 }
 
 void AIHeardCalls::AddClaim(std::uint32_t mask, int delay, std::string_view text) {
@@ -42,14 +42,13 @@ void AIHeardCalls::RemoveClaims() {
     std::erase_if(*this, [](const AICallRecord& call) { return call.hostileMask != 0; });
 }
 
-void AIMemory::HearCall(const Vector3* point, int delay, std::string_view text) { calls.Hear(point, delay, text); }
+void AIMemory::HearCall(const Vector3& point, int delay, std::string_view text) { calls.Hear(point, delay, text); }
 void AIMemory::AddClaim(std::uint32_t mask, int delay, std::string_view text) { calls.AddClaim(mask, delay, text); }
 
 void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
-    std::list<CUnit*> units{};
     CUnit* unit = source->unit;
     const Vector3* point = at ? at : &unit->localPosition_;
-    map->sectorMap.FindUnitsInRadius(point, &units, kNoiseRadius);
+    std::list<CUnit*> units = map->sectorMap.FindUnitsInRadius(*point, kNoiseRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
@@ -67,13 +66,13 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
             const double between = vecmath::Distance<Sum3::XYZ>(other->localPosition_, unit->localPosition_);
             text = str::Format(kHeardFormat, other->id_, unit->id_, between);
         }
-        brain->memory.calls.Hear(&unit->localPosition_, kind, text);
+        brain->memory.calls.Hear(unit->localPosition_, kind, text);
     }
     // The list emptied, no element destruction.
     units.clear();
 }
 
-AIEventPresence* AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {
+AIEventPresence* AIViewer::StepNoise(const Vector3& position, CUnitServer* source) {
     constexpr int kStepNoise = 0x1A;
     const AITerrainType* ground = g_serverWorld.aiMap_.MaterialRecordAt(position);
     float loudness = source->moveFactors[0] * source->stats.conspicuity[3].current;

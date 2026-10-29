@@ -46,9 +46,8 @@ bool PassesFilter(CEngineObject* object, bool units, bool others, bool living) {
 // afterwards.
 template <typename Visit>
 void ForObjectsNear(float x, float y, float radius, Visit visit) {
-    std::list<CUnit*> list{};
     Vector3 point = {x, y, 0.0f};
-    g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(&point, &list, radius);
+    std::list<CUnit*> list = g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(point, radius);
     for (auto& node : list) visit(node);
 }
 

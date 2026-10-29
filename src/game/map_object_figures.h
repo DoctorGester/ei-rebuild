@@ -303,7 +303,7 @@ struct FigureBone : CEngineObject {
     // takes rotation = pose * parent (Hamilton); the root takes the pose's position (times the animation's time
     // factor at morphU while one plays) minus `origin`, and its rotation; a root without a pose keeps both. A bone
     // with a mesh gives it the position and rotation and the pose's morphed vertices as offsets.
-    void Place(const Vector3* origin);
+    void Place(const Vector3& origin);
     // The bone's cage (map_object_cage.cpp): `offset` becomes the point at (morphS, morphT, morphU) in the cube of
     // the next 8 points of *stream (0x60 bytes, consumed; edges 0-1 and 2-3 at morphS, between them at morphT;
     // edges 4-5 and 6-7 likewise; then between the two at morphU) or in the prism of the next 6 (0x48 bytes; edge
@@ -445,8 +445,8 @@ public:
     CFigureMesh* FindPart(std::string_view partName);
     // The first part whose engine object type_ is `type`, or null.
     CFigureMesh* FindPartOfType(int type);
-    // Every part whose name starts with `prefix` appended to `out`.
-    void CollectPartsByPrefix(std::string_view prefix, std::vector<CFigureMesh*>* out);
+    // Every part whose name starts with `prefix`.
+    std::vector<CFigureMesh*> CollectPartsByPrefix(std::string_view prefix);
     // Takes `part` out of the parts (it forgets its owner), tells the animation state and releases it. The side
     // half hears of it first, found or not. Returns 1 when it was there, else 0.
     int RemovePart(CFigureMesh* part);

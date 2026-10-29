@@ -105,8 +105,8 @@ public:
     int SendState71(std::uint32_t a, std::uint32_t b);              // message 0x71
     int SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w);   // 0x72
     void SendState73(const WaterTweens* source);                    // message 0x73
-    int SendPosition04(const Vector3* at, std::uint32_t a, std::uint32_t b);   // message 0x04
-    std::uint32_t SendPosition0F(const Vector3* at, const Vector3* other, std::uint8_t flag);   // 0x0F
+    int SendPosition04(const Vector3& at, std::uint32_t a, std::uint32_t b);   // message 0x04
+    std::uint32_t SendPosition0F(const Vector3& at, const Vector3& other, std::uint8_t flag);   // 0x0F
     void Send17();
     void SendObject0A(const CEngineObject* object);                 // id
     void SendPair16(std::uint32_t a, std::uint32_t b);

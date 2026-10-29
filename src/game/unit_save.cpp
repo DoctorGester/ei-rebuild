@@ -76,7 +76,7 @@ void CUnit::LoadUnit(CStream* stream) {
     LoadMapObject(stream);
     controller->Load(stream);
     flags_ &= ~MapObjectFlag::Blocked;
-    stream->ReadInto(&scriptName);
+    scriptName = stream->ReadString();
     stream->ReadValue(relationsA);
     int playerId;
     stream->ReadValue(playerId);
@@ -121,13 +121,13 @@ void CUnit::LoadUnit(CStream* stream) {
     if (stream->version_ < kVersionPrototypeNames) return;
 
     std::string prototypeName;
-    stream->ReadInto(&prototypeName);
+    prototypeName = stream->ReadString();
     prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
     UnitPrototypeRecord* second;
     if (stream->version_ < kVersionSecondName) {
         second = g_unitDatabase.prototypes.FindByName(prototypeName);
     } else {
-        stream->ReadInto(&prototypeName);
+        prototypeName = stream->ReadString();
         second = PrototypeByName(prototypeName);
     }
     secondPrototype = PrototypeIndexOf(second);

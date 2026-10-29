@@ -125,7 +125,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     if (fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
-        map->MoveInSectors(object, &point);
+        map->MoveInSectors(object, point);
         if (CUnit* unit = UnitOrNull(object)) UnitState(unit)->ResyncWithUnit();
         map->SetRefreshUnits(1);
         object->MarkChanged(2);
@@ -133,7 +133,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     }
     float oldZ = Position(object)->z;
     Vector3 point = {f[0], f[1], f[2]};
-    map->MoveInSectors(object, &point);
+    map->MoveInSectors(object, point);
     if (CUnit* unit = UnitOrNull(object)) {
         UnitState(unit)->ResyncWithUnit();
         EI_NAN_AUDIT(oldZ, Position(object)->z);
@@ -142,9 +142,8 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     }
     // Other objects: the units around the new place are taken off the sector map, moved off cells
     // they cannot stay in, and put back.
-    std::list<CUnit*> units;
     float radius = object->bounds.radius + object->bounds.radius;
-    map->FindUnitsInRadius(Position(object), &units, radius);
+    std::list<CUnit*> units = map->FindUnitsInRadius(*Position(object), radius);
     for (auto pos = units.begin(); pos != units.end();) {
         CUnit* unit = *pos;
         ++pos;
@@ -156,7 +155,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         ++pos;
         if (!map->CanLeaveCell(unit)) {
             free = *Position(unit);
-            map->FindFreeCellNear(unit, Position(unit), &free);
+            map->FindFreeCellNear(unit, *Position(unit), &free);
             *Position(unit) = free;
             UnitState(unit)->ResyncWithUnit();
         }
@@ -239,10 +238,10 @@ void CastSpell(const SSCCmd* cmd, bool atUnit) {
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
             CMapObject* target = MapObjectArg(cmd, 0);
-            if (target) g_serverWorld.CastSpell(spell, 0, &from, target, &target->localPosition_, 0);
+            if (target) g_serverWorld.CastSpell(spell, 0, from, target, target->localPosition_, 0);
         } else {
             Vector3 to = {f[2], f[3], 0.0f};
-            g_serverWorld.CastSpell(spell, 0, &from, nullptr, &to, 0);
+            g_serverWorld.CastSpell(spell, 0, from, nullptr, to, 0);
         }
     }
     if (spell) spell->Release();
@@ -690,7 +689,7 @@ bool ScriptRun::Execute(CScript* script) {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            BrainOf(state)->Walk(&point, 0);
+            BrainOf(state)->Walk(point, 0);
             break;
         }
         case ScriptFunction::RotateTo: {   // RotateTo(unit, x, y)
@@ -698,7 +697,7 @@ bool ScriptRun::Execute(CScript* script) {
             if (!state) break;
             const Vector3* at = Position(state->unit);
             Vector3 direction = {f[0] - at->x, f[1] - at->y, -at->z};
-            BrainOf(state)->TurnTowards(&direction, 0);
+            BrainOf(state)->TurnTowards(direction, 0);
             break;
         }
         case ScriptFunction::MoveToObject: {   // MoveToObject(unit, target)
@@ -706,7 +705,7 @@ bool ScriptRun::Execute(CScript* script) {
             CEngineObject* target = Arg(cmd, 1);
             if (!state || !target) break;
             Vector3 point = {Position(target)->x, Position(target)->y, 0.0f};
-            BrainOf(state)->Walk(&point, 0);
+            BrainOf(state)->Walk(point, 0);
             break;
         }
         case ScriptFunction::Follow: {   // Follow(unit, leader)
@@ -733,7 +732,7 @@ bool ScriptRun::Execute(CScript* script) {
             float y = f[1];
             float z = g_serverWorld.GridHeight(x, y);
             Vector3 point = {x, y, z};
-            BrainOf(state)->CastAt(0, &point, 0);
+            BrainOf(state)->CastAt(0, point, 0);
             break;
         }
         case ScriptFunction::CastSpellPoint:   // CastSpellPoint(spell, x, y, x2, y2)
@@ -753,14 +752,14 @@ bool ScriptRun::Execute(CScript* script) {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            BrainOf(state)->StandardGuard(&point, f[2]);
+            BrainOf(state)->StandardGuard(point, f[2]);
             break;
         }
         case ScriptFunction::Sentry: {   // Sentry(unit, x, y)
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            BrainOf(state)->StandardSentry(&point);
+            BrainOf(state)->StandardSentry(point);
             break;
         }
         case ScriptFunction::PlayAnimation: {   // PlayAnimation(unit, name)
@@ -794,7 +793,7 @@ bool ScriptRun::Execute(CScript* script) {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            BrainOf(state)->AddMode(new SentryMode(&point));
+            BrainOf(state)->AddMode(new SentryMode(point));
             break;
         }
         case ScriptFunction::UMGuard:     // UMGuard(unit, x, y, radius)
@@ -806,7 +805,7 @@ bool ScriptRun::Execute(CScript* script) {
             float radius2;
             if (function == ScriptFunction::UMGuard) radius2 = -1.0f;
             else radius2 = f[3];
-            BrainOf(state)->AddMode(new GuardMode(&point, radius, radius2));
+            BrainOf(state)->AddMode(new GuardMode(point, radius, radius2));
             break;
         }
         case ScriptFunction::UMFollow: {   // UMFollow(unit, leader)
@@ -835,7 +834,7 @@ bool ScriptRun::Execute(CScript* script) {
             PatrolMode* patrol = PatrolOf(state);
             if (!patrol) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            patrol->AppendPoint(&point);
+            patrol->AppendPoint(point);
             break;
         }
         case ScriptFunction::UMPatrolAddPointLook: {   // UMPatrolAddPointLook(unit, x, y, z): a look at the last point
