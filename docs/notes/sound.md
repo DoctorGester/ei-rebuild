@@ -114,14 +114,14 @@ dwords 007440E4/007440E8.
 
 ### Floating point (SSE2 since C30a2)
 
-`sound_manager.cpp` is float maths built for SSE2 (CMakeLists' `EI_SSE2_GAME_SOURCES`). What of it reaches game
+`sound_manager.cpp` is float maths built for SSE2 (not in CMakeLists' `EI_X87_GAME_SOURCES`). What of it reaches game
 state is whether a voice is taken: a speech's Play2D (priority 1, unit_client_speech) answers -1 when all 15 voices
 play at priority 1 or above, and its handle keeps or ends the unit's talking flag. Which voices play follows from
 - Play3D's level (`UpdatePositional`: a one-shot at level 0 takes no voice);
 - the ambient emitters' distance tests and scaled intervals (Tick: a firing emitter's Play2D at priority 1);
 - the voices' ends: the harness ends samples by Miles' own length (`WaveLength` / `SoundSlot::length` are read by nothing).
 Play2D's silence test is on its integer volume, and Tick's restarts take free voices without a level test.
-The first two are basic float operations (+ - * /, sqrt, compares, FISTP's rounding as `RoundEven`) on floats
+The first two are basic float operations (+ - * /, sqrt, compares, FISTP's rounding as `lib::RoundEven`) on floats
 and small integers in the original's order. The original ran them on the main thread at 24-bit precision
 control, where every x87 operation rounds once to a float significand, so the results are the same; x87's wider
 exponent only matters for distances below about 1e-19, where both give the same decision. The emitter intervals are

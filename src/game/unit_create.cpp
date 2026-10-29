@@ -13,7 +13,7 @@
 #include <cstring>
 #include <string>
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 
 #include <bit>
 #include <vector>
@@ -30,7 +30,7 @@ PlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 
 // The item's condition rounds to nothing.
 bool IsBroken(const Item* item) {
-    return x87::fistp(item->condition) <= 0;
+    return lib::RoundEven(item->condition) <= 0;
 }
 
 } // namespace

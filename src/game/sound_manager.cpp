@@ -7,7 +7,7 @@
 // every voice taken, a speech's Play2D answers -1, which keeps a unit's talking flag (unit_client_speech). Both are
 // basic operations on floats and small integers in the original's order, which the original ran on the main
 // thread at 24-bit precision control: there every x87 operation rounds once to a float significand, as a float
-// operation does, and RoundEven rounds to an integer as it did. So the levels and intervals are the original's
+// operation does, and lib::RoundEven rounds to an integer as it did. So the levels and intervals are the original's
 // (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach Miles.
 #include "game_data.h"
 #include "game_strings.h"
@@ -15,6 +15,7 @@
 #include "lib/float_select.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/thread.h"
 #include "lib/vecmath.h"
@@ -31,7 +32,6 @@
 #include <new>
 #include <string>
 #include <vector>
-#include <xmmintrin.h>
 
 namespace {
 
@@ -73,10 +73,6 @@ void FreeDeferred(DeferredSound* rec) {
 }
 
 int ClampLevel(int v) { return v < 0 ? 0 : (v > 0x7F ? 0x7F : v); }
-
-// The original's rounding to an integer: to nearest, ties to even (MXCSR's default; nothing changes it); 0x80000000
-// for a NaN or a value outside the int range.
-int RoundEven(float v) { return _mm_cvtss_si32(_mm_set_ss(v)); }
 
 // Heights between 30 and 70 fade 2D sounds flagged heightFade.
 float HeightFactor(float h) {
@@ -228,7 +224,7 @@ int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
     }
     v = v * (isSpeech != 0 ? speechVolume : effectsVolume);
     v = v * kMilesScale;
-    return ClampLevel(RoundEven(v));
+    return ClampLevel(lib::RoundEven(v));
 }
 
 // Hands the slot's volume and pan to Miles; the pan is mirrored unless panDirect.
@@ -274,7 +270,7 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
     EI_NAN_AUDIT(dist, slot->nearDistance);
     int level = 100;
     if (!(dist < slot->nearDistance))
-        level = 100 - RoundEven((dist - slot->nearDistance) / (slot->farDistance - slot->nearDistance) * kHundred);
+        level = 100 - lib::RoundEven((dist - slot->nearDistance) / (slot->farDistance - slot->nearDistance) * kHundred);
     slot->volume = FlatVolume(level, 1, slot->speech);
 
     float ahead = AbsBits(Dot2DUnrounded(dy, dx, listenerAxis.y, listenerAxis.x));
@@ -289,7 +285,7 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
     }
     float angle = std::acos(ahead / dist);
     if (angle > kHalfPi) angle = kPi - angle;
-    int pan = RoundEven(kHundred / kHalfPi * angle);
+    int pan = lib::RoundEven(kHundred / kHalfPi * angle);
     slot->pan = pan;
     if (dy * listenerAxis.x > dx * listenerAxis.y) slot->pan = -pan;
 }
@@ -711,8 +707,8 @@ void SoundManager::Tick() {
             float t = (e->outerRadius - e->innerRadius) / (e->outerRadius - dist);
             if (t > kEmitterMaxScale) continue;
             // The original's products while the intervals are below 2^24 ms (exact as floats).
-            minInterval = static_cast<std::uint32_t>(RoundEven(e->minInterval * t));
-            maxInterval = static_cast<std::uint32_t>(RoundEven(e->maxInterval * t));
+            minInterval = static_cast<std::uint32_t>(lib::RoundEven(e->minInterval * t));
+            maxInterval = static_cast<std::uint32_t>(lib::RoundEven(e->maxInterval * t));
         }
         std::uint32_t elapsed = now - e->lastPlayed;
         if (elapsed < minInterval) continue;
@@ -932,7 +928,7 @@ void SoundFader::SetHold(std::uint32_t until) {
 }
 
 void SoundFader::Recalc() {
-    level = ClampLevel(RoundEven(volume * factor * kLevelMax * kPercent));
+    level = ClampLevel(lib::RoundEven(volume * factor * kLevelMax * kPercent));
 }
 
 // One step of the fade (the stream thread, every 100 ms, under the stream lock).

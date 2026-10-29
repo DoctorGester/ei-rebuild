@@ -6339,4 +6339,135 @@ note = "After R37e (casters sorted by texture, one instance buffer) R37's probe 
 id = "C30e"
 group = "cleanup"
 title = "The x87 game files on SSE2: survey with C30a2's PC24 method, plan batches, move the first"
-note = """From C30a2 (2026-10-29): the original ran the main thread at 24-bit precision control, so a decision made of +, -, *, /, sqrt and compares on floats in the original's order is reproduced exactly by float maths on SSE2 (rounding with FISTP's ties to even, _mm_cvtss_si32; truncation as _ftol). sound_manager.cpp moved whole on that proof (30M random cases, 0 differ; docs/notes/sound.md 'Floating point'). Survey every file still /arch:IA32 (EI_GAME_SOURCES minus EI_SSE2_GAME_SOURCES, and EI_X87_DRAW_SOURCES): per file, what keeps it x87 (transcendentals x87::fsin/fcos/fpatan/flog/fexp whose results ignore the precision control; double constants with more than 24 bits mixed into arithmetic; code on threads at 53-bit; Ftol on NaN/overflow; x87::FromUnsigned), and group the files into batches that can move with goldens unchanged, plus what needs an exact software helper for the transcendentals. Write the plan into docs/notes/cleanup-tooling.md (SSE2 build) and file the batches as C30e1.. ; move the first batch. Check: goldens unchanged (verify and --rebirth-only), check_x87 0, an equivalence test like C30a2's (scratchpad C30a2/eq) for any helper."""
+note = "From C30a2 (2026-10-29): the original ran the main thread at 24-bit precision control, so a decision made of +, -, *, /, sqrt and compares on floats in the original's order is reproduced exactly by float maths on SSE2 (rounding with FISTP's ties to even, _mm_cvtss_si32; truncation as _ftol). sound_manager.cpp moved whole on that proof (30M random cases, 0 differ; docs/notes/sound.md 'Floating point'). Survey every file still /arch:IA32 (EI_GAME_SOURCES minus EI_SSE2_GAME_SOURCES, and EI_X87_DRAW_SOURCES): per file, what keeps it x87 (transcendentals x87::fsin/fcos/fpatan/flog/fexp whose results ignore the precision control; double constants with more than 24 bits mixed into arithmetic; code on threads at 53-bit; Ftol on NaN/overflow; x87::FromUnsigned), and group the files into batches that can move with goldens unchanged, plus what needs an exact software helper for the transcendentals. Write the plan into docs/notes/cleanup-tooling.md (SSE2 build) and file the batches as C30e1.. ; move the first batch. Check: goldens unchanged (verify and --rebirth-only), check_x87 0, an equivalence test like C30a2's (scratchpad C30a2/eq) for any helper. Done 2026-10-29: survey of the 417 x87 files by their release objects (dumpbin): 126 without a float instruction, 75 loads and stores only, 7 int / float conversions, 171 float arithmetic, 38 transcendental or control word. Batch 1 = the 208 without float arithmetic, on SSE2 (their SSE2 objects checked: no float arithmetic either). CMake lists inverted: EI_X87_GAME_SOURCES lists the 209 left, grouped by ticket; the rest of src/game and src/lib is the ei_sse2 library (was ei_draw); check_x87 reads the new list. Source: x87::CopyBits to plain assignment (net_messages, script_vars), x87::fistp to lib::RoundEven (new src/lib/rounding.h, sound_manager's moved there; unit_create, unit_items), renderer_init's ambient colour 0xFF323232, registry's FloatToInt through int64 (both conversions equal to the x87 forms on all 2^32 floats). Plan and batches C30e1-C30e15: cleanup-tooling.md 'The x87 files to SSE2 (C30e)'. Goldens 122 the same / 32 without a golden; --rebirth-only 24 / 8. Dashboard x87: x87:: 377 to 367, Ftol( 129 to 128, casts unchanged."
+group = "cleanup"
+
+[[ticket]]
+id = "C30e1"
+title = "SSE2: network, sessions and settings (30 files)"
+group = "cleanup"
+model = "opus"
+files = ["src/game/address_order.cpp", "src/game/app_helpers.cpp", "src/game/console_commands.cpp", "src/game/key_bindings.cpp", "src/game/map_database.cpp", "src/game/mob_reader.cpp", "src/game/net_client_awards.cpp", "src/game/net_client_commands.cpp", "src/game/net_connection.cpp", "src/game/net_connection_life.cpp", "src/game/net_connection_tick.cpp", "src/game/net_delta.cpp", "src/game/net_lobby.cpp", "src/game/net_server_awards.cpp", "src/game/net_server_handlers.cpp", "src/game/net_server_tick.cpp", "src/game/net_server_vars.cpp", "src/game/net_session.cpp", "src/game/net_session_tick.cpp", "src/game/net_state.cpp", "src/game/object_tables.cpp", "src/game/options.cpp", "src/game/party_items.cpp", "src/game/party_members.cpp", "src/game/persistent_globals.cpp", "src/game/player_client.cpp", "src/game/player_messages.cpp", "src/game/player_server_handlers.cpp", "src/game/player_sync.cpp", "src/game/random.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. net_connection_tick's D() (24) and timers, player_server_handlers' doubles (16), player_client's std::pow (the host CRT's x87 pow: test it against SSE2 pow), options' Ftol (5); most files have a few float operations."
+
+[[ticket]]
+id = "C30e2"
+title = "SSE2: scripts (10 files)"
+group = "cleanup"
+model = "opus"
+files = ["src/game/script_addon.cpp", "src/game/script_addon_commands.cpp", "src/game/script_addon_math.cpp", "src/game/script_addon_units.cpp", "src/game/script_effects.cpp", "src/game/script_eval.cpp", "src/game/script_exec.cpp", "src/game/script_exec_helpers.cpp", "src/game/script_exec_run.cpp", "src/game/script_parse.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Ftol 72 (script_exec 43, script_eval 15): a script argument can be a NaN, so int64 truncation; script_addon_math calls the CRT's sin / cos / pow (addon.dll's code): compare the x87 CRT with the SSE2 one on the arguments' range."
+
+[[ticket]]
+id = "C30e3"
+title = "SSE2: items, spells and world objects (17 files)"
+group = "cleanup"
+model = "opus"
+files = ["src/game/base_manager.cpp", "src/game/hoover_loot.cpp", "src/game/item.cpp", "src/game/item_manager.cpp", "src/game/item_stock.cpp", "src/game/lever_object.cpp", "src/game/lever_table_load.cpp", "src/game/light.cpp", "src/game/magic_trap.cpp", "src/game/map_spec.cpp", "src/game/map_spec_effect.cpp", "src/game/material.cpp", "src/game/spell.cpp", "src/game/spell_cast.cpp", "src/game/spell_effect.cpp", "src/game/torch_client_spec.cpp", "src/game/vis_fog_manager.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. item / item_stock / item_manager prices and conditions (float maths on floats), item.cpp's CopyBits 11, spell / spell_cast / spell_effect, map_spec*, lever*, torch, magic_trap, light, material, base_manager, hoover_loot (a 2^-32 constant), vis_fog_manager."
+
+[[ticket]]
+id = "C30e4"
+title = "SSE2: transcendental helpers (fexp emulation, sin / cos / atan2 / log counts) and the spell effects"
+group = "cleanup"
+model = "opus"
+files = ["src/game/exit_area.cpp", "src/game/spell_effect_start.cpp", "src/game/spell_effect_update.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Helpers in src/lib for SSE2 code: VC6's inline exp at PC24 emulated (the multiply by log2(e) rounded to 24 bits exactly, FRNDINT's split, 2^f - 1 plus 1 rounded to 24 bits, the scale), with an equivalence test against x87::fexp at PC24 over all or 100M+ floats; sin / cos / atan2 / log through std:: double with a differing count against FSIN / FCOS / FPATAN / FYL2X then the float rounding (the cases callers use: alone, times a float, plus a float); a wide-constant multiply / add helper (two-product fix-up at a float tie) with its test. Then spell_effect_start / spell_effect_update (fexp, flog) and exit_area (sin / cos) on SSE2."
+
+[[ticket]]
+id = "C30e5"
+title = "SSE2: the server world and world effects (21 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/world_effect.cpp", "src/game/world_effect_missile.cpp", "src/game/world_effect_moshka.cpp", "src/game/world_effect_sequence.cpp", "src/game/world_effect_tornado.cpp", "src/game/world_effect_visual.cpp", "src/game/world_game.cpp", "src/game/world_glue.cpp", "src/game/world_party.cpp", "src/game/world_quests.cpp", "src/game/world_rules.cpp", "src/game/world_save.cpp", "src/game/world_server.cpp", "src/game/world_spells.cpp", "src/game/world_sync.cpp", "src/game/world_tick.cpp", "src/game/world_time.cpp", "src/game/world_unit_set_add.cpp", "src/game/world_units.cpp", "src/game/world_update.cpp", "src/game/world_weather.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. world_weather's wide constants (4), world_time's fmod (exact), world_game / world_quests / world_sync doubles, moshka / visual / party / units' fsin / fcos / fpatan / CiAcos (CiAcos stays a call into crt_x87)."
+
+[[ticket]]
+id = "C30e6"
+title = "SSE2: units (20 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/unit.cpp", "src/game/unit_armour_layers.cpp", "src/game/unit_create_stats.cpp", "src/game/unit_figure_queries.cpp", "src/game/unit_hits.cpp", "src/game/unit_lever.cpp", "src/game/unit_motion_tick.cpp", "src/game/unit_params_protection.cpp", "src/game/unit_params_skill.cpp", "src/game/unit_points.cpp", "src/game/unit_record.cpp", "src/game/unit_size_class.cpp", "src/game/unit_skill_price.cpp", "src/game/unit_skins.cpp", "src/game/unit_stat_small.cpp", "src/game/unit_stats.cpp", "src/game/unit_stats_pack.cpp", "src/game/unit_update.cpp", "src/game/unit_vision.cpp", "src/game/unit_vitals.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Stats doubles (unit_vitals 44, unit_create_stats 42, unit_stats 16), flog / flog10 (unit_vitals, unit_create_stats, unit_skill_price), CiPow (stays a call into crt_x87), the host pow in unit_skill_price, wide constants 1.04 / 1.61 / 0.7 / 0.001."
+
+[[ticket]]
+id = "C30e7"
+title = "SSE2: combat (11 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/combat.cpp", "src/game/combat_actions.cpp", "src/game/combat_motion.cpp", "src/game/combat_orders.cpp", "src/game/combat_planning.cpp", "src/game/combat_sight.cpp", "src/game/combat_spell_sight.cpp", "src/game/combat_steps.cpp", "src/game/combat_taming.cpp", "src/game/combat_tick.cpp", "src/game/combat_update.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Doubles 208 (combat_sight 53, combat_tick 51, combat_steps 43, combat 40), combat's flog, combat_sight's fpatan, Ftol 10, combat_tick's 0.02."
+
+[[ticket]]
+id = "C30e8"
+title = "SSE2: AI maps, paths and motion (17 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/ai_block_search.cpp", "src/game/ai_events.cpp", "src/game/ai_footprint.cpp", "src/game/ai_footprint_shapes.cpp", "src/game/ai_line_step.cpp", "src/game/ai_map.cpp", "src/game/ai_map_load.cpp", "src/game/ai_motion.cpp", "src/game/ai_movement.cpp", "src/game/ai_path.cpp", "src/game/ai_path_smooth.cpp", "src/game/ai_path_stand.cpp", "src/game/ai_plan.cpp", "src/game/ai_refresh.cpp", "src/game/ai_shape_cache.cpp", "src/game/ai_unit_shape.cpp", "src/game/ai_water_patch.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. ai_motion (91 doubles, 17 other x87 helpers, fsin / fcos / fpatan), ai_refresh's fexp / flog, x87::fistp 49 (ai_map, ai_path), ai_map_load's fsin / fpatan, ai_path's 4/pi constant."
+
+[[ticket]]
+id = "C30e9"
+title = "SSE2: unit AI (4 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/unit_ai.cpp", "src/game/unit_ai_modes.cpp", "src/game/unit_ai_senses.cpp", "src/game/unit_ai_targets.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Doubles 268 (unit_ai_modes 135, unit_ai_senses 68, unit_ai_targets 43, unit_ai 22), fsin / fcos / fpatan; the largest float code per line: consider splitting by file if the session runs out."
+
+[[ticket]]
+id = "C30e10"
+title = "SSE2: geometry and figures (24 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/core_maths.cpp", "src/game/core_transform.cpp", "src/game/core_transform_math.cpp", "src/game/figure_bones.cpp", "src/game/figure_drawer.cpp", "src/game/figure_mesh.cpp", "src/game/figure_mesh_file.cpp", "src/game/figure_part_bounds.cpp", "src/game/figure_part_draw.cpp", "src/game/figure_part_draw_plain.cpp", "src/game/link_figure.cpp", "src/game/link_loader.cpp", "src/game/link_mesh_draw.cpp", "src/game/maths.cpp", "src/game/matrix_math.cpp", "src/game/model.cpp", "src/game/model_db.cpp", "src/game/object3d_figure_setup.cpp", "src/game/object3d_halves.cpp", "src/game/object_maths.cpp", "src/game/projection.cpp", "src/game/quaternion.cpp", "src/game/skin_quaternion.cpp", "src/game/view_matrices.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. core_transform_math (D() 97, CiAcos, fpatan), quaternion (D() 23, fsin / fcos, CiAcos), maths, model's sin / cos, matrix / projection / view matrices, the figure and link meshes: picking reads the projected meshes, so exact."
+
+[[ticket]]
+id = "C30e11"
+title = "SSE2: map objects (10 files)"
+group = "cleanup"
+model = "opus"
+files = ["src/game/map_object.cpp", "src/game/map_object_animation.cpp", "src/game/map_object_animation_bones.cpp", "src/game/map_object_animation_state.cpp", "src/game/map_object_cage.cpp", "src/game/map_object_client_effects.cpp", "src/game/map_object_companion.cpp", "src/game/map_object_draw.cpp", "src/game/map_object_figures.cpp", "src/game/map_object_parts.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Doubles 75 (map_object_figures 18, map_object 14, map_object_cage 12, map_object_animation 10), map_object's 0.001."
+
+[[ticket]]
+id = "C30e12"
+title = "SSE2: client units and world (13 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/unit_client_animation.cpp", "src/game/unit_client_attack.cpp", "src/game/unit_client_blink.cpp", "src/game/unit_client_effects.cpp", "src/game/unit_client_models.cpp", "src/game/unit_client_path.cpp", "src/game/unit_client_update.cpp", "src/game/unit_client_wounds.cpp", "src/game/world_client.cpp", "src/game/world_client_draw.cpp", "src/game/world_client_maps.cpp", "src/game/world_client_setup.cpp", "src/game/world_client_view.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. unit_client_path's fexp (the heading weight: 97 goldens hang on it, C16 table) / fpatan / fsin / fcos, unit_client_update's flog, world_client's sin / cos and fmod, world_client_maps' Hypot (stays a call), world_client_view / _draw (picking: the view), Ftol 11."
+
+[[ticket]]
+id = "C30e13"
+title = "SSE2: camera, picking and the briefing (22 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4", "C30e10"]
+files = ["src/game/camera.cpp", "src/game/camera_motion.cpp", "src/game/camera_path_load.cpp", "src/game/device_bounds.cpp", "src/game/device_mesh.cpp", "src/game/ui_battle_commands.cpp", "src/game/ui_battle_hover.cpp", "src/game/ui_briefing_create.cpp", "src/game/ui_briefing_dialogue.cpp", "src/game/ui_briefing_input.cpp", "src/game/ui_briefing_people.cpp", "src/game/ui_briefing_phrases.cpp", "src/game/ui_briefing_start.cpp", "src/game/ui_camera_input.cpp", "src/game/ui_camera_keys.cpp", "src/game/ui_global_map.cpp", "src/game/ui_global_map_input.cpp", "src/game/ui_global_map_paths.cpp", "src/game/ui_global_map_places.cpp", "src/game/ui_hud.cpp", "src/game/ui_hud_map.cpp", "src/game/ui_view_screen.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. D() 328 (camera 122, ui_hud_map 123, camera_motion 72, ui_camera_keys 11), camera's fexp / fpatan / fcos, CiAcos / CiAsin / Hypot / CiPow (stay calls), the screens that turn a pixel into a world point or an order (ui_hud*, ui_battle_*, ui_view_screen, ui_global_map*), the briefing's camera moves and phrase timing."
+
+[[ticket]]
+id = "C30e14"
+title = "SSE2: terrain (5 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/sector_map.cpp", "src/game/sector_spiral.cpp", "src/game/terrain.cpp", "src/game/terrain_landscape.cpp", "src/game/terrain_sector.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. terrain_sector's chop rounding (ScopedRounding sets the x87 word only: explicit truncation or MXCSR around the loop), terrain_landscape's CiAsin / fsin, terrain / sector_map's x87::fistp, sector_spiral."
+
+[[ticket]]
+id = "C30e15"
+title = "SSE2: the main loop and the game CRT; then no x87 build"
+group = "cleanup"
+model = "opus"
+depends = ["C30e1", "C30e2", "C30e3", "C30e4", "C30e5", "C30e6", "C30e7", "C30e8", "C30e9", "C30e10", "C30e11", "C30e12", "C30e13", "C30e14"]
+files = ["src/game/app_main.cpp", "src/lib/crt_x87.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. app_main's frame timing (fexp in SpeedForBalance, Step, FromUnsigned, the client backlog), crt_x87.cpp (the game CRT's pow / acos / asin / hypot at the caller's precision: a float-exact port with an equivalence test, or kept as the one x87 file); then the /arch:IA32 option, EI_X87_GAME_SOURCES and the x87:: helpers go, check_x87 to its SSE2 half."

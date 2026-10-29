@@ -143,28 +143,33 @@ ours on the standalone, so the helper's flag is passed whole (the constructor re
 
 ### The drawing-only code on SSE2 (C30a)
 
-The build is split by file: the renderer (`ei_render`) and the drawing-only game code (`ei_draw`, the list
-`EI_SSE2_GAME_SOURCES` in CMakeLists.txt: the interface, particles and effects, weather, sky, lightning, the terrain's
-draw passes, waves and ambience, decals and prints, the old renderer's glue, textures and surfaces, the music and the
-unit sound names) build with `/arch:SSE2`; everything else, the harness and the vector replays stay `/arch:IA32`. One
+The build is split by file: the renderer (`ei_render`) and the game code (src/game, src/lib) but CMakeLists'
+`EI_X87_GAME_SOURCES` (`ei_sse2`) build with `/arch:SSE2`; the x87 list, the harness and the vector replays stay
+`/arch:IA32`. C30a put the drawing-only code on SSE2 (the interface, particles and effects, weather, sky, lightning,
+the terrain's draw passes, waves and ambience, decals and prints, the old renderer's glue, textures and surfaces, the
+music and the unit sound names); C30e inverted the lists and moved the files without float arithmetic (below). One
 compile option chooses (`$<TARGET_PROPERTY:EI_SSE2>`): cl warns (D9025) when a second `/arch` overrides the first, so
 the two cannot be stacked per file.
 - **Why a whole-archive library:** an inline function kept out of line in both an SSE2 and an x87 object is one COMDAT,
-  and the linker takes the first object's copy. `ei_draw` is linked as `$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_draw>`: every
+  and the linker takes the first object's copy. `ei_sse2` is linked as `$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_sse2>`: every
   object kept (static initialisers too), all read after ei_hook's own, so the x87 code always gets its x87 copy. An
   OBJECT library or `$<TARGET_OBJECTS>` puts its objects first on Ninja's link line: the wrong way round.
 - **Checked (verify build, 2026-10-29):** of the 9,448 functions the map takes from SSE2 objects none is also defined
   by an x87 object, and no SSE2 object loads or resets the x87 control word (FLDCW, FNINIT, `_control87`) other than
   render.cpp's `FpuGuard` putting back a saved word: SSE2 code leaves the main thread's 24-bit precision alone, and calls
   into x87 code see it unchanged. (One-off script: dumpbin /disasm and /symbols over the objects plus ei_hook.map.)
+  Since C30e device_object is an SSE2 object: its `__control87_2(_PC_24, _MCW_PC, &x87, nullptr)` sets the x87
+  precision (the D3D7 device's), as before, and leaves MXCSR alone.
 - `check_x87.py` skips the SSE2 objects and the CRT's `ftol3.obj` (`__ltod3` and its kin, which only SSE2 code calls:
   their 2^32 is SSE arithmetic, not a FADD at the precision control).
-- **What stays x87 and why** (CMakeLists' `EI_X87_DRAW_SOURCES`): picking reads the drawn view and the objects' screen
+- **What C30a kept x87 and why** (now groups C30e10, C30e12 and C30e13 of `EI_X87_GAME_SOURCES`): picking reads the drawn view and the objects' screen
   rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
   choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
   camera keys and mouse), the briefing (camera moves, phrase timing), device_object (sets the 24-bit precision),
-  the terrain's heights, sectors and loading.
+  the terrain's heights, sectors and loading. C30e moved renderer_init, device_object, device_shadow, ui_briefing,
+  ui_briefing_keys, ui_briefing_topics and ui_hud_pick: their objects do no float arithmetic (the picking maths they
+  call is in the files left).
 - **Hit tests in whole pixels (C30a3):** the item and figure strips went back to x87 in C30a because the figure strip's
   click `(x - 50) * 0.01f + position`, truncated, picked the neighbouring figure in double (`ui_hero_screen` record 11:
   x 250 is 200 pixels in, 200 * 0.01f is 1.99999996 in double and 2.0 at PC24). The rule since: a hit test is integer
@@ -251,6 +256,94 @@ an `x87::` helper (but the control word render.cpp's `FpuGuard` puts back), a `l
 - **Counts** (code, comments left out). The 186 SSE2 files: `static_cast<float>` 839 -> 343, `static_cast<double>`
   164 -> 36, `D(` 704 -> 0, `double` 673 -> 159, `x87::` 7 -> 3. The dashboard's (src but hook and standalone):
   `static_cast<float>` 2,504 -> 2,009, `static_cast<double>` 772 -> 643, `x87::` 394 -> 390, `Ftol(` 234 -> 129.
+
+### The x87 files to SSE2 (C30e)
+
+The rest of the game code moves to SSE2 by C30a2's method, in the batches below; `EI_X87_GAME_SOURCES` lists what is
+left, grouped by the ticket that moves it (a file split from one of these joins its group).
+
+**The method.** From the D3D device's creation (device_object) the original runs the main thread at 24-bit precision
+control (PC24): every x87 add, subtract, multiply, divide and square root rounds once to a float significand, as the
+float operation does. A decision made of those on floats, in the original's order, is the same in float maths on
+SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality and what it takes:
+- **double registers** (`D()`, double locals, returns and `static_cast<double>` of a float in arithmetic): at PC24 they
+  hold float values, so they become float (C30c's `floats.py` / `casts.py` do most). Kept double: values that never
+  were PC24 results (a timeGetTime count, file sizes, a double read from data or a message). Stored doubles (members,
+  saves, messages) keep their type and receive the float value.
+- **double constants wider than a float** in arithmetic: FLD keeps all 53 bits and the one operation rounds, where
+  `x * 0.001f` rounds the constant first. 39 such literals in 29 of the files left (pi, 0.001, 0.01, 1.04, 1.61, 0.7,
+  0.9, 0.6, 0.02, 1e-5, 2^-32 ...) and the named double constants they use. Exact form: the operation in double,
+  then a fix-up where the double result sits on a float tie (the error term from Dekker's two-product / two-sum
+  says which way the exact result lies): a `lib` helper with an equivalence test against the x87 form at PC24.
+  A constant that is exact in 24 bits (0.5, 100.0, 0.25) is a float constant.
+- **ints above 2^24** in float arithmetic: FILD is exact and the operation rounds once; float maths converts first.
+  Only timers and ids reach that (`x87::FromUnsigned`, `ms * 0.001`): check each site.
+- **the exponent range**: x87 registers keep a 15-bit exponent, so a product beyond 3.4e38 or below 1.2e-38 inside an
+  expression differs. No game value is near either; the equivalence tests cover the operands' real ranges.
+- **transcendentals**: FSIN, FCOS, FPATAN, FYL2X (`x87::flog`) and F2XM1 ignore the precision control and give a
+  64-bit result that the next operation rounds. `std::sin` / `atan2` / `log` in double, then the float operation,
+  agree but where the 53-bit and 64-bit results straddle a float rounding boundary (about 2^-28 per use; the
+  original's own FSIN differs between CPU makers at that level): accepted, each with a count from an equivalence
+  test. VC6's inline exp (`x87::fexp`) is not like that: its FMUL by log2(e) rounds at PC24, so 64% of float
+  arguments give another float than `std::exp` (C16 table). It needs an emulation (the product rounded to 24 bits,
+  FRNDINT's integer part, 2^fraction - 1 plus 1 rounded to 24 bits, the scale) with an equivalence test (C30e4).
+- **the game CRT's pow / acos / asin / hypot** (`libcrt::CiPow` ..., crt_x87.cpp) stay x87 code that SSE2 code calls:
+  they load their own control word and round at the caller's precision (`MathControlWord::Round`, the main thread's
+  PC24 whoever calls), so an SSE2 caller passing the same values gets the same double back. crt_x87.cpp itself moves
+  last (C30e15). The host CRT's `std::pow` in x87 code (`__CIpow`: player_client, unit_skill_price) is the UCRT's x87
+  pow; under SSE2 it is the UCRT's SSE2 pow: an equivalence test decides whether it can be plain `std::pow`.
+- **helpers**: `x87::fistp` / `RoundToInt` -> `lib::RoundEven` (CVTSS2SI: ties to even, 0x80000000 for a NaN, an
+  infinity or out of range, as the x87 form: all 2^32 floats compared); `libcrt::Ftol` -> `static_cast<int>(static_cast<std::int64_t>(x))`
+  where a NaN or a value beyond the int range can arrive (the low half; 0 for NaN, as `_ftol`: all 2^32 floats
+  compared), else `static_cast<int>`; `x87::CopyBits` -> `=` (SSE2 copies keep a signalling NaN's bits);
+  `x87::FromUnsigned` -> `static_cast<double>` (exact on SSE2).
+- **the chop rounding** (terrain_sector's `ScopedRounding` around the edge fade) sets only the x87 control word: on
+  SSE2 the truncation is written per operation or MXCSR is set around the loop (C30e14).
+- **53-bit code**: before the device exists (start-up: options, registry, settings, the first files read) the main
+  thread runs at 53 bits, where the original's double maths is SSE2's double maths: such code stays double. The other
+  threads (the MP3 stream, the cursor, the master server lookup) are SSE2 already or do no float maths.
+- **headers**: a moved file inlines its own SSE2 copies of the header helpers (vecmath.h, unit.h, world.h,
+  spell_effect_internal.h, camera.h's `D()`); their out-of-line copies come from x87 objects first (whole-archive
+  order). Float helpers are the same either way; a double one is converted with its last x87 caller, or before.
+- **per batch**: the survey scripts below on the batch's objects before and after (no x87 instruction left, no SSE
+  arithmetic but what the review allows), goldens unchanged on the verify suite and `--rebirth-only`, an equivalence
+  test for every helper, check_x87 0.
+
+**Survey (2026-10-29, release build, dumpbin /disasm of every x87 object).** 417 of the 587 game files were x87.
+Their objects: 126 without a float instruction, 75 with float loads and stores only, 7 with int <-> float
+conversions besides, 171 with float arithmetic and 38 with a transcendental or the control word. The unordered
+containers' load factor (`size / max_load_factor`, `ceil`: small integers over 1.0f, exact on both) is counted apart.
+The scripts (one-off, in the C30e scratch folder named in the hand-back): `survey.py` (source counts per file),
+`objscan.py` (dumpbin classes per object and function), `classify.py`, `sse2check.py` (SSE arithmetic in the moved
+objects), `cmake_list.py` (the grouped list), `eq/` (the conversions' test).
+
+**Batch 1 (C30e, done): the 208 files without float arithmetic.** On SSE2 their objects hold none either: int to
+float conversions (CVTDQ2PS), float to double (CVTPS2PD), bit operations the compiler vectorises (XOR, AND, OR on
+memory blocks: world_guard, ai_cost_tables, rebirth), the four `lib::RoundEven` and registry's `__ftol3`. Source
+changes: `x87::CopyBits` -> `=` (net_messages, script_vars), `x87::fistp` -> `lib::RoundEven` (an item whose
+condition rounds to 0 or below is broken: unit_create, unit_items), renderer_init's three roundings of 50.0f -> the
+colour 0xFF323232, registry's `FloatToInt` through int64. Goldens unchanged (verify and `--rebirth-only`).
+
+**Batches left** (209 files, 57,575 lines; source counts: `double` 1,640, `D(` 472, `x87::` 358, `Ftol(` 120).
+Each one focused area, one worker session, after C30e4 where it has a transcendental:
+
+| Ticket | Files | Lines | What keeps it x87 |
+|---|---|---|---|
+| C30e1 network, sessions, settings | 30 | 7,647 | net_connection_tick's `D()` (24) and timers, player_server_handlers' doubles (16), player_client's `std::pow`, options' `Ftol` |
+| C30e2 scripts | 10 | 4,031 | `Ftol` 72 (script_exec 43, script_eval 15: a script argument can be a NaN), script_addon_math's CRT sin / cos / pow |
+| C30e3 items, spells, world objects | 17 | 4,047 | item / item_stock / item_manager float maths (prices, conditions; item.cpp's `CopyBits` 11), `x87::` 21 |
+| C30e4 transcendental helpers, spell effects | 3 | 1,097 | `fexp` / `flog` (spell_effect_start / _update), exit_area's sin / cos; the helpers and their tests |
+| C30e5 server world, world effects | 21 | 6,831 | world_weather's wide constants, moshka / visual / party / units' transcendentals, world_time's fmod |
+| C30e6 units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
+| C30e7 combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
+| C30e8 AI maps, paths, motion | 17 | 3,732 | ai_motion (91 doubles, 44 `x87::`), ai_refresh's `fexp` / `flog`, `x87::fistp` 49 |
+| C30e9 unit AI | 4 | 3,256 | doubles 268 (unit_ai_modes 135), `fsin` / `fcos` / `fpatan` |
+| C30e10 geometry, figures | 24 | 3,665 | core_transform_math / quaternion `D()` 120, `CiAcos`, picking's projected meshes |
+| C30e11 map objects | 10 | 2,360 | doubles 75 (map_object_figures, map_object_cage) |
+| C30e12 client units and world | 13 | 3,928 | unit_client_path's `fexp`, world_client_maps' `Hypot`, the view (picking) |
+| C30e13 camera, picking, briefing | 22 | 5,869 | `D()` 328 (camera 122, ui_hud_map 123, camera_motion 72), `CiAcos` / `Hypot` / `CiPow`, `fexp` |
+| C30e14 terrain | 5 | 1,411 | terrain_sector's chop rounding, terrain_landscape's `CiAsin` / `fsin` |
+| C30e15 main loop, game CRT | 2 | 943 | app_main's frame timing (`fexp`, `FromUnsigned`, `Step`), crt_x87.cpp; then the IA32 option and the x87 helpers go |
 
 ### The whole image on SSE2 (C16 experiment)
 
