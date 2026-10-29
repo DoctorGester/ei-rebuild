@@ -190,13 +190,16 @@ public:
     int uploadResult_;          // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
     std::vector<std::uint8_t> extra_;       // the .mmp file's extra block
     std::uint32_t format_;      // the texture format it is held in (TextureFormat); 0 none
-    Surface* surface_;       // counted
+    Ref<Surface> surface_;
 
     CTextureManager* Manager() const;
 };
 
 // A null texture is a fatal error (its result returned); a loaded one gives 1.
-int TextureHolderEnsureLoaded(struct HeldTexture* holder);
+int EnsureTextureLoaded(CTexture* texture);
+// Drops the texture `slot` holds, then takes the texture manager's texture of `kind` named `name`, made when
+// missing.
+void LoadNamedTexture(Ref<CTexture>& slot, int kind, const char* name);
 
 constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 

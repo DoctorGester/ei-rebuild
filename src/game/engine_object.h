@@ -5,6 +5,8 @@
 #include <cstring>
 #include <new>
 
+#include "ref.h"
+
 // `new (kZeroed) T(...)`: T constructed on a zeroed block, for the engine objects whose constructors leave fields
 // unset (the two factories' server and map objects, the lights, the particle sources): a determinism fix the
 // standalone keeps; the harness zeroes the original's at the same calls (tests/verify/harness_leftovers.h).
@@ -127,6 +129,8 @@ public:
     virtual const char* ClassName() = 0;
     virtual ClassId GetClassId() = 0;
 
+    void AddRef() { ++refCount_; }
+
     CManagerContext* ManagerContext() const;
     // The manager context as the world, for the world's objects (a party's items have the party instead).
     // Templates so that the world's classes need to be complete only where they are used.
@@ -148,92 +152,15 @@ public:
     std::uint32_t prototypeId_;
 };
 
-// A counted engine object pointer as the game's helpers take it. Reads see the object; Assign counts, a plain
-// store (`held = p`) does not.
+// The name ui_camp.cpp gives Ref until the interface track's files are converted.
 template <typename T>
-struct HeldObject {
-    void Assign(T* value) {
-        CEngineObject* previous = object;
-        object = value;
-        if (CEngineObject* taken = value) ++taken->refCount_;
-        if (previous) previous->Release();
-    }
-    HeldObject* Construct(T* const* value) {
-        object = *value;
-        if (CEngineObject* taken = object) ++taken->refCount_;
-        return this;
-    }
-    // A counted pointer kept in a container of plain pointers seen as the holder it is.
-    static HeldObject* Of(T** pointer) { return reinterpret_cast<HeldObject*>(pointer); }
+using HeldObject = Ref<T>;
 
-    operator T*() const { return object; }
-    T* operator->() const { return object; }
-    HeldObject& operator=(T* plain) {
-        object = plain;
-        return *this;
-    }
-
-    T* object;
-};
-
-// A counted engine object pointer that holds its reference (a container's element): made from a pointer or
-// copied, it takes one; destroyed, it drops it (Release). A move hands the reference over.
+// A counted engine object's id saved (-1: none) or read back: -1 resets `ref`, any other id is looked up in
+// `world`'s map object manager.
+void SaveRef(const CEngineObject* object, CStream* stream);
 template <typename T>
-class HeldPtr {
-public:
-    HeldPtr() = default;
-    HeldPtr(T* object) : object_(object) {
-        if (object_) ++object_->refCount_;
-    }
-    HeldPtr(const HeldPtr& other) : HeldPtr(other.object_) {}
-    HeldPtr(HeldPtr&& other) noexcept : object_(other.object_) { other.object_ = nullptr; }
-    HeldPtr& operator=(HeldPtr other) noexcept {
-        T* old = object_;
-        object_ = other.object_;
-        other.object_ = old;
-        return *this;
-    }
-    ~HeldPtr() {
-        if (object_) object_->Release();
-    }
-
-    T* get() const { return object_; }
-    // The pointer, no longer held here: its reference goes with it.
-    T* release() {
-        T* object = object_;
-        object_ = nullptr;
-        return object;
-    }
-    operator T*() const { return object_; }
-    T* operator->() const { return object_; }
-
-private:
-    T* object_ = nullptr;
-};
-
-// A counted reference (released through Release). The AI's reference fields and the effects' figures hold one;
-// Assign / Reset count, a plain store (`ref = p`) does not. The bodies are counted_ref.cpp's.
-template <typename T>
-struct AIRefTo {
-    void Reset();
-    void Assign(T* newObject);
-    // Read / write the object id (-1: none); Load looks it up in `world`.
-    void Load(CStream* stream, CWorld* world);
-    void Save(CStream* stream);
-    // A counted object pointer kept in a container of plain pointers seen as the reference it is.
-    static AIRefTo* Of(T** slot) { return reinterpret_cast<AIRefTo*>(slot); }
-
-    operator T*() const { return object; }
-    T* operator->() const { return object; }
-    AIRefTo& operator=(T* plain) {
-        object = plain;
-        return *this;
-    }
-
-    T* object;
-};
-// Kept: names the one instance of the AI reference template that the units use.
-using AIRef = AIRefTo<CEngineObject>;
+void LoadRef(Ref<T>& ref, CStream* stream, CWorld* world);
 // CEngineObject::World, for the callers that name the object's base (CMapObject::World hides it).
 inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }
 

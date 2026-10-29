@@ -80,8 +80,7 @@ double AIDistance2(const Vector3* a, const Vector3* b) {
 
 void AIOrder::Clear() {
     kind = UnitOrderKind::None;
-    if (target) target->Release();
-    target = nullptr;
+    target.Reset();
     pointIsUseSpot = 0;
 }
 
@@ -89,19 +88,13 @@ void AIOrder::MakeAttack(CMapObject* object) {
     Clear();
     kind = UnitOrderKind::Attack;
     source = 6;
-    if (object) {
-        ++object->refCount_;
-        target = object;
-    }
+    target.Assign(object);
 }
 
 void AIOrder::MakeCast(int spell, CMapObject* object) {
     Clear();
     kind = UnitOrderKind::CastOn;
-    if (object) {
-        ++object->refCount_;
-        target = object;
-    }
+    target.Assign(object);
     source = static_cast<std::uint32_t>(spell);
 }
 
@@ -145,7 +138,6 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
     }
 
     AIOrder order;
-    order.target = nullptr;
     order.Clear();
     if (part < 0) {
         order.MakeAttack(target);

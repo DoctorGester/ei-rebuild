@@ -64,7 +64,7 @@ public:
     // it, with far distance values_[1] * 5.
     void SetSound(const char* name);
 
-    CLight* light_;                 // counted
+    Ref<CLight> light_;
     CParticleSource* particles_;    // counted
     int sound_;                     // the looping sound's handle, 0 when none
 };

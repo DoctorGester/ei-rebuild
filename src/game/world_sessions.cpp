@@ -25,7 +25,7 @@ CPlayerSource::~CPlayerSource() {}
 CWorldHandle* CWorldHandle::Clone() {
     auto* copy = new CWorldHandle();
     copy->pendingLink_ = pendingLink_;
-    if (copy->pendingLink_) ++copy->pendingLink_->refs_;
+    if (copy->pendingLink_) copy->pendingLink_->AddRef();
     return copy;
 }
 

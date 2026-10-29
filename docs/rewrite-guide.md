@@ -206,9 +206,9 @@ does not need a second pass:
 - one typed view instead of a cast per accessor (C15): an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure
   virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor. A counted
-  pointer the game's helpers take by address is a field of the holder type (`CountedRef<T>`,
-  `HeldTexture`, `HeldDevice`, `HeldObject<T>`, `AIRefTo<T>` (engine_object.h): reads see the object, a plain store counts nothing),
-  not a `T*` field and a `Holder::Of(&field)` cast; a record that starts with another struct's
+  pointer field is a `Ref<T>` (src/game/ref.h: Assign and Reset count, reads see the object, there is no plain store),
+  a container element that holds its reference a `HeldRef<T>`, not a `T*` field counted by hand; a site that keeps a
+  raw pointer counts with T's `AddRef()` / `Release()`, not `++refCount_` (docs/notes/core.md, "Counted pointers"); a record that starts with another struct's
   fields derives from it (UnitAction : AIOrder, SectorBox : ClipBounds) and the functions that
   read only the prefix take the base.
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down

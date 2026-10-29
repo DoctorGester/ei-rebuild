@@ -47,7 +47,7 @@ void KeepLower(float& slot, float value) { slot = value >= slot ? slot : value; 
 
 void CountedUnits::AddCountedTail(CUnit* object) {
     push_back(object);
-    if (object) ++object->refCount_;
+    if (object) object->AddRef();
 }
 
 void AIMemory::FindEnemies(CUnit* self, CountedUnits* out) {
@@ -120,7 +120,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
         if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) corpses.AddCountedTail(object);
     } else {
         visible.push_front(object);
-        ++object->refCount_;
+        object->AddRef();
         *kAiLog << "Unit " << self->id_ << " is forced to see unit " << other->id_ << " from ";
         console::EndLine(*kAiLog << distance << "m distance");
     }

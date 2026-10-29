@@ -31,7 +31,7 @@ CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellM
 
 CItem* AddEntry(std::vector<CItem*>& list, CItem* item) {
     CItem* entry = item->Clone(SpellManagerOf(item));
-    ++entry->refCount_;
+    entry->AddRef();
     Append(list, entry);
     return entry;
 }
@@ -58,7 +58,7 @@ void AddListWeight(float& weight, const std::vector<CItem*>& list) {
 CItem* CItem::Clone(CSpellManager* spells) {
     auto* copy = owner_->CreateObjectAs<CItem>(type_, -1);
     if (CopyTo(copy, spells)) return copy;
-    ++copy->refCount_;
+    copy->AddRef();
     copy->Release();
     return nullptr;
 }
@@ -73,7 +73,7 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
     if (spell_) {
         CSpell* spell = spell_->Clone(spells);
         target->spell_ = spell;
-        if (spell) ++spell->refCount_;
+        if (spell) spell->AddRef();
     } else {
         target->spell_ = nullptr;
     }
@@ -143,7 +143,7 @@ CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     CItem* copy = CopyItem(item);
     copy->count_ = static_cast<std::uint32_t>(count);
     Append(items_, copy);
-    ++copy->refCount_;
+    copy->AddRef();
     return copy;
 }
 

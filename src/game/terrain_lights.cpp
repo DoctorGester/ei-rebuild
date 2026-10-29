@@ -222,7 +222,7 @@ void Terrain::RelightArea(const LightArea* area) {
 
 void Terrain::AddLight(CLight* light) {
     if (!mapLoaded) return;
-    ++light->refCount_;
+    light->AddRef();
     LandscapeLight entry;
     entry.light = light;
     LightAreaOf(light, nullptr, &entry.area);

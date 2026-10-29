@@ -39,7 +39,6 @@ constexpr float kHalf = 0.5f;
 void SetBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(bits); }
 
 void BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
-void BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }
 
 // The engine object fields every constructor here sets (the base constructor inlined).
 void InitEngineObject(CEngineObject* object) {
@@ -64,7 +63,6 @@ void CObject3D::SetUpObject3D() {
     InitEngineObject(this);
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
-    figure = nullptr;
     ClearBounds();
     attached = nullptr;
     animation = nullptr;
@@ -81,9 +79,7 @@ CObject3D::~CObject3D() { TearDownObject3D(); }
 
 void CObject3D::TearDownObject3D() {
     Destroy3D();
-    if (CLinkMesh* current = figure) {
-        if (--current->refCount_ == 0) delete current;
-    }
+    figure.Reset();
     lib::FreeStorage(pendingParts);
     lib::FreeStorage(parts);
 }
@@ -179,7 +175,6 @@ CMapObjectServer::~CMapObjectServer() {
 }
 
 CMapObjectClientSpecific::CMapObjectClientSpecific() {
-    light = nullptr;
     lightStateA = 0;
     lightStateB = 0;
 }
@@ -199,7 +194,7 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
         }
         int id = light->id_;
         g_clientWorld->lightFactory_->litIds_.remove(id);
-        light.Assign(nullptr);
+        light.Reset();
     }
     owner = nullptr;
     if (light) light->Release();
@@ -215,15 +210,13 @@ CUnitServer::~CUnitServer() {
     if (AIMode* current = b->current) BrainObject8CDestroy(current);
     for (AIMode*& mode : b->modes) DestroyOwned(mode);   // the owned modes released
     b->modes.clear();
-    BrainArrayDestroy(&b->seen);
-    BrainArrayDestroy(&b->target);
+    b->seen.Reset();
+    b->target.Reset();
     for (ArmourSpell& spell : armourSpells)
         if (spell.item) spell.item->Release();
     armourSpells.clear();
     if (CEngineObject* leader = followedLeader) leader->Release();
-    if (CMapObject* target = action2.target) target->Release();
-    action2.target = nullptr;
-    if (CMapObject* target = action.target) target->Release();
-    action.target = nullptr;
+    action2.target.Reset();
+    action.target.Reset();
     if (CEngineObject* effect = effectObject) effect->Release();
 }

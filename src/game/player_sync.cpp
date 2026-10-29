@@ -79,7 +79,7 @@ void Keep(lib::HashMap<int, T*>& map, int& maxId, T* object) {
     int id = object->id_;
     if (id > maxId) maxId = id;
     map[id] = object;
-    ++object->refCount_;
+    object->AddRef();
 }
 
 // The erase the removers inline: the node of `id`, if any, dropped.

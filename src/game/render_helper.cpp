@@ -110,7 +110,7 @@ void CRenderHelper::Record(const std::vector<State>& states, unsigned index, boo
     const int count = static_cast<int>(states.size());
     const int stages = singleStage && count > 1 ? 1 : count;
     auto* preset = new CRenderPreset(states, stages);
-    ++preset->refs_;
+    preset->AddRef();
     presets_[index] = preset;
 }
 
@@ -121,7 +121,7 @@ CRenderHelper::CRenderHelper(std::uint32_t flag) {
 
 CRenderHelper::~CRenderHelper() {
     for (CRenderPreset*& preset : presets_) {
-        if (preset && --preset->refs_ == 0) delete preset;
+        if (preset) preset->Release();
         preset = nullptr;
     }
 }

@@ -191,7 +191,7 @@ void CWorldServer::TeardownZone() {
     auto& missiles = projectiles_;
     for (auto& node : missiles) {
         CSpellEffect* missile = node;
-        if (missile && --missile->refs_ == 0) delete missile;
+        if (missile) missile->Release();
     }
     missiles.clear();
 

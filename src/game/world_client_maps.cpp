@@ -71,9 +71,9 @@ namespace {
 std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::fistp(coordinate)) >> 4; }
 
 // Every element of `list` that is `object` erased (released), the object held meanwhile.
-void RemoveHeld(std::list<HeldPtr<CMapObject>>& list, CMapObject* object) {
-    HeldPtr<CMapObject> hold(object);
-    std::erase_if(list, [object](const HeldPtr<CMapObject>& held) { return held.get() == object; });
+void RemoveHeld(std::list<HeldRef<CMapObject>>& list, CMapObject* object) {
+    HeldRef<CMapObject> hold(object);
+    std::erase_if(list, [object](const HeldRef<CMapObject>& held) { return held.Get() == object; });
 }
 
 // The hit test of the object's side half for the point: CollectBounds or CollectParts.
@@ -101,7 +101,7 @@ HitCollector* CollectHits(HitCollector* out, std::list<ScreenEntry>::iterator fi
 void SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
 
-std::list<HeldPtr<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
+std::list<HeldRef<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
     std::uint32_t x = CellOf(object->localPosition_.x);
     std::uint32_t y = CellOf(object->localPosition_.y);
     if (x >= grid.width_ || y >= grid.height_) return nullptr;
@@ -182,7 +182,7 @@ void Unhighlight(CMapObject* object) {
 template <typename T>
 T* NewCounted() {
     T* object = new T();
-    ++object->refCount_;
+    object->AddRef();
     return object;
 }
 
@@ -197,7 +197,7 @@ void GridToFour(SectorGrid& grid) {
 
 void ReferenceEveryObject(CBaseManager* manager) {
     ObjectListIterator walk{};
-    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) ++object->refCount_;
+    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) object->AddRef();
     if (CBaseManager* held = walk.manager) --held->refCount_;
 }
 
@@ -278,7 +278,7 @@ int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::itera
 int CWorldClient::AddObject(CMapObject* object) {
     for (CMapObject* filed : objects_) {
         if (filed->id_ == object->id_) {
-            ++object->refCount_;
+            object->AddRef();
             object->Release();
             return 1;
         }
@@ -305,11 +305,11 @@ int CWorldClient::AddObject(CMapObject* object) {
         if (unit->player == nullptr && ticksRun_ >= 1) unit->Controller()->RestartFadeIn();
     }
 
-    ++object->refCount_;
+    object->AddRef();
     objects_.push_back(object);
 
-    if (std::list<HeldPtr<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
-    if (std::list<HeldPtr<CMapObject>>* cell = CellFor(objectGrid_, object)) cell->emplace_back(object);
+    if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
+    if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid_, object)) cell->emplace_back(object);
     if (object->MapType() == MapObjectType::Hero && (IsTextKey(object->id_) & 0xFF)) heroes_.emplace_back(object);
     return 1;
 }
@@ -435,7 +435,7 @@ void CWorldClient::RemoveObject(int id) {
         RemoveHeld(heroes_, object);
         if (session_->sessionKind_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
     }
-    if (std::list<HeldPtr<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
+    if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
     objects_.erase(filed);
     object->Release();
 }
@@ -574,7 +574,7 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<
     lastY = Ftol(y1) >> 4;
 
     SectorGrid& grid = objectGrid_;
-    for (std::list<HeldPtr<CMapObject>>* cell = &grid.rows_[y][x]; cell;) {
+    for (std::list<HeldRef<CMapObject>>* cell = &grid.rows_[y][x]; cell;) {
         for (CMapObject* object : *cell) {
             float pz = point->z;
             float ox = object->localPosition_.x + object->bounds.center.x;
@@ -764,8 +764,8 @@ void CWorldClient::Select(CMapObject* object) {
 }
 
 void SectorGrid::Allocate() {
-    cells_ = std::make_unique<std::list<HeldPtr<CMapObject>>[]>(static_cast<std::size_t>(allocatedWidth_) * allocatedHeight_);
-    rows_ = std::make_unique<std::list<HeldPtr<CMapObject>>*[]>(static_cast<std::size_t>(allocatedHeight_));
+    cells_ = std::make_unique<std::list<HeldRef<CMapObject>>[]>(static_cast<std::size_t>(allocatedWidth_) * allocatedHeight_);
+    rows_ = std::make_unique<std::list<HeldRef<CMapObject>>*[]>(static_cast<std::size_t>(allocatedHeight_));
     for (int y = 0; y < allocatedHeight_; ++y) rows_[y] = cells_.get() + y * allocatedWidth_;
 }
 
@@ -793,9 +793,9 @@ int CWorldClient::Create() {
     sounds_ = NewCounted<CSoundManager>();
 
     texts_ = new CTextManager();
-    ++texts_->refCount_;
+    texts_->AddRef();
     terrain_ = new Terrain();
-    ++terrain_->refCount_;
+    terrain_->AddRef();
     zoneName_ = worlddata::GipathText();
 
     specificManager_ = NewCounted<CClientSpecificManager>();
@@ -809,7 +809,7 @@ int CWorldClient::Create() {
 
     auto* manager = new CParticleManager();
     particleManager_ = manager;
-    ++manager->refCount_;
+    manager->AddRef();
     manager->Init(this);
 
     session_ = players_->CreateSessionPlayer();
@@ -920,7 +920,7 @@ int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
         CEngineObject* object = manager->CreateObject(type, id);
         object->prototypeId_ = extra;
         object->Load(stream);
-        ++object->refCount_;
+        object->AddRef();
     }
 }
 
@@ -970,11 +970,11 @@ CLightningManager::~CLightningManager() {
     newBolts_.clear();
 }
 
-ClientArrayManager::ClientArrayManager() { texture = nullptr; }
+ClientArrayManager::ClientArrayManager() {}
 
 ClientArrayManager::~ClientArrayManager() {
     VisFogManagerDestroy(this);
-    if (CTexture* held = texture) held->Release();
+    texture.Reset();
 }
 
 int CWorldClient::LoadZone(CStream* block) {
@@ -1039,12 +1039,12 @@ int CWorldClient::LoadZone(CStream* block) {
     if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~LandscapeFlag::SunShadows;
     terrain->SetLightInterval(worlddata::LightingFrequencyOption() / kFrameMilliseconds);
     if (skyDome_) {
-        HeldTexture* holder = &skyDome_->texture;
+        Ref<CTexture>& sky = skyDome_->texture;
         if (cave == kCave) {
-            holder->Load(kSkyTextureKind, worlddata::CaveSkyText());
+            LoadNamedTexture(sky, kSkyTextureKind, worlddata::CaveSkyText());
             skyDome_->turns = 0;
         } else {
-            holder->Load(kSkyTextureKind, worlddata::OpenSkyText());
+            LoadNamedTexture(sky, kSkyTextureKind, worlddata::OpenSkyText());
             skyDome_->turns = 1;
         }
     }

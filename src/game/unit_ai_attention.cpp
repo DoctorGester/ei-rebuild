@@ -43,8 +43,7 @@ void AIAttention::LookAround(AIBrain* brain, int reachArg) {
                     AIOrder order{};
                     order.kind = UnitOrderKind::Attack;
                     order.source = 6;
-                    ++chosen->refCount_;
-                    order.target = chosen;
+                    order.target.Assign(chosen);
                     if (brain->owner->CanReachAndPlan(&order)) flags = AckKind::None;
                     order.target.Reset();
                 }

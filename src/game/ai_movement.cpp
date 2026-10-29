@@ -46,7 +46,7 @@ void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
 // The handle's reference dropped (the object deleted with the last).
 void ReleaseHandle(ShapeCacheHandle* handle) {
     if (CRefObject* ref = handle->ref) {
-        if (--ref->refs_ == 0) delete ref;     // delete tests ref again, as the original does
+        ref->Release();
     }
 }
 
@@ -84,7 +84,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
             handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
             shape = static_cast<const CUnitShape*>(g_unitShapes->Get(&handle));
             if (CRefObject* ref = handle.ref) {
-                if (--ref->refs_ == 0) delete ref;
+                ref->Release();
             }
         }
 

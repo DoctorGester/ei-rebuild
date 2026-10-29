@@ -4,7 +4,7 @@
 // projects the figure from the strongest light direction onto the ground under the object (the decal's sphere
 // decides the shadow's visibility out of view). See docs/notes/map_objects.md ("Shadows").
 
-#include "core_refcount.h"     // CountedRef
+#include "ref.h"
 #include "device_material.h"   // CDeviceMaterial, MaterialStage
 #include "engine_object.h"
 #include "ground_decal.h"         // DecalTexCoord
@@ -163,8 +163,8 @@ public:
     float bounds[4];                // minimum x, y and maximum x, y in the light's view
     ClipBounds sphere;              // the shadow's bounds, the centre relative to the object
     RECT drawnRect;                 // the screen area of the dirty parts Draw drew
-    CTexture* woundsTexture;        // the wounds texture (counted; ShowWounds loads it)
-    CountedRef<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
+    Ref<CTexture> woundsTexture;    // the wounds texture (ShowWounds loads it)
+    Ref<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
     std::string skinName;          // the first set's texture name (SetSkins)
     std::string secondSkinName;    // the second set's
     float pulseClock;               // frames counted by the invisible / stunned pulses
@@ -184,10 +184,6 @@ struct WoundsMaterial final : CDeviceMaterial {
     ~WoundsMaterial() override;
 };
 
-inline void CObject3DClientSpecific::ClearWoundsMaterial() {
-    WoundsMaterial* old = woundsMaterial;
-    woundsMaterial = nullptr;
-    if (old) old->Release();
-}
+inline void CObject3DClientSpecific::ClearWoundsMaterial() { woundsMaterial.Reset(); }
 
 inline CObject3DClientSpecific* CObject3D::ClientSpecific() const { return static_cast<CObject3DClientSpecific*>(attached); }

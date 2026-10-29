@@ -11,9 +11,7 @@ constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
 
 // Takes the face texture and releases it.
 void ReleaseFace(CUnitClientSpecific* self) {
-    CTexture* face = self->faceTexture;
-    self->faceTexture = nullptr;
-    if (face) face->Release();
+    self->faceTexture.Reset();
 }
 } // namespace
 
@@ -71,6 +69,5 @@ CUnitClientSpecific::~CUnitClientSpecific() {
 }
 
 CUnitClientSpecific::CUnitClientSpecific() {
-    faceTexture = nullptr;
     fadeIn = 1.0f;
 }

@@ -19,7 +19,7 @@ void SaveObjectList(std::list<CUnit*>& list, CStream* stream) {
     stream->WriteValue(std::ssize(list));
     for (auto node = list.begin(); node != list.end();) {
         auto next = std::next(node);
-        AIRefTo<CUnit>::Of(&*node)->Save(stream);
+        SaveRef(*node, stream);
         node = next;
     }
 }
@@ -62,10 +62,7 @@ void AIMemory::Load(CStream* stream) {
     stream->ReadValue(count);
     reports.resize(count);
     for (int i = 0; i < count; ++i) {
-        AIRefTo<CMapObject> loaded{nullptr};
-        loaded.Load(stream, &g_serverWorld.Get());
-        reports[i].object = loaded.object;   // the report takes its own reference
-        loaded.Reset();
+        LoadRef(reports[i].object, stream, &g_serverWorld.Get());
         stream->ReadValue(reports[i].what);
     }
     stream->ReadValue(count);
@@ -91,7 +88,7 @@ void AIMemory::Save(CStream* stream) {
     stream->WriteValue(nearbyCountdown);
     stream->WriteValue(std::ssize(reports));
     for (int i = 0; i < std::ssize(reports); ++i) {
-        AIRefTo<CMapObject>{reports[i].object}.Save(stream);
+        SaveRef(reports[i].object, stream);
         stream->WriteValue(reports[i].what);
     }
     stream->WriteValue(std::ssize(calls));

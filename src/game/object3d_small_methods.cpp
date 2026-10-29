@@ -18,7 +18,7 @@ void CObject3D::SetSpecific(CObject3DSpecific* half) {
     attached = half;
     if (half) {
         half->object = this;
-        ++attached->refCount_;
+        attached->AddRef();
     }
 }
 
@@ -45,7 +45,7 @@ void CObject3D::SetAnimationState(CFigureAnimationState* state) {
     }
     animation = state;
     if (state) {
-        ++state->refCount_;
+        state->AddRef();
         animation->owner = this;
     }
 }

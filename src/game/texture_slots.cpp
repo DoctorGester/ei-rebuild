@@ -46,9 +46,7 @@ void MmpHeader::SetFormat8888() {
 namespace {
 // The counted surface pointer set to null: the holder loses a reference (deleted at 0).
 void DropSurface(CTexture* texture) {
-    Surface* held = texture->surface_;
-    texture->surface_ = nullptr;
-    if (held) held->Release();
+    texture->surface_.Reset();
 }
 
 } // namespace
@@ -75,7 +73,6 @@ void CTexture::Destroy() {
 
 CTexture::CTexture() {
     ClearFields();
-    surface_ = nullptr;
     name_.clear();
     DropSurface(this);
     height_ = 0;

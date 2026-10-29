@@ -62,7 +62,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, float
         std::construct_at(&p);
         std::atexit(FreeGlowPoints);
     }
-    TextureHolderEnsureLoaded(&glowTexture_);
+    EnsureTextureLoaded(glowTexture_);
     if (!device->SetTexture(0, glowTexture_)) return;
 
     // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
@@ -104,7 +104,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, float
 
 // 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
 int CLightning::Draw(CSceneRenderer* device) {
-    TextureHolderEnsureLoaded(&texture_);
+    EnsureTextureLoaded(texture_);
     CSceneRenderer* renderer = device;
     if (!renderer->SetTexture(0, texture_)) return 0;
     int visibility = renderer->pipeline_->ClipTest(&bounds_);

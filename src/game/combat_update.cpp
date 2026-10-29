@@ -71,9 +71,7 @@ void StartQueueIfUnset(CUnitServer* self) {
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
     g_serverWorld->RemoveTimedObject(self->effectObject->id_);
-    CEngineObject* effect = self->effectObject;
-    self->effectObject = nullptr;
-    if (effect) effect->Release();
+    self->effectObject.Reset();
 }
 
 // The weapon slot the unit wants taken up when it differs from the active one.
@@ -97,8 +95,7 @@ void SetStandingFlag(CUnitServer* self, int standing) {
 // A UnitAction emptied as the original inlines it: kind 9, the target released, flags cleared.
 void EmptyAction(UnitAction* order) {
     order->kind = UnitOrderKind::None;
-    if (order->target) order->target->Release();
-    order->target = nullptr;
+    order->target.Reset();
     order->pointIsUseSpot = 0;
     order->param = 0;
     order->modifier = 0;
@@ -466,10 +463,7 @@ void CUnitServer::TickAction() {
             particle->size_ = 1.0f;
             particle->SetAttachedTo(unit->id_);
             world->AddTimedObject(particle);
-            CEngineObject* old = effectObject;
-            effectObject = particle;
-            ++particle->refCount_;
-            if (old) old->Release();
+            effectObject.Assign(particle);
         }
     }
     if (now < plan.endTime) {
@@ -607,10 +601,7 @@ void CUnitServer::RefreshItemSpells() {
         ArmourSpell blank{};
         ArmourSpell& added = list->emplace_back();
         added.Assign(&blank);
-        CItem* previous = added.item;   // a reference's assignment
-        added.item = item;
-        if (item) ++item->refCount_;
-        if (previous) previous->Release();
+        added.item.Assign(item);
         added.worn = 1;
     }
     // Entries of items no longer worn go.

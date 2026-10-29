@@ -51,7 +51,7 @@ void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
     CRefObject* connection = g_currentConnection;
     CRefObject* previous = message->ConnectionRef().ptr;
     message->ConnectionRef().ptr = connection;
-    if (connection) ++connection->refs_;
+    if (connection) connection->AddRef();
     if (previous) {
         --previous->refs_;
         if (previous->refs_ == 0) delete previous;

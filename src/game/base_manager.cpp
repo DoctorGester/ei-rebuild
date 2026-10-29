@@ -123,7 +123,7 @@ int CBaseManager::Create() {
 // Every object gets a reference, then its own Destroy; then every object still registered under the ids
 // collected is released; the object list is emptied; every object left is deleted; then the tables are cleared.
 void CBaseManager::Destroy() {
-    ForEachObject(objects_, [](CEngineObject* o) { ++o->refCount_; });
+    ForEachObject(objects_, [](CEngineObject* o) { o->AddRef(); });
     std::list<int> ids;
     ForEachObject(objects_, [&ids](CEngineObject* o) {
         ids.push_back(o->id_);
@@ -157,7 +157,7 @@ BOOL CBaseManager::Init(CManagerContext* context) {
 // Every object gets a reference, then is destroyed, then released (objects nothing else holds go back to the
 // spares). Then the objects table, the object list and the positions are emptied.
 void CBaseManager::DestroyAll() {
-    ForEachObject(objects_, [](CEngineObject* o) { ++o->refCount_; });
+    ForEachObject(objects_, [](CEngineObject* o) { o->AddRef(); });
     ForEachObject(objects_, [](CEngineObject* o) { o->Destroy(); });
     ForEachObject(objects_, [](CEngineObject* o) { o->Release(); });
     maxId_ = 0;
@@ -388,7 +388,7 @@ void CBaseManager::ReleaseUnused() {
 CEngineObject* ObjectListIterator::First(CBaseManager* list) {
     if (manager) --manager->refCount_;
     manager = list;
-    if (list) ++list->refCount_;
+    if (list) list->AddRef();
     position = manager->objectList_.begin();
     return Next();
 }

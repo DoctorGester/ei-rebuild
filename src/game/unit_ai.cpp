@@ -63,7 +63,7 @@ const char* MotivationFormat() { return "Unit %i new motivation %s with power of
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-AIRefTo<CUnit>* AIBrain::PopCorpse(AIRefTo<CUnit>* out) { return memory.corpses.PopHead(out); }
+Ref<CUnit>* AIBrain::PopCorpse(Ref<CUnit>* out) { return memory.corpses.PopHead(out); }
 void AIBrain::ChooseTarget(AITargetChoice* choice, CountedUnits* candidates, const Vector3* from, int a, int b) {
     // `a` is read as a byte.
     attention.Choose(this, choice, candidates, from, static_cast<std::uint8_t>(a) != 0, b);
@@ -71,19 +71,11 @@ void AIBrain::ChooseTarget(AITargetChoice* choice, CountedUnits* candidates, con
 
 // --- The corpse list ---------------------------------------------------------------
 
-// Takes the head off the corpse list, returning the element as a counted reference. It copies the head's object
-// into a counted local, releases the list's reference and removes the head, then copies the local into `out`
-// and drops the local.
-AIRefTo<CUnit>* CountedUnits::PopHead(AIRefTo<CUnit>* out) {
+// Takes the head off the corpse list into `out`, which takes a reference; then the list's own is released.
+Ref<CUnit>* CountedUnits::PopHead(Ref<CUnit>* out) {
     CUnit* value = front();
-    if (value) ++value->refCount_;
-    if (value) value->Release();
     pop_front();
-    out->object = nullptr;
-    if (value) {
-        ++value->refCount_;
-        out->object = value;
-    }
+    out->Assign(value);
     if (value) value->Release();
     return out;
 }
@@ -150,7 +142,7 @@ void AIBrain::Think() {
         if (best) best->Enter(this);
         AIMode* old = current;
         current = best;
-        if (best) ++best->refs_;
+        if (best) best->AddRef();
         if (old) old->Release();
     }
 
@@ -314,8 +306,7 @@ void AIBrain::UpdateMove() {
         double dy = move.point.y - unit->localPosition_.y;     // kept on the FPU stack
         double dx = move.point.x - unit->localPosition_.x;
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
-            if (target) target.Reset();
-            target = nullptr;
+            target.Reset();
             action = kActionNone;
             return;
         }
@@ -324,7 +315,6 @@ void AIBrain::UpdateMove() {
         if (move.looks.empty()) {
             if (target) {
                 target.Reset();
-                target = nullptr;
             }
             action = kActionNone;
             return;
@@ -391,15 +381,10 @@ void AIBrain::AttackTarget(CMapObject* object) {
         AIOrder order{};
         order.kind = UnitOrderKind::Attack;
         order.source = 6;
-        order.target = nullptr;
         order.pointIsUseSpot = 0;
-        if (object) {
-            order.target = object;
-            ++object->refCount_;
-        }
+        order.target.Assign(object);
         if (owner->CanReachAndPlan(&order)) flags = AckKind::None;
-        if (order.target) order.target->Release();
-        order.target = nullptr;
+        order.target.Reset();
     }
     owner->OrderAttack(target, 6, 0, flags);
 }

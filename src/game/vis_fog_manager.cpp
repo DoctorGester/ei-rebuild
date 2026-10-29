@@ -5,7 +5,7 @@
 // docs/notes/script.md.
 #include "effects.h"
 #include "model.h"     // CSceneRenderer
-#include "texture.h"   // TextureHolderEnsureLoaded, HeldTexture
+#include "texture.h"
 #include "world.h"     // ClientArrayManager
 
 #include <cstddef>
@@ -31,7 +31,7 @@ CEngineObject* ClientArrayManager::NewObject(int) { return new CVisibilityFog();
 
 // The texture, the tile table, then the manager's own Create (its result).
 int VisFogManagerCreate(ClientArrayManager* self) {
-    self->texture.Load(kFogTextureKind, FogTextureName());
+    LoadNamedTexture(self->texture, kFogTextureKind, FogTextureName());
     FogTile* tiles = g_fogTiles;
     for (int i = 0; i < kFogTiles; ++i) {
         FogTile& tile = tiles[i];
@@ -45,9 +45,7 @@ int VisFogManagerCreate(ClientArrayManager* self) {
 
 // The texture dropped (null, then released), every fog released, the list emptied.
 void VisFogManagerDestroy(ClientArrayManager* self) {
-    CTexture* texture = self->texture;
-    self->texture = nullptr;
-    if (texture) texture->Release();
+    self->texture.Reset();
     for (CEngineObject* fog : self->list) fog->Release();
     self->list.clear();
 }
@@ -73,7 +71,7 @@ int ClientArrayManager::RunTick() { return VisFogManagerTick(this); }
 // A new fog (CreateObject(0, -1): registered and created), counted, at the list's end.
 CEngineObject* VisFogManagerAdd(ClientArrayManager* self) {
     CEngineObject* fog = self->CreateObject(0, -1);
-    ++fog->refCount_;
+    fog->AddRef();
     self->list.push_back(fog);
     return fog;
 }
@@ -82,8 +80,8 @@ CEngineObject* VisFogManagerAdd(ClientArrayManager* self) {
 // stage 0 (a failed bind: 0), then every fog draws; 1.
 int ClientArrayManager::Draw(CSceneRenderer* renderer) {
     if (list.empty()) return 1;
-    TextureHolderEnsureLoaded(&texture);
-    if (!renderer->SetTexture(0, texture.texture)) return 0;
+    EnsureTextureLoaded(texture);
+    if (!renderer->SetTexture(0, texture)) return 0;
     for (CEngineObject* fog : list) static_cast<CVisibilityFog*>(fog)->Draw(renderer);   // its result not read
     return 1;
 }

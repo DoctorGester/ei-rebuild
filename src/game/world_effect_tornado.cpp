@@ -56,7 +56,6 @@ bool SnapshotReadToEnd() {
 } // namespace
 
 CEffectTornado::CEffectTornado() {
-    source_ = nullptr;
     sound_ = -1;
     Reset();   // inline
 }
@@ -72,9 +71,7 @@ void CEffectTornado::Reset() {
     if (source_ != nullptr) source_->StopAndClear();
     if (sound_ != -1) g_clientWorld->sounds_->StopSound(sound_);
     sound_ = -1;
-    CEngineObject* source = source_;
-    source_ = nullptr;
-    if (source != nullptr) source->Release();
+    source_.Reset();
 }
 
 void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
@@ -145,19 +142,14 @@ void CEffectTornado::Pack(DeltaField* field) {
 void CEffectTornado::Start(int update) {
     if (update == 0 && source_ != nullptr) {
         source_->Stop();
-        CEngineObject* source = source_;
-        source_ = nullptr;
-        if (source != nullptr) source->Release();
+        source_.Reset();
     }
     if (source_ != nullptr) return;
     if (sound_ == -1) {
         sound_ = g_clientWorld->sounds_->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1, 0);
     }
     CParticleSource* source = g_clientWorld->particleManager_->CreateSource(kTornadoParticles);
-    CEngineObject* old = source_;
-    source_ = source;
-    if (source != nullptr) ++source->refCount_;
-    if (old != nullptr) old->Release();
+    source_.Assign(source);
     source_->localPosition_ = localPosition_;
     source_->ScaleSize(1.0f);
     int behind = g_clientWorld->tick_ - launchTick_;

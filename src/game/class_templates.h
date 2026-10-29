@@ -44,7 +44,7 @@ public:
 CRefCounted* CreateClassTemplate();
 
 // Counted pointers.
-struct TemplateTable : std::vector<CountedPtr<ClassTemplate>> {
+struct TemplateTable : std::vector<HeldRef<ClassTemplate>> {
     // Releases the templates, then builds new ones: four (classes 1, 3, 4, 5) when `fourClasses` (low byte) is
     // set, else five (1 to 5, the fifth with zero weights).
     void Build(unsigned fourClasses);

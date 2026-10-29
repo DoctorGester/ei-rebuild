@@ -74,7 +74,7 @@ void CUnit::DropBrokenEquipment() {
 
     for (CItemArmor*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
-        ++slot->refCount_;
+        slot->AddRef();
         broken.push_back(slot);
         CItemArmor* piece = slot;
         slot = nullptr;
@@ -91,7 +91,7 @@ void CUnit::DropBrokenEquipment() {
         CItem*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
         messages->SendPair16(static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
-        ++slot->refCount_;
+        slot->AddRef();
         broken.push_back(slot);
         CEngineObject* weapon = slot;
         slot = nullptr;

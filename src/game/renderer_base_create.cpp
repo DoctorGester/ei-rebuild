@@ -7,9 +7,5 @@
 #include <string>
 
 void CSceneRenderer::CreatePipeline(const options::GameOptions* settings) {
-    CTransformPipeline* pipeline = new CTransformPipeline(settings->workPath_.c_str());   // 0x94 bytes
-    CTransformPipeline* old = pipeline_;
-    pipeline_ = pipeline;
-    if (pipeline) ++pipeline->refs_;
-    if (old) old->Release();
+    pipeline_.Assign(new CTransformPipeline(settings->workPath_.c_str()));   // 0x94 bytes
 }

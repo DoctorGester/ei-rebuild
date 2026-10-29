@@ -68,8 +68,6 @@ bool Same(float a, float b) {
 } // namespace
 
 CEffectMoshka::CEffectMoshka() {
-    bird_ = nullptr;
-    source_ = nullptr;
     Reset();
 }
 
@@ -79,21 +77,15 @@ CEffectMoshka::~CEffectMoshka() {
     Reset();
     Reset();   // again, the virtual
     if (source_ != nullptr) source_->Release();
-    if (bird_ != nullptr) bird_->Release();
-    bird_ = nullptr;
+    bird_.Reset();
 }
 
 void CEffectMoshka::Reset() {
     CEffect::Reset();
     if (bird_ != nullptr) g_clientWorld->RemoveObject(bird_->id_);
     if (source_ != nullptr) source_->Stop();
-    CEngineObject* source = source_;
-    source_ = nullptr;
-    if (source != nullptr) source->Release();
-    if (bird_ != nullptr) {
-        bird_->Release();
-        bird_ = nullptr;
-    }
+    source_.Reset();
+    bird_.Reset();
     lastTime_ = 0.0f;
     followedId_ = -1;
 }
@@ -253,10 +245,7 @@ void CEffectMoshka::Follow(int objectId) {
         bird->animation->Play(first);
     }
     CParticleSource* source = g_clientWorld->particleManager_->CreateSource(kBirdParticles);
-    CEngineObject* old = source_;
-    source_ = source;
-    if (source != nullptr) ++source->refCount_;
-    if (old != nullptr) old->Release();
+    source_.Assign(source);
     source_->ScaleSize(kBirdParticleScale);
     source_->Attach(bird_);
     state_ = kPerched;

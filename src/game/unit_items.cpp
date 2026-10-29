@@ -37,7 +37,7 @@ CItemArmor* CUnit::EquipArmour(CItem* item) {
     CItemArmor* piece = AsArmor(item);
     CItemArmor* previous = armor[piece->GetType()];
     armor[piece->GetType()] = piece;
-    ++piece->refCount_;
+    piece->AddRef();
     Controller()->ArmourPutOn(piece->prototypeId_);
     if (previous) previous->Release();
     MarkChanged(kPartEquipment);
@@ -76,7 +76,7 @@ void CUnit::ReleaseAllItems() {
 }
 
 void CUnit::AddCarried(CItem* item) {
-    ++item->refCount_;
+    item->AddRef();
     carried.push_back(item);
     MarkChanged(kPartEquipment);
 }

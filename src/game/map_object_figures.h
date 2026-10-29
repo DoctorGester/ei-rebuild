@@ -4,7 +4,7 @@
 // manager), its parts (scene nodes, one per figure piece) and their bounding box, and the scale the figure
 // was built for. See docs/notes/map_objects.md ("Figures").
 
-#include "core_refcount.h"   // CountedRef
+#include "ref.h"
 #include "core_transform.h"
 #include "engine_object.h"
 #include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
@@ -265,11 +265,6 @@ public:
     std::uint8_t changed;           // set when the frame, the animation or the bones changed
 };
 
-// A counted pointer slot of a shared type viewed as the reference the game's copies of Assign take as `this`
-// (CDeviceMaterial::preset, the wounds material's preset).
-template <typename T>
-inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedRef<T>*>(&slot); }
-
 // The 3D object: a transform object with a figure, its parts and their animation (abstract: class name and
 // id are pure). CWorldClient's CollectVisible sets its world position to the position in view space.
 class CObject3D : public CTransformObject {
@@ -434,7 +429,7 @@ public:
     std::vector<CFigureMesh*> pendingParts;   // built by LoadFigures
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
-    CountedRef<CLinkMesh> figure;
+    Ref<CLinkMesh> figure;
     Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create3D)
     tagRECT dirtyRect;              // the screen area the last DrawCollectDirty covered
     std::vector<std::string> partNames;    // the figure's part names, in the order of the part boxes

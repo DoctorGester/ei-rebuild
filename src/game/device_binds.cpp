@@ -18,16 +18,13 @@ int CTextureDevice::BindSurface(int stage, Surface* holder) {
 
 // The same body as BindSurface's, for a texture and for none.
 int CTextureDevice::BindTexture(int stage, CTexture* texture) {
-    return BindSurface(stage, texture ? texture->surface_ : nullptr);
+    return BindSurface(stage, texture ? texture->surface_.Get() : nullptr);
 }
 
 int CTextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
     if (!named->texture && named->name.size() != 0) {
         CTexture* found = g_clientWorld->textureManager_->FindTexture(named->name.data());
-        CTexture* previous = named->texture;
-        named->texture = found;
-        if (found) ++found->refCount_;
-        if (previous) previous->Release();
+        named->texture.Assign(found);
     }
-    return BindSurface(stage, named->texture ? named->texture->surface_ : nullptr);
+    return BindSurface(stage, named->texture ? named->texture->surface_.Get() : nullptr);
 }

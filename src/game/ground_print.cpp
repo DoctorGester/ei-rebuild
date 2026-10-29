@@ -49,13 +49,6 @@ bool BloodPrintsOn() { return options::g_options->enableBloodprints_ != 0; }
 bool FootprintsOn() { return options::g_options->enableFootprints_ != 0; }
 bool ScorchMarksOn() { return options::g_options->enableFireprints_ != 0; }
 
-void AssignCounted(CTexture** slot, CTexture* value) {
-    CTexture* old = *slot;
-    *slot = value;
-    if (value) ++value->refCount_;
-    if (old) old->Release();
-}
-
 template <typename T>
 void Read(CStream* stream, T* value) {
     stream->Read(value, sizeof(T));
@@ -85,7 +78,6 @@ GroundPrint::GroundPrint(std::uint8_t visible, int life, float alphaScale, int l
     visible_ = visible;
     growth_ = 0.0f;
     life_ = static_cast<std::int16_t>(life);
-    texture_.texture = nullptr;
     uvAngle_ = 0.0f;
     angle_ = 0.0f;
     lit_ = 0xFF;
@@ -98,9 +90,9 @@ GroundPrint::GroundPrint(std::uint8_t visible, int life, float alphaScale, int l
 void GroundPrint::SetTexture(const char* name) {
     texture_.name.assign(name, name + std::strlen(name));
     CTextureManager* textures = g_clientWorld->textureManager_;
-    AssignCounted(&texture_.texture, textures->FindTexture(name));
+    texture_.texture.Assign(textures->FindTexture(name));
     if (texture_.texture) return;
-    AssignCounted(&texture_.texture, textures->FindOrCreate(kTextureKind, name));
+    texture_.texture.Assign(textures->FindOrCreate(kTextureKind, name));
     textures->LoadTexture(texture_.texture);
 }
 

@@ -107,9 +107,7 @@ void CEffectPointLight::Reset() {
     ClearBase(this);
     if (light_ != nullptr) {
         g_clientWorld->terrain_->RemoveLight(light_);
-        CLight* old = light_;
-        light_ = nullptr;
-        if (old != nullptr) old->Release();
+        light_.Reset();
     }
     color_ = Vector3{0.0f, 0.0f, 0.0f};
     range_ = 0.0f;
@@ -235,9 +233,7 @@ void CEffectParticle::Reset() {
     ClearBase(this);
     if (source_ != nullptr) {
         source_->Stop();
-        CParticleSource* old = source_;
-        source_ = nullptr;
-        if (old != nullptr) old->Release();
+        source_.Reset();
     }
     size_ = 1.0f;
     alpha_ = 1.0f;
@@ -272,9 +268,7 @@ Vector3* CEffectParticle::Position(const ScriptGroup* group) {
 void CEffectParticle::Start(int update) {
     if (update == 0 && source_ != nullptr) {
         source_->Stop();
-        CParticleSource* old = source_;
-        source_ = nullptr;
-        if (old != nullptr) old->Release();
+        source_.Reset();
     }
     Spawn();
 }
@@ -477,9 +471,7 @@ void CEffectWall::Reset() {
     changeStamp_ = -1;
     if (source_ != nullptr) {
         source_->Stop();
-        CParticleSource* old = source_;
-        source_ = nullptr;
-        if (old != nullptr) old->Release();
+        source_.Reset();
     }
     size_ = 1.0f;
     alpha_ = 1.0f;
@@ -549,9 +541,7 @@ void CEffectLightning::Reset() {
     toObject_ = -1;
     fromObject_ = -1;
     to_ = Vector3{0.0f, 0.0f, 0.0f};
-    CLightning* old = bolt_;
-    bolt_ = nullptr;
-    if (old != nullptr) old->Release();
+    bolt_.Reset();
     flag_ = 0;
 }
 
@@ -571,10 +561,7 @@ void CEffectLightning::UpdateEnds() {
 void CEffectLightning::Start(int update) {
     if (update != 0) return;
     auto* created = g_clientWorld->listManager_->CreateObjectAs<CLightning>(0, -1);
-    CLightning* old = bolt_;
-    bolt_ = created;
-    if (created != nullptr) ++created->refCount_;
-    if (old != nullptr) old->Release();
+    bolt_.Assign(created);
     UpdateEnds();
     bolt_->Start(&from_, &to_, width_, flag_);
 }

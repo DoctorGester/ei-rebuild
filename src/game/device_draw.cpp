@@ -30,13 +30,6 @@ void SetMaterialBlend(const CDeviceMaterial* material) {
     state.destBlend = material->destBlend;
 }
 
-void AssignTexture(CTexture** slot, CTexture* value) {
-    CTexture* previous = *slot;
-    *slot = value;
-    if (value) ++value->refCount_;
-    if (previous) previous->Release();
-}
-
 // One pass: the mesh handed over to the renderer (src/render, device_mesh.cpp) gets it with the device's
 // current state; the vertex, triangle and call counters.
 void Draw(CTextureDevice* device, int vertexCount, unsigned triangles) {
@@ -57,7 +50,7 @@ void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
         CTexture* texture = g_clientWorld->textureManager_->FindTexture(s.name.data());
         CEngineObject* old = s.texture;
         s.texture = texture;
-        if (texture) ++texture->refCount_;
+        if (texture) texture->AddRef();
         if (old) old->Release();
         device->BindSurface(stage, s.texture ? TextureSurface(s.texture) : nullptr);
         return;
@@ -74,7 +67,7 @@ void SetFirstPassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     if (s.texture) {
         device->BindSurface(stage, TextureSurface(s.texture));
     } else if (!s.name.empty()) {
-        AssignTexture(&s.texture, g_clientWorld->textureManager_->FindTexture(s.name.data()));
+        s.texture.Assign(g_clientWorld->textureManager_->FindTexture(s.name.data()));
         device->BindTexture(stage, s.texture);
     } else {
         device->BindSurface(stage, nullptr);
@@ -87,7 +80,7 @@ void SetLaterPassStage(CTextureDevice* device, MaterialStage& s) {
     if (s.texture) {
         surface = TextureSurface(s.texture);
     } else if (!s.name.empty()) {
-        AssignTexture(&s.texture, g_clientWorld->textureManager_->FindTexture(s.name.data()));
+        s.texture.Assign(g_clientWorld->textureManager_->FindTexture(s.name.data()));
         if (s.texture) surface = TextureSurface(s.texture);
     }
     device->BindSurface(0, surface);

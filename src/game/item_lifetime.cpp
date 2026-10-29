@@ -52,7 +52,7 @@ void CItem::Destroy() {
     DropSpell(spell_);
     CRefCounted* link = Link(link_);
     link_ = nullptr;
-    if (link != nullptr && --link->refs_ == 0) delete link;
+    if (link) link->Release();
 }
 
 CItem::~CItem() {
@@ -60,7 +60,7 @@ CItem::~CItem() {
     // The members' destructors: the spell released and the link's count dropped, without clearing.
     if (spell_ != nullptr) spell_->Release();
     CRefCounted* link = Link(link_);
-    if (link != nullptr && --link->refs_ == 0) delete link;
+    if (link) link->Release();
 }
 
 CItemWeapon::CItemWeapon() {

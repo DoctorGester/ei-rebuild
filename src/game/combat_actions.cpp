@@ -74,16 +74,12 @@ void PlayerMessage(CPlayerServer* messages, CUnit* unit, AckKind kind) {
 
 void CUnitServer::DropQueuedOrder() {
     action2.kind = UnitOrderKind::None;
-    if (action2.target) action2.target->Release();
-    action2.target = nullptr;
+    action2.target.Reset();
     action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
     action2.kind = UnitOrderKind::Idle;
-    if (action2.target) {
-        action2.target->Release();
-        action2.target = nullptr;
-    }
+    action2.target.Reset();
     action2.modifier = 0;
 }
 
@@ -112,14 +108,13 @@ void CUnitServer::FinishAction(int location) {
         std::uint32_t slot = action.source;
         auto* item = unit->GetQuickItem(slot);
         if (item && item->GetCategory() == QuickItemCategory::Consumable) {
-            ++item->refCount_;
+            item->AddRef();
             unit->RemoveQuickItem(slot);
             g_serverWorld->UseQuickItem(unit);
             item->Release();
         }
         action.kind = UnitOrderKind::None;
-        if (action.target) action.target->Release();
-        action.target = nullptr;
+        action.target.Reset();
         action.pointIsUseSpot = 0;
         action.param = 0;
         action.modifier = 0;
@@ -255,7 +250,7 @@ void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUn
             if (murderer != *added) {
                 if (*added) (*added)->Release();
                 *added = nullptr;
-                if (murderer) ++murderer->refCount_;
+                if (murderer) murderer->AddRef();
                 *added = murderer;
             }
             console::EndLine(*kCombatLog << "Unit " << static_cast<long>(other->id_)
@@ -445,9 +440,7 @@ void CUnitServer::SetDead(int dead) {
     units->Add(unit);
     if (dead && effectObject) {
         world->RemoveTimedObject(effectObject->id_);
-        CEngineObject* old = effectObject;
-        effectObject = nullptr;
-        if (old) old->Release();
+        effectObject.Reset();
     }
     unit->MarkChanged(7);
 }

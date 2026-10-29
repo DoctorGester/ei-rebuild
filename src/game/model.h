@@ -223,6 +223,12 @@ public:
     // Pass `pass`'s states set in the renderer's render state (render/render_state.h).
     void ApplyPass(int pass) const;
 
+    void AddRef() { ++refs_; }
+    // Drops a reference; the last one deletes the preset.
+    void Release() {
+        if (--refs_ == 0) delete this;
+    }
+
     int refs_ = 0;
     std::vector<State> states_;
     int stages_;                         // texture stages the first pass sets
@@ -242,6 +248,12 @@ public:
     CRenderHelper(const CRenderHelper&) = delete;
     CRenderHelper& operator=(const CRenderHelper&) = delete;
 
+    void AddRef() { ++refs_; }
+    // Drops a reference; the last one deletes the helper.
+    void Release() {
+        if (--refs_ == 0) delete this;
+    }
+
     int refs_ = 0;
 
 private:
@@ -255,40 +267,6 @@ private:
 // is one for every renderer, and its LightMesh lit the figure parts with it; the parts lit on the GPU
 // take it from here.
 const float* TransformAmbientColour();
-
-// A counted texture pointer as the helpers take it: by address, on the pointer
-// (the particle sources', the rain's, the sky's and the lightning's textures). Reads see the texture;
-// a plain store (`held = p`) counts nothing.
-struct HeldTexture {
-    // Drops the texture and takes the texture manager's texture of `kind` named `name`, made when missing
-    // (one more reference).
-    void Load(int kind, const char* name);
-
-    operator CTexture*() const { return texture; }
-    CTexture* operator->() const { return texture; }
-    HeldTexture& operator=(CTexture* plain) {
-        texture = plain;
-        return *this;
-    }
-
-    CTexture* texture;
-};
-
-// The device object's counted holder (CSceneRenderer::device_): the release leaves
-// the pointer null, the assignment takes `device` (one more reference) and releases
-// the old one. Reads see the device; a plain store (`held = p`) counts nothing.
-struct HeldDevice {
-    void Assign(CTextureDevice* value);
-
-    operator CTextureDevice*() const { return device; }
-    CTextureDevice* operator->() const { return device; }
-    HeldDevice& operator=(CTextureDevice* plain) {
-        device = plain;
-        return *this;
-    }
-
-    CTextureDevice* device;
-};
 
 // The scene renderer (the global renderer object, &g_sceneRenderer.Get(); "CVisualizator" in the game's messages).
 class CSceneRenderer final {
@@ -350,8 +328,8 @@ public:
     // back, then every surface and the texture manager are restored. False without a device object.
     bool RestoreSurfaces();
 
-    // Makes sure the texture in `holder` is loaded and binds it to `stage`.
-    int BindHeldTexture(int stage, HeldTexture* holder);
+    // Makes sure `texture` is loaded and binds it to `stage`.
+    int BindLoadedTexture(int stage, CTexture* texture);
     // The fog (and clear) colour from r, g, b in 0..1 (each rounded to the nearest integer), stored and set
     // through SetFogColourState.
     void SetFogColour(float r, float g, float b);
@@ -361,13 +339,13 @@ public:
     void SetSunAndAmbient(CLight* light, float r, float g, float b);
 
     std::uint32_t flags_ = 0;                  // bit 0: the software cursor option; bit 1 set by the creation
-    CTransformPipeline* pipeline_ = nullptr;   // counted
+    Ref<CTransformPipeline> pipeline_;
     std::uint32_t fogColour_ = 0;              // also the colour the frame is cleared with
     std::uint32_t colour_ = 0;                 // the draw colour
     // The sun (counted; set together with the ambient colour, the client's lighting moves it every frame).
-    CLight* sun_ = nullptr;
-    HeldDevice device_ = {};                   // the device object
-    CRenderHelper* helper_ = nullptr;          // counted
+    Ref<CLight> sun_;
+    Ref<CTextureDevice> device_;               // the device object
+    Ref<CRenderHelper> helper_;
     // The display settings SetGamma last applied, as given.
     float brightness_ = 0.0f;
     float contrast_ = 0.0f;
@@ -464,6 +442,12 @@ public:
     // its name; otherwise its parts are morphed in place (SetMorph, then per part). Null stays null.
     virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
 
+    void AddRef() { ++refCount_; }
+    // Drops a reference; the last one deletes the loader.
+    void Release() {
+        if (--refCount_ == 0) delete this;
+    }
+
     CLinkFigureLoader(const CLinkFigureLoader&) = delete;
     CLinkFigureLoader& operator=(const CLinkFigureLoader&) = delete;
 
@@ -504,7 +488,7 @@ public:
     ITransformPipeline* pipeline_;    // the renderer's pipeline's transform object
     std::list<LinkArchive> archives_;
     std::unordered_map<std::string, FigureModel*> figureSets_;    // by figure name
-    CTextureDevice* renderer_;        // the device object, counted; meshes take their pipeline from it
+    Ref<CTextureDevice> renderer_;    // the device object; meshes take their pipeline from it
     std::multimap<std::string, CLinkMesh*> cache_;    // each entry holds a reference
 };
 

@@ -179,10 +179,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
     kind = from->kind;
     source = from->source;
     if (from->target != target) {
-        if (target) target->Release();
-        target = nullptr;
-        if (from->target) ++from->target->refCount_;
-        target = from->target;
+        target.Assign(from->target);
     }
     point = from->point;
     pointIsUseSpot = from->pointIsUseSpot;
@@ -194,8 +191,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
 
 void UnitAction::Reset() {
     kind = UnitOrderKind::None;
-    if (target) target->Release();
-    target = nullptr;
+    target.Reset();
     pointIsUseSpot = 0;
     param = 0;
     modifier = 0;
@@ -231,10 +227,7 @@ void CUnitServer::TakeQueuedOrder() {
     action.source = action2.source;
     CMapObject* target = action2.target;
     if (target != action.target) {
-        if (action.target) action.target->Release();
-        action.target = nullptr;
-        if (target) ++target->refCount_;
-        action.target = target;
+        action.target.Assign(target);
     }
     action.point = action2.point;
     action.pointIsUseSpot = action2.pointIsUseSpot;
@@ -242,8 +235,7 @@ void CUnitServer::TakeQueuedOrder() {
     action.param = action2.param;
     action.modifier = action2.modifier;
     action2.kind = UnitOrderKind::None;
-    if (action2.target) action2.target->Release();
-    action2.target = nullptr;
+    action2.target.Reset();
     action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
@@ -482,8 +474,7 @@ void CUnitServer::ContinueAction() {
         TellParty(unit, AckKind::NoTarget);
     }
     action.kind = UnitOrderKind::None;
-    if (action.target) action.target->Release();
-    action.target = nullptr;
+    action.target.Reset();
     action.pointIsUseSpot = 0;
     action.param = 0;
     action.modifier = 0;
@@ -681,9 +672,7 @@ void CUnitServer::ApproachTarget() {
             chased = leader;
         } else {
             followsLeader = 0;
-            CUnit* old = followedLeader;
-            followedLeader = nullptr;
-            if (old) old->Release();
+            followedLeader.Reset();
         }
     }
     Vector3 scratch;
@@ -780,9 +769,7 @@ void CUnitServer::ApproachTarget() {
         unit->UpdateSizeClass();
         if (effectObject) {
             g_serverWorld->RemoveTimedObject(effectObject->id_);
-            CEngineObject* old = effectObject;
-            effectObject = nullptr;
-            if (old) old->Release();
+            effectObject.Reset();
         }
         stoodBlocked = 1;
     }

@@ -41,22 +41,15 @@ const char* NullTextureText() { return "Final loading data to NULL texture!\n"; 
 // --- The renderer -----------------------------------
 
 CSceneRenderer::~CSceneRenderer() {
-    CTextureDevice* device = device_;
-    device_ = nullptr;
-    if (device) device->Release();
-    // The helper's member destructor: released, the pointer left as it is.
-    if (helper_ && --helper_->refs_ == 0) delete helper_;
+    device_.Reset();
+    helper_.Reset();
     ReleasePipeline();
 }
 
 void CSceneRenderer::ReleasePipeline() {
-    CLight* sun = sun_;
-    sun_ = nullptr;
-    if (sun) sun->Release();
+    sun_.Reset();
     if (pipeline_ && pipeline_->transform_) pipeline_->transform_->AddSun(sun_);
-    CTransformPipeline* pipeline = pipeline_;
-    pipeline_ = nullptr;
-    if (pipeline) pipeline->Release();
+    pipeline_.Reset();
 }
 
 void CSceneRenderer::SetColour(std::uint32_t colour) {
@@ -76,10 +69,7 @@ void CSceneRenderer::SetColour(std::uint32_t colour) {
 const float* TransformAmbientColour() { return g_transformAmbientColour; }
 
 void CSceneRenderer::SetSun(CLight* light) {
-    CLight* old = sun_;
-    sun_ = light;
-    if (light) ++light->refCount_;
-    if (old) old->Release();
+    sun_.Assign(light);
     if (pipeline_ && pipeline_->transform_) pipeline_->transform_->AddSun(sun_);
 }
 
@@ -116,19 +106,15 @@ void ConstructDeviceLock() {
 void CSceneRenderer::DestroyRenderer() {
     ReleasePipeline();
     flags_ &= ~2u;
-    CRenderHelper* helper = helper_;
-    helper_ = nullptr;
-    if (helper && --helper->refs_ == 0) delete helper;
-    CTextureDevice* device = device_;
-    device_ = nullptr;
-    if (device) device->Release();
+    helper_.Reset();
+    device_.Reset();
 }
 
 // The holder is stored (the new renderer draws with it); no device lock.
 int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
     CTextureDevice* device = device_;
     Surface*& bound = device->stageSurfaces_[stage];
-    Surface* surface = texture ? texture->surface_ : nullptr;
+    Surface* surface = texture ? texture->surface_.Get() : nullptr;
     if (bound == surface) return 1;
     bound = surface;
     ++device->textureChanges_;
@@ -157,36 +143,19 @@ void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) 
 // There are no DirectDraw surfaces to lose nor a display mode to set again.
 bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
 
-// --- The device object's counted holder ----------------------------------------------------
-
-// The holder takes `device` (one more reference), then the old one is released.
-void HeldDevice::Assign(CTextureDevice* value) {
-    CTextureDevice* old = device;
-    device = value;
-    if (value) value->AddRef();
-    if (old) old->Release();
-}
-
 // --- Texture holders -----------------------------------------------------------------------------
 
-int TextureHolderEnsureLoaded(HeldTexture* holder) {
-    CTexture* texture = *holder;
+int EnsureTextureLoaded(CTexture* texture) {
     if (!texture) return game::FatalError(NullTextureText());
     if (texture->flags_ & kTextureIsLoaded) return 1;
     return g_clientWorld->textureManager_->LoadTexture(texture);
 }
 
-void HeldTexture::Load(int kind, const char* name) {
-    if (CTexture* old = texture) {
-        texture = nullptr;
-        old->Release();
-    }
+void LoadNamedTexture(Ref<CTexture>& slot, int kind, const char* name) {
+    slot.Reset();
     auto* manager = g_clientWorld->textureManager_;
     auto* found = manager->FindTypedTexture(kind, name);
     if (!found) found = manager->NewTextureOfType(kind);
     found->name_ = name;
-    CTexture* old = texture;
-    texture = found;
-    if (found) ++found->refCount_;
-    if (old) old->Release();
+    slot.Assign(found);
 }

@@ -21,7 +21,7 @@ const char* EmptyText() { return "?"; }
 // Counted pointers as the classes inline them.
 void CopyCounted(RefPtr& to, const RefPtr& from) {
     to.ptr = from.ptr;
-    if (to.ptr) ++to.ptr->refs_;
+    if (to.ptr) to.ptr->AddRef();
 }
 void ReleaseCounted(RefPtr& ref) {
     CRefObject* object = ref.ptr;
@@ -32,7 +32,7 @@ void ReleaseCounted(RefPtr& ref) {
 void AssignCounted(RefPtr& ref, CRefObject* object) {
     CRefObject* previous = ref.ptr;
     ref.ptr = object;
-    if (object) ++object->refs_;
+    if (object) object->AddRef();
     if (previous) {
         --previous->refs_;
         if (previous->refs_ == 0) delete previous;

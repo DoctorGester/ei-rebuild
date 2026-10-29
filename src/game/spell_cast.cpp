@@ -248,38 +248,29 @@ const char* CSpellConstructor::ClassName() { return "CSpellConstructor"; }
 ClassId CSpellConstructor::GetClassId() { return ClassId::SpellConstructor; }
 
 int CSpellConstructor::Create() {
-    CSpellContainer* container = container_;
-    container_ = nullptr;
-    if (container) container->Release();
+    container_.Reset();
     manager_ = nullptr;
     return 1;
 }
 
 void CSpellConstructor::Destroy() {
-    CSpellContainer* container = container_;
-    container_ = nullptr;
-    if (container) container->Release();
+    container_.Reset();
     if (manager_) --manager_->refCount_;
     manager_ = nullptr;
 }
 
 void CSpellConstructor::SetManager(CSpellManager* manager) {
-    CSpellContainer* container = container_;
-    container_ = nullptr;
-    if (container) container->Release();
+    container_.Reset();
     if (manager_) --manager_->refCount_;
     manager_ = manager;
-    if (manager) ++manager->refCount_;
+    if (manager) manager->AddRef();
 }
 
 BOOL CSpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
     if (!manager_) return game::FatalError(kNoSpellManager);
     if (!prototype) return game::FatalError(kNoSpellPrototype);
     CSpellContainer* container = manager_->NewContainer();
-    CSpellContainer* previous = container_;
-    container_ = container;
-    if (container) ++container->refCount_;
-    if (previous) previous->Release();
+    container_.Assign(container);
     container_->prototype_ = prototype;   // no null check
     return 1;
 }

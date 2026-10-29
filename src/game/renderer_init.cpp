@@ -31,7 +31,7 @@ namespace {
 void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
     CTransformPipeline* previous = *holder;
     *holder = pipeline;
-    if (pipeline) ++pipeline->refs_;
+    if (pipeline) pipeline->AddRef();
     if (previous) previous->Release();
 }
 
@@ -169,11 +169,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
 // pushes it with the rest of the register left over from operator new).
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
     const std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;
-    CRenderHelper* helper = new CRenderHelper(flag);
-    CRenderHelper* old = renderer->helper_;
-    renderer->helper_ = helper;
-    if (helper) ++helper->refs_;
-    if (old && --old->refs_ == 0) delete old;
+    renderer->helper_.Assign(new CRenderHelper(flag));
 }
 
 } // namespace

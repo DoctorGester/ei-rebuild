@@ -16,7 +16,7 @@ int CRainSnow::Draw(CSceneRenderer* renderer) {
     if (this->mode == 0) return 1;
     UpdateFade(static_cast<float>(currentWorld->tick_));
     if (this->mode == 0) return 1;
-    TextureHolderEnsureLoaded(&texture);
+    EnsureTextureLoaded(texture);
     renderer->SetTexture(0, texture);
     int currentMode = mode;
     int result;

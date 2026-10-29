@@ -49,7 +49,7 @@ void ClientSession::CreateEntry(RefPtr* out) {
     if (CRefObject* old = out->ptr) {
         if (old->refs_ != 1) {
             old->flags7_ |= CRefObject::kDetached;
-            ++old->refs_;
+            old->AddRef();
             old->OnShutdown();
             --old->refs_;
         }

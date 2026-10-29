@@ -173,7 +173,7 @@ bool Connection::SendUpdate(int budget) {
         // In the order the entries were tracked (the original: by the entry's address).
         std::map<std::uint32_t, EntryRef>& map = priorities_[priority];
         for (auto& it : map) {
-            ReplicaEntry* entry = it.second.get();
+            ReplicaEntry* entry = it.second.Get();
             Message* object = entry->Object();
             bool alive;
             if (object && !(object->flags7_ & CRefObject::kDetached)) {
@@ -337,7 +337,7 @@ void Connection::Track(Replicated* item) {
     entry->type_ = static_cast<std::uint8_t>(type);
     CRefObject* previous = entry->object_.ptr;
     entry->object_.ptr = item->object;
-    if (entry->object_.ptr) ++entry->object_.ptr->refs_;
+    if (entry->object_.ptr) entry->object_.ptr->AddRef();
     if (previous) previous->Release();
     entry->flags_ = static_cast<std::uint8_t>((entry->flags_ & 1) | (item->priority << 1));
     std::uint8_t reliable = g_currentSession->reliable_[type];
@@ -364,7 +364,7 @@ void Connection::CollectChanges() {
     // Tracked but no longer listed: never sent -> forgotten; sent -> marked gone. In serial order.
     std::vector<ReplicaEntry*> gone;
     for (const auto& [object, entry] : byObject_)
-        if (!listed.contains(object)) gone.push_back(entry.get());
+        if (!listed.contains(object)) gone.push_back(entry.Get());
     std::sort(gone.begin(), gone.end(), [](const ReplicaEntry* a, const ReplicaEntry* b) { return a->serial_ < b->serial_; });
     for (ReplicaEntry* entry : gone) {
         auto node = byObject_.find(entry->object_.ptr);
@@ -408,7 +408,7 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
     if (IsLive(object)) {
         auto found = byObject_.find(object);
         if (found != byObject_.end()) {
-            ReplicaEntry* entry = found->second.get();
+            ReplicaEntry* entry = found->second.Get();
             if (entry->id_ == 0) {
                 entry->id_ = idPools_[entry->type_].Allocate();
                 std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;

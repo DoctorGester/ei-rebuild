@@ -76,7 +76,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     for (const std::string& name : record->lists[QuestBriefingRecord::kRemoveItems]) {
         CItem* item = CreateNamedItem(name);
         if (!item) continue;
-        ++item->refCount_;
+        item->AddRef();
         if (item->GetClassId() == ClassId::ItemQuest)
             player->TakeLoot(static_cast<int>(AsQuest(item)->questItemId_));
         item->Release();
@@ -208,7 +208,7 @@ CItem* PartyCopy(CParty* party, CItem* item) { return party->CopyItem(item); }
 template <auto Add>
 CItem* AddToRecord(CParty* party, PartyUnitRecord* record, CItem* item) {
     CItem* entry = PartyCopy(party, item);
-    if (entry) ++entry->refCount_;
+    if (entry) entry->AddRef();
     CItem* added = (record->*Add)(entry);
     if (entry) entry->Release();
     return added;
@@ -247,14 +247,14 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         if (!item || static_cast<int>(item->count_) <= 0) continue;
         CItem* entry = PartyCopy(party, item);
         entry->count_ = item->count_;   // before the null test
-        if (entry) ++entry->refCount_;
+        if (entry) entry->AddRef();
         CEngineObject* added = (CEngineObject*)record->AddQuickItem(entry);
         if (entry) entry->Release();
         CItemLink* link = new CItemLink();
         link->value = static_cast<std::uint32_t>(added->id_);
         CItemLink* old = item->ServerLink();
         item->link_ = link;
-        if (link) ++link->refs_;
+        if (link) link->AddRef();
         if (old) old->Release();
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {
@@ -284,7 +284,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CU
         maximum = std::bit_cast<std::uint32_t>(entry->chargeMax_);   // before the null test
         entry->count_ = amount;
         entry->charge_ = std::bit_cast<float>(maximum);
-        if (entry) ++entry->refCount_;
+        if (entry) entry->AddRef();
         record->AddQuickItem(entry);
         if (entry) entry->Release();
     }

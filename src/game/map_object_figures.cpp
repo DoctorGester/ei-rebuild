@@ -168,7 +168,7 @@ void CObject3D::LoadFigures() {
         for (int k = 0; k < std::ssize(parts) && !known; ++k) known = parts[k] == part;
         if (known) continue;
         lib::SetAtGrow(parts, std::ssize(parts), part);
-        ++part->refCount_;
+        part->AddRef();
         part->SetObject(this);
         if (animation) AnimationAddPart(animation, part);
         if (attached) attached->OnPartAdded(part);

@@ -73,10 +73,7 @@ constexpr int kTailFieldCount = 4;
 
 // The spell, a counted reference: the new one's count raised before the old one is released.
 void SetSpell(MagicTrap* trap, CSpell* spell) {
-    CSpell* old = trap->spell;
-    trap->spell = spell;
-    if (spell) ++spell->refCount_;
-    if (old) old->Release();
+    trap->spell.Assign(spell);
 }
 
 
@@ -105,8 +102,8 @@ void MagicTrap::UpdateVictims() {
         auto known = victims->begin();
         while (known != victims->end() && *known != unit) ++known;
         if (known == victims->end()) {
-            auto added = victims->emplace(victims->end());
-            AIRefTo<CUnit>::Of(&*added)->Assign(unit);
+            if (unit) unit->AddRef();
+            victims->push_back(unit);
             Append(&newcomers, unit);
         }
         node = next;
@@ -179,10 +176,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
     CSpellManager* manager = SpellManagerOf(WorldContext());
     CSpell* made = manager->CreateSpellFromText(record->spell);
-    CSpell* old = spell;
-    spell = made;
-    if (made) ++made->refCount_;
-    if (old) old->Release();
+    spell.Assign(made);
     std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // bit for bit
 
     area = record->area;
@@ -198,8 +192,6 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
 // --- Construction, destruction, Save / Load ------------------------------------------
 
 MagicTrap::MagicTrap() {
-    spell = nullptr;
-
     CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
@@ -237,7 +229,7 @@ void MagicTrap::SaveTrap(CStream* stream) {
     stream->WriteValue(value);
     for (auto node = inside.begin(); node != inside.end();) {
         auto next = std::next(node);
-        AIRefTo<CUnit>::Of(&*node)->Save(stream);
+        SaveRef(*node, stream);
         node = next;
     }
     value = std::ssize(points);

@@ -40,7 +40,7 @@ void ServerSession::Announce(std::string_view text, CRefObject* player) {
     }
     CRefObject* previous = added->connection_.ptr;
     added->connection_.ptr = connection;
-    if (connection) ++connection->refs_;
+    if (connection) connection->AddRef();
     if (previous) previous->Release();
 
     if (lines_.size() > kMaxLines) lines_.erase(lines_.begin());

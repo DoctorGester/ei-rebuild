@@ -14,7 +14,7 @@ namespace {
 // zeroed, so nothing is released), the link stored with one more reference.
 void AppendCounted(std::list<netlink::NetLink*>* list, netlink::NetLink* link) {
     list->push_back(link);
-    ++link->refs_;
+    link->AddRef();
 }
 
 } // namespace

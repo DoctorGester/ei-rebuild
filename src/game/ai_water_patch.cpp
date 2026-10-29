@@ -41,7 +41,7 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
         CUnitShape* fresh = new CUnitShape();
         CUnitShape* old = g_patch;
         g_patch = fresh;
-        if (fresh) ++fresh->refs_;
+        if (fresh) fresh->AddRef();
         if (old) old->Release();
     }
     int key = ((y + 0x800) << 16) + x;

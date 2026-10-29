@@ -54,14 +54,15 @@ void ClientSession::ApplyAwards() {
         case 2: {
             std::list<CItem*> items;
             CItem* item = player->Party()->ItemFactory()->CreateItem(name);
-            HeldObject<CItem>::Of(&items.emplace_back())->Assign(item);
+            if (item) item->AddRef();
+            items.push_back(item);
             player->GiveItems(&items, 0);
             ReleaseAndClear(items);
             break;
         }
         case 3: {
             auto* item = player->Party()->ItemFactory()->CreateItem(name);
-            if (item) ++item->refCount_;
+            if (item) item->AddRef();
             for (auto position = player->items_.begin(); position != player->items_.end();) {
                 std::list<CItem*>::iterator  current = position;
                 ++position;

@@ -56,9 +56,9 @@ struct CSky {
     // drawn (the renderer's draw with alpha 0xFF), and both stacks popped (when not empty).
     void Draw(CSceneRenderer* renderer, const Vector3* eye);
 
-    CSkyObject* object;   // null until the zone's sky is loaded
-    CEngineObject* material;   // counted (type 0x12, by CWorldClient::LoadSky); 0 when constructed
-    HeldTexture texture;  // texture holder
+    Ref<CSkyObject> object;   // null until the zone's sky is loaded
+    Ref<CEngineObject> material;   // type 0x12, by CWorldClient::LoadSky
+    Ref<CTexture> texture;  // texture holder
     int turns;            // 1 when constructed
 
     // Object->Light(...) when there is an object.

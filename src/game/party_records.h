@@ -40,7 +40,7 @@ struct NamedPartyRecords {
     // Removes the records named `name`; after a removal the record moved into
     // the slot is skipped (original behaviour).
     void Remove(const char* name);
-    std::vector<CountedPtr<PartyRecord>> records;
+    std::vector<HeldRef<PartyRecord>> records;
     std::string requestedName;      // SetCurrentParty's name; EndRedeploy makes it the current one
     std::string currentName;        // the party on stage (the record BeginRedeploy saves it to)
 

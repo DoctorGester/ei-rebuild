@@ -253,10 +253,7 @@ void CEffectArrowFigure::Reset() {
     if (figure_ != nullptr) g_clientWorld->RemoveObject(figure_->id_);
     hit_ = DamageInfo{};
     hit_.multiplier = 1.0f;
-    if (figure_ != nullptr) {
-        figure_->Release();
-        figure_ = nullptr;
-    }
+    figure_.Reset();
     casterId_ = -1;
 }
 
@@ -292,11 +289,7 @@ void CEffectArrowFigure::Start(int update) {
     std::string texture = game::ArrowFigureTextureText();
     int id = g_clientWorld->nextClientObjectId_--;
     auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(MapObjectType::StuffObject, id);
-    if (object != figure_) {
-        figure_.Reset();
-        if (object != nullptr) ++object->refCount_;
-        figure_ = object;
-    }
+    figure_.Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, like the original.
     CObject3D* figure = figure_;
@@ -350,7 +343,7 @@ void CEffectArrowFigure::Load(CStream* s) {
     s->ReadValue(casterId_);
     s->ReadValue(velocity_);
     s->ReadValue(arrived_);
-    figure_.Load(s, WorldContext());
+    LoadRef(figure_, s, WorldContext());
     s->ReadValue(hit_);
     s->ReadValue(fromCaster_);
 }
@@ -365,20 +358,18 @@ void CEffectArrowFigure::Save(CStream* s) {
     s->WriteValue(velocity_);
     std::memcpy(&copy, &arrived_, 4);
     s->WriteValue(copy);
-    figure_.Save(s);
+    SaveRef(figure_, s);
     s->WriteValue(hit_);
     std::uint8_t flag = fromCaster_;
     s->WriteValue(flag);
 }
 
 CEffectArrowFigure::CEffectArrowFigure() {
-    figure_ = nullptr;
     Reset();
 }
 
 CEffectArrowFigure::~CEffectArrowFigure() {
     Reset();
     Reset();   // again, the virtual
-    if (figure_ != nullptr) figure_->Release();
-    figure_ = nullptr;
+    figure_.Reset();
 }

@@ -28,7 +28,7 @@ namespace {
 template <class T>
 T* MakeNew() {
     T* object = new T();
-    ++object->refCount_;
+    object->AddRef();
     return object;
 }
 
@@ -74,7 +74,6 @@ int CWorld::Create() {
 
 CWorld::CWorld() {
     ClearFields();
-    figureLoader_ = nullptr;
     worldHandle_.ptr = nullptr;
     netSession_.ptr = nullptr;
     players_ = nullptr;

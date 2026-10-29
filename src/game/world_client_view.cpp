@@ -140,7 +140,7 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
+int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
                                  char animateUnits, char withScripted) {
     CTransformPipeline* device = g_sceneRenderer->pipeline_;
     int touched = 0;

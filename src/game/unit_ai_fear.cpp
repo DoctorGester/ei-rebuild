@@ -101,7 +101,6 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     Vector3 end{static_cast<float>(scale * local.path.targetX), static_cast<float>(scale * local.path.targetY), 0.0f};
 
     AIOrder order;
-    order.target = nullptr;
     order.Clear();
     order.MakeAttack(enemy);
     bool allowed = brain->owner->CanReachAndPlanFrom(&order, &end);
@@ -291,7 +290,7 @@ void FearMode::Execute(AIBrain* brain) {
                 direction.z = static_cast<float>(v.z / twice);
             }
             brain->PlanLooks(&order, &direction, kNoWander, false);
-            brain->target.Assign(nullptr);
+            brain->target.Reset();
             brain->action = AIBrain::kActionMove;
             brain->actionTime = AIBrain::kNoTime;
             // The order assigned to the brain's action point and looks.
@@ -315,10 +314,7 @@ void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
     }
     if (!brain->owner->IsScrollSource(part)) brain->action = AIBrain::kActionCast;
     if (object != brain->target) {
-        if (brain->target) brain->target->Release();
-        brain->target = nullptr;
-        ++object->refCount_;
-        brain->target = object;
+        brain->target.Assign(object);
     }
     brain->actionTime = part;
     brain->owner->OrderCast(part, object, 0);

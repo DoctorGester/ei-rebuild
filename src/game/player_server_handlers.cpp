@@ -57,7 +57,7 @@ CUnit* FindUnit(int id) { return g_serverWorld->FindUnit(id); }
 // Appends `object` to `list` with a counted reference (as the brain's lists do).
 void AddCounted(std::list<CUnit*>& list, CUnit* object) {
     list.push_back(object);
-    ++object->refCount_;
+    object->AddRef();
 }
 
 // The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end
@@ -224,10 +224,7 @@ void AIOrder::MakeUse(CMapObject* object, UseSource use) {
     Clear();
     kind = UnitOrderKind::Use;
     if (object != target) {
-        if (target) target->Release();
-        target = nullptr;
-        if (object) ++object->refCount_;
-        target = object;
+        target.Assign(object);
     }
     source = static_cast<std::uint32_t>(use);
 }
@@ -269,7 +266,6 @@ int CPlayerServer::OnUseOrder() {
         AIPath path;
         path.Construct();
         AIOrder order;
-        order.target = nullptr;
         order.Clear();
         order.MakeUse(object, kind);
         Vector3 aim;
@@ -312,8 +308,7 @@ int CPlayerServer::OnUseOrder() {
             units.erase(units.begin() + nearestIndex);
         }
         if (!accepted) chosen = first;
-        if (order.target) order.target->Release();   // the counted reference's reset
-        order.target = nullptr;
+        order.target.Reset();
         path.Destruct();
     } else if (std::ssize(units) == 1) {
         chosen = units[0];

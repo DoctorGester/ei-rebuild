@@ -115,7 +115,7 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
             CItem* object = FindItem(items, id);
             if (!object) continue;
             player->items_.push_back(object);
-            ++object->refCount_;
+            object->AddRef();
         }
         stream->ReadValue(player->godMode_);
         if (stream->version_ >= kVersionPlayerLists) {
@@ -211,7 +211,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
         int changed = ReadAs<int>(stream);
         if (!object) continue;   // (the object was already used above)
 
-        ++object->refCount_;
+        object->AddRef();
         object->MarkChanged(-1);
         if (object->MapType() != MapObjectType::MagicTrap) {
             object->SetUpAnimatedFigure(object->name);
@@ -329,7 +329,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                 int id = ReadAs<int>(stream);
                 if (id == -1) break;
                 CEngineObject* object = timedObjectManager_->FindObject(id);
-                ++object->refCount_;
+                object->AddRef();
                 static_cast<CEffect*>(object)->MarkChanged();
                 timedObjects_.Set(static_cast<unsigned>(object->id_), object);
             }
@@ -362,8 +362,8 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                 if (id < 0) break;
                 CEngineObject* item = itemManager_->FindObject(id);
                 if (!item) continue;
-                auto node = counted_.emplace(counted_.begin());
-                HeldObject<CEngineObject>::Of(&*node)->Assign(item);
+                item->AddRef();
+                counted_.push_front(item);
             }
 
             if (PlayerList()) LoadPlayers(this, stream);
@@ -382,7 +382,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                     record->value = value;
                     CItemLink* old = object->ServerLink();
                     object->link_ = record;
-                    if (record) ++record->refs_;
+                    if (record) record->AddRef();
                     if (old) old->Release();
                 }
             }

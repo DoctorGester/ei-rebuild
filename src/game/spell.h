@@ -181,8 +181,8 @@ public:
     CWorldServer* world;
     std::uint32_t flags;        // bit 0: the caster gets no credit for the hit
     Vector3 position;
-    AIRefTo<CMapObject> target; // a unit or another map object
-    AIRefTo<CUnit> caster;      // null for traps and scripts
+    Ref<CMapObject> target; // a unit or another map object
+    Ref<CUnit> caster;      // null for traps and scripts
     Vector3 targetPoint;
     int state;                  // 0 casting, 1 missile, 2 lasting, else ends
     // Constructed and destroyed in the constructor's and destructor's order.
@@ -322,7 +322,7 @@ public:
     BOOL AddModifier(itemdb::SpellModifierRecord* modifier);
 
     CSpellManager* manager_;        // counted but never released
-    CSpellContainer* container_;
+    Ref<CSpellContainer> container_;
 };
 
 // A light. type_ 0x31 is a point light. localPosition_ is the light's position (where a directional light is

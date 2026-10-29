@@ -74,14 +74,6 @@ constexpr int kWoundsTextureKind = 6;
 constexpr unsigned kWoundsPreset = 4;
 constexpr const char* kNoWoundsTexture = "Can't create wounds texture for object \"%s\" ID = %d\n";
 
-// *slot = texture with counted references; the old one released.
-void AssignTexture(CTexture** slot, CTexture* value) {
-    CTexture* old = *slot;
-    *slot = value;
-    if (value) ++value->refCount_;
-    if (old) old->Release();
-}
-
 constexpr int kFaceTextureKind = 0x3D;
 constexpr const char* kHeroFace = "%smouth_%.2d";
 constexpr const char* kFace = "%smouth";
@@ -147,9 +139,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
 }
 
 void CObject3DClientSpecific::HideWounds() {
-    CEngineObject* oldTexture = woundsTexture;
-    woundsTexture = nullptr;
-    if (oldTexture) oldTexture->Release();
+    woundsTexture.Reset();
     ClearWoundsMaterial();
 }
 
@@ -158,16 +148,15 @@ WoundsMaterial::WoundsMaterial() {
     blend = 1;
     sourceBlend = render::Blend::SourceAlpha;
     destBlend = render::Blend::InvSourceAlpha;
-    preset = nullptr;
 }
 
 int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
     CTextureManager* manager = g_clientWorld->textureManager_;
     if (!woundsTexture) {
-        AssignTexture(&woundsTexture, manager->FindTypedTexture(kWoundsTextureKind, name));
+        woundsTexture.Assign(manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
-            AssignTexture(&woundsTexture, manager->FindOrCreate(kWoundsTextureKind, name));
+            woundsTexture.Assign(manager->FindOrCreate(kWoundsTextureKind, name));
             if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->ClassName(), object->id_);
         }
     }
@@ -179,8 +168,8 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!same) {
         woundsTexture->flags_ &= ~kTextureLoaded;
         if (!manager->LoadTexture(woundsTexture)) {
-            AssignTexture(&woundsTexture, nullptr);
-            woundsMaterial.Assign(nullptr);
+            woundsTexture.Reset();
+            woundsMaterial.Reset();
             lib::FreeStorage(extra);
             return 0;
         }
@@ -188,7 +177,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!woundsMaterial) {
         woundsMaterial.Assign(new WoundsMaterial());
         CRenderHelper* helper = g_sceneRenderer->helper_;
-        AsCountedRef(woundsMaterial->preset).Assign(helper->Preset(kWoundsPreset));
+        woundsMaterial->preset.Assign(helper->Preset(kWoundsPreset));
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
     }
@@ -206,15 +195,10 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     if (unit->MapType() == MapObjectType::Hero) std::snprintf(name, sizeof(name), kHeroFace, unit->name.c_str(), prototype->skin);
     else std::snprintf(name, sizeof(name), kFace, unit->name.c_str());
     CTexture* texture = g_clientWorld->textureManager_->FindOrCreate(kFaceTextureKind, name);
-    CTexture* old = faceTexture;
-    faceTexture = texture;
-    if (texture) ++texture->refCount_;
-    if (old) old->Release();
+    faceTexture.Assign(texture);
     g_clientWorld->textureManager_->LoadTexture(faceTexture);
-    CTexture* face = faceTexture;
-    if (face->flags_ & kTextureLoaded) return true;
-    faceTexture = nullptr;
-    if (face) face->Release();
+    if (faceTexture->flags_ & kTextureLoaded) return true;
+    faceTexture.Reset();
     blinks = 0;
     return false;
 }

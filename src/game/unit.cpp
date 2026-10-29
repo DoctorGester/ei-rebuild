@@ -51,7 +51,7 @@ int AddToSlots(CUnit* unit, CItem** slots, std::uint32_t count, CItem* item) {
         if (slots[i] == item) return 1;
         if (!slots[i]) {
             slots[i] = item;
-            ++item->refCount_;
+            item->AddRef();
             unit->MarkChanged(kPartEquipment);
             return static_cast<int>(i);
         }

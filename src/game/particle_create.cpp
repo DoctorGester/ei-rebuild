@@ -726,9 +726,7 @@ void CParticleSource::Reset() {
     frameCount = 1;
     frameColumns = 1;
     frameDelay = 10000;
-    CTexture* held = texture;
-    texture = nullptr;
-    if (held) held->Release();
+    texture.Reset();
     windDirection = {};
     extent = {};
     emitFn = nullptr;
@@ -757,9 +755,7 @@ void CParticleSource::Reset() {
 // object the source follows, then resets.
 void CParticleSource::Clear() {
     ReleaseAllParticles();
-    CTexture* held = texture;
-    texture = nullptr;
-    if (held) held->Release();
+    texture.Reset();
     if (attachedTo)
         attachedTo->RemoveEffectSource(this);
     Reset();
@@ -786,7 +782,7 @@ int CParticleSource::Create() {
 
     char name[268];
     std::memcpy(name, textureName, std::strlen(textureName) + 1);
-    texture.Load(6, name);
+    LoadNamedTexture(texture, 6, name);
     BuildFrames(this);
     return 1;
 }
@@ -800,8 +796,6 @@ CParticleSource::CParticleSource(int type) {
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
     std::memset(static_cast<void*>(&clip), 0, offsetof(CParticleSource, particles) - offsetof(CParticleSource, clip));
-    // The frame rectangle array and the texture holder only zero their fields.
-    texture = nullptr;
     Reset();
     type_ = type;
 }
@@ -816,7 +810,7 @@ CEngineObject* CParticleManager::NewObject(int type) {
 
 CParticleSource::~CParticleSource() {
     Clear();
-    if (texture) texture->Release();
+    texture.Reset();
     particles.clear();
 }
 

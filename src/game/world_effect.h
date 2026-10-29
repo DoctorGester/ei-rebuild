@@ -149,7 +149,7 @@ public:
 
     Vector3 color_;
     float range_;              // negative: flag 0x400 on the light
-    HeldObject<CLight> light_; // reference counted, null: none
+    Ref<CLight> light_; // reference counted, null: none
     std::uint32_t lightFlags_; // ored into the light's flags
 };
 
@@ -182,7 +182,7 @@ public:
     float typeParam_;           // copied to the source
     int attachedTo_;           // object id, -1: none
     Vector3 target_;           // moves towards it
-    HeldObject<CParticleSource> source_;   // reference counted
+    Ref<CParticleSource> source_;   // reference counted
     int unitId_;               // a unit whose position is used when unpacking, -1: none
 };
 
@@ -225,7 +225,7 @@ public:
     Vector3 from_;
     Vector3 to_;
     float width_;
-    CLightning* bolt_;         // the drawn bolt (reference counted)
+    Ref<CLightning> bolt_;     // the drawn bolt
     int toObject_;             // its position (+1 in z) becomes to_
     int fromObject_;           // a unit: its point becomes from_ (server only)
     std::uint8_t flag_;
@@ -300,7 +300,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    AIRefTo<CMapObject> figure_;   // client only: the figure object (a stuff object, class 0x38, counted), null: none
+    Ref<CMapObject> figure_;   // client only: the figure object (a stuff object, class 0x38, counted), null: none
     int casterId_;             // the shooter, -1: none
     DamageInfo hit_;           // delivered on arrival (multiplier 1 after Reset)
 };
@@ -325,7 +325,7 @@ public:
 
     int observerId_;           // unit (the second unit of the sight computation)
     int seerId_;               // unit whose sight is shown; the effect follows it
-    CVisibilityFog* fog_;      // client only (counted), null: none
+    Ref<CVisibilityFog> fog_;  // client only, null: none
     FogGrid grid_;
 };
 
@@ -354,8 +354,8 @@ public:
     void Pack(DeltaField*) override {}            // nothing is sent
     void Start(int) override {}
 
-    AIRefTo<CMapObject> bird_;     // the figure object (a stuff object, class 0x38, counted), null: none
-    CParticleSource* source_;  // counted, null: none
+    Ref<CMapObject> bird_;     // the figure object (a stuff object, class 0x38, counted), null: none
+    Ref<CParticleSource> source_;   // null: none
     int followedId_;           // world object id, -1: none
     float lastTime_;           // Update's last `now`
     float timer_;              // frames left in the state
@@ -385,7 +385,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    CParticleSource* source_;  // client: counted, null: none
+    Ref<CParticleSource> source_;   // client only, null: none
     int sound_;                // client: the looping sound's handle, -1: none
     int framesLeft_;           // ticks still to move
     int launchTick_;           // the world's tick at Launch (Start catches the source up, at most 30)

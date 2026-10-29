@@ -41,7 +41,7 @@ void DestroyForReset(Connection* c) {
 // deletes at zero).
 void ReleaseEntryObject(ReplicaEntry* e) {
     CRefObject* object = e->object_.ptr;
-    if (object && --object->refs_ == 0) delete object;
+    if (object) object->Release();
 }
 
 } // namespace
@@ -139,7 +139,7 @@ ReplicaEntry::ReplicaEntry(const ReplicaEntry& other)
     : CRefObject(), version_(other.version_), id_(other.id_), type_(other.type_),
       flags_(other.flags_), serial_(other.serial_) {   // the original merges bit 0 and then the other bits: all of them
     object_.ptr = other.object_.ptr;
-    if (object_.ptr) ++object_.ptr->refs_;
+    if (object_.ptr) object_.ptr->AddRef();
 }
 
 // Entry copy: a copy of the entry sharing the object.

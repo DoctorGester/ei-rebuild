@@ -141,10 +141,7 @@ int CTexture::CreateComposed(CTextureDevice* device, const ComposedTexture& comp
     render::ComposeTexture(holder, static_cast<int>(header.width), mip, levels, images.data(),
                            static_cast<int>(images.size()));
     for (void* file : files) manager->CloseFile(file);
-    Surface* previous = surface_;
-    surface_ = holder;
-    ++holder->refs_;
-    if (previous) previous->Release();
+    surface_.Assign(holder);
     uploadResult_ = static_cast<int>(header.FilledBytes(format_, mip, levels));
     MarkLoaded(&header);
     extra_ = composed.extra;

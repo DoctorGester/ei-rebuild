@@ -43,10 +43,10 @@ int CWorldServer::Create() {
     if (!opened) return game::FatalError(CantOpenText());
 
     specificManager_ = new CServerSpecificManager();
-    ++specificManager_->refCount_;   // the reference is counted without testing the pointer
+    specificManager_->AddRef();   // the reference is counted without testing the pointer
     specificManager_->SetContext(this);
     hoover_ = new CHoover();
-    ++hoover_->refCount_;
+    hoover_->AddRef();
 
     // The wind: along x, no strength yet (three dwords), then 0.4.
     const float direction[3] = {1.0f, 0.0f, 0.0f};

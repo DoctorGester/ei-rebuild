@@ -21,7 +21,7 @@ CMaterial* CWorldClient::NewMaterial(int type) {
 void CWorldClient::SetCamera(CCamera* camera) {
     if (camera_) --camera_->refCount_;
     camera_ = camera;
-    if (camera) ++camera->refCount_;
+    if (camera) camera->AddRef();
 }
 
 void CWorldClient::SetWorldValue(int value) { worldValue_ = value; }

@@ -103,10 +103,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, uns
     // (a system-memory staging surface filled from the file, loaded into a managed
     // texture with the kind's priority hints, its priority set to 100, is not made).
     Surface* decoded = DecodedHolder(device, this, header, mip, levels);
-    Surface* previous = surface_;
-    surface_ = decoded;
-    ++decoded->refs_;
-    if (previous) previous->Release();
+    surface_.Assign(decoded);
     uploadResult_ = static_cast<int>(header->FilledBytes(format_, mip, levels));
     MarkLoaded(header);
     extra_.resize(static_cast<int>(header->extraSize));

@@ -63,7 +63,7 @@ void Shuffle(T* first, T* last) {
 // Counted by the caller.
 void Output(std::list<CItem*>* out, CItem* item) { out->insert(out->end(), item); }
 
-void AddReference(CItem* item) { ++item->refCount_; }
+void AddReference(CItem* item) { item->AddRef(); }
 
 const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->family.c_str(); }
 const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass.c_str(); }
@@ -95,7 +95,7 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
 
 // The random spell of a weapon or armor: half the time, when the material allows magic, one of the spells
 // generated for the item's level, if within the power limit.
-void AddSpell(ItemStock* stock, CItemConstructor* ctor, std::list<HeldPtr<CSpell>>& spells) {
+void AddSpell(ItemStock* stock, CItemConstructor* ctor, std::list<HeldRef<CSpell>>& spells) {
     if (g_random.Next() % 101 >= 50) return;
     float level = 0.0f;
     float power = 0.0f;
@@ -306,7 +306,7 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
             ctor->SetMaterial(nullptr);
         }
 
-        std::list<HeldPtr<CSpell>> spellList;
+        std::list<HeldRef<CSpell>> spellList;
         if (kind == 1 || kind == 3 || kind == 0) ::AddSpell(this, ctor, spellList);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
@@ -415,7 +415,7 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>* recipe
     }
 }
 
-void ItemStock::GenerateSpells(std::list<HeldPtr<CSpell>>* out, const float* levels, unsigned threshold) {
+void ItemStock::GenerateSpells(std::list<HeldRef<CSpell>>* out, const float* levels, unsigned threshold) {
     CSpellManager* spellManager = PartyOf(this)->SpellManager();
     std::list<itemdb::SpellModifierRecord*> chosen;
     for (auto& [spellName, recipes] : spellMap) {
@@ -550,7 +550,7 @@ void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(this);
     CItemManager* manager = PartyOf(this)->ItemFactory();
     FillSpellMaps(stock::ScrollSpellRecipes());
-    std::list<HeldPtr<CSpell>> list;
+    std::list<HeldRef<CSpell>> list;
     for (int tries = 0;;) {
         list.clear();
         GenerateSpells(&list, scrollLevels, 0x32);

@@ -54,7 +54,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     missile->Init(this, spell, caster, &from, target, &end, static_cast<std::uint8_t>(extra));
     if (missile->Update()) {
         projectiles_.push_back(missile);   // a new node (no previous object), counted
-        ++missile->refs_;
+        missile->AddRef();
     }
     CUnit* victim = UnitOrNull(target);
     if (victim && caster) {

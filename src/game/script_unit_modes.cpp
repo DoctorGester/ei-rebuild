@@ -13,13 +13,6 @@ namespace {
 
 constexpr int kNoPart = -1;   // the whole unit as the part to hit
 
-// A referenced object taken over by a clone or a constructor.
-template <typename T>
-T* Reference(T* object) {
-    if (object) ++object->refCount_;
-    return object;
-}
-
 } // namespace
 
 // ---- The bases ----------------------------------------------------------------------------------
@@ -61,17 +54,16 @@ SentryMode* SentryMode::Clone() {
 
 AIModeType SentryMode::GetType() { return AIModeType::Sentry; }
 
-FollowMode::FollowMode(CMapObject* newLeader) { leader = Reference(newLeader); }
+FollowMode::FollowMode(CMapObject* newLeader) { leader.Assign(newLeader); }
 
 FollowMode::~FollowMode() { leader.Reset(); }
 
 int FollowMode::OnShutdown() {
     leader.Reset();
-    leader = nullptr;
     return 0;
 }
 
-FollowMode* FollowMode::Clone() { return new FollowMode(leader.object); }
+FollowMode* FollowMode::Clone() { return new FollowMode(leader.Get()); }
 
 AIModeType FollowMode::GetType() { return AIModeType::Follow; }
 
@@ -91,7 +83,6 @@ AIModeType SuspectionMode::GetType() { return AIModeType::Suspection; }
 AggressionMode::AggressionMode() : AggressionMode(0) {}
 
 AggressionMode::AggressionMode(std::uint8_t newFixed) {
-    enemy = nullptr;
     chosen.object = nullptr;
     chosen.part = kNoPart;
     fixed = newFixed;
@@ -101,7 +92,6 @@ AggressionMode::~AggressionMode() { enemy.Reset(); }
 
 int AggressionMode::OnShutdown() {
     enemy.Reset();
-    enemy = nullptr;
     chosen.object = nullptr;
     chosen.part = kNoPart;
     fixed = 0;
@@ -110,7 +100,7 @@ int AggressionMode::OnShutdown() {
 
 AggressionMode* AggressionMode::Clone() {
     auto* copy = new AggressionMode();
-    copy->enemy = Reference(enemy.object);
+    copy->enemy.Assign(enemy);
     copy->fixed = fixed;
     copy->chosen = chosen;
     return copy;

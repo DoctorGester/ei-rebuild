@@ -19,7 +19,7 @@ AnimationTrack* AnimatorOf(FigureBone* bone) {
     if (!bone->animator) {
         auto* made = bone->owner_->CreateObjectAs<AnimationTrack>(kAnimatorClass, -1);
         bone->animator = made;
-        ++made->refCount_;
+        made->AddRef();
         bone->animator->bone = bone;
     }
     return bone->animator;

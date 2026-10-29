@@ -78,13 +78,13 @@ CLinkMesh* FindCached(const std::multimap<std::string, CLinkMesh*>& cache, const
 
 // Adds `mesh` to the cache under `name`, after the entries of the same name; the entry holds a reference.
 void AddToCache(std::multimap<std::string, CLinkMesh*>* cache, const std::string* name, CLinkMesh* mesh) {
-    if (mesh) ++mesh->refCount_;
+    if (mesh) mesh->AddRef();
     cache->emplace(*name, mesh);
 }
 
 // A reference dropped: the mesh deletes itself at zero.
 void ReleaseMesh(CLinkMesh* mesh) {
-    if (mesh && --mesh->refCount_ == 0) delete mesh;
+    if (mesh) mesh->Release();
 }
 
 
@@ -255,10 +255,7 @@ CLinkFigureLoader::~CLinkFigureLoader() {
     for (auto& [name, set] : figureSets_) {
         delete set;
     }
-    if (CTextureDevice* device = renderer_) {
-        renderer_ = nullptr;
-        device->Release();
-    }
+    renderer_.Reset();
     CLinkFigureLoader::ClearCache();
 }
 

@@ -63,7 +63,7 @@ public:
     void CastAtUnits(std::list<CUnit*>* units);
 
     std::uint32_t sides;            // bit per unit side that sets it off
-    CSpell* spell;                  // a counted reference; null: none
+    Ref<CSpell> spell;              // null: none
     std::vector<TrapCircle> area;
     std::vector<TrapPoint> points;              // where it casts ({x, y})
     std::list<CUnit*> inside;                // the units inside: counted references

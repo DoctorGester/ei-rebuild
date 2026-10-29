@@ -4,7 +4,7 @@
 
 #include "ai_map.h"      // AIPath, PathCellList
 #include "ai_motion.h"   // UnitMotion
-#include "unit_ai.h"     // AIRef, AICallRecord
+#include "unit_ai.h"     // AICallRecord
 #include "world.h"
 
 namespace {
@@ -26,10 +26,7 @@ struct MotionSegment {
 } // namespace
 
 ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
-    CEngineObject* old = item;
-    item = other->item;
-    if (item) ++item->refCount_;
-    if (old) old->Release();
+    item.Assign(other->item);
     countdown = other->countdown;
     worn = other->worn;
     return this;

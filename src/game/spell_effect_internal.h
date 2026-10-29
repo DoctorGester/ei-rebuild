@@ -197,7 +197,7 @@ inline Vector3* EyePointOf(CMapObject* object, Vector3* scratch) { return object
 // A unit's server half (CUnit::controller).
 inline CUnitServer* ControllerOf(CUnit* unit) { return unit->ServerController(); }
 // The target as a unit (the callers checked its class, or the game does not).
-inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target.object); }
+inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target.Get()); }
 
 // From the world's timed object manager.
 template <class T>
@@ -212,7 +212,7 @@ void Assign(CSpellEffect* e, T** slot, T* object) {
     if (*slot) e->world->RemoveTimedObject((*slot)->id_);
     T* old = *slot;
     *slot = object;
-    if (object) ++object->refCount_;
+    if (object) object->AddRef();
     if (old) old->Release();
 }
 
