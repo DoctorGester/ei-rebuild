@@ -3,6 +3,7 @@
 #include "terrain.h"
 #include "options.h"
 
+#include "ei/x87.h"
 #include "lib/float_select.h"
 
 #include <cmath>
@@ -28,7 +29,7 @@ std::uint8_t Terrain::EdgeFade(const Vector3& point) {
     sum = static_cast<float>(sum + bottom * bottom);
     float depth = static_cast<float>(std::sqrt(sum + left * left));
     depth = fade >= depth ? depth : fade;
-    int amount = std::lround(depth / fade * 255.0f);
+    int amount = x87::fistp(static_cast<float>(depth / fade * 255.0f));
     return static_cast<std::uint8_t>(0xFF - static_cast<std::uint8_t>(amount));
 }
 
