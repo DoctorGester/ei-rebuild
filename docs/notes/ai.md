@@ -129,7 +129,7 @@ By file:
 - MarkFootprint resets the scratch sets' buckets only when `hashed` is set, and nothing clears it; the new-cell record of AddTop / AddBottom has an uninitialised padding byte (ours 0; verify skips it), the wall / cloud
   shapes leave byte 0x13 and `next` as stack garbage (ours 0 and -1). CanStandAtFromHere reads the unit's own cell without a bounds check; LevelForSizeClass sets only AL for a class outside 0..7.
 - LimitSteepCells clears the neighbour that broke the scan, or entry 4 of the table when none did, four times over. LargestStepAlong returns 1.0 for a NaN length like for zero (FCOMP sets C3). DominantRegion counts in a
-  temporary CList in the original, ours in a local array of at most nine entries (heap traffic differs, not the result); ReachesRegion's 3x3 block list is a static CArray (007C2EE0) freed with plain delete every call;
+  temporary CList in the original, ours in a local array of at most nine entries (heap traffic differs, not the result); ReachesRegion's 3x3 block list is a static CArray (007C2EE0) freed with plain delete every call (ours a local);
   LabelRegions calls the out-of-line SetSize 005B16D0 instead of the inlined one.
 - Sample kind 3 and SamplePath normalise angles with `while` loops that never end on NaN; UnitMotion::Build reads the first trajectory point even for a path with no steps; SamplePath compares the time with |turn / rate|
   twice (the inner test cannot fail); SetStepSpeeds and StandsOnCheapCell ask the unit for its movement speeds (0052F920) and never use them (ours skips the call). CUnitLayer::Add copies an uninitialised stack element

@@ -17,7 +17,7 @@
 #include <list>
 
 // The unit shape cache. Here, not in ai_shape_cache.cpp, so the path vectors' replay links it.
-constinit lib::StaticObject<UnitShapeCache> g_unitShapes = /*007C2F70*/ {};
+UnitShapeCache g_unitShapes;
 
 namespace {
 
@@ -71,7 +71,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         } else {
             int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
             handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
-            shape = static_cast<const CUnitShape*>(g_unitShapes->Get(&handle));
+            shape = static_cast<const CUnitShape*>(g_unitShapes.Get(&handle));
             if (CRefObject* ref = handle.ref) {
                 ref->Release();
             }
@@ -229,7 +229,7 @@ void* CAIMap::UnitShape(float standingHeight) {
     int tenths = x87::fistp(static_cast<float>(static_cast<double>(standingHeight) * 10.0f + 1.0f));
     handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
 
-    CRefObject* shape = g_unitShapes->Resolve(&handle);
+    CRefObject* shape = g_unitShapes.Resolve(&handle);
     ReleaseHandle(&handle);
     return shape;
 }

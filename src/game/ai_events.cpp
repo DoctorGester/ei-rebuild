@@ -15,7 +15,6 @@
 #include <cstring>
 #include <new>
 #include <string>
-#include "lib/static_object.h"
 
 #include <cstdlib>
 #include <list>
@@ -28,17 +27,13 @@ constexpr int kSides = 16;
 constexpr int kSideMask = kSides - 1;
 constexpr int kWheelMask = kWheelTicks - 1;
 
-// The records' pool (a list whose nodes hold them) and the free list (chained through
-// AIEvent::next).
-constinit lib::StaticObject<std::list<AIEvent>> g_eventPool = /*007C43A8*/ {};
+// The records' pool (a list whose nodes hold them; the free list is chained through AIEvent::next).
+std::list<AIEvent> g_eventPool;
 
 void PushFree(AIEvent* event) {
     event->next = g_freeEvents;
     g_freeEvents = event;
 }
-
-// The pool's static initialiser (0x400 nodes a block) and the exit function it registers.
-void DestroyEventPool() { g_eventPool.Destroy(); }
 
 constexpr const char* kAiInfoArchive = "aiinfo.res";
 constexpr const char* kCantReadAiInfo = "Unable to read file aiinfo.res";
@@ -48,11 +43,6 @@ constexpr std::size_t kNormalTableSize = 0x1000;
 std::uint8_t g_normalTable[kNormalTableSize] = /*007C43C4*/ {};   // the 4096 bytes of normal.dat
 
 } // namespace
-
-void ConstructEventPool() {
-    g_eventPool.Construct();
-    std::atexit(DestroyEventPool);
-}
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {
     // Each coordinate is scaled, stored to a float and rounded to nearest.
@@ -111,8 +101,8 @@ void AIEventTable::Load(CStream* stream) {
         if (event) {
             g_freeEvents = event->next;
         } else {
-            g_eventPool->push_front(AIEvent{});
-            event = &g_eventPool->front();
+            g_eventPool.push_front(AIEvent{});
+            event = &g_eventPool.front();
         }
         event->next = nullptr;
         event->prev = nullptr;

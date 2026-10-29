@@ -4,7 +4,6 @@
 // through reference-counted handles. See ai_shape_cache.cpp, and CAIMap::UnitShape in ai_movement.cpp for its
 // user.
 #include "core_refcount.h"
-#include "lib/static_object.h"
 
 #include <cstdint>
 #include <unordered_map>
@@ -47,5 +46,5 @@ public:
     std::unordered_map<float, SharedRefPtr> shapes;
 };
 
-// The cache: built by a static initialiser, destroyed at exit (both in ai_shape_cache.cpp).
-extern lib::StaticObject<UnitShapeCache> g_unitShapes;
+// The cache (defined in ai_movement.cpp).
+extern UnitShapeCache g_unitShapes;

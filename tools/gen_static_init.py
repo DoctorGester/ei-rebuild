@@ -773,6 +773,15 @@ UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread 
 # constructor call and the atexit (or the one call); the object's range and the exit function's guard byte are in no
 # named range or source, and nothing reads them.
 UNUSED_INITIALISERS = {
+    # C50a: plain globals of ours (constructed and destroyed by the C++ runtime) in place of the static objects.
+    0x005B31C0: "the unit shape cache 007C2F70 (exit function 005B31E0): ai_movement.cpp's g_unitShapes",
+    0x005BF810: "the sector spiral's offsets 007C2FF8 (exit function 005BF830): sector_spiral.cpp's g_spiralOffsets",
+    0x005BF840: "the sector spiral's radius tree 007C2FD8 (exit function 005BF860): sector_spiral.cpp's g_spiralRadii",
+    0x005BF8B0: "the sector spiral's lengths 007C2FC0 (exit function 005BF8D0): sector_spiral.cpp's g_spiralLengths",
+    0x005C41C0: "the path smoother's 81 tables 007C3058 (exit function 005C41F0): ai_path_smooth.cpp's g_smoothTables",
+    0x005C4460: "the path smoother's node pool 007C3038 (exit function 005C4480): ai_path_smooth.cpp's g_smoothPool",
+    0x005C8F90: "the AI events' pool 007C43A8 (exit function 005C8FB0): ai_events.cpp's g_eventPool",
+    0x0067E4C0: "the spells' footprint set 007C8478 (exit function 0067E500): ai_footprint.cpp's g_spellFootprint",
     0x00444660: "the debug panel 0079B930 (exit function 00444680; the panel went in C55)",
     0x0051CE00: "DrawShadow 0051CE60's texture pixels 007AF1E0 (exit function 0051CE30, guard bit 2 of 007AF1F0): only "
                 "the 64 x 64 shadow texture read them, which is not made (R26)",
@@ -1100,6 +1109,14 @@ RUNTIME_SITES = set()
 # Functions whose port registers none of the original's function-local statics' exit functions (C18): their
 # runtime atexit sites never run, like dead code's. begin -> (end, why).
 RETIRED_STATICS = {
+    0x005B0050: (0x005B034A, "CRegionMap::LabelRegions (ai_region_reach.cpp) floods with local lists: the original's static "
+                             "flood queue 007C2F10 and second list 007C2EF8 (guard bits 0 / 1 of 007C2F24, destroyed by "
+                             "005B0360 / 005B0350) are never made"),
+    0x005B07C0: (0x005B0AD6, "CRegionMap::ReachesRegion (ai_region_reach.cpp) lists the 3 x 3 blocks in a local: the "
+                             "original's static list 007C2EE0 (guard bit 0 of 007C2EF4, destroyed by 005B0AE0) is never "
+                             "made"),
+    0x005B7EF0: (0x005B80BD, "CAIMap::StampWaterPatch (ai_water_patch.cpp) keeps its patch in a function-local static of "
+                             "ours: the original's 007C2F64 (guard bit 0 of 007C2F68, released by 005B80C0) is never made"),
     0x006BFF40: (0x006C1390, "terrain::SectorData::DrawPage (terrain_draw.cpp) hands the page to src/render: the "
                              "original's tile arrays and triangle lists 007C8848..007C88C8 are never built"),
     0x0047ADF0: (0x0047B119, "ObjectSetSortUnique (world_object_sets.cpp) sorts by object id with std::sort: the "

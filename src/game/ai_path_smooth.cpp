@@ -5,9 +5,6 @@
 
 #include "ei/x87.h"
 #include <cstdint>
-#include <memory>
-
-#include <cstdlib>
 
 namespace {
 
@@ -63,13 +60,6 @@ void MakeSmoothStep(SmoothStep* step, const SmoothEdge* from, const SmoothEdge* 
     step->direction = toDirection == 0 ? 0 : Opposite(toDirection);
 }
 
-// The tables destroyed, the last one first (the `eh vector destructor iterator`).
-void DestroySmoothTables() {
-    SmoothTable* tables = g_smoothTables.Get();
-    for (int i = kStates * kStates; i-- > 0;) std::destroy_at(&tables[i]);
-}
-void DestroySmoothPool() { g_smoothPool.Destroy(); }
-
 } // namespace
 
 // Resizes the SmoothNode array (new nodes zeroed, nothing destroyed).
@@ -92,7 +82,7 @@ void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, Smooth
 }
 
 void PathSmoother::Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table) {
-    SmoothPool& pool = *g_smoothPool;
+    SmoothPool& pool = g_smoothPool;
     for (int i = 0; i < kStates; ++i) to[i].cost = kUnreached;
     for (int i = 0; i < kStates; ++i) to[i].node = pool.next++;
     for (int i = 0; i < std::ssize(table->copies); ++i) {
@@ -118,7 +108,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCells* path, int start
     int previousBest = kUnreached;
     const int tailX = path->back().x, tailY = path->back().y;
     const int headX = path->front().x, headY = path->front().y;
-    SmoothPool& pool = *g_smoothPool;
+    SmoothPool& pool = g_smoothPool;
     for (;;) {
         SmoothState first[kStates], second[kStates];
         pool.SetSize((std::ssize(*path) + 5) * 10);
@@ -308,20 +298,9 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
 }
 
 // The static initialiser's second half, after the 81 tables have been constructed empty.
-void BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
+void BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables); }
 
 // ---- The pool and the tables ----------------------------------------------------------
 
-// Zero at the start; each is built empty by its static initialiser (the tables first) and destroyed at exit.
-constinit lib::StaticObject<SmoothPool> g_smoothPool = /*007C3038*/ {};
-constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
-
-void ConstructSmoothTables() {
-    for (SmoothTable& table : g_smoothTables.Get()) std::construct_at(&table);
-    std::atexit(DestroySmoothTables);
-}
-
-void ConstructSmoothPool() {
-    g_smoothPool.Construct();
-    std::atexit(DestroySmoothPool);
-}
+SmoothPool g_smoothPool;
+SmoothTable g_smoothTables[81];

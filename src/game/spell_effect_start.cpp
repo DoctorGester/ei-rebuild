@@ -426,24 +426,24 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
     case 6: {
         Vector3 direction;
         direction = (Visual<CEffectWall>()->direction_);
-        g_spellFootprint->AlongDirection(aiMap, &position, kHalfBits, &direction);
+        g_spellFootprint.AlongDirection(aiMap, &position, kHalfBits, &direction);
         break;
     }
     case 7: {
         Vector3 half;
         HalfSpan(Visual<CEffectLightning>(), &half);
-        g_spellFootprint->AlongDirection(aiMap, &position, kHalfBits, &half);
+        g_spellFootprint.AlongDirection(aiMap, &position, kHalfBits, &half);
         break;
     }
     case 8:
-    case 0x27: g_spellFootprint->DiscAt(aiMap, &position, Spell()->radius_); break;
+    case 0x27: g_spellFootprint.DiscAt(aiMap, &position, Spell()->radius_); break;
     default: return;
     }
     if (stamp) {
-        aiMap->StampFootprint(world->tick_, &g_spellFootprint.Get());
+        aiMap->StampFootprint(world->tick_, &g_spellFootprint);
         footprintStamped = 1;
     } else {
-        aiMap->ClearFootprint(&g_spellFootprint.Get());
+        aiMap->ClearFootprint(&g_spellFootprint);
         footprintStamped = 0;
     }
 }

@@ -5,26 +5,13 @@
 #include "core_streams.h"
 
 #include "lib/crt.h"
-#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <initializer_list>
 
 namespace {
-
-constinit lib::StaticObject<std::vector<BlockPoint>> g_blocks = /*007C2EE0*/ {};
-std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
-void DestroyBlocks() { g_blocks.Destroy(); }
-
-// LabelRegions' function-local statics: the flood queue (guard bit 0 of g_floodGuard) and its second list (bit 1).
-constinit lib::StaticObject<std::vector<BlockPoint>> g_floodSecond = /*007C2EF8*/ {};
-constinit lib::StaticObject<std::vector<BlockPoint>> g_floodQueue = /*007C2F10*/ {};
-std::uint8_t g_floodGuard = /*007C2F24*/ {};
-void DestroyFloodQueue() { g_floodQueue.Destroy(); }
-void DestroyFloodSecond() { g_floodSecond.Destroy(); }
 
 constexpr int kUnreached = 0x7FFFFFFF;
 
@@ -76,13 +63,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
     if (by < 0) by = 0;
 
-    std::vector<BlockPoint>& blocks = *g_blocks;
-    if (!(g_blocksGuard & 1)) {
-        g_blocksGuard |= 1;
-        g_blocks.Construct();
-        std::atexit(DestroyBlocks);
-    }
-    lib::FreeStorage(blocks);
+    std::vector<BlockPoint> blocks;
     for (int yy = by - 1; yy < by + 2; ++yy) {
         if (yy < 0 || yy >= BlocksHigh(this)) continue;
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
@@ -137,19 +118,8 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
 }
 
 void CRegionMap::LabelRegions() {
-    std::vector<BlockPoint>& queue = *g_floodQueue;
-    std::vector<BlockPoint>& second = *g_floodSecond;
-    if (!(g_floodGuard & 1)) {
-        g_floodGuard |= 1;
-        g_floodQueue.Construct();
-        std::atexit(DestroyFloodQueue);
-    }
-    if (!(g_floodGuard & 2)) {
-        g_floodGuard |= 2;
-        g_floodSecond.Construct();
-        std::atexit(DestroyFloodSecond);
-    }
-    queue.clear();
+    std::vector<BlockPoint> queue;
+    std::vector<BlockPoint> second;
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
         SearchGrid<std::uint16_t>& grid = regions[sizeClass];
         std::memset(grid.data, 0, static_cast<std::size_t>(grid.height * grid.width * 2));

@@ -5,7 +5,6 @@
 #include "engine_object.h"
 #include "maths.h"
 
-#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -78,8 +77,8 @@ struct RadiusTree {
     void Build(const float* values, int count);
 
     std::vector<float> keys;
-    int depth;
-    int mask;
+    int depth = 0;
+    int mask = 0;
 };
 
 // A sector offset of the spiral.
@@ -90,10 +89,10 @@ static_assert(sizeof(SpiralOffset) == 4);
 // The sector spiral's tables, built by the static initialiser: the 441 offsets of a 21 x 21
 // square of sectors ordered by distance, the number of offsets within each distinct
 // distance and the tree that finds a distance's place among them.
-// Defined, built and destroyed in sector_spiral.cpp.
-extern lib::StaticObject<std::vector<int>> g_spiralLengths;
-extern lib::StaticObject<RadiusTree> g_spiralRadii;
-extern lib::StaticObject<std::vector<SpiralOffset>> g_spiralOffsets;
+// Defined in sector_spiral.cpp.
+extern std::vector<int> g_spiralLengths;
+extern RadiusTree g_spiralRadii;
+extern std::vector<SpiralOffset> g_spiralOffsets;
 // What the spiral's static initialiser does, on any three constructed tables (sector_map.cpp).
 void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vector<SpiralOffset>* offsets);
 

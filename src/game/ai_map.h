@@ -10,7 +10,6 @@
 #include "lib/containers.h"
 #include <cstddef>
 #include <cstdint>
-#include "lib/static_object.h"
 
 #include <list>
 #include <unordered_map>
@@ -535,12 +534,13 @@ struct SmoothPool {
     void SetSize(int size);
 
     std::vector<SmoothNode> nodes;
-    int zeroed;                     // set to 0 by each pass, not read
-    SmoothNode* next;                   // the next free node
+    int zeroed = 0;                     // set to 0 by each pass, not read
+    SmoothNode* next = nullptr;         // the next free node
 };
-extern lib::StaticObject<SmoothPool> g_smoothPool;
-extern lib::StaticObject<SmoothTable[81]> g_smoothTables;
-inline const SmoothTable* SmoothTables() { return g_smoothTables.Get(); }
+extern SmoothPool g_smoothPool;
+// Built by a static initialiser (BuildSmoothTables, ai_path_smooth.cpp).
+extern SmoothTable g_smoothTables[81];
+inline const SmoothTable* SmoothTables() { return g_smoothTables; }
 // The direction (1..8 counter-clockwise from (0, -1), 0 for none) of the step (dx, dy) in -1..1:
 // DirectionSteps()[dy * 3 + dx], from the middle of the table.
 inline constexpr int kDirectionSteps[9] = /*00791978*/ {2, 1, 8, 3, 0, 7, 4, 5, 6};

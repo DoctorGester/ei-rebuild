@@ -22,11 +22,6 @@ struct Waypoint {
     int x, y;
     PathCells::iterator region;
 };
-// The local search: begin (unit, from, to), continue (from, to, fresh), whether a cell was reached, the cost
-// of a cell, commit, finish, reset. Atexit, for the function-local spiral cache.
-
-SpiralCache g_spiral = /*007C2F58*/ {};
-std::uint8_t g_spiralGuard = /*007C2F60*/ {};
 
 constexpr double kThreshold = 15.0;
 
@@ -34,11 +29,7 @@ constexpr double kThreshold = 15.0;
 
 bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
     PathCells chain;
-    if (!(g_spiralGuard & 1)) {
-        g_spiral.radius = -1.0f;
-        g_spiralGuard |= 1;
-        g_spiral.length = 0;
-    }
+    static SpiralCache spiral{0, -1.0f};
     int sizeClass = unit->sizeClass;
     path->cells.clear();
     bool ok = regionMap.FindRegionChain(sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
@@ -64,7 +55,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     waypoints.push_back({toX, toY, previous});
 
     int count = 0;
-    const std::int16_t* offsets = g_spiral.Get(kAllOffsets, &count);
+    const std::int16_t* offsets = spiral.Get(kAllOffsets, &count);
     LocalSearch* search = &forwardSearch;
     bool result = true;
     bool reachedLast = true;   // the previous leg ended on its waypoint

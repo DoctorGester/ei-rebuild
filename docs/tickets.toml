@@ -5451,3 +5451,10 @@ title = "C51a rest: Create/RunTick helper forwarders, Query, remaining Returns-1
 group = "cleanup"
 depends = ["C51a"]
 note = "Left by C51a. (1) The Create/RunTick overrides that only forward to a named helper (CreateTrack, CreateDrawer, CreateState, Create3D, CreateUnit, CreateTorch, CreateSpec, CreateClient, CreateBody, CreateLever, CreateTrap x2, LoadThemes, CreateWithArchives, CreateManager, CreateSprite, UiObjectCreate, VisFogManagerCreate/Tick, UpdateLever, UpdateTrap x2, UpdateCells, Pump, Segment): fold the helper into the override where nothing else calls it (C53's forwarder rule; ui_* ones wait for C54). (2) CMapObjectCompanion::Query is always 0 and CMapObject::CompanionQuery drops it: void or delete. (3) Other always-1 helpers still commented 'Returns 1' (unit_create.h, party.h Create, unit_client_models.h) to void. Not bool: CanCastSpell/CanUseQuickItem return codes, IncomingCount is a count (LoopbackLink returns the queue size), Alive is bool already."
+
+[[ticket]]
+id = "C50a1"
+title = "AI static tables built where they are used"
+group = "cleanup"
+depends = ["C50a"]
+note = "C50a follow-up. The smoother's 81 tables (ai_path_smooth.cpp, BuildSmoothTables 005C42B0) and the sector spiral's tables (sector_spiral.cpp, BuildSectorSpiralStatic 005BF8E0 / BuildSectorSpiral 005BF8F0) are plain globals since C50a but still filled by ported static initialisers in list order. Pure computation: build them once on first use (a function-local static object whose constructor builds them, or a class owning the three spiral tables), add both initialisers to gen_static_init's UNUSED_INITIALISERS, drop their static_init_ports rows, and keep tests/vectors/replay_path.cpp's @PathTables check (it fills ours from the record, then compares with what our builder makes). Also: CUnitLayer's map pointer could be a constructor argument of the two layers, and AIViewer (ai_event_table.h) has no member initialisers. Goldens unchanged."

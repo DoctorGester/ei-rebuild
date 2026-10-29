@@ -649,12 +649,12 @@ kinds given.
         each no one's; the last one ends where the deferred unit list 007AF5B4 starts, so there is no 16-byte
         struct; their stores stay generated, the exit functions 0056A510-0056A830 are ported; world.h's
         FrameObjects picks one from a table of the names; 0056A840, which clears them all, has no caller) and the
-        CArrays whose tables C19 compiled: the sector spiral's lengths, radius tree and offsets (sector_spiral.cpp,
-        007C2FC0 / 007C2FD8 / 007C2FF8; a file of its own so the path vectors' replay links them) and the path
-        smoother's node pool and 81 transition tables (ai_path_smooth.cpp, 007C3038 / 007C3058; the tables are
-        `lib::StaticObject<SmoothTable[81]>`, built in order like the `eh vector constructor iterator` and destroyed
-        last first like its destructor iterator). Their initialisers (005BF810, 005BF840, 005BF8B0, 005C41C0,
-        005C4460) have rows in extra_function_sizes.csv / function_sizes.inc. The path vectors keep their format:
+        CArrays whose tables C19 compiled: the sector spiral's lengths, radius tree and offsets (sector_spiral.cpp, a
+        file of its own so the path vectors' replay links them) and the path smoother's node pool and 81 transition
+        tables (ai_path_smooth.cpp). Since C50a they are plain globals of ours (the C++ runtime constructs and
+        destroys them; no address): their initialisers (005BF810, 005BF840, 005BF8B0, 005C41C0, 005C4460) are
+        gen_static_init's UNUSED_INITIALISERS; the builders 005BF8E0 / 005C42B0 still run at their places in the
+        list. The path vectors keep their format:
         the record reads game.exe's copies through `ei::OriginalGameData` (a type alias where the type has a
         template argument: the literal check's pattern takes no nested `<>`), the replay fills ours by the
         record's order.
@@ -696,11 +696,17 @@ kinds given.
       TYPES `LogicSettings`; the stats recorder reads game.exe's copy), and the constructed statics as
       `lib::StaticObject<T>` (zero storage, STATIC_OBJECT_BYTES) whose initialiser and exit function are ported on the
       name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc: the
-      particles' draw order 007A9C50, the unit shape cache 007C2F70 (defined in ai_movement.cpp, which the path
-      vectors link), the AI events' pool 007C43A8 (and the free list 007C53F0, ai_grids.cpp), the terrain's projection
-      outcodes 007C88D0, the sector spiral's builder 005BF8E0. A function-local static's exit function is ported
-      beside it and the port registers its own (`GameAtExit(DestroyX)`): the glow's and the particles' sprite arrays,
-      ai_region_reach's point arrays, Aggression's candidate list, the water patch, UseResources' CString.
+      particles' draw order 007A9C50, the terrain's projection outcodes 007C88D0, the sector spiral's builder
+      005BF8E0. A function-local static's exit function is ported beside it and the port registers its own
+      (`GameAtExit(DestroyX)`): the glow's and the particles' sprite arrays, UseResources' CString.
+    - **Plain globals and locals instead (C50, C50a)**: an object of ours that needs no game order is a plain global
+      (constructed and destroyed by the C++ runtime), a function-local static or a local, with no address: the unit
+      shape cache (ai_movement.cpp), the AI events' pool (ai_events.cpp; the free list 007C53F0 stays named), the spells'
+      footprint set, the sector spiral's tables and the smoother's pool and tables. Their initialisers are
+      UNUSED_INITIALISERS (the exit functions go with them); a function whose port builds none of the original's
+      function-local statics is in RETIRED_STATICS (Aggression's candidates, LabelRegions' flood lists, ReachesRegion's
+      block list, StampWaterPatch's patch). The spiral caches of PlanLongPath and FindFreeCellNear are function-local
+      statics of ours (constant-initialised, no guard).
     - **gen_static_init**: REVIEWED_SPLIT splits one initialiser's stores where they are two objects (005229C0: the hit
       log pointer 007AF284 is read, the ln folds above it are not); RETIRED_STATICS lists functions whose port builds
       none of the original's function-local statics, so their runtime atexit sites never run (006BFF40, the terrain
