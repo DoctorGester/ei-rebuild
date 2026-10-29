@@ -200,7 +200,7 @@ void CTradePanel::DrawLists() {
 
 void CTradePanel::Build() {
     rect_ = RECT{200, 100, 600, 500};
-    AddSurface(new CUiSurface(interface_, 200, 100, 600, 500, 5, 1));
+    AddSurface(new CUiSurface(interface_, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
 
     AddRegion()->SetRect(360, 320, 380, 330);
     AddRegion()->SetRect(360, 480, 380, 490);

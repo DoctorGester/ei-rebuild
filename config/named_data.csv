@@ -172,7 +172,6 @@ address,size,name,file
 007A9BFC,48,g_bagSizes,src/game/particle_callbacks.cpp
 007A9C30,16,kIdentityRotation,src/game/particle_create.cpp
 007A9D40,2068,g_random,src/game/random.cpp
-007AA5A0,68,g_partyManager,src/game/app_lifetime.cpp
 007AA620,4,g_streamedScript,src/game/script.h
 007AB8F0,4,g_twoPi,src/game/sys_info.cpp
 007AB8F8,264,g_sysInfo,src/game/sys_info.cpp
@@ -213,8 +212,6 @@ address,size,name,file
 007AF460,4,g_dataFolder,src/game/game_folders.cpp
 007AF5B8,2020,g_clientWorld,src/game/world_construct.cpp
 007AFDB0,12,kOrigin,src/game/world_data.h
-007AFDF8,40,g_saveStream,src/game/world_game.cpp
-007AFE20,132,g_gameFlow,src/game/world_game.cpp
 007AFECC,4,g_guardKey,src/game/world_guard.cpp
 007AFED0,4,g_serverStamp,src/game/world_game.cpp
 007AFED4,4,g_appliedStamp,src/game/world_game.cpp
@@ -272,7 +269,6 @@ address,size,name,file
 007C81C8,4,kSaveLoadTilt,src/game/ui_layouts.cpp
 007C8210,4,kQuarterTurn,src/game/ui_options.cpp
 007C8258,8,kCursorOffset,src/game/ui_tooltip.cpp
-007C82A0,132,g_savedParties,src/game/party_file.cpp
 007C8344,4,g_loadingParty,src/game/party.h
 007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
 007C84EC,4,g_loadingProjectileWorld,src/game/world.h

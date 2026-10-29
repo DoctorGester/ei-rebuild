@@ -238,7 +238,7 @@ void CBattleScreen::Update() {
 
     if (IsMultiplayerClient()) RebuildClientParty(this);
 
-    UpdateBase();
+    CUiContainer::Update();
     interface_->ShowMessage(0);
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.

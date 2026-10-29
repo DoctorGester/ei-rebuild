@@ -35,8 +35,8 @@
 
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).
-int SaveVersion() { return static_cast<int>(g_saveStream->version_); }
-bool LoadingGame() { return g_saveStream->size_ != 0; }
+int SaveVersion() { return static_cast<int>(g_saveStream.version_); }
+bool LoadingGame() { return g_saveStream.size_ != 0; }
 
 
 } // namespace
@@ -56,7 +56,7 @@ void CBattleScreen::CreateScreen() {
 
     if (LoadingGame()) {
         // The screen's part of the saved game.
-        CMemoryStream* stream = &g_saveStream.Get();
+        CMemoryStream* stream = &g_saveStream;
         stream->Seek(0);
         int count;
         stream->ReadValue(count);

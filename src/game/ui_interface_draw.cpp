@@ -48,9 +48,9 @@ constexpr int kFpsFont = 1;
 void MakeBackdrop(CInterface3D* ui) {
     if (widescreen::Active()) {
         const widescreen::Layout& wide = widescreen::Get();
-        ui->backdrop_ = new CUiSurface(ui, 0, 0, wide.width, wide.height, 4, 0);
+        ui->backdrop_ = new CUiSurface(ui, 0, 0, wide.width, wide.height, SurfaceBlend::Opaque, false);
     } else {
-        ui->backdrop_ = new CUiSurface(ui, 0, 0, 800, 600, 4, 1);
+        ui->backdrop_ = new CUiSurface(ui, 0, 0, 800, 600, SurfaceBlend::Opaque, true);
     }
 }
 

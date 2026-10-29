@@ -59,8 +59,8 @@ void CBriefingScreen::MessageResult(int result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        g_gameFlow->DropSessions();
-        g_gameFlow->CloseSessions();
+        g_gameFlow.DropSessions();
+        g_gameFlow.CloseSessions();
         break;
     default:
         break;
@@ -148,5 +148,5 @@ void CBriefingScreen::PlayersChanged(int show) {
 
 void CBriefingScreen::SaveState() {
     int zero = 0;
-    g_saveStream->WriteValue(zero);
+    g_saveStream.WriteValue(zero);
 }

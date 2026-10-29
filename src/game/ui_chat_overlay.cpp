@@ -23,7 +23,7 @@ constexpr int kLeft = 10;
 constexpr int kTop = 10;
 constexpr int kLineHeight = 16;
 // The typed line's surface.
-constexpr int kTypedLeft = 10, kTypedTop = 0x23D, kTypedRight = 0x316, kTypedBottom = 0x24E, kTypedFormat = 4;
+constexpr int kTypedLeft = 10, kTypedTop = 0x23D, kTypedRight = 0x316, kTypedBottom = 0x24E;
 // The typed line: at most 200 characters and narrower than 780 pixels in font 1.
 constexpr int kMaxTyped = 200;
 constexpr int kMaxTypedWidth = 0x30C;
@@ -43,7 +43,7 @@ void SendSay(const std::string& text) {
 constexpr int kMaxLines = 12;
 constexpr int kLineWidth = 0x30C;
 constexpr int kLineFont = 1;
-constexpr int kLineSurfaceHeight = 0x11, kLineSurfaceFormat = 5, kLineSurfacePad = 3;
+constexpr int kLineSurfaceHeight = 0x11, kLineSurfacePad = 3;
 constexpr int kLineDrawRight = 0x30F;
 constexpr UINT kLineDrawFormat = 0x800;   // DT_NOPREFIX
 constexpr COLORREF kWhite = 0xFFFFFF;
@@ -135,7 +135,7 @@ void CChatOverlay::AddLine(const char* text) {
         added.name = plain[i];
         added.time = now;
         const int width = interface_->TextExtent(plain[i], kLineFont).cx + kLineSurfacePad;
-        CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, kLineSurfaceFormat, 1);
+        CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
         surface->Clear();
         const std::string& codes = formatted[i];
         std::string drawn;
@@ -175,10 +175,10 @@ void CChatOverlay::ClearLines() {
 
 void CChatOverlay::DrawTyped() {
     if (!chatOpen_) {
-        surfaces_[0]->Freeze(0, 0);
+        surfaces_[0]->Hide(false);
         return;
     }
-    surfaces_[0]->Freeze(1, 0);
+    surfaces_[0]->Show();
     if (caret_ > static_cast<int>(typed_.size())) caret_ = typed_.size();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_[0];
@@ -257,7 +257,7 @@ void CChatOverlay::Char(int key, int, int) {
 
 // Its own redraw and update; the input side's keys and characters.
 CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
-    CUiSurface* typed = new CUiSurface(interface_, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, kTypedFormat, 1);
+    CUiSurface* typed = new CUiSurface(interface_, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true);
     AddSurface(typed);
     chatOpen_ = false;
     caret_ = 0;
@@ -276,5 +276,5 @@ void CChatOverlay::Redraw() {
         line.surface->Blit();
         y += kLineHeight;
     }
-    RedrawBase();
+    CUiWindow::Redraw();
 }

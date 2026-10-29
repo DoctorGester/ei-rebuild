@@ -33,7 +33,6 @@ namespace {
 constexpr float kMenuTilt = /*007C7F14*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 constexpr int kTextureKind = 3;
-constexpr int kSurfaceFormat = 5;
 constexpr std::uint32_t kPlainSprite = 0x100;
 constexpr std::uint32_t kSelectionColour = 0xC8A06800;
 constexpr std::uint32_t kBackColour = 0xA0000000;
@@ -71,7 +70,7 @@ bool ModelNameIsFemale(const std::string& model) {
 } // namespace
 
 void CMpHeroScreen::CreateScreen() {
-    g_gameFlow->UseResources(true);
+    g_gameFlow.UseResources(true);
     LoadTexture("campinfo", kTextureKind);
     CUiModel* model = AddModel();
     model->Load("unmoco2", "MainMenu00", "MainMenu00labels");
@@ -275,11 +274,11 @@ void CMpHeroScreen::CreateScreen() {
     turn_ = 0.0f;
     rotating_ = 0;
 
-    AddSurface(new CUiSurface(interface_, 100, 240, 390, 500, kSurfaceFormat, 1));
-    AddSurface(new CUiSurface(interface_, 100, 100, 390, 220, kSurfaceFormat, 1));
-    AddSurface(new CUiSurface(interface_, 0, 300, 200, 500, kSurfaceFormat, 1));
-    AddSurface(new CUiSurface(interface_, 425, 110, 555, 126, kSurfaceFormat, 1));
-    surfaces_[kSurfaceRename]->Freeze(0, 0);
+    AddSurface(new CUiSurface(interface_, 100, 240, 390, 500, SurfaceBlend::Keyed, true));
+    AddSurface(new CUiSurface(interface_, 100, 100, 390, 220, SurfaceBlend::Keyed, true));
+    AddSurface(new CUiSurface(interface_, 0, 300, 200, 500, SurfaceBlend::Keyed, true));
+    AddSurface(new CUiSurface(interface_, 425, 110, 555, 126, SurfaceBlend::Keyed, true));
+    surfaces_[kSurfaceRename]->Hide(false);
 
     // The list's four commands.
     std::string text;
@@ -300,7 +299,7 @@ void CMpHeroScreen::CreateScreen() {
     }
 
     // The saved heroes, from the "mp" folder of the game's data.
-    SavedParties* heroes = &g_savedParties.Get();
+    SavedParties* heroes = &g_savedParties;
     heroes->folder_ = *g_dataFolder + "mp\\";
     heroes->Reload();
     RefreshHeroScroll();

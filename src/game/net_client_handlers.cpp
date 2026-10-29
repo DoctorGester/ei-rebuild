@@ -199,30 +199,30 @@ void ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }
 // The zones offered, passed to the game flow.
 void ClientOnZone(ClientSession* self, ZoneMessage* message) {
     Append(self->zones_, message);
-    g_gameFlow->MarkBriefing(message->text_.data());
+    g_gameFlow.MarkBriefing(message->text_.data());
 }
 void ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
     RemoveCounted(self->zones_, message);
-    g_gameFlow->ForgetBriefing(message->text_.data());
+    g_gameFlow.ForgetBriefing(message->text_.data());
 }
 // The current map; without a server of our own the flow loads it.
 void ClientOnMap(ClientSession* self, MapMessage* message) {
     AssignRef(&self->map_, message);
     ServerSession* server = g_gameServer;
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
-    FlowLoadZoneQuests(&g_gameFlow.Get(), message->text_.data());
-    g_gameFlow->RegisterQuests(message->text_.data());
+    FlowLoadZoneQuests(&g_gameFlow, message->text_.data());
+    g_gameFlow.RegisterQuests(message->text_.data());
 }
 void ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }
 // The script variables; the flow is told of every change.
 void ClientOnVariable(ClientSession* self, Message* message) {
     Append(self->variables_, message);
-    FlowVariablesChanged(&g_gameFlow.Get());
+    FlowVariablesChanged(&g_gameFlow);
 }
-void ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(&g_gameFlow.Get()); }
+void ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(&g_gameFlow); }
 void ClientOnVariableGone(ClientSession* self, Message* message) {
     RemoveRaw(self->variables_, message);
-    FlowVariablesChanged(&g_gameFlow.Get());
+    FlowVariablesChanged(&g_gameFlow);
 }
 // The shared files; for a file the flow lacks, a request holding the file goes on fileRequests_.
 void ClientOnFile(ClientSession* self, FileMessage* message) {

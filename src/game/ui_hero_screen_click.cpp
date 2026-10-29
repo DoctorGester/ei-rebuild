@@ -49,7 +49,7 @@ void BackToMainMenu(CInterface3D* ui) {
     g_clientWorld->texts_->CTextManager::GetString("reserved_04", &text);
     g_interface.ShowStatusText(text);
     ui->PlaySound(game::CancelSoundText());
-    g_gameFlow->EndSession();
+    g_gameFlow.EndSession();
     ui->SetPendingValue(0);
 }
 
@@ -99,7 +99,7 @@ int HighestFileNumber(std::string_view pattern) {
 } // namespace
 
 void CMpHeroScreen::CloseRenameEdit() {
-    surfaces_[3]->Freeze(0, 0);
+    surfaces_[3]->Hide(false);
     renameEdit_->SetEnabled(false);
     renameEdit_->SetFocused(false);
 }
@@ -130,7 +130,7 @@ void CMpHeroScreen::FinishRename() {
     str::TrimRight(base);
     typed = base + typed;
     name = typed;
-    SavedHero(heroIndex_)->WriteFile(g_savedParties->folder_);
+    SavedHero(heroIndex_)->WriteFile(g_savedParties.folder_);
     CloseRenameEdit();
     ShowHero(heroIndex_);
 }
@@ -355,7 +355,7 @@ void CMpHeroScreen::Rename() {
         str::TrimRight(name);
     }
     auto* surface = surfaces_[3];
-    surface->Freeze(1, 0);
+    surface->Show();
     surface->Clear();
     RECT rect = kRenameTitle;
     surface->DrawTextIn(name + kRenameSeparator, &rect, 1, kBright, 2, 1);
@@ -405,7 +405,7 @@ void CMpHeroScreen::Continue() {
     CInterface3D* ui = interface_;
     ui->PlaySound(kSoundOk);
     if (IsHero(heroIndex_)) {
-        g_savedParties->SaveAll();
+        g_savedParties.SaveAll();
         ui->PushWindow(new CMpConnectScreen(ui), 1, 1);
         return;
     }
@@ -476,9 +476,9 @@ void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_ = *hero; }
 
 void CMpHeroScreen::DeleteHero() {
     if (!IsHero(heroIndex_)) return;
-    std::string path = g_savedParties->folder_ + g_savedParties->entries_[heroIndex_].file;
+    std::string path = g_savedParties.folder_ + g_savedParties.entries_[heroIndex_].file;
     gameapi::DeleteFileA(path.c_str());
-    g_savedParties->entries_.erase(g_savedParties->entries_.begin() + heroIndex_);
+    g_savedParties.entries_.erase(g_savedParties.entries_.begin() + heroIndex_);
     if (heroIndex_ >= SavedHeroCount()) heroIndex_ = SavedHeroCount() - 1;
     RefreshHeroScroll();
     DrawHeroList();
@@ -504,7 +504,7 @@ void CMpHeroScreen::MessageResult(int result) {
     if (IsHero(heroIndex_)) {
         MpHeroRecord* hero = SavedHero(heroIndex_);
         hero->Party()->Assign(LocalPlayerData());
-        hero->WriteFile(g_savedParties->folder_);
+        hero->WriteFile(g_savedParties.folder_);
     }
     SetMode(kModeList);
 }
@@ -535,10 +535,10 @@ void CMpHeroScreen::AddNewHero() {
     }
 
     // A new record; at capacity the original copies a blank one into the grown storage (a party copy draws ids).
-    std::vector<MpHeroRecord>& heroes = g_savedParties->entries_;
+    std::vector<MpHeroRecord>& heroes = g_savedParties.entries_;
     if (heroes.size() == heroes.capacity()) {
         MpHeroRecord blank;
-        g_savedParties->ReserveOne();
+        g_savedParties.ReserveOne();
         heroes.push_back(blank);
     } else {
         heroes.emplace_back();
@@ -546,10 +546,10 @@ void CMpHeroScreen::AddNewHero() {
     MpHeroRecord* record = &heroes.back();
     heroIndex_ = static_cast<int>(heroes.size()) - 1;
 
-    const int highest = HighestFileNumber(str::Format("%s*.mp", g_savedParties->folder_));
+    const int highest = HighestFileNumber(str::Format("%s*.mp", g_savedParties.folder_));
     record->file = str::Format("%d.mp", highest + 1);
     record->Party()->Assign(LocalPlayerData());
-    record->WriteFile(g_savedParties->folder_);
+    record->WriteFile(g_savedParties.folder_);
     RefreshHeroScroll();
     DrawHeroList();
     SetMode(kModeList);

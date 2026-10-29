@@ -36,8 +36,6 @@ void ShowFrom(CUiWindow* window, int first, bool shown) {
 constexpr std::uint32_t kBright = 0xA7D7E4;
 constexpr std::uint32_t kGrey = 0x828282;
 
-void SetPlainFlag(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
-
 // The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids: a picture (textures 0-3 by quarter)
 // and a frame per cell, a region per
 // cell, then the surface. Texels alternate between 0x1C and 0x80 across and down; each row's
@@ -68,7 +66,7 @@ void BuildCellGrid(CUiWindow* window) {
         depth = static_cast<float>(D(depth) * 0.5);   // * 0.5
         v = 0x9C - v;
     }
-    window->AddSurface(new CUiSurface(window->interface_, 200, 100, 600, 500, 5, 1));
+    window->AddSurface(new CUiSurface(window->interface_, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
 }
 
 constexpr int kGridCellsPerList = 8;
@@ -95,7 +93,7 @@ void AddMakerPictures(CConstructorPage* page) {
     CUiMesh* frame = page->AddBlankSprite();
     frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flatColour_ = 0x96FFFFFF;
-    SetPlainFlag(frame);
+    frame->flags_ |= FigureMeshFlag::Flat;
     frame->texture_ = nullptr;
     frame->visible_ = false;
 }
@@ -312,7 +310,7 @@ void CHeroEquipPanel::Build(bool body) {
     for (int i = 0; i < 2; ++i) {
         CUiMesh* frame = AddBlankSprite();
         frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
-        SetPlainFlag(frame);
+        frame->flags_ |= FigureMeshFlag::Flat;
         frame->flatColour_ = 0xFF8B8B37;
         frame->texture_ = nullptr;
         frame->visible_ = false;
@@ -348,7 +346,7 @@ void CHeroStatsPanel::Build() {
     rect_ = RECT{0, 100, 200, 400};
     AddRect(this, RECT{0, 0x7D, 0x1E, 0x91});      // previous hero
     AddRect(this, RECT{0xAA, 0x7D, 200, 0x91});    // next hero
-    AddSurface(new CUiSurface(interface_, 0, 100, 200, 400, 5, 1));
+    AddSurface(new CUiSurface(interface_, 0, 100, 200, 400, SurfaceBlend::Keyed, true));
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
@@ -426,7 +424,7 @@ void CHeroQuickStrip::Build(bool top) {
     CUiMesh* frame = AddBlankSprite();
     frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flatColour_ = 0xFF8B8B37;
-    SetPlainFlag(frame);
+    frame->flags_ |= FigureMeshFlag::Flat;
     frame->texture_ = nullptr;
     frame->visible_ = false;
     AddBlankSprite()->SetGrid(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
@@ -446,7 +444,7 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     AddRect(this, RECT{200, 450, 400, 470});
     AddRect(this, RECT{200, 470, 400, 490});
     AddMakerPictures(this);
-    AddSurface(new CUiSurface(interface_, 200, 450, 400, 490, 5, 1));
+    AddSurface(new CUiSurface(interface_, 200, 450, 400, 490, SurfaceBlend::Keyed, true));
     CTextManager* texts = g_clientWorld->texts_;
     std::string text;
     for (int key : {0x23, 0x24}) {

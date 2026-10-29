@@ -34,7 +34,7 @@ CItem* NthSlot(CParty* slots, int nth, Predicate matches) {
 
 } // namespace
 
-CItem* CConstructorPage::SpellMakerItemAt(int x, int y, int* topic) {
+CItem* CSpellMakerPage::ItemAt(int x, int y, int* topic) {
     *topic = kTopicNone;
     if (!enabled_) return nullptr;
     int region = RegionAt(x, y);
@@ -55,7 +55,7 @@ CItem* CConstructorPage::SpellMakerItemAt(int x, int y, int* topic) {
     return nullptr;
 }
 
-CItem* CConstructorPage::ItemMakerItemAt(int x, int y, int* topic) {
+CItem* CConstructorPage::ItemAt(int x, int y, int* topic) {
     *topic = kTopicNone;
     if (!enabled_) return nullptr;
     int region = RegionAt(x, y);

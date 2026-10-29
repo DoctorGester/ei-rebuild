@@ -113,7 +113,6 @@ constexpr int kUnitTravel = 180;
 constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
 constexpr int kWideUnitRight = 52;
 constexpr int kInfoTexts = 18;
-constexpr std::uint32_t kPlainColour = 0x100;             // CUiMesh::flags_: drawn in flatColour_
 
 constexpr const char* kDefaultPicture = "battle00";
 constexpr float kZoneUnit = 32.0f;            // world units per unit of a zone's size
@@ -137,7 +136,7 @@ const MapRecord* LocalZone() {
 
 void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
     sprite->texture_ = nullptr;
-    sprite->flags_ |= kPlainColour;
+    sprite->flags_ |= FigureMeshFlag::Flat;
     sprite->flatColour_ = colour;
 }
 
@@ -273,13 +272,13 @@ void CHudUnitPanel::Setup(int bodyPart, bool slid) {
     CUiMesh* back = AddBlankSprite();
     back->SetRectangle(60.0f, 100.0f, 20.0f, 0.0f, 180.0f, 220.0f, 0, 0, 256, 256);
     back->texture_ = nullptr;
-    back->flags_ |= kPlainColour;
+    back->flags_ |= FigureMeshFlag::Flat;
     back->flatColour_ = 0x50000000;
     back->visible_ = false;
     CUiMesh* edge = AddBlankSprite();
     edge->SetRectangle(20.0f, 100.0f, 0.0f, 0.0f, 20.0f, 220.0f, 0, 0, 256, 256);
     edge->texture_ = nullptr;
-    edge->flags_ |= kPlainColour;
+    edge->flags_ |= FigureMeshFlag::Flat;
     edge->flatColour_ = 0xB4000000;
     CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
@@ -320,7 +319,7 @@ void CHudUnitPanel::Setup(int bodyPart, bool slid) {
         icon->texture_ = objects_[1];
     }
 
-    CUiSurface* panel = new CUiSurface(interface_, 20, 0, 180, 220, 5, 1);
+    CUiSurface* panel = new CUiSurface(interface_, 20, 0, 180, 220, SurfaceBlend::Keyed, true);
     AddSurface(panel);
 
     bodyPart_ = bodyPart;
@@ -451,7 +450,7 @@ void CHudMap::Setup(float zoom, bool slid) {
     needle->SetScale(0.8f);
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
-    CUiSurface* dot = new CUiSurface(interface_, 700, 80, 705, 85, 5, 1);
+    CUiSurface* dot = new CUiSurface(interface_, 700, 80, 705, 85, SurfaceBlend::Keyed, true);
     AddSurface(dot);
     dot->Dot(0, 0, 0xFFFFFF);
 

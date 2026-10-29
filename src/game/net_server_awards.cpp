@@ -173,7 +173,7 @@ void ServerSession::LeaveZone() {
     variables_.clear();
     files_.clear();
     QueueMapList();
-    g_gameFlow->SetNetworkZone(nullptr);
+    g_gameFlow.SetNetworkZone(nullptr);
 }
 
 } // namespace net

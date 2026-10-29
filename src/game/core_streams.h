@@ -152,7 +152,7 @@ public:
 };
 
 // The saved game's stream (world_game.cpp).
-extern lib::StaticObject<CMemoryStream> g_saveStream;
+extern CMemoryStream g_saveStream;
 // The stream the received packets are decompressed into (ReceiveMessages fills it; player_server_handlers.cpp).
 extern CMemoryStream g_receivedMessages;
 

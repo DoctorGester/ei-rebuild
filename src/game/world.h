@@ -1189,7 +1189,7 @@ struct GameFlow {
     char zoneSwitchStarted_ = 0;          // set by SwitchMultiplayerZone, cleared by the game's start
 };
 
-extern lib::StaticObject<GameFlow> g_gameFlow;
+extern GameFlow g_gameFlow;
 
 // A multiplayer hero record (the saved parties' entries below, the hero screens' records): its party
 // (CParty) and file name.
@@ -1230,7 +1230,7 @@ struct SavedParties {
     std::vector<MpHeroRecord> entries_;
     MpHeroRecord outsideGame_;
 };
-extern lib::StaticObject<SavedParties> g_savedParties;
+extern SavedParties g_savedParties;
 
 int RequestZone(std::string_view zone, int entrance);
 

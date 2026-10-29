@@ -117,12 +117,12 @@ void CSaveLoadWindow::LeftDouble(int buttons, int x, int y) {
 
 void CSaveLoadWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
-        surfaces_[0]->Freeze(1, 0);
+        surfaces_[0]->Show();
         models_[0]->SetScreenPosition(400.0f, isSave_ ? 620.0f : 550.0f, 4.8f);
         CUiContainer::Draw(pass);
         return;
     }
-    surfaces_[0]->Freeze(0, 0);
+    surfaces_[0]->Hide(false);
     double e = Ease(slide_);
     CUiModel* model = models_[0];
     if (!model) return;
@@ -132,7 +132,7 @@ void CSaveLoadWindow::Draw(CSceneRenderer* pass) {
 }
 
 void CSaveLoadWindow::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     if (sliding_) {
         double slide = FrameTime() / 0.5f + slide_;
         slide_ = static_cast<float>(slide);
@@ -230,12 +230,12 @@ void COptionsWindow::LeftDouble(int buttons, int x, int y) {
 
 void COptionsWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
-        surfaces_[0]->Freeze(1, 0);
+        surfaces_[0]->Show();
         models_[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
         CUiContainer::Draw(pass);
         return;
     }
-    surfaces_[0]->Freeze(0, 0);
+    surfaces_[0]->Hide(false);
     double e = Ease(slide_);
     CUiModel* model = models_[0];
     if (!model) return;
@@ -245,7 +245,7 @@ void COptionsWindow::Draw(CSceneRenderer* pass) {
 }
 
 void COptionsWindow::Redraw() {
-    if (!sliding_) RedrawContainer();
+    if (!sliding_) CUiContainer::Redraw();
 }
 
 void COptionsWindow::MessageResult(int result) {
@@ -261,7 +261,7 @@ const char* COptionsWindow::HelpTopic() {
 // The settings the window applies while it is open (their ids, the first int of the definition).
 
 void COptionsWindow::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     if (sliding_) {
         double slide = FrameTime() / kSlideSeconds + static_cast<double>(slide_);
         slide_ = static_cast<float>(slide);
@@ -375,5 +375,5 @@ void CUiTooltip::Draw(CSceneRenderer* pass) {
 }
 
 void CUiTooltip::Redraw() {
-    if (Shown()) RedrawBase();
+    if (Shown()) CUiWindow::Redraw();
 }

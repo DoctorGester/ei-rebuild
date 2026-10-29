@@ -103,7 +103,7 @@ plus a master server link at +0x180; `MpAddressEntry` is 0x34 bytes; 0062EDA0 is
 the top window); mouse input (`ui_interface_input.cpp`: to the capture, else the top window; +0x7F double click, +0x80
 right button; S on stand-in vtables). `CUiWindow::CopyImage` (005FFFB0, S), `SaveState`/`LoadState` (005F85C0 S through
 a stream recorder, every save), `MessageText` (S), `OpenHelp` (005F86F0), the battle camera's key input
-(`ui_camera_keys.cpp`, S). `CUiContainer::RedrawContainer` / `RedrawChildTips` do nothing unless CInterface3D +0x30.
+(`ui_camera_keys.cpp`, S). `CUiContainer::Redraw` / `RedrawTips` do nothing unless the interface is drawing (`drawing_`).
 
 ### Container input dispatch (`ui_container.cpp`; scenario `ui_container_input`)
 
@@ -264,7 +264,7 @@ lists 0069908x-006992xx with the sold records; cost_ off except page 1), `Decons
 modifier), `DeconstructItem` ("Instruction Weapon / Armor / Quick Item", "material.<key>" built with one
 operator+ instead of two, a "spell container" through 00613820 instead of the inlined map insert) (`ui_camp_deals.cpp`); `PutOn`,
 `TakeOff`, `TakeItem` (42, RET 8), `PutOnFromStrip` (RET 4), `Update` (turn via `_CIfmod`), `BestPartySkill` (45, P),
-`TopicClicked` (44). Constructor slots `SpellMakerItemAt` / `ItemMakerItemAt` (`ui_constructor_slots.cpp`; pages 3 and 5).
+`TopicClicked` (44). Constructor slots `CSpellMakerPage::ItemAt` / `CConstructorPage::ItemAt` (`ui_constructor_slots.cpp`; pages 3 and 5).
 
 Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `ui_stats_rows.cpp`, `ui_equip_panels.cpp`,
 `ui_panel_draws.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel*.cpp`, `ui_item_strip*.cpp`):
@@ -883,11 +883,11 @@ file's bytes are the original's.
 ## Surface blit
 
 A window surface's draw (CUiSurface::Blit; called by CUiWindow's surface pass and the interface's draw for
-the backdrop and the frame rate surface): when the surface exists and is shown (flags_ bit 4), the part of
+the backdrop and the frame rate surface): when the surface exists and is shown (shown_), the part of
 its screen rectangle (rect_) inside the screen (the interface's width_ and height_) is blitted from the
-surface (holder_) onto the screen: with the matching
-source rectangle, or the whole surface stretched when bit 2 is set; with the source colour key background_
-when bit 1 is set. The new renderer (src/render)
+surface (holder_) onto the screen with the matching source rectangle, with the source colour key background_
+when its blend is SurfaceBlend::Keyed. The original's format word had a stretch bit (2) too, which no surface
+set (every surface is format 4, opaque, or 5, keyed; bit 4 is the shown flag). The new renderer (src/render)
 draws the surface's canvas there (render::ui::DrawCanvas); the holder has no DirectDraw surface and no memory
 (the original's Blt is gone with the DirectDraw fallback). See docs/notes/renderer.md section 6 and
 docs/notes/ui-native.md, "P8 done".
@@ -895,10 +895,10 @@ docs/notes/ui-native.md, "P8 done".
 ## Surface construction
 
 The window surface's constructors and destructor (CUiSurface): one for a window showing an .mmp
-picture, the destructor, one taking (interface, layout left, top, right, bottom, format, scale flag) and one
-taking (interface, layout rectangle, format; always scaled). Both scale the rectangle to the screen
+picture, the destructor, one taking (interface, layout left, top, right, bottom, blend, scale flag) and one
+taking (interface, layout rectangle, blend; always scaled). Both scale the rectangle to the screen
 (Rebirth's wide-screen patch sits there), make a surface holder of its size, add height * pitch to the
-surface-bytes total, clear the surface to 0 with a colour-fill Blt and set a flag. The holder has no
+surface-bytes total, clear the surface to 0 with a colour-fill Blt and set the shown flag. The holder has no
 DirectDraw surface and no memory (surface.cpp): the surface's pixels are its canvas on the GPU, made black with
 it (CUiSurface::MakeCanvas, P8), so the colour fill is left out. Making a window asks DirectDraw for nothing. (The picture constructor
 has no caller in game.exe or the mods: config/dead_code.csv.) The original's unwinding when the holder's

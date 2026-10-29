@@ -5736,3 +5736,10 @@ title = "Magic numbers: the interface's copies of the C45d8 kinds and none value
 group = "cleanup"
 depends = ["C45d8"]
 note = "After C54g (ui_* is its until then). The interface's item id none (ShowWeapon(0xFFFFFFFF) in ui_camp_create.cpp / ui_hero_screen.cpp, weaponIndex = 0xFFFFFFFFu in ui_camp_input.cpp / ui_hero_screen_click.cpp: item.h kNoItemId or a named none of weaponIndex), the per-file texture kinds (kTextureKind = 3 / 0x20, ui_*.cpp: TextureKind in texture.h, which C45d8 started with the manager's types) and the CUiWindow::CreateTexture flag 0x40000 (TextureFlag::Keep). Also the duplicates C45d8 left outside ui_*: unit_skins.cpp kNone and world_unit_set_add.cpp kNoItem (item ids mixed with other fields' none: split them), the local kNoId = -1 of map_object_manager.cpp / player_client_orders.cpp (engine_object.h kNoObjectId), and the int texture-kind constants (kSkyTextureKind, kFaceTextureKind 0x3D, the effects' 6, kPageTexture 0xB) once C51 lets the texture manager take TextureKind. Goldens unchanged."
+
+[[ticket]]
+id = "C54g2"
+title = "C54g1 rest: the interface's texture kinds and battle unit flags named"
+group = "cleanup"
+depends = ["C54g1"]
+note = "Left by C54g1. (1) CUiWindow::LoadTexture / CreateTexture's kind is the texture manager's object type (texture.h: NewTexture's 0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4; LoadTexture's 3 and the global map's kMapTextureKind; CreateObject's 0x3E-0x40): one enum in texture.h for the manager's types, used by texture_blank's table, the interface's callers and the local kTextureKind copies (ui_briefing_create, ui_chat_window, ui_connect_screen, ui_hero_screen_create, ...). (2) ui_battle_update.cpp's selection box marks units with bare 0x10 / 0x100 (MapObjectFlag::BoxMarked and its neighbour): the MapObjectFlag names. Goldens unchanged (golden suite) + ei_ui_check."

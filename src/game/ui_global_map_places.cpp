@@ -107,14 +107,14 @@ void CGlobalMap::RefreshSelection() {
         marker->flatColour_ = ((((level | 0xFFFFFF00u) << 8) | level) << 8) | level;
         marker->flags_ |= 0x100u;
     }
-    surfaces_[1]->Freeze(0, 0);
-    surfaces_[0]->Freeze(0, 0);
+    surfaces_[1]->Hide(false);
+    surfaces_[0]->Hide(false);
     ShowAllButZones(false);
     std::uint32_t colour = g_sceneRenderer->fogColour_;
     g_sceneRenderer->fogColour_ = 0;
     app::FrameStep(false, false);
     g_sceneRenderer->fogColour_ = colour;
-    surfaces_[1]->Freeze(1, 0);
+    surfaces_[1]->Show();
     ShowAllButZones(true);
     SceneMesh(markerCount_ + 6)->visible_ = false;
     SceneMesh(markerCount_ + 7)->visible_ = false;

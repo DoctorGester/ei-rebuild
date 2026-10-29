@@ -95,7 +95,7 @@ void CDirectInputMouse::Shutdown() {
     Drop(input_);
 }
 
-int CDirectInputMouse::SetActive(char active) {
+int CDirectInputMouse::SetActive(bool active) {
     if (!device_) return 0;
     if (active) {
         HRESULT result = device_->Acquire();

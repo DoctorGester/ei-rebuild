@@ -29,30 +29,30 @@ void CUiContainer::AddInput(UiInputSide* input) {
 // The scene renderer's last frame's milliseconds are loaded as an unsigned qword and multiplied by the float 0.001.
 double CUiContainer::FrameTime() { return x87::FromUnsigned(g_sceneRenderer->FrameTime()) * static_cast<double>(0.001f); }
 
-void CUiContainer::UpdateBase() {
+void CUiContainer::Update() {
     for (int i = 0; i < std::ssize(children_); ++i) children_[i]->Update();
 }
 
-void CUiContainer::RedrawContainer() {
+void CUiContainer::Redraw() {
     if (!interface_->drawing_) return;
-    RedrawBase();
+    CUiWindow::Redraw();
     for (int i = 0; i < std::ssize(children_); ++i) {
         CUiWindow* child = children_[i];
         if (child->enabled_) child->Redraw();
     }
 }
 
-void CUiContainer::RedrawChildTips() {
+void CUiContainer::RedrawTips() {
     if (!interface_->drawing_) return;
-    RedrawRegionTips();
+    CUiWindow::RedrawTips();
     for (int i = 0; i < std::ssize(children_); ++i) {
         CUiWindow* child = children_[i];
         if (child->enabled_) child->RedrawTips();
     }
 }
 
-void CUiContainer::ShowChildren(int show) {
-    ShowSurfaces(show);
+void CUiContainer::Show(bool show) {
+    CUiWindow::Show(show);
     for (int i = 0; i < std::ssize(children_); ++i) {
         CUiWindow* child = children_[i];
         if (child->enabled_) child->Show(show);

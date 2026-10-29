@@ -143,7 +143,7 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     flash->SetRectangle(22.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 0, 0, 0x100,
                         0x100);
     flash->texture_ = nullptr;
-    flash->flags_ |= 0x100;
+    flash->flags_ |= FigureMeshFlag::Flat;
     flash->visible_ = false;
 
     AsUiMesh(sceneObjects_[column * 5 + 4])->visible_ = false;   // the column's frame

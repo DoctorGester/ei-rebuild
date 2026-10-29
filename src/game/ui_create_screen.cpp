@@ -113,7 +113,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     doubleClick_ = false;
     if (!stack_.empty()) stack_.back()->Input()->Deactivate();
     if (!stack_.empty()) {
-        stack_.back()->Show(0);
+        stack_.back()->Show(false);
     }
     if (!window) game::FatalError("Cannot activate NULL interface screen\n");
     OpenOnTop(this, window);

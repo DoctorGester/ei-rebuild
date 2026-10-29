@@ -42,14 +42,12 @@ constexpr const char* kSpace = " ";
 constexpr float kTexel = 0.00390625f;
 
 constexpr char kHelpAction = ';';                  // the help key's action (g_keyActions)
-constexpr std::uint32_t kPlainColour = 0x100;      // CUiMesh::flags_: drawn in flatColour_
 constexpr COLORREF kTitleColour = 0x82F5FF;
 constexpr COLORREF kTextColour = 0xBBF9FF;
 constexpr int kStripHeight = 55;                   // the title's and the buttons' strips
 constexpr int kRowHeight = 16;
 constexpr int kPictureSize = 64;
 constexpr int kMaxPictures = 16;                   // the picture texture's cells
-constexpr int kSurfaceFormat = 5;
 constexpr int kWrapFormat = DT_WORDBREAK | DT_EXPANDTABS;
 
 // A "#text" entry of the page: the text's key and its picture's name (empty: none). The original
@@ -63,12 +61,12 @@ void SetTint(CUiMesh* sprite, float value) { sprite->tint_[0] = sprite->tint_[1]
 
 void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
     sprite->texture_ = nullptr;
-    sprite->flags_ |= kPlainColour;
+    sprite->flags_ |= FigureMeshFlag::Flat;
     sprite->flatColour_ = colour;
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
     return surface;
 }
 
@@ -153,12 +151,12 @@ void CHelpWindow::ShowPage() {
     CUiMesh* frame = AddBlankSprite();
     if (message_) frame->textureOffsetV_ = 0.02734375f;
     CUiMesh* previous = AddBlankSprite();
-    if (page_ <= 0) previous->visible_ = 0;
+    if (page_ <= 0) previous->visible_ = false;
     SetTint(previous, 0.6f);
     CUiMesh* ok = AddBlankSprite();
     if (page_ < static_cast<int>(lines_.size()) - 1) SetTint(ok, 0.6f);
     CUiMesh* next = AddBlankSprite();
-    if (page_ >= static_cast<int>(lines_.size()) - 1) next->visible_ = 0;
+    if (page_ >= static_cast<int>(lines_.size()) - 1) next->visible_ = false;
 
     // Surface 0: the page's title and the topic's with the page's number.
     std::string text;

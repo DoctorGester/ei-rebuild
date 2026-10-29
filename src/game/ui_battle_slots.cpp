@@ -91,7 +91,7 @@ void CBattleScreen::UnitLeft(CUnit* unit) {
 }
 
 void CBattleScreen::SaveState() {
-    CStream* stream = &g_saveStream.Get();
+    CStream* stream = &g_saveStream;
     auto& party = party_;
     // The ids go through an array first; the bytes written are the same.
     int count = 0;
@@ -185,8 +185,8 @@ void CBattleScreen::MessageResult(int result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        g_gameFlow->DropSessions();
-        g_gameFlow->CloseSessions();
+        g_gameFlow.DropSessions();
+        g_gameFlow.CloseSessions();
         break;
     default:
         break;

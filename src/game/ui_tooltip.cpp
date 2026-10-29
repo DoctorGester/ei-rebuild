@@ -31,15 +31,8 @@ const char* EmptyLineSample() { return "w"; }
 const char* KeyOpen() { return "  ( "; }
 const char* KeyClose() { return " )"; }
 
-// Showing.
-constexpr int kIdle = 0;
-constexpr int kHovered = 1;
-constexpr int kAppearing = 2;
-constexpr int kDisappearing = 3;
-constexpr int kShown = 4;
 constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
-constexpr int kSurfaceFormat = 5;
 // The game's setting 20 (the tooltips' delay in seconds; 0 turns them off), the appearing time (0.0 in the
 // exe) and the tooltip's offset from the mouse in screen pixels ((24, 24), written by a static initialiser).
 constexpr float kAppearTime = 0.0f;
@@ -50,7 +43,6 @@ constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 // The virtuals: drawn and redrawn only while shown; the input side's defaults.
 CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view text, int command) : CUiWindow(ui) {
     timer_ = 0.0f;
-    state_ = 0;
     region_ = region;
     // An empty text leaves the measurements and the two arguments unwritten.
     if (text.empty()) return;
@@ -114,10 +106,10 @@ void CUiTooltip::DrawLines() {
 
 void CUiTooltip::OnMouseMove(int x, int y) {
     switch (state_) {
-    case kHovered: {
+    case State::Hovered: {
         const float delay = options::g_options->toolTipTime_;
         if (lines_.empty() || delay == 0.0f) {
-            state_ = kIdle;
+            state_ = State::Idle;
             return;
         }
         if (timer_ < delay) {
@@ -132,7 +124,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
                 keyWidth_ = interface_->TextExtent(lines_[0] + KeyOpen() + keyName_ + KeyClose(), kFont).cx + kPaddingX;
             }
         }
-        state_ = kAppearing;
+        state_ = State::Appearing;
         timer_ = 0.0f;
         RECT rect{0, 0, width_ > keyWidth_ ? width_ : keyWidth_, height_};
         POINT offset = kCursorOffset;
@@ -150,27 +142,27 @@ void CUiTooltip::OnMouseMove(int x, int y) {
             gameapi::OffsetRect(&rect, 0, -(rect.bottom - y));
             if (rect.top < 0) gameapi::OffsetRect(&rect, 0, -rect.top);
         }
-        CUiSurface* surface = new CUiSurface(interface_, &rect, kSurfaceFormat);
+        CUiSurface* surface = new CUiSurface(interface_, &rect, SurfaceBlend::Keyed);
         AddSurface(surface);
         return;
     }
-    case kAppearing:
+    case State::Appearing:
         // The appearing time is zero in the exe: the tooltip is fully shown on the next call.
         if (timer_ < kAppearTime) {
             DrawLines();
             timer_ = static_cast<float>(CUiContainer::FrameTime() + timer_);
         } else {
-            state_ = kShown;
+            state_ = State::Shown;
             timer_ = kAppearTime;
             DrawLines();
         }
         return;
-    case kDisappearing:
+    case State::Disappearing:
         if (timer_ > 0.0f) {
             DrawLines();
             timer_ = static_cast<float>(timer_ - CUiContainer::FrameTime());
         } else {
-            state_ = kIdle;
+            state_ = State::Idle;
             ClearSceneObjects();
             ClearSurfaces();
         }

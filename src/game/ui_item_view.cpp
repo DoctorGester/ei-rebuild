@@ -253,7 +253,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
     }
 
     model->flatColour_ = PackColour(model->tint_);
-    model->flags_ |= 0x100;
+    model->flags_ |= FigureMeshFlag::Flat;
     if (item->spell_) render::g_renderState.specular = true;
     model->Draw(pass);
     if (item->spell_) render::g_renderState.specular = false;
@@ -305,7 +305,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
         shade->SetRectangle(depth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
                             static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0, 0, 0x100, 0x100);
         shade->texture_ = nullptr;
-        shade->flags_ |= 0x100;
+        shade->flags_ |= FigureMeshFlag::Flat;
         shade->flatColour_ = 0x82804040;
         shade->Draw(pass);
         RemoveSceneObject(shade);

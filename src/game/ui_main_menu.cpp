@@ -81,7 +81,7 @@ void CUiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right
 // --- The version line --------------------------------------------------------------
 
 void CMainMenu::AddVersionLine() {
-    CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, 5, 1);
+    CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
     surface->Clear();
     std::string text;
     g_clientWorld->texts_->CTextManager::GetString(kVersionKey, &text);
@@ -94,7 +94,7 @@ void CMainMenu::AddVersionLine() {
 
 void CMainMenu::CreateScreen() {
     interface_->ResetSavedState();
-    g_gameFlow->UseResources(false);
+    g_gameFlow.UseResources(false);
     UiInputSide* inert = new UiInertInput(interface_);
     AddInput(inert);
     hovered_ = -1;
@@ -124,7 +124,7 @@ void CMainMenu::CreateScreen() {
 // --- Update (every frame) ---------------------------------------------------
 
 void CMainMenu::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     int hour = static_cast<int>(GameServerTimeOfDay());
     if (hour != static_cast<int>(hour_) && rain_) {
         if (hour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);
@@ -159,7 +159,7 @@ void CMainMenu::CloseScreen() {
 // --- A message box's answer -----------------------------------------------
 
 void CMainMenu::MessageResult(int result) {
-    g_gameFlow->UseResources(false);
+    g_gameFlow.UseResources(false);
     GameSetServerPaused(0);
     if (result == 0x10001) {
         {
@@ -173,7 +173,7 @@ void CMainMenu::MessageResult(int result) {
             PlayMovie(path, 0, 1, 1, 1, 1);
         }
         app::g_interfaceHasScreen = 0;
-        g_gameFlow->RequestState3();
+        g_gameFlow.RequestState3();
     } else if (static_cast<std::uint32_t>(result) == 0xCCCCCCCC) {
         GameStartAmbience();
         AddVersionLine();

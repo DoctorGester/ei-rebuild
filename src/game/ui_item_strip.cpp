@@ -67,7 +67,7 @@ void CUiItemStrip::Build(bool top) {
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
     CUiMesh* frame = AddBlankSprite();
     frame->Framed(scale_ * 0.9f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
-    frame->flags_ |= 0x100;
+    frame->flags_ |= FigureMeshFlag::Flat;
     frame->flatColour_ = 0xFF8B8B37;
     frame->texture_ = nullptr;
     frame->visible_ = false;

@@ -135,7 +135,7 @@ void CMpHeroScreen::Draw(CSceneRenderer* pass) {
 // --- Update ----------------------------------------------------------------------------
 
 void CMpHeroScreen::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     if (rotating_ == 1 || rotating_ == 2) {
         double step = FrameTime();
         step += step;
@@ -171,7 +171,7 @@ void CMpHeroScreen::Update() {
 // --- Close -----------------------------------------------------------------------------
 
 void CMpHeroScreen::CloseScreen() {
-    g_savedParties->SaveAll();
+    g_savedParties.SaveAll();
     std::vector<PartyUnitRecord*> records;
     for (PartyUnitRecord& record : LocalPlayerData()->members_) records.push_back(&record);
     GameRemoveUnitsOf(&records);
@@ -270,7 +270,7 @@ void CMpHeroScreen::ShowHero(int index) {
     if (index >= 0 && index < SavedHeroCount()) {
         heroIndex_ = index;
         player->Assign(SavedHero(index)->Party());
-        g_savedParties->Select(SavedHero(index));
+        g_savedParties.Select(SavedHero(index));
     }
     MakePreview(true);
     auto* hero = HeroRecord();

@@ -19,7 +19,6 @@ constexpr const char* kBottomTexture = "Inventory01";
 constexpr const char* kFigureTexture = "InventoryM01";
 constexpr int kTextureKind = 3;
 
-constexpr int kSurfaceFormat = 5;
 
 // Layout constants of the strips (the exe's floats).
 constexpr float kCell = 100.0f;
@@ -38,8 +37,8 @@ void CUiItemStrip::Setup(std::vector<CItem*>* source, bool top) {
     Build(top);
     regions_[0]->SetTip(0x4FB0);
     regions_[1]->SetTip(0x4FB1);
-    AddSurface(new CUiSurface(interface_, 50, top_ + 15, 750, top_ + 35, kSurfaceFormat, 1));
-    AddSurface(new CUiSurface(interface_, 50, top_ + 65, 750, top_ + 85, kSurfaceFormat, 1));
+    AddSurface(new CUiSurface(interface_, 50, top_ + 15, 750, top_ + 35, SurfaceBlend::Keyed, true));
+    AddSurface(new CUiSurface(interface_, 50, top_ + 65, 750, top_ + 85, SurfaceBlend::Keyed, true));
     slots_ = 9;
     source_ = source;
 }

@@ -14,8 +14,6 @@ address,name,file
 0045E6C0,ConstructMapDatabase,src/game/map_database.cpp
 0045E6E0,DestroyMapDatabase,src/game/map_database.cpp
 0047C330,net::CleanUpWinsock,src/game/net_socket_driver.cpp
-004A56D0,ConstructPartyManager,src/game/app_lifetime.cpp
-004A56F0,DestroyPartyManager,src/game/app_lifetime.cpp
 004DA7F0,GrowingBuffer::GrowingBuffer,src/game/game_buffer.cpp
 004DDCB0,SysInfoStaticTwoPi,src/game/sys_info.cpp
 004DDCBA,SysInfoInitTwoPi,src/game/sys_info.cpp
@@ -48,10 +46,6 @@ address,name,file
 00560620,ConstructClientWorld,src/game/world_construct.cpp
 00560640,DestroyClientWorld,src/game/world_construct.cpp
 005612F0,CWorldClient::CWorldClient,src/game/world_construct.cpp
-00578440,ConstructGameFlow,src/game/world_game.cpp
-005784C0,DestroyGameFlow,src/game/world_game.cpp
-00578530,ConstructSaveStream,src/game/world_game.cpp
-00578550,DestroySaveStream,src/game/world_game.cpp
 00589BE0,ConstructServerWorld,src/game/world_construct.cpp
 00589C00,DestroyServerWorld,src/game/world_construct.cpp
 00589ED0,CWorldServer::CWorldServer,src/game/world_construct.cpp
@@ -83,8 +77,6 @@ address,name,file
 005DC560,ConstructUnitAcksLogOut,src/game/console_streams.cpp
 005DC5A0,ConstructAllLogOut,src/game/console_streams.cpp
 005DC5E0,ConstructConsoleOut,src/game/console_streams.cpp
-0065F2A0,ConstructSavedParties,src/game/party_file.cpp
-0065F2C0,DestroySavedParties,src/game/party_file.cpp
 0066C4F0,CMemoryStream::CMemoryStream,src/game/core_streams.cpp
 00684360,ConstructSpellDatabase,src/game/database_globals.cpp
 00684380,DestroySpellDatabase,src/game/database_globals.cpp

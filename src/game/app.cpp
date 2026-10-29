@@ -50,7 +50,7 @@ LRESULT OnActivate(WPARAM wParam) {
         g_active = 0;
         g_activationChanged = 1;
         g_cursor.ShowImage(0);
-        if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(0);
+        if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(false);
         if (sounds) sounds->PauseAll();
         gameapi::ShowWindow(g_mainWindow, SW_MINIMIZE);
         return 1;
@@ -59,7 +59,7 @@ LRESULT OnActivate(WPARAM wParam) {
     g_active = 1;
     g_activationChanged = 1;
     gameapi::ShowWindow(g_mainWindow, SW_RESTORE);
-    if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(1);
+    if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(true);
     CTextureDevice* device = g_sceneRenderer->device_;
     if (device && device->fullScreen_) {
         g_sceneRenderer->RestoreSurfaces();
@@ -244,8 +244,8 @@ int StartFirstMap() {
     map = cmdMap.size() != 0 ? cmdMap : options::g_options->defaultMapName_;
     if (str::Compare(cmdMode,
                         game::kEmptyText) == 0) {
-        g_gameFlow->CloseSessions();
-        MenuOpen(&g_gameFlow.Get());
+        g_gameFlow.CloseSessions();
+        MenuOpen(&g_gameFlow);
         return 1;
     }
     CWorldServer* world = &g_serverWorld.Get();

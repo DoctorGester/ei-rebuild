@@ -37,7 +37,6 @@ constexpr int kWeOffer = 4, kTheyOffer = 5;
 
 constexpr const char* kOnOffSound = "buttons\\battle\\on_off.wav";
 
-constexpr int kSurfaceFormat = 5;
 constexpr int kTextureKind = 0x20;
 constexpr int kFaceWidth = 0x38;
 constexpr int kFirstFaceLeft = 0x2E8;
@@ -57,7 +56,7 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect_ = RECT{left, 0, 800, 0xA0};
-    CUiSurface* surface = new CUiSurface(interface_, left, 0x4B, 800, 0x69, kSurfaceFormat, 1);
+    CUiSurface* surface = new CUiSurface(interface_, left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true);
     AddSurface(surface);
     portraits_ = 0;
     std::string text;

@@ -39,7 +39,6 @@ void DrawWord(CUiSurface* surface, std::string_view text, RECT* rect, int font, 
 
 constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
 constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
-constexpr int kSurfaceFormat = 5;
 constexpr int kJustified = 2;
 constexpr int kScrollbarSprites = 4;
 // The layout measures fonts 0-2; a format token may name any digit. The original reads its other
@@ -224,7 +223,7 @@ void CUiScrollText::DrawLines(int scroll) {
 // The scroll bar's tables with its own drawing and layout.
 CUiScrollText::CUiScrollText(CInterface3D* ui, const char* text, RECT rect, float depth)
     : CUiScrollbar(ui, rect, depth, 0, kScrollSpeed) {
-    AddSurface(new CUiSurface(interface_, &rect, kSurfaceFormat));
+    AddSurface(new CUiSurface(interface_, &rect, SurfaceBlend::Keyed));
     CUiScrollbar::SetRect(&rect);
     PlaceText(rect);
     DeleteTokens();

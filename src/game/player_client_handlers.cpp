@@ -97,7 +97,7 @@ int CPlayerClient::OnGameState() {
     if (state == kGameStateBetweenZones) g_clientWorld->LoadUnitFaces();
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node)
         UnitChanged(node->second);
-    if (IsMultiplayerClient()) g_gameFlow->UpdateFromServer();
+    if (IsMultiplayerClient()) g_gameFlow.UpdateFromServer();
     return 1;
 }
 

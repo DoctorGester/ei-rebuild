@@ -18,11 +18,11 @@ constexpr int kInterfacePriority = 1000;
 constexpr int kFullVolume = 100;
 constexpr int kNoSound = -1;
 constexpr int kLayoutWidth = 800;
-// The frame rate's surface: (730, 10)-(800, 28), format 5.
-constexpr int kFpsLeft = 730, kFpsTop = 10, kFpsRight = 800, kFpsBottom = 28, kFpsFormat = 5;
+// The frame rate's surface: (730, 10)-(800, 28).
+constexpr int kFpsLeft = 730, kFpsTop = 10, kFpsRight = 800, kFpsBottom = 28;
 constexpr int kQuestPart = 2;   // "q.<zone>.<quest>": the quest's name
 // The status line: a surface over (0, 280)-(800, 320), the text in green in its top 40 pixels.
-constexpr int kStatusTop = 280, kStatusBottom = 320, kStatusFormat = 5;
+constexpr int kStatusTop = 280, kStatusBottom = 320;
 constexpr int kStatusTextFormat = 2, kStatusTextHeight = 40;
 constexpr std::uint32_t kStatusColour = 0xFF00;
 
@@ -60,7 +60,7 @@ void CInterface3D::ShowFps(int on) {
         return;
     }
     if (fpsSurface_) return;
-    fpsSurface_ = new CUiSurface(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, kFpsFormat, 1);
+    fpsSurface_ = new CUiSurface(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, SurfaceBlend::Keyed, true);
 }
 
 void CInterface3D::OnQuestVariable(std::string_view name, float value) {
@@ -112,7 +112,7 @@ void CInterface3D::SaveWindowState() {
 }
 
 void CInterface3D::ShowStatusText(std::string_view text) {
-    statusSurface_ = new CUiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, kStatusFormat, 1);
+    statusSurface_ = new CUiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
     statusSurface_->Clear();
     RECT rect = {0, 0, kLayoutWidth, kStatusTextHeight};
     statusSurface_->DrawTextIn(text, &rect, kStatusTextFormat, kStatusColour, 1, 1);   // Rebirth-patched

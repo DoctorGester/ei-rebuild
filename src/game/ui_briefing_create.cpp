@@ -53,7 +53,6 @@ constexpr int kTextureKind = 3;
 constexpr std::uint32_t kPlainFlag = 0x100;   // CUiMesh::flags_: drawn in flatColour_
 constexpr std::uint32_t kDarkBackdrop = 0x80000000;
 constexpr std::uint32_t kTextBackdrop = 0xA0000000;
-constexpr int kSurfaceFormat = 5;
 constexpr int kTopicBarChild = 0;
 constexpr int kTextChild = 1;
 constexpr int kTopicsSurface = 0;
@@ -153,8 +152,8 @@ bool VoiceEnded(int handle) {
 void CBriefingScreen::CreateScreen() {
     chatActive_ = 0;
     autosave_ = false;
-    if (g_saveStream->size_ != 0)   // loading a game
-        g_saveStream->Resize(0);
+    if (g_saveStream.size_ != 0)   // loading a game
+        g_saveStream.Resize(0);
     else if (g_clientWorld->LocalView()->player_->lastScreen_ != kFromCamp)
         autosave_ = true;
     MapRecord* map = g_mapDatabase->FindMap(LocalPlayerZone());
@@ -178,7 +177,7 @@ void CBriefingScreen::CreateScreen() {
 
     // Surface 0 the topic rows, 1 a person's label.
     for (const RECT& area : {RECT{200, 430, 600, 570}, RECT{0, 0, 250, 30}}) {
-        CUiSurface* surface = new CUiSurface(interface_, area.left, area.top, area.right, area.bottom, kSurfaceFormat, 1);
+        CUiSurface* surface = new CUiSurface(interface_, area.left, area.top, area.right, area.bottom, SurfaceBlend::Keyed, true);
         AddSurface(surface);
     }
 
@@ -188,7 +187,7 @@ void CBriefingScreen::CreateScreen() {
     AddChild(text_);
 
     SetMeshesVisible(this, 0);
-    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 0);
+    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Hide(false);
     for (int i = 0; i < std::ssize(children_); ++i) children_[i]->SetEnabled(false);
     state_ = kWalking;
     exitPending_ = true;
@@ -247,9 +246,9 @@ void CBriefingScreen::CreateScreen() {
 void CBriefingScreen::Update() {
     markPhase_ = static_cast<float>(FrameTime() + markPhase_);
     while (markPhase_ >= 1.0f) markPhase_ = static_cast<float>(markPhase_ - 1.0f);
-    UpdateBase();
+    CUiContainer::Update();
     SetMeshesVisible(this, 0);
-    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 0);
+    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Hide(false);
     children_[kTopicBarChild]->SetEnabled(false);
     children_[kTextChild]->SetEnabled(false);
 
@@ -268,9 +267,9 @@ void CBriefingScreen::Update() {
 
     switch (state_) {
     case kChoosing: {
-        surfaces_[kTopicsSurface]->Freeze(1, 0);
-        SceneMesh(kTopicBackdrop)->visible_ = 1;
-        SceneMesh(kTopicFrame)->visible_ = 1;
+        surfaces_[kTopicsSurface]->Show();
+        SceneMesh(kTopicBackdrop)->visible_ = true;
+        SceneMesh(kTopicFrame)->visible_ = true;
         topicBar_->SetEnabled(true);
         int position;
         if (topicBar_->TakePosition(&position)) {

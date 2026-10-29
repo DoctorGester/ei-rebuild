@@ -102,7 +102,7 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 
 
 void CSaveLoadWindow::ShowPicture() {
-    SceneMesh(3)->visible_ = 0;
+    SceneMesh(3)->visible_ = false;
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entries_.data() + selected;
@@ -110,7 +110,7 @@ void CSaveLoadWindow::ShowPicture() {
     if (isSave_ && selected == 0) {
         // The new save: the game's picture.
         if (!dialog_) return;
-        SceneMesh(3)->visible_ = 1;
+        SceneMesh(3)->visible_ = true;
         SceneMesh(3)->texture_ = dialog_;
         return;
     }
@@ -133,7 +133,7 @@ void CSaveLoadWindow::ShowPicture() {
     const unsigned read = file.Read(picture.data(), kShotBytes);
     file.Close();
     DrawPicture(objects_[1], picture.data(), read);
-    SceneMesh(3)->visible_ = 1;
+    SceneMesh(3)->visible_ = true;
     SceneMesh(3)->texture_ = objects_[1];
 }
 
@@ -178,7 +178,7 @@ void CSaveLoadWindow::SaveGame() {
     std::string notice;
     g_clientWorld->texts_->GetString(game::savewords::NotifySaving(), &notice);
     g_interface.ShowStatusText(notice);
-    g_gameFlow->SaveGameThunk(entry->folder_);
+    g_gameFlow.SaveGameThunk(entry->folder_);
     g_cursor.SetShape(3);
 
     // info.sav: the new save's entry (the first) with the title being given.
@@ -325,14 +325,14 @@ void QuickSave(const char* slot, bool stepFrame) {
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
-    CUiSurface* surface = new CUiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, 4, 1);
+    CUiSurface* surface = new CUiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
     surface->CaptureScreen();
     g_cursor.SetShape(3);
     g_interface.serverFlag_ = static_cast<std::uint8_t>(g_serverWorld->paused_);
     std::string notice;
     g_clientWorld->texts_->GetString(game::savewords::NotifySaving(), &notice);
     g_interface.ShowStatusText(notice);
-    g_gameFlow->SaveGameThunk(slot);
+    g_gameFlow.SaveGameThunk(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
     std::string title;
@@ -374,7 +374,7 @@ void QuickLoad(const char* slot) {
     g_clientWorld->texts_->GetString(kNotifyLoading, &notice);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
-    g_gameFlow->RequestLoad(slot, 0);
+    g_gameFlow.RequestLoad(slot, 0);
 }
 
 // --- Entry titles, OK / Delete / load / delete ----------------------------------------------
@@ -420,7 +420,7 @@ void CSaveLoadWindow::LoadSelected() {
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk);
-    g_gameFlow->RequestLoad(entries_.data()[selected_].folder_, 0);
+    g_gameFlow.RequestLoad(entries_.data()[selected_].folder_, 0);
 }
 
 void CSaveLoadWindow::DeleteSave() {

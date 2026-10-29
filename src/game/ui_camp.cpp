@@ -971,7 +971,7 @@ void CCampPages::RefreshStats() {
 // --- turning and choosing the hero ---------------------------------------------------------------
 
 void CCampPages::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     // The frame time in seconds (unrounded).
     if (turning_ == 1)
         heroTurn_ = TurnedBy(FrameTime(), heroTurn_, false);

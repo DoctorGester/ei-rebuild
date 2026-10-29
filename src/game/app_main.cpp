@@ -496,8 +496,8 @@ bool RunPass() {
     GuardPlayerData(1);
     CWorldClient* client = &g_clientWorld.Get();
     if (client->IsLocalPlayerIdle()) {
-        if (IsMultiplayerClient()) g_gameFlow->RecreateClientSession();
-        else g_gameFlow->CloseSessions();
+        if (IsMultiplayerClient()) g_gameFlow.RecreateClientSession();
+        else g_gameFlow.CloseSessions();
     }
     if (elapsed > 0x80000000u) elapsed = 0;
     net::Pump();
@@ -514,7 +514,7 @@ bool RunPass() {
     if (g_clientBacklog > kBacklogLimit) g_clientBacklog = 0;
 
     if (RunWorlds()) {
-        g_gameFlow->ProcessRequest();
+        g_gameFlow.ProcessRequest();
         const float fraction = static_cast<float>(x87::FromUnsigned(g_clientBacklog) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
         if (!client->paused_) client->tickFraction_ = fraction;
         const double balance = Step(static_cast<double>(client->PumpIncomingCount()) - fraction);

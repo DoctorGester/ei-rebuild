@@ -80,7 +80,7 @@ void CHelpWindow::CloseScreen() {
 }
 
 void CHelpWindow::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     double time = FrameTime() + pulseTime_;
     pulseTime_ = static_cast<float>(time);
     double wave = (x87::fcos(time * 5.0f) + 1.0f) * 0.5f;

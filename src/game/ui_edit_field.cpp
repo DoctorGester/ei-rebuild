@@ -24,7 +24,6 @@ constexpr int kKeyLeft = 0x25;
 constexpr int kKeyRight = 0x27;
 constexpr int kKeyDelete = 0x2E;
 
-constexpr int kSurfaceFormat = 5;
 constexpr int kKeyTab = 0x09;
 constexpr int kKeyEnter = 0x0D;
 constexpr int kKeyEscape = 0x1B;
@@ -111,7 +110,7 @@ CUiEditField::CUiEditField(CInterface3D* ui, RECT rect) : CUiWindow(ui) {
     caretColour_ = 0xFF;
     ClearSurfaces();
     area_ = rect;
-    CUiSurface* surface = new CUiSurface(interface_, &area_, kSurfaceFormat);
+    CUiSurface* surface = new CUiSurface(interface_, &area_, SurfaceBlend::Keyed);
     AddSurface(surface);
     DrawContentsVanilla();
     focused_ = true;

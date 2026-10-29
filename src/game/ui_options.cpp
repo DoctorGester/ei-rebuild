@@ -121,7 +121,7 @@ void TurnQuarter(CUiMesh* sprite) {
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
-    SceneMesh(kHighlightSprite)->visible_ = 0;
+    SceneMesh(kHighlightSprite)->visible_ = false;
 
     RECT title = {10, 60, 140, 80};
     for (int group = 0; group < kOptionGroups; ++group) {
@@ -141,7 +141,7 @@ void COptionsWindow::RefreshRows() {
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
         if (row == selectedRow_) {
             CUiMesh* highlight = SceneMesh(kHighlightSprite);
-            highlight->visible_ = 1;
+            highlight->visible_ = true;
             highlight->Place(471.0f, static_cast<float>(y), 3.0f);
         }
         if (OptionBinding* binding = rows_[row].binding_) {

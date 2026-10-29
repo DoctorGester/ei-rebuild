@@ -105,7 +105,7 @@ void CTradePanel::LeftUp(int, int, int) {
 
 // --- The held school / science button (update) ---------------------------------------------------------
 
-void CTradePanel::UpdateHeld() {
+void CTradePanel::Update() {
     if (heldRegion_ < 0) return;
     // The comparison uses the unrounded sum; the field keeps it rounded.
     double held = CUiContainer::FrameTime() + holdTime_;

@@ -35,8 +35,8 @@ void CCreditsScreen::Draw(CSceneRenderer* pass) {
     EI_NAN_AUDIT(textSurface_->speed_);
     if (GameTime() > nextLineAt_ && textSurface_->speed_ == 0.0f) {
         nextLineAt_ = 0.0f;
-        textSurface_->Freeze(0, 0);
-        headerSurface_->Freeze(0, 0);
+        textSurface_->Hide(false);
+        headerSurface_->Hide(false);
         if (currentLine_ == lines_.end()) {
             finished_ = true;
         } else {
@@ -53,11 +53,11 @@ void CCreditsScreen::Draw(CSceneRenderer* pass) {
                 const RECT whole = {0, 0, at.right - at.left, at.bottom - at.top};
                 headerSurface_->DrawTextPixels(UiFont{font.face, font.pixels, true}, line.text, whole, DT_CENTER,
                                                kHeaderColour, true);
-                headerSurface_->Freeze(1, 0);
+                headerSurface_->Show();
             } else {
                 nextLineAt_ = GameTime() + line.speed;
             }
-            textSurface_->Freeze(1, 0);
+            textSurface_->Show();
             ++currentLine_;
         }
     }

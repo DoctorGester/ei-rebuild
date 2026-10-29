@@ -54,12 +54,12 @@ void CHudTopPanel::Setup(int page, bool shown) {
     CUiMesh* back = AddBlankSprite();
     back->SetRectangle(20.0f, 100.0f, 180.0f, 20.0f, 620.0f, 95.0f, 0, 0, 0x100, 0x100);
     back->texture_ = nullptr;
-    back->flags_ |= 0x100;
+    back->flags_ |= FigureMeshFlag::Flat;
     back->flatColour_ = 0x50000000;
     CUiMesh* bar = AddBlankSprite();
     bar->SetRectangle(20.0f, 100.0f, 180.0f, 0.0f, 620.0f, 20.0f, 0, 0, 0x100, 0x100);
     bar->texture_ = nullptr;
-    bar->flags_ |= 0x100;
+    bar->flags_ |= FigureMeshFlag::Flat;
     bar->flatColour_ = 0xB4000000;
 
     CUiMesh* arrow = AddSprite("in25arrow");

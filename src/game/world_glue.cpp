@@ -178,7 +178,7 @@ const char* GameExitTarget(int index) { return g_clientWorld->ExitTarget(index);
 
 void GameLeaveThroughExit(int exit) {
     if (IsMultiplayerClient())
-        g_gameFlow->SwitchMultiplayerZone();
+        g_gameFlow.SwitchMultiplayerZone();
     else
         LocalClient()->TakeExit(exit);
 }

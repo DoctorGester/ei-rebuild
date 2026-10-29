@@ -44,7 +44,6 @@ constexpr int kFirstExitSprite = 21;     // the exits' markers, then the quest p
 constexpr int kVisibleRows = 5;
 constexpr float kNearestScale = 1.2f;
 constexpr float kOtherExitU = -0.125f;   // 0xBE000000
-constexpr std::uint32_t kPlainColour = 0x100;   // CUiMesh::flags_: drawn in flatColour_
 // The blink: (cos(rate x t) x amplitude + base) x 255 (2.5, 0.3, 0.5;
 // 5.0, 0.4, 0.6; 255).
 constexpr float kSlowRate = 2.5f, kSlowAmplitude = 0.3f, kSlowBase = 0.5f;
@@ -194,8 +193,8 @@ void CObjectivesWindow::SelectExit(int index) {
             marker->textureOffsetU_ = exits_[i].flag_ ? 0.0f : kOtherExitU;
         }
     }
-    SceneMesh(4)->visible_ = 0;
-    SceneMesh(5)->visible_ = 0;
+    SceneMesh(4)->visible_ = false;
+    SceneMesh(5)->visible_ = false;
 }
 
 void CObjectivesWindow::RefreshQuests() {
@@ -213,7 +212,7 @@ void CObjectivesWindow::RefreshQuests() {
 }
 
 void CObjectivesWindow::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     int first;
     if (bar_->TakePosition(&first)) {
         firstRow_ = first;
@@ -226,12 +225,12 @@ void CObjectivesWindow::Update() {
     const std::uint32_t fast = libcrt::Ftol((x87::fcos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
     for (int i = std::ssize(exits_) + kFirstExitSprite; i < std::ssize(sceneObjects_); ++i) {
         CUiMesh* place = SceneMesh(i);
-        place->flags_ |= kPlainColour;
+        place->flags_ |= FigureMeshFlag::Flat;
         place->flatColour_ = fast << 24 | 0xFF0000u;
     }
     for (int i = 0; i < std::ssize(exits_); ++i) {
         CUiMesh* marker = SceneMesh(kFirstExitSprite + i);
-        marker->flags_ |= kPlainColour;
+        marker->flags_ |= FigureMeshFlag::Flat;
         marker->flatColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
     }
 }

@@ -39,7 +39,7 @@ public:
     void Shutdown();
     // Acquires or unacquires the device with the window's activation; 0 without a device, the report's result
     // as 0 / 1 when Acquire fails.
-    int SetActive(char active);
+    int SetActive(bool active);
     // Reads the device state (DIMOUSESTATE: lX, lY, lZ, buttons; zeroed when the read fails) into the object
     // and returns it. The argument is not read.
     const LONG* Poll();
@@ -124,7 +124,7 @@ public:
     POINT heldPosition_ = {};        // the position kept while held
     POINT motion_ = {};              // the mouse motion summed
     bool held_ = false;              // the cursor stays at heldPosition_
-    std::uint8_t enabled_ = 0;       // the cursor exists (created)
+    bool enabled_ = false;           // the cursor exists (created)
     DWORD frameTime_ = 0;            // when the image's frame last stepped
     HANDLE thread_ = nullptr;        // the drawing thread (lib::StartThread), or null
     int stop_ = 0;                   // asks the cursor thread to end
