@@ -16,6 +16,7 @@
 #include "ui_camp.h"
 #include "ui_float.h"
 #include "unit.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>

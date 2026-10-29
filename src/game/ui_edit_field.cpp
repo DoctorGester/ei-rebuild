@@ -6,7 +6,6 @@
 
 #include "asset_text.h"
 
-#include "lib/gameapi.h"
 #include <cstdint>
 #include <string>
 #include "lib/str.h"
@@ -15,6 +14,7 @@
 #include <cstddef>
 #include <cstring>
 #include <new>
+#include <windows.h>
 
 namespace {
 constexpr int kKeyBackspace = 0x08;

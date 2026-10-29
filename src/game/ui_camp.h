@@ -2,10 +2,6 @@
 
 // The global map, the camp's pages and the hero panels (docs/notes/ui.md, "Camp, global map, hero screens").
 
-#include "object_tables.h"
-#include "options.h"
-#include "ui.h"
-#include "ui_item_info.h"
 #include "ui_screens.h"
 
 #include "lib/crt.h"

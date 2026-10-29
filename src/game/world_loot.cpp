@@ -12,6 +12,7 @@
 #include <cstdint>
 
 #include "game_singletons.h"
+#include "player_manager.h"
 
 #include <vector>
 

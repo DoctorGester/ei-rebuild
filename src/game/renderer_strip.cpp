@@ -9,6 +9,7 @@
 #include "texture.h"
 
 #include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 

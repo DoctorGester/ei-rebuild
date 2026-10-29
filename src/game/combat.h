@@ -4,9 +4,8 @@
 // it keeps the unit's computed statistics, its current orders, and the attack / hit code.
 
 #include "ack_kind.h"
-#include "ai_map.h"
+#include "ai_alarm.h"
 #include "spell.h"
-#include "unit.h"
 #include "unit_ai.h"
 
 #include <cstddef>

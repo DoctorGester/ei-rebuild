@@ -20,6 +20,7 @@
 #include "object.h"
 #include "object_diplomacy.h"
 #include "party.h"
+#include "player_manager.h"
 #include "player_messages.h"
 #include "save_versions.h"
 #include "script.h"

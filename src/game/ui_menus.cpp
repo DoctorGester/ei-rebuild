@@ -13,6 +13,7 @@
 
 #include <memory>
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/nan_audit.h"
 
 namespace {

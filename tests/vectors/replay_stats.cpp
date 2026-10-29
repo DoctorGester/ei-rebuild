@@ -8,6 +8,7 @@
 #include "../../src/game/random.h"
 #include "../../src/game/ui.h"
 #include "../../src/game/unit_db.h"
+#include "../../src/game/options.h"
 
 #include <cstddef>
 #include <cstdio>

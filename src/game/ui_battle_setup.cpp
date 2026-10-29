@@ -10,7 +10,6 @@
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 #include "maths.h"
 #include "model.h"
 #include "options.h"
@@ -35,6 +34,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <windows.h>
 
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).

@@ -14,7 +14,6 @@
 #include <utility>
 #include <vector>
 
-#include "core_streams.h"
 #include "engine_object.h"
 #include "lib/printf_args.h"
 #include "lib/vecmath.h"

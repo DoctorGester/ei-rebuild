@@ -12,7 +12,6 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -23,6 +22,7 @@
 
 #include <concepts>
 #include <cmath>
+#include <windows.h>
 
 namespace {
 

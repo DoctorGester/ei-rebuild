@@ -8,9 +8,7 @@
 
 #include "maths.h"
 #include "object_tables.h"
-#include "ui.h"
 #include "ui_camp.h"
-#include "world.h"
 
 #include <cstdint>
 #include <string>

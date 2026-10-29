@@ -9,7 +9,6 @@
 #include "figure_mesh.h"            // FigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
-#include "model.h"   // FootprintPart (the part boxes)
 #include "ref.h"
 #include "unit_create.h"   // MapObjectType
 

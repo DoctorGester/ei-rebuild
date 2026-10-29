@@ -8,7 +8,6 @@
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
-#include "lib/crt.h"
 #include "lib/win_types.h"
 
 #include <list>

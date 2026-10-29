@@ -11,13 +11,13 @@
 #include "ui_camp.h"
 #include "ui_item_info.h"
 
-#include "lib/gameapi.h"
 #include <cstdint>
 #include <string>
 #include "render/render.h"
 
 #include "game_singletons.h"
 #include <format>
+#include <windows.h>
 
 namespace {
 

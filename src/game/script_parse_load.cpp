@@ -12,6 +12,7 @@
 
 #include "ei/rebirth.h"
 #include "game_data.h"
+#include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

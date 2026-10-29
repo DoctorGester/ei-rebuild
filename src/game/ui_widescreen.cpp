@@ -7,13 +7,13 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "hook/log.h"
-#include "lib/gameapi.h"
 #include "settings_file.h"
 
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <windows.h>
 
 namespace widescreen {
 namespace {

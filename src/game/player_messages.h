@@ -11,6 +11,7 @@
 #include "net_delta.h"
 #include "party_storage.h"
 #include "script.h"
+#include "water_tweens.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

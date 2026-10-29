@@ -3,6 +3,7 @@
 #include "model.h"
 #include "chunk_archive.h"
 #include "terrain.h"
+#include "water_tweens.h"
 
 #include "lib/crt.h"
 #include "lib/nan_audit.h"

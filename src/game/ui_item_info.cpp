@@ -31,6 +31,7 @@
 #include <vector>
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/str.h"
 #include <format>
 

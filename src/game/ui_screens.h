@@ -6,9 +6,7 @@
 // flags); wheel (key flags, wheel delta, x, y).
 
 #include "bink_video.h"
-#include "ui.h"
 #include "ui_item_info.h"
-#include "world.h"
 #include "net_classes.h"
 
 #include "game_data.h"

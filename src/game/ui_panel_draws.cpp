@@ -10,7 +10,6 @@
 #include "party.h"
 #include "unit.h"
 
-#include "lib/gameapi.h"
 #include <cstdint>
 #include <string>
 #include "render/render.h"
@@ -19,6 +18,7 @@
 
 #include <cmath>
 #include <format>
+#include <windows.h>
 
 namespace {
 

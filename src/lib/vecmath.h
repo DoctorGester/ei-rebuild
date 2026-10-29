@@ -21,7 +21,6 @@
 // unrounded as `double`, like FPATAN and the game's CRT; where the game stores the result to a float, round it
 // with static_cast<float> (ticket X3: an unrounded angle flipped a quaternion's sign).
 
-#include "crt.h"
 #include "ei/x87.h"
 
 #include <bit>

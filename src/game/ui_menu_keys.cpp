@@ -15,6 +15,7 @@
 #include "lib/text_case.h"
 
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/str.h"
 
 #include <cstring>

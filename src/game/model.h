@@ -8,7 +8,6 @@
 #include "render/render_state.h"
 #include "renderer_base.h"
 #include "script.h"   // ScriptStream
-#include "water_tweens.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

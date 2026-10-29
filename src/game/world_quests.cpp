@@ -11,6 +11,7 @@
 #include "map_object.h"
 #include "object_tables.h"
 #include "party.h"
+#include "player_manager.h"
 #include "player_messages.h"
 #include "quest_records.h"
 #include "script.h"

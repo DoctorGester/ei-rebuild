@@ -9,6 +9,7 @@
 #include "spell.h"
 #include "text_split.h"
 
+#include "lib/crt.h"
 #include "lib/str.h"
 
 #include "ei/rebirth.h"

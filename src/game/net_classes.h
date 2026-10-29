@@ -7,10 +7,8 @@
 // Message (below) is the replicated object base, ServerEntry a server as the lobby lists it.
 
 #include "core_refcount.h"
-#include "net_coder.h"
 #include "party_storage.h"
 #include "lib/bytes.h"
-#include "lib/crt.h"
 #include "lib/in_place.h"
 #include "game_data.h"
 

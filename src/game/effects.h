@@ -17,7 +17,6 @@
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
-#include "lib/hash_map.h"
 
 #include <cstddef>
 #include <cstdint>

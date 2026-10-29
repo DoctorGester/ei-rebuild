@@ -19,12 +19,11 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 #include <cstdint>
 #include <cstring>
+#include <windows.h>
 #include "game_data.h"
 #include "game_singletons.h"
-
 
 namespace {
 

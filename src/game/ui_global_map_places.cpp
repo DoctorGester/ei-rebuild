@@ -9,6 +9,7 @@
 #include "text_manager.h"
 
 #include "game_singletons.h"
+#include "world.h"
 #include "render/render_state.h"
 #include "lib/str.h"
 

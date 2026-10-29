@@ -3,6 +3,8 @@
 #include "ei/x87.h"
 #include "script.h"
 #include "game_strings.h"
+#include "core_streams.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>
