@@ -597,14 +597,22 @@ struct AreaOffset {
     int dx, dy;
 };
 
-// The cells under a bridge (AIMap::bridgeHeights): a hash map keyed (short)x << 16 | (short)y, the
-// value the cell's saved ground level (low word), water depth (bits 16-21) and terrain type (bits 24-28).
-struct BridgeHeights : std::unordered_map<std::uint32_t, std::uint32_t> {
+// The cells under a bridge (AIMap::bridgeHeights): what each cell was before a bridge deck covered it.
+class BridgeHeights {
+public:
+    // Saves cell (x, y)'s ground level, water depth and the terrain type of its occluder word; a cell saved
+    // already keeps its entry. x and y are read as shorts.
+    void SaveCell(int x, int y, const AIMapCell& cell, std::uint32_t occluder);
     // Puts back what the cell's bridge map entry saved (ground level, water depth, terrain type) and erases the
     // entry; nothing without one. x and y are read as shorts.
     void RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder);
     // Bridge deck height of cell (x, y), 0 if none.
     int HeightAt(short x, short y) const;
+
+private:
+    // Keyed (short)x << 16 | (short)y: the saved ground level (low word), water depth (bits 16-21) and terrain
+    // type (bits 24-28).
+    std::unordered_map<std::uint32_t, std::uint32_t> saved;
 };
 
 // AIMap's dirty rectangle: the area refreshed when a batch of refreshes ends.

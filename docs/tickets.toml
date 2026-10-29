@@ -6147,7 +6147,7 @@ id = "C63a"
 title = "Containers, AI: std::list to std::vector, PathCells / SmoothEdges composition"
 group = "cleanup"
 model = "opus"
-note = "C63's method (std::vector where nothing keeps iterators or pointers across inserts/erases and the order stays; check erase-while-iterating and splice) for ai_*, unit_ai*, sector_map*: 28 std::list uses, and SectorMap / AIMap::FindUnitsInRadius's returned std::list<CUnit*> (about 22 callers in AI, spells, combat, script, world; the callers that remove units from the sector map while walking it need a look). Types inheriting from containers: PathCells (std::list<PathCell>, ai_map.h) and SmoothEdges (std::vector, ai_map.h): composition. AIHeardCalls / AIReports are C60a's. Also ScriptGroup::InsertAll / CopyToList take the AI memory lists (std::list<HeldRef<CUnit>>, unit_ai.h). Goldens unchanged."
+note = "C63's method (std::vector where nothing keeps iterators or pointers across inserts/erases and the order stays; check erase-while-iterating and splice) for ai_*, unit_ai*, sector_map*: 28 std::list uses, and SectorMap / AIMap::FindUnitsInRadius's returned std::list<CUnit*> (about 22 callers in AI, spells, combat, script, world; the callers that remove units from the sector map while walking it need a look). Types inheriting from containers: PathCells (std::list<PathCell>, ai_map.h) and SmoothEdges (std::vector, ai_map.h): composition. AIHeardCalls / AIReports are C60a's. Also ScriptGroup::InsertAll / CopyToList take the AI memory lists (std::list<HeldRef<CUnit>>, unit_ai.h). Goldens unchanged. Done: std::list in src 370 -> 317 (AI files 28 -> 4: kept the event pool and the unit layer nodes, which pointers point into while they grow, and CountedListLoad's std::list<CUnit*> overload, magic_trap's (C63c)). FindUnitsInRadius returns a vector (head-first order by one reverse), its 20 callers and LiftNearby walk it; Sector units / objects, UnitList, HeldUnits (ScriptGroup::InsertAll / CopyToList, WitnessMurder), brain modes, NearbyBlocks, PlanLongPath waypoints are vectors. PathCells is a vector alias, SmoothEdges free builders, BridgeHeights holds its map (container-inheriting types 9 -> 6). Goldens 122 the same / 28 without a golden; path vectors 0 problems. AIHeardCalls / AIReports: C63f."
 
 [[ticket]]
 id = "C63b"
@@ -6177,6 +6177,12 @@ group = "cleanup"
 model = "opus"
 depends = ["C30b"]
 note = "C63's method for the client side, after C30b (it rewrites the SSE2 files): world_client_* (world_client_maps.cpp 31), map_object*, sound*, camera*, model.h, terrain.h, ui.h / ui_*.h and the EI_SSE2_GAME_SOURCES files (14 uses), about 95 std::list uses with the other small headers (chunk_archive.h, text_manager.h, counted_ref.cpp, link_loader.cpp). Types inheriting from containers: Speeches, EnvironmentSpeeches (acks_db.h) and WaterTweens (water_tweens.h): composition. Goldens unchanged."
+
+[[ticket]]
+id = "C63f"
+title = "Containers, AI memory: AIHeardCalls / AIReports composition"
+group = "cleanup"
+note = "Left from C63a (it excluded them as C60a's; C60a is done and they still inherit std::vector, unit_ai.h). Hold the vector as a member: about 19 sites outside unit_ai.h (AIMemory Load/Save resize and walk them, unit_ai_senses / unit_ai_targets read them). Goldens unchanged."
 
 [[ticket]]
 id = "R34c"
