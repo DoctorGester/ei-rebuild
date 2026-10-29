@@ -98,7 +98,7 @@ bool WorldServer::IsObjectShared(int objectId, int playerId) {
 }
 
 void WorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
-    group->clear();
+    group->Clear();
     int player = SharedListPlayer(playerId);
     for (const SharedObject& current : sharedObjects) {
         if (current.player != player && current.player != -1) continue;   // -1: every player

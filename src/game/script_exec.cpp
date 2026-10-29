@@ -390,9 +390,7 @@ bool ScriptRun::Execute(Script* script) {
             cmd->groupArgs[0]->Insert(Arg(cmd, 0));
             break;
         case ScriptFunction::RemoveObject: {   // RemoveObject(group, object)
-            ScriptGroup* group = cmd->groupArgs[0];
-            int at = group->IndexOf(*cmd->objectArgs[0]);
-            if (at >= 0) group->erase(group->begin() + at);
+            cmd->groupArgs[0]->Remove(cmd->objectArgs[0]->object);
             break;
         }
 

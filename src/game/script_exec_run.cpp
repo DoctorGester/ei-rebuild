@@ -186,7 +186,7 @@ void ScriptFreeTemporaries(Script* script) {
     // All but the first of each kind dropped, the first emptied.
     auto& groups = script->tempGroups;
     groups.resize(1);
-    groups.front().clear();
+    groups.front().Clear();
     auto& objects = script->tempObjects;
     objects.resize(1);
     objects.front().object = nullptr;

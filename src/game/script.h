@@ -52,8 +52,9 @@ struct ScriptObjectRef {
 // A script group: object references kept sorted, without duplicates. The set operations build the result in
 // `this`. The game sorts by object address, so which unit a script's "n-th of group" gets follows the heap
 // layout; ours sorts by object id instead, and the harness patches the original to do the same
-// (tests/verify/harness_script_order.cpp).
-struct ScriptGroup : std::vector<ScriptObjectRef> {
+// (tests/verify/harness_script_order.cpp). The members are read like a vector's; only the methods change them.
+class ScriptGroup {
+public:
     // The id order: null before every object, then EngineObject::id (signed). World objects' ids are
     // unique and never handed out again while an object lives (BaseManager::NextFreeId counts up from the
     // highest id), so two members never tie.
@@ -64,8 +65,6 @@ struct ScriptGroup : std::vector<ScriptObjectRef> {
     void Intersection(const ScriptGroup& a, const ScriptGroup& b);
     // By After (the game: by address).
     void Sort();
-    // -1 if absent.
-    int IndexOf(const ScriptObjectRef& ref) const;
     void Remove(EngineObject* object);
     // Unless null or already present.
     void Insert(EngineObject* object);
@@ -77,6 +76,16 @@ struct ScriptGroup : std::vector<ScriptObjectRef> {
     bool Contains(EngineObject* object) const;
     // A count and that many object ids, then sorted.
     void Load(ByteStream* stream);
+    void Clear() { members.clear(); }
+
+    std::size_t size() const { return members.size(); }
+    bool empty() const { return members.empty(); }
+    const ScriptObjectRef& operator[](std::size_t i) const { return members[i]; }
+    std::vector<ScriptObjectRef>::const_iterator begin() const { return members.begin(); }
+    std::vector<ScriptObjectRef>::const_iterator end() const { return members.end(); }
+
+private:
+    std::vector<ScriptObjectRef> members;
 };
 
 // One type's variables in a ScriptVars: the values and their names (the same count, except where a loader
@@ -463,30 +472,30 @@ public:
         return Error(script, line, code, format, libprintf::Arg(std::forward<Args>(args))...);
     }
     // See script.md, "Lexer".
-    bool Tokenize(const std::string& text, std::list<ScriptToken>* tokens);
-    bool ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id);
+    bool Tokenize(const std::string& text, std::vector<ScriptToken>* tokens);
+    bool ExpectLexeme(const std::vector<ScriptToken>* tokens, std::vector<ScriptToken>::const_iterator* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
     std::string QualifyName(const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(std::string_view name);
     // Rebirth patches it. `signature`: the parameter types (lower-case letters). `assignment`: one parameter,
     // no parentheses; `scriptCall`: one extra float and string slot.
-    bool LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id,
+    bool LoadFunction(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens, int id,
                       ScriptVars* locals, const char* signature, bool assignment, bool scriptCall);
     // Float functions up to ')'.
-    bool LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptToken>::const_iterator* pos,
-                        const std::list<ScriptToken>* tokens, ScriptVars* locals);
+    bool LoadConditions(std::vector<SSCCmd>* conditions, std::vector<ScriptToken>::const_iterator* pos,
+                        const std::vector<ScriptToken>* tokens, ScriptVars* locals);
     // `if(...)then(...)` pairs up to ')'.
-    bool LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens);
+    bool LoadScriptBody(ScriptDefinition* script, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens);
     // `= value` assigned to global variable `name` (command 0x78).
-    bool LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+    bool LoadAssignOperator(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens,
                             ScriptVars* locals, const std::string* name);
     // `name : type, ...)` (parameters or GlobalVars). Returns 0 without an error when the tokens run out.
-    bool LoadVariableDeclarations(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos,
-                                  const std::list<ScriptToken>* tokens, bool qualify);
+    bool LoadVariableDeclarations(ScriptDefinition* script, std::vector<ScriptToken>::const_iterator* pos,
+                                  const std::vector<ScriptToken>* tokens, bool qualify);
     // Rebirth patches it. Commands up to ')'; null `locals` means an empty variable set (For bodies; with
     // Rebirth's AllowScriptArgsInLoops a For body gets the enclosing `locals`).
-    bool LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+    bool LoadCommands(std::vector<SSCCmd>* commands, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens,
                       ScriptVars* locals);
     // The text is replaced by its #define-expanded form.
     bool Load(std::string* text, bool runWorldScript);
@@ -501,21 +510,21 @@ public:
     void RunWorldScript(ScriptDecl* block);
 
     std::vector<ScriptPointLight> pointLights;      // 256 slots
-    std::list<ScriptParticleSource> particles;
-    std::list<ScriptFxSource> fxSources;
-    std::list<ScriptLightning> lightning;
+    std::vector<ScriptParticleSource> particles;
+    std::vector<ScriptFxSource> fxSources;
+    std::vector<ScriptLightning> lightning;
     int nextParticleId = -2;    // the next automatic particle source / lightning id (-2, -3, ...)
     int nextFxId = -2;          // the next automatic FX source id
-    std::list<ScriptDecl> blocks;
+    std::list<ScriptDecl> blocks;                   // lists: commands and runs point into them
     std::vector<ScriptDefinition> definitions;      // Script / DeclareScript definitions
     ScriptVars globals;
-    std::list<ScriptDefinition> instances;
-    std::list<ScriptRun> runs;                      // waiting runs
+    std::list<ScriptDefinition> instances;          // runs point into it; started while it is walked
+    std::list<ScriptRun> runs;                      // waiting runs; added to while it is walked
     std::list<ScriptDecl> worldBlocks;
     std::vector<ScriptArea> areas;
     int loaded = 0;
     int fileCount = 0;
-    std::list<ScriptGroup> tempGroups;              // one is kept
+    std::list<ScriptGroup> tempGroups;              // one is kept; lists: results point into them
     std::list<ScriptObjectRef> tempObjects;         // one is kept
     int forDepth = 0;           // nesting of running For loops
     std::string errorText;
@@ -787,9 +796,9 @@ struct ScriptDefine {
 };
 // Before the first define with a shorter name (else before the last one; at the end only when the list is
 // empty).
-void AddDefine(std::list<ScriptDefine>* defines, const ScriptDefine* define);
+void AddDefine(std::vector<ScriptDefine>* defines, const ScriptDefine* define);
 // Each define in list order.
-void ApplyDefines(std::string* line, const std::list<ScriptDefine>* defines);
+void ApplyDefines(std::string* line, const std::vector<ScriptDefine>* defines);
 
 // Rebirth patches it. *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.

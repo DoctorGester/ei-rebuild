@@ -56,15 +56,15 @@ void LoadBlockCommands(ScriptDecl* block, ByteStream* stream) {
 
 // Each list loader reads the count, appends that many default elements, then reads every element of the
 // list from the front (a list that was not empty would have its old elements read again).
-template <typename T, typename Read>
-void LoadList(std::list<T>* list, ByteStream* stream, Read read) {
+template <typename Container, typename Read>
+void LoadList(Container* list, ByteStream* stream, Read read) {
     const int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) list->emplace_back();
-    for (T& element : *list) read(element);
+    for (auto& element : *list) read(element);
 }
 
 // Particle sources: source object, id, flags, moving, steps, step (12 bytes), lifetime.
-void LoadParticles(std::list<ScriptParticleSource>* list, ByteStream* stream) {
+void LoadParticles(std::vector<ScriptParticleSource>* list, ByteStream* stream) {
     LoadList(list, stream, [stream](ScriptParticleSource& source) {
         source.object = ScriptEffect<CEffectParticle>(FindById<CEffectParticle>(ReadInt(stream)));
         stream->ReadValue(source.id);
@@ -77,7 +77,7 @@ void LoadParticles(std::list<ScriptParticleSource>* list, ByteStream* stream) {
 }
 
 // Lightning: object, id.
-void LoadLightning(std::list<ScriptLightning>* list, ByteStream* stream) {
+void LoadLightning(std::vector<ScriptLightning>* list, ByteStream* stream) {
     LoadList(list, stream, [stream](ScriptLightning& bolt) {
         bolt.object = ScriptEffect<EffectLightning>(FindById<EffectLightning>(ReadInt(stream)));
         stream->ReadValue(bolt.id);

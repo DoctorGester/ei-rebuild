@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-struct ScriptGroup;
+class ScriptGroup;
 
 // The common base (abstract). The world's timed objects (CWorld::timedObjects) are reached through Reset,
 // Radius and Position.

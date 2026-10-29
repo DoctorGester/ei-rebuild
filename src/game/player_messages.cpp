@@ -274,8 +274,8 @@ void PlayerServer::ClearServerState() {
     lastPosition.y = 0.0f;
     lastPosition.z = 0.0f;
     spare = -1;
-    possessedGroup.clear();
-    partyUnits.clear();
+    possessedGroup.Clear();
+    partyUnits.Clear();
     possessedId = 0xFFFFFFFFu;
     danger = PartyDanger::Safe;
     partyDeployed = 0;
@@ -314,11 +314,11 @@ ClassId PlayerServer::GetClassId() { return ClassId::PlayerServer; }
 void PlayerServer::ReleaseSentObjects() {
     ReleaseAll(sentObjects);
     ReleaseAll(sentTimed);
-    possessedGroup.clear();
-    partyUnits.clear();
+    possessedGroup.Clear();
+    partyUnits.Clear();
 }
 
-void PlayerServer::ClearPossessedGroup() { possessedGroup.clear(); }
+void PlayerServer::ClearPossessedGroup() { possessedGroup.Clear(); }
 
 void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
                                     std::uint32_t limitBits) {

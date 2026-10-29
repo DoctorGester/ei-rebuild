@@ -104,7 +104,7 @@ std::size_t Length(const char* s) { return std::strlen(s); }
 
 // The first element of `list` with the id, null when none.
 template <typename T>
-T* FindId(std::list<T>& list, int id) {
+T* FindId(std::vector<T>& list, int id) {
     for (T& element : list)
         if (element.id == id) return &element;
     return nullptr;

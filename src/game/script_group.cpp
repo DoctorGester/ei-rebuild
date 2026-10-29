@@ -58,74 +58,74 @@ void ScriptObjectRef::Save(ByteStream* stream) const {
 // sized first. Each source element is read before the destination slot is written (it matters only if `this`
 // is a or b).
 void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
-    const std::size_t aSize = a.size(), bSize = b.size();
-    resize(aSize + bSize);
+    const std::size_t aSize = a.members.size(), bSize = b.members.size();
+    members.resize(aSize + bSize);
     std::size_t out = 0, i = 0, j = 0;
     while (i < aSize) {
         if (j >= bSize) {
             while (i < aSize) {
-                EngineObject* x = a[i++].object;
-                (*this)[out++].object = x;
+                EngineObject* x = a.members[i++].object;
+                members[out++].object = x;
             }
             break;
         }
-        EngineObject* x = a[i].object;
-        EngineObject* y = b[j].object;
+        EngineObject* x = a.members[i].object;
+        EngineObject* y = b.members[j].object;
         if (x == y) {
-            (*this)[out++].object = x;
+            members[out++].object = x;
             ++i;
             ++j;
         } else if (After(x, y)) {
-            (*this)[out++].object = y;
+            members[out++].object = y;
             ++j;
         } else {
-            (*this)[out++].object = x;
+            members[out++].object = x;
             ++i;
         }
     }
     while (j < bSize) {
-        EngineObject* y = b[j++].object;
-        (*this)[out++].object = y;
+        EngineObject* y = b.members[j++].object;
+        members[out++].object = y;
     }
-    resize(out);
+    members.resize(out);
 }
 
 void ScriptGroup::Difference(const ScriptGroup& a, const ScriptGroup& b) {
-    const std::size_t aSize = a.size(), bSize = b.size();
-    resize(aSize);
+    const std::size_t aSize = a.members.size(), bSize = b.members.size();
+    members.resize(aSize);
     std::size_t out = 0, i = 0, j = 0;
     while (i < aSize) {
         if (j >= bSize) {
             while (i < aSize) {
-                EngineObject* x = a[i++].object;
-                (*this)[out++].object = x;
+                EngineObject* x = a.members[i++].object;
+                members[out++].object = x;
             }
             break;
         }
-        EngineObject* x = a[i].object;
-        EngineObject* y = b[j].object;
+        EngineObject* x = a.members[i].object;
+        EngineObject* y = b.members[j].object;
         if (x == y) {
             ++i;
             ++j;
         } else if (After(x, y)) {
             ++j;
         } else {
-            (*this)[out++].object = x;
+            members[out++].object = x;
             ++i;
         }
     }
-    resize(out);
+    members.resize(out);
 }
 
 void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
-    const std::size_t aSize = a.size(), bSize = b.size();
-    resize(aSize > bSize ? aSize : bSize);
+    const std::size_t aSize = a.members.size(), bSize = b.members.size();
+    members.resize(aSize > bSize ? aSize : bSize);
     std::size_t out = 0, i = 0, j = 0;
     while (i < aSize && j < bSize) {
-        EngineObject* x = a[i].object;
-        EngineObject* y = b[j].object;
+        EngineObject* x = a.members[i].object;
+        EngineObject* y = b.members[j].object;
         if (x == y) {
-            (*this)[out++].object = x;
+            members[out++].object = x;
             ++i;
             ++j;
         } else if (After(x, y)) {
@@ -134,21 +134,14 @@ void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
             ++i;
         }
     }
-    resize(out);
+    members.resize(out);
 }
 
-void ScriptGroup::Sort() { std::sort(begin(), end(), MemberBefore); }
-
-int ScriptGroup::IndexOf(const ScriptObjectRef& ref) const {
-    EngineObject* o = ref.object;
-    for (std::size_t i = 0; i < size(); ++i)
-        if ((*this)[i].object == o) return static_cast<int>(i);
-    return -1;
-}
+void ScriptGroup::Sort() { std::sort(members.begin(), members.end(), MemberBefore); }
 
 void ScriptGroup::Remove(EngineObject* object) {
-    auto at = std::find_if(begin(), end(), [object](const ScriptObjectRef& ref) { return ref.object == object; });
-    if (at != end()) erase(at);
+    auto at = std::find_if(members.begin(), members.end(), [object](const ScriptObjectRef& ref) { return ref.object == object; });
+    if (at != members.end()) members.erase(at);
 }
 
 // A binary search for the place in member order; nothing when the object is there.
@@ -158,21 +151,21 @@ void ScriptGroup::Insert(EngineObject* object) {
     int high = static_cast<int>(size()) - 1;
     while (high - low >= 0) {
         int middle = (high + low) / 2;
-        EngineObject* current = (*this)[middle].object;
+        EngineObject* current = members[middle].object;
         if (object == current) return;
         if (After(object, current)) low = middle + 1;
         else high = middle - 1;
     }
-    insert(begin() + low, ScriptObjectRef{object});
+    members.insert(members.begin() + low, ScriptObjectRef{object});
 }
 
 void ScriptGroup::RemoveDeleted() {
     std::size_t i = 0;
     while (i < size()) {
-        ScriptObjectRef& slot = (*this)[i];
+        ScriptObjectRef& slot = members[i];
         slot.ReleaseIfDeleted();
         if (slot.object) ++i;
-        else erase(begin() + static_cast<std::ptrdiff_t>(i));
+        else members.erase(members.begin() + static_cast<std::ptrdiff_t>(i));
     }
 }
 
@@ -194,7 +187,7 @@ bool ScriptGroup::Contains(EngineObject* object) const {
 void ScriptGroup::Load(ByteStream* stream) {
     int count;
     stream->ReadValue(count);
-    resize(static_cast<std::size_t>(count));
-    for (ScriptObjectRef& slot : *this) slot.Load(stream);
+    members.resize(static_cast<std::size_t>(count));
+    for (ScriptObjectRef& slot : members) slot.Load(stream);
     Sort();
 }
