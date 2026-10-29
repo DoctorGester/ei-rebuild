@@ -7,6 +7,7 @@
 #include "bink_video.h"
 #include "sound.h"
 #include "text_helpers.h"
+#include "map_object_figures.h"
 #include "ui.h"
 
 #include "console.h"
@@ -242,7 +243,7 @@ void CEscMenu::CreateScreen() {
         gameapi::CopyRect(&rect, source);
         region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
-    models_[0]->Play(1);
+    models_[0]->Play(SkillAnimation::Briefing02);
     interface_->PlaySound("buttons\\menu\\shift.wav");
 }
 

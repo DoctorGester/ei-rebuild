@@ -301,7 +301,7 @@ attribute sum vs 00741C98 equal or unordered, a name. `Draw` previews at depth 5
 tints the create button; `Destroy` is the destructor body (vtable 0074214C slot 0 00633240 calls it). `AddNewHero` writes file
 "<highest *.mp title + 1>.mp" (00619920 when full; `RefreshHeroScroll` shared with DeleteHero); `MessageResult` 0x10001
 deletes in mode 9. `DrawHeroList`: a hero record is a CParty whose first member's text 0 is the name. `MakePreview` (RET 4;
-skill animation 0x21 from a random frame, controller slot 14 `RestartAnimation(float)`). The original's forwarders
+skill animation 0x21 (SkillAnimation::Special14) from a random frame, controller slot 14 `RestartAnimation(float)`). The original's forwarders
 `RenameAt` / `PlayVoiceAt` / `ContinueAt` / `CreateHeroAt` are the member calls.
 
 Exchange (screen 9; multiplayer only, no scenario): `CExchangeScreen : CItemScreen` (+0x190 scratch party, +0x194 / +0x198 the
@@ -684,7 +684,7 @@ modes leave the paging keys unused).
 
 ui_hero_screen.cpp. The preview cleared; the local player (given a "Hero" of "Human Hero" when it has no
 record) hands its first record to the client world; the preview becomes the client unit with that record's
-id, its prototype index stored; when there is one: skill animation 0x21 (if any) set to start at a random
+id, its prototype index stored; when there is one: skill animation 0x21 (SkillAnimation::Special14) (if any) set to start at a random
 frame (timeGetTime at 15 frames a second minus random % 51), the figure shows no weapon, refreshed, its
 animation restarted at the current frame - 1, the record's statistics set and the controller's hit virtual
 called.

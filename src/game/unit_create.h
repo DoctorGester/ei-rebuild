@@ -94,8 +94,8 @@ struct CMapObjectManager : CResourceManager {
     CEngineObject* CreateMapObject(int type, int id);
     // The object registered under `id` (null for none); the manager holds only map objects.
     CMapObject* FindMapObject(unsigned id) const;
-    // The entry of the animation database "<figure>.adb" matching `key`: the same bits above 0x7FFF and, of
-    // the low bits, none of the key's missing (a key without low bits takes only an entry without). Null
+    // The entry of the animation database "<figure>.adb" matching `key`: the same bits above kAnimationVariantBits
+    // and, of the low bits, none of the key's missing (a key without low bits takes only an entry without). Null
     // (with a debug message when there is no database).
     FigureAnimation* FindAnimation(const std::string* figure, std::uint32_t key);
     // The defaults of an object without a prototype (SetDefaults): a unit (class 0x50) gets the statistics

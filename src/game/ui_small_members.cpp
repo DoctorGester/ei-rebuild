@@ -1,6 +1,7 @@
 // Small members of the interface classes: member constructors and assignments, default virtual answers,
 // one-line setters and handlers. See ui.h, ui_camp.h, ui_screens.h and docs/notes/ui.md.
 #include "console.h"
+#include "map_object_figures.h"
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
@@ -66,7 +67,7 @@ void CHeroStatsPanel::LeftUp(int, int, int) {
     holdTime_ = 0.0f;
 }
 
-void CEscMenu::CloseScreen() { models_[0]->Play(0); }
+void CEscMenu::CloseScreen() { models_[0]->Play(SkillAnimation::Briefing01); }
 
 void CMessageBox::CloseScreen() {
     ClearSceneObjects();

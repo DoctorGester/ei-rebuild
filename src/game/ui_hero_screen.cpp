@@ -59,7 +59,7 @@ constexpr float kFrameDepth = 3.0f;
 
 const char* const kHeroName = "Hero";
 const char* const kHumanHero = "Human Hero";
-constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview plays
+constexpr SkillAnimation kPreviewAnimation = SkillAnimation::Special14;      // what the preview plays
 
 } // namespace
 

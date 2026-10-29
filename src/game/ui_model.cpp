@@ -44,10 +44,10 @@ CUiModel::~CUiModel() {
     if (object_) object_->Release();
 }
 
-// Skill animation `animation` + 1 of the object played.
-void CUiModel::Play(int animation) {
+// Animation `animation` of the object played.
+void CUiModel::Play(SkillAnimation animation) {
     CObject3D* object = object_;
-    object->PlayAnimation(object->FindSkillAnimation(animation + 1));
+    object->PlayAnimation(object->FindSkillAnimation(animation));
 }
 
 // The rest pose: the object named like the figure of kind 0x80590000 from the object manager, played.

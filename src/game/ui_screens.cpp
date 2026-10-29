@@ -2,6 +2,7 @@
 // exchange window. See ui_screens.h and docs/notes/ui.md.
 #include "spell.h"
 #include "options.h"
+#include "map_object_figures.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "ui_camp.h"
@@ -484,21 +485,23 @@ void CEscMenu::MouseMove(int flags, int x, int y) {
     case 0:
         if (hovered_ != 0 && !IsMultiplayerClient()) {
             interface_->PlaySound(kSoundMenuStone);
-            model->Play(2);
+            model->Play(SkillAnimation::Briefing03);
         }
         hovered_ = 0;
         break;
     case 1:
         if (hovered_ != 1 && !IsMultiplayerClient()) {
             interface_->PlaySound(kSoundMenuStone);
-            model->Play(3);
+            model->Play(SkillAnimation::Briefing04);
         }
         hovered_ = 1;
         break;
     case 2:
     case 3:
     case 4: {
-        static const int kAnimation[5] = {0, 0, 5, 6, 4};
+        static const SkillAnimation kAnimation[5] = {SkillAnimation::Briefing01, SkillAnimation::Briefing01,
+                                                 SkillAnimation::Briefing06, SkillAnimation::Briefing07,
+                                                 SkillAnimation::Briefing05};
         if (hovered_ != region) {
             interface_->PlaySound(kSoundMenuStone);
             model->Play(kAnimation[region]);

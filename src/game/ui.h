@@ -311,6 +311,8 @@ public:
     CUiTooltip* tip_;
 };
 
+enum class SkillAnimation : int;   // map_object_figures.h
+
 // An off-screen surface a window draws into: its pixels are its holder's canvas on the GPU (render_ui.h), made
 // black with the surface. No destructor: the owners destroy it directly.
 // How a window surface's Blit draws it: every pixel, or with its background_ as the source colour key (the
@@ -405,8 +407,8 @@ public:
     void Load(const char* name, const char* from, const char* to);
     void ShowAllParts(int show);
     void ShowPart(const char* name, int show);
-    // Plays skill animation `animation` + 1.
-    void Play(int animation);
+    // Plays the animation `animation`.
+    void Play(SkillAnimation animation);
     // Plays the figure's rest pose (the object manager's object named like the figure).
     void Stop();
 
