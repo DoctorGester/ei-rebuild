@@ -19,6 +19,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "player_manager.h"
 
 #include <string>
 

@@ -3,8 +3,6 @@
 // The figure manager: makes the figure objects and loads their data from its archives or a cached model
 // (docs/notes/models.md).
 
-#include "figure_mesh.h"
-#include "resource_manager.h"
 #include "world.h"
 
 #include <cstddef>

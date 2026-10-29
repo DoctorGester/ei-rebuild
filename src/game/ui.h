@@ -5,15 +5,9 @@
 // size and scales between the two; windows keep their regions in layout coordinates and convert the mouse
 // position before hit testing.
 
-#include "ack_kind.h"
-#include "app.h"   // app::g_interfaceHasScreen
-#include "core_transform.h"
 #include "engine_object.h"
-#include "figure_mesh.h"
 #include "game_strings.h"   // game::kEmptyText
-#include "item_db.h"
 #include "object_tables.h"   // g_keyActions
-#include "options.h"
 #include "texture.h"   // TextureKind
 #include "ui_font.h"
 #include "unit.h"   // LockKey

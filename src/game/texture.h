@@ -8,11 +8,10 @@
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
-#include "lib/crt.h"
+#include "lib/win_types.h"
 
 #include <string>
 #include <vector>
-#include <windows.h>
 
 class CTexture;
 class CTextureManager;

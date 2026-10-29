@@ -13,7 +13,7 @@
 
 #include <string>
 #include "game_singletons.h"
-
+#include "options.h"
 
 namespace {
 constexpr int kCursorArrow = 0;

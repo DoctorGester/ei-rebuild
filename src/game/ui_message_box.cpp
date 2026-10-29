@@ -9,6 +9,8 @@
 #include <cstdint>
 #include <string>
 #include "bink_video.h"
+#include "game_singletons.h"
+#include "options.h"
 
 #include <cstring>
 

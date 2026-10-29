@@ -4,12 +4,12 @@
 // the input message dispatcher, the message pump and the start of the first map.
 // Names are provisional; see docs/notes/objects.md ("Rewritten").
 
-#include <string>
-#include <windows.h>
+#include "lib/win_types.h"
 
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class DirectInputMouse;
 namespace app {

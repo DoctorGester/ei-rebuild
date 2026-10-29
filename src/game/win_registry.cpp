@@ -4,13 +4,13 @@
 #include "settings_file.h"
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 
 #include <bit>
 #include <cstring>
 #include <new>
 #include <string>
 #include <vector>
+#include <windows.h>
 
 namespace {
 

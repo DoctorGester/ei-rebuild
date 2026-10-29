@@ -5,6 +5,7 @@
 
 #include "ui_font.h"
 #include "lib/str.h"
+#include "lib/win_types.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -12,7 +13,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <windows.h>
 
 class Interface3D;
 class UiContainer;

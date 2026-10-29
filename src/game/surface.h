@@ -8,8 +8,6 @@
 #include "renderer_base.h"
 #include "render/render.h"
 
-#include <windows.h>
-
 #include <cstdint>
 
 class TextureDevice;

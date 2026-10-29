@@ -13,6 +13,7 @@
 #include "ui.h"
 #include "ui_camp.h"
 #include "unit.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>

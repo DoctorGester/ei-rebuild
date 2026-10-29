@@ -2,6 +2,7 @@
 // command blocks, the four kinds of variables and the areas. See script.h and docs/notes/script.md.
 // Every piece goes through the stream's Write in the save's order and in its
 // pieces (a verify wrapper compares the pieces as well as the bytes).
+#include "core_streams.h"
 #include "script.h"
 
 #include <cstdint>

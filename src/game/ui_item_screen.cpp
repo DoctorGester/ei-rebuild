@@ -3,6 +3,7 @@
 // frame. See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "app.h"
 #include "core_streams.h"
+#include "game_singletons.h"
 #include "item.h"
 #include "model.h"
 #include "party.h"
@@ -12,12 +13,11 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
-#include "lib/gameapi.h"
-
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
+#include <windows.h>
 
 namespace {
 

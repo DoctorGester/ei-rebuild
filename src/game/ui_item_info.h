@@ -8,7 +8,6 @@
 // 0xA7D7E4, the description text wrapped last.
 
 #include "core_refcount.h"
-#include "item.h"
 #include "party_storage.h"
 #include "ui.h"
 #include "lib/gameapi.h"

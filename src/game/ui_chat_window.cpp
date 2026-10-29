@@ -12,6 +12,7 @@
 #include "ui_screens.h"
 #include "unit_db.h"
 #include "world_glue.h"
+#include "world.h"
 
 #include "lib/vecmath.h"
 

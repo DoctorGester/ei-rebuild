@@ -4,6 +4,7 @@
 #include "text_manager.h"
 #include "text_split.h"
 #include "ui_briefing.h"
+#include "world.h"
 #include "world_glue.h"
 
 #include "lib/intro_sort.h"

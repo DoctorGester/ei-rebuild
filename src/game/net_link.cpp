@@ -14,6 +14,7 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <windows.h>
 
 
 namespace netlink {

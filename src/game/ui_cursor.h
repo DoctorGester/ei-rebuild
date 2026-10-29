@@ -5,11 +5,11 @@
 #include <cstddef>
 
 #include "lib/containers.h"
+#include "lib/win_types.h"
 
 #include <cstdint>
 
 #include <vector>
-#include <windows.h>
 
 class TextureDevice;
 

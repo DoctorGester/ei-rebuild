@@ -5,14 +5,11 @@
 // the actions the brain issues. The controller embeds the brain and calls AIBrain::Think once per AI update. The
 // brain owns its modes (one list) and points at the one in charge.
 
-#include "ai_alarm.h"
-#include "ai_event_table.h"
 #include "ai_map.h"
 #include "core_refcount.h"
 #include "engine_object.h"
 #include "map_spec.h"
 #include "maths.h"
-#include "unit.h"
 
 #include <cstdint>
 #include <memory>

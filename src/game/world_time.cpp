@@ -1,6 +1,8 @@
 // The world's time of day, time speed and wind (the base world's and the server's versions).
 #include "world.h"
 
+#include "options.h"
+
 #include <bit>
 #include <cmath>
 #include <cstring>

@@ -4,6 +4,7 @@
 
 #include "logic_settings.h"
 #include "ui.h"
+#include "options.h"
 
 #include <cstdint>
 

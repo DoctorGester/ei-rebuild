@@ -9,7 +9,6 @@
 #include "system_text.h"
 
 #include "ei/hook.h"
-#include "lib/gameapi.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

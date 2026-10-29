@@ -2,6 +2,8 @@
 // SSCCmd helpers that bind and save call trees. See script.h and docs/notes/script.md.
 #include "script.h"
 #include "game_strings.h"
+#include "core_streams.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>

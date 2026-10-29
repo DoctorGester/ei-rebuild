@@ -11,13 +11,13 @@
 #include "material.h"             // Material
 #include "maths.h"
 #include "model.h"   // ClipBounds, SceneRenderer (the draws' context), TransformPipeline
+#include "lib/win_types.h"   // RECT
 
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
-#include <windows.h>   // RECT
 
 // The world matrix of a 3D object or a figure part as the draws build it: the rotation of `orientation`,
 // `position` as column 3, the last row (0, 0, 0, 1).

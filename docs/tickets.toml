@@ -6094,6 +6094,18 @@ group = "harness"
 note = "Main 2026-10-29 after R34c: --no-hooks --golden gave 2 same / 111 differ (record 0, crt.rand). Cause: the scheduler (one process, alive 18:34-19:14) cached run_all.harness_digest/harness_files per root for its whole life (functools.cache). Batch 5250 (19:04, main before R34c's merge) computed main's digest; batch 5260 (19:12, after it) reused it, so reference_key gave the pre-R34c key (…-87b562c880ce) and the cache served runs of the old harness (no idle-pick wrapper; harness logs dated 17:01). Not C30a, not the goldens. Fix: the digest expires after 30 s, as work.scenario_revs does."
 
 [[ticket]]
+id = "H33d"
+title = "Build time: windows.h out of ui.h, gameapi.h out of ui_item_info.h"
+group = "harness"
+note = "From H33a (docs/notes/cleanup-tooling.md, Build time). ui.h (160 objects) still includes windows.h only because its member CInterface::PlaySound is a mmsystem.h macro name (PlaySoundA in every file today): rename the member (e.g. PlayInterfaceSound, ~15 call sites in ui_*.cpp), then ui.h takes lib/win_types.h and the ui_*.cpp that call Windows include windows.h. ui_item_info.h (77 objects) includes lib/gameapi.h for TrimItemCache's gameapi::timeGetTime (a template body): give it a non-template helper in a .cpp. Each ~1% of a clean build. Check per function with dumpbin (include changes can change std::string inlining) or goldens."
+
+[[ticket]]
+id = "H33e"
+title = "Build time: gameapi.h's slot references without a dynamic initialiser per file"
+group = "harness"
+note = "From H33a. lib/gameapi.h's ~140 'inline auto& X = ei::Imports().X' references are dynamic initialisers compiled in every file that includes it (~0.1 s back end each, 140 objects; dropped at link). gen_iat.py generates it and it is in the harness's reference key (a change replays the original's runs). Options: one definition in a .cpp (extern references; mind static-initialisation order), or calls through ei::Imports().X directly. Changes the call code: goldens."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"

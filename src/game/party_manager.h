@@ -10,6 +10,7 @@
 
 #include <string>
 #include "lib/hash_map.h"
+#include "core_streams.h"
 
 #include <cstddef>
 #include <cstdint>

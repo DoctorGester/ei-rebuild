@@ -8,6 +8,7 @@
 #include "figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
 #include "model.h"         // ClipBounds, TriangleIndexArray, LinkFigureLoader
 #include "texture.h"
+#include "lib/win_types.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -15,7 +16,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include <windows.h>
 
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.

@@ -7,13 +7,13 @@
 #include "system_text.h"
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 
 #include "ei/rebirth.h"
 #include "lib/str.h"
 
 #include <cstring>
 #include <string>
+#include <windows.h>
 
 namespace console {
 

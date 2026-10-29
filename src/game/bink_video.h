@@ -2,12 +2,11 @@
 
 // Bink movies: the Bink handle's first fields and the game's video object.
 
+#include "lib/win_types.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
-
-#include <windows.h>
-
 
 // Set while a .mob file loads: the loading screen's movie stays as it is.
 extern std::uint8_t g_loadingMovieOff;

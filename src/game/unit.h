@@ -3,14 +3,10 @@
 // Units (creatures; class id 0x50), their controllers, statistics and party records.
 
 #include "ack_kind.h"
-#include "core_streams.h"
 #include "engine_object.h"
 #include "item.h"
-#include "item_db.h"
-#include "lock_key.h"
 #include "map_object.h"
 #include "maths.h"
-#include "object_tables.h"
 #include "unit_motion.h"
 
 #include "lib/containers.h"

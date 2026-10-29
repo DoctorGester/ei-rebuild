@@ -23,11 +23,30 @@ Tools (all in `tools/`; each file's docstring says how to run it) and what the c
 Measured on the 16-core machine (32 threads), quiet, 2026-10-29: a clean `build.cmd verify` is about 59 s (release, play
 and asan about 56-58 s, debug 53 s), a no-op 3 s, one touched .cpp 7 s, a touched `game/maths.h` 48 s. The compile
 is the whole of it: ninja runs 34 jobs and keeps them all busy until the last few seconds; about 1,700 s of compiler time,
-577 `src/game` files at 2-5 s each. In a file the front end is ~90% (headers ~1.1 s: `windows.h` 0.25 s through
-`lib/import_table.h`, `<string>` 0.19 s, `game/map_object_figures.h`, `ai_map.h`, `unit.h`, `ai_event_table.h` ~0.35 s
-each), the back end ~0.1 s. The link of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0.8 s.
+577 `src/game` files at 2-5 s each. In a file the front end is ~90% (headers ~1.1 s: `<string>` 0.19 s,
+`game/map_object_figures.h`, `ai_map.h`, `unit.h`, `ai_event_table.h` ~0.35 s each), the back end ~0.1 s. The link
+of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0.8 s.
 - How to see it: `.ninja_log` in the build folder (start and end ms per step); `-Bt+ -d1reportTime` on one cl command
   (from `ninja -t commands ei-rebuild.exe`) gives the front / back end split and every header's inclusive time.
+  `ninja -t deps` lists every object's project headers. On a machine other builds share, compare the CPU time of
+  the whole ninja run (a job object's accounting), not its wall time: three alternating clean verify builds gave
+  1,443-1,479 s before the header diet below and 1,312-1,318 s after (-10%; wall ~55 -> ~50 s), a touched
+  `game/unit.h` 1,035 -> 945 s.
+- Header diet: a header that only holds or passes RECT / POINT / SIZE / HWND / HANDLE / CRITICAL_SECTION includes
+  `lib/win_types.h` (windef.h and minwinbase.h, ~0.02 s) instead of `<windows.h>` (~0.2 s); a file that calls Windows
+  or uses its constants includes `<windows.h>` itself, and `lib/gameapi.h` (windows.h, mmsystem, shellapi, objbase,
+  dsound, ~140 dynamic initialisers) only where it calls `gameapi::`. ~210 of ~750 objects still reach windows.h,
+  140 gameapi.h. Left: `game/ui.h` (160 objects) keeps windows.h because its member `PlaySound` is a mmsystem.h
+  macro (every file sees `PlaySoundA`; without windows.h first the names would differ); `game/ui_item_info.h` keeps
+  gameapi.h for `TrimItemCache`'s `gameapi::timeGetTime` (a template body).
+- `lib/import_table.h`, `import_prototypes.h` and `gameapi.h` are in the harness's reference key (run_all
+  `harness_files`): a change there replays every original run. Leave them as they are for build time.
+- An include change can change how MSVC inlines `std::basic_string` members, as the precompiled header did: model.h
+  without `script.h` changed ~25 objects, party.h without `map_object_figures.h` 3. Check each include change with a
+  per-function `dumpbin /disasm` comparison of the objects (only `__LINE__` immediates may differ).
+- The game headers form a dense web (most files reach unit.h, world.h, model.h through several paths); a header
+  edge mostly needs its target by value or as a base. Dropping an edge pays only when few includers need the target:
+  model.h's `chunk_archive.h` (a forward declaration of ChunkArchive) took it out of ~500 objects.
 - Tried, no gain: the 64-bit hosted compiler (`vcvarsamd64_x86`: the same code, the same time); `/Z7` (+4-8 s).
 - A precompiled header of the standard headers saves ~18% of a clean build (58 -> 47 s) but is not used: it changes
   the inlining of `std::basic_string` members in ~120 objects (code compared with `dumpbin /disasm` per function), so
