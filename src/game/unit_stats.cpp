@@ -142,11 +142,11 @@ double UnitStats::ReduceKind1(float value) {
     return value - taken;   // unrounded
 }
 
-void UnitStats::GetFactors(float* a, float* b, int) {
+void UnitStats::GetFactors(float* scaleX, float* scaleY, int) {
     double x = (strength - kFactorBase) / kFactorStatRange;   // both kept on the FPU stack
     double y = 1.0f - (dexterity - kFactorBase) / kFactorStatRange;
-    *a = static_cast<float>(y * kPointThree + x * kPointSeven);
-    *b = static_cast<float>((y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo);
+    *scaleX = static_cast<float>(y * kPointThree + x * kPointSeven);
+    *scaleY = static_cast<float>((y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo);
 }
 
 int LockKey::Opens(const LockKey* lock) const {

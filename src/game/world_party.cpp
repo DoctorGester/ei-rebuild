@@ -197,7 +197,7 @@ CItem* CWorldServer::CopyItem(CItem* source) {
     std::uint32_t packed = source->prototypeId_;
     ItemKind type = source->Kind();
     CItemManager* factory = ItemFactory();
-    CItem* copy = factory->MakeItem(type, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF), -1);
+    CItem* copy = factory->MakeItem(type, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF));
     source->CopyTo(copy, SpellManager());
     copy->charge_ = source->charge_;
     // An item below its maximum is kept on the counted list (once).

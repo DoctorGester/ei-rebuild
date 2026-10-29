@@ -30,10 +30,6 @@
 
 namespace {
 
-// The template's party object (ItemStock::context): its item constructor, item manager and spell manager.
-CParty* PartyOf(const ItemStock* stock) { return stock->context; }
-CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
-
 // The count drawn from the CRT generator: max when min >= max, else min + a value below the range
 // size (rand scaled by size / 0x7FFF, then modulo the size).
 int RandomCount(int minCount, int maxCount) {
@@ -59,8 +55,6 @@ void Output(std::list<CItem*>* out, CItem* item) { out->insert(out->end(), item)
 
 void AddReference(CItem* item) { item->AddRef(); }
 
-const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->family.c_str(); }
-const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass.c_str(); }
 int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->materialUnits); }
 
 // Picks the material of a prototype from the candidates (pointers into the stock's entries). Each candidate in
@@ -112,14 +106,14 @@ template <typename Record>
 void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecordHead*>& source, const char* prototypeName,
                           const itemdb::NamedRecordTable<Record>& table, const char* skip, int minCount, int maxCount,
                           std::list<CItem*>* out) {
-    CItemConstructor* ctor = ConstructorOf(stock);
-    CItemManager* manager = PartyOf(stock)->ItemFactory();
+    CItemConstructor* ctor = stock->context->ItemConstructor();
+    CItemManager* manager = stock->context->ItemFactory();
     const std::vector<itemdb::ItemRecordHead*> taken = source;
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
     for (itemdb::ItemRecordHead* p : taken) {
-        if (skip && str::Compare(PrototypeName(p), skip) == 0) continue;
+        if (skip && str::Compare(p->family.c_str(), skip) == 0) continue;
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(ItemKind::Loot, -1);
+        ctor->BeginCreateItem(ItemKind::Loot);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         CItem* item = ctor->EndCreateItem();
@@ -141,9 +135,6 @@ itemdb::SpellModifierRecord*& ModifierSlot(ItemStock* stock, const std::string& 
 }
 
 char ModifierKind(const itemdb::SpellModifierRecord* m) { return m->code[0]; }
-float ModifierCost(const itemdb::SpellModifierRecord* m) { return m->mana; }
-float ModifierFactor(const itemdb::SpellModifierRecord* m) { return m->strength; }
-int ModifierLevel(const itemdb::SpellModifierRecord* m) { return m->skill; }
 
 void AppendModifier(std::list<itemdb::SpellModifierRecord*>& list, itemdb::SpellModifierRecord* modifier) { list.insert(list.end(), modifier); }
 
@@ -211,13 +202,13 @@ int ModifierIndex(const itemdb::SpellModifierRecord* record) {
 template <typename Record>
 void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& source, const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
                                std::list<CItem*>* out) {
-    CItemConstructor* ctor = ConstructorOf(stock);
-    CItemManager* manager = PartyOf(stock)->ItemFactory();
+    CItemConstructor* ctor = stock->context->ItemConstructor();
+    CItemManager* manager = stock->context->ItemFactory();
     const std::vector<Record*> taken = source;
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
     for (Record* record : taken) {
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(ItemKind::Loot, -1);
+        ctor->BeginCreateItem(ItemKind::Loot);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         CItem* item = ctor->EndCreateItem();
@@ -242,8 +233,8 @@ void AddUnlessPresent(std::vector<T*>& list, T* record) {
 
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
 void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount, std::list<CItem*>* out, int kind) {
-    CItemConstructor* ctor = ConstructorOf(this);
-    CItemManager* manager = PartyOf(this)->ItemFactory();
+    CItemConstructor* ctor = context->ItemConstructor();
+    CItemManager* manager = context->ItemFactory();
     if (kind == 0 || kind == 3)
         FillSpellMaps(stock::WeaponSpellRecipes());
     else if (kind == 1)
@@ -261,21 +252,21 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
     std::vector<StockMaterial*> candidates;
     for (itemdb::ItemRecordHead* p : taken) {
         itemdb::ItemRecordHead* prototype = p;
-        if (str::Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
+        if (str::Compare(prototype->family.c_str(), game::WandText()) == 0) continue;
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(prototype->Kind(), -1);
+        ctor->BeginCreateItem(prototype->Kind());
         ctor->SetPrototype(prototype);
         candidates.clear();   // erase(begin, end)
-        if (text::CompareIgnoringCase(MaterialClass(prototype), game::NoneText()) != 0) {
+        if (text::CompareIgnoringCase(prototype->materialClass.c_str(), game::NoneText()) != 0) {
             for (StockMaterial* e = materials.data(); e != materials.data() + materials.size(); ++e) {
-                if (str::Compare(MaterialClass(prototype), e->record->soundName) != 0) continue;
+                if (str::Compare(prototype->materialClass.c_str(), e->record->soundName) != 0) continue;
                 if (MaterialUnits(prototype) > e->left) continue;
                 candidates.push_back(e);
             }
         }
         StockMaterial* chosen = DrawMaterial(prototype, candidates);
         if (!chosen) {
-            if (text::CompareIgnoringCase(MaterialClass(prototype), game::NoneText()) != 0) {
+            if (text::CompareIgnoringCase(prototype->materialClass.c_str(), game::NoneText()) != 0) {
                 if (candidates.end() == candidates.begin()) {
                     ctor->Cancel();
                     ctor->SetManager(nullptr);
@@ -313,8 +304,8 @@ void ItemStock::GenerateArmors(int minCount, int maxCount, std::list<CItem*>* ou
 void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::list<CItem*>* out) { GenerateItems(&quickItems, minCount, maxCount, out, 2); }
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>* out) {
-    CItemConstructor* ctor = ConstructorOf(this);
-    CItemManager* manager = PartyOf(this)->ItemFactory();
+    CItemConstructor* ctor = context->ItemConstructor();
+    CItemManager* manager = context->ItemFactory();
     int count = RandomCount(minCount, maxCount);
     std::vector<StockMaterial> taken;
     if (materials.size() > static_cast<std::size_t>(count)) {
@@ -326,7 +317,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(game::MaterialText());
     for (auto& e : taken) {
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(ItemKind::Loot, -1);
+        ctor->BeginCreateItem(ItemKind::Loot);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(e.record);
         int range = e.maxCount - e.minCount + 1;
@@ -383,8 +374,8 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>* recipe
             std::string key(letters, letters + 1);
             itemdb::SpellModifierRecord* held = ModifierSlot(this, key);
             // Replaced when the held one's strength is less.
-            if (held) EI_NAN_AUDIT(ModifierFactor(held), ModifierFactor(m));
-            if (!held || ModifierFactor(held) < ModifierFactor(m)) ModifierSlot(this, key) = m;
+            if (held) EI_NAN_AUDIT(held->strength, m->strength);
+            if (!held || held->strength < m->strength) ModifierSlot(this, key) = m;
             break;
         }
         case 'f': case 'i': {
@@ -399,7 +390,7 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>* recipe
 }
 
 void ItemStock::GenerateSpells(std::list<HeldRef<CSpell>>* out, const float* levels, unsigned threshold) {
-    CSpellManager* spellManager = PartyOf(this)->SpellManager();
+    CSpellManager* spellManager = context->SpellManager();
     std::list<itemdb::SpellModifierRecord*> chosen;
     for (auto& [spellName, recipes] : spellMap) {
         for (void* entry : recipes) {
@@ -416,36 +407,36 @@ void ItemStock::GenerateSpells(std::list<HeldRef<CSpell>>* out, const float* lev
                 itemdb::SpellModifierRecord* m = ModifierSlot(this, required[i]);
                 if (!m) continue;
                 AppendModifier(chosen, m);
-                cost = static_cast<float>(cost + ModifierCost(m));
+                cost = static_cast<float>(cost + m->mana);
                 ++count;
-                level += ModifierLevel(m);
+                level += m->skill;
             }
             if (budget < level || count > 8) continue;
             const std::vector<std::string>& optional = recipe->optional;
             for (unsigned i = 0; i < optional.size() && count < 8; ++i) {
                 if (g_random.Next() % 101 < 50) continue;
                 itemdb::SpellModifierRecord* m = ModifierSlot(this, optional[i]);
-                if (!m || budget < ModifierLevel(m) + level) continue;
+                if (!m || budget < m->skill + level) continue;
                 AppendModifier(chosen, m);
-                cost = static_cast<float>(cost + ModifierCost(m));
+                cost = static_cast<float>(cost + m->mana);
                 ++count;
-                level += ModifierLevel(m);
+                level += m->skill;
             }
             itemdb::SpellModifierRecord* repeated = ModifierSlot(this, recipe->repeated);
-            if (repeated && budget >= ModifierLevel(repeated) + level) {
+            if (repeated && budget >= repeated->skill + level) {
                 int reached = level;   // (kept in a register; `level` is not updated)
                 while (count < 8) {
                     AppendModifier(chosen, repeated);
                     ++count;
-                    reached += ModifierLevel(repeated);
+                    reached += repeated->skill;
                     if (ModifierKind(repeated) == 'm') {
-                        cost = static_cast<float>(ModifierFactor(repeated) * prototype->mana + cost + ModifierCost(repeated));
+                        cost = static_cast<float>(repeated->strength * prototype->mana + cost + repeated->mana);
                         EI_NAN_AUDIT(cost, prototype->mana);
                         if (cost <= prototype->mana) break;
                     } else {
-                        cost = static_cast<float>(cost + ModifierCost(repeated));
+                        cost = static_cast<float>(cost + repeated->mana);
                     }
-                    if (budget < ModifierLevel(repeated) + reached) break;
+                    if (budget < repeated->skill + reached) break;
                 }
             }
             out->emplace_back(spellManager->CreateSpell(prototype, &chosen));
@@ -530,8 +521,8 @@ void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::li
 
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
 void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
-    CItemConstructor* ctor = ConstructorOf(this);
-    CItemManager* manager = PartyOf(this)->ItemFactory();
+    CItemConstructor* ctor = context->ItemConstructor();
+    CItemManager* manager = context->ItemFactory();
     FillSpellMaps(stock::ScrollSpellRecipes());
     std::list<HeldRef<CSpell>> list;
     for (int tries = 0;;) {
@@ -543,7 +534,7 @@ void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
     itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named(game::SpellContainerText());
     for (CSpell* spell : list) {
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(ItemKind::Spell, -1);
+        ctor->BeginCreateItem(ItemKind::Spell);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         ctor->SetSpellObject(spell);

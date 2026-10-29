@@ -43,7 +43,6 @@ constexpr int kMissileObject = 0x5B;                    // object factory kind o
 
 CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
 
-AIEventTable* AIEventsOf(CWorldServer* world) { return &world->aiMap_.events; }
 
 
 // OnDamaged's search of the party (the player's units, walked as the list's begin() and operator++ do): the
@@ -144,7 +143,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kHitNoiseScale);
-        AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
+        world->aiMap_.events.Noise(this, loudness, kNoiseKind, nullptr);
     }
 }
 
@@ -236,7 +235,7 @@ void CUnitServer::WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUni
         if (!diplomacy->IsAllied(other->side, side)) continue;
         other->flags_ |= MapObjectFlag::SeeAll;
         CUnitServer* controller = other->ServerController();
-        AIEventsOf(world)->Update(controller, &controller->brain.memory);
+        world->aiMap_.events.Update(controller, &controller->brain.memory);
         HeldUnits& watched = controller->brain.memory.visible;
         if (!lib::Contains(watched, victim)) continue;
         if (!lib::Contains(watched, murderer)) {
@@ -322,7 +321,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     animationHeld = 0;
     frozen = 0;
     PlayAnimationOrder(animation);
-    AIEventsOf(world)->ForgetUnit(this);
+    world->aiMap_.events.ForgetUnit(this);
     if (CPlayer* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(player, unit))
             member->ServerController()->brain.memory.SeeCorpse(member, unit);   // `member` sees the dead unit
@@ -338,7 +337,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         if (CPlayer* player = unit->player) g_serverWorld.Loot(looted, player);
         g_serverWorld.RemoveObject(target->id_);
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kSkillNoiseScale);
-        AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
+        world->aiMap_.events.Noise(this, loudness, kNoiseKind, nullptr);
         return;
     }
     UseSource skill = action.Skill();

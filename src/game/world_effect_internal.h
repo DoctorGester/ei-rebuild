@@ -59,7 +59,7 @@ inline float BelowOneOrOne(const float& value) {
 // --- Engine objects ------------------------------------------------------------------------------
 
 // The world an object belongs to (the effects' manager context is the world, too).
-inline CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
+inline CWorld* WorldOf(const CEngineObject* object) { return object->World(); }
 inline CWorld* ContextWorld(const CEngineObject* object) { return object->WorldContext(); }
 
 // --- Replicated fields (net_delta.cpp) -----------------------------------------------------------

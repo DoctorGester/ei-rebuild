@@ -258,7 +258,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, UnitList* group, CEn
 }
 
 void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candidates, const Vector3* from, bool alliesOnly,
-                         int reachArg) {
+                         int fromHere) {
     if (std::ssize(spells) == 0 && (candidates->empty() || std::ssize(weapons) == 0)) {
         choice->object = nullptr;
         return;
@@ -346,7 +346,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candi
                 }
                 allowed = brain->owner->CanReachAndPlanFrom(&order, &self->localPosition_);
             }
-            if (allowed && CanReach(brain, choice, reachArg)) return;
+            if (allowed && CanReach(brain, choice, fromHere)) return;
         }
         // Rejected: an object scored only once (and not the current target) is reported.
         int seen = 0;

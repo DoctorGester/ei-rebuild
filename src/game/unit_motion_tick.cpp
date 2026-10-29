@@ -71,14 +71,6 @@ float TimeAsFloat(const int* time) { return static_cast<float>(*time); }
 
 // --- Accessors -----------------------------------------------------------------------------------
 
-CUnit* UnitOf(CUnitServer* c) { return c->unit; }
-AnimationSteps* Queue(CUnitServer* c) { return &c->queue; }
-int& QueueStart(CUnitServer* c) { return c->queue.extra; }
-AIPath* MotionPathOf(CUnitServer* c) { return &c->motion; }
-// The path's `failed` byte as the game reads it: compared with 1, so read as a byte, not a bool.
-std::uint8_t FailedByte(CUnitServer* c) { return c->motion.failed; }
-CWorldServer* ServerOf(CUnitServer* c) { return c->ServerWorld(); }
-int WorldTime(const CWorld* world) { return world->tick_; }
 
 constexpr int kStateIdle = 0;
 constexpr int kStateCasting = 5;
@@ -97,18 +89,18 @@ void ClearWaitingFor(CUnitServer* controller) {
 }
 
 void SetObstacle(CUnitServer* c, int obstacle) {
-    CWorldServer* world = ServerOf(c);
-    CUnit* unit = UnitOf(c);
+    CWorldServer* world = c->ServerWorld();
+    CUnit* unit = c->unit;
     if (static_cast<int>(unit->obstacle) == obstacle) return;
     world->aiMap_.sectorMap.Remove(unit);
-    UnitOf(c)->obstacle = static_cast<std::uint32_t>(obstacle);
-    world->aiMap_.sectorMap.Add(UnitOf(c));
-    UnitOf(c)->MarkChanged(7);
+    c->unit->obstacle = static_cast<std::uint32_t>(obstacle);
+    world->aiMap_.sectorMap.Add(c->unit);
+    c->unit->MarkChanged(7);
 }
 
 void QueueNextAnimation(CUnitServer* c) {
-    *Queue(c) = *c->NextAnimation();
-    if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
+    *&c->queue = *c->NextAnimation();
+    if (c->queue.extra == -1) c->queue.extra = c->World()->tick_;
     c->PopFinishedSteps();
     c->ShowCurrentStep();
     c->movingAnimation = 1;
@@ -122,7 +114,7 @@ void HitWhileTurning(CUnitServer* c) {
         c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
         if (c->CanReactFor(steps.Duration())) {
             c->keepHitDirection = 1;
-            c->savedQueue = *Queue(c);
+            c->savedQueue = *&c->queue;
             c->PlaySteps(&steps);
             c->animationHeld = 1;
         }
@@ -132,13 +124,13 @@ void HitWhileTurning(CUnitServer* c) {
 // A hit while moving: unless the queue's first animation (a hit) is still running, the current animation
 // followed by the fall of the last blow replaces the queue.
 void HitWhileMoving(CUnitServer* c) {
-    if (!Queue(c)->empty()) {
-        std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->size()) & 0xFFFFFF00u) |
-                            (*Queue(c))[0].animation;
-        const FigureAnimation* entry = UnitOf(c)->AnimationEntry(key);
+    if (!c->queue.empty()) {
+        std::uint32_t key = (static_cast<std::uint32_t>(c->queue.size()) & 0xFFFFFF00u) |
+                            (*&c->queue)[0].animation;
+        const FigureAnimation* entry = c->unit->AnimationEntry(key);
         if (entry && entry->Kind() == AnimationKind::Hit) {
-            std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(QueueStart(c));
-            if (ends > static_cast<std::uint32_t>(WorldTime(ObjectWorld(c)))) return;
+            std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(c->queue.extra);
+            if (ends > static_cast<std::uint32_t>(c->World()->tick_)) return;
         }
     }
     AnimationSteps current;
@@ -156,8 +148,8 @@ void HitWhileMoving(CUnitServer* c) {
             fall.push_back(step);
         }
     }
-    *Queue(c) = fall;
-    if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
+    *&c->queue = fall;
+    if (c->queue.extra == -1) c->queue.extra = c->World()->tick_;
     c->PopFinishedSteps();
     c->ShowCurrentStep();
 }
@@ -166,7 +158,7 @@ void HitWhileMoving(CUnitServer* c) {
 // neither (0, then the unit stays). Sets `liftBlocker` when the units around the step must be
 // lifted while replanning.
 int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason) {
-    CUnit* self = UnitOf(c);
+    CUnit* self = c->unit;
     CPlayer* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
         blocker->ServerController()->brain.LeaderOrFollowed() == self && g_serverWorld.tick_ < c->waitFrame + 2) {
@@ -213,33 +205,33 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
 // The motion is over: a path with no cells left (`reached`) stops facing its way; otherwise the path
 // continues or, at its end, the unit stops facing its way.
 void MotionOver(CUnitServer* c, CWorldServer* world) {
-    CUnit* unit = UnitOf(c);
-    if (MotionPathOf(c)->reached) {
-        std::uint8_t wasFlag = FailedByte(c) == 1;
-        MotionPathOf(c)->Clear();
-        int time = WorldTime(ObjectWorld(c));
+    CUnit* unit = c->unit;
+    if (c->motion.reached) {
+        std::uint8_t wasFlag = c->motion.failed == 1;
+        c->motion.Clear();
+        int time = c->World()->tick_;
         Vector3 axis, back;
-        UnitOf(c)->localRotation_.AxisY(&axis);
+        c->unit->localRotation_.AxisY(&axis);
         Vector3* facing = NegateVector(&back, axis);
-        if (MotionPathOf(c)->Start(&UnitOf(c)->localPosition_, facing, time)) UnitOf(c)->RefreshMotion();
-        c->SetStanding(0);
+        if (c->motion.Start(&c->unit->localPosition_, facing, time)) c->unit->RefreshMotion();
+        c->ClearStanding();
         c->SetState(6);
         c->stoodBlocked = wasFlag;
         return;
     }
-    if (!world->aiMap_.ContinuePath(unit, MotionPathOf(c))) {
-        MotionPathOf(c)->Clear();
-        int time = WorldTime(ObjectWorld(c));
+    if (!world->aiMap_.ContinuePath(unit, &c->motion)) {
+        c->motion.Clear();
+        int time = c->World()->tick_;
         Vector3 axis, back;
-        UnitOf(c)->localRotation_.AxisY(&axis);
+        c->unit->localRotation_.AxisY(&axis);
         Vector3* facing = NegateVector(&back, axis);
-        if (MotionPathOf(c)->Start(&UnitOf(c)->localPosition_, facing, time)) UnitOf(c)->RefreshMotion();
-        c->SetStanding(0);
+        if (c->motion.Start(&c->unit->localPosition_, facing, time)) c->unit->RefreshMotion();
+        c->ClearStanding();
         c->SetState(6);
         c->stoodBlocked = 0;
         return;
     }
-    UnitOf(c)->RefreshMotion();
+    c->unit->RefreshMotion();
     int state = c->state;
     if (state >= 0 && (state <= 1 || state == 2)) return;
     c->PlaySteps(c->IdleAnimation());
@@ -249,33 +241,33 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
 // blocked step lifted when `liftBlocker`.
 void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3* position) {
     if (liftBlocker) {
-        world->aiMap_.sectorMap.Remove(UnitOf(c));
+        world->aiMap_.sectorMap.Remove(c->unit);
         world->aiMap_.StampWaterPatch(position, 1);
-        world->aiMap_.sectorMap.Add(UnitOf(c));
+        world->aiMap_.sectorMap.Add(c->unit);
     }
-    MotionPathOf(c)->cells.clear();
+    c->motion.cells.clear();
 
-    float range = MotionPathOf(c)->goal.z;
-    std::uint32_t saved = UnitOf(c)->altPassCosts;
-    CWorldServer* context = ServerOf(c);
-    MotionPathOf(c)->mayExcludeRegions = UnitOf(c)->player ? 0 : 1;
-    std::uint32_t current = UnitOf(c)->altPassCosts;
-    UnitOf(c)->altPassCosts = saved;
-    bool found = context->aiMap_.FindPath(UnitOf(c), &MotionPathOf(c)->goal, MotionPathOf(c), range, 0.0f);
-    UnitOf(c)->altPassCosts = current;
+    float range = c->motion.goal.z;
+    std::uint32_t saved = c->unit->altPassCosts;
+    CWorldServer* context = c->ServerWorld();
+    c->motion.mayExcludeRegions = c->unit->player ? 0 : 1;
+    std::uint32_t current = c->unit->altPassCosts;
+    c->unit->altPassCosts = saved;
+    bool found = context->aiMap_.FindPath(c->unit, &c->motion.goal, &c->motion, range, 0.0f);
+    c->unit->altPassCosts = current;
     if (liftBlocker) {
-        world->aiMap_.sectorMap.Remove(UnitOf(c));
+        world->aiMap_.sectorMap.Remove(c->unit);
         world->aiMap_.StampWaterPatch(position, 0);
-        world->aiMap_.sectorMap.Add(UnitOf(c));
+        world->aiMap_.sectorMap.Add(c->unit);
     }
     if (found) {
-        UnitOf(c)->RefreshMotion();
+        c->unit->RefreshMotion();
         int state = c->state;
         if (state >= 0 && (state <= 1 || state == 2)) return;
         c->PlaySteps(c->IdleAnimation());
         return;
     }
-    std::uint8_t wasFlag = FailedByte(c) == 1;
+    std::uint8_t wasFlag = c->motion.failed == 1;
     c->StandStill();
     c->SetState(6);
     c->stoodBlocked = wasFlag;
@@ -285,7 +277,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
 // by the maximum times a factor per tick; out of breath they stop running (message 0x1D).
 // Then the tick's end.
 void Exhaustion(CUnitServer* c) {
-    CUnit* unit = UnitOf(c);
+    CUnit* unit = c->unit;
     if (unit->obstacle == 0) return;
     if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
     CPlayer* player = unit->player;
@@ -301,21 +293,21 @@ void Exhaustion(CUnitServer* c) {
             int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
             if (mode != unit->moveMode2) {
                 unit->moveMode2 = mode;
-                UnitOf(c)->MarkChanged(6);
+                c->unit->MarkChanged(6);
             }
         } else {
             if (Drain(stamina, rate)) {
-                if (UnitOf(c)->player)
-                    UnitOf(c)->player->Server()->SendObject0B(UnitOf(c), AckKind::OutOfStamina);
+                if (c->unit->player)
+                    c->unit->player->Server()->SendObject0B(c->unit, AckKind::OutOfStamina);
                 *stamina = 0.0f;
                 c->moveMode2.wasMode3 = 0;
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
-                if (mode != UnitOf(c)->moveMode2) {
-                    UnitOf(c)->moveMode2 = mode;
-                    UnitOf(c)->MarkChanged(6);
+                if (mode != c->unit->moveMode2) {
+                    c->unit->moveMode2 = mode;
+                    c->unit->MarkChanged(6);
                 }
             }
-            UnitOf(c)->MarkChanged(0);
+            c->unit->MarkChanged(0);
         }
     }
     c->UpdateSneak();
@@ -324,16 +316,16 @@ void Exhaustion(CUnitServer* c) {
 } // namespace
 
 void UpdateMotion(CUnitServer* c) {
-    CWorldServer* world = ServerOf(c);
+    CWorldServer* world = c->ServerWorld();
     Vector3 position;
-    std::memcpy(&position, &UnitOf(c)->localPosition_.x, 12);
+    std::memcpy(&position, &c->unit->localPosition_.x, 12);
     ToHalfCells(&position.x);
-    int time = WorldTime(world);
+    int time = world->tick_;
     bool turning = false;
     Vector3 direction;
     float speed;
     int cellX, cellY;
-    bool going = UnitOf(c)->motion.Sample(world, &MotionPathOf(c)->motionOrder, TimeAsFloat(&time), &turning,
+    bool going = c->unit->motion.Sample(world, &c->motion.motionOrder, TimeAsFloat(&time), &turning,
                               &position.x, &direction.x, &speed, &cellX, &cellY);
     bool motionOver = !going;
     FromHalfCells(&position.x);
@@ -359,10 +351,10 @@ void UpdateMotion(CUnitServer* c) {
         canStand = true;
     } else {
         CSectorMap* sectors = &world->aiMap_.sectorMap;
-        sectors->Remove(UnitOf(c));
-        canStand = world->aiMap_.CanStandAtFromHere(UnitOf(c), cellX, cellY, &blocked);
+        sectors->Remove(c->unit);
+        canStand = world->aiMap_.CanStandAtFromHere(c->unit, cellX, cellY, &blocked);
         if (!canStand) {
-            CUnit* blocker = world->aiMap_.BlockingUnitAt(UnitOf(c), &position);
+            CUnit* blocker = world->aiMap_.BlockingUnitAt(c->unit, &position);
             if (!blocker) {
                 canStand = true;
             } else {
@@ -370,27 +362,27 @@ void UpdateMotion(CUnitServer* c) {
                 if (outcome != -1) blocked = outcome;
             }
         }
-        sectors->Add(UnitOf(c));
+        sectors->Add(c->unit);
     }
 
     // An idle unit standing in a kind-3 occluder (while its motion order started before the AI map's
     // footprintTick and moveMode2's onGuard is clear) replans.
     bool replan = false;
     if (c->state == kStateIdle && world->aiMap_.HasSpellAreaAt(&position) &&
-        OrderOf(MotionPathOf(c))->startTime < world->aiMap_.footprintTick && c->moveMode2.onGuard == 0) {
+        OrderOf(&c->motion)->startTime < world->aiMap_.footprintTick && c->moveMode2.onGuard == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }
-    if (!replan && canStand && world->aiMap_.sectorMap.Move(UnitOf(c), &position)) {
+    if (!replan && canStand && world->aiMap_.sectorMap.Move(c->unit, &position)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
-        UnitOf(c)->SetHeading(&direction.x);
+        c->unit->SetHeading(&direction.x);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, &position);
     } else if (blocked == kBlockedWait) {
         if (c->stats.movementKind == 2) c->animationHeld = 1;
         else c->frozen = 1;
-        if (UnitOf(c)->obstacle != 0) SetObstacle(c, 0);
+        if (c->unit->obstacle != 0) SetObstacle(c, 0);
     }
     Exhaustion(c);
 }

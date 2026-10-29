@@ -45,7 +45,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
         if (text::CompareIgnoringCase(itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName, record->materialClass) != 0)
             continue;
         maker->SetManager(manager);
-        maker->BeginCreateItem(kind, -1);
+        maker->BeginCreateItem(kind);
         maker->SetPrototype(record);
         maker->SetMaterial(itemdb::MaterialAt(static_cast<std::uint32_t>(j)));
         CItem* item = maker->EndCreateItem();

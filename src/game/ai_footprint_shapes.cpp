@@ -58,8 +58,9 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
 
 } // namespace
 
-// The disc limited by a line.
-void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction) {
+// The disc limited by a line, at half a unit's width from it.
+void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, const Vector3* direction) {
+    constexpr float kWidth = 0.5f;
     double scale = 1.0 /
                    (0.5);
     float cx = static_cast<float>(scale * position->x);
@@ -73,7 +74,7 @@ void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, floa
     float nx = -direction->y;
     float ny = direction->x;
     double side = std::sqrt(LengthSquared2DUnrounded<double>(ny, nx));
-    double divisor = side * (scale * width + 1.0);
+    double divisor = side * (scale * kWidth + 1.0);
     nx = static_cast<float>(nx / divisor);
     ny = static_cast<float>(ny / divisor);
 

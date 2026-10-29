@@ -136,8 +136,6 @@ ClassId CRainSnow::GetClassId() { return ClassId::RainSnow; }
 
 // --- Visibility fog -----------------------------------------------------------------------------
 
-CWorld* CVisibilityFog::World() { return ObjectWorld(this); }
-
 // The bounding box (0.5 larger than the cell centres) and sphere of all cells, for culling.
 void CVisibilityFog::ComputeBounds() {
     bounds.boxMin = {kFar, kFar, kFar};
@@ -186,7 +184,6 @@ void CVisibilityFog::ComputeBounds() {
 // needed (referenced elsewhere or has cells).
 bool CVisibilityFog::RunTick() {
     std::vector<std::uint32_t> dead;
-    World();   // called and ignored
     for (auto& [key, cell] : cells) {
         if (cell.visible)
             cell.alpha = 1.0f - (1.0f - cell.alpha) * 0.5f;

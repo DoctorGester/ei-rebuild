@@ -48,30 +48,18 @@ constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
 
 constexpr float kHalfCell = 0.5f;
 
-AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
-int& QueueTime(CUnitServer* self) { return self->queue.extra; }
-OrderPlan& Plan(CUnitServer* self) { return self->currentPlan; }
-AIPath* Motion(CUnitServer* self) { return &self->motion; }
-AnimationSteps& MoveSteps(CUnitServer* self) { return self->moveAnimation; }
-AnimationSteps& IdleSteps(CUnitServer* self) { return self->idleAnimation; }
-std::uint32_t& MoveKey(CUnitServer* self) { return self->moveAnimationKey; }
-std::uint32_t& IdleKey(CUnitServer* self) { return self->idleKey; }
-int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }
 
-// The world time (CWorld::tick_) of an object's world (ObjectWorld) or manager context.
-int TickOf(const CWorld* world) { return world->tick_; }
-CWorldServer* ContextOf(CUnitServer* self) { return self->ServerWorld(); }
 UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 
 void StartQueueIfUnset(CUnitServer* self) {
-    if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));
+    if (self->queue.extra == -1) self->queue.extra = self->World()->tick_;
 }
 
 void ShowHead(CUnitServer* self) {
-    AnimationSteps& queue = Queue(self);
+    AnimationSteps& queue = self->queue;
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
-    if (!head.IsBlank()) self->unit->SetAnimationEntries(head.animation, head.variant, QueueTime(self), head.flags);
+    if (!head.IsBlank()) self->unit->SetAnimationEntries(head.animation, head.variant, self->queue.extra, head.flags);
 }
 
 void DropEffectObject(CUnitServer* self) {
@@ -83,14 +71,14 @@ void DropEffectObject(CUnitServer* self) {
 // The unit stops where it is, facing its direction (the motion restarted with the reversed Y axis of its
 // rotation), then stands (0) and takes state 6.
 void FaceAndStop(CUnitServer* self) {
-    Motion(self)->Clear();
-    int now = TickOf(ObjectWorld(self));
+    self->motion.Clear();
+    int now = self->World()->tick_;
     Vector3 axis;
     self->unit->localRotation_.AxisY(&axis);
     Vector3 back;
     const Vector3* direction = NegateVector(&back, axis);
-    if (Motion(self)->Start(&self->unit->localPosition_, direction, now)) self->unit->RefreshMotion();
-    self->SetStanding(0);
+    if (self->motion.Start(&self->unit->localPosition_, direction, now)) self->unit->RefreshMotion();
+    self->ClearStanding();
     self->SetState(kStateChasing);
 }
 
@@ -140,17 +128,17 @@ void Play(CUnitServer* self, const AnimationSteps& steps, int newState) {
     self->state = newState;
     self->unit->UpdateSizeClass();
     DropEffectObject(self);
-    Queue(self) = steps;
+    self->queue = steps;
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
     ShowHead(self);
-    Motion(self)->Clear();
-    int now = TickOf(ObjectWorld(self));
+    self->motion.Clear();
+    int now = self->World()->tick_;
     Vector3 axis;
     self->unit->localRotation_.AxisY(&axis);
     Vector3 back = -axis;
-    if (Motion(self)->Start(&self->unit->localPosition_, &back, now)) self->unit->RefreshMotion();
-    CWorldServer* world = ContextOf(self);
+    if (self->motion.Start(&self->unit->localPosition_, &back, now)) self->unit->RefreshMotion();
+    CWorldServer* world = self->ServerWorld();
     if (self->unit->obstacle != 0) {
         CSectorMap* sectors = &world->aiMap_.sectorMap;
         sectors->Remove(self->unit);
@@ -176,7 +164,7 @@ void RecordFromMode(MoveModeState* record, int mode) {
 
 bool CUnitServer::CanReactFor(int ticks) {
     if (action.kind == UnitOrderKind::Attack && state == kStateTurning &&
-        TickOf(ObjectWorld(this)) + ticks > nextAttackTime)
+        World()->tick_ + ticks > nextAttackTime)
         return false;
     return true;
 }
@@ -193,26 +181,26 @@ void CUnitServer::BuildIdle(AnimationSteps* steps) { FillIdle(this, steps); }
 
 AnimationSteps* CUnitServer::IdleAnimation() {
     std::uint32_t key = IdleKeyNow(this);
-    if (IdleKey(this) == key) {
-        IdleTime(this) = -1;
+    if (idleKey == key) {
+        idleAnimation.extra = -1;
     } else {
-        IdleKey(this) = key;
-        FillIdle(this, &IdleSteps(this));
+        idleKey = key;
+        FillIdle(this, &idleAnimation);
     }
-    return &IdleSteps(this);
+    return &idleAnimation;
 }
 
 void CUnitServer::PlayIdle() {
     if (state >= 0 && (state <= 1 || state == kStateTurning)) return;
     std::uint32_t key = IdleKeyNow(this);
-    if (IdleKey(this) == key) {
-        IdleTime(this) = -1;
+    if (idleKey == key) {
+        idleAnimation.extra = -1;
     } else {
-        IdleKey(this) = key;
-        FillIdle(this, &IdleSteps(this));
+        idleKey = key;
+        FillIdle(this, &idleAnimation);
     }
     // The idle list into the queue, started.
-    Queue(this) = IdleSteps(this);
+    queue = idleAnimation;
     StartQueueIfUnset(this);
     PopFinishedSteps();
     ShowHead(this);
@@ -278,16 +266,16 @@ AnimationSteps* CUnitServer::NextAnimation() {
             else if (stamina <= g_logicSettings.damageLevel1Value) key |= AnimationKeyFlag::DamageLevel1;
         }
     }
-    if (MoveKey(this) == key) return &MoveSteps(this);
-    MoveKey(this) = key;
+    if (moveAnimationKey == key) return &moveAnimation;
+    moveAnimationKey = key;
     if (self->MapType() != MapObjectType::Hero) {
-        BuildMoveSteps(&MoveSteps(this), 0);
-        return &MoveSteps(this);
+        BuildMoveSteps(&moveAnimation, 0);
+        return &moveAnimation;
     }
     // A hero: the start of the movement once, then the loop appended step by step.
     AnimationSteps loop;
     BuildMoveSteps(&loop, 0);
-    AnimationSteps& steps = MoveSteps(this);
+    AnimationSteps& steps = moveAnimation;
     BuildMoveSteps(&steps, 1);
     for (const AnimationStep& step : loop) {
         if (step.animation == AnimationStep::kNone) {
@@ -308,30 +296,30 @@ AnimationSteps* CUnitServer::NextAnimation() {
 // --- Starting the planned action ---------------------------------------------------------------
 
 void CUnitServer::StartAction(char follow, char stepFlags) {
-    OrderPlan& plan = Plan(this);
+    OrderPlan& plan = currentPlan;
     for (AnimationStep& step : plan.animation) step.flags = static_cast<std::uint8_t>(stepFlags);
     if (state < 0 || (state > 1 && state != kStateTurning)) {
         std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
-        if (IdleKey(this) == key) {
-            IdleTime(this) = -1;
+        if (idleKey == key) {
+            idleAnimation.extra = -1;
         } else {
-            IdleKey(this) = key;
-            BuildIdle(&IdleSteps(this));
+            idleKey = key;
+            BuildIdle(&idleAnimation);
         }
-        PlaySteps(&IdleSteps(this));
+        PlaySteps(&idleAnimation);
     }
     state = kStateActing;
-    actingCheckTime = TickOf(WorldContext()) + 10;
+    actingCheckTime = WorldContext()->tick_ + 10;
     if (plan.targetId == -1) {
-        int now = TickOf(ObjectWorld(this));
-        Motion(this)->StandAndTurnUntil(now, unit, &plan.direction, plan.endTime, plan.startTime);
+        int now = World()->tick_;
+        motion.StandAndTurnUntil(now, unit, &plan.direction, plan.endTime, plan.startTime);
     } else {
         int until = follow ? plan.endTime : 0;
-        int now = TickOf(ObjectWorld(this));
-        Motion(this)->StandAndTrack(now, unit, plan.targetId, until, plan.startTime);
+        int now = World()->tick_;
+        motion.StandAndTrack(now, unit, plan.targetId, until, plan.startTime);
     }
     unit->RefreshMotion();
-    CWorldServer* world = ContextOf(this);
+    CWorldServer* world = ServerWorld();
     if (unit->obstacle == 0) return;
     CSectorMap* sectors = &world->aiMap_.sectorMap;
     sectors->Remove(unit);
@@ -343,7 +331,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
 // --- Movement modes -----------------------------------------------------------------------------
 
 void CUnitServer::UpdateSneak() {
-    CWorldServer* world = ContextOf(this);
+    CWorldServer* world = ServerWorld();
     int running = stats.MovementState(1);
     if (running != 0 && moveMode2.wasMode3 != 0) {
         // Out of breath: back from the second mode's mode 3, with a remark.
@@ -448,24 +436,24 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;
-    Motion(this)->Clear();
+    motion.Clear();
     std::uint32_t keep = unit->altPassCosts;
-    CWorldServer* world = ContextOf(this);
-    Motion(this)->mayExcludeRegions = unit->player ? 0 : 1;
+    CWorldServer* world = ServerWorld();
+    motion.mayExcludeRegions = unit->player ? 0 : 1;
     std::uint32_t before = unit->altPassCosts;
     unit->altPassCosts = keep;
-    bool found = world->aiMap_.FindPath(unit, point, Motion(this), range, 0.0f);
+    bool found = world->aiMap_.FindPath(unit, point, &motion, range, 0.0f);
     unit->altPassCosts = before;
     if (!found) {
         // Read as a byte: the original compares it with 1.
-        std::uint8_t blocked = Motion(this)->failed;
+        std::uint8_t blocked = motion.failed;
         movingAnimation = 0;
         StandStill();
         SetState(kStateChasing);
         stoodBlocked = blocked == 1 ? 1 : 0;
         return false;
     }
-    Motion(this)->goal.z = range;   // the range (Replan reads it back)
+    motion.goal.z = range;   // the range (Replan reads it back)
     sneakWait = 0;
     unit->RefreshMotion();
     if (state < 0 || (state > 1 && state != kStateTurning)) PlaySteps(IdleAnimation());
@@ -475,7 +463,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     if (movingAnimation != 0) {
         // Moving already: the movement animation goes on unless it is the same one-step loop.
         const AnimationSteps& moving = *NextAnimation();
-        AnimationSteps& current = Queue(this);
+        AnimationSteps& current = queue;
         if (current.size() != 1 || moving.size() != 1 || current[0].variant != moving[0].variant) {
             current = moving;
             StartQueueIfUnset(this);
@@ -487,7 +475,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
 }
 
 void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char moving) {
-    CWorldServer* world = ContextOf(this);
+    CWorldServer* world = ServerWorld();
     CPlayer* player = unit->player;
     list->clear();
     if (!player || player->sessionKind_ != 1) return;
@@ -581,14 +569,14 @@ void CUnitServer::ResyncWithUnit() {
     }
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
-    Motion(this)->Clear();
-    int now = TickOf(ObjectWorld(this));
+    motion.Clear();
+    int now = World()->tick_;
     Vector3 axis;
     unit->localRotation_.AxisY(&axis);
     Vector3 back;
     const Vector3* direction = NegateVector(&back, axis);
-    if (Motion(this)->Start(&unit->localPosition_, direction, now)) unit->RefreshMotion();
-    SetStanding(0);
+    if (motion.Start(&unit->localPosition_, direction, now)) unit->RefreshMotion();
+    ClearStanding();
     SetState(kStateChasing);
     unit->UpdateSizeClass();
     unit->pendingWeapon = 0;
@@ -596,17 +584,17 @@ void CUnitServer::ResyncWithUnit() {
         unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
     if (state == kStateTurning) return;
     std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
-    if (IdleKey(this) == key) {
-        IdleTime(this) = -1;
+    if (idleKey == key) {
+        idleAnimation.extra = -1;
     } else {
-        IdleKey(this) = key;
-        BuildIdle(&IdleSteps(this));
+        idleKey = key;
+        BuildIdle(&idleAnimation);
     }
-    if (!Queue(this).SameAs(&IdleSteps(this))) {
+    if (!queue.SameAs(&idleAnimation)) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
-        if (Queue(this).empty() && QueueTime(this) == -1)
-            IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(g_random.Next() % 0x33);
-        Queue(this) = IdleSteps(this);
+        if (queue.empty() && queue.extra == -1)
+            idleAnimation.extra = World()->tick_ - static_cast<int>(g_random.Next() % 0x33);
+        queue = idleAnimation;
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();
@@ -633,9 +621,9 @@ void CUnitServer::ResetController() {
     action2.modifier = 0;
     frozen = 0;
     animationHeld = 0;
-    Queue(this) = {};
-    Motion(this)->Clear();
-    OrderPlan& plan = Plan(this);
+    queue = {};
+    motion.Clear();
+    OrderPlan& plan = currentPlan;
     plan.animation = {};
     plan.targetId = -1;
     plan.endTime = 0;
@@ -685,10 +673,10 @@ void CUnitServer::ResetController() {
     speedClass = 0xF;
     claimedHostile = 0;
     sinkSpeed = 0.0f;
-    MoveKey(this) = 0x666DEAD;
-    MoveSteps(this) = {};
-    IdleKey(this) = 0x666DEAD;
-    IdleSteps(this) = {};
+    moveAnimationKey = 0x666DEAD;
+    moveAnimation = {};
+    idleKey = 0x666DEAD;
+    idleAnimation = {};
     boredTicks = 0;
     armourSpells.clear();   // each element's item released
     actionDone = nullptr;

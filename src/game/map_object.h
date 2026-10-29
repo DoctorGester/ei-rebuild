@@ -261,9 +261,6 @@ public:
     CObject3D* Object3D() { return this; }
 
 
-    // The world the object lives in (via its owner), or null.
-    CWorld* World();
-
     CMapObjectCompanion* companion; // CMapObjectServer / CMapObjectClientSpecific
     // The companion as the server's CMapObjectServer (on the server; defined in unit.h).
     CMapObjectServer* ServerCompanion() const;

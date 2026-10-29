@@ -78,7 +78,6 @@ double LevelValueOf(const UnitStats* stats, int skill) {
     return record->Value();
 }
 
-double RecordValue(const SkillLevelRecord* record) { return record->Value(); }
 
 MapEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
 float EffectValueField(const MapEffect& effect) {
@@ -361,17 +360,17 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
 
     double bonus = 0.0;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
-        double level = RecordValue(record);
+        double level = record->Value();
         EI_NAN_AUDIT(level);
         if (level != 0.0f) bonus = level * perception[1].current * kPercentB;
     }
     perception[1].current = static_cast<float>(bonus + perception[1].current);
     const ::SkillLevelRecord* record = SkillLevelRecord(kSkillStat10);
-    strength = static_cast<float>((record ? RecordValue(record) : 0.0f) + strength);
+    strength = static_cast<float>((record ? record->Value() : 0.0f) + strength);
     record = SkillLevelRecord(kSkillStat18);
-    dexterity = static_cast<float>((record ? RecordValue(record) : 0.0f) + dexterity);
+    dexterity = static_cast<float>((record ? record->Value() : 0.0f) + dexterity);
     record = SkillLevelRecord(kSkillStat20);
-    intelligence = static_cast<float>((record ? RecordValue(record) : 0.0f) + intelligence);
+    intelligence = static_cast<float>((record ? record->Value() : 0.0f) + intelligence);
     for (UnitStatPair& protection : vitals->protection) protection.current = protection.base;
 
     float strongest[kEffectTypes] = {};
@@ -476,7 +475,7 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     float scaled = static_cast<float>(curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]));
     const ::SkillLevelRecord* record = SkillLevelRecord(kSkillHitPoints);
     float maxHitPoints =
-        static_cast<float>(((record ? RecordValue(record) : 0.0f) * kPercent + 1.0f) * scaled);
+        static_cast<float>(((record ? record->Value() : 0.0f) * kPercent + 1.0f) * scaled);
     vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
     vitals->maxMana = static_cast<float>(ManaCurve());
     ScaleSlotMaxima(vitals->maxHitPoints);

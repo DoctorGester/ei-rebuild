@@ -42,7 +42,6 @@ constexpr float kLoud = 1000.0f;
 inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
 inline const float* ConstPtr(const float& constant) { return &constant; }
 constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fireball case
-constexpr float kHalfBits = 0.5f;                       // immediate pushed to the footprint builder
 
 // Footprints of the walls and clouds, along a direction or a disc, then stamped into / cleared from the AI
 // map.

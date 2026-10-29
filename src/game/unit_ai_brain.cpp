@@ -33,10 +33,10 @@ std::uint32_t FearDistanceBits() { return 0x41200000u; }
 
 // The tail both standard sets share.
 void AddAlertModes(AIBrain* brain) {
-    brain->AddSuspectionMode();
-    brain->AddAggressionMode();
-    brain->AddCorpseWatcherMode();
-    brain->AddFearMode(0);
+    brain->AddMode(new SuspectionMode());
+    brain->AddMode(new AggressionMode());
+    brain->AddMode(new CorpseWatcherMode());
+    brain->AddMode(new FearMode(0));
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
@@ -157,20 +157,6 @@ void AIMemory::Reset() {
 
 // --- Standard mode sets ---------------------------------------------------------------------------
 
-void AIBrain::AddGuardMode(const Vector3* point, float radius, float wander) {
-    AddMode(new GuardMode(point, radius, wander));
-}
-
-void AIBrain::AddSuspectionMode() {
-    AddMode(new SuspectionMode());   // point and level zeroed
-}
-
-void AIBrain::AddAggressionMode() {
-    AddMode(new AggressionMode());
-}
-
-void AIBrain::AddCorpseWatcherMode() { AddMode(new CorpseWatcherMode()); }
-
 void FearMode::Init(std::uint8_t newFlag) {
     std::uint32_t bits = FearDistanceBits();
     distance = std::bit_cast<float>(bits);
@@ -182,21 +168,15 @@ void FearMode::Init(std::uint8_t newFlag) {
 
 FearMode::FearMode(std::uint8_t newFlag) { Init(newFlag); }
 
-void AIBrain::AddFearMode(std::uint8_t flag) { AddMode(new FearMode(flag)); }
-
-void AIBrain::AddSentryMode(const Vector3* point) {
-    AddMode(new SentryMode(point));
-}
-
 void AIBrain::StandardGuard(const Vector3* point, float radius) {
     ClearModes();
-    AddGuardMode(point, radius, -1.0f);
+    AddMode(new GuardMode(point, radius, -1.0f));
     AddAlertModes(this);
 }
 
 void AIBrain::StandardSentry(const Vector3* point) {
     ClearModes();
-    AddSentryMode(point);
+    AddMode(new SentryMode(point));
     AddAlertModes(this);
 }
 

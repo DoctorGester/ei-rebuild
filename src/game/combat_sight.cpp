@@ -256,7 +256,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     AnimationSteps steps;
     Vector3 origin;
     std::memcpy(&origin, &unit->localPosition_.x, sizeof(origin));
-    int now = ObjectWorld(this)->tick_;
+    int now = World()->tick_;
     CSpell* spell = nullptr;
 
     if (order->pointIsUseSpot) {

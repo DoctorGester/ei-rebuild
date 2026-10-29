@@ -198,7 +198,6 @@ public:
     // 0x44) the stop flag byte; then `current`.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    void AddPoint(const Vector3* position);
     // Appends a point with no looks at ((n + 0.5) / 2, z 0) for n = 2x rounded to nearest (so 0..0.5 above
     // `position`, not the middle of its half-cell).
     void AppendPoint(const Vector3* position);
@@ -373,12 +372,12 @@ public:
 
     // The player's commands (state 1 or 2). Walk to `to` + `offset` (just `to` when the way there is
     // blocked); forgets the leader unless the player controls the unit directly.
-    void CommandWalk(AIBrain* brain, const Vector3* to, int unknown, int run, const Vector3* offset);
+    void CommandWalk(AIBrain* brain, const Vector3* to, int inGroup, int run, const Vector3* offset);
     // The same in state 2 (keep fighting on the way); when the unit would leave the party it only turns
     // towards the point.
-    void CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int run, const Vector3* offset);
-    void CommandAttack(AIBrain* brain, CMapObject* object, int how, int unknown);
-    void CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int a, int b);
+    void CommandGoTo(AIBrain* brain, const Vector3* to, int inGroup, int run, const Vector3* offset);
+    void CommandAttack(AIBrain* brain, CMapObject* object, int how, int calledShot);
+    void CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int spot, int runArg);
     void CommandCast(AIBrain* brain, int spell, CMapObject* object);
     void CommandCastAt(AIBrain* brain, int spell, const Vector3* point);
 
@@ -532,7 +531,7 @@ struct AIAttention {
     // `alliesOnly`, for targets not near the path) and CanReach wins; a rejected one seen once is reported
     // (20).
     void Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candidates, const Vector3* from, bool alliesOnly,
-                int reachArg);
+                int fromHere);
     // False when the part has no option or an area option (kinds 2, 3) would also hit an ally near the target
     // or the unit itself; true without an object.
     bool IsUsable(AIBrain* brain, const AITargetChoice* choice);
@@ -550,7 +549,7 @@ struct AIAttention {
     // Chooses the best target in sight (Choose from the unit's position) and, when it differs from the
     // current attack, attacks it (action 3; the player's order check may lift the flags to -1) or casts spell
     // `part` at it (action 4 when the spell cannot be cast now).
-    void LookAround(AIBrain* brain, int reachArg);
+    void LookAround(AIBrain* brain);
     // The brain's current attack as {part, object}: action 3 {-1, target}, action 4 {spell, target}, the
     // object only when it is a unit; otherwise only the object is cleared.
     void CurrentAttack(AIBrain* brain, AITargetChoice* choice);
@@ -691,13 +690,6 @@ struct AIBrain {
     // is released and the action dropped.
     void StandardGuard(const Vector3* point, float radius);
     void StandardSentry(const Vector3* point);
-    // New modes handed to AddMode (operator new; a failed allocation adds null).
-    void AddGuardMode(const Vector3* point, float radius, float wander);
-    void AddSuspectionMode();                       // (point and level left unset)
-    void AddAggressionMode();
-    void AddCorpseWatcherMode();
-    void AddFearMode(std::uint8_t flag);            // (distance, 3, unset point)
-    void AddSentryMode(const Vector3* point);
     // The modes of behaviour `record` (type 1 guards, 5 the world alarm point, 3 a sentry, 2 patrols, 4 the
     // party's Player mode, plus the reaction's modes), then the alarm, no action or target, the attack
     // options rebuilt. See docs/notes/unit_ai.md, "AIBrain::ApplyBehaviour".
@@ -716,7 +708,7 @@ struct AIBrain {
     // attacking it.
     void UpdateAttack();
     void StopAction();
-    void Walk(const Vector3* point, int run, int unknown);
+    void Walk(const Vector3* point, int run);
     void TurnTowards(const Vector3* direction, float time);
     // Action 4 (when the spell cannot be cast now): cast `spell` at `point`.
     void CastAt(int spell, const Vector3* point, int run);
@@ -726,7 +718,7 @@ struct AIBrain {
     void SetSeen(CMapObject* object);
     void AttackTarget(CMapObject* object);
     // Action 5: use something on `object` (`kind` the use order's UseSource).
-    void UseOn(CMapObject* object, UseSource kind, int a, int b);
+    void UseOn(CMapObject* object, UseSource kind, int spot, int run);
 
     // Action 6 (follow `target`): every few ticks walk to where the leader is or will be
     // (a moving leader is met ahead on its way, or passed on the side); a dead or lost leader ends it.
@@ -743,7 +735,6 @@ struct AIBrain {
     // Every allied unit within callRadius of the owner's unit hears a call for help (kind 0x1A) at `point`;
     // the message text is formatted only while the console shows filter bit 0.
     void CallAllies(const Vector3* point);
-    void ChooseTarget(AITargetChoice* choice, UnitList* candidates, const Vector3* from, int a, int b);
     // The corpse list's head handed to `out` with a reference (the list's own reference released). Returns `out`.
     Ref<CUnit>* PopCorpse(Ref<CUnit>* out);
 

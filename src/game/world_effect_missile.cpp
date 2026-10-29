@@ -33,7 +33,7 @@ constexpr float kLightDrift = 0.0001f;          // the light's velocity x (keeps
 constexpr float kSoundRadius = 30.0f;
 constexpr std::uint32_t kLightFlags = lib::Bits(LightFlag::Specular | LightFlag::Strong);
 
-CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
+CWorld* WorldOf(const CEngineObject* object) { return object->World(); }
 
 std::uint32_t Bits(const float& f) {
     std::uint32_t u;
@@ -175,7 +175,7 @@ int CEffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = ObjectWorld(this)->FindUnit(casterId_);
+        auto* caster = World()->FindUnit(casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);
@@ -314,7 +314,7 @@ int CEffectArrowFigure::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = ObjectWorld(this)->FindUnit(casterId_);
+        auto* caster = World()->FindUnit(casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);

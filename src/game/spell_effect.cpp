@@ -21,9 +21,6 @@ namespace {
 constexpr float kTargetThreshold = 0.5f;
 constexpr float kWallHalfWidth = 1.0f;
 
-// CSectorMap::FindUnitsInRadius (sector_map.cpp).
-CSectorMap* SectorMapOf(const CSpellEffect* effect) { return &effect->world->aiMap_.sectorMap; }
-
 // The test of IsSpellTarget, inlined in the area loops.
 bool AcceptsAreaSpells(CUnit* unit) {
     if (unit->sizeClass != 0) return true;
@@ -48,7 +45,7 @@ void CSpellEffect::HitUnitsInRadius() {
     std::list<CUnit*> list;
     DamageInfo hit;
     GetDamage(&hit);
-    SectorMapOf(this)->FindUnitsInRadius(&position, &list, Spell()->radius_);
+    world->aiMap_.sectorMap.FindUnitsInRadius(&position, &list, Spell()->radius_);
     for (auto node = list.begin(); node != list.end();) {
         CUnit* unit = *node;
         ++node;
@@ -71,7 +68,7 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    SectorMapOf(this)->FindUnitsInRadius(&position, &list, Spell()->radius_);
+    world->aiMap_.sectorMap.FindUnitsInRadius(&position, &list, Spell()->radius_);
     for (auto node = list.begin(); node != list.end();) {
         CUnit* unit = *node;
         ++node;

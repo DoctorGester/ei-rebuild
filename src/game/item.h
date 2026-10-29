@@ -327,9 +327,9 @@ public:
     // Counts a reference to `manager`, dropping the previous one's (no release).
     void SetManager(CBaseManager* manager);
 
-    // Creates the item through the manager (with `kind`, `key`): counted, records cleared, count 1, flag 8
+    // Creates the item through the manager (with `kind`, no id asked for): counted, records cleared, count 1, flag 8
     // set. False after a fatal error the game carries on from (Rebirth's DisableExitOnCrashReport).
-    bool BeginCreateItem(ItemKind kind, int key);
+    bool BeginCreateItem(ItemKind kind);
 
     void SetMaterial(itemdb::MaterialRecordHead* material) { material_ = material; }
     void SetPrototype(itemdb::ItemRecordHead* prototype) { prototype_ = prototype; }
@@ -398,11 +398,11 @@ struct CItemManager : CResourceManager {
     // loot, ItemKind::Spell scroll, ItemKind::Quest quest, its type_ set to the kind; null for another kind or without memory.
     CEngineObject* NewObject(int kind) override;
 
-    // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind` and `key`)
+    // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind`)
     // from prototype record `index` of the kind's table (an index whose low 16 bits are 0xFFFF: 0) and, for
     // weapons and armor, material record `material`; an index out of range or another kind gives a null
     // record. Returns the item (null when the build fails).
-    CItem* MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material, int key);
+    CItem* MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material);
 
     // An item from its name, "prototype[.material][[extra]]" (lowercased): "spell container[spell]" makes a
     // scroll; otherwise the prototype is looked up in the weapon, armor, quick, class-0x14 and class-0x15

@@ -69,7 +69,7 @@ bool CUnitClientSpecific::RunTick() {
     if (current) ShowWeaponParts((current->key & kAnimationVariantBits) == 0);
 
     bool drawn;
-    if (unit->dead && ObjectWorld(this)->tick_ >
+    if (unit->dead && World()->tick_ >
                           static_cast<std::uint8_t>(unit->animationEntry) + kDeadShownTicks) {
         drawn = false;
     } else {

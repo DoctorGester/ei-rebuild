@@ -116,7 +116,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     AddPartyTargets(brain, &candidates);
     unit->flags_ |= MapObjectFlag::ChoosingTarget;
-    brain->ChooseTarget(&best, &candidates, &unit->localPosition_, 0, 0);
+    brain->attention.Choose(brain, &best, &candidates, &unit->localPosition_, false, 0);
     unit->flags_ &= ~MapObjectFlag::ChoosingTarget;
 
     CUnit* chosen = best.object;

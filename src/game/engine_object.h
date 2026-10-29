@@ -162,8 +162,6 @@ public:
 void SaveRef(const CEngineObject* object, CStream* stream);
 template <typename T>
 void LoadRef(Ref<T>& ref, CStream* stream, CWorld* world);
-// CEngineObject::World, for the callers that name the object's base (CMapObject::World hides it).
-inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }
 
 // A list or vector of counted object pointers emptied: each released (head first), then cleared.
 template <typename Container>

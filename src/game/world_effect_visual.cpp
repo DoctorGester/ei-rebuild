@@ -289,7 +289,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (GetClassId() == ClassId::EffectParticle && !SnapshotReadToEnd()) return 0;
     if (unitId_ != -1) {
-        CUnit* unit = ObjectWorld(this)->FindUnit(unitId_);
+        CUnit* unit = World()->FindUnit(unitId_);
         if (unit != nullptr) {
             Vector3 point;
             position = *unit->EffectPoint(&point);

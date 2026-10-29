@@ -21,9 +21,6 @@ constexpr float kExplosionLoudness = 5.0f;             // immediate
 constexpr float kStrikeWidthImmediate = -7.0f;         // immediate in the lasting strike
 constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
 
-// A player's server connection (CPlayer::connection_ on the server is a CPlayerServer).
-CPlayerServer* ServerOf(CPlayer* player) { return player->Server(); }
-
 // --- State 1 -------------------------------------------------------------------------------------
 
 // FireArrow / RickMagic (the fire arrow) and AcidRay: the effect follows its missile; when the missile
@@ -51,7 +48,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     at.z = GroundPlus(e, kGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, worlddata::SplashScale());
     e->CreateParticle(0, particleType, &kZeroVector, size, 1.0f, &kZeroVector, e->target);
-    e->CreateSound(0, sound, &at, &kZeroVector, kVolume, kHearing);
+    e->CreateSound(sound, &at, &kZeroVector, kVolume, kHearing);
 
     Vector3 velocity;
     if (arrow) {
@@ -92,7 +89,7 @@ void FireballFlight(CSpellEffect* e) {
         float radius = e->Spell()->radius_;
         float alpha = Power(e);
         blast->SetColors(alpha, radius);
-        e->CreateSound(0, "magic\\fireball\\end.wav", &at, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\fireball\\end.wav", &at, &kZeroVector, kVolume, kHearing);
         Vector3 velocity{0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
@@ -174,7 +171,7 @@ void FireWall(CSpellEffect* e) {
         e->UpdateFootprint(SpellType::FireWall, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
-        e->CreateSound(0, "magic\\Firewall\\end.wav", &at, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Firewall\\end.wav", &at, &kZeroVector, kVolume, kHearing);
         RiseLight(e);
     }
     Linger(e);
@@ -217,7 +214,7 @@ void PoisonCloud(CSpellEffect* e) {
         return;
     }
     if (ticks == -1) {
-        e->CreateSound(0, "magic\\poison\\end.wav", &e->targetPoint, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\poison\\end.wav", &e->targetPoint, &kZeroVector, kVolume, kHearing);
         RiseLight(e);
         e->UpdateFootprint(SpellType::AcidFog, 0);
         e->ReleaseSound();
@@ -252,7 +249,7 @@ void Fireworks(CSpellEffect* e, std::list<CUnit*>& units) {
         return;
     }
     if (ticks == -1) {
-        e->CreateSound(0, "magic\\Firework\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Firework\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
         e->ReleaseVisual();
         e->ReleaseSound();
         RiseLight(e);
@@ -266,7 +263,7 @@ void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
     if (IsUnit(e->caster)) {
         auto* player = e->caster->player;
         if (player) {
-            ScriptGroup* group = &ServerOf(player)->possessedGroup_;
+            ScriptGroup* group = &player->Server()->possessedGroup_;
             e->world->aiMap_.sectorMap.FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
             for (auto node = units.begin(); node != units.end();) {
                 CUnit* unit = *node;
@@ -282,7 +279,7 @@ void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
     if (ticks < 0 || !e->caster) e->state = 3;
     if (ticks == 10) {
         e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), &e->targetPoint, -e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
-        e->CreateSound(0, "magic\\Clairvoyence\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Clairvoyence\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
     }
 }
 
@@ -297,11 +294,11 @@ void Possession(CSpellEffect* e) {
     if (player && e->target->GetClassId() == ClassId::Unit) {   // no null check on the target
         CMapObject* target = e->target;
         CUnitServer* server = ControllerOf(TargetUnit(e));
-        ScriptGroup* group = &ServerOf(player)->possessedGroup_;
+        ScriptGroup* group = &player->Server()->possessedGroup_;
         group->Insert(target);
         group->InsertAll(&server->brain.memory.visible);
         group->InsertAll(&server->brain.memory.seenCorpses);
-        ServerOf(player)->possessedId_ = target->id_;
+        player->Server()->possessedId_ = target->id_;
         target->flags_ |= MapObjectFlag::SeeAll;
         float sight = server->moveFactors[3] * server->stats.perception[0].current;
         float floor = server->stats.perception[2].current;
@@ -332,9 +329,9 @@ void Link(CSpellEffect* e) {
         int ticks = e->timer - 1;
         e->timer = ticks;
         if (ticks >= 0) return;
-        e->CreateSound(0, "magic\\Link\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Link\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
     } else {
-        e->CreateSound(0, "magic\\Link\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Link\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::LinkEnded);
     }
     e->state = 3;

@@ -623,7 +623,7 @@ bool CCampPages::CanMakeSpell() {
     constructor->SetManager(nullptr);
     itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
-    CItem* container = factory->MakeItem(ItemKind::Spell, index, 0, -1);
+    CItem* container = factory->MakeItem(ItemKind::Spell, index, 0);
     if (container) container->AttachSpell(made);
     spellMade_.Assign(container);
     if (!container) return false;
@@ -668,7 +668,7 @@ bool CCampPages::CanMakeItem() {
     if (static_cast<int>(part->materialUnits) != blueprintCount) return false;
     if (text::CompareIgnoringCase(part->materialClass, blueprint->soundName) != 0) return false;
     constructor->SetManager(factory);
-    if (!constructor->BeginCreateItem(type, -1)) {
+    if (!constructor->BeginCreateItem(type)) {
         constructor->SetManager(nullptr);
         return false;
     }

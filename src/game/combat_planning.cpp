@@ -123,7 +123,6 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
 double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) {
     const MotionOrder* pathOrder = OrderOf(motionOrder);
     if (pathOrder->kind != kMotionPath) return 0.0f;
-    ObjectWorld(this);
     LocalUnitMotion simulated;
     simulated.motion.Build(motionOrder);
     SightTarget sight;

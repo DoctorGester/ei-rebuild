@@ -117,11 +117,11 @@ void CUnit::SetFightAtWill(int value) {
     MarkChanged(13);
 }
 
-void CUnit::SetAnimationEntries(std::int8_t a, std::int8_t b, int c, std::int8_t d) {
-    animationEntry = a;
-    secondEntry = b;
-    actionSound = d;
-    animationStart = c;
+void CUnit::SetAnimationEntries(std::int8_t entry, std::int8_t second, int start, std::int8_t sound) {
+    animationEntry = entry;
+    secondEntry = second;
+    actionSound = sound;
+    animationStart = start;
     MarkChanged(8);
 }
 

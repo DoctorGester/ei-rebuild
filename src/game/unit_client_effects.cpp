@@ -93,9 +93,6 @@ std::uint32_t DecalVariant() { return static_cast<std::uint32_t>(libcrt::RandBel
 
 std::uint32_t DecalKind(std::uint32_t variant, std::uint32_t blood) { return variant | (blood + 0xFFFF) << 16; }
 
-const UnitModelRecord* ModelOf(CUnit* unit) {
-    return unit->GetPrototypeModel();
-}
 
 // The smaller of the unit's two horizontal extents (the select keeps above.y for NaN).
 float SmallerExtent(const CUnit* unit) {
@@ -131,7 +128,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (flags & UnitStatsFlag::Alive) return;
     EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
-    std::string material = ModelOf(unit)->hitMaterial;
+    std::string material = unit->GetPrototypeModel()->hitMaterial;
     if (unit->MapType() == MapObjectType::Hero) {
         // Heroes sound by the armour over the location (the model's material without one), mapped
         // to "stone", "Metal" or "leather".
@@ -153,7 +150,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     const HitPart& hit = kHitParts[location];
     auto* part = unit->FindPartByPrefix(hit.name);
     if (!part || !(unit->flags_ & MapObjectFlag::FiguresLoaded)) return;
-    std::uint32_t blood = ModelOf(unit)->bloodKind;
+    std::uint32_t blood = unit->GetPrototypeModel()->bloodKind;
     if (blood >= 1 && blood <= 8) {
         auto* source = g_clientWorld.particleManager_->CreateSource(kBloodParticles[blood - 1]);
         source->localPosition_ = {0.0f, 0.0f, kBloodHeight};
@@ -197,7 +194,7 @@ void CUnitClientSpecific::Wound() {
 
 void CUnitClientSpecific::Died() {
     unit->MapObject()->ClientCompanion()->HideLight();
-    std::uint32_t blood = ModelOf(unit)->bloodKind;
+    std::uint32_t blood = unit->GetPrototypeModel()->bloodKind;
     if (blood == 0 || blood > kLastDecalBlood) return;
     Vector3 at;
     float size;
