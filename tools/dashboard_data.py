@@ -3,7 +3,7 @@
 For each sampled first-parent commit of main (and the working tree last) it computes, from that
 commit's own files:
   - lines of code under src/ (game, lib, render, hook) and tests/;
-  - cleanup artefacts: At<>/Field<> uses, VCall uses, __asm blocks, float_control pragmas, scenarios;
+  - cleanup artefacts: At<>/Field<> uses, VCall uses, __asm blocks, float_control pragmas, x87 remains, scenarios;
   - standalone readiness (docs/notes/standalone.md): what still ties the code to the original exe
     (game data addresses, uses of the exe's MFC / STLport / CRT / imports)
     and the single-byte text sites a UTF-8 switch has to visit;
@@ -83,6 +83,11 @@ CLEANUP = {
     'vcall': re.compile(r'\bVCall\b'),
     'asm_blocks': re.compile(r'\b__asm\b'),
     'float_control': re.compile(r'#\s*pragma\s+float_control'),
+    # x87 remains (C30, user 2026-10-29): casts that pin a precision, the x87 emulation helpers, the CRT's _ftol.
+    'float_casts': re.compile(r'\bstatic_cast<float>'),
+    'double_casts': re.compile(r'\bstatic_cast<double>'),
+    'x87_helpers': re.compile(r'\bx87::\w+'),
+    'ftol_calls': re.compile(r'\bFtol\s*\('),
 }
 
 # Standalone readiness: qualified uses of the exe's runtime through src/lib, and text sites that

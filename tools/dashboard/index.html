@@ -274,7 +274,9 @@ function render(data) {
     ['Game data addresses (distinct literals)', 'data_addresses'], ['Struct names defined in several files', 'structs_defined_twice'],
     ['Anonymous namespaces', 'anonymous_namespaces']]) + peakRows('cleanup', [
     ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
-    ['Raw game addresses', 'raw_addresses'], ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control']]);
+    ['Raw game addresses', 'raw_addresses'], ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control'],
+    ['static_cast<float>', 'float_casts'], ['static_cast<double>', 'double_casts'], ['x87:: helper calls', 'x87_helpers'],
+    ['Ftol calls', 'ftol_calls']]);
   document.querySelector('#standalone tbody').innerHTML = peakRows('standalone', [
     ['MFC strings (CString)', 'mfc_strings'], ['MFC arrays', 'mfc_arrays'], ['MFC lists', 'mfc_lists'],
     ['MFC maps', 'mfc_maps'], ['MFC files and archives', 'mfc_files'],
@@ -313,6 +315,11 @@ function render(data) {
     lineChart(h, [{ name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
                   { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
       { title: 'x87', note: 'Inline assembly and precision pragmas kept for bit-exact x87 maths.' }),
+    lineChart(h, [{ name: 'static_cast<float>', color: accent, get: p => p.cleanup.float_casts },
+                  { name: 'static_cast<double>', color: '#4a6fa5', get: p => p.cleanup.double_casts },
+                  { name: 'x87:: helpers', color: good, get: p => p.cleanup.x87_helpers },
+                  { name: 'Ftol calls', color: muted, get: p => p.cleanup.ftol_calls }],
+      { title: 'x87 remains', note: 'Precision-pinning casts and x87 emulation calls (C30): plain float maths replaces them where game state allows.' }),
     lineChart(h, [{ name: 'src/game', color: accent, get: p => p.loc['src/game'] },
                   { name: 'src/standalone', color: good, get: p => p.loc['src/standalone'] },
                   { name: 'src/render', color: '#4a6fa5', get: p => p.loc['src/render'] }],
