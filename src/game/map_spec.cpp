@@ -132,17 +132,13 @@ void ObjectSpec::OnChunk() {
     case 0xB007: parentIname = c.ReadString(); break;
     case 0xB008: skinTexture = c.ReadString(); break;
     case 0xB009: position = c.ReadVector3(); break;
-    case 0xB00A: {
-        Quaternion q;
-        std::memcpy(&rotation, c.ReadQuaternion(&q.w), sizeof(Quaternion));
-        break;
-    }
+    case 0xB00A: rotation = c.ReadQuaternion(); break;
     case 0xB00C:
         scale.y = c.ReadFloat();
         scale.x = c.ReadFloat();
         scale.z = c.ReadFloat();
         break;
-    case 0xB00D: c.ReadStringArray(&parts); break;
+    case 0xB00D: parts = c.ReadStringArray(); break;
     case 0xB00E: primaryTexture = c.ReadString(); break;
     case 0xB00F: comment = c.ReadString(); break;
     case 0xB011: side = c.ReadByte(); break;

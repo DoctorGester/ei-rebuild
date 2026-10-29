@@ -244,7 +244,7 @@ void UnitSpec::OnChunk() {
     case 0xBBBB0006:
     case 0xBBBB0007:
     case 0xBBBB0008:
-    case 0xBBBB0009: c.ReadStringArray(&record.lists[c.id_ - 0xBBBB0005]); break;
+    case 0xBBBB0009: record.lists[c.id_ - 0xBBBB0005] = c.ReadStringArray(); break;
     case 0xBBBB000A: record.applyStats = c.ReadByte(); break;
     case 0xBBBC0000: {
         BehaviourChunk reader(this);

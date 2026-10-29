@@ -273,13 +273,16 @@ public:
     int eyesClosed;
 };
 
-// The figure part names a unit of prototype `prototype` shows with the armour pieces `armourIds` (appended to
-// `names`: "<part>.armor<number>", the hair as "hr.<hair>.armor<number>" unless the prototype has no hair,
-// -1), the parts of the weapons `weaponIds` (also into `names`), and every plain part of the three rows (into
-// `plainNames`, the hair as "hr.<hair>"; the empty names of the helmet row too).
-
-void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>* armourIds,
-                                       const std::vector<std::uint32_t>* weaponIds,
-                                       std::vector<std::string>* names, std::vector<std::string>* plainNames);
+// The figure part names of a unit, worn first, then the plain parts.
+struct ArmourPartNames {
+    std::vector<std::string> worn;
+    std::vector<std::string> plain;
+};
+// The figure part names a unit of prototype `prototype` shows with the armour pieces `armourIds` (worn:
+// "<part>.armor<number>", the hair as "hr.<hair>.armor<number>" unless the prototype has no hair, -1), the
+// parts of the weapons `weaponIds` (also worn), and every plain part of the three rows (plain, the hair as
+// "hr.<hair>"; the empty names of the helmet row too).
+ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>& armourIds,
+                                       const std::vector<std::uint32_t>& weaponIds);
 
 inline CUnitClientSpecific* CUnit::ClientController() const { return static_cast<CUnitClientSpecific*>(controller); }

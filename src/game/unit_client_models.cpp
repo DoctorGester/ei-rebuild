@@ -310,11 +310,11 @@ void CUnitClientSpecific::UpdateArrow() {
     }
 }
 
-void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>* armourIds,
-                                       const std::vector<std::uint32_t>* weaponIds,
-                                       std::vector<std::string>* names, std::vector<std::string>* plainNames) {
+ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>& armourIds,
+                                       const std::vector<std::uint32_t>& weaponIds) {
+    ArmourPartNames names;
     char text[0x401];
-    for (const auto& id : *armourIds) {
+    for (const auto& id : armourIds) {
         const itemdb::ArmorRecord* armour = ArmourRecord(id >> 16);
         if (!armour) continue;
         int row = RowOfSlot(armour->type);
@@ -329,11 +329,10 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
             } else {
                 std::snprintf(text, sizeof(text), "%s.armor%.2d", plain, armour->number);
             }
-            std::string name(text);
-            names->push_back(name);
+            names.worn.push_back(text);
         }
     }
-    for (const auto& id : *weaponIds) AppendWeaponModelParts(id, names);
+    for (const auto& id : weaponIds) AppendWeaponModelParts(id, &names.worn);
 
     // Every plain part of the three rows. All seven names of each row are walked (the
     // test on the name's address never fails), so the empty names of the helmet row go in too.
@@ -344,14 +343,13 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
                 int hair = prototype->hair;
                 if (hair == -1) continue;
                 std::snprintf(text, sizeof(text), "hr.%.2d", hair);
-                std::string name(text);
-                plainNames->push_back(name);
+                names.plain.push_back(text);
             } else {
-                std::string name(plain);
-                plainNames->push_back(name);
+                names.plain.push_back(plain);
             }
         }
     }
+    return names;
 }
 
 // --- Skin -------------------------------------------------------------------------------------

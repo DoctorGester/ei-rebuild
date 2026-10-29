@@ -94,7 +94,7 @@ void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
     chunk.ReadHeader();
     chunk.ReadBytes(diplomacy->relations, sizeof(diplomacy->relations));
     chunk.ReadHeader();
-    chunk.ReadStringArray(&diplomacy->names);
+    diplomacy->names = chunk.ReadStringArray();
 }
 
 // The scripts' text, plain or encoded.

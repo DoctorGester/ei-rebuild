@@ -206,7 +206,7 @@ void SoundSpec::OnChunk() {
     case 0xCC07: maxInterval = c.ReadInt(); break;
     case 0xCC08: comment = c.ReadString(); break;
     case 0xCC0A:
-        c.ReadStringArray(&sounds);
+        sounds = c.ReadStringArray();
         break;
     case 0xCC0B: radius = c.ReadInt(); break;
     case 0xCC0D: ambient = c.ReadByte() == 1; break;

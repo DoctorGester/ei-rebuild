@@ -168,17 +168,12 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(record->prototype);
     const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-    std::vector<std::string> first;
-    std::vector<std::string> second;
-
-    if (record->names.empty()) {
-        CollectArmourPartNames(prototype, &record->items, &record->extraWeapons, &first,
-                               &second);
-    } else {
-        first.reserve(first.size() + record->names.size());
-        for (const std::string& name : record->names) first.push_back(name);
+    std::vector<std::string> first = record->names;
+    if (first.empty()) {
+        ArmourPartNames parts = CollectArmourPartNames(prototype, record->items, record->extraWeapons);
+        first = std::move(parts.worn);
+        first.insert(first.end(), parts.plain.begin(), parts.plain.end());
     }
-    first.insert(first.end(), second.data(), second.data() + second.size());
 
     {
         std::string name(model->figureName.c_str());

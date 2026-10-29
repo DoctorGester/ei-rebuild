@@ -39,7 +39,7 @@ public:
     int ReadInt();
     std::uint8_t ReadByte();
     Vector3 ReadVector3();
-    float* ReadQuaternion(float* out);      // 16 bytes (default 1, 0, 0, 0); returns out
+    Quaternion ReadQuaternion();            // 16 bytes (default 1, 0, 0, 0)
     void ReadBytes(void* data, int size);
     // Whole chunks holding one value. Floats are taken as their bits (stack arguments), so the
     // bytes written are exactly the caller's.
@@ -54,7 +54,7 @@ public:
     std::string ReadString();
     std::string ReadEncodedString();
     void WriteString(std::uint32_t id, std::string text);
-    void ReadStringArray(std::vector<std::string>* array);
+    std::vector<std::string> ReadStringArray();
     void WriteStringArray(std::uint32_t id, const std::vector<std::string>* array);
 
     std::uint32_t id_;
