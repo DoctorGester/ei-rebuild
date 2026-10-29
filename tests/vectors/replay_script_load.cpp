@@ -15,7 +15,6 @@
 #include <cstring>
 #include <deque>
 #include <iterator>
-#include <list>
 #include <string>
 #include <utility>
 #include <vector>

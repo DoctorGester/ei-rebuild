@@ -29,7 +29,10 @@ neither depends on the heap or on memory layout.
    byte layout is kept only where bytes leave the process (save files, network packets).
 3. **One implementation of each library facility.** Containers and strings are the standard ones;
    files, the CRT and Win32 come from one place each, not from ports of the game's copies, except where a
-   golden shows the game's behaviour differs.
+   golden shows the game's behaviour differs. A sequence is a `std::vector` unless pointers or iterators
+   into it are kept while it grows, or it grows while it is walked; then a `std::list`, with a comment
+   saying which. No type inherits from a container: it holds one (a sorted set like `ScriptGroup` gives
+   read access and changes its members only through its methods). C63a-e go area by area.
 4. **Plain C++ arithmetic.** No naked x87 transcriptions or `float_control` pragmas except where a
    documented test shows the plain version changes gameplay.
 5. **Original behaviour by default, fixes on top.** The code does what the original did, original
