@@ -262,7 +262,7 @@ public:
     // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags bit 1.
     void OnDamaged(CUnit* attacker, int hitKind);
     // The allied witnesses that see `victim` add `murderer` to their visible list and turn hostile to it.
-    void WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer);
+    void WitnessMurder(const HeldUnits* witnesses, CUnit* victim, CUnit* murderer);
     // When the unit's flags have 0x80000: clears it, adds its hostile mask to claimedHostile and swaps
     // hostility claims with the allied units nearby.
     void PropagateHostility();
@@ -477,7 +477,7 @@ public:
     // The units lifted off the sector map for a path: away from `point`, those near it
     // outside the player's group; the party members that move (with `moving`) or follow this unit. Only for a
     // player's units with sessionKind 1.
-    std::list<CUnit*> LiftNearby(const Vector3& point, char moving);
+    std::vector<CUnit*> LiftNearby(const Vector3& point, char moving);
     // Messages 0x0E / 0x01 to a party unit's player, unless the brain's mode is 6.
     void ReportPath(AIPath* path, char partial);
     // Every field to its start value (constructor and Load).

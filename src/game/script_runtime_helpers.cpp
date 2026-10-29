@@ -25,7 +25,7 @@ bool AIMap::MoveInSectors(CMapObject* object, const Vector3& position) {
     return Sectors(this)->Move(object, position);
 }
 
-std::list<CUnit*> AIMap::FindUnitsInRadius(const Vector3& position, float radius) {
+std::vector<CUnit*> AIMap::FindUnitsInRadius(const Vector3& position, float radius) {
     return Sectors(this)->FindUnitsInRadius(position, radius);
 }
 

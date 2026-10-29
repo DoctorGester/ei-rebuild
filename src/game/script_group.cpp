@@ -8,7 +8,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <list>
 
 namespace {
 
@@ -169,11 +168,11 @@ void ScriptGroup::RemoveDeleted() {
     }
 }
 
-void ScriptGroup::InsertAll(const std::list<HeldRef<CUnit>>* list) {
+void ScriptGroup::InsertAll(const std::vector<HeldRef<CUnit>>* list) {
     for (CUnit* unit : *list) Insert(unit);
 }
 
-void ScriptGroup::CopyToList(std::list<HeldRef<CUnit>>* list) const {
+void ScriptGroup::CopyToList(std::vector<HeldRef<CUnit>>* list) const {
     list->clear();
     for (const ScriptObjectRef& ref : *this) list->push_back(static_cast<CUnit*>(ref.object.Get()));
 }

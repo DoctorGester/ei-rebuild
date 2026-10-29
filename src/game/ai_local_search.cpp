@@ -4,6 +4,7 @@
 #include "ai_map.h"
 
 #include "lib/crt.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 
@@ -219,10 +220,11 @@ void LocalSearch::PathTo(int x, int y, PathCells* out) {
         return PathCell{static_cast<std::int16_t>(originX + cx), static_cast<std::int16_t>(originY + cy),
                         static_cast<std::uint16_t>(stale), static_cast<std::uint16_t>(stale >> 16)};
     };
+    // Walk back along the directions, then turn the cells round: the start first.
     for (;;) {
         std::int8_t direction = NodeAt(this, wx, wy)->direction;
         if (!direction) break;
-        out->push_front(cellAt(wx, wy));
+        out->push_back(cellAt(wx, wy));
         switch (direction) {
         case 1: --wy; break;
         case 2: --wy; --wx; break;
@@ -235,7 +237,8 @@ void LocalSearch::PathTo(int x, int y, PathCells* out) {
         default: break;
         }
     }
-    out->push_front(cellAt(wx, wy));
+    out->push_back(cellAt(wx, wy));
+    std::ranges::reverse(*out);
 }
 
 bool LocalSearch::PlaceWindow(int x0, int y0, int x1, int y1) {

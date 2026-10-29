@@ -5,6 +5,7 @@
 
 #include "lib/crt.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -139,8 +140,8 @@ void RegionMap::LabelRegions() {
     }
 }
 
-std::list<BlockCost> RegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y) {
-    std::list<BlockCost> out;
+std::vector<BlockCost> RegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y) {
+    std::vector<BlockCost> out;
     int bx = x / 8, by = y / 8;
     if (BlocksWide(this) - 1 < bx) bx = BlocksWide(this) - 1;
     if (bx < 0) bx = 0;
@@ -294,7 +295,7 @@ bool RegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, in
 
 int RegionMap::DominantRegion(int sizeClass, int x, int y) {
     // The reachable blocks around the cell.
-    std::list<BlockCost> blocks = NearbyBlocks(sizeClass, false, x, y);
+    std::vector<BlockCost> blocks = NearbyBlocks(sizeClass, false, x, y);
     // Count the blocks per region, in first-seen order (the original keeps a list of {region, count}; at most
     // nine entries).
     std::uint16_t seen[9];
@@ -319,7 +320,6 @@ int RegionMap::DominantRegion(int sizeClass, int x, int y) {
             best = counts[i];
             region = seen[i];
         }
-    blocks.clear();
     return region;
 }
 
@@ -354,8 +354,7 @@ bool RegionMap::JoinBlockSearches(PathCells* chain) {
     if (ok) {
         forward.PathTo(x, y, chain);
         backward.PathTo(x, y, &scratch);
-        PathCells reversed;
-        chain->Append(scratch.Reversed(&reversed));
+        chain->insert(chain->end(), scratch.rbegin(), scratch.rend());
         PathCellsRemoveRepeats(chain);
     }
     return ok;
@@ -372,9 +371,9 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCells* 
         PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), 0, 0};
         return c;
     };
-    // Walk back along the stored directions (1..8; 0 ends), each cell added at the head.
+    // Walk back along the stored directions (1..8; 0 ends), then turn the cells round: the start first.
     while (int dir = search.records[y][x].backDirection) {
-        path->push_front(cellAt(x, y));
+        path->push_back(cellAt(x, y));
         switch (dir) {
         case 1: --y; break;
         case 2: --y; --x; break;
@@ -387,7 +386,8 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCells* 
         default: break;
         }
     }
-    path->push_front(cellAt(x, y));
+    path->push_back(cellAt(x, y));
+    std::ranges::reverse(*path);
 }
 
 void RegionMap::MeasureBlockEdges(int bx, int by) {

@@ -117,10 +117,7 @@ void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, 
     for (int i = 0; i < std::ssize(*area); ++i) {
         const TrapCircle& circle = (*area)[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
-        std::list<CUnit*> found = sectors->FindUnitsInRadius(point, circle.radius);
-        for (auto node = found.begin(); node != found.end();) {
-            CUnit* unit = *node;
-            ++node;
+        for (CUnit* unit : sectors->FindUnitsInRadius(point, circle.radius)) {
             if (unit->IsDead()) continue;
             int side = unit->side;
             if (sides & (1u << (side & 31))) out->push_back(unit);   // SHL by CL: the count is taken mod 32

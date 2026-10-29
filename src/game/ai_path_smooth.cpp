@@ -5,6 +5,7 @@
 
 #include "ei/x87.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 
@@ -178,96 +179,108 @@ int PathSmoother::Smooth(CUnit* unit, AIMap* mapArg, PathCells* path, int startD
         // planner's list vtable); ours get the plain words.
         path->clear();
         PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), kPlainStepSpeed, 0};
-        path->push_front(tail);
+        path->push_back(tail);
         for (const SmoothNode* node = bestNode; node; node = node->prev) {
             PathCell stepped{};
-            path->front().Step(&stepped, node->direction);
+            path->back().Step(&stepped, node->direction);
             SetPlainCellWords(&stepped);
-            path->push_front(stepped);
+            path->push_back(stepped);
         }
+        std::ranges::reverse(*path);
     }
 }
 
 // ---- The transition tables ----------------------------------------------------------------------
 
+namespace {
+
 // The seven states of a cell crossed by the straight step (mx, my), with (sx, sy) the step to its side: the
 // step itself, the same step one cell to either side, the diagonal moves into and out of the cell on either
 // side.
-void SmoothEdges::AddStraightEdges(int mx, int my, int sx, int sy) {
-    push_back(SmoothEdge{0, 0, mx, my, 0});
-    push_back(SmoothEdge{-sx, -sy, mx - sx, my - sy, 0});
-    push_back(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
-    push_back(SmoothEdge{-sx, -sy, mx, my, 0});
-    push_back(SmoothEdge{0, 0, mx + sx, my + sy, 0});
-    push_back(SmoothEdge{sx, sy, mx, my, 0});
-    push_back(SmoothEdge{0, 0, mx - sx, my - sy, 0});
+std::vector<SmoothEdge> StraightEdges(int mx, int my, int sx, int sy) {
+    return {
+        SmoothEdge{0, 0, mx, my, 0},
+        SmoothEdge{-sx, -sy, mx - sx, my - sy, 0},
+        SmoothEdge{sx, sy, mx + sx, my + sy, 0},
+        SmoothEdge{-sx, -sy, mx, my, 0},
+        SmoothEdge{0, 0, mx + sx, my + sy, 0},
+        SmoothEdge{sx, sy, mx, my, 0},
+        SmoothEdge{0, 0, mx - sx, my - sy, 0},
+    };
 }
 
 // The nine states of a cell crossed by the diagonal step (mx, my), with (sx, sy) one of its two straight
 // halves and (ox, oy) the other.
-void SmoothEdges::AddDiagonalEdges(int mx, int my, int sx, int sy) {
+std::vector<SmoothEdge> DiagonalEdges(int mx, int my, int sx, int sy) {
     const int ox = mx - sx, oy = my - sy;
-    push_back(SmoothEdge{0, 0, mx, my, 0});
-    push_back(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
-    push_back(SmoothEdge{sx - mx, sy - my, sx, sy, 0});
-    push_back(SmoothEdge{ox, oy, mx + ox, my + oy, 0});
-    push_back(SmoothEdge{ox - mx, oy - my, ox, oy, 0});
-    push_back(SmoothEdge{0, 0, sx, sy, 0});
-    push_back(SmoothEdge{0, 0, ox, oy, 0});
-    push_back(SmoothEdge{sx, sy, mx, my, 0});
-    push_back(SmoothEdge{ox, oy, mx, my, 0});
+    return {
+        SmoothEdge{0, 0, mx, my, 0},
+        SmoothEdge{sx, sy, mx + sx, my + sy, 0},
+        SmoothEdge{sx - mx, sy - my, sx, sy, 0},
+        SmoothEdge{ox, oy, mx + ox, my + oy, 0},
+        SmoothEdge{ox - mx, oy - my, ox, oy, 0},
+        SmoothEdge{0, 0, sx, sy, 0},
+        SmoothEdge{0, 0, ox, oy, 0},
+        SmoothEdge{sx, sy, mx, my, 0},
+        SmoothEdge{ox, oy, mx, my, 0},
+    };
 }
 
-void SmoothEdges::BuildEdges(int direction, bool incoming) {
-    SmoothEdges* edges = this;
-    edges->clear();
+// The states of a cell the path crosses in `direction` (1..8): seven moves for a straight step, nine for a
+// diagonal one. Direction 0 (the path's ends) gives the eight moves from the cell to its neighbours, or from the
+// neighbours to it when `incoming`. Each state's index is its place.
+std::vector<SmoothEdge> EdgesOf(int direction, bool incoming) {
+    std::vector<SmoothEdge> edges;
     switch (direction) {
     case 0:
         for (int d = 1; d <= 8; ++d) {
             PathCell origin{0, 0, 0, 0}, neighbour{0, 0, 0, 0};
             origin.Step(&neighbour, d);
-            if (incoming) edges->push_back(SmoothEdge{-neighbour.x, -neighbour.y, 0, 0, 0});
-            else edges->push_back(SmoothEdge{0, 0, neighbour.x, neighbour.y, 0});
+            if (incoming) edges.push_back(SmoothEdge{-neighbour.x, -neighbour.y, 0, 0, 0});
+            else edges.push_back(SmoothEdge{0, 0, neighbour.x, neighbour.y, 0});
         }
         break;
-    case 1: edges->AddStraightEdges(0, -1, 1, 0); break;
-    case 2: edges->AddDiagonalEdges(-1, -1, 0, -1); break;
-    case 3: edges->AddStraightEdges(-1, 0, 0, -1); break;
-    case 4: edges->AddDiagonalEdges(-1, 1, -1, 0); break;
-    case 5: edges->AddStraightEdges(0, 1, -1, 0); break;
-    case 6: edges->AddDiagonalEdges(1, 1, 0, 1); break;
-    case 7: edges->AddStraightEdges(1, 0, 0, 1); break;
-    case 8: edges->AddDiagonalEdges(1, -1, 1, 0); break;
+    case 1: edges = StraightEdges(0, -1, 1, 0); break;
+    case 2: edges = DiagonalEdges(-1, -1, 0, -1); break;
+    case 3: edges = StraightEdges(-1, 0, 0, -1); break;
+    case 4: edges = DiagonalEdges(-1, 1, -1, 0); break;
+    case 5: edges = StraightEdges(0, 1, -1, 0); break;
+    case 6: edges = DiagonalEdges(1, 1, 0, 1); break;
+    case 7: edges = StraightEdges(1, 0, 0, 1); break;
+    case 8: edges = DiagonalEdges(1, -1, 1, 0); break;
     default: break;
     }
-    for (int i = 0; i < std::ssize(*edges); ++i) (*edges)[i].index = i;
+    for (int i = 0; i < std::ssize(edges); ++i) edges[i].index = i;
+    return edges;
 }
 
-void SmoothTable::Build(const SmoothEdges* from, const SmoothEdges* to) {
+} // namespace
+
+void SmoothTable::Build(const std::vector<SmoothEdge>& from, const std::vector<SmoothEdge>& to) {
     copies.clear();
     steps.clear();
     chained.clear();
-    for (int i = 0; i < std::ssize(*from); ++i) {
-        for (int j = 0; j < std::ssize(*to); ++j) {
-            const SmoothEdge& a = (*from)[i];
-            const SmoothEdge& b = (*to)[j];
+    for (int i = 0; i < std::ssize(from); ++i) {
+        for (int j = 0; j < std::ssize(to); ++j) {
+            const SmoothEdge& a = from[i];
+            const SmoothEdge& b = to[j];
             if (a.x0 == b.x0 && a.y0 == b.y0 && a.x1 == b.x1 && a.y1 == b.y1) copies.push_back(SmoothCopy{i, j});
         }
     }
-    for (int i = 0; i < std::ssize(*from); ++i) {
-        for (int j = 0; j < std::ssize(*to); ++j) {
-            const SmoothEdge& a = (*from)[i];
-            const SmoothEdge& b = (*to)[j];
+    for (int i = 0; i < std::ssize(from); ++i) {
+        for (int j = 0; j < std::ssize(to); ++j) {
+            const SmoothEdge& a = from[i];
+            const SmoothEdge& b = to[j];
             if (a.x1 != b.x0 || a.y1 != b.y0) continue;
             SmoothStep step;
             MakeSmoothStep(&step, &a, &b);
             steps.push_back(step);
         }
     }
-    for (int i = 0; i < std::ssize(*to); ++i) {
-        for (int j = 0; j < std::ssize(*to); ++j) {
-            const SmoothEdge& a = (*to)[i];
-            const SmoothEdge& b = (*to)[j];
+    for (int i = 0; i < std::ssize(to); ++i) {
+        for (int j = 0; j < std::ssize(to); ++j) {
+            const SmoothEdge& a = to[i];
+            const SmoothEdge& b = to[j];
             if (a.x1 != b.x0 || a.y1 != b.y0) continue;
             SmoothStep step;
             MakeSmoothStep(&step, &a, &b);
@@ -286,9 +299,8 @@ SmoothTableSet BuildSmoothTables() {
     SmoothTableSet tables;
     for (int previous = 0; previous < kStates; ++previous) {
         for (int next = 0; next < kStates; ++next) {
-            SmoothEdges from, to;
-            from.BuildEdges(previous, false);
-            to.BuildEdges(next, true);
+            std::vector<SmoothEdge> from = EdgesOf(previous, false);
+            std::vector<SmoothEdge> to = EdgesOf(next, true);
             if (previous != 0) {
                 // The previous step's states are relative to the cell it left.
                 PathCell origin{0, 0, 0, 0}, back{0, 0, 0, 0};
@@ -301,7 +313,7 @@ SmoothTableSet BuildSmoothTables() {
                     edge.y1 += back.y;
                 }
             }
-            tables[previous * kStates + next].Build(&from, &to);
+            tables[previous * kStates + next].Build(from, to);
         }
     }
     return tables;

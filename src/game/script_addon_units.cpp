@@ -13,7 +13,6 @@
 #include "ei/hook.h"
 
 #include <cstdint>
-#include <list>
 #include <type_traits>
 
 namespace scriptaddon {
@@ -40,8 +39,7 @@ bool PassesFilter(EngineObject* object, bool units, bool others, bool living) {
 template <typename Visit>
 void ForObjectsNear(float x, float y, float radius, Visit visit) {
     Vector3 point = {x, y, 0.0f};
-    std::list<CUnit*> list = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(point, radius);
-    for (auto& node : list) visit(node);
+    for (CUnit* unit : g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(point, radius)) visit(unit);
 }
 
 // A float field of the unit's data object, 0 and invalid arguments without one.

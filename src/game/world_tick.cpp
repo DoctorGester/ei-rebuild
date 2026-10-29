@@ -28,7 +28,7 @@ namespace {
 
 // SectorMap, inlined here (bounds check and address only). The unit list of sector (x, y), or null outside the
 // map.
-std::list<CUnit*>* SectorUnits(SectorMap* map, int x, int y) {
+std::vector<CUnit*>* SectorUnits(SectorMap* map, int x, int y) {
     if (x < 0 || y < 0 || x >= map->width || y >= map->height) return nullptr;
     return &map->sectors[map->width * y + x].units;
 }
@@ -84,11 +84,7 @@ void WorldServer::WakeUnitsAround(const Vector3& position, float radius) {
     for (int i = 0; i < count; ++i, offsets += 2) {
         auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);
         if (!units) continue;
-        for (auto unitNode = units->begin(); unitNode != units->end();) {
-            CUnit* unit = *unitNode;
-            ++unitNode;
-            AddToUpdateMap(unit);
-        }
+        for (CUnit* unit : *units) AddToUpdateMap(unit);
     }
 }
 

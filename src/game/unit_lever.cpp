@@ -15,7 +15,6 @@
 #include <cstring>
 
 #include <cmath>
-#include <list>
 
 void Lever::SetState(int wanted, float duration) {
     // A negative duration takes the model's default.
@@ -42,12 +41,8 @@ void Lever::SetState(int wanted, float duration) {
     if (!world->IsServer()) return;
     SectorMap* sectors = &world->aiMap.sectorMap;
     float reach = bounds.radius + 0.5f;
-    std::list<CUnit*> around = sectors->FindUnitsInRadius(localPosition, reach);
-    for (auto node = around.begin(); node != around.end();) {
-        auto next = std::next(node);
-        sectors->Remove(*node);
-        node = next;
-    }
+    std::vector<CUnit*> around = sectors->FindUnitsInRadius(localPosition, reach);
+    for (CUnit* unit : around) sectors->Remove(unit);
     AIMap* map = &world->aiMap;
     map->refreshUnits = keepsMapFlag;   // the byte as it is
     map->BeginRefresh();

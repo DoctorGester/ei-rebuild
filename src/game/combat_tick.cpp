@@ -26,7 +26,6 @@
 
 #include <bit>
 #include <cstring>
-#include <list>
 
 namespace {
 constexpr float kPointOne = 0.1f;
@@ -261,15 +260,11 @@ bool UnitServer::StartMove() {
         return result;
     }
     // Plan the way with the units near the goal lifted off the sector map.
-    std::list<CUnit*> lifted = LiftNearby(action.point, action.source != 0);
+    std::vector<CUnit*> lifted = LiftNearby(action.point, action.source != 0);
     AIMap* map = &ServerWorld()->aiMap;
     unit->altPassCosts = map->InWaterAt(unit->localPosition);
     bool found = PathTo(action.point, action.point.z);
-    for (auto node = lifted.begin(); node != lifted.end();) {
-        CUnit* current = *node;
-        ++node;
-        world->aiMap.sectorMap.Add(current);
-    }
+    for (CUnit* other : lifted) world->aiMap.sectorMap.Add(other);
     bool arrived = false;
     if (action.param) {
         action.param = 0;

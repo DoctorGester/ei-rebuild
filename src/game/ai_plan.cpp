@@ -11,7 +11,6 @@
 
 
 #include <cstring>
-#include <list>
 
 namespace {
 
@@ -43,7 +42,7 @@ bool AIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AI
     // 8x8 block), then the target.
     int curX = fromX, curY = fromY;
     int bestX = fromX, bestY = fromY;
-    std::list<Waypoint> waypoints;
+    std::vector<Waypoint> waypoints;
     SearchGrid<std::uint8_t>& cellRows = regionMap.cells[sizeClass];
     PathCells::iterator previous = chain.begin();
     for (PathCells::iterator node = chain.begin(); node != chain.end(); ++node) {
@@ -60,7 +59,7 @@ bool AIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AI
     bool result = true;
     bool reachedLast = true;   // the previous leg ended on its waypoint
     int legs = 0;
-    std::list<Waypoint>::iterator failedAt;
+    std::vector<Waypoint>::iterator failedAt;
     bool failed = false;
     for (auto w = waypoints.begin(); w != waypoints.end();) {
         auto next = std::next(w);

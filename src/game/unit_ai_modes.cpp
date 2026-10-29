@@ -23,7 +23,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <utility>
 
 namespace {
@@ -379,7 +378,7 @@ void AggressionMode::Save(ByteStream* stream) {
 int CorpseWatcherMode::Evaluate(AIBrain* brain) {
     if (!brain->memory.corpses.empty()) {
         HeldRef<CUnit> corpse = std::move(brain->memory.corpses.front());   // the list's reference, now ours
-        brain->memory.corpses.pop_front();
+        brain->memory.corpses.erase(brain->memory.corpses.begin());
         brain->memory.Notice(corpse->localPosition, kNoticeCorpseLevel, kNoticeCorpseDecay);
     }
     return kPriorityNone;
@@ -883,9 +882,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     UnitList candidates = brain->memory.FindEnemiesNear(unit, point, radius);
     // Only enemies that could notice the unit (1.1 x the larger of their sight and hearing).
-    for (auto node = candidates.begin(); node != candidates.end();) {
-        auto next = std::next(node);
-        auto* other = *node;
+    std::erase_if(candidates, [unit](CUnit* other) {
         UnitServer* control = other->ServerController();
         float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.perception[0].current);
         float hearing = control->stats.perception[2].current;
@@ -894,9 +891,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         double limit = static_cast<double>(reach) * kReachScale;
         double dy = static_cast<double>(other->localPosition.y) - unit->localPosition.y;
         double dx = static_cast<double>(other->localPosition.x) - unit->localPosition.x;
-        if (limit * limit < LengthSquared2DUnrounded(dx, dy)) candidates.erase(node);
-        node = next;
-    }
+        return limit * limit < LengthSquared2DUnrounded(dx, dy);
+    });
     AddPartyTargets(brain, &candidates);
     unit->flags |= MapObjectFlag::ChoosingTarget;
     AITargetChoice best = brain->Choose(&candidates, unit->localPosition, false, false);
@@ -1100,13 +1096,9 @@ bool AIBrain::FindStandPoint(const Vector3& point, float radius, Vector3* out) {
 
     // No unit of an allied player may stand near it.
     CUnit* self = owner->unit;
-    std::list<CUnit*> units = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(*out, self->standingHeight * kAllySpace);
-    for (auto node = units.begin(); node != units.end(); ++node) {
-        auto* other = *node;
-        if (g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
-            units.clear();
-            return false;
-        }
+    UnitList units = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(*out, self->standingHeight * kAllySpace);
+    for (CUnit* other : units) {
+        if (g_serverWorld.diplomacy.IsAllied(other->side, self->side)) return false;
     }
 
     bool result = true;

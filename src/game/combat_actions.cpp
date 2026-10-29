@@ -223,7 +223,7 @@ BlowSide UnitServer::HitDirection(CUnit* attacker, int hitKind) {
     return frontStored > 0.0f ? BlowSide::Front : BlowSide::Back;
 }
 
-void UnitServer::WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer) {
+void UnitServer::WitnessMurder(const HeldUnits* witnesses, CUnit* victim, CUnit* murderer) {
     WorldServer* world = ServerWorld();
     Diplomacy* diplomacy = DiplomacyOf(unit->ServerWorld());
     int side = unit->side;

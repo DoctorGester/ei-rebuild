@@ -143,16 +143,10 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     // Other objects: the units around the new place are taken off the sector map, moved off cells
     // they cannot stay in, and put back.
     float radius = object->bounds.radius + object->bounds.radius;
-    std::list<CUnit*> units = map->FindUnitsInRadius(*Position(object), radius);
-    for (auto pos = units.begin(); pos != units.end();) {
-        CUnit* unit = *pos;
-        ++pos;
-        map->RemoveFromSectors(unit);
-    }
-    for (auto pos = units.begin(); pos != units.end();) {
+    std::vector<CUnit*> units = map->FindUnitsInRadius(*Position(object), radius);
+    for (CUnit* unit : units) map->RemoveFromSectors(unit);
+    for (CUnit* unit : units) {
         Vector3 free;
-        CUnit* unit = *pos;
-        ++pos;
         if (!map->CanLeaveCell(unit)) {
             free = *Position(unit);
             map->FindFreeCellNear(unit, *Position(unit), &free);

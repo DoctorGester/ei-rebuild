@@ -70,9 +70,9 @@ public:
     void Insert(EngineObject* object);
     // Also empty slots.
     void RemoveDeleted();
-    void InsertAll(const std::list<HeldRef<CUnit>>* list);
+    void InsertAll(const std::vector<HeldRef<CUnit>>* list);
     // Replaces the list's contents (an AI memory list).
-    void CopyToList(std::list<HeldRef<CUnit>>* list) const;
+    void CopyToList(std::vector<HeldRef<CUnit>>* list) const;
     bool Contains(EngineObject* object) const;
     // A count and that many object ids, then sorted.
     void Load(ByteStream* stream);

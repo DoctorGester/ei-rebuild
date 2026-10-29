@@ -20,7 +20,6 @@
 #include <bit>
 #include <cstdlib>
 #include <cstring>
-#include <list>
 #include <memory>
 #include <vector>
 
@@ -109,9 +108,7 @@ EngineObject** CollectMapObjects(WorldServer* world, CPlayer* player, PlayerServ
         float minimum = controller->stats.perception[2].current;
         float range = perception >= minimum ? perception : minimum;   // branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * kHearingScale + kHearingMargin);
-        std::list<CUnit*> heard = world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius);
-        for (auto& entry : heard) *out++ = entry;
-        heard.clear();
+        for (CUnit* heard : world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius)) *out++ = heard;
     }
     return out;
 }

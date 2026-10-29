@@ -27,7 +27,6 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include <list>
 
 namespace {
 
@@ -457,10 +456,10 @@ bool UnitServer::PathTo(const Vector3& point, float range) {
     return true;
 }
 
-std::list<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
+std::vector<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     WorldServer* world = ServerWorld();
     CPlayer* player = unit->player;
-    std::list<CUnit*> list;
+    std::vector<CUnit*> list;
     if (!player || player->sessionKind != 1) return list;
     // Away from the point: the units near it that are not in the player's group are lifted off the sector map
     // and stay in the list.
@@ -469,17 +468,11 @@ std::list<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
     float dz = point.z - unit->localPosition.z;
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f) {
         SectorMap* sectors = &world->aiMap.sectorMap;
-        list = sectors->FindUnitsInRadius(point, 4.0f);
         const ScriptGroup* group = &player->Server()->partyUnits;
-        for (auto node = list.begin(); node != list.end();) {
-            std::list<CUnit*>::iterator  current = node;
-            ++node;
-            CUnit* other = *current;
-            if (group->Contains(other) == 0) {
-                sectors->Remove(other);
-                continue;
-            }
-            list.erase(current);
+        for (CUnit* other : sectors->FindUnitsInRadius(point, 4.0f)) {
+            if (group->Contains(other) != 0) continue;
+            sectors->Remove(other);
+            list.push_back(other);
         }
     }
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
@@ -492,8 +485,7 @@ std::list<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
         bool lift = moving && (controller->action.kind == UnitOrderKind::Move || controller->action2.kind == UnitOrderKind::Move);
         if (!lift) lift = controller->brain.LeaderOrFollowed() == unit;
         if (!lift) continue;
-        auto added = list.emplace(list.end());
-        *added = member;
+        list.push_back(member);
         g_serverWorld.aiMap.sectorMap.Remove(member);
     }
     return list;

@@ -100,8 +100,7 @@ void BlockSearch::Expand() {
 
 bool RegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y) {
     bool seeded = false;
-    std::list<BlockCost> blocks = NearbyBlocks(sizeClass, flag, x, y);
-    for (auto& node : blocks) {
+    for (const BlockCost& node : NearbyBlocks(sizeClass, flag, x, y)) {
         int cost = node.cost / 128;
         BlockRecord* record = &search->records[node.y][node.x];
         if (cost > record->cost) continue;
@@ -110,7 +109,6 @@ bool RegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x,
         seeded = true;
     }
     search->PickBest();
-    blocks.clear();
     return seeded;
 }
 

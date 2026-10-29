@@ -8,7 +8,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <vector>
 
 class AIMap;
@@ -58,8 +57,8 @@ struct Sector {
     // Puts record `index` on the free list.
     void FreeOccluder(int index);
 
-    std::list<CMapObject*> objects;      // non-unit objects
-    std::list<CUnit*> units;
+    std::vector<CMapObject*> objects;    // non-unit objects
+    std::vector<CUnit*> units;
     int freeOccluder;                            // head of the free records (-1 none)
     std::vector<SectorOccluder> occluders;
 };
@@ -105,9 +104,9 @@ public:
     // Undone again if the footprint does not fit.
     bool Add(CMapObject* object);
 
-    // The units within `radius` of `position`, nearest sectors first; each match is inserted at the head of
-    // the list.
-    std::list<CUnit*> FindUnitsInRadius(const Vector3& position, float radius);
+    // The units within `radius` of `position`. The original inserts each match at the head of its list, so the
+    // result runs from the last sector of the spiral back to the nearest, each sector's units last first.
+    std::vector<CUnit*> FindUnitsInRadius(const Vector3& position, float radius);
 
     // Moves `object` to `position`, re-stamping its footprint (restored on failure) and
     // moving it between sector lists when it crosses into another sector. Rebirth's FixMoveObject
@@ -115,7 +114,7 @@ public:
     bool Move(CMapObject* object, const Vector3& position);
 
     // The unit list of sector (sx, sy), null outside the map.
-    std::list<CUnit*>* UnitsAt(int sx, int sy);
+    std::vector<CUnit*>* UnitsAt(int sx, int sy);
 
     // Unregisters `object` from the sector it was added to and clears its footprint.
     bool Remove(CMapObject* object);
