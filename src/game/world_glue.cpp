@@ -79,7 +79,7 @@ void StoreStartFolder() {
     char folder[kFolderBufferSize];
     gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
     std::string text = folder;
-    *g_startFolder = text + '\\';
+    g_startFolder = text + '\\';
 }
 
 // ---- A-W13: the rest of the glue -----------------------------------------------------------------

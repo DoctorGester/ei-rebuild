@@ -41,7 +41,7 @@ void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
 void CWorld::Create() {
     paused_ = 0;
     *g_dataFolder = worlddata::ConfiguredDataPath();
-    *g_textFolder = worlddata::ConfiguredTextPath();
+    g_textFolder = worlddata::ConfiguredTextPath();
     *g_discFolder = worlddata::ConfiguredBasePath();
     tick_ = 0;
     // The wind: along x, no strength.
@@ -73,7 +73,6 @@ void CWorld::Create() {
 }
 
 CWorld::CWorld() {
-    ClearFields();
     worldHandle_.ptr = nullptr;
     netSession_.ptr = nullptr;
     players_ = nullptr;

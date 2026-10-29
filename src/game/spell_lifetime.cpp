@@ -41,7 +41,6 @@ void CSpell::SetEffect(const MapEffect& record) {
 }
 
 CSpell::CSpell() {
-    ClearFields();
     prototypeIndex_ = 0;
     effectPower_ = 0;
     duration_ = 0;

@@ -234,9 +234,9 @@ void PumpMessages() {
 }
 
 int StartFirstMap() {
-    const auto& cmdMap = *g_commandLineMap;    // map on the command line
-    const auto& cmdMode = *g_commandLineMob;   // empty: main menu
-    const auto& cmdScript = *g_commandLineScript;
+    const auto& cmdMap = g_commandLineMap;    // map on the command line
+    const auto& cmdMode = g_commandLineMob;   // empty: main menu
+    const auto& cmdScript = g_commandLineScript;
     std::string map;
     map = cmdMap.size() != 0 ? cmdMap : options::g_options->defaultMapName_;
     if (str::Compare(cmdMode,

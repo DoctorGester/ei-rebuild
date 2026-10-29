@@ -119,7 +119,6 @@ void CRainSnow::Start(int newMode, float duration) {
 }
 
 CRainSnow::CRainSnow() {
-    ClearFields();
 
     world = nullptr;
     sound = 0;
@@ -245,7 +244,6 @@ void CVisibilityFog::ClearCells() {
 }
 
 CVisibilityFog::CVisibilityFog() {
-    ClearFields();
     std::memset(static_cast<void*>(&bounds), 0, offsetof(CVisibilityFog, cells) - offsetof(CVisibilityFog, bounds));
     boundsValid = 0;
 }

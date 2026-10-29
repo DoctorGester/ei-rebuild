@@ -190,8 +190,6 @@ public:
     // Has the object an active effect of type `type` (compared with MapEffect::type)?
     bool HasEffect(SpellType type);
 
-    void SetUpMapObject();
-
     // The per-tick update: lets the companion update. CUnit's update calls it after its controller's.
     void Update();
 
@@ -291,7 +289,6 @@ protected:
 class CMapObjectCompanion : public CEngineObject {
 public:
     CMapObjectCompanion() {
-        ClearFields();
         owner = nullptr;
     }
     ~CMapObjectCompanion() override;

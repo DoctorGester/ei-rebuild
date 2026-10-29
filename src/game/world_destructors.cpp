@@ -58,6 +58,5 @@ CWorldServer::~CWorldServer() {
     ReleaseAndClear(counted_);
     projectiles_.clear();
     diplomacy_.Reset();
-    Messages()->Destroy();
     exits_.clear();
 }

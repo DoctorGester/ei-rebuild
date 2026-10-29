@@ -131,11 +131,7 @@ void ReadCompleteBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingRe
 bool QuestDatabase::LoadRegistry(const void* image) {
     QuestDatabase* db = this;
     CFileRegistry reg;
-    reg.Construct();
-    if (!reg.Attach(image)) {
-        reg.Destroy();
-        return false;
-    }
+    if (!reg.Attach(image)) return false;
 
     QuestRecord quest{};
     {
@@ -148,7 +144,6 @@ bool QuestDatabase::LoadRegistry(const void* image) {
         ReadRejectBriefing(reg, db, &briefing);
         ReadCompleteBriefing(reg, db, &briefing);
     }
-    reg.Destroy();
     return true;
 }
 

@@ -829,11 +829,11 @@ void CWorldClient::Create() {
     sounds_->Create();
     texts_->Create();
     {
-        std::string path = *g_textFolder + worlddata::TextsFileText();
+        std::string path = g_textFolder + worlddata::TextsFileText();
         texts_->AddSource(path);
     }
     {
-        std::string path = *g_textFolder + worlddata::TextsLmpFileText();
+        std::string path = g_textFolder + worlddata::TextsLmpFileText();
         texts_->AddSource(path);
     }
 

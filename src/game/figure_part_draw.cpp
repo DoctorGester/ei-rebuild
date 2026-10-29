@@ -27,10 +27,8 @@
 
 namespace {
 
-// The positions with the offsets added (a function-local static, freed at exit).
-constinit std::vector<VertexPacket> g_movedPositions = /*007C2E48*/ {};
-void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
-std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
+// The positions with the offsets added.
+std::vector<VertexPacket> g_movedPositions;
 
 // --- Helpers -------------------------------------------------------------------------------------
 
@@ -265,11 +263,6 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const std::vector<CLight*>
     CTransformObject* owner = mesh_->object_;
     Part part{this, device, lights, material, alpha, rect, textureA, textureB,
               owner ? static_cast<CLinkMesh*>(static_cast<CObject3D*>(owner)->figure) : nullptr, 0};
-    if (!(g_movedPositionsGuard & 1)) {
-        g_movedPositionsGuard |= 1;
-        g_movedPositions = std::vector<VertexPacket>{};
-        std::atexit(FreeMovedPositions);
-    }
 
     int visibility = device->pipeline_->ClipTest(&part.node->mesh_->box_.bounds);
     if (visibility == 2) return 1;

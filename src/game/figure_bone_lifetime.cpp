@@ -15,7 +15,6 @@ void ReleaseMesh(CFigureMesh* mesh) { mesh->Release(); }
 
 // The names are members (empty strings before the body).
 FigureBone::FigureBone() {
-    ClearFields();
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     CreateBone();
 }

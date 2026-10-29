@@ -25,38 +25,15 @@ namespace {
 using devicebuffers::ProjectedVertex;
 
 // The strip's work buffers.
-constinit std::vector<TLVertex> g_strip = /*007AF000*/ {};   // TL vertices of the points
-void FreeStrip() { lib::FreeStorage(g_strip); }
-constinit std::vector<TLVertex> g_ribbon = /*007AF010*/ {};   // TL vertices, two per point
-void FreeRibbon() { lib::FreeStorage(g_ribbon); }
-constinit std::vector<ProjectedVertex> g_projected = /*007AF020*/ {};
-void FreeProjected() { lib::FreeStorage(g_projected); }
-constinit std::vector<std::uint16_t> g_indices = /*007AF030*/ {};
-void FreeIndices() { lib::FreeStorage(g_indices); }
-constinit std::vector<std::uint8_t> g_clipped = /*007AF040*/ {};   // a flag byte per point
-void FreeClipped() { lib::FreeStorage(g_clipped); }
-std::uint8_t g_guards = /*007AF050*/ {};   // the function-local arrays constructed
+std::vector<TLVertex> g_strip;          // TL vertices of the points
+std::vector<TLVertex> g_ribbon;         // TL vertices, two per point
+std::vector<ProjectedVertex> g_projected;
+std::vector<std::uint16_t> g_indices;
+std::vector<std::uint8_t> g_clipped;    // a flag byte per point
 // The texture coordinates of the next cross section: u and the two v values.
 float g_bottomV = /*007AF054*/ {};
 float g_topV = /*007AF058*/ {};
 float g_currentU = /*007AF05C*/ {};
-
-// One function-local static array: constructed empty once (its guard bit), destroyed at exit.
-template <typename T>
-void EnsureStatic(std::uint8_t bit, std::vector<T>& array, void(* onExit)()) {
-    if (g_guards & bit) return;
-    array = std::vector<T>{};
-    g_guards |= bit;
-    std::atexit(onExit);
-}
-
-void EnsureStatics() {
-    EnsureStatic(1, g_clipped, FreeClipped);
-    EnsureStatic(2, g_indices, FreeIndices);
-    EnsureStatic(4, g_projected, FreeProjected);
-    EnsureStatic(8, g_ribbon, FreeRibbon);
-    EnsureStatic(0x10, g_strip, FreeStrip);
-}
 
 // --- Cross sections ------------------------------------------------------------------------------
 
@@ -168,7 +145,6 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
     const int pointCount = static_cast<int>(std::ssize(*pointArray));
     CTransformPipeline* pipeline = pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
-    EnsureStatics();
 
     const auto n = static_cast<std::size_t>(pointCount);
     g_projected.resize(n);

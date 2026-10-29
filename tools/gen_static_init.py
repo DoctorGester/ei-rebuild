@@ -875,6 +875,44 @@ UNUSED_INITIALISERS = {
                 "g_sendBuffer",
     0x00432CE0: "the network's receive buffer 0079B8E0 (exit function 00432D00, bit 1 of 0079B8FC): net_session.cpp's "
                 "g_receiveBuffer",
+    # C50d: plain globals of ours in place of the static objects.
+    0x00408D30: "the chunk archive's class registry 0079B270 (exit function 00408D50): chunk_archive.cpp's "
+                "g_classRegistry",
+    0x0042D8E0: "the clip work words 0079B668 (exit function 0042D900): clip.cpp's g_workWords",
+    0x00455CE0: "the camera file 0079BA1C (exit function 00455D00): app_main.cpp's app::g_cameraFile",
+    0x00455D10: "the command line's script 0079BA18 (exit function 00455D30): app_main.cpp's app::g_commandLineScript",
+    0x00455D40: "the command line's mob file 0079BA14 (exit function 00455D60): app_main.cpp's app::g_commandLineMob",
+    0x00455D70: "the command line's map 0079BA10 (exit function 00455D90): app_main.cpp's app::g_commandLineMap",
+    0x00455DA0: "the movie folder 0079BA0C (exit function 00455DC0): app_main.cpp's app::g_movieFolder",
+    0x004DB870: "a hash_set 007AB8D8 (exit function 004DB890) that only the original reads",
+    0x0055E760: "the registry root 007AF450 (exit function 0055E780, bit 0 of 007AF438): game_folders.cpp's "
+                "g_registryRoot",
+    0x0055E7A0: "the start folder 007AF454 (exit function 0055E7C0, bit 1 of 007AF438): game_folders.cpp's "
+                "g_startFolder",
+    0x0055E820: "the text folder 007AF45C (exit function 0055E840, bit 3 of 007AF438): game_folders.cpp's "
+                "g_textFolder",
+    0x005DC050: "the cheat command map 007C7B38 (exit function 005DC070): console_streams.cpp's "
+                "console::g_cheatCommands",
+    0x005DC120: "the public command map 007C7B28 (exit function 005DC140): console_streams.cpp's "
+                "console::g_publicCommands",
+    # C50d: the draws' work arrays are plain globals of ours.
+    0x0049B460: "the line lists' vertices 007A9CE0 (exit function 0049B490): renderer_lines.cpp's g_lineVertices",
+    0x0049B6B0: "the line lists' outcodes 007A9CC8 (exit function 0049B6D0): renderer_lines.cpp's g_lineOutcodes",
+    0x0049B6E0: "the line lists' projected points 007A9CB8 (exit function 0049B710): renderer_lines.cpp's "
+                "g_lineProjected",
+    0x004E5C40: "the device's outcodes 007AEE30 (exit function 004E5C70): device_buffers.cpp's g_outcodes",
+    0x004E5C90: "the device's corner outcodes 007AEE20 (exit function 004E5CC0): device_buffers.cpp's g_cornerOutcodes",
+    0x004E5CE0: "the device's projected vertices 007AEE10 (exit function 004E5D10): device_buffers.cpp's g_projected",
+    0x004E5D30: "the device's vertices 007AEE00 (exit function 004E5D60): device_buffers.cpp's g_vertices",
+    0x004E5DD0: "the device's clip indices 007AEDE0 (exit function 004E5E00): device_buffers.cpp's g_clipIndices",
+    0x004F2AF0: "the moved packets 007AEED0 (exit function 004F2B20): link_mesh_draw.cpp's g_movedPackets",
+    0x005A0C80: "the offset vertices 007C2E18 (exit function 005A0CB0): figure_mesh.cpp's g_offsetVertices",
+    0x006BFA00: "the terrain projection's input 007C88F8 (exit function 006BFA30, bit 0 of 007C88C9): "
+                "terrain_sector.cpp's g_projectionInput",
+    0x006BFA60: "the terrain projection's output 007C88E8 (exit function 006BFA90, bit 1 of 007C88C9): "
+                "terrain_sector.cpp's g_projectionOutput",
+    0x006BFAC0: "the terrain projection's outcodes 007C88D0 (exit function 006BFAE0, bit 2 of 007C88C9): "
+                "terrain_sector.cpp's g_projectionOutcodes",
 }
 
 
@@ -1156,6 +1194,20 @@ RUNTIME_SITES = set()
 # Functions whose port registers none of the original's function-local statics' exit functions (C18): their
 # runtime atexit sites never run, like dead code's. begin -> (end, why).
 RETIRED_STATICS = {
+    # C50d
+    0x00502CA0: (0x00503680, "CSceneRenderer::DrawSprites (renderer_sprites.cpp) uses plain globals of ours: the "
+                             "original's work arrays 007AEF60..007AEFA0 (guard byte 007AEFB0) and sort arrays "
+                             "007AEFB8..007AEFE8 (guard byte 007AEFF8) are never made"),
+    0x00501D90: (0x00502A20, "CSceneRenderer::DrawStrip (renderer_strip.cpp) uses plain globals of ours: the original's "
+                             "work arrays 007AF000..007AF040 (guard byte 007AF050) are never made"),
+    0x006C8ED0: (0x006C9270, "Terrain::SetSun (terrain_animation.cpp) sorts the lit sectors in a local: the original's "
+                             "static array 007C8938 (guard bit 0 of 007C8948, freed by 006C9270) is never made"),
+    0x005A7640: (0x005A7A50, "FigureMeshDrawer::DrawPlain (figure_part_draw_plain.cpp) uses a plain global of ours: the "
+                             "original's moved positions 007C2E60 (guard bit 0 of 007C2E70, freed by 005A7A50) are "
+                             "never made"),
+    0x005A7A70: (0x005A8AE0, "FigureMeshDrawer::DrawLit (figure_part_draw.cpp) uses a plain global of ours: the "
+                             "original's moved positions 007C2E48 (guard bit 0 of 007C2E58, freed by 005A8AE0) are "
+                             "never made"),
     # C50c
     0x004346D0: (0x00434980, "Connection::CollectChanges (net_connection.cpp) lists the replicated objects in a local: "
                              "the original's static vector 0079B8D0 (guard bit 0 of 0079B8DC, freed by 00434980) is "

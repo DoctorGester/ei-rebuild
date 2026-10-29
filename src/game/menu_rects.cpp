@@ -4,7 +4,6 @@
 #include "registry.h"
 #include "game_strings.h"
 
-#include "lib/static_object.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -39,31 +38,24 @@ constexpr MenuRect kRects[] = {
 } // namespace
 
 int CFigureManager::LoadMenuRects(RECT* rects) {
-    // The.reg reader (0x18 bytes on the stack, constructed and destroyed by hand).
-    lib::InPlace<CFileRegistry> storage;
-    auto* reg = storage.Get();
-    reg->Construct();
+    CFileRegistry reg;
     // The manager's GetFile: the resource file's data.
     void* file = GetFile(game::menutexts::MenusReg(), nullptr);
-    if (!file || !reg->Attach(file)) {
-        int result = game::FatalError(file ? game::menutexts::CantParse() : game::menutexts::CantOpen());
-        reg->Destroy();
-        return result;
+    if (!file || !reg.Attach(file)) {
+        return game::FatalError(file ? game::menutexts::CantParse() : game::menutexts::CantOpen());
     }
     std::vector<std::int32_t> values;
     for (const MenuRect& entry : kRects) {
         values.clear();
-        reg->GetIntArray(entry.section, entry.name, &values);
+        reg.GetIntArray(entry.section, entry.name, &values);
         if (std::ssize(values) != 4) {
             int result = game::FatalError(entry.error);
             lib::FreeStorage(values);
-            reg->Destroy();
             return result;
         }
         gameapi::SetRect(&rects[entry.index], values[0], values[1], values[2],
                          values[3]);
     }
     lib::FreeStorage(values);
-    reg->Destroy();
     return 1;
 }

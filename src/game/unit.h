@@ -132,7 +132,6 @@ class CUnitClientSpecific;
 class CUnitController : public CEngineObject {
 public:
     CUnitController() {
-        ClearFields();
         unit = nullptr;
     }
     ~CUnitController() override;

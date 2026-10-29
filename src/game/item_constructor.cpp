@@ -248,7 +248,6 @@ void CItemConstructor::Destroy() {
 }
 
 CItemConstructor::CItemConstructor() {
-    ClearFields();
     material_ = nullptr;
     prototype_ = nullptr;
     spell_ = nullptr;

@@ -62,7 +62,6 @@ void CTexture::Destroy() {
 }
 
 CTexture::CTexture() {
-    ClearFields();
     name_.clear();
     DropSurface(this);
     height_ = 0;

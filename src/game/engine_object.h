@@ -111,10 +111,11 @@ class CWorld;
 class CWorldClient;
 class CWorldServer;
 
-// Base of the engine's objects and managers. No constructor: the derived classes' constructors call ClearFields.
+// Base of the engine's objects and managers. A spare a manager hands out again (CBaseManager::CreateObject) is not
+// constructed again: the manager sets its flags, type, id and owner.
 class CEngineObject {
 public:
-
+    CEngineObject() = default;
     virtual ~CEngineObject();
     virtual void CopyFrom(const CEngineObject& other); // flags_, type_, prototypeId_
     virtual void Create() = 0;
@@ -142,16 +143,17 @@ public:
     // The world the object belongs to, or null without a context.
     CWorld* World() const;
     CBaseManager* SetOwner(CBaseManager* owner);
+    // The constructor's values again (the interface window's constructor still calls it).
     void ClearFields();
 
-    int refCount_;
-    std::uint32_t flags_;
-    int id_;                // -1 until a manager registers the object
-    int type_;              // class-specific kind (texture usage for CTexture)
-    CBaseManager* owner_;
+    int refCount_ = 0;
+    std::uint32_t flags_ = 0;
+    int id_ = -1;           // -1 until a manager registers the object
+    int type_ = 0;          // class-specific kind (texture usage for CTexture)
+    CBaseManager* owner_ = nullptr;
     // The database prototype: items pack its index (high word) with the material (low word), spells keep the
     // index in the high word, units the plain index.
-    std::uint32_t prototypeId_;
+    std::uint32_t prototypeId_ = 0;
 };
 
 // A counted engine object's id saved (-1: none) or read back: -1 resets `ref`, any other id is looked up in

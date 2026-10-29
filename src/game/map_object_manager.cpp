@@ -51,7 +51,7 @@ void CMapObjectManager::Create() { CreateManager(); }
 CEngineObject* CMapObjectManager::CreateObject(int type, int id) { return CreateMapObject(type, id); }
 
 void CMapObjectManager::CreateManager() {
-    std::string folder = *g_textFolder;
+    std::string folder = g_textFolder;
     CBaseManager::Create();
     AddArchive((folder + "database.res"));
 }

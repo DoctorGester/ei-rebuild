@@ -73,20 +73,6 @@ bool GetDwordArray(CFileRegistry* registry, const char* section, const char* key
 } // namespace
 
 
-CFileRegistry* CFileRegistry::Construct() {
-    file_.Construct();
-    attached_ = 0;
-    data_ = nullptr;
-    return this;
-}
-
-void CFileRegistry::Destroy() {
-    if (!attached_) file_.Close();
-    attached_ = 0;
-    data_ = nullptr;
-    file_.Close();                   // the mapped file's destructor
-}
-
 bool CFileRegistry::Open(const std::string& path) {
     if (!file_.Open(path, 0)) return false;
     attached_ = 0;

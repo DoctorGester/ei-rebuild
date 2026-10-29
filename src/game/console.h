@@ -162,8 +162,8 @@ using CommandMap = std::map<std::string, CommandHandler, str::MbsLess>;
 CommandHandler& Command(CommandMap* map, const std::string& key);
 
 // The commands always available and those after the cheat word.
-extern lib::StaticObject<CommandMap> g_publicCommands;
-extern lib::StaticObject<CommandMap> g_cheatCommands;
+extern CommandMap g_publicCommands;
+extern CommandMap g_cheatCommands;
 
 // The registrations the executor makes on every call, in its order: map, name, handler.
 struct CommandRegistration {

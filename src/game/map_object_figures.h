@@ -173,7 +173,6 @@ class CObject3DClientSpecific;
 class CObject3DSpecific : public CEngineObject {
 public:
     CObject3DSpecific() {
-        ClearFields();
         object = nullptr;
     }
     ~CObject3DSpecific() override;
@@ -489,12 +488,6 @@ public:
     int AttachPartMesh(CEngineObject* part);
     // The animation state (if any) goes to frame 0 and places the skeleton.
     void RestartPose();
-
-
-    // The fields the constructor sets past the engine object's and the name, and the destructor's work but for the
-    // name.
-    void SetUpObject3D();
-    void TearDownObject3D();
 
     // The same half on the client (defined in map_object_shadow.h).
     CObject3DClientSpecific* ClientSpecific() const;

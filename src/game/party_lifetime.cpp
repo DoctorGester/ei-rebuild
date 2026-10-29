@@ -61,7 +61,6 @@ void PartyUnitRecord::ClearItems() {
 // --- The managers and constructors a party makes ------------------------------------------------
 
 CSpellConstructor::CSpellConstructor() {
-    ClearFields();
     manager_ = nullptr;
 }
 
@@ -69,7 +68,7 @@ CSpellManager::CSpellManager() {
     maxSequenceKey_ = 0;
 }
 
-CParty::CParty() { ClearFields(); }
+CParty::CParty() = default;
 
 CParty::~CParty() {
     Clear(1, 1);

@@ -64,7 +64,7 @@ void FrameStep(bool draw, bool cursor) {
     g_cursor->ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];
-    std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", g_movieFolder->c_str(), g_movieFrame);
+    std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", g_movieFolder.c_str(), g_movieFrame);
     lib::File file;
     if (!file.Open(path, lib::File::modeCreate | lib::File::modeWrite)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
@@ -82,21 +82,18 @@ void FrameStep(bool draw, bool cursor) {
 // from the movie directory).
 void PlayMovies(const std::string& section, int a) {
     std::vector<std::string> list;
-    lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the game's own calls
-    CIniFile* ini = iniStorage.Get();
-    ini->Construct();
+    CIniFile ini;
     {
         std::string path;
-        ini->SetPath((*ConcatText(&path, &g_dataFolder.Get(), "config\\movie.ini")));
+        ini.SetPath((*ConcatText(&path, &g_dataFolder.Get(), "config\\movie.ini")));
     }
-    ini->GetList(section.c_str(), "movies", &list, ',');
+    ini.GetList(section.c_str(), "movies", &list, ',');
     for (const std::string& movie : list) {
         {
             const std::string full = g_discFolder->c_str() + std::string("Movies\\") + movie;
             PlayMovie(full, 0, 1, 0, 0, static_cast<char>(a));
         }
     }
-    ini->Destruct();
 }
 
 } // namespace app

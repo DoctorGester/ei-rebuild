@@ -1,17 +1,17 @@
-// The registry key of the options and the game's folders: five strings, each built empty by its static
-// initialiser in the list's order and destroyed once by the exit function it registers (a guard bit each).
-// The initialisers and exit functions are defined on their names (docs/notes/standalone.md, "The static
-// initialisers' objects").
+// The registry key of the options and the game's folders. The disc's and the data folder are built empty by their
+// static initialisers in the list's order and destroyed once by the exit functions they register (a guard bit each),
+// defined on their names (docs/notes/standalone.md, "The static initialisers' objects"), while the interface's files
+// spell them as static objects; the other three are plain globals.
 #include "game_singletons.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <string>
 
-constinit lib::StaticObject<std::string> g_registryRoot = /*007AF450*/ {};
-constinit lib::StaticObject<std::string> g_startFolder = /*007AF454*/ {};
+std::string g_registryRoot;
+std::string g_startFolder;
+std::string g_textFolder;
 constinit lib::StaticObject<std::string> g_discFolder = /*007AF458*/ {};
-constinit lib::StaticObject<std::string> g_textFolder = /*007AF45C*/ {};
 constinit lib::StaticObject<std::string> g_dataFolder = /*007AF460*/ {};
 
 namespace {
@@ -25,29 +25,14 @@ void DestroyOnce(lib::StaticObject<std::string>& folder, std::uint8_t bit) {
     folder.Destroy();
 }
 
-void DestroyRegistryRoot() { DestroyOnce(g_registryRoot, 1); }
-void DestroyStartFolder() { DestroyOnce(g_startFolder, 2); }
 void DestroyDataFolder() { DestroyOnce(g_dataFolder, 4); }
-void DestroyTextFolder() { DestroyOnce(g_textFolder, 8); }
 void DestroyDiscFolder() { DestroyOnce(g_discFolder, 0x10); }
 
 } // namespace
 
-void ConstructRegistryRoot() {
-    g_registryRoot.Construct();
-    std::atexit(DestroyRegistryRoot);
-}
-void ConstructStartFolder() {
-    g_startFolder.Construct();
-    std::atexit(DestroyStartFolder);
-}
 void ConstructDataFolder() {
     g_dataFolder.Construct();
     std::atexit(DestroyDataFolder);
-}
-void ConstructTextFolder() {
-    g_textFolder.Construct();
-    std::atexit(DestroyTextFolder);
 }
 void ConstructDiscFolder() {
     g_discFolder.Construct();

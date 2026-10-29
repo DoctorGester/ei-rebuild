@@ -53,7 +53,8 @@ to vertex buffers, +0x16C / +0x170 / +0x174 vertex, triangle and call counters),
 (004FCA60). Device draws hold the lock 007AEE78 and store the HRESULT at +8. Shared buffers of the mesh / flat draws:
 007AEDE0 clip output, 007AEE00 TL vertices, 007AEE10 projected vertices (16 bytes each), 007AEE20 corner outcodes, 007AEE30
 vertex outcode bytes (all ..007AEE3C); the vertex buffer path 004E7820 was dead (always returned null; gone since R9b3). Ribbon / sprite
-buffers are function-local statics (007AF000..007AF05C, 007AEF60..007AEFF8).
+buffers are function-local statics (007AF000..007AF05C, 007AEF60..007AEFF8). Ours are plain globals (the ribbon's
+texture coordinates 007AF054..007AF05C stay named).
 
 Rewritten (grep the address): `RendererCreate` 00500B70 (slot 2, RET 8), `DrawRibbon` 00501D90 (slot 16, RET 0x18), `DrawTlTriangles`
 00502A20 and `DrawIndexed` 00503680 (holder thiscall; RET 0x1C), `EmitSection` 00502AC0 (naked transcription), `StripDirection`
@@ -86,7 +87,7 @@ Facts not in the code comments:
   lit, 0x100 flat colours; +0x98 owner (CObject3D, its figure at +0xF0 draws the mesh when present), +0x15C mesh type
   (13..16 animated), +0x188 clip bounds. With 0079BD28 set the mesh named "crown" has every colour pulled 0.6 of the way (0073CDE0) to the
   average. The plain variant (005A7640) clears the drawn flag only after the hidden test, has its own moved-positions static
-  (007C2E60, guard 007C2E70, freed by 005A7A50) and sets the drawn flag whenever the draw did not return 2.
+  (007C2E60, guard 007C2E70, freed by 005A7A50; ours a plain global) and sets the drawn flag whenever the draw did not return 2.
 - **Material draw**: the device's current material (+0x14C): +8 blend flag, +0xC / +0x10 source / destination blend, +0x14
   technique (+8 / +0xC state block handles per pass), +0x18 stage records (0x14 bytes: coordinate index, texture name, +0x10
   counted texture looked up through 00693C60 on first use).

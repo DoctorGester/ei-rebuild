@@ -44,15 +44,6 @@ bool SetDWordValue(void* root, const char* subkey, const char* name, std::uint32
 
 } // namespace
 
-CWinRegistry* CWinRegistry::Construct() {
-    key_ = nullptr;
-    return this;
-}
-
-void CWinRegistry::Destroy() {
-    Close();
-}
-
 bool CWinRegistry::Open(const char* path, std::uint32_t /*root: HKEY_CURRENT_USER for every caller*/) {
     Close();
     key_ = settings_file::CreateKey(path);

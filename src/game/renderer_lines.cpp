@@ -29,9 +29,6 @@ void SetStage0Ops(render::TextureOp op) {
     render::g_renderState.stages[0].combiner.alphaOp = op;
 }
 
-void DestroyLineOutcodes() {   // (the byte array's destructor)
-    g_lineOutcodes.Destroy();
-}
 
 } // namespace
 
@@ -53,16 +50,7 @@ long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, 
     return 0;
 }
 
-// The line lists' work arrays (renderer_lines.h): zero at the start, as the static initialisers
-// leave them; the exit functions they register free the blocks (docs/notes/standalone.md, "The static
-// initialisers' objects"). 's array is never used: config/unread_data.csv.
-constinit std::vector<LineVertex> g_lineVertices = /*007A9CE0*/ {};
-constinit std::vector<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
-constinit lib::StaticObject<std::vector<std::uint8_t>> g_lineOutcodes = /*007A9CC8*/ {};
-
-void FreeLineVertices() { lib::FreeStorage(g_lineVertices); }
-void FreeLineProjected() { lib::FreeStorage(g_lineProjected); }
-void ConstructLineOutcodes() {   // (the byte array's constructor)
-    g_lineOutcodes.Construct();
-    std::atexit(DestroyLineOutcodes);
-}
+// The line lists' work arrays (renderer_lines.h).
+std::vector<LineVertex> g_lineVertices;
+std::vector<ProjectedPoint> g_lineProjected;
+std::vector<std::uint8_t> g_lineOutcodes;

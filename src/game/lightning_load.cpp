@@ -20,7 +20,7 @@ int LoadLightningNoise() {
     CMemoryStream local;
     bool opened;
     {
-        std::string folder = *g_textFolder;
+        std::string folder = g_textFolder;
         std::string path = folder + "gfx.res";
         // Through the vtable.
         opened = resource.Get()->OpenResource(path, 0) != 0;

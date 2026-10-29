@@ -637,7 +637,9 @@ kinds given.
         static_exit.cpp still runs until the CByteArray 007C88D0 is named, C19), and the function-local statics of
         renderer_strip (007AF000-007AF040), renderer_sprites (007AEF90, 007AEFA0, 007AEFB8-007AEFE8),
         figure_rasterise 007C2E00, the two part draws 007C2E48 / 007C2E60, lightning_draw 0079C1D0, particle_render
-        007A9BD0, effects_weather_draw 007ABA30, link_mesh_draw 007AEEB8 and terrain_animation 007C8938. The hand code's
+        007A9BD0, effects_weather_draw 007ABA30, link_mesh_draw 007AEEB8 and terrain_animation 007C8938 (all plain
+        globals or locals of ours since C50b / C50d, with the line lists', the device's and the terrain projection's
+        arrays and the moved packets / offset vertices). The hand code's
         GameAtExit keeps passing the exit function's address (or the port itself). Not named, because unported code
         reaches them: camera 0079B1E0 / 0079B1F8 / 0079B210 (00402310), terrain 007C8890 / 007C88A8 / 007C88B8
         (006BFF40) and 007C8950 (006C8990); their `free` exit functions stay generated until those functions are ported.
@@ -693,16 +695,21 @@ kinds given.
       TYPES `LogicSettings`; the stats recorder reads game.exe's copy), and the constructed statics as
       `lib::StaticObject<T>` (zero storage, STATIC_OBJECT_BYTES) whose initialiser and exit function are ported on the
       name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc: the
-      terrain's projection outcodes 007C88D0, the sector spiral's builder 005BF8E0. A function-local static's exit
+      sector spiral's builder 005BF8E0. A function-local static's exit
       function is ported beside it and the port registers its own (`GameAtExit(DestroyX)`).
-    - **Plain globals and locals instead (C50, C50a, C50b)**: an object of ours that needs no game order is a plain
+    - **Plain globals and locals instead (C50, C50a-d)**: an object of ours that needs no game order is a plain
       global (constructed and destroyed by the C++ runtime), a function-local static or a local, with no address: the
       unit shape cache (ai_movement.cpp), the AI events' pool (ai_events.cpp; the free list 007C53F0 stays named), the
       spells' footprint set, the sector spiral's tables and the smoother's pool and tables; the frame's draw lists and
       deferred units (world_client_view.cpp), the decal builder, the draw work arrays (particles, glow, fog, shadow,
       draw order), the lever table, the quest's objectives and name, the received messages' stream, the client's
       party id set, the zone table and the quest files / folders; the prints database, the network's send and receive
-      buffers (C50c). Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
+      buffers (C50c); the command line's five strings (app_main.cpp), the registry root, start and text folders
+      (game_folders.cpp; the disc and data folders stay static objects while the interface spells them with `*`), the
+      chunk archive's class registry, clip's work words and the console's command maps; the draws' work arrays (line
+      lists, the device's mesh buffers, sprites, strip, terrain projection, the part draws' moved positions, the moved
+      packets and offset vertices) and SetSun's sorted sectors, a local (C50d; the unread set 007AB8D8, which only the
+      original read, went). Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
       exit functions (net_session.cpp) release the sessions, which send leave packets, so they keep the game's exit
       order; at our CRT's exit the harness's network pair has ended (net_pair_zone's mailbox overflowed). Their initialisers are UNUSED_INITIALISERS (the exit
       functions go with them); a function whose port builds none of the original's function-local statics is in
@@ -725,16 +732,15 @@ kinds given.
       it for the harness in game.exe.
     - **The console's streams and command maps (C18s, 121 -> 90)**: console_streams.cpp names the eight streambufs
       (`lib::StaticObject<ConsoleStreambuf>`, 0x454 bytes, 0x458 apart), the eight ostreams (`console::Stream` since C35d,
-      a plain `constinit` object naming its streambuf; TYPES 'Stream' keeps the original's 0x58 bytes) and the two command maps (`lib::StaticObject<CommandMap>`), with their 18 initialisers
-      (005DC050 / 005DC120, 005DC1E0-005DC3F0, 005DC420-005DC5E0) and 18 exit functions ported on the names and
+      a plain `constinit` object naming its streambuf; TYPES 'Stream' keeps the original's 0x58 bytes), with their 16 initialisers
+      (005DC1E0-005DC3F0, 005DC420-005DC5E0) and 16 exit functions ported on the names and
       registered (rows in extra_function_sizes.csv / function_sizes.inc). The log pointers are `constexpr` pointers whose
       initialiser names the stream (`{&console::g_aiLogOut}`: named_data takes a qualified name of a range): unit_hits'
       kHitLog 007AF284, ai_alarm's kAlarmLog 007C2EB8, combat's kCombatLog 007AF3E8, unit_ai's kAiLog 007C53C4 and
       kModeLog 007C54E8; the files write to them as `console::Stream&`.
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
       007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
-      (renderer_lifetime.cpp), the map database 0079BF00, the class registry
-      0079B270 (chunk_archive.cpp), clip's work words 0079B668, the save stream
+      (renderer_lifetime.cpp), the map database 0079BF00, the save stream
       007AFDF8 and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
       out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow, which the renderer reads too), the loading

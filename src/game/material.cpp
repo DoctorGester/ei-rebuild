@@ -46,7 +46,6 @@ MaterialColors& EnterKey(std::unordered_map<unsigned, MaterialColors>& table, un
 
 
 CMaterial::CMaterial() {
-    ClearFields();
     ResetFields(this);
 }
 
@@ -71,7 +70,7 @@ void CMaterialManager::Create() {
     // Rebirth's ResOverride: the mod's archives open here if nothing opened them yet.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
     CBaseManager::Create();
-    const std::string folder = *g_textFolder;
+    const std::string folder = g_textFolder;
     AddArchive((folder + "materials.res"));
 
     for (const MaterialKindFile& kind : kMaterialKindFiles) {

@@ -19,11 +19,11 @@ namespace app {
 // The application's globals: what the command line gave, the folder of the movie frames
 // ("-moviepath_"), a map (".mpr"), a mob file (".mob"), a script (".scr") and the camera file (".cam"); and the
 // mouse object (WinMain keeps one reference).
-extern lib::StaticObject<std::string> g_movieFolder;
-extern lib::StaticObject<std::string> g_commandLineMap;
-extern lib::StaticObject<std::string> g_commandLineMob;
-extern lib::StaticObject<std::string> g_commandLineScript;
-extern lib::StaticObject<std::string> g_cameraFile;
+extern std::string g_movieFolder;
+extern std::string g_commandLineMap;
+extern std::string g_commandLineMob;
+extern std::string g_commandLineScript;
+extern std::string g_cameraFile;
 extern CDirectInputMouse* g_mouse;
 
 // The application's flags and handles. The game window's title (from the string table), the

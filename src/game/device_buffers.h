@@ -16,7 +16,6 @@ namespace devicebuffers {
 struct ProjectedVertex : Vector4 {};
 static_assert(sizeof(ProjectedVertex) == 16);
 
-// The buffers: zero at the start; their exit functions free the blocks.
 extern std::vector<TLVertex> g_vertices;
 extern std::vector<std::uint16_t> g_clipIndices;
 extern std::vector<ProjectedVertex> g_projected;

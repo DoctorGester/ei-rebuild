@@ -12,8 +12,10 @@
 
 class CWinRegistry {
 public:
-    CWinRegistry* Construct();                                    // returns this
-    void Destroy();                                               // closes the key
+    CWinRegistry() = default;
+    ~CWinRegistry() { Close(); }
+    CWinRegistry(const CWinRegistry&) = delete;
+    CWinRegistry& operator=(const CWinRegistry&) = delete;
     // Closes the key, then opens the settings file's `path` (`root`, an HKEY, is
     // HKEY_CURRENT_USER for every caller). Returns 1.
     bool Open(const char* path, std::uint32_t root);
@@ -36,5 +38,5 @@ public:
     std::string GetString(const char* subkey, const char* name, const std::string& defaultValue);
     std::string GetStringInt(const char* subkey, const char* name, const std::string& defaultValue); // REG_SZ
 
-    void* key_;    // the settings file's key, null when closed
+    void* key_ = nullptr;   // the settings file's key, null when closed
 };

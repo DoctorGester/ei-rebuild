@@ -19,7 +19,6 @@ void ReadDifficulties(CFileRegistry& reg, const char* key, float* out) {
 void LogicSettings::Load(const std::string& path) {
     if (loaded) return;
     CFileRegistry reg;
-    reg.Construct();
     reg.Open(path);
     auto read = [&reg](const char* section, const char* key, float& value) {
         value = static_cast<float>(reg.GetFloat(section, key, value));
@@ -73,7 +72,6 @@ void LogicSettings::Load(const std::string& path) {
     ReadDifficulties(reg, "Absorption", absorption);
     ReadDifficulties(reg, "Attack", attack);
     ReadDifficulties(reg, "Defence", defence);
-    reg.Destroy();
 }
 
 LogicSettings* LogicSettings::Construct() {

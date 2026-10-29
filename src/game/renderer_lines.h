@@ -28,7 +28,7 @@ struct ProjectedPoints {
     int count;
 };
 
-// The vertex buffer of the projected line strips, freed at exit.
+// The vertex buffer of the projected line strips.
 extern std::vector<LineVertex> g_lineVertices;
 
 // Four points of a line list as the transform object takes them.
@@ -56,9 +56,9 @@ struct LineBatch {
 };
 
 // The line lists' work arrays: the projected points (x, y, z, rhw each, resized without keeping its contents) and
-// their clip outcodes (a byte array built by a static initialiser).
+// their clip outcodes.
 extern std::vector<ProjectedPoint> g_lineProjected;
-extern lib::StaticObject<std::vector<std::uint8_t>> g_lineOutcodes;
+extern std::vector<std::uint8_t> g_lineOutcodes;
 
 // Draws the points as a connected line strip in `colour`.
 long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

@@ -34,7 +34,6 @@ const char kRecordFolder[] = ".\\camera\\";
 } // namespace
 
 CCamera::CCamera() {
-    ClearFields();
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
     viewRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};

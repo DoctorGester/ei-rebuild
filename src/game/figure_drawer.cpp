@@ -44,7 +44,6 @@ void FigureMeshDrawer::Animate(float time) {
 // ---- Lifetime ---------------------------------------------------------------------------
 
 FigureDrawerBase::FigureDrawerBase() {
-    ClearFields();
     mesh_ = nullptr;
 }
 

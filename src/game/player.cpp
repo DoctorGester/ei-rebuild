@@ -16,7 +16,6 @@
 #include <string>
 
 CPlayer::CPlayer() {
-    ClearFields();
     link_ = nullptr;
     maxObjectId_ = 0;
     maxUnitId_ = 0;

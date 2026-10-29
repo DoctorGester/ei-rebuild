@@ -794,7 +794,6 @@ void CParticleSource::Create() {
 // A source never attached emits distance / emitSpacing tries (each a GlobalRandom draw) from the emission point
 // it was allocated with, so the memory comes zeroed.
 CParticleSource::CParticleSource(int type) {
-    ClearFields();
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
     std::memset(static_cast<void*>(&clip), 0, offsetof(CParticleSource, particles) - offsetof(CParticleSource, clip));

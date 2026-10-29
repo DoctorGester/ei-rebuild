@@ -515,8 +515,7 @@ public:
     std::uint32_t lastRainBoltTick_;      // the tick of the last bolt in the rain (one per 20 ticks); saved
     CHoover* hoover_;                     // counted; made by Setup, deleted by Teardown
     // The server's messages: the login handler reads "SrvErrMsg" / "WrongClientVersion" from it.
-    lib::InPlace<CFileRegistry> messages_;
-    CFileRegistry* Messages() { return messages_.Get(); }
+    CFileRegistry messages_;
     int zoneLoaded_;                      // set by LoadMap, cleared by the teardown and a .mob file that fails to load
     int scriptsActive_;                   // non-zero: Tick runs the zone's script (set by Redeploy)
     Vector3 startPosition_;               // where joining players start
@@ -565,7 +564,6 @@ struct Platform {
 // (AddFace adds at the head).
 class PlatformSet final : public CEngineObject {
 public:
-    PlatformSet();
     ~PlatformSet() override;
     void Create() override;
     void Destroy() override;
