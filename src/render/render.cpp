@@ -45,6 +45,7 @@ using namespace detail;
 bool g_configured = false;
 bool g_smooth = false;
 bool g_smoothCamera = false;
+ViewSmoothing g_smoothView = ViewSmoothing::Off;   // the smooth view (an experiment)
 #if defined(EI_RENDER_VALIDATION)
 bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12
 bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
@@ -54,6 +55,7 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 void ParseSpec(const char* spec) {
     g_smooth = false;
     g_smoothCamera = false;
+    g_smoothView = ViewSmoothing::Off;
 #if defined(EI_RENDER_VALIDATION)
     g_removable = false;
     g_checkAll = false;
@@ -67,6 +69,8 @@ void ParseSpec(const char* spec) {
         while (!word.empty() && word.back() == ' ') word.pop_back();
         if (word == "smooth") g_smooth = true;
         else if (word == "smoothcamera") g_smoothCamera = true;
+        else if (word == "smoothview") g_smoothView = ViewSmoothing::Between;
+        else if (word == "smoothviewspread") g_smoothView = ViewSmoothing::Spread;
 #if defined(EI_RENDER_VALIDATION)
         else if (word == "removable") g_removable = true;
         else if (word == "checkall") g_checkAll = true;
@@ -1048,6 +1052,11 @@ void SetSmoothCamera(bool on) {
 bool SmoothCamera() {
     EnsureConfigured();
     return g_smoothCamera;
+}
+
+ViewSmoothing SmoothView() {
+    EnsureConfigured();
+    return g_smoothView;
 }
 
 void BeginWorld() {

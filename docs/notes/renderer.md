@@ -1554,6 +1554,55 @@ call, so they grow with the frame rate, and a followed unit's position changes o
   the game's key table needs: held without the bit, the arrows did not pan at all), `frametime <ms>`,
   `smoothcamera on|off`, `camtrace` / `camsame` / `camsmooth` (tests/verify/harness_camera.h).
 
+## 14a. The smooth view (an experiment)
+
+User 2026-10-29: R18's option changes the game state (with `EI_RENDER_EXTRA=smoothcamera` all 121 goldens differ
+from boot tick 20: something that depends on the camera draws from the random generators). The smooth view leaves
+the camera (CCamera: its timing, tracking, the listener) as the game has it and changes only the pose the world's
+draw shows. Temporary EI_RENDER words, off by default; R18's option is kept.
+
+- **Where:** camera.cpp (`camera::NoteViewBeforeTick` / `NoteViewTick` around each client tick's camera update in
+  RunWorlds, `SetViewTime` once a pass, `DrawnView`); the view matrix hand-over in `CWorldClient::Render`
+  (world_client_draw.cpp: `view::ViewMatrix` of the drawn pose, and the sky dome at the drawn position);
+  render.h `render::SmoothView()` (`ViewSmoothing`). The rest of the draw reads the camera itself: particle
+  billboards' rotation (particle_draw.cpp), lightning, terrain level-of-detail distance, visible sectors, the
+  weather's eye, the shadow casters' camera; off by up to a tick's motion.
+- **Between** (`smoothview`): the poses after the last two client ticks, drawn at the client clock less a tick
+  (lerp of the position, slerp of the rotation). A tick's pose is timed halfway between the tick's client time and
+  the last frame update's (half the camera's motion comes from each). A cut (a tick that moved the camera more than
+  8 map units or turned it more than about 0.4 rad, or a tick after more than two ticks of real time without one)
+  fills both with the new pose; with no tick for two ticks of real time the camera's own pose is drawn.
+- **Spread** (`smoothviewspread`): the camera's own pose less the part of the last tick's step (the change its
+  camera update made: position, focus, distance; rotations as the turn that undoes it) that the frame has not
+  reached: all of it just after the tick, none a tick later. No step for a cut. With R18's option the ticks do not
+  move the camera, so it draws the camera's own pose.
+- **Picking** reads the last drawn frame's matrices (PickPoint: the view stack, which `Render` pushes; objects:
+  their `dirtyRect`, drawn by those), so with either variant clicks pick what the screen shows. Picking from the
+  camera would miss by the offsets below.
+
+Measured on `camera_smooth` (1280x720, 8 ms frames on the virtual clock), the drawn view through `camtrace`
+(image::Camera reads `DrawnView` while a variant is on, and logs both poses and their pixel offset a frame:
+"harness: smoothview"). Steps over the steady part: mean and coefficient of variation (cv; the game's camera:
+pan 1.23, turn 1.21, zoom 1.22). Lag: the frame shift that best fits the drawn path to the camera's. Offset: the
+largest screen distance between where the camera and the drawn view put the focus and four ground points at half
+the camera's distance around it.
+
+| | jumps pan / turn / zoom / follow | cv pan / turn / zoom / follow | lag | offset max (mean) pan / turn / zoom px |
+|---|---|---|---|---|
+| game | 23 / 20 / 16 / 1 | 1.23 / 1.21 / 1.22 / 0.29 | - | - |
+| R18 option | 0 / 0 / 0 / 0 | 0.09 / 0.00 / 0.10 / 0.33 | 0 | (the camera itself) |
+| Between | 0 / 0 / 0 / 0 | 0.12 / 0.01 / 0.20 / 0.03 | 5 frames (40 ms); zoom starts 4 frames late | 59 (31) / 140 (73) / 44 (16) |
+| Spread | 0 / 0 / 0 / 0 | 0.09 / 0.00 / 0.13 / 0.06 | 2 frames (16 ms); no late start | 30 (11) / 71 (25) / 21 (5) |
+
+- Goldens: all 121 the same with `EI_RENDER_EXTRA=smoothview` and with `smoothviewspread` (picking on the drawn
+  view); only `camera_smooth` fails, on its "jerky" checks of the game's camera (none left to see). The goldens
+  click with the camera at rest, so they do not test a click while it moves.
+- Totals (camsame against the game's camera): pan 13.89 / 13.93, turn 2.368 / 2.358, zoom 14.72 / 14.71
+  (Between / Spread), as without (the camera is the same).
+- Open: how it feels at 120 Hz in play (`set EI_RENDER=smoothviewspread` before play.cmd); the shake is sampled at
+  the ticks by Between (a 4.5 Hz wave at 18 Hz), Spread keeps the frames' part of it; a pass with two ticks
+  (frames longer than a tick) spreads only the last tick's step.
+
 ## 15. The performance overlay (R21)
 
 User 2026-10-22: a small performance overlay in the standalone, switched on from the settings file, no UI.

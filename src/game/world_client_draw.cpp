@@ -197,7 +197,11 @@ int CWorldClient::Render() {
     }
     HandOverSceneLights(this);
     Matrix4 view;
-    view::CameraViewMatrix(view.m, &g_camera);   // (the result is not read)
+    // The smooth view (an experiment, render::SmoothView): the pose between the camera's last two ticks.
+    const bool smoothView = render::SmoothView() != render::ViewSmoothing::Off;
+    const camera::ViewPose drawn = smoothView ? camera::DrawnView(&g_camera) : camera::ViewPose{};
+    if (smoothView) view::ViewMatrix(view.m, drawn.position, drawn.rotation);
+    else view::CameraViewMatrix(view.m, &g_camera);   // (the result is not read)
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
@@ -216,7 +220,7 @@ int CWorldClient::Render() {
         state.cull = render::Cull::None;
         state.specular = true;
         renderer->distanceFog_ = 0;
-        skyDome_->Draw(&g_sceneRenderer, &camera_->localPosition_);
+        skyDome_->Draw(&g_sceneRenderer, smoothView ? &drawn.position : &camera_->localPosition_);
         renderer->distanceFog_ = 1;
         state.cull = render::Cull::Clockwise;
         state.specular = false;

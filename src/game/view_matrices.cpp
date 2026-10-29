@@ -11,12 +11,15 @@
 namespace view {
 
 void CameraViewMatrix(float* out, const CTransformObject* camera) {
-    const Quaternion& q = camera->localRotation_;
+    ViewMatrix(out, camera->localPosition_, camera->localRotation_);
+}
+
+void ViewMatrix(float* out, const Vector3& position, const Quaternion& q) {
     Vector3 axisX;
     q.AxisX(&axisX);
     Vector3 axisY = RotatedAxisY(q);   // inlined copies, the same orders
     Vector3 axisZ = RotatedAxisZ(q);
-    const Vector3 p = camera->localPosition_;
+    const Vector3 p = position;
     out[0] = axisX.x;
     out[1] = axisX.y;
     out[2] = axisX.z;
