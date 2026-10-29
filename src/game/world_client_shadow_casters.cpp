@@ -220,7 +220,7 @@ void HandOverSceneLights(CWorldClient* world) {
     points.clear();
     if (terrain && terrain->mapLoaded) {
         for (auto& node : terrain->lights) {
-            const CLight* light = node.second.light;
+            const CLight* light = node.second;
             if (!light) continue;
             render::ScenePointLight p{};
             p.position = light->localPosition_;

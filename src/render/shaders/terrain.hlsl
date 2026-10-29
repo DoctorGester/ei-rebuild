@@ -1,6 +1,6 @@
 // The landscape's pages (render_terrain.cpp), lit here (scene_lighting.hlsli): the vertices carry the
 // normal, the material colour (colour word) and, on the ground, the light lost under the water (`loss`, 0
-// or more; below 0 on the water layer, whose specular word the game keeps: its specular lights and crests).
+// or more; below 0 on the water layer, whose specular word carries the wave crests).
 #include "shadow_receiver.hlsli"
 #define POINT_SHADOW_B b2
 #define POINT_SHADOW_T t3
@@ -60,9 +60,9 @@ float4 ps_main(vs_out i) : SV_Target0 {
     float len = length(i.normal);
     float3 n = len > 1e-6 ? i.normal / len : float3(0.0, 0.0, 1.0);
     float3 spec, c;
-    if (i.loss < 0.0) {   // the water: no shadow test in the game's lighting, its own specular word
+    if (i.loss < 0.0) {   // the water: no shadow test in the game's lighting; the crests or the specular lights
         float3 light = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, 0.0, 0.0, false, 0.0, spec);
-        c = saturate(t.rgb * light + i.spec.rgb);
+        c = saturate(t.rgb * light + max(spec, i.spec.rgb));
     } else {
         float3 light = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow_on.y, point_shadow_on.x > 0.5,
                                     pixel_turn(i.pos.xy), spec);

@@ -137,8 +137,8 @@ default `-nan(ind)`). The cause is not the helpers but the doubles:
   `RightAngleCosine`'s `g_pi * g_perDegree` is a 24-bit product at PC24 (cos of float 90 degrees) and an exact one in SSE2;
   `world timeSpeed` 59.9999962 becomes 60.0. About 1270 double locals, 1040 `static_cast<double>` and 3370 `D()` promotions
   (27 files) are such registers.
-- Also: x87 intermediates have a 15-bit exponent; NaN payloads propagate differently; terrain lighting's chop rounding
-  (`SectorData::Light` in terrain_lighting.cpp) sets the x87 control word only, so SSE arithmetic there would round to nearest
+- Also: x87 intermediates have a 15-bit exponent; NaN payloads propagate differently; the terrain's edge fade's chop rounding
+  (`SectorData::Light` in terrain_sector.cpp) sets the x87 control word only, so SSE arithmetic there would round to nearest
   (an SSE2 build has to set MXCSR there too).
 
 **Helper families, one at a time on `/arch:IA32`** (everything else as today; 110 goldens, ei_vectors 0 in every row):

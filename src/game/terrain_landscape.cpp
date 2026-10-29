@@ -264,7 +264,7 @@ void Terrain::Create() {
 
 void Terrain::Destroy() {
     ClearMap();
-    for (auto& [id, entry] : lights) entry.light->Release();
+    for (auto& [id, light] : lights) light->Release();
     lights.clear();
     Reset();
 }
@@ -287,8 +287,6 @@ void Terrain::Reset() {
     waveDirection = {0.0f, 0.0f, 1.0f};
     sectorGrid.clear();
     ambient.x = ambient.y = ambient.z = 0.0f;
-    sunSlopeX = sunSlopeY = sunRunX = sunRunY = 0.0f;
-    sunStepX = sunStepY = -1;
     sun = nullptr;
     SetWaveStrength(0.0f);
     wavePhase = kPi + kPi;
@@ -487,7 +485,19 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon)
     return 1;
 }
 
-// ---- The light interval, water levels, tile texture coordinates ----------------------------------------
+// ---- The point lights, light interval, water levels, tile texture coordinates --------------------------
+
+void Terrain::AddLight(CLight* light) {
+    if (!mapLoaded) return;
+    light->AddRef();
+    lights[light->id_] = light;
+}
+
+void Terrain::RemoveLight(CLight* light) {
+    if (!mapLoaded) return;
+    lights.erase(light->id_);
+    light->Release();
+}
 
 const float* Terrain::TileUv(int rotation, int index, int page) {
     if (page % LayerPages() >= pages) return uvTablesLast[rotation].data() + index * kUvFloats;

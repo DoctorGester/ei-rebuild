@@ -142,11 +142,11 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
 | Data | Where in the game | Hand-over point | Status |
 |---|---|---|---|
 | Clip matrix of the current draw | transform pipeline (renderer 007AF060 +8): stacks of 64-byte row-major matrices, `+0x24/+0x28` clip space (axis swap * projection * view * model), `+0x1C` the same times the viewport, `+0x5C/+0x60` view stack | read at hand-over time | used |
-| Terrain sectors | SectorData (`terrain_sector.h`): positions +0x17C (33x33 per layer, water after ground), vertex records +0x190 (0x54 bytes, lit colour +0x11, specular / fog +0x15), tile lists per quarter and page +0x314, edge flags +0x2C4, quarter visibility +0x144, LOD +0x170, seam flags +0x174 / +0x178, owner TerrainFields +0x1C; page textures TerrainFields +0xD8 | DrawSectorPage 006BFF40 (`SectorData::DrawPage`, terrain_passes.cpp) -> `render::TerrainPage` | drawn |
+| Terrain sectors | SectorData (`terrain_sector.h`): `vertices` (33x33 per layer, water after ground), `records` (SectorVertex: normal, material colour and byte, the specular word: edge fade, on the water the crests), tile lists per quarter and page `tiles`, edge flags `tileFlags`, quarter verdicts `quarterMode`, `detail`, `seamBefore` / `seamAfter`, `owner`; page textures `Terrain::pageTextures`; the lights `Terrain::lights` | DrawSectorPage 006BFF40 (`SectorData::DrawPage`, terrain_passes.cpp) -> `render::TerrainPage`; `HandOverSceneLights` (world_client_shadow_casters.cpp) -> `render::SceneLighting` | drawn |
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh` | drawn |
 | Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (CTextureDevice::stageSurfaces_) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
-| Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are neither made nor drawn (R16i; their code deleted in R26), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
+| Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are not ported (R26), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`CTextureDevice::DrawTlTriangles`, `renderer_strip.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
 | Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices | `DrawParticles` (after the fog pass) -> `render::TlDraw` | drawn |
 | Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
@@ -948,8 +948,9 @@ the renderer's together, what a many-figure frame costs; R16k added "device mesh
 time in its mesh draws 004E9010 / 004E9A50 (projection, clipping, passes; the hand-over in them left out). `EI_PROFILE=1` gives the game side
 (tools/profile_report.py). RenderDoc was not needed: the counters see the hand-over, which a capture does not.
 
-Per frame, vanilla, 3840 x 2160 (the harness's desktop size; Rebirth's runs are within a few percent; times from a run
-without the profiler):
+R16's starting point (2026-10-20, before R16a: the old shadows, the CPU lighting and the window surfaces' uploads
+still ran), per frame, vanilla, 3840 x 2160 (the harness's desktop size; Rebirth's runs are within a few percent;
+times from a run without the profiler):
 
 | Scene | terrain pages: same / relit / moved | meshes (flat) | draws | pipeline / texture changes | upload KB: terrain / meshes | images made again | memory compared | CPU ms: hand-over / textures / EndFrame |
 |---|---|---|---|---|---|---|---|---|
@@ -1128,13 +1129,12 @@ across runs; the goldens check the game state.
    RenderShadow 25% (ProjectDecal 7.7: Terrain::AddDecalTriangles 7.2, DecalBuilder::ClipStage 6.3,
    AddTerrainTriangle 5.4; CLinkMesh::RasterisePartImpl 6.8), DrawFlatBlocks 5.4; zone1 9.5 / 9.2 / 4.2, fight
    7.0 / 6.7 / 3.5. A ground print is projected once (GroundPrint::Draw's `built_`), so what a GPU decal path takes
-   in the default look is the prints' and markers' flat draws: under 0.07 ms. In the classic look it would take the
-   shadow decals' flat draws and hand-over too, at most about 0.3 ms in the town. The object shadows' projection
+   is the prints' and markers' flat draws: under 0.07 ms. The object shadows' projection
    (0.34-0.63 ms) stays either way: its mesh's bounds are the shadow's sphere (`CObject3DClientSpecific::sphere`,
    FitBounds in RenderShadow), which ShadowInView 0051E300 tests for objects out of view (listed for shadows,
    their pose updated: CollectVisible 0056A990), so the game reads the projection whatever draws the decal.
-   What the numbers do show: with the shadow map (the default) the whole classic shadow build runs every frame for
-   the moving objects though only that sphere is read: projection, build and the decal's flat draw (which BeginMesh
+   What the numbers showed: with the shadow map the whole decal build ran every frame for the moving objects though
+   only that sphere is read: projection, build and the decal's flat draw (which BeginMesh
    drops) are 0.72 ms of zone1's frame, 1.40 of the fight's and 2.1 of the town's.
    **R16e1 (done): with the map the classic texture and the decal's draw are left out; R26 deleted their code.**
    DrawShadow 0051CE60 (map_object_shadow.cpp): RenderShadow still projects the parts' points (bounds, quad), reads
@@ -1163,8 +1163,7 @@ across runs; the goldens check the game state.
    the terrain only); DrawPass 0056AFE0 draws all objects and figures, then the prints, the shadows and the
    selection markers, then water and particles come after; the frame's depth is D32 without stencil (kDepthFormat),
    so keeping decals off figures and other objects needs a stencil format or a receiver mask, and reading depth
-   needs a pass break (and the multisampled depth with the smooth option). Revisit if decals become many more or
-   the classic look the default.
+   needs a pass break (and the multisampled depth with the smooth option). Revisit if decals become many more.
 6. **R16f The present without a frame copy (done).** The frame was copied whole every frame for the cursor thread
    (33 MB of GPU traffic at 4K) before the cursor was drawn into it. Now the present shader draws the cursor over the
    frame as it applies the gamma ramp (section 9, R9c2), the frame target never holds the cursor and the cursor thread
@@ -1227,12 +1226,24 @@ across runs; the goldens check the game state.
      the landscape's point lights, the camera); the terrain shader lights each pixel by the vertex lighting's own
      rules (ShadeSun, LightVertex: ambient times one less the water's loss, the sun's facing over the material's
      colour, each point light's falloff, its specular part into the specular word) from the vertex normals and
-     material colours (R26 deleted the CPU path: ShadeSun 006C36B0, LightVertex 006C31C0 and CLight::AddDirectional
-     0068D310 are not ported). SectorData::Light no longer lights vertices; it keeps the edge fade and the water's
-     specular word (LightSpecular: the harness digest hashes the water), and runs the sun's ray march
-     (Terrain::SunReaches) only where it could load a sector or refresh the sector cache's order
-     (`SunMarchTouchesNothing`; the cache's builds draw from the global ISAAC). The `kLit` bit and the relight
-     countdowns stay (they pace those calls).
+     material colours. None of the game's vertex lighting runs on the CPU (R26, R34): ShadeSun 006C36B0,
+     LightVertex 006C31C0, CLight::AddDirectional 0068D310, the sun's ray march SunReaches 006C92C0 and the
+     landscape's per-vertex light lists (their 16-byte node pool at 007C8840) and light areas are not ported. The
+     landscape keeps only the table of shown point lights (`Terrain::lights`, by id, held: AddLight / RemoveLight),
+     which the hand-over reads. `SectorData::Light` writes each vertex's edge fade into its specular word (the fog
+     factor, `Terrain::EdgeFade` truncated); on the water Animate writes the wave crests over the colour bytes. The
+     water's specular lights are the shader's (`spec`, the larger of them and the crests: the original's crests
+     replaced them where the waves ran).
+     **Kept for the goldens: the Lit stage and the relight countdowns** (SetSun spreads them over the LightingFreq
+     interval; RelightTick drops a sector's Lit bit, the next draw lights it again). On the tick a sector's
+     lighting is dropped RunTick skips its tile and wave animation, and AnimateTiles draws from the global ISAAC:
+     without the countdowns 15 goldens differ (levers_key, the net_pair_* set, ui_base_*, zone_base_bz1g, ...: the
+     random group first). The edge fade alone needs none of it (a sector's fade never changes). R34a holds the way
+     out (the terrain's draws apart from the game's ISAAC in both builds).
+     Behaviour that differs from the original (R34; the goldens the same): nothing loads or touches sectors for the
+     lighting (the ray march loaded the sectors it crossed; the light areas and relights looked sectors up), so the
+     sector cache's order and evictions could differ; a specular light whose square reached a vertex outside its
+     range added the water's material colour there (AddPoint's base), and adds nothing now.
    - **The figures.** 3DfpFPU's LightMesh (1000D910, disassembled) lit a part per draw: per channel the larger of the
      ambient and the sun's colour times N.L in the model's space, the larger of that and each point light's colour
      times N.L times its falloff, plus the emissive, at most 1, and for a crown part a pull towards the mean over
@@ -1244,7 +1255,7 @@ across runs; the goldens check the game state.
      colour arrays hold white with the material's alpha (`CMaterial::GpuLitColour`); a mesh kept on the GPU
      (R16d) is no longer relit each frame. The speculars and flag 0x10 (moved / static) are as before.
    - **Shadows in the light.** On the ground a shadow takes away the sun's part: lit = the smaller of the light
-     with the sun hidden (the ambient plus the material's own, as the ray march left a vertex) and the sunlit
+     with the sun hidden (the ambient plus the material's own, as the game's ray march left a vertex) and the sunlit
      light x (1 - hidden x strength x the normal's turn towards the map's sun), so never lighter than half the
      sunlit light; the point lights' light is darkened alike (the towns' lamps burn by day too, and their
      unshadowed light hid the units' shadows on the ground: the user's review). Every mesh, lit here or by the
@@ -1277,7 +1288,8 @@ across runs; the goldens check the game state.
      alpha, so blended parts show flat grey triangles there that are not shadow.
    - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour_` is saved:
      GroundPrint::Save); the sky's lighting (CSkyObject::Light, small; a candidate); the sun's reference in the
-     part's light list; the CLight fields only the device read (world position, local
+     part's light list; the terrain's edge fade (the fog factor, also read by the
+     figures' draws and the ground prints). The CLight fields only the device read (world position, local
      direction, lit colours) are no longer written.
    - **Looks that changed (the user's review).** Point lights cast no shadow (until R16i1, below): the town's fires
      light the inside of the gate's shadow (render_shadows_outside's floor lowered to 0.3%); a point light per pixel
@@ -1362,32 +1374,26 @@ across runs; the goldens check the game state.
     0.63 (before, main's run: 0.65 / 0.73, 1.01 / 0.68, 0.76 / -); the map's pass with the range passes 0.12-0.16
     ms (0.03-0.06 before; the reduction reads the whole 64 MB map). Side by side (classic | map before | map
     after): build\R16j2\compare_*.png on E:.
-    The classic shadows' decal is neither made nor drawn (R16e1, R16i); the game's own shadow building
-    (`RenderShadow`, the decal's projection) still runs: its decal's bounds feed the shadow lists. Until R16i a
-    classic option (`classicshadows`, `render::SetClassicShadows`, the harness's `shadows classic|map`) made no map
-    and drew the decals as before; R16i removed it (no flag: goldens hold no frames).
-    Cost (render_stats, vanilla 4K, per frame, map / classic): CPU hand-over + textures + end of frame + map in
-    zone1 1.48 / 1.88 ms, fight 3.24 / 5.82, town 1.78 / 5.84 (no shadow textures uploaded: 4-15 a frame classic); the
-    map's own CPU time 0.3-0.6 ms (the fit over the terrain vertices); GPU (timestamp queries, harness build) frame
-    1.10 / 0.76 ms zone1, 1.16 / 1.07 fight, 0.95 / 0.70 town, of it the map's pass 0.06-0.27 ms.
+    The game's own shadows (64 x 64 decals, R16e1) are not ported (R26); its shadow building (`RenderShadow`, the
+    decal's projection) still runs: the decal's bounds feed the shadow lists. The map is the only shadow look (no
+    option: goldens hold no frames).
+    Cost when R16j landed (render_stats, vanilla 4K, per frame, map / the old decals): CPU hand-over + textures + end
+    of frame + map in zone1 1.48 / 1.88 ms, fight 3.24 / 5.82, town 1.78 / 5.84; the map's own CPU time 0.3-0.6 ms
+    (the fit over the terrain vertices); GPU (timestamp queries, harness build) frame 1.10 / 0.76 ms zone1, 1.16 /
+    1.07 fight, 0.95 / 0.70 town, of it the map's pass 0.06-0.27 ms.
     Check: scenario render_shadows (image only): zone1's start, a fight, creatures on a slope, the town bz1g, each
-    frozen with the map twice (samecapture; before R16i classic between them, with diffcapture; `shadowcheck`: map made, casters and
-    receivers, and no object the game shadows and drew left out of the map: "drawn but not cast" 0; "not drawn"
-    counts the ones off screen, 1-3 in those frames).
-    Classic against the map (R16j1; the user's ruin block in the fight and fern in the town): every object whose
-    shadow the game draws and which is on screen casts. The two looks differ because (1) the classic decals of
-    overlapping objects stack, each darkening by half (the dirt below the fight's ruin is at 21% of its lit
-    brightness classic, 43% with the map), and a decal is a blurred 64 x 64 silhouette laid on the terrain, also
-    under an object standing higher (the ruin's platform), so it shows wider and darker; the ruin block's own map
-    shadow falls on its sun side, on the platform and the dirt beside it; (2) a decal's direction is the sum of the
-    sun and the point lights in reach (0051CE60's LightDirection: the town's campfire turns the gate's decal
-    down-left, over the fern), the map's the sun's alone; the fern itself casts in neither (the game draws no
-    shadow for it). To tell which object a shadow belongs to: a temporary filter in DrawShadow (0051CE60) by object
-    id, classic and map captured in one run, with kStrength 1 (map shadows black); a dump of the map (a staging copy
-    of its D32 image) showed that adding casters only ever lowers its depths. R16j3 holds what is left (darkness
-    where shadows overlap, point lights). Open: terrain does not cast (R16i); point lights cast since R16i1 (item 9).
-    `run_all --widescreen` ran with `classicshadows` (addon's frames have the decals) until R16i removed the option:
-    the world view behind the interface now differs from addon's (GPU lighting and the map).
+    frozen with the map twice (samecapture; `shadowcheck`: map made, casters and receivers, and no object the game
+    shadows and drew left out of the map: "drawn but not cast" 0; "not drawn" counts the ones off screen, 1-3 in
+    those frames).
+    How the map's look differs from the old decals (R16j1; the user's ruin block in the fight and fern in the town):
+    every object whose shadow the game draws and which is on screen casts. The decals of overlapping objects
+    stacked, each darkening by half, and a decal was a blurred silhouette laid on the terrain, also under an object
+    standing higher, so it showed wider and darker; a decal's direction was the sum of the sun and the point lights
+    in reach (0051CE60's LightDirection: the town's campfire turned the gate's decal over the fern), the map's is the
+    sun's alone (the point lights have their own maps, R16i1, item 9); the fern casts in neither (the game draws no
+    shadow for it). Adding casters only ever lowers the map's depths. R16j3 holds what is left (darkness where
+    shadows overlap). `run_all --widescreen`'s world view behind the interface differs from addon's (GPU lighting and
+    the map).
     **Casters outside the view (R20; the user: shadows popped in at the screen's edge with their objects).** The
     game draws only what it sees, so an object just off screen (or a part of a drawn one that the part's own view
     test left out) cast nothing onto the visible ground. Now the world's draw (CWorldClient::Render, after its
@@ -1423,34 +1429,13 @@ across runs; the goldens check the game state.
     outside), town 0.65-0.72 / 0.25-0.29 (26, 44, 35k), moved town 1.2-1.4 / 0.32-0.40 (32, 111, 83k); the map's
     GPU pass within the runs' noise (0.21-0.69 ms either way). The corners are copied every frame (no cache
     across frames yet).
-    **Whose shadow it is (R22, replaced by R16i: with the GPU lighting a face turned away from the sun has no sun
-    light to lose, so the ids below are gone and a receiver darkens by N.L with a normal-offset bias; what follows
-    is history; the user: on a mound beside a pine the shadow covered some of the mound's faces
-    and stopped at their edges).** The game lights objects much as the ground around them, not by the sun's
-    direction (the mound, a flora object with the grass texture, cannot be told from the ground with the
-    classic decals). R16j left every face turned away from the sun (the face normal from the screen
-    derivatives, towards the camera; full shadow from N.L 1/6) as the game lit it, so that a surface behind
-    its own object's front does not darken twice or show acne. Inside another object's shadow that left
-    those faces lit: a bright patch with straight edges (the mound's back faces in the pine's shadow, with
-    flora shadows on as the user's Rebirth settings have them; the ruin blocks' faces towards the camera in
-    the fight). Now the casters write their object's id (from 1, per frame: the objects CastsShadow shadows,
-    then the outside casters) beside the map's depth (an R16UI image of the map's size; 0: none), and a
-    receiver's uniforms carry its own object's id (MeshBatch::caster; 0 for the ground and for objects that
-    cast nothing, which then take every shadow on every face). Where the facing is below 1 (faces turned
-    away or nearly) the receiver compares per tap, point-sampled over the widest radius the depth range
-    allows (the blocker search's cells do not tell objects apart): a texel nearer the sun counts 1 when
-    another object drew it, the facing when its own did. Faces turned to the sun take the filter as before.
-    So inside another object's shadow every face darkens alike (a back face behind a neighbour towards the
-    sun too: the palisade's logs, the ruin blocks; the hero inside the gate's shadow volume), and outside
-    it faces turned away stay as the game lit them. Frames against before (vanilla 4K): the mound's faces
-    (0.8% of the frame), zone1's start 0.4%, fight 0.4%, town 1.8% (the hero, the palisade, the stump),
-    nothing else; the classic frames the same. GPU (render_stats of the mound frame, `shadowfacing all`
-    against the default, three frames each): frame 1.62 / 1.71 ms and 1.67 / 1.68 ms, the map's pass with
-    the ids 0.26-0.35 ms (within the runs' noise). Check: scenario render_shadows_mound (the user's save in
-    tests/saves/shadow_mound, prepared by tools/copy_save.py; flora shadows switched on in the options
-    window): the map's frame, the classic one, and with `shadowfacing all` (the rule before R22, harness
-    build): that frame differs from the default by 0.6-0.8% (the mound), so the check fails if the ids stop
-    working.
+    **Faces turned away from the sun (R22, then R16i; the user: on a mound beside a pine the shadow covered some of
+    the mound's faces and stopped at their edges).** With the game's lighting a face turned away from the sun kept
+    its light inside another object's shadow (a lit patch with straight edges); R22 tagged the map with caster ids to
+    darken it. Since R16i such a face has no sun light to lose (the GPU lights it by N.L), so the ids are gone and a
+    receiver darkens by its own facing with a normal-offset bias. Check: scenario render_shadows_mound (the user's
+    save in tests/saves/shadow_mound, prepared by tools/copy_save.py; flora shadows switched on in the options
+    window): the map's frame three times, the same.
     **Steady soft edges (R25; the user: at the camera distance of the save "ShadowCorrupt", in the town
     bz1g, the shadow under the hide-on-frame sign, whose tip reaches a soldier, shimmered; one zoom step in
     it stopped).** Cause: the receivers read the range image per cell (Load of the pixel's cell, and of each
@@ -1481,7 +1466,7 @@ across runs; the goldens check the game state.
     (the user's save in tests/saves/shadow_corrupt; flora shadows on): frozen, the shadow view against the
     same with `shadowshift 7`, more than 64 of 255 apart on at most 0.03% (Rebirth 0.013%, vanilla 0.006%;
     with the per-cell reads 0.051% and 0.016%: the check catches the old reads on Rebirth's data only),
-    the map against the classic frame, and four frames at 8 ms for the eye.
+    and four frames at 8 ms for the eye.
 
 11. **R16k, R26c The device's mesh draws without the work nothing reads (done).** `device_mesh.cpp`, `device_shadow.cpp`,
     `device_draw.cpp`. The mesh draws 004E9010 / 004E9A50 and the flat draw 004EA4A0 project (the visibility verdict),
@@ -1844,11 +1829,11 @@ compares from the unit's nearest distance to the light, on every face; any other
 
 ### shaders/scene_lighting.hlsli: ground_light
 
-The landscape lit as its vertex lighting lit each vertex (terrain_lighting.cpp: ShadeSun, then LightVertex), at a
-point `p` (the landscape's space) with the unit normal `n`: `m` the material colour the sun and ambient light start
-from (the water's; on the ground the water's above it, else black), `mp` the one the point lights start from (the
-record's own), `loss` the light lost under the water (0 above it), `hidden` how much of the sun the shadow map
-hides at the point (the vertex lighting's ray march gave 0 or 1) and `strength` the map's darkening
+The landscape lit as the game's vertex lighting lit each vertex (ShadeSun 006C36B0, then LightVertex 006C31C0; not
+ported), at a point `p` (the landscape's space) with the unit normal `n`: `m` the material colour the sun and ambient
+light start from (the water's; on the ground the water's above it, else black), `mp` the one the point lights start
+from (the record's own), `loss` the light lost under the water (0 above it), `hidden` how much of the sun the shadow
+map hides at the point (the game's ray march gave 0 or 1) and `strength` the map's darkening
 (render_shadows.cpp kStrength). Ambient and direct light apart: in the sun max(material + facing x sun, ambient),
 in the shade ambient + material, as the game lit them; but a shadow is never lighter than the sunlit light times 1
 - strength (the old decals' and the map's look before: where the ambient light is nearly the sun's, as in the
