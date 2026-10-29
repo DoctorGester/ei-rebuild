@@ -1,5 +1,5 @@
-// The statistics panel's row painters: a labelled value and a body part's armour
-//. See docs/notes/ui.md, section 5.
+// The statistics panel's row painters: a labelled value and a body part's armour. See docs/notes/ui.md,
+// section 5.
 #include "ui.h"
 #include "ui_camp.h"
 
@@ -28,39 +28,29 @@ constexpr int kDamageTypes = 7;
 constexpr int kShownTypes = 6;               // the seventh is summed but not compared
 constexpr int kLayers = 3;
 
-UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
-
 } // namespace
 
 // --- A labelled value ----------------------------------------------------------------------------
 
-void CHeroStatsPanel::DrawRow(RECT* rect, std::string_view label, int value, int maximum) {
+void CHeroStatsPanel::DrawRow(const RECT& rect, std::string_view label, int value, int maximum) {
     CTextManager* texts = g_clientWorld->texts_;
+    std::string key = kPerkPrefix;
+    key += label;
     std::string name;
-    std::string number;
-    BOOL found;
-    {
-        std::string key = kPerkPrefix;
-        key += label;
-        found = texts->CTextManager::Open(key);
-    }
-    if (found)
+    if (texts->CTextManager::Open(key))
         texts->ReadLine(&name, 1);
     else
         name = label;
-    if (maximum >= 0)
-        number = str::Format(kRangeFormat, value, maximum);
-    else
-        number = str::Format(kValueFormat, value);
+    std::string number = maximum >= 0 ? str::Format(kRangeFormat, value, maximum) : str::Format(kValueFormat, value);
     CUiSurface* surface = surfaces_[0];
-    surface->DrawTextIn(name, rect, 0, kRowColour, kLeft, 1);
-    surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
+    surface->DrawTextIn(name, &rect, 0, kRowColour, kLeft, 1);
+    surface->DrawTextIn(number, &rect, 0, kRowColour, kRight, 1);
 }
 
 // --- A body part's armour ------------------------------------------------------------------------
 
 float CHeroStatsPanel::PartArmour(int part) {
-    const UnitStatSlot& slot = HeroStats(owner_)->slots[part];
+    const UnitStatSlot& slot = owner_->HeroRecord()->stats.slots[part];
     float sums[kDamageTypes];
     for (int type = 0; type < kDamageTypes; ++type) {
         double sum = 0.0;
@@ -74,17 +64,14 @@ float CHeroStatsPanel::PartArmour(int part) {
     return largest;
 }
 
-void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
+void CHeroStatsPanel::DrawPart(const RECT& rect, std::string_view name, int part) {
+    std::string key = kPartPrefix;
+    key += name;
     std::string label;
-    std::string number;
-    std::string unused;
-    {
-        std::string key = std::string(kPartPrefix) + name;
-        g_clientWorld->texts_->CTextManager::GetString(key, &label);
-    }
-    label = std::string(kPartIndent) + label;
+    g_clientWorld->texts_->CTextManager::GetString(key, &label);
+    label = kPartIndent + label;
     CUiSurface* surface = surfaces_[0];
-    surface->DrawTextIn(label, rect, 0, kRowColour, kLeft, 1);
-    number = str::Format(kArmourFormat, static_cast<double>(PartArmour(part)));
-    surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
+    surface->DrawTextIn(label, &rect, 0, kRowColour, kLeft, 1);
+    surface->DrawTextIn(str::Format(kArmourFormat, static_cast<double>(PartArmour(part))), &rect, 0, kRowColour,
+                        kRight, 1);
 }

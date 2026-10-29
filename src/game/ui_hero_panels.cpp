@@ -27,15 +27,10 @@ inline double D(float f) { return f; }
 
 void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
 
-CUiRegion* AddRect(CUiWindow* window, const RECT& r) {
-    CUiRegion* region = window->AddRegion();
-    region->SetRect(r.left, r.top, r.right, r.bottom);
-    return region;
-}
+void AddRect(CUiWindow* window, const RECT& rect) { window->AddRegion()->SetRectFrom(rect); }
 
-void ShowFrom(CUiWindow* window, int first, std::uint32_t shown) {
-    for (int i = first; i < std::ssize(window->sceneObjects_); ++i)
-        window->SceneMesh(i)->visible_ = static_cast<int>(shown);
+void ShowFrom(CUiWindow* window, int first, bool shown) {
+    for (int i = first; i < std::ssize(window->sceneObjects_); ++i) window->SceneMesh(i)->visible_ = shown;
 }
 
 constexpr std::uint32_t kBright = 0xA7D7E4;
@@ -73,13 +68,12 @@ void BuildCellGrid(CUiWindow* window) {
         depth = static_cast<float>(D(depth) * 0.5);   // * 0.5
         v = 0x9C - v;
     }
-    CUiSurface* surface = new CUiSurface(window->interface_, 200, 100, 600, 500, 5, 1);
-    window->AddSurface(surface);
+    window->AddSurface(new CUiSurface(window->interface_, 200, 100, 600, 500, 5, 1));
 }
 
 constexpr int kGridCellsPerList = 8;
 constexpr int kGridCells = 16;
-constexpr int kTopicTraderBuy = 0x1C, kTopicTraderSell = 0x1D;   // flag_ set
+constexpr int kTopicExchangeBuy = 0x1C, kTopicExchangeSell = 0x1D;
 constexpr int kTopicItemBuy = 0x0B, kTopicItemSell = 0x0C;       // the item constructor's kinds
 constexpr int kTopicSpellBuy = 0x11, kTopicSpellSell = 0x12;     // the spell constructor's
 constexpr int kTopicRepair = 0x19;
@@ -114,7 +108,7 @@ void CHeroStatsPanel::ShowStats(int page) {
     RECT rect = {0x14, 0xA5, 0xB4, 0xB4};
     page_ = page;
     while (std::ssize(regions_) > 2) RemoveRegionAt(2);
-    ShowFrom(this, 4, 0);
+    ShowFrom(this, 4, false);
     if (page_ == 0) {
         Down(&rect);
         for (int i = 0; i < 4; ++i) {
@@ -135,7 +129,7 @@ void CHeroStatsPanel::ShowStats(int page) {
         Down(&rect);
         AddRect(this, rect);
     } else if (page_ == 10) {
-        ShowFrom(this, 4, 1);
+        ShowFrom(this, 4, true);
         const RECT columns[3] = {{0x14, 0xA5, 0x8C, 0xB4}, {0x8C, 0xA5, 0xA0, 0xB4}, {0xA0, 0xA5, 0xB4, 0xB4}};
         for (const RECT& column : columns) {
             rect = column;
@@ -182,17 +176,17 @@ void CHeroStatsPanel::DrawStats() {
         int intelligence = static_cast<int>(libcrt::Ftol(D(stats->intelligenceBase)));
         int sum = intelligence + dexterity + strength;
         rect = RECT{0x14, 0x41, 0x82, 0x50};
-        DrawRow(&rect, "Strength", strength, -1);
+        DrawRow(rect, "Strength", strength, -1);
         Down(&rect);
-        DrawRow(&rect, "Dexterity", dexterity, -1);
+        DrawRow(rect, "Dexterity", dexterity, -1);
         Down(&rect);
-        DrawRow(&rect, "Intelligence", intelligence, -1);
+        DrawRow(rect, "Intelligence", intelligence, -1);
         Down(&rect);
         float sumF = static_cast<float>(static_cast<double>(sum));
-        DrawRow(&rect, texts_[5], static_cast<int>(libcrt::Ftol(D(75.0f) - D(sumF))), -1);
+        DrawRow(rect, texts_[5], static_cast<int>(libcrt::Ftol(D(75.0f) - D(sumF))), -1);
         Down(&rect);
         Down(&rect);
-        DrawRow(&rect, texts_[6], points_, -1);
+        DrawRow(rect, texts_[6], points_, -1);
 
         // "-": while above 15 (the integer compared before it is stored as float).
         rect = RECT{0x8C, 0x41, 0xA0, 0x50};
@@ -229,13 +223,13 @@ void CHeroStatsPanel::DrawStats() {
         texts->GetString("infoitem_25", &text);
         draw->DrawLine(text, &rect, 0, kBright, 0, 1);
         Down(&rect);
-        DrawPart(&rect, "skull", 0);   // skull
+        DrawPart(rect, "skull", 0);
         Down(&rect);
-        DrawPart(&rect, "arms", 2);   // arms
+        DrawPart(rect, "arms", 2);
         Down(&rect);
-        DrawPart(&rect, "torso", 1);   // torso
+        DrawPart(rect, "torso", 1);
         Down(&rect);
-        DrawPart(&rect, "legs", 4);   // legs
+        DrawPart(rect, "legs", 4);
         Down(&rect);
         Down(&rect);
         if (static_cast<int>(hero()->weaponIndex) == -1) {
@@ -270,28 +264,28 @@ void CHeroStatsPanel::DrawStats() {
         }
         int weight = static_cast<int>(libcrt::Ftol(hero()->CarriedWeight()));
         int capacity = static_cast<int>(libcrt::Ftol(D(stats->capacity)));
-        DrawRow(&rect, "Encumbrance", weight, capacity);   // Encumbrance
+        DrawRow(rect, "Encumbrance", weight, capacity);
         Down(&rect);
         if (weight > capacity) draw->DrawLine(texts_[4], &rect, 0, 0xFF, 2, 1);
         Down(&rect);
         draw->DrawLine(texts_[7], &rect, 0, kBright, 0, 1);
     } else {
         rect = RECT{0x14, 0x41, 0xB4, 0x50};
-        DrawRow(&rect, "Strength", static_cast<int>(libcrt::Ftol(D(stats->strength))), -1);   // Strength
+        DrawRow(rect, "Strength", static_cast<int>(libcrt::Ftol(D(stats->strength))), -1);
         Down(&rect);
-        DrawRow(&rect, "Dexterity", static_cast<int>(libcrt::Ftol(D(stats->dexterity))), -1);   // Dexterity
+        DrawRow(rect, "Dexterity", static_cast<int>(libcrt::Ftol(D(stats->dexterity))), -1);
         Down(&rect);
-        DrawRow(&rect, "Intelligence", static_cast<int>(libcrt::Ftol(D(stats->intelligence))), -1);   // Intelligence
+        DrawRow(rect, "Intelligence", static_cast<int>(libcrt::Ftol(D(stats->intelligence))), -1);
         Down(&rect);
         Down(&rect);
-        DrawRow(&rect, "Health", static_cast<int>(libcrt::Ftol(stats->HitPointCurve())), -1);              // Health
+        DrawRow(rect, "Health", static_cast<int>(libcrt::Ftol(stats->HitPointCurve())), -1);
         Down(&rect);
-        DrawRow(&rect, "Mana", static_cast<int>(libcrt::Ftol(stats->ManaCurve())), -1);            // Mana
+        DrawRow(rect, "Mana", static_cast<int>(libcrt::Ftol(stats->ManaCurve())), -1);
         Down(&rect);
-        DrawRow(&rect, "Actions", static_cast<int>(libcrt::Ftol(D(stats->rate))), -1);   // Actions
+        DrawRow(rect, "Actions", static_cast<int>(libcrt::Ftol(D(stats->rate))), -1);
         Down(&rect);
-        DrawRow(&rect, "Experience",
-                  static_cast<int>(libcrt::Ftol(D(stats->pendingExperience) + D(stats->experience))), -1);   // Experience
+        DrawRow(rect, "Experience",
+                static_cast<int>(libcrt::Ftol(D(stats->pendingExperience) + D(stats->experience))), -1);
         Down(&rect);
         double carried;
         if (page_ == 11) {
@@ -301,7 +295,7 @@ void CHeroStatsPanel::DrawStats() {
         }
         int weight = static_cast<int>(libcrt::Ftol(carried));
         int capacity = static_cast<int>(libcrt::Ftol(D(stats->capacity)));
-        DrawRow(&rect, "Encumbrance", weight, capacity);   // Encumbrance
+        DrawRow(rect, "Encumbrance", weight, capacity);
         Down(&rect);
         if (weight > capacity) draw->DrawLine(texts_[4], &rect, 0, 0xFF, 2, 1);
         Down(&rect);
@@ -337,10 +331,7 @@ void CHeroEquipPanel::Build(bool body) {
         const int* xs = kBodySlotX;
         const int* ys = kBodySlotY;
         for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
-        LoadTexture("camp1", 3);   // camp1
-        LoadTexture("camp2", 3);   // camp2
-        LoadTexture("camp3", 3);   // camp3
-        LoadTexture("camp4", 3);   // camp4
+        for (const char* name : {"camp1", "camp2", "camp3", "camp4"}) LoadTexture(name, 3);
         const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
         for (int i = 0; i < 4; ++i) {
             CUiMesh* picture = AddBlankSprite();
@@ -349,7 +340,6 @@ void CHeroEquipPanel::Build(bool body) {
             picture->texture_ = objects_[i + 1];
         }
     }
-    selected_ = -1;
 }
 
 // --- The statistics panel's Build ---------------------------------------------
@@ -358,10 +348,7 @@ void CHeroStatsPanel::Build() {
     rect_ = RECT{0, 100, 200, 400};
     AddRect(this, RECT{0, 0x7D, 0x1E, 0x91});      // previous hero
     AddRect(this, RECT{0xAA, 0x7D, 200, 0x91});    // next hero
-    {
-        CUiSurface* surface = new CUiSurface(interface_, 0, 100, 200, 400, 5, 1);
-        AddSurface(surface);
-    }
+    AddSurface(new CUiSurface(interface_, 0, 100, 200, 400, 5, 1));
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
@@ -377,23 +364,18 @@ void CHeroStatsPanel::Build() {
         texts->GetString(key, &text);
         texts_.push_back(text);
     }
-    heldRegion_ = -1;
-    holdTime_ = 0.0f;
 }
 
 // --- The trade grid's Build ----------------------------------------------------------------
 
-void CTradeGrid::Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, char spells, char flag) {
+void CTradeGrid::Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, bool spells, bool exchange) {
     bought_ = bought;
     rect_ = RECT{200, 100, 600, 500};
     sold_ = sold;
     buyKind_ = spells ? 0 : 4;
     sellKind_ = spells ? 1 : 5;
-    flag_ = flag;
-    LoadTexture("trade1", 3);   // trade1
-    LoadTexture("trade2", 3);   // trade2
-    LoadTexture("trade3", 3);   // trade3
-    LoadTexture("trade4", 3);   // trade4
+    exchange_ = exchange;
+    for (const char* name : {"trade1", "trade2", "trade3", "trade4"}) LoadTexture(name, 3);
     BuildCellGrid(this);
 }
 
@@ -404,13 +386,13 @@ CItem* CTradeGrid::ItemAt(int x, int y, int* topic) {
     if (!enabled_) return nullptr;
     int region = RegionAt(x, y);
     if (region >= 0 && region < kGridCellsPerList) {
-        *topic = flag_ ? kTopicTraderBuy : buyKind_ ? kTopicItemBuy : kTopicSpellBuy;
+        *topic = exchange_ ? kTopicExchangeBuy : buyKind_ ? kTopicItemBuy : kTopicSpellBuy;
         if (region < std::ssize(*bought_)) return (*bought_)[region];
         return nullptr;
     }
     if (region < kGridCellsPerList || region >= kGridCells) return nullptr;
     // The sold list's topic also follows buyKind_.
-    *topic = flag_ ? kTopicTraderSell : buyKind_ ? kTopicItemSell : kTopicSpellSell;
+    *topic = exchange_ ? kTopicExchangeSell : buyKind_ ? kTopicItemSell : kTopicSpellSell;
     if (region - kGridCellsPerList < std::ssize(*sold_)) return (*sold_)[region - kGridCellsPerList];
     return nullptr;
 }
@@ -430,10 +412,7 @@ void CRepairGrid::Build(std::vector<CItem*>* items) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 8;
     items_ = items;
-    LoadTexture("repair1", 3);   // repair1
-    LoadTexture("repair2", 3);   // repair2
-    LoadTexture("repair3", 3);   // repair3
-    LoadTexture("repair4", 3);   // repair4
+    for (const char* name : {"repair1", "repair2", "repair3", "repair4"}) LoadTexture(name, 3);
     BuildCellGrid(this);
 }
 
@@ -452,7 +431,6 @@ void CHeroQuickStrip::Build(bool top) {
     frame->visible_ = 0;
     AddBlankSprite()->SetGridVanilla(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
                                  0x8E, 0x72, 0xF2, 8, 1);
-    selected_ = -1;
 }
 
 // --- The constructors' second pages ---------------------------------------------------------------
@@ -461,19 +439,14 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 6;
     slots_ = slots;
-    LoadTexture("constrspell1", 3);   // constrspell1
-    LoadTexture("constrspell2", 3);   // constrspell2
-    LoadTexture("constrspell3", 3);   // constrspell3
-    LoadTexture("constrspell4", 3);   // constrspell4
+    for (const char* name : {"constrspell1", "constrspell2", "constrspell3", "constrspell4"}) LoadTexture(name, 3);
     AddRect(this, RECT{200, 250, 300, 350});   // the container
     AddRect(this, RECT{300, 250, 400, 350});   // the spell
     BuildMakerPage(this);
     AddRect(this, RECT{200, 450, 400, 470});
     AddRect(this, RECT{200, 470, 400, 490});
     AddMakerPictures(this);
-    CUiSurface* surface = new CUiSurface(interface_, 200, 450, 400, 490, 5, 1);
-    AddSurface(surface);
-    pulse_ = 0.0f;
+    AddSurface(new CUiSurface(interface_, 200, 450, 400, 490, 5, 1));
     CTextManager* texts = g_clientWorld->texts_;
     std::string text;
     for (int key : {0x23, 0x24}) {
@@ -487,14 +460,10 @@ void CConstructorPage::BuildItemMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 7;
     slots_ = slots;
-    LoadTexture("constritem1", 3);   // constritem1
-    LoadTexture("constritem2", 3);   // constritem2
-    LoadTexture("constritem3", 3);   // constritem3
-    LoadTexture("constritem4", 3);   // constritem4
+    for (const char* name : {"constritem1", "constritem2", "constritem3", "constritem4"}) LoadTexture(name, 3);
     AddRect(this, RECT{200, 250, 300, 350});   // the blueprint
     AddRect(this, RECT{300, 200, 400, 300});   // the parts
     AddRect(this, RECT{300, 300, 400, 400});
     BuildMakerPage(this);
     AddMakerPictures(this);
-    pulse_ = 0.0f;
 }

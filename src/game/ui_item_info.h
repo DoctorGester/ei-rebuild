@@ -89,7 +89,6 @@ public:
         flags6_ = 0;
         flags7_ = 0;
     }
-    ~ItemTurn() override;
     void OnShutdown() override;
     ItemTurn* Clone() override;
 
@@ -165,8 +164,8 @@ public:
     // with `merge`) and out of `from` (RemoveItem, all of the stack likewise); returns what `to` now holds.
     // With `limit` > 0 and at least that many items in `to`, only when `item` is the same (IsSameAs) as one
     // of its first `limit` items (else nothing, null). The unconditional move with `turning` gives the moved
-    // item a turning state (made if missing) with its flag set. Flags are bytes.
-    CItem* MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning);
+    // item a turning state (made if missing) with its flag set.
+    CItem* MoveItem(CItem* item, CParty* to, CParty* from, int limit, bool merge, bool turning);
     // Moves every item of `from` into `to` (whole stacks, merged); returns the last item `to` took, or null
     // when `from` was empty.
     CItem* ReturnAll(CParty* to, CParty* from);
@@ -183,17 +182,29 @@ protected:
 inline void CUiItemPanel::OwnerTakeItem(CItem* item) { owner_->TakeItem(item, mode_); }
 inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->TopicClicked(topic); }
 
+// What a statistic under the mouse is (DescribeStats). The order matters: up to Perk the title and
+// description come from text "perk <text>", after it from <text> and <text>_desc.
+enum class HoverKind {
+    None = -1,
+    Attribute,               // index: the attribute
+    Skill,                   // a magic school's skill (index: the school)
+    Science,                 // index 0
+    Perk,                    // index: the levels learned
+    Armour,                  // a body part's armour (part)
+    Weapon,                  // the weapon's attack or defence (weapon)
+    Magic,                   // the magic skills
+    Text,                    // a plain text
+};
+
 // What the statistics under the mouse are (filled by the stats panel and the trade panel, read by
 // DescribeStats).
 struct ItemHoverInfo {
-    int kind;                // -1 none; 0 an attribute, 1 a skill, 2 a skill school, 3 a perk,
-                             // 4 a body part's armour, 5 the weapon's attack or defence,
-                             // 6 the magic skills, 7 a plain text
-    int index;               // the attribute, skill, school or perks learned
-    int part;                // body part (kind 4)
-    CItemWeapon* weapon;     // kind 5
-    UnitStats* stats;        // the hero's statistics (in the hero record)
-    std::string text;       // the text key
+    HoverKind kind = HoverKind::None;
+    int index = 0;
+    int part = 0;                    // body part (Armour)
+    CItemWeapon* weapon = nullptr;   // Weapon
+    UnitStats* stats = nullptr;      // the hero's statistics (in the hero record)
+    std::string text;                // the text key
 };
 
 class CItemInfoPanel : public CUiItemPanel {
@@ -212,7 +223,8 @@ public:
     void DescribeModifierRecord();
     void DescribeQuickItem();
     void DescribeCarriedSpell();
-    // Empties the list, clears the surface and, for a kind 0-7, writes the statistic's title, values and description.
+    // Empties the list, clears the surface and, unless the kind is None, writes the statistic's title, values
+    // and description.
     void DescribeStats(ItemHoverInfo* info);
     // Empties the list, clears the surface and writes help topic "camphelp <topic>".
     void ShowHelp(int topic);

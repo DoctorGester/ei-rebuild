@@ -28,8 +28,6 @@ constexpr float kHeightScale = 0.01f;
 constexpr double kRepeatDelay = 0.25;
 constexpr float kFirstHold = -0.5f;
 
-UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
-
 // An attribute pair (its base and current value, kept equal on this page).
 void SetAttribute(float& base, float& current, float value) {
     base = value;
@@ -40,7 +38,7 @@ void SetAttribute(float& base, float& current, float value) {
 
 bool CHeroStatsPanel::StepPoint(int region) {
     PartyUnitRecord* hero = owner_->HeroRecord();
-    UnitStats* stats = StatsOf(hero);
+    UnitStats* stats = &hero->stats;
     int total = static_cast<int>(stats->strengthBase) + static_cast<int>(stats->intelligenceBase) +
                 static_cast<int>(stats->dexterityBase);
     bool roomLeft = static_cast<float>(total) < kMaxTotal;
@@ -97,7 +95,7 @@ void CHeroStatsPanel::Update() {
     bool stepped = StepPoint(heldRegion_);
     owner_->RefreshStats();
     if (!stepped) {
-        UiCapture(interface_) = nullptr;
+        interface_->mouseCapture_ = nullptr;
         heldRegion_ = -1;
         holdTime_ = 0.0f;
     }
@@ -116,7 +114,7 @@ void CHeroStatsPanel::LeftDown(int, int x, int y) {
         }
         if (heldRegion_ > 0) {
             holdTime_ = kFirstHold;
-            UiCapture(interface_) = Input();
+            CaptureMouse();
         }
         return;
     }

@@ -185,17 +185,15 @@ struct TradeRow {
 };
 
 // A party member's statistics as the trade panel keeps them (filled from the local player's unit record
-// `index`).
-struct TradeRecord {
-    std::uint8_t science;            // stats +0x6C8
-    std::uint8_t schools[6];         // stats +0x6CB..
-    std::uint8_t perks[36];          // stats +0x6D3..
-    std::uint8_t padAfterPerks;      // not written
-    float experience;                // stats +0x04
-    float spentExperience;           // stats +0x08
-    float pendingExperience;         // stats +0x700
-    std::uint8_t bought;             // 0; 1 once something was bought on the panel
-    std::uint8_t padAfterBought[3];  // not written
+// `index`), to undo what was bought on the panel.
+struct TradeStatsRecord {
+    std::uint8_t science = 0;
+    std::uint8_t schools[6] = {};
+    std::uint8_t perks[36] = {};
+    float experience = 0.0f;
+    float spentExperience = 0.0f;
+    float pendingExperience = 0.0f;
+    bool bought = false;             // something was bought on the panel since the snapshot
 };
 
 class CTradePanel : public CUiItemPanel {
@@ -211,10 +209,10 @@ public:
     void DrawLists();
     // "%d" below 1000, "%.1fk" below 10000, "%dk" below a million, "%.1fm" below ten million, "%dm" below
     // 1e9, else "%.1fg"; a negative price shows as 0x7FFFFFFF.
-    void FormatPrice(int price, std::string* out);
-    // Regions 4-9 the schools (kind 1), 10 science (kind 2), 11 up the perks (kind 3: the perk's record name
+    static std::string FormatPrice(int price);
+    // Regions 4-9 the schools (Skill), 10 science (Science), 11 up the perks (Perk: the perk's record name
     // without its level digits, plus "0"; held ones with their level).
-    void HoverInfo(int x, int y, ItemHoverInfo* info);
+    ItemHoverInfo HoverInfo(int x, int y);
     // One record per party member (recordIndex_ is left at the last).
     void ResetRecords();
     // Record recordIndex_ (when >= 0) from the party member's statistics; bought cleared.
@@ -241,20 +239,20 @@ public:
     // From 0.25 s of a hold on, every frame buys the row's next level again (the record is not marked
     // bought) until it cannot. The hold time is not reset after a purchase.
     void UpdateHeld();
-    std::uint8_t Bought() const;
-    const TradeRecord& Record() const { return records_[recordIndex_]; }
+    bool Bought() const { return Record().bought; }
+    const TradeStatsRecord& Record() const { return records_[recordIndex_]; }
 
-    int recordIndex_;
-    int learnableTop_;               // first learnable row shown
-    int perkTop_;                    // first held perk shown
+    int recordIndex_ = 0;
+    int learnableTop_ = 0;           // first learnable row shown
+    int perkTop_ = 0;                // first held perk shown
     std::vector<TradeRow> learnable_;
     std::vector<TradeRow> perks_;
     std::vector<TradeRow> schools_;              // six
     std::vector<TradeRow> science_;              // one
-    int experience_;                 // experience the hero can spend
-    std::vector<TradeRecord> records_;            // one per party member
-    int heldRegion_;                 // the school / science row held after a purchase
-    float holdTime_;                 // from -0.5 s
+    int experience_ = 0;             // experience the hero can spend
+    std::vector<TradeStatsRecord> records_;   // one per party member
+    int heldRegion_ = -1;            // the school / science row held after a purchase
+    float holdTime_ = 0.0f;          // from -0.5 s
     std::vector<std::string> texts_; // the titles
 };
 
@@ -390,8 +388,7 @@ public:
 // The statistics column of the camp and the multiplayer hero screen.
 class CHeroStatsPanel : public CUiItemPanel {
 public:
-    CHeroStatsPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {}
-    ~CHeroStatsPanel() override;
+    using CUiItemPanel::CUiItemPanel;
     // Page 0 the body parts and the weapon, 10 the new hero's points with -/+ buttons, others the plain
     // values.
     void ShowStats(int page);
@@ -400,7 +397,7 @@ public:
     // Page 0: rows 2-5 the body parts' armour, 6 / 7 the shown weapon's attack / defence, 8 the damage, 9
     // encumbrance, 10 the magic skills; other pages the attributes (page 10: row 14 the points left, row 5
     // the height).
-    void HoverInfo(int x, int y, ItemHoverInfo* info);
+    ItemHoverInfo HoverInfo(int x, int y);
     // `title` may be null; the hero arrows show only for a party of more than one; points_ = the hero's
     // height * 100 (truncated).
     void SetHero(int heroIndex, std::optional<std::string_view> title);
@@ -417,18 +414,19 @@ public:
     // (points_ <= 99; height = points_ * 0.01). True when it changed something.
     bool StepPoint(int region);
     // The text of "perk <label>" (else `label` itself), `value` as "%d", or "%d/%d" with a maximum >= 0.
-    void DrawRow(RECT* rect, std::string_view label, int value, int maximum);
-    void DrawPart(RECT* rect, const char* name, int part);
+    void DrawRow(const RECT& rect, std::string_view label, int value, int maximum);
+    // "     " and the text of "hl_<name>", the part's armour as "%.1f".
+    void DrawPart(const RECT& rect, std::string_view name, int part);
     // Per damage type the three layers' absorption summed (stored as float); the largest of the first six.
     float PartArmour(int part);
 
-    int heroIndex_;
+    int heroIndex_ = 0;
     std::string title_;
-    int page_;
+    int page_ = 0;
     std::vector<std::string> texts_;
-    int points_;                     // skill points left (page 10); SetHero puts the height * 100 here
-    int heldRegion_;                 // the -/+ button held on page 10 (-1 none)
-    float holdTime_;                 // seconds it has been held (from -0.5)
+    int points_ = 0;                 // skill points left (page 10); SetHero puts the height * 100 here
+    int heldRegion_ = -1;            // the -/+ button held on page 10 (-1 none)
+    float holdTime_ = 0.0f;          // seconds it has been held (from -0.5)
 };
 
 // --- Hero equipment panel ---
@@ -450,8 +448,8 @@ public:
     // worn at body part region - 8 (topic region - 4).
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    bool body_;
-    int selected_;                   // -1
+    bool body_ = false;
+    int selected_ = -1;
 };
 
 // The 4 x 4 grid of item cells on the constructors' first pages.
@@ -459,17 +457,18 @@ class CTradeGrid : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
     void Draw(CSceneRenderer* pass) override;
-    // `spells` chooses the price kinds (0/1 for the spell constructor, 4/5 for the item one).
-    void Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, char spells, char flag);
-    // Regions 0-7 the bought list (topic 0x1C with flag_, else 0x0B for the item constructor, 0x11 for the
-    // spell one), 8-15 the sold list (0x1D / 0x0C / 0x12).
+    // `spells` chooses the price kinds (0/1 for the spell constructor, 4/5 for the item one); the
+    // exchange window's grid (`exchange`) shows no prices.
+    void Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, bool spells, bool exchange);
+    // Regions 0-7 the bought list (topic 0x1C on the exchange window, else 0x0B for the item constructor,
+    // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12).
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    std::vector<CItem*>* bought_;
-    std::vector<CItem*>* sold_;
-    int buyKind_;
-    int sellKind_;
-    char flag_;
+    std::vector<CItem*>* bought_ = nullptr;
+    std::vector<CItem*>* sold_ = nullptr;
+    int buyKind_ = 0;
+    int sellKind_ = 0;
+    bool exchange_ = false;
 };
 
 // The repair page's grid: the same cells as the trade grid with textures repair1..4.
@@ -482,7 +481,7 @@ public:
     // Topic 0x19 on the 16 cells.
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    std::vector<CItem*>* items_;
+    std::vector<CItem*>* items_ = nullptr;
 };
 
 // The quick item strip of the hero panels: eight cells along the top (camp) or the bottom of the screen.
@@ -497,8 +496,8 @@ public:
     CItem* ItemAt(int x, int y, int* topic) override;
     void Draw(CSceneRenderer* pass) override;
 
-    int y_;
-    int selected_;                   // -1
+    int y_ = 0;
+    int selected_ = -1;
 };
 
 // The constructors' second pages: the spell maker and the item maker: the slots of what is being made beside
@@ -517,13 +516,12 @@ public:
     // container (0x10), from 3 material region - 3 (0xF).
     CItem* ItemMakerItemAt(int x, int y, int* topic);
 
-    CParty* slots_;
-    float pulse_;                    // the highlight's time
+    CParty* slots_ = nullptr;
+    float pulse_ = 0.0f;             // the highlight's time
 };
 class CSpellMakerPage : public CConstructorPage {
 public:
-    CSpellMakerPage(CInterface3D* ui, CItemScreen* owner) : CConstructorPage(ui, owner) {}
-    ~CSpellMakerPage() override;
+    using CConstructorPage::CConstructorPage;
     CItem* ItemAt(int x, int y, int* topic) override { return SpellMakerItemAt(x, y, topic); }
     void BuildSpellMaker(CParty* slots);
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed

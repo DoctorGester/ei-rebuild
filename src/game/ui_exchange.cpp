@@ -191,7 +191,7 @@ void CExchangeScreen::CreateScreen() {
     // Both offers.
     grid_ = new CTradeGrid(interface_, this);
     AsContainer(this)->AddChild(grid_);
-    grid_->Build(&partnerOffer_->items_, &ownOffer_->items_, 0, 1);
+    grid_->Build(&partnerOffer_->items_, &ownOffer_->items_, false, true);
     grid_->mode_ = kGridMode;
 
     // The money offered.
@@ -297,7 +297,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     if (mode == kStripActionTake) {
         interface_->PlaySound(kPutOnSound);
         CParty* local = LocalParty();
-        MoveItem(item, ownOffer_, local, kOfferLimit, 1, 0);
+        MoveItem(item, ownOffer_, local, kOfferLimit, true, false);
         net::ClientPublishParty(net::g_gameClient);
         return;
     }
@@ -307,7 +307,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         if (offered[i] != item) continue;
         interface_->PlaySound(kPutOffSound);
         CParty* offer = ownOffer_;
-        CItem* held = MoveItem(item, LocalParty(), offer, 0, 1, 0);
+        CItem* held = MoveItem(item, LocalParty(), offer, 0, true, false);
         strip_->ScrollToItem(held);
         net::ClientPublishParty(net::g_gameClient);
         return;

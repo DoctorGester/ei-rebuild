@@ -69,7 +69,6 @@ private:
 class CChatWindow : public CUiWindow {
 public:
     explicit CChatWindow(CInterface3D* ui);
-    ~CChatWindow() override;
     // Every fourth face first makes a 256 x 256 texture; `texture` is copied into the newest texture's quarter
     // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle.
     void AddPortrait(const std::string& model, std::string_view texture);
@@ -189,7 +188,6 @@ public:
     // else with `index` >= 0 is a loot item. See docs/notes/ui.md, "Behaviour moved out of header comments".
     void ShowItem(std::string_view name, int index);
     void ClearShownItems();
-    ~CBriefingScreen() override;
     void SetChatActive(int mode);
 
     // Lines up to the next "#phrase <speaker> [voice]" are carried out ("#nolips", "#show", "#hide",

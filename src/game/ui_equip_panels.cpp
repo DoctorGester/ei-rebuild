@@ -6,12 +6,13 @@
 #include "item.h"
 #include "unit.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 
 namespace {
 
-const char* ChangeSound() { return "buttons\\camp\\change.wav"; }
+const char* const kChangeSound = "buttons\\camp\\change.wav";
 
 constexpr int kWeaponSlots = 4;
 constexpr int kQuickSlots = 8;
@@ -23,12 +24,9 @@ constexpr int kTopicEntry = 1;
 
 // `item`'s place in `list`, or -1.
 int IndexIn(const std::vector<CItem*>& list, const CItem* item) {
-    for (int i = 0; i < std::ssize(list); ++i)
-        if (list[i] == item) return i;
-    return -1;
+    auto found = std::ranges::find(list, item);
+    return found == list.end() ? -1 : static_cast<int>(found - list.begin());
 }
-
-void RefreshWeapons(CUiWindow* owner) { static_cast<CItemScreen*>(owner)->RefreshWeapons(); }
 
 } // namespace
 
@@ -36,23 +34,17 @@ void RefreshWeapons(CUiWindow* owner) { static_cast<CItemScreen*>(owner)->Refres
 
 void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
     PartyUnitRecord* hero = owner_->HeroRecord();
-    hero->weaponIndex = static_cast<std::uint32_t>(-1);
-    int index = IndexIn(hero->weapons, weapon);
-    if (index >= 0) hero->weaponIndex = static_cast<std::uint32_t>(index);
+    hero->weaponIndex = static_cast<std::uint32_t>(IndexIn(hero->weapons, weapon));
 }
 
 void CHeroEquipPanel::ShowArmour(CItem* item) {
     PartyUnitRecord* hero = owner_->HeroRecord();
-    selected_ = -1;
-    int index = IndexIn(hero->quickItems, item);
-    if (index >= 0) selected_ = index;
+    selected_ = IndexIn(hero->quickItems, item);
 }
 
 void CHeroQuickStrip::ShowEntry(CItem* item) {
     PartyUnitRecord* hero = owner_->HeroRecord();
-    selected_ = -1;
-    int index = IndexIn(hero->spells, item);
-    if (index >= 0) selected_ = index;
+    selected_ = IndexIn(hero->spells, item);
 }
 
 // --- the equipment panel's right button ----------------------------------------------------------
@@ -63,10 +55,10 @@ void CHeroEquipPanel::RightDown(int, int x, int y) {
     if (region < 0) return;
     PartyUnitRecord* hero = owner_->HeroRecord();
     if (region < std::ssize(hero->weapons) && region < kWeaponSlots) {
-        interface_->PlaySound(ChangeSound());
+        interface_->PlaySound(kChangeSound);
         hero->weaponIndex = static_cast<std::uint32_t>(region);
     }
-    RefreshWeapons(owner_);
+    owner_->RefreshWeapons();
 }
 
 // --- the item under a point ----------------------------------------------------------------------

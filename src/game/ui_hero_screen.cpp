@@ -48,7 +48,6 @@ constexpr int kModeNewHero = 10;
 constexpr int kModeStats = 11;
 constexpr int kFirstVoiceRegion = 9;
 constexpr int kVoiceRegionEnd = 20;
-constexpr int kVoiceHintKind = 7;            // a plain text for the description panel
 constexpr int kCreateButton = 9;             // scene object of the create button
 constexpr float kListDepth = 553.0f;
 constexpr float kNewHeroDepth = 400.0f;
@@ -83,7 +82,7 @@ constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview 
 // --- The trade panel's experience figures ------------------------------------
 
 int CTradePanel::Experience() const {
-    const TradeRecord& record = Record();
+    const TradeStatsRecord& record = Record();
     return static_cast<int>(static_cast<double>(record.pendingExperience) + record.experience - record.spentExperience);
 }
 
@@ -125,15 +124,14 @@ void CMpHeroScreen::Draw(CSceneRenderer* pass) {
     } else if (topic != 0) {
         if (descPanel_) descPanel_->ShowHelp(topic);
     } else {
-        // Only the kind is set; the other fields stay as the stack had them (ours 0).
-        ItemHoverInfo info = {};
-        info.kind = -1;
-        if (!tradePanel_->enabled_ || (tradePanel_->HoverInfo(x, y, &info), info.kind < 0)) {
-            if (statsPanel_->enabled_) statsPanel_->HoverInfo(x, y, &info);
-            if (info.kind < 0 && mode_ == kModeNewHero) {
+        ItemHoverInfo info;
+        if (tradePanel_->enabled_) info = tradePanel_->HoverInfo(x, y);
+        if (info.kind == HoverKind::None) {
+            if (statsPanel_->enabled_) info = statsPanel_->HoverInfo(x, y);
+            if (info.kind == HoverKind::None && mode_ == kModeNewHero) {
                 int region = RegionAt(x, y);
                 if (region >= kFirstVoiceRegion && region < kVoiceRegionEnd) {
-                    info.kind = kVoiceHintKind;
+                    info.kind = HoverKind::Text;
                     info.text = kSelectVoiceKey;
                 }
             }

@@ -43,9 +43,9 @@ void TakeResults(CCampPages* camp, CParty* const& results, CParty* owner, CUiIte
     while (!results->items_.empty()) {
         CItem* item = results->items_[0];
         if (IsMade(item))
-            strip->ScrollToItem(camp->MoveItem(item, owner, results, 0, 1, 0));
+            strip->ScrollToItem(camp->MoveItem(item, owner, results, 0, true, false));
         else
-            camp->itemStrip_->ScrollToItem(camp->MoveItem(item, LocalPlayerData(), results, 0, 1, 0));
+            camp->itemStrip_->ScrollToItem(camp->MoveItem(item, LocalPlayerData(), results, 0, true, false));
     }
 }
 
@@ -470,7 +470,7 @@ void CCampPages::UpdateAction() {
         }
         break;
     case 1: {
-        bool up = trade_->Bought() != 0;
+        bool up = trade_->Bought();
         actionShown_ = up;
         actionEnabled_ = up;
         cost_ = trade_->PurchaseCost();
@@ -580,14 +580,8 @@ void CCampPages::Draw(CSceneRenderer* pass) {
     } else {
         // The statistics under the mouse: the trade panel's, else the stats panel's.
         ItemHoverInfo info;
-        info.kind = -1;
-        info.index = 0;
-        info.part = 0;
-        info.weapon = nullptr;
-        info.stats = nullptr;
-        if (trade_->enabled_ == 0 || (trade_->HoverInfo(x, y, &info), info.kind < 0)) {
-            if (statsPanel_->enabled_ != 0) statsPanel_->HoverInfo(x, y, &info);
-        }
+        if (trade_->enabled_) info = trade_->HoverInfo(x, y);
+        if (info.kind == HoverKind::None && statsPanel_->enabled_) info = statsPanel_->HoverInfo(x, y);
         if (descPanel_) descPanel_->DescribeStats(&info);
     }
     UpdateAction();
@@ -819,27 +813,27 @@ void CCampPages::PutOnFromStrip(CItem* item) {
         PutOn(item);
         return;
     case 2:
-        MoveItem(item, spellParts_[2], LocalPlayerData(), 8, 1, 0);
+        MoveItem(item, spellParts_[2], LocalPlayerData(), 8, true, false);
         break;
     case 3:
-        MoveItem(item, spellResults_, LocalPlayerData(), 0, 0, 0);
+        MoveItem(item, spellResults_, LocalPlayerData(), 0, false, false);
         break;
     case 4:
-        MoveItem(item, itemParts_[2], LocalPlayerData(), 8, 1, 0);
+        MoveItem(item, itemParts_[2], LocalPlayerData(), 8, true, false);
         break;
     case 5:
         if (IsMaterial(item) && interface_->shiftDown_) {
             // With Shift the whole stack, one at a time while the slots accept it.
             for (int n = Count(item); n > 0; --n) {
                 if (!CanEquip(item, 1)) break;
-                MoveItem(item, itemResults_, LocalPlayerData(), 0, 0, 0);
+                MoveItem(item, itemResults_, LocalPlayerData(), 0, false, false);
             }
         } else {
-            MoveItem(item, itemResults_, LocalPlayerData(), 0, 0, 0);
+            MoveItem(item, itemResults_, LocalPlayerData(), 0, false, false);
         }
         break;
     case 6:
-        MoveItem(item, itemExtra_, LocalPlayerData(), 0x10, 1, 0);
+        MoveItem(item, itemExtra_, LocalPlayerData(), 0x10, true, false);
         break;
     default:
         return;
@@ -854,12 +848,12 @@ void CCampPages::TakeItem(CItem* item, int mode) {
     }
     // Back to the player's items and the item strip (from `list`).
     auto toPlayer = [&](CItem* it, CParty* list) {
-        itemStrip_->ScrollToItem(MoveItem(it, LocalPlayerData(), list, 0, 1, 0));
+        itemStrip_->ScrollToItem(MoveItem(it, LocalPlayerData(), list, 0, true, false));
     };
     // A made item back to the constructor's parts and its strip, the others to the player.
     auto back = [&](CItem* it, CParty* owner, CParty* list, CUiItemStrip* strip) {
         if (IsMade(it))
-            strip->ScrollToItem(MoveItem(it, owner, list, 0, 1, 0));
+            strip->ScrollToItem(MoveItem(it, owner, list, 0, true, false));
         else
             toPlayer(it, list);
     };
@@ -872,22 +866,22 @@ void CCampPages::TakeItem(CItem* item, int mode) {
         return;
     case 2:
         if (page_ == 2)
-            MoveItem(item, spellParts_[1], spellParts_[0], 8, 1, 0);
+            MoveItem(item, spellParts_[1], spellParts_[0], 8, true, false);
         else if (page_ == 3)
-            MoveItem(item, spellResults_, spellParts_[0], 0, 0, 1);
+            MoveItem(item, spellResults_, spellParts_[0], 0, false, true);
         interface_->PlaySound(game::PutOnSoundText());
         return;
     case 3:
         if (page_ == 4) {
-            MoveItem(item, itemParts_[1], itemParts_[0], 8, 1, 0);
+            MoveItem(item, itemParts_[1], itemParts_[0], 8, true, false);
         } else if (page_ == 5) {
             if (IsMaterial(item) && interface_->shiftDown_) {
                 for (int n = Count(item); n > 0; --n) {
                     if (!CanEquip(item, 3)) break;
-                    MoveItem(item, itemResults_, itemParts_[0], 0, 0, 1);
+                    MoveItem(item, itemResults_, itemParts_[0], 0, false, true);
                 }
             } else {
-                MoveItem(item, itemResults_, itemParts_[0], 0, 0, 1);
+                MoveItem(item, itemResults_, itemParts_[0], 0, false, true);
             }
         }
         interface_->PlaySound(game::PutOnSoundText());
@@ -895,7 +889,7 @@ void CCampPages::TakeItem(CItem* item, int mode) {
     case 4:
         // Out of the spell constructor's sold or bought list.
         if (ListHolds(spellParts_[1], item)) {
-            spellStrip_->ScrollToItem(MoveItem(item, spellParts_[0], spellParts_[1], 0, 1, 0));
+            spellStrip_->ScrollToItem(MoveItem(item, spellParts_[0], spellParts_[1], 0, true, false));
         } else if (ListHolds(spellParts_[2], item)) {
             toPlayer(item, spellParts_[2]);
         } else {
@@ -904,7 +898,7 @@ void CCampPages::TakeItem(CItem* item, int mode) {
         break;
     case 5:
         if (ListHolds(itemParts_[1], item)) {
-            partStrip_->ScrollToItem(MoveItem(item, itemParts_[0], itemParts_[1], 0, 1, 0));
+            partStrip_->ScrollToItem(MoveItem(item, itemParts_[0], itemParts_[1], 0, true, false));
         } else if (ListHolds(itemParts_[2], item)) {
             toPlayer(item, itemParts_[2]);
         } else {

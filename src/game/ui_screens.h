@@ -132,7 +132,6 @@ public:
 class CForwardingStrip : public CUiItemStrip {
 public:
     CForwardingStrip(CInterface3D* ui, CItemScreen* owner);
-    ~CForwardingStrip() override;
     // The end faces dimmed (sprite alpha 0.195) where it can scroll on, the background cells shifted by the current tab's
     // fractional position, the window's sprites, eight item cells through the owner, the stack counts (not 1) on surface 0
     // and, unless a member is 9, the owner's number of each item its accept virtual takes on surface 1.
@@ -330,7 +329,6 @@ public:
     explicit CMpConnectScreen(CInterface3D* ui) : CUiContainer(ui) {
         selectedAddress_ = net::NetAddress{};
     }
-    ~CMpConnectScreen() override;
     void CloseScreen() override {}
     void MessageResult(int result) override { OnBoxResult(static_cast<std::uint32_t>(result)); }
 
@@ -423,7 +421,6 @@ public:
     // bar (a plain sprite, colour 0xFFA06800), and `extra` written to the link's outgoing buffer.
     CMasterRequestBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result,
                       const net::NetAddress* address, std::uint32_t extra);
-    ~CMasterRequestBox() override;
     // The bar's right edge at 225 + 355 * the received share; the link steps: done (3) hands the reply to the
     // client's server list; the box closes (0x40002) when the link is done or, stepping again, closed (up to
     // three steps a frame).
@@ -581,7 +578,6 @@ class CTradeGrid;
 class CExchangeScreen : public CItemScreen {
 public:
     explicit CExchangeScreen(CInterface3D* ui);
-    ~CExchangeScreen() override;
     void CloseScreen() override { Close(); }
     void ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) override {
         OnExchangeDone(partyB, partyA, partyC);

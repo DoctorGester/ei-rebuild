@@ -58,7 +58,7 @@ void ReturnResults(CCampPages* camp, CParty* results, CParty* constructorList, C
         CItem* item = results->items_[0];
         bool made = IsMade(item);
         CParty* to = made ? constructorList : LocalPlayerData();
-        CItem* moved = camp->MoveItem(item, to, results, 0, 1, 0);
+        CItem* moved = camp->MoveItem(item, to, results, 0, true, false);
         (made ? constructorStrip : camp->itemStrip_)->ScrollToItem(moved);
     }
 }

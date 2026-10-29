@@ -437,7 +437,7 @@ struct UiInputSide {
     };
     // The handled flag is left as it is (a dispatcher clears it before each event).
     explicit UiInputSide(CInterface3D* ui) : interface_(ui) {}
-    virtual ~UiInputSide();
+    virtual ~UiInputSide() = default;
     virtual void Deactivate() {}
     virtual void LeftDown(int, int, int) {}
     virtual void LeftUp(int, int, int) {}
@@ -461,7 +461,6 @@ struct UiInputSide {
 // the view screens'.
 struct UiInertInput final : UiInputSide {
     explicit UiInertInput(CInterface3D* ui) : UiInputSide(ui) {}
-    ~UiInertInput() override;
 };
 
 // The window's part below its input side: the engine's transform object and 0x40 bytes the window's code
@@ -1531,7 +1530,6 @@ class CSaveLoadWindow : public CUiContainer {
 public:
     CSaveLoadWindow(CInterface3D* ui, bool isSave, bool sliding)
         : CUiContainer(ui), isSave_(isSave), sliding_(sliding) {}
-    ~CSaveLoadWindow() override;
     void Draw(CSceneRenderer* pass) override;                      // slides in
     void Update() override;
     void CloseScreen() override { CloseDialog(); }
@@ -1699,8 +1697,6 @@ struct ObjectiveExit {
 class CObjectivesWindow : public CUiContainer {
 public:
     explicit CObjectivesWindow(CInterface3D* ui);
-    // Not the exit distances.
-    ~CObjectivesWindow() override;
     void CloseScreen() override { RestoreAlphaRef(); }
     void RestoreAlphaRef();
     void CreateScreen() override;
@@ -1865,7 +1861,6 @@ public:
     // A missing text gives its key.
     CMessageBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result, std::uint32_t flags,
                 std::uint32_t format);
-    ~CMessageBox() override;
     void CreateScreen() override;
     // Region 0 OK: for the exit question (result_ 0xFFFF0000) the exit movie and the game quits; otherwise
     // the edit field's text into editText_. Any region n then leaves result_ | (n + 1) pending.
@@ -1892,7 +1887,6 @@ class CHelpWindow : public CUiContainer {
 public:
     CHelpWindow(CInterface3D* ui, bool message, const std::string& text, int page)
         : CUiContainer(ui), message_(message), text_(text), page_(page) {}
-    ~CHelpWindow() override;
     void Draw(CSceneRenderer* pass) override;
     void CloseScreen() override { Close(); }
     // Without the text or without pages the interface's pending value is set to 0 and nothing else happens.
@@ -1942,7 +1936,6 @@ class CChatOverlay : public CUiWindow {
 public:
     // Rebirth-patched.
     explicit CChatOverlay(CInterface3D* ui);
-    ~CChatOverlay() override;
     // Lines narrower than 780 pixels, "^<digit>" switching the colour (bits 0 / 1 / 2
     // blue / green / red; a missing digit is 7); at most 12 lines remain.
     void AddLine(const char* text);

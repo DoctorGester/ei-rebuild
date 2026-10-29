@@ -225,7 +225,7 @@ void CCampPages::BuildPages() {
         auto* grid = new CTradeGrid(interface_, this);
         spellConstructor1_ = grid;
         AddChild(grid);
-        spellConstructor1_->Build(&spellParts_[1]->items_, &spellParts_[2]->items_, 1, 0);
+        spellConstructor1_->Build(&spellParts_[1]->items_, &spellParts_[2]->items_, true, false);
         spellConstructor1_->mode_ = kModeSpellTrade;
 
         auto* maker = new CSpellMakerPage(interface_, this);
@@ -246,7 +246,7 @@ void CCampPages::BuildPages() {
         auto* grid = new CTradeGrid(interface_, this);
         itemConstructor1_ = grid;
         AddChild(grid);
-        itemConstructor1_->Build(&itemParts_[1]->items_, &itemParts_[2]->items_, 0, 0);
+        itemConstructor1_->Build(&itemParts_[1]->items_, &itemParts_[2]->items_, false, false);
         itemConstructor1_->mode_ = kModeItemTrade;
 
         auto* maker = new CConstructorPage(interface_, this);

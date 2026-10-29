@@ -63,7 +63,7 @@ checked in the original's slots: nothing reads them). Named:
   `CUiMesh::tintSpare_` (+0x230; Draw 005E6D90 reads tint_ only), `CCursor::imageSpare_` (+0x14; the frame step 005E52E0 reads image_'s +0x14, not
   the cursor's), `CMpConnectScreen::spare_` (+0x254); `BriefingSpeaker::spareFlag` (+0x08) went in C20r2.
 - `CUiWindow::heldObject_` (+0xF4): 0 from the constructor, released by the destructor with the two materials; no writer identified among the
-  window classes. `TradeRecord::padAfterPerks` / `padAfterBought`: alignment bytes.
+  window classes.
 
 How the readers were looked for: a capstone index of every `[reg+disp]` operand per function of the vanilla exe (config/functions.csv sizes),
 queried per class over its vtable slots and their direct callees in the class's address range. Readers through another object's pointer outside

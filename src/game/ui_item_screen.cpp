@@ -23,17 +23,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// A cache's objects released (Release), in key order; the map goes with the screen.
-template <typename Object>
-void DestroyCache(ItemObjectCache<Object>& cache) {
-    ReleaseCachedObjects(&cache);
-}
-
-CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
-    return list->AddItem(item, keepCount, merge);
-}
-void RemoveItemAt(CParty* list, CItem* item, int all) { list->RemoveItem(item, all); }
-
 } // namespace
 
 // While the cache holds more than its limit: the least recently used entry (used before now) has
@@ -116,20 +105,15 @@ void CItemScreen::CreateBase() {
     TrimItemCache(&models_);
 }
 
-// --- The item screens' destructor bodies -----------------------------------
+// --- The item screens' destructor ---------------------------------------------------
 
+// The caches' objects released, in key order; the maps go with the screen.
 CItemScreen::~CItemScreen() {
-    DestroyCache(textures_);
-    DestroyCache(models_);
+    ReleaseCachedObjects(&textures_);
+    ReleaseCachedObjects(&models_);
 }
 
-// --- Screen 9's destructor ------------------------------------------
-
-CExchangeScreen::~CExchangeScreen() {}
-
-// --- Moving items between lists ----------------------------------------------
-
-// --- The turning state's Clone and deleting destructor -----------------------
+// --- The turning state's Clone -----------------------------------------------------
 
 ItemTurn* ItemTurn::Clone() {
     auto* copy = new ItemTurn();
@@ -140,22 +124,22 @@ ItemTurn* ItemTurn::Clone() {
     return copy;
 }
 
-ItemTurn::~ItemTurn() {}
+// --- Moving items between lists ----------------------------------------------------
 
-CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
-    int whole = static_cast<std::uint8_t>(merge) != 0 && interface_->shiftDown_ != 0;
+CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, bool merge, bool turning) {
+    bool whole = merge && interface_->shiftDown_ != 0;
     if (limit > 0 && std::ssize(to->items_) >= limit) {
         for (int i = 0; i < limit; ++i) {
             if (!item->IsSameAs(to->items_[i])) continue;
-            CItem* moved = AddItemAt(to, item, whole, merge);
-            RemoveItemAt(from, item, whole);
+            CItem* moved = to->AddItem(item, whole, merge);
+            from->RemoveItem(item, whole);
             return moved;
         }
         return nullptr;
     }
-    CItem* moved = AddItemAt(to, item, whole, merge);
-    RemoveItemAt(from, item, whole);
-    if (static_cast<std::uint8_t>(turning)) {
+    CItem* moved = to->AddItem(item, whole, merge);
+    from->RemoveItem(item, whole);
+    if (turning) {
         if (!ItemTurnOf(moved)) {   // a null item faults here, like the original
             auto* turn = new ItemTurn();
             turn->angle = 0.0f;
@@ -172,8 +156,8 @@ CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
     CItem* moved = nullptr;
     while (!from->items_.empty()) {
         CItem* first = from->items_[0];
-        moved = AddItemAt(to, first, 1, 1);
-        RemoveItemAt(from, first, 1);
+        moved = to->AddItem(first, 1, 1);
+        from->RemoveItem(first, 1);
     }
     return moved;
 }

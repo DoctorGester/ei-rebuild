@@ -268,7 +268,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
     }
 }
 
-// Kind 5, the weapon's attack or defence: its four parts and their sum (or, for the defence of a
+// HoverKind::Weapon, the weapon's attack or defence: its four parts and their sum (or, for the defence of a
 // weapon of type 5 or 6, infoitem_34).
 void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     CItemWeapon* weapon = info->weapon;
@@ -755,18 +755,18 @@ void CItemInfoPanel::DescribeCarriedSpell() {
 void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     ItemParty()->Clear(1, 0);
     DescribeItem();
-    if (info->kind < 0) return;
+    if (info->kind == HoverKind::None) return;
     CTextManager* texts = g_clientWorld->texts_;
     Writer w(this);
     std::string text, title, description;
-    if (info->kind <= 3) {
+    if (info->kind <= HoverKind::Perk) {
         std::string key("perk ");
         key += info->text;
         if (texts->Open(key)) {
             texts->ReadLine(&title, 1);
             texts->ReadLine(&description, 1);
         }
-    } else if (info->kind <= 7) {
+    } else if (info->kind <= HoverKind::Text) {
         texts->GetString(info->text, &title);
         std::string key = info->text;
         key += "_desc";
@@ -777,11 +777,11 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     w.Down();
     UnitStats* stats = info->stats;
     switch (info->kind) {
-    case 0:
+    case HoverKind::Attribute:
         AttributeLines(w, stats, info->index);
         w.Wrapped(description, 13);
         break;
-    case 1: {
+    case HoverKind::Skill: {
         int index = info->index;
         w.line = str::Format("%s %d", w.Skill(5), Ftol(stats->SkillBase(index)));
         w.Text(w.line);
@@ -805,7 +805,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Wrapped(description, 13);
         break;
     }
-    case 2:
+    case HoverKind::Science:
         w.line = str::Format("%s %d", w.Skill(5),
                       Ftol(stats->AttributeBase(info->index)));
         w.Text(w.line);
@@ -818,12 +818,12 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Down();
         w.Wrapped(description, 13);
         break;
-    case 3:
+    case HoverKind::Perk:
         PerkLines(w, info, title);
         w.Down();
         w.Wrapped(description, 6);
         break;
-    case 4: {
+    case HoverKind::Armour: {
         w.Text(w.T(25));
         w.Down();
         float sums[7];
@@ -842,13 +842,13 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Wrapped(description, 8);
         break;
     }
-    case 5:
+    case HoverKind::Weapon:
         WeaponLines(w, info);
         w.Down();
         w.Down();
         w.Wrapped(description, 9);
         break;
-    case 6: {
+    case HoverKind::Magic: {
         int label = 40;
         for (int school = 0; school < 8; ++school) {
             if (school == 4 || school == 6 || school == 7) continue;
@@ -862,7 +862,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Wrapped(description, 9);
         break;
     }
-    case 7:
+    case HoverKind::Text:
         w.Wrapped(description, 16);
         break;
     default:

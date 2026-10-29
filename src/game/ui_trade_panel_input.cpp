@@ -28,8 +28,6 @@ constexpr int kMaxLevel = 100;
 constexpr float kFirstHold = -0.5f;
 constexpr float kHoldRepeat = 0.25f;
 
-CUiMesh* Arrow(CUiWindow* window, int index) { return window->SceneMesh(index); }
-
 } // namespace
 
 // --- The scroll positions clamped ----------------------------------------------------------------------
@@ -39,10 +37,10 @@ void CTradePanel::ClampScroll() {
     if (perkTop_ < 0) perkTop_ = 0;
     if (learnableTop_ > static_cast<int>(learnable_.size()) - kLearnableRows) learnableTop_ = static_cast<int>(learnable_.size()) - kLearnableRows;
     if (learnableTop_ < 0) learnableTop_ = 0;
-    Arrow(this, 0)->visible_ = perkTop_ > 0 ? 1 : 0;
-    Arrow(this, 1)->visible_ = perkTop_ < static_cast<int>(perks_.size()) - kHeldRows ? 1 : 0;
-    Arrow(this, 2)->visible_ = learnableTop_ > 0 ? 1 : 0;
-    Arrow(this, 3)->visible_ = learnableTop_ < static_cast<int>(learnable_.size()) - kLearnableRows ? 1 : 0;
+    SceneMesh(0)->visible_ = perkTop_ > 0 ? 1 : 0;
+    SceneMesh(1)->visible_ = perkTop_ < static_cast<int>(perks_.size()) - kHeldRows ? 1 : 0;
+    SceneMesh(2)->visible_ = learnableTop_ > 0 ? 1 : 0;
+    SceneMesh(3)->visible_ = learnableTop_ < static_cast<int>(learnable_.size()) - kLearnableRows ? 1 : 0;
     DrawLists();
 }
 
@@ -58,9 +56,8 @@ void CTradePanel::LeftDown(int, int x, int y) {
     default: break;
     }
     if (region >= kFirstSchool) interface_->PlaySound(kPerkSound);
-    PartyUnitRecord* hero = owner_->HeroRecord();
-    auto* stats = &hero->stats;
-    TradeRecord& record = records_[recordIndex_];
+    UnitStats* stats = &owner_->HeroRecord()->stats;
+    TradeStatsRecord& record = records_[recordIndex_];
 
     const TradeRow* row = nullptr;
     bool hold = false;
@@ -76,25 +73,25 @@ void CTradePanel::LeftDown(int, int x, int y) {
         hold = true;
     } else if (region >= kFirstLearnable && region < kFirstHeld) {
         std::uint32_t index = static_cast<std::uint32_t>(learnableTop_ + region - kFirstLearnable);
-        if (index >= static_cast<std::uint32_t>(static_cast<int>(learnable_.size()))) return;
+        if (index >= learnable_.size()) return;
         row = &learnable_[index];
         if (row->price > experience_ || !row->learnable) return;
         stats->LearnSkill(&g_skillDatabase.Get(), g_skillDatabase->FindLevel(row->key));
     } else {
         // 34 and up, and (as unsigned) anything below 0: the next level of a held perk.
         std::uint32_t index = static_cast<std::uint32_t>(perkTop_ + region - kFirstHeld);
-        if (index >= static_cast<std::uint32_t>(static_cast<int>(perks_.size()))) return;
+        if (index >= perks_.size()) return;
         row = &perks_[index];
         if (row->price > experience_ || row->nextKey.empty()) return;
         stats->LearnSkill(&g_skillDatabase.Get(), g_skillDatabase->FindLevel(row->nextKey));
     }
     stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);
-    record.bought = 1;
+    record.bought = true;
     BuildLists();
     if (hold) {
         heldRegion_ = region;
         holdTime_ = kFirstHold;
-        UiCapture(interface_) = Input();
+        CaptureMouse();
     }
 }
 
@@ -116,8 +113,7 @@ void CTradePanel::UpdateHeld() {
     EI_NAN_AUDIT(held);
     if (held < kHoldRepeat) return;
     int region = heldRegion_;
-    PartyUnitRecord* hero = owner_->HeroRecord();
-    auto* stats = &hero->stats;
+    UnitStats* stats = &owner_->HeroRecord()->stats;
     const TradeRow* row;
     std::uint8_t* level;
     if (region >= kFirstSchool && region < kScience) {
