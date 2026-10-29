@@ -624,7 +624,7 @@ bool CCampPages::CanMakeSpell() {
     constructor->SetManager(nullptr);
     itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
-    CItem* container = factory->MakeItem(ItemKind::Spell, index, 0);
+    CItem* container = factory->MakeItem(ItemKind::Scroll, index, 0);
     if (container) container->AttachSpell(made);
     spellMade_.Assign(container);
     if (!container) return false;
@@ -704,7 +704,7 @@ void CCampPages::CloseScreen() {
 CItem* CCampPages::TakeOff(CItem* item) {
     interface_->PlaySound(game::PutOffSoundText());
     ItemKind kind = item->Kind();
-    if (kind < ItemKind::Weapon || (kind > ItemKind::Quick && kind != ItemKind::Spell)) return nullptr;
+    if (kind < ItemKind::Weapon || (kind > ItemKind::Quick && kind != ItemKind::Scroll)) return nullptr;
     PartyUnitRecord* hero = HeroRecord();
     // The item among the player's items.
     CItem* result = LocalPlayerData()->AddItem(item, 0, 1);
@@ -739,7 +739,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
     case ItemKind::Quick:
         hero->RemoveQuickItem(item);
         break;
-    case ItemKind::Spell:
+    case ItemKind::Scroll:
         hero->RemoveSpell(item);
         break;
     default:
@@ -780,7 +780,7 @@ void CCampPages::PutOn(CItem* item) {
         if (std::ssize(hero->quickItems) >= 4) return;
         hero->AddQuickItem(item);
         break;
-    case ItemKind::Spell:
+    case ItemKind::Scroll:
         if (std::ssize(hero->spells) >= 8) return;
         hero->AddSpell(item);
         break;

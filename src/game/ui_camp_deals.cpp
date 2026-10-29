@@ -173,7 +173,7 @@ void CCampPages::DeconstructItem() {
         itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;
         int index = quickItems.IndexOf(quickItems.Named("spell container"));
         Ref<CItem> container;
-        container.Assign(results->ItemFactory()->MakeItem(ItemKind::Spell, index, 0));
+        container.Assign(results->ItemFactory()->MakeItem(ItemKind::Scroll, index, 0));
         if (container) {
             container->AttachSpell(copy->spell_->Clone(results->SpellManager()));
             results->AddItem(container, 0, 0);

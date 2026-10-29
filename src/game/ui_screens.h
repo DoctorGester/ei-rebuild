@@ -36,7 +36,7 @@ bool IsPart(const CItem* item);             // kind 2, record type 0-2 (blueprin
 bool IsMaterial(const CItem* item);
 bool IsSpell(const CItem* item);            // kind 2, record type 3 (the spell table)
 bool IsModifier(const CItem* item);         // kind 2, record type 4 (spell modifier table)
-bool IsSpellContainer(const CItem* item);   // type ItemKind::Spell
+bool IsSpellContainer(const CItem* item);   // type ItemKind::Scroll
 // An item the item constructor can take apart: a weapon or armour, or a quick item whose prototype's material
 // class is not "none"; never when the prototype exists and is not buildable.
 bool IsBuildable(const CItem* item);

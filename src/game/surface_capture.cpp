@@ -50,7 +50,7 @@ CDib* CaptureScreen(const CTextureDevice* device) {
     std::uint8_t* out = dib->AllocateBits();
     const int pixelBytes = BytesPerPixel(bitsPerPixel);
     if (!out || (pixelBytes != 2 && pixelBytes != 4) || width <= 0 || height <= 0) return dib;
-    const std::size_t rowBytes = static_cast<std::size_t>(width) * pixelBytes;
+    const std::size_t rowBytes = DibRowBytes(dib->header);   // padded to four bytes (a 16-bit row of odd width)
     for (int row = height - 1; row >= 0; --row, out += rowBytes) {
         std::memset(out, 0, rowBytes);
         if (row >= frameHeight) continue;

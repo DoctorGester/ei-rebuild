@@ -37,7 +37,7 @@ std::unique_ptr<ItemRecordHead> NewRecord(ItemKind kind) {
     case ItemKind::Weapon: return std::make_unique<WeaponRecord>();
     case ItemKind::Armor: return std::make_unique<ArmorRecord>();
     case ItemKind::Quick:
-    case ItemKind::Spell: return std::make_unique<QuickItemRecord>();
+    case ItemKind::Scroll: return std::make_unique<QuickItemRecord>();
     case ItemKind::Quest: return std::make_unique<QuestItemRecord>();
     case ItemKind::Loot: return std::make_unique<LootItemRecord>();
     default: return nullptr;
@@ -99,7 +99,7 @@ std::uint32_t FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHe
         return IndexIn(g_itemDatabase.armors, prototype);
     }
     case ItemKind::Quick:
-    case ItemKind::Spell:
+    case ItemKind::Scroll:
         RecordAs<QuickItemRecord>(record)->actionValue = RecordAs<QuickItemRecord>(prototype)->actionValue;
         return IndexIn(g_itemDatabase.quickItems, prototype);
     case ItemKind::Quest:
@@ -339,7 +339,7 @@ CItem* CItemManager::CreateSpellItem(std::string_view spellText, CSpellManager* 
     if (!spell) return nullptr;
     QuickItemTable& quickItems = g_itemDatabase.quickItems;
     int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
-    CItem* item = MakeItem(ItemKind::Spell, index, 0);
+    CItem* item = MakeItem(ItemKind::Scroll, index, 0);
     if (item) item->AttachSpell(spell);
     return item;
 }
@@ -364,7 +364,7 @@ CEngineObject* CItemManager::NewObject(int kind) {
     case ItemKind::Armor: object = new CItemArmor; break;
     case ItemKind::Quick: object = new CItemQuick; break;
     case ItemKind::Loot: object = new CItemLoot; break;
-    case ItemKind::Spell: object = new CItemSpell; break;
+    case ItemKind::Scroll: object = new CItemScroll; break;
     case ItemKind::Quest: object = new CItemQuest; break;
     default: return nullptr;
     }

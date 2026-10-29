@@ -8175,14 +8175,14 @@ address,name,size,status,risk,scenarios,golden,vector,reached_by
 006A5470,LootGetPriceHook,428,golden,0,3,ui_camp_deals ui_camp_make ui_gallery_deals,,
 006A5630,CItemLoot::LoadImpl,74,golden,0,13,effects_bow items ui_camp_make ui_describe +6,,rebirth_flags ui_widescreen_more ui_widescreen_screens
 006A5680,CItemLoot::SaveImpl,82,golden,0,13,effects_bow items ui_camp_make ui_describe +6,,rebirth_flags ui_widescreen_more ui_widescreen_screens
-006A56E0,CItemSpell::Construct,18,golden,0,118,app_record camera combat combat_more +104,,harness_disk_full net_second_master rebirth_flags +7
-006A5700,ItemSpellClassName,6,unreached,12,0,,,
-006A5710,ItemSpellClassId,6,golden,0,118,app_record camera combat combat_more +104,,harness_disk_full net_second_master rebirth_flags +7
+006A56E0,CItemScroll::Construct,18,golden,0,118,app_record camera combat combat_more +104,,harness_disk_full net_second_master rebirth_flags +7
+006A5700,ItemScrollClassName,6,unreached,12,0,,,
+006A5710,ItemScrollClassId,6,golden,0,118,app_record camera combat combat_more +104,,harness_disk_full net_second_master rebirth_flags +7
 006A5720,CItem::DeletingDestruct,30,golden,0,118,app_record camera combat combat_more +104,,harness_disk_full net_second_master rebirth_flags +7
 006A5740,CItem::DestructBody,174,golden,0,118,app_record camera combat combat_more +104,,harness_disk_full net_second_master rebirth_flags +7
-006A57F0,CItemSpell::CopyToImpl,46,golden,0,118,app_record camera combat combat_more +104,,harness_disk_full net_second_master rebirth_flags +7
-006A5820,CItemSpell::FigureNameImpl,192,golden,0,113,app_record camera combat combat_more +100,,net_second_master rebirth_flags render_movie +6
-006A58E0,CItemSpell::PictureNameImpl,33,golden,0,113,app_record camera combat combat_more +100,,net_second_master rebirth_flags render_movie +6
+006A57F0,CItemScroll::CopyToImpl,46,golden,0,118,app_record camera combat combat_more +104,,harness_disk_full net_second_master rebirth_flags +7
+006A5820,CItemScroll::FigureNameImpl,192,golden,0,113,app_record camera combat combat_more +100,,net_second_master rebirth_flags render_movie +6
+006A58E0,CItemScroll::PictureNameImpl,33,golden,0,113,app_record camera combat combat_more +100,,net_second_master rebirth_flags render_movie +6
 006A5950,itemdb::RecordTableAt<kArmorSize>,52,unreached,104,0,,,
 006A5990,itemdb::RecordTableAt<kQuickItemSize>,60,golden,0,12,net_pair_join net_pair_kick net_pair_leave net_pair_master +7,,net_second_master
 006A59D0,itemdb::RecordTableAt<kQuestItemSize>,55,unreached,110,0,,,

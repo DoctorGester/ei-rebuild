@@ -1,4 +1,4 @@
-// CDib: construction, the header of a new bitmap, its memory and its palette. The file
+// CDib: construction, the header of a new bitmap and its memory. The file
 // reader and writer are in dib_file.cpp.
 #include "dib.h"
 
@@ -9,22 +9,23 @@
 namespace {
 
 constexpr int kMaskBytes = 3 * sizeof(std::uint32_t);   // the channel masks of a BI_BITFIELDS header
-constexpr std::uint16_t kPaletteVersion = 0x300;
 
 bool HasMasks(int bitCount) { return bitCount == 16 || bitCount == 32; }
 
 // The bytes of the header's pixels: its biSizeImage, or (when that is 0) its rows padded to four bytes.
 std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
     if (header->biSizeImage != 0) return header->biSizeImage;
-    const std::uint32_t rowBits = static_cast<std::uint32_t>(header->biBitCount) * header->biWidth;
-    std::uint32_t rowDwords = rowBits >> 5;
-    if (rowBits & 0x1F) ++rowDwords;
-    return header->biHeight * rowDwords * 4;
+    return header->biHeight * DibRowBytes(header);
 }
 
 } // namespace
 
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header) { return ImageSize(header); }
+
+std::uint32_t DibRowBytes(const BITMAPINFOHEADER* header) {
+    const std::uint32_t rowBits = static_cast<std::uint32_t>(header->biBitCount) * header->biWidth;
+    return ((rowBits + 31) >> 5) * 4;
+}
 
 
 CDib::CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
@@ -61,13 +62,11 @@ void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::u
 
 void CDib::Empty() {
     ::operator delete(header);
-    if (palette) DeleteObject(palette);
     bits = std::vector<std::uint8_t>();
     header = nullptr;
     colours = nullptr;
     colourCount = 0;
     imageSize = 0;
-    palette = nullptr;
     maskBytes = 0;
 }
 
@@ -82,31 +81,7 @@ SIZE* CDib::Size(SIZE* out) const {
     return out;
 }
 
-int CDib::MakePalette() {
-    if (colourCount == 0) return 0;
-    if (palette) DeleteObject(palette);
-    // A LOGPALETTE's header is four bytes; its entries follow.
-    auto* description = static_cast<LOGPALETTE*>(
-        ::operator new(static_cast<std::size_t>(colourCount) * sizeof(PALETTEENTRY) + 4));
-    description->palVersion = kPaletteVersion;
-    description->palNumEntries = static_cast<WORD>(colourCount);
-    for (int i = 0; i < colourCount; ++i) {
-        PALETTEENTRY& entry = description->palPalEntry[i];
-        entry.peRed = colours[i].rgbRed;
-        entry.peGreen = colours[i].rgbGreen;
-        entry.peBlue = colours[i].rgbBlue;
-        entry.peFlags = 0;
-    }
-    palette = CreatePalette(description);
-    ::operator delete(description);
-    return 1;
-}
-
 std::uint8_t* CDib::AllocateBits() {
-    if (header) {
-        const std::uint32_t bytes = static_cast<std::uint32_t>(header->biBitCount >> 3) * header->biPlanes *
-                                    header->biHeight * header->biWidth;
-        bits.resize(bytes);
-    }
+    if (header) bits.resize(static_cast<std::size_t>(header->biHeight) * DibRowBytes(header));
     return bits.data();
 }

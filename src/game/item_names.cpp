@@ -136,11 +136,11 @@ std::string CItemQuest::FigureName() { return str::Format("quitem%04d", Number(G
 
 std::string CItemQuest::PictureName() { return str::Format("initqu%ditem", Number(GetPrototype())); }
 
-std::string CItemSpell::FigureName() {
+std::string CItemScroll::FigureName() {
     return str::Format("spell%04d", SpellAt(PrototypeIndex(spell_->prototypeId_))->icon);
 }
 
-std::string CItemSpell::PictureName() { return "initqi1item"; }
+std::string CItemScroll::PictureName() { return "initqi1item"; }
 
 // --- Loot ----------------------------------------------------------------------------------------
 
@@ -180,7 +180,7 @@ std::string CItemLoot::PictureName() {
 
 // --- Model names, base figure and parts by record ------------------------------------------------
 
-std::string RecordModelName(const ItemRecordHead* prototype, const char* const (&codes)[7],
+std::string RecordModelName(const ItemRecordHead* prototype, const char* const (&codes)[kItemTypeCodeCount],
                             const MaterialRecordHead* material) {
     if (!prototype || !material) return {};
     return str::Format("%s_%.2d.%s.%d", TypeCode(codes, prototype->type), prototype->number, material->name,

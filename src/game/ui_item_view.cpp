@@ -154,7 +154,7 @@ bool IsRecordLoot(const CItem* item, LootRecordType recordType) {
 }
 
 bool LiesFlat(CItem* item) {
-    if (item->Kind() == ItemKind::Spell) return true;
+    if (item->Kind() == ItemKind::Scroll) return true;
     return IsRecordLoot(item, LootRecordType::Spell) || IsRecordLoot(item, LootRecordType::Modifier);
 }
 
@@ -260,7 +260,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
     if (item->spell_) render::g_renderState.specular = false;
 
     CSpell* spell = item->spell_;
-    if (item->Kind() == ItemKind::Spell && spell && spell->GetModifierCount() > 0) {
+    if (item->Kind() == ItemKind::Scroll && spell && spell->GetModifierCount() > 0) {
         float px, py, pz;
         model->GetPlacement(&px, &py, &pz);
         float scale = model->scaleMatrix_.m[0];

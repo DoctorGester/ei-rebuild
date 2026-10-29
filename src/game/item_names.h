@@ -17,7 +17,8 @@ std::string WeaponBaseFigure(std::uint32_t index);
 
 // The model name "<type code>_<number>.<material name>.<variant>" of a weapon or armour prototype in a material
 // (`codes` kWeaponCodes or kArmorCodes; "" as the code of a type without one); "" when either record is missing.
-std::string RecordModelName(const itemdb::ItemRecordHead* prototype, const char* const (&codes)[7],
+std::string RecordModelName(const itemdb::ItemRecordHead* prototype,
+                            const char* const (&codes)[itemdb::kItemTypeCodeCount],
                             const itemdb::MaterialRecordHead* material);
 // The same by armour / weapon prototype index and material index.
 std::string ArmorModelName(std::uint32_t armorIndex, std::uint32_t materialIndex);

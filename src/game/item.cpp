@@ -35,7 +35,7 @@ ItemRecordHead* PrototypeAt(ItemKind kind, std::uint32_t index) {
     case ItemKind::Weapon: return WeaponAt(index);
     case ItemKind::Armor: return ArmorAt(index);
     case ItemKind::Quick:
-    case ItemKind::Spell: return QuickItemAt(index);
+    case ItemKind::Scroll: return QuickItemAt(index);
     case ItemKind::Loot: return LootAt(index);
     case ItemKind::Quest: return QuestItemAt(index);
     default: return nullptr;
@@ -176,7 +176,7 @@ void CItem::Save(CStream* stream) {
 }
 
 ItemRecordHead* CItem::GetPrototype() {
-    if (Kind() == ItemKind::Spell) return nullptr;
+    if (Kind() == ItemKind::Scroll) return nullptr;
     return PrototypeAt(Kind(), PrototypeIndex(prototypeId_));
 }
 
@@ -371,11 +371,11 @@ void CItemQuick::Save(CStream* stream) {
     stream->WriteValue(actionValue_);
 }
 
-// --- CItemSpell ----------------------------------------------------------------------------------
+// --- CItemScroll ----------------------------------------------------------------------------------
 
-const char* CItemSpell::ClassName() { return "CItemSpell"; }
+const char* CItemScroll::ClassName() { return "CItemScroll"; }
 
-ClassId CItemSpell::GetClassId() { return ClassId::ItemSpell; }
+ClassId CItemScroll::GetClassId() { return ClassId::ItemScroll; }
 
 // --- CItemQuest ----------------------------------------------------------------------------------
 

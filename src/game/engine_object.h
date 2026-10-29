@@ -40,7 +40,7 @@ enum class ClassId : int {
     ItemQuick = 0x13,
     ItemQuest = 0x14,
     ItemLoot = 0x15,
-    ItemSpell = 0x16,
+    ItemScroll = 0x16,
     SpellContainer = 0x1A,
     SpellConstructor = 0x1B,
     ItemConstructor = 0x1C,

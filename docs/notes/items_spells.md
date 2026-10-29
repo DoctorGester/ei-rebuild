@@ -72,7 +72,7 @@ one value per field chunk (IntListField, InlineStrings).
 
 ## Item classes
 
-- `CItem : CEngineObject` and six classes: weapon, armour, quick item, quest item, loot, scroll (`CItemSpell`, a "spell
+- `CItem : CEngineObject` and six classes: weapon, armour, quick item, quest item, loot, scroll (`CItemScroll`, a "spell
   container"; it derives from the quick item for its actionValue_ and its InitFromRecord / IsSameAs / CopyTo / Load /
   Save). item.h holds the classes and the weapon stats by packed id, item_manager.h the item constructor and the item
   manager (the factory), item_names.h the name builders by record index; their code is item.cpp, item_manager.cpp and
@@ -82,8 +82,9 @@ one value per field chunk (IntListField, InlineStrings).
 - The original's slot 18 (FirstListName) is not in our CItem: nothing called it, and the record lists it read were never
   filled.
 - Open (style review, build/style_review/items.md): L26, one CItem with a kind switch instead of the six classes (needs a
-  decision on the engine factory and the virtual Load / Save); L28, `CItemSpell` / `ItemKind::Spell` named as the scroll
-  (`CItemScroll`), and the member naming mix (`CItem::count_`, `CItemLink::value`, `ItemStock::party`).
+  decision on the engine factory and the virtual Load / Save); the member naming mix (`CItem::count_`,
+  `CItemLink::value`, `ItemStock::party`). The scroll class is `CItemScroll` / `ItemKind::Scroll` / `ClassId::ItemScroll`
+  (C61b; `ClassName()` is only the console's listing, never saved).
 
 ## Item rules (scenario items)
 
@@ -498,7 +499,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   manager's Create (slot 2) and NewObject (slot 14: kinds 0x3004..0x3009 to weapon / armour / quick / loot / scroll / quest;
   O), `CItemConstructor::DeletingDestruct`, `RecordTableAt<Stride>` (armour 0x88, quick 0x80, 0x7C, 0x78; P),
   `WeaponModelName` / `WeaponRecordModelName` (P texts; the second compared only for weapon types 0..6, beyond them the
-  original reads past its code table), `CItemSpell::PictureName` ("initqi1item"), `CItemQuest::GetUse` (slot 21: kind 8, the
+  original reads past its code table), `CItemScroll::PictureName` ("initqi1item"), `CItemQuest::GetUse` (slot 21: kind 8, the
   value at +0x4C, 0; P).
 - Effects and textures: `CSpellEffect::Init` (every cast) / `Forget` (an object leaving the world during a cast; O),
   `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444` (texture_slots.cpp; S; SetFormat8888 00693910 had no caller: R30a), `CTexture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /

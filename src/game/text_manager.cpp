@@ -132,7 +132,7 @@ ItemTexts CTextManager::GetItemTexts(CItem* item) {
         }
         break;
     }
-    case ItemKind::Spell:
+    case ItemKind::Scroll:
         if (CSpell* spell = item->spell_) {
             key = std::string("spell ") + spell->GetPrototype()->code;
             kindKey = "item_spell";
