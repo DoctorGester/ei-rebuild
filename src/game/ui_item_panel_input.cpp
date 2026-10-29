@@ -1,6 +1,6 @@
-// The item panels' shared left-button handler (of the description panel,
-// the hero equipment, the quick strip, the trade and repair grids, both constructor pages and the
-// blank panel), and the blank panel's constructor. See docs/notes/ui.md, section 5.
+// The item panels' shared left-button handler (of the description panel, the hero equipment, the quick
+// strip, the trade and repair grids, both constructor pages and the blank panel). See docs/notes/ui.md,
+// section 5.
 #include "ui.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
@@ -9,10 +9,8 @@ void CUiItemPanel::LeftDown(int, int x, int y) {
     // The address of the x argument is the topic out-parameter, like the original.
     int topic = x;
     if (CItem* item = ItemAt(x, y, &topic)) {
-        OwnerTakeItem(item);
+        owner_->TakeItem(item, mode_);
         return;
     }
-    if (topic) OwnerTopicClicked(topic);
+    if (topic) owner_->TopicClicked(topic);
 }
-
-CUiItemPanel::CUiItemPanel(CInterface3D* ui, CItemScreen* owner) : CUiWindow(ui), owner_(owner) {}

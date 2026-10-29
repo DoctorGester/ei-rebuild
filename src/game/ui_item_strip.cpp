@@ -14,26 +14,9 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
-namespace {
-
-CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
-    CUiRegion* region = window->AddRegion();
-    region->SetRect(left, top, right, bottom);
-    return region;
-}
-
-} // namespace
-
-void CUiItemStrip::Build(char top) {
-    if (top) {
-        top_ = 0;
-        std::uint32_t bits = 0x41000000;   // 8.0
-        scale_ = std::bit_cast<float>(bits);
-    } else {
-        top_ = 500;
-        std::uint32_t bits = 0x40800000;   // 4.0
-        scale_ = std::bit_cast<float>(bits);
-    }
+void CUiItemStrip::Build(bool top) {
+    top_ = top ? 0 : 500;
+    scale_ = top ? 8.0f : 4.0f;
     rect_ = RECT{0, top_, 800, top_ + 100};
     for (float& position : position_) position = 0.0f;
     pending_ = 0.0f;
@@ -46,15 +29,16 @@ void CUiItemStrip::Build(char top) {
 
     // Regions 0 / 1 the scroll arrows, 2-4 and 5-7 the tab buttons at the left and right ends,
     // 8 the items.
-    AddRect(this, 30, top_ + 35, 50, top_ + 65);
-    AddRect(this, 750, top_ + 35, 770, top_ + 65);
-    AddRect(this, 0, top_ + 5, 30, top_ + 35);
-    AddRect(this, 0, top_ + 35, 30, top_ + 65);
-    AddRect(this, 0, top_ + 65, 30, top_ + 95);
-    AddRect(this, 770, top_ + 5, 800, top_ + 35);
-    AddRect(this, 770, top_ + 35, 800, top_ + 65);
-    AddRect(this, 770, top_ + 65, 800, top_ + 95);
-    AddRect(this, 50, top_, 750, top_ + 100);
+    auto region = [this](int left, int top, int right, int bottom) { AddRegion()->SetRect(left, top, right, bottom); };
+    region(30, top_ + 35, 50, top_ + 65);
+    region(750, top_ + 35, 770, top_ + 65);
+    region(0, top_ + 5, 30, top_ + 35);
+    region(0, top_ + 35, 30, top_ + 65);
+    region(0, top_ + 65, 30, top_ + 95);
+    region(770, top_ + 5, 800, top_ + 35);
+    region(770, top_ + 35, 800, top_ + 65);
+    region(770, top_ + 65, 800, top_ + 95);
+    region(50, top_, 750, top_ + 100);
 
     const float y = static_cast<float>(top_);
     const float hundred = 100.0f;
@@ -126,15 +110,10 @@ void CForwardingStrip::Draw(CSceneRenderer* pass) {
             shown[i] = nullptr;
             continue;
         }
-        ItemCell cell;
-        cell.item = list_[index];
         shown[i] = list_[index];
-        cell.size = 100.0f;
-        cell.mode = mode_;
-        cell.x = ((static_cast<float>(i) - frac) + one) * hundred;
-        cell.y = static_cast<float>(top_) + fifty;
-        cell.depth = scale_ * 1.5f;
-        owner_->DrawItem(pass, &cell);   // the owner screen's item cell draw
+        const ItemCell cell{list_[index], ((static_cast<float>(i) - frac) + one) * hundred, static_cast<float>(top_) + fifty,
+                            scale_ * 1.5f, 100.0f, mode_};
+        owner_->DrawItem(pass, cell);
     }
 
     // The text rectangle of cell i: 70 x 20 from 15 pixels into the cell.
@@ -193,8 +172,7 @@ void CUiItemStrip::Update() {
         EI_NAN_AUDIT(scrollTimer_);
         if (scrollTimer_ == zero) {
             steps = 1;
-            const std::uint32_t first = 0x3A83126F;   // 0.001
-            scrollTimer_ = std::bit_cast<float>(first);
+            scrollTimer_ = 0.001f;
         } else {
             scrollTimer_ = static_cast<float>(dt + scrollTimer_);
             while (scrollTimer_ > repeat) {

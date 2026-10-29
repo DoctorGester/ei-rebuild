@@ -531,13 +531,13 @@ public:
     }
     // The scene objects, then the models.
     void DrawBase(CSceneRenderer* pass);
-    // The camp's and the multiplayer hero screen's hero preview, turned by `turn` radians about y; `wide`'s
-    // low byte clears the depth under six camp layout rectangles, else one. The hero's transform is restored.
-    void DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, int wide);
+    // The camp's and the multiplayer hero screen's hero preview, turned by `turn` radians about y; `wide`
+    // clears the depth under six camp layout rectangles, else one. The hero's transform is restored.
+    void DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, bool wide);
     // Copies the top-left width x height of image "<name>.mmp" (decoded as imageWidth x imageHeight) into
     // `texture`'s 256-wide 1:5:5:5 surface at (x, y), or white without such an image. Returns whether the
-    // image exists (0 also when the lock fails).
-    int CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width, int height,
+    // image exists (false also when the lock fails).
+    bool CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width, int height,
                   int x, int y);
     // The texture manager's texture `name` of `kind` (found or made), loaded and appended to the
     // referenced objects with one more reference; null when either step fails (a texture made but not
@@ -604,7 +604,7 @@ struct CUiTooltip : CUiWindow {
 // mouse.
 class CUiItemPanel : public CUiWindow {
 public:
-    CUiItemPanel(CInterface3D* ui, CItemScreen* owner);
+    CUiItemPanel(CInterface3D* ui, CItemScreen* owner) : CUiWindow(ui), owner_(owner) {}
     // The item under the screen point (x, y), or null; a panel may set a help topic instead. The panels
     // without items of their own (description panel, statistics column, trade panel): nothing, `topic` 0.
     virtual CItem* ItemAt(int x, int y, int* topic);
@@ -612,10 +612,6 @@ public:
     // The item under (x, y) goes to the owner with mode_; without one, a help topic the panel named goes to
     // the owner's help handler. The event is not marked used.
     void LeftDown(int buttons, int x, int y) override;
-
-    // Hands `item` to the owner with mode_.
-    void OwnerTakeItem(CItem* item);
-    void OwnerTopicClicked(int topic);
 
     int mode_;                       // the action mode handed to the owner (ItemCell::mode)
     CItemScreen* owner_;

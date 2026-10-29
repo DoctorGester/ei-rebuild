@@ -56,7 +56,7 @@ void DrawSprite(CUiMesh* sprite, CSceneRenderer* pass, float x, float y) {
 
 // A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
 // model, then the screen to 1 again.
-void DrawInSlot(CConstructorPage* page, CSceneRenderer* pass, ItemCell* cell, RECT slot) {
+void DrawInSlot(CConstructorPage* page, CSceneRenderer* pass, const ItemCell& cell, RECT slot) {
     CInterface3D* ui = page->interface_;
     ui->ScaleRectToScreenEntry(&slot);
     ClearUiDepth(0.0f);
@@ -92,7 +92,7 @@ void CHeroQuickStrip::Draw(CSceneRenderer* pass) {
     for (int i = 0; i < std::ssize(hero->spells); ++i) {
         ItemCell cell{hero->spells[i], static_cast<float>(i * 100 + 50),
                       static_cast<float>(y_ + 50), 12.0f, 100.0f, mode_};
-        owner_->DrawItem(pass, &cell);
+        owner_->DrawItem(pass, cell);
     }
     DrawBase(pass);
 }
@@ -118,7 +118,7 @@ void CRepairGrid::Draw(CSceneRenderer* pass) {
         CItem* item = list[i];
         ItemCell cell{item, static_cast<float>(x) + 250.0f, static_cast<float>(y) + 150.0f,
                       static_cast<float>(scale) * 6.0f, 100.0f, mode_};
-        owner_->DrawItem(pass, &cell);
+        owner_->DrawItem(pass, cell);
         int pieces = static_cast<int>(item->count_);   // the stack's count
         if (pieces > 1) {
             RECT r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
@@ -149,7 +149,7 @@ void CSpellMakerPage::Draw(CSceneRenderer* pass) {
         if (IsSpellContainer(item)) {
             cell.x = 250.0f;
             cell.y = 300.0f;
-            owner_->DrawItem(pass, &cell);
+            owner_->DrawItem(pass, cell);
             hasContainer = true;
         } else if (IsSpell(item)) {
             // A record out of range is read through null, like the original.
@@ -160,7 +160,7 @@ void CSpellMakerPage::Draw(CSceneRenderer* pass) {
             school = spell->school;
             cell.x = 350.0f;
             cell.y = 300.0f;
-            owner_->DrawItem(pass, &cell);
+            owner_->DrawItem(pass, cell);
             hasSpell = true;
         } else if (IsModifier(item)) {
             const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index_);
@@ -168,7 +168,7 @@ void CSpellMakerPage::Draw(CSceneRenderer* pass) {
             needed += modifier->skill;
             cell.x = static_cast<float>(column) + 450.0f;
             cell.y = static_cast<float>(row * 100) + 150.0f;
-            owner_->DrawItem(pass, &cell);
+            owner_->DrawItem(pass, cell);
             if (++row > 3) {
                 row = 0;
                 column += 100;
@@ -224,12 +224,12 @@ void CConstructorPage::Draw(CSceneRenderer* pass) {
         if (IsBuildable(item)) {
             cell.x = 250.0f;
             cell.y = 300.0f;
-            DrawInSlot(this, pass, &cell, RECT{215, 265, 285, 335});
+            DrawInSlot(this, pass, cell, RECT{215, 265, 285, 335});
             hasBlueprint = true;
         } else if (IsPart(item)) {
             cell.x = 350.0f;
             cell.y = 250.0f;
-            DrawInSlot(this, pass, &cell, RECT{315, 215, 385, 285});
+            DrawInSlot(this, pass, cell, RECT{315, 215, 385, 285});
             hasPart = true;
             // Another record type keeps the part found before.
             auto* loot = AsLoot(item);
@@ -237,13 +237,13 @@ void CConstructorPage::Draw(CSceneRenderer* pass) {
         } else if (IsSpellContainer(item)) {
             cell.x = 350.0f;
             cell.y = 350.0f;
-            owner_->DrawItem(pass, &cell);
+            owner_->DrawItem(pass, cell);
             hasBlueprint = true;
         } else if (IsMaterial(item)) {
             ++materials;
             cell.x = static_cast<float>(column) + 450.0f;
             cell.y = static_cast<float>(row * 100) + 150.0f;
-            owner_->DrawItem(pass, &cell);
+            owner_->DrawItem(pass, cell);
             if (++row > 3) {
                 row = 0;
                 column += 100;

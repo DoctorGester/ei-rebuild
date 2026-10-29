@@ -68,16 +68,6 @@ float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x1
 
 
 
-// The prototype record, the category, a weapon's type and damage weights, a spell's prototype and modifier
-// count.
-const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
-    return item->GetPrototype();
-}
-QuickItemCategory CategoryOf(CItem* item) { return item->GetCategory(); }
-const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
-    return spell->GetPrototype();
-}
-
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kText = 0xA7D7E4;
 
@@ -124,10 +114,9 @@ public:
     // The lists of 7 damage values: "<label> <threshold>" and, when some kinds lie below it,
     // "<infoitem_24> <those kinds>".
     void DamageLines(const float* values, int label) {
-        std::vector<std::string> lists;
-        ItemDamageLists(values, &lists, 0);
-        Joined(label, lists[0]);
-        if (lists[2].size() != 0) Joined(24, lists[2]);
+        const DamageLists lists = ItemDamageLists(values, false);
+        Joined(label, lists.threshold);
+        if (!lists.below.empty()) Joined(24, lists.below);
     }
     void School(int school) {
         std::string key;
@@ -147,11 +136,6 @@ private:
 public:
     RECT rect_;
 };
-
-ItemKind KindOf(CItem* item) { return item->Kind(); }
-std::uint32_t PackedIdOf(CItem* item) { return item->prototypeId_; }
-const CItemLoot* LootOf(CItem* item) { return AsLoot(item); }
-CSpell* SpellOf(CItem* item) { return item->spell_; }
 
 // Whether a 7-entry damage weight array has a weight that compares unequal (and ordered) to 0: returns the
 // index, or 7.
@@ -212,9 +196,9 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
     }
 }
 
-void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
+void PerkLines(Writer& w, const ItemHoverInfo& info, std::string& title) {
     CTextManager* texts = g_clientWorld->texts_;
-    std::string name = info->text;
+    std::string name = info.text;
     str::TrimRight(name, "0");
     name += "1";
     int group = g_skillDatabase->IndexOf(name) / 3;
@@ -225,7 +209,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
         key += level->name;
         if (texts->Open(key)) texts->ReadLine(&title, 1);
         w.Text(title);
-        if (info->index > i) w.draw->DrawLine(w.Skill(21), &w.rect_, 0, kText, 2, 1);   // learned
+        if (info.index > i) w.draw->DrawLine(w.Skill(21), &w.rect_, 0, kText, 2, 1);   // learned
         w.Down();
         int value = static_cast<int>(level->values[7]);
         const char* percent = "     %s %d%%";
@@ -259,7 +243,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
         w.Down();
         // The cost (negative: 0x7FFFFFFF), on a line 15 pixels wider.
         w.rect_.right += 15;
-        int cost = info->stats->SkillPrice(level);
+        int cost = info.stats->SkillPrice(level);
         if (cost < 0) cost = 0x7FFFFFFF;
         w.line = str::Format(plain, w.Skill(18), cost);
         w.Text(w.line);
@@ -270,11 +254,11 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
 
 // HoverKind::Weapon, the weapon's attack or defence: its four parts and their sum (or, for the defence of a
 // weapon of type 5 or 6, infoitem_34).
-void WeaponLines(Writer& w, const ItemHoverInfo* info) {
-    CItemWeapon* weapon = info->weapon;
-    UnitStats* stats = info->stats;
+void WeaponLines(Writer& w, const ItemHoverInfo& info) {
+    CItemWeapon* weapon = info.weapon;
+    UnitStats* stats = info.stats;
     int type = weapon->GetType();
-    if (str::Compare(info->text, "defense") == 0 && (type == 5 || type == 6)) {
+    if (str::Compare(info.text, "defense") == 0 && (type == 5 || type == 6)) {
         w.Wrapped(w.T(34), 2);
         w.Down();
         return;
@@ -299,11 +283,11 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     w.Down();
     w.line = str::Format("     %s", w.T(32));
     w.Text(w.line);
-    int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
-    if (str::Compare(info->text, "defense") == 0)
-        own += Ftol(WeaponDefenceBonus(PackedIdOf(weapon)));
+    int own = Ftol(WeaponPrototypeSkillBonus(weapon->prototypeId_));
+    if (str::Compare(info.text, "defense") == 0)
+        own += Ftol(WeaponDefenceBonus(weapon->prototypeId_));
     else
-        own += Ftol(WeaponAttackBonus(PackedIdOf(weapon)));
+        own += Ftol(WeaponAttackBonus(weapon->prototypeId_));
     w.line = str::Format("%d", own);
     w.Value(w.line);
     sum += own;
@@ -314,46 +298,44 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
 
 } // namespace
 
-void ItemDamageLists(const float* values, std::vector<std::string>* out, char integer) {
+DamageLists ItemDamageLists(const float* values, bool integer) {
     CTextManager* texts = g_clientWorld->texts_;
-    out->clear();
-    std::string value, above, below, key, text;
+    DamageLists lists;
+    std::string key, text;
     float threshold = values[6];
     // EI_Plugin's Fixes: the jump over the integer format is always taken.
     if (integer && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes))
-        value = str::Format("%d", FtolOf(threshold));
+        lists.threshold = str::Format("%d", FtolOf(threshold));
     else
-        value = str::Format("%.1f", D(threshold));
+        lists.threshold = str::Format("%.1f", D(threshold));
     for (int i = 0; i < 6; ++i) {
         std::string* list;
         if (values[i] > threshold)
-            list = &above;
+            list = &lists.above;
         else if (values[i] == threshold)
             continue;
         else
-            list = &below;   // also NaN
+            list = &lists.below;   // also NaN
         key = str::Format("dmg_%d", i);
         texts->GetString(key, &text);
         *list += text;
         *list += ", ";
     }
-    str::TrimRight(above, ", ");
-    str::TrimRight(below, ", ");
-    out->push_back(value);
-    out->push_back(above);
-    out->push_back(below);
+    str::TrimRight(lists.above, ", ");
+    str::TrimRight(lists.below, ", ");
+    return lists;
 }
 
 void CItemInfoPanel::DescribeItem() {
-    CItem* item = Item();
+    CItem* item = FirstItem();
     CUiSurface* draw = surfaces_[0];
     draw->Clear();
     if (!item) return;
 
-    ItemKind kind = KindOf(item);
+    ItemKind kind = item->Kind();
     if (kind == ItemKind::Loot) {
-        LootKind sort = LootOf(item)->kind_;
-        LootRecordType sub = LootOf(item)->recordType_;
+        LootKind sort = AsLoot(item)->kind_;
+        LootRecordType sub = AsLoot(item)->recordType_;
         if (sort == LootKind::Material) {
             DescribeMaterial();
             return;
@@ -371,11 +353,11 @@ void CItemInfoPanel::DescribeItem() {
             return;
         }
     }
-    if (kind == ItemKind::Quick && CategoryOf(item) == QuickItemCategory::Potion) {
+    if (kind == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Potion) {
         DescribeQuickItem();
         return;
     }
-    if ((interface_->ctrlDown_ && SpellOf(item)) || kind == ItemKind::Spell) {
+    if ((interface_->ctrlDown_ && item->spell_) || kind == ItemKind::Spell) {
         DescribeCarriedSpell();
         return;
     }
@@ -383,7 +365,7 @@ void CItemInfoPanel::DescribeItem() {
     CTextManager* texts = g_clientWorld->texts_;
     // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
     std::string material;
-    material = itemdb::MaterialAt(MaterialIndex(PackedIdOf(item)))->key;
+    material = itemdb::MaterialAt(MaterialIndex(item->prototypeId_))->key;
     text::ReplaceChar(&material, ' ', '_');
     str::MakeLower(material);
     std::string name, description, kindText;
@@ -396,7 +378,7 @@ void CItemInfoPanel::DescribeItem() {
     // The material and count, unless a quick item whose prototype's field is "none"; then the price.
     bool materialLine;
     if (kind == ItemKind::Quick) {
-        const itemdb::ItemRecordHead* prototype = PrototypeOf(item);
+        const itemdb::ItemRecordHead* prototype = item->GetPrototype();
         materialLine = !prototype || text::CompareIgnoringCase(prototype->materialClass, "none") != 0;
     } else {
         materialLine = kind != ItemKind::Loot && kind != ItemKind::Quest;
@@ -407,14 +389,14 @@ void CItemInfoPanel::DescribeItem() {
         key += material;
         if (texts->Open(key)) texts->ReadLine(&text, 1);
         w.line = str::Format("%s %s x %d", w.T(1), text,
-                      static_cast<int>(PrototypeOf(item)->materialUnits));
+                      static_cast<int>(item->GetPrototype()->materialUnits));
         w.Text(w.line);
         w.Down();
     }
     if (kind != ItemKind::Quest) w.Number(0, FtolOf(item->Weight()));
 
-    if (kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && CategoryOf(item) == QuickItemCategory::Wand)) {
-        CSpell* spell = SpellOf(item);
+    if (kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Wand)) {
+        CSpell* spell = item->spell_;
         int spellValue = spell ? static_cast<int>(spell->skillNeeded_) : 0;
         w.Number(2, FtolOf(item->chargeMax_));
         w.line = str::Format("%s %d/%d", w.T(14), spellValue, static_cast<int>(item->magicLevel_));
@@ -451,12 +433,12 @@ void CItemInfoPanel::DescribeItem() {
                           text);
             w.Text(w.line);
             w.Down();
-            w.Number(20, static_cast<int>(PrototypeOf(item)->category));
-            w.Number(38, Ftol(WeaponAttackBonus(PackedIdOf(item))));
+            w.Number(20, static_cast<int>(item->GetPrototype()->category));
+            w.Number(38, Ftol(WeaponAttackBonus(item->prototypeId_)));
             if (weapon->GetType() == 5 || weapon->GetType() == 6)
                 w.Number(10, FtolOf(weapon->reach_));
             else
-                w.Number(39, Ftol(WeaponDefenceBonus(PackedIdOf(item))));
+                w.Number(39, Ftol(WeaponDefenceBonus(item->prototypeId_)));
             goto tail;
         }
     }
@@ -480,11 +462,11 @@ tail:
         w.Down();
         if (kind != ItemKind::Weapon) w.Down();
         CSpell* spell;
-        if ((kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && CategoryOf(item) == QuickItemCategory::Wand)) &&
-            (spell = SpellOf(item)) != nullptr) {
+        if ((kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Wand)) &&
+            (spell = item->spell_) != nullptr) {
             text = "Unknown";
             std::string key("spell ");
-            key += SpellPrototypeOf(spell)->code;
+            key += spell->GetPrototype()->code;
             if (texts->Open(key)) texts->ReadLine(&text, 1);
             w.line = str::Format("%s %s", w.T(5), text);
             w.Text(w.line);
@@ -495,9 +477,9 @@ tail:
 }
 
 void CItemInfoPanel::DescribeMaterial() {
-    CItem* item = Item();
+    CItem* item = FirstItem();
     CTextManager* texts = g_clientWorld->texts_;
-    const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(LootOf(item)->index_);
+    const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(AsLoot(item)->index_);
     if (!material) return;
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
@@ -505,16 +487,9 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Head(name, kindText);
     std::string text = material->soundName;
     str::MakeLower(text);
-    {
-        std::string key("mattype_");
-        key += text;
-        text = key;
-    }
-    texts->GetString(text, &w.line);
-    {
-        std::string type = w.line;
-        w.Joined(17, type);
-    }
+    texts->GetString("mattype_" + text, &w.line);
+    const std::string type = w.line;
+    w.Joined(17, type);
     w.Number(0, FtolOf(material->weightFactor));
     w.Number(2, FtolOf(material->magicPower));
     w.Number(14, static_cast<int>(material->magicLevel));
@@ -530,15 +505,15 @@ void CItemInfoPanel::DescribeMaterial() {
 }
 
 void CItemInfoPanel::DescribeBlueprint() {
-    CItem* item = Item();
+    CItem* item = FirstItem();
     CTextManager* texts = g_clientWorld->texts_;
     // The record by the blueprint's kind: weapons, armour, quick items. The dispatcher calls this only
     // for kinds 0-2; the original leaves the record and kind uninitialised otherwise (here: none, and it
     // faults reading the record like a missing one).
     int sort = 3;
     const itemdb::ItemRecordHead* head = nullptr;
-    std::uint32_t index = LootOf(item)->index_;
-    switch (LootOf(item)->recordType_) {
+    std::uint32_t index = AsLoot(item)->index_;
+    switch (AsLoot(item)->recordType_) {
     case LootRecordType::Weapon: sort = 0; head = itemdb::WeaponAt(index); break;
     case LootRecordType::Armor: sort = 1; head = itemdb::ArmorAt(index); break;
     case LootRecordType::Quick: sort = 2; head = itemdb::QuickItemAt(index); break;
@@ -554,12 +529,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     const auto* armor = itemdb::RecordAs<itemdb::ArmorRecord>(head);
     std::string text = head->materialClass;
     str::MakeLower(text);
-    {
-        std::string key("mattype_");
-        key += text;
-        text = key;
-    }
-    texts->GetString(text, &w.line);
+    texts->GetString("mattype_" + text, &w.line);
     text = w.line;
     w.line = str::Format("%s %s x %d", w.T(1), text,
                   static_cast<int>(head->materialUnits));
@@ -600,9 +570,9 @@ void CItemInfoPanel::DescribeBlueprint() {
 }
 
 void CItemInfoPanel::DescribeSpellRecord() {
-    CItem* item = Item();
+    CItem* item = FirstItem();
     CTextManager* texts = g_clientWorld->texts_;
-    const itemdb::SpellRecord* record = itemdb::SpellAt(LootOf(item)->index_);
+    const itemdb::SpellRecord* record = itemdb::SpellAt(AsLoot(item)->index_);
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
@@ -640,11 +610,11 @@ void CItemInfoPanel::DescribeSpellRecord() {
 }
 
 void CItemInfoPanel::DescribeModifierRecord() {
-    CItem* item = Item();
+    CItem* item = FirstItem();
     CTextManager* texts = g_clientWorld->texts_;
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
-    const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(LootOf(item)->index_);
+    const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(AsLoot(item)->index_);
     Writer w(this);
     w.Head(name, kindText);
     w.Number(7, FtolOf(record->mana));
@@ -654,14 +624,14 @@ void CItemInfoPanel::DescribeModifierRecord() {
 }
 
 void CItemInfoPanel::DescribeQuickItem() {
-    CItem* item = Item();
+    CItem* item = FirstItem();
     CTextManager* texts = g_clientWorld->texts_;
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Head(name, kindText);
-    if (CSpell* spell = SpellOf(item)) {
-        bool known = SpellPrototypeOf(spell)->allowedModifiers[3] != 0;
+    if (CSpell* spell = item->spell_) {
+        bool known = spell->GetPrototype()->allowedModifiers[3] != 0;
         SpellLevelLine(w, known, known ? FtolOf(spell->damage_) : 0);
         DurationLine(w, spell->duration_);
         w.Down();
@@ -670,8 +640,8 @@ void CItemInfoPanel::DescribeQuickItem() {
 }
 
 void CItemInfoPanel::DescribeCarriedSpell() {
-    CItem* item = Item();
-    CSpell* spell = item ? SpellOf(item) : nullptr;
+    CItem* item = FirstItem();
+    CSpell* spell = item ? item->spell_ : nullptr;
     if (!spell) {
         return;
     }
@@ -679,7 +649,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     std::string title, description, kindText;
     {
         std::string key("spell ");
-        key += SpellPrototypeOf(spell)->code;
+        key += spell->GetPrototype()->code;
         if (texts->Open(key)) {
             texts->ReadLine(&title, 1);
             texts->ReadToHash(&description, 1);
@@ -691,8 +661,8 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Head(title, kindText);
     w.Number(7, FtolOf(spell->manaCost_));
     w.Number(14, static_cast<int>(spell->skillNeeded_));
-    w.School(SpellPrototypeOf(spell)->castType);
-    bool known = SpellPrototypeOf(spell)->allowedModifiers[3] != 0;
+    w.School(spell->GetPrototype()->castType);
+    bool known = spell->GetPrototype()->allowedModifiers[3] != 0;
     SpellLevelLine(w, known, known ? FtolOf(spell->damage_) : 0);
     float power = spell->speed_;
     EI_NAN_AUDIT(power);
@@ -752,37 +722,37 @@ void CItemInfoPanel::DescribeCarriedSpell() {
 
 // --- The statistic under the mouse ----------------------------------------------------------
 
-void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
-    ItemParty()->Clear(1, 0);
+void CItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
+    itemParty_.Clear(1, 0);
     DescribeItem();
-    if (info->kind == HoverKind::None) return;
+    if (info.kind == HoverKind::None) return;
     CTextManager* texts = g_clientWorld->texts_;
     Writer w(this);
     std::string text, title, description;
-    if (info->kind <= HoverKind::Perk) {
+    if (info.kind <= HoverKind::Perk) {
         std::string key("perk ");
-        key += info->text;
+        key += info.text;
         if (texts->Open(key)) {
             texts->ReadLine(&title, 1);
             texts->ReadLine(&description, 1);
         }
-    } else if (info->kind <= HoverKind::Text) {
-        texts->GetString(info->text, &title);
-        std::string key = info->text;
+    } else if (info.kind <= HoverKind::Text) {
+        texts->GetString(info.text, &title);
+        std::string key = info.text;
         key += "_desc";
         texts->GetString(key, &description);
     }
     w.Title(title);
     w.Down();
     w.Down();
-    UnitStats* stats = info->stats;
-    switch (info->kind) {
+    UnitStats* stats = info.stats;
+    switch (info.kind) {
     case HoverKind::Attribute:
-        AttributeLines(w, stats, info->index);
+        AttributeLines(w, stats, info.index);
         w.Wrapped(description, 13);
         break;
     case HoverKind::Skill: {
-        int index = info->index;
+        int index = info.index;
         w.line = str::Format("%s %d", w.Skill(5), Ftol(stats->SkillBase(index)));
         w.Text(w.line);
         w.Down();
@@ -807,10 +777,10 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     }
     case HoverKind::Science:
         w.line = str::Format("%s %d", w.Skill(5),
-                      Ftol(stats->AttributeBase(info->index)));
+                      Ftol(stats->AttributeBase(info.index)));
         w.Text(w.line);
         w.Down();
-        if (info->index == 0) {
+        if (info.index == 0) {
             w.line = str::Format("%s %d", w.Skill(9), Ftol(stats->AttributeWithBonus(0)));
             w.Text(w.line);
             w.Down();
@@ -827,7 +797,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Text(w.T(25));
         w.Down();
         float sums[7];
-        const UnitStatSlot& slot = stats->slots[info->part];
+        const UnitStatSlot& slot = stats->slots[info.part];
         for (int i = 0; i < 7; ++i) sums[i] = LayerSum(&slot.layers[0].absorb[i]);
         for (int i = 0; i < 6; ++i) {
             w.line = str::Format("damage_%d", i);
@@ -871,7 +841,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
 }
 
 void CItemInfoPanel::ShowHelp(int topic) {
-    ItemParty()->Clear(1, 0);
+    itemParty_.Clear(1, 0);
     DescribeItem();
     CTextManager* texts = g_clientWorld->texts_;
     Writer w(this);
@@ -888,26 +858,22 @@ void CItemInfoPanel::ShowHelp(int topic) {
 }
 
 void CItemInfoPanel::Describe(CItem* item) {
-    if (Item() && item) {
-        if (Item()->IsSameAs(item)) return;
+    if (FirstItem() && item) {
+        if (FirstItem()->IsSameAs(item)) return;
     }
-    ItemParty()->Clear(1, 0);
-    if (item) ItemParty()->AddItem(item, 0, 1);
+    itemParty_.Clear(1, 0);
+    if (item) itemParty_.AddItem(item, 0, 1);
     DescribeItem();
 }
 
 // --- Input side: the input virtuals (mouse, key down, key up) ------------------
 
 void CItemInfoPanel::KeyDown(int key, int, int flags) {
-    if (key == VK_CONTROL && !(flags & 0x4000) && Item()) DescribeItem();
+    if (key == VK_CONTROL && !(flags & 0x4000) && FirstItem()) DescribeItem();
 }
 
 void CItemInfoPanel::KeyUp(int key, int, int) {
-    if (key == VK_CONTROL && Item()) DescribeItem();
-}
-
-CItemInfoPanel::CItemInfoPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {
-    new (ItemParty()) CParty();
+    if (key == VK_CONTROL && FirstItem()) DescribeItem();
 }
 
 void CItemInfoPanel::Build(int x, int y) {
@@ -927,5 +893,5 @@ void CItemInfoPanel::Build(int x, int y) {
         texts->GetString(key, &text);
         skillTexts_.push_back(text);
     }
-    ItemParty()->Create();
+    itemParty_.Create();
 }

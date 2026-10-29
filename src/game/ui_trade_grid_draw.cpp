@@ -32,7 +32,7 @@ void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, const std::vector<CItem*>
         int y = (i / 4) * 100;
         ItemCell cell{list[i], static_cast<float>(x) + 250.0f, static_cast<float>(y) + yOffset,
                       i <= 3 ? bigSize : smallSize, 100.0f, grid->mode_};
-        grid->owner_->DrawItem(pass, &cell);
+        grid->owner_->DrawItem(pass, cell);
         int pieces = static_cast<int>(cell.item->count_);
         if (pieces > 1) {
             RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};

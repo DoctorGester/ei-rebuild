@@ -582,11 +582,11 @@ void CCampPages::Draw(CSceneRenderer* pass) {
         ItemHoverInfo info;
         if (trade_->enabled_) info = trade_->HoverInfo(x, y);
         if (info.kind == HoverKind::None && statsPanel_->enabled_) info = statsPanel_->HoverInfo(x, y);
-        if (descPanel_) descPanel_->DescribeStats(&info);
+        if (descPanel_) descPanel_->DescribeStats(info);
     }
     UpdateAction();
     CUiContainer::Draw(pass);
-    if (page_ == 0) DrawHeroPreview(pass, heroes_[hero_], heroTurn_, 400.0f, 1);
+    if (page_ == 0) DrawHeroPreview(pass, heroes_[hero_], heroTurn_, 400.0f, true);
 }
 
 // --- what the constructors would make ------------------------------------------------------------

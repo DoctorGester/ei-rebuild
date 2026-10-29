@@ -22,10 +22,14 @@
 class CItemInfoPanel;
 class CTexture;
 
-// The seven damage values against the last one: into `out` (emptied) the threshold ("%d" when `integer`, else
-// "%.1f"), the damage kinds ("dmg_<n>" texts, ", " separated) of the first six above it and those below it
-// (or unordered).
-void ItemDamageLists(const float* values, std::vector<std::string>* out, char integer);
+// The seven damage values against the last one: the threshold ("%d" when `integer`, else "%.1f"), the damage
+// kinds ("dmg_<n>" texts, ", " separated) of the first six above it and those below it (or unordered).
+struct DamageLists {
+    std::string threshold;
+    std::string above;
+    std::string below;
+};
+DamageLists ItemDamageLists(const float* values, bool integer);
 
 // --- The item screens' model view --------------------------------------------------------------
 
@@ -74,10 +78,6 @@ struct ItemObjectCache {
 // Kept: the screens' two named caches of the one template.
 using ItemModelCache = ItemObjectCache<CUiMesh>;        // the models (CUiMesh)
 using ItemTextureCache = ItemObjectCache<CTexture>;     // the model textures (ItemFigureTexture's)
-// Every cached object released, in key order (the hero screen's model and texture caches).
-template <typename Object>
-void ReleaseCachedObjects(ItemObjectCache<Object>* cache);
-
 template <typename Object>
 void TrimItemCache(ItemObjectCache<Object>* cache);
 
@@ -92,10 +92,10 @@ public:
     void OnShutdown() override;
     ItemTurn* Clone() override;
 
-    float angle;             // radians, wrapped at 2 pi
-    float speed;
-    bool flag;               // set by a move into a list shown turning
-    float glow;              // phase of the spell glow
+    float angle = 0.0f;      // radians, wrapped at 2 pi
+    float speed = 0.0f;
+    bool flag = false;       // set by a move into a list shown turning
+    float glow = 0.0f;       // phase of the spell glow
 };
 inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link_); }
 // An item a constructor made: a move into a list shown turning sets its turn's flag.
@@ -149,13 +149,12 @@ public:
     // Draws `cell`'s item: its model (cached, created) with its texture (cached) turning while the mouse is
     // on it, a glow in the colour of the carried spell's school, a frame behind it, the modifier marks of a
     // spell container, and a shade over items the strip's mode cannot take (CanEquip).
-    void DrawItem(CSceneRenderer* pass, ItemCell* cell);
+    void DrawItem(CSceneRenderer* pass, const ItemCell& cell);
     // Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the figure prototype's
     // model name, the prototype's field) with texture "face<m|f><two digits>" ("m" for model "unhuma",
     // "f" for "unhufe", else nothing), both cached as the items are, tilted back by (y - 300) / 1000
     // radians, over the cell frame.
-    void DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell);
-    static void FaceNames(const char* prototype, std::string* model, std::string* texture);
+    void DrawHeroFace(CSceneRenderer* pass, const HeroFaceCell& cell);
     // The screens' common Create: the icon window (iconWindow_, a child with the screen's texture 0, built), textures
     // "modifiers2" and "campslots", the display's settings, and the caches' limits (30, or 20 with an option byte
     // set).
@@ -169,18 +168,15 @@ public:
     // Moves every item of `from` into `to` (whole stacks, merged); returns the last item `to` took, or null
     // when `from` was empty.
     CItem* ReturnAll(CParty* to, CParty* from);
-    CItemInfoPanel* descPanel_;
-    CItem* hoveredItem_;             // the item under the mouse (turns)
-    CItemIconWindow* iconWindow_;
+    CItemInfoPanel* descPanel_ = nullptr;
+    CItem* hoveredItem_ = nullptr;   // the item under the mouse (turns)
+    CItemIconWindow* iconWindow_ = nullptr;
     ItemModelCache models_;
     ItemTextureCache textures_;
 
 protected:
-    explicit CItemScreen(CInterface3D* ui) : CUiContainer(ui), hoveredItem_(nullptr) {}
+    explicit CItemScreen(CInterface3D* ui) : CUiContainer(ui) {}
 };
-
-inline void CUiItemPanel::OwnerTakeItem(CItem* item) { owner_->TakeItem(item, mode_); }
-inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->TopicClicked(topic); }
 
 // What a statistic under the mouse is (DescribeStats). The order matters: up to Perk the title and
 // description come from text "perk <text>", after it from <text> and <text>_desc.
@@ -209,8 +205,7 @@ struct ItemHoverInfo {
 
 class CItemInfoPanel : public CUiItemPanel {
 public:
-    CItemInfoPanel(CInterface3D* ui, CItemScreen* owner);
-    ~CItemInfoPanel() override;
+    using CUiItemPanel::CUiItemPanel;
     void Deactivate() override { DescribeItem(); }
     // Clears the surface and describes the item in the list (nothing without one): its own description
     // for blueprints, materials, spells, modifiers, quick items of category 8 and spells carried by an
@@ -225,7 +220,7 @@ public:
     void DescribeCarriedSpell();
     // Empties the list, clears the surface and, unless the kind is None, writes the statistic's title, values
     // and description.
-    void DescribeStats(ItemHoverInfo* info);
+    void DescribeStats(const ItemHoverInfo& info);
     // Empties the list, clears the surface and writes help topic "camphelp <topic>".
     void ShowHelp(int topic);
     // Describes `item` (null: nothing) unless it is already the described one (IsSameAs).
@@ -241,13 +236,12 @@ public:
     // item list.
     void Build(int x, int y);
 
-    CItem* FirstItem();
-    CItem* Item() { return FirstItem(); }
-    CParty* ItemParty() { return itemParty_.Get(); }
+    // The described item: the first of the list, or null.
+    CItem* FirstItem() { return itemParty_.items_.empty() ? nullptr : itemParty_.items_[0]; }
 
-    lib::InPlace<CParty> itemParty_;         // the described item's list: an embedded CParty, built and destroyed by this panel
-    int x_;                          // layout position of the surface
-    int y_;
+    CParty itemParty_;               // the described item's list
+    int x_ = 0;                      // layout position of the surface
+    int y_ = 0;
     std::vector<std::string> itemTexts_;    // "infoitem_0" .. "infoitem_44"
     std::vector<std::string> skillTexts_;   // "infoskill_0" .. "infoskill_24"
 };
