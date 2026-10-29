@@ -238,15 +238,18 @@ DeconstructItem, the trade / repair grid and maker Builds (ui_camp_make, ui_camp
 grid's draw (page 6; ui_camp_deals, ui_gallery_deals), the trade panel's click and RestoreRecord (ui_trade_hold,
 ui_trade_restore, ui_gallery_deals: vanilla buys only with "give 0 exp" typed while the camp is open; given in the battle
 it did not show in the camp), FindPaths (ui_gallery_deals: "z.gz1g" / "z.gz2g" set to 2 before `screen 4`,
-then a click on gz2g's area at (140, 277) opens the objectives window with the ways), CGlobalMap::Close (ui_camp). Not
+then a click on gz2g's area at (140, 277) opens the objectives window with the ways), CGlobalMap::CloseScreen (ui_camp). Not
 reached: a link click (regions 3 and up: a "z.<way>" = 2 way of kind 2 with a figure; it travels at once), the repair
 grid with an item in it (only a worn item is offered, and no script command or key wears one). The map's camp button
 (region 2) after `screen 4` makes the server fail ("Serv error during parsing command prevID=ff curID=4", the original
 too), so scenarios end on the map.
 
-Global map (`ui_global_map*.cpp`): `Create` (0062D350, 6.7 KB), `Update` (0062F050), titles (`AllodTitle`, `ZoneTitle`,
-`QuestTitle` in `ui_global_map_places.cpp`), `ZonePosition`, `QuestPosition`, `SelectZone` (RET 8, flag is a byte),
-`SetWeather` (S). `RefreshSelection` (00630670) draws the zone markers alone in colours 0xFF181818 + 0x101010 i through a
+Global map (`ui_global_map*.cpp`): `Create` (0062D350, 6.7 KB), `Update` (0062F050), titles (the original's `AllodTitle`,
+`ZoneTitle`, `QuestTitle`: ours `PlaceTitle` in `ui_global_map_places.cpp`), positions (`ZonePosition`, `QuestPosition`:
+ours `MapPosition`, (0, 0, 0) for a missing entry where the original kept uninitialised locals), `SelectZone` (RET 8, flag
+is a byte). `SetWeather` (S) applied an 18-int table one index at a time from Create, every index of a group writing the
+same colour: ours gives the three layers, the display colour and the clouds' ramp their final values once (the layers'
+first colours and the display's 0xFF3C005A were overwritten before the first frame). `RefreshSelection` (00630670) draws the zone markers alone in colours 0xFF181818 + 0x101010 i through a
 frame step 00458010(0, 0) into the backdrop; the click reads the zone back from the pixel. `FindPaths` (006312C0, S, RET 4)
 is a recursive way search; `arrivals_` = STLport map<int, float> exit -> shortest "#passtime" sum
 (`ui_global_map_paths.cpp`). game.exe's `GlobalMapZonesSetAtGrow` is CArray<GlobalMapZone>'s (elements

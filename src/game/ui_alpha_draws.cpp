@@ -26,16 +26,6 @@ void CUiContainer::DrawChild(CSceneRenderer* pass) {
     state.alphaReference = savedRef;
 }
 
-void CGlobalMap::Draw(CSceneRenderer* pass) {
-    render::RenderState& state = render::g_renderState;
-    state.blend = true;
-    state.alphaTest = false;
-    state.sourceBlend = render::Blend::SourceAlpha;
-    state.destBlend = render::Blend::InvSourceAlpha;
-    state.alphaReference = 1;
-    CUiContainer::Draw(pass);
-}
-
 void CHelpWindow::Draw(CSceneRenderer* pass) {
     render::RenderState& state = render::g_renderState;
     const std::uint8_t savedRef = state.alphaReference;

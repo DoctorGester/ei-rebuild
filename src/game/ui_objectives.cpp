@@ -421,7 +421,7 @@ void CObjectivesWindow::ShowQuest() {
         text += line;
         text += "\n \n ";
     }
-    TextClose(texts);
+    texts->Close();
     static_cast<CUiScrollText*>(children_[0])->SetText(text);
 
     MapRecord* map = FindZone(shownZone_);

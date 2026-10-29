@@ -91,9 +91,9 @@ bool CTextManager::OpenData(std::string_view key) {
     return data && length_ != 0;
 }
 
-void TextClose(CTextManager* self) {
-    self->text_ = nullptr;
-    self->cursor_ = nullptr;
+void CTextManager::Close() {
+    text_ = nullptr;
+    cursor_ = nullptr;
 }
 
 bool CTextManager::PeekWord(std::string* out) {

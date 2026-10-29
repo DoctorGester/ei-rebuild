@@ -24,15 +24,11 @@ namespace {
 
 constexpr const char* kZoneVariable = "z.%s";
 
-bool SameName(std::string_view a, std::string_view b) {
-    return str::Compare(a, b) == 0;
-}
-
 // --- The click ---
 
-const char* MoveSound() { return "buttons\\globalmap\\move.wav"; }
-const char* TransitSound() { return "buttons\\globalmap\\transit.wav"; }
-const char* OkSound() { return "buttons\\globalmap\\ok.wav"; }
+constexpr const char* kMoveSound = "buttons\\globalmap\\move.wav";
+constexpr const char* kTransitSound = "buttons\\globalmap\\transit.wav";
+constexpr const char* kOkSound = "buttons\\globalmap\\ok.wav";
 
 constexpr int kRegionTurnLeft = 0;
 constexpr int kRegionTurnRight = 1;
@@ -40,22 +36,16 @@ constexpr int kRegionCamp = 2;
 constexpr int kFirstLinkRegion = 3;
 constexpr int kCampScreen = 5;
 
-// The zone the local player is in.
-MapRecord* PlayerZone() {
-    return g_mapDatabase->FindMap(LocalPlayerZone());
-}
-
-// The ways from the player's zone to `target`, the earlier results dropped.
-void SearchWays(CGlobalMap* map, const std::string& target) {
-    map->target_ = target;
-    map->pathTime_ = 0.0f;
-    map->arrivals_.clear();
-    map->found_ = false;
-    map->beyondTarget_ = false;
-    map->FindPaths(PlayerZone());
-}
-
 } // namespace
+
+void CGlobalMap::SearchWays(const std::string& target) {
+    target_ = target;
+    pathTime_ = 0.0f;
+    arrivals_.clear();
+    found_ = false;
+    beyondTarget_ = false;
+    FindPaths(g_mapDatabase->FindMap(LocalPlayerZone()));
+}
 
 void CGlobalMap::FindPaths(MapRecord* from) {
     std::string variable;   // one string for every "z.<zone>" name
@@ -64,7 +54,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         MapRecord* zone = g_mapDatabase->FindMap(from->exits[i].target);
         if (!zone) continue;
         float passTime = from->exits[i].passTime;
-        if (SameName(zone->name, target_)) {
+        if (str::Compare(zone->name, target_) == 0) {
             found_ = true;
             int exit = from->exits[i].entrance;
             float time = path_.size() == 0 ? -1.0f : pathTime_;
@@ -111,19 +101,19 @@ void CGlobalMap::LeftDown(int, int x, int y) {
     const int region = RegionAt(x, y);
     if (region == kRegionTurnLeft || region == kRegionTurnRight) {
         turning_ = region == kRegionTurnLeft ? -1 : 1;
-        interface_->PlaySound(MoveSound());
+        interface_->PlaySound(kMoveSound);
         return;
     }
     if (region == kRegionCamp) {
-        if (noCamp_ == 1) return;
-        interface_->PlaySound(TransitSound());
+        if (noCamp_) return;
+        interface_->PlaySound(kTransitSound);
         GameSetConstructionVariable(std::bit_cast<std::uint32_t>(0.0f));
         GameSendLeave04(kCampScreen);
         return;
     }
     int link;
     if (region >= kFirstLinkRegion) {
-        interface_->PlaySound(OkSound());
+        interface_->PlaySound(kOkSound);
         link = region - kFirstLinkRegion;
     } else {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
@@ -131,12 +121,12 @@ void CGlobalMap::LeftDown(int, int x, int y) {
         const std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= zoneCount_ || zones_[index].state == 0) return;
-        interface_->PlaySound(OkSound());
+        interface_->PlaySound(kOkSound);
         GlobalMapZone& zone = zones_[index];
         link = zone.link;
         if (!gipat_ || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
-            SearchWays(this, zone.name);
+            SearchWays(zone.name);
             auto* window = new CObjectivesWindow(interface_);
             window->Setup(target_, &arrivals_, 1, 0);
             interface_->PushWindow(window, 1, 1);
@@ -144,7 +134,7 @@ void CGlobalMap::LeftDown(int, int x, int y) {
         }
     }
     // A link: the party goes there at once when there is a way.
-    SearchWays(this, links_[link].name);
+    SearchWays(links_[link].name);
     if (!found_) return;
     GamePassTime(arrivals_[0]);
     ::RequestZone(links_[link].name, 0);

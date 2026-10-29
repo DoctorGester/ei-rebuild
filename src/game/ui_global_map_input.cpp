@@ -1,4 +1,4 @@
-// The global map's input side (right-button drag, keys), its close and message-result slots
+// The global map's input side (right-button drag, mouse, keys), its close and message-result slots
 // (CGlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
 #include "game_strings.h"
 #include "ui.h"
@@ -23,8 +23,7 @@
 
 namespace {
 
-// The escape menu the map opens on Esc (0x168 bytes, built inline as the battle screen's key
-const char* QuickSaveName() { return "saveq"; }
+constexpr const char* kQuickSaveSlot = "saveq";
 
 constexpr int kActionQuickSave = '5';
 constexpr int kActionQuickLoad = '6';
@@ -39,11 +38,7 @@ constexpr int kTipFormat = 4;
 constexpr int kTipBack = 6;
 constexpr int kTipFrame = 7;
 constexpr int kTipLine = 20;
-const char* ZoneSound() { return "buttons\\globalmap\\zone.wav"; }
-
-bool SameText(std::string_view a, std::string_view b) {
-    return str::Compare(a, b) == 0;
-}
+constexpr const char* kZoneSound = "buttons\\globalmap\\zone.wav";
 
 // tilt * spin as the drag sums it.
 Quaternion TiltTimesSpin(const Quaternion& tilt, const Quaternion& spin) {
@@ -57,22 +52,18 @@ Quaternion TiltTimesSpin(const Quaternion& tilt, const Quaternion& spin) {
     return q;
 }
 
-// The cursor stops being held and goes back to where the drag began.
-void ReleaseDragCursor() {
+} // namespace
+
+void CGlobalMap::Deactivate() {
+    dragging_ = false;
+    selectPending_ = true;
+    // The cursor stops being held and goes back to where the drag began.
     int x = g_cursor->position_.x;
     int y = g_cursor->position_.y;
     g_cursor->motion_.y = 0;
     g_cursor->motion_.x = 0;
     g_cursor->SetHeld(0);
     gameapi::SetCursorPos(x, y);
-}
-
-} // namespace
-
-void CGlobalMap::Deactivate() {
-    dragging_ = false;
-    selectPending_ = 1;
-    ReleaseDragCursor();
 }
 
 void CGlobalMap::RightDown(int, int x, int y) {
@@ -86,12 +77,6 @@ void CGlobalMap::RightDown(int, int x, int y) {
     g_cursor->SetHeld(1);
 }
 
-void CGlobalMap::RightUp(int, int, int) {
-    dragging_ = false;
-    selectPending_ = 1;
-    ReleaseDragCursor();
-}
-
 void CGlobalMap::MouseMove(int, int x, int y) {
     if (dragging_) {
         POINT drag{g_cursor->motion_.x, g_cursor->motion_.y};
@@ -99,7 +84,6 @@ void CGlobalMap::MouseMove(int, int x, int y) {
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float turned = static_cast<float>(static_cast<float>(drag.x) * 0.0033333334f + angle_);   // 1 / 300
-        angle_ = turned;
         angle_ = static_cast<float>(std::fmod(turned, kGlobalMapFullTurn));
         Quaternion spin, tilt;
         spin.SetAngleAxis(angle_, Vector3{0.0f, 0.0f, 1.0f});
@@ -141,7 +125,7 @@ void CGlobalMap::MouseMove(int, int x, int y) {
     }
     std::string text;
     text = isLink ? links_[index].name : zones_[index].name;
-    if (!SameText(shownName_, text)) interface_->PlaySound(ZoneSound());
+    if (str::Compare(shownName_, text) != 0) interface_->PlaySound(kZoneSound);
     shownName_ = text;
     text = isLink ? links_[index].title : zones_[index].title;
     surfaces_[0]->Freeze(1, 0);
@@ -179,9 +163,9 @@ void CGlobalMap::KeyDown(int key, int repeat, int flags) {
     if (handled_) return;
     int action = g_keyActions[flags & kScanCodeMask];
     if (action == kActionQuickSave)
-        ::QuickSave(QuickSaveName(), static_cast<char>(0));
+        ::QuickSave(kQuickSaveSlot, 0);
     else if (action == kActionQuickLoad)
-        QuickLoad(QuickSaveName());
+        QuickLoad(kQuickSaveSlot);
 }
 
 void CGlobalMap::MessageResult(int) {
@@ -189,17 +173,19 @@ void CGlobalMap::MessageResult(int) {
     int y = g_cursor->position_.y;
     turning_ = 0;
     dragging_ = false;
-    selectPending_ = 1;
+    selectPending_ = true;
     Input()->MouseMove(0, x, y);
 }
 
-void CGlobalMap::Close() {
+void CGlobalMap::LeftUp(int, int, int) {
+    if (turning_ != 0) selectPending_ = true;
+    turning_ = 0;
+}
+
+void CGlobalMap::CloseScreen() {
     delete weather_;
-    CUiSurface* backdrop = backdrop_;
     weather_ = nullptr;
-    if (backdrop) {
-        delete backdrop;
-    }
+    delete backdrop_;
     backdrop_ = nullptr;
     interface_->StopSound(windSound_);
 }

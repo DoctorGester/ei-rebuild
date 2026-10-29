@@ -8,7 +8,6 @@
 #include "game_strings.h"
 #include "item_db_text.h"
 #include "object_tables.h"
-#include "text_reader.h"
 #include "world.h"
 
 #include "lib/text_case.h"
@@ -19,21 +18,6 @@
 
 namespace mapdb {
 namespace {
-
-// The text manager (item_db_text.h) as the loader uses it. Not rewritten.
-struct TextReader : CTextManager {
-    bool Open(const char* name);                               // finds the text, cursor at its start
-    bool NextHeader();                                         // (null key): the next "#" line; false at the end
-    int Split(std::vector<std::string>* words, int flag);         // the current line's words
-    void Close();
-};
-bool TextReader::Open(const char* key) { return CTextManager::Open(key); }
-bool TextReader::NextHeader() { return FindHeader(); }
-int TextReader::Split(std::vector<std::string>* words, int flag) {
-    return CTextManager::Split(words, flag);
-}
-void TextReader::Close() { TextClose(this); }
-TextReader* TheTextReader() { return static_cast<TextReader*>(g_clientWorld->texts_); }
 
 // *out = float(std::atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does (the
 // factor is the product of two doubles, rounded by the FPU).
@@ -48,12 +32,12 @@ bool Is(const char* word, const char* text) {
 
 class Loader {
 public:
-    Loader(CMapDatabase* db, TextReader* reader) : db_(db), reader_(reader), map_(static_cast<int>(db->maps.size()) - 1) {}
+    Loader(CMapDatabase* db, CTextManager* reader) : db_(db), reader_(reader), map_(static_cast<int>(db->maps.size()) - 1) {}
 
     void Line();
 
 private:
-    void Split() { reader_->Split(&words_, 1); }
+    void Split() { reader_->Split(&words_, true); }
     const char* Word(int i) const { return words_[i].c_str(); }
     int Count() const { return static_cast<int>(words_.size()); }
     MapRecord& Map() { return db_->maps[map_]; }
@@ -66,7 +50,7 @@ private:
     void ExitLine(const char* word);
 
     CMapDatabase* db_;
-    TextReader* reader_;
+    CTextManager* reader_;
     int map_;          // the current map (starts at the last one already loaded)
     int exit_ = -1;    // the current exit of the current map
     std::vector<std::string> words_;
@@ -219,10 +203,10 @@ void Loader::Line() {
 
 bool CMapDatabase::Load(const char* fileName) {
     using namespace mapdb;
-    TextReader* reader = TheTextReader();
+    CTextManager* reader = g_clientWorld->texts_;
     Loader loader(this, reader);
     if (!reader->Open(fileName)) return false;
-    while (reader->NextHeader()) loader.Line();
+    while (reader->FindHeader()) loader.Line();
     reader->Close();
     return true;
 }

@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -73,10 +74,10 @@ struct GlobalMapStep {
 
 class CGlobalMap : public CUiContainer {
 public:
-    explicit CGlobalMap(CInterface3D* ui);
-    ~CGlobalMap() override;
+    using CUiContainer::CUiContainer;
     void Draw(CSceneRenderer* pass) override;   // the container's, blended
-    void CloseScreen() override { Close(); }
+    // The clouds and the backdrop freed, the wind stopped.
+    void CloseScreen() override;
     // One zero dword.
     void SaveState() override;
     // The local player's allod: the zones, the quests the player holds ("q.<zone>.<quest>" = 1) and the
@@ -84,21 +85,14 @@ public:
     void CreateScreen() override;
     void Update() override;
 
-    // Empty when there is no such text; `this` not read.
-    std::string* AllodTitle(std::string* out, std::string_view allod);
-    std::string* ZoneTitle(std::string* out, std::string_view zone);
-    std::string* QuestTitle(std::string* out, std::string_view quest);
-    // From map.txt (missing numbers 0). Not found leaves `out` as it is (the original writes its
-    // uninitialised locals there). `this` not read.
-    Vector3* ZonePosition(Vector3* out, std::string_view zone);
-    Vector3* QuestPosition(Vector3* out, std::string_view quest);
-    // `positionLine` looks for "#position" after the entry; false when map.txt has no such entry.
-    static bool ReadMapPosition(Vector3* out, std::string_view prefix, std::string_view name, bool positionLine);
+    // The first line of the text `prefix` + `name` ("allod ", "zone ", "quest "); empty when there is none.
+    static std::string PlaceTitle(std::string_view prefix, std::string_view name);
+    // From map.txt: the numbers on the line after the entry `prefix` + `name` (with `positionLine`, after the
+    // entry's "#position" line; missing numbers 0); none when map.txt has no such entry (the original left
+    // its uninitialised locals).
+    static std::optional<Vector3> MapPosition(std::string_view prefix, std::string_view name, bool positionLine);
     // On gipat a zone and its link are selected together. -1 selects nothing.
     void SelectZone(int index, bool isLink);
-    // Applies weatherTable_: the display's colour, the three layers' colours (ARGB from four ints, alpha
-    // last) and the weather object's ramp.
-    void SetWeather();
     // Renders the pick picture (the zone markers alone in plain colours 0xFF181818 + 0x101010 * i) into the
     // backdrop; a click reads the zone back from its pixel. Nothing without a backdrop.
     void RefreshSelection();
@@ -106,9 +100,12 @@ public:
     // through a zone the player may pass ("z.<zone>" 2 for a game zone, not 1 for an edge, not 0 for a brief
     // zone), pathTime_ growing by the exit's "#passtime".
     void FindPaths(MapRecord* from);
-    // The right button drags the map round.
+    // The ways from the local player's zone to `target`, the earlier results dropped.
+    void SearchWays(const std::string& target);
+    // The right button drags the map round; letting it go ends the drag as a deactivation does.
     void RightDown(int buttons, int x, int y) override;
-    void RightUp(int buttons, int x, int y) override;
+    void RightUp(int, int, int) override { Deactivate(); }
+    // The drag ends, the cursor goes back to where it began; the selection is refreshed.
     void Deactivate() override;
     // Rebirth-patched (WideScreen behind its flag: the drag and the pick picture's x without the margin).
     // Dragging turns the map by dx / 300 layout units; otherwise the zone or link under the mouse is
@@ -122,53 +119,49 @@ public:
     void KeyDown(int key, int repeat, int flags) override;
     // A window above closed.
     void MessageResult(int result) override;
-    const char* HelpTopic() override;
+    const char* HelpTopic() override { return noCamp_ ? "global_map_nocamp" : "global_map"; }
     // Ends a turn by a turn button.
     void LeftUp(int buttons, int x, int y) override;
-    void Close();
     // Zones, then quests, then links, then the three layers.
     CUiMesh* Marker(int index) const { return SceneMesh(3 + index); }
     // Scene objects 0..2 and those after the zone markers.
-    void ShowAllButZones(int visible);
+    void ShowAllButZones(bool visible);
 
-    int zoneCount_;
-    int questCount_;
-    int linkCount_;
-    int markerCount_;                // zones + quests + links
-    int turning_;                    // -1 / +1 while a turn button is held
-    float bobTime_;                  // seconds, for the arrow's bobbing and the layers' frames
+    int zoneCount_ = 0;
+    int questCount_ = 0;
+    int linkCount_ = 0;
+    int markerCount_ = 0;            // zones + quests + links
+    int turning_ = 0;                // -1 / +1 while a turn button is held
+    float bobTime_ = 0.0f;           // seconds, for the arrow's bobbing and the layers' frames
     std::string allodTitle_;
-    Vector3 position_;               // the current zone on the map model
+    Vector3 position_{};             // the current zone on the map model
     std::vector<GlobalMapZone> zones_;
     std::vector<GlobalMapPlace> links_;
     std::vector<GlobalMapPlace> quests_;
     // The way search from the current zone to target_: the zones on the way so far and their summed
     // "#passtime".
     std::vector<GlobalMapStep> path_;
-    float pathTime_;
+    float pathTime_ = 0.0f;
     std::string target_;
-    bool found_;                     // a way reached the target
-    bool beyondTarget_;              // the search goes on through the target zone itself
+    bool found_ = false;             // a way reached the target
+    bool beyondTarget_ = false;      // the search goes on through the target zone itself
     std::map<int, float> arrivals_; // target exit -> shortest time (-1: next to the current zone)
-    Quaternion turn_;                // the model's orientation
-    float angle_;                    // the model's turn about z (mod kGlobalMapFullTurn)
-    float depth_;                    // 10
-    float centreX_;                  // 400 (layout)
-    float centreY_;                  // 280
-    int selectPending_;              // 1: the zone selection is refreshed on the next update
-    CUiSurface* backdrop_;           // a full-screen surface (not in the surface list)
-    CGlobalMapClouds* weather_;
-    int weatherTable_[18];
-    int weatherIndex_;
-    bool dragging_;                  // the map is turned with the mouse
-    POINT dragStart_;                // where the drag began (layout)
-    float dragAngle_;                // angle_ when the drag began
+    Quaternion turn_{1.0f, 0.0f, 0.0f, 0.0f};   // the model's orientation (the identity until built)
+    float angle_ = 0.0f;             // the model's turn about z (mod kGlobalMapFullTurn)
+    float depth_ = 10.0f;
+    float centreX_ = 400.0f;         // layout
+    float centreY_ = 280.0f;
+    bool selectPending_ = false;     // the zone selection is refreshed on the next update
+    CUiSurface* backdrop_ = nullptr; // a full-screen surface (not in the surface list)
+    CGlobalMapClouds* weather_ = nullptr;
+    bool dragging_ = false;          // the map is turned with the mouse
+    POINT dragStart_{};              // where the drag began (layout)
+    float dragAngle_ = 0.0f;         // angle_ when the drag began
     std::string shownName_;         // the zone or link whose tip is shown
-    bool gipat_;                     // the allod is gipat
-    int noCamp_;                     // the player's "i.nocamp" (1: no camp button)
-    float fog_[3];                   // by allod
-    bool autosave_;                  // save "saveb" once built (arrived from a zone)
-    int windSound_;
+    bool gipat_ = false;             // the allod is gipat
+    bool noCamp_ = false;            // the player's "i.nocamp" is 1: no camp button
+    float fog_[3] = {0.0f, 1.0f, 0.0f};   // the selected zone's tint, by allod
+    int windSound_ = 0;
 };
 
 // --- Camp trade panel (the level-up page) ---

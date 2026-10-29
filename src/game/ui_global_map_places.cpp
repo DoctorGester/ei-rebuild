@@ -1,7 +1,6 @@
 // The global map's (CGlobalMap, ui_camp.h) places: the titles and positions of its allod, zones and quests
-// from the texts and map.txt, the zone selection's marker colours and the weather. See docs/notes/ui.md
+// from the texts and map.txt, the zone selection's marker colours and the pick picture. See docs/notes/ui.md
 // ("Camp, global map, hero screens").
-#include "global_map_clouds.h"
 #include "model.h"
 #include "app.h"
 #include "ui_camp.h"
@@ -15,85 +14,47 @@
 #include "lib/str.h"
 
 #include <cstdint>
-#include <cstdlib>
-#include <memory>
-#include <new>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace {
 
-constexpr const char* kAllodPrefix = "allod ";
-constexpr const char* kZonePrefix = "zone ";
-constexpr const char* kQuestPrefix = "quest ";
 constexpr const char* kMapText = "map.txt";
-constexpr const char* kZoneEntry = "#zone ";
 constexpr const char* kPositionLine = "#position";
-constexpr const char* kQuestEntry = "#quest ";
 constexpr const char* kMissingNumber = "0";
-
-// The text `prefix` + `name` (empty when there is none), into `out`.
-std::string* PlaceTitle(std::string* out, std::string_view prefix, std::string_view name) {
-    CTextManager* texts = g_clientWorld->texts_;
-    std::string text;
-    std::string key(prefix);
-    key += name;
-    if (texts->Open(key)) texts->ReadLine(&text, 1);
-    *out = text; return out;
-}
-
-
-// ARGB from four table ints: no masking, alpha shifted in first.
-std::uint32_t Argb(const int* entry) {
-    std::uint32_t c = static_cast<std::uint32_t>(entry[3]);
-    c = c << 8 | static_cast<std::uint32_t>(entry[0]);
-    c = c << 8 | static_cast<std::uint32_t>(entry[1]);
-    c = c << 8 | static_cast<std::uint32_t>(entry[2]);
-    return c;
-}
 
 } // namespace
 
-// --- titles --------------------------------------------------------------------------------------
+// --- titles and positions ------------------------------------------------------------------------
 
-std::string* CGlobalMap::AllodTitle(std::string* out, std::string_view allod) { return PlaceTitle(out, kAllodPrefix, allod); }
+std::string CGlobalMap::PlaceTitle(std::string_view prefix, std::string_view name) {
+    CTextManager* texts = g_clientWorld->texts_;
+    std::string title;
+    std::string key(prefix);
+    key += name;
+    if (texts->Open(key)) texts->ReadLine(&title, true);
+    return title;
+}
 
-std::string* CGlobalMap::ZoneTitle(std::string* out, std::string_view zone) { return PlaceTitle(out, kZonePrefix, zone); }
-
-std::string* CGlobalMap::QuestTitle(std::string* out, std::string_view quest) { return PlaceTitle(out, kQuestPrefix, quest); }
-
-// --- positions -----------------------------------------------------------------------------------
-
-bool CGlobalMap::ReadMapPosition(Vector3* out, std::string_view prefix, std::string_view name, bool positionLine) {
+std::optional<Vector3> CGlobalMap::MapPosition(std::string_view prefix, std::string_view name, bool positionLine) {
     CTextManager* texts = g_clientWorld->texts_;
     std::string key;
     std::vector<std::string> words;
     texts->Open(kMapText);
     key = prefix;
     key += name;
-    bool found = false;
+    std::optional<Vector3> position;
     if (texts->FindLine(key) && (!positionLine || texts->FindLine(kPositionLine))) {
         TextNextLine(texts);
-        if (texts->Split(&words, 1)) {
+        if (texts->Split(&words, true)) {
             while (words.size() < 3) words.push_back(kMissingNumber);
-            out->x = static_cast<float>(str::ToDouble(words[0]));
-            out->y = static_cast<float>(str::ToDouble(words[1]));
-            out->z = static_cast<float>(str::ToDouble(words[2]));
-            found = true;
+            position = Vector3{static_cast<float>(str::ToDouble(words[0])), static_cast<float>(str::ToDouble(words[1])),
+                               static_cast<float>(str::ToDouble(words[2]))};
         }
     }
-    TextClose(texts);
-    return found;
-}
-
-Vector3* CGlobalMap::ZonePosition(Vector3* out, std::string_view zone) {
-    ReadMapPosition(out, kZoneEntry, zone, true);
-    return out;
-}
-
-Vector3* CGlobalMap::QuestPosition(Vector3* out, std::string_view quest) {
-    ReadMapPosition(out, kQuestEntry, quest, false);
-    return out;
+    texts->Close();
+    return position;
 }
 
 // --- the selected zone ---------------------------------------------------------------------------
@@ -132,7 +93,7 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
 
 // Scene objects 0..2 (arrow, base, island) and everything after the zone markers (quests, links,
 // layers and the rest) shown or hidden.
-void CGlobalMap::ShowAllButZones(int visible) {
+void CGlobalMap::ShowAllButZones(bool visible) {
     for (int i = 0; i < 3; ++i) SceneMesh(i)->visible_ = visible;
     for (int i = zoneCount_ + 3; i < std::ssize(sceneObjects_); ++i) SceneMesh(i)->visible_ = visible;
 }
@@ -148,32 +109,15 @@ void CGlobalMap::RefreshSelection() {
     }
     surfaces_[1]->Freeze(0, 0);
     surfaces_[0]->Freeze(0, 0);
-    ShowAllButZones(0);
+    ShowAllButZones(false);
     std::uint32_t colour = g_sceneRenderer->fogColour_;
     g_sceneRenderer->fogColour_ = 0;
     app::FrameStep(false, false);
     g_sceneRenderer->fogColour_ = colour;
     surfaces_[1]->Freeze(1, 0);
-    ShowAllButZones(1);
+    ShowAllButZones(true);
     SceneMesh(markerCount_ + 6)->visible_ = 0;
     SceneMesh(markerCount_ + 7)->visible_ = 0;
     backdrop_->CaptureScreen();
-    SelectZone(-1, 0);
-}
-
-// --- the weather ---------------------------------------------------------------------------------
-
-void CGlobalMap::SetWeather() {
-    int index = weatherIndex_;
-    if (index < 4) {
-        g_sceneRenderer->fogColour_ = Argb(&weatherTable_[0]);
-    } else if (index < 8) {
-        Marker(markerCount_)->flatColour_ = Argb(&weatherTable_[4]);
-    } else if (index < 12) {
-        Marker(markerCount_ + 1)->flatColour_ = Argb(&weatherTable_[8]);
-    } else if (index < 16) {
-        Marker(markerCount_ + 2)->flatColour_ = Argb(&weatherTable_[12]);
-    } else {
-        weather_->SetRamp(weatherTable_[16], weatherTable_[17], 2.0f);
-    }
+    SelectZone(-1, false);
 }
