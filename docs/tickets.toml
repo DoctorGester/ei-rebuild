@@ -5803,3 +5803,21 @@ id = "C59"
 title = "Regroup files by feature and one naming rule (G16, G18)"
 group = "cleanup"
 note = "Style review Tier 3 (REPORT.md G16, G18): 37 *_slots / *_lifetime / *_small_records files, the AI over 16 unit_ai_* files, CItem over 8 by vtable slot, members in another subsystem's file; trailing _ on ~1,311 members vs ~1,134 without, CPrefix on ~450 classes. Needs the naming rule written into docs/rewrite-guide.md first (REPORT suggests plain names on plain-data structs, trailing _ only on classes with invariants, drop C), then scripted renames and merges when no other worker is in the area: conflicts with everything. Ask the user for the naming rule before starting."
+
+[[ticket]]
+id = "C60"
+title = "Unit AI area to the target style (style review, area-local)"
+group = "cleanup"
+note = "build/style_review/unit_ai.md (about 45 findings, file:line, before/after) and REPORT.md Part 2 'Unit AI': hand-written refcounting left after C49 (AIRefTo::Assign copies, Reset-then-null, the current mode assigned three ways, CountedUnits::PopHead), logic re-implemented from existing functions (AggressionMode::Execute / LookAround vs ApplyAttack, cast-at-object x4, FollowMode::Execute, Reset/Init/ClearModes/Load's shared body), wrong names (AICallRecord::kind, AIReport::what countdowns, nearX/nearY, AIMemory::IsEnemy, kControllerStateInactive vs combat.h, refreshPending_ == 2), dead branches (UpdateAttack giveUp, PlayerMode::Execute !leader, Think's late owner null check). Check each finding against current code first (C45-C54 fixed some). Opus. Goldens unchanged."
+
+[[ticket]]
+id = "C61"
+title = "Items area to the target style (style review, area-local)"
+group = "cleanup"
+note = "build/style_review/items.md (28 findings) and REPORT.md Part 2 'Items': one ItemCategory enum in item.h (item_constructor / item_db_text / item_stock disagree on 5 vs 8), one BuildItem(manager, kind, prototype, material, spell, count) for the repeated 7-call construction, item_stock.cpp's forwarders and five global scratch vectors (one a hidden input to DrawMaterial), GetItemTexts' 117 repeated lines and four model-name builders, dead tail of ~CItem, CItemSpell::CopyTo duplicate, item.h's -1.0f called NaN, WeaponAttack returns weight, offset names WeaponStat84 / WeaponStat88 / ArmorFieldB8. Check each against current code first (C45d, C53a fixed some). Opus. Goldens unchanged."
+
+[[ticket]]
+id = "C62"
+title = "Terrain area to the target style (style review, area-local)"
+group = "cleanup"
+note = "build/style_review/terrain.md (about 60 findings) and REPORT.md Part 2 'Terrain': dead Terrain state (textFC, extraPages, maxLightId, pageSize, tileSize, worldMatrix + CombineRotation, pageMaterials 'Wood' setup, minDetail always 0, one-value visibleColumnFirst/Last vectors), hidden inputs (lightingSector/X/Y for SunReaches with INT_MIN as true; Light / ShadeSun / LightVertex / LightSpecular / Ensure / Animate taking Terrain* and sun that are always the sector's own), raw codes (landscape flags, build stages, sector file sizes from 33x33x8 and 256x2, page arithmetic), duplication (LightVertex / LightSpecular, sun-ray flip, CountTiles, ResetFields vs constructor, colour packing x3), noise (One/VOne/Zero, CellSize x4, DrawPage's unused parameters and always-1 return, s1-s4/t1-t4 locals, FCOMP/FISTP narration). Check against current code first. Opus. Goldens unchanged."
