@@ -24,7 +24,6 @@ struct DecalTexCoord {
 
 class DecalBuilder {
 public:
-    DecalBuilder* Construct();
     // Starts a decal: empties the arrays (keeping their buffers) and sets the projection up from the quad's
     // corners (a row-major 4x4 matrix whose columns 3, 2 and 0 are the origin, the u and the v corner), the
     // direction (normalised in the copy) and the cut-off plane's point, `depth` * 0.33 back along it.
@@ -49,9 +48,9 @@ public:
     // Appends one vertex; returns its index.
     std::uint16_t AddVertex(const DecalVertex* v);
 
-    std::vector<VertexPacket>* points_;       // x[4], y[4], z[4] per packet (w untouched)
-    std::vector<DecalTexCoord>* texCoords_;
-    std::vector<std::uint16_t>* indices_;
+    std::vector<VertexPacket>* points_ = nullptr;   // x[4], y[4], z[4] per packet (w untouched)
+    std::vector<DecalTexCoord>* texCoords_ = nullptr;
+    std::vector<std::uint16_t>* indices_ = nullptr;
     Vector3 uAxis_;          // the u edge across the direction, over its squared length
     Vector3 vAxis_;          // the same for v
     Vector3 normal_;         // the (normalised) direction

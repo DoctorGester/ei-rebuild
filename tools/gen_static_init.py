@@ -782,6 +782,18 @@ UNUSED_INITIALISERS = {
     0x005C4460: "the path smoother's node pool 007C3038 (exit function 005C4480): ai_path_smooth.cpp's g_smoothPool",
     0x005C8F90: "the AI events' pool 007C43A8 (exit function 005C8FB0): ai_events.cpp's g_eventPool",
     0x0067E4C0: "the spells' footprint set 007C8478 (exit function 0067E500): ai_footprint.cpp's g_spellFootprint",
+    # C50b: the frame's draw lists are plain globals of ours (world_client_view.cpp).
+    0x0056A4D0: "the draw list 007AF5A8 (exit function 0056A510): world_client_view.cpp's g_visibleBuildings",
+    0x0056A520: "the draw list 007AF598 (exit function 0056A560): world_client_view.cpp's g_visibleOther",
+    0x0056A570: "the draw list 007AF588 (exit function 0056A5B0): world_client_view.cpp's g_visibleLevers",
+    0x0056A5C0: "the draw list 007AF578 (exit function 0056A600): world_client_view.cpp's g_visibleUnits",
+    0x0056A610: "the draw list 007AF568 (exit function 0056A650): world_client_view.cpp's g_visibleTrees",
+    0x0056A660: "the draw list 007AF558 (exit function 0056A6A0): world_client_view.cpp's g_shadowBuildings",
+    0x0056A6B0: "the draw list 007AF548 (exit function 0056A6F0): world_client_view.cpp's g_shadowOther",
+    0x0056A700: "the draw list 007AF538 (exit function 0056A740): world_client_view.cpp's g_shadowLevers",
+    0x0056A750: "the draw list 007AF528 (exit function 0056A790): world_client_view.cpp's g_shadowUnits",
+    0x0056A7A0: "the draw list 007AF518 (exit function 0056A7E0): world_client_view.cpp's g_shadowTrees",
+    0x0056A7F0: "the draw list 007AF508 (exit function 0056A830): world_client_view.cpp's g_touchedModels",
     0x00444660: "the debug panel 0079B930 (exit function 00444680; the panel went in C55)",
     0x0051CE00: "DrawShadow 0051CE60's texture pixels 007AF1E0 (exit function 0051CE30, guard bit 2 of 007AF1F0): only "
                 "the 64 x 64 shadow texture read them, which is not made (R26)",
@@ -1109,6 +1121,18 @@ RUNTIME_SITES = set()
 # Functions whose port registers none of the original's function-local statics' exit functions (C18): their
 # runtime atexit sites never run, like dead code's. begin -> (end, why).
 RETIRED_STATICS = {
+    # C50b
+    0x0056C750: (0x0056CE40, "CWorldClient::ProjectDecal (world_client_decals.cpp) uses plain globals of ours: the "
+                             "original's decal builder 007AF488 and part points 007AF478 (guard bits 0 / 1 of 007AF504, "
+                             "the points freed by 0056CE10) are never made"),
+    0x0058B750: (0x0058C4F0, "CWorldServer::SyncPlayer (world_sync.cpp) diffs in local arrays: the original's static "
+                             "arrays 007AFF18..007AFF48 (guard bits 0-3 of 007AFF58, freed by 0058C470..0058C4D0) are "
+                             "never made"),
+    0x0058D3D0: (0x0058D5D0, "CWorldServer::WakeUnitsAround (world_tick.cpp) keeps its spiral cache in a function-local "
+                             "static of ours: the original's 007AFF08 (guard bit 0 of 007AFF10) is never made"),
+    0x0058D670: (0x0058DAF0, "CWorldServer::UpdateUnits (world_tick.cpp) lists the ids in locals: the original's static "
+                             "arrays 007AFEF0 / 007AFEE0 (guard bits 0 / 1 of 007AFF00, freed by 0058DA20 / 0058DA00) "
+                             "are never made"),
     0x005B0050: (0x005B034A, "CRegionMap::LabelRegions (ai_region_reach.cpp) floods with local lists: the original's static "
                              "flood queue 007C2F10 and second list 007C2EF8 (guard bits 0 / 1 of 007C2F24, destroyed by "
                              "005B0360 / 005B0350) are never made"),

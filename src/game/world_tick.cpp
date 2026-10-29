@@ -26,11 +26,6 @@
 
 namespace {
 
-// WakeUnitsAround's function-local static: a SpiralCache (guard bit 0 of g_wakeCacheGuard, destructor registered
-// with atexit).
-SpiralCache g_wakeCache = /*007AFF08*/ {};
-std::uint8_t g_wakeCacheGuard = /*007AFF10*/ {};
-
 // CSectorMap, inlined here (bounds check and address only). The unit list of sector (x, y), or null outside the
 // map.
 std::list<CUnit*>* SectorUnits(CSectorMap* map, int x, int y) {
@@ -40,13 +35,6 @@ std::list<CUnit*>* SectorUnits(CSectorMap* map, int x, int y) {
 
 // Sector of a world coordinate: the AI map cell (half units, rounded through a float), / 32.
 int SectorOf(float world) { return x87::fistp(static_cast<float>(2.0f * world - 0.5f)) / 32; }
-
-constinit std::vector<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
-constinit std::vector<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
-// The exit functions: each frees its array's block (the fields stay).
-void FreeRemovedIds() { lib::FreeStorage(g_removedIds); }
-void FreeSleepingIds() { lib::FreeStorage(g_sleepingIds); }
-std::uint8_t g_updateListGuards = /*007AFF00*/ {};
 
 } // namespace
 
@@ -87,13 +75,9 @@ void CWorldServer::Tick(char force) {
 }
 
 void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
-    if (!(g_wakeCacheGuard & 1)) {
-        g_wakeCache.radius = -1.0f;
-        g_wakeCacheGuard |= 1;
-        g_wakeCache.length = 0;
-    }
+    static SpiralCache cache{0, -1.0f};
     int count;
-    const std::int16_t* offsets = g_wakeCache.Get(radius * 0.03125f, &count);   // radius in sectors
+    const std::int16_t* offsets = cache.Get(radius * 0.03125f, &count);   // radius in sectors
     int sx = SectorOf(position->x);
     int sy = SectorOf(position->y);
     CSectorMap* sectors = &aiMap_.sectorMap;
@@ -142,18 +126,8 @@ void CWorldServer::SetGameResult(int result) {
 }
 
 void CWorldServer::UpdateUnits() {
-    if (!(g_updateListGuards & 1)) {
-        g_updateListGuards |= 1;
-        g_removedIds = std::vector<unsigned>{};
-        std::atexit(FreeRemovedIds);
-    }
-    if (!(g_updateListGuards & 2)) {
-        g_updateListGuards |= 2;
-        g_sleepingIds = std::vector<unsigned>{};
-        std::atexit(FreeSleepingIds);
-    }
-    g_removedIds.clear();
-    g_sleepingIds.clear();
+    std::vector<unsigned> removedIds;    // flagged for removal
+    std::vector<unsigned> sleepingIds;   // leave the update map
 
     // The walk stops at the end or at an entry without an object.
     if (sessionKind_ != 1) {
@@ -162,7 +136,7 @@ void CWorldServer::UpdateUnits() {
         for (auto node = objects.begin(); node != objects.end() && node->second; ++node) {
             CEngineObject* object = node->second;
             object->RunTick();
-            if (object->flags_ & MapObjectFlag::Removed) g_removedIds.push_back(static_cast<unsigned>(object->id_));
+            if (object->flags_ & MapObjectFlag::Removed) removedIds.push_back(static_cast<unsigned>(object->id_));
         }
     } else {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
@@ -172,14 +146,14 @@ void CWorldServer::UpdateUnits() {
         for (auto node = awake.begin(); node != awake.end() && node->second; ++node) {
             CEngineObject* object = node->second;
             object->RunTick();
-            if (object->flags_ & MapObjectFlag::Removed) g_removedIds.push_back(static_cast<unsigned>(object->id_));
+            if (object->flags_ & MapObjectFlag::Removed) removedIds.push_back(static_cast<unsigned>(object->id_));
             CUnit* unit = UnitOrNull(object);
             if (!unit) continue;
             if (--unit->updateCountdown > 0) continue;   // updates left before it may sleep
             const CUnitServer* controller = unit->ServerController();
             if (controller->moveMode2.onGuard == 0 && controller->brain.alwaysUpdated == 0 &&
                 controller->brain.memory.seesEnemy == 0)
-                g_sleepingIds.push_back(static_cast<unsigned>(object->id_));
+                sleepingIds.push_back(static_cast<unsigned>(object->id_));
             else
                 unit->updateCountdown = UpdateCountdownFor(object);
         }
@@ -193,10 +167,10 @@ void CWorldServer::UpdateUnits() {
             counted_.erase(current);
         }
     }
-    for (int i = 0; i < std::ssize(g_sleepingIds); ++i) {
-        if (auto found = updateMap_.map.find(g_sleepingIds[i]); found != updateMap_.map.end()) updateMap_.map.erase(found);
+    for (int i = 0; i < std::ssize(sleepingIds); ++i) {
+        if (auto found = updateMap_.map.find(sleepingIds[i]); found != updateMap_.map.end()) updateMap_.map.erase(found);
     }
-    for (int i = 0; i < std::ssize(g_removedIds); ++i) RemoveObject(g_removedIds[i]);
+    for (int i = 0; i < std::ssize(removedIds); ++i) RemoveObject(removedIds[i]);
 }
 
 void CWorldServer::TickSleepingEffects() {

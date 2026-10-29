@@ -82,21 +82,10 @@ void FreeMovedPackets();
 void FreeOffsetVertices();
 void FreePoints();
 void FreeQuads();
-void FreeShadowBuildings();
-void FreeShadowLevers();
-void FreeShadowOther();
-void FreeShadowTrees();
-void FreeShadowUnits();
 void FreeTakenMaterials();
 void FreeTakenModifiers();
 void FreeTakenPrototypes();
 void FreeTakenSpells();
-void FreeTouchedModels();
-void FreeVisibleBuildings();
-void FreeVisibleLevers();
-void FreeVisibleOther();
-void FreeVisibleTrees();
-void FreeVisibleUnits();
 void InitCodeTables();
 void InitDampScale();
 void InitGameClientPointer();
@@ -708,28 +697,17 @@ void RunStaticInitialisers() {
     ConstructClientWorld();
     // 0056A3F0: ported by hand
     static_lists::ConstructDeferredUnitsList();
-    // 0056A4D0: stores + atexit (inlined 0056A4F0); 3 left out
-    std::atexit(FreeVisibleBuildings);
-    // 0056A520: stores + atexit (inlined 0056A540); 3 left out
-    std::atexit(FreeVisibleOther);
-    // 0056A570: stores + atexit (inlined 0056A590); 3 left out
-    std::atexit(FreeVisibleLevers);
-    // 0056A5C0: stores + atexit (inlined 0056A5E0); 3 left out
-    std::atexit(FreeVisibleUnits);
-    // 0056A610: stores + atexit (inlined 0056A630); 3 left out
-    std::atexit(FreeVisibleTrees);
-    // 0056A660: stores + atexit (inlined 0056A680); 3 left out
-    std::atexit(FreeShadowBuildings);
-    // 0056A6B0: stores + atexit (inlined 0056A6D0); 3 left out
-    std::atexit(FreeShadowOther);
-    // 0056A700: stores + atexit (inlined 0056A720); 3 left out
-    std::atexit(FreeShadowLevers);
-    // 0056A750: stores + atexit (inlined 0056A770); 3 left out
-    std::atexit(FreeShadowUnits);
-    // 0056A7A0: stores + atexit (inlined 0056A7C0); 3 left out
-    std::atexit(FreeShadowTrees);
-    // 0056A7F0: stores + atexit (inlined 0056A810); 3 left out
-    std::atexit(FreeTouchedModels);
+    // 0056A4D0: stores + atexit (inlined 0056A4F0); 4 left out
+    // 0056A520: stores + atexit (inlined 0056A540); 4 left out
+    // 0056A570: stores + atexit (inlined 0056A590); 4 left out
+    // 0056A5C0: stores + atexit (inlined 0056A5E0); 4 left out
+    // 0056A610: stores + atexit (inlined 0056A630); 4 left out
+    // 0056A660: stores + atexit (inlined 0056A680); 4 left out
+    // 0056A6B0: stores + atexit (inlined 0056A6D0); 4 left out
+    // 0056A700: stores + atexit (inlined 0056A720); 4 left out
+    // 0056A750: stores + atexit (inlined 0056A770); 4 left out
+    // 0056A7A0: stores + atexit (inlined 0056A7C0); 4 left out
+    // 0056A7F0: stores + atexit (inlined 0056A810); 4 left out
     // 005754C0: guarded atexit
     if (Once(lib::g_emptyStaticGuard, 1)) {
     }
