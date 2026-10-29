@@ -964,6 +964,24 @@ strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStri
 The image keeps the settings game.exe keeps under HKEY_CURRENT_USER in **ei_settings.ini next to
 ei_standalone.exe** and never reads or writes the registry (src/game/settings_file.{h,cpp}). game.exe (the original
 game, the `--no-hooks` suite) keeps the registry.
+- **Where (S24b)**: the first place that holds a file: next to the exe, then `%LOCALAPPDATA%\EvilIslands\ei_settings.ini`
+  (the LOCALAPPDATA variable). With neither, the defaults are written to the first place that takes them: next to the
+  exe, else the per-user one (its folder made), so a drop-in exe in a folder the user cannot write (Program Files)
+  keeps its options there; with no place writable the session runs on the defaults in memory (logged). Chosen over
+  "always per-user": the file stays beside the exe, where play.cmd and the user look, whenever the folder allows it.
+  A file next to the exe that later cannot be written (read-only attribute) logs `cannot write` at each options save
+  and keeps the change for the session only.
+- **A file that exists but cannot be read is never written over (S24b)**: only a missing one (ERROR_FILE_NOT_FOUND /
+  ERROR_PATH_NOT_FOUND) gets the defaults written. Any other failure (a sharing violation, access denied, a cloud
+  placeholder that cannot hydrate, a read error, 16 MB or more) logs `cannot read`, runs the session on the defaults in
+  memory and writes nothing, options saves included. The read shares read, write and delete, so an editor or sync
+  tool holding the file open does not stop it.
+- **The game folder (S24b)**: the host (src/standalone/host.cpp) makes the exe's folder the working directory when
+  EI_GAME_ROOT is not set (ei_launch sets it and starts the host in that data folder), before ei_hook.dll loads: the
+  game's relative paths (Work path and CD-ROM Path `.\`, Resources path `.\res\`, saves, mods) and the image's DLL
+  imports (image_imports.cpp LoadImport: mss32.dll, binkw32.dll from the working directory) are the exe's folder's
+  whatever the shortcut's "Start in" or the shell's folder. The defaults hold no paths, so a moved game folder keeps
+  working.
 - **Format**: a section per key, its path below HKEY_CURRENT_USER (`[Software\Nival Interactive\EvilIslands\General
   Settings]`), a line per value in reg export's syntax: `"FullScreen"=dword:00000001`, `"VideoResolution"="1920x1080"`
   (`\\` and `\"` escaped), `"Brightness"=float:0.5` (a 4-byte REG_BINARY float, written only when the text reads back
@@ -971,8 +989,9 @@ game, the `--no-hooks` suite) keeps the registry.
   hold); `@` is a key's default value, `;` starts a comment. Every value round-trips bit for bit: the bytes are what
   the game's ANSI registry call gives (UTF-8). Names and paths compare without case.
 - **Defaults (S24, user 2026-10-29)**: when the file is missing, the first use writes it with
-  `settings_file::DefaultDocument` (settings_document.cpp) for the primary monitor's size (GetSystemMetrics; the process
-  is DPI aware) and goes on with it; the registry is not read (the one-time import of ST1 went: the drop-in exe, S23,
+  `settings_file::DefaultDocument` (settings_document.cpp) for the primary monitor's mode in pixels (EnumDisplaySettings
+  of the primary monitor's device: the physical size whatever the process's DPI awareness, so no reader order matters;
+  without a size, no desktop, the defaults for 1024x768 in memory, not written) and goes on with it; the registry is not read (the one-time import of ST1 went: the drop-in exe, S23,
   needs no registry). Under both option trees (`kOptionTrees`: the game's `Software\Nival Interactive\EvilIslands`, and
   Rebirth's `Software\Gipat.Ru\EI_Starter\EvilIslands`, which NivalRegistry reads the options from and the WideScreen
   layout its VIDEORESOLUTION from on either data, so one file serves vanilla and Rebirth data): General Settings
@@ -990,7 +1009,7 @@ game, the `--no-hooks` suite) keeps the registry.
   `...\EvilIslands\Standalone`: VSync 1, Msaa 8, Anisotropy 16. `Software\Gipat.Ru\EI_Starter\Settings`: WideScreen 1,
   ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the original's distances; 5376 draws
   the whole map and is what the user's starter had). Everything else is left out and read as absent: the game takes
-  its own defaults (paths `.\` and `.\res\` from the working folder, ShowTutorial 1, the other game settings, equal to
+  its own defaults (paths `.\` and `.\res\` from the working folder, the exe's: "The game folder" above, ShowTutorial 1, the other game settings, equal to
   the install's), Rebirth its own (no mod: AddonPath absent, the console's levels and AutoExec). The game's exit save
   then adds every option it keeps.
 - **Who uses it**: WinRegistry (win_registry.cpp: the options loader and writer; `Open` makes the file's key,

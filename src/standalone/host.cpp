@@ -1,8 +1,8 @@
 // ei_standalone: runs the rebuilt game without game.exe. See docs/notes/standalone.md, "The image's source files".
 // usage: ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
-//   Run from the game folder (the working directory the game expects). Without --run the host builds
-//   the image, takes the registrations, checks them and exits: no window, nothing of the game runs. What
-//   follows "--" is the game's command line, as typed (WinMain's).
+//   The game folder is the exe's own (under ei_launch: the working directory it starts the host in). Without
+//   --run the host builds the image, takes the registrations, checks them and exits: no window, nothing of the
+//   game runs. What follows "--" is the game's command line, as typed (WinMain's).
 
 #include <windows.h>
 
@@ -61,6 +61,16 @@ int main(int argc, char** argv) {
             std::fprintf(stderr, "usage: ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game arguments>]\n");
             return 2;
         }
+    }
+    // The game folder is the working directory: the game's paths (Work path and CD-ROM Path ".\", ".\res\", the
+    // saves) and its DLLs (image_imports.cpp) are found there. ei_launch starts the host in the data folder it names
+    // (EI_GAME_ROOT); otherwise the exe is the drop-in one in the game folder, started from anywhere (a
+    // shortcut's "Start in", a shell in another folder): its own folder.
+    if (GetEnvironmentVariableA("EI_GAME_ROOT", nullptr, 0) == 0) {
+        char full[MAX_PATH];
+        const DWORD n = GetFullPathNameA(dll.c_str(), MAX_PATH, full, nullptr);
+        if (n > 0 && n < MAX_PATH) dll = full;
+        if (!SetCurrentDirectoryA(Folder(self).c_str())) return Fail(("cannot enter " + Folder(self)).c_str());
     }
     HMODULE hook = LoadLibraryA(dll.c_str());
     if (!hook) return Fail(("cannot load " + dll).c_str());
