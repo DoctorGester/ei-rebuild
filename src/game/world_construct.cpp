@@ -24,7 +24,6 @@ namespace {
 constexpr int kListBlockSize = 10;
 // The client's flags after construction.
 constexpr std::uint32_t kClientFlags = 0x3DC0;
-constexpr std::uint32_t kClientDebugFlags = 0xB;
 
 } // namespace
 
@@ -52,7 +51,6 @@ CWorldClient::CWorldClient() {
     secondGrid_.Allocate();
     handle_.ptr = nullptr;
     flags_ |= kClientFlags;
-    debugFlags_ = kClientDebugFlags;
     worldValue_ = -1;
     camera_ = nullptr;
     materialManager_ = nullptr;

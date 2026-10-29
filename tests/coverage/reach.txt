@@ -4698,14 +4698,6 @@
 005685C0 TextureRecordConstruct 7f8ffffffba3ffffdfddffffffdffffd
 00568800 CWorldClient::BuildUnitSkins 7fffffffffffffffffffffffffffffff
 005699F0 CWorldClient::LocalView 7fffffffffffffffffffffffffffffff
-00569A10 CWorldClient::ShowFps 20
-00569A20 CWorldClient::HideFps 20
-00569A40 CWorldClient::ShowRenderInfo 0
-00569A50 CWorldClient::HideRenderInfo 0
-00569A90 CWorldClient::ShowManagers 0
-00569AA0 CWorldClient::HideManagers 0
-00569B10 CWorldClient::ShowWorldData 20
-00569B20 CWorldClient::HideWorldData 20
 00569D60 CWorldClient::DrawLineLists 7fffffffffffffffffffffffffffffff
 00569E40 CWorldClient::Render 7fffffffffffffffffffffffffffffff
 0056A370 QueueScreenEntry 2500119804808001012371fc28803
@@ -5897,7 +5889,6 @@
 005DDBE0 ConsolePos 20
 005DDF80 History 20
 005DDFE0 Filter 36000000000004000000000000038
-005DE460 Show 20
 005DEA00 ListVar 20
 005DEC90 LoadVar 20
 005DEEE0 LastFps 20

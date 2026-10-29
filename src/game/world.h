@@ -903,16 +903,6 @@ public:
     // the objects. Returns 1.
     int CentreOn(const Vector3* point);
 
-    // The debug display's switches (the console's debug commands; bits 0-3 of debugFlags_): the frame
-    // rate, the render counters, the managers' lines and the world's. Nothing reads the bits.
-    void ShowFps();
-    void HideFps();
-    void ShowRenderInfo();
-    void HideRenderInfo();
-    void ShowManagers();
-    void HideManagers();
-    void ShowWorldData();
-    void HideWorldData();
     // Creates the party's heroes from their records: the figure from the part names (the hair "hr.%.2d" by the
     // prototype's number), items, player; each unit is filed with AddObject. Armour of type 0 is put on only with
     // `allArmour`. Stops at the first unit that cannot be created or given a figure.
@@ -944,7 +934,6 @@ public:
     void LoadSky();
 
     int nextClientObjectId_;              // -100000 after Setup; NextClientObjectId counts it down
-    std::uint32_t debugFlags_;            // the debug display's switches (bits 0-3: ShowFps ...)
     std::vector<ZoneExit> exits_;
     // The exits' particle markers, one per exit or null (counted; CreateExitMarkers / UpdateExitMarkers).
     std::vector<HeldRef<CParticleSource>> exitMarkers_;

@@ -4698,14 +4698,6 @@ address,name,size,status,risk,scenarios,golden,vector,reached_by
 005685C0,TextureRecordConstruct,18,golden,0,114,app_record camera combat combat_more +100,,harness_disk_full net_second_master rebirth_flags +7
 00568800,CWorldClient::BuildUnitSkins,4459,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 005699F0,CWorldClient::LocalView,17,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
-00569A10,CWorldClient::ShowFps,15,golden,0,1,console,,
-00569A20,CWorldClient::HideFps,25,golden,0,1,console,,
-00569A40,CWorldClient::ShowRenderInfo,15,unreached,30,0,,,
-00569A50,CWorldClient::HideRenderInfo,49,unreached,98,0,,,
-00569A90,CWorldClient::ShowManagers,15,unreached,30,0,,,
-00569AA0,CWorldClient::HideManagers,112,unreached,224,0,,,
-00569B10,CWorldClient::ShowWorldData,15,golden,0,1,console,,
-00569B20,CWorldClient::HideWorldData,49,golden,0,1,console,,
 00569D60,CWorldClient::DrawLineLists,218,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 00569E40,CWorldClient::Render,1327,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 0056A370,QueueScreenEntry,114,golden,0,31,app_record boot levers_key magic_traps_victims +24,,harness_disk_full net_second_master render_terrain_seams
@@ -5897,7 +5889,6 @@ address,name,size,status,risk,scenarios,golden,vector,reached_by
 005DDBE0,ConsolePos,921,golden,0,1,console,,
 005DDF80,History,95,golden,0,1,console,,
 005DDFE0,Filter,1137,golden,0,8,combat combat_more console sound +4,,
-005DE460,Show,1429,golden,0,1,console,,
 005DEA00,ListVar,646,golden,0,1,console,,
 005DEC90,LoadVar,580,golden,0,1,console,,
 005DEEE0,LastFps,105,golden,0,1,console,,

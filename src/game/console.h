@@ -171,7 +171,7 @@ struct CommandRegistration {
     const char* name;
     CommandHandler handler;
 };
-extern const CommandRegistration kCommandRegistrations[26];
+extern const CommandRegistration kCommandRegistrations[25];
 
 void Execute(const std::string& text);
 // Rebirth's console additions. AddNewConsoleCommands: the executor registers
@@ -195,7 +195,6 @@ void Help(std::vector<std::string>* args);
 void ConsolePos(std::vector<std::string>* args);    // console
 void History(std::vector<std::string>* args);
 void Filter(std::vector<std::string>* args);
-void Show(std::vector<std::string>* args);
 void ListVar(std::vector<std::string>* args);
 void LoadVar(std::vector<std::string>* args);
 void LastFps(std::vector<std::string>* args);

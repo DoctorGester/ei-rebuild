@@ -107,12 +107,11 @@ void ConsoleStreambuf::Sync() {
 
 // ---- Executor -----------------------------------------------------------------------------------
 
-const CommandRegistration kCommandRegistrations[26] = {
+const CommandRegistration kCommandRegistrations[25] = {
     {true, "help", commands::Help},
     {false, "console", commands::ConsolePos},
     {true, "history", commands::History},
     {true, "filter", commands::Filter},
-    {true, "show", commands::Show},
     {true, "listvar", commands::ListVar},
     {true, "loadvar", commands::LoadVar},
     {false, "lastfps", commands::LastFps},

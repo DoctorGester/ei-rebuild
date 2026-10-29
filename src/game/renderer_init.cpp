@@ -193,14 +193,7 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
 
     frameTime_ = 0;
     flags_ |= 2;
-    shortestFrame_ = 0x80000000;
-    longestFrame_ = 0;
-    totalTime_ = 0;
-    frameCount_ = 0;
-    averageFrame_ = 0;
     lastFrameStart_ = gameapi::timeGetTime();
-    windowTime_ = 0;
-    windowFrames_ = 0;
     AddDefaultLight(this);
 
     // The ambient colour: grey 50 from three FISTPs of 50.0.

@@ -13,6 +13,8 @@
   Commands are:
   HELP
     show this screen
+  DEBUGINFO [pos]
+    change debug info position; <pos> = l<eft>, r<ight>, rt, righttop, lt, lefttop
   CONSOLE [pos]
     change console position; <pos> = l<eft>, r<ight>, t<op>, b<ottom>, c<enter>, f<ullscreen>
   HISTORY [N lines]
@@ -81,6 +83,8 @@
   a  b
   Script error: Unexpected token 'NoSuchCommandX'
   Current FPS: 3.63636
+  Invalid debug info position
+  Invalid debug info position
   Invalid console position
   Invalid parameters
   Invalid number of parameters for command "show"

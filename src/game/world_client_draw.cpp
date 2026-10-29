@@ -165,11 +165,6 @@ void DrawLightEffects(std::list<T>& list) {
     for (GroundPrint& print : list) print.Draw();
 }
 
-constexpr std::uint32_t kShowFps = 1;
-constexpr std::uint32_t kShowRenderInfo = 2;
-constexpr std::uint32_t kShowManagers = 4;
-constexpr std::uint32_t kShowWorldData = 8;
-
 } // namespace
 
 const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
@@ -296,24 +291,6 @@ int CWorldClient::DrawLineLists() {
     for (auto& node : lineLists_) node.second->Draw(g_sceneRenderer->pipeline_, g_sceneRenderer->device_);
     return 1;
 }
-
-// ---- The debug display's switches -------------------------------------------------------------------
-
-void CWorldClient::ShowFps() { debugFlags_ |= kShowFps; }
-
-void CWorldClient::HideFps() { debugFlags_ &= ~kShowFps; }
-
-void CWorldClient::ShowRenderInfo() { debugFlags_ |= kShowRenderInfo; }
-
-void CWorldClient::HideRenderInfo() { debugFlags_ &= ~kShowRenderInfo; }
-
-void CWorldClient::ShowManagers() { debugFlags_ |= kShowManagers; }
-
-void CWorldClient::HideManagers() { debugFlags_ &= ~kShowManagers; }
-
-void CWorldClient::ShowWorldData() { debugFlags_ |= kShowWorldData; }
-
-void CWorldClient::HideWorldData() { debugFlags_ &= ~kShowWorldData; }
 
 int CWorldClient::DrawPass() {
     render::RenderState& state = render::g_renderState;

@@ -10,9 +10,7 @@
 #include "lib/gameapi.h"
 
 int CTextureDevice::BindSurface(int stage, Surface* holder) {
-    if (stageSurfaces_[stage] == holder) return 1;
     stageSurfaces_[stage] = holder;
-    ++textureChanges_;
     return 1;
 }
 

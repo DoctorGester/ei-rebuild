@@ -44,9 +44,12 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
   anything else prints `Unknown command`. Handlers: `void handler(CStringArray* args)`, args in ECX (ours: `console::Arguments*`, a
   `std::vector<std::string>`; the window's input history and lines are vectors too).
 - **Commands.** Public: console, lastfps, exec, execute, kick, ban, fps, rate, localrate. After the cheat word: help,
-  history, filter, show, listvar, loadvar, give, fadeout, join, server, memusage, lootall, net, disconnect, generateacks, days,
-  partyresend. The original also had DEBUGINFO (it moved the debug panel, which 1.06 never showed); it and the panel are
-  gone (C55): the word prints `Unknown command` and the help screen no longer lists it.
+  history, filter, listvar, loadvar, give, fadeout, join, server, memusage, lootall, net, disconnect, generateacks, days,
+  partyresend. The original also had DEBUGINFO (it moved the debug panel, which 1.06 never showed) and show; DEBUGINFO and the panel are
+  gone (C55): the word prints `Unknown command` and the help screen no longer lists it. `show` (fps, managers,
+  render_info, world_data) only set bits in the client world that nothing read; it is gone too (C57), also `Unknown command`.
+  The goldens keep game.exe's text: tools/golden.py REMOVED_CONSOLE lists the lines of the removed commands, dropped from
+  both the golden and the run before the comparison (add the lines there when a ticket removes a command).
 - AddText (`005E4090`) splits at '\n' (`004DBE40`): the first piece continues the last line, so each message line ends with an empty
   line that the next message fills. The window's visible lines are `(height - 24) / 15 - 1`.
 
@@ -55,7 +58,7 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
 Every function carries its address in its source comment (grep it). `ConsoleStreambuf` Overflow / Sync 005DC150 / 005DC1B0, Construct /
 DeletingDestruct / Destruct 005DC200 / 005DC240 / 005DC260; Execute 005DC620, Tokenize 004DC200, RunScriptLine 005DD800 ("Script error" printed
 exactly when the script's file count (+0x1AC) did not grow); the handlers help 005DF5E0, console 005DDBE0, history 005DDF80,
-filter 005DDFE0, show 005DE460, listvar 005DEA00, loadvar 005DEC90, lastfps 005DEEE0, days 005E00D0, fps 005E0830, rate 005E0990, localrate
+filter 005DDFE0, listvar 005DEA00, loadvar 005DEC90, lastfps 005DEEE0, days 005E00D0, fps 005E0830, rate 005E0990, localrate
 005E0A10, exec / execute 005DEF50, give 005DF0F0, lootall 005DF5B0, fadeout 005DF8E0, partyresend 005E0570, kick 005E0590, ban 005E06E0, net
 005DF9B0 (the network subcommands are silent and untested); ConsoleWindow SetRect / SetHistory / AddText 005E3E90 / 005E3F90 / 005E4090 (a shown
 window gets its surface recreated twice). State the handlers touch: window rects, history depth, filter mask `007C7B68`, debug display flags
@@ -72,8 +75,7 @@ game.exe's run takes the original streambuf table's sync slot (00740034 slot 1).
 - The map's operator[] inserts on lookup: every unknown word typed adds a null-handler entry to the public map (and, after the
   cheat word, to the cheat map). The cheat-word test XORs the command in place (a command containing 'f' gets a NUL inside).
   Arguments are lower-cased too (`exec` / `listvar` / `loadvar` file names, `kick` / `ban` names). exec trims the quotes for opening but
-  prints the argument with them in "Cannot open file". `show` with a valid item but neither 1 / on nor 0 / off does nothing; `fps`
-  the same. `days`: the help's example (25011978 to 01072000 = 8192 days) is really 8193; dates before 1970 go through mktime's -1;
+  prints the argument with them in "Cannot open file". `fps` with neither 1 / on nor 0 / off does nothing. `days`: the help's example (25011978 to 01072000 = 8192 days) is really 8193; dates before 1970 go through mktime's -1;
   the digit test is signed (bytes >= 0x80 fail). `give exp` divides by the party size before checking it. `net client` uses the
   local client (`005699F0` +0x1C) unchecked; `fadeout` uses the fader `007C7D68` unchecked; kick / ban with a lone `"` strip it to an
   empty name; AddText reads the first piece unchecked.

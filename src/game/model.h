@@ -281,7 +281,7 @@ public:
     void CreateRenderer(void* window, options::GameOptions* settings);
     // Drops the sun, the pipeline, the helper and the device object.
     void DestroyRenderer();
-    // 0 unless flags_ bit 0 is set. Updates the frame statistics, clears the frame and begins the scene (a
+    // 0 unless flags_ bit 0 is set. Takes the frame time, clears the frame and begins the scene (a
     // scene still open is ended first; other failures are fatal). Returns 1.
     int BeginScene();
     // Ends the scene. Returns 1.
@@ -349,17 +349,10 @@ public:
     float brightness_ = 0.0f;
     float contrast_ = 0.0f;
     float gamma_ = 0.0f;
-    // The frame statistics (milliseconds; BeginScene / EndScene).
+    // The frame time (milliseconds; BeginScene / EndScene).
     std::uint32_t frameTime_ = 0;              // the last frame's
-    std::uint32_t shortestFrame_ = 0;
-    std::uint32_t longestFrame_ = 0;           // (under 1000)
-    std::uint32_t averageFrame_ = 0;           // over the last second's worth of frames
-    std::uint32_t totalTime_ = 0;
-    std::uint32_t frameCount_ = 0;
     std::uint32_t frameStart_ = 0;             // timeGetTime at this frame's BeginScene
     std::uint32_t lastFrameStart_ = 0;         // the previous frame's (the creation: its time)
-    std::uint32_t windowTime_ = 0;             // the time and frames toward the average
-    std::uint32_t windowFrames_ = 0;
 
 private:
     // The creation's first step: a new transform pipeline.

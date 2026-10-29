@@ -155,7 +155,6 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const s
                                     int indexCount) {
     if (distanceFog_) pipeline_->transform_->FogVertices(vertices, vertexCount);
     render::TlDraw(this, vertices, render::kFvfTextured, vertexCount, indices, indexCount, render::Primitive::TriangleList);
-    drawCount_ += 1;
     return 1;
 }
 
