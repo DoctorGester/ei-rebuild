@@ -17,14 +17,10 @@ namespace {
 // The serial the next player record gets.
 std::uint32_t g_playerSerial = /*0079B60C*/ {};
 
-// Every node of `list` holding `value` erased (the next node taken first).
+// Every element of `list` holding `value` erased.
 template <typename List>
 void EraseValue(List& list, const void* value) {
-    for (auto node = list.begin(); node != list.end();) {
-        auto next = std::next(node);
-        if (node->Get() == value) list.erase(node);
-        node = next;
-    }
+    std::erase_if(list, [value](const auto& element) { return element.Get() == value; });
 }
 
 } // namespace

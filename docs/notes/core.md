@@ -527,15 +527,22 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 ## Containers: the net lists and the last node-pool users (C14t)
 
-- The sessions' message lists are `std::list<SharedRef<T>>` (copied with Share, released as the owner) and
-  `std::list<HeldRef<T>>` (a plain reference). An insert of a raw-held pointer is `emplace_back(object)`: the element's constructor is the policy's copy.
-- The timed lists are `std::list<TimedEntry<SharedRef<RefObject> / HeldRef<RefObject>>>` (net_classes.h; the key's bits, then the
-  reference). The queueing code keeps the original's temporaries: a share of a share of a copy-on-share object is a
-  clone, so the client's timers and the server's awards hold a clone of the entry's share (the awards a clone of a
-  clone). `TimedEntry(bits, Holder)` takes the reference by value (one share, moved in).
-- The connections are `ClientList` (`std::list<SharedRef<Connection>>`): FindClient returns an iterator (end() for
-  none; RemoveClient ignores end()). The driver session's drivers / holders are std::list members; OnShutdown clears
-  the holders, then the drivers, as the destructor (reverse member order).
+- The sessions' message lists are `std::vector<SharedRef<T>>` (copied with Share, released as the owner) and
+  `std::vector<HeldRef<T>>` (a plain reference). An insert of a raw-held pointer is `emplace_back(object)`: the element's
+  constructor is the policy's copy. Growth moves the elements (both moves are noexcept and hand the reference over): a
+  copy of a SharedRef to a copy-on-share object would share a clone. Removing by value is `std::erase_if`; a SharedRef's
+  move assignment swaps, so the erased object is the one released.
+- The timed lists are `std::vector<TimedEntry<SharedRef<RefObject> / HeldRef<RefObject>>>` (net_classes.h; the key's bits,
+  then the reference; a static_assert keeps their move noexcept). The queueing code keeps the original's temporaries: a
+  share of a share of a copy-on-share object is a clone, so the client's timers and the server's awards hold a clone of
+  the entry's share (the awards a clone of a clone). `TimedEntry(bits, Holder)` takes the reference by value (one share,
+  moved in).
+- Two stay lists (C63d): the connections (`std::list<SharedRef<Connection>>`; FindClient returns an iterator, end() for
+  none, RemoveClient ignores end()) because OnUpdate keeps its connection's node while the update's handlers may kick
+  other clients (ServerOnCommand), and the client's trade records, whose copy draws object ids (TradeRecord). The
+  connection's packet history, reliable chunk queues and freed-id batches are vectors; the loopback link's queue is a
+  deque (MemoryStream moves but does not move-assign). The driver session's drivers / holders are vectors; OnShutdown
+  clears the holders, then the drivers, as the destructor (reverse member order).
 - The sessions' destructors clear the lists in their bodies where the original released them, between the counted
   pointers' releases (the compiler's destructor then frees empty lists); ClientBase's list is the compiler's.
 - The flow's changed variables (UpdateFromServer) are sorted with std::stable_sort by stamp: the server gives every

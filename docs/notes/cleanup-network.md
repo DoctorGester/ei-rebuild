@@ -68,7 +68,8 @@ qualified member).
 
 ## Left
 
-- The `ClientSession` / `ServerSession` / `ClientBase` lists are typed `std::list` members (core.md, "Containers: the net lists").
+- The `ClientSession` / `ServerSession` / `ClientBase` lists are typed `std::vector` members, but the connections and the
+  trade records (core.md, "Containers: the net lists").
 - `Connection::Construct` stores float members as integer bits (`Put32` on `sendInterval` and the halves of `clock`): kept (no FPU load).
 - `player_messages.cpp`: `PartyRecords` (`party_record_lookup.h`; 006621B0) is a byte view of a CParty's record array (`records + i * 0x784
   + 0x1C`). `net_server_awards.cpp` /

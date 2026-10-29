@@ -96,19 +96,17 @@ void ClientSession::ApplyAwards() {
 void ClientSession::Tick(double dt) {
     ClientSession* self = this;
     self->ClientBase::Tick(dt);
-    auto sentinel = self->timers.end();
-    auto node = self->timers.begin();
-    if (node != sentinel) {
-        const float step = static_cast<float>(dt);
-        do {
-            auto current = node;
+    const float step = static_cast<float>(dt);
+    for (auto node = self->timers.begin(); node != self->timers.end();) {
+        float& seconds = node->seconds;
+        const double left = static_cast<double>(seconds) - step;
+        seconds = static_cast<float>(left);
+        EI_NAN_AUDIT(left);
+        if (left < 0.0f) {
+            node = self->timers.erase(node);
+        } else {
             ++node;
-            float& seconds = current->seconds;
-            const double left = static_cast<double>(seconds) - step;
-            seconds = static_cast<float>(left);
-            EI_NAN_AUDIT(left);
-            if (left < 0.0f) self->timers.erase(current);
-        } while (node != sentinel);
+        }
     }
     if (self->awards.begin() == self->awards.end() || g_serverWorld.sessionKind != 3) return;
     CPlayer* localPlayer = LocalPlayer();

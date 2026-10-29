@@ -51,7 +51,7 @@ void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(a, b, sizeof(NetAddress)) == 0; }
 
 // The servers list node whose entry has `address`, or the end.
-std::list<SharedRef<ServerEntry>>::iterator FindServer(ClientBase* self, const NetAddress* address) {
+std::vector<SharedRef<ServerEntry>>::iterator FindServer(ClientBase* self, const NetAddress* address) {
     auto end = self->servers.end();
     auto node = self->servers.begin();
     while (node != end && !SameAddress(&node->Get()->address, address)) ++node;
@@ -286,7 +286,7 @@ void ClientBase::Refresh() {
         SendPing(&address);
     if (!waiting.empty()) {
         NetAddress next = waiting.front();
-        waiting.pop_front();
+        waiting.erase(waiting.begin());
         SendPing(&next);
         return;
     }
@@ -502,7 +502,7 @@ bool ServerBase::Admit(const NetAddress*, std::uint8_t**, std::uint8_t*) { retur
 // becomes a connection (with the id and rate of its join), then counts.
 bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     if (SessionBase::OnUpdate(from, cursor)) return true;
-    std::list<PendingJoin>::iterator node = joins.begin();
+    auto node = joins.begin();
     while (node != joins.end() && !SameAddress(&node->address, from)) ++node;
     if (node == joins.end()) return false;
     PendingJoin& join = *node;
@@ -514,7 +514,7 @@ bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
 // Ages the pending joins (dropping those older than the join timeout, logged), then
 // the session's receive step.
 void ServerBase::Tick(double dt) {
-    std::list<PendingJoin>::iterator node = joins.begin();
+    auto node = joins.begin();
     while (node != joins.end()) {
         float& age = node->age;
         double sum = static_cast<double>(age) + dt;
@@ -552,7 +552,7 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
         return;
     }
 
-    std::list<PendingJoin>::iterator node = joins.begin();
+    auto node = joins.begin();
     while (node != joins.end() && !SameAddress(&node->address, from)) ++node;
     if (node != joins.end()) {
         PendingJoin& join = *node;

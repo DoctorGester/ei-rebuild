@@ -13,7 +13,8 @@
 #include <cstdint>
 
 #include <cstddef>
-#include <list>
+#include <deque>
+#include <vector>
 
 namespace net {
 class SessionBase;
@@ -106,7 +107,7 @@ public:
     // Two links joined to each other; the first goes to the player's link, the second is returned.
     static LoopbackLink* CreatePair(WorldHandle* player);
 
-    std::list<MemoryStream> queue;
+    std::deque<MemoryStream> queue;     // the peer's messages, taken from the front
     Ref<LoopbackLink> peer;
 };
 
@@ -172,8 +173,8 @@ public:
     bool Query() override { return true; }
     void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) override;   // the live holders' links appended
 
-    std::list<SharedRef<DriverLink>> drivers;     // owning
-    std::list<HeldRef<DriverLink>> holders;    // plain holders (released, not detached)
+    std::vector<SharedRef<DriverLink>> drivers;     // owning
+    std::vector<HeldRef<DriverLink>> holders;    // plain holders (released, not detached)
 
     // A driver for every new connection of `session` (the game client or server) with something queued;
     // then each driver pumped, and those whose player is gone erased.

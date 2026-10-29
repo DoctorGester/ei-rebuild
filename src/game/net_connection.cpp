@@ -108,7 +108,7 @@ void Connection::QueueHeader(int budget) {
         }
     }
     if (best == headers.begin()) return;
-    headers.splice(headers.begin(), headers, best);
+    std::rotate(headers.begin(), best, best + 1);
 }
 
 void Connection::RollBack(SentPacket* packet) {
@@ -160,7 +160,7 @@ bool Connection::SendUpdate(int budget) {
     sent.time = clock;
     sent.sequence = sequence;
     sent.header = chunk;
-    headers.pop_front();
+    headers.erase(headers.begin());
 
     std::uint8_t* count = c.p++;
     *count = 0;
@@ -461,7 +461,7 @@ RefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
 namespace net {
 
 void Connection::Acknowledge(std::uint16_t sequence) {
-    for (std::list<SentPacket>* packets : {&history, &acknowledged}) {
+    for (std::vector<SentPacket>* packets : {&history, &acknowledged}) {
         for (auto packet = packets->begin(); packet != packets->end(); ++packet) {
             if (packet->sequence == sequence) {
                 Delivered(&*packet);

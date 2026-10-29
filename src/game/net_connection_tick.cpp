@@ -58,23 +58,19 @@ bool Connection::Tick(double dt) {
     loss = longest >= loss ? loss : longest;
     float kept = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip));
 
-    for (auto node = history.begin(); node != history.end();) {
-        double age = Get(&clock) - Get(&node->time);
+    auto lost = history.begin();
+    for (; lost != history.end(); ++lost) {
+        double age = Get(&clock) - Get(&lost->time);
         EI_NAN_AUDIT(loss, age);
         if (D(loss) >= age) break;
-        RollBack(&*node);
-        auto next = std::next(node);
-        acknowledged.splice(acknowledged.end(), history, node);
-        node = next;
+        RollBack(&*lost);
     }
-    for (auto node = acknowledged.begin(); node != acknowledged.end();) {
-        double age = Get(&clock) - Get(&node->time);
-        if (D(kept) < age) {
-            node = acknowledged.erase(node);
-        } else {
-            ++node;   // also NaN
-        }
-    }
+    acknowledged.insert(acknowledged.end(), std::make_move_iterator(history.begin()), std::make_move_iterator(lost));
+    history.erase(history.begin(), lost);
+    std::erase_if(acknowledged, [&](const SentPacket& packet) {
+        double age = Get(&clock) - Get(&packet.time);
+        return D(kept) < age;   // NaN: kept
+    });
 
     double timer = D(sendTimer) + dt;
     sendTimer = static_cast<float>(timer);
@@ -105,7 +101,7 @@ bool Connection::Tick(double dt) {
             pool.push_back(entryId);
         }
         oldest.clear();
-        freedIds.pop_front();
+        freedIds.erase(freedIds.begin());
         freedIds.emplace_back();
     }
 

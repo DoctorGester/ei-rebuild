@@ -15,19 +15,18 @@ namespace net {
 
 // The search the original inlines in each function: the first variable whose name has the same bytes as
 // `name`.
-std::list<SharedRef<VariableMessage>>::iterator ServerSession::FindVariable(const std::string* variableName) {
+std::vector<SharedRef<VariableMessage>>::iterator ServerSession::FindVariable(const std::string* variableName) {
     auto node = variables.begin();
     for (; node != variables.end(); ++node)
         if (node->Get()->name == *variableName) break;
     return node;
 }
 
-std::list<SharedRef<VariableMessage>>::iterator ServerSession::FindOrAddVariable(const std::string* variableName) {
+std::vector<SharedRef<VariableMessage>>::iterator ServerSession::FindOrAddVariable(const std::string* variableName) {
     auto node = FindVariable(variableName);
     if (node != variables.end()) return node;
 
-    variables.emplace_front(NewCounted<VariableMessage>());
-    auto first = variables.begin();
+    auto first = variables.emplace(variables.begin(), NewCounted<VariableMessage>());
 
     // The name, assigned in place (string::operator= inlined: overwrite, then cut or append).
     std::string* to = &first->Get()->name;

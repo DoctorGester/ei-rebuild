@@ -27,14 +27,10 @@ void ClientApplyParty(ClientSession* self);      // net_client_party.cpp
 
 namespace {
 
-// Every node holding `value` erased (the sentinel read once, the next node taken first).
+// Every element holding `value` erased.
 template <typename List>
 void RemoveValue(List& list, const void* value) {
-    for (auto node = list.begin(); node != list.end();) {
-        auto next = std::next(node);
-        if (node->Get() == value) list.erase(node);
-        node = next;
-    }
+    std::erase_if(list, [value](const auto& element) { return element.Get() == value; });
 }
 // The message appended (the list's element takes its own reference or share).
 template <typename List>
@@ -53,13 +49,9 @@ void RemoveCounted(List& list, Message* message) {
     RemoveValue(list, held.Get());
 }
 
-// Every request for `file` erased (the sentinel read once, the next node taken first).
+// Every request for `file` erased.
 void DropRequestsFor(ClientSession* self, const Message* file) {
-    for (auto node = self->fileRequests.begin(); node != self->fileRequests.end();) {
-        auto next = std::next(node);
-        if (node->Get()->FileRef().Get() == file) self->fileRequests.erase(node);
-        node = next;
-    }
+    std::erase_if(self->fileRequests, [file](const auto& request) { return request.Get()->FileRef().Get() == file; });
 }
 
 // The owner's release of the party description as the handlers inline it, then null.

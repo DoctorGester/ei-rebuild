@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstring>
 #include <list>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -278,7 +279,7 @@ struct SocketDriver {
 // The value of the timed lists (the client's timers, the server's awards and finished trades): the
 // seconds left (a float; the code that queues an entry stores a constant's bits) and a counted object, held
 // shared (the client's timers, the server's awards) or counted (the server's finished trades). A copy copies
-// the key, then the reference.
+// the key, then the reference; a vector's growth moves them (a copy of a shared one would share a clone).
 template <typename Holder>
 struct TimedEntry {
     TimedEntry(std::uint32_t bits, Holder object) : key(bits), ref(std::move(object)) {}
@@ -289,6 +290,7 @@ struct TimedEntry {
     };
     Holder ref;
 };
+static_assert(std::is_nothrow_move_constructible_v<TimedEntry<SharedRef<RefObject>>>);
 
 // What a session replicates to the connection being updated (CollectReplicated fills it).
 struct Replicated {
@@ -367,7 +369,9 @@ public:
     std::int32_t idReuseTime;           // 75: seconds before a freed message id is reused
     std::uint32_t frame;                // 1; Tick counts its calls
     double time;                        // 0; Tick adds the elapsed time
-    std::list<SharedRef<Connection>> clients;                 // the connections
+    // The connections. A list: OnUpdate keeps its connection's node while the update's handlers may remove
+    // others (a kick, ServerOnCommand).
+    std::list<SharedRef<Connection>> clients;
     TypeRegistry types;
     SocketDriver socket;
     std::uint8_t reliable[kMessageTypes];    // per message type: its objects are sent reliably
@@ -407,10 +411,10 @@ public:
     // the magic and the entry).
     void SendInfo(const NetAddress* address, std::uint32_t echo);
 
-    std::list<PendingJoin> joins;
+    std::vector<PendingJoin> joins;
 };
 
-// The game server (g_gameServer). Its lists are STLport lists of counted pointers.
+// The game server (g_gameServer). Its lists hold counted pointers.
 class ServerSession final : public ServerBase {
 public:
     explicit ServerSession(std::uint32_t kind);
@@ -430,9 +434,9 @@ public:
     // When the held map message names `name`: drops it and queues "name_3" instead.
     bool FinishMap(const std::string* name);
     // The variable named `name`, variables.end() when missing.
-    std::list<SharedRef<VariableMessage>>::iterator FindVariable(const std::string* name);
+    std::vector<SharedRef<VariableMessage>>::iterator FindVariable(const std::string* name);
     // The variable named `name`, made (value 0) at the front of the list when missing.
-    std::list<SharedRef<VariableMessage>>::iterator FindOrAddVariable(const std::string* name);
+    std::vector<SharedRef<VariableMessage>>::iterator FindOrAddVariable(const std::string* name);
     void SetVariable(const std::string* name, float value);       // zero removes it
     void RaiseVariable(const std::string* name, float value);     // to the larger value
     void RemoveVariable(const std::string* name);
@@ -480,21 +484,21 @@ public:
                                         // with the next announcement (GameInfoRecord::masterToken)
     NetAddress masterAddress;           // the master server (port 28004)
     std::uint32_t nextLine;             // the number of the next chat line
-    std::list<SharedRef<PlayerMessage>> players;
-    std::list<SharedRef<LineMessage>> lines; // chat and system lines, at most 50
-    std::list<SharedRef<FileMessage>> files;
-    std::list<HeldRef<FileRequestMessage>> fileRequests; // the clients' requests (file requests, connections)
+    std::vector<SharedRef<PlayerMessage>> players;
+    std::vector<SharedRef<LineMessage>> lines; // chat and system lines, at most 50
+    std::vector<SharedRef<FileMessage>> files;
+    std::vector<HeldRef<FileRequestMessage>> fileRequests; // the clients' requests (file requests, connections)
     // where the game is hosted (a HostMessage; world_game.cpp's AnnounceHost), replicated to everyone when set
     Ref<HostMessage> hostInfo;
-    std::list<SharedRef<BindingMessage>> bindings; // player <-> connection
+    std::vector<SharedRef<BindingMessage>> bindings; // player <-> connection
     Ref<MapMessage> map;           // the map message while a map is played
-    std::list<SharedRef<ZoneMessage>> queuedMaps; // map messages the host may pick next
-    std::list<SharedRef<VariableMessage>> variables;
-    std::list<TimedEntry<SharedRef<RefObject>>> awards;             // {delay, award}
-    std::list<HeldRef<PartyMessage>> offers; // the players' trade offers
-    std::list<HeldRef<TradeMessage>> trades;
-    std::list<TimedEntry<HeldRef<RefObject>>> finishedTrades;    // {delay, trade}: done trades, kept 60 s
-    std::list<NetAddress> banned;
+    std::vector<SharedRef<ZoneMessage>> queuedMaps; // map messages the host may pick next
+    std::vector<SharedRef<VariableMessage>> variables;
+    std::vector<TimedEntry<SharedRef<RefObject>>> awards;             // {delay, award}
+    std::vector<HeldRef<PartyMessage>> offers; // the players' trade offers
+    std::vector<HeldRef<TradeMessage>> trades;
+    std::vector<TimedEntry<HeldRef<RefObject>>> finishedTrades;    // {delay, trade}: done trades, kept 60 s
+    std::vector<NetAddress> banned;
     std::string name;
     std::string mapName;
     std::uint32_t maxPlayers;           // 8; set by the creator
@@ -553,9 +557,9 @@ public:
     std::uint8_t refusal;               // the reason the host gave
     float retryTimer;                   // seconds to the next join request
     float retryInterval;                // doubles with every request (0.1 first)
-    std::list<SharedRef<ServerEntry>> servers;
+    std::vector<SharedRef<ServerEntry>> servers;
     ClientQueries queries;              // servers asked directly
-    std::list<NetAddress> waiting;     // addresses waiting to be asked
+    std::vector<NetAddress> waiting;    // addresses waiting to be asked, the first next
     NetAddress alwaysAsk;               // asked on every refresh (ip 0: none)
     std::uint32_t nextQuery;            // the query the refresh pings next
 };
@@ -577,8 +581,8 @@ struct TradeRecord {
     CParty parties[3];                    // ours, the partner's, the traded party
 };
 
-// The game client (g_gameClient). It keeps what the server replicates to it, by class, in STLport lists of
-// counted pointers.
+// The game client (g_gameClient). It keeps what the server replicates to it, by class, in lists of counted
+// pointers.
 class ClientSession final : public ClientBase {
 public:
     // A buffer's stream size over the dword at its start.
@@ -602,22 +606,22 @@ public:
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, std::string_view text);
 
-    std::list<HeldRef<PlayerMessage>> players;
-    std::list<HeldRef<LineMessage>> lines;
-    std::list<HeldRef<FileMessage>> files;
-    std::list<HeldRef<FileChunkMessage>> chunks;
-    std::list<SharedRef<FileRequestMessage>> fileRequests; // file requests for the server
+    std::vector<HeldRef<PlayerMessage>> players;
+    std::vector<HeldRef<LineMessage>> lines;
+    std::vector<HeldRef<FileMessage>> files;
+    std::vector<HeldRef<FileChunkMessage>> chunks;
+    std::vector<SharedRef<FileRequestMessage>> fileRequests; // file requests for the server
     Ref<HostMessage> info;              // the game's description
     Ref<BindingMessage> binding;        // our binding
     Ref<MapMessage> map;                // the map message
-    std::list<HeldRef<ZoneMessage>> zones; // map messages the host may pick
-    std::list<HeldRef<VariableMessage>> variables;
+    std::vector<HeldRef<ZoneMessage>> zones; // map messages the host may pick
+    std::vector<HeldRef<VariableMessage>> variables;
     Ref<LoginMessage> player;      // the local player's login record
-    std::list<TimedEntry<SharedRef<RefObject>>> timers;             // {seconds left, object}: objects kept for a while
-    std::list<HeldRef<AwardMessage>> awards; // awards received, applied by ApplyAwards
+    std::vector<TimedEntry<SharedRef<RefObject>>> timers;             // {seconds left, object}: objects kept for a while
+    std::vector<HeldRef<AwardMessage>> awards; // awards received, applied by ApplyAwards
     Ref<PartyMessage> party;       // our trade offer (party description)
-    std::list<HeldRef<PartyMessage>> offers; // the other players' trade offers
-    std::list<TradeRecord> tradeRecords;
+    std::vector<HeldRef<PartyMessage>> offers; // the other players' trade offers
+    std::list<TradeRecord> tradeRecords;   // a list: a record's copy draws object ids, so records never move
     Ref<TradeMessage> trade;            // the current trade
     std::uint32_t gameType;             // the multiplayer game type 0..3 (StartServer): start zone, type variable
     lib::InPlace<CParty> parties[2];            // ours, the partner's

@@ -236,7 +236,7 @@ them back; reached in single player through the loopback.
 recording file. Slots 2 reset, 3 clone, 4 connected, 5 alive, 6 has incoming, 7 incoming count, 8 Send (base:
 dropped, true), 9 Receive / record, 10 pump (00478010, empty), 11 disconnect, 12 (00478020, returns 0), 13
 `FramedLink::SendBytes`. Slots 10 / 12 are shorter than the 5-byte jump and not hooked.
-- `LoopbackLink` (0073C8F8, 0x30): +0x28 incoming queue (list of MemoryStream, vtable 0073C960), +0x2C peer.
+- `LoopbackLink` (0073C8F8, 0x30): +0x28 incoming queue (list of MemoryStream, vtable 0073C960; ours a deque), +0x2C peer.
   Send puts a copy at the end of the peer's queue; Receive copies the front out and records.
 - `ReplayLink` (0073C92C, 0x44): a second file stream at +0x28 plays back a recording (each message a size
   prefix and its bytes); made by 00478960 for `autoplay.apl` or `<name>.apl` (005793E0 from 00602190). Receive does

@@ -18,7 +18,7 @@ constexpr std::size_t kPasswordSize = 0x14;
 PlayerMessage* PlayerOf(BindingMessage* binding) { return binding->Player(); }
 
 // The connection of the first binding whose player is live and the host, or null.
-Connection* HostConnection(const std::list<SharedRef<BindingMessage>>& bindings) {
+Connection* HostConnection(const std::vector<SharedRef<BindingMessage>>& bindings) {
     for (auto& node : bindings) {
         PlayerMessage* player = PlayerOf(node.Get());
         if (IsLive(player) && player->host) return node.Get()->ConnectionRef().Get();

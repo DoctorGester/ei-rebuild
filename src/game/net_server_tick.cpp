@@ -20,19 +20,19 @@ namespace {
 
 const char* MasterHost() { return options::g_options.masterServerName.c_str(); }    // the master server's host name
 
-// Timed entries {seconds left (float), object}: each loses `dt`; those below zero are
-// erased. The end is read again after every entry.
+// Timed entries {seconds left (float), object}: each loses `dt`; those below zero are erased.
 template <typename List>
 void CountDown(List& list, float dt) {
-    auto node = list.begin();
-    while (node != list.end()) {
-        auto current = node;
-        ++node;
-        float& seconds = current->seconds;
+    for (auto node = list.begin(); node != list.end();) {
+        float& seconds = node->seconds;
         float left = seconds - dt;
         seconds = left;
         EI_NAN_AUDIT(left);
-        if (left < 0.0f) list.erase(current);
+        if (left < 0.0f) {
+            node = list.erase(node);
+        } else {
+            ++node;
+        }
     }
 }
 

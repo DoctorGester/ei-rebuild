@@ -10,7 +10,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -76,7 +75,7 @@ struct ReliableChunk {
 struct SentPacket {
     double time = 0.0;           // the connection's clock when sent
     std::uint16_t sequence = 0;
-    std::list<SentItem> items;
+    std::vector<SentItem> items;
     ReliableChunk header{};      // the reliable chunk the packet carried
     std::uint8_t rolledBack = 0;
 };
@@ -177,7 +176,7 @@ public:
     double clock;                       // seconds since the connection started
     std::uint32_t updateBudget;         // 220: bytes per update
     IdPool idPools[kMessageTypes];      // one per message type
-    std::list<std::vector<FreedId>> freedIds;      // batches of ids returned to the pools later
+    std::vector<std::vector<FreedId>> freedIds;    // two batches of ids returned to the pools later, the older first
     float freedTimer;
     std::map<std::int32_t, EntryRef> bySentId;     // type << 16 | id -> entry
     // Lookups only; nothing walks it. The original keys both by address (an ordered map each); the priority
@@ -185,14 +184,14 @@ public:
     std::unordered_map<RefObject*, EntryRef> byObject;      // object -> entry
     std::array<std::map<std::uint32_t, EntryRef>, 11> priorities;           // per priority: entry serial -> entry
     std::uint32_t entriesTracked = 0;    // the last serial handed out
-    std::list<SentPacket> history;     // packets sent, waiting for an acknowledgement
-    std::list<SentPacket> acknowledged;    // lost packets, kept a while for late acknowledgements
+    std::vector<SentPacket> history;       // packets sent, waiting for an acknowledgement (the oldest first)
+    std::vector<SentPacket> acknowledged;  // lost packets, kept a while for late acknowledgements
     std::map<std::int32_t, Record> records;                  // objects received (key type << 16 | id)
     std::unordered_map<RefObject*, AttachedId> attached;    // received object -> (type, id); lookups only
     std::uint16_t headerSequence;       // sequence of the next reliable chunk sent
     std::uint16_t incomingSequence;     // sequence of the next reliable chunk expected
-    std::list<ReliableChunk> headers;     // reliable chunks waiting to be sent
-    std::list<ReliableChunk> incoming;    // reliable chunks received ahead of their turn
+    std::vector<ReliableChunk> headers;     // reliable chunks waiting to be sent
+    std::vector<ReliableChunk> incoming;    // reliable chunks received ahead of their turn
     std::uint32_t ackMask;              // bit k: packet ackBase - 1 - k acknowledged already
     std::uint16_t ackBase;              // the peer's newest acknowledged sequence
     GrowingBuffer reliableOut;

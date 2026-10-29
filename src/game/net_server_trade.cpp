@@ -18,7 +18,7 @@ namespace {
 constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 
 // The offer of `offer`'s partner (its player is our partner and its partner our player), or null.
-PartyMessage* FindPartnerOffer(const std::list<HeldRef<PartyMessage>>& list, PartyMessage* offer) {
+PartyMessage* FindPartnerOffer(const std::vector<HeldRef<PartyMessage>>& list, PartyMessage* offer) {
     for (auto& node : list) {
         auto* other = node.Get();
         if (other->player.Get() == offer->partner.Get() && other->partner.Get() == offer->player.Get()) return node.Get();
@@ -52,11 +52,7 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
 
 // Removed file request: drops `message`.
 void ServerOnObjectRemoved(ServerSession* self, Message* message) {
-    for (auto node = self->fileRequests.begin(); node != self->fileRequests.end();) {
-        auto next = std::next(node);
-        if (node->Get() == message) self->fileRequests.erase(node);
-        node = next;
-    }
+    std::erase_if(self->fileRequests, [message](const auto& request) { return request.Get() == message; });
 }
 
 // Offer created: lists the offer; when the partner's offer is listed, a trade of the two
@@ -101,11 +97,7 @@ void ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
 // Offer removed: drops the offer; an unpaired offer's partner is told it was withdrawn.
 // Its trade, when live, is dropped, a done one first kept on finishedTrades for 60 seconds.
 void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
-    for (auto node = self->offers.begin(); node != self->offers.end();) {
-        auto next = std::next(node);
-        if (node->Get() == message) self->offers.erase(node);
-        node = next;
-    }
+    std::erase_if(self->offers, [message](const auto& offer) { return offer.Get() == message; });
     PartyMessage* other = FindPartnerOffer(self->offers, message);
     TradeMessage* trade = self->FindTrade(message, other);
     if (!message->trading) TellPartner(self, message, 11);
@@ -115,13 +107,9 @@ void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
         TimedEntry<HeldRef<RefObject>> entry(kFinishedDelay, held);
         self->finishedTrades.push_back(entry);
     }
-    // remove(trade): each element holding it erased as the walk reaches it, the trade held meanwhile.
+    // remove(trade), the trade held meanwhile.
     HeldRef<RefObject> removing(trade);
-    for (auto node = self->trades.begin(); node != self->trades.end();) {
-        auto next = std::next(node);
-        if (node->Get() == removing.Get()) self->trades.erase(node);
-        node = next;
-    }
+    std::erase_if(self->trades, [&removing](const auto& held) { return held.Get() == removing.Get(); });
 }
 
 } // namespace net
