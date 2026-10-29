@@ -17,10 +17,8 @@
 namespace {
 
 // The patch (a counted pointer, a function-local static of StampWaterPatch), released at exit.
-CUnitShape* g_patch = /*007C2F64*/ {nullptr};
-void ReleasePatch() {
-    if (g_patch) g_patch->Release();
-}
+Ref<CUnitShape> g_patch = /*007C2F64*/ {};
+void ReleasePatch() { g_patch.Reset(); }
 std::uint8_t g_guard = /*007C2F68*/ {};
 
 
@@ -34,16 +32,10 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     int y = static_cast<int>(scale * position->y);
     if (!(g_guard & 1)) {
         g_guard |= 1;
-        g_patch = nullptr;
+        g_patch.Reset();
         std::atexit(ReleasePatch);
     }
-    if (!g_patch || (g_patch->flags7_ & CRefObject::kDetached)) {
-        CUnitShape* fresh = new CUnitShape();
-        CUnitShape* old = g_patch;
-        g_patch = fresh;
-        if (fresh) fresh->AddRef();
-        if (old) old->Release();
-    }
+    if (!g_patch || (g_patch->flags7_ & CRefObject::kDetached)) g_patch.Assign(new CUnitShape());
     int key = ((y + 0x800) << 16) + x;
     int x0 = x - 7 < 0 ? 0 : x - 7;
     int y0 = y - 7 < 0 ? 0 : y - 7;

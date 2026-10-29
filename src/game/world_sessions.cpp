@@ -10,40 +10,26 @@
 
 using netlink::DriverSession;
 
-namespace {
-
-// A counted pointer's release as the helpers inline it: one reference dropped, deleted at zero.
-void ReleaseCounted(CRefObject* object) {
-    if (object) object->Release();
-}
-
-} // namespace
-
 CPlayerSource::~CPlayerSource() {}
 
 // A new helper with the same pending link (counted).
 CWorldHandle* CWorldHandle::Clone() {
     auto* copy = new CWorldHandle();
-    copy->pendingLink_ = pendingLink_;
-    if (copy->pendingLink_) copy->pendingLink_->AddRef();
+    copy->pendingLink_.Assign(pendingLink_);
     return copy;
 }
 
 // The helper is destroyed and built again in place (the count and flags kept): the link released, none pending.
 int CWorldHandle::OnShutdown() {
-    ReleaseCounted(pendingLink_);
-    pendingLink_ = nullptr;
+    pendingLink_.Reset();
     return 0;
 }
 
-CWorldHandle::~CWorldHandle() { ReleaseCounted(pendingLink_); }
+CWorldHandle::~CWorldHandle() { pendingLink_.Reset(); }
 
 CClientHandle* CClientHandle::Clone() { return new CClientHandle(); }
 
-void CClientHandle::TakeNew(std::list<netlink::NetLink*>* links) {
-    for (auto node = links->begin(); node != links->end(); ++node) ReleaseCounted(*node);
-    links->clear();
-}
+void CClientHandle::TakeNew(std::list<HeldRef<netlink::NetLink>>* links) { links->clear(); }
 
 // ---- netlink::DriverSession -----------------------------------------------------------------------
 

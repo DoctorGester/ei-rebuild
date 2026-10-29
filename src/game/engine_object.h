@@ -130,6 +130,8 @@ public:
     virtual ClassId GetClassId() = 0;
 
     void AddRef() { ++refCount_; }
+    // Drops a reference without the release at zero, where the original did (sic): the object stays.
+    void ForgetReference() { --refCount_; }
 
     CManagerContext* ManagerContext() const;
     // The manager context as the world, for the world's objects (a party's items have the party instead).

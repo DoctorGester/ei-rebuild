@@ -87,7 +87,7 @@ void CObject3D::ComputeBounds() {
         AddPlacedPart(box, part);
     }
     for (int i = 0; i < std::ssize(pendingParts); ++i) {
-        auto* part = pendingParts[i];
+        CFigureMesh* part = pendingParts[i];
         part->localPosition_ = {};
         AddPendingPart(box, part);
     }
@@ -162,8 +162,8 @@ void CObject3D::LoadFigures() {
     }
     for (int i = 0; i < std::ssize(pendingParts); ++i) {
         manager->LoadPart(pendingParts[i], model, scale.x, scale.y, scale.z);
-        --pendingParts[i]->refCount_;   // no release at 0
-        auto* part = pendingParts[i];
+        CFigureMesh* part = pendingParts[i].Take();
+        part->ForgetReference();
         bool known = false;
         for (int k = 0; k < std::ssize(parts) && !known; ++k) known = parts[k] == part;
         if (known) continue;

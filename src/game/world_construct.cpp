@@ -11,6 +11,7 @@
 #include "object_diplomacy.h"
 #include "registry.h"
 #include "script.h"
+#include "spell.h"         // CSpellEffect: the missiles
 
 #include "lib/static_object.h"
 

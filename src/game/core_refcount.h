@@ -71,21 +71,14 @@ struct RefPtr {
     RefPtr* ShareAssign(CRefObject* object);
 };
 
-// A typed pointer slot holding a counted object (CRefCounted): `object` gains a reference, the old one loses
-// one and is deleted with the last (RefPtr::Assign on the slot).
+// A typed pointer slot holding a counted object: `object` gains a reference, the old one loses one. Only the
+// interface's item view still stores into a raw slot with it; everything else holds a Ref.
 template <typename T>
 void AssignCounted(T*& slot, std::type_identity_t<T>* object) {
     T* old = slot;
     slot = object;
     if (object) object->AddRef();
     if (old) old->Release();
-}
-
-// A typed counted pointer's plain release: one reference dropped, the
-// object deleted with the last. The pointer itself is left as it was.
-template <typename T>
-void ReleaseCounted(T* object) {
-    if (object) object->Release();
 }
 
 // The name ui_briefing.h gives HeldRef until the interface track's files are converted.
@@ -105,7 +98,7 @@ void DestroyOwned(T*& slot) {
         object->OnShutdown();
         --object->refs_;
     }
-    ReleaseCounted(slot);
+    if (T* reloaded = slot) reloaded->Release();
 }
 
 // The owner's share into a typed slot (RefPtr::Share): null for a null or detached object, a clone for a
@@ -154,7 +147,9 @@ struct CountedRefPtr : RefPtr {
         std::swap(ptr, other.ptr);
         return *this;
     }
-    ~CountedRefPtr() { ReleaseCounted(ptr); }
+    ~CountedRefPtr() {
+        if (ptr) ptr->Release();
+    }
 };
 
 // A RefPtr that owns its share (a container's element): a copy shares the object (Share: a clone of a

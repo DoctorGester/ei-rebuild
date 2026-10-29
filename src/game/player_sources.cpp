@@ -8,30 +8,17 @@
 #include "core_refcount.h"
 #include "net_link.h"
 
-namespace {
-
-// AddTail of a counted link as both slots inline it: a new node after the tail (its element
-// zeroed, so nothing is released), the link stored with one more reference.
-void AppendCounted(std::list<netlink::NetLink*>* list, netlink::NetLink* link) {
-    list->push_back(link);
-    link->AddRef();
-}
-
-} // namespace
-
-void CWorldHandle::TakeNew(std::list<netlink::NetLink*>* joined) {
-    if (pendingLink_) AppendCounted(joined, pendingLink_);
-    netlink::NetLink* link = pendingLink_;
-    pendingLink_ = nullptr;
-    if (link) link->Release();
+void CWorldHandle::TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) {
+    if (pendingLink_) joined->emplace_back(pendingLink_.Get());
+    pendingLink_.Reset();
 }
 
 namespace netlink {
 
-void DriverSession::TakeNew(std::list<netlink::NetLink*>* list) {
+void DriverSession::TakeNew(std::list<HeldRef<netlink::NetLink>>* list) {
     for (const auto& holder : holders_) {
         DriverLink* link = holder.Get();
-        if (link && !(link->flags7_ & CRefCounted::kDetached)) AppendCounted(list, link);
+        if (link && !(link->flags7_ & CRefCounted::kDetached)) list->emplace_back(link);
     }
     // Each reference dropped.
     holders_.clear();

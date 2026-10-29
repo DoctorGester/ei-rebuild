@@ -347,7 +347,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
         self->sphere.flags = 0;
     }
     self->flags_ &= ~kFlagRefresh;
-    if (lights.manager) --lights.manager->refCount_;
+    if (lights.manager) lights.manager->ForgetReference();
 }
 
 } // namespace

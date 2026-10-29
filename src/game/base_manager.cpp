@@ -386,7 +386,7 @@ void CBaseManager::ReleaseUnused() {
 // The reference moves from the previous manager to `list`; returns the list's first object (the
 // position then names the next node), or null.
 CEngineObject* ObjectListIterator::First(CBaseManager* list) {
-    if (manager) --manager->refCount_;
+    if (manager) manager->ForgetReference();
     manager = list;
     if (list) list->AddRef();
     position = manager->objectList_.begin();

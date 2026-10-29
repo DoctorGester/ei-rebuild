@@ -158,7 +158,7 @@ void CObject3D::CollectPartsByPrefix(std::string_view prefix, std::vector<CFigur
         (*out)[index] = part;
     }
     for (int i = 0; i < std::ssize(pendingParts); ++i) {
-        auto* part = pendingParts[i];
+        CFigureMesh* part = pendingParts[i];
         if (startsWith(part)) lib::SetAtGrow(*out, std::ssize(*out), part);
     }
 }

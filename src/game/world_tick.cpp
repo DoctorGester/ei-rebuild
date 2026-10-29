@@ -78,9 +78,7 @@ void CWorldServer::Tick(char force) {
     auto& missiles = projectiles_;
     for (auto next = missiles.begin(); next != missiles.end();) {
         auto current = next++;
-        if ((*current)->Update() != 0) continue;
-        ReleaseCounted(*current);   // the missile released
-        missiles.erase(current);
+        if ((*current)->Update() == 0) missiles.erase(current);   // the missile released
     }
 
     if (scriptsActive_ != 0 || force) ScriptTick(MainScript());

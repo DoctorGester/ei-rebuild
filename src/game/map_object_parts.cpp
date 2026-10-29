@@ -19,8 +19,8 @@ constexpr std::uint32_t kNumberMask = 0x3FC00000;
 constexpr int kNumberShift = 22;
 
 // The first of `parts` that `matches`, or null.
-template <typename Match>
-CFigureMesh* FirstPart(const std::vector<CFigureMesh*>& parts, Match matches) {
+template <typename Parts, typename Match>
+CFigureMesh* FirstPart(const Parts& parts, Match matches) {
     for (int i = 0; i < std::ssize(parts); ++i) {
         CFigureMesh* part = parts[i];
         if (matches(part)) return part;
@@ -29,9 +29,11 @@ CFigureMesh* FirstPart(const std::vector<CFigureMesh*>& parts, Match matches) {
 }
 
 // Removes entry `index`, moving the ones after it down.
-void RemoveAt(std::vector<CFigureMesh*>& parts, int index) { parts.erase(parts.begin() + index); }
+template <typename Parts>
+void RemoveAt(Parts& parts, int index) { parts.erase(parts.begin() + index); }
 
-int IndexOf(const std::vector<CFigureMesh*>& parts, const CFigureMesh* part) {
+template <typename Parts>
+int IndexOf(const Parts& parts, const CFigureMesh* part) {
     for (int i = 0; i < std::ssize(parts); ++i)
         if (parts[i] == part) return i;
     return -1;
@@ -60,6 +62,7 @@ int CObject3D::RemovePart(CFigureMesh* part) {
     } else {
         index = IndexOf(pendingParts, part);
         if (index < 0) return 0;
+        pendingParts[index].Take();   // its reference goes with the release below
         RemoveAt(pendingParts, index);
     }
     if (animation) animation->DetachMesh(part);

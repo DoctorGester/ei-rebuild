@@ -20,21 +20,6 @@ namespace netlink {
 
 namespace {
 
-// The counted pointer release the classes inline: the count dropped, the object deleted at zero.
-void ReleaseCounted(CRefObject* object) {
-    if (!object) return;
-    --object->refs_;
-    if (object->refs_ == 0) delete object;
-}
-
-// A counted pointer assignment as it is inlined (the new object counted first).
-void AssignPeer(LoopbackLink** slot, LoopbackLink* object) {
-    LoopbackLink* previous = *slot;
-    *slot = object;
-    if (object) object->AddRef();
-    ReleaseCounted(previous);
-}
-
 // The largest message Send takes (its stack buffer holds the length and the bytes).
 constexpr unsigned kMaxMessage = 0x7FFC;
 
@@ -126,9 +111,7 @@ void NetLink::CloseRecording() {
 
 // LoopbackLink
 
-LoopbackLink::LoopbackLink() {
-    peer_ = nullptr;
-}
+LoopbackLink::LoopbackLink() = default;
 
 // The game's queue copy is kept: each copy is a new stream of the source's size whose Read takes the source's
 // buffer, so the new stream's fresh bytes are read into the source (both then hold them).
@@ -138,8 +121,7 @@ LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
         copy.SetSize(source.size_);
         copy.Read(source.data_, copy.size_);
     }
-    peer_ = other.peer_;
-    if (peer_) peer_->AddRef();
+    peer_.Assign(other.peer_);
 }
 
 // The first goes to the player's pending link; null for a null player. Without memory for the
@@ -148,22 +130,19 @@ LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
 LoopbackLink* LoopbackLink::CreatePair(CWorldHandle* player) {
     if (!player) return nullptr;
     LoopbackLink* first = net::NewCounted<LoopbackLink>();
-    NetLink* previous = player->pendingLink_;
-    player->pendingLink_ = first;
-    if (first) first->AddRef();
-    if (previous) previous->Release();
+    player->pendingLink_.Assign(first);
     LoopbackLink* second = net::NewCounted<LoopbackLink>();
-    AssignPeer(&first->peer_, second);
-    AssignPeer(&second->peer_, first);
+    first->peer_.Assign(second);
+    second->peer_.Assign(first);
     return second;
 }
 
-LoopbackLink::~LoopbackLink() { ReleaseCounted(peer_); }
+LoopbackLink::~LoopbackLink() { peer_.Reset(); }
 
 // Torn down (the queue cleared rather than destroyed) and built again in place (the reference count
 // and +9 kept): no peer, an empty queue, a closed file, not recording.
 int LoopbackLink::OnShutdown() {
-    ReleaseCounted(peer_);
+    peer_.Reset();
     std::destroy_at(&queue_);
     record_.~FileStream();
     new (this) LoopbackLink();
@@ -205,13 +184,9 @@ bool LoopbackLink::Receive(CMemoryStream* stream) {
 
 // Lets go of the peer, then has the peer let go of this one (a reference is held across the peer's call).
 void LoopbackLink::Disconnect() {
-    LoopbackLink* peer = peer_;
-    if (peer) peer->AddRef();
-    LoopbackLink* previous = peer_;
-    peer_ = nullptr;
-    ReleaseCounted(previous);
+    HeldRef<LoopbackLink> peer(peer_);
+    peer_.Reset();
     if (peer) peer->Disconnect();
-    ReleaseCounted(peer);
 }
 
 // ReplayLink
@@ -337,12 +312,12 @@ void DriverLink::Disconnect() {
     }
     net::Connection* player = player_.Get();
     player_.ptr = nullptr;
-    ReleaseCounted(player);
+    if (player) player->Release();
 }
 
 DriverLink::~DriverLink() {
     DriverLink::Disconnect();
-    ReleaseCounted(player_.ptr);
+    if (player_.ptr) player_.ptr->Release();
 }
 
 // Destroyed (disconnecting) and built again in place with the constructor's code: the

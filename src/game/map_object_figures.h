@@ -423,10 +423,10 @@ public:
     CFigureAnimationState* animation;   // the figure's animation state
     AnimationDatabase* animations;  // loaded on first use
     std::string name;               // the figure's name
-    std::list<CParticleSource*> effectSources;   // the particle sources attached to the object
+    std::list<HeldRef<CParticleSource>> effectSources;   // the particle sources attached to the object
     Vector3 scale;
     std::vector<CFigureMesh*> parts;
-    std::vector<CFigureMesh*> pendingParts;   // built by LoadFigures
+    std::vector<HeldRef<CFigureMesh>> pendingParts;   // built by LoadFigures
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     Ref<CLinkMesh> figure;

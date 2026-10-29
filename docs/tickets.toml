@@ -5283,3 +5283,17 @@ group = "cleanup"
 model = "opus"
 depends = ["C49"]
 note = "C49 follow-up outside the interface files. The 52 AssignCounted/ReleaseCounted calls on raw slots (unit item slots, net link_/pendingLink_, g_patch CUnitShape, item link_, the party/world managers) to Ref fields, then delete both helpers. The hand-counted std::list<T*> lists (effectSources, parts, pendingParts and similar) to std::list<HeldRef<T>> where the release order stays the same. Leave the deliberate decrement-without-release sites ('sic') as they are, named. Goldens unchanged."
+
+[[ticket]]
+id = "C49c"
+title = "Ref for the last raw counted slots the interface reads"
+group = "cleanup"
+depends = ["P8"]
+note = "C49b follow-up. CItem::link_ to Ref<CRefObject> (ui_camp_deals.cpp reinterpret_casts it, ui_item_view.cpp stores it with AssignCounted: then delete AssignCounted from core_refcount.h and CItem::SetLink), CObject3D::parts to std::vector<HeldRef<CFigureMesh>> (ui_model.cpp reads it with auto*; CopyFigure copies it uncounted, keep that with Take or a named copy). With or after C49a (CItem::spell_). Goldens unchanged."
+
+[[ticket]]
+id = "C49d"
+title = "HeldRef for the AI memory lists; pendingParts is never filled"
+group = "cleanup"
+depends = ["C49b"]
+note = "C49b follow-up. AIMemory's nearby / visible / seenCorpses / corpses (std::list<CUnit*>, counted by hand in unit_ai_brain.cpp ReleaseAllObjects / RemoveObjectNode, combat_lifetime.cpp Init/DestroyObjectList, combat_taming ReleaseAndClear, WitnessMurder's std::list<CUnit*>*) to std::list<HeldRef<CUnit>> where the release order stays. CObject3D::pendingParts: nothing in src or tests adds to it (only reads, RemovePart, LoadFigures' sic drop, Destroy3D); check game.exe's writers and delete it with its loops if it is dead. Goldens unchanged."

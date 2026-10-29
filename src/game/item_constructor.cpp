@@ -219,7 +219,17 @@ void CItem::AttachSpell(CSpell* spell) {
 }
 
 void CItem::SetSpell(CSpell* spell) {
-    AssignCounted(spell_, spell);
+    CSpell* previous = spell_;
+    spell_ = spell;
+    if (spell) spell->AddRef();
+    if (previous) previous->Release();
+}
+
+void CItem::SetLink(CRefObject* link) {
+    CRefObject* previous = link_;
+    link_ = link;
+    if (link) link->AddRef();
+    if (previous) previous->Release();
 }
 
 // --- CItemConstructor ----------------------------------------------------------------------------
@@ -230,7 +240,7 @@ int CItemConstructor::Create() {
 }
 
 void CItemConstructor::Destroy() {
-    if (manager_) --manager_->refCount_;
+    if (manager_) manager_->ForgetReference();
     manager_ = nullptr;
     item_.Reset();
     material_ = nullptr;
@@ -252,7 +262,7 @@ const char* CItemConstructor::ClassName() { return "CItemConstructor"; }
 ClassId CItemConstructor::GetClassId() { return ClassId::ItemConstructor; }
 
 void CItemConstructor::SetManager(CBaseManager* manager) {
-    if (manager_) --manager_->refCount_;
+    if (manager_) manager_->ForgetReference();
     manager_ = manager;
     if (manager) manager->AddRef();
 }
@@ -290,7 +300,7 @@ CItem* CItemConstructor::EndCreateItem() {
     }
     flags_ &= ~kFlagConstructing;
     CItem* item = item_.Take();
-    --item->refCount_;
+    item->ForgetReference();
     spell_ = nullptr;
     count_ = 0;
     return item;

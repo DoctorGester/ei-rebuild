@@ -19,15 +19,6 @@
 #include <memory>
 #include <new>
 
-namespace {
-
-// A counted pointer's release: the object deleted with its last reference.
-void ReleaseCounted(CRefCounted* object) {
-    if (object) object->Release();
-}
-
-} // namespace
-
 // ---- The registry's creators ----------------------------------------------------------------------
 
 CRefCounted* CreatePartyRecord() {

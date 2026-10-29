@@ -13,6 +13,7 @@
 #include "net_delta.h"
 #include "object_tables.h"
 #include "party.h"
+#include "spell.h"         // CSpellEffect: the missiles
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -142,8 +143,6 @@ void CWorldServer::ClearMapObjects() {
         node = next;
     }
 
-    for (auto node = projectiles_.begin(); node != projectiles_.end(); ++node)
-        if (*node) reinterpret_cast<CRefObject*>(*node)->Release();
     projectiles_.clear();
 
     for (auto node = counted_.begin(); node != counted_.end(); ++node)

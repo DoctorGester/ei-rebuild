@@ -118,6 +118,7 @@ TYPES = {
     'stlp::vector': 'III',         # the original's STLport vector (a key only: none of ours): start, finish, end of storage
     'std::vector': 'III',          # MSVC's: first, last, end of storage (zero is empty, as STLport's)
     'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
+    'Ref': 'I',                    # ref.h: a counted pointer, null until it is assigned
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
     # A string's is game.exe's CString, one pointer (ours is a std::string; the range is the original's).
     'lib::StaticObject<std::string>': 'I',

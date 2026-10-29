@@ -55,7 +55,6 @@ CWorldServer::~CWorldServer() {
     CWorldServer::Destroy();
     sharedObjects_.clear();
     ReleaseAndClear(counted_);
-    for (CSpellEffect* missile : projectiles_) ReleaseCounted(missile);
     projectiles_.clear();
     diplomacy_.Reset();
     std::destroy_at(SecondScript());

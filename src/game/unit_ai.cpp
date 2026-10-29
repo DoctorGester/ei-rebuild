@@ -140,10 +140,7 @@ void AIBrain::Think() {
         }
         if (current) current->Leave(this);
         if (best) best->Enter(this);
-        AIMode* old = current;
-        current = best;
-        if (best) best->AddRef();
-        if (old) old->Release();
+        current.Assign(best);
     }
 
     if (current) {
