@@ -291,11 +291,10 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   saves, messages) keep their type and receive the float value.
 - **double constants wider than a float** in arithmetic: FLD keeps all 53 bits and the one operation rounds, where
   `x * 0.001f` rounds the constant first. 39 such literals in 29 of the files left (pi, 0.001, 0.01, 1.04, 1.61, 0.7,
-  0.9, 0.6, 0.02, 1e-5, 2^-32 ...) and the named double constants they use. Exact form: the operation in double,
-  then a fix-up where the double result sits on a float tie (the error term from Dekker's two-product / two-sum
-  says which way the exact result lies): `lib::RoundedProduct(float, double)` and `lib::RoundedSum(double, double)`
-  (lib/rounded_ops.h, SSE2 only; C30e3's test: 50 M cases, a million of them where the double then float rounding
-  differs, 0 differ from the x87 form). A constant that is exact in 24 bits (0.5, 100.0, 0.25) is a float constant.
+  0.9, 0.6, 0.02, 1e-5, 2^-32 ...) and the named double constants they use. Exact form: `pc24::Mul / Add / Sub /
+  Div` (below: the exact result as a double-double, then one rounding to 24 bits; C30e3's test, rerun against them in
+  C30e16: 50 M cases, a million of them where the double then float rounding differs, 0 differ from the x87 form).
+  A constant that is exact in 24 bits (0.5, 100.0, 0.25) is a float constant.
   The double 1 / (2^32 - 1) is 2^-32 (1 + 2^-32): a float times it rounds to the float times 2^-32 (`0x1p-32f`).
   A single operation on two floats done in double and then stored as float is the float operation (53 >= 2 x 24 + 2:
   double rounding is harmless there); a chain of them in double is not.
@@ -389,7 +388,7 @@ minus the world tick, the magic trap's double height plus z. `CopyBits` -> `=` (
 **C30e11 (map objects; 10 files).** No transcendental, wide constant or large int but two operands: the bounds, cage
 interpolation, track lerps, scale steps, light reach and the companion light's distance are float maths in the
 original's order (the double locals were PC24 registers); the ground height (`GridHeightAt`, a double) plus a float and
-the animation time minus the frame count (a uint32 as a double) go through `lib::RoundedSum`. `AnimationDatabase::TimeFactor`
+the animation time minus the frame count (a uint32 as a double) go through `pc24::Add` / `Sub`. `AnimationDatabase::TimeFactor`
 (map_object_figures.h, inlined in figure_bones' x87 object too) and `CObject3D::AnimationFactor` return float: at PC24
 their double result already was one. `x87::fistp` -> `lib::RoundEven` (the track's key frame), `modf` on the float.
 Kept: `RemoveOutdatedEffects`' `static_cast<double>(distance) < 0.001` (addon.dll's double compare, exact on both),

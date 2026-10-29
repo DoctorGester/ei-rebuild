@@ -10,7 +10,7 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 
 #include <bit>
 #include <cstdint>
@@ -240,7 +240,7 @@ float ItemWeapon::RollDamage() {
     if (damageSpread == 0.0f) return damage;
     float high = damageSpread + damage;
     float low = damage;
-    return lib::RoundedProduct(high - low, g_random.Next()) * 0x1p-32f + low;
+    return pc24::Mul(high - low, g_random.Next()) * 0x1p-32f + low;
 }
 
 void ItemWeapon::InitFromRecord(const ItemRecordHead* record) {

@@ -15,7 +15,7 @@
 
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 #include <cstddef>
@@ -40,7 +40,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
     float low = roll.minimum;
     float high = roll.maximum;
     int amount = lib::RoundEven(low);
-    if (high > low) amount = static_cast<int>(lib::RoundedProduct(high - low, g_random.Next()) * 0x1p-32f + low);
+    if (high > low) amount = static_cast<int>(pc24::Mul(high - low, g_random.Next()) * 0x1p-32f + low);
     int percent = libcrt::RandBelow(100) + 1;
     EI_NAN_AUDIT(roll.chance);
     if (static_cast<float>(percent) <= roll.chance) *gold += amount;

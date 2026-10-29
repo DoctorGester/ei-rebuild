@@ -4,7 +4,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/rounded_ops.h"
+#include "lib/pc24.h"
 #include "map_object_figures.h"
 #include "net_delta.h"
 #include "spell.h"    // SpellType
@@ -31,7 +31,7 @@ std::uint32_t ClampToZero(float v) {
 
 void StoreBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(bits); }
 
-// The world's GridHeightAt: the height at (x, y), a double (a float added to it as the x87 adds: RoundedSum).
+// The world's GridHeightAt: the height at (x, y), a double (a float added to it as the x87 adds: pc24::Add).
 double GroundHeight(CWorld* world, float x, float y) { return world->GridHeightAt(x, y); }
 
 // The change stamp: the world's update count.
@@ -185,13 +185,13 @@ float* CMapObject::GroundPoint(float* out) {
     double height = GroundHeight(World(), x, y);
     out[0] = x;
     out[1] = y;
-    out[2] = lib::RoundedSum(height, z);
+    out[2] = pc24::Add(height, z);
     return out;
 }
 
 void CMapObject::PlaceOnGround(float offset) {
     double height = GroundHeight(World(), localPosition.x, localPosition.y);
-    localPosition.z = lib::RoundedSum(height, offset);
+    localPosition.z = pc24::Add(height, offset);
 }
 
 void CMapObject::SetServerData(const UnitVitals* data) {
