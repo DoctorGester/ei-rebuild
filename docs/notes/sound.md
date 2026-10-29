@@ -109,11 +109,25 @@ registry through forwarders (00694520 / 00694540 / 006945A0 / 00694880 / 00694D2
 registry's wrappers stay in the path; the theme array grows with SetSize(n+1, -1) 006B59A0 and the
 assignment 006B4D40.
 
-Floating point: `sound_manager.cpp` uses `float_control(precise, on)` and `Store` (see its header).
 Constants read from the exe: pi 007440D8, pi/2 007C8808 (set by static init 006BE310), fade step
-dwords 007440E4/007440E8. `UpdatePositional` keeps dy unrounded for its own square (`FST` then
-`FMUL` the stored copy) and uses the stored float distance for falloff and pan; `_CIacos` 006E7320
-goes through a naked helper. Miles is called through game.exe's import table (0073B750..0073B808).
+dwords 007440E4/007440E8.
+
+### Floating point (SSE2 since C30a2)
+
+`sound_manager.cpp` is float maths built for SSE2 (CMakeLists' `EI_SSE2_GAME_SOURCES`). What of it reaches game
+state is whether a voice is taken: a speech's Play2D (priority 1, unit_client_speech) answers -1 when all 15 voices
+play at priority 1 or above, and its handle keeps or ends the unit's talking flag. Which voices play follows from
+- Play3D's level (`UpdatePositional`: a one-shot at level 0 takes no voice);
+- the ambient emitters' distance tests and scaled intervals (Tick: a firing emitter's Play2D at priority 1);
+- the voices' ends: the harness ends samples by Miles' own length (`WaveLength` / `SoundSlot::length` are read by nothing).
+Play2D's silence test is on its integer volume, and Tick's restarts take free voices without a level test.
+The first two are basic float operations (+ - * /, sqrt, compares, FISTP's rounding as `RoundEven`) on floats
+and small integers in the original's order. The original ran them on the main thread at 24-bit precision
+control, where every x87 operation rounds once to a float significand, so the results are the same; x87's wider
+exponent only matters for distances below about 1e-19, where both give the same decision. The emitter intervals are
+exact below 2^24 ms. Checked by comparing the old x87 forms at PC24 with the float forms on 30 M random cases:
+0 differ (at PC53 the same test differs in 29k of 3 M). The goldens hold it too (`sound` and every scenario with
+speech). The pans (acos), the listener axis, the music fader (stream thread) and the wave lengths only reach Miles.
 
 ## Original bugs kept on purpose
 

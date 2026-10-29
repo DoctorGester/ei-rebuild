@@ -1,12 +1,17 @@
 // The sound manager (SoundManager): voice volumes and pans from the listener, the per-handle controls,
 // ambient emitters, 3D sound sequences, the per-frame tick and the music stream requests, and Play2D /
-// Play3D. Floating point follows the x87 order (the goldens depend on it): `double` for values kept on the
-// FPU stack, static_cast<float> where it stores to a float.
-#include "ei/x87.h"
+// Play3D.
+//
+// Float maths, built for SSE2. Two results reach game state: a 3D sound's level (UpdatePositional: Play3D gives a
+// silent one-shot no voice) and the ambient emitters' intervals (Tick: an emitter's Play2D takes a voice). With
+// every voice taken, a speech's Play2D answers -1, which keeps a unit's talking flag (unit_client_speech). Both are
+// basic operations on floats and small integers in the original's order, which the original ran on the main
+// thread at 24-bit precision control: there every x87 operation rounds once to a float significand, as a float
+// operation does, and RoundEven rounds to an integer as it did. So the levels and intervals are the original's
+// (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach Miles.
 #include "game_data.h"
 #include "game_strings.h"
 #include "lib/bytes.h"
-#include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
@@ -19,17 +24,16 @@
 #include "sound.h"
 
 #include <bit>
+#include <cmath>
 #include <concepts>
 #include <cstring>
 #include <memory>
 #include <new>
 #include <string>
 #include <vector>
+#include <xmmintrin.h>
 
 namespace {
-
-inline double D(float f) { return f; }
-inline double I(std::int32_t v) { return v; }
 
 float FloatBits(std::uint32_t bits) {
     float f;
@@ -70,9 +74,13 @@ void FreeDeferred(DeferredSound* rec) {
 
 int ClampLevel(int v) { return v < 0 ? 0 : (v > 0x7F ? 0x7F : v); }
 
+// The original's rounding to an integer: to nearest, ties to even (MXCSR's default; nothing changes it); 0x80000000
+// for a NaN or a value outside the int range.
+int RoundEven(float v) { return _mm_cvtss_si32(_mm_set_ss(v)); }
+
 // Heights between 30 and 70 fade 2D sounds flagged heightFade.
-double HeightFactor(float h) {
-    return 1.0 - (D(h) - kHeightFull) / (D(kHeightSilent) - kHeightFull);
+float HeightFactor(float h) {
+    return 1.0f - (h - kHeightFull) / (kHeightSilent - kHeightFull);
 }
 
 // The voice loop of the volume setters and SetListener.
@@ -137,20 +145,6 @@ constexpr std::int32_t kImaAdpcm = 0x11;
 constexpr int kVoiceCount = 15;
 constexpr int kNoVoice = -1;
 
-// The level of a new 2D voice: as FlatVolume, except that a NaN camera height keeps the full level (the
-// test is "below 70 or unordered" first, then "above 30").
-int NewFlatLevel(const SoundManager* m, int volume, int heightFade, int speech) {
-    double v = volume;
-    if (heightFade != 0) {
-        float h = m->listener.z;
-        if (h >= kHeightSilent) v = 0.0;
-        else if (h > kHeightFull) v = v * HeightFactor(h);
-    }
-    v = v * I(speech != 0 ? m->speechVolume : m->effectsVolume);
-    v = v * kMilesScale;
-    return ClampLevel(x87::fistp(static_cast<float>(v)));
-}
-
 // No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.
 int DeferLooping(SoundManager* m, std::string_view name, int priority, int volume, int pan, int heightFade, int speech) {
     auto* rec = new DeferredSound;
@@ -195,7 +189,7 @@ void UseCached(SoundManager* m, SoundSlot* slot, const std::string& name, std::l
     WaveRecord& record = *node;
     record.lastUsed = gameapi::GetTickCount();
     record.uses = record.uses + 1;
-    slot->length = static_cast<float>(m->WaveLength(record.data));
+    slot->length = m->WaveLength(record.data);
     gameapi::AIL_set_named_sample_file(slot->sample, name.c_str(), record.data, record.size, 0);
 }
 
@@ -222,18 +216,19 @@ void Evict(SoundManager* m, int incoming, std::uint32_t now) {
 
 // --- Shared pieces ------------------------------------------------------------------------------
 
-// The volume of a 2D voice (0..127), inlined in every volume setter.
+// The Miles volume (0..127) of `level` (0..100, a 2D voice's base volume or a 3D voice's distance level), inlined in
+// every volume setter. A NaN camera height keeps the full level.
 int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
-    double v = level;
+    float v = static_cast<float>(level);
     if (fade != 0) {
         float h = listener.z;
         EI_NAN_AUDIT(h);
-        if (h >= kHeightSilent) v = 0.0;
+        if (h >= kHeightSilent) v = 0.0f;
         else if (h > kHeightFull) v = v * HeightFactor(h);
     }
     v = v * (isSpeech != 0 ? speechVolume : effectsVolume);
     v = v * kMilesScale;
-    return ClampLevel(x87::fistp(static_cast<float>(v)));
+    return ClampLevel(RoundEven(v));
 }
 
 // Hands the slot's volume and pan to Miles; the pan is mirrored unless panDirect.
@@ -263,60 +258,40 @@ SoundSlot* SoundManager::SlotForHandle(int handle) const {
 
 // --- Volumes, listener ----------------------------------------------------------------------------
 
-// A 3D voice's volume and pan from the listener: full inside nearDistance, falling to 0
-// at farDistance, and the camera height fade; the pan from the angle between the listener axis and
-// the direction to the sound (0 ahead or behind, +-100 to the sides).
+// A 3D voice's volume and pan from the listener: full inside nearDistance, falling to 0 at farDistance (a
+// distance level 0..100 the 2D voices' way, FlatVolume, with the camera height fade); the pan from the angle
+// between the listener axis and the direction to the sound (0 ahead or behind, +-100 to the sides). The volume
+// decides whether Play3D's one-shot plays (the file's head comment).
 void SoundManager::UpdatePositional(SoundSlot* slot) {
-    float dx = static_cast<float>(D(slot->position.x) - listener.x);
-    double dyRaw = D(slot->position.y) - listener.y;
-    float dy = static_cast<float>(dyRaw);
-    double dist2 = dyRaw * dy + D(dx) * dx;
-    double farDist = slot->farDistance;
-    if (dist2 > farDist * farDist) {
+    float dx = slot->position.x - listener.x;
+    float dy = slot->position.y - listener.y;
+    float dist2 = LengthSquared2DUnrounded(dy, dx);
+    if (dist2 > slot->farDistance * slot->farDistance) {
         slot->volume = 0;
         return;
     }
-    double dist = std::sqrt(dist2);
-    float distF = static_cast<float>(dist);
-    float h = listener.z;
-    int level;
-    EI_NAN_AUDIT(dist, slot->nearDistance, h);
-    if (dist < slot->nearDistance) {
-        double v = kHundred;
-        if (h >= kHeightSilent) v = 0.0;
-        else if (h > kHeightFull) v = HeightFactor(h) * kHundred;
-        v = v * (slot->speech != 0 ? speechVolume : effectsVolume);
-        v = v * kMilesScale;
-        level = ClampLevel(x87::fistp(static_cast<float>(v)));
-    } else {
-        double t = (D(distF) - slot->nearDistance) / (D(slot->farDistance) - slot->nearDistance) * kHundred;
-        int falloff = 100 - x87::fistp(static_cast<float>(t));
-        slot->volume = falloff;
-        double v = falloff;
-        if (h >= kHeightSilent) v = 0.0;
-        else if (h > kHeightFull) v = v * HeightFactor(h);
-        v = v * (slot->speech != 0 ? speechVolume : effectsVolume);
-        v = v * kMilesScale;
-        level = ClampLevel(x87::fistp(static_cast<float>(v)));
-    }
-    slot->volume = level;
+    float dist = std::sqrt(dist2);
+    EI_NAN_AUDIT(dist, slot->nearDistance);
+    int level = 100;
+    if (!(dist < slot->nearDistance))
+        level = 100 - RoundEven((dist - slot->nearDistance) / (slot->farDistance - slot->nearDistance) * kHundred);
+    slot->volume = FlatVolume(level, 1, slot->speech);
 
-    float ahead = AbsBits(static_cast<float>(Dot2DUnrounded<double>(dy, dx, listenerAxis.y, listenerAxis.x)));
-    if (ahead > distF) {
+    float ahead = AbsBits(Dot2DUnrounded(dy, dx, listenerAxis.y, listenerAxis.x));
+    if (ahead > dist) {
         slot->pan = 0;
         return;
     }
-    EI_NAN_AUDIT(distF);
-    if (distF == 0.0f) {
+    EI_NAN_AUDIT(dist);
+    if (dist == 0.0f) {
         slot->pan = 0;
         return;
     }
-    double angle = libcrt::CiAcos(D(ahead) / distF);
-    if (angle > kHalfPi) angle = D(kPi) - angle;
-    double scale = static_cast<float>(D(kHundred) / kHalfPi);   // the division at the main thread's 24 bits
-    int pan = x87::fistp(static_cast<float>(scale * angle));
+    float angle = std::acos(ahead / dist);
+    if (angle > kHalfPi) angle = kPi - angle;
+    int pan = RoundEven(kHundred / kHalfPi * angle);
     slot->pan = pan;
-    if (D(dy) * listenerAxis.x > D(dx) * listenerAxis.y) slot->pan = -pan;
+    if (dy * listenerAxis.x > dx * listenerAxis.y) slot->pan = -pan;
 }
 
 // Options: effects volume 0..100.
@@ -338,17 +313,17 @@ void SoundManager::SetListener(const float* position, const float* axis) {
     if (enabled == 0) return;
     lib::LoadBytes(listener, position);
     lib::LoadBytes(listenerAxis, axis);
-    double len = std::sqrt(LengthSquared2DUnrounded<double>(listenerAxis.x, listenerAxis.y));
+    float len = std::sqrt(LengthSquared2DUnrounded(listenerAxis.x, listenerAxis.y));
     EI_NAN_AUDIT(len);
-    if (len == 0.0) {
+    if (len == 0.0f) {
         listenerAxis.x = 1.0f;
         listenerAxis.y = 0.0f;
         listenerAxis.z = 0.0f;
     } else {
-        double inv = 1.0 / len;
-        listenerAxis.x = static_cast<float>(inv * listenerAxis.x);
-        listenerAxis.y = static_cast<float>(inv * listenerAxis.y);
-        listenerAxis.z = static_cast<float>(inv * listenerAxis.z);
+        float inv = 1.0f / len;
+        listenerAxis.x = inv * listenerAxis.x;
+        listenerAxis.y = inv * listenerAxis.y;
+        listenerAxis.z = inv * listenerAxis.z;
     }
     RefreshVoices(this);
 }
@@ -358,11 +333,8 @@ void SoundManager::SetMusicVolume(int volume) {
     int v = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     if (enabled == 0) return;
     musicFader.volume = v;
-    int level = x87::fistp(static_cast<float>(I(v) * musicFader.factor * kLevelMax * kPercent));
-    musicFader.level = level;
-    level = level > 0x7F ? 0x7F : (level < 0 ? 0 : level);
-    musicFader.level = level;
-    gameapi::AIL_set_sample_volume(streamSample, level);
+    musicFader.Recalc();
+    gameapi::AIL_set_sample_volume(streamSample, musicFader.level);
     if (v == 0) StopStream(4);
 }
 
@@ -724,10 +696,9 @@ void SoundManager::Tick() {
     for (int k = 0; k < 16; ++k) {
         SoundEmitter* e = &emitters[k];
         if (e->active == 0) continue;
-        double dx = D(listener.x) - e->position.x;
-        double dy = D(listener.y) - e->position.y;
-        double dist = std::sqrt(LengthSquared2DUnrounded(dy, dx));
-        float distF = static_cast<float>(dist);
+        float dx = listener.x - e->position.x;
+        float dy = listener.y - e->position.y;
+        float dist = std::sqrt(LengthSquared2DUnrounded(dy, dx));
         std::uint32_t minInterval, maxInterval;
         EI_NAN_AUDIT(dist, e->innerRadius);
         if (dist < e->innerRadius) {
@@ -736,12 +707,12 @@ void SoundManager::Tick() {
         } else {
             // Out of earshot past outerRadius - 0.001.
             EI_NAN_AUDIT(e->outerRadius);
-            if (D(e->outerRadius) - kEmitterMargin < distF) continue;
-            double t = (D(e->outerRadius) - e->innerRadius) / (D(e->outerRadius) - distF);
-            float tF = static_cast<float>(t);
+            if (e->outerRadius - kEmitterMargin < dist) continue;
+            float t = (e->outerRadius - e->innerRadius) / (e->outerRadius - dist);
             if (t > kEmitterMaxScale) continue;
-            minInterval = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(I(e->minInterval) * tF)));
-            maxInterval = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(I(e->maxInterval) * tF)));
+            // The original's products while the intervals are below 2^24 ms (exact as floats).
+            minInterval = static_cast<std::uint32_t>(RoundEven(e->minInterval * t));
+            maxInterval = static_cast<std::uint32_t>(RoundEven(e->maxInterval * t));
         }
         std::uint32_t elapsed = now - e->lastPlayed;
         if (elapsed < minInterval) continue;
@@ -893,17 +864,7 @@ void SoundManager::StopStream(int mode) {
             musicFader.step = step;
             EI_NAN_AUDIT(step);
             if (step == 0.0f) musicFader.step = FloatBits(FadeStepBits());
-            musicFader.holdUntil = 0;
-            std::uint32_t until = gameapi::timeGetTime() + 2000;
-            musicFader.holdUntil = until;
-            if (until == 0) {
-                musicFader.factor = 1.0f;
-                musicFader.mode = 0;
-                musicFader.finished = 0;
-                int level = x87::fistp(static_cast<float>(I(musicFader.volume) * kLevelMax * kPercent));
-                musicFader.level = level;
-                musicFader.level = level > 0x7F ? 0x7F : (level < 0 ? 0 : level);
-            }
+            musicFader.SetHold(gameapi::timeGetTime() + 2000);
         } else {
             RequestStream(game::kEmptyText, mode);
         }
@@ -944,7 +905,7 @@ struct miles::SoundInfo {
 };
 static_assert(sizeof(miles::SoundInfo) == 0x24);
 
-double SoundManager::WaveLength(const void* data) {
+float SoundManager::WaveLength(const void* data) {
     miles::SoundInfo info;
     gameapi::AIL_WAV_info(data, &info);
     std::uint32_t samples;
@@ -952,10 +913,10 @@ double SoundManager::WaveLength(const void* data) {
         samples = info.samples;
     } else {
         std::uint32_t bitsPerFrame = static_cast<std::uint32_t>(info.bits * info.channels);
-        if (bitsPerFrame == 0) return 0.0;
+        if (bitsPerFrame == 0) return 0.0f;
         samples = (info.dataLength << 3) / bitsPerFrame;
     }
-    return static_cast<double>(static_cast<std::int32_t>(samples)) / static_cast<std::int32_t>(info.rate);
+    return static_cast<float>(static_cast<std::int32_t>(samples)) / static_cast<float>(static_cast<std::int32_t>(info.rate));
 }
 
 // --- The volume envelope ----------------------------------------------------------------------------
@@ -967,52 +928,38 @@ void SoundFader::SetHold(std::uint32_t until) {
     factor = 1.0f;
     mode = 0;
     finished = 0;
-    int v = x87::fistp(static_cast<float>(I(volume) * kLevelMax * kPercent));
-    level = v;
-    level = v > 0x7F ? 0x7F : (v < 0 ? 0 : v);
+    Recalc();
 }
 
 void SoundFader::Recalc() {
-    int v = x87::fistp(static_cast<float>(I(volume) * factor * kLevelMax * kPercent));
-    level = v;
-    level = v > 0x7F ? 0x7F : (v < 0 ? 0 : v);
+    level = ClampLevel(RoundEven(volume * factor * kLevelMax * kPercent));
 }
 
 // One step of the fade (the stream thread, every 100 ms, under the stream lock).
 void SoundFader::Update() {
     if (holdUntil != 0 && gameapi::timeGetTime() >= holdUntil) {
-        holdUntil = 0;
-        factor = 1.0f;
-        mode = 0;
-        finished = 0;
-        int v = x87::fistp(static_cast<float>(I(volume) * kLevelMax * kPercent));
-        level = v;
-        level = v > 0x7F ? 0x7F : (v < 0 ? 0 : v);
+        SetHold(0);
         return;
     }
     switch (mode) {
     case 0:
         return;
-    case 1: {
-        double sum = D(step) + factor;
-        factor = static_cast<float>(sum);
-        if (sum >= 1.0f) {
+    case 1:
+        factor = step + factor;
+        if (factor >= 1.0f) {
             mode = 0;
             factor = 1.0f;
         }
         break;
-    }
-    case 2: {
-        double diff = D(factor) - step;
-        factor = static_cast<float>(diff);
-        EI_NAN_AUDIT(diff);
-        if (diff <= 0.0) {
+    case 2:
+        factor = factor - step;
+        EI_NAN_AUDIT(factor);
+        if (factor <= 0.0f) {
             mode = 0;
             factor = 0.0f;
             finished = 1;
         }
         break;
-    }
     default:
         break;
     }
@@ -1079,7 +1026,7 @@ int SoundManager::Play2D(std::string_view name, int priority, int volume, int pa
     slot->flat = 1;
     slot->heightFade = heightFade;
     slot->speech = speech;
-    slot->volume = NewFlatLevel(this, volume, heightFade, speech);
+    slot->volume = FlatVolume(volume, heightFade, speech);
     if (volume == 0 && loop == 0) return -1;
     if (LoadSample(slot, name, compressed) == 0) return -1;
     return StartLoaded(this, slot, loop);
@@ -1179,7 +1126,7 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
             cache[key] = std::prev(cacheList.end());
             gameapi::AIL_set_sample_file(slot->sample, data, size);
         }
-        slot->length = static_cast<float>(WaveLength(record.data));
+        slot->length = WaveLength(record.data);
     }
     slot->name = key;
     slot->playing = 1;

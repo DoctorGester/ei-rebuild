@@ -53,15 +53,14 @@ endif()
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
 # The drawing-only game code on SSE2 (C30a, docs/notes/cleanup-tooling.md "SSE2 build"): what only draws, plays
-# sound or lays out the interface, whose floating point reaches no game state. Whole families by name (a new file of
-# one joins them), less the files that stay x87 because game state or the goldens read their maths:
+# sound or lays out the interface, whose floating point reaches no game state (or only as the original's 24-bit
+# float maths: sound_manager's levels, C30a2). Whole families by name (a new file of one joins them), less the files
+# that stay x87 because game state or the goldens read their maths:
 # - picking reads the drawn view and the objects' screen rectangles: the camera, the view and projection (renderer_init,
 #   world_client_draw / _view), the projected meshes (device_mesh, device_bounds, device_shadow, the figure and link
 #   mesh draws), and the screens that turn a pixel into a world point or an order (ui_hud, ui_hud_map, ui_hud_pick,
 #   ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the camera keys and mouse);
 # - the briefing moves the camera to its speakers and times its phrases (ui_briefing*);
-# - sound_manager: a 3D sound's level decides whether it takes a voice, and a speech's handle (-1 when every voice
-#   is taken) ends a unit's talking flag on the server (unit_client_speech);
 # - terrain heights, sectors and loading (terrain, terrain_sector with its chop rounding, terrain_landscape).
 # A failure this list causes shows in the goldens: a file whose switch changes one goes back here.
 file(GLOB EI_SSE2_GAME_SOURCES CONFIGURE_DEPENDS
@@ -77,6 +76,7 @@ list(APPEND EI_SSE2_GAME_SOURCES
     src/game/present_window.cpp
     src/game/scene_renderer.cpp
     src/game/sky_object.cpp
+    src/game/sound_manager.cpp
     src/game/sound_music.cpp
     src/game/terrain_ambience.cpp
     src/game/terrain_animation.cpp
