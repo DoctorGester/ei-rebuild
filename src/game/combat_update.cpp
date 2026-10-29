@@ -144,7 +144,7 @@ bool CUnitServer::RunTick() {
             ++bored;
             if (bored > kBoredTicks && g_random.Next() % kBoredChance == 0) {
                 CPlayer* player = unit->player;
-                if (!player || player->Server()->refreshPending_ != 0) {
+                if (!player || player->Server()->danger_ != CPlayerServer::PartyDanger::Safe) {
                     bored = 0;
                 } else {
                     PlayerMessage(player->Server(), unit, AckKind::Bored);

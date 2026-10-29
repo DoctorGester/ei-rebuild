@@ -276,7 +276,7 @@ void CPlayerServer::ClearServerState() {
     possessedGroup_.clear();
     partyUnits_.clear();
     possessedId_ = 0xFFFFFFFFu;
-    refreshPending_ = 0;
+    danger_ = PartyDanger::Safe;
     partyDeployed_ = 0;
     placements_.clear();
     compressor_.Reset();

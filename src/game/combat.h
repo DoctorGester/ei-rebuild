@@ -573,9 +573,6 @@ public:
     std::uint32_t claimedHostile;   // players the unit has claimed as enemies
     AIBrain brain;
     AIAlarm voice;                  // the voice / alarm
-
-
-    void AddHostileMask(std::uint32_t mask);
 };
 
 inline CUnitServer* CUnit::ServerController() const { return static_cast<CUnitServer*>(controller); }

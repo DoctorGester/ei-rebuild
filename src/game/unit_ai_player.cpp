@@ -17,26 +17,12 @@
 
 namespace {
 constexpr int kStandby = 1;                                     // CUnit::fightAtWill: may fight
-constexpr int kAttackHow = 6;
-constexpr int kDirectControl = 2;                               // CPlayerServer::refreshPending_
 constexpr float kReachScale = 1.1f;
 static_assert(std::bit_cast<std::uint32_t>(kReachScale) == 0x3F8CCCCDu);
 constexpr float kMovingSlack = 2.0f;
 constexpr float kStandingSlack = 1.4f;
 static_assert(std::bit_cast<std::uint32_t>(kStandingSlack) == 0x3FB33333u);
 constexpr float kNoRadius = -1.0f;
-
-
-// A list on the stack.
-void InitList(UnitList& list) {
-    list = {};
-}
-
-// The player controls the unit directly (its player's server connection in state 2).
-bool DirectlyControlled(const CUnit* unit) {
-    CPlayer* player = unit->player;
-    return player && player->Server()->refreshPending_ == kDirectControl;
-}
 
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
 CUnit* LeaderOf(const CUnit* unit) {
@@ -46,34 +32,12 @@ CUnit* LeaderOf(const CUnit* unit) {
     if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
     return static_cast<CUnit*>(leader);
 }
-
-// The player's attack check: None (the planner says nothing) when the player's order check accepts an attack
-// on `object`, else the AI's DecidedToAttack.
-AckKind AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
-    AckKind flags = AckKind::DecidedToAttack;
-    if (!brain->owner->unit->player) return flags;
-    AIOrder order;
-    order.Clear();
-    if (clearTwice) {
-        // The second attack builds the order by hand after a second Clear.
-        order.Clear();
-        order.kind = UnitOrderKind::Attack;
-        order.source = kAttackHow;
-        order.target.Assign(object);
-    } else {
-        order.MakeAttack(object);
-    }
-    if (brain->owner->CanReachAndPlan(&order)) flags = AckKind::None;
-    return flags;
-}
-
-void Attack(AIBrain* brain, CMapObject* object, bool clearTwice) {
-    brain->action = AIBrain::kActionAttack;
-    brain->target.Assign(object);
-    AckKind flags = AttackFlags(brain, object, clearTwice);
-    brain->owner->OrderAttack(brain->target, kAttackHow, 0, flags);
-}
 } // namespace
+
+bool PartyInDanger(const CUnit* unit) {
+    CPlayer* player = unit->player;
+    return player && player->Server()->danger_ == CPlayerServer::PartyDanger::InDanger;
+}
 
 void PlayerMode::UpdateCombat(AIBrain* brain) {
     CUnit* unit = brain->owner->unit;
@@ -81,16 +45,15 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 
     // The commanded target first, when it can be reached from here.
     if (target && target->IsDead() == 0) {
-        AITargetChoice choice{-1, static_cast<CUnit*>(target.Get())};   // taken as a unit
-        if (brain->attention.CanReach(brain, &choice, 1)) {
-            Attack(brain, target, false);
+        AITargetChoice choice{kWeaponPart, static_cast<CUnit*>(target.Get())};   // taken as a unit
+        if (brain->attention.CanReach(brain, &choice, true)) {
+            brain->AttackTarget(target);
             return;
         }
     }
 
     UnitList candidates;
-    InitList(candidates);
-    AITargetChoice best{-1, nullptr};
+    AITargetChoice best;
     float radius;
     if (state == kStateMoveTo) {
         radius = g_logicSettings.swarmRadius;
@@ -116,15 +79,14 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     AddPartyTargets(brain, &candidates);
     unit->flags_ |= MapObjectFlag::ChoosingTarget;
-    brain->attention.Choose(brain, &best, &candidates, &unit->localPosition_, false, 0);
+    brain->attention.Choose(brain, &best, &candidates, &unit->localPosition_, false, false);
     unit->flags_ &= ~MapObjectFlag::ChoosingTarget;
 
     CUnit* chosen = best.object;
     if (chosen) {
-        if (!DirectlyControlled(brain->owner->unit)) {
+        if (!PartyInDanger(brain->owner->unit)) {
             // The other followers that are not fighting stop following.
             UnitList party;
-            InitList(party);
             CollectParty(brain, &party);
             for (auto node = party.begin(); node != party.end();) {
                 auto* other = *node;
@@ -134,26 +96,17 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 auto* mode = theirs->FindPlayerMode();
                 if (!mode || theirs->action == AIBrain::kActionAttack || theirs->action == AIBrain::kActionCast) continue;
                 mode->state = kStateFollow;
-                if (theirs->target) {
-                    theirs->target.Reset();
-                }
-                theirs->action = AIBrain::kActionNone;
+                theirs->StopAction();
             }
-            party.clear();
         }
-        AITargetChoice now{-1, nullptr};
-        brain->attention.CurrentAttack(brain, &now);
-        if (now.object != best.object || now.part != best.part) Attack(brain, chosen, true);
-        if (target) {
-            target.Reset();
-        }
+        AITargetChoice now = brain->attention.CurrentAttack(brain);
+        if (now.object != best.object || now.part != best.part) brain->AttackTarget(chosen);
+        target.Reset();
     }
-    candidates.clear();
 }
 
 void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
     UnitList nearby;
-    InitList(nearby);
     CUnit* unit = brain->owner->unit;
     g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &nearby,
                                g_logicSettings.playerCallForHelp);
@@ -169,7 +122,6 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
         if (lib::Contains(*targets, foe)) continue;
         targets->push_back(foe);
     }
-    nearby.clear();
 }
 
 void PlayerMode::CollectParty(AIBrain* brain, UnitList* party) {

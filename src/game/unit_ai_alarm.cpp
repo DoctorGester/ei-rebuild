@@ -57,10 +57,8 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
             double dx = static_cast<double>(waypoint.position.x) - from.x;
             double dy = static_cast<double>(waypoint.position.y) - from.y;
             if (!IsZero(dx) || !IsZero(dy)) angle = static_cast<float>(x87::fpatan(dy, dx));
-            AILook look;
-            look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.lookWait), waypoint.time,
-                                       waypoint.stopFirst & 1);
-            last->looks.push_back(look);
+            last->looks.push_back(AILook{angle, waypoint.time, static_cast<float>(waypoint.lookWait),
+                                         static_cast<std::uint8_t>(waypoint.stopFirst & 1)});
         }
     }
     if (record->loop != 0) return;

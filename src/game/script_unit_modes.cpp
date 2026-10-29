@@ -118,15 +118,3 @@ void CorpseWatcherMode::OnShutdown() {}
 CorpseWatcherMode* CorpseWatcherMode::Clone() { return new CorpseWatcherMode(); }
 
 AIModeType CorpseWatcherMode::GetType() { return AIModeType::CorpseWatcher; }
-
-// ---- A patrol point's look ----------------------------------------------------------------------
-
-// UMPatrolLook's entry: angle, wait, turning time, stop first (low byte). The
-// arguments come in a different order from the fields: the second goes to +0x08, the third to +0x04.
-AILook* AILook::ScriptAILookConstruct(float newAngle, float newWait, float newTime, int newStopFirst) {
-    angle = newAngle;
-    time = newTime;
-    wait = newWait;
-    stopFirst = static_cast<std::uint8_t>(newStopFirst);
-    return this;
-}

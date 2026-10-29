@@ -16,12 +16,8 @@ namespace {
 
 // Each object's counted reference (its id) of a memory list.
 void SaveObjectList(const HeldUnits& list, CStream* stream) {
-    stream->WriteValue(std::ssize(list));
-    for (auto node = list.begin(); node != list.end();) {
-        auto next = std::next(node);
-        SaveRef(*node, stream);
-        node = next;
-    }
+    stream->WriteValue(static_cast<std::int32_t>(list.size()));
+    for (const HeldRef<CUnit>& unit : list) SaveRef(unit, stream);
 }
 } // namespace
 
@@ -29,8 +25,7 @@ void LoadLooks(std::vector<AILook>* looks, CStream* stream) {
     int count;
     stream->ReadValue(count);
     looks->resize(count);
-    for (int i = 0; i < std::ssize(*looks); ++i) {
-        AILook& look = (*looks)[i];
+    for (AILook& look : *looks) {
         stream->ReadValue(look.angle);
         stream->ReadValue(look.time);
         stream->ReadValue(look.wait);
@@ -39,9 +34,8 @@ void LoadLooks(std::vector<AILook>* looks, CStream* stream) {
 }
 
 void SaveLooks(const std::vector<AILook>* looks, CStream* stream) {
-    stream->WriteValue(std::ssize(*looks));
-    for (int i = 0; i < std::ssize(*looks); ++i) {
-        const AILook& look = (*looks)[i];
+    stream->WriteValue(static_cast<std::int32_t>(looks->size()));
+    for (const AILook& look : *looks) {
         stream->WriteValue(look.angle);
         stream->WriteValue(look.time);
         stream->WriteValue(look.wait);
@@ -63,7 +57,7 @@ void AIMemory::Load(CStream* stream) {
     reports.resize(count);
     for (int i = 0; i < count; ++i) {
         LoadRef(reports[i].object, stream, &g_serverWorld);
-        stream->ReadValue(reports[i].what);
+        stream->ReadValue(reports[i].ticksLeft);
     }
     stream->ReadValue(count);
     calls.resize(count);
@@ -71,7 +65,7 @@ void AIMemory::Load(CStream* stream) {
         AICallRecord& call = calls[i];
         call.hostileMask = 0;
         stream->ReadValue(call.point);
-        stream->ReadValue(call.kind);
+        stream->ReadValue(call.delay);
         stream->ReadInto(&call.text);
         stream->ReadValue(call.hostileMask);
     }
@@ -86,16 +80,15 @@ void AIMemory::Save(CStream* stream) {
     stream->Write(&noticedX, 8);        // x and y
     stream->WriteValue(noticedLevel);
     stream->WriteValue(nearbyCountdown);
-    stream->WriteValue(std::ssize(reports));
-    for (int i = 0; i < std::ssize(reports); ++i) {
-        SaveRef(reports[i].object, stream);
-        stream->WriteValue(reports[i].what);
+    stream->WriteValue(static_cast<std::int32_t>(reports.size()));
+    for (const AIReport& report : reports) {
+        SaveRef(report.object, stream);
+        stream->WriteValue(report.ticksLeft);
     }
-    stream->WriteValue(std::ssize(calls));
-    for (int i = 0; i < std::ssize(calls); ++i) {
-        AICallRecord& call = calls[i];
+    stream->WriteValue(static_cast<std::int32_t>(calls.size()));
+    for (const AICallRecord& call : calls) {
         stream->WriteValue(call.point);
-        stream->WriteValue(call.kind);
+        stream->WriteValue(call.delay);
         stream->WriteString(call.text);
         stream->WriteValue(call.hostileMask);
     }

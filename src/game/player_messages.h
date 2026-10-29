@@ -144,9 +144,9 @@ public:
     // For a joined player (state 1): message 0x05, a stream with the given items' spells and then the items,
     // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
     void SendItemsGiven(const std::list<CItem*>* items, int flag);
-    // Message 0x60: the world's pause flag, possessedId_, the party units (partyUnits_) by id and whether the
-    // client should refresh the party (refreshPending_: 1 when a unit of the player has a level at most 2, 2
-    // when a party unit fights or is the enemy of a hostile neighbour), then the objects shared with a
+    // Message 0x60: the world's pause flag, possessedId_, the party units (partyUnits_) by id and the party's
+    // danger (danger_: EnemyNear when a unit of the player has an exposure at most 2, InDanger when a party unit
+    // fights or is the enemy of a hostile neighbour), then the objects shared with a
     // multiplayer client's single hero. Returns 1.
     int SendPartyState();
     // A map object leaves the world: when the client knows it, it is dropped from the player's map and the
@@ -271,7 +271,9 @@ public:
     std::vector<CEngineObject*> sentTimed_;   // timed objects the client has (counted)
     ScriptGroup possessedGroup_;
     ScriptGroup partyUnits_;        // units always sent (message 0x60)
-    int refreshPending_;            // 0, 1 or 2 (SendPartyState)
+    // How much danger the party is in (SendPartyState; the script's IsPlayerInDanger / IsPlayerInSafety).
+    enum class PartyDanger : int { Safe = 0, EnemyNear = 1, InDanger = 2 };
+    PartyDanger danger_;
     int refreshTimer_;              // updates until the party is sent again
 };
 

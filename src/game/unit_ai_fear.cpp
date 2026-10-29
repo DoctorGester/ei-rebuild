@@ -1,5 +1,5 @@
 // The unit AI's Fear mode: how afraid the unit is (Evaluate) and running
-// away or taking shelter (Execute); and the brain taking up a chosen attack.
+// away or taking shelter (Execute).
 #include "ai_map.h"
 #include "combat.h"
 #include "game_singletons.h"
@@ -23,9 +23,6 @@ namespace {
 constexpr int kFlee = 15000;
 constexpr int kSeesEnemy = 3000;
 constexpr int kShelter = 350;
-constexpr int kNoPriority = -1000;
-constexpr int kNoticeLevel = 1000;
-constexpr int kNoticeKind = -2;
 constexpr int kCalmLevel = 50;              // noticed levels above it keep the unit afraid
 constexpr int kKeepLevel = 500;             // with `flag`, levels above it are not forgotten
 constexpr int kLargeSizeClass = 6;
@@ -50,24 +47,13 @@ constexpr float kNoWander = -1.0f;
 constexpr float kMoveTime = 1000000.0f;
 constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   // 6 / 2^32
 constexpr double kRandomUnit = std::bit_cast<double>(0x3DF0000000100000ull);  // 1 / 2^32
-constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                   // -1313: no shelter
 
 bool IsZero(double v) {
     EI_NAN_AUDIT(v);
     return v == 0.0;
 }
 
-bool IsUnset(const Vector3& point) { return std::bit_cast<std::uint32_t>(point.x) == kUnsetBits; }
-
-
-
-// The prototype's height (units below 0.5 count as small).
-float PrototypeSize(CUnit* unit) {
-    return unit->GetPrototype()->height;
-}
-
-// The move order cleared.
-void ConstructOrder(AIMoveOrder* order) { order->Clear(); }
+bool IsUnset(const Vector3& point) { return point.x == kUnsetCoordinate; }
 
 // A flight point 5 from the enemy's side of the unit and within 3 of it at random, accepted when a
 // path there is not too roundabout and the order check from the path's end (at most 1 from the
@@ -100,11 +86,8 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     Vector3 end{static_cast<float>(scale * path.targetX), static_cast<float>(scale * path.targetY), 0.0f};
 
     AIOrder order;
-    order.Clear();
     order.MakeAttack(enemy);
-    bool allowed = brain->owner->CanReachAndPlanFrom(&order, &end);
-    order.target.Reset();
-    if (!allowed) return false;
+    if (!brain->owner->CanReachAndPlanFrom(&order, &end)) return false;
     double ex = static_cast<double>(dest.x) - end.x;
     double ey = static_cast<double>(dest.y) - end.y;
     double ez = static_cast<double>(dest.z) - end.z;
@@ -124,7 +107,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     spread = static_cast<float>(static_cast<double>(grown) * kThird);
     if (CMapObject* seen = brain->seen) {
         const Vector3* at = &seen->localPosition_;
-        brain->memory.Notice(at, kNoticeLevel, kNoticeKind);
+        brain->memory.Notice(at, kNoticeSeenLevel, kNoticeSeenDecay);
         const Vector3* me = &brain->owner->unit->localPosition_;
         float x = static_cast<float>(static_cast<double>(me->x) - at->x);
         float y = static_cast<float>(static_cast<double>(me->y) - at->y);
@@ -158,8 +141,9 @@ int FearMode::Evaluate(AIBrain* brain) {
 
     if (brain->memory.seesEnemy) return kSeesEnemy;
     const Vector3* here = &self->localPosition_;
-    EI_NAN_AUDIT(PrototypeSize(self));
-    if (g_serverWorld.aiMap_.HasSpellAreaAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < 0.5f)) {
+    float height = self->GetPrototype()->height;
+    EI_NAN_AUDIT(height);
+    if (g_serverWorld.aiMap_.HasSpellAreaAt(here) && (self->sizeClass != 0 || height < 0.5f)) {
         shelter = *here;
         return kShelter;
     }
@@ -181,9 +165,10 @@ int FearMode::Evaluate(AIBrain* brain) {
                 best = static_cast<float>(d2);
             }
         }
-        if (best < static_cast<double>(distance) * distance) brain->memory.Notice(&nearest, kNoticeLevel, kNoticeKind);
+        if (best < static_cast<double>(distance) * distance)
+            brain->memory.Notice(&nearest, kNoticeSeenLevel, kNoticeSeenDecay);
     }
-    shelter.x = std::bit_cast<float>(kUnsetBits);
+    shelter.x = kUnsetCoordinate;
 
     if (brain->memory.noticedLevel > kCalmLevel) {
         if (brain->current == this) return brain->memory.noticedLevel / 6;
@@ -195,14 +180,13 @@ int FearMode::Evaluate(AIBrain* brain) {
     }
     // Back towards the default by 1/31 a call; the sum rounded first (see spread above: distributed,
     // 30/31 * distance + default / 31 settled at 9.99999714 instead of 10).
-    float weighted = static_cast<float>(static_cast<double>(distance) * kDistanceWeight + kFearDefaultDistance);
+    float weighted = static_cast<float>(static_cast<double>(distance) * kDistanceWeight + kDefaultDistance);
     distance = static_cast<float>(static_cast<double>(weighted) * kDistanceDivisor);
-    return kNoPriority;
+    return kPriorityNone;
 }
 
 void FearMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
-    ConstructOrder(&order);
     CUnitServer* owner = brain->owner;
     const Vector3* here = &owner->unit->localPosition_;
 
@@ -269,12 +253,11 @@ void FearMode::Execute(AIBrain* brain) {
 
     if (brain->action == AIBrain::kActionNone) {
         // Fight back when there is something worth it (helping allies too).
-        UnitList candidates{};
-        AITargetChoice best{-1, nullptr};
+        UnitList candidates;
+        AITargetChoice best;
         Vector3 at = brain->owner->unit->localPosition_;
-        brain->attention.Choose(brain, &best, &candidates, &at, true, 1);
-        if (best.object) brain->attention.ApplyAttack(brain, &best);
-        candidates.clear();
+        brain->attention.Choose(brain, &best, &candidates, &at, true, true);
+        brain->attention.ApplyAttack(brain, &best);
 
         if (brain->action == AIBrain::kActionNone) {
             // Stand still and look away from the danger.
@@ -289,32 +272,7 @@ void FearMode::Execute(AIBrain* brain) {
                 direction.z = static_cast<float>(v.z / twice);
             }
             brain->PlanLooks(&order, &direction, kNoWander, false);
-            brain->target.Reset();
-            brain->action = AIBrain::kActionMove;
-            brain->actionTime = AIBrain::kNoTime;
-            // The order assigned to the brain's action point and looks.
-            brain->move.point = order.point;
-            brain->move.looks = order.looks;
-            brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
+            brain->StartMove(&order);
         }
     }
-}
-
-void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
-    CUnit* object = choice->object;
-    if (!object) return;
-    AITargetChoice now{-1, nullptr};
-    CurrentAttack(brain, &now);
-    if (object == now.object && choice->part == now.part) return;
-    int part = choice->part;
-    if (part == -1) {
-        brain->AttackTarget(object);
-        return;
-    }
-    if (!brain->owner->IsScrollSource(part)) brain->action = AIBrain::kActionCast;
-    if (object != brain->target) {
-        brain->target.Assign(object);
-    }
-    brain->actionTime = part;
-    brain->owner->OrderCast(part, object, 0);
 }

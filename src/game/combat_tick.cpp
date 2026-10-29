@@ -433,7 +433,7 @@ void CUnitServer::ContinueAction() {
     CMapObject* target = action.target;
     bool seen = true;
     CPlayer* player = unit->player;
-    if (player && IsUnit(target) && !brain.memory.IsEnemy(unit, target))
+    if (player && IsUnit(target) && !brain.memory.CanTrack(unit, static_cast<CUnit*>(target)))
         seen = PlayerMessages(player)->IsPartyUnit(target);
 
     bool cast = IsCastKind(action.kind);

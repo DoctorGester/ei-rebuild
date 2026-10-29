@@ -41,6 +41,8 @@ inline constexpr int kVersionSpellOptions = 0x5A;        // the AI's spell optio
                                                          // full layout (before: part, a dword, damage)
 inline constexpr int kVersionSoundLooping = 0x5C;
 inline constexpr int kVersionMessageFlag = 0x5D;         // the interface's message flag
+inline constexpr int kVersionPlayerModeGroupDropped = 0x5E;  // below (from kVersionPlayerGroup): a Player mode's
+                                                             // script group, read and dropped
 inline constexpr int kVersionSavedText = 0x5F;           // the interface's saved text
 inline constexpr int kVersionMobFiles = 0x60;
 inline constexpr int kVersionPendingExit = 0x62;         // the battle screen's pending exit

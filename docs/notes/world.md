@@ -303,7 +303,7 @@ Facts a worker needs that the code comments do not say:
 
 - Declarations found in cleanup: CMapObjectCompanion slot 17 IsDead, CMapObjectVirtuals slot 40 KeyId, world_effect.h
   CEffect's slots 18-20, Terrain::heightRange, WeaponRecord bonuses / damageTypes; script "danger" is
-  CPlayerServer::refreshPending_, GetAIClass reads CUnit::sizeClass, GameTime's fraction is tickFraction_; CWorldServer
+  CPlayerServer::danger_, GetAIClass reads CUnit::sizeClass, GameTime's fraction is tickFraction_; CWorldServer
   sentObjects_ (+0x12D88) and zoneHeader_ (+0x12E00, a CMemoryStream built by 0041DD70 in 00589ED0, called through a
   CStream* so the slot dispatch stays), MainScript() (the CScript at +0x12874; globals_ holds "Heroes"); CPlayer link_
   (+0x1C) / connection_ (+0x20); Projectile slot 0 DeletingDestructor and its 16-bit reference count; ObjectPtrListVtable()

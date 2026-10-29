@@ -845,9 +845,8 @@ bool ScriptRun::Execute(CScript* script) {
             if (!patrol) break;
             PatrolPoint* last = patrol->LastPoint();
             if (!last) break;
-            AILook look;
-            AILook* value = look.ScriptAILookConstruct(f[0], f[1], f[2], 0);
-            lib::SetAtGrow(last->looks, std::ssize(last->looks), *value);
+            // The arguments are the angle, the wait and the turning time.
+            last->looks.push_back(AILook{f[0], f[2], f[1], 0});
             break;
         }
         case ScriptFunction::UMPlayer: {

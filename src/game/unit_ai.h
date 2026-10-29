@@ -14,18 +14,18 @@
 #include "maths.h"
 #include "unit.h"
 
-#include <cstddef>
 #include <cstdint>
-#include <cstring>
-#include <string>
-
 #include <list>
+#include <string>
 #include <vector>
 
 struct AIBrain;
-struct AIOrder;
+class CSpell;
 class CUnitServer;
-struct AIEventPresence;
+namespace console {
+class Stream;
+extern Stream g_aiLogOut;
+}
 
 // A list of units holding no references (candidates, parties).
 using UnitList = std::list<CUnit*>;
@@ -57,11 +57,14 @@ enum class UseSource : std::uint32_t {
     SearchBody = 0x18A95,
 };
 
+// An attack order's source and OrderAttack's location: every body part.
+inline constexpr int kAttackAllParts = 6;
+
 // An order as the controller's order checks take it (built on the stack).
 struct AIOrder {
     // UnitOrderKind::None: the object released and cleared, the flag cleared.
     void Clear();
-    // Clear, then an attack on `object` (referenced) at every body part (source 6).
+    // Clear, then an attack on `object` (referenced) at every body part (kAttackAllParts).
     void MakeAttack(CMapObject* object);
     // Clear, then a cast of `spell` on `object` (referenced).
     void MakeCast(int spell, CMapObject* object);
@@ -73,7 +76,7 @@ struct AIOrder {
     Vector3* AimPoint(Vector3* out) const;
 
     UnitOrderKind kind = UnitOrderKind::None;
-    std::uint32_t source = 0;       // the body part of an attack (6 all), the spell of a cast, the UseSource of a use
+    std::uint32_t source = 0;       // the body part of an attack (kAttackAllParts), the spell of a cast, the UseSource of a use
     Ref<CMapObject> target;
     Vector3 point{};                // target point
     // `point` is a use spot of the target that FindUseSpot picked: the unit walks to it and acts from there
@@ -87,9 +90,6 @@ struct AILook {
     float time;                     // turning time
     float wait;                     // wait afterwards (game ticks)
     std::uint8_t stopFirst;
-
-    // The arguments come in a different order from the fields: wait before turning time. Returns this.
-    AILook* ScriptAILookConstruct(float newAngle, float newWait, float newTime, int newStopFirst);
 };
 
 // The looks from / to a save: the count, then angle, time and wait of each and (from version 0x44) the stop
@@ -119,18 +119,26 @@ enum class AIModeType : int {
     Follow = 10,
 };
 
+// Mode priorities (AIMode::Evaluate): the idle modes' claim, an Aggression mode's while it has an enemy, none.
+inline constexpr int kPriorityIdle = 50;
+inline constexpr int kPriorityFight = 10000;
+inline constexpr int kPriorityNone = -1000;
+
+// The x of a position not set yet (AIBrain's positions, FearMode::shelter).
+inline constexpr float kUnsetCoordinate = -1313.0f;
+
 // Base of all modes (abstract). AIActionMode is the base of the modes that act.
 class AIMode : public CRefObject {
 public:
     AIMode();
     ~AIMode() override;
 
-    // The priority the mode claims this tick; 50 here (Guard, Sentry, Follow).
+    // The priority the mode claims this tick; here kPriorityIdle.
     virtual int Evaluate(AIBrain* brain);
-    // Runs while the mode is in charge. Here: the idle remark (1 in 1001), then LookAround(0).
+    // Runs while the mode is in charge. Here: the idle remark (1 in 1001), then LookAround.
     virtual void Execute(AIBrain* brain);
-    // Entering (Guard, Patrol, Sentry, Follow): drop the action and target, pick a new alertness decay (0.8 +
-    // 0.4 * random) and clear the controller's busy flag.
+    // Taking charge. Here: drop the action and target, pick a new alertness decay (0.8 + 0.4 * random) and clear
+    // the controller's busy flag.
     virtual void Enter(AIBrain* brain);
     virtual void Leave(AIBrain*) {}
     virtual AIModeType GetType() = 0;
@@ -187,13 +195,13 @@ public:
     ~PatrolMode() override;
     void OnShutdown() override;
     PatrolMode* Clone() override;
-    // 50; without points: FatalError "Unit %i has no patrol points, switching to guard", a point at the
-    // unit's position, and -1000.
+    // kPriorityIdle; without points: FatalError "Unit %i has no patrol points, switching to guard" (which exits
+    // unless the Rebirth patch DisableExitOnCrashReport is on), a point at the unit's position, and kPriorityNone.
     int Evaluate(AIBrain* brain) override;
     // When idle: on to the next point and its looks.
     void Execute(AIBrain* brain) override;
     AIModeType GetType() override;
-    PatrolPoint* LastPoint();
+    PatrolPoint* LastPoint();       // null without points
     // The point count, per point its position, look count and per look angle, time, wait and (from version
     // 0x44) the stop flag byte; then `current`.
     void Load(CStream* stream) override;
@@ -263,11 +271,14 @@ public:
     int level = 0;
 };
 
-// A target the attention chose or the brain is attacking: the part (-1 the whole unit with a weapon,
-// else the spell's part) and the object.
+// AITargetChoice::part and AIAttackOption::part of the weapon (the whole unit as the part to hit).
+inline constexpr int kWeaponPart = -1;
+
+// A target the attention chose or the brain is attacking: the part (kWeaponPart, else the spell's part) and the
+// object.
 struct AITargetChoice {
-    int part;
-    CUnit* object;
+    int part = kWeaponPart;
+    CUnit* object = nullptr;
 };
 
 // Aggression: fight an enemy.
@@ -279,7 +290,7 @@ public:
     ~AggressionMode() override;
     void OnShutdown() override;
     AggressionMode* Clone() override;
-    // 10000 while there is an enemy to fight (the script's, or the best one in sight), else -1000.
+    // kPriorityFight while there is an enemy to fight (the script's, or the best one in sight), else kPriorityNone.
     int Evaluate(AIBrain* brain) override;
     void Execute(AIBrain* brain) override;
     // Busy; drops action and target; remark 6.
@@ -293,7 +304,7 @@ public:
 
     Ref<CMapObject> enemy;
     std::uint8_t fixed;             // enemy set by the script (no searching)
-    AITargetChoice chosen;          // the enemy chosen this tick; part -1: the whole unit
+    AITargetChoice chosen;          // the enemy chosen this tick
 };
 
 // CorpseWatcher: reports corpses the brain has seen.
@@ -303,8 +314,8 @@ public:
     ~CorpseWatcherMode() override;
     void OnShutdown() override;
     CorpseWatcherMode* Clone() override;
-    // Takes one seen corpse off the brain's list and notes it as noticed (level 800, kind -3). Never takes
-    // charge (-1000).
+    // Takes one seen corpse off the brain's list and notices it (kNoticeCorpseLevel). Never takes charge
+    // (kPriorityNone).
     int Evaluate(AIBrain* brain) override;
     void Execute(AIBrain*) override {}
     AIModeType GetType() override;
@@ -322,7 +333,7 @@ public:
     FearMode* Clone() override;
     AIModeType GetType() override;
     // Remembers a seen object and calms `spread`; 15000 for a ranged unit that can run, 3000 while it sees an
-    // enemy, 350 in shelter, else noticedLevel / 6 or -1000. See docs/notes/unit_ai.md, "FearMode::Evaluate".
+    // enemy, 350 in shelter, else noticedLevel / 6 or kPriorityNone. See docs/notes/unit_ai.md, "FearMode::Evaluate".
     int Evaluate(AIBrain* brain) override;
     // Runs from the nearest enemy (calling allies to it), else stays in shelter, else from the noticed point
     // (forgotten unless `flag` and above 500): within `distance`, and not walking on command, to `fleePoint`
@@ -335,18 +346,15 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    float distance = 0.0f;          // how near danger counts (10, kFearDefaultDistance)
-    float spread = 0.0f;            // random spread of a flight point (3)
-    Vector3 shelter{};              // the last place with a SpellArea occluder (x = -1313: unset)
-    Vector3 fleePoint{};            // a checked flight point (z 1.0 while pending, else 0)
-    std::uint8_t flag = 0;
+    // A new Fear mode's distance, which `distance` returns to.
+    static constexpr float kDefaultDistance = 10.0f;
 
-private:
-    // The constructor's stores (and OnShutdown's).
-    void Init(std::uint8_t flag);
+    float distance = kDefaultDistance;  // how near danger counts
+    float spread = 3.0f;            // random spread of a flight point
+    Vector3 shelter{kUnsetCoordinate, 0.0f, 0.0f};  // the last place with a SpellArea occluder
+    Vector3 fleePoint{};            // a checked flight point (z 1.0 while pending, else 0)
+    std::uint8_t flag = 0;          // notice player units within `distance`, keep noticed levels above 500
 };
-// A new Fear mode's distance, which `distance` returns to.
-inline constexpr float kFearDefaultDistance = 10.0f;
 
 // Player: the party's units.
 class PlayerMode : public AIActionMode {
@@ -360,9 +368,9 @@ public:
     int Evaluate(AIBrain* brain) override;
     AIModeType GetType() override;
 
-    // State 0: follow the leader (unless the leader is moving itself) and fight; state 1: wait for the
-    // commanded action to end; state 2: walk to `point` (staying with the party unless the player controls
-    // the unit directly) and fight on the way.
+    // State 0: follow the leader (unless the party is in danger) and fight (unless the leader carries out a
+    // command); state 1: wait for the commanded action to end; state 2: walk to `point` (staying with the party
+    // unless it is in danger) and fight on the way.
     void Execute(AIBrain* brain) override;
     void OnObjectDeleted(CEngineObject* object) override;
     // The target's and the leader's references, the point and the state. Saves of versions 0x46 .. 0x5D hold
@@ -371,7 +379,7 @@ public:
     void Save(CStream* stream) override;
 
     // The player's commands (state 1 or 2). Walk to `to` + `offset` (just `to` when the way there is
-    // blocked); forgets the leader unless the player controls the unit directly.
+    // blocked); forgets the leader unless the party is in danger.
     void CommandWalk(AIBrain* brain, const Vector3* to, int inGroup, int run, const Vector3* offset);
     // The same in state 2 (keep fighting on the way); when the unit would leave the party it only turns
     // towards the point.
@@ -390,7 +398,7 @@ public:
     // once); else the best target (no allies) among the enemies near `point` (within [Logic] SwarmRadius in
     // state 2, anywhere otherwise, the point then zeroed) that are no farther than 1.1 x their own sight or
     // hearing, plus what the party is fighting. When there is one, the party's other followers that are not
-    // attacking or casting stop (unless the player controls the unit directly), the unit attacks it unless it
+    // attacking or casting stop (unless the party is in danger), the unit attacks it unless it
     // already does, and the mode's target is dropped.
     void UpdateCombat(AIBrain* brain);
     // Adds to `targets` (once each) the units that party members within [Logic] PlayerCallForHelp are
@@ -418,6 +426,11 @@ protected:
     void Reset();
 };
 
+// True when the unit's player's party is in danger (CPlayerServer::danger_ InDanger: a party unit fights or is an
+// enemy's target). Its units then fight on their own: they keep their leader on a walk command, do not wait for
+// the followers and do not stop the others to fight.
+bool PartyInDanger(const CUnit* unit);
+
 // Tamed (type 8): the Player mode a taming installs.
 class TamedMode : public PlayerMode {
 public:
@@ -433,21 +446,13 @@ public:
 void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context);
 void CountedListLoad(HeldUnits* list, CStream* stream, CWorld* context);
 
-class CSpell;
-namespace console {
-class Stream;
-extern Stream g_aiLogOut;
-}
 // The AI's perception log: the AI stream.
 inline constexpr console::Stream& kAiLog = console::g_aiLogOut;
 
-// Copies x and y of a point; returns `out`.
-float* CopyPoint2(float* out, const float* point);
-
-// A call the perception memory heard (CallAllies sends kind 0x1A).
+// A call the perception memory heard.
 struct AICallRecord {
     Vector3 point;
-    int kind;
+    int delay;                          // updates until the call is heard (counts down below 0)
     int hostileMask;                    // sides the hearer turns hostile to (0 for a plain call)
     std::string text;
 };
@@ -456,32 +461,35 @@ struct AIMemory;
 
 struct AIHeardCalls : std::vector<AICallRecord> {
     // Counts every call down; one that runs out is dropped after it is heard: with a hostility mask the
-    // unit's controller takes the mask (logged "hear delayed sound"), else, when the memory's noticed level
-    // is below 900, the call's point becomes the noticed point (900, kind -3; logged when the level rose by
-    // more than 100 or the point lies more than sqrt(10) away).
+    // unit takes the mask (logged "hear delayed sound"), else, when the memory's noticed level is below
+    // kNoticeCallLevel, the call's point becomes the noticed point (logged when the level rose by more than 100
+    // or the point lies more than sqrt(10) away).
     void Update(CUnit* unit, AIMemory* memory);
-    // The calls without a mask whose kind is `kind` or above are dropped, then {point, kind, 0, text} is
-    // appended.
-    void Hear(const Vector3* point, int kind, std::string_view text);
-    // Appends {point not set, kind, mask, text}: when it runs out (Update) the unit's controller takes the
-    // hostility mask.
-    void AddClaim(std::uint32_t mask, int kind, std::string_view text);
+    // The calls without a mask that would be heard no sooner than `delay` are dropped, then {point, delay, 0,
+    // text} is appended.
+    void Hear(const Vector3* point, int delay, std::string_view text);
+    // Appends {point not set, delay, mask, text}: when it runs out (Update) the unit takes the hostility mask.
+    void AddClaim(std::uint32_t mask, int delay, std::string_view text);
     void RemoveClaims();
 };
 
-// An object the memory reported (the object is a counted reference).
+// An object the memory reported (the object is a counted reference): a target the brain gave up on, which the
+// choice and the enemy searches leave out until the report runs out.
 struct AIReport {
     HeldRef<CMapObject> object;
-    int what;
+    int ticksLeft;                  // updates the report lasts (dropped below 0)
 };
 
 struct AIReports : std::vector<AIReport> {
-    // Keeps the larger `what` of a listed object, else appends it (with a reference).
-    void Report(CMapObject* object, int what);
+    // How long a report lasts: a target whose cast the controller stopped, a target the choice rejected.
+    static constexpr int kCastStoppedTicks = 0xF;
+    static constexpr int kRejectedTicks = 0x14;
+
+    // Keeps the larger `ticks` of a listed object, else appends it (with a reference).
+    void Report(CMapObject* object, int ticks);
     bool Contains(CEngineObject* object) const;
 };
 
-// One way the unit can attack or help: a weapon (part -1) or a spell.
 // What an AI attack option does (AIAttackOption::kind). The spells' kinds by spell type: the arrows and the two
 // curse magics attack, Fireball, Invoke Lightning and Column of Acid hit an area, the walls and the acid fog hit an
 // area for a time, Stun, Weaken and Feeblemind curse an enemy, the protections, Antimagic and Strengthen protect,
@@ -499,6 +507,7 @@ enum class AIOptionKind : int {
     Unused = 8,
 };
 
+// One way the unit can attack or help: a weapon (part kWeaponPart) or a spell.
 struct AIAttackOption {
     // How much the option counts: a weapon its largest damage, a spell attack that * 1.3, a curse, protection or
     // enhancement 1, healing 10, other kinds 0.
@@ -509,7 +518,7 @@ struct AIAttackOption {
     void Save(CStream* stream) const;
 
     AIOptionKind kind;
-    int part;                       // -1 a weapon, else the spell
+    int part;                       // kWeaponPart, else the spell
     float range;
     int maxCount;                   // cap on the group-size bonus
     float radius;                   // the area of an area attack, the healing of AIOptionKind::Heal
@@ -531,7 +540,7 @@ struct AIAttention {
     // `alliesOnly`, for targets not near the path) and CanReach wins; a rejected one seen once is reported
     // (20).
     void Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candidates, const Vector3* from, bool alliesOnly,
-                int fromHere);
+                bool fromHere);
     // False when the part has no option or an area option (kinds 2, 3) would also hit an ally near the target
     // or the unit itself; true without an object.
     bool IsUsable(AIBrain* brain, const AITargetChoice* choice);
@@ -541,20 +550,19 @@ struct AIAttention {
     double Score(const Vector3* from, CUnit* self, UnitList* group, CEngineObject* current, CUnit* candidate,
                  float threshold, const AIAttackOption* option);
     // False for a spell aimed at no object against a large unit of size class 0; else the order is checked
-    // from the unit's place when `fromHere` (low byte) is set or the target is the unit itself, otherwise
-    // from the end of a path search to the target (range ScaledValue of the distance, the target lifted off
-    // the sector map meanwhile), or the unit's place without one.
-    bool CanReach(AIBrain* brain, const AITargetChoice* choice, int fromHere);
+    // from the unit's place when `fromHere` is set or the target is the unit itself, otherwise from the end
+    // of a path search to the target (range ScaledValue of the distance, the target lifted off the sector map
+    // meanwhile), or the unit's place without one.
+    bool CanReach(AIBrain* brain, const AITargetChoice* choice, bool fromHere);
 
-    // Chooses the best target in sight (Choose from the unit's position) and, when it differs from the
-    // current attack, attacks it (action 3; the player's order check may lift the flags to -1) or casts spell
-    // `part` at it (action 4 when the spell cannot be cast now).
+    // Chooses the best target in sight (Choose from the unit's position, allies only) and takes it up
+    // (ApplyAttack).
     void LookAround(AIBrain* brain);
-    // The brain's current attack as {part, object}: action 3 {-1, target}, action 4 {spell, target}, the
-    // object only when it is a unit; otherwise only the object is cleared.
-    void CurrentAttack(AIBrain* brain, AITargetChoice* choice);
-    // Takes up {part, object} unless there is no object or it is the current attack: part -1 AttackTarget,
-    // else cast it (action 4 when the spell cannot be cast now; target and actionTime = the spell).
+    // The brain's current attack as {part, object}: action 3 {kWeaponPart, target}, action 4 {spell, target},
+    // the object only when it is a unit; otherwise {kWeaponPart, null}.
+    AITargetChoice CurrentAttack(AIBrain* brain);
+    // Takes up {part, object} unless there is no object or it is the current attack: kWeaponPart AttackTarget,
+    // else CastOn.
     void ApplyAttack(AIBrain* brain, const AITargetChoice* choice);
 
     const AIAttackOption* FindOption(int part) const;
@@ -574,24 +582,31 @@ struct AIAttention {
     float healWeight;               // the largest Weight of the weapons (Build); kind 7 scores with it
 };
 
-double AIDistance2(const Vector3* a, const Vector3* b);
+// The noticed levels and their decays (added to the level every update; AIMemory::Notice): something seen or a
+// target lost from sight, a call heard, a corpse seen.
+inline constexpr int kNoticeSeenLevel = 1000;
+inline constexpr int kNoticeSeenDecay = -2;
+inline constexpr int kNoticeCallLevel = 900;
+inline constexpr int kNoticeCallDecay = -3;
+inline constexpr int kNoticeCorpseLevel = 800;
+inline constexpr int kNoticeCorpseDecay = -3;
 
 // The brain's perception memory: what the unit sees, has seen and heard.
 struct AIMemory {
     void Reset();
     // Ages the reports (one tick off each; an entry below 0 is dropped), updates the heard calls and the AI
-    // events' view, then adds the noticed kind to the noticed level. Both callees may set the noticed point,
-    // level and kind first (900 / -3, 800 / -3, 1000 / -2).
+    // events' view, then adds the noticed decay to the noticed level. Both callees may notice a point first (a
+    // call, a corpse, a unit lost from sight).
     void Update(CUnitServer* owner);
-    // 1 when `other` has the unit's side or player or is in the visible list, else 0.
-    bool IsEnemy(CUnit* self, CEngineObject* other);
-    // Takes over a noticed point of a higher `level`: 1 when the level rose by more than 100 or the point
-    // lies more than sqrt(10) away (with the point's own z, not a difference), else 0; 0 when the level is
-    // not higher.
-    int Notice(const Vector3* point, int level, int kind);
+    // True when the unit can still keep track of `other`: it has the unit's side or player, or it is in sight.
+    bool CanTrack(CUnit* self, CUnit* other);
+    // Takes over a noticed point of a higher `level`: true when the level rose by more than 100 or the point
+    // lies more than sqrt(10) away (with the point's own z, not a difference); false when the level is not
+    // higher.
+    bool Notice(const Vector3* point, int level, int decay);
     void Forget(CEngineObject* object);
-    void HearCall(const Vector3* point, int kind, std::string_view text);
-    void AddClaim(std::uint32_t mask, int kind, std::string_view text);
+    void HearCall(const Vector3* point, int delay, std::string_view text);
+    void AddClaim(std::uint32_t mask, int delay, std::string_view text);
     // `out` emptied, then the visible units hostile to the unit (its IsHostileTo), alive and not reported, in
     // visible-list order (no references taken).
     void FindEnemies(CUnit* self, UnitList* out);
@@ -611,7 +626,7 @@ struct AIMemory {
     // sight between the eyes, only within range), [4], [1], [2] three other ranges; [3] stays 3.
     void MeasureExposure(CUnitServer* self, float* out);
     // From / to a save: the four object lists (appended to on load), the noticed point, level and countdown,
-    // the reports, the heard calls (point, kind, text, hostileMask) and the noticed kind (-1 until read).
+    // the reports, the heard calls (point, delay, text, hostileMask) and the noticed decay (-1 until read).
     void Load(CStream* stream);
     void Save(CStream* stream);
 
@@ -620,15 +635,15 @@ struct AIMemory {
     float noticedX = 0.0f;
     float noticedY = 0.0f;
     int noticedLevel = 0;
-    int noticedKind = 0;
+    int noticedKind = 0;            // the decay: added to noticedLevel every update
     int nearbyCountdown = 0;        // updates until the nearby units are listed again
     HeldUnits nearby;               // the units in the sight cells around
     HeldUnits visible;              // units in sight
     HeldUnits seenCorpses;          // corpses seen
     HeldUnits corpses;              // allied corpses seen
-    AIReports reports;          // objects reported to the alarm code
-    AIHeardCalls calls;              // calls heard
-    std::uint8_t seesEnemy = 0;
+    AIReports reports;              // targets left out for a while
+    AIHeardCalls calls;             // calls heard
+    bool seesEnemy = false;         // a living hostile unit is in sight (Think)
 };
 
 // The brain, embedded in the unit controller.
@@ -645,7 +660,7 @@ struct AIBrain {
     };
     static constexpr int kNoTime = -10000;          // actionTime: no look in progress
     static constexpr int kLookStarted = -9999;      // actionTime: the first queued look is turning
-    static constexpr float kNearPointCleared = 100000.0f;   // nearX / nearY: no near point
+    static constexpr float kRangeCleared = 100000.0f;  // nearX / nearY without a mode that sets them
     static constexpr float kInitialCallRadius = 10.0f;
 
     // One AI tick: alarm countdown, decay of alertness, perception update, then every mode's Evaluate; the
@@ -655,12 +670,15 @@ struct AIBrain {
 
     AIMode* FindMode(AIModeType type);
     PatrolMode* FindPatrolMode();
-    PlayerMode* FindPlayerMode();   // (the Tamed mode is a Player mode too)
+    PlayerMode* FindPlayerMode();   // the first mode of type Player (not Tamed)
     CMapObject* LeaderOrFollowed();
+    // The enemy of the first Aggression mode while that mode is in charge, else null.
     CMapObject* AggressionEnemy();
     bool IsNearPath(const Vector3* point, float radius);
-    // Sets the owner; on a change both remembered positions become "unset" (-1313, 0, 0).
-    std::uint32_t SetOwner(CUnitServer* newOwner);
+    // True when `object` is a unit of a side the brain's unit is allied with.
+    bool IsAlliedUnit(CEngineObject* object);
+    // Sets the owner; on a change both remembered positions become unset (kUnsetCoordinate, 0, 0).
+    void SetOwner(CUnitServer* newOwner);
     // An object is being deleted: tell every mode, drop it as target or seen object and from the perception
     // memory.
     void OnObjectDeleted(CEngineObject* object);
@@ -670,7 +688,7 @@ struct AIBrain {
     // it is the one removed).
     void AddMode(AIMode* mode);
     void RemoveModesOfType(AIModeType type);
-    // Empties the mode list, drops the mode in charge, resets the near point and the decay.
+    // Empties the mode list, drops the mode in charge, resets the two ranges and the decay.
     void ClearModes();
     // ClearModes, then no action, memory reset, action point and looks cleared, target and seen object
     // released (the controller's death).
@@ -708,10 +726,14 @@ struct AIBrain {
     // attacking it.
     void UpdateAttack();
     void StopAction();
+    // Action 2: walk to `order`'s point (the target released), then run its looks.
+    void StartMove(const AIMoveOrder* order);
     void Walk(const Vector3* point, int run);
     void TurnTowards(const Vector3* direction, float time);
-    // Action 4 (when the spell cannot be cast now): cast `spell` at `point`.
+    // Action 4 (unless the spell comes from a scroll): cast `spell` at `point`.
     void CastAt(int spell, const Vector3* point, int run);
+    // Action 4 (unless the spell comes from a scroll) on `object` (the target, counted): cast `spell` at it.
+    void CastOn(int spell, CMapObject* object, int run);
     void Follow(CMapObject* object);
     // Something was noticed: remember `object` as seen, call allies to it (or to the unit itself when null)
     // unless it is an ally, become alerted in alert mode 1, and remember a unit in the perception memory.
@@ -732,11 +754,10 @@ struct AIBrain {
     // it, and a path there not much longer than the way. After a failure the next calls (up to 10, a third of
     // the distance) fail at once.
     bool FindStandPoint(const Vector3* point, float radius, Vector3* out);
-    // Every allied unit within callRadius of the owner's unit hears a call for help (kind 0x1A) at `point`;
-    // the message text is formatted only while the console shows filter bit 0.
+    // Every allied unit within callRadius of the owner's unit hears a call for help (delay kCallDelay) at
+    // `point`; the message text is formatted only while the console shows filter bit 0.
     void CallAllies(const Vector3* point);
-    // The corpse list's head handed to `out` with a reference (the list's own reference released). Returns `out`.
-    Ref<CUnit>* PopCorpse(Ref<CUnit>* out);
+    static constexpr int kCallDelay = 0x1A;
 
     CUnitServer* owner = nullptr;
     int action = kActionNone;
@@ -751,9 +772,13 @@ struct AIBrain {
     float callRadius = kInitialCallRadius;  // allies within it hear a call for help
     int alertMode = 0;
     int alarmCountdown = 1;
-    float nearX = kNearPointCleared;    // near point (Guard)
-    float nearY = kNearPointCleared;    // near point y (SetPositions)
-    float decay = 1.0f;             // alertness decay factor
+    // Two distances, not a point: the idle modes set them to 35 and 80 (plus the radius for Guard). Nothing reads
+    // them: they are only saved and loaded.
+    float nearX = kRangeCleared;
+    float nearY = kRangeCleared;
+    // An alertness decay factor: moved towards 1 every tick and randomised when an idle mode takes charge. Nothing
+    // decides by it: it is kept for the save and for the random draw.
+    float decay = 1.0f;
     Vector3 previousPosition{};
     Vector3 position{};
     int standCooldown = 0;          // FindStandPoint fails while above 0 (one off per call)
