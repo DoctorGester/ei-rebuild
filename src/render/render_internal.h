@@ -519,8 +519,8 @@ private:
 };
 
 // The terrain, inside EndFrame's off-screen pass. For the shadow map's fit: TerrainPieceGroups, a piece's
-// vertices in runs (TerrainGroup: kept with the page, made when its vertices are built or moved);
-// TerrainGroupPositions, every `step`th position of a run. TerrainFrameDone, after a present, drops pages not
+// vertices in runs (TerrainGroup: kept with the page, made when its vertices are built or moved), and
+// TerrainPieceWhole, all of them as one; TerrainGroupPositions, every `step`th position of a run. TerrainFrameDone, after a present, drops pages not
 // drawn for a long time. DestroyTerrain keeps the pages (placed again at their next draw).
 struct TerrainGroup {
     Vector3 low, high;              // the box of its positions in the landscape's space
@@ -530,6 +530,7 @@ bool CreateTerrainShader();
 void UploadTerrain(const Frame& frame);
 void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
 std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece);
+const TerrainGroup& TerrainPieceWhole(const TerrainPiece& piece);
 void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group, std::uint32_t step,
                            std::vector<Vector3>* out);
 void TerrainFrameDone();

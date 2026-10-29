@@ -182,10 +182,12 @@ PageSource SourceOf(const SectorData* s, int page) {
     return src;
 }
 
-// A quarter's tiles of a page: its vertices, indices and runs of vertices (CachedPage::groups) within the page's.
+// A quarter's tiles of a page: its vertices, indices and runs of vertices (CachedPage::groups) within the page's,
+// and all its vertices as one run.
 struct QuarterRange {
     std::uint32_t firstVertex = 0, vertexCount = 0, firstIndex = 0, indexCount = 0;
     std::uint32_t firstGroup = 0, groupCount = 0;
+    TerrainGroup whole{};
 };
 
 // A sector's ground layer as a caster: its 33 x 33 vertices with normals from their neighbours, kept while
@@ -281,6 +283,7 @@ void MakeGroups(CachedPage& p) {
     p.groups.clear();
     for (QuarterRange& q : p.quarters) {
         q.firstGroup = static_cast<std::uint32_t>(p.groups.size());
+        q.whole = TerrainGroup{{1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, q.firstVertex, q.vertexCount};
         for (std::uint32_t first = q.firstVertex; first < q.firstVertex + q.vertexCount; first += kGroupVertices) {
             TerrainGroup g{{1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, first,
                            (std::min)(kGroupVertices, q.firstVertex + q.vertexCount - first)};
@@ -290,6 +293,9 @@ void MakeGroups(CachedPage& p) {
                 g.high = Vector3{(std::max)(g.high.x, at.x), (std::max)(g.high.y, at.y), (std::max)(g.high.z, at.z)};
             }
             p.groups.push_back(g);
+            q.whole.low = Vector3{(std::min)(q.whole.low.x, g.low.x), (std::min)(q.whole.low.y, g.low.y), (std::min)(q.whole.low.z, g.low.z)};
+            q.whole.high = Vector3{(std::max)(q.whole.high.x, g.high.x), (std::max)(q.whole.high.y, g.high.y),
+                                   (std::max)(q.whole.high.z, g.high.z)};
         }
         q.groupCount = static_cast<std::uint32_t>(p.groups.size()) - q.firstGroup;
     }
@@ -765,6 +771,8 @@ std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece) {
     const QuarterRange& q = piece.page->quarters[piece.quarter];
     return std::span<const TerrainGroup>(piece.page->groups.data() + q.firstGroup, q.groupCount);
 }
+
+const TerrainGroup& TerrainPieceWhole(const TerrainPiece& piece) { return piece.page->quarters[piece.quarter].whole; }
 
 void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group, std::uint32_t step,
                            std::vector<Vector3>* out) {
