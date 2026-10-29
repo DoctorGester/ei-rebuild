@@ -11,7 +11,6 @@
 #include "object_tables.h"
 #include "quest_records.h"
 #include "sound.h"
-#include "text_reader.h"
 #include "text_split.h"
 #include "ui.h"
 #include "ui_briefing.h"

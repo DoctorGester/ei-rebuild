@@ -5,7 +5,6 @@
 #include "ui.h"
 
 #include "item_db_text.h"
-#include "text_reader.h"
 
 #include "lib/crt.h"
 #include <string>

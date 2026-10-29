@@ -7,7 +7,6 @@
 #include "console.h"
 #include "item_db_text.h"
 #include "quest_records.h"
-#include "text_reader.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -164,8 +163,8 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     texts->Open(kMapText);
     header = str::Format(kQuestHeader, std::string(name));
     if (texts->FindLine(header)) {
-        TextNextLine(texts);
-        TextNextLine(texts);
+        texts->NextLine();
+        texts->NextLine();
         if (texts->Split(&words, 1) && words.size() > 1) {
             for (std::size_t i = 1; i < words.size(); i += 2) {
                 UiPointF place;

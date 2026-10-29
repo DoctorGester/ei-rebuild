@@ -7,7 +7,6 @@
 
 #include "item_db_text.h"
 #include "object_tables.h"      // FindCommandByKey
-#include "text_reader.h"
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
@@ -118,9 +117,9 @@ void CHelpWindow::ShowPage() {
             interface_->SetPendingValue(0);
             return;
         }
-        TextNextLine(texts);
+        texts->NextLine();
     }
-    TextNextLine(texts);
+    texts->NextLine();
 
     // The page's rectangle. "#position" is looked for from here on (not only in this page), and
     // the reading goes on from here afterwards.

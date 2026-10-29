@@ -1,5 +1,5 @@
 // The in-game chat overlay: its constructor, per-frame update and redraw, the chat line's opening and its
-// keys. Its destructor is in ui_window_delete.cpp. docs/notes/ui.md, section 3.
+// keys; the chat line's destructor. docs/notes/ui.md, section 3.
 #include "asset_text.h"
 #include "console.h"
 #include "net_classes.h"
@@ -66,6 +66,8 @@ constexpr int kCaretBottom = 0x10;
 constexpr COLORREF kTypedColour = 0xFFFFFF;
 
 } // namespace
+
+ChatLine::~ChatLine() { delete surface; }
 
 // --- a chat line added ---------------------------------------------------------------------------
 

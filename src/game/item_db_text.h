@@ -74,7 +74,9 @@ public:
     // 1) applied to the kind and the name.
     void FormatItemName(CItem* item, std::string* out);
 
-    // The line reader.
+    // The line reader (text_reader.cpp): finds a text in the resource archives and walks its lines with cursor_.
+    // Texts are MBCS: a character is one byte, or a lead byte (_ismbblead) and a trail byte. Lines end with LF
+    // (CR also ends the line's content); a line whose first word starts with "##" is a comment.
     // Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
     // start. True when found and not empty.
     bool Open(std::string_view key);
@@ -96,6 +98,8 @@ public:
     // words (split at spaces) compare the line's words, lower-cased, with them. 1 when found, else 0
     // (cursor at the end).
     bool FindLine(std::string_view key);
+    // Moves the cursor to the start of the next line that is not a "##" comment. 0 at the end.
+    bool NextLine();
     // Moves the cursor to the next "#..." header line (not a "##" comment). 1 when found, else 0.
     bool FindHeader();
 

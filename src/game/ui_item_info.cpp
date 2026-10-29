@@ -4,7 +4,6 @@
 // double, so no rounding happens in between. Compiled with precise floating point so that products keep the original's order.
 #include "party.h"
 #include "ui_screens.h"
-#include "text_reader.h"
 #include "text_split.h"
 #include "ui_item_info.h"
 
@@ -706,8 +705,8 @@ void CItemInfoPanel::DescribeCarriedSpell() {
             std::string key("modifier ");
             key += modifier->code;
             if (texts->Open(key)) {
-                TextNextLine(texts);
-                TextNextLine(texts);
+                texts->NextLine();
+                texts->NextLine();
                 texts->ReadLine(&text, 1);
             }
             std::string entry = text;

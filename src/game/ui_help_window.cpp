@@ -6,7 +6,6 @@
 #include "ui_screens.h"
 
 #include "item_db_text.h"
-#include "text_reader.h"
 
 #include <cstdint>
 #include <string>
@@ -54,7 +53,7 @@ void CHelpWindow::CreateScreen() {
     texts->ReadLine(&line, 1);
     title_ = line.c_str();
     while (texts->FindLine(kScreenLine)) {
-        TextNextLine(texts);
+        texts->NextLine();
         texts->ReadLine(&line, 1);
         lines_.push_back(line);
     }

@@ -454,8 +454,8 @@ void CMpHeroScreen::ShowFirstEquipment() {
     PartyUnitRecord* hero = HeroRecord();
     weapon_ = FirstOf(hero->weapons);
     weaponPanel_->ShowWeapon(weapon_);
-    armor_ = FirstOf(hero->quickItems);
-    weaponPanel_->ShowArmour(armor_);
+    quickItem_ = FirstOf(hero->quickItems);
+    weaponPanel_->ShowQuickItem(quickItem_);
     spellContainer_ = FirstOf(hero->spells);
     spellPanel_->ShowEntry(spellContainer_);
 }
@@ -519,7 +519,7 @@ void CMpHeroScreen::AddNewHero() {
         if (hero->weapons[i] != weapon_)
             hero->RemoveWeapon(hero->weapons[i]);
     for (int i = std::ssize(hero->quickItems) - 1; i >= 0; --i)
-        if (hero->quickItems[i] != armor_)
+        if (hero->quickItems[i] != quickItem_)
             hero->RemoveQuickItem(hero->quickItems[i]);
     for (int i = std::ssize(hero->spells) - 1; i >= 0; --i)
         if (hero->spells[i] != spellContainer_)

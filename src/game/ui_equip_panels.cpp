@@ -1,4 +1,4 @@
-// The hero panels' small methods: the equipment panel's shown weapon / item,
+// The hero panels' small methods: the equipment panel's shown weapon / quick item,
 // its right button and item lookup; the quick strip's selection
 // and item lookup. See docs/notes/ui.md, section 5.
 #include "ui_camp.h"
@@ -19,7 +19,7 @@ constexpr int kQuickSlots = 8;
 constexpr int kFirstBodySlot = 8;
 constexpr int kBodySlotEnd = 15;
 constexpr int kTopicWeapon = 2;
-constexpr int kTopicSecond = 3;
+constexpr int kTopicQuickItem = 3;
 constexpr int kTopicEntry = 1;
 
 // `item`'s place in `list`, or -1.
@@ -37,7 +37,7 @@ void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
     hero->weaponIndex = static_cast<std::uint32_t>(IndexIn(hero->weapons, weapon));
 }
 
-void CHeroEquipPanel::ShowArmour(CItem* item) {
+void CHeroEquipPanel::ShowQuickItem(CItem* item) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     selected_ = IndexIn(hero->quickItems, item);
 }
@@ -73,7 +73,7 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
         *topic = kTopicWeapon;
         if (region < std::ssize(hero->weapons)) return hero->weapons[region];
     } else if (region < kQuickSlots) {
-        *topic = kTopicSecond;
+        *topic = kTopicQuickItem;
         int fromEnd = kQuickSlots - 1 - region;
         if (fromEnd < std::ssize(hero->quickItems)) return hero->quickItems[fromEnd];
     }

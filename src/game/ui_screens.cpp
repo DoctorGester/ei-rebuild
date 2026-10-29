@@ -424,13 +424,10 @@ double CMpHeroScreen::Weight() {
     PartyUnitRecord* hero = HeroRecord();
     double weight = 0.0;
     if (weapon_) weight = weapon_->Weight();
-    if (armor_) weight += armor_->Weight();
+    if (quickItem_) weight += quickItem_->Weight();
     if (spellContainer_) weight += spellContainer_->Weight();
-    // The original reads the armour list as the quick items.
-    int count = std::ssize(hero->armor);
-    CItem** quick = hero->armor.data();
-    for (int i = 0; i < count; ++i)
-        if (quick[i]) weight += quick[i]->Weight();
+    for (CItem* armour : hero->armor)
+        if (armour) weight += armour->Weight();
 
     return weight;
 }
@@ -445,8 +442,8 @@ void CMpHeroScreen::TakeItem(CItem* item, int mode) {
             weaponPanel_->ShowWeapon(item);
             break;
         case ItemKind::Quick:
-            armor_ = item;
-            weaponPanel_->ShowArmour(item);
+            quickItem_ = item;
+            weaponPanel_->ShowQuickItem(item);
             break;
         case ItemKind::Spell:
             spellContainer_ = item;

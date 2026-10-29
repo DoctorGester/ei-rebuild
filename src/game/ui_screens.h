@@ -275,10 +275,10 @@ public:
     int heroTop_;               // first row shown
     CUnit* previewModel_;       // the hero's figure shown by the preview
     CItem* weapon_;
-    CItem* armor_;
+    CItem* quickItem_;
     CItem* spellContainer_;
     CHeroStatsPanel* statsPanel_;
-    CHeroEquipPanel* weaponPanel_;  // shows the weapon and the armour
+    CHeroEquipPanel* weaponPanel_;  // shows the weapon and the quick item
     CHeroQuickStrip* spellPanel_;
     CUiItemStrip* figureStrips_[2]; // the figures of defaults_ (voices voiceLists_[0]) and of names_ (voiceLists_[1])
     CTradePanel* tradePanel_;

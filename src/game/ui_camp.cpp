@@ -57,8 +57,8 @@ void SetShade(CUiMesh* mesh, float shade) {
 }
 
 // A white centred line on a surface (Rebirth-patched).
-void DrawLine(CUiSurface* surface, std::string_view text, RECT* rect) {
-    surface->DrawTextIn(text, rect, 1, 0xFFFFFF, 1, 1);
+void DrawLine(CUiSurface* surface, std::string_view text, const RECT& rect) {
+    surface->DrawTextIn(text, &rect, 1, 0xFFFFFF, 1, 1);
 }
 
 // The database records of the camp's loot items (the record index): spells, spell
@@ -248,8 +248,7 @@ void CCampPages::ShowPage(int page) {
         trade_->SelectHero(hero_);
         CUiSurface* title = surfaces_[1];
         title->Clear();
-        RECT rect = {0, 10, 200, 30};
-        DrawLine(title, pageTitles_[page_], &rect);
+        DrawLine(title, pageTitles_[page_], RECT{0, 10, 200, 30});
     }
 
     // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
@@ -519,19 +518,16 @@ void CCampPages::UpdateAction() {
     draw->Clear();
     if (action.size() != 0) {
         texts->GetString(action, &text);
-        RECT name = {0, 30, 200, 50};
-        DrawLine(draw, text, &name);
+        DrawLine(draw, text, RECT{0, 30, 200, 50});
         if (cost_ != 0)
             text = str::Format("%+d", -cost_);
         else
             text = "0";
-        RECT value = {0, 50, 200, 70};
-        DrawLine(draw, text, &value);
+        DrawLine(draw, text, RECT{0, 50, 200, 70});
     }
     texts->GetString(label, &text);
     line = str::Format("%s %d", text, amount);
-    RECT top = {0, 10, 200, 30};
-    DrawLine(draw, line, &top);
+    DrawLine(draw, line, RECT{0, 10, 200, 30});
 
     SetShade(SceneMesh(0), actionEnabled_ ? 1.0f : 0.5f);
     SetShade(SceneMesh(1), actionShown_ ? 1.0f : 0.5f);

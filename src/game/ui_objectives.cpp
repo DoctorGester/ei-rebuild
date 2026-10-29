@@ -11,7 +11,6 @@
 #include "object_tables.h"
 #include "quest_records.h"
 #include "render/render_state.h"
-#include "text_reader.h"
 #include "text_split.h"
 #include "ui.h"
 #include "world.h"
@@ -321,7 +320,7 @@ void CObjectivesWindow::ShowQuest() {
 
     // The text: a colour code, the quest's description, its rewards, then each sub-objective the
     // player has (q.<zone>.<quest>.<objective> not 0) with "completed" (2) or "failed" (3).
-    TextNextLine(texts);
+    texts->NextLine();
     texts->ReadToHash(&text, 1);
     {
         std::string colour("\007C\344\327\247 ");
