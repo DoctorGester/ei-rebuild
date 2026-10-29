@@ -26,27 +26,7 @@ constexpr int kMaxCanvas = 8192;
 
 // ---- Pixel formats --------------------------------------------------------------------------------------
 
-struct Channel {
-    std::uint32_t mask = 0;
-    int shift = 0;
-    int bits = 0;
-};
-Channel MakeChannel(std::uint32_t mask) {
-    Channel c;
-    c.mask = mask;
-    if (!mask) return c;
-    while (!((mask >> c.shift) & 1)) ++c.shift;
-    while (c.shift + c.bits < 32 && ((mask >> (c.shift + c.bits)) & 1)) ++c.bits;
-    return c;
-}
-// The top `bits` of a channel widened to 8 by repeating them (render_textures.cpp's Expand).
-std::uint32_t WidenTop(std::uint32_t top, int bits) {
-    if (bits <= 0) return 0;
-    if (bits >= 8) return (top >> (bits - 8)) & 0xFF;
-    std::uint32_t out = 0;
-    for (int filled = 0; filled < 8; filled += bits) out |= (top << (8 - bits)) >> filled;
-    return out & 0xFF;
-}
+// An 8-bit channel value cut to its top `bits` and widened back to 8.
 std::uint32_t QuantiseChannel(std::uint32_t value, int bits) {
     return bits >= 8 ? value : WidenTop(value >> (8 - bits), bits);
 }
@@ -54,17 +34,14 @@ std::uint32_t QuantiseChannel(std::uint32_t value, int bits) {
 // channel, as 0x00RRGGBB: what the canvas holds and the blit shows.
 std::uint32_t Quantise(std::uint32_t colour, const ui::PixelFormat& format) {
     std::uint32_t r = colour & 0xFF, g = (colour >> 8) & 0xFF, b = (colour >> 16) & 0xFF;
-    return (QuantiseChannel(r, MakeChannel(format.redMask).bits) << 16) | (QuantiseChannel(g, MakeChannel(format.greenMask).bits) << 8) |
-           QuantiseChannel(b, MakeChannel(format.blueMask).bits);
+    return (QuantiseChannel(r, Channel(format.redMask).bits) << 16) | (QuantiseChannel(g, Channel(format.greenMask).bits) << 8) |
+           QuantiseChannel(b, Channel(format.blueMask).bits);
 }
 // A pixel of `format` (a colour key) widened to 0x00RRGGBB.
 std::uint32_t Widen(std::uint32_t pixel, const ui::PixelFormat& format) {
     std::uint32_t out = 0;
     const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
-    for (int i = 0; i < 3; ++i) {
-        Channel c = MakeChannel(masks[i]);
-        out = (out << 8) | WidenTop((pixel & c.mask) >> c.shift, c.bits);
-    }
+    for (int i = 0; i < 3; ++i) out = (out << 8) | Channel(masks[i]).Widen(pixel);
     return out;
 }
 
@@ -152,10 +129,6 @@ std::uint32_t CanvasTexel(std::uint32_t rgb, const CanvasState& canvas) {
 
 // ---- GPU objects ----------------------------------------------------------------------------------------
 
-struct VsParams {
-    float rect[4];
-    float target[4];
-};
 struct FsParams {
     float colour[4];
     std::uint32_t bits[4];
@@ -197,10 +170,6 @@ sg_buffer g_vertices{};
 std::size_t g_vertexCapacity = 0;
 
 ID3D11DeviceContext* Context() { return static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context())); }
-ID3D11Device* Device() { return static_cast<ID3D11Device*>(const_cast<void*>(sg_d3d11_device())); }
-ID3D11Texture2D* TextureOf(sg_image image) {
-    return static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(image).tex2d));
-}
 
 // A shader of ui_canvas.hlsl: the vertex parameters, the fragment parameters, `textures` texture views
 // (t0, t1) loaded directly (a non-filtering sampler paired with each, as sokol wants), and for the glyph
@@ -209,7 +178,7 @@ sg_shader MakeShader(const ShaderBytecode& code, int textures, bool glyphVertex,
     sg_shader_desc s{};
     SetBytecode(s, code);
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(VsParams);
+    s.uniform_blocks[0].size = sizeof(RectParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[1].size = sizeof(FsParams);
@@ -363,13 +332,6 @@ void BeginCanvasPass(sg_view attachment, bool clear, const char* label) {
     sg_begin_pass(&pass);
 }
 
-void ApplyRect(const Rect& r, int width, int height) {
-    VsParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
-                {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
-    sg_range range{&vs, sizeof(vs)};
-    sg_apply_uniforms(0, &range);
-}
-
 FsParams CanvasParams(const CanvasState& canvas) {
     FsParams fs{};
     for (int i = 0; i < 3; ++i) fs.bits[i] = canvas.bits[i];
@@ -384,8 +346,8 @@ void ApplyFs(const FsParams& fs) {
 
 // `r` of the canvas's image copied to the same place in g_under.
 void CopyUnder(const CanvasState& canvas, const Rect& r) {
-    ID3D11Texture2D* from = TextureOf(canvas.gpu.image);
-    ID3D11Texture2D* to = TextureOf(g_under.image);
+    ID3D11Texture2D* from = D3DTexture(canvas.gpu.image);
+    ID3D11Texture2D* to = D3DTexture(g_under.image);
     if (!from || !to) return;
     D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right), static_cast<UINT>(r.bottom), 1};
     Context()->CopySubresourceRegion(to, 0, static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, from, 0, &box);
@@ -539,7 +501,7 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
 
 // An Image's pixels written into the canvas's texture.
 void DrawPixels(const CanvasState& canvas, const Op& op) {
-    ID3D11Texture2D* texture = TextureOf(canvas.gpu.image);
+    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
     if (!texture) return;
     const Rect& r = op.rect;
     D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right), static_cast<UINT>(r.bottom), 1};
@@ -567,46 +529,12 @@ CanvasState* Find(const void* holder, unsigned id) {
     return it != g_canvases.end() && it->second.id == id ? &it->second : nullptr;
 }
 
-// D3D11 staging textures for read-backs, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's.
-struct Staging {
-    ID3D11Texture2D* texture = nullptr;
-    UINT width = 0, height = 0;
-};
-Staging g_staging, g_pictureStaging;
+// Staging copies for the read-backs, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's. Mapped under the
+// present's lock (GpuWorkAlone); UnmapRegion after reading.
+StagingCopy g_staging, g_pictureStaging;
 
-void ReleaseStaging(Staging& s) {
-    if (s.texture) s.texture->Release();
-    s = Staging{};
-}
-
-// `width` x `height` texels of `texture` from (left, top) copied into `s` (made or grown in the texture's
-// format) and mapped; UnmapRegion after reading. Under the present's lock (GpuWorkAlone).
-bool MapRegion(Staging& s, ID3D11Texture2D* texture, UINT left, UINT top, UINT width, UINT height, D3D11_MAPPED_SUBRESOURCE* mapped) {
-    if (!s.texture || s.width < width || s.height < height) {
-        ReleaseStaging(s);
-        D3D11_TEXTURE2D_DESC desc{};
-        texture->GetDesc(&desc);
-        desc.Width = width;
-        desc.Height = height;
-        desc.MipLevels = 1;
-        desc.Usage = D3D11_USAGE_STAGING;
-        desc.BindFlags = 0;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        desc.MiscFlags = 0;
-        if (FAILED(Device()->CreateTexture2D(&desc, nullptr, &s.texture))) {
-            s = Staging{};
-            return false;
-        }
-        s.width = width;
-        s.height = height;
-    }
-    D3D11_BOX box{left, top, 0, left + width, top + height, 1};
-    Context()->CopySubresourceRegion(s.texture, 0, 0, 0, 0, texture, 0, &box);
-    return SUCCEEDED(Context()->Map(s.texture, 0, D3D11_MAP_READ, 0, mapped));
-}
-
-void UnmapRegion(Staging& s) {
-    Context()->Unmap(s.texture, 0);
+void UnmapRegion(StagingCopy& s) {
+    s.Unmap();
     sg_reset_state_cache();
 }
 
@@ -624,10 +552,9 @@ void Remember(CanvasState& canvas, Op&& op) {
 // A long or copied history replaced by the canvas's pixels read back: one picture of the whole canvas.
 void Compact(const void* holder, CanvasState& canvas) {
     canvas.copied = false;
-    ID3D11Texture2D* texture = TextureOf(canvas.gpu.image);
-    D3D11_MAPPED_SUBRESOURCE mapped{};
+    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
     const UINT w = static_cast<UINT>(canvas.width), h = static_cast<UINT>(canvas.height);
-    if (!texture || !MapRegion(g_staging, texture, 0, 0, w, h, &mapped)) return;
+    if (!g_staging.Map(Context(), texture, 0, 0, w, h)) return;
     Op op;
     op.kind = Op::Pixels;
     op.holder = holder;
@@ -635,8 +562,7 @@ void Compact(const void* holder, CanvasState& canvas) {
     op.rect = Rect{0, 0, canvas.width, canvas.height};
     op.pixels.resize(static_cast<std::size_t>(w) * h);
     for (UINT y = 0; y < h; ++y)   // RGBA8, as the Pixels command holds it
-        std::memcpy(op.pixels.data() + static_cast<std::size_t>(y) * w,
-                    static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch, w * 4u);
+        std::memcpy(op.pixels.data() + static_cast<std::size_t>(y) * w, g_staging.Row(y), w * 4u);
     UnmapRegion(g_staging);
     canvas.history.clear();
     canvas.history.push_back(std::move(op));
@@ -652,7 +578,7 @@ std::uint32_t Pack(std::uint32_t rgb, const PixelFormat& format) {
     std::uint32_t out = 0;
     const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
     for (int i = 0; i < 3; ++i) {
-        Channel c = MakeChannel(masks[i]);
+        const Channel c(masks[i]);
         if (!c.bits) continue;
         std::uint32_t v = (rgb >> (16 - 8 * i)) & 0xFF;
         out |= (c.bits >= 8 ? v << (c.shift + c.bits - 8) : (v >> (8 - c.bits)) << c.shift) & c.mask;
@@ -674,7 +600,7 @@ bool Canvas(const void* holder, int width, int height, const PixelFormat& format
     canvas->height = height;
     canvas->format = format;
     const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
-    for (int i = 0; i < 3; ++i) canvas->bits[i] = static_cast<std::uint32_t>(std::min(MakeChannel(masks[i]).bits, 8));
+    for (int i = 0; i < 3; ++i) canvas->bits[i] = static_cast<std::uint32_t>(std::min(Channel(masks[i]).bits, 8));
     bool is565 = format.bitsPerPixel == 16 && format.redMask == 0xF800 && format.greenMask == 0x7E0 && format.blueMask == 0x1F;
     bool is555 = format.bitsPerPixel == 16 && format.redMask == 0x7C00 && format.greenMask == 0x3E0 && format.blueMask == 0x1F;
     canvas->greyMode = is565 ? 0 : is555 ? 1 : 2;
@@ -847,13 +773,12 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
     const CanvasState& canvas = it->second;
     FpuGuard fpu;
     GpuWorkAlone alone;
-    ID3D11Texture2D* texture = TextureOf(canvas.gpu.image);
+    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
     UINT w = static_cast<UINT>(canvas.width), h = static_cast<UINT>(canvas.height);
-    D3D11_MAPPED_SUBRESOURCE mapped{};
-    if (!texture || !MapRegion(g_staging, texture, 0, 0, w, h, &mapped)) return false;
+    if (!g_staging.Map(Context(), texture, 0, 0, w, h)) return false;
     rgb->resize(static_cast<std::size_t>(w) * h);
     for (UINT y = 0; y < h; ++y) {
-        const auto* row = static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch;
+        const std::uint8_t* row = g_staging.Row(y);
         std::uint32_t* out = rgb->data() + static_cast<std::size_t>(y) * w;
         for (UINT x = 0; x < w; ++x)   // RGBA8
             out[x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) | (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
@@ -873,10 +798,9 @@ bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb) {
     if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
     FpuGuard fpu;
     GpuWorkAlone alone;
-    ID3D11Texture2D* texture = TextureOf(canvas.gpu.image);
-    D3D11_MAPPED_SUBRESOURCE mapped{};
-    if (!texture || !MapRegion(g_staging, texture, static_cast<UINT>(x), static_cast<UINT>(y), 1, 1, &mapped)) return false;
-    const auto* p = static_cast<const std::uint8_t*>(mapped.pData);   // RGBA8
+    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
+    if (!g_staging.Map(Context(), texture, static_cast<UINT>(x), static_cast<UINT>(y), 1, 1)) return false;
+    const std::uint8_t* p = g_staging.Row(0);   // RGBA8
     *rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
     UnmapRegion(g_staging);
     return true;
@@ -907,14 +831,12 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     ApplyFs(fs);
     sg_draw(0, 6, 1);
     sg_end_pass();
-    ID3D11Texture2D* texture = TextureOf(g_picture.image);
-    D3D11_MAPPED_SUBRESOURCE mapped{};
-    if (!texture || !MapRegion(g_pictureStaging, texture, 0, 0, static_cast<UINT>(width), static_cast<UINT>(height), &mapped))
+    ID3D11Texture2D* texture = D3DTexture(g_picture.image);
+    if (!g_pictureStaging.Map(Context(), texture, 0, 0, static_cast<UINT>(width), static_cast<UINT>(height)))
         return false;
     for (int y = 0; y < height; ++y)
         std::memcpy(out + static_cast<std::size_t>(y) * static_cast<std::size_t>(width),
-                    static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
-                    static_cast<std::size_t>(width) * sizeof(std::uint16_t));
+                    g_pictureStaging.Row(static_cast<unsigned>(y)), static_cast<std::size_t>(width) * sizeof(std::uint16_t));
     UnmapRegion(g_pictureStaging);
     return true;
 }
@@ -1085,8 +1007,8 @@ void DropCanvases() {
     if (g_nearest.id) sg_destroy_sampler(g_nearest);
     g_nearest = sg_sampler{};
     g_pipelinesTried = g_pipelinesMade = false;
-    ReleaseStaging(g_staging);
-    ReleaseStaging(g_pictureStaging);
+    g_staging.Release();
+    g_pictureStaging.Release();
 }
 
 } // namespace detail

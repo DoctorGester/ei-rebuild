@@ -1,6 +1,6 @@
 #pragma once
 
-// The game window in the switch-over without DirectDraw (render::PresentsItself): full screen without a
+// The game window the renderer presents on (render::StartPresenting): full screen without a
 // display mode change, and the game's mouse coordinates when the frame does not fill the window one to one.
 // docs/notes/renderer.md, section 9.
 // More: docs/notes/comments-c22i.md, "present_window.h".

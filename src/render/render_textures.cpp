@@ -51,28 +51,6 @@ Texture g_white;
 sg_sampler g_linear{};
 int g_failures = 0;
 
-struct Channel {
-    std::uint32_t mask = 0;
-    int shift = 0;
-    int bits = 0;
-};
-Channel MakeChannel(std::uint32_t mask) {
-    Channel c;
-    c.mask = mask;
-    if (!mask) return c;
-    while (!((mask >> c.shift) & 1)) ++c.shift;
-    while (c.shift + c.bits < 32 && ((mask >> (c.shift + c.bits)) & 1)) ++c.bits;
-    return c;
-}
-std::uint8_t Expand(std::uint32_t pixel, const Channel& c, std::uint8_t missing) {
-    if (!c.bits) return missing;
-    std::uint32_t v = (pixel & c.mask) >> c.shift;
-    if (c.bits >= 8) return static_cast<std::uint8_t>(v >> (c.bits - 8));
-    std::uint32_t out = 0;
-    for (int filled = 0; filled < 8; filled += c.bits) out |= (v << (8 - c.bits)) >> filled;
-    return static_cast<std::uint8_t>(out);
-}
-
 bool Empty(const Rect& r) { return r.right <= r.left || r.bottom <= r.top; }
 
 
@@ -161,33 +139,9 @@ bool Inside(const int r[4], int width, int height) {
     return r[0] >= 0 && r[1] >= 0 && r[0] < r[2] && r[1] < r[3] && r[2] <= width && r[3] <= height;
 }
 
-// The .mmp header (game.exe's texture files; src/game/texture.h MmpHeader): size, mip count,
-// format id ("DXTn" FourCCs or a 16 / 32-bit RGB id), bits per pixel, then mask / shift / bits for
-// alpha, red, green and blue, and the size of an extra block that follows the header.
-struct MmpFile {
-    std::uint32_t magic, width, height, mipCount, format, bitsPerPixel;
-    std::uint32_t alphaMask, alphaShift, alphaBits;
-    std::uint32_t redMask, redShift, redBits;
-    std::uint32_t greenMask, greenShift, greenBits;
-    std::uint32_t blueMask, blueShift, blueBits;
-    std::uint32_t extraSize;
-};
-static_assert(sizeof(MmpFile) == 0x4C);
-
-// The offset of the first level's pixels after the header, as the game computes it (32-bit arithmetic: the
-// extra block plus a geometric sum of the larger levels). Only for the level the texture starts at: the
-// product overflows from about the sixth level of a 1024 x 1024 texture on, and the fill steps from level to
-// level instead (MmpFileLevelBytes).
-std::uint32_t MipOffset(const MmpFile& h, unsigned mip) {
-    if (mip == 0) return h.extraSize;
-    std::uint32_t levelBytes = (h.bitsPerPixel * h.height * h.width) >> 3;
-    std::uint32_t scale = 1u << ((2 * mip) & 31);
-    return levelBytes * (scale - 1) * 4 / (scale * 3) + h.extraSize;
-}
-
 // The bytes level `mip` takes in the file as the game's fill copies it: bits per pixel x width x height / 8
 // of the level's size (halved per level, down to 0), no whole DXT blocks for the levels under 4 x 4.
-std::uint32_t MmpFileLevelBytes(const MmpFile& h, unsigned mip) {
+std::uint32_t MmpFileLevelBytes(const MmpHeader& h, unsigned mip) {
     return (h.bitsPerPixel * (h.width >> (mip & 31)) * (h.height >> (mip & 31))) >> 3;
 }
 
@@ -206,27 +160,26 @@ sg_pixel_format BlockFormat(std::uint32_t format) {
 }
 
 // One level of an RGB .mmp file as RGBA8.
-bool DecodeMmpLevel(const MmpFile& h, const std::uint8_t* pixels, int width, int height, std::vector<std::uint8_t>& out) {
+bool DecodeMmpLevel(const MmpHeader& h, const std::uint8_t* pixels, int width, int height, std::vector<std::uint8_t>& out) {
     int bytes = static_cast<int>(h.bitsPerPixel / 8);
     // RGB with its masks in the header; "PNT2" / "PNT3" (item pictures, a packed format the game
     // decodes itself) and anything else are not decoded.
     if ((bytes != 2 && bytes != 4) || !h.redMask || !h.greenMask || !h.blueMask) return false;
-    Channel r = MakeChannel(h.redMask), g = MakeChannel(h.greenMask), b = MakeChannel(h.blueMask);
-    Channel a = MakeChannel(h.alphaMask);
+    const Channel r(h.redMask), g(h.greenMask), b(h.blueMask), a(h.alphaMask);
     out.resize(static_cast<std::size_t>(width) * height * 4);
     for (int i = 0; i < width * height; ++i) {
         std::uint32_t pixel = 0;
         std::memcpy(&pixel, pixels + static_cast<std::size_t>(i) * bytes, static_cast<std::size_t>(bytes));
         std::uint8_t* o = &out[static_cast<std::size_t>(i) * 4];
-        o[0] = Expand(pixel, r, 0);
-        o[1] = Expand(pixel, g, 0);
-        o[2] = Expand(pixel, b, 0);
-        o[3] = Expand(pixel, a, 255);
+        o[0] = static_cast<std::uint8_t>(r.Widen(pixel));
+        o[1] = static_cast<std::uint8_t>(g.Widen(pixel));
+        o[2] = static_cast<std::uint8_t>(b.Widen(pixel));
+        o[3] = static_cast<std::uint8_t>(a.bits ? a.Widen(pixel) : 255);
     }
     return true;
 }
 
-std::uint32_t MmpLevelBytes(const MmpFile& h, int width, int height) {
+std::uint32_t MmpLevelBytes(const MmpHeader& h, int width, int height) {
     if (BlockFormat(h.format) != SG_PIXELFORMAT_NONE) {
         auto blocks = static_cast<std::uint32_t>((width + 3) / 4) * static_cast<std::uint32_t>((height + 3) / 4);
         return blocks * (BlockFormat(h.format) == SG_PIXELFORMAT_BC1_RGBA ? 8u : 16u);
@@ -244,14 +197,17 @@ struct MmpLevels {
 
 // The levels from `mip` on (`levels` of them, at least one). `pixels` holds the file's bytes after the header from
 // offset `pixelsOffset` on; the bytes the levels take go to `*first` .. `*end`.
-bool ReadMmp(const MmpFile& h, const std::uint8_t* pixels, std::uint32_t pixelsOffset, unsigned mip, unsigned levels,
+bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, std::uint32_t pixelsOffset, unsigned mip, unsigned levels,
              MmpLevels* read, std::uint32_t* first, std::uint32_t* end) {
     *read = MmpLevels{};
     *first = 0xFFFFFFFFu;
     *end = 0;
     const sg_pixel_format blocks = BlockFormat(h.format);
     read->format = blocks != SG_PIXELFORMAT_NONE ? blocks : SG_PIXELFORMAT_RGBA8;
-    std::uint32_t offset = MipOffset(h, mip);
+    // The game's offset of the first level (MmpHeader::MipOffset) for the level the texture starts at only: its
+    // product overflows from about the sixth level of a 1024 x 1024 texture on, so the later levels step from level
+    // to level (MmpFileLevelBytes).
+    std::uint32_t offset = h.MipOffset(mip);
     std::vector<std::uint8_t> padded;
     for (unsigned m = mip; m < mip + (levels ? levels : 1) && m < h.mipCount && read->levels.size() < SG_MAX_MIPMAPS; ++m) {
         int w = static_cast<int>(h.width >> (m & 31)), hh = static_cast<int>(h.height >> (m & 31));
@@ -315,8 +271,8 @@ void Remake(Texture& t) {
     const TextureSource& s = t.source;
     // (A composed texture is drawn again right after the device is made again, RemakeComposed: here a pass may be
     // in progress.)
-    if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpFile)) return;
-    MmpFile h{};
+    if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpHeader)) return;
+    MmpHeader h{};
     std::memcpy(&h, s.header.data(), sizeof(h));
     MmpLevels read;
     std::uint32_t first = 0, end = 0;
@@ -471,8 +427,8 @@ StagePatch PatchOf(const void* holder) {
 
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels) {
     if (!holder || !data) return false;
-    const auto& h = *static_cast<const MmpFile*>(data);
-    const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpFile);
+    const auto& h = *static_cast<const MmpHeader*>(data);
+    const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpHeader);
     if (h.width == 0 || h.height == 0 || h.width > 8192 || h.height > 8192 || h.mipCount == 0 || h.mipCount > 16) {
         if (g_mmpFailures++ < 10) ei::Log("render: .mmp header not understood; the texture is not decoded");
         return false;
@@ -507,13 +463,13 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
 
 bool PictureFromMmpData(const void* holder, const void* data) {
     g_pictures.erase(holder);
-    const auto& h = *static_cast<const MmpFile*>(data);
+    const auto& h = *static_cast<const MmpHeader*>(data);
     if (h.width == 0 || h.height == 0 || h.width > 4096 || h.height > 4096) return false;
     Picture p;
     p.width = static_cast<int>(h.width);
     p.height = static_cast<int>(h.height);
-    const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpFile);
-    if (!DecodeMmpLevel(h, base + MipOffset(h, 0), p.width, p.height, p.rgba)) {
+    const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpHeader);
+    if (!DecodeMmpLevel(h, base + h.MipOffset(0), p.width, p.height, p.rgba)) {
         if (g_mmpFailures++ < 10)
             ei::Log("render: picture format %08X not decoded; the cursor draws nothing for it", static_cast<unsigned>(h.format));
         return false;
@@ -833,8 +789,8 @@ MmpLevelCheck CheckMmpLevels() {
     GpuWorkAlone alone;   // (the block-compressed levels read back)
     for (const auto& entry : g_textures) {
         const TextureSource& s = entry.second.source;
-        if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpFile)) continue;
-        MmpFile h{};
+        if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpHeader)) continue;
+        MmpHeader h{};
         std::memcpy(&h, s.header.data(), sizeof(h));
         MmpLevels read;
         std::uint32_t first = 0, end = 0;

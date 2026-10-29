@@ -64,7 +64,6 @@ bool FrameInWindow(int* width, int* height) {
 }
 void FrameToWindow(int* x, int* y) { render::FrameToWindow(x, y); }
 void WindowToFrame(int* x, int* y) { render::WindowToFrame(x, y); }
-bool PresentsItself() { return render::PresentsItself(); }
 void ConfigureRenderer(const char* spec) { render::Configure(spec); }
 void SetWaitForVsync(bool on) { render::SetWaitForVsync(on); }
 void LoseDevice() { render::LoseDevice(); }

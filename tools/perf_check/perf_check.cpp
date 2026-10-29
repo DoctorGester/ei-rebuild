@@ -157,28 +157,15 @@ void BeginTargetPass(const Target& t) {
 }
 
 bool ReadTarget(const Target& t, std::vector<std::uint8_t>* bgra) {
-    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(t.image).tex2d));
-    if (!texture) return false;
-    D3D11_TEXTURE2D_DESC desc{};
-    texture->GetDesc(&desc);
-    desc.Usage = D3D11_USAGE_STAGING;
-    desc.BindFlags = 0;
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    desc.MiscFlags = 0;
-    ID3D11Texture2D* staging = nullptr;
-    if (FAILED(g_device->CreateTexture2D(&desc, nullptr, &staging))) return false;
-    g_context->CopyResource(staging, texture);
-    D3D11_MAPPED_SUBRESOURCE mapped{};
-    bool ok = SUCCEEDED(g_context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped));
+    render::detail::StagingCopy copy;
+    bool ok = copy.Map(g_context, render::detail::D3DTexture(t.image));
     if (ok) {
         bgra->resize(static_cast<std::size_t>(t.width) * static_cast<std::size_t>(t.height) * 4);
         for (int y = 0; y < t.height; ++y)
             std::memcpy(bgra->data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(t.width) * 4,
-                        static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
-                        static_cast<std::size_t>(t.width) * 4);
-        g_context->Unmap(staging, 0);
+                        copy.Row(static_cast<unsigned>(y)), static_cast<std::size_t>(t.width) * 4);
     }
-    staging->Release();
+    copy.Release();
     sg_reset_state_cache();
     return ok;
 }

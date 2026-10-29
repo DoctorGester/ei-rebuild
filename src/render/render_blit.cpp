@@ -1,8 +1,8 @@
-// The image blits: the software cursor's picture (render::Cursor), the movies' frames (MovieFrame / MovieBlit) and
-// the movie player's fill (Fill), each an RGBA8 image drawn as a screen rectangle that copies texels one to one (a
-// stretch when the sizes differ), texels with alpha under a half left out; the images are kept across frames and
-// updated in place. Also here: the depth clear the game does in the middle of the frame. (The interface windows'
-// canvases have their own blit, render_ui.cpp.)
+// The image blits: the software cursor's picture (render::Cursor) and the movies' frames (MovieFrame / MovieBlit),
+// each an RGBA8 image drawn as a screen rectangle that copies texels one to one (a stretch when the sizes differ),
+// texels with alpha under a half left out; the images are kept across frames and updated in place. Also here: the
+// solid rectangles, the depth clear the game does in the middle of the frame and the movie player's fill (Fill).
+// (The interface windows' canvases have their own blit, render_ui.cpp.)
 #include "render.h"
 #include "render_internal.h"
 
@@ -25,66 +25,73 @@ namespace {
 
 using namespace detail;
 
-struct VsParams {
-    float rect[4];
-    float target[4];
-};
 struct FsParams {
     float dest[4];
     float source[4];
 };
+struct SolidParams {
+    float rect[4];
+    float target[4];   // z: the depth clear's depth
+    float colour[4];   // the fill's colour
+};
 
-sg_shader g_blitShader{}, g_clearShader{};
-sg_pipeline g_blit{}, g_clear{};
+enum PipelineKind { kBlit, kClearDepth, kFill, kPipelineKinds };
+
+sg_shader g_blitShader{}, g_solidShader{};
+sg_pipeline g_pipelines[kPipelineKinds]{};
 // For the smooth option's multisampled passes (render_smooth.cpp), made at their first use.
-sg_pipeline g_blitMultisampled{}, g_clearMultisampled{};
+sg_pipeline g_multisampled[kPipelineKinds]{};
 int g_multisampledSamples = 0;
 sg_sampler g_nearest{};
 
-sg_pipeline MakeBlitPipeline(int samples) {
+// None of them tests the depth: a blit and the fill keep the depth buffer, the depth clear writes only it.
+sg_pipeline MakePipeline(PipelineKind kind, int samples) {
     sg_pipeline_desc p{};
-    p.shader = g_blitShader;
+    p.shader = kind == kBlit ? g_blitShader : g_solidShader;
     p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
     p.depth.pixel_format = kDepthFormat;
-    p.depth.compare = SG_COMPAREFUNC_ALWAYS;   // a blit ignores and keeps the depth buffer
-    p.depth.write_enabled = false;
+    p.depth.compare = SG_COMPAREFUNC_ALWAYS;
+    p.depth.write_enabled = kind == kClearDepth;
     p.colors[0].pixel_format = kColourFormat;
-    p.colors[0].write_mask = SG_COLORMASK_RGB;
+    p.colors[0].write_mask = kind == kClearDepth ? SG_COLORMASK_NONE : SG_COLORMASK_RGB;
     p.sample_count = samples;
-    p.label = "ei-image-blit";
+    p.label = kind == kBlit ? "ei-image-blit" : kind == kClearDepth ? "ei-clear-depth" : "ei-fill";
     return sg_make_pipeline(&p);
 }
 
-sg_pipeline MakeClearPipeline(int samples) {
-    sg_pipeline_desc q{};
-    q.shader = g_clearShader;
-    q.depth.pixel_format = kDepthFormat;
-    q.depth.compare = SG_COMPAREFUNC_ALWAYS;
-    q.depth.write_enabled = true;
-    q.colors[0].pixel_format = kColourFormat;
-    q.colors[0].write_mask = SG_COLORMASK_NONE;
-    q.sample_count = samples;
-    q.label = "ei-clear-depth";
-    return sg_make_pipeline(&q);
-}
-
 void DestroyMultisampledPipelines() {
-    if (g_blitMultisampled.id) sg_destroy_pipeline(g_blitMultisampled);
-    if (g_clearMultisampled.id) sg_destroy_pipeline(g_clearMultisampled);
-    g_blitMultisampled = g_clearMultisampled = sg_pipeline{};
+    for (sg_pipeline& p : g_multisampled) {
+        if (p.id) sg_destroy_pipeline(p);
+        p = sg_pipeline{};
+    }
     g_multisampledSamples = 0;
 }
 
-sg_pipeline PassPipeline(bool clear) {
+sg_pipeline PassPipeline(PipelineKind kind) {
     int samples = PassSampleCount();
-    if (samples <= 1) return clear ? g_clear : g_blit;
+    if (samples <= 1) return g_pipelines[kind];
     if (g_multisampledSamples != samples) {
         DestroyMultisampledPipelines();
-        g_blitMultisampled = MakeBlitPipeline(samples);
-        g_clearMultisampled = MakeClearPipeline(samples);
+        for (int k = 0; k < kPipelineKinds; ++k) g_multisampled[k] = MakePipeline(static_cast<PipelineKind>(k), samples);
         g_multisampledSamples = samples;
     }
-    return clear ? g_clearMultisampled : g_blitMultisampled;
+    return g_multisampled[kind];
+}
+
+// `r` with the depth clear's or the fill's pipeline; `colour` a D3DCOLOR, its alpha ignored.
+void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, int width, int height) {
+    if (r.right <= r.left || r.bottom <= r.top || !g_pipelines[kind].id) return;
+    sg_pipeline pipeline = PassPipeline(kind);
+    sg_apply_pipeline(pipeline);
+    CountPipeline(pipeline);
+    SolidParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
+                   {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
+                   {static_cast<float>((colour >> 16) & 0xFF) / 255.0f, static_cast<float>((colour >> 8) & 0xFF) / 255.0f,
+                    static_cast<float>(colour & 0xFF) / 255.0f, 1.0f}};
+    sg_range vr{&vs, sizeof(vs)};
+    sg_apply_uniforms(0, &vr);
+    sg_draw(0, 6, 1);
+    CountDraw(sizeof(vs));
 }
 
 std::vector<sg_image> g_frameImages;   // made for one frame (the cursor), destroyed at the present
@@ -124,42 +131,20 @@ sg_view MakeImageView(sg_image image) {
 
 #if defined(EI_RENDER_VALIDATION)
 long g_uploadChecks = 0, g_uploadMismatches = 0;
-long g_uploads[2] = {0, 0};   // uploads so far, cursor / fill and movie (the read-back is sampled: ReadBackDue)
+long g_uploads[2] = {0, 0};   // uploads so far, cursor and movie (the read-back is sampled: ReadBackDue)
 // Verify build: reads the image back from the GPU and compares it with the pixels just written
 // (what the blit's unchanged shader then draws is exactly these texels).
 void CheckUpload(sg_image image, const std::uint8_t* rgba, int w, int h, const char* what) {
-    sg_d3d11_image_info info = sg_d3d11_query_image_info(image);
-    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
-    if (!texture) return;
-    ID3D11Device* device = nullptr;
-    texture->GetDevice(&device);
-    if (!device) return;
-    ID3D11DeviceContext* context = nullptr;
-    device->GetImmediateContext(&context);
-    D3D11_TEXTURE2D_DESC desc{};
-    texture->GetDesc(&desc);
-    desc.Usage = D3D11_USAGE_STAGING;
-    desc.BindFlags = 0;
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    desc.MiscFlags = 0;
-    ID3D11Texture2D* staging = nullptr;
-    if (context && SUCCEEDED(device->CreateTexture2D(&desc, nullptr, &staging))) {
-        context->CopyResource(staging, texture);
-        D3D11_MAPPED_SUBRESOURCE mapped{};
-        if (SUCCEEDED(context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped))) {
-            bool same = true;
-            for (int y = 0; y < h && same; ++y)
-                same = std::memcmp(static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
-                                   rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;
-            context->Unmap(staging, 0);
-            ++g_uploadChecks;
-            if (!same && g_uploadMismatches++ < 10)
-                ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written", what, w, h);
-        }
-        staging->Release();
+    StagingCopy copy;
+    if (copy.Map(D3DContext(), D3DTexture(image), 0, 0, static_cast<unsigned>(w), static_cast<unsigned>(h))) {
+        bool same = true;
+        for (int y = 0; y < h && same; ++y)
+            same = std::memcmp(copy.Row(static_cast<unsigned>(y)), rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;
+        ++g_uploadChecks;
+        if (!same && g_uploadMismatches++ < 10)
+            ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written", what, w, h);
     }
-    if (context) context->Release();
-    device->Release();
+    copy.Release();
     sg_reset_state_cache();
 }
 #endif
@@ -173,7 +158,7 @@ void UpdateImage(sg_image image, const std::uint8_t* rgba, int w, int h, ImageUs
 #if defined(EI_RENDER_VALIDATION)
     long& uploads = g_uploads[use == ImageUse::Movie ? 1 : 0];
     if (ReadBackDue(uploads++)) {
-        CheckUpload(image, rgba, w, h, use == ImageUse::Movie ? "movie" : "cursor/fill");
+        CheckUpload(image, rgba, w, h, use == ImageUse::Movie ? "movie" : "cursor");
         if (g_uploadChecks % 20 == 1 && g_uploadChecks)
             ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads[0] + g_uploads[1], g_uploadMismatches);
     }
@@ -190,7 +175,7 @@ struct Movie {
 std::unordered_map<const void*, Movie> g_movies;
 std::vector<std::uint8_t> g_movieScratch;
 
-// The cursor's and the fills' small images, kept across frames: one per size, rewritten only when
+// The cursor's small images, kept across frames: one per size, rewritten only when
 // the content differs (compared with a copy of what the image holds). Several images of one size
 // are kept when a frame draws different contents of it.
 struct CachedImage {
@@ -206,12 +191,9 @@ std::vector<CachedImage> g_cache;
 std::uint64_t g_cacheClock = 0;
 constexpr std::size_t kCacheMax = 64;
 
-// Draws `rgba` (w x h) at `to` as a blit of this frame.
-void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to, ImageUse use);
-
 // The view of a cached image holding `rgba` (w x h), or none when every cached image is in use
 // this frame or one could not be made.
-sg_view CachedView(const std::vector<std::uint8_t>& rgba, int w, int h, ImageUse use) {
+sg_view CachedView(const std::vector<std::uint8_t>& rgba, int w, int h) {
     std::uint32_t frame = FrameNumber(), commit = CommitNumber();
     CachedImage* sameSize = nullptr;   // the least recently used free image of this size
     CachedImage* anySize = nullptr;    // the least recently used free image
@@ -236,7 +218,7 @@ sg_view CachedView(const std::vector<std::uint8_t>& rgba, int w, int h, ImageUse
         if (chosen->view.id) sg_destroy_view(chosen->view);
         if (chosen->image.id) sg_destroy_image(chosen->image);
         *chosen = CachedImage{};
-        sg_image image = MakeDynamicImage(w, h, "ei-small-image", use);
+        sg_image image = MakeDynamicImage(w, h, "ei-small-image", ImageUse::Cursor);
         sg_view view = MakeImageView(image);
         if (!view.id) return sg_view{};
         chosen->image = image;
@@ -244,7 +226,7 @@ sg_view CachedView(const std::vector<std::uint8_t>& rgba, int w, int h, ImageUse
         chosen->width = w;
         chosen->height = h;
     }
-    UpdateImage(chosen->image, rgba.data(), w, h, use);
+    UpdateImage(chosen->image, rgba.data(), w, h, ImageUse::Cursor);
     chosen->pixels = rgba;
     chosen->updatedCommit = commit;
     chosen->usedFrame = frame;
@@ -252,12 +234,14 @@ sg_view CachedView(const std::vector<std::uint8_t>& rgba, int w, int h, ImageUse
     return chosen->view;
 }
 
-void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to, ImageUse use) {
-    CountImageRequest(use);
-    sg_view view = CachedView(rgba, w, h, use);
+// `rgba` (w x h) at `to`: drawn by the present (DrawToWindow) over the frame, which stays without it for the
+// cursor thread.
+void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to) {
+    CountImageRequest(ImageUse::Cursor);
+    sg_view view = CachedView(rgba, w, h);
     if (!view.id) {
         // Every cached image is in use this frame: an image for this frame only.
-        CountImage(use, true);
+        CountImage(ImageUse::Cursor, true);
         sg_image_desc desc{};
         desc.width = w;
         desc.height = h;
@@ -271,16 +255,8 @@ void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect&
         g_frameImages.push_back(image);
         g_frameViews.push_back(view);
     }
-    Frame& f = g_frame;
-    if (use == ImageUse::Cursor && PresentsItself()) {
-        // Drawn by the present (DrawToWindow) over the frame, which stays without it for the cursor thread.
-        f.cursor = BlitBatch{view, w, h, to, Rect{0, 0, w, h}};
-        f.haveCursor = true;
-        return;
-    }
-    ++g_stats.blits;
-    f.blitBatches.push_back(BlitBatch{view, w, h, to, Rect{0, 0, w, h}});
-    f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
+    g_frame.cursor = BlitBatch{view, w, h, to, Rect{0, 0, w, h}};
+    g_frame.haveCursor = true;
 }
 
 } // namespace
@@ -291,7 +267,7 @@ bool CreateBlitPipeline() {
     sg_shader_desc s{};
     SetBytecode(s, kBlitShader);
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(VsParams);
+    s.uniform_blocks[0].size = sizeof(RectParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[1].size = sizeof(FsParams);
@@ -316,19 +292,20 @@ bool CreateBlitPipeline() {
     sd.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
     sd.label = "ei-image-blit";
     g_nearest = sg_make_sampler(&sd);
-    g_blit = MakeBlitPipeline(1);
 
     sg_shader_desc c{};
-    SetBytecode(c, kClearDepthShader);
+    SetBytecode(c, kSolidShader);
     c.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    c.uniform_blocks[0].size = sizeof(VsParams);
+    c.uniform_blocks[0].size = sizeof(SolidParams);
     c.uniform_blocks[0].hlsl_register_b_n = 0;
-    c.label = "ei-clear-depth";
-    g_clearShader = sg_make_shader(&c);
-    g_clear = MakeClearPipeline(1);
-    bool ok = sg_query_pipeline_state(g_blit) == SG_RESOURCESTATE_VALID &&
-              sg_query_pipeline_state(g_clear) == SG_RESOURCESTATE_VALID;
-    if (!ok) ei::Log("render: the image blit or depth clear pipeline could not be created (see the sokol messages above)");
+    c.label = "ei-solid";
+    g_solidShader = sg_make_shader(&c);
+    bool ok = true;
+    for (int k = 0; k < kPipelineKinds; ++k) {
+        g_pipelines[k] = MakePipeline(static_cast<PipelineKind>(k), 1);
+        ok = ok && sg_query_pipeline_state(g_pipelines[k]) == SG_RESOURCESTATE_VALID;
+    }
+    if (!ok) ei::Log("render: the image blit, depth clear or fill pipeline could not be created (see the sokol messages above)");
     return ok;
 }
 
@@ -337,7 +314,7 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     int dw = b.destination.right - b.destination.left, dh = b.destination.bottom - b.destination.top;
     int sw = b.source.right - b.source.left, sh = b.source.bottom - b.source.top;
     if (dw <= 0 || dh <= 0 || sw <= 0 || sh <= 0) return;
-    sg_pipeline pipeline = PassPipeline(false);
+    sg_pipeline pipeline = PassPipeline(kBlit);
     sg_apply_pipeline(pipeline);
     CountPipeline(pipeline);
     sg_bindings bind{};
@@ -345,45 +322,34 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     bind.samplers[0] = g_nearest;
     sg_apply_bindings(&bind);
     CountBindings(bind);
-    VsParams vs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
-                 static_cast<float>(b.destination.right), static_cast<float>(b.destination.bottom)},
-                {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    ApplyRect(b.destination, width, height);
     FsParams fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
                  static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
                 {static_cast<float>(b.source.left), static_cast<float>(b.source.top), static_cast<float>(b.textureWidth),
                  static_cast<float>(b.textureHeight)}};
-    sg_range vr{&vs, sizeof(vs)};
-    sg_apply_uniforms(0, &vr);
     sg_range fr{&fs, sizeof(fs)};
     sg_apply_uniforms(1, &fr);
     sg_draw(0, 6, 1);
-    CountDraw(sizeof(vs) + sizeof(fs));
+    CountDraw(sizeof(RectParams) + sizeof(fs));
 }
 
 void DrawClearDepth(const ClearBatch& clear, int width, int height) {
-    if (!g_clear.id) return;
     Rect r = clear.rect.right > clear.rect.left ? clear.rect : Rect{0, 0, width, height};
-    if (r.bottom <= r.top) return;
-    sg_pipeline pipeline = PassPipeline(true);
-    sg_apply_pipeline(pipeline);
-    CountPipeline(pipeline);
-    VsParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
-                {static_cast<float>(width), static_cast<float>(height), clear.z, 0.0f}};
-    sg_range vr{&vs, sizeof(vs)};
-    sg_apply_uniforms(0, &vr);
-    sg_draw(0, 6, 1);
-    CountDraw(sizeof(vs));
+    DrawSolid(kClearDepth, r, clear.z, 0, width, height);
 }
+
+void DrawFill(const FillBatch& fill, int width, int height) { DrawSolid(kFill, fill.rect, 0.0f, fill.colour, width, height); }
 
 void DestroyBlits() {
     DestroyMultisampledPipelines();
-    if (g_blit.id) sg_destroy_pipeline(g_blit);
-    if (g_clear.id) sg_destroy_pipeline(g_clear);
+    for (sg_pipeline& p : g_pipelines) {
+        if (p.id) sg_destroy_pipeline(p);
+        p = sg_pipeline{};
+    }
     if (g_blitShader.id) sg_destroy_shader(g_blitShader);
-    if (g_clearShader.id) sg_destroy_shader(g_clearShader);
+    if (g_solidShader.id) sg_destroy_shader(g_solidShader);
     if (g_nearest.id) sg_destroy_sampler(g_nearest);
-    g_blit = g_clear = sg_pipeline{};
-    g_blitShader = g_clearShader = sg_shader{};
+    g_blitShader = g_solidShader = sg_shader{};
     g_nearest = sg_sampler{};
 }
 
@@ -393,14 +359,14 @@ namespace detail {
 namespace {
 long g_imageMade[static_cast<int>(ImageUse::Count)];
 long g_imageUpdated[static_cast<int>(ImageUse::Count)];
-long g_imageRequests[static_cast<int>(ImageUse::Count)];   // pictures asked for (cursor, fill, movie frames)
+long g_imageRequests[static_cast<int>(ImageUse::Count)];   // pictures asked for (cursor, movie frames)
 } // namespace
 
 void CountImage(ImageUse use, bool made) { ++(made ? g_imageMade : g_imageUpdated)[static_cast<int>(use)]; }
 void CountImageRequest(ImageUse use) { ++g_imageRequests[static_cast<int>(use)]; }
 
 void LogImageCounts(const char* when) {
-    static const char* const names[] = {"cursor", "fill", "movie", "texture"};
+    static const char* const names[] = {"cursor", "movie", "texture"};
     for (int i = 0; i < static_cast<int>(ImageUse::Count); ++i)
         ei::Log("render: images %s, frame %u: %s: %ld requested, %ld made, %ld updated in place", when,
                 static_cast<unsigned>(FrameNumber()), names[i], g_imageRequests[i], g_imageMade[i], g_imageUpdated[i]);
@@ -463,12 +429,8 @@ void MovieBlit(const void* key, const Rect& to) {
 
 void Fill(const Rect& to, std::uint32_t colour) {
     if (to.right <= to.left || to.bottom <= to.top) return;
-    Start();
-    FpuGuard fpu;
-    // One texel stretched over the rectangle (D3DCOLOR is B, G, R, A in memory).
-    std::vector<std::uint8_t> rgba{static_cast<std::uint8_t>(colour >> 16), static_cast<std::uint8_t>(colour >> 8),
-                                   static_cast<std::uint8_t>(colour), 255};
-    CursorBlit(rgba, 1, 1, to, ImageUse::Fill);
+    g_frame.fills.push_back(FillBatch{to, colour});
+    g_frame.commands.push_back(Command{Command::Fill, static_cast<int>(g_frame.fills.size()) - 1});
 }
 
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
@@ -488,7 +450,7 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     const Picture* picture = PictureOf(imageHolder);
     if (picture && picture->width == maskWidth && (maskBytes == 2 || maskBytes == 4) &&
         CursorPicturePart(imageHolder, mask, maskBytes, *picture, from, &rgba))
-        CursorBlit(rgba, w, h, to, ImageUse::Cursor);
+        CursorBlit(rgba, w, h, to);
 }
 
 namespace detail {

@@ -270,7 +270,6 @@ Rect Placed(int clientWidth, int clientHeight, int frameWidth, int frameHeight) 
 
 // The client area, the frame's size and its place; false when there is no frame or window.
 bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameHeight, Rect* placed) {
-    if (!PresentsItself()) return false;
     HWND window = GameWindow();
     RECT client{};
     if (!window || !GetClientRect(window, &client)) return false;
@@ -290,35 +289,15 @@ void CheckRamp(int width, int height) {
     if (!FrameSize(&fw, &fh) || fw != width || fh != height) return;
     ID3D11Texture2D* back = nullptr;
     if (FAILED(g_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&back)))) return;
-    sg_d3d11_image_info info = sg_d3d11_query_image_info(FrameImage());
-    auto* frame = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
-    ID3D11Texture2D* copies[2] = {nullptr, nullptr};
-    ID3D11Texture2D* sources[2] = {back, frame};
-    bool ok = frame != nullptr;
-    for (int i = 0; ok && i < 2; ++i) {
-        D3D11_TEXTURE2D_DESC desc{};
-        sources[i]->GetDesc(&desc);
-        desc.Usage = D3D11_USAGE_STAGING;
-        desc.BindFlags = 0;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        desc.MiscFlags = 0;
-        ok = SUCCEEDED(D3DDevice()->CreateTexture2D(&desc, nullptr, &copies[i]));
-        if (ok) D3DContext()->CopyResource(copies[i], sources[i]);
-    }
-    D3D11_MAPPED_SUBRESOURCE mb{}, mf{};
-    if (ok) ok = SUCCEEDED(D3DContext()->Map(copies[0], 0, D3D11_MAP_READ, 0, &mb));
-    if (ok && FAILED(D3DContext()->Map(copies[1], 0, D3D11_MAP_READ, 0, &mf))) {
-        D3DContext()->Unmap(copies[0], 0);
-        ok = false;
-    }
-    if (ok) {
+    StagingCopy backCopy, frameCopy;
+    if (backCopy.Map(D3DContext(), back) && frameCopy.Map(D3DContext(), D3DTexture(FrameImage()))) {
         int points = 0, differing = 0;
         for (int y = height / 34; y < height; y += height / 17 + 1) {
             for (int x = width / 34; x < width; x += width / 17 + 1) {
                 if (x >= g_lastCursor.left - 1 && x < g_lastCursor.right + 1 && y >= g_lastCursor.top - 1 && y < g_lastCursor.bottom + 1)
                     continue;   // the cursor is over the frame only in the back buffer
-                const auto* b = static_cast<const std::uint8_t*>(mb.pData) + static_cast<std::size_t>(y) * mb.RowPitch + x * 4;
-                const auto* f = static_cast<const std::uint8_t*>(mf.pData) + static_cast<std::size_t>(y) * mf.RowPitch + x * 4;
+                const std::uint8_t* b = backCopy.Row(static_cast<unsigned>(y)) + x * 4;
+                const std::uint8_t* f = frameCopy.Row(static_cast<unsigned>(y)) + x * 4;
                 // back buffer B, G, R; frame R, G, B
                 int want[3] = {g_ramp[f[2] * 4 + 2], g_ramp[f[1] * 4 + 1], g_ramp[f[0] * 4 + 0]};
                 for (int c = 0; c < 3; ++c) {
@@ -336,11 +315,9 @@ void CheckRamp(int width, int height) {
         g_info.rampDiffering = differing;
         if (differing) ei::Log("render: MISMATCH gamma ramp: %d of %d points of the presented frame differ", differing, points);
         else ei::Log("render: gamma ramp check: %d points of the presented frame match the ramp", points);
-        D3DContext()->Unmap(copies[0], 0);
-        D3DContext()->Unmap(copies[1], 0);
     }
-    for (ID3D11Texture2D* c : copies)
-        if (c) c->Release();
+    backCopy.Release();
+    frameCopy.Release();
     back->Release();
     sg_reset_state_cache();
 }
@@ -358,35 +335,15 @@ void CheckCursorDrawn(int width, int height) {
     if (!FrameSize(&fw, &fh) || fw != width || fh != height) return;
     ID3D11Texture2D* back = nullptr;
     if (FAILED(g_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&back)))) return;
-    sg_d3d11_image_info info = sg_d3d11_query_image_info(FrameImage());
-    auto* frame = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
-    ID3D11Texture2D* copies[2] = {nullptr, nullptr};
-    ID3D11Texture2D* sources[2] = {back, frame};
-    D3D11_BOX box{static_cast<UINT>(c.left), static_cast<UINT>(c.top), 0, static_cast<UINT>(c.right), static_cast<UINT>(c.bottom), 1};
-    bool ok = frame != nullptr;
-    for (int i = 0; ok && i < 2; ++i) {
-        D3D11_TEXTURE2D_DESC desc{};
-        sources[i]->GetDesc(&desc);
-        desc.Width = static_cast<UINT>(c.right - c.left);
-        desc.Height = static_cast<UINT>(c.bottom - c.top);
-        desc.Usage = D3D11_USAGE_STAGING;
-        desc.BindFlags = 0;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        desc.MiscFlags = 0;
-        ok = SUCCEEDED(D3DDevice()->CreateTexture2D(&desc, nullptr, &copies[i]));
-        if (ok) D3DContext()->CopySubresourceRegion(copies[i], 0, 0, 0, 0, sources[i], 0, &box);
-    }
-    D3D11_MAPPED_SUBRESOURCE mb{}, mf{};
-    if (ok) ok = SUCCEEDED(D3DContext()->Map(copies[0], 0, D3D11_MAP_READ, 0, &mb));
-    if (ok && FAILED(D3DContext()->Map(copies[1], 0, D3D11_MAP_READ, 0, &mf))) {
-        D3DContext()->Unmap(copies[0], 0);
-        ok = false;
-    }
-    if (ok) {
+    const auto left = static_cast<unsigned>(c.left), top = static_cast<unsigned>(c.top);
+    const auto w = static_cast<unsigned>(c.right - c.left), h = static_cast<unsigned>(c.bottom - c.top);
+    StagingCopy backCopy, frameCopy;
+    if (backCopy.Map(D3DContext(), back, left, top, w, h) &&
+        frameCopy.Map(D3DContext(), D3DTexture(FrameImage()), left, top, w, h)) {
         int differing = 0, total = (c.right - c.left) * (c.bottom - c.top);
         for (int y = 0; y < c.bottom - c.top; ++y) {
-            const auto* b = static_cast<const std::uint8_t*>(mb.pData) + static_cast<std::size_t>(y) * mb.RowPitch;
-            const auto* f = static_cast<const std::uint8_t*>(mf.pData) + static_cast<std::size_t>(y) * mf.RowPitch;
+            const std::uint8_t* b = backCopy.Row(static_cast<unsigned>(y));
+            const std::uint8_t* f = frameCopy.Row(static_cast<unsigned>(y));
             for (int x = 0; x < c.right - c.left; ++x) {
                 // back buffer B, G, R; frame R, G, B, through the ramp
                 if (std::abs(static_cast<int>(b[x * 4]) - g_uploaded[f[x * 4 + 2] * 4 + 2]) > 1 ||
@@ -402,11 +359,9 @@ void CheckCursorDrawn(int width, int height) {
         } else if (logged++ < 3) {
             ei::Log("render: cursor in the presented frame: %d of %d pixels of its rectangle differ from the frame", differing, total);
         }
-        D3DContext()->Unmap(copies[0], 0);
-        D3DContext()->Unmap(copies[1], 0);
     }
-    for (ID3D11Texture2D* t : copies)
-        if (t) t->Release();
+    backCopy.Release();
+    frameCopy.Release();
     back->Release();
     sg_reset_state_cache();
 }
