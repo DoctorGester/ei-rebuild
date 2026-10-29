@@ -23,7 +23,7 @@ constexpr float kMillisecondsToSeconds = 0.0009765625f;
 // A session that is there and not shutting down is ticked with `elapsed` milliseconds.
 void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
     if (!session) return;
-    if (session->flags7_ & CRefCounted::kDetached) return;
+    if (session->flags7 & RefCounted::kDetached) return;
     // The zero-extended 64-bit value times the float constant, passed as a double.
     double seconds = x87::FromUnsigned(elapsed) * kMillisecondsToSeconds;
     session->Tick(seconds);

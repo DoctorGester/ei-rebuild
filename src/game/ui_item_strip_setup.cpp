@@ -1,7 +1,7 @@
 // The item strips' setups: the camp's item, spell and part strips and the
 // hero screen's figure strips, called by their screens' Creates after constructing the strip;
 // and the figure strips' draw, count and click.
-// See ui_screens.h (CUiItemStrip::Setup, SetupFigures) and docs/notes/ui.md ("Camp, global map,
+// See ui_screens.h (UiItemStrip::Setup, SetupFigures) and docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui.h"
 #include "ui_item_info.h"
@@ -31,71 +31,73 @@ const char* const kOnOffSound = "buttons\\battle\\on_off.wav";
 
 } // namespace
 
-void CUiItemStrip::Setup(std::vector<CItem*>* source, bool top) {
-    LoadTexture(top ? kTopTexture : kBottomTexture, TextureKind::Interface);
-    Build(top);
-    regions_[0]->SetTip(0x4FB0);
-    regions_[1]->SetTip(0x4FB1);
-    AddSurface(new CUiSurface(interface_, 50, top_ + 15, 750, top_ + 35, SurfaceBlend::Keyed, true));
-    AddSurface(new CUiSurface(interface_, 50, top_ + 65, 750, top_ + 85, SurfaceBlend::Keyed, true));
-    slots_ = 9;
-    source_ = source;
+void UiItemStrip::Setup(std::vector<Item*>* newSource, bool newTop) {
+    LoadTexture(newTop ? kTopTexture : kBottomTexture, TextureKind::Interface);
+    Build(newTop);
+    regions[0]->SetTip(0x4FB0);
+    regions[1]->SetTip(0x4FB1);
+    AddSurface(new UiSurface(ui, 50, top + 15, 750, top + 35, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 50, top + 65, 750, top + 85, SurfaceBlend::Keyed, true));
+    slots = 9;
+    source = newSource;
 }
 
-void CFigureStrip::SetupFigures(std::vector<std::string>* names, bool top, bool noArrowTips) {
-    figures_ = names;
+void FigureStrip::SetupFigures(std::vector<std::string>* names, bool newTop, bool noArrowTips) {
+    figures = names;
     LoadTexture(kFigureTexture, TextureKind::Interface);
-    Build(top);
+    Build(newTop);
     if (!noArrowTips) {
-        regions_[0]->SetTip(0x9DD0);
-        regions_[1]->SetTip(0x9DD1);
+        regions[0]->SetTip(0x9DD0);
+        regions[1]->SetTip(0x9DD1);
     }
-    tabsEnabled_ = false;
-    for (int i = 2; i < 8; ++i) SceneMesh(i)->visible_ = false;
+    tabsEnabled = false;
+    for (int i = 2; i < 8; ++i) SceneMesh(i)->visible = false;
 }
 
 // --- The figure strips' slots ----------------------------------------------------------------------
 
-void CFigureStrip::Draw(CSceneRenderer* pass) {
-    const float position = position_[tab_];
-    const int first = static_cast<int>(position);   // _ftol
-    const float frac = static_cast<float>(position - static_cast<float>(first));
-    SceneMesh(0)->textureOffsetU_ = position_[tab_] > 0.0f ? kDimmed : 0.0f;
-    SceneMesh(1)->textureOffsetU_ = static_cast<float>(count_ - 7) > position_[tab_] ? kDimmed : 0.0f;
-    SceneMesh(9)->Place(kHalfCell - frac * kCell, static_cast<float>(top_), scale_ + scale_);
+void FigureStrip::Draw(SceneRenderer* pass) {
+    const float scrollPosition = position[tab];
+    const int first = static_cast<int>(scrollPosition);   // _ftol
+    const float frac = static_cast<float>(scrollPosition - static_cast<float>(first));
+    SceneMesh(0)->textureOffsetU = position[tab] > 0.0f ? kDimmed : 0.0f;
+    SceneMesh(1)->textureOffsetU = static_cast<float>(count - 7) > position[tab] ? kDimmed : 0.0f;
+    SceneMesh(9)->Place(kHalfCell - frac * kCell, static_cast<float>(top), scale + scale);
     for (int i = 0; i < 8; ++i) {
-        SceneMesh(10 + i)->Place(((static_cast<float>(i) - frac) + 1.0f) * kCell, static_cast<float>(top_) + kHalfCell,
-                                 scale_);
+        SceneMesh(10 + i)->Place(((static_cast<float>(i) - frac) + 1.0f) * kCell, static_cast<float>(top) + kHalfCell,
+                                 scale);
     }
-    CUiMesh* frame = SceneMesh(8);
-    frame->visible_ = false;
-    if (selected_ >= 0 && selected_ < count_) {
-        int cell = selected_ - first;
+    UiMesh* frame = SceneMesh(8);
+    frame->visible = false;
+    if (selected >= 0 && selected < count) {
+        int cell = selected - first;
         if (cell >= 0 && cell < 8) {
-            frame->visible_ = true;
-            frame->Place(((static_cast<float>(cell) - frac) + 1.0f) * kCell, static_cast<float>(top_) + kHalfCell,
-                         scale_ * kFrameDepth);
+            frame->visible = true;
+            frame->Place(((static_cast<float>(cell) - frac) + 1.0f) * kCell, static_cast<float>(top) + kHalfCell,
+                         scale * kFrameDepth);
         }
     }
     DrawBase(pass);
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
-        if (index < 0 || index >= count_) continue;
-        const HeroFaceCell cell{(*figures_)[index].c_str(), ((static_cast<float>(i) - frac) + 1.0f) * kCell,
-                                static_cast<float>(top_) + kHalfCell, scale_ * kFaceDepth, kCell};
-        owner_->DrawHeroFace(pass, cell);
+        if (index < 0 || index >= count) continue;
+        const HeroFaceCell cell{(*figures)[index].c_str(), ((static_cast<float>(i) - frac) + 1.0f) * kCell,
+                                static_cast<float>(top) + kHalfCell, scale * kFaceDepth, kCell};
+        owner->DrawHeroFace(pass, cell);
     }
 }
 
-void CFigureStrip::RebuildList() { count_ = static_cast<int>(figures_->size()); }
+void FigureStrip::RebuildList() { count = static_cast<int>(figures->size()); }
 
-void CFigureStrip::LeftDown(int buttons, int x, int y) {
-    CUiItemStrip::LeftDown(buttons, x, y);
+void FigureStrip::LeftDown(int buttons, int x, int y) {
+    UiItemStrip::LeftDown(buttons, x, y);
     if (RegionAt(x, y) != 8) return;
     POINT point{x, y};
-    interface_->ScalePointFromScreenEntry(&point);
-    int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);   // _ftol
-    if (index < 0 || index >= count_) return;
-    interface_->PlaySound(kOnOffSound);
-    owner_->ChooseFigure((*figures_)[index]);   // the hero screen: the new hero's figure
+    ui->ScalePointFromScreenEntry(&point);
+    int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position[tab]);     // _ftol
+    if (index < 0 || index >= count) return;
+    ui->PlaySound(kOnOffSound);
+    owner->ChooseFigure((*figures)[index]);     // the hero screen: the new hero's figure
 }
+
+Item* FigureStrip::ItemAt(int, int, int*) { return nullptr; }

@@ -1,4 +1,4 @@
-// The battle HUD's party portraits, per frame (CHudPortraits::Update): each portrait's
+// The battle HUD's party portraits, per frame (HudPortraits::Update): each portrait's
 // health and mana bars, the red flash after a hit, the face picture (normal, hit, low mana) and
 // model (by the unit's build), the face model's easing towards its rest orientation with an
 // occasional random nod, shake or turn, and the marker under the selected unit's portrait.
@@ -27,7 +27,7 @@
 
 namespace {
 
-bool GamePaused() { return g_clientWorld.paused_ != 0; }
+bool GamePaused() { return g_clientWorld.paused != 0; }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;
@@ -58,16 +58,16 @@ constexpr float kMarkerRise = 60.0f;
 constexpr float kMarkerDepth = 10.0f;
 
 // A bar: its right edge (x of vertices 2 and 3) moves with the fraction, its texture follows.
-void SetBar(CEngineObject* object, double fraction, std::uint32_t v0, std::uint32_t v1) {
-    CUiMesh* bar = AsUiMesh(object);
+void SetBar(EngineObject* object, double fraction, std::uint32_t v0, std::uint32_t v1) {
+    UiMesh* bar = AsUiMesh(object);
     float u = static_cast<float>(((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel);
     double right = fraction - 0.5f;
-    bar->vertices_[0].x()[2] = static_cast<float>(right);
-    bar->vertices_[0].x()[3] = static_cast<float>(right);
-    bar->texCoords_[2].u = u;
-    bar->texCoords_[2].v = FloatFromBits(v0);
-    bar->texCoords_[3].u = u;
-    bar->texCoords_[3].v = FloatFromBits(v1);
+    bar->vertices[0].x()[2] = static_cast<float>(right);
+    bar->vertices[0].x()[3] = static_cast<float>(right);
+    bar->texCoords[2].u = u;
+    bar->texCoords[2].v = FloatFromBits(v0);
+    bar->texCoords[3].u = u;
+    bar->texCoords[3].v = FloatFromBits(v1);
 }
 
 // The original inlines three quaternion products, each with its own operand order; every
@@ -114,21 +114,21 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 
 } // namespace
 
-void CHudPortraits::Wobble(int index, int kind) {
-    slots_[index].wobbleTime_ = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
-    slots_[index].wobbleKind_ = kind;
+void HudPortraits::Wobble(int index, int kind) {
+    slots[index].wobbleTime = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
+    slots[index].wobbleKind = kind;
 }
 
-void CHudPortraits::Update() {
-    float dt = GamePaused() ? 0.0f : static_cast<float>(CUiContainer::FrameTime());
-    SceneMesh(0)->visible_ = false;   // the selection marker
+void HudPortraits::Update() {
+    float dt = GamePaused() ? 0.0f : static_cast<float>(UiContainer::FrameTime());
+    SceneMesh(0)->visible = false;    // the selection marker
 
-    for (int i = 0; i < std::ssize(owner_->party_); ++i) {
-        if (i >= count_) continue;
+    for (int i = 0; i < std::ssize(owner->party); ++i) {
+        if (i >= count) continue;
         // Objects 5i+1 .. 5i+5, read afresh each time (replacing the face model may move the array).
-        auto object = [this, i](int k) { return sceneObjects_[i * 5 + k]; };
-        HudPortraitSlot& slot = slots_[i];
-        CUnit* unit = owner_->party_[i];
+        auto object = [this, i](int k) { return sceneObjects[i * 5 + k]; };
+        HudPortraitSlot& slot = slots[i];
+        CUnit* unit = owner->party[i];
 
         // Health bar (object 5i+2) and mana bar (5i+3).
         int hitPoints = unit->packedVitals.hitPoints < 0 ? 0 : unit->packedVitals.hitPoints;
@@ -146,35 +146,35 @@ void CHudPortraits::Update() {
         SetBar(object(3), mana, kManaV0, kManaV1);
 
         // A drop in hit points flashes the portrait (object 5i+5) and shows the hit picture.
-        if (slot.lastHitPoints_ > hitPoints) {
-            slot.flash_ = 1.0f;
-            slot.lastHitPoints_ = hitPoints;
-            slot.faceTimer_ = 0.0f;
-            slot.faceMode_ = 2;
-        } else if (slot.flash_ > 0.0f) {
-            slot.flash_ = static_cast<float>(D(slot.flash_) - D(dt));
+        if (slot.lastHitPoints > hitPoints) {
+            slot.flash = 1.0f;
+            slot.lastHitPoints = hitPoints;
+            slot.faceTimer = 0.0f;
+            slot.faceMode = 2;
+        } else if (slot.flash > 0.0f) {
+            slot.flash = static_cast<float>(D(slot.flash) - D(dt));
         }
-        slot.flash_ = slot.flash_ >= 0.0f ? slot.flash_ : 0.0f;
-        CEngineObject* flash = object(5);
-        if (slot.flash_ > 0.0f) {
-            AsUiMesh(flash)->visible_ = true;
-            int alpha = static_cast<int>(libcrt::Ftol(D(slot.flash_) * kFlashAlpha));
+        slot.flash = slot.flash >= 0.0f ? slot.flash : 0.0f;
+        EngineObject* flash = object(5);
+        if (slot.flash > 0.0f) {
+            AsUiMesh(flash)->visible = true;
+            int alpha = static_cast<int>(libcrt::Ftol(D(slot.flash) * kFlashAlpha));
             std::uint32_t colour = static_cast<std::uint32_t>(alpha) << 24 | 0xFF0000u;
-            AsUiMesh(flash)->flatColour_ = colour;
+            AsUiMesh(flash)->flatColour = colour;
         } else {
-            AsUiMesh(flash)->visible_ = false;
+            AsUiMesh(flash)->visible = false;
         }
 
         // The face picture: a timed one (hit, mode 1) while it lasts, else low mana or normal.
         int state = 0;
-        if (slot.faceMode_ != 0) {
-            slot.faceTimer_ = static_cast<float>(D(dt) + D(slot.faceTimer_));
-            if (slot.faceMode_ == 1) {
-                if (slot.faceTimer_ > kMode1PictureTime) slot.faceMode_ = 0;
-            } else if (slot.faceMode_ == 2) {
-                if (slot.faceTimer_ > kHitPictureTime) slot.faceMode_ = 0;
+        if (slot.faceMode != 0) {
+            slot.faceTimer = static_cast<float>(D(dt) + D(slot.faceTimer));
+            if (slot.faceMode == 1) {
+                if (slot.faceTimer > kMode1PictureTime) slot.faceMode = 0;
+            } else if (slot.faceMode == 2) {
+                if (slot.faceTimer > kHitPictureTime) slot.faceMode = 0;
             }
-            state = slot.faceMode_;
+            state = slot.faceMode;
         }
         if (state == 0) {
             std::uint16_t maximum = unit->packedVitals.maxMana;
@@ -183,24 +183,24 @@ void CHudPortraits::Update() {
                     kLowMana)   // integers: never NaN
                 state = 3;
         }
-        if (state != slot.faceState_) {
-            slot.faceState_ = state;
+        if (state != slot.faceState) {
+            slot.faceState = state;
             ShowFace(i, state);
         }
 
         // The face model follows the unit's build (its scale's y): thin, medium or fat.
         float build = unit->scale.y;
-        EI_NAN_AUDIT(slot.build_, build);
-        if (slot.build_ != build) {
-            slot.build_ = build;
+        EI_NAN_AUDIT(slot.build, build);
+        if (slot.build != build) {
+            slot.build = build;
             std::string name("me");
             if (build < kThin)
                 name = "th";
             else if (build > kFat)
                 name = "fa";
             {
-                const std::string& prefix = slot.modelPrefix_;
-                const std::string& suffix = slot.modelSuffix_;
+                const std::string& prefix = slot.modelPrefix;
+                const std::string& suffix = slot.modelSuffix;
                 std::string withPrefix = prefix + name;
                 std::string full = withPrefix + suffix;
                 name = full;
@@ -211,44 +211,44 @@ void CHudPortraits::Update() {
         // Now and then (a third of the time per second) a wobble starts after a random delay:
         // a turn towards a random target.
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
-        if (slot.wobbleKind_ == 0 && dt > 0.0f) {
+        if (slot.wobbleKind == 0 && dt > 0.0f) {
             std::uint32_t roll = g_clientRandom.Next();
             if (D(dt) * kWobbleRate > x87::FromUnsigned(roll) * kRandomScale32) {
-                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
-                slot.wobbleKind_ = 3;
+                slot.wobbleTime = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
+                slot.wobbleKind = 3;
                 std::uint32_t r1 = g_clientRandom.Next();
                 std::uint32_t r2 = g_clientRandom.Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
-                slot.wobbleTarget_ = TargetProduct(q1, q2);
-                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomScale31 + 1.0f);
+                slot.wobbleTarget = TargetProduct(q1, q2);
+                slot.wobbleSpeed = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomScale31 + 1.0f);
             }
         }
-        if (slot.wobbleKind_ != 0) {
-            slot.wobbleTime_ = static_cast<float>(D(dt) + D(slot.wobbleTime_));
-            if (slot.wobbleTime_ >= 0.0f) {
-                float t = slot.wobbleTime_;
-                switch (slot.wobbleKind_) {
+        if (slot.wobbleKind != 0) {
+            slot.wobbleTime = static_cast<float>(D(dt) + D(slot.wobbleTime));
+            if (slot.wobbleTime >= 0.0f) {
+                float t = slot.wobbleTime;
+                switch (slot.wobbleKind) {
                 case 1:   // nod
                     if (static_cast<float>(D(kPi) * kWobbleSpan) > t)
                         wobble = AxisAngle(1.0f, 0.0f, 0.0f,
                                            static_cast<float>(D(kHudQuarterTurn) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
-                        slot.wobbleKind_ = 0;
+                        slot.wobbleKind = 0;
                     break;
                 case 2:   // shake
                     if (static_cast<float>(D(kHudFullTurn) * kWobbleSpan) > t)
                         wobble = AxisAngle(0.0f, 1.0f, 0.0f,
                                            static_cast<float>(D(kHudQuarterTurn) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
-                        slot.wobbleKind_ = 0;
+                        slot.wobbleKind = 0;
                     break;
                 case 3:   // turn towards the target and back
-                    if (D(kHudFullTurn) / D(slot.wobbleSpeed_) > D(t)) {
-                        float w = static_cast<float>(0.5f - x87::fcos(D(t) * D(slot.wobbleSpeed_)) * 0.5f);
-                        wobble.Slerp(w, kHudRestRotation, slot.wobbleTarget_);
+                    if (D(kHudFullTurn) / D(slot.wobbleSpeed) > D(t)) {
+                        float w = static_cast<float>(0.5f - x87::fcos(D(t) * D(slot.wobbleSpeed)) * 0.5f);
+                        wobble.Slerp(w, kHudRestRotation, slot.wobbleTarget);
                     } else {
-                        slot.wobbleKind_ = 0;
+                        slot.wobbleKind = 0;
                     }
                     break;
                 default:
@@ -258,21 +258,21 @@ void CHudPortraits::Update() {
         }
 
         // The face eases towards its rest orientation (fully when the frame is long).
-        Quaternion rest = RestProduct(slot.restA_, slot.restB_);
-        Quaternion previous = slot.current_;
+        Quaternion rest = RestProduct(slot.restA, slot.restB);
+        Quaternion previous = slot.current;
         Quaternion face;
         EI_NAN_AUDIT(dt);
         if (dt < 0.5f)
             face.Slerp(static_cast<float>(D(dt) + D(dt)), previous, rest);
         else
             face = rest;
-        slot.current_ = face;
-        if (slot.wobbleKind_ != 0) face = WobbleProduct(face, wobble);
-        AsUiMesh(object(1))->localRotation_ = face;
+        slot.current = face;
+        if (slot.wobbleKind != 0) face = WobbleProduct(face, wobble);
+        AsUiMesh(object(1))->localRotation = face;
 
         // The selection marker (object 0) sits above the selected unit's portrait (object 5i+4).
-        if (g_camera.targetId_ == unit->id_) {
-            SceneMesh(0)->visible_ = true;
+        if (g_camera.targetId == unit->id) {
+            SceneMesh(0)->visible = true;
             float x, y, depth;
             AsUiMesh(object(4))->GetPlacement(&x, &y, &depth);
             SceneMesh(0)->Place(x, static_cast<float>(D(y) - kMarkerRise), kMarkerDepth);

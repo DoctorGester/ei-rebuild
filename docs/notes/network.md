@@ -40,13 +40,13 @@ function does; this file keeps what is not visible in the code.
 ## The multiplayer base and the zone switch (SV5d1)
 
 - The base (bz1mpg for game type 0) runs locally in each game (BeginMultiplayerGame: state 4); the other
-  players are faces in the briefing screen's chat window (CChatWindow), not units.
+  players are faces in the briefing screen's chat window (ChatWindow), not units.
 - The maps on offer: the server queues a Zone message "<zone>_1" for each zone FlowPickZones (0057F850)
   picks (QueueMapList 00418530, after the start and after each map); a client's ClientOnZone marks the
   briefing "b.<speaker>.<zone>_1" (MarkBriefing), so the zones are the speaker's topics (Nsheriff on
   bz1mpg; a network client's topics are sorted by _stricmp). Finishing one sends command 1 "<zone>_1"
   (CompleteBriefing -> RequestBriefing); the host's server then runs SetMap: the queued "<zone>_2", the Map
-  message, SetNetworkZone (multiplayerZone_). Which zones are offered differs by install (vanilla z3q1 first,
+  message, SetNetworkZone (multiplayerZone). Which zones are offered differs by install (vanilla z3q1 first,
   Rebirth z3q3).
 - Leaving: a client may leave while "z.MPGame1" is not 1 (UpdateMultiplayerVariable 0057F190: the host
   once it has the Map, a joiner once it has the Host message); the leader walking into exit 1's remove
@@ -56,7 +56,7 @@ function does; this file keeps what is not visible in the code.
   connection to the host's world (no new socket; the Host message's "host:8000" address is not used).
 - Exchange: a click on another player's face sends a Party offer (StartParty 0041E270); the partner's
   click on the offerer's face opens the exchange window on both; both accepting completes the Trade.
-- Kick / ban: console `kick` / `ban` without a name opens the host's player pick (chatActive_ 1 / 2; a
+- Kick / ban: console `kick` / `ban` without a name opens the host's player pick (chatActive 1 / 2; a
   face click sends command 4 / 5 with the serial); with a name, command 2 / 3 (guests whose name starts
   with it). The dropped game shows the lost server box; a banned address's join is refused (the
   refusal box).
@@ -73,7 +73,7 @@ function does; this file keeps what is not visible in the code.
   net_pair_quest rejects z9q3 at once to be offered z9q2). The sheriff's topics after the map choice: "about
   life in the village", the map's reject briefing ("<zone>_2"), "talk later".
 - Back to the base: the game zone's exit 1 (z3q1 / z3q2: remove rectangle 0 130 20 147, next to the deploy
-  rectangle) asks the leave box (yes: 00578AC0 -> SwitchMultiplayerZone's second call, zoneSwitchStarted_ set: the client
+  rectangle) asks the leave box (yes: 00578AC0 -> SwitchMultiplayerZone's second call, zoneSwitchStarted set: the client
   state 1 and the start zone again; the host also sends command 9 with the announced zone to its guests and
   drops the Host message). The base is local again; the zone's map message stays held.
 - The reject topic sends command 1 "<zone>_2": LeaveZone (text 6 announced, AwardHost with the final award for
@@ -101,7 +101,7 @@ function does; this file keeps what is not visible in the code.
   followed the real-time stream thread, which made the zone's fights draw differently with the machine's load
   (the C13b3 flake; sound.md, "Non-determinism").
 - Game bug (the original too): a guest joining while the host's briefing dialogue runs crashes the host in
-  CTextManager::PeekWord (CBriefingScreen::NextPhrase -> FindLine; the original at 004DF7F7). The scenario talks
+  TextManager::PeekWord (BriefingScreen::NextPhrase -> FindLine; the original at 004DF7F7). The scenario talks
   to the sheriff after the join.
 - Shared files: ShareFile lists each queued zone's .mq (a File message, 64-byte FileChunk messages); a client
   that lacks one (005812F0) answers with a FileRequest, which the server lists with the sender's connection
@@ -113,7 +113,7 @@ function does; this file keeps what is not visible in the code.
 
 ## Class map
 
-- `SessionBase : CRefCounted` (vtable 0073BF5C, 0x2568; `ServerBase` 0073BBB4 and `ClientBase` 0073BE30
+- `SessionBase : RefCounted` (vtable 0073BF5C, 0x2568; `ServerBase` 0073BBB4 and `ClientBase` 0073BE30
   are the layers the server / client constructors inline): +0x18 frame, +0x20 double time, +0x28
   connection list, +0x2C type registry (two hash_maps: message vtable -> type id, type id -> factory),
   +0x54 UDP socket driver, +0x64 one "reliable" byte per message type, +0x164 / +0xD64 / +0x1964
@@ -128,15 +128,15 @@ function does; this file keeps what is not visible in the code.
   Describe, 16 Admit (ban list, 20-byte password, player limit). Client slots 15 OnJoined (base 0041C440 is
   empty; `ClientSession` 0041D410 begins the multiplayer game through `GameFlow::BeginMultiplayerGame`), 16
   CreateEntry (0041D420: an empty server entry, kind 4).
-- `Connection : CRefObject` (0073BF38, 0x1168): replication to one peer: 11 priority maps of
+- `Connection : RefObject` (0073BF38, 0x1168): replication to one peer: 11 priority maps of
   `ReplicaEntry` (0073BF4C), the send history (what each packet carried), the reliable byte stream sent in
   chunks of up to 255 bytes, `records` of received objects; slot 2 = reset 00433320, slot 3 Clone.
   Globals: 0079B920 session being updated, 0079B924 connection, 0079B900 send buffer, 0079B91C
   network log stream, 0079B8D0 static {object, priority} vector of `CollectChanges`, 0079B8E0 receive buffer.
-- `Message : CRefObject` (0073BC10, +8 version) with slots 2 reset, 3 clone, 4 Write, 5 Read. Type id
+- `Message : RefObject` (0073BC10, +8 version) with slots 2 reset, 3 clone, 4 Write, 5 Read. Type id
   (registered in `SessionBase::RegisterMessageTypes` 004142F0):
   client to server: Login 0073BBF8 (5), Say 0073BC28 (6), Command 0073BC40 (7, {kind, text}), FileRequest
-  0073BC58 (13), Party 0073BDD0 (15, a trade offer), PartyMember 0073BD78 (16, a CMemoryStream);
+  0073BC58 (13), Party 0073BDD0 (15, a trade offer), PartyMember 0073BD78 (16, a MemoryStream);
   server to client: Player 0073BC70 (1), Line 0073BC88 (2, chat), Host 0073BCA0 (3, "host:port" +
   zone; built by `world_game.cpp` AnnounceHost), Binding 0073BCB8 (4), Zone 0073BCD0 (8), Map 0073BD00
   (9), Variable 0073BCE8 (10), File 0073BD18 (11), FileChunk 0073BD30 (12, 64-byte chunks), Award
@@ -221,7 +221,7 @@ them back; reached in single player through the loopback.
   word, then the remaining bytes raw. Quantised types: 3D position (x, y as (v + 16) * 120.47, z as (v + 32) *
   341.33, 16 bits each), 2D position ((v + 32) * 60.23), ranged ((v - min) * 65535 / (max - min)), 16-bit
   float (sign, exponent - 0x40 in 7 bits, 8 rounded mantissa bits).
-- `CEffectShowVisibility` (vision fog spell, effect 0x17) replicates through `WriteStreamBoth` / `ReadStream`
+- `EffectShowVisibility` (vision fog spell, effect 0x17) replicates through `WriteStreamBoth` / `ReadStream`
   (slots 00743874 / 00743870); no scenario is known to reach it.
 - Floats: values the original rounds through a
   float before FISTP go through `StoreFloat` and `x87::fistp`; FPU copies (a signalling NaN becomes quiet) go
@@ -232,11 +232,11 @@ them back; reached in single player through the loopback.
 
 ## Message links (0x00477E60-0x0047BB80)
 
-`NetLink : CRefObject` (0073C8A4, 0x28, abstract): +8 recording, +9 drop the next recorded message, +0xC the
+`NetLink : RefObject` (0073C8A4, 0x28, abstract): +8 recording, +9 drop the next recorded message, +0xC the
 recording file. Slots 2 reset, 3 clone, 4 connected, 5 alive, 6 has incoming, 7 incoming count, 8 Send (base:
 dropped, true), 9 Receive / record, 10 pump (00478010, empty), 11 disconnect, 12 (00478020, returns 0), 13
 `FramedLink::SendBytes`. Slots 10 / 12 are shorter than the 5-byte jump and not hooked.
-- `LoopbackLink` (0073C8F8, 0x30): +0x28 incoming queue (list of CMemoryStream, vtable 0073C960), +0x2C peer.
+- `LoopbackLink` (0073C8F8, 0x30): +0x28 incoming queue (list of MemoryStream, vtable 0073C960), +0x2C peer.
   Send puts a copy at the end of the peer's queue; Receive copies the front out and records.
 - `ReplayLink` (0073C92C, 0x44): a second file stream at +0x28 plays back a recording (each message a size
   prefix and its bytes); made by 00478960 for `autoplay.apl` or `<name>.apl` (005793E0 from 00602190). Receive does
@@ -258,13 +258,13 @@ dropped, true), 9 Receive / record, 10 pump (00478010, empty), 11 disconnect, 12
 
 `SendUpdate`: an entry that overflows the budget stays in the packet uncounted, the rest of that priority waits,
 lower priorities are still tried. Within a priority the original's entries go in the order of their addresses
-(`priorities_` keyed by `ReplicaEntry*`, and `CollectChanges` tracks new objects in their address order), so which
+(`priorities` keyed by `ReplicaEntry*`, and `CollectChanges` tracks new objects in their address order), so which
 object the client reads first, and which net id an object gets, follows the server's heap. Ours (SV7b5) keys the
 priority maps by the entry's serial, handed out as `CollectChanges` tracks the session's list in its order (players,
 variables, the binding, chat lines, files, ...), so the send order and the ids follow the session's lists;
-`byObject_` / `attached_` are lookup-only hash maps. The original's runs keep their address order (no harness patch:
+`byObject` / `attached` are lookup-only hash maps. The original's runs keep their address order (no harness patch:
 the goldens hold no net ids or send order, and UB1 below takes the one order the game state read). The client's player
-list (`CChatWindow::ShowPlayers`) lists nobody while the binding is missing and the original's binding handler
+list (`ChatWindow::ShowPlayers`) lists nobody while the binding is missing and the original's binding handler
 0041E430 does not refresh it: players read before the binding left the base screen without faces and statuses
 (UB1). Ours (address_order.h) refreshes the list at the binding when players are
 already there; the harness patches the original's 0041E430 the same way (address_order.h). `ReadRecord`'s skip path creates a throwaway object without a null check. The
@@ -293,14 +293,14 @@ messages inline.
 
 ## A-E1: the leftovers of the delta code and the links
 
-- `DeltaState::Finish` (0047FE90, net_delta.cpp): ends a write or a read. After a delta write the written mask joins `sentMask_` and
-  becomes `lastMask_`, and both headers are rebuilt (the mask as 2 bytes, then each field's output of that channel, byte aligned). After
+- `DeltaState::Finish` (0047FE90, net_delta.cpp): ends a write or a read. After a delta write the written mask joins `sentMask` and
+  becomes `lastMask`, and both headers are rebuilt (the mask as 2 bytes, then each field's output of that channel, byte aligned). After
   a full write the headers and the three masks are emptied. Reached by every scenario with a server world. The forwarders other files
   keep (`DeltaStateFinishOriginal` in originals_engine.h, `ReadText` in world_effect_internal.h) reach the hooked code.
 - `DeltaField::ReadText` (0047E340): `ReadString` into a caller's buffer; a string of `size - 1` characters or more leaves the buffer
   empty. The unit and effect readers of the client call it.
 - The player sources' slot 6 (`TakeNew`, player_sources.cpp; the server world's AcceptNewPlayers 0058DAF0 calls it with an MFC list of
-  counted links). `CWorldHandle::TakeNew` (00478880): the pending link is appended to the list (one more reference) and the handle drops
+  counted links). `WorldHandle::TakeNew` (00478880): the pending link is appended to the list (one more reference) and the handle drops
   its own. `DriverSession::TakeNew` (0047A230): the link of every holder that is not detached is appended, then the holders list is
   emptied (each reference dropped, the nodes pushed on the allocator's 12-byte list, the sentinel linked to itself). Registered through
   shims (a pointer to a virtual member would dispatch). The handle's is reached when a server world takes its local player (a new game);

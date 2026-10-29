@@ -17,11 +17,11 @@ namespace {
 
 // The item and spell factory (the server world's item manager) and the spell manager the spells are made for. The
 // record names its items by their names.
-CItem* CreateItem(CItemManager* factory, std::string_view name) {   // patched by Rebirth
+Item* CreateItem(ItemManager* factory, std::string_view name) {   // patched by Rebirth
     return factory->CreateItem(name);
 }
 
-void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
+void AddItems(const UnitRecord& record, CUnit* unit, ItemManager* factory) {
     for (const std::string& name : record.lists[UnitRecord::kQuickItems])
         unit->AddQuickItem(CreateItem(factory, name));
     for (const std::string& name : record.lists[UnitRecord::kCarried]) unit->AddCarried(CreateItem(factory, name));
@@ -31,7 +31,7 @@ void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
 
 void UnitRecord::ApplyTo(CUnit* target) {
     const UnitRecordStats& r = stats;
-    CItemManager* factory = g_serverWorld.itemManager_;
+    ItemManager* factory = g_serverWorld.itemManager;
     CUnit* unit = target;
     const float k0 = 0.0f;
     EI_NAN_AUDIT(r.speed, r.rate);
@@ -80,7 +80,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     for (std::size_t i = 0; i < 6; ++i) s.conspicuity[i].base = s.conspicuity[i].current = r.conspicuity[i];
     std::memmove(s.attributes, r.attributes, sizeof r.attributes);
 
-    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name, g_serverWorld.spellManager_));
+    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name, g_serverWorld.spellManager));
     AddItems(*this, unit, factory);
     for (const std::string& name : lists[kArmour]) unit->EquipArmour(CreateItem(factory, name));
     for (const std::string& name : lists[kWeapons]) unit->AddWeapon(CreateItem(factory, name));

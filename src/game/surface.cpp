@@ -30,7 +30,7 @@ int LoadPicture(Surface* holder, const MmpHeader* picture) {
                                 picture->bitsPerPixel);
     holder->width = width;
     holder->height = height;
-    holder->bitsPerPixel = ScreenFormat(holder->device->bitsPerPixel_).bitsPerPixel;
+    holder->bitsPerPixel = ScreenFormat(holder->device->bitsPerPixel).bitsPerPixel;
     return 1;
 }
 
@@ -119,7 +119,7 @@ void ThrowSurfaceNotMade(int width, int height) {
     ThrowGameError("Can't create DDSurface %d:%d with default BPP.\n", width, height);
 }
 
-Surface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, int bitsPerPixel) {
+Surface* NewDecodedTextureHolder(TextureDevice* device, int width, int height, int bitsPerPixel) {
     if (!device) return nullptr;
     auto* holder = new Surface(device);
     holder->width = width;
@@ -128,17 +128,17 @@ Surface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, 
     return holder;
 }
 
-Surface::Surface(CTextureDevice* deviceIn) : device(deviceIn) {}
+Surface::Surface(TextureDevice* deviceIn) : device(deviceIn) {}
 
-Surface::Surface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(deviceIn) {
+Surface::Surface(TextureDevice* deviceIn, int widthIn, int heightIn) : device(deviceIn) {
     if (widthIn <= 0 || heightIn <= 0) ThrowSurfaceNotMade(widthIn, heightIn);
     width = widthIn;
     height = heightIn;
-    bitsPerPixel = ScreenFormat(device->bitsPerPixel_).bitsPerPixel;
+    bitsPerPixel = ScreenFormat(device->bitsPerPixel).bitsPerPixel;
 }
 
 // The renderer keeps the picture's pixels from the file data (render::PictureFromMmp).
-Surface::Surface(CTextureDevice* deviceIn, const MmpHeader* picture) : device(deviceIn) {
+Surface::Surface(TextureDevice* deviceIn, const MmpHeader* picture) : device(deviceIn) {
     if (!LoadPicture(this, picture)) ThrowGameError("Can't load picture to surface.\n");
     render::PictureFromMmp(this, picture);
 }

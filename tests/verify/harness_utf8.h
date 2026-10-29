@@ -43,7 +43,7 @@ namespace ei::verify::utf8text {
 // name and rejects a cut sequence and a control character. Empty, or what failed.
 std::string Check();
 
-// "chatwrap <text>": <text> added to the interface's chat overlay (CChatOverlay::AddLine 005E2A30) breaks into
+// "chatwrap <text>": <text> added to the interface's chat overlay (ChatOverlay::AddLine 005E2A30) breaks into
 // more than one line, each valid UTF-8 (a long word is broken between characters), which joined give <text>
 // back; the lines are cleared afterwards. Empty, or what failed.
 std::string CheckChatWrap(const std::string& text);

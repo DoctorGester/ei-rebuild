@@ -3,10 +3,10 @@
 // on first use and freed at exit. See docs/notes/models.md ("Ground prints").
 #include "figure_mesh.h"   // VertexPacket, MeshCorner
 #include "ground_decal.h"
-#include "link_figure.h"          // CLinkMesh
+#include "link_figure.h"          // LinkMesh
 #include "map_object.h"           // CMapObject (ObjectWithId)
 #include "map_object_figures.h"   // CObject3D
-#include "model.h"                // CTransformPipeline, ScenePipeline
+#include "model.h"                // TransformPipeline, ScenePipeline
 #include "render/render.h"
 #include "terrain.h"
 #include "world.h"
@@ -39,8 +39,8 @@ void BuildNodeMatrix(const Quaternion& rotation, const Vector3& position, Matrix
 
 // Pushes `m` onto the pipeline's decal stack: the product goes through a library call whose terms sum
 // in another order than PushMatrix's.
-void PushDecalMatrix(CTransformPipeline* pipeline, const float* m) {
-    MatrixStack& stack = pipeline->stacks_[CTransformPipeline::kDecalStack];
+void PushDecalMatrix(TransformPipeline* pipeline, const float* m) {
+    MatrixStack& stack = pipeline->stacks[TransformPipeline::kDecalStack];
     if (stack.count == 0) {
         stack.count = 1;
         std::memcpy(stack.matrices.data(), m, sizeof(Matrix4));
@@ -61,8 +61,8 @@ struct PartData {
     int indexCount = 0;
 };
 
-void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMesh* part, PartData& data) {
-    const Matrix4* top = pipeline->Top(CTransformPipeline::kDecalStack);
+void AddPartTriangles(TransformPipeline* pipeline, LinkMesh* figure, FigureMesh* part, PartData& data) {
+    const Matrix4* top = pipeline->Top(TransformPipeline::kDecalStack);
     {
         std::string name(part->GetName());
         figure->GetPartData(&name, &data.vertices, &data.corners, &data.indices, &data.blocks, &data.indexCount);
@@ -88,42 +88,42 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMe
 
 } // namespace
 
-void CWorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, float depth,
+void WorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, float depth,
                                 const VertexPacket& quad, std::vector<VertexPacket>* points,
                                 std::vector<DecalTexCoord>* texCoords, std::vector<std::uint16_t>* indices,
-                                std::uint8_t skipOnPlatform, std::uint8_t objects) {
+                                std::uint8_t skipOnPlatform, std::uint8_t withObjects) {
     render::BeginDecalTime(!skipOnPlatform);   // the ground prints skip the ground under a platform
     DecalBuilder& builder = g_builder;
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);
-    if (!skipOnPlatform || !platforms_.Contains(point.x, point.y)) terrain_->AddDecalTriangles(&builder, quad);
+    if (!skipOnPlatform || !platforms.Contains(point.x, point.y)) terrain->AddDecalTriangles(&builder, quad);
 
-    CTransformPipeline* pipeline = g_sceneRenderer.pipeline_;
-    if (objects) {
+    TransformPipeline* pipeline = g_sceneRenderer.pipeline;
+    if (withObjects) {
         PartData data;
-        for (auto face = platforms_.list.begin(); face != platforms_.list.end();) {
+        for (auto face = platforms.list.begin(); face != platforms.list.end();) {
             auto next = std::next(face);
             CObject3D* object = ObjectWithId(face->id);
             face = next;
             if (!object) continue;
             // The object's bounding sphere about its origin, then about its centre.
-            if (!builder.Touches(object->localPosition_, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
+            if (!builder.Touches(object->localPosition, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
                 continue;
-            BuildNodeMatrix(object->localRotation_, object->localPosition_, object->worldMatrix);
+            BuildNodeMatrix(object->localRotation, object->localPosition, object->worldMatrix);
             Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->bounds.center) +
-                             object->localPosition_;
+                             object->localPosition;
             if (!builder.Touches(centre, object->bounds.radius)) continue;
             PushDecalMatrix(pipeline, object->worldMatrix.m);
-            CLinkMesh* figure = object->figure;
+            LinkMesh* figure = object->figure;
             if (figure) {
                 for (int i = 0; i < std::ssize(object->parts); ++i) {
-                    CFigureMesh* part = object->parts[i];
-                    BuildNodeMatrix(part->localRotation_, part->localPosition_, part->worldMatrix_);
-                    PushDecalMatrix(pipeline, part->worldMatrix_.m);
+                    FigureMesh* part = object->parts[i];
+                    BuildNodeMatrix(part->localRotation, part->localPosition, part->worldMatrix);
+                    PushDecalMatrix(pipeline, part->worldMatrix.m);
                     AddPartTriangles(pipeline, figure, part, data);
-                    pipeline->PopMatrix(CTransformPipeline::kDecalStack);
+                    pipeline->PopMatrix(TransformPipeline::kDecalStack);
                 }
             }
-            pipeline->PopMatrix(CTransformPipeline::kDecalStack);
+            pipeline->PopMatrix(TransformPipeline::kDecalStack);
         }
     }
     builder.Finish();

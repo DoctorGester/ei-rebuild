@@ -15,9 +15,9 @@ namespace {
 
 std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
 std::uint32_t g_guardKey = /*007AFECC*/ {};
-CParty* GlobalParty() { return g_savedParties.outsideGame_.Party(); }
-int GlobalRecordCount() { return std::ssize(GlobalParty()->members_); }
-int& GlobalGold() { return GlobalParty()->money_; }
+CParty* GlobalParty() { return g_savedParties.outsideGame.Party(); }
+int GlobalRecordCount() { return std::ssize(GlobalParty()->members); }
+int& GlobalGold() { return GlobalParty()->money; }
 
 constexpr int kGuardedBytes = 0x704;   // a party record's stats (PartyUnitRecord::stats) or a unit's
 
@@ -30,16 +30,16 @@ void XorRange(UnitStats* stats, std::uint32_t key) {
 
 } // namespace
 
-void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
+void GuardPlayers(PlayerManager* players, char units, std::uint32_t key) {
     if (!players) return;
     PlayerIterator it;
     for (CPlayer* player = it.First(players); player; player = it.Next()) {
-        player->Party()->money_ ^= static_cast<int>(key);   // gold
-        for (int i = 0; i < std::ssize(player->Party()->members_); ++i) XorRange(&player->Party()->members_[i].stats, key);
+        player->Party()->money ^= static_cast<int>(key);    // gold
+        for (int i = 0; i < std::ssize(player->Party()->members); ++i) XorRange(&player->Party()->members[i].stats, key);
         if (!units) continue;
         // The player's units (the walk stops at an empty entry): the 0x704 bytes of their
         // controllers' statistics.
-        auto& map = player->units_;
+        auto& map = player->units;
         for (auto node = map.begin(); node != map.end() && node->second; ++node) {
             auto* controller = node->second->ServerController();
             XorRange(&controller->stats, key);
@@ -50,10 +50,10 @@ void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
 void GuardPlayerData(char plain) {
     if (plain == g_guardPlain) return;
     if (!plain) g_guardKey = g_random.Next();   // a new key each time the data is hidden
-    GuardPlayers(g_clientWorld.players_, 0, g_guardKey);
-    GuardPlayers(g_serverWorld.players_, 1, g_guardKey);
+    GuardPlayers(g_clientWorld.players, 0, g_guardKey);
+    GuardPlayers(g_serverWorld.players, 1, g_guardKey);
     std::uint32_t key = g_guardKey;
     GlobalGold() ^= static_cast<int>(key);
-    for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(&GlobalParty()->members_[i].stats, key);
+    for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(&GlobalParty()->members[i].stats, key);
     g_guardPlain = plain;
 }

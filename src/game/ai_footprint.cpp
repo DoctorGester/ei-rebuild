@@ -90,20 +90,20 @@ void FootprintCellSet::GetBounds(int* bounds) const {
 
 // --- Footprints ----------------------------------------------------------------------------------
 
-bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
+bool AIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
     // The object's transform: rotation from its orientation, translation from its position.
     float* matrix = object->worldMatrix.m;
-    object->localRotation_.ToMatrix((float*)matrix);
-    matrix[11] = object->localPosition_.z;
-    matrix[3] = object->localPosition_.x;
-    matrix[7] = object->localPosition_.y;
+    object->localRotation.ToMatrix((float*)matrix);
+    matrix[11] = object->localPosition.z;
+    matrix[3] = object->localPosition.x;
+    matrix[7] = object->localPosition.y;
     matrix[14] = 0.0f;
     matrix[13] = 0.0f;
     matrix[12] = 0.0f;
     matrix[15] = 1.0f;
 
     // Part names: the server companion's string array if it has any, else the object's own (the AI map lives on
-    // the server, so the companion is a CMapObjectServer).
+    // the server, so the companion is a MapObjectServer).
     auto* server = object->ServerCompanion();
     const std::vector<std::string>* names = &server->strings;
     if (names->empty()) names = &object->partNames;
@@ -133,10 +133,10 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
                              {hi.x, hi.y, hi.z}, {hi.x, lo.y, hi.z}, {hi.x, lo.y, lo.z}, {lo.x, lo.y, lo.z}};
         Vector3 normal[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
         Vector3 position;
-        position = object->localPosition_;
+        position = object->localPosition;
 
         // Stand the object on the ground (or bridge deck) under its centre.
-        int cx = WorldToCell(object->localPosition_.x), cy = WorldToCell(object->localPosition_.y);
+        int cx = WorldToCell(object->localPosition.x), cy = WorldToCell(object->localPosition.y);
         float ground;
         if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) {
             ground = 0.0f;
@@ -202,7 +202,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
     return hasBridge;
 }
 
-void CAIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
+void AIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
     if (!batching) {
         RefreshArea(minX, maxX, minY, maxY);
         return;
@@ -215,17 +215,17 @@ void CAIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
     if (!(dirty.maxY > maxY)) dirty.maxY = maxY;
 }
 
-bool CAIMap::MarkFootprint(CMapObject* object, bool remove) {
-    int cellX = WorldToCell(object->localPosition_.x);
-    int cellY = WorldToCell(object->localPosition_.y);
+bool AIMap::MarkFootprint(CMapObject* object, bool remove) {
+    int cellX = WorldToCell(object->localPosition.x);
+    int cellY = WorldToCell(object->localPosition.y);
     ResetCellSet(&footprint);
     ResetCellSet(&bridges);
 
     if (CUnit* unit = UnitOrNull(object)) {
         if (unit->IsDead()) return true;
-        auto* shape = static_cast<const CUnitShape*>(UnitShape(unit->standingHeight));
+        auto* shape = static_cast<const UnitShape*>(ShapeForHeight(unit->standingHeight));
         if (!shape) return true;
-        CUnitLayer* layer = unit->IsLargeUnit() ? static_cast<CUnitLayer*>(&unitLayerLarge) : &unitLayerSmall;
+        UnitLayer* layer = unit->IsLargeUnit() ? static_cast<UnitLayer*>(&unitLayerLarge) : &unitLayerSmall;
         if (remove) layer->Remove(unit, cellX - 8, cellY - 8);
         else layer->Add(unit, shape, cellX - 8, cellY - 8);
         return true;
@@ -249,7 +249,7 @@ bool CAIMap::MarkFootprint(CMapObject* object, bool remove) {
     return fits;
 }
 
-bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
+bool AIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     if (remove) {
         for (int i = 0; i < std::ssize(set->cells); ++i) ClearOccluderRecord(&set->cells[i]);
         return true;
@@ -263,7 +263,7 @@ bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     return true;
 }
 
-bool CAIMap::StampFootprint(int tick, FootprintCellSet* set) {
+bool AIMap::StampFootprint(int tick, FootprintCellSet* set) {
     std::uint8_t savedRefreshUnits = refreshUnits;
     refreshUnits = false;
     bool fits = ApplyFootprint(set, false);
@@ -275,7 +275,7 @@ bool CAIMap::StampFootprint(int tick, FootprintCellSet* set) {
     return fits;
 }
 
-bool CAIMap::ClearFootprint(FootprintCellSet* set) {
+bool AIMap::ClearFootprint(FootprintCellSet* set) {
     std::uint8_t savedRefreshUnits = refreshUnits;
     refreshUnits = false;
     bool cleared = ApplyFootprint(set, true);
@@ -286,7 +286,7 @@ bool CAIMap::ClearFootprint(FootprintCellSet* set) {
     return cleared;
 }
 
-void CAIMap::BeginRefresh() {
+void AIMap::BeginRefresh() {
     if (batching) {
         RefreshArea(dirty.minX, dirty.maxX, dirty.minY, dirty.maxY);
         batching = false;
@@ -295,7 +295,7 @@ void CAIMap::BeginRefresh() {
     batching = true;
 }
 
-void CAIMap::EndRefresh() {
+void AIMap::EndRefresh() {
     RefreshArea(dirty.minX, dirty.maxX, dirty.minY, dirty.maxY);
     batching = false;
 }

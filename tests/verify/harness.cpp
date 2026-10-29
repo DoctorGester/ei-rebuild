@@ -93,7 +93,7 @@
 //   hold <mods>, release <mods>
 //                             press / release the modifier keys <mods> (ctrl, shift, alt; separated by
 //                             spaces, "+" or ","), held over frames and further steps. The game takes
-//                             them from the window messages (CInterface3D +0x7C Ctrl / +0x7D Shift /
+//                             them from the window messages (Interface3D +0x7C Ctrl / +0x7D Shift /
 //                             +0x7E Alt), never the real keyboard, so the original game and the image
 //                             see the same. Alt is sent as WM_SYSKEYDOWN / WM_SYSKEYUP, as Windows does
 //   <mods> as the last words of key, click, rclick, move, dblclick, rdblclick, ldown, lup, rdown, rup,
@@ -446,7 +446,7 @@ __declspec(naked) void __fastcall OriginalConsoleExecute(const char*) EI_ORIGINA
 void ConsoleExecute(const char* text) { ei::Standalone() ? image::ConsoleExecute(text) : OriginalConsoleExecute(text); }
 
 // 00578B00 (GameSendLeave04): the client asks the server for interface screen `id` (the server answers
-// with message 7, 00669D50 -> CInterface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
+// with message 7, 00669D50 -> Interface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
 // In a --no-hooks run through the original address, as the one below: the functions read the worlds and the
 // interface, which that run has only in game.exe's own code and data.
 __declspec(naked) void __stdcall OriginalSendLeave04(int /*id*/) EI_ORIGINAL(0x00578B00)
@@ -461,7 +461,7 @@ void SetCurrentConstructor(float constructor) {
 // if none.
 __declspec(naked) void* __fastcall OriginalFindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
 
-// 0066F310 (RET 8): CPlayerServer::LeaveToZone(zone, exit), what a zone exit (00670C20) and the
+// 0066F310 (RET 8): PlayerServer::LeaveToZone(zone, exit), what a zone exit (00670C20) and the
 // LeaveToZone script command (0x8A) do. Only in state 1 (+0x20: in the world); in campaign mode 1 or 3
 // a dead or missing leader loses the game instead. The party is stored, the world player's +0xD8 /
 // +0xDC become the zone and the exit, the state 3, and message 8 goes to the client (00669EB0: game
@@ -476,36 +476,36 @@ __declspec(naked) void* __fastcall OriginalFindClassTemplate(void*, void*, int) 
 // use 0.
 constexpr int kLocalPlayer = 0;
 
-// The local world player (CWorldServer::GetPlayer 00594180, thiscall, RET 4) or null.
+// The local world player (WorldServer::GetPlayer 00594180, thiscall, RET 4) or null.
 void* LocalWorldPlayer() {
     return ei::Standalone() ? image::LocalWorldPlayer(kLocalPlayer)
                             : OriginalCode<void*(__thiscall*)(void*, int)>(0x00594180)(exe::ServerWorld(), kLocalPlayer);
 }
-// Its server connection (the world player's connection_, a CPlayerServer in single player; StateOf in
+// Its server connection (the world player's connection, a PlayerServer in single player; StateOf in
 // script_exec.cpp) or null, and the connection's state (1 in the world, 3 leaving the zone).
 void* LocalConnection() {
     void* player = LocalWorldPlayer();
     if (!player) return nullptr;
-    return ei::Standalone() ? image::PlayerConnection(player) : static_cast<exe::CPlayer*>(player)->connection_;
+    return ei::Standalone() ? image::PlayerConnection(player) : static_cast<exe::CPlayer*>(player)->connection;
 }
 int ConnectionState(void* connection) {
-    return ei::Standalone() ? image::ConnectionState(connection) : static_cast<exe::CPlayerConnection*>(connection)->state_;
+    return ei::Standalone() ? image::ConnectionState(connection) : static_cast<exe::PlayerConnection*>(connection)->state;
 }
 // What the zone steps read, for the log and failure messages.
 std::string DescribeLocalPlayer() {
     void* player = LocalWorldPlayer();
     void* connection = LocalConnection();
     char text[200];
-    // The server world's +0x5C (worldHandle_), which the flow passes to the client world's SetPlayer (00566CE0). It is
+    // The server world's +0x5C (worldHandle), which the flow passes to the client world's SetPlayer (00566CE0). It is
     // not the server's player number: the first X9 run found no player with it (logged by the steps).
     std::snprintf(text, sizeof(text), "player %d -> %p, connection %p, state %d (world +0x5C = %p)", kLocalPlayer, player,
                   connection, connection ? ConnectionState(connection) : -1,
-                  ei::Standalone() ? image::WorldHandle() : exe::ServerWorld()->worldHandle_.ptr);
+                  ei::Standalone() ? image::WorldHandle() : exe::ServerWorld()->worldHandle.ptr);
     return text;
 }
 // The server world's zone (+0x120, the map database name NewZone 00595480 stores), or "".
 const char* ServerZoneName() {
-    const char* name = ei::Standalone() ? image::ServerZoneName() : exe::ServerWorld()->zoneName_.text;
+    const char* name = ei::Standalone() ? image::ServerZoneName() : exe::ServerWorld()->zoneName.text;
     return name ? name : "";
 }
 
@@ -1126,7 +1126,7 @@ HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
 // Game speed. The main loop runs one world update per 0078FF34 milliseconds of real time (55 by
 // default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms> every
 // frame, since loading a zone resets it, and again after every world update (HeldServerUpdate,
-// HeldClientSegment): the battle clock's set-up (00648520) and CBattleScreen::Close (00635E60,
+// HeldClientSegment): the battle clock's set-up (00648520) and BattleScreen::Close (00635E60,
 // on leaving a screen such as the camp) set 55 inside the client's tick, and the main loop's client
 // loop, which tested its backlog against the held 10 before the tick, subtracts the 55 it reads
 // after it: the unsigned backlog (10..54) wraps to about 4.29e9 and the loop runs some 78 million
@@ -1309,7 +1309,7 @@ void WINAPI FixedTime(LPSYSTEMTIME t) {
 // presents a frame. Unfreezing resumes both clocks from where they stopped (no jump). Installed
 // only when the scenario uses "freeze" (in deterministic mode the virtual clock just stops). Such
 // a scenario also gets the fixed date: the main menu's picture follows the time of day.
-// The camera is held too: the main loop calls CCamera::Update once per frame even when no time has
+// The camera is held too: the main loop calls Camera::Update once per frame even when no time has
 // passed (at 00457595, with dt 0), and parts of it move by a fixed fraction per call, not per
 // unit of time (the focus drifts a fifth of the way to the tracked object, the focus height a
 // tenth of the way to the ground, ApplyView lifts the camera over nearby objects). Measured on
@@ -1376,7 +1376,7 @@ using SrandFn = void(__cdecl*)(unsigned);
 void __fastcall FixedIsaacSeed(void* isaac) {
     if (client_effects::IsClientGenerator(isaac)) return;   // seeded from the game's generator (harness_client_effects.h)
     reinterpret_cast<SrandFn>(0x006E77EA)(12345);
-    FillFixedSeed(static_cast<exe::IsaacRandom*>(isaac)->results_);
+    FillFixedSeed(static_cast<exe::IsaacRandom*>(isaac)->results);
 }
 
 // game.exe's function at `from` replaced by `to`: a JMP written there (game.exe's runs only).
@@ -1400,7 +1400,7 @@ DWORD Now() { return clock::Now(); }
 HWND GameWindow() { return HarnessMainWindow(); }
 
 // Modifier keys held around an input step ("hold", "release" and the <mods> words of the mouse and key
-// steps). The game reads them from the key messages (CInterface3D::OnKeyDown sets +0x7C / +0x7D / +0x7E
+// steps). The game reads them from the key messages (Interface3D::OnKeyDown sets +0x7C / +0x7D / +0x7E
 // by scan code, OnKeyUp clears them by virtual key), so these are posted like a keyboard's: Ctrl and
 // Shift as WM_KEYDOWN / WM_KEYUP, Alt as the system messages Windows sends for it.
 enum Modifier : unsigned { kModCtrl = 1, kModShift = 2, kModAlt = 4 };
@@ -1456,14 +1456,14 @@ struct HeldModifiers {
             if (begin == std::string::npos) break;   // a single word is the argument itself
             unsigned one = ModifierWord(rest.substr(begin + 1, end - begin));
             if (!one) break;
-            mods_ |= one;
+            mods |= one;
             rest.erase(begin);
         }
         *argument = rest;
-        PostModifiers(mods_, true);
+        PostModifiers(mods, true);
     }
-    ~HeldModifiers() { PostModifiers(mods_, false); }
-    unsigned mods_ = 0;
+    ~HeldModifiers() { PostModifiers(mods, false); }
+    unsigned mods = 0;
 };
 
 // The game's TranslateMessage (import slot 0073B450; WinMain's loop and the movie loop call it). Windows makes a
@@ -1532,7 +1532,7 @@ void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
     else if (name == "pgup") vk = VK_PRIOR;
     else if (name == "pgdn") vk = VK_NEXT;
     else if (name == "scrolllock") vk = VK_SCROLL;   // scan 0x46: the screenshot key (005F78C0)
-    else if (name == "ctrl") vk = VK_CONTROL;   // scan 0x1D: sets CInterface3D +0x7C while down
+    else if (name == "ctrl") vk = VK_CONTROL;   // scan 0x1D: sets Interface3D +0x7C while down
     else if (name == "shift") vk = VK_SHIFT;    // scan 0x2A: +0x7D
     else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
     if (!vk) {
@@ -1746,10 +1746,10 @@ void PostRegionMouse(const std::string& verb, int index) {
         image::ScaleToScreen(&point.x, &point.y);
         image::InterfaceSize(&width, &height);
     } else {
-        exe::CInterface3D* ui = harness_objects::Interface();
-        OriginalCode<int(__thiscall*)(exe::CInterface3D*, POINT*)>(0x005F7D20)(ui, &point);
-        width = ui->width_;
-        height = ui->height_;
+        exe::Interface3D* ui = harness_objects::Interface();
+        OriginalCode<int(__thiscall*)(exe::Interface3D*, POINT*)>(0x005F7D20)(ui, &point);
+        width = ui->width;
+        height = ui->height;
     }
     RECT client = GameClient();
     if (width > 0 && height > 0) {
@@ -1776,7 +1776,7 @@ void PostRegionMouse(const std::string& verb, int index) {
 
 // --- clickunit <name> [l|r|move] [mods] (ticket I8; the modifiers are HeldModifiers') -------------------------------------------
 // A click on a unit's body, placed where the game's own picking finds it. The client world
-// (007AF5B8) keeps a list (screenEntries_: the object's class id, its id and its screen rectangle) of
+// (007AF5B8) keeps a list (screenEntries: the object's class id, its id and its screen rectangle) of
 // the objects drawn this frame with the rectangles of their projected vertices (written by the object
 // draw, 004E8900 / 005A7A70).
 // 00565E40 (the world's thiscall, RET 4) is the unit at a point that the battle screen's left
@@ -1790,7 +1790,7 @@ constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 require
 // Where a click finds the unit with script name `name` in this frame (client coordinates) and the
 // unit the game's pick returns there; "" or why there is no such point. `what` names the step in
 // the log and the error (null: nothing logged).
-// CWorldClient::PickAt2 (005659D0) and UnitAt (00565E40), thiscall RET 4, in a --no-hooks run through the original
+// WorldClient::PickAt2 (005659D0) and UnitAt (00565E40), thiscall RET 4, in a --no-hooks run through the original
 // addresses: they read the camera and the scene renderer, game.exe's own there.
 __declspec(naked) void* __fastcall OriginalPickAt2(void* /*client world*/, void*, const POINT*) EI_ORIGINAL(0x005659D0)
 __declspec(naked) void* __fastcall OriginalUnitAt(void* /*client world*/, void*, const POINT*) EI_ORIGINAL(0x00565E40)
@@ -1804,7 +1804,7 @@ void* HarnessUnitAt(void* world, const POINT* p) {
 // not drawn, -1 without a list.
 int ScreenRect(void* world, int id, RECT* rect) {
     if (ei::Standalone()) return image::ScreenRect(world, id, rect);
-    const auto& entries = static_cast<exe::CWorldClient*>(world)->screenEntries_;
+    const auto& entries = static_cast<exe::WorldClient*>(world)->screenEntries;
     if (!entries.head) return -1;
     int found = 0;
     for (const auto* node = entries.First(); node && node != entries.End(); node = node->next) {
@@ -1814,12 +1814,12 @@ int ScreenRect(void* world, int id, RECT* rect) {
     }
     return found;
 }
-// A picked object's id and flags (the CEngineObject's id_ and flags_).
+// A picked object's id and flags (the EngineObject's id and flags).
 int PickedId(const void* object) {
-    return ei::Standalone() ? image::ObjectId(object) : static_cast<const exe::CEngineObject*>(object)->id_;
+    return ei::Standalone() ? image::ObjectId(object) : static_cast<const exe::EngineObject*>(object)->id;
 }
 std::uint32_t PickedFlags(const void* object) {
-    return ei::Standalone() ? image::ObjectFlags(object) : static_cast<const exe::CEngineObject*>(object)->flags_;
+    return ei::Standalone() ? image::ObjectFlags(object) : static_cast<const exe::EngineObject*>(object)->flags;
 }
 std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
@@ -1901,7 +1901,7 @@ std::string PostUnitMouse(const std::string& argument) {
 
 // --- clickground <x> <y> [click|dblclick|rclick|move] (SV5d1) -----------------------------------------
 // A mouse step on the ground point (x, y) of the map: the 800x600 layout point whose ground, as the
-// game's own pick finds it (CWorldClient::PickSurface 0056C350, what the briefing screen's walk and the
+// game's own pick finds it (WorldClient::PickSurface 0056C350, what the briefing screen's walk and the
 // battle screen's orders ask with the message's coordinates), lies nearest to (x, y). Searched on a
 // 10-pixel grid, then pixel by pixel around the best; fails when no point comes within 1.5 units (the
 // point is off screen or hidden). The pick only reads the view and the terrain (its pick stack entry
@@ -1934,12 +1934,12 @@ void HarnessBlinkClose(void* half) {
 
 // The client halves of game.exe's client world's units with a face texture; false without a client world.
 bool ExeUnitFaceHalves(std::vector<void*>* halves) {
-    const exe::CWorldClient* world = exe::ClientWorld();
-    if (!world->objects_.head) return false;
-    for (auto* node = world->objects_.First(); node != world->objects_.End(); node = node->next) {
+    const exe::WorldClient* world = exe::ClientWorld();
+    if (!world->objects.head) return false;
+    for (auto* node = world->objects.First(); node != world->objects.End(); node = node->next) {
         exe::CMapObject* object = node->data;
         if (!object || digest::ClassOf(object) != digest::kClassUnit) continue;
-        auto* half = reinterpret_cast<exe::CUnitClientSpecific*>(static_cast<exe::CUnit*>(object)->controller);
+        auto* half = reinterpret_cast<exe::UnitClientSpecific*>(static_cast<exe::CUnit*>(object)->controller);
         if (half && half->faceTexture) halves->push_back(half);
     }
     return true;
@@ -2045,7 +2045,7 @@ std::string LookAt(const std::string& argument) {
 
 // --- hudstate [minquick] (ticket I9) ----------------------------------------------------------
 // Logs the battle screen's state (the window on top): the pending action (+0x17C, +0x180), each
-// party member's selection (flags_ 0x10) and quick items (CUnit::GetQuickItem 00531920, slots
+// party member's selection (flags 0x10) and quick items (CUnit::GetQuickItem 00531920, slots
 // 0-3), and the quick item panel's (+0x198) unit, entries shown and region items, the spell
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
 // fewer than that many of its unit's own quick items (regions 0-3).
@@ -2053,16 +2053,16 @@ std::string LookAt(const std::string& argument) {
 // kind are game.exe's own (its GetType 006A07F0: ours reads our named item database, C18k4, which game.exe never fills).
 namespace exe_hud {
 using namespace exe;
-CItem* UnitQuickItem(CUnit* unit, std::uint32_t slot) {   // 00531920
-    return OriginalCode<CItem*(__thiscall*)(CUnit*, std::uint32_t)>(0x00531920)(unit, slot);
+Item* UnitQuickItem(CUnit* unit, std::uint32_t slot) {   // 00531920
+    return OriginalCode<Item*(__thiscall*)(CUnit*, std::uint32_t)>(0x00531920)(unit, slot);
 }
-CItem* UnitSpell(CUnit* unit, std::uint32_t slot) {   // 005319A0
-    return OriginalCode<CItem*(__thiscall*)(CUnit*, std::uint32_t)>(0x005319A0)(unit, slot);
+Item* UnitSpell(CUnit* unit, std::uint32_t slot) {   // 005319A0
+    return OriginalCode<Item*(__thiscall*)(CUnit*, std::uint32_t)>(0x005319A0)(unit, slot);
 }
-CItemWeapon* UnitWeapon(CUnit* unit, std::uint32_t slot) {   // 005318B0
-    return OriginalCode<CItemWeapon*(__thiscall*)(CUnit*, std::uint32_t)>(0x005318B0)(unit, slot);
+ItemWeapon* UnitWeapon(CUnit* unit, std::uint32_t slot) {   // 005318B0
+    return OriginalCode<ItemWeapon*(__thiscall*)(CUnit*, std::uint32_t)>(0x005318B0)(unit, slot);
 }
-int WeaponType(CItemWeapon* weapon) { return reinterpret_cast<int(__thiscall*)(CItemWeapon*)>(0x006A07F0)(weapon); }
+int WeaponType(ItemWeapon* weapon) { return reinterpret_cast<int(__thiscall*)(ItemWeapon*)>(0x006A07F0)(weapon); }
 #include "harness_hud_read.inc"
 } // namespace exe_hud
 
@@ -2074,8 +2074,8 @@ std::string HudState(const std::string& argument) {
 
 // --- campputon <type> <count> (ticket I9) -----------------------------------------------------
 // With the camp on top (screen 5, page 0): the first <count> items of class type <type> (hex,
-// item type_: 0x3004 weapon, 0x3005 armour, 0x3006 quick item, 0x3008 spell container) in the
-// item strip's source list (the camp's itemStrip_, its source_: the player's items) are put on the hero as
+// item type: 0x3004 weapon, 0x3005 armour, 0x3006 quick item, 0x3008 spell container) in the
+// item strip's source list (the camp's itemStrip, its source: the player's items) are put on the hero as
 // a click on them in the strip does: the camp's virtual slot 42 (TakeItem: MoveItem 00610AD0) with mode 1
 // (PutOnFromStrip -> PutOn 0060FCA0). The strip's tabs do not matter. Logs every source item's
 // type; fails when fewer than <count> items of the type are found or the camp is not on top.
@@ -2094,14 +2094,14 @@ std::string CampPutOn(const std::string& argument) {
     if (ei::Standalone()) {
         if (!image::CampItems(camp, &page, &items, &types)) return "campputon: the camp has no item strip source";
     } else {
-        auto* pages = static_cast<exe::CCampPages*>(camp);
-        page = pages->page_;
-        const exe::AlignedArray<exe::CItem*>* source = pages->itemStrip_ ? pages->itemStrip_->source_ : nullptr;
+        auto* pages = static_cast<exe::CampPages*>(camp);
+        page = pages->page;
+        const exe::AlignedArray<exe::Item*>* source = pages->itemStrip ? pages->itemStrip->source : nullptr;
         if (!source) return "campputon: the camp has no item strip source";
         for (int i = 0; i < source->size; ++i) {
-            exe::CItem* item = source->data[i];
+            exe::Item* item = source->data[i];
             items.push_back(item);
-            types.push_back(item ? static_cast<unsigned>(item->type_) : 0);
+            types.push_back(item ? static_cast<unsigned>(item->type) : 0);
         }
     }
     std::vector<void*> chosen;
@@ -2111,7 +2111,7 @@ std::string CampPutOn(const std::string& argument) {
     }
     for (void* item : chosen) {
         if (ei::Standalone()) image::CampTakeItem(camp, item, 1);
-        else static_cast<exe::CCampPages*>(camp)->TakeItem(static_cast<exe::CItem*>(item), 1);
+        else static_cast<exe::CampPages*>(camp)->TakeItem(static_cast<exe::Item*>(item), 1);
         Log("harness: campputon: %p put on (MoveItem mode 1)", item);
     }
     if (static_cast<int>(chosen.size()) < count)
@@ -2129,22 +2129,22 @@ struct KnownWindow {
 };
 const std::vector<KnownWindow>& KnownWindows() {
     static const std::vector<KnownWindow> windows = {
-        {"menu", &ei::OriginalGameData<const std::uint8_t>(0x00740688)},         // CMainMenu (CreateScreen 2)
+        {"menu", &ei::OriginalGameData<const std::uint8_t>(0x00740688)},         // MainMenu (CreateScreen 2)
         {"battle", &ei::OriginalGameData<const std::uint8_t>(0x00740764)},       // the in-game screen (CreateScreen 1)
         {"briefing", &ei::OriginalGameData<const std::uint8_t>(0x007405AC)},     // the base / briefing screen (CreateScreen 3)
         {"map", &ei::OriginalGameData<const std::uint8_t>(0x00740B3C)},          // the island map (CreateScreen 4)
-        {"camp", &ei::OriginalGameData<const std::uint8_t>(0x0074091C)},         // CCampPages (CreateScreen 5)
-        {"view", &ei::OriginalGameData<const std::uint8_t>(0x00740840)},         // CViewScreen (CreateScreen 7)
+        {"camp", &ei::OriginalGameData<const std::uint8_t>(0x0074091C)},         // CampPages (CreateScreen 5)
+        {"view", &ei::OriginalGameData<const std::uint8_t>(0x00740840)},         // ViewScreen (CreateScreen 7)
         {"trade", &ei::OriginalGameData<const std::uint8_t>(0x00740D18)},        // trading between players (CreateScreen 9)
-        {"escmenu", &ei::OriginalGameData<const std::uint8_t>(0x007412A4)},      // CEscMenu
-        {"saveload", &ei::OriginalGameData<const std::uint8_t>(0x00741388)},     // CSaveLoadWindow
-        {"options", &ei::OriginalGameData<const std::uint8_t>(0x00741FAC)},      // COptionsWindow
-        {"objectives", &ei::OriginalGameData<const std::uint8_t>(0x007411BC)},   // CObjectivesWindow
+        {"escmenu", &ei::OriginalGameData<const std::uint8_t>(0x007412A4)},      // EscMenu
+        {"saveload", &ei::OriginalGameData<const std::uint8_t>(0x00741388)},     // SaveLoadWindow
+        {"options", &ei::OriginalGameData<const std::uint8_t>(0x00741FAC)},      // OptionsWindow
+        {"objectives", &ei::OriginalGameData<const std::uint8_t>(0x007411BC)},   // ObjectivesWindow
         {"help", &ei::OriginalGameData<const std::uint8_t>(0x00740E28)},         // the help / message window
-        {"msgbox", &ei::OriginalGameData<const std::uint8_t>(0x00742348)},       // CMessageBox
-        {"difficulty", &ei::OriginalGameData<const std::uint8_t>(0x0074225C)},   // CDifficultyBox
+        {"msgbox", &ei::OriginalGameData<const std::uint8_t>(0x00742348)},       // MessageWindow
+        {"difficulty", &ei::OriginalGameData<const std::uint8_t>(0x0074225C)},   // DifficultyBox
         {"heroes", &ei::OriginalGameData<const std::uint8_t>(0x0074214C)},       // the multiplayer hero screen (main menu region 5)
-        {"titles", &ei::OriginalGameData<const std::uint8_t>(0x00740C3C)},       // CCreditsScreen
+        {"titles", &ei::OriginalGameData<const std::uint8_t>(0x00740C3C)},       // CreditsScreen
     };
     return windows;
 }
@@ -2179,9 +2179,9 @@ bool WindowReady(std::uintptr_t vtable) {
     const std::uintptr_t real = TopWindowVtable(top);
     if (real != vtable) return false;
     if (real == KnownWindowVtable("saveload"))
-        return !(ei::Standalone() ? image::SaveLoadSliding(top) : static_cast<exe::CSaveLoadWindow*>(top)->sliding_);
+        return !(ei::Standalone() ? image::SaveLoadSliding(top) : static_cast<exe::SaveLoadWindow*>(top)->sliding);
     if (real == KnownWindowVtable("options"))
-        return !(ei::Standalone() ? image::OptionsSliding(top) : static_cast<exe::COptionsWindow*>(top)->sliding_);
+        return !(ei::Standalone() ? image::OptionsSliding(top) : static_cast<exe::OptionsWindow*>(top)->sliding);
     return true;
 }
 
@@ -3082,17 +3082,17 @@ void RunSteps() {
                 RequestScreen(id);
             }
         } else if (s.verb == "chat") {
-            // The chat line (the interface's root, CChatOverlay) opened as a multiplayer client's Enter
+            // The chat line (the interface's root, ChatOverlay) opened as a multiplayer client's Enter
             // opens it (005F7C60: SetOpen 005E36C0, which draws it, 005E3700), or closed.
-            exe::CInterface3D* ui = harness_objects::Interface();
-            if (!(ei::Standalone() ? image::HasChatOverlay() : ui->root_ != nullptr)) {
+            exe::Interface3D* ui = harness_objects::Interface();
+            if (!(ei::Standalone() ? image::HasChatOverlay() : ui->root != nullptr)) {
                 g_failures.push_back("chat: the interface has no chat overlay");
             } else if (std::atoi(s.argument.c_str()) != 0) {
                 if (ei::Standalone()) image::ChatKeyEnter();
-                else OriginalCode<void(__thiscall*)(exe::CInterface3D*)>(0x005F7C60)(ui);
+                else OriginalCode<void(__thiscall*)(exe::Interface3D*)>(0x005F7C60)(ui);
             } else {
                 if (ei::Standalone()) image::CloseChat();
-                else OriginalCode<void(__thiscall*)(void*, int)>(0x005E36C0)(ui->root_, 0);
+                else OriginalCode<void(__thiscall*)(void*, int)>(0x005E36C0)(ui->root, 0);
             }
         } else if (s.verb == "typeunicode") {
             if (std::string failure = utf8typing::Type(GameWindow(), s.argument); !failure.empty())
@@ -3168,7 +3168,7 @@ void RunSteps() {
                 g_failures.push_back("zone needs <name> [exit]");
                 continue;
             }
-            // CMapDatabase::FindMap 0045E850 (thiscall) on the map database (0079BF00).
+            // MapDatabase::FindMap 0045E850 (thiscall) on the map database (0079BF00).
             const auto* record = static_cast<const std::uint8_t*>(
                 ei::Standalone() ? image::FindMap(name)
                                  : OriginalCode<const void*(__thiscall*)(void*, const char*)>(0x0045E850)(
@@ -3648,7 +3648,7 @@ WNDPROC g_gameWindowProc;
 // harness notes the minimise (WM_SIZE, sent from inside a PeekMessageA while dgVoodoo handles the
 // deactivation) and, once that PeekMessageA has returned and dgVoodoo is done, puts the window back
 // without activating it and restores the surfaces as that code does (under the device lock, the
-// result in the device's lastLoadResult_), after every peek for the next 50 (surfaces still lost
+// result in the device's lastLoadResult), after every peek for the next 50 (surfaces still lost
 // right after the minimise were seen to fail the next BeginScene even so). Seen so far, though, the
 // minimise always came twice within ~100 ms, and the second took the exclusive mode as well.
 HWND g_minimised;
@@ -3657,12 +3657,12 @@ int g_restoresLeft;
 // device object holds a token (nothing to restore).
 bool RestoreSurfaces(long* result) {
     if (ei::Standalone()) return image::RestoreSurfaces(result);
-    auto* device = static_cast<exe::CTextureDevice*>(HarnessSceneDevice());
-    if (!device || !device->ddraw_) return false;
+    auto* device = static_cast<exe::TextureDevice*>(HarnessSceneDevice());
+    if (!device || !device->ddraw) return false;
     auto* lock = HarnessDeviceLock();   // the render device's lock
     EnterCriticalSection(lock);
-    *result = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
-    device->lastLoadResult_ = *result;
+    *result = static_cast<IDirectDraw7*>(device->ddraw)->RestoreAllSurfaces();
+    device->lastLoadResult = *result;
     LeaveCriticalSection(lock);
     return true;
 }
@@ -3771,7 +3771,7 @@ void KeepGameWindowActive() {
 // Posted input reaches the game only through its main loop (WinMain 00456440: PeekMessageA, then
 // GetMessageA and the input dispatcher 00457970) or the movie player's loop (005DB3F0: Esc and
 // Space). Every other PeekMessageA call comes from the game's pump 00458220, which interface window
-// switches run (CInterface3D::Activate 005F71C0 when the battle screen opens after a new game,
+// switches run (Interface3D::Activate 005F71C0 when the battle screen opens after a new game,
 // PushWindow, closing windows) to discard the input waiting meanwhile: what it removes goes to the
 // window procedure, which ignores keys and mouse. Steps can run inside it, so input steps posted
 // there were lost (the console scenario's keys, when the battle screen opened after its waitfor);
@@ -3796,7 +3796,7 @@ bool IsWinMainLoop(const void* returnAddress) {
     return ei::mainloop::g_site == Site::PeekBeforeFrame || ei::mainloop::g_site == Site::PeekAfterFrame;
 }
 
-// A pending close-all (CInterface3D +0x44, set by a screen request 00578B00 / 00578B20 or a leave
+// A pending close-all (Interface3D +0x44, set by a screen request 00578B00 / 00578B20 or a leave
 // answer) is carried out by whichever comes first: the input dispatcher's first step
 // (CloseAllPending 005F5AB0) for the next message the main loop takes, or the next pass (the
 // server's answer through Activate, or Draw). Whether a message waits then (Miles' WM_TIMER,

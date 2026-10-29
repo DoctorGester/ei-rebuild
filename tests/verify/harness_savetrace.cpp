@@ -19,7 +19,7 @@ namespace ei::verify::savetrace {
 namespace {
 
 // The slots the trace uses: 2 Write(buffer, size), 5 Position(). game.exe's run takes slot 2 of
-// game.exe's memory stream tables (CMemoryStream 0073BD90; the second one, 0073C960, with the same
+// game.exe's memory stream tables (MemoryStream 0073BD90; the second one, 0073C960, with the same
 // slots 1-7); the image's tables are compiled (C19) and tell g_memoryStreamWriteObserver.
 constexpr int kWriteSlot = 2;
 constexpr int kPositionSlot = 5;

@@ -4,7 +4,7 @@ Things to come back to. Remove an entry once it is resolved.
 
 ## Parked
 
-- **`CBaseManager` instance create/destroy (00403730, 00403AE0, 00404040).** Object pooling across
+- **`BaseManager` instance create/destroy (00403730, 00403AE0, 00404040).** Object pooling across
   four STLport maps (+0x1C objects by id, +0x50, +0x68 per-class free lists, +0x80 per-class counts),
   an MFC `CPtrList` at +0x34 and pool lists. Deferred as high-risk; needs each map's key/value types
   and the list helpers (004069A0, 004050C0, 00404F80 ...) mapped first.
@@ -36,7 +36,7 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
   --all-fields`: all 630 / 635 / 530 records the same; with `--clock virtual,lfheap`, the old heap,
   combat does not repeat). Ours and the original still allocate differently (the verify wrappers),
   so the harness also has both sides spread the countdown by the object's id instead of its address
-  (the eight original sites patched, CWorldServer::UpdateCountdownFor in ours). What was left
+  (the eight original sites patched, WorldServer::UpdateCountdownFor in ours). What was left
   between ours and the original was a rewrite bug: AIViewer::Refresh (005CA1D0) appended the units
   near a unit to its nearby list, where the original inserts each at the head, so two units coming
   into view in one update were "seen" in the other order. With that fixed, the three repeat and match
@@ -122,4 +122,4 @@ insertion threshold 16) with no difference found. Answered by S17a: the NaN dept
 leftovers of objects listed only for their shadow before they were ever in view (CObject3D::Construct
 leaves +0x28); zeroed in ours and, through a harness site, in the original (docs/notes/standalone.md).
 
-- Original bug (fix candidate): CUnitClientSpecific::Level (00539160) returns INT_MIN for a unit with 0 experience (FISTP of ln 0 = -inf). Kept for now; see units.md.
+- Original bug (fix candidate): UnitClientSpecific::Level (00539160) returns INT_MIN for a unit with 0 experience (FISTP of ln 0 = -inf). Kept for now; see units.md.

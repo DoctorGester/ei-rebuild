@@ -1,4 +1,4 @@
-// CWorldServer::UpdateWeather (every 64 ticks from Tick): the day-time value, rain starting and stopping,
+// WorldServer::UpdateWeather (every 64 ticks from Tick): the day-time value, rain starting and stopping,
 // lightning strikes and the lightning bolts during a storm. See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "base_manager.h"
@@ -36,8 +36,8 @@ constexpr float kBoltHeight = 40.0f;
 
 constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
-constexpr int kStormy = 3;                  // climate_: storms with lightning strikes
-constexpr int kRaining = 1;                 // weather_
+constexpr int kStormy = 3;                  // climate: storms with lightning strikes
+constexpr int kRaining = 1;                 // weather
 constexpr int kTypeLightning = 0x65;
 constexpr float kRainLight = 20.0f;
 constexpr float kRainHeavy = 40.0f;
@@ -49,12 +49,12 @@ float UniformOnMap() { return static_cast<float>(x87::FromUnsigned(g_random.Next
 
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
 // away when the ground there is open and the line between them is not fully free.
-void TryLightningStrike(CWorldServer* world) {
+void TryLightningStrike(WorldServer* world) {
     Vector3 ground;
     ground.x = UniformOnMap();
     ground.y = UniformOnMap();
     ground.z = 0.0f;
-    CAIMap* aiMap = &world->aiMap_;
+    AIMap* aiMap = &world->aiMap;
     int kind = aiMap->MaterialAt(ground);
     if (kind != 3 && kind != 1) return;
     if (aiMap->InWaterAt(ground)) return;
@@ -70,45 +70,45 @@ void TryLightningStrike(CWorldServer* world) {
     sky.z = ground.z;
     if (aiMap->LargestStepAlong(ground, sky) >= 1.0f) return;   // NaN goes on (C0 set)
 
-    CBaseManager* manager = world->TimedObjectManager();
-    auto* lightning = manager->CreateObjectAs<CEffectTornado>(kTypeLightning, -1);
+    BaseManager* manager = world->TimedObjectManager();
+    auto* lightning = manager->CreateObjectAs<EffectTornado>(kTypeLightning, -1);
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
     lightning->Launch(ground, sky);
-    lightning->startTick_ = world->tick_;
+    lightning->startTick = world->tick;
     lightning->AddRef();
     lightning->MarkChanged();
-    world->timedObjects_.Set(static_cast<unsigned>(lightning->id_), lightning);
+    world->timedObjects.Set(static_cast<unsigned>(lightning->id), lightning);
 }
 
 // Rain starts (1 in 101 per check) or stops (1 in 31); light rain in kind-1 weather, heavy otherwise.
-void UpdateRain(CWorldServer* world) {
+void UpdateRain(WorldServer* world) {
     if (--g_weatherDelay > 0) return;
-    if (world->weather_ == 0) {
+    if (world->weather == 0) {
         if (g_random.Next() % 101 != 0) return;
         g_weatherDelay = 10;
-        if (world->climate_ == 1) {
-            world->weather_ = 1;
-            world->weatherStrength_ = kRainLight;
+        if (world->climate == 1) {
+            world->weather = 1;
+            world->weatherStrength = kRainLight;
         } else {
-            world->weather_ = 2;
-            world->weatherStrength_ = kRainHeavy;
+            world->weather = 2;
+            world->weatherStrength = kRainHeavy;
         }
     } else {
         if (g_random.Next() % 31 != 0) return;
         g_weatherDelay = 10;
-        int previous = world->climate_;
-        world->weather_ = 0;
-        if (previous == 1) world->weatherStrength_ = kRainLight;
-        else world->weatherStrength_ = kRainHeavy;
+        int previous = world->climate;
+        world->weather = 0;
+        if (previous == 1) world->weatherStrength = kRainLight;
+        else world->weatherStrength = kRainHeavy;
     }
     world->MarkPlayersDirty(lib::Bits(PlayerDirty::Weather));
 }
 
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.
-void ShowRainBolt(CWorldServer* world) {
-    world->lastRainBoltTick_ = static_cast<std::uint32_t>(world->tick_);
+void ShowRainBolt(WorldServer* world) {
+    world->lastRainBoltTick = static_cast<std::uint32_t>(world->tick);
     float x = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltScale + 2.0f);
     float y = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltScale + 2.0f);
     float z = static_cast<float>(world->RawSurfaceHeightAt(x, y) - kFive);
@@ -123,25 +123,25 @@ void ShowRainBolt(CWorldServer* world) {
 // "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
 // "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
-CScript& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command queue (adds a line)
+Script& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command queue (adds a line)
 
 
 } // namespace
 
-void CWorldServer::UpdateWeather() {
+void WorldServer::UpdateWeather() {
     float day = static_cast<float>(NightLevel());
-    nightLevel_ = day;
-    if (sessionKind_ == kKindSinglePlayer) {
-        if (climate_ != 0) {
-            if (climate_ == kStormy) TryLightningStrike(this);
+    nightLevel = day;
+    if (sessionKind == kKindSinglePlayer) {
+        if (climate != 0) {
+            if (climate == kStormy) TryLightningStrike(this);
             else UpdateRain(this);
         }
-        if (weather_ == kRaining && tick_ > static_cast<int>(lastRainBoltTick_) + 20) ShowRainBolt(this);
+        if (weather == kRaining && tick > static_cast<int>(lastRainBoltTick) + 20) ShowRainBolt(this);
     }
-    weatherFactor_ = std::bit_cast<std::uint32_t>(weather_ == 0 ? kDayFactorDry : kDayFactorRain);
+    weatherFactor = std::bit_cast<std::uint32_t>(weather == 0 ? kDayFactorDry : kDayFactorRain);
 
-    for (auto& node : objects_.map) node.second->UpdateMoveFactors();   // the weather changed
-    if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
+    for (auto& node : objects.map) node.second->UpdateMoveFactors();    // the weather changed
+    if (sessionKind == kKindSinglePlayer || sessionKind == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
 }
 
 // ---- ShowBolt ---------------------------------------------------------------------------------

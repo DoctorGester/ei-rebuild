@@ -29,8 +29,8 @@ bool g_patched = false;
 
 // The order of address_order::ObjectBefore: the object's id, then its address.
 bool IdBefore(std::uint32_t a, std::uint32_t b) {
-    int ia = reinterpret_cast<const CEngineObject*>(a)->id_;
-    int ib = reinterpret_cast<const CEngineObject*>(b)->id_;
+    int ia = reinterpret_cast<const EngineObject*>(a)->id;
+    int ib = reinterpret_cast<const EngineObject*>(b)->id;
     if (ia != ib) return ia < ib;
     return a < b;
 }
@@ -83,12 +83,12 @@ __declspec(naked) void MergeStep() {
 // 0041E430 (the client's binding handler; ECX the client, EDX the binding, plain RET): the original's
 // counted assignment, then, when players came before the binding, the interface's refresh 005F82D0
 // (RET 4) on game.exe's interface 007C7D50, as ours does (net_client_handlers.cpp ClientOnBinding, UB1).
-void __fastcall OnBindingForOriginal(net::ClientSession* self, CRefObject* binding) {
-    CRefObject* previous = self->binding_;
-    self->binding_ = binding;
-    if (binding) ++binding->refs_;
-    if (previous && --previous->refs_ == 0) previous->Delete();
-    if (self->players_.Empty()) return;
+void __fastcall OnBindingForOriginal(net::ClientSession* self, RefObject* binding) {
+    RefObject* previous = self->binding;
+    self->binding = binding;
+    if (binding) ++binding->refs;
+    if (previous && --previous->refs == 0) previous->Delete();
+    if (self->players.Empty()) return;
     using RefreshFn = void(__thiscall*)(void*, int);
     ei::verify::OriginalCode<RefreshFn>(0x005F82D0)(&ei::OriginalGameData<std::uint8_t>(0x007C7D50), 1);
 }
@@ -96,50 +96,50 @@ void __fastcall OnBindingForOriginal(net::ClientSession* self, CRefObject* bindi
 // The draw lists' order by name, as ours (address_order::DrawBefore, src/game/address_order.cpp): the first part
 // set's texture (null first, then by name), then the figure (null first, then by name and morph weights), then the
 // view depth as the original.
-const CTexture* RankTexture(const CObject3DClientSpecific* model) {
+const CTexture* RankTexture(const Object3DClientSpecific* model) {
     const TextureParts* rank = model->partSets[0];
     return rank ? rank->texture : nullptr;
 }
 
 int CompareTextures(const CTexture* a, const CTexture* b) {
     if (!a || !b) return (a != nullptr) - (b != nullptr);
-    const char* aName = a->name_;
-    const char* bName = b->name_;
+    const char* aName = a->name;
+    const char* bName = b->name;
     return std::strcmp(aName ? aName : "", bName ? bName : "");
 }
 
-int CompareFigures(const CLinkMesh* a, const CLinkMesh* b) {
+int CompareFigures(const LinkMesh* a, const LinkMesh* b) {
     if (!a || !b) return (a != nullptr) - (b != nullptr);
-    if (a->name_ < b->name_) return -1;
-    if (b->name_ < a->name_) return 1;
+    if (a->name < b->name) return -1;
+    if (b->name < a->name) return 1;
     for (int i = 0; i < 3; ++i) {
-        const auto wa = std::bit_cast<std::uint32_t>(a->morphWeights_[i]);
-        const auto wb = std::bit_cast<std::uint32_t>(b->morphWeights_[i]);
+        const auto wa = std::bit_cast<std::uint32_t>(a->morphWeights[i]);
+        const auto wb = std::bit_cast<std::uint32_t>(b->morphWeights[i]);
         if (wa != wb) return wa < wb ? -1 : 1;
     }
     return 0;
 }
 
-bool DrawBefore(CEngineObject* a, CEngineObject* b) {
+bool DrawBefore(EngineObject* a, EngineObject* b) {
     if (!a || !b) return false;
     const auto* objectA = static_cast<const CObject3D*>(a);
     const auto* objectB = static_cast<const CObject3D*>(b);
-    const CObject3DClientSpecific* groupA = objectA->ClientSpecific();
-    const CObject3DClientSpecific* groupB = objectB->ClientSpecific();
+    const Object3DClientSpecific* groupA = objectA->ClientSpecific();
+    const Object3DClientSpecific* groupB = objectB->ClientSpecific();
     if (!groupA || !groupB) return false;
     if (int c = CompareTextures(RankTexture(groupA), RankTexture(groupB))) return c < 0;
     if (int c = CompareFigures(objectA->figure, objectB->figure)) return c < 0;
-    return objectA->worldPosition_.z < objectB->worldPosition_.z;
+    return objectA->worldPosition.z < objectB->worldPosition.z;
 }
 
 // Sorted with the game's sort, as the image sorts its draw lists (lib/intro_sort.h).
 // 005740D0 (ECX first, EDX last; the value type, the depth limit and the comparator on the stack, RET 0xC).
-void __fastcall IntroSortForOriginal(CEngineObject** first, CEngineObject** last, void*, int depthLimit, int) {
+void __fastcall IntroSortForOriginal(EngineObject** first, EngineObject** last, void*, int depthLimit, int) {
     lib::IntroSortLoop(first, last, depthLimit, DrawBefore);
 }
 
 // 00574390 (ECX first, EDX last, the comparator on the stack, RET 4).
-void __fastcall FinalSortForOriginal(CEngineObject** first, CEngineObject** last, int) {
+void __fastcall FinalSortForOriginal(EngineObject** first, EngineObject** last, int) {
     lib::FinalInsertionSort(first, last, DrawBefore);
 }
 
@@ -176,13 +176,13 @@ namespace {
 // The base screen `briefing`'s player list in game.exe's run: its client (0079B5D8) and chat window.
 bool OriginalPlayerList(void* briefing, image::PlayerList* list) {
     auto* client = ei::OriginalGameData<exe::net::ClientSession*>(0x0079B5D8);
-    const exe::CChatWindow* chat = static_cast<const exe::CBriefingScreen*>(briefing)->chat_;
+    const exe::ChatWindow* chat = static_cast<const exe::BriefingScreen*>(briefing)->chat;
     if (!client || !chat) return false;
     list->players = 0;
-    for (auto* node = client->players_.First(); node != client->players_.End(); node = node->next) ++list->players;
-    const exe::CRefObject* binding = client->binding_;
-    list->bound = binding && !(binding->flags7_ & exe::CRefObject::kDetached);
-    list->listed = chat->listed_;
+    for (auto* node = client->players.First(); node != client->players.End(); node = node->next) ++list->players;
+    const exe::RefObject* binding = client->binding;
+    list->bound = binding && !(binding->flags7 & exe::RefObject::kDetached);
+    list->listed = chat->listed;
     return true;
 }
 

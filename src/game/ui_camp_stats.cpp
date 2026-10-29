@@ -1,4 +1,4 @@
-// The camp's statistics column (CHeroStatsPanel) and trade panel (CTradePanel): what the
+// The camp's statistics column (HeroStatsPanel) and trade panel (TradePanel): what the
 // statistics under the mouse are, for the description panel (the camp's Draw
 // and the hero screen's draw ask every frame), and the column's hero. See ui_camp.h and
 // docs/notes/ui.md ("Camp, global map, hero screens").
@@ -42,9 +42,9 @@ constexpr int kTipNextHero = 0x4F4D;
 
 // --- the trade panel -----------------------------------------------------------------------------
 
-ItemHoverInfo CTradePanel::HoverInfo(int x, int y) {
+ItemHoverInfo TradePanel::HoverInfo(int x, int y) {
     ItemHoverInfo info;
-    if (!enabled_) return info;
+    if (!enabled) return info;
     // The region is tested with unsigned compares, so -1 (no region) falls through
     // every range and ends on a held-perk index far past the list.
     unsigned region = static_cast<unsigned>(RegionAt(x, y));
@@ -61,14 +61,14 @@ ItemHoverInfo CTradePanel::HoverInfo(int x, int y) {
     } else {
         const TradeRow* row;
         if (region < 0x22) {
-            unsigned i = static_cast<unsigned>(learnableTop_) + region - 11;
-            if (i >= learnable_.size()) return info;
-            row = &learnable_[i];
+            unsigned i = static_cast<unsigned>(learnableTop) + region - 11;
+            if (i >= learnable.size()) return info;
+            row = &learnable[i];
             info.index = 0;
         } else {
-            unsigned i = static_cast<unsigned>(perkTop_) + region - 0x22;
-            if (i >= perks_.size()) return info;
-            row = &perks_[i];
+            unsigned i = static_cast<unsigned>(perkTop) + region - 0x22;
+            if (i >= perks.size()) return info;
+            row = &perks[i];
             info.index = row->level;
         }
         info.kind = HoverKind::Perk;
@@ -76,27 +76,27 @@ ItemHoverInfo CTradePanel::HoverInfo(int x, int y) {
         str::TrimRight(info.text, kPerkLevelDigits);
         info.text += kPerkFirstLevel;
     }
-    info.stats = &owner_->HeroRecord()->stats;
+    info.stats = &owner->HeroRecord()->stats;
     return info;
 }
 
 // --- the statistics column -----------------------------------------------------------------------
 
-ItemHoverInfo CHeroStatsPanel::HoverInfo(int x, int y) {
-    PartyUnitRecord* hero = owner_->HeroRecord();
+ItemHoverInfo HeroStatsPanel::HoverInfo(int x, int y) {
+    PartyUnitRecord* hero = owner->HeroRecord();
     ItemHoverInfo info;
     info.stats = &hero->stats;
     int row = RegionAt(x, y);
-    if (((page_ == 1 || page_ == 11) && row >= 2) || (page_ == 10 && row >= 2 && row < 5)) {
+    if (((page == 1 || page == 11) && row >= 2) || (page == 10 && row >= 2 && row < 5)) {
         info.kind = HoverKind::Attribute;
         info.index = row - 2;
         info.text = AttributeNames()[row - 2];
     }
-    if (page_ == 10 && (row == 14 || row == 5)) {
+    if (page == 10 && (row == 14 || row == 5)) {
         info.kind = HoverKind::Text;
         info.text = row == 14 ? kPointsLeft : kHeight;
     }
-    if (page_ != 0) return info;
+    if (page != 0) return info;
     auto armour = [&info](int part, const char* text) {
         info.kind = HoverKind::Armour;
         info.part = part;
@@ -136,20 +136,20 @@ ItemHoverInfo CHeroStatsPanel::HoverInfo(int x, int y) {
 
 // --- the column's hero ---------------------------------------------------------------------------
 
-void CHeroStatsPanel::SetHero(int heroIndex, std::optional<std::string_view> title) {
-    bool party = std::ssize(LocalPlayerData()->members_) > 1;
-    SceneMesh(0)->visible_ = party;
-    SceneMesh(1)->visible_ = party;
-    regions_[0]->SetTip(party ? kTipPreviousHero : 0);
-    regions_[1]->SetTip(party ? kTipNextHero : 0);
-    heroIndex_ = heroIndex;
-    if (title) title_ = std::string(*title);
-    points_ = static_cast<int>(owner_->HeroRecord()->height * 100.0f);
+void HeroStatsPanel::SetHero(int newHeroIndex, std::optional<std::string_view> newTitle) {
+    bool party = std::ssize(LocalPlayerData()->members) > 1;
+    SceneMesh(0)->visible = party;
+    SceneMesh(1)->visible = party;
+    regions[0]->SetTip(party ? kTipPreviousHero : 0);
+    regions[1]->SetTip(party ? kTipNextHero : 0);
+    heroIndex = newHeroIndex;
+    if (newTitle) title = std::string(*newTitle);
+    points = static_cast<int>(owner->HeroRecord()->height * 100.0f);
     DrawStats();
 }
 
 // --- the camp's hero record ----------------------------------------------------------------------
 
-PartyUnitRecord* CCampPages::HeroRecord() {
-    return &LocalPlayerData()->members_[hero_];
+PartyUnitRecord* CampPages::HeroRecord() {
+    return &LocalPlayerData()->members[hero];
 }

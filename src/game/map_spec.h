@@ -14,10 +14,10 @@
 
 #include <vector>
 
-class CStream;
-class CEngineObject;
+class ByteStream;
+class EngineObject;
 class CMapObject;
-class CTransformObject;
+class TransformObject;
 class CUnit;
 
 // ---- The world objects' parts of the trap and lever records ---------------------------------------
@@ -61,7 +61,7 @@ struct LeverSetup {
 };
 
 // The bits of mapspec::Behaviour::flags. Before format 0x53 (kVersionUnitAlarm) the reaction (Behaviour::alarm) was
-// a bit each; the first set one counts, none is 2 (the reactions: unit_ai_alarm.cpp's Reaction).
+// a bit each; the first set one counts, none is 2 (the reactions: unit_ai.cpp's Reaction).
 enum class BehaviourFlag : std::uint32_t {
     OldFight = 0x1,             // reaction 0
     OldRevenge = 0x2,           // 1
@@ -90,8 +90,8 @@ struct Patrol {
 
 // A unit's behaviour (alarm) record; the brain applies one.
 struct Behaviour {
-    void Read(CStream* stream);
-    void Write(CStream* stream) const;
+    void Read(ByteStream* stream);
+    void Write(ByteStream* stream) const;
     std::int32_t type = 3;       // 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
     std::vector<Patrol> patrols;
     Vector3 guard{};             // the unit's position when saved
@@ -131,7 +131,7 @@ public:
 
 
     std::int32_t id;             // the object's id (-1)
-    CEngineObject* object;       // the world object made from the record (null: none)
+    EngineObject* object;       // the world object made from the record (null: none)
     Vector3 position;
     Quaternion rotation;         // (1, 0, 0, 0)
     std::string name;
@@ -237,7 +237,7 @@ public:
     virtual void SetVisible(std::uint8_t newVisible);
 
     // The world object an effect record makes (the effect's carrier: a transform object).
-    CTransformObject* Transform() const;
+    TransformObject* Transform() const;
 
     void* effect;                // the effect the world object runs
     std::uint8_t visible;
@@ -317,7 +317,7 @@ struct MobRecords {
     std::int32_t maxId;
 };
 
-// A .mob file's root chunk (CWorldServer::LoadMapObjects opens it).
+// A .mob file's root chunk (WorldServer::LoadMapObjects opens it).
 class MobFile : public RootChunk {
 public:
     // Reads the file's top-level chunks: the scripts (0xACCEECCA plain, 0xACCEECCB encoded) into `scripts`,

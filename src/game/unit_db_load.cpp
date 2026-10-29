@@ -35,7 +35,7 @@ using SerializeTable = void (ChunkArchive::*)(int, std::vector<Record>*);
 // and, after the archive is closed, each entered into the name index under its name (operator[]; a record of
 // a name seen before replaces the earlier one).
 template <typename Table, typename Record>
-void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, Table& table) {
+void LoadTable(MemoryStream* stream, int id, SerializeTable<Record> serialize, Table& table) {
     ChunkArchive archive;
     archive.Open(stream, 1, 1);
     (archive.*serialize)(id, &table.records);
@@ -74,11 +74,11 @@ int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("units.udb", &size);
+    void* data = resource.Get()->MappedResource::GetFile("units.udb", &size);
     if (!data) return game::FatalError("Can't open units database\n");
 
-    CMemoryStream local;
-    CMemoryStream* stream = &local;
+    MemoryStream local;
+    MemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
     LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, levels);
@@ -86,8 +86,8 @@ int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
     LoadTable(stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, prototypes);
     LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, npcs);
 
-    resource.Get()->CMappedResource::CloseFile(data);
-    resource.Get()->CMappedResource::CloseResource();
+    resource.Get()->MappedResource::CloseFile(data);
+    resource.Get()->MappedResource::CloseResource();
 
     // Every prototype's model by its name (the record's place in the model table, or -1).
     for (int i = 0; i < static_cast<int>(prototypes.records.size()); ++i) {
@@ -115,13 +115,13 @@ int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("perks.pdb", &size);
+    void* data = resource.Get()->MappedResource::GetFile("perks.pdb", &size);
     if (!data) return game::FatalError("Can't open perks database\n");
 
     ChunkArchive ar;
     {
-        CMemoryStream local;
-        CMemoryStream* stream = &local;
+        MemoryStream local;
+        MemoryStream* stream = &local;
         FillStream(*stream, data, size);
         ar.Open(stream, 1, 1);
         ar.SerializeSkills(kSkillsChunk, &skills);
@@ -129,7 +129,7 @@ int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
         // clear and the record's chunk out of line.
         if (ar.EnterChunk(kSkillLevelsChunk)) {
             int count;
-            if (ar.loading_) {
+            if (ar.loading) {
                 levels.clear();
                 count = ar.CountChunks(kRecordChunk);
                 levels.resize(static_cast<std::uint32_t>(count));
@@ -143,8 +143,8 @@ int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
             ar.LeaveChunk();
         }
         ar.Close(stream);
-        resource.Get()->CMappedResource::CloseFile(data);
-        resource.Get()->CMappedResource::CloseResource();
+        resource.Get()->MappedResource::CloseFile(data);
+        resource.Get()->MappedResource::CloseResource();
     }
     return 1;
 }

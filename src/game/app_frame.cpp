@@ -5,7 +5,7 @@
 #include "dib.h"
 #include "game_strings.h"
 #include "model.h"
-#include "texture.h"   // CTextureDevice, Surface
+#include "texture.h"   // TextureDevice, Surface
 
 #include "ei/main_loop.h"
 #include "lib/file_io.h"
@@ -56,7 +56,7 @@ void FrameStep(bool draw, bool cursor) {
     if (!draw || !Running()) return;
     LockCursorAtCallSite();
     CursorDrawFrame(&g_cursor);
-    if (DevicePresent(g_sceneRenderer.device_)) game::FatalError("Can't flip render surface");   // "Can't flip render surface"
+    if (DevicePresent(g_sceneRenderer.device)) game::FatalError("Can't flip render surface");    // "Can't flip render surface"
     g_cursor.ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];
@@ -67,7 +67,7 @@ void FrameStep(bool draw, bool cursor) {
         app::g_recordingFrames = 0;
         return;
     }
-    CDib* bitmap = CaptureScreen(g_sceneRenderer.device_);
+    Dib* bitmap = CaptureScreen(g_sceneRenderer.device);
     if (bitmap) bitmap->Write(&file);
     delete bitmap;
     file.Close();
@@ -77,7 +77,7 @@ void FrameStep(bool draw, bool cursor) {
 // Plays the movies listed under `section` in the .ini under the movie folder setting (each
 // from the movie directory).
 void PlayMovies(const std::string& section, bool loadingStep) {
-    CIniFile ini;
+    IniFile ini;
     ini.SetPath(g_dataFolder + "config\\movie.ini");
     for (const std::string& movie : ini.GetList(section.c_str(), "movies", ',')) {
         {

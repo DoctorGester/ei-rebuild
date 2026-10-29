@@ -1,4 +1,4 @@
-// CWorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
+// WorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
 #include "model.h"
 #include "options.h"
@@ -25,8 +25,8 @@ namespace {
 
 // The scene's transform pipeline: the picking stack, the clip stack an object's matrix is pushed on to classify it,
 // and the view stack.
-float* StackTop(CTransformPipeline* device, int index) {
-    MatrixStack& stack = device->stacks_[index];
+float* StackTop(TransformPipeline* device, int index) {
+    MatrixStack& stack = device->stacks[index];
     return stack.matrices[stack.count - 1].m;
 }
 
@@ -35,12 +35,12 @@ void PushBack(std::vector<CMapObject*>& v, CMapObject* const& value) {
     v.push_back(value);
 }
 
-const int& g_multiplayerView = options::g_options.drawVisibleOnly_;
-const int& g_modelTouchDelay = options::g_options.shadowLightingFreq_;
+const int& g_multiplayerView = options::g_options.drawVisibleOnly;
+const int& g_modelTouchDelay = options::g_options.shadowLightingFreq;
 
 // Pushes `matrix` on the pipeline's stack `index` (multiplied onto its top).
-void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix) {
-    MatrixStack& stack = device->stacks_[index];
+void PushStackMatrix(TransformPipeline* device, int index, const float* matrix) {
+    MatrixStack& stack = device->stacks[index];
     if (stack.count == 0) {
         stack.count = 1;
         std::memcpy(stack.matrices[0].m, matrix, 0x40);
@@ -51,7 +51,7 @@ void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix)
 }
 
 CObject3D* Object3D(CMapObject* object) { return object; }
-CObject3DClientSpecific* ModelOf(CMapObject* object) {
+Object3DClientSpecific* ModelOf(CMapObject* object) {
     return Object3D(object)->ClientSpecific();
 }
 
@@ -60,14 +60,14 @@ __forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
 
 // The two draws share everything but the height function (which returns its result unrounded).
 template <typename Height>
-Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
-    CTransformPipeline* device = g_sceneRenderer.pipeline_;
-    if (device->stacks_[CTransformPipeline::kViewStack].count == 0) {
+Vector3* PickPoint(WorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
+    TransformPipeline* device = g_sceneRenderer.pipeline;
+    if (device->stacks[TransformPipeline::kViewStack].count == 0) {
         std::memcpy(out, &worlddata::kOrigin, 12);
         return out;
     }
-    PushStackMatrix(device, CTransformPipeline::kPickStack, StackTop(device, CTransformPipeline::kViewStack));
-    const float* m = StackTop(g_sceneRenderer.pipeline_, CTransformPipeline::kPickStack);
+    PushStackMatrix(device, TransformPipeline::kPickStack, StackTop(device, TransformPipeline::kViewStack));
+    const float* m = StackTop(g_sceneRenderer.pipeline, TransformPipeline::kPickStack);
 
     // The values kept on the FPU stack are doubles here (no rounding to float).
     double sx = screenX;
@@ -88,7 +88,7 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
             -((((m[4] * m[15] - m[12] * m[7]) * sx + (m[3] * m[12] - m[0] * m[15]) * sy) + (m[0] * m[7] - m[3] * m[4])) / det));
 
         // Start halfway up the terrain's height range.
-        float half = static_cast<float>(world->terrain_->heightRange * 0.5f);
+        float half = static_cast<float>(world->terrain->heightRange * 0.5f);
         float x = NonNegative(static_cast<float>(a * half + b));
         float y = NonNegative(static_cast<float>(c * half + d));
         pz = static_cast<float>((height(x, y) + half) * 0.5f);
@@ -126,7 +126,7 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
             } while (steps < 100);
         }
     }
-    device->PopMatrix(CTransformPipeline::kPickStack);
+    device->PopMatrix(TransformPipeline::kPickStack);
     out->x = outX;
     out->y = outY;
     out->z = pz;
@@ -137,23 +137,23 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
+int WorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
                                  char animateUnits, char withScripted) {
-    CTransformPipeline* device = g_sceneRenderer.pipeline_;
+    TransformPipeline* device = g_sceneRenderer.pipeline;
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
-    if (g_multiplayerView != 0 && session_->sessionKind_ == 1) drawAllUnits = false;
+    if (g_multiplayerView != 0 && session->sessionKind == 1) drawAllUnits = false;
 
     for (CMapObject* object : *list) {
         if (object && Object3D(object)->attached) {
             bool process = true;
             if (object->GetClassId() == ClassId::Unit) {
-                if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id_) && !withScripted) {
+                if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id) && !withScripted) {
                     process = false;
                 } else if (animateUnits) {
                     object->AdvanceTime(animTime);
-                    if (!drawAllUnits && !(object->flags_ & MapObjectFlag::InParty)) process = false;
+                    if (!drawAllUnits && !(object->flags & MapObjectFlag::InParty)) process = false;
                 } else {
                     // First pass: units wait on the deferred list (which holds a reference).
                     g_deferredUnits.emplace_back(object);
@@ -164,23 +164,23 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
                 // Object -> world matrix: the rotation with the position as the last column.
                 CObject3D* o3d = Object3D(object);
                 float* matrix = o3d->worldMatrix.m;
-                static_cast<const Quaternion*>(&o3d->localRotation_)->ToMatrix(matrix);
-                matrix[3] = o3d->localPosition_.x;
-                matrix[7] = o3d->localPosition_.y;
-                matrix[11] = o3d->localPosition_.z;
+                static_cast<const Quaternion*>(&o3d->localRotation)->ToMatrix(matrix);
+                matrix[3] = o3d->localPosition.x;
+                matrix[7] = o3d->localPosition.y;
+                matrix[11] = o3d->localPosition.z;
                 matrix[14] = 0.0f;
                 matrix[13] = 0.0f;
                 matrix[12] = 0.0f;
                 matrix[15] = 1.0f;
-                PushStackMatrix(device, CTransformPipeline::kClipStack, matrix);
-                int where = g_sceneRenderer.pipeline_->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
-                device->PopMatrix(CTransformPipeline::kClipStack);
+                PushStackMatrix(device, TransformPipeline::kClipStack, matrix);
+                int where = g_sceneRenderer.pipeline->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
+                device->PopMatrix(TransformPipeline::kClipStack);
 
                 CMapObject* const& entry = object;
                 if (where != 2) {
-                    object->flags_ |= MapObjectFlag::Shown;
+                    object->flags |= MapObjectFlag::Shown;
                     // View-space position: x summed ZYX, y and z XYZ, each rounded.
-                    o3d->worldPosition_ = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition_);
+                    o3d->worldPosition = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition);
                     switch (object->GetClassId()) {
                     case ClassId::Unit:
                         PushBack(g_visibleUnits, entry);
@@ -203,12 +203,12 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
                         PushBack(g_shadowOther, entry);
                         break;
                     }
-                    if ((object->flags_ & MapObjectFlag::Stationary) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(g_modelTouchDelay)) {
+                    if ((object->flags & MapObjectFlag::Stationary) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(g_modelTouchDelay)) {
                         PushBack(g_touchedModels, entry);
                         ++touched;
                     }
                 } else {
-                    object->flags_ &= ~MapObjectFlag::Shown;
+                    object->flags &= ~MapObjectFlag::Shown;
                     // Out of view: still listed for shadows when its shadow volume is in view.
                     if (ModelOf(object)->ShadowInView()) {
                         if (o3d->animation) o3d->animation->UpdatePose();
@@ -229,13 +229,13 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
 
 // ---- Cursor picking ------------------------------------------------------------------------------
 
-Vector3* CWorldClient::PickGround(Vector3* out, int x, int y) {
+Vector3* WorldClient::PickGround(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
-        return terrain_->HeightAt(px, py, terrain::Layer::Ground);
+        return terrain->HeightAt(px, py, terrain::Layer::Ground);
     });
 }
 
-Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
+Vector3* WorldClient::PickSurface(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
         return GroundHeightAt(px, py);
     });

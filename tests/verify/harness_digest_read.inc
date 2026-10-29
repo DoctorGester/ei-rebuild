@@ -1,92 +1,92 @@
 // The digest's reading code (harness_digest.h), included once by each reader inside its own namespace, where the
 // game's class names are the objects it reads: game.exe's views (harness_digest_exe.cpp, namespace exe_side) or our
 // classes (image/harness_digest_image.cpp, image_side). Before it each reader defines, for its objects:
-//   CWorldClient* ClientWorld()                          the client world
+//   WorldClient* ClientWorld()                          the client world
 //   void ReadRandom(Builder& b)                          the generators' state ("random")
 //   std::uint32_t ModeId(AIMode* mode)                   an AI mode's id (ModeKindId; 0 for none)
-//   bool IsSpellEffect(const CSpellEffect* e)            whether a missile is a cast spell
-//   std::uint32_t MissileVtable(const CSpellEffect* e)   a missile's table as game.exe's address
+//   bool IsSpellEffect(const SpellEffect* e)            whether a missile is a cast spell
+//   std::uint32_t MissileVtable(const SpellEffect* e)   a missile's table as game.exe's address
 //   int PartyItemCount(CParty* party)                    the number of items the party carries
 // The standard headers it uses come first (harness_digest_read.h). No pointers go into a record: objects are named by
 // their ids.
 
 namespace {
 
-int IdOf(const CEngineObject* object) { return object ? object->id_ : -1; }
+int IdOf(const EngineObject* object) { return object ? object->id : -1; }
 
 // The players of a player list in its order: a plain walk of its nodes.
-std::vector<CPlayer*> PlayersOf(CPlayerManager* list) {
+std::vector<CPlayer*> PlayersOf(PlayerManager* list) {
     std::vector<CPlayer*> players;
-    for (auto* object : list->objectList_) players.push_back(static_cast<CPlayer*>(object));
+    for (auto* object : list->objectList) players.push_back(static_cast<CPlayer*>(object));
     return players;
 }
 
-void ReadWorld(CWorldServer* w, Builder& b) {
-    b.Int("tick", w->tick_);
-    b.Int("updates", w->updateCount_);
-    b.Unsigned("paused", w->paused_);
-    b.Float("timeBase", w->timeBase_);
-    b.Float("secondsPerTick", w->secondsPerTick_);
+void ReadWorld(WorldServer* w, Builder& b) {
+    b.Int("tick", w->tick);
+    b.Int("updates", w->updateCount);
+    b.Unsigned("paused", w->paused);
+    b.Float("timeBase", w->timeBase);
+    b.Float("secondsPerTick", w->secondsPerTick);
     float wind[3];
-    std::memcpy(wind, w->windDirection_, sizeof(wind));
+    std::memcpy(wind, w->windDirection, sizeof(wind));
     b.Float("wind.x", wind[0]);
     b.Float("wind.y", wind[1]);
     b.Float("wind.z", wind[2]);
-    b.Bits("windStrength", w->windStrength_);
-    b.Bits("nightLevel", std::bit_cast<std::uint32_t>(w->nightLevel_));
-    b.Bits("weatherFactor", w->weatherFactor_);
+    b.Bits("windStrength", w->windStrength);
+    b.Bits("nightLevel", std::bit_cast<std::uint32_t>(w->nightLevel));
+    b.Bits("weatherFactor", w->weatherFactor);
     for (int i = 0; i < 5; ++i) {
-        const auto& a = w->alarms_[i];
+        const auto& a = w->alarms[i];
         b.Unsigned("alarm#.active", a.active, i);
         b.Int("alarm#.time", a.time, i);
         b.Float("alarm#.x", a.x, i);
         b.Float("alarm#.y", a.y, i);
     }
-    b.Int("climate", w->climate_);
-    b.Int("cave", w->cave_);
-    b.Int("weather", w->weather_);
-    b.Float("weatherStrength", w->weatherStrength_);
-    b.Int("exits", static_cast<int>(std::ssize(w->exits_)));
-    b.Int("gameResult", w->gameResult_);
-    b.Unsigned("lastRainBoltTick", w->lastRainBoltTick_);
-    b.Int("zoneLoaded", w->zoneLoaded_);
-    b.Int("scriptsActive", w->scriptsActive_);
-    b.Vector("start.x", "start.y", "start.z", w->startPosition_);
-    b.Int("occluderReplanTime", w->aiMap_.footprintTick);
-    b.Int("sessionKind", w->sessionKind_);
-    b.Unsigned("objects", static_cast<std::uint32_t>(w->objects_.map.size()));
-    b.Unsigned("mapObjects", static_cast<std::uint32_t>(w->mapObjects_.map.size()));
-    b.Unsigned("sentObjects", static_cast<std::uint32_t>(w->sentObjects_.map.size()));
-    b.Unsigned("timedObjects", static_cast<std::uint32_t>(w->timedObjects_.map.size()));
-    b.Unsigned("updateMap", static_cast<std::uint32_t>(w->updateMap_.map.size()));
-    b.Int("projectiles", std::ssize(w->projectiles_));
-    b.Int("counted", std::ssize(w->counted_));
-    b.Int("sharedObjects", static_cast<int>(std::ssize(w->sharedObjects_)));
+    b.Int("climate", w->climate);
+    b.Int("cave", w->cave);
+    b.Int("weather", w->weather);
+    b.Float("weatherStrength", w->weatherStrength);
+    b.Int("exits", static_cast<int>(std::ssize(w->exits)));
+    b.Int("gameResult", w->gameResult);
+    b.Unsigned("lastRainBoltTick", w->lastRainBoltTick);
+    b.Int("zoneLoaded", w->zoneLoaded);
+    b.Int("scriptsActive", w->scriptsActive);
+    b.Vector("start.x", "start.y", "start.z", w->startPosition);
+    b.Int("occluderReplanTime", w->aiMap.footprintTick);
+    b.Int("sessionKind", w->sessionKind);
+    b.Unsigned("objects", static_cast<std::uint32_t>(w->objects.map.size()));
+    b.Unsigned("mapObjects", static_cast<std::uint32_t>(w->mapObjects.map.size()));
+    b.Unsigned("sentObjects", static_cast<std::uint32_t>(w->sentObjects.map.size()));
+    b.Unsigned("timedObjects", static_cast<std::uint32_t>(w->timedObjects.map.size()));
+    b.Unsigned("updateMap", static_cast<std::uint32_t>(w->updateMap.map.size()));
+    b.Int("projectiles", std::ssize(w->projectiles));
+    b.Int("counted", std::ssize(w->counted));
+    b.Int("sharedObjects", static_cast<int>(std::ssize(w->sharedObjects)));
     for (int i = 0; i < 32; ++i) {
-        b.Bits("allied#", w->diplomacy_.allied_[i], i);
-        b.Bits("hostile#", w->diplomacy_.hostile_[i], i);
+        b.Bits("allied#", w->diplomacy.allied[i], i);
+        b.Bits("hostile#", w->diplomacy.hostile[i], i);
     }
 }
 
 void ReadPlayer(CPlayer* p, Builder& b) {
-    b.Int("id", p->playerId_);
-    b.Unsigned("partyId", p->partyId_);
-    b.Unsigned("sessionKind", p->sessionKind_);
-    b.Int("lastScreen", p->lastScreen_);
-    b.Unsigned("godMode", p->godMode_);
-    b.Int("lastTick", p->lastTick_);
-    b.Int("items", std::ssize(p->items_));
-    b.Int("ids", std::ssize(p->recharging_));
-    b.Unsigned("units", static_cast<std::uint32_t>(p->units_.size()));
-    b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects_.size()));
+    b.Int("id", p->playerId);
+    b.Unsigned("partyId", p->partyId);
+    b.Unsigned("sessionKind", p->sessionKind);
+    b.Int("lastScreen", p->lastScreen);
+    b.Unsigned("godMode", p->godMode);
+    b.Int("lastTick", p->lastTick);
+    b.Int("items", std::ssize(p->items));
+    b.Int("ids", std::ssize(p->recharging));
+    b.Unsigned("units", static_cast<std::uint32_t>(p->units.size()));
+    b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects.size()));
     CParty* party = p->Party();
-    b.Unsigned("money", party->money_);
+    b.Unsigned("money", party->money);
     b.Int("partyItems", PartyItemCount(party));
-    b.Int("members", static_cast<int>(std::ssize(party->members_)));
-    for (int i = 0; i < std::ssize(party->members_); ++i) b.Unsigned("member#.unit", party->members_[i].unitId, i);
-    b.Unsigned("entrance", party->entrance_);
+    b.Int("members", static_cast<int>(std::ssize(party->members)));
+    for (int i = 0; i < std::ssize(party->members); ++i) b.Unsigned("member#.unit", party->members[i].unitId, i);
+    b.Unsigned("entrance", party->entrance);
     std::vector<std::pair<std::string, float>> variables;
-    for (auto& n : party->variables_) variables.emplace_back(Text(n.first), n.second);
+    for (auto& n : party->variables) variables.emplace_back(Text(n.first), n.second);
     std::sort(variables.begin(), variables.end());
     for (const auto& v : variables) b.Float(Intern("var." + v.first), v.second);
 }
@@ -138,14 +138,14 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     for (const auto& mode : brain.modes) b.Mode("ai.modes#", ModeId(mode), i++);
 }
 
-// A unit's controller (a CUnitServer, class 0x3E) and its AI brain.
+// A unit's controller (a UnitServer, class 0x3E) and its AI brain.
 void ReadController(CUnit* u, Builder& b) {
-    CEngineObject* controller = u->controller;
+    EngineObject* controller = u->controller;
     if (!controller || ClassOf(controller) != kClassUnitServer) {
         b.Int("controller", controller ? ClassOf(controller) : -1);
         return;
     }
-    auto* c = static_cast<CUnitServer*>(controller);
+    auto* c = static_cast<UnitServer*>(controller);
     b.Int("state", static_cast<int>(c->state));
     b.Unsigned("busy", c->moveMode2.onGuard);
     b.Unsigned("inCombat", c->orderStopped);
@@ -206,19 +206,19 @@ void ReadUnit(CUnit* u, const std::map<const void*, int>& players, Builder& b) {
 }
 
 // A world object: the engine object's fields, a map object's place, effects and vitals, a unit's own.
-void ReadObject(CEngineObject* o, bool mapObject, const std::map<const void*, int>& players, Builder& b) {
+void ReadObject(EngineObject* o, bool mapObject, const std::map<const void*, int>& players, Builder& b) {
     const int classId = ClassOf(o);
     b.Int("class", classId);
-    b.Bits("flags", o->flags_);
-    b.Int("type", o->type_);
-    b.Unsigned("prototype", o->prototypeId_);
+    b.Bits("flags", o->flags);
+    b.Int("type", o->type);
+    b.Unsigned("prototype", o->prototypeId);
     if (!mapObject) return;
     auto* m = static_cast<CMapObject*>(o);
-    b.Vector("pos.x", "pos.y", "pos.z", m->localPosition_);
-    b.Float("rot.w", m->localRotation_.w);
-    b.Float("rot.x", m->localRotation_.x);
-    b.Float("rot.y", m->localRotation_.y);
-    b.Float("rot.z", m->localRotation_.z);
+    b.Vector("pos.x", "pos.y", "pos.z", m->localPosition);
+    b.Float("rot.w", m->localRotation.w);
+    b.Float("rot.x", m->localRotation.x);
+    b.Float("rot.y", m->localRotation.y);
+    b.Float("rot.z", m->localRotation.z);
     b.Vector("scale.x", "scale.y", "scale.z", m->scale);
     b.Int("updateCountdown", m->updateCountdown);
     b.Float("animationSpeed", m->animationSpeed);
@@ -226,7 +226,7 @@ void ReadObject(CEngineObject* o, bool mapObject, const std::map<const void*, in
     b.Int("cell.y", m->sectorCellY);
     ReadEffects(m, b);
     if (m->companion && ClassOf(m->companion) == kClassMapObjectServer) {
-        const auto& v = static_cast<CMapObjectServer*>(m->companion)->vitals;
+        const auto& v = static_cast<MapObjectServer*>(m->companion)->vitals;
         b.Float("hp", v.hitPoints);
         b.Float("maxHp", v.maxHitPoints);
         b.Float("mana", v.mana);
@@ -236,7 +236,7 @@ void ReadObject(CEngineObject* o, bool mapObject, const std::map<const void*, in
     if (classId == kClassUnit) ReadUnit(static_cast<CUnit*>(m), players, b);
 }
 
-std::string Describe(CEngineObject* o, bool mapObject) {
+std::string Describe(EngineObject* o, bool mapObject) {
     std::string text = std::to_string(ClassOf(o));
     if (!mapObject) return text + " " + Text(o->ClassName());
     auto* m = static_cast<CMapObject*>(o);
@@ -249,7 +249,7 @@ std::string Describe(CEngineObject* o, bool mapObject) {
 
 // A timed object's own state (the effects of world_effect.h, server side): the base's position,
 // velocity and start tick, then the class's own fields. False for a class not read here.
-bool ReadTimed(CEngineObject* o, Builder& b) {
+bool ReadTimed(EngineObject* o, Builder& b) {
     const int classId = ClassOf(o);
     switch (classId) {
     case kClassSound: case kClassAmbientSound: case kClassParticle: case kClassPointLight: case kClassLightning:
@@ -259,48 +259,48 @@ bool ReadTimed(CEngineObject* o, Builder& b) {
     default:
         return false;
     }
-    auto* e = static_cast<CEffect*>(static_cast<CTransformObject*>(o));
-    b.Vector("pos.x", "pos.y", "pos.z", e->localPosition_);
-    b.Int("startTick", e->startTick_);
-    b.Int("moving", e->moving_);
-    b.Vector("velocity.x", "velocity.y", "velocity.z", e->velocity_);
+    auto* e = static_cast<CEffect*>(static_cast<TransformObject*>(o));
+    b.Vector("pos.x", "pos.y", "pos.z", e->localPosition);
+    b.Int("startTick", e->startTick);
+    b.Int("moving", e->moving);
+    b.Vector("velocity.x", "velocity.y", "velocity.z", e->velocity);
     switch (classId) {
     case kClassSound: {
-        auto* sound = static_cast<CEffectSound*>(e);
-        b.Float("volume", sound->volume_);
-        b.Float("radius", sound->radius_);
-        b.Int("looping", sound->looping_);
+        auto* sound = static_cast<EffectSound*>(e);
+        b.Float("volume", sound->volume);
+        b.Float("radius", sound->radius);
+        b.Int("looping", sound->looping);
         break;
     }
     case kClassParticle:
     case kClassWall: {
         auto* particle = static_cast<CEffectParticle*>(e);
-        b.Int("particleType", particle->type_);
-        b.Float("size", particle->size_);
-        b.Int("attachedTo", particle->attachedTo_);
-        b.Vector("target.x", "target.y", "target.z", particle->target_);
-        b.Int("unit", particle->unitId_);
+        b.Int("particleType", particle->type);
+        b.Float("size", particle->size);
+        b.Int("attachedTo", particle->attachedTo);
+        b.Vector("target.x", "target.y", "target.z", particle->target);
+        b.Int("unit", particle->unitId);
         break;
     }
     case kClassPointLight: {
-        auto* light = static_cast<CEffectPointLight*>(e);
-        b.Vector("color.x", "color.y", "color.z", light->color_);
-        b.Float("range", light->range_);
+        auto* light = static_cast<EffectPointLight*>(e);
+        b.Vector("color.x", "color.y", "color.z", light->color);
+        b.Float("range", light->range);
         break;
     }
     case kClassLightning: {
-        auto* bolt = static_cast<CEffectLightning*>(e);
-        b.Vector("from.x", "from.y", "from.z", bolt->from_);
-        b.Vector("to.x", "to.y", "to.z", bolt->to_);
-        b.Int("fromObject", bolt->fromObject_);
-        b.Int("toObject", bolt->toObject_);
+        auto* bolt = static_cast<EffectLightning*>(e);
+        b.Vector("from.x", "from.y", "from.z", bolt->from);
+        b.Vector("to.x", "to.y", "to.z", bolt->to);
+        b.Int("fromObject", bolt->fromObject);
+        b.Int("toObject", bolt->toObject);
         break;
     }
     case kClassArrow:
     case kClassArrowFigure: {
-        auto* missile = static_cast<CEffectMissile*>(e);
-        b.Int("arrived", missile->arrived_);
-        b.Int("target", missile->targetId_);
+        auto* missile = static_cast<EffectMissile*>(e);
+        b.Int("arrived", missile->arrived);
+        b.Int("target", missile->targetId);
         break;
     }
     default:
@@ -309,19 +309,19 @@ bool ReadTimed(CEngineObject* o, Builder& b) {
     return true;
 }
 
-// A missile of the server's list (a CSpellEffect, spell.h: a spell on its way or lasting). Its
-// visual (the flying CEffectArrow, a wall, a cloud) is a timed object: "timed<visual>".
-std::string DescribeMissile(const CSpellEffect* e) {
+// A missile of the server's list (a SpellEffect, spell.h: a spell on its way or lasting). Its
+// visual (the flying EffectArrow, a wall, a cloud) is a timed object: "timed<visual>".
+std::string DescribeMissile(const SpellEffect* e) {
     if (!IsSpellEffect(e)) {
         char text[24];
         std::snprintf(text, sizeof(text), "vtable 0x%08X", unsigned(MissileVtable(e)));
         return text;
     }
-    return "spell " + std::to_string(e->Spell()->prototypeId_ >> 16);
+    return "spell " + std::to_string(e->Spell()->prototypeId >> 16);
 }
 
-void ReadMissile(const CSpellEffect* e, Builder& b) {
-    if (!IsSpellEffect(e)) return;   // not a CSpellEffect: its description says so
+void ReadMissile(const SpellEffect* e, Builder& b) {
+    if (!IsSpellEffect(e)) return;   // not a SpellEffect: its description says so
     b.Int("state", e->state);
     b.Bits("flags", e->flags);
     b.Vector("pos.x", "pos.y", "pos.z", e->position);
@@ -329,16 +329,16 @@ void ReadMissile(const CSpellEffect* e, Builder& b) {
     b.Int("caster", IdOf(e->caster));
     b.Vector("targetPoint.x", "targetPoint.y", "targetPoint.z", e->targetPoint);
     b.Int("timer", e->timer);
-    b.Float("damage", e->Spell()->damage_);
-    b.Float("radius", e->Spell()->radius_);
-    b.Int("targets", static_cast<int>(e->Spell()->duration_));
+    b.Float("damage", e->Spell()->damage);
+    b.Float("radius", e->Spell()->radius);
+    b.Int("targets", static_cast<int>(e->Spell()->duration));
     b.Int("visual", IdOf(e->visual));
     b.Int("sound", IdOf(e->sound));
     b.Int("light", IdOf(e->light));
     b.Unsigned("footprint", e->footprintStamped);
 }
 
-// The AI event table (CWorldServer + 0x2838): its tick, grid and, per side, the count and a hash of
+// The AI event table (WorldServer + 0x2838): its tick, grid and, per side, the count and a hash of
 // the events in wheel order (x, y, the origin, expiry, source and side). Left out: each event's
 // payload (+0x14), which 005C9630 leaves as the free list's or the stack's leftovers.
 void ReadEvents(const AIEventTable* t, Builder& b) {
@@ -392,27 +392,27 @@ std::uint32_t HashVars(const ScriptVars& v) {
     return h.h;
 }
 
-// The mission script (CScript, script.h): its running instances and waiting runs (the command
+// The mission script (Script, script.h): its running instances and waiting runs (the command
 // queues: block, next command, ticks, sleep), the global variables (floats by name, the rest as
 // hashes), and the effects it keeps with their countdowns.
-void ReadScript(CScript* s, Builder& b) {
-    b.Int("loaded", s->loaded_);
-    b.Int("files", s->fileCount_);
-    b.Int("nextParticleId", s->nextParticleId_);
-    b.Int("nextFxId", s->nextFxId_);
-    b.Int("instances", static_cast<int>(s->instances_.size()));
+void ReadScript(Script* s, Builder& b) {
+    b.Int("loaded", s->loaded);
+    b.Int("files", s->fileCount);
+    b.Int("nextParticleId", s->nextParticleId);
+    b.Int("nextFxId", s->nextFxId);
+    b.Int("instances", static_cast<int>(s->instances.size()));
     std::vector<const int*> killFlags;
     int i = 0;
-    for (const ScriptDefinition& instance : s->instances_) {
+    for (const ScriptDefinition& instance : s->instances) {
         killFlags.push_back(&instance.index);
         b.Int("inst#.killed", instance.index, i);
         b.Bits("inst#.name", TextHash(Text(instance.name)), i);
         b.Bits("inst#.vars", HashVars(instance.vars), i);
         ++i;
     }
-    b.Int("runs", static_cast<int>(s->runs_.size()));
+    b.Int("runs", static_cast<int>(s->runs.size()));
     i = 0;
-    for (const ScriptRun& run : s->runs_) {
+    for (const ScriptRun& run : s->runs) {
         int instance = -1;   // the WorldScript's runs have none
         if (run.killFlag) {
             auto found = std::find(killFlags.begin(), killFlags.end(), run.killFlag);
@@ -428,7 +428,7 @@ void ReadScript(CScript* s, Builder& b) {
     }
     // The global variables by name (by index past the names, "<kind>#"): floats, strings (a hash of the
     // text), objects (the id) and groups (a hash of the sorted ids).
-    const ScriptVars& g = s->globals_;
+    const ScriptVars& g = s->globals;
     auto field = [&b](const char* kind, const auto& names, std::size_t v, Kind type, std::uint32_t value) {
         if (v < names.size()) b.Add(Intern(std::string(kind) + "." + Text(names[v])), -1, type, value);
         else b.Add(Intern(std::string(kind) + "#"), static_cast<int>(v), type, value);
@@ -445,7 +445,7 @@ void ReadScript(CScript* s, Builder& b) {
     }
     b.Int("globals.names", static_cast<int>(g.floats.names.size() + g.strings.names.size() + g.objects.names.size() + g.groups.names.size()));
     i = 0;
-    for (const ScriptFxSource& fx : s->fxSources_) {
+    for (const ScriptFxSource& fx : s->fxSources) {
         b.Int("fx#.id", fx.id, i);
         b.Int("fx#.sound", IdOf(fx.object), i);
         b.Float("fx#.x", fx.position.x, i);
@@ -464,7 +464,7 @@ void ReadScript(CScript* s, Builder& b) {
         ++i;
     }
     i = 0;
-    for (const ScriptParticleSource& p : s->particles_) {
+    for (const ScriptParticleSource& p : s->particles) {
         b.Int("part#.id", p.id, i);
         b.Int("part#.object", IdOf(p.object), i);
         b.Int("part#.moving", p.moving, i);
@@ -472,8 +472,8 @@ void ReadScript(CScript* s, Builder& b) {
         b.Int("part#.lifetime", p.lifetime, i);
         ++i;
     }
-    for (std::size_t slot = 0; slot < s->pointLights_.size(); ++slot) {
-        const ScriptPointLight& light = s->pointLights_[slot];
+    for (std::size_t slot = 0; slot < s->pointLights.size(); ++slot) {
+        const ScriptPointLight& light = s->pointLights[slot];
         if (!light.object) continue;
         b.Int("light#.id", light.id, static_cast<int>(slot));
         b.Int("light#.object", IdOf(light.object), static_cast<int>(slot));
@@ -481,36 +481,36 @@ void ReadScript(CScript* s, Builder& b) {
         b.Int("light#.steps", light.steps, static_cast<int>(slot));
     }
     Hash bolts;
-    for (const ScriptLightning& bolt : s->lightning_) bolts.Add(static_cast<std::uint32_t>(IdOf(bolt.object)));
-    b.Int("lightning", static_cast<int>(s->lightning_.size()));
+    for (const ScriptLightning& bolt : s->lightning) bolts.Add(static_cast<std::uint32_t>(IdOf(bolt.object)));
+    b.Int("lightning", static_cast<int>(s->lightning.size()));
     b.Bits("lightning.ids", bolts.h);
 }
 
-// The client world (CWorldClient, the drawing side): its clock and counts; its units go to "cunit<id>".
-void ReadClientWorld(CWorldClient* c, Builder& b, std::vector<CUnit*>& units) {
-    b.Int("tick", c->tick_);
-    b.Unsigned("paused", c->paused_);
-    b.Int("ticksRun", c->ticksRun_);
-    b.Float("tickFraction", c->tickFraction_);
-    b.Int("partyDanger", c->partyDanger_);
+// The client world (WorldClient, the drawing side): its clock and counts; its units go to "cunit<id>".
+void ReadClientWorld(WorldClient* c, Builder& b, std::vector<CUnit*>& units) {
+    b.Int("tick", c->tick);
+    b.Unsigned("paused", c->paused);
+    b.Int("ticksRun", c->ticksRun);
+    b.Float("tickFraction", c->tickFraction);
+    b.Int("partyDanger", c->partyDanger);
     int objects = 0;
-    for (CMapObject* object : c->objects_) {
+    for (CMapObject* object : c->objects) {
         ++objects;
         if (object && ClassOf(object) == kClassUnit) units.push_back(static_cast<CUnit*>(object));
     }
     b.Int("objects", objects);
     b.Int("units", static_cast<int>(units.size()));
-    b.Int("synchronised", std::ssize(c->dynamicObjects_));
+    b.Int("synchronised", std::ssize(c->dynamicObjects));
 }
 
 // A unit of the client world: what the screen shows (place, animation, the packed vitals).
 void ReadClientUnit(CUnit* u, Builder& b) {
-    b.Bits("flags", u->flags_);
-    b.Vector("pos.x", "pos.y", "pos.z", u->localPosition_);
-    b.Float("rot.w", u->localRotation_.w);
-    b.Float("rot.x", u->localRotation_.x);
-    b.Float("rot.y", u->localRotation_.y);
-    b.Float("rot.z", u->localRotation_.z);
+    b.Bits("flags", u->flags);
+    b.Vector("pos.x", "pos.y", "pos.z", u->localPosition);
+    b.Float("rot.w", u->localRotation.w);
+    b.Float("rot.x", u->localRotation.x);
+    b.Float("rot.y", u->localRotation.y);
+    b.Float("rot.z", u->localRotation.z);
     b.Int("animation", u->animationEntry);
     b.Int("animation2", u->secondEntry);
     b.Int("animationStart", u->animationStart);
@@ -529,7 +529,7 @@ void ReadClientUnit(CUnit* u, Builder& b) {
 // state, and per cached sector with water (by sx, sy) the vertices with a water material and hashes
 // of their positions and speculars.
 void ReadWater(State& state) {
-    const auto* t = ClientWorld()->terrain_;
+    const auto* t = ClientWorld()->terrain;
     if (!t) return;
     Builder b;
     b.entity = &Slot(state, {kWater, -1});
@@ -561,8 +561,8 @@ void ReadWater(State& state) {
 }
 
 // The objects of a world map with an object, by id.
-std::vector<std::pair<unsigned, CEngineObject*>> ObjectsById(const auto& objects) {
-    std::vector<std::pair<unsigned, CEngineObject*>> sorted;
+std::vector<std::pair<unsigned, EngineObject*>> ObjectsById(const auto& objects) {
+    std::vector<std::pair<unsigned, EngineObject*>> sorted;
     for (auto n = objects.map.begin(); n != objects.map.end(); ++n)
         if (n->second) sorted.emplace_back(n->first, n->second);
     std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& c) { return a.first < c.first; });
@@ -572,7 +572,7 @@ std::vector<std::pair<unsigned, CEngineObject*>> ObjectsById(const auto& objects
 } // namespace
 
 void Read(void* server, Snapshot& s) {
-    auto* w = static_cast<CWorldServer*>(server);
+    auto* w = static_cast<WorldServer*>(server);
     Builder b;
     b.entity = &Slot(s.state, {kWorld, 0});
     b.entity->description = "world";
@@ -580,25 +580,25 @@ void Read(void* server, Snapshot& s) {
     b.entity = &Slot(s.state, {kRandom, 0});
     b.entity->description = "random";
     ReadRandom(b);
-    s.zone = Text(w->zoneName_);
-    s.tick = w->tick_;
+    s.zone = Text(w->zoneName);
+    s.tick = w->tick;
 
     std::map<const void*, int> players;
-    if (w->players_) {
-        for (CPlayer* p : PlayersOf(w->players_)) {
-            players[p] = p->playerId_;
-            b.entity = &Slot(s.state, {kPlayer, p->playerId_});
+    if (w->players) {
+        for (CPlayer* p : PlayersOf(w->players)) {
+            players[p] = p->playerId;
+            b.entity = &Slot(s.state, {kPlayer, p->playerId});
             b.entity->description = "player";
             ReadPlayer(p, b);
         }
     }
 
     // Map objects are those in the zone's maps (units, levers, traps, torches; the rest after the
-    // zone's start in sentObjects_); other world objects (spells, effects, ...) get the base fields.
+    // zone's start in sentObjects); other world objects (spells, effects, ...) get the base fields.
     std::set<unsigned> mapObjects;
-    for (const auto* map : {&w->mapObjects_, &w->sentObjects_, &w->otherMapObjects_})
+    for (const auto* map : {&w->mapObjects, &w->sentObjects, &w->otherMapObjects})
         for (auto& n : map->map) mapObjects.insert(n.first);
-    for (const auto& [id, object] : ObjectsById(w->objects_)) {
+    for (const auto& [id, object] : ObjectsById(w->objects)) {
         const bool mapObject = mapObjects.count(id) != 0;
         b.entity = &Slot(s.state, {kObject, static_cast<int>(id)});
         b.entity->description = Describe(object, mapObject);
@@ -606,7 +606,7 @@ void Read(void* server, Snapshot& s) {
     }
 
     // The timed objects' own state (the effects), by id.
-    for (const auto& [id, object] : ObjectsById(w->timedObjects_)) {
+    for (const auto& [id, object] : ObjectsById(w->timedObjects)) {
         Entity entity;
         entity.description = std::to_string(ClassOf(object)) + " " + Text(object->ClassName());
         b.entity = &entity;
@@ -615,7 +615,7 @@ void Read(void* server, Snapshot& s) {
 
     // The missiles by their place in the list.
     int place = 0;
-    for (const auto& missile : w->projectiles_) {
+    for (const auto& missile : w->projectiles) {
         const int at = place++;
         if (!missile) continue;
         b.entity = &Slot(s.state, {kMissile, at});
@@ -625,7 +625,7 @@ void Read(void* server, Snapshot& s) {
 
     b.entity = &Slot(s.state, {kEvents, 0});
     b.entity->description = "events";
-    ReadEvents(&w->aiMap_.events, b);
+    ReadEvents(&w->aiMap.events, b);
 
     b.entity = &Slot(s.state, {kScript, 0});
     b.entity->description = "script";
@@ -636,7 +636,7 @@ void Read(void* server, Snapshot& s) {
     b.entity->description = "client";
     ReadClientWorld(ClientWorld(), b, clientUnits);
     for (CUnit* u : clientUnits) {
-        b.entity = &Slot(s.state, {kClientUnit, u->id_});
+        b.entity = &Slot(s.state, {kClientUnit, u->id});
         b.entity->description = Describe(u, true);
         ReadClientUnit(u, b);
     }
@@ -645,17 +645,17 @@ void Read(void* server, Snapshot& s) {
 
 UnitNow Unit(void* server, int id) {
     UnitNow now;
-    CEngineObject* object = nullptr;
-    const auto& objects = static_cast<CWorldServer*>(server)->objects_.map;
+    EngineObject* object = nullptr;
+    const auto& objects = static_cast<WorldServer*>(server)->objects.map;
     for (auto n = objects.begin(); n != objects.end(); ++n)
         if (n->first == static_cast<unsigned>(id)) object = n->second;
     if (!object || ClassOf(object) != kClassUnit) return now;
     auto* u = static_cast<CUnit*>(object);
     now.found = true;
     now.dead = u->dead != 0;
-    CEngineObject* controller = u->controller;
+    EngineObject* controller = u->controller;
     if (controller && ClassOf(controller) == kClassUnitServer) {
-        auto* c = static_cast<CUnitServer*>(controller);
+        auto* c = static_cast<UnitServer*>(controller);
         now.idle = static_cast<int>(c->action.kind) == 0 && u->motion.points.empty();
         now.experience = c->stats.experience;
     }
@@ -663,13 +663,13 @@ UnitNow Unit(void* server, int id) {
 }
 
 int LocalLeader(void* server, unsigned* money) {
-    auto* w = static_cast<CWorldServer*>(server);
-    if (!w->players_) return -1;
-    for (CPlayer* p : PlayersOf(w->players_)) {
-        if (p->playerId_ != 0) continue;
+    auto* w = static_cast<WorldServer*>(server);
+    if (!w->players) return -1;
+    for (CPlayer* p : PlayersOf(w->players)) {
+        if (p->playerId != 0) continue;
         CParty* party = p->Party();
-        if (money) *money = party->money_;
-        return !party->members_.empty() ? static_cast<int>(party->members_[0].unitId) : -1;
+        if (money) *money = party->money;
+        return !party->members.empty() ? static_cast<int>(party->members[0].unitId) : -1;
     }
     return -1;
 }
@@ -677,7 +677,7 @@ int LocalLeader(void* server, unsigned* money) {
 // The heap trace's end: every world object's id, class and address.
 void NoteAddresses(void* server) {
     char line[96];
-    for (const auto& [id, object] : ObjectsById(static_cast<CWorldServer*>(server)->objects_)) {
+    for (const auto& [id, object] : ObjectsById(static_cast<WorldServer*>(server)->objects)) {
         std::snprintf(line, sizeof(line), "obj %u %d %08X", id, ClassOf(object), heap::TracePlace(object));
         heap::Note(line);
     }

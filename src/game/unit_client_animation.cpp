@@ -1,4 +1,4 @@
-// The client controller moving a unit's animation through time (CUnitClientSpecific's RestartAnimation and
+// The client controller moving a unit's animation through time (UnitClientSpecific's RestartAnimation and
 // AdvanceTime, the idle animation) and the client half's pulses of invisible and stunned units. See
 // unit_client_models.h, map_object_shadow.h and docs/notes/units.md.
 #include "item_db.h"
@@ -15,7 +15,7 @@
 #include <cmath>
 
 namespace {
-constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags_
+constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags
 constexpr std::int8_t kModeSpecialIdle = -2;          // CUnit::secondEntry
 constexpr std::int8_t kNoEntry = -1;                  // CUnit::secondEntry
 constexpr float kLongStep = 500.0f;
@@ -44,28 +44,28 @@ float Pulse(float& clock, float frames) {
 }
 } // namespace
 
-void CObject3DClientSpecific::InvisiblePulse(float frames) {
+void Object3DClientSpecific::InvisiblePulse(float frames) {
     float value = Pulse(pulseClock, frames);
     for (int i = 0; i < std::ssize(materials); ++i) materials[i]->colors.diffuse.w = value;
 }
 
-void CObject3DClientSpecific::StunnedPulse(float frames) {
+void Object3DClientSpecific::StunnedPulse(float frames) {
     float value = Pulse(pulseClock, frames);
     for (int i = 0; i < std::ssize(materials); ++i) {
-        CMaterial* part = materials[i];
+        Material* part = materials[i];
         part->colors.specular.x = value;
         part->colors.specular.y = 0.0f;
         part->colors.specular.z = 0.0f;
-        part->flags_ |= MaterialFlag::KeepSpecular;
+        part->flags |= MaterialFlag::KeepSpecular;
     }
 }
 
-void CUnitClientSpecific::AdvanceTime(float time) {
+void UnitClientSpecific::AdvanceTime(float time) {
     float stored = time - lastTime;   // stored as a float
     float step = stored;
     EI_NAN_AUDIT(step);
     if (step < 0.0f) {   // back in time: only put back on the ground
-        Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
+        Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
         position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) +
                                         unit->heightOffset);
         World()->MoveObject(unit, &position.x);
@@ -81,13 +81,13 @@ void CUnitClientSpecific::AdvanceTime(float time) {
         float scaled = step * unit->animationSpeed;
         step = scaled;
     }
-    CFigureAnimationState* state = unit->Object3D()->animation;
+    FigureAnimationState* state = unit->Object3D()->animation;
     if (state && unit->motionMode != kMotionPaused) state->Advance(step);
 }
 
-void CUnitClientSpecific::RestartAnimation(float time) {
-    if (unit->flags_ & kFlagFrozen) return;
-    CFigureAnimationState* state = unit->Object3D()->animation;
+void UnitClientSpecific::RestartAnimation(float time) {
+    if (unit->flags & kFlagFrozen) return;
+    FigureAnimationState* state = unit->Object3D()->animation;
     state->queue.clear();
     if (unit->secondEntry == kModeSpecialIdle) {
         StartIdleAnimation(1);
@@ -119,8 +119,8 @@ void CUnitClientSpecific::RestartAnimation(float time) {
     lastTime = static_cast<float>(start);
 }
 
-void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
-    if (unit->flags_ & kFlagFrozen) return;
+void UnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
+    if (unit->flags & kFlagFrozen) return;
     std::uint32_t key = 0;
     std::uint32_t weapon = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNoWeapon;
     if (weapon != kNoWeapon) {

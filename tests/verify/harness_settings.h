@@ -22,7 +22,7 @@
 // Two scenario lines (ST1a) check the product's file paths instead, in the image only:
 //   settingsfile writable   the run's file is not read only: it also holds a probe key of odd values (every
 //                           value type, escapes, NaN and -0 floats), and the game's exit save (WinMain's
-//                           GameOptions::SaveToRegistry, through CWinRegistry::Close's Flush) rewrites it,
+//                           GameOptions::SaveToRegistry, through WinRegistry::Close's Flush) rewrites it,
 //                           .tmp then moved over it
 //   settingsfile defaults   no file at the start: the first use writes it with the defaults
 //                           (settings_file::DefaultDocument, for a 1280x720 desktop: SetDesktopSize), the game

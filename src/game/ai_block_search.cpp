@@ -14,7 +14,7 @@ constexpr float kFirstPassShare = 0.125f;
 constexpr float kSecondPassShare = 0.875f;
 } // namespace
 
-void BlockSearch::Attach(CRegionMap* regionMap, bool fromTargetSide) {
+void BlockSearch::Attach(RegionMap* regionMap, bool fromTargetSide) {
     int width = regionMap->edges[0].width;
     int height = regionMap->edges[0].height;
     map = regionMap;
@@ -98,7 +98,7 @@ void BlockSearch::Expand() {
     PickBest();
 }
 
-bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y) {
+bool RegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y) {
     bool seeded = false;
     std::list<BlockCost> blocks = NearbyBlocks(sizeClass, flag, x, y);
     for (auto& node : blocks) {
@@ -114,7 +114,7 @@ bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x
     return seeded;
 }
 
-void CRegionMap::UpdateBlocks(CAIMap* aiMap, int x0, int x1, int y0, int y1) {
+void RegionMap::UpdateBlocks(AIMap* aiMap, int x0, int x1, int y0, int y1) {
     if (y0 < 0) y0 = 0;
     if (edges[0].height <= y1) y1 = edges[0].height;
     if (x0 < 0) x0 = 0;
@@ -134,11 +134,11 @@ void CRegionMap::UpdateBlocks(CAIMap* aiMap, int x0, int x1, int y0, int y1) {
     progress = nullptr;
 }
 
-void CRegionMap::UpdateBlocksFor(CAIMap* aiMap, int x0, int x1, int y0, int y1) {
+void RegionMap::UpdateBlocksFor(AIMap* aiMap, int x0, int x1, int y0, int y1) {
     UpdateBlocks(aiMap, x0, x1, y0, y1);
 }
 
-void CRegionMap::AttachSearches() {
+void RegionMap::AttachSearches() {
     forward.Attach(this, false);
     backward.Attach(this, true);
 }

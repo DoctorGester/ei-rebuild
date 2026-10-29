@@ -6,7 +6,7 @@
 
 #include "core_transform.h"
 #include "engine_object.h"
-#include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
+#include "figure_mesh.h"            // FigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
 #include "model.h"   // FootprintPart (the part boxes)
@@ -25,18 +25,18 @@
 #include <windows.h>   // RECT (dirtyRect)
 
 class CObject3D;
-class CParticleSource;
-class CSceneRenderer;
+class ParticleSource;
+class SceneRenderer;
 
 // The figures' default scale (zeros).
 inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
-class CLinkMesh;
+class LinkMesh;
 struct tagRECT;
 
 // FigureAnimation::key, as the figures' animation databases (database.res, "<figure>.adb") give it, and the
 // keys the units ask for (docs/notes/combat.md, "Animation keys"):
 //   bits 0..7    the weapon types the animation is for (AnimationWeaponBit; 0x7F: any)
-//   bits 15..17  the movement mode's bits (CUnitServer::MoveModeMask; the data does not name them)
+//   bits 15..17  the movement mode's bits (UnitServer::MoveModeMask; the data does not name them)
 //   bits 18..21  the kind (AnimationKind)
 //   bits 22..29  the number (AnimationNumber): a Special's SkillAnimation, a walk's or run's DamageLevel bits,
 //                an attack's height band, a death's BlowSide and fall bits
@@ -91,7 +91,7 @@ template <>
 inline constexpr bool lib::kBitFlags<AnimationKeyFlag> = true;
 constexpr std::uint32_t AnimationKeyOf(AnimationKeyFlag flag) { return static_cast<std::uint32_t>(flag); }
 
-// The movement mode's bits of the key (mask 0x38000; CUnitServer::MoveModeMask and the transitions' bits), named by
+// The movement mode's bits of the key (mask 0x38000; UnitServer::MoveModeMask and the transitions' bits), named by
 // the MoveModeState::mode they stand for. A hero's own walk (mode 2 without onGuard) has none.
 enum class AnimationMoveBits : std::uint32_t {
     None = 0,
@@ -117,7 +117,7 @@ inline constexpr std::uint32_t kAnimationAttackBlow = 0x800000;
 inline constexpr std::uint32_t kAnimationSpecialIdleKey =
     AnimationKeyOf(AnimationKeyFlag::Looped) | AnimationKeyOf(AnimationKind::Idle) | AnimationNumberBits(1);
 
-// The numbers of the Special animations: the briefing gestures the interface plays and the skills (CUnitServer's
+// The numbers of the Special animations: the briefing gestures the interface plays and the skills (UnitServer's
 // use orders, the skill sounds). Briefing and Special names are the animation databases'
 // ("ubriefing01", "uspecial14"; the interface plays 1 to 13 and 0x21, a briefing script any number); the skills' names are from the use sources (UseSource) and the sounds (heroes\human\skills\*.wav); the
 // four SearchBody animations ("loot.wav") differ by the movement mode (2 or another) and whether the weapon is
@@ -146,7 +146,7 @@ enum class SkillAnimation : int {
     SearchBody = 0x35,
 };
 
-// The side a blow came from (CUnitServer::HitDirection), bits 0x1C00000 of a death animation's flags (and of the
+// The side a blow came from (UnitServer::HitDirection), bits 0x1C00000 of a death animation's flags (and of the
 // key a unit asks for). In the unit's axes, whose Y points backwards; the death animation's point (CUnit's action
 // point) lies away from the blow: +Y for Front, -Y for Back, +X for MinusX, -X for PlusX. Which of X's sides is
 // the unit's left the code does not say.
@@ -187,7 +187,7 @@ static_assert(offsetof(FigureAnimation, soundFrame) == 0x44);
 static_assert(sizeof(FigureAnimation) == 0x58);
 
 // A figure's animation database: the data of "<figure name>.adb" as the object's manager returns it
-// (CBaseManager::GetFile), kept in CObject3D::animations.
+// (BaseManager::GetFile), kept in CObject3D::animations.
 struct AnimationDatabase {
     std::uint8_t unused_00[4];
     std::uint32_t count;            // animations
@@ -213,29 +213,29 @@ struct AnimationDatabase {
 static_assert(offsetof(AnimationDatabase, start) == 0x20);
 static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
 
-// The side-specific half of a 3D object (CObject3D::attached): CObject3DClientSpecific (class id 0x37) on
-// the client, CObject3DServer (0x38, stubs) on the server.
-class CObject3DSpecific;
-class CObject3DClientSpecific;
-class CObject3DSpecific : public CEngineObject {
+// The side-specific half of a 3D object (CObject3D::attached): Object3DClientSpecific (class id 0x37) on
+// the client, Object3DServer (0x38, stubs) on the server.
+class Object3DSpecific;
+class Object3DClientSpecific;
+class Object3DSpecific : public EngineObject {
 public:
-    CObject3DSpecific() {
+    Object3DSpecific() {
         object = nullptr;
     }
-    ~CObject3DSpecific() override;
+    ~Object3DSpecific() override;
 
-    virtual int OnPartAdded(CFigureMesh* part) = 0;   // server: 0
+    virtual int OnPartAdded(FigureMesh* part) = 0;   // server: 0
     // (name): the client takes the part named (FindPart) out of the drawn part sets and releases it; returns it
     // or null. The server returns null.
-    virtual CFigureMesh* RemoveFromPartSets(const char* name) = 0;
-    virtual int OnPartRemoved(CFigureMesh* part) = 0;      // server: 0
-    virtual CFigureMesh* FindPart(std::string_view name) = 0;   // a part by name (client); server: null
-    virtual CFigureMesh* FindPartOfType(int type) = 0;     // a part by type (client); server: null
+    virtual FigureMesh* RemoveFromPartSets(const char* name) = 0;
+    virtual int OnPartRemoved(FigureMesh* part) = 0;      // server: 0
+    virtual FigureMesh* FindPart(std::string_view name) = 0;   // a part by name (client); server: null
+    virtual FigureMesh* FindPartOfType(int type) = 0;     // a part by type (client); server: null
     // The figure's extra scale (the base's: 1, 1, 1).
     virtual void GetScale(float* x, float* y, float* z);
     // The client draws the parts / their shadow; the base returns 0.
-    virtual int DrawParts(CSceneRenderer* context, tagRECT* dirty);
-    virtual int DrawPartsShadow(CSceneRenderer* context);
+    virtual int DrawParts(SceneRenderer* context, tagRECT* dirty);
+    virtual int DrawPartsShadow(SceneRenderer* context);
     // After LoadFigures: the client gives the parts the world's materials, then the skin texture. The base does
     // nothing.
     virtual void ApplyMaterials() {}
@@ -252,30 +252,30 @@ public:
 };
 
 // The server's half: no parts, nothing drawn.
-class CObject3DServer : public CObject3DSpecific {
+class Object3DServer : public Object3DSpecific {
 public:
-    CObject3DServer();             // The factory allocates it zeroed.
-    ~CObject3DServer() override;
+    Object3DServer();             // The factory allocates it zeroed.
+    ~Object3DServer() override;
     void Create() override;
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    int OnPartAdded(CFigureMesh* part) override;
-    CFigureMesh* RemoveFromPartSets(const char* name) override;
-    int OnPartRemoved(CFigureMesh* part) override;
-    CFigureMesh* FindPart(std::string_view name) override;
-    CFigureMesh* FindPartOfType(int type) override;
+    int OnPartAdded(FigureMesh* part) override;
+    FigureMesh* RemoveFromPartSets(const char* name) override;
+    int OnPartRemoved(FigureMesh* part) override;
+    FigureMesh* FindPart(std::string_view name) override;
+    FigureMesh* FindPartOfType(int type) override;
 };
 
 // A bone of a figure's skeleton (made from the skeleton links). The animation state's bone list holds them,
 // one of its members the root. Only the fields the pose code uses.
-struct FigureBone : CEngineObject {
+struct FigureBone : EngineObject {
     std::string name;                      // the piece's name (children are linked by it)
     std::string name2;                     // its parent's name (empty for the root)
     std::string name3;                     // the figure's model name (LinkBone)
     FigureBone* parent;                     // null for the root
     std::list<FigureBone*> children;
-    CFigureMesh* mesh;                      // the part the bone places, or null
+    FigureMesh* mesh;                      // the part the bone places, or null
     AnimationTrack* pose;                   // the animator whose values place the bone
     AnimationTrack* animator;               // counted, made on first use; Play copies it to `pose`
     Vector3 offset;                         // the place relative to the parent
@@ -314,7 +314,7 @@ struct FigureBone : CEngineObject {
 
 // The figure's animation state (CObject3D's animation member): the skeleton's bones, the animation playing
 // and the queue behind it, the frame reached.
-class CFigureAnimationState : public CEngineObject {
+class FigureAnimationState : public EngineObject {
 public:
     // Plays `animation` from its start: set through the world's figure manager by the owner's model name, or
     // else on each bone's animator (AnimateBone).
@@ -331,8 +331,8 @@ public:
     // Each bone's animator plays `animation`: the bone's manager is told and the animator's time cleared.
     static void AnimateBone(FigureBone* bone, const FigureAnimation* animation);
 
-    CFigureAnimationState();
-    ~CFigureAnimationState() override;
+    FigureAnimationState();
+    ~FigureAnimationState() override;
 
     void Create() override;
     void Destroy() override;
@@ -353,13 +353,13 @@ public:
     int LinkBone(FigureModel* model, FigureBone* bone);
     // The bone named as `part` carries it as its mesh (referenced, the old one released): the part takes the
     // bone's position and rotation. 0 when no bone has the name, else 1. `changed` set.
-    int AttachMesh(CEngineObject* part);
+    int AttachMesh(EngineObject* part);
     // The root becomes the first bone without a parent name. 1, or 0 when none.
     int FindRoot();
     // The figure manager links the skeleton of `model` into this state; `changed` set. Returns its result.
     int SetModel(std::string_view model);
     // The first bone carrying `part` lets it go (released). 1, or 0 when none.
-    int DetachMesh(CEngineObject* part);
+    int DetachMesh(EngineObject* part);
     // Every bone lets its mesh go (released). `changed` set. Returns 1.
     int DetachMeshes();
     // When `changed`: cleared, and the root (if any) places the skeleton at the owner's time factor (at its scale
@@ -378,7 +378,7 @@ public:
     // The figure manager's SetAnimation with an animation. Every bone's placing track loads the entry of `part`
     // named as the bone (LoadKeyFrames), or without one is cleared as above, and takes `animation`. `changed` set.
     // Returns 1.
-    int LoadBoneTracks(CMappedResource* part, const FigureAnimation* animation);
+    int LoadBoneTracks(MappedResource* part, const FigureAnimation* animation);
 
     CObject3D* owner;
     FigureBone* root;               // the skeleton's root bone (FindRoot)
@@ -396,37 +396,37 @@ public:
 };
 
 // The 3D object: a transform object with a figure, its parts and their animation (abstract: class name and
-// id are pure). CWorldClient's CollectVisible sets its world position to the position in view space.
-class CObject3D : public CTransformObject {
+// id are pure). WorldClient's CollectVisible sets its world position to the position in view space.
+class CObject3D : public TransformObject {
 public:
     ~CObject3D() override;
-    // type_ as the map object factory's type.
-    MapObjectType MapType() const { return static_cast<MapObjectType>(type_); }
+    // type as the map object factory's type.
+    MapObjectType MapType() const { return static_cast<MapObjectType>(type); }
     void Create() override { Create3D(); }
     void Destroy() override { Destroy3D(); }
     void ClearState() override { RemoveAllEffectSources(); }
-    // worldRotation_ = parent * localRotation_.
+    // worldRotation = parent * localRotation.
     void CombineRotation(const Quaternion& parent) override;
     void SaveTransform(lib::File* file) override;
     void LoadTransform(lib::File* file) override;
     // Whether the object may play the animation entry (FigureAnimation); any here, CUnit overrides it.
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
     // AttachSpecific. CMapObject and units override it.
-    virtual void AttachObject(CEngineObject* object);
+    virtual void AttachObject(EngineObject* object);
     // Takes `other`'s parts (the array copied, no references taken) and its transform
-    // (CTransformObject::CopyTransform).
+    // (TransformObject::CopyTransform).
     virtual void CopyFigure(const CObject3D* other);
     // Whether the object is invisible: false here; map objects override it.
     virtual bool InvisibleSlot();
     // Draw the figure / draw it and collect its screen rectangle / draw its shadow with the scene context (the
     // side half's draw virtuals, the second first emptying dirtyRect to have it filled; 1 without a half).
-    virtual int DrawFigure(CSceneRenderer* context);
-    virtual int DrawCollectDirty(CSceneRenderer* context);
-    virtual int DrawFigureShadow(CSceneRenderer* context);
+    virtual int DrawFigure(SceneRenderer* context);
+    virtual int DrawCollectDirty(SceneRenderer* context);
+    virtual int DrawFigureShadow(SceneRenderer* context);
     // Empty; units override it.
     virtual void AdvanceTime(float time);
     // Loads the model named by the object's name into the figure manager; non-units mark every part and themselves
-    // (flags_ 8 / 0x200). Then the half's LoadFigures-done virtual and flags_ 0x80. Nothing when already loaded.
+    // (flags 8 / 0x200). Then the half's LoadFigures-done virtual and flags 0x80. Nothing when already loaded.
     virtual void LoadFigures();
 
     // The bounding box of the parts (only those within 1e9 squared of the object) into the bounds: centre, box
@@ -440,22 +440,22 @@ public:
     void SetFigureScale(const float* newScale);
 
     // The first part whose name starts with `prefix` (case-sensitive), or null.
-    CFigureMesh* FindPartByPrefix(std::string_view prefix);
+    FigureMesh* FindPartByPrefix(std::string_view prefix);
     // The first part named exactly `partName`, or null.
-    CFigureMesh* FindPart(std::string_view partName);
-    // The first part whose engine object type_ is `type`, or null.
-    CFigureMesh* FindPartOfType(int type);
+    FigureMesh* FindPart(std::string_view partName);
+    // The first part whose engine object type is `type`, or null.
+    FigureMesh* FindPartOfType(int type);
     // Every part whose name starts with `prefix`.
-    std::vector<CFigureMesh*> CollectPartsByPrefix(std::string_view prefix);
+    std::vector<FigureMesh*> CollectPartsByPrefix(std::string_view prefix);
     // Takes `part` out of the parts (it forgets its owner), tells the animation state and releases it. The side
     // half hears of it first, found or not. Returns 1 when it was there, else 0.
-    int RemovePart(CFigureMesh* part);
+    int RemovePart(FigureMesh* part);
     // FindPart(`partName`), removed by RemovePart. Returns the part (released; the pointer may be dangling)
     // or null.
-    CFigureMesh* RemovePartNamed(std::string_view partName);
+    FigureMesh* RemovePartNamed(std::string_view partName);
     // `part`'s position turned by the object's rotation, scaled by the side half's GetScale and moved to the
     // object's position.
-    float* PartWorldPosition(float* out, const CFigureMesh* part);
+    float* PartWorldPosition(float* out, const FigureMesh* part);
 
     // The animation database, loaded on first use through the owner's GetFile ("<name>.adb"; nothing without
     // an owner). Null when there is none.
@@ -482,20 +482,20 @@ public:
     // A part object for the figure part `partName` (the figure manager's LoadPart; "Can't load figure" logged
     // and null when missing). With a figure the part must be one of its pieces (else null, the part leaked)
     // and takes its box; box flags by name prefix as SetUpAnimatedFigure. It joins the parts.
-    CFigureMesh* LoadPart(std::string_view partName);
+    FigureMesh* LoadPart(std::string_view partName);
     // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
     // (failures logged). Without a figure manager: FatalError. Returns 1.
     int LoadParts(std::string_view model, const std::vector<std::string>* partList);
-    // When a unit becomes the controlled one (world client): with the figure loaded (flags_ 0x80) the parts'
+    // When a unit becomes the controlled one (world client): with the figure loaded (flags 0x80) the parts'
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();
     // Builds the figure of the model for the part names `partList` (none: the animation
-    // state's parts and the whole figure), then LoadParts and the bounds; flags_ 0x80 set unless both `arg`
+    // state's parts and the whole figure), then LoadParts and the bounds; flags 0x80 set unless both `arg`
     // and the figure are 0. Returns 1.
     int MakeFigure(std::string_view model, std::vector<std::string>* partList, std::uint32_t arg);
     // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(std::string_view partName);
-    // The box (CFigureMesh::bounds_) of part `index`.
+    // The box (FigureMesh::bounds) of part `index`.
     FootprintPart* PartBox(int index);
 
     // Create (named apart so it is no override): back to an empty object, the figure released.
@@ -505,20 +505,20 @@ public:
     void Destroy3D();
     // Adds `source` (a particle source; it calls this from its Attach) to the effect sources unless it is there:
     // referenced and attached to this object.
-    void AddEffectSource(CParticleSource* source);
+    void AddEffectSource(ParticleSource* source);
     // Takes `source` out of the effect sources, detaches it and releases it. Nothing when not there.
-    void RemoveEffectSource(CParticleSource* source);
+    void RemoveEffectSource(ParticleSource* source);
 
     // A side half (SideObjectType::Object3D) replaces the attached one as SetSpecific does; other objects (and null) are
     // ignored.
-    void AttachSpecific(CEngineObject* half);
+    void AttachSpecific(EngineObject* half);
     // The release-effects virtual: every effect source is taken out of the list, detached and released.
     void RemoveAllEffectSources();
 
     // `half` (of any type, or null) replaces the attached half: the old one is detached and released, the new
     // one points back here and gains a reference.
-    void SetSpecific(CObject3DSpecific* half);
-    // Every part's flags_ gains / loses the bits of `mask`.
+    void SetSpecific(Object3DSpecific* half);
+    // Every part's flags gains / loses the bits of `mask`.
     void SetPartFlags(std::uint32_t mask);
     void ClearPartFlags(std::uint32_t mask);
     // Every part's flatColour / flatSpecular becomes `value`.
@@ -526,29 +526,29 @@ public:
     void SetPartsFlatSpecular(std::uint32_t value);
     // `state` (or null) replaces the animation state: the old one loses its owner and is released, the new
     // one gains a reference and this owner.
-    void SetAnimationState(CFigureAnimationState* state);
+    void SetAnimationState(FigureAnimationState* state);
     // The animation state (if any) plays `animation`.
     void PlayAnimation(FigureAnimation* animation);
     // The animation state's bone named as `part` carries it (AttachMesh); 0 without a state.
-    int AttachPartMesh(CEngineObject* part);
+    int AttachPartMesh(EngineObject* part);
     // The animation state (if any) goes to frame 0 and places the skeleton.
     void RestartPose();
 
     // The same half on the client (defined in map_object_shadow.h).
-    CObject3DClientSpecific* ClientSpecific() const;
+    Object3DClientSpecific* ClientSpecific() const;
 
     Matrix4 worldMatrix;            // object -> world: the rotation, the position as column 3
-    CObject3DSpecific* attached;    // the side half: AttachSpecific accepts (SideObjectType::Object3D)
-    CFigureAnimationState* animation;   // the figure's animation state
+    Object3DSpecific* attached;    // the side half: AttachSpecific accepts (SideObjectType::Object3D)
+    FigureAnimationState* animation;   // the figure's animation state
     AnimationDatabase* animations;  // loaded on first use
     std::string name;               // the figure's name
-    std::list<HeldRef<CParticleSource>> effectSources;   // the particle sources attached to the object
+    std::list<HeldRef<ParticleSource>> effectSources;   // the particle sources attached to the object
     Vector3 scale;
     // the figure's parts (counted; CopyFigure shares them uncounted, Destroy3D drops them without a release)
-    std::vector<HeldRef<CFigureMesh>> parts;
+    std::vector<HeldRef<FigureMesh>> parts;
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
-    Ref<CLinkMesh> figure;
+    Ref<LinkMesh> figure;
     Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create3D)
     tagRECT dirtyRect;              // the screen area the last DrawCollectDirty covered
     std::vector<std::string> partNames;    // the figure's part names, in the order of the part boxes

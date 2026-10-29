@@ -65,54 +65,54 @@ constexpr SkillAnimation kPreviewAnimation = SkillAnimation::Special14;      // 
 
 // --- The trade panel's experience figures ------------------------------------
 
-int CTradePanel::Experience() const {
+int TradePanel::Experience() const {
     const TradeStatsRecord& record = Record();
     return static_cast<int>(static_cast<double>(record.pendingExperience) + record.experience - record.spentExperience);
 }
 
-int CTradePanel::PurchaseCost() {
-    PartyUnitRecord* hero = owner_->HeroRecord();
+int TradePanel::PurchaseCost() {
+    PartyUnitRecord* hero = owner->HeroRecord();
     return static_cast<int>(static_cast<double>(hero->stats.spentExperience) - Record().spentExperience);
 }
 
 // --- Draw ------------------------------------------------------------------------------
 
-void CMpHeroScreen::DrawExperience() {
-    CUiSurface* surface = surfaces_[2];
-    std::string text;
+void MpHeroScreen::DrawExperience() {
+    UiSurface* surface = surfaces[2];
+    std::string levelText;
     std::string line;
     surface->Clear();
-    text = g_clientWorld.texts_->GetString(kLevelUpKey);
+    levelText = g_clientWorld.texts->GetString(kLevelUpKey);
     RECT title = {0, 130, 200, 150};
-    surface->DrawTextIn(text, &title, kTextFormat, kWhite, 1, 1);
-    text = str::Format(kSignedFormat, -tradePanel_->PurchaseCost());
+    surface->DrawTextIn(levelText, &title, kTextFormat, kWhite, 1, 1);
+    levelText = str::Format(kSignedFormat, -tradePanel->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
-    surface->DrawTextIn(text, &cost, kTextFormat, kWhite, 1, 1);
-    text = g_clientWorld.texts_->GetString(kCurrentExpKey);
-    line = str::Format(kLabelFormat, text, tradePanel_->Experience());
+    surface->DrawTextIn(levelText, &cost, kTextFormat, kWhite, 1, 1);
+    levelText = g_clientWorld.texts->GetString(kCurrentExpKey);
+    line = str::Format(kLabelFormat, levelText, tradePanel->Experience());
     RECT current = {0, 110, 200, 130};
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
 }
 
-void CMpHeroScreen::Draw(CSceneRenderer* pass) {
-    if (mode_ == kModeStats) DrawExperience();
-    int x = g_cursor.position_.x;
-    int y = g_cursor.position_.y;
-    hoveredItem_ = nullptr;
+void MpHeroScreen::Draw(SceneRenderer* pass) {
+    if (mode == kModeStats) DrawExperience();
+    int x = g_cursor.position.x;
+    int y = g_cursor.position.y;
+    hoveredItem = nullptr;
     int topic = 0;
-    hoveredItem_ = weaponPanel_->ItemAt(x, y, &topic);
-    if (!hoveredItem_ && topic == 0) hoveredItem_ = spellPanel_->ItemAt(x, y, &topic);
+    hoveredItem = weaponPanel->ItemAt(x, y, &topic);
+    if (!hoveredItem && topic == 0) hoveredItem = spellPanel->ItemAt(x, y, &topic);
 
-    if (hoveredItem_) {
-        if (descPanel_) descPanel_->Describe(hoveredItem_);
+    if (hoveredItem) {
+        if (descPanel) descPanel->Describe(hoveredItem);
     } else if (topic != 0) {
-        if (descPanel_) descPanel_->ShowHelp(topic);
+        if (descPanel) descPanel->ShowHelp(topic);
     } else {
         ItemHoverInfo info;
-        if (tradePanel_->enabled_) info = tradePanel_->HoverInfo(x, y);
+        if (tradePanel->enabled) info = tradePanel->HoverInfo(x, y);
         if (info.kind == HoverKind::None) {
-            if (statsPanel_->enabled_) info = statsPanel_->HoverInfo(x, y);
-            if (info.kind == HoverKind::None && mode_ == kModeNewHero) {
+            if (statsPanel->enabled) info = statsPanel->HoverInfo(x, y);
+            if (info.kind == HoverKind::None && mode == kModeNewHero) {
                 int region = RegionAt(x, y);
                 if (region >= kFirstVoiceRegion && region < kVoiceRegionEnd) {
                     info.kind = HoverKind::Text;
@@ -120,38 +120,38 @@ void CMpHeroScreen::Draw(CSceneRenderer* pass) {
                 }
             }
         }
-        if (descPanel_) descPanel_->DescribeStats(info);
+        if (descPanel) descPanel->DescribeStats(info);
     }
 
-    CUiContainer::Draw(pass);
-    if (mode_ == kModeList && heroIndex_ >= 0)
-        DrawHeroPreview(pass, previewModel_, turn_, kListDepth, false);
-    else if (mode_ == kModeNewHero)
-        DrawHeroPreview(pass, previewModel_, turn_, kNewHeroDepth, false);
+    UiContainer::Draw(pass);
+    if (mode == kModeList && heroIndex >= 0)
+        DrawHeroPreview(pass, previewModel, turn, kListDepth, false);
+    else if (mode == kModeNewHero)
+        DrawHeroPreview(pass, previewModel, turn, kNewHeroDepth, false);
 }
 
 // --- Update ----------------------------------------------------------------------------
 
-void CMpHeroScreen::Update() {
-    CUiContainer::Update();
-    if (rotating_ == 1 || rotating_ == 2) {
+void MpHeroScreen::Update() {
+    UiContainer::Update();
+    if (rotating == 1 || rotating == 2) {
         double step = FrameTime();
         step += step;
-        double angle = rotating_ == 1 ? step + turn_ : turn_ - step;
-        turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(kFullTurn)));
+        double angle = rotating == 1 ? step + turn : turn - step;
+        turn = static_cast<float>(std::fmod(angle, static_cast<double>(kFullTurn)));
     }
-    if (heroScroll_->TakeMoved()) {
-        heroTop_ = heroScroll_->Position();
+    if (heroScroll->TakeMoved()) {
+        heroTop = heroScroll->Position();
         DrawHeroList();
     }
-    if (voiceScroll_->TakeMoved()) {
-        voiceTop_ = voiceScroll_->Position();
-        if (mode_ != kModeNewHero) return;
+    if (voiceScroll->TakeMoved()) {
+        voiceTop = voiceScroll->Position();
+        if (mode != kModeNewHero) return;
         DrawVoices();
     }
-    if (mode_ != kModeNewHero) return;
+    if (mode != kModeNewHero) return;
 
-    std::string name = nameEdit_->text_;
+    std::string name = nameEdit->text;
     const UnitStats* stats = &HeroRecord()->stats;
     double points = static_cast<double>(stats->intelligenceBase) + stats->dexterityBase + stats->strengthBase;
     float target = kAttributePoints;
@@ -160,83 +160,83 @@ void CMpHeroScreen::Update() {
     bool ready = equal && !name.empty();
     float shade = ready ? 1.0f : 0.5f;
     auto* button = SceneMesh(kCreateButton);
-    button->tint_[0] = shade;
-    button->tint_[1] = shade;
-    button->tint_[2] = shade;
+    button->tint[0] = shade;
+    button->tint[1] = shade;
+    button->tint[2] = shade;
 }
 
 // --- Close -----------------------------------------------------------------------------
 
-void CMpHeroScreen::CloseScreen() {
+void MpHeroScreen::CloseScreen() {
     g_savedParties.SaveAll();
     std::vector<PartyUnitRecord*> records;
-    for (PartyUnitRecord& record : LocalPlayerData()->members_) records.push_back(&record);
+    for (PartyUnitRecord& record : LocalPlayerData()->members) records.push_back(&record);
     GameRemoveUnitsOf(&records);
-    previewModel_ = nullptr;
-    descPanel_->Describe(nullptr);
+    previewModel = nullptr;
+    descPanel->Describe(nullptr);
 }
 
 // --- The hero list and the voices drawn -----------------------------------------------------
 
-void CMpHeroScreen::DrawHeroList() {
-    CUiSurface* surface = surfaces_[0];
+void MpHeroScreen::DrawHeroList() {
+    UiSurface* surface = surfaces[0];
     surface->Clear();
-    CUiMesh* frame = SceneMesh(kSelectionFrame);
-    frame->visible_ = false;
-    RECT rect = {12, 13, 265, 33};
+    UiMesh* frame = SceneMesh(kSelectionFrame);
+    frame->visible = false;
+    RECT area = {12, 13, 265, 33};
     const auto count = static_cast<std::uint32_t>(g_savedParties.Count());
-    std::uint32_t index = static_cast<std::uint32_t>(heroTop_);
+    std::uint32_t index = static_cast<std::uint32_t>(heroTop);
     for (int y = 262; y < 502; y += 24, ++index) {
         if (index >= count) break;
-        if (static_cast<int>(index) == heroIndex_) {
-            frame->visible_ = true;
+        if (static_cast<int>(index) == heroIndex) {
+            frame->visible = true;
             frame->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
         // A hero record is a party; its name the first member's text 0.
-        surface->DrawTextIn(g_savedParties.Hero(static_cast<int>(index))->Party()->members_[0].texts[0], &rect, 1, kListColour,
+        surface->DrawTextIn(g_savedParties.Hero(static_cast<int>(index))->Party()->members[0].texts[0], &area, 1, kListColour,
                             kListFormat, 1);
-        gameapi::OffsetRect(&rect, 0, 24);
+        gameapi::OffsetRect(&area, 0, 24);
     }
 }
 
-void CMpHeroScreen::DrawVoices() {
-    CUiSurface* surface = surfaces_[2];
+void MpHeroScreen::DrawVoices() {
+    UiSurface* surface = surfaces[2];
     surface->Clear();
-    CUiMesh* frame = SceneMesh(kSelectionFrame);
-    frame->visible_ = false;
+    UiMesh* frame = SceneMesh(kSelectionFrame);
+    frame->visible = false;
     std::string title;
-    RECT rect = {10, 5, 190, 20};
-    title = g_clientWorld.texts_->GetString(kVoicesKey);
-    surface->DrawTextIn(title, &rect, 0, kWhite, 1, 1);
-    rect = {20, 25, 175, 40};
-    std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);
+    RECT area = {10, 5, 190, 20};
+    title = g_clientWorld.texts->GetString(kVoicesKey);
+    surface->DrawTextIn(title, &area, 0, kWhite, 1, 1);
+    area = {20, 25, 175, 40};
+    std::uint32_t index = static_cast<std::uint32_t>(voiceTop);
     for (int offset = 0; offset < 165; offset += 15, ++index) {
-        const std::vector<MpVoiceEntry>& voices = *voices_;
-        if (index >= voices.size()) break;
-        if (static_cast<int>(index) == voiceIndex_) {
-            frame->visible_ = true;
+        const std::vector<MpVoiceEntry>& currentVoices = *voices;
+        if (index >= currentVoices.size()) break;
+        if (static_cast<int>(index) == voiceIndex) {
+            frame->visible = true;
             float y = static_cast<float>(static_cast<double>(offset) + kVoiceFrameTop);
             frame->Place(97.5f, y, kFrameDepth);
         }
-        surface->DrawTextIn(voices[index].name, &rect, 0, kListColour, kListFormat, 1);
-        gameapi::OffsetRect(&rect, 0, 15);
+        surface->DrawTextIn(currentVoices[index].name, &area, 0, kListColour, kListFormat, 1);
+        gameapi::OffsetRect(&area, 0, 15);
     }
 }
 
 // --- The preview's unit -------------------------------------------------------------------
 
-void CMpHeroScreen::MakePreview(bool allArmour) {
-    previewModel_ = nullptr;
+void MpHeroScreen::MakePreview(bool allArmour) {
+    previewModel = nullptr;
     auto* player = LocalPlayerData();
-    if (player->members_.empty()) {
+    if (player->members.empty()) {
         player->Clear(1, 0);
         player->AddMember(kHeroName, kHumanHero, game::kEmptyText);
     }
-    const std::vector<PartyUnitRecord*> records{player->members_.data()};
+    const std::vector<PartyUnitRecord*> records{player->members.data()};
     GameCreatePartyUnits(&records, allArmour);
-    auto* unit = GameFindClientUnit(player->members_.data()->unitId);
+    auto* unit = GameFindClientUnit(player->members.data()->unitId);
     unit->SetSecondPrototype(unit->GetPrototype());
-    previewModel_ = unit;
+    previewModel = unit;
     if (unit) {
         FigureAnimation* animation = unit->FindSkillAnimation(kPreviewAnimation);
         if (animation) {
@@ -245,27 +245,27 @@ void CMpHeroScreen::MakePreview(bool allArmour) {
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
-        CUnitController* controller = unit->Controller();
+        UnitController* controller = unit->Controller();
         controller->ShowWeapon(kNoWeaponSlot);
         controller->RefreshModel();
         double now = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
         controller->RestartAnimation(static_cast<float>(now - 1.0f));
-        unit->SetFromStats(&player->members_.data()->stats);
+        unit->SetFromStats(&player->members.data()->stats);
         unit->Controller()->RefreshWounds();
     }
 }
 
 // --- A hero shown -------------------------------------------------------------------------
 
-void CMpHeroScreen::ShowHero(int index) {
+void MpHeroScreen::ShowHero(int index) {
     auto* player = LocalPlayerData();
-    if (!player->members_.empty()) {
-        std::vector<PartyUnitRecord*> records{player->members_.data()};
+    if (!player->members.empty()) {
+        std::vector<PartyUnitRecord*> records{player->members.data()};
         GameRemoveUnitsOf(&records);
     }
-    heroIndex_ = -1;
+    heroIndex = -1;
     if (index >= 0 && index < g_savedParties.Count()) {
-        heroIndex_ = index;
+        heroIndex = index;
         player->Assign(g_savedParties.Hero(index)->Party());
         g_savedParties.Select(g_savedParties.Hero(index));
     }
@@ -277,6 +277,6 @@ void CMpHeroScreen::ShowHero(int index) {
     unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();
-    turn_ = 0.0f;
+    turn = 0.0f;
     DrawHeroList();
 }

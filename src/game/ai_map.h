@@ -19,8 +19,8 @@
 constexpr std::uint32_t kPassabilityMask = 0xF;
 // AIMapCell::flags: bits 0-5 the water's depth over the ground (AI height units, at most 0x3F), then two bits.
 constexpr std::uint8_t kCellDepthMask = 0x3F;
-constexpr std::uint8_t kCellBridge = 0x40;   // under a bridge (its deck height in CAIMap::bridgeHeights)
-constexpr std::uint8_t kCellWater = 0x80;    // under water (CAIMap::InWaterAt)
+constexpr std::uint8_t kCellBridge = 0x40;   // under a bridge (its deck height in AIMap::bridgeHeights)
+constexpr std::uint8_t kCellWater = 0x80;    // under water (AIMap::InWaterAt)
 
 // One AI map cell: a 4-bit passability per unit size class, then heights.
 #pragma pack(push, 1)
@@ -40,7 +40,7 @@ struct AIMapCell {
 #pragma pack(pop)
 static_assert(sizeof(AIMapCell) == 9);
 
-// A cell's occluder word (CAIMap::occluders). Bits 0-4: the cell's terrain type (CAIMap::materials). Bit 8 set:
+// A cell's occluder word (AIMap::occluders). Bits 0-4: the cell's terrain type (AIMap::materials). Bit 8 set:
 // no occluder. Else with bit 7 clear one occluder is packed into the word: bits 5-6 its transparency, 9-11 its
 // kind, 12-21 its top and 22-31 its bottom height; with bit 7 set the occluders are a chain of the records of
 // the cell's sector (SectorOccluder) whose head index is bits 9-28.
@@ -81,7 +81,7 @@ inline std::uint32_t WithHead(std::uint32_t word, int head) {
 }
 } // namespace occluder
 
-// A cell an object's footprint covers, collected by CAIMap::MarkFootprint before it is applied to the grid.
+// A cell an object's footprint covers, collected by AIMap::MarkFootprint before it is applied to the grid.
 struct FootprintCell {
     int x, y;
     int low;                    // lowest bottom-face height (AI height units), 0x7FFFFFFF if none
@@ -95,8 +95,8 @@ struct FootprintCell {
 
 // A growable array of FootprintCell with a 16-bucket hash on (x + y).
 struct FootprintCellSet {
-    void AlongDirection(CAIMap* map, const Vector3& position, const Vector3& direction);
-    void DiscAt(CAIMap* map, const Vector3& position, float radius);
+    void AlongDirection(AIMap* map, const Vector3& position, const Vector3& direction);
+    void DiscAt(AIMap* map, const Vector3& position, float radius);
     // Resizes the array to `size`.
     void SetSize(int size);
 
@@ -117,7 +117,7 @@ struct FootprintCellSet {
     bool hashed = true;     // set again by every insertion, never cleared
 };
 
-// The passability cost tables of one size class, filled by CAIMap::CostContext.
+// The passability cost tables of one size class, filled by AIMap::CostContext.
 struct PassCostContext {
     const int* costs;       // cost per passability nibble
     const int* climb;       // middle of the climb table of the size class
@@ -170,7 +170,7 @@ struct BlockCost {
     int x, y, cost;
 };
 
-struct CRegionMap;
+struct RegionMap;
 
 // A block of the region map, or a cell: {x, y}. The excluded blocks of a plan (AIPath) and the region map's
 // work lists are arrays of BlockPoint.
@@ -196,7 +196,7 @@ struct MotionOrder {
 };
 
 // A motion order with the steps it walks next: the first part of a unit's path (AIPath) and all the client's
-// controller keeps of one (CUnitClientSpecific). Its methods steer along `steps`.
+// controller keeps of one (UnitClientSpecific). Its methods steer along `steps`.
 struct PathOrder {
     // Stand still at (0, 0); the steps are emptied. Returns 0.
     int Reset();
@@ -224,8 +224,8 @@ struct PathOrder {
     // The order and its steps in the save stream: kind, x / y, angle, start time and the three
     // arguments (4, 8, 4, 4, 0xC bytes), the steps' count, then each step (8 bytes). Loading appends that many
     // steps and reads over every step from the head.
-    void LoadOrder(CStream* stream);
-    void SaveOrder(CStream* stream);
+    void LoadOrder(ByteStream* stream);
+    void SaveOrder(ByteStream* stream);
 
     MotionOrder motionOrder;
     PathCells steps;         // the next cells to walk (at most 32)
@@ -234,8 +234,8 @@ struct PathOrder {
 // A unit's path: its order and next steps (PathOrder), the rest of the cells and the search's state.
 struct AIPath : PathOrder {
     AIPath() { Clear(); }
-    void LoadPath(CStream* stream);
-    void SavePath(CStream* stream);
+    void LoadPath(ByteStream* stream);
+    void SavePath(ByteStream* stream);
     void StandAndTurn(int time, const CMapObject* unit, const Vector3& direction, std::uint32_t rateBits);
     void StandAndTrack(int time, const CMapObject* unit, int id, int from, int to);
     void StandAndTurnUntil(int time, const CMapObject* unit, const Vector3& direction, int fromTime, int toTime);
@@ -262,11 +262,11 @@ struct AIPath : PathOrder {
     int smoothing;              // set by the smoother (how much longer the path is than the way)
 };
 
-class CAIMap;
-class CSectorMap;
-class CUnitShape;
+class AIMap;
+class SectorMap;
+class UnitShape;
 
-// A terrain type of the AI map (CAIMap::materials, indexed by the low 5 bits of a cell's occluder word): a
+// A terrain type of the AI map (AIMap::materials, indexed by the low 5 bits of a cell's occluder word): a
 // section of tileDesc.reg in aiinfo.res, named by the type's number.
 struct AITerrainType {
     char name[0x100];           // "Name"
@@ -326,13 +326,13 @@ struct LocalSearch {
     // y0 <= y1, at most 28 apart): the row below and the column right of it are made unusable.
     bool BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy);
     bool BeginInRectForClass(int sizeClass, int x0, int y0, int x1, int y1, int sx, int sy);
-    // Copies the reached cells' directions into the map's marks (CAIMap::marks) where they are still 0.
+    // Copies the reached cells' directions into the map's marks (AIMap::marks) where they are still 0.
     void CommitDirections();
     // Saves the window's cell levels into `levels` and zeroes them in the map.
     void SaveLevels();
     void RestoreLevels();
     // Attaches the search to `map`: a fresh 34 x 34 node grid (the border unusable) and the row table.
-    void Attach(CAIMap* map, bool backward);
+    void Attach(AIMap* map, bool backward);
     // Moves the window over (x0, y0)-(x1, y1) keeping what was searched: the nodes are shifted, then (with
     // `settleInside`) the ones cheaper than the cheapest kept border node are settled and the rest queued, or
     // (without) the settled stay and the reached are queued. False when the window cannot be placed
@@ -343,7 +343,7 @@ struct LocalSearch {
     bool levelsSaved = false;           // the window's cell levels are in `levels`
     SearchGrid<SearchNode> nodes;       // 34 x 34
     SearchGrid<std::uint8_t> levels;    // saved cell levels
-    CAIMap* map = nullptr;
+    AIMap* map = nullptr;
     std::vector<AIMapCell*> cellRows;   // cellRows[i] = &map cell (originX, originY + i): the window's map rows
     SearchNode* settledList = nullptr;  // linked through `next`
     SearchNode* buckets[4] = {};        // open nodes by x & 3, sorted by cost
@@ -383,7 +383,7 @@ struct BlockSearch {
     BlockSearch();
 
     // Attaches to the region map: one record per block, all unreached.
-    void Attach(CRegionMap* regionMap, bool fromTarget);
+    void Attach(RegionMap* regionMap, bool fromTarget);
     // The path from the search's start to block (x, y) into `path` (emptied first).
     void PathTo(int x, int y, PathCells* path);
     // Moves `record` to its place in its bucket (a bucket head stays).
@@ -395,7 +395,7 @@ struct BlockSearch {
     void Expand();
 
     SearchGrid<BlockRecord> records;
-    CRegionMap* map = nullptr;
+    RegionMap* map = nullptr;
     SearchGrid<std::int16_t>* edges = nullptr;  // the size class's edge words (8 per block)
     BlockRecord* touched = nullptr;     // settled and excluded records
     BlockRecord* open[8] = {};
@@ -405,20 +405,20 @@ struct BlockSearch {
     bool active = false;
 };
 
-// A block's representative cell (CRegionMap::cells): its x within the 8x8 block in the low nibble, y in the high one.
+// A block's representative cell (RegionMap::cells): its x within the 8x8 block in the low nibble, y in the high one.
 inline int RepresentativeX(std::uint8_t cell) { return cell & 0xF; }
 inline int RepresentativeY(std::uint8_t cell) { return cell >> 4; }
 inline std::uint8_t WithRepresentativeX(std::uint8_t cell, int x) { return static_cast<std::uint8_t>((cell & 0xF0) | (x & 0xF)); }
 inline std::uint8_t WithRepresentativeY(std::uint8_t cell, int y) { return static_cast<std::uint8_t>((cell & 0x0F) | (y << 4)); }
 
-struct CRegionMap {
+struct RegionMap {
     // The block grids 1 x 1 (edges -1, representative cells zeroed) with both block searches attached to them.
-    CRegionMap();
+    RegionMap();
 
     // The region of cell (x, y) for a size class, the one most of the reachable 3x3 blocks around the cell belong
     // to (the first seen on a tie; 0 when none).
     int DominantRegion(int sizeClass, int x, int y);
-    // Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI map's, CAIMap::marks: 1 yes, 2 no).
+    // Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI map's, AIMap::marks: 1 yes, 2 no).
     bool ReachesRegion(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks);
     // Numbers the connected areas of blocks of every size class.
     void LabelRegions();
@@ -426,13 +426,13 @@ struct CRegionMap {
     // two directions, for every size class.
     void ClampEdgeCosts();
     // Reads the block grids of every size class from the AI graph stream; returns the stream's state byte.
-    bool LoadBlocks(CStream* stream);
+    bool LoadBlocks(ByteStream* stream);
     // The block grids as LoadBlocks reads them: width and height, then per size class each row's edge words,
     // representative cells and regions.
-    void SaveBlocks(CStream* stream);
+    void SaveBlocks(ByteStream* stream);
     // Per size class the representative cell of block (bx, by): (3, 3) unless a passable cell in rings from the
     // middle is better.
-    void PickRepresentatives(class CAIMap* map, int bx, int by);
+    void PickRepresentatives(class AIMap* map, int bx, int by);
     // The chain of regions from (fromX, fromY) to (toX, toY) into `chain`, avoiding the blocks in `excluded`.
     bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCells* chain,
                          std::vector<BlockPoint>* excluded);
@@ -442,7 +442,7 @@ struct CRegionMap {
     // cell / 128.
     void MeasureBlockEdges(int bx, int by);
     // Sizes the block grids for the map (8x8-cell blocks), sets up the local search and rebuilds the tables.
-    void Attach(class CAIMap* map);
+    void Attach(class AIMap* map);
     // Whether cell (xx, yy) of block (bx, by) reaches both side edges or both end edges of the block.
     bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
     // Floods `label` over the blocks connected through open edges, breadth first from `frontier`.
@@ -453,8 +453,8 @@ struct CRegionMap {
 
     // Re-measures blocks [x0, x1) x [y0, y1) (clamped to the grid): representative cells, then edges, row by
     // row (reporting progress), then the edge clamp, the two block searches and the regions.
-    void UpdateBlocks(CAIMap* map, int x0, int x1, int y0, int y1);
-    void UpdateBlocksFor(CAIMap* map, int x0, int x1, int y0, int y1);
+    void UpdateBlocks(AIMap* map, int x0, int x1, int y0, int y1);
+    void UpdateBlocksFor(AIMap* map, int x0, int x1, int y0, int y1);
     void AttachSearches();
     // Seeds `search` with the blocks around cell (x, y) its representative cells are reached from
     // (NearbyBlocks), cost / 128; true when one was lowered.
@@ -547,14 +547,14 @@ struct PathSmoother {
     // step costs, a turn cost against `startDirection` (1..8) and the previous step, and diagonal end states
     // charged (1 - fraction) * 2048. While a pass finds a cheaper path the cells are rebuilt from the tail
     // along it and the pass repeats. Returns the last pass's cost.
-    int Smooth(CUnit* unit, CAIMap* map, PathCells* path, int startDirection, float fraction);
+    int Smooth(CUnit* unit, AIMap* map, PathCells* path, int startDirection, float fraction);
     // The states of the next cell (fresh nodes from the pool) from those of the current one through `table`.
     void Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table);
     void Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to);
 
     std::uint8_t level;             // standing level
     int sizeClass;
-    CAIMap* map;
+    AIMap* map;
     int x, y;                       // the current cell
     PassCostContext costs;
 };
@@ -567,51 +567,51 @@ struct UnitLayerNode {
     CUnit* owner;
 };
 
-// The unit occupancy layers of CAIMap (small units and large units): every unit on the map is stamped as a
+// The unit occupancy layers of AIMap (small units and large units): every unit on the map is stamped as a
 // 20x20-cell block of levels (its UnitShape, 16x16, at the unit's cell offset within a 4-cell block), stored
 // as 4x4-cell nodes in a 1024-bucket hash keyed by block. Set: the block's levels replace the map's; Merge:
 // the map keeps the larger level. The small-unit layer writes AIMapCell::level (unsigned maximum), the
-// large-unit one the signed bytes of CAIMap::waterDepth.
-class CUnitLayer {
+// large-unit one the signed bytes of AIMap::waterDepth.
+class UnitLayer {
 public:
-    explicit CUnitLayer(CAIMap* owner) : map(owner) {}
+    explicit UnitLayer(AIMap* owner) : map(owner) {}
 
     virtual void Set(const UnitLayerNode* block) = 0;
     virtual void Merge(const UnitLayerNode* block) = 0;
 
     // Stamps `unit`'s shape (16x16 levels at shape + 8) with its top-left cell at
     // (x, y): one node per non-empty 4x4 block, each announced through Merge.
-    void Add(CUnit* unit, const CUnitShape* shape, int x, int y);
+    void Add(CUnit* unit, const UnitShape* shape, int x, int y);
     // Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
     // block it had, Set gets the block with the other units' levels merged (maximum).
     void Remove(CUnit* unit, int x, int y);
     std::list<UnitLayerNode> nodes;
     UnitLayerNode* buckets[1024] = {};  // by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes = nullptr; // unused nodes
-    CAIMap* const map;                  // the owner
+    AIMap* const map;                  // the owner
 };
 
-class CSmallUnitLayer : public CUnitLayer {
+class SmallUnitLayer : public UnitLayer {
 public:
-    using CUnitLayer::CUnitLayer;
+    using UnitLayer::UnitLayer;
     void Set(const UnitLayerNode* block) override;
     void Merge(const UnitLayerNode* block) override;
 };
 
-class CLargeUnitLayer : public CUnitLayer {
+class LargeUnitLayer : public UnitLayer {
 public:
-    using CUnitLayer::CUnitLayer;
+    using UnitLayer::UnitLayer;
     void Set(const UnitLayerNode* block) override;
     void Merge(const UnitLayerNode* block) override;
 };
 
-// A level's special area (CAIMap::areaLists, ClearUnmarkedArea): the offset {dx, dy} of the cell
+// A level's special area (AIMap::areaLists, ClearUnmarkedArea): the offset {dx, dy} of the cell
 // whose mark decides.
 struct AreaOffset {
     int dx, dy;
 };
 
-// The cells under a bridge (CAIMap::bridgeHeights): a hash map keyed (short)x << 16 | (short)y, the
+// The cells under a bridge (AIMap::bridgeHeights): a hash map keyed (short)x << 16 | (short)y, the
 // value the cell's saved ground level (low word), water depth (bits 16-21) and terrain type (bits 24-28).
 struct BridgeHeights : std::unordered_map<std::uint32_t, std::uint32_t> {
     // Puts back what the cell's bridge map entry saved (ground level, water depth, terrain type) and erases the
@@ -621,7 +621,7 @@ struct BridgeHeights : std::unordered_map<std::uint32_t, std::uint32_t> {
     int HeightAt(short x, short y) const;
 };
 
-// CAIMap's dirty rectangle: the area refreshed when a batch of refreshes ends.
+// AIMap's dirty rectangle: the area refreshed when a batch of refreshes ends.
 struct AIDirtyRect {
     // Empty: the minimums 10000, the maximums 0.
     void Reset();
@@ -630,7 +630,7 @@ struct AIDirtyRect {
     int minY = 10000, maxY = 0;
 };
 
-// The column CAIMap::CellMark measures against a cell's occluders; a cell with no occluder and no water leaves it
+// The column AIMap::CellMark measures against a cell's occluders; a cell with no occluder and no water leaves it
 // untouched.
 struct CellMarkState {
     int bottom;
@@ -642,9 +642,9 @@ struct CellMarkState {
 };
 
 // The navigation grid of the current map (Rebirth patches Load).
-class CAIMap {
+class AIMap {
 public:
-    CAIMap();
+    AIMap();
     // Destroyed and constructed again in place.
     void Reset();
 
@@ -666,7 +666,7 @@ public:
     std::uint8_t SetRefreshUnits(int on);
     bool AddToSectors(CMapObject* object);
     bool RemoveFromSectors(CMapObject* object);
-    // CSectorMap::Move (Rebirth patches it).
+    // SectorMap::Move (Rebirth patches it).
     bool MoveInSectors(CMapObject* object, const Vector3& position);
     std::list<CUnit*> FindUnitsInRadius(const Vector3& position, float radius);
 
@@ -748,7 +748,7 @@ public:
     void EndRefresh();
 
     // Occupancy shape for standing height `height` rounded up to tenths (cached; null at 0.2 or below).
-    void* UnitShape(float standingHeight);
+    void* ShapeForHeight(float standingHeight);
     // The first unit near world `position` whose occupancy shape blocks `unit` there; null if none.
     CUnit* BlockingUnitAt(CUnit* unit, const Vector3& position);
     // Fills each step's speed word (cost table / climb cost, in 1/512) and flag word.
@@ -810,23 +810,23 @@ public:
     int passCostsAlt[16];               // the same for units with CUnit::altPassCosts set
     int stepCosts[16];                  // step speeds per nibble (SetStepSpeeds)
     // Per size class: the cost of a height step between neighbouring cells, indexed from the middle (negative
-    // steps down, positive up): 1023 costs in 1/1024, -1 for a step that cannot be taken (CAIMap::Load fills them).
+    // steps down, positive up): 1023 costs in 1/1024, -1 for a step that cannot be taken (AIMap::Load fills them).
     std::vector<int> climbLarge;              // size classes other than 0: no step steeper than 40 degrees
     std::vector<int> climbSmall;              // size class 0: up to 60 degrees, every step at the flat cost
     std::vector<AITerrainType> materials;     // the terrain types (16 after Load)
     BridgeHeights bridgeHeights;            // keyed (short)x << 16 | (short)y
     float heightScale;                  // world z to AI height units
-    CSectorMap sectorMap;
+    SectorMap sectorMap;
     FootprintCellSet footprint;         // scratch for MarkFootprint
     FootprintCellSet bridges;
     SearchGrid<std::int8_t> waterDepth;  // per-cell water depth
     // the standing levels' special areas (ClearUnmarkedArea): RefreshArea reads the first list for levels
     // 0..4, the second for 5 and 6, the third for 7 (the other three are not read there).
     std::vector<AreaOffset> areaLists[6];
-    CSmallUnitLayer unitLayerSmall{this};   // unit occupancy
-    CLargeUnitLayer unitLayerLarge{this};
+    SmallUnitLayer unitLayerSmall{this};   // unit occupancy
+    LargeUnitLayer unitLayerLarge{this};
     PathSmoother smoother;
-    CRegionMap regionMap;
+    RegionMap regionMap;
     LocalSearch forwardSearch;
     LocalSearch backwardSearch;
     // the world tick of the last StampFootprint: an idle unit standing in a SpellArea occluder replans while its
@@ -835,7 +835,7 @@ public:
     SearchGrid<AIMapCell> cells;        // the map's cells (cells.width x cells.height)
     SearchGrid<std::uint32_t> occluders;  // per-cell occluder words (see LineOfSight)
     SearchGrid<std::int8_t> marks;      // per-cell marks: path directions (BuildCellsTo), reach answers
-    AIEventTable events;                // the world's AI events (CWorldServer::aiMap_.events)
+    AIEventTable events;                // the world's AI events (WorldServer::aiMap.events)
 };
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
@@ -851,9 +851,9 @@ struct SpiralCache {
 // then to the nearest integer.
 int WorldToCell(float world);
 
-void InitCostTables(CAIMap* map);
+void InitCostTables(AIMap* map);
 // The map's six area lists (areaLists) from the level tables.
-void FillAreaLists(CAIMap* map);
+void FillAreaLists(AIMap* map);
 // Standing level of size class `sizeClass` (0..7): (2 - height) * 16, at least 0. Outside 0..7 the original
 // returns only the low byte 0 (the rest of the result is the argument), reproduced here.
 int LevelForSizeClass(int sizeClass);

@@ -1,4 +1,4 @@
-// The window surface's constructors and destructor (CUiSurface). The holder has no DirectDraw surface and no memory:
+// The window surface's constructors and destructor (UiSurface). The holder has no DirectDraw surface and no memory:
 // the surface's pixels are its canvas on the GPU (render_ui.h), made black with it, so the original's colour fill is
 // left out. Making a window asks DirectDraw for nothing. The picture constructor has no caller (config/dead_code.csv).
 // See docs/notes/ui.md, "Surface construction".
@@ -18,32 +18,32 @@
 #include <cstring>
 #include "game_singletons.h"
 
-void CUiSurface::MakeCanvas() {
-    if (!holder_) return;
-    render::ui::Canvas(holder_, width_, height_, ScreenFormat(holder_->bitsPerPixel));
+void UiSurface::MakeCanvas() {
+    if (!holder) return;
+    render::ui::Canvas(holder, width, height, ScreenFormat(holder->bitsPerPixel));
 }
 
 // The destructor: drops the contents put aside and the holder (its canvas with it) and empties the screen
 // rectangle.
-CUiSurface::~CUiSurface() {
-    if (kept_) render::ui::DropCanvas(this);
-    kept_ = false;
-    Surface* holder = holder_;
-    holder_ = nullptr;
-    if (holder) holder->Release();
-    gameapi::SetRectEmpty(&rect_);
+UiSurface::~UiSurface() {
+    if (kept) render::ui::DropCanvas(this);
+    kept = false;
+    Surface* currentHolder = holder;
+    holder = nullptr;
+    if (currentHolder) currentHolder->Release();
+    gameapi::SetRectEmpty(&rect);
 }
 
-CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale)
-    : interface_(ui), blend_(blend), rect_{left, top, right, bottom} {
-    if (scale) interface_->ScaleRectToScreenEntry(&rect_);
-    width_ = rect_.right - rect_.left;
-    height_ = rect_.bottom - rect_.top;
+UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)
+    : ui(ownerUi), blend(newBlend), rect{left, top, right, bottom} {
+    if (scale) ui->ScaleRectToScreenEntry(&rect);
+    width = rect.right - rect.left;
+    height = rect.bottom - rect.top;
     // (The interface's renderer is the device object.)
-    holder_ = new Surface(interface_->renderer_, width_, height_);
-    holder_->AddRef();
+    holder = new Surface(ui->renderer, width, height);
+    holder->AddRef();
     MakeCanvas();
 }
 
-CUiSurface::CUiSurface(CInterface3D* ui, const RECT* rect, SurfaceBlend blend)
-    : CUiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}
+UiSurface::UiSurface(Interface3D* ui, const RECT* rect, SurfaceBlend blend)
+    : UiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}

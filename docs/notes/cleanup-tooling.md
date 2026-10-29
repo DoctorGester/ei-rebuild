@@ -35,24 +35,24 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
 - SAME: always (`(&x)->f()` becomes `x.f()`).
 - CONST: not the ones adding `volatile` (the x87 reads of `effects.cpp`, `particle_common.h`), nor ones that pick a
   const overload.
-- UP: only when no class between declares the called name. The UI constructors hide `CUiContainer::Construct`
-  (write `w->CUiContainer::Construct(ui)`); an `auto*` local keeps the base type it had (`CEngineObject* texture = ...`).
+- UP: only when no class between declares the called name. The UI constructors hide `UiContainer::Construct`
+  (write `w->UiContainer::Construct(ui)`); an `auto*` local keeps the base type it had (`CEngineObject* texture = ...`).
 - A cast in a template body shows for one instantiation only: leave it.
 - The forced header is C++20-only (`_MSVC_LANG` guard): CMake's compiler check builds a test file with the
   default standard under the same `/FI`. One site does not build (`world_server.cpp`, a volatile
   pointer-to-pointer CONST cast); the scan lists the rest.
 - Downcasts that stay should go through one named accessor where the class is known by construction
   (`CMapObject::ServerCompanion()`, `CUnit::GetWeapon` / `AsWeapon` (item.h), `FindItem`, `UnitWithId` for a
-  unit's id, `CLightFactory::LightWithId`, `AIBrain::FindPlayerMode` / `FindPatrolMode`,
+  unit's id, `LightFactory::LightWithId`, `AIBrain::FindPlayerMode` / `FindPatrolMode`,
   `UnitOrNull` after a class test, `ObjectSlots` where a generic lookup is a
-  map object; `CWorld::ObjectWithId` and `CWorldServer::FindObject` already return `CMapObject*`, and the server
-  world's id maps but `timedObjects_` are `MapObjectIdMap`s of `CMapObject*`; a network session's message
+  map object; `CWorld::ObjectWithId` and `WorldServer::FindObject` already return `CMapObject*`, and the server
+  world's id maps but `timedObjects` are `MapObjectIdMap`s of `CMapObject*`; a network session's message
   lists are `std::list<SharedRef<T>>` / `std::list<HeldRef<T>>` (core_refcount.h, ref.h: `element.Get()`); `FigureManagerOf(object)` / `OwningFigureManager(object)` (figure_manager.h) for the world's or
   the owning figure manager; `CMapObject::ClientCompanion()` on the client as `ServerCompanion()` on the server;
-  `CUnit::Controller()` for the controller's own slots (also from inside CUnitClientSpecific, which is not
-  declared as a CUnitController); `itemdb::WeaponOrArmorAt(weapon, index)` for the record head both share;
-  `CTexture::Manager()` / `CParticleSource::Manager()` for the owning manager; particle_common.h's `Carrier(object)`
-  for the attached object's map object slots; `AsQuest` / `AsArmor` on a `CItem*` (CPlayer::items_ holds `CItem*`)),
+  `CUnit::Controller()` for the controller's own slots (also from inside UnitClientSpecific, which is not
+  declared as a UnitController); `itemdb::WeaponOrArmorAt(weapon, index)` for the record head both share;
+  `CTexture::Manager()` / `ParticleSource::Manager()` for the owning manager; particle_common.h's `Carrier(object)`
+  for the attached object's map object slots; `AsQuest` / `AsArmor` on a `CItem*` (CPlayer::items holds `CItem*`)),
   not a cast at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
   pointer is never null there (the null test it adds changes nothing); keep the cast where the original
   calls something between the test and the use.
@@ -64,7 +64,7 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   masks, a CPlex with its elements, an .mmp file) is `::operator new(bytes)`. crt.h has no heap wrappers left
   (C35m deleted gamecrt::operator_new / operator_new_as / operator_new_array / operator_delete).
 - A deleting destructor through slot 0 is `delete p` on the object's own type when its class (or a base)
-  declares the virtual destructor (CEngineObject's slot 0): no upcast to CEngineObject first.
+  declares the virtual destructor (EngineObject's slot 0): no upcast to EngineObject first.
 
 ## Forwarders (C3, C13, C29)
 
@@ -174,12 +174,12 @@ checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNa
   `gap <= kHalfTurn` would never end on a NaN), and all of addon.dll's status tests (an IEEE compiler; they read C2:
   `Max` `!(f < m)`, `Min` `!(f > m)`, `Abs` / `Round` `x < 0`, `Random` `high > low`, `NearestUnit` `distance < radius`, `Equals` `==`).
   Four selects on integer-sourced floats (ui_objectives' map sizes, ui_hud_portraits' mana) cannot see a NaN and carry no audit.
-  `CAIMap`'s free-cell search (ai_path.cpp) sees a NaN in the suite (net_pair_quest, zone_gz15h_tornado: the step is 0 / 0 when
+  `AIMap`'s free-cell search (ai_path.cpp) sees a NaN in the suite (net_pair_quest, zone_gz15h_tornado: the step is 0 / 0 when
   the unit stands on the target cell, the original's behaviour); its select is exact because p and q are NaN together, so it has
   no audit (the audit fired there in the first suite run).
 - **Behaviour change** (NaN only): every audited comparison now takes the IEEE branch: e.g. a NaN length is normalised (a NaN vector)
   instead of left alone, a NaN zone variable counts as "not visited", a NaN script argument is "not zero" and "not equal", a NaN
-  height marks a moved object changed, a NaN hash key height never matches (each lookup adds an entry), `CCamera::StopMotion` keeps
+  height marks a moved object changed, a NaN hash key height never matches (each lookup adds an entry), `Camera::StopMotion` keeps
   a NaN turn / tilt rate where the inlined SetTurnRate(0) replaced it. The suite has none: goldens identical (110), and the audit
   line appears in no run's ei_hook.log.
 - **The `!(a >= b)` helpers (C16e).** The earlier port's NaN-keeping helpers are gone (`LessOrUnordered`, `ZeroOrUnordered`,

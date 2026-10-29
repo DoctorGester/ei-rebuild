@@ -1,4 +1,4 @@
-// A party unit's wounds, face texture and weapon point on the client (CUnitClientSpecific): the wound level
+// A party unit's wounds, face texture and weapon point on the client (UnitClientSpecific): the wound level
 // of each body part and the composed wounds texture the figure shows called by RefreshWounds See
 // unit_client_models.h.
 #include "core_maths.h"
@@ -8,7 +8,7 @@
 #include "item_names.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
-#include "model.h"     // CSceneRenderer, CRenderHelper
+#include "model.h"     // SceneRenderer, RenderHelper
 #include "texture.h"   // CTexture, CTextureManager
 #include "ui.h"
 #include "unit.h"
@@ -84,7 +84,7 @@ constexpr const char* kHandNode = "baserh3";
 
 } // namespace
 
-bool CUnitClientSpecific::WoundLevels(std::uint8_t** levels) {
+bool UnitClientSpecific::WoundLevels(std::uint8_t** levels) {
     bool wounded = false;
     for (int i = 0; i < kBodyParts; ++i) {
         std::uint8_t level = PartLevel(unit->params.slots[i]);
@@ -112,7 +112,7 @@ bool CUnitClientSpecific::WoundLevels(std::uint8_t** levels) {
     return wounded;
 }
 
-int CUnitClientSpecific::ComposeWoundsTexture() {
+int UnitClientSpecific::ComposeWoundsTexture() {
     int result = 0;
     {
         std::string name;
@@ -131,14 +131,14 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
                             static_cast<int>(level));
                 request.textures.push_back(name);
             }
-            name = str::Format(kWoundCacheName, unit->id_);
-            result = g_clientWorld.textureManager_->Compose(&out, &request, &name, &name, kMipCount, kFormat);
+            name = str::Format(kWoundCacheName, unit->id);
+            result = g_clientWorld.textureManager->Compose(&out, &request, &name, &name, kMipCount, kFormat);
         }
     }
     return result;
 }
 
-void CObject3DClientSpecific::HideWounds() {
+void Object3DClientSpecific::HideWounds() {
     woundsTexture.Reset();
     ClearWoundsMaterial();
 }
@@ -150,23 +150,23 @@ WoundsMaterial::WoundsMaterial() {
     destBlend = render::Blend::InvSourceAlpha;
 }
 
-int CObject3DClientSpecific::ShowWounds(const char* name) {
+int Object3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
-    CTextureManager* manager = g_clientWorld.textureManager_;
+    CTextureManager* manager = g_clientWorld.textureManager;
     if (!woundsTexture) {
         woundsTexture.Assign(manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
             woundsTexture.Assign(manager->FindOrCreate(kWoundsTextureKind, name));
-            if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->ClassName(), object->id_);
+            if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->ClassName(), object->id);
         }
     }
     std::vector<std::uint8_t> extra{};
     manager->LoadMmpExtra(name, &extra);
-    const std::vector<std::uint8_t>& loaded = woundsTexture->extra_;
+    const std::vector<std::uint8_t>& loaded = woundsTexture->extra;
     bool same = !extra.empty() && std::ssize(loaded) == std::ssize(extra) &&
                 std::memcmp(loaded.data(), extra.data(), static_cast<std::size_t>(std::ssize(extra))) == 0;
     if (!same) {
-        woundsTexture->flags_ &= ~TextureFlag::Loaded;
+        woundsTexture->flags &= ~TextureFlag::Loaded;
         if (!manager->LoadTexture(woundsTexture)) {
             woundsTexture.Reset();
             woundsMaterial.Reset();
@@ -176,7 +176,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     }
     if (!woundsMaterial) {
         woundsMaterial.Assign(new WoundsMaterial());
-        CRenderHelper* helper = g_sceneRenderer.helper_;
+        RenderHelper* helper = g_sceneRenderer.helper;
         woundsMaterial->preset.Assign(helper->Preset(kWoundsPreset));
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
@@ -187,17 +187,17 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
 
 // --- The face texture -------------------------------------------------------------------------
 
-bool CUnitClientSpecific::LoadFaceTexture() {
+bool UnitClientSpecific::LoadFaceTexture() {
     if (faceTexture) return true;
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return false;
     char name[0x400];
     if (unit->MapType() == MapObjectType::Hero) std::snprintf(name, sizeof(name), kHeroFace, unit->name.c_str(), prototype->skin);
     else std::snprintf(name, sizeof(name), kFace, unit->name.c_str());
-    CTexture* texture = g_clientWorld.textureManager_->FindOrCreate(kFaceTextureKind, name);
+    CTexture* texture = g_clientWorld.textureManager->FindOrCreate(kFaceTextureKind, name);
     faceTexture.Assign(texture);
-    g_clientWorld.textureManager_->LoadTexture(faceTexture);
-    if (faceTexture->flags_ & TextureFlag::Loaded) return true;
+    g_clientWorld.textureManager->LoadTexture(faceTexture);
+    if (faceTexture->flags & TextureFlag::Loaded) return true;
     faceTexture.Reset();
     blinks = 0;
     return false;
@@ -205,7 +205,7 @@ bool CUnitClientSpecific::LoadFaceTexture() {
 
 // --- The weapon point -------------------------------------------------------------------------
 
-bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
+bool UnitClientSpecific::WeaponPoint(Vector3* out) {
     std::uint32_t slot = unit->activeWeapon;
     std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoItemId;
     std::string node = WeaponBaseFigure(weapon);

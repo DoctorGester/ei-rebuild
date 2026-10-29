@@ -43,7 +43,7 @@ struct Bounds {
 
 // The cells within the radius' square, rounded outwards by one and clamped to the map (the upper
 // bounds to width - 1 / height - 1).
-Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
+Bounds SquareAround(AIMap* map, float cx, float cy, float r) {
     Bounds b;
     b.x0 = x87::fistp(static_cast<float>(static_cast<double>(cx) - r)) - 1;
     b.y0 = x87::fistp(static_cast<float>(static_cast<double>(cy) - r)) - 1;
@@ -59,7 +59,7 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
 } // namespace
 
 // The disc limited by a line, at half a unit's width from it.
-void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3& position, const Vector3& direction) {
+void FootprintCellSet::AlongDirection(AIMap* map, const Vector3& position, const Vector3& direction) {
     constexpr float kWidth = 0.5f;
     double scale = 1.0 /
                    (0.5);
@@ -92,7 +92,7 @@ void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3& position, cons
 }
 
 // The disc.
-void FootprintCellSet::DiscAt(CAIMap* map, const Vector3& position, float radius) {
+void FootprintCellSet::DiscAt(AIMap* map, const Vector3& position, float radius) {
     double scale = 1.0 /
                    (0.5);
     float cx = static_cast<float>(scale * position.x);

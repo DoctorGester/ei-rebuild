@@ -33,10 +33,10 @@ const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
 const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 
 // The tab keys select the strips' tabs (the "switch_filters" option).
-bool TabKeysEnabled() { return options::g_options.switchFilters_ != 0; }
+bool TabKeysEnabled() { return options::g_options.switchFilters != 0; }
 
 // The item as loot (type ItemKind::Loot), or null.
-const CItemLoot* LootOrNull(const CItem* item) {
+const ItemLoot* LootOrNull(const Item* item) {
     return item->Kind() == ItemKind::Loot ? AsLoot(item) : nullptr;
 }
 
@@ -44,32 +44,32 @@ const CItemLoot* LootOrNull(const CItem* item) {
 
 // --- Item predicates -------------------------------------------------------------------------
 
-bool IsSpell(const CItem* item) {
-    const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == LootKind::Record && loot->recordType_ == LootRecordType::Spell;
+bool IsSpell(const Item* item) {
+    const ItemLoot* loot = LootOrNull(item);
+    return loot && loot->kind == LootKind::Record && loot->recordType == LootRecordType::Spell;
 }
 
-bool IsModifier(const CItem* item) {
-    const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == LootKind::Record && loot->recordType_ == LootRecordType::Modifier;
+bool IsModifier(const Item* item) {
+    const ItemLoot* loot = LootOrNull(item);
+    return loot && loot->kind == LootKind::Record && loot->recordType == LootRecordType::Modifier;
 }
 
-bool IsSpellContainer(const CItem* item) {
+bool IsSpellContainer(const Item* item) {
     return item->Kind() == ItemKind::Scroll;
 }
 
-bool IsPart(const CItem* item) {
-    const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == LootKind::Record && loot->recordType_ <= LootRecordType::Quick;
+bool IsPart(const Item* item) {
+    const ItemLoot* loot = LootOrNull(item);
+    return loot && loot->kind == LootKind::Record && loot->recordType <= LootRecordType::Quick;
 }
 
-bool IsMaterial(const CItem* item) {
-    const CItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind_ == LootKind::Material;
+bool IsMaterial(const Item* item) {
+    const ItemLoot* loot = LootOrNull(item);
+    return loot && loot->kind == LootKind::Material;
 }
 
-bool IsBuildable(const CItem* item) {
-    auto* object = const_cast<CItem*>(item);
+bool IsBuildable(const Item* item) {
+    auto* object = const_cast<Item*>(item);
     const itemdb::ItemRecordHead* prototype = object->GetPrototype();
     if (prototype && !prototype->buildable) return false;
     ItemKind type = object->Kind();
@@ -80,72 +80,72 @@ bool IsBuildable(const CItem* item) {
            text::CompareIgnoringCase(prototype->materialClass, game::NoneText()) != 0;
 }
 
-// --- CUiItemStrip -----------------------------------------------------------------------------
+// --- UiItemStrip -----------------------------------------------------------------------------
 
-void CUiItemStrip::SetTab(int tab) {
-    float& position = position_[tab_];
-    position = static_cast<float>(static_cast<int>(libcrt::Ftol(static_cast<double>(pending_) + position)));
-    tab_ = tab;
+void UiItemStrip::SetTab(int newTab) {
+    float& scrollPosition = position[tab];
+    scrollPosition = static_cast<float>(static_cast<int>(libcrt::Ftol(static_cast<double>(pending) + scrollPosition)));
+    tab = newTab;
     for (int i = 0; i < 6; ++i) {
-        float shade = i == tab ? 1.0f : 0.5f;
-        float* color = SceneMesh(i + 2)->tint_;
+        float shade = i == newTab ? 1.0f : 0.5f;
+        float* color = SceneMesh(i + 2)->tint;
         color[0] = shade;
         color[1] = shade;
         color[2] = shade;
     }
-    pending_ = 0.0f;
-    velocity_ = 0.0f;
-    scrollTimer_ = 0.0f;
-    scrollDirection_ = 0;
+    pending = 0.0f;
+    velocity = 0.0f;
+    scrollTimer = 0.0f;
+    scrollDirection = 0;
 }
 
-void CUiItemStrip::SetFilter(int filter) {
-    for (float& position : position_) position = 0.0f;
-    pending_ = 0.0f;
-    filter_ = filter;
-    velocity_ = 0.0f;
+void UiItemStrip::SetFilter(int newFilter) {
+    for (float& tabPosition : position) tabPosition = 0.0f;
+    pending = 0.0f;
+    filter = newFilter;
+    velocity = 0.0f;
     // Each filter has its own button texture column (the tab objects' texture offset) and tooltips.
     int tipBase;
     std::uint32_t column;
-    switch (filter) {
+    switch (newFilter) {
     case 0: tipBase = 0x526A; column = 0x3F280000; break;   // 0.65625
     case 1: tipBase = 0x52CE; column = 0x3EA80000; break;   // 0.328125
     case 2: tipBase = 0x5206; column = 0; break;
     default: return;
     }
     for (int i = 2; i < 8; ++i) {
-        SceneMesh(i)->textureOffsetU_ = std::bit_cast<float>(column);
-        regions_[i]->SetTip(tipBase + i);
+        SceneMesh(i)->textureOffsetU = std::bit_cast<float>(column);
+        regions[i]->SetTip(tipBase + i);
     }
 }
 
-void CUiItemStrip::SelectTab(int tab) {
-    if (TabKeysEnabled()) SetTab(tab);
+void UiItemStrip::SelectTab(int newTab) {
+    if (TabKeysEnabled()) SetTab(newTab);
 }
 
-void CUiItemStrip::CycleTab(int first, int count) {
+void UiItemStrip::CycleTab(int first, int tabCount) {
     if (!TabKeysEnabled()) return;
     int next = first;
-    if (first <= tab_ && tab_ < first + count) {
-        next = tab_ + 1;
-        if (next == first + count) next = first;
+    if (first <= tab && tab < first + tabCount) {
+        next = tab + 1;
+        if (next == first + tabCount) next = first;
     }
     SetTab(next);
 }
 
-int CUiItemStrip::ItemTab(const CItem* item) {
+int UiItemStrip::ItemTab(const Item* item) {
     if (IsPart(item) || IsMaterial(item)) return 0;
     if (IsSpell(item) || IsModifier(item)) return 1;
-    ItemKind type = item->Kind();
-    if (type == ItemKind::Weapon || type == ItemKind::Armor || type == ItemKind::Quick || type == ItemKind::Scroll) return 2;
-    if (type == ItemKind::Loot) return 3;
-    return (type != ItemKind::Quest) + 4;
+    ItemKind itemKind = item->Kind();
+    if (itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor || itemKind == ItemKind::Quick || itemKind == ItemKind::Scroll) return 2;
+    if (itemKind == ItemKind::Loot) return 3;
+    return (itemKind != ItemKind::Quest) + 4;
 }
 
-int CUiItemStrip::SpellTab(const CItem* item) {
+int UiItemStrip::SpellTab(const Item* item) {
     if (IsSpell(item)) {
         // A record out of range is read through null, as in the original.
-        const itemdb::SpellRecord* spell = itemdb::SpellAt(AsLoot(item)->index_);
+        const itemdb::SpellRecord* spell = itemdb::SpellAt(AsLoot(item)->index);
         switch (spell->castType) {
         case 0: return 0;
         case 1: return 1;
@@ -154,18 +154,18 @@ int CUiItemStrip::SpellTab(const CItem* item) {
         }
     }
     if (IsModifier(item)) {
-        const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index_);
+        const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index);
         return (static_cast<int>(modifier->kind) > 5) + 3;
     }
     return 5;
 }
 
-int CUiItemStrip::ArmorTab(const CItem* item) {
+int UiItemStrip::ArmorTab(const Item* item) {
     if (IsPart(item)) {
-        switch (AsLoot(item)->recordType_) {
+        switch (AsLoot(item)->recordType) {
         case LootRecordType::Weapon: return 0;
         case LootRecordType::Armor: {
-            auto* armor = itemdb::ArmorAt(AsLoot(item)->index_);
+            auto* armor = itemdb::ArmorAt(AsLoot(item)->index);
             return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
         }
         case LootRecordType::Quick: return 3;
@@ -176,30 +176,30 @@ int CUiItemStrip::ArmorTab(const CItem* item) {
     return IsMaterial(item) ? 4 : 5;
 }
 
-void CForwardingStrip::RebuildList() {
-    list_.clear();
-    if (filter_ == 0 && tab_ == 5) {
-        for (int i = 0; i < std::ssize(*source_); ++i) {
-            int index = std::ssize(list_);
-            CItem* item = (*source_)[i];
-            list_.resize(index + 1);
-            list_[index] = item;
+void ForwardingStrip::RebuildList() {
+    list.clear();
+    if (filter == 0 && tab == 5) {
+        for (int i = 0; i < std::ssize(*source); ++i) {
+            int index = std::ssize(list);
+            Item* item = (*source)[i];
+            list.resize(index + 1);
+            list[index] = item;
         }
     } else {
-        for (int i = 0; i < std::ssize(*source_); ++i) {
-            CItem* item = (*source_)[i];
-            if (TabOf(item) == tab_) {
-                int index = std::ssize(list_);
-                list_.resize(index + 1);
-                list_[index] = item;
+        for (int i = 0; i < std::ssize(*source); ++i) {
+            Item* item = (*source)[i];
+            if (TabOf(item) == tab) {
+                int index = std::ssize(list);
+                list.resize(index + 1);
+                list[index] = item;
             }
         }
     }
-    count_ = std::ssize(list_);
+    count = std::ssize(list);
 }
 
-int CUiItemStrip::TabOf(const CItem* item) {
-    switch (filter_) {
+int UiItemStrip::TabOf(const Item* item) {
+    switch (filter) {
     case 0: return ItemTab(item);
     case 1: return SpellTab(item);
     case 2: return ArmorTab(item);
@@ -207,121 +207,121 @@ int CUiItemStrip::TabOf(const CItem* item) {
     }
 }
 
-void CUiItemStrip::ScrollToItem(CItem* item) {
+void UiItemStrip::ScrollToItem(Item* item) {
     if (!item) return;
-    CItem* wanted = item;
+    Item* wanted = item;
     float found = -1.0f;   // the list index of the last match (stored as float)
-    list_.clear();
+    list.clear();
     // The original inlines the array's SetSize in the second loop.
-    auto append = [&](CItem* entry) {
-        if (wanted->IsSameAs(entry)) found = static_cast<float>(list_.size());
-        int index = std::ssize(list_);
-        list_.resize(index + 1);
-        list_[index] = entry;
+    auto append = [&](Item* entry) {
+        if (wanted->IsSameAs(entry)) found = static_cast<float>(list.size());
+        int index = std::ssize(list);
+        list.resize(index + 1);
+        list[index] = entry;
     };
-    if (filter_ == 0 && tab_ == 5) {
-        for (int i = 0; i < std::ssize(*source_); ++i) append((*source_)[i]);
+    if (filter == 0 && tab == 5) {
+        for (int i = 0; i < std::ssize(*source); ++i) append((*source)[i]);
     } else {
-        int tab = TabOf(item);
-        if (TabKeysEnabled()) SetTab(tab);
-        for (int i = 0; i < std::ssize(*source_); ++i)
-            if (TabOf((*source_)[i]) == tab_) append((*source_)[i]);
+        int newTab = TabOf(item);
+        if (TabKeysEnabled()) SetTab(newTab);
+        for (int i = 0; i < std::ssize(*source); ++i)
+            if (TabOf((*source)[i]) == tab) append((*source)[i]);
     }
     EI_NAN_AUDIT(found);
     if (found >= 0.0f) {
-        float& position = position_[tab_];
+        float& scrollPosition = position[tab];
         double lowest = static_cast<double>(found) - 8.0 + 2.0;   // kept on the FPU
-        if (lowest > position) {
-            position = static_cast<float>(lowest);
-        } else if (position > found) {
-            position = found;
+        if (lowest > scrollPosition) {
+            scrollPosition = static_cast<float>(lowest);
+        } else if (scrollPosition > found) {
+            scrollPosition = found;
         }
     }
-    pending_ = 0.0f;
-    velocity_ = 0.0f;
+    pending = 0.0f;
+    velocity = 0.0f;
 }
 
-CItem* CForwardingStrip::ItemAt(int x, int y, int* cursor) {
-    if (!enabled_) return nullptr;
+Item* ForwardingStrip::ItemAt(int x, int y, int* cursor) {
+    if (!enabled) return nullptr;
     if (RegionAt(x, y) != 8) return nullptr;
-    switch (mode_) {
+    switch (mode) {
     case 1: *cursor = 0x16; break;
     case 2: *cursor = 0x18; break;
     case 3: *cursor = 0x17; break;
     }
     POINT point{x, y};
-    interface_->ScalePointFromScreenEntry(&point);
+    ui->ScalePointFromScreenEntry(&point);
     // A hundred pixels per slot from x 50, plus the tab's scroll position.
     constexpr float kSlotsPerPixel = 0.01f;
-    int index = static_cast<int>(libcrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]));
+    int index = static_cast<int>(libcrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position[tab]));
     RebuildList();
-    if (index < 0 || index >= std::ssize(list_)) return nullptr;
-    return list_[index];
+    if (index < 0 || index >= std::ssize(list)) return nullptr;
+    return list[index];
 }
 
-void CUiItemStrip::SettleScroll() {
+void UiItemStrip::SettleScroll() {
     // Releasing an arrow completes the step under way: the pending scroll keeps its fraction of a
     // slot and gains a whole slot when that fraction is under half.
-    float pending = pending_;
-    EI_NAN_AUDIT(pending);
-    if (pending < 0.0f) {
-        float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(libcrt::Ftol(pending))));
-        pending_ = fraction;
-        if (fraction > -0.5f) pending_ = fraction - 1.0f;
-    } else if (pending > 0.0f) {
-        float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(libcrt::Ftol(pending))));
-        pending_ = fraction;
-        if (fraction < 0.5f) pending_ = fraction + 1.0f;
+    float currentPending = pending;
+    EI_NAN_AUDIT(currentPending);
+    if (currentPending < 0.0f) {
+        float fraction = static_cast<float>(currentPending - static_cast<double>(static_cast<int>(libcrt::Ftol(currentPending))));
+        pending = fraction;
+        if (fraction > -0.5f) pending = fraction - 1.0f;
+    } else if (currentPending > 0.0f) {
+        float fraction = static_cast<float>(currentPending - static_cast<double>(static_cast<int>(libcrt::Ftol(currentPending))));
+        pending = fraction;
+        if (fraction < 0.5f) pending = fraction + 1.0f;
     }
-    scrollDirection_ = 0;
-    scrollTimer_ = 0.0f;
-    interface_->mouseCapture_ = nullptr;
+    scrollDirection = 0;
+    scrollTimer = 0.0f;
+    ui->mouseCapture = nullptr;
 }
 
-void CUiItemStrip::LeftDown(int, int x, int y) {
-    CInterface3D* ui = interface_;
+void UiItemStrip::LeftDown(int, int x, int y) {
+    Interface3D* currentUi = ui;
     int region = RegionAt(x, y);
     if (region == 0 || region == 1) {
-        if (!ui->shiftDown_) {
-            ui->PlaySound(kSoundCampScroll);
-            ui->mouseCapture_ = Input();
-            scrollDirection_ = region == 0 ? 1 : 2;
+        if (!currentUi->shiftDown) {
+            currentUi->PlaySound(kSoundCampScroll);
+            currentUi->mouseCapture = Input();
+            scrollDirection = region == 0 ? 1 : 2;
         } else {
             // Shift jumps to the start or (clamped later) the end.
-            position_[tab_] = region == 0 ? 0.0f : 1e6f;
-            pending_ = 0.0f;
-            velocity_ = 0.0f;
+            position[tab] = region == 0 ? 0.0f : 1e6f;
+            pending = 0.0f;
+            velocity = 0.0f;
         }
     }
-    if (tabsEnabled_ && region >= 2 && region < 8) {
-        ui->PlaySound(kSoundCampMode);
+    if (tabsEnabled && region >= 2 && region < 8) {
+        currentUi->PlaySound(kSoundCampMode);
         SetTab(region - 2);
     }
-    if (region >= 0) handled_ = true;
+    if (region >= 0) handled = true;
 }
 
-void CUiItemStrip::LeftUp(int, int, int) {
-    if (scrollDirection_ != 0) SettleScroll();
+void UiItemStrip::LeftUp(int, int, int) {
+    if (scrollDirection != 0) SettleScroll();
 }
 
-void CUiItemStrip::MouseMove(int, int x, int y) {
+void UiItemStrip::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     // Leaving the held arrow stops scrolling.
-    if ((scrollDirection_ == 1 && region != 0) || (scrollDirection_ == 2 && region != 1)) SettleScroll();
+    if ((scrollDirection == 1 && region != 0) || (scrollDirection == 2 && region != 1)) SettleScroll();
 }
 
-void CUiItemStrip::Wheel(int, int delta, int x, int y) {
+void UiItemStrip::Wheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == 8) {
-        pending_ = static_cast<float>(static_cast<double>(static_cast<short>(delta) / 120) + pending_);
-        interface_->PlaySound(kSoundCampScroll);
+        pending = static_cast<float>(static_cast<double>(static_cast<short>(delta) / 120) + pending);
+        ui->PlaySound(kSoundCampScroll);
     }
 }
 
-void CForwardingStrip::LeftDown(int flags, int x, int y) {
-    CUiItemStrip::LeftDown(flags, x, y);
+void ForwardingStrip::LeftDown(int modifiers, int x, int y) {
+    UiItemStrip::LeftDown(modifiers, x, y);
     // The original passes its own first argument's stack memory as the cursor output.
-    CItem* item = ItemAt(x, y, &flags);
-    if (item) owner_->TakeItem(item, mode_);
+    Item* item = ItemAt(x, y, &modifiers);
+    if (item) owner->TakeItem(item, mode);
 }
 
 // --- Heroes' skills ---------------------------------------------------------------------------
@@ -338,163 +338,163 @@ int HeroManaUnits(UnitStats* stats) {
 
 bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
     bool ok = true;
-    int required = static_cast<int>(spell->skillNeeded_);
+    int required = static_cast<int>(spell->skillNeeded);
     if (HeroSchoolSkill(stats, spell->GetPrototype()->school) < required) ok = false;
-    float cost = spell->manaCost_;
+    float cost = spell->manaCost;
     int units = HeroManaUnits(stats);
     if (units < static_cast<int>(libcrt::Ftol(cost))) ok = false;
     return ok;
 }
 
-// --- CCampPages -------------------------------------------------------------------------------
+// --- CampPages -------------------------------------------------------------------------------
 
-PartySkill CCampPages::BestPartySkill(int school) {
+PartySkill CampPages::BestPartySkill(int school) {
     PartySkill best;
-    for (int i = 0; i < std::ssize(LocalPlayerData()->members_); ++i) {
-        UnitStats* stats = &LocalPlayerData()->members_[i].stats;
+    for (int i = 0; i < std::ssize(LocalPlayerData()->members); ++i) {
+        UnitStats* stats = &LocalPlayerData()->members[i].stats;
         best.skill = (std::max)(best.skill, HeroSchoolSkill(stats, school));
         best.mana = (std::max)(best.mana, HeroManaUnits(stats));
     }
     return best;
 }
 
-void CCampPages::TopicClicked(int page) {
-    switch (page) {
+void CampPages::TopicClicked(int newPage) {
+    switch (newPage) {
     case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9: case 10: case 16:
-        itemStrip_->SelectTab(2);
+        itemStrip->SelectTab(2);
         break;
     case 13:
-        itemStrip_->SelectTab(2);
-        partStrip_->SelectTab(5);
+        itemStrip->SelectTab(2);
+        partStrip->SelectTab(5);
         break;
     case 14:
-        itemStrip_->SelectTab(0);
-        partStrip_->CycleTab(0, 4);
+        itemStrip->SelectTab(0);
+        partStrip->CycleTab(0, 4);
         break;
     case 15:
-        itemStrip_->SelectTab(0);
-        partStrip_->SelectTab(4);
+        itemStrip->SelectTab(0);
+        partStrip->SelectTab(4);
         break;
     case 19:
-        itemStrip_->SelectTab(2);
-        spellStrip_->SelectTab(5);
+        itemStrip->SelectTab(2);
+        spellStrip->SelectTab(5);
         break;
     case 20:
-        itemStrip_->SelectTab(1);
-        spellStrip_->CycleTab(0, 3);
+        itemStrip->SelectTab(1);
+        spellStrip->CycleTab(0, 3);
         break;
     case 21:
-        itemStrip_->SelectTab(1);
-        spellStrip_->CycleTab(3, 2);
+        itemStrip->SelectTab(1);
+        spellStrip->CycleTab(3, 2);
         break;
     }
 }
 
-// --- CMpHeroScreen ----------------------------------------------------------------------------
+// --- MpHeroScreen ----------------------------------------------------------------------------
 
-void CMpHeroScreen::ClampHeroSelection() {
-    if (heroIndex_ < 0) heroIndex_ = 0;
+void MpHeroScreen::ClampHeroSelection() {
+    if (heroIndex < 0) heroIndex = 0;
     auto count = static_cast<std::uint32_t>(g_savedParties.Count());
-    if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
-    int selected = heroIndex_;
+    if (static_cast<std::uint32_t>(heroIndex) >= count) heroIndex = static_cast<int>(count) - 1;
+    int selected = heroIndex;
     // Ten rows are visible.
-    if (heroTop_ + 10 <= selected) heroTop_ = selected - 9;
-    if (heroTop_ > selected) heroTop_ = selected;
-    heroScroll_->SetPosition(heroTop_);
-    heroTop_ = heroScroll_->TakePosition();
-    ShowHero(heroIndex_);
+    if (heroTop + 10 <= selected) heroTop = selected - 9;
+    if (heroTop > selected) heroTop = selected;
+    heroScroll->SetPosition(heroTop);
+    heroTop = heroScroll->TakePosition();
+    ShowHero(heroIndex);
 }
 
-void CMpHeroScreen::ClampVoiceSelection() {
-    if (voiceIndex_ < 0) voiceIndex_ = 0;
-    int count = static_cast<int>(voices_->end() - voices_->begin());
-    if (static_cast<std::uint32_t>(voiceIndex_) >= static_cast<std::uint32_t>(count)) voiceIndex_ = count - 1;
-    int selected = voiceIndex_;
+void MpHeroScreen::ClampVoiceSelection() {
+    if (voiceIndex < 0) voiceIndex = 0;
+    int count = static_cast<int>(voices->end() - voices->begin());
+    if (static_cast<std::uint32_t>(voiceIndex) >= static_cast<std::uint32_t>(count)) voiceIndex = count - 1;
+    int selected = voiceIndex;
     // Eleven rows are visible.
-    if (voiceTop_ + 11 <= selected) voiceTop_ = selected - 10;
-    if (voiceTop_ > selected) voiceTop_ = selected;
-    voiceScroll_->SetPosition(voiceTop_);
-    voiceTop_ = voiceScroll_->TakePosition();
+    if (voiceTop + 11 <= selected) voiceTop = selected - 10;
+    if (voiceTop > selected) voiceTop = selected;
+    voiceScroll->SetPosition(voiceTop);
+    voiceTop = voiceScroll->TakePosition();
     // Each voice is {file, name}; the hero keeps the file name in texts[6].
-    const std::string& file = voices_->begin()[voiceIndex_].file;
+    const std::string& file = voices->begin()[voiceIndex].file;
     HeroRecord()->texts[6] = file;
     DrawVoices();
 }
 
-double CMpHeroScreen::Weight() {
+double MpHeroScreen::Weight() {
     PartyUnitRecord* hero = HeroRecord();
     double weight = 0.0;
-    if (weapon_) weight = weapon_->Weight();
-    if (quickItem_) weight += quickItem_->Weight();
-    if (spellContainer_) weight += spellContainer_->Weight();
-    for (CItem* armour : hero->armor)
+    if (weapon) weight = weapon->Weight();
+    if (quickItem) weight += quickItem->Weight();
+    if (spellContainer) weight += spellContainer->Weight();
+    for (Item* armour : hero->armor)
         if (armour) weight += armour->Weight();
 
     return weight;
 }
 
-void CMpHeroScreen::TakeItem(CItem* item, int mode) {
+void MpHeroScreen::TakeItem(Item* item, int takeMode) {
     HeroRecord();   // called for nothing, as in the original
-    if (mode == 0) {
+    if (takeMode == 0) {
         bool equipped = true;
         switch (item->Kind()) {
         case ItemKind::Weapon:
-            weapon_ = item;
-            weaponPanel_->ShowWeapon(item);
+            weapon = item;
+            weaponPanel->ShowWeapon(item);
             break;
         case ItemKind::Quick:
-            quickItem_ = item;
-            weaponPanel_->ShowQuickItem(item);
+            quickItem = item;
+            weaponPanel->ShowQuickItem(item);
             break;
         case ItemKind::Scroll:
-            spellContainer_ = item;
-            spellPanel_->ShowEntry(item);
+            spellContainer = item;
+            spellPanel->ShowEntry(item);
             break;
         default:
             equipped = false;
             break;
         }
-        if (equipped) interface_->PlaySound(kSoundMessageOk);
+        if (equipped) ui->PlaySound(kSoundMessageOk);
     }
     RefreshStats();
 }
 
-bool CMpHeroScreen::CanEquip(CItem* item, int) {
+bool MpHeroScreen::CanEquip(Item* item, int) {
     if (item->Kind() != ItemKind::Scroll) return true;
-    CSpell* spell = item->spell_;
+    CSpell* spell = item->spell;
     if (!spell) return true;
     return HeroCanUseSpell(&HeroRecord()->stats, spell);
 }
 
-PartyUnitRecord* CMpHeroScreen::HeroRecord() { return LocalPlayerData()->members_.data(); }
+PartyUnitRecord* MpHeroScreen::HeroRecord() { return LocalPlayerData()->members.data(); }
 
-void CMpHeroScreen::LeftUp(int flags, int x, int y) {
-    CUiContainer::LeftUp(flags, x, y);
+void MpHeroScreen::LeftUp(int modifiers, int x, int y) {
+    UiContainer::LeftUp(modifiers, x, y);
     // Releasing a rotate arrow.
-    if (interface_->mouseCapture_ == Input()) interface_->mouseCapture_ = nullptr;
-    rotating_ = 0;
+    if (ui->mouseCapture == Input()) ui->mouseCapture = nullptr;
+    rotating = 0;
 }
 
-// --- CEscMenu ---------------------------------------------------------------------------------
+// --- EscMenu ---------------------------------------------------------------------------------
 
-void CEscMenu::MouseMove(int flags, int x, int y) {
-    CUiModel* model = models_[0];
+void EscMenu::MouseMove(int modifiers, int x, int y) {
+    UiModel* model = models[0];
     int region = RegionAt(x, y);
     // Hovering a stone plays its animation (the first two only in single player).
     switch (region) {
     case 0:
-        if (hovered_ != 0 && !IsMultiplayerClient()) {
-            interface_->PlaySound(kSoundMenuStone);
+        if (hovered != 0 && !IsMultiplayerClient()) {
+            ui->PlaySound(kSoundMenuStone);
             model->Play(SkillAnimation::Briefing03);
         }
-        hovered_ = 0;
+        hovered = 0;
         break;
     case 1:
-        if (hovered_ != 1 && !IsMultiplayerClient()) {
-            interface_->PlaySound(kSoundMenuStone);
+        if (hovered != 1 && !IsMultiplayerClient()) {
+            ui->PlaySound(kSoundMenuStone);
             model->Play(SkillAnimation::Briefing04);
         }
-        hovered_ = 1;
+        hovered = 1;
         break;
     case 2:
     case 3:
@@ -502,71 +502,73 @@ void CEscMenu::MouseMove(int flags, int x, int y) {
         static const SkillAnimation kAnimation[5] = {SkillAnimation::Briefing01, SkillAnimation::Briefing01,
                                                  SkillAnimation::Briefing06, SkillAnimation::Briefing07,
                                                  SkillAnimation::Briefing05};
-        if (hovered_ != region) {
-            interface_->PlaySound(kSoundMenuStone);
+        if (hovered != region) {
+            ui->PlaySound(kSoundMenuStone);
             model->Play(kAnimation[region]);
         }
-        hovered_ = region;
+        hovered = region;
         break;
     }
     default:
-        if (hovered_ != -1) model->Stop();
-        hovered_ = -1;
+        if (hovered != -1) model->Stop();
+        hovered = -1;
         break;
     }
-    CUiContainer::MouseMove(flags, x, y);
+    UiContainer::MouseMove(modifiers, x, y);
 }
 
-void CEscMenu::KeyDown(int key, int repeat, int flags) {
-    CUiContainer::KeyDown(key, repeat, flags);
+void EscMenu::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (key == VK_ESCAPE) {
-        interface_->PlaySound(kSoundMenuOk);
-        interface_->SetPendingValue(0);
-        handled_ = true;
+        ui->PlaySound(kSoundMenuOk);
+        ui->SetPendingValue(0);
+        handled = true;
     }
 }
 
-void CEscMenu::MessageResult(int result) {
+void EscMenu::MessageResult(int result) {
     // 0x10001: the quit box's yes; 0x100001/0x100002/0x110001 close the menu.
     if (static_cast<std::uint32_t>(result) > 0x100002) {
-        if (result == 0x110001) interface_->SetPendingValue(0);
+        if (result == 0x110001) ui->SetPendingValue(0);
     } else if (static_cast<std::uint32_t>(result) >= 0x100001) {
-        interface_->SetPendingValue(0);
+        ui->SetPendingValue(0);
     } else if (result == 0x10001) {
         g_gameFlow.CloseSessions();
     }
 }
 
-// --- CCreditsScreen ---------------------------------------------------------------------------
+// --- CreditsScreen ---------------------------------------------------------------------------
 
-void CCreditsScreen::Close() {
-    if (fromGame_) interface_->SetPendingValue(0xCCCCCCCC);
+void CreditsScreen::Close() {
+    if (fromGame) ui->SetPendingValue(0xCCCCCCCC);
     else g_gameFlow.CloseSessions();
 }
 
-void CCreditsScreen::LeftDown(int, int, int) { Close(); }
+void CreditsScreen::LeftDown(int, int, int) { Close(); }
 
-void CCreditsScreen::KeyDown(int key, int, int) {
+void CreditsScreen::KeyDown(int key, int, int) {
     if (key == VK_RETURN || key == VK_ESCAPE || key == VK_SPACE) Close();
 }
 
-// --- CExchangeScreen --------------------------------------------------------------------------
+// --- ExchangeScreen --------------------------------------------------------------------------
 
-void CExchangeScreen::KeyDown(int key, int repeat, int flags) {
-    CUiContainer::KeyDown(key, repeat, flags);
-    if (handled_) return;
+void ExchangeScreen::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
+    if (handled) return;
     switch (key) {
     case VK_BACK:
-        interface_->ChatKeyBackspace();
-        handled_ = true;
+        ui->ChatKeyBackspace();
+        handled = true;
         break;
     case VK_RETURN:
-        interface_->ChatKeyEnter();
-        handled_ = true;
+        ui->ChatKeyEnter();
+        handled = true;
         break;
     case VK_ESCAPE:
         net::ClientDropParty(net::g_gameClient);
-        handled_ = true;
+        handled = true;
         break;
     }
 }
+
+void EscMenu::CloseScreen() { models[0]->Play(SkillAnimation::Briefing01); }

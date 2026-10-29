@@ -13,10 +13,10 @@
 #include <unordered_map>
 #include <vector>
 
-class CStream;
+class ByteStream;
 class ChunkArchive;
 
-// CEngineObject::type_ of an item: which database its prototype lives in.
+// EngineObject::type of an item: which database its prototype lives in.
 enum class ItemKind : int {
     Weapon = 0x3004,
     Armor = 0x3005,
@@ -29,20 +29,20 @@ enum class ItemKind : int {
 // The damage types (a weapon's weights, an armour's absorption rows).
 inline constexpr int kDamageTypeCount = 7;
 
-// The category of a quick item prototype (CItem::GetCategory). The game's data has 0 (the danger sensor), 5 (the
+// The category of a quick item prototype (Item::GetCategory). The game's data has 0 (the danger sensor), 5 (the
 // wands) and 8 (the potions, and the scrolls' "spell container" prototype).
 enum class QuickItemCategory : int {
     DangerSensor = 0,
     Consumable = 2,            // used up by the use-item order (kind 10); no prototype in the game's data has it
     Wand = 5,                  // casts the spell the item constructor put in, paid from its charge
     Potion = 8,                // casts the spell its prototype's spellText makes, on the user only; used up
-    NoPrototype = 0x7FFFFFFF,  // CItem::GetCategory of an item without a prototype
+    NoPrototype = 0x7FFFFFFF,  // Item::GetCategory of an item without a prototype
 };
 
-// What a loot item stands for (a loot prototype's category, CItemLoot::kind_): itself (its own price), a material,
+// What a loot item stands for (a loot prototype's category, ItemLoot::kind): itself (its own price), a material,
 // or a record of another database (LootKind::Record, the record type saying which).
 enum class LootKind : std::uint32_t { Self = 0, Material = 1, Record = 2 };
-// The database of a LootKind::Record loot item's record (LootItemRecord::recordType, CItemLoot::recordType_): the
+// The database of a LootKind::Record loot item's record (LootItemRecord::recordType, ItemLoot::recordType): the
 // weapon, armour and quick item blueprints ("instruction ..."), spells and spell modifiers.
 enum class LootRecordType : std::uint32_t {
     Weapon = 0,
@@ -67,21 +67,21 @@ struct SpellRecord {
     // the spell's code (the trader stock's spell instructions).
     std::string code;
     std::string unreadText;             // archive field 2; nothing reads it
-    float price;                        // a loot item's price when it stands for the spell (CItemLoot::GetPrice)
+    float price;                        // a loot item's price when it stands for the spell (ItemLoot::GetPrice)
     int castType;                       // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
     int school;
     float mana;
-    // fields 6-14: what CSpell::InitFromPrototype / CSpellContainer::Build copy into the spell, and the item
+    // fields 6-14: what CSpell::InitFromPrototype / SpellContainer::Build copy into the spell, and the item
     // info shows.
     std::uint32_t complexity;           // +1 per modifier in the spell
     float speed;                        // missile speed (the item info's "power")
     float range;
-    float area;                         // the spell's radius_ (sqrt(area / pi) once built with modifiers)
+    float area;                         // the spell's radius (sqrt(area / pi) once built with modifiers)
     float damage;                       // the effect's power (the item info's level)
     std::uint32_t targetKind;           // 'u' a unit, 't' a point (target flags 0x10000000 / 0x20000000)
     std::uint32_t targetCount;
     std::uint32_t duration;             // ticks
-    std::uint32_t castTime;             // CSpell::castTime_ (CUnitServer::CastValue: ticks of the cast animation)
+    std::uint32_t castTime;             // CSpell::castTime (UnitServer::CastValue: ticks of the cast animation)
     int needsSight;                    // needs a line of sight to its target
     int skill;                          // the school skill it needs
     std::vector<int> unreadIdListA;    // archive chunk 16; nothing reads it
@@ -117,7 +117,7 @@ struct SpellModifierRecord {
     // the modifier's code inline; its first one or two letters are the kind the trader stock keys it by (a, d,
     // e, m, r, t; fi, ii).
     char code[4];
-    float price;                        // a loot item's price when it stands for the modifier (CItemLoot::GetPrice)
+    float price;                        // a loot item's price when it stands for the modifier (ItemLoot::GetPrice)
     std::uint32_t kind;
     float mana;                         // added to the spell's
     float strength;                     // the trader stock keeps the strongest per kind; kind 'm' scales the cost
@@ -127,7 +127,7 @@ struct SpellModifierRecord {
 };
 
 // The fields every item prototype starts with (weapons, armours, quick, quest and loot items). price..condition
-// go to the item (CItem::InitFromRecord). The records live in the databases' vectors and, one at a time, in the
+// go to the item (Item::InitFromRecord). The records live in the databases' vectors and, one at a time, in the
 // item constructor (on the game's heap).
 class ItemRecordHead {
 public:
@@ -146,13 +146,13 @@ public:
     std::uint32_t unreadHeadField;      // archive field 4 (4 bytes); nothing reads it
     int number;                         // the number in the item's text keys and names ("item%04d")
     int variant;                        // the model variant
-    float price;                        // CItem::price_ (plus materialUnits times the material's unitPrice)
-    // CItem::weight_, times the material's weightFactor; also what WeaponWeight returns, which the unit's attack
+    float price;                        // Item::price (plus materialUnits times the material's unitPrice)
+    // Item::weight, times the material's weightFactor; also what WeaponWeight returns, which the unit's attack
     // info shows as the weapon's speed.
     float weight;
-    float unreadValue;                  // CItem::unreadValue_ (archive field 9, nothing else reads it)
+    float unreadValue;                  // Item::unreadValue (archive field 9, nothing else reads it)
     float charge;                       // item charge and maximum
-    std::uint32_t magicLevel;           // CItem::magicLevel_ (plus the material's)
+    std::uint32_t magicLevel;           // Item::magicLevel (plus the material's)
     float condition;                    // item condition and maximum (times the material's conditionFactor)
     std::uint32_t materialUnits;        // units of material (the price; the trader stock takes them)
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
@@ -178,7 +178,7 @@ const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const 
 
 // The record kinds. Their constructors leave the fields the archive fills as they are.
 
-// A weapon prototype: what CItemWeapon takes besides the head.
+// A weapon prototype: what ItemWeapon takes besides the head.
 struct WeaponRecord : ItemRecordHead {
     WeaponRecord() {}
     ItemKind Kind() override { return ItemKind::Weapon; }
@@ -190,13 +190,13 @@ struct WeaponRecord : ItemRecordHead {
     std::uint8_t unused_7D[0x84 - 0x7D] = {};
     float attackBonus;                  // added to the wielder's attack (WeaponAttackBonus)
     float defenceBonus;                 // added to the wielder's defence (WeaponDefenceBonus; 0 for types 5, 6)
-    float reach;                        // CItemWeapon::reach_
+    float reach;                        // ItemWeapon::reach
     float damage;                       // minimum damage (times the material's damageFactor)
     float damageSpread;                 // maximum damage = damage + spread
     float damageTypes[kDamageTypeCount];   // weight of each damage type
 };
 
-// An armour prototype: the two absorption rows CItemArmor takes.
+// An armour prototype: the two absorption rows ItemArmor takes.
 struct ArmorRecord : ItemRecordHead {
     ArmorRecord() {}
     ItemKind Kind() override { return ItemKind::Armor; }
@@ -207,10 +207,10 @@ struct ArmorRecord : ItemRecordHead {
     // Two rows of nine dwords: a factor (the first row's is the head's category), the absorption
     // per damage type (each times the row's factor and the material's absorbFactors) and flags
     // (the material's armourFlags or'ed in).
-    float absorbFirst[kDamageTypeCount];   // item absorb_[0]
+    float absorbFirst[kDamageTypeCount];   // item absorb[0]
     std::uint32_t firstFlags;
     float othersFactor;
-    float absorbOthers[kDamageTypeCount];  // item absorb_[1]
+    float absorbOthers[kDamageTypeCount];  // item absorb[1]
     std::uint32_t othersFlags;
     std::uint8_t showsWounds;           // 0: the piece hides the wounds of the parts it covers
     std::uint32_t layer;                // the lower one's texture goes first (ArmorLayer)
@@ -225,7 +225,7 @@ struct QuickItemRecord : ItemRecordHead {
     // (0x1A) and unreadFields (0x1B).
     void Serialize(ChunkArchive* ar);
 
-    std::uint32_t actionValue;              // CItemQuick::actionValue_
+    std::uint32_t actionValue;              // ItemQuick::actionValue
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
     std::uint8_t unreadFields[16];
     std::string spellText;                // the spell text of a QuickItemCategory::Potion item (CItemConstructor::FillItem)
@@ -242,7 +242,7 @@ struct QuestItemRecord : ItemRecordHead {
     std::vector<std::string> zones;    // the zone names
 };
 
-// The prototype of a CItemLoot: kind (the head's category), record type, index.
+// The prototype of a ItemLoot: kind (the head's category), record type, index.
 struct LootItemRecord : ItemRecordHead {
     LootItemRecord() {}
     ItemKind Kind() override { return ItemKind::Loot; }
@@ -296,7 +296,7 @@ template <typename Record>
 struct NamedRecordTable {
     // The records of chunk `chunk` read from `source` through an archive of their own, then every record filed in
     // the index under its name (a material under its key).
-    void Load(CStream* source, int chunk);
+    void Load(ByteStream* source, int chunk);
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
@@ -328,7 +328,7 @@ template <typename Record>
 struct CodeIndexedTable {
     // The records of chunk `chunk` read from `source` through an archive of their own, then every record filed in
     // the index under its code.
-    void Load(CStream* source, int chunk);
+    void Load(ByteStream* source, int chunk);
     // The record filed under `code`: the index's operator[] with a copy of the key, so an unknown code is
     // filed with null.
     Record* FindByCode(std::string_view code);

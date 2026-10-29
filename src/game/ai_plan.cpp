@@ -1,4 +1,4 @@
-// CAIMap::PlanPath: the long-range path. The region map gives a chain of regions from the start to the
+// AIMap::PlanPath: the long-range path. The region map gives a chain of regions from the start to the
 // target; the local search (+0x2594) walks from one region's representative cell to the next, then to the
 // target; the path builder turns the search into cells. When a leg fails the target moves to the best
 // reachable cell (if it is far enough from the start) or, with `retry`, the failing region is excluded and
@@ -27,7 +27,7 @@ constexpr double kThreshold = 15.0;
 
 } // namespace
 
-bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
+bool AIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
     PathCells chain;
     static SpiralCache spiral{0, -1.0f};
     int sizeClass = unit->sizeClass;

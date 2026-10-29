@@ -16,9 +16,9 @@ namespace {
 
 void AttackParams::ScaleForDifficulty(int keyed) {
     if (keyed != 0) return;
-    attack = static_cast<int>(attack * g_logicSettings.attack[options::g_options.difficulty_]);
+    attack = static_cast<int>(attack * g_logicSettings.attack[options::g_options.difficulty]);
     defence =
-        static_cast<int>(static_cast<float>(defence) * g_logicSettings.defence[options::g_options.difficulty_]);
+        static_cast<int>(static_cast<float>(defence) * g_logicSettings.defence[options::g_options.difficulty]);
 }
 
 // --- Database records ---------------------------------------------------------------------------------

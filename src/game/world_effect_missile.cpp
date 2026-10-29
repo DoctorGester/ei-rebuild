@@ -1,5 +1,5 @@
-// Missiles: CEffectMissile (the homing base), CEffectArrow (a spell missile carrying a particle
-// source, a light and a sound) and CEffectArrowFigure (a bow shot drawn as a figure). See
+// Missiles: EffectMissile (the homing base), EffectArrow (a spell missile carrying a particle
+// source, a light and a sound) and EffectArrowFigure (a bow shot drawn as a figure). See
 // world_effect.h and docs/notes/effects.md ("Missiles").
 #include "base_manager.h"
 #include "camera.h"
@@ -41,7 +41,7 @@ std::uint32_t Bits(const float& f) {
 
 // The snapshot read against was consumed to its end (Position and Size of the stream, in that order).
 bool SnapshotReadToEnd() {
-    CMemoryStream* snapshot = delta::g_readSnapshot;
+    MemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
     return position == snapshot->Size();
 }
@@ -50,316 +50,316 @@ bool SnapshotReadToEnd() {
 } // namespace
 
 
-int CEffectMissile::Steer() {
+int EffectMissile::Steer() {
     int flying = 1;
     CWorld* world = World();
-    CMapObject* target = world->ObjectWithId(targetId_);
+    CMapObject* target = world->ObjectWithId(targetId);
     if (target == nullptr) {
-        velocity_ = Vector3{0.0f, 0.0f, 0.0f};
+        velocity = Vector3{0.0f, 0.0f, 0.0f};
         flying = 0;
-        arrived_ = 1;
+        arrived = 1;
     } else {
         // At the middle of the target's bounding box.
-        float aimZ = target->bounds.boxMax.z * 0.5f + target->bounds.center.z + target->localPosition_.z;
-        velocity_.x = target->localPosition_.x - localPosition_.x;
-        velocity_.y = target->localPosition_.y - localPosition_.y;
-        velocity_.z = aimZ - localPosition_.z;
+        float aimZ = target->bounds.boxMax.z * 0.5f + target->bounds.center.z + target->localPosition.z;
+        velocity.x = target->localPosition.x - localPosition.x;
+        velocity.y = target->localPosition.y - localPosition.y;
+        velocity.z = aimZ - localPosition.z;
         float speed = kMissileSpeed;
-        float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(velocity_.y, velocity_.x)));
+        float distance = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(velocity.y, velocity.x)));
         if (GetClassId() == ClassId::EffectArrowFigure) speed = speed + speed;
         EI_NAN_AUDIT(distance);
         if (distance < speed) {   // within one step
             flying = 0;
-            arrived_ = 1;
+            arrived = 1;
         } else {
             float scale = speed / distance;
-            velocity_.x = scale * velocity_.x;
-            velocity_.y = scale * velocity_.y;
-            velocity_.z = scale * velocity_.z;
+            velocity.x = scale * velocity.x;
+            velocity.y = scale * velocity.y;
+            velocity.z = scale * velocity.z;
         }
     }
     if (!world->IsServer()) {
         // Below the ground plus the clearance: climb by what is missing, at most half the clearance less.
-        double floor = world->RawSurfaceHeightAt(localPosition_.x, localPosition_.y) + kGroundClearance;
-        if (floor > localPosition_.z) {
-            float missing = static_cast<float>(floor - localPosition_.z);
+        double floor = world->RawSurfaceHeightAt(localPosition.x, localPosition.y) + kGroundClearance;
+        if (floor > localPosition.z) {
+            float missing = static_cast<float>(floor - localPosition.z);
             float limited = missing >= kGroundClearance ? kGroundClearance : missing;
-            velocity_.z = missing - limited * 0.5f;
+            velocity.z = missing - limited * 0.5f;
         }
     }
     return flying;
 }
 
-void CEffectMissile::SetTarget(int objectId) {
-    arrived_ = 0;
-    targetId_ = objectId;
+void EffectMissile::SetTarget(int objectId) {
+    arrived = 0;
+    targetId = objectId;
 }
 
 
 
-bool CEffectArrow::RunTick() {
-    fromCaster_ = 0;
+bool EffectArrow::RunTick() {
+    fromCaster = 0;
     int flying = Steer();
-    localPosition_.x = localPosition_.x + velocity_.x;
-    localPosition_.y = localPosition_.y + velocity_.y;
-    localPosition_.z = localPosition_.z + velocity_.z;
+    localPosition.x = localPosition.x + velocity.x;
+    localPosition.y = localPosition.y + velocity.y;
+    localPosition.z = localPosition.z + velocity.z;
     if (!WorldContext()->IsServer()) MoveParts();
     return flying;
 }
 
-void CEffectMissile::Reset() {
+void EffectMissile::Reset() {
     CEffect::Reset();
-    arrived_ = 0;
-    targetId_ = -1;
-    fromCaster_ = 0;
+    arrived = 0;
+    targetId = -1;
+    fromCaster = 0;
 }
 
-void CEffectArrow::Reset() {
-    CEffectMissile::Reset();
-    particle_.Reset();
-    light_.Reset();
-    sound_.Reset();
-    casterId_ = -1;
-    lightColor_ = Vector3{0.0f, 0.0f, 0.0f};
-    lightRange_ = 0.0f;
-    particleType_ = 0;
-    particleSize_ = 1.0f;
+void EffectArrow::Reset() {
+    EffectMissile::Reset();
+    particle.Reset();
+    light.Reset();
+    sound.Reset();
+    casterId = -1;
+    lightColor = Vector3{0.0f, 0.0f, 0.0f};
+    lightRange = 0.0f;
+    particleType = 0;
+    particleSize = 1.0f;
 }
 
-void CEffectArrow::MoveParts() {
-    particle_.localPosition_ = localPosition_;
-    light_.localPosition_ = localPosition_;
-    sound_.localPosition_ = localPosition_;
-    particle_.Start(1);
-    light_.Start(1);
-    sound_.Start(1);
+void EffectArrow::MoveParts() {
+    particle.localPosition = localPosition;
+    light.localPosition = localPosition;
+    sound.localPosition = localPosition;
+    particle.Start(1);
+    light.Start(1);
+    sound.Start(1);
 }
 
-void CEffectArrow::Start(int update) {
-    particle_.localPosition_ = localPosition_;
-    light_.localPosition_ = localPosition_;
-    sound_.localPosition_ = localPosition_;
-    particle_.type_ = particleType_;
-    particle_.size_ = particleSize_;
-    light_.color_ = lightColor_;
-    light_.range_ = lightRange_;
+void EffectArrow::Start(int update) {
+    particle.localPosition = localPosition;
+    light.localPosition = localPosition;
+    sound.localPosition = localPosition;
+    particle.type = particleType;
+    particle.size = particleSize;
+    light.color = lightColor;
+    light.range = lightRange;
     Vector3 drift{kLightDrift, 0.0f, 0.0f};
-    light_.SetVelocity(drift);
-    light_.lightFlags_ = kLightFlags;
-    const char* name = soundName_.c_str();
-    std::memcpy(sound_.name_, name, std::strlen(name) + 1);   // unbounded, like the original
-    sound_.radius_ = kSoundRadius;
-    sound_.looping_ = 1;
-    particle_.Start(update);
-    light_.Start(update);
-    sound_.Start(update);
+    light.SetVelocity(drift);
+    light.lightFlags = kLightFlags;
+    const char* name = soundName.c_str();
+    std::memcpy(sound.name, name, std::strlen(name) + 1);     // unbounded, like the original
+    sound.radius = kSoundRadius;
+    sound.looping = 1;
+    particle.Start(update);
+    light.Start(update);
+    sound.Start(update);
 }
 
-int CEffectArrow::Unpack(int update, DeltaField* field) {
-    field->ReadDelta(&targetId_, 4);
-    field->ReadDelta(&casterId_, 4);
-    soundName_ = field->ReadString();
-    field->ReadFloat16x3(&lightColor_.x);
-    field->ReadFloat16(&lightRange_);
-    field->ReadDelta(&particleType_, 4);
-    field->ReadFloat16(&particleSize_);
+int EffectArrow::Unpack(int update, DeltaField* field) {
+    field->ReadDelta(&targetId, 4);
+    field->ReadDelta(&casterId, 4);
+    soundName = field->ReadString();
+    field->ReadFloat16x3(&lightColor.x);
+    field->ReadFloat16(&lightRange);
+    field->ReadDelta(&particleType, 4);
+    field->ReadFloat16(&particleSize);
     Vector3 position;
     field->ReadPosition(&position);
-    field->ReadFloat16x3(&velocity_.x);
-    field->ReadDelta(&fromCaster_, 1);
+    field->ReadFloat16x3(&velocity.x);
+    field->ReadDelta(&fromCaster, 1);
     if (!SnapshotReadToEnd()) return 0;
-    if (fromCaster_ != 0) {
-        auto* caster = World()->FindUnit(casterId_);
+    if (fromCaster != 0) {
+        auto* caster = World()->FindUnit(casterId);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);
         }
     }
-    localPosition_ = position;
+    localPosition = position;
     Start(update);
     return 1;
 }
 
-void CEffectArrow::Pack(DeltaField* field) {
+void EffectArrow::Pack(DeltaField* field) {
     Steer();
-    Vector3 position = localPosition_;
-    int value = targetId_;
+    Vector3 position = localPosition;
+    int value = targetId;
     field->WriteDelta(&value, 4);
-    value = casterId_;
+    value = casterId;
     field->WriteDelta(&value, 4);
-    field->WriteStringBoth(soundName_);
-    field->WriteFloat16x3(&lightColor_.x);
-    field->WriteFloat16(Bits(lightRange_));
-    field->WriteDelta(&particleType_, 4);
-    field->WriteFloat16(Bits(particleSize_));
+    field->WriteStringBoth(soundName);
+    field->WriteFloat16x3(&lightColor.x);
+    field->WriteFloat16(Bits(lightRange));
+    field->WriteDelta(&particleType, 4);
+    field->WriteFloat16(Bits(particleSize));
     field->WritePosition(position);
-    field->WriteFloat16x3(&velocity_.x);
-    field->WriteDelta(&fromCaster_, 1);
+    field->WriteFloat16x3(&velocity.x);
+    field->WriteDelta(&fromCaster, 1);
 }
 
-void CEffectArrow::Load(CStream* s) {
-    s->ReadValue(localPosition_);
-    s->ReadValue(targetId_);
-    s->ReadValue(velocity_);
-    s->ReadValue(arrived_);
-    soundName_ = s->ReadString();
-    s->ReadValue(lightColor_);
-    s->ReadValue(lightRange_);
-    s->ReadValue(particleType_);
-    s->ReadValue(particleSize_);
-    if (static_cast<int>(s->version_) < kVersionMissileCaster) return;
-    s->ReadValue(casterId_);
-    s->ReadValue(fromCaster_);
+void EffectArrow::Load(ByteStream* s) {
+    s->ReadValue(localPosition);
+    s->ReadValue(targetId);
+    s->ReadValue(velocity);
+    s->ReadValue(arrived);
+    soundName = s->ReadString();
+    s->ReadValue(lightColor);
+    s->ReadValue(lightRange);
+    s->ReadValue(particleType);
+    s->ReadValue(particleSize);
+    if (static_cast<int>(s->version) < kVersionMissileCaster) return;
+    s->ReadValue(casterId);
+    s->ReadValue(fromCaster);
 }
 
-void CEffectArrow::Save(CStream* s) {
+void EffectArrow::Save(ByteStream* s) {
     std::uint32_t copy;
-    s->WriteValue(localPosition_);
-    std::memcpy(&copy, &targetId_, 4);
+    s->WriteValue(localPosition);
+    std::memcpy(&copy, &targetId, 4);
     s->WriteValue(copy);
-    s->WriteValue(velocity_);
-    std::memcpy(&copy, &arrived_, 4);
+    s->WriteValue(velocity);
+    std::memcpy(&copy, &arrived, 4);
     s->WriteValue(copy);
-    s->WriteString(soundName_);
-    s->WriteValue(lightColor_);
-    copy = std::bit_cast<std::uint32_t>(lightRange_);
+    s->WriteString(soundName);
+    s->WriteValue(lightColor);
+    copy = std::bit_cast<std::uint32_t>(lightRange);
     s->WriteValue(copy);
-    s->WriteValue(particleType_);
-    copy = std::bit_cast<std::uint32_t>(particleSize_);
+    s->WriteValue(particleType);
+    copy = std::bit_cast<std::uint32_t>(particleSize);
     s->WriteValue(copy);
-    std::memcpy(&copy, &casterId_, 4);
+    std::memcpy(&copy, &casterId, 4);
     s->WriteValue(copy);
-    std::uint8_t flag = fromCaster_;
+    std::uint8_t flag = fromCaster;
     s->WriteValue(flag);
 }
 
-CEffectArrow::CEffectArrow() { Reset(); }
+EffectArrow::EffectArrow() { Reset(); }
 
-CEffectArrow::~CEffectArrow() { Reset(); }
+EffectArrow::~EffectArrow() { Reset(); }
 
 // The abstract missile's destructor (no live object has its table).
-CEffectMissile::~CEffectMissile() = default;
+EffectMissile::~EffectMissile() = default;
 
-// --- CEffectArrowFigure --------------------------------------------------------------------------
+// --- EffectArrowFigure --------------------------------------------------------------------------
 
-void CEffectArrowFigure::Reset() {
-    CEffectMissile::Reset();
-    if (figure_ != nullptr) g_clientWorld.RemoveObject(figure_->id_);
-    hit_ = DamageInfo{};
-    hit_.multiplier = 1.0f;
-    figure_.Reset();
-    casterId_ = -1;
+void EffectArrowFigure::Reset() {
+    EffectMissile::Reset();
+    if (figure != nullptr) g_clientWorld.RemoveObject(figure->id);
+    hit = DamageInfo{};
+    hit.multiplier = 1.0f;
+    figure.Reset();
+    casterId = -1;
 }
 
-bool CEffectArrowFigure::RunTick() {
-    fromCaster_ = 0;
+bool EffectArrowFigure::RunTick() {
+    fromCaster = 0;
     Steer();
-    localPosition_.x = localPosition_.x + velocity_.x;
-    localPosition_.y = localPosition_.y + velocity_.y;
-    localPosition_.z = localPosition_.z + velocity_.z;
+    localPosition.x = localPosition.x + velocity.x;
+    localPosition.y = localPosition.y + velocity.y;
+    localPosition.z = localPosition.z + velocity.z;
     if (!WorldContext()->IsServer()) MoveParts();
     CWorld* world = World();
-    if (arrived_ != 0 && world->IsServer()) {
+    if (arrived != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
-        CMapObject* target = world->ObjectWithId(targetId_);
-        CUnit* caster = world->FindUnit(casterId_);
-        if (target != nullptr) target->ReceiveHit(&hit_, caster, caster);
+        CMapObject* target = world->ObjectWithId(targetId);
+        CUnit* caster = world->FindUnit(casterId);
+        if (target != nullptr) target->ReceiveHit(&hit, caster, caster);
     }
-    return arrived_ == 0;
+    return arrived == 0;
 }
 
-void CEffectArrowFigure::MoveParts() {
-    if (figure_ == nullptr) return;
-    g_clientWorld.objectGrid_.Move(figure_, &localPosition_.x);
-    figure_->RollTowards(velocity_);
+void EffectArrowFigure::MoveParts() {
+    if (figure == nullptr) return;
+    g_clientWorld.objectGrid.Move(figure, &localPosition.x);
+    figure->RollTowards(velocity);
 }
 
-void CEffectArrowFigure::Start(int update) {
+void EffectArrowFigure::Start(int update) {
     if (update != 0) {
         MoveParts();
         return;
     }
     std::string model = game::ArrowFigureModelText();
     std::string texture = game::ArrowFigureTextureText();
-    int id = g_clientWorld.nextClientObjectId_--;
-    auto* object = g_clientWorld.objectManager_->CreateObjectAs<CMapObject>(MapObjectType::StuffObject, id);
-    figure_.Assign(object);
+    int objectId = g_clientWorld.nextClientObjectId--;
+    auto* object = g_clientWorld.objectManager->CreateObjectAs<CMapObject>(MapObjectType::StuffObject, objectId);
+    figure.Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, like the original.
-    CObject3D* figure = figure_;
-    CObject3DClientSpecific* attached = figure->ClientSpecific();
-    figure->localPosition_ = localPosition_;
+    CObject3D* currentFigure = figure;
+    Object3DClientSpecific* attached = currentFigure->ClientSpecific();
+    currentFigure->localPosition = localPosition;
     std::vector<std::string> parts;
-    figure->MakeFigure(model, &parts, 1);
+    currentFigure->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();
-    figure->PlayAnimation(nullptr);
-    figure->RestartPose();
+    currentFigure->PlayAnimation(nullptr);
+    currentFigure->RestartPose();
     attached->SetSkins(texture, game::kEmptyText);
-    g_clientWorld.AddObject(figure_);
+    g_clientWorld.AddObject(figure);
 }
 
-int CEffectArrowFigure::Unpack(int update, DeltaField* field) {
-    fromCaster_ = 0;
-    field->ReadDelta(&targetId_, 4);
-    field->ReadDelta(&casterId_, 4);
+int EffectArrowFigure::Unpack(int update, DeltaField* field) {
+    fromCaster = 0;
+    field->ReadDelta(&targetId, 4);
+    field->ReadDelta(&casterId, 4);
     Vector3 position;
     field->ReadPosition(&position);
-    field->ReadFloat16x3(&velocity_.x);
-    field->ReadDelta(&fromCaster_, 1);
+    field->ReadFloat16x3(&velocity.x);
+    field->ReadDelta(&fromCaster, 1);
     if (!SnapshotReadToEnd()) return 0;
-    if (fromCaster_ != 0) {
-        auto* caster = World()->FindUnit(casterId_);
+    if (fromCaster != 0) {
+        auto* caster = World()->FindUnit(casterId);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);
         }
     }
-    localPosition_ = position;
+    localPosition = position;
     Start(update);
     return 1;
 }
 
-void CEffectArrowFigure::Pack(DeltaField* field) {
+void EffectArrowFigure::Pack(DeltaField* field) {
     Steer();
-    Vector3 position = localPosition_;
-    int value = targetId_;
+    Vector3 position = localPosition;
+    int value = targetId;
     field->WriteDelta(&value, 4);
-    value = casterId_;
+    value = casterId;
     field->WriteDelta(&value, 4);
     field->WritePosition(position);
-    field->WriteFloat16x3(&velocity_.x);
-    field->WriteDelta(&fromCaster_, 1);
+    field->WriteFloat16x3(&velocity.x);
+    field->WriteDelta(&fromCaster, 1);
 }
 
-void CEffectArrowFigure::Load(CStream* s) {
-    s->ReadValue(localPosition_);
-    s->ReadValue(targetId_);
-    s->ReadValue(casterId_);
-    s->ReadValue(velocity_);
-    s->ReadValue(arrived_);
-    LoadRef(figure_, s, WorldContext());
-    s->ReadValue(hit_);
-    s->ReadValue(fromCaster_);
+void EffectArrowFigure::Load(ByteStream* s) {
+    s->ReadValue(localPosition);
+    s->ReadValue(targetId);
+    s->ReadValue(casterId);
+    s->ReadValue(velocity);
+    s->ReadValue(arrived);
+    LoadRef(figure, s, WorldContext());
+    s->ReadValue(hit);
+    s->ReadValue(fromCaster);
 }
 
-void CEffectArrowFigure::Save(CStream* s) {
+void EffectArrowFigure::Save(ByteStream* s) {
     std::uint32_t copy;
-    s->WriteValue(localPosition_);
-    std::memcpy(&copy, &targetId_, 4);
+    s->WriteValue(localPosition);
+    std::memcpy(&copy, &targetId, 4);
     s->WriteValue(copy);
-    std::memcpy(&copy, &casterId_, 4);
+    std::memcpy(&copy, &casterId, 4);
     s->WriteValue(copy);
-    s->WriteValue(velocity_);
-    std::memcpy(&copy, &arrived_, 4);
+    s->WriteValue(velocity);
+    std::memcpy(&copy, &arrived, 4);
     s->WriteValue(copy);
-    SaveRef(figure_, s);
-    s->WriteValue(hit_);
-    std::uint8_t flag = fromCaster_;
+    SaveRef(figure, s);
+    s->WriteValue(hit);
+    std::uint8_t flag = fromCaster;
     s->WriteValue(flag);
 }
 
-CEffectArrowFigure::CEffectArrowFigure() {
+EffectArrowFigure::EffectArrowFigure() {
     Reset();
 }
 
-CEffectArrowFigure::~CEffectArrowFigure() { Reset(); }
+EffectArrowFigure::~EffectArrowFigure() { Reset(); }

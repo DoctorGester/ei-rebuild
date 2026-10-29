@@ -20,12 +20,12 @@ T* TimedValueOf(const Entry& entry) { return static_cast<T*>(entry.ref.Get()); }
 } // namespace
 
 ServerBase::ServerBase() {
-    socket_.Open(g_gamePort);
+    socket.Open(g_gamePort);
 }
 
-ServerSession::ServerSession(std::uint32_t kind) {
-    masterAddress_ = NetAddress{};
-    magic_ = kSessionMagic;
+ServerSession::ServerSession(std::uint32_t newKind) {
+    masterAddress = NetAddress{};
+    magic = kSessionMagic;
     RegisterMessageTypes();
 
     AddHandlerFor<LoginMessage>(0, AsHandler(ServerOnJoin));
@@ -42,14 +42,14 @@ ServerSession::ServerSession(std::uint32_t kind) {
     RegisterMemberHandler(0, AsHandler(ServerOnMemberChanged));
     RegisterMemberHandler(1, AsHandler(ServerOnMemberChanged));
 
-    nextLine_ = 0;
-    kind_ = kind;
-    maxPlayers_ = 8;
+    nextLine = 0;
+    kind = newKind;
+    maxPlayers = 8;
     QueueMapList();
-    announceTimer_ = 0.0f;
-    public_ = 0;
-    masterToken_ = 0;
-    std::memset(password_, 0, sizeof(password_));
+    announceTimer = 0.0f;
+    announced = 0;
+    masterToken = 0;
+    std::memset(password, 0, sizeof(password));
 }
 
 // What the connection being updated receives: the players and the variables, its own binding (the binding
@@ -61,64 +61,64 @@ ServerSession::ServerSession(std::uint32_t kind) {
 void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
     PlayerMessage* record = nullptr;
     bool hosting = false;
-    for (auto& n : players_) PushReplicated(*out, n.Get(), 2);
-    for (auto& n : variables_) PushReplicated(*out, n.Get(), 2);
-    if (!bindings_.empty()) {
-        for (auto& n : bindings_) {
+    for (auto& n : players) PushReplicated(*out, n.Get(), 2);
+    for (auto& n : variables) PushReplicated(*out, n.Get(), 2);
+    if (!bindings.empty()) {
+        for (auto& n : bindings) {
             auto* binding = n.Get();
             if (binding->ConnectionRef().Get() != g_currentConnection) continue;
             record = binding->Player();
-            if (record->host_) hosting = true;
+            if (record->host) hosting = true;
             PushReplicated(*out, binding, 2);
         }
-        if (record && !(record->flags7_ & CRefObject::kDetached)) {
-            for (auto& n : lines_) {
+        if (record && !(record->flags7 & RefObject::kDetached)) {
+            for (auto& n : lines) {
                 auto* line = n.Get();
-                CRefObject* target = line->connection_.Get();
+                RefObject* target = line->connection.Get();
                 if ((!target || target == g_currentConnection) &&
-                    static_cast<std::int32_t>(line->number_) > static_cast<std::int32_t>(record->firstLine_))
+                    static_cast<std::int32_t>(line->number) > static_cast<std::int32_t>(record->firstLine))
                     PushReplicated(*out, line, 2);
             }
         }
     }
-    for (auto& n : files_) {
+    for (auto& n : files) {
         PushReplicated(*out, n.Get(), 2);
-        for (auto& m : fileRequests_) {
+        for (auto& m : fileRequests) {
             auto* request = m.Get();
             if (request->FileRef().Get() != n.Get() || request->ConnectionRef().Get() != g_currentConnection) continue;
-            for (const SharedRef<CRefObject>& chunk : n.Get()->chunks_) PushReplicated(*out, chunk.Get(), 1);
+            for (const SharedRef<RefObject>& chunk : n.Get()->chunks) PushReplicated(*out, chunk.Get(), 1);
             break;
         }
     }
     if (hosting)
-        for (auto& n : queuedMaps_) PushReplicated(*out, n.Get(), 2);
-    if (CRefObject* object = hostInfo_.Get()) PushReplicated(*out, object, 2);
-    if (CRefObject* object = map_.Get()) PushReplicated(*out, object, 2);
-    for (auto& n : awards_) {
+        for (auto& n : queuedMaps) PushReplicated(*out, n.Get(), 2);
+    if (RefObject* object = hostInfo.Get()) PushReplicated(*out, object, 2);
+    if (RefObject* object = map.Get()) PushReplicated(*out, object, 2);
+    for (auto& n : awards) {
         auto* award = TimedValueOf<AwardMessage>(n);
-        if (award->connection_.Get() == g_currentConnection) PushReplicated(*out, award, 2);
+        if (award->connection.Get() == g_currentConnection) PushReplicated(*out, award, 2);
     }
-    for (auto& n : offers_) {
+    for (auto& n : offers) {
         auto* offer = n.Get();
-        if (offer->partner_.Get() != record) continue;
+        if (offer->partner.Get() != record) continue;
         bool complete = true;
-        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members_.size()); ++i) {
-            CRefObject* member = offer->members_[i].Get();
-            if (!member || (member->flags7_ & CRefObject::kDetached)) complete = false;
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members.size()); ++i) {
+            RefObject* member = offer->members[i].Get();
+            if (!member || (member->flags7 & RefObject::kDetached)) complete = false;
         }
         if (!complete) continue;
         PushReplicated(*out, offer, 2);
-        const std::vector<HeldRef<CRefObject>>& members = n.Get()->members_;
+        const std::vector<HeldRef<RefObject>>& members = n.Get()->members;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
-            PushReplicated(*out, n.Get()->members_[i].Get(), 2);
+            PushReplicated(*out, n.Get()->members[i].Get(), 2);
     }
-    for (auto& n : trades_) {
+    for (auto& n : trades) {
         auto* trade = n.Get();
-        if (trade->player_.Get() == record || trade->partner_.Get() == record) PushReplicated(*out, trade, 2);
+        if (trade->player.Get() == record || trade->partner.Get() == record) PushReplicated(*out, trade, 2);
     }
-    for (auto& n : finishedTrades_) {
+    for (auto& n : finishedTrades) {
         auto* trade = TimedValueOf<TradeMessage>(n);
-        if (trade->player_.Get() == record || trade->partner_.Get() == record) PushReplicated(*out, trade, 2);
+        if (trade->player.Get() == record || trade->partner.Get() == record) PushReplicated(*out, trade, 2);
     }
 }
 

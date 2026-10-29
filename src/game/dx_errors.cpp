@@ -48,20 +48,20 @@ const char* DirectXErrorText(long result) {
 // ---- The thrown error object ---------------------------------------------------
 
 
-CGameException::~CGameException() = default;
+GameException::~GameException() = default;
 
-CDXException::CDXException(const char* format, va_list args) {
+DXException::DXException(const char* format, va_list args) {
     char text[kBuffer];
     gameapi::wvsprintfA(text, format, args);
     message = text;
 }
 
-CDXException::~CDXException() = default;
+DXException::~DXException() = default;
 
 void ThrowGameError(const char* format, ...) {
     va_list args;
     va_start(args, format);
-    CDXException* error = new CDXException(format, args);
+    DXException* error = new DXException(format, args);
     va_end(args);
     throw error;
 }

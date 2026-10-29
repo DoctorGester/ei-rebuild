@@ -28,7 +28,7 @@ void ObserveDraws(DrawWriter write);
 
 // ---- the interface windows (harness_windows.cpp; image/harness_windows_image.cpp)
 
-// The window on top (CInterface3D::GetActiveWindow), null without one.
+// The window on top (Interface3D::GetActiveWindow), null without one.
 void* TopWindow();
 // game.exe's table of `window`'s class (by its C++ type), else its +0.
 std::uintptr_t WindowKind(const void* window);
@@ -45,7 +45,7 @@ bool BriefingPlayerList(void* briefing, PlayerList* list);
 
 // ---- the orientation watch (harness_watch.cpp; image/harness_watch_image.cpp)
 
-// The client world's unit `id` (null without one), with the addresses of its flags_ and its localRotation_.
+// The client world's unit `id` (null without one), with the addresses of its flags and its localRotation.
 void* ClientUnit(unsigned id, std::uint32_t** flags, std::uint32_t** rotation);
 
 // ---- the "netstate" step (harness_netstate.cpp; image/harness_netstate_image.cpp)
@@ -60,8 +60,8 @@ void* MainWindow();                    // app::g_mainWindow (an HWND)
 std::uint8_t& InterfaceHasScreen();    // app::g_interfaceHasScreen
 std::uint8_t& RecordingFrames();       // app::g_recordingFrames
 bool AppActive();                      // app::g_active
-int& FlowState();                      // GameFlow::state_
-void SetLoadTarget(const char* slot);  // GameFlow::requestTarget_
+int& FlowState();                      // GameFlow::state
+void SetLoadTarget(const char* slot);  // GameFlow::requestTarget
 void ClearShowTutorial();
 void SetMasterHost(const char* host);
 void SetWaterWaves(bool on);
@@ -95,22 +95,22 @@ const char* DataFolder();                       // the data folder's text, may b
 // IsaacRandom's seed hook: rand() seeded with 12345 and the generator's results filled by `fill`.
 void SetFixedSeed(void (*fill)(std::uint32_t* results));
 int TextKey(const char* name);                  // TextKeyFromName
-void* LocalWorldPlayer(int player);             // CWorldServer::GetPlayer
-void* WorldHandle();                          // the server world's worldHandle_
+void* LocalWorldPlayer(int player);             // WorldServer::GetPlayer
+void* WorldHandle();                          // the server world's worldHandle
 const char* ServerZoneName();                   // the server world's zone, may be null
-void* PickAt2(void* world, int x, int y);       // CWorldClient::PickAt2, as its CEngineObject
-void* UnitAt(void* world, int x, int y);        // CWorldClient::UnitAt, as its CEngineObject
-// The client world's rectangle of object `id` in this frame's screen list (screenEntries_; the last entry for it):
+void* PickAt2(void* world, int x, int y);       // WorldClient::PickAt2, as its EngineObject
+void* UnitAt(void* world, int x, int y);        // WorldClient::UnitAt, as its EngineObject
+// The client world's rectangle of object `id` in this frame's screen list (screenEntries; the last entry for it):
 // 1, 0 when it is not drawn, -1 without a list.
 int ScreenRect(void* world, int id, RECT* rect);
-int ObjectId(const void* object);               // a CEngineObject's id_ (what PickAt2 and UnitAt give)
-std::uint32_t ObjectFlags(const void* object);  // its flags_
-void* PlayerConnection(void* player);           // a CPlayer's connection_ (CPlayerServer / CPlayerClient)
-int ConnectionState(void* connection);          // its state_
-// The camp `camp` (the window on top, CCampPages): its page and its item strip's source items (null ones too) with
-// their types (CEngineObject::type_); false without a source.
+int ObjectId(const void* object);               // a EngineObject's id (what PickAt2 and UnitAt give)
+std::uint32_t ObjectFlags(const void* object);  // its flags
+void* PlayerConnection(void* player);           // a CPlayer's connection (PlayerServer / PlayerClient)
+int ConnectionState(void* connection);          // its state
+// The camp `camp` (the window on top, CampPages): its page and its item strip's source items (null ones too) with
+// their types (EngineObject::type); false without a source.
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types);
-void CampTakeItem(void* camp, void* item, int mode);   // CCampPages::TakeItem (slot 42, MoveItem)
+void CampTakeItem(void* camp, void* item, int mode);   // CampPages::TakeItem (slot 42, MoveItem)
 void PickSurface(void* world, float* out, int x, int y);
 void LoadUnitFaces(void* world);
 void BlinkOpen(void* half);
@@ -125,7 +125,7 @@ struct RegionInfo {
 };
 int RegionCount(void* window);
 bool Region(void* window, int index, RegionInfo* region);
-void ScaleToScreen(long* x, long* y);           // CInterface3D::ScalePointToScreenEntry
+void ScaleToScreen(long* x, long* y);           // Interface3D::ScalePointToScreenEntry
 void InterfaceSize(int* width, int* height);
 bool SaveLoadSliding(void* window);
 bool OptionsSliding(void* window);
@@ -133,7 +133,7 @@ bool HasChatOverlay();
 void ChatKeyEnter();
 void CloseChat();
 bool HasClassTemplate(int id);
-const void* FindMap(const char* name);          // CMapDatabase::FindMap: the map.txt record, null for none
+const void* FindMap(const char* name);          // MapDatabase::FindMap: the map.txt record, null for none
 int MapKind(const void* record);                // a map.txt record's kind (0 game, 1 edge, 2 brief)
 void LeaveToZone(void* connection, const char* name, int exit);
 // The device's surfaces restored after a minimise (the image's device holds no DirectDraw object: nothing to
@@ -145,11 +145,11 @@ std::string HudState(void* screen, const std::string& argument);
 // ---- the main loop's calls the harness steps into (harness.cpp, harness_capture.cpp, harness_hooks.h;
 // image/harness_objects_image.cpp): each hook ends with the function it stands in for, called by name here.
 
-int ServerUpdate(void* server);                 // CWorldServer::Update
-int ClientSegment(void* client);                // CWorldClient::Segment
-void CameraUpdate(void* camera, float seconds); // CCamera::Update
+int ServerUpdate(void* server);                 // WorldServer::Update
+int ClientSegment(void* client);                // WorldClient::Segment
+void CameraUpdate(void* camera, float seconds); // Camera::Update
 void FrameStep(bool draw, bool cursor);         // app::FrameStep
-void CursorLock(void* cursor);                  // CCursor::TakeLock
+void CursorLock(void* cursor);                  // Cursor::TakeLock
 
 // ---- the image's renderer (harness.cpp, harness_capture.cpp; image/harness_render_image.cpp)
 
@@ -195,7 +195,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
 // ---- the "modfile" step (harness_starter.cpp; image/harness_objects_image.cpp)
 
 const char* TextFolder();   // the text resources' folder
-// The bytes of `name` in the archive at `path` through a CMappedResource: -2 when the archive does not open, 0
+// The bytes of `name` in the archive at `path` through a MappedResource: -2 when the archive does not open, 0
 // without the file.
 long ModFile(const char* path, const char* name);
 
@@ -239,7 +239,7 @@ struct CameraPose {
     float position[3] = {};
     float rotation[4] = {1, 0, 0, 0};
 };
-// What the trace samples of a CCamera: its own pose, the pose the world's draw shows (camera::DrawnView) and its flags.
+// What the trace samples of a Camera: its own pose, the pose the world's draw shows (camera::DrawnView) and its flags.
 struct CameraState {
     CameraPose own, drawn;
     unsigned flags = 0;

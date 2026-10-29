@@ -4,7 +4,7 @@
 #include "core_maths.h"
 #include "effects.h"
 #include "figure_mesh.h"   // VertexPacket
-#include "model.h"         // CSceneRenderer, CTransformPipeline
+#include "model.h"         // SceneRenderer, TransformPipeline
 
 #include "lib/bytes.h"
 #include "lib/containers.h"
@@ -51,10 +51,10 @@ constexpr float kTile = 0.25f;
 
 } // namespace
 
-int CVisibilityFog::Draw(CSceneRenderer* renderer) {
+int VisibilityFog::Draw(SceneRenderer* renderer) {
     if (cells.size() == 0) return 1;
     if (cells.size() > kBoundsCells && !boundsValid) ComputeBounds();
-    if (renderer->pipeline_->ClipTest(&bounds) == kOutOfView) return 1;
+    if (renderer->pipeline->ClipTest(&bounds) == kOutOfView) return 1;
 
     g_sprites.resize(kWorkRecords);
     g_points.resize(kWorkRecords);
@@ -80,7 +80,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
 
 // ---- Rain and snow ----------------------------------------------------------------------------------------
 
-void CRainSnow::PrepareBuffers() {
+void RainSnow::PrepareBuffers() {
     positions.resize(kDrops);
     vertices.resize(kDropVertices);
     frames.resize(kDrops);

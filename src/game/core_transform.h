@@ -9,16 +9,16 @@
 // An engine object placed in the world: local position and rotation relative to its parent, and
 // the world transform derived from them. Base of the camera, the scene's figures, units and other
 // placed objects (abstract: some virtuals are pure). Name provisional.
-// The virtuals up to the class id are CEngineObject's (CopyFrom, Release, empty Load/Save); the rest are defined in
+// The virtuals up to the class id are EngineObject's (CopyFrom, Release, empty Load/Save); the rest are defined in
 // The game's out-of-line constructor body (the base's fields and identity rotations) is
-// what the derived classes' constructors do; its destructor (deleting too) is CEngineObject's.
+// what the derived classes' constructors do; its destructor (deleting too) is EngineObject's.
 namespace lib {
 class File;
 }
 
-class CTransformObject : public CEngineObject {
+class TransformObject : public EngineObject {
 public:
-    virtual CTransformObject* CopyTransform(const CTransformObject& other);
+    virtual TransformObject* CopyTransform(const TransformObject& other);
     // WorldRotation = parent * localRotation. Overridden in units.
     virtual void CombineRotation(const Quaternion& parent);
     // Recomputes the world transform from the parent's rotation and position.
@@ -34,8 +34,8 @@ public:
     void TurnUpTowards(const Vector3& dir, int reduced); // up axis towards dir (0.4 of it if reduced)
     void SetHeading(const float* dir);                   // turn about +Z by atan2(dir[1], dir[0])
 
-    Vector3 localPosition_;
-    Vector3 worldPosition_;
-    Quaternion localRotation_;
-    Quaternion worldRotation_;
+    Vector3 localPosition;
+    Vector3 worldPosition;
+    Quaternion localRotation;
+    Quaternion worldRotation;
 };

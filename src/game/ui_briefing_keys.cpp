@@ -1,4 +1,4 @@
-// The briefing / base screen's key handler (CBriefingScreen::KeyDown). See
+// The briefing / base screen's key handler (BriefingScreen::KeyDown). See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "camera.h"
 #include "game_singletons.h"
@@ -31,7 +31,7 @@ constexpr int kQuestNameParts = 3;               // "q", zone, quest
 
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
 // active.
-void OpenObjectives(CInterface3D* ui) {
+void OpenObjectives(Interface3D* ui) {
     MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     if (!zone) return;
     std::vector<std::string> parts;
@@ -43,7 +43,7 @@ void OpenObjectives(CInterface3D* ui) {
         MapRecord* questZone = g_mapDatabase.FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
-        auto* window = new CObjectivesWindow(ui);
+        auto* window = new ObjectivesWindow(ui);
         window->Setup(LocalPlayerZone(), nullptr, false, true);
         ui->PushWindow(window, true, true);
         break;
@@ -53,71 +53,71 @@ void OpenObjectives(CInterface3D* ui) {
 } // namespace
 
 
-void CBriefingScreen::KeyDown(int key, int repeat, int flags) {
-    if (chatActive_) {
-        if (key == VK_ESCAPE) chatActive_ = 0;
+void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
+    if (chatActive) {
+        if (key == VK_ESCAPE) chatActive = 0;
         return;
     }
-    CUiContainer::KeyDown(key, repeat, flags);
+    UiContainer::KeyDown(key, repeat, modifiers);
     switch (key) {
     case VK_BACK:
         if (IsMultiplayerClient()) {
-            interface_->ChatKeyBackspace();
-            handled_ = true;
+            ui->ChatKeyBackspace();
+            handled = true;
             return;
         }
         break;
     case VK_RETURN:
         if (IsMultiplayerClient()) {
-            interface_->ChatKeyEnter();
-        } else if (state_ == 3) {
-            interface_->PlaySound(kClickSound);
-            while (state_ == 3) NextPhrase(true);
-        } else if (state_ == 4) {
-            interface_->PlaySound(kClickSound);
+            ui->ChatKeyEnter();
+        } else if (state == 3) {
+            ui->PlaySound(kClickSound);
+            while (state == 3) NextPhrase(true);
+        } else if (state == 4) {
+            ui->PlaySound(kClickSound);
             FinishDialogue();
         }
-        handled_ = true;
+        handled = true;
         return;
     case VK_ESCAPE:
-        if (state_ == 0) {
-            interface_->PushWindow(new CEscMenu(interface_), true, true);
-        } else if (state_ == 3) {
-            interface_->PlaySound(kClickSound);
-            while (state_ == 3) NextPhrase(true);
-        } else if (state_ == 4) {
-            interface_->PlaySound(kClickSound);
+        if (state == 0) {
+            ui->PushWindow(new EscMenu(ui), true, true);
+        } else if (state == 3) {
+            ui->PlaySound(kClickSound);
+            while (state == 3) NextPhrase(true);
+        } else if (state == 4) {
+            ui->PlaySound(kClickSound);
             FinishDialogue();
-        } else if (state_ == 2) {
+        } else if (state == 2) {
             StartDialogue(true, false);
-        } else if (state_ == 1) {
-            state_ = 0;
+        } else if (state == 1) {
+            state = 0;
         }
-        handled_ = true;
+        handled = true;
         return;
     case VK_SPACE:
-        if (state_ == 3) {
-            interface_->PlaySound(kClickSound);
+        if (state == 3) {
+            ui->PlaySound(kClickSound);
             NextPhrase(false);
-        } else if (state_ == 4) {
-            interface_->PlaySound(kClickSound);
+        } else if (state == 4) {
+            ui->PlaySound(kClickSound);
             FinishDialogue();
-        } else if (state_ == 2) {
+        } else if (state == 2) {
             StartDialogue(true, false);
         }
-        handled_ = true;
+        handled = true;
         return;
     default:
         break;
     }
-    if (state_ != 0) return;
-    switch (g_keyActions[flags & kScanCodeMask]) {
+    if (state != 0) return;
+    switch (g_keyActions[modifiers & kScanCodeMask]) {
     case kActionObjectives:
-        OpenObjectives(interface_);
+        OpenObjectives(ui);
         break;
     case kActionLeader:
-        if (leader_) g_camera.SetTarget(leader_);
-        handled_ = true;
+        if (leader) g_camera.SetTarget(leader);
+        handled = true;
         break;
     case kActionQuickSave:
         ::QuickSave(kQuickSaveName, false);

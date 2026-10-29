@@ -1,4 +1,4 @@
-// The per-cell occluder words (CAIMap::occluders, ai_map.h's namespace occluder): adding and removing one footprint
+// The per-cell occluder words (AIMap::occluders, ai_map.h's namespace occluder): adding and removing one footprint
 // cell's occluder. A cell with more than one chains 8-byte records (SectorOccluder, sector_map.h) of its 32x32
 // sector. See docs/notes/ai.md.
 #include "ai_map.h"
@@ -11,13 +11,13 @@
 
 namespace {
 
-Sector* SectorOf(CAIMap* map, int x, int y) {
+Sector* SectorOf(AIMap* map, int x, int y) {
     return &map->sectorMap.sectors[(y / 32) * map->sectorMap.width + x / 32];
 }
 
 } // namespace
 
-bool CAIMap::AddOccluderRecord(FootprintCell* cell) {
+bool AIMap::AddOccluderRecord(FootprintCell* cell) {
     int x = cell->x, y = cell->y;
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     if (cell->low >= cell->high) return true;
@@ -54,7 +54,7 @@ bool CAIMap::AddOccluderRecord(FootprintCell* cell) {
     return true;
 }
 
-bool CAIMap::ClearOccluderRecord(FootprintCell* cell) {
+bool AIMap::ClearOccluderRecord(FootprintCell* cell) {
     int x = cell->x, y = cell->y;
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     if (cell->low >= cell->high) return true;

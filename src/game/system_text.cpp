@@ -23,28 +23,28 @@ bool IsAscii(const char* text) {
 // A text argument as UTF-16 (null stays null).
 class WideArg {
 public:
-    explicit WideArg(const char* text) : null_(text == nullptr) {
-        if (text) wide_ = Wide(text);
+    explicit WideArg(const char* text) : null(text == nullptr) {
+        if (text) wide = Wide(text);
     }
-    operator LPCWSTR() const { return null_ ? nullptr : wide_.c_str(); }
-    LPWSTR Writable() { return null_ ? nullptr : wide_.data(); }
+    operator LPCWSTR() const { return null ? nullptr : wide.c_str(); }
+    LPWSTR Writable() { return null ? nullptr : wide.data(); }
 
 private:
-    bool null_;
-    std::wstring wide_;
+    bool null;
+    std::wstring wide;
 };
 
 // A window class argument: an atom (MAKEINTATOM) as it is, a name as UTF-16.
 class ClassArg {
 public:
-    explicit ClassArg(const char* name) : name_(name), wide_(IS_INTRESOURCE(name) ? nullptr : name) {}
+    explicit ClassArg(const char* newName) : name(newName), wide(IS_INTRESOURCE(newName) ? nullptr : newName) {}
     operator LPCWSTR() const {
-        return IS_INTRESOURCE(name_) ? reinterpret_cast<LPCWSTR>(name_) : static_cast<LPCWSTR>(wide_);
+        return IS_INTRESOURCE(name) ? reinterpret_cast<LPCWSTR>(name) : static_cast<LPCWSTR>(wide);
     }
 
 private:
-    const char* name_;
-    WideArg wide_;
+    const char* name;
+    WideArg wide;
 };
 
 // The bytes of `utf8` that fit `size` bytes with the terminator, cut at a character's start.

@@ -1,5 +1,5 @@
 // FogGrid (effects.h): the squares a seer sees, rows of bytes (Clear, Read, Write); used by
-// CEffectShowVisibility (world_effect_visibility.cpp). See docs/notes/world.md.
+// EffectShowVisibility (world_effect_visibility.cpp). See docs/notes/world.md.
 #include "ai_map.h"
 #include "effects.h"
 
@@ -22,7 +22,7 @@ void FogGrid::Clear() {
     cells.data.assign(cells.data.size(), 0);
 }
 
-void FogGrid::Read(CMemoryStream* stream) {
+void FogGrid::Read(MemoryStream* stream) {
     stream->ReadValue(x0);
     stream->ReadValue(y0);
     // Like the original, the locals hold the stream and the grid pointers when a read fails.
@@ -34,7 +34,7 @@ void FogGrid::Read(CMemoryStream* stream) {
     stream->Read(cells.data.data(), static_cast<std::uint32_t>(newHeight * newWidth));
 }
 
-void FogGrid::Write(CMemoryStream* stream) {
+void FogGrid::Write(MemoryStream* stream) {
     int value = x0;
     stream->WriteValue(value);
     value = y0;

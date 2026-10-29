@@ -6,9 +6,9 @@
 namespace {
 } // namespace
 
-int UnitStats::LoadFrom(CStream* stream) {
+int UnitStats::LoadFrom(ByteStream* stream) {
     pendingExperience = 0.0f;
-    int version = stream->version_;
+    int version = stream->version;
     unsigned size;
     if (version < kVersionStatsPastFlags) size = offsetof(UnitStats, flags);
     else if (version < kVersionFixedMaxHitPoints) size = offsetof(UnitStats, fixedMaxHitPoints);
@@ -17,4 +17,4 @@ int UnitStats::LoadFrom(CStream* stream) {
     return stream->Read(this, size);
 }
 
-void UnitStats::SaveTo(CStream* stream) { stream->Write(this, sizeof(UnitStats)); }
+void UnitStats::SaveTo(ByteStream* stream) { stream->Write(this, sizeof(UnitStats)); }

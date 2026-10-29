@@ -26,61 +26,61 @@ constexpr float kTriggerRadius = 1.0f;
 
 bool LockKey::AcceptedByTrap() const { return true; }
 
-CTrapObject::CTrapObject() {
+TrapObject::TrapObject() {
     CreateMapObject();
-    flags_ &= ~MapObjectFlag::NotDrawn;
+    flags &= ~MapObjectFlag::NotDrawn;
 }
 
-void CTrapObject::Create() {
+void TrapObject::Create() {
     CreateMapObject();
-    flags_ &= ~MapObjectFlag::NotDrawn;
+    flags &= ~MapObjectFlag::NotDrawn;
 }
 
-bool CTrapObject::RunTick() {
+bool TrapObject::RunTick() {
     Update();
-    if (!(flags_ & MapObjectFlag::Armed)) return false;
+    if (!(flags & MapObjectFlag::Armed)) return false;
     if (!WorldContext()->IsServer()) return false;
     auto* world = ServerWorld();
-    std::list<CUnit*> units = world->aiMap_.sectorMap.FindUnitsInRadius(localPosition_, kTriggerRadius);
-    if ((flags_ & MapObjectFlag::ArmedFresh) && units.empty()) {
-        flags_ &= ~MapObjectFlag::ArmedFresh;
+    std::list<CUnit*> units = world->aiMap.sectorMap.FindUnitsInRadius(localPosition, kTriggerRadius);
+    if ((flags & MapObjectFlag::ArmedFresh) && units.empty()) {
+        flags &= ~MapObjectFlag::ArmedFresh;
     } else if (!units.empty()) {
         std::string line;
-        float x = localPosition_.x;
-        float y = localPosition_.y;
+        float x = localPosition.x;
+        float y = localPosition.y;
         double z = world->RawSurfaceHeightAt(x, y);
         line = str::Format(kTrapScript, static_cast<double>(x), static_cast<double>(y), z);
         TheMissionScript()->Load(&line, 1);
-        flags_ &= ~MapObjectFlag::Armed;
+        flags &= ~MapObjectFlag::Armed;
     }
     units.clear();
     return false;
 }
 
-bool CTrapObject::Disarm(const LockKey* key) {
-    if (!(flags_ & MapObjectFlag::Armed) || !key->AcceptedByTrap()) return false;
-    flags_ &= ~MapObjectFlag::Armed;
+bool TrapObject::Disarm(const LockKey* key) {
+    if (!(flags & MapObjectFlag::Armed) || !key->AcceptedByTrap()) return false;
+    flags &= ~MapObjectFlag::Armed;
     return true;
 }
 
-int CTrapObject::KeyFits(const LockKey* key) { return key->AcceptedByTrap(); }
+int TrapObject::KeyFits(const LockKey* key) { return key->AcceptedByTrap(); }
 
-void CTrapObject::LoadTrapObject(CStream* stream) {
+void TrapObject::LoadTrapObject(ByteStream* stream) {
     LoadMapObject(stream);
-    stream->ReadValue(savedValue_);
+    stream->ReadValue(savedValue);
 }
 
-void CTrapObject::SaveTrapObject(CStream* stream) {
+void TrapObject::SaveTrapObject(ByteStream* stream) {
     SaveMapObject(stream);
-    std::uint32_t value = savedValue_;
+    std::uint32_t value = savedValue;
     stream->WriteValue(value);
 }
 
-void CTrapObject::Load(CStream* stream) { LoadTrapObject(stream); }
-void CTrapObject::Save(CStream* stream) { SaveTrapObject(stream); }
-bool CTrapObject::ApplyScience(const LockKey* key, CEngineObject*) { return Disarm(key); }
+void TrapObject::Load(ByteStream* stream) { LoadTrapObject(stream); }
+void TrapObject::Save(ByteStream* stream) { SaveTrapObject(stream); }
+bool TrapObject::ApplyScience(const LockKey* key, EngineObject*) { return Disarm(key); }
 
-const char* CTrapObject::ClassName() { return kTrapName; }
-ClassId CTrapObject::GetClassId() { return ClassId::TrapObject; }
+const char* TrapObject::ClassName() { return kTrapName; }
+ClassId TrapObject::GetClassId() { return ClassId::TrapObject; }
 const char* MagicTrap::ClassName() { return kMagicTrapName; }
 ClassId MagicTrap::GetClassId() { return ClassId::MagicTrap; }

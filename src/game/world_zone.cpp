@@ -1,4 +1,4 @@
-// CWorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map objects), the
+// WorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map objects), the
 // script's AddUnitToServer, and writing the map objects into a save. See world.h and docs/notes/world.md.
 #include "app.h"
 #include "bink_video.h"   // g_loadingMovieOff
@@ -9,11 +9,11 @@
 #include "game_strings.h"
 #include "map_object.h"
 #include "map_spec.h"
-#include "model.h"   // TweenArray (countdowns_)
+#include "model.h"   // TweenArray (countdowns)
 #include "net_delta.h"
 #include "object_tables.h"
 #include "party.h"
-#include "spell.h"         // CSpellEffect: the missiles
+#include "spell.h"         // SpellEffect: the missiles
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -50,36 +50,36 @@ constexpr const char* kProgres5 = "progres5.bik";
 
 // ---- Zone exits -------------------------------------------------------------------------------
 
-void CWorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
-    exits_ = {};
+void WorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
+    exits = {};
     for (const ZoneExit& from : *source) {
         if (str::Compare(from.target, game::kEmptyText) == 0) continue;   // leads nowhere
         if (from.entrance < 0 && str::Compare(from.target, kNoExit) != 0)
             game::FatalError(game::zonetexts::WrongEntrance());
-        exits_.push_back(from);
+        exits.push_back(from);
     }
 }
 
 // ---- Units ------------------------------------------------------------------------------------
 
-void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3& position) {
+void WorldServer::AddUnitToServer(unsigned newId, const char* prototype, const char* name, const Vector3& position) {
     CParty party;   // one member
     party.AddMember(game::kEmptyText, prototype, name);
     std::vector<PartyUnitRecord*> records;
-    PartyUnitRecord* record = party.members_.data();
+    PartyUnitRecord* record = party.members.data();
     records.resize(1);
     records[0] = record;
-    record->unitId = id;
+    record->unitId = newId;
     CreateUnits(nullptr, &records, position, kNewUnitRotation, nullptr);
 }
 
 // ---- .mob object files ------------------------------------------------------------------------
 
-int CWorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
+int WorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     const std::string file(fileName);
     mapspec::MobFile rootChunk;
     mapspec::MobFile* root = &rootChunk;
-    auto* fileObject = &root->file_;
+    auto* fileObject = &root->file;
 
     std::string path = MapPath(file);
     int result;
@@ -93,64 +93,64 @@ int CWorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     return result;   // the file closed with the root
 }
 
-int CWorldServer::LoadMobFile(std::string_view file) {
-    for (const std::string& loaded : mobFiles_)
-        if (str::Compare(loaded, file) == 0) return 1;
+int WorldServer::LoadMobFile(std::string_view file) {
+    for (const std::string& mobFile : mobFiles)
+        if (str::Compare(mobFile, file) == 0) return 1;
     g_loadingMovieOff = 1;
     {
-        int loaded = LoadMapObjects(file, 0);
-        if (loaded == 0) {
+        int loadedCount = LoadMapObjects(file, 0);
+        if (loadedCount == 0) {
             g_loadingMovieOff = 0;
-            zoneLoaded_ = 0;
+            zoneLoaded = 0;
             return game::FatalError(game::zonetexts::CantLoadMob(), std::string(file));
         }
     }
     g_loadingMovieOff = 0;
-    mobFiles_.push_back(std::string(file));
+    mobFiles.push_back(std::string(file));
     return 1;
 }
 
 // ---- Clearing and saving the map objects ----------------------------------------------------
 
-void CWorldServer::ClearMapObjects() {
+void WorldServer::ClearMapObjects() {
     // The objects are collected first (a list, block size 10), then removed one by one.
-    std::list<CEngineObject*> pending;
-    for (auto& node : mapObjects_.map) {
-        CEngineObject* object = node.second;
+    std::list<EngineObject*> pending;
+    for (auto& node : mapObjects.map) {
+        EngineObject* object = node.second;
         if (!object) break;   // the walk stops at the first empty entry
         pending.push_back(object);
     }
     for (auto node = pending.begin(); node != pending.end();) {
         auto next = std::next(node);
-        RemoveObject((*node)->id_);
+        RemoveObject((*node)->id);
         node = next;
     }
 
-    projectiles_.clear();
+    projectiles.clear();
 
-    for (auto node = counted_.begin(); node != counted_.end(); ++node)
+    for (auto node = counted.begin(); node != counted.end(); ++node)
         if (*node) (*node)->Release();
-    counted_.clear();
+    counted.clear();
 
-    countdowns_.clear();
+    countdowns.clear();
 
     pending.clear();   // the list destructor's body
 }
 
-void CWorldServer::SaveMapObjects(CStream* out) {
-    for (auto& node : mapObjects_.map) {
+void WorldServer::SaveMapObjects(ByteStream* out) {
+    for (auto& node : mapObjects.map) {
         CMapObject* object = node.second;
         if (!object) break;
-        int id = object->id_;
-        out->WriteValue(id);
+        int objectId = object->id;
+        out->WriteValue(objectId);
         CUnit* unit = UnitOrNull(object);
         const std::string_view prototype = unit ? std::string_view(unit->GetPrototype()->name) : std::string_view(object->name);
         out->WriteString(prototype);
         object->Save(out);
         // The parts changed and those already sent (the network state's mask).
-        std::uint32_t flags = static_cast<std::uint32_t>(object->netState_.mask_) |
-                              static_cast<std::uint32_t>(object->netState_.sentMask_);
-        out->WriteValue(flags);
+        std::uint32_t stateFlags = static_cast<std::uint32_t>(object->netState.mask) |
+                              static_cast<std::uint32_t>(object->netState.sentMask);
+        out->WriteValue(stateFlags);
     }
     int end = -1;
     out->WriteValue(end);

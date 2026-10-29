@@ -3,14 +3,14 @@
 // The standalone's settings file (docs/notes/standalone.md, "Settings file"). The game keeps its settings
 // under HKEY_CURRENT_USER: Software\Nival Interactive\EvilIslands (the options, options.cpp) and Rebirth's
 // Software\Gipat.Ru\EI_Starter (its game settings and the starter's switches). ei_standalone.exe keeps the same
-// keys and values in ei_settings.ini next to the exe instead: CWinRegistry (win_registry.cpp) and the direct
+// keys and values in ei_settings.ini next to the exe instead: WinRegistry (win_registry.cpp) and the direct
 // readers (ReadValue) use it there, and never read or write the registry. When the file is missing, the first use
 // writes it with the defaults (DefaultDocument). game.exe (the original game) keeps the registry.
 // The file: a section per key (its path below HKEY_CURRENT_USER), a line per value, as reg export writes them:
 //   [Software\Nival Interactive\EvilIslands\General Settings]
 //   "FullScreen"=dword:00000001          REG_DWORD
 //   "VideoResolution"="1920x1080"        REG_SZ (\\ and \" escaped)
-//   "Brightness"=float:0.5               a 4-byte REG_BINARY holding a float (CWinRegistry's floats)
+//   "Brightness"=float:0.5               a 4-byte REG_BINARY holding a float (WinRegistry's floats)
 //   "Data"=hex:01,02                     REG_BINARY
 //   "Lines"=hex(7):61,00,00              any other type, or a string the quoted form cannot hold
 // "@" names a key's default value; lines starting with ';' are comments. Every value round-trips bit for bit:
@@ -52,7 +52,7 @@ public:
     // Reads `text` into the document; each line not understood is skipped and described in `problems`.
     void Parse(const std::string& text, std::vector<std::string>* problems);
 
-    std::deque<Key> keys;   // a deque: a key stays where it is as others are added (CWinRegistry holds one)
+    std::deque<Key> keys;   // a deque: a key stays where it is as others are added (WinRegistry holds one)
 };
 
 // The trees the options are kept in: the game's, and Rebirth's (its NivalRegistry patch reads the options there; its
@@ -77,7 +77,7 @@ std::string JoinPath(const char* path, const char* sub);
 // ---- The process's settings (the standalone; game.exe uses the registry) ----
 
 // Opens the key `path` (below HKEY_CURRENT_USER), making it when missing as RegCreateKeyEx does: the handle
-// CWinRegistry holds.
+// WinRegistry holds.
 void* CreateKey(const char* path);
 // RegQueryValueEx of the value `name` of `sub` below `key` (a CreateKey handle, or null: below
 // HKEY_CURRENT_USER): 0, ERROR_MORE_DATA (the size needed in *size) or ERROR_FILE_NOT_FOUND (key or value
@@ -99,7 +99,7 @@ void AddReadFilter(ReadFilter filter);
 
 // Harness runs: `file` in place of the one next to the exe, and each read of a key or value it lacks passed to
 // `missing` (key path, value name; may be null). `readOnly`: writes are dropped and a missing file stays missing;
-// else the file is written as in the product (Flush at CWinRegistry::Close, .tmp then moved) and a missing file is
+// else the file is written as in the product (Flush at WinRegistry::Close, .tmp then moved) and a missing file is
 // written with the defaults. Before the first use.
 using MissingHandler = void (*)(const char* path, const char* name);
 void Pin(const char* file, MissingHandler missing, bool readOnly = true);

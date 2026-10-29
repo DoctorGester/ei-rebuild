@@ -2,7 +2,7 @@
 
 // The text manager: texts from the game's text resources (strings, item names and descriptions, the texts the
 // script, quest and help code read line by line). A text manager holds a list of resource archives
-// (CMappedResource) and a read cursor into the last text it found. A text is looked up by key ("string
+// (MappedResource) and a read cursor into the last text it found. A text is looked up by key ("string
 // format_item1", "weapon SWORD IRON", ...): the first archive that knows the key wins, and the cursor is set to the
 // start of the file's data. Then one line is read from the cursor (the name) or up to a '#' (the
 // description). Item keys are the record's name, spaces replaced by '_' and upper-cased, after a prefix that
@@ -17,19 +17,19 @@
 #include <string_view>
 #include <vector>
 
-class CItem;
-class CMappedResource;
+class Item;
+class MappedResource;
 
 // An archive the texts are looked up in.
 struct TextSource {
     std::string name;
-    CMappedResource* source;
+    MappedResource* source;
 };
 
-// The archive list (CTextManager::sources_).
+// The archive list (TextManager::sources).
 struct TextSources {
     // Add: unless an archive of that exact name is listed (then 1), appends a new
-    // CMappedResource under `path` and returns its OpenResource(path, writable); a failed open stays in the
+    // MappedResource under `path` and returns its OpenResource(path, writable); a failed open stays in the
     // list. Remove: closes, deletes and unlinks the archive named `path`, if any. Clear: closes and deletes
     // every archive, then frees the nodes.
     bool Add(const std::string& path, bool writable);
@@ -47,17 +47,17 @@ struct TextSources {
     std::list<TextSource> archives;
 };
 
-// An item's texts (CTextManager::GetItemTexts); a part that is not found stays empty.
+// An item's texts (TextManager::GetItemTexts); a part that is not found stays empty.
 struct ItemTexts {
     std::string name;
     std::string description;
     std::string kind;          // "item_weapon", ... looked up as a string (GetString)
 };
 
-class CTextManager : public CEngineObject {
+class TextManager : public EngineObject {
 public:
-    CTextManager();
-    ~CTextManager() override;
+    TextManager();
+    ~TextManager() override;
 
     // setlocale(LC_CTYPE, the "Font CharSet" option, "english" by default), then the C runtime's multibyte
     // code page set to the locale's; returns 1. The constructor calls it too.
@@ -80,13 +80,13 @@ public:
     std::string GetString(std::string_view name);
 
     // The name, description and kind of an item, each looked up in the texts.
-    ItemTexts GetItemTexts(CItem* item);
+    ItemTexts GetItemTexts(Item* item);
 
-    // The item's display name: "format_item1" (or "format_item2" with the stack count when count_ is above
+    // The item's display name: "format_item1" (or "format_item2" with the stack count when count is above
     // 1) applied to the kind and the name.
-    std::string FormatItemName(CItem* item);
+    std::string FormatItemName(Item* item);
 
-    // The line reader (text_reader.cpp): finds a text in the resource archives and walks its lines with cursor_.
+    // The line reader (text_reader.cpp): finds a text in the resource archives and walks its lines with cursor.
     // Texts are MBCS: a character is one byte, or a lead byte (_ismbblead) and a trail byte. Lines end with LF
     // (CR also ends the line's content); a line whose first word starts with "##" is a comment.
     // Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
@@ -121,8 +121,8 @@ public:
     // The names matching `pattern` ("pers *") of every archive.
     std::vector<std::string> ListKeys(const char* pattern);
 
-    TextSources sources_;
-    const char* cursor_;    // read position in the current text
-    const char* text_;      // start of the current text (null: none)
-    std::uint32_t length_;  // size of the current text, written by GetFile
+    TextSources sources;
+    const char* cursor;     // read position in the current text
+    const char* text;       // start of the current text (null: none)
+    std::uint32_t length;   // size of the current text, written by GetFile
 };

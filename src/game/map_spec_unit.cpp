@@ -60,8 +60,8 @@ std::uint32_t Bits(float f) {
 
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
-void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data, size); }
-void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
+void StreamRead(ByteStream* stream, void* data, unsigned size) { stream->Read(data, size); }
+void StreamWrite(ByteStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
 
 } // namespace
 
@@ -76,7 +76,7 @@ void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Wri
 void WaypointChunk::OnChunk() {
     Waypoint* w = target;
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xBBBE0001: target->position = c.ReadVector3(); break;
     case 0xBBBE0002: w->lookWait = static_cast<std::int16_t>(c.ReadInt()); break;
     case 0xBBBE0003: target->time = c.ReadFloat(); break;
@@ -88,11 +88,11 @@ void WaypointChunk::OnChunk() {
 // A patrol's start, or a waypoint appended and read (OnChunk).
 void PatrolChunk::OnChunk() {
     Chunk& c = *this;
-    if (c.id_ == 0xBBBD0001) {
+    if (c.id == 0xBBBD0001) {
         target->position = c.ReadVector3();
         return;
     }
-    if (c.id_ != 0xBBBE0000) return;
+    if (c.id != 0xBBBE0000) return;
     WaypointChunk child(this);
     Patrol* patrol = target;
     patrol->waypoints.resize(std::ssize(patrol->waypoints) + 1);
@@ -107,7 +107,7 @@ void PatrolChunk::OnChunk() {
 void BehaviourChunk::OnChunk() {
     Chunk& c = *this;
     Behaviour* b = target;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xBBBC0001:
         if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 0) b->alarm = 0;
         break;
@@ -203,13 +203,13 @@ void UnitSpec::Apply() {
         return;
     }
     CUnit* unit = Unit();
-    g_serverWorld.aiMap_.sectorMap.Move(unit, position);
-    g_serverWorld.aiMap_.TurnObject(unit, &rotation);
-    unit->localRotation_ = rotation;
+    g_serverWorld.aiMap.sectorMap.Move(unit, position);
+    g_serverWorld.aiMap.TurnObject(unit, &rotation);
+    unit->localRotation = rotation;
     unit->SetFigureScale(&scale.x);
     unit->baseScale = scale;
     unit->ApplyBaseScale();
-    std::uint32_t& flags = unit->flags_;
+    std::uint32_t& flags = unit->flags;
     if (!visible) flags |= 8;
     else flags &= ~8u;
     unit->ServerController()->ResyncWithUnit();
@@ -237,14 +237,14 @@ void UnitSpec::Save() {
 // left unset (4) becomes 0.
 void UnitSpec::OnChunk() {
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xBBBB0002: prototype = c.ReadString(); break;
     case 0xBBBB0004: c.ReadBytes(&record.stats, sizeof(record.stats)); break;
     case 0xBBBB0005:
     case 0xBBBB0006:
     case 0xBBBB0007:
     case 0xBBBB0008:
-    case 0xBBBB0009: record.lists[c.id_ - 0xBBBB0005] = c.ReadStringArray(); break;
+    case 0xBBBB0009: record.lists[c.id - 0xBBBB0005] = c.ReadStringArray(); break;
     case 0xBBBB000A: record.applyStats = c.ReadByte(); break;
     case 0xBBBC0000: {
         BehaviourChunk reader(this);
@@ -265,7 +265,7 @@ void UnitSpec::OnChunk() {
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
 
 // The count, the array sized to it, then the raw waypoints.
-void WaypointsRead(std::vector<Waypoint>* a, CStream* stream) {
+void WaypointsRead(std::vector<Waypoint>* a, ByteStream* stream) {
     int n;
     StreamRead(stream, &n, 4);
     a->resize(n);
@@ -273,7 +273,7 @@ void WaypointsRead(std::vector<Waypoint>* a, CStream* stream) {
 }
 
 // The count, then the raw waypoints.
-void WaypointsWrite(const std::vector<Waypoint>* a, CStream* stream) {
+void WaypointsWrite(const std::vector<Waypoint>* a, ByteStream* stream) {
     int n = static_cast<int>(a->size());
     StreamWrite(stream, &n, 4);
     for (const Waypoint& w : *a) StreamWrite(stream, &w, sizeof(Waypoint));
@@ -281,7 +281,7 @@ void WaypointsWrite(const std::vector<Waypoint>* a, CStream* stream) {
 
 // The record from a stream. Files before version 0x53 have no alarm level: it follows
 // from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). unreadChunk is not stored.
-void Behaviour::Read(CStream* stream) {
+void Behaviour::Read(ByteStream* stream) {
     StreamRead(stream, &type, 4);
     int n;
     StreamRead(stream, &n, 4);
@@ -300,7 +300,7 @@ void Behaviour::Read(CStream* stream) {
     StreamRead(stream, &callRadius, 4);
     StreamRead(stream, &alertMode, 4);
     StreamRead(stream, &alarmDelay, 4);
-    if (static_cast<std::int32_t>(stream->version_) >= kVersionUnitAlarm) {
+    if (static_cast<std::int32_t>(stream->version) >= kVersionUnitAlarm) {
         StreamRead(stream, &alarm, 4);
         return;
     }
@@ -312,7 +312,7 @@ void Behaviour::Read(CStream* stream) {
 }
 
 // The record to a stream (the same fields).
-void Behaviour::Write(CStream* stream) const {
+void Behaviour::Write(ByteStream* stream) const {
     StreamWrite(stream, &type, 4);
     int n = std::ssize(patrols);
     StreamWrite(stream, &n, 4);

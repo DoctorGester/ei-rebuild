@@ -1,4 +1,4 @@
-// The main menu (CMainMenu, ui_screens.h): its Create, version line, per-frame update, close, message
+// The main menu (MainMenu, ui_screens.h): its Create, version line, per-frame update, close, message
 // answers, mouse move and keys; the interface's saved-state reset and the regions' SetRect from a
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
 #include "app.h"
@@ -67,71 +67,71 @@ double RandomScaled(double scale) { return x87::FromUnsigned(g_clientRandom.Next
 
 // --- The interface's saved state cleared ----------------------------------------------
 
-void CInterface3D::ResetSavedState() {
-    hudPanelsIn_[0] = 0;
-    hudPanelsIn_[1] = 0;
-    hudPanelsIn_[2] = 0;
-    hudBodyPart_ = 0;
-    hudTopPage_ = 0;
-    fastGame_ = 0;
+void Interface3D::ResetSavedState() {
+    hudPanelsIn[0] = 0;
+    hudPanelsIn[1] = 0;
+    hudPanelsIn[2] = 0;
+    hudBodyPart = 0;
+    hudTopPage = 0;
+    fastGame = 0;
 }
 
 // --- A region's SetRect from a RECT ---------------------------------------------------
 
-void CUiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
+void UiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 
 // --- The version line --------------------------------------------------------------
 
-void CMainMenu::AddVersionLine() {
-    CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
+void MainMenu::AddVersionLine() {
+    UiSurface* surface = new UiSurface(ui, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
     surface->Clear();
-    std::string text = g_clientWorld.texts_->CTextManager::GetString(kVersionKey);
-    RECT rect = {0, 0, 675, 120};
-    surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
+    std::string text = g_clientWorld.texts->TextManager::GetString(kVersionKey);
+    RECT area = {0, 0, 675, 120};
+    surface->DrawTextIn(text, &area, 2, 0xA7D7E4, 2, 1);
     AddSurface(surface);
 }
 
 // --- Create ----------------------------------------------------------------
 
-void CMainMenu::CreateScreen() {
-    interface_->ResetSavedState();
+void MainMenu::CreateScreen() {
+    ui->ResetSavedState();
     g_gameFlow.UseResources(false);
-    UiInputSide* inert = new UiInertInput(interface_);
+    UiInputSide* inert = new UiInertInput(ui);
     AddInput(inert);
-    hovered_ = -1;
-    rect_ = RECT{0, 0, 800, 600};
+    hovered = -1;
+    rect = RECT{0, 0, 800, 600};
     AddVersionLine();
     for (int i = 0; i < 6; ++i) {
-        CUiRegion* region = AddRegion();
-        RECT rect;
-        gameapi::CopyRect(&rect, &g_menuRects[i]);
-        region->SetRectFrom(rect);
+        UiRegion* region = AddRegion();
+        RECT area;
+        gameapi::CopyRect(&area, &g_menuRects[i]);
+        region->SetRectFrom(area);
     }
     GamePlayMusic(nullptr);
-    savedEdgeFade_ = options::g_options.borderFogDistance_;
-    options::g_options.borderFogDistance_ = kMenuEdgeFade;
-    rain_ = (g_clientRandom.Next() & 1) == 1;
+    savedEdgeFade = options::g_options.borderFogDistance;
+    options::g_options.borderFogDistance = kMenuEdgeFade;
+    rain = (g_clientRandom.Next() & 1) == 1;
     // The hour is read three times (the unrounded result is compared each time).
     EI_NAN_AUDIT(GameServerTimeOfDay());
-    daylight_ = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
-    if (GameServerTimeOfDay() < kDawn && rain_)
+    daylight = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
+    if (GameServerTimeOfDay() < kDawn && rain)
         GameSetWeather(kWeatherRain, kWeatherStrength);
     GameStartAmbience();
     GameShowCameraPath(kCameraPath);
-    hour_ = 0.0f;
-    g_clientWorld.music_->PlayMainMenu();
+    hour = 0.0f;
+    g_clientWorld.music->PlayMainMenu();
 }
 
 // --- Update (every frame) ---------------------------------------------------
 
-void CMainMenu::Update() {
-    CUiContainer::Update();
-    int hour = static_cast<int>(GameServerTimeOfDay());
-    if (hour != static_cast<int>(hour_) && rain_) {
-        if (hour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);
-        else if (hour == kRainEndHour) GameSetWeather(kWeatherClear, kWeatherStrength);
+void MainMenu::Update() {
+    UiContainer::Update();
+    int serverHour = static_cast<int>(GameServerTimeOfDay());
+    if (serverHour != static_cast<int>(hour) && rain) {
+        if (serverHour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);
+        else if (serverHour == kRainEndHour) GameSetWeather(kWeatherClear, kWeatherStrength);
     }
-    if (!daylight_ && rain_ && hour < kLightningBeforeHour && (g_sceneRenderer.flags_ & 1) != 0) {
+    if (!daylight && rain && serverHour < kLightningBeforeHour && (g_sceneRenderer.flags & 1) != 0) {
         std::uint32_t now = gameapi::GetTickCount();
         if (now > g_nextLightningTick) {
             g_nextLightningTick = now + 100;
@@ -146,20 +146,20 @@ void CMainMenu::Update() {
             }
         }
     }
-    hour_ = static_cast<float>(GameServerTimeOfDay());
+    hour = static_cast<float>(GameServerTimeOfDay());
 }
 
 // --- Close -----------------------------------------------------------------
 
-void CMainMenu::CloseScreen() {
-    options::g_options.borderFogDistance_ = savedEdgeFade_;
+void MainMenu::CloseScreen() {
+    options::g_options.borderFogDistance = savedEdgeFade;
     GameStopSounds(1);
     GameStopAmbience();
 }
 
 // --- A message box's answer -----------------------------------------------
 
-void CMainMenu::MessageResult(int result) {
+void MainMenu::MessageResult(int result) {
     g_gameFlow.UseResources(false);
     GameSetServerPaused(0);
     if (result == 0x10001) {
@@ -183,26 +183,26 @@ void CMainMenu::MessageResult(int result) {
 
 // --- The mouse move and the keys -------------------------------------------
 
-void CMainMenu::MouseMove(int buttons, int x, int y) {
-    if (auto* stones = g_clientWorld.objectManager_->FindObjectAs<CObject3D>(kStonesObject)) {
+void MainMenu::MouseMove(int buttons, int x, int y) {
+    if (auto* stones = g_clientWorld.objectManager->FindObjectAs<CObject3D>(kStonesObject)) {
         int region = RegionAt(x, y);
         std::string name(stones->name);
-        if (region != hovered_) {
+        if (region != hovered) {
             FigureAnimation* animation;
             if (region >= 0 && region < 6)
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
-                animation = g_clientWorld.objectManager_->FindAnimation(&name, kRestPoseKind);
+                animation = g_clientWorld.objectManager->FindAnimation(&name, kRestPoseKind);
             stones->PlayAnimation(animation);
-            interface_->PlaySound(kStoneSound);
+            ui->PlaySound(kStoneSound);
         }
-        hovered_ = region;
+        hovered = region;
     }
-    CUiContainer::MouseMove(buttons, x, y);
+    UiContainer::MouseMove(buttons, x, y);
 }
 
-void CMainMenu::KeyDown(int key, int repeat, int flags) {
-    CUiContainer::KeyDown(key, repeat, flags);
+void MainMenu::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (key != VK_ESCAPE) return;
-    interface_->PushWindow(new CMessageBox(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1), true, true);
+    ui->PushWindow(new MessageWindow(ui, kQuitTitle, kQuitText, 0x10000, 3, 1), true, true);
 }

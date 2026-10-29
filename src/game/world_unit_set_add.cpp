@@ -23,9 +23,9 @@ std::uint32_t ScaleKey(const Vector3& scale) {
 // An item's id (its prototype index in the high word, its material in the low word) when the item
 // is there and both indices are inside their tables (`known` for the prototype), else kNoItemId.
 template <typename Known>
-std::uint32_t ItemId(const CEngineObject* item, Known known) {
+std::uint32_t ItemId(const EngineObject* item, Known known) {
     if (!item) return kNoItemId;
-    std::uint32_t id = item->prototypeId_;
+    std::uint32_t id = item->prototypeId;
     if (!known(id >> 16) || !itemdb::MaterialAt(id & 0xFFFF)) return kNoItemId;
     return id;
 }
@@ -41,9 +41,9 @@ bool SameIds(const DressedUnitRecord& a, const DressedUnitRecord& b) {
 
 void UnitSet::Add(CUnit* unit) {
     FiguredUnitRecord record;   // its vectors empty
-    std::uint32_t prototype = unit->prototypeId_ & 0xFFFF;
+    std::uint32_t prototype = unit->prototypeId & 0xFFFF;
     const Vector3 scale = unit->scale;
-    record.prototype = static_cast<std::uint16_t>(unit->prototypeId_);
+    record.prototype = static_cast<std::uint16_t>(unit->prototypeId);
     std::uint32_t scaleKey = ScaleKey(scale);
     record.morphS = scale.x;
     record.morphT = scale.y;
@@ -71,11 +71,11 @@ void UnitSet::Add(CUnit* unit) {
     }
     if (!marked) {
         if (unit->MapType() != MapObjectType::Hero) {
-            // The texts the server companion holds (CMapObjectServer's string array).
-            const CMapObjectServer* server = unit->ServerCompanion();
+            // The texts the server companion holds (MapObjectServer's string array).
+            const MapObjectServer* server = unit->ServerCompanion();
             for (const std::string& name : server->strings) record.names.push_back(name);
         }
-        record.modelNumber = static_cast<int>(unit->id_);
+        record.modelNumber = static_cast<int>(unit->id);
         // The group reached again as the game does: the groups grow for one more entry each time (their bucket
         // count is the walk order Write sends).
         figured[prototype].insert({scaleKey, record});
@@ -89,6 +89,6 @@ void UnitSet::Add(CUnit* unit) {
             return;
         }
     }
-    record.modelNumber = static_cast<int>(unit->id_);
+    record.modelNumber = static_cast<int>(unit->id);
     dressed.insert({prototype, record});
 }

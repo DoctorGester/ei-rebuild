@@ -15,142 +15,142 @@
 
 // --- Construction -------------------------------------------------------------------------------
 
-void CFigureMesh::SetUpFigure() {
-    refCount_ = 0;
-    id_ = -1;
-    prototypeId_ = 0;
-    type_ = 0;
-    flags_ = 0;
-    owner_ = nullptr;
-    localRotation_.SetIdentity();
-    worldRotation_.SetIdentity();
-    object_ = nullptr;
-    std::construct_at(&offsets_);
-    std::construct_at(&colorsA_);
-    std::construct_at(&colorsB_);
-    std::memset(&box_.bounds, 0, sizeof(box_.bounds));
-    box_.pivot = {};
+void FigureMesh::SetUpFigure() {
+    refCount = 0;
+    id = -1;
+    prototypeId = 0;
+    type = 0;
+    flags = 0;
+    owner = nullptr;
+    localRotation.SetIdentity();
+    worldRotation.SetIdentity();
+    object = nullptr;
+    std::construct_at(&offsets);
+    std::construct_at(&colorsA);
+    std::construct_at(&colorsB);
+    std::memset(&box.bounds, 0, sizeof(box.bounds));
+    box.pivot = {};
 }
 
-CFigureMesh::CFigureMesh() {
+FigureMesh::FigureMesh() {
     SetUpFigure();
     CreateMesh();
 }
 
-void CFigureMesh::CreateMesh() {
-    radius_ = 0.0f;
-    drawer_ = nullptr;
-    flags_ = 0;
-    materialValue_ = 0;
-    meshType_ = 0;
-    std::memset(&buffers_, 0, sizeof(buffers_));
-    textureOffsetU_ = 0;
-    textureOffsetV_ = 0;
-    flatColour_ = 0xFFFFFFFF;
-    flatSpecular_ = 0xFFFFFFFF;
-    std::memset(&box_.bounds, 0, sizeof(box_.bounds));
-    box_.pivot = {};
+void FigureMesh::CreateMesh() {
+    radius = 0.0f;
+    drawer = nullptr;
+    flags = 0;
+    materialValue = 0;
+    meshType = 0;
+    std::memset(&buffers, 0, sizeof(buffers));
+    textureOffsetU = 0;
+    textureOffsetV = 0;
+    flatColour = 0xFFFFFFFF;
+    flatSpecular = 0xFFFFFFFF;
+    std::memset(&box.bounds, 0, sizeof(box.bounds));
+    box.pivot = {};
 }
 
 // --- Clearing -----------------------------------------------------------------------------------
 
-void CFigureMesh::Clear() {
-    name_.clear();
-    directory_.clear();
+void FigureMesh::Clear() {
+    name.clear();
+    directory.clear();
     BuffersChanged();
-    offsets_.clear();
-    colorsA_.clear();
-    colorsB_.clear();
-    std::memset(&buffers_, 0, sizeof(buffers_));
-    materialValue_ = 0;
-    meshType_ = 0;
-    if (drawer_ != nullptr) {
-        drawer_->mesh_ = nullptr;
-        drawer_->Release();
+    offsets.clear();
+    colorsA.clear();
+    colorsB.clear();
+    std::memset(&buffers, 0, sizeof(buffers));
+    materialValue = 0;
+    meshType = 0;
+    if (drawer != nullptr) {
+        drawer->mesh = nullptr;
+        drawer->Release();
     }
-    drawer_ = nullptr;
-    flags_ = 0;
+    drawer = nullptr;
+    flags = 0;
 }
 
-void CPlainFigureMesh::Destroy() {
-    vertices_.clear();
-    normals_.clear();
-    corners_.clear();
-    words_.clear();
-    indices_.clear();
-    texCoords_.clear();
+void PlainFigureMesh::Destroy() {
+    vertices.clear();
+    normals.clear();
+    corners.clear();
+    words.clear();
+    indices.clear();
+    texCoords.clear();
     Clear();
 }
 
-void CSharedFigureMesh::Destroy() {
-    vertices_.clear();
-    normals_.clear();
+void SharedFigureMesh::Destroy() {
+    vertices.clear();
+    normals.clear();
     Clear();
 }
 
 // --- Destruction --------------------------------------------------------------------------------
 
-void CFigureMesh::TearDownFigure() {
+void FigureMesh::TearDownFigure() {
     Clear();
-    lib::FreeStorage(colorsB_);
-    lib::FreeStorage(colorsA_);
-    lib::FreeStorage(offsets_);
+    lib::FreeStorage(colorsB);
+    lib::FreeStorage(colorsA);
+    lib::FreeStorage(offsets);
 }
 
-CFigureMesh::~CFigureMesh() { TearDownFigure(); }
+FigureMesh::~FigureMesh() { TearDownFigure(); }
 
 // --- The classes 0x41 and 0x42 ---------------------------------------------------------------
 
-CSharedFigureMesh::CSharedFigureMesh() {
+SharedFigureMesh::SharedFigureMesh() {
 }
 
-CSharedFigureMesh::~CSharedFigureMesh() {
+SharedFigureMesh::~SharedFigureMesh() {
 }
 
-CPlainFigureMesh::CPlainFigureMesh() {
+PlainFigureMesh::PlainFigureMesh() {
 }
 
-CPlainFigureMesh::~CPlainFigureMesh() {
+PlainFigureMesh::~PlainFigureMesh() {
 }
 
 // --- Small virtuals ----------------------------------------------------------------------------
 
-void CFigureMesh::Create() { CreateMesh(); }
-void CFigureMesh::Destroy() { Clear(); }
-const char* CFigureMesh::GetName() { return name_.c_str(); }
-const char* CFigureMesh::ClassName() { return "CFigure"; }
-ClassId CFigureMesh::GetClassId() { return ClassId::FigureMesh; }
+void FigureMesh::Create() { CreateMesh(); }
+void FigureMesh::Destroy() { Clear(); }
+const char* FigureMesh::GetName() { return name.c_str(); }
+const char* FigureMesh::ClassName() { return "CFigure"; }
+ClassId FigureMesh::GetClassId() { return ClassId::FigureMesh; }
 
 // --- Drawer and owner ---------------------------------------------------------------------------
 
-void CFigureMesh::SetDrawer(FigureMeshDrawer* drawer) {
-    if (drawer_ != nullptr) {
-        drawer_->mesh_ = nullptr;
-        drawer_->Release();
-    }
-    drawer_ = drawer;
+void FigureMesh::SetDrawer(FigureMeshDrawer* newDrawer) {
     if (drawer != nullptr) {
-        drawer->mesh_ = this;
-        drawer_->AddRef();
+        drawer->mesh = nullptr;
+        drawer->Release();
+    }
+    drawer = newDrawer;
+    if (newDrawer != nullptr) {
+        newDrawer->mesh = this;
+        drawer->AddRef();
     }
 }
 
-void CFigureMesh::SetObject(CTransformObject* object) { object_ = object; }
+void FigureMesh::SetObject(TransformObject* newObject) { object = newObject; }
 
 // --- The figure manager -------------------------------------------------------------------------
 
 CFigureManager::CFigureManager() {}
 
-CEngineObject* CFigureManager::NewObject(int type) {
-    return static_cast<CEngineObject*>(::CreateFigureObject(type));
+EngineObject* CFigureManager::NewObject(int objectType) {
+    return static_cast<EngineObject*>(::CreateFigureObject(objectType));
 }
 
-CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
-    CEngineObject* object = CBaseManager::CreateObject(type, id);
-    const auto kind = static_cast<FigureObjectType>(type);
+EngineObject* CFigureManager::CreateFigureObject(int newType, int newId) {
+    EngineObject* object = BaseManager::CreateObject(newType, newId);
+    const auto kind = static_cast<FigureObjectType>(newType);
     if (kind < FigureObjectType::SharedFigureMesh || kind > FigureObjectType::SkyObject || object == nullptr) return object;
-    CBaseManager* drawers = context_->SpecificManager();
+    BaseManager* drawers = context->SpecificManager();
     auto* drawer = drawers->CreateObjectAs<FigureMeshDrawer>(SideObjectType::Drawer, -1);
-    static_cast<CFigureMesh*>(object)->SetDrawer(drawer);
+    static_cast<FigureMesh*>(object)->SetDrawer(drawer);
     return object;
 }

@@ -1,8 +1,8 @@
 #pragma once
 
 // The item description panel of the camp, the multiplayer hero screen and the exchange window
-// (docs/notes/ui.md, "Item descriptions"). A CUiWindow with one surface (200 x 300 at the layout point x_,
-// y_) on which it writes what the mouse is over: an item (DescribeItem), a statistic of the hero or the
+// (docs/notes/ui.md, "Item descriptions"). A UiWindow with one surface (200 x 300 at the layout point x,
+// y) on which it writes what the mouse is over: an item (DescribeItem), a statistic of the hero or the
 // level-up page, or a camp help topic. Its draw draws the described item's model through the owner screen.
 // Every description writes the title wrapped in white at (15, 10)-(185, 25), then lines 15 pixels apart in
 // 0xA7D7E4, the description text wrapped last.
@@ -20,7 +20,7 @@
 #include <map>
 #include <vector>
 
-class CItemInfoPanel;
+class ItemInfoPanel;
 class CTexture;
 
 // The seven damage values against the last one: the threshold ("%d" when `integer`, else "%.1f"), the damage
@@ -40,11 +40,11 @@ DamageLists ItemDamageLists(const float* values, bool integer);
 CTexture* ItemFigureTexture(std::string_view name);
 // The model manager's object `name`, or a 100 x 100 interface sprite standing in for it; counted (one
 // reference for the caller).
-CUiMesh* ItemModel(std::string_view name);
+UiMesh* ItemModel(std::string_view name);
 
 // An item drawn as a turning model in a cell (DrawItem's argument).
 struct ItemCell {
-    CItem* item;
+    Item* item;
     float x;         // the cell's centre (layout)
     float y;
     float depth;
@@ -68,7 +68,7 @@ struct ItemCacheEntry {
     std::uint32_t lastUse;
 };
 
-// A cache of the item screens (models_ and textures_): a map from a name to {object, time of last use}, and
+// A cache of the item screens (models and textures): a map from a name to {object, time of last use}, and
 // how many entries it keeps (30; 20 when an option byte is set). TrimItemCache releases the least recently
 // used objects beyond that.
 template <typename Object>
@@ -77,7 +77,7 @@ struct ItemObjectCache {
     std::uint32_t limit = 50;
 };
 // Kept: the screens' two named caches of the one template.
-using ItemModelCache = ItemObjectCache<CUiMesh>;        // the models (CUiMesh)
+using ItemModelCache = ItemObjectCache<UiMesh>;        // the models (UiMesh)
 using ItemTextureCache = ItemObjectCache<CTexture>;     // the model textures (ItemFigureTexture's)
 // While the cache holds more than its limit: the least recently used entry (used before now) has
 // its object released and is erased. Spins while every entry was used at or after now.
@@ -99,13 +99,13 @@ inline void TrimItemCache(ItemObjectCache<Object>* cache) {
     }
 }
 
-// An item's turning state, a counted object in the item's link_: made by the item draw and the moves.
-class ItemTurn : public CRefObject {
+// An item's turning state, a counted object in the item's link: made by the item draw and the moves.
+class ItemTurn : public RefObject {
 public:
     ItemTurn() {
-        refs_ = 0;
-        flags6_ = 0;
-        flags7_ = 0;
+        refs = 0;
+        flags6 = 0;
+        flags7 = 0;
     }
     void OnShutdown() override;
     ItemTurn* Clone() override;
@@ -115,25 +115,25 @@ public:
     bool flag = false;       // set by a move into a list shown turning
     float glow = 0.0f;       // phase of the spell glow
 };
-inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link_.Get()); }
+inline ItemTurn* ItemTurnOf(Item* item) { return static_cast<ItemTurn*>(item->link.Get()); }
 // An item a constructor made: a move into a list shown turning sets its turn's flag.
-inline bool IsMade(CItem* item) {
+inline bool IsMade(Item* item) {
     const ItemTurn* turn = ItemTurnOf(item);
     return turn && turn->flag;
 }
 
-// The party's best skill in a spell school and its most mana units (CItemScreen::BestPartySkill).
+// The party's best skill in a spell school and its most mana units (ItemScreen::BestPartySkill).
 struct PartySkill {
     int skill = 0;
     int mana = 0;
 };
 
 class CParty;
-class CItemScreen;
+class ItemScreen;
 // The item screens' icon window.
-class CItemIconWindow final : public CUiWindow {
+class ItemIconWindow final : public UiWindow {
 public:
-    explicit CItemIconWindow(CInterface3D* ui) : CUiWindow(ui) {}
+    explicit ItemIconWindow(Interface3D* ui) : UiWindow(ui) {}
     // The frame sprites: a strip of 8 cells over the layout's middle, the column edges and corners of four
     // 200-wide columns, and six bars.
     void Build() override;
@@ -145,14 +145,14 @@ public:
 // The item screens (the camp, the multiplayer hero screen and the exchange window share these fields): the
 // description panel, the item under the mouse, and the caches of item models (by the item's picture name) and
 // figure textures (by its figure name).
-class CItemScreen : public CUiContainer {
+class ItemScreen : public UiContainer {
 public:
-    ~CItemScreen() override;
+    ~ItemScreen() override;
 
     // The item screens' slots over the container's: the plain item screen's answers and empty stubs; the
     // camp, the exchange and the hero screen override them.
-    virtual void TakeItem(CItem*, int) {}
-    virtual bool CanEquip(CItem* item, int mode);
+    virtual void TakeItem(Item*, int) {}
+    virtual bool CanEquip(Item* item, int mode);
     virtual void TopicClicked(int) {}
     virtual PartySkill BestPartySkill(int school);
     virtual void RefreshWeapons() {}
@@ -163,17 +163,17 @@ public:
     virtual PartyUnitRecord* HeroRecord() { return nullptr; }               // the shown hero
     virtual void ChooseFigure(std::string_view) {}
     virtual double Weight();
-    virtual int Price(CItem* item, int kind);
+    virtual int Price(Item* item, int kind);
     // Draws `cell`'s item: its model (cached, created) with its texture (cached) turning while the mouse is
     // on it, a glow in the colour of the carried spell's school, a frame behind it, the modifier marks of a
     // spell container, and a shade over items the strip's mode cannot take (CanEquip).
-    void DrawItem(CSceneRenderer* pass, const ItemCell& cell);
+    void DrawItem(SceneRenderer* pass, const ItemCell& cell);
     // Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the figure prototype's
     // model name, the prototype's field) with texture "face<m|f><two digits>" ("m" for model "unhuma",
     // "f" for "unhufe", else nothing), both cached as the items are, tilted back by (y - 300) / 1000
     // radians, over the cell frame.
-    void DrawHeroFace(CSceneRenderer* pass, const HeroFaceCell& cell);
-    // The screens' common Create: the icon window (iconWindow_, a child with the screen's texture 0, built), textures
+    void DrawHeroFace(SceneRenderer* pass, const HeroFaceCell& cell);
+    // The screens' common Create: the icon window (iconWindow, a child with the screen's texture 0, built), textures
     // "modifiers2" and "campslots", the display's settings, and the caches' limits (30, or 20 with an option byte
     // set).
     void CreateBase();
@@ -182,18 +182,18 @@ public:
     // With `limit` > 0 and at least that many items in `to`, only when `item` is the same (IsSameAs) as one
     // of its first `limit` items (else nothing, null). The unconditional move with `turning` gives the moved
     // item a turning state (made if missing) with its flag set.
-    CItem* MoveItem(CItem* item, CParty* to, CParty* from, int limit, bool merge, bool turning);
+    Item* MoveItem(Item* item, CParty* to, CParty* from, int limit, bool merge, bool turning);
     // Moves every item of `from` into `to` (whole stacks, merged); returns the last item `to` took, or null
     // when `from` was empty.
-    CItem* ReturnAll(CParty* to, CParty* from);
-    CItemInfoPanel* descPanel_ = nullptr;
-    CItem* hoveredItem_ = nullptr;   // the item under the mouse (turns)
-    CItemIconWindow* iconWindow_ = nullptr;
-    ItemModelCache models_;
-    ItemTextureCache textures_;
+    Item* ReturnAll(CParty* to, CParty* from);
+    ItemInfoPanel* descPanel = nullptr;
+    Item* hoveredItem = nullptr;    // the item under the mouse (turns)
+    ItemIconWindow* iconWindow = nullptr;
+    ItemModelCache models;
+    ItemTextureCache textures;
 
 protected:
-    explicit CItemScreen(CInterface3D* ui) : CUiContainer(ui) {}
+    explicit ItemScreen(Interface3D* ui) : UiContainer(ui) {}
 };
 
 // What a statistic under the mouse is (DescribeStats). The order matters: up to Perk the title and
@@ -216,14 +216,14 @@ struct ItemHoverInfo {
     HoverKind kind = HoverKind::None;
     int index = 0;
     int part = 0;                    // body part (Armour)
-    CItemWeapon* weapon = nullptr;   // Weapon
+    ItemWeapon* weapon = nullptr;   // Weapon
     UnitStats* stats = nullptr;      // the hero's statistics (in the hero record)
     std::string text;                // the text key
 };
 
-class CItemInfoPanel : public CUiItemPanel {
+class ItemInfoPanel : public UiItemPanel {
 public:
-    using CUiItemPanel::CUiItemPanel;
+    using UiItemPanel::UiItemPanel;
     void Deactivate() override { DescribeItem(); }
     // Clears the surface and describes the item in the list (nothing without one): its own description
     // for blueprints, materials, spells, modifiers, quick items of category 8 and spells carried by an
@@ -242,24 +242,24 @@ public:
     // Empties the list, clears the surface and writes help topic "camphelp <topic>".
     void ShowHelp(int topic);
     // Describes `item` (null: nothing) unless it is already the described one (IsSameAs).
-    void Describe(CItem* item);
+    void Describe(Item* item);
     // Ctrl (VK_CONTROL) pressed (not a repeat) or released redraws the described item, so that the
     // carried spell is shown while it is held.
     void KeyDown(int key, int repeat, int flags) override;
     void KeyUp(int key, int repeat, int flags) override;
     // Draws the described item's model at (x + 100, y + 200), size 120, greyed (mode 9) through the owner's DrawItem.
-    void Draw(CSceneRenderer* pass) override;
+    void Draw(SceneRenderer* pass) override;
     // Builds the panel at layout point (x, y): its 200 x 300 surface (format 5), the item texts
     // "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text table, and an empty
     // item list.
     void Build(int x, int y);
 
     // The described item: the first of the list, or null.
-    CItem* FirstItem() { return itemParty_.items_.empty() ? nullptr : itemParty_.items_[0]; }
+    Item* FirstItem() { return itemParty.items.empty() ? nullptr : itemParty.items[0]; }
 
-    CParty itemParty_;               // the described item's list
-    int x_ = 0;                      // layout position of the surface
-    int y_ = 0;
-    std::vector<std::string> itemTexts_;    // "infoitem_0" .. "infoitem_44"
-    std::vector<std::string> skillTexts_;   // "infoskill_0" .. "infoskill_24"
+    CParty itemParty;                // the described item's list
+    int x = 0;                       // layout position of the surface
+    int y = 0;
+    std::vector<std::string> itemTexts;     // "infoitem_0" .. "infoitem_44"
+    std::vector<std::string> skillTexts;    // "infoskill_0" .. "infoskill_24"
 };

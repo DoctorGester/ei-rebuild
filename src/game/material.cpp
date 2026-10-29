@@ -1,4 +1,4 @@
-// The material (CMaterial) and the material manager (CMaterialManager): material.h. See
+// The material (Material) and the material manager (CMaterialManager): material.h. See
 // docs/notes/items_spells.md ("Materials").
 #include "material.h"
 
@@ -26,7 +26,7 @@ constexpr MaterialKindFile kMaterialKindFiles[8] = /*00743BF8*/ {
 };
 
 // The names and alpha the constructor and Create reset (in their order).
-void ResetFields(CMaterial* m) {
+void ResetFields(Material* m) {
     m->name = game::NoneText();
     m->colors.diffuse.w = 1.0f;
     m->name2 = game::NoneText();
@@ -45,22 +45,22 @@ MaterialColors& EnterKey(std::unordered_map<unsigned, MaterialColors>& table, un
 } // namespace
 
 
-CMaterial::CMaterial() {
+Material::Material() {
     ResetFields(this);
 }
 
-void CMaterial::Create() {
+void Material::Create() {
     ResetFields(this);
     entries.clear();
 }
 
-void CMaterial::Destroy() {
+void Material::Destroy() {
     entries.clear();
 }
 
-const char* CMaterial::GetName() { return name.c_str(); }
-const char* CMaterial::ClassName() { return kMaterialClassName; }
-ClassId CMaterial::GetClassId() { return ClassId::Material; }
+const char* Material::GetName() { return name.c_str(); }
+const char* Material::ClassName() { return kMaterialClassName; }
+ClassId Material::GetClassId() { return ClassId::Material; }
 
 CMaterialManager::CMaterialManager() {}
 
@@ -69,49 +69,54 @@ CMaterialManager::~CMaterialManager() = default;
 void CMaterialManager::Create() {
     // Rebirth's ResOverride: the mod's archives open here if nothing opened them yet.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
-    CBaseManager::Create();
+    BaseManager::Create();
     const std::string folder = g_textFolder;
     AddArchive((folder + "materials.res"));
 
     for (const MaterialKindFile& kind : kMaterialKindFiles) {
-        MaterialColors colors;
-        std::memset(&colors, 0, sizeof(colors));
+        MaterialColors lit;
+        std::memset(&lit, 0, sizeof(lit));
         void* data = GetFile(kind.file, nullptr);
         if (!data) {
-            colors.diffuse = {0.3f, 0.3f, 0.3f, 1.0f};
-            colors.ambient.x = colors.ambient.y = colors.ambient.z = 0.7f;
-            colors.specular.x = colors.specular.y = colors.specular.z = 0.2f;
-            colors.power = 5.0f;
+            lit.diffuse = {0.3f, 0.3f, 0.3f, 1.0f};
+            lit.ambient.x = lit.ambient.y = lit.ambient.z = 0.7f;
+            lit.specular.x = lit.specular.y = lit.specular.z = 0.2f;
+            lit.power = 5.0f;
         } else {
-            lib::LoadBytes(colors, MaterialFileColors(data));
+            lib::LoadBytes(lit, MaterialFileColors(data));
         }
         CloseFile(data);
-        if (kind.kind == kMagicMaterialKind) colors.emissive.x = colors.emissive.y = colors.emissive.z = 1.0f;
-        colors_[static_cast<unsigned>(kind.kind)] = colors;
+        if (kind.kind == kMagicMaterialKind) lit.emissive.x = lit.emissive.y = lit.emissive.z = 1.0f;
+        colors[static_cast<unsigned>(kind.kind)] = lit;
     }
 }
 
-CEngineObject* CMaterialManager::NewObject(int type) {
-    auto* material = new CMaterial();
-    material->type_ = type;
+EngineObject* CMaterialManager::NewObject(int objectType) {
+    auto* material = new Material();
+    material->type = objectType;
     return material;
 }
 
-CMaterial* CMaterialManager::NewMaterial(int type) {
-    auto* material = CreateObjectAs<CMaterial>(type, -1);
+Material* CMaterialManager::NewMaterial(int materialType) {
+    auto* material = CreateObjectAs<Material>(materialType, -1);
     // The game sets the flag before its null check, so a failed creation faults there.
     if (!material) return nullptr;
-    material->flags_ |= MaterialFlag::Keyed;
-    material->colors = EnterKey(colors_, static_cast<unsigned>(material->type_));
+    material->flags |= MaterialFlag::Keyed;
+    material->colors = EnterKey(colors, static_cast<unsigned>(material->type));
     return material;
 }
 
-int CMaterialManager::FillMaterial(CMaterial* material, unsigned key) {
+int CMaterialManager::FillMaterial(Material* material, unsigned key) {
     if (!material) return 0;
-    material->colors = EnterKey(colors_, key);
+    material->colors = EnterKey(colors, key);
     return 1;
 }
 
 const char* CMaterialManager::ClassName() { return kManagerClassName; }
 ClassId CMaterialManager::GetClassId() { return ClassId::MaterialManager; }
 const char* CMaterialManager::GetFolderName() { return kManagerFolder; }
+
+std::uint32_t Material::GpuLitColour() const {
+    const float alpha = colors.diffuse.w * 255.0f;
+    return static_cast<std::uint32_t>(x87::fistp(alpha)) << 24 | 0x00FFFFFFu;
+}

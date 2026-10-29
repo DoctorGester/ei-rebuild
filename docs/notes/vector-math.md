@@ -29,7 +29,7 @@ sin / cos (particle_callbacks.cpp most), `float a[3]` / `[4]` / `[16]` / `[12]` 
 (`Store`, `StoreFloat`, `RoundToFloat`; all `static_cast<float>` since SV7d1a1), local `D(float)` helpers and naked `Fpatan` /
 `CIacos` / `CIasin` copies. Orders in source were written from the disassembly by the porting workers; VC6's inliner and
 scheduler produced them, so they do not follow from the original source (two neighbouring functions differ:
-unit_ai_memory.cpp NearestEnemy is ZXY, ForceSee is ZYX).
+unit_ai_senses.cpp NearestEnemy is ZXY, ForceSee is ZYX).
 
 ## 3. Orders checked against the disassembly
 
@@ -53,7 +53,7 @@ Also: `CubicSegment` (core_maths.h, float c[4]). Vertex structs with a position:
 `DecalVertex`, render `Vertex`, `GlobalMapPlace` have a `Vector3` position; clip.h TLVertex, renderer_lines.h,
 effects.h, lightning.h LightningPoint do not yet.
 
-Two matrix conventions are in use: CTransformObject::WorldMatrix and the figure code use row vectors (`v * M`,
+Two matrix conventions are in use: TransformObject::WorldMatrix and the figure code use row vectors (`v * M`,
 translation m[12..14], D3D); the transform pipeline, clip codes, decals and view code use column vectors (`M * v`,
 translation m[3], m[7], m[11]; render_internal.h says so).
 
@@ -80,7 +80,7 @@ Hooked out-of-line originals (none is Rebirth-patched; all stay hooked):
 | 0046A4B0 | QuaternionRotate (map_spec.cpp) | dot ZXY-class `(x+z)+y`; `(m*v + b) + a` |
 | 0040CB80 | CombineRotation (core_transform.cpp) | |
 | 004D9880 / 004D9B80 | MatrixMultiply / PushMatrix | per-element sum orders differ (tables in matrix_math.cpp) |
-| 004D9AA0, 00401570 | Quaternion::ToMatrix, CTransformObject::WorldMatrix | |
+| 004D9AA0, 00401570 | Quaternion::ToMatrix, TransformObject::WorldMatrix | |
 | 00560E10 | MatrixRows::Transform | `(m2*z + m1*y) + x*m0` per row (M * v) |
 | 004F1370 / 004F13F0 / 004F0E80 | Viewport / Shear / Projection matrix | |
 | 0040E3D0 / 0040E440 | CubicSegment SetBSpline / Evaluate | |
@@ -163,7 +163,7 @@ kept), 2D distances and dots, 3D lengths, quaternions, matrix x point, particles
 order matches (keeping the all-loads-before-stores aliasing); rewritten callers use the inline helper instead of calling Dot /
 Length / CrossProduct (same bits). Not vectors, skipped by the counter (`_VEC_NOT_VECTOR`, reasons in check_cleanup.py):
 `VertexPacket::block` (the SoA rows of four vertices; PositionBlock folded into it) and per-corner `*distances` arrays; stat
-and weight names (`link_figure.h` `morph_` is `morphWeights_`).
+and weight names (`link_figure.h` `morph_` is `morphWeights`).
 
 **Rules that came out of the batches** (each batch compared the release objects function by function with dumpbin, later with a
 symbolic x87 comparison of every store, call argument, compare and return; the differences left were stack slots, scheduling,
@@ -182,7 +182,7 @@ register choice, commuted FADD / FMUL operands, compare operand order with the s
   the sum, use the precise forms (rounded result) and only on main-thread code: `DotZYX`, `LengthSquaredXYZ`, and the quaternion
   axis forms `RotatedAxisX / Y / Z` (they take the quaternion by reference and store floats; the previous written-out 2(yz + wx)
   had become (2wx + yz) + yz under /fp:fast, a second rounding the game does not make: it adds with FADD ST0, ST0, then stores).
-  `Quaternion::AxisX / Y / Z` and `CCamera::GroundPoint` (core_transform.cpp) go through `RotatedAxis*` (the originals' order,
+  `Quaternion::AxisX / Y / Z` and `Camera::GroundPoint` (core_transform.cpp) go through `RotatedAxis*` (the originals' order,
   checked against 0040D6B0). A two-term sum's operands commute exactly, so `(y + x) + z` is XYZ and `(y + z) + x` is ZYX; there
   are only the three groupings.
 - A site that dereferences or stores in a precise region (`DepthLess::Less` in world_rules): `DotUnrounded<Sum3::ZYX, float>` rounded
@@ -203,11 +203,11 @@ register choice, commuted FADD / FMUL operands, compare operand order with the s
   (x ZYX, y / z XYZ). ClipTest and ExtendWorldBox round the box corners to float, which the original keeps on the FPU (same at 24
   bits). world_client's plane dots: SurfaceHeight XYZ, Contains / SurfacePlane ZYX.
 - Callees taking Vector3* / Quaternion*: Negate 00402200, QuaternionAxisX / Y / Z 0040D940 / 0040F560 / 0040D6B0 (originals_core.h),
-  AIPathStartOriginal 005C7B00, MotionSample 005C7430, the CAIMap lookups (originals_ai.h), MarkerDraw 00503A40, IsLit 006CB020
+  AIPathStartOriginal 005C7B00, MotionSample 005C7430, the AIMap lookups (originals_ai.h), MarkerDraw 00503A40, IsLit 006CB020
   (originals_effects.h), LightSet 0068D0A0; callers use LineOfSightOriginal / SectorMapMove. Others still get `&v.x`.
 - Field types now vecmath: `SectorPosition : Vector3`, `ProjectedVertex : Vector4` (device_buffers.h), `CObject3D`
-  worldMatrix (its position / rotation fields are CTransformObject's), CUiMesh placement_ / scaleMatrix_ Matrix4, CGlobalMap
-  `position_` Vector3 and `turn_` Quaternion (w first), sound.h positions, script.h steps, the new renderer's matrices
+  worldMatrix (its position / rotation fields are TransformObject's), UiMesh placement_ / scaleMatrix Matrix4, GlobalMap
+  `position` Vector3 and `turn` Quaternion (w first), sound.h positions, script.h steps, the new renderer's matrices
   (`MeshDraw::matrix` is `const Matrix4*`, shaders' uniform blocks hold a `Matrix4 matrix`).
 - tests/verify/verify_vecmath.cpp checks the unrounded forms alone, `(2a) . b`, `RotatedAxis* * 2` and `OffsetDot2DUnrounded`
   against one-rounding-per-operation references on inputs that separate the three dots / squares (24 each, 2904 checks).

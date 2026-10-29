@@ -21,18 +21,18 @@ inline const char* ZoneVariablePrefixText() { return "z."; }
 // A prototype's weapon name that gives no weapon.
 inline const char* NoneText() { return "none"; }
 
-// The bow shot's figure (CEffectArrowFigure): model and texture.
+// The bow shot's figure (EffectArrowFigure): model and texture.
 inline const char* ArrowFigureModelText() { return "efar1"; }
 inline const char* ArrowFigureTextureText() { return "arrow01"; }
 
-// The bird circling the followed hero (CEffectMoshka): model and texture.
+// The bird circling the followed hero (EffectMoshka): model and texture.
 inline const char* MoshkaModelText() { return "unmobi"; }
 inline const char* MoshkaTextureText() { return "bird00"; }
 
-// The tornado's looping sound (CEffectTornado).
+// The tornado's looping sound (EffectTornado).
 inline const char* TornadoSoundText() { return "nature\\tornado\\circle.wav"; }
 
-// A player's game-time variable (CWorldServer::UpdatePlayerTimes).
+// A player's game-time variable (WorldServer::UpdatePlayerTimes).
 inline const char* GTimeText() { return "gtime"; }
 // LoadSave's FatalError.
 inline const char* CantLoadSaveMapText() { return "CWorldServer::LoadSave()\n Can't load map.\n"; }
@@ -48,7 +48,7 @@ inline const char* PrototypeText() { return "prototype"; }
 inline const char* RuneText() { return "rune"; }
 inline const char* SpellContainerText() { return "spell container"; }
 
-// The interface's help topics file (CInterface3D, Create / Shutdown): the name (after the data path) and the line
+// The interface's help topics file (Interface3D, Create / Shutdown): the name (after the data path) and the line
 // format (a topic and its count).
 inline const char* TutorialIniText() { return "config\\tutorial.ini"; }
 inline const char* TutorialLineFormat() { return "%s %d\n"; }
@@ -155,9 +155,9 @@ inline const char* QuestSection() { return "quest "; }
 // World loading error texts (world_zone.cpp).
 namespace zonetexts {
 inline const char* WrongEntrance() { return "Wrong entrance number in zone exits data"; }  // "Wrong entrance number in zone exit..."
-inline const char* CantLoadMob() { return "CWorldServer::LoadMap.\n Can't load .mob file \"%s\".\n"; }  // "CWorldServer::LoadMap.\n Can't load .mob file "%s".\n"
-inline const char* CantReadObjects() { return "CWorldServer::LoadMapObjects\nUnable to read file \"%s\"\n"; }  // "CWorldServer::LoadMapObjects\nUnable to read file "%s"\n"
-inline const char* CantOpenObjects() { return "CWorldServer::LoadMapObjects()\nUnable to read file \"%s\"\n"; }  // "CWorldServer::LoadMapObjects()\nUnable to read file "%s"\n"
+inline const char* CantLoadMob() { return "CWorldServer::LoadMap.\n Can't load .mob file \"%s\".\n"; }  // "WorldServer::LoadMap.\n Can't load .mob file "%s".\n"
+inline const char* CantReadObjects() { return "CWorldServer::LoadMapObjects\nUnable to read file \"%s\"\n"; }  // "WorldServer::LoadMapObjects\nUnable to read file "%s"\n"
+inline const char* CantOpenObjects() { return "CWorldServer::LoadMapObjects()\nUnable to read file \"%s\"\n"; }  // "WorldServer::LoadMapObjects()\nUnable to read file "%s"\n"
 }  // namespace zonetexts
 
 // Unit equipment error texts (unit_equipment.cpp).

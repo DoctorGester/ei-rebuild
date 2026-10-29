@@ -1,8 +1,8 @@
-// A spell effect's casting state (CSpellEffect::Update state 0) and the helpers that create its effect
-// objects. Every spell type starts differently: missiles get a CEffectArrow or a particle source and go to
+// A spell effect's casting state (SpellEffect::Update state 0) and the helpers that create its effect
+// objects. Every spell type starts differently: missiles get a EffectArrow or a particle source and go to
 // state 1, the lasting spells get particles, lights and sound sequences and go to state 2, the instant ones
-// (lightning, the light strike, buffs, charm) deal or apply their effect here. See
-// docs/notes/items_spells.md.
+// (lightning, the light strike, buffs, charm) deal or apply their effect here. Also the cast spell's
+// lifetime. See docs/notes/items_spells.md.
 #include "ai_map.h"
 #include "map_object.h"
 #include "spell.h"
@@ -26,7 +26,7 @@ namespace {
 // --- The spell types ----------------------------------------------------------------------------
 
 // FireArrow (particle FireArrow) and RickMagic (RikArrowSmoke): the fire arrow, a missile at a unit target.
-Next StartFireArrow(CSpellEffect* e, SpellType type, const Vector3& from) {
+Next StartFireArrow(SpellEffect* e, SpellType type, const Vector3& from) {
     if (!IsUnit(e->target)) return Next::Done;
     e->timer = 0x96;
     float range = PrototypeRange(e);
@@ -39,7 +39,7 @@ Next StartFireArrow(CSpellEffect* e, SpellType type, const Vector3& from) {
 }
 
 // Lightning and CurseMagic: lightning from the caster to the target, hitting it at once.
-Next StartLightning(CSpellEffect* e, SpellType type, const Vector3& from) {
+Next StartLightning(SpellEffect* e, SpellType type, const Vector3& from) {
     float power = Power(e);
     e->CreateLightning(from, e->target, e->caster, power, type == SpellType::CurseMagic ? 1 : 0);
     e->CreateSound("magic\\lightning\\start.wav", e->position, kZeroVector, kVolume, kHearing);
@@ -56,7 +56,7 @@ Next StartLightning(CSpellEffect* e, SpellType type, const Vector3& from) {
 }
 
 // AcidRay: a missile (power x 0.4).
-Next StartAcidRay(CSpellEffect* e, const Vector3& from) {
+Next StartAcidRay(SpellEffect* e, const Vector3& from) {
     if (!IsUnit(e->target)) return Next::Done;
     e->timer = 0x96;
     float range = PrototypeRange(e);
@@ -69,8 +69,8 @@ Next StartAcidRay(CSpellEffect* e, const Vector3& from) {
 }
 
 // Fireball: a particle source flying at the target point; it explodes in state 1.
-Next StartFireball(CSpellEffect* e, const Vector3& from) {
-    float speed = e->Spell()->speed_;
+Next StartFireball(SpellEffect* e, const Vector3& from) {
+    float speed = e->Spell()->speed;
     Vector3 velocity;
     velocity.x = e->targetPoint.x - e->position.x;
     velocity.y = e->targetPoint.y - e->position.y;
@@ -84,7 +84,7 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
 
     float size = PowerScaled(e, worlddata::FireballScale());
     CEffectParticle* particle = e->CreateParticle(1, static_cast<int>(ParticleType::FireBall), from, size, 1.0f, velocity, nullptr);   // the visual
-    if (e->caster) particle->unitId_ = e->caster->id_;   // the particle's unit (no null check)
+    if (e->caster) particle->unitId = e->caster->id;     // the particle's unit (no null check)
     e->targetPoint.z = GroundPlus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
     particle->SetTarget(e->targetPoint);
     if (speed * ConstAt(worlddata::FireballNear()) > distance) {
@@ -100,18 +100,18 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
 }
 
 // InvokeLightning: a lightning strike from 30 above the target point, hitting every unit in the radius.
-Next StartLightStrike(CSpellEffect* e) {
+Next StartLightStrike(SpellEffect* e) {
     e->targetPoint.z = GroundMinus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::StrikeDepth()));
     e->position = e->targetPoint;
     Vector3 top = e->targetPoint;
     top.z = top.z + ConstAt(worlddata::StrikeHeight());
     float power = Power(e);
-    auto* bolt = CreateObject<CEffectLightning>(e, ClassId::EffectLightning);
+    auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
     bolt->SetEnds(top, e->position, power * ConstAt(worlddata::StrikeWidth()));
     e->SetVisual(bolt);
 
     float alpha = Power(e);
-    e->CreateParticle(0, static_cast<int>(ParticleType::LightningBlast), e->targetPoint, e->Spell()->radius_, alpha, kZeroVector, nullptr);
+    e->CreateParticle(0, static_cast<int>(ParticleType::LightningBlast), e->targetPoint, e->Spell()->radius, alpha, kZeroVector, nullptr);
     e->CreateSound("magic\\InvokeLight\\start.wav", e->position, kZeroVector, kLoud, kLoud);
     e->targetPoint.z = e->targetPoint.z + ConstAt(worlddata::LightAbove());
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
@@ -124,7 +124,7 @@ Next StartLightStrike(CSpellEffect* e) {
 }
 
 // AcidColumn: the column at the target point.
-Next StartAcidColumn(CSpellEffect* e) {
+Next StartAcidColumn(SpellEffect* e) {
     e->position = e->targetPoint;
     e->CreateParticle(0, static_cast<int>(ParticleType::Nuke), e->targetPoint, 1.0f, 1.0f, kZeroVector, nullptr);
     e->CreateSound("magic\\Acidcolumn\\start.wav", e->targetPoint, kZeroVector, kVolume, kHearing);
@@ -148,20 +148,20 @@ Vector3 WallDirection(const Vector3& centre, const Vector3& from) {
 }
 
 // FireWall: the wall across the line from the caster to the target point.
-Next StartFireWall(CSpellEffect* e, const Vector3& from) {
+Next StartFireWall(SpellEffect* e, const Vector3& from) {
     Vector3 centre = e->targetPoint;
     float alpha = Power(e);
     float size = Power(e);
     e->CreateParticle(1, static_cast<int>(ParticleType::Tendril), centre, size, alpha, kZeroVector, nullptr);
     Vector3 direction = WallDirection(centre, from);
     Vector3 span;
-    WallSpan(direction, &e->Spell()->radius_, &span);
-    if (e->visual) e->Visual<CEffectWall>()->SetDirection(span);
+    WallSpan(direction, &e->Spell()->radius, &span);
+    if (e->visual) e->Visual<EffectWall>()->SetDirection(span);
     e->position = centre;
-    e->timer = static_cast<int>(e->Spell()->duration_);
+    e->timer = static_cast<int>(e->Spell()->duration);
     e->state = 2;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
-    float radius = e->Spell()->radius_;
+    float radius = e->Spell()->radius;
     float range = PrototypeRange(e);
     PrototypeLight(e, centre, radius + range, kZeroVector);
     e->CreateSoundSequence(centre, kZeroVector, "magic\\Firewall\\start.wav", "magic\\Firewall\\circle.wav", -1);
@@ -169,11 +169,11 @@ Next StartFireWall(CSpellEffect* e, const Vector3& from) {
 }
 
 // LightningWall: the light wall, a lightning between the two ends of the same span.
-Next StartLightWall(CSpellEffect* e, const Vector3& from) {
+Next StartLightWall(SpellEffect* e, const Vector3& from) {
     Vector3 centre = e->targetPoint;
     Vector3 direction = WallDirection(centre, from);
     Vector3 span;
-    WallSpan(direction, &e->Spell()->radius_, &span);
+    WallSpan(direction, &e->Spell()->radius, &span);
     Vector3 a, b;
     a.x = e->targetPoint.x - span.x;
     a.y = e->targetPoint.y - span.y;
@@ -183,14 +183,14 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     b.z = span.z + e->targetPoint.z;
     a.z = GroundPlus(e, kRawSurfaceHeight, a, ConstPtr(worlddata::OneRef()));
     b.z = GroundPlus(e, kRawSurfaceHeight, b, ConstPtr(worlddata::OneRef()));
-    auto* bolt = CreateObject<CEffectLightning>(e, ClassId::EffectLightning);
+    auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
     bolt->SetEnds(a, b, 0.0f);
     e->SetVisual(bolt);
     e->position = centre;
-    e->timer = static_cast<int>(e->Spell()->duration_);
+    e->timer = static_cast<int>(e->Spell()->duration);
     e->state = 2;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
-    float radius = e->Spell()->radius_;
+    float radius = e->Spell()->radius;
     float range = PrototypeRange(e);
     PrototypeLight(e, centre, radius + range, kZeroVector);
     e->CreateSoundSequence(centre, kZeroVector, game::kEmptyText, "magic\\Lightwall\\circle.wav", -1);
@@ -198,13 +198,13 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
 }
 
 // AcidFog: the poison cloud at the target point.
-Next StartPoisonCloud(CSpellEffect* e) {
+Next StartPoisonCloud(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float alpha = Power(e);
-    e->CreateParticle(1, static_cast<int>(ParticleType::PoisonFog), centre, e->Spell()->radius_, alpha, kZeroVector, nullptr);
+    e->CreateParticle(1, static_cast<int>(ParticleType::PoisonFog), centre, e->Spell()->radius, alpha, kZeroVector, nullptr);
     e->CreateSoundSequence(centre, kZeroVector, "magic\\poison\\start.wav", "magic\\poison\\circle.wav", -1);
-    float radius = e->Spell()->radius_;
+    float radius = e->Spell()->radius;
     float range = PrototypeRange(e);
     PrototypeLight(e, centre, radius + range, kZeroVector);
     e->position = centre;
@@ -213,18 +213,18 @@ Next StartPoisonCloud(CSpellEffect* e) {
 
 // The buffs (Start lists them). The target gets a record of the spell
 // with the strength trunc(power x 16); the effect itself ends.
-Next ApplyBuff(CSpellEffect* e) {
+Next ApplyBuff(SpellEffect* e) {
     if (!e->target) return Next::Done;
     MapEffect record = e->Spell()->Effect();
     record.power = static_cast<std::uint8_t>(
-        PowerScaledToInt(&e->Spell()->damage_, &Prototype(e)->damage, ConstPtr(worlddata::BuffScale())));
+        PowerScaledToInt(&e->Spell()->damage, &Prototype(e)->damage, ConstPtr(worlddata::BuffScale())));
     record.ending = e->silentEnd;
     e->target->AddEffect(&record);
     return Next::Done;
 }
 
 // Fireworks (five numbered sounds).
-Next StartFirework(CSpellEffect* e) {
+Next StartFirework(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float size = Power(e);
@@ -236,30 +236,30 @@ Next StartFirework(CSpellEffect* e) {
 }
 
 // Clairvoyance. The particle uses the target point as it was; the light, the ground point.
-Next StartClairvoyance(CSpellEffect* e) {
+Next StartClairvoyance(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     e->position = centre;
-    e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), e->targetPoint, e->Spell()->radius_, 1.0f, kZeroVector, nullptr);
-    PrototypeLight(e, centre, e->Spell()->radius_, kZeroVector);
+    e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), e->targetPoint, e->Spell()->radius, 1.0f, kZeroVector, nullptr);
+    PrototypeLight(e, centre, e->Spell()->radius, kZeroVector);
     e->CreateSound("magic\\Clairvoyence\\start.wav", e->position, kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
 
 // Possession (only the sound here).
-Next StartPossession(CSpellEffect* e) {
+Next StartPossession(SpellEffect* e) {
     if (!e->target) return Next::Done;
     Vector3 scratch;
     e->CreateSound("magic\\Possession\\start.wav", *EyePointOf(e->target, &scratch), kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
 
-// VisionFog: a CEffectShowVisibility linking the caster and the target.
-Next StartVisionFog(CSpellEffect* e) {
+// VisionFog: a EffectShowVisibility linking the caster and the target.
+Next StartVisionFog(SpellEffect* e) {
     if (!e->caster || !e->target) return Next::Done;
-    int targetId = e->target->id_;
-    int casterId = e->caster->id_;
-    auto* shown = CreateObject<CEffectShowVisibility>(e, ClassId::EffectShowVisibility);
+    int targetId = e->target->id;
+    int casterId = e->caster->id;
+    auto* shown = CreateObject<EffectShowVisibility>(e, ClassId::EffectShowVisibility);
     shown->SetUnits(casterId, targetId);
     SetPosition(shown, kZeroVector);
     e->SetVisual(shown);
@@ -270,16 +270,16 @@ Next StartVisionFog(CSpellEffect* e) {
 
 // Healing. Heals the target's controller by the effect value; the sound and the light only
 // when the target is not at full health (or +0xA4 is clear).
-Next StartHealing(CSpellEffect* e) {
+Next StartHealing(SpellEffect* e) {
     if (e->target->GetClassId() != ClassId::Unit) return Next::Done;   // no null check
     // Controller Heal (the amount's bits are pushed, MOV/PUSH).
     CUnit* unit = TargetUnit(e);
-    unit->Controller()->Heal(e->Spell()->damage_);
+    unit->Controller()->Heal(e->Spell()->damage);
     float size = Power(e);
     e->CreateParticle(0, static_cast<int>(ParticleType::Healing), kZeroVector, size, 1.0f, kZeroVector, unit);
     bool full = unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints;
     if (e->silentEnd == 0 || !full) {
-        e->CreateSound("magic\\Healing\\start.wav", unit->localPosition_, kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Healing\\start.wav", unit->localPosition, kZeroVector, kVolume, kHearing);
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
@@ -291,7 +291,7 @@ Next StartHealing(CSpellEffect* e) {
 }
 
 // Link between two different units that are both free; otherwise the caster complains (0x18).
-Next StartLink(CSpellEffect* e) {
+Next StartLink(SpellEffect* e) {
     if (!IsUnit(e->target) || !IsUnit(e->caster)) return Next::Done;
     bool free = e->target->IsLargeUnit() == 0 && e->caster->IsLargeUnit() == 0 &&
                 e->target->IsDead() == 0 && e->target != e->caster;
@@ -310,15 +310,15 @@ Next StartLink(CSpellEffect* e) {
         direction.x = to->x - from.x;
         direction.y = to->y - from.y;
         direction.z = to->z - from.z;
-        e->Visual<CEffectWall>()->SetDirection(direction);
+        e->Visual<EffectWall>()->SetDirection(direction);
     }
     e->CreateSoundSequence(from, kZeroVector, "magic\\Link\\start.wav", "magic\\Link\\circle.wav", -1);
     return Next::Set;
 }
 
 // Teleport: a particle where the caster stands and an inverted one at the target point.
-Next StartTeleport(CSpellEffect* e) {
-    const Vector3* source = e->caster ? &e->caster->localPosition_ : &e->position;
+Next StartTeleport(SpellEffect* e) {
+    const Vector3* source = e->caster ? &e->caster->localPosition : &e->position;
     Vector3 point = *source;
     point.z = GroundPlus(e, kGridHeight, point, &point.z);
     e->CreateParticle(1, static_cast<int>(ParticleType::Teleport), point, 1.0f, 1.0f, kZeroVector, nullptr);
@@ -327,7 +327,7 @@ Next StartTeleport(CSpellEffect* e) {
     e->CreateParticle(0, static_cast<int>(ParticleType::Teleport), point, -1.0f, 1.0f, kZeroVector, nullptr);
     e->CreateSound("magic\\Teleport\\start.wav", point, kZeroVector, kVolume, kHearing);
     PrototypeLight(e, point, PrototypeRange(e), kZeroVector);
-    int duration = static_cast<int>(e->Spell()->duration_);
+    int duration = static_cast<int>(e->Spell()->duration);
     if (duration < 1) duration = 1;
     e->state = 2;
     e->timer = duration + 0x1E;
@@ -336,25 +336,25 @@ Next StartTeleport(CSpellEffect* e) {
 
 // Charm. The target's controller is tamed by the caster until their sides (controller
 // +0x1C, +0x24C) agree; a failed attempt makes the caster complain (0x1A).
-Next StartCharm(CSpellEffect* e) {
+Next StartCharm(SpellEffect* e) {
     if (e->target->GetClassId() != ClassId::Unit) return Next::Leave;   // no null check
     if (!IsUnit(e->caster)) return Next::Leave;
-    CUnitServer* tamed = ControllerOf(TargetUnit(e));
-    CUnitServer* tamer = ControllerOf(e->caster);
-    float skill = tamer->stats.intelligence + e->Spell()->damage_;
-    auto side = [](CUnitServer* controller) { return controller->unit->player; };
+    UnitServer* tamed = ControllerOf(TargetUnit(e));
+    UnitServer* tamer = ControllerOf(e->caster);
+    float skill = tamer->stats.intelligence + e->Spell()->damage;
+    auto side = [](UnitServer* controller) { return controller->unit->player; };
     while (side(tamed) != side(tamer)) {
         if (tamed->TryTame(e->caster, skill) == 0) {
             if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::LinkTameFailed);
             return Next::Done;
         }
     }
-    e->CreateSound("magic\\Charm\\start.wav", e->target->localPosition_, kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\Charm\\start.wav", e->target->localPosition, kZeroVector, kVolume, kHearing);
     return Next::Done;
 }
 
 // Campfire: the effect only moves to the ground point.
-Next StartAtGround(CSpellEffect* e) {
+Next StartAtGround(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     e->position = centre;
@@ -364,7 +364,7 @@ Next StartAtGround(CSpellEffect* e) {
 } // namespace
 
 
-void CSpellEffect::Start(SpellType type) {
+void SpellEffect::Start(SpellType type) {
     flags &= ~1u;
     Vector3 from;
     if (caster) {
@@ -411,38 +411,38 @@ void CSpellEffect::Start(SpellType type) {
         state = 3;
     } else if (next == Next::Set && durationTail) {
         state = 2;
-        timer = static_cast<int>(Spell()->duration_);
+        timer = static_cast<int>(Spell()->duration);
     }
     UpdateFootprint(type, 1);
 }
 
-void CSpellEffect::SetVisual(CEffect* object) {
+void SpellEffect::SetVisual(CEffect* object) {
     Assign(this, &visual, object);
     world->AddTimedObject(visual);
 }
 
-void CSpellEffect::UpdateFootprint(SpellType type, int stamp) {
+void SpellEffect::UpdateFootprint(SpellType type, int stamp) {
     if (!visual) return;
-    CAIMap* aiMap = &world->aiMap_;
+    AIMap* aiMap = &world->aiMap;
     switch (type) {
     case SpellType::FireWall: {
         Vector3 direction;
-        direction = (Visual<CEffectWall>()->direction_);
+        direction = (Visual<EffectWall>()->direction);
         g_spellFootprint.AlongDirection(aiMap, position, direction);
         break;
     }
     case SpellType::LightningWall: {
         Vector3 half;
-        HalfSpan(Visual<CEffectLightning>(), &half);
+        HalfSpan(Visual<EffectLightning>(), &half);
         g_spellFootprint.AlongDirection(aiMap, position, half);
         break;
     }
     case SpellType::AcidFog:
-    case SpellType::Campfire: g_spellFootprint.DiscAt(aiMap, position, Spell()->radius_); break;
+    case SpellType::Campfire: g_spellFootprint.DiscAt(aiMap, position, Spell()->radius); break;
     default: return;
     }
     if (stamp) {
-        aiMap->StampFootprint(world->tick_, &g_spellFootprint);
+        aiMap->StampFootprint(world->tick, &g_spellFootprint);
         footprintStamped = 1;
     } else {
         aiMap->ClearFootprint(&g_spellFootprint);
@@ -450,35 +450,35 @@ void CSpellEffect::UpdateFootprint(SpellType type, int stamp) {
     }
 }
 
-void CSpellEffect::CreateArrow(const Vector3& from, CEngineObject* missileTarget, int particleType, float power,
+void SpellEffect::CreateArrow(const Vector3& from, EngineObject* missileTarget, int particleType, float power,
                                const char* soundName, const Vector3& color, float range) {
-    auto* arrow = CreateObject<CEffectArrow>(this, ClassId::EffectArrow);
+    auto* arrow = CreateObject<EffectArrow>(this, ClassId::EffectArrow);
     if (!arrow) return;
-    arrow->lightColor_ = color;
-    arrow->lightRange_ = range;
+    arrow->lightColor = color;
+    arrow->lightRange = range;
     SetPosition(arrow, from);
-    arrow->SetTarget(missileTarget->id_);
-    arrow->particleType_ = particleType;
-    arrow->particleSize_ = power;
-    arrow->soundName_ = soundName;
+    arrow->SetTarget(missileTarget->id);
+    arrow->particleType = particleType;
+    arrow->particleSize = power;
+    arrow->soundName = soundName;
     if (caster) {
-        arrow->fromCaster_ = 1;
-        arrow->casterId_ = caster->id_;
+        arrow->fromCaster = 1;
+        arrow->casterId = caster->id;
     }
     Assign<CEffect>(this, &visual, arrow);
     world->AddTimedObject(visual);
 }
 
-CEffectParticle* CSpellEffect::CreateParticle(int keep, int particleType, const Vector3& at, float size, float alpha,
-                                              const Vector3& velocity, CEngineObject* attachTo) {
+CEffectParticle* SpellEffect::CreateParticle(int keep, int particleType, const Vector3& at, float size, float alpha,
+                                              const Vector3& velocity, EngineObject* attachTo) {
     ClassId classId = (ParticleTypeOf(particleType) == ParticleType::Tendril || ParticleTypeOf(particleType) == ParticleType::Link) ? ClassId::EffectWall : ClassId::EffectParticle;
-    auto* particle = CreateObject<CEffectParticle>(this, classId);   // a CEffectWall for the walls
-    particle->type_ = particleType;
+    auto* particle = CreateObject<CEffectParticle>(this, classId);   // a EffectWall for the walls
+    particle->type = particleType;
     SetPosition(particle, at);
-    particle->size_ = size;
+    particle->size = size;
     particle->SetVelocity(velocity);
-    particle->alpha_ = alpha;
-    if (attachTo) particle->SetAttachedTo(attachTo->id_);
+    particle->alpha = alpha;
+    if (attachTo) particle->SetAttachedTo(attachTo->id);
     if (keep) {
         Assign<CEffect>(this, &visual, particle);
         world->AddTimedObject(visual);
@@ -488,43 +488,43 @@ CEffectParticle* CSpellEffect::CreateParticle(int keep, int particleType, const 
     return particle;
 }
 
-void CSpellEffect::CreateLightning(const Vector3& from, CMapObject* boltTarget, CEngineObject* source, float power,
+void SpellEffect::CreateLightning(const Vector3& from, CMapObject* boltTarget, EngineObject* source, float power,
                                    int flag) {
     if (!boltTarget) return;
-    Vector3 to = boltTarget->localPosition_;
+    Vector3 to = boltTarget->localPosition;
     HeightPlusProduct(world, kGridHeight, to.x, to.y, &boltTarget->bounds.boxMax.z,
                       ConstPtr(worlddata::TargetHeight()), &to.z);
-    auto* bolt = CreateObject<CEffectLightning>(this, ClassId::EffectLightning);
+    auto* bolt = CreateObject<EffectLightning>(this, ClassId::EffectLightning);
     bolt->SetEnds(from, to, power * ConstAt(worlddata::BoltWidthScale()));
-    bolt->SetObjects(source ? source->id_ : -1, boltTarget->id_);
+    bolt->SetObjects(source ? source->id : -1, boltTarget->id);
     bolt->SetFlag(static_cast<unsigned char>(flag));
     Assign<CEffect>(this, &visual, bolt);
     world->AddTimedObject(visual);
 }
 
-void CSpellEffect::CreateSound(const char* name, const Vector3& at, const Vector3& velocity, float volume, float hearing) {
-    auto* effect = CreateObject<CEffectSound>(this, ClassId::EffectSound);
+void SpellEffect::CreateSound(const char* name, const Vector3& at, const Vector3& velocity, float volume, float hearing) {
+    auto* effect = CreateObject<EffectSound>(this, ClassId::EffectSound);
     SetPosition(effect, at);
-    effect->noFade_ = 1;
-    effect->radius_ = hearing;
-    effect->volume_ = volume;
-    std::memcpy(effect->name_, name, std::strlen(name) + 1);
+    effect->noFade = 1;
+    effect->radius = hearing;
+    effect->volume = volume;
+    std::memcpy(effect->name, name, std::strlen(name) + 1);
     effect->SetVelocity(velocity);
-    effect->looping_ = 0;
+    effect->looping = 0;
     world->AddTimedObject(effect);
 }
 
-void CSpellEffect::CreateSoundSequence(const Vector3& at, const Vector3& velocity, const char* first,
+void SpellEffect::CreateSoundSequence(const Vector3& at, const Vector3& velocity, const char* first,
                                        const char* pattern, int count) {
     std::string name;
-    auto* effect = CreateObject<CEffectSoundSeq>(this, ClassId::EffectSoundSeq);
+    auto* effect = CreateObject<EffectSoundSeq>(this, ClassId::EffectSoundSeq);
     SetPosition(effect, at);
     effect->SetVelocity(velocity);
-    effect->radius_ = kHearing;
-    effect->volume_ = kVolume;
-    effect->noFade_ = 1;
-    effect->name_ = first;
-    auto& names = effect->names_;
+    effect->radius = kHearing;
+    effect->volume = kVolume;
+    effect->noFade = 1;
+    effect->name = first;
+    auto& names = effect->names;
     if (count < 1) {
         names.push_back(pattern);
     } else {
@@ -537,13 +537,56 @@ void CSpellEffect::CreateSoundSequence(const Vector3& at, const Vector3& velocit
     world->AddTimedObject(effect);
 }
 
-void CSpellEffect::CreatePointLight(const Vector3& at, const Vector3& color, float range, const Vector3& velocity) {
-    auto* effect = CreateObject<CEffectPointLight>(this, ClassId::EffectPointLight);
-    effect->color_ = color;
+void SpellEffect::CreatePointLight(const Vector3& at, const Vector3& color, float range, const Vector3& velocity) {
+    auto* effect = CreateObject<EffectPointLight>(this, ClassId::EffectPointLight);
+    effect->color = color;
     SetPosition(effect, at);
-    effect->range_ = range;
+    effect->range = range;
     effect->SetVelocity(velocity);
-    effect->lightFlags_ = kPointLightFlags;
+    effect->lightFlags = kPointLightFlags;
     Assign(this, &light, effect);
     world->AddTimedObject(effect);
+}
+
+// --- The cast spell's lifetime, start values and the object it forgets ----------------------------
+
+namespace {
+
+// A counted pointer's destructor and the counted pointer assignment of null: the old object loses a
+// reference.
+template <class T>
+void Drop(T*& field) {
+    T* old = field;
+    field = nullptr;
+    if (old) old->Release();
+}
+
+} // namespace
+
+SpellEffect::SpellEffect() = default;
+
+SpellEffect::~SpellEffect() {
+    if (footprintStamped) UpdateFootprint(Spell()->Type(), 0);
+    if (visual) world->RemoveTimedObject(static_cast<unsigned>(visual->id));
+    Drop(visual);
+    ReleaseSound();
+    ReleaseLight();
+}
+
+void SpellEffect::Init(WorldServer* newWorld, CSpell* newSpell, CUnit* newCaster, const Vector3& newPosition,
+                        CMapObject* newTarget, const Vector3& newTargetPoint, std::uint8_t newSilentEnd) {
+    newSpell->CopyTo(Spell());
+    world = newWorld;
+    position = newPosition;
+    caster.Assign(newCaster);
+    target.Assign(newTarget);
+    targetPoint = newTargetPoint;
+    state = 0;
+    silentEnd = newSilentEnd;
+}
+
+bool SpellEffect::Forget(EngineObject* object) {
+    if (target == object) return false;
+    if (caster == object && caster) caster.Reset();
+    return true;
 }

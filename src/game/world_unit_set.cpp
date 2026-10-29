@@ -10,14 +10,14 @@
 
 namespace {
 
-void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
+void Put(ByteStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 
 // vector<int>::resize(n, value), vector<string>::resize, the stream's string reader.
 
-void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
+void Get(ByteStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 
 // A counted dword array: the count, the vector resized (new entries 0), the data.
-void GetIds(CStream* stream, std::vector<std::uint32_t>& list) {
+void GetIds(ByteStream* stream, std::vector<std::uint32_t>& list) {
     std::uint32_t n;
     stream->ReadValue(n);
     std::uint32_t zero = 0;
@@ -27,7 +27,7 @@ void GetIds(CStream* stream, std::vector<std::uint32_t>& list) {
 
 } // namespace
 
-void DressedUnitRecord::Write(CStream* stream) {
+void DressedUnitRecord::Write(ByteStream* stream) {
     std::int16_t word = static_cast<std::int16_t>(prototype);
     stream->WriteValue(word);
     stream->WriteValue(static_cast<std::uint32_t>(items.size()));
@@ -39,7 +39,7 @@ void DressedUnitRecord::Write(CStream* stream) {
     stream->WriteValue(static_cast<std::uint32_t>(modelNumber));
 }
 
-void UnitSet::Write(CStream* stream) {
+void UnitSet::Write(ByteStream* stream) {
     // The number of figured records over every group.
     std::uint32_t count = 0;
     for (const auto& [prototype, group] : figured) count += static_cast<std::uint32_t>(group.size());
@@ -82,7 +82,7 @@ void UnitSet::Write(CStream* stream) {
 
 // ---- The unit look lists' reader ------------------------------------------------------
 
-void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed) {
+void ReadUnitLooks(ByteStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed) {
     std::uint32_t count;
     stream->ReadValue(count);
     figured->resize(count);

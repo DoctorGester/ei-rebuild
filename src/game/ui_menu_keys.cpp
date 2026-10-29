@@ -41,40 +41,40 @@ const UiKeyName* KeyNamesEnd() { return g_keyNames + kUiKeyNameCount; }
 
 // --- Save/load window ----------------------------------------------------------------------------
 
-bool CSaveLoadWindow::IsReservedSave(int index) {
-    const std::string& folder = entries_[index].folder_;
+bool SaveLoadWindow::IsReservedSave(int index) {
+    const std::string& folder = entries[index].folder;
     if (text::CompareIgnoringCase(folder, game::menukeytexts::QuickSave()) == 0) return true;
     if (text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
     return text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveB()) == 0;
 }
 
-void CSaveLoadWindow::ShowSelection() {
-    if (selected_ < 0) selected_ = 0;
+void SaveLoadWindow::ShowSelection() {
+    if (selected < 0) selected = 0;
     int count = EntryCount();
-    if (!(static_cast<unsigned>(selected_) < static_cast<unsigned>(count))) selected_ = count - 1;
-    int selected = selected_;
-    if (!(firstVisible_ + kListRows > selected)) firstVisible_ = selected - (kListRows - 1);
-    if (firstVisible_ > selected) firstVisible_ = selected;
-    scrollbar_->SetPosition(firstVisible_);
-    firstVisible_ = scrollbar_->TakePosition();
+    if (!(static_cast<unsigned>(selected) < static_cast<unsigned>(count))) selected = count - 1;
+    int currentSelected = selected;
+    if (!(firstVisible + kListRows > currentSelected)) firstVisible = currentSelected - (kListRows - 1);
+    if (firstVisible > currentSelected) firstVisible = currentSelected;
+    scrollbar->SetPosition(firstVisible);
+    firstVisible = scrollbar->TakePosition();
     TakeSelectedTitle();
     RefreshListVanilla();
     ShowPicture();
 }
 
-void CSaveLoadWindow::KeyDown(int key, int repeat, int flags) {
-    if (sliding_) return;
-    CUiContainer::KeyDown(key, repeat, flags);
+void SaveLoadWindow::KeyDown(int key, int repeat, int modifiers) {
+    if (sliding) return;
+    UiContainer::KeyDown(key, repeat, modifiers);
     int step = 0;
     switch (key) {
     case kKeyEnter:
         Confirm();
-        handled_ = true;
+        handled = true;
         break;
     case kKeyEsc:
-        interface_->PlaySound(game::CancelSoundText());
-        interface_->SetPendingValue(kCloseSaveLoad);
-        handled_ = true;
+        ui->PlaySound(game::CancelSoundText());
+        ui->SetPendingValue(kCloseSaveLoad);
+        handled = true;
         break;
     case kKeyPageUp: step = -kListRows; break;
     case kKeyPageDown: step = kListRows; break;
@@ -83,68 +83,68 @@ void CSaveLoadWindow::KeyDown(int key, int repeat, int flags) {
     default: break;
     }
     if (step != 0) {
-        interface_->PlaySound(game::SelectSoundText());
-        selected_ += step;
+        ui->PlaySound(game::SelectSoundText());
+        selected += step;
         ShowSelection();
-        handled_ = true;
+        handled = true;
     }
-    if (handled_ || !isSave_) return;
+    if (handled || !isSave) return;
 
     // Editing the name. The first edit of an ordinary save starts from its title (Backspace and
     // Delete from an empty name); the quick and automatic saves keep their names.
-    int selected = selected_;
-    bool editable = selected >= 0 && static_cast<unsigned>(selected) < static_cast<unsigned>(EntryCount()) &&
-                    !IsReservedSave(selected) && !nameTyped_;
-    auto& name = name_;
+    int currentSelected = selected;
+    bool editable = currentSelected >= 0 && static_cast<unsigned>(currentSelected) < static_cast<unsigned>(EntryCount()) &&
+                    !IsReservedSave(currentSelected) && !nameTyped;
+    auto& currentName = name;
     switch (key) {
     case kKeyBack:
         if (editable) {
-            nameTyped_ = true;
-            name.clear();
-            cursor_ = 0;
+            nameTyped = true;
+            currentName.clear();
+            cursor = 0;
         }
-        if (cursor_ > 0) {   // by character, as Delete and the cursor's steps
-            const int previous = text::PreviousCharacter(name, cursor_);
-            name = str::Left(name, previous) + str::Mid(name, cursor_);
-            cursor_ = previous;
+        if (cursor > 0) {    // by character, as Delete and the cursor's steps
+            const int previous = text::PreviousCharacter(currentName, cursor);
+            currentName = str::Left(currentName, previous) + str::Mid(currentName, cursor);
+            cursor = previous;
         }
         break;
     case kKeyDelete:
         if (editable) {
-            nameTyped_ = true;
-            name.clear();
-            cursor_ = 0;
+            nameTyped = true;
+            currentName.clear();
+            cursor = 0;
         }
-        if (cursor_ < static_cast<int>(name.size()))
-            name = str::Left(name, cursor_) + str::Mid(name, text::NextCharacter(name, cursor_));
+        if (cursor < static_cast<int>(currentName.size()))
+            currentName = str::Left(currentName, cursor) + str::Mid(currentName, text::NextCharacter(currentName, cursor));
         break;
     case kKeyEnd:
     case kKeyHome:
     case kKeyLeft:
     case kKeyRight:
         if (editable) {
-            nameTyped_ = true;
-            name = entries_[selected_].title_;
-            cursor_ = name.size();
+            nameTyped = true;
+            currentName = entries[selected].title;
+            cursor = currentName.size();
         }
         if (key == kKeyEnd)
-            cursor_ = name.size();
+            cursor = currentName.size();
         else if (key == kKeyHome)
-            cursor_ = 0;
+            cursor = 0;
         else if (key == kKeyLeft)
-            cursor_ = text::PreviousCharacter(name, cursor_);
+            cursor = text::PreviousCharacter(currentName, cursor);
         else
-            cursor_ = text::NextCharacter(name, cursor_);
+            cursor = text::NextCharacter(currentName, cursor);
         break;
     default:
         return;
     }
     RefreshListVanilla();
-    handled_ = true;
+    handled = true;
 }
 
-void CSaveLoadWindow::Char(int key, int repeat, int flags) {
-    if (!isSave_) return;
+void SaveLoadWindow::Char(int key, int repeat, int modifiers) {
+    if (!isSave) return;
     switch (key) {
     case kKeyBack:
     case kKeyTab:
@@ -152,83 +152,83 @@ void CSaveLoadWindow::Char(int key, int repeat, int flags) {
     case kKeyEsc:
         break;
     default: {
-        int selected = selected_;
-        if (selected >= 0 && static_cast<unsigned>(selected) < static_cast<unsigned>(EntryCount()) &&
-            !IsReservedSave(selected) && !nameTyped_) {
-            nameTyped_ = true;
-            name_.clear();
-            cursor_ = 0;
+        int currentSelected = selected;
+        if (currentSelected >= 0 && static_cast<unsigned>(currentSelected) < static_cast<unsigned>(EntryCount()) &&
+            !IsReservedSave(currentSelected) && !nameTyped) {
+            nameTyped = true;
+            name.clear();
+            cursor = 0;
         }
-        auto& name = name_;
-        if (!interface_->ctrlDown_ && text::CharacterCount(name) < kMaxNameLength) {
-            std::string tail = str::Mid(name, cursor_);
+        auto& currentName = name;
+        if (!ui->ctrlDown && text::CharacterCount(currentName) < kMaxNameLength) {
+            std::string tail = str::Mid(currentName, cursor);
             std::string typed;
             {
-                std::string head = str::Left(name, cursor_);
+                std::string head = str::Left(currentName, cursor);
                 typed = text::Typed(head, key) + tail;   // the character's UTF-8 bytes
             }
-            if (interface_->TextExtent(typed, 1).cx < kMaxNameWidth) {
-                name = typed;
-                cursor_ += text::TypedLength(key);
+            if (ui->TextExtent(typed, 1).cx < kMaxNameWidth) {
+                currentName = typed;
+                cursor += text::TypedLength(key);
             }
         }
         RefreshListVanilla();
         break;
     }
     }
-    CUiContainer::Char(key, repeat, flags);
+    UiContainer::Char(key, repeat, modifiers);
 }
 
-void COptionsWindow::KeyDown(int key, int repeat, int flags) {
-    if (sliding_) return;
-    CUiContainer::KeyDown(key, repeat, flags);
-    if (waitingForKey_) {
+void OptionsWindow::KeyDown(int key, int repeat, int modifiers) {
+    if (sliding) return;
+    UiContainer::KeyDown(key, repeat, modifiers);
+    if (waitingForKey) {
         // The key for the selected binding row, by scan code.
-        int scan = flags & 0x1FF;
-        handled_ = true;
+        int scan = modifiers & 0x1FF;
+        handled = true;
         if (scan == kScanEsc) {
-            waitingForKey_ = false;
+            waitingForKey = false;
             RefreshRows();
             return;
         }
         const UiKeyName* pressed = nullptr;
-        pressedKey_ = nullptr;
+        pressedKey = nullptr;
         for (const UiKeyName* k = g_keyNames; k < KeyNamesEnd(); ++k) {
-            if (k->scan_ == scan) {
+            if (k->scan == scan) {
                 pressed = k;
-                pressedKey_ = k;
+                pressedKey = k;
                 break;
             }
         }
         if (!pressed) {
-            interface_->PlaySound(game::CancelSoundText());
+            ui->PlaySound(game::CancelSoundText());
             return;
         }
-        waitingForKey_ = false;
-        OptionBinding* binding = rows_[selectedRow_].binding_;
+        waitingForKey = false;
+        OptionBinding* binding = rows[selectedRow].binding;
         if (!binding) {
             RefreshRows();
             return;
         }
-        interface_->PlaySound(game::OkSoundText());
-        int code = keyOfScan_[pressed->scan_];
+        ui->PlaySound(game::OkSoundText());
+        int code = keyOfScan[pressed->scan];
         OptionBinding* other = nullptr;
-        for (OptionBinding& b : bindings_) {
-            if (b.action_->id_ == code) {
+        for (OptionBinding& b : bindings) {
+            if (b.action->id == code) {
                 other = &b;
                 break;
             }
         }
         if (other && other != binding) {
             // Already bound to another action: ask (the box's result goes to MessageResult).
-            CMessageBox* box = new CMessageBox(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
+            MessageWindow* box = new MessageWindow(ui, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
             std::string format;
             std::string message;
-            format = g_clientWorld.texts_->GetString(game::menukeytexts::KeyMappedText());
-            message = str::Format(format, pressed->name_, other->name_);
+            format = g_clientWorld.texts->GetString(game::menukeytexts::KeyMappedText());
+            message = str::Format(format, pressed->name, other->name);
             // The box's text (a null box is written through, like the original).
-            box->text_ = message.c_str();
-            interface_->PushWindow(box, true, true);
+            box->text = message.c_str();
+            ui->PushWindow(box, true, true);
             return;
         }
         CommitBinding();
@@ -238,56 +238,56 @@ void COptionsWindow::KeyDown(int key, int repeat, int flags) {
 
     switch (key) {
     case kKeyEnter: {
-        OptionRow& row = rows_[selectedRow_];
-        if (row.binding_) {
-            waitingForKey_ = true;
+        OptionRow& row = rows[selectedRow];
+        if (row.binding) {
+            waitingForKey = true;
         } else {
-            if (!row.setting_ || !row.setting_->spin_) {
-                handled_ = true;
+            if (!row.setting || !row.setting->spin) {
+                handled = true;
                 return;
             }
-            const int value = row.setting_->spin_->TakeValue();
-            rows_[selectedRow_].setting_->spin_->SetValue(value + 1);
+            const int value = row.setting->spin->TakeValue();
+            rows[selectedRow].setting->spin->SetValue(value + 1);
         }
-        interface_->PlaySound(game::OkSoundText());
+        ui->PlaySound(game::OkSoundText());
         RefreshRows();
-        handled_ = true;
+        handled = true;
         return;
     }
     case kKeyEsc:
         RestoreSettings();
-        interface_->PlaySound(game::CancelSoundText());
-        interface_->SetPendingValue(kCloseOptions);
+        ui->PlaySound(game::CancelSoundText());
+        ui->SetPendingValue(kCloseOptions);
         break;
     case kKeyPageUp:
     case kKeyPageDown:
-        interface_->PlaySound(game::SelectSoundText());
-        ShowGroup(key == kKeyPageUp ? group_ - 1 : group_ + 1);
+        ui->PlaySound(game::SelectSoundText());
+        ShowGroup(key == kKeyPageUp ? group - 1 : group + 1);
         break;
     case kKeyLeft:
     case kKeyRight: {
         // The row's bar moves one step; the handled flag stays as it is.
-        OptionSetting* setting = rows_[selectedRow_].setting_;
-        if (!setting || !setting->bar_) return;
-        const int position = setting->bar_->TakePosition();
-        rows_[selectedRow_].setting_->bar_->SetPosition(key == kKeyLeft ? position - 1 : position + 1);
+        OptionSetting* setting = rows[selectedRow].setting;
+        if (!setting || !setting->bar) return;
+        const int position = setting->bar->TakePosition();
+        rows[selectedRow].setting->bar->SetPosition(key == kKeyLeft ? position - 1 : position + 1);
         return;
     }
     case kKeyUp:
-        interface_->PlaySound(game::SelectSoundText());
-        for (int i = selectedRow_ - 1; i >= 0; --i) {
-            if (rows_[i].binding_ || rows_[i].setting_) {
-                selectedRow_ = i;
+        ui->PlaySound(game::SelectSoundText());
+        for (int i = selectedRow - 1; i >= 0; --i) {
+            if (rows[i].binding || rows[i].setting) {
+                selectedRow = i;
                 RefreshRows();
                 break;
             }
         }
         break;
     case kKeyDown:
-        interface_->PlaySound(game::SelectSoundText());
-        for (int i = selectedRow_ + 1; i < kOptionRows; ++i) {
-            if (rows_[i].binding_ || rows_[i].setting_) {
-                selectedRow_ = i;
+        ui->PlaySound(game::SelectSoundText());
+        for (int i = selectedRow + 1; i < kOptionRows; ++i) {
+            if (rows[i].binding || rows[i].setting) {
+                selectedRow = i;
                 RefreshRows();
                 break;
             }
@@ -296,5 +296,5 @@ void COptionsWindow::KeyDown(int key, int repeat, int flags) {
     default:
         return;
     }
-    handled_ = true;
+    handled = true;
 }

@@ -98,7 +98,7 @@ double CUnit::BodyExtent() {
 double CUnit::GroundHeight(float x, float y) {
     auto* world = World();
     if (params.movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
-    if (controller->GetClassId() == ClassId::UnitServer) return world->SurfaceHeightAt(x, y) + localPosition_.z;
+    if (controller->GetClassId() == ClassId::UnitServer) return world->SurfaceHeightAt(x, y) + localPosition.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
 }
 
@@ -109,7 +109,7 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
     auto* world = WorldContext();
     if (!world->IsServer()) {
         if (MapType() == MapObjectType::Hero) {
-            if (CFigureMesh* hand = FindPartByPrefix(kRightHand)) {
+            if (FigureMesh* hand = FindPartByPrefix(kRightHand)) {
                 Vector3 at;
                 PartWorldPosition(&at.x, hand);
                 out->x = at.x;
@@ -118,15 +118,15 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
                 return out;
             }
         } else if (!ClientController()->WeaponPoint(&local)) {
-            out->x = localPosition_.x + bounds.center.x;
-            out->y = localPosition_.y + bounds.center.y;
-            out->z = localPosition_.z + bounds.center.z;
+            out->x = localPosition.x + bounds.center.x;
+            out->y = localPosition.y + bounds.center.y;
+            out->z = localPosition.z + bounds.center.z;
             return out;
         }
     }
-    Vector3 turned = RotateVector(localRotation_, local);
-    out->x = turned.x + localPosition_.x;
-    out->y = turned.y + localPosition_.y;
-    out->z = turned.z + localPosition_.z;
+    Vector3 turned = RotateVector(localRotation, local);
+    out->x = turned.x + localPosition.x;
+    out->y = turned.y + localPosition.y;
+    out->z = turned.z + localPosition.z;
     return out;
 }

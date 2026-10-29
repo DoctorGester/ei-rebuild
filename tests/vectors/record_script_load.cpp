@@ -33,7 +33,7 @@ void PutLocals(Writer& w, const OriginalScriptVars* locals) {
 // No elements and no storage.
 template <typename T>
 bool Empty(const exe::Vector<T>& a) {
-    return a.empty() && a.maxSize_ == 0 && !a.data();
+    return a.empty() && a.maxSize == 0 && !a.data();
 }
 
 // 004CF4D0: MOV EAX,FS:[0] (6). Bucket: the result.
@@ -152,7 +152,7 @@ int __fastcall LoadRecord(OriginalScript* self, void*, exe::CString* text, int r
 
 } // namespace
 
-EI_RECORD(0x004CF4D0, ExpectRecord, 6, s_expect, CScript::ExpectLexeme);
-EI_RECORD(0x004CFBC0, LoadFunctionRecord, 7, s_loadFunction, CScript::LoadFunction);
-EI_RECORD(0x004D1330, LoadCommandsRecord, 7, s_loadCommands, CScript::LoadCommands);
-EI_RECORD(0x004D23A0, LoadRecord, 7, s_load, CScript::Load);
+EI_RECORD(0x004CF4D0, ExpectRecord, 6, s_expect, Script::ExpectLexeme);
+EI_RECORD(0x004CFBC0, LoadFunctionRecord, 7, s_loadFunction, Script::LoadFunction);
+EI_RECORD(0x004D1330, LoadCommandsRecord, 7, s_loadCommands, Script::LoadCommands);
+EI_RECORD(0x004D23A0, LoadRecord, 7, s_load, Script::Load);

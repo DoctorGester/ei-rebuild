@@ -1,4 +1,4 @@
-// The battle HUD's unit panel: its draw (CHudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced behind
+// The battle HUD's unit panel: its draw (HudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced behind
 // the flag (ui_widescreen.h). It drives the Direct3D device itself; those calls are made as they are and mirrored to the
 // new renderer as the hero preview's are (ui_hero_preview.cpp). See docs/notes/ui.md, "Battle HUD unit panel draw".
 #include "ui.h"
@@ -40,7 +40,7 @@ constexpr int kHeightBar = 8;
 constexpr int kMoreMark = 9;
 constexpr int kFirstDisplay = 10;     // 10..31: the bars, the body parts and the effects' pictures
 constexpr int kDisplaysEnd = 32;
-constexpr int kInfoPage = 2;          // bodyPart_: the page of texts, without the model
+constexpr int kInfoPage = 2;          // bodyPart: the page of texts, without the model
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 // The quaternion product a * b, inlined twice in the original: w = a.w b.w - a.b (the dot's sum
@@ -60,62 +60,62 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
 
 } // namespace
 
-void CHudUnitPanel::Draw(CSceneRenderer* pass) {
+void HudUnitPanel::Draw(SceneRenderer* pass) {
     widescreen::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
-    SceneMesh(kHeightBar)->visible_ = false;
-    SceneMesh(kMoreMark)->visible_ = false;
+    SceneMesh(kHeightBar)->visible = false;
+    SceneMesh(kMoreMark)->visible = false;
     // The background alone, before anything else.
-    SceneMesh(kBackground)->visible_ = true;
+    SceneMesh(kBackground)->visible = true;
     SceneMesh(kBackground)->Draw(pass);
-    SceneMesh(kBackground)->visible_ = false;
+    SceneMesh(kBackground)->visible = false;
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.
     CUnit* unit = nullptr;
     const char* name = nullptr;
     float size = 0.0f;     // the original leaves both unset without a unit (never read then)
     float height = 0.0f;
-    if (slide_ < 1.0f) {
-        const int which = hoverUnit_ ? 1 : 0;
-        unit = hoverUnit_ ? hoverUnit_ : shownUnit_;
-        name = strings_[which].c_str();
-        size = viewSize_[which];
-        height = viewHeight_[which];
-        if (hoverUnit_ == shownUnit_) size = viewSize_[0];
+    if (slide < 1.0f) {
+        const int which = hoverUnit ? 1 : 0;
+        unit = hoverUnit ? hoverUnit : shownUnit;
+        name = strings[which].c_str();
+        size = viewSize[which];
+        height = viewHeight[which];
+        if (hoverUnit == shownUnit) size = viewSize[0];
         if (unit) size = static_cast<float>(unit->AnimationRatio() * size);
     }
 
-    for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible_ = false;
-    surfaces_[0]->Clear();
+    for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible = false;
+    surfaces[0]->Clear();
 
     if (unit && unit->Object3D()->attached) {
         CObject3D* model = unit->Object3D();
-        const bool drawn = bodyPart_ != kInfoPage;
+        const bool drawn = bodyPart != kInfoPage;
         if (drawn) {
             // The screen around the panel's model area (right of it, its sling strip, below it):
             // the depth buffer goes to 0 there, so the model is drawn inside the panel only.
-            RECT right = {180 - offset_, 0, 400 - offset_, 220};
-            RECT strip = {0, 0, 20 - offset_, 220};
-            RECT below = {0, 220, 400 - offset_, 300};
+            RECT right = {180 - offset, 0, 400 - offset, 220};
+            RECT strip = {0, 0, 20 - offset, 220};
+            RECT below = {0, 220, 400 - offset, 300};
             // WideScreen: without the margin.
-            interface_->CallScaleRectToScreenNoMargin(&right);
-            interface_->CallScaleRectToScreenNoMargin(&strip);
-            interface_->CallScaleRectToScreenNoMargin(&below);
+            ui->CallScaleRectToScreenNoMargin(&right);
+            ui->CallScaleRectToScreenNoMargin(&strip);
+            ui->CallScaleRectToScreenNoMargin(&below);
             RECT rects[3] = {right, below, strip};
             ClearUiDepth(0.0f, rects, 3);
 
-            savedPosition = model->localPosition_;
-            savedOrientation = model->localRotation_;
-            unit->AdvanceTime(static_cast<float>(g_clientWorld.tick_) + g_clientWorld.tickFraction_);
+            savedPosition = model->localPosition;
+            savedOrientation = model->localRotation;
+            unit->AdvanceTime(static_cast<float>(g_clientWorld.tick) + g_clientWorld.tickFraction);
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
             // WideScreen: 100 - shift.
-            const float x = static_cast<float>((static_cast<float>(100 - widescreen::EdgeShift() - offset_) * kLayoutUnit - 1.0f) *
+            const float x = static_cast<float>((static_cast<float>(100 - widescreen::EdgeShift() - offset) * kLayoutUnit - 1.0f) *
                                          kDepthUnit * kModelDepth);
             const float y = static_cast<float>(height / size - static_cast<float>(kDepthUnit * kModelDepth) * kModelDrop);
-            model->localPosition_ = Vector3{x, y, kModelDepth};
+            model->localPosition = Vector3{x, y, kModelDepth};
             // Turned with the sling buttons' angle: about z, about x, about z again.
             const Vector3 axisZ = {0.0f, 0.0f, 1.0f};
             const Vector3 axisX = {1.0f, 0.0f, 0.0f};
@@ -124,15 +124,15 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
             Quaternion* q2 = second.SetAxisAngle(axisX, kHudQuarterTurn * kTurnAboutX);
             const Quaternion tilted = Product(*q1, *q2, false);
             Quaternion* q3 = third.SetAxisAngle(axisZ, kHudQuarterTurn * kSecondTurnAboutZ);
-            model->localRotation_ = Product(tilted, *q3, true);
+            model->localRotation = Product(tilted, *q3, true);
 
             const float scale = static_cast<float>(1.0f / size);
             unit->Object3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};
             // The first page draws the model in full colour, the others at half.
-            model->SetPartsFlatColour(bodyPart_ == 0 ? 0xFFFFFFFFu : 0xFF808080u);
+            model->SetPartsFlatColour(bodyPart == 0 ? 0xFFFFFFFFu : 0xFF808080u);
             model->SetPartsFlatSpecular(0xFF000000u);
             model->SetPartFlags(lib::Bits(FigureMeshFlag::Flat));
-            unit->flags_ |= MapObjectFlag::NoEdgeFade;
+            unit->flags |= MapObjectFlag::NoEdgeFade;
 
             // Texture stage 0's mip filter off around the model's draw.
             render::TextureStage& stage0 = render::g_renderState.stages[0];
@@ -141,15 +141,15 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
             unit->DrawFigure(pass);
             stage0.mipFilter = mipFilter;
 
-            unit->flags_ &= ~MapObjectFlag::NoEdgeFade;
+            unit->flags &= ~MapObjectFlag::NoEdgeFade;
             model->ClearPartFlags(lib::Bits(FigureMeshFlag::Flat));
             ClearUiDepth(1.0f, rects, 3);
         }
 
         RECT nameRect = {5, 5, 155, 20};
-        surfaces_[0]->DrawWrappedText(name, &nameRect, 2, 0, kTextColour, DT_CENTER | DT_WORDBREAK, 1);
+        surfaces[0]->DrawWrappedText(name, &nameRect, 2, 0, kTextColour, DT_CENTER | DT_WORDBREAK, 1);
 
-        switch (bodyPart_) {
+        switch (bodyPart) {
         case 0: {
             ShowHealth(unit);
             // The height bar (scene object 8): the model's fifteen layout units, from the panel's
@@ -159,8 +159,8 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
             bits = std::bit_cast<std::uint32_t>(barScale);
             SceneMesh(kHeightBar)->SetScaleYBits(bits);
             const float barY = static_cast<float>(kPanelHeight - barScale * kPanelHeight);
-            SceneMesh(kHeightBar)->Place(static_cast<float>(20 - offset_), barY, 4.0f);
-            SceneMesh(kHeightBar)->visible_ = true;
+            SceneMesh(kHeightBar)->Place(static_cast<float>(20 - offset), barY, 4.0f);
+            SceneMesh(kHeightBar)->visible = true;
             break;
         }
         case 1:
@@ -175,10 +175,10 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
             break;
         }
 
-        if (bodyPart_ != kInfoPage) {
+        if (bodyPart != kInfoPage) {
             unit->Object3D()->ClientSpecific()->figureScale = Vector3{1.0f, 1.0f, 1.0f};
-            model->localPosition_ = savedPosition;
-            model->localRotation_ = savedOrientation;
+            model->localPosition = savedPosition;
+            model->localRotation = savedOrientation;
         }
     }
 

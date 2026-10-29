@@ -15,7 +15,7 @@ namespace app {
 
 void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, std::uint32_t id,
                           ChunkArchive::Factory factory) {
-    CRefCounted* prototype = factory();
+    RefCounted* prototype = factory();
     if (prototype) prototype->AddRef();
     std::uint32_t vtable;
     lib::LoadBytes(vtable, prototype);

@@ -29,10 +29,10 @@
 #include <cstring>
 #include <list>
 
-void UpdateMotion(CUnitServer*);
+void UpdateMotion(UnitServer*);
 namespace {
 
-constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags_, cleared every update
+constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags, cleared every update
 constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
 constexpr float kNoRange = 1e38f;   // 1e38: OrderPlan.rangeSq of no plan
 static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
@@ -52,11 +52,11 @@ void SwitchWeaponIfWanted(CUnit* unit) {
 }
 
 // The unit's standing flag changed, re-registered on the sector map.
-void SetStandingFlag(CUnitServer* self, int standing) {
-    CWorldServer* world = self->ServerWorld();
+void SetStandingFlag(UnitServer* self, int standing) {
+    WorldServer* world = self->ServerWorld();
     CUnit* unit = self->unit;
     if (static_cast<int>(unit->obstacle) == standing) return;
-    CSectorMap* sectors = &world->aiMap_.sectorMap;
+    SectorMap* sectors = &world->aiMap.sectorMap;
     sectors->Remove(unit);
     self->unit->obstacle = static_cast<std::uint32_t>(standing);
     sectors->Add(self->unit);
@@ -73,7 +73,7 @@ void EmptyAction(UnitAction* order) {
 }
 
 // The queue replaced by `steps`, then started.
-void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
+void TakeQueue(UnitServer* self, const AnimationSteps* steps) {
     self->queue = *steps;
     self->StartQueueIfUnset();
     self->PopFinishedSteps();
@@ -97,19 +97,19 @@ int TotalDuration(const AnimationSteps& steps) {
 
 } // namespace
 
-void CUnitServer::StartQueueIfUnset() {
-    if (queue.extra == -1) queue.extra = World()->tick_;
+void UnitServer::StartQueueIfUnset() {
+    if (queue.extra == -1) queue.extra = World()->tick;
 }
 
-void CUnitServer::DropEffectObject() {
+void UnitServer::DropEffectObject() {
     if (!effectObject) return;
-    g_serverWorld.RemoveTimedObject(effectObject->id_);
+    g_serverWorld.RemoveTimedObject(effectObject->id);
     effectObject.Reset();
 }
 
 // --- The update ---------------------------------------------------------------------------------
 
-bool CUnitServer::RunTick() {
+bool UnitServer::RunTick() {
     CUnit* self = unit;
     if (self->dead == 0) {
         if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
@@ -118,13 +118,13 @@ bool CUnitServer::RunTick() {
             unit->MarkChanged(4);
         }
         // Every (speedClass + 1) updates the unit's step noise (it returns 0: no record).
-        if ((static_cast<std::uint32_t>(g_serverWorld.tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
+        if ((static_cast<std::uint32_t>(g_serverWorld.tick) & static_cast<std::uint32_t>(speedClass)) == 0) {
             AIEventPresence*& presence = aiPresence;
             if (presence) {
-                presence->x = unit->localPosition_.x;
-                presence->y = unit->localPosition_.y;
+                presence->x = unit->localPosition.x;
+                presence->y = unit->localPosition.y;
             }
-            presence = g_serverWorld.aiMap_.events.StepNoise(unit->localPosition_, this);
+            presence = g_serverWorld.aiMap.events.StepNoise(unit->localPosition, this);
         }
         TickItemSpells();
         if (unit->player != nullptr) {
@@ -135,7 +135,7 @@ bool CUnitServer::RunTick() {
             ++bored;
             if (bored > kBoredTicks && g_random.Next() % kBoredChance == 0) {
                 CPlayer* player = unit->player;
-                if (!player || player->Server()->danger_ != CPlayerServer::PartyDanger::Safe) {
+                if (!player || player->Server()->danger != PlayerServer::PartyDanger::Safe) {
                     bored = 0;
                 } else {
                     PlayerMessage(player->Server(), unit, AckKind::Bored);
@@ -145,9 +145,9 @@ bool CUnitServer::RunTick() {
         }
         voice.Step(this);
         brain.Think();
-        unit->flags_ &= ~kFlagSeen8000;
+        unit->flags &= ~kFlagSeen8000;
         PropagateHostility();
-        if ((unit->flags_ & MapObjectFlag::Frozen) == 0 && keepHitDirection == 0 &&
+        if ((unit->flags & MapObjectFlag::Frozen) == 0 && keepHitDirection == 0 &&
             (state == UnitState::Idle || state == UnitState::Moving || state == UnitState::Turning ||
              state == UnitState::Stopped)) {
             UpdateOrders();
@@ -163,13 +163,13 @@ bool CUnitServer::RunTick() {
 
     // Dead: the body sinks (accelerating) until it is at height 0; once the death animation is
     // over, the death is reported and the orders are dropped.
-    CWorldServer* world = ServerWorld();
-    if (self->localPosition_.z > 0.0f) {
+    WorldServer* world = ServerWorld();
+    if (self->localPosition.z > 0.0f) {
         float& sinking = sinkSpeed;
         sinking += kSinkAcceleration;
-        self->localPosition_.z = self->localPosition_.z - sinking;
-        float z = unit->localPosition_.z;
-        unit->localPosition_.z = z <= 0.0f ? 0.0f : z;   // a NaN z is kept
+        self->localPosition.z = self->localPosition.z - sinking;
+        float z = unit->localPosition.z;
+        unit->localPosition.z = z <= 0.0f ? 0.0f : z;    // a NaN z is kept
         unit->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;
@@ -179,7 +179,7 @@ bool CUnitServer::RunTick() {
         CPlayer* player = unit->player;
         unit->SetPlayer(nullptr);
         if (player && player->IsLeader(unit) != 0) {
-            player->connection_->LeaderDied();
+            player->connection->LeaderDied();
         } else {
             brain.Reset();
             voice.Reset();
@@ -193,11 +193,11 @@ bool CUnitServer::RunTick() {
 
 // --- The state of the unit's animation --------------------------------------------------------
 
-void CUnitServer::UpdateState() {
+void UnitServer::UpdateState() {
     animationHeld = 0;
     frozen = 0;
     if (state == UnitState::Acting && !ActionInReach()) EndOrder(0);
-    if (unit->flags_ & MapObjectFlag::Frozen) {
+    if (unit->flags & MapObjectFlag::Frozen) {
         frozen = 1;
         hitDirection = kNoHitDirection;
         return;
@@ -254,7 +254,7 @@ void CUnitServer::UpdateState() {
 
 // --- The animation queue ---------------------------------------------------------------------
 
-void CUnitServer::AdvanceAnimation() {
+void UnitServer::AdvanceAnimation() {
     if (frozen != 0) {
         // Frozen: everything waits one more update.
         unit->SetPathTimeShift(1);
@@ -295,9 +295,9 @@ void CUnitServer::AdvanceAnimation() {
     unit->SetMotionMode(kind);
 }
 
-bool CUnitServer::PopFinishedSteps() {
+bool UnitServer::PopFinishedSteps() {
     bool popped = false;
-    int now = WorldContext()->tick_;
+    int now = WorldContext()->tick;
     while (!queue.empty()) {
         AnimationStep* steps = queue.data();
         int duration = steps[0].duration;
@@ -323,13 +323,13 @@ bool CUnitServer::PopFinishedSteps() {
     return popped;
 }
 
-void CUnitServer::ShowCurrentStep() {
+void UnitServer::ShowCurrentStep() {
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
     if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
 }
 
-void CUnitServer::PlaySteps(const AnimationSteps* steps) {
+void UnitServer::PlaySteps(const AnimationSteps* steps) {
     queue = *steps;
     StartQueueIfUnset();
     PopFinishedSteps();
@@ -340,36 +340,36 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
 
 // --- States -------------------------------------------------------------------------------------
 
-void CUnitServer::SetState(UnitState newState) {
+void UnitServer::SetState(UnitState newState) {
     state = newState;
     if (newState != UnitState::Acting) {
         unit->UpdateSizeClass();
         DropEffectObject();
         return;
     }
-    actingCheckTime = WorldContext()->tick_ + 10;
+    actingCheckTime = WorldContext()->tick + 10;
 }
 
-void CUnitServer::ClearStanding() { SetStandingFlag(this, 0); }
+void UnitServer::ClearStanding() { SetStandingFlag(this, 0); }
 
-void CUnitServer::StandStill() {
+void UnitServer::StandStill() {
     motion.Clear();
-    int now = World()->tick_;
+    int now = World()->tick;
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
-    Vector3 direction = -RotatedAxisY(unit->localRotation_);
-    if (motion.Start(unit->localPosition_, direction, now)) unit->RefreshMotion();
+    Vector3 direction = -RotatedAxisY(unit->localRotation);
+    if (motion.Start(unit->localPosition, direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }
 
 // --- Hit reactions ------------------------------------------------------------------------------
 
-void CUnitServer::PlayHitReaction() {
+void UnitServer::PlayHitReaction() {
     AnimationSteps reaction;
     if (moveMode.mode == 0 && state == UnitState::Idle) return;
     BuildDeathAnimation(&reaction, hitDirection, 0, 0);
     int duration = TotalDuration(reaction);
     if (action.kind == UnitOrderKind::Attack && state == UnitState::Turning &&
-        World()->tick_ + duration > nextAttackTime)
+        World()->tick + duration > nextAttackTime)
         return;
     keepHitDirection = 1;
     savedQueue = queue;
@@ -382,8 +382,8 @@ void CUnitServer::PlayHitReaction() {
 
 // --- The end of an order ------------------------------------------------------------------------
 
-void CUnitServer::EndOrder(char abort) {
-    int now = WorldContext()->tick_;
+void UnitServer::EndOrder(char abort) {
+    int now = WorldContext()->tick;
     bool open = HasOpenStep(queue);
     if (abort != 0 || now < currentPlan.startTime || open) {
         SetState(UnitState::Stopped);
@@ -420,9 +420,9 @@ void CUnitServer::EndOrder(char abort) {
 
 // --- Acting -------------------------------------------------------------------------------------
 
-void CUnitServer::TickAction() {
-    CWorldServer* world = ServerWorld();
-    int now = world->tick_;
+void UnitServer::TickAction() {
+    WorldServer* world = ServerWorld();
+    int now = world->tick;
     if (now == actingCheckTime) unit->UpdateSizeClass();
     OrderPlan& plan = currentPlan;
     if (now == plan.startTime) {
@@ -432,13 +432,13 @@ void CUnitServer::TickAction() {
         PopFinishedSteps();
         ShowCurrentStep();
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
-            auto* objects = g_serverWorld.timedObjectManager_;
+            auto* objects = g_serverWorld.timedObjectManager;
             auto* particle = objects->CreateObjectAs<CEffectParticle>(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {static_cast<int>(ParticleType::CastingFire), static_cast<int>(ParticleType::CastingElectricity), static_cast<int>(ParticleType::CastingAcid), static_cast<int>(ParticleType::CastingIllusion), static_cast<int>(ParticleType::CastingDivination), static_cast<int>(ParticleType::CastingEnchantment), static_cast<int>(ParticleType::CastingHealing), static_cast<int>(ParticleType::CastingDomination)};
             int kind = plan.castKind;
-            particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : static_cast<int>(ParticleType::Casting);
-            particle->size_ = 1.0f;
-            particle->SetAttachedTo(unit->id_);
+            particle->type = (kind >= 0 && kind <= 7) ? kEffects[kind] : static_cast<int>(ParticleType::Casting);
+            particle->size = 1.0f;
+            particle->SetAttachedTo(unit->id);
             world->AddTimedObject(particle);
             effectObject.Assign(particle);
         }
@@ -446,13 +446,13 @@ void CUnitServer::TickAction() {
     if (now < plan.endTime) {
         // Still acting: the unit stays where its motion puts it, facing its direction.
         CWorld* context = WorldContext();
-        Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
+        Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
         Vector3 direction;
         float speed;
         int cellX;
         int cellY;
         bool turning;
-        unit->motion.Sample(context, OrderOf(&motion), static_cast<float>(context->tick_),
+        unit->motion.Sample(context, OrderOf(&motion), static_cast<float>(context->tick),
                                &turning, &position.x, &direction.x, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == UnitState::Idle ? 1 : 0);
         unit->TurnUpTowards(direction, 0);
@@ -474,29 +474,29 @@ void CUnitServer::TickAction() {
         DropEffectObject();
     }
     motion.Clear();
-    int time = World()->tick_;
+    int time = World()->tick;
     Vector3 axis;
-    unit->localRotation_.AxisY(&axis);
+    unit->localRotation.AxisY(&axis);
     Vector3 backwards = -axis;
-    if (motion.Start(unit->localPosition_, backwards, time)) unit->RefreshMotion();
+    if (motion.Start(unit->localPosition, backwards, time)) unit->RefreshMotion();
     ClearStanding();
 }
 
 // --- Checks -------------------------------------------------------------------------------------
 
-bool CUnitServer::ActionInReach() {
+bool UnitServer::ActionInReach() {
     UnitOrderKind kind = action.kind;
     bool cast = kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn;
-    if (cast && (unit->flags_ & MapObjectFlag::NoCasting)) return false;
+    if (cast && (unit->flags & MapObjectFlag::NoCasting)) return false;
     if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::UseItem) return true;
     if (kind != UnitOrderKind::Attack && kind != UnitOrderKind::Use && kind != UnitOrderKind::CastOn) return false;
     CMapObject* target = action.target;
-    if (cast && (unit->flags_ & MapObjectFlag::NoCasting)) return false;
+    if (cast && (unit->flags & MapObjectFlag::NoCasting)) return false;
     if (!target) {
         if (!cast) return false;
         CSpell* spell = SpellOfSource(action.source);
         if (!spell) return false;
-        if ((spell->targetFlags_ & SpellTargetFlag::AtPoint) == 0) return false;
+        if ((spell->targetFlags & SpellTargetFlag::AtPoint) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).
     } else if (target->IsDead() != 0) {
         if (kind != UnitOrderKind::Use) return false;
@@ -504,8 +504,8 @@ bool CUnitServer::ActionInReach() {
     }
     Vector3 where;
     const float* at = &target->PositionAt(&where, currentPlan.endTime)->x;
-    float dx = at[0] - unit->localPosition_.x;
-    float dy = at[1] - unit->localPosition_.y;
+    float dx = at[0] - unit->localPosition.x;
+    float dy = at[1] - unit->localPosition.y;
     float distanceSq = LengthSquared2DUnrounded(dx, dy);
     EI_NAN_AUDIT(distanceSq, currentPlan.rangeSq);
     return distanceSq < currentPlan.rangeSq;   // closer
@@ -513,8 +513,8 @@ bool CUnitServer::ActionInReach() {
 
 // --- Item spells --------------------------------------------------------------------------------
 
-void CUnitServer::TickItemSpells() {
-    CWorldServer* world = ServerWorld();
+void UnitServer::TickItemSpells() {
+    WorldServer* world = ServerWorld();
     bool healed = false;
     for (auto node = armourSpells.begin(); node != armourSpells.end();) {
         ArmourSpell* current = &*node;
@@ -523,33 +523,33 @@ void CUnitServer::TickItemSpells() {
             --current->countdown;
             continue;
         }
-        CItem* item = current->item;
+        Item* item = current->item;
         if (!item) continue;
-        auto* spell = item->spell_.Get();
-        float cost = spell->manaCost_;
-        if (cost >= item->charge_) continue;   // a NaN charge or cost goes on
+        auto* spell = item->spell.Get();
+        float cost = spell->manaCost;
+        if (cost >= item->charge) continue;    // a NaN charge or cost goes on
         if (spell->Type() == SpellType::Healing) {
             // Only one a tick, and only when the unit is hurt.
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;
         }
-        UseItemCharge(item, spell->manaCost_);
+        UseItemCharge(item, spell->manaCost);
         CUnit* self = unit;
-        world->CastSpell(spell, self, self->localPosition_, self, self->localPosition_, 1);
-        int countdown = static_cast<int>(spell->duration_) - 3;
+        world->CastSpell(spell, self, self->localPosition, self, self->localPosition, 1);
+        int countdown = static_cast<int>(spell->duration) - 3;
         current->countdown = countdown;
         if (countdown <= 0) current->countdown = 8;
     }
 }
 
-void CUnitServer::RefreshItemSpells() {
+void UnitServer::RefreshItemSpells() {
     ItemsAndSpells held = unit->CollectItems();
-    std::list<CItem*>& items = held.items;
+    std::list<Item*>& items = held.items;
     // Weapons other than the one in use do not count.
     for (auto node = items.begin(); node != items.end();) {
-        std::list<CItem*>::iterator current = node;
+        std::list<Item*>::iterator current = node;
         ++node;
-        CItem* item = *current;
+        Item* item = *current;
         if (item->GetClassId() != ClassId::ItemWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
         items.erase(current);
     }
@@ -559,10 +559,10 @@ void CUnitServer::RefreshItemSpells() {
     // item's spell (like the original).
     CSpell* spell = nullptr;
     for (auto node = items.begin(); node != items.end();) {
-        CItem* item = *node;
+        Item* item = *node;
         ++node;
-        if (item) spell = item->spell_;
-        if (!spell || (spell->targetFlags_ & SpellTargetFlag::ItemContinuous) == 0) continue;
+        if (item) spell = item->spell;
+        if (!spell || (spell->targetFlags & SpellTargetFlag::ItemContinuous) == 0) continue;
         ArmourSpell* found = nullptr;
         for (ArmourSpell& entry : armourSpells) {
             if (entry.worn == 0 && entry.item == item) {

@@ -15,8 +15,8 @@ namespace present_window {
 namespace {
 
 HWND Window() {
-    CTextureDevice* device = g_sceneRenderer.device_;
-    return device ? device->window_ : nullptr;
+    TextureDevice* device = g_sceneRenderer.device;
+    return device ? device->window : nullptr;
 }
 
 // The frame does not fill the client area one to one: the game's coordinates need mapping.
@@ -97,10 +97,10 @@ void CoverMonitor(HWND window) {
 
 } // namespace
 
-void Update(CTextureDevice* device) {
+void Update(TextureDevice* device) {
     if (!device) return;
     MapCursorImports();
-    if (device->fullScreen_ && device->window_) CoverMonitor(device->window_);
+    if (device->fullScreen && device->window) CoverMonitor(device->window);
 }
 
 LPARAM MouseToGame(UINT message, LPARAM lParam) {

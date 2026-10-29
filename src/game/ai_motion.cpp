@@ -644,7 +644,7 @@ void UnitMotion::LimitSpeeds(float rate) {
 
 // ---- The unit's save ------------------------------------------------------
 
-void UnitMotion::LoadState(CStream* stream) {
+void UnitMotion::LoadState(ByteStream* stream) {
     segment = -1;
     // Each count is read into its argument slot: a failed read leaves the stream pointer.
     int count = 0;
@@ -664,7 +664,7 @@ void UnitMotion::LoadState(CStream* stream) {
     stream->ReadValue(turn);
 }
 
-void UnitMotion::SaveState(CStream* stream) {
+void UnitMotion::SaveState(ByteStream* stream) {
     int count = std::ssize(points);
     stream->WriteValue(count);
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);

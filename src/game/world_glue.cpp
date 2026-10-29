@@ -28,31 +28,31 @@
 
 int FinishQuestMap(const char* name) {
     net::ServerSession* server = net::g_gameServer;
-    if (!server || (server->flags7_ & CRefCounted::kDetached)) return 0;
+    if (!server || (server->flags7 & RefCounted::kDetached)) return 0;
     std::string text(name);
     return server->FinishMap(&text) ? 1 : 0;
 }
 
 namespace {
-CScript* CommandScript() { return g_serverWorld.SecondScript(); }
+Script* CommandScript() { return g_serverWorld.SecondScript(); }
 
 constexpr unsigned kFolderBufferSize = 0x400;
 
 constexpr double kHoursPerDay = 24.0;
 const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
-const char* DefaultMusic() { return options::g_options.defaultStreamingSound_.c_str(); }
-CPlayerClient* LocalClient() { return g_clientWorld.LocalView(); }
+const char* DefaultMusic() { return options::g_options.defaultStreamingSound.c_str(); }
+PlayerClient* LocalClient() { return g_clientWorld.LocalView(); }
 
 } // namespace
 
 int RunScriptText(const std::string& text, char run, ScriptErrorInfo* error) {
-    CScript* script = CommandScript();
-    std::string source = text;   // CScript::Load preprocesses its text in place
+    Script* script = CommandScript();
+    std::string source = text;   // Script::Load preprocesses its text in place
     int loaded = script->Load(&source, 1);
     if (loaded && run) ScriptTick(script);
     if (error) {
-        ScriptErrorInfo last{script->errorText_, script->errorCode_, script->errorLine_};
+        ScriptErrorInfo last{script->errorText, script->errorCode, script->errorLine};
         error->text = last.text;
         error->code = last.code;
         error->line = last.line;
@@ -63,7 +63,7 @@ int RunScriptText(const std::string& text, char run, ScriptErrorInfo* error) {
 void PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
     CPlayer* player;
     if (IsMultiplayerClient()) {
-        player = g_clientWorld.LocalView()->player_;
+        player = g_clientWorld.LocalView()->player;
     } else {
         player = g_serverWorld.GetPlayer(0);
         if (!player) {
@@ -71,7 +71,7 @@ void PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
             return;
         }
     }
-    player->Party()->variables_.CopyPrefixed(prefix, out);
+    player->Party()->variables.CopyPrefixed(prefix, out);
 }
 
 void StoreStartFolder() {
@@ -91,8 +91,8 @@ void GameSetConstructionVariable(std::uint32_t value) {
 void GameSetWeather(int weather, float strength) { g_serverWorld.SetWeather(weather, strength); }
 
 double GameServerTimeOfDay() {
-    CWorldServer* world = &g_serverWorld;
-    return std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, kHoursPerDay);
+    WorldServer* world = &g_serverWorld;
+    return std::fmod(static_cast<double>(world->tick) * world->secondsPerTick + world->timeBase, kHoursPerDay);
 }
 
 void GamePassTime(float offset) {
@@ -103,61 +103,61 @@ void GamePassTime(float offset) {
 void GameEnsureZone(std::string_view map, std::string_view mob) { g_serverWorld.EnsureZone(map, mob); }
 
 void GameSetUnitHeight(int id, float z) {
-    CWorldServer* world = &g_serverWorld;
+    WorldServer* world = &g_serverWorld;
     auto* unit = world->FindUnit(id);
     if (!unit) return;
     // Nothing when the heights are equal.
-    EI_NAN_AUDIT(unit->localPosition_.z, z);
-    if (unit->localPosition_.z == z) return;
-    Vector3 target = {unit->localPosition_.x, unit->localPosition_.y, z};
-    world->aiMap_.sectorMap.Move(unit, target);
+    EI_NAN_AUDIT(unit->localPosition.z, z);
+    if (unit->localPosition.z == z) return;
+    Vector3 target = {unit->localPosition.x, unit->localPosition.y, z};
+    world->aiMap.sectorMap.Move(unit, target);
     unit->MarkChanged(2);
 }
 
 void GameSetServerPaused(int paused) { g_serverWorld.SetServerPaused(static_cast<std::uint8_t>(paused)); }
 
 void GameStopCameraRecording() {
-    CWorldClient* world = &g_clientWorld;
-    CameraCloseFile(world->camera_);
-    world->flags_ &= ~WorldClientFlag::RecordingCamera;
+    WorldClient* world = &g_clientWorld;
+    CameraCloseFile(world->camera);
+    world->flags &= ~WorldClientFlag::RecordingCamera;
 }
 
 int GameStartCameraRecording(const char* name) {
-    CWorldClient* world = &g_clientWorld;
-    world->flags_ |= WorldClientFlag::RecordingCamera;
-    return world->camera_->OpenFile(name);
+    WorldClient* world = &g_clientWorld;
+    world->flags |= WorldClientFlag::RecordingCamera;
+    return world->camera->OpenFile(name);
 }
 
 int GamePlayCameraPath(const char* name, int flag) {
-    CWorldClient* world = &g_clientWorld;
-    if (!world->camera_->LoadPath(name, flag)) return 0;
-    CCamera* camera = world->camera_;
-    camera->flags_ |= CCamera::kPlaying;
-    camera->keyIndex_ = 0;
-    camera->timeOffset_ = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_ - camera->keys_[0].time);
+    WorldClient* world = &g_clientWorld;
+    if (!world->camera->LoadPath(name, flag)) return 0;
+    Camera* camera = world->camera;
+    camera->flags |= Camera::kPlaying;
+    camera->keyIndex = 0;
+    camera->timeOffset = static_cast<float>(static_cast<double>(world->tick) + world->tickFraction - camera->keys[0].time);
     return 1;
 }
 
 int GameShowCameraPath(const char* name) {
-    CWorldClient* world = &g_clientWorld;
-    int loaded = world->camera_->LoadPath(name, 0);
+    WorldClient* world = &g_clientWorld;
+    int loaded = world->camera->LoadPath(name, 0);
     if (!loaded) return loaded;
-    return world->camera_->PlaybackStart();
+    return world->camera->PlaybackStart();
 }
 
-std::uint32_t GameCameraPathPlaying() { return g_clientWorld.camera_->flags_ & CCamera::kPlaying; }
+std::uint32_t GameCameraPathPlaying() { return g_clientWorld.camera->flags & Camera::kPlaying; }
 
 // The client's draw is called through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
 int GameRender() { return g_clientWorld.Render(); }
 
-void GameStopSounds(int stopStream) { g_clientWorld.sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }
+void GameStopSounds(int stopStream) { g_clientWorld.sounds->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }
 
-void GameStopAmbience() { g_clientWorld.terrain_->StopAmbience(); }
+void GameStopAmbience() { g_clientWorld.terrain->StopAmbience(); }
 
-void GameStartAmbience() { g_clientWorld.terrain_->landscapeFlags |= terrain::LandscapeFlag::Ambience; }
+void GameStartAmbience() { g_clientWorld.terrain->landscapeFlags |= terrain::LandscapeFlag::Ambience; }
 
 int GamePlayMusic(const char* name) {
-    return g_clientWorld.sounds_->RequestStream(name ? name : DefaultMusic(), 4);
+    return g_clientWorld.sounds->RequestStream(name ? name : DefaultMusic(), 4);
 }
 
 CUnit* GameFindClientUnit(int id) { return g_clientWorld.FindUnit(id); }
@@ -184,21 +184,21 @@ void GameLeaveThroughExit(int exit) {
 }
 
 void GameSendLeave04(int value) {
-    g_interface.closeAll_ = 1;
+    g_interface.closeAll = 1;
     LocalClient()->SendLeave04(value);
 }
 
 void GameRejoin() {
-    g_interface.closeAll_ = 1;
+    g_interface.closeAll = 1;
     LocalClient()->Rejoin();
 }
 
 void GameLocalPlayerVariables(std::string_view prefix, NamedFloatTable* out) {
-    CPlayer* player = g_clientWorld.LocalView()->player_;
-    player->Party()->variables_.CopyPrefixed(prefix, out);
+    CPlayer* player = g_clientWorld.LocalView()->player;
+    player->Party()->variables.CopyPrefixed(prefix, out);
 }
 
-CPlayerClient* GameLocalView() { return g_clientWorld.LocalView(); }
+PlayerClient* GameLocalView() { return g_clientWorld.LocalView(); }
 
 int GameSendFlag10(int value) { return g_clientWorld.SendFlag10(value); }
 

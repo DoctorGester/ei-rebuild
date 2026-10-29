@@ -14,7 +14,7 @@ struct PartyManager;
 #include <cstdint>
 #include <vector>
 
-class ClassTemplate : public CRefCounted {
+class ClassTemplate : public RefCounted {
 public:
     // Both parties made (their managers too) and each stock on its party; no class, nothing sold, restock due.
     // weightsTail is zeroed too (the game never sets it, and saves it).
@@ -42,7 +42,7 @@ public:
     ItemStock magic{&spells};       // the same layout: spells and modifiers only
 };
 // A new template with no references; the application's start registers it with the class registry as class 1.
-CRefCounted* CreateClassTemplate();
+RefCounted* CreateClassTemplate();
 
 // Counted pointers.
 struct TemplateTable : std::vector<HeldRef<ClassTemplate>> {

@@ -26,7 +26,7 @@ namespace exe = ei::verify::exe;
 
 constexpr std::uint32_t kCap = 256;
 constexpr std::size_t kOriginalWeaponSkillBonus = 0x7B;   // game.exe's WeaponRecord::skillBonus
-constexpr std::uint32_t kOriginalDifficulty = 0x250;       // game.exe's GameOptions::difficulty_ (ours has std::string members)
+constexpr std::uint32_t kOriginalDifficulty = 0x250;       // game.exe's GameOptions::difficulty (ours has std::string members)
 
 // The recorders run in game.exe: its logic settings, not our g_logicSettings.
 const LogicSettings& OriginalLogicSettings() { return ei::OriginalGameData<const LogicSettings>(0x007C53F8); }
@@ -522,12 +522,12 @@ int __fastcall PickLocationRecord(UnitStats* self, void*, int location) {
     for (int i = 0; i < 6; ++i) v.kinds[i] = self->slots[i].kind;
     v.location = location;
     IsaacRandom& rng = ei::OriginalGameData<IsaacRandom>(0x007A9D40);   // game.exe's generator
-    std::uint32_t countBefore = rng.count_;
+    std::uint32_t countBefore = rng.count;
     std::uint16_t cw = ControlWord();
     int result = s_pickLocation(self, nullptr, location);
     v.result = result;
-    v.drew = rng.count_ != countBefore;
-    if (v.drew) v.draw = rng.results_[rng.count_ & 0xFF];
+    v.drew = rng.count != countBefore;
+    if (v.drew) v.draw = rng.results[rng.count & 0xFF];
     // A draw that refilled the generator is left out (the replay's generator holds one value).
     if (location >= 0 && location < 6 && !(v.drew && countBefore == 0))
         g_pickLocation.sampler.Offer(v, cw, v.drew ? 1 : 0);

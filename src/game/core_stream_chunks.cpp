@@ -1,4 +1,4 @@
-// Tagged blocks and text in a stream: CStream::ReadTagged, FindTagged ReplaceTagged and ReadText. Every
+// Tagged blocks and text in a stream: ByteStream::ReadTagged, FindTagged ReplaceTagged and ReadText. Every
 // stream access goes through the virtual functions, in the game's order.
 #include "core_streams.h"
 
@@ -8,13 +8,13 @@
 #include <string>
 #include <vector>
 
-bool CStream::ReadTagged(std::uint32_t* tag, CStream* out) {
+bool ByteStream::ReadTagged(std::uint32_t* tag, ByteStream* out) {
     std::uint32_t size = 0;
     if (!Read(tag, 4)) return false;
     if (!Read(&size, 4)) return false;
     size -= 8;
     out->Clear();
-    out->reading_ = 0;
+    out->reading = 0;
     std::vector<std::uint8_t> block(size);
     if (Read(block.data(), size) != size) return false;
     out->Write(block.data(), size);
@@ -22,9 +22,9 @@ bool CStream::ReadTagged(std::uint32_t* tag, CStream* out) {
     return true;
 }
 
-bool CStream::FindTagged(std::uint32_t id, CStream* out) {
+bool ByteStream::FindTagged(std::uint32_t id, ByteStream* out) {
     Seek(0);
-    reading_ = 1;
+    reading = 1;
     std::uint32_t tag;
     while (ReadTagged(&tag, out)) {
         if (tag == id) return true;
@@ -33,7 +33,7 @@ bool CStream::FindTagged(std::uint32_t id, CStream* out) {
     return false;
 }
 
-void CStream::ReadText(char* buffer, int capacity) {
+void ByteStream::ReadText(char* buffer, int capacity) {
     char* at = buffer;
     // Each byte is read into the low byte of one dword: a failed read of a stream that does not zero-fill
     // leaves the old byte.

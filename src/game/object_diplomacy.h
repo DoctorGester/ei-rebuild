@@ -6,7 +6,7 @@
 #include <cstdint>
 
 
-class CStream;
+class ByteStream;
 class CUnit;
 
 enum DiplomacyRelation : int {
@@ -15,7 +15,7 @@ enum DiplomacyRelation : int {
     kRelationHostile = 2,
 };
 
-struct CDiplomacy {
+struct Diplomacy {
     // Every player is allied with itself only; nobody is hostile.
     void Reset();
 
@@ -31,8 +31,8 @@ struct CDiplomacy {
     int GetHostileMask(int player) const;
 
     // Both tables read from / written to a stream, 0x80 bytes each.
-    void ReadFrom(CStream* stream);
-    void WriteTo(CStream* stream);
+    void ReadFrom(ByteStream* stream);
+    void WriteTo(ByteStream* stream);
 
     // `attacker` attacked `victim`: unless the victim's player is allied with the
     // attacker's, the victim, then the members of the victim's party up to the first empty entry,
@@ -40,8 +40,8 @@ struct CDiplomacy {
     void OnAttack(CUnit* attacker, CUnit* victim);
 
     // Whether `player` is allied with `other` (bit other & 31 of row `player`; a player is allied with itself).
-    bool IsAllied(int player, int other) const { return (allied_[player] & (1u << (other & 31))) != 0; }
+    bool IsAllied(int player, int other) const { return (allied[player] & (1u << (other & 31))) != 0; }
 
-    std::uint32_t allied_[32];    // bit q of row p: p is allied with q
-    std::uint32_t hostile_[32];   // bit q of row p: p is hostile to q
+    std::uint32_t allied[32];     // bit q of row p: p is allied with q
+    std::uint32_t hostile[32];    // bit q of row p: p is hostile to q
 };

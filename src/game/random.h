@@ -23,13 +23,13 @@ public:
     // Next() * (max - min) * ~2^-32 + min, left unrounded (random.cpp).
     float Range(float min, float max);
 
-    // Once (while seeded_ is 0): seeds results_ (1 KB of a random file on C:\,
+    // Once (while seeded is 0): seeds results (1 KB of a random file on C:\,
     // mixed with rand()), then the reference randinit(ctx, TRUE) and the first Refill.
     void Init();
-    // Once (while seeded_ is 0): Init with `source`'s memory_ as the seed instead of Seed's (no file, no rand()).
+    // Once (while seeded is 0): Init with `source`'s memory as the seed instead of Seed's (no file, no rand()).
     void InitFrom(const IsaacRandom& source);
 
-    // Fills results_ with seed material: 1 KB read at a random offset (0x201..0x400) of a
+    // Fills results with seed material: 1 KB read at a random offset (0x201..0x400) of a
     // file of at least 2 KB picked at random on C:\ (FindSeedFile), each word then xored with
     // rand(); retried until a read gave 1 KB that is not all zero. The harness's seed hook instead, when set.
     void Seed();
@@ -38,14 +38,14 @@ public:
     // reached `target` is copied to `out` (returns 1). 0 when the walk ends first.
     int FindSeedFile(char* out, const char* pattern, int target, int* counter);
 
-    std::uint32_t seeded_;          // non-zero once seeded from results_
-    std::uint32_t count_;           // results left (randcnt)
-    std::uint32_t results_[256];    // randrsl
-    std::uint32_t memory_[256];     // randmem
-    std::uint32_t a_, b_, c_;       // randa, randb, randc
+    std::uint32_t seeded;           // non-zero once seeded from results
+    std::uint32_t count;            // results left (randcnt)
+    std::uint32_t results[256];     // randrsl
+    std::uint32_t memory[256];      // randmem
+    std::uint32_t aa, bb, cc;       // randa, randb, randc
 
 private:
-    // Init after the seed: the reference randinit(ctx, TRUE) over results_ and the first Refill.
+    // Init after the seed: the reference randinit(ctx, TRUE) over results and the first Refill.
     void MixSeed();
 };
 static_assert(sizeof(IsaacRandom) == 0x814);

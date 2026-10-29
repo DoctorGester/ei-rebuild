@@ -27,7 +27,7 @@ std::string KeyName(const std::string& name) {
 }
 
 // Looks up `key`; when found, reads the name line and the description.
-void ReadItemText(CTextManager* texts, const std::string& key, ItemTexts* out) {
+void ReadItemText(TextManager* texts, const std::string& key, ItemTexts* out) {
     if (texts->Open(key)) {
         out->name = texts->ReadLine(true);
         out->description = texts->ReadToHash();
@@ -35,28 +35,28 @@ void ReadItemText(CTextManager* texts, const std::string& key, ItemTexts* out) {
 }
 
 // The text key and kind key of a loot item standing for a record.
-void RecordKeys(const CItemLoot* loot, std::string* key, const char** kindKey) {
-    switch (loot->recordType_) {
+void RecordKeys(const ItemLoot* loot, std::string* key, const char** kindKey) {
+    switch (loot->recordType) {
     case LootRecordType::Weapon:
-        *key = "instr " + KeyName(WeaponAt(loot->index_)->name);
+        *key = "instr " + KeyName(WeaponAt(loot->index)->name);
         *kindKey = "item_weapon_shape";
         break;
     case LootRecordType::Armor: {
-        const ArmorRecord* armor = ArmorAt(loot->index_);
+        const ArmorRecord* armor = ArmorAt(loot->index);
         *key = "instr " + KeyName(armor->name);
         *kindKey = IsUpperBodyArmor(armor->type) ? "item_armor_shape_upper" : "item_armor_shape_lower";
         break;
     }
     case LootRecordType::Quick:
-        *key = "instr " + KeyName(QuickItemAt(loot->index_)->name);
+        *key = "instr " + KeyName(QuickItemAt(loot->index)->name);
         *kindKey = "item_wand_shape";
         break;
     case LootRecordType::Spell:
-        *key = std::string("spell ") + SpellAt(loot->index_)->code;
+        *key = std::string("spell ") + SpellAt(loot->index)->code;
         *kindKey = "item_prototype";
         break;
     case LootRecordType::Modifier:
-        *key = std::string("modifier ") + SpellModifierAt(loot->index_)->code;
+        *key = std::string("modifier ") + SpellModifierAt(loot->index)->code;
         *kindKey = "item_modifier";
         break;
     default: break;
@@ -65,34 +65,34 @@ void RecordKeys(const CItemLoot* loot, std::string* key, const char** kindKey) {
 
 } // namespace
 
-bool CTextManager::IsPastEnd(const char* p) {
-    int offset = static_cast<int>(p - text_);
-    return offset >= static_cast<int>(length_);
+bool TextManager::IsPastEnd(const char* p) {
+    int offset = static_cast<int>(p - text);
+    return offset >= static_cast<int>(length);
 }
 
-std::optional<std::string> CTextManager::FindString(std::string_view name) {
-    if (cursor_) {
-        text_ = nullptr;
-        cursor_ = nullptr;
+std::optional<std::string> TextManager::FindString(std::string_view name) {
+    if (cursor) {
+        text = nullptr;
+        cursor = nullptr;
     }
-    std::optional<std::string> text;
+    std::optional<std::string> line;
     if (Open("string " + std::string(name))) {
-        text = ReadToHash();
-        str::TrimRight(*text, "\r\n");
+        line = ReadToHash();
+        str::TrimRight(*line, "\r\n");
     }
-    text_ = nullptr;
-    cursor_ = nullptr;
-    return text;
+    text = nullptr;
+    cursor = nullptr;
+    return line;
 }
 
-std::string CTextManager::GetString(std::string_view name) {
-    std::optional<std::string> text = FindString(name);
-    return text ? std::move(*text) : std::string(name);
+std::string TextManager::GetString(std::string_view name) {
+    std::optional<std::string> line = FindString(name);
+    return line ? std::move(*line) : std::string(name);
 }
 
-ItemTexts CTextManager::GetItemTexts(CItem* item) {
-    std::uint32_t materialIndex = MaterialIndex(item->prototypeId_);
-    std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId_);
+ItemTexts TextManager::GetItemTexts(Item* item) {
+    std::uint32_t materialIndex = MaterialIndex(item->prototypeId);
+    std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId);
     std::string key;                 // the item's text; none: no name and description
     const char* kindKey = nullptr;   // the kind's string; none: no kind
     bool wand = false;
@@ -123,19 +123,19 @@ ItemTexts CTextManager::GetItemTexts(CItem* item) {
     }
     case ItemKind::Loot: {
         auto* loot = AsLoot(item);
-        if (loot->kind_ == LootKind::Self) {
+        if (loot->kind == LootKind::Self) {
             key = "litem " + KeyName(LootAt(prototypeIndex)->name);
             kindKey = "item_loot";
-        } else if (loot->kind_ == LootKind::Material) {
-            key = "material " + KeyName(MaterialAt(loot->index_)->key);
+        } else if (loot->kind == LootKind::Material) {
+            key = "material " + KeyName(MaterialAt(loot->index)->key);
             kindKey = "item_material";
-        } else if (loot->kind_ == LootKind::Record) {
+        } else if (loot->kind == LootKind::Record) {
             RecordKeys(loot, &key, &kindKey);
         }
         break;
     }
     case ItemKind::Scroll:
-        if (CSpell* spell = item->spell_) {
+        if (CSpell* spell = item->spell) {
             key = std::string("spell ") + spell->GetPrototype()->code;
             kindKey = "item_spell";
         }
@@ -150,7 +150,7 @@ ItemTexts CTextManager::GetItemTexts(CItem* item) {
     ItemTexts texts;
     if (!key.empty()) ReadItemText(this, key, &texts);
     if (wand) {
-        if (CSpell* spell = item->spell_) {
+        if (CSpell* spell = item->spell) {
             std::string spellName = "Unknown";
             if (Open(std::string("spell ") + spell->GetPrototype()->code)) spellName = ReadLine(true);
             texts.name += ": " + spellName;
@@ -160,8 +160,17 @@ ItemTexts CTextManager::GetItemTexts(CItem* item) {
     return texts;
 }
 
-std::string CTextManager::FormatItemName(CItem* item) {
+std::string TextManager::FormatItemName(Item* item) {
     ItemTexts texts = GetItemTexts(item);
-    if (static_cast<int>(item->count_) > 1) return str::Format(GetString("format_item2"), texts.kind, texts.name, item->count_);
+    if (static_cast<int>(item->count) > 1) return str::Format(GetString("format_item2"), texts.kind, texts.name, item->count);
     return str::Format(GetString("format_item1"), texts.kind, texts.name);
 }
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kTextManagerClassName = "CTextManager";
+} // namespace
+
+const char* TextManager::ClassName() { return kTextManagerClassName; }
+ClassId TextManager::GetClassId() { return ClassId::TextManager; }

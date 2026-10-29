@@ -41,7 +41,7 @@ void __fastcall UnitOtherSlot(void*) {
     std::abort();
 }
 
-constexpr int kGetClassIdSlot = 12;   // CEngineObject (engine_object.h)
+constexpr int kGetClassIdSlot = 12;   // EngineObject (engine_object.h)
 void* g_unitVtable[96];
 alignas(16) unsigned char g_unitBytes[sizeof(CUnit)];
 
@@ -53,8 +53,8 @@ CUnit* MakeUnit(const UnitState& s) {
     void* vtable = g_unitVtable;
     std::memcpy(g_unitBytes, &vtable, sizeof(vtable));
     auto* unit = reinterpret_cast<CUnit*>(g_unitBytes);
-    std::memcpy(&unit->localPosition_, s.position, sizeof(s.position));
-    std::memcpy(&unit->localRotation_, s.orientation, sizeof(s.orientation));
+    std::memcpy(&unit->localPosition, s.position, sizeof(s.position));
+    std::memcpy(&unit->localRotation, s.orientation, sizeof(s.orientation));
     unit->sizeClass = s.sizeClass;
     unit->standingHeight = s.standingHeight;
     unit->altPassCosts = s.altPassCosts;
@@ -71,8 +71,8 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
 
 // sector_map.cpp is not linked: FindPath's map was recorded with the unit taken out, and putting it
 // back changes nothing the search reads (IsPassableWithoutSelf, linked with ai_map.cpp, calls these).
-bool CSectorMap::Add(CMapObject*) { return true; }
-bool CSectorMap::Remove(CMapObject*) { return true; }
+bool SectorMap::Add(CMapObject*) { return true; }
+bool SectorMap::Remove(CMapObject*) { return true; }
 
 namespace {
 
@@ -233,7 +233,7 @@ EI_VECTOR_CHECK_BYTES("@AIMap", CheckMap);
 
 // ---- The map a record runs on -------------------------------------------------------------------------
 
-CAIMap* g_map = nullptr;               // built for g_mapOf
+AIMap* g_map = nullptr;               // built for g_mapOf
 const SavedMap* g_mapOf = nullptr;
 
 template <typename T>
@@ -252,9 +252,9 @@ void FillClimb(std::vector<int>& table, const std::vector<int>& values) { table.
 // A fresh map with the saved map's sizes and tables (the grids' content is copied per record). The
 // old one is left behind (the replay runs a few maps).
 void BuildMap(const SavedMap& s) {
-    void* block = ::operator new(sizeof(CAIMap) + 0x1000);
-    std::memset(block, 0, sizeof(CAIMap) + 0x1000);
-    CAIMap* map = static_cast<CAIMap*>(block);
+    void* block = ::operator new(sizeof(AIMap) + 0x1000);
+    std::memset(block, 0, sizeof(AIMap) + 0x1000);
+    AIMap* map = static_cast<AIMap*>(block);
     map->loaded = true;
     map->cells.width = s.width;
     map->cells.height = s.height;
@@ -269,7 +269,7 @@ void BuildMap(const SavedMap& s) {
     map->waterDepth.width = s.water.width;
     map->waterDepth.height = s.water.height;
     SizeGrid(map->marks, s.marks.width, s.marks.height);
-    CRegionMap& r = map->regionMap;
+    RegionMap& r = map->regionMap;
     for (int c = 0; c < 8; ++c) {
         SizeGrid(r.edges[c], s.edges[c].width, s.edges[c].height, 8);
         SizeGrid(r.cells[c], s.representatives[c].width, s.representatives[c].height);
@@ -286,7 +286,7 @@ void BuildMap(const SavedMap& s) {
 // fresh.
 bool PrepareMap(const SavedMap& s, Reader& r) {
     if (g_mapOf != &s) BuildMap(s);
-    CAIMap* map = g_map;
+    AIMap* map = g_map;
     CopyGrid(map->cells, s.cells);
     CopyGrid(map->waterDepth, s.water);
     CopyGrid(map->marks, s.marks);
@@ -303,7 +303,7 @@ bool PrepareMap(const SavedMap& s, Reader& r) {
         ok = ApplyDiff(r, regions.data(), static_cast<std::uint32_t>(regions.size()), 1);
     if (!ok) return false;
     std::size_t at = 0;
-    CRegionMap& rm = map->regionMap;
+    RegionMap& rm = map->regionMap;
     for (int c = 0; c < 8; ++c) {
         auto put = [&](void* to, std::size_t size) {
             std::memcpy(to, regions.data() + at, size);
@@ -491,7 +491,7 @@ bool CheckFindPath(Reader& r, char* d, std::size_t n) {
         BuildMap(empty);
     }
     CUnit* u = MakeUnit(unit);
-    g_serverWorld.tick_ = tick;   // the search reads the world tick the record gave
+    g_serverWorld.tick = tick;    // the search reads the world tick the record gave
     bool actual = false;
     auto call = [&] { actual = g_map->FindPath(u, target, &path, range, minDistance); };
     if (!Guarded(call, d, n, "FindPath")) return false;

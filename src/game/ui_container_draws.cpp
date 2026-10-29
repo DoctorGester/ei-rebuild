@@ -28,63 +28,63 @@ void ClearUiDepth(float z, const RECT* rects, int count) {
 namespace {
 
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
-void ScreenDraw(CUiContainer* self, CSceneRenderer* pass, bool mouseMove) {
+void ScreenDraw(UiContainer* self, SceneRenderer* pass, bool mouseMove) {
     GameRender();
-    if (mouseMove) self->Input()->MouseMove(0, g_cursor.position_.x, g_cursor.position_.y);
+    if (mouseMove) self->Input()->MouseMove(0, g_cursor.position.x, g_cursor.position.y);
     ClearUiDepth(1.0f);
-    self->CUiContainer::Draw(pass);
+    self->UiContainer::Draw(pass);
 }
 
 } // namespace
 
-void CUiContainer::Draw(CSceneRenderer* pass) {
-    if (!interface_->drawing_) return;
+void UiContainer::Draw(SceneRenderer* pass) {
+    if (!ui->drawing) return;
     render::g_renderState.stages[0].combiner = kAlphaPassStage;
     DrawBase(pass);
     // By index: a child's draw may change the list.
-    for (int i = 0; i < std::ssize(children_); ++i) {
-        CUiWindow* child = children_[i];
-        if (child->enabled_) child->Draw(pass);
+    for (int i = 0; i < std::ssize(children); ++i) {
+        UiWindow* child = children[i];
+        if (child->enabled) child->Draw(pass);
     }
 }
 
-void CBriefingScreen::Draw(CSceneRenderer* pass) { ScreenDraw(this, pass, true); }
+void BriefingScreen::Draw(SceneRenderer* pass) { ScreenDraw(this, pass, true); }
 
-void CMainMenu::Draw(CSceneRenderer* pass) { ScreenDraw(this, pass, false); }
+void MainMenu::Draw(SceneRenderer* pass) { ScreenDraw(this, pass, false); }
 
 // The hero's weapons (the strip's left part), quick items (from the right) and worn armour, with the frames of
 // the shown weapon and the selected quick item.
-void CHeroEquipPanel::Draw(CSceneRenderer* pass) {
-    PartyUnitRecord* hero = owner_->HeroRecord();
+void HeroEquipPanel::Draw(SceneRenderer* pass) {
+    PartyUnitRecord* hero = owner->HeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t shown = hero->weaponIndex;
     if (shown < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
-        frame(0)->visible_ = true;
+        frame(0)->visible = true;
         // The unsigned slot * 100 + 50 is converted as a 64-bit integer.
         frame(0)->Place(static_cast<float>(x87::FromUnsigned(shown * 100u + 50u)), 50.0f, 3.0f);
     } else {
-        frame(0)->visible_ = false;
+        frame(0)->visible = false;
     }
-    int selected = selected_;
-    if (selected >= 0 && selected < std::ssize(hero->quickItems)) {
-        frame(1)->visible_ = true;
-        frame(1)->Place(static_cast<float>(750 - selected * 100), 50.0f, 3.0f);
+    int currentSelected = selected;
+    if (currentSelected >= 0 && currentSelected < std::ssize(hero->quickItems)) {
+        frame(1)->visible = true;
+        frame(1)->Place(static_cast<float>(750 - currentSelected * 100), 50.0f, 3.0f);
     } else {
-        frame(1)->visible_ = false;
+        frame(1)->visible = false;
     }
     DrawBase(pass);
-    CItemScreen* owner = owner_;
+    ItemScreen* currentOwner = owner;
     for (int i = 0; i < std::ssize(hero->weapons); ++i) {
         ItemCell cell{hero->weapons[i], static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
-                      mode_};
-        owner->DrawItem(pass, cell);
+                      mode};
+        currentOwner->DrawItem(pass, cell);
     }
     for (int i = 0; i < std::ssize(hero->quickItems); ++i) {
         ItemCell cell{hero->quickItems[i], static_cast<float>(750 - 100 * i), 50.0f, 12.0f, 100.0f,
-                      mode_};
-        owner->DrawItem(pass, cell);
+                      mode};
+        currentOwner->DrawItem(pass, cell);
     }
-    if (!body_) return;
+    if (!body) return;
 
     // The seven body slots' rectangles: 70 x 70 around their centres.
     const int* centreX = kBodySlotX;
@@ -92,17 +92,17 @@ void CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     RECT slots[7];
     for (int i = 0; i < 7; ++i) {
         RECT r{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35};
-        interface_->ScaleRectToScreenEntry(&r);
+        ui->ScaleRectToScreenEntry(&r);
         slots[i] = r;
     }
     ClearUiDepth(0.0f);
     ClearUiDepth(1.0f, slots, 7);
     for (int i = 0; i < std::ssize(hero->armor); ++i) {
-        CItem* item = hero->armor[i];
-        int type = AsArmor(item)->GetType();
-        ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,
-                      mode_};
-        owner->DrawItem(pass, cell);
+        Item* item = hero->armor[i];
+        int armorType = AsArmor(item)->GetType();
+        ItemCell cell{item, static_cast<float>(centreX[armorType]), static_cast<float>(centreY[armorType]), 6.0f, 100.0f,
+                      mode};
+        currentOwner->DrawItem(pass, cell);
     }
     ClearUiDepth(1.0f);
 }

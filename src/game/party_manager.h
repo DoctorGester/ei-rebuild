@@ -36,12 +36,12 @@ struct PartyManager {
     NamedPartyRecords records;
     TemplateTable templates;
 
-    // Reads the block `from` holds (CStream::ReadSized) as an archive: chunk 1
+    // Reads the block `from` holds (ByteStream::ReadSized) as an archive: chunk 1
     // the parties, 2 the entries, field 3, chunk 4 the class templates, chunk 5 the records.
-    void Load(CMemoryStream* from);
+    void Load(MemoryStream* from);
     // Writes the same archive into a memory stream (version `to`'s) and appends
-    // it to `to` as a sized block (CStream::WriteSized).
-    void Save(CMemoryStream* to);
+    // it to `to` as a sized block (ByteStream::WriteSized).
+    void Save(MemoryStream* to);
     // The records' BeginRedeploy / EndRedeploy the script's redeploy.
     void BeginRedeploy(CParty* party);
     void EndRedeploy(CParty* party);

@@ -54,10 +54,10 @@ std::string CaseConverted(std::string_view text, bool upper) {
 
 // The object's id in decimal ("%I64d" of the sign-extended id).
 bool GetObjectStringID(Call* call) {
-    CEngineObject* object = call->cmd->objectArgs[0]->object;
+    EngineObject* object = call->cmd->objectArgs[0]->object;
     if (!object) return InvalidArguments("GetObjectStringID");
     char text[64];
-    std::snprintf(text, sizeof(text), "%d", object->id_);
+    std::snprintf(text, sizeof(text), "%d", object->id);
     Assign(call, text);
     return true;
 }
@@ -148,7 +148,7 @@ bool StrUpper(Call* call) {
 bool Say(Call* call) {
     if (IsMultiplayerClient()) {
         net::ServerSession* server = net::g_gameServer;
-        if (server && !(server->flags7_ & CRefCounted::kDetached)) {
+        if (server && !(server->flags7 & RefCounted::kDetached)) {
             std::string text = Joined(call);
             server->Announce(text, 0);
         }

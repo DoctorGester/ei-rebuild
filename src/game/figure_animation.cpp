@@ -12,7 +12,7 @@ namespace {
 
 } // namespace
 
-int CFigureManager::SetFigureAnimation(CFigureAnimationState* figure, const char* modelName,
+int CFigureManager::SetFigureAnimation(FigureAnimationState* figure, const char* modelName,
                                        const FigureAnimation* animation) {
     if (!animation) return figure->ClearBoneTracks();
     std::string key(modelName);
@@ -22,7 +22,7 @@ int CFigureManager::SetFigureAnimation(CFigureAnimationState* figure, const char
         return 0;
     }
     std::string name(animation->name);
-    CMappedResource* found = model->FindAnimation(&name);
+    MappedResource* found = model->FindAnimation(&name);
     if (!found) {
         game::DebugLog("Can't open animation \"%s\" for model \"%s\"\n", animation->name, modelName);
         return 0;

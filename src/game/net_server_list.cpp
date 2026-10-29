@@ -48,15 +48,15 @@ void ClientSession::ReadServerList(GameBuffer* in) {
                 break;
             }
             auto* entry = NewCounted<ServerEntry>();
-            ReadBytes(&buffer, &entry->address_, 0x10);
+            ReadBytes(&buffer, &entry->address, 0x10);
             if (!record->Read(&buffer)) break;
-            entry->kind_ = record->kind;
-            entry->password_ = record->hasPassword;
-            entry->maxPlayers_ = record->maxPlayers;
-            entry->players_ = record->players;
-            std::string* name = &entry->name_;
+            entry->kind = record->kind;
+            entry->password = record->hasPassword;
+            entry->maxPlayers = record->maxPlayers;
+            entry->players = record->players;
+            std::string* name = &entry->name;
             if (&record->name != name) *name = record->name;
-            std::string* description = &entry->description_;
+            std::string* description = &entry->description;
             if (&record->description != description) *description = record->description;
             AddServer(entry);
         }

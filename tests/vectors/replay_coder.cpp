@@ -22,8 +22,8 @@ using namespace ei::vectors::coder;
 class ReplayBuffer final : public GameBuffer {
 public:
     // A buffer like `state` (offsets from its start) over `capacity` bytes of zeros.
-    ReplayBuffer(const BufferState& state, std::size_t capacity) : bytes_(capacity + kSlack), growing_(state.growing != 0) {
-        begin = bytes_.data();
+    ReplayBuffer(const BufferState& state, std::size_t capacity) : bytes(capacity + kSlack), growing(state.growing != 0) {
+        begin = bytes.data();
         cur = begin + state.cur;
         high = begin + state.high;
         end = begin + capacity;
@@ -31,38 +31,38 @@ public:
         flags = state.flags;
     }
 
-    void ReserveRead(std::int32_t) override { reserved_ = true; }
-    void ReserveWrite(std::int32_t) override { reserved_ = true; }
+    void ReserveRead(std::int32_t) override { reserved = true; }
+    void ReserveWrite(std::int32_t) override { reserved = true; }
     std::uint32_t Commit() override { return 0; }
     int ReadMore(void*, std::uint32_t) override { return 0; }
     int WriteMore(const void*, std::uint32_t) override {
-        reserved_ = true;
+        reserved = true;
         return 0;
     }
     // The growing buffer's (004DA860: `high` raised first; the room is always there) or the view's (0047D930).
     std::uint8_t* Seek(std::int32_t position) override {
-        if (growing_ && cur > high) high = cur;
+        if (growing && cur > high) high = cur;
         cur = begin + position;
-        if (cur > end) reserved_ = true;
+        if (cur > end) reserved = true;
         return cur;
     }
 
-    bool Reserved() const { return reserved_; }
+    bool Reserved() const { return reserved; }
     BufferState State() const {
         auto s = Zeroed<BufferState>();
         s.cur = static_cast<std::int32_t>(cur - begin);
         s.high = static_cast<std::int32_t>(high - begin);
         s.end = static_cast<std::int32_t>(end - begin);
         s.flags = flags;
-        s.growing = growing_;
+        s.growing = growing;
         return s;
     }
 
 private:
     static constexpr std::size_t kSlack = 64;   // a corrupt stream's reads past the end stay inside
-    std::vector<std::uint8_t> bytes_;
-    bool growing_;
-    bool reserved_ = false;
+    std::vector<std::uint8_t> bytes;
+    bool growing;
+    bool reserved = false;
 };
 
 // The room a recorded buffer needs for `extra` bytes at its cursor.

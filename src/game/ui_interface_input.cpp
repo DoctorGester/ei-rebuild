@@ -1,4 +1,4 @@
-// The interface's input dispatch (CInterface3D): the input dispatcher closes the
+// The interface's input dispatch (Interface3D): the input dispatcher closes the
 // windows when asked, then hands each mouse message here (on to the
 // input side that took the mouse or the top window's) and each typed character and key release
 // (on to the console, the chat line or the top window). See ui.h and
@@ -12,14 +12,14 @@
 
 #include "game_singletons.h"
 
-UiInputSide* CInterface3D::MouseTarget() const {
-    if (mouseCapture_) return static_cast<UiInputSide*>(mouseCapture_);
-    if (stack_.begin() != stack_.end()) return stack_.end()[-1]->Input();
+UiInputSide* Interface3D::MouseTarget() const {
+    if (mouseCapture) return static_cast<UiInputSide*>(mouseCapture);
+    if (stack.begin() != stack.end()) return stack.end()[-1]->Input();
     return nullptr;
 }
 
 namespace {
-void Send(const CInterface3D* ui, int slot, int buttons, int x, int y) {
+void Send(const Interface3D* ui, int slot, int buttons, int x, int y) {
     if (UiInputSide* target = ui->MouseTarget()) target->Event(slot, buttons, x, y);
 }
 
@@ -29,101 +29,101 @@ constexpr int kCursorWait = 3;
 
 } // namespace
 
-void CInterface3D::OnLeftDown(int buttons, int x, int y) {
-    doubleClick_ = false;
+void Interface3D::OnLeftDown(int buttons, int x, int y) {
+    doubleClick = false;
     Send(this, UiInputSide::kEventLeftDown, buttons, x, y);
 }
 
-void CInterface3D::OnLeftUp(int buttons, int x, int y) {
+void Interface3D::OnLeftUp(int buttons, int x, int y) {
     Send(this, UiInputSide::kEventLeftUp, buttons, x, y);
-    doubleClick_ = false;
+    doubleClick = false;
 }
 
-void CInterface3D::OnMouseMove(int buttons, int x, int y) { Send(this, UiInputSide::kEventMouseMove, buttons, x, y); }
+void Interface3D::OnMouseMove(int buttons, int x, int y) { Send(this, UiInputSide::kEventMouseMove, buttons, x, y); }
 
-void CInterface3D::OnRightDown(int buttons, int x, int y) {
-    rightDown_ = true;
+void Interface3D::OnRightDown(int buttons, int x, int y) {
+    rightDown = true;
     Send(this, UiInputSide::kEventRightDown, buttons, x, y);
 }
 
-void CInterface3D::OnRightUp(int buttons, int x, int y) {
-    rightDown_ = false;
+void Interface3D::OnRightUp(int buttons, int x, int y) {
+    rightDown = false;
     Send(this, UiInputSide::kEventRightUp, buttons, x, y);
 }
 
-void CInterface3D::OnLeftDouble(int buttons, int x, int y) {
-    doubleClick_ = true;
+void Interface3D::OnLeftDouble(int buttons, int x, int y) {
+    doubleClick = true;
     Send(this, UiInputSide::kEventLeftDouble, buttons, x, y);
 }
 
-void CInterface3D::OnRightDouble(int buttons, int x, int y) {
-    rightDown_ = true;
+void Interface3D::OnRightDouble(int buttons, int x, int y) {
+    rightDown = true;
     Send(this, UiInputSide::kEventRightDouble, buttons, x, y);
 }
 
-void CInterface3D::OnWheel(int flags, int delta, int x, int y) {
+void Interface3D::OnWheel(int flags, int delta, int x, int y) {
     if (UiInputSide* target = MouseTarget()) target->Wheel(flags, delta, x, y);
 }
 
 // --- Keys ------------------------------------------------------------------
 
-void CInterface3D::OnChar(int key, int repeat, int flags) {
+void Interface3D::OnChar(int key, int repeat, int flags) {
     if ((flags & kScanMask) == kScanConsoleKey) return;
-    if (console_->shown_) {
-        static_cast<console::ConsoleWindow*>(console_)->OnChar(key, repeat, flags);
+    if (console->shown) {
+        static_cast<console::ConsoleWindow*>(console)->OnChar(key, repeat, flags);
         return;
     }
-    if (IsMultiplayerClient() && root_->chatOpen_) {
-        root_->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
+    if (IsMultiplayerClient() && root->chatOpen) {
+        root->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
         return;
     }
-    if (!stack_.empty()) stack_.back()->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
+    if (!stack.empty()) stack.back()->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
 }
 
-void CInterface3D::OnKeyUp(int key, int repeat, int flags) {
+void Interface3D::OnKeyUp(int key, int repeat, int flags) {
     if (key == VK_SHIFT)
-        shiftDown_ = 0;
+        shiftDown = 0;
     else if (key == VK_CONTROL)
-        ctrlDown_ = false;
+        ctrlDown = false;
     else if (key == VK_MENU)
-        altDown_ = false;
-    if (console_->shown_) {
-        console_->OnKeyUp(key, repeat, flags);
+        altDown = false;
+    if (console->shown) {
+        console->OnKeyUp(key, repeat, flags);
         return;
     }
-    if (!stack_.empty()) stack_.back()->Input()->Event(UiInputSide::kEventKeyUp, key, repeat, flags);
+    if (!stack.empty()) stack.back()->Input()->Event(UiInputSide::kEventKeyUp, key, repeat, flags);
 }
 
 void console::ConsoleWindow::OnKeyUp(int key, int, int) {
     if (key == VK_SHIFT)
-        shift_ = false;
+        shift = false;
     else if (key == VK_CONTROL)
-        ctrl_ = false;
+        ctrl = false;
 }
 
 // --- Every window closed --------------------------------------------------
 
-void CInterface3D::CloseAll() {
+void Interface3D::CloseAll() {
     g_cursor.SetShape(kCursorWait);
-    while (!stack_.empty()) {
-        stack_.back()->Input()->Deactivate();
-        ScreenOf(stack_.back())->CloseScreen();
-        delete stack_.back();
-        stack_.pop_back();
+    while (!stack.empty()) {
+        stack.back()->Input()->Deactivate();
+        ScreenOf(stack.back())->CloseScreen();
+        delete stack.back();
+        stack.pop_back();
     }
-    ctrlDown_ = false;
-    altDown_ = false;
-    shiftDown_ = 0;
-    rightDown_ = false;
-    doubleClick_ = false;
+    ctrlDown = false;
+    altDown = false;
+    shiftDown = 0;
+    rightDown = false;
+    doubleClick = false;
     // No top window to deactivate here (the original deactivates it, but none can exist any more).
-    if (!stack_.empty()) stack_.back()->Input()->Deactivate();
+    if (!stack.empty()) stack.back()->Input()->Deactivate();
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 }
 
-void CInterface3D::CloseAllPending() {
-    if (!closeAll_) return;
-    closeAll_ = false;
+void Interface3D::CloseAllPending() {
+    if (!closeAll) return;
+    closeAll = false;
     CloseAll();
 }

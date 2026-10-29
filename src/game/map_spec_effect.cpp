@@ -35,7 +35,7 @@ void Notify(const char* kind, const char* family) { EffectNotify(std::string(kin
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
     g_serverWorld.CreateObject(self);
-    self->effect = g_serverWorld.timedObjectManager_->FindObject(self->id);
+    self->effect = g_serverWorld.timedObjectManager->FindObject(self->id);
 }
 
 } // namespace
@@ -48,14 +48,14 @@ ParticleSpec::~ParticleSpec() = default;
 LightSpec::~LightSpec() = default;
 
 void* EffectSpec::WorldObject() {
-    return g_clientWorld.objectManager_->FindObject(-3001 - id);
+    return g_clientWorld.objectManager->FindObject(-3001 - id);
 }
 
-CTransformObject* EffectSpec::Transform() const { return static_cast<CTransformObject*>(object); }
+TransformObject* EffectSpec::Transform() const { return static_cast<TransformObject*>(object); }
 
 void EffectSpec::SetVisible(std::uint8_t newVisible) {
     visible = newVisible;
-    std::uint32_t& flags = object->flags_;
+    std::uint32_t& flags = object->flags;
     if (newVisible != 0) flags &= ~0x40u;
     else flags |= 0x40;
 }
@@ -65,7 +65,7 @@ void EffectSpec::Move(float dx, float dy, float dz) {
     p.x = dx + p.x;
     p.y = dy + p.y;
     p.z = dz + p.z;
-    double ground = g_clientWorld.terrain_->HeightAt(p.x, p.y, terrain::Layer::Ground);
+    double ground = g_clientWorld.terrain->HeightAt(p.x, p.y, terrain::Layer::Ground);
     if (ground > p.z) p.z = static_cast<float>(ground);
     Apply();
 }
@@ -94,7 +94,7 @@ void ParticleSpec::Save() {
 
 void ParticleSpec::OnChunk() {
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xDD02: id = c.ReadInt(); break;
     case 0xDD03: position = c.ReadVector3(); break;
     case 0xDD04: comment = c.ReadString(); break;
@@ -112,10 +112,10 @@ void ParticleSpec::Apply() {
         return;
     }
     auto* particle = static_cast<CEffectParticle*>(effect);
-    Transform()->localPosition_ = position;
-    x87::CopyBits(particle->size_, scale);
-    particle->type_ = type;
-    particle->localPosition_ = position;
+    Transform()->localPosition = position;
+    x87::CopyBits(particle->size, scale);
+    particle->type = type;
+    particle->localPosition = position;
     particle->MarkChanged();
 }
 
@@ -142,7 +142,7 @@ void LightSpec::Save() {
 
 void LightSpec::OnChunk() {
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xAA02: radius = c.ReadFloat(); break;
     case 0xAA03: name = c.ReadString(); break;
     case 0xAA04: position = c.ReadVector3(); break;
@@ -160,11 +160,11 @@ void LightSpec::Apply() {
         MakeEffect(this);
         return;
     }
-    auto* light = static_cast<CEffectPointLight*>(effect);
-    light->color_ = colour;
-    x87::CopyBits(light->range_, radius);
-    light->localPosition_ = position;
-    Transform()->localPosition_ = position;
+    auto* light = static_cast<EffectPointLight*>(effect);
+    light->color = colour;
+    x87::CopyBits(light->range, radius);
+    light->localPosition = position;
+    Transform()->localPosition = position;
     light->MarkChanged();
 }
 
@@ -197,7 +197,7 @@ void SoundSpec::Save() {
 
 void SoundSpec::OnChunk() {
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xCC02: id = c.ReadInt(); break;
     case 0xCC03: position = c.ReadVector3(); break;
     case 0xCC04: volume = c.ReadInt(); break;
@@ -221,7 +221,7 @@ void SoundSpec::Apply() {
         if (!sounds.empty()) MakeEffect(this);
         return;
     }
-    Transform()->localPosition_ = position;
+    Transform()->localPosition = position;
     if (effect) g_serverWorld.RemoveTimedObject(id);
     if (!sounds.empty()) MakeEffect(this);
     else effect = nullptr;

@@ -1,15 +1,15 @@
 #include "unit.h"
 
+#include "ai_map.h"      // AIPath
+#include "ai_motion.h"   // UnitMotion
+#include "ei/x87.h"
 #include "item.h"
+#include "lib/nan_audit.h"
 #include "logic_settings.h"
 #include "party.h"
 #include "player_messages.h"
 #include "spell.h"
 #include "unit_db.h"
-
-#include "lib/nan_audit.h"
-
-#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>
@@ -34,9 +34,9 @@ constexpr float kOverkill = -5.0f;
 constexpr int kPartRelations = 11;
 constexpr int kPartEquipment = 5;
 
-float ItemWeight(const CItem* item) { return item->Weight(); }
+float ItemWeight(const Item* item) { return item->Weight(); }
 
-float SpellCost(const CSpell* spell) { return spell->manaCost_; }
+float SpellCost(const CSpell* spell) { return spell->manaCost; }
 
 // The party of the unit's player.
 CParty* RecordsOf(CPlayer* player) { return player->Party(); }
@@ -47,7 +47,7 @@ bool IsPartyUnit(CUnit* unit) { return unit->controller->GetClassId() == ClassId
 
 // Puts `item` into the first free slot of `slots`, taking a reference: the slot, 1 when it is
 // already there (whatever its slot), -1 when full.
-int AddToSlots(CUnit* unit, CItem** slots, std::uint32_t count, CItem* item) {
+int AddToSlots(CUnit* unit, Item** slots, std::uint32_t count, Item* item) {
     for (std::uint32_t i = 0; i < count; ++i) {
         if (slots[i] == item) return 1;
         if (!slots[i]) {
@@ -60,9 +60,9 @@ int AddToSlots(CUnit* unit, CItem** slots, std::uint32_t count, CItem* item) {
     return -1;
 }
 
-void RemoveFromSlots(CUnit* unit, CItem** slots, std::uint32_t slot) {
+void RemoveFromSlots(CUnit* unit, Item** slots, std::uint32_t slot) {
     if (slot >= 4) return;
-    CItem* item = slots[slot];
+    Item* item = slots[slot];
     slots[slot] = nullptr;
     if (item) item->Release();
     unit->MarkChanged(kPartEquipment);
@@ -91,7 +91,7 @@ void CUnit::AddHostileMask(std::uint32_t mask) {
     std::uint32_t merged = relationsA | mask;
     if (relationsA == merged) return;
     relationsA = merged;
-    flags_ |= MapObjectFlag::RelationsChanged;
+    flags |= MapObjectFlag::RelationsChanged;
     MarkChanged(kPartRelations);
 }
 
@@ -102,7 +102,7 @@ void CUnit::SetRelationsB(std::uint32_t mask) {
 
 void CUnit::SetSide(int value) {
     side = value;
-    flags_ |= MapObjectFlag::RelationsChanged;
+    flags |= MapObjectFlag::RelationsChanged;
     if (controller) MarkChanged(kPartRelations);
 }
 
@@ -145,44 +145,44 @@ void CUnit::SetMoveModes(int mode, int mode2) {
 
 void CUnit::ShowHelmet(bool show) {
     if (show) {
-        flags_ &= ~MapObjectFlag::HelmetHidden;
+        flags &= ~MapObjectFlag::HelmetHidden;
     } else {
-        flags_ |= MapObjectFlag::HelmetHidden;
+        flags |= MapObjectFlag::HelmetHidden;
     }
     MarkChanged(5);
 }
 
 std::uint32_t CUnit::SetStunned(int on) {
     if (on) {
-        flags_ |= MapObjectFlag::Frozen;
+        flags |= MapObjectFlag::Frozen;
     } else {
-        flags_ &= ~MapObjectFlag::Frozen;
+        flags &= ~MapObjectFlag::Frozen;
     }
-    return flags_;
+    return flags;
 }
 
 // --- Equipment -------------------------------------------------------------------------------
 
 void CUnit::GetEquipmentIds(std::uint32_t* out) {
     for (int i = 0; i < 4; ++i) {
-        out[i] = weapons[i] ? weapons[i]->prototypeId_ : 0xFFFFFFFFu;
+        out[i] = weapons[i] ? weapons[i]->prototypeId : 0xFFFFFFFFu;
     }
     for (int i = 0; i < 7; ++i) {
-        out[4 + i] = armor[i] ? armor[i]->prototypeId_ : 0xFFFFFFFFu;
+        out[4 + i] = armor[i] ? armor[i]->prototypeId : 0xFFFFFFFFu;
     }
 }
 
-int CUnit::AddWeapon(CItem* item) {
+int CUnit::AddWeapon(Item* item) {
     if (!item) return 0;
     return AddToSlots(this, weapons, 4, item);
 }
 
-int CUnit::AddQuickItem(CItem* item) {
+int CUnit::AddQuickItem(Item* item) {
     if (!item) return 0;
     return AddToSlots(this, quickItems, 4, item);
 }
 
-int CUnit::AddSpell(CItem* item) {
+int CUnit::AddSpell(Item* item) {
     // No null check here: a null item "is already there" at the first empty slot (returns 1).
     return AddToSlots(this, spells, 8, item);
 }
@@ -191,32 +191,32 @@ void CUnit::RemoveWeapon(std::uint32_t slot) { RemoveFromSlots(this, weapons, sl
 
 void CUnit::RemoveQuickItem(std::uint32_t slot) { RemoveFromSlots(this, quickItems, slot); }
 
-CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
+ItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
-        PartyUnitRecord* record = RecordsOf(player)->Find(id_);
+        PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->weapons))) return nullptr;
         return AsWeapon(record->weapons[slot]);
     }
     return slot < 4 ? AsWeapon(weapons[slot]) : nullptr;
 }
 
-CItem* CUnit::GetQuickItem(std::uint32_t slot) {
+Item* CUnit::GetQuickItem(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
-        PartyUnitRecord* record = RecordsOf(player)->Find(id_);
+        PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->quickItems))) return nullptr;
-        CItem* item = record->quickItems[slot];
-        if (!item || static_cast<int>(item->count_) < 1) return nullptr;
+        Item* item = record->quickItems[slot];
+        if (!item || static_cast<int>(item->count) < 1) return nullptr;
         return item;
     }
     return slot < 4 ? quickItems[slot] : nullptr;
 }
 
-CItem* CUnit::GetSpell(std::uint32_t slot) {
+Item* CUnit::GetSpell(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
-        PartyUnitRecord* record = RecordsOf(player)->Find(id_);
+        PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->spells))) return nullptr;
         return record->spells[slot];
     }
@@ -226,27 +226,27 @@ CItem* CUnit::GetSpell(std::uint32_t slot) {
 CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
-        PartyUnitRecord* record = RecordsOf(player)->Find(id_);
+        PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->spells))) return nullptr;
         // No null check on the item here.
-        return record->spells[slot]->spell_;
+        return record->spells[slot]->spell;
     }
     if (slot >= 8 || !spells[slot]) return nullptr;
-    return spells[slot]->spell_;
+    return spells[slot]->spell;
 }
 
 double CUnit::TotalItemWeight() {
     double total = 0.0;   // accumulated on the FPU stack
-    for (CItem* item : weapons) {
+    for (Item* item : weapons) {
         if (item) total += ItemWeight(item);
     }
-    for (CItem* item : quickItems) {
+    for (Item* item : quickItems) {
         if (item) total += ItemWeight(item);
     }
-    for (CItem* item : spells) {
+    for (Item* item : spells) {
         if (item) total += ItemWeight(item);
     }
-    for (CItem* item : armor) {
+    for (Item* item : armor) {
         if (item) total += ItemWeight(item);
     }
     return total;   // unrounded
@@ -265,13 +265,13 @@ bool CUnit::CanCastSpell(std::uint32_t slot) {
 }
 
 bool CUnit::CanUseQuickItem(std::uint32_t slot) {
-    CItem* object = GetQuickItem(slot);
+    Item* object = GetQuickItem(slot);
     if (!object || object->GetClassId() != ClassId::ItemQuick) return false;
-    CItem* item = object;
+    Item* item = object;
     if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
     if (item->GetCategory() == QuickItemCategory::Wand) {
-        EI_NAN_AUDIT(item->charge_, SpellCost(item->spell_));
-        if (item->charge_ < SpellCost(item->spell_)) return false;
+        EI_NAN_AUDIT(item->charge, SpellCost(item->spell));
+        if (item->charge < SpellCost(item->spell)) return false;
     }
     return true;
 }
@@ -309,7 +309,7 @@ double CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std:
 
 double CUnit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
-    if (flags_ & MapObjectFlag::ChoosingTarget) {
+    if (flags & MapObjectFlag::ChoosingTarget) {
         float capped = value >= kTen ? kTen : value;   // NaN is kept
         return capped * kThree + kTen;
     }
@@ -332,10 +332,10 @@ double CUnit::ModeSpeed() {
 
 // --- Prototypes ------------------------------------------------------------------------------
 
-UnitPrototypeRecord* CUnit::GetPrototype() { return unitdb::PrototypeRecord(prototypeId_); }
+UnitPrototypeRecord* CUnit::GetPrototype() { return unitdb::PrototypeRecord(prototypeId); }
 
 UnitModelRecord* CUnit::GetPrototypeModel() {
-    const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(prototypeId_);
+    const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(prototypeId);
     if (!prototype) return nullptr;
     return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }
@@ -387,13 +387,46 @@ double UnitParams::Period() { return 25.0f / static_cast<float>(intelligence); }
 
 // --- Map object state ------------------------------------------------------------------------
 
-bool CMapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
+bool MapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
 
-bool CMapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints; }
+bool MapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints; }
 
-bool CMapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
+bool MapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
 
-bool CMapObjectClientSpecific::IsOverkilled() {
+bool MapObjectClientSpecific::IsOverkilled() {
     int maximum = Unit()->packedVitals.maxHitPoints;
     return Unit()->packedVitals.hitPoints < -maximum * 4 - maximum;
 }
+
+// --- The class name and id, the motion given its speeds, the player test, twice the height above the
+// centre and a worn armour piece.
+
+void CUnit::SetMotionSpeeds(float speed, float turnRate) {
+    PathOrder* path = Controller()->Path();
+    path->ForgetObject(id);
+    UnitMotion* unitMotion = &motion;
+    unitMotion->segment = -1;
+    unitMotion->speedScale = speed;
+    unitMotion->baseTurnRate = turnRate;
+    unitMotion->Build(path);
+}
+
+bool CUnit::HasPlayer() const { return player != nullptr; }
+
+double CUnit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
+
+ItemArmor* CUnit::WornItem(int slot) const { return armor[slot]; }
+
+// --- Hits, forgotten objects and the script name ----------------------------------------------------
+
+void CUnit::ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) {
+    Controller()->TakeHit(hit, attacker, caster);
+}
+
+// Nothing reads the result.
+int CUnit::ForgetObject(EngineObject* object) {
+    Controller()->ObjectDeleted(object);
+    return 0;
+}
+
+void CUnit::SetScriptName(std::string_view newName) { scriptName = newName; }

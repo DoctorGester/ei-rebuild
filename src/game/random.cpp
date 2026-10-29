@@ -10,7 +10,7 @@
 #include <bit>
 #include <intrin.h>
 
-// The game's generator: unseeded (the static initialiser zeroes seeded_; Init seeds it on first use).
+// The game's generator: unseeded (the static initialiser zeroes seeded; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};
 IsaacRandom g_clientRandom = {};
 
@@ -78,11 +78,11 @@ void IsaacRandom::SetSeedHook(SeedHook hook) { g_seedHook = hook; }
 void IsaacRandom::SetDrawObserver(DrawObserver observer) { g_drawObserver = observer; }
 
 std::uint32_t IsaacRandom::Next() {
-    if (count_-- == 0) {
+    if (count-- == 0) {
         Refill();
-        count_ = 255;
+        count = 255;
     }
-    const std::uint32_t value = results_[count_];
+    const std::uint32_t value = results[count];
     if (g_drawObserver) g_drawObserver(*this, value, _ReturnAddress());
     return value;
 }
@@ -93,14 +93,14 @@ float IsaacRandom::Range(float min, float max) {
 }
 
 void IsaacRandom::Refill() {
-    // One ISAAC step: mix a, produce memory and result words. `ind` reads memory_ at the byte
+    // One ISAAC step: mix a, produce memory and result words. `ind` reads memory at the byte
     // offset (x & 0x3FC), i.e. index (x >> 2) & 255.
-    auto ind = [this](std::uint32_t x) { return memory_[(x >> 2) & 0xFF]; };
+    auto ind = [this](std::uint32_t x) { return memory[(x >> 2) & 0xFF]; };
 
-    std::uint32_t a = a_;
-    std::uint32_t b = b_ + ++c_;
-    std::uint32_t* m = memory_;
-    std::uint32_t* r = results_;
+    std::uint32_t a = aa;
+    std::uint32_t b = bb + ++cc;
+    std::uint32_t* m = memory;
+    std::uint32_t* r = results;
 
     auto step = [&](std::uint32_t mix, std::uint32_t*& m2) {
         std::uint32_t x = *m;
@@ -111,22 +111,22 @@ void IsaacRandom::Refill() {
         *r++ = b;
     };
 
-    std::uint32_t* m2 = memory_ + 128;
-    while (m < memory_ + 128) {
+    std::uint32_t* m2 = memory + 128;
+    while (m < memory + 128) {
         step(a ^ (a << 13), m2);
         step(a ^ (a >> 6), m2);
         step(a ^ (a << 2), m2);
         step(a ^ (a >> 16), m2);
     }
-    m2 = memory_;
-    while (m2 < memory_ + 128) {
+    m2 = memory;
+    while (m2 < memory + 128) {
         step(a ^ (a << 13), m2);
         step(a ^ (a >> 6), m2);
         step(a ^ (a << 2), m2);
         step(a ^ (a >> 16), m2);
     }
-    b_ = b;
-    a_ = a;
+    bb = b;
+    aa = a;
 }
 
 int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* counter) {
@@ -187,14 +187,14 @@ void IsaacRandom::Seed() {
             long offset = kSeedBytes - RandomBelow512();
             DWORD read = 0;
             if (gameapi::SetFilePointer(file.Handle(), offset, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
-                !gameapi::ReadFile(file.Handle(), results_, kSeedBytes, &read, nullptr) || read != kSeedBytes)
+                !gameapi::ReadFile(file.Handle(), results, kSeedBytes, &read, nullptr) || read != kSeedBytes)
                 ok = 0;
             file.Close();
         } else {
             ok = 0;
         }
         bool zero = true;
-        for (std::uint32_t word : results_)
+        for (std::uint32_t word : results)
             if (word != 0) {
                 zero = false;
                 break;
@@ -203,34 +203,34 @@ void IsaacRandom::Seed() {
             ok = 0;
             gameapi::Sleep(10);
         }
-        for (std::uint32_t& word : results_) word ^= static_cast<std::uint32_t>(libcrt::Rand());
+        for (std::uint32_t& word : results) word ^= static_cast<std::uint32_t>(libcrt::Rand());
     }
 }
 
 void IsaacRandom::Init() {
-    if (seeded_ != 0) return;
+    if (seeded != 0) return;
     Seed();
     MixSeed();
 }
 
 void IsaacRandom::InitFrom(const IsaacRandom& source) {
-    if (seeded_ != 0) return;
-    std::memcpy(results_, source.memory_, sizeof(results_));
+    if (seeded != 0) return;
+    std::memcpy(results, source.memory, sizeof(results));
     MixSeed();
 }
 
 void IsaacRandom::MixSeed() {
-    c_ = 0;
-    b_ = 0;
-    a_ = 0;
+    cc = 0;
+    bb = 0;
+    aa = 0;
     constexpr std::uint32_t kGolden = 0x9E3779B9;
     InitMix m{kGolden, kGolden, kGolden, kGolden, kGolden, kGolden, kGolden, kGolden};
     for (int i = 0; i < 4; ++i) m.Mix();
-    m.Pass(results_, memory_);
-    m.Pass(memory_, memory_);
+    m.Pass(results, memory);
+    m.Pass(memory, memory);
     Refill();
-    count_ = 256;
-    seeded_ = 1;
+    count = 256;
+    seeded = 1;
 }
 
 int ClientRand() { return static_cast<int>(g_clientRandom.Next() & 0x7FFF); }

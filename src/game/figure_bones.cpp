@@ -1,9 +1,9 @@
 // The skeleton's pose: each bone of a figure takes its place from its parent and its animator, and places the
-// mesh it carries. Called from the root (CFigureAnimationState) when the animation changed or the figure was
+// mesh it carries. Called from the root (FigureAnimationState) when the animation changed or the figure was
 // rescaled, with the figure's scaled time factor as the origin. See docs/notes/map_objects.md.
 #include "map_object_figures.h"   // FigureBone, AnimationDatabase
 
-#include "figure_mesh.h"          // CFigureMesh
+#include "figure_mesh.h"          // FigureMesh
 #include "map_object_animation.h" // AnimationTrack
 #include "bone_pose.h"
 
@@ -42,10 +42,10 @@ void FigureBone::Place(const Vector3& origin) {
         position -= origin;
     }
     if (mesh) {
-        mesh->localPosition_ = position;
-        mesh->localRotation_ = rotation;
+        mesh->localPosition = position;
+        mesh->localRotation = rotation;
         // The pose's morphed vertices ({data, count}; read even without a pose, like the original).
-        CFigureMesh::OffsetSpan vertices{pose->vertices.data(), std::ssize(pose->vertices)};
+        FigureMesh::OffsetSpan vertices{pose->vertices.data(), std::ssize(pose->vertices)};
         mesh->SetOffsets(&vertices);
     }
     for (auto node = children.begin(); node != children.end();) {

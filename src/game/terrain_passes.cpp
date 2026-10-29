@@ -44,11 +44,11 @@ void ChooseDetail(const Terrain* terrain, SectorData* sector) {
                             (sector->maxZ + sector->minZ) * 0.5f};
     // (z^2 + y^2) + x^2. The sum is kept unrounded; the passes run on the main thread (24-bit precision),
     // where the helper's stores change nothing.
-    const float distanceSquared = DistanceSquaredZYX(centre + terrain->localPosition_, g_camera.localPosition_);
+    const float distanceSquared = DistanceSquaredZYX(centre + terrain->localPosition, g_camera.localPosition);
     int level = 2;
     EI_NAN_AUDIT(distanceSquared);
-    if (distanceSquared < options::g_options.lod1_ * options::g_options.lod1_) level = 0;
-    else if (distanceSquared < options::g_options.lod2_ * options::g_options.lod2_) level = 1;
+    if (distanceSquared < options::g_options.lod1 * options::g_options.lod1) level = 0;
+    else if (distanceSquared < options::g_options.lod2 * options::g_options.lod2) level = 1;
     sector->detail = level;
 }
 
@@ -58,10 +58,10 @@ void ChooseDetail(const Terrain* terrain, SectorData* sector) {
 
 bool SectorData::IsDrawn() const { return clipMode == 0 || clipMode == kCrossing; }
 
-void SectorData::ClipTest(CSceneRenderer* renderer) {
+void SectorData::ClipTest(SceneRenderer* renderer) {
     // The verdict as it is stored: -1 counts as outside.
     const auto verdict = [&](const SectorBox& bounds) {
-        const int where = renderer->pipeline_->ClipTest(&bounds);
+        const int where = renderer->pipeline->ClipTest(&bounds);
         return where == -1 ? kCulled : where;
     };
     clipMode = verdict(box);
@@ -88,7 +88,7 @@ void SectorData::FindSeams() {
     }
 }
 
-void SectorData::DrawPage(const CSceneRenderer* renderer, int page) {
+void SectorData::DrawPage(const SceneRenderer* renderer, int page) {
     if (clipMode == kCulled) return;
     if (hasWater) ApplyWaterLevels();
     render::TerrainPage(this, renderer, page);
@@ -96,24 +96,24 @@ void SectorData::DrawPage(const CSceneRenderer* renderer, int page) {
 
 // --- The passes ------------------------------------------------------------------------------------
 
-void Terrain::DrawPass(CSceneRenderer* renderer, int firstPage, int lastPage) {
+void Terrain::DrawPass(SceneRenderer* renderer, int firstPage, int lastPage) {
     Matrix4 matrix;
-    localRotation_.ToMatrix(matrix.m);
-    matrix.m[3] = localPosition_.x;
-    matrix.m[7] = localPosition_.y;
-    matrix.m[11] = localPosition_.z;
+    localRotation.ToMatrix(matrix.m);
+    matrix.m[3] = localPosition.x;
+    matrix.m[7] = localPosition.y;
+    matrix.m[11] = localPosition.z;
     matrix.m[12] = matrix.m[13] = matrix.m[14] = 0.0f;
     matrix.m[15] = 1.0f;
-    CTransformPipeline* pipeline = renderer->pipeline_;
-    pipeline->PushMatrixProduct(matrix, CTransformPipeline::kClipStack);
+    TransformPipeline* pipeline = renderer->pipeline;
+    pipeline->PushMatrixProduct(matrix, TransformPipeline::kClipStack);
     pipeline->PushMatrixProduct(matrix, kProjectStack);
     DrawPages(renderer, firstPage, lastPage);
-    pipeline = renderer->pipeline_;
-    pipeline->PopMatrix(CTransformPipeline::kClipStack);
+    pipeline = renderer->pipeline;
+    pipeline->PopMatrix(TransformPipeline::kClipStack);
     pipeline->PopMatrix(kProjectStack);
 }
 
-void Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
+void Terrain::DrawPages(SceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return;
     ForVisibleSectors(this, [&](SectorData* sector) {
         ChooseDetail(this, sector);
@@ -135,8 +135,8 @@ void Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     }
 }
 
-void Terrain::DrawGround(CSceneRenderer* renderer) { DrawPass(renderer, 0, LayerPages() - 1); }
+void Terrain::DrawGround(SceneRenderer* renderer) { DrawPass(renderer, 0, LayerPages() - 1); }
 
-void Terrain::DrawWater(CSceneRenderer* renderer) { DrawPass(renderer, LayerPages(), 2 * LayerPages() - 1); }
+void Terrain::DrawWater(SceneRenderer* renderer) { DrawPass(renderer, LayerPages(), 2 * LayerPages() - 1); }
 
 } // namespace terrain

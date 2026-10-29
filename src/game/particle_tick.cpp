@@ -1,4 +1,4 @@
-// CParticleSource's per-frame tick and the particle pool. Each tick: copy the world's wind, follow the attachment
+// ParticleSource's per-frame tick and the particle pool. Each tick: copy the world's wind, follow the attachment
 // (or the source's own position) and derive the motion since the last tick with a basis (side, up) around it,
 // run the element callback on every element, the update callback on every particle (rebuilding the bounding
 // box), then emit new particles. `double` holds what the original keeps on the FPU stack.
@@ -75,7 +75,7 @@ void RestorePrevious(Particle* p) {
 
 // The tick's steps, as helpers on the source.
 struct TickSteps {
-    CParticleSource* s;
+    ParticleSource* s;
 
     // Motion since the last tick, from the attachment point plus the local position (or the
     // position alone); the emission point moves there.
@@ -83,9 +83,9 @@ struct TickSteps {
         if (s->attachedTo) {
             Vector3 point;
             const Vector3* a = s->AttachmentPoint(&point, s->attachedTo);
-            float wx = static_cast<float>(D(a->x) + D(s->localPosition_.x));
-            float wy = static_cast<float>(D(a->y) + D(s->localPosition_.y));
-            float wz = static_cast<float>(D(a->z) + D(s->localPosition_.z));
+            float wx = static_cast<float>(D(a->x) + D(s->localPosition.x));
+            float wy = static_cast<float>(D(a->y) + D(s->localPosition.y));
+            float wz = static_cast<float>(D(a->z) + D(s->localPosition.z));
             s->motion.x = static_cast<float>(D(wx) - D(s->origin.x));
             s->motion.y = static_cast<float>(D(wy) - D(s->origin.y));
             s->motion.z = static_cast<float>(D(wz) - D(s->origin.z));
@@ -93,10 +93,10 @@ struct TickSteps {
             s->origin.y = wy;
             s->origin.z = wz;
         } else {
-            s->motion.x = static_cast<float>(D(s->localPosition_.x) - D(s->origin.x));
-            s->motion.y = static_cast<float>(D(s->localPosition_.y) - D(s->origin.y));
-            s->motion.z = static_cast<float>(D(s->localPosition_.z) - D(s->origin.z));
-            s->origin = s->localPosition_;
+            s->motion.x = static_cast<float>(D(s->localPosition.x) - D(s->origin.x));
+            s->motion.y = static_cast<float>(D(s->localPosition.y) - D(s->origin.y));
+            s->motion.z = static_cast<float>(D(s->localPosition.z) - D(s->origin.z));
+            s->origin = s->localPosition;
         }
     }
 
@@ -144,7 +144,7 @@ struct TickSteps {
     // Updates every particle. A particle the previous tick rejected is unlinked and returned to
     // the pool first, but (as in the original) is still updated and counted in the bounds.
     void UpdateParticles() {
-        CParticleManager* pool = s->Manager();
+        ParticleManager* pool = s->Manager();
         auto node = s->particles.begin();
         while (node != s->particles.end()) {
             auto next = std::next(node);
@@ -165,7 +165,7 @@ struct TickSteps {
 
     // One emission attempt: a particle from the pool, kept when the emit callback accepts it.
     void EmitOne(int index) {
-        CParticleManager* pool = s->Manager();
+        ParticleManager* pool = s->Manager();
         Particle* p = pool->AcquireParticle();
         if (!p) return;
         if ((s->*s->emitFn)(p, index)) s->AddParticle(p);
@@ -177,8 +177,8 @@ struct TickSteps {
     void Emit() {
         int tries = x87::fistp(static_cast<float>(D(s->distance) / D(s->emitSpacing)));
         if (tries <= s->emitCount) tries = s->emitCount;
-        if (!(s->flags_ & ParticleSourceFlag::Emitting)) return;
-        if ((s->flags_ & ParticleSourceFlag::AttachedOnly) && !s->attachedTo) return;
+        if (!(s->flags & ParticleSourceFlag::Emitting)) return;
+        if ((s->flags & ParticleSourceFlag::AttachedOnly) && !s->attachedTo) return;
         int emitted = 0;
         if (tries > 0) {
             for (int i = 0; i < tries; ++i) {
@@ -214,18 +214,18 @@ struct TickSteps {
 // --- Particle pool --------------------------------------------------------------------------------
 
 // The head of the free list, or a fresh 0x64-byte particle when it is empty.
-Particle* CParticleManager::AcquireParticle() {
+Particle* ParticleManager::AcquireParticle() {
     if (freeParticles.empty()) return new Particle;
     Particle* p = freeParticles.front();
     freeParticles.pop_front();
     return p;
 }
 
-void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.push_back(p); }
+void ParticleManager::ReleaseParticle(Particle* p) { freeParticles.push_back(p); }
 
 // A newly emitted particle: alive, its "prev" fields equal to the current ones, inside
 // the bounds, appended to the list.
-void CParticleSource::AddParticle(Particle* p) {
+void ParticleSource::AddParticle(Particle* p) {
     p->dead = 0;
     SavePrevious(p);
     GrowBounds(boundsMin, boundsMax, p->pos);
@@ -234,18 +234,18 @@ void CParticleSource::AddParticle(Particle* p) {
 
 // Returns 1 while the source is still needed: a free source while it keeps
 // alive (ParticleSourceFlag::KeepAlive) or has particles, an attached one while it emits or has particles.
-bool CParticleSource::RunTick() {
-    if (hiddenTicks > 0x38 && (flags_ & ParticleSourceFlag::IdlesOffScreen)) return true;
-    const CWorldClient* world = &g_clientWorld;
-    lib::LoadBytes(windDirection, world->windDirection_);
-    windStrength = std::bit_cast<float>(world->windStrength_);
+bool ParticleSource::RunTick() {
+    if (hiddenTicks > 0x38 && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
+    const WorldClient* world = &g_clientWorld;
+    lib::LoadBytes(windDirection, world->windDirection);
+    windStrength = std::bit_cast<float>(world->windStrength);
     boundsMin.x = kFarBits;
     boundsMin.y = kFarBits;
     boundsMin.z = kFarBits;
     boundsMax.x = kNearBits;
     boundsMax.y = kNearBits;
     boundsMax.z = kNearBits;
-    if (attachedTo && (attachedTo->flags_ & MapObjectFlag::Removed)) Attach(nullptr);
+    if (attachedTo && (attachedTo->flags & MapObjectFlag::Removed)) Attach(nullptr);
 
     TickSteps steps{this};
     steps.Follow();
@@ -256,9 +256,9 @@ bool CParticleSource::RunTick() {
     steps.FinishBounds();
 
     if (!attachedTo) {
-        if (flags_ & ParticleSourceFlag::KeepAlive) return true;
+        if (flags & ParticleSourceFlag::KeepAlive) return true;
         return !particles.empty();
     }
-    if (flags_ & ParticleSourceFlag::Emitting) return true;
+    if (flags & ParticleSourceFlag::Emitting) return true;
     return !particles.empty();
 }

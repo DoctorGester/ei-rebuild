@@ -1,6 +1,6 @@
 #pragma once
 
-// Items: the in-game objects created from the item databases. prototypeId_ of CEngineObject is the item's
+// Items: the in-game objects created from the item databases. prototypeId of EngineObject is the item's
 // packed id: prototype index << 16 | material index.
 
 #include "base_manager.h"
@@ -14,7 +14,7 @@
 
 class CSpell;
 class CSpellManager;
-class CStream;
+class ByteStream;
 
 inline std::uint32_t PrototypeIndex(std::uint32_t packedId) { return packedId >> 16; }
 inline std::uint32_t MaterialIndex(std::uint32_t packedId) { return packedId & 0xFFFF; }
@@ -33,33 +33,33 @@ itemdb::ItemRecordHead* PrototypeAt(ItemKind kind, std::uint32_t index);
 // Armour types 0-2 are worn on the upper body.
 inline bool IsUpperBodyArmor(int type) { return type == 0 || type == 1 || type == 2; }
 
-class CItemLink;
+class ItemLink;
 
-// Base of every item. The six item classes override its virtuals (each calls CItem's first).
-class CItem : public CEngineObject {
+// Base of every item. The six item classes override its virtuals (each calls Item's first).
+class Item : public EngineObject {
 public:
-    CItem();
-    ~CItem() override;
+    Item();
+    ~Item() override;
 
     void Create() override;
     void Destroy() override;
-    // The recharge: charge_ moves towards chargeMax_ by chargeRate_ * chargeMax_. 0 when already full.
+    // The recharge: charge moves towards chargeMax by chargeRate * chargeMax. 0 when already full.
     bool RunTick() override;
-    // The packed id, condition_..unreadValue_, the spell's id (-1: none; Load finds it in the context's spell
-    // manager and counts it), count_ and magicLevel_, four bytes each, in that order.
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
-    // The classes call it first: price_, weight_, unreadValue_, charge_ and chargeMax_, magicLevel_, condition_
-    // and conditionMax_ from the record (see CItemConstructor::FillItem); chargeRate_ 0.001.
+    // The packed id, condition..unreadValue, the spell's id (-1: none; Load finds it in the context's spell
+    // manager and counts it), count and magicLevel, four bytes each, in that order.
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
+    // The classes call it first: price, weight, unreadValue, charge and chargeMax, magicLevel, condition
+    // and conditionMax from the record (see CItemConstructor::FillItem); chargeRate 0.001.
     virtual void InitFromRecord(const itemdb::ItemRecordHead* record);
-    // 1 for the item itself; else the same kind, packed id, magicLevel_ and (equal or unordered floats)
-    // condition_..chargeMax_ and weight_..unreadValue_, and both without a spell or both with one of the same
+    // 1 for the item itself; else the same kind, packed id, magicLevel and (equal or unordered floats)
+    // condition..chargeMax and weight..unreadValue, and both without a spell or both with one of the same
     // packed id and modifiers.
-    virtual bool IsSameAs(CItem* other);
-    // `target`, when of the same kind, gets (after its Destroy) this item's packed id, condition_..magicLevel_,
-    // a copy of the spell (CSpell::Clone with `spells`) and count_ 1. 0 for another kind.
-    virtual bool CopyTo(CItem* target, CSpellManager* spells);
-    virtual float GetPrice() { return price_; }
+    virtual bool IsSameAs(Item* other);
+    // `target`, when of the same kind, gets (after its Destroy) this item's packed id, condition..magicLevel,
+    // a copy of the spell (CSpell::Clone with `spells`) and count 1. 0 for another kind.
+    virtual bool CopyTo(Item* target, CSpellManager* spells);
+    virtual float GetPrice() { return price; }
     // "" for a plain item.
     virtual std::string ModelName();
     virtual std::string FigureName();
@@ -70,7 +70,7 @@ public:
 
     // A new item of the same kind from the owning manager, given this one's values through the copy virtual
     // with the spell manager `spells`; when that fails the new item is released and the result is null.
-    CItem* Clone(CSpellManager* spells);
+    Item* Clone(CSpellManager* spells);
 
     // The prototype record for the item's kind and index; null for spell containers,
     // other kinds and indices out of range.
@@ -78,55 +78,55 @@ public:
 
     // QuickItemCategory::NoPrototype without a prototype.
     QuickItemCategory GetCategory();
-    // type_ read as the item's kind.
-    ItemKind Kind() const { return static_cast<ItemKind>(type_); }
+    // type read as the item's kind.
+    ItemKind Kind() const { return static_cast<ItemKind>(type); }
 
     // Attaches `spell` (counted; the previous one released), moving the price from the
     // previous spell's to the new one's.
     void AttachSpell(CSpell* spell);
 
-    void Repair() { condition_ = conditionMax_; }
-    float Weight() const { return weight_; }
+    void Repair() { condition = conditionMax; }
+    float Weight() const { return weight; }
 
-    // a link record: the world server's CItemLink (the id the world's save keeps per item, or the party record's
+    // a link record: the world server's ItemLink (the id the world's save keeps per item, or the party record's
     // item), the HUD's ItemTurn.
-    Ref<CRefObject> link_;
-    CItemLink* ServerLink() const;
+    Ref<RefObject> link;
+    ItemLink* ServerLink() const;
     // the condition and its maximum (both from the prototype's; -1.0 until then): at 0 or below (rounded) the
     // item is broken.
-    float condition_;
-    float conditionMax_;
-    float charge_;
-    float chargeMax_;             // the prototype's charge
-    float chargeRate_;            // 0.001 by default
-    float weight_;                // the prototype's weight
-    float price_;                 // includes the attached spell's price
-    float unreadValue_;           // the prototype's unreadValue; only saved, loaded and compared by IsSameAs
+    float condition;
+    float conditionMax;
+    float charge;
+    float chargeMax;              // the prototype's charge
+    float chargeRate;             // 0.001 by default
+    float weight;                 // the prototype's weight
+    float price;                  // includes the attached spell's price
+    float unreadValue;            // the prototype's unreadValue; only saved, loaded and compared by IsSameAs
     // the level of spell the item can hold (the prototype's magicLevel plus the material's; MagicCapacityOf).
-    std::uint32_t magicLevel_;
-    Ref<CSpell> spell_;           // the spell carried by the item (scrolls, wands)
-    std::uint32_t count_;         // the stack's count
+    std::uint32_t magicLevel;
+    Ref<CSpell> spell;            // the spell carried by the item (scrolls, wands)
+    std::uint32_t count;          // the stack's count
 };
 
-// The record an item's link (CItem::link_) points at as the world server makes it: a counted value holding
+// The record an item's link (Item::link) points at as the world server makes it: a counted value holding
 // the dword the world's save keeps per item. When the server builds a unit's items from its party record it
 // holds the id of the record's item.
-class CItemLink final : public CRefObject {
+class ItemLink final : public RefObject {
 public:
     // No references, no flags.
-    CItemLink();
+    ItemLink();
     // Built again in place (the count and the value stay): nothing changes. Returns 0.
     void OnShutdown() override;
     // A new link with this one's value and no references; null without memory.
-    CItemLink* Clone() override;
+    ItemLink* Clone() override;
 
     std::uint32_t value;
 };
-inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(link_.Get()); }
+inline ItemLink* Item::ServerLink() const { return static_cast<ItemLink*>(link.Get()); }
 
-class CItemWeapon : public CItem {
+class ItemWeapon : public Item {
 public:
-    CItemWeapon();
+    ItemWeapon();
     const char* ClassName() override;
     ClassId GetClassId() override;
 
@@ -136,12 +136,12 @@ public:
     // The prototype's damage type weights; zeros without a prototype.
     void GetDamageTypes(float (&out)[kDamageTypeCount]);
 
-    // damage_ + a random fraction of damageSpread_ (the global ISAAC generator), unrounded: callers round when
+    // damage + a random fraction of damageSpread (the global ISAAC generator), unrounded: callers round when
     // they store it. double so the value is not rounded to float on return when the FPU runs at more than
     // 24-bit precision (it does under Rebirth).
     double RollDamage();
 
-    bool IsSameAs(CItem* other) override;
+    bool IsSameAs(Item* other) override;
 
     // Names built from the prototype. Model name: "<type>_<number>.<material name>.<variant>" (type "sw",
     // "ax", ...; empty without a prototype or material). Figure name: "unhuma" + the model name. Picture name:
@@ -150,18 +150,18 @@ public:
     std::string FigureName() override;
     std::string PictureName() override;
 
-    bool CopyTo(CItem* target, CSpellManager* spells) override;
+    bool CopyTo(Item* target, CSpellManager* spells) override;
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
-    std::uint32_t actionValue_;         // 0 after construction; CUnitServer::ScaledItemValue scales it by 15 / the rate, the hit takes it
-    float damage_;
-    float damageSpread_;
-    float reach_;           // prototype reach: the wielder's reach
+    std::uint32_t actionValue;          // 0 after construction; UnitServer::ScaledItemValue scales it by 15 / the rate, the hit takes it
+    float damage;
+    float damageSpread;
+    float reach;            // prototype reach: the wielder's reach
 };
 
-class CItemArmor : public CItem {
+class ItemArmor : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -172,26 +172,26 @@ public:
     // The unit's armour layer group the piece adds to (UnitStatLayer): 2 for upper body armour, else 1.
     int GetTypeGroup() { return IsUpperBodyArmor(GetType()) ? 2 : 1; }
 
-    // The same four names as CItemWeapon's, with the armor types ("hl", "pl",
+    // The same four names as ItemWeapon's, with the armor types ("hl", "pl",
     // ...) and the picture name "initar<type><number>armor".
     std::string ModelName() override;
     std::string FigureName() override;
     std::string PictureName() override;
 
-    bool CopyTo(CItem* target, CSpellManager* spells) override;
+    bool CopyTo(Item* target, CSpellManager* spells) override;
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    bool IsSameAs(CItem* other) override;
-    // CItem's, then the two absorption rows (0x1C bytes each; layerMask_ is not saved).
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    bool IsSameAs(Item* other) override;
+    // Item's, then the two absorption rows (0x1C bytes each; layerMask is not saved).
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
     // What the piece adds to the body slots it covers (UnitStats::AddArmourLayer): [0] for the
     // first covered slot, [1] for the others.
-    float absorb_[2][kDamageTypeCount] = {};
-    std::uint32_t layerMask_[2] = {};
+    float absorb[2][kDamageTypeCount] = {};
+    std::uint32_t layerMask[2] = {};
 };
 
-class CItemQuick : public CItem {
+class ItemQuick : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -200,39 +200,39 @@ public:
     // out of range), else "qitem<number>" (-1 without a prototype).
     std::string FigureName() override;
     std::string PictureName() override;
-    bool CopyTo(CItem* target, CSpellManager* spells) override;
-    // Also the scrolls'. The base's, then actionValue_.
+    bool CopyTo(Item* target, CSpellManager* spells) override;
+    // Also the scrolls'. The base's, then actionValue.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    bool IsSameAs(CItem* other) override;
-    // Also the scrolls'. CItem's, then actionValue_.
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    bool IsSameAs(Item* other) override;
+    // Also the scrolls'. Item's, then actionValue.
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
-    std::uint32_t actionValue_;         // the record's actionValue (CUnitServer::ScaledItemValue)
+    std::uint32_t actionValue;          // the record's actionValue (UnitServer::ScaledItemValue)
 };
 
-class CItemQuest : public CItem {
+class ItemQuest : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
     std::string FigureName() override;    // "quitem<number>"
     std::string PictureName() override;   // "initqu<number>item"
-    bool CopyTo(CItem* target, CSpellManager* spells) override;
+    bool CopyTo(Item* target, CSpellManager* spells) override;
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    bool IsSameAs(CItem* other) override;
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    bool IsSameAs(Item* other) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
     // (8, the id, 0); the other classes return zeros.
     LockKey GetUse() override;
 
     // the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
     // player's quest items, the zone's wanted list.
-    std::uint32_t questItemId_;
+    std::uint32_t questItemId;
 };
 
 // A scroll, a spell container: a quick item with its own names, class name and id.
-class CItemScroll : public CItemQuick {
+class ItemScroll : public ItemQuick {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -243,32 +243,32 @@ public:
     std::string PictureName() override;
 };
 
-class CItemLoot : public CItem {
+class ItemLoot : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    // The base price. Depends on what the loot stands for (kind_): itself (price_), a material, or a record
-    // of another database (recordType_).
+    // The base price. Depends on what the loot stands for (kind): itself (price), a material, or a record
+    // of another database (recordType).
     float GetPrice() override;
 
-    // By kind_: a record's name ("<type>_<number>.<variant>" for weapons and armors, "qitem", "prototype"
+    // By kind: a record's name ("<type>_<number>.<variant>" for weapons and armors, "qitem", "prototype"
     // (spells, by icon), "modifier" + number), "material<index>", or "litem<number>" for the loot itself.
     std::string FigureName() override;
     // "initwe..." / "initar..." / "initqi..." for records, "initqi1item" for spells and modifiers,
     // "initlimt<index>item" for materials, "initlitr<number>item" for the loot itself.
     std::string PictureName() override;
-    bool CopyTo(CItem* target, CSpellManager* spells) override;
-    // The base's, then kind_, recordType_ and index_.
+    bool CopyTo(Item* target, CSpellManager* spells) override;
+    // The base's, then kind, recordType and index.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    bool IsSameAs(CItem* other) override;
-    // CItem's, then kind_, recordType_ and index_.
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    bool IsSameAs(Item* other) override;
+    // Item's, then kind, recordType and index.
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
-    LootKind kind_;
-    LootRecordType recordType_;   // for LootKind::Record
-    std::uint32_t index_;       // record index
+    LootKind kind;
+    LootRecordType recordType;    // for LootKind::Record
+    std::uint32_t index;        // record index
 };
 
 // Weapon stats from a packed id. Each faults if the prototype index is out of range; an out-of-range
@@ -286,24 +286,24 @@ float WeaponDefenceBonus(std::uint32_t packedId);
 int ArmorLayer(std::uint32_t index);
 
 // The item with id `id` in an item manager (a party's, the world's item factory), or null.
-inline CItem* FindItem(const CBaseManager* items, unsigned id) { return items->FindObjectAs<CItem>(id); }
+inline Item* FindItem(const BaseManager* items, unsigned id) { return items->FindObjectAs<Item>(id); }
 
-// An item known to be a weapon as the CItemWeapon it is: a weapon slot's item (CUnit::weapons,
+// An item known to be a weapon as the ItemWeapon it is: a weapon slot's item (CUnit::weapons,
 // PartyUnitRecord::weapons hold weapons only), an item of the weapon kind, the copy or match of a
 // weapon. The weapon's methods are called without a class test.
-inline CItemWeapon* AsWeapon(CItem* item) { return static_cast<CItemWeapon*>(item); }
-inline const CItemWeapon* AsWeapon(const CItem* item) { return static_cast<const CItemWeapon*>(item); }
-// An item known to be armour as the CItemArmor it is: a hero record's armour (PartyUnitRecord::armor holds
+inline ItemWeapon* AsWeapon(Item* item) { return static_cast<ItemWeapon*>(item); }
+inline const ItemWeapon* AsWeapon(const Item* item) { return static_cast<const ItemWeapon*>(item); }
+// An item known to be armour as the ItemArmor it is: a hero record's armour (PartyUnitRecord::armor holds
 // armour only), an item of the armour kind, the copy or match of an armour piece, the item put on as armour
 // (CUnit::EquipArmour). The armour's methods are called without a class test.
-inline CItemArmor* AsArmor(CItem* item) { return static_cast<CItemArmor*>(item); }
-inline const CItemArmor* AsArmor(const CItem* item) { return static_cast<const CItemArmor*>(item); }
-// An item known to be loot as the CItemLoot it is: an item of the loot kind (ItemKind::Loot), one made by name from
+inline ItemArmor* AsArmor(Item* item) { return static_cast<ItemArmor*>(item); }
+inline const ItemArmor* AsArmor(const Item* item) { return static_cast<const ItemArmor*>(item); }
+// An item known to be loot as the ItemLoot it is: an item of the loot kind (ItemKind::Loot), one made by name from
 // a loot prototype (runes, materials, instructions), the copy or match of a loot item. Its fields are read
 // without a class test.
-inline CItemLoot* AsLoot(CItem* item) { return static_cast<CItemLoot*>(item); }
-inline const CItemLoot* AsLoot(const CItem* item) { return static_cast<const CItemLoot*>(item); }
+inline ItemLoot* AsLoot(Item* item) { return static_cast<ItemLoot*>(item); }
+inline const ItemLoot* AsLoot(const Item* item) { return static_cast<const ItemLoot*>(item); }
 // An item known to be a quick item / a quest item: the copy or match of one (the base IsSameAs
 // compares the classes first), an item of class kClassQuestItem.
-inline CItemQuick* AsQuick(CItem* item) { return static_cast<CItemQuick*>(item); }
-inline CItemQuest* AsQuest(CItem* item) { return static_cast<CItemQuest*>(item); }
+inline ItemQuick* AsQuick(Item* item) { return static_cast<ItemQuick*>(item); }
+inline ItemQuest* AsQuest(Item* item) { return static_cast<ItemQuest*>(item); }

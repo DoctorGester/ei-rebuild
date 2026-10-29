@@ -18,7 +18,7 @@ namespace {
 constexpr DWORD kThreadPeriod = 41;                  // ms between the thread's redraws
 
 // The renderer object; its flags' bit 0 is the software cursor display option.
-bool SoftwareCursor() { return (g_sceneRenderer.flags_ & 1) != 0; }
+bool SoftwareCursor() { return (g_sceneRenderer.flags & 1) != 0; }
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
@@ -26,44 +26,44 @@ render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.righ
 // when an image is shown and the cursor moved (or its frame stepped), the last frame presented again
 // with the cursor at its new rectangle (render::CursorBetweenFrames; nothing while the main thread's
 // frames come often enough); the drawn rectangle follows as the DirectDraw blits made it.
-void MoveBetweenFrames(CCursor* self) {
-    gameapi::EnterCriticalSection(&self->lock_);
+void MoveBetweenFrames(Cursor* self) {
+    gameapi::EnterCriticalSection(&self->lock);
     const bool moved = self->UpdatePosition();
-    if (self->imageShown_ && moved) {
-        CursorImage* image = self->image_;
-        render::CursorBetweenFrames(image->holder, image->saved.data(), ToRender(self->from_), ToRender(self->rect_));
-        self->drawn_ = self->rect_;
+    if (self->imageShown && moved) {
+        CursorImage* image = self->image;
+        render::CursorBetweenFrames(image->holder, image->saved.data(), ToRender(self->from), ToRender(self->rect));
+        self->drawn = self->rect;
     }
-    gameapi::LeaveCriticalSection(&self->lock_);
+    gameapi::LeaveCriticalSection(&self->lock);
 }
 
 } // namespace
 
 // (Without an image shown, DirectDraw saves the background from the primary in mode 2: nothing here.)
-void CursorDrawFrame(CCursor* self) {
+void CursorDrawFrame(Cursor* self) {
     if (!SoftwareCursor()) return;
-    if (!self->enabled_) return;
+    if (!self->enabled) return;
     self->UpdatePosition();
-    RECT* rect = &self->rect_;
+    RECT* rect = &self->rect;
     if (gameapi::IsRectEmpty(rect)) return;
-    if (!self->imageShown_) return;
-    CursorImage* image = self->image_;
-    render::Cursor(image->holder, image->saved.data(), ToRender(self->from_), ToRender(*rect));
-    self->drawn_ = *rect;
+    if (!self->imageShown) return;
+    CursorImage* image = self->image;
+    render::Cursor(image->holder, image->saved.data(), ToRender(self->from), ToRender(*rect));
+    self->drawn = *rect;
 }
 
-// Takes the cursor's place once, then until `stop_` is set: every 41 ms, with the software cursor on, one
+// Takes the cursor's place once, then until `stop` is set: every 41 ms, with the software cursor on, one
 // MoveBetweenFrames (DirectDraw: when an image is shown and the cursor moved, its old place's background
 // restored, the new one's saved and the composed cursor blitted to the primary, after the vertical blank). At
-// the end the event `stopped_` is set.
-void CursorThread(CCursor* self) {
-    if (!self->enabled_) return;
-    gameapi::EnterCriticalSection(&self->lock_);
+// the end the event `stopped` is set.
+void CursorThread(Cursor* self) {
+    if (!self->enabled) return;
+    gameapi::EnterCriticalSection(&self->lock);
     self->UpdatePosition();
-    self->drawn_ = self->rect_;
-    gameapi::LeaveCriticalSection(&self->lock_);
+    self->drawn = self->rect;
+    gameapi::LeaveCriticalSection(&self->lock);
     DWORD last = gameapi::timeGetTime();
-    while (!self->stop_) {
+    while (!self->stop) {
         DWORD now = gameapi::timeGetTime();
         if (now - last < kThreadPeriod) {
             gameapi::Sleep(kThreadPeriod - (now - last));
@@ -73,12 +73,12 @@ void CursorThread(CCursor* self) {
         if (!SoftwareCursor()) continue;
         MoveBetweenFrames(self);
     }
-    gameapi::SetEvent(self->stopped_);
+    gameapi::SetEvent(self->stopped);
 }
 
 // The procedure lib::StartThread starts (the cursor as its parameter): CursorThread, then exit code 0.
 unsigned __stdcall CursorThreadEntry(void* cursor) {
-    CursorThread(static_cast<CCursor*>(cursor));
+    CursorThread(static_cast<Cursor*>(cursor));
     return 0;
 }
 

@@ -31,13 +31,13 @@ struct BinkHeader {
 };
 static_assert(offsetof(BinkHeader, lastFrame) == 0x10);
 
-// CBinkVideo: the letterboxed screen rectangle and the Bink handle.
-struct CBinkVideo {
-    CBinkVideo() = default;
+// BinkVideo: the letterboxed screen rectangle and the Bink handle.
+struct BinkVideo {
+    BinkVideo() = default;
     // Closes the movie as Close does (the cursor shown again).
-    ~CBinkVideo() { Close(); }
-    CBinkVideo(const CBinkVideo&) = delete;
-    CBinkVideo& operator=(const CBinkVideo&) = delete;
+    ~BinkVideo() { Close(); }
+    BinkVideo(const BinkVideo&) = delete;
+    BinkVideo& operator=(const BinkVideo&) = delete;
 
     // The next frame decoded when due, then drawn into the rectangle; 0 when movies are off, nothing is open or the
     // last frame was decoded.

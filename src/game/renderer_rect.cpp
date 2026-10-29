@@ -19,27 +19,27 @@ void SetStage0Ops(render::TextureOp op) {
 } // namespace
 
 // Returns 0 when the rectangle is inverted (right < left or bottom < top), else 1.
-int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int alphaArgument, int outlineArgument) {
+int SceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int alphaArgument, int outlineArgument) {
     const char alpha = static_cast<char>(alphaArgument);   // the low bytes count
     const char outline = static_cast<char>(outlineArgument);
     if (right < left || bottom < top) return 0;
-    CTextureDevice* device = device_;
-    std::uint32_t colour = static_cast<std::uint32_t>(static_cast<std::uint8_t>(alpha)) << 24;
+    TextureDevice* currentDevice = device;
+    std::uint32_t packed = static_cast<std::uint32_t>(static_cast<std::uint8_t>(alpha)) << 24;
     // With the outline the fill stays a pixel inside it.
     float inset = outline ? 1.0f : 0.0f;
     float x0 = static_cast<float>(left), y0 = static_cast<float>(top);
     float x1 = static_cast<float>(right), y1 = static_cast<float>(bottom);
     render::ScreenVertex v[5] = {
-        {x0 + inset, y0 + inset, 0.0f, 1.0f, colour, 0xFF000000u},
-        {x0 + inset, y1 - inset, 0.0f, 1.0f, colour, 0xFF000000u},
-        {x1 - inset, y1 - inset, 0.0f, 1.0f, colour, 0xFF000000u},
-        {x1 - inset, y0 + inset, 0.0f, 1.0f, colour, 0xFF000000u},
-        {x0 + inset, y0 + inset, 0.0f, 1.0f, colour, 0xFF000000u},
+        {x0 + inset, y0 + inset, 0.0f, 1.0f, packed, 0xFF000000u},
+        {x0 + inset, y1 - inset, 0.0f, 1.0f, packed, 0xFF000000u},
+        {x1 - inset, y1 - inset, 0.0f, 1.0f, packed, 0xFF000000u},
+        {x1 - inset, y0 + inset, 0.0f, 1.0f, packed, 0xFF000000u},
+        {x0 + inset, y0 + inset, 0.0f, 1.0f, packed, 0xFF000000u},
     };
     const std::uint16_t indices[6] = {0, 1, 2, 0, 2, 3};
 
-    device->stageSurfaces_[0] = nullptr;   // no texture on stage 0
-    render::ScreenDraw(device, v, 4, indices, 6);
+    currentDevice->stageSurfaces[0] = nullptr;    // no texture on stage 0
+    render::ScreenDraw(currentDevice, v, 4, indices, 6);
     if (!outline) return 1;
 
     // The frame: white, on the rectangle's own edges, the texture stage off.
@@ -50,7 +50,7 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     v[3].x = x1, v[3].y = y0;
     v[4].x = x0, v[4].y = y0;
     SetStage0Ops(render::TextureOp::Disable);
-    render::ScreenDraw(device, v, 5, nullptr, 0);
+    render::ScreenDraw(currentDevice, v, 5, nullptr, 0);
     SetStage0Ops(render::TextureOp::Modulate);
     return 1;
 }

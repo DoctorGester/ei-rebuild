@@ -30,7 +30,7 @@ bool AcceptsAreaSpells(CUnit* unit) {
 }
 
 // Delivers `hit` to `unit` unless the spell may not affect it (the loops' common tail).
-void Deliver(CSpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
+void Deliver(SpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
     if (effect->caster && !effect->Spell()->CanAffect(effect->caster, unit)) return;
     CUnit* attacker = (effect->flags & 1) ? nullptr : effect->caster.Get();
     unit->ReceiveHit(hit, attacker, effect->caster);
@@ -39,12 +39,12 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
 
 bool IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit); }
 
-void CSpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
+void SpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
 
-void CSpellEffect::HitUnitsInRadius() {
+void SpellEffect::HitUnitsInRadius() {
     DamageInfo hit;
     GetDamage(&hit);
-    std::list<CUnit*> list = world->aiMap_.sectorMap.FindUnitsInRadius(position, Spell()->radius_);
+    std::list<CUnit*> list = world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius);
     for (auto node = list.begin(); node != list.end();) {
         CUnit* unit = *node;
         ++node;
@@ -53,7 +53,7 @@ void CSpellEffect::HitUnitsInRadius() {
     }
 }
 
-void CSpellEffect::HitUnitsAlong(const Vector3& direction) {
+void SpellEffect::HitUnitsAlong(const Vector3& direction) {
     DamageInfo hit;
     GetDamage(&hit);
 
@@ -66,14 +66,14 @@ void CSpellEffect::HitUnitsAlong(const Vector3& direction) {
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    std::list<CUnit*> list = world->aiMap_.sectorMap.FindUnitsInRadius(position, Spell()->radius_);
+    std::list<CUnit*> list = world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius);
     for (auto node = list.begin(); node != list.end();) {
         CUnit* unit = *node;
         ++node;
         const CUnit* at = unit;
-        double dz = at->localPosition_.z - position.z;
-        double dy = at->localPosition_.y - position.y;
-        double dx = at->localPosition_.x - position.x;
+        double dz = at->localPosition.z - position.z;
+        double dy = at->localPosition.y - position.y;
+        double dx = at->localPosition.x - position.x;
         float distance = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, normalX, normalY, normalZ));
         distance = AbsBits(distance);
         if (distance > kWallHalfWidth) continue;

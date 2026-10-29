@@ -14,13 +14,13 @@ namespace {
 // The generators: game.exe's ISAAC (007A9D40) and its CRT rand() seed (_getptd's +0x14).
 void ReadRandom(Builder& b) {
     const IsaacRandom& r = Random();
-    b.Unsigned("isaac.seeded", r.seeded_);
-    b.Unsigned("isaac.count", r.count_);
-    b.Bits("isaac.a", r.a_);
-    b.Bits("isaac.b", r.b_);
-    b.Bits("isaac.c", r.c_);
-    b.Bits("isaac.results", HashWords(r.results_, 256));
-    b.Bits("isaac.memory", HashWords(r.memory_, 256));
+    b.Unsigned("isaac.seeded", r.seeded);
+    b.Unsigned("isaac.count", r.count);
+    b.Bits("isaac.a", r.aa);
+    b.Bits("isaac.b", r.bb);
+    b.Bits("isaac.c", r.cc);
+    b.Bits("isaac.results", HashWords(r.results, 256));
+    b.Bits("isaac.memory", HashWords(r.memory, 256));
     b.Bits("crt.rand", OriginalRandState());
 }
 
@@ -29,14 +29,14 @@ std::uint32_t ModeId(AIMode* mode) {
     return mode ? *reinterpret_cast<const std::uint32_t*>(mode) : 0;
 }
 
-int PartyItemCount(CParty* party) { return party->items_.size; }
+int PartyItemCount(CParty* party) { return party->items.size; }
 
-std::uint32_t MissileVtable(const CSpellEffect* e) {
+std::uint32_t MissileVtable(const SpellEffect* e) {
     return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(e->vtable));
 }
 
-// A cast spell's missile has CSpellEffect's table (0074399C).
-bool IsSpellEffect(const CSpellEffect* e) {
+// A cast spell's missile has SpellEffect's table (0074399C).
+bool IsSpellEffect(const SpellEffect* e) {
     return e->vtable == &OriginalGameData<const void* const>(0x0074399C);
 }
 

@@ -1,4 +1,4 @@
-// The DirectInput mouse (CDirectInputMouse): set up at the application's start,
+// The DirectInput mouse (DirectInputMouse): set up at the application's start,
 // acquired with the window's activation and polled by the cursor. See ui_cursor.h.
 #define DIRECTINPUT_VERSION 0x0700
 #include "app.h"
@@ -64,7 +64,7 @@ int Reported(HRESULT result, const char* text) { return app::FatalErrorCode(resu
 
 void (*g_directInputObserver)(IDirectInput7A* input) = nullptr;
 
-const void* CDirectInputMouse::MouseDataFormat() {
+const void* DirectInputMouse::MouseDataFormat() {
     constexpr DWORD kOptional = 0x80000000;   // DIDFT_OPTIONAL (DirectInput 8's headers only)
     static DIOBJECTDATAFORMAT objects[] = {
         {&kGuidXAxis, 0, DIDFT_AXIS | DIDFT_ANYINSTANCE, 0},
@@ -80,50 +80,58 @@ const void* CDirectInputMouse::MouseDataFormat() {
     return &format;
 }
 
-int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
-    void* input = nullptr;
+int DirectInputMouse::Setup(HWND window, HINSTANCE instance) {
+    void* newInput = nullptr;
     const auto create = SystemDirectInputCreate();
-    HRESULT result = create ? create(instance, kInputVersion, kIidDirectInput7, &input, nullptr)
+    HRESULT result = create ? create(instance, kInputVersion, kIidDirectInput7, &newInput, nullptr)
                             : HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
     if (result < 0) return Reported(result, kNoInput);
-    if (g_directInputObserver) g_directInputObserver(static_cast<IDirectInput7A*>(input));
-    Adopt(input_, static_cast<IDirectInput7A*>(input));
+    if (g_directInputObserver) g_directInputObserver(static_cast<IDirectInput7A*>(newInput));
+    Adopt(input, static_cast<IDirectInput7A*>(newInput));
 
-    void* device = nullptr;
-    result = input_->CreateDeviceEx(kGuidSysMouse, kIidDirectInputDevice7, &device, nullptr);
+    void* newDevice = nullptr;
+    result = input->CreateDeviceEx(kGuidSysMouse, kIidDirectInputDevice7, &newDevice, nullptr);
     if (result < 0) return Reported(result, kNoDevice);
-    Adopt(device_, static_cast<IDirectInputDevice7A*>(device));
+    Adopt(device, static_cast<IDirectInputDevice7A*>(newDevice));
 
-    result = device_->SetDataFormat(static_cast<const DIDATAFORMAT*>(MouseDataFormat()));
+    result = device->SetDataFormat(static_cast<const DIDATAFORMAT*>(MouseDataFormat()));
     if (result < 0) return Reported(result, kNoFormat);
-    result = device_->SetCooperativeLevel(window, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND);
+    result = device->SetCooperativeLevel(window, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND);
     if (result < 0) return Reported(result, kNoCooperation);
-    if (device_) {
-        result = device_->Acquire();
+    if (device) {
+        result = device->Acquire();
         if (result < 0) app::FatalErrorCode(result, kNoAcquire);
     }
     return 1;
 }
 
-void CDirectInputMouse::Shutdown() {
-    if (device_) device_->Unacquire();
-    Drop(device_);
-    Drop(input_);
+void DirectInputMouse::Shutdown() {
+    if (device) device->Unacquire();
+    Drop(device);
+    Drop(input);
 }
 
-int CDirectInputMouse::SetActive(bool active) {
-    if (!device_) return 0;
+int DirectInputMouse::SetActive(bool active) {
+    if (!device) return 0;
     if (active) {
-        HRESULT result = device_->Acquire();
+        HRESULT result = device->Acquire();
         if (result < 0) return Reported(result, kNoAcquire);
     } else {
-        device_->Unacquire();
+        device->Unacquire();
     }
     return 1;
 }
 
-const LONG* CDirectInputMouse::Poll() {
-    static_assert(sizeof(state_) == sizeof(DIMOUSESTATE));
-    if (device_->GetDeviceState(sizeof(state_), state_) < 0) std::memset(state_, 0, sizeof(state_));
-    return state_;
+const LONG* DirectInputMouse::Poll() {
+    static_assert(sizeof(state) == sizeof(DIMOUSESTATE));
+    if (device->GetDeviceState(sizeof(state), state) < 0) std::memset(state, 0, sizeof(state));
+    return state;
+}
+
+// Run when the application drops the mouse at exit.
+DirectInputMouse::~DirectInputMouse() {
+    Shutdown();
+    // The two counted pointers' own destructors (Shutdown has cleared both).
+    if (device) device->Release();
+    if (input) input->Release();
 }

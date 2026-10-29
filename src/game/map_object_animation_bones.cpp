@@ -1,4 +1,4 @@
-// The figure animation state's skeleton (class 0x300D; CFigureAnimationState in map_object_figures.h): its
+// The figure animation state's skeleton (class 0x300D; FigureAnimationState in map_object_figures.h): its
 // lifetime, the bones the skeleton file links (LinkPiece per link, then FindRoot), the meshes the bones
 // carry, and placing the skeleton when the animation or the figure's morph changes. See
 // docs/notes/map_objects.md.
@@ -6,25 +6,25 @@
 #include "core_maths.h"
 #include "figure_manager.h"
 #include "figure_mesh.h"
+#include "lib/str.h"
 #include "map_object_animation.h"
 #include "map_object_figures.h"
 #include "world.h"
 
-#include "lib/str.h"
-
 #include <cstdint>
 #include <cstring>
+#include <new>
 #include <string>
 #include <vector>
 
 namespace {
 
-// A bone's mesh is a counted figure part (CFigureMesh, an engine object).
-CFigureMesh* AsMesh(CEngineObject* part) { return static_cast<CFigureMesh*>(part); }
+// A bone's mesh is a counted figure part (FigureMesh, an engine object).
+FigureMesh* AsMesh(EngineObject* part) { return static_cast<FigureMesh*>(part); }
 
 // The root places the skeleton (through its address) at the owner's time factor at its scale z times its
 // default scale: x and y from the factor stored to a float, z from it unrounded.
-void PlaceRoot(CFigureAnimationState* state) {
+void PlaceRoot(FigureAnimationState* state) {
     CObject3D* owner = state->owner;
     double factor = owner->AnimationFactor(owner->scale.z);
     float stored = static_cast<float>(factor);
@@ -52,30 +52,30 @@ void ClearTrack(AnimationTrack* track) {
 
 } // namespace
 
-CFigureAnimationState::CFigureAnimationState() {
+FigureAnimationState::FigureAnimationState() {
     Reset();
 }
 
-CFigureAnimationState::~CFigureAnimationState() {
+FigureAnimationState::~FigureAnimationState() {
     ReleaseBones();
     Reset();
     queue.clear();
     bones.clear();
 }
 
-void CFigureAnimationState::Destroy() { DestroyState(); }
+void FigureAnimationState::Destroy() { DestroyState(); }
 
-void CFigureAnimationState::Create() {
+void FigureAnimationState::Create() {
     changed = 1;
     Reset();
 }
 
-void CFigureAnimationState::DestroyState() {
+void FigureAnimationState::DestroyState() {
     ReleaseBones();
     Reset();
 }
 
-void CFigureAnimationState::ReleaseBones() {
+void FigureAnimationState::ReleaseBones() {
     for (auto node = bones.begin(); node != bones.end();) {
         FigureBone* bone = *node;
         ++node;
@@ -84,7 +84,7 @@ void CFigureAnimationState::ReleaseBones() {
     bones.clear();
 }
 
-void CFigureAnimationState::Reset() {
+void FigureAnimationState::Reset() {
     onEnd = nullptr;
     owner = nullptr;
     root = nullptr;
@@ -98,21 +98,21 @@ void CFigureAnimationState::Reset() {
     changed = 1;
 }
 
-FigureBone* CFigureAnimationState::FindBone(std::string_view boneName) {
+FigureBone* FigureAnimationState::FindBone(std::string_view boneName) {
     for (auto node = bones.begin(); node != bones.end(); ++node)
         if (str::Compare((*node)->name, boneName) == 0) return *node;
     return nullptr;
 }
 
-int CFigureAnimationState::LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName) {
-    CBaseManager* manager = FigureManagerOf(this);
+int FigureAnimationState::LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName) {
+    BaseManager* manager = FigureManagerOf(this);
     auto* bone = manager->CreateObjectAs<FigureBone>(FigureObjectType::FigureBone, -1);
     bone->name = child;
     bone->name2 = parentName;
     return LinkBone(model, bone);
 }
 
-int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
+int FigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     FigureBone* parent = nullptr;
     for (auto& node : bones) {
         if (str::Compare(node->name, bone->name2) == 0) {
@@ -140,7 +140,7 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     return 1;
 }
 
-int CFigureAnimationState::AttachMesh(CEngineObject* part) {
+int FigureAnimationState::AttachMesh(EngineObject* part) {
     changed = 1;
     FigureBone* bone = nullptr;
     for (auto& node : bones) {
@@ -150,18 +150,18 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
         }
     }
     if (!bone) return 0;
-    CFigureMesh* old = bone->mesh;
+    FigureMesh* old = bone->mesh;
     bone->mesh = AsMesh(part);
     if (part) {
         part->AddRef();
-        bone->mesh->localPosition_ = bone->position;
-        bone->mesh->localRotation_ = bone->rotation;
+        bone->mesh->localPosition = bone->position;
+        bone->mesh->localRotation = bone->rotation;
     }
     if (old) old->Release();
     return 1;
 }
 
-int CFigureAnimationState::FindRoot() {
+int FigureAnimationState::FindRoot() {
     changed = 1;
     for (auto& node : bones) {
         if (node->name2.empty()) {
@@ -172,17 +172,17 @@ int CFigureAnimationState::FindRoot() {
     return 0;
 }
 
-int CFigureAnimationState::SetModel(std::string_view model) {
+int FigureAnimationState::SetModel(std::string_view model) {
     changed = 1;
     return FigureManagerOf(this)->LoadSkeletonLinks(this, model);
 }
 
-int CFigureAnimationState::DetachMesh(CEngineObject* part) {
+int FigureAnimationState::DetachMesh(EngineObject* part) {
     changed = 1;
     for (auto& node : bones) {
         FigureBone* bone = node;
         if (bone->mesh && bone->mesh == AsMesh(part)) {
-            CFigureMesh* old = bone->mesh;
+            FigureMesh* old = bone->mesh;
             bone->mesh = nullptr;
             old->Release();
             return 1;
@@ -191,25 +191,25 @@ int CFigureAnimationState::DetachMesh(CEngineObject* part) {
     return 0;
 }
 
-int CFigureAnimationState::DetachMeshes() {
+int FigureAnimationState::DetachMeshes() {
     changed = 1;
     for (auto node = bones.begin(); node != bones.end();) {
         FigureBone* bone = *node;
         ++node;
-        CFigureMesh* old = bone->mesh;
+        FigureMesh* old = bone->mesh;
         bone->mesh = nullptr;
         if (old) old->Release();
     }
     return 1;
 }
 
-void CFigureAnimationState::PlaceIfChanged() {
+void FigureAnimationState::PlaceIfChanged() {
     if (!changed) return;
     changed = 0;
     if (root) PlaceRoot(this);
 }
 
-void CFigureAnimationState::UpdatePose() {
+void FigureAnimationState::UpdatePose() {
     if (!changed) return;
     for (auto node = bones.begin(); node != bones.end();) {
         FigureBone* bone = *node;
@@ -219,7 +219,7 @@ void CFigureAnimationState::UpdatePose() {
     PlaceIfChanged();
 }
 
-void CFigureAnimationState::Rescale(float s, float t, float u) {
+void FigureAnimationState::Rescale(float s, float t, float u) {
     FigureModel* model;
     {
         std::string key = owner->name;
@@ -240,13 +240,13 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
     if (root) PlaceRoot(this);
 }
 
-std::vector<std::string> CFigureAnimationState::BoneNames() {
+std::vector<std::string> FigureAnimationState::BoneNames() {
     std::vector<std::string> names;
     for (auto& node : bones) names.push_back(node->name);
     return names;
 }
 
-int CFigureAnimationState::ClearBoneTracks() {
+int FigureAnimationState::ClearBoneTracks() {
     changed = 1;
     for (auto node = bones.begin(); node != bones.end();) {
         FigureBone* bone = *node;
@@ -257,7 +257,7 @@ int CFigureAnimationState::ClearBoneTracks() {
     return 1;
 }
 
-int CFigureAnimationState::LoadBoneTracks(CMappedResource* part, const FigureAnimation* animation) {
+int FigureAnimationState::LoadBoneTracks(MappedResource* part, const FigureAnimation* animation) {
     changed = 1;
     for (auto node = bones.begin(); node != bones.end();) {
         FigureBone* bone = *node;
@@ -269,3 +269,65 @@ int CFigureAnimationState::LoadBoneTracks(CMappedResource* part, const FigureAni
     }
     return 1;
 }
+
+// --- The bone's lifetime (class 0x300C, 0xA0 bytes; FigureBone in map_object_figures.h). The figure
+// factory makes bones; the animation state links them.
+
+namespace {
+
+// The mesh is a counted engine object (its release virtual).
+void ReleaseMesh(FigureMesh* mesh) { mesh->Release(); }
+
+} // namespace
+
+// The names are members (empty strings before the body).
+FigureBone::FigureBone() {
+    rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+    CreateBone();
+}
+
+void FigureBone::CreateBone() {
+    // The original assigns "none" to all three names, not an empty string.
+    name = "none";
+    name2 = "none";
+    name3 = "none";
+    parent = nullptr;
+    children.clear();
+    mesh = nullptr;
+    pose = nullptr;
+    animator = nullptr;
+    position = kTrackDefaultPosition;
+    rotation = kTrackDefaultRotation;
+    matrices.clear();
+    morphS = 0.0f;
+    morphT = 0.0f;
+    morphU = 0.0f;
+}
+
+void FigureBone::DestroyBone() {
+    FigureMesh* placed = mesh;
+    mesh = nullptr;
+    if (placed) ReleaseMesh(placed);
+    pose = nullptr;
+    if (animator) animator->Release();
+    animator = nullptr;
+    CreateBone();
+}
+
+// The names go after the body (name3, name2, name), then the engine object's part.
+FigureBone::~FigureBone() {
+    DestroyBone();   // its reset empties the matrices here, the same SetSize
+    // The child list's destructor: its vtable, emptied again.
+    children.clear();
+}
+
+void FigureBone::Create() { CreateBone(); }
+void FigureBone::Destroy() { DestroyBone(); }
+
+namespace {
+constexpr const char* kBoneClassName = "CAnimationNode";
+} // namespace
+
+const char* FigureBone::GetName() { return name.c_str(); }
+const char* FigureBone::ClassName() { return kBoneClassName; }
+ClassId FigureBone::GetClassId() { return ClassId::FigureBone; }

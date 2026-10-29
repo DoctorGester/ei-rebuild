@@ -18,15 +18,15 @@ public:
     MagicTrap();
     ~MagicTrap() override;
 
-    // The map object's Create, then sides -1, flags_ |= 0x80040, no spell, no circles, points or units, period
+    // The map object's Create, then sides -1, flags |= 0x80040, no spell, no circles, points or units, period
     // 10, countdown and singleTarget 0.
     void Create() override;
     void Destroy() override { DestroyTrap(); }
     // On the server world with a spell: a period not above 0 updates the units inside; otherwise the countdown
     // goes down by one (not below 0) and, once it is not above 0, the trap fires at what is in it.
     bool RunTick() override;
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
     const char* ClassName() override;   // "CMagicTrapObject"
     ClassId GetClassId() override;
     bool IsSynchronised() override { return true; }
@@ -34,16 +34,16 @@ public:
     // The map object part, the spell's id (-1: none), the circles (count, then 12 bytes each), the units inside
     // (count, then each id), the points (count, then 8 bytes each), the period, countdown, singleTarget and the
     // sides.
-    void SaveTrap(CStream* stream);
+    void SaveTrap(ByteStream* stream);
     // Reads what SaveTrap writes (the spell found by id in the spell manager, the units resolved in the context).
-    void LoadTrap(CStream* stream);
+    void LoadTrap(ByteStream* stream);
 
     void DestroyTrap();
     // An armed trap casts its spell at the living units of its sides found in its circles, when there are
     // any. The context is fetched even when the trap is not armed.
     void FireAtOccupants();
     // Drops every entry of the units inside that refers to `object`. Returns 0.
-    int ForgetObject(CEngineObject* object) override;
+    int ForgetObject(EngineObject* object) override;
 
     // Sets the trap up from its zone record (called by the zone loader); the units inside are forgotten and the
     // countdown starts at 0.
@@ -72,5 +72,5 @@ public:
 
 // `out` becomes the living units whose side has its bit in `sides` within each circle of `area` (from the
 // world's sector map); a unit in two circles is appended twice.
-void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
+void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
                                 std::list<CUnit*>* out);

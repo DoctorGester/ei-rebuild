@@ -30,8 +30,8 @@ int PrototypeIndexOf(const UnitPrototypeRecord* record) {
 }
 
 template <typename T>
-void WriteItemIds(CStream* stream, T* const* items, int count) {
-    for (int i = 0; i < count; ++i) stream->WriteValue<int>(items[i] ? items[i]->id_ : -1);
+void WriteItemIds(ByteStream* stream, T* const* items, int count) {
+    for (int i = 0; i < count; ++i) stream->WriteValue<int>(items[i] ? items[i]->id : -1);
 }
 
 // The prototype record named `name` through the name map (operator[]: an unknown name is added to it).
@@ -43,21 +43,21 @@ UnitPrototypeRecord* PrototypeByName(std::string_view name) {
 
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
-CItem* ReadItem(CUnit* unit, CStream* stream) {
-    CBaseManager* manager = unit->WorldContext()->ItemFactory();
+Item* ReadItem(CUnit* unit, ByteStream* stream) {
+    BaseManager* manager = unit->WorldContext()->ItemFactory();
     int id;
     stream->ReadValue(id);
     if (id == -1) return nullptr;
-    CItem* item = FindItem(manager, id);
+    Item* item = FindItem(manager, id);
     if (item) item->AddRef();
     return item;
 }
 
-void ReadItems(CUnit* unit, CStream* stream, CItem** slots, int count) {
+void ReadItems(CUnit* unit, ByteStream* stream, Item** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = ReadItem(unit, stream);
 }
 // The worn armour: its ids name armour pieces.
-void ReadItems(CUnit* unit, CStream* stream, CItemArmor** slots, int count) {
+void ReadItems(CUnit* unit, ByteStream* stream, ItemArmor** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = AsArmor(ReadItem(unit, stream));
 }
 
@@ -73,10 +73,10 @@ CPlayer* PlayerById(CUnit* unit, int id) {
 }
 } // namespace
 
-void CUnit::LoadUnit(CStream* stream) {
+void CUnit::LoadUnit(ByteStream* stream) {
     LoadMapObject(stream);
     controller->Load(stream);
-    flags_ &= ~MapObjectFlag::Blocked;
+    flags &= ~MapObjectFlag::Blocked;
     scriptName = stream->ReadString();
     stream->ReadValue(relationsA);
     int playerId;
@@ -117,15 +117,15 @@ void CUnit::LoadUnit(CStream* stream) {
     for (int i = 0; i < count; ++i) carried[i] = ReadItem(this, stream);
     stream->ReadValue(standingHeight);
 
-    if (stream->version_ < kVersionFightAtWill) return;
+    if (stream->version < kVersionFightAtWill) return;
     stream->ReadValue(fightAtWill);
-    if (stream->version_ < kVersionPrototypeNames) return;
+    if (stream->version < kVersionPrototypeNames) return;
 
     std::string prototypeName;
     prototypeName = stream->ReadString();
-    prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
+    prototypeId = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
     UnitPrototypeRecord* second;
-    if (stream->version_ < kVersionSecondName) {
+    if (stream->version < kVersionSecondName) {
         second = g_unitDatabase.prototypes.FindByName(prototypeName);
     } else {
         prototypeName = stream->ReadString();
@@ -134,12 +134,12 @@ void CUnit::LoadUnit(CStream* stream) {
     secondPrototype = PrototypeIndexOf(second);
 }
 
-void CUnit::SaveUnit(CStream* stream) {
+void CUnit::SaveUnit(ByteStream* stream) {
     SaveMapObject(stream);
     controller->Save(stream);
     stream->WriteString(scriptName);
     stream->WriteValue(relationsA);
-    stream->WriteValue<int>(player ? player->playerId_ : -1);
+    stream->WriteValue<int>(player ? player->playerId : -1);
     stream->WriteValue(side);
     stream->WriteValue(animationEntry);
     stream->WriteValue(secondEntry);
@@ -171,7 +171,7 @@ void CUnit::SaveUnit(CStream* stream) {
 
     // The prototype's name (the record's first field is a string; a record out of range is copied from
     // address 0), then the second prototype's or "".
-    std::string prototypeName = unitdb::PrototypeRecord(prototypeId_)->name;
+    std::string prototypeName = unitdb::PrototypeRecord(prototypeId)->name;
     stream->WriteString(prototypeName);
     const UnitPrototypeRecord* second = unitdb::PrototypeRecord(static_cast<std::uint32_t>(secondPrototype));
     if (second) prototypeName = second->name;

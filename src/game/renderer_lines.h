@@ -9,8 +9,8 @@
 #include <cstdint>
 #include <vector>
 
-class CTextureDevice;
-class CTransformPipeline;
+class TextureDevice;
+class TransformPipeline;
 struct VertexPacket;
 
 // A pre-transformed vertex (FVF 0xC4: XYZRHW | DIFFUSE | SPECULAR).
@@ -42,7 +42,7 @@ struct LineBatch {
     // Projects the packets with the top of the pipeline's clip stack (ProjectClipped into the work arrays below)
     // and, when everything is on screen (result 0), draws the strip in the list's colour (DeviceDrawLineStrip).
     // Returns 1.
-    int Draw(CTransformPipeline* pipeline, CTextureDevice* device);
+    int Draw(TransformPipeline* pipeline, TextureDevice* device);
 };
 
 // The line lists' work arrays: the projected points (x, y, z, rhw each, resized without keeping its contents) and
@@ -51,4 +51,4 @@ extern std::vector<Vector4> g_lineProjected;
 extern std::vector<std::uint8_t> g_lineOutcodes;
 
 // Draws the points as a connected line strip in `colour`.
-long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);
+long DeviceDrawLineStrip(TextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

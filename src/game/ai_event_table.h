@@ -1,7 +1,7 @@
 #pragma once
 
 // The world's AI events: the viewer the brain sees through (AIViewer) and the table of events a time wheel
-// and a grid hold (AIEventTable, a member of CAIMap). See docs/notes/ai.md.
+// and a grid hold (AIEventTable, a member of AIMap). See docs/notes/ai.md.
 
 #include "maths.h"
 #include "unit.h"
@@ -15,15 +15,15 @@
 struct AIEventPresence;
 struct AIMemory;
 struct FogGrid;
-class CAIMap;
-class CStream;
+class AIMap;
+class ByteStream;
 
 // The AI's eye: the unit being updated's position, eye and facing.
 struct AIViewer {
     // The viewer moves to the owner's unit, the nearby units are listed again when due (Refresh), units in
     // the visible list it no longer sees are dropped ("lost from sight": an enemy notices 1000 / -2; a corpse
     // is listed as one first, an allied one noticing 800 / -3), then new ones are looked for (See).
-    void Update(CUnitServer* owner, AIMemory* memory);
+    void Update(UnitServer* owner, AIMemory* memory);
     // Every 8..11 updates (random): the units of the sector cells within the larger of the unit's two sight
     // ranges become the memory's nearby list (counted).
     void Refresh(CUnit* self, AIMemory* memory);
@@ -39,12 +39,12 @@ struct AIViewer {
     // and whose hearing (moveFactors[1] x perception[3]) times the loudness reaches past the distance hears a
     // call of `delay` at the source unit's position (the text "Unit %i heard unit %i from %fm distance" only
     // with console filter bit 0). The units' noises pass AIBrain::kCallDelay.
-    void Noise(CUnitServer* source, float loudness, int delay, const Vector3& at);
+    void Noise(UnitServer* source, float loudness, int delay, const Vector3& at);
     // The noise of a moving unit: Noise (AIBrain::kCallDelay) at the unit, as loud as moveFactors[0] x conspicuity[3] x
     // the noise of the ground at `position` (the AI map's terrain type). Returns 0 (no presence record).
-    AIEventPresence* StepNoise(const Vector3& position, CUnitServer* source);
+    AIEventPresence* StepNoise(const Vector3& position, UnitServer* source);
 
-    CAIMap* map = nullptr;
+    AIMap* map = nullptr;
     int tick = 0;                   // the world's event table: its tick (AIEventTable::Advance)
     Vector3 eye{};
     Vector3 facing{};
@@ -95,19 +95,19 @@ struct AIEventTable : AIViewer {
     void Advance(int tick);
     // Drops every event made by `controller`'s unit in the wheel column of its side (unit side & 15), as
     // Advance drops them.
-    void ForgetUnit(CUnitServer* controller);
+    void ForgetUnit(UnitServer* controller);
     // Load: while a byte 1 precedes, an event (its fields as Save writes them) filed in its cell and wheel
     // slot, or freed when outside the grid. Save: each cell's events by side (byte 1, x / y, origin, expiry,
     // payload, source, side), then byte 0.
-    void Load(CStream* stream);
-    void Save(CStream* stream);
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream);
     // Tick -1, the wheel emptied (its events are not freed), the grid back to 1 x 1 and its cell emptied.
     void Clear();
     // The table for a map of sizeX x sizeY: Clear, the map kept, the grid 1 - trunc(size * -0.125) cells each
     // way, emptied. Then the 4096 bytes of "normal.dat" in the text
     // resources' "aiinfo.res" are copied. Returns 1; a missing archive or file is a fatal error, whose result
     // is returned.
-    int Setup(CAIMap* aiMap, float sizeX, float sizeY);
+    int Setup(AIMap* aiMap, float sizeX, float sizeY);
 
     AIEventCell* CellOf(const AIEvent* event);
     void Free(AIEvent* event, int side);

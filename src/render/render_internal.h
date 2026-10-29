@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-class CTextureDevice;
+class TextureDevice;
 struct ID3D11Buffer;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -307,7 +307,7 @@ std::uint32_t CommitNumber();
 int AddMatrix(const Matrix4& m);
 // The game's fog switch and colour (render_state.h), read once per frame.
 void ReadFog(Frame& f);
-CTextureDevice* DeviceObject();
+TextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
 // sokol is set up: the device and the pipelines made at the first use (a failure ends the game: Fatal).
 void Start();
@@ -334,19 +334,19 @@ public:
     bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, unsigned left, unsigned top, unsigned width,
              unsigned height);
     // The mapped region's size and row y (the source's texel format).
-    unsigned Width() const { return mappedWidth_; }
-    unsigned Height() const { return mappedHeight_; }
-    const std::uint8_t* Row(unsigned y) const { return data_ + static_cast<std::size_t>(y) * pitch_; }
+    unsigned Width() const { return mappedWidth; }
+    unsigned Height() const { return mappedHeight; }
+    const std::uint8_t* Row(unsigned y) const { return data + static_cast<std::size_t>(y) * pitch; }
     void Unmap();
     void Release();
 
 private:
-    ID3D11Texture2D* texture_ = nullptr;
-    unsigned width_ = 0, height_ = 0, format_ = 0;
-    ID3D11DeviceContext* context_ = nullptr;   // while mapped
-    const std::uint8_t* data_ = nullptr;
-    std::size_t pitch_ = 0;
-    unsigned mappedWidth_ = 0, mappedHeight_ = 0;
+    ID3D11Texture2D* texture = nullptr;
+    unsigned width = 0, height = 0, format = 0;
+    ID3D11DeviceContext* context = nullptr;    // while mapped
+    const std::uint8_t* data = nullptr;
+    std::size_t pitch = 0;
+    unsigned mappedWidth = 0, mappedHeight = 0;
 };
 
 // The vertex parameters of the rectangle shaders (blit, ui_canvas, texture_compose, texture_clouds): the rectangle
@@ -441,18 +441,18 @@ void DeviceLossCounts(WindowPresentInfo* info);
 // append does not fit.
 class StreamBuffer {
 public:
-    StreamBuffer(bool index, const char* label) : index_(index), label_(label) {}
+    StreamBuffer(bool newIndex, const char* newLabel) : index(newIndex), label(newLabel) {}
     int Append(const void* data, std::size_t bytes);
-    sg_buffer Buffer() const { return buffer_; }
+    sg_buffer Buffer() const { return buffer; }
     void Destroy();
 
 private:
-    bool index_;
-    const char* label_;
-    sg_buffer buffer_{};
-    std::size_t capacity_ = 0;
-    std::size_t used_ = 0;                // appended since the last commit
-    std::uint32_t commit_ = 0xFFFFFFFFu;  // CommitNumber() of the last append
+    bool index;
+    const char* label;
+    sg_buffer buffer{};
+    std::size_t capacity = 0;
+    std::size_t used = 0;                 // appended since the last commit
+    std::uint32_t commit = 0xFFFFFFFFu;   // CommitNumber() of the last append
 };
 void RetireBuffers();
 
@@ -461,17 +461,17 @@ void RetireBuffers();
 class GeometryStream {
 public:
     // `terrain`: counted as the terrain's uploads (FrameStats), else the meshes'.
-    GeometryStream(const char* label, bool terrain) : vertices_(false, label), indices_(true, label), terrain_(terrain) {}
+    GeometryStream(const char* label, bool newTerrain) : vertices(false, label), indices(true, label), terrain(newTerrain) {}
     bool Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices);
     bool Bind(sg_bindings& b) const;
     void Destroy();
 
 private:
-    StreamBuffer vertices_, indices_;
-    bool terrain_;
-    std::uint32_t frame_ = 0xFFFFFFFFu;
-    std::size_t vertexCount_ = 0, indexCount_ = 0;
-    int vertexOffset_ = -1, indexOffset_ = -1;
+    StreamBuffer vertices, indices;
+    bool terrain;
+    std::uint32_t frame = 0xFFFFFFFFu;
+    std::size_t vertexCount = 0, indexCount = 0;
+    int vertexOffset = -1, indexOffset = -1;
 };
 
 struct PoolPlace {
@@ -486,12 +486,12 @@ struct PoolPlace {
 constexpr std::size_t kColourPairBytes = 2 * sizeof(std::uint32_t);
 class GpuPool {
 public:
-    GpuPool(std::size_t geometryStride, std::uint32_t leastVertices, std::uint32_t leastIndices, const char* label)
-        : geometryStride_(geometryStride), leastVertices_(leastVertices), leastIndices_(leastIndices), label_(label) {}
+    GpuPool(std::size_t newGeometryStride, std::uint32_t newLeastVertices, std::uint32_t newLeastIndices, const char* newLabel)
+        : geometryStride(newGeometryStride), leastVertices(newLeastVertices), leastIndices(newLeastIndices), label(newLabel) {}
 // Keeps the place when the item still fits there, else places it at the end (`anew`: all of it to write).
 // False when the pool is full.
     bool Place(PoolPlace& p, std::uint32_t vertices, std::uint32_t indices, bool* anew);
-    bool Placed(const PoolPlace& p) const { return p.generation == generation_ && geometry_.buffer.id != 0; }
+    bool Placed(const PoolPlace& p) const { return p.generation == generation && geometry.buffer.id != 0; }
     void Restart(std::uint64_t vertices, std::uint64_t indices);
     void WriteGeometry(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const void* data) const;
     void WriteColours(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const std::uint32_t* pairs) const;
@@ -507,14 +507,14 @@ private:
         void Write(std::size_t offset, const void* data, std::size_t bytes) const;
         void Drop();   // destroyed after the frame's commit
     };
-    std::size_t geometryStride_;
-    std::uint32_t leastVertices_, leastIndices_;
-    const char* label_;
-    Buffer geometry_, colours_, indices_;
-    std::uint32_t vertexCapacity_ = 0, indexCapacity_ = 0;
-    std::uint32_t usedVertices_ = 0, usedIndices_ = 0;
-    std::uint32_t generation_ = 1;
-    std::vector<std::uint32_t> absolute_;   // scratch: an item's indices made absolute
+    std::size_t geometryStride;
+    std::uint32_t leastVertices, leastIndices;
+    const char* label;
+    Buffer geometry, colours, indices;
+    std::uint32_t vertexCapacity = 0, indexCapacity = 0;
+    std::uint32_t usedVertices = 0, usedIndices = 0;
+    std::uint32_t generation = 1;
+    std::vector<std::uint32_t> absolute;    // scratch: an item's indices made absolute
 };
 
 // The terrain, inside EndFrame's off-screen pass. TerrainPositions: every `step`th position of the frame's
@@ -633,9 +633,9 @@ public:
     StatsTimer& operator=(const StatsTimer&) = delete;
 
 private:
-    double FrameStats::* field_;
-    long long start_;
-    StatsTimer* outer_;
+    double FrameStats::* field;
+    long long start;
+    StatsTimer* outer;
 };
 // CountPipeline: a change when it differs from the last one applied in the frame.
 void CountPipeline(sg_pipeline pipeline);
@@ -769,7 +769,7 @@ public:
     FpuGuard& operator=(const FpuGuard&) = delete;
 
 private:
-    unsigned int saved_;
+    unsigned int saved;
 };
 
 constexpr sg_pixel_format kColourFormat = SG_PIXELFORMAT_RGBA8;

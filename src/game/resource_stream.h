@@ -2,7 +2,7 @@
 
 // The rest of the resource code: the sound system's file reader,
 // the name listing of an archive and the constructors and destructors of
-// CMMIOResource (the readers' base CResourceBase is in resource.h). Names provisional.
+// MMIOResource (the readers' base ResourceBase is in resource.h). Names provisional.
 
 #include "resource.h"
 
@@ -11,14 +11,14 @@
 #include <cstdint>
 #include <string>
 
-// Opens loose files for the sound system (a member of CSoundManager) through mmio. (The original was a
-// CResourceBase that could also read an entry of an archive; it never opened one.)
-class CResourceStream {
+// Opens loose files for the sound system (a member of SoundManager) through mmio. (The original was a
+// ResourceBase that could also read an entry of an archive; it never opened one.)
+class ResourceStream {
 public:
-    CResourceStream() = default;
-    CResourceStream(const CResourceStream&) = delete;
-    CResourceStream& operator=(const CResourceStream&) = delete;
-    ~CResourceStream() { Close(); }
+    ResourceStream() = default;
+    ResourceStream(const ResourceStream&) = delete;
+    ResourceStream& operator=(const ResourceStream&) = delete;
+    ~ResourceStream() { Close(); }
 
     void Close();                                   // closes the file
     // Closes the file, then opens `name` when it exists. Stores its size when `size` is not null. Returns

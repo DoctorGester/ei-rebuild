@@ -20,12 +20,12 @@ const char* AlphaPrefixText() { return "a_"; }
 
 // The path is split at `\` (each piece trimmed), the alpha file is "a_" + the file name in the same
 // directory; both are joined again.
-int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
+int CTexture::LoadBmp(TextureDevice* device, const char* path) {
     std::string file;
     std::string alphaPath;
     std::vector<std::string> pieces;
-    if ((flags_ & TextureFlag::Loaded) &&
-        str::Compare(name_, path) == 0) {
+    if ((flags & TextureFlag::Loaded) &&
+        str::Compare(name, path) == 0) {
         game::DebugLog(AlreadyLoadedText(), path);
         return 1;
     }

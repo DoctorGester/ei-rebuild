@@ -29,10 +29,10 @@ bool g_undecodedLogged = false;
 // A holder with no DirectDraw texture for the levels the new renderer decodes from the file (keyed
 // by the holder). One it does not decode keeps the holder and shows nothing (logged once). Its
 // allocation failing ends the game, like a surface that could not be made.
-Surface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const MmpHeader* data, unsigned mip,
+Surface* DecodedHolder(TextureDevice* device, const CTexture* texture, const MmpHeader* data, unsigned mip,
                        unsigned levels) {
-    Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width_), static_cast<int>(texture->height_),
-                                              TextureFormat(texture->format_).bitsPerPixel);
+    Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width), static_cast<int>(texture->height),
+                                              TextureFormat(texture->format).bitsPerPixel);
     if (!holder) ThrowSurfaceNotMade(0, 0);
     if (!render::TextureFromMmp(holder, data, mip, levels) && !g_undecodedLogged) {
         g_undecodedLogged = true;
@@ -46,15 +46,15 @@ Surface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const Mm
 
 
 void CTexture::MarkLoaded(const MmpHeader* header) {
-    flags_ &= ~TextureFlag::AlphaBits;
+    flags &= ~TextureFlag::AlphaBits;
     switch (header->alphaKind) {
-    case 0: flags_ |= TextureFlag::Alpha0; break;
-    case 1: flags_ |= TextureFlag::Alpha1; break;
-    case 4: flags_ |= TextureFlag::Alpha4; break;
-    case 8: flags_ |= TextureFlag::Alpha8; break;
+    case 0: flags |= TextureFlag::Alpha0; break;
+    case 1: flags |= TextureFlag::Alpha1; break;
+    case 4: flags |= TextureFlag::Alpha4; break;
+    case 8: flags |= TextureFlag::Alpha8; break;
     default: break;
     }
-    flags_ |= TextureFlag::Loaded;
+    flags |= TextureFlag::Loaded;
 }
 
 std::uint32_t MmpHeader::MipOffset(unsigned mip) const {
@@ -80,34 +80,34 @@ std::uint32_t MmpHeader::FilledBytes(std::uint32_t heldFormat, unsigned mip, uns
 }
 
 
-int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, unsigned mip) {
-    if (flags_ & TextureFlag::Loaded) return 1;
+int CTexture::CreateFromMmp(TextureDevice* device, const MmpHeader* header, unsigned mip) {
+    if (flags & TextureFlag::Loaded) return 1;
     header->MipOffset(mip);   // the result is not used
 
-    std::uint32_t width = header->width >> (mip & 31);
-    std::uint32_t height = header->height >> (mip & 31);
+    std::uint32_t mipWidth = header->width >> (mip & 31);
+    std::uint32_t mipHeight = header->height >> (mip & 31);
     std::uint32_t levels = header->mipCount - mip;
-    if (Manager()->limitTo512_) {
-        while (width >= 0x200 || height >= 0x200) {
+    if (Manager()->limitTo512) {
+        while (mipWidth >= 0x200 || mipHeight >= 0x200) {
             ++mip;
-            width = header->width >> (mip & 31);
-            height = header->height >> (mip & 31);
+            mipWidth = header->width >> (mip & 31);
+            mipHeight = header->height >> (mip & 31);
         }
         levels = header->mipCount - mip;
     }
-    if (!options::g_options.mipmapping_) levels = 1;
-    height_ = height;
-    width_ = width;
+    if (!options::g_options.mipmapping) levels = 1;
+    height = mipHeight;
+    width = mipWidth;
 
     // The new renderer decodes the levels from the file and the holder has no DirectDraw texture
     // (a system-memory staging surface filled from the file, loaded into a managed
     // texture with the kind's priority hints, its priority set to 100, is not made).
     Surface* decoded = DecodedHolder(device, this, header, mip, levels);
-    surface_.Assign(decoded);
-    uploadResult_ = static_cast<int>(header->FilledBytes(format_, mip, levels));
+    surface.Assign(decoded);
+    uploadResult = static_cast<int>(header->FilledBytes(format, mip, levels));
     MarkLoaded(header);
-    extra_.resize(static_cast<int>(header->extraSize));
-    std::memcpy(extra_.data(), header + 1, header->extraSize);
+    extra.resize(static_cast<int>(header->extraSize));
+    std::memcpy(extra.data(), header + 1, header->extraSize);
     return 1;
 }
 

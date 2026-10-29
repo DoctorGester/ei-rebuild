@@ -1,4 +1,4 @@
-// Saving and loading a cast spell (CSpellEffect, the world server's missiles list) with the world's
+// Saving and loading a cast spell (SpellEffect, the world server's missiles list) with the world's
 // save game. See spell.h and docs/notes/items_spells.md ("Spell effects").
 #include "spell.h"
 
@@ -17,8 +17,8 @@ constexpr int kNoObject = -1;
 // One of the three counted effect objects by the id read (-1 none), looked up in the world's timed object
 // manager; `id` keeps what the previous read left.
 template <class T>
-void LoadEffectObject(CStream* stream, CWorld* world, std::uint32_t& id, T*& field) {
-    CBaseManager* manager = world->TimedObjectManager();
+void LoadEffectObject(ByteStream* stream, CWorld* world, std::uint32_t& id, T*& field) {
+    BaseManager* manager = world->TimedObjectManager();
     stream->ReadValue(id);
     T* object = static_cast<int>(id) == kNoObject ? nullptr : manager->FindObjectAs<T>(id);
     T* old = field;
@@ -27,14 +27,14 @@ void LoadEffectObject(CStream* stream, CWorld* world, std::uint32_t& id, T*& fie
     if (old) old->Release();
 }
 
-void SaveEffectObject(CStream* stream, const CEngineObject* object) {
-    int id = object ? object->id_ : kNoObject;
+void SaveEffectObject(ByteStream* stream, const EngineObject* object) {
+    int id = object ? object->id : kNoObject;
     stream->WriteValue(id);
 }
 
 } // namespace
 
-void CSpellEffect::Load(CStream* stream) {
+void SpellEffect::Load(ByteStream* stream) {
     world = g_loadingProjectileWorld;
     stream->ReadValue(position);
     LoadRef(caster, stream, world);
@@ -44,7 +44,7 @@ void CSpellEffect::Load(CStream* stream) {
     Spell()->Load(stream);
     std::uint32_t packed = 0;
     stream->ReadValue(packed);
-    Spell()->prototypeId_ = packed;
+    Spell()->prototypeId = packed;
     CWorld* server = world;
     std::uint32_t id = 0;
     LoadEffectObject(stream, server, id, visual);
@@ -56,14 +56,14 @@ void CSpellEffect::Load(CStream* stream) {
     UpdateFootprint(Spell()->Type(), 1);
 }
 
-void CSpellEffect::Save(CStream* stream) {
+void SpellEffect::Save(ByteStream* stream) {
     stream->WriteValue(position);
     SaveRef(caster, stream);
     SaveRef(target, stream);
     stream->WriteValue(targetPoint);
     stream->WriteValue(state);
     Spell()->Save(stream);
-    stream->WriteValue(Spell()->prototypeId_);
+    stream->WriteValue(Spell()->prototypeId);
     SaveEffectObject(stream, visual);
     SaveEffectObject(stream, sound);
     SaveEffectObject(stream, light);

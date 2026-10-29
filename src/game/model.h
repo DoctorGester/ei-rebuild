@@ -61,7 +61,7 @@ struct ClipBounds {
 };
 
 // A box of an object's model that blocks the AI map: the part's bounds with the part's position when it was
-// loaded. A figure mesh has one (CFigureMesh::box_), copied whole from the piece's header into the object's
+// loaded. A figure mesh has one (FigureMesh::box), copied whole from the piece's header into the object's
 // part boxes (CObject3D::partBoxes).
 struct FootprintPart {
 
@@ -80,7 +80,7 @@ struct TLVertex;
 struct LightningPoint;
 class CLight;
 
-// A screen-facing sprite's centre and size (CSceneRenderer::DrawSprites' points).
+// A screen-facing sprite's centre and size (SceneRenderer::DrawSprites' points).
 struct SpritePoint {
     float x, y, z, size;
 };
@@ -94,10 +94,10 @@ void ProjectFlat(const Matrix4& m, const VertexPacket* positions, Vector2* point
 
 // The transform pipeline of the 3D library: the matrix stacks, and the projections of points to clip space and
 // to the screen, with the viewport and the fog's depth range they map with (docs/notes/renderer.md, section 10).
-class CTransformPipeline final : public CRendererBase {
+class TransformPipeline final : public RendererBase {
 public:
     // Stack 2 holds the matrix ClipTest projects with; 14 the decal projector's platform objects
-    // and parts (CWorldClient::ProjectDecal).
+    // and parts (WorldClient::ProjectDecal).
     static constexpr int kClipStack = 2;
     static constexpr int kDecalStack = 14;
     // Stack 0 is the picking's (the view matrix pushed onto it), 9 the view matrices.
@@ -118,7 +118,7 @@ public:
     // PushMatrix as the draw code inlines it: the new top by Matrix4::Multiply, whose elements sum in
     // another order.
     void PushMatrixProduct(const Matrix4& m, int index) {
-        MatrixStack& stack = stacks_[index];
+        MatrixStack& stack = stacks[index];
         if (stack.count == 0) {
             stack.count = 1;
             stack.matrices[0] = m;
@@ -128,9 +128,9 @@ public:
         stack.matrices[depth - 1].Multiply(stack.matrices[depth - 2].m, m.m);
     }
     // The top of stack `index` (matrices[count - 1], computed even when empty).
-    const Matrix4* Top(int index) const { return stacks_[index].matrices.data() + (stacks_[index].count - 1); }
+    const Matrix4* Top(int index) const { return stacks[index].matrices.data() + (stacks[index].count - 1); }
     void PopMatrix(int index) {
-        if (stacks_[index].count != 0) --stacks_[index].count;
+        if (stacks[index].count != 0) --stacks[index].count;
     }
 
     // The viewport the projections map clip space to: the screen's size.
@@ -161,9 +161,9 @@ public:
     // vertex's depth (none before the range's start, full at its end).
     void FogVertices(TLVertex* vertices, int count) const;
 
-    // Counted (CRendererBase): holders drop a reference, and the last one deletes it.
+    // Counted (RendererBase): holders drop a reference, and the last one deletes it.
 
-    MatrixStack stacks_[16];    // (models.md: stacks 0-2, 5-10 and 14 are in use)
+    MatrixStack stacks[16];     // (models.md: stacks 0-2, 5-10 and 14 are in use)
     float halfWidth = 0.0f;     // the viewport's half size (SetViewportSize)
     float halfHeight = 0.0f;
     float fogStart = 0.0f;   // the fog's depth range's start, and 255 over its length (SetDepthRange)
@@ -171,19 +171,19 @@ public:
     Matrix4 projection{};   // the projection matrix (the fog's depth from a screen z)
 };
 struct tagRECT;
-class CTextureDevice;
+class TextureDevice;
 namespace options {
 class GameOptions;
 }
 class CTexture;
-class CFigureMesh;
-class CMaterial;
+class FigureMesh;
+class Material;
 struct LineBatch;
 
 // A render state preset the renderer's helper keeps (counted): the passes of a material's draw. The first pass
-// sets the texture stages of the first `stages_` states and turns the next stage off; each further pass is one of
-// the states from `stages_` on, with its blend factors.
-class CRenderPreset final {
+// sets the texture stages of the first `stages` states and turns the next stage off; each further pass is one of
+// the states from `stages` on, with its blend factors.
+class RenderPreset final {
 public:
     // One texture stage's operations and the blend factors of its pass.
     struct State {
@@ -194,93 +194,93 @@ public:
         render::Blend destBlend;
     };
 
-    CRenderPreset(const std::vector<State>& states, int stages) : states_(states), stages_(stages) {}
+    RenderPreset(const std::vector<State>& newStates, int newStages) : states(newStates), stages(newStages) {}
 
-    CRenderPreset(const CRenderPreset&) = delete;
-    CRenderPreset& operator=(const CRenderPreset&) = delete;
+    RenderPreset(const RenderPreset&) = delete;
+    RenderPreset& operator=(const RenderPreset&) = delete;
 
-    int PassCount() const { return static_cast<int>(states_.size()) - stages_ + 1; }
+    int PassCount() const { return static_cast<int>(states.size()) - stages + 1; }
     // Pass `pass`'s states set in the renderer's render state (render/render_state.h).
     void ApplyPass(int pass) const;
 
-    void AddRef() { ++refs_; }
+    void AddRef() { ++refs; }
     // Drops a reference; the last one deletes the preset.
     void Release() {
-        if (--refs_ == 0) delete this;
+        if (--refs == 0) delete this;
     }
 
-    int refs_ = 0;
-    std::vector<State> states_;
-    int stages_;                         // texture stages the first pass sets
+    int refs = 0;
+    std::vector<State> states;
+    int stages;                          // texture stages the first pass sets
 };
 
 // The renderer's counted helper: the nine built-in render state presets of the materials.
-class CRenderHelper final {
+class RenderHelper final {
 public:
     static constexpr unsigned kPresetCount = 9;
 
     // Records the nine presets (`flag`'s low byte: one texture stage each).
-    explicit CRenderHelper(std::uint32_t flag);
-    ~CRenderHelper();
+    explicit RenderHelper(std::uint32_t flag);
+    ~RenderHelper();
     // Preset `index` of the nine, or null beyond them.
-    CRenderPreset* Preset(unsigned index) const { return index < kPresetCount ? presets_[index] : nullptr; }
+    RenderPreset* Preset(unsigned index) const { return index < kPresetCount ? presets[index] : nullptr; }
 
-    CRenderHelper(const CRenderHelper&) = delete;
-    CRenderHelper& operator=(const CRenderHelper&) = delete;
+    RenderHelper(const RenderHelper&) = delete;
+    RenderHelper& operator=(const RenderHelper&) = delete;
 
-    void AddRef() { ++refs_; }
+    void AddRef() { ++refs; }
     // Drops a reference; the last one deletes the helper.
     void Release() {
-        if (--refs_ == 0) delete this;
+        if (--refs == 0) delete this;
     }
 
-    int refs_ = 0;
+    int refs = 0;
 
 private:
     // Preset `index` made of `states`. `singleStage`: at most one texture stage.
-    void Record(const std::vector<CRenderPreset::State>& states, unsigned index, bool singleStage);
+    void Record(const std::vector<RenderPreset::State>& states, unsigned index, bool singleStage);
 
-    CRenderPreset* presets_[kPresetCount] = {};   // counted
+    RenderPreset* presets[kPresetCount] = {};    // counted
 };
 
-// The ambient colour (r, g, b in 0..1) CSceneRenderer::SetColour set last (one for every renderer): the figure
+// The ambient colour (r, g, b in 0..1) SceneRenderer::SetColour set last (one for every renderer): the figure
 // parts lit on the GPU take it from here.
 const float* AmbientColour();
 
 // The scene renderer (the global renderer object, &g_sceneRenderer; "CVisualizator" in the game's messages).
-class CSceneRenderer final {
+class SceneRenderer final {
 public:
-    CSceneRenderer() = default;
-    ~CSceneRenderer();
-    CSceneRenderer(const CSceneRenderer&) = delete;
-    CSceneRenderer& operator=(const CSceneRenderer&) = delete;
+    SceneRenderer() = default;
+    ~SceneRenderer();
+    SceneRenderer(const SceneRenderer&) = delete;
+    SceneRenderer& operator=(const SceneRenderer&) = delete;
 
     // Sets the render state's fog colour (render/render_state.h) to `colour`.
     int SetFogColourState(std::uint32_t colour);
     void CreateRenderer(void* window, options::GameOptions* settings);
     // Drops the sun, the pipeline, the helper and the device object.
     void DestroyRenderer();
-    // 0 unless flags_ bit 0 is set. Takes the frame time, clears the frame and begins the scene (a
+    // 0 unless flags bit 0 is set. Takes the frame time, clears the frame and begins the scene (a
     // scene still open is ended first; other failures are fatal). Returns 1.
     int BeginScene();
     // Ends the scene. Returns 1.
     int EndScene();
-    std::uint32_t FrameTime() const { return frameTime_; }
-    // Sets the colour the next draws are tinted with (colour_ and the device object's colour_) and the transform
+    std::uint32_t FrameTime() const { return frameTime; }
+    // Sets the colour the next draws are tinted with (colour and the device object's colour) and the transform
     // object's ambient from it.
     void SetColour(std::uint32_t colour);
     // Sets SRCBLEND, then DESTBLEND.
     int SetBlend(render::Blend source, render::Blend dest);
     // Binds `texture` (a texture object, or null) to stage `stage`.
     int SetTexture(int stage, CTexture* texture);
-    // Draws `figure` (a CFigureMesh) through its drawer's lit draw with `lights`, the drawing context
+    // Draws `figure` (a FigureMesh) through its drawer's lit draw with `lights`, the drawing context
     // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).
-    int DrawFigureLit(CFigureMesh* figure, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen, CTexture* textureA,
+    int DrawFigureLit(FigureMesh* figure, const std::vector<CLight*>* lights, Material* material, int alpha, tagRECT* screen, CTexture* textureA,
                       CTexture* textureB);
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
     // is passed on.
-    int DrawFigure(CFigureMesh* figure, CMaterial* material, int alpha, tagRECT* screen);
+    int DrawFigure(FigureMesh* figure, Material* material, int alpha, tagRECT* screen);
     void DrawLineList(LineBatch* lines);
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
@@ -316,22 +316,22 @@ public:
     // SetSun, then the colour from r, g, b in 0..1, packed as SetFogColour packs them.
     void SetSunAndAmbient(CLight* light, float r, float g, float b);
 
-    std::uint32_t flags_ = 0;                  // bit 0: the software cursor option; bit 1 set by the creation
-    Ref<CTransformPipeline> pipeline_;
-    std::uint32_t fogColour_ = 0;              // also the colour the frame is cleared with
-    std::uint32_t colour_ = 0;                 // the draw colour
+    std::uint32_t flags = 0;                   // bit 0: the software cursor option; bit 1 set by the creation
+    Ref<TransformPipeline> pipeline;
+    std::uint32_t fogColour = 0;               // also the colour the frame is cleared with
+    std::uint32_t colour = 0;                  // the draw colour
     // The sun (counted; set together with the ambient colour, the client's lighting moves it every frame).
-    Ref<CLight> sun_;
-    Ref<CTextureDevice> device_;               // the device object
-    Ref<CRenderHelper> helper_;
+    Ref<CLight> sun;
+    Ref<TextureDevice> device;                // the device object
+    Ref<RenderHelper> helper;
     // The display settings SetGamma last applied, as given.
-    float brightness_ = 0.0f;
-    float contrast_ = 0.0f;
-    float gamma_ = 0.0f;
+    float brightness = 0.0f;
+    float contrast = 0.0f;
+    float gamma = 0.0f;
     // The frame time (milliseconds; BeginScene / EndScene).
-    std::uint32_t frameTime_ = 0;              // the last frame's
-    std::uint32_t frameStart_ = 0;             // timeGetTime at this frame's BeginScene
-    std::uint32_t lastFrameStart_ = 0;         // the previous frame's (the creation: its time)
+    std::uint32_t frameTime = 0;               // the last frame's
+    std::uint32_t frameStart = 0;              // timeGetTime at this frame's BeginScene
+    std::uint32_t lastFrameStart = 0;          // the previous frame's (the creation: its time)
 
 private:
     // The creation's first step: a new transform pipeline.
@@ -356,16 +356,16 @@ struct MeshCorner {
 };
 static_assert(sizeof(MeshCorner) == 6);
 
-class CMappedResource;
+class MappedResource;
 
-// An archive of CLinkFigureLoader's: its path and the open archive.
+// An archive of LinkFigureLoader's: its path and the open archive.
 struct LinkArchive {
     std::string name;
-    CMappedResource* resource = nullptr;   // a CMMIOResource (the loader's destructor deletes it)
+    MappedResource* resource = nullptr;   // a MMIOResource (the loader's destructor deletes it)
 };
 
 // A figure's cached model: the mesh, bones and animation archives of "<name>.mod / .bon / .anm" (null when
-// missing), and the animations read from the last by name. CFigureManager::models_ and the link figure
+// missing), and the animations read from the last by name. CFigureManager::models and the link figure
 // loader's figure sets cache them by name.
 struct FigureModel {
     // An empty animation map, then the three archives as new CMMIOResources.
@@ -374,12 +374,12 @@ struct FigureModel {
     ~FigureModel();
     FigureModel(const FigureModel&) = delete;
     FigureModel& operator=(const FigureModel&) = delete;
-    CMappedResource* FindAnimation(const std::string* name);
+    MappedResource* FindAnimation(const std::string* name);
 
-    CMappedResource* mesh;          // the .mod archive
-    CMappedResource* bones;
-    CMappedResource* animations;
-    std::unordered_map<std::string, CMappedResource*> animationCache;    // each a CMMIOResource over the animation's data
+    MappedResource* mesh;          // the .mod archive
+    MappedResource* bones;
+    MappedResource* animations;
+    std::unordered_map<std::string, MappedResource*> animationCache;    // each a MMIOResource over the animation's data
 
     // The link figure loader's sets open the three archives from the images of the figure's .mod / .bon /
     // .anm files (OpenFromMemory); a null image leaves its archive alone.
@@ -387,78 +387,78 @@ struct FigureModel {
 };
 
 // Loads .lnk link files and the figures they name (created at startup with figures.res and menus.res). A
-// figure is a CLinkMesh of parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made
+// figure is a LinkMesh of parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made
 // in a multimap by name (a counted reference each) and hands out a cached one whose coefficients are within
 // 1e-5 (squared distance) unless asked for a fresh one. Parts come from the figure's own archive set when
 // there is one, else from the open archives as "<figure><part>.fig".
-class CLinkMesh;
+class LinkMesh;
 
-class CLinkFigureLoader final {
+class LinkFigureLoader final {
 public:
     // The figure and menu archives of `folder` opened (a failure is only logged).
-    CLinkFigureLoader(CTextureDevice* renderer, const std::string* folder);
-    virtual ~CLinkFigureLoader();
+    LinkFigureLoader(TextureDevice* renderer, const std::string* folder);
+    virtual ~LinkFigureLoader();
     virtual int CacheSize();
     virtual int CacheBytes();
     // Figure `name` with the parts `parts`: unless `fresh`, the first cached mesh of that name with close
     // coefficients, given the parts it lacks; otherwise a new one (MakeFigure). No reference is added for the
     // caller.
-    virtual CLinkMesh* LoadFigure(const std::string* name, const std::vector<std::string>* parts, float s, float t,
+    virtual LinkMesh* LoadFigure(const std::string* name, const std::vector<std::string>* parts, float s, float t,
                                   float u);
     // The same for a .lnk figure: a cached one, or LoadLinkFile.
-    virtual CLinkMesh* LoadLink(const std::string* name, float s, float t, float u);
+    virtual LinkMesh* LoadLink(const std::string* name, float s, float t, float u);
     virtual void ClearCache();
     // `mesh` with new coefficients: a mesh others also hold (more than two references) is looked up again by
     // its name; otherwise its parts are morphed in place (SetMorph, then per part). Null stays null.
-    virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
+    virtual LinkMesh* Remorph(LinkMesh* mesh, float s, float t, float u);
 
-    void AddRef() { ++refCount_; }
+    void AddRef() { ++refCount; }
     // Drops a reference; the last one deletes the loader.
     void Release() {
-        if (--refCount_ == 0) delete this;
+        if (--refCount == 0) delete this;
     }
 
-    CLinkFigureLoader(const CLinkFigureLoader&) = delete;
-    CLinkFigureLoader& operator=(const CLinkFigureLoader&) = delete;
+    LinkFigureLoader(const LinkFigureLoader&) = delete;
+    LinkFigureLoader& operator=(const LinkFigureLoader&) = delete;
 
     // Opens `path` as a memory-mapped archive and appends it to the list, unless an archive of that exact
     // name is already open. Returns 1 on success or when already open.
     int AddArchive(const std::string* path);
     // Reads a FIG / FIG8 part record at *cursor (moved past it) into `mesh` as part `name`: its header (two
-    // dwords, bounds fitted to the vertices morphed by s, t, u) and its elements (CLinkMesh::AddPart).
-    void LoadFigPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
+    // dwords, bounds fitted to the vertices morphed by s, t, u) and its elements (LinkMesh::AddPart).
+    void LoadFigPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
     // The same for the older record without a FIG header (6 morph corners).
-    void LoadOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
+    void LoadOldPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
 
     // A new mesh from .lnk file `name` (from the figure set, else the archives' "<name>.lnk"): a count, then
     // per part its name and a second, unused name (an empty name keeps the previous one). Cached (one
     // reference). No link file: FatalError's result (0) is returned and the new mesh leaked.
-    CLinkMesh* LoadLinkFile(const std::string* name, float s, float t, float u);
+    LinkMesh* LoadLinkFile(const std::string* name, float s, float t, float u);
     // A new mesh `name` with the parts `parts`, loaded as LoadLinkFile does (a part missing from the figure
     // set is skipped); cached.
-    CLinkMesh* MakeFigure(const std::string* name, const std::vector<std::string>* parts, float s, float t, float u);
+    LinkMesh* MakeFigure(const std::string* name, const std::vector<std::string>* parts, float s, float t, float u);
     // Part `name` of `mesh` (its own coefficients) unless it has it: from its figure set (false when the set
     // lacks it) or the archives (LoadArchivePart's result).
-    bool LoadPartInto(CLinkMesh* mesh, const std::string* name);
+    bool LoadPartInto(LinkMesh* mesh, const std::string* name);
     // Part `name` of `mesh` from the first open archive that has "<mesh name><name>.fig".
-    int LoadArchivePart(CLinkMesh* mesh, const std::string* name, float s, float t, float u);
+    int LoadArchivePart(LinkMesh* mesh, const std::string* name, float s, float t, float u);
     // Figure `name`'s own archive set: the cached one, else (when an open archive has "<name>.mod") a new set
     // stored under the name and loaded from the first archives with "<name>.mod" / ".bon" / ".anm"; null
     // without a .mod.
     FigureModel* FindFigureSet(const std::string* name);
     // Part `name` of `mesh` morphed again by s, t, u from its record (the figure set's model, else
     // "<mesh name><name>.fig" in the archives): false without one.
-    bool RemorphPart(CLinkMesh* mesh, FigureModel* set, const std::string* name, float s, float t, float u);
+    bool RemorphPart(LinkMesh* mesh, FigureModel* set, const std::string* name, float s, float t, float u);
     // The record at *cursor (moved past the vertices) morphed into the part's vertex packets and its header's
     // bounds refitted. The FIG one reads every record as FIG8 (header, bounds and vertices).
-    void RemorphFigPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
-    void RemorphOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
+    void RemorphFigPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
+    void RemorphOldPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
 
-    int refCount_ = 0;
-    std::list<LinkArchive> archives_;
-    std::unordered_map<std::string, FigureModel*> figureSets_;    // by figure name
-    Ref<CTextureDevice> renderer_;                                // the device object
-    std::multimap<std::string, CLinkMesh*> cache_;    // each entry holds a reference
+    int refCount = 0;
+    std::list<LinkArchive> archives;
+    std::unordered_map<std::string, FigureModel*> figureSets;     // by figure name
+    Ref<TextureDevice> renderer;                                 // the device object
+    std::multimap<std::string, LinkMesh*> cache;     // each entry holds a reference
 };
 
 // What chunks 2 and 3 of both prints.db record types hold: a print's alpha and its life and lifetime in ticks

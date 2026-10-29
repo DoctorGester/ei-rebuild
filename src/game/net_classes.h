@@ -49,9 +49,9 @@ template <typename T, typename... Args>
 T* NewCounted(const Args&... args) {
     T* object = new T(args...);
     if (object) {
-        object->refs_ = 0;
-        object->flags6_ = 0;
-        object->flags7_ = 0;
+        object->refs = 0;
+        object->flags6 = 0;
+        object->flags7 = 0;
     }
     return object;
 }
@@ -135,24 +135,24 @@ void ClientDropParty(ClientSession* self);
 
 // A replicated network object: a connection sends it again whenever its version differs from the one last
 // sent. OnShutdown resets the message (destroyed and built again in place), Clone copies it.
-class Message : public CRefObject {
+class Message : public RefObject {
 public:
     ~Message() override;
     virtual void Write(BufferCursor* cursor) = 0;   // the fields at the cursor's byte position
     virtual void Read(BufferCursor* cursor) = 0;
 
-    std::uint32_t version_ = 1;   // 1 when constructed; raised by every change
+    std::uint32_t version = 1;    // 1 when constructed; raised by every change
 
 protected:
     Message();
-    Message(const Message& other) : CRefObject(), version_(other.version_) {}
+    Message(const Message& other) : RefObject(), version(other.version) {}
 };
 
 using MessageFactory = Message* (*)();
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
-class ServerEntryBase : public CRefObject {
+class ServerEntryBase : public RefObject {
 public:
     ~ServerEntryBase() override;
     virtual void Write(BufferCursor* cursor) = 0;
@@ -164,11 +164,11 @@ public:
         kFromList = 2,     // from the master server's list
     };
 
-    NetAddress address_;
-    float timeout_;          // seconds until the entry is checked again (1e38: never)
-    float ping_;             // seconds; a constant when unknown
-    std::uint8_t foreign_;   // the reply's echoed word differs from the magic
-    std::uint32_t state_;
+    NetAddress address;
+    float timeout;           // seconds until the entry is checked again (1e38: never)
+    float ping;              // seconds; a constant when unknown
+    std::uint8_t foreign;    // the reply's echoed word differs from the magic
+    std::uint32_t state;
 
 protected:
     ServerEntryBase();
@@ -186,12 +186,12 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    std::string name_;
-    std::uint32_t kind_;          // the game kind (4: none)
-    std::string description_;        // the current map's title
-    std::uint8_t players_;
-    std::uint8_t maxPlayers_;
-    std::uint8_t password_;       // whether joining needs a password
+    std::string name;
+    std::uint32_t kind;           // the game kind (4: none)
+    std::string description;         // the current map's title
+    std::uint8_t players;
+    std::uint8_t maxPlayers;
+    std::uint8_t password;        // whether joining needs a password
 };
 
 // A server the client asks directly: its address and the reply last seen.
@@ -223,7 +223,7 @@ constexpr int kMessageTypes = 0x100;
 
 // A message handler as the session keeps it: its session and the message. The handlers themselves take their
 // own session class and message class (net_handlers.h); AsHandler is the one place they become this.
-using MessageHandler = void(*)(SessionBase*, CRefObject*);
+using MessageHandler = void(*)(SessionBase*, RefObject*);
 template <typename Session, typename MessageType>
 MessageHandler AsHandler(void(*handler)(Session*, MessageType*)) {
     return reinterpret_cast<MessageHandler>(handler);
@@ -236,7 +236,7 @@ struct TypeRegistry {
     std::unordered_map<std::uint32_t, MessageFactory> byType;         // type id -> factory
 
     // The key of a message's class: its vtable (the object's first dword).
-    static std::uint32_t KeyOf(const CRefObject* message) {
+    static std::uint32_t KeyOf(const RefObject* message) {
         std::uint32_t key;
         lib::LoadBytes(key, message);   // read before any null check
         return key;
@@ -303,7 +303,7 @@ inline void PushReplicated(std::vector<Replicated>* v, void* object, std::uint8_
 
 // Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login, 5 info, 6
 // accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after that byte.
-class SessionBase : public CRefCounted {
+class SessionBase : public RefCounted {
 public:
     void RegisterTradeHandler(int channel, MessageHandler handler);
     void RegisterAwardHandler(int channel, MessageHandler handler);
@@ -348,7 +348,7 @@ public:
     }
     void AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler);
 
-    // The connection to `address` in clients_, end() when none.
+    // The connection to `address` in clients, end() when none.
     std::list<SharedRef<Connection>>::iterator FindClient(const NetAddress* address);
     // Logs it, removes a connection to the same address, appends a new connection with `id` and `address`;
     // its send interval follows from `rate`.
@@ -360,18 +360,18 @@ public:
     void SendLeave(const NetAddress* address, std::uint32_t id);
     std::uint32_t ClientCount() const;
 
-    std::uint32_t magic_;               // 0; the game server and client set kSessionMagic
-    std::int32_t timeout_;              // 60: seconds of silence before a peer is dropped
-    std::int32_t maxRoundTrip_;         // 5: a new connection's round trip estimate, the longest loss
+    std::uint32_t magic;                // 0; the game server and client set kSessionMagic
+    std::int32_t timeout;               // 60: seconds of silence before a peer is dropped
+    std::int32_t maxRoundTrip;          // 5: a new connection's round trip estimate, the longest loss
                                         // timeout and how long lost packets stay remembered (seconds)
-    std::int32_t idReuseTime_;          // 75: seconds before a freed message id is reused
-    std::uint32_t frame_;               // 1; Tick counts its calls
-    double time_;                       // 0; Tick adds the elapsed time
-    std::list<SharedRef<Connection>> clients_;                // the connections
-    TypeRegistry types_;
-    SocketDriver socket_;
-    std::uint8_t reliable_[kMessageTypes];   // per message type: its objects are sent reliably
-    std::vector<MessageHandler> handlers_[kChannels][kMessageTypes];
+    std::int32_t idReuseTime;           // 75: seconds before a freed message id is reused
+    std::uint32_t frame;                // 1; Tick counts its calls
+    double time;                        // 0; Tick adds the elapsed time
+    std::list<SharedRef<Connection>> clients;                 // the connections
+    TypeRegistry types;
+    SocketDriver socket;
+    std::uint8_t reliable[kMessageTypes];    // per message type: its objects are sent reliably
+    std::vector<MessageHandler> handlers[kChannels][kMessageTypes];
     std::uint32_t padding_2564;
 };
 
@@ -379,7 +379,7 @@ constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;
 
 // ---- The server base and the game server ----------------------------------------------------------
 
-// A peer told to join that has not sent an update yet (ServerBase::joins_).
+// A peer told to join that has not sent an update yet (ServerBase::joins).
 struct PendingJoin {
     NetAddress address;
     std::uint32_t id;
@@ -407,7 +407,7 @@ public:
     // the magic and the entry).
     void SendInfo(const NetAddress* address, std::uint32_t echo);
 
-    std::list<PendingJoin> joins_;
+    std::list<PendingJoin> joins;
 };
 
 // The game server (g_gameServer). Its lists are STLport lists of counted pointers.
@@ -429,7 +429,7 @@ public:
     void QueueMapList();
     // When the held map message names `name`: drops it and queues "name_3" instead.
     bool FinishMap(const std::string* name);
-    // The variable named `name`, variables_.end() when missing.
+    // The variable named `name`, variables.end() when missing.
     std::list<SharedRef<VariableMessage>>::iterator FindVariable(const std::string* name);
     // The variable named `name`, made (value 0) at the front of the list when missing.
     std::list<SharedRef<VariableMessage>>::iterator FindOrAddVariable(const std::string* name);
@@ -446,7 +446,7 @@ public:
     // Queues the host's item awards of the briefing `entry` (and, with `withFinal`, the final award).
     void AwardHost(const QuestBriefingRecord* entry, bool withFinal);
     // Queues an award message for `connection` (60 s delay); destroys `text`.
-    void QueueAward(CRefObject* connection, int kind, float value, std::string text);
+    void QueueAward(RefObject* connection, int kind, float value, std::string text);
     // Lists `data` under `name` (unless listed) as a file message with 64-byte chunk messages.
     void ShareFile(const std::string* name, GameBuffer* data);
     // Whether the server is announced to the master server (port 28004).
@@ -456,9 +456,9 @@ public:
     // the session magic. EI_Plugin's NewMaster patches the send; this is the version without it.
     void AnnounceToMaster();
     // Keeps a chat or system line for the clients (`player` null for the server's own; at most 50 lines).
-    void Announce(std::string_view text, CRefObject* player);
+    void Announce(std::string_view text, RefObject* player);
     // Announce with text `kind` of the text table formatted with `text`.
-    void AnnounceText(int kind, const char* text, CRefObject* player);
+    void AnnounceText(int kind, const char* text, RefObject* player);
     // The trade between two offers (either order), or null.
     TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
     int LeaderId();                                       // the first host's id, -1
@@ -474,33 +474,33 @@ public:
     // Whether the player bound to `connection` is in state 3.
     bool PlayerStateIs3(const Connection* connection);
 
-    float announceTimer_;               // seconds to the next announcement to the master server
-    std::uint8_t public_;               // announced to the master server
-    std::uint32_t masterToken_;         // 0; the dword the master server last sent (OnMaster), sent back
+    float announceTimer;                // seconds to the next announcement to the master server
+    std::uint8_t announced;             // announced to the master server
+    std::uint32_t masterToken;          // 0; the dword the master server last sent (OnMaster), sent back
                                         // with the next announcement (GameInfoRecord::masterToken)
-    NetAddress masterAddress_;          // the master server (port 28004)
-    std::uint32_t nextLine_;            // the number of the next chat line
-    std::list<SharedRef<PlayerMessage>> players_;
-    std::list<SharedRef<LineMessage>> lines_; // chat and system lines, at most 50
-    std::list<SharedRef<FileMessage>> files_;
-    std::list<HeldRef<FileRequestMessage>> fileRequests_; // the clients' requests (file requests, connections)
+    NetAddress masterAddress;           // the master server (port 28004)
+    std::uint32_t nextLine;             // the number of the next chat line
+    std::list<SharedRef<PlayerMessage>> players;
+    std::list<SharedRef<LineMessage>> lines; // chat and system lines, at most 50
+    std::list<SharedRef<FileMessage>> files;
+    std::list<HeldRef<FileRequestMessage>> fileRequests; // the clients' requests (file requests, connections)
     // where the game is hosted (a HostMessage; world_game.cpp's AnnounceHost), replicated to everyone when set
-    Ref<HostMessage> hostInfo_;
-    std::list<SharedRef<BindingMessage>> bindings_; // player <-> connection
-    Ref<MapMessage> map_;          // the map message while a map is played
-    std::list<SharedRef<ZoneMessage>> queuedMaps_; // map messages the host may pick next
-    std::list<SharedRef<VariableMessage>> variables_;
-    std::list<TimedEntry<SharedRef<CRefObject>>> awards_;            // {delay, award}
-    std::list<HeldRef<PartyMessage>> offers_; // the players' trade offers
-    std::list<HeldRef<TradeMessage>> trades_;
-    std::list<TimedEntry<HeldRef<CRefObject>>> finishedTrades_;   // {delay, trade}: done trades, kept 60 s
-    std::list<NetAddress> banned_;
-    std::string name_;
-    std::string mapName_;
-    std::uint32_t maxPlayers_;          // 8; set by the creator
-    std::uint32_t kind_;                // the constructor's argument: the game kind
-    char password_[0x14];               // the join password (empty: none)
-    std::uint32_t masterKey_;           // set by the creator (StartServer); announced, and the master
+    Ref<HostMessage> hostInfo;
+    std::list<SharedRef<BindingMessage>> bindings; // player <-> connection
+    Ref<MapMessage> map;           // the map message while a map is played
+    std::list<SharedRef<ZoneMessage>> queuedMaps; // map messages the host may pick next
+    std::list<SharedRef<VariableMessage>> variables;
+    std::list<TimedEntry<SharedRef<RefObject>>> awards;             // {delay, award}
+    std::list<HeldRef<PartyMessage>> offers; // the players' trade offers
+    std::list<HeldRef<TradeMessage>> trades;
+    std::list<TimedEntry<HeldRef<RefObject>>> finishedTrades;    // {delay, trade}: done trades, kept 60 s
+    std::list<NetAddress> banned;
+    std::string name;
+    std::string mapName;
+    std::uint32_t maxPlayers;           // 8; set by the creator
+    std::uint32_t kind;                 // the constructor's argument: the game kind
+    char password[0x14];                // the join password (empty: none)
+    std::uint32_t masterKey;            // set by the creator (StartServer); announced, and the master
                                         // server's packets must start with it (OnMaster)
 };
 
@@ -546,21 +546,21 @@ public:
     // The entry of the `index`th server found, or null.
     ServerEntry* ServerAt(int index);
 
-    NetAddress host_;                   // the host joined or being asked
-    GrowingBuffer joinData_;            // sent with every join request
-    std::uint32_t joinId_;              // rand() << 16 | tick count
-    std::uint32_t joinState_;
-    std::uint8_t refusal_;              // the reason the host gave
-    float retryTimer_;                  // seconds to the next join request
-    float retryInterval_;               // doubles with every request (0.1 first)
-    std::list<SharedRef<ServerEntry>> servers_;
-    ClientQueries queries_;             // servers asked directly
-    std::list<NetAddress> waiting_;    // addresses waiting to be asked
-    NetAddress alwaysAsk_;              // asked on every refresh (ip 0: none)
-    std::uint32_t nextQuery_;           // the query the refresh pings next
+    NetAddress host;                    // the host joined or being asked
+    GrowingBuffer joinData;             // sent with every join request
+    std::uint32_t joinId;               // rand() << 16 | tick count
+    std::uint32_t joinState;
+    std::uint8_t refusal;               // the reason the host gave
+    float retryTimer;                   // seconds to the next join request
+    float retryInterval;                // doubles with every request (0.1 first)
+    std::list<SharedRef<ServerEntry>> servers;
+    ClientQueries queries;              // servers asked directly
+    std::list<NetAddress> waiting;     // addresses waiting to be asked
+    NetAddress alwaysAsk;               // asked on every refresh (ip 0: none)
+    std::uint32_t nextQuery;            // the query the refresh pings next
 };
 
-// A finished trade of the client's (ClientSession::tradeRecords_): the revisions of the trade and copies of
+// A finished trade of the client's (ClientSession::tradeRecords): the revisions of the trade and copies of
 // the two parties and the traded one. A copy copies the parties in order (CParty's copy saves and loads the
 // party: it draws object ids), so the client adds a record as the game's insert(end()) did: a blank's copy.
 struct TradeRecord {
@@ -585,7 +585,7 @@ public:
     double BufferRatio(GameBuffer* buffer);
     // Reads a server list reply.
     void ReadServerList(GameBuffer* in);
-    void StartParty(CRefObject* partner);
+    void StartParty(RefObject* partner);
     void RecordTrade(const void* party);
 
     ClientSession();
@@ -598,29 +598,29 @@ public:
     // Applies the awards received: experience, gold, items.
     void ApplyAwards();
     // Keeps `object` on the timers list for `seconds`.
-    void AddTimed(CRefObject* object, std::uint32_t seconds);
+    void AddTimed(RefObject* object, std::uint32_t seconds);
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, std::string_view text);
 
-    std::list<HeldRef<PlayerMessage>> players_;
-    std::list<HeldRef<LineMessage>> lines_;
-    std::list<HeldRef<FileMessage>> files_;
-    std::list<HeldRef<FileChunkMessage>> chunks_;
-    std::list<SharedRef<FileRequestMessage>> fileRequests_; // file requests for the server
-    Ref<HostMessage> info_;             // the game's description
-    Ref<BindingMessage> binding_;       // our binding
-    Ref<MapMessage> map_;               // the map message
-    std::list<HeldRef<ZoneMessage>> zones_; // map messages the host may pick
-    std::list<HeldRef<VariableMessage>> variables_;
-    Ref<LoginMessage> player_;     // the local player's login record
-    std::list<TimedEntry<SharedRef<CRefObject>>> timers_;            // {seconds left, object}: objects kept for a while
-    std::list<HeldRef<AwardMessage>> awards_; // awards received, applied by ApplyAwards
-    Ref<PartyMessage> party_;      // our trade offer (party description)
-    std::list<HeldRef<PartyMessage>> offers_; // the other players' trade offers
-    std::list<TradeRecord> tradeRecords_;
-    Ref<TradeMessage> trade_;           // the current trade
-    std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
-    lib::InPlace<CParty> parties_[2];           // ours, the partner's
+    std::list<HeldRef<PlayerMessage>> players;
+    std::list<HeldRef<LineMessage>> lines;
+    std::list<HeldRef<FileMessage>> files;
+    std::list<HeldRef<FileChunkMessage>> chunks;
+    std::list<SharedRef<FileRequestMessage>> fileRequests; // file requests for the server
+    Ref<HostMessage> info;              // the game's description
+    Ref<BindingMessage> binding;        // our binding
+    Ref<MapMessage> map;                // the map message
+    std::list<HeldRef<ZoneMessage>> zones; // map messages the host may pick
+    std::list<HeldRef<VariableMessage>> variables;
+    Ref<LoginMessage> player;      // the local player's login record
+    std::list<TimedEntry<SharedRef<RefObject>>> timers;             // {seconds left, object}: objects kept for a while
+    std::list<HeldRef<AwardMessage>> awards; // awards received, applied by ApplyAwards
+    Ref<PartyMessage> party;       // our trade offer (party description)
+    std::list<HeldRef<PartyMessage>> offers; // the other players' trade offers
+    std::list<TradeRecord> tradeRecords;
+    Ref<TradeMessage> trade;            // the current trade
+    std::uint32_t gameType;             // the multiplayer game type 0..3 (StartServer): start zone, type variable
+    lib::InPlace<CParty> parties[2];            // ours, the partner's
 };
 
 // ---- The game announcement ------------------------------------------------------------------------
@@ -631,8 +631,8 @@ struct GameInfoRecord {
     std::string description;
     std::uint8_t players;
     std::uint8_t maxPlayers;
-    std::uint8_t kind;           // the server's kind_ (ServerEntry::kind_)
-    std::uint8_t hasPassword;    // joining needs a password (ServerEntry::password_)
+    std::uint8_t kind;           // the server's kind (ServerEntry::kind)
+    std::uint8_t hasPassword;    // joining needs a password (ServerEntry::password)
     std::uint32_t masterKey;
     std::uint32_t masterToken;
     std::uint32_t magic;         // kSessionMagic

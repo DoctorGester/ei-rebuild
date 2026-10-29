@@ -18,10 +18,10 @@ constexpr int kTexels = 0x80;
 
 // The model manager's object `name`, else a new interface sprite standing in for it; one reference
 // taken for the caller. A failed sprite is not checked (neither is it in the original).
-CUiMesh* ItemModel(std::string_view name) {
-    CFigureManager* manager = g_clientWorld.figureManager_;
+UiMesh* ItemModel(std::string_view name) {
+    CFigureManager* manager = g_clientWorld.figureManager;
     // The interface's model manager makes class 0x43 objects: interface sprites.
-    CUiMesh* model = AsUiMesh(manager->NewFigure(name));
+    UiMesh* model = AsUiMesh(manager->NewFigure(name));
     if (!model) {
         model = AsUiMesh(manager->NewBlankFigure());
         model->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);

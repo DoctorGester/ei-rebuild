@@ -53,7 +53,7 @@ void AIPath::ToMotionOrder(PathOrder* out) const {
     out->SetTarget(targetX, targetY);
 }
 
-void CAIMap::ClearMarksAround(const PathCells* chain) {
+void AIMap::ClearMarksAround(const PathCells* chain) {
     constexpr int kBlock = 8;
     constexpr int kMargin = 4 * kBlock;
     if (chain->empty()) return;

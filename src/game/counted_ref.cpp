@@ -12,7 +12,7 @@ constexpr int kNoObject = -1;
 }
 
 template <typename T>
-void LoadRef(Ref<T>& ref, CStream* stream, CWorld* world) {
+void LoadRef(Ref<T>& ref, ByteStream* stream, CWorld* world) {
     int id;
     stream->ReadValue(id);
     if (id == kNoObject) {
@@ -23,18 +23,18 @@ void LoadRef(Ref<T>& ref, CStream* stream, CWorld* world) {
     ref.Assign(manager->FindObjectAs<T>(static_cast<unsigned>(id)));
 }
 
-void SaveRef(const CEngineObject* object, CStream* stream) {
-    int id = object ? object->id_ : kNoObject;
+void SaveRef(const EngineObject* object, ByteStream* stream) {
+    int id = object ? object->id : kNoObject;
     stream->WriteValue(id);
 }
 
 // The references loaded: the AI's map objects and units, the effects' figures.
-template void LoadRef(Ref<CMapObject>&, CStream*, CWorld*);
-template void LoadRef(Ref<CUnit>&, CStream*, CWorld*);
+template void LoadRef(Ref<CMapObject>&, ByteStream*, CWorld*);
+template void LoadRef(Ref<CUnit>&, ByteStream*, CWorld*);
 
 // Reads a count, then that many counted references added at the tail of the list, each loaded in
 // `context` (the trap's units, the brain's lists).
-void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context) {
+void CountedListLoad(std::list<CUnit*>* list, ByteStream* stream, CWorld* context) {
     int count;
     stream->ReadValue(count);
     while (count-- > 0) {
@@ -44,7 +44,7 @@ void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context) 
     }
 }
 
-void CountedListLoad(HeldUnits* list, CStream* stream, CWorld* context) {
+void CountedListLoad(HeldUnits* list, ByteStream* stream, CWorld* context) {
     int count;
     stream->ReadValue(count);
     while (count-- > 0) LoadRef(list->emplace_back(), stream, context);

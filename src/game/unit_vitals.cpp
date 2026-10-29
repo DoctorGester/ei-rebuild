@@ -87,7 +87,7 @@ float EffectValueField(const MapEffect& effect) {
 }
 
 UnitVitals* ServerVitals(CUnit* unit) {
-    CMapObjectServer* server = unit->ServerCompanion();
+    MapObjectServer* server = unit->ServerCompanion();
     return server->GetClassId() == ClassId::MapObjectServer ? &server->vitals : nullptr;
 }
 
@@ -335,7 +335,7 @@ float ScaleHitPointsByEffects(CUnit* unit, float value) {
 }
 
 void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
-    if (IsTextKey(unit->id_)) {
+    if (IsTextKey(unit->id)) {
         vitals->maxHitPoints = static_cast<float>(HitPointCurve());
     } else {
         vitals->maxHitPoints = fixedMaxHitPoints;
@@ -349,7 +349,7 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
 }
 
 void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
-    bool keyed = IsTextKey(unit->id_);
+    bool keyed = IsTextKey(unit->id);
     strength = strengthBase;
     intelligence = intelligenceBase;
     dexterity = dexterityBase;

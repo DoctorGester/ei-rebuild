@@ -42,8 +42,8 @@ public:
     CpuTimer& operator=(const CpuTimer&) = delete;
 
 private:
-    Cpu part_;
-    long long start_ = 0;
+    Cpu part;
+    long long start = 0;
 };
 
 // The frame presented (render::Present): its interval since the last one and its counts.

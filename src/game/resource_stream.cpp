@@ -1,5 +1,5 @@
-// The rest of the resource code: CResourceBase, the sound system's file reader, the archive name
-// listing, and the CMMIOResource constructors and destructors (CResourceManager's are in
+// The rest of the resource code: ResourceBase, the sound system's file reader, the archive name
+// listing, and the MMIOResource constructors and destructors (ResourceManager's are in
 // resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
 #include "lib/text_case.h"
@@ -33,28 +33,28 @@ bool PartMatches(const char* name, const char* pattern) {
 } // namespace
 
 
-CResourceBase::CResourceBase() {
-    header_ = ResHeader{};
-    entries_ = nullptr;
-    names_ = nullptr;
+ResourceBase::ResourceBase() {
+    header = ResHeader{};
+    entries = nullptr;
+    names = nullptr;
 }
 
-CResourceBase::~CResourceBase() {
-    header_ = ResHeader{};
-    entries_ = nullptr;
-    names_ = nullptr;
+ResourceBase::~ResourceBase() {
+    header = ResHeader{};
+    entries = nullptr;
+    names = nullptr;
 }
 
 
 
 
 
-void CResourceStream::Close() {
+void ResourceStream::Close() {
     if (file != nullptr) gameapi::mmioClose(file, 0);
     file = nullptr;
 }
 
-bool CResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
+bool ResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
     Close();
     if (!lib::FileExists(name)) return false;
     WIN32_FIND_DATAA found{};   // the size (the original's _findfirst never closed its search)
@@ -66,12 +66,12 @@ bool CResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
     return true;
 }
 
-long CResourceStream::Read(char* buffer, long size) {
+long ResourceStream::Read(char* buffer, long size) {
     if (file == nullptr) return -1;
     return gameapi::mmioRead(file, buffer, size);
 }
 
-long CResourceStream::Seek(long offset, int origin) {
+long ResourceStream::Seek(long offset, int origin) {
     if (file == nullptr) return -1;
     return gameapi::mmioSeek(file, offset, origin == 2 ? SEEK_END : SEEK_SET);
 }
@@ -92,20 +92,20 @@ int WildcardMatch(const char* name, const char* pattern, int emptyPatternResult)
 }
 
 // Rebirth's ResOverride sends every call to addon.
-void CMappedResource::ListFiles(std::vector<std::string>* names, const char* pattern) const {
+void MappedResource::ListFiles(std::vector<std::string>* fileNames, const char* pattern) const {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
-        modfolders::ListFiles(this, names, pattern);
+        modfolders::ListFiles(this, fileNames, pattern);
         return;
     }
-    *names = ListFilesPlain(pattern);
+    *fileNames = ListFilesPlain(pattern);
 }
 
-std::vector<std::string> CMappedResource::ListFilesPlain(const char* pattern) const {
-    std::vector<std::string> names;
-    for (std::uint32_t i = 0; i < header_.count; ++i) {
-        const ResEntry& entry = entries_[i];
+std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) const {
+    std::vector<std::string> fileNames;
+    for (std::uint32_t i = 0; i < header.count; ++i) {
+        const ResEntry& entry = entries[i];
         char name[0x400];
-        std::memcpy(name, names_ + entry.nameOffset, entry.nameLength);
+        std::memcpy(name, names + entry.nameOffset, entry.nameLength);
         name[entry.nameLength] = '\0';
         if (pattern != nullptr) {
             char nameDrive[4], patternDrive[4];
@@ -118,20 +118,20 @@ std::vector<std::string> CMappedResource::ListFilesPlain(const char* pattern) co
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
             if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
         }
-        names.push_back(name);
+        fileNames.push_back(name);
     }
-    return names;
+    return fileNames;
 }
 
 
-// The mapped file is constructed as a member (CMappedFile's constructor).
-CMMIOResource::CMMIOResource() { mappedImage_ = nullptr; }
+// The mapped file is constructed as a member (MappedFile's constructor).
+MMIOResource::MMIOResource() { mappedImage = nullptr; }
 
-CMMIOResource::~CMMIOResource() {
-    // CloseResource, inlined (is CMappedFile::Close's copy).
-    file_.Close();
-    entries_ = nullptr;
-    names_ = nullptr;
-    mappedImage_ = nullptr;
-    header_ = ResHeader{};
+MMIOResource::~MMIOResource() {
+    // CloseResource, inlined (is MappedFile::Close's copy).
+    file.Close();
+    entries = nullptr;
+    names = nullptr;
+    mappedImage = nullptr;
+    header = ResHeader{};
 }

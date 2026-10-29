@@ -9,7 +9,7 @@
 namespace hash400 {
 
 // The id tables: an owner's hash_map of a one-dword key, the highest key inserted kept by the owner in the member
-// after it (CBaseManager's tables, the worlds' object maps, the client world's dynamic nodes), with the map-style
+// after it (BaseManager's tables, the worlds' object maps, the client world's dynamic nodes), with the map-style
 // members the game's instantiations give them.
 
 // operator[] keeping the highest key: `key`'s value, a new {key, 0} entry when there is none.

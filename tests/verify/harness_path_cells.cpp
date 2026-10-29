@@ -28,7 +28,7 @@ void SetPlainCellWords(PathCells* list) {
 }
 
 constexpr std::uintptr_t kSearchPathTo = 0x005C3200;   // LocalSearch: the path to a cell (RET 0xC)
-constexpr std::uintptr_t kBuildCells = 0x005B9A20;     // CAIMap::BuildCellsTo (RET 0xC)
+constexpr std::uintptr_t kBuildCells = 0x005B9A20;     // AIMap::BuildCellsTo (RET 0xC)
 constexpr std::uintptr_t kSmooth = 0x005C46C0;         // PathSmoother::Smooth (RET 0x14)
 
 using SearchPathToFn = void(__fastcall*)(void*, void*, int, int, PathCells*);

@@ -1,4 +1,4 @@
-// Bink movies: the frame player (CBinkVideo::Frame, once per frame from the movie screen's draw: the next frame
+// Bink movies: the frame player (BinkVideo::Frame, once per frame from the movie screen's draw: the next frame
 // decoded when due, then blitted into the letterboxed rectangle), the blocking player (PlayMovie) and the
 // loading screen's movie. Every frame goes to the new renderer as a CPU copy (render::MovieFrame / MovieBlit); no
 // surface holds it. See docs/notes/renderer.md, section 8.
@@ -23,7 +23,7 @@
 #include "options.h"
 #include "world.h"
 
-// Set while a .mob file loads (CWorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
+// Set while a .mob file loads (WorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
 std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
 
 namespace {
@@ -56,14 +56,14 @@ render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.righ
 
 
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
-void PresentMovieFrame() { DevicePresent(g_sceneRenderer.device_); }
+void PresentMovieFrame() { DevicePresent(g_sceneRenderer.device); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
 
 } // namespace
 
-unsigned CBinkVideo::Frame() {
-    if (!options::g_options.video_) return 0;   // movies off
+unsigned BinkVideo::Frame() {
+    if (!options::g_options.video) return 0;    // movies off
     BinkHeader* binkHandle = this->bink;
     if (!binkHandle) return 0;
     if (gameapi::BinkWait(binkHandle) == 0) {
@@ -86,26 +86,26 @@ unsigned CBinkVideo::Frame() {
 // Plays the movie in a message loop of its own, each frame into its letterboxed rectangle. Returns false when Esc ended it.
 bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool spaceSkips, bool clearScreen,
                bool loadingStep) {
-    if (!options::g_options.video_) return true;
+    if (!options::g_options.video) return true;
     const char* file = name.c_str();
-    if (loadingStep) g_clientWorld.sounds_->StopAll(1);
-    if (options::g_options.audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds_->waveDriver);
+    if (loadingStep) g_clientWorld.sounds->StopAll(1);
+    if (options::g_options.audio) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds->waveDriver);
     BinkHeader* bink = OpenBink(file);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", file);
         return true;
     }
-    gameapi::BinkSetVolume(bink, options::g_options.audioStreaming_ * 0x7FF6 / 100);
+    gameapi::BinkSetVolume(bink, options::g_options.audioStreaming * 0x7FF6 / 100);
     g_cursor.ShowImage(0);
     // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
-    gameapi::CopyRect(&screen, &g_sceneRenderer.device_->screen_);
+    gameapi::CopyRect(&screen, &g_sceneRenderer.device->screen);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
     // centred at its size; both centred vertically (divisions round towards zero).
     RECT to;
-    if (options::g_options.video_ == 2) {
+    if (options::g_options.video == 2) {
         int screenWidth = screen.right - screen.left;
         int shown = static_cast<int>(static_cast<double>(screenWidth) * (static_cast<double>(height) / static_cast<double>(width)));
         to.left = 0;
@@ -180,7 +180,7 @@ void ShowLoadingMovie(int progress) {
             game::DebugLog("Can't open video file \"%s\"\n", path);
             return;
         }
-        g_loadingScreen = g_sceneRenderer.device_->screen_;
+        g_loadingScreen = g_sceneRenderer.device->screen;
     }
     BinkHeader* bink = g_loadingBink;
     int last = static_cast<int>(bink->frames) - 1;
@@ -214,11 +214,11 @@ void ShowLoadingMovie(int progress) {
 // movies are off), the loading screen steps when asked, Bink gets the Miles driver when movie sound is on; the
 // screen rectangle: movies mode 1 centred at the movie's size, otherwise stretched to the screen's width with
 // the height trunc(height / width * screen width), centred vertically (divisions by 2 round towards zero).
-char CBinkVideo::Open(const char* name, char loadingStep) {
+char BinkVideo::Open(const char* name, char loadingStep) {
     if (bink) gameapi::BinkClose(bink);
-    if (!options::g_options.video_) return 0;
-    if (loadingStep) g_clientWorld.sounds_->StopAll(1);
-    if (options::g_options.audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds_->waveDriver);
+    if (!options::g_options.video) return 0;
+    if (loadingStep) g_clientWorld.sounds->StopAll(1);
+    if (options::g_options.audio) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds->waveDriver);
     bink = OpenBink(name);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);
@@ -227,8 +227,8 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     g_cursor.ShowImage(0);
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
-    gameapi::CopyRect(&screen, &g_sceneRenderer.device_->screen_);
-    if (options::g_options.video_ == 1) {
+    gameapi::CopyRect(&screen, &g_sceneRenderer.device->screen);
+    if (options::g_options.video == 1) {
         int x = (screen.right - width - screen.left) / 2;
         int y = (screen.bottom - height - screen.top) / 2;
         to = RECT{x, y, width + x, height + y};
@@ -251,7 +251,7 @@ void CloseLoadingMovie() {
     g_cursor.ShowImage(1);
 }
 
-void CBinkVideo::Close() {
+void BinkVideo::Close() {
     if (bink) {
         gameapi::BinkClose(bink);
         bink = nullptr;

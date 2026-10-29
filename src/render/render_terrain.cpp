@@ -802,7 +802,7 @@ TerrainCacheInfo TerrainCacheState() {
 }
 #endif
 
-void TerrainPage(const SectorData* s, const CSceneRenderer* renderer, int page) {
+void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     if (!s || !renderer) return;
     StatsTimer timer(&FrameStats::terrainMs);
     ++g_stats.terrainPages;
@@ -810,9 +810,9 @@ void TerrainPage(const SectorData* s, const CSceneRenderer* renderer, int page) 
     if (f.terrainPieces.size() > 1'000'000) return;   // no present for a long time: drop the rest
     // The clip matrix: the top of the transform pipeline's stack, which the old path transforms the sector's
     // vertices with (the landscape's model matrix pushed by the terrain passes on top of the view).
-    const CTransformPipeline* pipeline = renderer->pipeline_;
+    const TransformPipeline* pipeline = renderer->pipeline;
     if (!pipeline) return;
-    const MatrixStack& clipStack = pipeline->stacks_[CTransformPipeline::kClipStack];
+    const MatrixStack& clipStack = pipeline->stacks[TransformPipeline::kClipStack];
     const int depth = clipStack.count;
     if (depth <= 0) return;
     int lod = s->detail;

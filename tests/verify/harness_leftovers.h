@@ -18,11 +18,11 @@
 // (its callers' copies), CUnit::TakePrototype 0052EB70, CMapObject::TakePrototype 0050E9B0, and
 // CParty::AddMember 006628D0's stack record (0x784 bytes, whose statistics BuildNpcStats 00513DA0
 // fills: the party members' and so the heroes' statistics). Left alone: the resets of blocks that
-// live in objects (CUnitServer::ResetController 00546480, the CMapObjectServer lifetime
+// live in objects (UnitServer::ResetController 00546480, the MapObjectServer lifetime
 // 00515610..005157E0); their objects start zeroed instead (below).
 //
 // Heap blocks whose constructors leave fields (SV7b2, SV7d3, SV7d4): the objects of the two factories
-// (CServerSpecificManager::NewObject 004D6970: CUnitServer's waitFrame, which ResolveBlocker
+// (ServerSpecificManager::NewObject 004D6970: UnitServer's waitFrame, which ResolveBlocker
 // reads; CMapObjectManager::CreateObject 00512730: a unit's exposure and motion turn fields) are
 // allocated zeroed (each operator new call redirected), and so are the Suspection and Fear modes
 // (AddSuspectionMode / AddFearMode allocate them zeroed; the calls of their constructors 004BA610 /
@@ -42,7 +42,7 @@
 // family bit 7, without hooks only): nothing sets the emission point (+0x98) before Attach, and the first
 // Tick takes the motion, so the number of emission tries and GlobalRandom draws, from it.
 //
-// And (SV7b6a) CLightFactory::NewObjectImpl 0068DA40's light is allocated zeroed (its operator new CALL at
+// And (SV7b6a) LightFactory::NewObjectImpl 0068DA40's light is allocated zeroed (its operator new CALL at
 // 0068DA7C, family bit 8, without hooks only): the constructor leaves the transform's positions and nothing
 // sets a directional light's, but the terrain's sun lighting (ShadeSun 006C36B0) reads the sun's z under water.
 

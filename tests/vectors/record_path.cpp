@@ -1,4 +1,4 @@
-// Record mode for the "path" family (path_vectors.h): CAIMap::FindPath, CAIMap::PlanLongPath and
+// Record mode for the "path" family (path_vectors.h): AIMap::FindPath, AIMap::PlanLongPath and
 // PathSmoother::Smooth on the AI map they ran on. Stolen bytes from the disassembly (checked by
 // check_stolen.py). Reached by every scenario whose units walk (movement, unit_ai, combat, ...).
 //
@@ -111,7 +111,7 @@ void OfferTables() {
 
 // ---- @AIMap and the differences from it ------------------------------------------------------------
 
-// game.exe's AI map and region map (ai_map.h's CAIMap and CRegionMap as game.exe lays them out; this records in
+// game.exe's AI map and region map (ai_map.h's AIMap and RegionMap as game.exe lays them out; this records in
 // game.exe, so nothing of ours is read): the members the recorder reads, the rest padding.
 template <class T>
 struct OriginalGrid {   // SearchGrid
@@ -276,8 +276,8 @@ void PutCallMap(Writer& w, const OriginalAIMap* map, std::uint8_t planes = kCall
 UnitState StateOf(exe::CUnit* unit) {
     auto s = Zeroed<UnitState>();
     s.classId = unit->GetClassId();
-    std::memcpy(s.position, &unit->localPosition_, sizeof(s.position));
-    std::memcpy(s.orientation, &unit->localRotation_, sizeof(s.orientation));
+    std::memcpy(s.position, &unit->localPosition, sizeof(s.position));
+    std::memcpy(s.orientation, &unit->localRotation, sizeof(s.orientation));
     s.sizeClass = unit->sizeClass;
     s.standingHeight = unit->standingHeight;
     s.altPassCosts = unit->altPassCosts;
@@ -321,7 +321,7 @@ bool Small(const OriginalPath* path) { return path->cells.count <= kMaxCells && 
 // A FindPath being recorded on this thread: the sector map's Remove takes its map.
 struct PendingFind {
     const OriginalAIMap* map;
-    const exe::CEngineObject* unit;
+    const exe::EngineObject* unit;
     Writer state;
     std::vector<std::uint8_t> marks;   // the marks when the map was taken
     bool captured = false;
@@ -337,7 +337,7 @@ bool __fastcall FindPathRecord(OriginalAIMap* self, void*, exe::CUnit* unit, con
     OfferTables();
     Writer head;
     head.Put(StateOf(unit));
-    head.Put<std::int32_t>(ei::OriginalGameData<exe::CWorldServer>(0x007AFF60).tick_);   // game.exe's world
+    head.Put<std::int32_t>(ei::OriginalGameData<exe::WorldServer>(0x007AFF60).tick);    // game.exe's world
     head.Put(*target);
     head.Put(range);
     head.Put(minDistance);
@@ -363,9 +363,9 @@ bool __fastcall FindPathRecord(OriginalAIMap* self, void*, exe::CUnit* unit, con
 }
 
 // 005C1010: PUSH EBP; PUSH ESI; PUSH EDI; MOV EDI,[ESP+0x10] (7). The capture point above.
-using RemoveFn = bool(__fastcall*)(void*, void*, exe::CEngineObject*);
+using RemoveFn = bool(__fastcall*)(void*, void*, exe::EngineObject*);
 RemoveFn s_remove;
-bool __fastcall RemoveRecord(void* self, void*, exe::CEngineObject* object) {
+bool __fastcall RemoveRecord(void* self, void*, exe::EngineObject* object) {
     bool result = s_remove(self, nullptr, object);
     PendingFind* pending = t_find;
     if (pending && !pending->captured && object == pending->unit) {
@@ -433,7 +433,7 @@ int __fastcall SmoothRecord(void* self, void*, exe::CUnit* unit, OriginalAIMap* 
 } // namespace
 
 // FindPath's callers are rewritten (ContinuePath calls ours directly).
-EI_RECORD(0x005BB350, FindPathRecord, 6, s_findPath, CAIMap::FindPath);
-EI_RECORD(0x005C1010, RemoveRecord, 7, s_remove, CSectorMap::Remove);
-EI_RECORD(0x005B9C90, PlanRecord, 7, s_plan, CAIMap::PlanLongPath);
+EI_RECORD(0x005BB350, FindPathRecord, 6, s_findPath, AIMap::FindPath);
+EI_RECORD(0x005C1010, RemoveRecord, 7, s_remove, SectorMap::Remove);
+EI_RECORD(0x005B9C90, PlanRecord, 7, s_plan, AIMap::PlanLongPath);
 EI_RECORD(0x005C46C0, SmoothRecord, 9, s_smooth, PathSmoother::Smooth);

@@ -129,20 +129,20 @@ __declspec(naked) inline void __cdecl SetControlWord(std::uint32_t /*word*/) {
 // loaded only when it changes, and put back only then.
 class ScopedRounding {
 public:
-    explicit ScopedRounding(std::uint32_t rounding) : saved_(ControlWord()) {
-        const std::uint32_t wanted = (saved_ & ~kRoundingBits) | rounding;
-        changed_ = wanted != saved_;
-        if (changed_) SetControlWord(wanted);
+    explicit ScopedRounding(std::uint32_t rounding) : saved(ControlWord()) {
+        const std::uint32_t wanted = (saved & ~kRoundingBits) | rounding;
+        changed = wanted != saved;
+        if (changed) SetControlWord(wanted);
     }
     ~ScopedRounding() {
-        if (changed_) SetControlWord(saved_);
+        if (changed) SetControlWord(saved);
     }
     ScopedRounding(const ScopedRounding&) = delete;
     ScopedRounding& operator=(const ScopedRounding&) = delete;
 
 private:
-    std::uint32_t saved_;
-    bool changed_;
+    std::uint32_t saved;
+    bool changed;
 };
 
 // FISTP: float to int using the FPU's current rounding mode (round-to-nearest by default), unlike

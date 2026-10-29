@@ -1,4 +1,4 @@
-// CRegionMap::ReachesRegion and LabelRegions, and the region map's block grids. See ai_map.h and
+// RegionMap::ReachesRegion and LabelRegions, and the region map's block grids. See ai_map.h and
 // docs/notes/ai.md ("Regions").
 #include "ai_map.h"
 #include "core_streams.h"
@@ -17,8 +17,8 @@ constexpr std::int16_t kNoWay = -1;     // an edge word no path crosses
 constexpr int kEdgesPerBlock = 8;       // the edge words of a block, one per direction
 
 // The block grid's size: the first size class's edge grid.
-int BlocksWide(const CRegionMap* map) { return map->edges[0].width; }
-int BlocksHigh(const CRegionMap* map) { return map->edges[0].height; }
+int BlocksWide(const RegionMap* map) { return map->edges[0].width; }
+int BlocksHigh(const RegionMap* map) { return map->edges[0].height; }
 
 // The direction steps of block directions 0..7 (the tables from their index 1).
 const int* StepX() { return kDirectionDx + 1; }
@@ -57,7 +57,7 @@ void FinishSearch(BlockSearch& search) {
 
 } // namespace
 
-bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks) {
+bool RegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks) {
     int bx = x / 8, by = y / 8;
     if (BlocksWide(this) - 1 < bx) bx = BlocksWide(this) - 1;
     if (bx < 0) bx = 0;
@@ -118,7 +118,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     return found;
 }
 
-void CRegionMap::LabelRegions() {
+void RegionMap::LabelRegions() {
     std::vector<BlockPoint> queue;
     std::vector<BlockPoint> second;
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
@@ -139,7 +139,7 @@ void CRegionMap::LabelRegions() {
     }
 }
 
-std::list<BlockCost> CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y) {
+std::list<BlockCost> RegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y) {
     std::list<BlockCost> out;
     int bx = x / 8, by = y / 8;
     if (BlocksWide(this) - 1 < bx) bx = BlocksWide(this) - 1;
@@ -168,7 +168,7 @@ std::list<BlockCost> CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, i
     return out;
 }
 
-void CRegionMap::ClampEdgeCosts() {
+void RegionMap::ClampEdgeCosts() {
     // Per size class (edges): rows of blocks of 8 signed words, one per direction (direction d and (d - 4) & 7
     // are opposite).
     auto grid = [this](int sizeClass) -> SearchGrid<std::int16_t>& { return edges[sizeClass]; };
@@ -206,7 +206,7 @@ void CRegionMap::ClampEdgeCosts() {
             }
 }
 
-bool CRegionMap::LoadBlocks(CStream* stream) {
+bool RegionMap::LoadBlocks(ByteStream* stream) {
     auto read = [stream](void* buffer, int size) { stream->Read(buffer, static_cast<std::uint32_t>(size)); };
     int width, height;
     read(&width, 4);
@@ -228,11 +228,11 @@ bool CRegionMap::LoadBlocks(CStream* stream) {
     forward.Attach(this, false);
     backward.Attach(this, true);
     bool ok;
-    std::memcpy(&ok, &stream->ok_, sizeof(ok));
+    std::memcpy(&ok, &stream->ok, sizeof(ok));
     return ok;
 }
 
-void CRegionMap::SaveBlocks(CStream* stream) {
+void RegionMap::SaveBlocks(ByteStream* stream) {
     int width = BlocksWide(this), height = BlocksHigh(this);
     stream->WriteValue(width);
     stream->WriteValue(height);
@@ -246,7 +246,7 @@ void CRegionMap::SaveBlocks(CStream* stream) {
     }
 }
 
-void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
+void RegionMap::PickRepresentatives(AIMap* map, int bx, int by) {
     for (int c = 0; c < 8; ++c) {
         std::uint8_t& cell = cells[c][by][bx];
         // (3, 3); the original sets only x's two low bits.
@@ -275,7 +275,7 @@ void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
     }
 }
 
-bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCells* chain,
+bool RegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCells* chain,
                                  std::vector<BlockPoint>* excluded) {
     PrepareSearch(forward, sizeClass);
     PrepareSearch(backward, sizeClass);
@@ -292,7 +292,7 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
     return ok;
 }
 
-int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
+int RegionMap::DominantRegion(int sizeClass, int x, int y) {
     // The reachable blocks around the cell.
     std::list<BlockCost> blocks = NearbyBlocks(sizeClass, false, x, y);
     // Count the blocks per region, in first-seen order (the original keeps a list of {region, count}; at most
@@ -323,7 +323,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     return region;
 }
 
-bool CRegionMap::JoinBlockSearches(PathCells* chain) {
+bool RegionMap::JoinBlockSearches(PathCells* chain) {
     auto meets = [](BlockSearch& other, int x, int y) {
         const BlockRecord& r = other.records[y][x];
         return r.settled && r.cost < kUnreached;
@@ -390,7 +390,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCells* 
     path->push_front(cellAt(x, y));
 }
 
-void CRegionMap::MeasureBlockEdges(int bx, int by) {
+void RegionMap::MeasureBlockEdges(int bx, int by) {
     const int* dx = StepX();
     const int* dy = StepY();
     LocalSearch* search = &local;
@@ -422,7 +422,7 @@ void CRegionMap::MeasureBlockEdges(int bx, int by) {
     }
 }
 
-void CRegionMap::Attach(CAIMap* map) {
+void RegionMap::Attach(AIMap* map) {
     local.Attach(map, false);
     int width = map->cells.width / 8, height = map->cells.height / 8;
     for (int c = 0; c < 8; ++c) {
@@ -434,7 +434,7 @@ void CRegionMap::Attach(CAIMap* map) {
     backward.Attach(this, true);
 }
 
-CRegionMap::CRegionMap() {
+RegionMap::RegionMap() {
     for (SearchGrid<std::int16_t>& grid : edges) grid.Resize(1, 1, kNoWay, kEdgesPerBlock);
     for (SearchGrid<std::uint8_t>& grid : cells) grid.Resize(1, 1);
     for (SearchGrid<std::uint16_t>& grid : regions) grid.Resize(1, 1);
@@ -442,7 +442,7 @@ CRegionMap::CRegionMap() {
     backward.Attach(this, true);
 }
 
-bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy) {
+bool RegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy) {
     LocalSearch* search = &local;
     int left = bx * 8, top = by * 8, right = bx * 8 + 8, bottom = by * 8 + 8;
     // A search confined to the block and its far edges (9x9 cells) from the candidate cell; when
@@ -469,7 +469,7 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
     return first && second;
 }
 
-void CRegionMap::FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier, std::vector<BlockPoint>* next, int label) {
+void RegionMap::FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier, std::vector<BlockPoint>* next, int label) {
     const int* dx = StepX();
     const int* dy = StepY();
     SearchGrid<std::int16_t>& edgeRows = edges[sizeClass];

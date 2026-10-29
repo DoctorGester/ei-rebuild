@@ -31,91 +31,91 @@ const char kRecordFolder[] = ".\\camera\\";
 
 } // namespace
 
-CCamera::CCamera() {
-    localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    worldRotation_.SetIdentity();
-    viewRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    for (CameraView& view : views_) {
+Camera::Camera() {
+    localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    worldRotation.SetIdentity();
+    viewRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    for (CameraView& view : views) {
         view.distance = 30.0f;
         view.rotation = camera::kIdentityRotation;
         view.pitch = DefaultPitch();
     }
-    panVelocity_ = camera::kZeroVector;
-    panTarget_ = camera::kZeroVector;
-    panResponse_ = 2.0f / 15.0f;
-    turnResponse_ = 1.0f / 3.0f;
-    tiltResponse_ = 1.0f / 3.0f;
-    zoomResponse_ = 1.0f / 3.0f;
-    turnRate_ = 0.0f;
-    turnTarget_ = 0.0f;
-    tiltRate_ = 0.0f;
-    focus_.x = 10.0f;
-    tiltTarget_ = 0.0f;
-    zoomRate_ = 0.0f;
-    focus_.y = 10.0f;
-    zoomTarget_ = 0.0f;
-    focusHeight_ = 2.0f;
-    focus_.z = 2.0f;
-    viewRotation_ = camera::kIdentityRotation;
-    targetId_ = -1;
-    nearDistance_ = 1.0f;
-    farDistance_ = 2000.0f;
-    fieldOfView_ = DefaultAngle();
+    panVelocity = camera::kZeroVector;
+    panTarget = camera::kZeroVector;
+    panResponse = 2.0f / 15.0f;
+    turnResponse = 1.0f / 3.0f;
+    tiltResponse = 1.0f / 3.0f;
+    zoomResponse = 1.0f / 3.0f;
+    turnRate = 0.0f;
+    turnTarget = 0.0f;
+    tiltRate = 0.0f;
+    focus.x = 10.0f;
+    tiltTarget = 0.0f;
+    zoomRate = 0.0f;
+    focus.y = 10.0f;
+    zoomTarget = 0.0f;
+    focusHeight = 2.0f;
+    focus.z = 2.0f;
+    viewRotation = camera::kIdentityRotation;
+    targetId = -1;
+    nearDistance = 1.0f;
+    farDistance = 2000.0f;
+    fieldOfView = DefaultAngle();
 }
 
-CCamera::~CCamera() {
-    targetId_ = -1;
+Camera::~Camera() {
+    targetId = -1;
 }
 
 // The camera: constructed by the C++ runtime and destroyed after the game's exit functions (the worlds' destructors
 // do not touch it: EmptyWorlds, app_main.cpp, has emptied them by then).
-CCamera g_camera;
+Camera g_camera;
 
-const char* CCamera::ClassName() { return "CCamera"; }
-ClassId CCamera::GetClassId() { return ClassId::Camera; }
+const char* Camera::ClassName() { return "CCamera"; }
+ClassId Camera::GetClassId() { return ClassId::Camera; }
 
-void CCamera::Create() {
-    targetId_ = -1;
-    nearDistance_ = 1.0f;
-    farDistance_ = 2000.0f;
-    fieldOfView_ = DefaultAngle();
+void Camera::Create() {
+    targetId = -1;
+    nearDistance = 1.0f;
+    farDistance = 2000.0f;
+    fieldOfView = DefaultAngle();
 }
-void CCamera::Destroy() { targetId_ = -1; }
+void Camera::Destroy() { targetId = -1; }
 
 // Init(settings, near, far, fov). Takes the views and the start distance and focus from the settings, keeps the
 // three distances / angle as float bit patterns, switches to free placement, and resets views 6 and 7 to the
 // start distance at 45 degrees (the pitch too). Returns 1.
-int CCamera::Init(options::GameOptions* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
-    ViewsFromSettings(settings);
-    settings_ = settings;
-    distance_ = settings->cameraDefaultDistance_;
-    focus_.x = settings->cameraDefaultXDeploy_;
-    focus_.y = settings->cameraDefaultYDeploy_;
-    focus_.z = settings->cameraDefaultHeight_;
-    nearDistance_ = std::bit_cast<float>(nearBits);
-    farDistance_ = std::bit_cast<float>(farBits);
-    fieldOfView_ = std::bit_cast<float>(fovBits);
-    flags_ |= kFree;
-    views_[7].distance = settings->cameraDefaultDistance_;
-    pitch_ = DefaultPitch();
-    views_[7].pitch = pitch_;
-    views_[6].distance = settings->cameraDefaultDistance_;
-    pitch_ = DefaultPitch();
-    views_[6].pitch = pitch_;
+int Camera::Init(options::GameOptions* newSettings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
+    ViewsFromSettings(newSettings);
+    settings = newSettings;
+    distance = newSettings->cameraDefaultDistance;
+    focus.x = newSettings->cameraDefaultXDeploy;
+    focus.y = newSettings->cameraDefaultYDeploy;
+    focus.z = newSettings->cameraDefaultHeight;
+    nearDistance = std::bit_cast<float>(nearBits);
+    farDistance = std::bit_cast<float>(farBits);
+    fieldOfView = std::bit_cast<float>(fovBits);
+    flags |= kFree;
+    views[7].distance = newSettings->cameraDefaultDistance;
+    pitch = DefaultPitch();
+    views[7].pitch = pitch;
+    views[6].distance = newSettings->cameraDefaultDistance;
+    pitch = DefaultPitch();
+    views[6].pitch = pitch;
     return 1;
 }
 
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
-const Vector3* CameraAnchor(const CCamera* self) {
-    return (self->flags_ & CCamera::kPlaced) ? &self->localPosition_ : &self->focus_;
+const Vector3* CameraAnchor(const Camera* self) {
+    return (self->flags & Camera::kPlaced) ? &self->localPosition : &self->focus;
 }
 
 // Starts recording into ".\camera\" + `name`. When ".\camera\camera.cam" exists it is
 // first renamed to the next numbered file: the number after the highest found, where each found
 // name's number is read from its title past the fourth character ("ra0005": always 0, so the
 // rename goes to camera0001.cam; kept as the game has it). Sets the client world's
-// WorldClientFlag::RecordingCamera either way. Returns 1 (file name kept in fileName_, flag 0x10 set) when the file can be created, else 0.
-int CCamera::OpenFile(const char* name) {
+// WorldClientFlag::RecordingCamera either way. Returns 1 (file name kept in fileName, flag 0x10 set) when the file can be created, else 0.
+int Camera::OpenFile(const char* name) {
     lib::FileFind find;
     lib::File file;
     if (find.FindFile(kCurrentRecord) == 1) {
@@ -137,7 +137,7 @@ int CCamera::OpenFile(const char* name) {
         path = str::Format(kNumberedRecord, last + 1);
         gameapi::MoveFileA(kCurrentRecord, path.c_str());
     }
-    g_clientWorld.flags_ |= WorldClientFlag::RecordingCamera;
+    g_clientWorld.flags |= WorldClientFlag::RecordingCamera;
     bool failed;
     {
         std::string folder = kRecordFolder;
@@ -148,78 +148,78 @@ int CCamera::OpenFile(const char* name) {
     {
         std::string folder = kRecordFolder;
         std::string full = folder + name;
-        fileName_ = full;
+        fileName = full;
     }
-    flags_ |= CCamera::kRecording;
+    flags |= Camera::kRecording;
     file.Close();
     return 1;
 }
 
-// While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to fileName_. Returns 1
+// While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to fileName. Returns 1
 // when written, 0 when not recording or the file does not open.
-int CCamera::RecordFrame(std::uint32_t time) {
+int Camera::RecordFrame(std::uint32_t time) {
     CameraKey record;
     lib::File file;
-    if (!(flags_ & CCamera::kRecording)) return 0;
-    if (!file.Open(fileName_, lib::File::modeNoTruncate | lib::File::modeWrite)) return 0;   // (an existing file only)
+    if (!(flags & Camera::kRecording)) return 0;
+    if (!file.Open(fileName, lib::File::modeNoTruncate | lib::File::modeWrite)) return 0;    // (an existing file only)
     file.Seek(0, FILE_END);
     record.time = std::bit_cast<float>(time);
     record.reserved = 0;
-    record.position = localPosition_;
-    record.rotation = localRotation_;
+    record.position = localPosition;
+    record.rotation = localRotation;
     file.WriteValue(record);
     file.Close();
     return 1;
 }
 
 // Closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
-int CameraCloseFile(CCamera* self) {
-    self->flags_ &= ~CCamera::kRecording;
-    self->fileName_.clear();
+int CameraCloseFile(Camera* self) {
+    self->flags &= ~Camera::kRecording;
+    self->fileName.clear();
     return 1;
 }
 
 // Loads the camera state saved by Save. Saves before version 0x6F hold all eight
 // views, later ones views 4..7. A followed target is kept when one is saved (its offsets reset).
-void CCamera::Load(CStream* stream) {
-    stream->ReadValue(focus_);
-    stream->ReadValue(focusHeight_);
-    stream->ReadValue(viewRotation_);
-    stream->ReadValue(pitch_);
-    stream->ReadValue(distance_);
-    stream->Read(&panVelocity_, 0x1C);
-    stream->Read(&turnRate_, 12);
-    stream->Read(&tiltRate_, 12);
-    stream->Read(&zoomRate_, 12);
+void Camera::Load(ByteStream* stream) {
+    stream->ReadValue(focus);
+    stream->ReadValue(focusHeight);
+    stream->ReadValue(viewRotation);
+    stream->ReadValue(pitch);
+    stream->ReadValue(distance);
+    stream->Read(&panVelocity, 0x1C);
+    stream->Read(&turnRate, 12);
+    stream->Read(&tiltRate, 12);
+    stream->Read(&zoomRate, 12);
     std::uint32_t savedFlags = 0;
     stream->ReadValue(savedFlags);
     int target = 0;
     stream->ReadValue(target);
-    if (static_cast<int>(stream->version_) < kVersionCameraViews) stream->Read(views_, 0xC0);
-    else stream->Read(&views_[4], 0x60);
+    if (static_cast<int>(stream->version) < kVersionCameraViews) stream->Read(views, 0xC0);
+    else stream->Read(&views[4], 0x60);
     if (static_cast<std::uint8_t>(savedFlags) & kFollowing) {
-        if (target != -1) flags_ |= kFollowing;
-        else flags_ &= ~kFollowing;
+        if (target != -1) flags |= kFollowing;
+        else flags &= ~kFollowing;
     }
-    targetId_ = target;
+    targetId = target;
     if (target != -1) {
-        panTarget_ = camera::kZeroVector;
-        panVelocity_ = camera::kZeroVector;
+        panTarget = camera::kZeroVector;
+        panVelocity = camera::kZeroVector;
     }
 }
 
 // Saves the camera state (focus, rotation, pitch, distance, the rates, flags, target and views 4..7).
-void CCamera::Save(CStream* stream) {
-    stream->WriteValue(focus_);
-    stream->WriteValue(focusHeight_);
-    stream->WriteValue(viewRotation_);
-    stream->WriteValue(pitch_);
-    stream->WriteValue(distance_);
-    stream->Write(&panVelocity_, 0x1C);
-    stream->Write(&turnRate_, 12);
-    stream->Write(&tiltRate_, 12);
-    stream->Write(&zoomRate_, 12);
-    stream->WriteValue(flags_);
-    stream->WriteValue(targetId_);
-    stream->Write(&views_[4], 0x60);
+void Camera::Save(ByteStream* stream) {
+    stream->WriteValue(focus);
+    stream->WriteValue(focusHeight);
+    stream->WriteValue(viewRotation);
+    stream->WriteValue(pitch);
+    stream->WriteValue(distance);
+    stream->Write(&panVelocity, 0x1C);
+    stream->Write(&turnRate, 12);
+    stream->Write(&tiltRate, 12);
+    stream->Write(&zoomRate, 12);
+    stream->WriteValue(flags);
+    stream->WriteValue(targetId);
+    stream->Write(&views[4], 0x60);
 }

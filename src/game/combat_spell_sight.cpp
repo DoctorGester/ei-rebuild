@@ -15,7 +15,7 @@ constexpr float kMinSight = 0.1f;
 static_assert(std::bit_cast<std::uint32_t>(kMinSight) == 0x3DCCCCCDu);
 } // namespace
 
-bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3& from,
+bool SpellHasLineOfSight(WorldServer* world, CSpell* spell, CUnit* caster, const Vector3& from,
                                     CUnit* target, const Vector3& at) {
     const auto* record = spell->GetPrototype();
     if (!record->needsSight) return true;
@@ -24,7 +24,7 @@ bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, cons
         to = at;
         to.z = static_cast<float>(world->SurfaceHeightAt(to.x, to.y) + kAboveSurface);
     } else {
-        to = {target->localPosition_.x, target->localPosition_.y, target->localPosition_.z};
+        to = {target->localPosition.x, target->localPosition.y, target->localPosition.z};
         float ground = static_cast<float>(target->GroundHeight(to.x, to.y));
         to.z = static_cast<float>(target->ModeSpeed() + ground);
     }
@@ -34,5 +34,5 @@ bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, cons
         eye.z = static_cast<float>(caster->BaseSpeed() + ground);
     }
     // The unrounded result is compared (below the minimum, or NaN, fails).
-    return world->aiMap_.LineOfSight(eye, to) >= kMinSight;
+    return world->aiMap.LineOfSight(eye, to) >= kMinSight;
 }

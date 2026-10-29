@@ -21,19 +21,19 @@ constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit fie
 
 // --- The message box ----------------------------------------------------------------------------------
 
-CMessageBox::CMessageBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result,
-                         std::uint32_t flags, std::uint32_t format)
-    : CUiContainer(ui), result_(result), flags_(flags), format_(format) {
-    std::string text;
-    CTextManager* texts = g_clientWorld.texts_;
-    text = texts->GetString(titleKey);
-    title_ = text;
-    if (flags_ & kEditField) {
-        editText_ = const_cast<char*>(textKey);   // the caller's buffer: OK copies the answer into it
+MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t newResult,
+                         std::uint32_t newFlags, std::uint32_t newFormat)
+    : UiContainer(ui), result(newResult), flags(newFlags), format(newFormat) {
+    std::string line;
+    TextManager* texts = g_clientWorld.texts;
+    line = texts->GetString(titleKey);
+    title = line;
+    if (flags & kEditField) {
+        editText = const_cast<char*>(textKey);    // the caller's buffer: OK copies the answer into it
     } else {
-        editText_ = nullptr;
-        text = texts->GetString(textKey);
-        text_ = text;
+        editText = nullptr;
+        line = texts->GetString(textKey);
+        text = line;
     }
 }
 
@@ -41,8 +41,8 @@ CMessageBox::CMessageBox(CInterface3D* ui, std::string_view titleKey, const char
 
 // --- The portraits panel ------------------------------------------------------------------------------
 
-CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
-    rect_ = RECT{250, 440, 550, 600};
-    count_ = 0;
+HudPortraits::HudPortraits(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
+    rect = RECT{250, 440, 550, 600};
+    count = 0;
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
 }

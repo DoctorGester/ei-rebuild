@@ -43,7 +43,7 @@ struct LeverRecordTable {
 extern LeverRecordTable g_leverTable;   // lever_table.cpp
 
 // Levers ("CLeverObject", class id 0x5D); gates are levers too (zone1's "VGate"). scale.y is the shown
-// position (0..1), scale.z a second animation value that scales the spots' distance; flags_ 0x80000
+// position (0..1), scale.z a second animation value that scales the spots' distance; flags 0x80000
 // disables the lever (EnableLever 0). See docs/notes/units.md ("Levers").
 class Lever : public CMapObject {
 public:
@@ -54,15 +54,15 @@ public:
     // The map object's update; on the client, while the move runs, the shown position goes from `from`
     // to `to` and the client world refreshes the object. True while moving, else false.
     bool RunTick() override;
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     bool IsSynchronised() override { return true; }
     bool IsUsable() override { return NeedsKey(); }
     bool IsDirectUseBlocked() override { return directUseBlocked; }
     // ApplyKey.
-    bool ApplyScience(const LockKey* key, CEngineObject* user) override;
+    bool ApplyScience(const LockKey* key, EngineObject* user) override;
     bool AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
     bool KeepsMapFlag() override { return keepsMapFlag != 0; }
     // The spots from which a unit of radius `userRadius` can use the lever: each offset of the model's record
@@ -81,8 +81,8 @@ public:
 
     // The save record: the map object part, then state, count, cycling, the lock (three dwords) and
     // both flag bytes.
-    void LoadLever(CStream* stream);
-    void SaveLever(CStream* stream);
+    void LoadLever(ByteStream* stream);
+    void SaveLever(ByteStream* stream);
     // The map object's network state, then field 5: the lock, from, to, end tick, rate and the disabled
     // bit. A finished move (to != shown position) first restarts from the shown position with rate 0.
     void WriteLeverNetState();

@@ -23,13 +23,13 @@ constexpr DWORD kArmCode = 0xE1A70001;   // our own exception: the handler loads
 constexpr int kCallers = 8;
 
 unsigned g_id;
-bool g_flags;                           // EI_WATCH_CUNIT=<id>,flags: the unit's flags_ instead of its orientation
+bool g_flags;                           // EI_WATCH_CUNIT=<id>,flags: the unit's flags instead of its orientation
 std::uint32_t g_lastFlags = ~0u;        // the flags value last logged (only changes are logged)
 std::uintptr_t g_slot;                  // EI_WATCH_ADDR: one dword watched for reads and writes
 unsigned g_slotFrom = 0, g_slotTo = ~0u;  // the world updates it is logged in
 bool g_slotArmed;
 FILE* g_file;
-// A unit's watched words: its flags_ and its localRotation_ (four floats).
+// A unit's watched words: its flags and its localRotation (four floats).
 struct Watched {
     void* unit = nullptr;
     std::uint32_t* flags = nullptr;
@@ -163,14 +163,14 @@ Watched FindUnit() {
         found.unit = image::ClientUnit(g_id, &found.flags, &found.rotation);
         return found;
     }
-    exe::CWorldClient* c = exe::ClientWorld();
-    if (!c->objects_.head) return found;
-    for (auto* n = c->objects_.First(); n != c->objects_.End(); n = n->next) {
+    exe::WorldClient* c = exe::ClientWorld();
+    if (!c->objects.head) return found;
+    for (auto* n = c->objects.First(); n != c->objects.End(); n = n->next) {
         exe::CMapObject* object = n->data;
-        if (object && static_cast<unsigned>(object->id_) == g_id && digest::ClassOf(object) == digest::kClassUnit) {
+        if (object && static_cast<unsigned>(object->id) == g_id && digest::ClassOf(object) == digest::kClassUnit) {
             found.unit = object;
-            found.flags = &object->flags_;
-            found.rotation = reinterpret_cast<std::uint32_t*>(&object->localRotation_);
+            found.flags = &object->flags;
+            found.rotation = reinterpret_cast<std::uint32_t*>(&object->localRotation);
             return found;
         }
     }

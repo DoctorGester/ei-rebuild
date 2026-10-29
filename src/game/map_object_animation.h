@@ -19,7 +19,7 @@ struct FigureBone;
 // A part's track (only the fields used here): key frames of positions, rotations and morphed vertex sets, one
 // per time unit, and the values at the current time. Class id 0x300B, made by a bone's manager on first use
 // and kept counted as the bone's animator. A real virtual class.
-struct AnimationTrack : CEngineObject {
+struct AnimationTrack : EngineObject {
     // The values at `time`: between key frame floor(time) (rounded from the CRT's
     // modf) and the next by the fraction - positions and morph vertices linearly, rotations by
     // Quaternion::Slerp; past the last key frame its values, without key frames the defaults
@@ -29,10 +29,10 @@ struct AnimationTrack : CEngineObject {
     AnimationTrack();
     ~AnimationTrack() override;
 
-    // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
+    // The vtable: EngineObject's but for 0, 2, 3, 11 and 12.
     void Create() override;
     void Destroy() override;
-    const char* ClassName() override;   // "CAnimationTrack" (small_slots_500.cpp)
+    const char* ClassName() override;   // "CAnimationTrack" (map_object_animation.cpp)
     ClassId GetClassId() override;
 
     // The key frames from the model entry at *cursor (advanced past them): the rotations (a count, then that

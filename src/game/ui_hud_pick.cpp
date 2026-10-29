@@ -20,7 +20,7 @@ constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the pending
 // action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at a unit, else
 // UseAtPoint at the target's position, with `quick`.
-bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, bool quick) {
+bool UseAtOnce(BattleScreen* screen, Interface3D* ui, CUnit* unit, CSpell* spell, bool quick) {
     CUnit* target = unit;
     if (spell->IsOffensive()) {
         target = g_clientWorld.NearestVisibleUnit(unit);
@@ -32,37 +32,37 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
     } else if (!target) {
         return true;
     }
-    if (spell->targetFlags_ & SpellTargetFlag::AtUnits)
+    if (spell->targetFlags & SpellTargetFlag::AtUnits)
         screen->UseOnUnit(target, quick, 0);
     else
-        screen->UseAtPoint(target->localPosition_, unit, quick);
+        screen->UseAtPoint(target->localPosition, unit, quick);
     return true;
 }
 } // namespace
 
 // --- The pending action ------------------------------------------------------------------------
 
-void CBattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
-    pendingSlot_ = slot;
-    pendingAction_ = mode;
-    pendingItem_ = item;
-    quickItems_->ClearHighlights();
-    spellColumn_->ClearHighlights();
-    actionColumn_->ClearHighlights();
+void BattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
+    pendingSlot = slot;
+    pendingAction = mode;
+    pendingItem = item;
+    quickItems->ClearHighlights();
+    spellColumn->ClearHighlights();
+    actionColumn->ClearHighlights();
     switch (mode) {
     case kPendingSpellOnUnit:
     case kPendingSpellAtPoint:
-        spellColumn_->Highlight(slot, true);
+        spellColumn->Highlight(slot, true);
         break;
     case kPendingQuickOnUnit:
     case kPendingQuickAtPoint:
     case kPendingItemOnObject:
     case kPendingKeyOnObject:
-        quickItems_->Highlight(slot, true);
+        quickItems->Highlight(slot, true);
         break;
     case kPendingFollow:
     case kPendingOrder:
-        actionColumn_->Highlight(slot, true);
+        actionColumn->Highlight(slot, true);
         break;
     default:
         break;
@@ -71,83 +71,83 @@ void CBattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
 
 // --- A spell button ------------------------------------------------------------------
 
-void CHudSpellColumn::Click(int index) {
-    if (index < 0 || index >= count_) return;
-    int previous = selected_;
+void HudSpellColumn::Click(int index) {
+    if (index < 0 || index >= count) return;
+    int previous = selected;
     if (previous == index) {
-        interface_->PlaySound(kSoundClick);
-        owner_->SetPendingAction(kPendingNone, -1, -1);
+        ui->PlaySound(kSoundClick);
+        owner->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    if (previous >= 0 && previous < count_) Highlight(previous, false);
+    if (previous >= 0 && previous < count) Highlight(previous, false);
     Highlight(index, true);
-    interface_->PlaySound(kSoundClick);
-    CItem* item = unit_->GetSpell(index);
+    ui->PlaySound(kSoundClick);
+    Item* item = unit->GetSpell(index);
     if (!item) return;
-    CSpell* spell = item->spell_;
+    CSpell* spell = item->spell;
     if (!spell) return;
-    owner_->SetPendingAction((spell->targetFlags_ & SpellTargetFlag::AtUnits) ? kPendingSpellOnUnit : kPendingSpellAtPoint, index, -1);
+    owner->SetPendingAction((spell->targetFlags & SpellTargetFlag::AtUnits) ? kPendingSpellOnUnit : kPendingSpellAtPoint, index, -1);
 }
 
 // --- An action button ----------------------------------------------------------------
 
-void CHudActionColumn::Select(int index) {
-    if (index < 0 || index >= count_) return;
-    int previous = selected_;
+void HudActionColumn::Select(int index) {
+    if (index < 0 || index >= count) return;
+    int previous = selected;
     if (previous == index) {
-        interface_->PlaySound(kSoundClick);
-        owner_->SetPendingAction(kPendingNone, -1, -1);
+        ui->PlaySound(kSoundClick);
+        owner->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    if (previous >= 0 && previous < count_) Highlight(previous, false);
+    if (previous >= 0 && previous < count) Highlight(previous, false);
     Highlight(index, true);
-    interface_->PlaySound(kSoundClick);
-    int action = static_cast<int>(actions_[index]);
-    owner_->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
+    ui->PlaySound(kSoundClick);
+    int action = static_cast<int>(actions[index]);
+    owner->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
 }
 
 // --- A quick item slot ---------------------------------------------------------------
 
-void CHudQuickItems::Pick(int slot) {
-    if (!unit_) return;
-    CItem* item = unit_->GetQuickItem(slot);
+void HudQuickItems::Pick(int slot) {
+    if (!unit) return;
+    Item* item = unit->GetQuickItem(slot);
     if (!item) {
-        owner_->SetPendingAction(kPendingNone, -1, -1);
+        owner->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    interface_->PlaySound(kSoundClick);
-    if (selected_ == slot) {
-        owner_->SetPendingAction(kPendingNone, -1, -1);
+    ui->PlaySound(kSoundClick);
+    if (selected == slot) {
+        owner->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
     QuickItemCategory category = item->GetCategory();
     if (category != QuickItemCategory::Wand && category != QuickItemCategory::Potion) return;
     PendingAction mode = kPendingNone;
-    if (CSpell* spell = item->spell_)
-        mode = (spell->targetFlags_ & SpellTargetFlag::AtUnits) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
-    owner_->SetPendingAction(mode, slot, -1);
+    if (CSpell* spell = item->spell)
+        mode = (spell->targetFlags & SpellTargetFlag::AtUnits) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
+    owner->SetPendingAction(mode, slot, -1);
 }
 
 // --- A quick item or spell used at once ------------------------------------
 
-void CHudQuickItems::UseNow(int slot) {
-    if (!unit_) return;
-    CItem* item = unit_->GetQuickItem(slot);
+void HudQuickItems::UseNow(int slot) {
+    if (!unit) return;
+    Item* item = unit->GetQuickItem(slot);
     if (!item) return;
-    owner_->SetPendingAction(kPendingQuickOnUnit, slot, -1);
+    owner->SetPendingAction(kPendingQuickOnUnit, slot, -1);
     QuickItemCategory category = item->GetCategory();
-    if ((category == QuickItemCategory::Wand || category == QuickItemCategory::Potion) && item->spell_)
-        if (!UseAtOnce(owner_, interface_, unit_, item->spell_, true)) return;
-    interface_->PlaySound(kSoundClick);
-    owner_->SetPendingAction(kPendingNone, -1, -1);
+    if ((category == QuickItemCategory::Wand || category == QuickItemCategory::Potion) && item->spell)
+        if (!UseAtOnce(owner, ui, unit, item->spell, true)) return;
+    ui->PlaySound(kSoundClick);
+    owner->SetPendingAction(kPendingNone, -1, -1);
 }
 
-void CHudSpellColumn::ClickAlternate(int index) {
-    if (!unit_ || index < 0 || index >= count_) return;
-    owner_->SetPendingAction(kPendingSpellOnUnit, index, -1);
-    CItem* item = unit_->GetSpell(index);
-    if (item && item->spell_)
-        if (!UseAtOnce(owner_, interface_, unit_, item->spell_, false)) return;
-    interface_->PlaySound(kSoundClick);
-    owner_->SetPendingAction(kPendingNone, -1, -1);
+void HudSpellColumn::ClickAlternate(int index) {
+    if (!unit || index < 0 || index >= count) return;
+    owner->SetPendingAction(kPendingSpellOnUnit, index, -1);
+    Item* item = unit->GetSpell(index);
+    if (item && item->spell)
+        if (!UseAtOnce(owner, ui, unit, item->spell, false)) return;
+    ui->PlaySound(kSoundClick);
+    owner->SetPendingAction(kPendingNone, -1, -1);
 }

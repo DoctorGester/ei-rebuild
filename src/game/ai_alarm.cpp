@@ -19,15 +19,15 @@ constexpr console::Stream& kAlarmLog = console::g_unitAcksLogOut;
 
 } // namespace
 
-static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
-    CUnitServer* server = owner;
-    CWorldServer* world = owner->ServerWorld();
+static void StepAlarmOf(AIAlarm* state, UnitServer* owner) {
+    UnitServer* server = owner;
+    WorldServer* world = owner->ServerWorld();
     if (state->pending != AIRemark::None) {
         if (state->pending > state->level) {
             state->active = state->pending;
             state->timer = 20;
             CUnit* unit = server->unit;
-            kAlarmLog << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
+            kAlarmLog << "Unit " << static_cast<long>(unit->id) << " acknowledges with ";
             const char* what;
             switch (state->active) {
             case AIRemark::Idle: world->TellParties(server->unit, AckKind::Rest); what = "idleSound = AAn4XyU"; break;
@@ -55,13 +55,13 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
     int side = server->unit->side;
     for (auto& node : server->brain.memory.nearby) {
         CUnit* member = node;
-        if (!world->diplomacy_.IsAllied(side, member->side)) continue;
+        if (!world->diplomacy.IsAllied(side, member->side)) continue;
         AIRemark& alarm = member->ServerController()->voice.level;
         if (alarm <= active) alarm = active;
     }
 }
 
-void AIAlarm::Step(CUnitServer* owner) { StepAlarmOf(this, owner); }
+void AIAlarm::Step(UnitServer* owner) { StepAlarmOf(this, owner); }
 
 // ---- The state's small members ----------------------------------------------------------
 
@@ -74,14 +74,14 @@ void AIAlarm::Reset() {
 
 void AIAlarm::Raise(AIRemark newLevel) { pending = newLevel > pending ? newLevel : pending; }
 
-void AIAlarm::Load(CStream* stream) {
+void AIAlarm::Load(ByteStream* stream) {
     stream->ReadValue(level);
     stream->ReadValue(pending);
     stream->ReadValue(active);
     stream->ReadValue(timer);
 }
 
-void AIAlarm::Save(CStream* stream) {
+void AIAlarm::Save(ByteStream* stream) {
     stream->WriteValue(level);
     stream->WriteValue(pending);
     stream->WriteValue(active);

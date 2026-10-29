@@ -124,11 +124,11 @@ float* StripDirection(float* out, int index, int mode, const void* array) {
     return out;
 }
 
-// Draws an indexed triangle list of TL vertices (the new renderer, src/render, takes it); with distanceFog_ set
+// Draws an indexed triangle list of TL vertices (the new renderer, src/render, takes it); with distanceFog set
 // the pipeline fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
-int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices,
+int TextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices,
                                     int indexCount) {
-    if (distanceFog_) pipeline_->FogVertices(vertices, vertexCount);
+    if (distanceFog) pipeline->FogVertices(vertices, vertexCount);
     render::TlDraw(this, vertices, render::kFvfTextured, vertexCount, indices, indexCount, render::Primitive::TriangleList);
     return 1;
 }
@@ -137,11 +137,11 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const s
 // the ribbon's screen width; `mode` 0 projects, 1 projects and clips (a section between two points that are
 // both off screen is skipped), 2 only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
 // is 0), v from `vStart` over `vSize`. Returns the draw's result (1 when nothing is drawn).
-int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, float width, int mode, float uLength,
+int SceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, float width, int mode, float uLength,
                               float vStart, float vSize) {
     const LightningPoint* points = pointArray->data();
     const int pointCount = static_cast<int>(std::ssize(*pointArray));
-    const CTransformPipeline* pipeline = pipeline_;
+    const TransformPipeline* currentPipeline = pipeline;
 
     const auto n = static_cast<std::size_t>(pointCount);
     g_projected.resize(n);
@@ -165,9 +165,9 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
 
     int clipped = mode;
     if (mode == 0) {
-        CTransformPipeline::ProjectPoints(*pipeline->Top(1), points, g_projected.data(), pointCount);
+        TransformPipeline::ProjectPoints(*currentPipeline->Top(1), points, g_projected.data(), pointCount);
     } else {
-        clipped = pipeline->ProjectPointsClipped(*pipeline->Top(CTransformPipeline::kClipStack), points,
+        clipped = currentPipeline->ProjectPointsClipped(*currentPipeline->Top(TransformPipeline::kClipStack), points,
                                                  g_projected.data(), g_clipped.data(), pointCount);
         if (clipped == 2) return 1;
     }
@@ -198,11 +198,11 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
             AddQuad(count, true);
         }
     } else {
-        pipeline->ToScreen(g_strip.data(), std::ssize(g_strip));
+        currentPipeline->ToScreen(g_strip.data(), std::ssize(g_strip));
         bool started = false;
         for (int i = 1; i < std::ssize(g_strip); ++i) {
-            const std::uint8_t* flags = g_clipped.data();
-            if (flags[i - 1] && flags[i]) {
+            const std::uint8_t* clipFlags = g_clipped.data();
+            if (clipFlags[i - 1] && clipFlags[i]) {
                 g_currentU = g_currentU + step;
                 started = false;
                 continue;
@@ -227,7 +227,7 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
     const render::Blend savedDest = state.destBlend;
     state.sourceBlend = render::Blend::SourceAlpha;
     state.destBlend = render::Blend::One;
-    int result = device_->DrawTlTriangles(g_ribbon.data(), std::ssize(g_ribbon),
+    int result = device->DrawTlTriangles(g_ribbon.data(), std::ssize(g_ribbon),
                                  g_indices.data(), std::ssize(g_indices));
     state.sourceBlend = savedSource;
     state.destBlend = savedDest;

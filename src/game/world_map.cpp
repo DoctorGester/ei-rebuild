@@ -1,4 +1,4 @@
-// CWorldServer::LoadMap: loads a zone's map and objects (from NewZone, LoadSave,
+// WorldServer::LoadMap: loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "base_manager.h"
@@ -8,7 +8,7 @@
 #include "game_strings.h"
 #include "hash_tables_400.h"
 #include "map_object.h"
-#include "model.h"   // TweenArray (countdowns_)
+#include "model.h"   // TweenArray (countdowns)
 #include "object_diplomacy.h"
 #include "player_manager.h"
 #include "player_messages.h"
@@ -30,99 +30,99 @@ namespace {
 
 // The timed objects are ended (ClearState) and released, then the map is emptied (the walk stops at the
 // first empty entry).
-void EndTimedObjects(CWorldServer* world) {
-    auto& map = world->timedObjects_.map;
+void EndTimedObjects(WorldServer* world) {
+    auto& map = world->timedObjects.map;
     for (auto node = map.begin(); node != map.end() && node->second; ++node) {
-        CEngineObject* object = node->second;
+        EngineObject* object = node->second;
         object->ClearState();
         object->Release();
     }
-    world->timedObjects_.map.clear();   // nodes freed, buckets kept
-    world->timedObjects_.maxId = 0;
+    world->timedObjects.map.clear();    // nodes freed, buckets kept
+    world->timedObjects.maxId = 0;
 }
 
 } // namespace
 
-int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* graph, char fromSave) {
-    CAIMap* aiMap = &aiMap_;
-    if (text::CompareIgnoringCase(mapName_, map) != 0) {
-        aiMap->Reset();
-        aiMap->BeginRefresh();
+int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream* graph, char fromSave) {
+    AIMap* currentAiMap = &aiMap;
+    if (text::CompareIgnoringCase(mapName, map) != 0) {
+        currentAiMap->Reset();
+        currentAiMap->BeginRefresh();
         bool failed;
         {
             std::string path = MapPath(map);
-            failed = aiMap->Load(path.c_str()) == 0;
+            failed = currentAiMap->Load(path.c_str()) == 0;
         }
         if (failed) return 0;
-        mapName_ = map;
-        mobName_ = game::kEmptyText;
+        mapName = map;
+        mobName = game::kEmptyText;
     }
     graph->Seek(0);
-    if (graph->Size() != 0 && !aiMap_.regionMap.LoadBlocks(graph)) return 0;
+    if (graph->Size() != 0 && !aiMap.regionMap.LoadBlocks(graph)) return 0;
 
-    if (text::CompareIgnoringCase(mobName_, mob) == 0) {
+    if (text::CompareIgnoringCase(mobName, mob) == 0) {
         // The same zone again: start over.
         ScriptReset(MainScript());
         ScriptReset(SecondScript());
-        diplomacy_.Reset();
+        diplomacy.Reset();
         ClearMapObjects();
-        projectiles_.clear();
+        projectiles.clear();
         EndTimedObjects(this);
-        keepsState_ = 0;
-        loadedFresh_ = fromSave == 0;
-        aiMap_.footprintTick = 0;
+        keepsState = 0;
+        loadedFresh = fromSave == 0;
+        aiMap.footprintTick = 0;
     } else {
         ResetZone();
-        keepsState_ = 1;
-        loadedFresh_ = fromSave == 0;
+        keepsState = 1;
+        loadedFresh = fromSave == 0;
     }
 
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        player->dirty_ = kPlayerDirtyAll;
-    if (it.manager) --it.manager->refCount_;
-    zoneLoaded_ = 1;
-    weather_ = 0;
-    weatherStrength_ = 0.0f;
+        player->dirty = kPlayerDirtyAll;
+    if (it.manager) --it.manager->refCount;
+    zoneLoaded = 1;
+    weather = 0;
+    weatherStrength = 0.0f;
     it.manager = nullptr;
-    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty_ |= PlayerDirty::Weather;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty |= PlayerDirty::Weather;
     if (it.manager) {
-        --it.manager->refCount_;
+        --it.manager->refCount;
         it.manager = nullptr;
     }
 
-    if (keepsState_ || loadedFresh_) {
-        mobName_ = mob;
-        int loaded = LoadMapObjects(mob, loadedFresh_ == 0);
-        if (!loaded) return loaded;
-        if (!loadedFresh_) {
+    if (keepsState || loadedFresh) {
+        mobName = mob;
+        int loadedCount = LoadMapObjects(mob, loadedFresh == 0);
+        if (!loadedCount) return loadedCount;
+        if (!loadedFresh) {
             ScriptReset(MainScript());
-            diplomacy_.Reset();
+            diplomacy.Reset();
         }
-        if (keepsState_) SendFreshObjects();
+        if (keepsState) SendFreshObjects();
     }
     if (fromSave) {
         ClearMapObjects();
         EndTimedObjects(this);
     }
-    loadedFresh_ = 1;
-    keepsState_ = 1;
+    loadedFresh = 1;
+    keepsState = 1;
     return 1;
 }
 
 // ---- ResetZone --------------------------------------------------------------------------------
 
-void CWorldServer::ResetZone() {
-    sharedObjects_.clear();
-    mobFiles_.clear();
-    countdowns_.clear();
-    exits_.clear();
+void WorldServer::ResetZone() {
+    sharedObjects.clear();
+    mobFiles.clear();
+    countdowns.clear();
+    exits.clear();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
-    projectiles_.clear();
-    for (CEngineObject* object : counted_)
+    projectiles.clear();
+    for (EngineObject* object : counted)
         if (object) object->Release();
-    counted_.clear();
+    counted.clear();
 
     if (PlayerList()) {
         PlayerIterator it;
@@ -130,127 +130,127 @@ void CWorldServer::ResetZone() {
             player->Clear();
     }
 
-    for (auto& [id, object] : objects_.map) {
+    for (auto& [objectId, object] : objects.map) {
         if (!object) break;
         object->ClearState();
     }
-    ReleaseEach(objects_.map);
-    objects_.maxId = 0;
-    MapObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
+    ReleaseEach(objects.map);
+    objects.maxId = 0;
+    MapObjectIdMap* const maps[] = {&sentObjects, &mapObjects, &otherMapObjects, &updateMap, &namedObjects};
     for (MapObjectIdMap* map : maps) {
         map->map.clear();
         map->maxId = 0;
     }
-    projectiles_.clear();
+    projectiles.clear();
     EndTimedObjects(this);
-    mobName_ = game::kEmptyText;
-    zoneName_ = game::kEmptyText;
-    if (figureManager_) figureManager_->FreeSpares();
-    if (objectManager_) objectManager_->FreeSpares();
-    if (specificManager_) specificManager_->FreeSpares();
+    mobName = game::kEmptyText;
+    zoneName = game::kEmptyText;
+    if (figureManager) figureManager->FreeSpares();
+    if (objectManager) objectManager->FreeSpares();
+    if (specificManager) specificManager->FreeSpares();
 }
 
 // ---- TeardownZone -----------------------------------------------------------------------------
 
-void CWorldServer::TeardownZone() {
+void WorldServer::TeardownZone() {
     // Every player leaves (the list is walked from its start again after each one).
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
         player->Disconnect();
         PlayerList()->ReleasePlayer(player);
-        if (it.manager) --it.manager->refCount_;
+        if (it.manager) --it.manager->refCount;
         it.manager = nullptr;
     }
-    if (it.manager) --it.manager->refCount_;
+    if (it.manager) --it.manager->refCount;
     it.manager = nullptr;
-    zoneLoaded_ = 0;
+    zoneLoaded = 0;
 
-    sharedObjects_.clear();
-    mobFiles_.clear();
-    aiMap_.refreshUnits = false;   // refreshes off
+    sharedObjects.clear();
+    mobFiles.clear();
+    aiMap.refreshUnits = false;    // refreshes off
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
-    diplomacy_.Reset();
+    diplomacy.Reset();
     ClearMapObjects();
 
     // The missiles released (16-bit count, deleted at zero).
-    projectiles_.clear();
+    projectiles.clear();
 
     EndTimedObjects(this);
     CloseSession();
-    gameResult_ = 0;
-    sessionKind_ = 0;
+    gameResult = 0;
+    sessionKind = 0;
 }
 
 // ---- SendFreshObjects -------------------------------------------------------------------------
 
-void CWorldServer::SendFreshObjects() {
-    std::list<CEngineObject*> fresh;
-    CStream* header = &zoneHeader_;
+void WorldServer::SendFreshObjects() {
+    std::list<EngineObject*> fresh;
+    ByteStream* header = &zoneHeader;
     header->Clear();
 
-    // The map objects that are not part of the map itself: also kept in sentObjects_.
-    for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node) {
+    // The map objects that are not part of the map itself: also kept in sentObjects.
+    for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node) {
         CMapObject* object = node->second;
-        unsigned id = static_cast<unsigned>(object->id_);
-        if (!mapObjects_.map.contains(id)) continue;
+        unsigned objectId = static_cast<unsigned>(object->id);
+        if (!mapObjects.map.contains(objectId)) continue;
         if (object->IsSynchronised()) continue;
-        sentObjects_.Set(static_cast<unsigned>(object->id_), object);
+        sentObjects.Set(static_cast<unsigned>(object->id), object);
         auto entry = fresh.emplace(fresh.end());
         *entry = object;
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
-    CPlayer* temporary = players_->CreateSessionPlayer();
-    CPlayerServer* state = temporary->Server();
-    std::vector<CEngineObject*> objects;
+    CPlayer* temporary = players->CreateSessionPlayer();
+    PlayerServer* state = temporary->Server();
+    std::vector<EngineObject*> newObjects;
     for (auto node = fresh.begin(); node != fresh.end();) {
         auto next = std::next(node);
-        CEngineObject* object = *node;
-        unsigned id = static_cast<unsigned>(object->id_);
-        hash400::RemoveKey(mapObjects_.map, id);
-        id = static_cast<unsigned>(object->id_);
-        if (hash400::Find(otherMapObjects_.map, id)) {
-            id = static_cast<unsigned>(object->id_);
-            hash400::RemoveKey(otherMapObjects_.map, id);
+        EngineObject* object = *node;
+        unsigned objectId = static_cast<unsigned>(object->id);
+        hash400::RemoveKey(mapObjects.map, objectId);
+        objectId = static_cast<unsigned>(object->id);
+        if (hash400::Find(otherMapObjects.map, objectId)) {
+            objectId = static_cast<unsigned>(object->id);
+            hash400::RemoveKey(otherMapObjects.map, objectId);
         }
-        objects.push_back(object);
+        newObjects.push_back(object);
         node = next;
     }
-    state->SendObjectsAdded(&objects);
+    state->SendObjectsAdded(&newObjects);
     state->WriteTo(header);
     PlayerList()->ReleasePlayer(temporary);
-    lib::FreeStorage(objects);
+    lib::FreeStorage(newObjects);
     fresh.clear();
 }
 
-void CWorldServer::ResetState() {
+void WorldServer::ResetState() {
     ResetZone();
-    mapName_ = game::kEmptyText;
-    diplomacy_.Reset();
+    mapName = game::kEmptyText;
+    diplomacy.Reset();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
-    aiMap_.Reset();
-    zoneLoaded_ = 0;
-    nightLevel_ = 0.0f;
-    for (WorldAlarm& alarm : alarms_) {
+    aiMap.Reset();
+    zoneLoaded = 0;
+    nightLevel = 0.0f;
+    for (WorldAlarm& alarm : alarms) {
         alarm.active = 0;
         alarm.time = 0;
         alarm.y = 0.0f;
         alarm.x = 0.0f;
     }
-    sessionKind_ = 0;
-    startPosition_.x = 0.0f;
-    weatherFactor_ = std::bit_cast<std::uint32_t>(1.0f);
-    loaded_ = 0;
-    startPosition_.y = 0.0f;
-    lastRainBoltTick_ = 0;
-    startPosition_.z = 0.0f;
+    sessionKind = 0;
+    startPosition.x = 0.0f;
+    weatherFactor = std::bit_cast<std::uint32_t>(1.0f);
+    loaded = 0;
+    startPosition.y = 0.0f;
+    lastRainBoltTick = 0;
+    startPosition.z = 0.0f;
 }
 
-void CWorldServer::EnsureZone(std::string_view map, std::string_view mob) {
-    if (str::Compare(mapName_, map) == 0 && str::Compare(mobName_, mob) == 0) return;
+void WorldServer::EnsureZone(std::string_view map, std::string_view mob) {
+    if (str::Compare(mapName, map) == 0 && str::Compare(mobName, mob) == 0) return;
     NewZone(map, mob, std::nullopt);
     TeardownZone();
 }

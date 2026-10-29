@@ -56,7 +56,7 @@ constexpr int kActionCount = 60;
 void LoadKeyBindings() {
     for (int i = 0; i < kKeyCount; ++i) {
         UiKeyName& k = g_keyNames[i];
-        if (!gameapi::GetKeyNameTextA(k.scan_ << 16, k.name_, 0x1F)) k.name_[0] = 0;
+        if (!gameapi::GetKeyNameTextA(k.scan << 16, k.name, 0x1F)) k.name[0] = 0;
     }
     std::string line;
     std::vector<std::string> words;
@@ -69,14 +69,14 @@ void LoadKeyBindings() {
         bool known = false;
         int key = 0;
         for (; key < kKeyCount; ++key) {
-            if (text::CompareIgnoringCase(g_keyNames[key].file_, words[0]) == 0) {
+            if (text::CompareIgnoringCase(g_keyNames[key].file, words[0]) == 0) {
                 known = true;
                 break;
             }
         }
         for (int action = 0; action < kActionCount; ++action) {
-            if (text::CompareIgnoringCase(kActionDefinitions[action].name_, words[1]) != 0) continue;
-            if (known) g_keyActions[g_keyNames[key].scan_] = static_cast<signed char>(kActionDefinitions[action].id_);
+            if (text::CompareIgnoringCase(kActionDefinitions[action].name, words[1]) != 0) continue;
+            if (known) g_keyActions[g_keyNames[key].scan] = static_cast<signed char>(kActionDefinitions[action].id);
             break;
         }
     }
@@ -95,15 +95,15 @@ void SaveKeyBindings() {
         bool known = false;
         int key = 0;
         for (; key < kKeyCount; ++key) {
-            if (g_keyNames[key].scan_ == scan) {
+            if (g_keyNames[key].scan == scan) {
                 known = true;
                 break;
             }
         }
         for (int action = 0; action < kActionCount; ++action) {
-            if (kActionDefinitions[action].id_ != id) continue;
+            if (kActionDefinitions[action].id != id) continue;
             if (known) {
-                line = std::format("{} {}\n", g_keyNames[key].file_, kActionDefinitions[action].name_);
+                line = std::format("{} {}\n", g_keyNames[key].file, kActionDefinitions[action].name);
                 file.WriteString(line);
             }
             break;

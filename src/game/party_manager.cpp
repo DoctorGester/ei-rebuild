@@ -4,9 +4,11 @@
 #include "party_manager.h"
 
 #include "chunk_archive.h"
+#include "class_templates.h"
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "party.h"
+#include "party_records.h"
 #include "resource_local.h"   // FillStream
 
 
@@ -22,7 +24,7 @@ template <typename T>
 void ObjectRefFields(ChunkArchive* ar, int id, std::vector<HeldRef<T>>* objects) {
     if (!ar->EnterChunk(id)) return;
     int count;
-    if (ar->loading_) {
+    if (ar->loading) {
         objects->clear();
         count = ar->CountChunks(1);
         objects->resize(static_cast<std::size_t>(count));
@@ -32,7 +34,7 @@ void ObjectRefFields(ChunkArchive* ar, int id, std::vector<HeldRef<T>>* objects)
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
         HeldRef<T>& slot = (*objects)[static_cast<std::size_t>(i)];
-        if (ar->loading_) slot = static_cast<T*>(ar->ObjectRef(1));
+        if (ar->loading) slot = static_cast<T*>(ar->ObjectRef(1));
         else ar->SaveObjectRef(1, slot);
     }
     ar->LeaveChunk();
@@ -41,9 +43,9 @@ void ObjectRefFields(ChunkArchive* ar, int id, std::vector<HeldRef<T>>* objects)
 // `to` becomes a copy of `from` (with variables) through a memory stream, as CParty::Assign without its Clear
 // inlines it.
 void CopyParty(CParty* to, CParty* from) {
-    CMemoryStream local;
+    MemoryStream local;
     from->SaveParty(&local, 1);
-    local.CMemoryStream::Seek(0);
+    local.MemoryStream::Seek(0);
     to->LoadParty(&local, 1);
 }
 
@@ -71,7 +73,7 @@ void ChunkArchive::IntField(int id, int* value) { Field(id, value, 4); }
 
 void ChunkArchive::SerializeParties(int id, PartyMap* parties) {
     if (!EnterChunk(id)) return;
-    if (loading_) {
+    if (loading) {
         parties->clear();
         int count = CountChunks(1);
         for (int i = 1; i <= count; ++i) {
@@ -110,7 +112,7 @@ void ChunkArchive::SerializePartyEntries(int id, std::vector<PartyManagerEntry>*
         if (ar->EnterChunk(3)) {
             std::vector<int>& ids = entry.ids;
             int idCount;
-            if (ar->loading_) {
+            if (ar->loading) {
                 ids.clear();
                 idCount = ar->CountChunks(1);
                 ids.resize(static_cast<unsigned>(idCount), 0);
@@ -142,15 +144,15 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
 // ---- The archived objects (Serialize) ---------------------------------------------------
 
 void PartyRecord::Serialize(ChunkArchive* ar) {
-    CMemoryStream local;
+    MemoryStream local;
     ar->StringField(1, &name);
     CParty* p = Party();
-    if (!ar->loading_) {
+    if (!ar->loading) {
         p->SaveParty(&local, 1);
         ar->StreamField(2, &local);
     } else {
         ar->StreamField(2, &local);
-        local.version_ = static_cast<std::uint32_t>(ar->version_);
+        local.version = static_cast<std::uint32_t>(ar->version);
         p->LoadParty(&local, 1);
     }
 }
@@ -160,10 +162,10 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(2, &sellsItems);
     ar->Field(3, &sellsSpells);
     ar->Field(4, weights, sizeof(weights) + sizeof(weightsTail));
-    CMemoryStream local;
+    MemoryStream local;
     CParty* itemsParty = ItemsParty();
     CParty* spellsParty = SpellsParty();
-    if (!ar->loading_) {
+    if (!ar->loading) {
         itemsParty->SaveParty(&local, 0);
         spellsParty->SaveParty(&local, 0);
         allowed.SaveLists(&local);
@@ -171,7 +173,7 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
         ar->StreamField(5, &local);
     } else {
         ar->StreamField(5, &local);
-        local.version_ = static_cast<std::uint32_t>(ar->version_);
+        local.version = static_cast<std::uint32_t>(ar->version);
         itemsParty->LoadParty(&local, 0);
         spellsParty->LoadParty(&local, 0);
         allowed.LoadLists(&local);
@@ -182,13 +184,13 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
 
 void NamedPartyRecords::BeginRedeploy(CParty* party) {
     if (CParty* found = Find(currentName)) CopyParty(found, party);
-    NamedFloatTable variables(party->variables_);
-    std::string zone = party->zone_;
+    NamedFloatTable variables(party->variables);
+    std::string zone = party->zone;
     for (PartyRecord* record : records) {
         CParty* target = record->Party();
-        target->variables_ = variables;
-        target->zone_ = zone;
-        target->entrance_ = party->entrance_;
+        target->variables = variables;
+        target->zone = zone;
+        target->entrance = party->entrance;
     }
 }
 
@@ -200,21 +202,50 @@ void NamedPartyRecords::EndRedeploy(CParty* party) {
 
 // ---- Load and save --------------------------------------------------------------------------------
 
-void PartyManager::Load(CMemoryStream* from) {
-    CMemoryStream local;
+void PartyManager::Load(MemoryStream* from) {
+    MemoryStream local;
     from->ReadSized(&local);
-    local.CMemoryStream::Seek(0);
+    local.MemoryStream::Seek(0);
     ChunkArchive archive;
-    archive.Open(&local, 1, static_cast<int>(from->version_));
+    archive.Open(&local, 1, static_cast<int>(from->version));
     ArchiveManager(this, &archive);
     archive.Close(&local);
 }
 
-void PartyManager::Save(CMemoryStream* to) {
-    CMemoryStream local;
+void PartyManager::Save(MemoryStream* to) {
+    MemoryStream local;
     ChunkArchive archive;
-    archive.Open(&local, 0, static_cast<int>(to->version_));
+    archive.Open(&local, 0, static_cast<int>(to->version));
     ArchiveManager(this, &archive);
     archive.Close(&local);
     to->WriteSized(&local);
 }
+
+// --- The class registry's creators: id 1 a class template, id 2 a named party record (made when a saved
+// party manager is loaded) --------------------------------------------------------------------------------
+
+RefCounted* CreatePartyRecord() {
+    auto* record = new PartyRecord();
+    record->refs = 0;
+    record->flags6 = 0;
+    record->flags7 = 0;
+    return record;
+}
+
+RefCounted* CreateClassTemplate() {
+    auto* created = new ClassTemplate();
+    created->refs = 0;
+    created->flags6 = 0;
+    created->flags7 = 0;
+    return created;
+}
+
+// --- The party record ------------------------------------------------------------------------------
+
+PartyRecord::PartyRecord() { party.Create(); }
+
+PartyRecord::~PartyRecord() { party.Destroy(); }
+
+// --- The manager (the C runtime runs its destructor at exit) -------------------------------------------
+
+PartyManager g_partyManager;

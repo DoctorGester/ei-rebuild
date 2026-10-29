@@ -28,7 +28,7 @@ void LogText(const char* text) {
 
 // The address string of a connection, logged as "<before><address><after>\n", then freed.
 void LogConnection(const char* before, Connection* connection, const char* after) {
-    std::string peer = connection->address_.ToString();
+    std::string peer = connection->address.ToString();
     const char* text = peer.data();
     console::Stream& log = *g_netLog << before << text;
     if (after) log << after;
@@ -47,10 +47,10 @@ std::string NetAddress::ToString() const { return Format(0); }
 // An empty datagram is only logged; the current session is this one meanwhile.
 void SessionBase::Tick(double dt) {
     g_currentSession = this;
-    time_ = dt + time_;
+    time = dt + time;
     NetAddress from{};
     GrowingBuffer* buffer = &g_receiveBuffer;
-    while (socket_.Receive(&from, buffer)) {
+    while (socket.Receive(&from, buffer)) {
         BufferUpdateHigh(buffer);
         if (buffer->PositionOf(buffer->high) == 0) {
             if (g_netLog) {
@@ -81,12 +81,12 @@ void SessionBase::Tick(double dt) {
         default: break;   // 2 and anything else: ignored
         }
     }
-    for (auto node = clients_.begin(); node != clients_.end();) {
+    for (auto node = clients.begin(); node != clients.end();) {
         auto next = std::next(node);
         Connection* connection = node->Get();
         if (!connection->Tick(dt)) {
             if (g_netLog) {
-                std::string address = connection->address_.ToString();
+                std::string address = connection->address.ToString();
                 const char* text = address.data();
                 LogAddress(game::nettexts::Timeout(), text);
             }
@@ -95,7 +95,7 @@ void SessionBase::Tick(double dt) {
         }
         node = next;
     }
-    ++frame_;
+    ++frame;
     g_currentSession = nullptr;
 }
 
@@ -106,24 +106,24 @@ void SessionBase::Tick(double dt) {
 namespace net {
 
 std::list<SharedRef<Connection>>::iterator SessionBase::FindClient(const NetAddress* address) {
-    auto node = clients_.begin();
-    while (node != clients_.end() && std::memcmp(&node->Get()->address_, address, sizeof(NetAddress)) != 0) ++node;
+    auto node = clients.begin();
+    while (node != clients.end() && std::memcmp(&node->Get()->address, address, sizeof(NetAddress)) != 0) ++node;
     return node;
 }
 
 // Logs it, closes the connection and erases the node.
 void SessionBase::RemoveClient(std::list<SharedRef<Connection>>::iterator node) {
-    if (node == clients_.end()) return;
+    if (node == clients.end()) return;
     if (g_netLog) LogConnection(game::nettexts::RemoveClient(), node->Get(), nullptr);
     node->Get()->Close();
-    clients_.erase(node);
+    clients.erase(node);
 }
 
 // Packet kind 0: an update from a client. Unknown senders are logged (returns
 // false); a client whose update does not read is logged, reported and removed.
 bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     auto node = FindClient(from);
-    if (node == clients_.end()) {
+    if (node == clients.end()) {
         LogText(game::nettexts::UnknownHost());
         return false;
     }
@@ -142,7 +142,7 @@ void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
     lib::LoadBytes(id, cursor->p);
     cursor->p += 4;
     auto node = FindClient(from);
-    if (node != clients_.end() && node->Get()->id_ == id) {
+    if (node != clients.end() && node->Get()->id == id) {
         OnClientLeft(node->Get());
         RemoveClient(node);
     }
@@ -179,10 +179,10 @@ namespace net {
 int g_remoteRate = /*00783E34*/ 2500;
 int g_localRate = /*00783E38*/ 12500;
 
-bool SessionBase::Send(const NetAddress* address, GameBuffer* buffer) { return socket_.SendTo(address, buffer); }
+bool SessionBase::Send(const NetAddress* address, GameBuffer* buffer) { return socket.SendTo(address, buffer); }
 
 std::uint32_t SessionBase::RateFor(const NetAddress* address) {
-    bool local = socket_.IsLocal(address);
+    bool local = socket.IsLocal(address);
     return static_cast<std::uint32_t>(local ? g_localRate : g_remoteRate);
 }
 
@@ -204,7 +204,7 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     } else {
         buffer->WriteMore(&id, 4u);
     }
-    socket_.SendTo(address, buffer);
+    socket.SendTo(address, buffer);
 }
 
 } // namespace net
@@ -215,9 +215,9 @@ namespace net {
 // Every client is sent a leave packet; the members then close the socket, free the type registry and release the
 // connections.
 SessionBase::~SessionBase() {
-    for (auto& node : clients_) {
+    for (auto& node : clients) {
         Connection* connection = node.Get();
-        std::uint32_t id = connection->id_;
+        std::uint32_t id = connection->id;
         GrowingBuffer storage;
         auto* buffer = &storage;
         std::uint8_t kind = 1;
@@ -228,7 +228,7 @@ SessionBase::~SessionBase() {
         } else {
             buffer->WriteMore(&id, 4u);
         }
-        socket_.SendTo(&connection->address_, buffer);
+        socket.SendTo(&connection->address, buffer);
     }
 }
 
@@ -246,12 +246,12 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
         LogAddress(game::nettexts::AddClient(), text);
     }
     RemoveClient(FindClient(address));
-    clients_.emplace_back(NewCounted<Connection>(id));
-    Connection* added = clients_.back().Get();
-    added->address_ = *address;
+    clients.emplace_back(NewCounted<Connection>(id));
+    Connection* added = clients.back().Get();
+    added->address = *address;
     if (rate <= 500) rate = 500;
     else if (rate >= 50000) rate = 50000;
-    added->sendInterval_ = static_cast<float>(static_cast<double>(250.0f) / static_cast<double>(rate));
+    added->sendInterval = static_cast<float>(static_cast<double>(250.0f) / static_cast<double>(rate));
 }
 
 } // namespace net

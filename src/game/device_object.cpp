@@ -1,9 +1,9 @@
-// The device object (CTextureDevice, texture.h): its constructor and destructor. There is no DirectDraw or Direct3D
+// The device object (TextureDevice, texture.h): its constructor and destructor. There is no DirectDraw or Direct3D
 // object: the constructor starts the new renderer (src/render), which draws and presents. See docs/notes/renderer.md (section 9).
 #include "texture.h"
 
 #include "device_material.h"
-#include "model.h"               // CTransformPipeline
+#include "model.h"               // TransformPipeline
 #include "settings_file.h"
 
 #include "render/render.h"
@@ -51,8 +51,8 @@ unsigned long QualitySetting(const char* name, unsigned long fallback) {
 
 } // namespace
 
-CTextureDevice::CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel)
-    : fullScreen_(fullScreen), screen_{0, 0, width, height}, window_(window), bitsPerPixel_(bitsPerPixel) {
+TextureDevice::TextureDevice(HWND newWindow, bool newFullScreen, int width, int height, int newBitsPerPixel)
+    : fullScreen(newFullScreen), screen{0, 0, width, height}, window(newWindow), bitsPerPixel(newBitsPerPixel) {
     // (The original required MMX and loaded 2DintMMX.dll, its pixel converter, here; nothing needs it now.)
     // The new renderer presents; when it cannot start, the game ends there (render::detail::Fatal).
     render::StartPresenting();
@@ -70,7 +70,7 @@ CTextureDevice::CTextureDevice(HWND window, bool fullScreen, int width, int heig
     __control87_2(_PC_24, _MCW_PC, &x87, nullptr);
 }
 
-CTextureDevice::~CTextureDevice() {
-    if (pipeline_) pipeline_->Release();
-    if (material_) material_->Release();
+TextureDevice::~TextureDevice() {
+    if (pipeline) pipeline->Release();
+    if (material) material->Release();
 }

@@ -14,9 +14,9 @@
 #include <vector>
 #include <windows.h>
 
-class CInterface3D;
-class CUiContainer;
-class CUiSurface;
+class Interface3D;
+class UiContainer;
+class UiSurface;
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }
 namespace lib { class TextFile; }
 
@@ -25,7 +25,7 @@ namespace console {
 
 // The console's streambuf (eight static instances, one per message filter: 0 the console itself, then
 // ai 1, event 2, graphics 4, rpg 8, unitacks 0x10, net 0x20, all -1). Characters collect in the put
-// area (buffer_) and move into line_ on overflow; sync hands the line to the console window.
+// area (buffer) and move into line on overflow; sync hands the line to the console window.
 // MSVC 6's streambuf as the console's used it: the put area is set up by the first overflow while the
 // category is shown; a hidden category's overflow leaves it as it is (what it holds shows with the next
 // line once the category is shown again).
@@ -44,11 +44,11 @@ private:
     // Moves the put area (and `c`, unless EOF) into the line when this streambuf's category is shown.
     void Overflow(int c);
 
-    unsigned filter_;          // message category; 0 = always shown
-    std::string line_;
-    std::size_t putEnd_ = 0;   // the put area's size: 0 until the first overflow while shown
-    std::size_t putNext_ = 0;  // characters in the put area
-    char buffer_[0x400];
+    unsigned filter;           // message category; 0 = always shown
+    std::string line;
+    std::size_t putEnd = 0;    // the put area's size: 0 until the first overflow while shown
+    std::size_t putNext = 0;   // characters in the put area
+    char buffer[0x400];
 };
 
 // One of the console's eight output streams (MSVC 6's ostream as the game used it: no width, flags,
@@ -56,7 +56,7 @@ private:
 // sync.
 class Stream {
 public:
-    constexpr explicit Stream(ConsoleStreambuf& buffer) : buffer_(&buffer) {}
+    constexpr explicit Stream(ConsoleStreambuf& newBuffer) : buffer(&newBuffer) {}
 
     Stream& operator<<(const char* text);
     Stream& operator<<(const std::string& text);
@@ -69,7 +69,7 @@ public:
     Stream& Flush();
 
 private:
-    ConsoleStreambuf* buffer_;
+    ConsoleStreambuf* buffer;
 };
 
 // The streams, one per message filter (each on its own streambuf, console_streams.cpp): the console itself, then all, unitacks (the AI
@@ -100,8 +100,8 @@ inline bool g_cheatEnabled = /*007C7B64*/ {};
 // the surface is redrawn from them.
 class ConsoleWindow {
 public:
-    // Made by CInterface3D::Create: a 9-point "Courier New" font, the rectangle (0, 0)-(800, 150), a 256-line history.
-    explicit ConsoleWindow(CInterface3D* screen);
+    // Made by Interface3D::Create: a 9-point "Courier New" font, the rectangle (0, 0)-(800, 150), a 256-line history.
+    explicit ConsoleWindow(Interface3D* screen);
     // The surface and the font deleted; called by the interface's shutdown.
     ~ConsoleWindow();
     ConsoleWindow(const ConsoleWindow&) = delete;
@@ -113,7 +113,7 @@ public:
     void Show(bool shown);                     // creates or releases the surface
     void OnKeyDown(int key, int repeat, int flags);   // editing and scrolling keys
     void OnChar(int key, int repeat, int flags);      // typed characters, Enter, Escape
-    void OnKeyUp(int key, int repeat, int flags);     // VK_SHIFT / VK_CONTROL clear shift_ / ctrl_
+    void OnKeyUp(int key, int repeat, int flags);     // VK_SHIFT / VK_CONTROL clear shift / ctrl
     void DrawLines();                          // the lines above the input line
     void DrawInput();                          // the input line, selection and caret
     // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is one.
@@ -121,25 +121,25 @@ public:
     // Keeps the last `count` lines.
     void DropOldLines(int count);
 
-    CInterface3D* screen_;           // the 3D interface (its width_ and height_ in pixels)
-    CUiSurface* surface_;            // while shown
-    UiFont font_;                    // the console's text
-    std::vector<std::string> commands_;   // commands entered (input history), the newest first
-    int commandIndex_;               // the one shown by up/down (-1 or size: none)
-    std::string input_;              // the line being typed
-    int caret_;                      // caret position (bytes, at a character's start: U4)
-    int anchor_;                     // other end of the selection (== caret_: none)
-    int width_;                      // pixels, at least 76
-    int height_;                     // pixels, at least 69
-    RECT rect_;                      // the window in 800x600 coordinates (after clamping)
-    RECT screenRect_;                // the window in pixels
-    std::vector<std::string> lines_;
-    int history_;                    // lines kept
-    int visibleLines_;
-    int scroll_;                     // lines scrolled back (0 = at the end)
-    bool ctrl_;                      // Ctrl held (set by key down 0x11)
-    bool shift_;                     // Shift held (0x10): the selection grows
-    bool shown_;
+    Interface3D* screen;            // the 3D interface (its width and height in pixels)
+    UiSurface* surface;             // while shown
+    UiFont font;                     // the console's text
+    std::vector<std::string> commands;    // commands entered (input history), the newest first
+    int commandIndex;                // the one shown by up/down (-1 or size: none)
+    std::string input;               // the line being typed
+    int caret;                       // caret position (bytes, at a character's start: U4)
+    int anchor;                      // other end of the selection (== caret: none)
+    int width;                       // pixels, at least 76
+    int height;                      // pixels, at least 69
+    RECT rect;                       // the window in 800x600 coordinates (after clamping)
+    RECT screenRect;                 // the window in pixels
+    std::vector<std::string> lines;
+    int history;                     // lines kept
+    int visibleLines;
+    int scroll;                      // lines scrolled back (0 = at the end)
+    bool ctrl;                       // Ctrl held (set by key down 0x11)
+    bool shift;                      // Shift held (0x10): the selection grows
+    bool shown;
 };
 using CommandHandler = void(*)(std::vector<std::string>* args);
 
@@ -169,7 +169,7 @@ void RegisterAddonCommands();
 // What RegisterAddonCommands puts in the maps, in its order ("help" replaces the game's, which
 // addon's own "help" calls first).
 extern const CommandRegistration kAddonCommandRegistrations[6];
-void ApplyAddonGuiVisibility(CUiContainer* screen);
+void ApplyAddonGuiVisibility(UiContainer* screen);
 void RunAddonAutoExec();
 // A console line split at spaces (a token in double quotes keeps its spaces and quotes).
 std::vector<std::string> Tokenize(std::string_view text);

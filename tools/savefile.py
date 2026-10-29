@@ -403,7 +403,7 @@ def read_world(r):
     r.entity('aigraph', 'the AI graph state against the zone file (00596140 / 005B1380)')
     read_diff(r, 'diff')
 
-    # The map objects' identities (mapObjects_ in its hash order), then the managers' object lists.
+    # The map objects' identities (mapObjects in its hash order), then the managers' object lists.
     identities = []
     r.entity('mapObjects', 'map object identities (id, type, prototype) in mapObjects_ order')
     with r.scope('object'):

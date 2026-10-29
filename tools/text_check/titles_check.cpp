@@ -5,7 +5,7 @@
 //                          [--picture <out.bmp> <offset>...]
 //
 // Prints both layouts' line bottoms and the height each needs to fit the whole text (what the scroll's end follows:
-// CUiScrollingSurface::RenderText), at the system DPI the game sees (the process is made DPI aware as the game is; --dpi-unaware: 96).
+// UiScrollingSurface::RenderText), at the system DPI the game sees (the process is made DPI aware as the game is; --dpi-unaware: 96).
 // --picture writes the surface's page at each scroll offset (twips), RichEdit's on the left and ours on the right,
 // white where nothing is drawn (the colour key). The default size is the 1280x720 surface (1248 x 360).
 #define NOMINMAX
@@ -171,7 +171,7 @@ int Titles(int argc, char** argv) {
     const int widthTwips = MulDiv(width, kTwipsPerInch, GetDeviceCaps(page.dc, LOGPIXELSX));
     const int heightTwips = MulDiv(height, kTwipsPerInch, dpi);
 
-    // RichEdit, as CUiScrollingSurface made it.
+    // RichEdit, as UiScrollingSurface made it.
     HMODULE library = LoadLibraryA("Riched20.dll");
     HWND edit = CreateWindowExA(0, "RichEdit20A", nullptr, WS_POPUP | ES_MULTILINE, 0, 0, 0, 0, nullptr, nullptr, GetModuleHandleA(nullptr), nullptr);
     if (!library || !edit) {
@@ -206,7 +206,7 @@ int Titles(int argc, char** argv) {
     std::printf("dpi %d, page %d x %d px (%d x %d twips), %lld characters, %zu paragraphs\n", dpi, width, height, widthTwips, heightTwips,
                 static_cast<long long>(length), text.paragraphs.size());
     std::printf("RichEdit: %zu lines, the whole text fits in %d twips (%d px)\n", richBottoms.size(), richFit, TwipsToPixels(richFit, dpi));
-    // Ours fits when the page's bottom in pixels reaches the text's (CUiScrollingSurface::RenderText).
+    // Ours fits when the page's bottom in pixels reaches the text's (UiScrollingSurface::RenderText).
     int ourFit = MulDiv(ours.height, kTwipsPerInch, dpi);
     while (ourFit > 0 && TwipsToPixels(ourFit - 1, dpi) >= ours.height) --ourFit;
     while (TwipsToPixels(ourFit, dpi) < ours.height) ++ourFit;

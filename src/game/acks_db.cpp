@@ -118,12 +118,12 @@ const SpeechRecord* SayAck(CUnit* unit, AckKind kind) {
         unit->Controller()->StopSpeech();
         return nullptr;
     }
-    if (IsTextKey(unit->id_) && unit->moveMode < 2) kind = PartyKind(kind);
+    if (IsTextKey(unit->id) && unit->moveMode < 2) kind = PartyKind(kind);
     auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return nullptr;
 
     if (kind == AckKind::ArmourWorn || kind == AckKind::WeaponWorn) {
-        g_clientWorld.sounds_->Play3D("weapons\\timecrash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0);
+        g_clientWorld.sounds->Play3D("weapons\\timecrash.wav", 0, &unit->localPosition.x, 8.0f, 20.0f, 0);
         return nullptr;
     }
     AckDatabase& db = g_ackDatabase;
@@ -131,7 +131,7 @@ const SpeechRecord* SayAck(CUnit* unit, AckKind kind) {
     const EnvironmentSpeeches* environmentList = nullptr;
     if (kind <= AckKind::Bored) {
         if (kind == AckKind::ArmourBroken || kind == AckKind::WeaponBroken)
-            g_clientWorld.sounds_->Play3D("weapons\\crash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0);
+            g_clientWorld.sounds->Play3D("weapons\\crash.wav", 0, &unit->localPosition.x, 8.0f, 20.0f, 0);
         UnitAcks* record = db.units.Find(prototype->name);
         if (!record) return nullptr;
         if (kind == AckKind::Bored) {

@@ -34,13 +34,13 @@ public:
         std::size_t bucket = Bucket(key);
         for (std::list<Element>::iterator it = Begin(bucket); it != End(bucket); ++it)
             if (it->key == key) return *it;
-        list_.push_front(Element{key, 0.0f});
-        std::list<Element>::iterator node = list_.begin();
+        list.push_front(Element{key, 0.0f});
+        std::list<Element>::iterator node = list.begin();
         Insert(node);
         return *node;
     }
 
-    const std::list<Element>& Elements() const { return list_; }
+    const std::list<Element>& Elements() const { return list; }
 
 private:
     static constexpr std::size_t kMinBuckets = 8;
@@ -55,19 +55,19 @@ private:
         return value;
     }
     std::size_t Bucket(const std::string& key) const {
-        std::size_t n = Hash(key) & mask_;
-        if (maxIndex_ <= n) n -= (mask_ >> 1) + 1;
+        std::size_t n = Hash(key) & mask;
+        if (maxIndex <= n) n -= (mask >> 1) + 1;
         return n;
     }
     void Init(std::size_t buckets) {
-        vec_.assign(buckets * 2, list_.end());
-        mask_ = buckets - 1;
-        maxIndex_ = buckets;
+        vec.assign(buckets * 2, list.end());
+        mask = buckets - 1;
+        maxIndex = buckets;
     }
-    std::list<Element>::iterator Begin(std::size_t bucket) { return vec_[2 * bucket]; }
+    std::list<Element>::iterator Begin(std::size_t bucket) { return vec[2 * bucket]; }
     std::list<Element>::iterator End(std::size_t bucket) {
-        if (vec_[2 * bucket] == list_.end()) return list_.end();
-        return std::next(vec_[2 * bucket + 1]);
+        if (vec[2 * bucket] == list.end()) return list.end();
+        return std::next(vec[2 * bucket + 1]);
     }
 
     // _Insert: `node` is already in the list. The bucket is scanned from its end; a new key ends
@@ -78,45 +78,45 @@ private:
         while (where != Begin(bucket)) {
             --where;
             if (where->key != node->key) continue;   // still too high in the bucket
-            list_.erase(node);                       // an equal key: the new node is discarded
+            list.erase(node);                        // an equal key: the new node is discarded
             return false;
         }
-        if (where != std::next(node)) list_.splice(where, list_, node);
+        if (where != std::next(node)) list.splice(where, list, node);
         InsertBucket(node, where, bucket);
         CheckSize();
         return true;
     }
     void InsertBucket(std::list<Element>::iterator node, std::list<Element>::iterator where, std::size_t bucket) {
-        if (vec_[2 * bucket] == list_.end()) {
-            vec_[2 * bucket] = node;
-            vec_[2 * bucket + 1] = node;
-        } else if (vec_[2 * bucket] == where) {
-            vec_[2 * bucket] = node;
-        } else if (++vec_[2 * bucket + 1] != node) {
-            --vec_[2 * bucket + 1];
+        if (vec[2 * bucket] == list.end()) {
+            vec[2 * bucket] = node;
+            vec[2 * bucket + 1] = node;
+        } else if (vec[2 * bucket] == where) {
+            vec[2 * bucket] = node;
+        } else if (++vec[2 * bucket + 1] != node) {
+            --vec[2 * bucket + 1];
         }
     }
     // A load factor above 1 (computed as float) multiplies the buckets by 8 and reinserts every
     // element in list order.
     void CheckSize() {
-        std::size_t buckets = vec_.size() / 2;
-        if (static_cast<float>(list_.size()) / static_cast<float>(buckets) <= 1.0f) return;
+        std::size_t buckets = vec.size() / 2;
+        if (static_cast<float>(list.size()) / static_cast<float>(buckets) <= 1.0f) return;
         for (int i = 0; i < 3 && buckets < 0x1FFFFFFF; ++i) buckets *= 2;
         Init(buckets);
-        if (list_.empty()) return;
-        std::list<Element>::iterator last = std::prev(list_.end());
+        if (list.empty()) return;
+        std::list<Element>::iterator last = std::prev(list.end());
         for (;;) {
-            std::list<Element>::iterator first = list_.begin();
+            std::list<Element>::iterator first = list.begin();
             bool done = first == last;
             Insert(first);
             if (done) break;
         }
     }
 
-    std::list<Element> list_;
-    std::vector<std::list<Element>::iterator> vec_;
-    std::size_t mask_ = 0;
-    std::size_t maxIndex_ = 0;
+    std::list<Element> list;
+    std::vector<std::list<Element>::iterator> vec;
+    std::size_t mask = 0;
+    std::size_t maxIndex = 0;
 };
 
 } // namespace

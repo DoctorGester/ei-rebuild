@@ -54,7 +54,7 @@ Sector::Sector() {
     Clear();
 }
 
-void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
+void SectorMap::Init(int cellsX, int cellsY, AIMap* map) {
     width = cellsX / 32;
     height = cellsY / 32;
     added = 0;
@@ -62,18 +62,18 @@ void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
     aiMap = map;
 }
 
-CSectorMap::CSectorMap() {
+SectorMap::SectorMap() {
     aiMap = nullptr;
     height = 0;
     added = 0;
     width = 0;
 }
 
-CSectorMap::~CSectorMap() = default;
+SectorMap::~SectorMap() = default;
 
-bool CSectorMap::Add(CMapObject* object) {
-    int cellX = x87::fistp(2.0f * object->localPosition_.x - 0.5f);
-    int cellY = x87::fistp(2.0f * object->localPosition_.y - 0.5f);
+bool SectorMap::Add(CMapObject* object) {
+    int cellX = x87::fistp(2.0f * object->localPosition.x - 0.5f);
+    int cellY = x87::fistp(2.0f * object->localPosition.y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
@@ -84,7 +84,7 @@ bool CSectorMap::Add(CMapObject* object) {
     bool fits = aiMap->MarkFootprint(object, false);
     if (fits) {
         ++added;
-        object->flags_ |= kInSectorMap;
+        object->flags |= kInSectorMap;
         object->sectorCellY = cellY;
         object->sectorCellX = cellX;
         return true;
@@ -100,12 +100,12 @@ bool CSectorMap::Add(CMapObject* object) {
     return false;
 }
 
-std::list<CUnit*>* CSectorMap::UnitsAt(int sx, int sy) {
+std::list<CUnit*>* SectorMap::UnitsAt(int sx, int sy) {
     if (sx < 0 || sy < 0 || sx >= width || sy >= height) return nullptr;
     return &sectors[width * sy + sx].units;
 }
 
-bool CSectorMap::Remove(CMapObject* object) {
+bool SectorMap::Remove(CMapObject* object) {
     int sx = object->sectorCellX / 32, sy = object->sectorCellY / 32;
     if (sx >= width || sy >= height) return false;
 
@@ -129,7 +129,7 @@ bool CSectorMap::Remove(CMapObject* object) {
     return cleared;
 }
 
-std::list<CUnit*> CSectorMap::FindUnitsInRadius(const Vector3& position, float radius) {
+std::list<CUnit*> SectorMap::FindUnitsInRadius(const Vector3& position, float radius) {
     std::list<CUnit*> result;
     const SectorSpiral& spiral = SectorSpiralTables();
     int length = spiral.lengths[spiral.radii.Find(radius * 0.03125f)];
@@ -142,7 +142,7 @@ std::list<CUnit*> CSectorMap::FindUnitsInRadius(const Vector3& position, float r
     float px = position.x, py = position.y;
 
     // The units live in the AI map's own sector grid.
-    CSectorMap* grid = &aiMap->sectorMap;
+    SectorMap* grid = &aiMap->sectorMap;
     for (int i = 0; i < length; ++i, offset += 2) {
         int gx = offset[0] + sx, gy = offset[1] + sy;
         if (gx < 0 || gy < 0 || gx >= grid->width || gy >= grid->height) continue;
@@ -150,7 +150,7 @@ std::list<CUnit*> CSectorMap::FindUnitsInRadius(const Vector3& position, float r
         for (auto node = sector.units.begin(); node != sector.units.end();) {
             CUnit* unit = *node;
             ++node;
-            float dx = unit->localPosition_.x - px, dy = unit->localPosition_.y - py;
+            float dx = unit->localPosition.x - px, dy = unit->localPosition.y - py;
             const auto distance = LengthSquared2DUnrounded(dy, dx);
             EI_NAN_AUDIT(distance);
             if (distance < radiusSquared) result.push_front(unit);
@@ -159,12 +159,12 @@ std::list<CUnit*> CSectorMap::FindUnitsInRadius(const Vector3& position, float r
     return result;
 }
 
-bool CSectorMap::Move(CMapObject* object, const Vector3& position) {
+bool SectorMap::Move(CMapObject* object, const Vector3& position) {
     // Rebirth's FixMoveObject runs first: no move to a negative (or NaN) x or y.
     // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position.x >= 0.0f) || !(position.y >= 0.0f)))
         return false;
-    Vector3& current = object->localPosition_;
+    Vector3& current = object->localPosition;
     int cellX = x87::fistp(2.0f * position.x - 0.5f);
     int cellY = x87::fistp(2.0f * position.y - 0.5f);
     Vector3 saved;
@@ -199,7 +199,7 @@ bool CSectorMap::Move(CMapObject* object, const Vector3& position) {
             to.objects.push_back(object);
         }
     }
-    object->flags_ |= kInSectorMap;
+    object->flags |= kInSectorMap;
     object->sectorCellY = cellY;
     object->sectorCellX = cellX;
     return true;

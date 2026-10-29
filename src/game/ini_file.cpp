@@ -1,4 +1,4 @@
-// CIniFile: .ini settings through GetPrivateProfile* / WritePrivateProfileString.
+// IniFile: .ini settings through GetPrivateProfile* / WritePrivateProfileString.
 #include "ini_file.h"
 #include "game_strings.h"
 
@@ -16,23 +16,23 @@ namespace {
 
 constexpr char kListSeparator = ',';
 
-std::string ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
-    return const_cast<CIniFile*>(ini)->GetString(section, key, defaultValue);
+std::string ReadString(const IniFile* ini, const char* section, const char* key, const char* defaultValue) {
+    return const_cast<IniFile*>(ini)->GetString(section, key, defaultValue);
 }
 
 } // namespace
 
-void CIniFile::SetPath(std::string_view path) {
-    path_ = path;
+void IniFile::SetPath(std::string_view newPath) {
+    path = newPath;
 }
 
 // --- Readers ---------------------------------------------------------------------------------------
 
-std::vector<std::string> CIniFile::GetKeyNames(const char* section) {
+std::vector<std::string> IniFile::GetKeyNames(const char* section) {
     std::vector<std::string> names;
     std::string item;
     char buffer[0x5000];
-    gameapi::GetPrivateProfileSectionA(section, buffer, sizeof(buffer), path_.c_str());
+    gameapi::GetPrivateProfileSectionA(section, buffer, sizeof(buffer), path.c_str());
     if (buffer[0] == '\0') return names;
     const char* start = buffer;
     for (int i = 0; i < static_cast<int>(sizeof(buffer)); ++i) {
@@ -52,14 +52,14 @@ std::vector<std::string> CIniFile::GetKeyNames(const char* section) {
     return names;
 }
 
-std::string CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
+std::string IniFile::GetString(const char* section, const char* key, const char* defaultValue) {
     char buffer[0x400];
     std::memset(buffer, 0, 4);
-    gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path_.c_str());
+    gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path.c_str());
     return std::string(buffer);
 }
 
-std::vector<std::string> CIniFile::GetList(const char* section, const char* key, char separator) {
+std::vector<std::string> IniFile::GetList(const char* section, const char* key, char separator) {
     std::string value = ReadString(this, section, key, game::kEmptyText);
     std::vector<std::string> items;
     std::string item;
@@ -76,7 +76,7 @@ std::vector<std::string> CIniFile::GetList(const char* section, const char* key,
     return items;
 }
 
-std::vector<std::uint32_t> CIniFile::GetIntArray(const char* section, const char* key) {
+std::vector<std::uint32_t> IniFile::GetIntArray(const char* section, const char* key) {
     std::vector<std::uint32_t> values;
     for (const std::string& code : GetList(section, key, kListSeparator)) values.push_back(static_cast<std::uint32_t>(str::ToInt(code)));
     return values;

@@ -29,7 +29,7 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad)
     Vector3 origin = Corner(quad, 3);
     Vector3 u = Corner(quad, 2);
     Vector3 v = Corner(quad, 0);
-    Vector3 slope = builder->slope_;
+    Vector3 slope = builder->slope;
     float lowest = origin.z;
     float previous = origin.z;
     int x0 = INT_MAX, y0 = INT_MAX, x1 = 0, y1 = 0;

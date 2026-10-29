@@ -36,32 +36,32 @@ void WriteInteger(ConsoleStreambuf* buffer, T value) {
 } // namespace
 
 Stream& Stream::operator<<(const char* text) {
-    buffer_->Write(text);
+    buffer->Write(text);
     return *this;
 }
 Stream& Stream::operator<<(const std::string& text) { return *this << text.c_str(); }
 Stream& Stream::operator<<(char c) {
-    buffer_->Put(c);
+    buffer->Put(c);
     return *this;
 }
 Stream& Stream::operator<<(int value) {
-    WriteInteger(buffer_, value);
+    WriteInteger(buffer, value);
     return *this;
 }
 Stream& Stream::operator<<(long value) {
-    WriteInteger(buffer_, value);
+    WriteInteger(buffer, value);
     return *this;
 }
 Stream& Stream::operator<<(unsigned value) {
-    WriteInteger(buffer_, value);
+    WriteInteger(buffer, value);
     return *this;
 }
 Stream& Stream::operator<<(double value) {
-    buffer_->Write(str::Format("%.6g", value));
+    buffer->Write(str::Format("%.6g", value));
     return *this;
 }
 Stream& Stream::Flush() {
-    buffer_->Sync();
+    buffer->Sync();
     return *this;
 }
 
@@ -77,10 +77,10 @@ void PrintLine(const char* text) { EndLine(g_consoleOut << text); }
 
 void (*g_consoleLineObserver)(const char* line) = nullptr;
 
-ConsoleStreambuf::ConsoleStreambuf(unsigned filter) : filter_(filter) {}
+ConsoleStreambuf::ConsoleStreambuf(unsigned newFilter) : filter(newFilter) {}
 
 void ConsoleStreambuf::Put(char c) {
-    if (putNext_ < putEnd_) buffer_[putNext_++] = c;
+    if (putNext < putEnd) buffer[putNext++] = c;
     else Overflow(static_cast<unsigned char>(c));
 }
 
@@ -89,19 +89,19 @@ void ConsoleStreambuf::Write(std::string_view text) {
 }
 
 void ConsoleStreambuf::Overflow(int c) {
-    if (filter_ == 0 || (g_filterMask & filter_) != 0) {
-        line_.append(buffer_, putNext_);
-        if (c != -1) line_ += static_cast<char>(c);
-        putNext_ = 0;
-        putEnd_ = sizeof(buffer_);
+    if (filter == 0 || (g_filterMask & filter) != 0) {
+        line.append(buffer, putNext);
+        if (c != -1) line += static_cast<char>(c);
+        putNext = 0;
+        putEnd = sizeof(buffer);
     }
 }
 
 void ConsoleStreambuf::Sync() {
     Overflow(-1);
-    if (g_consoleLineObserver) g_consoleLineObserver(line_.c_str());
-    g_interface.ConsoleAddText(line_);
-    line_ = game::kEmptyText;
+    if (g_consoleLineObserver) g_consoleLineObserver(line.c_str());
+    g_interface.ConsoleAddText(line);
+    line = game::kEmptyText;
 }
 
 // ---- Executor -----------------------------------------------------------------------------------

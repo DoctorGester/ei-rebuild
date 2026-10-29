@@ -2,10 +2,10 @@
 
 #include "ei/x87.h"
 
-Vector3* Vector3::Construct(float x_, float y_, float z_) {
-    x = x_;
-    y = y_;
-    z = z_;
+Vector3* Vector3::Construct(float newX, float newY, float newZ) {
+    x = newX;
+    y = newY;
+    z = newZ;
     return this;
 }
 

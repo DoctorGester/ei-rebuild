@@ -46,28 +46,28 @@ CMapObjectManager::~CMapObjectManager() {}
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
 const char* CMapObjectManager::ClassName() { return kClassName; }
 ClassId CMapObjectManager::GetClassId() { return ClassId::MapObjectManager; }
-CEngineObject* CMapObjectManager::CreateObject(int type, int id) { return CreateMapObject(type, id); }
+EngineObject* CMapObjectManager::CreateObject(int newType, int newId) { return CreateMapObject(newType, newId); }
 
 void CMapObjectManager::Create() {
     std::string folder = g_textFolder;
-    CBaseManager::Create();
+    BaseManager::Create();
     AddArchive((folder + "database.res"));
 }
 
-CMapObject* CMapObjectManager::FindMapObject(unsigned id) const { return FindObjectAs<CMapObject>(id); }
+CMapObject* CMapObjectManager::FindMapObject(unsigned objectId) const { return FindObjectAs<CMapObject>(objectId); }
 
-CEngineObject* CMapObjectManager::CreateMapObject(int type, int id) {
-    CResourceManager* manager = this;
-    const auto kind = static_cast<MapObjectType>(type);
+EngineObject* CMapObjectManager::CreateMapObject(int newType, int newId) {
+    ResourceManager* manager = this;
+    const auto kind = static_cast<MapObjectType>(newType);
     // The base's CreateObject, not the virtual (that one is this function's caller).
-    auto* object = static_cast<CMapObject*>(CBaseManager::CreateObject(type, id));
+    auto* object = static_cast<CMapObject*>(BaseManager::CreateObject(newType, newId));
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
-    object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(FigureObjectType::AnimationState, kNoObjectId));
-    CBaseManager* halves = manager->ContextAsWorld()->SpecificManager();
-    object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::Object3D, kNoObjectId));
-    object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::MapObject, kNoObjectId));
-    if (auto half = ThirdHalfOf(kind)) object->AttachObject(halves->CreateObjectAs<CEngineObject>(*half, kNoObjectId));
+    object->SetAnimationState(figures->CreateObjectAs<FigureAnimationState>(FigureObjectType::AnimationState, kNoObjectId));
+    BaseManager* halves = manager->ContextAsWorld()->SpecificManager();
+    object->AttachObject(halves->CreateObjectAs<EngineObject>(SideObjectType::Object3D, kNoObjectId));
+    object->AttachObject(halves->CreateObjectAs<EngineObject>(SideObjectType::MapObject, kNoObjectId));
+    if (auto half = ThirdHalfOf(kind)) object->AttachObject(halves->CreateObjectAs<EngineObject>(*half, kNoObjectId));
     return object;
 }
 
@@ -90,7 +90,7 @@ FigureAnimation* CMapObjectManager::FindAnimation(const std::string* figure, std
 void CMapObjectManager::GiveDefaults(CMapObject* object) {
     // The vitals and statistics start zeroed, so the fields Reset and SetDefaults leave (the shares and factors,
     // fixedMaxHitPoints, builtFlags, the layers' spare values, ...) are 0, not what the stack held: a determinism
-    // fix. The original's were CWorldServer::CreateObject's earlier callees' leftovers, heap addresses among them,
+    // fix. The original's were WorldServer::CreateObject's earlier callees' leftovers, heap addresses among them,
     // and gave the main menu's unmoco2 (the one unit added without a prototype) hit points that followed the
     // heap; the harness zeroes them in the original too (tests/verify/harness_leftovers.h).
     UnitVitals vitals{};
@@ -105,5 +105,5 @@ void CMapObjectManager::GiveDefaults(CMapObject* object) {
         object->SetStats(&stats);
     }
     object->ScaleEffectChanged(false);
-    object->prototypeId_ = 0;
+    object->prototypeId = 0;
 }

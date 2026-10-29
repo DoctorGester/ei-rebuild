@@ -1,5 +1,5 @@
-// The worlds' player sources (player_source.h): the base's destructor, CWorld::worldHandle_ (CWorldHandle) and
-// netSession_ (netlink::DriverSession): their clones, shutdowns and destructors, and CWorld::OpenSession. The
+// The worlds' player sources (player_source.h): the base's destructor, CWorld::worldHandle (WorldHandle) and
+// netSession (netlink::DriverSession): their clones, shutdowns and destructors, and CWorld::OpenSession. The
 // session's lists: drivers owning (SharedRef: DestroyOwned), holders plain (HeldRef: Release).
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -10,25 +10,25 @@
 
 using netlink::DriverSession;
 
-CPlayerSource::~CPlayerSource() {}
+PlayerSource::~PlayerSource() {}
 
 // A new helper with the same pending link (counted).
-CWorldHandle* CWorldHandle::Clone() {
-    auto* copy = new CWorldHandle();
-    copy->pendingLink_.Assign(pendingLink_);
+WorldHandle* WorldHandle::Clone() {
+    auto* copy = new WorldHandle();
+    copy->pendingLink.Assign(pendingLink);
     return copy;
 }
 
 // The helper is destroyed and built again in place (the count and flags kept): the link released, none pending.
-void CWorldHandle::OnShutdown() {
-    pendingLink_.Reset();
+void WorldHandle::OnShutdown() {
+    pendingLink.Reset();
 }
 
-CWorldHandle::~CWorldHandle() { pendingLink_.Reset(); }
+WorldHandle::~WorldHandle() { pendingLink.Reset(); }
 
-CClientHandle* CClientHandle::Clone() { return new CClientHandle(); }
+ClientHandle* ClientHandle::Clone() { return new ClientHandle(); }
 
-void CClientHandle::TakeNew(std::list<HeldRef<netlink::NetLink>>* links) { links->clear(); }
+void ClientHandle::TakeNew(std::list<HeldRef<netlink::NetLink>>* links) { links->clear(); }
 
 // ---- netlink::DriverSession -----------------------------------------------------------------------
 
@@ -39,16 +39,16 @@ DriverSession::DriverSession() {}
 // A copy: every driver shared (a copy-on-share driver is cloned), every holder counted.
 DriverSession* DriverSession::Clone() {
     auto* copy = new DriverSession();
-    copy->drivers_.insert(copy->drivers_.begin(), drivers_.begin(), drivers_.end());
-    copy->holders_.insert(copy->holders_.begin(), holders_.begin(), holders_.end());
+    copy->drivers.insert(copy->drivers.begin(), drivers.begin(), drivers.end());
+    copy->holders.insert(copy->holders.begin(), holders.begin(), holders.end());
     return copy;
 }
 
 // The session is destroyed and built again in place (the count and flags kept): both lists emptied, the
 // holders first.
 void DriverSession::OnShutdown() {
-    holders_.clear();
-    drivers_.clear();
+    holders.clear();
+    drivers.clear();
 }
 
 // The holders are released before the drivers (members: the reverse order).
@@ -56,6 +56,6 @@ DriverSession::~DriverSession() {}
 
 } // namespace netlink
 
-void CWorld::OpenSession() { ShareAssignOwned(netSession_, new DriverSession()); }
+void CWorld::OpenSession() { ShareAssignOwned(netSession, new DriverSession()); }
 
-void CWorld::CloseSession() { DestroyOwned(netSession_); }
+void CWorld::CloseSession() { DestroyOwned(netSession); }

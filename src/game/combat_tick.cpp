@@ -1,4 +1,4 @@
-// Combat, fifth part: the per-tick order machine of CUnitServer: taking over the queued order,
+// Combat, fifth part: the per-tick order machine of UnitServer: taking over the queued order,
 // carrying out the current one (closing in on the target, planning the moment of the action) and
 // what is left when an order ends. See combat.h, combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 #include "ai_map.h"
@@ -76,12 +76,12 @@ void ClearAction(UnitAction* order) {
 
 // The melee reach test of CanReachTarget as an inlining caller has it: false when the target (a living unit
 // standing on its own) is too high to reach, else whether the action can be planned.
-bool CanStillDo(CUnitServer* self, UnitAction* order) {
+bool CanStillDo(UnitServer* self, UnitAction* order) {
     if (order->kind == UnitOrderKind::Attack || order->kind == UnitOrderKind::Use) {
         CUnit* other = UnitOrNull(order->target);
         if (other && !other->IsDead()) {
             if (other->sizeClass == 0 && !(order->kind == UnitOrderKind::Attack && self->HasRangedWeapon())) {
-                double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
+                double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition.z;
                 if (height >= kHeightLimit) return false;
             }
         }
@@ -91,23 +91,23 @@ bool CanStillDo(CUnitServer* self, UnitAction* order) {
 
 // The common start of taking over the queued order: run (mode 2) unless the order can be carried
 // out at once, then the movement records and the frame stamp.
-void LeaveMoveMode(CUnitServer* self) {
+void LeaveMoveMode(UnitServer* self) {
     UnitAction* order = &self->action;
     if (order->modifier && self->moveMode.mode != kModeRun) {
         UnitOrderKind kind = order->kind;
         if (!(IsActionKind(kind) && self->CanReachAndPlan(order))) self->SetUnitMoveMode2(kModeRun);
     }
     self->SyncMoveModes();
-    self->waitFrame = g_serverWorld.tick_;
+    self->waitFrame = g_serverWorld.tick;
 }
 
 // Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
 // updates. Not while Turning.
-void StandIdle(CUnitServer* self) {
+void StandIdle(UnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
     if (!self->queue.SameAs(idle)) {
         if (self->queue.empty() && self->queue.extra == -1) {
-            int now = self->World()->tick_;
+            int now = self->World()->tick;
             idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
         }
         self->PlaySteps(idle);
@@ -117,14 +117,14 @@ void StandIdle(CUnitServer* self) {
 }
 
 // The queued order replaces the current one (copy, then reset of the queued order).
-void TakeOver(CUnitServer* self) {
+void TakeOver(UnitServer* self) {
     self->action.Assign(&self->action2);
     self->action2.Reset();
 }
 
 // The unit's attack interval: the weapon's (or the stats' truncated) scaled by 15 / the combat rate (unscaled
 // when that is 0), rounded.
-int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
+int AttackInterval(UnitServer* self, ItemWeapon* weapon) {
     float factor = self->stats.rate;
     if (factor != 0.0f) factor = kFifteen / factor;   // a NaN stays the same NaN
     int base;
@@ -146,13 +146,13 @@ void SetModeInline(CUnit* unit, int mode) {
     unit->MarkChanged(kPartMoveModes);
 }
 
-bool OutOfReachUp(CUnitServer* self, const AIOrder* order) {
+bool OutOfReachUp(UnitServer* self, const AIOrder* order) {
     if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return false;
     CUnit* other = UnitOrNull(order->target);
     if (!other || other->IsDead()) return false;
     if (other->sizeClass != 0) return false;
     if (order->kind == UnitOrderKind::Attack && self->HasRangedWeapon()) return false;
-    double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
+    double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition.z;
     return height >= kHeightLimit;
 }
 
@@ -185,13 +185,13 @@ void UnitAction::Reset() {
     modifier = 0;
 }
 
-void CUnitServer::SetUnitMoveMode2(int mode) {
+void UnitServer::SetUnitMoveMode2(int mode) {
     if (mode == unit->moveMode2) return;
     unit->moveMode2 = mode;
     unit->MarkChanged(kPartMoveModes);
 }
 
-void CUnitServer::SyncMoveModes() {
+void UnitServer::SyncMoveModes() {
     if (action.kind == UnitOrderKind::Attack) moveMode2.onGuard = 1;
     else if (unit->player) moveMode2.onGuard = 0;
     moveMode.wasMode3 = 0;
@@ -210,7 +210,7 @@ void CUnitServer::SyncMoveModes() {
     if (!unit->player && moveMode2.onGuard) moveMode2.wasMode3 |= 1;
 }
 
-void CUnitServer::TakeQueuedOrder() {
+void UnitServer::TakeQueuedOrder() {
     action.kind = action2.kind;
     action.source = action2.source;
     CMapObject* target = action2.target;
@@ -234,13 +234,13 @@ void CUnitServer::TakeQueuedOrder() {
         }
     }
     SyncMoveModes();
-    waitFrame = g_serverWorld.tick_;
+    waitFrame = g_serverWorld.tick;
 }
 
 // --- Taking over the queued order ----------------------------------------------------------------
 
-bool CUnitServer::StartMove() {
-    CWorldServer* world = ServerWorld();
+bool UnitServer::StartMove() {
+    WorldServer* world = ServerWorld();
     orderStopped = 0;
     TakeOver(this);
     LeaveMoveMode(this);
@@ -249,9 +249,9 @@ bool CUnitServer::StartMove() {
     }
     // Already there: the order is done and the next one starts.
     Vector3 offset;
-    offset.x = unit->localPosition_.x - action.point.x;
-    offset.y = unit->localPosition_.y - action.point.y;
-    offset.z = unit->localPosition_.z - action.point.z;
+    offset.x = unit->localPosition.x - action.point.x;
+    offset.y = unit->localPosition.y - action.point.y;
+    offset.z = unit->localPosition.z - action.point.z;
     double lengthSq = LengthSquaredZYX(offset);
     EI_NAN_AUDIT(lengthSq);
     if (lengthSq < kArrived) {
@@ -262,21 +262,21 @@ bool CUnitServer::StartMove() {
     }
     // Plan the way with the units near the goal lifted off the sector map.
     std::list<CUnit*> lifted = LiftNearby(action.point, action.source != 0);
-    CAIMap* map = &ServerWorld()->aiMap_;
-    unit->altPassCosts = map->InWaterAt(unit->localPosition_);
+    AIMap* map = &ServerWorld()->aiMap;
+    unit->altPassCosts = map->InWaterAt(unit->localPosition);
     bool found = PathTo(action.point, action.point.z);
     for (auto node = lifted.begin(); node != lifted.end();) {
         CUnit* current = *node;
         ++node;
-        world->aiMap_.sectorMap.Add(current);
+        world->aiMap.sectorMap.Add(current);
     }
     bool arrived = false;
     if (action.param) {
         action.param = 0;
         bool close = false;
         if (!found) {
-            double dy = static_cast<double>(action.point.y) - unit->localPosition_.y;
-            double dx = static_cast<double>(action.point.x) - unit->localPosition_.x;
+            double dy = static_cast<double>(action.point.y) - unit->localPosition.y;
+            double dx = static_cast<double>(action.point.x) - unit->localPosition.x;
             EI_NAN_AUDIT(dx, dy);
             close = LengthSquared2DUnrounded(dx, dy) < kLong;
         }
@@ -293,7 +293,7 @@ bool CUnitServer::StartMove() {
     return false;
 }
 
-bool CUnitServer::StartQueuedOrder() {
+bool UnitServer::StartQueuedOrder() {
     if (action2.kind == UnitOrderKind::None) return false;
     if (action2.kind != UnitOrderKind::Stop && moveMode.mode == kModeStop) {
         moveMode2.mode = kModeRun;
@@ -315,7 +315,7 @@ bool CUnitServer::StartQueuedOrder() {
         TakeOver(this);
         LeaveMoveMode(this);
         int time = action.param;
-        int now = WorldContext()->tick_;
+        int now = WorldContext()->tick;
         motion.StandAndTurn(now, unit, action.point, static_cast<std::uint32_t>(time));
         unit->RefreshMotion();
         PlayIdle();
@@ -358,7 +358,7 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         int duration;
         BuildOrderSteps(&steps, &duration, UnitOrderKind::Use, 0);
-        int now = World()->tick_;
+        int now = World()->tick;
         currentPlan.TakeSteps(std::move(steps), now, duration);
         StartAction(1, 0);
         return true;
@@ -386,7 +386,7 @@ bool CUnitServer::StartQueuedOrder() {
 
 // --- Every tick ----------------------------------------------------------------------------------
 
-void CUnitServer::UpdateOrders() {
+void UnitServer::UpdateOrders() {
     if (StartQueuedOrder()) {
         boredTicks = 0;
         return;
@@ -420,7 +420,7 @@ void CUnitServer::UpdateOrders() {
     StartQueuedOrder();
 }
 
-void CUnitServer::ContinueAction() {
+void UnitServer::ContinueAction() {
     CMapObject* target = action.target;
     bool seen = true;
     CPlayer* player = unit->player;
@@ -429,11 +429,11 @@ void CUnitServer::ContinueAction() {
 
     bool cast = IsCastKind(action.kind);
     bool carryOn = false;
-    if (!(cast && (unit->flags_ & MapObjectFlag::NoCasting))) {
+    if (!(cast && (unit->flags & MapObjectFlag::NoCasting))) {
         if (!action.target) {
             if (cast) {
                 CSpell* spell = SpellOfSource(action.source);
-                carryOn = spell && (spell->targetFlags_ & SpellTargetFlag::AtPoint);
+                carryOn = spell && (spell->targetFlags & SpellTargetFlag::AtPoint);
             }
         } else if (!action.target->IsDead()) {
             carryOn = true;
@@ -471,24 +471,24 @@ void CUnitServer::ContinueAction() {
 
 // --- Carrying out the current order ----------------------------------------------------------------
 
-bool CUnitServer::CanReachAndPlan(const AIOrder* order) {
+bool UnitServer::CanReachAndPlan(const AIOrder* order) {
     if (OutOfReachUp(this, order)) return false;
     return CanPlanAction(order);
 }
 
-bool CUnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3& point) {
+bool UnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3& point) {
     if (OutOfReachUp(this, order)) return false;
     // The position is swapped bitwise, like the original.
     Vector3 saved;
-    saved = unit->localPosition_;
-    unit->localPosition_ = point;
+    saved = unit->localPosition;
+    unit->localPosition = point;
     bool result = CanPlanAction(order);
-    unit->localPosition_ = saved;
+    unit->localPosition = saved;
     return result;
 }
 
-void CUnitServer::ExecuteOrder() {
-    int now = World()->tick_;
+void UnitServer::ExecuteOrder() {
+    int now = World()->tick;
     searchingTarget = 0;
     if (nextAttackTime > now && action.kind == UnitOrderKind::Attack) {
         ApproachTarget();
@@ -559,7 +559,7 @@ void CUnitServer::ExecuteOrder() {
                 auto* defender = victim->ServerController();
                 int backstab = unit->IsBehind(victim);
                 if (victim->GetClassId() == ClassId::Unit && defender->moveMode2.onGuard) backstab = 0;
-                CItemWeapon* weapon = unit->ActiveWeapon();
+                ItemWeapon* weapon = unit->ActiveWeapon();
                 if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) backstab = 0;
                 BuildAttackHit(&pendingHit, backstab, location, calledShot);
                 if (!defender->ResolveHit(&pendingHit, unit)) missed = true;
@@ -575,8 +575,8 @@ void CUnitServer::ExecuteOrder() {
 
 // --- Closing in --------------------------------------------------------------------------------
 
-void CUnitServer::ApproachTarget() {
-    int now = World()->tick_;
+void UnitServer::ApproachTarget() {
+    int now = World()->tick;
     unit->altPassCosts = 1;
     CMapObject* target = action.target;
 
@@ -600,10 +600,10 @@ void CUnitServer::ApproachTarget() {
             if (LengthSquared2DUnrounded(dy, dx) <= kNearPoint) return;
             if (CanReachTarget(&action)) {
                 Vector3 saved;
-                std::memcpy(&saved, &unit->localPosition_.x, sizeof(saved));
-                std::memcpy(&unit->localPosition_.x, &heading, sizeof(saved));
+                std::memcpy(&saved, &unit->localPosition.x, sizeof(saved));
+                std::memcpy(&unit->localPosition.x, &heading, sizeof(saved));
                 bool ok = CanPlanAction(&action);
-                std::memcpy(&unit->localPosition_.x, &saved, sizeof(saved));
+                std::memcpy(&unit->localPosition.x, &saved, sizeof(saved));
                 if (ok) return;
             }
         }
@@ -618,7 +618,7 @@ void CUnitServer::ApproachTarget() {
     Vector3 aim;
     target->AimPoint(&aim);
     if (!target->IsLargeUnit()) {
-        if (static_cast<double>(reach) * reach >= DistanceSquaredXYUnrounded<double>(aim, unit->localPosition_) &&
+        if (static_cast<double>(reach) * reach >= DistanceSquaredXYUnrounded<double>(aim, unit->localPosition) &&
             CanActFrom(&action, &aim.x, now)) {
             // In reach of a standing target: wait.
             if (state != UnitState::Turning) StandIdle(this);
@@ -632,9 +632,9 @@ void CUnitServer::ApproachTarget() {
             Vector3 scratch;
             const float* p = &target->PositionAt(&scratch, lead + now)->x;
             Vector3 offset;
-            offset.x = p[0] - unit->localPosition_.x;
-            offset.y = p[1] - unit->localPosition_.y;
-            offset.z = p[2] - unit->localPosition_.z;
+            offset.x = p[0] - unit->localPosition.x;
+            offset.y = p[1] - unit->localPosition.y;
+            offset.z = p[2] - unit->localPosition.z;
             double closing = unit->MoveSpeed() * 0.5f;
             if (closing > 0.0f) {
                 double distance = LengthXYZ(offset);
@@ -665,18 +665,18 @@ void CUnitServer::ApproachTarget() {
     Vector3 scratch;
     const float* where = &chased->AimPoint(&scratch)->x;
     Vector3 offset;
-    offset.x = where[0] - unit->localPosition_.x;
-    offset.y = where[1] - unit->localPosition_.y;
-    offset.z = where[2] - unit->localPosition_.z;
+    offset.x = where[0] - unit->localPosition.x;
+    offset.y = where[1] - unit->localPosition.y;
+    offset.z = where[2] - unit->localPosition.z;
     float distance = LengthZXY(offset);
     float mySpeed = static_cast<float>(unit->MoveSpeed());
     double closing;
     if (chased->IsLargeUnit()) {
         // The chased unit's speed along the line between them adds to ours.
         auto* other = static_cast<CUnit*>(chased);
-        float vx = other->localPosition_.x - unit->localPosition_.x;
-        float vy = other->localPosition_.y - unit->localPosition_.y;
-        double dz = static_cast<double>(other->localPosition_.z) - unit->localPosition_.z;
+        float vx = other->localPosition.x - unit->localPosition.x;
+        float vy = other->localPosition.y - unit->localPosition.y;
+        double dz = static_cast<double>(other->localPosition.z) - unit->localPosition.z;
         float vz = static_cast<float>(dz);
         double length = dz * vz;
         length = length + static_cast<double>(vy) * vy;
@@ -688,7 +688,7 @@ void CUnitServer::ApproachTarget() {
             vz = static_cast<float>(vz / length);
         }
         Vector3 axis;
-        other->localRotation_.AxisY(&axis);
+        other->localRotation.AxisY(&axis);
         float along = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, vx, vy, vz));
         closing = other->MoveSpeed() * along + mySpeed;
     } else {
@@ -715,23 +715,23 @@ void CUnitServer::ApproachTarget() {
         }
     }
     float patience = static_cast<float>(unit->ScaledValue(distance) + kFive);
-    CAIMap* aiMap = &g_serverWorld.aiMap_;
+    AIMap* aiMap = &g_serverWorld.aiMap;
     std::uint8_t savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
-    EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal));
-    if (DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
+    EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition, goal));
+    if (DistanceSquaredXYUnrounded<double>(unit->localPosition, goal) <= kPointOne) return;    // (sic: the path flag stays cleared)
 
-    g_serverWorld.aiMap_.sectorMap.Remove(chased);
+    g_serverWorld.aiMap.sectorMap.Remove(chased);
     float farOffset = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
-    float unitY = static_cast<float>(static_cast<double>(unit->localPosition_.y) * kLong);
+    float unitY = static_cast<float>(static_cast<double>(unit->localPosition.y) * kLong);
     Vector3 point;
-    point.x = static_cast<float>(static_cast<double>(unit->localPosition_.x) * kLong + nearX);
+    point.x = static_cast<float>(static_cast<double>(unit->localPosition.x) * kLong + nearX);
     point.y = static_cast<float>(static_cast<double>(unitY) + farOffset);
     point.z = goal.z;
     if (!PathTo(point, static_cast<float>(patience)))
         stoodBlocked = 1;
-    g_serverWorld.aiMap_.sectorMap.Add(chased);
+    g_serverWorld.aiMap.sectorMap.Add(chased);
 
     double h = kHalfScale;
     float headX = static_cast<float>(h * motion.targetX);
@@ -743,19 +743,19 @@ void CUnitServer::ApproachTarget() {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
         path->Clear();
-        int time = World()->tick_;
+        int time = World()->tick;
         Vector3 axis;
-        unit->localRotation_.AxisY(&axis);
+        unit->localRotation.AxisY(&axis);
         Vector3 back;
         back.x = -axis.x;
         back.y = -axis.y;
         back.z = -axis.z;
-        if (path->Start(unit->localPosition_, back, time)) unit->RefreshMotion();
+        if (path->Start(unit->localPosition, back, time)) unit->RefreshMotion();
         ClearStanding();
         state = UnitState::Stopped;
         unit->UpdateSizeClass();
         if (effectObject) {
-            g_serverWorld.RemoveTimedObject(effectObject->id_);
+            g_serverWorld.RemoveTimedObject(effectObject->id);
             effectObject.Reset();
         }
         stoodBlocked = 1;

@@ -94,11 +94,11 @@ void StartLookUp() {
 std::string Names(std::uint8_t* count) {
     std::string names;
     *count = 0;
-    const auto& bindings = g_gameServer->bindings_;
+    const auto& bindings = g_gameServer->bindings;
     for (auto& node : bindings) {
         auto* binding = node.Get();
         auto* player = binding->Player();
-        const char* name = player->name_.data();
+        const char* name = player->name.data();
         std::size_t length = std::strlen(name);
         names.push_back(static_cast<char>(length + 1));
         names.append(name, length);

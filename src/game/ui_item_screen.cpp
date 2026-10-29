@@ -32,7 +32,7 @@ void ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
 
 // --- The icon window's frame -------------------------------------------------------------
 
-void CItemIconWindow::Build() {
+void ItemIconWindow::Build() {
     auto sprite = [this] { return AddBlankSprite(); };
     sprite()->SetGrid(8.0f, 100.0f, 0.0f, 100.0f, 800.0f, 500.0f, 0xE, 0xE, 0x72, 0x72, 8, 4);
     // Four 200-wide columns: two side strips, and corners at the top and bottom of each half.
@@ -60,7 +60,7 @@ void CItemIconWindow::Build() {
 
 // --- The first two bars moved ------------------------------------------------------------
 
-void CItemIconWindow::PlaceBars(int y) {
+void ItemIconWindow::PlaceBars(int y) {
     constexpr int kLeftBar = 25, kRightBar = 26;   // after the cell strip and the 4 x 6 column pieces
     float top = static_cast<float>(y - 20);
     float bottom = static_cast<float>(y + 20);
@@ -72,29 +72,29 @@ void CItemIconWindow::PlaceBars(int y) {
 
 // --- The item screens' base Create ------------------------------------------------------
 
-void CItemScreen::CreateBase() {
-    CItemIconWindow* icons = new CItemIconWindow(interface_);
-    iconWindow_ = icons;
+void ItemScreen::CreateBase() {
+    ItemIconWindow* icons = new ItemIconWindow(ui);
+    iconWindow = icons;
     AddChild(icons);
-    iconWindow_->AddObject(objects_[0]);
-    iconWindow_->Build();
+    iconWindow->AddObject(objects[0]);
+    iconWindow->Build();
     LoadTexture("modifiers2", TextureKind::Interface);
     LoadTexture("campslots", TextureKind::Interface);
-    g_sceneRenderer.fogColour_ = 0;
-    g_sceneRenderer.pipeline_->SetDepthRange(99.0f, 100.0f);
+    g_sceneRenderer.fogColour = 0;
+    g_sceneRenderer.pipeline->SetDepthRange(99.0f, 100.0f);
     // The caches keep 30 entries (the game's 20 were for a card with little texture memory).
-    textures_.limit = 30;
-    TrimItemCache(&textures_);
-    models_.limit = 30;
-    TrimItemCache(&models_);
+    textures.limit = 30;
+    TrimItemCache(&textures);
+    models.limit = 30;
+    TrimItemCache(&models);
 }
 
 // --- The item screens' destructor ---------------------------------------------------
 
 // The caches' objects released, in key order; the maps go with the screen.
-CItemScreen::~CItemScreen() {
-    ReleaseCachedObjects(&textures_);
-    ReleaseCachedObjects(&models_);
+ItemScreen::~ItemScreen() {
+    ReleaseCachedObjects(&textures);
+    ReleaseCachedObjects(&models);
 }
 
 // --- The turning state's Clone -----------------------------------------------------
@@ -110,34 +110,48 @@ ItemTurn* ItemTurn::Clone() {
 
 // --- Moving items between lists ----------------------------------------------------
 
-CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, bool merge, bool turning) {
-    bool whole = merge && interface_->shiftDown_ != 0;
-    if (limit > 0 && std::ssize(to->items_) >= limit) {
+Item* ItemScreen::MoveItem(Item* item, CParty* to, CParty* from, int limit, bool merge, bool turning) {
+    bool whole = merge && ui->shiftDown != 0;
+    if (limit > 0 && std::ssize(to->items) >= limit) {
         for (int i = 0; i < limit; ++i) {
-            if (!item->IsSameAs(to->items_[i])) continue;
-            CItem* moved = to->AddItem(item, whole, merge);
+            if (!item->IsSameAs(to->items[i])) continue;
+            Item* moved = to->AddItem(item, whole, merge);
             from->RemoveItem(item, whole);
             return moved;
         }
         return nullptr;
     }
-    CItem* moved = to->AddItem(item, whole, merge);
+    Item* moved = to->AddItem(item, whole, merge);
     from->RemoveItem(item, whole);
     if (turning) {
         if (!ItemTurnOf(moved)) {   // a null item faults here, like the original
-            moved->link_.Assign(new ItemTurn());
+            moved->link.Assign(new ItemTurn());
         }
         ItemTurnOf(moved)->flag = true;
     }
     return moved;
 }
 
-CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
-    CItem* moved = nullptr;
-    while (!from->items_.empty()) {
-        CItem* first = from->items_[0];
+Item* ItemScreen::ReturnAll(CParty* to, CParty* from) {
+    Item* moved = nullptr;
+    while (!from->items.empty()) {
+        Item* first = from->items[0];
         moved = to->AddItem(first, 1, 1);
         from->RemoveItem(first, 1);
     }
     return moved;
 }
+
+// --- Default answers of the item screen's slots ------------------------------------------------------
+
+bool ItemScreen::CanEquip(Item*, int) { return false; }
+
+PartySkill ItemScreen::BestPartySkill(int) { return {}; }
+
+CUnit* ItemScreen::HeroUnit(int) { return nullptr; }
+
+double ItemScreen::Weight() { return 0.0; }
+
+int ItemScreen::Price(Item*, int) { return 0; }
+
+void ItemTurn::OnShutdown() {}

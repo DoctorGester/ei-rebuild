@@ -9,67 +9,67 @@
 
 namespace render::detail {
 
-bool StagingCopy::Map(ID3D11DeviceContext* context, ID3D11Texture2D* source) {
+bool StagingCopy::Map(ID3D11DeviceContext* deviceContext, ID3D11Texture2D* source) {
     if (!source) return false;
     D3D11_TEXTURE2D_DESC desc{};
     source->GetDesc(&desc);
-    return Map(context, source, 0, 0, desc.Width, desc.Height);
+    return Map(deviceContext, source, 0, 0, desc.Width, desc.Height);
 }
 
-bool StagingCopy::Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, unsigned left, unsigned top, unsigned width,
-                      unsigned height) {
+bool StagingCopy::Map(ID3D11DeviceContext* deviceContext, ID3D11Texture2D* source, unsigned left, unsigned top, unsigned copyWidth,
+                      unsigned copyHeight) {
     Unmap();
-    if (!context || !source || width == 0 || height == 0) return false;
+    if (!deviceContext || !source || copyWidth == 0 || copyHeight == 0) return false;
     D3D11_TEXTURE2D_DESC desc{};
     source->GetDesc(&desc);
-    if (!texture_ || width_ < width || height_ < height || format_ != static_cast<unsigned>(desc.Format)) {
+    if (!texture || width < copyWidth || height < copyHeight || format != static_cast<unsigned>(desc.Format)) {
         Release();
         ID3D11Device* device = nullptr;
         source->GetDevice(&device);
         if (!device) return false;
-        desc.Width = width;
-        desc.Height = height;
+        desc.Width = copyWidth;
+        desc.Height = copyHeight;
         desc.MipLevels = 1;
         desc.ArraySize = 1;
         desc.Usage = D3D11_USAGE_STAGING;
         desc.BindFlags = 0;
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
         desc.MiscFlags = 0;
-        HRESULT hr = device->CreateTexture2D(&desc, nullptr, &texture_);
+        HRESULT hr = device->CreateTexture2D(&desc, nullptr, &texture);
         device->Release();
         if (FAILED(hr)) {
-            texture_ = nullptr;
+            texture = nullptr;
             return false;
         }
-        width_ = width;
-        height_ = height;
-        format_ = static_cast<unsigned>(desc.Format);
+        width = copyWidth;
+        height = copyHeight;
+        format = static_cast<unsigned>(desc.Format);
     }
-    D3D11_BOX box{left, top, 0, left + width, top + height, 1};
-    context->CopySubresourceRegion(texture_, 0, 0, 0, 0, source, 0, &box);
+    D3D11_BOX box{left, top, 0, left + copyWidth, top + copyHeight, 1};
+    deviceContext->CopySubresourceRegion(texture, 0, 0, 0, 0, source, 0, &box);
     D3D11_MAPPED_SUBRESOURCE mapped{};
-    if (FAILED(context->Map(texture_, 0, D3D11_MAP_READ, 0, &mapped))) return false;
-    context_ = context;
-    data_ = static_cast<const std::uint8_t*>(mapped.pData);
-    pitch_ = mapped.RowPitch;
-    mappedWidth_ = width;
-    mappedHeight_ = height;
+    if (FAILED(deviceContext->Map(texture, 0, D3D11_MAP_READ, 0, &mapped))) return false;
+    context = deviceContext;
+    data = static_cast<const std::uint8_t*>(mapped.pData);
+    pitch = mapped.RowPitch;
+    mappedWidth = copyWidth;
+    mappedHeight = copyHeight;
     return true;
 }
 
 void StagingCopy::Unmap() {
-    if (context_) context_->Unmap(texture_, 0);
-    context_ = nullptr;
-    data_ = nullptr;
-    pitch_ = 0;
-    mappedWidth_ = mappedHeight_ = 0;
+    if (context) context->Unmap(texture, 0);
+    context = nullptr;
+    data = nullptr;
+    pitch = 0;
+    mappedWidth = mappedHeight = 0;
 }
 
 void StagingCopy::Release() {
     Unmap();
-    if (texture_) texture_->Release();
-    texture_ = nullptr;
-    width_ = height_ = format_ = 0;
+    if (texture) texture->Release();
+    texture = nullptr;
+    width = height = format = 0;
 }
 
 } // namespace render::detail

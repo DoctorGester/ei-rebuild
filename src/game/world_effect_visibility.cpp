@@ -1,4 +1,4 @@
-// CEffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
+// EffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
 // and docs/notes/effects.md ("Missiles and visibility").
 #include "ai_map.h"
 #include "map_object.h"
@@ -11,74 +11,74 @@
 
 #include <cstring>
 
-CEffectShowVisibility::CEffectShowVisibility() {
-    grid_.cells.Resize(1, 1);
-    observerId_ = -1;
-    seerId_ = -1;
+EffectShowVisibility::EffectShowVisibility() {
+    grid.cells.Resize(1, 1);
+    observerId = -1;
+    seerId = -1;
 }
 
 // The destructor body resets twice (inline, then the virtual); the grid frees itself.
-CEffectShowVisibility::~CEffectShowVisibility() {
+EffectShowVisibility::~EffectShowVisibility() {
     Reset();
     Reset();
 }
 
 // The base is not reset: only the grid (taken out of the fog first), the units and the fog.
-void CEffectShowVisibility::Reset() {
-    grid_.Clear();
-    if (fog_ != nullptr) fog_->Reveal(&grid_);
-    observerId_ = -1;
-    seerId_ = -1;
-    fog_.Reset();
+void EffectShowVisibility::Reset() {
+    grid.Clear();
+    if (fog != nullptr) fog->Reveal(&grid);
+    observerId = -1;
+    seerId = -1;
+    fog.Reset();
 }
 
-void CEffectShowVisibility::SetUnits(int observerId, int seerId) {
-    observerId_ = observerId;
-    seerId_ = seerId;
+void EffectShowVisibility::SetUnits(int newObserverId, int newSeerId) {
+    observerId = newObserverId;
+    seerId = newSeerId;
 }
 
-void CEffectShowVisibility::Start(int update) {
+void EffectShowVisibility::Start(int update) {
     if (update == 0) {
-        auto* created = static_cast<CVisibilityFog*>(VisFogManagerAdd(g_clientWorld.arrayManager_));
-        fog_.Assign(created);
+        auto* created = static_cast<VisibilityFog*>(VisFogManagerAdd(g_clientWorld.arrayManager));
+        fog.Assign(created);
     }
-    if (fog_ != nullptr) fog_->Reveal(&grid_);
+    if (fog != nullptr) fog->Reveal(&grid);
 }
 
-int CEffectShowVisibility::Unpack(int update, DeltaField* field) {
-    CMemoryStream stream;
+int EffectShowVisibility::Unpack(int update, DeltaField* field) {
+    MemoryStream stream;
     if (field->ReadStream(&stream) == 0) return 0;
-    grid_.Read(&stream);
+    grid.Read(&stream);
     Start(update);
     return 1;
 }
 
-void CEffectShowVisibility::Pack(DeltaField* field) {
-    CMemoryStream stream;
-    grid_.Write(&stream);
+void EffectShowVisibility::Pack(DeltaField* field) {
+    MemoryStream stream;
+    grid.Write(&stream);
     field->WriteStreamBoth(&stream);
 }
 
-bool CEffectShowVisibility::RunTick() {
+bool EffectShowVisibility::RunTick() {
     if (!WorldContext()->IsServer()) return true;
-    CUnit* seer = World()->FindUnit(seerId_);
-    CUnit* observer = World()->FindUnit(observerId_);
+    CUnit* seer = World()->FindUnit(seerId);
+    CUnit* observer = World()->FindUnit(observerId);
     if (seer == nullptr || observer == nullptr) return false;
-    std::memcpy(&localPosition_, &seer->localPosition_.x, sizeof(Vector3));
+    std::memcpy(&localPosition, &seer->localPosition.x, sizeof(Vector3));
     // The squares `seer` sees, with `observer`'s skills.
-    MarkSightCells(seer, observer, &grid_);
+    MarkSightCells(seer, observer, &grid);
     MarkChanged();
     return true;
 }
 
-void CEffectShowVisibility::Load(CStream* s) {
-    s->ReadValue(observerId_);
-    s->ReadValue(seerId_);
+void EffectShowVisibility::Load(ByteStream* s) {
+    s->ReadValue(observerId);
+    s->ReadValue(seerId);
 }
 
-void CEffectShowVisibility::Save(CStream* s) {
-    int copy = observerId_;
+void EffectShowVisibility::Save(ByteStream* s) {
+    int copy = observerId;
     s->WriteValue(copy);
-    copy = seerId_;
+    copy = seerId;
     s->WriteValue(copy);
 }

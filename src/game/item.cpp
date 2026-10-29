@@ -1,4 +1,4 @@
-// The items: CItem, its six classes (construction, the recharge, the values a record gives, the
+// The items: Item, its six classes (construction, the recharge, the values a record gives, the
 // comparison, the copy, Load / Save), the link record and the weapon stats by packed id. The name builders are
 // item_names.cpp; the item constructor and manager item_manager.cpp. See item.h and docs/notes/items_spells.md.
 #include "item.h"
@@ -42,203 +42,203 @@ ItemRecordHead* PrototypeAt(ItemKind kind, std::uint32_t index) {
     }
 }
 
-// --- CItem ---------------------------------------------------------------------------------------
+// --- Item ---------------------------------------------------------------------------------------
 
-CItem::CItem() {
-    condition_ = -1.0f;
-    conditionMax_ = -1.0f;
-    charge_ = -1.0f;
-    chargeMax_ = -1.0f;
-    chargeRate_ = -1.0f;
-    weight_ = -1.0f;
-    price_ = -1.0f;
-    unreadValue_ = -1.0f;
-    count_ = 1;
+Item::Item() {
+    condition = -1.0f;
+    conditionMax = -1.0f;
+    charge = -1.0f;
+    chargeMax = -1.0f;
+    chargeRate = -1.0f;
+    weight = -1.0f;
+    price = -1.0f;
+    unreadValue = -1.0f;
+    count = 1;
 }
 
-CItem::~CItem() {
-    CItem::Destroy();
+Item::~Item() {
+    Item::Destroy();
 }
 
-void CItem::Create() {
-    count_ = 1;
-    spell_.Reset();
+void Item::Create() {
+    count = 1;
+    spell.Reset();
 }
 
-void CItem::Destroy() {
-    spell_.Reset();
-    link_.Reset();
+void Item::Destroy() {
+    spell.Reset();
+    link.Reset();
 }
 
-bool CItem::RunTick() {
-    EI_NAN_AUDIT(charge_, chargeMax_);
-    if (charge_ == chargeMax_) return false;
-    EI_NAN_AUDIT(chargeRate_);
-    if (chargeRate_ <= 0.0f) {
-        charge_ = chargeMax_;
+bool Item::RunTick() {
+    EI_NAN_AUDIT(charge, chargeMax);
+    if (charge == chargeMax) return false;
+    EI_NAN_AUDIT(chargeRate);
+    if (chargeRate <= 0.0f) {
+        charge = chargeMax;
         return true;
     }
-    charge_ = chargeRate_ * chargeMax_ + charge_;
-    if (charge_ >= chargeMax_) charge_ = chargeMax_;
+    charge = chargeRate * chargeMax + charge;
+    if (charge >= chargeMax) charge = chargeMax;
     return true;
 }
 
-void CItem::InitFromRecord(const ItemRecordHead* head) {
-    conditionMax_ = head->condition;
-    condition_ = head->condition;
-    chargeRate_ = kDefaultChargeRate;
-    chargeMax_ = head->charge;
-    charge_ = head->charge;
-    weight_ = head->weight;
-    price_ = head->price;
-    unreadValue_ = head->unreadValue;
-    magicLevel_ = head->magicLevel;
+void Item::InitFromRecord(const ItemRecordHead* head) {
+    conditionMax = head->condition;
+    condition = head->condition;
+    chargeRate = kDefaultChargeRate;
+    chargeMax = head->charge;
+    charge = head->charge;
+    weight = head->weight;
+    price = head->price;
+    unreadValue = head->unreadValue;
+    magicLevel = head->magicLevel;
 }
 
-bool CItem::IsSameAs(CItem* other) {
+bool Item::IsSameAs(Item* other) {
     if (other == this) return true;
-    if (type_ != other->type_ || prototypeId_ != other->prototypeId_) return false;
-    EI_NAN_AUDIT(condition_, other->condition_, conditionMax_, other->conditionMax_, charge_,
-                 other->charge_, chargeMax_, other->chargeMax_, weight_, other->weight_, price_, other->price_,
-                 unreadValue_, other->unreadValue_);
-    if (condition_ != other->condition_ || conditionMax_ != other->conditionMax_ ||
-        charge_ != other->charge_ || chargeMax_ != other->chargeMax_ || weight_ != other->weight_ ||
-        price_ != other->price_ || unreadValue_ != other->unreadValue_)
+    if (type != other->type || prototypeId != other->prototypeId) return false;
+    EI_NAN_AUDIT(condition, other->condition, conditionMax, other->conditionMax, charge,
+                 other->charge, chargeMax, other->chargeMax, weight, other->weight, price, other->price,
+                 unreadValue, other->unreadValue);
+    if (condition != other->condition || conditionMax != other->conditionMax ||
+        charge != other->charge || chargeMax != other->chargeMax || weight != other->weight ||
+        price != other->price || unreadValue != other->unreadValue)
         return false;
-    if (magicLevel_ != other->magicLevel_) return false;
-    const CSpell* spell = spell_;
-    const CSpell* otherSpell = other->spell_;
-    if (spell == nullptr || otherSpell == nullptr) return spell == otherSpell;
-    if (spell->prototypeId_ != otherSpell->prototypeId_) return false;
-    return std::memcmp(spell->modifiers_, otherSpell->modifiers_, sizeof(spell->modifiers_)) == 0;
+    if (magicLevel != other->magicLevel) return false;
+    const CSpell* currentSpell = spell;
+    const CSpell* otherSpell = other->spell;
+    if (currentSpell == nullptr || otherSpell == nullptr) return currentSpell == otherSpell;
+    if (currentSpell->prototypeId != otherSpell->prototypeId) return false;
+    return std::memcmp(currentSpell->modifiers, otherSpell->modifiers, sizeof(currentSpell->modifiers)) == 0;
 }
 
-bool CItem::CopyTo(CItem* target, CSpellManager* spells) {
-    if (target->type_ != type_) return false;
+bool Item::CopyTo(Item* target, CSpellManager* spells) {
+    if (target->type != type) return false;
     target->Destroy();
-    target->prototypeId_ = prototypeId_;
+    target->prototypeId = prototypeId;
     // The floats bit for bit (a loaded item's values may be any bit pattern).
-    x87::CopyBits(target->condition_, condition_);
-    x87::CopyBits(target->conditionMax_, conditionMax_);
-    x87::CopyBits(target->charge_, charge_);
-    x87::CopyBits(target->chargeMax_, chargeMax_);
-    x87::CopyBits(target->chargeRate_, chargeRate_);
-    x87::CopyBits(target->weight_, weight_);
-    x87::CopyBits(target->price_, price_);
-    x87::CopyBits(target->unreadValue_, unreadValue_);
-    target->magicLevel_ = magicLevel_;
-    target->spell_.Assign(spell_ ? spell_->Clone(spells) : nullptr);
-    target->count_ = 1;
+    x87::CopyBits(target->condition, condition);
+    x87::CopyBits(target->conditionMax, conditionMax);
+    x87::CopyBits(target->charge, charge);
+    x87::CopyBits(target->chargeMax, chargeMax);
+    x87::CopyBits(target->chargeRate, chargeRate);
+    x87::CopyBits(target->weight, weight);
+    x87::CopyBits(target->price, price);
+    x87::CopyBits(target->unreadValue, unreadValue);
+    target->magicLevel = magicLevel;
+    target->spell.Assign(spell ? spell->Clone(spells) : nullptr);
+    target->count = 1;
     return true;
 }
 
-CItem* CItem::Clone(CSpellManager* spells) {
-    auto* copy = owner_->CreateObjectAs<CItem>(type_, -1);
+Item* Item::Clone(CSpellManager* spells) {
+    auto* copy = owner->CreateObjectAs<Item>(type, -1);
     if (CopyTo(copy, spells)) return copy;
     copy->AddRef();
     copy->Release();
     return nullptr;
 }
 
-void CItem::Load(CStream* stream) {
-    stream->ReadValue(prototypeId_);
-    stream->ReadValue(condition_);
-    stream->ReadValue(conditionMax_);
-    stream->ReadValue(charge_);
-    stream->ReadValue(chargeMax_);
-    stream->ReadValue(chargeRate_);
-    stream->ReadValue(weight_);
-    stream->ReadValue(price_);
-    stream->ReadValue(unreadValue_);
+void Item::Load(ByteStream* stream) {
+    stream->ReadValue(prototypeId);
+    stream->ReadValue(condition);
+    stream->ReadValue(conditionMax);
+    stream->ReadValue(charge);
+    stream->ReadValue(chargeMax);
+    stream->ReadValue(chargeRate);
+    stream->ReadValue(weight);
+    stream->ReadValue(price);
+    stream->ReadValue(unreadValue);
     CSpellManager* spells = WorldContext()->SpellManager();
-    std::int32_t id = 0;
-    stream->ReadValue(id);
-    CSpell* spell = id == kNoObjectId ? nullptr : spells->FindObjectAs<CSpell>(static_cast<unsigned>(id));
-    spell_.Assign(spell);
-    stream->ReadValue(count_);
-    stream->ReadValue(magicLevel_);
+    std::int32_t objectId = 0;
+    stream->ReadValue(objectId);
+    CSpell* newSpell = objectId == kNoObjectId ? nullptr : spells->FindObjectAs<CSpell>(static_cast<unsigned>(objectId));
+    spell.Assign(newSpell);
+    stream->ReadValue(count);
+    stream->ReadValue(magicLevel);
 }
 
-void CItem::Save(CStream* stream) {
-    stream->WriteValue(prototypeId_);
-    stream->WriteValue(condition_);
-    stream->WriteValue(conditionMax_);
-    stream->WriteValue(charge_);
-    stream->WriteValue(chargeMax_);
-    stream->WriteValue(chargeRate_);
-    stream->WriteValue(weight_);
-    stream->WriteValue(price_);
-    stream->WriteValue(unreadValue_);
-    std::int32_t spellId = spell_ != nullptr ? spell_->id_ : kNoObjectId;
+void Item::Save(ByteStream* stream) {
+    stream->WriteValue(prototypeId);
+    stream->WriteValue(condition);
+    stream->WriteValue(conditionMax);
+    stream->WriteValue(charge);
+    stream->WriteValue(chargeMax);
+    stream->WriteValue(chargeRate);
+    stream->WriteValue(weight);
+    stream->WriteValue(price);
+    stream->WriteValue(unreadValue);
+    std::int32_t spellId = spell != nullptr ? spell->id : kNoObjectId;
     stream->WriteValue(spellId);
-    stream->WriteValue(count_);
-    stream->WriteValue(magicLevel_);
+    stream->WriteValue(count);
+    stream->WriteValue(magicLevel);
 }
 
-ItemRecordHead* CItem::GetPrototype() {
+ItemRecordHead* Item::GetPrototype() {
     if (Kind() == ItemKind::Scroll) return nullptr;
-    return PrototypeAt(Kind(), PrototypeIndex(prototypeId_));
+    return PrototypeAt(Kind(), PrototypeIndex(prototypeId));
 }
 
-QuickItemCategory CItem::GetCategory() {
+QuickItemCategory Item::GetCategory() {
     const ItemRecordHead* prototype = GetPrototype();
     return prototype ? static_cast<QuickItemCategory>(prototype->category) : QuickItemCategory::NoPrototype;
 }
 
-void CItem::AttachSpell(CSpell* spell) {
-    if (CSpell* previous = spell_) price_ = price_ - std::bit_cast<float>(previous->price_);
-    spell_.Assign(spell);
-    if (spell_) price_ = spell_->price_ + price_;
+void Item::AttachSpell(CSpell* newSpell) {
+    if (CSpell* previous = spell) price = price - std::bit_cast<float>(previous->price);
+    spell.Assign(newSpell);
+    if (spell) price = spell->price + price;
 }
 
 // No key (the quest item's has its id).
-LockKey CItem::GetUse() { return LockKey{0, 0, 0}; }
+LockKey Item::GetUse() { return LockKey{0, 0, 0}; }
 
-// --- CItemLink -----------------------------------------------------------------------------------
+// --- ItemLink -----------------------------------------------------------------------------------
 
-CItemLink::CItemLink() {
-    refs_ = 0;
-    flags6_ = 0;
-    flags7_ = 0;
+ItemLink::ItemLink() {
+    refs = 0;
+    flags6 = 0;
+    flags7 = 0;
 }
 
-void CItemLink::OnShutdown() {}
+void ItemLink::OnShutdown() {}
 
-CItemLink* CItemLink::Clone() {
-    auto* copy = new CItemLink();
+ItemLink* ItemLink::Clone() {
+    auto* copy = new ItemLink();
     copy->value = value;
     return copy;
 }
 
-// --- CItemWeapon ---------------------------------------------------------------------------------
+// --- ItemWeapon ---------------------------------------------------------------------------------
 
-CItemWeapon::CItemWeapon() {
-    damage_ = -1.0f;
-    damageSpread_ = -1.0f;
-    reach_ = -1.0f;
-    actionValue_ = 0;
+ItemWeapon::ItemWeapon() {
+    damage = -1.0f;
+    damageSpread = -1.0f;
+    reach = -1.0f;
+    actionValue = 0;
 }
 
-const char* CItemWeapon::ClassName() { return "CItemWeapon"; }
+const char* ItemWeapon::ClassName() { return "CItemWeapon"; }
 
-ClassId CItemWeapon::GetClassId() { return ClassId::ItemWeapon; }
+ClassId ItemWeapon::GetClassId() { return ClassId::ItemWeapon; }
 
-int CItemWeapon::GetType() {
-    return WeaponAt(PrototypeIndex(prototypeId_))->type;
+int ItemWeapon::GetType() {
+    return WeaponAt(PrototypeIndex(prototypeId))->type;
 }
 
-void CItemWeapon::GetDamageTypes(float (&out)[kDamageTypeCount]) {
-    if (const WeaponRecord* prototype = WeaponAt(PrototypeIndex(prototypeId_)))
+void ItemWeapon::GetDamageTypes(float (&out)[kDamageTypeCount]) {
+    if (const WeaponRecord* prototype = WeaponAt(PrototypeIndex(prototypeId)))
         std::memcpy(out, prototype->damageTypes, sizeof(out));
     else
         std::memset(out, 0, sizeof(out));
 }
 
-double CItemWeapon::RollDamage() {
-    EI_NAN_AUDIT(damageSpread_);
-    if (damageSpread_ == 0.0f) return damage_;
-    float high = damageSpread_ + damage_;   // stored as float
-    float low = damage_;                     // read back from memory for the subtraction and the add
+double ItemWeapon::RollDamage() {
+    EI_NAN_AUDIT(damageSpread);
+    if (damageSpread == 0.0f) return damage;
+    float high = damageSpread + damage;     // stored as float
+    float low = damage;                      // read back from memory for the subtraction and the add
     std::uint32_t roll = g_random.Next();
     volatile std::int64_t roll64 = roll;
     // About 1 / (2^32 - 1).
@@ -248,231 +248,231 @@ double CItemWeapon::RollDamage() {
            static_cast<double>(low);
 }
 
-void CItemWeapon::InitFromRecord(const ItemRecordHead* record) {
-    CItem::InitFromRecord(record);
+void ItemWeapon::InitFromRecord(const ItemRecordHead* record) {
+    Item::InitFromRecord(record);
     auto* r = RecordAs<WeaponRecord>(record);
-    reach_ = r->reach;
-    damage_ = r->damage;
-    damageSpread_ = r->damageSpread;
+    reach = r->reach;
+    damage = r->damage;
+    damageSpread = r->damageSpread;
 }
 
-bool CItemWeapon::IsSameAs(CItem* item) {
-    if (!CItem::IsSameAs(item)) return false;
-    CItemWeapon* other = AsWeapon(item);   // of this one's type (the base's test)
-    if (other->actionValue_ != actionValue_) return false;
-    EI_NAN_AUDIT(other->damage_, damage_, other->damageSpread_, damageSpread_, other->reach_, reach_);
-    if (other->damage_ != damage_) return false;
-    if (other->damageSpread_ != damageSpread_) return false;
-    if (other->reach_ != reach_) return false;
+bool ItemWeapon::IsSameAs(Item* item) {
+    if (!Item::IsSameAs(item)) return false;
+    ItemWeapon* other = AsWeapon(item);   // of this one's type (the base's test)
+    if (other->actionValue != actionValue) return false;
+    EI_NAN_AUDIT(other->damage, damage, other->damageSpread, damageSpread, other->reach, reach);
+    if (other->damage != damage) return false;
+    if (other->damageSpread != damageSpread) return false;
+    if (other->reach != reach) return false;
     return true;
 }
 
-bool CItemWeapon::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
-    CItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon
-    weapon->actionValue_ = actionValue_;
-    x87::CopyBits(weapon->damage_, damage_);
-    x87::CopyBits(weapon->damageSpread_, damageSpread_);
-    x87::CopyBits(weapon->reach_, reach_);
+bool ItemWeapon::CopyTo(Item* target, CSpellManager* spells) {
+    if (!Item::CopyTo(target, spells)) return false;
+    ItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon
+    weapon->actionValue = actionValue;
+    x87::CopyBits(weapon->damage, damage);
+    x87::CopyBits(weapon->damageSpread, damageSpread);
+    x87::CopyBits(weapon->reach, reach);
     return true;
 }
 
-void CItemWeapon::Load(CStream* stream) {
-    CItem::Load(stream);
-    stream->ReadValue(actionValue_);
-    stream->ReadValue(damage_);
-    stream->ReadValue(damageSpread_);
-    stream->ReadValue(reach_);
+void ItemWeapon::Load(ByteStream* stream) {
+    Item::Load(stream);
+    stream->ReadValue(actionValue);
+    stream->ReadValue(damage);
+    stream->ReadValue(damageSpread);
+    stream->ReadValue(reach);
 }
 
-void CItemWeapon::Save(CStream* stream) {
-    CItem::Save(stream);
-    stream->WriteValue(actionValue_);
-    stream->WriteValue(damage_);
-    stream->WriteValue(damageSpread_);
-    stream->WriteValue(reach_);
+void ItemWeapon::Save(ByteStream* stream) {
+    Item::Save(stream);
+    stream->WriteValue(actionValue);
+    stream->WriteValue(damage);
+    stream->WriteValue(damageSpread);
+    stream->WriteValue(reach);
 }
 
-// --- CItemArmor ----------------------------------------------------------------------------------
+// --- ItemArmor ----------------------------------------------------------------------------------
 
-const char* CItemArmor::ClassName() { return "CItemArmor"; }
+const char* ItemArmor::ClassName() { return "CItemArmor"; }
 
-ClassId CItemArmor::GetClassId() { return ClassId::ItemArmor; }
+ClassId ItemArmor::GetClassId() { return ClassId::ItemArmor; }
 
-int CItemArmor::GetType() {
-    return ArmorAt(PrototypeIndex(prototypeId_))->type;
+int ItemArmor::GetType() {
+    return ArmorAt(PrototypeIndex(prototypeId))->type;
 }
 
-void CItemArmor::InitFromRecord(const ItemRecordHead* record) {
-    CItem::InitFromRecord(record);
+void ItemArmor::InitFromRecord(const ItemRecordHead* record) {
+    Item::InitFromRecord(record);
     auto* r = RecordAs<ArmorRecord>(record);
-    std::memcpy(absorb_[0], r->absorbFirst, sizeof(absorb_[0]));
-    std::memcpy(absorb_[1], r->absorbOthers, sizeof(absorb_[1]));
+    std::memcpy(absorb[0], r->absorbFirst, sizeof(absorb[0]));
+    std::memcpy(absorb[1], r->absorbOthers, sizeof(absorb[1]));
 }
 
-bool CItemArmor::IsSameAs(CItem* item) {
-    if (!CItem::IsSameAs(item)) return false;
+bool ItemArmor::IsSameAs(Item* item) {
+    if (!Item::IsSameAs(item)) return false;
     auto* other = AsArmor(item);
     // Both absorption rows and the layer masks, compared by their bits.
-    return std::memcmp(absorb_, other->absorb_, sizeof(absorb_)) == 0 &&
-           std::memcmp(layerMask_, other->layerMask_, sizeof(layerMask_)) == 0;
+    return std::memcmp(absorb, other->absorb, sizeof(absorb)) == 0 &&
+           std::memcmp(layerMask, other->layerMask, sizeof(layerMask)) == 0;
 }
 
-bool CItemArmor::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
+bool ItemArmor::CopyTo(Item* target, CSpellManager* spells) {
+    if (!Item::CopyTo(target, spells)) return false;
     auto* armor = AsArmor(target);
-    std::memcpy(armor->absorb_, absorb_, sizeof(absorb_));
-    armor->layerMask_[0] = layerMask_[0];
-    armor->layerMask_[1] = layerMask_[1];
+    std::memcpy(armor->absorb, absorb, sizeof(absorb));
+    armor->layerMask[0] = layerMask[0];
+    armor->layerMask[1] = layerMask[1];
     return true;
 }
 
-void CItemArmor::Load(CStream* stream) {
-    CItem::Load(stream);
-    stream->Read(absorb_[0], sizeof(absorb_[0]));
-    stream->Read(absorb_[1], sizeof(absorb_[1]));
+void ItemArmor::Load(ByteStream* stream) {
+    Item::Load(stream);
+    stream->Read(absorb[0], sizeof(absorb[0]));
+    stream->Read(absorb[1], sizeof(absorb[1]));
 }
 
-void CItemArmor::Save(CStream* stream) {
-    CItem::Save(stream);
-    stream->Write(absorb_[0], sizeof(absorb_[0]));
-    stream->Write(absorb_[1], sizeof(absorb_[1]));
+void ItemArmor::Save(ByteStream* stream) {
+    Item::Save(stream);
+    stream->Write(absorb[0], sizeof(absorb[0]));
+    stream->Write(absorb[1], sizeof(absorb[1]));
 }
 
-// --- CItemQuick ----------------------------------------------------------------------------------
+// --- ItemQuick ----------------------------------------------------------------------------------
 
-const char* CItemQuick::ClassName() { return "CItemQuick"; }
+const char* ItemQuick::ClassName() { return "CItemQuick"; }
 
-ClassId CItemQuick::GetClassId() { return ClassId::ItemQuick; }
+ClassId ItemQuick::GetClassId() { return ClassId::ItemQuick; }
 
-void CItemQuick::InitFromRecord(const ItemRecordHead* record) {
-    CItem::InitFromRecord(record);
-    actionValue_ = RecordAs<QuickItemRecord>(record)->actionValue;
+void ItemQuick::InitFromRecord(const ItemRecordHead* record) {
+    Item::InitFromRecord(record);
+    actionValue = RecordAs<QuickItemRecord>(record)->actionValue;
 }
 
-bool CItemQuick::IsSameAs(CItem* other) {
-    if (!CItem::IsSameAs(other)) return false;
-    return AsQuick(other)->actionValue_ == actionValue_;
+bool ItemQuick::IsSameAs(Item* other) {
+    if (!Item::IsSameAs(other)) return false;
+    return AsQuick(other)->actionValue == actionValue;
 }
 
-bool CItemQuick::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
-    AsQuick(target)->actionValue_ = actionValue_;
+bool ItemQuick::CopyTo(Item* target, CSpellManager* spells) {
+    if (!Item::CopyTo(target, spells)) return false;
+    AsQuick(target)->actionValue = actionValue;
     return true;
 }
 
-void CItemQuick::Load(CStream* stream) {
-    CItem::Load(stream);
-    stream->ReadValue(actionValue_);
+void ItemQuick::Load(ByteStream* stream) {
+    Item::Load(stream);
+    stream->ReadValue(actionValue);
 }
 
-void CItemQuick::Save(CStream* stream) {
-    CItem::Save(stream);
-    stream->WriteValue(actionValue_);
+void ItemQuick::Save(ByteStream* stream) {
+    Item::Save(stream);
+    stream->WriteValue(actionValue);
 }
 
-// --- CItemScroll ----------------------------------------------------------------------------------
+// --- ItemScroll ----------------------------------------------------------------------------------
 
-const char* CItemScroll::ClassName() { return "CItemScroll"; }
+const char* ItemScroll::ClassName() { return "CItemScroll"; }
 
-ClassId CItemScroll::GetClassId() { return ClassId::ItemScroll; }
+ClassId ItemScroll::GetClassId() { return ClassId::ItemScroll; }
 
-// --- CItemQuest ----------------------------------------------------------------------------------
+// --- ItemQuest ----------------------------------------------------------------------------------
 
-const char* CItemQuest::ClassName() { return "CItemQuest"; }
+const char* ItemQuest::ClassName() { return "CItemQuest"; }
 
-ClassId CItemQuest::GetClassId() { return ClassId::ItemQuest; }
+ClassId ItemQuest::GetClassId() { return ClassId::ItemQuest; }
 
-void CItemQuest::InitFromRecord(const ItemRecordHead* record) {
-    CItem::InitFromRecord(record);
-    questItemId_ = record->category;
+void ItemQuest::InitFromRecord(const ItemRecordHead* record) {
+    Item::InitFromRecord(record);
+    questItemId = record->category;
 }
 
-bool CItemQuest::IsSameAs(CItem* other) {
-    if (!CItem::IsSameAs(other)) return false;
-    return AsQuest(other)->questItemId_ == questItemId_;
+bool ItemQuest::IsSameAs(Item* other) {
+    if (!Item::IsSameAs(other)) return false;
+    return AsQuest(other)->questItemId == questItemId;
 }
 
-bool CItemQuest::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
-    AsQuest(target)->questItemId_ = questItemId_;
+bool ItemQuest::CopyTo(Item* target, CSpellManager* spells) {
+    if (!Item::CopyTo(target, spells)) return false;
+    AsQuest(target)->questItemId = questItemId;
     return true;
 }
 
-void CItemQuest::Load(CStream* stream) {
-    CItem::Load(stream);
-    stream->ReadValue(questItemId_);
+void ItemQuest::Load(ByteStream* stream) {
+    Item::Load(stream);
+    stream->ReadValue(questItemId);
 }
 
-void CItemQuest::Save(CStream* stream) {
-    CItem::Save(stream);
-    stream->WriteValue(questItemId_);
+void ItemQuest::Save(ByteStream* stream) {
+    Item::Save(stream);
+    stream->WriteValue(questItemId);
 }
 
-LockKey CItemQuest::GetUse() { return LockKey{8, questItemId_, 0}; }
+LockKey ItemQuest::GetUse() { return LockKey{8, questItemId, 0}; }
 
-// --- CItemLoot -----------------------------------------------------------------------------------
+// --- ItemLoot -----------------------------------------------------------------------------------
 
-const char* CItemLoot::ClassName() { return "CItemLoot"; }
+const char* ItemLoot::ClassName() { return "CItemLoot"; }
 
-ClassId CItemLoot::GetClassId() { return ClassId::ItemLoot; }
+ClassId ItemLoot::GetClassId() { return ClassId::ItemLoot; }
 
-float CItemLoot::GetPrice() {
-    switch (kind_) {
-    case LootKind::Self: return price_;
-    case LootKind::Material: return MaterialAt(index_)->unitPrice;
+float ItemLoot::GetPrice() {
+    switch (kind) {
+    case LootKind::Self: return price;
+    case LootKind::Material: return MaterialAt(index)->unitPrice;
     case LootKind::Record: break;
     default: return -1.0f;
     }
-    switch (recordType_) {
-    case LootRecordType::Weapon: return WeaponAt(index_)->price;
-    case LootRecordType::Armor: return ArmorAt(index_)->price;
-    case LootRecordType::Quick: return QuickItemAt(index_)->price;
-    case LootRecordType::Spell: return SpellAt(index_)->price;
-    case LootRecordType::Modifier: return SpellModifierAt(index_)->price;
+    switch (recordType) {
+    case LootRecordType::Weapon: return WeaponAt(index)->price;
+    case LootRecordType::Armor: return ArmorAt(index)->price;
+    case LootRecordType::Quick: return QuickItemAt(index)->price;
+    case LootRecordType::Spell: return SpellAt(index)->price;
+    case LootRecordType::Modifier: return SpellModifierAt(index)->price;
     default: return -1.0f;
     }
 }
 
-void CItemLoot::InitFromRecord(const ItemRecordHead* record) {
-    CItem::InitFromRecord(record);
+void ItemLoot::InitFromRecord(const ItemRecordHead* record) {
+    Item::InitFromRecord(record);
     auto* r = RecordAs<LootItemRecord>(record);
-    kind_ = static_cast<LootKind>(r->category);
-    recordType_ = static_cast<LootRecordType>(r->recordType);
-    index_ = r->index;
+    kind = static_cast<LootKind>(r->category);
+    recordType = static_cast<LootRecordType>(r->recordType);
+    index = r->index;
 }
 
-bool CItemLoot::IsSameAs(CItem* item) {
-    if (!CItem::IsSameAs(item)) return false;
+bool ItemLoot::IsSameAs(Item* item) {
+    if (!Item::IsSameAs(item)) return false;
     auto* other = AsLoot(item);
-    if (other->kind_ != kind_ || other->recordType_ != recordType_) return false;
-    return other->index_ == index_;
+    if (other->kind != kind || other->recordType != recordType) return false;
+    return other->index == index;
 }
 
-bool CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
+bool ItemLoot::CopyTo(Item* target, CSpellManager* spells) {
+    if (!Item::CopyTo(target, spells)) return false;
     auto* loot = AsLoot(target);
-    loot->kind_ = kind_;
-    loot->recordType_ = recordType_;
-    loot->index_ = index_;
+    loot->kind = kind;
+    loot->recordType = recordType;
+    loot->index = index;
     return true;
 }
 
-void CItemLoot::Load(CStream* stream) {
-    CItem::Load(stream);
+void ItemLoot::Load(ByteStream* stream) {
+    Item::Load(stream);
     std::uint32_t value = 0;
     stream->ReadValue(value);
-    kind_ = static_cast<LootKind>(value);
+    kind = static_cast<LootKind>(value);
     stream->ReadValue(value);
-    recordType_ = static_cast<LootRecordType>(value);
-    stream->ReadValue(index_);
+    recordType = static_cast<LootRecordType>(value);
+    stream->ReadValue(index);
 }
 
-void CItemLoot::Save(CStream* stream) {
-    CItem::Save(stream);
-    stream->WriteValue(kind_);
-    stream->WriteValue(recordType_);
-    stream->WriteValue(index_);
+void ItemLoot::Save(ByteStream* stream) {
+    Item::Save(stream);
+    stream->WriteValue(kind);
+    stream->WriteValue(recordType);
+    stream->WriteValue(index);
 }
 
 // --- Weapon and armour stats by packed id / index ------------------------------------------------

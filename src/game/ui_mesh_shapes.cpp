@@ -1,4 +1,4 @@
-// The shapes an interface sprite (CUiMesh, ui.h) is given. Rebirth's WideScreen patches each of
+// The shapes an interface sprite (UiMesh, ui.h) is given. Rebirth's WideScreen patches each of
 // them (one site: the x of the sprite's position moved by its panel offset, ui_widescreen.h), which
 // these reproduce behind the flag. docs/notes/ui.md, section 9.
 #include "ui.h"
@@ -24,11 +24,11 @@ constexpr float kViewHalfWidth = 0.48157462f;
 constexpr std::uint16_t kQuadCorners[] = {0, 1, 2, 1, 3, 2};
 
 // One packet of normals facing the viewer (0, 0, 1; the fourth row 1) and a colour pair per corner.
-void SetFlatNormals(CFigureMesh* mesh, int corners) {
-    mesh->normals_.resize(1);
-    mesh->colorsA_.resize(corners);
-    mesh->colorsB_.resize(corners);
-    NormalPacket& normal = mesh->normals_[0];
+void SetFlatNormals(FigureMesh* mesh, int corners) {
+    mesh->normals.resize(1);
+    mesh->colorsA.resize(corners);
+    mesh->colorsB.resize(corners);
+    NormalPacket& normal = mesh->normals[0];
     for (int k = 0; k < 4; ++k) {
         normal.block[0][k] = 0.0f;
         normal.block[1][k] = 0.0f;
@@ -38,9 +38,9 @@ void SetFlatNormals(CFigureMesh* mesh, int corners) {
 }
 
 // The four texture corners of the texel rectangle (u0, v0)-(u1, v1): v runs up, so 1 - v / 256.
-void SetTexelCorners(CUiMesh* sprite, int u0, int v0, int u1, int v1) {
-    sprite->texCoords_.resize(4);
-    TexCoord* texels = sprite->texCoords_.data();
+void SetTexelCorners(UiMesh* sprite, int u0, int v0, int u1, int v1) {
+    sprite->texCoords.resize(4);
+    TexCoord* texels = sprite->texCoords.data();
     float left = static_cast<float>(u0) * kTexel;
     float top = 1.0f - static_cast<float>(v0) * kTexel;
     float bottom = 1.0f - static_cast<float>(v1) * kTexel;
@@ -56,40 +56,40 @@ void SetTexelCorners(CUiMesh* sprite, int u0, int v0, int u1, int v1) {
 }
 
 // Every texture coordinate moved half a texel into its texel.
-void InsetTexels(CUiMesh* sprite) {
-    for (int i = 0; i < std::ssize(sprite->texCoords_); ++i) {
-        TexCoord* texel = sprite->texCoords_.data() + i;
+void InsetTexels(UiMesh* sprite) {
+    for (int i = 0; i < std::ssize(sprite->texCoords); ++i) {
+        TexCoord* texel = sprite->texCoords.data() + i;
         texel->u = texel->u + kHalfTexel;
         texel->v = texel->v - kHalfTexel;
     }
 }
 
 // Corner `corner` of the sprite: point `point` with texture corner `texel`.
-void SetCorner(CUiMesh* sprite, int corner, int point, int texel) {
-    MeshCorner& vertex = sprite->corners_[corner];
+void SetCorner(UiMesh* sprite, int corner, int point, int texel) {
+    MeshCorner& vertex = sprite->corners[corner];
     vertex.position = static_cast<std::uint16_t>(point);
     vertex.texCoord = static_cast<std::uint16_t>(texel);
     vertex.normal = 0;
 }
 
 // The two triangles of the quad whose four corners start at `first`, appended to the indices.
-void AddQuadIndices(CUiMesh* sprite, int first) {
+void AddQuadIndices(UiMesh* sprite, int first) {
     for (std::uint16_t corner : kQuadCorners)
-        sprite->indices_.push_back(static_cast<std::uint16_t>(first + corner));
+        sprite->indices.push_back(static_cast<std::uint16_t>(first + corner));
 }
 
 // `count` packets of points on the sprite's plane (z 0, the fourth row 1).
-void SetFlatPackets(CUiMesh* sprite, int count) {
-    sprite->vertices_.resize(count);
+void SetFlatPackets(UiMesh* sprite, int count) {
+    sprite->vertices.resize(count);
     for (int i = 0; i < count; ++i)
         for (int k = 0; k < 4; ++k) {
-            sprite->vertices_[i].z()[k] = 0.0f;
-            sprite->vertices_[i].w()[k] = 1.0f;
+            sprite->vertices[i].z()[k] = 0.0f;
+            sprite->vertices[i].w()[k] = 1.0f;
         }
 }
 
 // The three scales of a sprite drawn at `depth` in units of `scale`.
-void SetLayoutScale(CUiMesh* sprite, float depth, float scale) {
+void SetLayoutScale(UiMesh* sprite, float depth, float scale) {
     float size = kViewHalfWidth * depth * scale * 0.0025f;
     sprite->ScaleX() = size;
     sprite->ScaleY() = size;
@@ -102,10 +102,10 @@ float MovedX(float x) { return x + static_cast<float>(widescreen::PanelOffset())
 
 } // namespace
 
-void CUiMesh::SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0,
+void UiMesh::SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0,
                                   int v0, int u1, int v1) {
     SetFlatNormals(this, 4);
-    corners_.resize(4);
+    corners.resize(4);
     for (int i = 0; i < 4; ++i) SetCorner(this, i, i, i);
     // A mirrored picture starts a texel further left.
     if (u0 > u1) {
@@ -113,11 +113,11 @@ void CUiMesh::SetRectangle(float depth, float scale, float left, float top, floa
         --u1;
     }
     SetTexelCorners(this, u0, v0, u1, v1);
-    indices_.clear();
+    indices.clear();
     AddQuadIndices(this, 0);
 
     SetFlatPackets(this, 1);
-    VertexPacket& quad = vertices_[0];
+    VertexPacket& quad = vertices[0];
     // The rectangle about its centre, in units of `scale`.
     float halfWidth = (right - left) * 0.5f / scale;
     float halfHeight = (bottom - top) * 0.5f / scale;
@@ -136,13 +136,13 @@ void CUiMesh::SetRectangle(float depth, float scale, float left, float top, floa
     if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
     float x = (sumX * 0.00125f - 1.0f) * kViewHalfWidth * depth;
     Vector3 centre;
-    localPosition_ = *centre.Construct(x, y, depth);
+    localPosition = *centre.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     RefreshBuffers();
 }
 
-void CUiMesh::SetGrid(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
+void UiMesh::SetGrid(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1, int columns, int rows) {
     SetFlatNormals(this, 4);
     // The points, row by row from the top left, a cell apart in units of `scale`.
@@ -150,11 +150,11 @@ void CUiMesh::SetGrid(float depth, float scale, float left, float top, float rig
     float stepY = (bottom - top) / scale / static_cast<float>(rows);
     const int points = (columns + 1) * (rows + 1);
     const int packets = points / 4 + (points % 4 != 0 ? 1 : 0);
-    vertices_.resize(packets);
+    vertices.resize(packets);
     int column = 0;
     int row = 0;
     for (int i = 0; i < packets; ++i) {
-        VertexPacket& packet = vertices_[i];
+        VertexPacket& packet = vertices[i];
         for (int k = 0; k < 4; ++k) {
             packet.x()[k] = static_cast<float>(column) * stepX;
             packet.y()[k] = static_cast<float>(row) * stepY;
@@ -169,8 +169,8 @@ void CUiMesh::SetGrid(float depth, float scale, float left, float top, float rig
     }
     SetTexelCorners(this, u0, v0, u1, v1);
     // Every cell is a quad showing the whole picture.
-    corners_.resize(columns * rows * 4);
-    indices_.clear();
+    corners.resize(columns * rows * 4);
+    indices.clear();
     int first = 0;
     int point = 0;
     for (int r = 0; r < rows; ++r) {
@@ -188,26 +188,26 @@ void CUiMesh::SetGrid(float depth, float scale, float left, float top, float rig
     // The top left corner in front of the interface camera.
     // WideScreen (addon's handler): the left edge moved.
     const float gridLeft = widescreen::Active() ? MovedX(left) : left;
-    localPosition_.x = (gridLeft * 0.0025f - 1.0f) * kViewHalfWidth * depth;
-    localPosition_.y = (top * 0.0025f - 0.75f) * kViewHalfWidth * depth;
-    localPosition_.z = depth;
+    localPosition.x = (gridLeft * 0.0025f - 1.0f) * kViewHalfWidth * depth;
+    localPosition.y = (top * 0.0025f - 0.75f) * kViewHalfWidth * depth;
+    localPosition.z = depth;
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     RefreshBuffers();
 }
 
-void CUiMesh::SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
+void UiMesh::SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                               int u0, int v0, int u1, int v1) {
     SetFlatNormals(this, 4);
     // Four quads round the frame; each joins an outer and an inner corner to the next pair, the
     // last one back to the first.
-    corners_.resize(16);
+    corners.resize(16);
     for (int side = 0; side < 4; ++side)
         for (int k = 0; k < 4; ++k) SetCorner(this, side * 4 + k, side * 2 + k, k);
-    corners_[14].position = 0;
-    corners_[15].position = 1;
+    corners[14].position = 0;
+    corners[15].position = 1;
     SetTexelCorners(this, u0, v0, u1, v1);
-    indices_.clear();
+    indices.clear();
     for (int side = 0; side < 4; ++side) AddQuadIndices(this, side * 4);
 
     SetFlatPackets(this, 2);
@@ -218,7 +218,7 @@ void CUiMesh::SetFrame(float depth, float scale, float left, float top, float ri
     float outerY = halfHeight / scale;
     float innerX = (halfWidth - border) / scale;
     float innerY = (halfHeight - border) / scale;
-    VertexPacket& upper = vertices_[0];
+    VertexPacket& upper = vertices[0];
     upper.x()[0] = -outerX;
     upper.y()[0] = -outerY;
     upper.x()[1] = -innerX;
@@ -227,7 +227,7 @@ void CUiMesh::SetFrame(float depth, float scale, float left, float top, float ri
     upper.y()[2] = -outerY;
     upper.x()[3] = innerX;
     upper.y()[3] = -innerY;
-    VertexPacket& lower = vertices_[1];
+    VertexPacket& lower = vertices[1];
     lower.x()[0] = outerX;
     lower.y()[0] = outerY;
     lower.x()[1] = innerX;
@@ -239,21 +239,21 @@ void CUiMesh::SetFrame(float depth, float scale, float left, float top, float ri
     // WideScreen (addon's handler): both edges moved.
     float sumX = left + right;
     if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
-    localPosition_.x = (sumX * 0.00125f - 1.0f) * kViewHalfWidth * depth;
-    localPosition_.y = ((top + bottom) * 0.00125f - 0.75f) * kViewHalfWidth * depth;
-    localPosition_.z = depth;
+    localPosition.x = (sumX * 0.00125f - 1.0f) * kViewHalfWidth * depth;
+    localPosition.y = ((top + bottom) * 0.00125f - 0.75f) * kViewHalfWidth * depth;
+    localPosition.z = depth;
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     RefreshBuffers();
 }
 
-void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
+void UiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
                                  float u0, float v0, float u1, float v1, float u2, float v2) {
     SetFlatNormals(this, 4);
-    corners_.resize(4);
+    corners.resize(4);
     for (int i = 0; i < 4; ++i) SetCorner(this, i, i, i);
-    texCoords_.resize(4);
-    TexCoord* texels = texCoords_.data();
+    texCoords.resize(4);
+    TexCoord* texels = texCoords.data();
     texels[0].u = u0 * kTexel;
     texels[0].v = 1.0f - v0 * kTexel;
     texels[1].u = u1 * kTexel;
@@ -262,12 +262,12 @@ void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1
     texels[2].v = 1.0f - v2 * kTexel;
     texels[3].u = 0.0f;
     texels[3].v = 0.0f;
-    indices_.clear();
-    for (std::uint16_t corner = 0; corner < 3; ++corner) indices_.push_back(corner);
+    indices.clear();
+    for (std::uint16_t corner = 0; corner < 3; ++corner) indices.push_back(corner);
 
     SetFlatPackets(this, 1);
     // The first point is the origin; the fourth is not drawn.
-    VertexPacket& points = vertices_[0];
+    VertexPacket& points = vertices[0];
     points.x()[0] = 0.0f;
     points.y()[0] = 0.0f;
     points.x()[1] = (x1 - x0) / scale;
@@ -281,7 +281,7 @@ void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1
     const float firstX = widescreen::Active() ? MovedX(x0) : x0;
     float x = (firstX * 0.0025f - 1.0f) * kViewHalfWidth * depth;
     Vector3 first;
-    localPosition_ = *first.Construct(x, y, depth);
+    localPosition = *first.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     RefreshBuffers();

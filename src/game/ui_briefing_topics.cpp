@@ -1,5 +1,5 @@
 // The briefing / base screen's topics: a person's topics from the "b." variables and a topic's
-// title (CBriefingScreen, ui_briefing.h). See docs/notes/ui.md, "Briefing / base screen".
+// title (BriefingScreen, ui_briefing.h). See docs/notes/ui.md, "Briefing / base screen".
 #include "game_singletons.h"
 #include "text_manager.h"
 #include "text_split.h"
@@ -30,7 +30,7 @@ constexpr int kConstructorPrefixLength = 6;
 } // namespace
 
 
-void CBriefingScreen::FindTopics(int personId) {
+void BriefingScreen::FindTopics(int personId) {
     NamedFloatTable variables;
     PlayerZeroVariables(kTopicPrefix, &variables);
     std::vector<std::string> parts;
@@ -62,14 +62,14 @@ void CBriefingScreen::FindTopics(int personId) {
             return text::CompareIgnoringCase(a.data(), b.data()) < 0;
         });
     }
-    topics_.clear();
-    for (auto& topic : list) topics_.push_back(topic);
-    if (constructor.size() != 0) topics_.push_back(constructor);
+    topics.clear();
+    for (auto& entry : list) topics.push_back(entry);
+    if (constructor.size() != 0) topics.push_back(constructor);
 }
 
-std::string CBriefingScreen::TopicTitle(std::string_view topic) {
+std::string BriefingScreen::TopicTitle(std::string_view topicKey) {
     std::string title;
-    std::string key(topic);
+    std::string key(topicKey);
     str::MakeLower(key);
     bool isConstructor;
     {
@@ -77,9 +77,9 @@ std::string CBriefingScreen::TopicTitle(std::string_view topic) {
         isConstructor = str::Compare(start, kConstructorTopic) == 0;
     }
     if (isConstructor) key = kConstructorTopic;
-    CTextManager* texts = g_clientWorld.texts_;
+    TextManager* texts = g_clientWorld.texts;
     std::string section = kBriefingSection;
     section += key;
-    if (texts->CTextManager::Open(section)) title = texts->ReadLine(true);
+    if (texts->TextManager::Open(section)) title = texts->ReadLine(true);
     return title;
 }

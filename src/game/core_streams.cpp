@@ -20,17 +20,17 @@ constexpr std::uint32_t kDefaultVersion = 2000000000;
 
 } // namespace
 
-// --- CStream -----------------------------------------------------------------------------------
+// --- ByteStream -----------------------------------------------------------------------------------
 
-CStream::CStream() {
-    version_ = kDefaultVersion;
-    ok_ = 1;
+ByteStream::ByteStream() {
+    version = kDefaultVersion;
+    ok = 1;
 }
 
 
-void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
+void (*g_memoryStreamWriteObserver)(MemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
 
-std::string CStream::ReadString() {
+std::string ByteStream::ReadString() {
     std::string text;
     unsigned char byte;
     while (Read(&byte, 1) && byte) text = text + static_cast<char>(byte);
@@ -38,36 +38,36 @@ std::string CStream::ReadString() {
     return text;
 }
 
-void CStream::WriteString(std::string_view text) {
+void ByteStream::WriteString(std::string_view text) {
     const std::string bytes = text::ToAssetText(text.substr(0, text.find('\0')));
     Write(bytes.c_str(), static_cast<std::uint32_t>(bytes.size() + 1));
 }
 
-// --- CMemoryStream (its Read, Write, Seek and CopyFrom; Resize and SetSize are in core_memory_stream.cpp) --------
+// --- MemoryStream (its Read, Write, Seek and CopyFrom; Resize and SetSize are in core_memory_stream.cpp) --------
 
-CMemoryStream::CMemoryStream() {
-    position_ = 0;
-    size_ = 0;
-    bitMask_ = 0x80;
-    bitsIndex_ = -1;
+MemoryStream::MemoryStream() {
+    position = 0;
+    size = 0;
+    bitMask = 0x80;
+    bitsIndex = -1;
 }
 
-CMemoryStream::~CMemoryStream() = default;
+MemoryStream::~MemoryStream() = default;
 
-CMemoryStream::CMemoryStream(CMemoryStream&& other) noexcept
-    : bits_(other.bits_), bitMask_(other.bitMask_), bitsIndex_(other.bitsIndex_),
-      data_(std::exchange(other.data_, {})),
-      position_(std::exchange(other.position_, 0)), size_(std::exchange(other.size_, 0)) {
-    reading_ = other.reading_;
-    ok_ = other.ok_;
-    version_ = other.version_;
+MemoryStream::MemoryStream(MemoryStream&& other) noexcept
+    : bits(other.bits), bitMask(other.bitMask), bitsIndex(other.bitsIndex),
+      data(std::exchange(other.data, {})),
+      position(std::exchange(other.position, 0)), size(std::exchange(other.size, 0)) {
+    reading = other.reading;
+    ok = other.ok;
+    version = other.version;
 }
 
-void CMemoryStream::Clear() {
-    data_ = {};
-    position_ = 0;
-    size_ = 0;
-    ok_ = 1;
-    bitMask_ = 0x80;
-    bitsIndex_ = -1;
+void MemoryStream::Clear() {
+    data = {};
+    position = 0;
+    size = 0;
+    ok = 1;
+    bitMask = 0x80;
+    bitsIndex = -1;
 }

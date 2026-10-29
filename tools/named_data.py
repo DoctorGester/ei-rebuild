@@ -85,7 +85,7 @@ TYPES = {
     'DecalBuilder': 'B' * 0x7C,   # ground_decal.h
     'SpiralCache': 'if',   # ai_map.h: length, radius
     'Vector3': 'fff', 'Quaternion': 'ffff', 'FogTile': 'ffff',   # effects.h
-    'IsaacRandom': 'I' * 0x205,   # random.h: seeded_, count_, results_[256], memory_[256], a_, b_, c_
+    'IsaacRandom': 'I' * 0x205,   # random.h: seeded, count, results[256], memory[256], a, b, c
     'WeatherNoiseCurve': 'f' * (128 + 128 * 4),   # weather_noise.h: the samples, then the segments
     # Pointers ('P', a dword of game.exe's: what it points at is compared, not the address; see Definition.pack).
     'char*': 'P',
@@ -151,7 +151,7 @@ ALIGNED_ARRAY_VECTORS = {
 
 def element_format(type_, address=None):
     """TYPES' format of an element type; a template instantiation's is its template's (`lib::AlignedArray<T>`); a
-    pointer to another type is a pointer element ('P': `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
+    pointer to another type is a pointer element ('P': `DirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
     A std::vector's is the layout of the game.exe container it replaced, by its address (ALIGNED_ARRAY_VECTORS)."""
     if re.fullmatch(r'std::vector<.*>', type_):
         return TYPES['lib::AlignedArray'] if address in ALIGNED_ARRAY_VECTORS else TYPES['stlp::vector']

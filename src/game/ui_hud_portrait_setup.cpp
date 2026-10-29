@@ -1,4 +1,4 @@
-// The battle HUD's party portraits, built when the party changes: CHudPortraits::Rebuild
+// The battle HUD's party portraits, built when the party changes: HudPortraits::Rebuild
 // drops the old sprites and regions and adds one portrait per party unit (and, in a multiplayer
 // client, per player without a live unit) through AddPortrait; ShowFace copies
 // a face picture into the portrait's quarter of a face texture. See ui.h and docs/notes/items_spells.md.
@@ -41,7 +41,7 @@ void SexOf(const std::string& figure, std::string& sex) {
 
 } // namespace
 
-void CHudPortraits::ShowFace(int index, int state) {
+void HudPortraits::ShowFace(int index, int state) {
     int u;
     int v;
     switch (index % 4) {
@@ -51,7 +51,7 @@ void CHudPortraits::ShowFace(int index, int state) {
     case 3: u = 0x80; v = 0x80; break;
     default: u = state; v = state; break;   // a negative index (not reached)
     }
-    std::string name = slots_[index].faceName_;
+    std::string name = slots[index].faceName;
     if (state == 1)
         name += "a";
     else if (state == 2)
@@ -59,35 +59,35 @@ void CHudPortraits::ShowFace(int index, int state) {
     else if (state == 3)
         name += "b";
     const int texture = index / 4 + 1;
-    if (!CopyImage(objects_[texture], name, 0x80, 0x80, 0x80, 0x80, u, v))
-        CopyImage(objects_[texture], slots_[index].faceName_, 0x80, 0x80, 0x80, 0x80, u, v);
+    if (!CopyImage(objects[texture], name, 0x80, 0x80, 0x80, 0x80, u, v))
+        CopyImage(objects[texture], slots[index].faceName, 0x80, 0x80, 0x80, 0x80, u, v);
 }
 
-void CHudPortraits::AddPortrait(const std::string& model, std::string_view picture, bool wide, bool hasPlayer) {
+void HudPortraits::AddPortrait(const std::string& model, std::string_view picture, bool wide, bool hasPlayer) {
     // EI_Plugin's NPlayers: max(players, 7) portraits to a row instead of 6.
     const int perRow = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers)
                            ? (ei::rebirth::PluginNPlayers() < 7 ? 7 : ei::rebirth::PluginNPlayers())
                            : 6;
-    const int column = count_ % perRow;
+    const int column = count % perRow;
     int u = 0;
     int v = 0;
-    switch (count_ % 4) {
+    switch (count % 4) {
     case 0: CreateTexture(0x100, 0x100, TextureKind::Blank1555); break;   // a new face texture every fourth portrait
     case 1: u = 0x80; break;
     case 2: v = 0x80; break;
     case 3: u = 0x80; v = 0x80; break;
     default: break;   // a negative count (not reached; the original leaves u, v uninitialised)
     }
-    CopyImage(objects_[std::ssize(objects_) - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v);
-    slots_.emplace_back();   // identity orientations, empty strings
-    slots_[count_].hasPlayer_ = hasPlayer;
-    CUiMesh* face = AddSprite(model);
+    CopyImage(objects[std::ssize(objects) - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v);
+    slots.emplace_back();    // identity orientations, empty strings
+    slots[count].hasPlayer = hasPlayer;
+    UiMesh* face = AddSprite(model);
 
     int x;
     int width;
     if (IsMultiplayerClient()) {
         width = wide ? 0x38 : 0x28;
-        int players = static_cast<int>(net::g_gameClient->players_.size());
+        int players = static_cast<int>(net::g_gameClient->players.size());
         x = 400 - static_cast<int>(static_cast<unsigned>(width + players * 40 - 40) >> 1);
         if (column > 0) {
             x += width + column * 40 - 40;
@@ -95,7 +95,7 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
         }
     } else {
         width = 0x38;
-        x = column * 0x38 - std::ssize(owner_->party_) * 0x38 / 2 + 400;
+        x = column * 0x38 - std::ssize(owner->party) * 0x38 / 2 + 400;
     }
     const int right = x + width;
 
@@ -103,71 +103,71 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
         face->Place(static_cast<float>(static_cast<double>(x + right) * 0.5f), 548.0f, 7.0f);
         face->SetScale(width < 0x32 ? 0.22f : 0.3f);
         Quaternion turn;
-        slots_[count_].restA_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
-        face->localRotation_ = slots_[count_].restA_;
+        slots[count].restA = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
+        face->localRotation = slots[count].restA;
     } else {
         face = AddBlankSprite();
         face->SetRectangle(7.0f, 100.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 580.0f, 0, 0, 0x80,
                            0x80);
-        slots_[count_].restA_ = kHudRestRotation;
+        slots[count].restA = kHudRestRotation;
     }
-    HudPortraitSlot& slot = slots_[count_];
-    slot.current_ = slot.restA_;
-    slots_[count_].wobbleKind_ = 0;
+    HudPortraitSlot& slot = slots[count];
+    slot.current = slot.restA;
+    slots[count].wobbleKind = 0;
     if (hasPlayer) {
-        face->tint_[0] = 0.5f;
-        face->tint_[1] = 0.5f;
-        face->tint_[2] = 0.5f;
+        face->tint[0] = 0.5f;
+        face->tint[1] = 0.5f;
+        face->tint[2] = 0.5f;
     }
-    face->textureOffsetU_ = static_cast<float>(u) * kTexel;
-    face->textureOffsetV_ = static_cast<float>(v + 0x80) * kTexel;
-    face->texture_ = objects_[std::ssize(objects_) - 1];
+    face->textureOffsetU = static_cast<float>(u) * kTexel;
+    face->textureOffsetV = static_cast<float>(v + 0x80) * kTexel;
+    face->texture = objects[std::ssize(objects) - 1];
 
     // The health and mana bars (hidden for a player), the frame and the hit flash.
     const float barScale = static_cast<float>(right - x - 6);
-    CUiMesh* health = AddBlankSprite();
+    UiMesh* health = AddBlankSprite();
     health->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 587.0f, static_cast<float>(right - 3), 592.0f, 9, 9,
                          0x49, 0x16);
-    health->texture_ = objects_[0];
-    if (hasPlayer) health->visible_ = false;
-    CUiMesh* mana = AddBlankSprite();
+    health->texture = objects[0];
+    if (hasPlayer) health->visible = false;
+    UiMesh* mana = AddBlankSprite();
     mana->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 592.0f, static_cast<float>(right - 3), 597.0f, 9, 0x23,
                        0x49, 0x30);
-    mana->texture_ = objects_[0];
-    if (hasPlayer) mana->visible_ = false;
-    CUiMesh* frame = AddBlankSprite();
+    mana->texture = objects[0];
+    if (hasPlayer) mana->visible = false;
+    UiMesh* frame = AddBlankSprite();
     frame->SetFrame(20.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 3.0f, 0x1B, 0x60, 0x5A,
                     0x65);
-    frame->texture_ = objects_[0];
-    CUiMesh* flash = AddBlankSprite();
+    frame->texture = objects[0];
+    UiMesh* flash = AddBlankSprite();
     flash->SetRectangle(22.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 0, 0, 0x100,
                         0x100);
-    flash->texture_ = nullptr;
-    flash->flags_ |= FigureMeshFlag::Flat;
-    flash->visible_ = false;
+    flash->texture = nullptr;
+    flash->flags |= FigureMeshFlag::Flat;
+    flash->visible = false;
 
-    AsUiMesh(sceneObjects_[column * 5 + 4])->visible_ = false;   // the column's frame
-    slots_[column].restB_ = kHudRestRotation;
-    ++count_;
+    AsUiMesh(sceneObjects[column * 5 + 4])->visible = false;     // the column's frame
+    slots[column].restB = kHudRestRotation;
+    ++count;
     AddRegion()->SetRect(x, 510, right, 600);
 }
 
-void CHudPortraits::Rebuild(bool wide) {
+void HudPortraits::Rebuild(bool wide) {
     ClearSceneObjects();
     ClearRegions();
-    while (std::ssize(objects_) > 1) RemoveObjectAt(1);
+    while (std::ssize(objects) > 1) RemoveObjectAt(1);
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);   // the marker
-    count_ = 0;
+    count = 0;
 
     std::string build;     // "th", "me" or "fa"
     std::string sex;       // kept from one portrait to the next when the figure is neither
     std::string picture;
     std::string model;
     std::string tip;
-    slots_.clear();
+    slots.clear();
 
-    for (int i = 0; i < std::ssize(owner_->party_); ++i) {
-        CUnit* unit = owner_->party_[i];
+    for (int i = 0; i < std::ssize(owner->party); ++i) {
+        CUnit* unit = owner->party[i];
         const int skin = unit->GetPrototype()->skin;
         SexOf(unit->name, sex);
         const float figureBuild = unit->scale.y;
@@ -183,34 +183,34 @@ void CHudPortraits::Rebuild(bool wide) {
         picture = std::format("face{}{:02}", sex, skin);
         AddPortrait(model, picture, wide, false);
 
-        if (owner_->party_[i]->flags_ & MapObjectFlag::Selected) {
-            AsUiMesh(sceneObjects_[i * 5 + 4])->visible_ = true;
+        if (owner->party[i]->flags & MapObjectFlag::Selected) {
+            AsUiMesh(sceneObjects[i * 5 + 4])->visible = true;
             Quaternion turn;
-            slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);
+            slots[i].restB = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);
         }
-        slots_[i].flash_ = 0.0f;
-        slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
-        slots_[i].faceName_ = picture;
-        slots_[i].faceState_ = 0;
-        slots_[i].modelPrefix_ = std::format("infa{}", unit->name);
+        slots[i].flash = 0.0f;
+        slots[i].lastHitPoints = owner->party[i]->packedVitals.hitPoints;
+        slots[i].faceName = picture;
+        slots[i].faceState = 0;
+        slots[i].modelPrefix = std::format("infa{}", unit->name);
         const int hair = unit->GetPrototype()->hair;
-        slots_[i].modelSuffix_ = std::format("{}face", hair + 1);
-        slots_[i].build_ = figureBuild;
-        slots_[i].playerId_ = -1;
+        slots[i].modelSuffix = std::format("{}face", hair + 1);
+        slots[i].build = figureBuild;
+        slots[i].playerId = -1;
         const int tipId = 0x37 + i;
-        regions_[i]->SetTipString(owner_->UnitName(owner_->party_[i]), tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
+        regions[i]->SetTipString(owner->UnitName(owner->party[i]), tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
     }
 
     if (!IsMultiplayerClient()) return;
-    for (auto node = net::g_gameClient->players_.begin(); node != net::g_gameClient->players_.end(); ++node) {
+    for (auto node = net::g_gameClient->players.begin(); node != net::g_gameClient->players.end(); ++node) {
         auto* player = node->Get();
-        CEngineObject* unit = nullptr;
-        if (player->id_ >= 0) unit = g_clientWorld.FindUnit(player->id_);
-        if (player->state_ == 0 && player->id_ >= 0 && unit) continue;
+        EngineObject* unit = nullptr;
+        if (player->id >= 0) unit = g_clientWorld.FindUnit(player->id);
+        if (player->state == 0 && player->id >= 0 && unit) continue;
 
         UnitPrototypeRecord* prototype;
         {
-            prototype = unitdb::PrototypeNamed(std::string(player->text_));
+            prototype = unitdb::PrototypeNamed(std::string(player->text));
             // EI_Plugin's Fixes: an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = pluginfixes::FallbackPrototype();
@@ -221,13 +221,13 @@ void CHudPortraits::Rebuild(bool wide) {
         model = std::format("infa{}{}{}face", figure->figureName, build, prototype->hair + 1);
         picture = std::format("face{}{:02}", sex, prototype->skin);
         AddPortrait(model, picture, wide, true);
-        HudPortraitSlot& slot = slots_[count_ - 1];
-        slot.flash_ = 0.0f;
-        slot.lastHitPoints_ = 0;
-        slots_[count_ - 1].faceName_ = picture;
-        slots_[count_ - 1].faceState_ = 0;
-        slots_[count_ - 1].playerId_ = player->serial_;
-        regions_[count_ - 1]->SetTipString(player->name_.data());
+        HudPortraitSlot& slot = slots[count - 1];
+        slot.flash = 0.0f;
+        slot.lastHitPoints = 0;
+        slots[count - 1].faceName = picture;
+        slots[count - 1].faceState = 0;
+        slots[count - 1].playerId = player->serial;
+        regions[count - 1]->SetTipString(player->name.data());
     }
 }
 

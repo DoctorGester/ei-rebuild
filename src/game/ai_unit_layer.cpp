@@ -1,5 +1,5 @@
 // The unit occupancy layers of the AI map: stamped and lifted every time a
-// unit moves (CAIMap::MarkFootprint through CSectorMap::Move).
+// unit moves (AIMap::MarkFootprint through SectorMap::Move).
 #include "ai_unit_layer.h"
 
 
@@ -11,7 +11,7 @@ namespace {
 // A node from the free list, or a new one appended to the layer's list. The original copies an
 // uninitialised stack element into a new node's data (a default element appended to the list); the
 // fields are written before the node is used, so ours leaves NewNode's zeros.
-UnitLayerNode* TakeNode(CUnitLayer* layer) {
+UnitLayerNode* TakeNode(UnitLayer* layer) {
     if (UnitLayerNode* node = layer->freeNodes) {
         layer->freeNodes = node->next;
         return node;
@@ -29,7 +29,7 @@ bool AnyLevel(const UnitLayerNode* node) {
 
 // The block's 4x4 cells when the block lies in the map (keys are signed 16-bit halves; the
 // comparisons are unsigned, so negative blocks are outside).
-bool BlockInMap(const CAIMap* map, const UnitLayerNode* block, int* x, int* y) {
+bool BlockInMap(const AIMap* map, const UnitLayerNode* block, int* x, int* y) {
     std::int16_t halves[2];
     std::memcpy(halves, &block->key, sizeof(halves));
     *x = halves[0] * 4;
@@ -40,7 +40,7 @@ bool BlockInMap(const CAIMap* map, const UnitLayerNode* block, int* x, int* y) {
 
 } // namespace
 
-void CUnitLayer::Add(CUnit* unit, const CUnitShape* shape, int x, int y) {
+void UnitLayer::Add(CUnit* unit, const UnitShape* shape, int x, int y) {
     // The shape placed in a 20x20 grid at the unit's offset within its 4-cell block.
     std::uint8_t grid[20 * 20] = {};
     std::uint8_t* row = grid + (x & 3) + (y & 3) * 20;
@@ -66,7 +66,7 @@ void CUnitLayer::Add(CUnit* unit, const CUnitShape* shape, int x, int y) {
     freeNodes = node;
 }
 
-void CUnitLayer::Remove(CUnit* unit, int x, int y) {
+void UnitLayer::Remove(CUnit* unit, int x, int y) {
     int firstY = y >> 2, firstX = x >> 2;
     for (int by = firstY; by < firstY + 5; ++by) {
         for (int bx = firstX; bx < firstX + 5; ++bx) {
@@ -98,7 +98,7 @@ void CUnitLayer::Remove(CUnit* unit, int x, int y) {
     }
 }
 
-void CSmallUnitLayer::Set(const UnitLayerNode* block) {
+void SmallUnitLayer::Set(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) {
@@ -108,7 +108,7 @@ void CSmallUnitLayer::Set(const UnitLayerNode* block) {
     }
 }
 
-void CSmallUnitLayer::Merge(const UnitLayerNode* block) {
+void SmallUnitLayer::Merge(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) {
@@ -121,13 +121,13 @@ void CSmallUnitLayer::Merge(const UnitLayerNode* block) {
     }
 }
 
-void CLargeUnitLayer::Set(const UnitLayerNode* block) {
+void LargeUnitLayer::Set(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) std::memcpy(map->waterDepth[y + r] + x, &block->levels[r * 4], 4);
 }
 
-void CLargeUnitLayer::Merge(const UnitLayerNode* block) {
+void LargeUnitLayer::Merge(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) {

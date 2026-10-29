@@ -154,7 +154,7 @@ restart it from its DLL_PROCESS_DETACH, which hung every exit), and a game that 
 the scenario quits (where its threads were: `exit_hang.txt` in the run folder). Exit hangs come and go with the machine's load
 and are only a note (C36b, 2026-10-28). The original code gets them too: its main thread is in DirectDraw / DXGI teardown.
 An empty `exit_hang.txt`, or one that lists only threads at `ntdll!RtlUserThreadStart` with no frames, means the process had
-no running thread left and was still ending in the kernel (driver teardown). A main thread in `CSoundManager::Close` ->
+no running thread left and was still ending in the kernel (driver teardown). A main thread in `SoundManager::Close` ->
 `AIL_waveOutClose` -> DSOUND means the Windows audio service was stalled. Such a stall hits every game on the machine at
 once: the games quitting then hang in DSound's close, and the games starting then hang for their whole time limit in
 Miles' `AIL_waveOutOpen` (step 0, main thread in DSOUND under mss32). A retry passes. ei_launch's own output and exit code go to the run's `ei_launch.txt`; a report left at

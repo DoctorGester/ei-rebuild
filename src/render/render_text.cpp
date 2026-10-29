@@ -91,30 +91,30 @@ std::shared_ptr<FontFile> ParseFontFile(std::span<const unsigned char> data) {
 // they have in GDI's DrawText with the TrueType fonts the game uses.
 class StbFont final : public Font {
 public:
-    StbFont(std::shared_ptr<FontFile> file, int pixels) : file_(std::move(file)) {
-        scale_ = static_cast<float>(pixels) / static_cast<float>(file_->unitsPerEm);
-        metrics_.ascent = RoundToInt(static_cast<float>(file_->winAscent) * scale_);
-        metrics_.descent = RoundToInt(static_cast<float>(file_->winDescent) * scale_);
-        metrics_.height = metrics_.ascent + metrics_.descent;
-        metrics_.cellAscent = static_cast<int>(std::ceil(static_cast<float>(file_->winAscent) * scale_));
-        metrics_.cellDescent = static_cast<int>(std::ceil(static_cast<float>(file_->winDescent) * scale_));
-        const int hheaHeight = file_->hheaAscent - file_->hheaDescent + file_->hheaLineGap;
-        const int winHeight = file_->winAscent + file_->winDescent;
-        metrics_.lineGap = std::max(0, RoundToInt(static_cast<float>(hheaHeight - winHeight) * scale_));
-        metrics_.averageWidth = RoundToInt(static_cast<float>(file_->averageWidth) * scale_);
+    StbFont(std::shared_ptr<FontFile> newFile, int pixels) : file(std::move(newFile)) {
+        scale = static_cast<float>(pixels) / static_cast<float>(file->unitsPerEm);
+        metrics.ascent = RoundToInt(static_cast<float>(file->winAscent) * scale);
+        metrics.descent = RoundToInt(static_cast<float>(file->winDescent) * scale);
+        metrics.height = metrics.ascent + metrics.descent;
+        metrics.cellAscent = static_cast<int>(std::ceil(static_cast<float>(file->winAscent) * scale));
+        metrics.cellDescent = static_cast<int>(std::ceil(static_cast<float>(file->winDescent) * scale));
+        const int hheaHeight = file->hheaAscent - file->hheaDescent + file->hheaLineGap;
+        const int winHeight = file->winAscent + file->winDescent;
+        metrics.lineGap = std::max(0, RoundToInt(static_cast<float>(hheaHeight - winHeight) * scale));
+        metrics.averageWidth = RoundToInt(static_cast<float>(file->averageWidth) * scale);
     }
 
-    const FontMetrics& Metrics() const override { return metrics_; }
+    const FontMetrics& Metrics() const override { return metrics; }
 
     GlyphMetrics Glyph(char32_t ch) const override {
         GlyphMetrics glyph;
         if (ch < 0x20) return glyph;
-        const int index = stbtt_FindGlyphIndex(&file_->info, static_cast<int>(ch));
+        const int index = stbtt_FindGlyphIndex(&file->info, static_cast<int>(ch));
         int advance = 0, bearing = 0;
-        stbtt_GetGlyphHMetrics(&file_->info, index, &advance, &bearing);
-        glyph.advance = RoundToInt(static_cast<float>(advance) * scale_);
+        stbtt_GetGlyphHMetrics(&file->info, index, &advance, &bearing);
+        glyph.advance = RoundToInt(static_cast<float>(advance) * scale);
         int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-        stbtt_GetGlyphBitmapBox(&file_->info, index, scale_, scale_, &x0, &y0, &x1, &y1);
+        stbtt_GetGlyphBitmapBox(&file->info, index, scale, scale, &x0, &y0, &x1, &y1);
         if (x1 > x0 && y1 > y0) {
             glyph.left = x0;
             glyph.top = y0;
@@ -125,21 +125,21 @@ public:
     }
 
     int Kerning(char32_t left, char32_t right) const override {
-        const int kern = stbtt_GetCodepointKernAdvance(&file_->info, static_cast<int>(left), static_cast<int>(right));
-        return RoundToInt(static_cast<float>(kern) * scale_);
+        const int kern = stbtt_GetCodepointKernAdvance(&file->info, static_cast<int>(left), static_cast<int>(right));
+        return RoundToInt(static_cast<float>(kern) * scale);
     }
 
     void Rasterise(char32_t ch, std::uint8_t* out, int pitch) const override {
         const GlyphMetrics glyph = Glyph(ch);
         if (glyph.width <= 0) return;
-        const int index = stbtt_FindGlyphIndex(&file_->info, static_cast<int>(ch));
-        stbtt_MakeGlyphBitmap(&file_->info, out, glyph.width, glyph.height, pitch, scale_, scale_, index);
+        const int index = stbtt_FindGlyphIndex(&file->info, static_cast<int>(ch));
+        stbtt_MakeGlyphBitmap(&file->info, out, glyph.width, glyph.height, pitch, scale, scale, index);
     }
 
 private:
-    std::shared_ptr<FontFile> file_;
-    float scale_ = 1.0f;
-    FontMetrics metrics_;
+    std::shared_ptr<FontFile> file;
+    float scale = 1.0f;
+    FontMetrics metrics;
 };
 
 constexpr int kAtlasPadding = 1;   // empty pixels between glyphs, so bilinear sampling would not bleed
@@ -169,9 +169,9 @@ int EllipsisWidth(TextFont& font) { return 3 * font.Advance(U'.') + 2 * font.Ker
 
 class LineMaker {
 public:
-    LineMaker(TextFont& font, std::u32string_view text, unsigned format)
-        : font_(font), text_(text), format_(format), prefixes_(!(format & kNoPrefix)),
-          expandTabs_((format & kExpandTabs) != 0), tabLength_(8 * font.Metrics().averageWidth) {}
+    LineMaker(TextFont& newFont, std::u32string_view newText, unsigned newFormat)
+        : font(newFont), text(newText), format(newFormat), prefixes(!(newFormat & kNoPrefix)),
+          expandTabs((newFormat & kExpandTabs) != 0), tabLength(8 * newFont.Metrics().averageWidth) {}
 
     // Calls visit(index, character, x) for each character drawn of [begin, end) from x = origin;
     // returns the pen position after the last one. `prefix(index, x, width)` gets each prefix
@@ -189,18 +189,18 @@ public:
             pending = -1;
         };
         for (int i = begin; i < end; ++i) {
-            char32_t ch = text_[i];
+            char32_t ch = text[i];
             bool prefixed = false;
-            if (ch == U'&' && prefixes_) {
+            if (ch == U'&' && prefixes) {
                 if (i + 1 >= end) continue;   // a trailing '&' draws nothing
                 ++i;
-                ch = text_[i];
+                ch = text[i];
                 prefixed = ch != U'&';   // "&&" is a literal '&'
             }
             if (ch == U'\t') {
                 flush(pendingAdvance);
-                if (expandTabs_) {
-                    const int stop = tabLength_ > 0 ? origin + ((x - origin) / tabLength_ + 1) * tabLength_ : x;
+                if (expandTabs) {
+                    const int stop = tabLength > 0 ? origin + ((x - origin) / tabLength + 1) * tabLength : x;
                     if (prefixed) prefix(i, x, stop - x);   // a prefixed tab is underlined to its stop
                     prefix(-1, 0, 0);
                     x = stop;
@@ -212,16 +212,16 @@ public:
                 continue;
             }
             const int script = Script(ch);
-            if (previous && (script == 0 || run == 0 || script == run)) x += font_.Kerning(previous, ch);
+            if (previous && (script == 0 || run == 0 || script == run)) x += font.Kerning(previous, ch);
             if (script) run = script;
             flush(x - pendingX);
             if (prefixed) {
                 pending = i;
                 pendingX = x;
-                pendingAdvance = font_.Advance(ch);
+                pendingAdvance = font.Advance(ch);
             }
             visit(i, ch, x);
-            x += font_.Advance(ch);
+            x += font.Advance(ch);
             previous = ch;
         }
         flush(pendingAdvance);
@@ -234,10 +234,10 @@ public:
 
     // The end of the word starting at `at` (see the rules above).
     int WordEnd(int at) const {
-        const int size = static_cast<int>(text_.size());
-        if (IsWhite(text_[at])) return at + 1;
+        const int size = static_cast<int>(text.size());
+        if (IsWhite(text[at])) return at + 1;
         int end = at;
-        while (end < size && !IsWhite(text_[end]) && !IsLineBreak(text_[end])) ++end;
+        while (end < size && !IsWhite(text[end]) && !IsLineBreak(text[end])) ++end;
         return end;
     }
 
@@ -248,16 +248,16 @@ public:
 
     // The line starting at `begin`, and where the next one starts.
     Line Next(int begin, int rectWidth) {
-        const int size = static_cast<int>(text_.size());
+        const int size = static_cast<int>(text.size());
         Line line{begin, begin, begin, false};
-        if (format_ & kSingleLine) {   // the whole text, CR and LF as characters, no word breaks
+        if (format & kSingleLine) {    // the whole text, CR and LF as characters, no word breaks
             line.end = line.next = size;
             return line;
         }
         int at = begin;
         bool wrapped = false;
-        if (format_ & kWordBreak) {
-            while (at < size && !IsLineBreak(text_[at])) {
+        if (format & kWordBreak) {
+            while (at < size && !IsLineBreak(text[at])) {
                 const int wordEnd = WordEnd(at);
                 if (Width(begin, wordEnd) > rectWidth) {
                     // A first word too wide for the rectangle is a line of its own, even when a line
@@ -269,29 +269,29 @@ public:
                 at = wordEnd;
             }
         } else {
-            while (at < size && !IsLineBreak(text_[at])) ++at;
+            while (at < size && !IsLineBreak(text[at])) ++at;
         }
         if (wrapped) {
-            if (!(format_ & kRight) && line.next < size && IsWhite(text_[line.next])) ++line.next;
-            if ((format_ & (kRight | kCenter)) && line.end > line.begin && IsWhite(text_[line.end - 1])) --line.end;
+            if (!(format & kRight) && line.next < size && IsWhite(text[line.next])) ++line.next;
+            if ((format & (kRight | kCenter)) && line.end > line.begin && IsWhite(text[line.end - 1])) --line.end;
             return line;
         }
         line.end = line.next = at;
         if (at < size) {
-            const char32_t first = text_[at];
+            const char32_t first = text[at];
             line.next = at + 1;
-            if (line.next < size && IsLineBreak(text_[line.next]) && text_[line.next] != first) ++line.next;
+            if (line.next < size && IsLineBreak(text[line.next]) && text[line.next] != first) ++line.next;
             line.lastBreak = line.next >= size;
         }
         return line;
     }
 
 private:
-    TextFont& font_;
-    std::u32string_view text_;
-    unsigned format_;
-    bool prefixes_, expandTabs_;
-    int tabLength_;
+    TextFont& font;
+    std::u32string_view text;
+    unsigned format;
+    bool prefixes, expandTabs;
+    int tabLength;
 };
 
 } // namespace
@@ -307,14 +307,14 @@ int PointSizeToPixels(int tenths, int dpi) { return dpi * tenths / 720; }
 
 // ---- Glyph atlas --------------------------------------------------------------------------------------
 
-GlyphAtlas::GlyphAtlas(const Font& font, bool smoothing)
-    : font_(font), smoothing_(smoothing), width_(AtlasWidthFor(font)) {}
+GlyphAtlas::GlyphAtlas(const Font& newFont, bool newSmoothing)
+    : font(newFont), smoothing(newSmoothing), width(AtlasWidthFor(newFont)) {}
 
 const AtlasGlyph& GlyphAtlas::Get(char32_t ch) {
-    auto found = glyphs_.find(ch);
-    if (found != glyphs_.end()) return found->second;
-    AtlasGlyph& glyph = glyphs_[ch];
-    glyph.metrics = font_.Glyph(ch);
+    auto found = glyphs.find(ch);
+    if (found != glyphs.end()) return found->second;
+    AtlasGlyph& glyph = glyphs[ch];
+    glyph.metrics = font.Glyph(ch);
     Place(glyph, ch);
     return glyph;
 }
@@ -322,62 +322,62 @@ const AtlasGlyph& GlyphAtlas::Get(char32_t ch) {
 void GlyphAtlas::Place(AtlasGlyph& glyph, char32_t ch) {
     const int w = glyph.metrics.width, h = glyph.metrics.height;
     if (w <= 0 || h <= 0) return;
-    if (w + kAtlasPadding > width_) {
+    if (w + kAtlasPadding > width) {
         // Wider than the atlas (not at interface sizes): keep the metrics, draw nothing.
         glyph.metrics.width = glyph.metrics.height = 0;
         return;
     }
-    if (shelfX_ + w + kAtlasPadding > width_) {
-        shelfY_ += shelfHeight_;
-        shelfX_ = 0;
-        shelfHeight_ = 0;
+    if (shelfX + w + kAtlasPadding > width) {
+        shelfY += shelfHeight;
+        shelfX = 0;
+        shelfHeight = 0;
     }
-    if (shelfY_ + h + kAtlasPadding > height_) {
-        int newHeight = std::max(height_, 64);
-        while (shelfY_ + h + kAtlasPadding > newHeight) newHeight *= 2;
-        pixels_.resize(static_cast<std::size_t>(width_) * static_cast<std::size_t>(newHeight), 0);
-        height_ = newHeight;
+    if (shelfY + h + kAtlasPadding > height) {
+        int newHeight = std::max(height, 64);
+        while (shelfY + h + kAtlasPadding > newHeight) newHeight *= 2;
+        pixels.resize(static_cast<std::size_t>(width) * static_cast<std::size_t>(newHeight), 0);
+        height = newHeight;
     }
-    glyph.atlasX = shelfX_;
-    glyph.atlasY = shelfY_;
-    std::uint8_t* out = &pixels_[static_cast<std::size_t>(shelfY_) * static_cast<std::size_t>(width_) + static_cast<std::size_t>(shelfX_)];
-    font_.Rasterise(ch, out, width_);
-    if (!smoothing_) {
+    glyph.atlasX = shelfX;
+    glyph.atlasY = shelfY;
+    std::uint8_t* out = &pixels[static_cast<std::size_t>(shelfY) * static_cast<std::size_t>(width) + static_cast<std::size_t>(shelfX)];
+    font.Rasterise(ch, out, width);
+    if (!smoothing) {
         for (int y = 0; y < h; ++y)
             for (int x = 0; x < w; ++x) {
-                std::uint8_t& value = out[y * width_ + x];
+                std::uint8_t& value = out[y * width + x];
                 value = value >= 128 ? 255 : 0;
             }
     }
-    shelfX_ += w + kAtlasPadding;
-    shelfHeight_ = std::max(shelfHeight_, h + kAtlasPadding);
-    ++generation_;
+    shelfX += w + kAtlasPadding;
+    shelfHeight = std::max(shelfHeight, h + kAtlasPadding);
+    ++generation;
 }
 
 // ---- Fonts with atlases -------------------------------------------------------------------------------
 
-TextFont::TextFont(std::unique_ptr<Font> font, bool smoothing)
-    : font_(std::move(font)), atlas_(*font_, smoothing), lowAdvances_(kLowCharacters, -1) {}
+TextFont::TextFont(std::unique_ptr<Font> newFont, bool smoothing)
+    : font(std::move(newFont)), atlas(*font, smoothing), lowAdvances(kLowCharacters, -1) {}
 
 int TextFont::Kerning(char32_t left, char32_t right) {
     const std::uint64_t key = (std::uint64_t(left) << 32) | right;
-    auto found = kerning_.find(key);
-    if (found != kerning_.end()) return found->second;
-    const int kern = font_->Kerning(left, right);
-    kerning_.emplace(key, kern);
+    auto found = kerning.find(key);
+    if (found != kerning.end()) return found->second;
+    const int kern = font->Kerning(left, right);
+    kerning.emplace(key, kern);
     return kern;
 }
 
 int TextFont::Advance(char32_t ch) {
     if (ch < kLowCharacters) {
-        int& advance = lowAdvances_[ch];
-        if (advance < 0) advance = font_->Glyph(ch).advance;
+        int& advance = lowAdvances[ch];
+        if (advance < 0) advance = font->Glyph(ch).advance;
         return advance;
     }
-    auto found = advances_.find(ch);
-    if (found != advances_.end()) return found->second;
-    const int advance = font_->Glyph(ch).advance;
-    advances_.emplace(ch, advance);
+    auto found = advances.find(ch);
+    if (found != advances.end()) return found->second;
+    const int advance = font->Glyph(ch).advance;
+    advances.emplace(ch, advance);
     return advance;
 }
 

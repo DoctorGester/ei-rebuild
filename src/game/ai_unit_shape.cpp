@@ -1,4 +1,4 @@
-// The unit shapes (CUnitShape, ai_unit_layer.h): the 16 x 16 cell levels a unit of a radius stamps on the AI
+// The unit shapes (UnitShape, ai_unit_layer.h): the 16 x 16 cell levels a unit of a radius stamps on the AI
 // map's unit layers. Shared through the shape cache, whose creator virtual makes them. See docs/notes/ai.md.
 #include "ai_unit_layer.h"
 
@@ -17,10 +17,10 @@ constexpr int kMiddle = 8;
 } // namespace
 
 // No references, no flags.
-CUnitShape::CUnitShape(float newRadius) {
-    refs_ = 0;
-    flags6_ = 0;
-    flags7_ = 0;
+UnitShape::UnitShape(float newRadius) {
+    refs = 0;
+    flags6 = 0;
+    flags7 = 0;
     radius = newRadius;
     std::memset(levels, 0, sizeof(levels));
     for (int dy = -kMiddle; dy < kMiddle; ++dy) {
@@ -34,23 +34,23 @@ CUnitShape::CUnitShape(float newRadius) {
     }
 }
 
-CUnitShape::CUnitShape() {
-    refs_ = 0;
-    flags6_ = 0;
-    flags7_ = 0;
+UnitShape::UnitShape() {
+    refs = 0;
+    flags6 = 0;
+    flags7 = 0;
     OnShutdown();
 }
 
-void CUnitShape::OnShutdown() {
+void UnitShape::OnShutdown() {
     std::memset(levels, 0, sizeof(levels));
     radius = -1.0f;
 }
 
-CUnitShape* CUnitShape::Clone() {
-    auto* copy = new CUnitShape();
+UnitShape* UnitShape::Clone() {
+    auto* copy = new UnitShape();
     std::memcpy(copy->levels, levels, sizeof(levels));
     copy->radius = radius;
     return copy;
 }
 
-CUnitShape* CreateUnitShape(const ShapeCacheHandle* handle) { return new CUnitShape(handle->height); }
+UnitShape* CreateUnitShape(const ShapeCacheHandle* handle) { return new UnitShape(handle->height); }

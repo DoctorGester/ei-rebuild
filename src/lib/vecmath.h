@@ -45,7 +45,7 @@ struct Vector3 {
     float x, y, z;
 
     // The constructor Vector3(x, y, z): callers use the returned `this`.
-    Vector3* Construct(float x_, float y_, float z_);
+    Vector3* Construct(float x, float y, float z);
     float Length() const;                           // XYZ
     const Vector3* AddInPlace(const Vector3& v);    // returns &v
     void DivideInPlace(float d);
@@ -87,7 +87,7 @@ struct Quaternion {
 static_assert(sizeof(Quaternion) == 16);
 
 // Row-major 4x4 matrix (the transform library's and Direct3D's layout). Two conventions use it:
-// row vectors (v * M, translation in m[12..14]: CTransformObject::WorldMatrix, figures) and column
+// row vectors (v * M, translation in m[12..14]: TransformObject::WorldMatrix, figures) and column
 // vectors (M * v, translation in m[3], m[7], m[11]: the transform pipeline, clip codes, decals).
 // The product is Matrix4::Multiply, which sums each element in its own order.
 // The first three rows of a row-major 4x4 matrix (row stride 16 bytes).

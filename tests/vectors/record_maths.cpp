@@ -259,8 +259,8 @@ void __fastcall ToMatrixRecord(const Quaternion* self, void*, float* out) {
 
 // 004D9B80 (matrix_math.cpp)
 Recorded<PushMatrixCall> g_push("CTransformPipeline::PushMatrix");
-void(__fastcall* s_push)(CTransformPipeline*, void*, const float*, int);
-void __fastcall PushRecord(CTransformPipeline* self, void*, const float* m, int index) {
+void(__fastcall* s_push)(TransformPipeline*, void*, const float*, int);
+void __fastcall PushRecord(TransformPipeline* self, void*, const float* m, int index) {
     auto v = Zeroed<PushMatrixCall>();
     // game.exe's pipeline: its matrix stacks (a pointer to the matrices and the depth) from +0x14.
     struct ExeMatrixStack {
@@ -280,7 +280,7 @@ void __fastcall PushRecord(CTransformPipeline* self, void*, const float* m, int 
 
 } // namespace
 
-EI_RECORD(0x004D9B80, PushRecord, 6, s_push, CTransformPipeline::PushMatrix);
+EI_RECORD(0x004D9B80, PushRecord, 6, s_push, TransformPipeline::PushMatrix);
 EI_RECORD(0x004D9880, MultiplyRecord, 8, s_multiply, Matrix4::Multiply);
 EI_RECORD(0x004D9AA0, ToMatrixRecord, 6, s_toMatrix, Quaternion::ToMatrix);
 EI_RECORD(0x00401DE0, ConstructRecord, 6, s_construct, Vector3::Construct);

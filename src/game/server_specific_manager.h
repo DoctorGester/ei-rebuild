@@ -1,8 +1,8 @@
 #pragma once
 
-// The world server's manager of server-side state objects: CServerSpecificManager
+// The world server's manager of server-side state objects: ServerSpecificManager
 // (class id 0x31; created by the world server) and the torch state object it makes for
-// SideObjectType::Torch, CTorchObjectSpec (0x58 bytes, class id 0x42). Both are real virtual classes: the
+// SideObjectType::Torch, TorchObjectSpec (0x58 bytes, class id 0x42). Both are real virtual classes: the
 // compiler makes their vtables).
 // server_specific_manager.cpp. Names from the classes' own ClassName strings.
 
@@ -13,37 +13,37 @@
 #include <cstdint>
 #include <string>
 
-class CStream;
+class ByteStream;
 class CMapObject;
 struct DeltaField;
 
-class CServerSpecificManager : public CBaseManager {
+class ServerSpecificManager : public BaseManager {
 public:
-    CServerSpecificManager();
-    ~CServerSpecificManager() override;
+    ServerSpecificManager();
+    ~ServerSpecificManager() override;
 
-    // "CServerSpecificManager" (the exe's string).
+    // "ServerSpecificManager" (the exe's string).
     const char* ClassName() override;
     // 0x31.
     ClassId GetClassId() override;
-    // A new object of a SideObjectType `type`: Object3D CObject3DServer,
-    // MapObject CMapObjectServer (0x94), Unit CUnitServer (0xB20), Player the player's server
-    // object (0x5128), Torch CTorchObjectSpec (constructed inline, then its Create);
+    // A new object of a SideObjectType `type`: Object3D Object3DServer,
+    // MapObject MapObjectServer (0x94), Unit UnitServer (0xB20), Player the player's server
+    // object (0x5128), Torch TorchObjectSpec (constructed inline, then its Create);
     // null for any other type (Drawer and 0x4A too) or when the allocation fails.
-    CEngineObject* NewObject(int type) override;
+    EngineObject* NewObject(int type) override;
 };
 
-class CTorchObjectSpec : public CEngineObject {
+class TorchObjectSpec : public EngineObject {
 public:
-    CTorchObjectSpec();
-    ~CTorchObjectSpec() override;
+    TorchObjectSpec();
+    ~TorchObjectSpec() override;
 
     void Create() override { CreateSpec(); }
     void Destroy() override { DestroySpec(); }
     bool RunTick() override;                          // true
-    void Load(CStream* stream) override;                // LoadSpec
-    void Save(CStream* stream) override;                // SaveSpec
-    // "CTorchObjectSpec". 12: 0x42.
+    void Load(ByteStream* stream) override;                // LoadSpec
+    void Save(ByteStream* stream) override;                // SaveSpec
+    // "TorchObjectSpec". 12: 0x42.
     const char* ClassName() override;
     ClassId GetClassId() override;
     // 13-15: empty here; the client half (torch_client_spec.h) shows its
@@ -54,8 +54,8 @@ public:
     // 16-18: the setters below; the client half rebuilds its effects there. Callers reach them
     // through the vtable (the network read, the world server's CreateObject).
     virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) { SetLight(kind, colour, value); }
-    virtual void SetFlameSlot(const float* colour, float value, const float* values) { SetFlame(colour, value, values); }
-    virtual void SetNameSlot(const char* name) { SetName(name); }
+    virtual void SetFlameSlot(const float* colour, float value, const float* newValues) { SetFlame(colour, value, newValues); }
+    virtual void SetNameSlot(const char* newName) { SetName(newName); }
 
     // torch_spec.cpp. Create / Destroy (other names so they are no
     // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours
@@ -65,20 +65,20 @@ public:
     // colour and +0x28; the second colour, +0x2C and the four values; the name.
     void CreateSpec();
     void DestroySpec();
-    void LoadSpec(CStream* stream);
-    void SaveSpec(CStream* stream);
+    void LoadSpec(ByteStream* stream);
+    void SaveSpec(ByteStream* stream);
     void SetLight(std::uint32_t kind, const float* colour, float value);
     void SetFlame(const float* colour, float value, const float* values);
     void SetName(const char* name);
     // torch_spec.cpp: the torch's network read. Reads the kind,
-    // values_[0], values_[1], values_[2..5], both vectors and the name from `field`, then applies them
+    // values[0], values[1], values[2..5], both vectors and the name from `field`, then applies them
     // through the virtual setters (a client half rebuilds its effects there), shows the
     // effects and warms the particles up.
     void ReadNetState(DeltaField* field);
 
-    CMapObject* torch_;         // the torch it belongs to (set by the torch's attach); null when constructed
-    std::uint32_t lightKind_;   // the light's kind (SetLight; saved and sent)
-    std::string name_;
-    float values_[6];           // Create: 1, 10, 1, 1, 1, 1
-    float colours_[2][3];       // Create: both black
+    CMapObject* torch;          // the torch it belongs to (set by the torch's attach); null when constructed
+    std::uint32_t lightKind;    // the light's kind (SetLight; saved and sent)
+    std::string name;
+    float values[6];            // Create: 1, 10, 1, 1, 1, 1
+    float colours[2][3];        // Create: both black
 };

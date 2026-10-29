@@ -89,7 +89,7 @@ void EnsureConfigured() {
 
 // --- Game memory -----------------------------------------------------------------------------------
 
-std::uint32_t GameClearColour() { return g_sceneRenderer.fogColour_; }
+std::uint32_t GameClearColour() { return g_sceneRenderer.fogColour; }
 
 sg_color FromD3DColour(std::uint32_t c) {
     return sg_color{static_cast<float>((c >> 16) & 0xFF) / 255.0f, static_cast<float>((c >> 8) & 0xFF) / 255.0f,
@@ -897,9 +897,9 @@ void Fatal(const char* format, ...) {
 // The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU precision");
 // drivers are not expected to change it, but the control word is put back after every call into them anyway
 // (loaded only when it changed).
-FpuGuard::FpuGuard() : saved_(x87::ControlWord()) {}
+FpuGuard::FpuGuard() : saved(x87::ControlWord()) {}
 FpuGuard::~FpuGuard() {
-    if (x87::ControlWord() != saved_) x87::SetControlWord(saved_);
+    if (x87::ControlWord() != saved) x87::SetControlWord(saved);
 }
 
 Frame g_frame;
@@ -916,14 +916,14 @@ bool FrameSize(int* width, int* height) {
     return g_colour.id != 0;
 }
 
-CTextureDevice* DeviceObject() { return g_sceneRenderer.device_; }
+TextureDevice* DeviceObject() { return g_sceneRenderer.device; }
 
 // The size of the game's screen (the device object's).
 bool GameTargetSize(int* width, int* height) {
-    const CTextureDevice* device = DeviceObject();
+    const TextureDevice* device = DeviceObject();
     if (!device) return false;
-    *width = device->screen_.right;
-    *height = device->screen_.bottom;
+    *width = device->screen.right;
+    *height = device->screen.bottom;
     return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
 }
 
@@ -1080,10 +1080,10 @@ namespace detail {
 
 FrameStats g_stats;   // the frame being built
 
-StatsTimer::StatsTimer(double FrameStats::* field) : field_(field), start_(0), outer_(nullptr) {
+StatsTimer::StatsTimer(double FrameStats::* newField) : field(newField), start(0), outer(nullptr) {
 #if defined(EI_RENDER_VALIDATION)
-    start_ = Ticks();
-    outer_ = g_innerTimer;
+    start = Ticks();
+    outer = g_innerTimer;
     g_innerTimer = this;
 #endif
 }
@@ -1095,10 +1095,10 @@ StatsTimer::~StatsTimer() {
         QueryPerformanceFrequency(&frequency);
         g_msPerTick = frequency.QuadPart > 0 ? 1000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
     }
-    double ms = static_cast<double>(Ticks() - start_) * g_msPerTick;
-    g_stats.*field_ += ms;
-    if (outer_) g_stats.*(outer_->field_) -= ms;   // the outer timer counts its own work only
-    g_innerTimer = outer_;
+    double ms = static_cast<double>(Ticks() - start) * g_msPerTick;
+    g_stats.*field += ms;
+    if (outer) g_stats.*(outer->field) -= ms;      // the outer timer counts its own work only
+    g_innerTimer = outer;
 #endif
 }
 

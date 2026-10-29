@@ -75,8 +75,8 @@ struct QuadBuffer {
             vertices[i].v -= d;
         }
     }
-    void Draw(CSceneRenderer* renderer) {
-        renderer->device_->DrawTlTriangles(vertices, vertexCount, indices, indexCount);
+    void Draw(SceneRenderer* renderer) {
+        renderer->device->DrawTlTriangles(vertices, vertexCount, indices, indexCount);
     }
 };
 
@@ -84,44 +84,44 @@ struct QuadBuffer {
 // (part flag 0x40), else the unit's; null when it has none of those parts.
 const RECT* UnitScreenRect(CUnit* unit) {
     CObject3D* object = unit->Object3D();
-    CFigureMesh* part = nullptr;
+    FigureMesh* part = nullptr;
     for (int i = 0; i < 3 && !part; ++i) part = object->FindPartByPrefix(worlddata::HeroPartText(i));
     if (!part) return nullptr;
-    if (part->flags_ & FigureMeshFlag::Drawn) return &part->drawer_->screen_;
+    if (part->flags & FigureMeshFlag::Drawn) return &part->drawer->screen;
     return &object->dirtyRect;
 }
 
 } // namespace
 
-void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
+void FlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     if (!target || amount < 0) return;
     std::uint32_t time = (flags & kDelayed) ? gameapi::timeGetTime() + kDelay : gameapi::timeGetTime();
-    points_.push_back(FlyingHitPoint{target, amount, flags, time});
+    points.push_back(FlyingHitPoint{target, amount, flags, time});
 }
 
 // --- drawing -------------------------------------------------------------------------------------
 
-void CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
+void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     std::string text;
     DWORD now = gameapi::timeGetTime();
-    const RECT& screen = renderer->device_->screen_;
-    if (!texture_) return;
-    if (!renderer->SetTexture(0, texture_)) {
+    const RECT& screen = renderer->device->screen;
+    if (!texture) return;
+    if (!renderer->SetTexture(0, texture)) {
         game::FatalError(game::FlyingHitPointsTextureText());
         return;
     }
 
-    points_.remove_if([now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
-    if (!options::g_options.drawFlyingHp_) return;
+    points.remove_if([now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
+    if (!options::g_options.drawFlyingHp) return;
 
     const float width = static_cast<float>(screen.right), height = static_cast<float>(screen.bottom);
-    for (const FlyingHitPoint& point : points_) {
+    for (const FlyingHitPoint& point : points) {
         // The age as a fraction of the lifetime, stored as float.
         float age = static_cast<float>(static_cast<float>(static_cast<int>(now - point.time)) * kPerMillisecond);
         if (age > 1.0f || age < 0.0f) continue;   // integer-sourced: never NaN
         auto* unit = GameFindClientUnit(point.target);
         if (!unit) continue;
-        if (!(unit->flags_ & MapObjectFlag::Shown) || (unit->flags_ & MapObjectFlag::NotDrawn) || !(unit->flags_ & MapObjectFlag::InParty)) continue;
+        if (!(unit->flags & MapObjectFlag::Shown) || (unit->flags & MapObjectFlag::NotDrawn) || !(unit->flags & MapObjectFlag::InParty)) continue;
         const RECT* rect = UnitScreenRect(unit);
         if (!rect) continue;
         int middleX = (rect->left + rect->right) / 2;
@@ -196,5 +196,5 @@ void CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     }
 
     // Markers are shown once.
-    points_.remove_if([](const FlyingHitPoint& point) { return (point.flags & kMarker) != 0; });
+    points.remove_if([](const FlyingHitPoint& point) { return (point.flags & kMarker) != 0; });
 }

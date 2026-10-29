@@ -22,23 +22,29 @@
 #include <cstddef>
 #include <cstring>
 #include <initializer_list>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
 
 
-// A counted copy of `item` (CItem::Clone with its context's spell manager); `item` is held
+// A counted copy of `item` (Item::Clone with its context's spell manager); `item` is held
 // meanwhile and released after.
-CItem* CountedClone(CItem* item) {
+Item* CountedClone(Item* item) {
     if (item) item->AddRef();
-    CItem* copy = item->Clone(item->WorldContext()->SpellManager());
+    Item* copy = item->Clone(item->WorldContext()->SpellManager());
     copy->AddRef();
     return copy;
 }
 
-void Drop(CItem* item) {
+void Drop(Item* item) {
     if (item) item->Release();
+}
+
+void ReleaseAll(const std::vector<Item*>& list) {
+    for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
 }
 
 
@@ -50,13 +56,13 @@ bool Named(const std::string& name) {
 }
 
 // The party's copies of `source`'s items, each with the source's count and a reference.
-void CopyList(std::vector<CItem*>& list, const std::vector<CItem*>& source, CParty* party) {
+void CopyList(std::vector<Item*>& list, const std::vector<Item*>& source, CParty* party) {
     list.resize(std::ssize(source));
     for (int i = 0; i < std::ssize(source); ++i) {
-        CItem* item = source[i];
+        Item* item = source[i];
         list[i] = party->CopyItem(item);
-        CItem* copy = list[i];
-        copy->count_ = item->count_;
+        Item* copy = list[i];
+        copy->count = item->count;
         copy->AddRef();
     }
 }
@@ -78,12 +84,12 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party
 }
 
 PartyUnitRecord* CParty::AddMember(std::string_view name, std::string_view prototype, std::string_view extra) {
-    if (!itemManager_) Create();
+    if (!itemManager) Create();
     // The game assigned a constructed stack record to the new entry. Ours is value-initialised: the record's
     // defaults leave the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
     // which the game took from its stack and saved with the party (a determinism fix; the harness zeroes the
     // game's too, harness_leftovers.h).
-    PartyUnitRecord* record = &members_.emplace_back();
+    PartyUnitRecord* record = &members.emplace_back();
     record->texts[1] = name;
     record->unitId = name.empty() ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));
     record->texts[5] = prototype;
@@ -104,24 +110,24 @@ void CParty::FillFromPrototype(PartyUnitRecord* record) {
     // What the prototype lookup copies out of the prototype: armour names, the two weapon names, spell names.
     const std::vector<std::string>& armour = prototype->armourNames;
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
-        CItem* item = ItemFactory()->CreateItem(armour.begin()[i]);
-        CItem* copy = CountedClone(item);
+        Item* item = ItemFactory()->CreateItem(armour.begin()[i]);
+        Item* copy = CountedClone(item);
         lib::SetAtGrow(record->armor, std::ssize(record->armor), copy);
         Drop(item);
     }
     for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
         if (!Named((*weapon))) continue;
-        CItem* item = ItemFactory()->CreateItem(*weapon);
-        CItem* copy = CountedClone(item);
+        Item* item = ItemFactory()->CreateItem(*weapon);
+        Item* copy = CountedClone(item);
         lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);
     }
     const std::vector<std::string>& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
-        CSpellManager* owner = SpellManager();
-        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], owner);
-        CItem* copy = CountedClone(spell);
-        std::vector<CItem*>& list = record->spells;
+        CSpellManager* spellOwner = SpellManager();
+        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
+        Item* copy = CountedClone(spell);
+        std::vector<Item*>& list = record->spells;
         int index = std::ssize(list);
         list.resize(index + 1);
         list[index] = copy;
@@ -132,7 +138,7 @@ void CParty::FillFromPrototype(PartyUnitRecord* record) {
 
 bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
     // Each list emptied from the front (the first entry is looked up and found at 0).
-    for (std::vector<CItem*>* list : {&record->spells, &record->weapons}) {
+    for (std::vector<Item*>* list : {&record->spells, &record->weapons}) {
         while (!list->empty()) {
             (*list)[0]->Release();
             list->erase(list->begin() + 0, list->begin() + (0 + 1));
@@ -143,35 +149,35 @@ bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
 
     const std::vector<std::string>& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
-        CSpellManager* owner = SpellManager();
-        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], owner);
+        CSpellManager* spellOwner = SpellManager();
+        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
         record->spells.push_back(CountedClone(spell));
         Drop(spell);
     }
     const std::vector<std::string>& quickNames = npc->startQuickItems;
     for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
-        CItem* item = ItemFactory()->CreateItem(quickNames.begin()[i]);
-        CItem* copy = CountedClone(item);
+        Item* item = ItemFactory()->CreateItem(quickNames.begin()[i]);
+        Item* copy = CountedClone(item);
         lib::SetAtGrow(record->quickItems, std::ssize(record->quickItems), copy);
         Drop(item);
     }
     const std::vector<std::string>& weaponNames = npc->startWeapons;
     for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
-        CItem* item = ItemFactory()->CreateItem(weaponNames.begin()[i]);
-        CItem* copy = CountedClone(item);
+        Item* item = ItemFactory()->CreateItem(weaponNames.begin()[i]);
+        Item* copy = CountedClone(item);
         lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);
     }
-    money_ += npc->startMoney;
+    money += npc->startMoney;
     record->stats.AddExperience(npc->experienceFloor);
     record->texts[6] = record->texts[5];
     return true;
 }
 
 bool CParty::RemoveMember(int key) {
-    for (int i = 0; i < std::ssize(members_); ++i) {
-        if (static_cast<int>(members_[i].unitId) != key) continue;
-        members_.erase(members_.begin() + i);
+    for (int i = 0; i < std::ssize(members); ++i) {
+        if (static_cast<int>(members[i].unitId) != key) continue;
+        members.erase(members.begin() + i);
         return true;
     }
     return false;
@@ -179,15 +185,36 @@ bool CParty::RemoveMember(int key) {
 
 void CParty::OpenEdgeExits() {
     std::string variable;
-    MapRecord* zone = g_mapDatabase.FindMap(zone_);
-    if (zone == nullptr || zone->kind != kZoneKindEdge) return;
-    NamedFloatTable& variables = variables_;
-    for (int i = 0; i < std::ssize(zone->exits); ++i) {
-        MapRecord* target = g_mapDatabase.FindMap(zone->exits[i].target);
+    MapRecord* newZone = g_mapDatabase.FindMap(zone);
+    if (newZone == nullptr || newZone->kind != kZoneKindEdge) return;
+    NamedFloatTable& currentVariables = variables;
+    for (int i = 0; i < std::ssize(newZone->exits); ++i) {
+        MapRecord* target = g_mapDatabase.FindMap(newZone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
         variable = str::Format(ZoneVariableFormat(), target->name);
-        float value = variables.Get(variable);
+        float value = currentVariables.Get(variable);
         EI_NAN_AUDIT(value);
-        if (value == 0.0f) variables.Set(variable, kOpened);
+        if (value == 0.0f) currentVariables.Set(variable, kOpened);
     }
+}
+
+// --- The record's move assignment and item clear ---------------------------------------------------
+
+PartyUnitRecord& PartyUnitRecord::operator=(PartyUnitRecord&& from) noexcept {
+    if (this != &from) {
+        std::destroy_at(this);
+        std::construct_at(this, std::move(from));
+    }
+    return *this;
+}
+
+void PartyUnitRecord::ClearItems() {
+    ReleaseAll(weapons);
+    ReleaseAll(quickItems);
+    ReleaseAll(armor);
+    ReleaseAll(spells);
+    weapons.clear();
+    quickItems.clear();
+    armor.clear();
+    spells.clear();
 }

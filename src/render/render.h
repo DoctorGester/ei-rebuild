@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <vector>
 
-class CSceneRenderer;
+class SceneRenderer;
 
 namespace terrain {
 struct SectorData;
@@ -38,7 +38,7 @@ void SetAnisotropy(int level);
 int Anisotropy();
 // False in the harness build: its pinned settings file lacks the values (a read of a missing value fails a run).
 bool QualitySettingsSupported();
-// The world view's draws (CWorldClient::Render) come between BeginWorld and EndWorld.
+// The world view's draws (WorldClient::Render) come between BeginWorld and EndWorld.
 void BeginWorld();
 void EndWorld();
 // The render quality's state in the last presented frame: the levels asked for and what was drawn.
@@ -299,7 +299,7 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
 // (clipped to the texture); without an image that rectangle is filled with opaque white.
 void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height);
 // One frame of the global map's clouds (DrawClouds): 256 x 256 grey levels of value noise summed from four 32 x 32
-// layers, each made from three random words (CGlobalMapClouds, global_map_clouds.cpp).
+// layers, each made from three random words (GlobalMapClouds, global_map_clouds.cpp).
 struct CloudFrame {
     std::uint32_t words[4][3];   // each layer's a, b, c
 };
@@ -379,7 +379,7 @@ void ClearDepth(float z, const Rect* rects, int count);
 
 // Every sector page the game draws; `renderer`'s transform pipeline holds the current clip matrix; `page`:
 // ground pages 0..pages+1, water pages after them.
-void TerrainPage(const terrain::SectorData* sector, const CSceneRenderer* renderer, int page);
+void TerrainPage(const terrain::SectorData* sector, const SceneRenderer* renderer, int page);
 // What the sector's pages are built from changed: Rebuilt, its tile lists and records; Moved, vertices or
 // texture coordinates (animated tiles); WaterMoved, only the water layer's positions.
 enum class TerrainChange { Rebuilt, Moved, WaterMoved };
@@ -410,7 +410,7 @@ struct MeshLighting {
     bool sun;
     Vector3 sunDirection;          // the direction its light travels
     float sunColour[3];
-    float ambientColour[3];        // CSceneRenderer::SetColour's last
+    float ambientColour[3];        // SceneRenderer::SetColour's last
     float diffuseColour[4];        // the material's
     float emissiveColour[3];
     float coefficient;             // the options' objects lighting coefficient (CLight::SetLitColors)
@@ -423,8 +423,8 @@ struct MeshLighting {
 // renderer keeps its corners on the GPU under `owner` and rebuilds only what changed: the colours when the
 // draw wrote them, the positions on MeshChanged. A mesh draw without one is built every frame.
 struct MeshSource {
-    const void* owner;     // the figure mesh (CFigureMesh) drawn
-    const void* shared;    // the link figure (CLinkMesh) whose part it draws, else null
+    const void* owner;     // the figure mesh (FigureMesh) drawn
+    const void* shared;    // the link figure (LinkMesh) whose part it draws, else null
     bool moved;            // the positions handed over are a copy with the per-vertex offsets added
     bool coloursWritten;   // this draw wrote the mesh's colour arrays (lit, flat colours)
     const MeshLighting* lighting = nullptr;   // lit on the GPU (the draw's colours: only their alpha)
@@ -435,7 +435,7 @@ void SetMeshSource(const MeshSource* source);
 // cleared, mirrored, a part added or removed, destroyed).
 enum class MeshChange { Positions, Colours, Rebuilt };
 void MeshChanged(const void* object, MeshChange change);
-// Mesh draws between SetInterfaceDraw(true) and (false) (CUiMesh::Draw) are built every frame: the interface
+// Mesh draws between SetInterfaceDraw(true) and (false) (UiMesh::Draw) are built every frame: the interface
 // rewrites its sprites' corners in place in many places.
 void SetInterfaceDraw(bool on);
 // Harness build only ("meshcache"): as SetTerrainCache, for figure meshes.

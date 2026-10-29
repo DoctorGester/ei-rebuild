@@ -18,7 +18,7 @@ namespace {
 constexpr float kLeadInGap = 500.0f;
 } // namespace
 
-int CCamera::LoadPath(const char* name, int settle) {
+int Camera::LoadPath(const char* name, int settle) {
     lib::File file;
     int opened;
     {
@@ -35,18 +35,18 @@ int CCamera::LoadPath(const char* name, int settle) {
 
     // As many keys as the file holds whole; the array is resized as the engine's aligned arrays
     // are (the old keys kept when it grows) and filled with one read.
-    keys_.resize(static_cast<int>(file.GetLength() / sizeof(CameraKey)));
-    file.Read(keys_.data(), static_cast<unsigned>(std::ssize(keys_)) * sizeof(CameraKey));
+    keys.resize(static_cast<int>(file.GetLength() / sizeof(CameraKey)));
+    file.Read(keys.data(), static_cast<unsigned>(std::ssize(keys)) * sizeof(CameraKey));
 
-    if (settle != 0 && std::ssize(keys_) > settle && settle > 1) {
+    if (settle != 0 && std::ssize(keys) > settle && settle > 1) {
         // The first key (of the first `settle`) more than the gap after its predecessor: every key
         // before it takes its position and rotation (the times stay).
         for (int first = 1; first < settle; ++first) {
-            EI_NAN_AUDIT(keys_[first].time, keys_[first - 1].time);
-            if (keys_[first].time - keys_[first - 1].time <= kLeadInGap) continue;
+            EI_NAN_AUDIT(keys[first].time, keys[first - 1].time);
+            if (keys[first].time - keys[first - 1].time <= kLeadInGap) continue;
             for (int i = 0; i < first; ++i) {
-                keys_[i].position = keys_[first].position;
-                keys_[i].rotation = keys_[first].rotation;
+                keys[i].position = keys[first].position;
+                keys[i].rotation = keys[first].rotation;
             }
             break;
         }

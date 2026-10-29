@@ -104,13 +104,13 @@ std::string CheckConsoleLine(const std::string& argument) {
         ++caret;
         while (caret < expected.size() && (static_cast<unsigned char>(expected[caret]) & 0xC0) == 0x80) ++caret;
     }
-    const console::ConsoleWindow* console = g_interface.console_;
+    const console::ConsoleWindow* console = g_interface.console;
     if (!console) return "consoleline: no console window";
-    const std::string& line = console->input_;
-    if (line != expected || console->caret_ != static_cast<int>(caret)) {
+    const std::string& line = console->input;
+    if (line != expected || console->caret != static_cast<int>(caret)) {
         char failure[512];
         std::snprintf(failure, sizeof(failure), "consoleline: the line is \"%s\" (%d bytes), caret at byte %d; expected \"%s\" (%u bytes), caret at byte %u",
-                      line.c_str(), static_cast<int>(line.size()), console->caret_, expected.c_str(), static_cast<unsigned>(expected.size()),
+                      line.c_str(), static_cast<int>(line.size()), console->caret, expected.c_str(), static_cast<unsigned>(expected.size()),
                       static_cast<unsigned>(caret));
         return failure;
     }
@@ -179,14 +179,14 @@ std::string Check() {
 }
 
 std::string CheckChatWrap(const std::string& wanted) {
-    CChatOverlay* overlay = g_interface.root_;
+    ChatOverlay* overlay = g_interface.root;
     if (!overlay) return "chatwrap: the interface has no chat overlay";
     overlay->ClearLines();
     overlay->AddLine(wanted.c_str());
     std::string joined;
     int count = 0;
     std::string failure;
-    for (const ChatLine& entry : overlay->lines_) {
+    for (const ChatLine& entry : overlay->lines) {
         const std::string& line = entry.name;
         if (!ValidUtf8(line) && failure.empty()) failure = "chatwrap: line " + std::to_string(count) + " is not valid UTF-8: \"" + line + "\"";
         Log("harness: chatwrap: line %d: \"%s\" (%d characters)", count, line.c_str(), text::CharacterCount(line));

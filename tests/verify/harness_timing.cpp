@@ -87,26 +87,26 @@ float Median(std::vector<float> values) {
 
 } // namespace
 
-Scope::Scope(Part part) : part_(part), outer_(-1) {
+Scope::Scope(Part newPart) : part(newPart), outer(-1) {
     if (!OnMainThread()) {
-        part_ = Parts;
+        part = Parts;
         return;
     }
     const long long now = Ticks();
     const unsigned long long cycles = ThreadCycles();
     if (g_current >= 0) Credit(g_current, now, cycles);
-    outer_ = g_current;
-    g_current = part;
+    outer = g_current;
+    g_current = newPart;
     g_currentStart = now;
     g_currentCycles = cycles;
 }
 
 Scope::~Scope() {
-    if (part_ == Parts) return;
+    if (part == Parts) return;
     const long long now = Ticks();
     const unsigned long long cycles = ThreadCycles();
-    Credit(part_, now, cycles);
-    g_current = outer_;
+    Credit(part, now, cycles);
+    g_current = outer;
     g_currentStart = now;
     g_currentCycles = cycles;
 }

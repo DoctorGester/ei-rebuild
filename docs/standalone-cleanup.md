@@ -37,11 +37,11 @@ shim, stub or workaround lands.
   records, the zone specs), external structs (D3D / DirectDraw / DirectInput / Miles / Bink, TLVertex), and the
   types the function vectors copy as bytes or read in game.exe's memory through our header (UnitParams,
   DamageInfo, IsaacRandom, LogicSettings, CoderState, the path cells). Some saves write a record by a literal
-  size (`Read(&alarm, 16)`, `Read(views_, 0xC0)`): grep `Read(&x, <number>)` as well as `sizeof` before
-  dropping one. A literal-size memset can cover a pad after its member: CObject3DClientSpecific's
+  size (`Read(&alarm, 16)`, `Read(views, 0xC0)`): grep `Read(&x, <number>)` as well as `sizeof` before
+  dropping one. A literal-size memset can cover a pad after its member: Object3DClientSpecific's
   `memset(&sphere, 0, 0x38)` cleared the bounds and the 12 pad bytes after them, and zeroed `drawnRect` once the pad
   went (now `sizeof(sphere)`); grep `mem(set|cpy)(..., <number>)` near the class too. ParticleElement keeps its views' padding: the union's views alias each other's slots.
-- Placeholder names: `Vector3::Construct`, `CMappedFile::Construct` (original constructors written as
+- Placeholder names: `Vector3::Construct`, `MappedFile::Construct` (original constructors written as
   methods returning `this` so they could be registered; real constructors), `using BOOL = int` (return
   values the original sets in all of EAX).
 
@@ -66,7 +66,7 @@ shim, stub or workaround lands.
 - `gamecrt::tolower` / `strnicmp` use the game CRT's locale tables (Cyrillic archive names).
   A modern replacement must give identical results for bytes 0x80-0xFF.
 - A hash map keyed by pointer values iterates in an order that depends on the pointers (the original's STLport
-  `hash_map<void*, ...>`), so allocation order can change the order in which `CMappedResource::FreeAllFiles` frees
+  `hash_map<void*, ...>`), so allocation order can change the order in which `MappedResource::FreeAllFiles` frees
   files. Harmless so far, but check before swapping allocators or containers (C14c).
 - `x87::fistp` rounds with the FPU's current mode (used by `Terrain::HeightAt`); a C++ cast truncates.
 - x87 maths (`/arch:IA32 /fp:precise`, `include/ei/x87.h`) and the FPU control word the game runs with
@@ -76,12 +76,12 @@ shim, stub or workaround lands.
 
 Decide case by case whether the fixes layer fixes them (docs/cleanup-plan.md, "Fixes layer").
 
-- `CMappedResource::CloseFile`: the write-failure message prints the data pointer as the file name.
-- `CMappedResource::GetFile`: leaks the data buffer when the read fails.
-- `CMappedResource::GetFile` on an in-memory archive does not report the size.
+- `MappedResource::CloseFile`: the write-failure message prints the data pointer as the file name.
+- `MappedResource::GetFile`: leaks the data buffer when the read fails.
+- `MappedResource::GetFile` on an in-memory archive does not report the size.
 - `CTextureManager::LoadTexture` / `LoadTextureFrom`: leak the file buffer when the .mmp header is
   not recognised; the .bmp path reports format number 0 in its error message.
-- `CLinkFigureLoader::AddArchive`: leaks the archive object when opening fails; its log message
+- `LinkFigureLoader::AddArchive`: leaks the archive object when opening fails; its log message
   passes the path string object by value to `%s`.
 - `TweenArray::Load` reads the count into the slot of its stream argument (a stream that wrote
   nothing would leave the pointer value as the count).

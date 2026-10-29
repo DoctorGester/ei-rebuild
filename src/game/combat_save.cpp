@@ -1,4 +1,4 @@
-// CUnitServer's Load and Save virtuals. See combat.h and docs/notes/combat.md ("Rewritten").
+// UnitServer's Load and Save virtuals. See combat.h and docs/notes/combat.md ("Rewritten").
 #include "ai_alarm.h"
 #include "ai_map.h"
 #include "base_manager.h"
@@ -17,40 +17,40 @@
 #include "save_versions.h"
 
 namespace {
-// Fields of CUnitServer that combat.h leaves unnamed (offsets from the controller).
+// Fields of UnitServer that combat.h leaves unnamed (offsets from the controller).
 
 constexpr int kSavedConstant = 2;             // written after +0x180, read back and dropped
 
-int IdOrNone(const CEngineObject* object) { return object ? object->id_ : -1; }
+int IdOrNone(const EngineObject* object) { return object ? object->id : -1; }
 
 // Resolves an id read from the stream in `manager` (-1: none).
-CEngineObject* ReadObject(CStream* stream, const CBaseManager* manager) {
+EngineObject* ReadObject(ByteStream* stream, const BaseManager* manager) {
     int id;
     stream->ReadValue(id);
     return id == -1 ? nullptr : manager->FindObject(id);
 }
-CItem* ReadItem(CStream* stream, const CBaseManager* items) {
+Item* ReadItem(ByteStream* stream, const BaseManager* items) {
     int id;
     stream->ReadValue(id);
     return id == -1 ? nullptr : FindItem(items, id);
 }
-CUnit* ReadUnit(CStream* stream, const CBaseManager* objects) {
+CUnit* ReadUnit(ByteStream* stream, const BaseManager* objects) {
     int id;
     stream->ReadValue(id);
     return id == -1 ? nullptr : UnitWithId(objects, id);
 }
 
-void LoadOrder(CStream* stream, UnitAction* order) {
+void LoadOrder(ByteStream* stream, UnitAction* order) {
     stream->ReadValue(order->kind);
     stream->ReadValue(order->source);
     LoadRef(order->target, stream, &g_serverWorld);
     stream->ReadValue(order->point);
     stream->ReadValue(order->param);
     stream->ReadValue(order->modifier);
-    if (stream->version_ >= kVersionPlanDirection) stream->ReadValue(order->pointIsUseSpot);
+    if (stream->version >= kVersionPlanDirection) stream->ReadValue(order->pointIsUseSpot);
 }
 
-void SaveOrder(CStream* stream, UnitAction* order) {
+void SaveOrder(ByteStream* stream, UnitAction* order) {
     stream->WriteValue(order->kind);
     stream->WriteValue(order->source);
     SaveRef(order->target, stream);
@@ -61,7 +61,7 @@ void SaveOrder(CStream* stream, UnitAction* order) {
 }
 
 // The plan object's fields after its list (plan + 0x18 ..).
-void LoadPlanFields(CStream* stream, OrderPlan* plan) {
+void LoadPlanFields(ByteStream* stream, OrderPlan* plan) {
     stream->ReadValue(plan->startTime);
     stream->ReadValue(plan->endTime);
     stream->ReadValue(plan->targetId);
@@ -70,10 +70,10 @@ void LoadPlanFields(CStream* stream, OrderPlan* plan) {
     stream->ReadValue(plan->isCast);
     stream->ReadValue(plan->notSkill);
     stream->ReadValue(plan->castKind);
-    if (stream->version_ >= kVersionPlanDirection) stream->ReadValue(plan->direction);
+    if (stream->version >= kVersionPlanDirection) stream->ReadValue(plan->direction);
 }
 
-void SavePlanFields(CStream* stream, OrderPlan* plan) {
+void SavePlanFields(ByteStream* stream, OrderPlan* plan) {
     stream->WriteValue(plan->startTime);
     stream->WriteValue(plan->endTime);
     stream->WriteValue(plan->targetId);
@@ -89,12 +89,12 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
 
 // --- Step lists and the armour spell list ----------------------------------------------------
 
-void ArmourSpell::Save(CStream* stream) const {
+void ArmourSpell::Save(ByteStream* stream) const {
     stream->WriteValue(IdOrNone(item));
     stream->WriteValue(countdown);
 }
 
-void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream) {
+void LoadArmourSpells(std::list<ArmourSpell>* list, ByteStream* stream) {
     int count = 0;
     stream->ReadValue(count);
     for (int i = 0; i < count; ++i) {
@@ -107,12 +107,12 @@ void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream) {
     for (auto node = list->begin(); node != list->end();) {
         auto current = node;
         ++node;
-        current->item.Assign(ReadItem(stream, g_serverWorld.itemManager_));
+        current->item.Assign(ReadItem(stream, g_serverWorld.itemManager));
         stream->ReadValue(current->countdown);
     }
 }
 
-void CUnitServer::Load(CStream* stream) {
+void UnitServer::Load(ByteStream* stream) {
     aiPresence = nullptr;
     stream->ReadValue(frozen);
     stream->ReadValue(animationHeld);
@@ -135,7 +135,7 @@ void CUnitServer::Load(CStream* stream) {
     LoadOrder(stream, &action);
     LoadOrder(stream, &action2);
     stats.LoadFrom(stream);
-    if (stream->version_ < kVersionFixedMaxHitPoints)
+    if (stream->version < kVersionFixedMaxHitPoints)
         stats.fixedMaxHitPoints = unit->ServerCompanion()->vitals.maxHitPoints;
     for (int i = 0; i < 4; ++i) stream->ReadValue(moveFactors[i]);
     stream->ReadValue(tameStage);
@@ -149,30 +149,30 @@ void CUnitServer::Load(CStream* stream) {
     stream->ReadValue(deathReported);
     stream->ReadValue(sinkSpeed);
 
-    CBaseManager* effects = WorldContext()->TimedObjectManager();
+    BaseManager* effects = WorldContext()->TimedObjectManager();
     effectObject.Assign(ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->ReadValue(followsLeader);
-    followedLeader.Assign(ReadUnit(stream, g_serverWorld.objectManager_));
+    followedLeader.Assign(ReadUnit(stream, g_serverWorld.objectManager));
 
-    if (stream->version_ < kVersionActingCheckTime) return;
+    if (stream->version < kVersionActingCheckTime) return;
     stream->ReadValue(actingCheckTime);
-    if (stream->version_ < kVersionUnusedDword) return;
+    if (stream->version < kVersionUnusedDword) return;
     int unused;
     stream->ReadValue(unused);
-    if (stream->version_ < kVersionSearchingTarget) return;
+    if (stream->version < kVersionSearchingTarget) return;
     stream->ReadValue(searchingTarget);
-    if (stream->version_ < kVersionProtection) return;
+    if (stream->version < kVersionProtection) return;
     stream->ReadValue(protection);
-    if (stream->version_ < kVersionBoredTicks) return;
+    if (stream->version < kVersionBoredTicks) return;
     stream->ReadValue(boredTicks);
-    if (stream->version_ < kVersionPendingHit) return;
+    if (stream->version < kVersionPendingHit) return;
     stream->ReadValue(pendingHit);
-    if (stream->version_ < kVersionWaitFrame) return;
+    if (stream->version < kVersionWaitFrame) return;
     stream->WriteValue(waitFrame);    // sic: written, not read
 }
 
-void CUnitServer::Save(CStream* stream) {
+void UnitServer::Save(ByteStream* stream) {
     stream->WriteValue(frozen);
     stream->WriteValue(animationHeld);
     queue.Save(stream);

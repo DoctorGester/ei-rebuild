@@ -1,4 +1,4 @@
-// CAIMap::JoinLocalSearches: the bidirectional local search's meeting. The forward and backward searches
+// AIMap::JoinLocalSearches: the bidirectional local search's meeting. The forward and backward searches
 // expand in turn; after each round the best open cell of one side is looked up in the other, first forward then
 // backward, until a cell reached by both is found (or a side has nothing left: false). Then the forward
 // search's path to the cell goes into `path`, the backward one's into a scratch list, which is reversed and
@@ -19,7 +19,7 @@ constexpr int kUnreached = 0x7FFFFFFF;
 
 } // namespace
 
-bool CAIMap::JoinLocalSearches(PathCells* path, int* cost) {
+bool AIMap::JoinLocalSearches(PathCells* path, int* cost) {
     LocalSearch* forward = &forwardSearch;
     LocalSearch* backward = &backwardSearch;
     bool ok = true;
@@ -59,7 +59,7 @@ bool CAIMap::JoinLocalSearches(PathCells* path, int* cost) {
     return ok;
 }
 
-void CAIMap::BuildCellsTo(int x, int y, PathCells* path) {
+void AIMap::BuildCellsTo(int x, int y, PathCells* path) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return;
     // The original takes each cell's speed word and terrain bits from stack memory it never writes (the planner's last
     // call left a search's row offset there); ours get the plain words.

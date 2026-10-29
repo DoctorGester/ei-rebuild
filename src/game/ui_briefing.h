@@ -43,16 +43,16 @@ struct BriefingSpeaker {
 // objects; the item's texture is one of its referenced objects.
 struct BriefingShownItem {
     std::string name;
-    CUiMesh* item;
-    CEngineObject* back;
-    CEngineObject* frame;
+    UiMesh* item;
+    EngineObject* back;
+    EngineObject* frame;
 };
 
 // A network client's player list on the base screen: the players' faces along the top right, a surface under
 // them with each one's status and offer. Multiplayer only.
-class CChatWindow : public CUiWindow {
+class ChatWindow : public UiWindow {
 public:
-    explicit CChatWindow(CInterface3D* ui);
+    explicit ChatWindow(Interface3D* ui);
     // Every fourth face first makes a 256 x 256 texture; `texture` is copied into the newest texture's quarter
     // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle.
     void AddPortrait(const std::string& model, std::string_view texture);
@@ -70,29 +70,29 @@ public:
     void LeftDown(int buttons, int x, int y) override;
     void MouseMove(int buttons, int x, int y) override;
 
-    int listed_ = 0;
-    int portraits_ = 0;
-    std::vector<HeldRef<CRefObject>> players_;   // PlayerMessage records
-    std::vector<std::string> texts_;
+    int listed = 0;
+    int portraits = 0;
+    std::vector<HeldRef<RefObject>> players;    // PlayerMessage records
+    std::vector<std::string> texts;
 };
 
-class CBriefingScreen : public CUiContainer {
+class BriefingScreen : public UiContainer {
 public:
-    explicit CBriefingScreen(CInterface3D* ui);
-    void Draw(CSceneRenderer* pass) override;
+    explicit BriefingScreen(Interface3D* ui);
+    void Draw(SceneRenderer* pass) override;
     // The camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
     void CloseScreen() override;
     bool ReadyToStopPolling() override { return true; }
     // A network client's chat window shows the players again (not for 0).
     void PlayersChanged(int show) override;
-    // The chat window's pick mode (chatActive_).
-    void PlayerList(int mode) override { chatActive_ = mode; }
-    // 0x10001 leaves through exit_; 0x20001 (game over: load) opens the load window; 0x20002, 0x90001,
+    // The chat window's pick mode (chatActive).
+    void PlayerList(int mode) override { chatActive = mode; }
+    // 0x10001 leaves through exit; 0x20001 (game over: load) opens the load window; 0x20002, 0x90001,
     // 0x100001 close every window, drop the sessions and leave the game. A network client then shows its chat
     // window again.
     void MessageResult(int result) override;
     void UnitLeft(CUnit* unit) override;
-    // `unit` goes into party_ after the members whose unit records (the local player's) come before its record,
+    // `unit` goes into party after the members whose unit records (the local player's) come before its record,
     // or last without one. The first record's unit becomes the leader, and the first "b.<zone>..." variable
     // equal to 1 with three parts starts its topic (the third part) at once.
     void UnitJoined(CUnit* unit) override;
@@ -105,17 +105,17 @@ public:
     void CreateScreen() override;
     // The movers walk, turn or give up after 30 s (put at their place); then by state: 0 / 1 the people with
     // open topics are marked and the leader's pending exit is left once it can be; 2 the phrases start once no
-    // waited mover walks; 3 the next phrase when the voice ends or phraseTime_ runs out.
+    // waited mover walks; 3 the next phrase when the voice ends or phraseTime runs out.
     void Update() override;
     // Every person with a client unit is marked (dialogue event 1) when a "b.<person>.<topic>" variable is 1
     // for a topic that is not "constr...", else unmarked (event 2).
     void MarkPeople();
-    // Not when exit_'s zone is "none" or visited ("z.<zone>" not 1).
+    // Not when exit's zone is "none" or visited ("z.<zone>" not 1).
     void LeaveIfExitOpen();
 
     // With the chat window active it gets the event; otherwise by state: 0 an idle person under the cursor
     // (controller command 0 or 0xB and next command 9) opens its topics, else the leader walks to the picked
-    // ground point (not when noWalk_); 1 a topic row starts that topic; 3 the next phrase; 4 the rewards are
+    // ground point (not when noWalk); 1 a topic row starts that topic; 3 the next phrase; 4 the rewards are
     // taken.
     void LeftDown(int buttons, int x, int y) override;
     // A person who is not one of the moving ones, or with the dialogue running, is handled as a click; on the
@@ -127,9 +127,9 @@ public:
     // out of header comments".
     void KeyDown(int key, int repeat, int flags) override;
 
-    // None leaves state 0; otherwise the leader stops (unless noWalk_), "goodbye" is appended, state 1.
-    void OpenTopics(CEngineObject* person);
-    // "topic_prefix" text + " " + the topic's title, white for hoveredTopic_, else 0xA7D7E4.
+    // None leaves state 0; otherwise the leader stops (unless noWalk), "goodbye" is appended, state 1.
+    void OpenTopics(EngineObject* person);
+    // "topic_prefix" text + " " + the topic's title, white for hoveredTopic, else 0xA7D7E4.
     void DrawTopics();
     // Every "b.<person>.<topic>" variable equal to 1 (bit compare), in the variable table's order (a network
     // client sorts them), and last the last "constr..." one found.
@@ -138,8 +138,8 @@ public:
     // empty without one.
     std::string TopicTitle(std::string_view topic);
 
-    // Without a text "briefing <topic_>" back to state 0. Otherwise the server hears dialogue event 3, the
-    // camera is kept (savedCamera_, lookAt_), state 3.
+    // Without a text "briefing <topic>" back to state 0. Otherwise the server hears dialogue event 3, the
+    // camera is kept (savedCamera, lookAt), state 3.
     void StartPhrases();
     // Talking: 3 for a third speaker, else a random one of 1, 6, 7, 8 for a human ("unhuma") and 1 for others;
     // listening a random one of 2, 0xA, 0xC, 0xD for a human and 2 for others (skill animations).
@@ -152,14 +152,14 @@ public:
     // 2, 3, 6, 7 and 12.
     void ViewPreset(int preset);
     // "#hide <name>": the server hears event 2; its server unit gets flag 0x40000000 back. The third speaker
-    // walks (or runs) to thirdPlace_ and is forgotten. A name that is no unit removes the shown item of that name.
+    // walks (or runs) to thirdPlace and is forgotten. A name that is no unit removes the shown item of that name.
     void HideSpeaker(std::string_view name, bool immediate, bool run);
 
     // "goodbye" (or no leader) back to state 0; a "constr..." topic opens the camp (screen 5) with constructor N
     // when that class template exists. See docs/notes/ui.md, "Behaviour moved out of header comments".
     void StartDialogue(bool immediate, bool remember);
     // The first "b.*.<topic>" variable (three parts) completes (for player 0). A dialogue that started by
-    // itself puts the camera on the leader and frees it, otherwise it goes back to savedCamera_ / lookAt_. See
+    // itself puts the camera on the leader and frees it, otherwise it goes back to savedCamera / lookAt. See
     // docs/notes/ui.md, "Behaviour moved out of header comments".
     void FinishDialogue();
     // To `place` (its z is not read: the server unit's height is kept), facing `direction`. Unless `immediate`, a
@@ -175,46 +175,46 @@ public:
     // record's rewards. See docs/notes/ui.md, "Behaviour moved out of header comments".
     void NextPhrase(bool skip);
 
-    int exit_ = 0;                      // the exit a "leave_zone" answer leaves through
-    bool exitPending_ = false;
-    int state_ = 0;                      // dialogue state (above)
-    std::vector<std::string> topics_;   // "goodbye" last
-    std::string topic_;              // the dialogue running
-    int hoveredTopic_ = -1;               // or -1
-    bool briefingStarted_ = false;           // a dialogue started by itself
-    std::vector<CUnit*> party_;
-    CUnit* leader_ = nullptr;                  // the unit the camera follows (the hero speaker)
-    CUnit* person_ = nullptr;                  // the person the dialogue is with
-    CUnit* third_ = nullptr;                   // or null
-    // [0] person_, [1] leader_, [2] third_.
-    Vector3 places_[3] = {};
-    Vector3 directions_[3] = {};
-    Vector3 savedCamera_ = {};            // the camera position when the phrases started
-    Vector3 lookAt_ = {};                 // position + the camera rotation's z axis then
-    Vector3 thirdPlace_ = {};             // where the third speaker goes when hidden
-    Vector3 thirdDirection_ = {};
-    Vector3 personHome_ = {};             // where the person stood when the dialogue started (noWalk_)
-    Vector3 personHomeDirection_ = {};
-    std::list<BriefingMover> movers_;
-    bool firstPhrase_ = false;               // the first phrase lasts a second longer
-    std::string dialogueText_;       // shown whole when skipped
-    float phraseTime_ = 0.0f;               // time left of a phrase without a voice
-    int voice_ = -1;                      // sound id, -1 none
-    CUnit* speaking_ = nullptr;                // or null
-    CUiScrollText* text_ = nullptr;
-    CUiScrollbar* topicBar_ = nullptr;
-    int topicTop_ = 0;                   // first topic row shown
-    float savedEdgeFade_ = 0.0f;            // the map edge fade Create replaced
-    std::map<int, std::string> personTexts_;      // "pers" texts by text key
-    std::list<BriefingShownItem> shown_;
-    bool immediate_ = false;                 // the dialogue's people are placed at once
-    bool noWalk_ = false;                    // the zone's map record's cage: the leader does not walk
-    bool autosave_ = false;                  // unless loading or back from the camp
-    CChatWindow* chat_ = nullptr;              // a network client's only
-    std::vector<int> people_;       // ids of the local player's objects that are text keys
-    float markPhase_ = 0.0f;                // kept below 1
-    std::vector<BriefingSpeaker> speakers_;
-    int chatActive_;                 // the chat window takes the input
+    int exit = 0;                       // the exit a "leave_zone" answer leaves through
+    bool exitPending = false;
+    int state = 0;                       // dialogue state (above)
+    std::vector<std::string> topics;    // "goodbye" last
+    std::string topic;               // the dialogue running
+    int hoveredTopic = -1;                // or -1
+    bool briefingStarted = false;            // a dialogue started by itself
+    std::vector<CUnit*> party;
+    CUnit* leader = nullptr;                   // the unit the camera follows (the hero speaker)
+    CUnit* person = nullptr;                   // the person the dialogue is with
+    CUnit* third = nullptr;                    // or null
+    // [0] person, [1] leader, [2] third.
+    Vector3 places[3] = {};
+    Vector3 directions[3] = {};
+    Vector3 savedCamera = {};             // the camera position when the phrases started
+    Vector3 lookAt = {};                  // position + the camera rotation's z axis then
+    Vector3 thirdPlace = {};              // where the third speaker goes when hidden
+    Vector3 thirdDirection = {};
+    Vector3 personHome = {};              // where the person stood when the dialogue started (noWalk)
+    Vector3 personHomeDirection = {};
+    std::list<BriefingMover> movers;
+    bool firstPhrase = false;                // the first phrase lasts a second longer
+    std::string dialogueText;        // shown whole when skipped
+    float phraseTime = 0.0f;                // time left of a phrase without a voice
+    int voice = -1;                       // sound id, -1 none
+    CUnit* speaking = nullptr;                 // or null
+    UiScrollText* text = nullptr;
+    UiScrollbar* topicBar = nullptr;
+    int topicTop = 0;                    // first topic row shown
+    float savedEdgeFade = 0.0f;             // the map edge fade Create replaced
+    std::map<int, std::string> personTexts;       // "pers" texts by text key
+    std::list<BriefingShownItem> shown;
+    bool immediate = false;                  // the dialogue's people are placed at once
+    bool noWalk = false;                     // the zone's map record's cage: the leader does not walk
+    bool autosave = false;                   // unless loading or back from the camp
+    ChatWindow* chat = nullptr;               // a network client's only
+    std::vector<int> people;        // ids of the local player's objects that are text keys
+    float markPhase = 0.0f;                 // kept below 1
+    std::vector<BriefingSpeaker> speakers;
+    int chatActive;                  // the chat window takes the input
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).
 void SpeakerAnimationDone(CUnit* serverUnit);

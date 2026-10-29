@@ -49,21 +49,21 @@ bool IsInfinite(std::uint64_t bits) { return Exponent(bits) == 0x7FF && (bits & 
 // and put back only then (FNSTCW / FLDCW, not __control87_2's conversions; the same words).
 class MathControlWord {
 public:
-    explicit MathControlWord(std::uint32_t precision = x87::kPrecision53) : saved_(x87::ControlWord()) {
+    explicit MathControlWord(std::uint32_t precision = x87::kPrecision53) : saved(x87::ControlWord()) {
         const std::uint32_t wanted =
-            (saved_ & ~(x87::kRoundingBits | x87::kPrecisionBits)) | x87::kRoundNear | precision | x87::kExceptionMasks;
-        changed_ = wanted != saved_;
-        if (changed_) x87::SetControlWord(wanted);
+            (saved & ~(x87::kRoundingBits | x87::kPrecisionBits)) | x87::kRoundNear | precision | x87::kExceptionMasks;
+        changed = wanted != saved;
+        if (changed) x87::SetControlWord(wanted);
     }
     ~MathControlWord() {
-        if (changed_) x87::SetControlWord(saved_);
+        if (changed) x87::SetControlWord(saved);
     }
     MathControlWord(const MathControlWord&) = delete;
     MathControlWord& operator=(const MathControlWord&) = delete;
 
     // A result of an x87 add, subtract, multiply or square root at the caller's precision.
     double Round(double value) const {
-        if ((saved_ & x87::kPrecisionBits) != x87::kPrecision24) return value;
+        if ((saved & x87::kPrecisionBits) != x87::kPrecision24) return value;
         volatile float stored = static_cast<float>(value);
         return stored;
     }
@@ -73,7 +73,7 @@ public:
     double Overflow(bool negative) const {
         const double infinity = FromBits(kInfinity);
         const double largest = DBL_MAX;
-        const std::uint32_t rounding = saved_ & x87::kRoundingBits;
+        const std::uint32_t rounding = saved & x87::kRoundingBits;
         double size = infinity;
         if (rounding == x87::kRoundChop || (rounding == x87::kRoundUp && negative) ||
             (rounding == x87::kRoundDown && !negative))
@@ -82,8 +82,8 @@ public:
     }
 
 private:
-    std::uint32_t saved_;
-    bool changed_ = false;
+    std::uint32_t saved;
+    bool changed = false;
 };
 
 // frexp and ldexp by the bits for normal doubles (both exact, so the same results as std::frexp /

@@ -10,27 +10,27 @@ measures text with our own fonts.
 
 ## 1. Inventory: how the interface produces pixels
 
-The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndScene) draws the backdrop blit, then the top window's slot 20 (sprites and models), then the fade. After EndScene, `DrawOverlays` 005F5320 runs the top window's slot 22 (`RedrawBase` 005FECC0, which blits every shown surface through 005FDA80; containers recurse in 00601040), then slot 23 (tooltips 005FED00), then the status surface, FPS surface, console and the backdrop captures. The cursor 005E54A0 comes last. So every window surface is drawn above every mesh, in stack and child order.
+The frame order is this. `Interface3D::Draw` 005F5220 (inside BeginScene..EndScene) draws the backdrop blit, then the top window's slot 20 (sprites and models), then the fade. After EndScene, `DrawOverlays` 005F5320 runs the top window's slot 22 (`RedrawBase` 005FECC0, which blits every shown surface through 005FDA80; containers recurse in 00601040), then slot 23 (tooltips 005FED00), then the status surface, FPS surface, console and the backdrop captures. The cursor 005E54A0 comes last. So every window surface is drawn above every mesh, in stack and child order.
 
 | Primitive | Functions (file) | Users | Path |
 |---|---|---|---|
-| Surface blit (plain, colour-keyed, stretched with flag 2) | 005FDA80 `CUiSurface::Blit` (`ui_surface_blit.cpp`) → `render::ui::DrawCanvas` | every surface | the canvas drawn into the frame |
-| Text | 005FDE20 `CUiSurface::DrawTextIn` / `DrawTextPixels` (`ui_text_draw.cpp`; with a shadow, first in 0x080808 at +1,+1); 005FDFA0 `DrawWrappedText` (`ui_text.cpp`); extents 005F8340 by `TextExtent` (`ui_font.h`) | every window with text, the console | glyph runs on the canvas, our fonts (P2, P2a, P8) |
+| Surface blit (plain, colour-keyed, stretched with flag 2) | 005FDA80 `UiSurface::Blit` (`ui_surface_blit.cpp`) → `render::ui::DrawCanvas` | every surface | the canvas drawn into the frame |
+| Text | 005FDE20 `UiSurface::DrawTextIn` / `DrawTextPixels` (`ui_text_draw.cpp`; with a shadow, first in 0x080808 at +1,+1); 005FDFA0 `DrawWrappedText` (`ui_text.cpp`); extents 005F8340 by `TextExtent` (`ui_font.h`) | every window with text, the console | glyph runs on the canvas, our fonts (P2, P2a, P8) |
 | Fill / Clear / FrameRect | 005FE370, 005FE2F0, 005FDCB0 (`ui_surface_frame.cpp`: `Fill`, `Clear`, `FillRect`, `FrameRect`) | Clear everywhere; Fill and FrameRect in the tooltip; FillRect in the console | canvas commands |
-| Lines and carets | `CUiSurface::Line` (the pen's rule, end point left out) | console 005E4A10, chat typed line 005E3700, edit field 0065C2E0, connect list 0061D780, save / load list 006567A0 | canvas commands (P5) |
-| Single pixel | `CUiSurface::Dot` | the HUD map's marker (`CHudMap::Setup` 00641F20) | canvas command |
+| Lines and carets | `UiSurface::Line` (the pen's rule, end point left out) | console 005E4A10, chat typed line 005E3700, edit field 0065C2E0, connect list 0061D780, save / load list 006567A0 | canvas commands (P5) |
+| Single pixel | `UiSurface::Dot` | the HUD map's marker (`HudMap::Setup` 00641F20) | canvas command |
 | Screen copy into a surface | 005FD3D0 `CaptureScreen` (`ui_surface_pixels.cpp`) | escape-menu backdrop (`ui_interface_draw.cpp`), global-map pick picture (`ui_global_map_places.cpp`) | GPU copy (`ps_copy`, R28a) |
 | Greyscale, (2r+4g+b)/16 | 005FE440 | escape-menu backdrop | GPU (`ps_grey`) |
-| Save picture | 005FD440 `Rgb565Copy` → `render::ui::ReadRgb565` | escape-menu `screenCopy_` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read back |
+| Save picture | 005FD440 `Rgb565Copy` → `render::ui::ReadRgb565` | escape-menu `screenCopy` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read back |
 | Pixel read | 005FD240 `PixelAt` → `render::ui::ReadPixel` | global-map click (`ui_global_map_input.cpp`) and FindPaths (`ui_global_map_paths.cpp`): zone = (pixel>>4)&0xF − 1 | GPU read back of one pixel |
-| Swap / freeze | 005FD7A0 `SwapContents` → `render::ui::MoveCanvas`, 005FD760 `CUiSurface::Show` / `Hide` | camp, menus, backdrop modes 3 / 4, every window's `CUiWindow::Show` 006002C0 | the canvas moved aside and back |
-| Titles' RTF text | 0065F020 `CUiScrollingSurface::RenderText` (`render_rich_text.cpp` lays it out) | titles / credits | glyph runs (P8a) |
-| Sprites, shapes, minimap, portraits | `CUiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh_build.cpp` | every panel | GPU meshes |
-| 3D previews and models | `CUiModel::Draw` 005FC2F0, hero preview 005EC300, container draws 00600EF0 / 00622420, `render::ClearDepth` | camp, hero, HUD | GPU meshes |
-| Rectangles, fades, letterbox, rubber band, flying hit points | slot 19 005041F0 → `render::ScreenDraw`; `CScreenFade::Draw` 005E69C0; 005E18E0 | — | GPU |
+| Swap / freeze | 005FD7A0 `SwapContents` → `render::ui::MoveCanvas`, 005FD760 `UiSurface::Show` / `Hide` | camp, menus, backdrop modes 3 / 4, every window's `UiWindow::Show` 006002C0 | the canvas moved aside and back |
+| Titles' RTF text | 0065F020 `UiScrollingSurface::RenderText` (`render_rich_text.cpp` lays it out) | titles / credits | glyph runs (P8a) |
+| Sprites, shapes, minimap, portraits | `UiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh_build.cpp` | every panel | GPU meshes |
+| 3D previews and models | `UiModel::Draw` 005FC2F0, hero preview 005EC300, container draws 00600EF0 / 00622420, `render::ClearDepth` | camp, hero, HUD | GPU meshes |
+| Rectangles, fades, letterbox, rubber band, flying hit points | slot 19 005041F0 → `render::ScreenDraw`; `ScreenFade::Draw` 005E69C0; 005E18E0 | — | GPU |
 | Cursor | 005E54A0 → `render::Cursor`; between frames `render_cursor.cpp` (renderer.md, R9c2) | — | drawn by the present |
 | Movies | `bink_video.cpp` → `MovieFrame` / `MovieBlit` (Bink decodes on the CPU) | — | GPU draw of the CPU-decoded frame |
-| Textures written by the interface | `CopyImage` 005FFFB0 (portraits, HUD icons, help pictures), `ItemFigureTexture` 005EC020, the save / load pictures, the global-map clouds (`CGlobalMapClouds::Draw`: noise and blend in shaders) | — | GPU (R28, R28b) |
+| Textures written by the interface | `CopyImage` 005FFFB0 (portraits, HUD icons, help pictures), `ItemFigureTexture` 005EC020, the save / load pictures, the global-map clouds (`GlobalMapClouds::Draw`: noise and blend in shaders) | — | GPU (R28, R28b) |
 
 What is left on the CPU per frame in the interface: the text layout of what is drawn again (the unit panel every frame,
 tooltips), the mesh path's projection for picking bounds (plain C++ since R31), and the Bink decode.
@@ -42,7 +42,7 @@ built into the executable), laid out by `render::text` (render_text.cpp; the Dra
 drawn as glyph runs on the canvases; no GDI. The user's call (2026-10-14): not pixel-exact against GDI, but wrapping
 and drawing use one set of metrics. What follows is the original's behaviour that the layout follows.
 
-**Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts_[0..2]` as the original's
+**Fonts.** `Interface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts[0..2]` as the original's
 `CFont::CreatePointFont` 0070BBE5 sized them: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the
 pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes
 width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
@@ -54,7 +54,7 @@ width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
 
 **Metrics.**
 - The text extent 005F8340 (the original: `GetTextExtentPoint32A` on the game window's DC, scaled by 800/width and
-  600/height; ours: `TextExtent`) feeds word wrap in 005FDFA0, `CUiScrollText::Tokenize` 0065D4B0 / `DrawLines`
+  600/height; ours: `TextExtent`) feeds word wrap in 005FDFA0, `UiScrollText::Tokenize` 0065D4B0 / `DrawLines`
   0065D150 (sample "W" for each font's height), tooltip sizes, the chat (wrap at 780) and the message box.
 - 005FDE20's return value (the text's height scaled back through 005F7E30) and DT_CALCRECT measurements
   (`ui_layouts.cpp`, format 0x411) decide layout.
@@ -203,12 +203,12 @@ themselves are not in the golden. They are the coverage for N3's per-surface dif
 
 | Scenario | Frames | Families (census vtable) |
 |---|---|---|
-| `ui_gallery_menus` (no game) | menu, options, help, help_tip, options_keys, bind_box, difficulty, quit_box, load_empty, heroes, hero_new, titles | main menu and its version line (drawn before AddSurface); options 00741FAC with its spins CUiSpin 00742D5C and key rows; help 00740E28 (the options' topic); tooltip CUiTooltip 00742F64 (the help's OK button, FrameRect); message boxes (key binding, quit) and the difficulty box (BoxText, DT_CALCRECT); save / load 00741388 with an empty list; hero list 0074214C; new hero: edit field CUiEditField 00742DF4 with typed text and caret, voice list, CHeroStatsPanel 00741ABC; titles 00740C3C (RichEdit EM_FORMATRANGE) |
-| `ui_gallery_game` | hud, quest_notice, top_page2, hud_tip, console, objectives, help, escmenu, save, load, view | HUD: unit panel CHudUnitPanel 007426F8, map CHudMap 00742660 (SetPixel marker), top / movement / weapon panels, the FPS surface (`console fps on`); message log CUiScrollText 00742E9C with a quest line; HUD tooltip (movement panel); console window (lines, typed line, 2-px caret); objectives; help from the objectives; escape menu over the greyed backdrop (CaptureScreen, Greyscale, Rgb565Copy); save window (list with pen lines, picture, the name edit field) and load window with two saves; the debug view (screen 7) |
-| `ui_gallery_camp` | camp_items, camp_stats, camp_levelup, camp_trade, camp_trade4, camp_spells, camp_makeitem, map, map_escmenu | camp 0074091C; item strip 0074197C / 00621B50; item description CItemInfoPanel 007404DC (a spell weapon, a statistics row); trade panel rows 007417A8 and hero statistics (page 1); trader class 1's trade pages 2 and 4 (CTradeGrid); class 3's spell and item makers with filled strips; global map with a quest title, and the escape menu over it |
-| `ui_gallery_mp` (timeout 120) | hero_stats, connect, briefing, chat_typed, chat_sent | a made hero's statistics page; connection screen CMpConnectScreen 00741CD0 (the game list with its pen lines); the hosted game's base screen with the player list CChatWindow 00741478; chat line CChatOverlay 007400DC (typed text, caret) and a sent line (the unowned chat line surface) |
+| `ui_gallery_menus` (no game) | menu, options, help, help_tip, options_keys, bind_box, difficulty, quit_box, load_empty, heroes, hero_new, titles | main menu and its version line (drawn before AddSurface); options 00741FAC with its spins UiSpin 00742D5C and key rows; help 00740E28 (the options' topic); tooltip UiTooltip 00742F64 (the help's OK button, FrameRect); message boxes (key binding, quit) and the difficulty box (BoxText, DT_CALCRECT); save / load 00741388 with an empty list; hero list 0074214C; new hero: edit field UiEditField 00742DF4 with typed text and caret, voice list, HeroStatsPanel 00741ABC; titles 00740C3C (RichEdit EM_FORMATRANGE) |
+| `ui_gallery_game` | hud, quest_notice, top_page2, hud_tip, console, objectives, help, escmenu, save, load, view | HUD: unit panel HudUnitPanel 007426F8, map HudMap 00742660 (SetPixel marker), top / movement / weapon panels, the FPS surface (`console fps on`); message log UiScrollText 00742E9C with a quest line; HUD tooltip (movement panel); console window (lines, typed line, 2-px caret); objectives; help from the objectives; escape menu over the greyed backdrop (CaptureScreen, Greyscale, Rgb565Copy); save window (list with pen lines, picture, the name edit field) and load window with two saves; the debug view (screen 7) |
+| `ui_gallery_camp` | camp_items, camp_stats, camp_levelup, camp_trade, camp_trade4, camp_spells, camp_makeitem, map, map_escmenu | camp 0074091C; item strip 0074197C / 00621B50; item description ItemInfoPanel 007404DC (a spell weapon, a statistics row); trade panel rows 007417A8 and hero statistics (page 1); trader class 1's trade pages 2 and 4 (TradeGrid); class 3's spell and item makers with filled strips; global map with a quest title, and the escape menu over it |
+| `ui_gallery_mp` (timeout 120) | hero_stats, connect, briefing, chat_typed, chat_sent | a made hero's statistics page; connection screen MpConnectScreen 00741CD0 (the game list with its pen lines); the hosted game's base screen with the player list ChatWindow 00741478; chat line ChatOverlay 007400DC (typed text, caret) and a sent line (the unowned chat line surface) |
 | `ui_gallery_base` | base, base_topics, base_phrase, base_rewards | bz1g's base screen (briefing): Smith's topic list, a dialogue phrase with the shown items, the rewards |
-| `ui_gallery_deals` (N4a, timeout 120) | heroes_tip, camp_bought, camp_undone, camp_repair, camp_spell_parts, camp_spell_made, camp_item_finished, camp_item_parts, map_zone_tip, map_ways | the hero list's region 0 tooltip (0x9CA5); the trade panel after its click bought a school level ("give 0 exp" with the camp open) and after the undo button (RestoreRecord); page 6's repair grid CRepairGrid (empty cells); class 3's spell maker with a spell and two runes, then the made container; the item maker with a finished weapon, then its parts (DeconstructItem); the global map's zone tip (gz2g open) and the objectives window a zone click opens (FindPaths) |
+| `ui_gallery_deals` (N4a, timeout 120) | heroes_tip, camp_bought, camp_undone, camp_repair, camp_spell_parts, camp_spell_made, camp_item_finished, camp_item_parts, map_zone_tip, map_ways | the hero list's region 0 tooltip (0x9CA5); the trade panel after its click bought a school level ("give 0 exp" with the camp open) and after the undo button (RestoreRecord); page 6's repair grid RepairGrid (empty cells); class 3's spell maker with a spell and two runes, then the made container; the item maker with a finished weapon, then its parts (DeconstructItem); the global map's zone tip (gz2g open) and the objectives window a zone click opens (FindPaths) |
 
 **Not captured, and why:**
 - The status surface (005F75B0, "saving" / "loading" notices): it is drawn during the save inside one frame and gone by the
@@ -256,7 +256,7 @@ ui_quicksave's 29 frames under `uinative` equal the `uiboth` ones exactly.
 
 ### P2 done (2026-10-29): text through the glyph atlas, `ui_native::Text`
 
-**What is drawn natively.** `CUiSurface::DrawTextIn` 005FDE20 (`ui_text_draw.cpp`; `DrawWrappedText`
+**What is drawn natively.** `UiSurface::DrawTextIn` 005FDE20 (`ui_text_draw.cpp`; `DrawWrappedText`
 005FDFA0 reaches it) asks `ui_native::Text` first. On a native surface (any surface `Adopt` gave a canvas, and the screen
 copies) the text is laid out by `render::text::Layout` (DrawText's rules, section 2) in `TextFontOf(font)` and drawn
 with `GlyphRun`: the shadow in 0x080808 at +1,+1 first, then the colour. No GDI draws it. Surfaces that are not native
@@ -269,7 +269,7 @@ New Roman, at the HFONT's -lfHeight) and whose metrics come from the GDI font: a
 character's advance (GetTextExtentPoint32 less the overhang; control characters as DrawText spaces them) and the
 kerning pairs. These are the inputs N2's `ei_text_check --gdi` fed the layout to match DrawTextA on every game string
 in every font, format and width, so line breaks, alignment, DT_CALCRECT and DrawText's value are GDI's, and
-`CInterface3D::TextExtent` 005F8340 (still GDI's extent) agrees with what is drawn. The layout and wrapping the game
+`Interface3D::TextExtent` 005F8340 (still GDI's extent) agrees with what is drawn. The layout and wrapping the game
 computes are therefore unchanged in every mode; only the glyphs' shapes are ours, each drawn at GDI's pen position on
 GDI's baseline. Smoothing: off for NONANTIALIASED_QUALITY (the harness's fonts) or when SPI_GETFONTSMOOTHING is off
 (the credits); the atlas is grey coverage, never ClearType's colour fringes. This is the only place native text asks
@@ -328,15 +328,15 @@ or moved: the menus' help page, options, boxes, the HUD, camp and base screens) 
 **Families adopted** (one `Adopt` where each surface is made, before anything draws on it):
 | Family | Surface (file) |
 |---|---|
-| `menu` | the main menu's version line (`CMainMenu::AddVersionLine`, ui_main_menu.cpp; adopted before AddSurface, as it draws first) |
-| `msgbox` | `CMessageBox::CreateScreen`'s text surface (ui_layouts.cpp): the quit box, the key-binding box, every message box |
-| `difficulty` | `CDifficultyBox::CreateScreen`'s text surface (ui_layouts.cpp) |
-| `options` | the options window's surface (`COptionsWindow::CreateScreen`, ui_layouts.cpp) and each spin's (`CUiSpin`, ui_spin.cpp: only the options make spins) |
-| `objectives` | the objectives' three surfaces (ui_objectives.cpp's `NewSurface`) and its text column, a `CUiScrollText` adopted by the objectives right after it is made (the scroll text draws nothing before its first Draw; the HUD's message log and the briefing's text are the same class, left to P3b / P3d) |
-| `credits` | the titles' header line (`CCreditsScreen::CreateScreen`, ui_layouts.cpp) |
+| `menu` | the main menu's version line (`MainMenu::AddVersionLine`, ui_main_menu.cpp; adopted before AddSurface, as it draws first) |
+| `msgbox` | `MessageWindow::CreateScreen`'s text surface (ui_layouts.cpp): the quit box, the key-binding box, every message box |
+| `difficulty` | `DifficultyBox::CreateScreen`'s text surface (ui_layouts.cpp) |
+| `options` | the options window's surface (`OptionsWindow::CreateScreen`, ui_layouts.cpp) and each spin's (`UiSpin`, ui_spin.cpp: only the options make spins) |
+| `objectives` | the objectives' three surfaces (ui_objectives.cpp's `NewSurface`) and its text column, a `UiScrollText` adopted by the objectives right after it is made (the scroll text draws nothing before its first Draw; the HUD's message log and the briefing's text are the same class, left to P3b / P3d) |
+| `credits` | the titles' header line (`CreditsScreen::CreateScreen`, ui_layouts.cpp) |
 
-**Still GDI, and why.** The titles' scrolling page (`CUiScrollingSurface`, RichEdit EM_FORMATRANGE): never adopt it (see "P2 done").
-The message box's edit field (`CUiEditField`, flag 4): P5 (lines and carets). Tooltips (`CUiTooltip`, any window's): P3b. The help
+**Still GDI, and why.** The titles' scrolling page (`UiScrollingSurface`, RichEdit EM_FORMATRANGE): never adopt it (see "P2 done").
+The message box's edit field (`UiEditField`, flag 4): P5 (lines and carets). Tooltips (`UiTooltip`, any window's): P3b. The help
 window over the options / objectives: P3d. The escape menu has no surface of its own; its greyed backdrop and the save picture are
 R28a's screen copies (GPU-only in every mode, nothing to adopt).
 
@@ -373,10 +373,10 @@ lines, the typed line); the fill, the selection and the caret are identical.
 **Families adopted** (one `Adopt` where each surface is made, before anything draws on it):
 | Family | Surface (file) |
 |---|---|
-| `unitpanel` | the unit panel's surface (`CHudUnitPanel`'s setup, ui_hud_slide.cpp): the name (006462A0's `DrawWrappedText`), health and mana numbers, the info page's lines, the effects' names and times; redrawn every frame |
-| `messagelog` | the battle screen's message log, a `CUiScrollText` adopted by `CBattleScreen` right after it is made (ui_battle_setup.cpp; the scroll text draws nothing before its first Draw); the top panel's pages are this log's text |
-| `tooltip` | every `CUiTooltip`'s surface (ui_tooltip.cpp): the HUD's, and the menus', hero list's and global map's tips too (one class); Fill, FrameRect and text all recorded already |
-| `hudmap` | the HUD map's dot (`CHudMap`'s setup, ui_hud_slide.cpp): its one SetPixel also recorded (`ui_native::Pixel`, new: `render::ui::Pixel`) |
+| `unitpanel` | the unit panel's surface (`HudUnitPanel`'s setup, ui_hud_slide.cpp): the name (006462A0's `DrawWrappedText`), health and mana numbers, the info page's lines, the effects' names and times; redrawn every frame |
+| `messagelog` | the battle screen's message log, a `UiScrollText` adopted by `BattleScreen` right after it is made (ui_battle_setup.cpp; the scroll text draws nothing before its first Draw); the top panel's pages are this log's text |
+| `tooltip` | every `UiTooltip`'s surface (ui_tooltip.cpp): the HUD's, and the menus', hero list's and global map's tips too (one class); Fill, FrameRect and text all recorded already |
+| `hudmap` | the HUD map's dot (`HudMap`'s setup, ui_hud_slide.cpp): its one SetPixel also recorded (`ui_native::Pixel`, new: `render::ui::Pixel`) |
 
 The clock, the quick items, the top panel's frame, the movement panel and the other HUD panels have no surfaces (sprites only):
 nothing to adopt. The camp's and hero screen's quick strip is P3c's (ui_panel_draws.cpp).
@@ -397,18 +397,18 @@ frame as help), so the menus' tips are covered by ui_compare only.
 **Families adopted** (one `Adopt` where each surface is made, before anything draws on it):
 | Family | Surfaces (file) |
 |---|---|
-| `camp` | the camp's two text surfaces (`CCampPages`, ui_camp_create.cpp's `NewSurface`) and the spell maker's (`CSpellMakerPage::BuildSpellMaker`, ui_hero_panels.cpp) |
-| `hero` | the hero screen's four (`ui_hero_screen_create.cpp`'s `NewSurface`: statistics, name, commands, rename) and the statistics column (`CHeroStatsPanel::Build`) |
-| `trade` | the trade panel (`CTradePanel::Build`) and the trade / repair grids (`BuildCellGrid`) |
-| `iteminfo` | the item description (`CItemInfoPanel::Build`) |
-| `itemstrip` | the item strips' count and number surfaces (`CUiItemStrip::Setup`) |
+| `camp` | the camp's two text surfaces (`CampPages`, ui_camp_create.cpp's `NewSurface`) and the spell maker's (`SpellMakerPage::BuildSpellMaker`, ui_hero_panels.cpp) |
+| `hero` | the hero screen's four (`ui_hero_screen_create.cpp`'s `NewSurface`: statistics, name, commands, rename) and the statistics column (`HeroStatsPanel::Build`) |
+| `trade` | the trade panel (`TradePanel::Build`) and the trade / repair grids (`BuildCellGrid`) |
+| `iteminfo` | the item description (`ItemInfoPanel::Build`) |
+| `itemstrip` | the item strips' count and number surfaces (`UiItemStrip::Setup`) |
 | `exchange` | the player exchange window's four (`ui_exchange.cpp`) |
 
 `camp` and `hero` go through `ui_native::AdoptUnlessWidescreen`: not adopted while Rebirth's WideScreen layout is active (vanilla only
-for now; the other families have no wide layout of their own). None of these holds a `CUiScrollText`, so nothing is adopted after
+for now; the other families have no wide layout of their own). None of these holds a `UiScrollText`, so nothing is adopted after
 construction here.
 
-**Still GDI, and why.** The hero screen's and the exchange window's edit fields (`CUiEditField`, their own surfaces): P5 (carets).
+**Still GDI, and why.** The hero screen's and the exchange window's edit fields (`UiEditField`, their own surfaces): P5 (carets).
 Everything the families' windows draw through the surface functions (Clear, DrawWrappedText, DrawTextIn) is recorded; none
 of these files uses a pen, FillSolidRect or SetPixel directly.
 
@@ -428,10 +428,10 @@ the briefing are unchanged.
 **Families adopted** (one `Adopt` where each surface is made, before anything draws on it):
 | Family | Surfaces (file) |
 |---|---|
-| `briefing` | the base screen's topic rows and person's label (`CBriefingScreen`'s setup, ui_briefing_create.cpp) and its text, a `CUiScrollText` adopted right after it is made |
-| `globalmap` | the zone tip with its quests (surface 0) and the allod's title and clock (ui_global_map.cpp); not the pick picture `backdrop_` (P6) |
+| `briefing` | the base screen's topic rows and person's label (`BriefingScreen`'s setup, ui_briefing_create.cpp) and its text, a `UiScrollText` adopted right after it is made |
+| `globalmap` | the zone tip with its quests (surface 0) and the allod's title and clock (ui_global_map.cpp); not the pick picture `backdrop` (P6) |
 | `help` | the help page's header, body and footer (`NewSurface`, ui_help_page.cpp): over the options, the objectives and the zone tutorials |
-| `chat` | the player list (`CChatWindow`, ui_chat_window.cpp) and the chat overlay's line surfaces (ui_chat_overlay.cpp; the typed line is P5's) |
+| `chat` | the player list (`ChatWindow`, ui_chat_window.cpp) and the chat overlay's line surfaces (ui_chat_overlay.cpp; the typed line is P5's) |
 
 The global map's titles are drawn with DT_SINGLELINE | DT_VCENTER | DT_CENTER (0x25), which the layout did not follow (they fell
 back to GDI). `render::text::Layout` now takes DT_SINGLELINE (section "DrawText layout rules"); `ei_text_check --gdi` holds it
@@ -451,10 +451,10 @@ frame (the help page's native glyphs are 2%).
 rule: end point left out):
 | Family | Surface (file) | Line |
 |---|---|---|
-| `edit` | every `CUiEditField`'s (ui_edit_field.cpp): the message box's, new hero's, hero screen's, exchange's and connection screen's fields | the caret in `caretColour_` |
+| `edit` | every `UiEditField`'s (ui_edit_field.cpp): the message box's, new hero's, hero screen's, exchange's and connection screen's fields | the caret in `caretColour` |
 | `chat` | the chat overlay's typed line (ui_chat_overlay.cpp) | the caret in white |
 | `connect` | the connection screen's game list and its "connecting" note (`NewSurface`, ui_connect_screen.cpp) | the line under the column titles (ui_connect_list.cpp) |
-| `saveload` | the save / load window's list (`CSaveLoadWindow::CreateScreen`, ui_layouts.cpp) | the save name's caret (ui_saveload_list.cpp) |
+| `saveload` | the save / load window's list (`SaveLoadWindow::CreateScreen`, ui_layouts.cpp) | the save name's caret (ui_saveload_list.cpp) |
 
 The edit field has no selection (only the console has one, P4). **Still GDI:** the pens still draw into the memory too (it stays
 the source of truth until P8), and the connect list's Rebirth names (`DrawEllipsis`, DT_END_ELLIPSIS) take `Text`'s GDI fall-back.
@@ -482,7 +482,7 @@ License section says so.
 
 ### P8 done (2026-10-29): the canvas is the only path
 
-**One path** (user 2026-10-29). Every window surface gets its canvas when it is made (`CUiSurface::MakeCanvas`) and
+**One path** (user 2026-10-29). Every window surface gets its canvas when it is made (`UiSurface::MakeCanvas`) and
 the canvas is the surface's pixels: no DIB section, no memory for a window, no memcmp or upload at a blit, no families
 to adopt, no `uinative` / `uiboth` words (an EI_RENDER word that is no longer known is logged and ignored). The
 surface functions draw only on the canvas: `Clear` / `Fill` / `FillRect` / `FrameRect`, `Line` (the edit field's,
@@ -550,11 +550,11 @@ at, and it no longer runs off the bottom of the screen.
 
 ### The titles' rich text (P8a, 2026-10-29)
 
-**What draws it.** The titles' scrolling surface (`CUiScrollingSurface`, ui_scrolling_surface.cpp; 0065ED30-0065F1C0)
+**What draws it.** The titles' scrolling surface (`UiScrollingSurface`, ui_scrolling_surface.cpp; 0065ED30-0065F1C0)
 no longer loads Riched20.dll or makes a RichEdit control, and has no DIB page or memory DC. `LoadRtf` reads the RTF
 block with `render::text::ReadRtf` and lays it out once at the surface's width with `LayoutRichText`
 (src/render/render_rich_text.{h,cpp}, no Windows calls); `RenderText` fills the canvas white (the key) and draws the
-lines the surface shows as glyph runs (`RichDraws`: one `GlyphRun` per font and colour), its top `offset_` twips
+lines the surface shows as glyph runs (`RichDraws`: one `GlyphRun` per font and colour), its top `offset` twips
 above the surface's. The speed, the offsets in twips and the end are the original's: the whole text fitting above
 1000 twips below the surface keeps the offset, and 1000 twips plus the height past it stop the scroll; "fits" is
 the text's pixel bottom at most the page bottom's (`TwipsToPixels`, MulDiv's rounding), which is where RichEdit's
@@ -580,7 +580,7 @@ smoothing, as RichEdit drew it with the titles' font smoothing off.
 
 **Scale (P8c, 2026-10-29).** Twips and points go to pixels at a DPI taken from the window, not the system's: `TitlesDpi`
 (ui_scrolling_surface.cpp) = 96 * (screen width / 800) * (0.01 / `widescreen::FontScale`), the scale the interface's fonts
-get in `CInterface3D::Create` (width over FontScale, so 96 at 800 pixels wide and, in Rebirth's WideScreen, following the
+get in `Interface3D::Create` (width over FontScale, so 96 at 800 pixels wide and, in Rebirth's WideScreen, following the
 height as the other fonts do). The titles' text, indents, wrap and scroll then grow with the window like the rest of
 the interface and do not move with the system DPI (the original and P8a took `GetDpiForSystem`: 192 on a 200% display, 96
 on 100%, so the same window showed text twice as big). The page width, the surface's height in twips and the end rule use the same DPI.
@@ -604,7 +604,7 @@ also had ClearType fringes, as RichEdit asked the system's smoothing rather than
 
 Both were the original's behaviour (game.exe's `ui_gallery_game` frames objectives / help show the same), changed
 on the user's playtest; layout and state are otherwise untouched, goldens hold no frames.
-- **Justified lines** (`CUiScrollText::DrawLines`, ui_scroll_text.cpp: the briefing, the objectives, the message
+- **Justified lines** (`UiScrollText::DrawLines`, ui_scroll_text.cpp: the briefing, the objectives, the message
   log). The original shared the room the words leave by the line's tokens less one, format tokens included, so a
   line holding a colour / font token (the text's first line usually) stopped one gap short of the right edge; ours
   divides by the words less one. A wrapped line whose gaps would pass `kMaxStretch` (3) normal gaps (a third of the
@@ -612,10 +612,10 @@ on the user's playtest; layout and state are otherwise untouched, goldens hold n
   gaps of 7 normal ones). 3, not 2: a cap of 2 left half the ordinary lines ragged (the objectives' second line at
   1280x720 needs 2.8, six of the briefing's eight wrapped lines passed 2), so the paragraph read as left aligned
   with a few stretched lines. Lines still break where the original's did (`Layout` is unchanged).
-- **The help page's text block** (`CHelpWindow::ShowPage`, ui_help_page.cpp). The original's rows ran from 15 units
+- **The help page's text block** (`HelpWindow::ShowPage`, ui_help_page.cpp). The original's rows ran from 15 units
   to the page's width less 30, so with the lines' ragged ends the block sat left of centre. The texts still wrap
   to that width (same line breaks, same page height); the block (its widest line, a text beside a picture counted
-  from the picture's place) is centred in the page, the pictures moved with it. `CInterface3D::WrapText`
+  from the picture's place) is centred in the page, the pictures moved with it. `Interface3D::WrapText`
   (ui_text.cpp) is `DrawWrappedText`'s wrap, which the page measures with.
 
 ## 4. Tickets
@@ -673,10 +673,10 @@ render_device_lost compares the frames before and after a loss.
 ## Overview of the surface canvases
 
 Every interface window surface's pixels are its holder's canvas on the GPU (P8): made black with the surface
-(`CUiSurface::MakeCanvas`, ui_surface_create.cpp; again in the surface format after SwapContents brings a surface
+(`UiSurface::MakeCanvas`, ui_surface_create.cpp; again in the surface format after SwapContents brings a surface
 back without one), drawn into by the surface functions (`Clear` / `Fill` / `FillRect` / `FrameRect`, `Line` for the
 carets and the connect list's rule, `Dot` for the minimap marker, `DrawTextIn` / `DrawTextPixels` as glyph runs,
-`CaptureScreen`, `Greyscale`; the titles' text as glyph runs too) and blitted by `CUiSurface::Blit` (`DrawCanvas`). The readers
+`CaptureScreen`, `Greyscale`; the titles' text as glyph runs too) and blitted by `UiSurface::Blit` (`DrawCanvas`). The readers
 read the GPU: `PixelAt` (`ReadPixel`, packed back to the screen format), `Rgb565Copy` (`ReadRgb565`); `SwapContents`
 moves the canvas aside under the surface's address and back (`MoveCanvas`). Text is laid out, measured and drawn in our
 own fonts (ui_font.h). A lost device makes every canvas again and draws on it the commands drawn since it was last
@@ -754,7 +754,7 @@ The interface's 2D canvases (docs/notes/ui-native.md, section 3 and "P8 done"): 
 on the GPU in a render target, drawn into by the commands GDI drew with (fills, frames, lines, pixels, glyph runs) and
 by the surface pixel code (the screen copy, greying, a picture), read by the readers (one pixel, all of them, the
 5:6:5 picture), and blitted onto the frame by the surface's blit. No GDI here. A canvas belongs to a surface holder (the `Surface` of
-a CUiSurface) and holds what the surface's memory would: every channel cut to the format's bits and widened again
+a UiSurface) and holds what the surface's memory would: every channel cut to the format's bits and widened again
 (render_textures.cpp's Expand), so 16-bit surfaces quantise as GDI does and the colour key compares exactly.
 Commands are queued in call order and drawn on the GPU before the frame's next pass (drawing before a canvas's
 first blit of the frame lands before that blit). Drawing into a canvas already blitted in the frame and not drawn

@@ -1,8 +1,8 @@
 #pragma once
 
 // The base class of every map object (units, trees, buildings, stones, levers, traps, torches ...); abstract.
-// Each has a companion holding its side-specific state: a CMapObjectServer (class id 0x39) on the server, a
-// CMapObjectClientSpecific (0x3A) on the client; both point back at the object.
+// Each has a companion holding its side-specific state: a MapObjectServer (class id 0x39) on the server, a
+// MapObjectClientSpecific (0x3A) on the client; both point back at the object.
 
 #include "engine_object.h"
 #include "map_object_figures.h"   // CObject3D, the base
@@ -17,13 +17,13 @@
 
 #include <vector>
 
-class CMapObjectServer;
-class CMapObjectClientSpecific;
-class CMapObjectCompanion;
+class MapObjectServer;
+class MapObjectClientSpecific;
+class MapObjectCompanion;
 struct DeltaState;
 enum class SpellType : int;   // spell.h
 
-// An active effect (an array): the record of a buff spell (the buffs CSpellEffect::Start applies) or of Teleport,
+// An active effect (an array): the record of a buff spell (the buffs SpellEffect::Start applies) or of Teleport,
 // which stuns its caster like Stun. Strengthen, Weaken, Enlarge and Shrink scale the object.
 struct MapEffect {
     std::uint8_t type = 0;          // the spell's SpellType (spell.h)
@@ -38,8 +38,8 @@ struct MapEffect {
     // One tick less; whether any are left (0 / 1).
     int Tick();
     // Type, power, ticksLeft, value and strength, read or written one by one (`ending` is not saved).
-    void Load(CStream* stream);
-    void Save(CStream* stream) const;
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
 };
 
 // The hit points, mana and protection rounded (written from the server companion's UnitVitals).
@@ -55,13 +55,13 @@ struct UnitVitalsPacked {
 };
 static_assert(sizeof(UnitVitalsPacked) == 0x18);
 
-// The bits of CEngineObject::flags_ on the map objects (the word is saved and sent as the number). Bits that mean
+// The bits of EngineObject::flags on the map objects (the word is saved and sent as the number). Bits that mean
 // something else per class have one name each (the same number).
 enum class MapObjectFlag : std::uint32_t {
     Removed = 0x1,              // gone from the world: its id is sent on
     Changed = 0x2,              // MarkChanged: the network state is not written yet
     Hidden = 0x8,               // not drawn (a spec with visible 0; the client's draw test sets and clears it)
-    Selected = 0x10,            // client: selected (CWorldClient::Select; its figure lit and highlighted)
+    Selected = 0x10,            // client: selected (WorldClient::Select; its figure lit and highlighted)
     Shown = 0x20,               // client: in view this frame (the view pass), a part drawn through its drawer (the
                                 // draw); screen picking takes only such objects
     NotDrawn = 0x40,            // never drawn (traps)
@@ -81,14 +81,14 @@ enum class MapObjectFlag : std::uint32_t {
     Disabled = 0x80000,         // levers
     ArmedFresh = 0x100000,      // traps: armed since the last update
     LootTaken = 0x100000,       // units: the loot was collected
-    InParty = 0x400000,         // client units: in the local player's party (CPlayerClient::OnPartyState): their
+    InParty = 0x400000,         // client units: in the local player's party (PlayerClient::OnPartyState): their
                                 // hits show their number, their footprints and attached particle sources show, the
                                 // views that draw only the party draw them
     Blocked = 0x800000,         // units: BlockUnit; also set while the unit speaks
     Frozen = 0x1000000,         // units: no updates of orders and animation
     SeeAll = 0x2000000,         // units: sees every unit once
     ChoosingTarget = 0x4000000, // server units: while a player's unit chooses its target (ScaledValue caps the range)
-    Preview = 0x4000000,        // client units: an interface figure (CreatePartyUnits, CUiModel), not moved along
+    Preview = 0x4000000,        // client units: an interface figure (CreatePartyUnits, UiModel), not moved along
                                 // its path
     Planned = 0x8000000,        // units: set on the target while a cast is planned
     NoCasting = 0x10000000,     // units: no spells; the client turns such a unit at once along its path
@@ -114,18 +114,18 @@ public:
         Update();
         return true;
     }
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
     // An object of type SideObjectType::MapObject becomes the companion (AttachCompanion); null and others go to CObject3D's (which
     // takes SideObjectType::Object3D). Units override it.
-    void AttachObject(CEngineObject* object) override;
+    void AttachObject(EngineObject* object) override;
     bool InvisibleSlot() override;
     // Resets the scale and grows or shrinks it by 0.4 per net level of enlarge/shrink (x, y, z) or, without
     // those, strengthen/weaken (x and, except for heroes, z). Components stay >= 0. Marks part 1 changed.
     virtual void RecomputeScale();
     // Empty (units override it).
     virtual void EffectsChanged();
-    // flags_ 0x20000 (bit 17 as 0 / 1); units, levers, traps, torches 1. False ones leave the server's map-object
+    // flags 0x20000 (bit 17 as 0 / 1); units, levers, traps, torches 1. False ones leave the server's map-object
     // maps after the zone loads (SendFreshObjects). The world server creates such objects only with one flag set,
     // the others with another.
     virtual bool IsSynchronised();
@@ -139,9 +139,9 @@ public:
     // The prototype by name (units: their statistics). Here the vitals of `prototype` are packed into the
     // rounded vitals, from a local the original does not clear either.
     virtual void TakePrototype(std::string_view prototype);
-    // Empty; units: a CUnitServer controller (class 0x3E) copies the statistics (CUnitServer::SetStats).
+    // Empty; units: a UnitServer controller (class 0x3E) copies the statistics (UnitServer::SetStats).
     virtual void SetStats(const UnitStats* stats);
-    // Hands `data` to a CMapObjectServer companion.
+    // Hands `data` to a MapObjectServer companion.
     virtual void SetServerData(const UnitVitals* data);
     // Empty; units: the controller's size-class virtual.
     virtual void UpdateSizeClasses();
@@ -150,7 +150,7 @@ public:
     virtual std::uint32_t KeyId();     // the key it asks for: -123; levers override
     // A skill used on the object (traps Disarm, levers ApplyKey); here logs "Science is applied on wrong object"
     // and returns false.
-    virtual bool ApplyScience(const LockKey* key, CEngineObject* user);
+    virtual bool ApplyScience(const LockKey* key, EngineObject* user);
     // Whether `key` fits: 0; levers KeyOpens, traps KeyFits.
     virtual bool AcceptsKey(const LockKey* key);
     // True; levers a flag of theirs (a best guess). The AI map's MarkFootprint refreshes units' passage around
@@ -166,7 +166,7 @@ public:
     virtual void AddEffect(const MapEffect* effect);
     // The effect array's SetSize(count, -1).
     void SetEffectCount(int count);
-    virtual std::uint32_t SetStunned(int on);   // ignores it (0); units: the new flags_
+    virtual std::uint32_t SetStunned(int on);   // ignores it (0); units: the new flags
     virtual int SetVisibilityMode(int mode);    // hands it to the companion
     virtual Vector3* EyePoint(Vector3* out);        // where the object sees from (GroundPoint)
     virtual std::uint32_t ReadNetState(int first);   // (units override)
@@ -180,7 +180,7 @@ public:
     virtual bool IsDead();                           // non-zero when dead or gone
     // `object` is going away (the world server's RemoveObject tells every object). Empty (0); units: the
     // controller's matching virtual; magic traps override.
-    virtual int ForgetObject(CEngineObject* object);
+    virtual int ForgetObject(EngineObject* object);
     virtual void UpdateMoveFactors();  // empty; units: the controller's UpdateMoveFactors
     virtual void RefreshWounds();      // empty; units: the controller's hit virtual
     // The speed the object moves at, unrounded: 0; units their forward speed.
@@ -189,7 +189,7 @@ public:
     // Units keep `name` as their script name; empty here.
     virtual void SetScriptName(std::string_view name);
 
-    // Records that part `part` (0..15; negative: none) of the object changed, marks it dirty (flags_ bit 1) and
+    // Records that part `part` (0..15; negative: none) of the object changed, marks it dirty (flags bit 1) and
     // stamps it with the world's change counter.
     void MarkChanged(int part);
     // Has the object an active effect of type `type` (compared with MapEffect::type)?
@@ -218,15 +218,15 @@ public:
 
     // Replaces the companion: the old one is detached and released, the new one points back here and gains a
     // reference.
-    void AttachCompanion(CEngineObject* companion);
+    void AttachCompanion(EngineObject* companion);
 
-    // Statistics changed: a CMapObjectServer companion packs its vitals into the rounded vitals. Returns 1, or 0
+    // Statistics changed: a MapObjectServer companion packs its vitals into the rounded vitals. Returns 1, or 0
     // for another companion.
     int PackVitals();
-    // A CMapObjectServer companion (class 0x39) gets the base of each protection (7 pairs) zeroed.
+    // A MapObjectServer companion (class 0x39) gets the base of each protection (7 pairs) zeroed.
     void ClearProtectionBases();
 
-    // Bits 16 (invisible: set by the client for effect 0x0F), 18 (stunned: effect 0x19) and 17 of flags_;
+    // Bits 16 (invisible: set by the client for effect 0x0F), 18 (stunned: effect 0x19) and 17 of flags;
     // IsInvisible and the bit-17 test are virtuals.
     bool IsInvisible();
     bool IsStunned();
@@ -236,10 +236,10 @@ public:
     void DestroyMapObject();
 
     // Load: the companion's Load, then animationSpeed, the position, the orientation, the name, the scale, the
-    // effects (count, then MapEffect::Load each), flags_, the second name and, from version 0x4F, the base scale.
-    void LoadMapObject(CStream* stream);
+    // effects (count, then MapEffect::Load each), flags, the second name and, from version 0x4F, the base scale.
+    void LoadMapObject(ByteStream* stream);
     // Save: the same fields (names with their terminators; the base scale always).
-    void SaveMapObject(CStream* stream);
+    void SaveMapObject(ByteStream* stream);
 
     // SetVisibilityMode with mode 0 for `level` 0 (or NaN), 1 for 1, else 2.
     int SetVisibilityLevel(float level);
@@ -247,21 +247,21 @@ public:
     // The sector map's Remove. The companion's virtual (empty in both); returns 1.
     int NotifyCompanion();
     // The network state written in full / only its changed parts (the statistics, repacked first when part 0 or 4
-    // changed): the write mode, the write virtual, the state finished; flags_ bit 1 cleared.
+    // changed): the write mode, the write virtual, the state finished; flags bit 1 cleared.
     void WriteFullState();
     void WriteChangedState();
     // The network state read from `reader`: BeginRead, ReadNetState with `first`, the state finished.
-    std::uint32_t ReadState(int first, CMemoryStream* reader);
+    std::uint32_t ReadState(int first, MemoryStream* reader);
     std::string* SetSecondName(const char* text);
 
     CObject3D* Object3D() { return this; }
 
 
-    CMapObjectCompanion* companion; // CMapObjectServer / CMapObjectClientSpecific
-    // The companion as the server's CMapObjectServer (on the server; defined in unit.h).
-    CMapObjectServer* ServerCompanion() const;
-    // The companion as the client's CMapObjectClientSpecific (on the client; defined in unit.h).
-    CMapObjectClientSpecific* ClientCompanion() const;
+    MapObjectCompanion* companion; // MapObjectServer / MapObjectClientSpecific
+    // The companion as the server's MapObjectServer (on the server; defined in unit.h).
+    MapObjectServer* ServerCompanion() const;
+    // The companion as the client's MapObjectClientSpecific (on the client; defined in unit.h).
+    MapObjectClientSpecific* ClientCompanion() const;
     // World updates until the object's effects are next looked at (5 after Create; the server world's update map
     // sets it).
     int updateCountdown;
@@ -273,20 +273,20 @@ public:
     int sectorCellX;
     int sectorCellY;
     int changeStamp;                // the world's change counter when last changed
-    DeltaState netState_;           // the network state; its mask_ is the parts changed since the last send (bit
+    DeltaState netState;            // the network state; its mask is the parts changed since the last send (bit
                                     // per part: MarkChanged)
 
 protected:
     CMapObject();
 };
 
-// A map object's companion (CMapObjectServer / CMapObjectClientSpecific derive from it).
-class CMapObjectCompanion : public CEngineObject {
+// A map object's companion (MapObjectServer / MapObjectClientSpecific derive from it).
+class MapObjectCompanion : public EngineObject {
 public:
-    CMapObjectCompanion() {
+    MapObjectCompanion() {
         owner = nullptr;
     }
-    ~CMapObjectCompanion() override;
+    ~MapObjectCompanion() override;
     void Create() override;    // no map object
     void Destroy() override;  // no map object
     bool RunTick() override { return false; }
@@ -306,12 +306,12 @@ public:
 
     CMapObject* owner;              // the map object (CMapObject::AttachCompanion sets it)
 };
-inline CMapObjectCompanion* CompanionSlots(CEngineObject* companion) {
-    return static_cast<CMapObjectCompanion*>(companion);
+inline MapObjectCompanion* CompanionSlots(EngineObject* companion) {
+    return static_cast<MapObjectCompanion*>(companion);
 }
 
 // An engine object known to be a map object (a unit, a lever, a trap ...): its slots and fields.
-inline CMapObject* ObjectSlots(CEngineObject* object) { return static_cast<CMapObject*>(object); }
+inline CMapObject* ObjectSlots(EngineObject* object) { return static_cast<CMapObject*>(object); }
 
 // The companion's back pointer.
-inline CMapObject*& CompanionOwner(CEngineObject* companion) { return CompanionSlots(companion)->owner; }
+inline CMapObject*& CompanionOwner(EngineObject* companion) { return CompanionSlots(companion)->owner; }

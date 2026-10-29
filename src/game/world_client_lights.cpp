@@ -75,7 +75,7 @@ float Scaled(float value, float scale) {
 }
 
 float FogStart(float hour) {
-    const float day = options::g_options.fogDayStartDistance_, night = options::g_options.fogNightStartDistance_;
+    const float day = options::g_options.fogDayStartDistance, night = options::g_options.fogNightStartDistance;
     double fog;
     if (hour >= kDayStart && hour <= kDayEnd) fog = day;
     else if (hour < kNightStart && hour > kDawnStart) {
@@ -106,7 +106,7 @@ double SunElevation(float hour) {
 
 // The time of day in hours, unrounded (fmod of the game time by 24).
 double HourOfDay(const CWorld* world) {
-    return std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, kHoursPerDay);
+    return std::fmod(static_cast<double>(world->tick) * world->secondsPerTick + world->timeBase, kHoursPerDay);
 }
 
 // The game's _ftol: truncation, the low half of the 64-bit conversion (NaN and overflow give 0).
@@ -117,50 +117,50 @@ int GameFtol(double value) {
 
 } // namespace
 
-int CWorldClient::UpdateLighting() {
+int WorldClient::UpdateLighting() {
     auto* display = &g_sceneRenderer;
-    if (!(display->flags_ & 1)) return 1;
+    if (!(display->flags & 1)) return 1;
     UpdateExitMarkers();
     const double now = HourOfDay(this);
-    CTransformPipeline* pipeline = display->pipeline_;
+    TransformPipeline* pipeline = display->pipeline;
 
-    if (cave_ == 1) {
+    if (cave == 1) {
         float stored = static_cast<float>(now);
         const float hour = stored;
         if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
-        pipeline->SetDepthRange(options::g_options.fogDayStartDistance_, options::g_options.farClipDistance_);
-        const LightColour sun = sunlight_[0];
-        frameSun_.r = sun.r;
-        frameSun_.g = sun.g;
-        frameSun_.b = sun.b;
-        if (IsBlack(ambient_[0])) {
-            frameAmbient_.r = Scaled(sun.r, kAmbientFromSun);
-            frameAmbient_.g = Scaled(sun.g, kAmbientFromSun);
-            frameAmbient_.b = Scaled(sun.b, kAmbientFromSun);
+        pipeline->SetDepthRange(options::g_options.fogDayStartDistance, options::g_options.farClipDistance);
+        const LightColour sun = sunlight[0];
+        frameSun.r = sun.r;
+        frameSun.g = sun.g;
+        frameSun.b = sun.b;
+        if (IsBlack(ambient[0])) {
+            frameAmbient.r = Scaled(sun.r, kAmbientFromSun);
+            frameAmbient.g = Scaled(sun.g, kAmbientFromSun);
+            frameAmbient.b = Scaled(sun.b, kAmbientFromSun);
         } else {
-            frameAmbient_.r = ambient_[0].r;   // the table's hour 0
-            frameAmbient_.g = ambient_[0].g;
-            frameAmbient_.b = ambient_[0].b;
+            frameAmbient.r = ambient[0].r;     // the table's hour 0
+            frameAmbient.g = ambient[0].g;
+            frameAmbient.b = ambient[0].b;
         }
-        skyAmbient_ = frameAmbient_;
-        CLight* light = display->sun_;
-        light->color_[0] = sun.r;
-        light->color_[1] = sun.g;
-        light->color_[2] = sun.b;
-        light->direction_ = kCaveSun;
-        display->SetSunAndAmbient(light, frameAmbient_.r, frameAmbient_.g, frameAmbient_.b);
-        const LightColour& sky = sky_[0];
-        display->SetFogColour(sky.r, sky.g, sky.b);
-        if (skyDome_) {
+        skyAmbient = frameAmbient;
+        CLight* light = display->sun;
+        light->color[0] = sun.r;
+        light->color[1] = sun.g;
+        light->color[2] = sun.b;
+        light->direction = kCaveSun;
+        display->SetSunAndAmbient(light, frameAmbient.r, frameAmbient.g, frameAmbient.b);
+        const LightColour& skyColour = sky[0];
+        display->SetFogColour(skyColour.r, skyColour.g, skyColour.b);
+        if (skyDome) {
             const SkyColour black = {0.0f, 0.0f, 0.0f, 1.0f};
-            skyDome_->Light(&kCaveSun.x, black, black);
+            skyDome->Light(&kCaveSun.x, black, black);
         }
         EI_NAN_AUDIT(hour, g_lastLitHour);
         if (hour - g_lastLitHour < 1.0f) return 0;
         g_lastLitHour = static_cast<float>(std::floor(static_cast<double>(hour)));
-        if (terrain_) {
-            const Vector4 ambient = Ambient(frameAmbient_);
-            terrain_->SetSun(light, &ambient);
+        if (terrain) {
+            const Vector4 ambientColour = Ambient(frameAmbient);
+            terrain->SetSun(light, &ambientColour);
         }
         return 1;
     }
@@ -168,8 +168,8 @@ int CWorldClient::UpdateLighting() {
     float stored = static_cast<float>(now);
     const float hour = stored;
     const int index = GameFtol(now);
-    pipeline->SetDepthRange(FogStart(hour), options::g_options.farClipDistance_);
-    lightingMark_ = 0x80;
+    pipeline->SetDepthRange(FogStart(hour), options::g_options.farClipDistance);
+    lightingMark = 0x80;
     if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
 
     const double elevation = SunElevation(hour) * kRadiansPerDegree;
@@ -188,52 +188,52 @@ int CWorldClient::UpdateLighting() {
     const float fraction = fractionStored;
     const int next = (index + 1) % kHours;
 
-    const LightColour sun = Lerp(sunlight_[index], sunlight_[next], fraction);
-    frameSun_.r = sun.r;
-    frameSun_.g = sun.g;
-    frameSun_.b = sun.b;
-    if (IsBlack(ambient_[index])) {
-        frameAmbient_.r = Scaled(sun.r, kAmbientFromSun);
-        frameAmbient_.g = Scaled(sun.g, kAmbientFromSun);
-        frameAmbient_.b = Scaled(sun.b, kAmbientFromSun);
+    const LightColour sun = Lerp(sunlight[index], sunlight[next], fraction);
+    frameSun.r = sun.r;
+    frameSun.g = sun.g;
+    frameSun.b = sun.b;
+    if (IsBlack(ambient[index])) {
+        frameAmbient.r = Scaled(sun.r, kAmbientFromSun);
+        frameAmbient.g = Scaled(sun.g, kAmbientFromSun);
+        frameAmbient.b = Scaled(sun.b, kAmbientFromSun);
     } else {
-        const LightColour ambient = Lerp(ambient_[index], ambient_[next], fraction);
-        frameAmbient_.r = ambient.r;
-        frameAmbient_.g = ambient.g;
-        frameAmbient_.b = ambient.b;
+        const LightColour ambientColour = Lerp(ambient[index], ambient[next], fraction);
+        frameAmbient.r = ambientColour.r;
+        frameAmbient.g = ambientColour.g;
+        frameAmbient.b = ambientColour.b;
     }
-    skyAmbient_ = frameAmbient_;
-    CLight* light = display->sun_;
-    light->color_[0] = sun.r;
-    light->color_[1] = sun.g;
-    light->color_[2] = sun.b;
-    light->direction_ = direction;
-    display->SetSunAndAmbient(light, frameAmbient_.r, frameAmbient_.g, frameAmbient_.b);
-    const LightColour sky = Lerp(sky_[index], sky_[next], fraction);
-    display->SetFogColour(sky.r, sky.g, sky.b);
-    if (skyDome_) {
-        const SkyColour ambient = {skyAmbient_.r, skyAmbient_.g, skyAmbient_.b, skyAmbient_.a};
-        const SkyColour sunlight = {frameSun_.r, frameSun_.g, frameSun_.b, frameSun_.a};
-        skyDome_->Light(&direction.x, ambient, sunlight);
+    skyAmbient = frameAmbient;
+    CLight* light = display->sun;
+    light->color[0] = sun.r;
+    light->color[1] = sun.g;
+    light->color[2] = sun.b;
+    light->direction = direction;
+    display->SetSunAndAmbient(light, frameAmbient.r, frameAmbient.g, frameAmbient.b);
+    const LightColour skyColour = Lerp(sky[index], sky[next], fraction);
+    display->SetFogColour(skyColour.r, skyColour.g, skyColour.b);
+    if (skyDome) {
+        const SkyColour ambientColour = {skyAmbient.r, skyAmbient.g, skyAmbient.b, skyAmbient.a};
+        const SkyColour sunColour = {frameSun.r, frameSun.g, frameSun.b, frameSun.a};
+        skyDome->Light(&direction.x, ambientColour, sunColour);
     }
     EI_NAN_AUDIT(hour, g_lastLitHour);
     if (hour - g_lastLitHour < 1.0f) return 0;
     g_lastLitHour = static_cast<float>(std::floor(static_cast<double>(hour)));
-    if (terrain_) {
-        const Vector4 ambient = Ambient(frameAmbient_);
-        terrain_->SetSun(light, &ambient);
+    if (terrain) {
+        const Vector4 ambientColour = Ambient(frameAmbient);
+        terrain->SetSun(light, &ambientColour);
     }
     return 1;
 }
 
-void CWorldClient::UpdateExitMarkers() {
-    if (exits_.size() != exitMarkers_.size()) return;
-    NamedFloatTable* variables = &session_->Party()->variables_;
-    for (int i = 0; i < std::ssize(exits_); ++i) {
-        CParticleSource* marker = exitMarkers_[i];
+void WorldClient::UpdateExitMarkers() {
+    if (exits.size() != exitMarkers.size()) return;
+    NamedFloatTable* variables = &session->Party()->variables;
+    for (int i = 0; i < std::ssize(exits); ++i) {
+        ParticleSource* marker = exitMarkers[i];
         if (!marker) continue;
         std::string name("z.");
-        name += exits_[i].target;
+        name += exits[i].target;
         const float visited = variables->Get(name);
         EI_NAN_AUDIT(visited);
         marker->extent = {visited == 1.0f ? 1.0f : 0.0f, 0.0f, 0.0f};

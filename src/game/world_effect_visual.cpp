@@ -1,4 +1,4 @@
-// The visible effects: CEffectPointLight, CEffectParticle, CEffectWall, CEffectLightning. See
+// The visible effects: EffectPointLight, CEffectParticle, EffectWall, EffectLightning. See
 // world_effect.h and docs/notes/effects.md.
 
 #include "camera.h"
@@ -28,24 +28,24 @@ namespace {
 
 
 void ClearBase(CEffect* e) {
-    e->localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
-    EmptyField(&e->state_);
-    e->velocity_ = Vector3{0.0f, 0.0f, 0.0f};
-    e->startTick_ = 0;
-    e->moving_ = 0;
-    e->changeStamp_ = -1;
+    e->localPosition = Vector3{0.0f, 0.0f, 0.0f};
+    EmptyField(&e->state);
+    e->velocity = Vector3{0.0f, 0.0f, 0.0f};
+    e->startTick = 0;
+    e->moving = 0;
+    e->changeStamp = -1;
 }
 
 // The light's range fields: range, range^2 and 1 / range^2 with the square left unrounded for the division.
 void SetLightRange(CLight* light, std::uint32_t rangeBits) {
-    light->range_ = std::bit_cast<float>(rangeBits);
-    const double square = static_cast<double>(light->range_) * light->range_;
-    light->rangeSquared_ = static_cast<float>(square);
-    light->inverseRangeSquared_ = static_cast<float>(1.0 / square);
+    light->range = std::bit_cast<float>(rangeBits);
+    const double square = static_cast<double>(light->range) * light->range;
+    light->rangeSquared = static_cast<float>(square);
+    light->inverseRangeSquared = static_cast<float>(1.0 / square);
 }
 
-std::uint32_t& LightFlags(CLight* light) { return light->flags_; }
-Vector3& LightPosition(CLight* light) { return light->localPosition_; }
+std::uint32_t& LightFlags(CLight* light) { return light->flags; }
+Vector3& LightPosition(CLight* light) { return light->localPosition; }
 
 // The particle tick's step towards the target, in x87 order: speed = |velocity|
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
@@ -84,12 +84,12 @@ float RandomAngle(std::uint32_t random) {
 // The ISAAC Next the 0x2030 scorch inlines.
 std::uint32_t InlineRandom() {
     IsaacRandom& random = g_random;
-    std::uint32_t index = random.count_--;
+    std::uint32_t index = random.count--;
     if (index == 0) {
         random.Refill();
-        random.count_ = 0xFF;
+        random.count = 0xFF;
     }
-    return random.results_[random.count_];
+    return random.results[random.count];
 }
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
@@ -103,149 +103,149 @@ void WallScorchShape(const Vector3& direction, const float* half, float* angleAn
 } // namespace
 
 
-void CEffectPointLight::Reset() {
+void EffectPointLight::Reset() {
     ClearBase(this);
-    if (light_ != nullptr) {
-        g_clientWorld.terrain_->RemoveLight(light_);
-        light_.Reset();
+    if (light != nullptr) {
+        g_clientWorld.terrain->RemoveLight(light);
+        light.Reset();
     }
-    color_ = Vector3{0.0f, 0.0f, 0.0f};
-    range_ = 0.0f;
-    lightFlags_ = 0;
+    color = Vector3{0.0f, 0.0f, 0.0f};
+    range = 0.0f;
+    lightFlags = 0;
 }
 
-bool CEffectPointLight::RunTick() {
-    if (moving_ == 0) return true;
-    float x = localPosition_.x + velocity_.x;
-    float y = localPosition_.y + velocity_.y;
-    float z = localPosition_.z + velocity_.z;
-    localPosition_.x = x;
-    localPosition_.y = y;
-    localPosition_.z = z;
-    if (light_ != nullptr) LightPosition(light_) = localPosition_;
+bool EffectPointLight::RunTick() {
+    if (moving == 0) return true;
+    float x = localPosition.x + velocity.x;
+    float y = localPosition.y + velocity.y;
+    float z = localPosition.z + velocity.z;
+    localPosition.x = x;
+    localPosition.y = y;
+    localPosition.z = z;
+    if (light != nullptr) LightPosition(light) = localPosition;
     return true;
 }
 
-void CEffectPointLight::Start(int update) {
+void EffectPointLight::Start(int update) {
     if (update == 0) {
-        light_.Assign(g_clientWorld.lightFactory_->CreateLight(0x31));
+        light.Assign(g_clientWorld.lightFactory->CreateLight(0x31));
         Vector3 position;
-        position.x = localPosition_.x;
-        position.y = localPosition_.y;
-        position.z = localPosition_.z;
-        Vector3 color;
-        color.x = color_.x;
-        color.y = color_.y;
-        color.z = color_.z;
-        light_->SetPoint(color, position);
-        SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
-        LightFlags(light_) |= lightFlags_;
-        g_clientWorld.terrain_->AddLight(light_);
-        if (moving_ != 0) LightFlags(light_) |= LightFlag::Moving;
+        position.x = localPosition.x;
+        position.y = localPosition.y;
+        position.z = localPosition.z;
+        Vector3 tint;
+        tint.x = color.x;
+        tint.y = color.y;
+        tint.z = color.z;
+        light->SetPoint(tint, position);
+        SetLightRange(light, Bits(range) & 0x7FFFFFFFu);
+        LightFlags(light) |= lightFlags;
+        g_clientWorld.terrain->AddLight(light);
+        if (moving != 0) LightFlags(light) |= LightFlag::Moving;
     } else {
-        light_->color_[0] = color_.x;
-        light_->color_[1] = color_.y;
-        light_->color_[2] = color_.z;
-        float range = FromBits(Bits(range_) & 0x7FFFFFFFu);
+        light->color[0] = color.x;
+        light->color[1] = color.y;
+        light->color[2] = color.z;
+        float absRange = FromBits(Bits(range) & 0x7FFFFFFFu);
         float shownRange;
-        shownRange = light_->range_;
-        float change = FromBits(Bits(static_cast<float>(shownRange - range)) & 0x7FFFFFFFu);
+        shownRange = light->range;
+        float change = FromBits(Bits(static_cast<float>(shownRange - absRange)) & 0x7FFFFFFFu);
         EI_NAN_AUDIT(change);
-        LightPosition(light_) = localPosition_;
+        LightPosition(light) = localPosition;
         // A range not (nearly) the same is taken over.
-        if (!(change < ConstAt(worlddata::RangeEpsilon()))) SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
+        if (!(change < ConstAt(worlddata::RangeEpsilon()))) SetLightRange(light, Bits(range) & 0x7FFFFFFFu);
     }
     // A negative range (or NaN) sets LightFlag::Off.
-    if (range_ >= ConstAt(worlddata::ZeroRef()))
-        LightFlags(light_) &= ~LightFlag::Off;
+    if (range >= ConstAt(worlddata::ZeroRef()))
+        LightFlags(light) &= ~LightFlag::Off;
     else
-        LightFlags(light_) |= LightFlag::Off;
+        LightFlags(light) |= LightFlag::Off;
 }
 
-int CEffectPointLight::Unpack(int update, DeltaField* field) {
+int EffectPointLight::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    field->ReadFloat16x3(&color_.x);
-    field->ReadFloat16(&range_);
-    field->ReadFloat16x3(&velocity_.x);
-    field->ReadDelta(&lightFlags_, 4);
-    moving_ = IsMoving(velocity_);
+    field->ReadFloat16x3(&color.x);
+    field->ReadFloat16(&range);
+    field->ReadFloat16x3(&velocity.x);
+    field->ReadDelta(&lightFlags, 4);
+    moving = IsMoving(velocity);
     if (!SnapshotReadToEnd()) return 0;
-    localPosition_ = position;
+    localPosition = position;
     Start(update);
     return 1;
 }
 
-void CEffectPointLight::Pack(DeltaField* field) {
-    Vector3 position = localPosition_;
+void EffectPointLight::Pack(DeltaField* field) {
+    Vector3 position = localPosition;
     field->WritePosition(position);
-    field->WriteFloat16x3(&color_.x);
-    field->WriteFloat16(Bits(range_));
-    field->WriteFloat16x3(&velocity_.x);
-    field->WriteDelta(&lightFlags_, 4);
+    field->WriteFloat16x3(&color.x);
+    field->WriteFloat16(Bits(range));
+    field->WriteFloat16x3(&velocity.x);
+    field->WriteDelta(&lightFlags, 4);
 }
 
-void CEffectPointLight::Load(CStream* stream) {
-    stream->ReadValue(localPosition_);
-    stream->ReadValue(color_);
-    stream->ReadValue(range_);
-    stream->ReadValue(velocity_);
-    moving_ = IsMoving(velocity_);
+void EffectPointLight::Load(ByteStream* stream) {
+    stream->ReadValue(localPosition);
+    stream->ReadValue(color);
+    stream->ReadValue(range);
+    stream->ReadValue(velocity);
+    moving = IsMoving(velocity);
     if (Version(stream) < kVersionLightFlags) return;
-    stream->ReadValue(lightFlags_);
+    stream->ReadValue(lightFlags);
 }
 
-void CEffectPointLight::Save(CStream* stream) {
-    stream->WriteValue(localPosition_);
-    stream->WriteValue(color_);
-    stream->WriteValue(range_);
-    stream->WriteValue(velocity_);
-    stream->WriteValue(lightFlags_);
+void EffectPointLight::Save(ByteStream* stream) {
+    stream->WriteValue(localPosition);
+    stream->WriteValue(color);
+    stream->WriteValue(range);
+    stream->WriteValue(velocity);
+    stream->WriteValue(lightFlags);
 }
 
-double CEffectPointLight::LightRadius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range_; }
+double EffectPointLight::LightRadius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range; }
 
 
 void CEffectParticle::Reset() {
     ClearBase(this);
-    if (source_ != nullptr) {
-        source_->Stop();
-        source_.Reset();
+    if (source != nullptr) {
+        source->Stop();
+        source.Reset();
     }
-    size_ = 1.0f;
-    alpha_ = 1.0f;
-    typeParam_ = 1.0f;
-    target_ = Vector3{0.0f, 0.0f, 0.0f};
-    type_ = 0;
-    attachedTo_ = -1;
-    unitId_ = -1;
+    size = 1.0f;
+    alpha = 1.0f;
+    typeParam = 1.0f;
+    target = Vector3{0.0f, 0.0f, 0.0f};
+    type = 0;
+    attachedTo = -1;
+    unitId = -1;
 }
 
 Vector3* CEffectParticle::Position(const ScriptGroup* group) {
-    if (attachedTo_ == -1) return &localPosition_;
-    CMapObject* object = WorldContext()->ObjectWithId(attachedTo_);
-    if (object == nullptr) return &localPosition_;
+    if (attachedTo == -1) return &localPosition;
+    CMapObject* object = WorldContext()->ObjectWithId(attachedTo);
+    if (object == nullptr) return &localPosition;
     if (group->Contains(object) == 0) {
         // Not in the group: far away.
-        worldPosition_.x = FromBits(0xC9742400u);   // -1e6
-        worldPosition_.y = FromBits(0xC9742400u);
-        worldPosition_.z = 0.0f;
-        return &worldPosition_;
+        worldPosition.x = FromBits(0xC9742400u);    // -1e6
+        worldPosition.y = FromBits(0xC9742400u);
+        worldPosition.z = 0.0f;
+        return &worldPosition;
     }
-    const Vector3& at = object->localPosition_;
-    float x = localPosition_.x + at.x;
-    float y = at.y + localPosition_.y;
-    float z = at.z + localPosition_.z;
-    worldPosition_.x = x;
-    worldPosition_.y = y;
-    worldPosition_.z = z;
-    return &worldPosition_;
+    const Vector3& at = object->localPosition;
+    float x = localPosition.x + at.x;
+    float y = at.y + localPosition.y;
+    float z = at.z + localPosition.z;
+    worldPosition.x = x;
+    worldPosition.y = y;
+    worldPosition.z = z;
+    return &worldPosition;
 }
 
 void CEffectParticle::Start(int update) {
-    if (update == 0 && source_ != nullptr) {
-        source_->Stop();
-        source_.Reset();
+    if (update == 0 && source != nullptr) {
+        source->Stop();
+        source.Reset();
     }
     Spawn();
 }
@@ -253,374 +253,374 @@ void CEffectParticle::Start(int update) {
 int CEffectParticle::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    field->ReadDelta(&startTick_, 4);
-    field->ReadDelta(&type_, 4);
-    field->ReadFloat16(&size_);
-    field->ReadDelta(&attachedTo_, 4);
-    field->ReadFloat16x3(&velocity_.x);
-    field->ReadPosition(&target_);
-    field->ReadDelta(&unitId_, 4);
-    field->ReadFloat16(&alpha_);
-    field->ReadFloat16(&typeParam_);
-    moving_ = IsMoving(velocity_);
+    field->ReadDelta(&startTick, 4);
+    field->ReadDelta(&type, 4);
+    field->ReadFloat16(&size);
+    field->ReadDelta(&attachedTo, 4);
+    field->ReadFloat16x3(&velocity.x);
+    field->ReadPosition(&target);
+    field->ReadDelta(&unitId, 4);
+    field->ReadFloat16(&alpha);
+    field->ReadFloat16(&typeParam);
+    moving = IsMoving(velocity);
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (GetClassId() == ClassId::EffectParticle && !SnapshotReadToEnd()) return 0;
-    if (unitId_ != -1) {
-        CUnit* unit = World()->FindUnit(unitId_);
+    if (unitId != -1) {
+        CUnit* unit = World()->FindUnit(unitId);
         if (unit != nullptr) {
             Vector3 point;
             position = *unit->EffectPoint(&point);
         }
     }
-    localPosition_ = position;
+    localPosition = position;
     Start(update);
     return 1;
 }
 
 void CEffectParticle::Spawn() {
-    if (source_ != nullptr) {
+    if (source != nullptr) {
         // Already running: follow the effect.
-        source_->localPosition_ = localPosition_;
+        source->localPosition = localPosition;
         float baseSize;
-        baseSize = source_->baseSize;
-        source_->ScaleSize(static_cast<float>(size_ / baseSize));
-        source_->alpha = alpha_;
-        source_->typeParam = typeParam_;
+        baseSize = source->baseSize;
+        source->ScaleSize(static_cast<float>(size / baseSize));
+        source->alpha = alpha;
+        source->typeParam = typeParam;
         Attach();
         return;
     }
 
-    source_.Assign(g_clientWorld.particleManager_->CreateSource(type_));
-    source_->localPosition_ = localPosition_;
+    source.Assign(g_clientWorld.particleManager->CreateSource(type));
+    source->localPosition = localPosition;
     float baseSize;
-    baseSize = source_->baseSize;
-    source_->ScaleSize(static_cast<float>(size_ / baseSize));
-    source_->Attach(nullptr);
-    source_->alpha = alpha_;
-    source_->typeParam = typeParam_;
+    baseSize = source->baseSize;
+    source->ScaleSize(static_cast<float>(size / baseSize));
+    source->Attach(nullptr);
+    source->alpha = alpha;
+    source->typeParam = typeParam;
     Attach();
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
-    int age = g_clientWorld.tick_ - startTick_;
-    if (!IsOneShotType(type_) && age >= 30) age = 30;
+    int age = g_clientWorld.tick - startTick;
+    if (!IsOneShotType(type) && age >= 30) age = 30;
     if (age > 1) {
-        for (int left = age - 1; left != 0; --left) source_->RunTick();
+        for (int left = age - 1; left != 0; --left) source->RunTick();
     }
 
-    if (ParticleTypeOf(type_) == ParticleType::FireBlast) {
-        float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
-        float radius = typeParam_;
+    if (ParticleTypeOf(type) == ParticleType::FireBlast) {
+        float fadeAlpha = BelowOneOrOne(static_cast<float>(alpha * ConstAt(worlddata::ScorchAlpha())));
+        float radius = typeParam;
         float angle = RandomAngle(((&g_random))->Next());
-        g_clientWorld.AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
+        g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);
     }
-    if (ParticleTypeOf(type_) == ParticleType::LightningBlast) {
-        float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
+    if (ParticleTypeOf(type) == ParticleType::LightningBlast) {
+        float fadeAlpha = BelowOneOrOne(static_cast<float>(alpha * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t random = InlineRandom();
-        float radius = size_;
+        float radius = size;
         float angle = RandomAngle(random);
-        g_clientWorld.AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
-        g_clientWorld.camera_->Shake(localPosition_, size_, 2.0f, 0.25f);
+        g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);
+        g_clientWorld.camera->Shake(localPosition, size, 2.0f, 0.25f);
     }
 }
 
 void CEffectParticle::Pack(DeltaField* field) {
-    Vector3 position = localPosition_;
+    Vector3 position = localPosition;
     field->WritePosition(position);
-    int value = startTick_;
+    int value = startTick;
     field->WriteDelta(&value, 4);
-    field->WriteDelta(&type_, 4);
-    field->WriteFloat16(Bits(size_));
-    value = attachedTo_;
+    field->WriteDelta(&type, 4);
+    field->WriteFloat16(Bits(size));
+    value = attachedTo;
     field->WriteDelta(&value, 4);
-    field->WriteFloat16x3(&velocity_.x);
-    field->WritePosition(target_);
-    value = unitId_;
+    field->WriteFloat16x3(&velocity.x);
+    field->WritePosition(target);
+    value = unitId;
     field->WriteDelta(&value, 4);
-    field->WriteFloat16(Bits(alpha_));
-    field->WriteFloat16(Bits(typeParam_));
+    field->WriteFloat16(Bits(alpha));
+    field->WriteFloat16(Bits(typeParam));
 }
 
 void CEffectParticle::SetAttachedTo(int objectId) {
-    attachedTo_ = objectId;
+    attachedTo = objectId;
     MarkChanged();
 }
 
-void CEffectParticle::SetSize(float size) {
-    size_ = size;
+void CEffectParticle::SetSize(float newSize) {
+    size = newSize;
     MarkChanged();
 }
 
 void CEffectParticle::SetColors(float a, float b) {
-    alpha_ = a;
-    typeParam_ = b;
+    alpha = a;
+    typeParam = b;
     MarkChanged();
 }
 
-void CEffectParticle::SetTarget(const Vector3& target) {
-    target_ = target;
+void CEffectParticle::SetTarget(const Vector3& newTarget) {
+    target = newTarget;
     MarkChanged();
 }
 
 void CEffectParticle::Attach() {
     // Nothing to do when the source already follows that object, or follows none and none is set.
     // Without a source this goes on and reads through the null pointer, like the original.
-    if (source_ != nullptr) {
-        CEngineObject* followed = source_->attachedTo;
+    if (source != nullptr) {
+        EngineObject* followed = source->attachedTo;
         if (followed != nullptr) {
-            if (followed->id_ == attachedTo_) return;
-        } else if (attachedTo_ == -1) {
+            if (followed->id == attachedTo) return;
+        } else if (attachedTo == -1) {
             return;
         }
     }
-    CObject3D* object = g_clientWorld.objectManager_->FindObjectAs<CObject3D>(static_cast<unsigned>(attachedTo_));
+    CObject3D* object = g_clientWorld.objectManager->FindObjectAs<CObject3D>(static_cast<unsigned>(attachedTo));
     Vector3 saved;
-    saved = source_->localPosition_;
-    source_->Attach(object);
-    if (object == nullptr) source_->localPosition_ = saved;
+    saved = source->localPosition;
+    source->Attach(object);
+    if (object == nullptr) source->localPosition = saved;
 }
 
-void CEffectParticle::Load(CStream* stream) {
-    stream->ReadValue(localPosition_);
-    stream->ReadValue(type_);
-    stream->ReadValue(size_);
-    stream->ReadValue(attachedTo_);
-    stream->ReadValue(velocity_);
-    moving_ = IsMoving(velocity_);
-    stream->ReadValue(startTick_);
-    stream->ReadValue(target_);
+void CEffectParticle::Load(ByteStream* stream) {
+    stream->ReadValue(localPosition);
+    stream->ReadValue(type);
+    stream->ReadValue(size);
+    stream->ReadValue(attachedTo);
+    stream->ReadValue(velocity);
+    moving = IsMoving(velocity);
+    stream->ReadValue(startTick);
+    stream->ReadValue(target);
     if (Version(stream) < kVersionEffectUnitId) return;
-    stream->ReadValue(unitId_);
+    stream->ReadValue(unitId);
     if (Version(stream) < kVersionEffectAlpha) return;
-    stream->ReadValue(alpha_);
-    stream->ReadValue(typeParam_);
+    stream->ReadValue(alpha);
+    stream->ReadValue(typeParam);
 }
 
-void CEffectParticle::Save(CStream* stream) {
-    stream->WriteValue(localPosition_);
-    stream->WriteValue(type_);
-    stream->WriteValue(size_);
-    stream->WriteValue(attachedTo_);
-    stream->WriteValue(velocity_);
-    stream->WriteValue(startTick_);
-    stream->WriteValue(target_);
-    stream->WriteValue(unitId_);
-    stream->WriteValue(alpha_);
-    stream->WriteValue(typeParam_);
+void CEffectParticle::Save(ByteStream* stream) {
+    stream->WriteValue(localPosition);
+    stream->WriteValue(type);
+    stream->WriteValue(size);
+    stream->WriteValue(attachedTo);
+    stream->WriteValue(velocity);
+    stream->WriteValue(startTick);
+    stream->WriteValue(target);
+    stream->WriteValue(unitId);
+    stream->WriteValue(alpha);
+    stream->WriteValue(typeParam);
 }
 
 bool CEffectParticle::RunTick() {
-    unitId_ = -1;
-    if (moving_ != 0) {
+    unitId = -1;
+    if (moving != 0) {
         Vector3 d;
-        d.x = static_cast<float>(target_.x - localPosition_.x);
-        d.y = static_cast<float>(target_.y - localPosition_.y);
-        d.z = static_cast<float>(target_.z - localPosition_.z);
+        d.x = static_cast<float>(target.x - localPosition.x);
+        d.y = static_cast<float>(target.y - localPosition.y);
+        d.z = static_cast<float>(target.z - localPosition.z);
         float t;
-        if (StepFraction(velocity_, d, &t) != 0) {
+        if (StepFraction(velocity, d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
-            float aboveGround = static_cast<float>(target_.z - World()->RawSurfaceHeightAt(target_.x, target_.y));
+            float aboveGround = static_cast<float>(target.z - World()->RawSurfaceHeightAt(target.x, target.y));
             float stepY = static_cast<float>(t * d.y);
             float stepZ = static_cast<float>(d.z * t);
-            float x = static_cast<float>(t * d.x + localPosition_.x);
-            float y = static_cast<float>(stepY + localPosition_.y);
-            float z = static_cast<float>(stepZ + localPosition_.z);
+            float x = static_cast<float>(t * d.x + localPosition.x);
+            float y = static_cast<float>(stepY + localPosition.y);
+            float z = static_cast<float>(stepZ + localPosition.z);
             float floor = static_cast<float>(World()->RawSurfaceHeightAt(x, y) + aboveGround);
             std::uint32_t zBits = z >= floor ? Bits(z) : Bits(floor);
-            localPosition_.x = x;
-            localPosition_.y = y;
-            localPosition_.z = std::bit_cast<float>(zBits);
-            if (source_ != nullptr) source_->localPosition_ = localPosition_;
+            localPosition.x = x;
+            localPosition.y = y;
+            localPosition.z = std::bit_cast<float>(zBits);
+            if (source != nullptr) source->localPosition = localPosition;
         }
     }
-    if (!IsOneShotType(type_)) return true;
-    int lifetime = ParticleTypeOf(type_) == ParticleType::Teleport ? 0x78 : 0x3C;
-    int now = World()->tick_;
-    return now <= startTick_ + lifetime;
+    if (!IsOneShotType(type)) return true;
+    int lifetime = ParticleTypeOf(type) == ParticleType::Teleport ? 0x78 : 0x3C;
+    int now = World()->tick;
+    return now <= startTick + lifetime;
 }
 
 
-void CEffectWall::Reset() {
-    localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
-    EmptyField(&state_);
-    startTick_ = 0;
-    velocity_ = Vector3{0.0f, 0.0f, 0.0f};
-    moving_ = 0;
-    changeStamp_ = -1;
-    if (source_ != nullptr) {
-        source_->Stop();
-        source_.Reset();
+void EffectWall::Reset() {
+    localPosition = Vector3{0.0f, 0.0f, 0.0f};
+    EmptyField(&state);
+    startTick = 0;
+    velocity = Vector3{0.0f, 0.0f, 0.0f};
+    moving = 0;
+    changeStamp = -1;
+    if (source != nullptr) {
+        source->Stop();
+        source.Reset();
     }
-    size_ = 1.0f;
-    alpha_ = 1.0f;
-    typeParam_ = 1.0f;
-    attachedTo_ = -1;
-    target_ = Vector3{0.0f, 0.0f, 0.0f};
-    type_ = 0;
-    unitId_ = -1;
-    direction_ = Vector3{0.0f, 0.0f, 0.0f};
+    size = 1.0f;
+    alpha = 1.0f;
+    typeParam = 1.0f;
+    attachedTo = -1;
+    target = Vector3{0.0f, 0.0f, 0.0f};
+    type = 0;
+    unitId = -1;
+    direction = Vector3{0.0f, 0.0f, 0.0f};
 }
 
-void CEffectWall::SetDirection(const Vector3& direction) {
-    direction_ = direction;
+void EffectWall::SetDirection(const Vector3& newDirection) {
+    direction = newDirection;
     MarkChanged();
 }
 
-int CEffectWall::Unpack(int update, DeltaField* field) {
+int EffectWall::Unpack(int update, DeltaField* field) {
     if (CEffectParticle::Unpack(update, field) == 0) return 0;
-    field->ReadFloat16x3(&direction_.x);
+    field->ReadFloat16x3(&direction.x);
     if (!SnapshotReadToEnd()) return 0;
-    if (source_ != nullptr) source_->extent = direction_;
-    if (update == 0 && ParticleTypeOf(type_) == ParticleType::Tendril) {
+    if (source != nullptr) source->extent = direction;
+    if (update == 0 && ParticleTypeOf(type) == ParticleType::Tendril) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
-        float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
-        float half = static_cast<float>(size_ * ConstAt(worlddata::HalfRef()));
+        float fadeAlpha = BelowOneOrOne(static_cast<float>(alpha * ConstAt(worlddata::ScorchAlpha())));
+        float half = static_cast<float>(size * ConstAt(worlddata::HalfRef()));
         float shape[2];   // angle, outer
-        WallScorchShape(direction_, &half, shape);
+        WallScorchShape(direction, &half, shape);
         float inner = static_cast<float>(half + ConstAt(worlddata::ScorchMargin()));
-        g_clientWorld.AddScorchMark(localPosition_.x, localPosition_.y, shape[1], inner, shape[0], alpha);
+        g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, shape[1], inner, shape[0], fadeAlpha);
     }
     return 1;
 }
 
-void CEffectWall::Pack(DeltaField* field) {
-    Vector3 position = localPosition_;
+void EffectWall::Pack(DeltaField* field) {
+    Vector3 position = localPosition;
     field->WritePosition(position);
-    int value = startTick_;
+    int value = startTick;
     field->WriteDelta(&value, 4);
-    field->WriteDelta(&type_, 4);
-    field->WriteFloat16(Bits(size_));
-    value = attachedTo_;
+    field->WriteDelta(&type, 4);
+    field->WriteFloat16(Bits(size));
+    value = attachedTo;
     field->WriteDelta(&value, 4);
-    field->WriteFloat16x3(&velocity_.x);
-    field->WritePosition(target_);
-    value = unitId_;
+    field->WriteFloat16x3(&velocity.x);
+    field->WritePosition(target);
+    value = unitId;
     field->WriteDelta(&value, 4);
-    field->WriteFloat16(Bits(alpha_));
-    field->WriteFloat16(Bits(typeParam_));
-    field->WriteFloat16x3(&direction_.x);
+    field->WriteFloat16(Bits(alpha));
+    field->WriteFloat16(Bits(typeParam));
+    field->WriteFloat16x3(&direction.x);
 }
 
-void CEffectWall::Load(CStream* stream) {
+void EffectWall::Load(ByteStream* stream) {
     CEffectParticle::Load(stream);
-    stream->ReadValue(direction_);
+    stream->ReadValue(direction);
 }
 
-void CEffectWall::Save(CStream* stream) {
+void EffectWall::Save(ByteStream* stream) {
     CEffectParticle::Save(stream);
-    stream->WriteValue(direction_);
+    stream->WriteValue(direction);
 }
 
 
-void CEffectLightning::Reset() {
+void EffectLightning::Reset() {
     ClearBase(this);
-    width_ = 1.0f;
-    from_ = Vector3{0.0f, 0.0f, 0.0f};
-    toObject_ = -1;
-    fromObject_ = -1;
-    to_ = Vector3{0.0f, 0.0f, 0.0f};
-    bolt_.Reset();
-    flag_ = 0;
+    width = 1.0f;
+    from = Vector3{0.0f, 0.0f, 0.0f};
+    toObject = -1;
+    fromObject = -1;
+    to = Vector3{0.0f, 0.0f, 0.0f};
+    bolt.Reset();
+    flag = 0;
 }
 
-void CEffectLightning::UpdateEnds() {
-    CMapObject* target = World()->ObjectWithId(toObject_);
+void EffectLightning::UpdateEnds() {
+    CMapObject* target = World()->ObjectWithId(toObject);
     if (target != nullptr) {
-        to_ = target->localPosition_;
-        to_.z = to_.z + ConstAt(worlddata::OneRef());
+        to = target->localPosition;
+        to.z = to.z + ConstAt(worlddata::OneRef());
     }
-    CUnit* source = UnitOrNull(World()->ObjectWithId(fromObject_));
+    CUnit* source = UnitOrNull(World()->ObjectWithId(fromObject));
     if (source != nullptr && WorldContext()->IsServer() == 0) {
         Vector3 point;
-        from_ = *source->EffectPoint(&point);
+        from = *source->EffectPoint(&point);
     }
 }
 
-void CEffectLightning::Start(int update) {
+void EffectLightning::Start(int update) {
     if (update != 0) return;
-    auto* created = g_clientWorld.listManager_->CreateObjectAs<CLightning>(0, -1);
-    bolt_.Assign(created);
+    auto* created = g_clientWorld.listManager->CreateObjectAs<Lightning>(0, -1);
+    bolt.Assign(created);
     UpdateEnds();
-    bolt_->Start(from_, to_, width_, flag_);
+    bolt->Start(from, to, width, flag);
 }
 
-int CEffectLightning::Unpack(int update, DeltaField* field) {
+int EffectLightning::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    field->ReadPosition(&from_);
-    field->ReadPosition(&to_);
-    field->ReadFloat16(&width_);
-    field->ReadDelta(&flag_, 1);
-    field->ReadDelta(&toObject_, 4);
-    field->ReadDelta(&fromObject_, 4);
+    field->ReadPosition(&from);
+    field->ReadPosition(&to);
+    field->ReadFloat16(&width);
+    field->ReadDelta(&flag, 1);
+    field->ReadDelta(&toObject, 4);
+    field->ReadDelta(&fromObject, 4);
     if (!SnapshotReadToEnd()) return 0;
     UpdateEnds();
-    localPosition_ = position;
+    localPosition = position;
     Start(update);
     return 1;
 }
 
-void CEffectLightning::Pack(DeltaField* field) {
-    Vector3 position = localPosition_;
+void EffectLightning::Pack(DeltaField* field) {
+    Vector3 position = localPosition;
     field->WritePosition(position);
-    field->WritePosition(from_);
-    field->WritePosition(to_);
-    field->WriteFloat16(Bits(width_));
-    field->WriteDelta(&flag_, 1);
-    int value = toObject_;
+    field->WritePosition(from);
+    field->WritePosition(to);
+    field->WriteFloat16(Bits(width));
+    field->WriteDelta(&flag, 1);
+    int value = toObject;
     field->WriteDelta(&value, 4);
-    value = fromObject_;
+    value = fromObject;
     field->WriteDelta(&value, 4);
 }
 
-void CEffectLightning::SetEnds(const Vector3& from, const Vector3& to, float width) {
-    from_ = from;
-    to_ = to;
-    width_ = width;
+void EffectLightning::SetEnds(const Vector3& newFrom, const Vector3& newTo, float newWidth) {
+    from = newFrom;
+    to = newTo;
+    width = newWidth;
     // The midpoint: the x sum stays on the FPU, the y and z sums are rounded first.
     float half = ConstAt(worlddata::HalfRef());
-    float sumY = static_cast<float>(from_.y + to_.y);
-    float sumZ = static_cast<float>(from_.z + to_.z);
-    localPosition_.x = static_cast<float>((to_.x + from_.x) * half);
-    localPosition_.y = static_cast<float>(sumY * half);
-    localPosition_.z = static_cast<float>(sumZ * half);
+    float sumY = static_cast<float>(from.y + to.y);
+    float sumZ = static_cast<float>(from.z + to.z);
+    localPosition.x = static_cast<float>((to.x + from.x) * half);
+    localPosition.y = static_cast<float>(sumY * half);
+    localPosition.z = static_cast<float>(sumZ * half);
     MarkChanged();
 }
 
-void CEffectLightning::Load(CStream* stream) {
-    stream->ReadValue(localPosition_);
-    stream->ReadValue(from_);
-    stream->ReadValue(to_);
-    stream->ReadValue(width_);
-    stream->ReadValue(toObject_);
-    stream->ReadValue(fromObject_);
+void EffectLightning::Load(ByteStream* stream) {
+    stream->ReadValue(localPosition);
+    stream->ReadValue(from);
+    stream->ReadValue(to);
+    stream->ReadValue(width);
+    stream->ReadValue(toObject);
+    stream->ReadValue(fromObject);
     if (Version(stream) < 100) return;
-    stream->ReadValue(flag_);
+    stream->ReadValue(flag);
 }
 
-void CEffectLightning::Save(CStream* stream) {
-    stream->WriteValue(localPosition_);
-    stream->WriteValue(from_);
-    stream->WriteValue(to_);
-    stream->WriteValue(width_);
-    stream->WriteValue(toObject_);
-    stream->WriteValue(fromObject_);
-    stream->WriteValue(flag_);
+void EffectLightning::Save(ByteStream* stream) {
+    stream->WriteValue(localPosition);
+    stream->WriteValue(from);
+    stream->WriteValue(to);
+    stream->WriteValue(width);
+    stream->WriteValue(toObject);
+    stream->WriteValue(fromObject);
+    stream->WriteValue(flag);
 }
 
-void CEffectLightning::SetObjects(int fromObject, int toObject) {
-    toObject_ = toObject;
-    fromObject_ = fromObject;
+void EffectLightning::SetObjects(int newFromObject, int newToObject) {
+    toObject = newToObject;
+    fromObject = newFromObject;
     MarkChanged();
 }
 
-void CEffectLightning::SetFlag(std::uint8_t flag) {
-    flag_ = flag;
+void EffectLightning::SetFlag(std::uint8_t newFlag) {
+    flag = newFlag;
     MarkChanged();
 }
 
-bool CEffectLightning::RunTick() {
-    if (bolt_ == nullptr || (toObject_ == -1 && fromObject_ == -1)) return true;
+bool EffectLightning::RunTick() {
+    if (bolt == nullptr || (toObject == -1 && fromObject == -1)) return true;
     UpdateEnds();
-    bolt_->SetEndpoints(from_, to_);
+    bolt->SetEndpoints(from, to);
     return true;
 }

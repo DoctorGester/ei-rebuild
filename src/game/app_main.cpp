@@ -63,7 +63,7 @@ std::string g_commandLineMap;
 std::string g_commandLineMob;
 std::string g_commandLineScript;
 std::string g_cameraFile;
-constinit CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
+constinit DirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
 
 
 namespace {
@@ -140,11 +140,11 @@ void ReadCommandLine(const char* commandLine) {
     g_commandLineScript.clear();
     g_commandLineMob.clear();
     g_commandLineMap.clear();
-    CWorldClient* client = &g_clientWorld;
+    WorldClient* client = &g_clientWorld;
     GameOptions* options = &options::g_options;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
-            client->flags_ &= ~WorldClientFlag::MoviePathOption;
+            client->flags &= ~WorldClientFlag::MoviePathOption;
             {
                 std::string folder = Tail(arguments[i], 11);
                 g_movieFolder = folder;
@@ -152,13 +152,13 @@ void ReadCommandLine(const char* commandLine) {
             if (g_movieFolder.back() != '\\') g_movieFolder += '\\';
             continue;
         }
-        if (!(client->flags_ & WorldClientFlag::RecordingCamera)) {
+        if (!(client->flags & WorldClientFlag::RecordingCamera)) {
             if (text::CompareIgnoringCase(arguments[i],
                                 "-nocam") == 0) {
-                client->flags_ &= ~WorldClientFlag::NoCamOption;
+                client->flags &= ~WorldClientFlag::NoCamOption;
                 continue;
             }
-            if (!(client->flags_ & WorldClientFlag::RecordingCamera) && str::Find(arguments[i], ".cam") != -1) {
+            if (!(client->flags & WorldClientFlag::RecordingCamera) && str::Find(arguments[i], ".cam") != -1) {
                 g_cameraFile = arguments[i].c_str();
                 continue;
             }
@@ -171,11 +171,11 @@ void ReadCommandLine(const char* commandLine) {
             g_commandLineMap = arguments[i].c_str();
         } else if (str::Find(arguments[i], "-benchmark_") == 0) {
             std::string frames = Tail(arguments[i], 11);
-            options->numberOfFrames_ = str::ToInt(frames);
-            options->createOutputInfo_ = 1;
+            options->numberOfFrames = str::ToInt(frames);
+            options->createOutputInfo = 1;
         } else if (str::Find(arguments[i], "-devicetarget_") == 0) {
             std::string driver = Tail(arguments[i], 14);
-            options->driverIndex_ = str::ToInt(driver);
+            options->driverIndex = str::ToInt(driver);
         }
     }
 }
@@ -265,7 +265,7 @@ bool CheckDrives(const std::vector<std::string>& messages) {
         PathParts parts;
         DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (str::Compare(options::g_options.cdLabels_[1], volume) != 0) {
+        while (str::Compare(options::g_options.cdLabels[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
@@ -273,15 +273,15 @@ bool CheckDrives(const std::vector<std::string>& messages) {
     return true;
 }
 
-void ReleaseMouse(CDirectInputMouse* mouse) {
-    if (--mouse->references_ == 0) delete mouse;
+void ReleaseMouse(DirectInputMouse* mouse) {
+    if (--mouse->references == 0) delete mouse;
 }
 
 void CreateMouse() {
-    auto* mouse = new CDirectInputMouse();
-    CDirectInputMouse* old = g_mouse;
+    auto* mouse = new DirectInputMouse();
+    DirectInputMouse* old = g_mouse;
     g_mouse = mouse;
-    if (mouse) ++mouse->references_;
+    if (mouse) ++mouse->references;
     if (old) ReleaseMouse(old);
 }
 
@@ -297,12 +297,12 @@ void CreateFolders(std::string& path) {
 // The renderer created on the window, its gamma set from the options.
 void CreateRenderer() {
     GameOptions* options = &options::g_options;
-    CCamera* camera = &g_camera;
-    camera->localPosition_.x = options->cameraDefaultXDeploy_;
-    camera->localPosition_.y = options->cameraDefaultYDeploy_;
-    camera->localPosition_.z = options->cameraDefaultHeight_;
+    Camera* camera = &g_camera;
+    camera->localPosition.x = options->cameraDefaultXDeploy;
+    camera->localPosition.y = options->cameraDefaultYDeploy;
+    camera->localPosition.z = options->cameraDefaultHeight;
     g_sceneRenderer.CreateRenderer(g_mainWindow, options);
-    g_sceneRenderer.SetGamma(options->brightness_, options->contrast_, options->gamma_);
+    g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
 }
 
 // The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes. Returns
@@ -312,41 +312,41 @@ std::uintptr_t OpenSound() {
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
     std::string discFolder = g_discFolder;
-    g_clientWorld.sounds_->Open(g_mainWindow, 1, -1, 44100);
+    g_clientWorld.sounds->Open(g_mainWindow, 1, -1, 44100);
     {
         std::string registry = textFolder + "streamsn.reg";
         std::string folder = dataFolder + "stream\\";
-        g_clientWorld.sounds_->SetPath(folder, registry);
+        g_clientWorld.sounds->SetPath(folder, registry);
     }
     {
         std::string effects = textFolder + "sfx.res";
-        CSoundManager* sound = g_clientWorld.sounds_;
+        SoundManager* sound = g_clientWorld.sounds;
         sound->ClearWaveSources();
         sound->AddWaveSource(effects);
     }
     {
         std::string unused = discFolder + "res\\speech.res";   // "res\speech.res" (built twice)
         std::string speech = discFolder + "res\\speech.res";
-        g_clientWorld.sounds_->AddWaveSource(speech);
+        g_clientWorld.sounds->AddWaveSource(speech);
     }
-    g_clientWorld.sounds_->SetEffectsVolume(options->audioSfx_);
-    g_clientWorld.sounds_->SetSpeechVolume(options->audioSpeech_);
-    g_clientWorld.sounds_->SetMusicVolume(options->audioStreaming_);
-    g_clientWorld.sounds_->panDirect = options->reverseStereo_ != 0;
+    g_clientWorld.sounds->SetEffectsVolume(options->audioSfx);
+    g_clientWorld.sounds->SetSpeechVolume(options->audioSpeech);
+    g_clientWorld.sounds->SetMusicVolume(options->audioStreaming);
+    g_clientWorld.sounds->panDirect = options->reverseStereo != 0;
     return reinterpret_cast<std::uintptr_t>(discFolder.c_str());
 }
 
 void LoadDatabases() {
     const std::string archive = "database.res";
     GameOptions* options = &options::g_options;
-    g_skillDatabase.Load(options->resourcesPath_, archive);
-    g_questDatabase.Load(options->resourcesPath_);
-    g_unitDatabase.Load(options->resourcesPath_, archive);
-    g_spellDatabase.Load(options->resourcesPath_, archive);
-    g_itemDatabase.Load(options->resourcesPath_, archive);
-    g_leverTable.Load(options->resourcesPath_);
-    g_ackDatabase.Load(options->resourcesPath_);
-    g_printsDatabase.Load(options->resourcesPath_);
+    g_skillDatabase.Load(options->resourcesPath, archive);
+    g_questDatabase.Load(options->resourcesPath);
+    g_unitDatabase.Load(options->resourcesPath, archive);
+    g_spellDatabase.Load(options->resourcesPath, archive);
+    g_itemDatabase.Load(options->resourcesPath, archive);
+    g_leverTable.Load(options->resourcesPath);
+    g_ackDatabase.Load(options->resourcesPath);
+    g_printsDatabase.Load(options->resourcesPath);
 }
 
 // ---- The main loop ---------------------------------------------------------------------------------
@@ -367,16 +367,16 @@ float CameraSeconds(std::uint32_t milliseconds) {
 // Three calls of the loop take a harness hook (ei/main_loop.h, tests/verify/harness_hooks.h) when
 // one is set: the frame's last camera update is held still while a scenario is frozen; the server's
 // update and the client's tick are followed by the harness's "speed" hold. Otherwise the function itself.
-void FrameCameraUpdate(CCamera* camera, float seconds) {
+void FrameCameraUpdate(Camera* camera, float seconds) {
     if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) hook(camera, nullptr, seconds);
     else camera->Update(seconds);
 }
 // Stand-ins in the hook types' convention (__fastcall, include/ei/main_loop.h): in game.exe the harness's hooks are CALL targets.
 int __fastcall UpdateServer(void* server, void*) {
-    static_cast<CWorldServer*>(server)->Update();
+    static_cast<WorldServer*>(server)->Update();
     return 1;
 }
-int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->RunTick() ? 1 : 0; }
+int __fastcall RunClientSegment(void* client, void*) { return static_cast<WorldClient*>(client)->RunTick() ? 1 : 0; }
 ei::mainloop::HarnessHooks::WorldUpdate ServerUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
     return &UpdateServer;
@@ -391,10 +391,10 @@ ei::mainloop::HarnessHooks::WorldUpdate ClientSegment() {
 void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {
-        g_sceneRenderer.flags_ |= 1;
+        g_sceneRenderer.flags |= 1;
         gameapi::SetCursor(nullptr);
     } else {
-        g_sceneRenderer.flags_ &= ~1u;
+        g_sceneRenderer.flags &= ~1u;
         gameapi::InvalidateRect(nullptr, nullptr, TRUE);
     }
     g_activationChanged = 0;
@@ -470,12 +470,12 @@ void PrintClientSpeed(float speed, float balance) {
 bool RunPass() {
     TakeActivationChange();
     std::uint32_t elapsed = TimeSinceLastPass();
-    if (!(g_sceneRenderer.flags_ & 1)) {
+    if (!(g_sceneRenderer.flags & 1)) {
         GuardPlayerData(0);
         return false;
     }
     GuardPlayerData(1);
-    CWorldClient* client = &g_clientWorld;
+    WorldClient* client = &g_clientWorld;
     if (client->IsLocalPlayerIdle()) {
         if (IsMultiplayerClient()) g_gameFlow.RecreateClientSession();
         else g_gameFlow.CloseSessions();
@@ -485,7 +485,7 @@ bool RunPass() {
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
     if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
-        const double frame = Step(1000.0f / static_cast<double>(options::g_options.movieCapturingFps_));
+        const double frame = Step(1000.0f / static_cast<double>(options::g_options.movieCapturingFps));
         elapsed = libcrt::Ftol(std::ceil(frame));
     }
     g_serverBacklog += elapsed;
@@ -497,7 +497,7 @@ bool RunPass() {
     if (RunWorlds()) {
         g_gameFlow.ProcessRequest();
         const float fraction = static_cast<float>(x87::FromUnsigned(g_clientBacklog) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
-        if (!client->paused_) client->tickFraction_ = fraction;
+        if (!client->paused) client->tickFraction = fraction;
         const double balance = Step(static_cast<double>(client->PumpIncomingCount()) - fraction);
         const float roundedBalance = static_cast<float>(balance);
         g_clientSpeed = SpeedForBalance(balance, roundedBalance);
@@ -506,7 +506,7 @@ bool RunPass() {
         // The camera runs on the real time of the pass, a tick at a time; the draw spreads the last tick's
         // step over the part of the next tick the client has had (camera::DrawnView).
         camera::SetViewProgress(fraction, CameraSeconds(elapsed));
-        CCamera* camera = &g_camera;
+        Camera* camera = &g_camera;
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {
             camera->Update(CameraSeconds(tick));
@@ -514,11 +514,11 @@ bool RunPass() {
             elapsed -= tick;
         }
         FrameCameraUpdate(camera, CameraSeconds(elapsed));
-        if (!client->paused_) {
-            if (camera->flags_ & CCamera::kRecording)
-                camera->RecordFrame(std::bit_cast<std::uint32_t>(static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_)));
-            if (camera->flags_ & CCamera::kPlaying)
-                camera->PlaybackStep(static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
+        if (!client->paused) {
+            if (camera->flags & Camera::kRecording)
+                camera->RecordFrame(std::bit_cast<std::uint32_t>(static_cast<float>(static_cast<double>(client->tick) + client->tickFraction)));
+            if (camera->flags & Camera::kPlaying)
+                camera->PlaybackStep(static_cast<float>(static_cast<double>(client->tick) + client->tickFraction));
         }
     }
     g_interface.Update();
@@ -566,7 +566,7 @@ void ShutDown() {
     ForgetComposedTextures();
     g_interface.Shutdown();
     g_cursor.Shutdown();
-    CDirectInputMouse* mouse = g_mouse;
+    DirectInputMouse* mouse = g_mouse;
     g_mouse = nullptr;
     if (mouse) ReleaseMouse(mouse);
     g_sceneRenderer.SetGamma(0.0f, 0.0f, 0.0f);
@@ -580,8 +580,8 @@ void ShutDown() {
 
 // The mouse's reference dropped (ShutDown has already taken it: null at exit).
 void ReleaseMouseAtExit() {
-    if (CDirectInputMouse* mouse = g_mouse)
-        if (--mouse->references_ == 0) delete mouse;
+    if (DirectInputMouse* mouse = g_mouse)
+        if (--mouse->references == 0) delete mouse;
 }
 
 char g_windowTitle[256] = /*0079BB24*/ {""};
@@ -619,8 +619,8 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     g_clientWorld.Create();
     g_serverWorld.Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
-    g_camera.Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance_),
-                   std::bit_cast<std::uint32_t>(options->farClipDistance_),
+    g_camera.Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance),
+                   std::bit_cast<std::uint32_t>(options->farClipDistance),
                    std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 * 0.2857142857142857)));
     g_clientWorld.SetCamera(&g_camera);
     if (!CheckDrives(messages)) return kExitDeclined;
@@ -630,7 +630,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     CreateFolders(folder);
     g_instance = instance;
     g_mainWindow = gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_windowClassAtom), g_windowTitle, WS_POPUP | WS_CLIPSIBLINGS, 0, 0,
-                                            options->resolutionX_, options->resolutionY_, nullptr, nullptr, instance, nullptr);
+                                            options->resolutionX, options->resolutionY, nullptr, nullptr, instance, nullptr);
     if (!g_mainWindow) return 0;
     gameapi::ShowWindow(g_mainWindow, show);
     gameapi::UpdateWindow(g_mainWindow);
@@ -642,7 +642,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     // whose top byte is not zero): a message that waits before the first pass goes to the interface
     // when that byte is not zero.
     CreateRenderer();
-    const bool interfaceTakesInput = options->audio_ ? (OpenSound() >> 24) != 0 : true;
+    const bool interfaceTakesInput = options->audio ? (OpenSound() >> 24) != 0 : true;
 
     PlayMovies("Start", true);
     g_loadingMovieName = "Progres.bik";
@@ -650,12 +650,12 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     CloseLoadingMovie();
     LoadDatabases();
     g_mouse->Setup(g_mainWindow, instance);
-    g_clientWorld.SetUpGraphics(g_sceneRenderer.device_);
-    SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0);
-    g_interface.Create(g_sceneRenderer.device_);
+    g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
+    SetUpCursors(options->fpsIndependentCursor != 0, g_mouse, 0);
+    g_interface.Create(g_sceneRenderer.device);
     g_mapDatabase.LoadAll();
     StartFirstMap();
-    g_sceneRenderer.SetGamma(options->brightness_, options->contrast_, options->gamma_);
+    g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
 
     const int result = RunMainLoop(interfaceTakesInput);
     ShutDown();

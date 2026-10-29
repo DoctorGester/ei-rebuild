@@ -1,4 +1,4 @@
-// The path smoother (PathSmoother, in CAIMap): a dynamic programme over the path's cells that may move each
+// The path smoother (PathSmoother, in AIMap): a dynamic programme over the path's cells that may move each
 // cell to a neighbour when that makes the path cheaper, counting step costs and turns. Its 81 transition tables
 // are built on first use. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
@@ -101,7 +101,7 @@ void PathSmoother::Advance(const SmoothState* from, SmoothState* to, const Smoot
     }
 }
 
-int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCells* path, int startDirection, float fraction) {
+int PathSmoother::Smooth(CUnit* unit, AIMap* mapArg, PathCells* path, int startDirection, float fraction) {
     if (std::ssize(*path) < 3) return 0;
     map = mapArg;
     mapArg->CostContextFor(unit, &costs);

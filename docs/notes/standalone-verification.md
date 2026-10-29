@@ -46,7 +46,7 @@ world update, frame, tick, zone, hashes) and the fields that changed. `dump <nam
   hashes; the main thread's rand() state), `player<id>` (money, items, members, variables), `obj<id>` (every server
   object: class, flags, place, effects, vitals; units also owner, relations, animation, movement, motion, controller and
   AI brain with modes by name). No pointer is written: objects by id, AI modes by name.
-- digest 2 (SV2a): `timed<id>` (effects by class), `missile<n>` (CSpellEffect), `aievents` (the AI event table: always
+- digest 2 (SV2a): `timed<id>` (effects by class), `missile<n>` (SpellEffect), `aievents` (the AI event table: always
   empty so far; nothing calls its creator 005C9630), `script` (instances, waiting runs, globals by name, FX sources,
   particles, lights, lightning; a randomized FX source's countdown is left out: stack leftovers), `client` and
   `cunit<id>` (client units: place, orientation, animation, packed vitals, flags).
@@ -54,12 +54,12 @@ world update, frame, tick, zone, hashes) and the fields that changed. `dump <nam
   objects one `#`; script one hash per kind (`#run`, `#inst`, `#global`, `#gobject`, `#fx`, ...). A golden compares only
   the groups it has, so an older digest still compares.
 - Left out on purpose: a unit's motion floats before its first path (never written).
-- Scenarios that load a save take `dump loaded_<save>` once the load is done, so the loaded world is compared field
+- Scenarios that load a save take `dump loaded<save>` once the load is done, so the loaded world is compared field
   by field (SV3).
 
 **Saves** (SV7d; tools/savefile.py with savefile_objects / _unit / _items / _players / _scenario.py; `show`, `diff`,
 `raw`, `rules`): saves\<slot>\scenario.sav (magic 0xDEAD: party manager, interface, bottom window, camera),
-mission.sav (0x102: CWorldServer::SaveWorld 00597BD0), info.sav; shot.sav left out. SaveFileWrite 00579B80 frames
+mission.sav (0x102: WorldServer::SaveWorld 00597BD0), info.sav; shot.sav left out. SaveFileWrite 00579B80 frames
 magic, version 0x74, checksum, a compressed flag and the LZ coder's output. Every reader names the function it follows;
 a decode that does not end exactly at the data's end is an error. Entities by id, fields by name in file order. A
 golden's saves.txt lists each save's path and the hash of its decoded text; the texts are in the shared store
@@ -141,10 +141,10 @@ check, another payload size, or no files.
   script record has a byte past ASCII, and the fixture records ASCII only).
 
 Families: `maths` (vectors, quaternions, matrices, CubicSegment::Evaluate via its live copy 004E5660,
-CTransformPipeline::PushMatrix), `random` (IsaacRandom Next / Refill / Range), `stats` (SV4a, SV4d; unit statistics, damage, skill
+TransformPipeline::PushMatrix), `random` (IsaacRandom Next / Refill / Range), `stats` (SV4a, SV4d; unit statistics, damage, skill
 and school prices, protection, hit location, LockKey::Opens), `crt` (vsprintf, atof, fixture "@CrtFormatLocale"),
 `coder` (CoderState Compress / Decompress, "@CoderTables"), `script` (ClassifyToken, FunctionSignature, KeywordName,
-Tokenize, ApplyDefines, the loader's Load / LoadFunction / LoadCommands / ExpectLexeme), `path` (SV4c; CAIMap::FindPath,
+Tokenize, ApplyDefines, the loader's Load / LoadFunction / LoadCommands / ExpectLexeme), `path` (SV4c; AIMap::FindPath,
 PlanLongPath, PathSmoother::Smooth with "@PathTables" and "@AIMap"; `tools/path_vectors.py prune --keep` keeps the maps
 small). Not reached by any scenario: CubicSegment::SetBSpline (dead), BackstabFactor, GetFactors, PickLocation's draw.
 
@@ -168,8 +168,8 @@ reach is that failed run's, a lower bound), so goldens come from runs without EI
 - Start-up (A-I23): `app_record` (the frame recorder's pass length and files), `app_disc_prompt` (the disc check's
   second-disc boxes, harness_startup.h; app.md). Not reachable from a scenario: WinMain's second-instance exit (the run
   would end in WinMain before any step, with no state for a golden), the DirectX 7 check, the low-disk-space box
-  (GetDiskFreeSpaceExA through GetProcAddress); CDib's catch handlers (a CFileException from the MFC file's Read / Write:
-  a failing disk) and the message boxes they end in. CDib::Read and its helpers run only for a loose
+  (GetDiskFreeSpaceExA through GetProcAddress); Dib's catch handlers (a CFileException from the MFC file's Read / Write:
+  a failing disk) and the message boxes they end in. Dib::Read and its helpers run only for a loose
   `textures\<name>.bmp` (A-I23a).
 - Shared files (A-I23): the vanilla offer in net_pair_leave is z3q1 z6q3 z7q1 and a z9 zone (R34a), so its vanilla
   peer hides z7q1.mq (Rebirth's z6q2.mq); the received file is written (0041ECC0 -> 005813A0) and `samefile`
@@ -180,7 +180,7 @@ reach is that failed run's, a lower bound), so goldens come from runs without EI
   `call [reg+0xF8]`). Deleted in C35l (about 2,500 lines of ours); the original's functions are rows of
   config/dead_code.csv, and the map object factory makes nothing for class 0x39 (CreateObject returns null, as for
   an unknown class). CubicSegment::Evaluate 0040E440 and SetBSpline are dead (the game uses the copy at 004E5660).
-- Scenarios added for gaps: unit_ai_heal, ui_base_topic, world_loot, unit_ai_cast, zone_gz15h_tornado (CEffectTornado
+- Scenarios added for gaps: unit_ai_heal, ui_base_topic, world_loot, unit_ai_cast, zone_gz15h_tornado (EffectTornado
   launches only on Rebirth and only in about half the runs: a strike needs open ground at a random point), ui_camp_make,
   magic_traps_victims (`make_trap_mob.py --interval 0`), unit_cast_at, unit_ai_corpse, levers_key (SV5b: a quest item on a locked lever, `clickunit #<id>`),
   ui_options_remap / ui_options_remap_load (SV8: keys remapped in the options and used, the saved keyboard.ini loaded
@@ -203,7 +203,7 @@ reach is that failed run's, a lower bound), so goldens come from runs without EI
   original EI_Plugin's NewMaster probes the master with its own real TCP connect and may fall back to
   hat.gipath.org.
 - Still unreached: TryTame (SV5a1), SuspectionMode
-  Enter / Execute, patrol points, CTrapObject::UpdateTrap, PickEnvironmentSpeech (T2c: the bored remark, 1 in 1001 per
+  Enter / Execute, patrol points, TrapObject::UpdateTrap, PickEnvironmentSpeech (T2c: the bored remark, 1 in 1001 per
   update after 500 bored ticks).
 
 ## 5. What makes runs repeat
@@ -237,7 +237,7 @@ heap.
 | Server objects, map objects, Suspection / Fear modes, class templates allocated zeroed | NewObjectImpl 004D6970, CreateObject 00512730, AddSuspectionMode / AddFearMode and their constructors' callers, ClassTemplate::Construct's callers | same | SV7b2, SV7d3, SV7d4 |
 | View position zeroed (draw sort NaN) | CMapObject::Construct's CALL 0050E2F2 (bit 6) | same | S17a |
 | Particle source zeroed (emission point read before Attach) | NewParticleSource's operator new 004981CD (bit 7) | same | SV7b7 |
-| Lights zeroed (the sun's never-set position under water) | CLightFactory::NewObjectImpl's operator new 0068DA7C (bit 8) | same | SV7b6a |
+| Lights zeroed (the sun's never-set position under water) | LightFactory::NewObjectImpl's operator new 0068DA7C (bit 8) | same | SV7b6a |
 | Path cells' speed word 0x200, terrain bits 0 | CALLs of SearchPathTo, BuildCells, Smooth (harness_path_cells) | | SV7d2 |
 | Save padding, a sound's name tail, the stock's codes, archive keys numbered by first save | harness_save_leftovers | `EI_SAVE_LEFTOVERS=0` | SV7b2a |
 | A heard claim's point 0,0,0 | AIHeardCalls::AddClaim's three loads (005CCF04..) | | S20d |
@@ -384,17 +384,17 @@ happen (the harness logs "share id" if one does).
   env-gated write, one bit per construction site; a quiet NaN and a finite 1e5), then run the `--golden` suite and
   hash the capture scenarios' frames against a plain pass. A positive control must move something (the light's
   positions, SV7b6a's field, moved 12 frames of frames_basic / ui_saveload).
-- **Transform positions** (SV7b6b): CTransformObject's constructor (00453400) and its inlined copies leave
-  localPosition_ / worldPosition_ (+0x1C..+0x34). Only the light reads them unset (SV7b6a, zeroed). Poisoned at the
+- **Transform positions** (SV7b6b): TransformObject's constructor (00453400) and its inlined copies leave
+  localPosition / worldPosition (+0x1C..+0x34). Only the light reads them unset (SV7b6a, zeroed). Poisoned at the
   camera (0040C8B0), terrain (in 00561E50), figure meshes and parts (005AABC0), sky (004D9110), scene meshes,
   every effect (CEffect base), CObject3D (00515C21) and particle sources: 175 goldens and 174 frames the same.
-  Why: every effect's Reset zeroes the position in its constructor (ClearBase; CEffectShowVisibility sets it from
+  Why: every effect's Reset zeroes the position in its constructor (ClearBase; EffectShowVisibility sets it from
   the seer before use), the terrain's reset sets it, the sky sets it before its matrix, the camera reads its own
   only when placed (else the focus), scene meshes and figure parts are zero-filled arrays, map objects and figures
   get theirs on placement / load. The 3DS readers' stack figure (004A0350) is unported dead code.
 - **Address order**: a sort or hash walk by pointer that reaches behaviour, a save or a frame gets an id or name order
   in ours and a harness patch in the original. Pointer-keyed containers that reach no output
-  (CMappedResource::filesByData_, mod_folders' sets, ChunkArchive::numbers_, text_sources' converted texts, ui_native's
+  (MappedResource::filesByData, mod_folders' sets, ChunkArchive::numbers, text_sources' converted texts, ui_native's
   surfaces, the renderer's caches) need nothing. Net replication (SV7b5) sends by entry serial in ours (network.md,
   "Original bugs kept (rest)"); the original's runs keep the address order unpatched, as no golden reads it.
 - **Allocation order** (SV2f, SV2h1b): the game reads the heap's address order in places, and before the
@@ -421,7 +421,7 @@ happen (the harness logs "share id" if one does).
 
 ## 9. Open
 
-- SV6c (watch): a startup crash inside AIL_waveOutOpen (harness MutedWaveOutOpen <- CSoundManager::Open), seen twice in
+- SV6c (watch): a startup crash inside AIL_waveOutOpen (harness MutedWaveOutOpen <- SoundManager::Open), seen twice in
   thousands of runs (once in the image); a retry passes.
 - SV7c1 (later): vanilla menu unit cunit2's flags 0x100004A2 against 0x100004AA once under jitter seed 3.
 - SV2c (watch): unit_create parted once in crt.rand only.
@@ -479,7 +479,7 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
 - **What start-up is now** (boot): ~25 ms to the hook DLL, ~35 ms hook set-up, the DirectX check skipped (native
   run), the Direct3D 11 device (made on its own thread from the image's start; with four games starting at once
   its first use still waited ~350 ms), the sound open 0.15-0.3 s (kept), the swap chain and loading. The exe check
-  through imagehlp did not show in boot's profile (the FUN_00640060 named for it is CHudPortraits::AddPortrait).
+  through imagehlp did not show in boot's profile (the FUN_00640060 named for it is HudPortraits::AddPortrait).
 - **A frame** (four games, machine otherwise idle): median 6-8 ms (image), 7-9 ms (original); with 16 games
   1.3-1.6x that (the main thread's own CPU per frame grows too: shared cores and memory). Per frame: server
   0.2-0.4 ms (render_stats' fights 2.5-3), client 1-4, digest 0.3-0.8 (every 20 updates, about every 4th
@@ -492,7 +492,7 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
 - **Pairs overlap** (SV10a, harness_pair.h): a game's turn runs from its after-frame peek (steps, messages, the
   next pass's worlds and net::Pump, the interface's update) to just before the pass's frame step (CALL 00458010 at
   004575FD, the rewritten loop's `frameStep` hook point); the frame step (the drawing and the present, most of a
-  frame) runs while the other game takes its turn. The frame step pumps the network too: CWorldClient::Render
+  frame) runs while the other game takes its turn. The frame step pumps the network too: WorldClient::Render
   00569E40 calls net::Pump between its drawing stages (four times), and the server answers the lobby's pings from
   there. So the mailbox keeps the order it had when the frame step was inside the turn: every datagram carries its
   sender's segment (a turn and the frame step after it, stamp 2 * turn + side), a receive takes datagrams of

@@ -37,7 +37,7 @@ namespace {
 
 const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
 const char* Text(Call* call, int i) { return call->cmd->stringArgs[i].c_str(); }
-CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
+EngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
 
 // The float bits of `value` as the dword the player messages take.
 std::uint32_t Bits(float value) {
@@ -50,7 +50,7 @@ std::uint32_t Bits(float value) {
 bool Equals(float constant, float value) { return constant == value; }
 
 // The server-side object of player 0 (game over), or null.
-CPlayerServer* FirstPlayerState() {
+PlayerServer* FirstPlayerState() {
     CPlayer* player = g_serverWorld.GetPlayer(0);
     return player ? player->Server() : nullptr;
 }
@@ -100,7 +100,7 @@ bool GSGetPlayerVar(Call* call) {
     const char* name = Text(call, 0);
     CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
-    *call->result.number = static_cast<float>(static_cast<double>(player->Party()->variables_.Get(name)));
+    *call->result.number = static_cast<float>(static_cast<double>(player->Party()->variables.Get(name)));
     return true;
 }
 
@@ -120,8 +120,8 @@ bool GiveUnitExp(Call* call) {
     data->AddExperience(Floats(call)[0]);
     CUnit* unit = data->unit;
     if (auto* party = unit->player)
-        if (CPlayerServer* state = party->Server())
-            state->SendPair18(static_cast<std::uint32_t>(unit->id_), Bits(Floats(call)[0]));
+        if (PlayerServer* state = party->Server())
+            state->SendPair18(static_cast<std::uint32_t>(unit->id), Bits(Floats(call)[0]));
     return true;
 }
 
@@ -143,7 +143,7 @@ bool ResetTarget(Call* call) {
     AIBrain* brain = &unit->ServerController()->brain;
     int index = brain->alarmSlot;
     brain->memory.Reset();
-    if (index >= std::ssize(brain->alarmRecords)) return Report("ResetTarget", "Failed to reset unit %d", unit->id_);
+    if (index >= std::ssize(brain->alarmRecords)) return Report("ResetTarget", "Failed to reset unit %d", unit->id);
     brain->ApplyBehaviour(&brain->alarmRecords[index], index);
     return true;
 }
@@ -161,24 +161,24 @@ bool Loot(Call* call) {
     int number = Ftol(Floats(call)[0]);
     CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("Loot", "There is no player with number %d", number);
-    CEngineObject* object = ObjectArg(call, 0);
+    EngineObject* object = ObjectArg(call, 0);
     if (!object) return Report("Loot", "Object doesn't exist");
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("Loot", "Object must be a unit");
     if (unit->IsDead() == 0) return Report("Loot", "Object must be dead");
     g_serverWorld.Loot(unit, player);
-    g_serverWorld.RemoveObject(unit->id_);
+    g_serverWorld.RemoveObject(unit->id);
     return true;
 }
 
 // GameOver / GameOverMSG(title, text): the "gameover" string event to player 0's client.
 bool GameOver(Call*) {
-    if (CPlayerServer* state = FirstPlayerState()) state->SendText13("gameover");
+    if (PlayerServer* state = FirstPlayerState()) state->SendText13("gameover");
     return true;
 }
 
 bool GameOverMsg(Call* call) {
-    if (CPlayerServer* state = FirstPlayerState()) {
+    if (PlayerServer* state = FirstPlayerState()) {
         std::string text = std::string("gameover ") + Text(call, 0) + " " + Text(call, 1);
         state->SendText13(text);
     }
@@ -206,7 +206,7 @@ bool IsFileExists(Call* call) {
 // table's order (no check for the player).
 bool GSListPlayerVars(Call* call) {
     CPlayer* player = g_serverWorld.GetPlayer(Ftol(Floats(call)[0]));
-    const NamedFloatTable& variables = player->Party()->variables_;
+    const NamedFloatTable& variables = player->Party()->variables;
     for (auto& node : variables) {
         std::string line;
         line = str::Format("%s = %f", node.first, static_cast<double>(node.second));
@@ -218,14 +218,14 @@ bool GSListPlayerVars(Call* call) {
 // GiveUnitWeapon(unit, item, override) / GiveUnitArmor: the item made from its name goes to the
 // unit; with override 1 (only for units without a text-key id) the unit's stats are set from it.
 bool GiveUnitWeapon(Call* call) {
-    CEngineObject* object = ObjectArg(call, 0);
+    EngineObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
     if (!object) return Report("GiveUnitWeapon", "Unit doesn't exists");
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
-    if (!unit) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", object->id_);
+    if (!unit) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", object->id);
     const char* name = Text(call, 0);
     auto* item = AsWeapon(g_serverWorld.CreateItemNamed(name));
-    if (override && unit->id_ >= 1000000000) override = false;   // (a warning with EnableShowingScriptErrors)
+    if (override && unit->id >= 1000000000) override = false;    // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
     int slot = unit->AddWeapon(item);
     if (slot == -1) return true;
@@ -234,8 +234,8 @@ bool GiveUnitWeapon(Call* call) {
         const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(item->GetPrototype());
         UnitStats& stats = unit->ServerController()->stats;
         const UnitPrototypeRecord* prototype = unit->GetPrototype();
-        Store(&stats.damage, item->damage_);
-        Store(&stats.damageSpread, item->damageSpread_);
+        Store(&stats.damage, item->damage);
+        Store(&stats.damageSpread, item->damageSpread);
         float sum = prototype->combat[3] + weapon->defenceBonus;
         Store(&stats.combat[UnitStats::kDefence], sum);
         float reach;
@@ -257,14 +257,14 @@ bool GiveUnitWeapon(Call* call) {
 // 1, 3 and 6 second block) + 0.3 * (armour slots 2, 4, 5), each plus the prototype's protection
 // scale, into both halves of the unit's server-side protection pair c.
 bool GiveUnitArmor(Call* call) {
-    CEngineObject* object = ObjectArg(call, 0);
+    EngineObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
     if (!object) return Report("GiveUnitArmor", "Unit doesn't exists");
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
-    if (!unit) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", object->id_);
+    if (!unit) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", object->id);
     const char* name = Text(call, 0);
-    CItem* item = g_serverWorld.CreateItemNamed(name);
-    if (override && unit->id_ >= 1000000000) override = false;
+    Item* item = g_serverWorld.CreateItemNamed(name);
+    if (override && unit->id >= 1000000000) override = false;
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
     unit->EquipArmour(item);
     if (override) {
@@ -277,19 +277,19 @@ bool GiveUnitArmor(Call* call) {
             for (int c = 0; c < 7; ++c) blocks[block][c] = from[c] + blocks[block][c];
         };
         for (int slot = 0; slot < 7; ++slot) {
-            CItemArmor* equipped = unit->armor[slot];
+            ItemArmor* equipped = unit->armor[slot];
             if (!equipped) continue;
             switch (slot) {
-            case 0: addInto(0, equipped->absorb_[0]); break;
+            case 0: addInto(0, equipped->absorb[0]); break;
             case 1:
             case 3:
-                addInto(1, equipped->absorb_[0]);
-                addInto(2, equipped->absorb_[1]);
+                addInto(1, equipped->absorb[0]);
+                addInto(2, equipped->absorb[1]);
                 break;
             case 2:
             case 4:
-            case 5: addInto(3, equipped->absorb_[0]); break;
-            case 6: addInto(2, equipped->absorb_[0]); break;
+            case 5: addInto(3, equipped->absorb[0]); break;
+            case 6: addInto(2, equipped->absorb[0]); break;
             }
         }
         for (int c = 0; c < 7; ++c) {
@@ -308,7 +308,7 @@ bool GiveUnitArmor(Call* call) {
 
 // ShowAllUnits(0) sets the "draw all" flag, anything else clears it.
 bool ShowAllUnits(Call* call) {
-    options::g_options.drawVisibleOnly_ = Equals(0.0f, Floats(call)[0]) ? 1 : 0;
+    options::g_options.drawVisibleOnly = Equals(0.0f, Floats(call)[0]) ? 1 : 0;
     return true;
 }
 

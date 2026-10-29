@@ -14,7 +14,7 @@
 namespace {
 
 // game.exe's objects: the comparators run in the original's code only.
-using ei::verify::exe::CEngineObject;
+using ei::verify::exe::EngineObject;
 using ei::verify::exe::ScriptObjectRef;
 
 bool g_wanted = false;
@@ -25,19 +25,19 @@ bool g_tieLogged = false;
 
 // Whether member `x` sorts after member `y` (two different pointers) in the id order (1 or 0). The
 // stubs below call it with EAX, ECX and EDX saved.
-static int __stdcall IdAfterForOriginal(const CEngineObject* x, const CEngineObject* y) {
-    if (x && y && x->id_ == y->id_ && !g_tieLogged) {
+static int __stdcall IdAfterForOriginal(const EngineObject* x, const EngineObject* y) {
+    if (x && y && x->id == y->id && !g_tieLogged) {
         g_tieLogged = true;
-        ei::Log("harness: script group members %p and %p share id %d: the id order cannot settle them", x, y, x->id_);
+        ei::Log("harness: script group members %p and %p share id %d: the id order cannot settle them", x, y, x->id);
     }
     if (!x || !y) return x != nullptr ? 1 : 0;   // as ScriptGroup::After
-    return x->id_ > y->id_ ? 1 : 0;
+    return x->id > y->id ? 1 : 0;
 }
 
 // 004B2D80, the comparator of Sort and Load (cdecl, two ScriptObjectRef*): -1 / 0 / 1 by id.
 static int __cdecl CompareByIdForOriginal(const void* a, const void* b) {
-    const CEngineObject* x = static_cast<const ScriptObjectRef*>(a)->object;
-    const CEngineObject* y = static_cast<const ScriptObjectRef*>(b)->object;
+    const EngineObject* x = static_cast<const ScriptObjectRef*>(a)->object;
+    const EngineObject* y = static_cast<const ScriptObjectRef*>(b)->object;
     if (x == y) return 0;
     return IdAfterForOriginal(x, y) ? 1 : -1;
 }

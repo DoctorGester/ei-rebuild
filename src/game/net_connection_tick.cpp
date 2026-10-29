@@ -39,78 +39,78 @@ constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sam
 } // namespace
 
 // Advances the idle time and the clock by `dt`. Packets older than the loss timeout (3 standard deviations
-// above the average round trip, at least 0.1, at most the session's maxRoundTrip_) are rolled back and move
-// to the acknowledged list, where they stay for maxRoundTrip_ seconds. Sends an update every sendInterval_
-// (stopping early once the reliable stream and the header queue are empty). Every idReuseTime_ seconds the
+// above the average round trip, at least 0.1, at most the session's maxRoundTrip) are rolled back and move
+// to the acknowledged list, where they stay for maxRoundTrip seconds. Sends an update every sendInterval
+// (stopping early once the reliable stream and the header queue are empty). Every idReuseTime seconds the
 // oldest batch of freed ids returns to the id pools. False once the peer was silent for the session's
-// timeout_ or the reliable stream holds 32000 bytes.
+// timeout or the reliable stream holds 32000 bytes.
 bool Connection::Tick(double dt) {
     g_currentConnection = this;
-    idleTime_ = static_cast<float>(D(idleTime_) + dt);
-    Set(&clock_, dt + Get(&clock_));
-    float spread = static_cast<float>(D(roundTrip_) * D(roundTrip_) - D(roundTripSquare_));
+    idleTime = static_cast<float>(D(idleTime) + dt);
+    Set(&clock, dt + Get(&clock));
+    float spread = static_cast<float>(D(roundTrip) * D(roundTrip) - D(roundTripSquare));
     spread = AbsBits(spread);
-    float loss = static_cast<float>(std::sqrt(spread) * D(3.0f) + D(roundTrip_));
+    float loss = static_cast<float>(std::sqrt(spread) * D(3.0f) + D(roundTrip));
     float tenth;
     tenth = 0.1f;
     loss = loss >= tenth ? loss : tenth;
-    float longest = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip_));
+    float longest = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip));
     loss = longest >= loss ? loss : longest;
-    float kept = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip_));
+    float kept = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip));
 
-    for (auto node = history_.begin(); node != history_.end();) {
-        double age = Get(&clock_) - Get(&node->time);
+    for (auto node = history.begin(); node != history.end();) {
+        double age = Get(&clock) - Get(&node->time);
         EI_NAN_AUDIT(loss, age);
         if (D(loss) >= age) break;
         RollBack(&*node);
         auto next = std::next(node);
-        acknowledged_.splice(acknowledged_.end(), history_, node);
+        acknowledged.splice(acknowledged.end(), history, node);
         node = next;
     }
-    for (auto node = acknowledged_.begin(); node != acknowledged_.end();) {
-        double age = Get(&clock_) - Get(&node->time);
+    for (auto node = acknowledged.begin(); node != acknowledged.end();) {
+        double age = Get(&clock) - Get(&node->time);
         if (D(kept) < age) {
-            node = acknowledged_.erase(node);
+            node = acknowledged.erase(node);
         } else {
             ++node;   // also NaN
         }
     }
 
-    double timer = D(sendTimer_) + dt;
-    sendTimer_ = static_cast<float>(timer);
-    if (timer > D(sendInterval_)) {
+    double timer = D(sendTimer) + dt;
+    sendTimer = static_cast<float>(timer);
+    if (timer > D(sendInterval)) {
         do {
-            sendTimer_ = static_cast<float>(D(sendTimer_) - D(sendInterval_));
-            if (SendUpdate(static_cast<int>(updateBudget_)) && headers_.empty()) {
-                if (ReliableSize(&reliableOut_) == 0) break;
+            sendTimer = static_cast<float>(D(sendTimer) - D(sendInterval));
+            if (SendUpdate(static_cast<int>(updateBudget)) && headers.empty()) {
+                if (ReliableSize(&reliableOut) == 0) break;
             }
-        } while (sendTimer_ > sendInterval_);
+        } while (sendTimer > sendInterval);
     }
-    if (sendTimer_ > sendInterval_) {
+    if (sendTimer > sendInterval) {
         double rest;
         do {
-            rest = D(sendTimer_) - D(sendInterval_);
-            sendTimer_ = static_cast<float>(rest);
-        } while (rest > D(sendInterval_));
+            rest = D(sendTimer) - D(sendInterval);
+            sendTimer = static_cast<float>(rest);
+        } while (rest > D(sendInterval));
     }
 
-    double freedTime = D(freedTimer_) + dt;
-    freedTimer_ = static_cast<float>(freedTime);
-    if (freedTime > static_cast<double>(g_currentSession->idReuseTime_)) {
-        freedTimer_ = 0.0f;
-        std::vector<FreedId>& oldest = freedIds_.front();
+    double freedTime = D(freedTimer) + dt;
+    freedTimer = static_cast<float>(freedTime);
+    if (freedTime > static_cast<double>(g_currentSession->idReuseTime)) {
+        freedTimer = 0.0f;
+        std::vector<FreedId>& oldest = freedIds.front();
         for (auto& e : oldest) {
-            auto id = static_cast<std::uint16_t>(e.id);
-            std::vector<std::uint16_t>& pool = idPools_[e.type].free;
-            pool.push_back(id);
+            auto entryId = static_cast<std::uint16_t>(e.id);
+            std::vector<std::uint16_t>& pool = idPools[e.type].free;
+            pool.push_back(entryId);
         }
         oldest.clear();
-        freedIds_.pop_front();
-        freedIds_.emplace_back();
+        freedIds.pop_front();
+        freedIds.emplace_back();
     }
 
     bool alive = false;
-    if (static_cast<double>(g_currentSession->timeout_) > D(idleTime_)) alive = ReliableSize(&reliableOut_) < 32000;
+    if (static_cast<double>(g_currentSession->timeout) > D(idleTime)) alive = ReliableSize(&reliableOut) < 32000;
     g_currentConnection = nullptr;
     return alive;
 }
@@ -120,32 +120,32 @@ bool Connection::Tick(double dt) {
 namespace net {
 
 void Connection::Delivered(SentPacket* packet) {
-    double sample = Get(&clock_) - Get(&packet->time);
-    double kept = D(kRttKeep) * D(roundTrip_);
-    roundTrip_ = static_cast<float>(kept);
-    roundTrip_ = static_cast<float>((1.0 - D(kRttKeep)) * sample + kept);
-    double keptSquare = D(kRttKeep) * D(roundTripSquare_);
-    roundTripSquare_ = static_cast<float>(keptSquare);
-    roundTripSquare_ = static_cast<float>((1.0 - D(kRttKeep)) * sample * sample + keptSquare);
+    double sample = Get(&clock) - Get(&packet->time);
+    double kept = D(kRttKeep) * D(roundTrip);
+    roundTrip = static_cast<float>(kept);
+    roundTrip = static_cast<float>((1.0 - D(kRttKeep)) * sample + kept);
+    double keptSquare = D(kRttKeep) * D(roundTripSquare);
+    roundTripSquare = static_cast<float>(keptSquare);
+    roundTripSquare = static_cast<float>((1.0 - D(kRttKeep)) * sample * sample + keptSquare);
     for (SentItem& sent : packet->items) {
         SentItem* item = &sent;
         auto action = static_cast<std::int32_t>(item->action);
         if (action == SentItem::kChangedReliable) {
             std::uint32_t version = item->version;
-            if (item->entry->version_ > version) version = item->entry->version_;
-            item->entry->version_ = version;
+            if (item->entry->version > version) version = item->entry->version;
+            item->entry->version = version;
         } else if (action > 1 && action < 4) {
             ReplicaEntry* entry = item->entry;
-            std::map<std::uint32_t, EntryRef>& tree = priorities_[entry->flags_ >> 1];
-            auto found = tree.find(entry->serial_);
+            std::map<std::uint32_t, EntryRef>& tree = priorities[entry->flags >> 1];
+            auto found = tree.find(entry->serial);
             if (found != tree.end()) {
                 entry = item->entry;
-                std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                bySentId_.erase(key);
+                std::int32_t key = (static_cast<std::int32_t>(entry->type) << 16) + entry->id;
+                bySentId.erase(key);
                 FreedId value{};
-                value.id = entry->id_;
-                value.type = entry->type_;
-                std::vector<FreedId>& batch = freedIds_.back();   // the newest batch
+                value.id = entry->id;
+                value.type = entry->type;
+                std::vector<FreedId>& batch = freedIds.back();    // the newest batch
                 batch.push_back(value);
                 tree.erase(found);
             }

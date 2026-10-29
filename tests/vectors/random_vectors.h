@@ -19,7 +19,7 @@ struct Refill {
     IsaacRandom before, after;
 };
 
-// IsaacRandom::Range. The draw it takes is results_[count_] after the call (Next's result): the replay
+// IsaacRandom::Range. The draw it takes is results[count] after the call (Next's result): the replay
 // gives ours a generator that holds just that value.
 struct Range {
     std::uint32_t value;

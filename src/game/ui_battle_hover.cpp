@@ -1,5 +1,5 @@
 // The battle screen's mouse-over: the unit under the mouse in the unit panel and the
-// cursor shape for what a click would do. See ui.h (CBattleScreen::HoverUnit) and docs/notes/ui.md
+// cursor shape for what a click would do. See ui.h (BattleScreen::HoverUnit) and docs/notes/ui.md
 // ("Battle screen").
 #include "item.h"
 #include "world_glue.h"
@@ -41,7 +41,7 @@ bool IsZero(float value) {
 
 } // namespace
 
-void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
+void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead(); };
     auto pick = [x, y]() {
         Vector3 out;
@@ -54,40 +54,40 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     };
     auto unitPosition = [](CUnit* u) {
         Vector3 at;
-        at = u->localPosition_;
+        at = u->localPosition;
         return at;
     };
 
-    // The unit panel's hover block (hoverUnit_, viewSize_[1] / viewHeight_[1] copied bit for bit from
-    // its prototype's +0x20 / +0x24, strings_[1]). A unit without MapObjectFlag::InParty counts as none
+    // The unit panel's hover block (hoverUnit, viewSize[1] / viewHeight[1] copied bit for bit from
+    // its prototype's +0x20 / +0x24, strings[1]). A unit without MapObjectFlag::InParty counts as none
     // below; a dead one is kept.
-    CHudUnitPanel* panel = unitPanel_;
-    if (unit && !(unit->flags_ & MapObjectFlag::InParty)) unit = nullptr;
+    HudUnitPanel* panel = unitPanel;
+    if (unit && !(unit->flags & MapObjectFlag::InParty)) unit = nullptr;
     if (unit && !unitDead(unit)) {
-        if (unit != panel->hoverUnit_) {
-            panel->hoverUnit_ = unit;
-            panel->viewSize_[1] = unit->GetPrototype()->panelViewSize;
-            panel->viewHeight_[1] = std::bit_cast<float>(panel->hoverUnit_->GetPrototype()->height);
-            panel->strings_[1] = UnitName(panel->hoverUnit_);
+        if (unit != panel->hoverUnit) {
+            panel->hoverUnit = unit;
+            panel->viewSize[1] = unit->GetPrototype()->panelViewSize;
+            panel->viewHeight[1] = std::bit_cast<float>(panel->hoverUnit->GetPrototype()->height);
+            panel->strings[1] = UnitName(panel->hoverUnit);
         }
-    } else if (panel->hoverUnit_) {
-        panel->hoverUnit_ = nullptr;
+    } else if (panel->hoverUnit) {
+        panel->hoverUnit = nullptr;
     }
 
-    int count = std::ssize(party_);
+    int count = std::ssize(party);
     if (count <= 0) return;
     CUnit* first = nullptr;
     int selected = 0;
     for (int i = 0; i < count; ++i) {
-        CUnit* member = party_[i];
-        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
+        CUnit* member = party[i];
+        if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
         if (!first) first = member;
         ++selected;
     }
     if (selected == 0) return;
 
     int shape = 0;
-    if (interface_->altDown_) {
+    if (ui->altDown) {
         Vector3 at = pick();
         int exit;
         if (!g_clientWorld.FindExitAt(&at.x, &exit)) return;
@@ -95,25 +95,25 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         return;
     }
     for (int i = 0; i < 6; ++i) {
-        if (orderKeys_[i]) {
+        if (orderKeys[i]) {
             g_cursor.SetShape(kCursorFlagBase + i);
             return;
         }
     }
-    if (interface_->ctrlDown_) {
+    if (ui->ctrlDown) {
         g_cursor.SetShape(kCursorAttack);
         return;
     }
 
-    switch (pendingAction_) {
+    switch (pendingAction) {
     case kPendingNone:
         if (unit) {
             if (unitDead(unit)) {
                 shape = kCursorUse;
                 break;
             }
-            if (party_.empty() || !party_[0]) return;
-            if (!party_[0]->IsHostileTo(unit)) return;
+            if (party.empty() || !party[0]) return;
+            if (!party[0]->IsHostileTo(unit)) return;
             shape = kCursorAttack;
             break;
         }
@@ -146,7 +146,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        if (!first || !first->CanCastSpell(pendingSlot_)) {
+        if (!first || !first->CanCastSpell(pendingSlot)) {
             shape = kCursorCantCast;
             break;
         }
@@ -160,16 +160,16 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        const bool able = pendingAction_ == kPendingSpellAtPoint ? first->CanCastSpell(pendingSlot_)
-                                                                 : first->CanUseQuickItem(pendingSlot_);
+        const bool able = pendingAction == kPendingSpellAtPoint ? first->CanCastSpell(pendingSlot)
+                                                                 : first->CanUseQuickItem(pendingSlot);
         shape = able ? kCursorCast : kCursorCantCast;
         break;
     }
     case kPendingQuickOnUnit: {   // a potion only on the user itself
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
-        if (!first || !first->CanUseQuickItem(pendingSlot_)) break;
-        CItem* item = first->GetQuickItem(pendingSlot_);
+        if (!first || !first->CanUseQuickItem(pendingSlot)) break;
+        Item* item = first->GetQuickItem(pendingSlot);
         if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) break;
         shape = kCursorCast;
         break;
@@ -181,7 +181,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     }
     case kPendingKeyOnObject: {
         CUnit* target = unit ? unit : objectAt();
-        shape = (target && first && target->IsUsable() != 0 && target->AcceptsKey(&itemUseKey_) != 0)
+        shape = (target && first && target->IsUsable() != 0 && target->AcceptsKey(&itemUseKey) != 0)
                     ? kCursorUse
                     : kCursorNo;
         break;
@@ -194,7 +194,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorNo;
             if (!first) break;
             bool member = false;
-            for (int i = 0; i < count; ++i) member |= unit == party_[i];
+            for (int i = 0; i < count; ++i) member |= unit == party[i];
             if (!member) shape = kCursorOrder;
             break;
         }

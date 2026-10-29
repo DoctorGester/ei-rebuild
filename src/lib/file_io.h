@@ -48,9 +48,9 @@ public:
     // False when CreateFileA fails. A file still open is closed first.
     bool Open(std::string_view path, unsigned flags);
     void Close();
-    bool IsOpen() const { return handle_ != nullptr; }
+    bool IsOpen() const { return handle != nullptr; }
     // The Win32 handle (null when closed).
-    void* Handle() const { return handle_; }
+    void* Handle() const { return handle; }
 
     // The bytes read (fewer at the end of the file).
     unsigned Read(void* buffer, unsigned count);
@@ -73,8 +73,8 @@ public:
     unsigned long GetLength() const;
 
 private:
-    void* handle_ = nullptr;
-    std::string path_;   // as opened (for FileError)
+    void* handle = nullptr;
+    std::string path;    // as opened (for FileError)
 };
 
 // A text file: lines with "\r\n" on disk, "\n" in memory. Closed by the destructor.
@@ -98,8 +98,8 @@ public:
     void WriteString(std::string_view text);
 
 private:
-    std::FILE* stream_ = nullptr;
-    std::string path_;
+    std::FILE* stream = nullptr;
+    std::string path;
 };
 
 // A folder search as MFC's CFileFind: FindFile starts it, then each FindNext moves to the next entry and returns
@@ -129,14 +129,14 @@ public:
     bool IsDots() const;
 
 private:
-    void* context_ = nullptr;                    // the search's handle (null when none)
-    std::unique_ptr<_WIN32_FIND_DATAA> next_;    // the entry read ahead
+    void* context = nullptr;                     // the search's handle (null when none)
+    std::unique_ptr<_WIN32_FIND_DATAA> next;     // the entry read ahead
     // The current entry.
-    bool hasFound_ = false;
-    std::string name_;
-    unsigned long attributes_ = 0;
-    unsigned long size_ = 0;
-    std::string root_;
+    bool hasFound = false;
+    std::string name;
+    unsigned long attributes = 0;
+    unsigned long size = 0;
+    std::string root;
 };
 
 // fopen: `mode` is r, w or a, then optionally + and b or t (text when neither). The file is opened by

@@ -1,25 +1,27 @@
-// The unit AI's target choice: scoring an attack option against a unit, whether an
-// option may be used, choosing the best target, and the orders it checks
-// and whether the unit can get at a target.
+// The unit AI's target choice: scoring an attack option against a unit, whether an option may be used,
+// choosing the best target, the orders it checks and whether the unit can get at a target; and the attack
+// options themselves (AIAttention, unit_ai.h). See docs/notes/unit_ai.md.
 #include "ai_map.h"
 #include "combat.h"
+#include "ei/x87.h"
 #include "game_singletons.h"
+#include "lib/nan_audit.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
+#include "object_tables.h"
+#include "save_versions.h"
 #include "sector_map.h"
 #include "spell.h"
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
 
-#include "lib/nan_audit.h"
-
-#include "ei/x87.h"
-
 #include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <initializer_list>
+#include <iterator>
 #include <vector>
 
 namespace {
@@ -49,7 +51,7 @@ std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, CUnit* 
     float radius2 = static_cast<float>(option->radius * option->radius);
     for (auto node = group->begin(); node != group->end(); ++node) {
         auto* member = *node;
-        double distance2 = DistanceSquaredXYUnrounded<double>(member->localPosition_, candidate->localPosition_);
+        double distance2 = DistanceSquaredXYUnrounded<double>(member->localPosition, candidate->localPosition);
         EI_NAN_AUDIT(distance2, radius2);
         if (distance2 <= radius2) sum += option->damage.ExcessOver(&member->ServerController()->protection);
     }
@@ -103,7 +105,7 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
     // A spell aimed at no object cannot be cast on a large unit of size class 0.
     if (part >= 0) {
         CSpell* spell = self->GetSpellObject(part);
-        if (spell && (spell->targetFlags_ & SpellTargetFlag::AtPoint) && object->sizeClass == 0 &&
+        if (spell && (spell->targetFlags & SpellTargetFlag::AtPoint) && object->sizeClass == 0 &&
             object->GetPrototype()->height >= kSmallHeight)
             return false;
     }
@@ -111,27 +113,27 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
     // Where the order is checked from: the unit's place, or the end of a path towards the target.
     Vector3 point;
     if (self == object || fromHere) {
-        point = self->localPosition_;
+        point = self->localPosition;
     } else {
-        double dz = static_cast<double>(self->localPosition_.z) - object->localPosition_.z;
-        double dy = static_cast<double>(self->localPosition_.y) - object->localPosition_.y;
-        double dx = static_cast<double>(self->localPosition_.x) - object->localPosition_.x;
+        double dz = static_cast<double>(self->localPosition.z) - object->localPosition.z;
+        double dy = static_cast<double>(self->localPosition.y) - object->localPosition.y;
+        double dx = static_cast<double>(self->localPosition.x) - object->localPosition.x;
         float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         float range = static_cast<float>(self->ScaledValue(distance));
         float targetRadius = static_cast<float>(object->Radius());
         float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
-        CWorldServer* server = &g_serverWorld;
+        WorldServer* server = &g_serverWorld;
         // The target is lifted off the sector map so it does not block its own cell.
-        server->aiMap_.sectorMap.Remove(object);
-        if (server->aiMap_.FindPath(self, object->localPosition_, &path, range, minDistance)) {
+        server->aiMap.sectorMap.Remove(object);
+        if (server->aiMap.FindPath(self, object->localPosition, &path, range, minDistance)) {
             float scale = 0.5f;
             point.x = static_cast<float>(scale * path.targetX);
             point.y = static_cast<float>(scale * path.targetY);
             point.z = 0.0f;
         } else {
-            point = self->localPosition_;
+            point = self->localPosition;
         }
-        server->aiMap_.sectorMap.Add(object);
+        server->aiMap.sectorMap.Add(object);
     }
     return OrderAllowedFrom(this, choice, point);
 }
@@ -153,19 +155,19 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
     if (option->kind != AIOptionKind::AreaAttack && option->kind != AIOptionKind::LastingArea) return true;
     EI_NAN_AUDIT(self->GetPrototype()->height);
     if (self->sizeClass == 0 && self->GetPrototype()->height >= kSmallHeight) return true;
-    Vector3 at = object->localPosition_;
+    Vector3 at = object->localPosition;
     for (auto& node : memory.nearby) {
         CUnit* other = node;
-        double dy = static_cast<double>(at.y) - other->localPosition_.y;
-        double dx = static_cast<double>(at.x) - other->localPosition_.x;
+        double dy = static_cast<double>(at.y) - other->localPosition.y;
+        double dx = static_cast<double>(at.x) - other->localPosition.x;
         EI_NAN_AUDIT(dx, dy, other->GetPrototype()->height);
-        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy_.IsAllied(other->side, self->side)) {
+        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (other->GetPrototype()->height < kSmallHeight) return false;
         }
     }
-    double dy = static_cast<double>(self->localPosition_.y) - at.y;
-    double dx = static_cast<double>(self->localPosition_.x) - at.x;
+    double dy = static_cast<double>(self->localPosition.y) - at.y;
+    double dx = static_cast<double>(self->localPosition.x) - at.x;
     double radius = option->radius;
     EI_NAN_AUDIT(radius, dx, dy);
     return radius * radius < LengthSquared2DUnrounded(dx, dy);
@@ -175,10 +177,10 @@ namespace {
 // How good `option` is against `candidate` (`group` the others it would hit or help): by kind, minus 25 per unit of
 // distance beyond the range (x10 outside kinds 0..4) when it reached `threshold`, minus twice the hits needed for
 // attacks. -1e30 when it cannot apply. Unrounded.
-double Score(const Vector3& from, CUnit* self, UnitList* group, CEngineObject* current, CUnit* candidate, float threshold,
+double Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* current, CUnit* candidate, float threshold,
              const AIAttackOption* option) {
     float score = candidate == current ? kCurrentBonus : 0.0f;
-    CUnitServer* control = candidate->ServerController();
+    UnitServer* control = candidate->ServerController();
     int others = std::ssize(*group) - 1;
     int cap = option->maxCount;
     std::uint32_t damage = 0;
@@ -243,7 +245,7 @@ double Score(const Vector3& from, CUnit* self, UnitList* group, CEngineObject* c
         reach = option->range;
         scale = 10.0f;
     }
-    float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->localPosition_, from)) - reach);
+    float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->localPosition, from)) - reach);
     float penalty = 0.0f >= beyond ? 0.0f : beyond;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);
@@ -297,7 +299,7 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
         allies.push_back(self);
         for (auto& node : memory.nearby) {
             CUnit* other = node;
-            if (other->IsDead() == 0 && !memory.reports.Contains(other) && g_serverWorld.diplomacy_.IsAllied(self->side, other->side))
+            if (other->IsDead() == 0 && !memory.reports.Contains(other) && g_serverWorld.diplomacy.IsAllied(self->side, other->side))
                 allies.push_back(other);
         }
         for (auto& node : allies) {
@@ -328,8 +330,8 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
         CUnit* object = choice.object;
         if (IsUsable(&choice)) {
             // Allies only: a target off the path must be in reach from here.
-            bool allowed = !alliesOnly || IsNearPath(object->localPosition_, kPathNear) ||
-                           OrderAllowedFrom(this, &choice, self->localPosition_);
+            bool allowed = !alliesOnly || IsNearPath(object->localPosition, kPathNear) ||
+                           OrderAllowedFrom(this, &choice, self->localPosition);
             if (allowed && CanReach(&choice, fromHere)) return choice;
         }
         // Rejected: an object scored only once (and not the current target) is reported.
@@ -340,4 +342,195 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
         scored.erase(scored.begin() + chosen);
     }
     return attack;
+}
+
+// --- Attack options: listing them from the unit's weapon and spells, and the option helpers --------------
+
+std::uint16_t MaxDamage(const std::uint16_t*);
+namespace {
+constexpr int kNaturalSpellsOnly = 0x10;    // natural weapon type of units that only cast
+constexpr float kAttackSpellWeight = 1.3f;
+constexpr float kHelpWeight = 1.0f;
+constexpr float kHealWeight = 10.0f;
+
+// The option kind per spell type.
+constexpr AIOptionKind kSpellKinds[42] = {
+    AIOptionKind::SpellAttack, AIOptionKind::SpellAttack, AIOptionKind::SpellAttack, AIOptionKind::AreaAttack, AIOptionKind::AreaAttack, AIOptionKind::AreaAttack,
+    AIOptionKind::LastingArea, AIOptionKind::LastingArea, AIOptionKind::LastingArea, AIOptionKind::Protect, AIOptionKind::Protect, AIOptionKind::Protect,
+    AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance,
+    AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused,
+    AIOptionKind::Heal, AIOptionKind::Curse, AIOptionKind::Protect, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Protect,
+    AIOptionKind::Curse, AIOptionKind::Enhance, AIOptionKind::Curse, AIOptionKind::Enhance, AIOptionKind::Unused, AIOptionKind::Unused,
+    AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::SpellAttack, AIOptionKind::SpellAttack};
+
+double OptionWeight(const AIAttackOption*);
+
+double OptionWeight(const AIAttackOption* option) { return option->Weight(); }
+
+// The option kind of a spell by its type: 1..7, 8 for none; 0 without a spell.
+AIOptionKind SpellKind(const CSpell* spell) {
+    if (!spell) return AIOptionKind::Weapon;
+    unsigned type = static_cast<unsigned>(spell->Type());
+    return type < std::size(kSpellKinds) ? kSpellKinds[type] : AIOptionKind::Unused;
+}
+} // namespace
+
+double AIAttackOption::Weight() const {
+    switch (kind) {
+    case AIOptionKind::Weapon:
+        return MaxDamage(damage.words);
+    case AIOptionKind::SpellAttack:
+    case AIOptionKind::AreaAttack:
+    case AIOptionKind::LastingArea:
+        return static_cast<double>(MaxDamage(damage.words)) * kAttackSpellWeight;
+    case AIOptionKind::Curse:
+    case AIOptionKind::Protect:
+    case AIOptionKind::Enhance:
+        return kHelpWeight;
+    case AIOptionKind::Heal:
+        return kHealWeight;
+    default:
+        return 0.0;
+    }
+}
+
+void AIAttackOption::Load(ByteStream* stream) {
+    if (stream->version < kVersionSpellOptions) {
+        stream->ReadValue(part);
+        std::uint32_t dropped;
+        stream->ReadValue(dropped);
+        stream->ReadValue(damage);
+        kind = part >= 0 ? AIOptionKind::SpellAttack : AIOptionKind::Weapon;
+        range = 1.0f;
+        maxCount = 0;
+        radius = 0.0f;
+        effect = 0;
+        return;
+    }
+    stream->ReadValue(kind);
+    stream->ReadValue(part);
+    stream->ReadValue(range);
+    stream->ReadValue(maxCount);
+    stream->ReadValue(radius);
+    stream->ReadValue(effect);
+    stream->ReadValue(damage);
+}
+
+void AIAttackOption::Save(ByteStream* stream) const {
+    stream->WriteValue(kind);
+    for (std::uint32_t value : {std::bit_cast<std::uint32_t>(part), std::bit_cast<std::uint32_t>(range),
+                                std::bit_cast<std::uint32_t>(maxCount), std::bit_cast<std::uint32_t>(radius),
+                                std::bit_cast<std::uint32_t>(effect)})
+        stream->WriteValue(value);
+    stream->WriteValue(damage);
+}
+
+void AIAttention::InitOption(AIAttackOption* option, AIOptionKind kind, int part, float range, int maxCount, float radius,
+                             int effect) {
+    option->part = part;
+    option->range = range;
+    option->kind = kind;
+    option->maxCount = maxCount;
+    option->radius = radius;
+    option->effect = effect;
+}
+
+DamageWords* AIAttention::AddWeaponOption(AIOptionKind kind, int part, float range, int maxCount, float radius, int effect) {
+    weapons.resize(std::ssize(weapons) + 1);
+    AIAttackOption& option = weapons[std::ssize(weapons) - 1];
+    InitOption(&option, kind, part, range, maxCount, radius, effect);
+    return &option.damage;
+}
+
+DamageWords* AIAttention::AddSpellOption(AIOptionKind kind, int part, float range, int maxCount, float radius, int effect) {
+    spells.resize(std::ssize(spells) + 1);
+    AIAttackOption& option = spells[std::ssize(spells) - 1];
+    InitOption(&option, kind, part, range, maxCount, radius, effect);
+    return &option.damage;
+}
+
+
+void AIAttention::Build(CUnit* unit) {
+    auto* server = unit->ServerController();
+    weapons.clear();
+    spells.clear();
+    if (!IsTextKey(unit->id)) {
+        if (server->stats.naturalWeapon != kNaturalSpellsOnly) {
+            float range = server->AttackRange();
+            weapons.resize(std::ssize(weapons) + 1);
+            AIAttackOption& option = weapons[std::ssize(weapons) - 1];
+            InitOption(&option, AIOptionKind::Weapon, -1, range, 0, 0.0f, 0);
+            server->GetDamageByType(&option.damage);
+        }
+        for (std::uint32_t slot = 0; slot < 8; ++slot) {
+            const CSpell* spell = unit->GetSpellObject(slot);
+            if (!spell) continue;
+            AIOptionKind kind = SpellKind(spell);
+            if (kind == AIOptionKind::Unused) continue;
+            float range = spell->range;
+            if (server->stats.naturalWeapon == kNaturalSpellsOnly) range = server->stats.combat[UnitStats::kReach];
+            std::uint32_t count = spell->targetCount;
+            int maxCount = static_cast<int>((count < 1 ? 1 : count) - 1);
+            float radius = 0.0f;
+            int effect = 0;
+            switch (kind) {
+            case AIOptionKind::AreaAttack:
+                radius = spell->radius;
+                break;
+            case AIOptionKind::LastingArea:
+                radius = spell->radius;
+                effect = static_cast<int>(spell->duration);
+                break;
+            case AIOptionKind::Curse:
+            case AIOptionKind::Protect:
+            case AIOptionKind::Enhance:
+                effect = static_cast<int>(spell->Type());
+                break;
+            case AIOptionKind::Heal:
+                radius = spell->damage;
+                break;
+            default:
+                break;
+            }
+            switch (kind) {
+            case AIOptionKind::Weapon:
+            case AIOptionKind::SpellAttack:
+            case AIOptionKind::AreaAttack:
+            case AIOptionKind::LastingArea: {
+                weapons.resize(std::ssize(weapons) + 1);
+                AIAttackOption& option = weapons[std::ssize(weapons) - 1];
+                InitOption(&option, kind, static_cast<int>(slot), range, maxCount, radius, effect);
+                server->GetSpellDamage(slot, &option.damage);
+                break;
+            }
+            case AIOptionKind::Curse:
+                AddWeaponOption(AIOptionKind::Curse, static_cast<int>(slot), range, maxCount, radius, effect);
+                break;
+            case AIOptionKind::Protect:
+            case AIOptionKind::Enhance:
+            case AIOptionKind::Heal:
+                AddSpellOption(kind, static_cast<int>(slot), range, maxCount, radius, effect);
+                break;
+            default:
+                break;
+            }
+        }
+    } else {
+        float range = server->AttackRange();
+        DamageWords* damage = AddWeaponOption(AIOptionKind::Weapon, -1, range, 0, 0.0f, 0);
+        server->GetDamageByType(damage);
+    }
+    healWeight = 0.0f;
+    for (int i = 0; i < std::ssize(weapons); ++i) {
+        float weight = static_cast<float>(OptionWeight(&weapons[i]));
+        healWeight = healWeight >= weight ? healWeight : weight;
+    }
+}
+
+// The count, the array sized to it (SetSize inlined), then each option.
+void LoadAttackOptions(std::vector<AIAttackOption>* options, ByteStream* stream) {
+    int count;
+    stream->ReadValue(count);
+    options->resize(count);
+    for (int i = 0; i < std::ssize(*options); ++i) (*options)[i].Load(stream);
 }

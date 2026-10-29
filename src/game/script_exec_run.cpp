@@ -32,7 +32,7 @@ bool IsZero(float value) {
 }
 
 // An effect object took a new position.
-void EffectMoved(CEngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
+void EffectMoved(EngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
 
 // 1 / (2^32 - 1).
 constexpr std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
@@ -49,32 +49,32 @@ float FxOffsetPlus(float radius, std::uint32_t random, float origin) {
     return static_cast<float>(x87::FromUnsigned(random) * (static_cast<double>(radius) - negative) * std::bit_cast<double>(kRandomScaleBits) + negative + origin);
 }
 
-void RespawnFxSources(CScript* script) {
-    for (ScriptFxSource& fx : script->fxSources_) {
+void RespawnFxSources(Script* script) {
+    for (ScriptFxSource& fx : script->fxSources) {
         if (fx.idle) continue;
         if (--fx.countdown > 0) continue;
         int minDelay = fx.minDelay;
         fx.countdown = static_cast<int>(g_random.Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
         fx.object.reset();
-        auto* sound = g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
+        auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
         float yOffset = FxOffset(fx.spread, g_random.Next());
         float x = FxOffsetPlus(fx.spread, g_random.Next(), fx.position.x);
         float y = yOffset + fx.position.y;
         float z = fx.position.z;
-        sound->localPosition_.x = x;
-        sound->localPosition_.y = y;
-        sound->localPosition_.z = z;
-        x87::CopyBits(sound->volume_, fx.volume);
-        x87::CopyBits(sound->radius_, fx.radius);
-        fx.object = ScriptEffect<CEffectSound>(sound);
+        sound->localPosition.x = x;
+        sound->localPosition.y = y;
+        sound->localPosition.z = z;
+        x87::CopyBits(sound->volume, fx.volume);
+        x87::CopyBits(sound->radius, fx.radius);
+        fx.object = ScriptEffect<EffectSound>(sound);
         const char* name = fx.name.c_str();
-        std::memcpy(sound->name_, name, std::strlen(name) + 1);
+        std::memcpy(sound->name, name, std::strlen(name) + 1);
         g_serverWorld.AddTimedObject(sound);
     }
 }
 
-void UpdatePointLights(CScript* script) {
-    for (ScriptPointLight& light : script->pointLights_) {
+void UpdatePointLights(Script* script) {
+    for (ScriptPointLight& light : script->pointLights) {
         if (!light.object || !light.moving) continue;
         int count = light.steps;
         light.steps = count - 1;
@@ -83,7 +83,7 @@ void UpdatePointLights(CScript* script) {
             if (light.removeWhenDone) light.object.reset();
             continue;
         }
-        Vector3& position = light.object->localPosition_;
+        Vector3& position = light.object->localPosition;
         position.x = position.x + light.step.x;
         position.y = position.y + light.step.y;
         position.z = position.z + light.step.z;
@@ -91,8 +91,8 @@ void UpdatePointLights(CScript* script) {
     }
 }
 
-void UpdateParticleSources(CScript* script) {
-    auto& list = script->particles_;
+void UpdateParticleSources(Script* script) {
+    auto& list = script->particles;
     for (auto node = list.begin(); node != list.end();) {
         ScriptParticleSource& source = *node;
         int lifetime = source.lifetime;
@@ -102,7 +102,7 @@ void UpdateParticleSources(CScript* script) {
             int count = source.steps;
             source.steps = count - 1;
             if (count > 0) {
-                Vector3& position = source.object->localPosition_;
+                Vector3& position = source.object->localPosition;
                 position.x = source.step.x + position.x;
                 position.y = source.step.y + position.y;
                 position.z = source.step.z + position.z;
@@ -146,7 +146,7 @@ void ScriptDefinition::BindCall(const SSCCmd* call) {
     for (std::size_t i = 0; i < call->groupArgs.size(); ++i) vars.groups.values[i] = *call->groupArgs[i];
 }
 
-void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
+void ScriptIfThen::Run(Script* script, ScriptDefinition* instance) const {
     for (SSCCmd& condition : conditions->commands) {
         float result;
         condition.CalcFloat(script, &instance->vars, &result);
@@ -156,7 +156,7 @@ void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
     script->RunCommands(commands, instance);
 }
 
-void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
+void Script::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     ScriptRun run;
     run.block = block;
     if (instance) {
@@ -171,32 +171,32 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     if (run.Execute(this)) {
         // Not finished: it goes to the head of the run list, its kill flag cleared.
         run.killFlag = nullptr;
-        runs_.push_front(std::move(run));
+        runs.push_front(std::move(run));
     }
 }
 
 // A new run at the head of the run list, not executed yet.
-void CScript::RunWorldScript(ScriptDecl* block) {
-    ScriptRun& run = runs_.emplace_front();
+void Script::RunWorldScript(ScriptDecl* block) {
+    ScriptRun& run = runs.emplace_front();
     run.block = block;
 }
 
-void ScriptFreeTemporaries(CScript* script) {
-    if (script->forDepth_ > 0) return;
+void ScriptFreeTemporaries(Script* script) {
+    if (script->forDepth > 0) return;
     // All but the first of each kind dropped, the first emptied.
-    auto& groups = script->tempGroups_;
+    auto& groups = script->tempGroups;
     groups.resize(1);
     groups.front().clear();
-    auto& objects = script->tempObjects_;
+    auto& objects = script->tempObjects;
     objects.resize(1);
     objects.front().object = nullptr;
 }
 
-void ScriptTick(CScript* script) {
-    if (!script->loaded_) return;
+void ScriptTick(Script* script) {
+    if (!script->loaded) return;
 
     // Waiting runs: continue each; a run that had already ended is removed.
-    auto& runs = script->runs_;
+    auto& runs = script->runs;
     for (auto run = runs.begin(); run != runs.end();) {
         auto next = std::next(run);
         if (!run->Execute(script)) runs.erase(run);
@@ -205,7 +205,7 @@ void ScriptTick(CScript* script) {
 
     // Script instances: every if-then pair until the instance is killed; killed instances are
     // removed.
-    auto& instances = script->instances_;
+    auto& instances = script->instances;
     for (auto instance = instances.begin(); instance != instances.end();) {
         auto next = std::next(instance);
         instance->vars.RemoveDeletedObjects();
@@ -218,7 +218,7 @@ void ScriptTick(CScript* script) {
     }
 
     // Global variables: drop deleted objects.
-    script->globals_.RemoveDeletedObjects();
+    script->globals.RemoveDeletedObjects();
 
     RespawnFxSources(script);
     UpdatePointLights(script);

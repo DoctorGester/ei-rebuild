@@ -34,7 +34,7 @@ struct MeshArgs {
     const float* uOffset;         // the arguments themselves (their bits are compared and added)
     const float* vOffset;
     int alpha;                    // the low byte, with flag 4
-    int flags;                    // 1 screen bounds, 2 clip, 4 colours from the device (colour_) and alpha
+    int flags;                    // 1 screen bounds, 2 clip, 4 colours from the device (colour) and alpha
 };
 
 struct Textures {
@@ -53,9 +53,9 @@ constexpr int kClipStack = 2;
 
 // --- The steps -----------------------------------------------------------------------------------
 
-// Flag 4: every colour becomes the device's (colour_), every specular the alpha byte alone.
-void OverrideColours(CTextureDevice* device, const MeshArgs& a) {
-    std::uint32_t colour = device->colour_;
+// Flag 4: every colour becomes the device's (colour), every specular the alpha byte alone.
+void OverrideColours(TextureDevice* device, const MeshArgs& a) {
+    std::uint32_t colour = device->colour;
     std::uint32_t specular = (static_cast<std::uint32_t>(a.alpha) & 0xFF) << 24;
     int count = a.colourCount * 4;
     for (int i = 0; i < count; ++i) a.colours[i] = colour;
@@ -63,7 +63,7 @@ void OverrideColours(CTextureDevice* device, const MeshArgs& a) {
 }
 
 // One counted draw per pass (the device's vertex-buffer batch never gave a buffer: nothing is batched).
-void Submit(CTextureDevice* device, const Textures* textures) {
+void Submit(TextureDevice* device, const Textures* textures) {
     if (textures) {
         device->DrawTwoTextures(textures->first, textures->second);
     } else {
@@ -73,12 +73,12 @@ void Submit(CTextureDevice* device, const Textures* textures) {
 
 // On screen or crossing the view's edges: draw flag 1's rectangle from the projected positions (screen positions,
 // or clip-space ones when the mesh crosses the edges), and the passes go to the device; the GPU clips the hand-over.
-void Draw(CTextureDevice* device, const MeshArgs& a, const Textures* textures, bool crossing) {
+void Draw(TextureDevice* device, const MeshArgs& a, const Textures* textures, bool crossing) {
     if (a.flags & 1) device->BoundsOfProjected(&g_projected, crossing);
     Submit(device, textures);
 }
 
-void HandOver(CTextureDevice* device, const MeshArgs& a) {
+void HandOver(TextureDevice* device, const MeshArgs& a) {
     render::MeshDraw m{};
     m.positions = &a.positions->block[0][0];
     m.positionCount = a.blocks * 4;
@@ -97,9 +97,9 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     // viewport mapping, so it also places meshes drawn into a part of the screen (the interface's
     // previews). Both stacks get the same pushes.
     m.screenMatrix = true;
-    m.matrix = device->pipeline_->Top(kScreenStack);
+    m.matrix = device->pipeline->Top(kScreenStack);
     m.clipped = (a.flags & 2) != 0;
-    m.distanceFog = device->distanceFog_ != 0;
+    m.distanceFog = device->distanceFog != 0;
     m.zScale = 1.0f;
     m.coloursWritten = (a.flags & 4) != 0;   // OverrideColours
     // A figure part lit on the GPU needs its normals.
@@ -112,8 +112,8 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
 
 // Returns the projection's verdict: 2 nothing on screen, 1 crossing the edges, 0 on screen (drawn: 1). Without flag
 // 2 the mesh is projected with the screen stack and counts as on screen.
-int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
-    const CTransformPipeline* pipeline = device->pipeline_;
+int ProjectAndDraw(TextureDevice* device, const MeshArgs& a, const Textures* textures) {
+    const TransformPipeline* pipeline = device->pipeline;
     g_projected.resize(a.blocks * 4);
     int visibility = 0;
     if (a.flags & 2) {
@@ -121,7 +121,7 @@ int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* te
         visibility = pipeline->ProjectClipped(*pipeline->Top(kClipStack), a.positions, g_projected.data(),
                                               g_outcodes.data(), a.blocks);
     } else {
-        CTransformPipeline::Project(*pipeline->Top(kScreenStack), a.positions, g_projected.data(), a.blocks);
+        TransformPipeline::Project(*pipeline->Top(kScreenStack), a.positions, g_projected.data(), a.blocks);
     }
     if (visibility == 2) return 2;
     if (a.flags & 4) OverrideColours(device, a);
@@ -138,7 +138,7 @@ int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* te
 }
 
 // The harness build's renderstats time the draw ("device mesh draws").
-int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
+int DrawMesh(TextureDevice* device, const MeshArgs& a, const Textures* textures) {
     render::BeginDeviceMeshTime();
     int result = ProjectAndDraw(device, a, textures);
     render::EndDeviceMeshTime();
@@ -147,7 +147,7 @@ int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures
 
 } // namespace
 
-int CTextureDevice::DrawMeshBlocks(const VertexPacket* positions, int blocks, const NormalPacket* normals,
+int TextureDevice::DrawMeshBlocks(const VertexPacket* positions, int blocks, const NormalPacket* normals,
                               int colourCount, std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs,
                               int unused10, const MeshCorner* corners, int cornerCount, const std::uint32_t* words,
                               int wordCount, std::uint16_t* indices, int indexCount, float uOffset, float vOffset,
@@ -157,7 +157,7 @@ int CTextureDevice::DrawMeshBlocks(const VertexPacket* positions, int blocks, co
     return DrawMesh(this, a, nullptr);
 }
 
-int CTextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture,
+int TextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture,
                                const VertexPacket* positions, int blocks, const NormalPacket* normals, int colourCount,
                                std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs, int unused10,
                                const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,

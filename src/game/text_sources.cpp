@@ -18,7 +18,7 @@ namespace {
 // file), so the address names the text until its archive is closed, and only then is the copy
 // forgotten: a text manager may still be reading a text of another archive, or of another list.
 struct ConvertedText {
-    const CMappedResource* source = nullptr;   // the archive holding the data
+    const MappedResource* source = nullptr;   // the archive holding the data
     std::uint32_t size = 0;                    // the data's size in its archive
     std::string text;
 };
@@ -29,7 +29,7 @@ std::unordered_map<const void*, ConvertedText>& ConvertedTexts() {
 
 // A text of the database at `data` (`*size` bytes) in `source` as the game reads it: its UTF-8 copy (`*size`
 // becomes the copy's length).
-void* AsGameText(const CMappedResource* source, void* data, std::uint32_t* size) {
+void* AsGameText(const MappedResource* source, void* data, std::uint32_t* size) {
     ConvertedText& entry = ConvertedTexts()[data];
     if (entry.text.empty() || entry.source != source || entry.size != *size) {
         entry.source = source;
@@ -41,14 +41,14 @@ void* AsGameText(const CMappedResource* source, void* data, std::uint32_t* size)
 }
 
 // The copies of the texts of `source`, which is being closed, forgotten.
-void ForgetConvertedTexts(const CMappedResource* source) {
+void ForgetConvertedTexts(const MappedResource* source) {
     auto& texts = ConvertedTexts();
     for (auto it = texts.begin(); it != texts.end();) it = it->second.source == source ? texts.erase(it) : std::next(it);
 }
 
 // The lookup: the data of file `key` in the first archive of `list` that has it, its archive
 // into `*source` (when not null).
-void* FindFile(TextSources* list, std::string_view key, std::uint32_t* size, CMappedResource** source) {
+void* FindFile(TextSources* list, std::string_view key, std::uint32_t* size, MappedResource** source) {
     // A key that is text (the people's names, "pers <name>") back in the archive's code page.
     std::string assetKey;
     if (text::ToAssetText(key, &assetKey)) key = assetKey;
@@ -66,7 +66,7 @@ bool SameName(const TextSource& archive, const std::string& path) {
     return archive.name.size() == path.size() && std::memcmp(archive.name.data(), path.data(), path.size()) == 0;
 }
 
-void CloseAndDelete(CMappedResource* source) {
+void CloseAndDelete(MappedResource* source) {
     ForgetConvertedTexts(source);
     source->CloseResource();
     delete source;   // the scalar deleting destructor (flag 1); a null source is skipped
@@ -77,7 +77,7 @@ void CloseAndDelete(CMappedResource* source) {
 bool TextSources::Add(const std::string& path, bool writable) {
     for (const TextSource& archive : archives)
         if (SameName(archive, path)) return true;
-    auto* resource = new CMappedResource();
+    auto* resource = new MappedResource();
     archives.push_back(TextSource{path, resource});
     return archives.back().source->OpenResource(path, writable);
 }
@@ -96,26 +96,26 @@ void TextSources::Clear() {
     archives.clear();
 }
 
-bool CTextManager::AddSource(const std::string& path) {
-    return sources_.Add(path, 0);
+bool TextManager::AddSource(const std::string& path) {
+    return sources.Add(path, 0);
 }
 
-void CTextManager::RemoveSource(const std::string& path) { sources_.Remove(path); }
+void TextManager::RemoveSource(const std::string& path) { sources.Remove(path); }
 
-void CTextManager::ClearSources() { sources_.Clear(); }
+void TextManager::ClearSources() { sources.Clear(); }
 
-CTextManager::CTextManager() {
-    CTextManager::Create();
+TextManager::TextManager() {
+    TextManager::Create();
 }
 
-CTextManager::~CTextManager() { ClearSources(); }
+TextManager::~TextManager() { ClearSources(); }
 
 void* TextSources::Find(std::string_view key, std::uint32_t* size) {
     return FindFile(this, key, size, nullptr);
 }
 
 void* TextSources::FindKeyText(std::string_view key, std::uint32_t* size) {
-    CMappedResource* source = nullptr;
+    MappedResource* source = nullptr;
     void* data = FindFile(this, key, size, &source);
     return data ? AsGameText(source, data, size) : nullptr;
 }
@@ -130,14 +130,14 @@ std::vector<std::string> TextSources::ListKeys(const char* pattern) {
     return keys;
 }
 
-std::vector<std::string> CTextManager::ListKeys(const char* pattern) {
-    std::vector<std::string> keys = sources_.ListKeys(pattern);
+std::vector<std::string> TextManager::ListKeys(const char* pattern) {
+    std::vector<std::string> keys = sources.ListKeys(pattern);
     // The names in UTF-8, as Find takes them (one person's key holds Cyrillic).
     for (std::string& name : keys) text::FromAssetText(&name);
     return keys;
 }
 
-void CTextManager::Create() {
+void TextManager::Create() {
     // The original set LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise),
     // then the multibyte code page from it. The text is UTF-8 and the CRT's case and classes do not depend on a
     // locale (lib/text_case.h): the option is not used and LC_CTYPE stays "C".

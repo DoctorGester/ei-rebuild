@@ -1,27 +1,28 @@
-// The companions of map objects (map_object.h): CMapObjectServer (class id 0x39) and CMapObjectClientSpecific
+// The companions of map objects (map_object.h): MapObjectServer (class id 0x39) and MapObjectClientSpecific
 // (0x3A). Both classes are declared in unit.h; each holds the map object it belongs to.
-
+#include "effects.h"   // ParticleSource
+#include "game_singletons.h"
+#include "lib/bytes.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
 #include "map_object.h"
+#include "net_delta.h"
 #include "object_tables.h"
 #include "random.h"
 #include "sound.h"
+#include "terrain.h"
 #include "spell.h"    // CLight
 #include "unit.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>
 #include <string>
 
-#include "game_singletons.h"
-#include "world.h"
-#include "lib/bytes.h"
-#include "lib/nan_audit.h"
-#include "lib/str.h"
-
-
 // The light's distance test and position must round like the original's.
 
 namespace {
+constexpr int kNoSound = -1;
 constexpr int kEndSoundTicks = 0x1E;                 // end sound when fewer ticks are left
 constexpr std::uint32_t kStenchPeriod = 0x10;
 constexpr float kLightHeight = 2.0f;
@@ -39,14 +40,14 @@ bool IsScaleEffect(SpellType type) {
 } // namespace
 
 
-bool CMapObjectServer::RunTick() {
+bool MapObjectServer::RunTick() {
     if (std::ssize(owner->effects) <= 0) return false;
     int i = 0;
     do {
         if (!owner->effects[i].Tick()) {
-            SpellType type = owner->effects[i].Type();
+            SpellType spellType = owner->effects[i].Type();
             owner->effects.erase(owner->effects.begin() + i);
-            bool scaleEffect = IsScaleEffect(type);
+            bool scaleEffect = IsScaleEffect(spellType);
             if (scaleEffect) owner->RecomputeScale();
             owner->MarkChanged(3);
             owner->ScaleEffectChanged(scaleEffect);
@@ -61,22 +62,22 @@ bool CMapObjectServer::RunTick() {
     return false;
 }
 
-void CMapObjectServer::SetData(const UnitVitals* data) {
+void MapObjectServer::SetData(const UnitVitals* data) {
     lib::LoadBytes(vitals, data);
     owner->MarkChanged(0);
 }
 
-bool CMapObjectServer::TakeHit(const DamageInfo* hit) {
+bool MapObjectServer::TakeHit(const DamageInfo* hit) {
     vitals.TakeHit(hit);
     owner->MarkChanged(0);
     if (IsDead()) {
         owner->ClearEffects();
-        owner->flags_ |= MapObjectFlag::Removed;
+        owner->flags |= MapObjectFlag::Removed;
     }
     return true;
 }
 
-bool CMapObjectClientSpecific::RunTick() {
+bool MapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
     // to end plays the end sound for text-key objects, unless it is still playing.
     if (std::ssize(CompanionOwner(this)->effects) > 0) {
@@ -85,13 +86,13 @@ bool CMapObjectClientSpecific::RunTick() {
             if (effect.ticksLeft <= 0) continue;
             int left = --effect.ticksLeft;
             if (left >= kEndSoundTicks || effect.ending) continue;
-            if (!IsTextKey(CompanionOwner(this)->id_)) continue;
+            if (!IsTextKey(CompanionOwner(this)->id)) continue;
             int handle = endSound;
-            CSoundManager* soundSystem = g_clientWorld.sounds_;
+            SoundManager* soundSystem = g_clientWorld.sounds;
             if (handle != -1 &&
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;
-            endSound = g_clientWorld.sounds_->Play3D(kEndSoundName, 0, &CompanionOwner(this)->localPosition_.x,
+            endSound = g_clientWorld.sounds->Play3D(kEndSoundName, 0, &CompanionOwner(this)->localPosition.x,
                                                   kEndSoundNear, kEndSoundFar, 0);
         }
     }
@@ -109,29 +110,123 @@ bool CMapObjectClientSpecific::RunTick() {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            g_clientWorld.sounds_->Play3D(name, 0, &CompanionOwner(this)->localPosition_.x, kStenchNear, kStenchFar, 0);
+            g_clientWorld.sounds->Play3D(name, 0, &CompanionOwner(this)->localPosition.x, kStenchNear, kStenchFar, 0);
         } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
-            g_clientWorld.sounds_->MoveSequence(sound->handle, &CompanionOwner(this)->localPosition_.x);
+            g_clientWorld.sounds->MoveSequence(sound->handle, &CompanionOwner(this)->localPosition.x);
         }
     }
 
     // The light follows the object, kLightHeight above it, aimed down at it.
     CLight* lamp = light;
-    if (lamp && !(lamp->flags_ & LightFlag::Hidden)) {
+    if (lamp && !(lamp->flags & LightFlag::Hidden)) {
         Vector3 lightPosition;
-        lib::LoadBytes(lightPosition, &lamp->localPosition_.x);
+        lib::LoadBytes(lightPosition, &lamp->localPosition.x);
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float
         CMapObject* followed = CompanionOwner(this);
-        double dx = static_cast<double>(lightPosition.x) - followed->localPosition_.x;
-        double dy = static_cast<double>(lightPosition.y) - followed->localPosition_.y;
-        double dz = static_cast<double>(lightZ) - followed->localPosition_.z;
+        double dx = static_cast<double>(lightPosition.x) - followed->localPosition.x;
+        double dy = static_cast<double>(lightPosition.y) - followed->localPosition.y;
+        double dz = static_cast<double>(lightZ) - followed->localPosition.z;
         double distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
         EI_NAN_AUDIT(distance2);
         if (distance2 != 0.0) {
-            float* position = &light->localPosition_.x;
-            std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));
-            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition_.z);
+            float* position = &light->localPosition.x;
+            std::memcpy(position, &followed->localPosition.x, 2 * sizeof(float));
+            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition.z);
         }
     }
     return true;
 }
+
+// --- The companions' lifetime ----------------------------------------------------------------------
+
+MapObjectServer::MapObjectServer() {
+    vitals.Reset();
+}
+
+MapObjectServer::~MapObjectServer() {
+    vitals.Reset();
+    strings.clear();
+    owner = nullptr;
+}
+
+MapObjectClientSpecific::MapObjectClientSpecific() {
+    lightStateA = 0;
+    lightStateB = 0;
+}
+
+MapObjectClientSpecific::~MapObjectClientSpecific() {
+    lightStateA = 0;
+    lightStateB = 0;
+    particles.clear();
+    if (light) {
+        light->flags &= ~LightFlag::Held;
+        if (CLight* shown = light; shown && !(shown->flags & LightFlag::Hidden) && !(shown->flags & LightFlag::Held)) {
+            shown->flags |= LightFlag::Hidden;
+            g_clientWorld.terrain->RemoveLight(light);
+            if (CUnit* unit = Unit()) {
+                if (Object3DSpecific* half = unit->Object3D()->attached) half->SetLit(false);
+            }
+        }
+        int lightId = light->id;
+        g_clientWorld.lightFactory->litIds.remove(lightId);
+        light.Reset();
+    }
+    owner = nullptr;
+}
+
+namespace {
+constexpr const char* kClientClassName = "CMapObjectClientSpecific";
+constexpr const char* kServerClassName = "CMapObjectServer";
+} // namespace
+
+// --- Create and Destroy -----------------------------------------------------------------------------
+
+void MapObjectClientSpecific::Create() {
+    lightStateA = 0;
+    lightStateB = 0;
+    particles.clear();
+    endSound = kNoSound;
+    owner = nullptr;
+}
+
+void MapObjectServer::Create() {
+    owner = nullptr;
+    vitals.Reset();
+}
+
+void MapObjectServer::Destroy() {
+    vitals.Reset();
+    strings.clear();
+    owner = nullptr;
+}
+
+// --- The base companion's small virtuals (what the server's MapObjectServer mostly keeps) ---------------
+
+MapObjectCompanion::~MapObjectCompanion() { owner = nullptr; }
+
+void MapObjectCompanion::Create() {
+    owner = nullptr;
+}
+void MapObjectCompanion::Destroy() { owner = nullptr; }
+
+// --- The client's and the server's small virtuals ------------------------------------------------------
+
+void MapObjectClientSpecific::Hit(int damage, int kind) {
+    if (owner->IsDead() != 0) return;
+    if (!(owner->flags & MapObjectFlag::InParty)) return;
+    ClientWorld()->ShowNumber(owner->id, damage, kind);
+}
+
+// Class name and id.
+const char* MapObjectClientSpecific::ClassName() { return kClientClassName; }
+ClassId MapObjectClientSpecific::GetClassId() { return ClassId::MapObjectClientSpecific; }
+
+// The client companion's particle records.
+EffectParticle::EffectParticle(EffectParticle&&) noexcept = default;
+EffectParticle& EffectParticle::operator=(EffectParticle&&) noexcept = default;
+EffectParticle::~EffectParticle() = default;
+
+const char* MapObjectServer::ClassName() { return kServerClassName; }
+ClassId MapObjectServer::GetClassId() { return ClassId::MapObjectServer; }
+
+// --- The client companion's particle records and the network records ---------------------------------

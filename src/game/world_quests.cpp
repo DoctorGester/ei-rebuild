@@ -1,4 +1,4 @@
-// CWorldServer: the quest variables the server keeps for the scripts (the mercenaries' briefing
+// WorldServer: the quest variables the server keeps for the scripts (the mercenaries' briefing
 // variables "b.mercN.nK_N"). See world.h and docs/notes/world.md.
 #include "combat.h"
 #include "console.h"
@@ -50,24 +50,24 @@ struct Briefing {
 };
 
 CParty* PartyOf(CPlayer* player) { return player->Party(); }
-PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()->members_[index]; }
+PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()->members[index]; }
 
 constexpr int kKindNoRangeTest = 3;
 
 // The item named `name` (the game builds two unused temporary lists around the creation).
-CItem* CreateNamedItem(std::string_view name) { return g_serverWorld.itemManager_->CreateItem(name); }
+Item* CreateNamedItem(std::string_view name) { return g_serverWorld.itemManager->CreateItem(name); }
 
-void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingRecord* record) {
+void GiveBriefingRewards(WorldServer* world, CPlayer* player, QuestBriefingRecord* record) {
     float experience = record->exp;
     EI_NAN_AUDIT(experience);
     if (experience != 0.0f) {
         world->AwardExperience(player, experience);
     }
-    PartyOf(player)->money_ += static_cast<int>(libcrt::Ftol(record->money));
+    PartyOf(player)->money += static_cast<int>(libcrt::Ftol(record->money));
 
-    std::list<CItem*> items;
+    std::list<Item*> items;
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveItems]) {
-        CItem* item = CreateNamedItem(name);
+        Item* item = CreateNamedItem(name);
         if (!item) continue;
         auto node = items.emplace(items.end());
         *node = item;
@@ -75,15 +75,15 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     if (!items.empty()) player->GiveItems(&items, 0);
 
     for (const std::string& name : record->lists[QuestBriefingRecord::kRemoveItems]) {
-        CItem* item = CreateNamedItem(name);
+        Item* item = CreateNamedItem(name);
         if (!item) continue;
         item->AddRef();
         if (item->GetClassId() == ClassId::ItemQuest)
-            player->TakeLoot(static_cast<int>(AsQuest(item)->questItemId_));
+            player->TakeLoot(static_cast<int>(AsQuest(item)->questItemId));
         item->Release();
     }
 
-    CPlayerServer* state = player->Server();
+    PlayerServer* state = player->Server();
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveQuests])
         state->SetVariableMax(name, 1.0f);
     for (const std::string& name : record->lists[QuestBriefingRecord::kCompleteQuests])
@@ -106,21 +106,21 @@ constexpr float kMinimumWeight = 0.01f;
 
 // An element of the list of shares: the unit's controller and its experience (nodes of 0x10 bytes).
 struct Share {
-    CUnitServer* controller;
+    UnitServer* controller;
     float share;
 };
 
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its controller's statistics.
-double Weight(CUnitServer* controller) {
+double Weight(UnitServer* controller) {
     return std::sqrt(static_cast<double>(controller->stats.pendingExperience) + controller->stats.experience);
 }
 
 // Without a player: the single heroes of every player share `amount` in proportion to their weights.
-void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
-    if (world->PlayerList()->objects_.size() == 0) return;
+void ShareAmongSoloPlayers(WorldServer* world, float amount) {
+    if (world->PlayerList()->objects.size() == 0) return;
     std::list<Share> list{};
     auto soloUnit = [&](CPlayer* p) -> CUnit* {
-        if (!p->Server() || std::ssize(p->Party()->members_) != 1) return nullptr;
+        if (!p->Server() || std::ssize(p->Party()->members) != 1) return nullptr;
         return world->FindUnit(static_cast<int>(MercRecord(p, 0).unitId));
     };
 
@@ -129,7 +129,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CUnit* unit = soloUnit(p);
         if (!unit) continue;
-        CUnitServer* controller = unit->ServerController();
+        UnitServer* controller = unit->ServerController();
         if (!controller) continue;
         auto node = list.emplace(list.end());
         (*node).controller = controller;
@@ -158,24 +158,24 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         MercRecord(p, 0).stats.AddScaledExperience((*node).share);
     }
     for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
-        CPlayerServer* state = p->Server();
+        PlayerServer* state = p->Server();
         if (!state) continue;
-        for (auto& node : list) state->SendPair18(node.controller->unit->id_, std::bit_cast<std::uint32_t>(node.share));
+        for (auto& node : list) state->SendPair18(node.controller->unit->id, std::bit_cast<std::uint32_t>(node.share));
     }
     if (it.manager) {
-        --it.manager->refCount_;
+        --it.manager->refCount;
         it.manager = nullptr;
     }
     list.clear();
 }
 
 // With a player: its living heroes share `amount` equally.
-void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
+void ShareAmongHeroes(WorldServer* world, CPlayer* player, float amount) {
     std::vector<int> heroes{};
-    for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
+    for (auto node = player->units.begin(); node != player->units.end() && node->second; ++node) {
         CUnit* unit = node->second;
         if (unit->IsDead() != 0 || unit->MapType() != MapObjectType::Hero) continue;
-        int id = unit->id_;
+        int id = unit->id;
         int index = std::ssize(heroes);
         heroes.resize(index + 1);
         heroes[index] = id;
@@ -188,7 +188,7 @@ void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
         for (int i = 0; i < std::ssize(heroes); ++i) {
             CUnit* unit = world->FindUnit(heroes[i]);
             unit->ServerController()->AddExperience(share);
-            for (int j = 0; j < std::ssize(player->Party()->members_); ++j) {
+            for (int j = 0; j < std::ssize(player->Party()->members); ++j) {
                 PartyUnitRecord& record = MercRecord(player, j);
                 if (static_cast<int>(record.unitId) == heroes[i]) record.stats.AddScaledExperience(share);
             }
@@ -203,14 +203,14 @@ constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
 
 // The party's copy of an item (CParty's copy virtual; the record entry's source).
-CItem* PartyCopy(CParty* party, CItem* item) { return party->CopyItem(item); }
+Item* PartyCopy(CParty* party, Item* item) { return party->CopyItem(item); }
 
 // The record entry for `item` from the party records, with a reference held across `add`.
 template <auto Add>
-CItem* AddToRecord(CParty* party, PartyUnitRecord* record, CItem* item) {
-    CItem* entry = PartyCopy(party, item);
+Item* AddToRecord(CParty* party, PartyUnitRecord* record, Item* item) {
+    Item* entry = PartyCopy(party, item);
     if (entry) entry->AddRef();
-    CItem* added = (record->*Add)(entry);
+    Item* added = (record->*Add)(entry);
     if (entry) entry->Release();
     return added;
 }
@@ -224,39 +224,39 @@ void ClearRecordItems(PartyUnitRecord* record) {
 }
 
 void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
-    CUnitServer* controller = unit->ServerController();
+    UnitServer* controller = unit->ServerController();
     ClearRecordItems(record);
 
     for (int slot = 0; slot < kQuickSlots; ++slot) {
-        CItem* item = unit->GetWeapon(slot);
+        Item* item = unit->GetWeapon(slot);
         if (!item) continue;
-        CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
-        CItemLink* ref = new CItemLink();
-        ref->value = static_cast<std::uint32_t>(entry->id_);
-        item->link_.Assign(ref);
+        EngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
+        ItemLink* ref = new ItemLink();
+        ref->value = static_cast<std::uint32_t>(entry->id);
+        item->link.Assign(ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
-        CItem* item = unit->WornItem(slot);
+        Item* item = unit->WornItem(slot);
         if (!item) continue;
-        CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
-        CItemLink* ref = new CItemLink();
-        ref->value = static_cast<std::uint32_t>(entry->id_);
-        item->link_.Assign(ref);
+        EngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
+        ItemLink* ref = new ItemLink();
+        ref->value = static_cast<std::uint32_t>(entry->id);
+        item->link.Assign(ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = unit->GetQuickItem(slot);
-        if (!item || static_cast<int>(item->count_) <= 0) continue;
-        CItem* entry = PartyCopy(party, item);
-        entry->count_ = item->count_;   // before the null test
+        if (!item || static_cast<int>(item->count) <= 0) continue;
+        Item* entry = PartyCopy(party, item);
+        entry->count = item->count;     // before the null test
         if (entry) entry->AddRef();
-        CEngineObject* added = (CEngineObject*)record->AddQuickItem(entry);
+        EngineObject* added = (EngineObject*)record->AddQuickItem(entry);
         if (entry) entry->Release();
-        CItemLink* link = new CItemLink();
-        link->value = static_cast<std::uint32_t>(added->id_);
-        item->link_.Assign(link);
+        ItemLink* link = new ItemLink();
+        link->value = static_cast<std::uint32_t>(added->id);
+        item->link.Assign(link);
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {
-        CItem* spell = unit->GetSpell(slot);
+        Item* spell = unit->GetSpell(slot);
         if (!spell) continue;
         AddToRecord<&PartyUnitRecord::AddSpell>(party, record, spell);
     }
@@ -266,30 +266,30 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
 constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 
 // As SyncPartyRecords does, without the items' records.
-void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CUnit* unit) {
-    CUnitServer* controller = unit->ServerController();
+void StoreRecord(WorldServer* world, CParty* party, PartyUnitRecord* record, CUnit* unit) {
+    UnitServer* controller = unit->ServerController();
     ClearRecordItems(record);
     for (int slot = 0; slot < kQuickSlots; ++slot)
-        if (CItem* item = unit->GetWeapon(slot)) AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
+        if (Item* item = unit->GetWeapon(slot)) AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
     for (int slot = 0; slot < kWornSlots; ++slot)
-        if (CItem* item = unit->WornItem(slot)) AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
+        if (Item* item = unit->WornItem(slot)) AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = unit->GetQuickItem(slot);
-        if (!item || static_cast<int>(item->count_) <= 0) continue;
-        CItem* entry = PartyCopy(party, item);
-        std::uint32_t amount = item->count_;
+        if (!item || static_cast<int>(item->count) <= 0) continue;
+        Item* entry = PartyCopy(party, item);
+        std::uint32_t amount = item->count;
         std::uint32_t maximum;
-        maximum = std::bit_cast<std::uint32_t>(entry->chargeMax_);   // before the null test
-        entry->count_ = amount;
-        entry->charge_ = std::bit_cast<float>(maximum);
+        maximum = std::bit_cast<std::uint32_t>(entry->chargeMax);    // before the null test
+        entry->count = amount;
+        entry->charge = std::bit_cast<float>(maximum);
         if (entry) entry->AddRef();
         record->AddQuickItem(entry);
         if (entry) entry->Release();
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)
-        if (CItem* spell = unit->GetSpell(slot)) AddToRecord<&PartyUnitRecord::AddSpell>(party, record, spell);
+        if (Item* spell = unit->GetSpell(slot)) AddToRecord<&PartyUnitRecord::AddSpell>(party, record, spell);
     controller->CopyStats(&record->stats);
-    if (world->sessionKind_ == 1) {
+    if (world->sessionKind == 1) {
         record->moveMode2 = unit->moveMode2;
         record->weaponIndex = unit->activeWeapon;
     }
@@ -299,17 +299,17 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CU
 
 } // namespace
 
-void CWorldServer::UpdateMercBriefings() {
+void WorldServer::UpdateMercBriefings() {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* state = player->Server();
-        int otherMercs = CountLivingMercs(player->playerId_);
+        PlayerServer* state = player->Server();
+        int otherMercs = CountLivingMercs(player->playerId);
         auto set = [&](const std::string& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
             std::string merc = str::Format(worlddata::MercNameFormat(), slot);
             unsigned key = TextKeyFromName(merc);
-            bool briefedHere = text::CompareIgnoringCase(zoneName_,
+            bool briefedHere = text::CompareIgnoringCase(zoneName,
                                                worlddata::MercZoneName(slot - 1)) == 0;
             Briefing b;
             b.n8 = str::Format(worlddata::MercVariableN8Format(), merc, slot);
@@ -323,13 +323,13 @@ void CWorldServer::UpdateMercBriefings() {
             set(b.n11, 0.0f);
 
             bool inParty = false;
-            for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
+            for (int i = 0; i < std::ssize(player->Party()->members); ++i) {
                 if (MercRecord(player, i).unitId == key) {
                     inParty = true;
                     break;
                 }
             }
-            NamedFloatTable* variables = &player->Party()->variables_;
+            NamedFloatTable* variables = &player->Party()->variables;
             double left = VariableGet(variables, b.n10);
             EI_NAN_AUDIT(left);
             if (inParty) {
@@ -391,7 +391,7 @@ void CWorldServer::UpdateMercBriefings() {
     }
 }
 
-void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
+void WorldServer::CompleteBriefing(int playerId, std::string_view name) {
     if (IsMultiplayerClient()) {
         std::vector<std::string> parts = text::Split(name, '.');
         if (parts.size() == 3) g_gameFlow.RequestBriefing(parts[2]);
@@ -411,7 +411,7 @@ void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
     {
         PlayerIterator it;
         for (CPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
-            if (p->playerId_ == playerId) {
+            if (p->playerId == playerId) {
                 player = p;
                 break;
             }
@@ -425,15 +425,15 @@ void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
     QueueBriefingScript(playerId, name);
 }
 
-void CWorldServer::QueueBriefingScript(int playerId, std::string_view name) {
+void WorldServer::QueueBriefingScript(int playerId, std::string_view name) {
     std::string script = str::Format(worlddata::BriefingCompleteScript(), playerId, std::string(name), playerId, std::string(name));
     MainScript()->Load(&script, 1);
-    if (sessionKind_ == kKindNoRangeTest)
+    if (sessionKind == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
 }
 
-void CWorldServer::ApplyMercBriefing(CPlayer* player, std::string_view name) {
-    CPlayerServer* state = player->Server();
+void WorldServer::ApplyMercBriefing(CPlayer* player, std::string_view name) {
+    PlayerServer* state = player->Server();
     CParty* party = PartyOf(player);
     auto is = [name](const std::string& variable) {
         return text::CompareIgnoringCase(variable,
@@ -469,22 +469,22 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, std::string_view name) {
     UpdateMercBriefings();
 }
 
-void CWorldServer::AwardExperience(CPlayer* player, float amount) {
+void WorldServer::AwardExperience(CPlayer* player, float amount) {
     EI_NAN_AUDIT(amount);
     if (amount == 0.0f) return;
     if (!player) ShareAmongSoloPlayers(this, amount);
     else ShareAmongHeroes(this, player, amount);
 }
 
-void CWorldServer::SyncPartyRecords(CPlayer* player) {
+void WorldServer::SyncPartyRecords(CPlayer* player) {
     CParty* party = PartyOf(player);
-    for (auto node = player->items_.begin(); node != player->items_.end();) {
+    for (auto node = player->items.begin(); node != player->items.end();) {
         auto next = std::next(node);
         party->AddItem(*node, 1, 1);
         node = next;
     }
     std::vector<PartyUnitRecord*> list{};
-    for (int i = 0; i < std::ssize(player->Party()->members_); ++i) lib::SetAtGrow(list, std::ssize(list), &MercRecord(player, i));
+    for (int i = 0; i < std::ssize(player->Party()->members); ++i) lib::SetAtGrow(list, std::ssize(list), &MercRecord(player, i));
     for (int i = 0; i < std::ssize(list); ++i) {
         auto* record = list[i];
         CUnit* unit = FindUnit(static_cast<int>(record->unitId));
@@ -493,14 +493,14 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
     }
 }
 
-void CWorldServer::StoreParty(std::vector<PartyUnitRecord*>* list, CParty* party, std::vector<UnitPlacement>* placements) {
-    if (sessionKind_ == 1) {
+void WorldServer::StoreParty(std::vector<PartyUnitRecord*>* list, CParty* party, std::vector<UnitPlacement>* placements) {
+    if (sessionKind == 1) {
         // Each record remembers whom its unit follows (-1: nobody).
         for (int i = 0; i < std::ssize(*list); ++i) {
             auto* record = (*list)[i];
             CUnit* unit = FindUnit(static_cast<int>(record->unitId));
-            CEngineObject* leader = unit->ServerController()->brain.LeaderOrFollowed();
-            record->leaderId = leader ? leader->id_ : -1;
+            EngineObject* leader = unit->ServerController()->brain.LeaderOrFollowed();
+            record->leaderId = leader ? leader->id : -1;
         }
     }
     for (int i = 0; i < std::ssize(*list); ++i) {
@@ -509,37 +509,37 @@ void CWorldServer::StoreParty(std::vector<PartyUnitRecord*>* list, CParty* party
         if (!unit) continue;
         if (placements) {
             UnitPlacement entry;
-            entry.id = unit->id_;
-            std::memcpy(entry.position, &unit->localPosition_.x, sizeof(entry.position));
-            std::memcpy(entry.rotation, &unit->localRotation_, sizeof(entry.rotation));
+            entry.id = unit->id;
+            std::memcpy(entry.position, &unit->localPosition.x, sizeof(entry.position));
+            std::memcpy(entry.rotation, &unit->localRotation, sizeof(entry.rotation));
             entry.moveMode = static_cast<std::uint32_t>(unit->moveMode2);
             entry.weapon = unit->activeWeapon;
             placements->push_back(entry);
         }
         if (!unit->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
-        if (!unit->IsDead()) RemoveObject(unit->id_);
+        if (!unit->IsDead()) RemoveObject(unit->id);
         else unit->SetPlayer(nullptr);
     }
 }
 
-void CWorldServer::CollectParty(CPlayer* player, std::vector<UnitPlacement>* placements) {
+void WorldServer::CollectParty(CPlayer* player, std::vector<UnitPlacement>* placements) {
     if (!player) return;
-    if (sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
-    if (sessionKind_ != kKindNetwork) {
+    if (sessionKind == 1 || sessionKind == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
+    if (sessionKind != kKindNetwork) {
         StorePlayerItems(player, PartyOf(player));
         player->Server()->SendPartyUpdate();
     }
-    if (!(sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
+    if (!(sessionKind == 1 || sessionKind == kKindNoRangeTest) || zoneLoaded == 0) return;
 
     std::vector<PartyUnitRecord*> list{};
     // Records whose unit is gone (or dead, outside a network client game) are dropped.
-    for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
+    for (int i = 0; i < std::ssize(player->Party()->members); ++i) {
         CUnit* unit = FindUnit(static_cast<int>(MercRecord(player, i).unitId));
         if (unit && (!unit->IsDead() || IsMultiplayerClient())) continue;
-        player->Party()->members_.erase(player->Party()->members_.begin() + i);
+        player->Party()->members.erase(player->Party()->members.begin() + i);
         --i;
     }
-    for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
+    for (int i = 0; i < std::ssize(player->Party()->members); ++i) {
         int index = std::ssize(list);
         list.resize(index + 1);
         list[index] = &MercRecord(player, i);
@@ -547,34 +547,34 @@ void CWorldServer::CollectParty(CPlayer* player, std::vector<UnitPlacement>* pla
     StoreParty(&list, PartyOf(player), placements);
 }
 
-void CWorldServer::StorePlayerItems(CPlayer* player, CParty* party) {
+void WorldServer::StorePlayerItems(CPlayer* player, CParty* party) {
     if (!player) return;
-    for (auto node = player->items_.begin(); node != player->items_.end();) {
-        CItem* item = *node;
+    for (auto node = player->items.begin(); node != player->items.end();) {
+        Item* item = *node;
         ++node;
         party->AddItem(item, 1, 1);
         item->Release();
     }
-    player->items_.clear();
+    player->items.clear();
 }
 
-void CWorldServer::ClearPlayerItems(CPlayer* player) {
+void WorldServer::ClearPlayerItems(CPlayer* player) {
     CParty* party = player->Party();
-    while (!party->items_.empty()) party->RemoveItem(party->items_[0], 1);
+    while (!party->items.empty()) party->RemoveItem(party->items[0], 1);
 }
 
-void CWorldServer::TellParties(CEngineObject* unit, AckKind kind) {
+void WorldServer::TellParties(EngineObject* unit, AckKind kind) {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* server = player->Server();
+        PlayerServer* server = player->Server();
         if (static_cast<std::uint8_t>(server->IsPartyUnit(unit))) server->SendObject0B(unit, kind);
     }
 }
 
-void CWorldServer::TellPartiesGone(CEngineObject* unit) {
+void WorldServer::TellPartiesGone(EngineObject* unit) {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* server = player->Server();
-        if (server->partyUnits_.Contains(unit)) server->SendObject43(unit);
+        PlayerServer* server = player->Server();
+        if (server->partyUnits.Contains(unit)) server->SendObject43(unit);
     }
 }

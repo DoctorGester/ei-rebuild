@@ -171,11 +171,11 @@ inline void WallSpan(const Vector3& direction, const float* radius, Vector3* out
 
 // The light wall's half extent from its lightning's ends: x keeps the difference unrounded before
 // halving, y and z are rounded first.
-inline void HalfSpan(const CEffectLightning* bolt, Vector3* out) {
+inline void HalfSpan(const EffectLightning* bolt, Vector3* out) {
     const double half = 0.5;
-    const double dx = static_cast<double>(bolt->to_.x) - bolt->from_.x;
-    out->y = static_cast<float>(static_cast<double>(bolt->to_.y) - bolt->from_.y);
-    out->z = static_cast<float>(static_cast<double>(bolt->to_.z) - bolt->from_.z);
+    const double dx = static_cast<double>(bolt->to.x) - bolt->from.x;
+    out->y = static_cast<float>(static_cast<double>(bolt->to.y) - bolt->from.y);
+    out->z = static_cast<float>(static_cast<double>(bolt->to.z) - bolt->from.z);
     out->x = static_cast<float>(dx * half);
     out->y = static_cast<float>(static_cast<double>(out->y) * half);
     out->z = static_cast<float>(static_cast<double>(out->z) * half);
@@ -189,61 +189,61 @@ inline std::uint32_t Bits(const float& f) {
     return u;
 }
 
-inline bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
+inline bool IsUnit(EngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 // Where the object sees from into `scratch`.
 inline Vector3* EyePointOf(CMapObject* object, Vector3* scratch) { return object->EyePoint(scratch); }
 // A unit's server half (CUnit::controller).
-inline CUnitServer* ControllerOf(CUnit* unit) { return unit->ServerController(); }
+inline UnitServer* ControllerOf(CUnit* unit) { return unit->ServerController(); }
 // The target as a unit (the callers checked its class, or the game does not).
-inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target.Get()); }
+inline CUnit* TargetUnit(SpellEffect* e) { return static_cast<CUnit*>(e->target.Get()); }
 
 // From the world's timed object manager.
 template <class T>
-T* CreateObject(CSpellEffect* e, ClassId classId) {
+T* CreateObject(SpellEffect* e, ClassId classId) {
     return e->world->TimedObjectManager()->CreateObjectAs<T>(classId, -1);
 }
 
 // The counted-pointer assignment the helpers repeat: the old object leaves the world's timed
 // objects and is released, the new one is counted.
 template <class T>
-void Assign(CSpellEffect* e, T** slot, T* object) {
-    if (*slot) e->world->RemoveTimedObject((*slot)->id_);
+void Assign(SpellEffect* e, T** slot, T* object) {
+    if (*slot) e->world->RemoveTimedObject((*slot)->id);
     T* old = *slot;
     *slot = object;
     if (object) object->AddRef();
     if (old) old->Release();
 }
 
-inline void SetPosition(CTransformObject* object, const Vector3& position) {
-    object->localPosition_ = position;
+inline void SetPosition(TransformObject* object, const Vector3& position) {
+    object->localPosition = position;
 }
 
 // The fields of the spell prototype the casts read.
-inline const itemdb::SpellRecord* Prototype(CSpellEffect* e) { return e->Spell()->GetPrototype(); }
-inline Vector3 PrototypeColor(CSpellEffect* e) {
+inline const itemdb::SpellRecord* Prototype(SpellEffect* e) { return e->Spell()->GetPrototype(); }
+inline Vector3 PrototypeColor(SpellEffect* e) {
     Vector3 color;
     std::memcpy(&color, &Prototype(e)->extraValues[0], 12);
     return color;
 }
-inline float PrototypeRange(CSpellEffect* e) {
+inline float PrototypeRange(SpellEffect* e) {
     float range;
     range = std::bit_cast<float>(Prototype(e)->extraValues[3]);
     return range;
 }
 
-inline float Power(CSpellEffect* e) {
+inline float Power(SpellEffect* e) {
     float out;
-    PowerToFloat(&e->Spell()->damage_, &Prototype(e)->damage, &out);
+    PowerToFloat(&e->Spell()->damage, &Prototype(e)->damage, &out);
     return out;
 }
-inline float PowerScaled(CSpellEffect* e, const float& scale) {
+inline float PowerScaled(SpellEffect* e, const float& scale) {
     float out;
-    PowerScaledToFloat(&e->Spell()->damage_, &Prototype(e)->damage, ConstPtr(scale), &out);
+    PowerScaledToFloat(&e->Spell()->damage, &Prototype(e)->damage, ConstPtr(scale), &out);
     return out;
 }
 
 // The lights' rise speed: range / max(extraValues[4], 1) (the larger picked on C0: 1 < v or NaN).
-inline float LightRise(CSpellEffect* e) {
+inline float LightRise(SpellEffect* e) {
     float value;
     value = std::bit_cast<float>(Prototype(e)->extraValues[4]);
     float range = PrototypeRange(e);
@@ -252,7 +252,7 @@ inline float LightRise(CSpellEffect* e) {
 }
 
 // The same quotient left unrounded and multiplied by the constant at `scale`, then rounded.
-inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
+inline float LightRiseScaled(SpellEffect* e, const float& scale) {
     float value;
     value = std::bit_cast<float>(Prototype(e)->extraValues[4]);
     float range = PrototypeRange(e);
@@ -264,10 +264,10 @@ inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
 
 // Every unit within the radius of the effect's position that IsSpellTarget accepts gets the
 // effect's damage (a list on the stack, walked node by node).
-inline void HitAreaTargets(CSpellEffect* e) {
+inline void HitAreaTargets(SpellEffect* e) {
     DamageInfo hit;
     e->GetDamage(&hit);
-    std::list<CUnit*> units = e->world->aiMap_.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius_);
+    std::list<CUnit*> units = e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius);
     for (auto node = units.begin(); node != units.end();) {
         CUnit* unit = *node;
         ++node;
@@ -275,19 +275,19 @@ inline void HitAreaTargets(CSpellEffect* e) {
     }
 }
 
-inline float GroundPlus(CSpellEffect* e, double (CWorld::*height)(float, float), const Vector3& at, const float* add) {
+inline float GroundPlus(SpellEffect* e, double (CWorld::*height)(float, float), const Vector3& at, const float* add) {
     float out;
     HeightPlus(e->world, height, at.x, at.y, add, &out);
     return out;
 }
-inline float GroundMinus(CSpellEffect* e, double (CWorld::*height)(float, float), const Vector3& at, const float* sub) {
+inline float GroundMinus(SpellEffect* e, double (CWorld::*height)(float, float), const Vector3& at, const float* sub) {
     float out;
     HeightMinus(e->world, height, at.x, at.y, sub, &out);
     return out;
 }
 
 // The light every lasting spell puts at its point: the prototype's colour and range.
-inline void PrototypeLight(CSpellEffect* e, const Vector3& at, float range, const Vector3& velocity) {
+inline void PrototypeLight(SpellEffect* e, const Vector3& at, float range, const Vector3& velocity) {
     Vector3 color = PrototypeColor(e);
     e->CreatePointLight(at, color, range, velocity);
 }

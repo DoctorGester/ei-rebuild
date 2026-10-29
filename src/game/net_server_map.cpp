@@ -20,36 +20,36 @@
 
 namespace net {
 
-// Empties queuedMaps_ and variables_, queues a map message (name + suffix) on the first, replaces map_ by a fresh
-// one and copies the name into it and into mapName_, loads the map into the world and announces its title. Then,
+// Empties queuedMaps and variables, queues a map message (name + suffix) on the first, replaces map by a fresh
+// one and copies the name into it and into mapName, loads the map into the world and announces its title. Then,
 // when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's names (inline,
 // through FindOrAddVariable) and for two paths built from the map name (SetVariable), and queues the host's item
 // awards (without the final award).
-void ServerSession::SetMap(const std::string* name) {
-    queuedMaps_.clear();
-    variables_.clear();
+void ServerSession::SetMap(const std::string* newName) {
+    queuedMaps.clear();
+    variables.clear();
 
     {
-        std::string messageName = *name + game::ZoneSuffix2Text();
+        std::string messageName = *newName + game::ZoneSuffix2Text();
         auto* message = NewCounted<ZoneMessage>();
-        message->text_ = messageName;
-        queuedMaps_.emplace_back(message);
+        message->text = messageName;
+        queuedMaps.emplace_back(message);
     }
 
     auto* mapMessage = NewCounted<MapMessage>();
-    ShareAssignOwned(map_, mapMessage);
-    MapMessage* current = map_.Get();
-    if (name != &current->text_) current->text_ = *name;
-    if (name != &mapName_) mapName_ = *name;
+    ShareAssignOwned(map, mapMessage);
+    MapMessage* current = map.Get();
+    if (newName != &current->text) current->text = *newName;
+    if (newName != &mapName) mapName = *newName;
 
     GameFlow* world = &g_gameFlow;
-    world->RegisterQuests(name->data());
-    world->SetNetworkZone(name->data());
+    world->RegisterQuests(newName->data());
+    world->SetNetworkZone(newName->data());
     Announce(g_interface.MessageText(5, SessionMapName().c_str()), nullptr);
 
     QuestBriefingRecord* entry;
     {
-        std::string registryName = *name + game::ZoneSuffix1Text();
+        std::string registryName = *newName + game::ZoneSuffix1Text();
         entry = worlddata::QuestBriefings()[registryName];
     }
     if (!entry) return;
@@ -58,41 +58,41 @@ void ServerSession::SetMap(const std::string* name) {
     for (const auto& it : quests) {
         std::string resourceName(it);
         auto* record = FindOrAddVariable(&resourceName)->Get();
-        record->value_ = 1.0f;
-        record->serial_ = g_variableSerial;
+        record->value = 1.0f;
+        record->serial = g_variableSerial;
         ++g_variableSerial;
-        ++record->version_;
+        ++record->version;
     }
 
     // "<prefix><name>.<name>" and the same with the path suffix; the temporaries freed in reverse.
     {
         std::string prefix(flowdata::kQuestVariablePrefix);
-        std::string a = prefix + *name;
+        std::string a = prefix + *newName;
         std::string b = a + flowdata::kDot;
-        std::string path = b + *name;
+        std::string path = b + *newName;
         SetVariable(&path, 1.0f);
     }
     {
         std::string prefix(flowdata::kQuestVariablePrefix);
-        std::string a = prefix + *name;
+        std::string a = prefix + *newName;
         std::string b = a + flowdata::kDot;
-        std::string c = b + *name;
+        std::string c = b + *newName;
         std::string path = c + game::PathSuffixText();
         SetVariable(&path, 1.0f);
     }
 
     AwardHost(entry, false);
 }
-// Unloads the flow's quest texts, then queues a map message ("zone" + "_1") on queuedMaps_ for each zone
+// Unloads the flow's quest texts, then queues a map message ("zone" + "_1") on queuedMaps for each zone
 // the flow picks for the server's kind after the current map, loading each zone's quests.
 void ServerSession::QueueMapList() {
     UnloadQuestTexts();
-    for (auto& zone : PickZones(kind_, mapName_.data())) {
+    for (auto& zone : PickZones(kind, mapName.data())) {
         {
             std::string key = zone + game::ZoneSuffix1Text();
             auto* message = NewCounted<ZoneMessage>();
-            message->text_ = key;
-            queuedMaps_.emplace_back(message);
+            message->text = key;
+            queuedMaps.emplace_back(message);
         }
         LoadZoneQuests(zone.data());
     }
@@ -100,20 +100,20 @@ void ServerSession::QueueMapList() {
 
 // When the held map message names `name`: drops it, empties the queued messages
 // And queues a map message "name" + "_3". Returns whether it did.
-bool ServerSession::FinishMap(const std::string* name) {
-    auto* holder = &map_;
-    MapMessage* map = holder->Get();
-    if (!IsLive(map)) return false;
-    const std::string* held = &map->text_;
-    if (!(*held == *name)) return false;
+bool ServerSession::FinishMap(const std::string* mapFile) {
+    auto* holder = &map;
+    MapMessage* newMap = holder->Get();
+    if (!IsLive(newMap)) return false;
+    const std::string* held = &newMap->text;
+    if (!(*held == *mapFile)) return false;
 
     DestroyOwned(*holder);
-    queuedMaps_.clear();
+    queuedMaps.clear();
 
-    std::string messageName = *name + game::ZoneSuffix3Text();
+    std::string messageName = *mapFile + game::ZoneSuffix3Text();
     auto* message = NewCounted<ZoneMessage>();
-    message->text_ = messageName;
-    queuedMaps_.emplace_back(message);
+    message->text = messageName;
+    queuedMaps.emplace_back(message);
     return true;
 }
 

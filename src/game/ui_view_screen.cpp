@@ -32,55 +32,55 @@ float TurnAngle() {
 
 } // namespace
 
-// --- CViewScreen -------------------------------------------------------------
+// --- ViewScreen -------------------------------------------------------------
 
-void CViewScreen::CreateScreen() {
-    UiInputSide* inert = new UiInertInput(interface_);
+void ViewScreen::CreateScreen() {
+    UiInputSide* inert = new UiInertInput(ui);
     AddInput(inert);
-    AddInput(new UnitPickInput(interface_));
-    AddInput(new CCameraInput(interface_));
+    AddInput(new UnitPickInput(ui));
+    AddInput(new CameraInput(ui));
 
-    CCamera* camera = &g_camera;
-    camera->flags_ &= ~CCamera::kFree;
+    Camera* camera = &g_camera;
+    camera->flags &= ~Camera::kFree;
     Vector3 focus{30.0f, 30.0f, 0.0f};
     camera->SetFocus(focus);
     Vector3 axis{1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAngleAxis(TurnAngle(), axis);
-    camera->localRotation_.PreMultiply(turn);
+    camera->localRotation.PreMultiply(turn);
 }
 
-void CViewScreen::Draw(CSceneRenderer*) {
+void ViewScreen::Draw(SceneRenderer*) {
     GameRender();
 }
 
-void CViewScreen::CloseScreen() { g_camera.flags_ |= CCamera::kFree; }
+void ViewScreen::CloseScreen() { g_camera.flags |= Camera::kFree; }
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 
 void UnitPickInput::LeftDown(int, int x, int y) {
-    CWorldClient* world = &g_clientWorld;
+    WorldClient* world = &g_clientWorld;
     const POINT point = {x, y};
     CUnit* unit = world->UnitAt2(&point);
-    if (!interface_->ctrlDown_) {
+    if (!ui->ctrlDown) {
         if (unit) {
-            int n = std::ssize(picked_);
-            picked_.resize(n + 1);
-            picked_[n] = static_cast<std::uint32_t>(unit->id_);
+            int n = std::ssize(picked);
+            picked.resize(n + 1);
+            picked[n] = static_cast<std::uint32_t>(unit->id);
             world->Select(unit);
             return;
         }
         Vector3 ground;
         world->PickGround(&ground, x, y);
-        for (int i = 0; i < std::ssize(picked_); ++i) {
-            auto* member = GameFindClientUnit(picked_[i]);
+        for (int i = 0; i < std::ssize(picked); ++i) {
+            auto* member = GameFindClientUnit(picked[i]);
             if (!member) continue;
             std::vector<CUnit*> order{member};
             world->LocalView()->SendWalk(&order, ground, 0);
         }
     } else if (unit) {
-        for (int i = 0; i < std::ssize(picked_); ++i) {
-            auto* member = GameFindClientUnit(picked_[i]);
+        for (int i = 0; i < std::ssize(picked); ++i) {
+            auto* member = GameFindClientUnit(picked[i]);
             if (!member) continue;
             std::vector<CUnit*> order{member};
             world->LocalView()->SendAttack(&order, unit, kAttackHow, 0);
@@ -89,7 +89,7 @@ void UnitPickInput::LeftDown(int, int x, int y) {
 }
 
 void UnitPickInput::RightDown(int, int, int) {
-    lib::FreeStorage(picked_);
+    lib::FreeStorage(picked);
     g_clientWorld.Deselect();
 }
 
@@ -97,7 +97,7 @@ void UnitPickInput::KeyDown(int key, int, int) {
     if (key == VK_CONTROL) {
         g_cursor.SetShape(kCursorCtrl);
     } else if (key == VK_SPACE) {
-        GameSetServerPaused(g_serverWorld.paused_ == 0);
+        GameSetServerPaused(g_serverWorld.paused == 0);
     }
 }
 

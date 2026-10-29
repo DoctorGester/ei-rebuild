@@ -1,4 +1,4 @@
-// The camp's input side (buttons, keys), its message-result and help-topic slots (CCampPages,
+// The camp's input side (buttons, keys), its message-result and help-topic slots (CampPages,
 // ui_camp.h). See docs/notes/ui.md, section 5.
 #include "party.h"
 #include "ui.h"
@@ -38,66 +38,66 @@ constexpr std::uint32_t kAnswerYes = 0x10001;
 
 } // namespace
 
-void CCampPages::LeftDown(int buttons, int x, int y) {
-    CUiContainer::LeftDown(buttons, x, y);
+void CampPages::LeftDown(int buttons, int x, int y) {
+    UiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     switch (region) {
     case kRegionAction:
         UpdateAction();
-        if (actionEnabled_) DoAction();
+        if (actionEnabled) DoAction();
         break;
     case kRegionSecondAction:
         UpdateAction();
-        if (actionShown_) UndoAction();
+        if (actionShown) UndoAction();
         break;
     case kRegionTurnLeft:
     case kRegionTurnRight:
-        if (page_ == kEquipmentPage) {
-            interface_->PlaySound(kMoveSound);
-            turning_ = region == kRegionTurnLeft ? 1 : 2;
+        if (page == kEquipmentPage) {
+            ui->PlaySound(kMoveSound);
+            turning = region == kRegionTurnLeft ? 1 : 2;
             CaptureMouse();
         }
         break;
     default:
-        if (region >= kRegionFirstPage && region <= kRegionLastPage && page_ != region - kRegionFirstPage)
+        if (region >= kRegionFirstPage && region <= kRegionLastPage && page != region - kRegionFirstPage)
             ShowPage(region - kRegionFirstPage);
         break;
     }
 }
 
-void CCampPages::LeftUp(int buttons, int x, int y) {
-    CUiContainer::LeftUp(buttons, x, y);
+void CampPages::LeftUp(int buttons, int x, int y) {
+    UiContainer::LeftUp(buttons, x, y);
     ReleaseMouse();
-    turning_ = 0;
+    turning = 0;
 }
 
-void CCampPages::KeyDown(int key, int repeat, int flags) {
+void CampPages::KeyDown(int key, int repeat, int modifiers) {
     if (key == VK_ESCAPE) {
         ShowPage(kLeavePage);
-        handled_ = true;
+        handled = true;
         return;
     }
     if ((key == VK_BACK || key == VK_RETURN) && IsMultiplayerClient()) {
         if (key == VK_BACK)
-            interface_->ChatKeyBackspace();
+            ui->ChatKeyBackspace();
         else
-            interface_->ChatKeyEnter();
-        handled_ = true;
+            ui->ChatKeyEnter();
+        handled = true;
         return;
     }
-    CUiContainer::KeyDown(key, repeat, flags);
+    UiContainer::KeyDown(key, repeat, modifiers);
 }
 
-void CCampPages::MessageResult(int result) {
+void CampPages::MessageResult(int result) {
     if (static_cast<std::uint32_t>(result) != kAnswerYes) return;
-    PartyUnitRecord* hero = HeroRecord();
-    if (hero->weapons.empty()) return;
-    CItem* weapon = hero->weapons[0];
-    CItem* item = LocalPlayerData()->AddItem(weapon, 0, 1);
-    hero->RemoveWeapon(weapon);   // the weapon list's Remove
-    hero->weaponIndex = kNoWeaponSlot;
-    itemStrip_->ScrollToItem(item);
+    PartyUnitRecord* heroRecord = HeroRecord();
+    if (heroRecord->weapons.empty()) return;
+    Item* weapon = heroRecord->weapons[0];
+    Item* item = LocalPlayerData()->AddItem(weapon, 0, 1);
+    heroRecord->RemoveWeapon(weapon);   // the weapon list's Remove
+    heroRecord->weaponIndex = kNoWeaponSlot;
+    itemStrip->ScrollToItem(item);
     RefreshWeapons();
 }
 
-const char* CCampPages::HelpTopic() { return PageHelpTopic(page_); }
+const char* CampPages::HelpTopic() { return PageHelpTopic(page); }

@@ -2,7 +2,7 @@
 
 // A class template's stock lists (ClassTemplate::allowed and ::magic) and the trader stock generation over
 // them, run when the camp opens with the template's restockDue set: weapons, armors and quick items, then their
-// instructions and materials. Each generated item goes to a list of raw CItem pointers (counted once). See
+// instructions and materials. Each generated item goes to a list of raw Item pointers (counted once). See
 // docs/notes/items_spells.md ("Trader stock").
 
 #include <cstddef>
@@ -15,10 +15,10 @@
 #include "item_db.h"
 #include "lib/hash_map.h"
 
-class CItem;
+class Item;
 class CParty;
 class CSpell;
-class CStream;
+class ByteStream;
 
 // A material entry: the material record, the count range of a material stack, and the units left for weapons
 // and armors (their generation takes the prototype's materialUnits from it).
@@ -73,9 +73,9 @@ struct ItemStock {
 
     // GenerateItems on weapons (with the weapon spell recipes) / armors (armour recipes) / quick items (no
     // spells).
-    void GenerateWeapons(int minCount, int maxCount, std::list<CItem*>* out);
-    void GenerateArmors(int minCount, int maxCount, std::list<CItem*>* out);
-    void GenerateQuickItems(int minCount, int maxCount, std::list<CItem*>* out);
+    void GenerateWeapons(int minCount, int maxCount, std::list<Item*>* out);
+    void GenerateArmors(int minCount, int maxCount, std::list<Item*>* out);
+    void GenerateQuickItems(int minCount, int maxCount, std::list<Item*>* out);
 
     // Each material entry's `left` redrawn in [minCount, maxCount] (rand; maxCount when minCount >= maxCount).
     void ResetMaterialUnits();
@@ -84,15 +84,15 @@ struct ItemStock {
     void CopyMagic(const ItemStock* other);
 
     // One instruction item (kind ItemKind::Loot, the loot prototype "prototype" / "rune") per offered spell /
-    // modifier, with index_ the record's index in its table (found by code; -1 when missing) and count_ a random
+    // modifier, with index the record's index in its table (found by code; -1 when missing) and count a random
     // count in [minCount, maxCount], into `out`.
-    void GenerateSpellInstructions(int minCount, int maxCount, std::list<CItem*>* out);
-    void GenerateModifierInstructions(int minCount, int maxCount, std::list<CItem*>* out);
+    void GenerateSpellInstructions(int minCount, int maxCount, std::list<Item*>* out);
+    void GenerateModifierInstructions(int minCount, int maxCount, std::list<Item*>* out);
 
     // Scrolls ("spell container", kind ItemKind::Scroll) of the spells the stock offers: the recipe maps for scrolls, then
     // up to 10 tries at a spell list (GenerateSpells with scrollLevels and threshold 50) until it holds at least
     // as many spells as `spells`; a scroll per spell of the last try into `out`.
-    void GenerateScrolls(std::list<CItem*>* out);
+    void GenerateScrolls(std::list<Item*>* out);
 
     // Up to a random count in [minCount, maxCount] of the prototypes (all of them when there are not more;
     // otherwise the vector is shuffled in place and its first ones taken), each built as an item into `out`:
@@ -101,20 +101,20 @@ struct ItemStock {
     // (weapons and armours) the item gets a random spell half the time when the material allows magic; potions
     // come in stacks of 20..49.
     void GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount,
-                       std::list<CItem*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes);
+                       std::list<Item*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes);
 
     // A random count in [minCount, maxCount] of the material entries (the
     // vector shuffled in place when there are more), each as a "material" item (kind ItemKind::Loot) of a
     // random stack size in the entry's range, into `out`.
-    void GenerateMaterials(int minCount, int maxCount, std::list<CItem*>* out);
+    void GenerateMaterials(int minCount, int maxCount, std::list<Item*>* out);
 
     // One instruction item (kind ItemKind::Loot, the loot prototype "instruction weapon" / "instruction armor" /
     // "instruction quick item") per weapon / armor / quick item record of the stock (quick items of the family
-    // "scroll" skipped), with index_ the record's index in its table and count_ a random count in [minCount,
+    // "scroll" skipped), with index the record's index in its table and count a random count in [minCount,
     // maxCount].
-    void GenerateWeaponInstructions(int minCount, int maxCount, std::list<CItem*>* out);
-    void GenerateArmorInstructions(int minCount, int maxCount, std::list<CItem*>* out);
-    void GenerateQuickItemInstructions(int minCount, int maxCount, std::list<CItem*>* out);
+    void GenerateWeaponInstructions(int minCount, int maxCount, std::list<Item*>* out);
+    void GenerateArmorInstructions(int minCount, int maxCount, std::list<Item*>* out);
+    void GenerateQuickItemInstructions(int minCount, int maxCount, std::list<Item*>* out);
 
     // Refills spellMap with the recipes for this class whose spell (by name) is offered, under their names;
     // then modifierMap with the offered modifiers under their kind letter: kinds a, d, e, m, r, t keep the
@@ -133,8 +133,8 @@ struct ItemStock {
     // Reads five counted name lists from `stream` and appends the records they name, unless already listed:
     // armors, weapons, quick items (names lower-cased, unknown ones skipped); then material entries (name
     // lower-cased, kept even when unknown, and the three ints), then spells and modifiers by name as read.
-    void LoadLists(CStream* stream);
+    void LoadLists(ByteStream* stream);
     // Writes what LoadLists reads: the armor, weapon and quick item counts and names (each text with its
     // zero), the material entries (name, the three ints), the spells' and modifiers' codes.
-    void SaveLists(CStream* stream);
+    void SaveLists(ByteStream* stream);
 };

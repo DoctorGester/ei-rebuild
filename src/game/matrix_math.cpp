@@ -63,8 +63,8 @@ void Quaternion::ToMatrix(float* out) const {
     out[10] = 1.0f - static_cast<float>(yy + xx);
 }
 
-void CTransformPipeline::PushMatrix(const float* m, int index) {
-    MatrixStack& stack = stacks_[index];
+void TransformPipeline::PushMatrix(const float* m, int index) {
+    MatrixStack& stack = stacks[index];
     if (stack.count == 0) {
         stack.count = 1;
         std::memcpy(stack.matrices.data(), m, sizeof(Matrix4));

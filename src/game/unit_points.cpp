@@ -18,7 +18,7 @@ namespace {
 constexpr int kOrderPath = 2;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
-void CopyPosition(Vector3* out, const CUnit* unit) { *out = unit->localPosition_; }
+void CopyPosition(Vector3* out, const CUnit* unit) { *out = unit->localPosition; }
 
 } // namespace
 
@@ -32,9 +32,9 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
         return out;
     }
     MotionOrder* order = &path->motionOrder;
-    if (order->kind == kOrderPath && !(unit->flags_ & MapObjectFlag::Planned)) {
+    if (order->kind == kOrderPath && !(unit->flags & MapObjectFlag::Planned)) {
         float toCells = 2.0f;
-        Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
+        Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
         position.x = toCells * position.x;
         position.y = toCells * position.y;
         bool turning;
@@ -71,19 +71,19 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
         BlowSide side = entry->Side();
         Vector3 axis;
         if (side == BlowSide::Front) {
-            unit->localRotation_.AxisY(&axis);
+            unit->localRotation.AxisY(&axis);
             float reach = unit->bounds.boxMax.y;
             offset = axis * reach;
         } else if (side == BlowSide::Back) {
-            unit->localRotation_.AxisY(&axis);
+            unit->localRotation.AxisY(&axis);
             float reach = unit->bounds.boxMax.y;
             offset = -axis * reach;
         } else if (side == BlowSide::MinusX) {
-            unit->localRotation_.AxisX(&axis);
+            unit->localRotation.AxisX(&axis);
             float reach = unit->bounds.boxMax.x;
             offset = axis * reach;
         } else if (side == BlowSide::PlusX) {
-            unit->localRotation_.AxisX(&axis);
+            unit->localRotation.AxisX(&axis);
             float reach = unit->bounds.boxMax.x;
             offset = -axis * reach;
         }
@@ -91,15 +91,15 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
     // The world's IsServer; the server's AI map.
     auto* world = unit->ServerWorld();
     if (world->IsServer()) {
-        Vector3 point = {offset.x + unit->localPosition_.x, offset.y + unit->localPosition_.y, offset.z + unit->localPosition_.z};
-        if (!world->aiMap_.IsPassableForClass(3, point)) {
+        Vector3 point = {offset.x + unit->localPosition.x, offset.y + unit->localPosition.y, offset.z + unit->localPosition.z};
+        if (!world->aiMap.IsPassableForClass(3, point)) {
             CopyPosition(out, unit);
             return out;
         }
     }
-    out->x = offset.x + unit->localPosition_.x;
-    out->y = offset.y + unit->localPosition_.y;
-    out->z = offset.z + unit->localPosition_.z;
+    out->x = offset.x + unit->localPosition.x;
+    out->y = offset.y + unit->localPosition.y;
+    out->z = offset.z + unit->localPosition.z;
     return out;
 }
 

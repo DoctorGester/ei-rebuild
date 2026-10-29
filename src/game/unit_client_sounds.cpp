@@ -62,7 +62,7 @@ constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
 constexpr float kShakeDuration = 5.0f;
 constexpr float kShakeDecay = 0.25f;
-constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind_
+constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind
 constexpr double kMinAxisLength = 0.0001;
 constexpr float kCrawlPrintScale = 0.5f;
 constexpr float kWalkPrintScale = 0.75f;
@@ -70,7 +70,7 @@ constexpr int kStepFrames = 4;
 constexpr int kMaxFootPart = 9;
 
 // Footprints show for every unit (else only for MapObjectFlag::InParty units).
-bool AllFootprintsShown() { return options::g_options.drawVisibleOnly_ == 0; }
+bool AllFootprintsShown() { return options::g_options.drawVisibleOnly == 0; }
 
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
 // callers have returned on a NaN `now`).
@@ -80,29 +80,29 @@ void Shake(CUnit* unit) {
     const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)
-        g_camera.Shake(unit->localPosition_, kShakeDuration, strength,
+        g_camera.Shake(unit->localPosition, kShakeDuration, strength,
                                    kShakeDecay);
 }
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = g_clientWorld.sounds_;
+    SoundManager* sounds = g_clientWorld.sounds;
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
 } // namespace
 
-std::optional<std::string> CUnitClientSpecific::FootstepSound(int terrain) {
+std::optional<std::string> UnitClientSpecific::FootstepSound(int terrain) {
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return std::nullopt;
     const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     if (!model || model->SoundCounts()[terrain] == 0) return std::nullopt;
-    CWorldClient* world = &g_clientWorld;
-    float x = unit->localPosition_.x;
-    float y = unit->localPosition_.y;
+    WorldClient* world = &g_clientWorld;
+    float x = unit->localPosition.x;
+    float y = unit->localPosition.y;
     float ground = world->ClampedGroundHeight(x, y);   // stored as a float
     Vector3 at{x, y, 0.0f};
-    float surface = world->platforms_.SurfaceHeight(at, world->ClampedGroundHeight(x, y));
+    float surface = world->platforms.SurfaceHeight(at, world->ClampedGroundHeight(x, y));
     float gap = ground - surface;
     if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1)
@@ -112,7 +112,7 @@ std::optional<std::string> CUnitClientSpecific::FootstepSound(int terrain) {
     return std::format("{}\\{}.wav", name, ClientRandBelow(count) + 1);
 }
 
-std::optional<std::string> CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to,
+std::optional<std::string> UnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to,
                                                             std::uint8_t miss) {
     const auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return std::nullopt;
@@ -162,11 +162,11 @@ std::optional<std::string> CUnitClientSpecific::ActionSound(const FigureAnimatio
 
 // --- Playing them --------------------------------------------------------------------------------
 
-void CUnitClientSpecific::PlayStepSounds() {
-    const CFigureAnimationState* state = unit->Object3D()->animation;
+void UnitClientSpecific::PlayStepSounds() {
+    const FigureAnimationState* state = unit->Object3D()->animation;
     const FigureAnimation* current = state->current;
     float now = state->time;
-    Vector3 position{unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
+    Vector3 position{unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
     int priority = 0;
     std::string sound;
     if (lastAnimation != current) {
@@ -176,14 +176,14 @@ void CUnitClientSpecific::PlayStepSounds() {
     EI_NAN_AUDIT(now, lastAnimationTime);
     if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
-    CSoundManager* sounds = g_clientWorld.sounds_;
+    SoundManager* sounds = g_clientWorld.sounds;
     AnimationKind kind = current->Kind();
 
     bool action = false;     // ActionSound at `priority`
     bool steps = false;
     switch (kind) {
     case AnimationKind::Attack: {
-        if (g_clientWorld.LocalView()->player_->sessionKind_ == kViewNoAttackSounds) break;
+        if (g_clientWorld.LocalView()->player->sessionKind == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->MapType() == MapObjectType::Hero && unit->actionSound) {
@@ -223,7 +223,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (!PassedFrame(frame, lastAnimationTime, now)) continue;
         if (!unit->HasEffect(SpellType::Silence)) {
             auto* world = ClientWorld();
-            int ground = world->terrain_->SurfaceClass(position.x, position.y);
+            int ground = world->terrain->SurfaceClass(position.x, position.y);
             if (std::optional<std::string> footstep = FootstepSound(ground)) sound = std::move(*footstep);   // else the last one stays
         }
         if (unit->moveMode == 0) break;
@@ -231,7 +231,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)
-                g_camera.Shake(unit->localPosition_, kShakeDuration, strength,
+                g_camera.Shake(unit->localPosition, kShakeDuration, strength,
                                    kShakeDecay);
         }
         const auto* model = unit->GetPrototypeModel();
@@ -244,12 +244,12 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (model->swapFeet) left = left == 0;
         char partName[16];
         std::snprintf(partName, sizeof(partName), left ? "ll%d" : "rl%d", part);
-        CFigureMesh* foot = unit->Object3D()->FindPartByPrefix(partName);
+        FigureMesh* foot = unit->Object3D()->FindPartByPrefix(partName);
         if (!foot) break;
         Vector3 footAt;
         unit->Object3D()->PartWorldPosition(&footAt.x, foot);
         Vector3 facing;
-        unit->localRotation_.AxisY(&facing);
+        unit->localRotation.AxisY(&facing);
         double length = std::sqrt(LengthSquared2DUnrounded(facing.y, facing.x));
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
         float cosine = static_cast<float>(facing.y / length);
@@ -260,21 +260,21 @@ void CUnitClientSpecific::PlayStepSounds() {
         float angle = static_cast<float>(kPi - std::acos(static_cast<double>(clamped)));
         float turn = angle;
         if (facing.x < 0.0f) turn = -turn;
-        float sizeY = foot->box_.bounds.boxMax.y;
-        float sizeX = foot->box_.bounds.boxMax.x;
-        int shown = AllFootprintsShown() || (unit->flags_ & MapObjectFlag::InParty) ? 1 : 0;
+        float sizeY = foot->box.bounds.boxMax.y;
+        float sizeX = foot->box.bounds.boxMax.x;
+        int shown = AllFootprintsShown() || (unit->flags & MapObjectFlag::InParty) ? 1 : 0;
         // The prototype's conspicuity[0] is the footprint scale (read unchecked: a unit without a prototype
         // faults here).
         float scale = prototype->conspicuity[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;
-        int id = g_clientWorld.AddFootprint(footAt.x - sizeX * facing.x * 0.5f,
+        int footprintId = g_clientWorld.AddFootprint(footAt.x - sizeX * facing.x * 0.5f,
                               footAt.y - sizeY * facing.y * 0.5f, sizeX, sizeY, turn, (left << 16) | printKind, scale,
                               shown, footprint);
         if (footprintRepeats > 0) --footprintRepeats;
         else footprint = -1;
-        if (id >= 0) {
-            footprint = id;
+        if (footprintId >= 0) {
+            footprint = footprintId;
             footprintRepeats = ClientRandBelow(4) + 4;
         }
         break;

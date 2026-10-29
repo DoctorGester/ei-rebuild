@@ -1,4 +1,4 @@
-// A party unit's client controller (CUnitClientSpecific, class 0x3D) placing its unit on the
+// A party unit's client controller (UnitClientSpecific, class 0x3D) placing its unit on the
 // motion it follows. See docs/notes/units.md ("Client path placement").
 // Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
 // library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
@@ -32,11 +32,11 @@ constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: 
 // once when snapHeading is set, then turns it: at once with MapObjectFlag::NoCasting, else blended toward the
 // motion's direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally animationSpeed
 // from the motion's speed and the figure's current animation.
-static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
+static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     CUnit* unit = self->unit;
-    if (unit->flags_ & MapObjectFlag::Preview) return;
+    if (unit->flags & MapObjectFlag::Preview) return;
     float toCells = 2.0f;
-    Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
+    Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
     position.x = toCells * position.x;
     position.y = toCells * position.y;
     Vector3 direction;
@@ -55,11 +55,11 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         self->snapHeading = 0;
         unit->TurnUpTowards(direction, 0);
     }
-    if (unit->flags_ & MapObjectFlag::NoCasting) {
+    if (unit->flags & MapObjectFlag::NoCasting) {
         unit->TurnUpTowards(direction, 1);
     } else if (rate > 0.0f) {   // only above zero (NaN not)
         Vector3 axis;
-        unit->localRotation_.AxisY(&axis);
+        unit->localRotation.AxisY(&axis);
         // Both angles are stored as floats. Left unrounded they shift the heading by a float ULP in about one
         // call in ten, and at a heading of +-pi (where jumps from one quaternion sign to the other) that
         // flipped the orientation's sign once in the ui_hud run.
@@ -112,6 +112,6 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     unit->animationSpeed = static_cast<float>(numerator / denominator);
 }
 
-void CUnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
+void UnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
 
-void CUnitClientSpecific::MotionChanged() { PlaceOnPath(lastTime, 0.0f); }
+void UnitClientSpecific::MotionChanged() { PlaceOnPath(lastTime, 0.0f); }

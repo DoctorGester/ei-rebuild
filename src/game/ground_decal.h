@@ -48,23 +48,23 @@ public:
     // Appends one vertex; returns its index.
     std::uint16_t AddVertex(const DecalVertex* v);
 
-    std::vector<VertexPacket>* points_ = nullptr;   // x[4], y[4], z[4] per packet (w untouched)
-    std::vector<DecalTexCoord>* texCoords_ = nullptr;
-    std::vector<std::uint16_t>* indices_ = nullptr;
-    Vector3 uAxis_;          // the u edge across the direction, over its squared length
-    Vector3 vAxis_;          // the same for v
-    Vector3 normal_;         // the (normalised) direction
-    Vector3 origin_;         // the origin corner
-    Vector3 slope_;          // direction / |direction.z|
-    Vector3 direction_;
-    Vector3 point_;
-    float uOffset_;          // u of a point p = uAxis . p + uOffset
-    float vOffset_;
-    float planeOffset_;      // plane distance = normal . p + planeOffset
-    float uLength_;          // |uAxis|
-    float vLength_;          // |vAxis|
-    int vertexCount_;
-    int indexCount_;
+    std::vector<VertexPacket>* points = nullptr;    // x[4], y[4], z[4] per packet (w untouched)
+    std::vector<DecalTexCoord>* texCoords = nullptr;
+    std::vector<std::uint16_t>* indices = nullptr;
+    Vector3 uAxis;           // the u edge across the direction, over its squared length
+    Vector3 vAxis;           // the same for v
+    Vector3 normal;          // the (normalised) direction
+    Vector3 origin;          // the origin corner
+    Vector3 slope;           // direction / |direction.z|
+    Vector3 direction;
+    Vector3 point;
+    float uOffset;           // u of a point p = uAxis . p + uOffset
+    float vOffset;
+    float planeOffset;       // plane distance = normal . p + planeOffset
+    float uLength;           // |uAxis|
+    float vLength;           // |vAxis|
+    int vertexCount;
+    int indexCount;
 
 private:
     void AddCorners(DecalVertex* tri, const Vector3& a, const Vector3& b, const Vector3& c);

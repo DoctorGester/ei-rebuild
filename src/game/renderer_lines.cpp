@@ -19,7 +19,7 @@
 namespace {
 
 // The draw itself, to the new renderer.
-void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
+void DrawStrip(TextureDevice* device, LineVertex* vertices, int count) {
     render::TlDraw(device, vertices, render::kFvfUntextured, count, nullptr, 0, render::Primitive::LineStrip);
 }
 
@@ -32,7 +32,7 @@ void SetStage0Ops(render::TextureOp op) {
 } // namespace
 
 // In one colour (the frame's alpha opaque), stage 0 off and back to modulate. Returns 0.
-long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour) {
+long DeviceDrawLineStrip(TextureDevice* device, const ProjectedPoints* points, std::uint32_t colour) {
     std::vector<LineVertex>& buffer = g_lineVertices;
     int count = points->count;
     buffer.resize(static_cast<std::size_t>(count));

@@ -5,7 +5,7 @@
 
 #include "figure_mesh.h"
 #include "game_singletons.h"
-#include "link_figure.h"   // CLinkMesh
+#include "link_figure.h"   // LinkMesh
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "maths.h"
@@ -15,7 +15,7 @@
 #include "render/render.h"
 #include "spell.h"                // CLight
 #include "unit.h"                 // CUnit
-#include "unit_client_models.h"   // CUnitClientSpecific
+#include "unit_client_models.h"   // UnitClientSpecific
 #include "view_matrices.h"
 #include "world.h"   // g_clientWorld
 
@@ -40,9 +40,9 @@
 namespace {
 
 int ShadowSwitch(ClassId classId) {
-    if (classId == ClassId::Unit) return options::g_options.unitShadow_;
-    if (classId == ClassId::Tree) return options::g_options.floraShadow_;
-    return options::g_options.buildingShadow_;
+    if (classId == ClassId::Unit) return options::g_options.unitShadow;
+    if (classId == ClassId::Tree) return options::g_options.floraShadow;
+    return options::g_options.buildingShadow;
 }
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
 // The work buffers: the parts' points projected into the light's view and the ground quad (one block of four
@@ -50,7 +50,7 @@ constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: ze
 std::vector<Vector2> g_points;
 std::vector<VertexPacket> g_quads;
 constexpr int kTypePointLight = 0x31;
-constexpr std::uint32_t kFlagRefresh = 8;           // this->flags_: build the shadow again
+constexpr std::uint32_t kFlagRefresh = 8;           // this->flags: build the shadow again
 constexpr int kPointBufferSize = 0x1000;
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;
 constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
@@ -76,27 +76,27 @@ volatile double g_minimumTilt = 20.0;
 // The pipeline's stack the shadow is rendered with.
 constexpr int kShadowStack = 10;
 
-const Matrix4& TopMatrix(const CTransformPipeline* pipeline) { return *pipeline->Top(kShadowStack); }
+const Matrix4& TopMatrix(const TransformPipeline* pipeline) { return *pipeline->Top(kShadowStack); }
 
 // The light's brightness: 0.1 blue + 0.6 green + 0.3 red, unrounded.
 double Brightness(const CLight* light) {
-    double blue = static_cast<double>(light->color_[2]) * kBlue;
-    double green = static_cast<double>(light->color_[1]) * kGreen;
-    double red = static_cast<double>(light->color_[0]) * kRed;
+    double blue = static_cast<double>(light->color[2]) * kBlue;
+    double green = static_cast<double>(light->color[1]) * kGreen;
+    double red = static_cast<double>(light->color[0]) * kRed;
     return (blue + green) + red;
 }
 
 // A point light's share: from the light towards the object, scaled by its brightness and its
 // falloff over the squared distance. False when the object is out of its range.
 bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
-    const Vector3& at = object->localPosition_;
-    const Vector3& from = light->localPosition_;
+    const Vector3& at = object->localPosition;
+    const Vector3& from = light->localPosition;
     double dx = static_cast<double>(at.x) - from.x;
     double dy = static_cast<double>(at.y) - from.y;
     double dz = static_cast<double>(at.z) - from.z;
     float distanceSquared = static_cast<float>(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
-    if (distanceSquared >= light->rangeSquared_) return false;   // NaN counts as in range
-    double falloff = 1.0f - static_cast<double>(light->inverseRangeSquared_) * distanceSquared;
+    if (distanceSquared >= light->rangeSquared) return false;    // NaN counts as in range
+    double falloff = 1.0f - static_cast<double>(light->inverseRangeSquared) * distanceSquared;
     float intensity = static_cast<float>(Brightness(light) * falloff);
     Vector3 towards = {static_cast<float>(static_cast<double>(at.x) - from.x),
                        static_cast<float>(static_cast<double>(at.y) - from.y),
@@ -111,7 +111,7 @@ bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
         towards.z = static_cast<float>(towards.z * inverse);
     }
     double scale = intensity;
-    if (light->flags_ & LightFlag::Strong) scale = scale * kStrongFactor;
+    if (light->flags & LightFlag::Strong) scale = scale * kStrongFactor;
     out->z = static_cast<float>(towards.z * scale);
     out->y = static_cast<float>(towards.y * scale);
     out->x = static_cast<float>(towards.x * scale);
@@ -121,9 +121,9 @@ bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
 // A directional light's share: its direction times its brightness.
 void DirectionalShare(CLight* light, Vector3* out) {
     double brightness = Brightness(light);
-    out->z = static_cast<float>(brightness * light->direction_.z);
-    out->y = static_cast<float>(brightness * light->direction_.y);
-    out->x = static_cast<float>(brightness * light->direction_.x);
+    out->z = static_cast<float>(brightness * light->direction.z);
+    out->y = static_cast<float>(brightness * light->direction.y);
+    out->x = static_cast<float>(brightness * light->direction.x);
 }
 
 // The normalised direction of `sum`, tilted down to at least 20 degrees below the horizontal.
@@ -150,9 +150,9 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
 }
 
 // Parts beyond 1e10 from the object are skipped (NaN is not).
-bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kFarSquared; }
+bool PartTooFar(const FigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition) > kFarSquared; }
 
-CFigureMesh* PartAt(const CObject3D* object, int i) { return object->parts[i]; }
+FigureMesh* PartAt(const CObject3D* object, int i) { return object->parts[i]; }
 
 
 // One corner's x and y in the light's rotation `m` (3x4 rows of 4).
@@ -168,9 +168,9 @@ float CornerY(const float* m, float a, float b) {
 int KeyedParts(const CObject3D* object) {
     int keyedParts = 0;
     for (int i = 0; i < std::ssize(object->parts); ++i) {
-        const CFigureMesh* part = PartAt(object, i);
+        const FigureMesh* part = PartAt(object, i);
         if (PartTooFar(part)) continue;
-        keyedParts |= lib::Has(part->box_.bounds.flags, BoundsFlag::Base) ? 1 : 0;
+        keyedParts |= lib::Has(part->box.bounds.flags, BoundsFlag::Base) ? 1 : 0;
     }
     return keyedParts;
 }
@@ -178,17 +178,17 @@ int KeyedParts(const CObject3D* object) {
 // The shadow built again: the lights' direction, the parts' points from there (their bounds in the light's view),
 // the bounds' square on the ground and the decal's projection of it (its sphere). No shadow texture is rasterised:
 // the shadow map draws the shadow (docs/notes/map_objects.md, "Shadows").
-void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
-    CTransformPipeline* pipeline = context->pipeline_;
+void RenderShadow(Object3DClientSpecific* self, SceneRenderer* context) {
+    TransformPipeline* pipeline = context->pipeline;
 
     // The lights reaching the object.
     Vector3 sum;
     sum = kDefaultLight;
     ObjectListIteratorOf<CLight> lights{};
-    for (CLight* light = lights.First(g_clientWorld.lightFactory_); light; light = lights.Next()) {
-        if ((light->flags_ & LightFlag::Off) || (light->flags_ & LightFlag::Hidden)) continue;
+    for (CLight* light = lights.First(g_clientWorld.lightFactory); light; light = lights.Next()) {
+        if ((light->flags & LightFlag::Off) || (light->flags & LightFlag::Hidden)) continue;
         Vector3 share;
-        if (light->type_ == kTypePointLight) {
+        if (light->type == kTypePointLight) {
             if (!PointLightShare(self->object, light, &share)) continue;
         } else {
             DirectionalShare(light, &share);
@@ -213,13 +213,13 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     // The original turns the object back with the conjugate (PreMultiply), which is not exact: each re-rendered
     // shadow moved the orientation by an ulp, as often as the frame timing ran it. Ours keeps the orientation
     // and puts it back (a determinism fix; harness_shadow_turn.h does the same in the original).
-    const Quaternion kept = object->localRotation_;
-    object->localRotation_.PreMultiply(turn);
-    ObjectWorldMatrix(&object->localRotation_, object->localPosition_, &object->worldMatrix);
+    const Quaternion kept = object->localRotation;
+    object->localRotation.PreMultiply(turn);
+    ObjectWorldMatrix(&object->localRotation, object->localPosition, &object->worldMatrix);
     turn.x = -turn.x;   // the turn back, still used for the projector below
     turn.y = -turn.y;
     turn.z = -turn.z;
-    self->object->localRotation_ = kept;
+    self->object->localRotation = kept;
     view = self->object->worldMatrix;
     self->bounds[0] = std::bit_cast<float>(kFloatMax);
     self->bounds[2] = std::bit_cast<float>(kFloatLowest);
@@ -232,16 +232,16 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
 
     // Project the parts' points.
     for (int i = 0; i < std::ssize(self->object->parts); ++i) {
-        CFigureMesh* part = PartAt(self->object, i);
+        FigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
-        if (part->flags_ & FigureMeshFlag::Hidden) continue;
-        ObjectWorldMatrix(&part->localRotation_, part->localPosition_, &part->worldMatrix_);
-        view = PartAt(self->object, i)->worldMatrix_;
+        if (part->flags & FigureMeshFlag::Hidden) continue;
+        ObjectWorldMatrix(&part->localRotation, part->localPosition, &part->worldMatrix);
+        view = PartAt(self->object, i)->worldMatrix;
         pipeline->PushMatrixProduct(view, kShadowStack);
-        if (CLinkMesh* figure = self->object->figure) {
+        if (LinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             std::string key(name);
-            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), &g_points[count],
+            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets, TopMatrix(pipeline), &g_points[count],
                                          self->bounds);
         } else {
             count += PartAt(self->object, i)->DrawOffset(TopMatrix(pipeline), &g_points[count], self->bounds);
@@ -260,7 +260,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     float y2 = static_cast<float>(static_cast<double>(turn.y) + turn.y);
     float z2 = static_cast<float>(static_cast<double>(turn.z) + turn.z);
     Vector3 at;
-    at = self->object->localPosition_;
+    at = self->object->localPosition;
     float wx = static_cast<float>(x2 * turn.w);
     float wy = static_cast<float>(static_cast<double>(y2) * turn.w);
     float wz = static_cast<float>(static_cast<double>(z2) * turn.w);
@@ -327,14 +327,14 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
 
     if (!self->vertices.empty()) {
         self->sphere.Fit(self->vertices.data(), std::ssize(self->vertices));
-        const Vector3& position = self->object->localPosition_;
+        const Vector3& position = self->object->localPosition;
         self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position.x);
         self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position.y);
         self->sphere.center.z = static_cast<float>(static_cast<double>(self->sphere.center.z) - position.z);
     } else {
         self->sphere.flags = 0;
     }
-    self->flags_ &= ~kFlagRefresh;
+    self->flags &= ~kFlagRefresh;
     if (lights.manager) lights.manager->ForgetReference();
 }
 
@@ -343,16 +343,16 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
 // --- The shadow -------------------------------------------------------------------------------
 
 bool ShadowCastStrength(CObject3D* object, float* strength) {
-    if (options::g_options.shadowQuality_ <= 0) return false;
+    if (options::g_options.shadowQuality <= 0) return false;
     if (!ShadowSwitch(object->GetClassId())) return false;
-    if (object->flags_ & (MapObjectFlag::Hidden | MapObjectFlag::NotDrawn)) return false;
+    if (object->flags & (MapObjectFlag::Hidden | MapObjectFlag::NotDrawn)) return false;
     if (object->InvisibleSlot()) return false;
     *strength = 1.0f;
     if (CUnit* unit = UnitOrNull(object)) *strength = unit->ClientController()->fadeIn;
     return true;
 }
 
-int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
+int Object3DClientSpecific::DrawShadow(SceneRenderer* context) {
     // The game shows this object's shadow: in the renderer's shadow map its meshes cast, a unit as strongly as it
     // has faded in. No shadow texture or decal is drawn.
     float strength = 1.0f;
@@ -361,8 +361,8 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
 
     // The build: its decal's sphere decides the object's shadow visibility (ShadowInView). Built the first time
     // after Create / ClearShadow, for an object not drawn static and when the half asks (flag 8).
-    const bool drawnStatic = lib::Has(object->flags_, MapObjectFlag::Stationary) && lib::Has(object->flags_, MapObjectFlag::Static);
-    const bool gameBuilds = !shadowMade || !drawnStatic || (flags_ & kFlagRefresh);
+    const bool drawnStatic = lib::Has(object->flags, MapObjectFlag::Stationary) && lib::Has(object->flags, MapObjectFlag::Static);
+    const bool gameBuilds = !shadowMade || !drawnStatic || (flags & kFlagRefresh);
     shadowMade = true;
     if (gameBuilds) {
         render::BeginShadowBuildTime();

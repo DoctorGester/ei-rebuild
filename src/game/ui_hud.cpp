@@ -43,10 +43,10 @@ constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
-// Scene objects of the panels (sprites, CUiMesh) are tinted through their three tint_ floats (the
+// Scene objects of the panels (sprites, UiMesh) are tinted through their three tint floats (the
 // original stores the constants as dwords).
-void SetTint(CEngineObject* object, std::uint32_t bits) {
-    float* tint = AsUiMesh(object)->tint_;
+void SetTint(EngineObject* object, std::uint32_t bits) {
+    float* tint = AsUiMesh(object)->tint;
     tint[0] = std::bit_cast<float>(bits);
     tint[1] = std::bit_cast<float>(bits);
     tint[2] = std::bit_cast<float>(bits);
@@ -71,13 +71,13 @@ constexpr int kMapCentreX = 700;
 constexpr int kMapCentreY = 80;
 constexpr std::uint32_t kCameraFollows = 8;
 
-void DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
+void DrawWithSpecular(UiWindow* window, SceneRenderer* pass) {
     render::g_renderState.specular = true;
     window->DrawBase(pass);
     render::g_renderState.specular = false;
 }
 
-constexpr int kWobbleNod = 1;   // HudPortraitSlot::wobbleKind_
+constexpr int kWobbleNod = 1;   // HudPortraitSlot::wobbleKind
 
 // Whether `x` is zero (either sign), as the FPU compare gives it.
 bool IsZero(float value) {
@@ -89,42 +89,42 @@ bool IsZero(float value) {
 
 // --- Weapon bar --------------------------------------------------------------------------------
 
-void CHudWeaponBar::LeftDown(int, int x, int y) {
+void HudWeaponBar::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (region < 0 || region >= count_) return;
-    handled_ = true;
+    if (region < 0 || region >= count) return;
+    handled = true;
     CaptureMouse();
 }
 
-void CHudWeaponBar::LeftUp(int, int x, int y) {
+void HudWeaponBar::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
-    if (region < 0 || region >= count_) return;
-    handled_ = true;
-    int previous = selected_;
+    if (region < 0 || region >= count) return;
+    handled = true;
+    int previous = selected;
     if (previous == region) return;
-    if (previous >= 0 && previous < count_) Highlight(previous, false);
+    if (previous >= 0 && previous < count) Highlight(previous, false);
     Highlight(region, true);
-    selected_ = region;
-    interface_->PlaySound(kSoundWeapon);
+    selected = region;
+    ui->PlaySound(kSoundWeapon);
     // No check for a missing local view here (like the original).
-    if (CUnit* unit = unit_) g_clientWorld.LocalView()->SetWeapon(unit, region);
+    if (CUnit* currentUnit = unit) g_clientWorld.LocalView()->SetWeapon(currentUnit, region);
 }
 
-void CHudWeaponBar::MouseMove(int, int x, int y) {
+void HudWeaponBar::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (region >= 0 && region < count_) handled_ = true;
+    if (region >= 0 && region < count) handled = true;
 }
 
-void CHudWeaponBar::Update() {
-    CUnit* unit = unit_;
-    if (!unit || selected_ == unit->pendingWeapon) return;
-    Highlight(selected_, false);
-    selected_ = unit_->pendingWeapon;
-    Highlight(selected_, true);
+void HudWeaponBar::Update() {
+    CUnit* currentUnit = unit;
+    if (!currentUnit || selected == currentUnit->pendingWeapon) return;
+    Highlight(selected, false);
+    selected = unit->pendingWeapon;
+    Highlight(selected, true);
 }
 
-void CHudWeaponBar::Draw(CSceneRenderer* pass) {
+void HudWeaponBar::Draw(SceneRenderer* pass) {
     render::RenderState& state = render::g_renderState;
     const std::uint8_t alphaRef = state.alphaReference;
     const bool alphaTest = state.alphaTest;
@@ -139,82 +139,82 @@ void CHudWeaponBar::Draw(CSceneRenderer* pass) {
 
 // The three other panels draw the same way, with specular on (the draw virtual).
 
-void CHudQuickItems::Draw(CSceneRenderer* pass) { DrawWithSpecular(this, pass); }
-void CHudSpellColumn::Draw(CSceneRenderer* pass) { DrawWithSpecular(this, pass); }
-void CHudActionColumn::Draw(CSceneRenderer* pass) { DrawWithSpecular(this, pass); }
+void HudQuickItems::Draw(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
+void HudSpellColumn::Draw(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
+void HudActionColumn::Draw(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
 
 // --- Quick items -------------------------------------------------------------------------------
 
-void CHudQuickItems::LeftDown(int, int x, int y) {
+void HudQuickItems::LeftDown(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) < 0) return;
-    handled_ = true;
+    handled = true;
     CaptureMouse();
 }
 
-void CHudQuickItems::LeftDouble(int, int x, int y) {
+void HudQuickItems::LeftDouble(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) < 0) return;
-    handled_ = true;
+    handled = true;
     CaptureMouse();
 }
 
-void CHudQuickItems::MouseMove(int, int x, int y) {
-    if (RegionItem(RegionAt(x, y)) >= 0) handled_ = true;
+void HudQuickItems::MouseMove(int, int x, int y) {
+    if (RegionItem(RegionAt(x, y)) >= 0) handled = true;
 }
 
-void CHudQuickItems::Update() {
-    if (!unit_) return;
+void HudQuickItems::Update() {
+    if (!unit) return;
     for (unsigned i = 0; i < 4; ++i) {
-        if (!unit_->GetQuickItem(i)) continue;
-        if (!regions_[i]->HasActiveTip()) continue;
-        regions_[i]->SetTipText(ItemTip(i));
+        if (!unit->GetQuickItem(i)) continue;
+        if (!regions[i]->HasActiveTip()) continue;
+        regions[i]->SetTipText(ItemTip(i));
     }
 }
 
 // --- Spell column ------------------------------------------------------------------------------
 
-void CHudSpellColumn::LeftDown(int, int x, int y) {
+void HudSpellColumn::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (region < 0 || region >= count_) return;
-    handled_ = true;
+    if (region < 0 || region >= count) return;
+    handled = true;
     CaptureMouse();
 }
 
-void CHudSpellColumn::LeftUp(int, int x, int y) {
+void HudSpellColumn::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
-    if (region < 0 || region >= count_) return;
-    handled_ = true;
-    if (interface_->doubleClick_)
+    if (region < 0 || region >= count) return;
+    handled = true;
+    if (ui->doubleClick)
         ClickAlternate(region);
     else
         Click(region);
 }
 
-void CHudSpellColumn::MouseMove(int, int x, int y) {
+void HudSpellColumn::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (region >= 0 && region < count_) handled_ = true;
+    if (region >= 0 && region < count) handled = true;
 }
 
 // --- Action column -----------------------------------------------------------------------------
 
-void CHudActionColumn::LeftDown(int, int x, int y) {
+void HudActionColumn::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (region < 0 || region >= count_) return;
-    handled_ = true;
+    if (region < 0 || region >= count) return;
+    handled = true;
     CaptureMouse();
 }
 
-void CHudActionColumn::LeftUp(int, int x, int y) {
+void HudActionColumn::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
-    if (region < 0 || region >= count_) return;
-    handled_ = true;
+    if (region < 0 || region >= count) return;
+    handled = true;
     Select(region);
 }
 
-void CHudActionColumn::MouseMove(int, int x, int y) {
+void HudActionColumn::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (region >= 0 && region < count_) handled_ = true;
+    if (region >= 0 && region < count) handled = true;
 }
 
 // --- Portraits ---------------------------------------------------------------------------------
@@ -222,28 +222,28 @@ void CHudActionColumn::MouseMove(int, int x, int y) {
 // The portraits read the portrait mode of the interface's active screen (the battle screen while they get
 // input).
 
-void CHudPortraits::LeftDown(int, int x, int y) {
+void HudPortraits::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
-    const int mode = interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_;
+    const int mode = ui->ActiveWindowAs<BattleScreen>()->portraitMode;
     if (mode == 0) {
         if (region < 0) return;
-        handled_ = true;
-        if (region < std::ssize(owner_->party_)) CaptureMouse();
+        handled = true;
+        if (region < std::ssize(owner->party)) CaptureMouse();
         return;
     }
-    if (region < 0 || region >= count_) return;
+    if (region < 0 || region >= count) return;
     // Picking a player for a server command: the player id of the slot, or of the session
     // player whose unit is the portrait's unit.
     int playerId = -1;
-    if (slots_[region].hasPlayer_) {
-        playerId = slots_[region].playerId_;
+    if (slots[region].hasPlayer) {
+        playerId = slots[region].playerId;
     } else {
-        int unitId = owner_->party_[region]->id_;
-        // The session's player records: id_ the player's unit, serial_ its id.
-        for (auto node = net::g_gameClient->players_.begin(); node != net::g_gameClient->players_.end(); ++node) {
+        int unitId = owner->party[region]->id;
+        // The session's player records: id the player's unit, serial its id.
+        for (auto node = net::g_gameClient->players.begin(); node != net::g_gameClient->players.end(); ++node) {
             auto* player = node->Get();
-            if (player->id_ == unitId) {
-                playerId = player->serial_;
+            if (player->id == unitId) {
+                playerId = player->serial;
                 break;
             }
         }
@@ -255,169 +255,169 @@ void CHudPortraits::LeftDown(int, int x, int y) {
         net::g_gameClient->SendCommand(4, text);
     else if (mode == 2)
         net::g_gameClient->SendCommand(5, text);
-    interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ = 0;
+    ui->ActiveWindowAs<BattleScreen>()->portraitMode = 0;
 }
 
-void CHudPortraits::LeftUp(int, int x, int y) {
-    if (interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ != 0) return;
+void HudPortraits::LeftUp(int, int x, int y) {
+    if (ui->ActiveWindowAs<BattleScreen>()->portraitMode != 0) return;
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region < 0) return;
-    handled_ = true;
-    CBattleScreen* owner = owner_;
+    handled = true;
+    BattleScreen* currentOwner = owner;
     // Rebirth's FixSpellSelfCasting patches SelectUnit.
-    if (region < std::ssize(owner->party_)) owner->SelectUnit(owner->party_[region], 0, 0);
+    if (region < std::ssize(currentOwner->party)) currentOwner->SelectUnit(currentOwner->party[region], 0, 0);
 }
 
-void CHudPortraits::MouseMove(int, int x, int y) {
+void HudPortraits::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ == 0) {
+    if (ui->ActiveWindowAs<BattleScreen>()->portraitMode == 0) {
         if (region < 0) return;
-        handled_ = true;
-        CBattleScreen* owner = owner_;
-        if (region < std::ssize(owner->party_)) owner->HoverUnit(owner->party_[region], 0, 0);
+        handled = true;
+        BattleScreen* currentOwner = owner;
+        if (region < std::ssize(currentOwner->party)) currentOwner->HoverUnit(currentOwner->party[region], 0, 0);
         return;
     }
-    if (region >= 0 && region < count_) g_cursor.SetShape(0);
+    if (region >= 0 && region < count) g_cursor.SetShape(0);
 }
 
 // --- Map ---------------------------------------------------------------------------------------
 
-void CHudMap::LeftDown(int, int x, int y) {
+void HudMap::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0) {
-        handled_ = true;
+        handled = true;
         CaptureMouse();
     }
     if (region != 3 && region != 4) return;
-    interface_->PlaySound(kSoundClick);
-    view_ = region == 3 ? 1 : 2;
+    ui->PlaySound(kSoundClick);
+    view = region == 3 ? 1 : 2;
     // Scene objects 6 and 7 are the buttons of views 1 and 2.
     for (int i = 0; i < 2; ++i)
-        SetTint(sceneObjects_[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
+        SetTint(sceneObjects[6 + i], view == i + 1 ? kTintOn : kTintOff);
 }
 
-void CHudMap::LeftUp(int, int x, int y) {
+void HudMap::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
-    if (view_ != 0) {
+    if (view != 0) {
         // A view button was held: the zoom stops and both buttons go dim.
-        view_ = 0;
-        for (int i = 0; i < 2; ++i) SetTint(sceneObjects_[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
+        view = 0;
+        for (int i = 0; i < 2; ++i) SetTint(sceneObjects[6 + i], view == i + 1 ? kTintOn : kTintOff);
         return;
     }
     const int region = RegionAt(x, y);
     switch (region) {
     case 0:     // the sling button
-        interface_->PlaySound(kSoundSling);
-        slideDirection_ = -slideDirection_;
-        sliding_ = true;
-        handled_ = true;
+        ui->PlaySound(kSoundSling);
+        slideDirection = -slideDirection;
+        sliding = true;
+        handled = true;
         return;
     case 1:     // the round map (zoomed)
     case 2: {   // the map area
         // The world point under the click.
         POINT point = {x, y};
-        interface_->ScalePointFromScreenEntry(&point);
+        ui->ScalePointFromScreenEntry(&point);
         // WideScreen: the centre moved right by the shift.
-        float right = static_cast<float>(point.x - (kMapCentreX + widescreen::EdgeShift())) / halfSide_;
-        float down = static_cast<float>(point.y - kMapCentreY) / halfSide_;
+        float right = static_cast<float>(point.x - (kMapCentreX + widescreen::EdgeShift())) / halfSide;
+        float down = static_cast<float>(point.y - kMapCentreY) / halfSide;
         if (region == 1) {
-            right /= zoom_;
-            down /= zoom_;
+            right /= zoom;
+            down /= zoom;
         }
-        const float worldX = static_cast<float>(right / scale_ + centreX_);
-        const float worldY = static_cast<float>(centreY_ - down / scale_);
-        if (worldX > 0.0f && worldX < worldWidth_ && worldY > 0.0f && worldY < worldHeight_) {
+        const float worldX = static_cast<float>(right / scale + centreX);
+        const float worldY = static_cast<float>(centreY - down / scale);
+        if (worldX > 0.0f && worldX < worldWidth && worldY > 0.0f && worldY < worldHeight) {
             // The camera stops following its unit and looks there.
-            CCamera* view = &g_camera;
-            view->flags_ &= ~kCameraFollows;
-            view->SetTargetId(-1);
-            Vector3 focus = view->focus_;
+            Camera* camera = &g_camera;
+            camera->flags &= ~kCameraFollows;
+            camera->SetTargetId(-1);
+            Vector3 focus = camera->focus;
             focus.x = worldX;
             focus.y = worldY;
-            view->SetFocus(focus);
+            camera->SetFocus(focus);
         }
-        handled_ = true;
+        handled = true;
         return;
     }
     case 5:     // "camera north"
-        interface_->PlaySound(kSoundClick);
+        ui->PlaySound(kSoundClick);
         g_camera.SetHeading(0.0f);
-        northTime_ = 0.5f;
-        handled_ = true;
+        northTime = 0.5f;
+        handled = true;
         return;
     default:
-        if (region >= 0) handled_ = true;
+        if (region >= 0) handled = true;
         return;
     }
 }
 
-void CHudMap::MouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) handled_ = true;
+void HudMap::MouseMove(int, int x, int y) {
+    if (RegionAt(x, y) >= 0) handled = true;
 }
 
 // --- Unit panel --------------------------------------------------------------------------------
 
-void CHudUnitPanel::LeftDown(int, int x, int y) {
+void HudUnitPanel::LeftDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
-    handled_ = true;
+    handled = true;
     CaptureMouse();
 }
 
-void CHudUnitPanel::LeftUp(int, int x, int y) {
+void HudUnitPanel::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region == 0) {
-        interface_->PlaySound(kSoundSling);
-        sliding_ = true;
-        slideDirection_ = -slideDirection_;
-        handled_ = true;
+        ui->PlaySound(kSoundSling);
+        sliding = true;
+        slideDirection = -slideDirection;
+        handled = true;
         return;
     }
     if (region > 0 && region <= 4) {
-        interface_->PlaySound(kSoundClick);
-        bodyPart_ = region - 1;
+        ui->PlaySound(kSoundClick);
+        bodyPart = region - 1;
         // Scene objects 3-6 are the body parts.
-        for (int i = 0; i < 4; ++i) SetTint(sceneObjects_[3 + i], bodyPart_ == i ? kTintOn : kTintOff);
+        for (int i = 0; i < 4; ++i) SetTint(sceneObjects[3 + i], bodyPart == i ? kTintOn : kTintOff);
     }
-    if (region >= 0) handled_ = true;
+    if (region >= 0) handled = true;
 }
 
-void CHudUnitPanel::MouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) handled_ = true;
+void HudUnitPanel::MouseMove(int, int x, int y) {
+    if (RegionAt(x, y) >= 0) handled = true;
 }
 
-void CHudUnitPanel::Wheel(int, int, int x, int y) {
-    if (RegionAt(x, y) >= 0) handled_ = true;
+void HudUnitPanel::Wheel(int, int, int x, int y) {
+    if (RegionAt(x, y) >= 0) handled = true;
 }
 
 // --- Clock -------------------------------------------------------------------------------------
 
-void CHudClock::LeftDown(int, int x, int y) {
+void HudClock::LeftDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
-    handled_ = true;
+    handled = true;
     CaptureMouse();
 }
 
-void CHudClock::LeftUp(int, int x, int y) {
+void HudClock::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     const int region = RegionAt(x, y);
     switch (region) {
     case 0: {   // the pause button
-        handled_ = true;
+        handled = true;
         TogglePause();
         return;
     }
     case 1:     // the normal speed
     case 2:     // the fast speed
-        handled_ = true;
+        handled = true;
         // Rebirth's MPSpeedControl (the JNEs aimed at the next instruction).
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
-        if (g_clientWorld.paused_) GameSendFlag10(0);
+        if (g_clientWorld.paused) GameSendFlag10(0);
         SetSpeed(region == 2);
         return;
     case 3:     // the objectives
-        handled_ = true;
+        handled = true;
         OpenObjectives();
         return;
     default:
@@ -425,44 +425,44 @@ void CHudClock::LeftUp(int, int x, int y) {
     }
 }
 
-void CHudClock::MouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) handled_ = true;
+void HudClock::MouseMove(int, int x, int y) {
+    if (RegionAt(x, y) >= 0) handled = true;
 }
 
-void CHudClock::TogglePause() {
-    interface_->PlaySound(kSoundClock);
-    const bool paused = g_clientWorld.paused_;
+void HudClock::TogglePause() {
+    ui->PlaySound(kSoundClock);
+    const bool paused = g_clientWorld.paused;
     GameSendFlag10(paused ? 0 : 1);
 }
 
-void CHudClock::SetSpeed(bool fast) {
-    fast_ = fast;
-    worlddata::g_updatePeriod = fast ? kFastPeriod : kNormalPeriod;
-    interface_->fastGame_ = fast;
-    interface_->PlaySound(kSoundClock);
+void HudClock::SetSpeed(bool newFast) {
+    fast = newFast;
+    worlddata::g_updatePeriod = newFast ? kFastPeriod : kNormalPeriod;
+    ui->fastGame = newFast;
+    ui->PlaySound(kSoundClock);
 }
 
-void CHudClock::OpenObjectives() {
-    highlight_ = false;
-    interface_->PlaySound(kSoundClick);
-    auto* window = new CObjectivesWindow(interface_);
+void HudClock::OpenObjectives() {
+    highlight = false;
+    ui->PlaySound(kSoundClick);
+    auto* window = new ObjectivesWindow(ui);
     window->Setup(LocalPlayerZone(), nullptr, false, false);
-    interface_->PushWindow(window, true, true);
+    ui->PushWindow(window, true, true);
 }
 
 // --- Movement panel ----------------------------------------------------------------------------
 
-void CHudMovePanel::LeftDown(int, int x, int y) {
+void HudMovePanel::LeftDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
-    handled_ = true;
+    handled = true;
     CaptureMouse();
 }
 
-void CHudMovePanel::LeftUp(int, int x, int y) {
+void HudMovePanel::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region == -1) return;
-    handled_ = true;
+    handled = true;
     if (region == 0) {
         ToggleFlag();
         return;
@@ -470,30 +470,30 @@ void CHudMovePanel::LeftUp(int, int x, int y) {
     SetMode(region - 1);
 }
 
-void CHudMovePanel::SetMode(int mode) {
-    CPlayerClient* view = g_clientWorld.LocalView();
+void HudMovePanel::SetMode(int newMode) {
+    PlayerClient* view = g_clientWorld.LocalView();
     if (!view) return;
-    if (mode >= 0 && mode < 4) {
-        interface_->PlaySound(kSoundClick);
-        for (CUnit* unit : owner_->party_) {
-            if (unit->flags_ & MapObjectFlag::Selected) view->SetMoveMode(unit, mode);
+    if (newMode >= 0 && newMode < 4) {
+        ui->PlaySound(kSoundClick);
+        for (CUnit* unit : owner->party) {
+            if (unit->flags & MapObjectFlag::Selected) view->SetMoveMode(unit, newMode);
         }
     }
-    ShowMode(mode);
+    ShowMode(newMode);
 }
 
-void CHudMovePanel::MouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) handled_ = true;
+void HudMovePanel::MouseMove(int, int x, int y) {
+    if (RegionAt(x, y) >= 0) handled = true;
 }
 
-void CHudMovePanel::ShowMode(int mode) {
+void HudMovePanel::ShowMode(int newMode) {
     widescreen::EnterLeftPanel();    // addon's handler; another at the end
-    mode_ = mode;
+    mode = newMode;
     auto* marker = SceneMesh(0);
-    marker->visible_ = mode >= 0;
+    marker->visible = newMode >= 0;
     for (int i = 0; i < 4; ++i) {
-        CEngineObject* button = sceneObjects_[1 + i];
-        if (mode_ != i) {
+        EngineObject* button = sceneObjects[1 + i];
+        if (mode != i) {
             SetTint(button, kTintDim);
             continue;
         }
@@ -501,7 +501,7 @@ void CHudMovePanel::ShowMode(int mode) {
         const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * kPi * kSixteenth);
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
-        marker->localRotation_ = *turn.SetAxisAngle(axis, angle);
+        marker->localRotation = *turn.SetAxisAngle(axis, angle);
         const float y = static_cast<float>(kMarkerCentreY - x87::fsin(angle) * kMarkerRadius);
         const float x = static_cast<float>(x87::fcos(angle) * kMarkerRadius);
         SceneMesh(0)->Place(x, y, kMarkerDepth);
@@ -510,100 +510,100 @@ void CHudMovePanel::ShowMode(int mode) {
     widescreen::LeavePanel();
 }
 
-void CHudMovePanel::Update() {
+void HudMovePanel::Update() {
     if (!g_clientWorld.LocalView()) return;
     // The common value over the selected units: -1 none selected, -2 mixed.
-    int mode = -1;
-    int flag = -1;
-    int count = std::ssize(owner_->party_);
-    CUnit** units = owner_->party_.data();
+    int newMode = -1;
+    int newFlag = -1;
+    int count = std::ssize(owner->party);
+    CUnit** units = owner->party.data();
     for (int i = 0; i < count; ++i) {
         CUnit* unit = units[i];
-        if (!(unit->flags_ & MapObjectFlag::Selected)) continue;
-        if (mode == -1)
-            mode = unit->moveMode2;
-        else if (mode != unit->moveMode2)
-            mode = -2;
-        if (flag == -1)
-            flag = unit->fightAtWill;
-        else if (flag != unit->fightAtWill)
-            flag = -2;
+        if (!(unit->flags & MapObjectFlag::Selected)) continue;
+        if (newMode == -1)
+            newMode = unit->moveMode2;
+        else if (newMode != unit->moveMode2)
+            newMode = -2;
+        if (newFlag == -1)
+            newFlag = unit->fightAtWill;
+        else if (newFlag != unit->fightAtWill)
+            newFlag = -2;
     }
-    ShowMode(mode);
-    flag_ = flag;
-    // Scene object 5 shows the flag through its texture offset (textureOffsetU_).
-    std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
-    SceneMesh(5)->textureOffsetU_ = std::bit_cast<float>(bits);
+    ShowMode(newMode);
+    flag = newFlag;
+    // Scene object 5 shows the flag through its texture offset (textureOffsetU).
+    std::uint32_t bits = newFlag == 0 ? 0x3EAC0000u : newFlag == 1 ? 0u : 0x3EF60000u;
+    SceneMesh(5)->textureOffsetU = std::bit_cast<float>(bits);
 }
 
 // --- Top panel ---------------------------------------------------------------------------------
 
-void CHudTopPanel::LeftDown(int, int x, int y) {
+void HudTopPanel::LeftDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
-    handled_ = true;
+    handled = true;
     CaptureMouse();
 }
 
-void CHudTopPanel::LeftUp(int, int x, int y) {
+void HudTopPanel::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     switch (region) {
     case 0:
-        interface_->PlaySound(kSoundSling);
-        sliding_ = true;
-        slideDirection_ = -slideDirection_;
-        handled_ = true;
+        ui->PlaySound(kSoundSling);
+        sliding = true;
+        slideDirection = -slideDirection;
+        handled = true;
         return;
     case 1:
     case 2:
-        page_ = region - 1;
+        page = region - 1;
         ShowPage();
-        interface_->PlaySound(kSoundClick);
-        handled_ = true;
+        ui->PlaySound(kSoundClick);
+        handled = true;
         return;
     default:
-        if (region >= 0) handled_ = true;
+        if (region >= 0) handled = true;
         return;
     }
 }
 
-void CHudTopPanel::MouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) handled_ = true;
+void HudTopPanel::MouseMove(int, int x, int y) {
+    if (RegionAt(x, y) >= 0) handled = true;
 }
 
-void CHudTopPanel::Wheel(int, int, int x, int y) {
-    if (RegionAt(x, y) >= 0) handled_ = true;
+void HudTopPanel::Wheel(int, int, int x, int y) {
+    if (RegionAt(x, y) >= 0) handled = true;
 }
 
-// --- CBattleScreen::SelectUnit --------------------------------------------------------
+// --- BattleScreen::SelectUnit --------------------------------------------------------
 
-void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
-    const bool ctrl = interface_->doubleClick_;
+void BattleScreen::SelectUnit(CUnit* unit, int x, int y) {
+    const bool ctrl = ui->doubleClick;
     auto unitDead = [](CUnit* u) { return u->IsDead(); };
     auto pick = [x, y]() {
         Vector3 out;
         Vector3* p = g_clientWorld.PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
-    auto unitPosition = [](CUnit* u) { return u->localPosition_; };
+    auto unitPosition = [](CUnit* u) { return u->localPosition; };
     auto objectAt = [x, y]() {
         POINT point = {x, y};
         return static_cast<CUnit*>(g_clientWorld.PickAt2(&point));
     };
     // The portrait of member `index` nods after a short random delay.
-    auto flash = [this](int index) { portraits_->Wobble(index, kWobbleNod); };
+    auto flash = [this](int index) { portraits->Wobble(index, kWobbleNod); };
     auto order = [this, ctrl](CUnit* first, CUnit* target, int kind, int value) {
         g_clientWorld.LocalView()->SendUseOrder(first, target, kind, value, ctrl);
     };
 
     CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
-    int count = std::ssize(party_);
+    int count = std::ssize(party);
     int firstIndex = -1;
     CUnit* first = nullptr;
     int selected = 0;
     for (int i = 0; i < count; ++i) {
-        CUnit* member = party_[i];
-        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
+        CUnit* member = party[i];
+        if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
         if (!first) {
             first = member;
             firstIndex = i;
@@ -614,11 +614,11 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     if (count <= 0 || selected == 0) {
         // Nobody selected: a click on a portrait's unit selects it (Ctrl: the camera follows it).
         if (count <= 0) return;
-        for (int i = 0; i < std::ssize(party_); ++i) {
-            if (unit != party_[i]) continue;
-            interface_->PlaySound(game::SoundOnOffText());
-            if (interface_->doubleClick_) {
-                if (i < std::ssize(party_)) g_camera.SetTarget(party_[i]);
+        for (int i = 0; i < std::ssize(party); ++i) {
+            if (unit != party[i]) continue;
+            ui->PlaySound(game::SoundOnOffText());
+            if (ui->doubleClick) {
+                if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
             } else {
                 ToggleMember(i);
             }
@@ -626,13 +626,13 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     }
 
-    if (interface_->altDown_) {
+    if (ui->altDown) {
         OrderAt(unit ? unitPosition(unit) : pick(), false, ctrl);
         return;
     }
     bool anyFlag = false;
-    for (int i = 0; i < 6 && !anyFlag; ++i) anyFlag = orderKeys_[i] != 0;
-    if (anyFlag || interface_->ctrlDown_) {
+    for (int i = 0; i < 6 && !anyFlag; ++i) anyFlag = orderKeys[i] != 0;
+    if (anyFlag || ui->ctrlDown) {
         if (unit && !unitDead(unit)) {
             AttackUnit(unit, ctrl);
             return;
@@ -641,25 +641,25 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     }
 
-    switch (pendingAction_) {
+    switch (pendingAction) {
     case kPendingNone:
         if (unit) {
             if (unitDead(unit)) {
                 OrderDeadUnit(unit, ctrl);
                 return;
             }
-            int members = std::ssize(party_);
+            int members = std::ssize(party);
             for (int i = 0; i < members; ++i) {
-                if (unit != party_[i]) continue;
-                interface_->PlaySound(game::SoundOnOffText());
-                if (interface_->doubleClick_) {
-                    if (i < std::ssize(party_)) g_camera.SetTarget(party_[i]);
+                if (unit != party[i]) continue;
+                ui->PlaySound(game::SoundOnOffText());
+                if (ui->doubleClick) {
+                    if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
                 } else {
                     ToggleMember(i);
                 }
                 return;
             }
-            if (members != 0 && party_[0] && party_[0]->IsHostileTo(unit)) {
+            if (members != 0 && party[0] && party[0]->IsHostileTo(unit)) {
                 AttackUnit(unit, ctrl);
                 return;
             }
@@ -693,12 +693,12 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
         if (IsZero(at.x) && IsZero(at.y)) return;
         if (!first) return;
-        UseAtPoint(at, living, pendingAction_ == kPendingQuickAtPoint);
+        UseAtPoint(at, living, pendingAction == kPendingQuickAtPoint);
         return;
     }
     case kPendingQuickOnUnit: {
         if (!unit || unitDead(unit) || !first) return;
-        CItem* item = first->GetQuickItem(pendingSlot_);
+        Item* item = first->GetQuickItem(pendingSlot);
         if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) return;
         UseOnUnit(unit, true, false);
         return;
@@ -708,20 +708,20 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (target->IsUsable() == 0) return;
-        if (pendingAction_ == kPendingKeyOnObject && target->AcceptsKey(&itemUseKey_) == 0) return;
-        order(first, target, 0, pendingItem_);
+        if (pendingAction == kPendingKeyOnObject && target->AcceptsKey(&itemUseKey) == 0) return;
+        order(first, target, 0, pendingItem);
         flash(firstIndex);
         SetPendingAction(kPendingNone, -1, -1);
         return;
     }
     case kPendingFollow: {   // every selected member follows the unit
         if (!unit || unitDead(unit)) return;
-        for (int i = 0; i < std::ssize(party_); ++i) {
-            CUnit* member = party_[i];
-            if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
+        for (int i = 0; i < std::ssize(party); ++i) {
+            CUnit* member = party[i];
+            if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
             g_clientWorld.LocalView()->SendFollow(member, unit);
-            Speech(party_[i]->id_, AckKind::Follow, nullptr);
-            portraits_->Wobble(i, kWobbleNod);
+            Speech(party[i]->id, AckKind::Follow, nullptr);
+            portraits->Wobble(i, kWobbleNod);
         }
         SetPendingAction(kPendingNone, -1, -1);
         return;
@@ -730,8 +730,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (unit) {
-            for (int i = 0; i < std::ssize(party_); ++i)
-                if (unit == party_[i]) return;
+            for (int i = 0; i < std::ssize(party); ++i)
+                if (unit == party[i]) return;
             order(first, unit, 1, -1);
         } else {
             if (target->IsUsable() == 0) return;
@@ -748,44 +748,44 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
 
 // --- The quick item panel's button release -------------------------------------------
 
-void CHudQuickItems::LeftUp(int, int x, int y) {
+void HudQuickItems::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     // Unchecked, like the original (region -1 reads a neighbouring field).
     int entry = RegionItem(region);
     if (entry < 0) return;
-    handled_ = true;
-    if (region < 4 && entries_[entry].own) {
-        if (interface_->doubleClick_)
+    handled = true;
+    if (region < 4 && entries[entry].own) {
+        if (ui->doubleClick)
             UseNow(region);
         else
             Pick(region);
         return;
     }
-    interface_->PlaySound(kSoundClick);
-    if (selected_ != region) {
+    ui->PlaySound(kSoundClick);
+    if (selected != region) {
         // One of the player's items (top row): used on an object, with the item's key in the screen's
-        // itemUseKey_ and its id in pendingItem_.
-        owner_->itemUseKey_ = entries_[entry].item->GetUse();
-        owner_->SetPendingAction(kPendingKeyOnObject, region, entries_[entry].id);
+        // itemUseKey and its id in pendingItem.
+        owner->itemUseKey = entries[entry].item->GetUse();
+        owner->SetPendingAction(kPendingKeyOnObject, region, entries[entry].id);
         return;
     }
     // The highlighted one again: back to plain selection.
-    owner_->SetPendingAction(kPendingNone, -1, -1);
+    owner->SetPendingAction(kPendingNone, -1, -1);
 }
 
 // --- The selected units ordered to a point -------------------------------------------
 
-void CBattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
+void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     int selected = 0;
-    for (int i = 0; i < std::ssize(party_); ++i) {
-        CUnit* member = party_[i];
-        if (member && (member->flags_ & MapObjectFlag::Selected)) ++selected;
+    for (int i = 0; i < std::ssize(party); ++i) {
+        CUnit* member = party[i];
+        if (member && (member->flags & MapObjectFlag::Selected)) ++selected;
     }
 
     // A point on a zone exit that is open ("z.<zone>" not 1; "none" is no zone): remembered for the
-    // update to ask about leaving (exitPending_ and the exit).
-    exitPending_ = false;
+    // update to ask about leaving (exitPending and the exit).
+    exitPending = false;
     int exit;
     if (GameFindExitAt(&point.x, &exit) && selected > 0) {
         std::string name = GameExitTarget(exit);
@@ -797,22 +797,22 @@ void CBattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
             // Equal skips.
             EI_NAN_AUDIT(value);
             if (value != one) {
-                exitPending_ = true;
-                pendingExit_ = exit;
+                exitPending = true;
+                pendingExit = exit;
             }
         }
     }
 
     // The selected members go; each one's portrait nods after a short random delay.
     std::vector<CUnit*> units;
-    for (int i = 0; i < std::ssize(party_); ++i) {
-        CUnit* member = party_[i];
-        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
+    for (int i = 0; i < std::ssize(party); ++i) {
+        CUnit* member = party[i];
+        if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
         units.push_back(member);
-        portraits_->Wobble(i, kWobbleNod);
+        portraits->Wobble(i, kWobbleNod);
     }
     if (!units.empty()) {
-        CPlayerClient* view = g_clientWorld.LocalView();
+        PlayerClient* view = g_clientWorld.LocalView();
         if (goTo)
             view->SendGoTo(&units, point, run);
         else

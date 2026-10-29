@@ -26,9 +26,9 @@ constexpr float kSix = 6.0f;
 // A new record with no references.
 PartyRecord* NewRecord() {
     auto* record = new PartyRecord();
-    record->refs_ = 0;
-    record->flags6_ = 0;
-    record->flags7_ = 0;
+    record->refs = 0;
+    record->flags6 = 0;
+    record->flags7 = 0;
     return record;
 }
 
@@ -52,9 +52,9 @@ void PartyRecordsReset(NamedPartyRecords* list) {
 
     CParty* party = list->records.front()->Party();
     party->AddMember(kHero, kHumanHero, game::kEmptyText);
-    party->zone_ = kFirstZone;
-    party->entrance_ = 0;
-    party->variables_.Set(kGameTime, kSix);
+    party->zone = kFirstZone;
+    party->entrance = 0;
+    party->variables.Set(kGameTime, kSix);
 }
 
 CParty* NamedPartyRecords::Find(std::string_view name) const {

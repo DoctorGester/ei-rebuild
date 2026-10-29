@@ -4,7 +4,7 @@
 // touches DirectDraw or Direct3D except the COM pointer's Release. Most are identical to
 // copies written elsewhere; each says which. See docs/notes/renderer.md (section 12).
 #include "engine_object.h"
-#include "model.h"           // CTransformPipeline
+#include "model.h"           // TransformPipeline
 #include "texture.h"
 #include "ui_widescreen.h"
 
@@ -18,7 +18,7 @@
 // ---- Deleting destructors ---------------------------------------------------------------------------
 
 // The renderer's counted base: nothing to destroy. Its deleting destructor is reached by no object.
-CRendererBase::~CRendererBase() = default;
+RendererBase::~RendererBase() = default;
 
 
 // (The figure loader's fieldless abstract base is not modelled: its deleting destructor is reached by no object.)

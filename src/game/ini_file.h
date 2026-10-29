@@ -1,6 +1,6 @@
 #pragma once
 
-// CIniFile (provisional name): the game's .ini settings reader and
+// IniFile (provisional name): the game's .ini settings reader and
 // writer over GetPrivateProfile* / WritePrivateProfileString. The object is just the file path.
 // Lists are comma-separated values ("1, 2, 3"), each item trimmed.
 
@@ -10,7 +10,7 @@
 
 #include "registry.h"
 
-class CIniFile {
+class IniFile {
 public:
     void SetPath(std::string_view path);
 
@@ -25,5 +25,5 @@ public:
     // The comma-separated list's items as integers; none when the value is empty.
     std::vector<std::uint32_t> GetIntArray(const char* section, const char* key);
 
-    std::string path_;
+    std::string path;
 };

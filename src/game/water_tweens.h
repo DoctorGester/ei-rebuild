@@ -1,10 +1,10 @@
 #pragma once
 
-// The world's water level changes (CWorld::countdowns_; model_db.cpp).
+// The world's water level changes (CWorld::countdowns; model_db.cpp).
 
 #include <vector>
 
-class CStream;
+class ByteStream;
 namespace terrain { class Terrain; }
 
 // A gradual change of one water level (script SetWaterLevel(index, level, time)): `value` moves
@@ -27,12 +27,12 @@ struct WaterTweens : std::vector<TweenEntry> {
     // while any entry moves.
     bool Tick();
     // The count, then the entries (identical copies).
-    void Save(CStream* stream) const;
+    void Save(ByteStream* stream) const;
     // Reads the array and applies each entry's value to `terrain`.
-    void Load(CStream* stream, terrain::Terrain* terrain);
+    void Load(ByteStream* stream, terrain::Terrain* terrain);
     // Reads the array only (the resize of another array instantiation).
-    void LoadEntries(CStream* stream);
+    void LoadEntries(ByteStream* stream);
     // The read part of both loads: the count (0 if the stream writes nothing), SetSize, then the
     // entries.
-    void ReadEntries(CStream* stream);
+    void ReadEntries(ByteStream* stream);
 };

@@ -19,18 +19,18 @@
 #include <memory>
 
 CWorld::~CWorld() {
-    DestroyOwned(netSession_);
-    DestroyOwned(worldHandle_);
-    figureLoader_.Reset();
+    DestroyOwned(netSession);
+    DestroyOwned(worldHandle);
+    figureLoader.Reset();
 }
 
-CParticleManager::CParticleManager() {
-    maxHeldId_ = 0;
+ParticleManager::ParticleManager() {
+    maxHeldId = 0;
     ParticleManagerClearQuietStart(this);
 }
 
-CParticleManager::~CParticleManager() {
-    CParticleManager::Destroy();
+ParticleManager::~ParticleManager() {
+    ParticleManager::Destroy();
     freeParticles.clear();
 }
 
@@ -40,23 +40,23 @@ Sector::~Sector() {
     objects.clear();
 }
 
-CWorldClient::~CWorldClient() {
-    DestroyOwned(handle_);
-    scorchMarks_.clear();
-    footprints_.clear();
-    bloodPrints_.clear();
+WorldClient::~WorldClient() {
+    DestroyOwned(handle);
+    scorchMarks.clear();
+    footprints.clear();
+    bloodPrints.clear();
     // The second grid still holds its objects: released here, as the original's destructor does.
-    secondGrid_.Free();
-    objectGrid_.Free();
-    dynamicObjects_.clear();
-    exitMarkers_.clear();
-    exits_.clear();
+    secondGrid.Free();
+    objectGrid.Free();
+    dynamicObjects.clear();
+    exitMarkers.clear();
+    exits.clear();
 }
 
-CWorldServer::~CWorldServer() {
-    sharedObjects_.clear();
-    ReleaseAndClear(counted_);
-    projectiles_.clear();
-    diplomacy_.Reset();
-    exits_.clear();
+WorldServer::~WorldServer() {
+    sharedObjects.clear();
+    ReleaseAndClear(counted);
+    projectiles.clear();
+    diplomacy.Reset();
+    exits.clear();
 }

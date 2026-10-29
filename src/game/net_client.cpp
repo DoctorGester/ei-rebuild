@@ -27,21 +27,21 @@ void RegisterInline(ClientSession* client, int channel, Function handler) {
 // The client base's constructor is inlined into the game client's: the session base, its lobby fields, an unbound
 // socket.
 ClientBase::ClientBase() {
-    host_ = NetAddress{};
-    alwaysAsk_ = NetAddress{};
-    joinState_ = kNotJoined;
-    joinId_ = 0;
-    socket_.Open(-1);
+    host = NetAddress{};
+    alwaysAsk = NetAddress{};
+    joinState = kNotJoined;
+    joinId = 0;
+    socket.Open(-1);
 }
 
 ClientSession::ClientSession() {
-    PartyConstruct(&parties_[0]);
-    PartyConstruct(&parties_[1]);
+    PartyConstruct(&parties[0]);
+    PartyConstruct(&parties[1]);
 
     // The local player's login.
-    ShareOwned(player_, NewCounted<LoginMessage>());
+    ShareOwned(player, NewCounted<LoginMessage>());
 
-    magic_ = kSessionMagic;
+    magic = kSessionMagic;
     RegisterMessageTypes();
 
     RegisterInline<BindingMessage>(this, 0, ClientOnBinding);
@@ -76,21 +76,21 @@ ClientSession::ClientSession() {
     RegisterTradeHandler(1, AsHandler(ClientOnTradeChanged));
     RegisterTradeHandler(2, AsHandler(ClientOnTradeGone));
 
-    parties_[0]->Create();
-    parties_[1]->Create();
+    parties[0]->Create();
+    parties[1]->Create();
 }
 
 // What the server receives from this client: the local player's login, the timed objects and the file
 // requests, and our trade offer with its members. All priority 1.
 void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
     ClientSession* self = this;
-    PushReplicated(*out, self->player_.Get(), 1);
-    for (auto& n : self->timers_) PushReplicated(*out, n.ref.Get(), 1);
-    for (auto& n : self->fileRequests_) PushReplicated(*out, n.Get(), 1);
-    if (void* group = self->party_.Get()) {
+    PushReplicated(*out, self->player.Get(), 1);
+    for (auto& n : self->timers) PushReplicated(*out, n.ref.Get(), 1);
+    for (auto& n : self->fileRequests) PushReplicated(*out, n.Get(), 1);
+    if (void* group = self->party.Get()) {
         PushReplicated(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
-            const std::vector<HeldRef<CRefObject>>& members = self->party_.Get()->members_;
+            const std::vector<HeldRef<RefObject>>& members = self->party.Get()->members;
             if (i >= static_cast<std::uint32_t>(members.size())) break;
             PushReplicated(*out, members[i].Get(), 1);
         }

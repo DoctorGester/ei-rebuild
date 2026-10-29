@@ -101,91 +101,91 @@ int ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c) 
 
 } // namespace decal
 
-void DecalBuilder::Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
-                         std::vector<std::uint16_t>* indices, const VertexPacket& quad, const Vector3& direction,
-                         const Vector3& point, float depth) {
-    direction_ = direction;
-    point_ = point;
-    points_ = points;
-    indices_ = indices;
-    texCoords_ = texCoords;
-    vertexCount_ = 0;
-    indexCount_ = 0;
-    texCoords->clear();
-    points_->clear();
-    indices_->clear();
+void DecalBuilder::Begin(std::vector<VertexPacket>* newPoints, std::vector<DecalTexCoord>* newTexCoords,
+                         std::vector<std::uint16_t>* newIndices, const VertexPacket& quad, const Vector3& newDirection,
+                         const Vector3& newPoint, float depth) {
+    direction = newDirection;
+    point = newPoint;
+    points = newPoints;
+    indices = newIndices;
+    texCoords = newTexCoords;
+    vertexCount = 0;
+    indexCount = 0;
+    newTexCoords->clear();
+    points->clear();
+    indices->clear();
 
-    Vector3 origin = {quad.x()[3], quad.y()[3], quad.z()[3]};
+    Vector3 newOrigin = {quad.x()[3], quad.y()[3], quad.z()[3]};
     Vector3 vCorner = {quad.x()[0], quad.y()[0], quad.z()[0]};
 
-    Vector3& dir = direction_;
+    Vector3& dir = direction;
     dir = Normalised<Sum3::XYZ>(dir);
 
     // The u edge without its part along the direction, over its squared length.
-    uAxis_ = {quad.x()[2] - origin.x, quad.y()[2] - origin.y, quad.z()[2] - origin.z};
-    double along = DotZYX(uAxis_, dir);
+    uAxis = {quad.x()[2] - newOrigin.x, quad.y()[2] - newOrigin.y, quad.z()[2] - newOrigin.z};
+    double along = DotZYX(uAxis, dir);
     Vector3 part = {static_cast<float>(along * dir.x), static_cast<float>(along * dir.y),
                     static_cast<float>(along * dir.z)};
-    uAxis_ = {uAxis_.x - part.x, uAxis_.y - part.y, uAxis_.z - part.z};
-    uAxis_.DivideInPlace(static_cast<float>(uAxis_.LengthSquared()));
+    uAxis = {uAxis.x - part.x, uAxis.y - part.y, uAxis.z - part.z};
+    uAxis.DivideInPlace(static_cast<float>(uAxis.LengthSquared()));
 
-    vAxis_ = {vCorner.x - origin.x, vCorner.y - origin.y, vCorner.z - origin.z};
-    float vAlong = Dot(vAxis_, dir);
+    vAxis = {vCorner.x - newOrigin.x, vCorner.y - newOrigin.y, vCorner.z - newOrigin.z};
+    float vAlong = Dot(vAxis, dir);
     part = {dir.x * vAlong, dir.y * vAlong, dir.z * vAlong};
-    vAxis_ = {vAxis_.x - part.x, vAxis_.y - part.y, vAxis_.z - part.z};
-    vAxis_.DivideInPlace(static_cast<float>(vAxis_.LengthSquared()));
+    vAxis = {vAxis.x - part.x, vAxis.y - part.y, vAxis.z - part.z};
+    vAxis.DivideInPlace(static_cast<float>(vAxis.LengthSquared()));
 
     float slopeDivisor = std::fabs(dir.z);
-    slope_ = {dir.x / slopeDivisor, dir.y / slopeDivisor, dir.z / slopeDivisor};
-    origin_ = origin;
-    Vector3 negated = {-origin_.x, -origin_.y, -origin_.z};
-    uOffset_ = Dot(negated, uAxis_);
-    vOffset_ = Dot(negated, vAxis_);
-    uLength_ = uAxis_.Length();
-    vLength_ = vAxis_.Length();
+    slope = {dir.x / slopeDivisor, dir.y / slopeDivisor, dir.z / slopeDivisor};
+    origin = newOrigin;
+    Vector3 negated = {-origin.x, -origin.y, -origin.z};
+    uOffset = Dot(negated, uAxis);
+    vOffset = Dot(negated, vAxis);
+    uLength = uAxis.Length();
+    vLength = vAxis.Length();
 
     // The cut-off plane faces along the direction through point - direction * depth * 0.33.
     float back = depth * 0.33f;
-    normal_ = dir;
+    normal = dir;
     Vector3 scaled = {dir.x * back, dir.y * back, dir.z * back};
-    Vector3 planePoint = {point_.x - scaled.x, point_.y - scaled.y, point_.z - scaled.z};
-    planeOffset_ = -Dot(planePoint, normal_);
+    Vector3 planePoint = {point.x - scaled.x, point.y - scaled.y, point.z - scaled.z};
+    planeOffset = -Dot(planePoint, normal);
 }
 
 bool DecalBuilder::Touches(const Vector3& center, float radius) const {
-    double v = DotZYX(vAxis_, center) + vOffset_;
-    double vReach = radius * vLength_;
+    double v = DotZYX(vAxis, center) + vOffset;
+    double vReach = radius * vLength;
     if (v - vReach > 1.0f) return false;
     EI_NAN_AUDIT(v, vReach);
     if (v + vReach < 0.0f) return false;
-    double u = DotZYX(uAxis_, center) + uOffset_;
-    double uReach = radius * uLength_;
+    double u = DotZYX(uAxis, center) + uOffset;
+    double uReach = radius * uLength;
     if (u - uReach > 1.0f) return false;
     return u + uReach >= 0.0f;
 }
 
 void DecalBuilder::Reserve(int triangles) {
     int corners = triangles * 3;
-    texCoords_->resize(corners + vertexCount_);
-    points_->resize(corners / 4 + 1 + vertexCount_);
-    indices_->resize(indexCount_ + corners);
+    texCoords->resize(corners + vertexCount);
+    points->resize(corners / 4 + 1 + vertexCount);
+    indices->resize(indexCount + corners);
 }
 
 std::uint16_t DecalBuilder::AddVertex(const DecalVertex* v) {
-    int i = vertexCount_;
-    VertexPacket& packet = (*points_)[i / 4];
+    int i = vertexCount;
+    VertexPacket& packet = (*points)[i / 4];
     x87::CopyBits(packet.block[0][i & 3], v->position.x);
     x87::CopyBits(packet.block[1][i & 3], v->position.y);
     x87::CopyBits(packet.block[2][i & 3], v->position.z);
-    x87::CopyBits((*texCoords_)[i].u, v->u);
-    x87::CopyBits((*texCoords_)[i].v, v->v);
-    vertexCount_ = i + 1;
+    x87::CopyBits((*texCoords)[i].u, v->u);
+    x87::CopyBits((*texCoords)[i].v, v->v);
+    vertexCount = i + 1;
     return static_cast<std::uint16_t>(i);
 }
 
 void DecalBuilder::Emit(const DecalVertex* tri) {
     for (int k = 0; k < 3; ++k) {
-        std::uint16_t* slot = &(*indices_)[indexCount_++];
+        std::uint16_t* slot = &(*indices)[indexCount++];
         *slot = AddVertex(&tri[k]);
     }
 }
@@ -195,7 +195,7 @@ void DecalBuilder::ClipStage(DecalVertex* tri, int stage) {
     for (int k = 0; k < 3; ++k) {
         const DecalVertex& c = tri[k];
         switch (stage) {
-        case 0: distances[k] = Project(normal_, c.position, planeOffset_); break;
+        case 0: distances[k] = Project(normal, c.position, planeOffset); break;
         case 1: distances[k] = c.u; break;
         case 2: distances[k] = c.v; break;
         case 3: distances[k] = 1.0f - c.u; break;
@@ -219,8 +219,8 @@ void DecalBuilder::AddCorners(DecalVertex* tri, const Vector3& a, const Vector3&
     const Vector3* corners[3] = {&a, &b, &c};
     for (int k = 0; k < 3; ++k) {
         tri[k].position = *corners[k];
-        tri[k].u = Project(uAxis_, tri[k].position, uOffset_);
-        tri[k].v = Project(vAxis_, tri[k].position, vOffset_);
+        tri[k].u = Project(uAxis, tri[k].position, uOffset);
+        tri[k].v = Project(vAxis, tri[k].position, vOffset);
     }
 }
 
@@ -237,18 +237,18 @@ void DecalBuilder::AddTerrainTriangle(const Vector3& a, const Vector3& b, const 
 }
 
 void DecalBuilder::Finish() {
-    std::vector<VertexPacket>* points = points_;
-    std::vector<std::uint16_t>* indices = indices_;
-    points->resize((vertexCount_ + 3) / 4);
-    indices->resize(indexCount_);
-    for (int i = vertexCount_; i < std::ssize(*points) * 4; ++i) {
-        VertexPacket& packet = (*points)[i / 4];
-        const VertexPacket& first = (*points)[0];
+    std::vector<VertexPacket>* currentPoints = points;
+    std::vector<std::uint16_t>* currentIndices = indices;
+    currentPoints->resize((vertexCount + 3) / 4);
+    currentIndices->resize(indexCount);
+    for (int i = vertexCount; i < std::ssize(*currentPoints) * 4; ++i) {
+        VertexPacket& packet = (*currentPoints)[i / 4];
+        const VertexPacket& first = (*currentPoints)[0];
         x87::CopyBits(packet.block[0][i & 3], first.block[0][0]);
         x87::CopyBits(packet.block[1][i & 3], first.block[1][0]);
         x87::CopyBits(packet.block[2][i & 3], first.block[2][0]);
     }
-    points_ = nullptr;
-    texCoords_ = nullptr;
-    indices_ = nullptr;
+    points = nullptr;
+    texCoords = nullptr;
+    indices = nullptr;
 }

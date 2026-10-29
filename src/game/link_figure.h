@@ -1,12 +1,12 @@
 #pragma once
 
-// The 3D library's figure meshes and their loading from .lnk link files. A CLinkFigureLoader (model.h; one
+// The 3D library's figure meshes and their loading from .lnk link files. A LinkFigureLoader (model.h; one
 // per world view) loads a figure by name: its .lnk file lists the parts, each a FIG / FIG8 (or older
-// headerless) record in figures.res / menus.res, morphed by three coefficients and appended to one CLinkMesh.
+// headerless) record in figures.res / menus.res, morphed by three coefficients and appended to one LinkMesh.
 // See docs/notes/models.md, "Link figures". Names provisional.
 
 #include "figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
-#include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
+#include "model.h"         // ClipBounds, TriangleIndexArray, LinkFigureLoader
 #include "texture.h"
 
 #include <cstddef>
@@ -19,33 +19,33 @@
 
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.
-struct FigureDrawerBase : CEngineObject {
+struct FigureDrawerBase : EngineObject {
 
-    CFigureMesh* mesh_;         // the mesh it draws
+    FigureMesh* mesh;          // the mesh it draws
 
 protected:
     FigureDrawerBase();
     ~FigureDrawerBase() override;
 };
 
-// The drawer of a figure mesh (CFigureMesh::drawer_). It is an engine object of class 0x36,
+// The drawer of a figure mesh (FigureMesh::drawer). It is an engine object of class 0x36,
 // "CFigureClientSpecific": the client-specific manager's factory makes one
 // for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure. A real virtual
-// class. flags_ gets the bits
+// class. flags gets the bits
 // of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
-    int DrawPlain(CTextureDevice* device, CMaterial*, int alpha, RECT* rect);
-    int DrawLit(CTextureDevice* device, const std::vector<CLight*>* lights, CMaterial* material, int alpha, RECT* rect,
+    int DrawPlain(TextureDevice* device, Material*, int alpha, RECT* rect);
+    int DrawLit(TextureDevice* device, const std::vector<CLight*>* lights, Material* material, int alpha, RECT* rect,
                 CTexture* textureA, CTexture* textureB);
-    void DrawBounds(CSceneRenderer* renderer);
+    void DrawBounds(SceneRenderer* renderer);
 
     FigureMeshDrawer();
     ~FigureMeshDrawer() override;
 
-    // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
+    // The vtable: EngineObject's but for 0, 2, 3, 11 and 12.
     void Create() override;
     void Destroy() override;
-    const char* ClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
+    const char* ClassName() override;   // "CFigureClientSpecific" (figure_drawer.cpp)
     ClassId GetClassId() override;
 
     // No mesh, no flags.
@@ -57,18 +57,18 @@ struct FigureMeshDrawer : FigureDrawerBase {
     // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.
     void Animate(float time);
 
-    RECT screen_;               // where the mesh was last drawn
+    RECT screen;                // where the mesh was last drawn
 };
 
-class CTextureDevice;
+class TextureDevice;
 
 struct Surface;
 
 // A part's header in the mesh's header map (map<string, LinkPartHeader>; 0x50 bytes, zeroed when the
 // map inserts it).
 struct LinkPartHeader {
-    // The second / first dword after the FIG header: the part's CFigureMesh::meshType_ and
-    // materialValue_ (an object's part copies them and the box, CObject3D::LoadPart).
+    // The second / first dword after the FIG header: the part's FigureMesh::meshType and
+    // materialValue (an object's part copies them and the box, CObject3D::LoadPart).
     std::uint32_t meshType;
     std::uint32_t materialValue;
     FootprintPart box;          // the bounds fitted to the part's morphed vertices, the part's position when loaded
@@ -95,10 +95,10 @@ static_assert(sizeof(LinkPartRanges) == 0x30);
 
 // A figure's mesh's base (no object of the
 // base alone exists): the reference count, the name and the part headers.
-class CLinkMeshBase {
+class LinkMeshBase {
 public:
 
-    virtual ~CLinkMeshBase();
+    virtual ~LinkMeshBase();
     // ScreenRect_ = the union of the parts' non-empty screen rectangles (inverted
     // +-2000000000 when there is none).
     virtual void UpdateScreenRect() = 0;
@@ -123,7 +123,7 @@ public:
     // was drawn. `u`, `v` are members of the mesh.
     virtual bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
                              std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
-    virtual bool LightPart(const std::string* name, const std::vector<CLight*>* lights, CMaterial* material, int alpha,
+    virtual bool LightPart(const std::string* name, const std::vector<CLight*>* lights, Material* material, int alpha,
                            std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
     virtual int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                               std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
@@ -142,28 +142,28 @@ public:
     virtual int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const Matrix4& matrix,
                             Vector2* points, float* bounds) = 0;
 
-    void AddRef() { ++refCount_; }
+    void AddRef() { ++refCount; }
     // Drops a reference; the last one deletes the mesh.
     void Release() {
-        if (--refCount_ == 0) delete this;
+        if (--refCount == 0) delete this;
     }
 
-    int refCount_;
-    std::string name_;
-    std::map<std::string, LinkPartHeader> headers_;
+    int refCount;
+    std::string name;
+    std::map<std::string, LinkPartHeader> headers;
 
 protected:
-    explicit CLinkMeshBase(const std::string* name);
-    CLinkMeshBase(const CLinkMeshBase&) = delete;
-    CLinkMeshBase& operator=(const CLinkMeshBase&) = delete;
+    explicit LinkMeshBase(const std::string* name);
+    LinkMeshBase(const LinkMeshBase&) = delete;
+    LinkMeshBase& operator=(const LinkMeshBase&) = delete;
 };
 
 // A figure's mesh: the parts' elements concatenated in the arrays. A real virtual class.
 // The draws go through the device (link_mesh_draw.cpp).
-class CLinkMesh : public CLinkMeshBase {
+class LinkMesh : public LinkMeshBase {
 public:
-    CLinkMesh(CLinkFigureLoader* loader, const std::string* name, float s, float t, float u);
-    ~CLinkMesh() override;
+    LinkMesh(LinkFigureLoader* loader, const std::string* name, float s, float t, float u);
+    ~LinkMesh() override;
 
     // Every slot of the base.
     void UpdateScreenRect() override;   // link_figure.cpp
@@ -175,7 +175,7 @@ public:
                      std::uint16_t** indices, int* vertexCount, int* indexCount) override;
     bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
-    bool LightPart(const std::string* name, const std::vector<CLight*>* lights, CMaterial* material, int alpha,
+    bool LightPart(const std::string* name, const std::vector<CLight*>* lights, Material* material, int alpha,
                    std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
     int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                       std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
@@ -209,18 +209,18 @@ public:
                 int cornerCount, const std::uint32_t* words, int wordCount, const std::uint16_t* indices,
                 int indexCount);
 
-    RECT screenRect_;
-    float morphWeights_[3];           // the morph coefficients (s, t, u) the figure was loaded with
-    std::vector<VertexPacket> vertices_;
-    std::vector<NormalPacket> normals_;
-    std::vector<TexCoord> texCoords_;
-    std::vector<MeshCorner> corners_;            // 6-byte triangle corners (MeshCorner)
-    std::vector<std::uint32_t> words_;
-    std::vector<std::uint16_t> indices_;
-    std::map<std::string, LinkPartRanges> ranges_;
-    CLinkFigureLoader* loader_;
+    RECT screenRect;
+    float morphWeights[3];            // the morph coefficients (s, t, u) the figure was loaded with
+    std::vector<VertexPacket> vertices;
+    std::vector<NormalPacket> normals;
+    std::vector<TexCoord> texCoords;
+    std::vector<MeshCorner> corners;             // 6-byte triangle corners (MeshCorner)
+    std::vector<std::uint32_t> words;
+    std::vector<std::uint16_t> indices;
+    std::map<std::string, LinkPartRanges> ranges;
+    LinkFigureLoader* loader;
 };
-// corners_ is indexed in whole triangles: one element is one 6-byte MeshCorner.
+// corners is indexed in whole triangles: one element is one 6-byte MeshCorner.
 static_assert(sizeof(MeshCorner) == 6);
 
 // A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor: the characters

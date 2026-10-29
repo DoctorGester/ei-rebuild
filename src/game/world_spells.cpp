@@ -1,4 +1,4 @@
-// CWorldServer: casting spells into the world (CastSpell) and the missile that carries one (CreateMissile). See
+// WorldServer: casting spells into the world (CastSpell) and the missile that carries one (CreateMissile). See
 // world.h and docs/notes/world.md.
 #include "object_diplomacy.h"
 #include "world.h"
@@ -35,60 +35,60 @@ bool IsHostileType(SpellType type) {
 
 } // namespace
 
-void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target,
+void WorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target,
                                  const Vector3& to, int extra) {
-    const Vector3& aim = target ? target->localPosition_ : to;
+    const Vector3& aim = target ? target->localPosition : to;
     Vector3 end;
     end = aim;
-    if (spell->targetFlags_ & SpellTargetFlag::AtPoint) target = nullptr;
+    if (spell->targetFlags & SpellTargetFlag::AtPoint) target = nullptr;
     end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f);
-    if (caster) from = caster->localPosition_;
+    if (caster) from = caster->localPosition;
 
-    auto* missile = new CSpellEffect();
-    missile->refs_ = 0;   // the count and flags are cleared before the null test
-    missile->flags6_ = 0;
-    missile->flags7_ = 0;
+    auto* missile = new SpellEffect();
+    missile->refs = 0;    // the count and flags are cleared before the null test
+    missile->flags6 = 0;
+    missile->flags7 = 0;
     missile->Init(this, spell, caster, from, target, end, static_cast<std::uint8_t>(extra));
     if (missile->Update()) {
-        projectiles_.emplace_back(missile);
+        projectiles.emplace_back(missile);
     }
     CUnit* victim = UnitOrNull(target);
     if (victim && caster) {
         if (IsHostileType(spell->Type())) {
             victim->ServerController()->brain.SetSeen(caster);
-            diplomacy_.OnAttack(caster, victim);
-            target->flags_ |= MapObjectFlag::RelationsChanged;
-            caster->flags_ |= MapObjectFlag::RelationsChanged;
+            diplomacy.OnAttack(caster, victim);
+            target->flags |= MapObjectFlag::RelationsChanged;
+            caster->flags |= MapObjectFlag::RelationsChanged;
         }
     }
 }
 
-void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, CMapObject* target,
+void WorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, CMapObject* target,
                              const Vector3& to, int extra) {
     if (!spell) return;
-    if (sessionKind_ != kKindSinglePlayer && caster) return;
-    SpellType type = spell->Type();
-    if (type == SpellType::Possession || type == SpellType::Link || type == SpellType::Charm) return;
-    std::uint32_t flags = spell->targetFlags_;
-    int targets = static_cast<int>(spell->targetCount_);
-    if (!(flags & kSpellTargetRestrictions) && targets <= 1) {
+    if (sessionKind != kKindSinglePlayer && caster) return;
+    SpellType spellType = spell->Type();
+    if (spellType == SpellType::Possession || spellType == SpellType::Link || spellType == SpellType::Charm) return;
+    std::uint32_t targetFlags = spell->targetFlags;
+    int targets = static_cast<int>(spell->targetCount);
+    if (!(targetFlags & kSpellTargetRestrictions) && targets <= 1) {
         CreateMissile(spell, caster, from, target, to, extra);
         return;
     }
 
     // Several targets: the units around the caster (or `from`), the requested target first.
-    CPlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
+    PlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
     if (caster) {
-        if (CPlayer* owner = caster->player) heroes = owner->Server();
+        if (CPlayer* ownerObject = caster->player) heroes = ownerObject->Server();
     }
-    if ((flags & SpellTargetFlag::AtPoint) && !(flags & SpellTargetFlag::ItemContinuous)) {
+    if ((targetFlags & SpellTargetFlag::AtPoint) && !(targetFlags & SpellTargetFlag::ItemContinuous)) {
         --targets;
         CreateMissile(spell, caster, from, target, to, extra);
     }
     Vector3 center;
-    center = caster ? caster->localPosition_ : from;
-    float radius = spell->range_;
-    std::list<CUnit*> units = aiMap_.sectorMap.FindUnitsInRadius(center, radius);
+    center = caster ? caster->localPosition : from;
+    float radius = spell->range;
+    std::list<CUnit*> units = aiMap.sectorMap.FindUnitsInRadius(center, radius);
     if (CUnit* targetUnit = UnitOrNull(target)) {
         if (auto found = std::ranges::find(units, target); found != units.end()) units.erase(found);
         units.push_front(targetUnit);
@@ -109,9 +109,9 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, 
                 bestNode = node;
                 break;
             } else {
-                double dz = static_cast<double>(to.z) - unit->localPosition_.z;
-                double dy = static_cast<double>(to.y) - unit->localPosition_.y;
-                double dx = static_cast<double>(to.x) - unit->localPosition_.x;
+                double dz = static_cast<double>(to.z) - unit->localPosition.z;
+                double dy = static_cast<double>(to.y) - unit->localPosition.y;
+                double dx = static_cast<double>(to.x) - unit->localPosition.x;
                 double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
                 float bestDistance;
                 bestDistance = std::bit_cast<float>(bestBits);
@@ -132,7 +132,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, 
         if (!caster) {
             hit = true;
         } else if (heroes) {
-            hit = heroes->partyUnits_.Contains(best) != 0;
+            hit = heroes->partyUnits.Contains(best) != 0;
         } else {
             // The units the caster's AI sees (its brain's visible list), else diplomacy says.
             if (lib::Contains(caster->ServerController()->brain.memory.visible, best)) {
@@ -140,11 +140,11 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, 
             } else {
                 int casterSide = caster->side;
                 int bestSide = best->side;
-                hit = diplomacy_.IsAllied(bestSide, casterSide);
+                hit = diplomacy.IsAllied(bestSide, casterSide);
             }
         }
         if (!hit) continue;
-        Vector3* at = &best->localPosition_;
+        Vector3* at = &best->localPosition;
         if (!SpellHasLineOfSight(this, spell, caster, from, best, *at))
             continue;
         if (!spell->CanAffect(caster, best)) continue;

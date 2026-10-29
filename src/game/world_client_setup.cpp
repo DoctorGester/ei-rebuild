@@ -38,12 +38,12 @@ const char* SkySection() { return "sky"; }
 constexpr int kNumbersKind = static_cast<int>(TextureKind::Effects);
 
 const char* NumbersName() { return "numbers"; }
-const char* FiguresResource() { return options::g_options.resourcesPath_.c_str(); }
+const char* FiguresResource() { return options::g_options.resourcesPath.c_str(); }
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
 // accumulated colour stays unrounded between the steps (FPU stack), each stored as a float.
-void ReadTable(CIniFile& ini, const char* section, LightColour* table) {
+void ReadTable(IniFile& ini, const char* section, LightColour* table) {
     int previous = 0;
     for (const std::string& key : ini.GetKeyNames(section)) {
         int index = str::ToInt(str::Mid(key, 4, 2));
@@ -78,48 +78,48 @@ const char* SkyFigureFile() { return "nask0sky.fig"; }
 
 } // namespace
 
-int CWorldClient::LoadLights(const std::string& file) {
-    CIniFile ini;   // the empty path, freed at the end
+int WorldClient::LoadLights(const std::string& file) {
+    IniFile ini;   // the empty path, freed at the end
     {
         std::string folder = g_dataFolder + ConfigFolder();
         std::string path = folder + file;
         ini.SetPath(path);
     }
-    ReadTable(ini, SunlightSection(), sunlight_);
-    ReadTable(ini, AmbientSection(), ambient_);
-    ReadTable(ini, SkySection(), sky_);
+    ReadTable(ini, SunlightSection(), sunlight);
+    ReadTable(ini, AmbientSection(), ambient);
+    ReadTable(ini, SkySection(), sky);
     return 1;
 }
 
-void CWorldClient::SetUpGraphics(CTextureDevice* device) {
+void WorldClient::SetUpGraphics(TextureDevice* device) {
     TextureManager()->SetDevice(device);
     LoadSky();
-    numbers_ = new CFlyingHitPoints();
+    numbers = new FlyingHitPoints();
     auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
-        numbers_->texture_.Assign(texture);
+        numbers->texture.Assign(texture);
         TextureManager()->LoadTexture(texture);
-        texture->flags_ |= TextureFlag::Keep;
+        texture->flags |= TextureFlag::Keep;
     }
-    CLinkFigureLoader* loader;
+    LinkFigureLoader* loader;
     {
         std::string resource(FiguresResource());
-        loader = new CLinkFigureLoader(g_sceneRenderer.device_, &resource);
+        loader = new LinkFigureLoader(g_sceneRenderer.device, &resource);
     }
-    figureLoader_.Assign(loader);
-    g_unitDatabase.CountSoundFiles(sounds_);
+    figureLoader.Assign(loader);
+    g_unitDatabase.CountSoundFiles(sounds);
 }
 
 // ---- The sky --------------------------------------------------------------------------
 
-void CWorldClient::LoadSky() {
-    if (skyDome_) return;
-    skyDome_ = new CSky();
+void WorldClient::LoadSky() {
+    if (skyDome) return;
+    skyDome = new Sky();
     auto* figures = FigureManager();
-    auto* object = figures->CreateObjectAs<CSkyObject>(FigureObjectType::SkyObject, kSkyObjectId);
+    auto* object = figures->CreateObjectAs<SkyObject>(FigureObjectType::SkyObject, kSkyObjectId);
     if (!object) return;
-    object->name_ = SkyPartName();
-    object->directory_ = game::kEmptyText;
+    object->name = SkyPartName();
+    object->directory = game::kEmptyText;
     char* data = static_cast<char*>(figures->GetFile(SkyFigureFile(), nullptr));
     if (!data) {
         object->AddRef();
@@ -127,8 +127,8 @@ void CWorldClient::LoadSky() {
         return;
     }
     object->LoadFromMemory(&data);
-    object->flags_ |= FigureMeshFlag::Lit;
-    skyDome_->object.Assign(object);
-    CEngineObject* material = MaterialManager()->NewMaterial(kSkyMaterialType);
-    skyDome_->material.Assign(material);
+    object->flags |= FigureMeshFlag::Lit;
+    skyDome->object.Assign(object);
+    EngineObject* material = MaterialManager()->NewMaterial(kSkyMaterialType);
+    skyDome->material.Assign(material);
 }

@@ -1,4 +1,4 @@
-// CWorldServer: object and player lookups, the coarse height grid, shared objects, dirty flags and
+// WorldServer: object and player lookups, the coarse height grid, shared objects, dirty flags and
 // the id maps. See world.h.
 #include "player_messages.h"
 #include "sector_map.h"
@@ -28,14 +28,14 @@ namespace {
 // FindPlayer is the player record with that id, or null.
 net::ServerSession* ActiveGameServer() {
     net::ServerSession* server = net::g_gameServer;
-    if (!server || (server->flags7_ & CRefCounted::kDetached)) return nullptr;
+    if (!server || (server->flags7 & RefCounted::kDetached)) return nullptr;
     return server;
 }
 
 // Player index used by the shared-object list: -1 when not in a multiplayer game or unknown.
 int SharedListPlayer(int playerId) {
     if (net::ServerSession* server = ActiveGameServer()) {
-        if (net::PlayerMessage* record = server->FindPlayer(playerId)) return record->serial_;
+        if (net::PlayerMessage* record = server->FindPlayer(playerId)) return record->serial;
     }
     return -1;
 }
@@ -49,181 +49,198 @@ void EraseId(Map& map, unsigned id) {
 
 // ---- Id maps -------------------------------------------------------------------------------------
 
-void ObjectIdMap::Set(const unsigned& key, CEngineObject* const& value) {
+void ObjectIdMap::Set(const unsigned& key, EngineObject* const& value) {
     if (static_cast<int>(key) > maxId) maxId = static_cast<int>(key);
     map[key] = value;
 }
 
 // ---- Lookups -------------------------------------------------------------------------------------
 
-CMapObject* CWorldServer::FindObject(unsigned id) {
-    auto node = objects_.map.find(id);
-    return node != objects_.map.end() ? node->second : nullptr;
+CMapObject* WorldServer::FindObject(unsigned objectId) {
+    auto node = objects.map.find(objectId);
+    return node != objects.map.end() ? node->second : nullptr;
 }
 
-CPlayer* CWorldServer::GetPlayer(int id) {
+CPlayer* WorldServer::GetPlayer(int playerId) {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        if (player->playerId_ == id) return player;
+        if (player->playerId == playerId) return player;
     return nullptr;
 }
 
-float CWorldServer::GridHeight(float x, float y) {
+float WorldServer::GridHeight(float x, float y) {
     // Cell size 1.0 at half-cell offset: (1 / (1 * 0.5)) * v - 0.5, rounded through a float.
     int cx = x87::fistp(static_cast<float>(2.0f * x - 0.5f));
     int cy = x87::fistp(static_cast<float>(2.0f * y - 0.5f));
-    const CAIMap* map = &aiMap_;
+    const AIMap* map = &aiMap;
     if (cx < 0 || cy < 0 || cx >= map->cells.width || cy >= map->cells.height) return 0.0f;
     int raw = map->cells[cy][cx].groundLevel;
     return static_cast<float>(raw) / map->heightScale;
 }
 
-int CWorldServer::CountLivingMercs(int id) {
-    CPlayer* player = GetPlayer(id);
+int WorldServer::CountLivingMercs(int unitId) {
+    CPlayer* player = GetPlayer(unitId);
     if (!player) return 0;
     int living = 0;
-    for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
-        unsigned unitId = player->Party()->members_[i].unitId;
-        CUnit* unit = FindUnit(static_cast<int>(unitId));
+    for (int i = 0; i < std::ssize(player->Party()->members); ++i) {
+        unsigned memberId = player->Party()->members[i].unitId;
+        CUnit* unit = FindUnit(static_cast<int>(memberId));
         if (unit && unit->IsDead() == 0) ++living;
     }
     return living - 1;
 }
 
-bool CWorldServer::IsObjectShared(int objectId, int playerId) {
+bool WorldServer::IsObjectShared(int objectId, int playerId) {
     int player = SharedListPlayer(playerId);
-    for (const SharedObject& entry : sharedObjects_)
+    for (const SharedObject& entry : sharedObjects)
         if (entry.objectId == objectId && (entry.player == player || entry.player == -1)) return true;
     return false;
 }
 
-void CWorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
+void WorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
     group->clear();
     int player = SharedListPlayer(playerId);
-    for (const SharedObject& current : sharedObjects_) {
+    for (const SharedObject& current : sharedObjects) {
         if (current.player != player && current.player != -1) continue;   // -1: every player
-        if (CEngineObject* unit = FindUnit(static_cast<int>(current.objectId))) group->Insert(unit);
+        if (EngineObject* unit = FindUnit(static_cast<int>(current.objectId))) group->Insert(unit);
     }
 }
 
 // ---- State ---------------------------------------------------------------------------------------
 
-void CWorldServer::MarkPlayersDirty(std::uint32_t mask) {
+void WorldServer::MarkPlayersDirty(std::uint32_t mask) {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        player->dirty_ |= mask;
+        player->dirty |= mask;
 }
 
-void CWorldServer::SetCave(int value) { cave_ = value; }
+void WorldServer::SetCave(int value) { cave = value; }
 
-void CWorldServer::SetClimate(int value) {
-    if (weather_ != 0) {
-        weather_ = 0;
-        weatherStrength_ = 20.0f;
+void WorldServer::SetClimate(int value) {
+    if (weather != 0) {
+        weather = 0;
+        weatherStrength = 20.0f;
         MarkPlayersDirty(lib::Bits(PlayerDirty::Weather));
     }
-    climate_ = value;
+    climate = value;
 }
 
-void CWorldServer::SetWeather(int weather, float strength) {
-    weather_ = weather;
-    weatherStrength_ = strength;
+void WorldServer::SetWeather(int newWeather, float strength) {
+    weather = newWeather;
+    weatherStrength = strength;
     MarkPlayersDirty(lib::Bits(PlayerDirty::Weather));
 }
 
-void CWorld::SetPaused(std::uint8_t value) { paused_ = value; }
+void CWorld::SetPaused(std::uint8_t value) { paused = value; }
 
 void CWorld::SetServerPaused(std::uint8_t value) {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) && ei::rebirth::PluginPause() == 3) return;
     SetPaused(value);
 }
 
-const ZoneExit* CWorldServer::FindZoneExit(int index) const {
-    if (index < 0 || index >= std::ssize(exits_)) return nullptr;
-    return &exits_[index];
+const ZoneExit* WorldServer::FindZoneExit(int index) const {
+    if (index < 0 || index >= std::ssize(exits)) return nullptr;
+    return &exits[index];
 }
 
-void CWorldServer::AddTimedObject(CEffect* effect) {
+void WorldServer::AddTimedObject(CEffect* effect) {
     // The timed objects are the world's effects (world_effect.h): the tick they began.
-    effect->startTick_ = tick_;
+    effect->startTick = tick;
     effect->AddRef();
-    effect->MarkChanged();   // flags_ |= 2, stamped with the server time
-    unsigned id = static_cast<unsigned>(effect->id_);
-    timedObjects_.Set(id, effect);
+    effect->MarkChanged();   // flags |= 2, stamped with the server time
+    unsigned effectId = static_cast<unsigned>(effect->id);
+    timedObjects.Set(effectId, effect);
 }
 
-void CWorldServer::RemoveTimedObject(unsigned id) {
-    auto node = timedObjects_.map.find(id);
-    if (node == timedObjects_.map.end()) return;
-    CEngineObject* object = node->second;
-    object->flags_ |= MapObjectFlag::Removed;
+void WorldServer::RemoveTimedObject(unsigned objectId) {
+    auto node = timedObjects.map.find(objectId);
+    if (node == timedObjects.map.end()) return;
+    EngineObject* object = node->second;
+    object->flags |= MapObjectFlag::Removed;
     object->Release();
     // Looked up again: releasing may have changed the map.
-    if (auto again = timedObjects_.map.find(id); again != timedObjects_.map.end()) timedObjects_.map.erase(again);
+    if (auto again = timedObjects.map.find(objectId); again != timedObjects.map.end()) timedObjects.map.erase(again);
 }
 
-int CWorldServer::UpdateCountdownFor(const CEngineObject* object) { return (object->id_ & 0xF) + 0x80; }
+int WorldServer::UpdateCountdownFor(const EngineObject* object) { return (object->id & 0xF) + 0x80; }
 
-void CWorldServer::AddToUpdateMap(CMapObject* unit) {
+void WorldServer::AddToUpdateMap(CMapObject* unit) {
     // The unit's update slot.
     unit->updateCountdown = UpdateCountdownFor(unit);
-    unsigned id = static_cast<unsigned>(unit->id_);
-    updateMap_.Set(id, unit);
+    unsigned unitId = static_cast<unsigned>(unit->id);
+    updateMap.Set(unitId, unit);
 }
 
 // ---- Removal ---------------------------------------------------------------------------------------
 
-void CWorldServer::RemoveObject(unsigned id) {
-    auto found = objects_.map.find(id);
-    CMapObject* const* slot = found != objects_.map.end() ? &found->second : nullptr;
+void WorldServer::RemoveObject(unsigned objectId) {
+    auto found = objects.map.find(objectId);
+    CMapObject* const* slot = found != objects.map.end() ? &found->second : nullptr;
     // Rebirth's FixRemoveMapObject: an unknown id is logged and ignored. Vanilla reads through the null
     // pointer (and crashes).
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
-    if (object->GetClassId() != ClassId::MagicTrap) aiMap_.sectorMap.Remove(*slot);   // magic traps are not in it
+    if (object->GetClassId() != ClassId::MagicTrap) aiMap.sectorMap.Remove(*slot);    // magic traps are not in it
 
-    hash400::RemoveKey(updateMap_.map, id);
-    EraseId(objects_, id);
-    if (namedObjects_.map.contains(id)) EraseId(namedObjects_, id);
-    if (sentObjects_.map.contains(id)) {
-        EraseId(sentObjects_, id);
+    hash400::RemoveKey(updateMap.map, objectId);
+    EraseId(objects, objectId);
+    if (namedObjects.map.contains(objectId)) EraseId(namedObjects, objectId);
+    if (sentObjects.map.contains(objectId)) {
+        EraseId(sentObjects, objectId);
     } else {
-        EraseId(mapObjects_, id);
-        if (otherMapObjects_.map.contains(id)) EraseId(otherMapObjects_, id);
+        EraseId(mapObjects, objectId);
+        if (otherMapObjects.map.contains(objectId)) EraseId(otherMapObjects, objectId);
     }
 
     object->ClearState();   // it leaves the server
     CUnit* unit = UnitOrNull(object);
     object->AddRef();   // held to the end, released twice there (with the maps' reference)
     if (unit) unit->SetPlayer(nullptr);
-    object->flags_ |= MapObjectFlag::Removed;
+    object->flags |= MapObjectFlag::Removed;
     ScriptPurgeDeletedObjects(MainScript());     // what refers to removed objects dropped
     ScriptPurgeDeletedObjects(SecondScript());
 
     // Every world object forgets it (the walk stops at an entry without an object).
-    for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node)
+    for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node)
         node->second->ForgetObject(object);
     // The missiles it shot are dropped; those aimed at it lose their target.
-    for (auto node = projectiles_.begin(); node != projectiles_.end();) {
+    for (auto node = projectiles.begin(); node != projectiles.end();) {
         auto current = node++;
         // 0 when the missile's owner left (the missile is then dropped).
-        if (!(*current)->Forget(object)) projectiles_.erase(current);
+        if (!(*current)->Forget(object)) projectiles.erase(current);
     }
     {
-        PlayerIterator players;
-        for (CPlayer* player = players.First(PlayerList()); player; player = players.Next())
+        PlayerIterator playerIt;
+        for (CPlayer* player = playerIt.First(PlayerList()); player; player = playerIt.Next())
             player->Server()->ForgetObject(object);
         object->Release();
         object->Release();
     }
 }
 
-double CWorldServer::RawSurfaceHeightAt(float x, float y) {
+double WorldServer::RawSurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
-    return aiMap_.TopHeightAt(point);
+    return aiMap.TopHeightAt(point);
 }
 
-double CWorldServer::GroundHeightAt(float x, float y) { return GridHeightAt(x, y); }
+double WorldServer::GroundHeightAt(float x, float y) { return GridHeightAt(x, y); }
 
-double CWorldServer::SurfaceHeightAt(float x, float y) { return RawSurfaceHeightAt(x, y); }
+double WorldServer::SurfaceHeightAt(float x, float y) { return RawSurfaceHeightAt(x, y); }
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kWorldServerClassName = "CWorldServer";
+} // namespace
+
+const char* WorldServer::ClassName() { return kWorldServerClassName; }
+ClassId WorldServer::GetClassId() { return ClassId::WorldServer; }
+
+bool WorldServer::IsServer() { return true; }
+
+// --- The water level, which other code reaches through the world --------------------------------------
+
+void WorldServer::SetWaterLevel(int key, float target, int steps) {
+    countdowns.SetTarget(key, target, steps);
+}

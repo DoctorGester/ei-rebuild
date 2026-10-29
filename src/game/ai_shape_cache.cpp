@@ -10,10 +10,10 @@
 #include "core_refcount.h"
 
 
-CRefObject* UnitShapeCache::Get(void* handleIn) {
+RefObject* UnitShapeCache::Get(void* handleIn) {
     auto* handle = static_cast<ShapeCacheHandle*>(handleIn);
     if (handle->cache == this && IsLive(handle->ref)) return handle->ref;
     return Resolve(handle);
 }
 
-CRefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(handle); }
+RefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(handle); }

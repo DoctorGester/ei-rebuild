@@ -1,4 +1,4 @@
-// How a hit reaches a creature's statistics: UnitStats::ApplyHit (called by CUnitServer::TakeHit)
+// How a hit reaches a creature's statistics: UnitStats::ApplyHit (called by UnitServer::TakeHit)
 // takes off the vitals' protection, wears the attacker's weapon, and lets the hit location's
 // body slot (or all of them) absorb the rest through its armour layers (DamageSlot), wearing the
 // armour pieces; UnitVitals::TakeHit is the plain version for other map objects. See unit.h and
@@ -29,7 +29,7 @@ constexpr int kLocations = 7;
 constexpr int kDamageTypes = 7;
 constexpr float kHalfBack = -0.5f;
 
-// Remarks (party messages through CUnitServer) when an item wears out or breaks.
+// Remarks (party messages through UnitServer) when an item wears out or breaks.
 // ... and when an arm (slot type 2) or a leg (type 3) is lost.
 
 // The damage type names of the slot log.
@@ -60,18 +60,18 @@ void Remark(CUnit* unit, AckKind kind) {
 
 } // namespace
 
-void WearItem(CItem* item, CUnit* unit, float amount, AckKind brokenRemark, AckKind wornRemark) {
+void WearItem(Item* item, CUnit* unit, float amount, AckKind brokenRemark, AckKind wornRemark) {
     EI_NAN_AUDIT(amount);
     if (!item || !unit || amount <= 0.0f) return;
-    float before = item->condition_;
-    float threshold = item->conditionMax_ * g_logicSettings.itemDurabilityCritical;
-    int pieces = static_cast<int>(item->count_);   // the wear is shared between the stack's pieces
+    float before = item->condition;
+    float threshold = item->conditionMax * g_logicSettings.itemDurabilityCritical;
+    int pieces = static_cast<int>(item->count);    // the wear is shared between the stack's pieces
     if (pieces > 0) {
-        item->condition_ = static_cast<float>(item->condition_ - amount / static_cast<double>(pieces));   // exact
+        item->condition = static_cast<float>(item->condition - amount / static_cast<double>(pieces));     // exact
     } else {
-        item->condition_ = item->condition_ - amount;
+        item->condition = item->condition - amount;
     }
-    float condition = item->condition_;
+    float condition = item->condition;
     if (x87::fistp(condition) <= 0) {
         Remark(unit, brokenRemark);
         return;
@@ -83,7 +83,7 @@ void WearItem(CItem* item, CUnit* unit, float amount, AckKind brokenRemark, AckK
 }
 
 void WearArmour(CUnit* unit, int location, int layer, float amount) {
-    if (!IsTextKey(unit->id_) || layer == 0) return;
+    if (!IsTextKey(unit->id) || layer == 0) return;
     int outer = layer - 1;
     if (static_cast<std::uint32_t>(location) > 5) return;
     if (location <= 1) {
@@ -102,8 +102,8 @@ void WearArmour(CUnit* unit, int location, int layer, float amount) {
     WearItem(unit->armor[kArmourPieces[row + 1]], unit, amount, AckKind::ArmourBroken, AckKind::ArmourWorn);
 }
 
-int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon) {
-    bool keyed = IsTextKey(unit->id_);
+int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon) {
+    bool keyed = IsTextKey(unit->id);
     int damaged = 0;
     UnitStatSlot& slot = slots[hit->location];
     if (slot.kind < 2) return 0;
@@ -156,7 +156,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
     return damaged;
 }
 
-int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon) {
+int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon) {
     if (hit->location >= kLocations) return 0;
     if (hit->location == 0) flags |= UnitStatsFlag::Head;
     EI_NAN_AUDIT(hit->typeWeights[5], hit->amount);
@@ -164,7 +164,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     DamageInfo copy = *hit;
     if (copy.amount == 0.0f) return 0;
     float difficulty = unit->player ? 1.0f
-                                    : g_logicSettings.absorption[options::g_options.difficulty_];
+                                    : g_logicSettings.absorption[options::g_options.difficulty];
     float total = 0.0f;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = copy.amount * copy.typeWeights[type] -
@@ -215,9 +215,9 @@ void UnitVitals::TakeHit(const DamageInfo* hit) {
 
 bool CUnit::IsBehind(const CMapObject* t) {
     if (!player) return false;
-    float dx = t->localPosition_.x - localPosition_.x;
-    float dy = t->localPosition_.y - localPosition_.y;
-    float dz = t->localPosition_.z - localPosition_.z;
+    float dx = t->localPosition.x - localPosition.x;
+    float dy = t->localPosition.y - localPosition.y;
+    float dz = t->localPosition.z - localPosition.z;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
     if (length > 0.0f) {
         dx = static_cast<float>(dx / length);
@@ -226,9 +226,9 @@ bool CUnit::IsBehind(const CMapObject* t) {
     }
     // A bow or a crossbow in hand: never behind.
     std::uint32_t slot = activeWeapon;
-    CItemWeapon* weapon = nullptr;
+    ItemWeapon* weapon = nullptr;
     if (controller->GetClassId() == ClassId::UnitClientSpecific) {
-        PartyUnitRecord* record = player ? player->Party()->Find(id_) : nullptr;
+        PartyUnitRecord* record = player ? player->Party()->Find(id) : nullptr;
         if (record && slot < static_cast<std::uint32_t>(std::ssize(record->weapons))) weapon = AsWeapon(record->weapons[slot]);
     } else if (slot < 4) {
         weapon = AsWeapon(weapons[slot]);
@@ -238,10 +238,10 @@ bool CUnit::IsBehind(const CMapObject* t) {
         if (weapon->GetType() == 6) return false;
     }
     // The target's facing from its orientation quaternion.
-    float a = t->localRotation_.w;
-    float b = t->localRotation_.x;
-    float c = t->localRotation_.y;
-    float d = t->localRotation_.z;
+    float a = t->localRotation.w;
+    float b = t->localRotation.x;
+    float c = t->localRotation.y;
+    float d = t->localRotation.z;
     double x = c * b - a * d;
     x = x + x;
     double cc = c * c;

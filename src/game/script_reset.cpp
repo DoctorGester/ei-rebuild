@@ -1,43 +1,43 @@
-// CScript reset: empties a script before a zone's mission script is loaded (world
+// Script reset: empties a script before a zone's mission script is loaded (world
 // creation and zone changes call it for both world scripts, from the constructor).
 // See script.h and docs/notes/script.md.
 #include "script.h"
 #include "world_effect.h"
 #include "game_strings.h"
 
-void ScriptReset(CScript* script) {
-    script->loaded_ = 0;
-    script->fileCount_ = 0;
-    script->errorText_ = "Unknown error";
-    script->errorLine_ = 0;
+void ScriptReset(Script* script) {
+    script->loaded = 0;
+    script->fileCount = 0;
+    script->errorText = "Unknown error";
+    script->errorLine = 0;
 
-    script->instances_.clear();
-    script->runs_.clear();
-    script->worldBlocks_.clear();
-    script->globals_.Clear();
-    script->forDepth_ = 0;
+    script->instances.clear();
+    script->runs.clear();
+    script->worldBlocks.clear();
+    script->globals.Clear();
+    script->forDepth = 0;
 
     // Temporaries: every entry but one dropped, the last one emptied.
-    script->tempGroups_.resize(1);
-    script->tempGroups_.front().clear();
-    script->tempObjects_.resize(1);
-    script->tempObjects_.front().object = nullptr;
+    script->tempGroups.resize(1);
+    script->tempGroups.front().clear();
+    script->tempObjects.resize(1);
+    script->tempObjects.front().object = nullptr;
 
     // Point lights: objects dropped, slots zeroed.
-    for (ScriptPointLight& light : script->pointLights_) light = {};
+    for (ScriptPointLight& light : script->pointLights) light = {};
 
-    script->fxSources_.clear();
-    script->particles_.clear();
-    script->lightning_.clear();
+    script->fxSources.clear();
+    script->particles.clear();
+    script->lightning.clear();
 
-    script->areas_.clear();
-    script->nextParticleId_ = -2;
-    script->nextFxId_ = -2;
-    script->definitions_.clear();
-    script->blocks_.clear();
+    script->areas.clear();
+    script->nextParticleId = -2;
+    script->nextFxId = -2;
+    script->definitions.clear();
+    script->blocks.clear();
 }
 
-// CScript::Load calls it before each `Script` section: the if-then pairs and variables emptied, index 0, the
+// Script::Load calls it before each `Script` section: the if-then pairs and variables emptied, index 0, the
 // parameters and the name empty.
 void ScriptDefinition::Reset() {
     ifThen.clear();

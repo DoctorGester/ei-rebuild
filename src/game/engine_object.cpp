@@ -1,35 +1,35 @@
-// CEngineObject: the default slots of its vtable and its non-virtual members.
+// EngineObject: the default slots of its vtable and its non-virtual members.
 #include "engine_object.h"
 
 #include "base_manager.h"
 
-void CEngineObject::CopyFrom(const CEngineObject& other) {
-    flags_ = other.flags_;
-    type_ = other.type_;
-    prototypeId_ = other.prototypeId_;
+void EngineObject::CopyFrom(const EngineObject& other) {
+    flags = other.flags;
+    type = other.type;
+    prototypeId = other.prototypeId;
 }
 
 // The default slots: the destructor lets go of the owner; 1 is CopyFrom, 5 / 9 / 10 empty, 6 returns 0.
-CEngineObject::~CEngineObject() { owner_ = nullptr; }
-void CEngineObject::ClearState() {}
-bool CEngineObject::RunTick() { return false; }
-void CEngineObject::Load(CStream*) {}
-void CEngineObject::Save(CStream*) {}
+EngineObject::~EngineObject() { owner = nullptr; }
+void EngineObject::ClearState() {}
+bool EngineObject::RunTick() { return false; }
+void EngineObject::Load(ByteStream*) {}
+void EngineObject::Save(ByteStream*) {}
 
 // When the last reference goes, the owning manager releases the object (its
-// CBaseManager::ReleaseObject). The result is `this`, or what the manager's call
+// BaseManager::ReleaseObject). The result is `this`, or what the manager's call
 // leaves there; no caller reads it.
-void CEngineObject::Release() {
-    if (--refCount_ == 0) owner_->ReleaseObject(this);
+void EngineObject::Release() {
+    if (--refCount == 0) owner->ReleaseObject(this);
 }
 
-const char* CEngineObject::GetName() { return "noname"; }
-const char* CEngineObject::GetDescription() { return "nodesc"; }
+const char* EngineObject::GetName() { return "noname"; }
+const char* EngineObject::GetDescription() { return "nodesc"; }
 
-CManagerContext* CEngineObject::ManagerContext() const { return owner_->context_; }
+CManagerContext* EngineObject::ManagerContext() const { return owner->context; }
 
-CBaseManager* CEngineObject::SetOwner(CBaseManager* owner) {
-    CBaseManager* previous = owner_;
-    owner_ = owner;
+BaseManager* EngineObject::SetOwner(BaseManager* newOwner) {
+    BaseManager* previous = owner;
+    owner = newOwner;
     return previous;
 }

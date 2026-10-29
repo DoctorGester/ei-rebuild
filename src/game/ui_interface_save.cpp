@@ -1,4 +1,4 @@
-// CInterface3D's saved state. See ui.h.
+// Interface3D's saved state. See ui.h.
 #include "ui.h"
 
 #include "core_streams.h"
@@ -16,9 +16,9 @@
 
 namespace {
 
-// The save stream: reads `size` bytes; version_ is the save's version.
-void Read(CStream* stream, void* to, int size) { stream->Read(to, static_cast<std::uint32_t>(size)); }
-int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
+// The save stream: reads `size` bytes; version is the save's version.
+void Read(ByteStream* stream, void* to, int size) { stream->Read(to, static_cast<std::uint32_t>(size)); }
+int Version(const ByteStream* stream) { return static_cast<int>(stream->version); }
 
 const char* const kMessageKeys[13] = {
     "lmp_player_connected",
@@ -38,14 +38,14 @@ const char* const kMessageKeys[13] = {
 
 } // namespace
 
-void CInterface3D::LoadState(CStream* stream) {
-    stream->ReadValue(hudPanelsIn_[0]);
-    stream->ReadValue(hudPanelsIn_[1]);
-    stream->ReadValue(hudPanelsIn_[2]);
-    stream->ReadValue(hudBodyPart_);
-    stream->ReadValue(hudTopPage_);
+void Interface3D::LoadState(ByteStream* stream) {
+    stream->ReadValue(hudPanelsIn[0]);
+    stream->ReadValue(hudPanelsIn[1]);
+    stream->ReadValue(hudPanelsIn[2]);
+    stream->ReadValue(hudBodyPart);
+    stream->ReadValue(hudTopPage);
     if (Version(stream) < kVersionFastGame) return;
-    stream->ReadValue(fastGame_);
+    stream->ReadValue(fastGame);
     if (Version(stream) < kVersionInterfaceList) return;
     // An obsolete list: each name and value read and dropped (the last name is kept until the end, like
     // the original's local string).
@@ -57,10 +57,10 @@ void CInterface3D::LoadState(CStream* stream) {
         int value;
         stream->ReadValue(value);
     }
-    messageText_ = stream->ReadString();
+    messageText = stream->ReadString();
     if (Version(stream) >= kVersionMessageFlag) {
-        stream->ReadValue(messageFlag_);
-        if (Version(stream) >= kVersionSavedText) savedText_ = stream->ReadString();
+        stream->ReadValue(messageFlag);
+        if (Version(stream) >= kVersionSavedText) savedText = stream->ReadString();
     }
 }
 
@@ -68,28 +68,28 @@ void CInterface3D::LoadState(CStream* stream) {
 
 char g_pauseMessageKey[12] = /*007930EC*/ {"reserved_02"};
 
-std::string CInterface3D::MessageText(int id, const char* value) {
+std::string Interface3D::MessageText(int id, const char* value) {
     std::string key;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
-    key = g_clientWorld.texts_->CTextManager::GetString(key);
+    key = g_clientWorld.texts->TextManager::GetString(key);
     if (value) return str::Format(key, value);
     return key;
 }
 
 // --- The saved state written -----------------------------------------------------------
 
-void CInterface3D::SaveState(CStream* stream) {
-    for (std::uint8_t flag : hudPanelsIn_) stream->WriteValue(flag);
-    int value = hudBodyPart_;
+void Interface3D::SaveState(ByteStream* stream) {
+    for (std::uint8_t flag : hudPanelsIn) stream->WriteValue(flag);
+    int value = hudBodyPart;
     stream->WriteValue(value);
-    value = hudTopPage_;
+    value = hudTopPage;
     stream->WriteValue(value);
-    value = fastGame_;
+    value = fastGame;
     stream->WriteValue(value);
     value = 0;   // the obsolete list LoadState skips: no entries
     stream->WriteValue(value);
-    stream->WriteString(messageText_);
-    value = messageFlag_;
+    stream->WriteString(messageText);
+    value = messageFlag;
     stream->WriteValue(value);
-    stream->WriteString(savedText_);
+    stream->WriteString(savedText);
 }

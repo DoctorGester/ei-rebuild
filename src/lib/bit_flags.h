@@ -4,7 +4,7 @@
 //     template <> inline constexpr bool lib::kBitFlags<MapObjectFlag> = true;
 // after which `|`, `&`, `^`, `~` and the assignment forms work on the enum, and a plain std::uint32_t word (a
 // saved or sent field, which keeps its number) can be tested and changed with the enum's bits:
-//     flags_ |= MapObjectFlag::Hidden;   flags_ &= ~MapObjectFlag::Hidden;   if (lib::Has(flags_, MapObjectFlag::Hidden))
+//     flags |= MapObjectFlag::Hidden;   flags &= ~MapObjectFlag::Hidden;   if (lib::Has(flags, MapObjectFlag::Hidden))
 
 #include <cstdint>
 #include <type_traits>

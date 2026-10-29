@@ -71,7 +71,7 @@ void AIEventTable::Clear() {
 
 // ---- Terrain types --------------------------------------------------------------------------------
 
-void CAIMap::BuildOpenMarks() {
+void AIMap::BuildOpenMarks() {
     for (int i = 0; i < std::ssize(materials); ++i) {
         std::uint32_t packed = 0;
         for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {

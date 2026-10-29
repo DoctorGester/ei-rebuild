@@ -1,4 +1,4 @@
-// CLightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7);
+// Lightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7);
 // random words converted with x87::FromUnsigned. See docs/notes/objects.md ("Rewritten").
 #include "game_singletons.h"
 #include "lightning.h"
@@ -35,43 +35,43 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 
 } // namespace
 
-void CLightning::Start(const Vector3& from, const Vector3& to, float power, bool demon) {
-    int ticks = g_clientWorld.tick_;
-    float fraction = g_clientWorld.tickFraction_;
+void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bool demon) {
+    int ticks = g_clientWorld.tick;
+    float fraction = g_clientWorld.tickFraction;
     float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f);
-    power_ = power;
-    const float strength = AbsBits(power);
-    amplitude_ = power_ > 0.0f ? 0.05f : 0.3f;   // 0.05 : 0.3
+    power = newPower;
+    const float strength = AbsBits(newPower);
+    amplitude = power > 0.0f ? 0.05f : 0.3f;     // 0.05 : 0.3
     // A bolt about 30 units high sways less.
     EI_NAN_AUDIT(to.z, from.z);
-    if (AbsBits(AbsBits(to.z - from.z) - 30.0f) < 0.01f) amplitude_ = 0.05f;
+    if (AbsBits(AbsBits(to.z - from.z) - 30.0f) < 0.01f) amplitude = 0.05f;
 
-    main_.Init(from, to);
-    FreshKeys(main_, time, KeyAmplitude(power_));
-    main_.width = strength;
-    EI_NAN_AUDIT(power_);
-    if (power_ < 0.0f) main_.width = strength * 1.5f;
+    main.Init(from, to);
+    FreshKeys(main, time, KeyAmplitude(power));
+    main.width = strength;
+    EI_NAN_AUDIT(power);
+    if (power < 0.0f) main.width = strength * 1.5f;
 
     EI_NAN_AUDIT(strength);
     if (strength != 0.0f) {
         const float positions[6] = {0.2f, 0.3f, 0.5f, 0.8f, 0.9f, 0.9f};
-        std::memcpy(branchPos_, positions, sizeof(positions));
+        std::memcpy(branchPos, positions, sizeof(positions));
         for (int i = 0; i < 6; ++i) {
-            float along = branchPos_[i];
-            float amplitude = KeyAmplitude(power_);
+            float along = branchPos[i];
+            float newAmplitude = KeyAmplitude(power);
             float rest = 1.0f - along;
             Vector3 origin;
             origin.x = along * from.x + rest * to.x;
             origin.y = along * from.y + rest * to.y;
             origin.z = along * from.z + rest * to.z;
-            branches_[i].Init(origin, to);
-            FreshKeys(branches_[i], time, amplitude);
+            branches[i].Init(origin, to);
+            FreshKeys(branches[i], time, newAmplitude);
             double random = x87::FromUnsigned(g_clientRandom.Next());
-            branches_[i].width = static_cast<float>((random * 1.8626451774202136e-10 + 0.7f) * strength *
+            branches[i].width = static_cast<float>((random * 1.8626451774202136e-10 + 0.7f) * strength *
                                                     0.5f);
         }
     } else {
-        main_.width = 4.0f;
+        main.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
             float dx = from.x - to.x, dy = from.y - to.y, dz = from.z - to.z;
             float reach = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f);
@@ -80,32 +80,32 @@ void CLightning::Start(const Vector3& from, const Vector3& to, float power, bool
             float offsetY = static_cast<float>((reach - low) * x87::FromUnsigned(g_clientRandom.Next()) * scale + low);
             float offsetX = static_cast<float>((reach - low) * x87::FromUnsigned(g_clientRandom.Next()) * scale + low);
             float offsetZ = static_cast<float>((reach - low) * x87::FromUnsigned(g_clientRandom.Next()) * scale + low);
-            float amplitude = KeyAmplitude(power_);
+            float newAmplitude = KeyAmplitude(power);
             Vector3 shiftedTo{offsetX + to.x, offsetY + to.y, offsetZ + to.z};
             Vector3 shiftedFrom{offsetX + from.x, offsetY + from.y, offsetZ + from.z};
-            branches_[i].Init(shiftedFrom, shiftedTo);
-            FreshKeys(branches_[i], time, amplitude);
+            branches[i].Init(shiftedFrom, shiftedTo);
+            FreshKeys(branches[i], time, newAmplitude);
             double random = x87::FromUnsigned(g_clientRandom.Next());
-            branches_[i].width = static_cast<float>(random * 1.8626451774202136e-10 * 3.5f +
+            branches[i].width = static_cast<float>(random * 1.8626451774202136e-10 * 3.5f +
                                                     2.45f);   // 2.45 .. 3.25
         }
     }
 
     Animate();
     UpdateBounds();
-    bounds_.boxMin.x -= 1.0f;
-    bounds_.boxMin.y -= 1.0f;
-    bounds_.boxMin.z -= 1.0f;
-    bounds_.boxMax.x += 1.0f;
-    bounds_.boxMax.y += 1.0f;
-    bounds_.boxMax.z += 1.0f;
-    bounds_.radius = bounds_.boxMax.Length();
+    bounds.boxMin.x -= 1.0f;
+    bounds.boxMin.y -= 1.0f;
+    bounds.boxMin.z -= 1.0f;
+    bounds.boxMax.x += 1.0f;
+    bounds.boxMax.y += 1.0f;
+    bounds.boxMax.z += 1.0f;
+    bounds.radius = bounds.boxMax.Length();
     if (demon) {
-        LoadNamedTexture(glowTexture_, static_cast<int>(TextureKind::Effects), "DemonLight");
-        LoadNamedTexture(texture_, static_cast<int>(TextureKind::Effects), "DemonLightning");
+        LoadNamedTexture(glowTexture, static_cast<int>(TextureKind::Effects), "DemonLight");
+        LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), "DemonLightning");
     } else {
-        LoadNamedTexture(glowTexture_, static_cast<int>(TextureKind::Effects), "SmtgLight");
-        LoadNamedTexture(texture_, static_cast<int>(TextureKind::Effects), "Lightning");
+        LoadNamedTexture(glowTexture, static_cast<int>(TextureKind::Effects), "SmtgLight");
+        LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), "Lightning");
     }
 }
 
@@ -115,16 +115,16 @@ LightningSegment::LightningSegment() {
 LightningSegment::~LightningSegment() {
 }
 
-CLightning::CLightning() {
-    std::memset(static_cast<void*>(&bounds_), 0, sizeof(bounds_));
-    boundsSpare_ = {};
-    CLightning::Destroy();
+Lightning::Lightning() {
+    std::memset(static_cast<void*>(&bounds), 0, sizeof(bounds));
+    boundsSpare = {};
+    Lightning::Destroy();
 }
 
 // The texture references are null after the reset (releasing them again is a no-op).
-CLightning::~CLightning() { CLightning::Destroy(); }
+Lightning::~Lightning() { Lightning::Destroy(); }
 
-const char* CLightning::ClassName() { return "CLightning"; }
-ClassId CLightning::GetClassId() { return ClassId::Lightning; }
+const char* Lightning::ClassName() { return "CLightning"; }
+ClassId Lightning::GetClassId() { return ClassId::Lightning; }
 
-CEngineObject* CLightningManager::NewObject(int /*type*/) { return new CLightning(); }
+EngineObject* LightningManager::NewObject(int /*type*/) { return new Lightning(); }

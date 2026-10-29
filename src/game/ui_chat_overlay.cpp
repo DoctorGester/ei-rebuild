@@ -36,7 +36,7 @@ constexpr std::uint32_t kSayLifetime = 0x42700000;
 void SendSay(const std::string& text) {
     auto* say = net::NewCounted<net::SayMessage>();
     // A failed allocation is not checked from here on.
-    say->text_ = text;
+    say->text = text;
     net::g_gameClient->AddTimed(say, kSayLifetime);
 }
 
@@ -56,7 +56,7 @@ COLORREF MarkColour(char digit) {
     return ((bits & 1) ? 0xFF0000u : 0u) | ((bits & 2) ? 0xFF00u : 0u) | ((bits & 4) ? 0xFFu : 0u);
 }
 
-void DrawPiece(CUiSurface* surface, std::string_view text, int x, COLORREF colour) {
+void DrawPiece(UiSurface* surface, std::string_view text, int x, COLORREF colour) {
     RECT rect = {x, 0, kLineDrawRight, kLineSurfaceHeight};
     surface->DrawTextIn(text, &rect, kLineFont, colour, kLineDrawFormat, 1);
 }
@@ -71,8 +71,8 @@ ChatLine::~ChatLine() { delete surface; }
 
 // --- a chat line added ---------------------------------------------------------------------------
 
-void CChatOverlay::AddLine(const char* text) {
-    const int before = static_cast<int>(lines_.size());
+void ChatOverlay::AddLine(const char* text) {
+    const int before = static_cast<int>(lines.size());
     std::vector<std::string> plain;       // the lines without colour codes
     std::vector<std::string> formatted;   // the same lines with them
     std::string source = text;
@@ -100,14 +100,14 @@ void CChatOverlay::AddLine(const char* text) {
             wordFormatted += ch;
             mark = true;
         } else {
-            if (interface_->TextExtent(line + word + ch, kLineFont).cx > kLineWidth) {
+            if (ui->TextExtent(line + word + ch, kLineFont).cx > kLineWidth) {
                 if (line.size() != 0) {
                     plain.push_back(line);
                     formatted.push_back(lineFormatted);
                 }
                 line.clear();
                 lineFormatted.clear();
-                if (interface_->TextExtent(word + ch, kLineFont).cx > kLineWidth) {
+                if (ui->TextExtent(word + ch, kLineFont).cx > kLineWidth) {
                     if (word.size() != 0) {
                         plain.push_back(word);
                         formatted.push_back(wordFormatted);
@@ -128,16 +128,16 @@ void CChatOverlay::AddLine(const char* text) {
     const int count = static_cast<int>(plain.size());
 
     // The oldest lines go.
-    for (int i = 0; i < count + before - kMaxLines; ++i) lines_.pop_front();
+    for (int i = 0; i < count + before - kMaxLines; ++i) lines.pop_front();
 
     std::uint32_t now = gameapi::timeGetTime();
     COLORREF colour = kWhite;
     for (int i = 0; i < count; ++i) {
-        ChatLine& added = lines_.emplace_back();
+        ChatLine& added = lines.emplace_back();
         added.name = plain[i];
         added.time = now;
-        const int width = interface_->TextExtent(plain[i], kLineFont).cx + kLineSurfacePad;
-        CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
+        const int width = ui->TextExtent(plain[i], kLineFont).cx + kLineSurfacePad;
+        UiSurface* surface = new UiSurface(ui, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
         surface->Clear();
         const std::string& codes = formatted[i];
         std::string drawn;
@@ -148,7 +148,7 @@ void CChatOverlay::AddLine(const char* text) {
             piece = str::Mid(codes, start, at - start);
             DrawPiece(surface, piece, x, colour);
             drawn += piece;
-            x = interface_->TextExtent(drawn, kLineFont).cx;
+            x = ui->TextExtent(drawn, kLineFont).cx;
             colour = MarkColour(codes[at + 1]);
             start = at + 2;
         }
@@ -160,79 +160,79 @@ void CChatOverlay::AddLine(const char* text) {
 
 // --- opening the chat line, clearing the lines ---------------------------------------------------
 
-void CChatOverlay::SetOpen(bool open) {
-    chatOpen_ = open;
+void ChatOverlay::SetOpen(bool open) {
+    chatOpen = open;
     if (open) {
-        typed_.clear();
-        caret_ = 0;
+        typed.clear();
+        caret = 0;
     }
     DrawTyped();
 }
 
-void CChatOverlay::ClearLines() {
-    lines_.clear();
+void ChatOverlay::ClearLines() {
+    lines.clear();
 }
 
 // --- the typed line drawn (Rebirth-patched: WideScreen reproduced) -------------------------------
 
-void CChatOverlay::DrawTyped() {
-    if (!chatOpen_) {
-        surfaces_[0]->Hide(false);
+void ChatOverlay::DrawTyped() {
+    if (!chatOpen) {
+        surfaces[0]->Hide(false);
         return;
     }
-    surfaces_[0]->Show();
-    if (caret_ > static_cast<int>(typed_.size())) caret_ = typed_.size();
-    if (caret_ < 0) caret_ = 0;
-    CUiSurface* surface = surfaces_[0];
+    surfaces[0]->Show();
+    if (caret > static_cast<int>(typed.size())) caret = typed.size();
+    if (caret < 0) caret = 0;
+    UiSurface* surface = surfaces[0];
     surface->Clear();
-    RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
-    surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
-    int width = interface_->TextExtent(str::Left(typed_, caret_), kTypedFont).cx;
+    RECT area{0, 0, kTypedTextRight, kTypedTextBottom};
+    surface->DrawTextIn(typed, &area, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
+    int width = ui->TextExtent(str::Left(typed, caret), kTypedFont).cx;
     if (width < kMaxTypedWidth) {
         POINT top{width, 0};
         POINT bottom{width, kCaretBottom};
         // WideScreen: without the margin.
-        interface_->CallScalePointToScreenNoMargin(&top);
-        interface_->CallScalePointToScreenNoMargin(&bottom);
+        ui->CallScalePointToScreenNoMargin(&top);
+        ui->CallScalePointToScreenNoMargin(&bottom);
         surface->Line(top.x, top.y, bottom.x, bottom.y, 1, kTypedColour);
     }
 }
 
 // --- the chat line's keys -------------------------------------------------------------------------
 
-void CChatOverlay::KeyDown(int key, int, int) {
-    if (!chatOpen_) return;
-    handled_ = true;
+void ChatOverlay::KeyDown(int key, int, int) {
+    if (!chatOpen) return;
+    handled = true;
     switch (key) {
     case VK_BACK: {   // by character, as Delete and the caret's steps
-        if (caret_ <= 0) break;
-        const int previous = text::PreviousCharacter(typed_, caret_);
-        typed_ = str::Left(typed_, previous) + str::Mid(typed_, caret_);
-        caret_ = previous;
+        if (caret <= 0) break;
+        const int previous = text::PreviousCharacter(typed, caret);
+        typed = str::Left(typed, previous) + str::Mid(typed, caret);
+        caret = previous;
         break;
     }
     case VK_RETURN:
-        if (typed_.size() != 0 && IsMultiplayerClient()) SendSay(typed_);
-        chatOpen_ = false;
+        if (typed.size() != 0 && IsMultiplayerClient()) SendSay(typed);
+        chatOpen = false;
         break;
     case VK_ESCAPE:
-        chatOpen_ = false;
+        chatOpen = false;
         break;
     case VK_END:
-        caret_ = typed_.size();
+        caret = typed.size();
         break;
     case VK_HOME:
-        caret_ = 0;
+        caret = 0;
         break;
     case VK_LEFT:
-        caret_ = text::PreviousCharacter(typed_, caret_);
+        caret = text::PreviousCharacter(typed, caret);
         break;
     case VK_RIGHT:
-        caret_ = text::NextCharacter(typed_, caret_);
+        caret = text::NextCharacter(typed, caret);
         break;
     case VK_DELETE:
-        if (caret_ >= static_cast<int>(typed_.size())) break;
-        typed_ = str::Left(typed_, caret_) + str::Mid(typed_, text::NextCharacter(typed_, caret_));
+        if (caret >= static_cast<int>(typed.size())) break;
+        typed = str::Left(typed, caret) + str::Mid(typed, text::NextCharacter(typed, caret));
         break;
     default:
         return;
@@ -240,17 +240,17 @@ void CChatOverlay::KeyDown(int key, int, int) {
     DrawTyped();
 }
 
-void CChatOverlay::Char(int key, int, int) {
-    if (!chatOpen_) return;
+void ChatOverlay::Char(int key, int, int) {
+    if (!chatOpen) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
-    std::string line = text::Typed(str::Left(typed_, caret_), key) + str::Mid(typed_, caret_);
+    std::string line = text::Typed(str::Left(typed, caret), key) + str::Mid(typed, caret);
     // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one.
-    if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
-        interface_->TextExtent(line, kTypedFont).cx < kMaxTypedWidth) {
-        typed_ = line;
-        caret_ += text::TypedLength(key);
+    if (!ui->ctrlDown && text::CharacterCount(typed) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
+        ui->TextExtent(line, kTypedFont).cx < kMaxTypedWidth) {
+        typed = line;
+        caret += text::TypedLength(key);
     }
     DrawTyped();
 }
@@ -258,25 +258,25 @@ void CChatOverlay::Char(int key, int, int) {
 // --- the constructor -----------------------------------------------------------------------------
 
 // Its own redraw and update; the input side's keys and characters.
-CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
-    CUiSurface* typed = new CUiSurface(interface_, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true);
-    AddSurface(typed);
-    chatOpen_ = false;
-    caret_ = 0;
+ChatOverlay::ChatOverlay(Interface3D* ownerUi) : UiWindow(ownerUi) {
+    UiSurface* newTyped = new UiSurface(ui, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true);
+    AddSurface(newTyped);
+    chatOpen = false;
+    caret = 0;
     DrawTyped();
 }
 
-void CChatOverlay::Update() {
+void ChatOverlay::Update() {
     std::uint32_t now = gameapi::timeGetTime();
-    std::erase_if(lines_, [now](const ChatLine& line) { return static_cast<int>(now - line.time) > kLineLifetime; });
+    std::erase_if(lines, [now](const ChatLine& line) { return static_cast<int>(now - line.time) > kLineLifetime; });
 }
 
-void CChatOverlay::Redraw() {
+void ChatOverlay::Redraw() {
     int y = kTop;
-    for (const ChatLine& line : lines_) {
+    for (const ChatLine& line : lines) {
         line.surface->MoveTo(kLeft, y);
         line.surface->Blit();
         y += kLineHeight;
     }
-    CUiWindow::Redraw();
+    UiWindow::Redraw();
 }

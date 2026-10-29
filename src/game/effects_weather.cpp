@@ -56,31 +56,31 @@ const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
 
 // Fades the density (and the rain loop's volume) along half a cosine from fadeStart over
 // fadeDuration, towards targetMode; when done, switches mode and stops the sound if it is off.
-void CRainSnow::UpdateFade(float now) {
+void RainSnow::UpdateFade(float now) {
     // A NaN duration takes the last branch, which does the same as the first.
     EI_NAN_AUDIT(now, fadeStart);
     if (fadeDuration == 0.0f) {   // no fade running
         mode = targetMode;
-        if (targetMode == 1 && sound) g_clientWorld.sounds_->SetSoundVolume(sound, 100, 0);
+        if (targetMode == 1 && sound) g_clientWorld.sounds->SetSoundVolume(sound, 100, 0);
     } else if ((now - fadeStart) / fadeDuration <= 1.0f) {
         double c = x87::fcos((now - fadeStart) / fadeDuration * kFadePi);
         float level = static_cast<float>((targetMode == 0 ? c + 1.0f : 1.0f - c) * 0.5f);
-        if (sound) g_clientWorld.sounds_->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
+        if (sound) g_clientWorld.sounds->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
         density = x87::fistp(level * kDensityScale);
         return;
     } else {
         mode = targetMode;
-        if (targetMode == 1 && sound) g_clientWorld.sounds_->SetSoundVolume(sound, 100, 0);
+        if (targetMode == 1 && sound) g_clientWorld.sounds->SetSoundVolume(sound, 100, 0);
     }
     if (mode == 0 && sound) {
-        g_clientWorld.sounds_->StopSound(sound);
+        g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
     density = 64;
     fadeDuration = 0.0f;
 }
 
-void CRainSnow::SetWind(const Vector3& direction, float strength) {
+void RainSnow::SetWind(const Vector3& direction, float strength) {
     float x = static_cast<float>(strength * direction.x);
     float y = static_cast<float>(strength * direction.y);
     float z = static_cast<float>(strength * direction.z);
@@ -89,9 +89,9 @@ void CRainSnow::SetWind(const Vector3& direction, float strength) {
     wind.z = z;
 }
 
-void CRainSnow::Clear() {
+void RainSnow::Clear() {
     if (sound) {
-        g_clientWorld.sounds_->StopSound(sound);
+        g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
     texture.Reset();
@@ -105,39 +105,39 @@ void CRainSnow::Clear() {
     density = kFullDensity;
 }
 
-void CRainSnow::Start(int newMode, float duration) {
+void RainSnow::Start(int newMode, float duration) {
     LoadNamedTexture(texture, kWeatherTextureKind, WeatherTextureName());
     if (sound && newMode) {
-        g_clientWorld.sounds_->StopSound(sound);
+        g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
-    if (newMode == 1) sound = g_clientWorld.sounds_->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
+    if (newMode == 1) sound = g_clientWorld.sounds->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
     targetMode = newMode;
     if (mode == 0) mode = newMode;
     fadeDuration = duration;
-    fadeStart = static_cast<float>(world->tick_);
+    fadeStart = static_cast<float>(world->tick);
 }
 
-CRainSnow::CRainSnow() {
+RainSnow::RainSnow() {
 
     world = nullptr;
     sound = 0;
     Clear();
 }
 
-CRainSnow::~CRainSnow() {
+RainSnow::~RainSnow() {
     Clear();
 
     texture.Reset();
 }
 
-const char* CRainSnow::ClassName() { return "CWeather"; }
-ClassId CRainSnow::GetClassId() { return ClassId::RainSnow; }
+const char* RainSnow::ClassName() { return "CWeather"; }
+ClassId RainSnow::GetClassId() { return ClassId::RainSnow; }
 
 // --- Visibility fog -----------------------------------------------------------------------------
 
 // The bounding box (0.5 larger than the cell centres) and sphere of all cells, for culling.
-void CVisibilityFog::ComputeBounds() {
+void VisibilityFog::ComputeBounds() {
     bounds.boxMin = {kFar, kFar, kFar};
     bounds.boxMax = {-kFar, -kFar, -kFar};
     for (const auto& [key, cell] : cells) {
@@ -182,7 +182,7 @@ void CVisibilityFog::ComputeBounds() {
 // Per-frame fade: visible cells halve their distance to opaque, the others halve their alpha and
 // are dropped below 0.01; every cell steps its texture tile. Returns whether the fog is still
 // needed (referenced elsewhere or has cells).
-bool CVisibilityFog::RunTick() {
+bool VisibilityFog::RunTick() {
     std::vector<std::uint32_t> dead;
     for (auto& [key, cell] : cells) {
         if (cell.visible)
@@ -196,12 +196,12 @@ bool CVisibilityFog::RunTick() {
         cell.frame = static_cast<std::int8_t>((cell.frame + 1) % 15);
     }
     for (const std::uint32_t key : dead) cells.erase(key);
-    return refCount_ > 1 || cells.size() != 0;
+    return refCount > 1 || cells.size() != 0;
 }
 
 // Marks the cells of the visible squares (adding new ones, transparent, at a jittered point on
 // the ground) and clears the mark on all others.
-void CVisibilityFog::Reveal(const FogGrid* grid) {
+void VisibilityFog::Reveal(const FogGrid* grid) {
     for (auto& [key, cell] : cells) cell.visible = 0;
     for (int row = 0; row < grid->cells.height; ++row) {
         for (int col = 0; col < grid->cells.width; ++col) {
@@ -235,22 +235,22 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
 
 // ---- The fog object's virtuals ------------------------------------------------------------------
 
-void CVisibilityFog::ClearCells() {
+void VisibilityFog::ClearCells() {
     cells.clear();
     boundsValid = 0;
 }
 
-CVisibilityFog::CVisibilityFog() {
-    std::memset(static_cast<void*>(&bounds), 0, offsetof(CVisibilityFog, cells) - offsetof(CVisibilityFog, bounds));
+VisibilityFog::VisibilityFog() {
+    std::memset(static_cast<void*>(&bounds), 0, offsetof(VisibilityFog, cells) - offsetof(VisibilityFog, bounds));
     boundsValid = 0;
 }
 
-CVisibilityFog::~CVisibilityFog() {
+VisibilityFog::~VisibilityFog() {
     ClearCells();
 }
 
-void CVisibilityFog::Create() {
+void VisibilityFog::Create() {
     ClearCells();
 }
-const char* CVisibilityFog::ClassName() { return "CVisibilityFog"; }
-ClassId CVisibilityFog::GetClassId() { return ClassId::VisibilityFog; }
+const char* VisibilityFog::ClassName() { return "CVisibilityFog"; }
+ClassId VisibilityFog::GetClassId() { return ClassId::VisibilityFog; }

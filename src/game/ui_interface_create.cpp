@@ -1,4 +1,4 @@
-// The interface manager's start (CInterface3D::Create, called once by the application's start with the
+// The interface manager's start (Interface3D::Create, called once by the application's start with the
 // renderer's device object): the screen size, the three fonts, the keyboard layout, the console window, the
 // chat overlay, the fade and the help topics seen (config\tutorial.ini).
 // Rebirth's WideScreen changes the fonts' scale (widescreen::FontScale). See ui.h and docs/notes/ui.md,
@@ -41,7 +41,7 @@ bool MakeFont(UiFont& font, int size) {
 }
 
 // The language the keyboard starts in (the option, a Windows language id) and English.
-DWORD KeyboardLanguage() { return static_cast<DWORD>(options::g_options.keyboardLayout_); }
+DWORD KeyboardLanguage() { return static_cast<DWORD>(options::g_options.keyboardLayout); }
 constexpr DWORD kEnglish = 0x409;
 constexpr int kMaxLayouts = 16;
 
@@ -76,45 +76,45 @@ void ChooseKeyboardLayout() {
 }
 } // namespace
 
-void CInterface3D::Create(CTextureDevice* device) {
-    renderer_ = device;
-    width_ = device->screen_.right;
-    height_ = device->screen_.bottom;
+void Interface3D::Create(TextureDevice* device) {
+    renderer = device;
+    width = device->screen.right;
+    height = device->screen.bottom;
 
     // The scale: what a 75-point font is high here, in pixels / 100.
-    if (!MakeFont(fonts_[0], kMeasureSize)) return;
-    const float scale = static_cast<float>(static_cast<float>(fonts_[0].pixels) * widescreen::FontScale());   // 0.01
+    if (!MakeFont(fonts[0], kMeasureSize)) return;
+    const float scale = static_cast<float>(static_cast<float>(fonts[0].pixels) * widescreen::FontScale());    // 0.01
     for (int i = 0; i < 3; ++i) {
-        float size = static_cast<float>(width_ * kFontShares[i]) / scale * 0.00125f;   // 1 / 800
-        if (!MakeFont(fonts_[i], static_cast<int>(libcrt::Ftol(size)))) return;
+        float size = static_cast<float>(width * kFontShares[i]) / scale * 0.00125f;    // 1 / 800
+        if (!MakeFont(fonts[i], static_cast<int>(libcrt::Ftol(size)))) return;
     }
 
     ChooseKeyboardLayout();
     keybind::LoadKeyBindings();
-    console_ = new console::ConsoleWindow(this);
-    root_ = new CChatOverlay(this);
-    mouseX_ = 0;
-    mouseCapture_ = nullptr;
-    backdrop_ = nullptr;
-    secondBackdrop_ = nullptr;
-    backdropMode_ = 0;
-    closeAll_ = false;
-    queuedWindow_ = nullptr;
-    drawing_ = true;
-    mouseY_ = 0;
-    fade_ = new CScreenFade();
-    hudPanelsIn_[0] = 0;
-    hudPanelsIn_[1] = 0;
-    hudPanelsIn_[2] = 0;
-    hudBodyPart_ = 0;
-    hudTopPage_ = 0;
-    fastGame_ = 0;
-    ctrlDown_ = false;
-    shiftDown_ = 0;
-    altDown_ = false;
-    doubleClick_ = false;
-    rightDown_ = false;
-    pollTop_ = false;
+    console = new console::ConsoleWindow(this);
+    root = new ChatOverlay(this);
+    mouseX = 0;
+    mouseCapture = nullptr;
+    backdrop = nullptr;
+    secondBackdrop = nullptr;
+    backdropMode = 0;
+    closeAll = false;
+    queuedWindow = nullptr;
+    drawing = true;
+    mouseY = 0;
+    fade = new ScreenFade();
+    hudPanelsIn[0] = 0;
+    hudPanelsIn[1] = 0;
+    hudPanelsIn[2] = 0;
+    hudBodyPart = 0;
+    hudTopPage = 0;
+    fastGame = 0;
+    ctrlDown = false;
+    shiftDown = 0;
+    altDown = false;
+    doubleClick = false;
+    rightDown = false;
+    pollTop = false;
 
     // The help topics seen: "topic count" lines.
     lib::TextFile file;
@@ -129,14 +129,14 @@ void CInterface3D::Create(CTextureDevice* device) {
         while (file.ReadLine(line)) {
             words = text::SplitWords(line, ' ');
             if (words.size() <= 1) continue;
-            helpTopics_[words[0]] = str::ToInt(words[1]);
+            helpTopics[words[0]] = str::ToInt(words[1]);
         }
         file.Close();
     }
-    messageFlag_ = 0;
-    fpsSurface_ = nullptr;
-    fpsSpare_ = 0;
-    fpsTime_ = gameapi::timeGetTime();
-    fpsFrames_ = 0;
-    disconnected_ = false;
+    messageFlag = 0;
+    fpsSurface = nullptr;
+    fpsSpare = 0;
+    fpsTime = gameapi::timeGetTime();
+    fpsFrames = 0;
+    disconnected = false;
 }

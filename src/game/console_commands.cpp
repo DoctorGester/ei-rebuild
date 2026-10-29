@@ -42,10 +42,10 @@ bool ArgOn(const std::vector<std::string>* args, int i) { return ArgIs(args, i, 
 bool ArgOff(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
 CPlayer* LocalPlayer() {
-    return g_clientWorld.LocalView()->player_;
+    return g_clientWorld.LocalView()->player;
 }
 
-bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
+bool ServerActive(net::ClientSession* server) { return server && !(server->flags7 & RefCounted::kDetached); }
 
 void SetConsoleRect(int left, int top, int right, int bottom) {
     RECT rect = {left, top, right, bottom};
@@ -78,8 +78,8 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
         net::ClientSession* server = net::g_gameClient;
         if (ServerActive(server)) {
             // Our binding's player record: only the host gets the window.
-            net::BindingMessage* binding = server->binding_;
-            if (binding->Player()->host_)
+            net::BindingMessage* binding = server->binding;
+            if (binding->Player()->host)
                 ScreenOf(g_interface.GetActiveWindow())->PlayerList(windowMode);
             return;
         }
@@ -200,7 +200,7 @@ void ListVar(std::vector<std::string>* args) {
         if (!writing)   // "Cannot open file <name> for writing"
             EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for writing");
     }
-    const NamedFloatTable& variables = player->Party()->variables_;
+    const NamedFloatTable& variables = player->Party()->variables;
     for (auto& node : variables) {
         const std::string& name = node.first;
         EndLine(g_consoleOut << name << " = " << node.second);
@@ -217,7 +217,7 @@ void LoadVar(std::vector<std::string>* args) {
     if (args->size() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
     CPlayer* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
-    CPlayerServer* state = player->Server();
+    PlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
 
     std::string line;
@@ -275,19 +275,19 @@ void Give(std::vector<std::string>* args) {
     }
     CPlayer* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
-    CPlayerServer* state = player->Server();
+    PlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
     if (ArgIs(args, 1, "money") && args->size() > 2) {
         int amount = str::ToInt((*args)[2]);
-        player->Party()->money_ += amount;
+        player->Party()->money += amount;
         return state->SendParty();
     }
     if (ArgIs(args, 1, "exp") && args->size() > 2) {
-        int count = std::ssize(player->Party()->members_);
+        int count = std::ssize(player->Party()->members);
         // Rounded to float once.
         float share = static_cast<float>(str::ToDouble((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
-            player->Party()->members_[i].stats.AddScaledExperience(share);
+            player->Party()->members[i].stats.AddScaledExperience(share);
         return state->SendParty();
     }
     if (ArgIs(args, 1, "assortment")) {
@@ -323,7 +323,7 @@ void LootAll(std::vector<std::string>*) {
 // Fadeout <milliseconds>.
 void FadeOut(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("FADEOUT nMillSec");
-    g_interface.fade_->Start(str::ToInt((*args)[0]));
+    g_interface.fade->Start(str::ToInt((*args)[0]));
     PrintLine("Ok");
 }
 
@@ -336,10 +336,10 @@ void Net(std::vector<std::string>* args) {
     }
     if (text::CompareIgnoringCase((*args)[0], "client") == 0) {
         std::string value = (*args)[1];
-        LocalPlayer()->logTraffic_ = str::ToInt(value);
+        LocalPlayer()->logTraffic = str::ToInt(value);
     }
     if (text::CompareIgnoringCase((*args)[0], "server") == 0) {
-        if (CPlayer* player = g_serverWorld.GetPlayer(0)) player->logTraffic_ = str::ToInt((*args)[1]);
+        if (CPlayer* player = g_serverWorld.GetPlayer(0)) player->logTraffic = str::ToInt((*args)[1]);
     }
     if (text::CompareIgnoringCase((*args)[0], "time") == 0)
         app::g_showClientSpeed = str::ToInt((*args)[1]);

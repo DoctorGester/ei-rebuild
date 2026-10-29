@@ -410,7 +410,7 @@ LSTATUS WINAPI CreateW(HKEY root, LPCWSTR sub, DWORD reserved, LPWSTR cls, DWORD
         return g_createW(root, sub, reserved, cls, options, sam, sa, out, disposition);
     return OpenOurs(path, true, out, disposition);
 }
-// game.exe's own import (the original's CWinRegistry and the image's): whatever the key, nothing is created.
+// game.exe's own import (the original's WinRegistry and the image's): whatever the key, nothing is created.
 LSTATUS WINAPI GameCreate(HKEY root, LPCSTR sub, DWORD, LPSTR, DWORD, REGSAM, const LPSECURITY_ATTRIBUTES, PHKEY out,
                           LPDWORD disposition) {
     std::string path;

@@ -1,4 +1,4 @@
-// CCamera helpers the per-frame update uses: aiming along a direction, turning the camera upright towards its
+// Camera helpers the per-frame update uses: aiming along a direction, turning the camera upright towards its
 // target and keeping it above nearby objects. See camera.h and docs/notes/core.md. Floating point follows the
 // game's x87 code: `double` for values the game keeps on the FPU stack, static_cast<float> where it stores to
 // a float.
@@ -26,7 +26,7 @@ using camera::D;
 // Aims the camera along (dx, dy, dz): the view heading is the turn about Z that points the camera's X axis
 // along the horizontal part (identity when that is straight along Y), then the local rotation tilts by -(90
 // degrees + elevation) about its own X axis. False (and nothing done) for a direction shorter than 1e-9.
-bool CCamera::LookDirection(float dx, float dy, float dz) {
+bool Camera::LookDirection(float dx, float dy, float dz) {
     double lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz);
     EI_NAN_AUDIT(lengthSquare);
     if (lengthSquare <= CAM_LOOK_EPSILON) return false;
@@ -38,7 +38,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     float heading = static_cast<float>(libcrt::CiAcos(D(ny) / libcrt::Hypot(nx, ny)));
     EI_NAN_AUDIT(nx, heading);
     if (nx == CAM_ZERO || heading == CAM_ZERO) {
-        viewRotation_ = camera::kIdentityRotation;
+        viewRotation = camera::kIdentityRotation;
     } else {
         double side = -D(nx);
         float z;
@@ -50,10 +50,10 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
         axis.x = 0.0f;
         axis.y = 0.0f;
         axis.z = z;
-        viewRotation_.FromAxisAngle(axis, heading);
+        viewRotation.FromAxisAngle(axis, heading);
     }
-    localRotation_ = viewRotation_;
-    const Quaternion& q = localRotation_;
+    localRotation = viewRotation;
+    const Quaternion& q = localRotation;
     double xx = D(q.x) * q.x;
     double e1 = Dot2DUnrounded<double>(q.w, q.x, q.z, q.y);
     double e2 = D(q.x) * q.z - D(q.w) * q.y;
@@ -64,7 +64,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     float angle = static_cast<float>(-(CAM_RIGHT_ANGLE + D(elevation)));
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, xAxis);
-    Quaternion& t = localRotation_;
+    Quaternion& t = localRotation;
     double x = ((D(t.z) * r.y - D(t.y) * r.z) + D(r.w) * t.x) + D(t.w) * r.x;
     float y = static_cast<float>(((D(t.x) * r.z - D(t.z) * r.x) + D(r.w) * t.y) + D(t.w) * r.y);
     float zz = static_cast<float>(((D(t.y) * r.x - D(r.y) * t.x) + D(r.w) * t.z) + D(t.w) * r.z);
@@ -79,8 +79,8 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
 // Turns the camera a tenth of the way about its own X-axis-and-horizontal cross product
 // so that its X axis lines up with the horizontal direction across the view (Z axis turned a
 // quarter about +Z); nothing below one degree. Then lifts the camera over nearby objects.
-void CCamera::AlignToTarget() {
-    Quaternion& q = localRotation_;
+void Camera::AlignToTarget() {
+    Quaternion& q = localRotation;
     Vector3 zAxis, xAxis;
     q.AxisZ(&zAxis);
     q.AxisX(&xAxis);
@@ -127,9 +127,9 @@ void CCamera::AlignToTarget() {
 // Keeps the camera above the terrain and the objects within 16 of it: an object (all
 // extents up to 100) counts with its top height, fully when the camera is inside its footprint
 // radius and fading out over the next 10; the camera height becomes at least the highest of these
-// (raised over the highest terrain by at most settings->cameraMaxHeight_) plus settings->cameraMinHeight_.
-void CCamera::ClampAboveObjects() {
-    Vector3* p = &localPosition_;
+// (raised over the highest terrain by at most settings->cameraMaxHeight) plus settings->cameraMinHeight.
+void Camera::ClampAboveObjects() {
+    Vector3* p = &localPosition;
     float average, lowest, highest;
     SampleTerrain(*p, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
     std::list<CObject3D*> list = g_clientWorld.ObjectsInRange(*p, 16.0f);
@@ -140,8 +140,8 @@ void CCamera::ClampAboveObjects() {
         if (object->bounds.boxMax.x > limit || object->bounds.boxMax.y > limit || object->bounds.boxMax.z > limit ||
             object->bounds.center.z > limit)
             continue;
-        float cx = static_cast<float>(D(object->localPosition_.x) + object->bounds.center.x);
-        float cy = static_cast<float>(D(object->localPosition_.y) + object->bounds.center.y);
+        float cx = static_cast<float>(D(object->localPosition.x) + object->bounds.center.x);
+        float cy = static_cast<float>(D(object->localPosition.y) + object->bounds.center.y);
         float cz = p->z;
         double radius = libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y);
         double dx = D(cx) - p->x;
@@ -152,21 +152,21 @@ void CCamera::ClampAboveObjects() {
         EI_NAN_AUDIT(outside);
         if (outside <= CAM_ZERO) factor = CAM_ONE;
         else if (outside <= CAM_OBJECT_FADE) factor = D(CAM_ONE) - D(outside) * D(CAM_TENTH);
-        float height = static_cast<float>(((D(object->localPosition_.z) + object->bounds.boxMax.z) + object->bounds.center.z) * factor);
+        float height = static_cast<float>(((D(object->localPosition.z) + object->bounds.boxMax.z) + object->bounds.center.z) * factor);
         best = best >= height ? best : height;
     }
-    const options::GameOptions* s = settings_;
+    const options::GameOptions* s = settings;
     float raised;
     if (best > highest) {
         float over = static_cast<float>(D(best) - D(highest));
-        float limit = s->cameraMaxHeight_;
+        float limit = s->cameraMaxHeight;
         float used = over >= limit ? limit : over;
-        float wanted = static_cast<float>((D(used) + highest) + D(s->cameraMinHeight_));
+        float wanted = static_cast<float>((D(used) + highest) + D(s->cameraMinHeight));
         float z = p->z;
         raised = z >= wanted ? z : wanted;
     } else {
         float top = best >= highest ? best : highest;
-        float wanted = static_cast<float>(D(top) + D(s->cameraMinHeight_));
+        float wanted = static_cast<float>(D(top) + D(s->cameraMinHeight));
         float z = p->z;
         raised = z >= wanted ? z : wanted;
     }

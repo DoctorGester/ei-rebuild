@@ -6,6 +6,7 @@
 #include "lib/nan_audit.h"
 #include "lib/text_case.h"
 
+#include <bit>
 #include <cfloat>
 #include <cstring>
 
@@ -33,54 +34,54 @@ bool Regards(const CUnit* a, const CUnit* b) {
 } // namespace
 
 void CSpell::Create() {
-    speed_ = 0;
-    range_ = 0;
-    targetCount_ = 0;
-    targetFlags_ = 0;
-    manaCost_ = 0;
-    complexity_ = 0;
-    price_ = 0;
-    castTime_ = 0;
-    skillNeeded_ = 1;
-    std::memset(modifiers_, 0, sizeof(modifiers_));
+    speed = 0;
+    range = 0;
+    targetCount = 0;
+    targetFlags = 0;
+    manaCost = 0;
+    complexity = 0;
+    price = 0;
+    castTime = 0;
+    skillNeeded = 1;
+    std::memset(modifiers, 0, sizeof(modifiers));
 }
 
 void CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
-    speed_ = prototype->speed;
-    range_ = prototype->range;
+    speed = prototype->speed;
+    range = prototype->range;
     if (prototype->targetKind == 'u') {
-        targetFlags_ = lib::Bits(SpellTargetFlag::AtUnits);
+        targetFlags = lib::Bits(SpellTargetFlag::AtUnits);
     } else if (prototype->targetKind == 't') {
-        targetFlags_ = lib::Bits(SpellTargetFlag::AtPoint);
+        targetFlags = lib::Bits(SpellTargetFlag::AtPoint);
     }
-    targetCount_ = prototype->targetCount;
-    manaCost_ = prototype->mana;
-    complexity_ = prototype->complexity;
-    price_ = prototype->price;
-    castTime_ = prototype->castTime;
-    skillNeeded_ = static_cast<std::uint32_t>(prototype->skill);
-    effectPower_ = 0x10;
-    prototypeIndex_ = static_cast<std::uint8_t>(prototypeId_ >> 16);
-    damage_ = prototype->damage;
-    radius_ = prototype->area;
-    duration_ = prototype->duration;
-    std::memset(modifiers_, 0, sizeof(modifiers_));
+    targetCount = prototype->targetCount;
+    manaCost = prototype->mana;
+    complexity = prototype->complexity;
+    price = prototype->price;
+    castTime = prototype->castTime;
+    skillNeeded = static_cast<std::uint32_t>(prototype->skill);
+    effectPower = 0x10;
+    prototypeIndex = static_cast<std::uint8_t>(prototypeId >> 16);
+    damage = prototype->damage;
+    radius = prototype->area;
+    duration = prototype->duration;
+    std::memset(modifiers, 0, sizeof(modifiers));
 }
 
 itemdb::SpellRecord* CSpell::GetPrototype() {
-    return SpellAt(prototypeId_ >> 16);
+    return SpellAt(prototypeId >> 16);
 }
 
 int CSpell::GetModifierCount() {
     for (int i = 0; i < 8; ++i) {
-        if (modifiers_[i] == 0) return i;
+        if (modifiers[i] == 0) return i;
     }
     return 8;
 }
 
 bool CSpell::HasCastFlagModifier() {
     for (int i = 0; i < 8; ++i) {
-        std::int8_t entry = modifiers_[i];
+        std::int8_t entry = modifiers[i];
         if (entry == 0) break;
         // Modifier index = entry - 1, sign-extended then compared unsigned; faults when out of range.
         SpellModifierRecord* modifier = SpellModifierAt(static_cast<std::uint32_t>(entry - 1));
@@ -119,11 +120,11 @@ bool CSpell::IsOffensive() {
         return false;
     }
 }
-// Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit.
+// Site #0 of FixSpellSelfCasting; site #1 is in BattleScreen::SelectUnit.
 
 bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
-    std::uint32_t flags = targetFlags_ & kSpellTargetRestrictions;
-    if (flags == 0) return true;
+    std::uint32_t restricted = targetFlags & kSpellTargetRestrictions;
+    if (restricted == 0) return true;
     if (!target || target->GetClassId() != ClassId::Unit) return false;
 
     // The target is a unit (tested above).
@@ -131,19 +132,19 @@ bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
     if (caster) {
         const CUnit* source = caster;
         bool hostile = Regards(source, unit) || Regards(unit, source);
-        if ((flags & SpellTargetFlag::FriendsOnly) && hostile) return false;
-        if ((flags & SpellTargetFlag::EnemiesOnly) && !hostile) return false;
+        if ((restricted & SpellTargetFlag::FriendsOnly) && hostile) return false;
+        if ((restricted & SpellTargetFlag::EnemiesOnly) && !hostile) return false;
     }
 
     const std::string& name = unit->name;   // the prototype name, e.g. "unhuma"
-    if ((flags & SpellTargetFlag::NoHumans) && (name == kHumanMale || name == kHumanFemale)) return false;
-    if ((flags & SpellTargetFlag::NoGoblins) && name == kGoblin) return false;
-    if ((flags & SpellTargetFlag::NoOrcs) && (name == kOrcMale || name == kOrcFemale)) return false;
-    if ((flags & SpellTargetFlag::NoMoli) && name == kMoli) return false;
+    if ((restricted & SpellTargetFlag::NoHumans) && (name == kHumanMale || name == kHumanFemale)) return false;
+    if ((restricted & SpellTargetFlag::NoGoblins) && name == kGoblin) return false;
+    if ((restricted & SpellTargetFlag::NoOrcs) && (name == kOrcMale || name == kOrcFemale)) return false;
+    if ((restricted & SpellTargetFlag::NoMoli) && name == kMoli) return false;
     return true;
 }
 
-void CSpellEffect::GetDamage(DamageInfo* out) {
+void SpellEffect::GetDamage(DamageInfo* out) {
     std::memset(out, 0, sizeof(*out));
     out->location = 6;
     out->multiplier = 1.0f;
@@ -151,43 +152,43 @@ void CSpellEffect::GetDamage(DamageInfo* out) {
     out->backstabFactor = 1.0f;
     out->calledShot = 0;
 
-    const CSpell* spell = Spell();
-    switch (spell->Type()) {
+    const CSpell* record = Spell();
+    switch (record->Type()) {
     case SpellType::FireArrow: case SpellType::Fireball: case SpellType::RickMagic:
-        out->typeWeights[3] = 1.0f; out->amount = spell->damage_; out->hitKind = 0; break;
+        out->typeWeights[3] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
     case SpellType::Lightning: case SpellType::InvokeLightning: case SpellType::CurseMagic:
-        out->typeWeights[5] = 1.0f; out->amount = spell->damage_; out->hitKind = 0; break;
+        out->typeWeights[5] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
     case SpellType::AcidRay:
-        out->typeWeights[4] = 1.0f; out->amount = spell->damage_; out->hitKind = 0; break;
+        out->typeWeights[4] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
     case SpellType::AcidColumn: case SpellType::AcidFog:
-        out->typeWeights[4] = 1.0f; out->amount = spell->damage_; out->hitKind = 1; break;
+        out->typeWeights[4] = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
     case SpellType::FireWall: case SpellType::Campfire:
-        out->typeWeights[3] = 1.0f; out->amount = spell->damage_; out->hitKind = 1; break;
+        out->typeWeights[3] = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
     case SpellType::LightningWall:
-        out->typeWeights[5] = 1.0f; out->amount = spell->damage_; out->hitKind = 1; break;
+        out->typeWeights[5] = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
     default:
         break;
     }
 
-    int targets = static_cast<int>(spell->duration_);
+    int targets = static_cast<int>(record->duration);
     if (targets > 1) {
         out->multiplier = kSplitDamage / static_cast<float>(targets);
-        out->amount = kSplitDamage / static_cast<float>(static_cast<int>(spell->duration_)) * out->amount;
+        out->amount = kSplitDamage / static_cast<float>(static_cast<int>(record->duration)) * out->amount;
     }
 }
 
 float CLight::GetIntensityAt(const Vector3& point) {
-    if (type_ != kPointLight) {
-        return color_[2] * kLumaBlue + color_[1] * kLumaGreen + color_[0] * kLumaRed;
+    if (type != kPointLight) {
+        return color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed;
     }
-    float dx = point.x - localPosition_.x;
-    float dy = point.y - localPosition_.y;
-    float dz = point.z - localPosition_.z;
+    float dx = point.x - localPosition.x;
+    float dy = point.y - localPosition.y;
+    float dz = point.z - localPosition.z;
     float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
-    EI_NAN_AUDIT(distanceSquared, rangeSquared_);
-    if (distanceSquared < rangeSquared_) {
-        return (color_[2] * kLumaBlue + color_[1] * kLumaGreen + color_[0] * kLumaRed) *
-               (1.0f - distanceSquared * inverseRangeSquared_);
+    EI_NAN_AUDIT(distanceSquared, rangeSquared);
+    if (distanceSquared < rangeSquared) {
+        return (color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed) *
+               (1.0f - distanceSquared * inverseRangeSquared);
     }
     return 0.0f;
 }
@@ -215,4 +216,54 @@ char* SpellModifierCodeByName(std::string_view name) {
         }
     }
     return nullptr;
+}
+
+// --- The spell's effect record, lifetime, class name and id ---------------------------------------
+
+MapEffect CSpell::Effect() const {
+    MapEffect record;
+    record.type = prototypeIndex;
+    record.power = effectPower;
+    record.ticksLeft = static_cast<int>(duration);
+    record.value = std::bit_cast<std::uint32_t>(damage);
+    record.strength = std::bit_cast<std::uint32_t>(radius);
+    return record;
+}
+
+void CSpell::SetEffect(const MapEffect& record) {
+    prototypeIndex = record.type;
+    effectPower = record.power;
+    duration = static_cast<std::uint32_t>(record.ticksLeft);
+    damage = std::bit_cast<float>(record.value);
+    radius = std::bit_cast<float>(record.strength);
+}
+
+CSpell::CSpell() {
+    prototypeIndex = 0;
+    effectPower = 0;
+    duration = 0;
+    damage = 0;
+    radius = 0;
+    speed = 0;
+    range = 0;
+    targetCount = 0;
+    targetFlags = 0;
+    manaCost = 0;
+    complexity = 0;
+    price = 0;
+    castTime = 0;
+    skillNeeded = 1;
+    std::memset(modifiers, 0, sizeof(modifiers));
+}
+
+CSpell::~CSpell() { CSpell::Destroy(); }
+
+const char* CSpell::ClassName() { return "CSpell"; }
+ClassId CSpell::GetClassId() { return ClassId::Spell; }
+
+// --- An effect's tick ----------------------------------------------------------------------------
+
+int MapEffect::Tick() {
+    --ticksLeft;
+    return ticksLeft > 0 ? 1 : 0;
 }

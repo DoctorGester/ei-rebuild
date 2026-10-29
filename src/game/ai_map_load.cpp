@@ -1,4 +1,4 @@
-// CAIMap::Load (Rebirth patches it): the navigation grid of a map from its archive. See docs/notes/ai.md, "The
+// AIMap::Load (Rebirth patches it): the navigation grid of a map from its archive. See docs/notes/ai.md, "The
 // map archive".
 #include "ai_map.h"
 #include "console.h"
@@ -98,15 +98,15 @@ struct MapDescription {
 
 // A resource archive as a local, constructed in place.
 struct Archive {
-    Archive() { new (Get()) CMappedResource(); }
-    ~Archive() { Get()->CMappedResource::Destroy(); }
+    Archive() { new (Get()) MappedResource(); }
+    ~Archive() { Get()->MappedResource::Destroy(); }
     Archive(const Archive&) = delete;
-    CMappedResource* Get() { return storage.Get(); }
-    bool Open(std::string_view path) { return Get()->CMappedResource::OpenResource(std::string(path), 0) != 0; }
-    void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFile(name, size); }
-    void Close(void* file) { Get()->CMappedResource::CloseFile(file); }
+    MappedResource* Get() { return storage.Get(); }
+    bool Open(std::string_view path) { return Get()->MappedResource::OpenResource(std::string(path), 0) != 0; }
+    void* File(const char* name, std::uint32_t* size) { return Get()->MappedResource::GetFile(name, size); }
+    void Close(void* file) { Get()->MappedResource::CloseFile(file); }
 
-    lib::InPlace<CMappedResource> storage;
+    lib::InPlace<MappedResource> storage;
 };
 
 // The .mp file `name`.MP of `archive` into `map`. Returns 1, or the fatal error's result when the
@@ -150,7 +150,7 @@ const volatile double kPerDegree = 1.0 / 180.0;
 // The cost of a height step between neighbouring cells, by its slope: (sin^2 + 1)^2 times the flat
 // cost uphill and on the level, the flat cost over sin^2 + 1 downhill. The larger size classes take
 // no step steeper than 40 degrees; size class 0 takes any up to 60 at the flat cost.
-void BuildClimbTables(CAIMap& map) {
+void BuildClimbTables(AIMap& map) {
     map.climbLarge.resize(kClimbSteps);
     map.climbSmall.resize(kClimbSteps);
     for (int i = 0; i < kClimbSteps; ++i) {
@@ -174,7 +174,7 @@ constexpr float kHundredth = 0.01f;
 // The terrain types from tileDesc.reg in the text resources' aiinfo.res: sixteen with the defaults,
 // then every section of the registry into the type its name numbers. Returns 1, or the fatal
 // error's result when the archive, the file or the registry cannot be read.
-int ReadTerrainTypes(CAIMap& map) {
+int ReadTerrainTypes(AIMap& map) {
     Archive archive;
     bool opened;
     {
@@ -184,7 +184,7 @@ int ReadTerrainTypes(CAIMap& map) {
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");
     void* file = archive.File("tileDesc.reg", nullptr);
     if (!file) return game::FatalError("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
-    CFileRegistry registry;
+    FileRegistry registry;
     if (!registry.Attach(file)) return game::FatalError("CAIMap::Load.\n Can't open aiReg");
     std::vector<std::string> sections = registry.SectionNames();
 
@@ -215,7 +215,7 @@ int ReadTerrainTypes(CAIMap& map) {
     }
     registry.Close();
     archive.Close(file);
-    archive.Get()->CMappedResource::CloseResource();
+    archive.Get()->MappedResource::CloseResource();
     return 1;
 }
 
@@ -313,7 +313,7 @@ bool IsSector(const void* file, std::uint32_t size) {
 // A sector file into the cells from (x0, y0): the ground levels; with water the depth of the water
 // over each cell (0 .. 63); the tiles' terrain types; the water flag of the cells with depth under a
 // tile of a water material; and the water tile's terrain type on the cells under water.
-void StampSector(CAIMap& map, const MapDescription& description, const void* file, int x0, int y0) {
+void StampSector(AIMap& map, const MapDescription& description, const void* file, int x0, int y0) {
     const auto* header = static_cast<const SectorHeader*>(file);
     const bool hasWater = (header->layers & 1) != 0;
     const bool hasWaterTiles = (header->layers & 3) != 0;
@@ -387,7 +387,7 @@ void StampSector(CAIMap& map, const MapDescription& description, const void* fil
 
 } // namespace
 
-int CAIMap::LoadTerrain(const char* path) {
+int AIMap::LoadTerrain(const char* path) {
     Archive archive;
     std::string full = path;
     // (The original also builds the path without its extension here and never uses it.)
@@ -422,7 +422,7 @@ int CAIMap::LoadTerrain(const char* path) {
     return 1;
 }
 
-void CAIMap::AttachTerrain() {
+void AIMap::AttachTerrain() {
     loaded = true;
     refreshUnits = false;
     BuildOpenMarks();
@@ -438,7 +438,7 @@ void CAIMap::AttachTerrain() {
     QueueRefresh(0, cells.width - 1, 0, cells.height - 1);
 }
 
-int CAIMap::Load(const char* path) {
+int AIMap::Load(const char* path) {
     if (const int result = LoadTerrain(path); result != 1) return result;
     AttachTerrain();
     return 1;

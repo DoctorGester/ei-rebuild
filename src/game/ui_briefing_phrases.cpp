@@ -1,4 +1,4 @@
-// The briefing / base screen's phrases (CBriefingScreen::NextPhrase, ui_briefing.h): a dialogue
+// The briefing / base screen's phrases (BriefingScreen::NextPhrase, ui_briefing.h): a dialogue
 // text's commands and phrases, the rewards after the last one, the camera and the speakers'
 // animations. See docs/notes/ui.md, "Briefing / base screen".
 #include "asset_text.h"
@@ -78,16 +78,16 @@ constexpr int kViewThird = 4;
 
 // The speaker's eyes: blinking (`blinks`), or open.
 void SetBlink(CUnit* unit, std::uint8_t blinks) {
-    CUnitClientSpecific* model = unit->ClientController();
+    UnitClientSpecific* model = unit->ClientController();
     model->blinks = blinks;
     if (!blinks) model->BlinkOpen(true);
 }
 
 } // namespace
 
-void CBriefingScreen::NextPhrase(bool skip) {
+void BriefingScreen::NextPhrase(bool skip) {
     std::vector<std::string> words;
-    CTextManager* texts = g_clientWorld.texts_;
+    TextManager* texts = g_clientWorld.texts;
     std::string speaker;
     std::string phrase;
     bool last = true;       // no "#phrase" follows this one
@@ -143,41 +143,41 @@ void CBriefingScreen::NextPhrase(bool skip) {
         } else {
             speaker = unit->GetName();
             if (speaker.size() == 0) {
-                auto node = personTexts_.find(unit->id_);
-                speaker = node == personTexts_.end() ? words[1] : node->second;
+                auto node = personTexts.find(unit->id);
+                speaker = node == personTexts.end() ? words[1] : node->second;
             }
         }
         phrase = texts->ReadToHash();
         phrase = std::string(kPhraseHead) + speaker + (lips ? kPhraseBodyLips : kPhraseBodyNoLips) + phrase + kLineEnd;
-        dialogueText_ += phrase;
-        const char* cursor = texts->cursor_;
+        dialogueText += phrase;
+        const char* cursor = texts->cursor;
         if (texts->FindLine(kPhraseCommand)) last = false;
-        texts->cursor_ = cursor;
-        if (voice_ != -1) g_clientWorld.sounds_->StopSound(voice_);
-        voice_ = -1;
+        texts->cursor = cursor;
+        if (voice != -1) g_clientWorld.sounds->StopSound(voice);
+        voice = -1;
         if (!skip) {
             int number;
             if (words.size() > 2 && (number = str::ToInt(words[2])) > 0) {
                 std::string file;
                 int folder = ClientRandBelow(2);
-                file = str::Format(kVoiceFormat, kVoiceFolders[folder], topic_, number);
-                voice_ = g_clientWorld.sounds_->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
+                file = str::Format(kVoiceFormat, kVoiceFolders[folder], topic, number);
+                voice = g_clientWorld.sounds->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
-            phraseTime_ = static_cast<float>(text::CharacterCount(std::string_view(phrase))) *
+            phraseTime = static_cast<float>(text::CharacterCount(std::string_view(phrase))) *
                           kSecondsPerCharacter;
-            if (firstPhrase_) phraseTime_ += 1.0f;
-            text_->AddText(phrase);
+            if (firstPhrase) phraseTime += 1.0f;
+            text->AddText(phrase);
         }
     } else if (!skip) {
-        text_->AddText(phrase);
+        text->AddText(phrase);
     }
 
     if (last) {
-        // The rewards of the briefing record of topic_ (the lookup adds an empty entry).
-        state_ = kStateRewards;
+        // The rewards of the briefing record of topic (the lookup adds an empty entry).
+        state = kStateRewards;
         QuestBriefingRecord* record;
         {
-            std::string key(topic_);
+            std::string key(topic);
             record = worlddata::QuestBriefings()[key];
         }
         if (record) {
@@ -186,12 +186,12 @@ void CBriefingScreen::NextPhrase(bool skip) {
             std::string line;
             std::string label;
             auto add = [&] {
-                dialogueText_ += line;
-                if (!skip) text_->AddText(line);
+                dialogueText += line;
+                if (!skip) text->AddText(line);
             };
             auto addItems = [&](const std::vector<std::string>& list) {
                 for (const auto& it : list) {
-                    CItem* item = g_clientWorld.itemManager_->CreateItem(it);
+                    Item* item = g_clientWorld.itemManager->CreateItem(it);
                     if (!item) continue;
                     item->AddRef();
                     name = texts->FormatItemName(item);
@@ -224,10 +224,10 @@ void CBriefingScreen::NextPhrase(bool skip) {
             addItems(record->lists[QuestBriefingRecord::kGiveItems]);
             label = texts->GetString(kLostItemLabel);
             // A network client lists the quest items it holds after a zone topic ("z...").
-            if (IsMultiplayerClient() && !topic_.empty() && text::CompareIgnoringCase(str::Left(topic_, 1), kZonePrefix) == 0) {
+            if (IsMultiplayerClient() && !topic.empty() && text::CompareIgnoringCase(str::Left(topic, 1), kZonePrefix) == 0) {
                 if (auto* player = g_serverWorld.GetPlayer(0)) {
-                    for (auto& node : player->items_) {
-                        CItem* item = node;
+                    for (auto& node : player->items) {
+                        Item* item = node;
                         if (item->GetClassId() != ClassId::ItemQuest) continue;
                         name = texts->FormatItemName(item);
                         line = str::Format(kNameLine, label, name);
@@ -253,16 +253,16 @@ void CBriefingScreen::NextPhrase(bool skip) {
     // the line has one word).
     auto named = [&words] { return words.size() > 1 ? words[1].c_str() : ""; };
     if (!skip || last) {
-        if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
-        if (person_) GameSetUnitHeight(person_->id_, 0.0f);
-        for (std::size_t i = 0; i < speakers_.size(); ++i) {
-            if (text::CompareIgnoringCase(speakers_[i].name, named()) != 0) continue;
+        if (leader) GameSetUnitHeight(leader->id, 0.0f);
+        if (person) GameSetUnitHeight(person->id, 0.0f);
+        for (std::size_t i = 0; i < speakers.size(); ++i) {
+            if (text::CompareIgnoringCase(speakers[i].name, named()) != 0) continue;
             if (view) {
                 CUnit* target;
                 switch (preset) {
-                case kViewLeader: target = leader_; break;
-                case kViewPerson: target = person_; break;
-                case kViewThird: target = third_; break;
+                case kViewLeader: target = leader; break;
+                case kViewPerson: target = person; break;
+                case kViewThird: target = third; break;
                 default:
                     ViewSpeaker(nullptr, angle, distance, height);
                     continue;
@@ -271,12 +271,12 @@ void CBriefingScreen::NextPhrase(bool skip) {
             } else {
                 int chosen = preset;
                 if (chosen < 1) {
-                    CUnit* unit = speakers_[i].unit;
-                    if (firstPhrase_)
+                    CUnit* unit = speakers[i].unit;
+                    if (firstPhrase)
                         chosen = kViewBoth;
-                    else if (unit == leader_)
+                    else if (unit == leader)
                         chosen = kViewLeader;
-                    else if (unit == third_)
+                    else if (unit == third)
                         chosen = kViewThird;
                     else
                         chosen = kViewPerson;
@@ -288,15 +288,15 @@ void CBriefingScreen::NextPhrase(bool skip) {
 
     // The speaker talks, the others listen.
     if (!skip && spoke) {
-        for (std::size_t i = 0; i < speakers_.size(); ++i) {
-            CUnit* unit = speakers_[i].unit;
-            if (text::CompareIgnoringCase(speakers_[i].name, named()) != 0) {
+        for (std::size_t i = 0; i < speakers.size(); ++i) {
+            CUnit* unit = speakers[i].unit;
+            if (text::CompareIgnoringCase(speakers[i].name, named()) != 0) {
                 PlaySpeakerAnimation(unit, false, false);
                 SetBlink(unit, 0);
                 continue;
             }
             if (animation > 0) {
-                if (auto* serverUnit = g_serverWorld.FindUnit(unit->id_)) {
+                if (auto* serverUnit = g_serverWorld.FindUnit(unit->id)) {
                     auto* controller = serverUnit->ServerController();
                     controller->StopAction();
                     controller->actionDone = SpeakerAnimationDone;
@@ -307,21 +307,21 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 PlaySpeakerAnimation(unit, true, false);
             }
             SetBlink(unit, lips);
-            speaking_ = unit;
+            speaking = unit;
         }
     }
 
-    firstPhrase_ = false;
+    firstPhrase = false;
     if (skip && last) {
         // Skipped to the end: the whole text at once, scrolled to its end; everyone listens.
-        text_->SetText(dialogueText_);
-        text_->SetPosition(text_->maxPosition_);
-        text_->moved_ = true;
-        for (const BriefingSpeaker& p : speakers_) {
+        text->SetText(dialogueText);
+        text->SetPosition(text->maxPosition);
+        text->moved = true;
+        for (const BriefingSpeaker& p : speakers) {
             SetBlink(p.unit, 0);
             PlaySpeakerAnimation(p.unit, false, false);
         }
-        speaking_ = nullptr;
+        speaking = nullptr;
         ClearShownItems();
     }
 }

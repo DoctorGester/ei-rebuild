@@ -57,7 +57,7 @@ inline const char* TextsLmpFileText() { return "textsLmp.res"; }
 inline const char* CursorFileText() { return "wincurs\\Df0000.cur"; }
 // The shadow setting (0 off, 2 blurred; map_object_shadow.cpp's ShadowMode): above 0 the client
 // sets its flag 0x200.
-inline int ShadowSetting() { return static_cast<const volatile int&>(options::g_options.shadowQuality_); }
+inline int ShadowSetting() { return static_cast<const volatile int&>(options::g_options.shadowQuality); }
 
 inline const char* DefaultAllodText() { return "gipat"; }
 inline const char* CantLoadTerrainFormat() { return "Can't load terrain or map file \"%s\".\n"; }
@@ -70,18 +70,18 @@ inline const char* FinalZoneText() { return "gz20g"; }
 inline const char* FinalMusicText() { return "final"; }
 // Options (options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing and DefaultWindForce.
 // AudioStreaming / AudioSFX (the sound manager takes them on the client's tenth tick) are read from the options.
-inline int AudioOption() { return static_cast<const volatile int&>(options::g_options.audio_); }
-inline int WaterWavesOption() { return static_cast<const volatile int&>(options::g_options.enableWaterWaves_); }
-inline int SelfShadowingOption() { return static_cast<const volatile int&>(options::g_options.enableSelfShadowing_); }
-inline float DefaultWindForceOption() { return static_cast<const volatile float&>(options::g_options.defaultWindForce_); }
+inline int AudioOption() { return static_cast<const volatile int&>(options::g_options.audio); }
+inline int WaterWavesOption() { return static_cast<const volatile int&>(options::g_options.enableWaterWaves); }
+inline int SelfShadowingOption() { return static_cast<const volatile int&>(options::g_options.enableSelfShadowing); }
+inline float DefaultWindForceOption() { return static_cast<const volatile float&>(options::g_options.defaultWindForce); }
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
 // The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base folder;
 // game_singletons.h) are set from (their text pointers).
-inline const char* ConfiguredDataPath() { return options::g_options.workPath_.c_str(); }
-inline const char* ConfiguredTextPath() { return options::g_options.resourcesPath_.c_str(); }
-inline const char* ConfiguredBasePath() { return options::g_options.cdRomPath_.c_str(); }
+inline const char* ConfiguredDataPath() { return options::g_options.workPath.c_str(); }
+inline const char* ConfiguredTextPath() { return options::g_options.resourcesPath.c_str(); }
+inline const char* ConfiguredBasePath() { return options::g_options.cdRomPath.c_str(); }
 
 inline const char* AutosaveEventText() { return "autosave"; }
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }

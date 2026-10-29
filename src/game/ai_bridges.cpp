@@ -1,4 +1,4 @@
-// CAIMap::ApplyBridgeDecks: applies or clears the bridge decks of a footprint's bridge cells. Applying: each
+// AIMap::ApplyBridgeDecks: applies or clears the bridge decks of a footprint's bridge cells. Applying: each
 // cell inside the map with low < high becomes a BridgeDeck; a grid cell not yet under a bridge has its ground
 // level, its water depth and its terrain type saved in the bridge map (keyed (short)x << 16 | (short)y) unless
 // already there; then the occluder is added (a failure ends the call with false), the cell's flags become
@@ -39,7 +39,7 @@ void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* oc
     erase(node);
 }
 
-bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
+bool AIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     if (remove) {
         for (int i = 0; i < std::ssize(set->cells); ++i) {
             FootprintCell& c = set->cells[i];

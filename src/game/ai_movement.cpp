@@ -34,7 +34,7 @@ void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
 
 } // namespace
 
-CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
+CUnit* AIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
     float unitHeight = unit->standingHeight;
     std::list<CUnit*> nearby = sectorMap.FindUnitsInRadius(position, 10.0f);
 
@@ -44,25 +44,25 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
         ++node;
         if (other == unit) continue;
         double reach = static_cast<double>(other->standingHeight) + unitHeight;
-        double dy = static_cast<double>(position.y) - other->localPosition_.y;
-        double dx = static_cast<double>(position.x) - other->localPosition_.x;
+        double dy = static_cast<double>(position.y) - other->localPosition.y;
+        double dx = static_cast<double>(position.x) - other->localPosition.x;
         if (LengthSquared2DUnrounded(dx, dy) >= reach * reach) continue;
         if (other->IsDead() != 0) continue;
 
-        int unitX = CellOf(unit->localPosition_.x);
-        int unitY = CellOf(unit->localPosition_.y);
-        int otherX = CellOf(other->localPosition_.x);
-        int otherY = CellOf(other->localPosition_.y);
+        int unitX = CellOf(unit->localPosition.x);
+        int unitY = CellOf(unit->localPosition.y);
+        int otherX = CellOf(other->localPosition.x);
+        int otherY = CellOf(other->localPosition.y);
         float otherHeight = other->standingHeight;
         ShapeCacheHandle handle;
-        const CUnitShape* shape = nullptr;
+        const UnitShape* shape = nullptr;
         EI_NAN_AUDIT(otherHeight);
         if (otherHeight <= kShapeMinHeight) {
             handle.ref.Reset();
         } else {
             int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
             handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
-            shape = static_cast<const CUnitShape*>(g_unitShapes.Get(&handle));
+            shape = static_cast<const UnitShape*>(g_unitShapes.Get(&handle));
             handle.ref.Reset();
         }
 
@@ -80,7 +80,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
     return blocker;
 }
 
-const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
+const int* AIMap::CostContext(int sizeClass, PassCostContext* out) {
     out->forwardSpeed = 0.1f;
     out->backwardSpeed = 0.1f;
     out->turnScale = 10.0f;
@@ -91,7 +91,7 @@ const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     return out->climb;
 }
 
-void CAIMap::SetStepSpeeds(CUnit* unit, PathCells* steps) {
+void AIMap::SetStepSpeeds(CUnit* unit, PathCells* steps) {
     // The original also asks the unit for its movement speeds twice and divides by one of them, but never uses
     // the results; the getter has no side effects.
     int shift = unit->sizeClass * 4;
@@ -123,12 +123,12 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCells* steps) {
     }
 }
 
-bool CAIMap::StandsOnCheapCell(CUnit* unit) {
+bool AIMap::StandsOnCheapCell(CUnit* unit) {
     PassCostContext context;
     CostContext(unit->sizeClass, &context);
     // The original also asks the unit for its movement speeds and ignores them.
-    int x = CellOf(unit->localPosition_.x);
-    int y = CellOf(unit->localPosition_.y);
+    int x = CellOf(unit->localPosition.x);
+    int y = CellOf(unit->localPosition.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     if (HasSpellArea(x, y)) {
         int sizeClass = unit->sizeClass;
@@ -168,7 +168,7 @@ void FogGrid::Grow(int x, int y, int n) {
     y0 = top;
 }
 
-void CAIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& look, float cosLimit,
+void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& look, float cosLimit,
                               float targetHeight, FogGrid* grid) {
     int eyeX = CellOf(eye.x);
     int eyeY = CellOf(eye.y);
@@ -209,14 +209,14 @@ void CAIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& l
     }
 }
 
-void* CAIMap::UnitShape(float standingHeight) {
+void* AIMap::ShapeForHeight(float standingHeight) {
     ShapeCacheHandle handle;
     EI_NAN_AUDIT(standingHeight);
     if (standingHeight <= kShapeMinHeight) return nullptr;
     int tenths = x87::fistp(static_cast<float>(static_cast<double>(standingHeight) * 10.0f + 1.0f));
     handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
 
-    CRefObject* shape = g_unitShapes.Resolve(&handle);
+    RefObject* shape = g_unitShapes.Resolve(&handle);
     handle.ref.Reset();
     return shape;
 }

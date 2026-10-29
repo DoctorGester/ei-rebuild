@@ -27,26 +27,26 @@ constexpr ULONGLONG kBetweenFrames = 40;
 
 class Lock {
 public:
-    Lock() { InitializeCriticalSection(&section_); }
-    ~Lock() { DeleteCriticalSection(&section_); }
+    Lock() { InitializeCriticalSection(&section); }
+    ~Lock() { DeleteCriticalSection(&section); }
     Lock(const Lock&) = delete;
     Lock& operator=(const Lock&) = delete;
-    void Enter() { EnterCriticalSection(&section_); }
-    void Leave() { LeaveCriticalSection(&section_); }
+    void Enter() { EnterCriticalSection(&section); }
+    void Leave() { LeaveCriticalSection(&section); }
 
 private:
-    CRITICAL_SECTION section_;
+    CRITICAL_SECTION section;
 };
 
 class Hold {
 public:
-    explicit Hold(Lock& lock) : lock_(lock) { lock_.Enter(); }
-    ~Hold() { lock_.Leave(); }
+    explicit Hold(Lock& newLock) : lock(newLock) { lock.Enter(); }
+    ~Hold() { lock.Leave(); }
     Hold(const Hold&) = delete;
     Hold& operator=(const Hold&) = delete;
 
 private:
-    Lock& lock_;
+    Lock& lock;
 };
 
 template <typename T>

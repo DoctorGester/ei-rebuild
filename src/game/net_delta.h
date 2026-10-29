@@ -19,20 +19,20 @@ namespace delta {
 inline int g_keepSnapshot1 = /*007A9780*/ {};
 inline int g_keepSnapshot0 = /*007A9784*/ {};
 // While reading, the snapshot read against and the received stream.
-inline CMemoryStream* g_readSnapshot = /*007A9794*/ {nullptr};
-inline CMemoryStream* g_received = /*007A9798*/ {nullptr};
+inline MemoryStream* g_readSnapshot = /*007A9794*/ {nullptr};
+inline MemoryStream* g_received = /*007A9798*/ {nullptr};
 
 // WriteDelta for a single channel.
-void WriteDeltaChannel(CMemoryStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
-                                  CMemoryStream* out);
+void WriteDeltaChannel(MemoryStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
+                                  MemoryStream* out);
 // Bits and changed words of `data` against `old` (no snapshot stream).
-void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, CMemoryStream* out);
+void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, MemoryStream* out);
 // All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
-void WriteRaw(const std::uint8_t* data, std::uint32_t size, CMemoryStream* out);
+void WriteRaw(const std::uint8_t* data, std::uint32_t size, MemoryStream* out);
 
 // Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
 // otherwise the changed words from `reader` (returns true).
-bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, CMemoryStream* reader);
+bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, MemoryStream* reader);
 } // namespace delta
 
 namespace delta {
@@ -43,14 +43,14 @@ std::uint32_t UnpackFloat16(std::uint16_t packed);
 
 // One numbered field of a DeltaState.
 struct DeltaField {
-    CMemoryStream snapshot[2];   // per channel, the bytes last sent
-    CMemoryStream out[2];        // per channel, what is sent now
+    MemoryStream snapshot[2];   // per channel, the bytes last sent
+    MemoryStream out[2];        // per channel, what is sent now
 
     DeltaField() = default;
     DeltaField(DeltaField&&) noexcept = default;
 
     DeltaField* BeginWriteB(int channel1Only);
-    DeltaField* BeginReadB(int second, CMemoryStream* reader);
+    DeltaField* BeginReadB(int second, MemoryStream* reader);
     // Ends the field: when reading, finishes the reader's bits; when writing,
     // finishes both outputs and truncates the kept snapshots at their positions.
     void EndField();
@@ -64,16 +64,16 @@ struct DeltaField {
     void WriteStringBoth(std::string_view text);
     // Reads raw bytes from the reader; returns what the stream's Read returns.
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
-    // Reads a string from the reader (CStream::ReadString).
+    // Reads a string from the reader (ByteStream::ReadString).
     std::string ReadString();
     // Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
     // string of size - 1 characters or more leaves `text` empty instead.
     void ReadText(char* text, int size);
     // BitStream::WriteStream of `from` into both outputs (inlined twice; the
     // pending bits stored before each).
-    void WriteStreamBoth(CMemoryStream* from);
+    void WriteStreamBoth(MemoryStream* from);
     // BitStream::ReadStream from the reader into `to` (inlined; `this` unused).
-    int ReadStream(CMemoryStream* to);
+    int ReadStream(MemoryStream* to);
     // Writes a position as three 16-bit values (WriteDelta of 2 bytes each): x and y as
     // (v + 16) * 120.46875, z as (v + 32) * 341.328125, rounded through a float, then to nearest.
     void WritePosition(const Vector3& position);
@@ -101,13 +101,13 @@ struct DeltaField {
 
 // The fields of one object.
 struct DeltaState {
-    std::vector<DeltaField> fields_;
-    std::uint16_t sentMask_ = 0;
-    std::uint16_t lastMask_ = 0;
-    std::uint16_t mask_ = 0;     // fields to write / read
-    CMemoryStream* reader_ = nullptr;
-    int mode_ = 4;           // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
-    CMemoryStream header_[2];
+    std::vector<DeltaField> fields;
+    std::uint16_t sentMask = 0;
+    std::uint16_t lastMask = 0;
+    std::uint16_t mask = 0;      // fields to write / read
+    MemoryStream* reader = nullptr;
+    int mode = 4;            // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
+    MemoryStream header[2];
 
     // No fields, idle; the field array's vtable in place. The destructor destroys the fields.
     DeltaState();
@@ -122,15 +122,15 @@ struct DeltaState {
     // The fields' SetSize(count, -1) (new fields constructed, dropped ones destroyed;
     // recordarrays::DeltaFields).
     void SetFieldCount(int count);
-    // Prepares field `index` for the current mode; null when it is not in mask_.
+    // Prepares field `index` for the current mode; null when it is not in mask.
     DeltaField* BeginField(int index);
-    // Writing: 0 writes every field (mask_ = 0xFFFF), anything else only the dirty ones.
+    // Writing: 0 writes every field (mask = 0xFFFF), anything else only the dirty ones.
     void SetWriteMode(int deltaOnly);
     // Reading: takes the field mask from `reader`; returns `second`.
-    int BeginRead(int second, CMemoryStream* reader);
+    int BeginRead(int second, MemoryStream* reader);
     // Ends a write or a read. After a delta write the written fields join
-    // sentMask_ and become lastMask_, and each header is rebuilt: its mask (sentMask_ for channel
-    // 0, lastMask_ for channel 1), then the channel's output of every field in the mask. After a
+    // sentMask and become lastMask, and each header is rebuilt: its mask (sentMask for channel
+    // 0, lastMask for channel 1), then the channel's output of every field in the mask. After a
     // full write the headers and the masks are emptied. The state goes idle without a reader.
     void Finish();
 };

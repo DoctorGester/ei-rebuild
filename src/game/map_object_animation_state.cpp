@@ -1,4 +1,4 @@
-// The figure's animation state (CFigureAnimationState, CObject3D + 0x98): what plays, the queue
+// The figure's animation state (FigureAnimationState, CObject3D + 0x98): what plays, the queue
 // behind it and the frame reached. See map_object_figures.h and docs/notes/map_objects.md.
 #include "figure_manager.h"
 #include "map_object_figures.h"
@@ -16,7 +16,7 @@ constexpr std::uint32_t kKeyLoops = AnimationKeyOf(AnimationKeyFlag::Looped);
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
     if (!bone->animator) {
-        auto* made = bone->owner_->CreateObjectAs<AnimationTrack>(FigureObjectType::AnimationTrack, -1);
+        auto* made = bone->owner->CreateObjectAs<AnimationTrack>(FigureObjectType::AnimationTrack, -1);
         bone->animator = made;
         made->AddRef();
         bone->animator->bone = bone;
@@ -25,34 +25,34 @@ AnimationTrack* AnimatorOf(FigureBone* bone) {
 }
 
 // The model name of the figure the state animates.
-const char* ModelName(const CFigureAnimationState* state) { return state->owner->name.c_str(); }
+const char* ModelName(const FigureAnimationState* state) { return state->owner->name.c_str(); }
 
 // The figure manager or else each bone takes `animation`.
-void Apply(CFigureAnimationState* state, const FigureAnimation* animation) {
+void Apply(FigureAnimationState* state, const FigureAnimation* animation) {
     if (FigureManagerOf(state)->SetFigureAnimation(state, ModelName(state), animation)) return;
     for (auto node = state->bones.begin(); node != state->bones.end();) {
         FigureBone* bone = *node;
         ++node;
-        CFigureAnimationState::AnimateBone(bone, state->current);
+        FigureAnimationState::AnimateBone(bone, state->current);
     }
 }
 
 // Takes the head off the queue.
-FigureAnimation* PopQueued(CFigureAnimationState* state) {
+FigureAnimation* PopQueued(FigureAnimationState* state) {
     FigureAnimation* animation = state->queue.front();
     state->queue.pop_front();
     return animation;
 }
 } // namespace
 
-void CFigureAnimationState::AnimateBone(FigureBone* bone, const FigureAnimation* animation) {
+void FigureAnimationState::AnimateBone(FigureBone* bone, const FigureAnimation* animation) {
     AnimationTrack* animator = AnimatorOf(bone);
     animator->animation = animation;
     OwningFigureManager(animator)->LoadBoneAnimation(animator->bone, animator, animation ? animation->name : nullptr);
     animator->time = 0.0f;
 }
 
-void CFigureAnimationState::Play(FigureAnimation* animation) {
+void FigureAnimationState::Play(FigureAnimation* animation) {
     for (auto node = bones.begin(); node != bones.end();) {
         FigureBone* bone = *node;
         ++node;
@@ -69,9 +69,9 @@ void CFigureAnimationState::Play(FigureAnimation* animation) {
     current = animation;
 }
 
-void CFigureAnimationState::Queue(FigureAnimation* animation) { queue.push_back(animation); }
+void FigureAnimationState::Queue(FigureAnimation* animation) { queue.push_back(animation); }
 
-void CFigureAnimationState::SetTime(float frame) {
+void FigureAnimationState::SetTime(float frame) {
     EI_NAN_AUDIT(time, frame);
     if (time != frame) changed = 1;
     const FigureAnimation* before = current;
@@ -97,4 +97,13 @@ void CFigureAnimationState::SetTime(float frame) {
     changed = 1;
 }
 
-void CFigureAnimationState::Advance(float frames) { SetTime(frames + time); }
+void FigureAnimationState::Advance(float frames) { SetTime(frames + time); }
+
+// --- Class name and id -----------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kStateClassName = "CAnimationSystem2";
+} // namespace
+
+const char* FigureAnimationState::ClassName() { return kStateClassName; }
+ClassId FigureAnimationState::GetClassId() { return ClassId::FigureAnimationState; }

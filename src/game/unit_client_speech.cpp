@@ -1,4 +1,4 @@
-// What a unit says on the client: the speech queue of CUnitClientSpecific and
+// What a unit says on the client: the speech queue of UnitClientSpecific and
 // playing a speech. See unit_client_models.h and docs/notes/units.md.
 #include "unit_client_models.h"
 
@@ -45,15 +45,15 @@ bool Important(AckKind kind) {
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = g_clientWorld.sounds_;
+    SoundManager* sounds = g_clientWorld.sounds;
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
 void SetTalking(int unitId, bool talking) {
-    CEngineObject* serverUnit = g_serverWorld.FindUnit(unitId);
+    EngineObject* serverUnit = g_serverWorld.FindUnit(unitId);
     if (!serverUnit) return;
-    if (talking) serverUnit->flags_ |= MapObjectFlag::Blocked;
-    else serverUnit->flags_ &= ~MapObjectFlag::Blocked;
+    if (talking) serverUnit->flags |= MapObjectFlag::Blocked;
+    else serverUnit->flags &= ~MapObjectFlag::Blocked;
 }
 
 // Erases the queued speeches `filter` picks.
@@ -73,11 +73,11 @@ bool SpeechFilter::Finished(const ClientSpeech* queued) const {
     return true;
 }
 
-void CUnitClientSpecific::Say(const SpeechRecord* record, AckKind kind) {
+void UnitClientSpecific::Say(const SpeechRecord* record, AckKind kind) {
     if (!record) return;
     SpeechFilter replacing{0, kind};
     EraseWhere(speech, [&](const ClientSpeech* queued) { return replacing.Replaced(queued); });
-    SpeechFilter finishing{unit->id_, AckKind::Selected};
+    SpeechFilter finishing{unit->id, AckKind::Selected};
     EraseWhere(speech, [&](const ClientSpeech* queued) { return finishing.Finished(queued); });
     bool empty = speech.empty();
     if (!empty && !Important(kind)) return;
@@ -88,7 +88,7 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, AckKind kind) {
     said.sound = -1;
     said.talking = kind == AckKind::ScenarioTalking;
     if (empty) {
-        if (said.talking) SetTalking(unit->id_, true);
+        if (said.talking) SetTalking(unit->id, true);
         said.delay = 0;
         if (kind != AckKind::Attack && kind != AckKind::DecidedToAttack) {
             Speak(&said);
@@ -99,18 +99,18 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, AckKind kind) {
     speech.push_back(said);
 }
 
-void CUnitClientSpecific::StopSpeech() {
+void UnitClientSpecific::StopSpeech() {
     for (const ClientSpeech& queued : speech) {
-        if (queued.talking) SetTalking(unit->id_, false);
-        g_clientWorld.sounds_->StopSound(queued.sound);
+        if (queued.talking) SetTalking(unit->id, false);
+        g_clientWorld.sounds->StopSound(queued.sound);
     }
     speech.clear();
 }
 
-bool CUnitClientSpecific::Speak(ClientSpeech* said) {
+bool UnitClientSpecific::Speak(ClientSpeech* said) {
     std::uint32_t now = gameapi::timeGetTime();
     if (lastSpeech == said->id && now - lastSpeechTime < kRepeatAfter) return false;
-    said->sound = g_clientWorld.sounds_->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
+    said->sound = g_clientWorld.sounds->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
     lastSpeech = said->id;
     lastSpeechTime = now;
     return true;

@@ -355,7 +355,7 @@ bool CheckProtectionBlock(const ProtectionCall& v, char* d, std::size_t n) {
     std::memset(&vitals, 0, sizeof(vitals));
     std::memcpy(vitals.protection, v.vitals, sizeof(v.vitals));
     if (!v.keyed) {
-        options::g_options.difficulty_ = v.difficulty;
+        options::g_options.difficulty = v.difficulty;
         g_logicSettings.absorption[v.difficulty] = v.factor;
     }
     float out[7];
@@ -399,10 +399,10 @@ bool CheckPickLocation(const PickLocationCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
     for (int i = 0; i < 6; ++i) stats.slots[i].kind = v.kinds[i];
     IsaacRandom& rng = g_random;
-    rng.count_ = 1;
-    rng.results_[0] = v.draw;
+    rng.count = 1;
+    rng.results[0] = v.draw;
     int result = stats.PickLocation(v.location);
-    const bool drew = rng.count_ != 1;
+    const bool drew = rng.count != 1;
     if (result == v.result && drew == (v.drew != 0)) return true;
     std::snprintf(d, n, "location %d, kinds %d %d %d %d %d %d: ours %d%s, original %d%s", v.location, v.kinds[0],
                   v.kinds[1], v.kinds[2], v.kinds[3], v.kinds[4], v.kinds[5], result, drew ? " (drew)" : "", v.result,

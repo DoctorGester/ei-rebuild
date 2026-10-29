@@ -511,7 +511,7 @@ kinds given.
     gen_function_sizes.py for new rows of config/extra_function_sizes.csv: it rewrites every size from the Ghidra
     database, which has moved from the committed file; add the rows by hand in order.
     **The throws**: the device layer's GameError is this compiler's `throw` of a pointer to a class of the game's name
-    (dx_errors.h: CGameException, CDXException). A failed file call throws `lib::FileError` (a std::runtime_error, by
+    (dx_errors.h: GameException, DXException). A failed file call throws `lib::FileError` (a std::runtime_error, by
     value) where MFC threw a CFileException*; no MFC exception class is left (C14zi).
     The compiler's ThrowInfo lists the pointer to the class and each base like the original's six records
     (0077F440, 0077F2B0, 0077EE80, 0077EE38, 0077EC28, 00759908), which nothing reads now: they and their catchable
@@ -569,9 +569,9 @@ kinds given.
     g_currentSession, g_currentConnection, g_gameClient / g_gameServer 0079B5D8 / 0079B5DC (counted pointers: their
     static initialisers 00412230 / 00412280 and exit functions 00412250 / 004122A0 are ported in net_session.cpp,
     rows in config/extra_function_sizes.csv), the pump time, the player / variable serials, the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
-    a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
+    a global**: it is the server world's `sessionKind` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
-    readers take `g_serverWorld.sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
+    readers take `g_serverWorld.sessionKind`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
     CRT's "C" locale since C26 (nothing reads it since C35b), the old iostream's shared lock and ios count and ostream's virtual base table (C35d: console::Stream has none;
     crt_file's zero mode constants went with C35a). **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
@@ -633,21 +633,21 @@ kinds given.
         plain global of ours (below, "Plain globals and locals instead") and its initialiser is UNUSED_INITIALISERS.
       - C18k4 named whole class objects the same way: a class with game.exe's vtable stays with C19, a class
         without one was a zero-storage object its initialiser constructed (lib::StaticObject, gone in C50b3: all are
-        plain globals now). Every access goes through the name or a member (`options::g_options.difficulty_`). Named: ui_objectives' last quest string 007C8178, the
+        plain globals now). Every access goes through the name or a member (`options::g_options.difficulty`). Named: ui_objectives' last quest string 007C8178, the
         protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp; plain globals
         since C50c1), the party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
         and the unread set 007AB8D8. C18k5 (1,717 -> 1,651 game data addresses) named the last four without a vtable: the options
-        0079BC70 (options_construct.cpp: the vector replay links it with its constructor), GameFlow 007AFE20 (world_game.cpp), CCursor 007C7BD8 (ui_cursor_setup.cpp) and CInterface3D 007C7D50
-        (ui_small_members.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
-        volumes, difficulty, paths, master server ...), the mouse position and drag motion (CCursor::position_ /
-        motion_: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
+        0079BC70 (options_construct.cpp: the vector replay links it with its constructor), GameFlow 007AFE20 (world_game.cpp), Cursor 007C7BD8 (ui_cursor_setup.cpp) and Interface3D 007C7D50
+        (ui_interface_glue.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
+        volumes, difficulty, paths, master server ...), the mouse position and drag motion (Cursor::position /
+        motion: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
         (007C7D84 was misnamed PeerList), close-all and sessions flags. The objects whose header only forward-declares
         their class (g_gameFlow, g_partyManager, g_interface and g_cursor: plain globals since C54g / C54g1) are declared
         extern in game_singletons.h. **The harness** reads
         them through tests/verify/harness_objects.h (HarnessOptions / HarnessFlow / HarnessInterface / HarnessCursor: ours
         in the image, `ei::OriginalGameData` at the address in --no-hooks runs); the stats recorder reads the
-        difficulty from game.exe's options the same way. Left: CMapDatabase 0079BF00, the renderer
+        difficulty from game.exe's options the same way. Left: MapDatabase 0079BF00, the renderer
         007AF060 and the other vtable-storing objects (C19).
       - gen_static_init still decodes a hand-ported initialiser (SHADOW) for unread_objects only: its instructions,
         the cells it stores and its exit function's instructions stay the initialisers' own (without that, two unread
@@ -690,7 +690,7 @@ kinds given.
         template argument: the literal check's pattern takes no nested `<>`), the replay compares ours with them in
         the record's order.
       - Not this rule (C19): an object that carries game.exe's vtable: the CArrays 007A9CC8 / 007AA608, the save stream
-        (CMemoryStream 007AFDF8). The console's ostreams and their log pointers are named since C18s (below).
+        (MemoryStream 007AFDF8). The console's ostreams and their log pointers are named since C18s (below).
     - **Unread objects** (config/unread_data.csv, written by gen_static_init.py): an object nothing but its
       initialiser reaches needs no name. `unread_objects` takes each run of contiguous dword stores of one
       initialiser that stores constants only (kinds stores, float fold, copy) into .data and keeps it when no
@@ -718,7 +718,7 @@ kinds given.
   - **The remaining objects** (C18, 2026-10-22; 247 -> 130):
     - **Singletons' fields read as members**: what was left of the client / server worlds', the scene renderer's and
       the camera's fields (managers, tick and its fraction, terrain, scripts, diplomacy, flags, wind, platforms) is
-      read through the object (`g_clientWorld.figureManager_`); the accessors that need world.h are out of line in
+      read through the object (`g_clientWorld.figureManager`); the accessors that need world.h are out of line in
       world_singletons.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
       vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
       007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with
@@ -736,7 +736,7 @@ kinds given.
       buffers (C50c); the command line's five strings (app_main.cpp), the registry root, start and text folders
       (game_folders.cpp; the disc and data folders too since C50e: plain std::string), the
       chunk archive's class registry, clip's work words and the console's command maps; the interface manager and the
-      cursor (C54g: CInterface3D and CCursor construct themselves); the camera and the scene renderer (C50b2, with the worlds below); the flow, the party manager, the saved parties and
+      cursor (C54g: Interface3D and Cursor construct themselves); the camera and the scene renderer (C50b2, with the worlds below); the flow, the party manager, the saved parties and
       the save stream (C54g1); the two worlds (C50b1, below); the draws' work arrays (line
       lists, the device's mesh buffers, sprites, strip, terrain projection, the part draws' moved positions, the moved
       packets and offset vertices) and SetSun's sorted sectors, a local (C50d; the unread set 007AB8D8, which only the
@@ -790,7 +790,7 @@ kinds given.
       cells 007AF284 / 007C2EB8 / 007AF3E8 / 007C53C4 / 007C54E8 are unread data (REVIEWED_READ: only the original's
       ported code read them).
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the camera 0079B2A8, the scene renderer 007AF060
-      (renderer_lifetime.cpp; both plain since C50b2, initialisers 0040C880 / 00500930 unused: the renderer's destructor only
+      (renderer_scene.cpp; both plain since C50b2, initialisers 0040C880 / 00500930 unused: the renderer's destructor only
       drops counts, ShutDown's DestroyRenderer has released the device by then, and the device object's destructor makes no
       device or window call) and the received messages 007C83D0 (with its destroyed flag 007C83C8) were `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
@@ -855,7 +855,7 @@ decision). `python tools/named_data.py --split vtable` lists each table with the
   `python tools/find_vtables.py --help` runs the tool and rewrites the csv: restore it with git.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
-  CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction (0073E850,
+  MemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction (0073E850,
   0073E6E8, 007435D8, ...). A tail is never stored; retiring it zeroes live slots (retiring 0073BD98 alone made every
   run crash calling a null slot at startup). gen_image_cells.py's check refuses a retired row that no code of game.exe
   stores (`stored_vtable`: `mov r/m32, imm32` or `mov r32, imm32`) or that shares a slot with a row still in use. A
@@ -889,7 +889,7 @@ decision). `python tools/named_data.py --split vtable` lists each table with the
   final where the original calls through the table (a devirtualised call let the client world's slot 29 inline slot
   27's float body: the effects' bow height moved).
 - **Traps**: a class constant left in a derived class compiles against the base class's (the item tags once stored
-  CEngineObject's table, every run hit `_purecall` at startup): remove a constant by declaring a poison member first.
+  EngineObject's table, every run hit `_purecall` at startup): remove a constant by declaring a poison member first.
   Member pointers of classes with several bases are two words: `ei::MemberAddress` takes the code word (adjustment 0).
 
 ### Real classes (C28)
@@ -897,27 +897,27 @@ decision). `python tools/named_data.py --split vtable` lists each table with the
 Classes are ordinary C++: the constructor body is the C++ constructor, `Destruct` / `DestructBody` the virtual
 destructor, the slot bodies the virtual overrides (base calls qualified), class names and ids `ClassName` /
 `GetClassId` overrides. How a family converts (C28a, the items):
-- The destructor calls its own Destroy qualified (`CItem::Destroy()`), as the original's does.
-- Allocation: `new T()`. CEngineObject has the game heap's `operator new` (noexcept: null without memory, then no
+- The destructor calls its own Destroy qualified (`Item::Destroy()`), as the original's does.
+- Allocation: `new T()`. EngineObject has the game heap's `operator new` (noexcept: null without memory, then no
   constructor runs, which the original's callers test) and `operator delete`, plus the placement pair; a derived
   class declares no `operator delete` of its own (it would hide the placement delete: warning C4291). An object built
   in storage someone else allocates is `new (place) X()` and `place->~X()`; one embedded in an owner whose own
   Construct / Destruct bodies build it is a `lib::InPlace<X>` member (PartyStorage, party_storage.h); a local is a
   plain `X x;`.
 - A constructor or destructor whose address is still called (an EI_ORIGINAL forwarder, C29) keeps a registered
-  `__fastcall` shim that calls it (party_lifetime.cpp's DestroyPartyInPlace at 006611D0).
+  `__fastcall` shim that calls it (party.cpp's DestroyPartyInPlace at 006611D0).
 - check_signatures accepts a destructor named by an EI_RECORD whose original pops 4 more (the scalar deleting
   destructor's flags argument).
 - Members must be trivially default-constructible or initialised in the constructor's list as the original does: a
   constructor default-initialises what it does not name.
 
-The window base (ui.h): `UiInputSide` (007401D0: the input slots 1-12 as virtuals, `handled_`) and
-`CUiWindow : CUiWindowBase, UiInputSide` (CUiWindowBase is CTransformObject plus the 0x40 bytes before +0x94, so
+The window base (ui.h): `UiInputSide` (007401D0: the input slots 1-12 as virtuals, `handled`) and
+`UiWindow : UiWindowBase, UiInputSide` (UiWindowBase is TransformObject plus the 0x40 bytes before +0x94, so
 the input side lands at +0x94 and the compiler's adjustor thunks are game.exe's SUB ECX,0x94; JMP) with slots 18-24
-as virtuals; `CUiContainer` adds 25-41 (25 / 26 `_purecall`) and its input dispatch as the input-side overrides
-(screens call the defaults qualified, `CUiContainer::LeftDown(...)`). The screens (CBattleScreen ... CMpHeroScreen,
-the item screens over `CItemScreen`'s slots 42-54) and the item panels (`CUiItemPanel`'s slot 25 `ItemAt`; the
-strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureStrip`) are ordinary classes built with
+as virtuals; `UiContainer` adds 25-41 (25 / 26 `_purecall`) and its input dispatch as the input-side overrides
+(screens call the defaults qualified, `UiContainer::LeftDown(...)`). The screens (BattleScreen ... MpHeroScreen,
+the item screens over `ItemScreen`'s slots 42-54) and the item panels (`UiItemPanel`'s slot 25 `ItemAt`; the
+strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStrip`) are ordinary classes built with
 `new X(...)`, their slots the overrides.
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
@@ -938,7 +938,7 @@ strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureS
   `AddonPanelOffset` returns none.
 - **DirectInput**: DirectInputCreateEx refuses an instance that is not a loaded module; the image's hInstance is the
   host's module, so the import is called as it is (S18j), from System32's dinput.dll (S22b). c_dfDIMouse (00745D00) points into game.exe's code section, so
-  `CDirectInputMouse::MouseDataFormat` is our copy of the seven objects. Other dinput.lib data in .text would need
+  `DirectInputMouse::MouseDataFormat` is our copy of the seven objects. Other dinput.lib data in .text would need
   the same.
 - **Rebirth**: RunStartupActions calls `rebirth_hook::SettingsOnly`: flags from ei_rebirth.ini and EI_REBIRTH,
   EI_Plugin's player count from `[Rebirth] NPlayers` (default 7). Miles's LoadLibraryA import refuses EI_Plugin.asi
@@ -951,8 +951,8 @@ strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureS
 - **Mod folders** (S19b, src/game/mod_folders.{h,cpp}): Maps, ResOverride, CameraPatch, StreamPatch and MoviesPatch
   as addon.dll does them (rebirth.md, "Resources and paths"), active only in the image with the flag on. Sites:
   GetFile / ListFiles (plain bodies `GetFilePlain` / `ListFilesPlain`), OpenResource / Destroy,
-  CFigureManager::CreateWithArchives, CLinkFigureLoader::Construct, CTextureManager / CMaterialManager::Create, the
-  nine maps-folder users, CCamera::LoadPath, SwitchStream, the three BinkOpen calls. Checked by
+  CFigureManager::CreateWithArchives, LinkFigureLoader::Construct, CTextureManager / CMaterialManager::Create, the
+  nine maps-folder users, Camera::LoadPath, SwitchStream, the three BinkOpen calls. Checked by
   `rebirth_mod_folders` (a mod written by `tools/make_test_mod.py`, harness steps `addonpath` and `modfile`). Not
   covered by a run: StreamPatch, MoviesPatch, the extra / ignored archives, Maps' zone-table and quest sites (S19d).
 - **Renderer**: the image always draws with the new renderer; there is no DirectDraw fallback (R11a, renderer.md
@@ -993,7 +993,7 @@ game, the `--no-hooks` suite) keeps the registry.
   its own defaults (paths `.\` and `.\res\` from the working folder, ShowTutorial 1, the other game settings, equal to
   the install's), Rebirth its own (no mod: AddonPath absent, the console's levels and AutoExec). The game's exit save
   then adds every option it keeps.
-- **Who uses it**: CWinRegistry (win_registry.cpp: the options loader and writer; `Open` makes the file's key,
+- **Who uses it**: WinRegistry (win_registry.cpp: the options loader and writer; `Open` makes the file's key,
   `Close` writes the file when a value changed, atomically through `ei_settings.ini.tmp`) and the direct readers
   through `settings_file::ReadValue` (console_addon's AutoExec lines, mod_folders, script_addon_commands' AddonPath,
   ui_widescreen, world_client_draw's draw radii, device_object's `Standalone` "PerfOverlay", "VSync", "Msaa" and
@@ -1027,7 +1027,7 @@ game, the `--no-hooks` suite) keeps the registry.
     under both option trees, the starter's and the renderer's keys, what is left out, the text written and read back).
   - *The game's save and the defaults in a run*: `settingsfile writable` (settings_save.txt) leaves the run's
     ei_settings.ini writable with a probe key of odd values; the game's exit save (WinMain's SaveToRegistry, `Flush` at
-    `CWinRegistry::Close`, `.tmp` then moved) rewrites it with water waves switched on in memory. `settingsfile defaults`
+    `WinRegistry::Close`, `.tmp` then moved) rewrites it with water waves switched on in memory. `settingsfile defaults`
     (settings_defaults.txt) starts with no file, its desktop 1280x720 (`settings_file::SetDesktopSize`, so the file
     does not depend on the monitor), and no missing-value check, so the first-use defaults, `Write`, the game reading
     them (and its own defaults for the rest) and its exit save run for real.
@@ -1205,7 +1205,7 @@ game, the `--no-hooks` suite) keeps the registry.
   MFC's open flags), `lib::TextFile` (OpenFile's "r" / "w", MFC's ReadString line pieces) and `lib::FileFind`
   (FindFirstFileA / FindNextFileA, MFC's read-ahead: FindNext is false on the last entry; the paths are the
   pattern's folder through GetFullPathNameA, as CFileFind's root).
-  The res archives (CMappedResource) keep a Win32 handle: CreateFileA, SetFilePointer, ReadFile, WriteFile through
+  The res archives (MappedResource) keep a Win32 handle: CreateFileA, SetFilePointer, ReadFile, WriteFile through
   the slots, the calls VC6's _sopen / _lseek / _read / _write made on its binary descriptor. _access is
   `lib::FileExists` (GetFileAttributesA; every caller asked mode 0 or 4), _findfirst the resource stream's own
   FindFirstFileA (now closed). Dropped with
@@ -1353,7 +1353,7 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
 
 S2a (short getters as named members), S11b, S16e (`find_vtables.py` should take only
 function starts as slots; the dashboard's library count includes library.csv's "not a function" rows), S19d. The console's `disconnect` (005DFC10 -> GameFlow 00581620 ->
-CWorldClient::DisconnectLocalPlayer 00566E00, S16c) cannot be a scenario: in net_lobby's lobby the client's next
+WorldClient::DisconnectLocalPlayer 00566E00, S16c) cannot be a scenario: in net_lobby's lobby the client's next
 segment then ends the game in its "packet parsing error" box, the original's too. Multiplayer client paths and many container members are reached by no
 scenario (tests/coverage/coverage.csv).
 
@@ -1406,19 +1406,19 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   round trip restores an asset's bytes.
 - Lengths that mean time or a limit: `text::CharacterCount` counts characters (what the original's cp1251 bytes
   counted; a colour escape `\007C`+3 bytes by its bytes). A briefing phrase lasts 0.05 s per character
-  (`CBriefingScreen::NextPhrase`).
+  (`BriefingScreen::NextPhrase`).
 - Cuts by character: `CharacterLength`, `CharacterBytes`, `FittingBytes`, `CopyFitting`; typing: `Typed`,
   `TypedLength`, `NextCharacter`, `PreviousCharacter`, `CharacterStart` (U4).
 
 ### U1: the asset boundary
 
-- **Sites**: the text database (`TextSources::FindKeyText`, which `CTextManager::Open` reads through; the copies
-  are cached per data address and dropped when their archive closes); `CTextManager::ListKeys` (key names) and the
-  key passed to the lookup (one "pers" key holds Cyrillic); CFileRegistry's `GetString`, `GetStringBuffer`,
+- **Sites**: the text database (`TextSources::FindKeyText`, which `TextManager::Open` reads through; the copies
+  are cached per data address and dropped when their archive closes); `TextManager::ListKeys` (key names) and the
+  key passed to the lookup (one "pers" key holds Cyrillic); FileRegistry's `GetString`, `GetStringBuffer`,
   `GetStringArray`; Chunk's `ReadString` / `ReadEncodedString` (.mob; Chunk's `WriteString` / `WriteStringArray`
-  convert back); credits.scr (`CCreditsScreen::Build`); the titles' headers (`ui_layouts.cpp`; the pages are RTF).
+  convert back); credits.scr (`CreditsScreen::Build`); the titles' headers (`ui_layouts.cpp`; the pages are RTF).
   The archives also hold binary files: `GameFlow::RegisterQuests` reads a zone's quest.reg from the text cursor, so
-  it opens it with `CTextManager::OpenData` (bytes as they are), and `TextSources::Find` (004DEBC0) stays the raw
+  it opens it with `TextManager::OpenData` (bytes as they are), and `TextSources::Find` (004DEBC0) stays the raw
   lookup.
 - **Rule from a real bug** (UB1): the UTF-8 copies moved the heap's layout, and ui_gallery_mp's base screen lost
   its player list: the server's update lists the player record and the client's binding in the order of their
@@ -1449,7 +1449,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   clipboard and addon's AutoExec lines convert with UTF-8; `GetFullPathNameA` (system_text.cpp) takes the current folder
   through the slot.
 - **Input that is not UTF-8** is taken in the ANSI code page, as the ANSI call took it; output is always UTF-8.
-- **Not routed**: the profile calls (`CIniFile`: GetPrivateProfile*, WritePrivateProfileString; the values
+- **Not routed**: the profile calls (`IniFile`: GetPrivateProfile*, WritePrivateProfileString; the values
   round-trip as bytes and the config\*.ini names are ASCII; a Cyrillic install folder would need them wide, with
   the ini files' code page decided), OutputDebugString, the loader's own calls (hook/, standalone/: ei_hook.dll's
   folder, EI_GAME_ROOT through `RedirectGamePaths`).
@@ -1488,7 +1488,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   ANSI-code-page bytes, to UTF-16; the lengths stay byte counts) and `CreateFontIndirectA` (the LOGFONT and its face
   name to `CreateFontIndirectW`). Every interface text draw (the import slot of DrawTextA, called on the surfaces' plain HDCs: the surfaces'
   `DrawTextIn` 005FDE20, the console's lines and input), the interface's extent
-  (`CInterface3D::TextExtent` 005F8340, what the editors' width limits use through `InterfaceTextExtentOriginal`)
+  (`Interface3D::TextExtent` 005F8340, what the editors' width limits use through `InterfaceTextExtentOriginal`)
   and the console's `PromptWidth` go through them. The harness's font slot wrapper (`HarnessCreateFontIndirect`, no
   anti-aliasing) wraps the UTF-8 version, as its file redirects do.
 - **The "charset option"**: the fonts never took a charset from an option. MFC's `CreatePointFont` asks for
@@ -1496,7 +1496,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   in the code page of the selected font's charset. So game.exe draws the assets' cp1251 bytes as Cyrillic only on a
   system whose ANSI code page is 1251; on this machine (1252) its frames show them as Latin-1 letters ("Ãðàôèêà"
   for "Графика"). With the wide calls the charset no longer decides the glyph and `DEFAULT_CHARSET` stays. The
-  "Font CharSet" option (+0x224, "english") only set the CRT's LC_CTYPE in the original (`CTextManager::Create`
+  "Font CharSet" option (+0x224, "english") only set the CRT's LC_CTYPE in the original (`TextManager::Create`
   004DED20); ours leaves LC_CTYPE "C" (U5).
 - `EI_FONT_CHARSET=204` in a run's environment (harness.cpp: the harness's font slot sets that charset, as a system
   with the assets' code page realises `DEFAULT_CHARSET`) makes game.exe's ANSI calls draw the assets' Cyrillic, the
@@ -1521,7 +1521,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   words). There are no double-byte lead bytes (`_ismbblead`, `isleadbyte`, `_mbsinc`, `_mbclen`; `_mbscmp` and
   `_mbsncmp` are byte compares; the standalone's start-up sets the host's `_MB_CP_SBCS` for `_splitpath` and the
   other host functions), whatever the system's ANSI code page. The "Font CharSet" option is not used:
-  `CTextManager::Create` (004DED20) leaves LC_CTYPE "C". `CharUpperA` / `CharLowerA` are routed to the table. Sites:
+  `TextManager::Create` (004DED20) leaves LC_CTYPE "C". `CharUpperA` / `CharLowerA` are routed to the table. Sites:
   about 100 case-insensitive compares (map, zone, allod, material, model, spell, skill, item, keyword and file
   names, "none", the briefing's person and topic keys, the save folders) left as identifiers: they call
   `text::CompareIgnoringCase`, the table's compare. 19 `MakeLower` (keys and file names) left. 5 `CharUpperA` / `CharLowerA`:
@@ -1536,24 +1536,24 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   names, archive patterns), numbers and ids, model / texture / sound names read from the network
   (`DeltaField::ReadText` empties one too long), error texts (`wvsprintfA` stops at 1 KB), the profile calls'
   buffers (ANSI, U2), the host password (`strncpy` to 20 bytes on both sides, compared as bytes). Fixed:
-  `CFileRegistry::GetStringBuffer` cuts at a character's end (`text::FittingBytes`; the asset's 16-bit length no
+  `FileRegistry::GetStringBuffer` cuts at a character's end (`text::FittingBytes`; the asset's 16-bit length no
   longer wraps); the server list's 90-byte name buffer (`text::CopyFitting`); the message box's edit text (50
-  characters, up to 200 bytes) into the connection screen's 0x80-byte box buffer (`CMessageBox::CopyEditText`, cut
-  at a character's end); `CStream::ReadText` cuts its UTF-8 at a character's end; `DrawTextA`'s UTF-8 route with
+  characters, up to 200 bytes) into the connection screen's 0x80-byte box buffer (`MessageWindow::CopyEditText`, cut
+  at a character's end); `ByteStream::ReadText` cuts its UTF-8 at a character's end; `DrawTextA`'s UTF-8 route with
   `DT_MODIFYSTRING` (the server list's ellipsis) gives `DrawTextW` the four characters of room it writes past the
-  text. The chat line also stays within 200 bytes (`CChatOverlay::Char`): a client's update carries 220 bytes
-  (`Connection::updateBudget_`) and an entry past that is never counted, so a longer SayMessage would never arrive.
+  text. The chat line also stays within 200 bytes (`ChatOverlay::Char`): a client's update carries 220 bytes
+  (`Connection::updateBudget`) and an entry past that is never counted, so a longer SayMessage would never arrive.
   Save names are std::strings (no buffer).
 - **Byte indexing**: about 37 sites. Left: ASCII prefixes, markers and separators (`Left(1)`, `Left(2)`, `Mid` past
   "pers_", "constr", '|', "^<digit>", the text splitters and tokenizers that stop at ASCII bytes; a UTF-8 byte
   never equals one), the editors' carets (U4). Fixed: script `StrLen` and `StrMid` count characters
   (`text::CharacterCount`, `text::CharacterBytes`); the new game's name cut to 10 characters, not bytes
-  (`CMpConnectScreen`).
+  (`MpConnectScreen`).
 - **Console padding**: none. Nothing pads text to a width (no `%-20s`, no stream width); the console tables are
   literal ASCII.
 - **Word wrap**: the chat overlay's `AddLine` (005E2A30) takes a character as its whole UTF-8 sequence
   (`text::CharacterLength`), so a word wider than a line breaks between characters and every piece is measured as
-  text. `CUiSurface::DrawWrappedText`, the console tokenizer and the text reader walk bytes but break only at ASCII
+  text. `UiSurface::DrawWrappedText`, the console tokenizer and the text reader walk bytes but break only at ASCII
   spaces and newlines: left.
 - **Check**: tests/scenarios/utf8_typing.txt's `utf8text` (Cyrillic compares in either case, the "Р" / "Ѡ" pair,
   `MakeLower`, `CharUpperA`, `tolower` and `isspace` of UTF-8 bytes, the name filter on a Cyrillic name, a cut
@@ -1563,14 +1563,14 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
 ### C34: saves, network and the harness
 
 - **Saves** (and the multiplayer heroes' mp\<n>.mp, info.sav, the zone's .mob chunks): resources, in the asset
-  code page on disk as the original's. Every text a stream writes goes through `CStream::WriteString` (the asset
+  code page on disk as the original's. Every text a stream writes goes through `ByteStream::WriteString` (the asset
   code page, '?' for a character it lacks, and the terminator; it replaced about 30 `Write(text, strlen + 1)`
-  sites and the files' own `WriteText` helpers), every text it reads through `CStream::ReadString` / `ReadInto`
+  sites and the files' own `WriteText` helpers), every text it reads through `ByteStream::ReadString` / `ReadInto`
   (to UTF-8) or `ReadText` (to UTF-8, cut to its buffer at a character's end). Chunk's `WriteString` /
   `WriteStringArray` convert as its `ReadString` does. So a save written by the image is byte-identical to
-  vanilla's (the top panel's text, `ui_battle_slots.cpp`, and the save's title were the two that differed under the
+  vanilla's (the top panel's text, `ui_battle_setup.cpp`, and the save's title were the two that differed under the
   old switch), and a Cyrillic title typed outside 1251 comes back with '?' for those characters. What a stream
-  writes as fixed-size bytes (`CEffectSound`'s 256-byte name) stays bytes: those are ASCII file names.
+  writes as fixed-size bytes (`EffectSound`'s 256-byte name) stays bytes: those are ASCII file names.
 - **Network**: the same streams carry the world's messages (the deltas' `WriteStringBoth` / `ReadString`, the
   server's and client's text messages, zone names, variable names), and the session layer converts in
   net_messages.cpp's `PutString` / `TakeString` (login, player, chat, zone, host, command, line and variable
@@ -1663,5 +1663,5 @@ The game's files through its import slots (CreateFileA, FindFirstFileA, GetFileA
 redirection and a mod's hooks apply: `File` (binary, a Win32 handle; MFC's CFile open flags), `TextFile` (lines on a
 host CRT stream), `FileFind` (a folder search with CFileFind's read-ahead and absolute paths), `OpenFile` (fopen) and
 `FileExists` (_access). A failed read, write or seek throws `FileError` (the OS error and the path in what()), where
-the game's MFC threw a CFileException*: what the game caught (CDib's reads and writes, the script reader) catches it,
+the game's MFC threw a CFileException*: what the game caught (Dib's reads and writes, the script reader) catches it,
 the rest ends the game as the original (a write to a full disk: tests/scenarios/harness_disk_full.txt).

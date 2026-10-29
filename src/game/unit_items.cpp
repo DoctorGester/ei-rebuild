@@ -19,9 +19,9 @@ constexpr int kPartStats = 4;
 
 
 
-void ReleaseSlots(CUnit* unit, CItem** slots, int count) {
+void ReleaseSlots(CUnit* unit, Item** slots, int count) {
     for (int i = 0; i < count; ++i) {
-        CItem* item = slots[i];
+        Item* item = slots[i];
         slots[i] = nullptr;
         if (item) item->Release();
         unit->MarkChanged(kPartEquipment);
@@ -31,21 +31,21 @@ void ReleaseSlots(CUnit* unit, CItem** slots, int count) {
 
 // The unit prototype table's record named `name`.
 
-CItemArmor* CUnit::EquipArmour(CItem* item) {
+ItemArmor* CUnit::EquipArmour(Item* item) {
     if (!item) return nullptr;
-    if (x87::fistp(item->condition_) <= 0) return nullptr;   // broken
-    CItemArmor* piece = AsArmor(item);
-    CItemArmor* previous = armor[piece->GetType()];
+    if (x87::fistp(item->condition) <= 0) return nullptr;    // broken
+    ItemArmor* piece = AsArmor(item);
+    ItemArmor* previous = armor[piece->GetType()];
     armor[piece->GetType()] = piece;
     piece->AddRef();
-    Controller()->ArmourPutOn(piece->prototypeId_);
+    Controller()->ArmourPutOn(piece->prototypeId);
     if (previous) previous->Release();
     MarkChanged(kPartEquipment);
     return previous;
 }
 
-CItemArmor* CUnit::UnequipArmour(int slot) {
-    CItemArmor* item = armor[slot];
+ItemArmor* CUnit::UnequipArmour(int slot) {
+    ItemArmor* item = armor[slot];
     armor[slot] = nullptr;
     if (item) {
         Controller()->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
@@ -58,8 +58,8 @@ CItemArmor* CUnit::UnequipArmour(int slot) {
 
 void CUnit::ReleaseAllItems() {
     ReleaseSlots(this, weapons, 4);
-    for (CItemArmor*& slot : armor) {
-        CItemArmor* item = slot;
+    for (ItemArmor*& slot : armor) {
+        ItemArmor* item = slot;
         slot = nullptr;
         if (item) {
             Controller()->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
@@ -71,11 +71,11 @@ void CUnit::ReleaseAllItems() {
     Controller()->ClearOuterArmourLayers();
     ReleaseSlots(this, quickItems, 4);
     ReleaseSlots(this, spells, 8);
-    for (CItem* item : carried) item->Release();
+    for (Item* item : carried) item->Release();
     carried.clear();
 }
 
-void CUnit::AddCarried(CItem* item) {
+void CUnit::AddCarried(Item* item) {
     item->AddRef();
     carried.push_back(item);
     MarkChanged(kPartEquipment);

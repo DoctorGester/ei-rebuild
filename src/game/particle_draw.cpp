@@ -25,28 +25,28 @@ std::vector<ParticleDepth> g_drawOrder;
 const Quaternion& CameraRotation() { return camera::FrameView().rotation; }
 
 // A source attached to a unit (class 0x50) is drawn only while the unit has MapObjectFlag::InParty.
-bool AttachedToHiddenUnit(const CParticleSource* s) {
-    CEngineObject* object = s->attachedTo;
+bool AttachedToHiddenUnit(const ParticleSource* s) {
+    EngineObject* object = s->attachedTo;
     if (!object) return false;
-    return object->GetClassId() == ClassId::Unit && !(object->flags_ & MapObjectFlag::InParty);
+    return object->GetClassId() == ClassId::Unit && !(object->flags & MapObjectFlag::InParty);
 }
 
 } // namespace
 
 // The attachment point plus the local position, or the local position alone.
-Vector3* CParticleSource::WorldPosition(Vector3* out) {
+Vector3* ParticleSource::WorldPosition(Vector3* out) {
     if (attachedTo) {
         Vector3 point;
         const Vector3* a = AttachmentPoint(&point, attachedTo);
-        double z = D(a->z) + D(localPosition_.z);
-        double y = D(a->y) + D(localPosition_.y);
-        double x = D(a->x) + D(localPosition_.x);
+        double z = D(a->z) + D(localPosition.z);
+        double y = D(a->y) + D(localPosition.y);
+        double x = D(a->x) + D(localPosition.x);
         out->x = static_cast<float>(x);
         out->y = static_cast<float>(y);
         out->z = static_cast<float>(z);
         return out;
     }
-    *out = localPosition_;
+    *out = localPosition;
     return out;
 }
 
@@ -54,17 +54,17 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
 // sources until the first empty entry), sorts it far to near and draws each source that is not
 // hidden (ParticleSourceFlag::NotDrawn) and not on a hidden unit, switching to additive blending for sources with
 // +0x150 == 1. Returns 0 as soon as a source fails to draw. The manager is held (+4) meanwhile.
-int CParticleManager::DrawAll(CSceneRenderer* renderer) {
-    ++refCount_;
+int ParticleManager::DrawAll(SceneRenderer* renderer) {
+    ++refCount;
     std::vector<ParticleDepth>& order = g_drawOrder;
     lib::FreeStorage(order);
     Vector3 axis;
     CameraRotation().AxisZ(&axis);
 
     // The manager's objects are its sources.
-    auto sourceOf = [](CEngineObject* object) { return static_cast<CParticleSource*>(object); };
-    auto node = objectList_.begin();
-    CParticleSource* source = node != objectList_.end() ? sourceOf(*node) : nullptr;
+    auto sourceOf = [](EngineObject* object) { return static_cast<ParticleSource*>(object); };
+    auto node = objectList.begin();
+    ParticleSource* source = node != objectList.end() ? sourceOf(*node) : nullptr;
     while (source) {
         ++node;
         Vector3 scratch;
@@ -73,7 +73,7 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
         entry.source = source;
         entry.depth = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis, *p));
         lib::SetAtGrow(order, std::ssize(order), entry);
-        source = node != objectList_.end() ? sourceOf(*node) : nullptr;
+        source = node != objectList.end() ? sourceOf(*node) : nullptr;
     }
 
     // Far (greater depth) first; false for NaN.
@@ -82,8 +82,8 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
 
     bool additive = false;
     for (int i = 0; i < std::ssize(order); ++i) {
-        CParticleSource* s = order[i].source;
-        if (s->flags_ & ParticleSourceFlag::NotDrawn) continue;
+        ParticleSource* s = order[i].source;
+        if (s->flags & ParticleSourceFlag::NotDrawn) continue;
         if (AttachedToHiddenUnit(s)) continue;
         int blend;
         blend = std::bit_cast<std::int32_t>(s->additiveBlend);
@@ -97,10 +97,10 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
             additive = false;
         }
         if (!s->Draw(renderer)) {
-            --refCount_;
+            --refCount;
             return 0;
         }
     }
-    --refCount_;
+    --refCount;
     return 1;
 }

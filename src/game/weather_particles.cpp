@@ -101,12 +101,12 @@ struct ParticleFrame {
     float high;
 };
 
-ParticleFrame Begin(CRainSnow& layer, float sink, float rise) {
+ParticleFrame Begin(RainSnow& layer, float sink, float rise) {
     ParticleFrame frame;
     frame.wind = layer.wind;
     frame.wind.z = static_cast<float>(layer.wind.z - sink);
-    const CWorldClient* world = layer.world;
-    frame.time = static_cast<float>(static_cast<float>(world->tick_) + world->tickFraction_);
+    const WorldClient* world = layer.world;
+    frame.time = static_cast<float>(static_cast<float>(world->tick) + world->tickFraction);
     const Vector3 eye = camera::FrameView().position;
     // The time a particle takes from `rise` above the camera, and where it starts from then.
     const float time = static_cast<float>((eye.z - rise) / frame.wind.z);
@@ -126,7 +126,7 @@ int Jitter(int cycle, int factor) {
 }
 constexpr int kJitterX = -59, kJitterY = 67, kJitterZ = -127;
 
-void Put(CRainSnow& layer, float x, float y, float z) {
+void Put(RainSnow& layer, float x, float y, float z) {
     const int index = layer.particleCount++;
     VertexPacket& packet = layer.positions[index >> 2];
     packet.block[0][index & 3] = x;
@@ -135,12 +135,12 @@ void Put(CRainSnow& layer, float x, float y, float z) {
 }
 
 // The corners built so far projected with the top of the pipeline's stack 2, an outcode each.
-void Project(CRainSnow& layer, CSceneRenderer* renderer) {
+void Project(RainSnow& layer, SceneRenderer* renderer) {
     layer.positions.resize((layer.particleCount + 3) >> 2);
     layer.projected.resize(std::ssize(layer.positions) * 4);
     layer.outcodes.resize(std::ssize(layer.positions) * 4);
-    const CTransformPipeline* pipeline = renderer->pipeline_;
-    pipeline->ProjectClipped(*pipeline->Top(CTransformPipeline::kClipStack), layer.positions.data(),
+    const TransformPipeline* pipeline = renderer->pipeline;
+    pipeline->ProjectClipped(*pipeline->Top(TransformPipeline::kClipStack), layer.positions.data(),
                              layer.projected.data(), layer.outcodes.data(), std::ssize(layer.positions));
 }
 
@@ -158,15 +158,15 @@ void SetFrame(TLVertex* triangle, std::uint8_t frame, float top, float bottom) {
 }
 
 // The vertices kept (three per particle on screen) and taken to the screen.
-int Finish(CRainSnow& layer, CSceneRenderer* renderer, int used) {
+int Finish(RainSnow& layer, SceneRenderer* renderer, int used) {
     layer.vertices.resize(used);
-    if (used != 0) renderer->pipeline_->ToScreen(layer.vertices.data(), std::ssize(layer.vertices));
+    if (used != 0) renderer->pipeline->ToScreen(layer.vertices.data(), std::ssize(layer.vertices));
     return used;
 }
 
 } // namespace
 
-int CRainSnow::BuildRain(CSceneRenderer* renderer) {
+int RainSnow::BuildRain(SceneRenderer* renderer) {
     const ParticleFrame frame = Begin(*this, kRainSink, kRainRise);
     // The drop's tail: its length against the wind.
     const float length = LengthXYZ(frame.wind);
@@ -241,7 +241,7 @@ int CRainSnow::BuildRain(CSceneRenderer* renderer) {
     return Finish(*this, renderer, used);
 }
 
-int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
+int RainSnow::BuildSnow(SceneRenderer* renderer) {
     const ParticleFrame frame = Begin(*this, kSnowSink, kSnowRise);
 
     int flakes = 0;
@@ -301,17 +301,17 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
     return Finish(*this, renderer, used);
 }
 
-void CRainSnow::DrawParticles(CSceneRenderer* renderer, int vertexCount) {
-    renderer->device_->DrawTlTriangles(vertices.data(), std::ssize(vertices), indices.data(), vertexCount);
+void RainSnow::DrawParticles(SceneRenderer* renderer, int vertexCount) {
+    renderer->device->DrawTlTriangles(vertices.data(), std::ssize(vertices), indices.data(), vertexCount);
 }
 
-int CRainSnow::DrawRain(CSceneRenderer* renderer) {
+int RainSnow::DrawRain(SceneRenderer* renderer) {
     const int vertexCount = BuildRain(renderer);
     if (vertexCount != 0) DrawParticles(renderer, vertexCount);
     return 1;
 }
 
-int CRainSnow::DrawSnow(CSceneRenderer* renderer) {
+int RainSnow::DrawSnow(SceneRenderer* renderer) {
     const int vertexCount = BuildSnow(renderer);
     if (vertexCount != 0) DrawParticles(renderer, vertexCount);
     return 1;

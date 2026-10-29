@@ -36,20 +36,20 @@ bool Is(const std::string& s, const char* t) {
 
 // Whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(const Connection* connection) {
-    for (auto& node : bindings_) {
+    for (auto& node : bindings) {
         auto* binding = node.Get();
         if (binding->ConnectionRef().Get() != connection) continue;
         auto* player = binding->Player();
-        if (IsLive(player) && player->host_) return true;
+        if (IsLive(player) && player->host) return true;
     }
     return false;
 }
 
-// File requests: the request keeps its sender's connection and is listed on fileRequests_ (dropped again on
+// File requests: the request keeps its sender's connection and is listed on fileRequests (dropped again on
 // removal).
 void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
     message->ConnectionRef().Assign(g_currentConnection);
-    self->fileRequests_.emplace_back(message);
+    self->fileRequests.emplace_back(message);
 }
 
 // Commands, from the connection being read. Kinds 0-2 need the host's
@@ -60,19 +60,19 @@ void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
 //   2 / 3: every guest whose name starts with `text` is kicked / banned;
 //   4 / 5: the client with serial atoi(text) is kicked / banned.
 void ServerOnCommand(ServerSession* self, CommandMessage* message) {
-    std::string* text = &message->text_;
-    switch (message->kind_) {
+    std::string* text = &message->text;
+    switch (message->kind) {
     case kPreviewMap:
         if (self->IsHostConnection(g_currentConnection)) g_gameFlow.SetNetworkZone(text->data());
         return;
     case kZoneCommand: {
         if (!self->IsHostConnection(g_currentConnection)) return;
-        auto node = self->queuedMaps_.begin();
-        for (; node != self->queuedMaps_.end(); ++node) {
+        auto node = self->queuedMaps.begin();
+        for (; node != self->queuedMaps.end(); ++node) {
             auto* entry = node->Get();
-            if (entry->text_ == *text) break;
+            if (entry->text == *text) break;
         }
-        if (node == self->queuedMaps_.end()) return;
+        if (node == self->queuedMaps.end()) return;
         const std::size_t cut = text->size() - 2;
         std::string suffix = text->substr(cut, StringNpos());
         std::string name = text->substr(0, text->size() - 2);

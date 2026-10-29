@@ -1,4 +1,4 @@
-// The help / message window (CHelpWindow, ui.h): its Build, Close, the pulse (Update)
+// The help / message window (HelpWindow, ui.h): its Build, Close, the pulse (Update)
 // and the input side's button and key handlers.
 // The page itself is built by ShowPage (Rebirth-patched; its vanilla body is in ui_help_page.cpp). See
 // docs/notes/ui.md.
@@ -29,7 +29,7 @@ constexpr char kHelpAction = ';';   // the help key's action (g_keyActions)
 
 // Opens text "tutor " + `key` and, when it is there, replaces `text` with it up to the next '#' (the line ends
 // trimmed).
-void ReadTutorText(CTextManager* texts, const std::string& key, std::string* text) {
+void ReadTutorText(TextManager* texts, const std::string& key, std::string* text) {
     if (!texts->Open(std::string(kTutorSection) + key)) return;
     std::string read = texts->ReadToHash();
     str::TrimRight(read, kLineEnds);
@@ -40,46 +40,46 @@ int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 
 } // namespace
 
-void CHelpWindow::CreateScreen() {
+void HelpWindow::CreateScreen() {
     LoadTexture(kSaveLoadTexture, TextureKind::Interface);
     CreateTexture(0x100, 0x100, TextureKind::Blank1555);
-    CTextManager* texts = g_clientWorld.texts_;
-    if (!texts->Open(std::string(kTutorialSection) + text_)) {
-        interface_->SetPendingValue(0);
+    TextManager* texts = g_clientWorld.texts;
+    if (!texts->Open(std::string(kTutorialSection) + text)) {
+        ui->SetPendingValue(0);
         return;
     }
     std::string line = texts->ReadLine(true);
-    title_ = line.c_str();
+    title = line.c_str();
     while (texts->FindLine(kScreenLine)) {
         texts->NextLine();
         line = texts->ReadLine(true);
-        lines_.push_back(line);
+        lines.push_back(line);
     }
-    if (lines_.empty()) {
-        interface_->SetPendingValue(0);
+    if (lines.empty()) {
+        ui->SetPendingValue(0);
         return;
     }
-    ReadTutorText(texts, title_, &title_);
-    for (std::string& page : lines_) ReadTutorText(texts, page, &page);
-    if (page_ < 0) page_ = 0;
-    if (page_ >= static_cast<int>(lines_.size())) page_ = static_cast<int>(lines_.size()) - 1;
-    pulseTime_ = 0.0f;
+    ReadTutorText(texts, title, &title);
+    for (std::string& pageText : lines) ReadTutorText(texts, pageText, &pageText);
+    if (page < 0) page = 0;
+    if (page >= static_cast<int>(lines.size())) page = static_cast<int>(lines.size()) - 1;
+    pulseTime = 0.0f;
     render::g_renderState.alphaReference = 1;
     ShowPage();
 }
 
-void CHelpWindow::CloseScreen() {
-    pulsing_.clear();
-    pictures_.clear();
+void HelpWindow::CloseScreen() {
+    pulsing.clear();
+    pictures.clear();
     ClearSurfaces();
     ClearRegions();
     ClearSceneObjects();
 }
 
-void CHelpWindow::Update() {
-    CUiContainer::Update();
-    double time = FrameTime() + pulseTime_;
-    pulseTime_ = static_cast<float>(time);
+void HelpWindow::Update() {
+    UiContainer::Update();
+    double time = FrameTime() + pulseTime;
+    pulseTime = static_cast<float>(time);
     double wave = (x87::fcos(time * 5.0f) + 1.0f) * 0.5f;
     double alpha = wave * 255.0f;
     float alphaStored = static_cast<float>(alpha);   // stored to a float
@@ -89,25 +89,25 @@ void CHelpWindow::Update() {
     std::uint32_t r = static_cast<std::uint32_t>(Clamp255(static_cast<int>(rest + alphaStored)));
     std::uint32_t gb = static_cast<std::uint32_t>(Clamp255(static_cast<int>(rest)));
     std::uint32_t colour = a << 24 | r << 16 | gb << 8 | gb;
-    for (CUiMesh* mesh : pulsing_) mesh->flatColour_ = colour;
+    for (UiMesh* mesh : pulsing) mesh->flatColour = colour;
 }
 
-void CHelpWindow::Finish() {
-    interface_->PlaySound(kOkSound);
-    if (!message_)
-        interface_->helpTopics_[text_] = page_;
+void HelpWindow::Finish() {
+    ui->PlaySound(kOkSound);
+    if (!message)
+        ui->helpTopics[text] = page;
     else
-        interface_->messageFlag_ = page_;
-    interface_->SetPendingValue(0);
+        ui->messageFlag = page;
+    ui->SetPendingValue(0);
 }
 
-void CHelpWindow::LeftDown(int buttons, int x, int y) {
-    CUiContainer::LeftDown(buttons, x, y);
+void HelpWindow::LeftDown(int buttons, int x, int y) {
+    UiContainer::LeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case 0:
-        if (page_ > 0) {
-            interface_->PlaySound(kNextSound);
-            --page_;
+        if (page > 0) {
+            ui->PlaySound(kNextSound);
+            --page;
             ShowPage();
         }
         break;
@@ -115,9 +115,9 @@ void CHelpWindow::LeftDown(int buttons, int x, int y) {
         Finish();
         break;
     case 2:
-        if (page_ < static_cast<int>(lines_.size()) - 1) {
-            interface_->PlaySound(kNextSound);
-            ++page_;
+        if (page < static_cast<int>(lines.size()) - 1) {
+            ui->PlaySound(kNextSound);
+            ++page;
             ShowPage();
         }
         break;
@@ -126,16 +126,16 @@ void CHelpWindow::LeftDown(int buttons, int x, int y) {
     }
 }
 
-void CHelpWindow::KeyDown(int key, int repeat, int flags) {
-    CUiContainer::KeyDown(key, repeat, flags);
-    if (key == VK_RETURN && page_ < static_cast<int>(lines_.size()) - 1) {
-        interface_->PlaySound(kNextSound);
-        ++page_;
+void HelpWindow::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
+    if (key == VK_RETURN && page < static_cast<int>(lines.size()) - 1) {
+        ui->PlaySound(kNextSound);
+        ++page;
         ShowPage();
-        handled_ = true;
+        handled = true;
         return;
     }
-    if (key != VK_RETURN && key != VK_ESCAPE && g_keyActions[flags & 0x1FF] != kHelpAction) return;
+    if (key != VK_RETURN && key != VK_ESCAPE && g_keyActions[modifiers & 0x1FF] != kHelpAction) return;
     Finish();
-    handled_ = true;
+    handled = true;
 }

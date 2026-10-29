@@ -1,4 +1,4 @@
-// The map database loader: CMapDatabase's allods, maps and exits (object_tables.h) filled from map.txt / map-
+// The map database loader: MapDatabase's allods, maps and exits (object_tables.h) filled from map.txt / map-
 // LMP.txt.
 // More: docs/notes/comments-c22i.md, "map_database.cpp".
 #include "angles.h"
@@ -32,16 +32,16 @@ bool Is(const char* word, const char* text) {
 
 class Loader {
 public:
-    Loader(CMapDatabase* db, CTextManager* reader) : db_(db), reader_(reader), map_(static_cast<int>(db->maps.size()) - 1) {}
+    Loader(MapDatabase* newDb, TextManager* newReader) : db(newDb), reader(newReader), map(static_cast<int>(newDb->maps.size()) - 1) {}
 
     void Line();
 
 private:
-    void Split() { words_ = reader_->Split(true); }
-    const char* Word(int i) const { return words_[i].c_str(); }
-    int Count() const { return static_cast<int>(words_.size()); }
-    MapRecord& Map() { return db_->maps[map_]; }
-    ZoneExit& Exit() { return Map().exits[exit_]; }
+    void Split() { words = reader->Split(true); }
+    const char* Word(int i) const { return words[i].c_str(); }
+    int Count() const { return static_cast<int>(words.size()); }
+    MapRecord& Map() { return db->maps[map]; }
+    ZoneExit& Exit() { return Map().exits[exit]; }
 
     void AddAllod();
     void AddMap();
@@ -49,31 +49,31 @@ private:
     void AddExit();
     void ExitLine(const char* word);
 
-    CMapDatabase* db_;
-    CTextManager* reader_;
-    int map_;          // the current map (starts at the last one already loaded)
-    int exit_ = -1;    // the current exit of the current map
-    std::vector<std::string> words_;
+    MapDatabase* db;
+    TextManager* reader;
+    int map;           // the current map (starts at the last one already loaded)
+    int exit = -1;     // the current exit of the current map
+    std::vector<std::string> words;
 };
 
 void Loader::AddAllod() {
-    AllodRecord& allod = db_->allods.emplace_back();
-    allod.name = words_[1];
+    AllodRecord& allod = db->allods.emplace_back();
+    allod.name = words[1];
     for (int i = 0; i < 5; ++i) {
         Split();
-        allod.otherNames[i] = words_[0];
+        allod.otherNames[i] = words[0];
     }
 }
 
 void Loader::AddMap() {
-    db_->maps.emplace_back();
-    ++map_;
-    exit_ = -1;
-    Map().name = words_[1];
-    Map().allod = words_[2];
-    for (AllodRecord& allod : db_->allods) {
-        if (text::CompareIgnoringCase(allod.name, words_[2]) != 0) continue;
-        allod.maps.push_back(map_);
+    db->maps.emplace_back();
+    ++map;
+    exit = -1;
+    Map().name = words[1];
+    Map().allod = words[2];
+    for (AllodRecord& allod : db->allods) {
+        if (text::CompareIgnoringCase(allod.name, words[2]) != 0) continue;
+        allod.maps.push_back(map);
         break;
     }
     if (Is(Word(3), game::mapwords::Game())) Map().kind = 0;
@@ -87,13 +87,13 @@ void Loader::AddMap() {
 
 void Loader::AddExit() {
     Map().exits.emplace_back();
-    ++exit_;
+    ++exit;
     Exit().view = 0.0f;
     Exit().hasDeployAngle = 0;
     Exit().deployAngle = 0.0f;
     Split();
     if (Count() > 1) {
-        Exit().target = words_[0];
+        Exit().target = words[0];
         Exit().entrance = std::atoi(Word(1)) - 1;
     }
 }
@@ -103,12 +103,12 @@ bool Loader::MapLine(const char* word) {
     if (Is(word, game::mapwords::Res())) {
         Split();
         if (Count() > 1) {
-            Map().map = words_[0];
-            Map().mob = words_[1];
+            Map().map = words[0];
+            Map().mob = words[1];
         }
     } else if (Is(word, game::mapwords::Camera())) {
         Split();
-        if (Count() > 0) Map().camera = words_[0];
+        if (Count() > 0) Map().camera = words[0];
     } else if (Is(word, game::mapwords::Maps())) {
         Split();
         if (Count() > 1) {
@@ -117,12 +117,12 @@ bool Loader::MapLine(const char* word) {
         }
         Split();
         if (Count() > 1) {
-            Map().picture = words_[0];
-            Map().picture2 = words_[1];
+            Map().picture = words[0];
+            Map().picture2 = words[1];
         }
     } else if (Is(word, game::mapwords::Figure())) {
         Split();
-        if (Count() > 0) Map().figure = words_[0];
+        if (Count() > 0) Map().figure = words[0];
     } else if (Is(word, game::mapwords::Weather())) {
         Split();
         if (Count() > 0) {
@@ -177,12 +177,12 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 0) Exit().passTime = static_cast<float>(std::atof(Word(0)));
     } else if (Is(word, game::mapwords::View())) {
         Split();
-        words_.push_back(game::mapwords::Zero());
+        words.push_back(game::mapwords::Zero());
         StoreRadians(&Exit().view, Word(0));
     } else if (Is(word, game::mapwords::DeployAngle())) {
         Exit().hasDeployAngle = 1;
         Split();
-        words_.push_back(game::mapwords::Zero());
+        words.push_back(game::mapwords::Zero());
         StoreRadians(&Exit().deployAngle, Word(0));
     }
 }
@@ -193,17 +193,17 @@ void Loader::Line() {
         AddAllod();
     } else if (Is(Word(0), game::mapwords::Zone()) && Count() > 3) {
         AddMap();
-    } else if (map_ >= 0) {
-        if (!MapLine(Word(0)) && exit_ >= 0) ExitLine(Word(0));
+    } else if (map >= 0) {
+        if (!MapLine(Word(0)) && exit >= 0) ExitLine(Word(0));
     }
 }
 
 } // namespace
 } // namespace mapdb
 
-bool CMapDatabase::Load(const char* fileName) {
+bool MapDatabase::Load(const char* fileName) {
     using namespace mapdb;
-    CTextManager* reader = g_clientWorld.texts_;
+    TextManager* reader = g_clientWorld.texts;
     Loader loader(this, reader);
     if (!reader->Open(fileName)) return false;
     while (reader->FindHeader()) loader.Line();
@@ -212,10 +212,10 @@ bool CMapDatabase::Load(const char* fileName) {
 }
 
 // The map database file names ("map.txt", "map-LMP.txt").
-bool CMapDatabase::LoadAll() {
+bool MapDatabase::LoadAll() {
     Load("map.txt");
     return Load("map-LMP.txt");
 }
 
 // The map database (a plain global: the C++ runtime builds it empty and destroys it).
-CMapDatabase g_mapDatabase;
+MapDatabase g_mapDatabase;

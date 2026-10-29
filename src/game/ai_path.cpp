@@ -18,7 +18,7 @@
 
 namespace {
 
-bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
+bool IsCellPassable(AIMap* map, CUnit* unit, int x, int y) {
     return map->cells[y][x].Passability(unit->sizeClass * 4) != 0;
 }
 
@@ -26,7 +26,7 @@ constexpr float kDiagonal = 0.707f;
 constexpr float kInset = 0.49f;
 } // namespace
 
-bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance) {
+bool AIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance) {
     int tx = WorldToCell(target->x), ty = WorldToCell(target->y);
     target->x = 2.0f * target->x;
     target->y = 2.0f * target->y;
@@ -37,7 +37,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     }
 
     Vector3 from;
-    from = unit->localPosition_;
+    from = unit->localPosition;
     int ux = WorldToCell(from.x), uy = WorldToCell(from.y);
     int sizeClass = unit->sizeClass;
     int region = 0;
@@ -124,13 +124,13 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     return false;
 }
 
-void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
+void AIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
-    int count = g_serverWorld.tick_;
+    int count = g_serverWorld.tick;
     Vector3 facing;
-    unit->localRotation_.AxisY(&facing);
+    unit->localRotation.AxisY(&facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
-    path->Start(unit->localPosition_, backwards, count - 1);
+    path->Start(unit->localPosition, backwards, count - 1);
 
     PathCells& pathCells = path->cells;
     PathCells& steps = path->steps;
@@ -156,9 +156,9 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     SetStepSpeeds(unit, &path->steps);
 }
 
-bool CAIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float range, float minDistance) {
+bool AIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float range, float minDistance) {
     Vector3 from, goal;
-    from = unit->localPosition_;
+    from = unit->localPosition;
     goal = target;
     path->goal = target;
     if (LengthSquared2DUnrounded(target.x, target.y) > 100000000.0) return false;   // NaN goes on
@@ -251,7 +251,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float ra
 
         // Smooth the start of the path, entering from the side the unit faces.
         Vector3 facing;
-        unit->localRotation_.AxisY(&facing);
+        unit->localRotation.AxisY(&facing);
         float bx = -facing.x, by = -facing.y;
         float px;
         px = path->targetX;
@@ -276,7 +276,7 @@ done:
     return found;
 }
 
-bool CAIMap::ContinuePath(CUnit* unit, AIPath* path) {
+bool AIMap::ContinuePath(CUnit* unit, AIPath* path) {
     bool wasReached = path->reached;
     if (path->failed && std::ssize(path->cells) == 0) return FindPath(unit, path->goal, path, 1000000.0f, 0.0f);
     AdvancePath(unit, path);

@@ -1,13 +1,13 @@
 #pragma once
 
-// The save versions the loads test (CStream::version_ of the stream being read): each names what that version
+// The save versions the loads test (ByteStream::version of the stream being read): each names what that version
 // added, and a load reads the field from that version on unless the comment says otherwise. Saves are written at
 // kSaveVersion; the oldest the game reads is kSaveOldestVersion (world.h).
 
 inline constexpr int kVersionMissileCaster = 0x43;       // a missile's caster id and from-caster flag
 inline constexpr int kVersionEffectUnitId = 0x43;        // a visual effect's unit id
 inline constexpr int kVersionLookStopFlag = 0x44;        // an AI look's stop flag
-inline constexpr int kVersionActingCheckTime = 0x44;     // CUnitServer::actingCheckTime
+inline constexpr int kVersionActingCheckTime = 0x44;     // UnitServer::actingCheckTime
 inline constexpr int kVersionStatsPastFlags = 0x45;      // below: the unit statistics up to the flags only
 inline constexpr int kVersionPlayerGroup = 0x46;         // before: a script group that is read and dropped
 inline constexpr int kVersionScenarioInput = 0x47;       // scenario.sav holds the input state and the scripts

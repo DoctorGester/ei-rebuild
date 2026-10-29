@@ -5,7 +5,7 @@ header comment of the named file.
 
 ## map_database.cpp
 
-The map database loader: CMapDatabase's allods, maps and exits (object_tables.h) filled
+The map database loader: MapDatabase's allods, maps and exits (object_tables.h) filled
 from map.txt / map-LMP.txt.
 The file is read line by line through the text manager and split into words. Lines
 starting with a directive word set the current record:
@@ -24,7 +24,7 @@ around the selected mod (HKCU\Software\Gipat.Ru\EI_Starter\Settings "AddonPath",
   mod's folder when the mod's Maps\ held that name at start, else the game's.
 - ResOverride (25 sites): the mod's config.reg [Res] lists archives that come before (or, with '-',
   instead of) the game's twelve archives, plus extra figure and texture archives; every
-  CMappedResource::GetFile and ListFiles goes through addon (its vtable slot and all their calls).
+  MappedResource::GetFile and ListFiles goes through addon (its vtable slot and all their calls).
 - MoviesPatch (the BinkOpen import), CameraPatch (the camera path's CFile::Open), StreamPatch (the stream file's
   path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
 In a hooked Rebirth launch addon does all of it (the patched functions stay original there) and a
@@ -44,9 +44,9 @@ ReplicaEntry in one of 11 priority maps. Each update packet carries, highest pri
 entries whose object version differs from the version last sent (a 1 bit, type, id, then the
 object's own Write) or whose object went away (a 0 bit, type, id). Every packet is remembered in
 the send history with what it carried, so an acknowledgement (or its absence) can mark entries as
-delivered or resend them. A reliable byte stream (reliableOut_, reliableIn_) travels in front of
+delivered or resend them. A reliable byte stream (reliableOut, reliableIn) travels in front of
 the entries in chunks of up to 255 bytes ("headers"). The peer keeps the objects it received in
-`records_` (key type << 16 | id).
+`records` (key type << 16 | id).
 
 ## net_link.h
 
@@ -55,7 +55,7 @@ and the pump that keeps a driver link per remote player. Names are
 provisional; see docs/notes/network.md and
 docs/notes/cleanup-network.md.
 Class map (vtables):
-  FileStream (0x1C): a CStream over a `lib::File` (the original: an MFC CFile). Save files go through it
+  FileStream (0x1C): a ByteStream over a `lib::File` (the original: an MFC CFile). Save files go through it
             (world_game.cpp, ui_saveload.cpp), and the links record their messages with it.
   NetLink (0x28, abstract): the recording flags and the recording file.
   LoopbackLink (0x30): two of them joined to each other, the single-player
@@ -86,9 +86,9 @@ of `this`, which cannot fail here and is left out.
 EI_Plugin's NewMaster: the second master server (the plugin's is hat.gipath.org:28004; ours is the
 setting ei::rebirth::PluginSecondMaster(), empty by default). Used behind
 ei::rebirth::Patch::EiPluginNewMaster by three rewrites, at the plugin's call sites:
-- the main menu's Multiplayer button (CMainMenu::LeftDown),
+- the main menu's Multiplayer button (MainMenu::LeftDown),
 - the announcement to the master (ServerSession::AnnounceToMaster),
-- the master request of the connection screen (CMpConnectScreen::MasterRequest).
+- the master request of the connection screen (MpConnectScreen::MasterRequest).
 With the setting empty none of them changes anything (no thread, no packet, no probe).
 See docs/notes/rebirth.md ("EI_Plugin.asi", NewMaster).
 
@@ -105,12 +105,12 @@ stays empty.
 
 ## particle_create.cpp
 
-CParticleSource set-up: Create, Reset and Clear. Names are provisional. Create resets the source, then fills
-the per-type parameters by `type_` (0x2000-0x2052; the script names are a table in the game's data):
+ParticleSource set-up: Create, Reset and Clear. Names are provisional. Create resets the source, then fills
+the per-type parameters by `type` (0x2000-0x2052; the script names are a table in the game's data):
 emission rates, lifetime, spread, sizes, the three callbacks (emit, update, element), the element array
 some types keep, and the texture. Last it loads the texture (kind 6, by name) and builds one UV rectangle
 per texture frame (the frames are a grid of `frameColumns` columns). The callbacks are member pointers to
-our rewrites (CParticleSource's EmitCallback, UpdateCallback, ElementCallback: plain code addresses, as in
+our rewrites (ParticleSource's EmitCallback, UpdateCallback, ElementCallback: plain code addresses, as in
 the original). Floating point follows the original's x87 code: `double` for values the original keeps on
 the FPU stack, static_cast<float> where it stores to a float.
 
@@ -142,8 +142,8 @@ dispatcher (app.cpp). Outside the switch-over, and when the frame fills the wind
 ## registry.h
 
 The game's binary registry files (*.reg: quests, item databases, settings), read through
-CFileRegistry. Names come from the game's own messages
-("CFileRegistry::FindData().\nWrong type of entry.").
+FileRegistry. Names come from the game's own messages
+("FileRegistry::FindData().\nWrong type of entry.").
 File layout (all offsets from the start of the file):
   +0x00 u32 magic 0x45AB3EFB
   +0x04 u16 section count = size of the section hash table

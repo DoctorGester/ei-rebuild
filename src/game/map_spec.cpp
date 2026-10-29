@@ -62,7 +62,7 @@ Spec::~Spec() = default;
 void Spec::Remove() { Apply(); }
 void Spec::Refresh() { Apply(); }
 
-void* Spec::WorldObject() { return g_clientWorld.objectManager_->FindObject(id); }
+void* Spec::WorldObject() { return g_clientWorld.objectManager->FindObject(id); }
 
 void Spec::Move(float dx, float dy, float dz) {
     position.x = dx + position.x;
@@ -124,7 +124,7 @@ void ObjectSpec::Save() {
 
 void ObjectSpec::OnChunk() {
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xB002: id = c.ReadInt(); break;
     case 0xB003: parentId = c.ReadInt(); break;
     case 0xB004: name = c.ReadString(); break;
@@ -169,21 +169,21 @@ void ObjectSpec::Apply() {
         g_serverWorld.CreateObject(this);
         return;
     }
-    g_serverWorld.aiMap_.BeginRefresh();
-    g_serverWorld.aiMap_.sectorMap.Remove(MapObject());
+    g_serverWorld.aiMap.BeginRefresh();
+    g_serverWorld.aiMap.sectorMap.Remove(MapObject());
     CMapObject* mapObject = MapObject();
-    mapObject->localPosition_ = position;
-    mapObject->localRotation_ = rotation;
+    mapObject->localPosition = position;
+    mapObject->localRotation = rotation;
     mapObject->SetFigureScale(&scale.x);
     mapObject->baseScale = scale;
     mapObject->ApplyBaseScale();
-    std::uint32_t& flags = mapObject->flags_;
+    std::uint32_t& flags = mapObject->flags;
     if (!visible) flags |= 8;
     else flags &= ~8u;
     MapObject()->MarkChanged(2);
     MapObject()->MarkChanged(1);
-    g_serverWorld.aiMap_.sectorMap.Add(MapObject());
-    g_serverWorld.aiMap_.EndRefresh();
+    g_serverWorld.aiMap.sectorMap.Add(MapObject());
+    g_serverWorld.aiMap.EndRefresh();
 }
 
 FlameSpec::FlameSpec() {
@@ -214,7 +214,7 @@ void FlameSpec::Save() {
 
 void FlameSpec::OnChunk() {
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xBBBF0001: volume = c.ReadFloat(); break;
     case 0xBBBF0002: offset = c.ReadVector3(); break;
     case 0xBBBF0003: sound = c.ReadString(); break;
@@ -252,7 +252,7 @@ void TrapSpec::Save() {
 
 void TrapSpec::OnChunk() {
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xBBAB0001: trap.sides = static_cast<std::uint32_t>(c.ReadInt()); break;
     case 0xBBAB0002: trap.spell = c.ReadString(); break;
     case 0xBBAB0003: {
@@ -307,7 +307,7 @@ void LeverSpec::Save() {
 
 void LeverSpec::OnChunk() {
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xBBAC0002: lever.state = c.ReadByte(); break;
     case 0xBBAC0003: lever.stateCount = c.ReadByte(); break;
     case 0xBBAC0004: lever.cycling = ReadFlag(c); break;

@@ -11,19 +11,19 @@ namespace net {
 // The original frees the two names first; ours last (they are members). The pending joins and the session base
 // follow (their destructors).
 ServerSession::~ServerSession() {
-    finishedTrades_.clear();
-    trades_.clear();
-    offers_.clear();
-    awards_.clear();
-    variables_.clear();
-    queuedMaps_.clear();
-    DestroyOwned(map_);
-    bindings_.clear();
-    DestroyOwned(hostInfo_);
-    fileRequests_.clear();
-    files_.clear();
-    lines_.clear();
-    players_.clear();
+    finishedTrades.clear();
+    trades.clear();
+    offers.clear();
+    awards.clear();
+    variables.clear();
+    queuedMaps.clear();
+    DestroyOwned(map);
+    bindings.clear();
+    DestroyOwned(hostInfo);
+    fileRequests.clear();
+    files.clear();
+    lines.clear();
+    players.clear();
 }
 
 // Also reached from the constructor's unwind funclets.

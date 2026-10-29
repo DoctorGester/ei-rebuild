@@ -2,7 +2,7 @@
 // factors (the particles' additive / normal switch) and the device object's material. See docs/notes/renderer.md
 // ("Pass state").
 #include "device_material.h"
-#include "model.h"   // CSceneRenderer
+#include "model.h"   // SceneRenderer
 #include "texture.h"
 
 #include "render/render_state.h"
@@ -10,28 +10,28 @@
 #include <cstdint>
 
 // Sets the fog colour. Returns 1.
-int CSceneRenderer::SetFogColourState(std::uint32_t colour) {
-    render::g_renderState.fogColour = colour;
+int SceneRenderer::SetFogColourState(std::uint32_t newColour) {
+    render::g_renderState.fogColour = newColour;
     return 1;
 }
 
 // Sets the blend factors (the particle draw: source alpha and one for additive sources, source alpha and inverse
 // source alpha to go back). Returns 1.
-int CSceneRenderer::SetBlend(render::Blend source, render::Blend dest) {
+int SceneRenderer::SetBlend(render::Blend source, render::Blend dest) {
     render::g_renderState.sourceBlend = source;
     render::g_renderState.destBlend = dest;
     return 1;
 }
 
 
-// The current material (material_, counted; the old one released when its count reaches 0); without a material
+// The current material (material, counted; the old one released when its count reaches 0); without a material
 // stage 1's colour and alpha operations are turned off. Returns 1.
-int CTextureDevice::SetMaterial(CDeviceMaterial* material) {
-    CDeviceMaterial* old = material_;
-    material_ = material;
-    if (material) material->AddRef();
+int TextureDevice::SetMaterial(DeviceMaterial* newMaterial) {
+    DeviceMaterial* old = material;
+    material = newMaterial;
+    if (newMaterial) newMaterial->AddRef();
     if (old) old->Release();
-    if (!material) {
+    if (!newMaterial) {
         render::g_renderState.stages[1].combiner.colourOp = render::TextureOp::Disable;
         render::g_renderState.stages[1].combiner.alphaOp = render::TextureOp::Disable;
     }

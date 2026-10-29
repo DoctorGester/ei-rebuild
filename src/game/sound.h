@@ -56,7 +56,7 @@ struct SoundSlot {
     float farDistance;          // silent outside
     std::int32_t handle;        // sound handle (-1: free)
 
-    void End(struct CSoundManager* manager);
+    void End(struct SoundManager* manager);
 };
 
 // A looping sound that lost its voice to a higher priority one and waits to be restarted.
@@ -114,7 +114,7 @@ struct SoundSequence {
     std::int32_t generation;
     std::int32_t id;            // generation << 8 | slot (-1: free)
 
-    int PlayNext(struct CSoundManager* manager);
+    int PlayNext(struct SoundManager* manager);
 };
 
 // Walked in STLport's order (the first of the highest priority plays).
@@ -154,10 +154,10 @@ struct miles::Sample {
 };
 static_assert(offsetof(miles::Sample, codec) == 0x144);
 
-struct CSoundManager : CEngineObject {
+struct SoundManager : EngineObject {
     // Also runs AIL_startup, then Reset.
-    CSoundManager();
-    ~CSoundManager() override;
+    SoundManager();
+    ~SoundManager() override;
 
     void Create() override;   // Reset
     void Destroy() override { Close(); }
@@ -166,10 +166,10 @@ struct CSoundManager : CEngineObject {
 
     miles::DigitalDriver* waveDriver;
     miles::MidiDriver* midiDriver;      // closed by Close; not opened here
-    CResourceStream streamReader;       // reads the music stream's files
+    ResourceStream streamReader;       // reads the music stream's files
     std::string soundPath;             // ending in a backslash
-    CFileRegistry soundRegistry;
-    std::list<CMappedResource*> waveSources;   // the archives LoadSample looks in
+    FileRegistry soundRegistry;
+    std::list<MappedResource*> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
     volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
     miles::Sample* streamSample;
@@ -269,7 +269,7 @@ struct CSoundManager : CEngineObject {
     // 1 (also when sound is off), 0 when the archive cannot be opened.
     int AddWaveSource(const std::string& path);
     // The first wave source holding `name`; `source` may be null. Null when none has it.
-    void* LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source);
+    void* LoadWaveFile(const char* name, std::uint32_t* size, MappedResource** source);
     // Rebirth-patched. Source by source.
     std::vector<std::string> ListWaveFiles(const char* pattern);
     // 1 when sound is off; else whether the registry opened.
@@ -331,9 +331,9 @@ struct MusicTheme {
 };
 
 // Picks the music for the game state.
-struct CMusicSystem : CEngineObject {
-    CMusicSystem();
-    ~CMusicSystem() override;
+struct MusicSystem : EngineObject {
+    MusicSystem();
+    ~MusicSystem() override;
 
     // music.reg: Common\Credits and Common\MainMenu, then per other section an open land theme (CalmOpen)
     // and a dungeon theme (CalmDungeon). FatalError when the file cannot be opened.
@@ -373,7 +373,7 @@ struct CMusicSystem : CEngineObject {
 };
 // The ASI decoder's read callback on the stream thread: seeks to `offset` unless it is negative. Returns the
 // byte count (0 when the read fails).
-int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, int offset);
+int __stdcall SoundStreamRead(SoundManager* manager, char* buffer, int size, int offset);
 // AIL_decompress_ASI's callback: at state 1 it asks for 16 bits, 44100 Hz, 2 channels. Returns 1.
 using DecoderPropertyFn = int(__stdcall*)(const char* name, std::uint32_t value);
 int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);

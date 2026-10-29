@@ -1,5 +1,5 @@
 // The titles window's frame and close and its script lines' destructor. The window's Create is in
-// ui_layouts.cpp, its input in ui_screens.cpp. See ui_screens.h (CCreditsScreen) and docs/notes/ui.md ("Main
+// ui_layouts.cpp, its input in ui_screens.cpp. See ui_screens.h (CreditsScreen) and docs/notes/ui.md ("Main
 // menu, dialogs, escape menu, credits").
 #include "app.h"
 #include "app_helpers.h"
@@ -27,55 +27,55 @@ constexpr int kHeaderFont = 2;
 
 // --- a window above the titles closed ------------------------------------------------------------
 
-void CCreditsScreen::MessageResult(int) { player_.Close(); }
+void CreditsScreen::MessageResult(int) { player.Close(); }
 
 // --- the frame -----------------------------------------------------------------------------------
 
-void CCreditsScreen::Draw(CSceneRenderer* pass) {
-    EI_NAN_AUDIT(textSurface_->speed_);
-    if (GameTime() > nextLineAt_ && textSurface_->speed_ == 0.0f) {
-        nextLineAt_ = 0.0f;
-        textSurface_->Hide(false);
-        headerSurface_->Hide(false);
-        if (currentLine_ == lines_.end()) {
-            finished_ = true;
+void CreditsScreen::Draw(SceneRenderer* pass) {
+    EI_NAN_AUDIT(textSurface->speed);
+    if (GameTime() > nextLineAt && textSurface->speed == 0.0f) {
+        nextLineAt = 0.0f;
+        textSurface->Hide(false);
+        headerSurface->Hide(false);
+        if (currentLine == lines.end()) {
+            finished = true;
         } else {
-            const TitleLine& line = *currentLine_;
-            textSurface_->Load(&archive_, line.style.c_str());
-            textSurface_->Start(0.0f, false);
+            const TitleLine& line = *currentLine;
+            textSurface->Load(&archive, line.style.c_str());
+            textSurface->Start(0.0f, false);
             if (line.scroll) {
-                textSurface_->Start(line.speed, true);
-                headerSurface_->Clear();
+                textSurface->Start(line.speed, true);
+                headerSurface->Clear();
                 // Centred over the whole surface with its shadow, without smoothing: the original switched the
                 // system's font smoothing off for the titles.
-                const UiFont& font = interface_->fonts_[kHeaderFont];
-                const RECT& at = headerSurface_->rect_;
+                const UiFont& font = ui->fonts[kHeaderFont];
+                const RECT& at = headerSurface->rect;
                 const RECT whole = {0, 0, at.right - at.left, at.bottom - at.top};
-                headerSurface_->DrawTextPixels(UiFont{font.face, font.pixels, true}, line.text, whole, DT_CENTER,
+                headerSurface->DrawTextPixels(UiFont{font.face, font.pixels, true}, line.text, whole, DT_CENTER,
                                                kHeaderColour, true);
-                headerSurface_->Show();
+                headerSurface->Show();
             } else {
-                nextLineAt_ = GameTime() + line.speed;
+                nextLineAt = GameTime() + line.speed;
             }
-            textSurface_->Show();
-            ++currentLine_;
+            textSurface->Show();
+            ++currentLine;
         }
     }
-    if (!player_.Frame() && finished_) {
-        player_.Close();
-        app::PlayMovies((name_ + kOutroSuffix), false);
+    if (!player.Frame() && finished) {
+        player.Close();
+        app::PlayMovies((name + kOutroSuffix), false);
         app::g_interfaceHasScreen = 0;
         Close();
         return;
     }
-    CUiContainer::Draw(pass);
+    UiContainer::Draw(pass);
 }
 
 // --- the close -----------------------------------------------------------------------------------
 
-void CCreditsScreen::CloseScreen() {
-    lines_.clear();
-    g_sceneRenderer.fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
+void CreditsScreen::CloseScreen() {
+    lines.clear();
+    g_sceneRenderer.fogColour = static_cast<std::uint32_t>(savedDisplay);
     app::g_interfaceHasScreen = 1;
     g_cursor.ShowImage(1);
 }

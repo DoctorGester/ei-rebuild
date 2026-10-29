@@ -50,7 +50,7 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
     return true;
 }
 
-void AnimationSteps::Load(CStream* stream) {
+void AnimationSteps::Load(ByteStream* stream) {
     int newCount = 0;
     stream->ReadValue(newCount);
     resize(newCount);
@@ -58,7 +58,7 @@ void AnimationSteps::Load(CStream* stream) {
     stream->ReadValue(extra);
 }
 
-void AnimationSteps::Save(CStream* stream) const {
+void AnimationSteps::Save(ByteStream* stream) const {
     int written = static_cast<int>(size());
     stream->WriteValue(written);
     for (const AnimationStep& step : *this) stream->WriteValue(step);

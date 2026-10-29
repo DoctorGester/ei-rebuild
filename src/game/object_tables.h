@@ -13,7 +13,7 @@
 #include "lib/hash_map.h"
 
 
-class CStream;
+class ByteStream;
 
 // Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
 // h % 1000000000 + 1000000000.
@@ -47,8 +47,8 @@ struct ZoneExit {
     // From / to a stream (core_streams.h): +0x00..+0x20
     // as dwords, the target with its terminator, +0x2C, +0x30, then +0x34 (a byte), +0x38 and the
     // angle; Read takes the last three only from version 0x68 on (else 0).
-    void Read(CStream* stream);
-    void Write(CStream* stream) const;
+    void Read(ByteStream* stream);
+    void Write(ByteStream* stream) const;
 };
 
 // One map/zone entry: +0 name, +4 allod name, +8 and +0xC other names.
@@ -64,8 +64,8 @@ struct MapRecord {
     int sizeX = 0;          // "#maps" first line: the zone's size (times 32: the HUD map's world extent)
     int sizeY = 0;
     int kind = 0;           // 0 game, 1 edge, 2 brief (2: the zone has a script folder)
-    int climate = 0;      // CWorldServer::SetClimate when the zone starts
-    int cave = 0;      // CWorldServer::SetCave
+    int climate = 0;      // WorldServer::SetClimate when the zone starts
+    int cave = 0;      // WorldServer::SetCave
     bool restricted = false;   // "#restrict x y radius": the camera stays in that circle
     float restrictX = 0.0f;
     float restrictY = 0.0f;
@@ -75,7 +75,7 @@ struct MapRecord {
 };
 
 // The map database loaded from map.txt / map_LMP.txt (a global).
-struct CMapDatabase {
+struct MapDatabase {
     // Map named `name` (_mbsicmp), or null.
     MapRecord* FindMap(std::string_view name);
     // Allod named `name` (_mbsicmp), or null.
@@ -106,9 +106,9 @@ struct NamedFloatTable : lib::HashMap<std::string, float, lib::TextHash> {
     void CopyPrefixed(std::string_view prefix, NamedFloatTable* out);
     // Empties the table, then reads {zero-terminated name, float} pairs from the
     // stream up to an empty name (compared with the exe's empty string).
-    void Load(CStream* stream);
+    void Load(ByteStream* stream);
     // Writes each entry (name with its zero, then the value), in bucket order, then an empty name.
-    void Save(CStream* stream);
+    void Save(ByteStream* stream);
 };
 
 // Rebirth's PersistentGlobalVars (persistent_globals.cpp): empties `table` but keeps
@@ -122,9 +122,9 @@ inline std::int8_t g_keyActions[512] = /*0079BF70*/ {};
 // The keys (0x48 bytes each, 88 of them; key_bindings.cpp's g_keyNames): the options window lists them, and
 // the bindings file names them.
 struct UiKeyName {
-    int scan_;                       // scan code, the index into g_keyActions
-    const char* file_;               // the bindings file's name ("TAB", "Q", ...)
-    char name_[0x40];                // GetKeyNameTextA's text (up to 31 bytes; LoadKeyBindings)
+    int scan;                        // scan code, the index into g_keyActions
+    const char* file;                // the bindings file's name ("TAB", "Q", ...)
+    char name[0x40];                 // GetKeyNameTextA's text (up to 31 bytes; LoadKeyBindings)
 };
 constexpr int kUiKeyNameCount = 88;
 extern UiKeyName g_keyNames[kUiKeyNameCount];

@@ -1,9 +1,9 @@
 # Map objects (00500000-00522000)
 
 Code: `src/game/map_object.h/.cpp` (CMapObject, MapEffect: layouts, per-slot comments),
-`map_object_companion.cpp` (CMapObjectServer / CMapObjectClientSpecific), `map_object_figures.*`, `map_object_parts.cpp`
+`map_object_companion.cpp` (MapObjectServer / MapObjectClientSpecific), `map_object_figures.*`, `map_object_parts.cpp`
 (CObject3D figure parts, scale, bounds), `map_object_shadow.*`, `map_object_draw.cpp`,
-`map_object_animation.*`, `map_object_cage.*`, `map_object_lifetime.cpp` (constructors, destructor
+`map_object_animation.*`, `map_object_cage.*`, `map_object.cpp` (constructors, destructor
 bodies), `map_object_create.cpp` (slot 2 of units / torches). Verify: `tests/verify/verify_map_object*.cpp`.
 Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and every spawn).
 
@@ -17,7 +17,7 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
 | 005125E0-00512730 | CMapObjectManager ("map_objects", id 0x2D, vtable 0073DCD8); factory 00512730 |
 | 00515610-00515BD0 | **CMapObjectServer** (0x39, vtable 0073DD6C, 21 slots): Update (6), SetData, TakeHit (20), Load / Save (9 / 10) |
 | 00515BD0-0051AC30 | **CObject3D** (vtable 0073DDD4, 33 slots) under CMapObject |
-| 0051AC30-0051F340 | CObject3DClientSpecific (0x37, vtable 0073DE90: drawing), CObject3DServer (0x38, 0073DFBC: every slot a stub) |
+| 0051AC30-0051F340 | Object3DClientSpecific (0x37, vtable 0073DE90: drawing), Object3DServer (0x38, 0073DFBC: every slot a stub) |
 | 0051F340-00522000 | perks database ("perks.pdb", load 00520220 / save 0051FF40), STLport vectors |
 
 ## Facts
@@ -26,7 +26,7 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
   runs the companion's. Server: statistics block at +0x20 (0x58 bytes, hit points +0x28 / +0x2C).
   Client: looping effect sounds at +0x40 (0x14 each: kind, -1, handle, timer, present), effect
   particles +0x2C (0x10 each), light +0x50, end-sound handle +0x54.
-- flags_: 1 dead/destroyed (TakeHit), 2 dirty, 8 (network part 2), 0x10000 invisible, 0x40000 stunned
+- flags: 1 dead/destroyed (TakeHit), 2 dirty, 8 (network part 2), 0x10000 invisible, 0x40000 stunned
   (client, effect 0x19).
 - MarkChanged and HasEffect are CMapObject methods but stay rewritten on CUnit (unit.cpp); CMapObject
   reaches them via forwarders to 0050E9F0 / 0050F630. Standalone: move them to CMapObject and derive
@@ -46,13 +46,13 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
   pixel buffer 007AF1E0, the `SR<id>` names) and the decal's draw (DrawFlatBlocks) are not ported (R26: no
   fallback draw); `shadowMade` stands for "the texture was made" (the first draw after Create /
   ClearShadow builds). The algorithm is in `map_object_shadow.h`.
-- **Drawing**: `CObject3DClientSpecific::Draw` is described in `map_object_shadow.h` and
+- **Drawing**: `Object3DClientSpecific::Draw` is described in `map_object_shadow.h` and
   `map_object_draw.cpp` (lights within range + 10, matrix stacks, part sets +0x20 / +0x24).
 - **Figures**: layouts in `map_object_figures.h`; LoadFigures reads the model named at +0xA4
   through the figure manager (ManagerContext slot 15, 005AA5F0); SetFigureScale rebuilds the figure
-  only when the scale changes (ManagerContext slots 23 / 6); the figure (+0xF0) is a CLinkMesh
-  (link_figure.h) and its piece map is `headers_` (+0x14, map<string, LinkPartHeader>; find 005197B0).
-- The side half at +0x94 (`CObject3DSpecific`: client 0x37 vtable 0073DE90, server 0x38 0073DFBC) is declared as an interface;
+  only when the scale changes (ManagerContext slots 23 / 6); the figure (+0xF0) is a LinkMesh
+  (link_figure.h) and its piece map is `headers` (+0x14, map<string, LinkPartHeader>; find 005197B0).
+- The side half at +0x94 (`Object3DSpecific`: client 0x37 vtable 0073DE90, server 0x38 0073DFBC) is declared as an interface;
   slot 18 GetScale gives the client's +0xF0..+0xF8 or 1, 1, 1 on the server. Scenarios reaching the part code: units, unit_create, combat
   (weapon / armour models), spells_cast, effects (EffectPoint, particle callbacks).
 - **Skeleton**: the animation state (class 0x300D) holds the bones (class 0x300C, FigureBone) in `bones` (+0x24); each
@@ -67,14 +67,14 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
 
 Every rewritten function carries its address in its source comment (grep the address); the per-function table that used to be
 here is gone. Facts a worker needs:
-- Slot numbers: `CMapObject::Update` 0050F1C0 (6; returns 1), `CMapObjectServer::Update` 00515820, `CMapObjectClientSpecific::Update`
+- Slot numbers: `CMapObject::Update` 0050F1C0 (6; returns 1), `MapObjectServer::Update` 00515820, `MapObjectClientSpecific::Update`
   00510890 (counts - 1, stench timers - 1, 16 after going negative, light unchanged or at object + (0, 0, 2)), AddEffect 0050F1E0
   (45; Rebirth-patched, reproduces FixSpellEffectsOverflow behind the flag), RecomputeScale 0050F2D0 (27), ResetScale 0050E440
   (30; for units slot 30 rebuilds figures through 00517700 and must not run twice), GetPosition 0050E4B0 (52, RET 8) /
   GetPosition2 0050E4D0 (53, RET 4), GroundPoint 0050F730 (48), PlaceOnGround 0050F020 (51; the original's wrapper runs through a
   naked stub repeating its first three instructions PUSH ESI; MOV ESI,ECX; CALL 00455950 and jumping to 0050F028), SetServerData
   0050F050 (36), AttachObject 0050E890 (19, type 0x47), PackVitals 0050E970 (32), TakeHit 00515980 (20; ours returns 1; a dead
-  object has no effects and `flags_` bit 1), CreateMapObject / DestroyMapObject 0050E770 / 0050E840 (2 / 3), Create3D / Destroy3D
+  object has no effects and `flags` bit 1), CreateMapObject / DestroyMapObject 0050E770 / 0050E840 (2 / 3), Create3D / Destroy3D
   00515F70 / 00516080 (2 / 3; Destroy3D drops the parts' references without releasing them), AddEffectSource / RemoveEffectSource
   (particle sources at +0xA8, attached through 004849F0).
 - CObject3D: ComputeBounds 00518310 (+0x124..+0x150 and EAX), FindPartByPrefix 00516A80 (strstr at the name's start,
@@ -84,16 +84,16 @@ here is gone. Facts a worker needs:
   first use, +0xA0), AnimationAt 00518F80 (key & 0xFF), FindSkillAnimation 00518FC0 (kind 0x40000, number in bits 22-29; the
   wrappers go through a stub repeating the first three instructions), AnimationFactor 00518D30 (units only: (start + (end - start)
   t) / length, 1 for a 0 / NaN length), FindPartIndex 00517990 (_mbscmp over +0x114). Constructs: CObject3D 0x170, CMapObject 0x238, CUnit
-  0x4DC, CMapObjectServer 0x94, CMapObjectClientSpecific 0x54 (destructor bodies leave the engine object base state: vtable
+  0x4DC, MapObjectServer 0x94, MapObjectClientSpecific 0x54 (destructor bodies leave the engine object base state: vtable
   0073B8E0, no owner). CObject3D slots 14 CombineRotation3D (0040CB80's body), 20 CopyFigure, 19 AttachSpecific, 5
-  RemoveAllEffectSources, 22-24 DrawFigure / DrawCollectDirty / DrawFigureShadow (object3d_slots.cpp). Map object Load / Save
-  0050F7A0 / 0050F900, server 005159D0 / 00515AC0 (slots 9 / 10); CMapObjectServer Create / Destroy 005157C0 / 005157E0 (2 / 3),
-  CUnitClientSpecific HasWeaponModels / HasArmourModels 005391B0 / 005391E0 (36 / 37),
+  RemoveAllEffectSources, 22-24 DrawFigure / DrawCollectDirty / DrawFigureShadow (map_object_figures.cpp). Map object Load / Save
+  0050F7A0 / 0050F900, server 005159D0 / 00515AC0 (slots 9 / 10); MapObjectServer Create / Destroy 005157C0 / 005157E0 (2 / 3),
+  UnitClientSpecific HasWeaponModels / HasArmourModels 005391B0 / 005391E0 (36 / 37),
   ApplyScience 0050F0F0 (41: logs, false) / FreeArray (44), CreateClientCompanion 00510770 (2), DeleteClient 00533E80 (0).
 - Animation: `AnimationTrack::Evaluate` 0050ACD0 (class 0x300B, vtable 0073D9D8, 0x78 bytes; `frames` +0x38 and `vertices` +0x68 are
   AlignedArrays; LoadKeyFrames 0050AAF0: rotations, positions, frame and vertex counts from the model entry, arrays sized without
   keeping contents, frame pointers into the entry), `FigureBone::InterpolateCube` / `InterpolatePrism` 0050B8C0 / 0050BC00,
-  CFigureAnimationState Play / Queue / SetTime / Advance 0050CA50 / 0050CBA0 / 0050D600 / 0050D5E0 (map_object_animation_state.cpp),
+  FigureAnimationState Play / Queue / SetTime / Advance 0050CA50 / 0050CBA0 / 0050D600 / 0050D5E0 (map_object_animation_state.cpp),
   Construct / DestructBody / DeleteState (0) / CreateState / DestroyState (2 / 3) / ReleaseBones / Reset (0050C5F0..0050C9E0),
   FindBone 0050CC20, LinkPiece 0050CC60 (a bone of class 0x300C from the figure manager), LinkBone 0050CD70 (child of the first bone
   named as its parent unless it has a child of that name; list, reference, name3 = model, morph, 005ACB80), FindRoot 0050D2E0 (first
@@ -114,16 +114,16 @@ here is gone. Facts a worker needs:
   0051CCA0 / 0051CD60, ShowWounds 0051C3D0 (unit_client_wounds.cpp: the wounds texture (kind 6) found / made, reloaded unless its
   .mmp extra block is unchanged; the material WoundsMaterial: blend 5 / 6, helper preset 4, stages: part set texture, wounds
   texture), picking slots 22-24 (0051C130, 0051C160, 0051C1D0: dirtyRect / own-mesh parts' screen rects; PtInRect, IntersectRect +
-  IsRectEmpty), part lookups 16 / 17 (CObject3D::FindPart / FindPartOfType: type_, parts then pending).
-- CSceneRenderer: DrawShadow 0051CE60 and Draw 0051B7E0 (client half), BeginScene / EndScene 00503F40 / 005040A0
+  IsRectEmpty), part lookups 16 / 17 (CObject3D::FindPart / FindPartOfType: type, parts then pending).
+- SceneRenderer: DrawShadow 0051CE60 and Draw 0051B7E0 (client half), BeginScene / EndScene 00503F40 / 005040A0
   (slots 4 / 5; DrawTexture 00504860, slot 21, had no caller and is deleted (R26b); renderer_scene.cpp: the frame time; the frame statistics and the device counters only the debug panel read are gone, C55 / C57), DrawSelectionMarker 00503A40 (the green arrow under selected units; renderer_marker.cpp),
   SetGamma 00504A60 (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp),
-  lifetime and small slots (renderer_lifetime.cpp: base class vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase,
+  lifetime and small slots (renderer_scene.cpp: base class vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase,
   SetBaseColour; slots 3 DestroyRenderer, 8 ClearFrame and 9 ZEnable (gone in ours, R27c: nothing to clear or ask), 11 SetTexture, 7 SetColour, 15 DrawLineList, 14 DrawFigure, 13
   DrawFigureLit, 23 GetGamma, 24 RestoreSurfaces). AlignedArray copies registered on the template: TLVertex SetSize /
   SetSizeDiscardStep, SpriteSortRecord, its pointers, the index Add, the bones' Matrix4 SetSizeDiscardStep.
 
-Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
+Other callees stay forwarders: 00455950 `EngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
 (hit onto the statistics block); sound system (global 007AF784) 006B8600 / 006B7C10 / 006B7CB0 /
 006BA400; light manager (007AF738) 006CA830; see `originals_*.h`.
 
@@ -134,7 +134,7 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 - RecomputeScale adds the net enlarge/shrink level to the strengthen level when enlarge or shrink is
   present (strengthened + enlarged grows by 0.8) and leaves y alone for strengthen/weaken; heroes keep
   their height.
-- CMapObjectServer::Update passes slot 33 a byte flag whose upper bytes are stack garbage in the
+- MapObjectServer::Update passes slot 33 a byte flag whose upper bytes are stack garbage in the
   original; ours passes 0 or 1 (receivers read only the byte).
 - GetPosition (slot 52) takes a second argument it never reads. PlaceOnGround leaves the ground height
   call's EAX as its result; ours returns nothing. TakeHit treats 0 from 00524FE0 as "not hit", but it
@@ -174,10 +174,10 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
   writers) are called only from dead 0044A7B0 (the animation exporter; Ghidra's bodies for them overlap live readers, so
   find_dead_code.py keeps them); 00501980 / 005019D0 only from slot 25 (005015A0, no caller); 00500A90 (4 bytes) too
   short; 00503F20 (a Vector3 copy) and 005000xx-005003D0 (STLport copy helpers) left.
-- Next after A-U11: CObject3DClientSpecific's part sets (+0x20 / +0x24: objects holding arrays of arrays of parts; needs
+- Next after A-U11: Object3DClientSpecific's part sets (+0x20 / +0x24: objects holding arrays of arrays of parts; needs
   their layout declared): slots 13 / 14 / 15 (0051B050 / 0051B210 / 0051B160) with 0051B2F0 / 0051B470 / 0051B5B0 /
   0051B630, ctor / dtor / Create / Destroy (0051AB00 / 0051AD90 / 0051AEC0 / 0051AF70), 0051CB30, the colour stack
-  0051C250 / 0051C9F0 / 0051C730-0051C890; CObject3DServer stubs (0051F240-0051F330); 0051E300-0051F0D0 (materials);
+  0051C250 / 0051C9F0 / 0051C730-0051C890; Object3DServer stubs (0051F240-0051F330); 0051E300-0051F0D0 (materials);
   005101A0 / 005102A0, 005143E0, 00512660 / 00512A30, 0050E580, 0050FBC0, 0050BF00, 00508870; 5- and 6-byte constant
   slots (byte-identical to rewritten stubs, but registering them under unrelated names was avoided).
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
@@ -186,7 +186,7 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 - Dead (A-U5 sweep, config/dead_code.csv): 0050BFA0, 0051FCD0, 005476A0 (PlayIdle's body after 0052E9D0), 0054A0A0, 0054B950.
 - 0050C230 (bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures): drawing, stateful (since
   rewritten).
-- CObject3DServer stubs; the perks database's records and lookups are rewritten (units.md, A-U10), its loader and STLport
+- Object3DServer stubs; the perks database's records and lookups are rewritten (units.md, A-U10), its loader and STLport
   vector instantiations are not.
 - Trivial bodies too short for the 5-byte jump (`MOV AL,1; RET`, `RET`, `XOR EAX,EAX; RET`, FLD
   constant; RET).
@@ -196,32 +196,32 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 - The per-tick functions run for every map object every world update; DrawShadow and figure loading
   for every visible object and spawn. Most are checked ours-only (DrawShadow only for its result), so a
   wrong shadow shows only on screen.
-- CMapObjectServer::Update's verify predicts the list from the old one; a slot it calls that changes
+- MapObjectServer::Update's verify predicts the list from the old one; a slot it calls that changes
   the list (a unit's slot 27 reaches its controller's slot 44, which can kill a unit that cannot stand
   after a scale change) would report a false mismatch.
 - The client update's sound and light calls are checked only for their effect on the companion's
   fields, not for their arguments.
-- unit.h carries declarations of CMapObjectServer / CMapObjectClientSpecific methods; a branch that
+- unit.h carries declarations of MapObjectServer / MapObjectClientSpecific methods; a branch that
   moves those classes must take them along.
 - The scenario's spell strings ("speed{d1}", "shrink{e2;e2;d2;d1}") exercise the effect tick only if
   they parse.
 
 A-U2: the effect / string counts of Load are read into the argument's stack slot (a failed read leaves the stream
-pointer as the count; ours starts the local with it); the flags_ read starts from stack garbage (ours: the current
-flags). CMapObjectServer now declares its vitals block (+0x20, UnitVitals), names and string array.
+pointer as the count; ours starts the local with it); the flags read starts from stack garbage (ours: the current
+flags). MapObjectServer now declares its vitals block (+0x20, UnitVitals), names and string array.
 
 ## Virtual slot names with low confidence (DR-C2)
 
 The placeholder slots of map_object.h, unit.h, world.h, map_object_figures.h and party.h were named from the vtables
 (evidence in the headers' comments). Guesses to re-check when a caller needs them: CMapObjectVirtuals 29
-`IsSynchronised` (flags_ 0x20000, set by the zone loader for records with +0x6C or a script name; units, levers, traps,
+`IsSynchronised` (flags 0x20000, set by the zone loader for records with +0x6C or a script name; units, levers, traps,
 torches answer 1; SendFreshObjects moves the objects answering 0 out of the map-object maps), 39 `IsDirectUseBlocked`
 (levers: byte +0x260; a plain click uses an object only when 38 IsUsable is set and 39 is 0), 43 `KeepsMapFlag` (levers:
-byte +0x261); CMapObjectCompanion 14 `Unused14`; CUnitController 15 / 17 `Unused*`, 36 `HasOtherArmour` (server: armour
+byte +0x261); MapObjectCompanion 14 `Unused14`; UnitController 15 / 17 `Unused*`, 36 `HasOtherArmour` (server: armour
 slots 3..6, client: any weapon model; they differ); CWorld 37 / 38 `ClientManager194` / `ClientManager198` (not
-identified), 39 `Unused39`; CObject3DSpecific 25 `Unused25`. CLinkMesh's slot 4 (once declared `HasPiece` on a
+identified), 39 `Unused39`; Object3DSpecific 25 `Unused25`. LinkMesh's slot 4 (once declared `HasPiece` on a
 view) is LoadPart (004F30D0 -> 004F7480); CObject3D::LoadPart calls it (F4c). Placeholders still left (16): engine_object.h, map_spec.h, resource.h, ui_camp.h, unit_ai.h
-(`AIStream::Slot0` is CStream's deleting destructor).
+(`AIStream::Slot0` is ByteStream's deleting destructor).
 
 ## A-U12 (the range's leftovers, 0x00500000-0x00520000)
 
@@ -237,26 +237,26 @@ each one is in the head comment of its verify file.
   ShadowsShown, ShadowInView, MatrixSetIdentity, the server half's name / id / Create; the rest ours only (zone load,
   equipment changes, highlighting, wounds). The older files of the client unit (unit_client_*.cpp, map_object_draw /
   shadow / client_effects, world_rules.cpp) now call these directly instead of through local forwarders.
-- **The map object's small slots** (`map_object_stub_slots.cpp`; `verify_map_object_stub_slots.cpp`): the empty and
+- **The map object's small slots** (`map_object.cpp`; `verify_map_object_stub_slots.cpp`): the empty and
   constant slots (0050E400-0050E560, 0050E760, 0050F0C0-0050F110), NotifyCompanion 0050E930 (the deleting destructor 0050E560 is
   ~CMapObject's since C28h),
   ScaleEffectChanged 0050E960, TakePrototype 0050E9B0, the network state wrappers 0050EA40 / 0050EA70 / 0050EAB0,
   SetSecondName 0050F150, the transform slots 00516350 / 00516360. Side by side: CompanionIsDead, KeyId,
   ScaleEffectChanged, MoveSpeed, Radius; the rest ours only (plain objects of any zone). The one-byte slots cannot be
   hooked.
-- **The manager, the companions, the 3D object** (`map_object_manager.cpp`, `map_object_companion_slots.cpp`,
-  `object3d_small_methods.cpp`; `verify_map_object_manager.cpp`): CMapObjectManager's lifetime, names, CreateManager,
+- **The manager, the companions, the 3D object** (`map_object_manager.cpp`, `map_object_companion.cpp`,
+  `map_object_figures.cpp`; `verify_map_object_manager.cpp`): CMapObjectManager's lifetime, names, CreateManager,
   CreateMapObject, FindAnimation, GiveDefaults, PrototypeEquipment (005125E0-00512660, 00512A30, 00512B20, 00513630,
   005143E0); the companions' lifetime and small slots (005104B0-00510760, 00510340, 00511290, 005117F0, 00512490,
   005156E0-00515810); CObject3D's small methods (00515D50, 005161A0, 005174E0, 00517910, 00517950, 005187B0-00518860,
   00519500, 00519530). Side by side: the class names / ids and the folder; the rest ours only (game start, zone load,
   hits and effects on a hosted game's objects, interface models).
-- **0x00500000-0x0050E000** (`small_slots_500.cpp`, `renderer_base_create.cpp`,
+- **0x00500000-0x0050E000** (`map_object_animation.cpp`, `renderer_base_create.cpp`,
   `renderer_init.cpp`; `verify_small_slots_500.cpp`): the animation classes' names and ids (0050A6E0, 0050A6F0,
-  0050B180-0050B1A0, 0050C6F0, 0050C700), VectorCopy 00503F20, RendererFrameTime 00500A90, CSceneRenderer::CreateBase 00500540
+  0050B180-0050B1A0, 0050C6F0, 0050C700), VectorCopy 00503F20, RendererFrameTime 00500A90, SceneRenderer::CreateBase 00500540
   (the transform pipeline, CPUID(1) into the globals at 007CAED0, the MMX check and `2DintMMX.dll` from the work path; it
   only goes through the renderer's own interfaces, no device calls), MatrixTransposeInPlace 00501980,
-  CTransformPipeline::Top 005019D0 and CSceneRenderer::SetView 005015A0 (slot 25 of a live vtable, never called).
+  TransformPipeline::Top 005019D0 and SceneRenderer::SetView 005015A0 (slot 25 of a live vtable, never called).
   Side by side: the names / ids, VectorCopy, MatrixTransposeInPlace, Top (no scenario reaches the last three); ours
   only: the skin's lifetime (the main menu's figures), CreateBase (every start), SetView (none).
 - **config/library.csv**: 0051C890, 0051E840, 0051EFD0, 0051F0D0, 0050E580, 0050FBC0, 00510160, 005101A0, 005102A0,

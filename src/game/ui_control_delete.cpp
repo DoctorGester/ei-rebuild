@@ -8,8 +8,8 @@
 
 // --- The controls' destructors (with their deleting destructors and the input sides' copies) --
 
-CUiScrollbar::~CUiScrollbar() {}
+UiScrollbar::~UiScrollbar() {}
 
-CUiSpin::~CUiSpin() = default;
+UiSpin::~UiSpin() = default;
 
-CUiEditField::~CUiEditField() {}
+UiEditField::~UiEditField() {}

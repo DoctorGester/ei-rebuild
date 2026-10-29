@@ -41,7 +41,7 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
 }
 
 void CFigureManager::Create() {
-    CBaseManager::Create();
+    BaseManager::Create();
     // Rebirth's ResOverride: the mod's figure archives come first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::FigureArchives()) AddArchive(path);
@@ -52,19 +52,19 @@ void CFigureManager::Create() {
     LoadMenuRects(g_menuRects);
 }
 
-CFigureMesh* CFigureManager::NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached) {
-    auto* part = CreateObjectAs<CFigureMesh>(attached ? FigureObjectType::PlainFigureMesh : FigureObjectType::SharedFigureMesh, -1);
-    part->name_ = partName;
-    part->directory_ = modelName;
+FigureMesh* CFigureManager::NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached) {
+    auto* part = CreateObjectAs<FigureMesh>(attached ? FigureObjectType::PlainFigureMesh : FigureObjectType::SharedFigureMesh, -1);
+    part->name = partName;
+    part->directory = modelName;
     return part;
 }
 
-CFigureMesh* CFigureManager::NewBlankFigure() { return CreateObjectAs<CFigureMesh>(FigureObjectType::UiMesh, -1); }
+FigureMesh* CFigureManager::NewBlankFigure() { return CreateObjectAs<FigureMesh>(FigureObjectType::UiMesh, -1); }
 
-CFigureMesh* CFigureManager::NewFigure(std::string_view name) {
+FigureMesh* CFigureManager::NewFigure(std::string_view name) {
     auto* figure = NewBlankFigure();
-    figure->name_ = name;
-    figure->directory_ = game::kEmptyText;
+    figure->name = name;
+    figure->directory = game::kEmptyText;
     const std::string path = std::string(name) + ".fig";
     void* data = GetFile(path, nullptr);
     if (!data) {
@@ -73,7 +73,7 @@ CFigureMesh* CFigureManager::NewFigure(std::string_view name) {
     }
     char* cursor = static_cast<char*>(data);
     figure->LoadFromMemory(&cursor);
-    figure->box_.bounds.flags = 0;
+    figure->box.bounds.flags = 0;
     CloseFile(data);
     return figure;
 }
@@ -92,11 +92,21 @@ int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator
     return 1;
 }
 
-void CFigureMesh::LoadFromMemory(char** cursor) {
-    if (flags_ & FigureMeshFlag::Loaded) return;
+void FigureMesh::LoadFromMemory(char** cursor) {
+    if (flags & FigureMeshFlag::Loaded) return;
     std::uint32_t magic;
     lib::LoadBytes(magic, *cursor);
     if ((magic & 0xFFFFFF) == kFigMagic) LoadFig(cursor);
     else LoadOld(cursor);
-    flags_ |= FigureMeshFlag::Loaded;
+    flags |= FigureMeshFlag::Loaded;
 }
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kCFigureManagerClassName = "CFigureManager";
+} // namespace
+
+const char* CFigureManager::ClassName() { return kCFigureManagerClassName; }
+ClassId CFigureManager::GetClassId() { return ClassId::FigureManager; }
+const char* CFigureManager::GetFolderName() { return "figures"; }

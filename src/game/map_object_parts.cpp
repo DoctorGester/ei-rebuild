@@ -14,9 +14,9 @@
 namespace {
 // The first of `parts` that `matches`, or null.
 template <typename Parts, typename Match>
-CFigureMesh* FirstPart(const Parts& parts, Match matches) {
+FigureMesh* FirstPart(const Parts& parts, Match matches) {
     for (int i = 0; i < std::ssize(parts); ++i) {
-        CFigureMesh* part = parts[i];
+        FigureMesh* part = parts[i];
         if (matches(part)) return part;
     }
     return nullptr;
@@ -27,25 +27,25 @@ template <typename Parts>
 void RemoveAt(Parts& parts, int index) { parts.erase(parts.begin() + index); }
 
 template <typename Parts>
-int IndexOf(const Parts& parts, const CFigureMesh* part) {
+int IndexOf(const Parts& parts, const FigureMesh* part) {
     for (int i = 0; i < std::ssize(parts); ++i)
         if (parts[i] == part) return i;
     return -1;
 }
 } // namespace
 
-CFigureMesh* CObject3D::FindPartByPrefix(std::string_view prefix) {
+FigureMesh* CObject3D::FindPartByPrefix(std::string_view prefix) {
     // The original asks for the name twice; the parts return the same string both times.
-    auto startsWith = [prefix](CFigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
+    auto startsWith = [prefix](FigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
     return FirstPart(parts, startsWith);
 }
 
-CFigureMesh* CObject3D::FindPart(std::string_view partName) {
-    auto named = [partName](CFigureMesh* part) { return str::Compare(part->GetName(), partName) == 0; };
+FigureMesh* CObject3D::FindPart(std::string_view partName) {
+    auto named = [partName](FigureMesh* part) { return str::Compare(part->GetName(), partName) == 0; };
     return FirstPart(parts, named);
 }
 
-int CObject3D::RemovePart(CFigureMesh* part) {
+int CObject3D::RemovePart(FigureMesh* part) {
     if (attached) attached->OnPartRemoved(part);
     int index = IndexOf(parts, part);
     if (index < 0) return 0;
@@ -57,20 +57,20 @@ int CObject3D::RemovePart(CFigureMesh* part) {
     return 1;
 }
 
-CFigureMesh* CObject3D::RemovePartNamed(std::string_view partName) {
-    CFigureMesh* part = FindPart(partName);
+FigureMesh* CObject3D::RemovePartNamed(std::string_view partName) {
+    FigureMesh* part = FindPart(partName);
     if (!part) return nullptr;
     RemovePart(part);
     return part;
 }
 
-float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
+float* CObject3D::PartWorldPosition(float* out, const FigureMesh* part) {
     float scaleX, scaleY, scaleZ;
     attached->GetScale(&scaleX, &scaleY, &scaleZ);
     // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
-    const float w = localRotation_.w;
-    const float ux = localRotation_.x, uy = localRotation_.y, uz = localRotation_.z;
-    const float vx = part->localPosition_.x, vy = part->localPosition_.y, vz = part->localPosition_.z;
+    const float w = localRotation.w;
+    const float ux = localRotation.x, uy = localRotation.y, uz = localRotation.z;
+    const float vx = part->localPosition.x, vy = part->localPosition.y, vz = part->localPosition.z;
     // 2(u.v) with the doubling on u, as /fp:fast spreads it over the written-out sum (an inlined
     // 2.0f * Dot regroups to (2xx + s) + s).
     float twiceDot = DotUnrounded<Sum3::ZYX>(ux * 2.0f, uy * 2.0f, uz * 2.0f, vx, vy, vz);
@@ -82,19 +82,19 @@ float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
     float x = (along * vx + twiceW * crossX) + twiceDot * ux;
     float y = (along * vy + twiceW * crossY) + twiceDot * uy;
     float z = (along * vz + twiceW * crossZ) + twiceDot * uz;
-    out[0] = x * scaleX + localPosition_.x;
-    out[1] = y * scaleY + localPosition_.y;
-    out[2] = z * scaleZ + localPosition_.z;
+    out[0] = x * scaleX + localPosition.x;
+    out[1] = y * scaleY + localPosition.y;
+    out[2] = z * scaleZ + localPosition.z;
     return out;
 }
 
 // --- The animation database -------------------------------------------------------------------
 
 AnimationDatabase* CObject3D::Animations() {
-    if (!animations && owner_) {
+    if (!animations && owner) {
         std::string file = name;
         file += ".adb";
-        animations = static_cast<AnimationDatabase*>(owner_->GetFile(file, nullptr));
+        animations = static_cast<AnimationDatabase*>(owner->GetFile(file, nullptr));
     }
     return animations;
 }

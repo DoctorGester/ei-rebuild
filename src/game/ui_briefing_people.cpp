@@ -1,4 +1,4 @@
-// The briefing / base screen's dialogue people and items (CBriefingScreen, ui_briefing.h): a
+// The briefing / base screen's dialogue people and items (BriefingScreen, ui_briefing.h): a
 // person walking to a place and a dialogue's "#show" line. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "world_glue.h"
@@ -62,37 +62,37 @@ Vector3 Normalised(const Vector3& v) {
 } // namespace
 
 
-void CBriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector3& direction, bool waited,
-                                 bool immediate, bool run) {
-    auto* serverUnit = g_serverWorld.FindUnit(unit->id_);
+void BriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector3& direction, bool waited,
+                                 bool immediately, bool run) {
+    auto* serverUnit = g_serverWorld.FindUnit(unit->id);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     if (!controller) return;
-    Vector3 target{place.x, place.y, serverUnit->localPosition_.z};
-    if (immediate) {
-        g_serverWorld.aiMap_.sectorMap.Move(serverUnit, target);
+    Vector3 target{place.x, place.y, serverUnit->localPosition.z};
+    if (immediately) {
+        g_serverWorld.aiMap.sectorMap.Move(serverUnit, target);
         Vector3 facing = Normalised(direction);
         serverUnit->SetHeading(&facing.x);
         unit->SetHeading(&facing.x);
         controller->ResyncWithUnit();
         return;
     }
-    if (serverUnit->flags_ & kUnitBlocked) return;
-    movers_.push_front(BriefingMover{target, direction, BriefingMover::kWalking, unit, waited, 0.0f});
+    if (serverUnit->flags & kUnitBlocked) return;
+    movers.push_front(BriefingMover{target, direction, BriefingMover::kWalking, unit, waited, 0.0f});
     controller->brain.Walk(target, run);
 }
 
-void CBriefingScreen::ShowItem(std::string_view name, int index) {
+void BriefingScreen::ShowItem(std::string_view name, int index) {
     auto* unit = GameFindClientUnit(TextKeyFromName(name));
     if (unit) {
         // A person joins the speakers (at the end, once).
-        auto entry = std::find_if(speakers_.begin(), speakers_.end(), [unit](const BriefingSpeaker& s) { return s.unit == unit; });
-        if (entry != speakers_.end()) speakers_.erase(entry);
-        speakers_.push_back(BriefingSpeaker{unit, std::string(name)});
+        auto entry = std::find_if(speakers.begin(), speakers.end(), [unit](const BriefingSpeaker& s) { return s.unit == unit; });
+        if (entry != speakers.end()) speakers.erase(entry);
+        speakers.push_back(BriefingSpeaker{unit, std::string(name)});
         auto* player = g_serverWorld.GetPlayer(0);
-        if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
-        if (auto* serverUnit = g_serverWorld.FindUnit(unit->id_)) {
-            if (leader_ && leader_->id_ == unit->id_) serverUnit->ShowHelmet(false);
+        if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id);
+        if (auto* serverUnit = g_serverWorld.FindUnit(unit->id)) {
+            if (leader && leader->id == unit->id) serverUnit->ShowHelmet(false);
             serverUnit->ServerController()->actionDone = SpeakerAnimationDone;
         }
         return;
@@ -100,8 +100,8 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
     if (index < 0) return;
 
     // An item: one shown under this name goes first.
-    for (const BriefingShownItem& shown : shown_) {
-        if (text::CompareIgnoringCase(shown.name, name) != 0) continue;
+    for (const BriefingShownItem& item : shown) {
+        if (text::CompareIgnoringCase(item.name, name) != 0) continue;
         HideSpeaker(name, false, false);
         break;
     }
@@ -116,39 +116,39 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
 
     float x = static_cast<float>(kSlotXs[index % kSlots]);
     float y = static_cast<float>(kSlotYs[index % kSlots]);
-    CUiMesh* back = nullptr;
-    CUiMesh* frame = nullptr;
+    UiMesh* back = nullptr;
+    UiMesh* frame = nullptr;
     if (index < kSlots) {
         back = AddBlankSprite();
         back->SetRectangle(20.0f, 100.0f, x - kSlotBack, y - kSlotBack, x + kSlotBack, y + kSlotBack, 0, 0, 0x100, 0x100);
-        back->texture_ = nullptr;
-        back->flags_ |= FigureMeshFlag::Flat;
-        back->flatColour_ = kSlotBackdrop;
+        back->texture = nullptr;
+        back->flags |= FigureMeshFlag::Flat;
+        back->flatColour = kSlotBackdrop;
         frame = AddBlankSprite();
         frame->SetFrame(20.0f, 100.0f, x - kSlotFrame, y - kSlotFrame, x + kSlotFrame, y + kSlotFrame, 5.0f, 2, 0xFE, 0xB4,
                         0xF9);
     }
     std::string figure;
     figure = str::Format(kItemFigureFormat, record->number);
-    CUiMesh* item = AddSprite(figure);
+    UiMesh* item = AddSprite(figure);
     if (!item) {
         if (back) RemoveSceneObject(back);
         if (frame) RemoveSceneObject(frame);
         return;
     }
     if (index >= kTintFrom) {
-        item->flatColour_ = kTintedItem;
-        item->flags_ |= FigureMeshFlag::Flat;
+        item->flatColour = kTintedItem;
+        item->flags |= FigureMeshFlag::Flat;
     }
     std::string image;
     image = str::Format(kItemImageFormat, record->number);
     CTexture* texture = CreateTexture(0x100, 0x100, TextureKind::Blank1555);
     CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0);
-    item->texture_ = texture;
+    item->texture = texture;
     item->Place(x, y, kItemDepth);
     Quaternion turn;
     turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kTurnedOver);
-    item->localRotation_ = turn;
+    item->localRotation = turn;
 
-    shown_.push_front(BriefingShownItem{std::string(name), item, back, frame});
+    shown.push_front(BriefingShownItem{std::string(name), item, back, frame});
 }

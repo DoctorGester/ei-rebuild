@@ -22,3 +22,5 @@ void UiInputSide::Event(int slot, int a, int b, int c) {
     default: break;
     }
 }
+
+void UiInputSide::Wheel(int, int, int, int) {}

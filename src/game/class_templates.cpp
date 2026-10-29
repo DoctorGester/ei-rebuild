@@ -37,9 +37,9 @@ constexpr std::uint32_t kZeroWeights[9] = {};
 void AddTemplate(TemplateTable* v, int type, std::uint8_t sellsItems, std::uint8_t sellsSpells,
                  const std::uint32_t (&weights)[9]) {
     auto* t = new ClassTemplate();
-    t->refs_ = 0;
-    t->flags6_ = 0;
-    t->flags7_ = 0;
+    t->refs = 0;
+    t->flags6 = 0;
+    t->flags7 = 0;
     t->type = type;
     t->sellsItems = sellsItems;
     t->sellsSpells = sellsSpells;
@@ -53,7 +53,7 @@ void AddTemplate(TemplateTable* v, int type, std::uint8_t sellsItems, std::uint8
 
 void ClassTemplateFill(ClassTemplate* t) {
     std::vector<std::string> names;
-    CItemManager* items = t->ItemsParty()->ItemFactory();
+    ItemManager* items = t->ItemsParty()->ItemFactory();
     CSpellManager* spells = t->SpellsParty()->SpellManager();
 
     itemdb::ItemDatabase& db = g_itemDatabase;

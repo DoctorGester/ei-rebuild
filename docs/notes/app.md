@@ -12,7 +12,7 @@ every scenario.
   CArray::SetSize; 0045DFB0, 0045D610, 0045D760). `zone_records.cpp`: zone exit destructors and the map database's zone record destructor
   (eight CStrings, exit CArray at +0x48; 00460460, 004608B0, 00460970).
 - `object_tables.cpp`: `NamedFloatTable` (hash_map<CString, float>) Set 00460BC0 (zero removes; the value is tested with FCOMP against 0,
-  so NaN removes too), Remove, CopyPrefixed, Load, Save (00461260). `core_streams.cpp`: `CStream::ReadString` 00461190 (bytes up to a
+  so NaN removes too), Remove, CopyPrefixed, Load, Save (00461260). `core_streams.cpp`: `ByteStream::ReadString` 00461190 (bytes up to a
   zero into a CString; many callers keep forwarders). `key_bindings.cpp`: key bindings file load 00462C10 (key texts from
   `GetKeyNameTextA`, "command key" lines) and save 00462DF0; entries at 00787070 (code, name). `lever_table.cpp`: the atexit destructor
   00463120 of the lever table 0079C1A0 (vector of 0x2C records, hash map of vectors; it indexes the free lists with (0 - 1) >> 3 for a
@@ -68,26 +68,26 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   difference is compared with a second run of the original (the free space can change). Save and load screens.
 - 00455F10 `SetQuitAllowed` (CL to the byte 00784751), 00455F20 `QuitGame` (PostQuitMessage and 1 when the byte is set,
   else 0; ours only, it posts the message), 00455E20 `MovieMode` (the byte 00784752; side by side).
-- 00455B50 `DelayedProtectionCheck` (CPlayerClient::OnNewObject calls it for every new object): rand() * 100 / 0x7FFF
+- 00455B50 `DelayedProtectionCheck` (PlayerClient::OnNewObject calls it for every new object): rand() * 100 / 0x7FFF
   % 100 < 1, then the STLport list at 0079BC2C (built empty by the static initialiser 00455E50, freed by 00455F00) is
   searched for an entry whose byte is 0; one such entry runs 00455BA0 `ScrambleObjects` (the options back to their
   defaults, every object of the object manager 007AF5F8 given rand() * 0x1000 / 0x7FFF % 0x1000 as its companion
   (0050E8F0) and as its specific half (005161A0)). Nothing in the exe adds to the list, so the scramble never runs; ours
   keeps only the draw (the list and ScrambleObjects are gone).
-- 00455950 `CEngineObject::World` (the manager context's slot 13, `CManagerContext::ThisWorld`, now declared with its
-  result; null without a context) side by side, on every unit's updates; 00457720 `CEngineObject::ReleaseAndDelete` (one
+- 00455950 `EngineObject::World` (the manager context's slot 13, `CManagerContext::ThisWorld`, now declared with its
+  result; null without a context) side by side, on every unit's updates; 00457720 `EngineObject::ReleaseAndDelete` (one
   reference less, `delete` at zero) ours only.
-- 0045EA00 `CMapDatabase::LoadAll` ("map.txt", then "map-LMP.txt"; WinMain). Ours calls `Load` directly, so the loader's
+- 0045EA00 `MapDatabase::LoadAll` ("map.txt", then "map-LMP.txt"; WinMain). Ours calls `Load` directly, so the loader's
   own check is no longer reached from it; `verify_map_database.cpp` runs the original's two loads on the shadow database
   and compares the databases in depth after `LoadAll`.
 - 004645A0 `ChunkArchive::~ChunkArchive` (the out-of-line destructor the database loaders call):
   ours only, both streams must carry the stream base's vtable afterwards.
-- app_lifetime.cpp: the DirectInput mouse's destructor (004578D0: Shutdown, the two counted pointers'
+- party_manager.cpp: the DirectInput mouse's destructor (004578D0: Shutdown, the two counted pointers'
   releases, the root vtable 0073C368; slot 0 004578B0) and the root class's slot 0 (00457950). Ours only; the
   application drops the mouse at exit. The party record and class template creators and the party manager's
   destructor in the same file are described in script.md.
-- small_accessors.cpp: the counted pointer's destructor (00455C80, with the identical copies 00455610 and
-  004BB050): one reference dropped (`--refCount_`, no delete), the pointer cleared. Ours only (its prologue is a
+- The counted pointer's destructor (00455C80, with the identical copies 00455610 and
+  004BB050): one reference dropped (`--refCount`, no delete), the pointer cleared. Ours only (its prologue is a
   short jump); the world server's tick and the object list iterators' owners call it. 00455610 is called by
   unwind funclets only.
 - A-E1 library rows (config/library.csv, 60 rows; each row says why): STLport instantiations, MFC template helpers (element
@@ -149,6 +149,6 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
 - 004560D0 `ShowMessageBox` (full screen: DirectDraw flips to the GDI surface first; the cursor is put back).
   Ours only. 006462A0, the unit panel's draw: items_spells.md.
 - **The game's caught file errors**: the game's MFC threw a `CFileException*` from a failed file call, and
-  004D5880 (the script loader's text file reader, `script_text_file.cpp`) and `CDib::Read` 006D5910 / `Write`
+  004D5880 (the script loader's text file reader, `script_text_file.cpp`) and `Dib::Read` 006D5910 / `Write`
   006D5AC0 (`dib_file.cpp`) caught it. Ours catch `lib::FileError`, which lib::File / TextFile throw by value
   (no MFC exception class is left since C14zi).

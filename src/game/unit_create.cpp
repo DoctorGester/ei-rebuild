@@ -22,12 +22,15 @@ namespace {
 constexpr int kPartStats = 4;          // MarkChanged parts
 constexpr int kPartEquipment = 5;
 constexpr int kPartWeapons = 6;
+constexpr float kTenth = 0.1f;
+constexpr float kThreeQuarters = 0.75f;
+constexpr float kHalf = 0.5f;
 
-CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
+PlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 
 // The item's condition rounds to nothing.
-bool IsBroken(const CItem* item) {
-    return x87::fistp(item->condition_) <= 0;
+bool IsBroken(const Item* item) {
+    return x87::fistp(item->condition) <= 0;
 }
 
 } // namespace
@@ -45,7 +48,7 @@ UnitPrototypeRecord* UnitPrototypeTable::FindByName(std::string_view name) {
 
 // --- Server controller ------------------------------------------------------------------------
 
-void CUnitServer::SetStats(const UnitStats* source) {
+void UnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&stats, source, sizeof(UnitStats));
     unit->MarkChanged(kPartStats);
     RefreshVitals(false);
@@ -58,7 +61,7 @@ void CUnitServer::SetStats(const UnitStats* source) {
     companion->vitals.mana = companion->vitals.maxMana;
 }
 
-void CUnitServer::Shout(AckKind kind) {
+void UnitServer::Shout(AckKind kind) {
     if (!IsShoutable(kind)) return;
     if (!unit->player) return;
     PlayerMessages(unit->player)->SendObject0B(unit, kind);
@@ -67,16 +70,16 @@ void CUnitServer::Shout(AckKind kind) {
 // --- Broken equipment -------------------------------------------------------------------------
 
 void CUnit::DropBrokenEquipment() {
-    CPlayer* owner = player;
-    if (!owner) return;   // the empty list's destructor has nothing to free
-    std::list<CItem*> broken{};
-    CPlayerServer* messages = PlayerMessages(owner);
+    CPlayer* ownerObject = player;
+    if (!ownerObject) return;   // the empty list's destructor has nothing to free
+    std::list<Item*> broken{};
+    PlayerServer* messages = PlayerMessages(ownerObject);
 
-    for (CItemArmor*& slot : armor) {
+    for (ItemArmor*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
         slot->AddRef();
         broken.push_back(slot);
-        CItemArmor* piece = slot;
+        ItemArmor* piece = slot;
         slot = nullptr;
         if (piece) {
             Controller()->ArmourTakenOff(static_cast<std::uint32_t>(piece->GetType()));
@@ -88,12 +91,12 @@ void CUnit::DropBrokenEquipment() {
 
     bool weaponLost = false;
     for (int i = 3; i >= 0; --i) {
-        CItem*& slot = weapons[i];
+        Item*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
-        messages->SendPair16(static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
+        messages->SendPair16(static_cast<std::uint32_t>(id), static_cast<std::uint32_t>(i));
         slot->AddRef();
         broken.push_back(slot);
-        CEngineObject* weapon = slot;
+        EngineObject* weapon = slot;
         slot = nullptr;
         if (weapon) weapon->Release();
         MarkChanged(kPartEquipment);
@@ -105,7 +108,7 @@ void CUnit::DropBrokenEquipment() {
     if (weaponLost) Controller()->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
 
     if (!broken.empty()) {
-        owner->GiveItems(&broken, 1);
+        ownerObject->GiveItems(&broken, 1);
         for (auto node = broken.begin(); node != broken.end();) {
             auto next = std::next(node);
             (*node)->Release();
@@ -114,4 +117,68 @@ void CUnit::DropBrokenEquipment() {
         MarkChanged(kPartEquipment);
     }
     broken.clear();
+}
+
+// --- The unit's lifetime ---------------------------------------------------------------------------
+
+CUnit::CUnit() {
+    // The unit's motion: two arrays, then the step speeds and the segment part.
+    UnitMotion* m = &motion;
+    // (The segment part's constructor only returns it.)
+    std::memset(&m->curveX, 0, sizeof(m->curveX));
+    std::memset(&m->curveY, 0, sizeof(m->curveY));
+    m->segment = -1;
+    m->Clear();
+    m->speedScale = kTenth;
+    m->baseTurnRate = kTenth;
+    controller = nullptr;
+    player = nullptr;
+    Reset();
+}
+
+void CUnit::Reset() {
+    scriptName.clear();
+    secondPrototype = -1;
+    heightOffset = 0.0f;
+    sizeClass = 3;
+    unitRadius = kThreeQuarters;
+    standingHeight = kHalf;
+    relationsA = 0;
+    relationsB = 0xFFFFFFFFu;
+    side = 0;
+    if (controller) {
+        ServerController()->unit = nullptr;
+        controller->Release();
+    }
+    animationEntry = -1;
+    secondEntry = -1;
+    controller = nullptr;
+    player = nullptr;
+    actionSound = 0;
+    animationStart = 0;
+    motionMode = 0;
+    pathTimeShift = 0;
+    moveMode = 2;
+    moveMode2 = 2;
+    pendingWeapon = -1;
+    dead = 0;
+    obstacle = 0;
+    activeWeapon = 0xFFFFFFFFu;
+    params.Reset();
+    std::memset(weapons, 0, sizeof(weapons));
+    std::memset(quickItems, 0, sizeof(quickItems));
+    std::memset(armor, 0, sizeof(armor));
+    std::memset(spells, 0, sizeof(spells));
+    carried.clear();
+    altPassCosts = 0;
+    MapObject()->netState.Reset();
+    fightAtWill = 1;
+}
+
+CUnit::~CUnit() {
+    // The release-from-the-player virtual, called directly like the original (through the vtable's memory, not
+    // the object's).
+    ReleaseUnit();
+    DestroyMapObject();
+    Reset();
 }

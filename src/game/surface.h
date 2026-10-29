@@ -12,7 +12,7 @@
 
 #include <cstdint>
 
-class CTextureDevice;
+class TextureDevice;
 struct MmpHeader;
 
 // The screen's pixel format for a colour depth: 16 bits 5:6:5, otherwise X8R8G8B8.
@@ -34,18 +34,18 @@ struct ChannelLayout {
 
 // A surface or texture holder, counted: the interface windows' and the software cursor's surfaces, the textures. Its
 // pixels are its canvas, the picture the renderer kept for it, or the texture the renderer decoded for it.
-struct Surface final : CRendererBase {
+struct Surface final : RendererBase {
     // No pixels yet; the maker sets the size.
-    explicit Surface(CTextureDevice* device);
+    explicit Surface(TextureDevice* device);
     // `width` x `height` pixels in the screen's format, without memory (an interface window's pixels are its canvas,
-    // CUiSurface::MakeCanvas). Throws the game's error object for an empty size.
-    Surface(CTextureDevice* device, int width, int height);
+    // UiSurface::MakeCanvas). Throws the game's error object for an empty size.
+    Surface(TextureDevice* device, int width, int height);
     // An 8888 .mmp picture (the software cursor's images): its size in the screen's format, the renderer keeping the
     // picture's pixels. Throws the game's error object when the picture cannot be loaded.
-    Surface(CTextureDevice* device, const MmpHeader* picture);
+    Surface(TextureDevice* device, const MmpHeader* picture);
     ~Surface() override;
 
-    CTextureDevice* device;
+    TextureDevice* device;
     int width = 0;
     int height = 0;
     int bitsPerPixel = 0;
@@ -55,7 +55,7 @@ struct Surface final : CRendererBase {
 // texture manager's .mmp textures: render::TextureFromMmp keyed by the holder) or draws on the GPU (the composed
 // textures: render::ComposeTexture; the ones the game draws into: render::BlankTexture). The game's code writes no
 // pixels of it; no texture has memory. Null only when its allocation fails.
-Surface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, int bitsPerPixel);
+Surface* NewDecodedTextureHolder(TextureDevice* device, int width, int height, int bitsPerPixel);
 
 // What happens when a holder's memory cannot be made: the game's error "Can't create DDSurface %d %d ..." thrown with
 // `width` and `height`; that ends the game.

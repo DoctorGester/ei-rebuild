@@ -1,6 +1,6 @@
-// CDib (the game's class "CDib"): a device independent bitmap as a .bmp file holds one. The game reads loose
+// Dib (the game's class "Dib"): a device independent bitmap as a .bmp file holds one. The game reads loose
 // textures\<name>.bmp overrides with it and writes the screenshots and movie frames a surface capture fills. See
-// docs/notes/models.md ("CDib").
+// docs/notes/models.md ("Dib").
 #pragma once
 
 #include "lib/gameapi.h"
@@ -13,14 +13,14 @@ namespace lib {
 class File;
 }
 
-class CDib {
+class Dib {
 public:
-    CDib() = default;
+    Dib() = default;
     // Create's bitmap.
-    CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
-    CDib(const CDib&) = delete;
-    CDib& operator=(const CDib&) = delete;
-    ~CDib() { Empty(); }
+    Dib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
+    Dib(const Dib&) = delete;
+    Dib& operator=(const Dib&) = delete;
+    ~Dib() { Empty(); }
 
     // The bitmap emptied, then a new header for `width` x `height` pixels of `bitCount` bits, without a colour table and without bits
     // (AllocateBits). 16 and 32 bits: BI_BITFIELDS with the three channel masks after the header.
@@ -53,8 +53,8 @@ std::uint32_t DibImageSize(const BITMAPINFOHEADER* header);
 // The bytes of one row of a header's bitmap: width * bits per pixel, up to a multiple of four bytes.
 std::uint32_t DibRowBytes(const BITMAPINFOHEADER* header);
 
-class CTextureDevice;
+class TextureDevice;
 
 // A new bitmap of the screen of `device` (the new renderer's last frame), in the screen's depth (16 and 32 bits with
 // its channel masks), rows bottom-up; null when the new renderer has no frame.
-CDib* CaptureScreen(const CTextureDevice* device);
+Dib* CaptureScreen(const TextureDevice* device);

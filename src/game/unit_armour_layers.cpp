@@ -30,7 +30,7 @@ int CoveredSlot(int type, int which) { return kArmourCoverage[type][which]; }
 
 } // namespace
 
-void UnitStats::AddArmourLayer(CItemArmor* piece) {
+void UnitStats::AddArmourLayer(ItemArmor* piece) {
     for (int which = 0; which < 3; ++which) {
         int slotIndex = CoveredSlot(piece->GetType(), which);
         if (slotIndex == kNoSlot) continue;
@@ -38,24 +38,24 @@ void UnitStats::AddArmourLayer(CItemArmor* piece) {
         UnitStatLayer& layer = slot.layers[piece->GetTypeGroup()];
         if (slot.kind == 0) continue;
         int part = which != 0 ? 1 : 0;
-        for (int k = 0; k < 7; ++k) layer.absorb[k] = layer.absorb[k] + piece->absorb_[part][k];
+        for (int k = 0; k < 7; ++k) layer.absorb[k] = layer.absorb[k] + piece->absorb[part][k];
         layer.state = kLayerAdded;
-        layer.layerMask |= static_cast<int>(piece->layerMask_[part]);
+        layer.layerMask |= static_cast<int>(piece->layerMask[part]);
     }
 }
 
 void UnitStats::RebuildArmourLayers(CUnit* unit) {
     for (UnitStatSlot& slot : slots) std::memset(&slot.layers[1], 0, 2 * sizeof(UnitStatLayer));
     for (int i = 0; i < kArmourSlots; ++i) {
-        CItemArmor* piece = unit->armor[i];
+        ItemArmor* piece = unit->armor[i];
         if (!piece) continue;
-        float condition = piece->condition_;
+        float condition = piece->condition;
         if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // to nearest
     }
 }
 
 void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, DamageWords* out) {
-    bool keyed = IsTextKey(unit->id_);
+    bool keyed = IsTextKey(unit->id);
     int top = keyed ? 2 : 0;
     const UnitStatSlot& body = slots[kBodySlot];
     for (int k = 0; k < 7; ++k) {
@@ -68,10 +68,10 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, Damage
 }
 
 double UnitStats::AttributeWithItems(int index, CUnit* unit) {
-    if (!IsTextKey(unit->id_)) return attributes[index];   // any index
+    if (!IsTextKey(unit->id)) return attributes[index];    // any index
     float best = 0.0f;
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {
-        CItem* item = unit->GetQuickItem(i);
+        Item* item = unit->GetQuickItem(i);
         if (!item) continue;
         const auto* prototype = itemdb::RecordAs<itemdb::QuickItemRecord>(item->GetPrototype());
         float bonus = static_cast<float>(prototype->attributeBonus[index]);   // any index

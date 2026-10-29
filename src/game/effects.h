@@ -1,11 +1,11 @@
 #pragma once
 
 // Weather, visibility fog and particles: the per-frame simulation parts.
-// - CParticleSource ("CParticle"): one emitter. Its tick runs the per-type callbacks the
+// - ParticleSource ("CParticle"): one emitter. Its tick runs the per-type callbacks the
 // constructor stores (emit one particle, update one particle: 0 kills it, update
 // one element of the source's own array).
-// - CRainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
-// - CVisibilityFog ("CVisibilityFog", class id 0x5F): a hash_map of fog cells, one per visible map square; each
+// - RainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
+// - VisibilityFog ("VisibilityFog", class id 0x5F): a hash_map of fog cells, one per visible map square; each
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
 
 #include "base_manager.h"
@@ -26,11 +26,11 @@
 
 struct VertexPacket;
 
-// The particle source / effect types (CEngineObject::type_ of a CParticleSource and a CEffectParticle). The names
+// The particle source / effect types (EngineObject::type of a ParticleSource and a CEffectParticle). The names
 // are the script table's (script_effects.cpp kScriptParticleTypes) and the texture SetupType returns; a type neither
 // names is described: Shower1-4 (the RainSnow texture, texture frames 12-15), Falling1-4 (a gust of RainSnow),
 // GroundDust1 / 2, TeleportRing (the Teleport texture), VisionStar4 (the fourth vision star, lifetime 3), Stun (the
-// Stun texture), PoisonCloud (the second PoisonFog type, the poison spell's cloud). type_ stays a plain int in the
+// Stun texture), PoisonCloud (the second PoisonFog type, the poison spell's cloud). type stays a plain int in the
 // objects; ParticleTypeOf reads it.
 enum class ParticleType : int {
     FireBall = 0x2000,
@@ -149,7 +149,7 @@ struct Particle {
 };
 
 // A table read by a particle's remaining life, unchecked as the original reads it. The tick updates a particle
-// once more after it has died and gone back to the pool (CParticleSource::RunTick keeps the original's order), so
+// once more after it has died and gone back to the pool (ParticleSource::RunTick keeps the original's order), so
 // an update that counts the life down reads index -1 then: the original read the four bytes before the table there
 // (in game.exe's data, the last entry of the table before it), `before` here.
 template <class T, std::size_t N>
@@ -367,54 +367,54 @@ static_assert(offsetof(ParticleElement, wind.direction) == 0x10 && offsetof(Part
 static_assert(offsetof(ParticleElement, trans.count) == 0x1C && offsetof(ParticleElement, glow.mark) == 0x18);
 static_assert(offsetof(ParticleElement, glow.color) == 0x30 && offsetof(ParticleElement, word[9]) == 0x30);
 
-class CParticleSource;
+class ParticleSource;
 class CObject3D;
 
 // The client world's manager set-up calls it after the base manager's constructor.
-class CParticleManager;
-void ParticleManagerClearQuietStart(CParticleManager* manager);
+class ParticleManager;
+void ParticleManagerClearQuietStart(ParticleManager* manager);
 
-// The particle manager: a CBaseManager whose objects are the sources. It keeps a pool of free particles (taken
+// The particle manager: a BaseManager whose objects are the sources. It keeps a pool of free particles (taken
 // from the head, returned to the tail), and holds one reference on every source made through CreateSource
-// (`held_`, by id) until the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
-class CParticleManager : public CBaseManager {
+// (`held`, by id) until the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
+class ParticleManager : public BaseManager {
 public:
     // Kept order: Destroy releases the sources in it, which sends them to the spares and their textures' releases
     // to the texture manager's spare list in that order.
-    using HeldMap = lib::HashMap<int, CParticleSource*>;
+    using HeldMap = lib::HashMap<int, ParticleSource*>;
 
-    CParticleManager();
-    ~CParticleManager() override;
+    ParticleManager();
+    ~ParticleManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    CEngineObject* NewObject(int type) override;
+    EngineObject* NewObject(int type) override;
 
     void Create() override;
     void Destroy() override;
 
     Particle* AcquireParticle();                    // from the pool, else new
     void ReleaseParticle(Particle* p);              // back to the pool's tail
-    int DrawAll(CSceneRenderer* renderer);
+    int DrawAll(SceneRenderer* renderer);
     // CreateObject(type, -1), referenced and held under its id; with quietStart set, types 0x2001 / 0x2003 /
     // 0x2004 start without emitting.
-    CParticleSource* CreateSource(int type);
+    ParticleSource* CreateSource(int type);
     // Every source's tick (with `paused` only the ones with ParticleSourceFlag::TicksWhilePaused); a held source whose tick returned 0 is
-    // released and leaves `held_`. Returns 0.
+    // released and leaves `held`. Returns 0.
     int TickSources(char paused);
-    // Every held source nobody else references (refCount_ 1) is released and leaves `held_` (the client's zone
+    // Every held source nobody else references (refCount 1) is released and leaves `held` (the client's zone
     // load).
     void ReleaseUnheld();
 
     std::list<Particle*> freeParticles;
-    HeldMap held_;                                  // id -> source holding a reference
-    int maxHeldId_;                                 // highest key of held_
+    HeldMap held;                                   // id -> source holding a reference
+    int maxHeldId;                                  // highest key of held
     int quietStart;                                 // see CreateSource; never set non-zero in src
 };
 
 // One entry of the draw order: the source's depth along the camera's view axis.
 struct ParticleDepth {
     float depth;
-    CParticleSource* source;
+    ParticleSource* source;
 };
 
 // One texture frame's UV rectangle.
@@ -422,7 +422,7 @@ struct SourceFrame {
     float u0, v0, u1, v1;
 };
 
-// The bits of CEngineObject::flags_ on a particle source (the types' setups in particle_create.cpp set them).
+// The bits of EngineObject::flags on a particle source (the types' setups in particle_create.cpp set them).
 enum class ParticleSourceFlag : std::uint32_t {
     Emitting = 0x1,
     AttachedOnly = 0x2,     // emits only while attached
@@ -434,22 +434,22 @@ enum class ParticleSourceFlag : std::uint32_t {
 };
 template <> inline constexpr bool lib::kBitFlags<ParticleSourceFlag> = true;
 
-// A particle source: localPosition_ is where it emits relative to what it is attached to, localRotation_ the
+// A particle source: localPosition is where it emits relative to what it is attached to, localRotation the
 // identity after Reset.
-class CParticleSource final : public CTransformObject {
+class ParticleSource final : public TransformObject {
 public:
-    explicit CParticleSource(int type);
-    ~CParticleSource() override;
+    explicit ParticleSource(int type);
+    ~ParticleSource() override;
     void Create() override;                          // per-type parameters
     void Destroy() override { Clear(); }
     bool RunTick() override;                         // 1 while the source stays alive
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner_); }
+    ParticleManager* Manager() const { return static_cast<ParticleManager*>(owner); }
     // Fills the shared vertex / sprite arrays and draws through the renderer. 1 when there is
     // nothing to draw or it is off screen.
-    int Draw(CSceneRenderer* renderer);
+    int Draw(SceneRenderer* renderer);
 
     // --- set-up ---
     void Reset();                                   // defaults, texture and elements dropped
@@ -460,9 +460,9 @@ public:
 
     // The callbacks Create stores (emit, update, element): members below. Emit fills a
     // particle from the pool (0 returns it), update moves one (0 drops it).
-    using EmitCallback = int (CParticleSource::*)(Particle* p, int index);
-    using UpdateCallback = int (CParticleSource::*)(Particle* p);
-    using ElementCallback = void (CParticleSource::*)(ParticleElement* e);
+    using EmitCallback = int (ParticleSource::*)(Particle* p, int index);
+    using UpdateCallback = int (ParticleSource::*)(Particle* p);
+    using ElementCallback = void (ParticleSource::*)(ParticleElement* e);
 
     // --- per-particle callbacks, return 0 to drop ---
     int UpdateFalling(Particle* p);                 // types 0x2034-0x2037
@@ -612,7 +612,7 @@ public:
     void StopAndClear();
     void ReleaseAllParticles();
 
-    // CEngineObject's flags_: the ParticleSourceFlag bits; type_ 0x2000.. (the effect names in the type name
+    // EngineObject's flags: the ParticleSourceFlag bits; type 0x2000.. (the effect names in the type name
     // table).
     CObject3D* attachedTo;          // the object followed, null: none
     Vector3 origin;                 // world emission point
@@ -660,7 +660,7 @@ public:
 };
 
 // The class factory's creator; the register arguments are unused.
-CParticleSource* NewParticleSource(int type);
+ParticleSource* NewParticleSource(int type);
 
 // `out` = v / d, all three quotients computed before the first store; returns out.
 Vector3* DivideVector(Vector3* out, const Vector3& v, float d);
@@ -676,16 +676,16 @@ struct ParticleSprite {
 };
 
 // The world's rain/snow layer.
-class CRainSnow final : public CEngineObject {
+class RainSnow final : public EngineObject {
 public:
-    CRainSnow();
-    ~CRainSnow() override;
+    RainSnow();
+    ~RainSnow() override;
     void Create() override {}
     void Destroy() override { Clear(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    int Draw(CSceneRenderer* renderer);
+    int Draw(SceneRenderer* renderer);
     void UpdateFade(float now);
     void SetWind(const Vector3& direction, float strength);
     void Clear();
@@ -700,17 +700,17 @@ public:
     // them shown: a rain drop is a thin triangle along the wind, a snowflake a point swayed by the five sway
     // tables that becomes a small triangle on screen. Projected with the pipeline's stack 2 and drawn as
     // pre-transformed triangles through `indices` with the device's current state.
-    int DrawRain(CSceneRenderer* renderer);
-    int DrawSnow(CSceneRenderer* renderer);
+    int DrawRain(SceneRenderer* renderer);
+    int DrawSnow(SceneRenderer* renderer);
     // Their two halves: the vertices of the particles on screen built (returns their count, three per
     // particle), and those drawn (the distance fog when the device has it on, the triangles to the new
     // renderer, the frame's counts).
-    int BuildRain(CSceneRenderer* renderer);
-    int BuildSnow(CSceneRenderer* renderer);
-    void DrawParticles(CSceneRenderer* renderer, int vertexCount);
+    int BuildRain(SceneRenderer* renderer);
+    int BuildSnow(SceneRenderer* renderer);
+    void DrawParticles(SceneRenderer* renderer, int vertexCount);
 
     Ref<CTexture> texture;            // "RainSnow"
-    class CWorldClient* world;      // the client world (set after construction)
+    class WorldClient* world;      // the client world (set after construction)
     int sound;                      // rain loop handle in the sound manager (0: none)
     // The draws' work arrays.
     std::vector<Vector4> projected;       // the positions projected (four per packet)
@@ -753,8 +753,8 @@ inline FogTile g_fogTiles[16] = /*007ABA58*/ {};
 struct FogGrid {
     void Clear();                         // no origin (0x7FFFFFFF), 1 x 1, zeroed
     // x0, y0, width, height (dwords), then the cells; reading makes the cells again when the size changed.
-    void Read(CMemoryStream* stream);
-    void Write(CMemoryStream* stream);
+    void Read(MemoryStream* stream);
+    void Write(MemoryStream* stream);
     // Grows the grid to cover (x - n .. x + n, y - n .. y + n); the first call (x0 = 0x7FFFFFFF) sizes and
     // clears it.
     void Grow(int x, int y, int n);
@@ -764,12 +764,12 @@ struct FogGrid {
     SearchGrid<std::uint8_t> cells; // width * height bytes and the row table (operator new)
 };
 
-class CVisibilityFog final : public CEngineObject {
+class VisibilityFog final : public EngineObject {
 public:
     using CellMap = lib::HashMap<std::uint32_t, FogCell>;   // Draw hands the cells' sprites over in STLport's order
 
-    CVisibilityFog();
-    ~CVisibilityFog() override;
+    VisibilityFog();
+    ~VisibilityFog() override;
     void Create() override;
     void Destroy() override { ClearCells(); }
     bool RunTick() override;
@@ -781,7 +781,7 @@ public:
     // Every cell freed (nodes back to the pool), the bounds invalid.
     void ClearCells();
     // The cells as sprites through the scene renderer; 1 without cells or when the bounds are out of view.
-    int Draw(class CSceneRenderer* renderer);
+    int Draw(class SceneRenderer* renderer);
 
     ClipBounds bounds;              // flags 3 once computed; the box relative to the centre
     Vector3 boundsSpare;            // zeroed with the bounds, never read

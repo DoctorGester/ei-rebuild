@@ -13,7 +13,7 @@ What each window surface is drawn with, how often, and who reads it back. It was
   - A window that wears a verify stand-in copy of its vtable for the length of a call is labelled with its game vtable (`RealVtable`; see "Heap vtables" below).
   - The DIB is hashed around every DC session and at every frame. Any change that no hooked call explains is reported as "uncaught". Output: one `ui_census.csv` in each run folder.
   - **Call chains.** x86 code here has no frame pointers and no unwind tables, so `Chain()` scans the stack for return addresses. Unwritten slots of live frames hold return addresses from earlier, deeper calls, so a scanned value is kept only when its call is tied to the frames before it: a direct call (E8) must lead into the function holding the previous frame, through the jumps on the way (E9 thunks and hook entries, the `mov eax, imm32; jmp eax` forwarders, a tail call; function starts come from call targets and addresses stored in data or code, each after padding or a RET); a call through a register or memory counts only when the callee's address is stored somewhere and a later direct call (or a frame above it) proves it; an import call (`CALL [address]`) is never a caller. A chain can end early where its next caller was reached by a virtual call, but never names a wrong one. The report does not resolve a bare-named function of ours (the harness's `Send` lambda) to a game function that shares only the last part of its name.
-- **`tools/ui_census_report.py [--summary]`** merges the runs into `build/verify/ui_census_merged.csv`, one row per window x primitive x call site, vanilla and Rebirth counts apart. Frames are named from config/functions.csv, ei_hook.map and the EI_REPLACE lines. A verify wrapper's second run of the original body is left out; calls made under a verify pixel helper (AccessPixels, CopySurfaceDC, WindowBytes, CompareDrawing) are marked `[in verify]` (their reads are not the game's; `GreyscaleVerify` hooks the game's own greyscale call, so Rebirth's is not marked). A function whose hook a run skipped ("SKIP ... at <address>" in its ei_hook.log, e.g. CChatWindow::Update 006095A0, which EI_Plugin.asi patches under Rebirth) runs only the game code and is not counted as a verify duplicate.
+- **`tools/ui_census_report.py [--summary]`** merges the runs into `build/verify/ui_census_merged.csv`, one row per window x primitive x call site, vanilla and Rebirth counts apart. Frames are named from config/functions.csv, ei_hook.map and the EI_REPLACE lines. A verify wrapper's second run of the original body is left out; calls made under a verify pixel helper (AccessPixels, CopySurfaceDC, WindowBytes, CompareDrawing) are marked `[in verify]` (their reads are not the game's; `GreyscaleVerify` hooks the game's own greyscale call, so Rebirth's is not marked). A function whose hook a run skipped ("SKIP ... at <address>" in its ei_hook.log, e.g. ChatWindow::Update 006095A0, which EI_Plugin.asi patches under Rebirth) runs only the game code and is not counted as a verify duplicate.
 - **Run:**
   ```
   EI_UI_CENSUS=1 EI_RENDER=new,cpuwindows python tools/run_all.py ui_main_menu ui_screens ui_hud ui_camp ui_camp_deals ui_hero_screen ui_hero_stats ui_hero_delete ui_trade_hold ui_trade_restore ui_describe ui_help ui_objectives ui_saveload ui_saveload_delete ui_options_bind ui_quest_notice ui_quick_items ui_view_screen ui_base_dialogue ui_battle_commands ui_battle_spells ui_container_input console trader_stock render_present_cpuwindows ui_help_page ui_mp_host ui_global_map_pick --all-rebirth --jobs 4
@@ -29,30 +29,30 @@ Counts are vanilla / Rebirth.
 
 | Window (vtable) #surface | DrawTextA | FillSolidRect | Other | Redrawn every frame | Main sites |
 |---|---|---|---|---|---|
-| CTradePanel rows `TradeRow` (007417A8) #0 | 16080 / 27360 | 120 / 144 | | no | 006261A0 TradeDrawLists, CTradePanel::DrawLists, DrawSchool |
-| CItemInfoPanel (007404DC) #0 | 12116 / 9568 | 1423 / 1501 | | **yes** (694 of 796 frames; changed in 63) | 005EE760 DescribeItem, 005F1590 DescribeStats, 005F1130, 005EF5D0, DrawWrappedText |
-| CHeroStatsPanel (00741ABC) #0 | 5136 / 4896 | 140 / 133 | | no | 00623880 DrawStats, DrawRow / DrawPart |
-| CHudUnitPanel (007426F8) #0 | 3718 / 3520 | 706 / 673 | | **yes** (666 frames, changed in 52) | 006462A0 Draw, 00647040, 006477E0, 00647B70 |
+| TradePanel rows `TradeRow` (007417A8) #0 | 16080 / 27360 | 120 / 144 | | no | 006261A0 TradeDrawLists, TradePanel::DrawLists, DrawSchool |
+| ItemInfoPanel (007404DC) #0 | 12116 / 9568 | 1423 / 1501 | | **yes** (694 of 796 frames; changed in 63) | 005EE760 DescribeItem, 005F1590 DescribeStats, 005F1130, 005EF5D0, DrawWrappedText |
+| HeroStatsPanel (00741ABC) #0 | 5136 / 4896 | 140 / 133 | | no | 00623880 DrawStats, DrawRow / DrawPart |
+| HudUnitPanel (007426F8) #0 | 3718 / 3520 | 706 / 673 | | **yes** (666 frames, changed in 52) | 006462A0 Draw, 00647040, 006477E0, 00647B70 |
 | options (00741FAC) #0 | 1000 | 25 | | no | 00651350 RefreshRows |
-| camp (0074091C) #0 | 892 / 894 | 430 / 417 | | **yes** (414 of 414, changed in 21) | 00611930 CCampPages::UpdateAction |
-| item strip (0074197C, 00621B50) #0 / #1 | 290 / 330, 826 / 950 | 469 / 466 each | | **yes** (414 of 469, changed in 1 / 14) | CUiItemStrip::Draw < 00600EF0 UiContainerDraw |
+| camp (0074091C) #0 | 892 / 894 | 430 / 417 | | **yes** (414 of 414, changed in 21) | 00611930 CampPages::UpdateAction |
+| item strip (0074197C, 00621B50) #0 / #1 | 290 / 330, 826 / 950 | 469 / 466 each | | **yes** (414 of 469, changed in 1 / 14) | UiItemStrip::Draw < 00600EF0 UiContainerDraw |
 | saveload (00741388) #0 | 532 / 412 | 32 | LineTo 13, pen w1 31B3FF | no | 006567A0 RefreshListVanilla |
-| CUiSpin (00742D5C) | 450 | 225 | | no | 0065BEE0 SetValue |
-| CUiScrollText (00742E9C) | 410 / 432 | 71 / 67 | | no | 0065D150 DrawLines (DrawWord) |
-| heroes (0074214C) #0..#2 | 402 / 360 | 50 | | no | CMpHeroScreen::DrawHeroList, DrawVoices, 00613EA0 Create |
+| UiSpin (00742D5C) | 450 | 225 | | no | 0065BEE0 SetValue |
+| UiScrollText (00742E9C) | 410 / 432 | 71 / 67 | | no | 0065D150 DrawLines (DrawWord) |
+| heroes (0074214C) #0..#2 | 402 / 360 | 50 | | no | MpHeroScreen::DrawHeroList, DrawVoices, 00613EA0 Create |
 | console | 195 | 30 | LineTo 25, pen w2 FFFFFF | no | 005E4800 DrawLines, 005E4A10 DrawInput (direct CDC, Courier New h-24) |
-| CUiTooltip (00742F64) | 158 / 184 | 29 / 34 | **FrameRect 29 / 34** (brush 31B3FF) | no (maxrun <= 9) | 0065E880 DrawLines |
-| CUiEditField (00742DF4) | 88 / 104 | 44 / 52 | LineTo 44 / 52, pens w1 31B3FF / 0000FF | no | 0065C2E0 DrawContentsVanilla |
+| UiTooltip (00742F64) | 158 / 184 | 29 / 34 | **FrameRect 29 / 34** (brush 31B3FF) | no (maxrun <= 9) | 0065E880 DrawLines |
+| UiEditField (00742DF4) | 88 / 104 | 44 / 52 | LineTo 44 / 52, pens w1 31B3FF / 0000FF | no | 0065C2E0 DrawContentsVanilla |
 | status | 62 | 31 | | no | 005F75B0 ShowStatusText |
-| main menu version line ("unowned", the menu surface before AddSurface) | 54 | 27 | | no | 006335E0 CMainMenu::AddVersionLine |
+| main menu version line ("unowned", the menu surface before AddSurface) | 54 | 27 | | no | 006335E0 MainMenu::AddVersionLine |
 | titles (00740C3C) #0 | | 51 / 58 | **EM_FORMATRANGE 51 / 58** (RichEdit) | **yes** while scrolling | 0065F020 RenderText |
-| CHudMap (00742660) #0, 24x18 (Rebirth 18x18) | | | **SetPixel 33 / 32** | no | 00641F20 Setup |
-| msgbox, difficulty, objectives, briefing, map #1, CTradeGrid, CRepairGrid, titles #1 | 2-24 each | 1-58 each | DT_CALCRECT in BoxText (msgbox, difficulty) | CTradeGrid **yes** | BoxText, 0064D9B0, 0064CC10, SurfaceText, 00627390 |
+| HudMap (00742660) #0, 24x18 (Rebirth 18x18) | | | **SetPixel 33 / 32** | no | 00641F20 Setup |
+| msgbox, difficulty, objectives, briefing, map #1, TradeGrid, RepairGrid, titles #1 | 2-24 each | 1-58 each | DT_CALCRECT in BoxText (msgbox, difficulty) | TradeGrid **yes** | BoxText, 0064D9B0, 0064CC10, SurfaceText, 00627390 |
 | map #0, objectives #2, briefing #0, menu #0 | 0 | 0 | | alive, never drawn | |
-| CChatWindow (00741478) #0, the briefing's player list | 112 / 100 | 56 / 50 | | **yes** (changed in 1) | 006095A0 CChatWindow::Update (Rebirth: EI_Plugin.asi's patch, so the game body) |
-| CMpConnectScreen (00741CD0) #0, the connect list | 576 / 480 + 32 addon | 18 / 16 | LineTo 18 / 16 | no | 0061D780 DrawListVanilla (Rebirth's patched body, and addon+134D2 through DrawTextIn); #1: 0061B2C0 Create, 4 texts |
-| CChatOverlay (007400DC) #0, the typed line | 30 | 15 | LineTo 15 (the caret) | no | 005E3700 DrawTyped; measured with TextWidth on `GetDC(game window)` |
-| chat line surface ("unowned", 494x61) | 6 | 1 | | no | 005E2A30 CChatOverlay::AddLine (DrawPiece); never added to a window |
+| ChatWindow (00741478) #0, the briefing's player list | 112 / 100 | 56 / 50 | | **yes** (changed in 1) | 006095A0 ChatWindow::Update (Rebirth: EI_Plugin.asi's patch, so the game body) |
+| MpConnectScreen (00741CD0) #0, the connect list | 576 / 480 + 32 addon | 18 / 16 | LineTo 18 / 16 | no | 0061D780 DrawListVanilla (Rebirth's patched body, and addon+134D2 through DrawTextIn); #1: 0061B2C0 Create, 4 texts |
+| ChatOverlay (007400DC) #0, the typed line | 30 | 15 | LineTo 15 (the caret) | no | 005E3700 DrawTyped; measured with TextWidth on `GetDC(game window)` |
+| chat line surface ("unowned", 494x61) | 6 | 1 | | no | 005E2A30 ChatOverlay::AddLine (DrawPiece); never added to a window |
 | help (00740E28) #0 / #1 / #2 | 24, 346, 26 | 6, 10, 6 | | no | 00659420 ShowPage (DrawLine, DrawWrappedText; 2,002 TextExtent calls); Rebirth patches it, so its body runs |
 | fps (336x64, Rebirth 252x64) | 24 | 6 | | no (every 400 ms) | 005F5320 DrawOverlays |
 
@@ -62,7 +62,7 @@ Counts are vanilla / Rebirth.
 
 | Calls | Where | Through |
 |---|---|---|
-| about 60,000 | GetTextExtentPoint32A on `GetDC(game window)` | 005F8340 TextExtent. Callers: DrawWrappedText (35k, most in verify), tooltip Construct / CheckSplit (21k), CUiScrollText Layout / Tokenize / DrawLines (2.8k), unit panel (0.7k), edit field, save/load list, difficulty box |
+| about 60,000 | GetTextExtentPoint32A on `GetDC(game window)` | 005F8340 TextExtent. Callers: DrawWrappedText (35k, most in verify), tooltip Construct / CheckSplit (21k), UiScrollText Layout / Tokenize / DrawLines (2.8k), unit panel (0.7k), edit field, save/load list, difficulty box |
 | 64 | DrawTextA with DT_CALCRECT | BoxText (message box and difficulty box) |
 | 50 | GetTextExtentPoint32A on the console's own surface DC | `console::PromptWidth`, 005E4A10 (not through 005F8340) |
 | 208 + 104 + 2 x 52 | GetDeviceCaps 90 (LOGPIXELSY) / 88 on the screen DC | font creation (CreatePointFont in 005F4990, the console) |
@@ -71,17 +71,17 @@ Counts are vanilla / Rebirth.
 **Fonts made:** Times New Roman, six heights per resolution (h-49 to h-71, plus h-200 for the credits), all from 005F4990, made again at each Create; Courier New h-24 for the console.
 
 **Readers.** Besides the per-frame blit 005FDA80 (a Lock), these read surface pixels:
-- every window's `CUiWindow::Show` 006002C0 swaps every surface out and back (`SwapContents` 005FD7A0) when the window is hidden or shown; `CUiSurface::Show` / `Hide` (005FD760) do the same for the hero screen;
+- every window's `UiWindow::Show` 006002C0 swaps every surface out and back (`SwapContents` 005FD7A0) when the window is hidden or shown; `UiSurface::Show` / `Hide` (005FD760) do the same for the hero screen;
 - the backdrop: `DrawOverlays` 005F5320 captures the screen into it (CaptureScreen), turns it grey (Greyscale) and copies it at 16 bits (Rgb565Copy) when a window that shows the screen behind it opens (the escape menu among them);
 - the save picture: `QuickSave` 006570E0 captures the screen and copies it at 16 bits, at every new game's autosave;
-- the global map: `CGlobalMap::RefreshSelection` 00630670 captures the pick picture, and the mouse moves read it with PixelAt (ours under vanilla, the game's 00630010 under Rebirth).
+- the global map: `GlobalMap::RefreshSelection` 00630670 captures the pick picture, and the mouse moves read it with PixelAt (ours under vanilla, the game's 00630010 under Rebirth).
 
 The verify wrappers' pixel helpers read about 11,000 times, most on the item info panel; that is test traffic, not the game's.
 
 ## Corrections to the ui-native.md inventory
 
-1. **SetPixel** is `CHudMap::Setup` 00641F20, about 33 pixels on a 24x18 surface (18x18 under Rebirth), drawn again at each HUD setup (the inventory had "a 5x5 surface, drawn once").
-2. **Swap.** `SwapContents` runs for every window on every show and hide (006002C0), plus the hero screen's CUiSurface::Show / Hide. P1 should swap canvas handles, not read back on each show and hide.
+1. **SetPixel** is `HudMap::Setup` 00641F20, about 33 pixels on a 24x18 surface (18x18 under Rebirth), drawn again at each HUD setup (the inventory had "a 5x5 surface, drawn once").
+2. **Swap.** `SwapContents` runs for every window on every show and hide (006002C0), plus the hero screen's UiSurface::Show / Hide. P1 should swap canvas handles, not read back on each show and hide.
 3. **Every-frame surfaces** are the item info panel, the item strip (both surfaces), the unit panel, the camp page #0, the trade grid and the scrolling titles. Tooltips are not redrawn every frame (ui-native section 3 says they are). Except for the titles, 91-99% of these redraws leave the pixels unchanged: the CPU path's memcmp hides this today.
 4. **Main-menu version line.** 006335E0 draws into the menu surface before `AddSurface` gives it an owner. A native table keyed at `AddSurface` must apply to a surface's earlier drawing too, or the menu falls back to the CPU.
 5. **The console measures text on its own surface DC** (PromptWidth), not through 005F8340.
@@ -92,7 +92,7 @@ The verify wrappers' pixel helpers read about 11,000 times, most on the item inf
 - **ui_mp_host:** a hero is made, the connect list 0061D780 is clicked, keyed and sorted, a game is hosted, and on the briefing the chat window (player list) is drawn and the chat line typed, edited and sent. Nothing leaves the machine. A "disconnect" box that sometimes followed the chat line was the harness's: parallel games shared UDP port 8888 (ui-native.md section 4, N0); each harness game now has a port of its own and the scenario checks the briefing is still on top at its end.
 - **ui_global_map_pick:** the global map's pick picture and PixelAt, with "fps on" for the FPS surface.
 
-**Heap vtables.** Four owners in ui_trade_hold under Rebirth had vtables on the heap (2FBD6554, 2FBD6A1C, 2FBD6BB4, 2FBD6EE4), drawn by `CHeroStatsPanel::DrawStats` and `TradeDrawLists`. They are verify stand-ins, not Rebirth's: `verify_ui_window_slots.cpp` gives a container's children a heap copy of their vtable (`StandInTable`, the real vtable in the entry before it) while slots 22 / 23 / 24 are dispatched, and `slot_recorder.h` did the same for one object (removed in C19 batch 20). The census labels them with the game vtable. **P3c can key on vtables**: a release build has no stand-ins, and a verify build must look through them (`RealVtable` in `ui_census.cpp`). (C19 batch 19: the stand-ins are gone, and `RealVtable` now names a window built with a compiled table by game.exe's table for its kind, `WindowKinds`.)
+**Heap vtables.** Four owners in ui_trade_hold under Rebirth had vtables on the heap (2FBD6554, 2FBD6A1C, 2FBD6BB4, 2FBD6EE4), drawn by `HeroStatsPanel::DrawStats` and `TradeDrawLists`. They are verify stand-ins, not Rebirth's: `verify_ui_window_slots.cpp` gives a container's children a heap copy of their vtable (`StandInTable`, the real vtable in the entry before it) while slots 22 / 23 / 24 are dispatched, and `slot_recorder.h` did the same for one object (removed in C19 batch 20). The census labels them with the game vtable. **P3c can key on vtables**: a release build has no stand-ins, and a verify build must look through them (`RealVtable` in `ui_census.cpp`). (C19 batch 19: the stand-ins are gone, and `RealVtable` now names a window built with a compiled table by game.exe's table for its kind, `WindowKinds`.)
 
 ## Effect on the P tickets
 

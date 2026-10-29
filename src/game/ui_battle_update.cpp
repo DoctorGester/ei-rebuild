@@ -37,48 +37,48 @@
 
 // --- the quick item panel's unit -----------------------------------------------------------------
 
-void CHudQuickItems::SetUnit(CUnit* unit) {
+void HudQuickItems::SetUnit(CUnit* newUnit) {
     std::string tip;
-    unit_ = unit;
+    unit = newUnit;
     ClearSceneObjects();
-    shownCount_ = 0;
-    selected_ = -1;
+    shownCount = 0;
+    selected = -1;
     for (int i = 0; i < 8; ++i) {
-        regions_[i]->SetTip(0);
-        regionItem_[i] = -1;
+        regions[i]->SetTip(0);
+        regionItem[i] = -1;
     }
-    entries_.clear();   // (zeroed new entries)
-    if (!unit_) return;
+    entries.clear();    // (zeroed new entries)
+    if (!unit) return;
 
     // The entry of the sprite just added.
-    auto finish = [&](CItem* item, bool own) {
-        entries_.resize(shownCount_);
-        Entry& entry = entries_[shownCount_ - 1];
+    auto finish = [&](Item* item, bool own) {
+        entries.resize(shownCount);
+        Entry& entry = entries[shownCount - 1];
         entry.own = own;
-        entry.id = item->id_;
+        entry.id = item->id;
         entry.item = item;
     };
     // The sprite just added: placed in its row (x from the panels' right column, 695; Rebirth moves it), its
     // region pointing at it, scaled, opaque.
     auto place = [&](int slot) {
-        CEngineObject* sprite = sceneObjects_[shownCount_ - 1];
+        EngineObject* sprite = sceneObjects[shownCount - 1];
         const float right = widescreen::g_panelRight;
         if (slot < 4)
             AsUiMesh(sprite)->Place(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
         else
             AsUiMesh(sprite)->Place(right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
-        int last = shownCount_ - 1;
-        regionItem_[slot] = last;
-        if (last >= 0 && last < shownCount_) {
-            CEngineObject* shown = sceneObjects_[last];
+        int last = shownCount - 1;
+        regionItem[slot] = last;
+        if (last >= 0 && last < shownCount) {
+            EngineObject* shown = sceneObjects[last];
             AsUiMesh(shown)->SetScale(slot < 4 ? 0.55f : 0.85f);
-            SceneMesh(last)->flatSpecular_ = 0xFF000000;
+            SceneMesh(last)->flatSpecular = 0xFF000000;
         }
     };
 
     // The unit's four quick items in the bottom row.
     for (unsigned slot = 0; slot < 4; ++slot) {
-        CItem* item = unit_->GetQuickItem(slot);
+        Item* item = unit->GetQuickItem(slot);
         if (!item) continue;
         {
             std::string image = item->FigureName();
@@ -86,21 +86,21 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
             AddItem(model, image);
         }
         finish(item, true);
-        regions_[slot]->SetTipString(ItemTip(slot), static_cast<int>(slot) + 0x2A);
+        regions[slot]->SetTipString(ItemTip(slot), static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot));
     }
 
     // The local player's own unit also shows up to four of the player's ItemKind::Quest items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
-    CPlayer* player = GameLocalView()->player_;
-    if (!player->IsLeader(unit_)) return;
-    player = GameLocalView()->player_;
-    auto node = player->items_.rbegin();
-    if (node == player->items_.rend()) return;
+    CPlayer* player = GameLocalView()->player;
+    if (!player->IsLeader(unit)) return;
+    player = GameLocalView()->player;
+    auto node = player->items.rbegin();
+    if (node == player->items.rend()) return;
     int slot = 4;
-    while (node != player->items_.rend()) {
+    while (node != player->items.rend()) {
         if (slot - 4 >= 4) break;
-        CItem* item = *node;
+        Item* item = *node;
         ++node;
         if (!item || item->Kind() != ItemKind::Quest)
             continue;
@@ -111,8 +111,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The same string serves as the second and third texts.
-        tip = g_clientWorld.texts_->GetItemTexts(item).name;
-        regions_[slot]->SetTipString(tip);
+        tip = g_clientWorld.texts->GetItemTexts(item).name;
+        regions[slot]->SetTipString(tip);
         place(slot);
         ++slot;
     }
@@ -124,31 +124,31 @@ namespace {
 
 // The unit panel's model view for the unit it now shows, copied from the prototype bit for bit (the size
 // from `first`'s, the height from the shown unit's: the same unit), and its name.
-void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
-    panel->viewSize_[0] = first->GetPrototype()->panelViewSize;
-    panel->viewHeight_[0] = std::bit_cast<float>(panel->shownUnit_->GetPrototype()->height);
-    panel->strings_[0] = panel->owner_->UnitName(panel->shownUnit_);
+void ShowPanelView(HudUnitPanel* panel, CUnit* first) {
+    panel->viewSize[0] = first->GetPrototype()->panelViewSize;
+    panel->viewHeight[0] = std::bit_cast<float>(panel->shownUnit->GetPrototype()->height);
+    panel->strings[0] = panel->owner->UnitName(panel->shownUnit);
 }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
-void RebuildClientParty(CBattleScreen* screen) {
+void RebuildClientParty(BattleScreen* screen) {
     net::ClientSession* session = net::g_gameClient;
-    const auto& players = session->players_;
-    CBattleScreen::PartyIds ids;
+    const auto& players = session->players;
+    BattleScreen::PartyIds ids;
     ids.camera = -1;
     for (auto& node : players) {
         net::PlayerMessage* player = node.Get();
-        const int unitId = player->id_;
-        const int playerId = player->serial_;
-        if (player->state_ == 0 && unitId >= 0) {
+        const int unitId = player->id;
+        const int playerId = player->serial;
+        if (player->state == 0 && unitId >= 0) {
             if (!g_clientWorld.FindUnit(unitId)) {
                 ids.without.push_back(playerId);
                 continue;
             }
             ids.withUnit.push_back(unitId);
-            net::BindingMessage* camera = session->binding_;
-            if (camera && !(camera->flags7_ & CRefCounted::kDetached) &&
-                camera->first_.Get() == player)
+            net::BindingMessage* camera = session->binding;
+            if (camera && !(camera->flags7 & RefCounted::kDetached) &&
+                camera->first.Get() == player)
                 ids.camera = unitId;
         } else {
             ids.without.push_back(playerId);
@@ -156,8 +156,8 @@ void RebuildClientParty(CBattleScreen* screen) {
     }
     std::sort(ids.withUnit.begin(), ids.withUnit.end());
     std::sort(ids.without.begin(), ids.without.end());
-    if (!ids.Equals(screen->clientParty_)) {
-        auto* party = &screen->party_;
+    if (!ids.Equals(screen->clientParty)) {
+        auto* party = &screen->party;
         party->clear();
         bool cameraFirst = false;
         for (auto& id : ids.withUnit) {
@@ -181,14 +181,14 @@ void RebuildClientParty(CBattleScreen* screen) {
                 lib::SetAtGrow(*party, std::ssize(*party), unit);
             }
         }
-        screen->portraits_->Rebuild(cameraFirst);
-        if (screen->clientParty_.camera != ids.camera) {
+        screen->portraits->Rebuild(cameraFirst);
+        if (screen->clientParty.camera != ids.camera) {
             g_camera.SetTargetId(ids.camera);
             screen->RefreshSelection();
         }
-        screen->clientParty_.withUnit = ids.withUnit;
-        screen->clientParty_.camera = ids.camera;
-        screen->clientParty_.without = ids.without;
+        screen->clientParty.withUnit = ids.withUnit;
+        screen->clientParty.camera = ids.camera;
+        screen->clientParty.without = ids.without;
     }
 }
 
@@ -207,28 +207,28 @@ bool Equal(float a, float b) {
 
 } // namespace
 
-void CBattleScreen::Update() {
+void BattleScreen::Update() {
     // The one selected party unit is dead (IsDead): the panels lose their unit and the
     // unit panel shows it.
-    auto* party = &party_;
+    auto* currentParty = &party;
     CUnit* first = nullptr;
     int selected = 0;
-    for (int i = 0; i < std::ssize(*party); ++i) {
-        auto* unit = (*party)[i];
-        if (unit && (unit->flags_ & MapObjectFlag::Selected)) {
+    for (int i = 0; i < std::ssize(*currentParty); ++i) {
+        auto* unit = (*currentParty)[i];
+        if (unit && (unit->flags & MapObjectFlag::Selected)) {
             if (!first) first = unit;
             ++selected;
         }
     }
     if (first) {
         if (first->IsDead() && selected == 1) {
-            weaponBar_->SetUnit(nullptr);
-            quickItems_->SetUnit(nullptr);
-            spellColumn_->SetUnit(nullptr);
-            actionColumn_->SetUnit(nullptr, false);
-            CHudUnitPanel* panel = unitPanel_;
-            if (first != panel->shownUnit_) {
-                panel->shownUnit_ = first;
+            weaponBar->SetUnit(nullptr);
+            quickItems->SetUnit(nullptr);
+            spellColumn->SetUnit(nullptr);
+            actionColumn->SetUnit(nullptr, false);
+            HudUnitPanel* panel = unitPanel;
+            if (first != panel->shownUnit) {
+                panel->shownUnit = first;
                 ShowPanelView(panel, first);
             }
         }
@@ -236,101 +236,101 @@ void CBattleScreen::Update() {
 
     if (IsMultiplayerClient()) RebuildClientParty(this);
 
-    CUiContainer::Update();
-    interface_->ShowMessage(false);
+    UiContainer::Update();
+    ui->ShowMessage(false);
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
-    if (exitPending_) {
+    if (exitPending) {
         // The local player's unit records (0x784 bytes each) and the ones in the exit.
         std::vector<PartyUnitRecord*> records = {};
         std::vector<PartyUnitRecord*> second = {};
         CParty* data = LocalPlayerData();
-        for (int i = 0; i < std::ssize(data->members_); ++i)
-            lib::SetAtGrow(records, std::ssize(records), &data->members_[i]);
-        if (GamePartyInExit(&records, pendingExit_, &second)) {
-            CMessageBox* box = new CMessageBox(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
-            interface_->PushWindow(box, true, true);
-            exitPending_ = false;
+        for (int i = 0; i < std::ssize(data->members); ++i)
+            lib::SetAtGrow(records, std::ssize(records), &data->members[i]);
+        if (GamePartyInExit(&records, pendingExit, &second)) {
+            MessageWindow* box = new MessageWindow(ui, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
+            ui->PushWindow(box, true, true);
+            exitPending = false;
         }
     }
 
     // The selection box: party units inside it are marked (MapObjectFlag::BoxMarked and their figure's select virtual
     // with 1), the others unmarked (with 0); selected ones are left alone.
-    if (boxSelecting_) {
-        std::list<CMapObject*> units = g_clientWorld.UnitsInBox(&selectionBox_);
+    if (boxSelecting) {
+        std::list<CMapObject*> units = g_clientWorld.UnitsInBox(&selectionBox);
         std::list<std::uintptr_t> inside;
         for (CMapObject* unit : units) {
-            for (int i = 0; i < std::ssize(*party); ++i) {
-                if ((*party)[i] != unit) continue;
+            for (int i = 0; i < std::ssize(*currentParty); ++i) {
+                if ((*currentParty)[i] != unit) continue;
                 inside.push_back(static_cast<std::uintptr_t>(i));
             }
         }
         auto mark = [](CUnit* unit, bool on) { unit->Object3D()->attached->SetLit(on); };
-        for (int i = 0; i < std::ssize(*party); ++i) {
-            auto* unit = (*party)[i];
-            std::uint32_t flags = unit->flags_;
-            if (!(flags & MapObjectFlag::Selected) && (flags & MapObjectFlag::BoxMarked)) {
-                unit->flags_ = flags & ~MapObjectFlag::BoxMarked;
+        for (int i = 0; i < std::ssize(*currentParty); ++i) {
+            auto* unit = (*currentParty)[i];
+            std::uint32_t unitFlags = unit->flags;
+            if (!(unitFlags & MapObjectFlag::Selected) && (unitFlags & MapObjectFlag::BoxMarked)) {
+                unit->flags = unitFlags & ~MapObjectFlag::BoxMarked;
                 mark(unit, 0);
             }
         }
         for (auto& node : inside) {
-            auto* unit = (*party)[node];
-            std::uint32_t flags = unit->flags_;
-            if (!(flags & MapObjectFlag::Selected) && !(flags & MapObjectFlag::BoxMarked)) {
-                unit->flags_ = flags | MapObjectFlag::BoxMarked;
+            auto* unit = (*currentParty)[node];
+            std::uint32_t unitFlags = unit->flags;
+            if (!(unitFlags & MapObjectFlag::Selected) && !(unitFlags & MapObjectFlag::BoxMarked)) {
+                unit->flags = unitFlags | MapObjectFlag::BoxMarked;
                 mark(unit, 1);
             }
         }
     }
 
     // The quest sound asked for.
-    if (questSound_ != 0) {
+    if (questSound != 0) {
         const char* sound = nullptr;
-        switch (questSound_) {
+        switch (questSound) {
         case 1: sound = "buttons\\quest.wav"; break;
         case 2: sound = "buttons\\subcomplete.wav"; break;
         case 3: sound = "buttons\\complete.wav"; break;
         }
-        if (sound) interface_->PlaySound(sound);
-        questSound_ = 0;
+        if (sound) ui->PlaySound(sound);
+        questSound = 0;
     }
 }
 
 // --- the party ids compared ----------------------------------------------------------------------
 
-bool CBattleScreen::PartyIds::Equals(const CBattleScreen::PartyIds& other) const {
+bool BattleScreen::PartyIds::Equals(const BattleScreen::PartyIds& other) const {
     return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
 }
 
 // --- the battle screen's left button release -----------------------------------------------------
 
-void CBattleScreen::LeftUp(int buttons, int x, int y) {
-    if (portraitMode_ != 0) return;
-    if (!viewPressed_) {
-        CUiContainer::LeftUp(buttons, x, y);
+void BattleScreen::LeftUp(int buttons, int x, int y) {
+    if (portraitMode != 0) return;
+    if (!viewPressed) {
+        UiContainer::LeftUp(buttons, x, y);
         return;
     }
-    viewPressed_ = false;
-    CWorldClient* world = &g_clientWorld;
-    if (!boxSelecting_ || IsMultiplayerClient()) {
+    viewPressed = false;
+    WorldClient* world = &g_clientWorld;
+    if (!boxSelecting || IsMultiplayerClient()) {
         // The (x, y) pair is read back through its address.
         POINT point = {x, y};
         CUnit* unit = world->UnitAt(&point);
-        if (unit && !(unit->flags_ & MapObjectFlag::InParty)) unit = nullptr;
+        if (unit && !(unit->flags & MapObjectFlag::InParty)) unit = nullptr;
         SelectUnit(unit, point.x, point.y);
         return;
     }
 
-    auto* party = &party_;
-    auto unitAt = [&](int i) { return (*party)[i]; };
+    auto* currentParty = &party;
+    auto unitAt = [&](int i) { return (*currentParty)[i]; };
     int first = -1;
-    std::list<CMapObject*> units = world->UnitsInBox(&selectionBox_);
+    std::list<CMapObject*> units = world->UnitsInBox(&selectionBox);
     std::list<std::uintptr_t> inside;
     if (!units.empty()) {
         for (CMapObject* unit : units) {
-            for (int i = 0; i < std::ssize(*party); ++i) {
-                if ((*party)[i] != unit) continue;
+            for (int i = 0; i < std::ssize(*currentParty); ++i) {
+                if ((*currentParty)[i] != unit) continue;
                 inside.push_back(static_cast<std::uintptr_t>(i));
                 if (first < 0) first = i;
             }
@@ -338,41 +338,41 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
         if (first >= 0) {
             world->Deselect();
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
-            auto marker = [&](int i) { return portraits_->SceneMesh(i * 5 + 4); };
-            auto slot = [&](int i) -> HudPortraitSlot& { return portraits_->slots_[i]; };
-            for (int i = 0; i < std::ssize(*party); ++i) {
+            auto marker = [&](int i) { return portraits->SceneMesh(i * 5 + 4); };
+            auto slot = [&](int i) -> HudPortraitSlot& { return portraits->slots[i]; };
+            for (int i = 0; i < std::ssize(*currentParty); ++i) {
                 CUnit* unit = unitAt(i);
-                std::uint32_t flags = unit->flags_;
-                if (!(flags & MapObjectFlag::Selected) && (flags & MapObjectFlag::BoxMarked)) {
-                    unit->flags_ = flags & ~MapObjectFlag::BoxMarked;
+                std::uint32_t unitFlags = unit->flags;
+                if (!(unitFlags & MapObjectFlag::Selected) && (unitFlags & MapObjectFlag::BoxMarked)) {
+                    unit->flags = unitFlags & ~MapObjectFlag::BoxMarked;
                     unit->Object3D()->attached->SetLit(false);
                 }
-                marker(i)->visible_ = false;
-                slot(i).restB_ = kHudRestRotation;
+                marker(i)->visible = false;
+                slot(i).restB = kHudRestRotation;
             }
             for (auto& node : inside) {
                 int i = static_cast<int>(node);
-                marker(i)->visible_ = true;
+                marker(i)->visible = true;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = kHudQuarterTurn *
                                     0.14285715f;   // 1/7
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
-                slot(i).restB_ = turn;
+                slot(i).restB = turn;
                 world->Select(unitAt(static_cast<int>(node)));
             }
-            int id = unitAt(first)->id_;
-            Speech(id, AckKind::Selected, nullptr);
+            int unitId = unitAt(first)->id;
+            Speech(unitId, AckKind::Selected, nullptr);
         }
     }
     RefreshSelection();
-    boxSelecting_ = false;
+    boxSelecting = false;
 }
 
 // --- a quest variable's notice -------------------------------------------------------------------
 
-void CBattleScreen::QuestVariable(std::string_view name, float value) {
-    CTextManager* texts = g_clientWorld.texts_;
+void BattleScreen::QuestVariable(std::string_view name, float value) {
+    TextManager* texts = g_clientWorld.texts;
     std::vector<std::string> parts;
     std::string text;
     std::string title;
@@ -382,7 +382,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
     if (parts.size() == 3) {
         const char* key;
         if (Equal(value, complete)) {
-            if (questSound_ <= 3) questSound_ = 3;
+            if (questSound <= 3) questSound = 3;
             key = "combat_complete_quest";
         } else if (Equal(value, failed)) {
             value = 1.0f;
@@ -390,7 +390,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
         } else {
             key = "combat_get_quest";
         }
-        title = texts->CTextManager::GetString(key);
+        title = texts->TextManager::GetString(key);
         text.clear();
         if (texts->Open(std::string("quest ") + parts[2])) text = texts->ReadLine(true);
         std::string colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
@@ -413,7 +413,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
         } else {
             key = "combat_get_subobj";
         }
-        title = texts->CTextManager::GetString(key);
+        title = texts->TextManager::GetString(key);
         text.clear();
         bool found = false;
         {
@@ -434,23 +434,23 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
     }
     text = text + "\007C\344\327\247\n";   // colour code and a line end
 
-    topPanel_->pageTexts_[0] += text;
-    if (topPanel_->page_ == 0) messageLog_->AddText(text);
-    clock_->highlight_ = true;
+    topPanel->pageTexts[0] += text;
+    if (topPanel->page == 0) messageLog->AddText(text);
+    clock->highlight = true;
     int sound = static_cast<int>(value);
-    if (questSound_ > sound) sound = questSound_;
-    questSound_ = sound;
+    if (questSound > sound) sound = questSound;
+    questSound = sound;
 }
 
 // --- the selection's refresh ---------------------------------------------------------------------
 
-void CBattleScreen::RefreshSelection() {
-    auto* party = &party_;
+void BattleScreen::RefreshSelection() {
+    auto* currentParty = &party;
     CUnit* first = nullptr;
     int selected = 0;
-    for (int i = 0; i < std::ssize(*party); ++i) {
-        auto* unit = (*party)[i];
-        if (!unit || !(unit->flags_ & MapObjectFlag::Selected)) continue;
+    for (int i = 0; i < std::ssize(*currentParty); ++i) {
+        auto* unit = (*currentParty)[i];
+        if (!unit || !(unit->flags & MapObjectFlag::Selected)) continue;
         if (!first) first = unit;
         ++selected;
     }
@@ -458,15 +458,15 @@ void CBattleScreen::RefreshSelection() {
     // column's extra button stays while anyone is selected (the flag is pushed with
     // upper bytes left over; the callee reads the low byte only).
     CUnit* shown = (first && first->IsDead() == 0 && selected == 1) ? first : nullptr;
-    weaponBar_->SetUnit(shown);
-    quickItems_->SetUnit(shown);
-    spellColumn_->SetUnit(shown);
-    actionColumn_->SetUnit(shown, selected > 0);
+    weaponBar->SetUnit(shown);
+    quickItems->SetUnit(shown);
+    spellColumn->SetUnit(shown);
+    actionColumn->SetUnit(shown, selected > 0);
 
     // The unit panel shows the first selected unit (also a dead one, or the first of several).
-    CHudUnitPanel* panel = unitPanel_;
-    if (first != panel->shownUnit_) {
-        panel->shownUnit_ = first;
+    HudUnitPanel* panel = unitPanel;
+    if (first != panel->shownUnit) {
+        panel->shownUnit = first;
         if (first) ShowPanelView(panel, first);
     }
 

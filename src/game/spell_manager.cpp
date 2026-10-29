@@ -34,57 +34,61 @@ SpellSequence::~SpellSequence() {
     }
 }
 
-CSpell* CSpellManager::CreateSpellObject(int id) {
+CSpell* CSpellManager::CreateSpellObject(int newId) {
     auto* spell = CreateObjectAs<CSpell>(SpellObjectType::Spell, -1);
-    if (id == -1) return spell;
-    const auto packed = static_cast<std::uint32_t>(id);
+    if (newId == -1) return spell;
+    const auto packed = static_cast<std::uint32_t>(newId);
     const std::uint32_t low = packed & 0xFFFF;
-    spell->prototypeId_ = packed;
+    spell->prototypeId = packed;
     if (low == 0) {
         spell->InitFromPrototype(itemdb::SpellAt(packed >> 16));
         return spell;
     }
     const std::uint32_t key = packed & 0xFFFF0000;
-    if (key > maxSequenceKey_) maxSequenceKey_ = key;
-    SpellSequence* sequence = sequences_[key];
+    if (key > maxSequenceKey) maxSequenceKey = key;
+    SpellSequence* sequence = sequences[key];
     if (!sequence) {
         game::FatalError(kNoSequenceMessage);
         return spell;
     }
     if (low > sequence->maxLow) sequence->maxLow = low;
     // A new entry has no container: CopyTo then faults (this = 0x30), as the game does.
-    CSpellContainer* container = sequence->containers[low];
-    container->spell_.CopyTo(spell);
+    SpellContainer* container = sequence->containers[low];
+    container->spell.CopyTo(spell);
     return spell;
 }
 
-CEngineObject* CSpellManager::NewObject(int type) {
-    switch (static_cast<SpellObjectType>(type)) {
+EngineObject* CSpellManager::NewObject(int objectType) {
+    switch (static_cast<SpellObjectType>(objectType)) {
     case SpellObjectType::Spell: return new CSpell();
-    case SpellObjectType::Container: return new CSpellContainer();
+    case SpellObjectType::Container: return new SpellContainer();
     default: break;
     }
     return nullptr;
 }
 
 void CSpellManager::Destroy() {
-    for (auto& [key, sequence] : sequences_) {
+    for (auto& [key, sequence] : sequences) {
         if (!sequence) break;
         delete sequence;
     }
-    sequences_.clear();
-    maxSequenceKey_ = 0;
-    CResourceManager::Destroy();
+    sequences.clear();
+    maxSequenceKey = 0;
+    ResourceManager::Destroy();
+}
+
+CSpellManager::CSpellManager() {
+    maxSequenceKey = 0;
 }
 
 CSpellManager::~CSpellManager() {
-    for (auto& [key, sequence] : sequences_) {
+    for (auto& [key, sequence] : sequences) {
         if (!sequence) break;
         delete sequence;
     }
-    sequences_.clear();
-    maxSequenceKey_ = 0;
-    CResourceManager::Destroy();
+    sequences.clear();
+    maxSequenceKey = 0;
+    ResourceManager::Destroy();
 }
 
 const char* CSpellManager::ClassName() { return kSpellManagerClassName; }
@@ -96,17 +100,17 @@ std::vector<std::string> CSpellManager::ListModifierNames() { return ListRecordN
 
 // The spell and the name are members, constructed before the body (the game builds them after the code
 // string) and destroyed after it (the game: the name and the spell before the string); neither allocates.
-CSpellContainer::CSpellContainer() {
+SpellContainer::SpellContainer() {
     // The code string: empty, with room for 8 bytes.
-    CSpellContainer::Create();
+    SpellContainer::Create();
 }
 
-CSpellContainer::~CSpellContainer() {
+SpellContainer::~SpellContainer() {
     // (ClearState is empty and called directly here.)
-    prototype_ = nullptr;
-    modifiers_.clear();
-    spell_.Destroy();
+    prototype = nullptr;
+    modifiers.clear();
+    spell.Destroy();
 }
 
-const char* CSpellContainer::ClassName() { return "CSpellContainer"; }
-ClassId CSpellContainer::GetClassId() { return ClassId::SpellContainer; }
+const char* SpellContainer::ClassName() { return "CSpellContainer"; }
+ClassId SpellContainer::GetClassId() { return ClassId::SpellContainer; }

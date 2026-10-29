@@ -14,9 +14,9 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
 |---|---|
 | 00500000-00522000 | rendering / animation, map object base, CObject3D (`map_objects.md`) |
 | 00522000-00529000 | creature statistics (UnitStats, 0x704 bytes, often a stack copy), DamageInfo helpers |
-| 00529700-0052E000 | CTree, CBuilding, CStone, CStuffObject, CTrapObject, CMagicTrapObject (id 0x3B), CLeverObject, CTorchObject (0x3A) |
+| 00529700-0052E000 | CTree, CBuilding, CStone, CStuffObject, TrapObject, CMagicTrapObject (id 0x3B), CLeverObject, TorchObject (0x3A) |
 | 0052E000-00533E00 | CUnit (id 0x50, vtable 0073EA8C) |
-| 00533E00-0053A000 | CUnitClientSpecific (id 0x3D, vtable 0073ECD8): the controller of party units |
+| 00533E00-0053A000 | UnitClientSpecific (id 0x3D, vtable 0073ECD8): the controller of party units |
 | 0053A000-00540000 | STLport instantiations of the unit database (library) |
 
 ## Facts
@@ -33,9 +33,9 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   AdvanceUnitTime 0052FC40, 26 LoadUnitFigures, 27 RecomputeUnitScale, 28 EffectsChanged, 30 ResetUnitScale, 32
   StatsChanged, 33 ScaleEffectChanged, 34 PackPrototypeStats 0052EB70, 35 SetServerStats, 37 UpdateSizeClasses, 48
   StandPoint, 49 / 50 network state, 51 PlaceUnitOnGround, 52 / 53 unit points. Create 0052E400 is `CreateUnit`: a member
-  named Create would override CEngineObject's virtual.
-- Controller slots are called through `CUnitController` (unit.h; `CUnit::Controller()`): an interface declaration the
-  controller classes do not derive from, so their registered slot members stay non-virtual. Its unit_ is +0x1C; slots 48
+  named Create would override EngineObject's virtual.
+- Controller slots are called through `UnitController` (unit.h; `CUnit::Controller()`): an interface declaration the
+  controller classes do not derive from, so their registered slot members stay non-virtual. Its unit is +0x1C; slots 48
   Died, 49 EffectsChanged, 50 GetAttackParams, 51 Say, 52 StopSpeech; UpdateSizeClasses and Resettle return EAX
   (std::uintptr_t), Level int; slot 19 RefreshVitals takes an int (0052EB30 pushes a whole dword, the bodies read the low
   byte). UnitPrototypeRecord +0x50 is `level` (CUnit::Level without a text key). World heights: CWorld slots 29 / 30.
@@ -56,7 +56,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   and `_CIpow`, inline assembly in the original's order), strengthen / weaken scale (at least 1), slot maxima, capacity,
   load, legs / arms factors, rate. Constants: curves 007C5454..007C5480, slot ratio thresholds 007C543C..007C544C, wear
   threshold 007C549C, difficulty table 007C54A0 indexed by 0079BEC0, hit log stream 007AF284.
-- Hits: `ApplyHit` (005254B0, from CUnitServer::TakeHit): damage per type beyond the vitals' protection (times the
+- Hits: `ApplyHit` (005254B0, from UnitServer::TakeHit): damage per type beyond the vitals' protection (times the
   difficulty without a player), `WearItem` (005253E0; remarks 0x24 / 0x26), `DamageSlot` (00525070) on the hit location or
   all six slots for 6: layers (text-key units; `WearArmour` 00525720, tables 0073E09C / A0 / A4, remarks 0x23 / 0x25),
   backstab multiplier, sever (-5 x maximum; remark ArmCrippled / LegCrippled) or disable, log "<type> passed damage = <n>[ HL
@@ -90,7 +90,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
 
 ### Creation, databases, save, network
 
-- Factory (CMapObjectManager slot 14, 00512730) by type (MapObjectType in unit_create.h; the side halves' types are SideObjectType in base_manager.h, the flags_ bits MapObjectFlag in map_object.h): 0x32-0x34 units (0x4DC, 0052E110), 0x35-0x38 (0x238), 0x39
+- Factory (CMapObjectManager slot 14, 00512730) by type (MapObjectType in unit_create.h; the side halves' types are SideObjectType in base_manager.h, the flags bits MapObjectFlag in map_object.h): 0x32-0x34 units (0x4DC, 0052E110), 0x35-0x38 (0x238), 0x39
   (the fake unit, 0x580, 004466D0: dead, none made since C35l), 0x3A (0x23C, 0052BEE0), 0x3B (0x290, 00529DD0), 0x3C (0x264), 0x300D (0x78), 0x3010 (0x23C). The zone
   loader then calls `ApplyPrototype` (00513B60): without a prototype defaults (005134F0) and "Can't find prototype %s for
   object %d"; units get vitals / statistics from the records (005136D0: hit points / mana from prototype +0x48 / +0x4C,
@@ -129,17 +129,17 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   only the effect bytes the reader writes (the companion's slot 13 changes the others) and restores byte +0x76, which slot 41
   (00535850) clears when it snaps the orientation to the path.
 - **Unit points** (slots 52 / 53): `UnitActionPoint` (0052FDF0, RET 4) always returns `out` in EAX although Ghidra shows
-  void (CUnitServer::ApproachTarget reads it; returning nothing crashed combat, sound and units scenarios); a missing
+  void (UnitServer::ApproachTarget reads it; returning nothing crashed combat, sound and units scenarios); a missing
   animation entry logs "Can't find animation entry index"; it falls back to the position where size class 3 cannot stand
   (005BA790). `UnitPredictPosition` (0052FCC0, RET 8) samples the motion for client units following a path order (kind 2).
 - **Client path placement** (`ClientPlaceOnPath` 00535850, RET 8; from slot 41 and 00535B30; `unit_client_path.cpp`): the
   two heading angles must go through a float store (`Store`) as the original's FSTP (unrounded, the quaternion's sign flips
   near +-pi).
 - Size class and figure queries: `UpdateSizeClass` (00530570) relies on controller slot 45 (server's UpdateMoveFactors;
-  empty on client / base controllers) so verify runs it twice; `FindAnimation` (005301B0) works only for type_ 0x32..0x34
+  empty on client / base controllers) so verify runs it twice; `FindAnimation` (005301B0) works only for type 0x32..0x34
   and draws with `rand()` through 005190C0 / 00519380; `GroundHeight` (00530280) has a body too short for a trampoline
-  (verify uses a copy of its 98 bytes made at DLL load); `BodyExtent` (005304A0) feeds CUnitServer::UpdateSizeClasses.
-- Client models (CUnitClientSpecific id 0x3D; +0xA0 packed ids of the seven armour slots, +0xBC four weapons): armour part
+  (verify uses a copy of its 98 bytes made at DLL load); `BodyExtent` (005304A0) feeds UnitServer::UpdateSizeClasses.
+- Client models (UnitClientSpecific id 0x3D; +0xA0 packed ids of the seven armour slots, +0xBC four weapons): armour part
   rows at 0073EC24 (body "bd", "rh1".."lh3"; trousers "hp", "rl1".."ll3"; helmet "hr" ("hr.<nn>" with the prototype's +0x10)
   and "hd"; armour slots 0 / 1 / 2 use rows 2 / 0 / 1; slots 3-6 have no parts); skin composition through the texture
   manager (007AF744, 00693180): layers 0x32 skin, 0x3005 armour, 0x3004 weapon, names "mo<id>p" / "prot<prototype>p" (...s
@@ -151,7 +151,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   +0x9C speech queue (STLport list of ClientSpeech; delay counts down, plays at 0, erased once its sound ended; kinds 2 /
   0x1C skip while the previous one plays; kinds 0x1D-0x2A queue behind; `talking` sets the server unit's flag 0x800000),
   +0xD0..+0xD8 blink (every 2..9 ticks, rand()). A unit dead for more than 50 ticks past its +0x254 byte is not drawn
-  (flags_ 8). Blink textures: model +0x158..+0x164. Sounds: footsteps by the model's names +0x138 / counts +0x144 per ground
+  (flags 8). Blink textures: model +0x158..+0x164. Sounds: footsteps by the model's names +0x138 / counts +0x144 per ground
   kind (platform -> kind 2); action sounds at frame +0x44 in [from, to), sounds +0x48, folder second prototype +0x34 or model
   +0x124, idle / attack chances +0x150 / +0x154; attack / death / skill sounds at priority 1000, idle / hit at 0; camera
   shake by prototype +0x30; footprints through 0056D150 with model +0x10C / +0x110 / +0x11C and prototype +0xB0 as scale.
@@ -160,18 +160,18 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   (map 0079C1AC) or 10; a negative state is the next (wraps when cycling); with a live world units within radius + 0.5
   leave the sector map around the move, the end tick is (tick + duration) + 1, MarkChanged(5), lifted units that cannot stay
   go to a free cell and are resynced (00554450). `CollectUseSpots` (0052BBE0, slot 44, from FindUseSpot 0054DF50).
-- **Magic traps** (class 0x3B, 0x290 bytes, vtable 0073E63C, derived from CMapObject with members +0x238..+0x28C; flags_
+- **Magic traps** (class 0x3B, 0x290 bytes, vtable 0073E63C, derived from CMapObject with members +0x238..+0x28C; flags
   0x80000 armed, a new trap is armed until a script disarms it; 0x40 kind): `UpdateTrap` (slot 6): server only (world slot
-  26: 1 for CWorldServer 0058A380, 0 for CWorldClient 0055EB30; `world_effect_internal.h`'s IsClientSide is this slot,
+  26: 1 for WorldServer 0058A380, 0 for WorldClient 0055EB30; `world_effect_internal.h`'s IsClientSide is this slot,
   misnamed); period <= 0: `UpdateVictims` (0052A680, armed traps ask `FindTrapVictims` 0052A920 for newcomers and cast),
   else the countdown runs and `FireAtOccupants` (0052AB30) fires every tick until a cast resets it. `CastAtUnits` (0052A4B0)
   casts at each point {x, y, 0} (spells without flag 0x10000000 and a trap with points) or at each unit; with +0x28C
   narrowed to the last unit; casts through 0058E850 (007AFF60) with caster 0. `SetUp` (0052A2C0, per MagicTrap record at
   +0x8C from the zone loader). `ForgetObject` (slot 56, from RemoveObject 005935C0) removes every node equal to the object
   (null included). The zone loader registers traps in no name map (005927C0, record type 7): scripts use `GetObject(id)`.
-- Torch (class 0x3A, vtable 0073E834; spec at +0x238) `CTorchObject::CreateTorch` (0052BFC0); `CreateUnit` (0052E400) calls CUnit::Reset
+- Torch (class 0x3A, vtable 0073E834; spec at +0x238) `TorchObject::CreateTorch` (0052BFC0); `CreateUnit` (0052E400) calls CUnit::Reset
   and sets 14 network fields. `TakeRandomItem` (00531400, stealing): carried items first, else a random filled quick item
-  slot emptied without release. CTrapObject (placed trap, class 0x55) is armed by 0058ECE0 when a trap item is used and sets
+  slot emptied without release. TrapObject (placed trap, class 0x55) is armed by 0058ECE0 when a trap item is used and sets
   off "Mushroom" particles through a world script.
 
 ## Rewritten
@@ -188,20 +188,20 @@ address in its source comment (grep the address); the per-function table that us
   `unit_figure_queries.cpp` / `unit_points.cpp` / `unit_client_path.cpp`, `map_object_create.cpp` / `unit_controller.cpp` /
   `unit_prototype_stats.cpp`, `unit_vision.cpp`, the client half `unit_client_*.cpp` (update, models, equipment, sounds,
   animation, effects, lifetime, blink, speech, wounds), `object3d_figure_setup.cpp` / `object3d_animations.cpp` /
-  `object3d_specific_slots.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_spec.cpp` /
+  `object3d_halves.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_spec.cpp` /
   `torch_client_spec.cpp`, `map_object_kinds.cpp` / `counted_ref.cpp` / `trap_object.cpp`, `refptr_copies.cpp`.
-- Facts about specific groups: `CUnit` virtual slots (Tick returns 1; LoadUnitFigures sets `flags_` 0x80; AttachCompanion
+- Facts about specific groups: `CUnit` virtual slots (Tick returns 1; LoadUnitFigures sets `flags` 0x80; AttachCompanion
   returns the reference count). Unit database loading: the records are read twice by the original verify (ours first, then
-  the original reads the same record again). `CUnitClientSpecific` slots: UpdateClient 6, FiguresLoaded 13, RestartFadeIn 43
+  the original reads the same record again). `UnitClientSpecific` slots: UpdateClient 6, FiguresLoaded 13, RestartFadeIn 43
   (EAX 0), Level 24 (ln(packed experience / 007C5488) / ln(007C548C), rounded), RefreshWounds 31 (through 005370F0 /
   0051C3D0, else 0051C920), RefreshSkins 29, RefreshSimpleSkin 30, SetArmourModels 32, SetWeaponModels 33, AddWeaponModel 34,
   RemoveWeaponModel 35, HitEffect 46 (hit sound by weapon class and material, blood particles, decal), SparkEffect 47,
   DeathEffect 48, OwnerPlayerChanged 18 (party light), Say 51, StopSpeech 52. `UpdateArrow`: the bow arrow "rh3.arrow00"
   between frames +0x28 / +0x2C. `WeaponPoint`: node by WeaponBaseFigure or "baserh3", its +0x74. `LoadFaceTexture`:
   "<model>mouth[_NN]" kind 0x3D. `HideWounds`: +0xD8 texture, +0xDC material. `CObject3D::MakeFigure`: from the cache, whole for
-  an animated object without names (slot 4), else from the piece names (slot 3); LoadParts, bounds, `flags_` 0x80.
-  `RandomAnimation`: variant bits, chance +0x1C narrowing. `CObject3DClientSpecific::ExtraScale` (18: +0xF0..+0xF8),
-  `CObject3DServer`'s is (1, 1, 1); RegisterPartMaterials uses world slot 33 (material manager, 0068EAF0).
+  an animated object without names (slot 4), else from the piece names (slot 3); LoadParts, bounds, `flags` 0x80.
+  `RandomAnimation`: variant bits, chance +0x1C narrowing. `Object3DClientSpecific::ExtraScale` (18: +0xF0..+0xF8),
+  `Object3DServer`'s is (1, 1, 1); RegisterPartMaterials uses world slot 33 (material manager, 0068EAF0).
   `CTorchObjectClientSpecific` (A-U11, torch_client_spec.h: vtable 0073E954, 19 slots, 0x64): 13 / 14 show / hide the
   particles, light and looping sound, 15 warms the particles up, 16-18 rebuild them (particle type + offset + scale, point
   light offset + radius + colour, sound name); the spec's network read applies through slots 16-18, 13, 15. Lever record
@@ -270,8 +270,8 @@ address in its source comment (grep the address); the per-function table that us
   reuses for the material CString; heroes index the armour table 0073EC78 by the hit location without a range check.
   `Say`'s new queue entry has three padding bytes of stack garbage (ours zero); `StopSpeech` frees the nodes with the list's own erase where the original pushes them on the 32-byte free list (0079B230). `CObject3D::LoadPart` returns null
   for a part the figure has no piece of without releasing the new part object (leak).
-- CTrapObject's +0x238 is saved and loaded but never initialised; a trap's 0x100000 flag changes nothing but is cleared when
-  nobody is near; the torch's Load, Save, AttachTorchObject (type_ read first) and network writer use the spec without a
+- TrapObject's +0x238 is saved and loaded but never initialised; a trap's 0x100000 flag changes nothing but is cleared when
+  nobody is near; the torch's Load, Save, AttachTorchObject (type read first) and network writer use the spec without a
   null test; the lever's ApplyKey disables the lever it has just switched.
 
 ## Skipped
@@ -295,7 +295,7 @@ address in its source comment (grep the address); the per-function table that us
 - Destructors, the factory, the slot-style functions and the order / hit paths are consistency checks only. Under 64-bit FPU
   precision `TotalItemWeight`'s double accumulator rounds differently; SkillPrice may show a rare off-by-one at a truncation
   edge (rule 7). 005179E0: the animation state's parts appear during the call (0050D320 gives it the model).
-- Not reached by every scenario: TakeRandomItem (stealing), CTorchObject::CreateTorch, CollectUseSpots (no lever on zone1), AttributeWithItems,
+- Not reached by every scenario: TakeRandomItem (stealing), TorchObject::CreateTorch, CollectUseSpots (no lever on zone1), AttributeWithItems,
   ClientGetAttackParams, SkillPrice, packed WeaponSkillBonus (party unit holding a weapon), RemoveArmourModel (Rebirth's
   GiveUnitArmor refuses text-key units), FireAtOccupants (only traps with a period above 0), DestroyNpcTable /
   DestroyModelRecord, the lever's key slots 38-42 (science on a lever), the torch (none on zone1 known), the placed trap (use
@@ -307,7 +307,7 @@ address in its source comment (grep the address); the per-function table that us
   zone1's and crashed RemoveObject at 0059362A). AddMob's name is relative to the maps folder; a missing file hangs vanilla
   (message box).
 - Shared-header hazards: CUnit's old `speed*` fields are `boundsFlags` / `center[2]` / `radius` / `above[2]`; CWorld
-  declares virtual slots 13-41 (named, world.h), so a later non-virtual CWorldServer / CWorldClient member with one of these
+  declares virtual slots 13-41 (named, world.h), so a later non-virtual WorldServer / WorldClient member with one of these
   names silently overrides. The serialisers' verify relies on loading being
   repeatable; `ComposeSkin` and `WearArmourModel` build CString / STLport temporaries in the original's order.
 
@@ -322,12 +322,12 @@ After this ticket nothing in 0x00520000-0x00540000 is unported. Scenarios per wr
   0052E0D0, SkillDatabase::SkillAt / LevelAt (00526FF0, 00524FA0), UnitModelAt 00539280, UnitPrototypeAt 0053AD30. All
   side by side except the field wrappers (ours only; no scenario, the state writers are rewritten and call the field
   themselves). SchoolPrice truncates a difference of powers: one apart on a rounding edge is accepted (rule 7).
-- **The controllers' base** (`unit_controller_slots.cpp`): the abstract controller's lifetime (00533D90, 00533DB0,
+- **The controllers' base** (`unit_controller.cpp`): the abstract controller's lifetime (00533D90, 00533DB0,
   00533DD0, 00533DE0) and its empty / constant slots (00533B90-00533D80, 00534130, 00535580; most under five bytes, not
   hookable), the client controller's path, class name and id (00533DF0, 00533E00, 00533E10),
-  CUnitClientSpecific::SetMarkers 00535240 and DropFaceTexture 00538EA0. Side by side: the names / ids and
+  UnitClientSpecific::SetMarkers 00535240 and DropFaceTexture 00538EA0. Side by side: the names / ids and
   FiguresLoaded; the rest ours only.
-- **The unit** (`unit_small_methods.cpp`, `unit_client_path.cpp`, `counted_ref.cpp`): the class name / id (0052E280,
+- **The unit** (`unit.cpp`, `unit_client_path.cpp`, `counted_ref.cpp`): the class name / id (0052E280,
   0052E290), MotionSegmentConstruct 0052E230, CUnit::SetMotionSpeeds 0052EA40, HasPlayer 005301A0, DoubleHeight
   00530560, WornItem 00530830, ClientMotionChanged 00535B20, CountedListLoad 0052AF20 (a saved game with magic traps or
   brains). Side by side: the names, HasPlayer, DoubleHeight, WornItem; the rest ours only.
@@ -379,14 +379,14 @@ part name against BASE / CROWN / EMPTY; the game CRT's `_strnicmp` sends every u
 the game's locale. Ours compare with `text::CompareIgnoringCase` (src/lib/text_case.h, C35b; PF1a's case-fold table of
 the CRT's tolower went with the CRT's case functions). Profiling (EI_PLAIN=1 EI_PROFILE=1, world_load /
 models / net_lobby vanilla) found `_strnicmp` almost only under figure setup and `FindEntry`; the gain is about 10 ms of a 625 ms
-zone load. Skipped as not hot: `CMappedResource::FindEntry` (resource.cpp) and `ServerSession::FindGuestConnection`
+zone load. Skipped as not hot: `MappedResource::FindEntry` (resource.cpp) and `ServerSession::FindGuestConnection`
 (net_server_players.cpp). Checks: the part-name wrappers compare each part name against all three keywords both ways
 ("object3d_figure_setup part name fold"), and "ClassifyToken case fold" covers all 65536 byte pairs against `_strnicmp`.
 ## CUnitClientModels per-tick update
 
 Virtual slot 6, the per-tick update on the client: the motion order's times
 shift by one tick while +0x260 is 1, +0x258 counts while +0x25C is 1, the weapon in hand is
-hidden during animations whose key has no low 15 bits (ShowWeaponParts); flags_ 8 (not
+hidden during animations whose key has no low 15 bits (ShowWeaponParts); flags 8 (not
 drawn) for a unit dead for more than 50 ticks past +0x254 or without an animation, or in
 one of movement bits 0x30000 that is not a mode transition (0x240000); the fade-in
 goes to the drawn parts and grows by 1/15 up to 1; the colour flash countdown;
@@ -421,9 +421,9 @@ animation and frame.
 
 ## Ack kinds
 
-`AckKind` (`ack_kind.h`) is the one enum of the codes in message 0x0B (`CPlayerServer::SendObject0B`, `CUnitServer::Shout`,
-`CWorldServer::TellParties`; the client's `OnUnitSpeech` reads it back and `acks::SayAck` picks the list). The wire
-carries the dword; `SendObject0B` converts once and `CPlayerClient::OnUnitSpeech` converts back once. The names are
+`AckKind` (`ack_kind.h`) is the one enum of the codes in message 0x0B (`PlayerServer::SendObject0B`, `UnitServer::Shout`,
+`WorldServer::TellParties`; the client's `OnUnitSpeech` reads it back and `acks::SayAck` picks the list). The wire
+carries the dword; `SendObject0B` converts once and `PlayerClient::OnUnitSpeech` converts back once. The names are
 the folders of acks.db's sounds (Acks\<unit>\<folder>
 .wav), read from the unit table's chunks (the chunk-to-kind
 order is `kUnitChunks` / `kUnitKinds`; the models table's 0x2E..0x32 are Agress / Suspect / Kill / Rest / InAgress).

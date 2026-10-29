@@ -24,7 +24,7 @@ bool StartsWith(const char* file, const char* name) {
 } // namespace
 
 void UnitDatabase::CountSoundFiles(void* sounds) {
-    std::vector<std::string> files = static_cast<CSoundManager*>(sounds)->ListWaveFiles(kSoundPattern);
+    std::vector<std::string> files = static_cast<SoundManager*>(sounds)->ListWaveFiles(kSoundPattern);
     for (std::string& file : files) str::MakeLower(file);
 
     for (UnitModelRecord& record : models.records) {

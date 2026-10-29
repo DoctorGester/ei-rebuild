@@ -2,7 +2,7 @@
 
 #include "core_streams.h"
 #include "object.h"
-#include "player_messages.h"   // CPlayer::units_
+#include "player_messages.h"   // CPlayer::units
 #include "unit.h"
 
 #include "world.h"
@@ -14,32 +14,32 @@ std::uint32_t Bit(int n) { return 1u << (static_cast<unsigned>(n) & 31); }
 
 } // namespace
 
-void CDiplomacy::Reset() {
-    for (int i = 0; i < 32; ++i) hostile_[i] = 0;
-    for (int i = 0; i < 32; ++i) allied_[i] = 1u << i;
+void Diplomacy::Reset() {
+    for (int i = 0; i < 32; ++i) hostile[i] = 0;
+    for (int i = 0; i < 32; ++i) allied[i] = 1u << i;
 }
 
-void CDiplomacy::SetRelation(int player, int other, int relation) {
+void Diplomacy::SetRelation(int player, int other, int relation) {
     std::uint32_t bit = Bit(other);
     switch (relation) {
     case kRelationAllied:
-        hostile_[player] &= ~bit;
-        allied_[player] |= bit;
+        hostile[player] &= ~bit;
+        allied[player] |= bit;
         break;
     case kRelationNeutral:
-        hostile_[player] &= ~bit;
-        allied_[player] &= ~bit;
+        hostile[player] &= ~bit;
+        allied[player] &= ~bit;
         break;
     case kRelationHostile:
-        hostile_[player] |= bit;
-        allied_[player] &= ~bit;
+        hostile[player] |= bit;
+        allied[player] &= ~bit;
         break;
     default:
         break;
     }
     ObjectListIterator it;
     it.manager = nullptr;
-    for (CEngineObject* object = it.First(g_serverWorld.objectManager_); object; object = it.Next()) {
+    for (EngineObject* object = it.First(g_serverWorld.objectManager); object; object = it.Next()) {
         CUnit* unit = UnitOrNull(object);
         if (!unit) continue;
         if (unit->side != player) continue;
@@ -50,35 +50,35 @@ void CDiplomacy::SetRelation(int player, int other, int relation) {
     if (it.manager) it.manager->ForgetReference();
 }
 
-int CDiplomacy::GetRelation(int player, int other) const {
+int Diplomacy::GetRelation(int player, int other) const {
     if (IsAllied(player, other)) return kRelationAllied;
-    return (hostile_[player] & Bit(other)) != 0 ? kRelationHostile : kRelationNeutral;
+    return (hostile[player] & Bit(other)) != 0 ? kRelationHostile : kRelationNeutral;
 }
 
-int CDiplomacy::GetHostileMask(int player) const {
-    if (player >= 0 && player < 32) return static_cast<int>(hostile_[player]);
+int Diplomacy::GetHostileMask(int player) const {
+    if (player >= 0 && player < 32) return static_cast<int>(hostile[player]);
     return -1;
 }
 
-void CDiplomacy::ReadFrom(CStream* stream) {
-    stream->Read(allied_, sizeof(allied_));
-    stream->Read(hostile_, sizeof(hostile_));
+void Diplomacy::ReadFrom(ByteStream* stream) {
+    stream->Read(allied, sizeof(allied));
+    stream->Read(hostile, sizeof(hostile));
 }
 
-void CDiplomacy::WriteTo(CStream* stream) {
-    stream->Write(allied_, sizeof(allied_));
-    stream->Write(hostile_, sizeof(hostile_));
+void Diplomacy::WriteTo(ByteStream* stream) {
+    stream->Write(allied, sizeof(allied));
+    stream->Write(hostile, sizeof(hostile));
 }
 
-void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim) {
+void Diplomacy::OnAttack(CUnit* attacker, CUnit* victim) {
     if (!attacker || !victim) return;
     if (IsAllied(victim->side, attacker->side)) return;
     victim->AddHostileMask(victim->relationsA | Bit(attacker->side));
-    victim->flags_ |= MapObjectFlag::RelationsChanged;
+    victim->flags |= MapObjectFlag::RelationsChanged;
     // The victim's party: the player's units, walked in iterator order.
     const CPlayer* party = victim->player;
     if (!party) return;
-    const CPlayer::UnitMap* members = &party->units_;
+    const CPlayer::UnitMap* members = &party->units;
     for (auto node = members->begin(); node != members->end() && node->second; ++node) {
         CUnit* unit = node->second;
         unit->AddHostileMask(unit->relationsA | Bit(attacker->side));

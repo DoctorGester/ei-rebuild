@@ -11,19 +11,19 @@
 #include <list>
 #include <vector>
 
-class CAIMap;
+class AIMap;
 class CMapObject;
 class CUnit;
 
 // The kind of an AI map occluder (the occluder word's bits 9-11, FootprintCell, SectorOccluder): a figure part's
-// comes from its name (BoundsFlag). Every occluder dims lines of sight by its transparency (CAIMap::LineOfSight);
-// CAIMap::CellMark charges by kind. Kind 1 (worlddata::kOccluderCosts / kOccluderDamping 20 and 2) is given by
+// comes from its name (BoundsFlag). Every occluder dims lines of sight by its transparency (AIMap::LineOfSight);
+// AIMap::CellMark charges by kind. Kind 1 (worlddata::kOccluderCosts / kOccluderDamping 20 and 2) is given by
 // no part.
 enum class OccluderKind : std::int8_t {
     Solid = 0,        // a plain part: adds kOccluderCosts[0] (290) to the cell's cost, damps its passage by 7
     Crown = 2,        // a "CROWN..." part: nothing for the passability
     SpellArea = 3,    // a spell's wall or cloud (ai_footprint_shapes.cpp): the cell's cost counts twice, units fear it
-    BridgeDeck = 4,   // a "BASE..." part once CAIMap::ApplyBridgeDecks applied it: nothing for the passability
+    BridgeDeck = 4,   // a "BASE..." part once AIMap::ApplyBridgeDecks applied it: nothing for the passability
 };
 
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
@@ -96,10 +96,10 @@ struct SectorSpiral {
 const SectorSpiral& SectorSpiralTables();
 
 // The AI map's sector map (one virtual: the destructor).
-class CSectorMap {
+class SectorMap {
 public:
-    CSectorMap();
-    virtual ~CSectorMap();
+    SectorMap();
+    virtual ~SectorMap();
 
     // Registers `object` in the sector under its position and stamps its footprint.
     // Undone again if the footprint does not fit.
@@ -120,16 +120,16 @@ public:
     // Unregisters `object` from the sector it was added to and clears its footprint.
     bool Remove(CMapObject* object);
 
-    // Called by CAIMap::Load. Sizes the map for a cell grid: width and
+    // Called by AIMap::Load. Sizes the map for a cell grid: width and
     // height in sectors (cells / 32, rounded towards zero), `added` 0, the sector array set to
     // width * height, then the AI map.
-    void Init(int cellsX, int cellsY, CAIMap* map);
+    void Init(int cellsX, int cellsY, AIMap* map);
 
     int width;              // in sectors
     int height;
     int added;              // successful Add calls (Remove does not decrement it)
     std::vector<Sector> sectors;   // width * height, row by row
-    CAIMap* aiMap;
+    AIMap* aiMap;
 };
 
 #include "ai_map.h"

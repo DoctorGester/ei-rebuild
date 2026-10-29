@@ -1,6 +1,6 @@
 """The managed objects (timed objects, spells, items) and the world's lists in a decoded save (tools/savefile.py).
 
-CBaseManager::SaveObjects (00404860) writes each object's Save (virtual slot 10) by its type (type_):
+CBaseManager::SaveObjects (00404860) writes each object's Save (virtual slot 10) by its type (type):
   timed (manager48, CEffectManager 0073F2C4; EffectNewObject 0067E170 makes them, world_effect.h):
     0x48 CEffectSound 006766D0, 0x49 CEffectAmbientSound 00677C60, 0x4A CEffectParticle 006794E0,
     0x4B CEffectPointLight 00678740, 0x4D CEffectLightning 0067A7F0, 0x4E CEffectArrow 0067B9A0,
@@ -30,7 +30,7 @@ def read_fixed_string(r, name, size):
 def read_sound(r):
     """CEffectSound::Save (006766D0)."""
     r.vec('position')
-    read_fixed_string(r, 'name', 0x100)   # SV7b2a: Reset zeroes all of name_ (the original only name_[0])
+    read_fixed_string(r, 'name', 0x100)   # SV7b2a: Reset zeroes all of name (the original only name[0])
     r.f32('volume')
     r.f32('radius')
     r.vec('velocity')

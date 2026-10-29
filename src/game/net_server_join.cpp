@@ -35,25 +35,25 @@ void EraseValue(List& list, const void* value) {
 // the login asks (with a local client) or when it is the only binding. Announces the player's name.
 void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     auto* player = NewCounted<PlayerMessage>();
-    self->players_.emplace_back(player);
-    PlayerMessage* record = self->players_.back().Get();
+    self->players.emplace_back(player);
+    PlayerMessage* record = self->players.back().Get();
 
     auto* binding = NewCounted<BindingMessage>();
-    self->bindings_.emplace_back(binding);
-    BindingMessage* bound = self->bindings_.back().Get();
+    self->bindings.emplace_back(binding);
+    BindingMessage* bound = self->bindings.back().Get();
 
-    std::string* name = &record->name_;
-    *name = msg->name_;
-    record->state_ = msg->state_;
-    record->text_ = msg->text_;
-    record->id_ = msg->id_;
+    std::string* name = &record->name;
+    *name = msg->name;
+    record->state = msg->state;
+    record->text = msg->text;
+    record->id = msg->id;
 
     // The lowest player number no player has yet.
     int number = 1;
     for (;;) {
         bool used = false;
-        for (auto& it : self->players_) {
-            if (it.Get()->number_ == number) {
+        for (auto& it : self->players) {
+            if (it.Get()->number == number) {
                 used = true;
                 break;
             }
@@ -61,22 +61,22 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
         if (!used) break;
         ++number;
     }
-    record->number_ = number;
-    record->serial_ = static_cast<std::int32_t>(g_playerSerial);
+    record->number = number;
+    record->serial = static_cast<std::int32_t>(g_playerSerial);
     ++g_playerSerial;
-    record->firstLine_ = self->nextLine_;
+    record->firstLine = self->nextLine;
     bound->PlayerRef().Assign(record);
     bound->ConnectionRef().Assign(g_currentConnection);
-    msg->binding_.Assign(bound);
+    msg->binding.Assign(bound);
 
     ClientSession* client = g_gameClient;
     bool host;
-    if (client && !(client->flags7_ & CRefObject::kDetached)) {
-        host = msg->host_ != 0;
+    if (client && !(client->flags7 & RefObject::kDetached)) {
+        host = msg->host != 0;
     } else {
-        host = self->bindings_.size() == 1;
+        host = self->bindings.size() == 1;
     }
-    if (host) record->host_ = 1;
+    if (host) record->host = 1;
 
     self->Announce(g_interface.MessageText(0, name->data()), nullptr);
 }
@@ -84,31 +84,31 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
 
 // Channel 1: the client's login changed: its player record takes the state and id, and its version goes up.
 void ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
-    message->binding_.Get()->Player()->state_ = message->state_;
-    message->binding_.Get()->Player()->id_ = message->id_;
-    PlayerMessage* player = message->binding_.Get()->Player();
-    ++player->version_;
+    message->binding.Get()->Player()->state = message->state;
+    message->binding.Get()->Player()->id = message->id;
+    PlayerMessage* player = message->binding.Get()->Player();
+    ++player->version;
 }
 
 // Channel 2: the client left. With a live binding: its live player is removed from the
 // players list, and when it was the host the first remaining player becomes the host (its version
 // goes up); then the binding is removed from the bindings list.
 void ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
-    auto* binding = message->binding_.Get();
+    auto* binding = message->binding.Get();
     if (!IsLive(binding)) return;
     auto* player = binding->Player();
     if (IsLive(player)) {
-        std::uint8_t wasHost = player->host_;
-        EraseValue(self->players_, player);
+        std::uint8_t wasHost = player->host;
+        EraseValue(self->players, player);
         if (wasHost) {
-            if (!self->players_.empty()) {
-                auto* first = self->players_.front().Get();
-                first->host_ = 1;
-                ++first->version_;
+            if (!self->players.empty()) {
+                auto* first = self->players.front().Get();
+                first->host = 1;
+                ++first->version;
             }
         }
     }
-    EraseValue(self->bindings_, message->binding_.Get());
+    EraseValue(self->bindings, message->binding.Get());
 }
 
 } // namespace net
