@@ -24,7 +24,6 @@ constexpr float kCell = 100.0f;
 constexpr float kHalfCell = 50.0f;
 constexpr float kFrameDepth = 0.9f;
 constexpr float kFaceDepth = 1.5f;
-constexpr float kSlotsPerPixel = 0.01f;
 constexpr float kDimmed = 0.1953125f;   // 0.1953125 as the end faces' texture offset
 
 const char* const kOnOffSound = "buttons\\battle\\on_off.wav";
@@ -59,12 +58,12 @@ void FigureStrip::SetupFigures(std::vector<std::string>* names, bool newTop, boo
 void FigureStrip::Draw(SceneRenderer* pass) {
     const float scrollPosition = position[tab];
     const int first = static_cast<int>(scrollPosition);   // _ftol
-    const float frac = static_cast<float>(scrollPosition - static_cast<float>(first));
+    const float frac = scrollPosition - first;
     SceneMesh(0)->textureOffsetU = position[tab] > 0.0f ? kDimmed : 0.0f;
-    SceneMesh(1)->textureOffsetU = static_cast<float>(count - 7) > position[tab] ? kDimmed : 0.0f;
+    SceneMesh(1)->textureOffsetU = (count - 7) > position[tab] ? kDimmed : 0.0f;
     SceneMesh(9)->Place(kHalfCell - frac * kCell, static_cast<float>(top), scale + scale);
     for (int i = 0; i < 8; ++i) {
-        SceneMesh(10 + i)->Place(((static_cast<float>(i) - frac) + 1.0f) * kCell, static_cast<float>(top) + kHalfCell,
+        SceneMesh(10 + i)->Place(((i - frac) + 1.0f) * kCell, top + kHalfCell,
                                  scale);
     }
     UiMesh* frame = SceneMesh(8);
@@ -73,7 +72,7 @@ void FigureStrip::Draw(SceneRenderer* pass) {
         int cell = selected - first;
         if (cell >= 0 && cell < 8) {
             frame->visible = true;
-            frame->Place(((static_cast<float>(cell) - frac) + 1.0f) * kCell, static_cast<float>(top) + kHalfCell,
+            frame->Place(((cell - frac) + 1.0f) * kCell, top + kHalfCell,
                          scale * kFrameDepth);
         }
     }
@@ -81,8 +80,8 @@ void FigureStrip::Draw(SceneRenderer* pass) {
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
         if (index < 0 || index >= count) continue;
-        const HeroFaceCell cell{(*figures)[index].c_str(), ((static_cast<float>(i) - frac) + 1.0f) * kCell,
-                                static_cast<float>(top) + kHalfCell, scale * kFaceDepth, kCell};
+        const HeroFaceCell cell{(*figures)[index].c_str(), ((i - frac) + 1.0f) * kCell,
+                                top + kHalfCell, scale * kFaceDepth, kCell};
         owner->DrawHeroFace(pass, cell);
     }
 }
@@ -94,7 +93,7 @@ void FigureStrip::LeftDown(int buttons, int x, int y) {
     if (RegionAt(x, y) != 8) return;
     POINT point{x, y};
     ui->ScalePointFromScreenEntry(&point);
-    int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position[tab]);     // _ftol
+    int index = SlotAt(point.x);
     if (index < 0 || index >= count) return;
     ui->PlaySound(kOnOffSound);
     owner->ChooseFigure((*figures)[index]);     // the hero screen: the new hero's figure

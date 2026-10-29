@@ -60,10 +60,6 @@ file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 #   mesh draws), and the screens that turn a pixel into a world point or an order (ui_hud, ui_hud_map, ui_hud_pick,
 #   ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the camera keys and mouse);
 # - the briefing moves the camera to its speakers and times its phrases (ui_briefing*);
-# - the figure strips' click picks a figure from the pixel and the eased scroll position (ui_item_strip_setup changed
-#   ui_hero_screen's golden on SSE2: the hero's figure; ui_item_strip eases the position); the hero screen's points and
-#   experience, and the held buttons' repeats (ui_hero_screen, ui_hero_screen_click, ui_stats_buttons,
-#   ui_trade_panel_input: a repeat count from the frame time) change a hero or a trade;
 # - sound_manager: a 3D sound's level decides whether it takes a voice, and a speech's handle (-1 when every voice
 #   is taken) ends a unit's talking flag on the server (unit_client_speech);
 # - terrain heights, sectors and loading (terrain, terrain_sector with its chop rounding, terrain_landscape).
@@ -96,8 +92,7 @@ set(EI_X87_DRAW_SOURCES
     ui_battle_commands ui_battle_hover ui_briefing ui_briefing_create ui_briefing_dialogue ui_briefing_input
     ui_briefing_keys ui_briefing_people ui_briefing_phrases ui_briefing_start ui_briefing_topics ui_camera_input
     ui_camera_keys ui_global_map ui_global_map_input ui_global_map_paths ui_global_map_places ui_hud ui_hud_map
-    ui_hud_pick ui_view_screen renderer_init device_bounds device_mesh device_object device_shadow
-    ui_hero_screen ui_hero_screen_click ui_item_strip ui_item_strip_setup ui_stats_buttons ui_trade_panel_input)
+    ui_hud_pick ui_view_screen renderer_init device_bounds device_mesh device_object device_shadow)
 list(TRANSFORM EI_X87_DRAW_SOURCES REPLACE "(.+)" "${CMAKE_SOURCE_DIR}/src/game/\\1.cpp")
 list(TRANSFORM EI_SSE2_GAME_SOURCES REPLACE "^src/" "${CMAKE_SOURCE_DIR}/src/")
 list(REMOVE_ITEM EI_SSE2_GAME_SOURCES ${EI_X87_DRAW_SOURCES})

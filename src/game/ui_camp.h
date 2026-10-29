@@ -226,8 +226,8 @@ public:
     void LeftDown(int buttons, int x, int y) override;
     // Releases the mouse unconditionally and ends a hold.
     void LeftUp(int buttons, int x, int y) override;
-    // From 0.25 s of a hold on, every frame buys the row's next level again (the record is not marked
-    // bought) until it cannot. The hold time is not reset after a purchase.
+    // From 250 ms of a hold on (750 ms after the press), every frame buys the row's next level again (the
+    // record is not marked bought) until it cannot. The hold time is not reset after a purchase.
     void Update() override;
     bool Bought() const { return Record().bought; }
     const TradeStatsRecord& Record() const { return records[recordIndex]; }
@@ -242,7 +242,7 @@ public:
     int experience = 0;              // experience the hero can spend
     std::vector<TradeStatsRecord> records;    // one per party member
     int heldRegion = -1;             // the school / science row held after a purchase
-    float holdTime = 0.0f;           // from -0.5 s
+    int holdTicks = 0;               // milliseconds held, from -500
     std::vector<std::string> texts; // the titles
 };
 
@@ -394,7 +394,7 @@ public:
     // On page 10 a -/+ button (regions 6-13) steps a point and is held; elsewhere region 0 / 1 show the
     // owner's previous / next hero.
     void LeftDown(int buttons, int x, int y) override;
-    // A held -/+ button repeats every frame after a quarter of a second until it can step no more; the owner
+    // A held -/+ button repeats every frame from 750 ms after the press until it can step no more; the owner
     // is refreshed on every attempt.
     void Update() override;
     // Lets the mouse go unconditionally and ends the hold.
@@ -416,7 +416,7 @@ public:
     std::vector<std::string> texts;
     int points = 0;                  // skill points left (page 10); SetHero puts the height * 100 here
     int heldRegion = -1;             // the -/+ button held on page 10 (-1 none)
-    float holdTime = 0.0f;           // seconds it has been held (from -0.5)
+    int holdTicks = 0;               // milliseconds it has been held (from -500)
 };
 
 // --- Hero equipment panel ---

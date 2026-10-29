@@ -95,7 +95,7 @@ void UiItemStrip::SetTab(int newTab) {
     }
     pending = 0.0f;
     velocity = 0.0f;
-    scrollTimer = 0.0f;
+    scrollTicks = 0;
     scrollDirection = 0;
 }
 
@@ -251,9 +251,7 @@ Item* ForwardingStrip::ItemAt(int x, int y, int* cursor) {
     }
     POINT point{x, y};
     ui->ScalePointFromScreenEntry(&point);
-    // A hundred pixels per slot from x 50, plus the tab's scroll position.
-    constexpr float kSlotsPerPixel = 0.01f;
-    int index = static_cast<int>(libcrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position[tab]));
+    int index = SlotAt(point.x);
     RebuildList();
     if (index < 0 || index >= std::ssize(list)) return nullptr;
     return list[index];
@@ -274,7 +272,7 @@ void UiItemStrip::SettleScroll() {
         if (fraction < 0.5f) pending = fraction + 1.0f;
     }
     scrollDirection = 0;
-    scrollTimer = 0.0f;
+    scrollTicks = 0;
     ui->mouseCapture = nullptr;
 }
 

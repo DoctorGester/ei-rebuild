@@ -1,7 +1,7 @@
 // The trade panel's scroll clamp, its left button and its update:
 // scrolling the perk lists and buying school levels, science and perks with experience, a school
-// or science level again every quarter second while the button stays down. See docs/notes/ui.md,
-// section 5.
+// or science level again every frame from 750 ms of holding on while the button stays down (whole
+// milliseconds). See docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "ui_camp.h"
 #include "ui_screens.h"
@@ -9,7 +9,6 @@
 #include "unit.h"
 
 #include "unit_db.h"
-#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -25,8 +24,8 @@ constexpr int kScience = 10;
 constexpr int kFirstLearnable = 11;
 constexpr int kFirstHeld = 34;
 constexpr int kMaxLevel = 100;
-constexpr float kFirstHold = -0.5f;
-constexpr float kHoldRepeat = 0.25f;
+constexpr int kFirstHoldTicks = -500;    // milliseconds: the first repeat waits 750 ms
+constexpr int kRepeatTicks = 250;        // then a level every frame
 
 } // namespace
 
@@ -85,12 +84,12 @@ void TradePanel::LeftDown(int, int x, int y) {
         if (row->price > experience || row->nextKey.empty()) return;
         stats->LearnSkill(&g_skillDatabase, g_skillDatabase.FindLevel(row->nextKey));
     }
-    stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);
+    stats->spentExperience = row->price + stats->spentExperience;
     record.bought = true;
     BuildLists();
     if (hold) {
         heldRegion = region;
-        holdTime = kFirstHold;
+        holdTicks = kFirstHoldTicks;
         CaptureMouse();
     }
 }
@@ -100,18 +99,15 @@ void TradePanel::LeftDown(int, int x, int y) {
 void TradePanel::LeftUp(int, int, int) {
     ui->mouseCapture = nullptr;
     heldRegion = -1;
-    holdTime = 0.0f;
+    holdTicks = 0;
 }
 
 // --- The held school / science button (update) ---------------------------------------------------------
 
 void TradePanel::Update() {
     if (heldRegion < 0) return;
-    // The comparison uses the unrounded sum; the field keeps it rounded.
-    double held = UiContainer::FrameTime() + holdTime;
-    holdTime = static_cast<float>(held);
-    EI_NAN_AUDIT(held);
-    if (held < kHoldRepeat) return;
+    holdTicks += UiContainer::FrameTicks();
+    if (holdTicks < kRepeatTicks) return;
     int region = heldRegion;
     UnitStats* stats = &owner->HeroRecord()->stats;
     const TradeRow* row;
@@ -127,7 +123,7 @@ void TradePanel::Update() {
     }
     if (row->level < kMaxLevel && row->price <= experience) {
         ++*level;
-        stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);
+        stats->spentExperience = row->price + stats->spentExperience;
         BuildLists();
         return;
     }
