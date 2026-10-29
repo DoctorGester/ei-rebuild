@@ -10,6 +10,7 @@
 #include "item_db_text.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
+#include "ui_native.h"
 #include "ui_widescreen.h"
 #include "unit_create.h"
 #include "unit_db.h"
@@ -56,7 +57,9 @@ float MenuTurn() { return kMenuTilt * 1.2f; }
 CUiContainer* AsContainer(CMpHeroScreen* screen) { return screen; }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    ui_native::AdoptUnlessWidescreen(surface, "hero");
+    return surface;
 }
 
 CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) { return new CUiScrollbar(ui, rect, 3.0f, 0, 1.0f); }

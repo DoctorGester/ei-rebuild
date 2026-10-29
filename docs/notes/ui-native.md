@@ -421,6 +421,37 @@ panel's name and numbers in every HUD frame (about 0.02%), the message log's que
 0.18%, the hero list's tip 0.03%; the map dot is identical. The menus' help_tip frame shows no tooltip at its capture (the same
 frame as help), so the menus' tips are covered by ui_compare only.
 
+### P3c done (2026-10-29): camp, hero, trade and item info
+
+**Families adopted** (one `Adopt` where each surface is made, before anything draws on it):
+| Family | Surfaces (file) |
+|---|---|
+| `camp` | the camp's two text surfaces (`CCampPages`, ui_camp_create.cpp's `NewSurface`) and the spell maker's (`CSpellMakerPage::BuildSpellMaker`, ui_hero_panels.cpp) |
+| `hero` | the hero screen's four (`ui_hero_screen_create.cpp`'s `NewSurface`: statistics, name, commands, rename) and the statistics column (`CHeroStatsPanel::Build`) |
+| `trade` | the trade panel (`CTradePanel::Build`) and the trade / repair grids (`BuildCellGrid`) |
+| `iteminfo` | the item description (`CItemInfoPanel::Build`) |
+| `itemstrip` | the item strips' count and number surfaces (`CUiItemStrip::Setup`) |
+| `exchange` | the player exchange window's four (`ui_exchange.cpp`) |
+
+`camp` and `hero` go through `ui_native::AdoptUnlessWidescreen`: not adopted while Rebirth's WideScreen layout is active (vanilla only
+for now; the other families have no wide layout of their own). None of these holds a `CUiScrollText`, so nothing is adopted after
+construction here.
+
+**Still GDI, and why.** The hero screen's and the exchange window's edit fields (`CUiEditField`, their own surfaces): P5 (carets).
+Everything the families' windows draw through the surface functions (Clear, DrawLine, DrawWrappedText, DrawTextIn) is recorded; none
+of these files uses a pen, FillSolidRect or SetPixel directly.
+
+**Checked** (2026-10-29). `EI_RENDER_EXTRA=uiboth`: the 45 `ui_*` scenarios and `net_pair_zone` pass with 0 differing surfaces
+(the exchange's four compared 469 times in `net_pair_zone`). Under load `net_pair_zone` runs out of its frame-wait time under
+`uiboth` with all the families (the comparison costs about 35 ms of CPU a frame there: 37 s against 8 s; `uinative` and each family
+listed alone pass); it is the harness comparison's cost, not the native path's. `--golden`: 121 the same, 24 without a golden.
+Frames under `uinative` against the default path's (3840x2160, `ui_gallery_camp`, `ui_gallery_deals`, `ui_gallery_mp`,
+`ui_gallery_base`): the same layout (no line wrapped or moved; checked by eye in the trade panel) and only glyph shapes differ: the
+camp's pages 0.74-1.51% of the frame (statistics 0.74, items 1.19, spells 1.11, trade 1.51, trade page 4 1.13, level-up 1.38,
+makers 1.13), the deals 0.82-1.46%, the hero list's tooltip 0.23% (the tooltip itself is P3b's, so this is the hero list under it),
+the map's titles 0.24%, the hero statistics page 1.71% (`ui_gallery_mp`); the map, the connection and base screens, the chat and
+the briefing are unchanged.
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -486,7 +517,7 @@ they depend on.
 
 The interface surfaces drawn on GPU canvases (ticket P1; docs/notes/ui-native.md, "P1"). A surface of a
 family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status, menu, msgbox,
-difficulty, options, objectives, credits, console, debug, unitpanel, messagelog, tooltip, hudmap so far) gets a canvas for its holder when it is made (Adopt), and
+difficulty, options, objectives, credits, console, debug, unitpanel, messagelog, tooltip, hudmap, camp, hero, trade, iteminfo, itemstrip, exchange so far) gets a canvas for its holder when it is made (Adopt), and
 the surface functions record their drawing on it
 beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
 truth (a lost device brings canvases back black). The blit draws the canvas when

@@ -5,6 +5,7 @@
 // hero screens").
 #include "ui.h"
 #include "ui_item_info.h"
+#include "ui_native.h"
 #include "ui_screens.h"
 
 #include <cstdint>
@@ -22,7 +23,9 @@ constexpr int kTextureKind = 3;
 // A text surface of the layout rectangle (left, top, right, bottom), format 5 (null
 // when the allocation fails).
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-        return new CUiSurface(ui, left, top, right, bottom, 5, 1);
+        CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, 5, 1);
+        ui_native::Adopt(surface, "itemstrip");
+        return surface;
 }
 
 // Layout constants of the strips (the exe's floats).

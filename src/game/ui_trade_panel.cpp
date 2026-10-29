@@ -3,6 +3,7 @@
 #include "item_db_text.h"
 #include "world.h"
 #include "ui_camp.h"
+#include "ui_native.h"
 #include "party.h"
 #include "unit.h"
 
@@ -268,7 +269,9 @@ void CTradePanel::DrawLists() {
 
 void CTradePanel::Build() {
     rect_ = RECT{200, 100, 600, 500};
-    AddSurface(new CUiSurface(interface_, 200, 100, 600, 500, 5, 1));
+    CUiSurface* surface = new CUiSurface(interface_, 200, 100, 600, 500, 5, 1);
+    ui_native::Adopt(surface, "trade");
+    AddSurface(surface);
     recordIndex_ = 0;
     perkTop_ = 0;
     learnableTop_ = 0;

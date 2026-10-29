@@ -4,6 +4,7 @@
 // stack, static_cast<float> where it stores to a float. Constants are read from memory.
 #include "ui.h"
 #include "ui_camp.h"
+#include "ui_native.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -73,7 +74,9 @@ void BuildCellGrid(CUiWindow* window) {
         depth = static_cast<float>(D(depth) * 0.5);   // * 0.5
         v = 0x9C - v;
     }
-    window->AddSurface(new CUiSurface(window->interface_, 200, 100, 600, 500, 5, 1));
+    CUiSurface* surface = new CUiSurface(window->interface_, 200, 100, 600, 500, 5, 1);
+    ui_native::Adopt(surface, "trade");
+    window->AddSurface(surface);
 }
 
 constexpr int kGridCellsPerList = 8;
@@ -360,7 +363,9 @@ void CHeroStatsPanel::Build() {
     AddRect(this, RECT{0, 0x7D, 0x1E, 0x91});      // previous hero
     AddRect(this, RECT{0xAA, 0x7D, 200, 0x91});    // next hero
     {
-        AddSurface(new CUiSurface(interface_, 0, 100, 200, 400, 5, 1));
+        CUiSurface* surface = new CUiSurface(interface_, 0, 100, 200, 400, 5, 1);
+        ui_native::AdoptUnlessWidescreen(surface, "hero");
+        AddSurface(surface);
     }
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
@@ -471,7 +476,9 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     AddRect(this, RECT{200, 450, 400, 470});
     AddRect(this, RECT{200, 470, 400, 490});
     AddMakerPictures(this);
-    AddSurface(new CUiSurface(interface_, 200, 450, 400, 490, 5, 1));
+    CUiSurface* surface = new CUiSurface(interface_, 200, 450, 400, 490, 5, 1);
+    ui_native::AdoptUnlessWidescreen(surface, "camp");
+    AddSurface(surface);
     pulse_ = 0.0f;
     CTextManager* texts = g_clientWorld->texts_;
     std::string text;
