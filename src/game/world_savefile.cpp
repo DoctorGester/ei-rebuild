@@ -52,7 +52,7 @@ struct LocalBuffer {
 void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data) {
     CoderState coder;
     // A view over the data (flags 2).
-    std::uint8_t* begin = data->data_;
+    std::uint8_t* begin = data->data_.data();
     std::uint8_t* last = begin + data->Size();
     BufferView view(begin, last);
     {
@@ -61,7 +61,7 @@ void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* da
         coder.Compress(&view, &packed.b);
         file->WriteHeader(magic, static_cast<std::uint32_t>(version));
         if (version > kVersionChecksum) {
-            std::uint32_t sum = Checksum(data->data_, static_cast<std::int32_t>(data->Size()));
+            std::uint32_t sum = Checksum(data->data_.data(), static_cast<std::int32_t>(data->Size()));
             file->WriteValue(sum);
         }
         // Decompressed again; the packed data is used only when it gives the input back.
@@ -77,7 +77,7 @@ void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* da
             bool same = check.b.base - reinterpret_cast<std::intptr_t>(check.b.begin) +
                                 reinterpret_cast<std::intptr_t>(check.b.high) == size;
             if (same) {
-                std::uint8_t* original = data->data_;
+                std::uint8_t* original = data->data_.data();
                 same = std::memcmp(original, check.b.begin, static_cast<std::size_t>(data->Size())) == 0;
             }
             if (same) {
@@ -87,7 +87,7 @@ void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* da
             } else {
                 compressed = 0;
                 file->WriteValue(compressed);
-                std::uint8_t* raw = data->data_;
+                std::uint8_t* raw = data->data_.data();
                 file->Write(raw, data->Size());
             }
         }   // the decoder's cursor ends here, then `check` and `packed` go
@@ -102,7 +102,7 @@ bool SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, 
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         out->Resize(static_cast<std::uint32_t>(size));
-        file->Read(out->data_, static_cast<std::uint32_t>(size));
+        file->Read(out->data_.data(), static_cast<std::uint32_t>(size));
         out->Seek(0);
     } else {
         std::uint8_t compressed = 1;

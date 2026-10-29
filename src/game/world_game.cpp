@@ -704,7 +704,7 @@ void CWorldServer::LoadZoneScripts(std::string_view mob) {
     }
     file.FindTagged(kScriptsChunk, &scripts);
     if (scripts.FindTagged(kScriptEncoded, &text)) {
-        const std::uint8_t* data = text.data_;
+        const std::uint8_t* data = text.data_.data();
         std::uint32_t size = text.size_;
         char zero = 0;
         decoder.input.resize(size, zero);
@@ -714,7 +714,7 @@ void CWorldServer::LoadZoneScripts(std::string_view mob) {
         text.Seek(text.size_);
         char zero = 0;
         text.WriteValue(zero);
-        script = reinterpret_cast<const char*>(text.data_);
+        script = reinterpret_cast<const char*>(text.data_.data());
     }
     ScriptReset(MainScript());
     MainScript()->Load(&script, 1);

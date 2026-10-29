@@ -144,8 +144,7 @@ public:
     std::uint8_t bits_ = 0;         // byte being assembled by the bit writer
     std::int32_t bitMask_;          // bit of the last bit written (0x80: start a new byte)
     std::int32_t bitsIndex_;        // where bits_ goes in the data (-1: nowhere yet)
-    std::uint8_t* data_;
-    std::uint32_t capacity_;        // bytes allocated
+    std::vector<std::uint8_t> data_;    // the buffer: its size is the capacity
     std::uint32_t position_;        // read / write position
     std::uint32_t size_;            // end of the data
 };
