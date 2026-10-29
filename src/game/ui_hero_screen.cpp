@@ -111,7 +111,7 @@ void CMpHeroScreen::DrawExperience() {
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
 }
 
-BOOL CMpHeroScreen::Draw(CSceneRenderer* pass) {
+void CMpHeroScreen::Draw(CSceneRenderer* pass) {
     if (mode_ == kModeStats) DrawExperience();
     int x = g_cursor->position_.x;
     int y = g_cursor->position_.y;
@@ -146,7 +146,6 @@ BOOL CMpHeroScreen::Draw(CSceneRenderer* pass) {
         DrawHeroPreview(pass, previewModel_, turn_, kListDepth, 0);
     else if (mode_ == kModeNewHero)
         DrawHeroPreview(pass, previewModel_, turn_, kNewHeroDepth, 0);
-    return 1;
 }
 
 // --- Update ----------------------------------------------------------------------------

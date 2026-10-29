@@ -25,11 +25,11 @@
 
 namespace {
 
-constexpr std::uint32_t kLeaveZoneYes = 0x10001;
-constexpr std::uint32_t kGameOverLoad = 0x20001;
-constexpr std::uint32_t kGameOverQuit = 0x20002;
-constexpr std::uint32_t kLeaveAnswer = 0x90001;
-constexpr std::uint32_t kLoadWindowClosed = 0x100001;
+constexpr int kLeaveZoneYes = 0x10001;
+constexpr int kGameOverLoad = 0x20001;
+constexpr int kGameOverQuit = 0x20002;
+constexpr int kLeaveAnswer = 0x90001;
+constexpr int kLoadWindowClosed = 0x100001;
 constexpr int kGameOverResult = 0x20000;
 
 int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unitId); }
@@ -54,7 +54,7 @@ void CBriefingScreen::Close() {
     flags = (flags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
 }
 
-void CBriefingScreen::OnMessageResult(std::uint32_t result) {
+void CBriefingScreen::MessageResult(int result) {
     switch (result) {
     case kLeaveZoneYes:
         GameLeaveThroughExit(exit_);
@@ -76,7 +76,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     if (IsMultiplayerClient()) PlayersChanged(1);
 }
 
-void CBriefingScreen::OnUnitJoined(CUnit* unit) {
+void CBriefingScreen::UnitJoined(CUnit* unit) {
     CParty* player = LocalPlayerData();
     int count = std::ssize(player->members_);
     if (count == 0) return;
@@ -127,7 +127,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     }
 }
 
-void CBriefingScreen::OnUnitLeft(CUnit* unit) {
+void CBriefingScreen::UnitLeft(CUnit* unit) {
     if (unit == leader_) leader_ = nullptr;
     int count = std::ssize(party_);
     int index = 0;
@@ -138,13 +138,13 @@ void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     party_.pop_back();
 }
 
-void CBriefingScreen::OnGameOver() {
-    interface_->PlaySound("buttons\\gameover.wav", 0);
+void CBriefingScreen::GameOver(int) {
+    interface_->PlaySound("buttons\\gameover.wav");
     CMessageBox* box = new CMessageBox(interface_, "game_over", "game_over_msg", kGameOverResult, 3, 1);
     interface_->PushWindow(box, 1, 1);
 }
 
-void CBriefingScreen::OnBriefing(std::string_view name) {
+void CBriefingScreen::ShowBriefing(std::string_view name) {
     topic_ = std::string(name);
     StartDialogue(1, 1);
 }

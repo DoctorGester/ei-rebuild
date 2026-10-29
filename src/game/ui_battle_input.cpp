@@ -12,7 +12,7 @@ constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 
 // --- the battle screen loses the top -------------------------------------------------------------
 
-void CBattleScreen::OnDeactivate() {
+void CBattleScreen::Deactivate() {
     for (std::uint8_t& key : orderKeys_) key = 0;
     viewPressed_ = false;
     boxSelecting_ = false;
@@ -21,7 +21,7 @@ void CBattleScreen::OnDeactivate() {
 
 // --- a double click on the battle screen ---------------------------------------------------------
 
-void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
+void CBattleScreen::LeftDouble(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
         CUiContainer::LeftDouble(buttons, x, y);
@@ -35,7 +35,7 @@ void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
 
 // --- a key released on the battle screen ---------------------------------------------------------
 
-void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
+void CBattleScreen::KeyUp(int key, int repeat, int flags) {
     if (portraitMode_ != 0) return;
     CUiContainer::KeyUp(key, repeat, flags);
     int action = g_keyActions[flags & 0x1FF] - kFirstOrderKeyAction;
@@ -44,16 +44,15 @@ void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
 
 // --- the wheel on the battle screen --------------------------------------------------------------
 
-BOOL CBattleScreen::OnWheel(int flags, int delta, int x, int y) {
-    if (portraitMode_ != 0) return 1;
+void CBattleScreen::Wheel(int flags, int delta, int x, int y) {
+    if (portraitMode_ != 0) return;
     CUiWindow* const panels[4] = {map_, unitPanel_, messageLog_, topPanel_};
     for (CUiWindow* panel : panels) {
         panel->handled_ = false;
         panel->Input()->Wheel(flags, delta, x, y);
-        if (panel->handled_) return 1;
+        if (panel->handled_) return;
     }
-    for (CUiWindow* panel : panels) panel->SetEnabled(0, 0);
+    for (CUiWindow* panel : panels) panel->SetEnabled(false, false);
     CUiContainer::Wheel(flags, delta, x, y);
-    for (CUiWindow* panel : panels) panel->SetEnabled(1, 0);
-    return 1;
+    for (CUiWindow* panel : panels) panel->SetEnabled(true, false);
 }

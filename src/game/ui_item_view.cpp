@@ -334,7 +334,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
     }
 }
 
-BOOL CItemInfoPanel::Draw(CSceneRenderer* pass) {
+void CItemInfoPanel::Draw(CSceneRenderer* pass) {
     if (CItem* item = FirstItem()) {
         ItemCell cell;
         cell.item = item;
@@ -345,7 +345,6 @@ BOOL CItemInfoPanel::Draw(CSceneRenderer* pass) {
         cell.y = static_cast<float>(static_cast<double>(y_) + D(200.0f));
         owner_->DrawItem(pass, &cell);
     }
-    return 1;
 }
 
 // --- A hero's face -----------------------------------------------------------------------------

@@ -431,7 +431,7 @@ name check 0047ADA0 `IsPrintableText` (S).
 Code ui_scrollbar.cpp, ui_spin.cpp, ui_edit_field.cpp, ui_scroll_text.cpp, ui_tooltip.cpp, ui_control_delete.cpp; wrappers
 verify_<file>.cpp (scenarios in their headers: objectives, save / load and options windows, every log text). Verification:
 CUiScrollbar Construct/SetRect/CUiSlider::Construct O, SetPosition/SetMaximum/Maximum/thumb and slider drag/wheel S (no
-scenario drags or wheels a bar); CUiSpin Construct/AddText/SetValue O, GetValue S; CUiEditField Construct O and OnChar S (no
+scenario drags or wheels a bar); CUiSpin Construct/AddText/SetValue O, GetValue S; CUiEditField Construct O and Char S (no
 scenario types into one: message box flag 4, multiplayer screens); CUiScrollText Construct/DestroyBody/AddText/SetText/SetRect
 (26)/Draw (20)/Clear O, `Layout` (the original on a byte copy with an empty line array) and `NextToken` S; CUiTooltip
 Construct (the original into a scratch block) S, SetText S, DrawLines O (OnMouseMove 0065E580 stays original: Rebirth-patched);
@@ -498,7 +498,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   `CUiScrollingSurface` (the titles' RTF text; ui_scrolling_surface.cpp): Construct (the original loaded "Riched20.dll" and
   made a hidden RichEdit20A child; ours lays the text out itself: ui-native.md, "The titles' rich text"), DestructBody,
   DeletingDestruct, LoadRtf (the original streamed the block in with EM_STREAMIN through a CMemFile and callback 0065EF10),
-  Draw (slot 0: offset += game time passed x speed, _ftol; O within 1), Load (S), Start (speed, from below the surface; S); `CUiEditField::SetLook / SetText / SetFocused` (+0x16C is the caret colour; S), `CUiSpin::OnLButtonDown`
+  Draw (slot 0: offset += game time passed x speed, _ftol; O within 1), Load (S), Start (speed, from below the surface; S); `CUiEditField::SetLook / SetText / SetFocused` (+0x16C is the caret colour; S), `CUiSpin::LeftDown`
   (input slot 2: the OK sound, the next value; O), `CObjectivesWindow::Setup` (S) / `HelpTopic` (slot 41: "quest_global_map"
   with two buttons, else "quest_mission"; P), `CHudClock::OpenObjectives` (from the Rebirth-patched click 00648D70: its inlined
   window constructor is 0063B5D0; O), `CHudUnitPanel::ShowBodyPart` (tints the four part buttons 3..6: 1 the chosen one, 0.5
@@ -552,14 +552,14 @@ obvious.
   briefings + index). 0068E640 `CMaterialManager::Create` (slot 2, material.cpp; O): "materials.res" added, the eight kinds of
   the table at 00743BF8 (0x11 leather .. 0x17 magic, 0x19 metal again) entered with their file's 17 dwords, or diffuse 0.3 /
   alpha 1, ambient 0.7, specular 0.2, power 5 without the file; magic's emissive is 1.
-- HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_setup.cpp; the code is the description): 00648D70 `CHudClock::OnMouseUp`
+- HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_setup.cpp; the code is the description): 00648D70 `CHudClock::LeftUp`
   (regions 0 pause, 1 / 2 normal / fast speed, not on a network client, update period 55 / 27 ms at 0078FF34, 3 the
   objectives; O, no scenario clicks the clock); 00649910 `CHudMovePanel::ShowModeVanilla` (+0x14C `mode_`; S); 00642930 /
   00645F80 map and unit panel `Layout` (sprites, text surface and regions after the first at the slide offset:
   `offset_`, `travel_`, `slide_`; S); 00647FB0 `CHudUnitPanel::UpdateVanilla` and 00642B40 `CHudMap::UpdateVanilla` (slot 24:
   the slide time x direction / 0.3 s, eased, _ftol of travel x eased; the map's zoom x or / 2.5^time towards zoomMax_ / 1,
   UpdateView, BuildMarkers, "camera north" time and tint; the map's is O because it rebuilds meshes, no scenario slides the
-  map); 00645210 `CHudMap::OnMouseUp` (O; ui_hud reaches only the view buttons' release, no scenario clicks the map, its
+  map); 00645210 `CHudMap::LeftUp` (O; ui_hud reaches only the view buttons' release, no scenario clicks the map, its
   sling or the north button; a click on the map goes through 005F7E00 relative to (700, 80) by the map's scale
   `unknown_174`, region 1 also by the zoom). Setups (S: the original's regions and sprites recorded and dropped, the fields
   put back, then ours; every scenario that starts a game): 00648520 clock (rectangle (720, 520)-(800, 600); tips 0x28A0,
@@ -598,7 +598,7 @@ obvious.
   already checked on that thread). The original leaves its "from the beginning again" local unwritten when neither a loop
   point nor a switch point lies in the buffer and reads it in one such case (a mode 1 switch whose file ends in this buffer:
   stack garbage decides between the switch and a restart); ours switches, which is what the mode asks for.
-- 006462A0 (unit panel draw) was ported by A-E2 (`ui_hud_unit_draw.cpp`, `CHudUnitPanel::DrawVanilla`: Rebirth replaces the
+- 006462A0 (unit panel draw) was ported by A-E2 (`ui_hud_unit_draw.cpp`, `CHudUnitPanel::Draw`: Rebirth replaces the
   whole function, so vanilla launch only; ours only, every map frame). Between the panel's background and the unit's figure,
   and again after the figure, it clears three screen rectangles' depth (the original: IDirect3DDevice7::Clear under the render
   lock 007AEE78; ours `ClearUiDepth`, the new renderer's depth); in between it draws the unit's model (the unit's slot +0x58) with texture stage 0's mip filter (state

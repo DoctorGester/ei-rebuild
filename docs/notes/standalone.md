@@ -861,8 +861,7 @@ as virtuals; `CUiContainer` adds 25-41 (25 / 26 `_purecall`) and its input dispa
 (screens call the defaults qualified, `CUiContainer::LeftDown(...)`). The screens (CBattleScreen ... CMpHeroScreen,
 the item screens over `CItemScreen`'s slots 42-54) and the item panels (`CUiItemPanel`'s slot 25 `ItemAt`; the
 strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureStrip`) are ordinary classes built with
-`new X(...)`, their slots the overrides (an input slot that runs a named handler is a one-line override,
-`int LeftDown(...) override { return OnLButtonDown(...), 0; }`).
+`new X(...)`, their slots the overrides.
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
@@ -1452,7 +1451,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   characters, up to 200 bytes) into the connection screen's 0x80-byte box buffer (`CMessageBox::CopyEditText`, cut
   at a character's end); `CStream::ReadText` cuts its UTF-8 at a character's end; `DrawTextA`'s UTF-8 route with
   `DT_MODIFYSTRING` (the server list's ellipsis) gives `DrawTextW` the four characters of room it writes past the
-  text. The chat line also stays within 200 bytes (`CChatOverlay::OnChar`): a client's update carries 220 bytes
+  text. The chat line also stays within 200 bytes (`CChatOverlay::Char`): a client's update carries 220 bytes
   (`Connection::updateBudget_`) and an entry past that is never counted, so a longer SayMessage would never arrive.
   Save names are std::strings (no buffer).
 - **Byte indexing**: about 37 sites. Left: ASCII prefixes, markers and separators (`Left(1)`, `Left(2)`, `Mid` past

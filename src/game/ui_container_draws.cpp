@@ -28,17 +28,17 @@ void ClearUiDepth(float z, const RECT* rects, int count) {
 namespace {
 
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
-int ScreenDraw(CUiWindow* self, CSceneRenderer* pass, bool mouseMove) {
+void ScreenDraw(CUiWindow* self, CSceneRenderer* pass, bool mouseMove) {
     GameRender();
     if (mouseMove) self->Input()->MouseMove(0, g_cursor->position_.x, g_cursor->position_.y);
     ClearUiDepth(1.0f);
-    return static_cast<CUiContainer*>(self)->CUiContainer::Draw(pass);
+    static_cast<CUiContainer*>(self)->CUiContainer::Draw(pass);
 }
 
 } // namespace
 
-BOOL CUiContainer::Draw(CSceneRenderer* pass) {
-    if (!interface_->drawing_) return 1;
+void CUiContainer::Draw(CSceneRenderer* pass) {
+    if (!interface_->drawing_) return;
     render::g_renderState.stages[0].combiner = kAlphaPassStage;
     DrawBase(pass);
     CUiContainer* container = this;
@@ -46,19 +46,18 @@ BOOL CUiContainer::Draw(CSceneRenderer* pass) {
         CUiWindow* child = container->children_[i];
         if (child->enabled_) child->Draw(pass);
     }
-    return 1;
 }
 
 // Returns ScreenDraw's result.
-int CBriefingScreen::Draw(CSceneRenderer* pass) { return ScreenDraw(this, pass, true); }
+void CBriefingScreen::Draw(CSceneRenderer* pass) { ScreenDraw(this, pass, true); }
 
 // Returns ScreenDraw's result.
-int CMainMenu::Draw(CSceneRenderer* pass) { return ScreenDraw(this, pass, false); }
+void CMainMenu::Draw(CSceneRenderer* pass) { ScreenDraw(this, pass, false); }
 
 // The hero's quick items (the strip's left part), the other list (from the right), the worn armour and the
 // selected quick slot, with the panel's highlight frames, strip mode, body and right-part selection. Returns
 // 1.
-int CHeroEquipPanel::Draw(CSceneRenderer* pass) {
+void CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t quick = hero->weaponIndex;
@@ -88,7 +87,7 @@ int CHeroEquipPanel::Draw(CSceneRenderer* pass) {
                       mode_};
         owner->DrawItem(pass, &cell);
     }
-    if (!body_) return 1;
+    if (!body_) return;
 
     // The seven body slots' rectangles: 70 x 70 around their centres.
     const int* centreX = kBodySlotX;
@@ -109,7 +108,6 @@ int CHeroEquipPanel::Draw(CSceneRenderer* pass) {
         owner->DrawItem(pass, &cell);
     }
     ClearUiDepth(1.0f);
-    return 1;
 }
 
 void CObjectivesWindow::RestoreAlphaRef() {

@@ -168,7 +168,7 @@ void CChatWindow::ShowPlayers() {
         model = str::Format("infa%s%s%dface", figure->figureName, build, prototype->hair + 1);
         picture = str::Format("face%s%02d", sex, prototype->skin);
         AddPortrait(model, picture);
-        regions_[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
+        regions_[portraits_ - 1]->SetTipString(player->name_.data());
     }
 }
 
@@ -218,7 +218,7 @@ void CChatWindow::Update() {
 
 // --- the input side's left button and mouse move -------------------------------------------------
 
-void CChatWindow::OnLButtonDown(int, int x, int y) {
+void CChatWindow::LeftDown(int, int x, int y) {
     int index = RegionAt(x, y);
     if (index < 0 || static_cast<unsigned>(index) >= players_.size()) return;
     handled_ = true;
@@ -233,7 +233,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
         ActiveBriefing(interface_)->chatActive_ = 0;
         return;
     }
-    uiorig::PlayUiSound(interface_, OnOffSound(), 0);
+    interface_->PlaySound(OnOffSound());
     net::ClientSession* client = net::g_gameClient;
     CRefObject* player = players_[index];
     // The binding is not checked for null here.
@@ -246,7 +246,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
     client->StartParty(player);
 }
 
-void CChatWindow::OnMouseMove(int, int x, int y) {
+void CChatWindow::MouseMove(int, int x, int y) {
     int index = RegionAt(x, y);
     int pick = ActiveBriefing(interface_)->chatActive_;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players_.size()) g_cursor->SetShape(0);

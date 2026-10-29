@@ -123,9 +123,9 @@ void CSaveLoadWindow::CreateScreen() {
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, 526.0f, 437.0f, 574.0f, 2, 2, 0x4C, 0x32);
-    AddRect(this, 163, 526, 237, 574)->SetTip(isSave_ ? 0xEAC4 : 0xEAC5, 1, 0);
-    AddRect(this, 563, 526, 637, 574)->SetTip(0xEAC7, 1, 0);
-    AddRect(this, 363, 526, 437, 574)->SetTip(0xEAC6, 1, 0);
+    AddRect(this, 163, 526, 237, 574)->SetTip(isSave_ ? 0xEAC4 : 0xEAC5);
+    AddRect(this, 563, 526, 637, 574)->SetTip(0xEAC7);
+    AddRect(this, 363, 526, 437, 574)->SetTip(0xEAC6);
 
     // The picture of the selected save (texture of the window's second texture object).
     CUiMesh* picture = AddBlankSprite();
@@ -189,8 +189,8 @@ void COptionsWindow::CreateScreen() {
 
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    AddRect(this, 213, 526, 287, 574)->SetTip(0x111D4, 1, 0);
-    AddRect(this, 513, 526, 587, 574)->SetTip(0x111D5, 1, 0);
+    AddRect(this, 213, 526, 287, 574)->SetTip(0x111D4);
+    AddRect(this, 513, 526, 587, 574)->SetTip(0x111D5);
     CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, 0x100, 0x100);
     SetSpriteTexture(highlight, nullptr);
@@ -205,7 +205,7 @@ void COptionsWindow::CreateScreen() {
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = str::Format("tip option_group_%s", OptionGroupName(k));
         if (g_clientWorld->texts_->Open(text) != 0) g_clientWorld->texts_->ReadToHash(&text, 1);
-        region->SetTipString(text, 1, 0);
+        region->SetTipString(text);
         {
             std::string prefix("option_group_");
             std::string key = prefix + OptionGroupName(k);
@@ -259,16 +259,16 @@ void CEscMenu::CreateScreen() {
         region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
     models_[0]->Play(1);
-    interface_->PlaySound("buttons\\menu\\shift.wav", 0);
+    interface_->PlaySound("buttons\\menu\\shift.wav");
 }
 
 // --- Esc menu clicks -------------------------------------------------------------------
 
-void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
+void CEscMenu::LeftDown(int buttons, int x, int y) {
     CInterface3D* ui = interface_;
     int region = RegionAt(x, y);
     if (region >= 0) {
-        ui->PlaySound("buttons\\menu\\ok.wav", 0);
+        ui->PlaySound("buttons\\menu\\ok.wav");
         handled_ = true;
     }
     CUiWindow* opened = nullptr;
@@ -305,18 +305,18 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
 
 // --- Main menu clicks ------------------------------------------------------------
 
-void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
+void CMainMenu::LeftDown(int buttons, int x, int y) {
     CInterface3D* ui = interface_;
     const char* okSound = "buttons\\menu\\ok.wav";
     switch (RegionAt(x, y)) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
-        ui->PlaySound(okSound, 0);
+        ui->PlaySound(okSound);
         ui->PushWindow(new CDifficultyBox(ui), 1, 1);
         break;
     }
     case 1: {
-        ui->PlaySound(okSound, 0);
+        ui->PlaySound(okSound);
         ui->PushWindow(new CSaveLoadWindow(ui, false, false), 1, 1);
         break;
     }
@@ -329,7 +329,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     case 3: {
-        ui->PlaySound(okSound, 0);
+        ui->PlaySound(okSound);
         ui->PushWindow(new COptionsWindow(ui, false), 1, 1);
         break;
     }
@@ -337,7 +337,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // The titles (opened over a cleared menu, not as a dialog).
         GameStopSounds(0);
         GameStopAmbience();
-        ui->PlaySound(okSound, 0);
+        ui->PlaySound(okSound);
         ClearSurfaces();
         ui->PushWindow(new CCreditsScreen(ui, true, "Titles"), 0, 1);
         break;
@@ -350,7 +350,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         g_clientWorld->texts_->CTextManager::GetString("reserved_04", &text);
         g_interface->ShowStatusText(text);
         GameSetServerPaused(1);
-        ui->PlaySound(okSound, 0);
+        ui->PlaySound(okSound);
         ui->PushWindow(new CMpHeroScreen(ui), 1, 1);
         break;
     }
@@ -400,16 +400,16 @@ void CMessageBox::CreateScreen() {
     if ((flags_ & 2) && (flags_ & 1)) {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
-        AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4, 1, 0);
-        AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
+        AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4);
+        AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5);
     } else if (!(flags_ & 2) && (flags_ & 1)) {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
-        AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B4, 1, 0);
+        AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B4);
     } else {
         // Cancel only: region 0 stays empty, so the button is region 1 as with two buttons.
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
         AddRegion();
-        AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
+        AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B5);
     }
 }
 
@@ -470,8 +470,8 @@ void CDifficultyBox::CreateScreen() {
     float buttonBottom = static_cast<float>(bottom + 0x4A);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
-    AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4, 1, 0);
-    AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
+    AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4);
+    AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5);
     AddRect(this, boxLeft, row, boxRight, row + 0x15);
     AddRect(this, boxLeft, row + 0x18, boxRight, row + 0x2D);
 }

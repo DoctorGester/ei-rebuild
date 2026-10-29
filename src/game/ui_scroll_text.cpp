@@ -284,10 +284,10 @@ void CUiScrollText::SetRect(const RECT* rect) {
     PlaceText(*rect);
 }
 
-BOOL CUiScrollText::Draw(CSceneRenderer* pass) {
+void CUiScrollText::Draw(CSceneRenderer* pass) {
     int position;
     if (TakePosition(&position)) DrawLines(position);
-    return DrawBase(pass);
+    DrawBase(pass);
 }
 
 void CUiScrollText::Clear() {

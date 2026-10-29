@@ -147,7 +147,7 @@ private:
 void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, int tip) {
     CUiRegion* region = window->AddRegion();
     region->SetRect(left, top, right, bottom);
-    region->SetTip(tip, 1, 0);
+    region->SetTip(tip);
 }
 
 void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
@@ -470,7 +470,7 @@ void CGlobalMap::CreateScreen() {
         SetWeather();
     }
     Update();
-    windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);
+    windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", true);
     if (autosave_) {
         if (options::g_options->autosave_ != 0) ::QuickSave("saveb", static_cast<char>(1));
         autosave_ = false;

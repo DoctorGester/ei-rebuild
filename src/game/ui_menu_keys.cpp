@@ -68,7 +68,7 @@ void CSaveLoadWindow::ShowSelection() {
     ShowPicture();
 }
 
-void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
+void CSaveLoadWindow::KeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
     CUiContainer::KeyDown(key, repeat, flags);
     int step = 0;
@@ -78,7 +78,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         handled_ = true;
         break;
     case kKeyEsc:
-        interface_->PlaySound(game::CancelSoundText(), 0);
+        interface_->PlaySound(game::CancelSoundText());
         interface_->SetPendingValue(kCloseSaveLoad);
         handled_ = true;
         break;
@@ -89,7 +89,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     default: break;
     }
     if (step != 0) {
-        interface_->PlaySound(game::SelectSoundText(), 0);
+        interface_->PlaySound(game::SelectSoundText());
         selected_ += step;
         ShowSelection();
         handled_ = true;
@@ -149,7 +149,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
+void CSaveLoadWindow::Char(int key, int repeat, int flags) {
     if (!isSave_) return;
     switch (key) {
     case kKeyBack:
@@ -185,7 +185,7 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
     CUiContainer::Char(key, repeat, flags);
 }
 
-void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
+void COptionsWindow::KeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
     CUiContainer::KeyDown(key, repeat, flags);
     if (waitingForKey_) {
@@ -207,7 +207,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             }
         }
         if (!pressed) {
-            interface_->PlaySound(game::CancelSoundText(), 0);
+            interface_->PlaySound(game::CancelSoundText());
             return;
         }
         waitingForKey_ = false;
@@ -216,7 +216,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             RefreshRows();
             return;
         }
-        interface_->PlaySound(game::OkSoundText(), 0);
+        interface_->PlaySound(game::OkSoundText());
         int code = keyOfScan_[pressed->scan_];
         OptionBinding* other = nullptr;
         for (OptionBinding& b : bindings_) {
@@ -226,7 +226,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             }
         }
         if (other && other != binding) {
-            // Already bound to another action: ask (the box's result goes to OnDialogResult).
+            // Already bound to another action: ask (the box's result goes to MessageResult).
             CMessageBox* box = new CMessageBox(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
             std::string format;
             std::string message;
@@ -256,19 +256,19 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             row.setting_->spin_->GetValue(&value);
             rows_[selectedRow_].setting_->spin_->SetValue(value + 1);
         }
-        interface_->PlaySound(game::OkSoundText(), 0);
+        interface_->PlaySound(game::OkSoundText());
         RefreshRows();
         handled_ = true;
         return;
     }
     case kKeyEsc:
         RestoreSettings();
-        interface_->PlaySound(game::CancelSoundText(), 0);
+        interface_->PlaySound(game::CancelSoundText());
         interface_->SetPendingValue(kCloseOptions);
         break;
     case kKeyPageUp:
     case kKeyPageDown:
-        interface_->PlaySound(game::SelectSoundText(), 0);
+        interface_->PlaySound(game::SelectSoundText());
         ShowGroup(key == kKeyPageUp ? group_ - 1 : group_ + 1);
         break;
     case kKeyLeft:
@@ -282,7 +282,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     case kKeyUp:
-        interface_->PlaySound(game::SelectSoundText(), 0);
+        interface_->PlaySound(game::SelectSoundText());
         for (int i = selectedRow_ - 1; i >= 0; --i) {
             if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;
@@ -292,7 +292,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         }
         break;
     case kKeyDown:
-        interface_->PlaySound(game::SelectSoundText(), 0);
+        interface_->PlaySound(game::SelectSoundText());
         for (int i = selectedRow_ + 1; i < kOptionRows; ++i) {
             if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;

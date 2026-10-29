@@ -26,7 +26,7 @@ LockKey* LockKey::ConstructItemUseKey() {
 
 // --- Default answers of the windows' slots ---------------------------------------------------------------
 
-int UiInputSide::Wheel(int, int, int, int) { return 0; }
+void UiInputSide::Wheel(int, int, int, int) {}
 
 CItem* CUiItemPanel::ItemAt(int, int, int* topic) {
     *topic = 0;
@@ -114,22 +114,20 @@ void CInterface3D::ChatKeyBackspace() {
     if (!root_->chatOpen_) root_->ClearLines();
 }
 
-int CHeroStatsPanel::OnLButtonUp(int, int, int) {
+void CHeroStatsPanel::LeftUp(int, int, int) {
     interface_->mouseCapture_ = nullptr;
     heldRegion_ = -1;
     holdTime_ = 0.0f;
-    return 0;
 }
 
-int CGlobalMap::OnLButtonUp(int, int, int) {
+void CGlobalMap::LeftUp(int, int, int) {
     if (turning_ != 0) selectPending_ = 1;
     turning_ = 0;
-    return 0;
 }
 
-void CEscMenu::OnClose() { models_[0]->Play(0); }
+void CEscMenu::CloseScreen() { models_[0]->Play(0); }
 
-void CMessageBox::OnClose() {
+void CMessageBox::CloseScreen() {
     ClearSceneObjects();
     ClearSurfaces();
 }

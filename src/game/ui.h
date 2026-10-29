@@ -133,7 +133,7 @@ public:
     // on and the topic was not seen.
     void OpenHelp(int flag);
     // A 2D sound at priority 1000, volume 100; returns its handle.
-    int PlaySound(std::string_view name, int loop);
+    int PlaySound(std::string_view name, bool loop = false);
     void StopSound(int handle);
     // A multiplayer client's screens call them for Enter / Backspace. While the chat line is closed:
     // Enter opens it, Backspace empties the chat lines.
@@ -172,7 +172,7 @@ public:
 
     // Mouse messages from the input dispatcher (ui_interface_input.cpp): each goes to the input side that
     // took the mouse, else the top window's, else nowhere. Button downs and double clicks set or clear
-    // the button flags around the call; OnWheel returns the handler's result (0 without a target).
+    // the button flags around the call.
     void OnLeftDown(int buttons, int x, int y);
     void OnLeftUp(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);
@@ -180,7 +180,7 @@ public:
     void OnRightUp(int buttons, int x, int y);
     void OnLeftDouble(int buttons, int x, int y);
     void OnRightDouble(int buttons, int x, int y);
-    int OnWheel(int flags, int delta, int x, int y);
+    void OnWheel(int flags, int delta, int x, int y);
     UiInputSide* MouseTarget() const;
     // A typed character (WM_CHAR): nothing for the key under Esc; the shown console's OnChar, else a
     // multiplayer client's open chat line, else the top window.
@@ -300,9 +300,9 @@ public:
     CUiRegion& operator=(const CUiRegion&) = delete;
     void SetTipText(std::string_view text);
     // Replaces the tooltip by one with the text "tip <id>" (up to a '#'; the key itself when there is no
-    // such text) and (a, b); id 0 gives an empty tooltip with (1, 0).
-    void SetTip(int textId, int a, int b);
-    void SetTipString(std::string_view text, int a, int b);
+    // such text) showing command `command`'s key (0: none); id 0 gives an empty tooltip.
+    void SetTip(int textId, int command = 0);
+    void SetTipString(std::string_view text, int command = 0);
     void SetRectFrom(RECT rect);
 
     CInterface3D* interface_;
@@ -439,19 +439,19 @@ struct UiInputSide {
     explicit UiInputSide(CInterface3D* ui) : interface_(ui) {}
     virtual ~UiInputSide();
     virtual void Deactivate() {}
-    virtual int LeftDown(int, int, int) { return 0; }
-    virtual int LeftUp(int, int, int) { return 0; }
-    virtual int MouseMove(int, int, int) { return 0; }
-    virtual int RightDown(int, int, int) { return 0; }
-    virtual int RightUp(int, int, int) { return 0; }
-    virtual int LeftDouble(int buttons, int x, int y);
-    virtual int RightDouble(int buttons, int x, int y);
-    virtual int KeyDown(int, int, int) { return 0; }
-    virtual int Char(int, int, int) { return 0; }
-    virtual int KeyUp(int, int, int) { return 0; }
-    virtual int Wheel(int flags, int delta, int x, int y);
+    virtual void LeftDown(int, int, int) {}
+    virtual void LeftUp(int, int, int) {}
+    virtual void MouseMove(int, int, int) {}
+    virtual void RightDown(int, int, int) {}
+    virtual void RightUp(int, int, int) {}
+    virtual void LeftDouble(int buttons, int x, int y);
+    virtual void RightDouble(int buttons, int x, int y);
+    virtual void KeyDown(int, int, int) {}
+    virtual void Char(int, int, int) {}
+    virtual void KeyUp(int, int, int) {}
+    virtual void Wheel(int flags, int delta, int x, int y);
     // Events 2-11 by number (the containers' dispatch).
-    int Event(int slot, int a, int b, int c);
+    void Event(int slot, int a, int b, int c);
 
     CInterface3D* interface_;
     bool handled_;                   // set by a handler that used the event
@@ -462,8 +462,6 @@ struct UiInputSide {
 struct UiInertInput final : UiInputSide {
     explicit UiInertInput(CInterface3D* ui) : UiInputSide(ui) {}
     ~UiInertInput() override;
-    int KeyDown(int, int, int) override { return 0; }
-    int KeyUp(int, int, int) override { return 0; }
 };
 
 // The window's part below its input side: the engine's transform object and 0x40 bytes the window's code
@@ -485,7 +483,7 @@ public:
     ClassId GetClassId() override;
     virtual void Build() {}
     virtual void Show(int show) { ShowSurfaces(show); }
-    virtual BOOL Draw(CSceneRenderer* pass) { return DrawBase(pass); }
+    virtual void Draw(CSceneRenderer* pass) { DrawBase(pass); }
     virtual void DrawChild(CSceneRenderer*) { UpdateRegionTips(); }
     virtual void Redraw() { RedrawBase(); }
     virtual void RedrawTips() { RedrawRegionTips(); }
@@ -496,7 +494,8 @@ public:
     BOOL ContainsPoint(int x, int y) const;
     void UpdateRegionTips();
 
-    void SetEnabled(int enabled, int notify);
+    // `notify`: Show(enabled) as well.
+    void SetEnabled(bool enabled, bool notify = true);
 
     // Takes a reference (null is ignored).
     void AddObject(CTexture* texture);
@@ -531,8 +530,8 @@ public:
         interface_->mouseCapture_ = nullptr;
         return true;
     }
-    // The scene objects, then the models; returns 1.
-    BOOL DrawBase(CSceneRenderer* pass);
+    // The scene objects, then the models.
+    void DrawBase(CSceneRenderer* pass);
     // The camp's and the multiplayer hero screen's hero preview, turned by `turn` radians about y; `wide`'s
     // low byte clears the depth under six camp layout rectangles, else one. The hero's transform is restored.
     void DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, int wide);
@@ -573,26 +572,25 @@ public:
 
 // The tooltip attached to a region; its surface is made while it is shown.
 struct CUiTooltip : CUiWindow {
-    CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view text, int flag, int extra);
+    CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view text, int command);
     ~CUiTooltip() override;
     // Empty: nothing. The size is not measured again.
     void SetText(std::string_view text);
-    // The first flag_ lines in the title colour, the first line followed by "  ( <key> )" with keyName_.
+    // The first line in the title colour, followed by "  ( <key> )" with keyName_.
     void DrawLines();
     // Rebirth-patched (WideScreen behind its flag). One step of the showing, mouse in layout coordinates;
     // the region has set state 1 (mouse inside) or 3 (left). State 1 waits for the delay (setting 20; 0:
     // never shown), then makes the surface at the mouse (state 2); 2 draws and becomes 4; 3 draws while the
     // timer is positive, then drops the surface (state 0).
     void OnMouseMove(int x, int y);
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     void Redraw() override;
     bool Shown() const { return state_ != 1 && state_ != 0; }
 
     std::vector<std::string> lines_; // the text's lines (none for an empty text)
     int lineHeight_;                 // the last line's height: the rows' step
     int keyWidth_;                   // the first line with the key name, + 12
-    int flag_;                       // the constructor's fourth argument: the title lines (1 almost everywhere)
-    int extra_;                      // its fifth: a command whose key is shown
+    int extra_;                      // a command whose key is shown
     const char* keyName_;            // that key's name, or null
     CUiRegion* region_;              // the region it belongs to
     int width_;                      // widest line + 12 (a text only)
@@ -611,11 +609,10 @@ public:
     // The item under the screen point (x, y), or null; a panel may set a help topic instead. The panels
     // without items of their own (description panel, statistics column, trade panel): nothing, `topic` 0.
     virtual CItem* ItemAt(int x, int y, int* topic);
-    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }
 
     // The item under (x, y) goes to the owner with mode_; without one, a help topic the panel named goes to
     // the owner's help handler. The event is not marked used.
-    void OnLeftDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
 
     // Hands `item` to the owner with mode_.
     void OwnerTakeItem(CItem* item);
@@ -648,15 +645,12 @@ void ClearUiDepth(float z, const RECT* rects = nullptr, int count = 0);
 // Weapon bar (four 40x80 slots at (80..240, 520..600)).
 class CHudWeaponBar : public CUiWindow {
 public:
-    void OnMouseDown(int buttons, int x, int y);
-    void OnMouseUp(int buttons, int x, int y);     // selects a weapon
-    void OnMouseMove(int buttons, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftUp(int buttons, int x, int y) override;     // selects a weapon
+    void MouseMove(int buttons, int x, int y) override;
     // Every frame: the highlight follows the unit's weapon.
     void Update() override;
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     // Rebirth-patched (WideScreen behind its flag: the bar at the screen's left edge, from 80 - shift with
     // more regions up to x 240).
     CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner);
@@ -680,17 +674,13 @@ public:
 // Quick items (2 rows of four 50x50 slots at (520..720, 500..600)).
 class CHudQuickItems : public CUiWindow {
 public:
-    void OnMouseDown(int buttons, int x, int y);
-    void OnDoubleClick(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftDouble(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
     // A unit's quick item (bottom row) is picked or, with a double click, used at once; a player's item
     // (top row) starts mode 6, or cancels when it is the highlighted one.
-    void OnMouseUp(int buttons, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }
-    BOOL Draw(CSceneRenderer* pass) override;
+    void LeftUp(int buttons, int x, int y) override;
+    void Draw(CSceneRenderer* pass) override;
     // Every frame: the tooltips of the slots that show an item.
     void Update() override;
     // The item's name and, for a wand (category 5) or a scroll (8) with a spell, its numbers after labels_.
@@ -740,15 +730,10 @@ public:
 // Spell column on the right (760..800 x 190..510).
 class CHudSpellColumn : public CUiWindow {
 public:
-    void OnMouseDown(int buttons, int x, int y);
-    void OnDoubleClick(int buttons, int x, int y);
-    void OnMouseUp(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }
-    BOOL Draw(CSceneRenderer* pass) override;
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftUp(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
+    void Draw(CSceneRenderer* pass) override;
     // Spell `index` (its button or key) becomes the pending action: 1 on a unit for a spell with flag
     // 0x10000000, else 2 at a point; the highlighted one again drops it.
     void Click(int index);
@@ -779,13 +764,10 @@ public:
 // Action column on the left (six 40x40 buttons at 0..40 x 270..510).
 class CHudActionColumn : public CUiWindow {
 public:
-    void OnMouseDown(int buttons, int x, int y);
-    void OnMouseUp(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    BOOL Draw(CSceneRenderer* pass) override;
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftUp(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
+    void Draw(CSceneRenderer* pass) override;
     // Action button `index` (a click or its key) becomes the pending action: 8 (an order on an object) for
     // action 0 (science), else 7 (follow); the highlighted one again drops it.
     void Select(int index);
@@ -835,12 +817,9 @@ struct HudPortraitSlot {
 // Party portraits (250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
 public:
-    void OnMouseDown(int buttons, int x, int y);
-    void OnMouseUp(int buttons, int x, int y);     // selects the unit
-    void OnMouseMove(int buttons, int x, int y);   // shows the unit / sets the cursor
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftUp(int buttons, int x, int y) override;     // selects the unit
+    void MouseMove(int buttons, int x, int y) override;   // shows the unit / sets the cursor
     // Every frame: the bars, the hit flash, the face picture and model, the wobble and the selection marker.
     void Update() override;
     // Face picture `state` (the face name plus "a" 1, "c" 2, "b" 3; the plain name without such an image)
@@ -958,18 +937,14 @@ struct UiPointF {
 class CHudMap : public CUiWindow {
 public:
     CHudMap(CInterface3D* ui, CBattleScreen* owner);
-    void OnMouseDown(int buttons, int x, int y);   // the view buttons
+    void LeftDown(int buttons, int x, int y) override;   // the view buttons
     // Rebirth-patched (WideScreen behind its flag: the map's centre at 700 + shift). A held view button is
     // let go; otherwise region 0 starts the slide, 1 / 2 focus the camera on the map point (inside the
     // world), 5 is "camera north".
-    void OnMouseUp(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
+    void LeftUp(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
     // Over region 0 the wheel zooms the map by 2.5^(delta / 1200).
-    BOOL OnWheel(int buttons, int delta, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
+    void Wheel(int buttons, int delta, int x, int y) override;
     // Every frame: the marker mesh (scene object 2) of the units, marked objects, zone exits and players.
     void BuildMarkers();
     // Every frame, before BuildMarkers: follows the camera and builds the visible-area mesh (scene object 1)
@@ -1020,14 +995,10 @@ public:
     void ShowHealth(CUnit* unit);
     // The name of each present part and, for state 3, its durability bar.
     void ShowParts(CUnit* unit);
-    void OnMouseDown(int buttons, int x, int y);
-    void OnMouseUp(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
-    BOOL OnWheel(int buttons, int delta, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftUp(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
+    void Wheel(int buttons, int delta, int x, int y) override;
     // The battle screen's keys call it after setting bodyPart_.
     void ShowBodyPart();
     // The first six effects on `unit` (text, time left and picture); scene object 9 shows when there are more.
@@ -1044,9 +1015,8 @@ public:
     void SetupVanilla(int bodyPart, std::uint8_t slid);
     // Rebirth-patched (WideScreen behind its flag). The hover unit, else the selected one, while the panel
     // is not slid away: its model (not on info page 2) over a depth buffer cleared to 0 around the panel,
-    // its name, bars and texts. Returns 1.
-    BOOL DrawVanilla(CSceneRenderer* pass);
-    BOOL Draw(CSceneRenderer* pass) override { return DrawVanilla(pass); }
+    // its name, bars and texts.
+    void Draw(CSceneRenderer* pass) override;
 
     CBattleScreen* owner_;
     CUnit* shownUnit_;               // the first selected unit (RefreshSelection), or null
@@ -1071,14 +1041,11 @@ public:
 class CHudClock : public CUiWindow {
 public:
     CHudClock(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
-    void OnMouseDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // Rebirth's MPSpeedControl behind its flag. Region 0 toggles the pause; 1 and 2 set the normal / fast
     // speed (not on a network client: update period 55 / 27 ms); 3 opens the objectives.
-    void OnMouseUp(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
+    void LeftUp(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
     // Every frame: the face turns with the time of day, the hand and dial; blinks while paused.
     void Update() override;
     // The objectives window of the current zone (one button, no exits, no zone list).
@@ -1098,12 +1065,9 @@ public:
 class CHudMovePanel : public CUiWindow {
 public:
     CHudMovePanel(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
-    void OnMouseDown(int buttons, int x, int y);
-    void OnMouseUp(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftUp(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
     // Every frame: the selected units' common mode and flag.
     void Update() override;
     // Region 0 (and its key): the selected party units' flag becomes 0 when all have 1, else 1.
@@ -1123,14 +1087,10 @@ public:
 class CHudTopPanel : public CUiWindow {
 public:
     CHudTopPanel(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
-    void OnMouseDown(int buttons, int x, int y);
-    void OnMouseUp(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
-    BOOL OnWheel(int buttons, int delta, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftUp(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
+    void Wheel(int buttons, int delta, int x, int y) override;
     // Page `page_` into the message log (page 0 scrolled to the end).
     void ShowPage();
     // Every frame: the slide.
@@ -1171,7 +1131,7 @@ public:
 
     void Show(int show) override { ShowChildren(show); }
     // Only while the interface draws: the window's own draw, then every enabled child's.
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     // Alpha reference 1 around the region tips and every enabled child's draw, while the interface draws.
     void DrawChild(CSceneRenderer* pass) override;
     void Redraw() override { RedrawContainer(); }
@@ -1197,17 +1157,17 @@ public:
     virtual const char* HelpTopic() { return nullptr; }
 
     void Deactivate() override;                                        // every side and child, no flags
-    int LeftDown(int buttons, int x, int y) override;
-    int LeftUp(int buttons, int x, int y) override;
-    int MouseMove(int buttons, int x, int y) override;
-    int RightDown(int buttons, int x, int y) override;
-    int RightUp(int buttons, int x, int y) override;
-    int LeftDouble(int buttons, int x, int y) override;
-    int RightDouble(int buttons, int x, int y) override;
-    int KeyDown(int key, int repeat, int flags) override;
-    int Char(int key, int repeat, int flags) override;
-    int KeyUp(int key, int repeat, int flags) override;
-    int Wheel(int flags, int delta, int x, int y) override;
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftUp(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
+    void RightDown(int buttons, int x, int y) override;
+    void RightUp(int buttons, int x, int y) override;
+    void LeftDouble(int buttons, int x, int y) override;
+    void RightDouble(int buttons, int x, int y) override;
+    void KeyDown(int key, int repeat, int flags) override;
+    void Char(int key, int repeat, int flags) override;
+    void KeyUp(int key, int repeat, int flags) override;
+    void Wheel(int flags, int delta, int x, int y) override;
 
     // Seconds since the last frame (milliseconds * 0.001f, left unrounded).
     static double FrameTime();
@@ -1256,37 +1216,37 @@ public:
     // Reads the screen's saved state when a game is being loaded, else remembers the local player's first
     // hero.
     void CreateScreen() override;
-    // Rebirth's AddNewConsoleCommands applies "nogui" first. Returns 1.
-    BOOL Draw(CSceneRenderer* pass) override;
+    // Rebirth's AddNewConsoleCommands applies "nogui" first.
+    void Draw(CSceneRenderer* pass) override;
     // Every frame: a dead selected unit empties the panels, a multiplayer client rebuilds the party, the
     // "leave_zone" box for a pending exit, the selection box's marks, the quest sound.
     void Update() override;
     // A click on the unit under the point, or a drag selecting the party units inside the box. Details:
     // docs/notes/ui.md, "Behaviour moved out of header comments".
-    void OnLButtonUp(int buttons, int x, int y);
+    void LeftUp(int buttons, int x, int y) override;
     // Also every frame from Draw. Details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
-    void OnMouseMove(int buttons, int x, int y);
+    void MouseMove(int buttons, int x, int y) override;
     // While a portrait click picks a player the portraits get it; else, when no panel took it, a press on
     // the view starts.
-    void OnLButtonDown(int buttons, int x, int y);
-    void OnLeftDouble(int buttons, int x, int y);
-    void OnDeactivate();
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftDouble(int buttons, int x, int y) override;
+    void Deactivate() override;
     // Rebirth's MPSpeedControl behind its flag. While a portrait click picks a player, Esc ends that; on a
     // network client Enter / Backspace go to the chat line. Otherwise Esc drops the pending action, else
     // opens the escape menu; other keys run their action (docs/notes/ui.md, "Behaviour moved out of ui.h
     // comments").
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // Releases the order key of the key's action.
-    void OnKeyUp(int key, int repeat, int flags);
+    void KeyUp(int key, int repeat, int flags) override;
     // Offered to the map, the unit panel, the message log and the top panel in that order; when none takes
-    // it, the container passes it on with those four disabled. Returns 1.
-    BOOL OnWheel(int flags, int delta, int x, int y);
+    // it, the container passes it on with those four disabled.
+    void Wheel(int flags, int delta, int x, int y) override;
     // Its GetName when not empty; for a unit whose id is a text key, its "pers" text; otherwise the first
     // line of the text "unit " + the prototype's name with spaces as '_'.
     void UnitName(CUnit* unit, std::string* out);
     // A "q." player variable changed: a quest line to the top panel's text and the message log; the clock
     // pulses. Details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
-    void OnQuestVariable(std::string_view name, float value);
+    void QuestVariable(std::string_view name, float value) override;
     // With exactly one living party unit selected the weapon bar, quick items, spell and action columns show
     // it, otherwise they are emptied; the pending action and highlights are cleared. Details:
     // docs/notes/ui.md, "Behaviour moved out of header comments".
@@ -1307,7 +1267,7 @@ public:
     void UseAtPoint(float x, float y, float z, CUnit* unit, char quick);
     // The unit's speech line goes to the top panel's text and the message log; the kind Kill shows its timed
     // face, the kinds NoWayToAttack..Injured shake its portrait.
-    void OnUnitSpeech(int id, AckKind kind, char* extra);
+    void Speech(int id, AckKind kind, char* extra) override;
 
     void Close();
     // Polled every frame by the interface until it answers true. After a new game (hasHero_): the camera
@@ -1315,7 +1275,7 @@ public:
     bool PollShown();
     void OnItemsPicked(std::list<CItem*>* items, int money, int crippled);
     // A network client instead empties the top panel's page-0 text.
-    void OnUnitLeft(CUnit* unit);
+    void UnitLeft(CUnit* unit) override;
     // The count and ids of the selected party units, the map's zoom, the server flag (a byte), the local
     // player's first value, the top panel's page-0 text with its zero, exitPending_ (a byte), pendingExit_.
     void SaveState() override;
@@ -1323,38 +1283,24 @@ public:
     // first and the record's selection byte decides; otherwise it is appended, not selected. A unit among
     // heroes_ (the save's selection) is taken out and selected. A network client instead empties the top
     // panel's page-0 text.
-    void OnUnitJoined(CUnit* unit);
+    void UnitJoined(CUnit* unit) override;
     // Also turns the face's rest orientation about -x by kHudQuarterTurn / 7.
     void MarkPortrait(int index);
     // 0x10001 (the "leave_zone" question) leaves through pendingExit_; 0x20001 (game over: load) opens the
     // load window; 0x20002, 0x90001 and 0x100001 leave the game.
-    void OnMessageResult(int result);
+    void MessageResult(int result) override;
     // Lost (`won` 0): the box "game_over" (result 0x20000); won: "end_of_game" (0xFFFF0000).
-    void OnGameOver(char won);
+    void GameOver(int won) override;
     // A portrait click picks a player while it is not 0.
     void SetPortraitMode(int mode);
     explicit CBattleScreen(CInterface3D* ui);
     ~CBattleScreen() override;
     void CloseScreen() override { Close(); }
-    void MessageResult(int result) override { OnMessageResult(result); }
     void ItemsPicked(void* items, int money, int crippled) override {
         OnItemsPicked(static_cast<std::list<CItem*>*>(items), money, crippled);
     }
-    void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }
-    void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }
-    void GameOver(int won) override { OnGameOver(static_cast<char>(won)); }
-    void Speech(int id, AckKind kind, char* extra) override { OnUnitSpeech(id, kind, extra); }
-    void QuestVariable(std::string_view name, float value) override { OnQuestVariable(name, value); }
     bool ReadyToStopPolling() override { return PollShown(); }
     void PlayerList(int mode) override { SetPortraitMode(mode); }
-    void Deactivate() override { OnDeactivate(); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int LeftDouble(int b, int x, int y) override { return OnLeftDouble(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }
-    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
 
     struct PartyIds {
         // Both id vectors hold the same ids in the same order (the camera's id is not compared).
@@ -1417,21 +1363,17 @@ public:
     ~CUiScrollbar() override;
     // Scrolls while an arrow is held: whole steps of the accumulated amount move the position.
     void Update() override;
-    void OnMouseDown(int buttons, int x, int y);   // thumb drag or an arrow
-    void OnMouseUp(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;   // thumb drag or an arrow
+    void LeftUp(int buttons, int x, int y) override;
     // Drags the thumb (state 1). The event is used either way.
-    void OnMouseMove(int buttons, int x, int y);
+    void MouseMove(int buttons, int x, int y) override;
     // Over the track (region 2): delta (low 16 bits) * speed_ / 120 into the accumulated amount.
-    int OnWheel(int flags, int delta, int x, int y);
+    void Wheel(int flags, int delta, int x, int y) override;
     // Clamped to 0..maximum, moved_ set.
     virtual void SetPosition(int position);
     // The track is the right 10 pixels less 26 at either end. The position is set again (one below first,
     // so it counts as a change).
     virtual void SetRect(const RECT* rect);
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
     // Negative: 0. The sprites show only for a maximum above 0; the position is set again as SetRect does.
     void SetMaximum(int maximum);
     int maxPosition_;
@@ -1457,8 +1399,7 @@ public:
     // Along the track's width; the thumb 28 wide and 10 high.
     void SetPosition(int position) override;
     // The scroll bar's drag along x.
-    void OnMouseMove(int buttons, int x, int y);
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
+    void MouseMove(int buttons, int x, int y) override;
     void SetRect(const RECT* rect) override;
 };
 
@@ -1510,8 +1451,8 @@ public:
     // Scrolls to the top.
     void SetText(std::string_view text);
     void SetRect(const RECT* rect) override;
-    // Draws the lines again when the position moved; returns 1.
-    BOOL Draw(CSceneRenderer* pass) override;
+    // Draws the lines again when the position moved.
+    void Draw(CSceneRenderer* pass) override;
     // The lines stay until the next layout.
     void Clear();
     // Words apart by a third of the line's height (the font in effect at the line's start); a newline format
@@ -1552,9 +1493,8 @@ public:
     bool GetValue(int* value);
     void SetValue(int value);
     // The next value, wrapping.
-    void OnLButtonDown(int flags, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int LeftDouble(int, int, int) override { return 0; }
+    void LeftDown(int flags, int x, int y) override;
+    void LeftDouble(int, int, int) override {}
 
     std::vector<std::string> texts_;
     int value_;
@@ -1592,18 +1532,13 @@ public:
     CSaveLoadWindow(CInterface3D* ui, bool isSave, bool sliding)
         : CUiContainer(ui), isSave_(isSave), sliding_(sliding) {}
     ~CSaveLoadWindow() override;
-    BOOL Draw(CSceneRenderer* pass) override;                      // slides in
+    void Draw(CSceneRenderer* pass) override;                      // slides in
     void Update() override;
     void CloseScreen() override { CloseDialog(); }
-    void MessageResult(int result) override { OnDialogResult(result); }
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    int Char(int k, int r, int f) override { return OnChar(k, r, f), 0; }
-    void OnMouseDown(int buttons, int x, int y);
-    void OnDoubleClick(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftDouble(int buttons, int x, int y) override;
     void CloseDialog();
-    void OnDialogResult(int result);
+    void MessageResult(int result) override;
 
     // A save window saves into the new save (row 0) or asks "overwrite" (message box 0x20000); a load
     // window loads.
@@ -1634,10 +1569,10 @@ public:
 
     // In a save window the edit keys edit the save's name (the first edit of an ordinary save takes over its
     // title, Backspace / Delete starting from an empty name).
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // In a save window: the first character for an ordinary save starts an empty name; a name stays under 60
     // characters and 178 pixels (font 1).
-    void OnChar(int key, int repeat, int flags);
+    void Char(int key, int repeat, int flags) override;
     // Clamps the selection and scrolls it into view (16 rows).
     void ShowSelection();
     // "saveq", "savea" or "saveb"; no bound check.
@@ -1767,8 +1702,6 @@ public:
     // Not the exit distances.
     ~CObjectivesWindow() override;
     void CloseScreen() override { RestoreAlphaRef(); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     void RestoreAlphaRef();
     void CreateScreen() override;
     // Picture, exits, quests and description.
@@ -1779,10 +1712,10 @@ public:
     void DrawQuestList();
     // Region 0 OK (with two buttons the time to the nearest exit passes and that zone is requested), 1
     // cancel, 2 / 3 the previous / next listed zone, 4-8 a quest row, from 9 an exit.
-    void OnLButtonDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // Enter as the OK region, Esc closes, PgUp / PgDn / Up / Down move the selected quest by 5 / 1. A key
     // left unused that is bound to the objectives action closes a window with one button.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // A multiplayer client takes them from the quest database's record, otherwise from map.txt's "#quest
     // <name>" entry (the second line after it, its words as x y pairs).
     void LoadQuestPlaces(std::string_view name);
@@ -1840,17 +1773,13 @@ class COptionsWindow : public CUiContainer {
 public:
     COptionsWindow(CInterface3D* ui, bool sliding) : CUiContainer(ui), sliding_(sliding) {}
     ~COptionsWindow() override;
-    BOOL Draw(CSceneRenderer* pass) override;                      // slides in
+    void Draw(CSceneRenderer* pass) override;                      // slides in
     void Redraw() override;                            // not while sliding
     void CloseScreen() override {}
-    void MessageResult(int result) override { OnDialogResult(result); }
     const char* HelpTopic() override;
-    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
-    int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    void OnMouseDown(int buttons, int x, int y);
-    void OnDoubleClick(int buttons, int x, int y);
-    void OnDialogResult(int result);
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftDouble(int buttons, int x, int y) override;
+    void MessageResult(int result) override;
     // Applies the settings whose bar or spin control changed (volumes, the display's gamma at once).
     void Update() override;
 
@@ -1878,7 +1807,7 @@ public:
     // Esc cancels, Enter starts a key binding or steps a spin row, Up / Down select rows, PgUp / PgDn switch
     // groups, Left / Right move a bar. While a binding waits, the next key is bound (Esc gives up); a key
     // bound to another action asks first.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
 
     OptionRow& RegionRow(int region) { return rows_[region - 13]; }
 
@@ -1901,24 +1830,22 @@ class CUiEditField : public CUiWindow {
 public:
     // While focused. The first edit key starts editing (Backspace / Delete from an empty text, the others
     // with the caret at the end); the caret is not clamped here.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     void DrawContentsVanilla();
     // Every character class, font 1, at most 50 characters; focused. caret_, editing_ and changed_ are left
     // as they are.
     CUiEditField(CInterface3D* ui, RECT rect);
     ~CUiEditField() override;
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    int Char(int k, int r, int f) override { return OnChar(k, r, f), 0; }
     // While focused and without Ctrl, a character of an allowed class: the first one starts editing from an
     // empty text; inserted while shorter than maxLength_ and narrower than area_.
-    void OnChar(int key, int repeat, int flags);
+    void Char(int key, int repeat, int flags) override;
     // SetText: not editing, changed, the caret at its end.
     void SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour, COLORREF caretColour);
     void SetText(std::string_view text);
     void SetFocused(bool focused);
 
     RECT area_;                      // the surface's layout rectangle
-    std::uint32_t charClasses_;      // classes OnChar takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
+    std::uint32_t charClasses_;      // classes Char takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
     std::uint8_t centred_;           // SetLook's mode
     int font_;                       // interface font
     int maxLength_;
@@ -1939,19 +1866,16 @@ public:
     CMessageBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result, std::uint32_t flags,
                 std::uint32_t format);
     ~CMessageBox() override;
-    void CloseScreen() override { OnClose(); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     void CreateScreen() override;
     // Region 0 OK: for the exit question (result_ 0xFFFF0000) the exit movie and the game quits; otherwise
     // the edit field's text into editText_. Any region n then leaves result_ | (n + 1) pending.
-    void OnLButtonDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // Unless a child used the key, Enter answers as region 0 and Esc as region 1.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // Into the caller's buffer.
     void CopyEditText();
     // Also the master request box's and the difficulty question's.
-    void OnClose();
+    void CloseScreen() override;
 
     std::string title_;
     std::string text_;
@@ -1969,19 +1893,17 @@ public:
     CHelpWindow(CInterface3D* ui, bool message, const std::string& text, int page)
         : CUiContainer(ui), message_(message), text_(text), page_(page) {}
     ~CHelpWindow() override;
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     void CloseScreen() override { Close(); }
-    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // Without the text or without pages the interface's pending value is set to 0 and nothing else happens.
     void CreateScreen() override;
     void Close();
     // The pulse: v = (cos(5 t) + 1) / 2 gives alpha 255 * v and the colour 80 * (1 - v).
     void Update() override;
     // Region 0 the previous page, 1 OK (Finish), 2 the next page.
-    void OnLeftDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // Enter the next page (Finish on the last), Esc or the help key Finish.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // Rebirth-patched (WideScreen behind its flag). Builds the page from its "#screen" line: the rectangle
     // (200, 50)-(600, 560) or "#position", one pulsing frame per "#rectangle" line, one entry per "#text"
     // line. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
@@ -2030,12 +1952,10 @@ public:
     // Rebirth-patched (WideScreen behind its flag). Hidden while the chat is closed; clamps the caret.
     void DrawTyped();
     // Nothing while the chat is closed. Every key is marked used; Enter sends a non-empty line (a network
-    // client: SayMessage kept 60 s) and, like Esc, closes the chat. OnChar inserts unless Ctrl is down, the
+    // client: SayMessage kept 60 s) and, like Esc, closes the chat. Char inserts unless Ctrl is down, the
     // line is 200 characters or more, or it would be 780 pixels wide; the character is not marked used.
-    void OnKeyDown(int key, int repeat, int flags);
-    void OnChar(int key, int repeat, int flags);
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    int Char(int k, int r, int f) override { return OnChar(k, r, f), 0; }
+    void KeyDown(int key, int repeat, int flags) override;
+    void Char(int key, int repeat, int flags) override;
     // Lines older than 20 s are erased.
     void Update() override;
     void Redraw() override;
@@ -2052,12 +1972,10 @@ public:
 class CDifficultyBox : public CMessageBox {
 public:
     explicit CDifficultyBox(CInterface3D* ui) : CMessageBox(ui, "option_difficulty", game::kEmptyText, 0x20000, 3, 1) {}
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // No container handler. Region 0 OK (easy_ to options::g_options->difficulty_), 1 cancel, 2 / 3 check easy / hard.
-    void OnLButtonDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // Unless a child used the key, Enter answers as OK and Esc as cancel.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // CreateScreen adds them first.
     CUiMesh* EasyBox() const { return SceneMesh(0); }
     CUiMesh* HardBox() const { return SceneMesh(1); }

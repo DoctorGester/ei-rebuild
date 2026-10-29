@@ -48,7 +48,7 @@ void CTradePanel::ClampScroll() {
 
 // --- The left button (input click) ---------------------------------------------------------------------
 
-void CTradePanel::OnLButtonDown(int, int x, int y) {
+void CTradePanel::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     switch (region) {
     case kHeldUp: --perkTop_; ClampScroll(); return;
@@ -57,7 +57,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
     case kLearnableDown: ++learnableTop_; ClampScroll(); return;
     default: break;
     }
-    if (region >= kFirstSchool) interface_->PlaySound(kPerkSound, 0);
+    if (region >= kFirstSchool) interface_->PlaySound(kPerkSound);
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto* stats = &hero->stats;
     TradeRecord& record = records_[recordIndex_];
@@ -100,7 +100,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
 
 // --- The left button released (input release) -----------------------------------------------------------
 
-void CTradePanel::OnLButtonUp(int, int, int) {
+void CTradePanel::LeftUp(int, int, int) {
     interface_->mouseCapture_ = nullptr;
     heldRegion_ = -1;
     holdTime_ = 0.0f;

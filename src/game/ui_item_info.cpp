@@ -898,11 +898,11 @@ void CItemInfoPanel::Describe(CItem* item) {
 
 // --- Input side: the input virtuals (mouse, key down, key up) ------------------
 
-void CItemInfoPanel::OnKeyDown(int key, int, int flags) {
+void CItemInfoPanel::KeyDown(int key, int, int flags) {
     if (key == VK_CONTROL && !(flags & 0x4000) && Item()) DescribeItem();
 }
 
-void CItemInfoPanel::OnKeyUp(int key, int, int) {
+void CItemInfoPanel::KeyUp(int key, int, int) {
     if (key == VK_CONTROL && Item()) DescribeItem();
 }
 

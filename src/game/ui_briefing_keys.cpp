@@ -1,4 +1,4 @@
-// The briefing / base screen's key handler (CBriefingScreen::OnKeyDown). See
+// The briefing / base screen's key handler (CBriefingScreen::KeyDown). See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "camera.h"
 #include "game_singletons.h"
@@ -57,7 +57,7 @@ void OpenObjectives(CInterface3D* ui) {
 } // namespace
 
 
-void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
+void CBriefingScreen::KeyDown(int key, int repeat, int flags) {
     if (chatActive_) {
         if (key == VK_ESCAPE) chatActive_ = 0;
         return;
@@ -75,10 +75,10 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         if (IsMultiplayerClient()) {
             interface_->ChatKeyEnter();
         } else if (state_ == 3) {
-            interface_->PlaySound(ClickSound(), 0);
+            interface_->PlaySound(ClickSound());
             while (state_ == 3) NextPhrase(1);
         } else if (state_ == 4) {
-            interface_->PlaySound(ClickSound(), 0);
+            interface_->PlaySound(ClickSound());
             FinishDialogue();
         }
         handled_ = true;
@@ -87,10 +87,10 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         if (state_ == 0) {
             interface_->PushWindow(new CEscMenu(interface_), 1, 1);
         } else if (state_ == 3) {
-            interface_->PlaySound(ClickSound(), 0);
+            interface_->PlaySound(ClickSound());
             while (state_ == 3) NextPhrase(1);
         } else if (state_ == 4) {
-            interface_->PlaySound(ClickSound(), 0);
+            interface_->PlaySound(ClickSound());
             FinishDialogue();
         } else if (state_ == 2) {
             StartDialogue(1, 0);
@@ -101,10 +101,10 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     case VK_SPACE:
         if (state_ == 3) {
-            interface_->PlaySound(ClickSound(), 0);
+            interface_->PlaySound(ClickSound());
             NextPhrase(0);
         } else if (state_ == 4) {
-            interface_->PlaySound(ClickSound(), 0);
+            interface_->PlaySound(ClickSound());
             FinishDialogue();
         } else if (state_ == 2) {
             StartDialogue(1, 0);

@@ -111,7 +111,7 @@ void CCampPages::BuildPages() {
     auto region = [this](int left, int top, int right, int bottom, int tip) {
         CUiRegion* added = AddRegion();
         added->SetRect(left, top, right, bottom);
-        if (tip) added->SetTip(tip, 1, 0);
+        if (tip) added->SetTip(tip);
     };
     region(12, 450, 52, 490, 0x4EE8);
     region(148, 450, 188, 490, 0x4EE9);

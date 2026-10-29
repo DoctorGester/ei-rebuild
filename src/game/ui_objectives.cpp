@@ -256,7 +256,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         rect.right = static_cast<int>(libcrt::Ftol(D(x) + kExitHalf));
         rect.bottom = static_cast<int>(libcrt::Ftol(D(y) + kExitHalf));
         CUiRegion* region = AddRegion();
-        region->SetTip(0x138EE, 1, 0);
+        region->SetTip(0x138EE);
         // The marker points away from the picture's centre: sideways or up/down by the larger
         // offset, and the region moves 10 pixels the same way.
         if (AbsBits(sideY) >= AbsBits(sideX)) {
@@ -278,7 +278,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
     SelectExit(nearestExit_);
     if (twoButtons_ != 0 && !anyKnown) {
         SceneMesh(0)->visible_ = 0;
-        regions_[0]->SetTip(0, 1, 0);
+        regions_[0]->SetTip(0);
     }
 
     std::vector<std::string>& quests = quests_;
@@ -451,7 +451,7 @@ void CObjectivesWindow::ShowQuest() {
         int topPixel = static_cast<int>(libcrt::Ftol(D(top)));
         int leftPixel = static_cast<int>(libcrt::Ftol(D(left)));
         region->SetRect(leftPixel, topPixel, rightPixel, bottomPixel);
-        region->SetTip(0x138F0, 1, 0);
+        region->SetTip(0x138F0);
     }
 }
 
@@ -534,13 +534,13 @@ void CObjectivesWindow::CreateScreen() {
 
     // Regions 0-3: the buttons and the two arrows; 4-8: the list rows.
     if (twoButtons_)
-        AddRect(this, 163, 536, 237, 584)->SetTip(0x138E4, 1, 0);
+        AddRect(this, 163, 536, 237, 584)->SetTip(0x138E4);
     else
-        AddRect(this, 363, 536, 437, 584)->SetTip(0x138E6, 1, 0);
-    AddRect(this, 563, 536, 637, 584)->SetTip(twoButtons_ ? 0x138E5 : 0, 1, 0);
+        AddRect(this, 363, 536, 437, 584)->SetTip(0x138E6);
+    AddRect(this, 563, 536, 637, 584)->SetTip(twoButtons_ ? 0x138E5 : 0);
     AddRect(this, 414, 384, 443, 404);
     AddRect(this, 717, 384, 746, 404);
-    for (int top = 30; top < 150; top += 24) AddRect(this, 60, top, 360, top + 24)->SetTip(0x138EF, 1, 0);
+    for (int top = 30; top < 150; top += 24) AddRect(this, 60, top, 360, top + 24)->SetTip(0x138EF);
     blinkTime_ = 0.0f;
 
     if (listZones_ == 0) {
@@ -601,8 +601,8 @@ void CObjectivesWindow::CreateScreen() {
         if (SizeOf(*zones) > 1) {
             SceneMesh(14)->visible_ = 1;
             SceneMesh(15)->visible_ = 1;
-            regions_[2]->SetTip(0x13948, 1, 0);
-            regions_[3]->SetTip(0x13949, 1, 0);
+            regions_[2]->SetTip(0x13948);
+            regions_[3]->SetTip(0x13949);
         }
         ShowZone(zones->begin()[zoneIndex_]);
         table->~VariableTable();

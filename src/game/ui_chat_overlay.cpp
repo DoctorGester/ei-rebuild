@@ -204,7 +204,7 @@ void CChatOverlay::DrawTyped() {
 
 // --- the chat line's keys -------------------------------------------------------------------------
 
-void CChatOverlay::OnKeyDown(int key, int, int) {
+void CChatOverlay::KeyDown(int key, int, int) {
     if (!chatOpen_) return;
     handled_ = true;
     switch (key) {
@@ -244,7 +244,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
     DrawTyped();
 }
 
-void CChatOverlay::OnChar(int key, int, int) {
+void CChatOverlay::Char(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
     std::string line = text::Typed(str::Left(typed_, caret_), key) + str::Mid(typed_, caret_);

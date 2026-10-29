@@ -105,13 +105,13 @@ void CHeroStatsPanel::Update() {
 
 // --- The left button (input click) -----------------------------------------------------------------
 
-void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
+void CHeroStatsPanel::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (page_ == kNewHeroPage) {
         heldRegion_ = -1;
         if (StepPoint(region)) heldRegion_ = region;
         if (region >= kFirstButton && region < kButtonEnd) {
-            interface_->PlaySound(kPerkSound, 0);
+            interface_->PlaySound(kPerkSound);
             owner_->RefreshStats();
         }
         if (heldRegion_ > 0) {
@@ -121,10 +121,10 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
         return;
     }
     if (region == kPreviousHero) {
-        interface_->PlaySound(kHeroSound, 0);
+        interface_->PlaySound(kHeroSound);
         owner_->PreviousHero();
     } else if (region == kNextHero) {
-        interface_->PlaySound(kHeroSound, 0);
+        interface_->PlaySound(kHeroSound);
         owner_->NextHero();
     }
 }

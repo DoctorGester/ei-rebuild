@@ -84,10 +84,8 @@ public:
     // With the active window's player pick 1 / 2 the player's serial goes to the server as command 4 / 5 and
     // the pick ends; otherwise, unless it is our own player, our offer to it is dropped when it is its partner,
     // else one is started.
-    void OnLButtonDown(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
+    void LeftDown(int buttons, int x, int y) override;
+    void MouseMove(int buttons, int x, int y) override;
 
     int listed_;
     int portraits_;
@@ -98,34 +96,25 @@ public:
 class CBriefingScreen : public CUiContainer {
 public:
     explicit CBriefingScreen(CInterface3D* ui);
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     void CloseScreen() override { Close(); }
-    void MessageResult(int result) override { OnMessageResult(static_cast<std::uint32_t>(result)); }
-    void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }
-    void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }
-    void GameOver(int) override { OnGameOver(); }
-    void ShowBriefing(std::string_view name) override { OnBriefing(name); }
     bool ReadyToStopPolling() override { return true; }
     void PlayersChanged(int show) override { ShowChat(static_cast<char>(show)); }
     void PlayerList(int mode) override { SetChatActive(mode); }
-    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int LeftDouble(int b, int x, int y) override { return OnLeftDouble(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // The camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
     void Close();
     // 0x10001 leaves through exit_; 0x20001 (game over: load) opens the load window; 0x20002, 0x90001,
     // 0x100001 close every window, drop the sessions and leave the game. A network client then shows its chat
     // window again.
-    void OnMessageResult(std::uint32_t result);
-    void OnUnitLeft(CUnit* unit);
+    void MessageResult(int result) override;
+    void UnitLeft(CUnit* unit) override;
     // `unit` goes into party_ after the members whose unit records (the local player's) come before its record,
     // or last without one. The first record's unit becomes the leader, and the first "b.<zone>..." variable
     // equal to 1 with three parts starts its topic (the third part) at once.
-    void OnUnitJoined(CUnit* unit);
-    void OnGameOver();
+    void UnitJoined(CUnit* unit) override;
+    void GameOver(int) override;
     // The interface command "briefing <name>": dialogue `name` starts at once.
-    void OnBriefing(std::string_view name);
+    void ShowBriefing(std::string_view name) override;
     void ShowChat(char show);
     // One zero dword.
     void SaveState() override;
@@ -145,15 +134,15 @@ public:
     // (controller command 0 or 0xB and next command 9) opens its topics, else the leader walks to the picked
     // ground point (not when noWalk_); 1 a topic row starts that topic; 3 the next phrase; 4 the rewards are
     // taken.
-    void OnLeftDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // A person who is not one of the moving ones, or with the dialogue running, is handled as a click; on the
     // ground the leader runs there.
-    void OnLeftDouble(int buttons, int x, int y);
+    void LeftDouble(int buttons, int x, int y) override;
     // See docs/notes/ui.md, "Behaviour moved out of header comments".
-    void OnMouseMove(int buttons, int x, int y);
+    void MouseMove(int buttons, int x, int y) override;
     // With the chat window active only Esc, which gives the input back. See docs/notes/ui.md, "Behaviour moved
     // out of header comments".
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
 
     // None leaves state 0; otherwise the leader stops (unless noWalk_), "goodbye" is appended, state 1.
     void OpenTopics(CEngineObject* person);

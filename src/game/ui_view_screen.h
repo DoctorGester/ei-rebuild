@@ -15,23 +15,19 @@
 struct UnitPickInput final : UiInputSide {
     explicit UnitPickInput(CInterface3D* ui);
     ~UnitPickInput() override;
-    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }
-    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }
 
     // Without Ctrl: a unit under the point is added to the
     // list (its id) and controlled; else each listed unit still in the client world
     // walks to the ground point under it. With Ctrl and a unit under the point: each listed unit
     // attacks it (how 6). The event is not marked used.
-    void OnLeftDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // The list emptied (storage freed), the world's selection cleared.
-    void OnRightDown(int buttons, int x, int y);
+    void RightDown(int buttons, int x, int y) override;
     // Ctrl (VK_CONTROL) shows cursor 1; Space toggles the server
     // flag.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // Ctrl released: cursor 0.
-    void OnKeyUp(int key, int repeat, int flags);
+    void KeyUp(int key, int repeat, int flags) override;
 
     std::vector<std::uint32_t> picked_;            // ids of the picked units
 };
@@ -44,11 +40,9 @@ public:
     // The screen's Create. Three extra inputs: an inert one, UnitPickInput, the battle camera's keys; the camera
     // no longer free, its focus at (30, 30) and its rotation turned by 225 degrees about x (premultiplied).
     void CreateScreen() override;
-    // The client glue's per-frame step; returns 1.
-    BOOL DrawView();
+    // The client glue's per-frame step.
+    void Draw(CSceneRenderer*) override;
     // The camera free again.
-    void OnClose();
-    BOOL Draw(CSceneRenderer*) override { return DrawView(); }
-    void CloseScreen() override { OnClose(); }
+    void CloseScreen() override;
 
 };

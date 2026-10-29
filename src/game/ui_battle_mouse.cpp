@@ -26,7 +26,7 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 
 // --- the mouse moved over the battle screen ------------------------------------------------------
 
-void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
+void CBattleScreen::MouseMove(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
         g_cursor->SetShape(kCursorPickPlayer);
         if (portraits_) portraits_->Input()->MouseMove(buttons, x, y);
@@ -57,7 +57,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
 
 // --- the left button went down on the battle screen ----------------------------------------------
 
-void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
+void CBattleScreen::LeftDown(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
         if (portraits_) portraits_->Input()->LeftDown(buttons, x, y);
         return;

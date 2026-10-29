@@ -171,7 +171,7 @@ void COptionsWindow::ShowGroup(int group) {
     for (int row = 0; row < kOptionRows; ++row) {
         rows_[row].binding_ = nullptr;
         rows_[row].setting_ = nullptr;
-        regions_[kFirstRowRegion + row]->SetTip(0, 1, 0);
+        regions_[kFirstRowRegion + row]->SetTip(0);
     }
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         const OptionDefinition& definition = kOptionDefinitions[i];
@@ -179,7 +179,7 @@ void COptionsWindow::ShowGroup(int group) {
         rows_[definition.row_].setting_ = &settings_[i];
         tip = str::Format(TextTipOption(), definition.name_);
         ReadTip(&tip);
-        regions_[kFirstRowRegion + definition.row_]->SetTipString(tip, 1, 0);
+        regions_[kFirstRowRegion + definition.row_]->SetTipString(tip);
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition& action = kActionDefinitions[i + 1];
@@ -187,18 +187,18 @@ void COptionsWindow::ShowGroup(int group) {
         rows_[action.row_].binding_ = &bindings_[i];
         tip = str::Format(TextTipAction(), action.name_);
         ReadTip(&tip);
-        regions_[kFirstRowRegion + action.row_]->SetTipString(tip, 1, 0);
+        regions_[kFirstRowRegion + action.row_]->SetTipString(tip);
     }
 
     for (int i = 0; i < kOptionDefinitionCount; ++i)
-        if (settings_[i].bar_) settings_[i].bar_->SetEnabled(0, 1);
+        if (settings_[i].bar_) settings_[i].bar_->SetEnabled(false);
     for (int i = 0; i < kOptionDefinitionCount; ++i)
-        if (settings_[i].spin_) settings_[i].spin_->SetEnabled(0, 1);
+        if (settings_[i].spin_) settings_[i].spin_->SetEnabled(false);
     for (int row = 0; row < kOptionRows; ++row) {
         OptionSetting* setting = rows_[row].setting_;
         if (!setting) continue;
-        if (setting->bar_) setting->bar_->SetEnabled(1, 1);
-        if (setting->spin_) setting->spin_->SetEnabled(1, 1);
+        if (setting->bar_) setting->bar_->SetEnabled(true);
+        if (setting->spin_) setting->spin_->SetEnabled(true);
     }
 
     selectedRow_ = -1;

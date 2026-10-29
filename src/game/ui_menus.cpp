@@ -70,7 +70,7 @@ void CSaveLoadWindow::TakeSelectedTitle() {
     cursor_ = name_.size();
 }
 
-void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
+void CSaveLoadWindow::LeftDown(int buttons, int x, int y) {
     if (sliding_) return;
     int region = RegionAt(x, y);
     switch (region) {
@@ -78,7 +78,7 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
         Confirm();
         break;
     case 1:
-        interface_->PlaySound(kSoundCancel, 0);
+        interface_->PlaySound(kSoundCancel);
         interface_->SetPendingValue(kCloseSaveLoad);
         break;
     case 2:
@@ -88,7 +88,7 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
         if (region >= 3) {
             unsigned index = static_cast<unsigned>(firstVisible_ + region - 3);
             if (index < static_cast<unsigned>(EntryCount())) {
-                interface_->PlaySound(kSoundSelect, 0);
+                interface_->PlaySound(kSoundSelect);
                 if (static_cast<int>(index) != selected_) {
                     selected_ = static_cast<int>(index);
                     TakeSelectedTitle();
@@ -102,7 +102,7 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
 }
 
-void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
+void CSaveLoadWindow::LeftDouble(int buttons, int x, int y) {
     if (sliding_) return;
     int region = RegionAt(x, y);
     if (region >= 3) {
@@ -118,21 +118,20 @@ void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
     CUiContainer::LeftDouble(buttons, x, y);
 }
 
-BOOL CSaveLoadWindow::Draw(CSceneRenderer* pass) {
+void CSaveLoadWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
         surfaces_[0]->Freeze(1, 0);
         models_[0]->SetScreenPosition(400.0f, isSave_ ? 620.0f : 550.0f, 4.8f);
         CUiContainer::Draw(pass);
-        return 1;
+        return;
     }
     surfaces_[0]->Freeze(0, 0);
     double e = Ease(slide_);
     CUiModel* model = models_[0];
-    if (!model) return 1;
+    if (!model) return;
     double y = isSave_ ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
     model->Draw(pass);
-    return 1;
 }
 
 void CSaveLoadWindow::Update() {
@@ -157,7 +156,7 @@ void CSaveLoadWindow::CloseDialog() {
     dialog_ = nullptr;
 }
 
-void CSaveLoadWindow::OnDialogResult(int result) {
+void CSaveLoadWindow::MessageResult(int result) {
     if (result == kResultDelete)
         DeleteSave();
     else if (result == kResultOverwrite)
@@ -178,7 +177,7 @@ void COptionsWindow::RestoreSettings() {
                               options::g_options->gamma_);
 }
 
-void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
+void COptionsWindow::LeftDown(int buttons, int x, int y) {
     if (sliding_) return;
     int region = RegionAt(x, y);
     if (region == 0 || region == 1) {
@@ -190,18 +189,18 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
             RestoreSettings();
             sound = kSoundCancel;
         }
-        interface_->PlaySound(sound, 0);
+        interface_->PlaySound(sound);
         interface_->SetPendingValue(kCloseOptions);
     } else {
         if (region >= 2 && region < 13) {
-            interface_->PlaySound(kSoundSelect, 0);
+            interface_->PlaySound(kSoundSelect);
             waitingForKey_ = false;
             ShowGroup(region - 2);
         }
         if (region >= 13) {
             OptionRow& row = RegionRow(region);
             if (row.binding_ || row.setting_) {
-                interface_->PlaySound(kSoundSelect, 0);
+                interface_->PlaySound(kSoundSelect);
                 selectedRow_ = region - 13;
                 waitingForKey_ = false;
                 RefreshRows();
@@ -211,13 +210,13 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
 }
 
-void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
+void COptionsWindow::LeftDouble(int buttons, int x, int y) {
     if (sliding_) return;
     int region = RegionAt(x, y);
     if (region >= 13) {
         OptionRow& row = RegionRow(region);
         if (row.binding_) {
-            interface_->PlaySound(kSoundSelect, 0);
+            interface_->PlaySound(kSoundSelect);
             selectedRow_ = region - 13;
             waitingForKey_ = true;
             RefreshRows();
@@ -225,35 +224,34 @@ void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
             int value;
             row.setting_->spin_->GetValue(&value);
             RegionRow(region).setting_->spin_->SetValue(value + 1);
-            interface_->PlaySound(kSoundOk, 0);
+            interface_->PlaySound(kSoundOk);
             RefreshRows();
         }
     }
     CUiContainer::LeftDouble(buttons, x, y);
 }
 
-BOOL COptionsWindow::Draw(CSceneRenderer* pass) {
+void COptionsWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
         surfaces_[0]->Freeze(1, 0);
         models_[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
         CUiContainer::Draw(pass);
-        return 1;
+        return;
     }
     surfaces_[0]->Freeze(0, 0);
     double e = Ease(slide_);
     CUiModel* model = models_[0];
-    if (!model) return 1;
+    if (!model) return;
     double y = (480.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
     model->Draw(pass);
-    return 1;
 }
 
 void COptionsWindow::Redraw() {
     if (!sliding_) RedrawContainer();
 }
 
-void COptionsWindow::OnDialogResult(int result) {
+void COptionsWindow::MessageResult(int result) {
     if (result == 0x10001) CommitBinding();
     RefreshRows();
 }
@@ -350,7 +348,7 @@ void CUiScrollbar::Update() {
     if (steps != 0) SetPosition(position_ + steps);
 }
 
-void CUiScrollbar::OnMouseDown(int, int x, int y) {
+void CUiScrollbar::LeftDown(int, int x, int y) {
     POINT point{x, y};
     interface_->ScalePointFromScreenEntry(&point);
     if (gameapi::PtInRect(&thumb_, point)) {
@@ -369,7 +367,7 @@ void CUiScrollbar::OnMouseDown(int, int x, int y) {
     handled_ = true;
 }
 
-void CUiScrollbar::OnMouseUp(int, int, int) {
+void CUiScrollbar::LeftUp(int, int, int) {
     state_ = 0;
     interface_->mouseCapture_ = nullptr;
     accumulated_ = 0.0f;
@@ -378,9 +376,9 @@ void CUiScrollbar::OnMouseUp(int, int, int) {
 
 // --- Tooltip -----------------------------------------------------------------------------------
 
-BOOL CUiTooltip::Draw(CSceneRenderer* pass) {
-    if (!Shown()) return 1;
-    return DrawBase(pass);
+void CUiTooltip::Draw(CSceneRenderer* pass) {
+    if (!Shown()) return;
+    DrawBase(pass);
 }
 
 void CUiTooltip::Redraw() {

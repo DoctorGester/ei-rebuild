@@ -69,13 +69,13 @@ void ReleaseDragCursor() {
 
 } // namespace
 
-void CGlobalMap::OnDeactivate() {
+void CGlobalMap::Deactivate() {
     dragging_ = false;
     selectPending_ = 1;
     ReleaseDragCursor();
 }
 
-void CGlobalMap::OnRightDown(int, int x, int y) {
+void CGlobalMap::RightDown(int, int x, int y) {
     dragStart_ = POINT{x, y};
     dragging_ = true;
     turning_ = 0;
@@ -86,13 +86,13 @@ void CGlobalMap::OnRightDown(int, int x, int y) {
     g_cursor->SetHeld(1);
 }
 
-void CGlobalMap::OnRightUp(int, int, int) {
+void CGlobalMap::RightUp(int, int, int) {
     dragging_ = false;
     selectPending_ = 1;
     ReleaseDragCursor();
 }
 
-void CGlobalMap::OnMouseMove(int, int x, int y) {
+void CGlobalMap::MouseMove(int, int x, int y) {
     if (dragging_) {
         POINT drag{g_cursor->motion_.x, g_cursor->motion_.y};
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
@@ -141,7 +141,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     }
     std::string text;
     text = isLink ? links_[index].name : zones_[index].name;
-    if (!SameText(shownName_, text)) interface_->PlaySound(ZoneSound(), 0);
+    if (!SameText(shownName_, text)) interface_->PlaySound(ZoneSound());
     shownName_ = text;
     text = isLink ? links_[index].title : zones_[index].title;
     surfaces_[0]->Freeze(1, 0);
@@ -170,7 +170,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     frame->visible_ = 1;
 }
 
-void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
+void CGlobalMap::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
         interface_->PushWindow(new CEscMenu(interface_), 1, 1);
@@ -184,7 +184,7 @@ void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
         QuickLoad(QuickSaveName());
 }
 
-void CGlobalMap::OnMessageResult(int) {
+void CGlobalMap::MessageResult(int) {
     int x = g_cursor->position_.x;
     int y = g_cursor->position_.y;
     turning_ = 0;

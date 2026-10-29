@@ -52,7 +52,7 @@ void CUiSpin::SetValue(int value) {
 
 // --- A click steps the value ------------------------------------------------------------------------
 
-void CUiSpin::OnLButtonDown(int, int, int) {
-    interface_->PlaySound(kOkSound, 0);
+void CUiSpin::LeftDown(int, int, int) {
+    interface_->PlaySound(kOkSound);
     SetValue(value_ + 1);
 }

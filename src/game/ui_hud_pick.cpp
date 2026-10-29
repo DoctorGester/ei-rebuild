@@ -42,7 +42,7 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
     if (spell->IsOffensive()) {
         target = g_clientWorld->NearestVisibleUnit(unit);
         if (!target) {
-            ui->PlaySound(kSoundNoMagic, 0);
+            ui->PlaySound(kSoundNoMagic);
             screen->SetPendingAction(kPendingNone, -1, -1);
             return false;
         }
@@ -101,13 +101,13 @@ void CHudSpellColumn::Click(int index) {
     if (index < 0 || index >= count_) return;
     int previous = selected_;
     if (previous == index) {
-        interface_->PlaySound(kSoundClick, 0);
+        interface_->PlaySound(kSoundClick);
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
     if (previous >= 0 && previous < count_) HighlightAt(previous, 0);
     HighlightAt(index, 1);
-    interface_->PlaySound(kSoundClick, 0);
+    interface_->PlaySound(kSoundClick);
     CItem* item = unit_->GetSpell(index);
     if (!item) return;
     CSpell* spell = SpellOf(item);
@@ -122,13 +122,13 @@ void CHudActionColumn::Select(int index) {
     if (index < 0 || index >= count_) return;
     int previous = selected_;
     if (previous == index) {
-        interface_->PlaySound(kSoundClick, 0);
+        interface_->PlaySound(kSoundClick);
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
     if (previous >= 0 && previous < count_) HighlightAt(previous, 0);
     HighlightAt(index, 1);
-    interface_->PlaySound(kSoundClick, 0);
+    interface_->PlaySound(kSoundClick);
     int action = static_cast<int>(actions_[index]);
     owner_->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
 }
@@ -142,7 +142,7 @@ void CHudQuickItems::Pick(int slot) {
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    interface_->PlaySound(kSoundClick, 0);
+    interface_->PlaySound(kSoundClick);
     if (selected_ == slot) {
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
@@ -165,7 +165,7 @@ void CHudQuickItems::UseNow(int slot) {
     QuickItemCategory category = item->GetCategory();
     if ((category == QuickItemCategory::Wand || category == QuickItemCategory::Potion) && SpellOf(item))
         if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 1)) return;
-    interface_->PlaySound(kSoundClick, 0);
+    interface_->PlaySound(kSoundClick);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }
 
@@ -175,6 +175,6 @@ void CHudSpellColumn::ClickAlternate(int index) {
     CItem* item = unit_->GetSpell(index);
     if (item && SpellOf(item))
         if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 0)) return;
-    interface_->PlaySound(kSoundClick, 0);
+    interface_->PlaySound(kSoundClick);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }

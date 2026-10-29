@@ -38,7 +38,7 @@ constexpr std::uint32_t kAnswerYes = 0x10001;
 
 } // namespace
 
-void CCampPages::OnLButtonDown(int buttons, int x, int y) {
+void CCampPages::LeftDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     switch (region) {
@@ -53,7 +53,7 @@ void CCampPages::OnLButtonDown(int buttons, int x, int y) {
     case kRegionTurnLeft:
     case kRegionTurnRight:
         if (page_ == kEquipmentPage) {
-            interface_->PlaySound(kMoveSound, 0);
+            interface_->PlaySound(kMoveSound);
             turning_ = region == kRegionTurnLeft ? 1 : 2;
             CaptureMouse();
         }
@@ -65,13 +65,13 @@ void CCampPages::OnLButtonDown(int buttons, int x, int y) {
     }
 }
 
-void CCampPages::OnLButtonUp(int buttons, int x, int y) {
+void CCampPages::LeftUp(int buttons, int x, int y) {
     CUiContainer::LeftUp(buttons, x, y);
     ReleaseMouse();
     turning_ = 0;
 }
 
-void CCampPages::OnKeyDown(int key, int repeat, int flags) {
+void CCampPages::KeyDown(int key, int repeat, int flags) {
     if (key == VK_ESCAPE) {
         ShowPage(kLeavePage);
         handled_ = true;

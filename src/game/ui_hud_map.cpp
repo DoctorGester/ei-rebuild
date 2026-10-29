@@ -541,9 +541,9 @@ void CHudMap::UpdateView() {
 
 // --- The zoom factor ----------------------------------------------------------------------------------
 
-BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
+void CHudMap::Wheel(int, int delta, int x, int y) {
     int region = RegionAt(x, y);
-    if (region < 0) return 1;
+    if (region < 0) return;
     if (region == 0) {
         double zoom = WheelZoomFactor(static_cast<short>(delta)) * D(zoom_);
         zoom_ = static_cast<float>(zoom);
@@ -551,5 +551,4 @@ BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
         zoom_ = zoom_ >= 1.0f ? zoom_ : 1.0f;
     }
     handled_ = true;
-    return 1;
 }

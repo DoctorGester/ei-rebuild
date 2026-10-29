@@ -184,7 +184,7 @@ void CBattleScreen::CreateScreen() {
     clientParty_.camera = -1;
 }
 
-BOOL CBattleScreen::Draw(CSceneRenderer* pass) {
+void CBattleScreen::Draw(CSceneRenderer* pass) {
     GameRender();
     if (boxSelecting_) {   // the selection box, a dark rectangle with an outline
         pass->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
@@ -197,5 +197,4 @@ BOOL CBattleScreen::Draw(CSceneRenderer* pass) {
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
     CUiContainer::Draw(pass);
-    return 1;
 }

@@ -61,9 +61,8 @@ void CInterface3D::OnRightDouble(int buttons, int x, int y) {
     Send(this, UiInputSide::kEventRightDouble, buttons, x, y);
 }
 
-int CInterface3D::OnWheel(int flags, int delta, int x, int y) {
-    UiInputSide* target = MouseTarget();
-    return target ? target->Wheel(flags, delta, x, y) : 0;
+void CInterface3D::OnWheel(int flags, int delta, int x, int y) {
+    if (UiInputSide* target = MouseTarget()) target->Wheel(flags, delta, x, y);
 }
 
 // --- Keys ------------------------------------------------------------------

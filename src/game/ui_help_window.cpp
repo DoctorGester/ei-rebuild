@@ -107,7 +107,7 @@ void CHelpWindow::Update() {
 }
 
 void CHelpWindow::Finish() {
-    interface_->PlaySound(OkSound(), 0);
+    interface_->PlaySound(OkSound());
     if (!message_)
         interface_->helpTopics_[text_] = page_;
     else
@@ -115,12 +115,12 @@ void CHelpWindow::Finish() {
     interface_->SetPendingValue(0);
 }
 
-void CHelpWindow::OnLeftDown(int buttons, int x, int y) {
+void CHelpWindow::LeftDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case 0:
         if (page_ > 0) {
-            interface_->PlaySound(NextSound(), 0);
+            interface_->PlaySound(NextSound());
             --page_;
             ShowPage();
         }
@@ -130,7 +130,7 @@ void CHelpWindow::OnLeftDown(int buttons, int x, int y) {
         break;
     case 2:
         if (page_ < static_cast<int>(lines_.size()) - 1) {
-            interface_->PlaySound(NextSound(), 0);
+            interface_->PlaySound(NextSound());
             ++page_;
             ShowPage();
         }
@@ -140,10 +140,10 @@ void CHelpWindow::OnLeftDown(int buttons, int x, int y) {
     }
 }
 
-void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
+void CHelpWindow::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_RETURN && page_ < static_cast<int>(lines_.size()) - 1) {
-        interface_->PlaySound(NextSound(), 0);
+        interface_->PlaySound(NextSound());
         ++page_;
         ShowPage();
         handled_ = true;

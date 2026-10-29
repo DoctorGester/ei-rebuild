@@ -102,60 +102,49 @@ void CUiContainer::Deactivate() {
     for (int i = 0; i < std::ssize(self->children_); ++i) self->children_[i]->Input()->Deactivate();
 }
 
-int CUiContainer::LeftDown(int buttons, int x, int y) {
+void CUiContainer::LeftDown(int buttons, int x, int y) {
     Dispatch(kEventLeftDown, buttons, x, y, true);
-    return 0;
 }
 
-int CUiContainer::LeftUp(int buttons, int x, int y) {
+void CUiContainer::LeftUp(int buttons, int x, int y) {
     Dispatch(kEventLeftUp, buttons, x, y, true);
-    return 0;
 }
 
-int CUiContainer::MouseMove(int buttons, int x, int y) {
+void CUiContainer::MouseMove(int buttons, int x, int y) {
     Dispatch(kEventMouseMove, buttons, x, y, true);
-    return 0;
 }
 
-int CUiContainer::RightDown(int buttons, int x, int y) {
+void CUiContainer::RightDown(int buttons, int x, int y) {
     Dispatch(kEventRightDown, buttons, x, y, true);
-    return 0;
 }
 
-int CUiContainer::RightUp(int buttons, int x, int y) {
+void CUiContainer::RightUp(int buttons, int x, int y) {
     Dispatch(kEventRightUp, buttons, x, y, true);
-    return 0;
 }
 
-int CUiContainer::LeftDouble(int buttons, int x, int y) {
+void CUiContainer::LeftDouble(int buttons, int x, int y) {
     Dispatch(kEventLeftDouble, buttons, x, y, true);
-    return 0;
 }
 
-int CUiContainer::RightDouble(int buttons, int x, int y) {
+void CUiContainer::RightDouble(int buttons, int x, int y) {
     Dispatch(kEventRightDouble, buttons, x, y, true);
-    return 0;
 }
 
 // Key events reach every enabled child, wherever the mouse is.
-int CUiContainer::KeyDown(int key, int repeat, int flags) {
+void CUiContainer::KeyDown(int key, int repeat, int flags) {
     Dispatch(kEventKeyDown, key, repeat, flags, false);
-    return 0;
 }
 
-int CUiContainer::Char(int key, int repeat, int flags) {
+void CUiContainer::Char(int key, int repeat, int flags) {
     Dispatch(kEventChar, key, repeat, flags, false);
-    return 0;
 }
 
-int CUiContainer::KeyUp(int key, int repeat, int flags) {
+void CUiContainer::KeyUp(int key, int repeat, int flags) {
     Dispatch(kEventKeyUp, key, repeat, flags, false);
-    return 0;
 }
 
-// The wheel's four arguments go on unchanged; the children are tested at (x, y). Returns 1 (the
-// interface's wheel dispatch passes it on).
-int CUiContainer::Wheel(int flags, int delta, int x, int y) {
+// The wheel's four arguments go on unchanged; the children are tested at (x, y).
+void CUiContainer::Wheel(int flags, int delta, int x, int y) {
     CUiContainer* self = this;
     handled_ = false;
     for (auto& side : self->inputs_) {
@@ -163,7 +152,7 @@ int CUiContainer::Wheel(int flags, int delta, int x, int y) {
         side->Wheel(flags, delta, x, y);
         if (side->handled_) {
             handled_ = true;
-            return 1;
+            return;
         }
     }
     for (int i = 0; i < std::ssize(self->children_); ++i) {
@@ -174,8 +163,7 @@ int CUiContainer::Wheel(int flags, int delta, int x, int y) {
         child->Input()->Wheel(flags, delta, x, y);
         if (self->children_[i]->handled_) {
             handled_ = true;
-            return 1;
+            return;
         }
     }
-    return 1;
 }
