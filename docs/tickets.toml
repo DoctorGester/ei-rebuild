@@ -6034,3 +6034,10 @@ title = "Settings: no registry import, sane defaults when ei_settings.ini is mis
 group = "standalone"
 model = "opus"
 note = "User 2026-10-29: drop the one-time registry import (settings_file.h/.cpp RegistrySource, SetImportSource, the import at first use; device_object.cpp). A missing ei_settings.ini is written with defaults instead: borderless full screen at the desktop's native resolution, vsync on, every graphics setting at its maximum (Msaa 8 or the device's best, Anisotropy 16, draw distances, shadows, water waves, self shadowing, the options' detail levels), sound and music on at the original defaults, and Rebirth's starter switches (EI_Starter: WideScreen on and the rest at Rebirth's own defaults) so the drop-in exe (S23) needs no registry. The game's own options screen still saves to the file. Keep the harness's pinned file (harness_settings.h Pin, written from the committed registry snapshot) unchanged so goldens stay the same; delete the import tests or turn them into default-file tests. Update docs/notes/standalone.md 'Settings file' and play.cmd's comment. Check: start with no file on vanilla and Rebirth data, the written file's values, the window borderless at native size."
+
+[[ticket]]
+id = "S24a"
+title = "WideScreen layout: the resolution from the game's own options tree"
+group = "standalone"
+depends = ["S24"]
+note = "S24 found: ui_widescreen.cpp reads VIDEORESOLUTION from Software\\Gipat.ru\\EI_Starter\\EvilIslands\\General Settings (addon.dll's key) on either data, but on vanilla data (no NivalRegistry) the game reads and saves its options under Software\\Nival Interactive\\EvilIslands. S24's defaults write the resolution into both trees so a new file works; a later change of the vanilla tree's VideoResolution (by hand, or a future options screen) leaves the layout on the other tree's size. Read the resolution the game itself uses (g_registryRoot's, or GameOptions::resolutionX_/Y_ once loaded) instead. Check: ui_widescreen scenarios unchanged (their starter lines answer both names); a vanilla run with differing trees."
