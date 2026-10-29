@@ -142,6 +142,12 @@ public:
     virtual int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,
                             Vector2* points, float* bounds) = 0;
 
+    void AddRef() { ++refCount_; }
+    // Drops a reference; the last one deletes the mesh.
+    void Release() {
+        if (--refCount_ == 0) delete this;
+    }
+
     int refCount_;
     std::string name_;
     std::map<std::string, LinkPartHeader> headers_;

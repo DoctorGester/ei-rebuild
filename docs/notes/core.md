@@ -62,6 +62,23 @@ File `core_refcount.cpp`, `refptr_copies.cpp`.
 - Kept: Release / RefPtr helpers test the pointer for null after already using it (omitted, same
   behaviour); `Destroy` leaves the pointer set.
 
+### Counted pointers
+
+- Every counted class has `AddRef()` and `Release()`: CEngineObject (int refCount_; at 0 the owner's ReleaseObject),
+  CRefCounted (int16 refs_; deleted at 0), CLinkMeshBase, CLinkFigureLoader, CDeviceMaterial, CRenderPreset,
+  CRenderHelper and CRendererBase (deleted at 0). A site that keeps a raw pointer counts with these, not `++refCount_`.
+- A counted field is a `Ref<T>` (src/game/ref.h): `Assign(p)` takes p's reference first, then drops the old one (nothing
+  when p is held already); `Reset()` nulls the field, then drops the reference; `Take()` hands the reference on. There
+  is no store of a raw pointer, so the compiler lists every hand-counted store. A Ref has no destructor yet: the owner
+  resets it where the original did (a constructor needs no `= nullptr`: a Ref starts null).
+- A container element that holds its reference is a `HeldRef<T>`: made or copied it takes one, destroyed it drops it.
+- Ids: `SaveRef(object, stream)` writes the id (-1: none), `LoadRef(ref, stream, world)` looks it up in the world's map
+  objects (engine_object.h, counted_ref.cpp).
+- Not merged yet: the network family (`RefPtr`, `RefPtrTo<T>`, `CountedRefPtr` / `CountedRefTo<T>`, `SharedRefPtr` /
+  `SharedRefTo<T>`; the interface track's files read their `.ptr`), `ScriptEffect<T>` (its reset removes the timed object
+  first) and the raw counted fields still assigned by hand (`AssignCounted` / `ReleaseCounted` on `T*&` slots).
+  `HeldObject` and `CountedPtr` remain as aliases for the interface files.
+
 ## Object manager (CEngineObject, CBaseManager)
 
 File `engine_object.cpp`, `base_manager.cpp`, `hash_tables_400.cpp`. Verify `verify_base_manager`.
@@ -374,9 +391,9 @@ instantiations were, for reading game.exe (config/library.csv names them):
 ## Containers: the kept vectors and lists (C14n)
 
 - Records have real special members or none (the compiler's); the layout only matters for the tests' game.exe views.
-- Counted elements are RAII types: `CountedPtr<T>` (CRefCounted's refs_, core_refcount.h), `CountedRefPtr` /
-  `SharedRefPtr` (a RefPtr holding a plain reference / owning a share: copy FromRawCounted / Share, destroy the plain
-  release / Destroy) and `HeldPtr<T>` (CEngineObject's refCount_ and Release, engine_object.h). A move hands the
+- Counted elements are RAII types: `HeldRef<T>` (ref.h; any class with AddRef / Release: CRefCounted's refs_, CEngineObject's
+  refCount_ and owner release) and `CountedRefPtr` / `SharedRefPtr` (a RefPtr holding a plain reference / owning a share: copy
+  FromRawCounted / Share, destroy the plain release / Destroy). A move hands the
   reference over, so a reallocation takes and drops none. A SharedRefPtr copy of a copy-on-share object is a clone, as
   STLport's fill insert made it (the file message's chunks).
 - The record databases' tables hold their records in a `std::vector` member (`records`); the chunk serializers share
@@ -392,7 +409,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 ## Containers: the last STLport hash tables and trees (C14q)
 
 - net::Connection's five trees are `std::map` members (Reset destroys them by hand before the placement rebuild): the
-  entries by sent id, by object and per priority (`std::array` of 11) hold `EntryRef` (`CountedPtr<ReplicaEntry>`), the
+  entries by sent id, by object and per priority (`std::array` of 11) hold `EntryRef` (`HeldRef<ReplicaEntry>`), the
   records `Record` (a `SharedRefPtr` and the version: copied with Share, released as the owner), the attached ids plain
   values. Pointer keys compare as the game's unsigned compares, the sent ids signed. The destructor is the compiler's:
   the original's teardown is the reverse member order (the reliable streams, the chunk lists, the maps, the packet
@@ -403,7 +420,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 ## Containers: the record and held lists (C14s)
 
 - The sector grids' cells, the client's heroes_ and the frame's deferred units are `SectorList`
-  (`std::list<HeldPtr<CMapObject>>`, world.h): an insert takes a reference, an erase or clear drops it. `RemoveHeld`
+  (`std::list<HeldRef<CMapObject>>`, world.h): an insert takes a reference, an erase or clear drops it. `RemoveHeld`
   (world_client_maps.cpp) holds the object while its entries are erased, as the game's remove(value) did. A grid is
   `unique_ptr` cells and row pointers; `SectorGrid::Free` destroys the cells from the last, and the client's destructor
   frees both grids where the original did (the second grid still holds objects then). The client's filed objects
@@ -422,11 +439,11 @@ instantiations were, for reading game.exe (config/library.csv names them):
 - Every MFC collection of the game is a std container: plain-element ones copy as the original's bytes did (the
   default policy zero-filled and destroyed nothing); elements with a policy have default member initializers for what
   the policy's Init set (Behaviour, ZoneExit, MapRecord, EffectParticle, SkinLayer's 0 / -1 / -1), a move for DeltaField
-  and CMemoryStream, HeldPtr for counted pointers (SharedObject::objects, EffectParticle::source, the client's exit
+  and CMemoryStream, HeldRef for counted pointers (SharedObject::objects, EffectParticle::source, the client's exit
   markers) and PartyUnitRecord's destructor releases its items (its move assignment releases first, so erase drops a
   record as the original's Destruct + relocate did).
 - The script (script.h): every record has real special members. Object references are
-  `ScriptObjectRef{HeldPtr<CEngineObject>}` (a ScriptGroup is a `std::vector<ScriptObjectRef>`, still kept sorted by
+  `ScriptObjectRef{HeldRef<CEngineObject>}` (a ScriptGroup is a `std::vector<ScriptObjectRef>`, still kept sorted by
   ScriptGroup::After); the effects (point lights, particle / FX / lightning sources) hold a move-only `ScriptEffect<T>`
   whose reset is ScriptDropEffect (the timed object removed, the reference released); a nested call owns its command
   (`std::unique_ptr<SSCCmd>`, deep-copied). CScript has a constructor (256 point light slots, one temporary group and
@@ -439,7 +456,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   (replay_script_load.cpp) builds a real CScript: as many empty blocks as the record's counts (new blocks are hashed
   after them) and a token list whose first token carries the tail's line.
 - A record that hands its references on without releasing them (the shared objects' items given at loot: the original
-  frees the node and leaks the references) uses `HeldPtr::release()`. Counted elements in a plain list (the world's
+  frees the node and leaks the references) uses `HeldRef::Take()`. Counted elements in a plain list (the world's
   counted items, the trap's victims, the armour spells' items, the AI's owned modes): the release (or DestroyOwned) is
   explicit before erase / clear; the original's DestructElements did nothing, so the counts are what they were.
   `ReleaseAndClear(c)` (engine_object.h) releases and clears a list of engine objects.

@@ -75,8 +75,6 @@ const char* CSpell::ClassName() { return "CSpell"; }
 ClassId CSpell::GetClassId() { return ClassId::Spell; }
 
 CSpellEffect::CSpellEffect() {
-    target = nullptr;
-    caster = nullptr;
     new (Spell()) CSpell();
     visual = nullptr;
     sound = nullptr;
@@ -100,16 +98,11 @@ CSpellEffect::~CSpellEffect() {
     if (sound) sound->Release();
     if (visual) visual->Release();
     Spell()->CSpell::~CSpell();
-    if (caster) caster->Release();
-    caster = nullptr;
-    if (target) target->Release();
-    target = nullptr;
+    caster.Reset();
+    target.Reset();
 }
 
 // --- The cast's start values and the object it forgets ------------------------------------
-
-// The caster and the target are counted references (AIRefTo::Assign: nothing when it holds the
-// object already; else the held one released, the new one counted).
 
 void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster, const Vector3* newPosition,
                         CMapObject* newTarget, const Vector3* newTargetPoint, std::uint8_t newSilentEnd) {
@@ -125,10 +118,7 @@ void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster,
 
 BOOL CSpellEffect::Forget(CEngineObject* object) {
     if (target == object) return 0;
-    if (caster == object && caster) {
-        caster->Release();
-        caster = nullptr;
-    }
+    if (caster == object && caster) caster.Reset();
     return 1;
 }
 

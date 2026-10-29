@@ -54,7 +54,6 @@ AckKind AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
     AckKind flags = AckKind::DecidedToAttack;
     if (!brain->owner->unit->player) return flags;
     AIOrder order;
-    order.target = nullptr;
     order.Clear();
     if (clearTwice) {
         // The second attack builds the order by hand after a second Clear.
@@ -84,7 +83,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 
     // The commanded target first, when it can be reached from here.
     if (target && target->IsDead() == 0) {
-        AITargetChoice choice{-1, static_cast<CUnit*>(target.object)};   // taken as a unit
+        AITargetChoice choice{-1, static_cast<CUnit*>(target.Get())};   // taken as a unit
         if (brain->attention.CanReach(brain, &choice, 1)) {
             Attack(brain, target, false);
             return;
@@ -139,7 +138,6 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 mode->state = kStateFollow;
                 if (theirs->target) {
                     theirs->target.Reset();
-                    theirs->target = nullptr;
                 }
                 theirs->action = AIBrain::kActionNone;
             }
@@ -150,7 +148,6 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         if (now.object != best.object || now.part != best.part) Attack(brain, chosen, true);
         if (target) {
             target.Reset();
-            target = nullptr;
         }
     }
     candidates.clear();
@@ -167,7 +164,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, CountedUnits* targets) {
         ++node;
         if (other == unit || other->player != unit->player) continue;
         AIBrain* theirs = &other->ServerController()->brain;
-        auto* foe = static_cast<CUnit*>(theirs->target.object);
+        auto* foe = static_cast<CUnit*>(theirs->target.Get());
         if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
             foe->GetClassId() != ClassId::Unit)
             continue;

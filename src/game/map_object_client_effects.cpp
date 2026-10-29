@@ -159,9 +159,7 @@ void DropLight(CMapObjectClientSpecific* self) {
     self->light->flags_ |= kLightHeld;
     int id = self->light->id_;
     g_clientWorld->lightFactory_->litIds_.remove(id);
-    CEngineObject* old = self->light;
-    self->light = nullptr;
-    if (old) old->Release();
+    self->light.Reset();
 }
 
 } // namespace

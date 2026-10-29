@@ -68,7 +68,6 @@ bool Same(float a, float b) {
 } // namespace
 
 CEffectMoshka::CEffectMoshka() {
-    bird_ = nullptr;
     source_ = nullptr;
     Reset();
 }
@@ -79,8 +78,7 @@ CEffectMoshka::~CEffectMoshka() {
     Reset();
     Reset();   // again, the virtual
     if (source_ != nullptr) source_->Release();
-    if (bird_ != nullptr) bird_->Release();
-    bird_ = nullptr;
+    bird_.Reset();
 }
 
 void CEffectMoshka::Reset() {
@@ -90,10 +88,7 @@ void CEffectMoshka::Reset() {
     CEngineObject* source = source_;
     source_ = nullptr;
     if (source != nullptr) source->Release();
-    if (bird_ != nullptr) {
-        bird_->Release();
-        bird_ = nullptr;
-    }
+    bird_.Reset();
     lastTime_ = 0.0f;
     followedId_ = -1;
 }

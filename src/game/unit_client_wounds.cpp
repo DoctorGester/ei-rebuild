@@ -158,7 +158,6 @@ WoundsMaterial::WoundsMaterial() {
     blend = 1;
     sourceBlend = render::Blend::SourceAlpha;
     destBlend = render::Blend::InvSourceAlpha;
-    preset = nullptr;
 }
 
 int CObject3DClientSpecific::ShowWounds(const char* name) {
@@ -180,7 +179,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         woundsTexture->flags_ &= ~kTextureLoaded;
         if (!manager->LoadTexture(woundsTexture)) {
             AssignTexture(&woundsTexture, nullptr);
-            woundsMaterial.Assign(nullptr);
+            woundsMaterial.Reset();
             lib::FreeStorage(extra);
             return 0;
         }
@@ -188,7 +187,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!woundsMaterial) {
         woundsMaterial.Assign(new WoundsMaterial());
         CRenderHelper* helper = g_sceneRenderer->helper_;
-        AsCountedRef(woundsMaterial->preset).Assign(helper->Preset(kWoundsPreset));
+        woundsMaterial->preset.Assign(helper->Preset(kWoundsPreset));
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
     }

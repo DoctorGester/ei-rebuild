@@ -39,23 +39,19 @@ const UnitPrototypeRecord* UnitPrototypeOf(CUnit* unit) {
 // The reset of an order: kind 9, target released, pointIsUseSpot / +0x1C / +0x20 cleared.
 void ResetOrder(UnitAction* order) {
     order->kind = UnitOrderKind::None;
-    if (order->target) order->target->Release();
-    order->target = nullptr;
+    order->target.Reset();
     order->pointIsUseSpot = 0;
     order->param = 0;
     order->modifier = 0;
 }
 
 void ReleaseTarget(UnitAction* order) {
-    if (order->target) order->target->Release();
-    order->target = nullptr;
+    order->target.Reset();
 }
 
 void SetTarget(UnitAction* order, CMapObject* target) {
     if (target == order->target) return;
-    ReleaseTarget(order);
-    if (target) ++target->refCount_;
-    order->target = target;
+    order->target.Assign(target);
 }
 
 void TellParty(CUnit* unit, AckKind kind) {

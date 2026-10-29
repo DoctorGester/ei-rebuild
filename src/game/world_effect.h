@@ -149,7 +149,7 @@ public:
 
     Vector3 color_;
     float range_;              // negative: flag 0x400 on the light
-    HeldObject<CLight> light_; // reference counted, null: none
+    Ref<CLight> light_; // reference counted, null: none
     std::uint32_t lightFlags_; // ored into the light's flags
 };
 
@@ -182,7 +182,7 @@ public:
     float typeParam_;           // copied to the source
     int attachedTo_;           // object id, -1: none
     Vector3 target_;           // moves towards it
-    HeldObject<CParticleSource> source_;   // reference counted
+    Ref<CParticleSource> source_;   // reference counted
     int unitId_;               // a unit whose position is used when unpacking, -1: none
 };
 
@@ -300,7 +300,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    AIRefTo<CMapObject> figure_;   // client only: the figure object (a stuff object, class 0x38, counted), null: none
+    Ref<CMapObject> figure_;   // client only: the figure object (a stuff object, class 0x38, counted), null: none
     int casterId_;             // the shooter, -1: none
     DamageInfo hit_;           // delivered on arrival (multiplier 1 after Reset)
 };
@@ -354,7 +354,7 @@ public:
     void Pack(DeltaField*) override {}            // nothing is sent
     void Start(int) override {}
 
-    AIRefTo<CMapObject> bird_;     // the figure object (a stuff object, class 0x38, counted), null: none
+    Ref<CMapObject> bird_;     // the figure object (a stuff object, class 0x38, counted), null: none
     CParticleSource* source_;  // counted, null: none
     int followedId_;           // world object id, -1: none
     float lastTime_;           // Update's last `now`

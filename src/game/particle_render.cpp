@@ -71,9 +71,9 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 } // namespace
 
-int CSceneRenderer::BindHeldTexture(int stage, HeldTexture* holder) {
-    TextureHolderEnsureLoaded(holder);
-    return SetTexture(stage, *holder);
+int CSceneRenderer::BindLoadedTexture(int stage, CTexture* texture) {
+    EnsureTextureLoaded(texture);
+    return SetTexture(stage, texture);
 }
 
 // Off screen (the renderer's clip test on the bounds says 2) only counts the hidden
@@ -92,7 +92,7 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
     g_vertices.resize(kReserve);
     g_sprites->resize(particles.size());
     g_vertices.resize(particles.size());
-    if (!renderer->BindHeldTexture(0, &texture)) return 0;
+    if (!renderer->BindLoadedTexture(0, texture)) return 0;
 
     ParticleSprite* sprite = g_sprites->data();
     auto cursor = particles.begin();

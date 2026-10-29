@@ -365,8 +365,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     UnitAction order{};
     order.kind = UnitOrderKind::Attack;
     order.source = 6;
-    order.target = target;
-    ++target->refCount_;
+    order.target.Assign(target);
 
     float x = unit->localPosition_.x;
     float y = unit->localPosition_.y;
@@ -478,8 +477,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
         key = static_cast<double>(span) - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;
     }
     plan->hitLocation = location;
-    if (order.target) order.target->Release();
-    order.target = nullptr;
+    order.target.Reset();
 
     BuildOrderSteps(steps, duration, UnitOrderKind::Attack, key);
     return true;

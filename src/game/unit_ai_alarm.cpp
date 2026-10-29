@@ -133,7 +133,7 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     alerted = 0;
     int delay = static_cast<int>(record->alarmDelay);
     alarmCountdown = delay < 1 ? 1 : delay;
-    target.Assign(nullptr);
+    target.Reset();
     action = kActionNone;
     attention.Build(owner->unit);
     if (alwaysUpdated) g_serverWorld->AddToUpdateMap(owner->unit);

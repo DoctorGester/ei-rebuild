@@ -89,7 +89,6 @@ CEffectAmbientSound::~CEffectAmbientSound() {
 }
 
 CEffectPointLight::CEffectPointLight() {
-    light_ = nullptr;
     Reset();
 }
 
@@ -101,7 +100,6 @@ CEffectPointLight::~CEffectPointLight() {
 // --- CEffectParticle and CEffectWall -------------------------------------------------------------
 
 CEffectParticle::CEffectParticle() {
-    source_ = nullptr;
     Reset();
 }
 

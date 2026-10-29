@@ -4,7 +4,7 @@
 
 #include "ai_map.h"      // AIPath, PathCellList
 #include "ai_motion.h"   // UnitMotion
-#include "unit_ai.h"     // AIRef, AICallRecord
+#include "unit_ai.h"     // AICallRecord
 #include "world.h"
 
 namespace {

@@ -91,7 +91,6 @@ CObject3DClientSpecific::CObject3DClientSpecific() {
     shadowMade = false;
     std::memset(&sphere, 0, sizeof(sphere));
     woundsTexture = nullptr;
-    woundsMaterial = nullptr;
     materialCursor = -1;
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     ClearWoundsMaterial();
@@ -125,7 +124,7 @@ int CObject3DClientSpecific::Create() {
 void CObject3DClientSpecific::Destroy() {
     shadowMade = false;
     AssignCounted<CTexture>(&woundsTexture, nullptr);
-    woundsMaterial.Assign(nullptr);
+    woundsMaterial.Reset();
     for (int k = 0; k < 2; ++k) {
         delete partSets[k];
     }

@@ -98,9 +98,7 @@ void CRainSnow::Clear() {
         g_clientWorld->sounds_->StopSound(sound);
         sound = 0;
     }
-    CTexture* old = texture;
-    texture = nullptr;
-    if (old) old->Release();
+    texture.Reset();
     wind = Vector3{0.0f, 0.0f, 0.0f};
     world = nullptr;
     particleCount = 0;
@@ -112,7 +110,7 @@ void CRainSnow::Clear() {
 }
 
 void CRainSnow::Start(int newMode, float duration) {
-    texture.Load(kWeatherTextureKind, WeatherTextureName());
+    LoadNamedTexture(texture, kWeatherTextureKind, WeatherTextureName());
     if (sound && newMode) {
         g_clientWorld->sounds_->StopSound(sound);
         sound = 0;
@@ -126,7 +124,6 @@ void CRainSnow::Start(int newMode, float duration) {
 
 CRainSnow::CRainSnow() {
     ClearFields();
-    texture = nullptr;
 
     world = nullptr;
     sound = 0;

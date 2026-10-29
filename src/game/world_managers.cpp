@@ -48,10 +48,7 @@ void CWorld::Destroy() {
     DropShared(&netSession_);
     DeleteManager(objectManager_);
     DeleteManager(figureManager_);
-    if (CLinkFigureLoader* loader = figureLoader_) {
-        figureLoader_ = nullptr;
-        if (--loader->refCount_ == 0) delete loader;
-    }
+    figureLoader_.Reset();
     DeleteManager(specificManager_);
     DeleteManager(itemConstructor_);
     DeleteManager(itemManager_);

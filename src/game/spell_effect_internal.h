@@ -197,7 +197,7 @@ inline Vector3* EyePointOf(CMapObject* object, Vector3* scratch) { return object
 // A unit's server half (CUnit::controller).
 inline CUnitServer* ControllerOf(CUnit* unit) { return unit->ServerController(); }
 // The target as a unit (the callers checked its class, or the game does not).
-inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target.object); }
+inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target.Get()); }
 
 // From the world's timed object manager.
 template <class T>

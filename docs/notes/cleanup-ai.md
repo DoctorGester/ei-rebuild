@@ -44,5 +44,5 @@ the aligned array's SetSize replacing FootprintCellSet's own copy (a `std::vecto
 - Hand-laid fields that remain: the water grid fields, `bridgeHeights` as bytes, the `__fastcall` layer Set / Merge
   shims in `ai_unit_layer.h`, `SmoothPath`'s fraction passed as raw bits (it is stored to memory before the octant's x87 work; a float parameter
   would change when it is stored and pushed), and the `CStringArray` layouts in `CMapObjectServer` and `CObject3D` (other areas).
-- Counted object references are `AIRefTo<T>` fields (engine_object.h; AIRef is `AIRefTo<CEngineObject>`): `PlayerMode::leader` is an
-  `AIRefTo<CUnit>` (Reset / Load / Save on the field). `AIRefTo<T>::Of` remains for list nodes and slots that are not fields of a struct.
+- Counted object references are `Ref<T>` fields (ref.h): `PlayerMode::leader` is a `Ref<CUnit>` (Assign / Reset on the field,
+  `LoadRef` / `SaveRef` from engine_object.h). `Ref<T>::Of` remains for list nodes that are plain pointers.

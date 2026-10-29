@@ -22,8 +22,6 @@
 #include <list>
 #include <vector>
 
-template <typename T>
-struct AIRefTo;
 struct AIBrain;
 struct AIOrder;
 class CUnitServer;
@@ -33,7 +31,7 @@ struct CountedUnits : std::list<CUnit*> {
     // Appends `object`, holding a reference.
     void AddCountedTail(CUnit* object);
     // The brain's corpse list's head handed to `out` with a reference (the list's own reference released). Returns `out`.
-    AIRefTo<CUnit>* PopHead(AIRefTo<CUnit>* out);
+    Ref<CUnit>* PopHead(Ref<CUnit>* out);
 };
 
 // What an order does (AIOrder::kind). A unit's queued order (CUnitServer::action2) is UnitOrderKind::None when nothing is
@@ -78,7 +76,7 @@ struct AIOrder {
 
     UnitOrderKind kind;
     std::uint32_t source;           // the body part of an attack (6 all), the spell of a cast, the UseSource of a use
-    AIRefTo<CMapObject> target;     // counted
+    Ref<CMapObject> target;     // counted
     Vector3 point;                  // target point; left uninitialised by the AI's orders
     // `point` is a use spot of the target that FindUseSpot picked: the unit walks to it and acts from there
     // (no sight or range checks against the target; reach 0.2).
@@ -241,7 +239,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    AIRefTo<CMapObject> leader;
+    Ref<CMapObject> leader;
 };
 
 // Suspection: go and look where something was noticed.
@@ -302,7 +300,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    AIRefTo<CMapObject> enemy;
+    Ref<CMapObject> enemy;
     std::uint8_t fixed;             // enemy set by the script (no searching)
     AITargetChoice chosen;          // the enemy chosen this tick; part -1: the whole unit
 };
@@ -419,8 +417,8 @@ public:
     // (range twice the distance).
     bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
 
-    AIRefTo<CMapObject> target;
-    AIRefTo<CUnit> leader;
+    Ref<CMapObject> target;
+    Ref<CUnit> leader;
     Vector3 point;                  // (z: 1.0 while walking there in state 2)
     int state;
     std::uint8_t run;
@@ -482,7 +480,7 @@ struct AIHeardCalls : std::vector<AICallRecord> {
 
 // An object the memory reported (the object is a counted reference).
 struct AIReport {
-    HeldPtr<CMapObject> object;
+    HeldRef<CMapObject> object;
     int what;
 };
 
@@ -752,14 +750,14 @@ struct AIBrain {
     // the message text is formatted only while the console shows filter bit 0.
     void CallAllies(const Vector3* point);
     void ChooseTarget(AITargetChoice* choice, CountedUnits* candidates, const Vector3* from, int a, int b);
-    AIRefTo<CUnit>* PopCorpse(AIRefTo<CUnit>* out);
+    Ref<CUnit>* PopCorpse(Ref<CUnit>* out);
 
     CUnitServer* owner;
     int action;
     AIMoveOrder move;               // the action point, and what to look at after arriving
     int actionTime;                 // game time the current look ends (or kNoTime / kLookStarted)
-    AIRefTo<CMapObject> target;
-    AIRefTo<CMapObject> seen;
+    Ref<CMapObject> target;
+    Ref<CMapObject> seen;
     std::uint8_t alerted;
     std::int8_t alarm;              // alarm kind raised when the countdown ends
     std::int8_t alarmSlot;         // the world alarm slot of the applied record (ApplyBehaviour)

@@ -907,7 +907,7 @@ struct EffectParticle {
 
     int type = 0;                       // the effect type
     int power = 0x10;                   // the effect's power byte
-    HeldPtr<CParticleSource> source;    // null when the effect has no lasting source
+    HeldRef<CParticleSource> source;    // null when the effect has no lasting source
     std::uint8_t present = 0;           // set while the effect list is compared
 };
 
@@ -981,7 +981,7 @@ public:
     std::uint32_t lightStateB;          // the same
     std::vector<EffectParticle> particles;  // the effect particles
     std::vector<EffectSoundRecord> sounds;        // the looping effect sounds
-    HeldObject<CLight> light;       // counted
+    Ref<CLight> light;       // counted
     int endSound;           // the end sound's handle (-1 none)
 };
 inline CMapObjectClientSpecific* CMapObject::ClientCompanion() const { return static_cast<CMapObjectClientSpecific*>(companion); }

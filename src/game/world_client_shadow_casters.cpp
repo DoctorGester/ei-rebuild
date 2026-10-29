@@ -199,7 +199,7 @@ const HighestObject& Highest(const CWorldClient* world) {
     const SectorGrid& grid = world->objectGrid_;
     for (std::uint32_t y = 0; y < grid.height_; ++y)
         for (std::uint32_t x = 0; x < grid.width_; ++x) {
-            const std::list<HeldPtr<CMapObject>>& cell = grid.rows_[y][x];
+            const std::list<HeldRef<CMapObject>>& cell = grid.rows_[y][x];
             for (const CMapObject* object : cell) {
                 if (!object || !object->attached || (object->bounds.flags & kBoundsValid) != kBoundsValid) continue;
                 const Vector3& scale = object->ClientSpecific()->figureScale;
@@ -290,7 +290,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
     const std::uint32_t firstY = cell(area.y0, grid.height_), lastY = cell(area.y1, grid.height_);
     for (std::uint32_t y = firstY; y <= lastY; ++y)
         for (std::uint32_t x = firstX; x <= lastX; ++x) {
-            const std::list<HeldPtr<CMapObject>>& list = grid.rows_[y][x];
+            const std::list<HeldRef<CMapObject>>& list = grid.rows_[y][x];
             for (CMapObject* object : list) {
                 if (!object || !object->attached) continue;
                 const bool unit = object->GetClassId() == ClassId::Unit;

@@ -105,8 +105,8 @@ void MagicTrap::UpdateVictims() {
         auto known = victims->begin();
         while (known != victims->end() && *known != unit) ++known;
         if (known == victims->end()) {
-            auto added = victims->emplace(victims->end());
-            AIRefTo<CUnit>::Of(&*added)->Assign(unit);
+            if (unit) unit->AddRef();
+            victims->push_back(unit);
             Append(&newcomers, unit);
         }
         node = next;
@@ -237,7 +237,7 @@ void MagicTrap::SaveTrap(CStream* stream) {
     stream->WriteValue(value);
     for (auto node = inside.begin(); node != inside.end();) {
         auto next = std::next(node);
-        AIRefTo<CUnit>::Of(&*node)->Save(stream);
+        SaveRef(*node, stream);
         node = next;
     }
     value = std::ssize(points);

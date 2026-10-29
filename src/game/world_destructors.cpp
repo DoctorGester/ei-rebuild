@@ -18,8 +18,7 @@ CWorld::~CWorld() {
     CWorld::Destroy();
     netSession_.Destroy();
     worldHandle_.Destroy();
-    if (CLinkFigureLoader* loader = figureLoader_)
-        if (--loader->refCount_ == 0) delete loader;
+    figureLoader_.Reset();
 }
 
 CParticleManager::CParticleManager() {

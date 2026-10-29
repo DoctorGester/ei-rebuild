@@ -242,11 +242,7 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
         {
             std::string key(model);
             CLinkMesh* made = FigureLoaderOf(this)->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z, false);
-            CLinkMesh* old = figure;
-            figure = made;
-            if (made) ++made->refCount_;
-            // The old figure loses a reference and is deleted at the last one.
-            if (old && --old->refCount_ == 0) delete old;
+            figure.Assign(made);
         }
     }
     LoadParts(model, names);

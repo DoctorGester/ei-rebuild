@@ -570,8 +570,7 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
 
 void CUnitServer::ResyncWithUnit() {
     action.kind = UnitOrderKind::None;
-    if (action.target) action.target->Release();
-    action.target = nullptr;
+    action.target.Reset();
     action.pointIsUseSpot = 0;
     action.param = 0;
     action.modifier = 0;
@@ -582,7 +581,7 @@ void CUnitServer::ResyncWithUnit() {
         action2.param = 0;
         action2.modifier = 0;
         action2.kind = UnitOrderKind::Idle;
-        action2.target.Assign(nullptr);
+        action2.target.Reset();
         action2.modifier = 0;
     }
     RecordFromMode(&moveMode, unit->moveMode);
@@ -624,9 +623,8 @@ void CUnitServer::ResyncWithUnit() {
 // --- Reset ---------------------------------------------------------------------------------------
 
 void CUnitServer::ResetController() {
-    auto releaseRef = [](AIRefTo<CMapObject>& ref) {
-        if (ref) ref->Release();
-        ref = nullptr;
+    auto releaseRef = [](Ref<CMapObject>& ref) {
+        ref.Reset();
     };
     action.kind = UnitOrderKind::None;
     releaseRef(action.target);

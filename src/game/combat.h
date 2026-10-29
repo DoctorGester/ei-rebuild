@@ -26,10 +26,7 @@ struct UnitAction : AIOrder {
     void Reset();
     void Retarget(CMapObject* object) {
         if (object == target) return;
-        if (target) target->Release();
-        target = nullptr;
-        ++object->refCount_;
-        target = object;
+        target.Assign(object);
     }
 };
 

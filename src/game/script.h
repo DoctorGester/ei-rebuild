@@ -48,7 +48,7 @@ struct ScriptObjectRef {
     void Load(CStream* stream);
     void Save(CStream* stream) const;
 
-    HeldPtr<CEngineObject> object;
+    HeldRef<CEngineObject> object;
 };
 
 // A script group: object references kept sorted, without duplicates. The set operations build the result in

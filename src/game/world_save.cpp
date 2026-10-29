@@ -362,8 +362,8 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                 if (id < 0) break;
                 CEngineObject* item = itemManager_->FindObject(id);
                 if (!item) continue;
-                auto node = counted_.emplace(counted_.begin());
-                HeldObject<CEngineObject>::Of(&*node)->Assign(item);
+                item->AddRef();
+                counted_.push_front(item);
             }
 
             if (PlayerList()) LoadPlayers(this, stream);

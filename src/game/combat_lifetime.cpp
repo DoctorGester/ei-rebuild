@@ -18,7 +18,6 @@ static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 
 // An order's constructor (kind 9, no target, pointIsUseSpot clear), then its Clear and the rest of its fields.
 void InitAction(UnitAction& action) {
-    action.target = nullptr;
     action.kind = UnitOrderKind::None;
     action.pointIsUseSpot = 0;
     action.Clear();
@@ -86,8 +85,6 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
 
 AIBrain* AIBrain::Construct() {
     move.Clear();
-    target = nullptr;
-    seen = nullptr;
     modes = {};
     current = nullptr;
     alarmRecords = {};

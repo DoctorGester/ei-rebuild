@@ -107,9 +107,7 @@ void CEffectPointLight::Reset() {
     ClearBase(this);
     if (light_ != nullptr) {
         g_clientWorld->terrain_->RemoveLight(light_);
-        CLight* old = light_;
-        light_ = nullptr;
-        if (old != nullptr) old->Release();
+        light_.Reset();
     }
     color_ = Vector3{0.0f, 0.0f, 0.0f};
     range_ = 0.0f;
@@ -235,9 +233,7 @@ void CEffectParticle::Reset() {
     ClearBase(this);
     if (source_ != nullptr) {
         source_->Stop();
-        CParticleSource* old = source_;
-        source_ = nullptr;
-        if (old != nullptr) old->Release();
+        source_.Reset();
     }
     size_ = 1.0f;
     alpha_ = 1.0f;
@@ -272,9 +268,7 @@ Vector3* CEffectParticle::Position(const ScriptGroup* group) {
 void CEffectParticle::Start(int update) {
     if (update == 0 && source_ != nullptr) {
         source_->Stop();
-        CParticleSource* old = source_;
-        source_ = nullptr;
-        if (old != nullptr) old->Release();
+        source_.Reset();
     }
     Spawn();
 }
@@ -477,9 +471,7 @@ void CEffectWall::Reset() {
     changeStamp_ = -1;
     if (source_ != nullptr) {
         source_->Stop();
-        CParticleSource* old = source_;
-        source_ = nullptr;
-        if (old != nullptr) old->Release();
+        source_.Reset();
     }
     size_ = 1.0f;
     alpha_ = 1.0f;

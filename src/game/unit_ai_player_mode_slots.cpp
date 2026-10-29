@@ -12,10 +12,8 @@ constexpr int kTamedPriority = 100000000;
 template <typename Mode>
 Mode* CopyPlayer(const PlayerMode* self, Mode* copy) {
     if (!copy) return nullptr;
-    if (self->target) ++self->target->refCount_;
-    copy->target = self->target;
-    if (self->leader) ++self->leader->refCount_;
-    copy->leader = self->leader;
+    copy->target.Assign(self->target);
+    copy->leader.Assign(self->leader);
     copy->point = self->point;
     copy->state = self->state;
     copy->run = self->run;
@@ -24,19 +22,15 @@ Mode* CopyPlayer(const PlayerMode* self, Mode* copy) {
 } // namespace
 
 PlayerMode::~PlayerMode() {
-    if (leader) leader->Release();
-    leader = nullptr;
-    if (target) target->Release();
-    target = nullptr;
+    leader.Reset();
+    target.Reset();
 }
 
 TamedMode::~TamedMode() {}
 
 void PlayerMode::Reset() {
-    if (leader) leader->Release();
-    leader = nullptr;
-    if (target) target->Release();
-    target = nullptr;
+    leader.Reset();
+    target.Reset();
     point = Vector3{0.0f, 0.0f, 0.0f};
     state = kStateFollow;
     run = 0;

@@ -171,7 +171,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
 
 void AIBrain::UpdateFollow() {
     if (!target || target->IsDead()) {
-        target.Assign(nullptr);
+        target.Reset();
         action = kActionNone;
         return;
     }
@@ -180,7 +180,7 @@ void AIBrain::UpdateFollow() {
     float farSq = static_cast<float>(g_logicSettings.followMaxDist * g_logicSettings.followMaxDist);
     CUnit* self = owner->unit;
     float nearSq = static_cast<float>(g_logicSettings.followMinDist * g_logicSettings.followMinDist);
-    auto* leader = static_cast<CUnit*>(target.object);
+    auto* leader = static_cast<CUnit*>(target.Get());
     Vector3 toLeader{static_cast<float>(leader->localPosition_.x - self->localPosition_.x), static_cast<float>(leader->localPosition_.y - self->localPosition_.y),
                      static_cast<float>(leader->localPosition_.z - self->localPosition_.z)};
     int now = g_serverWorld->tick_;

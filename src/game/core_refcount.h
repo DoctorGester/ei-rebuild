@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "ref.h"
+
 class ChunkArchive;
 
 // The root of the reference-counted classes. The network sessions and the cast spells derive from it directly,
@@ -24,6 +26,12 @@ public:
     virtual ~CRefCounted() {}
     virtual void Serialize(ChunkArchive*) {}
 
+    void AddRef() { ++refs_; }
+    // Drops a reference; the last one deletes the object.
+    void Release() {
+        if (--refs_ == 0) delete this;
+    }
+
     std::int16_t refs_;
     std::uint8_t flags6_;
     std::uint8_t flags7_;
@@ -41,7 +49,6 @@ public:
     virtual int OnShutdown() = 0;           // the object is still shared and about to lose its owner
     virtual CRefObject* Clone() = 0;        // the copy handed out when a kCopyOnShare object is shared
 
-    void Release();
     // Calls OnShutdown with an extra reference held, so it cannot destroy itself meanwhile.
     int Shutdown();
 };
@@ -70,46 +77,20 @@ template <typename T>
 void AssignCounted(T*& slot, std::type_identity_t<T>* object) {
     T* old = slot;
     slot = object;
-    if (object) ++object->refs_;
-    if (old && --old->refs_ == 0) delete old;
+    if (object) object->AddRef();
+    if (old) old->Release();
 }
 
 // A typed counted pointer's plain release: one reference dropped, the
 // object deleted with the last. The pointer itself is left as it was.
 template <typename T>
 void ReleaseCounted(T* object) {
-    if (object && --object->refs_ == 0) delete object;
+    if (object) object->Release();
 }
 
-// A counted pointer that holds its reference (a container's element): made from a pointer or copied, it takes a
-// reference; destroyed, it drops one and deletes the object with the last (ReleaseCounted). Assigning takes the
-// new reference before the old one is dropped. A move hands the reference over.
+// The name ui_briefing.h gives HeldRef until the interface track's files are converted.
 template <typename T>
-class CountedPtr {
-public:
-    CountedPtr() = default;
-    CountedPtr(T* object) : object_(object) {
-        if (object_) ++object_->refs_;
-    }
-    CountedPtr(const CountedPtr& other) : CountedPtr(other.object_) {}
-    CountedPtr(CountedPtr&& other) noexcept : object_(std::exchange(other.object_, nullptr)) {}
-    CountedPtr& operator=(const CountedPtr& other) {
-        AssignCounted(object_, other.object_);
-        return *this;
-    }
-    CountedPtr& operator=(CountedPtr&& other) noexcept {
-        std::swap(object_, other.object_);
-        return *this;
-    }
-    ~CountedPtr() { ReleaseCounted(object_); }
-
-    T* get() const { return object_; }
-    operator T*() const { return object_; }
-    T* operator->() const { return object_; }
-
-private:
-    T* object_ = nullptr;
-};
+using CountedPtr = HeldRef<T>;
 
 // The owner's release of a typed slot (RefPtr::Destroy): a still-shared object is detached and shut down first,
 // then the slot's content (reloaded: the shutdown may have changed it) is released.
@@ -207,24 +188,3 @@ struct CountedRefTo : CountedRefPtr {
     using CountedRefPtr::CountedRefPtr;
     T* Get() const { return static_cast<T*>(ptr); }
 };
-
-// A counted reference to a figure (CLinkMesh), the client half's wounds material or its helper preset;
-// object3d_lifetime.cpp defines Assign for those. A plain store (`ref = p`) takes and drops no reference.
-template <typename T>
-struct CountedRef {
-    CountedRef() = default;
-    CountedRef(const CountedRef&) = delete;
-    CountedRef& operator=(const CountedRef&) = delete;
-    // The new object gains a reference; the old one loses one and is deleted when that was the last.
-    void Assign(T* value);
-
-    operator T*() const { return object; }
-    T* operator->() const { return object; }
-    CountedRef& operator=(T* plain) {
-        object = plain;
-        return *this;
-    }
-
-    T* object;
-};
-

@@ -29,8 +29,6 @@ AIModeType PatrolMode::GetType() { return AIModeType::Patrol; }
 AIModeType FearMode::GetType() { return AIModeType::Fear; }
 
 PlayerMode::PlayerMode() {
-    target = nullptr;
-    leader = nullptr;
     point = Vector3{0.0f, 0.0f, 0.0f};
     state = kStateFollow;
     run = 0;

@@ -74,7 +74,6 @@ int CWorld::Create() {
 
 CWorld::CWorld() {
     ClearFields();
-    figureLoader_ = nullptr;
     worldHandle_.ptr = nullptr;
     netSession_.ptr = nullptr;
     players_ = nullptr;

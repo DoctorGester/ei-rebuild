@@ -65,7 +65,8 @@ CItem* ItemAt(const std::vector<CItem*>* items, int i) { return (*items)[i]; }
 
 // Appends to the list: the list holds a reference.
 void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
-    HeldObject<CEngineObject>::Of(&list->emplace_back(nullptr))->Assign(object);
+    if (object) object->AddRef();
+    list->push_back(object);
 }
 
 

@@ -35,7 +35,7 @@ bool AcceptsAreaSpells(CUnit* unit) {
 // Delivers `hit` to `unit` unless the spell may not affect it (the loops' common tail).
 void Deliver(CSpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
     if (effect->caster && !effect->Spell()->CanAffect(effect->caster, unit)) return;
-    CUnit* attacker = (effect->flags & 1) ? nullptr : effect->caster.object;
+    CUnit* attacker = (effect->flags & 1) ? nullptr : effect->caster.Get();
     unit->ReceiveHit(hit, attacker, effect->caster);
 }
 } // namespace

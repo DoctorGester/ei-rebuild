@@ -95,7 +95,7 @@ bool ScreenFade(bool* running, float* alpha) {
 }
 int CampaignMode() { return g_serverWorld->sessionKind_; }
 void* ClientWorldObject() { return &g_clientWorld.Get(); }
-void* SceneDevice() { return g_sceneRenderer->device_.device; }
+void* SceneDevice() { return g_sceneRenderer->device_.Get(); }
 void* DeviceLock() { return &g_deviceLock; }
 
 int ServerUpdate(void* server) { return static_cast<CWorldServer*>(server)->Update(); }
@@ -209,7 +209,7 @@ void LeaveToZone(void* connection, const char* name, int exit) {
 }
 
 bool RestoreSurfaces(long* result) {
-    if (!g_sceneRenderer->device_.device) return false;
+    if (!g_sceneRenderer->device_.Get()) return false;
     *result = 0;   // the image has no DirectDraw surfaces: nothing to restore
     return true;
 }

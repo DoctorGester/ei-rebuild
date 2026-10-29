@@ -243,12 +243,8 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
 void CLightning::Destroy() {
     power_ = 1.0f;
     amplitude_ = FromBits(0x3DCCCCCD);   // 0.1f
-    CTexture* texture = texture_;
-    texture_ = nullptr;
-    if (texture) texture->Release();
-    CTexture* glow = glowTexture_;
-    glowTexture_ = nullptr;
-    if (glow) glow->Release();
+    texture_.Reset();
+    glowTexture_.Reset();
 }
 
 int CLightning::Create() {

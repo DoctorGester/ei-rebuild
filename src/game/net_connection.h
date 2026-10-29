@@ -48,7 +48,7 @@ public:
 
 // A counted reference to a replica entry (the connection's maps' values, a sent item's entry). Kept: the name of
 // the reference type of the replication code.
-using EntryRef = CountedPtr<ReplicaEntry>;
+using EntryRef = HeldRef<ReplicaEntry>;
 
 // One item of a history entry: what a packet carried for one entry.
 struct SentItem {

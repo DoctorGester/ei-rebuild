@@ -1,15 +1,5 @@
 #include "core_refcount.h"
 
-
-namespace {
-// The release inlined at the call sites (delete through the virtual destructor, after the same null test).
-void ReleaseObject(CRefObject* object) {
-    if (--object->refs_ == 0) delete object;
-}
-} // namespace
-
-void CRefObject::Release() { ReleaseObject(this); }
-
 int CRefObject::Shutdown() {
     ++refs_;
     int result = OnShutdown();
@@ -20,8 +10,8 @@ int CRefObject::Shutdown() {
 void RefPtr::Assign(CRefObject* object) {
     CRefObject* old = ptr;
     ptr = object;
-    if (object) ++object->refs_;
-    if (old) ReleaseObject(old);
+    if (object) object->AddRef();
+    if (old) old->Release();
 }
 
 void RefPtr::Share(CRefObject* object) {
@@ -31,7 +21,7 @@ void RefPtr::Share(CRefObject* object) {
     }
     if (object->flags6_ & CRefObject::kCopyOnShare) object = object->Clone();
     ptr = object;
-    ++object->refs_;
+    object->AddRef();
     ptr->flags6_ |= CRefObject::kCopyOnShare;
 }
 
@@ -44,7 +34,7 @@ void RefPtr::Destroy() {
         object->OnShutdown();
         --object->refs_;
     }
-    ReleaseObject(ptr);   // reloaded: the shutdown may have changed it
+    ptr->Release();   // reloaded: the shutdown may have changed it
 }
 
 RefPtr* RefPtr::ShareAssign(CRefObject* object) {

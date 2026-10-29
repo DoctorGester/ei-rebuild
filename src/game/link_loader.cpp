@@ -255,10 +255,7 @@ CLinkFigureLoader::~CLinkFigureLoader() {
     for (auto& [name, set] : figureSets_) {
         delete set;
     }
-    if (CTextureDevice* device = renderer_) {
-        renderer_ = nullptr;
-        device->Release();
-    }
+    renderer_.Reset();
     CLinkFigureLoader::ClearCache();
 }
 

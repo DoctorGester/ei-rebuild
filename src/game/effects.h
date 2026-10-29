@@ -549,7 +549,7 @@ public:
     EmitCallback emitFn;
     UpdateCallback updateFn;
     ElementCallback elementFn;
-    HeldTexture texture;
+    Ref<CTexture> texture;
 };
 
 // The class factory's creator; the register arguments are unused.
@@ -602,7 +602,7 @@ public:
     int BuildSnow(CSceneRenderer* renderer);
     void DrawParticles(CSceneRenderer* renderer, int vertexCount);
 
-    HeldTexture texture;            // "RainSnow"
+    Ref<CTexture> texture;            // "RainSnow"
     class CWorldClient* world;      // the client world (set after construction)
     int sound;                      // rain loop handle in the sound manager (0: none)
     // The draws' work arrays.

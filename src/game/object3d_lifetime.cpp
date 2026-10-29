@@ -12,28 +12,7 @@
 namespace {
 // Globals the game fills at startup: the identity quaternion and the default figure scale.
 constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
-
-// The counted objects CountedRef holds: their count; each is deleted at its last reference.
-inline int& CountOf(CLinkMesh* figure) { return figure->refCount_; }
-inline int& CountOf(WoundsMaterial* material) { return material->refCount; }
-inline int& CountOf(CRenderPreset* preset) { return preset->refs_; }
-
-template <typename T>
-void DropReference(T* object) {
-    if (object && --CountOf(object) == 0) delete object;
-}
 } // namespace
-
-template <typename T>
-void CountedRef<T>::Assign(T* value) {
-    T* old = object;
-    object = value;
-    if (value) ++CountOf(value);
-    DropReference(old);
-}
-template void CountedRef<CLinkMesh>::Assign(CLinkMesh*);
-template void CountedRef<WoundsMaterial>::Assign(WoundsMaterial*);
-template void CountedRef<CRenderPreset>::Assign(CRenderPreset*);
 
 int CObject3D::Create3D() {
     localPosition_ = {};
@@ -42,9 +21,7 @@ int CObject3D::Create3D() {
     flags_ = 0;
     animations = nullptr;
     scale = {};
-    CLinkMesh* old = figure;
-    figure = nullptr;
-    DropReference(old);
+    figure.Reset();
     defaultScale = kDefaultFigureScale;
     ClearBounds();
     std::vector<FootprintPart>().swap(partBoxes);
@@ -52,7 +29,7 @@ int CObject3D::Create3D() {
 }
 
 void CObject3D::Destroy3D() {
-    figure.Assign(nullptr);
+    figure.Reset();
     while (!effectSources.empty()) RemoveEffectSource(effectSources.front());
     if (animation) {
         animation->DetachMeshes();

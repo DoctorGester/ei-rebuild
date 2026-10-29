@@ -375,7 +375,7 @@ int CWorldClient::DrawPass() {
     rangeLastY_ = static_cast<std::uint32_t>(Ftol(yHi)) >> 4;
 
     int touched = 0;
-    std::list<HeldPtr<CMapObject>>* sector = &objectGrid_.rows_[sy0][sx0];
+    std::list<HeldRef<CMapObject>>* sector = &objectGrid_.rows_[sy0][sx0];
     while (sector) {
         touched += CollectVisible(sector, view, animTime, now, 0, 0);
         std::uint32_t x = ++rangeX_;

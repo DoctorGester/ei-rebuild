@@ -14,7 +14,7 @@
 // "The static initialisers' objects"). The copy protection's check list (app_helpers.h) and the frame's deferred
 // unit list (world.h).
 constinit lib::StaticObject<std::list<std::uint8_t>> g_protectionChecks = /*0079BC2C*/ {};
-constinit lib::StaticObject<std::list<HeldPtr<CMapObject>>> g_deferredUnits = /*007AF5B4*/ {};
+constinit lib::StaticObject<std::list<HeldRef<CMapObject>>> g_deferredUnits = /*007AF5B4*/ {};
 
 namespace static_lists {
 

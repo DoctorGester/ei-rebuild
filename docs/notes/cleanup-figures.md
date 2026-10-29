@@ -31,17 +31,15 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
 - `CFigureInstance` (the figure a CObject3D holds at +0xF0) is `CLinkMesh` (link_figure.h, vtable 0073D790): refCount +0x04, piece map +0x14
   (`headers_`), slot 0 the deleting destructor (`DeleteThis`), slot 4 `LoadPart` (004F30D0; 00517240 calls `[vtable+0x10]`, which loads the
   piece through the loader 004F7480 unless the mesh has it; the local in CObject3D::LoadPart is `loaded`, and it must not reread `figure`
-  after the slot 4 call). `CObject3D::figure` is `CLinkMesh*`; `CountedRef` holds a `CLinkMesh*` and releases it through `DeleteThis(1)`.
+  after the slot 4 call). `CObject3D::figure` is a `Ref<CLinkMesh>`; CLinkMesh's Release deletes it at the last reference.
 - `CFigureCache` is gone: CWorld slot 23 (vtable +0x5C) is `FigureLoader()` returning `CLinkFigureLoader*` (model.h; party.h's slot 23 is
   named the same, still null there). MakeFigure (00516DA0) calls `LoadLink` (slot 4) / `LoadFigure` (slot 3) and SetFigureScale (00517700)
   calls `Remorph` (slot 6) with the scale as floats and `fresh` false (x87 float load / store is exact except for a signalling NaN, which a
   figure scale never is). `PieceNames` is the loader's `std::vector<std::string>`.
-- `CountedRef<T>` has `Assign` defined in object3d_lifetime.cpp for the three types the game's copies hold: 00519580
-  `CountedRef<CLinkMesh>` (the figure), 0051E570 `CountedRef<WoundsMaterial>`, 0051E4F0 `CountedRef<CRenderPreset>` (0051C3D0 ShowWounds
-  calls 0051E570 for the wounds material and 0051E4F0 for its preset; 0051AF70 DestroyClient calls 0051E570). `CountOf` / `DeleteCounted`
-  overloads are inline there (without `inline` the release build calls them). `CountedRef<T>` is in core_refcount.h (reads see the object, a
-  plain store counts nothing); `CObject3D::figure` and `CObject3DClientSpecific::woundsMaterial` are CountedRefs, and `AsCountedRef(T*&)`
-  (map_object_figures.h) is left for `CDeviceMaterial::preset`, a shared header's field. The client half's other drops are inlined in the original: HideWounds (0051C920), the constructor (0051AB00) and
+- `Ref<T>::Assign` (ref.h) is the game's three copies of the counted assign: 00519580 for the figure, 0051E570 for the wounds
+  material, 0051E4F0 for its render preset (0051C3D0 ShowWounds calls 0051E570 for the wounds material and 0051E4F0 for its preset;
+  0051AF70 DestroyClient calls 0051E570). `CObject3D::figure`, `CObject3DClientSpecific::woundsMaterial` and `CDeviceMaterial::preset`
+  are Refs; CLinkMesh, CDeviceMaterial and CRenderPreset count with AddRef / Release. The client half's other drops are inlined in the original: HideWounds (0051C920), the constructor (0051AB00) and
   CreateClient (0051AEC0) inline the assign of null, DestructBody (0051AD90) the reference's destructor (no slot write); they use
   `CObject3DClientSpecific::ClearWoundsMaterial()` (map_object_shadow.h, through `CDeviceMaterial::Release`).
 

@@ -101,11 +101,11 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     bounds_.boxMax.z += 1.0f;
     bounds_.radius = bounds_.boxMax.Length();
     if (demon) {
-        glowTexture_.Load(6, "DemonLight");
-        texture_.Load(6, "DemonLightning");
+        LoadNamedTexture(glowTexture_, 6, "DemonLight");
+        LoadNamedTexture(texture_, 6, "DemonLightning");
     } else {
-        glowTexture_.Load(6, "SmtgLight");
-        texture_.Load(6, "Lightning");
+        LoadNamedTexture(glowTexture_, 6, "SmtgLight");
+        LoadNamedTexture(texture_, 6, "Lightning");
     }
 }
 
@@ -117,8 +117,6 @@ LightningSegment::~LightningSegment() {
 
 CLightning::CLightning() {
     ClearFields();
-    texture_ = nullptr;
-    glowTexture_ = nullptr;
     std::memset(static_cast<void*>(&bounds_), 0, sizeof(bounds_));
     boundsSpare_ = {};
     CLightning::Destroy();

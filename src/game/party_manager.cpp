@@ -19,7 +19,7 @@ namespace {
 // Counted pointers as chunk `id`'s fields 1, object references (each the field's next occurrence): loading
 // drops the old ones and resizes to the number of fields first.
 template <typename T>
-void ObjectRefFields(ChunkArchive* ar, int id, std::vector<CountedPtr<T>>* objects) {
+void ObjectRefFields(ChunkArchive* ar, int id, std::vector<HeldRef<T>>* objects) {
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
@@ -31,7 +31,7 @@ void ObjectRefFields(ChunkArchive* ar, int id, std::vector<CountedPtr<T>>* objec
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        CountedPtr<T>& slot = (*objects)[static_cast<std::size_t>(i)];
+        HeldRef<T>& slot = (*objects)[static_cast<std::size_t>(i)];
         if (ar->loading_) slot = static_cast<T*>(ar->ObjectRef(1));
         else ar->SaveObjectRef(1, slot);
     }

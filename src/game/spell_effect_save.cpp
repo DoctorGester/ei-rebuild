@@ -37,8 +37,8 @@ void SaveEffectObject(CStream* stream, const CEngineObject* object) {
 void CSpellEffect::Load(CStream* stream) {
     world = g_loadingProjectileWorld;
     stream->ReadValue(position);
-    caster.Load(stream, world);
-    target.Load(stream, world);
+    LoadRef(caster, stream, world);
+    LoadRef(target, stream, world);
     stream->ReadValue(targetPoint);
     stream->ReadValue(state);
     Spell()->Load(stream);
@@ -58,8 +58,8 @@ void CSpellEffect::Load(CStream* stream) {
 
 void CSpellEffect::Save(CStream* stream) {
     stream->WriteValue(position);
-    caster.Save(stream);
-    target.Save(stream);
+    SaveRef(caster, stream);
+    SaveRef(target, stream);
     stream->WriteValue(targetPoint);
     stream->WriteValue(state);
     Spell()->Save(stream);

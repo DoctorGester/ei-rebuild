@@ -72,10 +72,7 @@ void AddAlertModes(AIBrain* brain) {
     brain->AddAggressionMode();
     brain->AddCorpseWatcherMode();
     brain->AddFearMode(0);
-    if (brain->target) {
-        brain->target->Release();
-        brain->target = nullptr;
-    }
+    brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
 
@@ -160,14 +157,8 @@ void AIBrain::Reset() {
     memory.Reset();
     move.point = Vector3{0.0f, 0.0f, 0.0f};
     move.looks.clear();
-    if (target) {
-        target->Release();
-        target = nullptr;
-    }
-    if (seen) {
-        seen->Release();
-        seen = nullptr;
-    }
+    target.Reset();
+    seen.Reset();
 }
 
 void AIBrain::Init() {
@@ -314,14 +305,12 @@ int AIMemory::Notice(const Vector3* point, int level, int kind) {
 }
 
 void AIMemory::Forget(CEngineObject* object) {
-    AIRef held{nullptr};
-    held.Assign(object);
-    RemoveAllOf(nearby, held.object);
-    RemoveAllOf(visible, held.object);
-    RemoveAllOf(seenCorpses, held.object);
-    RemoveAllOf(corpses, held.object);
+    HeldRef<CEngineObject> held(object);   // kept while its entries are removed
+    RemoveAllOf(nearby, object);
+    RemoveAllOf(visible, object);
+    RemoveAllOf(seenCorpses, object);
+    RemoveAllOf(corpses, object);
     std::erase_if(reports, [object](const AIReport& entry) { return entry.object == object; });
-    held.Reset();
 }
 
 void CUnitServer::AddHostileMask(std::uint32_t mask) { unit->AddHostileMask(mask); }
@@ -399,8 +388,8 @@ void AIBrain::Load(CStream* stream) {
     stream->ReadValue(move.point);
     LoadLooks(&move.looks, stream);
     stream->ReadValue(actionTime);
-    target.Load(stream, &g_serverWorld.Get());
-    seen.Load(stream, &g_serverWorld.Get());
+    LoadRef(target, stream, &g_serverWorld.Get());
+    LoadRef(seen, stream, &g_serverWorld.Get());
     stream->ReadValue(callRadius);
     stream->ReadValue(nearX);
     stream->ReadValue(nearY);
@@ -453,8 +442,8 @@ void AIBrain::Save(CStream* stream) {
     stream->WriteValue(move.point);
     SaveLooks(&move.looks, stream);
     stream->WriteValue(actionTime);
-    target.Save(stream);
-    seen.Save(stream);
+    SaveRef(target, stream);
+    SaveRef(seen, stream);
     stream->WriteValue(callRadius);
     stream->WriteValue(nearX);
     stream->WriteValue(nearY);

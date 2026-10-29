@@ -19,30 +19,12 @@ namespace {
 
 constexpr int kStatTaming = 2;
 
-template <typename T>
-void ReferenceRelease(T** a0) { static_cast<AIRef*>((void*)a0)->Reset(); }
-
 int& Stage(CUnitServer* self) { return self->tameStage; }
 
 // The side that tamed the unit (-1 when not tamed) is the attacker's: the taming is undone.
 void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
     int side = Stage(self) == 0 ? -1 : self->tamerSide;
     if (side == tamer->side) self->UndoTaming();
-}
-
-// An empty reference list of the brain (a list of one reference per node): each released, then the list is emptied.
-// `release` picks how the original releases the element.
-template <bool kViaRelease>
-void ClearReferenceList(std::list<CUnit*>& list) {
-    for (auto& node : list) {
-        if (kViaRelease) {
-            ReferenceRelease(&node);
-        } else {
-            if (node) node->Release();
-            node = nullptr;
-        }
-    }
-    list.clear();
 }
 
 } // namespace
@@ -74,8 +56,8 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         unit->SetSide(tamer->side);
         unit->SetPlayer(tamerPlayer);
         brain.AddMode(new TamedMode());
-        ClearReferenceList<false>(brain.memory.seenCorpses);
-        ClearReferenceList<true>(brain.memory.corpses);
+        ReleaseAndClear(brain.memory.seenCorpses);
+        ReleaseAndClear(brain.memory.corpses);
         Stage(this) = 3;
         break;
     }
@@ -93,7 +75,6 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         action2.kind = UnitOrderKind::Idle;
         if (action2.target) {
             action2.target.Reset();
-            action2.target = nullptr;
         }
         action2.modifier = 0;
     }

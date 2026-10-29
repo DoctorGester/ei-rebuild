@@ -51,7 +51,7 @@ CUnit* ReadUnit(CStream* stream, const CBaseManager* objects) {
 void LoadOrder(CStream* stream, UnitAction* order) {
     stream->ReadValue(order->kind);
     stream->ReadValue(order->source);
-    order->target.Load(stream, &g_serverWorld.Get());
+    LoadRef(order->target, stream, &g_serverWorld.Get());
     stream->ReadValue(order->point);
     stream->ReadValue(order->param);
     stream->ReadValue(order->modifier);
@@ -61,7 +61,7 @@ void LoadOrder(CStream* stream, UnitAction* order) {
 void SaveOrder(CStream* stream, UnitAction* order) {
     stream->WriteValue(order->kind);
     stream->WriteValue(order->source);
-    order->target.Save(stream);
+    SaveRef(order->target, stream);
     stream->WriteValue(order->point);
     stream->WriteValue(order->param);
     stream->WriteValue(order->modifier);

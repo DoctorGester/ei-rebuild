@@ -196,7 +196,10 @@ public:
 };
 
 // A null texture is a fatal error (its result returned); a loaded one gives 1.
-int TextureHolderEnsureLoaded(struct HeldTexture* holder);
+int EnsureTextureLoaded(CTexture* texture);
+// Drops the texture `slot` holds, then takes the texture manager's texture of `kind` named `name`, made when
+// missing.
+void LoadNamedTexture(Ref<CTexture>& slot, int kind, const char* name);
 
 constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 

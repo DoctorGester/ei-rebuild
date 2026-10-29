@@ -14,7 +14,7 @@
 #include "ground_print.h"
 #include "manager_context.h"
 #include "maths.h"
-#include "model.h"   // HeldTexture
+#include "model.h"
 #include "object_diplomacy.h"
 #include "object_tables.h"
 #include "options.h"
@@ -193,7 +193,7 @@ public:
     float secondsPerTick_;
     std::uint8_t windDirection_[12];      // three floats; saved and loaded as they are
     std::uint32_t windStrength_;          // float bits, 0..1; saved and loaded
-    CLinkFigureLoader* figureLoader_;     // counted (the client's from SetUpGraphics; FigureLoader returns it)
+    Ref<CLinkFigureLoader> figureLoader_;   // the client's from SetUpGraphics; FigureLoader returns it
     CPlayerManager* players_;
     CFigureManager* figureManager_;      // FigureManager
     CMapObjectManager* objectManager_;   // map objects by id (its NewObject creates one)
@@ -230,7 +230,7 @@ struct SharedObject {
     int objectId = 0;
     int player = 0;
     std::uint32_t money = 0;                // gold the loot adds to the finder's party
-    std::vector<HeldPtr<CItem>> objects;    // counted
+    std::vector<HeldRef<CItem>> objects;    // counted
 
     // Reads the entry: id, player, value, then object ids resolved by the item manager; each found
     // object is appended with a reference.
@@ -620,8 +620,8 @@ struct UnitSet {
 void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed);
 
 struct SectorGrid {
-    std::unique_ptr<std::list<HeldPtr<CMapObject>>[]> cells_;
-    std::unique_ptr<std::list<HeldPtr<CMapObject>>*[]> rows_;   // row y: its lists
+    std::unique_ptr<std::list<HeldRef<CMapObject>>[]> cells_;
+    std::unique_ptr<std::list<HeldRef<CMapObject>>*[]> rows_;   // row y: its lists
     int allocatedWidth_, allocatedHeight_;  // the cells allocated (Resize: when they change)
     std::uint32_t width_;                 // cells along x
     std::uint32_t height_;                // cells along y
@@ -702,7 +702,7 @@ struct ClientArrayManager : CBaseManager {
 
     int Draw(CSceneRenderer* renderer);
 
-    HeldTexture texture;                  // the fog texture (counted)
+    Ref<CTexture> texture;                  // the fog texture (counted)
     std::list<CEngineObject*> list;       // counted
 };
 // The manager's Clear (its object and every listed one released, the list emptied); a new fog object,
@@ -815,7 +815,7 @@ public:
     // Files each object of `list` with a model inside the view frustum in the frame's draw lists; with
     // `animateUnits` 0 units only go on the deferred list, `withScripted` lets heroes with a text-key id
     // through. Returns how many objects were queued for the model-touch list.
-    int CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
+    int CollectVisible(std::list<HeldRef<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
                        char animateUnits, char withScripted);
     // The ground point under screen pixel (x, y): inverts the current view matrix and iterates on the
     // terrain height (Terrain::HeightAt). Returns out (x, y, z).
@@ -948,8 +948,8 @@ public:
     std::uint32_t debugFlags_;            // the debug display's switches (bits 0-3: ShowFps ...)
     std::vector<ZoneExit> exits_;
     // The exits' particle markers, one per exit or null (counted; CreateExitMarkers / UpdateExitMarkers).
-    std::vector<HeldPtr<CParticleSource>> exitMarkers_;
-    std::list<HeldPtr<CMapObject>> heroes_;                   // heroes with a text-key id (counted)
+    std::vector<HeldRef<CParticleSource>> exitMarkers_;
+    std::list<HeldRef<CMapObject>> heroes_;                   // heroes with a text-key id (counted)
     std::list<CMapObject*> objects_;               // every filed object (one reference each)
     // The objects answering IsSynchronised, with their nodes by id in dynamicNodes_ and the highest id
     // in dynamicMaxId_ (Segment drops those whose update returns 0).
@@ -1290,7 +1290,7 @@ inline std::vector<CMapObject*>& FrameObjects(FrameList list) {
                                               &g_visibleLevers,     &g_visibleOther, &g_visibleBuildings};
     return *kQueues[static_cast<int>(list)];
 }
-extern lib::StaticObject<std::list<HeldPtr<CMapObject>>> g_deferredUnits;
+extern lib::StaticObject<std::list<HeldRef<CMapObject>>> g_deferredUnits;
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.

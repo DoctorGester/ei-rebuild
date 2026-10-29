@@ -40,5 +40,5 @@ reach other classes after the cleanup, and what is left. The classes themselves 
 - `CParticleManager::quietStart` (+0xE4; `ParticleManagerClearQuietStart`) is never set non-zero in src.
 - `CSkyObject` +0x94..+0x21F are named after `CFigureMesh`, whose code runs on it. `CTrapObject::savedValue_` (+0x238) is only loaded and saved;
   nothing sets it. Constructor-only fields stay `unused_`: CLight +0xE4 / +0xE8 / +0xFC, CLightFactory +0xB0..+0xD0.
-- `CSpellEffect::target` / `caster` are `AIRefTo<CMapObject>` / `AIRefTo<CUnit>`, the missile's `figure_` and the moshka's `bird_` are
-  `AIRefTo<CMapObject>`, the point light's `light_` and the particle effect's `source_` are `HeldObject<CLight>` / `HeldObject<CParticleSource>`.
+- `CSpellEffect::target` / `caster` are `Ref<CMapObject>` / `Ref<CUnit>`, the missile's `figure_` and the moshka's `bird_` are
+  `Ref<CMapObject>`, the point light's `light_` and the particle effect's `source_` are `Ref<CLight>` / `Ref<CParticleSource>`.

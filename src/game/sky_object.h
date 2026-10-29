@@ -58,7 +58,7 @@ struct CSky {
 
     CSkyObject* object;   // null until the zone's sky is loaded
     CEngineObject* material;   // counted (type 0x12, by CWorldClient::LoadSky); 0 when constructed
-    HeldTexture texture;  // texture holder
+    Ref<CTexture> texture;  // texture holder
     int turns;            // 1 when constructed
 
     // Object->Light(...) when there is an object.

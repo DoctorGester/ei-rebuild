@@ -53,7 +53,6 @@ void MaybeRemark(AIBrain* brain, AIRemark what) {
 void StartMove(AIBrain* brain, AIMoveOrder* order) {
     if (brain->target) {
         brain->target.Reset();
-        brain->target = nullptr;
     }
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
@@ -296,19 +295,16 @@ void FollowMode::Execute(AIBrain* brain) {
     if (!who) return;
     brain->action = AIBrain::kActionFollow;
     if (who == brain->target) return;
-    if (brain->target) brain->target->Release();
-    brain->target = nullptr;
-    ++who->refCount_;
-    brain->target = who;
+    brain->target.Assign(who);
 }
 
 void FollowMode::OnObjectDeleted(CEngineObject* object) {
     if (leader == object && leader) leader.Reset();
 }
 
-void FollowMode::Load(CStream* stream) { leader.Load(stream, &g_serverWorld.Get()); }
+void FollowMode::Load(CStream* stream) { LoadRef(leader, stream, &g_serverWorld.Get()); }
 
-void FollowMode::Save(CStream* stream) { leader.Save(stream); }
+void FollowMode::Save(CStream* stream) { SaveRef(leader, stream); }
 
 // --- Suspection ----------------------------------------------------------------------------------
 
@@ -320,7 +316,7 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
         }
         if (!allied) {
             Vector3 where;
-            where = static_cast<const CMapObject*>(brain->seen.object)->localPosition_;
+            where = static_cast<const CMapObject*>(brain->seen.Get())->localPosition_;
             brain->memory.Notice(&where, 1000, -2);
         }
     }
@@ -369,7 +365,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     }
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);
-    brain->target.Assign(nullptr);
+    brain->target.Reset();
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
     brain->move.point = order.point;
@@ -399,7 +395,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     chosen.object = nullptr;
     if (fixed) {
         if (enemy && enemy->IsDead() != 0) {
-            enemy.Assign(nullptr);
+            enemy.Reset();
             return kNoPriority;
         }
         if (!enemy) {
@@ -416,12 +412,11 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         if (enemy->IsDead() == 0 && enemy->GetClassId() == ClassId::Unit) {
             if (brain->memory.IsEnemy(brain->owner->unit, enemy) == 0) return kNoPriority;
             chosen.part = -1;
-            chosen.object = static_cast<CUnit*>(enemy.object);   // a unit (tested above)
+            chosen.object = static_cast<CUnit*>(enemy.Get());   // a unit (tested above)
             return chosen.object ? 10000 : kNoPriority;
         }
         if (enemy) {
             enemy.Reset();
-            enemy = nullptr;
         }
         return kNoPriority;
     }
@@ -437,10 +432,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     brain->ChooseTarget(&chosen, &g_candidates.Get(), &self->localPosition_, 0, 0);
     CUnit* best = chosen.object;
     if (best != enemy) {
-        if (enemy) enemy->Release();
-        enemy = nullptr;
-        if (best) ++best->refCount_;
-        enemy = best;
+        enemy.Assign(best);
     }
     return chosen.object ? 10000 : kNoPriority;
 }
@@ -465,10 +457,7 @@ void AggressionMode::Execute(AIBrain* brain) {
     }
     if (!brain->owner->IsScrollSource(part)) brain->action = AIBrain::kActionCast;
     if (object != brain->target) {
-        if (brain->target) brain->target->Release();
-        brain->target = nullptr;
-        if (object) ++object->refCount_;
-        brain->target = object;
+        brain->target.Assign(object);
     }
     brain->actionTime = part;
     brain->owner->OrderCast(part, object, 0);
@@ -504,12 +493,12 @@ void AggressionMode::Leave(AIBrain* brain) {
 }
 
 void AggressionMode::Load(CStream* stream) {
-    enemy.Load(stream, &g_serverWorld.Get());
+    LoadRef(enemy, stream, &g_serverWorld.Get());
     stream->ReadValue(fixed);
 }
 
 void AggressionMode::Save(CStream* stream) {
-    enemy.Save(stream);
+    SaveRef(enemy, stream);
     stream->WriteValue(fixed);
 }
 
@@ -517,10 +506,10 @@ void AggressionMode::Save(CStream* stream) {
 
 int CorpseWatcherMode::Evaluate(AIBrain* brain) {
     if (!brain->memory.corpses.empty()) {
-        AIRefTo<CUnit> corpse;
-        AIRefTo<CUnit>* popped = brain->PopCorpse(&corpse);
-        brain->memory.Notice(&popped->object->localPosition_, 800, -3);
-        if (corpse.object) corpse.object->Release();
+        Ref<CUnit> corpse;
+        Ref<CUnit>* popped = brain->PopCorpse(&corpse);
+        brain->memory.Notice(&(*popped)->localPosition_, 800, -3);
+        corpse.Reset();
     }
     return kNoPriority;
 }
@@ -564,7 +553,7 @@ void PlayerMode::Execute(AIBrain* brain) {
     switch (state) {
     case kStateFollow: {
         if (!leader && brain->action == AIBrain::kActionFollow) {
-            brain->target.Assign(nullptr);
+            brain->target.Reset();
             brain->action = AIBrain::kActionNone;
         }
         int action = brain->action;
@@ -580,11 +569,7 @@ void PlayerMode::Execute(AIBrain* brain) {
         }
         if (!direct) {
             brain->action = AIBrain::kActionFollow;
-            if (who != brain->target) {
-                brain->target.Reset();
-                if (who) ++who->refCount_;
-                brain->target = who;
-            }
+            brain->target.Assign(who);
         }
         if (!leader) {
             UpdateCombat(brain);
@@ -659,20 +644,14 @@ void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int 
     if (object == brain->owner->unit) return;
     state = kStateFollow;
     if (object != target) {
-        if (target) target->Release();
-        target = nullptr;
-        if (object) ++object->refCount_;
-        target = object;
+        target.Assign(object);
     }
     if (brain->owner->unit->player == nullptr && object->GetClassId() == ClassId::Unit &&
         brain->memory.IsEnemy(brain->owner->unit, object) == 0)
         return;
     brain->action = AIBrain::kActionAttack;
     if (object != brain->target) {
-        if (brain->target) brain->target->Release();
-        brain->target = nullptr;
-        if (object) ++object->refCount_;
-        brain->target = object;
+        brain->target.Assign(object);
     }
     brain->owner->OrderAttack(brain->target, how, unknown, AckKind::Attack);
 }
@@ -687,10 +666,7 @@ void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object) {
     state = kStateFollow;
     if (!brain->owner->IsScrollSource(spell)) brain->action = AIBrain::kActionCast;
     if (object != brain->target) {
-        if (brain->target) brain->target->Release();
-        brain->target = nullptr;
-        if (object) ++object->refCount_;
-        brain->target = object;
+        brain->target.Assign(object);
     }
     brain->actionTime = spell;
     brain->owner->OrderCast(spell, object, running);
@@ -709,7 +685,6 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
     if (newLeader == self) {
         if (leader) {
             leader.Reset();
-            leader = nullptr;
         }
         return;
     }
@@ -718,7 +693,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
         CUnit* unit = newLeader;
         for (;;) {
             PlayerMode* mode = PlayerModeOf(unit);
-            CUnit* next = mode ? mode->leader.object : nullptr;
+            CUnit* next = mode ? mode->leader.Get() : nullptr;
             if (!next) break;
             if (next == self) {
                 AIBrain* own = &next->ServerController()->brain;
@@ -734,10 +709,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
         brain->action = AIBrain::kActionNone;
     }
     if (newLeader != leader) {
-        if (leader) leader->Release();
-        leader = nullptr;
-        if (newLeader) ++newLeader->refCount_;
-        leader = newLeader;
+        leader.Assign(newLeader);
     }
 }
 
@@ -748,8 +720,8 @@ void PlayerMode::OnObjectDeleted(CEngineObject* object) {
 
 void PlayerMode::Load(CStream* stream) {
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
-    target.Load(stream, &g_serverWorld.Get());
-    leader.Load(stream, &g_serverWorld.Get());
+    LoadRef(target, stream, &g_serverWorld.Get());
+    LoadRef(leader, stream, &g_serverWorld.Get());
     stream->ReadValue(point);
     stream->ReadValue(state);
     if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {
@@ -759,8 +731,8 @@ void PlayerMode::Load(CStream* stream) {
 }
 
 void PlayerMode::Save(CStream* stream) {
-    target.Save(stream);
-    leader.Save(stream);
+    SaveRef(target, stream);
+    SaveRef(leader, stream);
     stream->WriteValue(point);
     stream->WriteValue(state);
 }

@@ -92,9 +92,8 @@ void CSky::Light(const float* direction, SkyColour ambient, SkyColour light) {
 CSky::CSky() {
     object = nullptr;
     material = nullptr;
-    texture = nullptr;
     turns = 1;
-    texture.Load(kSkyTextureKind, kSkyTextureName);
+    LoadNamedTexture(texture, kSkyTextureKind, kSkyTextureName);
 }
 
 void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
@@ -120,7 +119,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     pipeline->PushMatrix(m, CTransformPipeline::kClipStack);
     pipeline->PushMatrix(m, 1);
-    TextureHolderEnsureLoaded(&texture);
+    EnsureTextureLoaded(texture);
     renderer->SetTexture(0, texture);
     renderer->DrawFigure(object, nullptr, 0xFF, nullptr);
     const int stacks[2] = {CTransformPipeline::kClipStack, 1};

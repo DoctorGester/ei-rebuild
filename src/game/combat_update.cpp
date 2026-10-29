@@ -97,8 +97,7 @@ void SetStandingFlag(CUnitServer* self, int standing) {
 // A UnitAction emptied as the original inlines it: kind 9, the target released, flags cleared.
 void EmptyAction(UnitAction* order) {
     order->kind = UnitOrderKind::None;
-    if (order->target) order->target->Release();
-    order->target = nullptr;
+    order->target.Reset();
     order->pointIsUseSpot = 0;
     order->param = 0;
     order->modifier = 0;
