@@ -1,0 +1,12 @@
+{
+  "scenario": "camera_drawn",
+  "install": "rebirth",
+  "recorded": "2026-10-29",
+  "commit": "29eda0ab1",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "R35c: new scenario, the drawn view at frametime 8 (pan, turn, clickunit)",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+}
