@@ -517,13 +517,15 @@ private:
     std::vector<std::uint32_t> absolute;    // scratch: an item's indices made absolute
 };
 
-// The terrain, inside EndFrame's off-screen pass. TerrainPositions: every `step`th position of the frame's
-// terrain vertices in draw order (the shadow map's fit). TerrainFrameDone, after a present, drops pages not
-// drawn for a long time. DestroyTerrain keeps the pages (placed again at their next draw).
+// The terrain, inside EndFrame's off-screen pass. For the shadow map's fit: TerrainPieceBox, the box of a
+// piece's vertices in the landscape's space (false when it has none, kept with the page); TerrainPiecePositions,
+// every `step`th position of its vertices. TerrainFrameDone, after a present, drops pages not drawn for a long
+// time. DestroyTerrain keeps the pages (placed again at their next draw).
 bool CreateTerrainShader();
 void UploadTerrain(const Frame& frame);
 void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
-void TerrainPositions(const Frame& frame, std::size_t step, std::vector<Vector3>* out);
+bool TerrainPieceBox(const TerrainPiece& piece, Vector3* low, Vector3* high);
+void TerrainPiecePositions(const TerrainPiece& piece, std::uint32_t step, std::vector<Vector3>* out);
 void TerrainFrameDone();
 void DestroyTerrain();
 // The ground's casters (render::ShadowTerrainSector). DrawTerrainCasters draws with `pipeline` (vertex buffer

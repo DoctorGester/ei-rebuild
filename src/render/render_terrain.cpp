@@ -182,9 +182,10 @@ PageSource SourceOf(const SectorData* s, int page) {
     return src;
 }
 
-// A quarter's tiles of a page: its vertices and indices within the page's.
+// A quarter's tiles of a page: its vertices and indices within the page's, and its vertices' box.
 struct QuarterRange {
     std::uint32_t firstVertex = 0, vertexCount = 0, firstIndex = 0, indexCount = 0;
+    Vector3 low{}, high{};
 };
 
 // A sector's ground layer as a caster: its 33 x 33 vertices with normals from their neighbours, kept while
@@ -272,6 +273,19 @@ struct CachedPage {
 // A second block: it uses CachedPage (defined above).
 namespace {
 
+// Each quarter's box of its vertices' positions, after they were built or moved.
+void QuarterBoxes(CachedPage& p) {
+    for (QuarterRange& q : p.quarters) {
+        q.low = Vector3{1e30f, 1e30f, 1e30f};
+        q.high = Vector3{-1e30f, -1e30f, -1e30f};
+        for (std::uint32_t i = q.firstVertex; i < q.firstVertex + q.vertexCount; ++i) {
+            const Vector3& at = p.vertices[i].position;
+            q.low = Vector3{(std::min)(q.low.x, at.x), (std::min)(q.low.y, at.y), (std::min)(q.low.z, at.z)};
+            q.high = Vector3{(std::max)(q.high.x, at.x), (std::max)(q.high.y, at.y), (std::max)(q.high.z, at.z)};
+        }
+    }
+}
+
 // The tiles of `page` at level of detail `lod` (with the seams' variants when `seams`), every quarter's
 // (culled or not), as DrawSectorPage builds them: positions, texture coordinates, the record of each
 // vertex and the triangles.
@@ -328,6 +342,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
         range.indexCount = static_cast<std::uint32_t>(out.indices.size()) - range.firstIndex;
     }
     out.readsWater = std::any_of(out.records.begin(), out.records.end(), [](std::uint16_t r) { return r >= kWaterRecords; });
+    QuarterBoxes(out);
 }
 
 bool SameGeometry(const CachedPage& a, const CachedPage& b) {
@@ -379,6 +394,7 @@ bool ReadVertices(const SectorData* s, CachedPage& p) {
         MarkVertex(i, p.vertexFrom, p.vertexTo);
         changed = true;
     }
+    if (changed) QuarterBoxes(p);
     return changed;
 }
 
@@ -735,15 +751,19 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     draw();
 }
 
-void TerrainPositions(const Frame& f, std::size_t step, std::vector<Vector3>* out) {
+void TerrainPiecePositions(const TerrainPiece& piece, std::uint32_t step, std::vector<Vector3>* out) {
     out->clear();
-    std::size_t at = 0, next = 0;
-    for (const TerrainPiece& piece : f.terrainPieces) {
-        const CachedPage& p = *piece.page;
-        const QuarterRange& q = p.quarters[piece.quarter];
-        for (; next < at + q.vertexCount; next += step) out->push_back(p.vertices[q.firstVertex + (next - at)].position);
-        at += q.vertexCount;
-    }
+    const CachedPage& p = *piece.page;
+    const QuarterRange& q = p.quarters[piece.quarter];
+    for (std::uint32_t i = 0; i < q.vertexCount; i += step) out->push_back(p.vertices[q.firstVertex + i].position);
+}
+
+bool TerrainPieceBox(const TerrainPiece& piece, Vector3* low, Vector3* high) {
+    const QuarterRange& q = piece.page->quarters[piece.quarter];
+    if (q.vertexCount == 0) return false;
+    *low = q.low;
+    *high = q.high;
+    return true;
 }
 
 void TerrainFrameDone() {

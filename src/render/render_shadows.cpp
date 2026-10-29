@@ -482,6 +482,43 @@ void CollectQueries() {
 
 // --- The map's fit ----------------------------------------------------------------------------------
 
+// A half-space of the landscape's space: a x + b y + c z + d >= 0.
+struct Plane {
+    double a, b, c, d;
+    double Side(const D3& at) const { return a * at.x + b * at.y + c * at.z + d; }
+};
+
+// The camera's view as the fit takes it, in the landscape's space (clip space's rows combined): in front of
+// the camera (w >= 0), its sides widened by 5% (|x|, |y| <= 1.05 w) and before the far plane (z <= w).
+constexpr int kViewPlanes = 6;
+void ViewPlanes(const M4& camera, Plane planes[kViewPlanes]) {
+    auto row = [&](int i) { return Plane{camera.m[i * 4], camera.m[i * 4 + 1], camera.m[i * 4 + 2], camera.m[i * 4 + 3]}; };
+    auto sum = [](const Plane& p, double k, const Plane& q, double l) {
+        return Plane{p.a * k + q.a * l, p.b * k + q.b * l, p.c * k + q.c * l, p.d * k + q.d * l};
+    };
+    const Plane x = row(0), y = row(1), z = row(2), w = row(3);
+    planes[0] = w;
+    planes[1] = sum(w, 1.05, x, -1.0);
+    planes[2] = sum(w, 1.05, x, 1.0);
+    planes[3] = sum(w, 1.05, y, -1.0);
+    planes[4] = sum(w, 1.05, y, 1.0);
+    planes[5] = sum(w, 1.0, z, -1.0);
+}
+
+// The view's planes the box low..high crosses (bit k: plane k), -1 when it is wholly outside one of them: its
+// corners farthest out and farthest in along each plane's normal.
+int CrossedPlanes(const D3& low, const D3& high, const Plane planes[kViewPlanes]) {
+    int crossed = 0;
+    for (int k = 0; k < kViewPlanes; ++k) {
+        const Plane& p = planes[k];
+        const D3 in{p.a >= 0.0 ? high.x : low.x, p.b >= 0.0 ? high.y : low.y, p.c >= 0.0 ? high.z : low.z};
+        const D3 out{p.a >= 0.0 ? low.x : high.x, p.b >= 0.0 ? low.y : high.y, p.c >= 0.0 ? low.z : high.z};
+        if (p.Side(in) < 0.0) return -1;
+        if (p.Side(out) < 0.0) crossed |= 1 << k;
+    }
+    return crossed;
+}
+
 // The map's view from the sun around the visible ground, made once a frame (FitMap): by PrepareShadows,
 // or earlier by the world's draw for its casters outside the view (ShadowCasterArea); made again when
 // more ground was drawn since.
@@ -561,22 +598,40 @@ const Fit& FitMap(Frame& f) {
     x = across < 1e-6 ? D3{1.0, 0.0, 0.0} : D3{x.x / across, x.y / across, 0.0};
     D3 y = Cross(d, x);
 
-    // The visible ground seen from the sun: every second terrain vertex inside the camera's view.
+    // The visible ground seen from the sun: a terrain piece wholly inside the camera's view by its box's corners
+    // (a box reaches above the piece's low ground: seen from the sun its top lies a little further along y), one
+    // the view's sides cross by every second vertex inside them, as the camera sees it.
+    Plane planes[kViewPlanes];
+    ViewPlanes(camera, planes);
     D3 lo{1e30, 1e30, 1e30}, hi{-1e30, -1e30, -1e30};
     D3 groundLo{1e30, 1e30, 1e30}, groundHi{-1e30, -1e30, -1e30};
     int seen = 0;
-    std::vector<Vector3> visible;
-    TerrainPositions(f, 2, &visible);
-    for (const Vector3& p : visible) {
-        D3 at{p.x, p.y, p.z};
-        D4 c = Transform(camera, D4{at.x, at.y, at.z, 1.0});
-        if (c.w <= 0.0 || std::fabs(c.x) > 1.05 * c.w || std::fabs(c.y) > 1.05 * c.w || c.z > c.w) continue;
+    auto take = [&](const D3& at) {
         D3 l{Dot(x, at), Dot(y, at), Dot(d, at)};
         lo = D3{std::min(lo.x, l.x), std::min(lo.y, l.y), std::min(lo.z, l.z)};
         hi = D3{std::max(hi.x, l.x), std::max(hi.y, l.y), std::max(hi.z, l.z)};
         groundLo = D3{std::min(groundLo.x, at.x), std::min(groundLo.y, at.y), std::min(groundLo.z, at.z)};
         groundHi = D3{std::max(groundHi.x, at.x), std::max(groundHi.y, at.y), std::max(groundHi.z, at.z)};
         ++seen;
+    };
+    static std::vector<Vector3> positions;
+    for (const TerrainPiece& piece : f.terrainPieces) {
+        Vector3 boxLow, boxHigh;
+        if (!TerrainPieceBox(piece, &boxLow, &boxHigh)) continue;
+        const D3 low{boxLow.x, boxLow.y, boxLow.z}, high{boxHigh.x, boxHigh.y, boxHigh.z};
+        const int crossed = CrossedPlanes(low, high, planes);
+        if (crossed < 0) continue;
+        if (crossed == 0) {
+            for (int i = 0; i < 8; ++i) take(D3{(i & 1) ? high.x : low.x, (i & 2) ? high.y : low.y, (i & 4) ? high.z : low.z});
+            continue;
+        }
+        TerrainPiecePositions(piece, 2, &positions);
+        for (const Vector3& p : positions) {
+            const D3 at{p.x, p.y, p.z};
+            bool inside = true;
+            for (int k = 0; k < kViewPlanes && inside; ++k) inside = !(crossed & (1 << k)) || planes[k].Side(at) >= 0.0;
+            if (inside) take(at);
+        }
     }
     if (seen == 0) return g_fit;
     double extent = std::max(hi.x - lo.x, hi.y - lo.y) + 2.0;
