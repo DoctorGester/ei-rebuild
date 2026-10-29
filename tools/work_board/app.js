@@ -88,7 +88,11 @@ function actLine(cls, key, what, when, title) {
 }
 // `also`: other tickets the same worker holds (one worktree, several open assignments); they share this card.
 function ticketCard(t, also = []) {
-  const a = t.assignment, c = t.commit, n = t.notes[0], b = t.batch;
+  const a = t.assignment, c = t.commit, n = t.notes[0];
+  // A worker holding several tickets tests them under any one of their ids: the card shows the newest batch of them all.
+  const stacked = [t, ...also];
+  const newest = list => list.filter(Boolean).sort((x, y) => y.id - x.id)[0];
+  const b = newest(stacked.map(s => s.batch));
   const f = freshness(t);
   const sub = [];
   if (a) {
@@ -108,7 +112,7 @@ function ticketCard(t, also = []) {
   }
   if (b) act.push(`<div class="act tests">${progress(b)}<span class="txt">${batchSummary(b)}</span></div>`);
   // While a new batch waits or runs, the previous result stays in view.
-  const prev = t.previous;
+  const prev = newest(stacked.flatMap(s => [s.previous, s.batch]).filter(x => x && b && b.state !== 'finished' && x.state === 'finished' && x.id < b.id));
   if (prev) act.push(`<div class="act tests prev"><span class="txt">previous ${batchSummary(prev)}</span></div>`);
   const more = t.notes.slice(1);
   const moreNotes = more.length ? details('n-' + t.id, `${more.length} earlier note${more.length > 1 ? 's' : ''}`,
