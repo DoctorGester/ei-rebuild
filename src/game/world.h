@@ -620,10 +620,10 @@ struct UnitSet {
 void ReadUnitLooks(ByteStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed);
 
 struct SectorGrid {
-    // Nothing keeps a cell's iterators or adds to a cell while it is walked: lists only until the shadow
-    // casters' walk (world_client_shadow_casters.cpp) takes another type.
-    std::unique_ptr<std::list<HeldRef<CMapObject>>[]> cells;
-    std::unique_ptr<std::list<HeldRef<CMapObject>>*[]> rows;    // row y: its lists
+    // Nothing adds to a cell while it is walked (CollectVisible files one object; a first pass only appends
+    // units to the deferred vector); Move erases from one cell and appends to another.
+    std::unique_ptr<std::vector<HeldRef<CMapObject>>[]> cells;
+    std::unique_ptr<std::vector<HeldRef<CMapObject>>*[]> rows;  // row y: its cells
     int allocatedWidth, allocatedHeight;    // the cells allocated (Resize: when they change)
     std::uint32_t width;                  // cells along x
     std::uint32_t height;                 // cells along y
@@ -634,7 +634,7 @@ struct SectorGrid {
     // The cells destroyed (from the last; each releases its objects), then the row pointers.
     void Free();
     // Moves `object` to `position` (stored in the object): when the cell (x and y rounded to nearest, >> 4)
-    // changes, out of the old cell's list and to the end of the new one's (cells outside the grid are
+    // changes, out of the old cell and to the end of the new one's (cells outside the grid are
     // skipped).
     void Move(CMapObject* object, const float* position);
 };

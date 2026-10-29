@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; dump town_waves
 # compact (tools/golden.py): objects as hashes of their fields
-@ 34 update 685 frame 137 tick 685 zone bz1g hash 986EF68E n 408
+@ 34 update 685 frame 137 tick 685 zone bz1g hash 7FA6A79B n 408
 + world world
 world tick 685
 world updates 685
@@ -1138,15 +1138,15 @@ water-1 phase -4.09903669
 + water0 sector 0 0
 water0 water 873
 water0 positions 0x07273A3D
-water0 speculars 0x59DD99C0
+water0 speculars 0xA7A05AD3
 + water1 sector 1 0
 water1 water 831
 water1 positions 0xDF51D7FE
-water1 speculars 0x723CE015
+water1 speculars 0x9A1C07C5
 + water1000 sector 0 1
 water1000 water 610
 water1000 positions 0x06D3CBB9
-water1000 speculars 0x88C57EF8
+water1000 speculars 0xEE950B28
 + water1001 sector 1 1
 water1001 water 279
 water1001 positions 0xBBEE74D7
@@ -1154,8 +1154,8 @@ water1001 speculars 0x1B0E6568
 + water2000 sector 0 2
 water2000 water 695
 water2000 positions 0x52E66312
-water2000 speculars 0x32A64445
+water2000 speculars 0xED763635
 + water3000 sector 0 3
 water3000 water 535
 water3000 positions 0x79468FC8
-water3000 speculars 0x98480A9B
+water3000 speculars 0x8661FDAB

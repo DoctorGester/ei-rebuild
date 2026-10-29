@@ -103,7 +103,7 @@ HitCollector* CollectHits(HitCollector* out, const std::vector<ScreenEntry>& ent
 void SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
 // The grid cell of the object's position, null outside the grid.
-std::list<HeldRef<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
+std::vector<HeldRef<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
     std::uint32_t x = CellOf(object->localPosition.x);
     std::uint32_t y = CellOf(object->localPosition.y);
     if (x >= grid.width || y >= grid.height) return nullptr;
@@ -715,8 +715,8 @@ void WorldClient::Select(CMapObject* object) {
 }
 
 void SectorGrid::Allocate() {
-    cells = std::make_unique<std::list<HeldRef<CMapObject>>[]>(static_cast<std::size_t>(allocatedWidth) * allocatedHeight);
-    rows = std::make_unique<std::list<HeldRef<CMapObject>>*[]>(static_cast<std::size_t>(allocatedHeight));
+    cells = std::make_unique<std::vector<HeldRef<CMapObject>>[]>(static_cast<std::size_t>(allocatedWidth) * allocatedHeight);
+    rows = std::make_unique<std::vector<HeldRef<CMapObject>>*[]>(static_cast<std::size_t>(allocatedHeight));
     for (int y = 0; y < allocatedHeight; ++y) rows[y] = cells.get() + y * allocatedWidth;
 }
 

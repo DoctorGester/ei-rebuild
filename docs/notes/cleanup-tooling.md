@@ -231,11 +231,10 @@ an `x87::` helper (but the control word render.cpp's `FpuGuard` puts back), a `l
   so cos(pi / 3) x 34 is 16 where the original's unrounded cosine at 24 bits gave 17 (a region corner one pixel
   off; main's SSE2 double maths gave 16 already); colour bytes and wave entries at an exact half round away from
   zero (`std::lround`).
-- **terrain_water_waves** is the image's golden on vanilla (its `# no original: vanilla` line; recorded from four
-  image runs: plain twice, EI_HEAP_JITTER=1 and 2,fill): terrain_animation's waves and terrain_shadow's `EdgeFade`
-  are float maths, so a vertex's sine-table entry, crest byte or edge fade can round the other way from the
-  original's 24-bit sums (the water group's speculars from record 0). The Rebirth golden stays the original's
-  (the image suite runs the scenario on vanilla only).
+- **terrain_water_waves** is the image's golden on both installs (its `# no original: vanilla rebirth` line; each
+  recorded from four image runs: plain twice, EI_HEAP_JITTER=1 and 2,fill; the Rebirth one in C63g):
+  terrain_animation's waves and terrain_shadow's `EdgeFade` are float maths, so a vertex's sine-table entry, crest byte or edge fade can round the other way from the
+  original's 24-bit sums (the water group's speculars from record 0).
 - **The shadow files (C30d, after R37c / R37d):** render_shadows, render_point_shadows, render_terrain's caster
   spheres and world_client_shadow_casters by hand: float constants, the map's fit (axes, planes, area, depths,
   `LightMatrix`), the point lights' ranges, spheres and face matrices, the casters' world matrices;

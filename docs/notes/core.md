@@ -440,12 +440,11 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 ## Containers: the record and held lists (C14s)
 
-- The sector grids' cells (`std::list<HeldRef<CMapObject>>`, world.h), the client's heroes and the frame's deferred
-  units (`std::vector<HeldRef<CMapObject>>`): an insert takes a reference, an erase or clear drops it. `RemoveHeld`
+- The sector grids' cells (`std::vector<HeldRef<CMapObject>>`, world.h), the client's heroes and the frame's deferred
+  units (the same type): an insert takes a reference, an erase or clear drops it. `RemoveHeld`
   (world_client_maps.cpp) holds the object while its entries are erased, as the game's remove(value) did. A grid is
   `unique_ptr` cells and row pointers; `SectorGrid::Free` destroys the cells from the last, and the client's destructor
-  frees both grids where the original did (the second grid still holds objects then). The cells stay lists only until
-  the shadow casters' walk (world_client_shadow_casters.cpp) takes another type (C63g). The client's filed objects
+  frees both grids where the original did (the second grid still holds objects then). The client's filed objects
   (`std::vector<CMapObject*>`) keep their reference by hand: the original's destructor freed that list without
   releasing (Destroy has released and emptied it by then). CollectVisible files one object; DrawPass walks the cells,
   the deferred units and the heroes (a first pass only appends units to the deferred vector, the later passes add

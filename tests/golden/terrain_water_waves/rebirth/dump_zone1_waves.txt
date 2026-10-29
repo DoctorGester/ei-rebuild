@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; dump zone1_waves
 # compact (tools/golden.py): objects as hashes of their fields
-@ 18 update 365 frame 73 tick 365 zone gz1g hash 2FB80F35 n 866
+@ 18 update 365 frame 73 tick 365 zone gz1g hash AEF4A7D6 n 866
 + world world
 world tick 365
 world updates 365
@@ -2022,35 +2022,35 @@ water-1 phase -3.91951704
 + water0 sector 0 0
 water0 water 1089
 water0 positions 0x7EB79800
-water0 speculars 0x475FCFF8
+water0 speculars 0xE04AB026
 + water1 sector 1 0
 water1 water 1089
 water1 positions 0xA2F4688D
-water1 speculars 0xC89C6295
+water1 speculars 0x62462C95
 + water2 sector 2 0
 water2 water 1089
 water2 positions 0xCBDF21CD
-water2 speculars 0xC89C6295
+water2 speculars 0x62462C95
 + water3 sector 3 0
 water3 water 973
 water3 positions 0x5E1E840E
-water3 speculars 0x01137B75
+water3 speculars 0x0EE0C575
 + water4 sector 4 0
 water4 water 1039
 water4 positions 0x339A24AF
-water4 speculars 0xC6507D45
+water4 speculars 0x34A50745
 + water5 sector 5 0
 water5 water 1089
 water5 positions 0x6C3D7CDB
-water5 speculars 0xC89C6295
+water5 speculars 0x62462C95
 + water6 sector 6 0
 water6 water 221
 water6 positions 0xACA6B27D
-water6 speculars 0xBE43DD45
+water6 speculars 0x05EB6645
 + water1000 sector 0 1
 water1000 water 1089
 water1000 positions 0x153D731D
-water1000 speculars 0xE90A8295
+water1000 speculars 0xB77CAC95
 + water1001 sector 1 1
 water1001 water 1005
 water1001 positions 0xE93CE0A8
@@ -2074,7 +2074,7 @@ water1005 speculars 0x285FA548
 + water2000 sector 0 2
 water2000 water 1089
 water2000 positions 0x578BA0FB
-water2000 speculars 0xB4747508
+water2000 speculars 0x8DEF0CE8
 + water2001 sector 1 2
 water2001 water 819
 water2001 positions 0xE5159FE0
@@ -2098,10 +2098,10 @@ water2005 speculars 0xDD56D728
 + water3000 sector 0 3
 water3000 water 1089
 water3000 positions 0x45AF8781
-water3000 speculars 0xF5E0C248
+water3000 speculars 0x9FADC3F0
 + water3001 sector 1 3
 water3001 water 937
-water3001 positions 0xD9565F32
+water3001 positions 0xA56C72FF
 water3001 speculars 0xD3065A50
 + water3002 sector 2 3
 water3002 water 159
@@ -2122,7 +2122,7 @@ water3005 speculars 0x1B0E6568
 + water4000 sector 0 4
 water4000 water 1089
 water4000 positions 0xED2C4D8D
-water4000 speculars 0x8941E961
+water4000 speculars 0x4F8A8155
 + water4001 sector 1 4
 water4001 water 761
 water4001 positions 0xF87E7B7C
@@ -2138,16 +2138,16 @@ water4004 speculars 0x55BDB8B5
 + water5000 sector 0 5
 water5000 water 1089
 water5000 positions 0x04C718BA
-water5000 speculars 0x4595B1CA
+water5000 speculars 0x2CB7AAF4
 + water5001 sector 1 5
 water5001 water 463
 water5001 positions 0x1551C76C
-water5001 speculars 0x9933F873
+water5001 speculars 0x2866D96F
 + water5003 sector 3 5
 water5003 water 447
 water5003 positions 0x819FDE96
-water5003 speculars 0x2FEB6375
+water5003 speculars 0xE17202F5
 + water5004 sector 4 5
 water5004 water 535
 water5004 positions 0xF686086F
-water5004 speculars 0x3F70FB85
+water5004 speculars 0x99311FA5
