@@ -2,10 +2,10 @@
   "scenario": "ui_options_bind",
   "install": "vanilla",
   "recorded": "2026-10-29",
-  "commit": "aa1afef5e",
+  "commit": "8babcdb85",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 2,
-  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer"
+  "reason": "R34c: the client's idle animation picks and the hero previews' start frames on the client generator, DelayedProtectionCheck's rand() gone (user-approved re-record of the random group, as R34a)"
 }

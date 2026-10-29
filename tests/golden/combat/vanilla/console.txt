@@ -61,24 +61,17 @@
   0
   0
   Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
-  0
   Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=9.96303 destHL=LLeg
   0
   0
-  Delayed sound: Unit 1000275420 heard unit 1000011214 from 1.440063m distance
-  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=10.294 destHL=RLeg
   0
-  0
-  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=9.95 destHL=Body
-  slashing passed damage = 7.46253
-  0
-  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=12.9191 destHL=Body
-  impaling passed damage = 12.9191 HL was crippled
+  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=10.6088 destHL=RLeg
+  impaling passed damage = 10.6088 HL was crippled
   Unit 1000275419 sees unit 1000011214 from 1.97454m distance
   Unit 1000275419 sees unit 1000275420 from 0.556578m distance
   Unit 1000275420 damaged to death
   Unit 1000011214 sees corpse of unit 1000275420
   Unit 1000011214 lost from sight unit 1000275420
   1
-  31.5421
+  38.9066
   1

@@ -26,6 +26,11 @@ constexpr std::uintptr_t kEnsure = 0x006C3DD0;                          // Secto
 constexpr std::uintptr_t kEnsureCalls[] = {0x006C8234, 0x006C84BC};     // Terrain::SectorAt's
 constexpr std::uintptr_t kSetSunRelight = 0x006C908F;                   // SetSun: MOV EAX,[EBX+0x21C] (the interval)
 constexpr std::uintptr_t kSetSunReturn = 0x006C90C1;                    // SetSun's epilogue (POP EDI ...)
+constexpr std::uintptr_t kFindAnimation = 0x005301B0;                   // CUnit::FindAnimation (key, anyOfKind; RET 8)
+constexpr std::uintptr_t kIdleFindCall = 0x00535539;                    // CUnitClientSpecific::StartIdleAnimation's CALL of it
+// CObject3D::RandomAnimation's three CALLs of rand() and RandomAnimationOfKind's one (the server's picks share them).
+constexpr std::uintptr_t kAnimationRandCalls[] = {0x005191E9, 0x0051921A, 0x00519281, 0x00519488};
+constexpr std::uintptr_t kProtectionCheck = 0x00455B50;                 // DelayedProtectionCheck: CALL rand() first
 constexpr std::uint32_t kStageBuilt = 2;                                // SectorStage
 constexpr int kStageLit = 4;
 
@@ -112,6 +117,8 @@ const Range kIsaacFunctions[] = {
     {0x00535B30, 0x00535CB0, 5, "CUnitClientSpecific::AdvanceTime"},
     {0x005ECA10, 0x005ED710, 1, "CItemScreen::DrawItem"},
     {0x00607A60, 0x00607BB0, 10, "CBriefingScreen::PlaySpeakerAnimation"},
+    {0x0060C870, 0x0060E205, 5, "CCampPages::Create"},
+    {0x00616E20, 0x00617042, 5, "CMpHeroScreen::MakePreview"},
     {0x006326B0, 0x00632910, 5, "CMainMenu::Create"},
     {0x00632B10, 0x00632D70, 21, "CMainMenu::Update"},
     {0x006366F0, 0x006369D0, 5, "CBattleScreen::OnUnitSpeech"},
@@ -153,6 +160,7 @@ const Range kRandFunctions[] = {
 };
 
 IsaacRandom g_client = {};   // the client generator (zero until CWorld::Create seeds it, as ours)
+bool g_idlePick = false;     // within StartIdleAnimation's FindAnimation: the animation picks draw from g_client
 
 std::uint32_t Word(std::uintptr_t at) {
     std::uint32_t value;
@@ -185,6 +193,49 @@ void PointCall(std::uintptr_t at, const void* to, const char* what) {
 // rand() for the client effects: a draw of the client generator in rand()'s range (ours: ClientRand).
 int __cdecl ClientRandForOriginal() {
     return static_cast<int>(OriginalCode<std::uint32_t(__thiscall*)(IsaacRandom*)>(kNext)(&g_client) & 0x7FFF);
+}
+
+// rand() for the animation picks: the client generator's within StartIdleAnimation's FindAnimation, else the CRT's
+// (ours: AnimationRandom).
+int __cdecl AnimationRandForOriginal() {
+    return g_idlePick ? ClientRandForOriginal() : OriginalCode<int(__cdecl*)()>(kRand)();
+}
+
+// StartIdleAnimation's FindAnimation (ECX the unit), its picks from the client generator (ours: AnimationRandom::Client).
+void* __fastcall FindIdleAnimationForOriginal(void* unit, void*, std::uint32_t key, int anyOfKind) {
+    g_idlePick = true;
+    void* found = OriginalCode<void*(__thiscall*)(void*, std::uint32_t, int)>(kFindAnimation)(unit, key, anyOfKind);
+    g_idlePick = false;
+    return found;
+}
+
+// The client's idle animation picks on the client generator, and DelayedProtectionCheck returning at once (ours has
+// none: its draw only shifted rand()). The number of sites patched (of 6).
+int RetargetIdlePicks() {
+    int patched = 0;
+    if (Calls(kIdleFindCall, kFindAnimation)) {
+        PointCall(kIdleFindCall, reinterpret_cast<const void*>(&FindIdleAnimationForOriginal),
+                  "the client's idle animation picks on the client generator (R34c)");
+        ++patched;
+    } else {
+        Log("harness: client effects: %08X is not a CALL of FindAnimation; left alone", unsigned(kIdleFindCall));
+    }
+    for (std::uintptr_t at : kAnimationRandCalls) {
+        if (!Calls(at, kRand)) {
+            Log("harness: client effects: %08X is not a CALL of rand(); left alone", unsigned(at));
+            continue;
+        }
+        PointCall(at, reinterpret_cast<const void*>(&AnimationRandForOriginal), "an animation pick's rand() (R34c)");
+        ++patched;
+    }
+    if (Calls(kProtectionCheck, kRand)) {
+        static const unsigned char kReturn = 0xC3;
+        Write(kProtectionCheck, &kReturn, sizeof(kReturn), "DelayedProtectionCheck returns at once (R34c)");
+        ++patched;
+    } else {
+        Log("harness: client effects: DelayedProtectionCheck at %08X is not as expected; left alone", unsigned(kProtectionCheck));
+    }
+    return patched;
 }
 
 // CWorld::Create's Init of the game's generator (ECX), then once the client generator's from its memory words
@@ -284,12 +335,13 @@ void InstallGenerator() {
         if (RetargetOperands(range)) ++isaac;
     for (const Range& range : kRandFunctions)
         if (RetargetRandCalls(range)) ++crt;
+    const int picks = RetargetIdlePicks();
     bool seeded = Calls(kInitCall, kInit);
     if (seeded) PointCall(kInitCall, reinterpret_cast<const void*>(&InitForOriginal), "the client generator seeded (R34a)");
     else Log("harness: client effects: %08X is not a CALL of IsaacRandom::Init; the client generator stays unseeded", unsigned(kInitCall));
-    Log("harness: client effects: their own generator in %d of %d ISAAC functions and %d of %d rand() functions%s", isaac,
-        int(sizeof(kIsaacFunctions) / sizeof(kIsaacFunctions[0])), crt, int(sizeof(kRandFunctions) / sizeof(kRandFunctions[0])),
-        seeded ? "" : " (unseeded)");
+    Log("harness: client effects: their own generator in %d of %d ISAAC functions, %d of %d rand() functions and %d of 6 "
+        "idle pick sites%s", isaac, int(sizeof(kIsaacFunctions) / sizeof(kIsaacFunctions[0])), crt,
+        int(sizeof(kRandFunctions) / sizeof(kRandFunctions[0])), picks, seeded ? "" : " (unseeded)");
 }
 
 bool IsClientGenerator(const void* isaac) { return isaac == &g_client; }

@@ -171,7 +171,7 @@ reach is that failed run's, a lower bound), so goldens come from runs without EI
   (GetDiskFreeSpaceExA through GetProcAddress); Dib's catch handlers (a CFileException from the MFC file's Read / Write:
   a failing disk) and the message boxes they end in. Dib::Read and its helpers run only for a loose
   `textures\<name>.bmp` (A-I23a).
-- Shared files (A-I23): the vanilla offer in net_pair_leave is z3q1 z6q3 z7q1 and a z9 zone (R34a), so its vanilla
+- Shared files (A-I23): the vanilla offer in net_pair_leave has z3q2 and z7q1 (R34c), so its vanilla
   peer hides z7q1.mq (Rebirth's z6q2.mq); the received file is written (0041ECC0 -> 005813A0) and `samefile`
   requires it to be the install's.
 - Dead (SV5c): the fake unit (class 0x39) and its scene loader: no shipped data makes one, no code reaches slot 62, no
@@ -248,6 +248,7 @@ heap.
 | The shadow's turn undone exactly (no ulp drift per re-render) | CALLs 0051D479 / 0051D4E0 (harness_shadow_turn) | `EI_SHADOW_TURN=0` | SV7b4a |
 | The client effects draw from their own generator (`g_clientRandom`, seeded from the game's at CWorld::Create), not from ISAAC 007A9D40 or rand(): terrain tiles and ambience, particles, lightning shapes, sound and speech picks, decals, the interface's flourishes | the generator operands of 91 client functions point at the harness's client generator, the rand() CALLs of 15 at a draw of it, Init's CALL 0055F165 seeds it (harness_client_effects; deterministic runs) | | R34a |
 | The terrain's sectors lit once, when built (ours: the edge fade at Build; no relight countdowns, no tick without tile animation) | SetSun's relighting 006C908F jumps to its epilogue; SectorAt's Ensure CALLs 006C8234 / 006C84BC light a built sector at once (harness_client_effects) | | R34a |
+| The client's idle animation picks (StartIdleAnimation's FindAnimation, as often as draw time restarts the idle) and the hero previews' start frames (CMpHeroScreen::MakePreview, CCampPages::Create) draw from the client generator; the server's animation picks keep rand(); DelayedProtectionCheck's unused rand() per new object (message 0x40) is gone | StartIdleAnimation's CALL 00535539 of FindAnimation raises a flag under which RandomAnimation's / RandomAnimationOfKind's rand() CALLs 005191E9 / 0051921A / 00519281 / 00519488 draw from the client generator; the generator operands of 0060C870 and 00616E20 point at it; 00455B50 returns at once (harness_client_effects; deterministic runs) | | R34c |
 
 Script groups order by id because the script engine saves groups by id and ids are unique while referenced; ties cannot
 happen (the harness logs "share id" if one does). 

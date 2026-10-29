@@ -18,8 +18,8 @@
   1
   Unit 1000275419 sees unit 1000011214 from 2.37171m distance
   Unit 1000275419 new motivation Player with power of 10
-  1
   Unit 1000011214 sees unit 1000275419 from 2.37171m distance
+  1
   1
   0
   0
@@ -123,17 +123,13 @@
   0
   0
   0
-  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=12.1538 destHL=Body
-  0
-  0
-  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=12.19 destHL=LHand
-  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=12.4176 destHL=LLeg
-  impaling passed damage = 12.4176 HL was crippled
+  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=11.5259 destHL=LLeg
+  impaling passed damage = 11.5259 HL was crippled
   Unit 1000275419 sees unit 1000011214 from 1.97454m distance
   Unit 1000275419 sees unit 1000275420 from 0.556578m distance
   Unit 1000275420 damaged to death
-  1
   Unit 1000011214 sees corpse of unit 1000275420
   Unit 1000011214 lost from sight unit 1000275420
+  1
   38.9066
   1

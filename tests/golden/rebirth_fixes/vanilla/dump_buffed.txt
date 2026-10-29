@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump buffed
 # compact (tools/golden.py): objects as hashes of their fields
-@ 3 update 65 frame 13 tick 65 zone gz1g hash 9E3E0A76 n 791
+@ 3 update 65 frame 13 tick 65 zone gz1g hash C9AB4A30 n 791
 + world world
 world tick 65
 world updates 65
@@ -127,7 +127,7 @@ random isaac.b 0xE17CADAA
 random isaac.c 0x00000002
 random isaac.results 0xC3B976FE
 random isaac.memory 0x4195ABD6
-random crt.rand 0x6C120225
+random crt.rand 0xEE64013D
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -304,7 +304,7 @@ obj699 #place 2FABAB77
 obj699 #unit 2F1EAF08
 obj699 #vitals 39A58F25
 + obj702 80 unhufe ""
-obj702 #ai 0F79C16E
+obj702 #ai 69F1FD4A
 obj702 #place 643D63F8
 obj702 #unit B0CC1FED
 obj702 #vitals 39A58F25

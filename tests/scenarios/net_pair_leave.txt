@@ -5,13 +5,13 @@
 #   messages); the peer lacks one (ClientOnFile 0041EAC0: a FileRequest), the server lists the request
 #   (0041B690) and sends the chunks; vanilla writes the file (ClientOnFileChunk 0041ECC0 -> WriteMapFile 005813A0),
 #   Rebirth's MQClient only collects them.
-# - The map and the zone as in net_pair_zone (z3q1 vanilla, z3q3 Rebirth).
+# - The map and the zone as in net_pair_zone (z3q2).
 # - The lost client: the peer's network is cut in the zone ("netcut"); after the session timeout (60 s) this
 #   game's server drops it (ReportDeparture 0041A700 text 4) and the peer shows the lost server box.
 # - Back to the base: the leader walks into exit 1 (remove rectangle 0 130 20 147, beside the deploy rectangle);
 #   the leave box's Enter answers yes (CBattleScreen::OnMessageResult -> 00578AC0 -> SwitchMultiplayerZone's
 #   second call, flag80_ set: the start zone again).
-# - The sheriff's middle topic is the map's reject briefing ("z3q1_2" / "z3q3_2"): command 1 -> LeaveZone 00418CC0
+# - The sheriff's middle topic is the map's reject briefing ("z3q2_2"): command 1 -> LeaveZone 00418CC0
 #   (AwardHost 004191C0 with the final award, QueueAward 00419D90, the next zones queued and shared); 60 s later
 #   the Award message reaches this game's client (ClientOnAward 0041EF90).
 # The desktop's size (H31): a clickground lands where the clicked pixel's ray meets the ground and the leader walks
@@ -67,16 +67,13 @@ click 400 300
 wait 800
 click 400 300
 wait 800
-rebirth click 400 300
-rebirth wait 800
 frames 40
 
 # Out through the gate into the game zone; the peer follows.
 clickground 61 50 dblclick
 frames 60
 clickground 59 43 dblclick
-vanilla waitzone 40 z3q1
-rebirth waitzone 40 z3q3
+waitzone 40 z3q2
 frames 20
 peersignal entered
 peerwait 120 peerin

@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash DC13F695 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 7B89D335 n 172
 + world world
 world tick 20
 world updates 20
@@ -127,7 +127,7 @@ random isaac.b 0xE5190F44
 random isaac.c 0x00000001
 random isaac.results 0x7744D51B
 random isaac.memory 0xB5AE7EF6
-random crt.rand 0x22130EED
+random crt.rand 0xA53ED23E
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -556,11 +556,11 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 10 tick 40 zone - hash 7D0B0900 n 172
+@ 1 update 40 frame 10 tick 40 zone - hash 2815A99D n 172
 world tick 40
 world updates 40
 random isaac.count 51
-random crt.rand 0xEA5BFE44
+random crt.rand 0x0A4CF270
 obj2 #vitals 9EA7DF96
 obj129 #ai 93DFA8A1
 obj129 #place B24EA1FB
@@ -583,7 +583,7 @@ cunit148 #place 1A4C9798
 cunit148 #unit E08FCCA9
 cunit187 #place 8FD72F05
 cunit388 #place 2C65C503
-@ 2 update 60 frame 14 tick 60 zone - hash 9DBA4C86 n 172
+@ 2 update 60 frame 14 tick 60 zone - hash 8D67CEC9 n 172
 world tick 60
 world updates 60
 random isaac.count 223
@@ -592,7 +592,7 @@ random isaac.b 0xE17CADAA
 random isaac.c 0x00000002
 random isaac.results 0xC3B976FE
 random isaac.memory 0x4195ABD6
-random crt.rand 0xCB2FF391
+random crt.rand 0x9194AF72
 obj2 #vitals BB277587
 obj129 #ai CD83E452
 obj129 #place F09335B8
@@ -607,11 +607,11 @@ missile0 # AC368F1A
 aievents tick 60
 client tick 60
 client ticksRun 57
-@ 3 update 80 frame 21 tick 80 zone - hash 73F16043 n 172
+@ 3 update 80 frame 21 tick 80 zone - hash 2E0939C4 n 172
 world tick 80
 world updates 80
 random isaac.count 143
-random crt.rand 0xBDCEF612
+random crt.rand 0x85E00E5E
 obj2 #vitals CB4D8108
 obj129 #ai 3C217239
 obj129 #place 5B4B42E2

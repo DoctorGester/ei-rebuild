@@ -67,6 +67,10 @@ constexpr std::uint32_t AnimationKeyOf(AnimationKind kind) { return static_cast<
 // the bits above them must match a request exactly.
 inline constexpr std::uint32_t kAnimationVariantBits = 0x7FFF;
 
+// Which generator a random animation pick draws from: the game's rand() (the server's steps and idles), or the client
+// effects' (g_clientRandom, random.h: the client's idle animations, picked as often as its draw time restarts them).
+enum class AnimationRandom { Game, Client };
+
 // The key's number field (bits 22..29).
 inline constexpr int kAnimationNumberShift = 22;
 inline constexpr std::uint32_t kAnimationNumberMask = 0x3FC00000;
@@ -466,12 +470,13 @@ public:
     FigureAnimation* FindSkillAnimation(SkillAnimation number);
     // A random animation for `key`: the database's entries whose key has the same bits above kAnimationVariantBits and all
     // of key's low 15 bits (none when key has none) and that AcceptsAnimation accepts; one is returned as it
-    // is, several are narrowed to those whose chance is at least a rand() percent and one of them is picked
-    // with rand() (the pick made before narrowing when none is left). Null without a database or a match.
-    FigureAnimation* RandomAnimation(std::uint32_t key);
-    // As RandomAnimation for the entries whose key's bits above kAnimationVariantBits equal key's, one picked with rand(); no
-    // chance narrowing.
-    FigureAnimation* RandomAnimationOfKind(std::uint32_t key);
+    // is, several are narrowed to those whose chance is at least a random percent and one of them is picked
+    // (the pick made before narrowing when none is left); the draws from `random`'s generator. Null without a
+    // database or a match.
+    FigureAnimation* RandomAnimation(std::uint32_t key, AnimationRandom random = AnimationRandom::Game);
+    // As RandomAnimation for the entries whose key's bits above kAnimationVariantBits equal key's, one picked from
+    // `random`'s generator; no chance narrowing.
+    FigureAnimation* RandomAnimationOfKind(std::uint32_t key, AnimationRandom random = AnimationRandom::Game);
     // For units (class id 0x50) with an animation database whose length is neither 0 nor NaN:
     // (start + (end - start) * time) / length, else 1. Unrounded.
     double AnimationFactor(float time);

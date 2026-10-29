@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump antimagic
 # compact (tools/golden.py): objects as hashes of their fields
-@ 16 update 325 frame 65 tick 287 zone gz1g hash 944A6BF4 n 793
+@ 16 update 325 frame 65 tick 287 zone gz1g hash A2A6BC11 n 793
 + world world
 world tick 287
 world updates 325
@@ -121,13 +121,13 @@ world allied31 0x80000000
 world hostile31 0x00000000
 + random random
 random isaac.seeded 1
-random isaac.count 180
+random isaac.count 199
 random isaac.a 0x352F1FAD
 random isaac.b 0x1E563F3A
 random isaac.c 0x00000008
 random isaac.results 0x33EFACA7
 random isaac.memory 0xA6696BB9
-random crt.rand 0x31ACC6A8
+random crt.rand 0x3DB0A9CC
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -1856,8 +1856,8 @@ obj1000011214 #vitals 647F99CF
 + obj1001390175 80 unanwiwo "FixWolf"
 obj1001390175 #ai A919683B
 obj1001390175 #place 8779D5D9
-obj1001390175 #unit 318AC373
-obj1001390175 #vitals 671AB475
+obj1001390175 #unit 63D747AD
+obj1001390175 #vitals 55C248CF
 + missile0 spell 39
 missile0 # 395EA0B4
 + missile1 spell 39
@@ -1942,5 +1942,5 @@ cunit1000011214 #unit 0F9105CA
 cunit1000011214 #vitals A7A88612
 + cunit1001390175 80 unanwiwo "FixWolf"
 cunit1001390175 #place 25F2C647
-cunit1001390175 #unit 97690CB9
+cunit1001390175 #unit E8D48B75
 cunit1001390175 #vitals 812ED228

@@ -36,7 +36,8 @@ RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetH
 
 The client effects' generator `g_clientRandom` (random.h, R34a) is ours: a second ISAAC that `CWorld::Create` seeds right after
 the game's (`InitFrom`: Init with the game's memory words as the seed, no file, no `rand()`), drawn by every effect whose result
-only reaches the picture or the sound (`ClientRand()` for the ones that drew `rand()`). The list of the moved sites and how they
+only reaches the picture or the sound (`ClientRand()` for the ones that drew `rand()`; the client's idle animation picks
+through `AnimationRandom::Client`, R34c, the server's keep `rand()`). The list of the moved sites and how they
 were found: standalone-verification.md section 5 and harness_client_effects.cpp (the original's functions, patched alike).
 
 - `TransformObject` (vtable 0073BA38, abstract, 0x54 bytes): EngineObject + local position (+0x1C),

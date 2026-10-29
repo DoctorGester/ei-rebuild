@@ -279,7 +279,7 @@ void CampPages::BuildPages() {
         heroes[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = unit->FindSkillAnimation(kIdleAnimation)) {
-            std::uint32_t random = g_random.Next();
+            std::uint32_t random = g_clientRandom.Next();
             double frames = FramesNow();
             int start = static_cast<int>(libcrt::Ftol(frames - static_cast<int>(random % 51)));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);

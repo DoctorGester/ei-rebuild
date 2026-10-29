@@ -36,12 +36,6 @@ constexpr double kNoExtent = 0.0;
 constexpr float kExtentScale = 1.0f;
 constexpr float kMosquitoExtentScale = 2.0f;
 
-// A random animation entry of the figure matching `key` (the entries whose kind equals the key's and whose
-// variant bits include the key's, or exactly none for a key without them, and which a virtual of the figure
-// accepts; one picked with rand()), or of the key's kind only; null when none.
-FigureAnimation* CallRandomAnimation(CUnit* unit, std::uint32_t key) { return unit->RandomAnimation(key); }
-FigureAnimation* CallRandomAnimationOfKind(CUnit* unit, std::uint32_t key) { return unit->RandomAnimationOfKind(key); }
-
 // `v` turned by the rotation `q`, spelled out as: 2 (u.v) u + (s^2 - u.u) v + 2 s (u x v), with u the
 // vector part and s the scalar part.
 Vector3 RotateVector(const Quaternion& q, const Vector3& v) {
@@ -62,17 +56,17 @@ Vector3 RotateVector(const Quaternion& q, const Vector3& v) {
 }
 } // namespace
 
-FigureAnimation* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
+FigureAnimation* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind, AnimationRandom random) {
     if (!IsUnitType(MapType())) return nullptr;
-    if (FigureAnimation* entry = CallRandomAnimation(this, key)) return entry;
+    if (FigureAnimation* entry = RandomAnimation(key, random)) return entry;
     std::uint32_t kind = key & kKindBits;
-    if (FigureAnimation* entry = CallRandomAnimation(this, kind)) return entry;
+    if (FigureAnimation* entry = RandomAnimation(kind, random)) return entry;
     if ((kind & kMoveBits) == kMove4Bit) {
-        if (FigureAnimation* entry = CallRandomAnimation(this, kind & ~kMoveBits)) return entry;
-        if (FigureAnimation* entry = CallRandomAnimation(this, (kind & ~(kMove1Bit | kMove4Bit)) | kMove2Bit)) return entry;
+        if (FigureAnimation* entry = RandomAnimation(kind & ~kMoveBits, random)) return entry;
+        if (FigureAnimation* entry = RandomAnimation((kind & ~(kMove1Bit | kMove4Bit)) | kMove2Bit, random)) return entry;
     }
     if (!anyOfKind) return nullptr;
-    return CallRandomAnimationOfKind(this, kind);
+    return RandomAnimationOfKind(kind, random);
 }
 
 FigureAnimation* CUnit::AnimationEntry(std::uint32_t key) {

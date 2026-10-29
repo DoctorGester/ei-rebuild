@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash E441E79D n 68
+@ 0 update 20 frame 3 tick 20 zone - hash B2471071 n 68
 + world world
 world tick 20
 world updates 20
@@ -127,7 +127,7 @@ random isaac.b 0xE5190F44
 random isaac.c 0x00000001
 random isaac.results 0x7744D51B
 random isaac.memory 0xB5AE7EF6
-random crt.rand 0x67AB5A6E
+random crt.rand 0x3A6FE55A
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -344,7 +344,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash 0F5B0842 n 68
+@ 1 update 40 frame 7 tick 20 zone - hash 595DFFAE n 68
 world updates 40
 world paused 1
 client tick 21
@@ -355,32 +355,33 @@ cunit129 #place 3302A9EB
 cunit148 #place 871EB996
 cunit148 #unit 381DC2F0
 cunit187 #place B7CE4832
-@ 2 update 60 frame 11 tick 20 zone - hash 37E3053A n 68
+@ 2 update 60 frame 11 tick 20 zone - hash 61E5F2D6 n 68
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash 8F562E78 n 68
+@ 3 update 80 frame 15 tick 20 zone - hash D950D994 n 68
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash AFD879AC n 68
+@ 4 update 100 frame 19 tick 20 zone - hash F9DE8E40 n 68
 world updates 100
 client ticksRun 97
-@ 5 update 120 frame 23 tick 20 zone - hash 51CC88C1 n 68
+@ 5 update 120 frame 23 tick 20 zone - hash 07CA7F2D n 68
 world updates 120
 client ticksRun 117
-@ 6 update 140 frame 27 tick 20 zone - hash 35D1F603 n 68
+@ 6 update 140 frame 27 tick 20 zone - hash 63D701EF n 68
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 31 tick 20 zone - hash 0B7A22A4 n 68
+@ 7 update 160 frame 31 tick 20 zone - hash 5D7CD548 n 68
 world updates 160
 client ticksRun 157
-@ 8 update 180 frame 35 tick 20 zone - hash B8838CF0 n 68
+@ 8 update 180 frame 35 tick 20 zone - hash EE857B1C n 68
 world updates 180
 client ticksRun 177
-@ 9 update 200 frame 39 tick 25 zone - hash 7EEFE0DA n 68
+@ 9 update 200 frame 39 tick 25 zone - hash AE9D9013 n 68
 world tick 25
 world updates 200
 world paused 0
 random isaac.count 153
+random crt.rand 0xCFDB2EA4
 obj2 #vitals 9EA7DF96
 obj129 #ai 56E56568
 obj129 #place 53ECF90C

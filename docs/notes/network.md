@@ -46,8 +46,8 @@ function does; this file keeps what is not visible in the code.
   briefing "b.<speaker>.<zone>_1" (MarkBriefing), so the zones are the speaker's topics (Nsheriff on
   bz1mpg; a network client's topics are sorted by _stricmp). Finishing one sends command 1 "<zone>_1"
   (CompleteBriefing -> RequestBriefing); the host's server then runs SetMap: the queued "<zone>_2", the Map
-  message, SetNetworkZone (multiplayerZone). Which zones are offered differs by install (vanilla z3q1 first,
-  Rebirth z3q3).
+  message, SetNetworkZone (multiplayerZone). Which zones are offered can differ by install (in the pair
+  scenarios both start with z3q2).
 - Leaving: a client may leave while "z.MPGame1" is not 1 (UpdateMultiplayerVariable 0057F190: the host
   once it has the Map, a joiner once it has the Host message); the leader walking into exit 1's remove
   rectangle (bz1mpg: 56 39 62.5 45, through the gate) makes the briefing screen leave (LeaveIfExitOpen,
@@ -68,8 +68,8 @@ function does; this file keeps what is not visible in the code.
 - Zones on offer: FlowPickZones picks one zone per map group (zone3Obr, zone6, zone7, zone9 for bz1mpg) with
   one IsaacRandom draw each, so the offer follows the game's draws before the server starts (since R34a no
   client effect draws from that generator, so menus and frame timing no longer move it): in the pair
-  scenarios vanilla offers z3q1 z6q3 z7q1 and a z9 zone with a new hero (net_pair_zone, net_pair_leave),
-  Rebirth z3q3 z6q2 z7q3 z9q2; after LeaveZone the next offer leaves out the zone just played (vanilla
+  scenarios vanilla offers z3q2 and z7q1 among its zones with a new hero, Rebirth z3q2 and z6q2 (net_pair_zone,
+  net_pair_leave; since R34c the hero preview's start frame no longer draws from it either); after LeaveZone the next offer leaves out the zone just played (vanilla
   net_pair_quest rejects z9q3 at once to be offered z9q2). The sheriff's topics after the map choice: "about
   life in the village", the map's reject briefing ("<zone>_2"), "talk later".
 - Back to the base: the game zone's exit 1 (z3q1 / z3q2: remove rectangle 0 130 20 147, next to the deploy

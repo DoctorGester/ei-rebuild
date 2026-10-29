@@ -5,7 +5,7 @@
 #   exchange window opens on both; this game offers its item and both press accept (the Trade message, the
 #   client's RecordTrade 0041E0A0), and the window closes on both.
 # - The map: this game's leader walks to the sheriff (clickground: the screen point whose ground pick is that
-#   map point), takes his second topic, "z3q1_1" (Rebirth: "z3q3_1"; the queued map messages the server
+#   map point), takes his second topic, "z3q2_1" (the queued map messages the server
 #   announces become the sheriff's topics: ClientOnZone 0041E790 -> MarkBriefing), and clicks through its
 #   phrases; finishing it sends command 1 with it (CompleteBriefing -> RequestBriefing 0057FB60), so the server picks the map
 #   (ServerOnCommand 0041B2A0 -> SetMap 004186F0 -> SetNetworkZone 0057ED60) and every client gets its Map.
@@ -70,7 +70,7 @@ peersignal hostok
 peerwait 60 peerok
 frames 30
 
-# The sheriff's second topic (z3q1_1: four phrases, then the end; Rebirth's z3q3_1: five).
+# The sheriff's second topic (z3q2_1: four phrases, then the end).
 clickground 63 64 dblclick
 frames 60
 waitunit 10 Nsheriff
@@ -86,16 +86,13 @@ click 400 300
 wait 800
 click 400 300
 wait 800
-rebirth click 400 300
-rebirth wait 800
 frames 40
 
 # Out through the gate into exit 1 (remove rectangle 56 39 62.5 45).
 clickground 61 50 dblclick
 frames 60
 clickground 59 43 dblclick
-vanilla waitzone 40 z3q1
-rebirth waitzone 40 z3q3
+waitzone 40 z3q2
 frames 20
 peersignal entered
 peerwait 120 peerin

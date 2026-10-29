@@ -2,6 +2,7 @@
 // FindAnimation picks idle, attack and death animations with them). See map_object_figures.h.
 #include "map_object.h"
 #include "map_object_figures.h"
+#include "random.h"
 
 #include "lib/crt.h"
 
@@ -10,10 +11,14 @@
 namespace {
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 
+// A draw below `n` (> 0) from `random`'s generator.
+int RandomBelow(AnimationRandom random, int n) {
+    return random == AnimationRandom::Client ? ClientRandBelow(n) : libcrt::RandBelow(n);
+}
 
 } // namespace
 
-FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
+FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key, AnimationRandom random) {
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
     std::vector<FigureAnimation*> candidates{};
@@ -32,8 +37,8 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
         FigureAnimation* only = count == 1 ? list[0] : nullptr;
         return only;
     }
-    std::uint32_t percent = static_cast<std::uint32_t>(libcrt::RandBelow(100));
-    FigureAnimation* picked = list[libcrt::RandBelow(count)];
+    std::uint32_t percent = static_cast<std::uint32_t>(RandomBelow(random, 100));
+    FigureAnimation* picked = list[RandomBelow(random, count)];
     for (int i = 0; i < count; ++i) {
         if (list[i]->chance < percent) {
             for (int k = i; k < count - 1; ++k) list[k] = list[k + 1];
@@ -41,11 +46,11 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
             --i;
         }
     }
-    if (count > 0) picked = list[libcrt::RandBelow(count)];
+    if (count > 0) picked = list[RandomBelow(random, count)];
     return picked;
 }
 
-FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
+FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key, AnimationRandom random) {
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
     std::vector<FigureAnimation*> candidates{};
@@ -60,6 +65,6 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
     if (candidates.empty()) {
         return nullptr;
     }
-    FigureAnimation* picked = candidates[libcrt::RandBelow(std::ssize(candidates))];
+    FigureAnimation* picked = candidates[RandomBelow(random, std::ssize(candidates))];
     return picked;
 }
