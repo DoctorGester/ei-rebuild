@@ -59,8 +59,8 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
 - A raw block constructed by hand (`operator_new_as<T>()` then `Construct()` / placement new, `Destruct()` then
   `operator_delete`) is `new T(...)` / `delete p` once T has its constructor and destructor (C35g: the sky, the
   hit numbers, the console, the cursor images, the sectors, the figure models, the part sets, the regions);
-  `count` plain elements are `new T[count]` / `delete[]` (the AI grids: `AllocateGrid` / `FreeGrid`), a buffer
-  that grows a `std::vector<T>(count)`. A block of a byte count other than its type's (a DIB header with its
+  `count` plain elements are a `std::vector<T>(count)` (C58: the AI grids' `SearchGrid::data`, the memory
+  stream's buffer, the screen copies; `std::unique_ptr<T[]>` for the sound voices, whose addresses Miles holds). A block of a byte count other than its type's (a DIB header with its
   masks, a CPlex with its elements, an .mmp file) is `::operator new(bytes)`. crt.h has no heap wrappers left
   (C35m deleted gamecrt::operator_new / operator_new_as / operator_new_array / operator_delete).
 - A deleting destructor through slot 0 is `delete p` on the object's own type when its class (or a base)
