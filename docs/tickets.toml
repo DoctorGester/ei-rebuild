@@ -6205,7 +6205,7 @@ id = "C63g"
 title = "Containers: the sector grid cells to vectors"
 group = "cleanup"
 depends = ["C63e"]
-note = "Left by C63e because world_client_shadow_casters.cpp (R37c+d's file then) names the cell type: SectorGrid's cells (world.h) become std::vector<HeldRef<CMapObject>> (nothing keeps a cell's iterators or adds to a cell while it is walked: CollectVisible files one object, a first pass only appends units to g_deferredUnits; SectorGrid::Move erases and appends). Then CellFor / Allocate (world_client_maps.cpp) and the two walks in world_client_shadow_casters.cpp (const auto&), and the comment on SectorGrid. Goldens unchanged."
+note = "Left by C63e because world_client_shadow_casters.cpp (R37c+d's file then) names the cell type: SectorGrid's cells (world.h) become std::vector<HeldRef<CMapObject>> (nothing keeps a cell's iterators or adds to a cell while it is walked: CollectVisible files one object, a first pass only appends units to g_deferredUnits; SectorGrid::Move erases and appends). Then CellFor / Allocate (world_client_maps.cpp) and the two walks in world_client_shadow_casters.cpp (const auto&), and the comment on SectorGrid. Goldens unchanged. Done: the cells are std::vector<HeldRef<CMapObject>> (CellFor, Allocate, the two shadow-caster walks const auto&); std::list in src 58 -> 51. Also terrain_water_waves' Rebirth golden re-recorded as the image's (four image runs: plain twice, EI_HEAP_JITTER=1 and 2,fill; the scenario's 'no original' line names vanilla and rebirth; rerun SAME). Goldens 122 the same / 32 without a golden; --rebirth-only 24 the same / 8 without."
 
 [[ticket]]
 id = "R34c"
