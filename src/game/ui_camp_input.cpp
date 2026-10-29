@@ -10,7 +10,7 @@
 
 namespace {
 
-const char* MoveSound() { return "buttons\\camp\\move.wav"; }
+constexpr const char* kMoveSound = "buttons\\camp\\move.wav";
 
 // The help topics of pages 0-6 (the game's strings).
 const char* PageHelpTopic(int page) {
@@ -53,7 +53,7 @@ void CCampPages::OnLButtonDown(int buttons, int x, int y) {
     case kRegionTurnLeft:
     case kRegionTurnRight:
         if (page_ == kEquipmentPage) {
-            interface_->PlaySound(MoveSound(), 0);
+            interface_->PlaySound(kMoveSound, 0);
             turning_ = region == kRegionTurnLeft ? 1 : 2;
             CaptureMouse();
         }
@@ -88,7 +88,7 @@ void CCampPages::OnKeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
 }
 
-void CCampPages::OnMessageResult(int result) {
+void CCampPages::MessageResult(int result) {
     if (static_cast<std::uint32_t>(result) != kAnswerYes) return;
     PartyUnitRecord* hero = HeroRecord();
     if (hero->weapons.empty()) return;

@@ -252,14 +252,14 @@ is a recursive way search; `arrivals_` = STLport map<int, float> exit -> shortes
 005FBF50 / 005FBD30); ours are std::vectors (push_back). `OnRightDown` / `OnRightUp` (S) drag (motion 007C7C60), `OnKeyDown` (Esc menu inline, '5' / '6'
 quick save / load "saveq"). `CBattleScreen::Create` (00635250) builds 11 panels and 2 input handlers.
 
-Camp pages (`ui_camp_*.cpp`): `OnLButtonDown` / `OnLButtonUp` / `OnKeyDown`, `OnMessageResult` (0x10001 takes the first
+Camp pages (`ui_camp_*.cpp`): `OnLButtonDown` / `OnLButtonUp` / `OnKeyDown`, `MessageResult` (0x10001 takes the first
 weapon back), `HelpTopic` (`ui_camp_input.cpp`; `turning_` +0x25C); `UpdateAction`, `CanEquip` (slot 43, AL), `CanMakeItem`
 / `CanMakeSpell`; trade pages: `DoAction` / `UndoAction` (trade pages stock the constructor's class template (+0x198)
 lists 0069908x-006992xx with the sold records; cost_ off except page 1), `DeconstructSpell` ("Prototype" + a "Rune" per
-modifier), `DeconstructItem` ("Instruction Weapon / Armor / Quick Item", "material.<key>" built with += instead of two
-operator+, a "spell container" through 00613820 instead of the inlined map insert) (`ui_camp_deals.cpp`); `PutOn`,
-`TakeOff`, `MoveItem` (42, RET 8), `PutOnFromStrip` (RET 4), `Update` (turn via `_CIfmod`), `BestPartySkill` (45, P),
-`ShowPageTabs` (44). Constructor slots `SpellMakerItemAt` / `ItemMakerItemAt` (`ui_constructor_slots.cpp`; pages 3 and 5).
+modifier), `DeconstructItem` ("Instruction Weapon / Armor / Quick Item", "material.<key>" built with one
+operator+ instead of two, a "spell container" through 00613820 instead of the inlined map insert) (`ui_camp_deals.cpp`); `PutOn`,
+`TakeOff`, `TakeItem` (42, RET 8), `PutOnFromStrip` (RET 4), `Update` (turn via `_CIfmod`), `BestPartySkill` (45, P),
+`TopicClicked` (44). Constructor slots `SpellMakerItemAt` / `ItemMakerItemAt` (`ui_constructor_slots.cpp`; pages 3 and 5).
 
 Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `ui_stats_rows.cpp`, `ui_equip_panels.cpp`,
 `ui_panel_draws.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel*.cpp`, `ui_item_strip*.cpp`):
@@ -279,7 +279,7 @@ Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `
 - Item strip (`CUiItemStrip`, the forwarding strip of camp and exchange): `Update` scroll physics compared to 4 ULPs;
   `SetupFigures` (name list shares +0x194 with `filter_`); figure strips (00741BF4) `DrawFigures`, `CountFigures`,
   `OnFigureClick` (`ui_item_strip_setup.cpp`; ui_hero_screen mode 10, unconfirmed that its clicks land).
-  `UiItemKinds::Is*` (005EE050-005EE130, P), `CItemScreen::MoveItem` (RET 0x18) and `ReturnAll` (RET 8;
+  the item predicates `Is*` (ui_screens.h; 005EE050-005EE130, P), `CItemScreen::MoveItem` (RET 0x18) and `ReturnAll` (RET 8;
   `ui_item_screen.cpp`), `ScrollToItem` (RET 4).
 
 Multiplayer hero screen (`CMpHeroScreen`, `ui_hero_screen*.cpp`, `ui_hero_figure.cpp`; O unless marked). Modes: 9 hero list

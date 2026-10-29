@@ -21,9 +21,8 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include <bit>
+#include <algorithm>
 #include <cstdint>
-#include <cstring>
 #include <string>
 #include "world_glue.h"
 #include "game_data.h"
@@ -38,34 +37,15 @@
 
 namespace {
 
-CParty* PlayerParty() { return LocalPlayerData(); }
-
-CItem* ItemOf(CParty* list, int i) { return list->items_[i]; }
-int CountOf(CParty* list) { return std::ssize(list->items_); }
-
-// An item a constructor made: a move into a list shown turning sets its turn's flag.
-bool IsMade(CItem* item) {
-    const ItemTurn* turn = ItemTurnOf(item);
-    return turn && turn->flag;
-}
-
-// Returns the item now held.
-CItem* MoveBetween(CCampPages* camp, CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
-    return camp->CItemScreen::MoveItem(item, to, from, limit, merge, turning);
-}
-void ScrollTo(CUiItemStrip* strip, CItem* item) { strip->ScrollToItem(item); }
-
 // `results` is re-read every time: a made item goes to `owner` and into `strip`, the others to the local
 // player and into the item strip.
 void TakeResults(CCampPages* camp, CParty* const& results, CParty* owner, CUiItemStrip* strip) {
-    for (CParty* list = results; !list->items_.empty(); list = results) {
-        CItem* item = ItemOf(list, 0);
-        if (IsMade(item)) {
-            ScrollTo(strip, MoveBetween(camp, item, owner, list, 0, 1, 0));
-        } else {
-            CParty* player = LocalPlayerData();
-            ScrollTo(camp->itemStrip_, MoveBetween(camp, item, player, list, 0, 1, 0));
-        }
+    while (!results->items_.empty()) {
+        CItem* item = results->items_[0];
+        if (IsMade(item))
+            strip->ScrollToItem(camp->MoveItem(item, owner, results, 0, 1, 0));
+        else
+            camp->itemStrip_->ScrollToItem(camp->MoveItem(item, LocalPlayerData(), results, 0, 1, 0));
     }
 }
 
@@ -80,16 +60,6 @@ void SetShade(CUiMesh* mesh, float shade) {
 void DrawLine(CUiSurface* surface, std::string_view text, RECT* rect) {
     surface->DrawTextIn(text, rect, 1, 0xFFFFFF, 1, 1);
 }
-
-// The camp's item predicates (none reads `this`).
-bool IsSpellContainer(const CItem* item) {
-    return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0;
-}
-bool IsSpell(const CItem* item) { return UiItemKinds::IsSpell(item); }
-bool IsModifier(const CItem* item) { return UiItemKinds::IsModifier(item); }
-bool IsPart(const CItem* item) { return UiItemKinds::IsPart(item); }
-bool IsMaterial(const CItem* item) { return UiItemKinds::IsMaterial(item); }
-bool IsBlueprint(const CItem* item) { return UiItemKinds::IsBuildable(item); }
 
 // The database records of the camp's loot items (the record index): spells, spell
 // modifiers and materials (null past the end, which is then read through).
@@ -108,8 +78,6 @@ itemdb::ItemRecordHead* PartRecord(const CItem* item, LootRecordType recordType)
     default: return nullptr;
     }
 }
-
-ItemKind ItemType(const CItem* item) { return item->Kind(); }
 
 double D(float f) { return f; }
 
@@ -138,29 +106,18 @@ float WornFraction(const CItem* item) {
 // The stack count of an item.
 int Count(const CItem* item) { return static_cast<int>(item->count_); }
 
-void ReleaseObject(CEngineObject* object) {
-    if (object) object->Release();
-}
-
 constexpr std::uint32_t kRecordBias = 100000000;
-
-UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
 // The hero's statistics with the armour it wears as their outer layers again.
 void RebuildArmourLayers(PartyUnitRecord* hero) {
-    UnitStats* stats = StatsOf(hero);
+    UnitStats* stats = &hero->stats;
     stats->ClearOuterLayers();
     for (int i = 0; i < std::ssize(hero->armor); ++i) stats->AddArmourLayer(AsArmor(hero->armor[i]));
 }
 
-// The interface's Shift flag (set by its key handler).
-bool ShiftHeld(CInterface3D* ui) { return ui->shiftDown_ != 0; }
-
 // Whether `list` holds `item`.
 bool ListHolds(CParty* list, const CItem* item) {
-    for (int i = 0; i < CountOf(list); ++i)
-        if (list->items_[i] == item) return true;
-    return false;
+    return std::ranges::find(list->items_, item) != list->items_.end();
 }
 
 // fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, which computes it on the FPU.
@@ -176,7 +133,7 @@ float TurnedBy(double seconds, float turn, bool backwards) {
 // records).
 template <typename Step>
 int FindHero(int start, Step step) {
-    CParty* party = PlayerParty();
+    CParty* party = LocalPlayerData();
     int i = start;
     for (int tries = 0;;) {
         int count = std::ssize(party->members_);
@@ -262,12 +219,12 @@ void CCampPages::ShowPage(int page) {
     case 7: {
         // Leave: the trade is settled, the constructors' unused parts go back to their owners and
         // what they made goes into the strips.
-        trade_->Settle(0, 1);
+        trade_->Settle(false, true);
         ReturnAll(spellParts_[0], spellParts_[1]);
-        ReturnAll(PlayerParty(), spellParts_[2]);
+        ReturnAll(LocalPlayerData(), spellParts_[2]);
         ReturnAll(itemParts_[0], itemParts_[1]);
-        ReturnAll(PlayerParty(), itemParts_[2]);
-        ReturnAll(PlayerParty(), itemExtra_);
+        ReturnAll(LocalPlayerData(), itemParts_[2]);
+        ReturnAll(LocalPlayerData(), itemExtra_);
         TakeResults(this, spellResults_, spellParts_[0], spellStrip_);
         TakeResults(this, itemResults_, itemParts_[0], partStrip_);
         interface_->PlaySound("buttons\\globalmap\\transit.wav", 0);
@@ -316,7 +273,7 @@ void CCampPages::ShowPage(int page) {
 int CCampPages::Price(CItem* item, int kind) {
     const float* multipliers = priceWeights_;
     float repair = kPriceZero;
-    ItemKind type = ItemType(item);
+    ItemKind type = item->Kind();
     if (type == ItemKind::Weapon || type == ItemKind::Armor || kind == 8) {
         float worn = WornFraction(item);
         repair = static_cast<float>(ItemPrice(item) * multipliers[8] * worn);
@@ -342,7 +299,7 @@ int CCampPages::Price(CItem* item, int kind) {
 bool CCampPages::CanEquip(CItem* item, int mode) {
     switch (page_) {
     case 0: {   // equipment: weapons, armour, spell containers (worn-out ones not to a hero)
-        ItemKind type = ItemType(item);
+        ItemKind type = item->Kind();
         if ((type == ItemKind::Weapon || type == ItemKind::Armor) && x87::fistp(item->condition_) <= 0 && mode == 1) return false;
         return type == ItemKind::Weapon || type == ItemKind::Armor || type == ItemKind::Quick;
     }
@@ -358,34 +315,33 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         return IsSpellContainer(item) || IsSpell(item) || IsModifier(item);
     case 3: {   // the spell being built: a container, one spell, up to eight modifiers
         if (mode != 1 && mode != 2) return mode == 6;
-        if (IsSpellContainer(item)) return CountOf(spellResults_) <= 0;
+        if (IsSpellContainer(item)) return std::ssize(spellResults_->items_) <= 0;
         if (IsSpell(item)) {
-            if (CountOf(spellResults_) > 0) return false;
+            if (std::ssize(spellResults_->items_) > 0) return false;
             const itemdb::SpellRecord* record = SpellRecordOf(item);
-            int skill = 0, mana = 0;
-            BestPartySkill(record->school, &skill, &mana);
-            if (mana < static_cast<int>(libcrt::Ftol(D(record->mana)))) return false;
-            return skill >= record->skill;
+            PartySkill best = BestPartySkill(record->school);
+            if (best.mana < static_cast<int>(libcrt::Ftol(D(record->mana)))) return false;
+            return best.skill >= record->skill;
         }
         if (!IsModifier(item)) return false;
         int modifiers = 0, skillSum = 0;
         float manaSum = 0.0f;
         bool hasSpell = false;
         int school = 0;
-        for (int i = 0; i < CountOf(spellResults_); ++i) {
-            if (IsSpellContainer(ItemOf(spellResults_, i))) return false;
-            if (IsSpell(ItemOf(spellResults_, i))) {
+        for (CItem* slot : spellResults_->items_) {
+            if (IsSpellContainer(slot)) return false;
+            if (IsSpell(slot)) {
                 hasSpell = true;
-                const itemdb::SpellRecord* record = SpellRecordOf(ItemOf(spellResults_, i));
+                const itemdb::SpellRecord* record = SpellRecordOf(slot);
                 skillSum += record->skill;
                 school = record->school;
                 manaSum = static_cast<float>(D(manaSum) + D(record->mana));
                 // The modifier must suit the spell (the spell's flag byte for the modifier's kind).
                 std::uint32_t kind = ModifierRecordOf(item)->kind;
                 if (kind < 5 && record->allowedModifiers[kind] == 0) return false;
-            } else if (IsModifier(ItemOf(spellResults_, i))) {
+            } else if (IsModifier(slot)) {
                 ++modifiers;
-                const itemdb::SpellModifierRecord* modifier = ModifierRecordOf(ItemOf(spellResults_, i));
+                const itemdb::SpellModifierRecord* modifier = ModifierRecordOf(slot);
                 manaSum = static_cast<float>(D(manaSum) + D(modifier->mana));
                 skillSum += modifier->skill;
             }
@@ -394,34 +350,30 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         const itemdb::SpellModifierRecord* modifier = ModifierRecordOf(item);
         float manaTotal = static_cast<float>(D(manaSum) + D(modifier->mana));
         int skillTotal = skillSum + modifier->skill;
-        int skill = 0, mana = 0;
-        BestPartySkill(school, &skill, &mana);
-        if (skill < skillTotal) return false;
-        return mana >= static_cast<int>(libcrt::Ftol(D(manaTotal)));
+        PartySkill best = BestPartySkill(school);
+        if (best.skill < skillTotal) return false;
+        return best.mana >= static_cast<int>(libcrt::Ftol(D(manaTotal)));
     }
     case 4:     // the item constructor: anything but quest items and magic
-        if (ItemType(item) == ItemKind::Quest) return false;
+        if (item->Kind() == ItemKind::Quest) return false;
         if (IsSpellContainer(item) || IsSpell(item)) return false;
         return !IsModifier(item);
     case 5: {   // the item being built: a blueprint, its parts, a container's spell
         if (mode != 1 && mode != 3) return mode == 7;
-        if (IsPart(item) || IsBlueprint(item)) return CountOf(itemResults_) <= 0;
+        if (IsPart(item) || IsBuildable(item)) return std::ssize(itemResults_->items_) <= 0;
         if (IsMaterial(item)) {
-            // The answer is not used.
-            itemResults_->SpellManager();
             std::uint32_t materials = 0;
             const itemdb::ItemRecordHead* part = nullptr;
             const itemdb::MaterialRecordHead* firstMaterial = nullptr;
-            if (CountOf(itemResults_) <= 0) return false;
-            for (int i = 0; i < CountOf(itemResults_); ++i) {
-                if (IsBlueprint(ItemOf(itemResults_, i))) return false;
-                if (IsPart(ItemOf(itemResults_, i))) {
-                    const CItem* entry = ItemOf(itemResults_, i);
-                    LootRecordType recordType = RecordType(entry);
-                    if (recordType <= LootRecordType::Quick) part = PartRecord(entry, recordType);
-                } else if (IsMaterial(ItemOf(itemResults_, i))) {
+            if (itemResults_->items_.empty()) return false;
+            for (CItem* slot : itemResults_->items_) {
+                if (IsBuildable(slot)) return false;
+                if (IsPart(slot)) {
+                    LootRecordType recordType = RecordType(slot);
+                    if (recordType <= LootRecordType::Quick) part = PartRecord(slot, recordType);
+                } else if (IsMaterial(slot)) {
                     ++materials;
-                    if (!firstMaterial) firstMaterial = BlueprintRecord(ItemOf(itemResults_, i));
+                    if (!firstMaterial) firstMaterial = BlueprintRecord(slot);
                 }
             }
             if (!part) return false;
@@ -433,19 +385,17 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         if (!itemMade_) return false;
         CSpell* spell = item->spell_;
         if (!spell) return false;
-        if (ItemType(itemMade_) != ItemKind::Quick && !spell->HasCastFlagModifier()) return false;
+        if (itemMade_->Kind() != ItemKind::Quick && !spell->HasCastFlagModifier()) return false;
         if (spell->skillNeeded_ > itemMade_->magicLevel_) return false;
         // The container's charge maximum below the spell's mana cost fails.
         float need = spell->manaCost_;
         float room = itemMade_->chargeMax_;
         EI_NAN_AUDIT(room, need);
         if (room < need) return false;
-        for (int i = 0; i < CountOf(itemResults_); ++i)
-            if (IsSpellContainer(ItemOf(itemResults_, i))) return false;
-        return true;
+        return std::ranges::none_of(itemResults_->items_, IsSpellContainer);
     }
     case 6: {   // repair: worn weapons and armour
-        ItemKind type = ItemType(item);
+        ItemKind type = item->Kind();
         if (type != ItemKind::Weapon && type != ItemKind::Armor) return false;
         return item->conditionMax_ > item->condition_;
     }
@@ -460,45 +410,35 @@ void CCampPages::UpdateAction() {
     cost_ = 0;
     actionEnabled_ = false;
     actionShown_ = false;
-    // Rebirth-patched.
-    auto price = [this](CItem* item, int kind) { return Price(item, kind); };
 
     // A trade page: what the camp buys (`buy`) minus what it sells (`sell`).
     auto trade = [&](CParty* bought, int buyKind, CParty* sold, int sellKind, const char* text) {
-        if (CountOf(bought) <= 0 && CountOf(sold) <= 0) return;
+        if (bought->items_.empty() && sold->items_.empty()) return;
         action = text;
         actionEnabled_ = true;
         actionShown_ = true;
-        for (int i = 0; i < CountOf(bought); ++i) {
-            CItem* item = ItemOf(bought, i);
-            int count = Count(item);
-            cost_ += price(item, buyKind) * count;
-        }
-        for (int i = 0; i < CountOf(sold); ++i) {
-            CItem* item = ItemOf(sold, i);
-            int count = Count(item);
-            cost_ -= price(item, sellKind) * count;
-        }
+        for (CItem* item : bought->items_) cost_ += Price(item, buyKind) * Count(item);
+        for (CItem* item : sold->items_) cost_ -= Price(item, sellKind) * Count(item);
     };
     // A constructor's page: its slots' cost; a finished item in the slots is taken apart,
     // otherwise the constructor makes what the slots allow.
-    auto construct = [&](CItem*& made, CParty* slots, int slotKind, int recordKind, int apartKind,
+    auto construct = [&](Ref<CItem>& made, CParty* slots, int slotKind, int recordKind, int apartKind,
                          bool (*isFinished)(const CItem*), bool (*isMaterial)(const CItem*),
                          bool (CCampPages::*canMake)(), const char* apartText, const char* makeText, int topic) {
-        if (made) made->Release();
-        made = nullptr;
+        made.Reset();
         deconstructing_ = false;
         bool described = false;
-        if (CountOf(slots) > 0) {
+        if (!slots->items_.empty()) {
             actionShown_ = true;
-            for (int i = 0; i < CountOf(slots); ++i) {
-                CItem* item = ItemOf(slots, i);
-                cost_ += price(item, slotKind);
-                if (IsMade(item)) cost_ += price(item, recordKind);
+            // By index: canMake builds items through the slots' managers.
+            for (int i = 0; i < std::ssize(slots->items_); ++i) {
+                CItem* item = slots->items_[i];
+                cost_ += Price(item, slotKind);
+                if (IsMade(item)) cost_ += Price(item, recordKind);
                 if (isFinished(item)) {
                     actionEnabled_ = true;
-                    cost_ = price(item, apartKind);
-                    if (IsMade(item)) cost_ += price(item, recordKind);
+                    cost_ = Price(item, apartKind);
+                    if (IsMade(item)) cost_ += Price(item, recordKind);
                     deconstructing_ = true;
                     helpPanel_->Describe(item);
                     described = true;
@@ -508,7 +448,7 @@ void CCampPages::UpdateAction() {
                 if (isMaterial(item)) {
                     actionEnabled_ = (this->*canMake)();
                     helpPanel_->Describe(made);
-                    described = made != nullptr;
+                    described = made.Get() != nullptr;
                     if (actionEnabled_) action = makeText;
                 }
             }
@@ -523,8 +463,8 @@ void CCampPages::UpdateAction() {
         // Repair all the hero's weapons and armour (where the item constructor works).
         if (itemConstructor_ && !noConstructor_) {
             PartyUnitRecord* hero = HeroRecord();
-            for (int i = 0; i < std::ssize(hero->weapons); ++i) cost_ += price(hero->weapons[i], 8);
-            for (int i = 0; i < std::ssize(hero->armor); ++i) cost_ += price(hero->armor[i], 8);
+            for (CItem* weapon : hero->weapons) cost_ += Price(weapon, 8);
+            for (CItem* armour : hero->armor) cost_ += Price(armour, 8);
             actionEnabled_ = cost_ > 0;
             if (actionEnabled_) action = "camp_repair_all";
         }
@@ -549,19 +489,15 @@ void CCampPages::UpdateAction() {
         trade(itemParts_[1], 4, itemParts_[2], 5, "camp_item_trade");
         break;
     case 5:
-        construct(itemMade_, itemResults_, 6, 4, 7, &IsBlueprint, &IsPart, &CCampPages::CanMakeItem,
+        construct(itemMade_, itemResults_, 6, 4, 7, &IsBuildable, &IsPart, &CCampPages::CanMakeItem,
                   "camp_item_deconstr", "camp_item_constr", 0x66);
         break;
     case 6:
-        if (CountOf(itemExtra_) > 0) {
+        if (!itemExtra_->items_.empty()) {
             action = "camp_item_repair";
             actionEnabled_ = true;
             actionShown_ = true;
-            for (int i = 0; i < CountOf(itemExtra_); ++i) {
-                CItem* item = ItemOf(itemExtra_, i);
-                int count = Count(item);
-                cost_ += price(item, 8) * count;
-            }
+            for (CItem* item : itemExtra_->items_) cost_ += Price(item, 8) * Count(item);
         }
         break;
     default:
@@ -572,8 +508,8 @@ void CCampPages::UpdateAction() {
     if (page_ == 1) {
         amount = trade_->Experience();
     } else {
-        amount = PlayerParty()->money_;
-        if (PlayerParty()->money_ < cost_) actionEnabled_ = false;
+        amount = LocalPlayerData()->money_;
+        if (LocalPlayerData()->money_ < cost_) actionEnabled_ = false;
     }
 
     std::string text;
@@ -656,11 +592,7 @@ BOOL CCampPages::Draw(CSceneRenderer* pass) {
     }
     UpdateAction();
     CUiContainer::Draw(pass);
-    if (page_ == 0) {
-        float turn;
-        std::memcpy(&turn, &heroTurn_, sizeof turn);
-        DrawHeroPreview(pass, heroes_[hero_], turn, 400.0f, 1);
-    }
+    if (page_ == 0) DrawHeroPreview(pass, heroes_[hero_], heroTurn_, 400.0f, 1);
     return 1;
 }
 
@@ -675,9 +607,9 @@ bool CCampPages::CanMakeSpell() {
     // frame; CanEquip allows at most eight).
     itemdb::SpellModifierRecord* modifiers[32];
     int modifierCount = 0;
-    if (CountOf(spellResults_) <= 0) return false;
-    for (int i = 0; i < CountOf(spellResults_); ++i) {
-        CItem* item = ItemOf(spellResults_, i);
+    if (std::ssize(spellResults_->items_) <= 0) return false;
+    for (int i = 0; i < std::ssize(spellResults_->items_); ++i) {
+        CItem* item = spellResults_->items_[i];
         if (IsSpell(item))
             spell = SpellRecordOf(item);
         else if (IsModifier(item) && modifierCount < 32)
@@ -705,13 +637,11 @@ bool CCampPages::CanMakeSpell() {
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
     CItem* container = factory->MakeItem(ItemKind::Spell, index, 0, -1);
     if (container) container->AttachSpell(made);
-    spellMade_ = container;
+    spellMade_.Assign(container);
     if (!container) return false;
-    ++container->refCount_;
-    int skill = 0, mana = 0;
-    BestPartySkill(spell->school, &skill, &mana);
-    if (mana < static_cast<int>(libcrt::Ftol(D(made->manaCost_)))) return false;
-    return skill >= static_cast<int>(made->skillNeeded_);
+    PartySkill best = BestPartySkill(spell->school);
+    if (best.mana < static_cast<int>(libcrt::Ftol(D(made->manaCost_)))) return false;
+    return best.skill >= static_cast<int>(made->skillNeeded_);
 }
 
 bool CCampPages::CanMakeItem() {
@@ -719,20 +649,14 @@ bool CCampPages::CanMakeItem() {
     CResourceManager* factory = itemResults_->ItemFactory();
     CSpellManager* manager = itemResults_->SpellManager();
     itemdb::ItemRecordHead* part = nullptr;
-    HeldObject<CSpell> spell{nullptr};   // a counted pointer, released on the way out
+    Ref<CSpell> spell;   // a copy of the container's spell, released on the way out
     itemdb::MaterialRecordHead* blueprint = nullptr;
     int blueprintCount = 0;
     ItemKind type{};         // uninitialised until a part sets it
-    auto fail = [&]() {
-        ReleaseObject(spell);
-        return false;
-    };
-    if (CountOf(itemResults_) <= 0) return fail();
-    for (int i = 0; i < CountOf(itemResults_); ++i) {
-        CItem* item = ItemOf(itemResults_, i);
+    if (itemResults_->items_.empty()) return false;
+    for (CItem* item : itemResults_->items_) {
         if (IsSpellContainer(item)) {
-            CSpell* copy = item->spell_->Clone(manager);
-            spell.Assign(copy);
+            spell.Assign(item->spell_->Clone(manager));
         } else if (IsPart(item)) {
             switch (RecordType(item)) {
             case LootRecordType::Weapon: type = ItemKind::Weapon; part = PartRecord(item, LootRecordType::Weapon); break;
@@ -746,81 +670,65 @@ bool CCampPages::CanMakeItem() {
                 blueprint = record;
                 blueprintCount = 1;
             } else if (blueprint != record) {
-                return fail();
+                return false;
             } else {
                 ++blueprintCount;
             }
         }
     }
-    if (!blueprint || !part) return fail();
-    if (static_cast<int>(part->materialUnits) != blueprintCount) return fail();
-    if (text::CompareIgnoringCase(part->materialClass, blueprint->soundName) != 0)
-        return fail();
+    if (!blueprint || !part) return false;
+    if (static_cast<int>(part->materialUnits) != blueprintCount) return false;
+    if (text::CompareIgnoringCase(part->materialClass, blueprint->soundName) != 0) return false;
     constructor->SetManager(factory);
     if (!constructor->BeginCreateItem(type, -1)) {
         constructor->SetManager(nullptr);
-        return fail();
+        return false;
     }
-    if (!constructor->SetPrototype(part) ||
-        !constructor->SetMaterial(blueprint) ||
-        !constructor->SetSpellObject(spell)) {
-        constructor->SetManager(nullptr);
-        return fail();
-    }
-    itemMade_ = constructor->EndCreateItem();
+    constructor->SetPrototype(part);
+    constructor->SetMaterial(blueprint);
+    constructor->SetSpellObject(spell);
+    itemMade_.Assign(constructor->EndCreateItem());
     constructor->SetManager(nullptr);
-    if (!itemMade_) return fail();
-    ++itemMade_->refCount_;
-    ReleaseObject(spell);
-    return true;
+    return itemMade_.Get() != nullptr;
 }
 
 // --- leaving the camp ----------------------------------------------------------------------------
 
-void CCampPages::Close() {
+void CCampPages::CloseScreen() {
     GameSetServerPaused(0);
     // The local player's unit records, their keys raised meanwhile.
-    std::vector<PartyUnitRecord*> records = {};
+    std::vector<PartyUnitRecord*> records;
     auto* player = LocalPlayerData();
-    for (int i = 0; i < std::ssize(player->members_); ++i) {
-        PartyUnitRecord* record = &player->members_[i];
-        record->unitId += kRecordBias;
-        int index = std::ssize(records);
-        records.resize(index + 1);
-        records[index] = &player->members_[i];
+    for (PartyUnitRecord& record : player->members_) {
+        record.unitId += kRecordBias;
+        records.push_back(&record);
     }
     GameRemoveUnitsOf(&records);
-    for (int i = 0; i < std::ssize(player->members_); ++i) player->members_[i].unitId -= kRecordBias;
+    for (PartyUnitRecord& record : player->members_) record.unitId -= kRecordBias;
 
     lib::FreeStorage(heroes_);
-    if (spellMade_) spellMade_->Release();
-    spellMade_ = nullptr;
-    if (itemMade_) itemMade_->Release();
-    itemMade_ = nullptr;
+    spellMade_.Reset();
+    itemMade_.Reset();
     helpPanel_->Describe(nullptr);
     descPanel_->Describe(nullptr);
     // The first of each constructor's lists (the class template's) is not touched here.
-    for (CParty** list : {&spellParts_[1], &spellParts_[2], &spellResults_, &itemParts_[1], &itemParts_[2],
-                          &itemResults_, &itemExtra_}) {
-        (*list)->Destroy();
-        delete *list;
+    for (CParty* list : {spellParts_[1], spellParts_[2], spellResults_, itemParts_[1], itemParts_[2], itemResults_,
+                         itemExtra_}) {
+        list->Destroy();
+        delete list;
     }
 }
-
-// --- the trade panel's destructor body -----------------------------------------------------------
-
-CTradePanel::~CTradePanel() {}
 
 // --- taking an item off the hero -----------------------------------------------------------------
 
 CItem* CCampPages::TakeOff(CItem* item) {
     interface_->PlaySound(game::PutOffSoundText(), 0);
-    ItemKind kind = ItemType(item);
+    ItemKind kind = item->Kind();
     if (kind < ItemKind::Weapon || (kind > ItemKind::Quick && kind != ItemKind::Spell)) return nullptr;
     PartyUnitRecord* hero = HeroRecord();
     // The item among the player's items.
-    CItem* result = PlayerParty()->AddItem(item, 0, 1);
-    switch (ItemType(item)) {
+    CItem* result = LocalPlayerData()->AddItem(item, 0, 1);
+    switch (item->Kind()) {
     case ItemKind::Weapon: {
         // The chosen weapon moves back when the item lies before it.
         int count = std::ssize(hero->weapons);
@@ -866,7 +774,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
 void CCampPages::PutOn(CItem* item) {
     interface_->PlaySound(game::PutOnSoundText(), 0);
     PartyUnitRecord* hero = HeroRecord();
-    switch (ItemType(item)) {
+    switch (item->Kind()) {
     case ItemKind::Weapon:
         if (std::ssize(hero->weapons) >= 4) return;
         hero->AddWeapon(item);
@@ -899,7 +807,7 @@ void CCampPages::PutOn(CItem* item) {
     default:
         return;
     }
-    PlayerParty()->RemoveItem(item, 0);
+    LocalPlayerData()->RemoveItem(item, 0);
     statsPanel_->DrawStats();
 }
 
@@ -912,27 +820,27 @@ void CCampPages::PutOnFromStrip(CItem* item) {
         PutOn(item);
         return;
     case 2:
-        MoveBetween(this, item, spellParts_[2], LocalPlayerData(), 8, 1, 0);
+        MoveItem(item, spellParts_[2], LocalPlayerData(), 8, 1, 0);
         break;
     case 3:
-        MoveBetween(this, item, spellResults_, LocalPlayerData(), 0, 0, 0);
+        MoveItem(item, spellResults_, LocalPlayerData(), 0, 0, 0);
         break;
     case 4:
-        MoveBetween(this, item, itemParts_[2], LocalPlayerData(), 8, 1, 0);
+        MoveItem(item, itemParts_[2], LocalPlayerData(), 8, 1, 0);
         break;
     case 5:
-        if (IsMaterial(item) && ShiftHeld(interface_)) {
+        if (IsMaterial(item) && interface_->shiftDown_) {
             // With Shift the whole stack, one at a time while the slots accept it.
             for (int n = Count(item); n > 0; --n) {
                 if (!CanEquip(item, 1)) break;
-                MoveBetween(this, item, itemResults_, LocalPlayerData(), 0, 0, 0);
+                MoveItem(item, itemResults_, LocalPlayerData(), 0, 0, 0);
             }
         } else {
-            MoveBetween(this, item, itemResults_, LocalPlayerData(), 0, 0, 0);
+            MoveItem(item, itemResults_, LocalPlayerData(), 0, 0, 0);
         }
         break;
     case 6:
-        MoveBetween(this, item, itemExtra_, LocalPlayerData(), 0x10, 1, 0);
+        MoveItem(item, itemExtra_, LocalPlayerData(), 0x10, 1, 0);
         break;
     default:
         return;
@@ -940,47 +848,47 @@ void CCampPages::PutOnFromStrip(CItem* item) {
     interface_->PlaySound(game::PutOnSoundText(), 0);
 }
 
-void CCampPages::MoveItem(CItem* item, int mode) {
+void CCampPages::TakeItem(CItem* item, int mode) {
     if (!CanEquip(item, mode)) {
         interface_->PlaySound(game::CancelSoundText(), 0);
         return;
     }
     // Back to the player's items and the item strip (from `list`).
     auto toPlayer = [&](CItem* it, CParty* list) {
-        ScrollTo(itemStrip_, MoveBetween(this, it, LocalPlayerData(), list, 0, 1, 0));
+        itemStrip_->ScrollToItem(MoveItem(it, LocalPlayerData(), list, 0, 1, 0));
     };
     // A made item back to the constructor's parts and its strip, the others to the player.
     auto back = [&](CItem* it, CParty* owner, CParty* list, CUiItemStrip* strip) {
         if (IsMade(it))
-            ScrollTo(strip, MoveBetween(this, it, owner, list, 0, 1, 0));
+            strip->ScrollToItem(MoveItem(it, owner, list, 0, 1, 0));
         else
             toPlayer(it, list);
     };
     switch (mode) {
     case 0:
-        ScrollTo(itemStrip_, TakeOff(item));
+        itemStrip_->ScrollToItem(TakeOff(item));
         return;
     case 1:
         PutOnFromStrip(item);
         return;
     case 2:
         if (page_ == 2)
-            MoveBetween(this, item, spellParts_[1], spellParts_[0], 8, 1, 0);
+            MoveItem(item, spellParts_[1], spellParts_[0], 8, 1, 0);
         else if (page_ == 3)
-            MoveBetween(this, item, spellResults_, spellParts_[0], 0, 0, 1);
+            MoveItem(item, spellResults_, spellParts_[0], 0, 0, 1);
         interface_->PlaySound(game::PutOnSoundText(), 0);
         return;
     case 3:
         if (page_ == 4) {
-            MoveBetween(this, item, itemParts_[1], itemParts_[0], 8, 1, 0);
+            MoveItem(item, itemParts_[1], itemParts_[0], 8, 1, 0);
         } else if (page_ == 5) {
-            if (IsMaterial(item) && ShiftHeld(interface_)) {
+            if (IsMaterial(item) && interface_->shiftDown_) {
                 for (int n = Count(item); n > 0; --n) {
                     if (!CanEquip(item, 3)) break;
-                    MoveBetween(this, item, itemResults_, itemParts_[0], 0, 0, 1);
+                    MoveItem(item, itemResults_, itemParts_[0], 0, 0, 1);
                 }
             } else {
-                MoveBetween(this, item, itemResults_, itemParts_[0], 0, 0, 1);
+                MoveItem(item, itemResults_, itemParts_[0], 0, 0, 1);
             }
         }
         interface_->PlaySound(game::PutOnSoundText(), 0);
@@ -988,7 +896,7 @@ void CCampPages::MoveItem(CItem* item, int mode) {
     case 4:
         // Out of the spell constructor's sold or bought list.
         if (ListHolds(spellParts_[1], item)) {
-            ScrollTo(spellStrip_, MoveBetween(this, item, spellParts_[0], spellParts_[1], 0, 1, 0));
+            spellStrip_->ScrollToItem(MoveItem(item, spellParts_[0], spellParts_[1], 0, 1, 0));
         } else if (ListHolds(spellParts_[2], item)) {
             toPlayer(item, spellParts_[2]);
         } else {
@@ -997,7 +905,7 @@ void CCampPages::MoveItem(CItem* item, int mode) {
         break;
     case 5:
         if (ListHolds(itemParts_[1], item)) {
-            ScrollTo(partStrip_, MoveBetween(this, item, itemParts_[0], itemParts_[1], 0, 1, 0));
+            partStrip_->ScrollToItem(MoveItem(item, itemParts_[0], itemParts_[1], 0, 1, 0));
         } else if (ListHolds(itemParts_[2], item)) {
             toPlayer(item, itemParts_[2]);
         } else {
@@ -1017,17 +925,17 @@ void CCampPages::MoveItem(CItem* item, int mode) {
         } else if (IsMaterial(item)) {
             back(item, itemParts_[0], itemResults_, partStrip_);
             // With Shift every other kind-one item goes too.
-            if (ShiftHeld(interface_)) {
-                for (int i = 0; i < CountOf(itemResults_); ++i) {
-                    if (!IsMaterial(ItemOf(itemResults_, i))) continue;
-                    back(ItemOf(itemResults_, i), itemParts_[0], itemResults_, partStrip_);
+            if (interface_->shiftDown_) {
+                for (int i = 0; i < std::ssize(itemResults_->items_); ++i) {
+                    if (!IsMaterial(itemResults_->items_[i])) continue;
+                    back(itemResults_->items_[i], itemParts_[0], itemResults_, partStrip_);
                     --i;
                 }
             }
             // Then the first spell container left goes as well.
-            for (int i = 0; i < CountOf(itemResults_); ++i) {
-                if (!IsSpellContainer(ItemOf(itemResults_, i))) continue;
-                back(ItemOf(itemResults_, i), itemParts_[0], itemResults_, partStrip_);
+            for (int i = 0; i < std::ssize(itemResults_->items_); ++i) {
+                if (!IsSpellContainer(itemResults_->items_[i])) continue;
+                back(itemResults_->items_[i], itemParts_[0], itemResults_, partStrip_);
                 break;
             }
         } else {
@@ -1061,7 +969,7 @@ void CCampPages::RefreshWeapons() {
 void CCampPages::RefreshStats() {
     if (heroes_[hero_]) {
         PartyUnitRecord* hero = HeroRecord();
-        heroes_[hero_]->SetFromStats(StatsOf(hero));
+        heroes_[hero_]->SetFromStats(&hero->stats);
         heroes_[hero_]->Controller()->RefreshWounds();
     }
     statsPanel_->DrawStats();
@@ -1071,17 +979,11 @@ void CCampPages::RefreshStats() {
 
 void CCampPages::Update() {
     UpdateBase();
-    int turning = turning_;
-    float turn;
-    turn = std::bit_cast<float>(heroTurn_);
     // The frame time in seconds (unrounded).
-    if (turning == 1) {
-        float turned = TurnedBy(FrameTime(), turn, false);
-        heroTurn_ = std::bit_cast<std::uint32_t>(turned);
-    } else if (turning == 2) {
-        float turned = TurnedBy(FrameTime(), turn, true);
-        heroTurn_ = std::bit_cast<std::uint32_t>(turned);
-    }
+    if (turning_ == 1)
+        heroTurn_ = TurnedBy(FrameTime(), heroTurn_, false);
+    else if (turning_ == 2)
+        heroTurn_ = TurnedBy(FrameTime(), heroTurn_, true);
 }
 
 void CCampPages::NextHero() {
@@ -1107,22 +1009,10 @@ void CCampPages::ShowHero() {
     if (own.size() == 0) {
         PartyUnitRecord* hero = HeroRecord();
         own = hero->texts[1];
-        int found;
-        {
-            std::string prefix("pers ");
-            std::string key = prefix + own;
-            found = table->CTextManager::Open(key);
-        }
-        if (found) table->ReadLine(&name, 1);
+        if (table->Open("pers " + own)) table->ReadLine(&name, 1);
     } else {
         name = own;
     }
     statsPanel_->SetHero(hero_, name);
     trade_->SelectHero(hero_);
-}
-
-// --- the constructor -----------------------------------------------------------------------------
-
-CCampPages::CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui) {
-    fromHeroScreen_ = fromHeroScreen;
 }

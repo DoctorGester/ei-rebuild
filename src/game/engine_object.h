@@ -154,10 +154,6 @@ public:
     std::uint32_t prototypeId_;
 };
 
-// The name ui_camp.cpp gives Ref until the interface track's files are converted.
-template <typename T>
-using HeldObject = Ref<T>;
-
 // A counted engine object's id saved (-1: none) or read back: -1 resets `ref`, any other id is looked up in
 // `world`'s map object manager.
 void SaveRef(const CEngineObject* object, CStream* stream);

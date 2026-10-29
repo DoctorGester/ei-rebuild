@@ -144,7 +144,7 @@ void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(interface_, game::CancelSoundText(), 0);
     statsPanel_->SetHero(0, game::kEmptyText);
     surfaces_[0]->Clear();
-    tradePanel_->Settle(0, 0);
+    tradePanel_->Settle(false, false);
     SetMode(this, kModeNewHero);
     nameEdit_->SetText(HeroRecord()->texts[0]);
 }
@@ -311,7 +311,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         } else if (region == 4) {
             // Take the equipment back: the hero's first weapon, armour and spell container.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-            tradePanel_->Settle(0, 0);
+            tradePanel_->Settle(false, false);
             PartyUnitRecord* hero = HeroRecord();
             weapon_ = FirstOf(hero->weapons);
             weaponPanel_->ShowWeapon(weapon_);

@@ -20,6 +20,7 @@
 #include "game_singletons.h"
 #include "lib/text_case.h"
 
+#include <algorithm>
 #include <bit>
 #include <string>
 
@@ -44,32 +45,31 @@ const CItemLoot* LootOrNull(const CItem* item) {
 
 // --- Item predicates -------------------------------------------------------------------------
 
-// The predicates need no object (the original's read no `this` either): static functions.
-bool UiItemKinds::IsSpell(const CItem* item) {
+bool IsSpell(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == LootKind::Record && loot->recordType_ == LootRecordType::Spell;
 }
 
-bool UiItemKinds::IsModifier(const CItem* item) {
+bool IsModifier(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == LootKind::Record && loot->recordType_ == LootRecordType::Modifier;
 }
 
-BOOL UiItemKinds::IsSpellContainer(const CItem* item) {
+bool IsSpellContainer(const CItem* item) {
     return item->Kind() == ItemKind::Spell;
 }
 
-bool UiItemKinds::IsPart(const CItem* item) {
+bool IsPart(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == LootKind::Record && loot->recordType_ <= LootRecordType::Quick;
 }
 
-bool UiItemKinds::IsMaterial(const CItem* item) {
+bool IsMaterial(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == LootKind::Material;
 }
 
-bool UiItemKinds::IsBuildable(const CItem* item) {
+bool IsBuildable(const CItem* item) {
     auto* object = const_cast<CItem*>(item);
     const itemdb::ItemRecordHead* prototype = object->GetPrototype();
     if (prototype && !prototype->buildable) return false;
@@ -140,8 +140,8 @@ void CUiItemStrip::CycleTab(int first, int count) {
 }
 
 int CUiItemStrip::ItemTab(const CItem* item) {
-    if (UiItemKinds::IsPart(item) || UiItemKinds::IsMaterial(item)) return 0;
-    if (UiItemKinds::IsSpell(item) || UiItemKinds::IsModifier(item)) return 1;
+    if (IsPart(item) || IsMaterial(item)) return 0;
+    if (IsSpell(item) || IsModifier(item)) return 1;
     ItemKind type = item->Kind();
     if (type == ItemKind::Weapon || type == ItemKind::Armor || type == ItemKind::Quick || type == ItemKind::Spell) return 2;
     if (type == ItemKind::Loot) return 3;
@@ -149,7 +149,7 @@ int CUiItemStrip::ItemTab(const CItem* item) {
 }
 
 int CUiItemStrip::SpellTab(const CItem* item) {
-    if (UiItemKinds::IsSpell(item)) {
+    if (IsSpell(item)) {
         // A record out of range is read through null, as in the original.
         const itemdb::SpellRecord* spell = itemdb::SpellAt(ItemRecord(item));
         switch (spell->castType) {
@@ -159,7 +159,7 @@ int CUiItemStrip::SpellTab(const CItem* item) {
         default: return 5;
         }
     }
-    if (UiItemKinds::IsModifier(item)) {
+    if (IsModifier(item)) {
         const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(ItemRecord(item));
         return (static_cast<int>(modifier->kind) > 5) + 3;
     }
@@ -167,7 +167,7 @@ int CUiItemStrip::SpellTab(const CItem* item) {
 }
 
 int CUiItemStrip::ArmorTab(const CItem* item) {
-    if (UiItemKinds::IsPart(item)) {
+    if (IsPart(item)) {
         switch (AsLoot(item)->recordType_) {
         case LootRecordType::Weapon: return 0;
         case LootRecordType::Armor: {
@@ -179,7 +179,7 @@ int CUiItemStrip::ArmorTab(const CItem* item) {
         }
     }
     if (item->Kind() == ItemKind::Quick) return 3;
-    return UiItemKinds::IsMaterial(item) ? 4 : 5;
+    return IsMaterial(item) ? 4 : 5;
 }
 
 void CForwardingStrip::RebuildList() {
@@ -355,21 +355,17 @@ bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
 
 // --- CCampPages -------------------------------------------------------------------------------
 
-void CCampPages::BestPartySkill(int school, int* skill, int* mana) {
-    int bestSkill = 0;
-    int bestMana = 0;
+PartySkill CCampPages::BestPartySkill(int school) {
+    PartySkill best;
     for (int i = 0; i < std::ssize(LocalPlayerData()->members_); ++i) {
         UnitStats* stats = &LocalPlayerData()->members_[i].stats;
-        int value = HeroSchoolSkill(stats, school);
-        if (!(bestSkill > value)) bestSkill = value;
-        int units = HeroManaUnits(stats);
-        if (!(bestMana > units)) bestMana = units;
+        best.skill = (std::max)(best.skill, HeroSchoolSkill(stats, school));
+        best.mana = (std::max)(best.mana, HeroManaUnits(stats));
     }
-    *skill = bestSkill;
-    *mana = bestMana;
+    return best;
 }
 
-void CCampPages::ShowPageTabs(int page) {
+void CCampPages::TopicClicked(int page) {
     switch (page) {
     case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9: case 10: case 16:
         itemStrip_->SelectTab(2);

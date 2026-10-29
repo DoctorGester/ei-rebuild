@@ -99,6 +99,17 @@ public:
     float glow;              // phase of the spell glow
 };
 inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link_); }
+// An item a constructor made: a move into a list shown turning sets its turn's flag.
+inline bool IsMade(CItem* item) {
+    const ItemTurn* turn = ItemTurnOf(item);
+    return turn && turn->flag;
+}
+
+// The party's best skill in a spell school and its most mana units (CItemScreen::BestPartySkill).
+struct PartySkill {
+    int skill = 0;
+    int mana = 0;
+};
 
 class CParty;
 class CItemScreen;
@@ -126,7 +137,7 @@ public:
     virtual void TakeItem(CItem*, int) {}
     virtual bool CanEquip(CItem* item, int mode);
     virtual void TopicClicked(int) {}
-    virtual void BestPartySkill(int school, int* skill, int* mana);
+    virtual PartySkill BestPartySkill(int school);
     virtual void RefreshWeapons() {}
     virtual void RefreshStats() {}
     virtual void NextHero() {}

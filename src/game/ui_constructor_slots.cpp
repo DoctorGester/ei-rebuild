@@ -19,8 +19,6 @@ constexpr int kTopicPart = 0xE;
 constexpr int kTopicMaterial = 0xF;
 constexpr int kTopicItemContainer = 0x10;
 
-bool IsSpellContainer(const CItem* item) { return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0; }
-
 // The `nth` (from 0) of the slots' items that `matches`, or null.
 template <typename Predicate>
 CItem* NthSlot(CParty* slots, int nth, Predicate matches) {
@@ -46,11 +44,11 @@ CItem* CConstructorPage::SpellMakerItemAt(int x, int y, int* topic) {
     }
     if (region == 1) {
         *topic = kTopicSpell;
-        return NthSlot(slots_, 0, UiItemKinds::IsSpell);
+        return NthSlot(slots_, 0, IsSpell);
     }
     if (region >= 2 && region < 10) {
         *topic = kTopicModifier;
-        if (CItem* item = NthSlot(slots_, region - 2, UiItemKinds::IsModifier)) return item;
+        if (CItem* item = NthSlot(slots_, region - 2, IsModifier)) return item;
     }
     if (region == 10) *topic = kTopicSkillLine;
     else if (region == 11) *topic = kTopicManaLine;
@@ -63,11 +61,11 @@ CItem* CConstructorPage::ItemMakerItemAt(int x, int y, int* topic) {
     int region = RegionAt(x, y);
     if (region == 0) {
         *topic = kTopicBuildable;
-        return NthSlot(slots_, 0, UiItemKinds::IsBuildable);
+        return NthSlot(slots_, 0, IsBuildable);
     }
     if (region == 1) {
         *topic = kTopicPart;
-        return NthSlot(slots_, 0, UiItemKinds::IsPart);
+        return NthSlot(slots_, 0, IsPart);
     }
     if (region == 2) {
         *topic = kTopicItemContainer;
@@ -75,7 +73,7 @@ CItem* CConstructorPage::ItemMakerItemAt(int x, int y, int* topic) {
     }
     if (region > 2) {
         *topic = kTopicMaterial;
-        return NthSlot(slots_, region - 3, UiItemKinds::IsMaterial);
+        return NthSlot(slots_, region - 3, IsMaterial);
     }
     return nullptr;
 }

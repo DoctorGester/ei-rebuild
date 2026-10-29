@@ -53,8 +53,6 @@ Pulse Advance(CConstructorPage* page) {
     return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};
 }
 
-bool IsSpellContainer(const CItem* item) { return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0; }
-
 void DrawSprite(CUiMesh* sprite, CSceneRenderer* pass, float x, float y) {
     sprite->Place(x, y, 3.0f);
     sprite->Draw(pass);
@@ -168,7 +166,7 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
             cell.y = 300.0f;
             DrawItem(owner_, pass, &cell);
             hasContainer = true;
-        } else if (UiItemKinds::IsSpell(item)) {
+        } else if (IsSpell(item)) {
             // A record out of range is read through null, like the original.
             const itemdb::SpellRecord* spell = itemdb::SpellAt(AsLoot(item)->index_);
             needed += spell->skill;
@@ -179,7 +177,7 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
             cell.y = 300.0f;
             DrawItem(owner_, pass, &cell);
             hasSpell = true;
-        } else if (UiItemKinds::IsModifier(item)) {
+        } else if (IsModifier(item)) {
             const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index_);
             manaSum = static_cast<float>(static_cast<double>(manaSum) + modifier->mana);
             needed += modifier->skill;
@@ -192,21 +190,17 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
             }
         }
     }
-    int skill = 0;
-    int mana = 0;
-    if (hasSpell) {
-        owner_->BestPartySkill(school, &skill, &mana);   // the party's best
-    }
     auto* surface = surfaces_[0];
     surface->Clear();
     if (hasSpell) {
+        PartySkill best = owner_->BestPartySkill(school);
         std::string text;
-        text = str::Format(CostFormat(), texts_[0], skill, needed);
+        text = str::Format(CostFormat(), texts_[0], best.skill, needed);
         RECT first{10, 0, 200, 20};
         surface->DrawLine(text, &first, 1, kTextColour, 0, 1);
         // The larger of the two (the last spell's when the sum is smaller or unordered).
         float shown = manaSum >= lastMana ? manaSum : lastMana;
-        text = str::Format(CostFormat(), texts_[1], mana, static_cast<int>(shown));
+        text = str::Format(CostFormat(), texts_[1], best.mana, static_cast<int>(shown));
         RECT second{10, 20, 200, 40};
         surface->DrawLine(text, &second, 1, kTextColour, 0, 1);
     } else {
@@ -247,12 +241,12 @@ BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
     for (int i = 0; i < std::ssize(slots); ++i) {
         CItem* item = slots[i];
         ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode_};
-        if (UiItemKinds::IsBuildable(item)) {
+        if (IsBuildable(item)) {
             cell.x = 250.0f;
             cell.y = 300.0f;
             DrawInSlot(this, pass, &cell, RECT{215, 265, 285, 335});
             hasBlueprint = true;
-        } else if (UiItemKinds::IsPart(item)) {
+        } else if (IsPart(item)) {
             cell.x = 350.0f;
             cell.y = 250.0f;
             DrawInSlot(this, pass, &cell, RECT{315, 215, 385, 285});
@@ -265,7 +259,7 @@ BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
             cell.y = 350.0f;
             DrawItem(owner_, pass, &cell);
             hasBlueprint = true;
-        } else if (UiItemKinds::IsMaterial(item)) {
+        } else if (IsMaterial(item)) {
             ++materials;
             cell.x = static_cast<float>(column) + 450.0f;
             cell.y = static_cast<float>(row * 100) + 150.0f;

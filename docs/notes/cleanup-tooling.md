@@ -36,8 +36,7 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
 - CONST: not the ones adding `volatile` (the x87 reads of `effects.cpp`, `particle_common.h`), nor ones that pick a
   const overload.
 - UP: only when no class between declares the called name. The UI constructors hide `CUiContainer::Construct`
-  (write `w->CUiContainer::Construct(ui)`), `CCampPages::MoveItem` hides the item screen's
-  (`camp->CItemScreen::MoveItem(...)`); an `auto*` local keeps the base type it had (`CEngineObject* texture = ...`).
+  (write `w->CUiContainer::Construct(ui)`); an `auto*` local keeps the base type it had (`CEngineObject* texture = ...`).
 - A cast in a template body shows for one instantiation only: leave it.
 - The forced header is C++20-only (`_MSVC_LANG` guard): CMake's compiler check builds a test file with the
   default standard under the same `/FI`. One site does not build (`world_server.cpp`, a volatile

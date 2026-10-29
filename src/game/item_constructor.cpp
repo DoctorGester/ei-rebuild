@@ -277,21 +277,6 @@ bool CItemConstructor::BeginCreateItem(ItemKind kind, int key) {
     return true;
 }
 
-bool CItemConstructor::SetMaterial(MaterialRecordHead* material) {
-    material_ = material;
-    return true;
-}
-
-bool CItemConstructor::SetPrototype(ItemRecordHead* prototype) {
-    prototype_ = prototype;
-    return true;
-}
-
-bool CItemConstructor::SetSpellObject(CSpell* spell) {
-    spell_ = spell;
-    return true;
-}
-
 CItem* CItemConstructor::EndCreateItem() {
     if (!Build()) {
         item_.Reset();
