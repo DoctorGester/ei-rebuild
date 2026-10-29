@@ -32,7 +32,7 @@ std::string CGlobalMap::PlaceTitle(std::string_view prefix, std::string_view nam
     std::string title;
     std::string key(prefix);
     key += name;
-    if (texts->Open(key)) texts->ReadLine(&title, true);
+    if (texts->Open(key)) title = texts->ReadLine(true);
     return title;
 }
 
@@ -46,7 +46,8 @@ std::optional<Vector3> CGlobalMap::MapPosition(std::string_view prefix, std::str
     std::optional<Vector3> position;
     if (texts->FindLine(key) && (!positionLine || texts->FindLine(kPositionLine))) {
         texts->NextLine();
-        if (texts->Split(&words, true)) {
+        if (!texts->IsPastEnd(texts->cursor_)) {
+            words = texts->Split(true);
             while (words.size() < 3) words.push_back(kMissingNumber);
             position = Vector3{static_cast<float>(str::ToDouble(words[0])), static_cast<float>(str::ToDouble(words[1])),
                                static_cast<float>(str::ToDouble(words[2]))};

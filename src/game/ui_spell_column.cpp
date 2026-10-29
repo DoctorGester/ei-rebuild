@@ -68,7 +68,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             tip += line;
             line = "Unknown";
             description = std::format("school_{}", SpellPrototypeOf(data)->castType);
-            g_clientWorld.texts_->CTextManager::GetString(description, &line);
+            line = g_clientWorld.texts_->CTextManager::GetString(description);
             line = labels[1] + " " + line + " \n";
             tip += line;
             if (SpellPrototypeOf(data)->allowedModifiers[3] == 0)

@@ -220,18 +220,18 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     // Surface 0: our money and the accept caption.
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
-    texts->GetString("xch_current_money", &text);
+    text = texts->GetString("xch_current_money");
     line = std::format("{} {}", text, LocalPlayerData()->money_);
     RECT rect{0, 0, 200, 0x14};
     surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
-    texts->GetString("xch_accept", &text);
+    text = texts->GetString("xch_accept");
     rect = RECT{0, 0x14, 200, 0x28};
     surface->DrawTextIn(text, &rect, kAlignLeft, kWhite, 1, 1);
 
     // Surface 1: the money offer's caption.
     surface = surfaces_[1];
     surface->Clear();
-    texts->GetString("xch_money_offer", &text);
+    text = texts->GetString("xch_money_offer");
     rect = RECT{0x14, 0, 0xB4, 0x14};
     surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
 
@@ -240,7 +240,7 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     surface->Clear();
     net::PartyMessage* partner = net::ClientFindParty(client);
     if (IsLive(partner)) {
-        texts->GetString("xch_money_remote", &text);
+        text = texts->GetString("xch_money_remote");
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
         line = std::format("{}", partnerOffer_->money_);
@@ -253,12 +253,11 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     surface->Clear();
     partner = net::ClientFindParty(client);
     if (IsLive(partner)) {
-        texts->GetString("xch_remote_header", &text);
+        text = texts->GetString("xch_remote_header");
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-        texts->GetString(net::ClientFindParty(client)->accepted_ ? "xch_remote_ok"
-                                                              : "xch_remote_cancel",
-                         &text);
+        text = texts->GetString(net::ClientFindParty(client)->accepted_ ? "xch_remote_ok"
+                                                              : "xch_remote_cancel");
         rect = RECT{0, 0x28, 200, 0x3C};
         surface->DrawTextIn(text, &rect, kAlignLeft, kGrey, 1, 1);
     }

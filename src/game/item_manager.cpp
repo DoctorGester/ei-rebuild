@@ -282,7 +282,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
         str::TrimRight(text);
     }
     std::vector<std::string> parts;      // the name split at '.'
-    text::Split(text, &parts, '.');
+    parts = text::Split(text, '.');
     for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.

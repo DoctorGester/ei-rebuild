@@ -124,7 +124,7 @@ void LoadSystemMessages(std::vector<std::string>& messages) {
     std::vector<char> text(length);
     std::fread(text.data(), 1, length, file);
     std::fclose(file);
-    text::Split(text.data(), &messages, '\n');
+    messages = text::Split(text.data(), '\n');
     if (messages.size() < kMessageLines) {
         messages.clear();
         AppendDefaultMessages(messages);
@@ -136,8 +136,7 @@ std::string Tail(const std::string& argument, int prefixLength) { return str::Ri
 // The command line: "-moviepath_<folder>" (the client's WorldClientFlag::MoviePathOption off), "-nocam" (NoCamOption
 // off; only while not RecordingCamera), a ".cam", ".scr", ".mob" or ".mpr" file, "-benchmark_<frames>" and "-devicetarget_<driver>".
 void ReadCommandLine(const char* commandLine) {
-    std::vector<std::string> arguments;
-    text::Split(commandLine, &arguments, ' ');
+    std::vector<std::string> arguments = text::Split(commandLine, ' ');
     g_cameraFile = ".\\camera.cam";
     g_commandLineScript.clear();
     g_commandLineMob.clear();

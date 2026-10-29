@@ -229,7 +229,7 @@ void LoadVar(std::vector<std::string>* args) {
         return;
     }
     while (file.ReadLine(line)) {
-        text::Split(line, &parts, ' ');
+        parts = text::Split(line, ' ');
         if (parts.size() > 1) {
             const std::string& name = parts[0];
             float value = static_cast<float>(str::ToDouble(parts[1]));

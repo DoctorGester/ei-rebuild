@@ -31,8 +31,7 @@ constexpr char kHelpAction = ';';   // the help key's action (g_keyActions)
 // trimmed).
 void ReadTutorText(CTextManager* texts, const std::string& key, std::string* text) {
     if (!texts->Open(std::string(kTutorSection) + key)) return;
-    std::string read;
-    texts->ReadToHash(&read);
+    std::string read = texts->ReadToHash();
     str::TrimRight(read, kLineEnds);
     *text = read.c_str();
 }
@@ -49,12 +48,11 @@ void CHelpWindow::CreateScreen() {
         interface_->SetPendingValue(0);
         return;
     }
-    std::string line;
-    texts->ReadLine(&line, 1);
+    std::string line = texts->ReadLine(true);
     title_ = line.c_str();
     while (texts->FindLine(kScreenLine)) {
         texts->NextLine();
-        texts->ReadLine(&line, 1);
+        line = texts->ReadLine(true);
         lines_.push_back(line);
     }
     if (lines_.empty()) {

@@ -82,13 +82,13 @@ void CMpHeroScreen::DrawExperience() {
     std::string text;
     std::string line;
     surface->Clear();
-    g_clientWorld.texts_->GetString(kLevelUpKey, &text);
+    text = g_clientWorld.texts_->GetString(kLevelUpKey);
     RECT title = {0, 130, 200, 150};
     surface->DrawTextIn(text, &title, kTextFormat, kWhite, 1, 1);
     text = str::Format(kSignedFormat, -tradePanel_->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
     surface->DrawTextIn(text, &cost, kTextFormat, kWhite, 1, 1);
-    g_clientWorld.texts_->GetString(kCurrentExpKey, &text);
+    text = g_clientWorld.texts_->GetString(kCurrentExpKey);
     line = str::Format(kLabelFormat, text, tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
@@ -206,7 +206,7 @@ void CMpHeroScreen::DrawVoices() {
     frame->visible_ = false;
     std::string title;
     RECT rect = {10, 5, 190, 20};
-    g_clientWorld.texts_->GetString(kVoicesKey, &title);
+    title = g_clientWorld.texts_->GetString(kVoicesKey);
     surface->DrawTextIn(title, &rect, 0, kWhite, 1, 1);
     rect = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);

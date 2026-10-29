@@ -127,7 +127,7 @@ void CInterface3D::Create(CTextureDevice* device) {
         std::string line;
         std::vector<std::string> words;
         while (file.ReadLine(line)) {
-            text::SplitWords(line, &words, ' ');
+            words = text::SplitWords(line, ' ');
             if (words.size() <= 1) continue;
             helpTopics_[words[0]] = str::ToInt(words[1]);
         }

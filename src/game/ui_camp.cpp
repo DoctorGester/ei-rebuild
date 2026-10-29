@@ -517,7 +517,7 @@ void CCampPages::UpdateAction() {
     CUiSurface* draw = surfaces_[0];
     draw->Clear();
     if (action.size() != 0) {
-        texts->GetString(action, &text);
+        text = texts->GetString(action);
         DrawLine(draw, text, RECT{0, 30, 200, 50});
         if (cost_ != 0)
             text = std::format("{:+}", -cost_);
@@ -525,7 +525,7 @@ void CCampPages::UpdateAction() {
             text = "0";
         DrawLine(draw, text, RECT{0, 50, 200, 70});
     }
-    texts->GetString(label, &text);
+    text = texts->GetString(label);
     line = std::format("{} {}", text, amount);
     DrawLine(draw, line, RECT{0, 10, 200, 30});
 
@@ -989,7 +989,7 @@ void CCampPages::ShowHero() {
     if (own.size() == 0) {
         PartyUnitRecord* hero = HeroRecord();
         own = hero->texts[1];
-        if (table->Open("pers " + own)) table->ReadLine(&name, 1);
+        if (table->Open("pers " + own)) name = table->ReadLine(true);
     } else {
         name = own;
     }

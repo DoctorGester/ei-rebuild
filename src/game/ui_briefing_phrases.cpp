@@ -102,7 +102,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
 
     // The lines up to the next phrase (the cursor stands after the previous one).
     while (texts->FindHeader()) {
-        texts->Split(&words, 1);
+        words = texts->Split(true);
         if (text::CompareIgnoringCase(words[0], kNoLipsCommand) == 0) {
             lips = false;
             continue;
@@ -147,7 +147,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 speaker = node == personTexts_.end() ? words[1] : node->second;
             }
         }
-        texts->ReadToHash(&phrase);
+        phrase = texts->ReadToHash();
         phrase = std::string(kPhraseHead) + speaker + (lips ? kPhraseBodyLips : kPhraseBodyNoLips) + phrase + kLineEnd;
         dialogueText_ += phrase;
         const char* cursor = texts->cursor_;
@@ -202,27 +202,27 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addQuests = [&](const std::vector<std::string>& list) {
                 for (const auto& it : list) {
-                    text::Split(it, &parts, '.');
+                    parts = text::Split(it, '.');
                     if (parts.size() != kQuestNameParts) continue;
                     if (!texts->Open(std::string(kQuestSection) + parts[2])) continue;
-                    texts->ReadLine(&name, 1);
+                    name = texts->ReadLine(true);
                     line = str::Format(kNameLine, label, name);
                     add();
                 }
             };
             if (record->exp > 0.0f) {
-                texts->GetString(kExperienceLabel, &label);
+                label = texts->GetString(kExperienceLabel);
                 line = str::Format(kNumberLine, label, static_cast<int>(record->exp));
                 add();
             }
             if (record->money > 0.0f) {
-                texts->GetString(kGoldLabel, &label);
+                label = texts->GetString(kGoldLabel);
                 line = str::Format(kNumberLine, label, static_cast<int>(record->money));
                 add();
             }
-            texts->GetString(kItemLabel, &label);
+            label = texts->GetString(kItemLabel);
             addItems(record->lists[QuestBriefingRecord::kGiveItems]);
-            texts->GetString(kLostItemLabel, &label);
+            label = texts->GetString(kLostItemLabel);
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && !topic_.empty() && text::CompareIgnoringCase(str::Left(topic_, 1), kZonePrefix) == 0) {
                 if (auto* player = g_serverWorld.GetPlayer(0)) {
@@ -236,13 +236,13 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 }
             }
             addItems(record->lists[QuestBriefingRecord::kRemoveItems]);
-            texts->GetString(kQuestLabel, &label);
+            label = texts->GetString(kQuestLabel);
             addQuests(record->lists[QuestBriefingRecord::kGiveQuests]);
-            texts->GetString(kQuestDoneLabel, &label);
+            label = texts->GetString(kQuestDoneLabel);
             addQuests(record->lists[QuestBriefingRecord::kCompleteQuests]);
             if (record->specials > 0) {
                 label = str::Format(kSpecialsLabel, record->specials);
-                texts->GetString(label, &label);
+                label = texts->GetString(label);
                 line = str::Format(kTextLine, label);
                 add();
             }

@@ -28,8 +28,7 @@ bool OpenPerkText(CTextManager* texts, std::string_view name) {
 }
 // The open perk text's line; the cursor moves to the next line.
 std::string ReadPerkLine(CTextManager* texts) {
-    std::string line;
-    texts->ReadLine(&line, 1);
+    std::string line = texts->ReadLine(true);
     return line;
 }
 
@@ -96,8 +95,7 @@ void CTradePanel::BuildLists() {
         row.price = SchoolPrice(row.level, row.level + 1);
     }
 
-    std::string perkLevel;
-    texts->CTextManager::GetString("perk_level", &perkLevel);
+    std::string perkLevel = texts->CTextManager::GetString("perk_level");
 
     for (unsigned group = 0; group < 0x6C; group += 3) {
         int level = stats->skillLevels[group / 3];
@@ -108,7 +106,7 @@ void CTradePanel::BuildLists() {
         TradeRow& row = perks_.emplace_back();
         std::string text = PerkBaseName(record);
         if (OpenPerkText(texts, text))
-            texts->ReadLine(&text, 1);
+            text = texts->ReadLine(true);
         else
             text = record->displayName;
         row.name = level > 1 ? std::format("{} ({}{})", text, perkLevel, level) : text;
@@ -232,7 +230,7 @@ void CTradePanel::Build() {
     CTextManager* texts = g_clientWorld.texts_;
     std::string text;
     for (const char* key : {"skills", "perks", "perks_av"}) {
-        texts->CTextManager::GetString(key, &text);
+        text = texts->CTextManager::GetString(key);
         texts_.push_back(text);
     }
     ResetRecords();

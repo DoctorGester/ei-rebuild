@@ -24,7 +24,7 @@ void LoadPersonTexts(std::map<int, std::string>* map) {
     std::string line;
     for (const std::string& textKey : texts->ListKeys(PersonPattern())) {
         if (!texts->CTextManager::Open(textKey)) continue;
-        texts->ReadLine(&line, 1);
+        line = texts->ReadLine(true);
         int key;
         {
             std::string name = str::Mid(textKey, kPersonPrefixLength);

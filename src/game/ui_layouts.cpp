@@ -190,12 +190,12 @@ void COptionsWindow::CreateScreen() {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = std::format("tip option_group_{}", OptionGroupName(k));
-        if (g_clientWorld.texts_->Open(text) != 0) g_clientWorld.texts_->ReadToHash(&text);
+        if (g_clientWorld.texts_->Open(text) != 0) text = g_clientWorld.texts_->ReadToHash();
         region->SetTipString(text);
         {
             std::string prefix("option_group_");
             std::string key = prefix + OptionGroupName(k);
-            g_clientWorld.texts_->GetString(key, &text);
+            text = g_clientWorld.texts_->GetString(key);
         }
         groupNames_.push_back(text);
     }
@@ -332,8 +332,7 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
         // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up its
         // second master server.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
-        std::string text;
-        g_clientWorld.texts_->CTextManager::GetString("reserved_04", &text);
+        std::string text = g_clientWorld.texts_->CTextManager::GetString("reserved_04");
         g_interface.ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound);
@@ -411,7 +410,7 @@ void CDifficultyBox::CreateScreen() {
     std::string explanation;
     int textHeight = 0;
     if (g_clientWorld.texts_->Open("tip option_difficulty") != 0) {
-        g_clientWorld.texts_->ReadToHash(&explanation);
+        explanation = g_clientWorld.texts_->ReadToHash();
         str::TrimRight(explanation, "\r\n");
         rect = RECT{15, 0, 385, 300};
         textHeight = surface->DrawTextIn(explanation, &rect, 1, 0, 0x410, 1);
@@ -426,8 +425,8 @@ void CDifficultyBox::CreateScreen() {
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     std::string easy;
     std::string hard;
-    g_clientWorld.texts_->GetString("difficulty_easy", &easy);
-    g_clientWorld.texts_->GetString("difficulty_hard", &hard);
+    easy = g_clientWorld.texts_->GetString("difficulty_easy");
+    hard = g_clientWorld.texts_->GetString("difficulty_hard");
     SIZE easySize = interface_->TextExtent(easy, 2);
     SIZE hardSize = interface_->TextExtent(hard, 2);
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;

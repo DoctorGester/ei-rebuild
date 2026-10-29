@@ -68,7 +68,7 @@ void CInterface3D::OnQuestVariable(std::string_view name, float value) {
     std::vector<std::string> parts;
     EI_NAN_AUDIT(value);
     if (value != 1.0f) return;
-    text::SplitWords(name, &parts, '.');
+    parts = text::SplitWords(name, '.');
     if (parts.size() > kQuestPart) savedText_ = parts[kQuestPart];
 }
 

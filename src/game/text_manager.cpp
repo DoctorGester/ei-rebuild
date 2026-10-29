@@ -29,8 +29,8 @@ std::string KeyName(const std::string& name) {
 // Looks up `key`; when found, reads the name line and the description.
 void ReadItemText(CTextManager* texts, const std::string& key, ItemTexts* out) {
     if (texts->Open(key)) {
-        texts->ReadLine(&out->name, 1);
-        texts->ReadToHash(&out->description);
+        out->name = texts->ReadLine(true);
+        out->description = texts->ReadToHash();
     }
 }
 
@@ -70,22 +70,24 @@ bool CTextManager::IsPastEnd(const char* p) {
     return offset >= static_cast<int>(length_);
 }
 
-bool CTextManager::GetString(std::string_view name, std::string* out) {
+std::optional<std::string> CTextManager::FindString(std::string_view name) {
     if (cursor_) {
         text_ = nullptr;
         cursor_ = nullptr;
     }
-    bool found = Open("string " + std::string(name));
-    if (found) {
-        ReadToHash(out);
-        str::TrimRight(*out, "\r\n");
-    } else if (out->data() != name.data()) {
-        // `name` may be out's own text (callers pass a string and its address).
-        *out = name;
+    std::optional<std::string> text;
+    if (Open("string " + std::string(name))) {
+        text = ReadToHash();
+        str::TrimRight(*text, "\r\n");
     }
     text_ = nullptr;
     cursor_ = nullptr;
-    return found;
+    return text;
+}
+
+std::string CTextManager::GetString(std::string_view name) {
+    std::optional<std::string> text = FindString(name);
+    return text ? std::move(*text) : std::string(name);
 }
 
 ItemTexts CTextManager::GetItemTexts(CItem* item) {
@@ -150,21 +152,16 @@ ItemTexts CTextManager::GetItemTexts(CItem* item) {
     if (wand) {
         if (CSpell* spell = item->spell_) {
             std::string spellName = "Unknown";
-            if (Open(std::string("spell ") + spell->GetPrototype()->code)) ReadLine(&spellName, 1);
+            if (Open(std::string("spell ") + spell->GetPrototype()->code)) spellName = ReadLine(true);
             texts.name += ": " + spellName;
         }
     }
-    if (kindKey) GetString(kindKey, &texts.kind);
+    if (kindKey) texts.kind = GetString(kindKey);
     return texts;
 }
 
 std::string CTextManager::FormatItemName(CItem* item) {
     ItemTexts texts = GetItemTexts(item);
-    std::string format;
-    if (static_cast<int>(item->count_) > 1) {
-        GetString("format_item2", &format);
-        return str::Format(format, texts.kind, texts.name, item->count_);
-    }
-    GetString("format_item1", &format);
-    return str::Format(format, texts.kind, texts.name);
+    if (static_cast<int>(item->count_) > 1) return str::Format(GetString("format_item2"), texts.kind, texts.name, item->count_);
+    return str::Format(GetString("format_item1"), texts.kind, texts.name);
 }

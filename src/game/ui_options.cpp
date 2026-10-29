@@ -90,15 +90,13 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
 // The text `key` up to the next '#', or the key itself without one.
 std::string TipText(const std::string& key) {
     std::string tip = key;
-    if (g_clientWorld.texts_->CTextManager::Open(key.c_str())) g_clientWorld.texts_->ReadToHash(&tip);
+    if (g_clientWorld.texts_->CTextManager::Open(key.c_str())) tip = g_clientWorld.texts_->ReadToHash();
     return tip;
 }
 
 // The text `prefix` + `name`, or the name itself without one.
 std::string ShownName(const char* prefix, const char* name) {
-    std::string text;
-    if (g_clientWorld.texts_->GetString(std::string(prefix) + name, &text)) return text;
-    return name;
+    return g_clientWorld.texts_->FindString(std::string(prefix) + name).value_or(name);
 }
 
 void RebuildKeysText(OptionBinding& binding) {
@@ -226,14 +224,13 @@ void COptionsWindow::BuildSettings() {
             AddChild(slider);
             setting.spin_ = nullptr;
         } else if (definition->kind_ == kSpinKind) {
-            std::string text;
-            text = kTextOffDefault;
-            g_clientWorld.texts_->GetString(kTextOptionOff, &text);
-            if (i == kDifficultySetting) g_clientWorld.texts_->GetString(kTextDifficultyHard, &text);
+            std::string text = kTextOffDefault;
+            text = g_clientWorld.texts_->GetString(kTextOptionOff);
+            if (i == kDifficultySetting) text = g_clientWorld.texts_->GetString(kTextDifficultyHard);
             setting.spin_ = new CUiSpin(interface_, RECT{530, top + 160, 690, top + 176}, text.c_str());
             text = kTextOnDefault;
-            g_clientWorld.texts_->GetString(kTextOptionOn, &text);
-            if (i == kDifficultySetting) g_clientWorld.texts_->GetString(kTextDifficultyEasy, &text);
+            text = g_clientWorld.texts_->GetString(kTextOptionOn);
+            if (i == kDifficultySetting) text = g_clientWorld.texts_->GetString(kTextDifficultyEasy);
             setting.spin_->AddText(text);
             AddChild(setting.spin_);
             setting.bar_ = nullptr;

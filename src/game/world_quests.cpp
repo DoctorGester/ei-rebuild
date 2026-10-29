@@ -307,8 +307,7 @@ void CWorldServer::UpdateMercBriefings() {
         auto set = [&](const std::string& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
-            std::string merc;
-            merc = str::Format(worlddata::MercNameFormat(), slot);
+            std::string merc = str::Format(worlddata::MercNameFormat(), slot);
             unsigned key = TextKeyFromName(merc);
             bool briefedHere = text::CompareIgnoringCase(zoneName_,
                                                worlddata::MercZoneName(slot - 1)) == 0;
@@ -394,8 +393,7 @@ void CWorldServer::UpdateMercBriefings() {
 
 void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
     if (IsMultiplayerClient()) {
-        std::vector<std::string> parts;
-        text::Split(name, &parts, '.');
+        std::vector<std::string> parts = text::Split(name, '.');
         if (parts.size() == 3) g_gameFlow.RequestBriefing(parts[2]);
         // EI_Plugin's Briefings (the array's destruction moved to the end): the client queues the
         // completion script as well. The plugin formats it with the caller's EBX as the name; the client's
@@ -403,8 +401,7 @@ void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginBriefings)) QueueBriefingScript(playerId, name);
         return;
     }
-    std::vector<std::string> parts;
-    text::Split(name, &parts, '.');
+    std::vector<std::string> parts = text::Split(name, '.');
     QuestBriefingRecord* record = nullptr;
     if (parts.size() == 3) {
         std::string key(parts[2]);
@@ -429,8 +426,7 @@ void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
 }
 
 void CWorldServer::QueueBriefingScript(int playerId, std::string_view name) {
-    std::string script;
-    script = str::Format(worlddata::BriefingCompleteScript(), playerId, std::string(name), playerId, std::string(name));
+    std::string script = str::Format(worlddata::BriefingCompleteScript(), playerId, std::string(name), playerId, std::string(name));
     MainScript()->Load(&script, 1);
     if (sessionKind_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());

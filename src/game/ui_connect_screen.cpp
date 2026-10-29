@@ -147,8 +147,7 @@ void CMpConnectScreen::Update() {
         surfaces_[kSurfaceConnecting]->Hide(false);
         if (joining_) {
             joining_ = false;
-            std::string key;
-            key = RefusalKey(client->refusal_);
+            std::string key = RefusalKey(client->refusal_);
             std::string text = key + kMessageSuffix;
             interface_->PushWindow(new CMessageBox(interface_, key, text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), true, true);
             return;
@@ -522,7 +521,7 @@ void CMpConnectScreen::CreateScreen() {
     std::string text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text = str::Format(kAllodNameFormat, i);
-        texts->CTextManager::GetString(text, &text);
+        text = texts->CTextManager::GetString(text);
         allodNames_.push_back(text);
         const int bottom = top + 21;
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
@@ -587,7 +586,7 @@ void CMpConnectScreen::CreateScreen() {
     }
     for (int i = 0; i < kTextCount; ++i) {
         text = str::Format(kConnectionTextFormat, i);
-        texts->CTextManager::GetString(text, &text);
+        text = texts->CTextManager::GetString(text);
         texts_.push_back(text);
     }
 

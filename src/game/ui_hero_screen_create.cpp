@@ -190,8 +190,8 @@ void CMpHeroScreen::CreateScreen() {
     std::string female;
     std::string figureModel;
     std::string label;
-    texts->GetString("lmp_male_voice", &male);
-    texts->GetString("lmp_female_voice", &female);
+    male = texts->GetString("lmp_male_voice");
+    female = texts->GetString("lmp_female_voice");
     std::vector<std::string>& men = defaults_;
     std::vector<std::string>& women = names_;
     std::vector<MpVoiceEntry>& maleVoices = voiceLists_[0];
@@ -291,7 +291,7 @@ void CMpHeroScreen::CreateScreen() {
     };
     int top = 16;
     for (const char* key : commandKeys) {
-        texts->GetString(key, &text);
+        text = texts->GetString(key);
         RECT rect{0, top, 290, top + 20};
         commands->DrawTextIn(text, &rect, 1, kWhite, kTextFormat, 1);
         top += 24;

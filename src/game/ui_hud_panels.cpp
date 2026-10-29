@@ -70,8 +70,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
     float ratio;
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
         FillBar(SceneMesh(10), ratio, 100.0f, 0.396484375f, 0.376953125f);
-    std::string health;
-    health = std::format("{}", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
+    std::string health = std::format("{}", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
     DrawPanelText(this, health, RECT{130, 185, 160, 200}, kTextColour, 0, 1);
 
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
@@ -79,8 +78,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
         SceneMesh(13)->visible_ = true;
         if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
             FillBar(SceneMesh(12), ratio, 100.0f, 0.369140625f, 0.349609375f);
-        std::string mana;
-        mana = std::format("{}", static_cast<int>(unit->packedVitals.mana));
+        std::string mana = std::format("{}", static_cast<int>(unit->packedVitals.mana));
         DrawPanelText(this, mana, RECT{130, 200, 160, 215}, kTextColour, 0, 1);
         break;
     }
@@ -106,8 +104,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
         // The bar's colour row: green above 2/3, yellow above 1/3, else red.
         bar->textureOffsetV_ = ratio > 2.0f / 3.0f ? 0.0f : ratio > 1.0f / 3.0f ? -0.02734375f : -0.0546875f;
 
-        std::string name;
-        name = unit->GetPrototypeModel()->slots[i].levelName;
+        std::string name = unit->GetPrototypeModel()->slots[i].levelName;
         for (int k = 0; k < 4; ++k) {
             if (str::Compare(name,
                                 kPartNames[k]) == 0) {
@@ -176,7 +173,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             code = spell->code.c_str();
             // The texts' section "spell <code>": its first line is the spell's name.
             bool found = texts->CTextManager::Open((std::string("spell ") + code)) != 0;
-            if (found) texts->ReadLine(&text, 1);
+            if (found) text = texts->ReadLine(true);
         }
         surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&line, 0, kLineHeight);
@@ -283,7 +280,7 @@ void CHudTopPanel::ShowItems() {
     text.clear();
     auto* party = LocalPlayerData();
     if (static_cast<int>(party->money_) > 0) {
-        texts->CTextManager::GetString("format_money", &format);
+        format = texts->CTextManager::GetString("format_money");
         line = str::Format(format, static_cast<int>(party->money_));
         text += line;
         text += kNewLine;

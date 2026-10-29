@@ -165,7 +165,8 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     if (texts->FindLine(header)) {
         texts->NextLine();
         texts->NextLine();
-        if (texts->Split(&words, 1) && words.size() > 1) {
+        words = texts->Split(true);   // none at the end
+        if (words.size() > 1) {
             for (std::size_t i = 1; i < words.size(); i += 2) {
                 UiPointF place;
                 place.x = static_cast<float>(str::ToDouble(words[i - 1]));

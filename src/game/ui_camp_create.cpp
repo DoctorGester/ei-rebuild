@@ -315,7 +315,7 @@ void CCampPages::BuildPages() {
         "mode_itemrepair",
     };
     for (const char* key : titleKeys) {
-        texts->GetString(key, &title);
+        title = texts->GetString(key);
         pageTitles_.push_back(title);
     }
     pageTitles_.push_back("quit");

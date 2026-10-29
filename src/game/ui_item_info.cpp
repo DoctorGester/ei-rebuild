@@ -118,9 +118,8 @@ public:
         if (!lists.below.empty()) Joined(24, lists.below);
     }
     void School(int school) {
-        std::string key;
-        key = std::format("school_{}", school);
-        g_clientWorld.texts_->GetString(key, &line);
+        std::string key = std::format("school_{}", school);
+        line = g_clientWorld.texts_->GetString(key);
         std::string text = line;
         Joined(18, text);
     }
@@ -206,7 +205,7 @@ void PerkLines(Writer& w, const ItemHoverInfo& info, std::string& title) {
         if (!level) continue;
         std::string key("perk ");
         key += level->name;
-        if (texts->Open(key)) texts->ReadLine(&title, 1);
+        if (texts->Open(key)) title = texts->ReadLine(true);
         w.Text(title);
         if (info.index > i) w.draw->DrawTextIn(w.Skill(21), &w.rect_, 0, kText, 2, 1);   // learned
         w.Down();
@@ -316,7 +315,7 @@ DamageLists ItemDamageLists(const float* values, bool integer) {
         else
             list = &lists.below;   // also NaN
         key = std::format("dmg_{}", i);
-        texts->GetString(key, &text);
+        text = texts->GetString(key);
         *list += text;
         *list += ", ";
     }
@@ -363,8 +362,7 @@ void CItemInfoPanel::DescribeItem() {
 
     CTextManager* texts = g_clientWorld.texts_;
     // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
-    std::string material;
-    material = itemdb::MaterialAt(MaterialIndex(item->prototypeId_))->key;
+    std::string material = itemdb::MaterialAt(MaterialIndex(item->prototypeId_))->key;
     text::ReplaceChar(&material, ' ', '_');
     str::MakeLower(material);
     auto [name, description, kindText] = texts->GetItemTexts(item);
@@ -385,7 +383,7 @@ void CItemInfoPanel::DescribeItem() {
         text = "Unknown";
         std::string key("matshort ");
         key += material;
-        if (texts->Open(key)) texts->ReadLine(&text, 1);
+        if (texts->Open(key)) text = texts->ReadLine(true);
         w.line = std::format("{} {} x {}", w.T(1), text,
                       static_cast<int>(item->GetPrototype()->materialUnits));
         w.Text(w.line);
@@ -421,7 +419,7 @@ void CItemInfoPanel::DescribeItem() {
             unsigned first = FirstDamageKind(weights);
             if (first < 7) {
                 w.line = std::format("damage_{}", first);
-                texts->GetString(w.line, &text);
+                text = texts->GetString(w.line);
             }
             float low = weapon->damage_;
             float spread = weapon->damageSpread_;
@@ -449,7 +447,7 @@ void CItemInfoPanel::DescribeItem() {
 tail:
     w.Down();
     if (kind == ItemKind::Loot) {
-        texts->GetString("loot_item", &text);
+        text = texts->GetString("loot_item");
         description += text;
         w.Wrapped(description, 7);
     } else {
@@ -465,7 +463,7 @@ tail:
             text = "Unknown";
             std::string key("spell ");
             key += spell->GetPrototype()->code;
-            if (texts->Open(key)) texts->ReadLine(&text, 1);
+            if (texts->Open(key)) text = texts->ReadLine(true);
             w.line = std::format("{} {}", w.T(5), text);
             w.Text(w.line);
             w.Down();
@@ -484,7 +482,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Head(name, kindText);
     std::string text = material->soundName;
     str::MakeLower(text);
-    texts->GetString("mattype_" + text, &w.line);
+    w.line = texts->GetString("mattype_" + text);
     const std::string type = w.line;
     w.Joined(17, type);
     w.Number(0, FtolOf(material->weightFactor));
@@ -525,7 +523,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     const auto* armor = itemdb::RecordAs<itemdb::ArmorRecord>(head);
     std::string text = head->materialClass;
     str::MakeLower(text);
-    texts->GetString("mattype_" + text, &w.line);
+    w.line = texts->GetString("mattype_" + text);
     text = w.line;
     w.line = std::format("{} {} x {}", w.T(1), text,
                   static_cast<int>(head->materialUnits));
@@ -541,7 +539,7 @@ void CItemInfoPanel::DescribeBlueprint() {
         unsigned first = FirstDamageKind(weapon->damageTypes);
         if (first < 7) {
             w.line = std::format("damage_{}", first);
-            texts->GetString(w.line, &text);
+            text = texts->GetString(w.line);
         }
         int high = SumFtolScaled(weapon->damage, weapon->damageSpread, 10.0f);
         int low = ScaledFtol(weapon->damage, 10.0f);
@@ -644,11 +642,11 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         std::string key("spell ");
         key += spell->GetPrototype()->code;
         if (texts->Open(key)) {
-            texts->ReadLine(&title, 1);
-            texts->ReadToHash(&description);
+            title = texts->ReadLine(true);
+            description = texts->ReadToHash();
         }
     }
-    texts->GetString("item_spell", &kindText);
+    kindText = texts->GetString("item_spell");
     Writer w(this);
     std::string text;
     w.Head(title, kindText);
@@ -701,7 +699,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
             if (texts->Open(key)) {
                 texts->NextLine();
                 texts->NextLine();
-                texts->ReadLine(&text, 1);
+                text = texts->ReadLine(true);
             }
             std::string entry = text;
             entry += ",";
@@ -726,14 +724,14 @@ void CItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
         std::string key("perk ");
         key += info.text;
         if (texts->Open(key)) {
-            texts->ReadLine(&title, 1);
-            texts->ReadLine(&description, 1);
+            title = texts->ReadLine(true);
+            description = texts->ReadLine(true);
         }
     } else if (info.kind <= HoverKind::Text) {
-        texts->GetString(info.text, &title);
+        title = texts->GetString(info.text);
         std::string key = info.text;
         key += "_desc";
-        texts->GetString(key, &description);
+        description = texts->GetString(key);
     }
     w.Title(title);
     w.Down();
@@ -794,7 +792,7 @@ void CItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
         for (int i = 0; i < 7; ++i) sums[i] = LayerSum(&slot.layers[0].absorb[i]);
         for (int i = 0; i < 6; ++i) {
             w.line = std::format("damage_{}", i);
-            texts->GetString(w.line, &text);
+            text = texts->GetString(w.line);
             w.line = std::format("     {}:", text);
             w.Text(w.line);
             w.line = str::Format("%.1f", D(sums[i]));
@@ -841,8 +839,8 @@ void CItemInfoPanel::ShowHelp(int topic) {
     std::string title, description, key;
     key = std::format("camphelp {}", topic);
     if (texts->Open(key)) {
-        texts->ReadLine(&title, 1);
-        texts->ReadLine(&description, 1);
+        title = texts->ReadLine(true);
+        description = texts->ReadLine(true);
     }
     w.Title(title);
     w.Down();
@@ -878,12 +876,12 @@ void CItemInfoPanel::Build(int x, int y) {
     std::string text, key;
     for (int i = 0; i < 45; ++i) {
         key = std::format("infoitem_{}", i);
-        texts->GetString(key, &text);
+        text = texts->GetString(key);
         itemTexts_.push_back(text);
     }
     for (int i = 0; i < 25; ++i) {
         key = std::format("infoskill_{}", i);
-        texts->GetString(key, &text);
+        text = texts->GetString(key);
         skillTexts_.push_back(text);
     }
     itemParty_.Create();

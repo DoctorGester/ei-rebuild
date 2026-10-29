@@ -102,8 +102,7 @@ void CBriefingScreen::UnitJoined(CUnit* unit) {
     g_clientWorld.Select(unit);
     g_camera.SetTarget(unit);
     MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
-    std::string prefix;
-    prefix = str::Format(kZoneTopicFormat, zone->name);
+    std::string prefix = str::Format(kZoneTopicFormat, zone->name);
     NamedFloatTable variables;
     PlayerZeroVariables(prefix.c_str(), &variables);
     std::vector<std::string> parts;
@@ -111,7 +110,7 @@ void CBriefingScreen::UnitJoined(CUnit* unit) {
         std::uint32_t bits;
         bits = std::bit_cast<std::uint32_t>(node.second);
         if (bits != kOneBits) continue;
-        text::Split(node.first, &parts, '.');
+        parts = text::Split(node.first, '.');
         if (parts.size() != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;

@@ -53,7 +53,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         description = "Unknown";
         if (type < 7) {
             line = std::format("damage_{}", type);
-            g_clientWorld.texts_->GetString(line, &description);
+            description = g_clientWorld.texts_->GetString(line);
         }
         line = std::format("{} {}-{} {}\n", labels_[0], Truncate(weapon->damage_),
                     Truncate(weapon->damageSpread_ + weapon->damage_), description);
@@ -67,7 +67,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         if (CSpell* spell = weapon->spell_) {
             description = "Unknown";
             if (g_clientWorld.texts_->CTextManager::Open(std::string("spell ") + spell->GetPrototype()->code))
-                g_clientWorld.texts_->ReadLine(&description, 1);
+                description = g_clientWorld.texts_->ReadLine(true);
             line = std::format("{} {}\n", labels_[3], description);
             tip += line;
         }
@@ -176,9 +176,9 @@ void CHudActionColumn::SetUnit(CUnit* unit, bool extra) {
     std::string hint;
     AddAction("initqi1item", "skill0009", 0);
     title = "Science";
-    if (g_clientWorld.texts_->CTextManager::Open(std::string("perk ") + title)) g_clientWorld.texts_->ReadLine(&tip, 1);
+    if (g_clientWorld.texts_->CTextManager::Open(std::string("perk ") + title)) tip = g_clientWorld.texts_->ReadLine(true);
     title = std::format("{} {}\n", labels_[0], shown->params.attributes[0]);
-    if (g_clientWorld.texts_->CTextManager::Open("tip 10511") != 0) g_clientWorld.texts_->ReadToHash(&hint);
+    if (g_clientWorld.texts_->CTextManager::Open("tip 10511") != 0) hint = g_clientWorld.texts_->ReadToHash();
     tip = tip + "\n" + title + hint;
     regions_[count_ - 1]->SetTipString(tip, 0x1D);
 }

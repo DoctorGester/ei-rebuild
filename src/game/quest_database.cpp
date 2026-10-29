@@ -44,7 +44,7 @@ void ReadQuest(CFileRegistry& reg, QuestRecord* quest, std::vector<std::string>&
         std::vector<std::string> parts;
         str::TrimLeft(place, '{');
         str::TrimRight(place, '}');
-        text::Split(place, &parts, ';');
+        parts = text::Split(place, ';');
         if (parts.size() == 2) {
             float x = static_cast<float>(str::ToDouble(parts[0]));
             PushPlace(quest, x);

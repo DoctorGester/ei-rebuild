@@ -182,7 +182,7 @@ void CBattleScreen::Speech(int id, AckKind kind, char* extra) {
         std::string line = UnitName(unit) + ":\n";
         CTextManager* texts = g_clientWorld.texts_;
         if (texts->Open(std::string("say ") + phrase->name.data())) {
-            texts->ReadToHash(&text);
+            text = texts->ReadToHash();
             str::TrimRight(text, "\r\n");
             text += "\n";
             // Both go to the top panel's page 0 and, while it shows that page, the message log.
