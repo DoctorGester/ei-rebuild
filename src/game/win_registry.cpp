@@ -26,26 +26,9 @@ bool QueryValue(void* root, const char* subkey, const char* name, DWORD* type, v
     return settings_file::Query(root, subkey, name, type, data, &size) == 0;
 }
 
-// The REG_DWORD readers (two copies of the same code).
-std::uint32_t GetDWordValue(void* root, const char* subkey, const char* name, std::uint32_t defaultValue) {
-    DWORD type;
-    std::uint32_t value;   // left as it was when the value is shorter (not reproduced: the game's is uninitialised)
-    if (!QueryValue(root, subkey, name, &type, &value)) return defaultValue;
-    if (type != REG_DWORD) {
-        game::DebugLog("CWinRegistry::GetDWordInt().\nRegistry data type is not DWORD.\n");
-        return defaultValue;
-    }
-    return value;
-}
-
-// The REG_DWORD writers (two copies of the same code).
-bool SetDWordValue(void* root, const char* subkey, const char* name, std::uint32_t value) {
-    return SetValue(root, subkey, name, REG_DWORD, &value, 4);
-}
-
 } // namespace
 
-bool CWinRegistry::Open(const char* path, std::uint32_t /*root: HKEY_CURRENT_USER for every caller*/) {
+bool CWinRegistry::Open(const char* path) {
     Close();
     key_ = settings_file::CreateKey(path);
     return true;
@@ -57,12 +40,8 @@ void CWinRegistry::Close() {
     key_ = nullptr;
 }
 
-bool CWinRegistry::SetDWord(const char* subkey, const char* name, std::uint32_t value) {
-    return SetDWordValue(key_, subkey, name, value);
-}
-
 bool CWinRegistry::SetInt(const char* subkey, const char* name, int value) {
-    return SetDWordValue(key_, subkey, name, static_cast<std::uint32_t>(value));
+    return SetValue(key_, subkey, name, REG_DWORD, &value, 4);
 }
 
 bool CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t bits) {
@@ -73,12 +52,15 @@ bool CWinRegistry::SetString(const char* subkey, const char* name, const std::st
     return SetValue(key_, subkey, name, REG_SZ, value.c_str(), static_cast<DWORD>(static_cast<int>(value.size()) + 1));
 }
 
-std::uint32_t CWinRegistry::GetDWord(const char* subkey, const char* name, std::uint32_t defaultValue) {
-    return GetDWordValue(key_, subkey, name, defaultValue);
-}
-
 int CWinRegistry::GetInt(const char* subkey, const char* name, int defaultValue) {
-    return static_cast<int>(GetDWordValue(key_, subkey, name, static_cast<std::uint32_t>(defaultValue)));
+    DWORD type;
+    int value;   // left as it was when the value is shorter (not reproduced: the game's is uninitialised)
+    if (!QueryValue(key_, subkey, name, &type, &value)) return defaultValue;
+    if (type != REG_DWORD) {
+        game::DebugLog("CWinRegistry::GetDWordInt().\nRegistry data type is not DWORD.\n");
+        return defaultValue;
+    }
+    return value;
 }
 
 double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits) {

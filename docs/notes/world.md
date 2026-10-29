@@ -197,10 +197,16 @@ the old cell (counted copy), stores the position, push_backs a counted copy into
   ClipBounds, +0x1C0 vertex packets, +0x1D0 normal packets, +0x1E0 corners, +0x200 corner indices (3 per triangle), +0x210
   texture coordinates. Every loader inlines its `AlignedArray` SetSize. `VertexPacket` (0x40): x[4], y[4], z[4], w[4] = 1.0.
 - Slot 19 (005A2490 / 005A4CF0) picks slot 20 (FIG data: "FIG" + version byte) or 21 (older format) by the first dword. FIG8
-  morphs trilinearly by the figure's three coefficients (s, t, u): `lerp(lerp(lerp(v0,v1,s), lerp(v2,v3,s), t),
-  lerp(lerp(v4,v5,s), lerp(v6,v7,s), t), u)`; the old format has 6 corners and every array preceded by its count.
-- Every loader rounds differently per component (VC6 register allocation; patterns from a symbolic x87 trace).
-- No scenario of its own: figure meshes load whenever a unit or object is created on the client; the old-format loaders and
+  holds 8 versions of every bound and vertex block, the corners of a trilinear morph by the figure's three coefficients
+  (s, t, u): `lerp(lerp(lerp(v0,v1,s), lerp(v2,v3,s), t), lerp(lerp(v4,v5,s), lerp(v6,v7,s), t), u)`; the old format has 6
+  versions and every array preceded by its count.
+- Slot 19's two callers (the figure manager's NewFigure for the UI's 3D meshes, and the sky dome) pass s = t = u = 0, so
+  `LoadFromMemory` has no weights and the loaders take the first version of each value. The original's zero-weight blend
+  gives the same bits for finite data except that a -0.0 may come out +0.0; nothing compares the sign of these zeros.
+- The morph itself, with the original's per-component roundings (VC6 register allocation; patterns from a symbolic x87
+  trace), is left only in `MorphFigureBounds` / `MorphFigureBounds6`: the figure loader's part bounds
+  (`CFigureManager::LoadFigureBounds`) with the unit's real weights.
+- No scenario of its own: every zone load reaches the FIG loaders (the sky dome); the old-format loaders and
   `MorphFigureBounds6` run only for figures without a FIG header (possibly none in the data).
 
 ## Party records and class templates (0x004A5BD0-0x004A7E90)

@@ -90,7 +90,7 @@ void UnitPickInput::LeftDown(int, int x, int y) {
 
 void UnitPickInput::RightDown(int, int, int) {
     lib::FreeStorage(picked_);
-    g_clientWorld.Deselect(nullptr);
+    g_clientWorld.Deselect();
 }
 
 void UnitPickInput::KeyDown(int key, int, int) {

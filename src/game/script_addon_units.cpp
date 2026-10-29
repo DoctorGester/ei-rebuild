@@ -20,9 +20,6 @@ namespace scriptaddon {
 
 namespace {
 
-// The world: the player with a number.
-void* GetPlayer(int number) { return g_serverWorld.GetPlayer(number); }
-
 // The unit's parameters: the 7-value block filled from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 
@@ -178,7 +175,7 @@ bool RandObj(Call* call) {
 }
 
 bool PlayerExists(Call* call) {
-    Store(call->result.number, GetPlayer(Ftol(call->cmd->floatArgs[0])) ? 1.0f : 0.0f);
+    Store(call->result.number, g_serverWorld.GetPlayer(Ftol(call->cmd->floatArgs[0])) ? 1.0f : 0.0f);
     return true;
 }
 

@@ -41,7 +41,6 @@ bool ArgIs(const std::vector<std::string>* args, int i, const char* text) { retu
 bool ArgOn(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
-CPlayer* GetPlayer(int id) { return g_serverWorld.GetPlayer(id); }
 CPlayer* LocalPlayer() {
     return g_clientWorld.LocalView()->player_;
 }
@@ -190,7 +189,7 @@ void ListVar(std::vector<std::string>* args) {
     if (IsMultiplayerClient())
         player = LocalPlayer();
     else
-        player = GetPlayer(str::ToInt((*args)[0]));
+        player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
 
     std::string line;
@@ -216,7 +215,7 @@ void ListVar(std::vector<std::string>* args) {
 // Loadvar <player> <file>: sets the variables of each "name value" line.
 void LoadVar(std::vector<std::string>* args) {
     if (args->size() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
-    CPlayer* player = GetPlayer(str::ToInt((*args)[0]));
+    CPlayer* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
     CPlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
@@ -274,7 +273,7 @@ void Give(std::vector<std::string>* args) {
         PrintLine("give [NPlayer] money [NMoney]");
         return PrintLine("give [NPlayer] exp [NExp]");
     }
-    CPlayer* player = GetPlayer(str::ToInt((*args)[0]));
+    CPlayer* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
     CPlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
@@ -340,7 +339,7 @@ void Net(std::vector<std::string>* args) {
         LocalPlayer()->logTraffic_ = str::ToInt(value);
     }
     if (text::CompareIgnoringCase((*args)[0], "server") == 0) {
-        if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = str::ToInt((*args)[1]);
+        if (CPlayer* player = g_serverWorld.GetPlayer(0)) player->logTraffic_ = str::ToInt((*args)[1]);
     }
     if (text::CompareIgnoringCase((*args)[0], "time") == 0)
         app::g_showClientSpeed = str::ToInt((*args)[1]);
@@ -434,7 +433,7 @@ void Days(std::vector<std::string>* args) {
 }
 
 void PartyResend(std::vector<std::string>*) {
-    if (CPlayer* player = GetPlayer(0)) player->Server()->ResendParty();
+    if (CPlayer* player = g_serverWorld.GetPlayer(0)) player->Server()->ResendParty();
 }
 
 // Kick [name].

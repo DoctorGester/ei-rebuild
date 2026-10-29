@@ -51,8 +51,6 @@ constexpr float kUnknownZ = -1313.0f;                 // lastPosition_.z after a
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
-CUnit* FindUnit(int id) { return g_serverWorld.FindUnit(id); }
-
 // The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end
 // the game when the leader is gone).
 // The next object id for a new party's record (the party manager stores the party).
@@ -69,7 +67,7 @@ void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
     for (int i = 0; i < count; ++i) {
         int id = 0;
         in.ReadValue(id);
-        CUnit* unit = FindUnit(id);
+        CUnit* unit = g_serverWorld.FindUnit(id);
         if (unit && !(unit->flags_ & MapObjectFlag::Blocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
     }
 }
@@ -115,7 +113,7 @@ void CPlayerServer::OnLeaderDied() {
     if (!IsMultiplayerClient()) {
         std::uint8_t type = kMessageGameOver;
         out_.WriteValue(type);
-        CUnit* hero = FindUnit(static_cast<int>(party->members_[0].unitId));
+        CUnit* hero = g_serverWorld.FindUnit(static_cast<int>(party->members_[0].unitId));
         if (hero) SendObject0B(hero, AckKind::StopSpeech);
         return;
     }
@@ -128,7 +126,7 @@ void CPlayerServer::OnLeaderDied() {
         int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->money_) * g_logicSettings.lostMoney));
         party->money_ -= lost;
         oldId = static_cast<int>(party->members_[0].unitId);
-        CUnit* hero = FindUnit(oldId);
+        CUnit* hero = g_serverWorld.FindUnit(oldId);
         if (hero) SendObject0B(hero, AckKind::StopSpeech);
         newId = oldId;
         if (newId < kRevivedIdBase) newId += kRevivedIdStep;
@@ -159,8 +157,8 @@ void CPlayerServer::OnLeaderDied() {
         g_serverWorld.Redeploy(player, nullptr, 1);
         partyDeployed_ = 1;
     }
-    CUnit* revived = FindUnit(newId);
-    CUnit* dead = FindUnit(oldId);
+    CUnit* revived = g_serverWorld.FindUnit(newId);
+    CUnit* dead = g_serverWorld.FindUnit(oldId);
     if (!revived || !dead) return;
     HeldUnits& known = revived->ServerController()->brain.memory.seenCorpses;
     for (auto node = dead->ServerController()->brain.memory.seenCorpses.begin(); node != dead->ServerController()->brain.memory.seenCorpses.end();) {
@@ -216,7 +214,7 @@ int CPlayerServer::OnUseOrder() {
     for (int i = 0; i < count; ++i) {
         int id = 0;
         in.ReadValue(id);
-        CUnit* unit = FindUnit(id);
+        CUnit* unit = g_serverWorld.FindUnit(id);
         if (unit && !(unit->flags_ & MapObjectFlag::Blocked)) lib::SetAtGrow(units, std::ssize(units), unit);
     }
     int flag = 0, value = 0, objectId = 0;
@@ -329,7 +327,7 @@ void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     CParty* party = player->Party();
     int campaign = g_serverWorld.sessionKind_;
     if (campaign == 1 || campaign == 3) {
-        CUnit* leader = FindUnit(static_cast<int>(party->members_[0].unitId));
+        CUnit* leader = g_serverWorld.FindUnit(static_cast<int>(party->members_[0].unitId));
         if (leader == nullptr || leader->IsDead() != 0) {
             LeaderDied();
             if (!IsMultiplayerClient()) return;
@@ -469,15 +467,14 @@ int CPlayerServer::OnPartyUpdate() {
 
 // --- The login -----------------------------------------------------------------------------
 
-bool IsPrintableText(const char* text, int maxLength, int minLength) {
-    // By character, each a valid UTF-8 sequence of a printable code point, within `maxLength` bytes; `minLength`
-    // counts characters. (The original's isprint of each signed byte passed UTF-8's bytes only through the
-    // "english" locale's table and the bytes before it.)
-    int characters = 0;
-    for (int i = 0; i < maxLength; ++characters) {
-        if (text[i] == 0) return characters >= minLength;
+bool IsPrintableText(const char* text) {
+    // By character, each a valid UTF-8 sequence of a printable code point, within the login field's
+    // kLoginTextLength bytes; an empty text fails. (The original's isprint of each signed byte passed UTF-8's
+    // bytes only through the "english" locale's table and the bytes before it.)
+    for (int i = 0; i < kLoginTextLength;) {
+        if (text[i] == 0) return i != 0;
         unsigned c;
-        i += text::DecodeUtf8(text + i, static_cast<std::size_t>(maxLength - i), &c);
+        i += text::DecodeUtf8(text + i, static_cast<std::size_t>(kLoginTextLength - i), &c);
         if (!text::IsPrintableCodePoint(c)) return false;
     }
     return true;
@@ -501,8 +498,8 @@ int CPlayerServer::OnLogin() {
         state_ = 3;
         return 0;
     }
-    if (!IsPrintableText(login.name, kLoginTextLength, 1)) return 0;
-    if (!IsPrintableText(login.password, kLoginTextLength, 1)) return 0;
+    if (!IsPrintableText(login.name)) return 0;
+    if (!IsPrintableText(login.password)) return 0;
     login.name[kLoginTextLength] = 0;
     login.password[kLoginTextLength] = 0;
     CParty* party = player->Party();

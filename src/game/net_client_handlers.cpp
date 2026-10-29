@@ -27,9 +27,6 @@ void ClientApplyParty(ClientSession* self);      // net_client_party.cpp
 
 namespace {
 
-inline void FlowVariablesChanged(void* flow) { static_cast<GameFlow*>(flow)->UpdateFromServer(); }
-inline void FlowLoadZoneQuests(void*, const char* a2) { LoadZoneQuests(a2); }
-
 // Every node holding `value` erased (the sentinel read once, the next node taken first).
 template <typename List>
 void RemoveValue(List& list, const void* value) {
@@ -162,19 +159,19 @@ void ClientOnMap(ClientSession* self, MapMessage* message) {
     self->map_.Assign(message);
     ServerSession* server = g_gameServer;
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
-    FlowLoadZoneQuests(&g_gameFlow, message->text_.data());
+    LoadZoneQuests(message->text_.data());
     g_gameFlow.RegisterQuests(message->text_.data());
 }
 void ClientOnMapGone(ClientSession* self, Message*) { self->map_.Reset(); }
 // The script variables; the flow is told of every change.
 void ClientOnVariable(ClientSession* self, Message* message) {
     Append(self->variables_, message);
-    FlowVariablesChanged(&g_gameFlow);
+    g_gameFlow.UpdateFromServer();
 }
-void ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(&g_gameFlow); }
+void ClientOnVariableChanged(ClientSession*, Message*) { g_gameFlow.UpdateFromServer(); }
 void ClientOnVariableGone(ClientSession* self, Message* message) {
     RemoveRaw(self->variables_, message);
-    FlowVariablesChanged(&g_gameFlow);
+    g_gameFlow.UpdateFromServer();
 }
 // The shared files; for a file the flow lacks, a request holding the file goes on fileRequests_.
 void ClientOnFile(ClientSession* self, FileMessage* message) {

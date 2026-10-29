@@ -19,8 +19,6 @@
 
 namespace {
 
-CWorld* WorldOf(const CEngineObject* object) { return object->World(); }
-
 void PutByte(DeltaField* field, std::uint8_t value) { field->WriteDelta(&value, 1); }
 void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value, 4); }
 
@@ -175,7 +173,7 @@ std::uint32_t CMapObject::ReadNetState(int first) {
         Vector3 position;
         field->ReadDelta(&position, 0xC);
         field->ReadDelta(&localRotation_, 0x10);
-        CWorld* world = WorldOf(this);
+        CWorld* world = World();
         world->MoveObject(this, &position.x);
         PlaceOnGround(localPosition_.z);
         complete &= SnapshotConsumed();
@@ -284,7 +282,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         field->ReadDelta(&unit->animationStart, 4);
         field->ReadDelta(&unit->actionSound, 1);
         if (unit->motionMode == 1) --unit->animationStart;
-        float time = static_cast<float>(WorldOf(unit)->tick_);
+        float time = static_cast<float>(unit->World()->tick_);
         unit->Controller()->RestartAnimation(time);
         field->EndField();
     }

@@ -338,7 +338,7 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
             }
         }
         if (first >= 0) {
-            world->Deselect(nullptr);
+            world->Deselect();
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
             auto marker = [&](int i) { return portraits_->SceneMesh(i * 5 + 4); };
             auto slot = [&](int i) -> HudPortraitSlot& { return portraits_->slots_[i]; };

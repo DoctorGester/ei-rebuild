@@ -161,11 +161,11 @@ std::string CaseFailure() {
     if (text::ToLower(0xD0) != 0xD0) return "ToLower changes the byte D0";
     if (text::IsSpace(0xA0) || text::IsAlpha(0xD0)) return "a UTF-8 byte has a character class";
     // The player name filter: a Cyrillic name passes, a cut sequence or a control character does not.
-    if (!IsPrintableText("Игрок Ёж", 0x3F, 1)) return "the name filter rejects \"Игрок Ёж\"";
+    if (!IsPrintableText("Игрок Ёж")) return "the name filter rejects \"Игрок Ёж\"";
     const char cut[] = {'\xD0', '\0'};
-    if (IsPrintableText(cut, 0x3F, 1)) return "the name filter passes a cut UTF-8 sequence";
-    if (IsPrintableText("Иг\x01рок", 0x3F, 1)) return "the name filter passes a control character";
-    if (IsPrintableText("", 0x3F, 1)) return "the name filter passes an empty name";
+    if (IsPrintableText(cut)) return "the name filter passes a cut UTF-8 sequence";
+    if (IsPrintableText("Иг\x01рок")) return "the name filter passes a control character";
+    if (IsPrintableText("")) return "the name filter passes an empty name";
     return {};
 }
 

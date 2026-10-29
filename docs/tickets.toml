@@ -5975,3 +5975,10 @@ title = "Containers: std::list where nothing needs node stability, and types tha
 group = "cleanup"
 model = "opus"
 note = "G17 rest (build/style_review/REPORT.md Tier 3) after C58/C58a took the new T[] arrays. 411 std::list uses in src: switch to std::vector where nothing keeps iterators or pointers across inserts/erases and order semantics stay the same (check each list's erase-while-iterating and splice uses). 10 types inherit from std::vector/list/map/deque/string: composition instead (AIHeardCalls / AIReports are in C60a; leave those to it). One area per batch; file C63a.. for the rest. Goldens unchanged."
+
+[[ticket]]
+id = "C53c"
+title = "C53 tail: the last file-local forwarders, a/b parameter names, RequestLoad's flag"
+group = "cleanup"
+depends = ["C53b"]
+note = "Left by C53b. Kept on purpose: CScript::ExpectLexeme's id (record_script_load.cpp hooks 004CF4D0 with the original signature and replay_script_load.cpp passes the recorded id). After the GDI interface goes: GameFlow::RequestLoad's flag (only ui_saveload calls it, always 0). Still to do: about 140 one-return free functions remain in src/game (find them with a grep for '{ return ...; }' one-liners), many of them meaningful names, but some are duplicates or plain forwarders: particle_common.h's / particle_create.cpp's / particle_emitters.cpp's Range (careful: they return double from g_random.Range's float, so inlining changes the type of the expression: check x87 use), particle_emitters.cpp's SetBits copy of particle_common.h's, particle_common.h GroundHeight / UnitScale, two LocalPlayer (net_client_awards, world_rules: different worlds), map_object.cpp GroundHeight, map_object_save.cpp ReadText, net_server_players.cpp PlayerOf, player_messages.cpp VariableGet, party_records.cpp NameOf, mod_folders.cpp Active, item.cpp WeaponOf / MaterialOf. About 70 non-header definitions still name parameters a / b where they are not symmetric operands. Scripts: scratchpad C53b c53b.py (delete_lines, inline with a template; string-literal-aware) and group1-7.py as examples."

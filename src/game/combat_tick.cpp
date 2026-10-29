@@ -67,8 +67,6 @@ bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || 
 
 float PrototypeHeight(CUnit* unit) { return unit->GetPrototype()->height; }
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
-
 void TellParty(CUnit* unit, AckKind kind) {
     if (unit->player) unit->player->Server()->SendObject0B(unit, kind);
 }
@@ -544,7 +542,7 @@ void CUnitServer::ExecuteOrder() {
                 return;
             }
         } else if (action.kind == UnitOrderKind::Attack) {
-            int interval = AttackInterval(this, ActiveWeapon(unit));
+            int interval = AttackInterval(this, unit->ActiveWeapon());
             int next = interval + now;
             if (nextAttack > next) next = nextAttack;
             nextAttack = next;
@@ -565,7 +563,7 @@ void CUnitServer::ExecuteOrder() {
                 auto* defender = victim->ServerController();
                 int backstab = unit->IsBehind(victim);
                 if (victim->GetClassId() == ClassId::Unit && defender->moveMode2.onGuard) backstab = 0;
-                CItemWeapon* weapon = ActiveWeapon(unit);
+                CItemWeapon* weapon = unit->ActiveWeapon();
                 if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) backstab = 0;
                 BuildAttackHit(&pendingHit, backstab, location, calledShot);
                 if (!defender->ResolveHit(&pendingHit, unit)) missed = true;

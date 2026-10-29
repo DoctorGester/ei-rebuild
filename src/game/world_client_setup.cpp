@@ -135,7 +135,7 @@ void CWorldClient::LoadSky() {
         object->Release();
         return;
     }
-    object->LoadFromMemory(&data, 0.0f, 0.0f, 0.0f);
+    object->LoadFromMemory(&data);
     object->flags_ |= FigureMeshFlag::Lit;
     skyDome_->object.Assign(object);
     CEngineObject* material = MaterialManager()->NewMaterial(kSkyMaterialType);

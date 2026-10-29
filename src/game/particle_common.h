@@ -48,8 +48,6 @@ inline double Range(float min, float max) { return g_random.Range(min, max); }
 // CWorldClient::RawSurfaceHeightAt(x, y) on the client world (unrounded).
 inline double GroundHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
 
-// The game's debug message (one argument; compiled out, other mods may hook it).
-inline void DebugMessage(const char* a0) { game::DebugLog(a0); }
 
 
 // The attached object as a map object: the callbacks call its slots past CObject3D's (the

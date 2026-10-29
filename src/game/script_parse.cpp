@@ -19,16 +19,6 @@
 #include <string>
 #include <format>
 
-// ---- Game CRT and library helpers (local to the loader) ---------------------------------------------
-
-namespace scriptparse {
-
-bool IsDigit(int c) { return text::IsDigit(c); }
-bool IsSpace(int c) { return text::IsSpace(c); }
-int Mbscmp(std::string_view a0, std::string_view a1) { return str::Compare(a0, a1); }
-
-} // namespace scriptparse
-
 using namespace scriptparse;
 
 
@@ -287,12 +277,12 @@ const ScriptKeyword* KeywordTable() {
 
 void ClassifyToken(const char* text, int* id, int* rest) {
     const char* p = text;
-    if (IsDigit(*p) || *p == '.' || *p == '-') {
+    if (text::IsDigit(*p) || *p == '.' || *p == '-') {
         // Number: digits and at most one '.', after an optional leading '-' or '.'.
         int dots = *p == '.';
         ++p;
         while (*p) {
-            if (!IsDigit(*p) && *p != '.') break;
+            if (!text::IsDigit(*p) && *p != '.') break;
             if (*p == '.' && dots++ != 0) break;
             ++p;
         }
@@ -369,7 +359,7 @@ bool CScript::Tokenize(const std::string& source, std::list<ScriptToken>* tokens
     const char quote = kQuote;
     int line = 1;
     while (*p) {
-        while (IsSpace(*p)) {
+        while (text::IsSpace(*p)) {
             if (*p == '\n') ++line;
             ++p;
             if (!*p) break;
@@ -381,7 +371,7 @@ bool CScript::Tokenize(const std::string& source, std::list<ScriptToken>* tokens
         int inQuote = 0;
         while (*p) {
             const char c = *p;
-            if (IsSpace(c) && (c != ' ' || !inQuote)) break;
+            if (text::IsSpace(c) && (c != ' ' || !inQuote)) break;
             if (c == quote) inQuote = !inQuote;
             if ((c == ',' || c == ')' || c == '(' || c == ':' || c == '=') && p != start && !inQuote) break;
             if (c == '\n') break;
@@ -448,7 +438,7 @@ int CScript::FindScript(std::string_view name) {
     for (;;) {
         const std::vector<ScriptDefinition>& scripts = definitions_;
         for (std::size_t i = 0; i < scripts.size(); ++i)
-            if (Mbscmp(scripts[i].name, name) == 0) return static_cast<int>(i);
+            if (str::Compare(scripts[i].name, name) == 0) return static_cast<int>(i);
         // Not found: retry without the leading "!<file>!" qualification.
         if (name.empty() || name[0] != '!') return -1;
         const std::size_t close = name.find('!', 1);

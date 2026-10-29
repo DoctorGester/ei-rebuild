@@ -33,8 +33,6 @@ constexpr float kLightDrift = 0.0001f;          // the light's velocity x (keeps
 constexpr float kSoundRadius = 30.0f;
 constexpr std::uint32_t kLightFlags = lib::Bits(LightFlag::Specular | LightFlag::Strong);
 
-CWorld* WorldOf(const CEngineObject* object) { return object->World(); }
-
 std::uint32_t Bits(const float& f) {
     std::uint32_t u;
     u = std::bit_cast<std::uint32_t>(f);
@@ -54,7 +52,7 @@ bool SnapshotReadToEnd() {
 
 int CEffectMissile::Steer() {
     int flying = 1;
-    CWorld* world = WorldOf(this);
+    CWorld* world = World();
     CMapObject* target = world->ObjectWithId(targetId_);
     if (target == nullptr) {
         velocity_ = Vector3{0.0f, 0.0f, 0.0f};
@@ -260,7 +258,7 @@ bool CEffectArrowFigure::RunTick() {
     localPosition_.y = localPosition_.y + velocity_.y;
     localPosition_.z = localPosition_.z + velocity_.z;
     if (!WorldContext()->IsServer()) MoveParts();
-    CWorld* world = WorldOf(this);
+    CWorld* world = World();
     if (arrived_ != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
         CMapObject* target = world->ObjectWithId(targetId_);

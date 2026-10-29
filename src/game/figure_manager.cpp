@@ -72,7 +72,7 @@ CFigureMesh* CFigureManager::NewFigure(std::string_view name) {
         return nullptr;
     }
     char* cursor = static_cast<char*>(data);
-    figure->LoadFromMemory(&cursor, 0.0f, 0.0f, 0.0f);
+    figure->LoadFromMemory(&cursor);
     figure->box_.bounds.flags = 0;
     CloseFile(data);
     return figure;
@@ -92,11 +92,11 @@ int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator
     return 1;
 }
 
-void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) {
+void CFigureMesh::LoadFromMemory(char** cursor) {
     if (flags_ & FigureMeshFlag::Loaded) return;
     std::uint32_t magic;
     lib::LoadBytes(magic, *cursor);
-    if ((magic & 0xFFFFFF) == kFigMagic) LoadFig(cursor, s, t, u);
-    else LoadOld(cursor, s, t, u);
+    if ((magic & 0xFFFFFF) == kFigMagic) LoadFig(cursor);
+    else LoadOld(cursor);
     flags_ |= FigureMeshFlag::Loaded;
 }

@@ -195,7 +195,7 @@ int CPlayerClient::OnUnitControl() {
         return 1;
     }
     case 3:
-        g_clientWorld.Deselect(nullptr);
+        g_clientWorld.Deselect();
         return 1;
     default:
         return 0;

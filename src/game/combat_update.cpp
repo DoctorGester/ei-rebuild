@@ -54,16 +54,6 @@ constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
 constexpr float kSinkAcceleration = 0.01f;
 
 
-void StartQueueIfUnset(CUnitServer* self) {
-    if (self->queue.extra == -1) self->queue.extra = self->World()->tick_;
-}
-
-void DropEffectObject(CUnitServer* self) {
-    if (!self->effectObject) return;
-    g_serverWorld.RemoveTimedObject(self->effectObject->id_);
-    self->effectObject.Reset();
-}
-
 // The weapon slot the unit wants taken up when it differs from the active one.
 void SwitchWeaponIfWanted(CUnit* unit) {
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
@@ -94,7 +84,7 @@ void EmptyAction(UnitAction* order) {
 // The queue replaced by `steps`, then started.
 void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
     self->queue = *steps;
-    StartQueueIfUnset(self);
+    self->StartQueueIfUnset();
     self->PopFinishedSteps();
     self->ShowCurrentStep();
 }
@@ -115,6 +105,16 @@ int TotalDuration(const AnimationSteps& steps) {
 }
 
 } // namespace
+
+void CUnitServer::StartQueueIfUnset() {
+    if (queue.extra == -1) queue.extra = World()->tick_;
+}
+
+void CUnitServer::DropEffectObject() {
+    if (!effectObject) return;
+    g_serverWorld.RemoveTimedObject(effectObject->id_);
+    effectObject.Reset();
+}
 
 // --- The update ---------------------------------------------------------------------------------
 
@@ -218,7 +218,7 @@ void CUnitServer::UpdateState() {
             return;
         }
         queue = savedQueue;
-        StartQueueIfUnset(this);
+        StartQueueIfUnset();
         PopFinishedSteps();
         ShowCurrentStep();
         keepHitDirection = 0;
@@ -244,7 +244,7 @@ void CUnitServer::UpdateState() {
         if (queue.empty()) {
             state = kStateChasing;
             unit->UpdateSizeClass();
-            DropEffectObject(this);
+            DropEffectObject();
             if (auto callback = actionDone) {
                 callback(unit);
                 UpdateOrders();
@@ -339,7 +339,7 @@ void CUnitServer::ShowCurrentStep() {
 
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     queue = *steps;
-    StartQueueIfUnset(this);
+    StartQueueIfUnset();
     PopFinishedSteps();
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
@@ -352,7 +352,7 @@ void CUnitServer::SetState(int newState) {
     state = newState;
     if (newState != kStateActing) {
         unit->UpdateSizeClass();
-        DropEffectObject(this);
+        DropEffectObject();
         return;
     }
     actingCheckTime = WorldContext()->tick_ + 10;
@@ -382,7 +382,7 @@ void CUnitServer::PlayHitReaction() {
     keepHitDirection = 1;
     savedQueue = queue;
     queue = reaction;
-    StartQueueIfUnset(this);
+    StartQueueIfUnset();
     PopFinishedSteps();
     ShowCurrentStep();
     animationHeld = 1;
@@ -436,7 +436,7 @@ void CUnitServer::TickAction() {
     if (now == plan.startTime) {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
         queue = plan.animation;
-        StartQueueIfUnset(this);
+        StartQueueIfUnset();
         PopFinishedSteps();
         ShowCurrentStep();
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
@@ -479,7 +479,7 @@ void CUnitServer::TickAction() {
     if (state == kStateActing) {
         state = kStateRecovering;
         unit->UpdateSizeClass();
-        DropEffectObject(this);
+        DropEffectObject();
     }
     motion.Clear();
     int time = World()->tick_;

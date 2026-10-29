@@ -223,7 +223,7 @@ void CEffectParticle::Reset() {
 
 Vector3* CEffectParticle::Position(const ScriptGroup* group) {
     if (attachedTo_ == -1) return &localPosition_;
-    CMapObject* object = ContextWorld(this)->ObjectWithId(attachedTo_);
+    CMapObject* object = WorldContext()->ObjectWithId(attachedTo_);
     if (object == nullptr) return &localPosition_;
     if (group->Contains(object) == 0) {
         // Not in the group: far away.
@@ -418,13 +418,13 @@ bool CEffectParticle::RunTick() {
         float t;
         if (StepFraction(velocity_, d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
-            float aboveGround = static_cast<float>(target_.z - WorldOf(this)->RawSurfaceHeightAt(target_.x, target_.y));
+            float aboveGround = static_cast<float>(target_.z - World()->RawSurfaceHeightAt(target_.x, target_.y));
             float stepY = static_cast<float>(t * d.y);
             float stepZ = static_cast<float>(d.z * t);
             float x = static_cast<float>(t * d.x + localPosition_.x);
             float y = static_cast<float>(stepY + localPosition_.y);
             float z = static_cast<float>(stepZ + localPosition_.z);
-            float floor = static_cast<float>(WorldOf(this)->RawSurfaceHeightAt(x, y) + aboveGround);
+            float floor = static_cast<float>(World()->RawSurfaceHeightAt(x, y) + aboveGround);
             std::uint32_t zBits = z >= floor ? Bits(z) : Bits(floor);
             localPosition_.x = x;
             localPosition_.y = y;
@@ -434,7 +434,7 @@ bool CEffectParticle::RunTick() {
     }
     if (!IsOneShotType(type_)) return true;
     int lifetime = ParticleTypeOf(type_) == ParticleType::Teleport ? 0x78 : 0x3C;
-    int now = WorldOf(this)->tick_;
+    int now = World()->tick_;
     return now <= startTick_ + lifetime;
 }
 
@@ -523,13 +523,13 @@ void CEffectLightning::Reset() {
 }
 
 void CEffectLightning::UpdateEnds() {
-    CMapObject* target = WorldOf(this)->ObjectWithId(toObject_);
+    CMapObject* target = World()->ObjectWithId(toObject_);
     if (target != nullptr) {
         to_ = target->localPosition_;
         to_.z = to_.z + ConstAt(worlddata::OneRef());
     }
-    CUnit* source = UnitOrNull(WorldOf(this)->ObjectWithId(fromObject_));
-    if (source != nullptr && ContextWorld(this)->IsServer() == 0) {
+    CUnit* source = UnitOrNull(World()->ObjectWithId(fromObject_));
+    if (source != nullptr && WorldContext()->IsServer() == 0) {
         Vector3 point;
         from_ = *source->EffectPoint(&point);
     }

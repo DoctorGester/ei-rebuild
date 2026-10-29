@@ -35,8 +35,7 @@ constexpr int kStateSendingCamera = 2;
 // message 12). EI_Plugin's Pause writes it: '2' for a pause, '3' ("reserved_03") for a resume.
 void SetPauseTextDigit(std::uint8_t pause) { g_pauseMessageKey[10] = static_cast<char>('3' - pause); }
 
-bool Alive(CUnit* unit) { return unit->IsDead() == 0; }
-bool Able(CUnit* unit) { return unit && !(unit->flags_ & MapObjectFlag::Blocked) && Alive(unit); }
+bool Able(CUnit* unit) { return unit && !(unit->flags_ & MapObjectFlag::Blocked) && !unit->IsDead(); }
 
 // The cast messages' layouts as they arrive (0xD / 0x15 bytes).
 #pragma pack(push, 1)
@@ -150,7 +149,7 @@ int CPlayerServer::OnMoveStyle() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
     CUnit* unit = player_->WorldContext()->FindUnit(message.unitId);
-    if (unit && Alive(unit)) unit->ServerController()->SetMoveStyle(message.value);
+    if (unit && !unit->IsDead()) unit->ServerController()->SetMoveStyle(message.value);
     return 1;
 }
 

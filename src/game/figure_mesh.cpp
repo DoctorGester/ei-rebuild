@@ -1,5 +1,5 @@
-// Figure mesh loaders: the bounding volume and the FIG mesh data of a figure part, morphed by the figure's
-// three morph coefficients. See docs/notes/world.md ("Figure meshes").
+// Figure mesh loaders: the FIG mesh data of a figure part, and the figure loader's bounding volume morphed by the
+// figure's three morph coefficients. See docs/notes/world.md ("Figure meshes").
 #include "figure_mesh.h"
 
 #include "core_maths.h"
@@ -16,9 +16,6 @@
 #include <vector>
 
 namespace {
-
-// The floats the file's cursor stands on (read in place; the Morph functions only read them).
-const float* FloatsAt(const char* cursor) { return reinterpret_cast<const float*>(cursor); }
 
 template <typename T>
 T Read(char*& p) {
@@ -80,50 +77,6 @@ Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
     return Add(Scale(diff, u), lower);
 }
 
-// One component of a 6-corner value (corner k at c[3 * k]), in the four roundings the original's
-// register allocation produced in the old-format loaders (each was read off the instruction
-// stream; see the notes):
-// PerOp: every operation rounded (the Vector3 operators).
-// Kept:  the two s-blends stored, everything else on the FPU.
-// StoredLower: s-blends and the lower t-blend stored; the upper t-step stored but added on the
-// FPU; then per operation.
-// PerOpKeptSum: per operation, except the upper sum b + step, which is not stored.
-// PerOpKeptUpper: as PerOpKeptSum, and the upper step's difference (c5 - b) stays on the FPU.
-float LerpP(float a, float b, float s) { return static_cast<float>(static_cast<float>(static_cast<float>(b - a) * s) + a); }
-
-float CornerPerOp(const float* c, float s, float t, float u) {
-    return LerpP(LerpP(LerpP(c[0], c[3], s), c[6], t), LerpP(LerpP(c[9], c[12], s), c[15], t), u);
-}
-float CornerKept(const float* c, float s, float t, float u) {
-    float a = static_cast<float>((static_cast<double>(c[3]) - c[0]) * s + c[0]);
-    double lower = (static_cast<double>(c[6]) - a) * t + a;
-    float b = static_cast<float>((static_cast<double>(c[12]) - c[9]) * s + c[9]);
-    double upper = (static_cast<double>(c[15]) - b) * t + b;
-    return static_cast<float>((upper - lower) * u + lower);
-}
-float CornerStoredLower(const float* c, float s, float t, float u) {
-    float a = static_cast<float>((static_cast<double>(c[3]) - c[0]) * s + c[0]);
-    float lower = static_cast<float>((static_cast<double>(c[6]) - a) * t + a);
-    float b = static_cast<float>((static_cast<double>(c[12]) - c[9]) * s + c[9]);
-    float step = static_cast<float>((static_cast<double>(c[15]) - b) * t);
-    float diff = static_cast<float>((static_cast<double>(b) + step) - lower);
-    return static_cast<float>(static_cast<float>(diff * u) + lower);
-}
-float CornerPerOpKeptSum(const float* c, float s, float t, float u) {
-    float lower = LerpP(LerpP(c[0], c[3], s), c[6], t);
-    float b = LerpP(c[9], c[12], s);
-    float step = static_cast<float>(static_cast<float>(c[15] - b) * t);
-    float diff = static_cast<float>((static_cast<double>(b) + step) - lower);
-    return static_cast<float>(static_cast<float>(diff * u) + lower);
-}
-float CornerPerOpKeptUpper(const float* c, float s, float t, float u) {
-    float lower = LerpP(LerpP(c[0], c[3], s), c[6], t);
-    float b = LerpP(c[9], c[12], s);
-    float step = static_cast<float>((static_cast<double>(c[15]) - b) * t);
-    float diff = static_cast<float>((static_cast<double>(step) + b) - lower);
-    return static_cast<float>(static_cast<float>(diff * u) + lower);
-}
-
 // A scalar from 6 corners, kept on the FPU until the result.
 float MorphScalar6(const float* r, float s, float t, float u) {
     double a = (static_cast<double>(r[1]) - r[0]) * s + r[0];
@@ -133,109 +86,34 @@ float MorphScalar6(const float* r, float s, float t, float u) {
     return static_cast<float>((upper - lower) * u + lower);
 }
 
-// A scalar morphed from 8 versions. The inner blends stay on the FPU; one caller stores the lower half
-// (rounded) before the final blend, the other keeps it.
-float MorphScalar(const float* r, float s, float t, float u, bool storeLower) {
+// A scalar morphed from 8 versions, every blend on the FPU.
+float MorphScalar(const float* r, float s, float t, float u) {
     double a = (static_cast<double>(r[1]) - r[0]) * s + r[0];
     double b = (static_cast<double>(r[3]) - r[2]) * s + r[2];
     double lower = (b - a) * t + a;
-    if (storeLower) lower = static_cast<float>(lower);
     double c = (static_cast<double>(r[5]) - r[4]) * s + r[4];
     double d = (static_cast<double>(r[7]) - r[6]) * s + r[6];
     double upper = (d - c) * t + c;
     return static_cast<float>((upper - lower) * u + lower);
 }
 
-// One 16-byte block of a FIG8 vertex: `v` holds the block's 8 corner versions (8 x 4 floats).
-// The x component stays on the FPU through every blend; y, z and w are stored after each one.
-__declspec(noinline) void MorphBlock(float* out, const float* v, float s, float t, float u) {
-    // Lower half (versions 0-3), written to `out`.
-    {
-        double ax = (static_cast<double>(v[4]) - v[0]) * s + v[0];
-        float ay = static_cast<float>((static_cast<double>(v[5]) - v[1]) * s + v[1]);
-        float az = static_cast<float>((static_cast<double>(v[6]) - v[2]) * s + v[2]);
-        float aw = static_cast<float>((static_cast<double>(v[7]) - v[3]) * s + v[3]);
-        double bx = (static_cast<double>(v[12]) - v[8]) * s + v[8];
-        float by = static_cast<float>((static_cast<double>(v[13]) - v[9]) * s + v[9]);
-        float bz = static_cast<float>((static_cast<double>(v[14]) - v[10]) * s + v[10]);
-        float bw = static_cast<float>((static_cast<double>(v[15]) - v[11]) * s + v[11]);
-        out[0] = static_cast<float>((bx - ax) * t + ax);
-        out[1] = static_cast<float>((static_cast<double>(by) - ay) * t + ay);
-        out[2] = static_cast<float>((static_cast<double>(bz) - az) * t + az);
-        out[3] = static_cast<float>((static_cast<double>(bw) - aw) * t + aw);
-    }
-    // Upper half (versions 4-7), blended into `out` by u.
-    {
-        double ax = (static_cast<double>(v[20]) - v[16]) * s + v[16];
-        float ay = static_cast<float>((static_cast<double>(v[21]) - v[17]) * s + v[17]);
-        float az = static_cast<float>((static_cast<double>(v[22]) - v[18]) * s + v[18]);
-        float aw = static_cast<float>((static_cast<double>(v[23]) - v[19]) * s + v[19]);
-        double bx = (static_cast<double>(v[28]) - v[24]) * s + v[24];
-        float by = static_cast<float>((static_cast<double>(v[29]) - v[25]) * s + v[25]);
-        float bz = static_cast<float>((static_cast<double>(v[30]) - v[26]) * s + v[26]);
-        float bw = static_cast<float>((static_cast<double>(v[31]) - v[27]) * s + v[27]);
-        double cx = (bx - ax) * t + ax;
-        float cy = static_cast<float>((static_cast<double>(by) - ay) * t + ay);
-        float cz = static_cast<float>((static_cast<double>(bz) - az) * t + az);
-        float cw = static_cast<float>((static_cast<double>(bw) - aw) * t + aw);
-        out[0] = static_cast<float>((cx - out[0]) * u + out[0]);
-        out[1] = static_cast<float>((static_cast<double>(cy) - out[1]) * u + out[1]);
-        out[2] = static_cast<float>((static_cast<double>(cz) - out[2]) * u + out[2]);
-        out[3] = static_cast<float>((static_cast<double>(cw) - out[3]) * u + out[3]);
-    }
+// FIG8 files hold 8 versions of every bound and vertex block, the old format 6 (the corners of the figure's
+// morph). The meshes loaded here are never morphed (all weights 0), so they take the first version.
+constexpr int kFig8Versions = 8;
+constexpr int kOldVersions = 6;
+
+// Reads the first of `versions` copies of a value at the cursor (a byte copy, floats too) and moves past all of them.
+template <typename T>
+void ReadFirstVersion(T& value, char** cursor, int versions) {
+    std::memcpy(&value, *cursor, sizeof(T));
+    *cursor += static_cast<int>(sizeof(T)) * versions;
 }
 
-// One 16-byte block of an old-format vertex: 6 corner versions (6 x 4 floats), every blend on the FPU.
-__declspec(noinline) void MorphBlock6(float* out, const float* v, float s, float t, float u) {
-    for (int k = 0; k < 4; ++k) {
-        double a = (static_cast<double>(v[4 + k]) - v[k]) * s + v[k];
-        double lower = (v[8 + k] - a) * t + a;
-        double b = (static_cast<double>(v[16 + k]) - v[12 + k]) * s + v[12 + k];
-        double upper = (v[20 + k] - b) * t + b;
-        out[k] = static_cast<float>((upper - lower) * u + lower);
-    }
-}
-
-using CornerFn = float (*)(const float*, float, float, float);
-
-// The old-format bounding volume (centre, box minimum, box maximum: 6 corners of 3 floats each;
-// radius: 6 floats), written straight into `bounds`. The two loaders round the x component and
-// the box minimum differently.
-void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float u, CornerFn minX, CornerFn minYZ) {
-    Vector3 c = {CornerKept(p, s, t, u), CornerPerOp(p + 1, s, t, u), CornerPerOp(p + 2, s, t, u)};
-    const float* q = p + 0x12;
-    Vector3 mn = {minX(q, s, t, u), minYZ(q + 1, s, t, u), minYZ(q + 2, s, t, u)};
-    q = p + 0x24;
-    Vector3 mx = {CornerPerOpKeptSum(q, s, t, u), CornerPerOpKeptSum(q + 1, s, t, u), CornerPerOpKeptSum(q + 2, s, t, u)};
-    float radius = MorphScalar6(p + 0x36, s, t, u);
-    bounds.center = c;
-    bounds.flags |= BoundsFlag::Sphere;
-    bounds.radius = radius;
-    bounds.boxMin = mn;
-    bounds.boxMax = mx;
-    bounds.flags |= BoundsFlag::Box;
-}
-
-// The vertices of a FIG mesh: FIG8 files hold 8 versions of each of the three blocks (0x80 bytes
-// each), morphed; other versions hold the three blocks once. The fourth block is set to 1.0.
-void LoadVertices(std::vector<VertexPacket>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
-    if (magic == kFig8Magic) {
-        for (int i = 0; i < std::ssize(vertices); ++i) {
-            VertexPacket& v = vertices[i];
-            for (int b = 0; b < 3; ++b) {
-                MorphBlock(v.block[b], FloatsAt(*cursor), s, t, u);
-                *cursor += 0x80;
-            }
-            for (int k = 3; k >= 0; --k) v.block[3][k] = 1.0f;
-        }
-        return;
-    }
-    for (int i = 0; i < std::ssize(vertices); ++i) {
-        VertexPacket& v = vertices[i];
-        for (int b = 0; b < 3; ++b) {
-            std::memcpy(v.block[b], *cursor, 16);
-            *cursor += 0x10;
-        }
+// The vertices of a mesh: three 16-byte blocks each, `versions` copies of every block. The fourth block is set
+// to 1.0.
+void LoadVertices(std::vector<VertexPacket>& vertices, char** cursor, int versions) {
+    for (VertexPacket& v : vertices) {
+        for (int b = 0; b < 3; ++b) ReadFirstVersion(v.block[b], cursor, versions);
         for (int k = 3; k >= 0; --k) v.block[3][k] = 1.0f;
     }
 }
@@ -256,28 +134,23 @@ int ReadCount(char** cursor) {
     return n;
 }
 
-// The part both old-format loaders share: header words, bounds, vertices and records (the
-// records' second colour array is set to opaque black).
-void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, bool shared) {
+// The part both old-format loaders share: header words, bounds, vertices and records (the records' second colour
+// array is set to opaque black).
+void LoadOldCommon(CFigureMesh* mesh, char** cursor) {
     mesh->materialValue_ = Read<std::uint32_t>(*cursor);
     mesh->meshType_ = Read<std::uint32_t>(*cursor);
-    if (shared)
-        MorphOldBounds(mesh->box_.bounds, FloatsAt(*cursor), s, t, u, CornerKept, CornerPerOp);
-    else
-        MorphOldBounds(mesh->box_.bounds, FloatsAt(*cursor), s, t, u, CornerStoredLower, CornerPerOpKeptUpper);
-    *cursor += 0xF0;
+    ClipBounds& bounds = mesh->box_.bounds;
+    ReadFirstVersion(bounds.center, cursor, kOldVersions);
+    ReadFirstVersion(bounds.boxMin, cursor, kOldVersions);
+    ReadFirstVersion(bounds.boxMax, cursor, kOldVersions);
+    ReadFirstVersion(bounds.radius, cursor, kOldVersions);
+    bounds.flags |= BoundsFlag::Sphere;
+    bounds.flags |= BoundsFlag::Box;
 
     int count = ReadCount(cursor);
     mesh->vertices_.resize(count);
-    for (int i = 0; i < count; ++i) {
-        VertexPacket& v = mesh->vertices_[i];
-        for (int b = 0; b < 3; ++b) {
-            MorphBlock6(v.block[b], FloatsAt(*cursor), s, t, u);
-            *cursor += 0x60;
-        }
-        for (int k = 3; k >= 0; --k) v.block[3][k] = 1.0f;
-    }
-    if (!mesh->vertices_.empty()) mesh->box_.bounds.Fit(mesh->vertices_.data(), std::ssize(mesh->vertices_));
+    LoadVertices(mesh->vertices_, cursor, kOldVersions);
+    if (!mesh->vertices_.empty()) bounds.Fit(mesh->vertices_.data(), std::ssize(mesh->vertices_));
 
     count = ReadCount(cursor);
     mesh->normals_.resize(count);
@@ -333,39 +206,12 @@ std::vector<VertexPacket> g_offsetVertices;
 // Each value the original stores to a float is rounded with static_cast<float>; everything else
 // stays on the FPU.
 
-void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint32_t magic) {
-    if (magic == kFig8Magic) {
-        const float* p = FloatsAt(*cursor);
-        Vector3 c = MorphVector(p, s, t, u, true);
-        center_ = {c.x, c.y, c.z};
-        *cursor += 0x60;
-        p = FloatsAt(*cursor);
-        Vector3 mn = MorphVector(p, s, t, u, true);
-        boxMin_ = {mn.x, mn.y, mn.z};
-        *cursor += 0x60;
-        p = FloatsAt(*cursor);
-        Vector3 mx = MorphVector(p, s, t, u, false);
-        boxMax_ = {mx.x, mx.y, mx.z};
-        *cursor += 0x60;
-        radius_ = MorphScalar(FloatsAt(*cursor), s, t, u, true);
-        *cursor += 0x20;
-
-        box_.bounds.center = center_;
-        box_.bounds.radius = radius_;
-        box_.bounds.flags |= BoundsFlag::Sphere;
-        box_.bounds.boxMin = boxMin_;
-        box_.bounds.boxMax = boxMax_;
-        box_.bounds.flags |= BoundsFlag::Box;
-        return;
-    }
-    std::memcpy(&center_, *cursor, 12);
-    *cursor += 12;
-    std::memcpy(&boxMin_, *cursor, 12);
-    *cursor += 12;
-    std::memcpy(&boxMax_, *cursor, 12);
-    *cursor += 12;
-    std::memcpy(&radius_, *cursor, 4);
-    *cursor += 4;
+void CFigureMesh::LoadBounds(char** cursor, std::uint32_t magic) {
+    const int versions = magic == kFig8Magic ? kFig8Versions : 1;
+    ReadFirstVersion(center_, cursor, versions);
+    ReadFirstVersion(boxMin_, cursor, versions);
+    ReadFirstVersion(boxMax_, cursor, versions);
+    ReadFirstVersion(radius_, cursor, versions);
     box_.bounds.center = center_;
     box_.bounds.flags |= BoundsFlag::Sphere;
     box_.bounds.radius = radius_;
@@ -378,7 +224,7 @@ void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, flo
         Vector3 c = MorphVector(data, s, t, u, true);
         Vector3 mn = MorphVector(data + 0x18, s, t, u, true);
         Vector3 mx = MorphVector(data + 0x30, s, t, u, false);
-        float radius = MorphScalar(data + 0x48, s, t, u, false);
+        float radius = MorphScalar(data + 0x48, s, t, u);
         out->flags |= 1;
         out->center.x = c.x;
         out->center.y = c.y;
@@ -411,17 +257,17 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
     out->SetBox(&boxMin.x, &boxMax.x);
 }
 
-void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
+void CPlainFigureMesh::LoadFig(char** cursor) {
     if (flags_ & FigureMeshFlag::Loaded) return;
     FigHeader header;
     lib::LoadBytes(header, *cursor);
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
-    LoadBounds(cursor, s, t, u, header.magic);
+    LoadBounds(cursor, header.magic);
 
     vertices_.resize(header.vertexCount);
-    LoadVertices(vertices_, cursor, header.magic, s, t, u);
+    LoadVertices(vertices_, cursor, header.magic == kFig8Magic ? kFig8Versions : 1);
     if (!vertices_.empty()) box_.bounds.Fit(vertices_.data(), std::ssize(vertices_));
 
     normals_.resize(header.normalCount);
@@ -454,17 +300,17 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     flags_ |= FigureMeshFlag::Loaded;
 }
 
-void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
+void CSharedFigureMesh::LoadFig(char** cursor) {
     if (flags_ & FigureMeshFlag::Loaded) return;
     FigHeader header;
     lib::LoadBytes(header, *cursor);
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
-    LoadBounds(cursor, s, t, u, header.magic);
+    LoadBounds(cursor, header.magic);
 
     vertices_.resize(header.vertexCount);
-    LoadVertices(vertices_, cursor, header.magic, s, t, u);
+    LoadVertices(vertices_, cursor, header.magic == kFig8Magic ? kFig8Versions : 1);
     if (!vertices_.empty()) box_.bounds.Fit(vertices_.data(), std::ssize(vertices_));
 
     normals_.resize(header.normalCount);
@@ -496,9 +342,9 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
 
 // ---- Old (non-FIG) format -----------------------------------------------------------------------
 
-void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
+void CPlainFigureMesh::LoadOld(char** cursor) {
     if (flags_ & FigureMeshFlag::Loaded) return;
-    LoadOldCommon(this, cursor, s, t, u, false);
+    LoadOldCommon(this, cursor);
     LoadArray(texCoords_, cursor, ReadCount(cursor));
     SkipRecords34(cursor);
     LoadArray(corners_, cursor, ReadCount(cursor));
@@ -523,9 +369,9 @@ void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     flags_ |= FigureMeshFlag::Loaded;
 }
 
-void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
+void CSharedFigureMesh::LoadOld(char** cursor) {
     // Unlike the other three loaders, this one does not test the loaded flag.
-    LoadOldCommon(this, cursor, s, t, u, true);
+    LoadOldCommon(this, cursor);
     // The rest stays in the file data.
     buffers_.texCoordCount = ReadCount(cursor);
     buffers_.texCoords = InFile<TexCoord>(cursor, buffers_.texCoordCount);
