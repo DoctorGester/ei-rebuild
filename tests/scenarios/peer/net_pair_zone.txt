@@ -1,5 +1,5 @@
 # The peer of net_pair_zone: joins the host's game (as in net_pair_join), offers the host an exchange (the
-# host's face, the left one here) and accepts the host's item; once the host has entered z3q2 it walks out of
+# host's face, the left one here) and accepts the host's item; once the host has entered the zone it walks out of
 # its own base the same way and joins the host's zone as a remote player; then it quits.
 # The desktop's size (H31): a clickground lands where the clicked pixel's ray meets the ground and the leader walks
 # to that exact point, so the walk follows the frame's pixel grid; the goldens are the original's, at the desktop.

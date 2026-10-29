@@ -46,8 +46,8 @@ function does; this file keeps what is not visible in the code.
   briefing "b.<speaker>.<zone>_1" (MarkBriefing), so the zones are the speaker's topics (Nsheriff on
   bz1mpg; a network client's topics are sorted by _stricmp). Finishing one sends command 1 "<zone>_1"
   (CompleteBriefing -> RequestBriefing); the host's server then runs SetMap: the queued "<zone>_2", the Map
-  message, SetNetworkZone (multiplayerZone_). Which zones are offered differs by install (vanilla z3q2 first,
-  Rebirth z3q1).
+  message, SetNetworkZone (multiplayerZone_). Which zones are offered differs by install (vanilla z3q1 first,
+  Rebirth z3q3).
 - Leaving: a client may leave while "z.MPGame1" is not 1 (UpdateMultiplayerVariable 0057F190: the host
   once it has the Map, a joiner once it has the Host message); the leader walking into exit 1's remove
   rectangle (bz1mpg: 56 39 62.5 45, through the gate) makes the briefing screen leave (LeaveIfExitOpen,
@@ -66,10 +66,12 @@ function does; this file keeps what is not visible in the code.
 ## Leaving the game zone, awards, shared files, a lost client (SV5d2)
 
 - Zones on offer: FlowPickZones picks one zone per map group (zone3Obr, zone6, zone7, zone9 for bz1mpg) with
-  one IsaacRandom draw each, so the offer depends on the run: in the pair scenarios vanilla offers z3q2 z6q1
-  z7q2 z9q3, Rebirth z3q1 z6q1 z7q1 z9q1; after LeaveZone the next offer leaves out the zone just played
-  (z3q3 on both). The sheriff's topics after the map choice: "about life in the village", the map's reject
-  briefing ("<zone>_2"), "talk later".
+  one IsaacRandom draw each, so the offer follows the game's draws before the server starts (since R34a no
+  client effect draws from that generator, so menus and frame timing no longer move it): in the pair
+  scenarios vanilla offers z3q1 z6q3 z7q1 and a z9 zone with a new hero (net_pair_zone, net_pair_leave),
+  Rebirth z3q3 z6q2 z7q3 z9q2; after LeaveZone the next offer leaves out the zone just played (vanilla
+  net_pair_quest rejects z9q3 at once to be offered z9q2). The sheriff's topics after the map choice: "about
+  life in the village", the map's reject briefing ("<zone>_2"), "talk later".
 - Back to the base: the game zone's exit 1 (z3q1 / z3q2: remove rectangle 0 130 20 147, next to the deploy
   rectangle) asks the leave box (yes: 00578AC0 -> SwitchMultiplayerZone's second call, zoneSwitchStarted_ set: the client
   state 1 and the start zone again; the host also sends command 9 with the announced zone to its guests and
@@ -83,8 +85,9 @@ function does; this file keeps what is not visible in the code.
   level 2-8 monsters (z3q1: a chest by five bandits; z3q2: a level 5 toad), which a new hero does not win, and the
   console's "@" commands do nothing in a network game (console::Execute).
 - SV5d3 `net_pair_quest.txt`: the host plays a prepared strong hero (tools/make_mp_hero.py writes mp\1.mp into
-  the run's overlay: strength 1000, a 300-damage axe, armour absorbing 100), takes z9q2 (the pair's offer is z3q2
-  z6q1 z7q1 z9q2 on both installs; ten undead at the old camp, around 8..55 x 266..309 of zone9), kills them,
+  the run's overlay: strength 1000, a 300-damage axe, armour absorbing 100), takes z9q2 (Rebirth's first
+  offer has it; vanilla's has z9q3, taken and rejected at once for the next offer; ten undead at the old camp,
+  around 8..55 x 266..309 of zone9), kills them,
   goes back through exit 1 and takes the sheriff's "<zone>_3" topic. The original (EI_COVER) reaches 0057FB90,
   004193F0, CompleteZone 00418ED0 and ClientOnAward 0041EF90 in both games, and OnMaster 0041ACA0 (the harness's
   `fakemaster` answers each announcement on the pair's virtual port with the key and a new token).
@@ -315,7 +318,7 @@ messages inline.
   (0041B25B, disabled in this install). NewMaster's sites are reproduced behind its flag (net_second_master.cpp); ChatLog's is not, so
   0041B1C0 is not hooked where it is applied. `net_second_master` reaches 0041AA10 (a public game with `masterhost` on 127.0.0.1); `net_pair_quest`
   reaches 0041ACA0 (the harness's fake master); nothing reaches 0041B1C0 where ChatLog is applied.
-- A-E2 (vanilla bodies; A-I23: `net_pair_leave` reaches 0041ECC0 and 005813A0 on vanilla, its peer lacking z7q2.mq, and
+- A-E2 (vanilla bodies; A-I23: `net_pair_leave` reaches 0041ECC0 and 005813A0 on vanilla, its peer lacking z7q1.mq, and
   `samefile` checks the written file; every pair's join reaches 00443080): 0041ECC0 `ClientOnFileChunk` (`net_client_handlers.cpp`) collects a
   file's chunks, sorts and joins them and hands the file to the game flow (005813A0). 00443080 `ServerBase::OnLogin` (`net_lobby.cpp`): a
   wrong magic is ignored; the rate is cut to the address's limit; a connected client's login is ignored ("ERROR: Ignoring login..."); a
