@@ -5968,3 +5968,10 @@ title = "C53 rest: remaining forwarders and constant parameters (net, renderer c
 group = "cleanup"
 depends = ["C53a"]
 note = "C53a (batch 3) inlined ~60 file-local forwarders and dropped constant parameters (FindStreamChunk, Play3D speech, ReadToHash, SkipToNextLine, SaveFileRead/Write versions, OpenBink, LoadLink/LoadFigure fresh, SetRelation, MakeTime, BufferCursor::Reset, DrawFlatBlocks bounds/zScale, ReadEntries, str::Buffer). Left: parameters kept because a vector recorder or the harness calls the original-signature function (CScript::ExpectLexeme id, IsPrintableText min/max); LoadFromMemory s/t/u (always 0: LoadFig/LoadOld morph is dead code, check); CWorldClient::Deselect(nullptr) and GameFlow::RequestLoad flag (callers in ui_*, after P8); duplicates WorldOf in net_state.cpp / world_effect_internal.h, FindUnit / GetPlayer wrappers shared by several files (script_addon*, console_commands, player_server_handlers), IsDead / Radius wrappers where another file has the same name, particle_callbacks FindFigurePart / UnitPoint / TerrainHeight (one comment covers them), a/b/argN names in non-header code, 28 void* unused serializer parameters, SetInt / SetDWord twin in win_registry, combat_motion.cpp vs combat_update.cpp StartQueueIfUnset duplicate, PopCorpse. Scripts: scratchpad C53a inl2.py (inline file-local one-return wrappers, '!file:name' forces past the other-files check), dropparam.py (drop one constant parameter from every declaration and call)."
+
+[[ticket]]
+id = "C63"
+title = "Containers: std::list where nothing needs node stability, and types that inherit from std containers"
+group = "cleanup"
+model = "opus"
+note = "G17 rest (build/style_review/REPORT.md Tier 3) after C58/C58a took the new T[] arrays. 411 std::list uses in src: switch to std::vector where nothing keeps iterators or pointers across inserts/erases and order semantics stay the same (check each list's erase-while-iterating and splice uses). 10 types inherit from std::vector/list/map/deque/string: composition instead (AIHeardCalls / AIReports are in C60a; leave those to it). One area per batch; file C63a.. for the rest. Goldens unchanged."
