@@ -5743,3 +5743,10 @@ title = "C54g1 rest: the interface's texture kinds and battle unit flags named"
 group = "cleanup"
 depends = ["C54g1"]
 note = "Left by C54g1. (1) CUiWindow::LoadTexture / CreateTexture's kind is the texture manager's object type (texture.h: NewTexture's 0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4; LoadTexture's 3 and the global map's kMapTextureKind; CreateObject's 0x3E-0x40): one enum in texture.h for the manager's types, used by texture_blank's table, the interface's callers and the local kTextureKind copies (ui_briefing_create, ui_chat_window, ui_connect_screen, ui_hero_screen_create, ...). (2) ui_battle_update.cpp's selection box marks units with bare 0x10 / 0x100 (MapObjectFlag::BoxMarked and its neighbour): the MapObjectFlag names. Goldens unchanged (golden suite) + ei_ui_check."
+
+[[ticket]]
+id = "C50b2"
+title = "The camera and the scene renderer as plain globals"
+group = "cleanup"
+depends = ["C50b1"]
+note = "C50b1 follow-up. g_camera 0079B2A8 and the scene renderer 007AF060 are the last lib::StaticObject singletons in game_singletons.h. Since C50b1 the worlds are plain globals emptied by EmptyWorlds (ShutDown and an std::atexit registered before the worlds are created); their destructors run after the camera's exit function, so the world destructor's g_camera->SetTarget(nullptr) writes into a destroyed camera (harmless static storage, but undefined). Make both plain globals (UNUSED_INITIALISERS, static_init_ports / named_data / global_objects rows, whole-tree g_x-> retype) and check the destruction order against the worlds' (camera destroyed after the worlds, or the worlds' destructors not touching it). Also: the world teardown now runs up to three times (ShutDown, EmptyWorlds, destructor); if the destructor can rely on EmptyWorlds, drop the third. Goldens unchanged, net_pair_* no exit hang."
