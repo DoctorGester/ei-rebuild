@@ -9,6 +9,7 @@
 #include "lib/static_object.h"
 #include "ui.h"        // CInterface3D, CUiSurface
 #include "ui_gdi.h"
+#include "ui_native.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -22,8 +23,28 @@ namespace {
 // The panel's font face.
 const char* FontFace() { return "Courier New"; }
 
-void DrawString(HDC dc, const std::string& s, RECT* rect) {
-    gameapi::DrawTextA(dc, s.data(), static_cast<int>(s.size()), rect, 0x800u);
+constexpr UINT kDrawFormat = 0x800;   // DT_NOPREFIX
+constexpr COLORREF kShadowColour = 0x080808;
+constexpr COLORREF kTextColour = 0xFFFFFF;
+
+// `s` in `rect`, in `colour`, with the shadow one pixel lower and to the right first: through the glyph atlas on
+// a native surface, else GDI with the panel font selected in `dc` (a native surface GDI drew on has that part
+// copied onto its canvas).
+void DrawString(CUiSurface* surface, HDC dc, HFONT font, const std::string& s, const RECT& rect) {
+    const ui_native::TextPath path = ui_native::Text(surface, font, s, rect, kDrawFormat, kTextColour, true, nullptr);
+    if (path == ui_native::TextPath::Canvas) return;
+    for (const bool shadow : {true, false}) {
+        RECT drawn = rect;
+        if (shadow) gameapi::OffsetRect(&drawn, 1, 1);
+        gameapi::SetTextColor(dc, shadow ? kShadowColour : kTextColour);
+        gameapi::DrawTextA(dc, s.data(), static_cast<int>(s.size()), &drawn, kDrawFormat);
+    }
+    if (path == ui_native::TextPath::Gdi) {
+        RECT inked = rect;
+        ++inked.right;
+        ++inked.bottom;
+        ui_native::TextDrawn(surface, inked, true);
+    }
 }
 
 } // namespace
@@ -119,30 +140,21 @@ void CDebugPanel::Tick() {
 }
 
 // Clears the panel and draws each entry (the key in the left half, the value in the
-// right half; a dark copy one pixel down and right first) until the next line would not fit.
+// right half; a dark copy one pixel down and right first, through the glyph atlas on a native surface) until the next line would not fit.
 void CDebugPanel::Redraw() {
     CUiSurface* surface = surface_;
     if (!surface) return;
     HDC dc = UiSurfaceGetDC(surface);
     RECT& asked = asked_;
     gdi::FillSolidRect(dc, 0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
+    ui_native::Fill(surface, RECT{0, 0, asked.right - asked.left, asked.bottom - asked.top}, 0);
     gameapi::SetBkMode(dc, 1);
     HGDIOBJ oldFont = gameapi::SelectObject(dc, font_.get());
     RECT key = {0, 0, (asked.right - asked.left) / 2, 20};
     RECT value = {(asked.right - asked.left) / 2, 0, asked.right - asked.left, 20};
     for (const auto& [name, text] : entries_) {
-        gameapi::SetTextColor(dc, static_cast<COLORREF>(0x080808));
-        RECT shadow = key;
-        gameapi::OffsetRect(&shadow, 1, 1);
-        RECT r = shadow;
-        DrawString(dc, name, &r);
-        shadow = value;
-        gameapi::OffsetRect(&shadow, 1, 1);
-        r = shadow;
-        DrawString(dc, text, &r);
-        gameapi::SetTextColor(dc, static_cast<COLORREF>(0xFFFFFF));
-        DrawString(dc, name, &key);
-        DrawString(dc, text, &value);
+        DrawString(surface, dc, font_.get(), name, key);
+        DrawString(surface, dc, font_.get(), text, value);
         gameapi::OffsetRect(&key, 0, 15);
         gameapi::OffsetRect(&value, 0, 15);
         if (key.bottom > asked.bottom - asked.top) break;
@@ -158,6 +170,7 @@ void CDebugPanel::Show(std::uint8_t show) {
     if (show) {
         if (!surface_) {
             surface_ = new CUiSurface(ui_, &shown_, 5);
+            ui_native::Adopt(surface_, "debug");
         }
         lastDraw_ = gameapi::timeGetTime();
         Redraw();
