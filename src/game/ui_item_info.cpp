@@ -879,7 +879,7 @@ void CItemInfoPanel::KeyUp(int key, int, int) {
 void CItemInfoPanel::Build(int x, int y) {
     x_ = x;
     y_ = y;
-    CUiSurface* surface = new CUiSurface(interface_, x_, y_, x_ + 200, y_ + 300, 5, 1);
+    CUiSurface* surface = new CUiSurface(interface_, x_, y_, x_ + 200, y_ + 300, SurfaceBlend::Keyed, true);
     AddSurface(surface);
     CTextManager* texts = g_clientWorld->texts_;
     std::string text, key;

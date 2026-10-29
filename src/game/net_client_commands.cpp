@@ -61,7 +61,7 @@ void ClientSession::CreateEntry(RefPtr* out) {
 }
 
 // The game flow begins the multiplayer game.
-void ClientSession::OnJoined() { g_gameFlow->BeginMultiplayerGame(); }
+void ClientSession::OnJoined() { g_gameFlow.BeginMultiplayerGame(); }
 
 // Called by the transfer screen: a buffer's stream size (its base plus the highest written position, from
 // `begin`) over the dword at its start (1 when 0), both as signed integers; 0 for fewer than 4 bytes. Reading

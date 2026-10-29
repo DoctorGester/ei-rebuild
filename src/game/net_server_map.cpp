@@ -46,7 +46,7 @@ void ServerSession::SetMap(const std::string* name) {
     if (name != &current->text_) current->text_ = *name;
     if (name != &mapName_) mapName_ = *name;
 
-    GameFlow* world = &g_gameFlow.Get();
+    GameFlow* world = &g_gameFlow;
     world->RegisterQuests(name->data());
     world->SetNetworkZone(name->data());
     {

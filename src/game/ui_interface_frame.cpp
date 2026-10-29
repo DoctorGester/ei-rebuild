@@ -67,13 +67,13 @@ void CInterface3D::Update() {
             serverFlag_ = 0;
         }
         if (!stack_.empty()) {
-            stack_.back()->Show(1);
+            stack_.back()->Show(true);
             ScreenOf(stack_.back())->MessageResult(static_cast<int>(pendingValue_));
         }
         if (pendingValue_ == kLeaveGame) {
             closeAll_ = true;
-            g_gameFlow->DropSessions();
-            g_gameFlow->CloseSessions();
+            g_gameFlow.DropSessions();
+            g_gameFlow.CloseSessions();
         }
         mouseCapture_ = nullptr;
         g_cursor.SetShape(0);

@@ -55,7 +55,7 @@ void Pump() {
     g_lastPumpTime = now;
     TickSession(g_gameServer, elapsed);
     TickSession(g_gameClient, elapsed);
-    g_gameFlow->UpdateMultiplayerVariable();   // With the game flow: the per-frame network step
+    g_gameFlow.UpdateMultiplayerVariable();   // With the game flow: the per-frame network step
 }
 
 } // namespace net

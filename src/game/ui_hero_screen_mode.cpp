@@ -66,7 +66,7 @@ void CMpHeroScreen::SetMode(int mode) {
     voiceScroll_->SetEnabled(false);
     iconWindow_->SetEnabled(false);
     ShowSprites(this, 0, static_cast<int>(std::ssize(sceneObjects_)), 0);
-    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 1);
+    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Hide(true);
     while (std::ssize(regions_) > kFixedRegions) RemoveRegionAt(kFixedRegions);
     for (int i = 0; i < std::ssize(regions_); ++i) regions_[i]->SetTip(0);
 
@@ -88,8 +88,8 @@ void CMpHeroScreen::SetMode(int mode) {
         regions[0]->SetTip(0x9CA5);
         regions[1]->SetTip(0x9CA4);
         for (int i = 5; i < kFixedRegions; ++i) regions[i]->SetTip(i + 0x9D03);
-        surfaces_[0]->Freeze(1, 1);
-        surfaces_[1]->Freeze(1, 1);
+        surfaces_[0]->Show();
+        surfaces_[1]->Show();
         nameEdit_->SetEnabled(false);
         nameEdit_->SetFocused(false);
         SetSelectionFrame(this, 110.0f, 250.0f, 370.0f, 274.0f);
@@ -116,7 +116,7 @@ void CMpHeroScreen::SetMode(int mode) {
         regions[4]->SetTip(0x9D6E);
         nameEdit_->SetEnabled(true);
         nameEdit_->SetFocused(true);
-        surfaces_[2]->Freeze(1, 1);
+        surfaces_[2]->Show();
         SetSelectionFrame(this, 15.0f, 310.0f, 180.0f, 325.0f);
         AddRows(this, 10, 180, 325, 15);
         DrawVoices();
@@ -133,7 +133,7 @@ void CMpHeroScreen::SetMode(int mode) {
         regions[0]->SetTip(0x9E35);
         regions[1]->SetTip(0x9E34);
         regions[4]->SetTip(0x9E36);
-        surfaces_[2]->Freeze(1, 1);
+        surfaces_[2]->Show();
         nameEdit_->SetEnabled(false);
         nameEdit_->SetFocused(false);
         tradePanel_->SelectHero(0);

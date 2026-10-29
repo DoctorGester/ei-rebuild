@@ -976,7 +976,7 @@ ClientArrayManager::~ClientArrayManager() {
 }
 
 int CWorldClient::LoadZone(CStream* block) {
-    g_gameFlow->UpdateAndAcknowledge();
+    g_gameFlow.UpdateAndAcknowledge();
     std::string map;
     std::string mob;
     sounds_->SetEffectsVolume(0);

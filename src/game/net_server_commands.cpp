@@ -70,7 +70,7 @@ void ServerOnCommand(ServerSession* self, CommandMessage* message) {
     std::string* text = &message->text_;
     switch (message->kind_) {
     case kPreviewMap:
-        if (self->IsHostConnection(g_currentConnection)) g_gameFlow->SetNetworkZone(text->data());
+        if (self->IsHostConnection(g_currentConnection)) g_gameFlow.SetNetworkZone(text->data());
         return;
     case kZoneCommand: {
         if (!self->IsHostConnection(g_currentConnection)) return;

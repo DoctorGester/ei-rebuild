@@ -190,8 +190,8 @@ void RedeployParty(const SSCCmd* cmd) {
     std::vector<UnitPlacement> slots;
     g_serverWorld->CollectParty(player, &slots);
     CParty* party = player->Party();
-    g_partyManager->BeginRedeploy(party);
-    g_partyManager->EndRedeploy(party);
+    g_partyManager.BeginRedeploy(party);
+    g_partyManager.EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
     const std::vector<PartyUnitRecord>& members = player->Party()->members_;
     if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
@@ -202,8 +202,8 @@ void RedeployParty(const SSCCmd* cmd) {
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
     if (!g_serverWorld->GetPlayer(Ftol(cmd->floatArgs[0]))) return;
-    CParty* from = g_partyManager->records.Find(Text(cmd, 0));
-    CParty* to = g_partyManager->records.Find(Text(cmd, 1));
+    CParty* from = g_partyManager.records.Find(Text(cmd, 0));
+    CParty* to = g_partyManager.records.Find(Text(cmd, 1));
     if (!from || !to) return;
     if (replace) {
         while (!to->items_.empty()) to->RemoveItem(to->items_[0], 1);
@@ -973,16 +973,16 @@ bool ScriptRun::Execute(CScript* script) {
             break;
         }
         case ScriptFunction::CreateParty: {   // CreateParty(player, name)
-            if (g_serverWorld->GetPlayer(Ftol(f[0]))) g_partyManager->records.Add(Text(cmd, 0));
+            if (g_serverWorld->GetPlayer(Ftol(f[0]))) g_partyManager.records.Add(Text(cmd, 0));
             break;
         }
         case ScriptFunction::RemoveParty: {   // RemoveParty(player, name)
-            if (g_serverWorld->GetPlayer(Ftol(f[0]))) g_partyManager->records.Remove(Text(cmd, 0));
+            if (g_serverWorld->GetPlayer(Ftol(f[0]))) g_partyManager.records.Remove(Text(cmd, 0));
             break;
         }
         case ScriptFunction::SetCurrentParty: {   // SetCurrentParty(player, name)
             if (g_serverWorld->GetPlayer(Ftol(f[0])))
-                g_partyManager->records.requestedName = cmd->stringArgs[0];
+                g_partyManager.records.requestedName = cmd->stringArgs[0];
             break;
         }
         case ScriptFunction::AddLoot:   // AddLoot(player, from, to)
@@ -1041,7 +1041,7 @@ bool ScriptRun::Execute(CScript* script) {
             QuestRecord* quest = g_questDatabase->FindQuest(Text(cmd, 0));
             if (!quest) break;
             g_serverWorld->AwardExperience(player, quest->exp);
-            ClassTemplatesQuestCompleted(&g_partyManager.Get());
+            ClassTemplatesQuestCompleted(&g_partyManager);
             break;
         }
         case ScriptFunction::QStart:   // QStart(name)

@@ -51,7 +51,7 @@ void CUiContainer::RedrawTips() {
     }
 }
 
-void CUiContainer::Show(int show) {
+void CUiContainer::Show(bool show) {
     CUiWindow::Show(show);
     for (int i = 0; i < std::ssize(children_); ++i) {
         CUiWindow* child = children_[i];

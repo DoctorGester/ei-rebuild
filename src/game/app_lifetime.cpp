@@ -55,16 +55,5 @@ CDirectInputMouse::~CDirectInputMouse() {
 
 // ---- The party manager ----------------------------------------------------------------------------
 
-// The manager, empty at the start: built by a static initialiser in the list's order and destroyed by the exit
-// function it registers (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
-
-// A second block: it uses g_partyManager (defined above).
-namespace {
-void DestroyPartyManager() { g_partyManager.Destroy(); }
-} // namespace
-
-void ConstructPartyManager() {
-    g_partyManager.Construct();
-    std::atexit(DestroyPartyManager);
-}
+// The manager.
+PartyManager g_partyManager;

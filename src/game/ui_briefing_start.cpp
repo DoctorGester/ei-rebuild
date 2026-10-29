@@ -102,7 +102,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     }
     if (text::CompareIgnoringCase(str::Left(topic_, kConstructorPrefix), kConstructorTopic) == 0) {
         int constructor = str::ToInt(str::Mid(topic_, kConstructorNumber));
-        if (g_partyManager->templates.Find(constructor)) {
+        if (g_partyManager.templates.Find(constructor)) {
             GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
             GameSendLeave04(kCampScreen);
         }

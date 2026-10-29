@@ -117,7 +117,7 @@ void CGlobalMap::MouseMove(int, int x, int y) {
     }
     SelectZone(index, isLink);
     if (index == -1 || (!isLink && zones_[index].state == 0)) {
-        surfaces_[0]->Freeze(0, 0);
+        surfaces_[0]->Hide(false);
         SceneMesh(markerCount_ + kTipBack)->visible_ = false;
         SceneMesh(markerCount_ + kTipFrame)->visible_ = false;
         shownName_.clear();
@@ -128,7 +128,7 @@ void CGlobalMap::MouseMove(int, int x, int y) {
     if (str::Compare(shownName_, text) != 0) interface_->PlaySound(kZoneSound);
     shownName_ = text;
     text = isLink ? links_[index].title : zones_[index].title;
-    surfaces_[0]->Freeze(1, 0);
+    surfaces_[0]->Show();
     surfaces_[0]->Clear();
     RECT titleRect{10, 10, 300, 50};
     surfaces_[0]->DrawTextIn(text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
@@ -193,5 +193,5 @@ void CGlobalMap::CloseScreen() {
 // The briefing screen's SaveState, byte for byte.
 void CGlobalMap::SaveState() {
     int zero = 0;
-    g_saveStream->WriteValue(zero);
+    g_saveStream.WriteValue(zero);
 }

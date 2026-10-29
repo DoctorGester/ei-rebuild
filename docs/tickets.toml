@@ -5729,3 +5729,10 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C54g"]
 note = "Left by C54g. (1) The other StaticObjects the interface spells with -> (g_gameFlow, g_savedParties, g_partyManager, g_saveStream; docs/notes/standalone.md 'Plain globals'): plain globals like g_interface / g_cursor (C54g's recipe: UNUSED_INITIALISERS, static_init_ports / named_data / global_objects rows, whole-tree g_x-> -> g_x. retype). (2) CUiMesh::visible_ is bool: the 0 / 1 writes left in C54f's files (ui_briefing_create, ui_connect_list, ui_connect_screen, ui_help_page, ui_objectives*, ui_options, ui_saveload) to false / true. (3) CUiWindow::Show(int) and its overrides, ShowSurfaces / ShowChildren(int): bool (virtual, change together). (4) ui_layouts' SetSpriteTexture / SetSpriteColour / SetSpritePlain one-line field setters folded. (5) CUiSurface's format (flags_ low bits, the int format parameter): name the formats (4, 5, 0x1E ...). (6) CCursor::enabled_ (uint8) and CDirectInputMouse::SetActive(char) to bool; CUiTooltip / CUiRegion's tip state 0..3 as an enum. Goldens unchanged (golden suite) + ei_ui_check."
+
+[[ticket]]
+id = "C54g2"
+title = "C54g1 rest: the interface's texture kinds and battle unit flags named"
+group = "cleanup"
+depends = ["C54g1"]
+note = "Left by C54g1. (1) CUiWindow::LoadTexture / CreateTexture's kind is the texture manager's object type (texture.h: NewTexture's 0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4; LoadTexture's 3 and the global map's kMapTextureKind; CreateObject's 0x3E-0x40): one enum in texture.h for the manager's types, used by texture_blank's table, the interface's callers and the local kTextureKind copies (ui_briefing_create, ui_chat_window, ui_connect_screen, ui_hero_screen_create, ...). (2) ui_battle_update.cpp's selection box marks units with bare 0x10 / 0x100 (MapObjectFlag::BoxMarked and its neighbour): the MapObjectFlag names. Goldens unchanged (golden suite) + ei_ui_check."

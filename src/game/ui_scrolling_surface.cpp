@@ -21,7 +21,6 @@
 namespace {
 constexpr int kTwipsPerInch = 1440;
 constexpr int kExtraTwipsBelow = 1000;   // the text is formatted this far below the visible height
-constexpr int kSurfaceFormat = 5;
 constexpr COLORREF kWhite = 0xFFFFFF;
 
 // The DPI twips and points are measured at: the system's (the process is system DPI aware), what GetDeviceCaps gave
@@ -33,7 +32,7 @@ int PixelsToTwips(int pixels) { return ::MulDiv(pixels, kTwipsPerInch, Dpi()); }
 int HeightInTwips(const CUiScrollingSurface* surface) { return PixelsToTwips(surface->rect_.bottom - surface->rect_.top); }
 } // namespace
 
-CUiScrollingSurface::CUiScrollingSurface(CInterface3D* ui, const RECT* rect) : CUiSurface(ui, rect, kSurfaceFormat) {
+CUiScrollingSurface::CUiScrollingSurface(CInterface3D* ui, const RECT* rect) : CUiSurface(ui, rect, SurfaceBlend::Keyed) {
     background_ = kWhite;
 }
 

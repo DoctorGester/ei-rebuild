@@ -83,7 +83,7 @@ CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) 
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    return new CUiSurface(ui, left, top, right, bottom, 5, 1);
+    return new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
 }
 
 
@@ -225,7 +225,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
     }
     SelectExit(nearestExit_);
     if (twoButtons_ && !anyKnown) {
-        SceneMesh(0)->visible_ = 0;
+        SceneMesh(0)->visible_ = false;
         regions_[0]->SetTip(0);
     }
 
@@ -434,13 +434,13 @@ void CObjectivesWindow::CreateScreen() {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, 536.0f, 437.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
     CUiMesh* second = AddBlankSprite();
     second->SetRectangle(3.0f, 100.0f, 563.0f, 536.0f, 637.0f, 584.0f, 0xA0, 2, 0xEA, 0x32);
-    if (!twoButtons_) second->visible_ = 0;
+    if (!twoButtons_) second->visible_ = false;
     CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 60.0f, 30.0f, 370.0f, 54.0f, 0, 0, 0x100, 0x100);
     highlight->texture_ = nullptr;
     highlight->flatColour_ = 0xC8A06800;
     highlight->flags_ |= kPlainFlag;
-    highlight->visible_ = 0;
+    highlight->visible_ = false;
     AddBlankSprite();   // object 3: the zone picture, set up by the zone page
     CUiMesh* bottomShade = AddBlankSprite();
     bottomShade->SetRectangle(15.0f, 100.0f, 285.0f, 541.0f, 515.0f, 579.0f, 0, 0, 0x100, 0x100);
@@ -467,15 +467,15 @@ void CObjectivesWindow::CreateScreen() {
         AddBlankSprite()->SetFrame(3.0f, 100.0f, f[0], f[1], f[2], f[3], 5.0f, 2, 0xFE, 0xB4, 0xF9);
     CUiMesh* left = AddBlankSprite();
     left->SetRectangle(3.0f, 100.0f, 414.0f, 384.0f, 443.0f, 404.0f, 2, 0x72, 0x1F, 0x86);
-    left->visible_ = 0;
+    left->visible_ = false;
     CUiMesh* right = AddBlankSprite();
     right->SetRectangle(3.0f, 100.0f, 717.0f, 384.0f, 746.0f, 404.0f, 0x21, 0x72, 0x3E, 0x86);
-    right->visible_ = 0;
+    right->visible_ = false;
     for (int top = 31; top < 151; top += 24) {
         CUiMesh* mark = AddBlankSprite();
         mark->SetRectangle(2.8f, 100.0f, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,
                            0xA4, 0x48, 0xFC);
-        mark->visible_ = 0;
+        mark->visible_ = false;
         mark->texture_ = objects_[1];
     }
 
@@ -540,8 +540,8 @@ void CObjectivesWindow::CreateScreen() {
                 break;
             }
         if (std::ssize(zones_) > 1) {
-            SceneMesh(14)->visible_ = 1;
-            SceneMesh(15)->visible_ = 1;
+            SceneMesh(14)->visible_ = true;
+            SceneMesh(15)->visible_ = true;
             regions_[2]->SetTip(0x13948);
             regions_[3]->SetTip(0x13949);
         }
@@ -554,16 +554,16 @@ void CObjectivesWindow::DrawQuestList() {
     std::string title;
     std::string variable;
     auto mesh = [this](int index) { return SceneMesh(index); };
-    mesh(2)->visible_ = 0;
+    mesh(2)->visible_ = false;
     auto* surface = surfaces_[0];
     surface->Clear();
-    for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
+    for (int i = 16; i < 21; ++i) mesh(i)->visible_ = false;
     std::vector<std::string>& quests = quests_;
     int row = firstRow_;
     int y = 13;
     for (int i = 16; i < 21 && row < static_cast<int>(quests.size()); ++i, ++row, y += 24) {
         CUiMesh* mark = mesh(i);
-        mark->visible_ = 1;
+        mark->visible_ = true;
         bool found;
         {
             std::string questWord("quest ");
@@ -576,10 +576,10 @@ void CObjectivesWindow::DrawQuestList() {
         int state = static_cast<int>(LocalPlayerVariable(variable));
         if (state == 2) mark->textureOffsetU_ = 0.265625f;
         else if (state == 3) mark->textureOffsetU_ = 0.0f;
-        else mark->visible_ = 0;
+        else mark->visible_ = false;
         if (row == selectedQuest_) {
             mesh(2)->Place(215.0f, static_cast<float>(y + 29), 3.0f);
-            mesh(2)->visible_ = 1;
+            mesh(2)->visible_ = true;
         }
         RECT rect{36, y, 320, y + 21};
         surface->DrawTextIn(title, &rect, 1, 0xA7D7E4, 0, 1);

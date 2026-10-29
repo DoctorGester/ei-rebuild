@@ -311,13 +311,17 @@ public:
 
 // An off-screen surface a window draws into: its pixels are its holder's canvas on the GPU (render_ui.h), made
 // black with the surface. No destructor: the owners destroy it directly.
+// How a window surface's Blit draws it: every pixel, or with its background_ as the source colour key (the
+// pixels of that colour left out).
+enum class SurfaceBlend : bool { Opaque, Keyed };
+
 class CUiSurface {
 public:
-    // A surface of the layout rectangle with format `format`, scaled to the screen with `scale`: shown, its
+    // A surface of the layout rectangle drawn with `blend`, scaled to the screen with `scale`: shown, its
     // holder's canvas made black.
-    CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, bool scale);
-    // Over the layout rectangle `rect` (always scaled) with format `format`.
-    CUiSurface(CInterface3D* ui, const RECT* rect, int format);
+    CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale);
+    // Over the layout rectangle `rect` (always scaled).
+    CUiSurface(CInterface3D* ui, const RECT* rect, SurfaceBlend blend);
     // Releases the contents put aside and the holder. Not virtual (a window's surface list destroys a
     // scrolling surface as a plain one).
     ~CUiSurface();
@@ -341,9 +345,10 @@ public:
     // (the height laid out, pixels); 0 without a surface or font.
     int DrawTextPixels(const UiFont& font, std::string_view text, const RECT& rect, UINT format, COLORREF colour,
                        bool shadow);
-    // Sets (`frozen`) or clears the shown flag: setting it puts kept contents back into a surface; clearing it
-    // with `restore` keeps the contents in memory and releases the surface.
-    void Freeze(bool frozen, bool restore);
+    // Show: shown, contents put aside put back into a holder. Hide: not shown; with `release` the contents are
+    // put aside in memory and the holder released.
+    void Show();
+    void Hide(bool release);
     // SwapContents: `restore` false puts the surface's pixels aside (kept_) and releases the holder; true makes the
     // holder again and puts them back. Rgb565Copy returns a new[] block of width * height 5:6:5 pixels
     // (the surface stretched). Greyscale: (2 r + 4 g + b) / 16 per channel.
@@ -352,8 +357,7 @@ public:
     std::uint16_t* Rgb565Copy(int width, int height);
     void Greyscale();
 
-    bool Shown() const { return (flags_ & kShown) != 0; }
-    static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze
+    bool Shown() const { return shown_; }
 
     // With a surface: a one-pixel frame of `colour` around `rect` (layout coordinates; empty: the whole
     // surface).
@@ -371,7 +375,8 @@ public:
     void MakeCanvas();
 
     CInterface3D* interface_;
-    std::uint32_t flags_;            // the constructors store the format here, then set kShown
+    SurfaceBlend blend_;
+    bool shown_ = true;              // set by Show, cleared by Hide
     Surface* holder_ = nullptr;      // the holder its canvas belongs to (null while swapped out)
     int width_ = 0;
     int height_ = 0;
@@ -472,9 +477,9 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     virtual void Build() {}
-    // `show` 0: every surface keeps its contents in memory and lets its DirectDraw surface go; otherwise the
-    // shown surfaces get theirs back.
-    virtual void Show(int show);
+    // Hidden: every surface puts its contents aside and lets its holder go (SwapContents); shown: the shown
+    // surfaces get theirs back.
+    virtual void Show(bool show);
     virtual void Draw(CSceneRenderer* pass) { DrawBase(pass); }
     virtual void DrawChild(CSceneRenderer*) { UpdateRegionTips(); }
     virtual void Redraw();
@@ -559,6 +564,9 @@ public:
 
 // The tooltip attached to a region; its surface is made while it is shown.
 struct CUiTooltip : CUiWindow {
+    // The showing: the region sets Hovered (mouse inside) or Disappearing (left); OnMouseMove does the rest.
+    enum class State { Idle, Hovered, Appearing, Disappearing, Shown };
+
     CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view text, int command);
     ~CUiTooltip() override;
     // Empty: nothing. The size is not measured again.
@@ -566,13 +574,13 @@ struct CUiTooltip : CUiWindow {
     // The first line in the title colour, followed by "  ( <key> )" with keyName_.
     void DrawLines();
     // Rebirth-patched (WideScreen behind its flag). One step of the showing, mouse in layout coordinates;
-    // the region has set state 1 (mouse inside) or 3 (left). State 1 waits for the delay (setting 20; 0:
-    // never shown), then makes the surface at the mouse (state 2); 2 draws and becomes 4; 3 draws while the
-    // timer is positive, then drops the surface (state 0).
+    // Hovered waits for the delay (setting 20; 0: never shown), then makes the surface at the mouse
+    // (Appearing); Appearing draws and becomes Shown; Disappearing draws while the timer is positive, then drops
+    // the surface (Idle).
     void OnMouseMove(int x, int y);
     void Draw(CSceneRenderer* pass) override;
     void Redraw() override;
-    bool Shown() const { return state_ != 1 && state_ != 0; }
+    bool Shown() const { return state_ != State::Idle && state_ != State::Hovered; }
 
     std::vector<std::string> lines_; // the text's lines (none for an empty text)
     int lineHeight_;                 // the last line's height: the rows' step
@@ -583,7 +591,7 @@ struct CUiTooltip : CUiWindow {
     int width_;                      // widest line + 12 (a text only)
     int height_;                     // the lines' heights + 8
     float timer_;                    // seconds in the current state
-    int state_;                      // 0 idle, 1 hovered, 2 appearing, 3 disappearing, 4 shown
+    State state_ = State::Idle;
 };
 
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel, hero
@@ -877,9 +885,9 @@ public:
     // When visible.
     void Draw(CSceneRenderer* renderer);
 
-    // CFigureMesh's fields as a sprite uses them: flags_ 0x100 draws in flatColour_ (ARGB), flatSpecular_
-    // the HUD buttons' highlight (0xFF404040 / 0xFF000000), textureOffsetU_ / V_ a frame of the sprite
-    // sheet, localRotation_ the HUD face models' turn.
+    // CFigureMesh's fields as a sprite uses them: FigureMeshFlag::Flat draws in flatColour_ (ARGB),
+    // flatSpecular_ the HUD buttons' highlight (0xFF404040 / 0xFF000000), textureOffsetU_ / V_ a frame of the
+    // sprite sheet, localRotation_ the HUD face models' turn.
     bool visible_;
     float tint_[3];                  // colour factors (the HUD: 1 selected, 0.5 not)
     float tintSpare_[3];             // nothing reads it
@@ -1094,7 +1102,7 @@ public:
     ~CUiContainer() override;
 
     // The window's own surfaces, then every enabled child's.
-    void Show(int show) override;
+    void Show(bool show) override;
     // Only while the interface draws: the window's own draw, then every enabled child's.
     void Draw(CSceneRenderer* pass) override;
     // Alpha reference 1 around the region tips and every enabled child's draw, while the interface draws.

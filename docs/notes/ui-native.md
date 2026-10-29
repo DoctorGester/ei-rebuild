@@ -25,7 +25,7 @@ The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndSc
 | Greyscale, (2r+4g+b)/16 | 005FE440 → `ps_grey` on the canvas (R28a) | escape-menu backdrop | GPU |
 | Save picture | 005FD440 `Rgb565Copy` → `ps_rgb565` into an R16_UINT target, (2x+1)·src/(2·size), read back (R28a) | escape-menu `screenCopy_` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read-back |
 | Pixel read | 005FD240 `PixelAt` | global-map click (`ui_global_map_input.cpp:128`) and FindPaths (`ui_global_map_paths.cpp:171`): zone = (pixel>>4)&0xF − 1 | CPU, reads pixels |
-| Swap / freeze | 005FD7A0 `SwapContents`, 005FD760 `Freeze` | camp, menus, backdrop mode 3/4; N0: also every window's `CUiWindow::Show` 006002C0 on each show and hide | CPU memcpy |
+| Swap / freeze | 005FD7A0 `SwapContents`, 005FD760 `CUiSurface::Show` / `Hide` | camp, menus, backdrop mode 3/4; N0: also every window's `CUiWindow::Show` 006002C0 on each show and hide | CPU memcpy |
 | Titles' RTF text | 0065F020 `CUiScrollingSurface::RenderText` (the original: RichEdit EM_FORMATRANGE into the DIB) | titles / credits | GPU glyph runs (P8a) |
 | Sprites, shapes, minimap, portraits | `CUiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh_build.cpp` | every panel | GPU (done) |
 | 3D previews and models | `CUiModel::Draw` 005FC2F0, hero preview 005EC300, container draws 00600EF0 / 00622420, `render::ClearDepth` | camp, hero, HUD | GPU (done) |

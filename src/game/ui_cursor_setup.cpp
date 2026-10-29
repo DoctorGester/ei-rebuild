@@ -56,7 +56,7 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, b
     thread_ = nullptr;
     shape_ = -1;
     imageShown_ = true;
-    enabled_ = 1;
+    enabled_ = true;
     mode_ = 0;
     stopped_ = gameapi::CreateEventA(nullptr, FALSE, FALSE, nullptr);
     mode_ = mode;
@@ -161,7 +161,7 @@ void CCursor::Shutdown() {
     thread_ = nullptr;
     shape_ = -1;
     mode_ = 0;
-    enabled_ = 0;
+    enabled_ = false;
 }
 
 bool CCursor::UpdatePosition() {

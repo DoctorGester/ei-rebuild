@@ -165,8 +165,8 @@ void SetFrameFraction(CEngineObject* layer, float time, float rate) {
 void CGlobalMap::CreateScreen() {
     // Arrived from a zone (not loaded, not back from the camp): saved to "saveb" once built.
     bool autosave = false;
-    if (g_saveStream->size_ != 0)
-        g_saveStream->Resize(0);
+    if (g_saveStream.size_ != 0)
+        g_saveStream.Resize(0);
     else if (g_clientWorld->LocalView()->player_->lastScreen_ != 5)
         autosave = true;
 
@@ -296,7 +296,7 @@ void CGlobalMap::CreateScreen() {
     }
 
     {
-        backdrop_ = new CUiSurface(interface_, 0, 0, 400, 300, 5, 1);
+        backdrop_ = new CUiSurface(interface_, 0, 0, 400, 300, SurfaceBlend::Keyed, true);
         backdrop_->SetRect(0, 0, 800, 600);
     }
     {
@@ -310,9 +310,9 @@ void CGlobalMap::CreateScreen() {
         picture->texture_ = builder.Texture(3);
     }
     {
-        CUiSurface* info = new CUiSurface(interface_, 400, 20, 780, 300, 5, 1);
+        CUiSurface* info = new CUiSurface(interface_, 400, 20, 780, 300, SurfaceBlend::Keyed, true);
         AddSurface(info);
-        info->Freeze(0, 0);
+        info->Hide(false);
     }
     {
         CUiMesh* shade = AddBlankSprite();
@@ -336,7 +336,7 @@ void CGlobalMap::CreateScreen() {
     g_clientWorld->texts_->GetString("save_day", &dayText);
     clock = str::Format("%s  %d,  %d:%02d", dayText, day + 1, hour, minutes);
     {
-        CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, 5, 1);
+        CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, SurfaceBlend::Keyed, true);
         AddSurface(text);
         RECT line1 = {0, 5, 150, 25};
         text->DrawTextIn(allodTitle_, &line1, 2, 0xA7D7E4, 0x25, 1);

@@ -114,7 +114,6 @@ constexpr int kExtendedFieldRight = 680;
 constexpr int kExtendedNameLength = 50;
 constexpr std::uint32_t kSelectionColour = 0xC8A06800;
 constexpr std::uint32_t kBackColour = 0xA0000000;
-constexpr int kSurfaceFormat = 5;
 constexpr int kTextCount = 22;
 constexpr int kTextConnecting = 8;
 constexpr int kNameLength = 10;
@@ -122,7 +121,7 @@ constexpr int kTextureKind = 3;
 constexpr int kScrollbarObject = 1;   // objects_: 0 "saveload", 1 "scrollbar"
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
     return surface;
 }
 
@@ -145,9 +144,9 @@ void CMpConnectScreen::Update() {
     net::ClientSession* client = net::g_gameClient;
     bool asking = client->joinState_ == net::ClientBase::kAsking;
     if (asking) {
-        surfaces_[kSurfaceConnecting]->Freeze(1, 0);
+        surfaces_[kSurfaceConnecting]->Show();
     } else {
-        surfaces_[kSurfaceConnecting]->Freeze(0, 0);
+        surfaces_[kSurfaceConnecting]->Hide(false);
         if (joining_) {
             joining_ = false;
             std::string key;
@@ -206,7 +205,7 @@ void CMpConnectScreen::MessageResult(int answer) {
         auto* sprite = SceneMesh(kSpritePassword);
         sprite->textureOffsetU_ = hostPassword_.size() == 0 ? kFrameOff : kFrameOn;
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
-        g_gameFlow->JoinServer(&entries_[selected_].address, boxText_);
+        g_gameFlow.JoinServer(&entries_[selected_].address, boxText_);
         net::g_gameClient->gameType_ = entries_[selected_].gameType;
     }
 }
@@ -222,7 +221,7 @@ void CMpConnectScreen::LeftDown(int buttons, int x, int y) {
     case kRegionBack:
         interface_->PlaySound(kCancelSound);
         SaveAddressBook();
-        g_gameFlow->DropSessions();
+        g_gameFlow.DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         break;
     case kRegionMaster:
@@ -302,7 +301,7 @@ void CMpConnectScreen::KeyDown(int key, int repeat, int flags) {
         return;
     case VK_ESCAPE:
         interface_->PlaySound(kCancelSound);
-        g_gameFlow->DropSessions();
+        g_gameFlow.DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         handled_ = true;
         return;
@@ -340,7 +339,7 @@ void CMpConnectScreen::Connect() {
         std::string name = nameEdit_->text_;
         if (name.size() == 0) name = kDefaultGameName;
         SaveAddressBook();
-        g_gameFlow->StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), static_cast<char>(unlisted_),
+        g_gameFlow.StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), static_cast<char>(unlisted_),
                                    static_cast<int>(net::g_gameClient->queries_.extra));
         return;
     }
@@ -354,7 +353,7 @@ void CMpConnectScreen::Connect() {
         boxText_[0] = '\0';
         OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxJoinPassword, kBoxFlagsEdit);
     }
-    g_gameFlow->JoinServer(&entries_[selected_].address, kEmptyText);
+    g_gameFlow.JoinServer(&entries_[selected_].address, kEmptyText);
     net::g_gameClient->gameType_ = entries_[selected_].gameType;
 }
 
@@ -520,7 +519,7 @@ void CMpConnectScreen::CreateScreen() {
         CUiMesh* arrow = AddBlankSprite();
         arrow->texture_ = objects_[kScrollbarObject];
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
-        arrow->visible_ = 0;
+        arrow->visible_ = false;
     }
     sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU_ = -kTabSelected;
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
@@ -598,7 +597,7 @@ void CMpConnectScreen::CreateScreen() {
         texts_.push_back(text);
     }
 
-    g_gameFlow->StartClient();
+    g_gameFlow.StartClient();
     net::ClientQueries queries;
     ChunkArchive archive;
     netlink::FileStream file;

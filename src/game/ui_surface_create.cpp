@@ -36,8 +36,8 @@ CUiSurface::~CUiSurface() {
     gameapi::SetRectEmpty(&rect_);
 }
 
-CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, bool scale)
-    : interface_(ui), flags_(static_cast<std::uint32_t>(format)), rect_{left, top, right, bottom} {
+CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale)
+    : interface_(ui), blend_(blend), rect_{left, top, right, bottom} {
     if (scale) interface_->ScaleRectToScreenEntry(&rect_);
     width_ = rect_.right - rect_.left;
     height_ = rect_.bottom - rect_.top;
@@ -45,8 +45,7 @@ CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int botto
     holder_ = new Surface(interface_->renderer_, width_, height_);
     ++holder_->refs_;
     MakeCanvas();
-    flags_ |= kShown;
 }
 
-CUiSurface::CUiSurface(CInterface3D* ui, const RECT* rect, int format)
-    : CUiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, format, true) {}
+CUiSurface::CUiSurface(CInterface3D* ui, const RECT* rect, SurfaceBlend blend)
+    : CUiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}

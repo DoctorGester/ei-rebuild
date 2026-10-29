@@ -398,7 +398,7 @@ void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
     if (IsMultiplayerClient()) {
         std::vector<std::string> parts;
         text::Split(name, &parts, '.');
-        if (parts.size() == 3) g_gameFlow->RequestBriefing(parts[2]);
+        if (parts.size() == 3) g_gameFlow.RequestBriefing(parts[2]);
         // EI_Plugin's Briefings (the array's destruction moved to the end): the client queues the
         // completion script as well. The plugin formats it with the caller's EBX as the name; the client's
         // only caller holds the name there.

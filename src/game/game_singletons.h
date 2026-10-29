@@ -35,7 +35,7 @@ class CCamera;
 struct PartyManager;
 struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 
-extern lib::StaticObject<GameFlow> g_gameFlow;   // world_game.cpp
+extern GameFlow g_gameFlow;   // world_game.cpp
 
 // The interface manager (windows, the quest log, status text, the console window).
 extern CInterface3D g_interface;   // ui_small_members.cpp
@@ -55,7 +55,7 @@ CScript* TheMissionScript();
 extern lib::StaticObject<CCamera> g_camera;   // camera_object.cpp
 
 // The party manager (the parties by key, the named records and the class templates).
-extern lib::StaticObject<PartyManager> g_partyManager;   // app_lifetime.cpp
+extern PartyManager g_partyManager;   // app_lifetime.cpp
 
 // The registry key of the options and the game's folders (game_folders.cpp): where the game was started,
 // the disc's (the base folder), the text resources' and the data folder (with its trailing backslash; DataFolderText()

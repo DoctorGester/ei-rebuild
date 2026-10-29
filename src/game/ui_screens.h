@@ -423,8 +423,8 @@ public:
     CUiMesh* bar_;
 };
 
-inline MpHeroRecord* SavedHero(int index) { return &g_savedParties->entries_[index]; }
-inline int SavedHeroCount() { return static_cast<int>(g_savedParties->entries_.size()); }
+inline MpHeroRecord* SavedHero(int index) { return &g_savedParties.entries_[index]; }
+inline int SavedHeroCount() { return static_cast<int>(g_savedParties.entries_.size()); }
 
 // --- In-game escape menu ----------------------------------------------------------------------
 // Opened by Esc during a game. Regions, built from the EscMenu layout: 0 save, 1 load, 2 resume, 3 quit

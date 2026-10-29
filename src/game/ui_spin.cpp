@@ -11,7 +11,6 @@
 
 namespace {
 
-constexpr int kSurfaceFormat = 5;
 constexpr int kTextFormat = 1;
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
@@ -22,7 +21,7 @@ const char* const kOkSound = "buttons\\messbox\\ok.wav";
 // The window's virtuals; the input side's click and a left double click that does nothing.
 CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) {
     rect_ = rect;
-    CUiSurface* surface = new CUiSurface(ui, &rect, kSurfaceFormat);
+    CUiSurface* surface = new CUiSurface(ui, &rect, SurfaceBlend::Keyed);
     AddSurface(surface);
     texts_.push_back(text ? text : game::kEmptyText);
     changed_ = false;

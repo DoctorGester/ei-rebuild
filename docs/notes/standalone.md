@@ -334,8 +334,8 @@ kinds given.
   A `char` buffer is `char g_x[256] = /*addr*/ {""};` (the tool packs char arrays as names), a function pointer
   `void* g_hook = /*addr*/ {nullptr};` cast at the call.
 - **Global objects (C18n)**: `--check` refuses a named range inside a singleton the code reaches by field offset
-  (config/global_objects.csv: address, size, name, class; g_serverWorld 007AFF60 +0x12E7C, g_clientWorld, g_gameFlow,
-  g_interface, g_cursor, g_camera, g_sceneRenderer, ...) and says which object and field: C18i's 007C2CC4 is
+  (config/global_objects.csv: address, size, name, class; g_serverWorld 007AFF60 +0x12E7C, g_clientWorld, g_camera,
+  g_sceneRenderer, ...) and says which object and field: C18i's 007C2CC4 is
   `g_serverWorld + 0x12D64 (CWorldServer::sessionKind_)`; the world also holds TheMissionScript 007C27D4 (commandsA_),
   007C29CC (commandsB_), TheSectorMap 007B01F4 (sectorMap_), the AI map 007B00D0 and the diplomacy 007C2BC4. Naming the
   whole object is allowed. `python tools/named_data.py --owner BEGIN [END]` asks the same of any address. The CSV's sizes
@@ -601,7 +601,7 @@ kinds given.
         without one is `constinit lib::StaticObject<Class> g_x = /*ADDR*/ {};` and the initialiser calls the class's
         own `Construct(...)`. named_data needs the class's size (STATIC_OBJECT_BYTES in tools/named_data.py maps the
         T of a StaticObject<T> to it; a template deeper than one level gets an alias, `using IntSet = ...`). Every
-        access goes through the name or a member (`g_partyManager->`); a raw address inside the
+        access goes through the name or a member (`g_camera->`); a raw address inside the
         range is refused. Named: ui_objectives' last quest string 007C8178, the
         protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp), the
@@ -613,7 +613,8 @@ kinds given.
         volumes, difficulty, paths, master server ...), the mouse position and drag motion (CCursor::position_ /
         motion_: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
         (007C7D84 was misnamed PeerList), close-all and sessions flags. The objects whose header only forward-declares
-        their class (g_gameFlow; g_interface and g_cursor, plain globals since C54g) are declared extern in game_singletons.h. **The harness** reads
+        their class (g_gameFlow, g_partyManager, g_interface and g_cursor: plain globals since C54g / C54g1) are declared
+        extern in game_singletons.h. **The harness** reads
         them through tests/verify/harness_objects.h (HarnessOptions / HarnessFlow / HarnessInterface / HarnessCursor: ours
         in the image, `ei::OriginalGameData` at the address in --no-hooks runs); the stats recorder reads the
         difficulty from game.exe's options the same way. Left: CMapDatabase 0079BF00, the renderer
@@ -707,7 +708,8 @@ kinds given.
       buffers (C50c); the command line's five strings (app_main.cpp), the registry root, start and text folders
       (game_folders.cpp; the disc and data folders stay static objects while the interface spells them with `*`), the
       chunk archive's class registry, clip's work words and the console's command maps; the interface manager and the
-      cursor (C54g: CInterface3D and CCursor construct themselves); the draws' work arrays (line
+      cursor (C54g: CInterface3D and CCursor construct themselves); the flow, the party manager, the saved parties and
+      the save stream (C54g1); the draws' work arrays (line
       lists, the device's mesh buffers, sprites, strip, terrain projection, the part draws' moved positions, the moved
       packets and offset vertices) and SetSun's sorted sectors, a local (C50d; the unread set 007AB8D8, which only the
       original read, went). Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
@@ -718,11 +720,10 @@ kinds given.
       StampWaterPatch's patch, SyncPlayer's diff arrays, UpdateUnits' id lists, the fog's dead cells, the draws' work
       arrays, UseResources' string, CollectChanges' {object, priority} vector, a local since C50c). Locals since C50c:
       the trader stock's five scratch vectors (item_stock.cpp; their initialisers 00698E50-00698F90 unused). The spiral caches of PlanLongPath, FindFreeCellNear and WakeUnitsAround are
-      function-local statics of ours (constant-initialised, no guard); so is UseResources' string. The objects the
-      interface's files spell with `->` (g_gameFlow, g_savedParties, g_partyManager, g_saveStream) stay
-      `lib::StaticObject` until those files are converted, but their classes construct and destroy themselves; so do
-      the databases the interface reads (spells, items, quests, acks, units, skills: no Construct / Destruct, the
-      resource switch assigns each a new empty one).
+      function-local statics of ours (constant-initialised, no guard); so is UseResources' string. The plain globals are
+      constructed before the static initialisers run and destroyed after their exit functions (the flow's and the
+      saved parties' CParty objects too). The databases the interface reads (spells, items, quests, acks, units, skills) construct and destroy themselves (no
+      Construct / Destruct; the resource switch assigns each a new empty one).
     - **gen_static_init**: REVIEWED_SPLIT splits one initialiser's stores where they are two objects (005229C0: the hit
       log pointer 007AF284 is read, the ln folds above it are not); RETIRED_STATICS lists functions whose port builds
       none of the original's function-local statics, so their runtime atexit sites never run (006BFF40, the terrain

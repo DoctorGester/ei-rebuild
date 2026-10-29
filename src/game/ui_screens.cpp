@@ -533,7 +533,7 @@ void CEscMenu::MessageResult(int result) {
     } else if (static_cast<std::uint32_t>(result) >= 0x100001) {
         interface_->SetPendingValue(0);
     } else if (result == 0x10001) {
-        g_gameFlow->CloseSessions();
+        g_gameFlow.CloseSessions();
     }
 }
 
@@ -541,7 +541,7 @@ void CEscMenu::MessageResult(int result) {
 
 void CCreditsScreen::Close() {
     if (fromGame_) interface_->SetPendingValue(0xCCCCCCCC);
-    else g_gameFlow->CloseSessions();
+    else g_gameFlow.CloseSessions();
 }
 
 void CCreditsScreen::LeftDown(int, int, int) { Close(); }

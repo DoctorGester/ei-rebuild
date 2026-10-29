@@ -298,7 +298,7 @@ int CPlayerClient::OnZoneChange() {
     ReadText(&zone);
     int entrance;
     in_.ReadValue(entrance);
-    g_gameFlow->RequestZoneChange(zone, entrance);
+    g_gameFlow.RequestZoneChange(zone, entrance);
     return 1;
 }
 
@@ -419,7 +419,7 @@ int CPlayerClient::OnParty() {
         }
         g_clientWorld->ApplyObjectVariables();
         console::EndLine(console::g_netLogOut << TextPartyReceived());
-        g_gameFlow->ReturnLocalParty();
+        g_gameFlow.ReturnLocalParty();
     }
     return 1;
 }

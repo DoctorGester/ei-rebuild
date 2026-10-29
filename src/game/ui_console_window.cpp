@@ -95,7 +95,7 @@ void ConsoleWindow::Show(bool shown) {
     shown_ = shown;
     if (shown) {
         if (!surface_) {
-            surface_ = new CUiSurface(screen_, &rect_, 4);
+            surface_ = new CUiSurface(screen_, &rect_, SurfaceBlend::Opaque);
         }
         DrawLines();
         DrawInput();

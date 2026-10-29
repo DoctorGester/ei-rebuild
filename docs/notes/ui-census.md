@@ -71,7 +71,7 @@ Counts are vanilla / Rebirth.
 **Fonts made:** Times New Roman, six heights per resolution (h-49 to h-71, plus h-200 for the credits), all from 005F4990, made again at each Create; Courier New h-24 for the console.
 
 **Readers.** Besides the per-frame blit 005FDA80 (a Lock), these read surface pixels:
-- every window's `CUiWindow::Show` 006002C0 swaps every surface out and back (`SwapContents` 005FD7A0) when the window is hidden or shown; `CUiSurface::Freeze` 005FD760 does the same for the hero screen;
+- every window's `CUiWindow::Show` 006002C0 swaps every surface out and back (`SwapContents` 005FD7A0) when the window is hidden or shown; `CUiSurface::Show` / `Hide` (005FD760) do the same for the hero screen;
 - the backdrop: `DrawOverlays` 005F5320 captures the screen into it (CaptureScreen), turns it grey (Greyscale) and copies it at 16 bits (Rgb565Copy) when a window that shows the screen behind it opens (the escape menu among them);
 - the save picture: `QuickSave` 006570E0 captures the screen and copies it at 16 bits, at every new game's autosave;
 - the global map: `CGlobalMap::RefreshSelection` 00630670 captures the pick picture, and the mouse moves read it with PixelAt (ours under vanilla, the game's 00630010 under Rebirth).
@@ -81,7 +81,7 @@ The verify wrappers' pixel helpers read about 11,000 times, most on the item inf
 ## Corrections to the ui-native.md inventory
 
 1. **SetPixel** is `CHudMap::Setup` 00641F20, about 33 pixels on a 24x18 surface (18x18 under Rebirth), drawn again at each HUD setup (the inventory had "a 5x5 surface, drawn once").
-2. **Swap.** `SwapContents` runs for every window on every show and hide (006002C0), plus the hero screen's Freeze. P1 should swap canvas handles, not read back on each show and hide.
+2. **Swap.** `SwapContents` runs for every window on every show and hide (006002C0), plus the hero screen's CUiSurface::Show / Hide. P1 should swap canvas handles, not read back on each show and hide.
 3. **Every-frame surfaces** are the item info panel, the item strip (both surfaces), the unit panel, the camp page #0, the trade grid and the scrolling titles. Tooltips are not redrawn every frame (ui-native section 3 says they are). Except for the titles, 91-99% of these redraws leave the pixels unchanged: the CPU path's memcmp hides this today.
 4. **Main-menu version line.** 006335E0 draws into the menu surface before `AddSurface` gives it an owner. A native table keyed at `AddSurface` must apply to a surface's earlier drawing too, or the menu falls back to the CPU.
 5. **The console measures text on its own surface DC** (PromptWidth), not through 005F8340.

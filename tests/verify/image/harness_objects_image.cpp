@@ -64,8 +64,8 @@ void* MainWindow() { return app::g_mainWindow; }
 std::uint8_t& InterfaceHasScreen() { return app::g_interfaceHasScreen; }
 std::uint8_t& RecordingFrames() { return app::g_recordingFrames; }
 bool AppActive() { return app::g_active != 0; }
-int& FlowState() { return g_gameFlow->state_; }
-void SetLoadTarget(const char* slot) { g_gameFlow->requestTarget_ = slot; }
+int& FlowState() { return g_gameFlow.state_; }
+void SetLoadTarget(const char* slot) { g_gameFlow.requestTarget_ = slot; }
 void ClearShowTutorial() { options::g_options->showTutorial_ = 0; }
 void SetMasterHost(const char* host) { options::g_options->masterServerName_ = host; }
 void SetWaterWaves(bool on) { options::g_options->enableWaterWaves_ = on; }
@@ -204,7 +204,7 @@ bool OptionsSliding(void* window) { return static_cast<COptionsWindow*>(window)-
 bool HasChatOverlay() { return g_interface.root_ != nullptr; }
 void ChatKeyEnter() { g_interface.ChatKeyEnter(); }
 void CloseChat() { g_interface.root_->SetOpen(false); }
-bool HasClassTemplate(int id) { return g_partyManager->templates.Find(id) != nullptr; }
+bool HasClassTemplate(int id) { return g_partyManager.templates.Find(id) != nullptr; }
 const void* FindMap(const char* name) { return g_mapDatabase->FindMap(name); }
 int MapKind(const void* record) { return static_cast<const MapRecord*>(record)->kind; }
 void LeaveToZone(void* connection, const char* name, int exit) {

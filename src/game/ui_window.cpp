@@ -81,9 +81,7 @@ bool CUiRegion::HitTest(int x, int y) const {
 }
 
 bool CUiRegion::HasActiveTip() const {
-    if (!tip_) return false;
-    int state = tip_->state_;
-    return state != 0 && state != 1;
+    return tip_ && tip_->Shown();
 }
 
 // Rebirth's WideScreen replaces SetRect and AddPoint (addon's replacements in front of the original's body): x
@@ -125,11 +123,10 @@ void CUiRegion::AddPoint(int x, int y) {
 void CUiRegion::OnMouseMove(int x, int y) {
     if (!tip_) return;
     const bool inside = HitTest(x, y);
-    int state = tip_->state_;
     if (inside) {
-        if (state == 0 || state == 1) tip_->state_ = 1;
-    } else if (state != 0 && state != 1) {
-        tip_->state_ = 3;
+        if (!tip_->Shown()) tip_->state_ = CUiTooltip::State::Hovered;
+    } else if (tip_->Shown()) {
+        tip_->state_ = CUiTooltip::State::Disappearing;
     }
     tip_->OnMouseMove(x, y);
 }
@@ -281,21 +278,21 @@ CTexture* CUiWindow::CreateTexture(int width, int height, int kind) {
     return texture;
 }
 
-void CUiWindow::Show(int show) {
+void CUiWindow::Show(bool show) {
     for (int i = 0; i < std::ssize(surfaces_); ++i) {
         CUiSurface* surface = surfaces_[i];
-        if (show == 0 || surface->Shown()) surface->SwapContents(show != 0);
+        if (!show || surface->Shown()) surface->SwapContents(show);
     }
 }
 
-void CUiSurface::Freeze(bool frozen, bool restore) {
-    if (frozen) {
-        flags_ |= kShown;
-        if (kept_) SwapContents(true);
-        return;
-    }
-    flags_ &= ~kShown;
-    if (restore) SwapContents(false);
+void CUiSurface::Show() {
+    shown_ = true;
+    if (kept_) SwapContents(true);
+}
+
+void CUiSurface::Hide(bool release) {
+    shown_ = false;
+    if (release) SwapContents(false);
 }
 
 CUiRegion* CUiWindow::AddRegion() {
@@ -377,7 +374,7 @@ CUiMesh* CUiWindow::AddSceneObject(CFigureMesh* object) {
 
 // --- The constructor ---------------------------------------------------------------------------------
 
-// The original's closing Show(1) reaches CUiWindow's own (the surfaces' list is empty): left out.
+// The original's closing Show(true) reaches CUiWindow's own (the surfaces' list is empty): left out.
 CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
     localRotation_ = kIdentityRotation;
     worldRotation_.SetIdentity();

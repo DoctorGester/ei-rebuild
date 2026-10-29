@@ -117,12 +117,12 @@ void CSaveLoadWindow::LeftDouble(int buttons, int x, int y) {
 
 void CSaveLoadWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
-        surfaces_[0]->Freeze(1, 0);
+        surfaces_[0]->Show();
         models_[0]->SetScreenPosition(400.0f, isSave_ ? 620.0f : 550.0f, 4.8f);
         CUiContainer::Draw(pass);
         return;
     }
-    surfaces_[0]->Freeze(0, 0);
+    surfaces_[0]->Hide(false);
     double e = Ease(slide_);
     CUiModel* model = models_[0];
     if (!model) return;
@@ -230,12 +230,12 @@ void COptionsWindow::LeftDouble(int buttons, int x, int y) {
 
 void COptionsWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
-        surfaces_[0]->Freeze(1, 0);
+        surfaces_[0]->Show();
         models_[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
         CUiContainer::Draw(pass);
         return;
     }
-    surfaces_[0]->Freeze(0, 0);
+    surfaces_[0]->Hide(false);
     double e = Ease(slide_);
     CUiModel* model = models_[0];
     if (!model) return;

@@ -172,7 +172,7 @@ void CBriefingScreen::MouseMove(int buttons, int x, int y) {
         POINT at{x, y};
         interface_->ScalePointFromScreenEntry(&at);
         label->MoveTo(at.x - kLabelOffsetX, at.y - kLabelOffsetY);
-        label->Freeze(1, 0);
+        label->Show();
         return;
     }
     Vector3 picked;

@@ -38,7 +38,6 @@
 
 namespace {
 
-constexpr int kSurfaceFormat = 5;
 constexpr std::uint32_t kRecordBias = 100000000;   // added to the records' ids while the client world takes them
 constexpr int kIdleAnimation = 0x21;    // the skill animation the heroes play in the camp
 constexpr int kSchools = 8;
@@ -57,7 +56,7 @@ constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f; }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    return new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
 }
 
 // An item list of the constructors: made through its factory (not checked).
@@ -88,7 +87,7 @@ void CCampPages::BuildPages() {
     constructor_ = nullptr;
     int constructor = static_cast<int>(libcrt::Ftol(LocalPlayerVariable("constr.current")));
     if (constructor > 0) {
-        constructor_ = g_partyManager->templates.Find(constructor);
+        constructor_ = g_partyManager.templates.Find(constructor);
         if (!constructor_) {
             GameRejoin();
             return;

@@ -1,7 +1,6 @@
-// A window surface's draw (CUiSurface::Blit): when the surface exists and is shown (flags_ bit 4), the part of its screen
-// rectangle inside the screen is blitted onto the render target, the whole surface stretched when bit 2 is set, with the
-// source colour key background_ when bit 1 is set: the surface's canvas is drawn (render::ui::DrawCanvas). See
-// docs/notes/ui.md, "Surface blit".
+// A window surface's draw (CUiSurface::Blit): when the surface exists and is shown, the part of its screen rectangle
+// inside the screen is blitted onto the render target, with the source colour key background_ when its blend is Keyed:
+// the surface's canvas is drawn (render::ui::DrawCanvas). See docs/notes/ui.md, "Surface blit".
 #include "texture.h"
 #include "ui.h"
 
@@ -11,21 +10,12 @@
 #include <cstdint>
 
 void CUiSurface::Blit() {
-    CUiSurface* surface = this;
-    Surface* holder = surface->holder_;
-    std::uint32_t flags = surface->flags_;
-    if (!holder || !(flags & 4)) return;
-    const CInterface3D* screen = surface->interface_;
-    const RECT& rect = surface->rect_;
-    RECT clipped{0, 0, screen->width_, screen->height_};
-    gameapi::IntersectRect(&clipped, &clipped, &rect);
+    if (!holder_ || !shown_) return;
+    RECT clipped{0, 0, interface_->width_, interface_->height_};
+    gameapi::IntersectRect(&clipped, &clipped, &rect_);
     if (gameapi::IsRectEmpty(&clipped)) return;
-    RECT source{clipped.left - rect.left, clipped.top - rect.top, 0, 0};
-    source.right = source.left + (clipped.right - clipped.left);
-    source.bottom = source.top + (clipped.bottom - clipped.top);
-    bool stretched = (flags & 2) != 0;
-    bool keyed = (flags & 1) != 0;
-    render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};
-    render::Rect part{source.left, source.top, source.right, source.bottom};
-    render::ui::DrawCanvas(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
+    const render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};
+    const int left = clipped.left - rect_.left, top = clipped.top - rect_.top;
+    const render::Rect part{left, top, left + (clipped.right - clipped.left), top + (clipped.bottom - clipped.top)};
+    render::ui::DrawCanvas(holder_, destination, &part, blend_ == SurfaceBlend::Keyed, background_);
 }

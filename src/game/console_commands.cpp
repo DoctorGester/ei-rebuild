@@ -59,7 +59,7 @@ void RequestWithParty(std::vector<std::string>* args, const char* extra) {
     CParty party;
     party.AddMember("F", "Human Hero", extra);
     std::string map = (*args)[0];
-    (g_gameFlow.Get().*Request)(map.c_str(), &party);
+    (g_gameFlow.*Request)(map.c_str(), &party);
 }
 
 void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& speech) {
@@ -313,7 +313,7 @@ void HostServer(std::vector<std::string>* args) {
 void MemUsage(std::vector<std::string>*) {}
 
 // disconnect, any arguments: the client world's local player disconnects.
-void Disconnect(std::vector<std::string>*) { g_gameFlow->DisconnectClient(); }
+void Disconnect(std::vector<std::string>*) { g_gameFlow.DisconnectClient(); }
 
 void LootAll(std::vector<std::string>*) {
     PrintLine("Looting...");

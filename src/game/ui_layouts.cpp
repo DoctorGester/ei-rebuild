@@ -38,10 +38,6 @@
 
 namespace {
 
-void SetSpriteTexture(CUiMesh* sprite, CTexture* texture) { sprite->texture_ = texture; }
-void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->flatColour_ = argb; }
-void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
-
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
     region->SetRect(left, top, right, bottom);
@@ -49,7 +45,7 @@ CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) 
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-        return new CUiSurface(ui, left, top, right, bottom, 5, 1);
+        return new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
 }
 
 CUiScrollbar* NewScrollbar(CInterface3D* ui, int left, int top, int right, int bottom) {
@@ -63,9 +59,9 @@ void Frame(CUiWindow* window, float depth, float left, float top, float right, f
 void Shade(CUiWindow* window, float depth, float left, float top, float right, float bottom) {
     CUiMesh* sprite = window->AddBlankSprite();
     sprite->SetRectangle(depth, 100.0f, left, top, right, bottom, 0, 0, 0x100, 0x100);
-    SetSpriteTexture(sprite, nullptr);
-    SetSpritePlain(sprite);
-    SetSpriteColour(sprite, 0xA0000000);
+    sprite->texture_ = nullptr;
+    sprite->flags_ |= FigureMeshFlag::Flat;
+    sprite->flatColour_ = 0xA0000000;
 }
 
 // The window's 3D model: the stone menu (`escMenu00`) turned about x.
@@ -118,12 +114,12 @@ void CSaveLoadWindow::CreateScreen() {
     // The picture of the selected save (texture of the window's second texture object).
     CUiMesh* picture = AddBlankSprite();
     picture->SetRectangle(3.0f, 100.0f, 410.0f, 100.0f, 700.0f, 320.0f, 0, 0x100, 0x100, 0x40);
-    SetSpriteTexture(picture, nullptr);
+    picture->texture_ = nullptr;
     CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, 0x100, 0x100);
-    SetSpriteTexture(highlight, nullptr);
-    SetSpriteColour(highlight, 0xC8A06800);
-    SetSpritePlain(highlight);
+    highlight->texture_ = nullptr;
+    highlight->flatColour_ = 0xC8A06800;
+    highlight->flags_ |= FigureMeshFlag::Flat;
     Frame(this, 2.0f, 95.0f, 95.0f, 395.0f, 505.0f);     // the list
     Frame(this, 2.0f, 405.0f, 95.0f, 705.0f, 325.0f);    // the picture
     Frame(this, 2.0f, 405.0f, 335.0f, 705.0f, 505.0f);   // the description
@@ -181,9 +177,9 @@ void COptionsWindow::CreateScreen() {
     AddRect(this, 513, 526, 587, 574)->SetTip(0x111D5);
     CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, 0x100, 0x100);
-    SetSpriteTexture(highlight, nullptr);
-    SetSpriteColour(highlight, 0xC8A06800);
-    SetSpritePlain(highlight);
+    highlight->texture_ = nullptr;
+    highlight->flatColour_ = 0xC8A06800;
+    highlight->flags_ |= FigureMeshFlag::Flat;
 
     // Regions 2-12: the option groups, each with its button sprite, tooltip and title.
     std::string text;
@@ -520,12 +516,12 @@ void CCreditsScreen::CreateScreen() {
         RECT rect = {10, 0x96, 0x316, 0x1C2};
         textSurface_ = new CUiScrollingSurface(ui, &rect);
         AddSurface(textSurface_);
-        textSurface_->Freeze(0, 0);
+        textSurface_->Hide(false);
     }
     {
         RECT rect = {10, 0x6E, 0x316, 0x8C};
-        headerSurface_ = AddSurface(new CUiSurface(ui, &rect, 5));
-        headerSurface_->Freeze(0, 0);
+        headerSurface_ = AddSurface(new CUiSurface(ui, &rect, SurfaceBlend::Keyed));
+        headerSurface_->Hide(false);
     }
     if (fromGame_) GameSetServerPaused(0);
     savedDisplay_ = static_cast<int>(g_sceneRenderer->fogColour_);

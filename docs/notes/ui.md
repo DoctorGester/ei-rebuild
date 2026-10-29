@@ -883,11 +883,11 @@ file's bytes are the original's.
 ## Surface blit
 
 A window surface's draw (CUiSurface::Blit; called by CUiWindow's surface pass and the interface's draw for
-the backdrop and the frame rate surface): when the surface exists and is shown (flags_ bit 4), the part of
+the backdrop and the frame rate surface): when the surface exists and is shown (shown_), the part of
 its screen rectangle (rect_) inside the screen (the interface's width_ and height_) is blitted from the
-surface (holder_) onto the screen: with the matching
-source rectangle, or the whole surface stretched when bit 2 is set; with the source colour key background_
-when bit 1 is set. The new renderer (src/render)
+surface (holder_) onto the screen with the matching source rectangle, with the source colour key background_
+when its blend is SurfaceBlend::Keyed. The original's format word had a stretch bit (2) too, which no surface
+set (every surface is format 4, opaque, or 5, keyed; bit 4 is the shown flag). The new renderer (src/render)
 draws the surface's canvas there (render::ui::DrawCanvas); the holder has no DirectDraw surface and no memory
 (the original's Blt is gone with the DirectDraw fallback). See docs/notes/renderer.md section 6 and
 docs/notes/ui-native.md, "P8 done".
@@ -895,10 +895,10 @@ docs/notes/ui-native.md, "P8 done".
 ## Surface construction
 
 The window surface's constructors and destructor (CUiSurface): one for a window showing an .mmp
-picture, the destructor, one taking (interface, layout left, top, right, bottom, format, scale flag) and one
-taking (interface, layout rectangle, format; always scaled). Both scale the rectangle to the screen
+picture, the destructor, one taking (interface, layout left, top, right, bottom, blend, scale flag) and one
+taking (interface, layout rectangle, blend; always scaled). Both scale the rectangle to the screen
 (Rebirth's wide-screen patch sits there), make a surface holder of its size, add height * pitch to the
-surface-bytes total, clear the surface to 0 with a colour-fill Blt and set a flag. The holder has no
+surface-bytes total, clear the surface to 0 with a colour-fill Blt and set the shown flag. The holder has no
 DirectDraw surface and no memory (surface.cpp): the surface's pixels are its canvas on the GPU, made black with
 it (CUiSurface::MakeCanvas, P8), so the colour fill is left out. Making a window asks DirectDraw for nothing. (The picture constructor
 has no caller in game.exe or the mods: config/dead_code.csv.) The original's unwinding when the holder's

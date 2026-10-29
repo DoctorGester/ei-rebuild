@@ -345,7 +345,7 @@ void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     party->zone_ = zone;
     int mode = g_serverWorld->gameResult_;
     if (mode == 1) {
-        g_partyManager->BeginRedeploy(party);
+        g_partyManager.BeginRedeploy(party);
     } else if (mode == 2) {
         if (std::ssize(party->members_) == 1) party->members_[0].unitId = kLoneHeroRecordId;
         SendParty();
@@ -434,7 +434,7 @@ int CPlayerServer::OnNewParty() {
     while (g_serverWorld->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members_[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
-    g_partyManager->StoreParty(key, party);
+    g_partyManager.StoreParty(key, party);
     return 1;
 }
 
@@ -519,12 +519,12 @@ int CPlayerServer::OnLogin() {
     CParty* party = player->Party();
     switch (g_serverWorld->gameResult_) {
     case 1:
-        g_partyManager->EndRedeploy(party);
+        g_partyManager.EndRedeploy(party);
         party->OpenEdgeExits();
         break;
     case 2:
     case 3:
-        if (!g_partyManager->LoadParty(&player->partyId_, party))
+        if (!g_partyManager.LoadParty(&player->partyId_, party))
             return 0;
         break;
     case 4:

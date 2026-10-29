@@ -106,7 +106,7 @@ void CMpConnectScreen::DrawListVanilla() {
     std::string text;
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
-    sprite(kSpriteSelection)->visible_ = 0;
+    sprite(kSpriteSelection)->visible_ = false;
     // The two buttons' texts.
     RECT button{390, 345, 520, 365};
     DrawLabel(surface, label(10), &button, kFormatCentre);
@@ -129,7 +129,7 @@ void CMpConnectScreen::DrawListVanilla() {
     else
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
     if (sortKey_ != 0) {
-        arrow->visible_ = 1;
+        arrow->visible_ = true;
         arrow->Place(SortArrowX((sortKey_ - 1) / 2), 116.0f, 4.0f);
     }
     // The line under the titles.
@@ -145,7 +145,7 @@ void CMpConnectScreen::DrawListVanilla() {
     for (int y = kRowsTop; y < kRowsBottom; y += kRowHeight, ++index) {
         if (index >= static_cast<unsigned>(entries_.size())) break;
         if (index == static_cast<unsigned>(selected_)) {
-            sprite(kSpriteSelection)->visible_ = 1;
+            sprite(kSpriteSelection)->visible_ = true;
             sprite(kSpriteSelection)->Place(layout.selectionX, static_cast<float>(y), 3.0f);
         }
         const MpAddressEntry& entry = entries_[index];
@@ -182,14 +182,14 @@ void CMpConnectScreen::DrawListVanilla() {
         Down(&row);
     }
 
-    for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible_ = 0;
+    for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible_ = false;
     if (selected_ >= 0 && static_cast<unsigned>(selected_) < static_cast<unsigned>(entries_.size())) {
         // The selected entry's details.
         g_connectTextColour = kColourPlain;
         const MpAddressEntry& entry = entries_[selected_];
         row = RECT{340, 20, 590, 44};
         if (selected_ == 0) {
-            for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible_ = 1;
+            for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible_ = true;
             DrawLabel(surface, label(0), &row, 0);
             Down(&row);
             Down(&row);

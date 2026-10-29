@@ -43,8 +43,6 @@ bool Numbered(const std::string& name) {
     return true;
 }
 
-void DestroySavedParties() { g_savedParties.Destroy(); }
-
 } // namespace
 
 void MpHeroRecord::WriteFile(const std::string& folder) {
@@ -85,11 +83,5 @@ void SavedParties::ReserveOne() {
     if (entries_.size() == entries_.capacity()) entries_.reserve(entries_.empty() ? 1 : 2 * entries_.size());
 }
 
-// The saved parties, empty at the start: built by a static initialiser in the list's order and destroyed by
-// the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<SavedParties> g_savedParties = /*007C82A0*/ {};
-
-void ConstructSavedParties() {
-    g_savedParties.Construct();
-    std::atexit(DestroySavedParties);
-}
+// The saved parties.
+SavedParties g_savedParties;

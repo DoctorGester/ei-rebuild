@@ -32,13 +32,12 @@ net::PartyMessage* LiveOffer() {
     return IsLive(offer) ? offer : nullptr;
 }
 
-constexpr int kSurfaceFormat = 5;
 constexpr int kStripActionTake = 1;
 constexpr int kGridMode = 5;
 
 // A text surface of the left column (x 0..200).
 CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
-    return new CUiSurface(ui, 0, top, 200, bottom, kSurfaceFormat, 1);
+    return new CUiSurface(ui, 0, top, 200, bottom, SurfaceBlend::Keyed, true);
 }
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
