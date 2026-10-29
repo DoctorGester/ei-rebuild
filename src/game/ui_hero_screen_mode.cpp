@@ -32,8 +32,6 @@ constexpr float kQuarterDepth = 7.0f;
 constexpr float kFrameDepth = 3.0f;
 constexpr float kScale = 100.0f;
 
-void Enable(CUiWindow* window, int enabled) { window->SetEnabled(enabled, 1); }
-
 CUiMesh* Sprite(CMpHeroScreen* screen, int index) {
     return screen->SceneMesh(index);
 }
@@ -67,25 +65,25 @@ void AddRows(CMpHeroScreen* screen, int left, int right, int top, int height) {
 void CMpHeroScreen::SetModeVanilla(int mode) {
     CUiModel* menu = CUiWindow::models_[0];   // the window's models (CItemScreen::models_ is the item cache)
     menu->ShowAllParts(0);
-    Enable(weaponPanel_, 0);
-    Enable(spellPanel_, 0);
-    Enable(tradePanel_, 0);
-    Enable(statsPanel_, 0);
-    Enable(figureStrips_[0], 0);
-    Enable(figureStrips_[1], 0);
-    Enable(heroScroll_, 0);
-    Enable(voiceScroll_, 0);
-    Enable(iconWindow_, 0);
+    weaponPanel_->SetEnabled(false);
+    spellPanel_->SetEnabled(false);
+    tradePanel_->SetEnabled(false);
+    statsPanel_->SetEnabled(false);
+    figureStrips_[0]->SetEnabled(false);
+    figureStrips_[1]->SetEnabled(false);
+    heroScroll_->SetEnabled(false);
+    voiceScroll_->SetEnabled(false);
+    iconWindow_->SetEnabled(false);
     for (int i = 0; i < std::ssize(sceneObjects_); ++i) Sprite(this, i)->visible_ = 0;
     for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 1);
     while (std::ssize(regions_) > kFixedRegions) RemoveRegionAt(kFixedRegions);
-    for (int i = 0; i < std::ssize(regions_); ++i) regions_[i]->SetTip(0, 1, 0);
+    for (int i = 0; i < std::ssize(regions_); ++i) regions_[i]->SetTip(0);
 
     CUiRegion** regions = regions_.data();
     if (mode == kModeHeroList) {
         menu->ShowPart("but03", 1);
         menu->ShowPart("button03_multiplayer", 1);
-        Enable(heroScroll_, 1);
+        heroScroll_->SetEnabled(true);
         for (int i = 0; i < std::ssize(sceneObjects_); ++i) Sprite(this, i)->visible_ = 1;
         ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 0);
         SetQuarter(this, 0, 410.0f, 100.0f, 555.0f, 300.0f, 0x53, 0xE4);
@@ -96,36 +94,36 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         regions[1]->SetRect(163, 526, 237, 574);
         regions[2]->SetRect(455, 470, 485, 500);
         regions[3]->SetRect(625, 470, 655, 500);
-        regions[0]->SetTip(0x9CA5, 1, 0);
-        regions[1]->SetTip(0x9CA4, 1, 0);
-        for (int i = 5; i < kFixedRegions; ++i) regions_[i]->SetTip(i + 0x9D03, 1, 0);
+        regions[0]->SetTip(0x9CA5);
+        regions[1]->SetTip(0x9CA4);
+        for (int i = 5; i < kFixedRegions; ++i) regions_[i]->SetTip(i + 0x9D03);
         surfaces_[0]->Freeze(1, 1);
         surfaces_[1]->Freeze(1, 1);
-        Enable(nameEdit_, 0);
+        nameEdit_->SetEnabled(false);
         nameEdit_->SetFocused(false);
         SetSelectionFrame(this, 110.0f, 250.0f, 370.0f, 274.0f);
         AddRows(this, 110, 370, 250, 24);
         CallShowHero(heroIndex_);
     } else if (mode == kModeNewHero) {
-        Enable(voiceScroll_, 1);
+        voiceScroll_->SetEnabled(true);
         ShowSprites(this, kFirstQuarter, kSpritesEnd, 1);
         SetQuarter(this, 0, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0xE4);
         SetQuarter(this, 1, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0xE4);
         SetQuarter(this, 2, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0xE4);
         SetQuarter(this, 3, 400.0f, 300.0f, 600.0f, 500.0f, 0x1C, 0xE4);
-        Enable(iconWindow_, 1);
+        iconWindow_->SetEnabled(true);
         iconWindow_->PlaceBars(300);
-        Enable(statsPanel_, 1);
-        Enable(figureStrips_[0], 1);
-        Enable(figureStrips_[1], 1);
+        statsPanel_->SetEnabled(true);
+        figureStrips_[0]->SetEnabled(true);
+        figureStrips_[1]->SetEnabled(true);
         regions[0]->SetRect(620, 430, 660, 470);
         regions[1]->SetRect(740, 430, 780, 470);
         regions[2]->SetRect(300, 470, 330, 500);
         regions[3]->SetRect(470, 470, 500, 500);
-        regions[0]->SetTip(0x9D6D, 1, 0);
-        regions[1]->SetTip(0x9D6C, 1, 0);
-        regions[4]->SetTip(0x9D6E, 1, 0);
-        Enable(nameEdit_, 1);
+        regions[0]->SetTip(0x9D6D);
+        regions[1]->SetTip(0x9D6C);
+        regions[4]->SetTip(0x9D6E);
+        nameEdit_->SetEnabled(true);
         nameEdit_->SetFocused(true);
         surfaces_[2]->Freeze(1, 1);
         SetSelectionFrame(this, 15.0f, 310.0f, 180.0f, 325.0f);
@@ -133,19 +131,19 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         DrawVoices();
     } else if (mode == kModeStatistics) {
         ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 1);
-        Enable(iconWindow_, 1);
+        iconWindow_->SetEnabled(true);
         iconWindow_->PlaceBars(400);
-        Enable(weaponPanel_, 1);
-        Enable(spellPanel_, 1);
-        Enable(tradePanel_, 1);
-        Enable(statsPanel_, 1);
+        weaponPanel_->SetEnabled(true);
+        spellPanel_->SetEnabled(true);
+        tradePanel_->SetEnabled(true);
+        statsPanel_->SetEnabled(true);
         regions[0]->SetRect(620, 430, 660, 470);
         regions[1]->SetRect(740, 430, 780, 470);
-        regions[0]->SetTip(0x9E35, 1, 0);
-        regions[1]->SetTip(0x9E34, 1, 0);
-        regions[4]->SetTip(0x9E36, 1, 0);
+        regions[0]->SetTip(0x9E35);
+        regions[1]->SetTip(0x9E34);
+        regions[4]->SetTip(0x9E36);
         surfaces_[2]->Freeze(1, 1);
-        Enable(nameEdit_, 0);
+        nameEdit_->SetEnabled(false);
         nameEdit_->SetFocused(false);
         tradePanel_->SelectHero(0);
     }

@@ -87,17 +87,17 @@ void CMpConnectScreen::DrawListVanilla() {
 
     const bool newGame = selected_ == 0;
     const int show = newGame ? 1 : 0;
-    playersSlider_->SetEnabled(show, 1);
-    nameEdit_->SetEnabled(show, 1);
+    playersSlider_->SetEnabled(show);
+    nameEdit_->SetEnabled(show);
     nameEdit_->SetFocused(show != 0);
     sprite(kSpriteUnlisted)->visible_ = show;
     sprite(kSpritePassword)->visible_ = show;
     if (!newGame) {
-        regions_[kRegionUnlisted]->SetTip(0, 1, 0);
-        regions_[kRegionPassword]->SetTip(0, 1, 0);
+        regions_[kRegionUnlisted]->SetTip(0);
+        regions_[kRegionPassword]->SetTip(0);
     } else if (!newGameTips_) {
-        regions_[kRegionUnlisted]->SetTip(kTipUnlisted, 1, 0);
-        regions_[kRegionPassword]->SetTip(kTipPassword, 1, 0);
+        regions_[kRegionUnlisted]->SetTip(kTipUnlisted);
+        regions_[kRegionPassword]->SetTip(kTipPassword);
     }
     newGameTips_ = newGame;
 

@@ -103,7 +103,7 @@ CHudWeaponBar::CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner) : CUiWindow
     ClearSceneObjects();
     selected_ = -1;
     count_ = 0;
-    for (int i = 0; i < 4; ++i) regions_[i]->SetTip(0, 1, 0);
+    for (int i = 0; i < 4; ++i) regions_[i]->SetTip(0);
     unit_ = nullptr;
     const int ids[] = {15, 20, 10, 5};
     AddLabels(&labels_, ids);
@@ -185,7 +185,7 @@ CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWind
     shownCount_ = 0;
     selected_ = -1;
     for (int i = 0; i < 8; ++i) {
-        regions_[i]->SetTip(0, 1, 0);
+        regions_[i]->SetTip(0);
         regionItem_[i] = -1;
     }
     entries_.clear();
@@ -268,7 +268,7 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUi
     actions_.clear();
     count_ = 0;
     selected_ = -1;
-    for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0, 1, 0);
+    for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0);
     unit_ = nullptr;
     std::string text;
     g_clientWorld->texts_->GetString("infoitem_16", &text);

@@ -52,7 +52,7 @@ std::uint32_t CharClass(int key) {
 
 } // namespace
 
-void CUiEditField::OnKeyDown(int key, int, int) {
+void CUiEditField::KeyDown(int key, int, int) {
     if (!focused_) return;
     auto& text = text_;
     switch (key) {
@@ -123,7 +123,7 @@ CUiEditField::CUiEditField(CInterface3D* ui, RECT rect) : CUiWindow(ui) {
     focused_ = true;
 }
 
-void CUiEditField::OnChar(int key, int, int) {
+void CUiEditField::Char(int key, int, int) {
     if (!focused_) return;
     if (key == kKeyBackspace || key == kKeyTab || key == kKeyEnter || key == kKeyEscape) return;
     if (interface_->ctrlDown_) return;

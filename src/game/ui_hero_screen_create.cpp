@@ -287,7 +287,7 @@ void CMpHeroScreen::CreateScreen() {
         renameEdit_ = edit;
         AsContainer(this)->AddChild(edit);
         edit->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
-        edit->SetEnabled(0, 1);
+        edit->SetEnabled(false);
         edit->SetFocused(false);
     }
     {
@@ -295,14 +295,14 @@ void CMpHeroScreen::CreateScreen() {
         nameEdit_ = edit;
         AsContainer(this)->AddChild(edit);
         edit->SetLook(3, 1, 1, kNameLength, kWhite, kCaretColour);
-        edit->SetEnabled(0, 1);
+        edit->SetEnabled(false);
         edit->SetFocused(false);
     }
     {
         CUiScrollbar* bar = NewScrollbar(interface_, RECT{10, 325, 190, 490});
         voiceScroll_ = bar;
         AsContainer(this)->AddChild(bar);
-        bar->SetEnabled(0, 1);
+        bar->SetEnabled(false);
     }
     voiceSound_ = -1;
     voiceTop_ = 0;

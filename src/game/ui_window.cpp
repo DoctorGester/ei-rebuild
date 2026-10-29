@@ -172,11 +172,10 @@ void CUiWindow::RedrawRegionTips() {
     }
 }
 
-BOOL CUiWindow::DrawBase(CSceneRenderer* pass) {
+void CUiWindow::DrawBase(CSceneRenderer* pass) {
     for (int i = 0; i < std::ssize(sceneObjects_); ++i)
         SceneMesh(i)->Draw(pass);
     for (int i = 0; i < std::ssize(models_); ++i) models_[i]->Draw(pass);
-    return 1;
 }
 
 void CUiWindow::RedrawBase() {
@@ -186,7 +185,7 @@ void CUiWindow::RedrawBase() {
     }
 }
 
-void CUiWindow::SetEnabled(int enabled, int notify) {
+void CUiWindow::SetEnabled(bool enabled, bool notify) {
     enabled_ = enabled;
     if (notify) Show(enabled);
 }

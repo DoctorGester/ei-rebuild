@@ -82,7 +82,6 @@ bool IsBuildable(const CItem* item) {
 }
 
 namespace uiorig {
-void PlayUiSound(CInterface3D* ui, const char* name, int flags) { ui->PlaySound(name, flags); }
 void LeaveGame() { g_gameFlow->CloseSessions(); }
 } // namespace uiorig
 
@@ -121,7 +120,7 @@ void CUiItemStrip::SetFilter(int filter) {
     }
     for (int i = 2; i < 8; ++i) {
         SceneMesh(i)->textureOffsetU_ = std::bit_cast<float>(column);
-        regions_[i]->SetTip(tipBase + i, 1, 0);
+        regions_[i]->SetTip(tipBase + i);
     }
 }
 
@@ -284,12 +283,12 @@ void CUiItemStrip::SettleScroll() {
     UiCapture(interface_) = nullptr;
 }
 
-void CUiItemStrip::OnLButtonDown(int, int x, int y) {
+void CUiItemStrip::LeftDown(int, int x, int y) {
     CInterface3D* ui = interface_;
     int region = RegionAt(x, y);
     if (region == 0 || region == 1) {
         if (!UiShiftDown(ui)) {
-            uiorig::PlayUiSound(ui, kSoundCampScroll, 0);
+            ui->PlaySound(kSoundCampScroll);
             UiCapture(ui) = Input();
             scrollDirection_ = region == 0 ? 1 : 2;
         } else {
@@ -300,32 +299,31 @@ void CUiItemStrip::OnLButtonDown(int, int x, int y) {
         }
     }
     if (tabsEnabled_ && region >= 2 && region < 8) {
-        uiorig::PlayUiSound(ui, kSoundCampMode, 0);
+        ui->PlaySound(kSoundCampMode);
         SetTab(region - 2);
     }
     if (region >= 0) handled_ = true;
 }
 
-void CUiItemStrip::OnLButtonUp(int, int, int) {
+void CUiItemStrip::LeftUp(int, int, int) {
     if (scrollDirection_ != 0) SettleScroll();
 }
 
-void CUiItemStrip::OnMouseMove(int, int x, int y) {
+void CUiItemStrip::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     // Leaving the held arrow stops scrolling.
     if ((scrollDirection_ == 1 && region != 0) || (scrollDirection_ == 2 && region != 1)) SettleScroll();
 }
 
-BOOL CUiItemStrip::OnWheel(int, short delta, int x, int y) {
+void CUiItemStrip::Wheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == 8) {
-        pending_ = static_cast<float>(static_cast<double>(delta / 120) + pending_);
-        uiorig::PlayUiSound(interface_, kSoundCampScroll, 0);
+        pending_ = static_cast<float>(static_cast<double>(static_cast<short>(delta) / 120) + pending_);
+        interface_->PlaySound(kSoundCampScroll);
     }
-    return 1;
 }
 
-void CForwardingStrip::OnLButtonDownForward(int flags, int x, int y) {
-    OnLButtonDown(flags, x, y);
+void CForwardingStrip::LeftDown(int flags, int x, int y) {
+    CUiItemStrip::LeftDown(flags, x, y);
     // The original passes its own first argument's stack memory as the cursor output.
     CItem* item = ItemAt(x, y, &flags);
     if (item) OwnerTakeItem(item);
@@ -445,7 +443,7 @@ double CMpHeroScreen::EquipmentWeight() {
     return weight;
 }
 
-void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
+void CMpHeroScreen::TakeItem(CItem* item, int mode) {
     HeroRecord();   // called for nothing, as in the original
     if (mode == 0) {
         bool equipped = true;
@@ -466,7 +464,7 @@ void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
             equipped = false;
             break;
         }
-        if (equipped) uiorig::PlayUiSound(interface_, kSoundMessageOk, 0);
+        if (equipped) interface_->PlaySound(kSoundMessageOk);
     }
     RefreshStats();
 }
@@ -481,7 +479,7 @@ bool CMpHeroScreen::CanEquip(CItem* item, int) {
 
 PartyUnitRecord* CMpHeroScreen::GetHero() { return LocalPlayerData()->members_.data(); }
 
-void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
+void CMpHeroScreen::LeftUp(int flags, int x, int y) {
     CUiContainer::LeftUp(flags, x, y);
     // Releasing a rotate arrow.
     void*& capture = UiCapture(interface_);
@@ -491,21 +489,21 @@ void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
 
 // --- CEscMenu ---------------------------------------------------------------------------------
 
-void CEscMenu::OnMouseMove(int flags, int x, int y) {
+void CEscMenu::MouseMove(int flags, int x, int y) {
     CUiModel* model = models_[0];
     int region = RegionAt(x, y);
     // Hovering a stone plays its animation (the first two only in single player).
     switch (region) {
     case 0:
         if (hovered_ != 0 && !IsMultiplayerClient()) {
-            uiorig::PlayUiSound(interface_, kSoundMenuStone, 0);
+            interface_->PlaySound(kSoundMenuStone);
             model->Play(2);
         }
         hovered_ = 0;
         break;
     case 1:
         if (hovered_ != 1 && !IsMultiplayerClient()) {
-            uiorig::PlayUiSound(interface_, kSoundMenuStone, 0);
+            interface_->PlaySound(kSoundMenuStone);
             model->Play(3);
         }
         hovered_ = 1;
@@ -515,7 +513,7 @@ void CEscMenu::OnMouseMove(int flags, int x, int y) {
     case 4: {
         static const int kAnimation[5] = {0, 0, 5, 6, 4};
         if (hovered_ != region) {
-            uiorig::PlayUiSound(interface_, kSoundMenuStone, 0);
+            interface_->PlaySound(kSoundMenuStone);
             model->Play(kAnimation[region]);
         }
         hovered_ = region;
@@ -529,16 +527,16 @@ void CEscMenu::OnMouseMove(int flags, int x, int y) {
     CUiContainer::MouseMove(flags, x, y);
 }
 
-void CEscMenu::OnKeyDown(int key, int repeat, int flags) {
+void CEscMenu::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
-        uiorig::PlayUiSound(interface_, kSoundMenuOk, 0);
+        interface_->PlaySound(kSoundMenuOk);
         interface_->SetPendingValue(0);
         handled_ = true;
     }
 }
 
-void CEscMenu::OnMessageResult(int result) {
+void CEscMenu::MessageResult(int result) {
     // 0x10001: the quit box's yes; 0x100001/0x100002/0x110001 close the menu.
     if (static_cast<std::uint32_t>(result) > 0x100002) {
         if (result == 0x110001) interface_->SetPendingValue(0);
@@ -556,15 +554,15 @@ void CCreditsScreen::Close() {
     else uiorig::LeaveGame();
 }
 
-void CCreditsScreen::OnLButtonDown(int, int, int) { Close(); }
+void CCreditsScreen::LeftDown(int, int, int) { Close(); }
 
-void CCreditsScreen::OnKeyDown(int key, int, int) {
+void CCreditsScreen::KeyDown(int key, int, int) {
     if (key == VK_RETURN || key == VK_ESCAPE || key == VK_SPACE) Close();
 }
 
 // --- CExchangeScreen --------------------------------------------------------------------------
 
-void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
+void CExchangeScreen::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (handled_) return;
     switch (key) {

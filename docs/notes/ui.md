@@ -23,7 +23,8 @@ are window methods registered through `__fastcall` shims that subtract 0x94) and
 Main slots: 19 show/hide children, 20 per-frame draw (returns 1, RET 4), 24 update, 25 Create, 26 on activate, 27
 message-box result, 42 and up screen-specific. Input slots: 1 deactivate, 2 left down, 3 left up, 4 mouse move, 5 / 6
 right down / up, 7 / 8 double clicks, 9 key down `(vk, repeat, scan|flags)`, 10 char, 11 key up, 12 wheel `(keys,
-delta, x, y)`; handlers `RET 0xC` (wheel `RET 0x10`) and return 1 on every path. A button-down handler that takes the
+delta, x, y)`; handlers `RET 0xC` (wheel `RET 0x10`) and return 1 on every path;
+no caller reads it, and ours (handlers, Event, the draw) return void. A button-down handler that takes the
 mouse stores its input side in `CInterface3D +0x0C` (`mouseCapture_`); the button-up handler acts only when the capture
 is its own and clears it; a handler sets `+0x9C` (`handled_`) when it used the event, which stops the container
 passing it on.
@@ -144,13 +145,13 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
   (flag 8 starts 0.5 s later); numbers need option 17 (0079BE74).
 - Chat overlay (`ui_chat_overlay.cpp`; multiplayer only, no scenario): `Update` erases lines older than 20 s, `AddLine`
   wraps at 780 px, "^<digit>" colours, at most 12 lines; Enter sends a `net::SayMessage` kept 60 s.
-- Camera input (`ui_camera_input.cpp`; S; ui_hud, ui_screens): `OnRightDown` / `OnRightUp` (turning with the cursor
-  held), `OnDeactivate`, `OnWheel`.
+- Camera input (`ui_camera_input.cpp`; S; ui_hud, ui_screens): `RightDown` / `RightUp` (turning with the cursor
+  held), `Deactivate`, `Wheel`.
 - Console window: `DrawInput`, `DrawLines`, `OnKeyDown`, `OnChar` (Rebirth's ImproveConsole behind its flag), pixel
   checks S (before ours the input strip's rows are put back inverted so anything left undrawn shows); harness key names
   `grave`, `backspace`, `delete`, `home`, `end`, `pgup`, `pgdn`, `enterchar` (Enter plus its WM_CHAR, which the console
   needs); scenario `console.txt`.
-- `CUiItemPanel::OnLButtonDown` (005EE310, input 2 of every item panel; S, ui_camp_deals), `ItemModel` (or a counted 100 x
+- `CUiItemPanel::LeftDown` (005EE310, input 2 of every item panel; S, ui_camp_deals), `ItemModel` (or a counted 100 x
   100 stand-in sprite).
 - Small and multiplayer-only functions (no scenario unless named; `verify_ui_small_slots.cpp`, `verify_ui_small_members.cpp`
   list the scenario per address): `UiInputSide::LeftDouble` / `RightDouble` (slot 7 / 8 of most input sides;
@@ -211,7 +212,7 @@ resume, Esc, the quit box cancelled), `ui_view_screen`. The harness's `newgame` 
   "Movies\Titles.bik". `Draw` (0062BD80) takes the next line once the time passes `nextLineAt_` and the text stopped
   (`speed_` 0 or NaN).
 - **View screen** (`ui_view_screen.cpp`): screen 7, a debug view (0x168, 00740840 / 0074080C): inert input 00741154,
-  `UnitPickInput` (00740278, 0x20: a CDWordArray of picked ids: `OnLeftDown` pick / walk, Ctrl attack (how 6), Space
+  `UnitPickInput` (00740278, 0x20: a CDWordArray of picked ids: `LeftDown` pick / walk, Ctrl attack (how 6), Space
   toggles the server pause flag), camera keys; focus (30, 30), rotation premultiplied by 225 degrees about x. No unit
   can be picked in ui_view_screen: the party leaves the world with the request.
 
@@ -249,10 +250,10 @@ Global map (`ui_global_map*.cpp`): `Create` (0062D350, 6.7 KB), `Update` (0062F0
 frame step 00458010(0, 0) into the backdrop; the click reads the zone back from the pixel. `FindPaths` (006312C0, S, RET 4)
 is a recursive way search; `arrivals_` = STLport map<int, float> exit -> shortest "#passtime" sum
 (`ui_global_map_paths.cpp`). game.exe's `GlobalMapZonesSetAtGrow` is CArray<GlobalMapZone>'s (elements
-005FBF50 / 005FBD30); ours are std::vectors (push_back). `OnRightDown` / `OnRightUp` (S) drag (motion 007C7C60), `OnKeyDown` (Esc menu inline, '5' / '6'
+005FBF50 / 005FBD30); ours are std::vectors (push_back). `RightDown` / `RightUp` (S) drag (motion 007C7C60), `KeyDown` (Esc menu inline, '5' / '6'
 quick save / load "saveq"). `CBattleScreen::Create` (00635250) builds 11 panels and 2 input handlers.
 
-Camp pages (`ui_camp_*.cpp`): `OnLButtonDown` / `OnLButtonUp` / `OnKeyDown`, `MessageResult` (0x10001 takes the first
+Camp pages (`ui_camp_*.cpp`): `LeftDown` / `LeftUp` / `KeyDown`, `MessageResult` (0x10001 takes the first
 weapon back), `HelpTopic` (`ui_camp_input.cpp`; `turning_` +0x25C); `UpdateAction`, `CanEquip` (slot 43, AL), `CanMakeItem`
 / `CanMakeSpell`; trade pages: `DoAction` / `UndoAction` (trade pages stock the constructor's class template (+0x198)
 lists 0069908x-006992xx with the sold records; cost_ off except page 1), `DeconstructSpell` ("Prototype" + a "Rune" per
@@ -266,19 +267,19 @@ Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `
 - `CHeroStatsPanel::SetHero` stores +0x170 = height * 100 truncated (an edge height may differ at another precision).
   The panel's page 10 -/+ regions 6-13: a hold starts at -0.5 s with the capture, repeat after 0.25 s (ui_hero_stats,
   coordinates unconfirmed); regions 0 / 1 previous / next hero. `DrawPart` armour "%.1f" = the largest of the first six
-  damage types' three-layer sums; a NaN keeps the old maximum. `CHeroEquipPanel::OnRightDown` does not mark the event
+  damage types' three-layer sums; a NaN keeps the old maximum. `CHeroEquipPanel::RightDown` does not mark the event
   used.
 - Draw details: `CRepairGrid::Draw` puts models at depth 2^(3 - row) * 6; the constructor pages' highlight p = (cos(5 t) +
   1) / 2 stored as float, colours truncated and clamped (an integer edge may differ at another precision; ui_camp_deals
   pages 3, 5, 6). Lists are `UiItemList` = `std::vector<CItem*>`.
 - Trade panel (`ui_trade_panel.cpp`; ui_trade_restore): `SnapshotRecord` copies floats as dwords, `Settle` (the all-branch
   tests the low byte of `keep`), `RestoreRecord` (HealSlots by old hp / old max * new max - Reduce(new max), the maxima
-  stored as float). `OnLButtonDown` (`ui_trade_panel_input.cpp`; ui_trade_hold with `ldown` / `lup`, purchases only in
+  stored as float). `LeftDown` (`ui_trade_panel_input.cpp`; ui_trade_hold with `ldown` / `lup`, purchases only in
   the Rebirth run): regions 0-3 scroll, 4-9 a school level, 10 science, 11-33 a learnable perk, 34 up a held perk.
   `FormatPrice` is "%d" / "%.1fk" / "%dk" / "%.1fm" / "%dm" / "%.1fg", negative as 0x7FFFFFFF.
 - Item strip (`CUiItemStrip`, the forwarding strip of camp and exchange): `Update` scroll physics compared to 4 ULPs;
   `SetupFigures` (name list shares +0x194 with `filter_`); figure strips (00741BF4) `DrawFigures`, `CountFigures`,
-  `OnFigureClick` (`ui_item_strip_setup.cpp`; ui_hero_screen mode 10, unconfirmed that its clicks land).
+  `CFigureStrip::LeftDown` (`ui_item_strip_setup.cpp`; ui_hero_screen mode 10, unconfirmed that its clicks land).
   the item predicates `Is*` (ui_screens.h; 005EE050-005EE130, P), `CItemScreen::MoveItem` (RET 0x18) and `ReturnAll` (RET 8;
   `ui_item_screen.cpp`), `ScrollToItem` (RET 4).
 
@@ -286,22 +287,22 @@ Multiplayer hero screen (`CMpHeroScreen`, `ui_hero_screen*.cpp`, `ui_hero_figure
 (rows 9-18; 1 continue 006183B0, 5 new hero, 6 rename, 7 delete "lmp_deletepers", 8 the hero's inventory = the camp screen
 built inline with `fromHeroScreen_` 1), 10 new hero (1 create 006186F0, rows 9-19 the voice), 11 equipment (1 next 00617A50).
 Scenarios ui_hero_screen, ui_hero_stats (RefreshHero), ui_hero_delete (AddNewHero, DeleteHero, record life cycle; unconfirmed).
-`EquipmentWeight` (53, double in ST0), `CanEquip` (43, AL), `OnItemChosen` (42), `GetHero` (51), `RefreshHero` (47),
+`EquipmentWeight` (53, double in ST0), `CanEquip` (43, AL), `TakeItem` (42), `GetHero` (51), `RefreshHero` (47),
 `ChooseFigure` (52: +0x1BC / +0x1C0 are two item strips whose `selected_` (+0x17C) is the chosen figure; the strip listing
 the prototype picks the voice list; the voice (text 6) is the list's first file, read even when the list is empty).
-`OnKeyDown` `FinishRename`: the name before " | " plus " | " and the typed text; paging by 10 / 1 heroes or 11 / 1 voices;
+`KeyDown` `FinishRename`: the name before " | " plus " | " and the typed text; paging by 10 / 1 heroes or 11 / 1 voices;
 `Rename` uses Mid (006FD9B4). `PlayVoice`: prototype -> sound set map 007C8A6C -> a random entry, flags 0x2282 (ours counts
 the entries instead of building the temporary vector). `Continue` builds `CMpConnectScreen` (00741CD0) inline. `CreateHero`:
 attribute sum vs 00741C98 equal or unordered, a name. `Draw` previews at depth 553 / 400; `Update` turns by fmod 007C7F10 and
 tints the create button; `Destroy` is the destructor body (vtable 0074214C slot 0 00633240 calls it). `AddNewHero` writes file
-"<highest *.mp title + 1>.mp" (00619920 when full; `RefreshHeroScroll` shared with DeleteHero); `OnMessageResult` 0x10001
+"<highest *.mp title + 1>.mp" (00619920 when full; `RefreshHeroScroll` shared with DeleteHero); `MessageResult` 0x10001
 deletes in mode 9. `DrawHeroList`: a hero record is a CParty whose first member's text 0 is the name. `MakePreview` (RET 4;
 skill animation 0x21 from a random frame, controller slot 14 `RestartAnimation(float)`). Forwarders `RenameAt` /
 `PlayVoiceAt` / `ContinueAt` / `CreateHeroAt`.
 
 Exchange (screen 9; multiplayer only, no scenario): `CExchangeScreen : CItemScreen` (+0x190 scratch party, +0x194 / +0x198 the
 client's parties_[1] / [0], strip, figure strip, trade grid, money field, figure names); `ui_exchange.cpp`: `OnExchangeDone`
-0062D210 (37), `Close` 0062C8F0, `OnMessageResult` 0062C920, `Update` 0062C930, `OnLButtonDown` 0062CF70 (O). The client's trade
+0062D210 (37), `Close` 0062C8F0, `MessageResult` 0062C920, `Update` 0062C930, `LeftDown` 0062CF70 (O). The client's trade
 calls go through their addresses (originals_ui.h `Client*Original`).
 
 Hazards and facts:
@@ -346,9 +347,9 @@ choice, 2 dialogue starting, 3 phrases, 4 rewards. Scenario `ui_base_dialogue` (
 (MoveToObject), `clickunit Smith`, region 0 (the first topic), waits 4 s, clicks through the phrases, Esc, a second Esc takes the rewards. A
 person can talk when its server controller's command is 0 or 0xB and the next one 9 (or it has none). All O unless marked.
 
-Behaviour worth knowing: `OnMessageResult` has the load window inline; `OnBriefing` (34) is "briefing <name>"; `SaveState`
+Behaviour worth knowing: `MessageResult` has the load window inline; `ShowBriefing` (34) is "briefing <name>"; `SaveState`
 (40) writes one zero dword; `OpenTopics` makes five rows 210..570 x 440.. with "goodbye" appended; the mouse move sets cursors
-0xD / 0xE / 0xF; `OnKeyDown` (`ui_briefing_keys.cpp`): action 4 opens the objectives window when a "q.<zone>.<quest>" = 1 lies
+0xD / 0xE / 0xF; `KeyDown` (`ui_briefing_keys.cpp`): action 4 opens the objectives window when a "q.<zone>.<quest>" = 1 lies
 in this allod, 0xB the camera to the leader, '5' / '6' "saveq". `FindTopics` (S, `ui_briefing_topics.cpp`): "b.<person>.<topic>"
 = 1 by bit compare; a network client sorts them; the last "constr..." topic last; `TopicTitle` maps "constr..." to "briefing
 constr". `StartDialogue(immediate, remember)`, `StartPhrases` (camera saved to +0x1F8, look-at +0x204, 0066F840(3, 0) to the
@@ -384,13 +385,13 @@ and so are the rewritten ones with wrappers (00637DC0, 006379E0, 00637190, 00637
 0063EC90, 0063FB50, 0063DD70).
 
 Entry points: `CBattleScreen::Update` (00638280, every frame, O) and `RefreshSelection` (00637DC0); the panels' `SetUnit`s
-(S); `OnMouseMove` (00639D60 S), `UnitName` (0063B920, RET 8), `OnLButtonUp` / `OnLButtonDown` (O; ui_hud, world_client,
+(S); `MouseMove` (00639D60 S), `UnitName` (0063B920, RET 8), `LeftUp` / `LeftDown` (O; ui_hud, world_client,
 ui_describe); the message slots in `ui_battle_slots.cpp` (`SaveState` 40 S through a recorder, `Close` 26, `PollShown` 35 AL,
-`OnItemsPicked` 28, `OnUnitLeft` 30, `OnUnitJoined` 29: placed by the local player's record order, selected by the record's
-+0x778, `OnMessageResult` 27, `OnGameOver` 31; 27 / 28 / 30 / 31 not reached by a scenario); orders `OrderAt` (RET 0x14),
-`ToggleMember` (RET 4), `AttackUnit`, `OrderDeadUnit` (RET 8), `UseOnUnit` (RET 0xC), `UseAtPoint` (RET 0x14); `OnUnitSpeech` (32),
-`OnQuestVariable` (33); `OnLeftDouble`, `OnKeyUp` (the order key of actions 0x11..0x16, `orderKeys_` +0x18D in the jump
-table's order 0, 1, 5, 4, 3, 2), `OnWheel` (map, unit panel, message log, top panel); the columns' `Highlight` /
+`OnItemsPicked` 28, `UnitLeft` 30, `UnitJoined` 29: placed by the local player's record order, selected by the record's
++0x778, `MessageResult` 27, `GameOver` 31; 27 / 28 / 30 / 31 not reached by a scenario); orders `OrderAt` (RET 0x14),
+`ToggleMember` (RET 4), `AttackUnit`, `OrderDeadUnit` (RET 8), `UseOnUnit` (RET 0xC), `UseAtPoint` (RET 0x14); `Speech` (32),
+`QuestVariable` (33); `LeftDouble`, `KeyUp` (the order key of actions 0x11..0x16, `orderKeys_` +0x18D in the jump
+table's order 0, 1, 5, 4, 3, 2), `Wheel` (map, unit panel, message log, top panel); the columns' `Highlight` /
 `ClearHighlights`, `CUiMesh::SetScale` (callers use `HighlightAt` / `SpriteSetScaleOriginal`); `CHudSpellColumn::Click`,
 `CHudActionColumn::Select`, `CHudQuickItems::Pick` (S; 0063A560's spell keys call them by address); `ClickAlternate`,
 `UseNow` (`ui_hud_pick.cpp`: an immediate cast on the unit, or for an attack spell (0068B770) on the nearest unit it sees;
@@ -423,7 +424,7 @@ How they chain:
 - Spell buttons: 0063E4B0 puts the newest spell's region at (760, 470)-(800, 510), older ones 40 up; action column regions are
   0..40 x (470 - 40 i)..(510 - 40 i); with a selected unit SetUnit adds "skill0011" (action -1) first, then science (action 0).
 
-**Tooltips for regions without a button** get SetTip(0, 1, 0), a fresh 0x184-byte tooltip with the empty text 0079B298 whose constructor 0065E320 writes the arguments (+0x164 / +0x168) and size (+0x174 / +0x178) only for a non-empty text: leftover heap bytes, compared only for tips with lines. FCOMP / `TEST AH,0x40` compares treat NaN as equal (damage "Unknown" when all weights are zero; quest values 2 and 3).
+**Tooltips for regions without a button** get SetTip(0), a fresh 0x184-byte tooltip with the empty text 0079B298 whose constructor 0065E320 writes the arguments (+0x164 / +0x168) and size (+0x174 / +0x178) only for a non-empty text: leftover heap bytes, compared only for tips with lines. FCOMP / `TEST AH,0x40` compares treat NaN as equal (damage "Unknown" when all weights are zero; quest values 2 and 3).
 
 Not exercised: the battle screen's drag (no drag step in the harness), mode 1 orders and the toggle with Shift (Shift during a click: the harness's `shift` word), the exit flag, RefreshSelection with several units, the attack kinds 0..5 and the level-gap speech,
 the quest notice's sub-objective path, the mouse move's portrait pick branch (multiplayer).
@@ -492,21 +493,21 @@ Hazards and facts:
 Rectangles from `menus.reg`: save/load OK 163..237, Cancel 563..637, Delete 363..437 (y 526..574), list rows 108..370 x 108.. in
 24 steps; options OK 213..287, Cancel 513..587, groups 100..250 x 156.. in 24 steps, rows x 250..520. All O unless marked.
 
-Scenarios by window: save/load (`CSaveLoadWindow`: input, `Draw`, `Update`, `OnKeyDown` Esc 0x100001 / 0x110001, `IsReservedSave`
+Scenarios by window: save/load (`CSaveLoadWindow`: input, `Draw`, `Update`, `KeyDown` Esc 0x100001 / 0x110001, `IsReservedSave`
 P) ui_hud, ui_saveload; `Confirm`, `AskDelete`, `LoadSelected`, `DeleteSave` (looked up through the game's GetFileAttributesA
-import, which harness runs redirect to harness_saves; called by address `Call*`) ui_saveload, ui_saveload_delete; `OnDialogResult`
+import, which harness runs redirect to harness_saves; called by address `Call*`) ui_saveload, ui_saveload_delete; `MessageResult`
 (the caller 005F590D ignores EAX); `SaveEntry::MakeTitle`, `ZoneTitle` / `AllodTitle` ("zone " / "allod " with the space,
 007941F8 / 00794200; else "save_camp" / "Unknown"; S; `ui_saveload.cpp`); `QuickSave` (`__fastcall` slot, DL frame step) /
 `QuickLoad` (newgame's savea); `Build` (00653DD0 save/load, 006503C0 options; `bindings_` / `settings_` are vectors,
 `groupNames_` a `std::vector<std::string>`; `DestroyOptions` 0062B180); options (`COptionsWindow`: input, `Draw`, `Redraw`, `HelpTopic`
-P, `Update`, `OnKeyDown`; ui_hud; `RefreshRows`, `ShowGroup` (RET 4), `BuildSettings`, `BuildBindings`, `LoadSettings` (S; sets
+P, `Update`, `KeyDown`; ui_hud; `RefreshRows`, `ShowGroup` (RET 4), `BuildSettings`, `BuildBindings`, `LoadSettings` (S; sets
 every control twice), `Apply` (`ui_options.cpp`; `Call*` forms by address); Build runs all but Apply (ui_hud also clicks group
 2); Apply: ui_main_menu's OK; key remapping: ui_options_bind (Enter, a taken key's box, cancelled), ui_options_remap (SV8:
 Enter, `dblclickregion`, a taken key's box, OK, then the keys used in the game, the hero's moveMode in the digest) and
 ui_options_remap_load (the keyboard.ini ui_options_remap saves, written by `tools/make_keyboard_ini.py` into the overlay,
 loaded at start: the restart half)); controls (`CUiScrollbar` `TakePosition` S, `Update` also the message log, `CUiSlider::SetRect`
 slot 26 RET 4: every frame; `CUiTooltip`; `CUiScrollText::Tokenize` / `DrawLines` RET 4 (`ui_scroll_text.cpp`; the message log);
-`CUiEditField::OnKeyDown` S (`ui_edit_field.cpp`; no scenario types into one); `CUiScrollingSurface::RenderText` 0065F020: the
+`CUiEditField::KeyDown` S (`ui_edit_field.cpp`; no scenario types into one); `CUiScrollingSurface::RenderText` 0065F020: the
 titles' RTF text as glyph runs (render_rich_text), ui_main_menu, render_titles_present, ui_titles_scroll); `CObjectivesWindow` (`Build`, `ShowZone`,
 `ShowQuest` `__fastcall`, `DrawQuestList`, `OnLButtonDown` in `ui_objectives_input.cpp`: OK requests the zone at the nearest
 exit, travel time 00578700 forwarded; `LoadQuestPlaces` 0064EA80 S: map.txt "#quest <name>" pairs, or the quest record's
@@ -566,7 +567,7 @@ slots, then page 1; Esc; vanilla coordinates, under Rebirth some rows may be mis
 Pieces: `CItemInfoPanel` (`ui_item_info.cpp`; S on pixels with nested wrappers; ui_camp, ui_describe; blueprint, material, spell
 record, modifier descriptions reached by none): `DescribeStats` (005F1590, 4.9 KB), `DescribeItem`, `DescribeBlueprint`,
 `DescribeCarriedSpell`, `DescribeMaterial`, `DescribeSpellRecord`, `DescribeQuickItem`, `DescribeModifierRecord`, `ShowHelp`,
-`Draw`, `Describe`, `OnKeyDown` / `OnKeyUp` (`key ctrl`), `Build` (O); `ItemDamageLists` 005F13A0 (EI_Plugin patches a JMP at
+`Draw`, `Describe`, `KeyDown` / `KeyUp` (`key ctrl`), `Build` (O); `ItemDamageLists` 005F13A0 (EI_Plugin patches a JMP at
 +0x61: ours runs in vanilla only; S); `CItemScreen::DrawItem` 005ECA10 (S; drawn twice per frame in the verify build);
 `CUiMesh` `Framed`, `Ring` (RET 0x2C), `Disc` (RET 0x24), `ResetColours` (`ui_mesh_build.cpp`; Commit's +0xC4 compared as
 "points at the current indices"; S with arrays poisoned 0xCD; every scenario); surface helpers `CaptureScreen`, `Rgb565Copy`
@@ -656,14 +657,14 @@ nested wrappers through `Call*` / `...At`; 00742B08 read from memory). Interface
   entries (+0x158) are typed containers (`std::vector<SaveEntry>`, `std::vector<HudPortraitSlot>`,
   `std::vector<Entry>`).
 
-## CMpHeroScreen::OnLButtonDown
+## CMpHeroScreen::LeftDown
 
 ui_hero_screen_click.cpp (input click). Nothing while a hero is being renamed; after the base handler, by
 mode: the hero list (9: back to the main menu, continue, the rotate arrows, new hero, rename, delete (a
 question), the hero's inventory (the camp screen with fromHeroScreen_), list rows), the new hero (10: back,
 create, the arrows, defaults, voice rows) and its statistics page (11: back, next, take the equipment back).
 
-## CMpHeroScreen::OnKeyDown
+## CMpHeroScreen::KeyDown
 
 ui_hero_screen_click.cpp (input key). After the container's handler, unless a child used the key: Enter
 ends a renaming (FinishRename), else continues (mode 9), creates the hero (10) or goes on to the next page
@@ -911,7 +912,7 @@ holder is left alone.
 
 Long header comments of ui.h, ui_camp.h and the other UI headers, moved here by the comment cleanup. The header keeps the gist.
 
-### OnLButtonUp
+### CBattleScreen::LeftUp
 
 Input side `this` is the window (ui_battle_update.cpp). The left button released: nothing while a portrait
 click picks a player; without a press on the view the container's handler; a press without a drag, or on a
@@ -920,7 +921,7 @@ drag selects the party units inside the box : the world's selection cleared, the
 markers reset, each unit inside controlled with its portrait marked and its face turned (about -x by
 kHudQuarterTurn / 7), then the speech event with the first one's id; then RefreshSelection.
 
-### OnMouseMove
+### CBattleScreen::MouseMove
 
 Input side `this` is the window (ui_battle_mouse.cpp). The mouse moved (also every frame from Draw, at the
 current position): while a portrait click picks a player the cursor shape 0xD and the portraits' own mouse
@@ -930,7 +931,7 @@ empties the unit panel's hover unit and spans the press point and (x, y); before
 is hovered at once. Without a press the container's handler first, and when no panel took the move the unit
 under the point (any flags) goes to HoverUnit.
 
-### OnKeyDown
+### CBattleScreen::KeyDown
 
 A key pressed (ui_battle_keys.cpp; Rebirth's MPSpeedControl reproduced behind its flag; input side `this` is
 the window). While a portrait click picks a player, Esc ends that and nothing else happens. On a network
@@ -990,7 +991,7 @@ the entries' wrapped "tutor <key>" texts (laid out twice when no rows are given:
 pictures, "tutorial_<picture>" copied into referenced object 1's 64-pixel cells, and gives the height), 2 the
 buttons' texts with the help key's name. Regions 0-2 the buttons.
 
-### CGlobalMap::OnMouseMove
+### CGlobalMap::MouseMove
 
 (input slot 4; Rebirth-patched; reproducing WideScreen, so hooked in both launches: the drag scaled without
 the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion (printed to the
@@ -1001,7 +1002,7 @@ point, on gipat its link when it has one; nothing while a turn button is held) a
 surface with the title and the titles of the zone's quests, the last two sprites behind it; a zone in state 0
 or nothing hides the tip. A new name plays "buttons\globalmap\zone.wav". Regions past the links do nothing.
 
-### CGlobalMap::OnLeftDown
+### CGlobalMap::LeftDown
 
 (Input slot 2. Rebirth's WideScreen patches it and this reproduces the patch: the pick picture's x is read
 without the margin; ui_global_map_paths.cpp.) The left button pressed (nothing while dragging). Regions 0 / 1,
@@ -1027,16 +1028,16 @@ constructor, else 0); a constructor's stock made on its first visit (restockDue)
 highest skill per spell school; the allod's constructor music; antialiasing (render state 2 = 2) when the
 device sorts independently.
 
-### CBriefingScreen::OnMouseMove
+### CBriefingScreen::MouseMove
 
 Mouse move: with the chat window active, cursor 0xD and the event to it; otherwise cursor 0, the container's
 handler, then by state: 1 the hovered topic row (redrawn when it changes), 3 cursor 0xE, 4 cursor 0. Walking
-(state 0, right button up): over a person who can talk (as OnLeftDown; on a network client not the leader) its
+(state 0, right button up): over a person who can talk (as LeftDown; on a network client not the leader) its
 topics are looked up (cursor 0xE when it has any) and its "pers" text, when it has one, is shown in surface 1
 at the mouse (-125, -20); over a zone exit, cursor 0xF when the zone of exit_ (not of the exit found: kept) is
 not "none" and its "z.<zone>" variable is not 1.
 
-### CBriefingScreen::OnKeyDown
+### CBriefingScreen::KeyDown
 
 Keys: with the chat window active only Esc, which gives the input back. Otherwise the container's handler,
 then Backspace / Enter go to a network client's chat line; Enter (single player) and Esc skip the phrases

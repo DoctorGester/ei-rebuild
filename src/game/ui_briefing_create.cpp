@@ -201,7 +201,7 @@ void CBriefingScreen::CreateScreen() {
 
     SetMeshesVisible(this, 0);
     for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 0);
-    for (int i = 0; i < std::ssize(children_); ++i) children_[i]->SetEnabled(0, 1);
+    for (int i = 0; i < std::ssize(children_); ++i) children_[i]->SetEnabled(false);
     state_ = kWalking;
     exitPending_ = true;
     exit_ = 0;
@@ -262,8 +262,8 @@ void CBriefingScreen::Update() {
     UpdateBase();
     SetMeshesVisible(this, 0);
     for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 0);
-    children_[kTopicBarChild]->SetEnabled(0, 1);
-    children_[kTextChild]->SetEnabled(0, 1);
+    children_[kTopicBarChild]->SetEnabled(false);
+    children_[kTextChild]->SetEnabled(false);
 
     for (BriefingMover& mover : movers_) {
         mover.time = static_cast<float>(FrameTime() + mover.time);
@@ -283,7 +283,7 @@ void CBriefingScreen::Update() {
         surfaces_[kTopicsSurface]->Freeze(1, 0);
         SceneMesh(kTopicBackdrop)->visible_ = 1;
         SceneMesh(kTopicFrame)->visible_ = 1;
-        topicBar_->SetEnabled(1, 1);
+        topicBar_->SetEnabled(true);
         int position;
         if (topicBar_->TakePosition(&position)) {
             topicTop_ = position;
@@ -310,7 +310,7 @@ void CBriefingScreen::Update() {
     case kPhrases:
         // The text's meshes; the topics' backdrop and frame stay hidden.
         SetMeshesVisible(this, 1, kTextBackdropMesh);
-        text_->SetEnabled(1, 1);
+        text_->SetEnabled(true);
         if (voice_ != -1) {
             if (VoiceEnded(voice_)) NextPhrase(0);
         } else {
@@ -322,7 +322,7 @@ void CBriefingScreen::Update() {
     case kRewards:
         // The text's meshes; the topics' backdrop and frame stay hidden.
         SetMeshesVisible(this, 1, kTextBackdropMesh);
-        text_->SetEnabled(1, 1);
+        text_->SetEnabled(true);
         if (voice_ != -1) {
             if (speaking_ && VoiceEnded(voice_)) StopTalking(speaking_);
         } else {

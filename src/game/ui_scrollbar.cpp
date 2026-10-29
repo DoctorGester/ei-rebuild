@@ -99,7 +99,7 @@ void CUiScrollbar::SetRect(const RECT* rect) {
 
 // --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
 
-void CUiScrollbar::OnMouseMove(int, int x, int y) {
+void CUiScrollbar::MouseMove(int, int x, int y) {
     if (state_ == kDragging) {
         POINT point{x, y};
         interface_->ScalePointFromScreenEntry(&point);
@@ -109,13 +109,12 @@ void CUiScrollbar::OnMouseMove(int, int x, int y) {
     handled_ = true;
 }
 
-int CUiScrollbar::OnWheel(int, int delta, int x, int y) {
+void CUiScrollbar::Wheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == kTrackRegion) {
         double step = static_cast<double>(static_cast<short>(delta)) * speed_ * kWheelStep;
         accumulated_ = static_cast<float>(accumulated_ - step);
         handled_ = true;
     }
-    return 1;
 }
 
 void CUiSlider::SetPosition(int position) {
@@ -136,7 +135,7 @@ void CUiSlider::SetPosition(int position) {
     thumb_.right = centre + kSliderThumbHalfWidth;
 }
 
-void CUiSlider::OnMouseMove(int, int x, int y) {
+void CUiSlider::MouseMove(int, int x, int y) {
     if (state_ == kDragging) {
         POINT point{x, y};
         interface_->ScalePointFromScreenEntry(&point);

@@ -80,7 +80,7 @@ void CBattleScreen::OnItemsPicked(std::list<CItem*>* items, int money, int cripp
     RefreshSelection();
 }
 
-void CBattleScreen::OnUnitLeft(CUnit* unit) {
+void CBattleScreen::UnitLeft(CUnit* unit) {
     if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         panel->pageTexts_[0].clear();
@@ -127,7 +127,7 @@ void CBattleScreen::MarkPortrait(int index) {
     portraits->slots_[index].restB_ = *turn.SetAxisAngle(axis, SelectedFaceAngle());
 }
 
-void CBattleScreen::OnUnitJoined(CUnit* unit) {
+void CBattleScreen::UnitJoined(CUnit* unit) {
     if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         panel->pageTexts_[0].clear();
@@ -183,7 +183,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
     RefreshSelection();
 }
 
-void CBattleScreen::OnMessageResult(int result) {
+void CBattleScreen::MessageResult(int result) {
     switch (static_cast<std::uint32_t>(result)) {
     case kLeaveZoneYes:
         GameLeaveThroughExit(pendingExit_);
@@ -204,12 +204,12 @@ void CBattleScreen::OnMessageResult(int result) {
     }
 }
 
-void CBattleScreen::OnGameOver(char won) {
+void CBattleScreen::GameOver(int won) {
     GameStopSounds(1);
     GameStopAmbience();
     CMessageBox* box;
     if (!won) {
-        interface_->PlaySound("buttons\\gameover.wav", 0);
+        interface_->PlaySound("buttons\\gameover.wav");
         box = new CMessageBox(interface_, "game_over", "game_over_msg", 0x20000, 3, 1);
     } else {
         box = new CMessageBox(interface_, "end_of_game", "end_of_game_msg", 0xFFFF0000u, 3, 1);

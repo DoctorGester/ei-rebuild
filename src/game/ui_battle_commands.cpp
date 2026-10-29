@@ -232,7 +232,7 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
 
 // --- a unit's speech event -----------------------------------------------------------------------
 
-void CBattleScreen::OnUnitSpeech(int id, AckKind kind, char* extra) {
+void CBattleScreen::Speech(int id, AckKind kind, char* extra) {
     CUnit* unit = UnitWithId(g_clientWorld->objectManager_, id);
     if (!unit) return;
     const SpeechRecord* phrase = (kind == AckKind::Scenario || kind == AckKind::ScenarioTalking)

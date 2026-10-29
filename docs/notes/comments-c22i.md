@@ -86,7 +86,7 @@ of `this`, which cannot fail here and is left out.
 EI_Plugin's NewMaster: the second master server (the plugin's is hat.gipath.org:28004; ours is the
 setting ei::rebirth::PluginSecondMaster(), empty by default). Used behind
 ei::rebirth::Patch::EiPluginNewMaster by three rewrites, at the plugin's call sites:
-- the main menu's Multiplayer button (CMainMenu::OnLButtonDown),
+- the main menu's Multiplayer button (CMainMenu::LeftDown),
 - the announcement to the master (ServerSession::AnnounceToMaster),
 - the master request of the connection screen (CMpConnectScreen::MasterRequest).
 With the setting empty none of them changes anything (no thread, no packet, no probe).

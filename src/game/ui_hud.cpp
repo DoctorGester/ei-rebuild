@@ -75,11 +75,10 @@ constexpr int kMapCentreX = 700;
 constexpr int kMapCentreY = 80;
 constexpr std::uint32_t kCameraFollows = 8;
 
-BOOL DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
+void DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
     render::g_renderState.specular = true;
     window->DrawBase(pass);
     render::g_renderState.specular = false;
-    return 1;
 }
 
 int PortraitMode(CInterface3D* ui) {
@@ -124,14 +123,14 @@ bool IsZero(float value) {
 
 // --- Weapon bar --------------------------------------------------------------------------------
 
-void CHudWeaponBar::OnMouseDown(int, int x, int y) {
+void CHudWeaponBar::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
     handled_ = true;
     CaptureMouse();
 }
 
-void CHudWeaponBar::OnMouseUp(int, int x, int y) {
+void CHudWeaponBar::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
@@ -141,12 +140,12 @@ void CHudWeaponBar::OnMouseUp(int, int x, int y) {
     if (previous >= 0 && previous < count_) Highlight(previous, 0);
     Highlight(region, 1);
     selected_ = region;
-    interface_->PlaySound(kSoundWeapon, 0);
+    interface_->PlaySound(kSoundWeapon);
     // No check for a missing local view here (like the original).
     if (CUnit* unit = unit_) LocalView()->SetWeapon(unit, region);
 }
 
-void CHudWeaponBar::OnMouseMove(int, int x, int y) {
+void CHudWeaponBar::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < count_) handled_ = true;
 }
@@ -159,7 +158,7 @@ void CHudWeaponBar::Update() {
     Highlight(selected_, 1);
 }
 
-BOOL CHudWeaponBar::Draw(CSceneRenderer* pass) {
+void CHudWeaponBar::Draw(CSceneRenderer* pass) {
     render::RenderState& state = render::g_renderState;
     const std::uint8_t alphaRef = state.alphaReference;
     const bool alphaTest = state.alphaTest;
@@ -170,30 +169,29 @@ BOOL CHudWeaponBar::Draw(CSceneRenderer* pass) {
     state.alphaReference = alphaRef;
     state.alphaTest = alphaTest;
     state.specular = false;
-    return 1;
 }
 
 // The three other panels draw the same way, with specular on (the draw virtual).
 
-BOOL CHudQuickItems::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
-BOOL CHudSpellColumn::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
-BOOL CHudActionColumn::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
+void CHudQuickItems::Draw(CSceneRenderer* pass) { DrawWithSpecular(this, pass); }
+void CHudSpellColumn::Draw(CSceneRenderer* pass) { DrawWithSpecular(this, pass); }
+void CHudActionColumn::Draw(CSceneRenderer* pass) { DrawWithSpecular(this, pass); }
 
 // --- Quick items -------------------------------------------------------------------------------
 
-void CHudQuickItems::OnMouseDown(int, int x, int y) {
+void CHudQuickItems::LeftDown(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) < 0) return;
     handled_ = true;
     CaptureMouse();
 }
 
-void CHudQuickItems::OnDoubleClick(int, int x, int y) {
+void CHudQuickItems::LeftDouble(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) < 0) return;
     handled_ = true;
     CaptureMouse();
 }
 
-void CHudQuickItems::OnMouseMove(int, int x, int y) {
+void CHudQuickItems::MouseMove(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) >= 0) handled_ = true;
 }
 
@@ -210,16 +208,14 @@ void CHudQuickItems::Update() {
 
 // --- Spell column ------------------------------------------------------------------------------
 
-void CHudSpellColumn::OnMouseDown(int, int x, int y) {
+void CHudSpellColumn::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
     handled_ = true;
     CaptureMouse();
 }
 
-void CHudSpellColumn::OnDoubleClick(int buttons, int x, int y) { OnMouseDown(buttons, x, y); }
-
-void CHudSpellColumn::OnMouseUp(int, int x, int y) {
+void CHudSpellColumn::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
@@ -230,21 +226,21 @@ void CHudSpellColumn::OnMouseUp(int, int x, int y) {
         Click(region);
 }
 
-void CHudSpellColumn::OnMouseMove(int, int x, int y) {
+void CHudSpellColumn::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < count_) handled_ = true;
 }
 
 // --- Action column -----------------------------------------------------------------------------
 
-void CHudActionColumn::OnMouseDown(int, int x, int y) {
+void CHudActionColumn::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
     handled_ = true;
     CaptureMouse();
 }
 
-void CHudActionColumn::OnMouseUp(int, int x, int y) {
+void CHudActionColumn::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
@@ -252,14 +248,14 @@ void CHudActionColumn::OnMouseUp(int, int x, int y) {
     Select(region);
 }
 
-void CHudActionColumn::OnMouseMove(int, int x, int y) {
+void CHudActionColumn::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < count_) handled_ = true;
 }
 
 // --- Portraits ---------------------------------------------------------------------------------
 
-void CHudPortraits::OnMouseDown(int, int x, int y) {
+void CHudPortraits::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     int mode = PortraitMode(interface_);
     if (mode == 0) {
@@ -295,7 +291,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
     interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ = 0;
 }
 
-void CHudPortraits::OnMouseUp(int, int x, int y) {
+void CHudPortraits::LeftUp(int, int x, int y) {
     if (PortraitMode(interface_) != 0) return;
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
@@ -306,7 +302,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     if (region < std::ssize(owner->party_)) owner->SelectUnit(owner->party_[region], 0, 0);
 }
 
-void CHudPortraits::OnMouseMove(int, int x, int y) {
+void CHudPortraits::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (PortraitMode(interface_) == 0) {
         if (region < 0) return;
@@ -320,21 +316,21 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
 
 // --- Map ---------------------------------------------------------------------------------------
 
-void CHudMap::OnMouseDown(int, int x, int y) {
+void CHudMap::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0) {
         handled_ = true;
         CaptureMouse();
     }
     if (region != 3 && region != 4) return;
-    interface_->PlaySound(kSoundClick, 0);
+    interface_->PlaySound(kSoundClick);
     view_ = region == 3 ? 1 : 2;
     // Scene objects 6 and 7 are the buttons of views 1 and 2.
     for (int i = 0; i < 2; ++i)
         SetTint(sceneObjects_[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
 }
 
-void CHudMap::OnMouseUp(int, int x, int y) {
+void CHudMap::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     if (view_ != 0) {
         // A view button was held: the zoom stops and both buttons go dim.
@@ -345,7 +341,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
     const int region = RegionAt(x, y);
     switch (region) {
     case 0:     // the sling button
-        interface_->PlaySound(kSoundSling, 0);
+        interface_->PlaySound(kSoundSling);
         slideDirection_ = -slideDirection_;
         sliding_ = 1;
         handled_ = true;
@@ -378,7 +374,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         return;
     }
     case 5:     // "camera north"
-        interface_->PlaySound(kSoundClick, 0);
+        interface_->PlaySound(kSoundClick);
         g_camera->SetHeading(0.0f);
         northTime_ = 0.5f;
         handled_ = true;
@@ -389,30 +385,30 @@ void CHudMap::OnMouseUp(int, int x, int y) {
     }
 }
 
-void CHudMap::OnMouseMove(int, int x, int y) {
+void CHudMap::MouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
 
 // --- Unit panel --------------------------------------------------------------------------------
 
-void CHudUnitPanel::OnMouseDown(int, int x, int y) {
+void CHudUnitPanel::LeftDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
     handled_ = true;
     CaptureMouse();
 }
 
-void CHudUnitPanel::OnMouseUp(int, int x, int y) {
+void CHudUnitPanel::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region == 0) {
-        interface_->PlaySound(kSoundSling, 0);
+        interface_->PlaySound(kSoundSling);
         sliding_ = 1;
         slideDirection_ = -slideDirection_;
         handled_ = true;
         return;
     }
     if (region > 0 && region <= 4) {
-        interface_->PlaySound(kSoundClick, 0);
+        interface_->PlaySound(kSoundClick);
         bodyPart_ = region - 1;
         // Scene objects 3-6 are the body parts.
         for (int i = 0; i < 4; ++i) SetTint(sceneObjects_[3 + i], bodyPart_ == i ? kTintOn : kTintOff);
@@ -420,30 +416,29 @@ void CHudUnitPanel::OnMouseUp(int, int x, int y) {
     if (region >= 0) handled_ = true;
 }
 
-void CHudUnitPanel::OnMouseMove(int, int x, int y) {
+void CHudUnitPanel::MouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
 
-BOOL CHudUnitPanel::OnWheel(int, int, int x, int y) {
+void CHudUnitPanel::Wheel(int, int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
-    return 1;
 }
 
 // --- Clock -------------------------------------------------------------------------------------
 
-void CHudClock::OnMouseDown(int, int x, int y) {
+void CHudClock::LeftDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
     handled_ = true;
     CaptureMouse();
 }
 
-void CHudClock::OnMouseUp(int, int x, int y) {
+void CHudClock::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     const int region = RegionAt(x, y);
     switch (region) {
     case 0: {   // the pause button
         handled_ = true;
-        interface_->PlaySound(kSoundClock, 0);
+        interface_->PlaySound(kSoundClock);
         const bool paused = g_clientWorld->paused_;
         GameSendFlag10(paused ? 0 : 1);
         return;
@@ -457,7 +452,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
         fast_ = region - 1;
         worlddata::g_updatePeriod = fast_ ? kFastPeriod : kNormalPeriod;
         interface_->fastGame_ = fast_;
-        interface_->PlaySound(kSoundClock, 0);
+        interface_->PlaySound(kSoundClock);
         return;
     case 3:     // the objectives
         handled_ = true;
@@ -468,13 +463,13 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     }
 }
 
-void CHudClock::OnMouseMove(int, int x, int y) {
+void CHudClock::MouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
 
 void CHudClock::OpenObjectives() {
     highlight_ = false;
-    interface_->PlaySound(kSoundClick, 0);
+    interface_->PlaySound(kSoundClick);
     auto* window = new CObjectivesWindow(interface_);
     window->Setup(LocalPlayerZone(), nullptr, 0, 0);
     interface_->PushWindow(window, 1, 1);
@@ -482,13 +477,13 @@ void CHudClock::OpenObjectives() {
 
 // --- Movement panel ----------------------------------------------------------------------------
 
-void CHudMovePanel::OnMouseDown(int, int x, int y) {
+void CHudMovePanel::LeftDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
     handled_ = true;
     CaptureMouse();
 }
 
-void CHudMovePanel::OnMouseUp(int, int x, int y) {
+void CHudMovePanel::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region == -1) return;
@@ -500,7 +495,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
     int mode = region - 1;
     if (!g_clientWorld->LocalView()) return;
     if (mode >= 0 && mode < 4) {
-        interface_->PlaySound(kSoundClick, 0);
+        interface_->PlaySound(kSoundClick);
         for (int i = 0; i < std::ssize(owner_->party_); ++i) {
             CUnit* unit = owner_->party_[i];
             if (unit->flags_ & 0x10) LocalView()->SetMoveMode(unit, mode);
@@ -509,7 +504,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
     ShowModeVanilla(mode);
 }
 
-void CHudMovePanel::OnMouseMove(int, int x, int y) {
+void CHudMovePanel::MouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
 
@@ -565,18 +560,18 @@ void CHudMovePanel::Update() {
 
 // --- Top panel ---------------------------------------------------------------------------------
 
-void CHudTopPanel::OnMouseDown(int, int x, int y) {
+void CHudTopPanel::LeftDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
     handled_ = true;
     CaptureMouse();
 }
 
-void CHudTopPanel::OnMouseUp(int, int x, int y) {
+void CHudTopPanel::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     switch (region) {
     case 0:
-        interface_->PlaySound(kSoundSling, 0);
+        interface_->PlaySound(kSoundSling);
         sliding_ = 1;
         slideDirection_ = -slideDirection_;
         handled_ = true;
@@ -585,7 +580,7 @@ void CHudTopPanel::OnMouseUp(int, int x, int y) {
     case 2:
         page_ = region - 1;
         ShowPage();
-        interface_->PlaySound(kSoundClick, 0);
+        interface_->PlaySound(kSoundClick);
         handled_ = true;
         return;
     default:
@@ -594,13 +589,12 @@ void CHudTopPanel::OnMouseUp(int, int x, int y) {
     }
 }
 
-void CHudTopPanel::OnMouseMove(int, int x, int y) {
+void CHudTopPanel::MouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
 
-BOOL CHudTopPanel::OnWheel(int, int, int x, int y) {
+void CHudTopPanel::Wheel(int, int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
-    return 1;
 }
 
 // --- CBattleScreen::SelectUnit --------------------------------------------------------
@@ -666,7 +660,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         if (count <= 0) return;
         for (int i = 0; i < std::ssize(party_); ++i) {
             if (unit != party_[i]) continue;
-            interface_->PlaySound(game::SoundOnOffText(), 0);
+            interface_->PlaySound(game::SoundOnOffText());
             if (interface_->doubleClick_) {
                 if (i < std::ssize(party_)) g_camera->SetTarget(party_[i]);
             } else {
@@ -709,7 +703,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             int members = std::ssize(party_);
             for (int i = 0; i < members; ++i) {
                 if (unit != party_[i]) continue;
-                interface_->PlaySound(game::SoundOnOffText(), 0);
+                interface_->PlaySound(game::SoundOnOffText());
                 if (interface_->doubleClick_) {
                     if (i < std::ssize(party_)) g_camera->SetTarget(party_[i]);
                 } else {
@@ -837,7 +831,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
 
 // --- The quick item panel's button release -------------------------------------------
 
-void CHudQuickItems::OnMouseUp(int, int x, int y) {
+void CHudQuickItems::LeftUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     // Unchecked, like the original (region -1 reads a neighbouring field).
@@ -866,7 +860,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     if (selected_ != region) {
         // One of the player's items (top row): "use on an object" (mode 6) with the item's key in the
         // screen's itemUseKey_ and its id in pendingItem_.
-        interface_->PlaySound(kSoundClick, 0);
+        interface_->PlaySound(kSoundClick);
         screen->itemUseKey_ = entries_[entry].item->GetUse();
         screen->pendingItem_ = entries_[entry].id;
         screen->pendingSlot_ = region;
@@ -876,7 +870,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
         return;
     }
     // The highlighted one again: back to plain selection.
-    interface_->PlaySound(kSoundClick, 0);
+    interface_->PlaySound(kSoundClick);
     screen->pendingSlot_ = -1;
     screen->pendingAction_ = 0;
     screen->pendingItem_ = -1;

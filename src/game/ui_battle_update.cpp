@@ -46,7 +46,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     shownCount_ = 0;
     selected_ = -1;
     for (int i = 0; i < 8; ++i) {
-        regions_[i]->SetTip(0, 1, 0);
+        regions_[i]->SetTip(0);
         regionItem_[i] = -1;
     }
     entries_.clear();   // (zeroed new entries)
@@ -89,7 +89,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, true);
         ItemTip(slot, &tip);
-        regions_[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x2A);
+        regions_[slot]->SetTipString(tip, static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot));
     }
 
@@ -115,7 +115,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         finish(item, false);
         // The same string serves as the second and third texts.
         g_clientWorld->texts_->GetItemTexts(item, &tip, &unused, &unused);
-        regions_[slot]->SetTipString(tip, 1, 0);
+        regions_[slot]->SetTipString(tip);
         place(slot);
         ++slot;
     }
@@ -310,7 +310,7 @@ void CBattleScreen::Update() {
         case 2: sound = "buttons\\subcomplete.wav"; break;
         case 3: sound = "buttons\\complete.wav"; break;
         }
-        if (sound) interface_->PlaySound(sound, 0);
+        if (sound) interface_->PlaySound(sound);
         questSound_ = 0;
     }
 }
@@ -323,7 +323,7 @@ bool CBattleScreen::PartyIds::Equals(const CBattleScreen::PartyIds& other) const
 
 // --- the battle screen's left button release -----------------------------------------------------
 
-void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
+void CBattleScreen::LeftUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
         CUiContainer::LeftUp(buttons, x, y);
@@ -390,7 +390,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
 
 // --- a quest variable's notice -------------------------------------------------------------------
 
-void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
+void CBattleScreen::QuestVariable(std::string_view name, float value) {
     CTextManager* texts = g_clientWorld->texts_;
     std::vector<std::string> parts;
     std::string text;

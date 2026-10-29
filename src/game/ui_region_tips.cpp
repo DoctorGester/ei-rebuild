@@ -19,18 +19,18 @@ namespace {
 constexpr const char* kTipText = "tip %d";
 
 // A new tooltip of `region` (null when the allocation fails).
-CUiTooltip* NewTooltip(CUiRegion* region, std::string_view text, int flag, int extra) {
-    return new CUiTooltip(region->interface_, region, text, flag, extra);
+CUiTooltip* NewTooltip(CUiRegion* region, std::string_view text, int command) {
+    return new CUiTooltip(region->interface_, region, text, command);
 }
 
 } // namespace
 
 // --- A new tooltip --------------------------------------------------------
 
-void CUiRegion::SetTip(int textId, int flag, int extra) {
+void CUiRegion::SetTip(int textId, int command) {
     if (textId == 0) {
         delete tip_;
-        tip_ = NewTooltip(this, "", 1, 0);
+        tip_ = NewTooltip(this, "", 0);
         return;
     }
     std::string text;
@@ -38,12 +38,12 @@ void CUiRegion::SetTip(int textId, int flag, int extra) {
     CTextManager* texts = g_clientWorld->texts_;
     if (texts->Open(text)) texts->ReadToHash(&text, 1);
     delete tip_;
-    tip_ = NewTooltip(this, text, flag, extra);
+    tip_ = NewTooltip(this, text, command);
 }
 
-void CUiRegion::SetTipString(std::string_view text, int flag, int extra) {
+void CUiRegion::SetTipString(std::string_view text, int command) {
     delete tip_;
-    tip_ = NewTooltip(this, text, flag, extra);
+    tip_ = NewTooltip(this, text, command);
 }
 
 // --- The tooltip's text --------------------------------------------------------------

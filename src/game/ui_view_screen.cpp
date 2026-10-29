@@ -63,12 +63,11 @@ void CViewScreen::CreateScreen() {
     camera->localRotation_.PreMultiply(turn);
 }
 
-BOOL CViewScreen::DrawView() {
+void CViewScreen::Draw(CSceneRenderer*) {
     GameRender();
-    return TRUE;
 }
 
-void CViewScreen::OnClose() { g_camera->flags_ |= CCamera::kFree; }
+void CViewScreen::CloseScreen() { g_camera->flags_ |= CCamera::kFree; }
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 
@@ -78,7 +77,7 @@ UnitPickInput::UnitPickInput(CInterface3D* ui) : UiInputSide(ui) {
 
 UnitPickInput::~UnitPickInput() = default;
 
-void UnitPickInput::OnLeftDown(int, int x, int y) {
+void UnitPickInput::LeftDown(int, int x, int y) {
     CWorldClient* world = &g_clientWorld.Get();
     const POINT point = {x, y};
     CUnit* unit = world->UnitAt2(&point);
@@ -108,12 +107,12 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
     }
 }
 
-void UnitPickInput::OnRightDown(int, int, int) {
+void UnitPickInput::RightDown(int, int, int) {
     lib::FreeStorage(picked_);
     g_clientWorld->Deselect(nullptr);
 }
 
-void UnitPickInput::OnKeyDown(int key, int, int) {
+void UnitPickInput::KeyDown(int key, int, int) {
     if (key == kVkControl) {
         g_cursor->SetShape(kCursorCtrl);
     } else if (key == kVkSpace) {
@@ -121,6 +120,6 @@ void UnitPickInput::OnKeyDown(int key, int, int) {
     }
 }
 
-void UnitPickInput::OnKeyUp(int key, int, int) {
+void UnitPickInput::KeyUp(int key, int, int) {
     if (key == kVkControl) g_cursor->SetShape(kCursorNormal);
 }

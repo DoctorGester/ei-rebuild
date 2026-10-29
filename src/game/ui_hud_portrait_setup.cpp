@@ -205,7 +205,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].playerId_ = -1;
         owner_->UnitName(owner_->party_[i], &tip);
         const int tipId = 0x37 + i;
-        regions_[i]->SetTipString(tip, 1, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
+        regions_[i]->SetTipString(tip, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
     }
 
     if (!IsMultiplayerClient()) return;
@@ -234,7 +234,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[count_ - 1].faceName_ = picture;
         slots_[count_ - 1].faceState_ = 0;
         slots_[count_ - 1].playerId_ = player->serial_;
-        regions_[count_ - 1]->SetTipString(player->name_.data(), 1, 0);
+        regions_[count_ - 1]->SetTipString(player->name_.data());
     }
 }
 

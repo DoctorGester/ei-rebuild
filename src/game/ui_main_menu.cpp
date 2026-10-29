@@ -158,7 +158,7 @@ void CMainMenu::Close() {
 
 // --- A message box's answer -----------------------------------------------
 
-void CMainMenu::OnMessageResult(int result) {
+void CMainMenu::MessageResult(int result) {
     g_gameFlow->UseResources(false);
     GameSetServerPaused(0);
     if (result == 0x10001) {
@@ -182,7 +182,7 @@ void CMainMenu::OnMessageResult(int result) {
 
 // --- The mouse move and the keys -------------------------------------------
 
-void CMainMenu::OnMouseMove(int buttons, int x, int y) {
+void CMainMenu::MouseMove(int buttons, int x, int y) {
     if (auto* stones = g_clientWorld->objectManager_->FindObjectAs<CObject3D>(kStonesObject)) {
         int region = RegionAt(x, y);
         std::string name(stones->name);
@@ -193,14 +193,14 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
             else
                 animation = g_clientWorld->objectManager_->FindAnimation(&name, kRestPoseKind);
             stones->PlayAnimation(animation);
-            interface_->PlaySound(kStoneSound, 0);
+            interface_->PlaySound(kStoneSound);
         }
         hovered_ = region;
     }
     CUiContainer::MouseMove(buttons, x, y);
 }
 
-void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
+void CMainMenu::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key != VK_ESCAPE) return;
     interface_->PushWindow(new CMessageBox(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1), 1, 1);

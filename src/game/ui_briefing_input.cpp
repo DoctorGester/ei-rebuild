@@ -91,7 +91,7 @@ static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
 }
 
 
-void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
+void CBriefingScreen::LeftDown(int buttons, int x, int y) {
     if (chatActive_) {
         if (chat_) chat_->Input()->LeftDown(buttons, x, y);
         return;
@@ -104,7 +104,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
         CUnit* object = g_clientWorld->UnitAt2(&point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
-                interface_->PlaySound(ClickSound(), 0);
+                interface_->PlaySound(ClickSound());
                 OpenTopics(object);
             }
             return;
@@ -115,18 +115,18 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     case 1: {
         int region = RegionAt(x, y);
         if (region < 0 || region >= kTopicRows || region + topicTop_ >= TopicCount()) return;
-        interface_->PlaySound(ClickSound(), 0);
+        interface_->PlaySound(ClickSound());
         topic_ = topics_[region + topicTop_];
         ClearRegions();
         StartDialogue(0, 1);
         return;
     }
     case 3:
-        interface_->PlaySound(ClickSound(), 0);
+        interface_->PlaySound(ClickSound());
         NextPhrase(0);
         return;
     case 4:
-        interface_->PlaySound(ClickSound(), 0);
+        interface_->PlaySound(ClickSound());
         FinishDialogue();
         return;
     default:
@@ -135,7 +135,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
 }
 
 
-void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
+void CBriefingScreen::MouseMove(int buttons, int x, int y) {
     if (chatActive_) {
         g_cursor->SetShape(kCursorChat);
         if (chat_) chat_->Input()->MouseMove(buttons, x, y);
@@ -195,7 +195,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
 }
 
 
-void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
+void CBriefingScreen::LeftDouble(int buttons, int x, int y) {
     if (chatActive_) return;
     CUiContainer::LeftDouble(buttons, x, y);
     if (handled_) return;

@@ -128,7 +128,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
 // --- Movement panel ------------------------------------------------------------------------------
 
 void CHudMovePanel::ToggleFlag() {
-    interface_->PlaySound(kSoundClick, 0);
+    interface_->PlaySound(kSoundClick);
     // The selected party units' common flag: -1 none selected, -2 mixed.
     int common = -1;
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {

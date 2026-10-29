@@ -262,11 +262,11 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
 
     CUiRegion* sling = AddRegion();
     sling->SetRect(0, 0, 20, 30);
-    sling->SetTip(0x2774, 1, 0);
+    sling->SetTip(0x2774);
     for (int i = 0; i < 4; ++i) {
         CUiRegion* part = AddRegion();
         part->SetRect(0, 100 + 30 * i, 20, 130 + 30 * i);
-        part->SetTip(0x2775 + i, 1, 0x2E + i);
+        part->SetTip(0x2775 + i, 0x2E + i);
     }
     AddRegion()->SetRect(0, 0, 185, 225);
 
@@ -383,7 +383,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     // 5 "camera north", 6 the whole panel.
     CUiRegion* sling = AddRegion();
     sling->SetRect(780, 0, 800, 30);
-    sling->SetTip(0x283C, 1, 0x34);
+    sling->SetTip(0x283C, 0x34);
     // The round map's outline: each product and sum is a float on the game's FPU (24-bit precision; FCOS /
     // FSIN themselves are not rounded), so the point under the centre is 80 down, not 79 (see OnArc).
     CUiRegion* round = AddRegion();
@@ -398,13 +398,13 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     AddRegion()->SetRect(620, 0, 780, 160);
     CUiRegion* zoomIn = AddRegion();
     zoomIn->SetRect(780, 100, 800, 130);
-    zoomIn->SetTip(0x283D, 1, 0);
+    zoomIn->SetTip(0x283D);
     CUiRegion* zoomOut = AddRegion();
     zoomOut->SetRect(780, 130, 800, 160);
-    zoomOut->SetTip(0x283E, 1, 0);
+    zoomOut->SetTip(0x283E);
     CUiRegion* north = AddRegion();
     north->SetRect(780, 70, 800, 100);
-    north->SetTip(0x283F, 1, 0xC);
+    north->SetTip(0x283F, 0xC);
     AddRegion()->SetRect(615, 0, 800, 165);
 
     // Scene object 0: the world's bounds, in the map's picture; 1: the visible area's disc, in the

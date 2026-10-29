@@ -26,7 +26,7 @@ bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_
 
 } // namespace
 
-void CCameraInput::OnKeyDown(int, int, int flags) {
+void CCameraInput::KeyDown(int, int, int flags) {
     int character = g_keyActions[flags & 0x1FF];
     switch (character) {
     case 5: x_ = 1.0f; handled_ = true; break;

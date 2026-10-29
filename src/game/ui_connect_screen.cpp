@@ -213,14 +213,14 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
 
 // --- input ---------------------------------------------------------------------------------------
 
-void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
+void CMpConnectScreen::LeftDown(int buttons, int x, int y) {
     int region = RegionAt(x, y);
     switch (region) {
     case kRegionConnect:
         Connect();
         break;
     case kRegionBack:
-        interface_->PlaySound(CancelSound(), 0);
+        interface_->PlaySound(CancelSound());
         SaveAddressBook();
         g_gameFlow->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
@@ -268,7 +268,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         } else if (region >= kRegionRowFirst) {
             unsigned row = static_cast<unsigned>(scrollTop_ + region - kRegionRowFirst);
             if (row < entries_.size()) {
-                interface_->PlaySound(SelectSound(), 0);
+                interface_->PlaySound(SelectSound());
                 selected_ = static_cast<int>(row);
                 selectedAddress_ = entries_[row].address;
                 DrawListVanilla();
@@ -279,7 +279,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
 }
 
-void CMpConnectScreen::OnLButtonDouble(int buttons, int x, int y) {
+void CMpConnectScreen::LeftDouble(int buttons, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= kRegionRowFirst) {
         unsigned row = static_cast<unsigned>(scrollTop_ + region - kRegionRowFirst);
@@ -292,7 +292,7 @@ void CMpConnectScreen::OnLButtonDouble(int buttons, int x, int y) {
     CUiContainer::LeftDouble(buttons, x, y);
 }
 
-void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
+void CMpConnectScreen::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     int step;
     switch (key) {
@@ -301,7 +301,7 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
         handled_ = true;
         return;
     case VK_ESCAPE:
-        interface_->PlaySound(CancelSound(), 0);
+        interface_->PlaySound(CancelSound());
         g_gameFlow->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         handled_ = true;
@@ -312,7 +312,7 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
     case VK_NEXT: step = kRows; break;
     default: return;
     }
-    interface_->PlaySound(SelectSound(), 0);
+    interface_->PlaySound(SelectSound());
     selected_ += step;
     SelectAndScroll();
     handled_ = true;
@@ -331,7 +331,7 @@ void CMpConnectScreen::SelectAndScroll() {
 }
 
 void CMpConnectScreen::Connect() {
-    interface_->PlaySound(OkSound(), 0);
+    interface_->PlaySound(OkSound());
     int row = selected_;
     if (row == 0) {
         int players;
@@ -487,7 +487,7 @@ void CMpConnectScreen::CreateScreen() {
     auto region = [this](int left, int top, int right, int bottom, int tip) {
         CUiRegion* added = AddRegion();
         added->SetRect(left, top, right, bottom);
-        if (tip) added->SetTip(tip, 1, 0);
+        if (tip) added->SetTip(tip);
     };
     region(163, 526, 237, 574, 0x9E98);   // connect
     region(563, 526, 637, 574, 0x9E99);   // back
@@ -589,7 +589,7 @@ void CMpConnectScreen::CreateScreen() {
         str::TrimLeft(name);
         str::TrimRight(name);
         nameEdit_->SetText(name);
-        nameEdit_->SetEnabled(0, 1);
+        nameEdit_->SetEnabled(false);
         nameEdit_->SetFocused(false);
     }
     for (int i = 0; i < kTextCount; ++i) {

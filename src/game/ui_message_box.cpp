@@ -46,7 +46,7 @@ void CMessageBox::CopyEditText() {
     text::CopyFitting(editText_, kEditTextSize, edit_->text_);
 }
 
-void CMessageBox::OnLButtonDown(int buttons, int x, int y) {
+void CMessageBox::LeftDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     if (region == 0) {
@@ -54,17 +54,17 @@ void CMessageBox::OnLButtonDown(int buttons, int x, int y) {
             PlayExitMovieAndQuit();
             return;
         }
-        interface_->PlaySound(OkSound(), 0);
+        interface_->PlaySound(OkSound());
         if (flags_ & kEditField) CopyEditText();
     } else if (region == 1) {
-        interface_->PlaySound(CancelSound(), 0);
+        interface_->PlaySound(CancelSound());
     } else if (region < 0) {
         return;
     }
     interface_->SetPendingValue(result_ | static_cast<std::uint32_t>(region + 1));
 }
 
-void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
+void CMessageBox::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (handled_) return;
     if (key == VK_RETURN) {
@@ -72,11 +72,11 @@ void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
             PlayExitMovieAndQuit();
         } else {
             if (flags_ & kEditField) CopyEditText();
-            interface_->PlaySound(OkSound(), 0);
+            interface_->PlaySound(OkSound());
             interface_->SetPendingValue(result_ | kAnswerOk);
         }
     } else if (key == VK_ESCAPE) {
-        interface_->PlaySound(CancelSound(), 0);
+        interface_->PlaySound(CancelSound());
         interface_->SetPendingValue(result_ | kAnswerCancel);
     } else {
         return;
@@ -86,15 +86,15 @@ void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
 
 // --- CDifficultyBox ------------------------------------------------------------------------------
 
-void CDifficultyBox::OnLButtonDown(int, int x, int y) {
+void CDifficultyBox::LeftDown(int, int x, int y) {
     switch (RegionAt(x, y)) {
     case 0:
         options::g_options->difficulty_ = easy_;
-        interface_->PlaySound(OkSound(), 0);
+        interface_->PlaySound(OkSound());
         interface_->SetPendingValue(result_ | kAnswerOk);
         break;
     case 1:
-        interface_->PlaySound(CancelSound(), 0);
+        interface_->PlaySound(CancelSound());
         interface_->SetPendingValue(result_ | kAnswerCancel);
         break;
     case 2:
@@ -112,15 +112,15 @@ void CDifficultyBox::OnLButtonDown(int, int x, int y) {
     }
 }
 
-void CDifficultyBox::OnKeyDown(int key, int repeat, int flags) {
+void CDifficultyBox::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (handled_) return;
     if (key == VK_RETURN) {
         options::g_options->difficulty_ = easy_;
-        interface_->PlaySound(OkSound(), 0);
+        interface_->PlaySound(OkSound());
         interface_->SetPendingValue(result_ | kAnswerOk);
     } else if (key == VK_ESCAPE) {
-        interface_->PlaySound(CancelSound(), 0);
+        interface_->PlaySound(CancelSound());
         interface_->SetPendingValue(result_ | kAnswerCancel);
     } else {
         return;

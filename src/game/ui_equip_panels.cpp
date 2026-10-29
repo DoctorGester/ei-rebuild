@@ -57,13 +57,13 @@ void CHeroQuickStrip::ShowEntry(CItem* item) {
 
 // --- the equipment panel's right button ----------------------------------------------------------
 
-void CHeroEquipPanel::OnRightDown(int, int x, int y) {
+void CHeroEquipPanel::RightDown(int, int x, int y) {
     if (!body_ || !enabled_) return;
     int region = RegionAt(x, y);
     if (region < 0) return;
     PartyUnitRecord* hero = owner_->HeroRecord();
     if (region < std::ssize(hero->weapons) && region < kWeaponSlots) {
-        interface_->PlaySound(ChangeSound(), 0);
+        interface_->PlaySound(ChangeSound());
         hero->weaponIndex = static_cast<std::uint32_t>(region);
     }
     RefreshWeapons(owner_);

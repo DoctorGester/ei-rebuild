@@ -285,7 +285,7 @@ void CHelpWindow::ShowPage() {
     gameapi::OffsetRect(&button, step, 0);
     CUiRegion* okRegion = AddRegion();
     SetRegion(okRegion, button);
-    okRegion->SetTip(0x7594, 1, 0);
+    okRegion->SetTip(0x7594);
     SetRectangle(ok, button, 2, 0x5D, 0x34, 0x71);
     gameapi::OffsetRect(&button, step, 0);
     SetRegion(AddRegion(), button);
@@ -298,7 +298,7 @@ void CHelpWindow::ShowPage() {
     if (page_ > 0) {
         RECT label{0, 5, width / 3, 25};
         footer->DrawTextIn(lines_[page_ - 1], &label, 0, kTitleColour, DT_CENTER, 1);
-        regions_[0]->SetTip(0x7595, 1, 0);
+        regions_[0]->SetTip(0x7595);
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
         std::string hint;
@@ -311,7 +311,7 @@ void CHelpWindow::ShowPage() {
     if (page_ < static_cast<int>(lines_.size()) - 1) {
         RECT label{2 * width / 3, 5, width, 25};
         footer->DrawTextIn(lines_[page_ + 1], &label, 0, kTitleColour, DT_CENTER, 1);
-        regions_[2]->SetTip(0x7596, 1, 0);
+        regions_[2]->SetTip(0x7596);
     }
 
     entries.clear();

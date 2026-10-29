@@ -152,69 +152,69 @@ int FindHero(int start, Step step) {
 } // namespace
 
 void CCampPages::ShowPage(int page) {
-    equipment_->SetEnabled(0, 1);
-    equipment2_->SetEnabled(0, 1);
-    trade_->SetEnabled(0, 1);
-    statsPanel_->SetEnabled(0, 1);
-    helpPanel_->SetEnabled(0, 1);
+    equipment_->SetEnabled(false);
+    equipment2_->SetEnabled(false);
+    trade_->SetEnabled(false);
+    statsPanel_->SetEnabled(false);
+    helpPanel_->SetEnabled(false);
     if (spellConstructor_) {
-        spellConstructor1_->SetEnabled(0, 1);
-        spellConstructor2_->SetEnabled(0, 1);
-        spellStrip_->SetEnabled(0, 1);
+        spellConstructor1_->SetEnabled(false);
+        spellConstructor2_->SetEnabled(false);
+        spellStrip_->SetEnabled(false);
     }
     if (itemConstructor_) {
-        itemConstructor1_->SetEnabled(0, 1);
-        itemConstructor3_->SetEnabled(0, 1);
-        itemConstructor2_->SetEnabled(0, 1);
-        partStrip_->SetEnabled(0, 1);
+        itemConstructor1_->SetEnabled(false);
+        itemConstructor3_->SetEnabled(false);
+        itemConstructor2_->SetEnabled(false);
+        partStrip_->SetEnabled(false);
     }
     itemStrip_->slots_ = 9;
 
     bool offered = true;
     switch (page) {
     case 0:
-        statsPanel_->SetEnabled(1, 1);
-        equipment_->SetEnabled(1, 1);
+        statsPanel_->SetEnabled(true);
+        equipment_->SetEnabled(true);
         break;
     case 1:
-        statsPanel_->SetEnabled(1, 1);
-        equipment2_->SetEnabled(1, 1);
-        trade_->SetEnabled(1, 1);
+        statsPanel_->SetEnabled(true);
+        equipment2_->SetEnabled(true);
+        trade_->SetEnabled(true);
         break;
     case 2:
         if (!spellConstructor_) { offered = false; break; }
-        helpPanel_->SetEnabled(1, 1);
+        helpPanel_->SetEnabled(true);
         helpPanel_->ShowHelp(0x65);
-        spellConstructor1_->SetEnabled(1, 1);
-        spellStrip_->SetEnabled(1, 1);
+        spellConstructor1_->SetEnabled(true);
+        spellStrip_->SetEnabled(true);
         itemStrip_->slots_ = 1;
         break;
     case 3:
         if (!spellConstructor_ || noConstructor_) { offered = false; break; }
-        helpPanel_->SetEnabled(1, 1);
-        spellConstructor2_->SetEnabled(1, 1);
-        spellStrip_->SetEnabled(1, 1);
+        helpPanel_->SetEnabled(true);
+        spellConstructor2_->SetEnabled(true);
+        spellStrip_->SetEnabled(true);
         break;
     case 4:
         if (!itemConstructor_) { offered = false; break; }
-        helpPanel_->SetEnabled(1, 1);
+        helpPanel_->SetEnabled(true);
         helpPanel_->ShowHelp(0x64);
-        itemConstructor1_->SetEnabled(1, 1);
-        partStrip_->SetEnabled(1, 1);
+        itemConstructor1_->SetEnabled(true);
+        partStrip_->SetEnabled(true);
         itemStrip_->slots_ = 5;
         break;
     case 5:
         if (!itemConstructor_ || noConstructor_) { offered = false; break; }
-        helpPanel_->SetEnabled(1, 1);
-        itemConstructor2_->SetEnabled(1, 1);
-        partStrip_->SetEnabled(1, 1);
+        helpPanel_->SetEnabled(true);
+        itemConstructor2_->SetEnabled(true);
+        partStrip_->SetEnabled(true);
         break;
     case 6:
         if (!itemConstructor_) { offered = false; break; }
-        helpPanel_->SetEnabled(1, 1);
+        helpPanel_->SetEnabled(true);
         helpPanel_->ShowHelp(0x68);
-        itemConstructor3_->SetEnabled(1, 1);
-        partStrip_->SetEnabled(1, 1);
+        itemConstructor3_->SetEnabled(true);
+        partStrip_->SetEnabled(true);
         break;
     case 7: {
         // Leave: the trade is settled, the constructors' unused parts go back to their owners and
@@ -227,7 +227,7 @@ void CCampPages::ShowPage(int page) {
         ReturnAll(LocalPlayerData(), itemExtra_);
         TakeResults(this, spellResults_, spellParts_[0], spellStrip_);
         TakeResults(this, itemResults_, itemParts_[0], partStrip_);
-        interface_->PlaySound("buttons\\globalmap\\transit.wav", 0);
+        interface_->PlaySound("buttons\\globalmap\\transit.wav");
         if (fromHeroScreen_) {
             interface_->SetPendingValue(0);
             return;
@@ -242,7 +242,7 @@ void CCampPages::ShowPage(int page) {
     if (!offered) {
         ShowPage(page_);   // the page is not offered: show the current one again
     } else {
-        if (page_ != page) interface_->PlaySound("buttons\\camp\\slot.wav", 0);
+        if (page_ != page) interface_->PlaySound("buttons\\camp\\slot.wav");
         page_ = page;
         statsPanel_->ShowStats(page);
         trade_->SelectHero(hero_);
@@ -256,13 +256,13 @@ void CCampPages::ShowPage(int page) {
     if (page_ == 0 && (!itemConstructor_ || noConstructor_)) {
         SceneMesh(0)->visible_ = 0;
         SceneMesh(1)->visible_ = 0;
-        regions_[0]->SetTip(0, 1, 0);
-        regions_[1]->SetTip(0, 1, 0);
+        regions_[0]->SetTip(0);
+        regions_[1]->SetTip(0);
     } else {
         SceneMesh(0)->visible_ = 1;
         SceneMesh(1)->visible_ = 1;
-        regions_[0]->SetTip(0x4EE8, 1, 0);
-        regions_[1]->SetTip(0x4EE9, 1, 0);
+        regions_[0]->SetTip(0x4EE8);
+        regions_[1]->SetTip(0x4EE9);
     }
     // The page buttons (scene objects 2-9) half bright, the current one full.
     for (int i = 2; i < 10; ++i) SetShade(SceneMesh(i), 0.5f);
@@ -537,7 +537,7 @@ void CCampPages::UpdateAction() {
     SetShade(SceneMesh(1), actionShown_ ? 1.0f : 0.5f);
 }
 
-BOOL CCampPages::Draw(CSceneRenderer* pass) {
+void CCampPages::Draw(CSceneRenderer* pass) {
     int x = g_cursor->position_.x;   // the mouse in screen pixels
     int y = g_cursor->position_.y;
     hoveredItem_ = nullptr;
@@ -593,7 +593,6 @@ BOOL CCampPages::Draw(CSceneRenderer* pass) {
     UpdateAction();
     CUiContainer::Draw(pass);
     if (page_ == 0) DrawHeroPreview(pass, heroes_[hero_], heroTurn_, 400.0f, 1);
-    return 1;
 }
 
 // --- what the constructors would make ------------------------------------------------------------
@@ -722,7 +721,7 @@ void CCampPages::CloseScreen() {
 // --- taking an item off the hero -----------------------------------------------------------------
 
 CItem* CCampPages::TakeOff(CItem* item) {
-    interface_->PlaySound(game::PutOffSoundText(), 0);
+    interface_->PlaySound(game::PutOffSoundText());
     ItemKind kind = item->Kind();
     if (kind < ItemKind::Weapon || (kind > ItemKind::Quick && kind != ItemKind::Spell)) return nullptr;
     PartyUnitRecord* hero = HeroRecord();
@@ -772,7 +771,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
 // --- putting an item on the hero -----------------------------------------------------------------
 
 void CCampPages::PutOn(CItem* item) {
-    interface_->PlaySound(game::PutOnSoundText(), 0);
+    interface_->PlaySound(game::PutOnSoundText());
     PartyUnitRecord* hero = HeroRecord();
     switch (item->Kind()) {
     case ItemKind::Weapon:
@@ -845,12 +844,12 @@ void CCampPages::PutOnFromStrip(CItem* item) {
     default:
         return;
     }
-    interface_->PlaySound(game::PutOnSoundText(), 0);
+    interface_->PlaySound(game::PutOnSoundText());
 }
 
 void CCampPages::TakeItem(CItem* item, int mode) {
     if (!CanEquip(item, mode)) {
-        interface_->PlaySound(game::CancelSoundText(), 0);
+        interface_->PlaySound(game::CancelSoundText());
         return;
     }
     // Back to the player's items and the item strip (from `list`).
@@ -876,7 +875,7 @@ void CCampPages::TakeItem(CItem* item, int mode) {
             MoveItem(item, spellParts_[1], spellParts_[0], 8, 1, 0);
         else if (page_ == 3)
             MoveItem(item, spellResults_, spellParts_[0], 0, 0, 1);
-        interface_->PlaySound(game::PutOnSoundText(), 0);
+        interface_->PlaySound(game::PutOnSoundText());
         return;
     case 3:
         if (page_ == 4) {
@@ -891,7 +890,7 @@ void CCampPages::TakeItem(CItem* item, int mode) {
                 MoveItem(item, itemResults_, itemParts_[0], 0, 0, 1);
             }
         }
-        interface_->PlaySound(game::PutOnSoundText(), 0);
+        interface_->PlaySound(game::PutOnSoundText());
         return;
     case 4:
         // Out of the spell constructor's sold or bought list.
@@ -948,7 +947,7 @@ void CCampPages::TakeItem(CItem* item, int mode) {
     default:
         return;
     }
-    interface_->PlaySound(game::PutOffSoundText(), 0);
+    interface_->PlaySound(game::PutOffSoundText());
 }
 
 // --- the hero's unit after a change --------------------------------------------------------------

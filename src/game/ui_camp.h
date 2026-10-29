@@ -75,16 +75,8 @@ class CGlobalMap : public CUiContainer {
 public:
     explicit CGlobalMap(CInterface3D* ui);
     ~CGlobalMap() override;
-    BOOL Draw(CSceneRenderer* pass) override;   // the container's, blended
+    void Draw(CSceneRenderer* pass) override;   // the container's, blended
     void CloseScreen() override { Close(); }
-    void MessageResult(int result) override { OnMessageResult(result); }
-    void Deactivate() override { OnDeactivate(); }
-    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y); }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }
-    int RightUp(int b, int x, int y) override { return OnRightUp(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // One zero dword.
     void SaveState() override;
     // The local player's allod: the zones, the quests the player holds ("q.<zone>.<quest>" = 1) and the
@@ -115,24 +107,24 @@ public:
     // zone), pathTime_ growing by the exit's "#passtime".
     void FindPaths(MapRecord* from);
     // The right button drags the map round.
-    void OnRightDown(int buttons, int x, int y);
-    void OnRightUp(int buttons, int x, int y);
-    void OnDeactivate();
+    void RightDown(int buttons, int x, int y) override;
+    void RightUp(int buttons, int x, int y) override;
+    void Deactivate() override;
     // Rebirth-patched (WideScreen behind its flag: the drag and the pick picture's x without the margin).
     // Dragging turns the map by dx / 300 layout units; otherwise the zone or link under the mouse is
     // selected. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
-    void OnMouseMove(int buttons, int x, int y);
+    void MouseMove(int buttons, int x, int y) override;
     // Rebirth's WideScreen patch reproduced (the pick picture's x without the margin). Nothing while
     // dragging; a zone also opens the objectives window. Details: docs/notes/ui.md, "Behaviour moved out of
     // header comments".
-    void OnLeftDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // Esc opens the escape menu; an unused key whose action is '5' quick-saves ("saveq"), '6' quick-loads.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // A window above closed.
-    void OnMessageResult(int result);
+    void MessageResult(int result) override;
     const char* HelpTopic() override;
     // Ends a turn by a turn button.
-    int OnLButtonUp(int buttons, int x, int y);
+    void LeftUp(int buttons, int x, int y) override;
     void Close();
     // Zones, then quests, then links, then the three layers.
     CUiMesh* Marker(int index) const { return SceneMesh(3 + index); }
@@ -210,8 +202,6 @@ class CTradePanel : public CUiItemPanel {
 public:
     CTradePanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {}
     void Update() override { UpdateHeld(); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }
     // One statistics record per party member; the selected record -1.
     void Build() override;
     // The schools, the held perks (a level byte per group of three skill records) and every first-level perk
@@ -245,9 +235,9 @@ public:
     void ClampScroll();
     // Regions 0-3 scroll; from 4 a purchase the experience covers (a school or science row is then held),
     // the record marked bought.
-    void OnLButtonDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // Releases the mouse unconditionally and ends a hold.
-    void OnLButtonUp(int buttons, int x, int y);
+    void LeftUp(int buttons, int x, int y) override;
     // From 0.25 s of a hold on, every frame buys the row's next level again (the record is not marked
     // bought) until it cannot. The hold time is not reset after a purchase.
     void UpdateHeld();
@@ -288,9 +278,6 @@ public:
     void TopicClicked(int page) override;
     // Not checked.
     CUnit* HeroUnit(int index) override { return heroes_[index]; }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // Over the party's heroes, the best skill in spell school `school` (rounded to nearest) and the most
     // mana units (maximum mana / period, truncated).
     PartySkill BestPartySkill(int school) override;
@@ -318,7 +305,7 @@ public:
     // item is taken apart (kind 7).
     int Price(CItem* item, int kind) override;
     // Also finds what is under the mouse for the description panel.
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     // A weapon, armour, quick item or spell container off the current hero into the player's items (whose
     // result it returns; null for other kinds).
     CItem* TakeOff(CItem* item);
@@ -338,10 +325,10 @@ public:
     // The unit's own name, else the text of "pers <record name>".
     void ShowHero();
     // Regions 0 / 1 the deals, 2 / 3 turn the hero on the equipment page, 4-11 show page region - 4.
-    void OnLButtonDown(int buttons, int x, int y);
-    void OnLButtonUp(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
+    void LeftUp(int buttons, int x, int y) override;
     // Esc shows page 7 (leaves); on a network client Backspace and Enter go to the chat line.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     const char* HelpTopic() override;
     // By page: 0 repairs the hero's weapons and armour, 1 settles the trade (the money is left alone), 2 / 4
     // a constructor buys its third list, 3 / 5 the made spell / item (or the parts while deconstructing_),
@@ -405,8 +392,6 @@ class CHeroStatsPanel : public CUiItemPanel {
 public:
     CHeroStatsPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {}
     ~CHeroStatsPanel() override;
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y); }
     // Page 0 the body parts and the weapon, 10 the new hero's points with -/+ buttons, others the plain
     // values.
     void ShowStats(int page);
@@ -421,12 +406,12 @@ public:
     void SetHero(int heroIndex, std::optional<std::string_view> title);
     // On page 10 a -/+ button (regions 6-13) steps a point and is held; elsewhere region 0 / 1 show the
     // owner's previous / next hero.
-    void OnLButtonDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // A held -/+ button repeats every frame after a quarter of a second until it can step no more; the owner
     // is refreshed on every attempt.
     void Update() override;
     // Lets the mouse go unconditionally and ends the hold.
-    int OnLButtonUp(int buttons, int x, int y);
+    void LeftUp(int buttons, int x, int y) override;
     // Regions 6-8 take a point from strength, dexterity, intelligence (above 15), 9 the height down
     // (points_ >= 1), 10-12 give one (below 35, while the three add up to under 75), 13 the height up
     // (points_ <= 99; height = points_ * 0.01). True when it changed something.
@@ -451,8 +436,7 @@ public:
 class CHeroEquipPanel : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    BOOL Draw(CSceneRenderer* pass) override;
-    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }
+    void Draw(CSceneRenderer* pass) override;
     // With `body` (the camp) the panel is 500 high with the seven body slots.
     void Build(bool body);
     // The place in the hero's weapon list, or -1.
@@ -461,7 +445,7 @@ public:
     void ShowArmour(CItem* item);
     // On the camp's body: a right click on a filled weapon slot (of the first four) shows that weapon. The
     // event is not marked used.
-    void OnRightDown(int buttons, int x, int y);
+    void RightDown(int buttons, int x, int y) override;
     // Regions 0-3 the weapons (topic 2), 4-7 the armour list from its end (3), body regions 8-14 the armour
     // worn at body part region - 8 (topic region - 4).
     CItem* ItemAt(int x, int y, int* topic) override;
@@ -474,8 +458,7 @@ public:
 class CTradeGrid : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    BOOL Draw(CSceneRenderer* pass) override { return DrawGrid(pass); }
-    int DrawGrid(CSceneRenderer* pass);
+    void Draw(CSceneRenderer* pass) override;
     // `spells` chooses the price kinds (0/1 for the spell constructor, 4/5 for the item one).
     void Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, char spells, char flag);
     // Regions 0-7 the bought list (topic 0x1C with flag_, else 0x0B for the item constructor, 0x11 for the
@@ -495,7 +478,7 @@ public:
     using CUiItemPanel::CUiItemPanel;
     void Build(std::vector<CItem*>* items);
     // Each item's model in its cell (depth 2^(3 - row) * 6), its count and its repair price.
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     // Topic 0x19 on the 16 cells.
     CItem* ItemAt(int x, int y, int* topic) override;
 
@@ -512,7 +495,7 @@ public:
     void ShowEntry(CItem* item);
     // The hero's spell list entry (topic 1).
     CItem* ItemAt(int x, int y, int* topic) override;
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
 
     int y_;
     int selected_;                   // -1
@@ -523,11 +506,10 @@ public:
 class CConstructorPage : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    BOOL Draw(CSceneRenderer* pass) override { return DrawItemMaker(pass); }
     CItem* ItemAt(int x, int y, int* topic) override { return ItemMakerItemAt(x, y, topic); }
     void BuildItemMaker(CParty* slots);
     // Without a blueprint or a container, a pulsing highlight shows where the next part goes.
-    BOOL DrawItemMaker(CSceneRenderer* pass);
+    void Draw(CSceneRenderer* pass) override;
     // Region 0 the first spell container (topic 0x13), 1 the first spell (0x14), 2-9 modifier region - 2
     // (0x15), 10 / 11 the cost lines (0x1A / 0x1B, no item).
     CItem* SpellMakerItemAt(int x, int y, int* topic);
@@ -542,13 +524,12 @@ class CSpellMakerPage : public CConstructorPage {
 public:
     CSpellMakerPage(CInterface3D* ui, CItemScreen* owner) : CConstructorPage(ui, owner) {}
     ~CSpellMakerPage() override;
-    BOOL Draw(CSceneRenderer* pass) override { return DrawSpellMaker(pass); }
     CItem* ItemAt(int x, int y, int* topic) override { return SpellMakerItemAt(x, y, topic); }
     void BuildSpellMaker(CParty* slots);
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed
     // and the last spell's mana>)" with a spell. Without a container, a pulsing highlight shows where the
     // next part goes.
-    BOOL DrawSpellMaker(CSceneRenderer* pass);
+    void Draw(CSceneRenderer* pass) override;
 
     std::vector<std::string> texts_; // the cost texts ("infoitem_35", "infoitem_36")
 };

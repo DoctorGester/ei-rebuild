@@ -72,7 +72,7 @@ void CExchangeScreen::Close() {
     delete scratch_;   // the deleting destructor
 }
 
-void CExchangeScreen::OnMessageResult(int) {}
+void CExchangeScreen::MessageResult(int) {}
 
 // --- the update ----------------------------------------------------------------------------------
 
@@ -92,29 +92,29 @@ void CExchangeScreen::Update() {
 
 // --- the left button -------------------------------------------------------------------------------
 
-void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
+void CExchangeScreen::LeftDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();
         if (offer && !offer->accepted_ && ownOffer_->money_ <= LocalParty()->money_) {
-            uiorig::PlayUiSound(interface_, kBuySound, 0);
+            interface_->PlaySound(kBuySound);
             net::g_gameClient->RecordTrade(LocalParty());
             return;
         }
-        uiorig::PlayUiSound(interface_, kCancelSound, 0);
+        interface_->PlaySound(kCancelSound);
         return;
     }
     case kTakeBackRegion: {
         net::PartyMessage* offer = LiveOffer();
         if (offer && offer->accepted_) {
-            uiorig::PlayUiSound(interface_, kCancelSound, 0);
+            interface_->PlaySound(kCancelSound);
             net::ClientCommitParty(net::g_gameClient);
         }
         return;
     }
     case kLeaveRegion:
-        uiorig::PlayUiSound(interface_, kTransitSound, 0);
+        interface_->PlaySound(kTransitSound);
         net::ClientDropParty(net::g_gameClient);
         return;
     default:
@@ -140,13 +140,13 @@ void CExchangeScreen::CreateScreen() {
     LoadTexture("campinfo", 3);
     CUiRegion* region = AddRegion();
     region->SetRect(12, 450, 52, 490);
-    region->SetTip(0xA028, 1, 0);
+    region->SetTip(0xA028);
     region = AddRegion();
     region->SetRect(148, 450, 188, 490);
-    region->SetTip(0xA029, 1, 0);
+    region->SetTip(0xA029);
     region = AddRegion();
     region->SetRect(740, 460, 780, 490);
-    region->SetTip(0xA02B, 1, 0);
+    region->SetTip(0xA02B);
     // The buttons: accept, take back, a hidden one, leave (shaded).
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
@@ -208,7 +208,7 @@ void CExchangeScreen::CreateScreen() {
 
 // --- Draw ----------------------------------------------------------------------------------------
 
-BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
+void CExchangeScreen::Draw(CSceneRenderer* pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem_ = nullptr;
     int topic = 0;
@@ -283,7 +283,6 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     SetTint(Sprite(sceneObjects_[2]), partnerAccepted ? 0.5f : 1.0f);
 
     AsContainer(this)->CUiContainer::Draw(pass);
-    return 1;
 }
 
 // --- an item clicked in the strip or the grid ------------------------------------------------------
@@ -292,11 +291,11 @@ bool CExchangeScreen::CanMove() { return true; }
 
 void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     if (!CanEquip(item, mode)) {   // CanMove here
-        uiorig::PlayUiSound(interface_, kCancelSound, 0);
+        interface_->PlaySound(kCancelSound);
         return;
     }
     if (mode == kStripActionTake) {
-        uiorig::PlayUiSound(interface_, kPutOnSound, 0);
+        interface_->PlaySound(kPutOnSound);
         CParty* local = LocalParty();
         MoveItem(item, ownOffer_, local, kOfferLimit, 1, 0);
         net::ClientPublishParty(net::g_gameClient);
@@ -306,7 +305,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     const std::vector<CItem*>& offered = ownOffer_->items_;
     for (int i = 0; i < std::ssize(offered); ++i) {
         if (offered[i] != item) continue;
-        uiorig::PlayUiSound(interface_, kPutOffSound, 0);
+        interface_->PlaySound(kPutOffSound);
         CParty* offer = ownOffer_;
         CItem* held = MoveItem(item, LocalParty(), offer, 0, 1, 0);
         strip_->ScrollToItem(held);

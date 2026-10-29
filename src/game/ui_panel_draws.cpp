@@ -86,7 +86,7 @@ const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
 
 // --- The quick strip ------------------------------------------------------------------
 
-BOOL CHeroQuickStrip::Draw(CSceneRenderer* pass) {
+void CHeroQuickStrip::Draw(CSceneRenderer* pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto* frame = SceneMesh(0);
     int count = std::ssize(hero->spells);
@@ -101,12 +101,12 @@ BOOL CHeroQuickStrip::Draw(CSceneRenderer* pass) {
                       static_cast<float>(y_ + 50), 12.0f, 100.0f, mode_};
         DrawItem(owner_, pass, &cell);
     }
-    return DrawBase(pass);
+    DrawBase(pass);
 }
 
 // --- The repair grid ------------------------------------------------------------------
 
-BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
+void CRepairGrid::Draw(CSceneRenderer* pass) {
     CInterface3D* ui = interface_;
     RECT grid{200, 100, 600, 500};
     ui->ScaleRectToScreenEntry(&grid);
@@ -143,12 +143,11 @@ BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
     ui = interface_;
     RECT whole{0, 0, ui->width_, ui->height_};
     ClearUiDepth(1.0f, &whole, 1);
-    return 1;
 }
 
 // --- The constructors' second pages ----------------------------------------
 
-BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
+void CSpellMakerPage::Draw(CSceneRenderer* pass) {
     const std::vector<CItem*>& slots = slots_->items_;
     int needed = 0;
     float manaSum = 0.0f;
@@ -226,10 +225,9 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
         }
     }
     highlight->visible_ = 0;
-    return 1;
 }
 
-BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
+void CConstructorPage::Draw(CSceneRenderer* pass) {
     DrawBase(pass);
     const std::vector<CItem*>& slots = slots_->items_;
     bool hasBlueprint = false;   // or a spell container
@@ -300,5 +298,4 @@ BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
         }
     }
     highlight->visible_ = 0;
-    return 1;
 }

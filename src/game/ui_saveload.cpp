@@ -423,7 +423,7 @@ void CSaveLoadWindow::Confirm() {
         LoadSelected();
         return;
     }
-    interface_->PlaySound(kSoundOk, 0);
+    interface_->PlaySound(kSoundOk);
     if (selected_ == 0) {
         SaveGame();
         return;
@@ -433,7 +433,7 @@ void CSaveLoadWindow::Confirm() {
 
 void CSaveLoadWindow::AskDelete() {
     if (selected_ < 0 || (isSave_ && selected_ == 0)) return;
-    interface_->PlaySound(kSoundDelete, 0);
+    interface_->PlaySound(kSoundDelete);
     Ask(interface_, "delete", "delete_msg", kAskDelete);
 }
 
@@ -445,7 +445,7 @@ void CSaveLoadWindow::LoadSelected() {
     g_clientWorld->texts_->GetString(kNotifyLoading, &notice);
     g_interface->ShowStatusText(notice);
     GameStopSounds(1);
-    interface_->PlaySound(kSoundOk, 0);
+    interface_->PlaySound(kSoundOk);
     g_gameFlow->RequestLoad(entries_.data()[selected_].folder_, 0);
 }
 

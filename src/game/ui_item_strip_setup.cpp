@@ -44,8 +44,8 @@ CUiMesh* Sprite(CUiWindow& w, int index) { return w.SceneMesh(index); }
 void CUiItemStrip::Setup(std::vector<CItem*>* source, char top) {
     LoadTexture(top ? kTopTexture : kBottomTexture, kTextureKind);
     Build(top);
-    regions_[0]->SetTip(0x4FB0, 1, 0);
-    regions_[1]->SetTip(0x4FB1, 1, 0);
+    regions_[0]->SetTip(0x4FB0);
+    regions_[1]->SetTip(0x4FB1);
     AddSurface(NewSurface(interface_, 50, top_ + 15, 750, top_ + 35));
     AddSurface(NewSurface(interface_, 50, top_ + 65, 750, top_ + 85));
     slots_ = 9;
@@ -57,8 +57,8 @@ void CUiItemStrip::SetupFigures(std::vector<std::string>* names, char top, char 
     LoadTexture(kFigureTexture, kTextureKind);
     Build(top);
     if (!noArrowTips) {
-        regions_[0]->SetTip(0x9DD0, 1, 0);
-        regions_[1]->SetTip(0x9DD1, 1, 0);
+        regions_[0]->SetTip(0x9DD0);
+        regions_[1]->SetTip(0x9DD1);
     }
     tabsEnabled_ = false;
     for (int i = 2; i < 8; ++i) SceneMesh(i)->visible_ = 0;
@@ -69,7 +69,7 @@ CForwardingStrip::CForwardingStrip(CInterface3D* ui, CItemScreen* owner) : CUiIt
 
 // --- The figure strips' slots ----------------------------------------------------------------------
 
-BOOL CFigureStrip::Draw(CSceneRenderer* pass) {
+void CFigureStrip::Draw(CSceneRenderer* pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);   // _ftol
     const float frac = static_cast<float>(position - static_cast<float>(first));
@@ -103,18 +103,17 @@ BOOL CFigureStrip::Draw(CSceneRenderer* pass) {
         cell.size = kCell;
         owner_->DrawHeroFace(pass, &cell);
     }
-    return 1;
 }
 
 void CFigureStrip::RebuildList() { count_ = static_cast<int>(figures_->end() - figures_->begin()); }
 
-void CFigureStrip::OnFigureClick(int buttons, int x, int y) {
-    OnLButtonDown(buttons, x, y);
+void CFigureStrip::LeftDown(int buttons, int x, int y) {
+    CUiItemStrip::LeftDown(buttons, x, y);
     if (RegionAt(x, y) != 8) return;
     POINT point{x, y};
     interface_->ScalePointFromScreenEntry(&point);
     int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);   // _ftol
     if (index < 0 || index >= count_) return;
-    uiorig::PlayUiSound(interface_, OnOffSound(), 0);
+    interface_->PlaySound(OnOffSound());
     owner_->ChooseFigure(figures_->begin()[index]);   // the hero screen: the new hero's figure
 }

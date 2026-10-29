@@ -17,28 +17,21 @@ public:
     // left).
     explicit CCameraInput(CInterface3D* ui);
     ~CCameraInput() override;
-    void Deactivate() override { OnDeactivate(); }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }
-    int RightUp(int b, int x, int y) override { return OnRightUp(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }
-    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
 
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // A direction key released (actions 5-10 of
     // g_keyActions) clears its axis and marks the key used; then, when used, the camera's motion is
     // set again from the axes: without Ctrl / Alt it pans along (y_, -x_) at the pan speed
     // (the speed constants multiplied, stored as float), turns and tilts not, and climbs at the climb speed
     // * z_; with one it does not pan, turns at the turn speed * y_, climbs, and tilts at the
     // tilt speed * x_.
-    void OnKeyUp(int key, int repeat, int flags);
+    void KeyUp(int key, int repeat, int flags) override;
     // The right button went down: the point kept screen and layout
     // turning_, the mouse-drag motion cleared, the cursor held; the button used.
-    void OnRightDown(int buttons, int x, int y);
+    void RightDown(int buttons, int x, int y) override;
     // Released: turning_ cleared, the camera stops turning, tilting
     // and panning, the motion cleared, the cursor let go and put back at the mouse position; used.
-    void OnRightUp(int buttons, int x, int y);
+    void RightUp(int buttons, int x, int y) override;
     // (Rebirth-patched, reproducing WideScreen: the drag scaled without the margin.) The mouse moved.
     // While turning: the drag motion
     // (in layout units) turns the camera at the turn speed * (dx / 400) * 10 and
@@ -48,13 +41,13 @@ public:
     // layout point kept. Otherwise, when the edge margin is positive: the cursor within
     // the margin of a screen edge pans that way (with the keys' pan added unless Ctrl / Alt is
     // held) under the edge's arrow cursor, the event used when at an edge; the point is kept.
-    void OnMouseMove(int buttons, int x, int y);
+    void MouseMove(int buttons, int x, int y) override;
     // The input loses the screen: no turning, the axes cleared, the cursor let go,
     // the motion cleared and the camera stopped.
-    void OnDeactivate();
+    void Deactivate() override;
     // The wheel zooms the camera by the zoom speed *
     // (the delta's low word) * the step count.
-    BOOL OnWheel(int keys, int delta, int x, int y);
+    void Wheel(int keys, int delta, int x, int y) override;
 
     POINT pressScreen_;              // where the right button went down (screen)
     POINT pressLayout_;              // the same in layout coordinates

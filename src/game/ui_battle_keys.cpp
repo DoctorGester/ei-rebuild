@@ -100,13 +100,13 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
         panel->sliding_ = 1;
         panel->slideDirection_ = 1.0f;
     }
-    panel->interface_->PlaySound(SlingSound(), 0);
+    panel->interface_->PlaySound(SlingSound());
     show(panel);
 }
 
 } // namespace
 
-void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
+void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     if (portraitMode_ != 0) {
         if (key == VK_ESCAPE) portraitMode_ = 0;
         return;
@@ -152,7 +152,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     switch (action) {
     case kActionPause: {
         auto* clock = clock_;
-        clock->interface_->PlaySound(ClockSound(), 0);
+        clock->interface_->PlaySound(ClockSound());
         const bool paused = g_clientWorld->paused_;
         GameSendFlag10(paused ? 0 : 1);
         handled_ = true;
@@ -163,7 +163,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         auto* clock = clock_;
         if (g_clientWorld->paused_) return;
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
-        clock->interface_->PlaySound(ClockSound(), 0);
+        clock->interface_->PlaySound(ClockSound());
         const bool fast = action == kActionFastSpeed;
         clock->fast_ = fast ? 1 : 0;
         worlddata::g_updatePeriod = fast ? kFastPeriod : kNormalPeriod;
@@ -174,7 +174,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         // The objectives of the zone the local player is in, without buttons or a zone list.
         auto* clock = clock_;
         clock->highlight_ = false;
-        clock->interface_->PlaySound(ClickSound(), 0);
+        clock->interface_->PlaySound(ClickSound());
         auto* window = new CObjectivesWindow(clock->interface_);
         window->Setup(LocalPlayerZone(), nullptr, 0, 0);
         clock->interface_->PushWindow(window, 1, 1);
@@ -193,7 +193,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     case kActionCameraNorth: {
         auto* map = map_;
-        map->interface_->PlaySound(ClickSound(), 0);
+        map->interface_->PlaySound(ClickSound());
         camera->SetHeading(0.0f);
         map->northTime_ = 0.5f;
         return;
@@ -213,7 +213,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         auto* panel = movePanel_;
         const int mode = action - kActionMoveMode;
         if (g_clientWorld->LocalView()) {
-            panel->interface_->PlaySound(ClickSound(), 0);
+            panel->interface_->PlaySound(ClickSound());
             for (int i = 0; i < std::ssize(panel->owner_->party_); ++i) {
                 CUnit* unit = panel->owner_->party_[i];
                 if (unit->flags_ & kUnitSelected) LocalView()->SetMoveMode(unit, mode);
@@ -260,7 +260,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         if (current >= 0 && current < count) bar->Highlight(current, 0);
         bar->Highlight(slot, 1);
         bar->selected_ = slot;
-        bar->interface_->PlaySound(WeaponSound(), 0);
+        bar->interface_->PlaySound(WeaponSound());
         CUnit* unit = bar->unit_;
         if (!unit) return;
         LocalView()->SetWeapon(unit, slot);
@@ -293,7 +293,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
     case kActionMapSlide: {
         auto* map = map_;
-        map->interface_->PlaySound(SlingSound(), 0);
+        map->interface_->PlaySound(SlingSound());
         map->slideDirection_ = -map->slideDirection_;
         map->sliding_ = 1;
         return;
@@ -308,7 +308,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionMember + 1:
     case kActionMember + 2: {
         const int member = action - kActionMember;
-        interface_->PlaySound(OnOffSound(), 0);
+        interface_->PlaySound(OnOffSound());
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
         if ((interface_->ctrlDown_ || interface_->altDown_) && std::ssize(hud->party_) > member)
@@ -317,7 +317,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
     case kActionSelectAll:
         if (IsMultiplayerClient()) return;
-        interface_->PlaySound(OnOffSound(), 0);
+        interface_->PlaySound(OnOffSound());
         for (int i = 0; i < std::ssize(hud->party_); ++i) {
             MarkPortrait(i);
             if (CUnit* unit = hud->party_[i]) g_clientWorld->Select(unit);

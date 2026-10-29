@@ -32,7 +32,7 @@ Counts are vanilla / Rebirth.
 | CTradePanel rows `TradeRow` (007417A8) #0 | 16080 / 27360 | 120 / 144 | | no | 006261A0 TradeDrawLists, CTradePanel::DrawLists, DrawSchool |
 | CItemInfoPanel (007404DC) #0 | 12116 / 9568 | 1423 / 1501 | | **yes** (694 of 796 frames; changed in 63) | 005EE760 DescribeItem, 005F1590 DescribeStats, 005F1130, 005EF5D0, DrawWrappedText |
 | CHeroStatsPanel (00741ABC) #0 | 5136 / 4896 | 140 / 133 | | no | 00623880 DrawStats, DrawRow / DrawPart |
-| CHudUnitPanel (007426F8) #0 | 3718 / 3520 | 706 / 673 | | **yes** (666 frames, changed in 52) | 006462A0 DrawVanilla, 00647040, 006477E0, 00647B70 |
+| CHudUnitPanel (007426F8) #0 | 3718 / 3520 | 706 / 673 | | **yes** (666 frames, changed in 52) | 006462A0 Draw, 00647040, 006477E0, 00647B70 |
 | options (00741FAC) #0 | 1000 | 25 | | no | 00651350 RefreshRows |
 | camp (0074091C) #0 | 892 / 894 | 430 / 417 | | **yes** (414 of 414, changed in 21) | 00611930 CCampPages::UpdateAction |
 | item strip (0074197C, 00621B50) #0 / #1 | 290 / 330, 826 / 950 | 469 / 466 each | | **yes** (414 of 469, changed in 1 / 14) | CUiItemStrip::Draw < 00600EF0 UiContainerDraw |

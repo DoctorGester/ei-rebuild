@@ -106,24 +106,24 @@ void CGlobalMap::FindPaths(MapRecord* from) {
     }
 }
 
-void CGlobalMap::OnLeftDown(int, int x, int y) {
+void CGlobalMap::LeftDown(int, int x, int y) {
     if (dragging_) return;
     const int region = RegionAt(x, y);
     if (region == kRegionTurnLeft || region == kRegionTurnRight) {
         turning_ = region == kRegionTurnLeft ? -1 : 1;
-        interface_->PlaySound(MoveSound(), 0);
+        interface_->PlaySound(MoveSound());
         return;
     }
     if (region == kRegionCamp) {
         if (noCamp_ == 1) return;
-        interface_->PlaySound(TransitSound(), 0);
+        interface_->PlaySound(TransitSound());
         GameSetConstructionVariable(std::bit_cast<std::uint32_t>(0.0f));
         GameSendLeave04(kCampScreen);
         return;
     }
     int link;
     if (region >= kFirstLinkRegion) {
-        interface_->PlaySound(OkSound(), 0);
+        interface_->PlaySound(OkSound());
         link = region - kFirstLinkRegion;
     } else {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
@@ -131,7 +131,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         const std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= zoneCount_ || zones_[index].state == 0) return;
-        interface_->PlaySound(OkSound(), 0);
+        interface_->PlaySound(OkSound());
         GlobalMapZone& zone = zones_[index];
         link = zone.link;
         if (!gipat_ || link < 0) {

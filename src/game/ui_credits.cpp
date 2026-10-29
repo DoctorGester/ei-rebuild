@@ -27,11 +27,11 @@ constexpr int kHeaderFont = 2;
 
 // --- a window above the titles closed ------------------------------------------------------------
 
-void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
+void CCreditsScreen::MessageResult(int) { player_.Close(); }
 
 // --- the frame -----------------------------------------------------------------------------------
 
-BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
+void CCreditsScreen::Draw(CSceneRenderer* pass) {
     EI_NAN_AUDIT(textSurface_->speed_);
     if (GameTime() > nextLineAt_ && textSurface_->speed_ == 0.0f) {
         nextLineAt_ = 0.0f;
@@ -66,14 +66,14 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
         app::PlayMovies((name_ + kOutroSuffix), 0);
         app::g_interfaceHasScreen = 0;
         Close();
-        return 1;
+        return;
     }
-    return CUiContainer::Draw(pass);
+    CUiContainer::Draw(pass);
 }
 
 // --- the close -----------------------------------------------------------------------------------
 
-void CCreditsScreen::OnClose() {
+void CCreditsScreen::CloseScreen() {
     lines_.clear();
     g_sceneRenderer->fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
     app::g_interfaceHasScreen = 1;

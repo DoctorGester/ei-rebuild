@@ -135,7 +135,7 @@ void CInterface3D::OnStringEvent(std::string_view event) {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && str::Compare(words[0], "gameover") == 0) {
         GameStopSounds(1);
         GameStopAmbience();
-        PlaySound("buttons\\gameover.wav", 0);
+        PlaySound("buttons\\gameover.wav");
         const std::string_view title = words.size() > 1 ? std::string_view(words[1]) : "game_over";
         const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
         CMessageBox* window = new CMessageBox(this, title, message, 0x20000, 3, 1);

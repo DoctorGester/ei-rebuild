@@ -87,10 +87,10 @@ void CHudClock::SetupVanilla(int fast) {
                                      OnArc(i, kSixth, kOuterRadius), OnArc(i + 1, kSixth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(kLayoutRight - corner.across, kLayoutBottom - corner.up);
     }
-    regions_[0]->SetTip(0x28A0, 1, 1);
+    regions_[0]->SetTip(0x28A0, 1);
     if (!IsMultiplayerClient()) {
-        regions_[1]->SetTip(0x28A2, 1, 2);
-        regions_[2]->SetTip(0x28A3, 1, 3);
+        regions_[1]->SetTip(0x28A2, 2);
+        regions_[2]->SetTip(0x28A3, 3);
     }
     // The objectives button: the quarter disc in the corner.
     CUiRegion* middle = AddRegion();
@@ -99,7 +99,7 @@ void CHudClock::SetupVanilla(int fast) {
         const ArcPoint point = OnArc(turn, kSixth, kMiddleRadius);
         middle->AddPoint(kLayoutRight - point.across, kLayoutBottom - point.up);
     }
-    middle->SetTip(0x28A1, 1, 4);
+    middle->SetTip(0x28A1, 4);
 
     fast_ = fast;
     blink_ = 0.0f;
@@ -123,14 +123,14 @@ void CHudMovePanel::SetupVanilla() {
         const ArcPoint point = OnArc(turn, kEighth, kMiddleRadius);
         middle->AddPoint(point.across, kLayoutBottom - point.up);
     }
-    middle->SetTip(0x2904, 1, 0x1B);
+    middle->SetTip(0x2904, 0x1B);
     // The four movement modes' sectors.
     for (int mode = 0; mode < 4; ++mode) {
         CUiRegion* sector = AddRegion();
         const ArcPoint corners[4] = {OnArc(mode, kEighth, kInnerRadius), OnArc(mode + 1, kEighth, kInnerRadius),
                                      OnArc(mode + 1, kEighth, kOuterRadius), OnArc(mode, kEighth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(corner.across, kLayoutBottom - corner.up);
-        sector->SetTip(0x2905 + mode, 1, 0x17 + mode);
+        sector->SetTip(0x2905 + mode, 0x17 + mode);
     }
 
     SetHand(AddBlankSprite());

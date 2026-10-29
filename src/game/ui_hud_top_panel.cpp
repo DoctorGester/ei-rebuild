@@ -45,13 +45,13 @@ void CHudTopPanel::Build(int page, int shown) {
 
     CUiRegion* region = AddRegion();
     region->SetRect(0x181, 0, 0x19F, 0x14);   // the slide button
-    region->SetTip(0x27D8, 1, 0);
+    region->SetTip(0x27D8);
     region = AddRegion();
     region->SetRect(0xB9, 0, 0xD7, 0x14);     // page 0
-    region->SetTip(0x27D9, 1, 0x32);
+    region->SetTip(0x27D9, 0x32);
     region = AddRegion();
     region->SetRect(0xD7, 0, 0xF5, 0x14);     // page 1
-    region->SetTip(0x27DA, 1, 0x33);
+    region->SetTip(0x27DA, 0x33);
     AddRegion()->SetRect(0xB4, 0, 0x26C, 100);
 
     CUiMesh* back = AddBlankSprite();

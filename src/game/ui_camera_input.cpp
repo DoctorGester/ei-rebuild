@@ -88,7 +88,7 @@ CCameraInput::CCameraInput(CInterface3D* ui) : UiInputSide(ui) {
 
 CCameraInput::~CCameraInput() {}
 
-void CCameraInput::OnKeyUp(int, int, int flags) {
+void CCameraInput::KeyUp(int, int, int flags) {
     switch (g_keyActions[flags & kScanCodeMask]) {
     case 5:
     case 6:
@@ -127,7 +127,7 @@ void CCameraInput::OnKeyUp(int, int, int flags) {
     camera->SetTiltRate(TiltSpeed() * x_);
 }
 
-void CCameraInput::OnRightDown(int, int x, int y) {
+void CCameraInput::RightDown(int, int x, int y) {
     pressScreen_ = POINT{x, y};
     pressLayout_ = POINT{x, y};
     turning_ = true;
@@ -138,7 +138,7 @@ void CCameraInput::OnRightDown(int, int x, int y) {
     handled_ = true;
 }
 
-void CCameraInput::OnRightUp(int, int, int) {
+void CCameraInput::RightUp(int, int, int) {
     turning_ = false;
     CCamera* camera = &g_camera.Get();
     camera->SetTurnRate(0.0f);
@@ -152,7 +152,7 @@ void CCameraInput::OnRightUp(int, int, int) {
     handled_ = true;
 }
 
-void CCameraInput::OnMouseMove(int, int x, int y) {
+void CCameraInput::MouseMove(int, int x, int y) {
     CCamera* camera = &g_camera.Get();
     if (turning_) {
         POINT point{x, y};
@@ -203,7 +203,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
             edges |= kBottom;
         }
         if (!ModifierHeld(interface_)) {
-            // The keys' pan goes on (OnKeyUp sets the same).
+            // The keys' pan goes on (KeyUp sets the same).
             float left = static_cast<float>(-x_);
             float speed = static_cast<float>(PanSpeed());
             float forward = y_ * speed;
@@ -218,7 +218,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
     pressLayout_ = POINT{x, y};
 }
 
-void CCameraInput::OnDeactivate() {
+void CCameraInput::Deactivate() {
     turning_ = false;
     x_ = 0.0f;
     y_ = 0.0f;
@@ -229,9 +229,8 @@ void CCameraInput::OnDeactivate() {
     g_camera->StopMotion();
 }
 
-BOOL CCameraInput::OnWheel(int, int delta, int, int) {
+void CCameraInput::Wheel(int, int delta, int, int) {
     int steps = static_cast<short>(delta);
     g_camera->ZoomBy(ZoomSpeed() * static_cast<float>(steps) * kWheelStep);
-    return TRUE;
 }
 

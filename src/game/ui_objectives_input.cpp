@@ -60,13 +60,13 @@ CUiMesh* Sprite(const CObjectivesWindow* window, int index) {
 
 } // namespace
 
-void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
+void CObjectivesWindow::LeftDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones_.end() - zones_.begin());
     switch (region) {
     case kRegionOk:
-        interface_->PlaySound(OkSound(), 0);
+        interface_->PlaySound(OkSound());
         if (twoButtons_ == 0) {
             interface_->SetPendingValue(0);
         } else if (nearestExit_ >= 0) {
@@ -78,7 +78,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
         return;
     case kRegionCancel:
         if (twoButtons_ != 0) {
-            interface_->PlaySound(CancelSound(), 0);
+            interface_->PlaySound(CancelSound());
             interface_->SetPendingValue(0);
         }
         return;
@@ -99,7 +99,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     if (region < kRegionFirstExit) {
         int row = firstRow_ + region - kRegionFirstRow;
         if (row >= 0 && row < static_cast<int>(quests_.size())) {
-            interface_->PlaySound(SelectSound(), 0);
+            interface_->PlaySound(SelectSound());
             selectedQuest_ = row;
             DrawQuestList();
             ShowQuest();
@@ -109,19 +109,19 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     if (region >= std::ssize(exits_) + kRegionFirstExit) return;
     int exit = region - kRegionFirstExit;
     if (twoButtons_ != 0 && exits_[exit].flag_) {
-        interface_->PlaySound(EnterSound(), 0);
+        interface_->PlaySound(EnterSound());
         SelectExit(exit);
         return;
     }
-    interface_->PlaySound(CancelSound(), 0);
+    interface_->PlaySound(CancelSound());
 }
 
-void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
+void CObjectivesWindow::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     int step = 0;
     switch (key) {
     case kKeyEnter:
-        interface_->PlaySound(OkSound(), 0);
+        interface_->PlaySound(OkSound());
         if (twoButtons_ == 0) {
             interface_->SetPendingValue(0);
         } else if (nearestExit_ >= 0) {
@@ -133,7 +133,7 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
         handled_ = true;
         break;
     case kKeyEsc:
-        interface_->PlaySound(twoButtons_ == 0 ? OkSound() : CancelSound(), 0);
+        interface_->PlaySound(twoButtons_ == 0 ? OkSound() : CancelSound());
         interface_->SetPendingValue(0);
         handled_ = true;
         break;
@@ -144,13 +144,13 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
     default: break;
     }
     if (step != 0) {
-        interface_->PlaySound(SelectSound(), 0);
+        interface_->PlaySound(SelectSound());
         selectedQuest_ += step;
         RefreshQuests();
         handled_ = true;
     }
     if (!handled_ && g_keyActions[flags & 0x1FF] == kActionObjectives && twoButtons_ == 0) {
-        interface_->PlaySound(MessageOkSound(), 0);
+        interface_->PlaySound(MessageOkSound());
         interface_->SetPendingValue(0);
     }
 }

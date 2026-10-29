@@ -201,8 +201,6 @@ public:
     CItemInfoPanel(CInterface3D* ui, CItemScreen* owner);
     ~CItemInfoPanel() override;
     void Deactivate() override { DescribeItem(); }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }
     // Clears the surface and describes the item in the list (nothing without one): its own description
     // for blueprints, materials, spells, modifiers, quick items of category 8 and spells carried by an
     // item while the modifier key is held or spell containers; else the common description (name, kind,
@@ -222,11 +220,10 @@ public:
     void Describe(CItem* item);
     // Ctrl (VK_CONTROL) pressed (not a repeat) or released redraws the described item, so that the
     // carried spell is shown while it is held.
-    void OnKeyDown(int key, int repeat, int flags);
-    void OnKeyUp(int key, int repeat, int flags);
-    // Draws the described item's model at (x + 100, y + 200), size 120, greyed (mode 9) through the owner's DrawItem;
-    // returns 1.
-    BOOL Draw(CSceneRenderer* pass) override;
+    void KeyDown(int key, int repeat, int flags) override;
+    void KeyUp(int key, int repeat, int flags) override;
+    // Draws the described item's model at (x + 100, y + 200), size 120, greyed (mode 9) through the owner's DrawItem.
+    void Draw(CSceneRenderer* pass) override;
     // Builds the panel at layout point (x, y): its 200 x 300 surface (format 5), the item texts
     // "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text table, and an empty
     // item list.

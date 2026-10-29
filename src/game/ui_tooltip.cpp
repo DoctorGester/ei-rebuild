@@ -53,7 +53,7 @@ SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
 } // namespace
 
 // The virtuals: drawn and redrawn only while shown; the input side's defaults.
-CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view text, int flag, int extra) : CUiWindow(ui) {
+CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view text, int command) : CUiWindow(ui) {
     timer_ = 0.0f;
     state_ = 0;
     region_ = region;
@@ -63,8 +63,7 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view tex
     width_ = 0;
     height_ = 0;
     lineHeight_ = 0;
-    flag_ = flag;
-    extra_ = extra;
+    extra_ = command;
     keyName_ = nullptr;
     keyWidth_ = 0;
     for (int i = 0; i < static_cast<int>(lines_.size()); ++i) {
@@ -107,7 +106,7 @@ void CUiTooltip::DrawLines() {
     int step = lineHeight_;
     RECT row{kTextLeft, kTextTop, right - kTextLeft, step + kTextTop};
     for (int i = 0; i < static_cast<int>(lines_.size()); ++i) {
-        COLORREF colour = i >= flag_ ? kTextColour : kTitleColour;
+        COLORREF colour = i > 0 ? kTextColour : kTitleColour;
         if (i == 0 && keyName_) {
             std::string text = lines_[0] + KeyOpen() + keyName_ + KeyClose();
             surface->DrawTextIn(text, &row, kFont, colour, 0, 0);

@@ -183,7 +183,7 @@ void CCampPages::DeconstructItem() {
 // --- the first action button ---------------------------------------------------------------------
 
 void CCampPages::DoAction() {
-    interface_->PlaySound(kBuySound, 0);
+    interface_->PlaySound(kBuySound);
     switch (page_) {
     case kEquipment:
         if (itemConstructor_ && !noConstructor_) {
@@ -233,7 +233,7 @@ void CCampPages::DoAction() {
 // --- the second action button --------------------------------------------------------------------
 
 void CCampPages::UndoAction() {
-    interface_->PlaySound(kCancelSound, 0);
+    interface_->PlaySound(kCancelSound);
     switch (page_) {
     case kTrade:
         trade_->Settle(false, false);

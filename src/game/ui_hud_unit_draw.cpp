@@ -64,7 +64,7 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
 
 } // namespace
 
-BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
+void CHudUnitPanel::Draw(CSceneRenderer* pass) {
     widescreen::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
@@ -188,5 +188,4 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
 
     widescreen::LeavePanel();        // addon's 10023312, before the base draw
     DrawBase(pass);
-    return 1;
 }

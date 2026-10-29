@@ -54,8 +54,7 @@ void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, std::vector<CItem*>* list
 
 } // namespace
 
-// Returns 1.
-int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
+void CTradeGrid::Draw(CSceneRenderer* pass) {
     CInterface3D* ui = interface_;
     RECT grid{200, 100, 600, 500};
     ui->ScaleRectToScreenEntry(&grid);
@@ -75,5 +74,4 @@ int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
     ui = interface_;
     RECT whole{0, 0, ui->width_, ui->height_};
     ClearUiDepth(1.0f, &whole, 1);
-    return 1;
 }

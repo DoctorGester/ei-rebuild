@@ -37,7 +37,6 @@ inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
 inline bool UiShiftDown(const CInterface3D* ui) { return ui->shiftDown_ != 0; }
 
 namespace uiorig {
-void PlayUiSound(CInterface3D* ui, const char* name, int flags);
 // Leaves the running game for the main menu (the game object global).
 void LeaveGame();
 } // namespace uiorig
@@ -65,10 +64,6 @@ public:
     // The plain strip (the visible-list virtual is pure), the base of the forwarding and the figure strips.
     using CUiItemPanel::CUiItemPanel;
     virtual void RebuildList() = 0;
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, static_cast<short>(d), x, y); }
 
     // For the camp's three strips and the exchange window's: the background texture "Inventory02" (`top`) or "Inventory01", the
     // strip built, the arrows' tips 0x4FB0 / 0x4FB1, two text surfaces (x 50..750, y top_ + 15..35 and top_ + 65..85), nine
@@ -104,10 +99,10 @@ public:
     // slot and settling on a whole slot; then the list is rebuilt and the position kept within [0, count - 7].
     void Update() override;
 
-    void OnLButtonDown(int flags, int x, int y);
-    void OnLButtonUp(int flags, int x, int y);
-    void OnMouseMove(int flags, int x, int y);
-    BOOL OnWheel(int keys, short delta, int x, int y);
+    void LeftDown(int flags, int x, int y) override;
+    void LeftUp(int flags, int x, int y) override;
+    void MouseMove(int flags, int x, int y) override;
+    void Wheel(int keys, int delta, int x, int y) override;
 
     // Settles the pending scroll on release.
     void SettleScroll();
@@ -140,15 +135,14 @@ public:
     ~CForwardingStrip() override;
     // The end faces dimmed (sprite alpha 0.195) where it can scroll on, the background cells shifted by the current tab's
     // fractional position, the window's sprites, eight item cells through the owner, the stack counts (not 1) on surface 0
-    // and, unless a member is 9, the owner's number of each item its accept virtual takes on surface 1. Returns 1.
-    BOOL Draw(CSceneRenderer* pass) override;
+    // and, unless a member is 9, the owner's number of each item its accept virtual takes on surface 1.
+    void Draw(CSceneRenderer* pass) override;
     // The item under the screen point, or null; sets the cursor for the strip's action mode.
     CItem* ItemAt(int x, int y, int* cursor) override;
     // Rebuilds the visible list from the source list for the current filter and tab (tab 5 of filter 0 shows everything).
     void RebuildList() override;
-    int LeftDown(int b, int x, int y) override { return OnLButtonDownForward(b, x, y), 0; }
     // The strip's own click, then the item under the point to the owner.
-    void OnLButtonDownForward(int flags, int x, int y);
+    void LeftDown(int flags, int x, int y) override;
 };
 
 // The figure strips (the hero screen's two, the exchange window's).
@@ -157,15 +151,14 @@ public:
     using CUiItemStrip::CUiItemStrip;
     // The end faces dimmed where it can scroll on, the background and cells placed by the current tab's fraction, the frame
     // (scene object 8) on selected_ when in view, the window's sprites, then each visible name's hero face through the owner.
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     // No item: null, `topic` not written.
     CItem* ItemAt(int x, int y, int* topic) override;
     // Count_ = the number of names.
     void RebuildList() override;
-    int LeftDown(int b, int x, int y) override { return OnFigureClick(b, x, y), 0; }
     // The strip's own click, then on the items (region 8) the figure under the point picked: the "on_off" sound and the
     // owner's choose-figure virtual with its name.
-    void OnFigureClick(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
 };
 
 // --- Camp screen ------------------------------------------------------------------------------
@@ -191,14 +184,9 @@ public:
     explicit CMpHeroScreen(CInterface3D* ui);
     ~CMpHeroScreen() override;
     void CloseScreen() override { Close(); }
-    void MessageResult(int result) override { OnMessageResult(result); }
-    void TakeItem(CItem* item, int mode) override { OnItemChosen(item, mode); }
     void RefreshStats() override { RefreshHero(); }
     PartyUnitRecord* HeroRecord() override { return GetHero(); }
     double Weight() override { return EquipmentWeight(); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // Keeps the selected hero in the list and visible (ten rows), then shows it.
     void ClampHeroSelection();
     // The same for the voice list (eleven rows), then shows the voice's name.
@@ -206,19 +194,19 @@ public:
     // The weight carried by the hero being made (weapon, armour, spell container and the quick items), unrounded.
     double EquipmentWeight();
     // What an item strip calls with its action mode: with mode 0, equips a weapon, armour or spell container; then refreshes.
-    void OnItemChosen(CItem* item, int mode);
+    void TakeItem(CItem* item, int mode) override;
     // The local player's first hero.
     PartyUnitRecord* GetHero();
     // Whether the hero can take `item`; spell containers need the spell's skill and mana.
     bool CanEquip(CItem* item, int mode) override;
 
-    void OnLButtonUp(int flags, int x, int y);
+    void LeftUp(int flags, int x, int y) override;
     // Nothing while a hero is being renamed; after the base handler, clicks by mode (9 list, 10 new hero, 11 statistics):
-    // see docs/notes/ui.md, "CMpHeroScreen::OnLButtonDown".
-    void OnLButtonDown(int flags, int x, int y);
+    // see docs/notes/ui.md, "CMpHeroScreen::LeftDown".
+    void LeftDown(int flags, int x, int y) override;
     // After the container's handler, unless a child used the key: Enter, Esc and the paging keys by mode (9, 10, 11):
-    // see docs/notes/ui.md, "CMpHeroScreen::OnKeyDown". A key used is marked.
-    void OnKeyDown(int key, int repeat, int flags);
+    // see docs/notes/ui.md, "CMpHeroScreen::KeyDown". A key used is marked.
+    void KeyDown(int key, int repeat, int flags) override;
     // Enter while renaming: the hero's name becomes the text before its " | " plus " | " and the typed text (trimmed); the
     // transfer sent; the edit window put away.
     void FinishRename();
@@ -241,8 +229,8 @@ public:
     void CallShowHero(int index);
 
     // On the statistics page the experience lines on surface 2; then what is under the mouse for the description panel, the
-    // children drawn and the hero previewed (list at depth 553, new hero at 400). Returns 1.
-    BOOL Draw(CSceneRenderer* pass) override;
+    // children drawn and the hero previewed (list at depth 553, new hero at 400).
+    void Draw(CSceneRenderer* pass) override;
     // The children's update; a held rotate arrow turns the preview by twice the frame time; the scroll bars' moves redraw the
     // list and voices; on the new hero page the create button is bright only when the three attributes add up to the
     // attribute points and the name is not empty.
@@ -271,7 +259,7 @@ public:
     void DeleteHero();
     // A message box answered: 0x10001 (the "lmp_deletepers" OK) deletes the hero; then the selected hero's record takes the
     // local player's party and sends the transfer; mode 9.
-    void OnMessageResult(int result);
+    void MessageResult(int result) override;
     // Region 1 / Enter of the statistics page: the new hero is kept and saved as a record: see docs/notes/ui.md,
     // "CMpHeroScreen::AddNewHero".
     void AddNewHero();
@@ -345,9 +333,6 @@ public:
     ~CMpConnectScreen() override;
     void CloseScreen() override {}
     void MessageResult(int result) override { OnBoxResult(static_cast<std::uint32_t>(result)); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int LeftDouble(int b, int x, int y) override { return OnLButtonDouble(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
 
     // The message box results: the kinds the screen opens boxes with, ORed with 1 (OK) or 2 (cancel) when
     // they come back.
@@ -377,12 +362,12 @@ public:
     // screen closed with 0x1000001), 2 MasterRequest, 3 EditAddress, 4 the unlisted switch, 5 the password (none: a box for
     // one; else it is dropped), 6-9 the sort column (a second click reverses it), 10-13 the game type (only with row 0
     // selected), 14 and up a row (the select sound, it and its address selected); then the container's handler.
-    void OnLButtonDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // A row double-clicked is selected (no sound, no drawing) and Connect follows; then the container's handler.
-    void OnLButtonDouble(int buttons, int x, int y);
+    void LeftDouble(int buttons, int x, int y) override;
     // The container's handler first; then Enter connects, Esc leaves (as region 1 without the address book), Up / Down / PgUp /
     // PgDn move the selection by 1 / 15 with the select sound (SelectAndScroll); those keys are marked used.
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
     // The selection clamped to the list (an empty list gives -1 and reads the entry before it), its address kept, the list
     // scrolled to show it and drawn.
     void SelectAndScroll();
@@ -457,21 +442,16 @@ inline int SavedHeroCount() { return static_cast<int>(g_savedParties->entries_.s
 class CEscMenu : public CUiContainer {
 public:
     explicit CEscMenu(CInterface3D* ui) : CUiContainer(ui) {}
-    void CloseScreen() override { OnClose(); }
-    void MessageResult(int result) override { OnMessageResult(result); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    void OnMouseMove(int flags, int x, int y);
-    void OnKeyDown(int key, int repeat, int flags);
-    void OnMessageResult(int result);
+    void MouseMove(int flags, int x, int y) override;
+    void KeyDown(int key, int repeat, int flags) override;
+    void MessageResult(int result) override;
     // The stone model and the five regions, whose rectangles come from menus.reg.
     void CreateScreen() override;
     // Opens the save window (region 0), the load window (1; neither in multiplayer), resumes (2), asks to quit (3) or opens the
     // options (4).
-    void OnLButtonDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // The menu closes: its stone model (models_[0]) plays animation 0.
-    void OnClose();
+    void CloseScreen() override;
 
     int hovered_;               // region under the mouse, -1 for none
 };
@@ -520,12 +500,8 @@ class CCreditsScreen : public CUiContainer {
 public:
     CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name);
     ~CCreditsScreen() override;
-    void CloseScreen() override { OnClose(); }
-    void MessageResult(int result) override { OnMessageResult(result); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    void OnLButtonDown(int flags, int x, int y);
-    void OnKeyDown(int key, int repeat, int flags);
+    void LeftDown(int flags, int x, int y) override;
+    void KeyDown(int key, int repeat, int flags) override;
     // Ends the titles: back to where they were opened from.
     void Close();
     // Opened in a game (fromGame_ 0) the loading screen steps and the music stops; the cursor hidden, the
@@ -539,11 +515,11 @@ public:
     // stays for its speed in seconds), or past the last line finished_. The movie steps (stretched unless the
     // movie flag is 1); when it has ended after the last line: "<name>fout" played, the screen flag cleared
     // and the titles closed as Close() does; otherwise the container's draw.
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     // The lines freed, the display's flag restored, the screen flag set and the cursor shown.
-    void OnClose();
+    void CloseScreen() override;
     // A window above closed: the movie player is closed.
-    void OnMessageResult(int result);
+    void MessageResult(int result) override;
 
     CUiScrollingSurface* textSurface_;   // the scrolling text
     CUiSurface* headerSurface_;
@@ -564,16 +540,12 @@ public:
 class CMainMenu : public CUiContainer {
 public:
     explicit CMainMenu(CInterface3D* ui) : CUiContainer(ui) {}
-    BOOL Draw(CSceneRenderer* pass) override;
+    void Draw(CSceneRenderer* pass) override;
     void CloseScreen() override { Close(); }
-    void MessageResult(int result) override { OnMessageResult(result); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // By region: 0 the difficulty question (a message box), 1 load (the save/load window), 2 the exit movie and quit, 3
     // options, 4 the titles (surfaces cleared, opened over the menu), 5 multiplayer (status "reserved_04", the server flag, the
     // hero screen). Then the container's handler.
-    void OnLButtonDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // The interface's saved state cleared, the flow's party step 0, an inert extra input side (UiInertInput),
     // the full-screen rectangle, the version line, the six regions; the default music, the map edge fade kept
     // and set to 6, rain by a coin toss, daylight between 7 and 21, the rain started before 7; the camera
@@ -590,12 +562,12 @@ public:
     // A message box's answer (the flow's party step 0 and the server flag cleared first): 0x10001 (the quit
     // box's yes) the exit movie and quit, 0x20001 the intro movie and the flow's state 3, 0xCCCCCCCC (the
     // titles closed) the version line again.
-    void OnMessageResult(int result);
+    void MessageResult(int result) override;
     // Hovering a region plays its stone's animation (regions 0-5: 1, 3, 5, 7, 11, 9; off them the rest pose) with the stone
     // sound, once per region; then the container's handler.
-    void OnMouseMove(int buttons, int x, int y);
+    void MouseMove(int buttons, int x, int y) override;
     // The container's handler, then Esc asks to quit (a message box "quit" / "quit_msg", flags 0x10000).
-    void OnKeyDown(int key, int repeat, int flags);
+    void KeyDown(int key, int repeat, int flags) override;
 
     int hovered_;                    // the region under the mouse (-1 none)
     bool rain_;
@@ -611,14 +583,11 @@ public:
     explicit CExchangeScreen(CInterface3D* ui);
     ~CExchangeScreen() override;
     void CloseScreen() override { Close(); }
-    void MessageResult(int result) override { OnMessageResult(result); }
     void ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) override {
         OnExchangeDone(partyB, partyA, partyC);
     }
     void TakeItem(CItem* item, int mode) override { MoveOffered(item, mode); }
     bool CanEquip(CItem*, int) override { return CanMove(); }
-    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // Builds the window (texture "campinfo", regions 0 accept, 1 take back, 2 leave): see docs/notes/ui.md,
     // "CExchangeScreen::CreateScreen".
     void CreateScreen() override;
@@ -627,8 +596,8 @@ public:
     // "xch_money_offer", and while the partner's offer pairs with ours "xch_money_remote" with its money and
     // "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are shaded by our
     // offer's acceptance and the third button by the partner's; then the children.
-    BOOL Draw(CSceneRenderer* pass) override;
-    void OnKeyDown(int key, int repeat, int flags);
+    void Draw(CSceneRenderer* pass) override;
+    void KeyDown(int key, int repeat, int flags) override;
     // The exchange went through: the local party's items are released, every item of `partyC`, then of
     // `partyB`, returned into it (ReturnAll), its money set to partyB's - partyA's + partyC's, and the client
     // goes back to the world.
@@ -636,7 +605,7 @@ public:
     // The description panel describes nothing and the scratch party is deleted.
     void Close();
     // A message box's answer: nothing.
-    void OnMessageResult(int result);
+    void MessageResult(int result) override;
     // The children's update; then, when the client's offer is gone or detached, our offer's items go back to
     // the local party and the client returns to the world; else a changed money field (its changed_ cleared)
     // becomes our offer's money (atoi) and the offer is published.
@@ -645,7 +614,7 @@ public:
     // party, when our offer is live and not accepted and its money is within the local party's; else the
     // cancel sound), 1 take the acceptance back (cancel sound and the recorded take-back, when it is
     // accepted), 2 leave (the transit sound and the recorded leave). The event is not marked used.
-    void OnLButtonDown(int buttons, int x, int y);
+    void LeftDown(int buttons, int x, int y) override;
     // Refused by the accept virtual: the cancel sound. Mode 1 (the strip): the put_on sound, `item` moves
     // from the local party into our offer (MoveItem with limit 8, merging) and the offer is published. Mode 5
     // (the grid), only for an item of our offer: the put_off sound, the item moves back to the local party,
