@@ -93,7 +93,7 @@ void CUnit::WriteNetState() {
         PutWord(field, (unit->flags_ & 0x40000000) ? 0xFFFFFFFFu : ids[4]);
         for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
         field->EndField();
-        if (unit->controller->GetClassId() == kClassUnitServer)
+        if (unit->controller->GetClassId() == ClassId::UnitServer)
             unit->Controller()->RefreshEquipment();
     }
     if (DeltaField* field = state->BeginField(6)) {
@@ -196,7 +196,7 @@ std::uint32_t CMapObject::ReadNetState(int first) {
         field->ReadRaw(&effect->ticksLeft, 2);
         field->ReadRaw(&effect->ending, 1);
     }
-    if (GetClassId() != kClassUnit)
+    if (GetClassId() != ClassId::Unit)
         companion->EffectsChanged(first == 0);
     complete &= SnapshotConsumed();
     field->EndField();

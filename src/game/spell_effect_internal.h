@@ -191,7 +191,7 @@ inline std::uint32_t Bits(const float& f) {
     return u;
 }
 
-inline bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
+inline bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 // Where the object sees from into `scratch`.
 inline Vector3* EyePointOf(CMapObject* object, Vector3* scratch) { return object->EyePoint(scratch); }
 // A unit's server half (CUnit::controller).
@@ -201,7 +201,7 @@ inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target
 
 // From the world's timed object manager.
 template <class T>
-T* CreateObject(CSpellEffect* e, int classId) {
+T* CreateObject(CSpellEffect* e, ClassId classId) {
     return e->world->TimedObjectManager()->CreateObjectAs<T>(classId, -1);
 }
 

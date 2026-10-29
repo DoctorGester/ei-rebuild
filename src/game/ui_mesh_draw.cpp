@@ -135,7 +135,7 @@ CUiMesh::~CUiMesh() {}
 int CUiMesh::Create() { return CreateSprite(); }
 void CUiMesh::Destroy() { DestroySprite(); }
 const char* CUiMesh::ClassName() { return I3DFigureClassName(this); }
-ClassId CUiMesh::GetClassId() { return kClassUiMesh; }
+ClassId CUiMesh::GetClassId() { return ClassId::UiMesh; }
 
 // --- The arrays' sizes ---------------------------------
 

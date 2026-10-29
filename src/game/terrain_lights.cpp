@@ -53,7 +53,7 @@ VertexRange RangeIn(const LightArea* area, int sx, int sy) {
             sx == area->lastSectorX ? area->lastX : kLastVertex, sy == area->lastSectorY ? area->lastY : kLastVertex};
 }
 
-SectorData* BuiltSector(Terrain* terrain, int sx, int sy, std::uint32_t wanted) {
+SectorData* BuiltSector(Terrain* terrain, int sx, int sy, SectorStage wanted) {
     return terrain->SectorAt(sx, sy, wanted, 0);
 }
 
@@ -61,7 +61,7 @@ SectorData* BuiltSector(Terrain* terrain, int sx, int sy, std::uint32_t wanted) 
 void UpdateArea(Terrain* terrain, CLight* light, const Vector3* position, const LightArea* area, int remove) {
     for (int sy = area->firstSectorY; sy <= area->lastSectorY; ++sy)
         for (int sx = area->firstSectorX; sx <= area->lastSectorX; ++sx)
-            if (SectorData* sector = BuiltSector(terrain, sx, sy, kSectorBuilt))
+            if (SectorData* sector = BuiltSector(terrain, sx, sy, SectorStage::Built))
                 terrain::UpdateVertexLights(sector, light, position, area, remove);
 }
 
@@ -210,7 +210,7 @@ void Terrain::LightAreaOf(CLight* light, const Vector3* delta, LightArea* area) 
 void Terrain::RelightArea(const LightArea* area) {
     for (int sy = area->firstSectorY; sy <= area->lastSectorY; ++sy) {
         for (int sx = area->firstSectorX; sx <= area->lastSectorX; ++sx) {
-            SectorData* sector = BuiltSector(this, sx, sy, kSectorLit);
+            SectorData* sector = BuiltSector(this, sx, sy, SectorStage::Lit);
             if (!sector) continue;
             VertexRange range = RangeIn(area, sx, sy);
             sector->Light(this, 1, range.x0, range.y0, range.x1, range.y1);

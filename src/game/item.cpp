@@ -19,20 +19,20 @@ MaterialRecordHead* MaterialOf(std::uint32_t packedId) { return MaterialAt(Mater
 ItemRecordHead* CItem::GetPrototype() {
     std::uint32_t index = PrototypeIndex(prototypeId_);
     ItemRecordHead* record = nullptr;
-    switch (type_) {
-    case kItemWeapon: record = WeaponAt(index); break;
-    case kItemArmor: record = ArmorAt(index); break;
-    case kItemQuick: record = QuickItemAt(index); break;
-    case kItemLoot: record = LootAt(index); break;
-    case kItemQuest: record = QuestItemAt(index); break;
+    switch (Kind()) {
+    case ItemKind::Weapon: record = WeaponAt(index); break;
+    case ItemKind::Armor: record = ArmorAt(index); break;
+    case ItemKind::Quick: record = QuickItemAt(index); break;
+    case ItemKind::Loot: record = LootAt(index); break;
+    case ItemKind::Quest: record = QuestItemAt(index); break;
     default: break;
     }
     return record;
 }
 
-int CItem::GetCategory() {
+QuickItemCategory CItem::GetCategory() {
     const ItemRecordHead* prototype = GetPrototype();
-    return prototype ? static_cast<int>(prototype->category) : INT_MAX;
+    return prototype ? static_cast<QuickItemCategory>(prototype->category) : QuickItemCategory::NoPrototype;
 }
 
 int CItem::RunTick() {
@@ -97,17 +97,17 @@ int CItemArmor::GetTypeGroup() {
 
 float CItemLoot::GetPrice() {
     switch (kind_) {
-    case kLootSelf: return price_;
-    case kLootMaterial: return MaterialAt(index_)->unitPrice;
-    case kLootRecord: break;
+    case LootKind::Self: return price_;
+    case LootKind::Material: return MaterialAt(index_)->unitPrice;
+    case LootKind::Record: break;
     default: return -1.0f;
     }
     switch (recordType_) {
-    case kRecordWeapon: return WeaponAt(index_)->price;
-    case kRecordArmor: return ArmorAt(index_)->price;
-    case kRecordQuick: return QuickItemAt(index_)->price;
-    case kRecordSpell: return SpellAt(index_)->price;
-    case kRecordModifier: return SpellModifierAt(index_)->price;
+    case LootRecordType::Weapon: return WeaponAt(index_)->price;
+    case LootRecordType::Armor: return ArmorAt(index_)->price;
+    case LootRecordType::Quick: return QuickItemAt(index_)->price;
+    case LootRecordType::Spell: return SpellAt(index_)->price;
+    case LootRecordType::Modifier: return SpellModifierAt(index_)->price;
     default: return -1.0f;
     }
 }

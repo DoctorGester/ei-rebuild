@@ -68,4 +68,4 @@ void FigureMeshDrawer::DestroyDrawer() {
 int FigureMeshDrawer::Create() { return CreateDrawer(); }
 void FigureMeshDrawer::Destroy() { DestroyDrawer(); }
 const char* FigureMeshDrawer::ClassName() { return FigureClientSpecificClassName(this); }
-ClassId FigureMeshDrawer::GetClassId() { return kClassFigureMeshDrawer; }
+ClassId FigureMeshDrawer::GetClassId() { return ClassId::FigureMeshDrawer; }

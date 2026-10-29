@@ -72,7 +72,7 @@ CSpell::CSpell() {
 CSpell::~CSpell() { CSpell::Destroy(); }
 
 const char* CSpell::ClassName() { return "CSpell"; }
-ClassId CSpell::GetClassId() { return kClassSpell; }
+ClassId CSpell::GetClassId() { return ClassId::Spell; }
 
 CSpellEffect::CSpellEffect() {
     target = nullptr;

@@ -87,6 +87,6 @@ bool CTrapObject::Slot29True() { return true; }
 int CTrapObject::Slot38One() { return 1; }
 
 const char* CTrapObject::ClassName() { return kTrapName; }
-ClassId CTrapObject::GetClassId() { return kClassTrapObject; }
+ClassId CTrapObject::GetClassId() { return ClassId::TrapObject; }
 const char* MagicTrap::ClassName() { return kMagicTrapName; }
-ClassId MagicTrap::GetClassId() { return kClassMagicTrap; }
+ClassId MagicTrap::GetClassId() { return ClassId::MagicTrap; }

@@ -41,18 +41,18 @@ void DestructRef(T** ref) {
 }
 
 // The mode names of the "new motivation" message (passed by address).
-const char* ModeName(int type) {
+const char* ModeName(AIModeType type) {
     switch (type) {
-    case kModeGuard: return "Guard";
-    case kModePatrol: return "Patrol";
-    case kModeSentry: return "Sentry";
-    case kModeSuspection: return "Suspection";
-    case kModeAggression: return "Aggression";
-    case kModeCorpseWatcher: return "CorpseWatcher";
-    case kModePlayer: return "Player";
-    case kModeFear: return "Fear";
-    case kModeTamed: return "Tamed";
-    case kModeFollow: return "Follow";
+    case AIModeType::Guard: return "Guard";
+    case AIModeType::Patrol: return "Patrol";
+    case AIModeType::Sentry: return "Sentry";
+    case AIModeType::Suspection: return "Suspection";
+    case AIModeType::Aggression: return "Aggression";
+    case AIModeType::CorpseWatcher: return "CorpseWatcher";
+    case AIModeType::Player: return "Player";
+    case AIModeType::Fear: return "Fear";
+    case AIModeType::Tamed: return "Tamed";
+    case AIModeType::Follow: return "Follow";
     default: return nullptr;    // 9 and anything else: the name stays empty
     }
 }
@@ -93,7 +93,7 @@ void AIBrain::Think() {
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
             g_serverWorld->InvokeAlarm(alarm, &owner->unit->localPosition_.x, 0);
-            owner->voice.Raise(kRemarkAlarm);
+            owner->voice.Raise(AIRemark::Alarm);
         }
     }
     decay = (decay * kDecayScale + 1.0f) * kDecayDivisor;
@@ -142,8 +142,8 @@ void AIBrain::Think() {
             text = str::Format(MotivationFormat(), owner->unit->id_, name,
                         bestPriority);
             console::EndLine(*kModeLog << text);
-            int type = best->GetType();
-            if (type >= kModeSuspection && (type <= kModeCorpseWatcher || type == kModeFear) && alertMode == 2 && !alerted)
+            AIModeType type = best->GetType();
+            if (type >= AIModeType::Suspection && (type <= AIModeType::CorpseWatcher || type == AIModeType::Fear) && alertMode == 2 && !alerted)
                 alerted = 1;
         }
         if (current) current->Leave(this);
@@ -173,7 +173,7 @@ void AIBrain::Think() {
         return;
     case kActionWalk:
         target.Reset();
-        if (owner->HasOrder(kOrderMove) || owner->HasOrder(kOrderTurn)) return;
+        if (owner->HasOrder(UnitOrderKind::Move) || owner->HasOrder(UnitOrderKind::Turn)) return;
         action = kActionNone;
         return;
     case kActionMove:
@@ -184,14 +184,14 @@ void AIBrain::Think() {
         UpdateAttack();
         return;
     case kActionCast:
-        if (owner->HasOrder(kOrderCastAt) || owner->HasOrder(kOrderCastOn)) return;
+        if (owner->HasOrder(UnitOrderKind::CastAt) || owner->HasOrder(UnitOrderKind::CastOn)) return;
         if (target && owner->orderStopped) memory.reports.Report(target, 0xF);
         target.Reset();
         action = kActionNone;
         return;
     case kActionUse:
         target.Reset();
-        if (owner->HasOrder(kOrderUse)) return;
+        if (owner->HasOrder(UnitOrderKind::Use)) return;
         action = kActionNone;
         return;
     case kActionFollow:
@@ -217,7 +217,7 @@ PatrolMode* AIBrain::FindPatrolMode() {
     for (auto node = modes.begin(); node != modes.end();) {
         AIMode* mode = *node;
         ++node;
-        if (mode->GetType() == kModePatrol) return static_cast<PatrolMode*>(mode);
+        if (mode->GetType() == AIModeType::Patrol) return static_cast<PatrolMode*>(mode);
     }
     return nullptr;
 }
@@ -226,7 +226,7 @@ PlayerMode* AIBrain::FindPlayerMode() {
     for (auto node = modes.begin(); node != modes.end();) {
         AIMode* mode = *node;
         ++node;
-        if (mode->GetType() == kModePlayer) return static_cast<PlayerMode*>(mode);
+        if (mode->GetType() == AIModeType::Player) return static_cast<PlayerMode*>(mode);
     }
     return nullptr;
 }
@@ -242,7 +242,7 @@ CMapObject* AIBrain::AggressionEnemy() {
     for (auto node = modes.begin(); node != modes.end();) {
         AIMode* mode = *node;
         ++node;
-        if (mode->GetType() == kModeAggression) {
+        if (mode->GetType() == AIModeType::Aggression) {
             if (mode && current == mode) return static_cast<AggressionMode*>(mode)->enemy;
             return nullptr;
         }
@@ -308,7 +308,7 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
 
 void AIBrain::UpdateMove() {
     CUnitServer* o = owner;
-    if (o->HasOrder(kOrderMove) || o->HasOrder(kOrderTurn)) return;
+    if (o->HasOrder(UnitOrderKind::Move) || o->HasOrder(UnitOrderKind::Turn)) return;
     if (o->orderStopped) {
         CUnit* unit = o->unit;
         double dy = move.point.y - unit->localPosition_.y;     // kept on the FPU stack
@@ -363,7 +363,7 @@ void AIBrain::UpdateAttack() {
         }
     } else if (target->IsDead() != 0) {
         giveUp = true;
-    } else if (target->GetClassId() == kClassUnit && memory.IsEnemy(owner->unit, target) == 0) {
+    } else if (target->GetClassId() == ClassId::Unit && memory.IsEnemy(owner->unit, target) == 0) {
         giveUp = true;
     }
     if (giveUp) {
@@ -372,9 +372,9 @@ void AIBrain::UpdateAttack() {
         return;
     }
     o = owner;
-    if (o->action.kind == kOrderAttack && o->action.target == target) return;
-    if (o->action2.kind == kOrderAttack && o->action2.target == target) return;
-    if (o->HasOrder(kOrderCastAt) || o->HasOrder(kOrderCastOn)) return;
+    if (o->action.kind == UnitOrderKind::Attack && o->action.target == target) return;
+    if (o->action2.kind == UnitOrderKind::Attack && o->action2.target == target) return;
+    if (o->HasOrder(UnitOrderKind::CastAt) || o->HasOrder(UnitOrderKind::CastOn)) return;
     action = kActionNone;
 }
 
@@ -389,7 +389,7 @@ void AIBrain::AttackTarget(CMapObject* object) {
     AckKind flags = AckKind::DecidedToAttack;
     if (owner->unit->player) {
         AIOrder order{};
-        order.kind = kOrderAttack;
+        order.kind = UnitOrderKind::Attack;
         order.source = 6;
         order.target = nullptr;
         order.pointIsUseSpot = 0;
@@ -404,22 +404,22 @@ void AIBrain::AttackTarget(CMapObject* object) {
     owner->OrderAttack(target, 6, 0, flags);
 }
 
-void AIBrain::UseOn(CMapObject* object, int kind, int a, int b) {
+void AIBrain::UseOn(CMapObject* object, UseSource kind, int a, int b) {
     if (!object) return;
     action = kActionUse;
     target.Reset();
     switch (kind) {
-    case kSourceUse:
+    case UseSource::Use:
         owner->OrderUse(object, a, b);
         return;
-    case kSourceSteal:
-        if (object->GetClassId() == kClassUnit) owner->OrderSteal(object, b);
+    case UseSource::Steal:
+        if (object->GetClassId() == ClassId::Unit) owner->OrderSteal(object, b);
         return;
-    case kSourceTame:
-        if (object->GetClassId() == kClassUnit) owner->OrderTame(object, b);
+    case UseSource::Tame:
+        if (object->GetClassId() == ClassId::Unit) owner->OrderTame(object, b);
         return;
-    case kSourceSearchBody:
-        if (object->GetClassId() == kClassUnit) owner->OrderSearchBody(object, b);
+    case UseSource::SearchBody:
+        if (object->GetClassId() == ClassId::Unit) owner->OrderSearchBody(object, b);
         return;
     default:
         return;

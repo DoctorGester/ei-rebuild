@@ -315,7 +315,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x90: { // GetLeverState
         CEngineObject* o = objectArgs[0]->object;
         *result = 0.0f;
-        if (!o || o->GetClassId() != kClassLever) return;
+        if (!o || o->GetClassId() != ClassId::Lever) return;
         *result = static_cast<float>(static_cast<Lever*>(o)->state);
         return;
     }

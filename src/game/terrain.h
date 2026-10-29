@@ -4,6 +4,7 @@
 #include "resource.h"
 
 #include "lib/containers.h"
+#include "lib/bit_flags.h"
 #include "lib/hash_map.h"
 #include "lib/vecmath.h"
 
@@ -57,21 +58,27 @@ struct LandscapeLight {
 // Landscape: answers height queries for a world position. The vertex grid has unit spacing, but vertices
 // can be displaced sideways, so a point may lie in a neighbouring cell. The client world's Setup makes it.
 // Terrain::landscapeFlags.
-enum LandscapeFlag : std::uint32_t {
-    kLandscapeWaves = 0x01,
-    kLandscapeAnimatedTiles = 0x02,
-    kLandscapeEdgeFade = 0x04,      // the light fades out at the map's edges
-    kLandscapeAmbience = 0x08,      // the ambient sounds play
-    kLandscapeSunShadows = 0x10,
-    kLandscapeAll = 0xFFFF,         // a loaded map's
+enum class LandscapeFlag : std::uint32_t {
+    None = 0,
+    Waves = 0x01,
+    AnimatedTiles = 0x02,
+    EdgeFade = 0x04,  // the light fades out at the map's edges
+    Ambience = 0x08,  // the ambient sounds play
+    SunShadows = 0x10,
+    All = 0xFFFF,     // a loaded map's
 };
+template <>
+inline constexpr bool lib::kBitFlags<LandscapeFlag> = true;
 
 // What of a sector is built (SectorData::built; the stages Terrain::SectorAt asks for).
-enum SectorStage : std::uint32_t {
-    kSectorLoaded = 1,   // the vertex positions
-    kSectorBuilt = 2,    // the geometry
-    kSectorLit = 4,
+enum class SectorStage : std::uint32_t {
+    None = 0,
+    Loaded = 1,  // the vertex positions
+    Built = 2,   // the geometry
+    Lit = 4,
 };
+template <>
+inline constexpr bool lib::kBitFlags<SectorStage> = true;
 
 class Terrain final : public CTransformObject {
 public:
@@ -165,7 +172,7 @@ public:
     // null. Sectors live in an LRU cache: a hit moves to the front (stamped with the frame); with `create`
     // a missing sector is loaded (the least recently used one reused when older than 240 frames, older ones
     // freed) and the wanted stages are built.
-    terrain::SectorData* SectorAt(int sx, int sy, std::uint32_t wanted, int create);
+    terrain::SectorData* SectorAt(int sx, int sy, SectorStage wanted, int create);
 
     // Ground height at (x, y), and water depth above it (0 when dry).
     void GroundAndWaterDepth(float x, float y, float* ground, float* depth);
@@ -184,14 +191,14 @@ public:
     // Flag 8: the 3x3 sectors around the listener vote a sound class, weighted by distance; up to three
     // classes play a looping circle.wav and random one-shots (ambient\<set>\<class>\<time of day>\<n>.wav).
     void PlayAmbience();
-    // Clears kLandscapeAmbience and stops the three loops.
+    // Clears LandscapeFlag::Ambience and stops the three loops.
     void StopAmbience();
     // Slides the decal quad along the builder's slope until its lowest point meets the lowest ground vertex
     // of the cells under it (one cell of margin), then hands those cells' ground triangles to the builder.
     void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
 
     Matrix4 drawMatrix;             // rotation, position in the last column
-    std::uint32_t landscapeFlags;   // LandscapeFlag
+    LandscapeFlag landscapeFlags;
     Matrix4 worldMatrix;            // rows; position in the last row
     std::vector<CTexture*> pageTextures;     // held
     std::vector<CMaterial*> pageMaterials;   // held ("Wood")

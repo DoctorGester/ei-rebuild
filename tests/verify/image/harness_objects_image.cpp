@@ -166,7 +166,7 @@ bool UnitFaceHalves(std::vector<void*>* halves) {
     CWorldClient* world = &g_clientWorld.Get();
     if (!world) return false;
     for (CMapObject* object : world->objects_) {
-        if (!object || object->GetClassId() != kClassUnit) continue;
+        if (!object || object->GetClassId() != ClassId::Unit) continue;
         auto* half = reinterpret_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
         if (half && half->faceTexture) halves->push_back(half);
     }

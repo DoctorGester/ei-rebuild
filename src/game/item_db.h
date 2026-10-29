@@ -23,34 +23,36 @@ class ChunkArchive;
 using BOOL = int;
 
 // CEngineObject::type_ of an item: which database its prototype lives in.
-enum ItemKind : int {
-    kItemWeapon = 0x3004,
-    kItemArmor = 0x3005,
-    kItemQuick = 0x3006,
-    kItemLoot = 0x3007,
-    kItemSpell = 0x3008,   // a spell container; prototype in the quick item database
-    kItemQuest = 0x3009,
+enum class ItemKind : int {
+    Weapon = 0x3004,
+    Armor = 0x3005,
+    Quick = 0x3006,
+    Loot = 0x3007,
+    Spell = 0x3008,  // a spell container; prototype in the quick item database
+    Quest = 0x3009,
 };
 
 // The category of a quick item prototype (CItem::GetCategory). The game's data has 0 (the danger sensor), 5 (the
 // wands) and 8 (the potions, and the scrolls' "spell container" prototype).
-enum QuickItemCategory : int {
-    kCategoryConsumable = 2,   // used up by the use-item order (kind 10); no prototype in the game's data has it
-    kCategoryWand = 5,         // casts the spell the item constructor put in, paid from its charge
-    kCategoryPotion = 8,       // casts the spell its prototype's spellText makes, on the user only; used up
+enum class QuickItemCategory : int {
+    DangerSensor = 0,
+    Consumable = 2,            // used up by the use-item order (kind 10); no prototype in the game's data has it
+    Wand = 5,                  // casts the spell the item constructor put in, paid from its charge
+    Potion = 8,                // casts the spell its prototype's spellText makes, on the user only; used up
+    NoPrototype = 0x7FFFFFFF,  // CItem::GetCategory of an item without a prototype
 };
 
 // What a loot item stands for (a loot prototype's category, CItemLoot::kind_): itself (its own price), a material,
-// or a record of another database (kLootRecord, the record type saying which).
-enum LootKind : std::uint32_t { kLootSelf = 0, kLootMaterial = 1, kLootRecord = 2 };
-// The database of a kLootRecord loot item's record (LootItemRecord::recordType, CItemLoot::recordType_): the
+// or a record of another database (LootKind::Record, the record type saying which).
+enum class LootKind : std::uint32_t { Self = 0, Material = 1, Record = 2 };
+// The database of a LootKind::Record loot item's record (LootItemRecord::recordType, CItemLoot::recordType_): the
 // weapon, armour and quick item blueprints ("instruction ..."), spells and spell modifiers.
-enum LootRecordType : std::uint32_t {
-    kRecordWeapon = 0,
-    kRecordArmor = 1,
-    kRecordQuick = 2,
-    kRecordSpell = 3,
-    kRecordModifier = 4,
+enum class LootRecordType : std::uint32_t {
+    Weapon = 0,
+    Armor = 1,
+    Quick = 2,
+    Spell = 3,
+    Modifier = 4,
 };
 
 namespace itemdb {
@@ -243,7 +245,7 @@ struct QuickItemRecord : ItemRecordHead {
     std::uint32_t actionValue;              // CItemQuick::actionValue_
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
     std::uint8_t unreadFields[16];
-    std::string spellText;                // the spell text of a kCategoryPotion item (CItemConstructor::Build)
+    std::string spellText;                // the spell text of a QuickItemCategory::Potion item (CItemConstructor::Build)
     std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
 };
 
@@ -270,6 +272,9 @@ struct LootItemRecord : ItemRecordHead {
     void CopyOwn(const LootItemRecord* source);
     // The head, then category, recordType, index.
     void Serialize(ChunkArchive* ar);
+
+    // What the loot item stands for (the head's category).
+    LootKind Stands() const { return static_cast<LootKind>(category); }
 
     std::uint32_t recordType;
     std::uint32_t index;

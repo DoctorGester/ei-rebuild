@@ -89,7 +89,7 @@ void SectorData::ResetFields() {
     data = nullptr;
     owner = nullptr;
     pages = perPage = -1;
-    built = 0;
+    built = SectorStage::None;
     lastUsed = 0;
     relightCountdown = 0;
     clipMode = 2;
@@ -114,12 +114,12 @@ void SectorData::RelightTick() {
     if (relightCountdown < 0) return;
     if (--relightCountdown <= 0) {
         relightCountdown = -1;
-        built &= ~kSectorLit;
+        built &= ~SectorStage::Lit;
     }
 }
 
 void SectorData::Animate(Terrain* landscape, int frame) {
-    if (frame % 3 == 0 && (landscape->landscapeFlags & kLandscapeAnimatedTiles) != 0) {
+    if (frame % 3 == 0 && lib::Has(landscape->landscapeFlags, LandscapeFlag::AnimatedTiles)) {
         bool stepped = false;
         for (int i = 0; i < std::ssize(animated); ++i) {
             AnimatedTile& tile = animated[i];
@@ -137,7 +137,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
         }
         if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the pages kept on the GPU
     }
-    if (!hasWater || (landscape->landscapeFlags & kLandscapeWaves) == 0) return;
+    if (!hasWater || !lib::Has(landscape->landscapeFlags, LandscapeFlag::Waves)) return;
 
     SectorPosition* positions = &vertices[kSectorVertices];
     SectorVertex* water = &records[kSectorVertices];
@@ -232,7 +232,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     sunStepY = x87::fistp(static_cast<float>(terrain::kSunStepScale * y));
     sun = light;
     if (lightInterval <= 0) {
-        for (auto& node : sectorCache) node->built &= ~kSectorLit;
+        for (auto& node : sectorCache) node->built &= ~SectorStage::Lit;
         return;
     }
     // The lit sectors, sorted, get relight countdowns spread evenly over the next interval.
@@ -244,7 +244,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     sorted.clear();
     for (auto& node : sectorCache) {
         SectorData* sector = node;
-        if (sector->built & kSectorLit) {
+        if (lib::Has(sector->built, SectorStage::Lit)) {
             int index = std::ssize(sorted);
             sorted.resize(index + 1);
             sorted[index] = sector;
@@ -258,7 +258,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
         int frames = x87::fistp(at);
         at = static_cast<float>(at + step);
         sorted[i]->ScheduleRelight(frames);
-        if (frames == 0) sorted[i]->built &= ~kSectorLit;
+        if (frames == 0) sorted[i]->built &= ~SectorStage::Lit;
     }
 }
 
@@ -270,14 +270,14 @@ int Terrain::RunTick() {
     for (auto node = sectorCache.begin(); node != sectorCache.end();) {
         SectorData* sector = *node;
         ++node;
-        if (sector->built & kSectorLit) sector->RelightTick();
+        if (lib::Has(sector->built, SectorStage::Lit)) sector->RelightTick();
     }
-    if ((landscapeFlags & kLandscapeAmbience) != 0) PlayAmbience();
+    if (lib::Has(landscapeFlags, LandscapeFlag::Ambience)) PlayAmbience();
     wavePhase = static_cast<float>(waveSpeed + wavePhase);
     ++frame;
     for (int row = 0; row < std::ssize(visibleColumnFirst); ++row) {
         for (int column = visibleColumnFirst[row]; column <= visibleColumnLast[row]; ++column) {
-            SectorData* sector = SectorAt(column, visibleRowFirst + row, kSectorLit, 0);
+            SectorData* sector = SectorAt(column, visibleRowFirst + row, SectorStage::Lit, 0);
             if (sector && sector->IsDrawn()) sector->Animate(this, frame);
         }
     }

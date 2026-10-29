@@ -757,7 +757,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 3: {   // a quick item on a unit
         if (!unit || unitDead(unit) || !first) return;
         CItem* item = first->GetQuickItem(pendingSlot_);
-        if (item && item->GetCategory() == kCategoryPotion && unit != first) return;
+        if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) return;
         ScreenCastOn(this, unit, 1, 0);
         return;
     }

@@ -256,7 +256,7 @@ public:
     // Where `attacker` stands relative to the unit: 0x800000 in front, 0x400000 behind, 0xC00000 / 0x1000000
     // to the sides; 0 without an attacker or with a non-zero `hitKind`.
     std::uint32_t HitDirection(CUnit* attacker, int hitKind);
-    // A kOrderUse: kSourceSearchBody loots the body; else science (kSourceUse) and stealing.
+    // A UnitOrderKind::Use: UseSource::SearchBody loots the body; else science (UseSource::Use) and stealing.
     void UseSkill(CMapObject* target);
     // Drops the queued order unless it is of kind 7 or 8 or there is no current order; the queued order ends
     // up of kind 0 (sic).
@@ -294,14 +294,14 @@ public:
     void SetWantedWeapon(int slot);
     // A skill or use order (kind 6) on `target`: stealing (source 1; a living other object), taming (2; a
     // living unit of another player, not a hero), use (0, spot = `spot`; any object) and searching a body
-    // (kSourceSearchBody; a dead object other than the unit). Dropped when the planner (shouting 6 / 5 / 5 / 4) refuses.
+    // (UseSource::SearchBody; a dead object other than the unit). Dropped when the planner (shouting 6 / 5 / 5 / 4) refuses.
     void OrderSteal(CMapObject* target, int run);
     void OrderTame(CMapObject* target, int run);
     void OrderUse(CMapObject* target, int spot, int run);
     void OrderSearchBody(CMapObject* target, int run);
     // Is `target` (a body to search) taken: with flags_ bit 0x20000000, when the world does not share it with
-    // this unit's id; else when a living unit of the brain's nearby list is searching it (kOrderUse,
-    // kSourceSearchBody) in state 5 or with its flag set.
+    // this unit's id; else when a living unit of the brain's nearby list is searching it (UnitOrderKind::Use,
+    // UseSource::SearchBody) in state 5 or with its flag set.
     bool TargetBusy(CMapObject* target);
     // `name` from the figure's animation database as the queued order: kind 8 for keys with bit 31, else 7;
     // param = the entry's index dword.
@@ -365,9 +365,9 @@ public:
     bool BuildTransition(struct AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to);
     // For kind 3 `source` is the attack key from BuildAttackSteps. Skills are framed by stepping out of and
     // back into the movement mode; *duration = the ticks until the action happens.
-    void BuildOrderSteps(struct AnimationSteps* steps, int* duration, int kind, std::uint32_t source);
+    void BuildOrderSteps(struct AnimationSteps* steps, int* duration, UnitOrderKind kind, std::uint32_t source);
     // Draws a random number for heroes.
-    void BuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
+    void BuildCastSteps(struct AnimationSteps* steps, int* duration, UnitOrderKind kind, int value);
     // The hit location (plan->hitLocation) and the height of the blow from both units' heights and the
     // distance. Draws random numbers. Returns 1.
     bool BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CMapObject* target);

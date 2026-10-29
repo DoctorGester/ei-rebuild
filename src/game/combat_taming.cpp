@@ -84,13 +84,13 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     }
     tamerSide = tamer->side;
     brain.StopAction();
-    if (action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) {
-        action2.kind = kOrderNone;
+    if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) {
+        action2.kind = UnitOrderKind::None;
         action2.target.Reset();
         action2.pointIsUseSpot = 0;
         action2.param = 0;
         action2.modifier = 0;
-        action2.kind = kOrderIdle;
+        action2.kind = UnitOrderKind::Idle;
         if (action2.target) {
             action2.target.Reset();
             action2.target = nullptr;
@@ -102,7 +102,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
 
 void CUnitServer::UndoTaming() {
     if (Stage(this) == 0) return;
-    brain.RemoveModesOfType(kModeTamed);   // unit_ai.h: the tamed mode (8)
+    brain.RemoveModesOfType(AIModeType::Tamed);   // unit_ai.h: the tamed mode (8)
     unit->SetPlayer(nullptr);
     unit->SetRelationsB(0xFFFFFFFFu);
     if (Stage(this) > 1) unit->SetSide(ownSide);

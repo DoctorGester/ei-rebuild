@@ -83,4 +83,4 @@ std::uint32_t CTorchObject::ReadTorchNetState(int first) {
 }
 
 const char* CTorchObject::ClassName() { return kTorchClassName; }
-ClassId CTorchObject::GetClassId() { return kClassTorchObject; }
+ClassId CTorchObject::GetClassId() { return ClassId::TorchObject; }

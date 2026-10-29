@@ -20,13 +20,13 @@ AIMode::AIMode() {
 AIActionMode::AIActionMode() {}
 
 void AIMode::Execute(AIBrain* brain) {
-    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(kRemarkIdle);
+    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(AIRemark::Idle);
     brain->attention.LookAround(brain, 0);
 }
 
-AIModeType PatrolMode::GetType() { return kModePatrol; }
+AIModeType PatrolMode::GetType() { return AIModeType::Patrol; }
 
-AIModeType FearMode::GetType() { return kModeFear; }
+AIModeType FearMode::GetType() { return AIModeType::Fear; }
 
 PlayerMode::PlayerMode() {
     target = nullptr;

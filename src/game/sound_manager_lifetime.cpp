@@ -157,7 +157,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
 } // namespace
 
 const char* CSoundManager::ClassName() { return kSoundManagerClassNameAddress; }
-ClassId CSoundManager::GetClassId() { return kClassSoundManager; }
+ClassId CSoundManager::GetClassId() { return ClassId::SoundManager; }
 
 int CSoundManager::CreateBody() {
     Reset();

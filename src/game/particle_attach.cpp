@@ -65,7 +65,7 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
         return out;
     }
     const auto point = static_cast<std::uint32_t>(attachPoint);
-    if (object->GetClassId() == kClassUnit && point <= 12) {
+    if (object->GetClassId() == ClassId::Unit && point <= 12) {
         if (point == 0) return static_cast<CUnit*>(object)->EffectPoint(out);
         PartPoint(out, object, kPartNames[point]);
         if (point == 2) out->z = out->z + 1.0f;

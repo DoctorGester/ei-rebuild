@@ -293,7 +293,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     field->ReadFloat16(&typeParam_);
     moving_ = IsMoving(velocity_);
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
-    if (GetClassId() == kClassEffectParticle && !SnapshotReadToEnd()) return 0;
+    if (GetClassId() == ClassId::EffectParticle && !SnapshotReadToEnd()) return 0;
     if (unitId_ != -1) {
         CUnit* unit = ObjectWorld(this)->FindUnit(unitId_);
         if (unit != nullptr) {

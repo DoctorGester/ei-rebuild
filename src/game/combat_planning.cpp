@@ -103,7 +103,7 @@ void PathMessage(CUnit* unit, PathOrder* motion, const float* point, int kind, i
 bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     CWorldServer* world = ServerWorld();
     order->point.z = kNoZBits;
-    if (order->kind != kOrderUse || !order->target || order->source != 0) return true;
+    if (order->kind != UnitOrderKind::Use || !order->target || order->source != 0) return true;
     std::vector<Vector3> spots{};
     float size = static_cast<float>(unit->Radius());
     order->target->UseSpots(&spots, size);
@@ -204,7 +204,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
 
 bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
     CPlayer* player = unit->player;
-    if (order->kind != kOrderUse && !player) return true;
+    if (order->kind != UnitOrderKind::Use && !player) return true;
     float best = kFar;
     LocalMotionOrder route;
     Vector3 point;
@@ -222,8 +222,8 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             if (IsShoutable(shout) && unit->player) PlayerMessage(PlayerConnection(unit->player), unit, shout);
             return true;
         }
-        int kind = order->kind == kOrderAttack ? 2 : 1;
-        if (order->kind == kOrderCastAt || order->kind == kOrderCastOn) {
+        int kind = order->kind == UnitOrderKind::Attack ? 2 : 1;
+        if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
             std::uint32_t source = action.source;
             CSpell* spell = nullptr;
             bool skip = false;
@@ -283,7 +283,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             return true;
         }
     }
-    Shout(order->kind == kOrderAttack ? AckKind::NoWayToAttack : AckKind::NoPath);
+    Shout(order->kind == UnitOrderKind::Attack ? AckKind::NoWayToAttack : AckKind::NoPath);
     return ok;
 }
 

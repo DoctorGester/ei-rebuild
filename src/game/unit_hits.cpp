@@ -55,7 +55,7 @@ constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1,
 constexpr console::Stream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
 
 void Remark(CUnit* unit, AckKind kind) {
-    if (unit->controller->GetClassId() == kClassUnitServer) unit->ServerController()->Shout(kind);
+    if (unit->controller->GetClassId() == ClassId::UnitServer) unit->ServerController()->Shout(kind);
 }
 
 } // namespace
@@ -228,7 +228,7 @@ BOOL CUnit::IsBehind(const CMapObject* t) {
     // A bow or a crossbow in hand: never behind.
     std::uint32_t slot = activeWeapon;
     CItemWeapon* weapon = nullptr;
-    if (controller->GetClassId() == kClassUnitClientSpecific) {
+    if (controller->GetClassId() == ClassId::UnitClientSpecific) {
         PartyUnitRecord* record = player ? player->Party()->Find(id_) : nullptr;
         if (record && slot < static_cast<std::uint32_t>(std::ssize(record->weapons))) weapon = AsWeapon(record->weapons[slot]);
     } else if (slot < 4) {

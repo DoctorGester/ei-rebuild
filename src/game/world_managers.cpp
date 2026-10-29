@@ -67,16 +67,16 @@ void CWorld::Destroy() {
 CPlayerManager::CPlayerManager() {}
 CPlayerManager::~CPlayerManager() {}
 const char* CPlayerManager::ClassName() { return kPlayerManagerName; }
-ClassId CPlayerManager::GetClassId() { return kClassPlayerManager; }
+ClassId CPlayerManager::GetClassId() { return ClassId::PlayerManager; }
 
 CEffectManager::CEffectManager() {}
 CEffectManager::~CEffectManager() {}
 int CEffectManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 const char* CEffectManager::ClassName() { return kEffectManagerName; }
-ClassId CEffectManager::GetClassId() { return kClassEffectManager; }
+ClassId CEffectManager::GetClassId() { return ClassId::EffectManager; }
 
 CItemManager::CItemManager() {}
 CItemManager::~CItemManager() {}
 const char* CItemManager::ClassName() { return kItemManagerName; }
-ClassId CItemManager::GetClassId() { return kClassItemManager; }
+ClassId CItemManager::GetClassId() { return ClassId::ItemManager; }
 const char* CItemManager::GetFolderName() { return kItemsFolderName; }

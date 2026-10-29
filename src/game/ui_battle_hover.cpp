@@ -179,7 +179,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         if (!unit || unitDead(unit)) break;
         if (!first || first->CanUseQuickItem(pendingSlot_) != 0) break;
         CItem* item = first->GetQuickItem(pendingSlot_);
-        if (item && item->GetCategory() == kCategoryPotion && unit != first) break;
+        if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) break;
         shape = kCursorCast;
         break;
     }

@@ -61,7 +61,7 @@ std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 // An x87 compare as the original reads it (false for a NaN).
 bool Greater(double a, double b) { return a > b; }
 
-bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
+bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
@@ -144,8 +144,8 @@ bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point
 
 // Does the order need the way to its target clear of units (melee or skill)?
 bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
-    if (order->kind == kOrderUse) return true;
-    if (order->kind != kOrderAttack) return false;
+    if (order->kind == UnitOrderKind::Use) return true;
+    if (order->kind != UnitOrderKind::Attack) return false;
     CItemWeapon* weapon = ActiveWeapon(self->unit);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return false;
     weapon = ActiveWeapon(self->unit);
@@ -186,7 +186,7 @@ bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
     CWorldServer* world = ServerWorld();
     CMapObject* target = order->target;
 
-    if (order->kind == kOrderCastAt || order->kind == kOrderCastOn) {
+    if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
         CSpell* spell;
         if (!OrderSpell(this, order->source, &spell) || !spell) return false;
         if (spell->GetPrototype()->needsSight == 0) return false;
@@ -223,7 +223,7 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
     if (order->pointIsUseSpot) return true;
     if (!unit->player && order->target && OutOfSightRange(this, point)) return false;
 
-    if (order->kind == kOrderCastAt || order->kind == kOrderCastOn) {
+    if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
         if (unit->flags_ & MapObjectFlag::NoCasting) return false;
     } else if (NeedsClearWay(this, order) && SomeoneInTheWay(this, order, point, time)) {
         return false;
@@ -282,10 +282,10 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 
     // The animation and its duration (the builders always set it; the original's is not initialised).
     int duration = 0;
-    int kind = order->kind;
-    if (kind == kOrderAttack) {
+    UnitOrderKind kind = order->kind;
+    if (kind == UnitOrderKind::Attack) {
         BuildAttackSteps(plan, &steps, &duration, order->target);
-    } else if (kind < kOrderCastAt || kind > kOrderCastOn) {
+    } else if (kind < UnitOrderKind::CastAt || kind > UnitOrderKind::CastOn) {
         BuildOrderSteps(&steps, &duration, kind, order->source);
     } else {
         spell = SpellOfSource(order->source);
@@ -351,7 +351,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             outerSq = static_cast<float>(outer * outer);
             if (targetUnit->IsLargeUnit()) predict = true;   // the planner's "moving"
         }
-        if ((kind == kOrderCastAt || kind == kOrderCastOn) && !order->pointIsUseSpot &&
+        if ((kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn) && !order->pointIsUseSpot &&
             targetUnit->IsLargeUnit()) {
             // A moving target of a missile spell: aim where it will be when the spell arrives.
             predict = true;
@@ -414,7 +414,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
                 plan->direction.x = delta.x;
                 plan->direction.y = delta.y;
                 plan->direction.z = delta.z;
-                if (order->kind == kOrderCastAt || order->kind == kOrderCastOn) FillCastKind(plan, spell);
+                if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) FillCastKind(plan, spell);
                 return true;
             }
         }

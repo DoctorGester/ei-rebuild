@@ -254,4 +254,4 @@ void CMusicSystem::FadeIn() { g_clientWorld->sounds_->FadeInStream(); }
 
 // ClassName and GetClassId.
 const char* CMusicSystem::ClassName() { return MusicClassNameText(); }
-ClassId CMusicSystem::GetClassId() { return kClassMusicSystem; }
+ClassId CMusicSystem::GetClassId() { return ClassId::MusicSystem; }

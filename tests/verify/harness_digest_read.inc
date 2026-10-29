@@ -140,17 +140,17 @@ void ReadBrain(AIBrain& brain, Builder& b) {
 // A unit's controller (a CUnitServer, class 0x3E) and its AI brain.
 void ReadController(CUnit* u, Builder& b) {
     CEngineObject* controller = u->controller;
-    if (!controller || controller->GetClassId() != kClassUnitServer) {
-        b.Int("controller", controller ? controller->GetClassId() : -1);
+    if (!controller || ClassOf(controller) != kClassUnitServer) {
+        b.Int("controller", controller ? ClassOf(controller) : -1);
         return;
     }
     auto* c = static_cast<CUnitServer*>(controller);
     b.Int("state", c->state);
     b.Unsigned("busy", c->moveMode2.onGuard);
     b.Unsigned("inCombat", c->orderStopped);
-    b.Int("command", c->action.kind);
+    b.Int("command", static_cast<int>(c->action.kind));
     b.Int("commandTarget", IdOf(c->action.target));
-    b.Int("nextCommand", c->action2.kind);
+    b.Int("nextCommand", static_cast<int>(c->action2.kind));
     b.Int("nextTarget", IdOf(c->action2.target));
     b.Float("experience", c->stats.experience);
     b.Float("speed", c->stats.speed);
@@ -206,7 +206,7 @@ void ReadUnit(CUnit* u, const std::map<const void*, int>& players, Builder& b) {
 
 // A world object: the engine object's fields, a map object's place, effects and vitals, a unit's own.
 void ReadObject(CEngineObject* o, bool mapObject, const std::map<const void*, int>& players, Builder& b) {
-    const int classId = o->GetClassId();
+    const int classId = ClassOf(o);
     b.Int("class", classId);
     b.Bits("flags", o->flags_);
     b.Int("type", o->type_);
@@ -224,7 +224,7 @@ void ReadObject(CEngineObject* o, bool mapObject, const std::map<const void*, in
     b.Int("cell.x", m->sectorCellX);
     b.Int("cell.y", m->sectorCellY);
     ReadEffects(m, b);
-    if (m->companion && m->companion->GetClassId() == kClassMapObjectServer) {
+    if (m->companion && ClassOf(m->companion) == kClassMapObjectServer) {
         const auto& v = static_cast<CMapObjectServer*>(m->companion)->vitals;
         b.Float("hp", v.hitPoints);
         b.Float("maxHp", v.maxHitPoints);
@@ -236,11 +236,11 @@ void ReadObject(CEngineObject* o, bool mapObject, const std::map<const void*, in
 }
 
 std::string Describe(CEngineObject* o, bool mapObject) {
-    std::string text = std::to_string(o->GetClassId());
+    std::string text = std::to_string(ClassOf(o));
     if (!mapObject) return text + " " + Text(o->ClassName());
     auto* m = static_cast<CMapObject*>(o);
     text += std::string(" ") + Text(m->name);
-    if (o->GetClassId() == kClassUnit) text += std::string(" \"") + Text(static_cast<CUnit*>(m)->scriptName) + "\"";
+    if (ClassOf(o) == kClassUnit) text += std::string(" \"") + Text(static_cast<CUnit*>(m)->scriptName) + "\"";
     return text;
 }
 
@@ -249,7 +249,7 @@ std::string Describe(CEngineObject* o, bool mapObject) {
 // A timed object's own state (the effects of world_effect.h, server side): the base's position,
 // velocity and start tick, then the class's own fields. False for a class not read here.
 bool ReadTimed(CEngineObject* o, Builder& b) {
-    const int classId = o->GetClassId();
+    const int classId = ClassOf(o);
     switch (classId) {
     case kClassSound: case kClassAmbientSound: case kClassParticle: case kClassPointLight: case kClassLightning:
     case kClassArrow: case kClassWall: case kClassArrowFigure: case kClassShowVisibility: case kClassSoundSeq:
@@ -495,7 +495,7 @@ void ReadClientWorld(CWorldClient* c, Builder& b, std::vector<CUnit*>& units) {
     int objects = 0;
     for (CMapObject* object : c->objects_) {
         ++objects;
-        if (object && object->GetClassId() == kClassUnit) units.push_back(static_cast<CUnit*>(object));
+        if (object && ClassOf(object) == kClassUnit) units.push_back(static_cast<CUnit*>(object));
     }
     b.Int("objects", objects);
     b.Int("units", static_cast<int>(units.size()));
@@ -521,7 +521,7 @@ void ReadClientUnit(CUnit* u, Builder& b) {
     b.Unsigned("mana", v.mana);
     b.Unsigned("maxMana", v.maxMana);
     b.Int("effects", static_cast<int>(std::ssize(u->effects)));
-    b.Int("controller", u->controller ? u->controller->GetClassId() : -1);
+    b.Int("controller", u->controller ? ClassOf(u->controller) : -1);
 }
 
 // The water layer as the waves leave it (SectorData::Animate 006C3E80, R16c3): the landscape's wave
@@ -533,7 +533,7 @@ void ReadWater(State& state) {
     Builder b;
     b.entity = &Slot(state, {kWater, -1});
     b.entity->description = "landscape";
-    b.Bits("flags", t->landscapeFlags);
+    b.Bits("flags", static_cast<std::uint32_t>(t->landscapeFlags));
     b.Int("frame", t->frame);
     b.Float("phase", t->wavePhase);
     constexpr int kVertices = 33 * 33;
@@ -607,7 +607,7 @@ void Read(void* server, Snapshot& s) {
     // The timed objects' own state (the effects), by id.
     for (const auto& [id, object] : ObjectsById(w->timedObjects_)) {
         Entity entity;
-        entity.description = std::to_string(object->GetClassId()) + " " + Text(object->ClassName());
+        entity.description = std::to_string(ClassOf(object)) + " " + Text(object->ClassName());
         b.entity = &entity;
         if (ReadTimed(object, b)) s.state[{kTimed, static_cast<int>(id)}] = std::move(entity);
     }
@@ -648,14 +648,14 @@ UnitNow Unit(void* server, int id) {
     const auto& objects = static_cast<CWorldServer*>(server)->objects_.map;
     for (auto n = objects.begin(); n != objects.end(); ++n)
         if (n->first == static_cast<unsigned>(id)) object = n->second;
-    if (!object || object->GetClassId() != kClassUnit) return now;
+    if (!object || ClassOf(object) != kClassUnit) return now;
     auto* u = static_cast<CUnit*>(object);
     now.found = true;
     now.dead = u->dead != 0;
     CEngineObject* controller = u->controller;
-    if (controller && controller->GetClassId() == kClassUnitServer) {
+    if (controller && ClassOf(controller) == kClassUnitServer) {
         auto* c = static_cast<CUnitServer*>(controller);
-        now.idle = c->action.kind == 0 && u->motion.points.empty();
+        now.idle = static_cast<int>(c->action.kind) == 0 && u->motion.points.empty();
         now.experience = c->stats.experience;
     }
     return now;
@@ -677,7 +677,7 @@ int LocalLeader(void* server, unsigned* money) {
 void NoteAddresses(void* server) {
     char line[96];
     for (const auto& [id, object] : ObjectsById(static_cast<CWorldServer*>(server)->objects_)) {
-        std::snprintf(line, sizeof(line), "obj %u %d %08X", id, object->GetClassId(), heap::TracePlace(object));
+        std::snprintf(line, sizeof(line), "obj %u %d %08X", id, ClassOf(object), heap::TracePlace(object));
         heap::Note(line);
     }
 }

@@ -34,7 +34,7 @@ SpellSequence::~SpellSequence() {
 }
 
 CSpell* CSpellManager::CreateSpellObject(int id) {
-    auto* spell = CreateObjectAs<CSpell>(kSpellTypeSpell, -1);
+    auto* spell = CreateObjectAs<CSpell>(SpellObjectType::Spell, -1);
     if (id == -1) return spell;
     const auto packed = static_cast<std::uint32_t>(id);
     const std::uint32_t low = packed & 0xFFFF;
@@ -58,8 +58,11 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
 }
 
 CEngineObject* CSpellManager::NewObject(int type) {
-    if (type == kSpellTypeSpell) return new CSpell();
-    if (type == kSpellTypeContainer) return new CSpellContainer();
+    switch (static_cast<SpellObjectType>(type)) {
+    case SpellObjectType::Spell: return new CSpell();
+    case SpellObjectType::Container: return new CSpellContainer();
+    default: break;
+    }
     return nullptr;
 }
 
@@ -86,7 +89,7 @@ CSpellManager::~CSpellManager() {
 }
 
 const char* CSpellManager::ClassName() { return kSpellManagerClassName; }
-ClassId CSpellManager::GetClassId() { return kClassSpellManager; }
+ClassId CSpellManager::GetClassId() { return ClassId::SpellManager; }
 const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 
 // The array takes the table's count, then element i the name of record i while i is below the count (read
@@ -112,4 +115,4 @@ CSpellContainer::~CSpellContainer() {
 }
 
 const char* CSpellContainer::ClassName() { return "CSpellContainer"; }
-ClassId CSpellContainer::GetClassId() { return kClassSpellContainer; }
+ClassId CSpellContainer::GetClassId() { return ClassId::SpellContainer; }

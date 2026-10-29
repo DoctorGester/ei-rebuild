@@ -195,7 +195,7 @@ float Distance(float x0, float y0, float x1, float y1) {
 
 int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }
 
-bool IsUnit(CEngineObject* object) { return object->GetClassId() == kClassUnit; }
+bool IsUnit(CEngineObject* object) { return object->GetClassId() == ClassId::Unit; }
 
 CUnitServer* UnitData(const ScriptObjectRef* ref) {
     if (!ref) return nullptr;

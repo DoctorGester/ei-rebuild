@@ -59,7 +59,7 @@ SentryMode* SentryMode::Clone() {
     return copy;
 }
 
-AIModeType SentryMode::GetType() { return kModeSentry; }
+AIModeType SentryMode::GetType() { return AIModeType::Sentry; }
 
 FollowMode::FollowMode(CMapObject* newLeader) { leader = Reference(newLeader); }
 
@@ -73,7 +73,7 @@ int FollowMode::OnShutdown() {
 
 FollowMode* FollowMode::Clone() { return new FollowMode(leader.object); }
 
-AIModeType FollowMode::GetType() { return kModeFollow; }
+AIModeType FollowMode::GetType() { return AIModeType::Follow; }
 
 SuspectionMode::~SuspectionMode() {}
 
@@ -86,7 +86,7 @@ SuspectionMode* SuspectionMode::Clone() {
     return copy;
 }
 
-AIModeType SuspectionMode::GetType() { return kModeSuspection; }
+AIModeType SuspectionMode::GetType() { return AIModeType::Suspection; }
 
 AggressionMode::AggressionMode() : AggressionMode(0) {}
 
@@ -116,7 +116,7 @@ AggressionMode* AggressionMode::Clone() {
     return copy;
 }
 
-AIModeType AggressionMode::GetType() { return kModeAggression; }
+AIModeType AggressionMode::GetType() { return AIModeType::Aggression; }
 
 void AggressionMode::OnObjectDeleted(CEngineObject* object) {
     if (enemy == object && enemy) enemy.Reset();
@@ -130,7 +130,7 @@ int CorpseWatcherMode::OnShutdown() { return 0; }
 
 CorpseWatcherMode* CorpseWatcherMode::Clone() { return new CorpseWatcherMode(); }
 
-AIModeType CorpseWatcherMode::GetType() { return kModeCorpseWatcher; }
+AIModeType CorpseWatcherMode::GetType() { return AIModeType::CorpseWatcher; }
 
 // ---- A patrol point's look ----------------------------------------------------------------------
 

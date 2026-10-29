@@ -821,7 +821,7 @@ CParticleSource::~CParticleSource() {
 }
 
 const char* CParticleSource::ClassName() { return "CParticle"; }
-ClassId CParticleSource::GetClassId() { return kClassParticleSource; }
+ClassId CParticleSource::GetClassId() { return ClassId::ParticleSource; }
 
 // The element callbacks that do nothing one per type that stores one (Stench and the spheres,
 // ZoneExit, PortalStar, FireStar, Sparks, VisionStar, Regeneration, Silence, FeebleMind, Stun, CurseStars).

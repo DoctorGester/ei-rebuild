@@ -21,7 +21,7 @@ CServerSpecificManager::CServerSpecificManager() {}
 CServerSpecificManager::~CServerSpecificManager() {}
 
 const char* CServerSpecificManager::ClassName() { return kManagerClassName; }
-ClassId CServerSpecificManager::GetClassId() { return kClassServerSpecificManager; }
+ClassId CServerSpecificManager::GetClassId() { return ClassId::ServerSpecificManager; }
 
 // Every object starts zeroed (kZeroed): CUnitServer's constructor leaves waitFrame,
 // which ResolveBlocker reads, and others the saves write.
@@ -51,5 +51,5 @@ CTorchObjectSpec::CTorchObjectSpec() {
 CTorchObjectSpec::~CTorchObjectSpec() { DestroySpec(); }
 
 const char* CTorchObjectSpec::ClassName() { return kTorchSpecClassName; }
-ClassId CTorchObjectSpec::GetClassId() { return kClassTorchObjectSpec; }
+ClassId CTorchObjectSpec::GetClassId() { return ClassId::TorchObjectSpec; }
 int CTorchObjectSpec::RunTick() { return 1; }

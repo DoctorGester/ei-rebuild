@@ -37,7 +37,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     target->y = 2.0f * target->y;
     int reason;
     if (!sameRegion) {
-        if (unit->GetClassId() != kClassUnit) return true;
+        if (unit->GetClassId() != ClassId::Unit) return true;
         if (CanStandAt(unit, tx, ty, &reason) && IsCellPassable(this, unit, tx, ty)) return true;
     }
 
@@ -102,7 +102,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
         for (int d = 0; d < count; ++d) {
             int cx = tx - x87::fistp(distance * directions[d][0]);
             int cy = ty - x87::fistp(distance * directions[d][1]);
-            if (unit->GetClassId() == kClassUnit) {
+            if (unit->GetClassId() == ClassId::Unit) {
                 if (!CanStandAt(unit, cx, cy, &reason) || !IsCellPassable(this, unit, cx, cy)) continue;
             }
             if (sameRegion) {
@@ -196,7 +196,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     PathCells& pathCells = path->cells;
     if (ux == tx && uy == ty) {
         int reason;
-        if (unit->GetClassId() == kClassUnit && !(CanStandAt(unit, tx, ty, &reason) && IsCellPassable(this, unit, tx, ty))) {
+        if (unit->GetClassId() == ClassId::Unit && !(CanStandAt(unit, tx, ty, &reason) && IsCellPassable(this, unit, tx, ty))) {
             goto done;
         }
         cell.x = static_cast<std::int16_t>(ux);

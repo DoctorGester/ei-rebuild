@@ -174,7 +174,7 @@ void CObject3D::LoadFigures() {
         if (attached) attached->OnPartAdded(part);
     }
     pendingParts.clear();
-    if (GetClassId() != kClassUnit) {
+    if (GetClassId() != ClassId::Unit) {
         for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags_ |= kPartFlagStatic;
         flags_ |= kFlagPartsMarked;
     }

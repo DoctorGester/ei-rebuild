@@ -177,11 +177,11 @@ std::string CItemSpell::PictureName() { return std::string(kSpellPicture); }
 
 std::string CItemLoot::FigureName() {
     std::string name;
-    if (kind_ == kLootRecord) {
+    if (kind_ == LootKind::Record) {
         switch (recordType_) {
-        case kRecordWeapon:
-        case kRecordArmor: {
-            bool weapon = recordType_ == kRecordWeapon;
+        case LootRecordType::Weapon:
+        case LootRecordType::Armor: {
+            bool weapon = recordType_ == LootRecordType::Weapon;
             const ItemRecordHead* record = WeaponOrArmorAt(weapon, index_);
             std::string code;
             int type = record->type;
@@ -189,13 +189,13 @@ std::string CItemLoot::FigureName() {
             name = str::Format(kRecordModelFormat, code, record->number, record->variant);
             break;
         }
-        case kRecordQuick:
+        case LootRecordType::Quick:
             name = str::Format(kQuickFigure, QuickItemAt(index_)->number);
             break;
-        case kRecordSpell:
+        case LootRecordType::Spell:
             name = str::Format(kPrototypeFigure, SpellAt(index_)->icon);
             break;
-        case kRecordModifier:
+        case LootRecordType::Modifier:
             name = str::Format(kModifierFigure, index_);
             break;
         default:
@@ -203,7 +203,7 @@ std::string CItemLoot::FigureName() {
         }
         return name;
     }
-    if (kind_ == kLootMaterial)
+    if (kind_ == LootKind::Material)
         name = str::Format(kMaterialFigure, index_);
     else
         name = str::Format(kLootFigure, Number(GetPrototype()));
@@ -212,11 +212,11 @@ std::string CItemLoot::FigureName() {
 
 std::string CItemLoot::PictureName() {
     std::string name;
-    if (kind_ == kLootRecord) {
+    if (kind_ == LootKind::Record) {
         switch (recordType_) {
-        case kRecordWeapon:
-        case kRecordArmor: {
-            bool weapon = recordType_ == kRecordWeapon;
+        case LootRecordType::Weapon:
+        case LootRecordType::Armor: {
+            bool weapon = recordType_ == LootRecordType::Weapon;
             const ItemRecordHead* record = WeaponOrArmorAt(weapon, index_);
             std::string code;
             int type = record->type;
@@ -224,11 +224,11 @@ std::string CItemLoot::PictureName() {
             name = str::Format(weapon ? kWeaponPicture : kArmorPicture, code, record->number);
             break;
         }
-        case kRecordQuick:
+        case LootRecordType::Quick:
             name = str::Format(kQuickPicture, QuickItemAt(index_)->number);
             break;
-        case kRecordSpell:
-        case kRecordModifier:
+        case LootRecordType::Spell:
+        case LootRecordType::Modifier:
             name = kSpellPicture;
             break;
         default:
@@ -236,7 +236,7 @@ std::string CItemLoot::PictureName() {
         }
         return name;
     }
-    if (kind_ == kLootMaterial)
+    if (kind_ == LootKind::Material)
         name = str::Format(kMaterialPicture, index_);
     else
         name = str::Format(kLootPicture, Number(GetPrototype()));

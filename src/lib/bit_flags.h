@@ -20,6 +20,9 @@ template <BitFlags E> constexpr std::uint32_t Bits(E bit) { return static_cast<s
 // Whether the word has any of the bits.
 template <BitFlags E> constexpr bool Has(std::uint32_t word, E bits) { return (word & Bits(bits)) != 0; }
 
+// The same for a field typed as the enum.
+template <BitFlags E> constexpr bool Has(E flags, E bits) { return (Bits(flags) & Bits(bits)) != 0; }
+
 } // namespace lib
 
 template <lib::BitFlags E> constexpr E operator|(E a, E b) { return static_cast<E>(lib::Bits(a) | lib::Bits(b)); }

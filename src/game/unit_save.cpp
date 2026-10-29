@@ -68,7 +68,7 @@ void ReadItems(CUnit* unit, CStream* stream, CItemArmor** slots, int count) {
 // The unit's new owner: on a server world, player `id` (null when there is none).
 CPlayer* PlayerById(CUnit* unit, int id) {
     CPlayer* player = nullptr;
-    if (ContextWorld(unit)->GetClassId() == kClassWorldServer)
+    if (ContextWorld(unit)->GetClassId() == ClassId::WorldServer)
         player = unit->ServerWorld()->GetPlayer(id);
     return player;
 }

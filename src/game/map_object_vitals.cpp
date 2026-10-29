@@ -7,7 +7,7 @@ namespace {
 } // namespace
 
 void CMapObject::ClearProtectionBases() {
-    if (companion->GetClassId() != kClassMapObjectServer) return;
+    if (companion->GetClassId() != ClassId::MapObjectServer) return;
     // The original reloads the companion pointer for each store (two stores per pair, both +0).
     for (UnitStatPair& pair : ServerCompanion()->vitals.protection) pair.base = 0.0f;
 }

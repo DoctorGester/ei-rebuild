@@ -182,7 +182,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;
 
     CUnitServer* other = blocker->ServerController();
-    auto isAction = [](int kind) { return kind == kOrderAttack || kind == kOrderCastAt || kind == kOrderCastOn; };
+    auto isAction = [](UnitOrderKind kind) { return kind == UnitOrderKind::Attack || kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn; };
     bool sameAttack = blocker->side == self->side && isAction(c->action.kind) &&
                       isAction(other->action.kind) && other->action.target == c->action.target &&
                       blocker->sizeClass == self->sizeClass && other->state != kStateCasting;

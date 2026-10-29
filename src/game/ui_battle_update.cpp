@@ -93,7 +93,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         place(static_cast<int>(slot));
     }
 
-    // The local player's own unit also shows up to four of the player's kItemQuest items above, from
+    // The local player's own unit also shows up to four of the player's ItemKind::Quest items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
     CPlayer* player = GameLocalView()->player_;
     if (!player->IsLeader(unit_)) return;
@@ -105,7 +105,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         if (slot - 4 >= 4) break;
         CItem* item = *node;
         ++node;
-        if (!item || item->type_ != kItemQuest)
+        if (!item || item->Kind() != ItemKind::Quest)
             continue;
         {
             std::string image = item->FigureName();

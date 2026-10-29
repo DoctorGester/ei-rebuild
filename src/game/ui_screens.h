@@ -37,15 +37,15 @@ void PlayUiSound(CInterface3D* ui, const char* name, int flags);
 void LeaveGame();
 } // namespace uiorig
 
-// The item predicates of the camp screens. Loot items (type kItemLoot, CItemLoot) are sorted by kind and record
+// The item predicates of the camp screens. Loot items (type ItemKind::Loot, CItemLoot) are sorted by kind and record
 // type.
 struct UiItemKinds {
     static bool IsPart(const CItem* item);       // kind 2, record type 0-2 (blueprint parts)
     static bool IsMaterial(const CItem* item);
     static bool IsSpell(const CItem* item);      // kind 2, record type 3 (the spell table)
     static bool IsModifier(const CItem* item);   // kind 2, record type 4 (spell modifier table)
-    static BOOL IsSpellContainer(const CItem* item);   // type kItemSpell
-    // An item the item constructor can take apart: a weapon (kItemWeapon), type kItemArmor, or armour (kItemQuick) whose
+    static BOOL IsSpellContainer(const CItem* item);   // type ItemKind::Spell
+    // An item the item constructor can take apart: a weapon (ItemKind::Weapon), type ItemKind::Armor, or armour (ItemKind::Quick) whose
     // prototype's material class is not "none"; never when the prototype exists and is not buildable.
     static bool IsBuildable(const CItem* item);
 };

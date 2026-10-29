@@ -19,7 +19,7 @@ static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 // An order's constructor (kind 9, no target, pointIsUseSpot clear), then its Clear and the rest of its fields.
 void InitAction(UnitAction& action) {
     action.target = nullptr;
-    action.kind = kOrderNone;
+    action.kind = UnitOrderKind::None;
     action.pointIsUseSpot = 0;
     action.Clear();
     action.param = 0;

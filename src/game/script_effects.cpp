@@ -120,7 +120,7 @@ void ScriptDropEffect(CEngineObject* object) {
 
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
 void CScript::ScriptCreateFx(const SSCCmd* cmd) {
-    auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(kClassEffectSound, -1);
+    auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
     const float* f = cmd->floatArgs.data();
     sound->localPosition_ = {f[0], f[1], f[2]};
     x87::CopyBits(sound->volume_, f[3]);
@@ -164,7 +164,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
         source->idle = 1;
         return;
     }
-    auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(kClassEffectSound, -1);
+    auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
     source->object = ScriptEffect<CEffectSound>(sound);
     sound->localPosition_ = {source->position.x, source->position.y, source->position.z};
     x87::CopyBits(sound->volume_, source->volume);
@@ -184,7 +184,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     if (f[0] >= 0.0f) lightning.id = static_cast<int>(f[0]);
     else lightning.id = nextParticleId_--;   // also NaN
 
-    auto* bolt = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectLightning>(kClassEffectLightning, -1);
+    auto* bolt = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectLightning>(ClassId::EffectLightning, -1);
     lightning.object = ScriptEffect<CEffectLightning>(bolt);
     Vector3 to{f[4], f[5], f[6]};
     Vector3 from{f[1], f[2], f[3]};
@@ -215,7 +215,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     if (source) source->object.reset();
     else source = &particles_.emplace_back();
 
-    auto* particles = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectParticle>(kClassEffectParticle, -1);
+    auto* particles = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectParticle>(ClassId::EffectParticle, -1);
     particles->type_ = particleType;
     particles->localPosition_ = {f[1], f[2], f[3]};
     source->object = ScriptEffect<CEffectParticle>(particles);

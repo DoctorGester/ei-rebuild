@@ -183,7 +183,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
-    if (object->GetClassId() != kClassMagicTrap) aiMap_.sectorMap.Remove(*slot);   // magic traps are not in it
+    if (object->GetClassId() != ClassId::MagicTrap) aiMap_.sectorMap.Remove(*slot);   // magic traps are not in it
 
     hash400::RemoveKey(updateMap_.map, id);
     EraseId(objects_, id);

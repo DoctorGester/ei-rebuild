@@ -101,15 +101,15 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
     kind->clear();
 
     const char* kindKey = nullptr;
-    switch (item->type_) {
-    case kItemWeapon: {
+    switch (item->Kind()) {
+    case ItemKind::Weapon: {
         KeyName(materialName, MaterialAt(materialIndex)->key);
         KeyName(recordName, WeaponAt(prototypeIndex)->name);
         ReadItemText(this, std::string(kWeapon) + recordName + kSpace + materialName, name, description);
         kindKey = "item_weapon";
         break;
     }
-    case kItemArmor: {
+    case ItemKind::Armor: {
         KeyName(materialName, MaterialAt(materialIndex)->key);
         const ArmorRecord* armor = ArmorAt(prototypeIndex);
         KeyName(recordName, armor->name);
@@ -117,7 +117,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
         kindKey = IsUpperArmor(armor) ? "item_armor_upper" : "item_armor_lower";
         break;
     }
-    case kItemQuick: {
+    case ItemKind::Quick: {
         KeyName(recordName, QuickItemAt(prototypeIndex)->name);
         // A quick item whose prototype has no material (+0x10 "none") is a potion.
         const ItemRecordHead* prototype = item->GetPrototype();
@@ -130,7 +130,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
         KeyName(materialName, MaterialAt(materialIndex)->key);
         ReadItemText(this, std::string(kQuickItem) + recordName + kSpace + materialName, name, description);
         // Only wands get a kind; their name is followed by the spell's name.
-        if (item->GetCategory() != kCategoryWand) break;
+        if (item->GetCategory() != QuickItemCategory::Wand) break;
         if (CSpell* spell = item->spell_) {
             std::string spellName(kUnknown);
             bool found;
@@ -144,41 +144,41 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
         kindKey = "item_wand";
         break;
     }
-    case kItemLoot: {
+    case ItemKind::Loot: {
         auto* loot = AsLoot(item);
-        if (loot->kind_ == kLootSelf) {
+        if (loot->kind_ == LootKind::Self) {
             KeyName(recordName, LootAt(prototypeIndex)->name);
             ReadItemText(this, std::string(kLootItem) + recordName, name, description);
             kindKey = "item_loot";
-        } else if (loot->kind_ == kLootMaterial) {
+        } else if (loot->kind_ == LootKind::Material) {
             KeyName(materialName, MaterialAt(loot->index_)->key);
             ReadItemText(this, std::string(kMaterial) + materialName, name, description);
             kindKey = "item_material";
-        } else if (loot->kind_ == kLootRecord) {
+        } else if (loot->kind_ == LootKind::Record) {
             switch (loot->recordType_) {
-            case kRecordWeapon:
+            case LootRecordType::Weapon:
                 KeyName(recordName, WeaponAt(loot->index_)->name);
                 ReadItemText(this, std::string(kInstruction) + recordName, name, description);
                 kindKey = "item_weapon_shape";
                 break;
-            case kRecordArmor: {
+            case LootRecordType::Armor: {
                 const ArmorRecord* armor = ArmorAt(loot->index_);
                 KeyName(recordName, armor->name);
                 ReadItemText(this, std::string(kInstruction) + recordName, name, description);
                 kindKey = IsUpperArmor(armor) ? "item_armor_shape_upper" : "item_armor_shape_lower";
                 break;
             }
-            case kRecordQuick:
+            case LootRecordType::Quick:
                 KeyName(recordName, QuickItemAt(loot->index_)->name);
                 ReadItemText(this, std::string(kInstruction) + recordName, name, description);
                 kindKey = "item_wand_shape";
                 break;
-            case kRecordSpell:
+            case LootRecordType::Spell:
                 ReadItemText(this, std::string(kSpell) + SpellAt(loot->index_)->code, name,
                              description);
                 kindKey = "item_prototype";
                 break;
-            case kRecordModifier: {
+            case LootRecordType::Modifier: {
                 // The modifier's two-letter code is inline in the record (+0x04).
                 ReadItemText(this, std::string(kModifier) + SpellModifierAt(loot->index_)->code, name, description);
                 kindKey = "item_modifier";
@@ -189,15 +189,15 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
         }
         break;
     }
-    case kItemSpell: {
+    case ItemKind::Spell: {
         CSpell* spell = item->spell_;
         if (!spell) break;
         ReadItemText(this, std::string(kSpell) + spell->GetPrototype()->code, name, description);
         kindKey = "item_spell";
         break;
     }
-    case kItemQuest: {
-        // kItemQuest is the quest item ("questitem"); its table is Loot in item_db.h.
+    case ItemKind::Quest: {
+        // ItemKind::Quest is the quest item ("questitem"); its table is Loot in item_db.h.
         KeyName(recordName, QuestItemAt(prototypeIndex)->name);
         ReadItemText(this, std::string(kQuestItem) + recordName, name, description);
         kindKey = "item_quest";

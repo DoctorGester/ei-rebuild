@@ -22,7 +22,7 @@ constexpr console::Stream* kAlarmLog = /*007C2EB8*/ {&console::g_unitAcksLogOut}
 static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
     CUnitServer* server = owner;
     CWorldServer* world = owner->ServerWorld();
-    if (state->pending != 0) {
+    if (state->pending != AIRemark::None) {
         if (state->pending > state->level) {
             state->active = state->pending;
             state->timer = 20;
@@ -30,33 +30,33 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             *kAlarmLog << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
             const char* what;
             switch (state->active) {
-            case kRemarkIdle: world->TellParties(server->unit, AckKind::Rest); what = "idleSound = AAn4XyU"; break;
-            case kRemarkFightingIdle: world->TellParties(server->unit, AckKind::FightingRest); what = "idleSound = AAn4XyU"; break;
-            case kRemarkCalmFromSuspicion: what = "back from Suspection"; break;
-            case kRemarkCalmFromAggression: what = "back from Aggression"; break;
-            case kRemarkSuspicion: world->TellParties(server->unit, AckKind::Suspicion); what = "to Suspection"; break;
-            case kRemarkAggression: world->TellParties(server->unit, AckKind::Aggression); what = "to Aggression"; break;
-            case kRemarkToAlarm: what = "to Alarm!"; break;
-            case kRemarkAlarm: what = "ALARM ALARM ALARM"; break;
-            case kRemarkKill: world->TellParties(server->unit, AckKind::Kill); what = "poluchi gadina"; break;
+            case AIRemark::Idle: world->TellParties(server->unit, AckKind::Rest); what = "idleSound = AAn4XyU"; break;
+            case AIRemark::FightingIdle: world->TellParties(server->unit, AckKind::FightingRest); what = "idleSound = AAn4XyU"; break;
+            case AIRemark::CalmFromSuspicion: what = "back from Suspection"; break;
+            case AIRemark::CalmFromAggression: what = "back from Aggression"; break;
+            case AIRemark::Suspicion: world->TellParties(server->unit, AckKind::Suspicion); what = "to Suspection"; break;
+            case AIRemark::Aggression: world->TellParties(server->unit, AckKind::Aggression); what = "to Aggression"; break;
+            case AIRemark::ToAlarm: what = "to Alarm!"; break;
+            case AIRemark::Alarm: what = "ALARM ALARM ALARM"; break;
+            case AIRemark::Kill: world->TellParties(server->unit, AckKind::Kill); what = "poluchi gadina"; break;
             default: what = "error... :)"; break;
             }
             console::EndLine(*kAlarmLog << what);
         }
-        state->pending = 0;
+        state->pending = AIRemark::None;
     }
-    int active = state->active;
-    state->level = 0;
-    if (!active) return;
+    AIRemark active = state->active;
+    state->level = AIRemark::None;
+    if (active == AIRemark::None) return;
     if (--state->timer <= 0) {
-        state->active = 0;
+        state->active = AIRemark::None;
         return;
     }
     int side = server->unit->side;
     for (auto& node : server->brain.memory.nearby) {
         auto* member = node;
         if (!world->diplomacy_.IsAllied(side, member->side)) continue;
-        int& alarm = member->ServerController()->voice.level;
+        AIRemark& alarm = member->ServerController()->voice.level;
         if (alarm <= active) alarm = active;
     }
 }
@@ -66,9 +66,9 @@ void AIAlarm::Step(CUnitServer* owner) { StepAlarmOf(this, owner); }
 // ---- The state's small members ----------------------------------------------------------
 
 void AIAlarm::Reset() {
-    level = 0;
-    pending = 0;
-    active = 0;
+    level = AIRemark::None;
+    pending = AIRemark::None;
+    active = AIRemark::None;
     timer = 0;
 }
 

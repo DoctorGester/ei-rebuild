@@ -59,7 +59,7 @@ AckKind AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
     if (clearTwice) {
         // The second attack builds the order by hand after a second Clear.
         order.Clear();
-        order.kind = kOrderAttack;
+        order.kind = UnitOrderKind::Attack;
         order.source = kAttackHow;
         order.target.Assign(object);
     } else {
@@ -169,7 +169,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, CountedUnits* targets) {
         AIBrain* theirs = &other->ServerController()->brain;
         auto* foe = static_cast<CUnit*>(theirs->target.object);
         if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
-            foe->GetClassId() != kClassUnit)
+            foe->GetClassId() != ClassId::Unit)
             continue;
         if (lib::Contains(*targets, foe)) continue;
         targets->push_back(foe);

@@ -46,7 +46,7 @@ CMapObjectManager::~CMapObjectManager() {}
 
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
 const char* CMapObjectManager::ClassName() { return kClassName; }
-ClassId CMapObjectManager::GetClassId() { return kClassMapObjectManager; }
+ClassId CMapObjectManager::GetClassId() { return ClassId::MapObjectManager; }
 int CMapObjectManager::Create() { return CreateManager(); }
 CEngineObject* CMapObjectManager::CreateObject(int type, int id) { return CreateMapObject(type, id); }
 
@@ -98,7 +98,7 @@ int CMapObjectManager::GiveDefaults(CMapObject* object) {
     // heap; the harness zeroes them in the original too (tests/verify/harness_leftovers.h).
     UnitVitals vitals{};
     vitals.Reset();
-    if (object->GetClassId() != kClassUnit) {
+    if (object->GetClassId() != ClassId::Unit) {
         SetDefaults(&vitals, nullptr);
         object->SetServerData(&vitals);
     } else {

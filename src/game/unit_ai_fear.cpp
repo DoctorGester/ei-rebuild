@@ -29,7 +29,6 @@ constexpr int kNoticeLevel = 1000;
 constexpr int kNoticeKind = -2;
 constexpr int kCalmLevel = 50;              // noticed levels above it keep the unit afraid
 constexpr int kKeepLevel = 500;             // with `flag`, levels above it are not forgotten
-constexpr int kCommandWalk = 1;             // CUnitServer::command / nextCommand
 constexpr int kLargeSizeClass = 6;
 
 constexpr float kThree = 3.0f;
@@ -142,14 +141,14 @@ int FearMode::Evaluate(AIBrain* brain) {
     if (enemy && static_cast<std::uint8_t>(owner->AttacksFromRange()) != 0 &&
         self->sizeClass < kLargeSizeClass && owner->unit->GetSpellObject(0) == nullptr &&
         owner->stats.MovementState(0) == 0 && owner->stats.loadFactor > kMaxLoadFactor) {
-        bool aggressive = brain->current && brain->current->GetType() == kModeAggression;
+        bool aggressive = brain->current && brain->current->GetType() == AIModeType::Aggression;
         float range = aggressive ? g_logicSettings.rangedRunDist : g_logicSettings.rangedAttackDist;
         Vector3 me = self->localPosition_;
         Vector3 foe = enemy->localPosition_;
         double dx = static_cast<double>(foe.x) - me.x;
         double dy = static_cast<double>(foe.y) - me.y;
         if (static_cast<double>(range) * range > LengthSquared2DUnrounded(dx, dy)) {
-            if (brain->owner->action.kind == kCommandWalk || brain->owner->action2.kind == kCommandWalk) return kFlee;
+            if (brain->owner->action.kind == UnitOrderKind::Move || brain->owner->action2.kind == UnitOrderKind::Move) return kFlee;
             Vector3 flight;
             if (FindFlightPoint(brain, self, enemy, me, foe, static_cast<float>(dx), static_cast<float>(dy), &flight)) {
                 fleePoint = flight;
@@ -226,8 +225,8 @@ void FearMode::Execute(AIBrain* brain) {
     }
 
     double near2 = DistanceSquaredZYX(*here, from);
-    if (static_cast<double>(distance) * distance > near2 && brain->owner->action.kind != kCommandWalk &&
-        brain->owner->action2.kind != kCommandWalk) {
+    if (static_cast<double>(distance) * distance > near2 && brain->owner->action.kind != UnitOrderKind::Move &&
+        brain->owner->action2.kind != UnitOrderKind::Move) {
         Vector3 dest;
         if (!IsZero(fleePoint.z)) {
             dest = fleePoint;

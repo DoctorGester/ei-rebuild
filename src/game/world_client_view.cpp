@@ -151,7 +151,7 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
     for (CMapObject* object : *list) {
         if (object && Object3D(object)->attached) {
             bool process = true;
-            if (object->GetClassId() == kClassUnit) {
+            if (object->GetClassId() == ClassId::Unit) {
                 if (object->MapType() == MapObjectType::Hero && (IsTextKey(object->id_) & 0xFF) && !withScripted) {
                     process = false;
                 } else if (animateUnits) {
@@ -185,19 +185,19 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
                     // View-space position: x summed ZYX, y and z XYZ, each rounded.
                     o3d->worldPosition_ = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition_);
                     switch (object->GetClassId()) {
-                    case kClassUnit:
+                    case ClassId::Unit:
                         PushBack(g_visibleUnits, entry);
                         PushBack(g_shadowUnits, entry);
                         break;
-                    case kClassTree:
+                    case ClassId::Tree:
                         PushBack(g_visibleTrees, entry);
                         PushBack(g_shadowTrees, entry);
                         break;
-                    case kClassBuilding:
+                    case ClassId::Building:
                         PushBack(g_visibleBuildings, entry);
                         PushBack(g_shadowBuildings, entry);
                         break;
-                    case kClassLever:
+                    case ClassId::Lever:
                         PushBack(g_visibleLevers, entry);
                         PushBack(g_shadowLevers, entry);
                         break;
@@ -216,10 +216,10 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
                     if (ModelOf(object)->ShadowInView()) {
                         if (o3d->animation) o3d->animation->UpdatePose();
                         switch (object->GetClassId()) {
-                        case kClassUnit: PushBack(g_shadowUnits, entry); break;
-                        case kClassTree: PushBack(g_shadowTrees, entry); break;
-                        case kClassBuilding: PushBack(g_shadowBuildings, entry); break;
-                        case kClassLever: PushBack(g_shadowLevers, entry); break;
+                        case ClassId::Unit: PushBack(g_shadowUnits, entry); break;
+                        case ClassId::Tree: PushBack(g_shadowTrees, entry); break;
+                        case ClassId::Building: PushBack(g_shadowBuildings, entry); break;
+                        case ClassId::Lever: PushBack(g_shadowLevers, entry); break;
                         default: PushBack(g_shadowOther, entry); break;
                         }
                     }

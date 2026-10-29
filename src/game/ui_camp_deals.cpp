@@ -14,6 +14,7 @@
 #include "world.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace {
@@ -88,11 +89,11 @@ void AddAndRelease(CParty* party, CItemLoot* item) {
 }
 
 // The instruction (blueprint) items by the item's class: weapon, armour, quick item.
-const char* InstructionName(int itemClass) {
+const char* InstructionName(ItemKind itemClass) {
     switch (itemClass) {
-    case kItemWeapon: return "Instruction Weapon";
-    case kItemArmor: return "Instruction Armor";
-    case kItemQuick: return "Instruction Quick Item";
+    case ItemKind::Weapon: return "Instruction Weapon";
+    case ItemKind::Armor: return "Instruction Armor";
+    case ItemKind::Quick: return "Instruction Quick Item";
     default: return nullptr;
     }
 }
@@ -130,31 +131,31 @@ void StockSpells(CCampPages* camp, CParty* list) {
 
 // The item constructor's third list, from the end: each item repaired; weapons, armour and quick
 // items that can be taken apart and blueprint parts add their record to the template's stock;
-// loot priced by itself (kLootSelf) leaves the list.
+// loot priced by itself (LootKind::Self) leaves the list.
 void StockItems(CCampPages* camp, CParty* list) {
     ItemStock* stock = AllowedList(camp->constructor_);
     for (int i = ItemCount(list) - 1; i >= 0; --i) {
         CItem* item = ItemAt(list, i);
         item->Repair();
-        int kind = -1;
+        std::optional<LootRecordType> kind;
         std::uint32_t index = 0;
         if (UiItemKinds::IsBuildable(item)) {
             index = PrototypeIndex(item);
-            if (item->type_ == kItemWeapon) kind = kRecordWeapon;
-            else if (item->type_ == kItemArmor) kind = kRecordArmor;
-            else if (item->type_ == kItemQuick) kind = kRecordQuick;
+            if (item->Kind() == ItemKind::Weapon) kind = LootRecordType::Weapon;
+            else if (item->Kind() == ItemKind::Armor) kind = LootRecordType::Armor;
+            else if (item->Kind() == ItemKind::Quick) kind = LootRecordType::Quick;
         } else if (UiItemKinds::IsPart(item)) {
             auto* loot = AsLoot(item);
             index = loot->index_;
-            if (loot->recordType_ <= kRecordQuick) kind = static_cast<int>(loot->recordType_);
-        } else if (item->type_ == kItemLoot && AsLoot(item)->kind_ == kLootSelf) {
+            if (loot->recordType_ <= LootRecordType::Quick) kind = loot->recordType_;
+        } else if (item->Kind() == ItemKind::Loot && AsLoot(item)->kind_ == LootKind::Self) {
             list->RemoveItem(item, 1);
         }
-        if (kind == static_cast<int>(kRecordWeapon))
+        if (kind == LootRecordType::Weapon)
             stock->AddWeapon(itemdb::WeaponAt(index));
-        else if (kind == static_cast<int>(kRecordArmor))
+        else if (kind == LootRecordType::Armor)
             stock->AddArmor(itemdb::ArmorAt(index));
-        else if (kind == static_cast<int>(kRecordQuick))
+        else if (kind == LootRecordType::Quick)
             stock->AddQuickItem(itemdb::QuickItemAt(index));
     }
 }
@@ -196,7 +197,7 @@ bool CCampPages::DeconstructItem() {
     ++copy->refCount_;
     results->RemoveItem(ItemAt(results, 0), 0);
 
-    if (const char* instruction = InstructionName(copy->type_))
+    if (const char* instruction = InstructionName(copy->Kind()))
         AddNamed(results, instruction, PrototypeIndex(copy), true);
     // A material per one the prototype needs; a material index out of range reads its key through null.
     for (std::uint32_t i = 0; i < copy->GetPrototype()->materialUnits; ++i) {
@@ -211,7 +212,7 @@ bool CCampPages::DeconstructItem() {
         CItemManager* manager = results->ItemFactory();
         itemdb::QuickItemTable& quickItems = g_itemDatabase->quickItems;
         int index = quickItems.IndexOf(quickItems.Named(SpellContainerText()));
-        auto* container = manager->MakeItem(kItemSpell, index, 0, -1);
+        auto* container = manager->MakeItem(ItemKind::Spell, index, 0, -1);
         if (container) {
             ++container->refCount_;
             CSpell* clone = copy->spell_->Clone(results->SpellManager());

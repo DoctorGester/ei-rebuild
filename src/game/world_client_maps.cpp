@@ -134,7 +134,7 @@ CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
 // object is gone or is not a unit; null at the end.
 CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
-    while (object->GetClassId() != kClassUnit) {
+    while (object->GetClassId() != ClassId::Unit) {
         do {
             if (++client->hitCursor_ == client->hits_.data() + client->hits_.size()) return nullptr;
             object = client->objectManager_->FindMapObject(client->hitCursor_->objectId);
@@ -290,8 +290,8 @@ int CWorldClient::AddObject(CMapObject* object) {
         int key = object->id_;
         hash400::Entry(dynamicNodes_, dynamicMaxId_, key) = node;
     }
-    int kind = object->GetClassId();
-    if (kind == kClassBuilding || object->GetClassId() == kClassLever) {
+    ClassId kind = object->GetClassId();
+    if (kind == ClassId::Building || object->GetClassId() == ClassId::Lever) {
         CObject3D* figure = object->Object3D();
         for (int i = 0; i < std::ssize(figure->parts); ++i) {
             if ((figure->PartBox(i)->bounds.flags >> 10) & 1) {
@@ -323,7 +323,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
         if (node->id == id) platforms.erase(node);
         node = next;
     }
-    if (object->GetClassId() != kClassBuilding && object->GetClassId() != kClassLever) return;
+    if (object->GetClassId() != ClassId::Building && object->GetClassId() != ClassId::Lever) return;
     CObject3D* figure = object->Object3D();
     for (int i = 0; i < std::ssize(figure->parts); ++i) {
         if (!((figure->PartBox(i)->bounds.flags >> 10) & 1)) continue;
@@ -384,7 +384,7 @@ double CWorldClient::SurfaceHeightAt(float x, float y) {
 
 void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
     CEngineObject* object = MapObjectManager()->FindObject(static_cast<unsigned>(id));
-    if (!object || object->GetClassId() != kClassUnit) return;
+    if (!object || object->GetClassId() != ClassId::Unit) return;
     if (numbers_) numbers_->Add(id, value, kind);
 }
 
@@ -1034,9 +1034,9 @@ int CWorldClient::LoadZone(CStream* block) {
 
     FitGrid(objectGrid_, terrain);
     FitGrid(secondGrid_, terrain);
-    if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~kLandscapeWaves;
-    if (cave == kCave) terrain->landscapeFlags |= kLandscapeWaves;
-    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~kLandscapeSunShadows;
+    if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~LandscapeFlag::Waves;
+    if (cave == kCave) terrain->landscapeFlags |= LandscapeFlag::Waves;
+    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~LandscapeFlag::SunShadows;
     terrain->SetLightInterval(worlddata::LightingFrequencyOption() / kFrameMilliseconds);
     if (skyDome_) {
         HeldTexture* holder = &skyDome_->texture;

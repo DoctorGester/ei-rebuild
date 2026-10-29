@@ -389,7 +389,7 @@ void CMapObjectClientSpecific::ShowLight() {
     light->flags_ &= ~kLightHidden;
     g_clientWorld->terrain_->AddLight(light);
     CMapObject* mapObject = CompanionOwner(this);
-    if (mapObject && mapObject->GetClassId() == kClassUnit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
+    if (mapObject && mapObject->GetClassId() == ClassId::Unit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
 }
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {

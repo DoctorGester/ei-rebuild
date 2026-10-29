@@ -77,7 +77,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
         CItem* item = CreateNamedItem(name);
         if (!item) continue;
         ++item->refCount_;
-        if (item->GetClassId() == kClassItemQuest)
+        if (item->GetClassId() == ClassId::ItemQuest)
             player->TakeLoot(static_cast<int>(AsQuest(item)->questItemId_));
         item->Release();
     }

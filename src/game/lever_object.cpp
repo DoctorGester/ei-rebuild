@@ -204,4 +204,4 @@ bool Lever::ApplyKey(const LockKey* key) {
 BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
 
 const char* Lever::ClassName() { return kLeverClassName; }
-ClassId Lever::GetClassId() { return kClassLever; }
+ClassId Lever::GetClassId() { return ClassId::Lever; }

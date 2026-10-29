@@ -144,7 +144,7 @@ private:
 public:
 
     // CEngineObject: flags_ 0x20 loaded, 0x40 drawn through drawer_ (its screen_ is where the part was last
-    // drawn), 0x80 hidden; type_ the figure manager's type (0x41-0x44; the class id is kClassFigureMesh). CTransformObject: localPosition_ relative to the
+    // drawn), 0x80 hidden; type_ the figure manager's type (0x41-0x44; the class id is ClassId::FigureMesh). CTransformObject: localPosition_ relative to the
     // object (a bone places it), worldPosition_ UpdateWorld's moved position, localRotation_ and worldRotation_.
     // The part -> object matrix: the rotation, the local position as column 3 (the draws build it,
     // ObjectWorldMatrix in map_object_shadow.h).

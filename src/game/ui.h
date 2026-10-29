@@ -731,7 +731,7 @@ public:
     // over (a plain rectangle without one).
     void AddItem(std::string_view model, std::string_view image);
     // The unit's four quick items in the bottom row (sprites Rebirth-patched); for the local player's unit
-    // up to four of the player's kItemQuest items in the top row.
+    // up to four of the player's ItemKind::Quest items in the top row.
     void SetUnit(CUnit* unit);
 
     struct Entry {

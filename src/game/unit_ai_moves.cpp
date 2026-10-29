@@ -189,7 +189,7 @@ void AIBrain::UpdateFollow() {
     CUnitServer* leaderController = leader->ServerController();
     float walkTime = static_cast<float>(distance * kRangePerDistance + kRangeBase);
 
-    if (leaderController->action.kind != kOrderMove && leaderController->action2.kind != kOrderMove) {
+    if (leaderController->action.kind != UnitOrderKind::Move && leaderController->action2.kind != UnitOrderKind::Move) {
         // The leader stands: stop near it, else walk to it when the current goal is too far off.
         EI_NAN_AUDIT(distance, nearSq);
         if (static_cast<double>(distance) * distance < nearSq) {

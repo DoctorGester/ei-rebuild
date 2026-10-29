@@ -196,8 +196,8 @@ void CMapObject::PlaceOnGround(float offset) {
 }
 
 void CMapObject::SetServerData(const UnitVitals* data) {
-    int classId = companion->GetClassId();
-    if (classId != kClassMapObjectServer) return;
+    ClassId classId = companion->GetClassId();
+    if (classId != ClassId::MapObjectServer) return;
     ServerCompanion()->SetData(data);
 }
 
@@ -228,7 +228,7 @@ void CMapObject::AttachObject(CEngineObject* object) {
 }
 
 int CMapObject::PackVitals() {
-    if (companion->GetClassId() != kClassMapObjectServer) return 0;
+    if (companion->GetClassId() != ClassId::MapObjectServer) return 0;
     ServerCompanion()->vitals.Pack(&packedVitals);
     return 1;
 }

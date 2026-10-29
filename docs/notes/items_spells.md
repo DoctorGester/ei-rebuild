@@ -36,13 +36,13 @@ record, so an index out of range faults (kept: `Field<T>()`).
 `QuickItemCategory` (item_db.h): 5 for "wand 1".."wand 6" (the item constructor puts the spell in, casts pay from the
 charge), 8 for the potions ("tiny potion 1" .. "potion shrink", spellText e.g. "healing {e2;e1}") and the scrolls'
 "spell container" prototype (the spell comes from spellText; potions are used up and only on the user), 0 for the
-danger sensor. Category 2 (`kCategoryConsumable`, used up by order kind 10) has no prototype in the data. A loot
-prototype's field 0x15 is its `LootKind` (2, kLootRecord, for the "instruction ..." blueprints).
+danger sensor. Category 2 (`QuickItemCategory::Consumable`, used up by order kind 10) has no prototype in the data. A loot
+prototype's field 0x15 is its `LootKind` (2, LootKind::Record, for the "instruction ..." blueprints).
 
 **Naming (fixed in C2i):** the game treats 0x3007 as the loot item ("litem", item_loot, CItemLoot kind at +0x4C, table
 007C8778, 0x78-byte records) and 0x3009 as the quest item ("questitem", item_quest, table 007C8758, 0x7C). `item.h` /
-`item_db.h` used to name them the other way; they now follow the game (`kItemLoot` = 0x3007, `Loot()` = 007C8778, `kLootSize`
-0x78; `kItemQuest` = 0x3009, `QuestItems()` = 007C8758, `kQuestItemSize` 0x7C). The file-local forwarders in item_db_load.cpp /
+`item_db.h` used to name them the other way; they now follow the game (`ItemKind::Loot` = 0x3007, `Loot()` = 007C8778, `kLootSize`
+0x78; `ItemKind::Quest` = 0x3009, `QuestItems()` = 007C8758, `kQuestItemSize` 0x7C). The file-local forwarders in item_db_load.cpp /
 item_db_open.cpp and `ChunkArchive::SerializeLoot` / `SerializeQuestItems` keep the old sense.
 
 Weapon stats as the unit stats code (00538960) combines them: min damage = weapon damage x material damage, max = (spread +

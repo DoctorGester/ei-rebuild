@@ -86,7 +86,7 @@ CParty::~CParty() {
 }
 
 const char* CParty::ClassName() { return "CParty"; }
-ClassId CParty::GetClassId() { return kClassParty; }
+ClassId CParty::GetClassId() { return ClassId::Party; }
 
 CItemConstructor* CParty::ItemConstructor() { return itemConstructor_; }
 CSpellConstructor* CParty::SpellConstructor() { return spellConstructor_; }

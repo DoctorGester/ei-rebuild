@@ -114,7 +114,7 @@ struct SectorData {
     int DrawPage(void* context, int page);
     std::uint8_t hasSpecular;           // a specular light reached a vertex (Light clears it)
     std::uint8_t pad_001[3];
-    std::uint32_t built;                // SectorStage bits
+    SectorStage built;
     int sx, sy;
     int hasWater;
     int hasWaterTiles;                  // a second tile layer (water tiles)
@@ -153,8 +153,8 @@ struct SectorData {
     // Raises the water layer by the owner's pending water level changes.
     void ApplyWaterLevels();
 
-    // `wanted`: kSectorBuilt, kSectorLit. Returns wanted & built.
-    std::uint32_t Ensure(std::uint32_t wanted, Terrain* owner);
+    // `wanted`: SectorStage::Built, SectorStage::Lit. Builds what of it is missing.
+    void Ensure(SectorStage wanted, Terrain* owner);
 
     // Also sizes the shared projection buffers (positions, projected, outcodes) for 0x330 vertices.
     SectorData();

@@ -14,12 +14,12 @@ constexpr const char* kStateClassName = "CAnimationSystem2";
 } // namespace
 
 const char* AnimationTrack::ClassName() { return kTrackClassName; }
-ClassId AnimationTrack::GetClassId() { return kClassAnimationTrack; }
+ClassId AnimationTrack::GetClassId() { return ClassId::AnimationTrack; }
 
 const char* FigureBone::GetName() { return name.c_str(); }
 const char* FigureBone::ClassName() { return kBoneClassName; }
-ClassId FigureBone::GetClassId() { return kClassFigureBone; }
+ClassId FigureBone::GetClassId() { return ClassId::FigureBone; }
 
 const char* CFigureAnimationState::ClassName() { return kStateClassName; }
-ClassId CFigureAnimationState::GetClassId() { return kClassFigureAnimationState; }
+ClassId CFigureAnimationState::GetClassId() { return ClassId::FigureAnimationState; }
 

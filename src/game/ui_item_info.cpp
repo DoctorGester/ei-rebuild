@@ -73,7 +73,7 @@ float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x1
 const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
     return item->GetPrototype();
 }
-int CategoryOf(CItem* item) { return item->GetCategory(); }
+QuickItemCategory CategoryOf(CItem* item) { return item->GetCategory(); }
 const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
     return spell->GetPrototype();
 }
@@ -148,7 +148,7 @@ public:
     RECT rect_;
 };
 
-int KindOf(CItem* item) { return item->type_; }
+ItemKind KindOf(CItem* item) { return item->Kind(); }
 std::uint32_t PackedIdOf(CItem* item) { return item->prototypeId_; }
 const CItemLoot* LootOf(CItem* item) { return AsLoot(item); }
 CSpell* SpellOf(CItem* item) { return item->spell_; }
@@ -352,32 +352,32 @@ void CItemInfoPanel::DescribeItem() {
     draw->ReleaseDC();
     if (!item) return;
 
-    int kind = KindOf(item);
-    if (kind == kItemLoot) {
+    ItemKind kind = KindOf(item);
+    if (kind == ItemKind::Loot) {
         LootKind sort = LootOf(item)->kind_;
         LootRecordType sub = LootOf(item)->recordType_;
-        if (sort == kLootMaterial) {
+        if (sort == LootKind::Material) {
             DescribeMaterial();
             return;
         }
-        if (sort == kLootRecord && (sub == kRecordWeapon || sub == kRecordArmor || sub == kRecordQuick)) {
+        if (sort == LootKind::Record && (sub == LootRecordType::Weapon || sub == LootRecordType::Armor || sub == LootRecordType::Quick)) {
             DescribeBlueprint();
             return;
         }
-        if (sort == kLootRecord && sub == kRecordSpell) {
+        if (sort == LootKind::Record && sub == LootRecordType::Spell) {
             DescribeSpellRecord();
             return;
         }
-        if (sort == kLootRecord && sub == kRecordModifier) {
+        if (sort == LootKind::Record && sub == LootRecordType::Modifier) {
             DescribeModifierRecord();
             return;
         }
     }
-    if (kind == kItemQuick && CategoryOf(item) == kCategoryPotion) {
+    if (kind == ItemKind::Quick && CategoryOf(item) == QuickItemCategory::Potion) {
         DescribeQuickItem();
         return;
     }
-    if ((interface_->ctrlDown_ && SpellOf(item)) || kind == kItemSpell) {
+    if ((interface_->ctrlDown_ && SpellOf(item)) || kind == ItemKind::Spell) {
         DescribeCarriedSpell();
         return;
     }
@@ -398,11 +398,11 @@ void CItemInfoPanel::DescribeItem() {
 
     // The material and count, unless a quick item whose prototype's field is "none"; then the price.
     bool materialLine;
-    if (kind == kItemQuick) {
+    if (kind == ItemKind::Quick) {
         const itemdb::ItemRecordHead* prototype = PrototypeOf(item);
         materialLine = !prototype || text::CompareIgnoringCase(prototype->materialClass, "none") != 0;
     } else {
-        materialLine = kind != kItemLoot && kind != kItemQuest;
+        materialLine = kind != ItemKind::Loot && kind != ItemKind::Quest;
     }
     if (materialLine) {
         text = "Unknown";
@@ -414,20 +414,20 @@ void CItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
     }
-    if (kind != kItemQuest) w.Number(0, FtolOf(item->Weight()));
+    if (kind != ItemKind::Quest) w.Number(0, FtolOf(item->Weight()));
 
-    if (kind == kItemArmor || kind == kItemWeapon || (kind == kItemQuick && CategoryOf(item) == kCategoryWand)) {
+    if (kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && CategoryOf(item) == QuickItemCategory::Wand)) {
         CSpell* spell = SpellOf(item);
         int spellValue = spell ? static_cast<int>(spell->skillNeeded_) : 0;
         w.Number(2, FtolOf(item->chargeMax_));
         w.line = str::Format("%s %d/%d", w.T(14), spellValue, static_cast<int>(item->magicLevel_));
         w.Text(w.line);
         w.Down();
-    } else if (kind == kItemQuick) {
+    } else if (kind == ItemKind::Quick) {
         goto tail;
     }
 
-    if (kind == kItemArmor || kind == kItemWeapon) {
+    if (kind == ItemKind::Armor || kind == ItemKind::Weapon) {
         // The condition (current only when positive).
         float current = item->condition_;
         int condition = current > 0.0f ? FtolOf(current) : 0;
@@ -435,7 +435,7 @@ void CItemInfoPanel::DescribeItem() {
         w.line = str::Format("%s %d/%d", w.T(3), condition, maximum);
         w.Text(w.line);
         w.Down();
-        if (kind == kItemWeapon) {
+        if (kind == ItemKind::Weapon) {
             CItemWeapon* weapon = AsWeapon(item);
             // Damage: min-max and the first damage kind with a weight ("damage_<n>"; the text
             // keeps the material line's otherwise).
@@ -463,7 +463,7 @@ void CItemInfoPanel::DescribeItem() {
             goto tail;
         }
     }
-    if (kind == kItemArmor) {
+    if (kind == ItemKind::Armor) {
         float values[7];
         std::memcpy(values, AsArmor(item)->absorb_[0], sizeof(values));
         w.DamageLines(values, 25);
@@ -471,7 +471,7 @@ void CItemInfoPanel::DescribeItem() {
 
 tail:
     w.Down();
-    if (kind == kItemLoot) {
+    if (kind == ItemKind::Loot) {
         texts->GetString("loot_item", &text);
         description += text;
         w.Wrapped(description, 7);
@@ -481,9 +481,9 @@ tail:
         w.Down();
         w.Down();
         w.Down();
-        if (kind != kItemWeapon) w.Down();
+        if (kind != ItemKind::Weapon) w.Down();
         CSpell* spell;
-        if ((kind == kItemArmor || kind == kItemWeapon || (kind == kItemQuick && CategoryOf(item) == kCategoryWand)) &&
+        if ((kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && CategoryOf(item) == QuickItemCategory::Wand)) &&
             (spell = SpellOf(item)) != nullptr) {
             text = "Unknown";
             std::string key("spell ");
@@ -545,9 +545,9 @@ void CItemInfoPanel::DescribeBlueprint() {
     const itemdb::ItemRecordHead* head = nullptr;
     std::uint32_t index = LootOf(item)->index_;
     switch (LootOf(item)->recordType_) {
-    case kRecordWeapon: sort = 0; head = itemdb::WeaponAt(index); break;
-    case kRecordArmor: sort = 1; head = itemdb::ArmorAt(index); break;
-    case kRecordQuick: sort = 2; head = itemdb::QuickItemAt(index); break;
+    case LootRecordType::Weapon: sort = 0; head = itemdb::WeaponAt(index); break;
+    case LootRecordType::Armor: sort = 1; head = itemdb::ArmorAt(index); break;
+    case LootRecordType::Quick: sort = 2; head = itemdb::QuickItemAt(index); break;
     default: break;
     }
     std::string name, description, kindText;

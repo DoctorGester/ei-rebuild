@@ -136,7 +136,7 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
     CUnit* nearest = nullptr;
     for (int i = 0; i < std::ssize(view->partyUnitIds_); ++i) {
         CUnit* found = FindUnit(view->partyUnitIds_[i]);
-        if (!found || found->GetClassId() != kClassUnit) continue;
+        if (!found || found->GetClassId() != ClassId::Unit) continue;
         if (found->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
         if ((found->relationsA & (side & found->relationsB)) == 0) continue;

@@ -139,7 +139,7 @@ void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
 }
 
 void GuardMode::Execute(AIBrain* brain) {
-    MaybeRemark(brain, kRemarkIdle);
+    MaybeRemark(brain, AIRemark::Idle);
     brain->attention.LookAround(brain, 0);
     if (brain->action != AIBrain::kActionNone) return;
     // 35 + radius / 80 + radius, computed before the positions are copied.
@@ -204,7 +204,7 @@ int PatrolMode::Evaluate(AIBrain* brain) {
 }
 
 void PatrolMode::Execute(AIBrain* brain) {
-    MaybeRemark(brain, kRemarkIdle);
+    MaybeRemark(brain, AIRemark::Idle);
     brain->attention.LookAround(brain, 0);
     if (std::ssize(points) == 0 || brain->action != AIBrain::kActionNone) return;
     if (++current >= std::ssize(points)) current = 0;
@@ -269,7 +269,7 @@ void PatrolMode::Save(CStream* stream) {
 void SentryMode::Set(const Vector3* p) { point = *p; }
 
 void SentryMode::Execute(AIBrain* brain) {
-    MaybeRemark(brain, kRemarkIdle);
+    MaybeRemark(brain, AIRemark::Idle);
     brain->attention.LookAround(brain, 0);
     if (brain->action != AIBrain::kActionNone) return;
     AIMoveOrder order;
@@ -387,12 +387,12 @@ void SuspectionMode::Enter(AIBrain* brain) {
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);
     StartMove(brain, &order);
-    brain->owner->voice.Raise(kRemarkSuspicion);
+    brain->owner->voice.Raise(AIRemark::Suspicion);
 }
 
 void SuspectionMode::Leave(AIBrain* brain) {
     brain->owner->moveMode2.onGuard = 0;
-    brain->owner->voice.Raise(kRemarkCalmFromSuspicion);
+    brain->owner->voice.Raise(AIRemark::CalmFromSuspicion);
 }
 
 int AggressionMode::Evaluate(AIBrain* brain) {
@@ -413,7 +413,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
             }
         }
         if (!enemy) return kNoPriority;
-        if (enemy->IsDead() == 0 && enemy->GetClassId() == kClassUnit) {
+        if (enemy->IsDead() == 0 && enemy->GetClassId() == ClassId::Unit) {
             if (brain->memory.IsEnemy(brain->owner->unit, enemy) == 0) return kNoPriority;
             chosen.part = -1;
             chosen.object = static_cast<CUnit*>(enemy.object);   // a unit (tested above)
@@ -446,7 +446,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
 }
 
 void AggressionMode::Execute(AIBrain* brain) {
-    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(kRemarkFightingIdle);
+    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(AIRemark::FightingIdle);
     if (!chosen.object) return;
     brain->CallAllies(&chosen.object->localPosition_);
     AITargetChoice attack{-1, nullptr};     // what the brain is attacking now
@@ -490,7 +490,7 @@ void AggressionMode::Enter(AIBrain* brain) {
     brain->owner->moveMode2.onGuard = 1;
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
-    brain->owner->voice.Raise(kRemarkAggression);
+    brain->owner->voice.Raise(AIRemark::Aggression);
 }
 
 void AggressionMode::Leave(AIBrain* brain) {
@@ -500,7 +500,7 @@ void AggressionMode::Leave(AIBrain* brain) {
     }
     enemy.Reset();
     brain->owner->moveMode2.onGuard = 0;
-    brain->owner->voice.Raise(kRemarkCalmFromAggression);
+    brain->owner->voice.Raise(AIRemark::CalmFromAggression);
 }
 
 void AggressionMode::Load(CStream* stream) {
@@ -664,7 +664,7 @@ void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int 
         if (object) ++object->refCount_;
         target = object;
     }
-    if (brain->owner->unit->player == nullptr && object->GetClassId() == kClassUnit &&
+    if (brain->owner->unit->player == nullptr && object->GetClassId() == ClassId::Unit &&
         brain->memory.IsEnemy(brain->owner->unit, object) == 0)
         return;
     brain->action = AIBrain::kActionAttack;
@@ -677,7 +677,7 @@ void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int 
     brain->owner->OrderAttack(brain->target, how, unknown, AckKind::Attack);
 }
 
-void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, int kind, int a, int b) {
+void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int a, int b) {
     state = kStateFollow;
     brain->UseOn(object, kind, a, b);
 }

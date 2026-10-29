@@ -84,7 +84,7 @@ CUnitServer* UnitStateArg(const SSCCmd* cmd) {
 
 Lever* LeverArg(const SSCCmd* cmd) {
     CEngineObject* object = Arg(cmd, 0);
-    return object && object->GetClassId() == kClassLever ? static_cast<Lever*>(object) : nullptr;
+    return object && object->GetClassId() == ClassId::Lever ? static_cast<Lever*>(object) : nullptr;
 }
 
 ScriptParticleSource* FindParticle(CScript* script, int id) {
@@ -253,10 +253,10 @@ void UnitModes(const SSCCmd* cmd) {
     CUnitServer* state = UnitStateArg(cmd);
     if (!state) return;
     AIBrain* brain = BrainOf(state);
-    brain->RemoveModesOfType(3);
-    brain->RemoveModesOfType(4);
-    brain->RemoveModesOfType(5);
-    brain->RemoveModesOfType(7);
+    brain->RemoveModesOfType(AIModeType::Suspection);
+    brain->RemoveModesOfType(AIModeType::Aggression);
+    brain->RemoveModesOfType(AIModeType::CorpseWatcher);
+    brain->RemoveModesOfType(AIModeType::Fear);
     switch (Round(cmd->floatArgs[0])) {
     case 0:
         brain->AddMode(new FearMode(1));
@@ -583,7 +583,7 @@ BOOL ScriptRun::Execute(CScript* script) {
 
         case 0x32: {   // BlockUnit(unit, on): MapObjectFlag::Blocked
             CEngineObject* unit = Arg(cmd, 0);
-            if (!unit || unit->GetClassId() != kClassUnit) break;
+            if (!unit || unit->GetClassId() != ClassId::Unit) break;
             if (IsZero(f[0])) unit->flags_ &= ~MapObjectFlag::Blocked;
             else unit->flags_ |= MapObjectFlag::Blocked;
             break;
@@ -655,7 +655,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             CItem* item = g_serverWorld->CreateItemNamed(Text(cmd, 0));
-            if (item && item->GetClassId() == kClassItemQuest) unit->AddCarried(item);
+            if (item && item->GetClassId() == ClassId::ItemQuest) unit->AddCarried(item);
             break;
         }
         case 0xB3: {   // GiveUnitSpell(unit, spell)

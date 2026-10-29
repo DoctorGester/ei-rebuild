@@ -38,7 +38,7 @@ const UnitPrototypeRecord* UnitPrototypeOf(CUnit* unit) {
 
 // The reset of an order: kind 9, target released, pointIsUseSpot / +0x1C / +0x20 cleared.
 void ResetOrder(UnitAction* order) {
-    order->kind = kOrderNone;
+    order->kind = UnitOrderKind::None;
     if (order->target) order->target->Release();
     order->target = nullptr;
     order->pointIsUseSpot = 0;
@@ -91,8 +91,8 @@ void CUnitServer::FinishCast() {
     CSpell* spell;
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-        if (!item || item->GetClassId() != kClassItemQuick) return;
-        if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return;
+        if (!item || item->GetClassId() != ClassId::ItemQuick) return;
+        if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return;
         carrier = item;
         spell = item->spell_;
     } else {
@@ -139,7 +139,7 @@ void CUnitServer::FinishCast() {
 
 void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
     ResetOrder(&action2);
-    action2.kind = kOrderTurn;
+    action2.kind = UnitOrderKind::Turn;
     lib::LoadBytes(action2.point, direction);
     ReleaseTarget(&action2);
     action2.modifier = 0;
@@ -149,7 +149,7 @@ void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
 void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range) {
     const CWorld* world = WorldContext();
     ResetOrder(&action2);
-    action2.kind = kOrderMove;
+    action2.kind = UnitOrderKind::Move;
     action2.point = *point;
     ReleaseTarget(&action2);
     action2.source = static_cast<std::uint8_t>(walk) != 0 ? 1 : 0;
@@ -173,16 +173,16 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
         if (controller->stats.slots[location].kind != 3) location = 6;
     }
     ResetOrder(&action2);
-    action2.kind = kOrderAttack;
+    action2.kind = UnitOrderKind::Attack;
     SetTarget(&action2, target);
     action2.source = static_cast<std::uint32_t>(location);
     action2.modifier = static_cast<std::uint8_t>(calledShot);
     // CanReachTarget inlined on the queued order.
-    if (action2.kind == kOrderAttack || action2.kind == kOrderUse) {
+    if (action2.kind == UnitOrderKind::Attack || action2.kind == UnitOrderKind::Use) {
         CUnit* other = UnitOrNull(action2.target);
         if (other && other->IsDead() == 0 && other->sizeClass == 0) {
             bool ranged = false;
-            if (action2.kind == kOrderAttack) {
+            if (action2.kind == UnitOrderKind::Attack) {
                 CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
                 ranged = weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
             }
@@ -191,7 +191,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
                     static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(other)->height)) + other->localPosition_.z;
                 if (height >= kReachHeight) {
                     TellParty(unit, AckKind::OutOfReach);
-                    action2.kind = kOrderNone;
+                    action2.kind = UnitOrderKind::None;
                     ReleaseTarget(&action2);
                     action2.pointIsUseSpot = 0;
                     action2.param = 0;
@@ -210,9 +210,9 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
     if (source & kQuickItemSource) {
         std::uint32_t slot = source & ~kQuickItemSource;
         auto* item = unit->GetQuickItem(slot);
-        if (item && item->GetClassId() == kClassItemQuick &&
-            (item->GetCategory() == kCategoryWand || item->GetCategory() == kCategoryPotion) &&
-            item->GetCategory() == kCategoryPotion) {
+        if (item && item->GetClassId() == ClassId::ItemQuick &&
+            (item->GetCategory() == QuickItemCategory::Wand || item->GetCategory() == QuickItemCategory::Potion) &&
+            item->GetCategory() == QuickItemCategory::Potion) {
             CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(slot);
             if (!scroll || !scroll->count_) return;
@@ -227,12 +227,12 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
         TellParty(unit, AckKind::SpellTooComplex);
         return;
     }
-    action2.kind = kOrderNone;
+    action2.kind = UnitOrderKind::None;
     ReleaseTarget(&action2);
     action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
-    action2.kind = kOrderCastAt;
+    action2.kind = UnitOrderKind::CastAt;
     if (action2.target) ReleaseTarget(&action2);
     action2.source = source;
     action2.point = at;
@@ -245,7 +245,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
     target->AimPoint(&aim);    // result unused (sic)
     if (source & kQuickItemSource) {
         CItem* carrier = SpellCarrier(source);
-        if (carrier && carrier->GetCategory() == kCategoryPotion) {
+        if (carrier && carrier->GetCategory() == QuickItemCategory::Potion) {
             CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(source & ~kQuickItemSource);
             if (!scroll || !scroll->count_) return;
@@ -262,7 +262,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
         return;
     }
     ResetOrder(&action2);
-    action2.kind = kOrderCastOn;
+    action2.kind = UnitOrderKind::CastOn;
     SetTarget(&action2, target);
     action2.source = source;
     action2.point = {};
@@ -271,9 +271,9 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
 }
 
 void CUnitServer::StopQueued() {
-    if (action.kind == kOrderStop) return;
+    if (action.kind == UnitOrderKind::Stop) return;
     ResetOrder(&action2);
-    action2.kind = kOrderStop;
+    action2.kind = UnitOrderKind::Stop;
     ReleaseTarget(&action2);
     action2.modifier = 0;
 }

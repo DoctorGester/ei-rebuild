@@ -80,7 +80,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
             for (auto node = items.begin(); node != items.end();) {
                 auto next = std::next(node);
                 CItem* item = *node;
-                if (item->GetClassId() == kClassItemQuest) {
+                if (item->GetClassId() == ClassId::ItemQuest) {
                     quest.push_back(item);
                     items.erase(node);
                 }

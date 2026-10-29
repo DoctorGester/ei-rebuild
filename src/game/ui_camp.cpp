@@ -102,14 +102,14 @@ itemdb::MaterialRecordHead* BlueprintRecord(const CItem* item) { return itemdb::
 // A part's prototype record by the loot's record type: weapon, armour, quick item.
 itemdb::ItemRecordHead* PartRecord(const CItem* item, LootRecordType recordType) {
     switch (recordType) {
-    case kRecordWeapon: return itemdb::WeaponAt(Index(item));
-    case kRecordArmor: return itemdb::ArmorAt(Index(item));
-    case kRecordQuick: return itemdb::QuickItemAt(Index(item));
+    case LootRecordType::Weapon: return itemdb::WeaponAt(Index(item));
+    case LootRecordType::Armor: return itemdb::ArmorAt(Index(item));
+    case LootRecordType::Quick: return itemdb::QuickItemAt(Index(item));
     default: return nullptr;
     }
 }
 
-int ItemType(const CItem* item) { return item->type_; }
+ItemKind ItemType(const CItem* item) { return item->Kind(); }
 
 double D(float f) { return f; }
 
@@ -318,8 +318,8 @@ void CCampPages::ShowPage(int page) {
 int CCampPages::Price(CItem* item, int kind) {
     const float* multipliers = priceWeights_;
     float repair = kPriceZero;
-    int type = ItemType(item);
-    if (type == kItemWeapon || type == kItemArmor || kind == 8) {
+    ItemKind type = ItemType(item);
+    if (type == ItemKind::Weapon || type == ItemKind::Armor || kind == 8) {
         float worn = WornFraction(item);
         repair = static_cast<float>(ItemPrice(item) * multipliers[8] * worn);
         if (kind == 8) {
@@ -330,7 +330,7 @@ int CCampPages::Price(CItem* item, int kind) {
             return price > 0 ? price : 1;
         }
     }
-    if (type == kItemWeapon || type == kItemArmor) {
+    if (type == ItemKind::Weapon || type == ItemKind::Armor) {
         // Rebirth's FixRepairPrice also jumps over this multiplication (written without an addon.log
         // line): for kind 7 (taking an item apart in the item constructor) the repair cost of the
         // wear is added instead of subtracted.
@@ -344,9 +344,9 @@ int CCampPages::Price(CItem* item, int kind) {
 bool CCampPages::CanEquip(CItem* item, int mode) {
     switch (page_) {
     case 0: {   // equipment: weapons, armour, spell containers (worn-out ones not to a hero)
-        int type = ItemType(item);
-        if ((type == kItemWeapon || type == kItemArmor) && x87::fistp(item->condition_) <= 0 && mode == 1) return false;
-        return type == kItemWeapon || type == kItemArmor || type == kItemQuick;
+        ItemKind type = ItemType(item);
+        if ((type == ItemKind::Weapon || type == ItemKind::Armor) && x87::fistp(item->condition_) <= 0 && mode == 1) return false;
+        return type == ItemKind::Weapon || type == ItemKind::Armor || type == ItemKind::Quick;
     }
     case 1: {   // trade: a spell container only for a hero who can cast its spell
         if (mode != 1) return true;
@@ -402,7 +402,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         return mana >= static_cast<int>(libcrt::Ftol(D(manaTotal)));
     }
     case 4:     // the item constructor: anything but quest items and magic
-        if (ItemType(item) == kItemQuest) return false;
+        if (ItemType(item) == ItemKind::Quest) return false;
         if (IsSpellContainer(item) || IsSpell(item)) return false;
         return !IsModifier(item);
     case 5: {   // the item being built: a blueprint, its parts, a container's spell
@@ -420,7 +420,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
                 if (IsPart(ItemOf(itemResults_, i))) {
                     const CItem* entry = ItemOf(itemResults_, i);
                     LootRecordType recordType = RecordType(entry);
-                    if (recordType <= kRecordQuick) part = PartRecord(entry, recordType);
+                    if (recordType <= LootRecordType::Quick) part = PartRecord(entry, recordType);
                 } else if (IsMaterial(ItemOf(itemResults_, i))) {
                     ++materials;
                     if (!firstMaterial) firstMaterial = BlueprintRecord(ItemOf(itemResults_, i));
@@ -435,7 +435,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         if (!itemMade_) return false;
         CSpell* spell = item->spell_;
         if (!spell) return false;
-        if (ItemType(itemMade_) != kItemQuick && !spell->HasCastFlagModifier()) return false;
+        if (ItemType(itemMade_) != ItemKind::Quick && !spell->HasCastFlagModifier()) return false;
         if (spell->skillNeeded_ > itemMade_->magicLevel_) return false;
         // The container's charge maximum below the spell's mana cost fails.
         float need = spell->manaCost_;
@@ -447,8 +447,8 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         return true;
     }
     case 6: {   // repair: worn weapons and armour
-        int type = ItemType(item);
-        if (type != kItemWeapon && type != kItemArmor) return false;
+        ItemKind type = ItemType(item);
+        if (type != ItemKind::Weapon && type != ItemKind::Armor) return false;
         return item->conditionMax_ > item->condition_;
     }
     default:
@@ -707,7 +707,7 @@ bool CCampPages::CanMakeSpell() {
     constructor->SetManager(nullptr);
     itemdb::QuickItemTable& quickItems = g_itemDatabase->quickItems;
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
-    CItem* container = factory->MakeItem(kItemSpell, index, 0, -1);
+    CItem* container = factory->MakeItem(ItemKind::Spell, index, 0, -1);
     if (container) container->AttachSpell(made);
     spellMade_ = container;
     if (!container) return false;
@@ -726,7 +726,7 @@ bool CCampPages::CanMakeItem() {
     HeldObject<CSpell> spell{nullptr};   // a counted pointer, released on the way out
     itemdb::MaterialRecordHead* blueprint = nullptr;
     int blueprintCount = 0;
-    int type = 0;            // uninitialised until a part sets it
+    ItemKind type{};         // uninitialised until a part sets it
     auto fail = [&]() {
         ReleaseObject(spell);
         return false;
@@ -739,9 +739,9 @@ bool CCampPages::CanMakeItem() {
             spell.Assign(copy);
         } else if (IsPart(item)) {
             switch (RecordType(item)) {
-            case kRecordWeapon: type = kItemWeapon; part = PartRecord(item, kRecordWeapon); break;
-            case kRecordArmor: type = kItemArmor; part = PartRecord(item, kRecordArmor); break;
-            case kRecordQuick: type = kItemQuick; part = PartRecord(item, kRecordQuick); break;
+            case LootRecordType::Weapon: type = ItemKind::Weapon; part = PartRecord(item, LootRecordType::Weapon); break;
+            case LootRecordType::Armor: type = ItemKind::Armor; part = PartRecord(item, LootRecordType::Armor); break;
+            case LootRecordType::Quick: type = ItemKind::Quick; part = PartRecord(item, LootRecordType::Quick); break;
             default: break;
             }
         } else if (IsMaterial(item)) {
@@ -819,13 +819,13 @@ CTradePanel::~CTradePanel() {}
 
 CItem* CCampPages::TakeOff(CItem* item) {
     interface_->PlaySound(game::PutOffSoundText(), 0);
-    int kind = ItemType(item);
-    if (kind < kItemWeapon || (kind > kItemQuick && kind != kItemSpell)) return nullptr;
+    ItemKind kind = ItemType(item);
+    if (kind < ItemKind::Weapon || (kind > ItemKind::Quick && kind != ItemKind::Spell)) return nullptr;
     PartyUnitRecord* hero = HeroRecord();
     // The item among the player's items.
     CItem* result = PlayerParty()->AddItem(item, 0, 1);
     switch (ItemType(item)) {
-    case kItemWeapon: {
+    case ItemKind::Weapon: {
         // The chosen weapon moves back when the item lies before it.
         int count = std::ssize(hero->weapons);
         CItem** weapons = hero->weapons.data();
@@ -840,7 +840,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
         RefreshWeapons();
         break;
     }
-    case kItemArmor: {
+    case ItemKind::Armor: {
         if (heroes_[hero_]) {
             int type = AsArmor(item)->GetType();
             heroes_[hero_]->UnequipArmour(type);
@@ -852,10 +852,10 @@ CItem* CCampPages::TakeOff(CItem* item) {
         RebuildArmourLayers(hero);
         break;
     }
-    case kItemQuick:
+    case ItemKind::Quick:
         hero->RemoveQuickItem(item);
         break;
-    case kItemSpell:
+    case ItemKind::Spell:
         hero->RemoveSpell(item);
         break;
     default:
@@ -871,13 +871,13 @@ void CCampPages::PutOn(CItem* item) {
     interface_->PlaySound(game::PutOnSoundText(), 0);
     PartyUnitRecord* hero = HeroRecord();
     switch (ItemType(item)) {
-    case kItemWeapon:
+    case ItemKind::Weapon:
         if (std::ssize(hero->weapons) >= 4) return;
         hero->AddWeapon(item);
         if (std::ssize(hero->weapons) == 1) hero->weaponIndex = 0;
         RefreshWeapons();
         break;
-    case kItemArmor: {
+    case ItemKind::Armor: {
         // Each piece on the same body part comes off first.
         int type = AsArmor(item)->GetType();
         for (int i = 0; i < std::ssize(hero->armor); ++i) {
@@ -892,11 +892,11 @@ void CCampPages::PutOn(CItem* item) {
         RebuildArmourLayers(hero);
         break;
     }
-    case kItemQuick:
+    case ItemKind::Quick:
         if (std::ssize(hero->quickItems) >= 4) return;
         hero->AddQuickItem(item);
         break;
-    case kItemSpell:
+    case ItemKind::Spell:
         if (std::ssize(hero->spells) >= 8) return;
         hero->AddSpell(item);
         break;
