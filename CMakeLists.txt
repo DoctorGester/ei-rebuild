@@ -242,7 +242,7 @@ target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DI
 
 # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
 # report against GDI on the game's strings (tools/text_check; GDI only there).
-add_executable(ei_text_check tools/text_check/text_check.cpp)
+add_executable(ei_text_check tools/text_check/text_check.cpp tools/text_check/titles_check.cpp)
 target_include_directories(ei_text_check PRIVATE src)
 target_link_libraries(ei_text_check PRIVATE ei_render gdi32 user32 shell32)
 # Offline check of the interface canvases (render_ui, ticket N1) on a WARP device: every command against

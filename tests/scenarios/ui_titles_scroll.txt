@@ -1,0 +1,34 @@
+# The titles' scrolling text (outro.rtf, CUiScrollingSurface 0065F020; docs/notes/ui-native.md, "The titles' rich text") run
+# to the end: the main menu's region 4 opens the titles, the text scrolls in from below at 25 twips a game-time
+# unit, and the window closes once the text has scrolled through and the movie has ended. Captures at four moments
+# of the scroll (the lines' places show the layout's heights; the last one is after the text has stopped), then
+# the main menu again (its frame number in ei_launch.txt is where the titles ended).
+timeout 120
+reject Script error
+waitmenu
+move 400 20
+clickregion 4
+waitwindow 10 titles
+wait 2000
+freeze
+capture t002
+unfreeze
+wait 28000
+freeze
+capture t030
+unfreeze
+wait 60000
+freeze
+capture t090
+unfreeze
+wait 60000
+freeze
+capture t150
+unfreeze
+waitwindow 300 menu
+wait 500
+freeze
+capture menu_after
+unfreeze
+report
+quit

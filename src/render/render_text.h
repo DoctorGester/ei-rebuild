@@ -22,6 +22,10 @@ struct FontMetrics {
     int height = 0;          // ascent + descent: DrawText's line height
     int lineGap = 0;         // external leading (DrawText uses it only with DT_EXTERNALLEADING)
     int averageWidth = 0;    // tmAveCharWidth: DT_EXPANDTABS stops are 8 of these apart
+    // The ascent and descent rounded up, as Windows' Times New Roman reports them (TEXTMETRIC): the rich text's lines
+    // (render_rich_text.h) are this high, as RichEdit's were.
+    int cellAscent = 0;
+    int cellDescent = 0;
 };
 
 // One glyph at the font's size: the pen advance and the coverage bitmap's box relative to the pen

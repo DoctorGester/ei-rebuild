@@ -75,7 +75,7 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out);
 void DrawCanvas(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
 
 // `rgb` (0x00RRGGBB rows from the top, `pitch` pixels apart) written over `destination` of the canvas
-// (clipped to it), quantised to the format: a picture drawn on the CPU (the titles' page).
+// (clipped to it), quantised to the format: a picture drawn on the CPU (ei_ui_check's; the game draws none).
 void Image(const void* holder, const Rect& destination, const std::uint32_t* rgb, int pitch);
 
 } // namespace render::ui

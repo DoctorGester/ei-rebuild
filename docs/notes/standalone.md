@@ -1412,7 +1412,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 - **Check**: utf8_typing types "λ" (outside cp1251) into the frozen menu's console and requires its frame to differ
   from the line "?" (`diffcapture`): 58 pixels at 4K, the glyph. How "😀" draws (Times New Roman has no emoji;
   whether DrawTextW falls back to another font) is not checked.
-- **Still ANSI**: the titles' RichEdit (`SendMessageA`, RTF carries its own code page).
+- The titles' RTF (outro.rtf) is read by our own reader (render_rich_text.cpp), which decodes its bytes by the RTF's own code pages.
 
 ### U5: the audit
 

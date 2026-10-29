@@ -2,7 +2,7 @@
 
 Plan for drawing the interface's window surfaces on the GPU renderer instead of GDI into DIB sections (tickets N0-N5, P1-P8 in docs/tickets.md). Written before the work; update the status lines as tickets land.
 
-**Status (P8, 2026-10-29): done.** Every window surface draws on its GPU canvas and nowhere else; the GDI path, the DIB sections, the switch words and the comparison harness are gone, and the interface measures text with our own fonts. Sections 1-3 and 5 are the plan as written; "P8 done" (end of section 3) and "Overview of the surface canvases" say what is.
+**Status (P8, P8a, 2026-10-29): done.** Every window surface draws on its GPU canvas and nowhere else, the titles' RTF text too; the GDI path, the DIB sections, the switch words and the comparison harness are gone, and the interface measures text with our own fonts. Sections 1-3 and 5 are the plan as written; "P8 done" and "The titles' rich text" (end of section 3) and "Overview of the surface canvases" say what is.
 
 
 **Summary.** The interface's art is already drawn on the GPU: sprites, minimap, 3D previews, rectangles, fades and hit points all reach `render::BeginMesh`, `ScreenDraw` or `TlDraw`. What is still CPU-only is the window surfaces (`CUiSurface`, 0x38 bytes). These are text, fills, frames, carets and lines drawn with GDI into a DIB, and today that DIB is re-uploaded (memcmp, convert, upload) whenever it changes.
@@ -26,7 +26,7 @@ The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndSc
 | Save picture | 005FD440 `Rgb565Copy` → `ps_rgb565` into an R16_UINT target, (2x+1)·src/(2·size), read back (R28a) | escape-menu `screenCopy_` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read-back |
 | Pixel read | 005FD240 `PixelAt` | global-map click (`ui_global_map_input.cpp:128`) and FindPaths (`ui_global_map_paths.cpp:171`): zone = (pixel>>4)&0xF − 1 | CPU, reads pixels |
 | Swap / freeze | 005FD7A0 `SwapContents`, 005FD760 `Freeze` | camp, menus, backdrop mode 3/4; N0: also every window's `ShowSurfaces` 006002C0 on each show and hide | CPU memcpy |
-| RichEdit text | 0065F020 `CUiScrollingSurface::RenderText` (EM_FORMATRANGE into the DIB) | titles / credits | CPU, keep |
+| Titles' RTF text | 0065F020 `CUiScrollingSurface::RenderText` (the original: RichEdit EM_FORMATRANGE into the DIB) | titles / credits | GPU glyph runs (P8a) |
 | Sprites, shapes, minimap, portraits | `CUiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh_build.cpp` | every panel | GPU (done) |
 | 3D previews and models | `CUiModel::Draw` 005FC2F0, hero preview 005EC300, container draws 00600EF0 / 00622420, `render::ClearDepth` | camp, hero, HUD | GPU (done) |
 | Rectangles, fades, letterbox, rubber band | slot 19 005041F0 → `render::ScreenDraw`; `CScreenFade::Draw` 005E69C0 | — | GPU (done) |
@@ -142,7 +142,7 @@ string in ten wraps at a different word than today's GDI at 800x600.
   - `uinative[=all|list]`: native surfaces skip GDI pixels; GDI is still called on the metrics DC for return values.
   - `uiboth` (verify default): record and draw GDI, so the existing pixel wrappers (`pixel_settle.h` users) keep working, and the per-surface diff can run.
   - Default stays CPU.
-- **Fallback.** A surface that any code we have not ported draws into stays CPU, uploaded as today. This covers RichEdit 0065F020, and Rebirth-patched draws that still run addon's code in a Rebirth launch (none left after W2–W4, W2a, W2b and W4a: the connect list 0061D780 and Create 0061B2C0, and the hero screen's Create 00613EA0 are ours in a Rebirth launch).
+- **Fallback.** A surface that any code we have not ported draws into stays CPU, uploaded as today. This covered RichEdit 0065F020 (until P8a), and Rebirth-patched draws that still run addon's code in a Rebirth launch (none left after W2–W4, W2a, W2b and W4a: the connect list 0061D780 and Create 0061B2C0, and the hero screen's Create 00613EA0 are ours in a Rebirth launch).
 - **Readers.**
   - `PixelAt` and `Rgb565Copy` call `ReadBack` first, then run the original CPU code unchanged. This keeps the format round trip the global-map pick relies on.
   - `SwapContents` keeps the canvas; the 007C7E74 / 007C7E78 totals are still computed from pitch × height.
@@ -548,11 +548,9 @@ textures (render_textures.cpp: `WindowSurfaceView`, `Lookup16`, `SurfaceWritten`
 switch, comparison views and read-back into memory, system_text's DrawTextA / GetTextExtentPoint32A /
 CreateFontIndirectA routes.
 
-**GDI left.** The titles' scrolling text (`CUiScrollingSurface`, 0065F020): RichEdit formats the RTF text into a
-32-bit DIB section page on a memory DC, whose pixels are written onto the canvas (`Image`) each time it scrolls;
-P8a replaces RichEdit by our own layout of the text. Outside the interface: the tools' references (`ei_ui_check`
-draws GDI's fills and lines to compare, `ei_text_check` GDI's DrawTextA), and gameapi.h's generated import
-declarations.
+**GDI left.** None in the interface since P8a (the titles' text: next section). Outside it: the tools' references
+(`ei_ui_check` draws GDI's fills and lines to compare, `ei_text_check` GDI's DrawTextA and RichEdit), and gameapi.h's
+generated import declarations.
 
 **Checks.** `--golden`: 145 runs pass, 121 goldens the same, 24 without a golden; `ei_ui_check` 102 checks. Frames
 against main's default (GDI) path, 1280x720 unless said: glyph shapes everywhere (the camp's pages 1.8-3.4% of the
@@ -564,6 +562,51 @@ trade lists, the help over the options and the tooltips break as before. The scr
 closer at 1280x720 (GDI's hinted Times New Roman is taller, section 2). At 4K the HUD tooltip at the bottom row
 (`ui_widescreen_more` tooltip2, 13.5%) now opens above the mouse: the height it is placed by is the height it is drawn
 at, and it no longer runs off the bottom of the screen.
+
+### The titles' rich text (P8a, 2026-10-29)
+
+**What draws it.** The titles' scrolling surface (`CUiScrollingSurface`, ui_scrolling_surface.cpp; 0065ED30-0065F1C0)
+no longer loads Riched20.dll or makes a RichEdit control, and has no DIB page or memory DC. `LoadRtf` reads the RTF
+block with `render::text::ReadRtf` and lays it out once at the surface's width with `LayoutRichText`
+(src/render/render_rich_text.{h,cpp}, no Windows calls); `RenderText` fills the canvas white (the key) and draws the
+lines the surface shows as glyph runs (`RichDraws`: one `GlyphRun` per font and colour), its top `offset_` twips
+above the surface's. The speed, the offsets in twips and the end are the original's: the whole text fitting above
+1000 twips below the surface keeps the offset, and 1000 twips plus the height past it stop the scroll; "fits" is
+the text's pixel bottom at most the page bottom's (`TwipsToPixels`, MulDiv's rounding), which is where RichEdit's
+EM_FORMATRANGE said all characters fitted.
+
+**The RTF subset** (outro.rtf, 28,101 bytes, written by Word 2000; the same in vanilla's and Rebirth's outro.res):
+the font table (with \fcharset: 204 decodes \'xx as Windows-1251, 0 as 1252), the colour table, \pard / \plain,
+\par, \line, \tab, \b, \i, \fs, \f, \cf, \ql / \qc / \qr (\qj as left), \li / \fi / \ri, \tx / \tqr, \u / \uc
+and the escaped characters; \stylesheet, \info and every \* group are skipped, other words left out. Formats
+are kept per group. The file uses \qc, \fi / \li hanging indents (4245 and 4320 twips; one -284), \fs 20-32, \b,
+\cf 2 / 16 and no tabs.
+
+**RichEdit's layout, reproduced.** Fonts at MulDiv(\fs, dpi, 144) pixels in the face's stand-in (Liberation Serif);
+advances without kerning; a line breaks after its last blank that fits (a word wider than the line inside it);
+trailing blanks are left out of the centring, x = left + (room - width) / 2; indents and tab stops in twips at the
+DPI. A line is the tallest cell ascent plus the deepest cell descent of its characters, the paragraph mark's font
+counted on its last line (an empty paragraph is its mark's height). The cell ascent and descent are the font's
+winAscent / winDescent scaled and rounded **up** (`FontMetrics::cellAscent` / `cellDescent`), which is what Windows'
+Times New Roman reports: with the interface's rounded ascent the 16-point lines came out 47 px instead of 49 at 192
+DPI. Bold has no face of its own: `BoldFont` widens each glyph by max(1, (pixels + 10) / 20) pixels and its advance by
+as much (GDI's emboldening); italic is drawn upright (the file's text has none). The text is drawn without
+smoothing, as RichEdit drew it with the titles' font smoothing off.
+
+**DPI.** Twips and points go to pixels at the system DPI (`GetDpiForSystem`; the process is system DPI aware), the
+number GetDeviceCaps gave RichEdit's memory DC: 192 on a 200% display, so the text is as big as before on every
+machine (the interface fonts are width-relative; these are not).
+
+**Checks.** `ei_text_check --titles` (tools/text_check/titles_check.cpp) streams the file into a real RichEdit and
+measures each line's bottom by EM_FORMATRANGE (the least page height that fits one more line; RichEdit puts the first
+line on any page, so that one is not measured) and the height that fits the whole text, against ours: 0 of 285 line
+bottoms differ and the fit height is equal (77,142 twips at 192 DPI, 81,368 at 96 with `--dpi-unaware`) at widths
+1248 (1280x720), 780 (800x600), 3744 (4K) and 600 (295 lines: wrapped hanging indents); `--picture` writes RichEdit's
+page beside ours. Scenario `ui_titles_scroll` scrolls the titles to their end with captures at 2, 30, 90 and 150 s of
+game time: the lines are in the same places before and after, and the main menu comes back at frame 665 in both.
+The frame's median time there fell from 4.7 ms to 0.24 ms (RichEdit formatted and copied a whole page every frame).
+Look: our glyphs are Liberation's (bold emboldened), RichEdit's were Times New Roman's; in the harness the old frames
+also had ClearType fringes, as RichEdit asked the system's smoothing rather than the harness's answer.
 
 ## 4. Tickets
 
@@ -589,8 +632,8 @@ they depend on.
   list 0061D780, save/load list 006567A0); **P6** the global-map pick picture (`RefreshSelection` 00630670: frame step, GPU copy,
   readback on click; colours exact, point copy, no dithering) and the camp's backdrop modes 3/4; **P7** (optional) CPU-written
   textures as GPU sub-image uploads, clouds 00499F10 as a shader (done by R28 / R28b); **P8** (done, section 3 "P8 done") the
-  canvas the only path: no DIB, memcmp, GDI text or metrics, switch words or comparison; **P8a** the titles' text laid out by us
-  instead of RichEdit.
+  canvas the only path: no DIB, memcmp, GDI text or metrics, switch words or comparison; **P8a** (done, section 3 "The titles' rich text") the
+  titles' text laid out by us instead of RichEdit.
 - After P2, P3a-d and P4 touch disjoint files; each one's only shared edit is a line in `ui_native.cpp`. W3 / W4 only decide when
   Rebirth launches can go native; vanilla is not blocked. Porting tickets add no fields (side maps) and leave `ui.h` alone.
 
@@ -615,7 +658,7 @@ they depend on.
 
 **Other risks.**
 - **Performance.** Today every blit memcmps the whole DIB (1.9 MB for an 800x600 32-bit backdrop) and there is a full-frame readback per frame in `present`. Native removes the memcmp and upload. What remains on the CPU: GDI metrics calls; the global-map clouds and cursor composite, unless P7 / N5 handle them; the per-frame readback, which is R9's. Canvas updates after a blit in the same frame split the main pass; hoisting covers the common case.
-- **Not ported (keep CPU and upload):** RichEdit titles 0065F020, Bink decode.
+- **Not ported (keep CPU and upload):** Bink decode.
 - **Open questions:**
   - Should the default later move to direct-to-frame glyph drawing, which looks cleaner but loses the fringe and needs a looser tolerance?
   - Should a resolution-independent UI scale (4K) be done? It needs re-rasterised atlases and changes metrics, so it is out of scope for behaviour-exact work.
@@ -633,7 +676,7 @@ Every interface window surface's pixels are its holder's canvas on the GPU (P8):
 (`CUiSurface::MakeCanvas`, ui_surface_create.cpp; again in the surface format after SwapContents brings a surface
 back without one), drawn into by the surface functions (`Clear` / `Fill` / `FillRect` / `FrameRect`, `Line` for the
 carets and the connect list's rule, `Dot` for the minimap marker, `DrawTextIn` / `DrawTextPixels` as glyph runs,
-`CaptureScreen`, `Greyscale`, the titles' page as `Image`) and blitted by `CUiSurface::Blit` (`DrawCanvas`). The readers
+`CaptureScreen`, `Greyscale`; the titles' text as glyph runs too) and blitted by `CUiSurface::Blit` (`DrawCanvas`). The readers
 read the GPU: `PixelAt` (`ReadPixel`, packed back to the screen format), `Rgb565Copy` (`ReadRgb565`); `SwapContents`
 moves the canvas aside under the surface's address and back (`MoveCanvas`). Text is laid out, measured and drawn in our
 own fonts (ui_font.h). A lost device makes every canvas again and draws on it the commands drawn since it was last

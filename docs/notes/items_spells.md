@@ -493,10 +493,10 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   the hero screen; O), `CPlayerClient::AppendReceived` (appends a stream to the received one, read position kept; O).
 - Input and UI: `CDirectInputMouse::Setup / Shutdown / SetActive / Poll` (input_mouse.cpp; the game's own GUID copies and
   c_dfDIMouse at 00745D00; a failed step returns FatalDirectX's answer as 0 / 1; O, SetActive S: acquire twice is harmless);
-  `CUiScrollingSurface` (the titles' RTF text; ui_scrolling_surface.cpp): Construct ("Riched20.dll", a hidden RichEdit20A
-  child), DestructBody, DeletingDestruct, LoadRtf (EM_STREAMIN from the block: our own reader replaces the CMemFile and its
-  callback 0065EF10), Draw (slot 0: offset += game time passed x speed, _ftol; O within 1), Load (S), Start (speed, from
-  below the surface; S); `CUiEditField::SetLook / SetText / SetFocused` (+0x16C is the caret colour; S), `CUiSpin::OnLButtonDown`
+  `CUiScrollingSurface` (the titles' RTF text; ui_scrolling_surface.cpp): Construct (the original loaded "Riched20.dll" and
+  made a hidden RichEdit20A child; ours lays the text out itself: ui-native.md, "The titles' rich text"), DestructBody,
+  DeletingDestruct, LoadRtf (the original streamed the block in with EM_STREAMIN through a CMemFile and callback 0065EF10),
+  Draw (slot 0: offset += game time passed x speed, _ftol; O within 1), Load (S), Start (speed, from below the surface; S); `CUiEditField::SetLook / SetText / SetFocused` (+0x16C is the caret colour; S), `CUiSpin::OnLButtonDown`
   (input slot 2: the OK sound, the next value; O), `CObjectivesWindow::Setup` (S) / `HelpTopic` (slot 41: "quest_global_map"
   with two buttons, else "quest_mission"; P), `CHudClock::OpenObjectives` (from the Rebirth-patched click 00648D70: its inlined
   window constructor is 0063B5D0; O), `CHudUnitPanel::ShowBodyPart` (tints the four part buttons 3..6: 1 the chosen one, 0.5

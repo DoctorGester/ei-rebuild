@@ -481,7 +481,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00742F28,1,,game,0065D4B0,0065D8C0,UiFormatToken,src/game/ui.h,a scrolling text's format token (UiFormatToken)
 00742F30,13,,game,0065E320,0065EAC0,CUiTooltip,src/game/ui.h,a region tooltip's input side
 00742F64,25,,game,0065E320,0065E4D0,CUiTooltip,src/game/ui.h,a region's tooltip (CUiTooltip)
-00742FD8,2,,game,0065ED30 0065EDE0,0065F170,CUiScrollingSurface,src/game/ui_screens.h,the scrolling RichEdit surface (CUiScrollingSurface)
+00742FD8,2,,game,0065ED30 0065EDE0,0065F170,CUiScrollingSurface,src/game/ui_screens.h,the titles' scrolling text surface (CUiScrollingSurface)
 00742FF4,3,,game,0065F2D0 00661050 006611D0 006613C0 00663410 00664160,007005E3,PartyMemberArrayClass,-,CArray (a party's unit records); stored only by game.exe (ours is a std::vector)
 00743000,27,,game,0065F2D0 00661050 006611D0 006613C0 00662FB0 00663410,00661190,CParty,src/game/party.h,the party (CParty)
 0074306C,27,,game,00661050 006613C0,006611B0,CManagerContext,src/game/manager_context.h,CParty's base (the manager context's getters null)

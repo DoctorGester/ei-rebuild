@@ -59,7 +59,7 @@ top window's input slot 9. In-game hotkeys are looked up by scan code in the tab
 | 00632000-00635250 | main menu (00632940, 006326B0, 00632D70), new-game dialog (006337B0), message box (00634650) |
 | 00635250-0064BE80 | battle screen (`battle00`; keys 0063A560 Rebirth-patched), panels, quest / zone messages, portraits, unit info |
 | 0064BE80-0065A500 | objectives window (0063B5D0), options, save/load; tutorial / help window from 00658000 (created by 005F86F0) |
-| 0065A500-00660000 | controls: scroll bar 0065AEA0, spin / edit 0065BC30 / 0065BCD0 / 0065C010, scrolling text 0065CC00, tooltip 0065E320, DirectInput mouse 0065EAD0, RichEdit 0065ED30, party bar 0065F2D0 |
+| 0065A500-00660000 | controls: scroll bar 0065AEA0, spin / edit 0065BC30 / 0065BCD0 / 0065C010, scrolling text 0065CC00, tooltip 0065E320, DirectInput mouse 0065EAD0, titles' scrolling text 0065ED30, party bar 0065F2D0 |
 
 **Rebirth** (WideScreen, rebirth.md) patches the five scaling helpers, the sprite placement (005E6FA0, 005E70E0, 005E7D60,
 005E7680, 005E99D0), CUiRegion::SetRect / AddPoint, 005FDE20 (text), 005F8340 (text extent), many screen builders and key
@@ -507,7 +507,7 @@ ui_options_remap_load (the keyboard.ini ui_options_remap saves, written by `tool
 loaded at start: the restart half)); controls (`CUiScrollbar` `TakePosition` S, `Update` also the message log, `CUiSlider::SetRect`
 slot 26 RET 4: every frame; `CUiTooltip`; `CUiScrollText::Tokenize` / `DrawLines` RET 4 (`ui_scroll_text.cpp`; the message log);
 `CUiEditField::OnKeyDown` S (`ui_edit_field.cpp`; no scenario types into one); `CUiScrollingSurface::RenderText` 0065F020: the
-titles' RichEdit text via EM_FORMATRANGE, ui_main_menu, render_titles_present); `CObjectivesWindow` (`Build`, `ShowZone`,
+titles' RTF text as glyph runs (render_rich_text), ui_main_menu, render_titles_present, ui_titles_scroll); `CObjectivesWindow` (`Build`, `ShowZone`,
 `ShowQuest` `__fastcall`, `DrawQuestList`, `OnLButtonDown` in `ui_objectives_input.cpp`: OK requests the zone at the nearest
 exit, travel time 00578700 forwarded; `LoadQuestPlaces` 0064EA80 S: map.txt "#quest <name>" pairs, or the quest record's
 floats for a client; the forwarder is `FillQuestPlaces`; ui_hud's TAB, ui_objectives); help window (`ui_help_window.cpp`:
