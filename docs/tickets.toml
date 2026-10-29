@@ -5667,7 +5667,7 @@ id = "C50e"
 title = "C50d rest in the interface: ClearFields, CBinkVideo, the disc / data folders"
 group = "cleanup"
 depends = ["C50d"]
-note = "C50d follow-up, after C54 (src/game/ui_* was off limits). CEngineObject constructs itself since C50d; CUiWindow's constructor (ui_window.cpp) still calls ClearFields, the last caller: drop the call and CEngineObject::ClearFields (engine_object.h/.cpp). CBinkVideo (bink_video.h) keeps Construct / Destruct for CCreditsScreen's player_ (ui_create_screen.cpp): give it a constructor (bink null) and a destructor (Close, which shows the cursor) and drop the screen's calls. g_dataFolder / g_discFolder (game_folders.cpp) stay lib::StaticObject because the interface spells them *g_x: retype them (whole tree) to plain std::string like g_textFolder, add initialisers 0055E7E0 / 0055E860 to gen_static_init's UNUSED_INITIALISERS (the guard byte 007AF438 and DestroyOnce go with them), drop their static_init_ports rows and run named_data.py --update. Goldens unchanged."
+note = "C50d follow-up. Done by C54g: CUiWindow's constructor no longer calls ClearFields and CEngineObject::ClearFields went. Left: CBinkVideo (bink_video.h) keeps Construct / Destruct for CCreditsScreen's player_ (ui_create_screen.cpp; C54f may take it): give it a constructor (bink null) and a destructor (Close, which shows the cursor) and drop the screen's calls. g_dataFolder / g_discFolder (game_folders.cpp) stay lib::StaticObject because the interface spells them *g_x: retype them (whole tree) to plain std::string like g_textFolder, add initialisers 0055E7E0 / 0055E860 to gen_static_init's UNUSED_INITIALISERS (the guard byte 007AF438 and DestroyOnce go with them), drop their static_init_ports rows and run named_data.py --update. Goldens unchanged."
 
 [[ticket]]
 id = "C50d1"
@@ -5706,3 +5706,11 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C54d"]
 note = "Left by C54d. (1) MpHeroRecord::party (world.h) is lib::InPlace<CParty> with placement new / explicit destructor in ui_hero_screen_click.cpp: a plain CParty member (G11; Party() has ~180 callers, keep it or retype by script; the copy constructor's id draws stay in the same order). (2) TrimItemCache is a template declared in ui_item_info.h, defined in ui_item_screen.cpp and used by ui_item_view.cpp's CachedObject: it links only because CreateBase instantiates both kinds; define it in the header or instantiate explicitly. (3) kNewHeroPoints (ui_hero_screen.cpp) and kAttributePoints (ui_hero_screen_click.cpp) are the same 75.0f: one CMpHeroScreen constant. (4) DrawHeroFace calls skin_quaternion's MultiplyQuaternions(Quaternion* out, ...) through a local declaration (G12, with its owner). (5) CUiItemStrip's union of filter_ and figures_ (the figure strips' names): a CFigureStrip member. ItemModel / ItemFigureTexture's ++refCount_ and MoveItem's link_ store stay with C49a / C49c. Goldens unchanged (golden suite) + ei_ui_check."
+
+[[ticket]]
+id = "C54g1"
+title = "C54g rest: the interface core's leftovers"
+group = "cleanup"
+model = "sonnet"
+depends = ["C54g"]
+note = "Left by C54g. (1) The other StaticObjects the interface spells with -> (g_gameFlow, g_savedParties, g_partyManager, g_saveStream; docs/notes/standalone.md 'Plain globals'): plain globals like g_interface / g_cursor (C54g's recipe: UNUSED_INITIALISERS, static_init_ports / named_data / global_objects rows, whole-tree g_x-> -> g_x. retype). (2) CUiMesh::visible_ is bool: the 0 / 1 writes left in C54f's files (ui_briefing_create, ui_connect_list, ui_connect_screen, ui_help_page, ui_objectives*, ui_options, ui_saveload) to false / true. (3) CUiWindow::Show(int) and its overrides, ShowSurfaces / ShowChildren(int): bool (virtual, change together). (4) ui_layouts' SetSpriteTexture / SetSpriteColour / SetSpritePlain one-line field setters folded. (5) CUiSurface's format (flags_ low bits, the int format parameter): name the formats (4, 5, 0x1E ...). (6) CCursor::enabled_ (uint8) and CDirectInputMouse::SetActive(char) to bool; CUiTooltip / CUiRegion's tip state 0..3 as an enum. Goldens unchanged (golden suite) + ei_ui_check."

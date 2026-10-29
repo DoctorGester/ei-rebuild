@@ -51,17 +51,15 @@ class CItemScreen;
 struct CScreenFade {
     // The letterbox bars and, while fading, a black rectangle whose alpha moves by rate * elapsed ms; the
     // fade ends when alpha drops below 0.
-    int Draw(CSceneRenderer* renderer);
+    void Draw(CSceneRenderer* renderer);
     // Starts a fade over `ms` milliseconds, from alpha 0 (ms > 0) or 255.
     void Start(int ms);
-    // Alpha 0, not fading, no letterbox; the rate and the clock stay unwritten.
-    CScreenFade();
 
-    float rate_;                     // alpha per millisecond
-    float alpha_;                    // 0..255
-    std::uint8_t active_;            // fading
-    DWORD lastTime_;                 // timeGetTime of the last step
-    std::uint8_t letterbox_;         // the bars are shown
+    float rate_ = 0.0f;              // alpha per millisecond
+    float alpha_ = 0.0f;             // 0..255
+    bool active_ = false;            // fading
+    DWORD lastTime_ = 0;             // timeGetTime of the last step
+    bool letterbox_ = false;         // the bars are shown
 };
 
 // The key of the multiplayer message 12's text (CInterface3D::MessageText), "reserved_02": EI_Plugin's Pause
@@ -192,7 +190,7 @@ public:
     void CloseAllPending();
     // Every frame from the main loop: a pending close-all, the backdrop (modes 2-4), the top window's
     // draw, then the fade over it all.
-    int Draw();
+    void Draw();
     // Rebirth-patched (WideScreen behind its flag). What is blitted over the scene after EndScene: the top window's surfaces and tooltips, the status surface, a backdrop asked for (mode 1
     // also keeps a 256 x 192 copy and greys it into mode 2; mode 3 puts the old one aside into mode 4), the
     // client's chat overlay, the frame rate and the console.
@@ -315,9 +313,9 @@ public:
 // black with the surface. No destructor: the owners destroy it directly.
 class CUiSurface {
 public:
-    // A surface of the layout rectangle with format `format`, scaled to the screen when the low byte of
-    // `flag` is set.
-    CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
+    // A surface of the layout rectangle with format `format`, scaled to the screen with `scale`: shown, its
+    // holder's canvas made black.
+    CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, bool scale);
     // Over the layout rectangle `rect` (always scaled) with format `format`.
     CUiSurface(CInterface3D* ui, const RECT* rect, int format);
     // Releases the contents put aside and the holder. Not virtual (a window's surface list destroys a
@@ -374,12 +372,12 @@ public:
 
     CInterface3D* interface_;
     std::uint32_t flags_;            // the constructors store the format here, then set kShown
-    Surface* holder_;                // the holder its canvas belongs to (null while swapped out)
-    int width_;
-    int height_;
-    bool kept_;                      // while swapped out: the canvas is kept under the surface's address
+    Surface* holder_ = nullptr;      // the holder its canvas belongs to (null while swapped out)
+    int width_ = 0;
+    int height_ = 0;
+    bool kept_ = false;              // while swapped out: the canvas is kept under the surface's address
     RECT rect_;                      // screen coordinates
-    COLORREF background_;            // the colour Clear fills with (0 from the constructors)
+    COLORREF background_ = 0;        // the colour Clear fills with
 };
 
 // A 3D model shown in a window (an inventory item, a portrait).
@@ -551,7 +549,7 @@ public:
     CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
 
     RECT rect_ = {};                          // layout coordinates
-    int enabled_ = 1;
+    bool enabled_ = true;
     CEngineObject* blackMaterial_ = nullptr;  // given to every sprite (AddSprite)
     CEngineObject* whiteMaterial_ = nullptr;
     CEngineObject* heldObject_ = nullptr;     // released by the destructor (writer not identified)
@@ -1095,7 +1093,7 @@ public:
 // docs/notes/ui.md, "Container input dispatch".
 class CUiContainer : public CUiWindow {
 public:
-    explicit CUiContainer(CInterface3D* ui);
+    explicit CUiContainer(CInterface3D* ui) : CUiWindow(ui) {}
     ~CUiContainer() override;
 
     void Show(int show) override { ShowChildren(show); }
@@ -1323,7 +1321,7 @@ public:
     PartyIds clientParty_;           // the client's party ids last built
     // The key a player's item gives when it starts mode 6; SelectUnit and the hover hand it to the target's
     // AcceptsKey.
-    LockKey itemUseKey_;
+    LockKey itemUseKey_ = {1, 0, 0};
     int portraitMode_;               // 1, 2: the next portrait click picks a player for a server command (4, 5)
 };
 

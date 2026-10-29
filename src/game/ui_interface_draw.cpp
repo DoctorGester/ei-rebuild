@@ -56,7 +56,7 @@ void MakeBackdrop(CInterface3D* ui) {
 
 } // namespace
 
-int CScreenFade::Draw(CSceneRenderer* renderer) {
+void CScreenFade::Draw(CSceneRenderer* renderer) {
     RECT screen = ScreenOf(renderer);
     if (letterbox_) {
         const int width = screen.right - screen.left;
@@ -67,7 +67,7 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
         renderer->DrawRectangle(0, height - bar, width, height, -1, 0);
         render::g_renderState.depthTest = true;
     }
-    if (!active_) return 1;
+    if (!active_) return;
     // A step towards 255 (rate > 0) or 0 (rate < 0), by the milliseconds since the last one.
     EI_NAN_AUDIT(alpha_, rate_);
     if ((alpha_ < kOpaque && rate_ > 0.0f) || (alpha_ > 0.0f && rate_ < 0.0f)) {
@@ -79,29 +79,27 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
     if (alpha_ > kOpaque) {
         alpha_ = kOpaque;
     } else if (alpha_ < 0.0f) {
-        active_ = 0;
-        return 1;
+        active_ = false;
+        return;
     }
     render::g_renderState.depthTest = false;
     screen = ScreenOf(renderer);
     renderer->DrawRectangle(0, 0, screen.right - screen.left, screen.bottom - screen.top, static_cast<int>(alpha_), 0);
     render::g_renderState.depthTest = true;
-    return 1;
 }
 
 void CScreenFade::Start(int ms) {
     rate_ = kOpaque / static_cast<float>(ms);
     alpha_ = ms > 0 ? 0.0f : kOpaque;
     lastTime_ = gameapi::timeGetTime();
-    active_ = 1;
+    active_ = true;
 }
 
-int CInterface3D::Draw() {
+void CInterface3D::Draw() {
     CloseAllPending();
     if ((backdropMode_ == 2 || backdropMode_ == 4 || backdropMode_ == 3) && backdrop_) backdrop_->Blit();
     if (!stack_.empty()) stack_.back()->Draw(&g_sceneRenderer.Get());
     fade_->Draw(&g_sceneRenderer.Get());
-    return 1;
 }
 
 void CInterface3D::DrawOverlays() {

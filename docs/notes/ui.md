@@ -69,7 +69,8 @@ handlers, and the constant 00742B08 (the clock's x centre, 800). Our code reprod
 
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`)
 
-`CInterface3D` (Create 005F4990; constructor 005F46A0 is a static initialiser, not ported) keeps the active windows in an
+`CInterface3D` (Create 005F4990; the original's constructor 005F46A0 ran from a static initialiser; ours, `g_interface`, and
+the cursor `g_cursor` are plain globals that construct themselves) keeps the active windows in an
 STLport vector (top receives input). `CUiWindow` (ctor 005FE700, dtor 005FE930, vtables 00740F60 / 00740F2C) starts with a
 0x54-byte CTransformObject kept opaque and holds five aligned pointer arrays (+0xF8 referenced engine objects, +0x108
 scene objects (both released through slot 4), +0x118 surfaces, +0x128 regions, +0x138 models). `UiPtrArray<T>`: storage

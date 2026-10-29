@@ -8,10 +8,6 @@
 
 // --- Construction and destruction --------------------------------------------------------------
 
-CUiContainer::CUiContainer(CInterface3D* ui) : CUiWindow(ui) {
-    children_ = std::vector<CUiWindow*>{};
-}
-
 CUiContainer::~CUiContainer() {
     for (UiInputSide* side : inputs_) delete side;
     for (int i = 0; i < std::ssize(children_); ++i) delete children_[i];

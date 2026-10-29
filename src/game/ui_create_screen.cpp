@@ -27,9 +27,7 @@
 #include <memory>
 
 // The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
-CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {
-    itemUseKey_.ConstructItemUseKey();
-}
+CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {}
 
 CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {}
 

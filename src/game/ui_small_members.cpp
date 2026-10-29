@@ -13,15 +13,6 @@
 #include <initializer_list>
 #include <new>
 
-// --- The battle screen's members constructed by CreateScreen 1 ---------------------------------------
-
-LockKey* LockKey::ConstructItemUseKey() {
-    mask = 1;
-    id = 0;
-    level = 0;
-    return this;
-}
-
 // --- Default answers of the windows' slots ---------------------------------------------------------------
 
 void UiInputSide::Wheel(int, int, int, int) {}
@@ -52,12 +43,6 @@ void CUiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix_.m[5] = std::bit_c
 
 
 // --- Member constructors and destructors -----------------------------------------------------------------
-
-CScreenFade::CScreenFade() {
-    alpha_ = 0.0f;
-    active_ = 0;
-    letterbox_ = 0;
-}
 
 // The interface manager.
 CInterface3D g_interface;
