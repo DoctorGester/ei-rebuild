@@ -6,7 +6,6 @@
 #include "ai_map.h"   // FootprintPart
 #include "core_transform.h"
 #include "effects.h"
-#include "ei/x87.h"
 #include "figure_manager.h"
 #include "figure_mesh.h"
 #include "lib/bytes.h"
@@ -24,8 +23,7 @@
 #include <cstring>
 #include <memory>
 
-// The bounds must keep the original's order of operations, its float stores and its NaN behaviour: values it
-// keeps on the FPU stack are double locals, values it stores are floats.
+// The bounds must keep the original's order of operations and its NaN behaviour.
 
 namespace {
 constexpr std::uint32_t kBoundsValid = 1 | 2;
@@ -50,7 +48,7 @@ std::uint32_t KeepLower(std::uint32_t bound, float v) { return v >= Float(bound)
 std::uint32_t KeepHigher(std::uint32_t bound, float v) { return Float(bound) >= v ? bound : Bits(v); }
 
 // a + b + c in that order, stored to a float.
-float Sum3(float a, float b, float c) { return static_cast<float>((static_cast<double>(a) + b) + c); }
+float Sum3(float a, float b, float c) { return (a + b) + c; }
 
 // The box being grown, as float bits (the original selects bits, never loading them twice).
 struct BoxBits {
@@ -58,8 +56,8 @@ struct BoxBits {
     std::uint32_t high[3] = {kFloatLowest, kFloatLowest, kFloatLowest};
 };
 
-// (x * x + y * y) + z * z of the part's position, unrounded.
-double DistanceSquared(const FigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition); }
+// (x * x + y * y) + z * z of the part's position.
+float DistanceSquared(const FigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ>(part->localPosition); }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
 void AddPlacedPart(BoxBits& box, const FigureMesh* p) {
@@ -84,29 +82,25 @@ void CObject3D::ComputeBounds() {
 
     float lowX = Float(box.low[0]), lowY = Float(box.low[1]), lowZ = Float(box.low[2]);
     float highX = Float(box.high[0]), highY = Float(box.high[1]), highZ = Float(box.high[2]);
-    double sumX = static_cast<double>(lowX) + highX;                  // kept on the stack
-    float sumY = static_cast<float>(static_cast<double>(lowY) + highY);
-    float sumZ = static_cast<float>(static_cast<double>(lowZ) + highZ);
-    float centerX = static_cast<float>(sumX * 0.5f);
-    float centerY = static_cast<float>(static_cast<double>(sumY) * 0.5f);
-    float centerZ = static_cast<float>(static_cast<double>(sumZ) * 0.5f);
-    float aboveX = static_cast<float>(static_cast<double>(highX) - centerX);
-    float aboveY = static_cast<float>(static_cast<double>(highY) - centerY);
-    float aboveZ = static_cast<float>(static_cast<double>(highZ) - centerZ);
-    double belowX = static_cast<double>(lowX) - centerX;             // kept on the stack (radius)
-    float belowXf = static_cast<float>(belowX);
-    float belowY = static_cast<float>(static_cast<double>(lowY) - centerY);
-    float belowZ = static_cast<float>(static_cast<double>(lowZ) - centerZ);
-    bounds.boxMin.x = belowXf;
+    float centerX = (lowX + highX) * 0.5f;
+    float centerY = (lowY + highY) * 0.5f;
+    float centerZ = (lowZ + highZ) * 0.5f;
+    float aboveX = highX - centerX;
+    float aboveY = highY - centerY;
+    float aboveZ = highZ - centerZ;
+    float belowX = lowX - centerX;
+    float belowY = lowY - centerY;
+    float belowZ = lowZ - centerZ;
+    bounds.boxMin.x = belowX;
     bounds.boxMin.y = belowY;
     bounds.boxMin.z = belowZ;
-    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(belowX, belowY, belowZ));
+    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(belowX, belowY, belowZ));
     bounds.boxMax.x = aboveX;
     bounds.boxMax.y = aboveY;
     bounds.boxMax.z = aboveZ;
     bounds.flags |= BoundsFlag::Box;
     bounds.flags |= BoundsFlag::Sphere;
-    bounds.radius = static_cast<float>(length);
+    bounds.radius = length;
     bounds.center.x = centerX;
     bounds.center.y = centerY;
     bounds.center.z = centerZ;

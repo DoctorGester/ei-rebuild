@@ -6,8 +6,8 @@
 #include "base_manager.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/rounded_ops.h"
 
 namespace {
 constexpr std::uint32_t kKeyEndMask = AnimationKeyOf(AnimationKeyFlag::Once | AnimationKeyFlag::Looped);   // what happens at the end
@@ -81,14 +81,14 @@ void FigureAnimationState::SetTime(float frame) {
         time = 0.0f;
     }
     while (current) {
-        double frames = x87::FromUnsigned(current->frameCount);   // the zero-extended count
+        double frames = current->frameCount;   // exact, where a float would round a count above 2^24
         if (frames >= time) break;             // on while below the frame reached, or NaN
-        time = static_cast<float>(time - frames);
+        time = lib::RoundedSum(time, -frames);
         if (onEnd) onEnd(owner);
         if (!queue.empty()) {
             current = PopQueued(this);
         } else if ((current->key & kKeyEndMask) != kKeyLoops) {
-            time = static_cast<float>(x87::FromUnsigned(current->frameCount));
+            time = static_cast<float>(frames);
         }
         changed = 1;
     }

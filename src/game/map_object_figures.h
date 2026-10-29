@@ -206,11 +206,11 @@ struct AnimationDatabase {
         return reinterpret_cast<const AnimationDatabase*>(reinterpret_cast<const char*>(first) -
                                                           offsetof(AnimationDatabase, animations));
     }
-    // (start + (end - start) * t) / length, unrounded; 1 for a length of 0.
-    double TimeFactor(float t) const {
+    // (start + (end - start) * t) / length; 1 for a length of 0.
+    float TimeFactor(float t) const {
         EI_NAN_AUDIT(length);
-        if (length == 0.0f) return 1.0;
-        return ((static_cast<double>(end) - start) * t + start) / length;
+        if (length == 0.0f) return 1.0f;
+        return ((end - start) * t + start) / length;
     }
 };
 static_assert(offsetof(AnimationDatabase, start) == 0x20);
@@ -478,7 +478,7 @@ public:
     FigureAnimation* RandomAnimationOfKind(std::uint32_t key, AnimationRandom random = AnimationRandom::Game);
     // For units (class id 0x50) with an animation database whose length is neither 0 nor NaN:
     // (start + (end - start) * time) / length, else 1. Unrounded.
-    double AnimationFactor(float time);
+    float AnimationFactor(float time);
     // Sets the figure up for the animated model `model`: one part box and part name per animated part (the
     // figure manager's bounds of the part, its pivot, flags 4 | 0x400 "BASE", 0x90 "CROWN", 0x890 "EMPTY" by
     // name prefix); the bounds span the boxes (heroes, Hero: x and y -0.5..0.5).

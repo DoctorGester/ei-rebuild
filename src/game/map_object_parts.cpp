@@ -116,8 +116,8 @@ FigureAnimation* CObject3D::FindSkillAnimation(SkillAnimation number) {
     return nullptr;
 }
 
-double CObject3D::AnimationFactor(float time) {
-    if (GetClassId() != ClassId::Unit || !Animations()) return 1.0;
+float CObject3D::AnimationFactor(float time) {
+    if (GetClassId() != ClassId::Unit || !Animations()) return 1.0f;
     return animations->TimeFactor(time);
 }
 

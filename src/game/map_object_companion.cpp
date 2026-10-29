@@ -19,8 +19,6 @@
 #include <cstring>
 #include <string>
 
-// The light's distance test and position must round like the original's.
-
 namespace {
 constexpr int kNoSound = -1;
 constexpr int kEndSoundTicks = 0x1E;                 // end sound when fewer ticks are left
@@ -123,15 +121,15 @@ bool MapObjectClientSpecific::RunTick() {
         lib::LoadBytes(lightPosition, &lamp->localPosition.x);
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float
         CMapObject* followed = CompanionOwner(this);
-        double dx = static_cast<double>(lightPosition.x) - followed->localPosition.x;
-        double dy = static_cast<double>(lightPosition.y) - followed->localPosition.y;
-        double dz = static_cast<double>(lightZ) - followed->localPosition.z;
-        double distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
+        float dx = lightPosition.x - followed->localPosition.x;
+        float dy = lightPosition.y - followed->localPosition.y;
+        float dz = lightZ - followed->localPosition.z;
+        float distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
         EI_NAN_AUDIT(distance2);
-        if (distance2 != 0.0) {
+        if (distance2 != 0.0f) {
             float* position = &light->localPosition.x;
             std::memcpy(position, &followed->localPosition.x, 2 * sizeof(float));
-            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition.z);
+            position[2] = kLightHeight + followed->localPosition.z;
         }
     }
     return true;

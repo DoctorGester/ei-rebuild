@@ -93,10 +93,6 @@ set(EI_X87_GAME_SOURCES
     game/figure_mesh_file game/figure_part_bounds game/figure_part_draw game/figure_part_draw_plain game/link_figure
     game/link_loader game/link_mesh_draw game/maths game/matrix_math game/model game/model_db game/object3d_figure_setup
     game/object3d_halves game/object_maths game/projection game/quaternion game/skin_quaternion game/view_matrices
-    # C30e11: map objects
-    game/map_object game/map_object_animation game/map_object_animation_bones game/map_object_animation_state
-    game/map_object_cage game/map_object_client_effects game/map_object_companion game/map_object_draw
-    game/map_object_figures game/map_object_parts
     # C30e12: client units and world
     game/unit_client_animation game/unit_client_attack game/unit_client_blink game/unit_client_effects
     game/unit_client_models game/unit_client_path game/unit_client_update game/unit_client_wounds game/world_client

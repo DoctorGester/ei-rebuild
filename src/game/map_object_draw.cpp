@@ -20,8 +20,6 @@
 #include <cstring>
 #include "game_singletons.h"
 
-// The light range test keeps its sums on the FPU stack like the original.
-
 namespace {
 constexpr std::uint32_t kRedrawStatic = 8;          // this->flags
 constexpr float kNearSquared = 1e9f;
@@ -34,16 +32,16 @@ constexpr int kStackObject = 3;
 // Does `light` reach `object`: its range + 10 squared at least the squared distance.
 bool InReach(const CObject3D* object, const CLight* light) {
     const Vector3& at = light->localPosition;
-    float dx = static_cast<float>(static_cast<double>(object->localPosition.x) - at.x);
-    float dy = static_cast<float>(static_cast<double>(object->localPosition.y) - at.y);
-    float dz = static_cast<float>(static_cast<double>(object->localPosition.z) - at.z);
-    double reach = static_cast<double>(light->range) + kLightMargin;
-    double distanceSquared = LengthSquaredUnrounded<Sum3::ZXY, double>(dx, dy, dz);
+    float dx = object->localPosition.x - at.x;
+    float dy = object->localPosition.y - at.y;
+    float dz = object->localPosition.z - at.z;
+    float reach = light->range + kLightMargin;
+    float distanceSquared = LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
     return reach * reach >= distanceSquared;   // NaN does not reach
 }
 
 bool PartTooFar(const FigureMesh* part) {
-    return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition) > kNearSquared;
+    return LengthSquaredUnrounded<Sum3::XYZ>(part->localPosition) > kNearSquared;
 }
 
 // The end of a draw: the iterator's reference to the light list and the light list itself.

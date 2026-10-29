@@ -379,7 +379,7 @@ bool CUnit::AcceptsAnimation(const FigureAnimation* entry) {
 }
 
 double CUnit::AnimationRatio() {
-    float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // stored as a float
+    float denominator = AnimationFactor(baseScale.z);
     return AnimationFactor(scale.z) / denominator;
 }
 

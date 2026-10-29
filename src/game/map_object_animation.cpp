@@ -2,8 +2,8 @@
 // key frames. Names provisional; see docs/notes/map_objects.md ("Animation tracks").
 #include "map_object_animation.h"
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
+#include "lib/rounding.h"
 #include "maths.h"
 
 #include <cmath>
@@ -11,34 +11,20 @@
 #include <cstring>
 #include <new>
 
-// The original keeps the x difference and its product on the FPU stack and stores the others: double locals
-// where it keeps, float locals where it stores.
-
 namespace {
 
-// from + (to - from) * s as the original computes it: the x difference and product unrounded, y and z stored
-// to floats first; every result stored.
+// from + (to - from) * s, per coordinate.
 void LerpPoint(float* out, const float* from, const float* to, float s) {
-    double dx = static_cast<double>(to[0]) - from[0];
-    float dy = static_cast<float>(static_cast<double>(to[1]) - from[1]);
-    float dz = static_cast<float>(static_cast<double>(to[2]) - from[2]);
-    double sx = dx * s;
-    float sy = static_cast<float>(static_cast<double>(dy) * s);
-    float sz = static_cast<float>(static_cast<double>(dz) * s);
-    float x = static_cast<float>(sx + from[0]);
-    float y = static_cast<float>(static_cast<double>(sy) + from[1]);
-    float z = static_cast<float>(static_cast<double>(sz) + from[2]);
-    out[0] = x;
-    out[1] = y;
-    out[2] = z;
+    out[0] = (to[0] - from[0]) * s + from[0];
+    out[1] = (to[1] - from[1]) * s + from[1];
+    out[2] = (to[2] - from[2]) * s + from[2];
 }
 } // namespace
 
 void AnimationTrack::Evaluate(float atTime) {
-    double whole;
-    float fraction = static_cast<float>(std::modf(atTime, &whole));
-    float wholeF = static_cast<float>(whole);
-    int index = x87::fistp(wholeF);
+    float whole;
+    float fraction = std::modf(atTime, &whole);
+    int index = lib::RoundEven(whole);
     int next = index + 1;
 
     if (next < positionCount) {

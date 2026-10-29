@@ -386,9 +386,9 @@ void MapObjectClientSpecific::CreateLight(const float* colour, float radius, boo
     point->localPosition.y = mapObject->localPosition.y;
     point->localPosition.z = kLightHeight + mapObject->localPosition.z;
     point->range = radius;
-    double squared = static_cast<double>(radius) * radius;
-    point->rangeSquared = static_cast<float>(squared);
-    point->inverseRangeSquared = static_cast<float>(1.0 / squared);
+    float squared = radius * radius;
+    point->rangeSquared = squared;
+    point->inverseRangeSquared = 1.0f / squared;
     light->flags |= kLightNew;
     if (flag) light->flags |= LightFlag::Specular;
     ShowLight();

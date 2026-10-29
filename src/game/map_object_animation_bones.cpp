@@ -23,15 +23,14 @@ namespace {
 FigureMesh* AsMesh(EngineObject* part) { return static_cast<FigureMesh*>(part); }
 
 // The root places the skeleton (through its address) at the owner's time factor at its scale z times its
-// default scale: x and y from the factor stored to a float, z from it unrounded.
+// default scale.
 void PlaceRoot(FigureAnimationState* state) {
     CObject3D* owner = state->owner;
-    double factor = owner->AnimationFactor(owner->scale.z);
-    float stored = static_cast<float>(factor);
+    float factor = owner->AnimationFactor(owner->scale.z);
     Vector3 origin;
-    origin.z = static_cast<float>(factor * owner->defaultScale.z);
-    origin.y = stored * owner->defaultScale.y;
-    origin.x = stored * owner->defaultScale.x;
+    origin.z = factor * owner->defaultScale.z;
+    origin.y = factor * owner->defaultScale.y;
+    origin.x = factor * owner->defaultScale.x;
     state->root->Place(origin);
 }
 

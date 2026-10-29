@@ -106,7 +106,8 @@ here is gone. Facts a worker needs:
   bone without a parent name), SetModel 0050D320 (005AC880), AttachMesh 0050D0E0 (the bone named as the part's slot 7 carries it:
   referenced, given the bone's position / rotation, old one released) / DetachMesh / DetachMeshes, PlaceIfChanged / UpdatePose
   0050D3E0 / 0050D450 (tracks evaluated at the frame, then the root places the skeleton at owner AnimationFactor(scale.z) *
-  defaultScale: x, y from the factor stored to float, z unrounded), Stop, Rescale 0050D7C0 (morph to every bone and the state, key
+  defaultScale: x, y from the factor stored to float, z from the register, the same value at the main thread's 24-bit
+  precision: one float factor on SSE2), Stop, Rescale 0050D7C0 (morph to every bone and the state, key
   frames reloaded, `changed` cleared, root placed), BoneNames, ClearBoneTracks / LoadBoneTracks 0050D950 / 0050DA10 (005ACCF0).
   `FigureBone::Place` 0050C230 (class 0x300C skeleton bone, figure_bones.cpp): child = parent position + offset turned by the
   parent's rotation, rotation pose * parent (Hamilton; 00507E80 multiplies the other way); root = pose (times the animation's time

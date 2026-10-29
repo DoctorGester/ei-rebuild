@@ -356,6 +356,15 @@ minus the world tick, the magic trap's double height plus z. `CopyBits` -> `=` (
 `x87::fistp` -> `lib::RoundEven` (gold minimum, spell budget, material alpha). Equivalence test: C30e3's `eq/`
 (each old expression at PC24 against the new one, the light's constants, the wall spell's normal).
 
+**C30e11 (map objects; 10 files).** No transcendental, wide constant or large int but two operands: the bounds, cage
+interpolation, track lerps, scale steps, light reach and the companion light's distance are float maths in the
+original's order (the double locals were PC24 registers); the ground height (`GridHeightAt`, a double) plus a float and
+the animation time minus the frame count (a uint32 as a double) go through `lib::RoundedSum`. `AnimationDatabase::TimeFactor`
+(map_object_figures.h, inlined in figure_bones' x87 object too) and `CObject3D::AnimationFactor` return float: at PC24
+their double result already was one. `x87::fistp` -> `lib::RoundEven` (the track's key frame), `modf` on the float.
+Kept: `RemoveOutdatedEffects`' `static_cast<double>(distance) < 0.001` (addon.dll's double compare, exact on both),
+`CMapObject::MoveSpeed`'s double return (a virtual of the units; a constant here).
+
 **Batches left** (209 files, 57,575 lines; source counts: `double` 1,640, `D(` 472, `x87::` 358, `Ftol(` 120).
 Each one focused area, one worker session, after C30e4 where it has a transcendental:
 

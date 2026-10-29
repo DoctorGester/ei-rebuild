@@ -4,6 +4,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
+#include "lib/rounded_ops.h"
 #include "map_object_figures.h"
 #include "net_delta.h"
 #include "spell.h"    // SpellType
@@ -30,7 +31,7 @@ std::uint32_t ClampToZero(float v) {
 
 void StoreBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(bits); }
 
-// The world's GridHeightAt: the height at (x, y), unrounded.
+// The world's GridHeightAt: the height at (x, y), a double (a float added to it as the x87 adds: RoundedSum).
 double GroundHeight(CWorld* world, float x, float y) { return world->GridHeightAt(x, y); }
 
 // The change stamp: the world's update count.
@@ -143,25 +144,21 @@ void CMapObject::RecomputeScale() {
     ApplyBaseScale();
     int strength = (HasEffect(SpellType::Strengthen) ? 1 : 0) -
                    (HasEffect(SpellType::Weaken) ? 1 : 0);
-    float strengthLevel = static_cast<float>(strength);   // stored as a float
+    float strengthLevel = static_cast<float>(strength);
     int size = (HasEffect(SpellType::Enlarge) ? 1 : 0) -
                (HasEffect(SpellType::Shrink) ? 1 : 0);
-    double sizeLevel = size;                               // kept unrounded
-    float total = static_cast<float>(sizeLevel + strengthLevel);
+    float total = static_cast<float>(size) + strengthLevel;
     if (size == 0) {
         if (strengthLevel != 0.0f) {
-            double step = strengthLevel * static_cast<double>(kScaleStep);   // rounded to a float
-            float stepRounded = static_cast<float>(step);
-            StoreBits(scale.x, ClampToZero(static_cast<float>(step + scale.x)));
-            if (MapType() != MapObjectType::Hero)
-                StoreBits(scale.z, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.z)));
+            float step = strengthLevel * kScaleStep;
+            StoreBits(scale.x, ClampToZero(step + scale.x));
+            if (MapType() != MapObjectType::Hero) StoreBits(scale.z, ClampToZero(step + scale.z));
         }
     } else if (total != 0.0f) {
-        double step = total * static_cast<double>(kScaleStep);
-        float stepRounded = static_cast<float>(step);
-        StoreBits(scale.x, ClampToZero(static_cast<float>(step + scale.x)));
-        StoreBits(scale.y, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.y)));
-        StoreBits(scale.z, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.z)));
+        float step = total * kScaleStep;
+        StoreBits(scale.x, ClampToZero(step + scale.x));
+        StoreBits(scale.y, ClampToZero(step + scale.y));
+        StoreBits(scale.z, ClampToZero(step + scale.z));
     }
     netState.mask = static_cast<std::uint16_t>(netState.mask | 2);       // part 1
     flags |= MapObjectFlag::Changed;
@@ -188,13 +185,13 @@ float* CMapObject::GroundPoint(float* out) {
     double height = GroundHeight(World(), x, y);
     out[0] = x;
     out[1] = y;
-    out[2] = static_cast<float>(height + z);
+    out[2] = lib::RoundedSum(height, z);
     return out;
 }
 
 void CMapObject::PlaceOnGround(float offset) {
     double height = GroundHeight(World(), localPosition.x, localPosition.y);
-    localPosition.z = static_cast<float>(height + offset);
+    localPosition.z = lib::RoundedSum(height, offset);
 }
 
 void CMapObject::SetServerData(const UnitVitals* data) {
