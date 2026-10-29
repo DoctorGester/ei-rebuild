@@ -11,9 +11,9 @@
 #include <string>
 #include "lib/file_io.h"
 #include "game_singletons.h"
-#include "lib/str.h"
 
 #include <cstring>
+#include <format>
 
 namespace {
 
@@ -57,7 +57,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         CDib* picture = CaptureScreen(g_sceneRenderer.device_);
         if (!picture) return;
         std::string name;
-        name = str::Format("shot%.4d.bmp", g_shotCounter);
+        name = std::format("shot{:04}.bmp", g_shotCounter);
         ++g_shotCounter;
         lib::File file(name, lib::File::modeCreate | lib::File::modeWrite);
         picture->Write(&file);

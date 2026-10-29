@@ -17,6 +17,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <format>
 
 namespace options {
 namespace {
@@ -402,7 +403,7 @@ void GameOptions::SaveToRegistry(const char* path) {
 
     s.Write(kPathValues);
     s.Write(Value{kInt, &GameOptions::keyGeneral_, "DrawingTarget", &GameOptions::driverIndex_});
-    resolution = str::Format("%dx%d", resolutionX_, resolutionY_);
+    resolution = std::format("{}x{}", resolutionX_, resolutionY_);
     SetString(key, s.Key(&GameOptions::keyGeneral_), "VideoResolution", resolution);
     s.Write(kVideoValues);
     key.SetInt(s.Key(&GameOptions::keyGeneral_), "Joystick", 0);

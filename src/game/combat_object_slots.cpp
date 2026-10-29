@@ -15,10 +15,10 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "lib/str.h"
 
 #include <bit>
 #include <cmath>
+#include <format>
 
 namespace {
 constexpr int kCallClaim = 0x1E;        // the kind of the AI memory's call for a claim
@@ -35,7 +35,7 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
     for (int player = 0; player < 32; ++player) {
         if (!(mask & (1u << player))) continue;
         std::string piece;
-        piece = str::Format("Unit %i claims that player %i are enemies! ", claimant->id_, player);
+        piece = std::format("Unit {} claims that player {} are enemies! ", claimant->id_, player);
         text += piece;
     }
     brain.memory.AddClaim(mask, kCallClaim, text);

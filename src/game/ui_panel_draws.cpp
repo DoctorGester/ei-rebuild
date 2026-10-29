@@ -18,6 +18,7 @@
 #include "lib/str.h"
 
 #include <cmath>
+#include <format>
 
 namespace {
 
@@ -122,10 +123,10 @@ void CRepairGrid::Draw(CSceneRenderer* pass) {
         int pieces = static_cast<int>(item->count_);   // the stack's count
         if (pieces > 1) {
             RECT r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
-            surface->DrawTextIn(str::Format("%d", pieces), &r, 1, kTextColour, 2, 1);
+            surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
         }
         RECT r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
-        surface->DrawTextIn(str::Format("%d", owner_->Price(item, 8)), &r, 1, kTextColour, 1, 1);
+        surface->DrawTextIn(std::format("{}", owner_->Price(item, 8)), &r, 1, kTextColour, 1, 1);
     }
     DrawBase(pass);
     ClearUiDepth(1.0f, &screen, 1);

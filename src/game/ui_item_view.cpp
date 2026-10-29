@@ -17,7 +17,6 @@
 #include "unit_db.h"
 
 #include "ei/rebirth.h"
-#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "maths.h"
 #include "ei/x87.h"
@@ -34,6 +33,7 @@
 
 #include <cmath>
 #include <bit>
+#include <format>
 
 namespace {
 
@@ -349,7 +349,7 @@ HeroFaceNames FaceNames(const char* prototype) {
         sex = "m";
     else if (fixes || figureModel == "unhufe")
         sex = "f";
-    return {str::Format("infa%sme%dface", figureModel, unit->hair + 1), str::Format("face%s%02d", sex, unit->skin)};
+    return {std::format("infa{}me{}face", figureModel, unit->hair + 1), std::format("face{}{:02}", sex, unit->skin)};
 }
 
 } // namespace

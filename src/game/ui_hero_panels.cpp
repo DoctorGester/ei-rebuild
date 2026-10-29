@@ -20,7 +20,7 @@
 #include "combat.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/str.h"
+#include <format>
 
 namespace {
 
@@ -236,25 +236,25 @@ void CHeroStatsPanel::DrawStats() {
             Down(&rect);
             AttackParams info;
             unit->Controller()->GetAttackParams(&info);
-            line = str::Format("     %s", texts_[0]);
+            line = std::format("     {}", texts_[0]);
             draw->DrawTextIn(line, &rect, 0, kBright, 0, 1);
-            line = str::Format("%d", info.attack);
+            line = std::format("{}", info.attack);
             draw->DrawTextIn(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
-            line = str::Format("     %s", texts_[1]);
+            line = std::format("     {}", texts_[1]);
             draw->DrawTextIn(line, &rect, 0, kBright, 0, 1);
-            line = str::Format("%d", info.defence);
+            line = std::format("{}", info.defence);
             draw->DrawTextIn(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
-                line = str::Format("damage_%d", info.damageType);
+                line = std::format("damage_{}", info.damageType);
                 texts->GetString(line, &text);
             }
-            line = str::Format("     %s %s", texts_[2], text);
+            line = std::format("     {} {}", texts_[2], text);
             draw->DrawTextIn(line, &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(libcrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(libcrt::Ftol(D(info.damageMin)));
-            line = str::Format("%d-%d", low, high);
+            line = std::format("{}-{}", low, high);
             draw->DrawTextIn(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             Down(&rect);
@@ -447,7 +447,7 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     CTextManager* texts = g_clientWorld.texts_;
     std::string text;
     for (int key : {0x23, 0x24}) {
-        text = str::Format("infoitem_%d", key);
+        text = std::format("infoitem_{}", key);
         texts->GetString(text, &text);
         texts_.push_back(text);
     }

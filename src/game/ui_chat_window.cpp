@@ -13,7 +13,6 @@
 #include "unit_db.h"
 #include "world_glue.h"
 
-#include "lib/str.h"
 #include "lib/vecmath.h"
 
 #include "ei/rebirth.h"
@@ -21,6 +20,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <format>
 
 namespace {
 
@@ -151,8 +151,8 @@ void CChatWindow::ShowPlayers() {
         else if (fixes || figure->figureName == "unhufe")
             sex = "f";
         build = "me";
-        model = str::Format("infa%s%s%dface", figure->figureName, build, prototype->hair + 1);
-        picture = str::Format("face%s%02d", sex, prototype->skin);
+        model = std::format("infa{}{}{}face", figure->figureName, build, prototype->hair + 1);
+        picture = std::format("face{}{:02}", sex, prototype->skin);
         AddPortrait(model, picture);
         regions_[portraits_ - 1]->SetTipString(player->name_.data());
     }

@@ -24,6 +24,7 @@
 #include <new>
 #include <string>
 #include <vector>
+#include <format>
 
 namespace {
 
@@ -149,7 +150,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         if (prototype) {
             skin = str::Format("%sskin_%.2d.mmp", model->figureName.c_str(), prototype->skin);
         } else {
-            skin = str::Format("%sskin_00.mmp", model->figureName.c_str());
+            skin = std::format("{}skin_00.mmp", model->figureName);
         }
         set.textures.push_back(skin);
         for (int slot = 3; slot <= 6; ++slot) {
@@ -159,9 +160,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
         std::string name;
         if (record->modelNumber != -1) {
-            name = str::Format("mo%dp", record->modelNumber);
+            name = std::format("mo{}p", record->modelNumber);
         } else {
-            name = str::Format("prot%dp", static_cast<int>(record->prototype));
+            name = std::format("prot{}p", static_cast<int>(record->prototype));
         }
         Compose(self, built, set, name, 0x100, 1);
 
@@ -171,9 +172,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         if (items[0] != kNoItemId) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (record->modelNumber != -1) {
-            name = str::Format("mo%ds", record->modelNumber);
+            name = std::format("mo{}s", record->modelNumber);
         } else {
-            name = str::Format("prot%ds", static_cast<int>(record->prototype));
+            name = std::format("prot{}s", static_cast<int>(record->prototype));
         }
         Compose(self, built, set, name, 0x80, 2);
     }

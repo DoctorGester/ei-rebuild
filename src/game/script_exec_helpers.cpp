@@ -17,6 +17,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <format>
 
 namespace {
 
@@ -156,7 +157,7 @@ void ScriptQuestFinish(CScript* script) {
     std::string text;
     for (int i = 0; i < QuestObjectiveCount() + 1; ++i) {
         std::string line;
-        line = str::Format("DeclareScript Su%i()\n", i);   // "DeclareScript Su%i()\n"
+        line = std::format("DeclareScript Su{}()\n", i);
         text += line;
     }
     for (int i = 0; i < QuestObjectiveCount(); ++i) {
@@ -165,12 +166,12 @@ void ScriptQuestFinish(CScript* script) {
         std::string then;
         std::string tail;
         const std::string& quest = g_scriptQuestName;
-        head = str::Format("Script Su%i(if(\n", i);                              // "Script Su%i(if(\n"
-        then = str::Format("\n)then(\nKillScript()\nSu%i()\nGSSetVar(0,\"q.%s.%s.%i\",2)\n", i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
+        head = std::format("Script Su{}(if(\n", i);
+        then = std::format("\n)then(\nKillScript()\nSu{}()\nGSSetVar(0,\"q.{}.{}.{}\",2)\n", i + 1, quest, quest, i + 1);
         if (i == QuestObjectiveCount() - 1) {
             tail = ")\n)\n";                                   // ")\n)\n"
         } else {
-            tail = str::Format("GSSetVar(0,\"q.%s.%s.%i\",1)\n)\n)\n", quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
+            tail = std::format("GSSetVar(0,\"q.{}.{}.{}\",1)\n)\n)\n", quest, quest, i + 2);
         }
         const ScriptQuestObjective& objective = QuestObjectives()[i];
         const std::string& argument = objective.text;
@@ -179,16 +180,16 @@ void ScriptQuestFinish(CScript* script) {
             condition = str::Format("any( i, Heroes, IsInArea( %f, GetX(i), GetY(i) ) )", static_cast<double>(objective.value));
             break;
         case ScriptFunction::QObjSeeObject:
-            condition = str::Format("any( i, Heroes, IsLess( DistanceUnitUnit( i, %s ), 7 ) )", argument);
+            condition = std::format("any( i, Heroes, IsLess( DistanceUnitUnit( i, {} ), 7 ) )", argument);
             break;
         case ScriptFunction::QObjSeeUnit:
-            condition = str::Format("IsUnitVisible( %s )", argument);
+            condition = std::format("IsUnitVisible( {} )", argument);
             break;
         case ScriptFunction::QObjKillUnit:
-            condition = str::Format("Not( IsAlive( %s ) )", argument);
+            condition = std::format("Not( IsAlive( {} ) )", argument);
             break;
         case ScriptFunction::QObjKillGroup:
-            condition = str::Format("Not( any( i, %s, IsAlive(i) ) )", argument);
+            condition = std::format("Not( any( i, {}, IsAlive(i) ) )", argument);
             break;
         case ScriptFunction::QObjUse:
             condition = str::Format("IsEqual( GetLeverState(%s), %f )", argument, static_cast<double>(objective.value));
@@ -207,7 +208,7 @@ void ScriptQuestFinish(CScript* script) {
     {
         std::string last;
         const std::string& quest = g_scriptQuestName;
-        last = str::Format("Script Su%i(if()then(KillScript()\nQuestComplete(0,\"%s\")\nGSSetVar(0,\"q.%s.%s\", 2)\n)\n)\n", QuestObjectiveCount(), quest, quest, quest);
+        last = std::format("Script Su{}(if()then(KillScript()\nQuestComplete(0,\"{}\")\nGSSetVar(0,\"q.{}.{}\", 2)\n)\n)\n", QuestObjectiveCount(), quest, quest, quest);
         text += last;
     }
     text += "WorldScript( Su0() )\n";   // "WorldScript( Su0() )\n"

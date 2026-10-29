@@ -17,6 +17,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <format>
 
 // ---- Game CRT and library helpers (local to the loader) ---------------------------------------------
 
@@ -444,7 +445,7 @@ std::string* CScript::QualifyName(std::string* out, const std::string& name) {
         return out;
     }
     std::string qualified;
-    qualified = str::Format("!%i!%s", fileCount_, name);
+    qualified = std::format("!{}!{}", fileCount_, name);
     *out = qualified;
     return out;
 }

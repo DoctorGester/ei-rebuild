@@ -27,6 +27,7 @@
 
 #include <cstddef>
 #include <new>
+#include <format>
 
 namespace {
 
@@ -229,11 +230,11 @@ void CMpHeroScreen::CreateScreen() {
             isMale = !isFemale;
         }
         if (isMale) {
-            label = str::Format("%s %d", male, static_cast<int>(maleVoices.size()) + 1);
+            label = std::format("{} {}", male, static_cast<int>(maleVoices.size()) + 1);
             AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);
         }
         if (isFemale) {
-            label = str::Format("%s %d", female, static_cast<int>(femaleVoices.size()) + 1);
+            label = std::format("{} {}", female, static_cast<int>(femaleVoices.size()) + 1);
             AddFigure(femaleVoices, women, prototype, label, creature()->voiced != 0);
         }
     }

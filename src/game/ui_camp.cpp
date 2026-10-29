@@ -30,11 +30,11 @@
 #include "game_singletons.h"
 #include "ui_cursor.h"
 #include "lib/nan_audit.h"
-#include "lib/str.h"
 
 #include <cmath>
 
 #include <initializer_list>
+#include <format>
 
 namespace {
 
@@ -519,13 +519,13 @@ void CCampPages::UpdateAction() {
         texts->GetString(action, &text);
         DrawLine(draw, text, RECT{0, 30, 200, 50});
         if (cost_ != 0)
-            text = str::Format("%+d", -cost_);
+            text = std::format("{:+}", -cost_);
         else
             text = "0";
         DrawLine(draw, text, RECT{0, 50, 200, 70});
     }
     texts->GetString(label, &text);
-    line = str::Format("%s %d", text, amount);
+    line = std::format("{} {}", text, amount);
     DrawLine(draw, line, RECT{0, 10, 200, 30});
 
     SetShade(SceneMesh(0), actionEnabled_ ? 1.0f : 0.5f);

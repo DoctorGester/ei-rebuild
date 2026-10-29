@@ -23,6 +23,7 @@
 #include <initializer_list>
 #include <string>
 #include <vector>
+#include <format>
 
 using terrain::SectorData;
 
@@ -372,9 +373,9 @@ int Terrain::SetupPages(int count) {
     for (int i = 0; i < count + kExtraPages; ++i) {
         std::string name;
         if (i < count) {
-            name = str::Format("%s%3.3i", mapName, i);
+            name = std::format("{}{:03}", mapName, i);
         } else {
-            name = str::Format("%sL%2.2i", mapName, i - count);
+            name = std::format("{}L{:02}", mapName, i - count);
             if (!g_clientWorld.textureManager_->HasFile((name + ".mmp"))) return 1;
             ++extraPages;
             pageTextures.push_back(nullptr);

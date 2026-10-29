@@ -50,6 +50,7 @@
 #include <bit>
 #include <cstdio>
 #include <io.h>
+#include <format>
 
 using options::GameOptions;
 
@@ -289,11 +290,11 @@ void CreateMouse() {
 }
 
 void CreateFolders(std::string& path) {
-    path = str::Format("%ssaves\\", g_dataFolder);
+    path = std::format("{}saves\\", g_dataFolder);
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
-    path = str::Format("%smp\\", g_dataFolder);
+    path = std::format("{}mp\\", g_dataFolder);
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
-    path = str::Format("%stextures\\", g_dataFolder);
+    path = std::format("{}textures\\", g_dataFolder);
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
 }
 

@@ -10,7 +10,6 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/str.h"
 #include <cstdint>
 #include <string>
 #include "lib/vecmath.h"
@@ -21,6 +20,7 @@
 #include <cstdio>
 #include <memory>
 #include <new>
+#include <format>
 
 namespace {
 
@@ -223,7 +223,7 @@ void Terrain::PlayAmbience() {
         {
             std::string time;   // the empty string, replaced (raw stack storage in the game)
             g_clientWorld.AmbienceTimeOfDay(&time);
-            name = str::Format("ambient\\%s\\%s\\%s\\%i.wav", ambientSet, kind.name, time,
+            name = std::format("ambient\\{}\\{}\\{}\\{}.wav", ambientSet, kind.name, time,
                                variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }
         Vector3 position = listener + cells[pick].offset;
@@ -244,7 +244,7 @@ void Terrain::PlayAmbience() {
             vote.sound = ambientSounds[slot];
             sounds->SetSoundVolume(vote.sound, vote.volume, vote.pan);
         } else {
-            const std::string name = str::Format("ambient\\%s\\%s\\circle.wav", ambientSet, classes[vote.soundClass].name);
+            const std::string name = std::format("ambient\\{}\\{}\\circle.wav", ambientSet, classes[vote.soundClass].name);
             vote.sound = sounds->Play2D(name, 1000, vote.volume, vote.pan, 1, 1, 0, 0);
         }
     }

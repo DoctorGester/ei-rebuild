@@ -17,7 +17,7 @@
 #include "render/render.h"
 
 #include "game_singletons.h"
-#include "lib/str.h"
+#include <format>
 
 namespace {
 
@@ -36,11 +36,11 @@ void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, const std::vector<CItem*>
         int pieces = static_cast<int>(cell.item->count_);
         if (pieces > 1) {
             RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
-            surface->DrawTextIn(str::Format("%d", pieces), &r, 1, kTextColour, 2, 1);
+            surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
         }
         if (!grid->exchange_) {
             RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
-            surface->DrawTextIn(str::Format("%d", grid->owner_->Price(cell.item, kind)), &r, 1, kTextColour, 1, 1);
+            surface->DrawTextIn(std::format("{}", grid->owner_->Price(cell.item, kind)), &r, 1, kTextColour, 1, 1);
         }
     }
 }

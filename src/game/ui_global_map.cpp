@@ -38,6 +38,7 @@
 #include <new>
 #include <string>
 #include <vector>
+#include <format>
 
 namespace {
 
@@ -191,7 +192,7 @@ void CGlobalMap::CreateScreen() {
     for (int i = 0; i < std::ssize(allod->maps); ++i) {
         MapRecord* zone = &g_mapDatabase.maps[allod->maps[i]];
         if (zone->kind != 0 || zone->figure.empty()) continue;
-        variable = str::Format("z.%s", zone->name);
+        variable = std::format("z.{}", zone->name);
         GlobalMapZone& entry = zones_.emplace_back();
         entry.link = -1;
         entry.state = static_cast<int>(LocalPlayerVariable(variable));
@@ -204,7 +205,7 @@ void CGlobalMap::CreateScreen() {
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < std::ssize(zones_); ++i) {
-        variable = str::Format("q.%s", zones_[i].name);
+        variable = std::format("q.{}", zones_[i].name);
         GameLocalPlayerVariables(variable, &vars);
         for (const auto& node : vars) {
             if (std::bit_cast<std::uint32_t>(node.second) != std::bit_cast<std::uint32_t>(1.0f)) continue;
@@ -230,7 +231,7 @@ void CGlobalMap::CreateScreen() {
         for (int e = 0; e < std::ssize(zone->exits); ++e) {
             MapRecord* way = g_mapDatabase.FindMap(zone->exits[e].target);
             if (!way) continue;
-            variable = str::Format("z.%s", way->name);
+            variable = std::format("z.{}", way->name);
             if (way->kind != 2) continue;
             float state = LocalPlayerVariable(variable);
             EI_NAN_AUDIT(state);
@@ -308,7 +309,7 @@ void CGlobalMap::CreateScreen() {
     std::string clock;
     std::string dayText;
     g_clientWorld.texts_->GetString("save_day", &dayText);
-    clock = str::Format("%s  %d,  %d:%02d", dayText, day + 1, hour, minutes);
+    clock = std::format("{}  {},  {}:{:02}", dayText, day + 1, hour, minutes);
     {
         CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, SurfaceBlend::Keyed, true);
         AddSurface(text);

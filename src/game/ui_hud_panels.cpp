@@ -21,6 +21,7 @@
 
 #include <list>
 #include <cstring>
+#include <format>
 
 namespace {
 
@@ -70,7 +71,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
         FillBar(SceneMesh(10), ratio, 100.0f, 0.396484375f, 0.376953125f);
     std::string health;
-    health = str::Format("%d", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
+    health = std::format("{}", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
     DrawPanelText(this, health, RECT{130, 185, 160, 200}, kTextColour, 0, 1);
 
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
@@ -79,7 +80,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
         if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
             FillBar(SceneMesh(12), ratio, 100.0f, 0.369140625f, 0.349609375f);
         std::string mana;
-        mana = str::Format("%d", static_cast<int>(unit->packedVitals.mana));
+        mana = std::format("{}", static_cast<int>(unit->packedVitals.mana));
         DrawPanelText(this, mana, RECT{130, 200, 160, 215}, kTextColour, 0, 1);
         break;
     }
@@ -179,7 +180,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         }
         surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&line, 0, kLineHeight);
-        number = str::Format("%d", effects[i].ticksLeft / 15);
+        number = std::format("{}", effects[i].ticksLeft / 15);
         surface->DrawTextIn(number, &line, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&line, 0, kLineHeight);
     }
@@ -209,7 +210,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         int x = kPlaceX[places[i]];
         int y = kPlaceY[places[i]];
         if (fresh) {
-            picture = str::Format("spell%04d", icons[i]);
+            picture = std::format("spell{:04}", icons[i]);
             CopyImage(objects_[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y);
             effectIcons_[free] = icons[i];
         }

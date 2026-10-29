@@ -27,6 +27,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <format>
 
 namespace console::commands {
 
@@ -64,9 +65,9 @@ void RequestWithParty(std::vector<std::string>* args, const char* extra) {
 
 void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& speech) {
     if (speech.text.size() == 0) return;
-    line = str::Format("#say %s\n", speech.name.data());
+    line = std::format("#say {}\n", speech.name.data());
     file->WriteString(line);
-    line = str::Format("%s\n", speech.text.data());
+    line = std::format("{}\n", speech.text.data());
     file->WriteString(line);
 }
 

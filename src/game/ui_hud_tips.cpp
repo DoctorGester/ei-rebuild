@@ -17,6 +17,7 @@
 #include "world.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
+#include <format>
 
 // --- The weapon bar's unit -----------------------------------------------------------
 
@@ -51,15 +52,15 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         while (type < 7 && types[type] == zero) ++type;
         description = "Unknown";
         if (type < 7) {
-            line = str::Format("damage_%d", type);
+            line = std::format("damage_{}", type);
             g_clientWorld.texts_->GetString(line, &description);
         }
-        line = str::Format("%s %d-%d %s\n", labels_[0], Truncate(weapon->damage_),
+        line = std::format("{} {}-{} {}\n", labels_[0], Truncate(weapon->damage_),
                     Truncate(weapon->damageSpread_ + weapon->damage_), description);
         tip += line;
         float value = weapon->reach_;
         int category = static_cast<int>(weapon->GetPrototype()->category);
-        line = str::Format("%s %d  %s %d\n", labels_[1], category, labels_[2], Truncate(value));
+        line = std::format("{} {}  {} {}\n", labels_[1], category, labels_[2], Truncate(value));
         tip += line;
 
         // A weapon with a spell: the spell's name ("spell <name>").
@@ -67,7 +68,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             description = "Unknown";
             if (g_clientWorld.texts_->CTextManager::Open(std::string("spell ") + spell->GetPrototype()->code))
                 g_clientWorld.texts_->ReadLine(&description, 1);
-            line = str::Format("%s %s\n", labels_[3], description);
+            line = std::format("{} {}\n", labels_[3], description);
             tip += line;
         }
         regions_[slot]->SetTipString(tip, static_cast<int>(slot) + 0x26);
@@ -99,24 +100,24 @@ std::string CHudQuickItems::ItemTip(unsigned index) {
         float level = data->manaCost_;
         int now = Truncate(item->charge_);
         int maximum = Truncate(charges);
-        line = str::Format("%s %d/%d (%d)\n", labels_[0], Truncate(level), maximum, now);
+        line = std::format("{} {}/{} ({})\n", labels_[0], Truncate(level), maximum, now);
         text += line;
         if (data->GetPrototype()->allowedModifiers[3] == 0)
-            line = str::Format("%s %s  ", labels_[1], labels_[11]);
+            line = std::format("{} {}  ", labels_[1], labels_[11]);
         else
-            line = str::Format("%s %d  ", labels_[1], Truncate(data->damage_));
+            line = std::format("{} {}  ", labels_[1], Truncate(data->damage_));
         text += line;
         float duration = data->speed_;
         EI_NAN_AUDIT(duration);
         if (duration < one)
-            line = str::Format("%s %s \n", labels_[2], labels_[7]);
+            line = std::format("{} {} \n", labels_[2], labels_[7]);
         else
-            line = str::Format("%s %d \n", labels_[2], Truncate(duration));
+            line = std::format("{} {} \n", labels_[2], Truncate(duration));
         text += line;
-        line = str::Format("%s %d%s  ", labels_[3], Truncate(data->range_), labels_[9]);
+        line = std::format("{} {}{}  ", labels_[3], Truncate(data->range_), labels_[9]);
         text += line;
         if (data->targetFlags_ & SpellTargetFlag::AtUnits) {
-            line = str::Format("%s %s \n", labels_[4], labels_[8]);
+            line = std::format("{} {} \n", labels_[4], labels_[8]);
         } else {
             float radius = data->radius_;
             double area = static_cast<double>(radius) * radius * pi;
@@ -125,26 +126,26 @@ std::string CHudQuickItems::ItemTip(unsigned index) {
         text += line;
         std::uint32_t ticks = data->duration_;
         if (ticks < 2) {
-            line = str::Format("%s %s  ", labels_[5], labels_[7]);
+            line = std::format("{} {}  ", labels_[5], labels_[7]);
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
             line = str::Format("%s %.1f%s  ", labels_[5], seconds, labels_[10]);
         }
         text += line;
-        line = str::Format("%s %d \n", labels_[6], static_cast<int>(data->targetCount_));
+        line = std::format("{} {} \n", labels_[6], static_cast<int>(data->targetCount_));
         text += line;
     }
     if (item->GetCategory() == QuickItemCategory::Potion) {
         // A potion: mana and time.
         text += " \n";
         if (data->GetPrototype()->allowedModifiers[3] == 0)
-            line = str::Format("%s %s\n", labels_[1], labels_[11]);
+            line = std::format("{} {}\n", labels_[1], labels_[11]);
         else
-            line = str::Format("%s %d\n", labels_[1], Truncate(data->damage_));
+            line = std::format("{} {}\n", labels_[1], Truncate(data->damage_));
         text += line;
         std::uint32_t ticks = data->duration_;
         if (ticks < 2) {
-            line = str::Format("%s %s\n", labels_[5], labels_[7]);
+            line = std::format("{} {}\n", labels_[5], labels_[7]);
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
             line = str::Format("%s %.1f%s\n", labels_[5], seconds, labels_[10]);
@@ -177,7 +178,7 @@ void CHudActionColumn::SetUnit(CUnit* unit, bool extra) {
     AddAction("initqi1item", "skill0009", 0);
     title = "Science";
     if (g_clientWorld.texts_->CTextManager::Open(std::string("perk ") + title)) g_clientWorld.texts_->ReadLine(&tip, 1);
-    title = str::Format("%s %d\n", labels_[0], shown->params.attributes[0]);
+    title = std::format("{} {}\n", labels_[0], shown->params.attributes[0]);
     if (g_clientWorld.texts_->CTextManager::Open("tip 10511") != 0) g_clientWorld.texts_->ReadToHash(&hint, 1);
     tip = tip + "\n" + title + hint;
     regions_[count_ - 1]->SetTipString(tip, 0x1D);
