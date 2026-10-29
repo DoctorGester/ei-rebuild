@@ -71,8 +71,6 @@ set(EI_X87_GAME_SOURCES
     game/base_manager game/hoover_loot game/item game/item_manager game/item_stock game/lever_object
     game/lever_table_load game/light game/magic_trap game/map_spec game/map_spec_effect game/material game/spell
     game/spell_cast game/spell_effect game/torch_client_spec game/vis_fog_manager
-    # C30e4: the transcendental helpers and the spell effects
-    game/exit_area game/spell_effect_start game/spell_effect_update
     # C30e5: the server world and world effects
     game/world_effect game/world_effect_missile game/world_effect_moshka game/world_effect_sequence
     game/world_effect_tornado game/world_effect_visual game/world_game game/world_glue game/world_party

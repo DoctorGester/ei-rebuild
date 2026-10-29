@@ -299,13 +299,43 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   Only timers and ids reach that (`x87::FromUnsigned`, `ms * 0.001`): check each site.
 - **the exponent range**: x87 registers keep a 15-bit exponent, so a product beyond 3.4e38 or below 1.2e-38 inside an
   expression differs. No game value is near either; the equivalence tests cover the operands' real ranges.
-- **transcendentals**: FSIN, FCOS, FPATAN, FYL2X (`x87::flog`) and F2XM1 ignore the precision control and give a
-  64-bit result that the next operation rounds. `std::sin` / `atan2` / `log` in double, then the float operation,
-  agree but where the 53-bit and 64-bit results straddle a float rounding boundary (about 2^-28 per use; the
-  original's own FSIN differs between CPU makers at that level): accepted, each with a count from an equivalence
-  test. VC6's inline exp (`x87::fexp`) is not like that: its FMUL by log2(e) rounds at PC24, so 64% of float
-  arguments give another float than `std::exp` (C16 table). It needs an emulation (the product rounded to 24 bits,
-  FRNDINT's integer part, 2^fraction - 1 plus 1 rounded to 24 bits, the scale) with an equivalence test (C30e4).
+- **transcendentals and wide operands: `lib/pc24.h`** (C30e4). FSIN, FCOS, FPATAN, FYL2X and F2XM1 ignore the
+  precision control and give a 64-bit result that the next operation rounds; a double constant keeps its 53 bits.
+  `pc24::Sin / Cos / Atan2 / Log / Log10` return an `Unrounded` (a double-double: the function to about 100 bits,
+  then rounded to 64 as the FPU does), and `pc24::Round` (FSTP dword), `Add / Sub / Mul / Div` (one PC24 operation
+  on two register values, a float or a double converting) give the original's float: `x87::fcos(a) * r + x` ->
+  `pc24::Mul(pc24::Cos(a), r) + x`, `x * 0.001` (double) -> `pc24::Mul(x, 0.001)`. `pc24::Exp` is VC6's inline exp
+  step by step. No x87 code: double-double arithmetic (two-sum, Veltkamp two-product), FSIN / FCOS's argument
+  reduction by the FPU's 66-bit pi (0xC90FDAA22168C234C * 2^-66) in 128-bit integers (this CPU's FSIN uses it: the
+  exhaustive test matches up to 2^63), series with double-double heads, then one rounding to 24 bits by rounding hi
+  to odd first (lo's sign as the sticky bit). Two roundings matter that a plain double form misses: FSIN of a small x
+  is x itself after the 64-bit rounding (so `sin x * f` can sit on a float tie), and a store into the denormals is
+  one rounding from 64 bits where an operation rounds to 24 bits first. pc24.cpp is SSE2 only (an `#error` on x87);
+  the helpers are out of line, so x87 objects may call them. The equivalence test (`eq/` in the C30e4 scratch folder:
+  the original sequences as `__asm` at PC24 against the helpers, 24 threads) on this machine (Ryzen 9 7950X):
+  | case | cases | differ | std:: form differs |
+  |---|---|---|---|
+  | sin, cos stored, every float | 2^32 each | 0 | 1,090,519,044 / 1,090,519,040 (large arguments: true pi) |
+  | log, log10 stored, every float | 2^32 each | 0 | 5 / 1 |
+  | exp (VC6's) stored, every float | 2^32 | 0 | 92,376,909 |
+  | ClampPow (spells), every float | 2^32 | 0 | 4,223,839 (`std::exp(std::log(c) * 0.33f)`) |
+  | sin / cos / log times and plus a float, f / sin, sin / f | 200 M each | 0 | 14,231 (log * f) .. 12.8 M |
+  | atan2 stored, plus a float | 200 M each | 0 | 0 / 175 |
+  | atan2 times a float | 200 M | 9 | 61,418 |
+  | a float and a double: x * c, x + c, x - c, c - x, x / c, c / x | 200 M each | 0 | 15.8 M .. 49.7 M (c as a float) |
+
+  The 9: FPATAN of a tiny ratio y / x is the quotient, and this CPU's FPATAN does not round it correctly where it
+  sits within a few hundredths of an ulp of a 64-bit tie (0x842c0719eb680885 for an exact ...0885.503); with operands
+  of few significant bits (the test's half integers) the product with f can lie that near a float rounding boundary.
+  Accepted. NaNs: of two NaN
+  operands the FPU takes the larger significand, as `Add` .. `Div` do, but a signalling float operand loses to a
+  quiet one in the FPU, and a float converted to double is already quiet (nan-bits cases only, never a number).
+- **x87 code in SSE2 objects:** a float returned by a call comes back in ST0 (the x86 calling convention), and the
+  compiler may do the next float operation there (`pc24::Exp(...) - 0.2f` is an FSUB). One such operation on two floats
+  gives the SSE form's float at any precision control; a chain (spell_effect_internal.h's `LightRiseScaled`: FDIVR then
+  FMUL) relies on the main thread's PC24, as the original does.
+- **ei_vectors** compiles its game sources for x87 (`/arch:IA32`): a batch whose file is in its list and calls `pc24::`
+  adds src/lib/pc24.cpp to it built for SSE2 (pc24.cpp's `#error` says when it is not).
 - **the game CRT's pow / acos / asin / hypot** (`libcrt::CiPow` ..., crt_x87.cpp) stay x87 code that SSE2 code calls:
   they load their own control word and round at the caller's precision (`MathControlWord::Round`, the main thread's
   PC24 whoever calls), so an SSE2 caller passing the same values gets the same double back. crt_x87.cpp itself moves
@@ -351,7 +381,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e1 network, sessions, settings | 30 | 7,647 | net_connection_tick's `D()` (24) and timers, player_server_handlers' doubles (16), player_client's `std::pow`, options' `Ftol` |
 | C30e2 scripts | 10 | 4,031 | `Ftol` 72 (script_exec 43, script_eval 15: a script argument can be a NaN), script_addon_math's CRT sin / cos / pow |
 | C30e3 items, spells, world objects | 17 | 4,047 | item / item_stock / item_manager float maths (prices, conditions; item.cpp's `CopyBits` 11), `x87::` 21 |
-| C30e4 transcendental helpers, spell effects | 3 | 1,097 | `fexp` / `flog` (spell_effect_start / _update), exit_area's sin / cos; the helpers and their tests |
+| C30e4 (done) transcendental helpers, spell effects | 3 | 1,097 | `fexp` / `flog` (spell_effect_start / _update), exit_area's sin / cos; the helpers and their tests |
 | C30e5 server world, world effects | 21 | 6,831 | world_weather's wide constants, moshka / visual / party / units' transcendentals, world_time's fmod |
 | C30e6 units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
 | C30e7 combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
