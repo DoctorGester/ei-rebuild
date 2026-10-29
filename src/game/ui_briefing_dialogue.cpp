@@ -41,12 +41,14 @@ constexpr const char* kHumanPrototype = "unhuma";
 constexpr int kEventPhrases = 3;
 constexpr int kStatePhrases = 3;
 
-// The skill animation numbers (the tables).
-constexpr int kTalkThird = 3;
-constexpr int kTalk = 1;
-constexpr int kListen = 2;
-constexpr int kHumanTalk[4] = {1, 6, 7, 8};
-constexpr int kHumanListen[4] = {2, 0xA, 0xC, 0xD};
+// The speakers' animations (the animation tables' names).
+constexpr SkillAnimation kTalkThird = SkillAnimation::Briefing03;
+constexpr SkillAnimation kTalk = SkillAnimation::Briefing01;
+constexpr SkillAnimation kListen = SkillAnimation::Briefing02;
+constexpr SkillAnimation kHumanTalk[4] = {SkillAnimation::Briefing01, SkillAnimation::Briefing06,
+                                          SkillAnimation::Briefing07, SkillAnimation::Briefing08};
+constexpr SkillAnimation kHumanListen[4] = {SkillAnimation::Briefing02, SkillAnimation::Briefing10,
+                                            SkillAnimation::Briefing12, SkillAnimation::Briefing13};
 
 constexpr int kPersonPlace = 0;
 constexpr int kLeaderPlace = 1;
@@ -104,7 +106,7 @@ void CBriefingScreen::StartPhrases() {
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The name is compared through a copy.)
     bool human = str::Compare(unit->name, kHumanPrototype) == 0;
-    int number;
+    SkillAnimation number;
     if (talking) {
         if (third)
             number = kTalkThird;

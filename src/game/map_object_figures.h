@@ -63,6 +63,10 @@ constexpr AnimationKind AnimationKindOf(std::uint32_t key) {
 }
 constexpr std::uint32_t AnimationKeyOf(AnimationKind kind) { return static_cast<std::uint32_t>(kind); }
 
+// The key's low bits (0..14): the variant bits (the weapon, movement and attack options an entry is made for);
+// the bits above them must match a request exactly.
+inline constexpr std::uint32_t kAnimationVariantBits = 0x7FFF;
+
 // The key's number field (bits 22..29).
 inline constexpr int kAnimationNumberShift = 22;
 inline constexpr std::uint32_t kAnimationNumberMask = 0x3FC00000;
@@ -113,10 +117,26 @@ inline constexpr std::uint32_t kAnimationAttackBlow = 0x800000;
 inline constexpr std::uint32_t kAnimationSpecialIdleKey =
     AnimationKeyOf(AnimationKeyFlag::Looped) | AnimationKeyOf(AnimationKind::Idle) | AnimationNumberBits(1);
 
-// The skills' animation numbers (Special animations; CUnitServer's use orders, the skill sounds). Names from the
-// use sources (UseSource) and the sounds (heroes\human\skills\*.wav); the four SearchBody animations ("loot.wav")
-// differ by the movement mode (2 or another) and whether the weapon is ranged.
+// The numbers of the Special animations: the briefing gestures the interface plays and the skills (CUnitServer's
+// use orders, the skill sounds). Briefing and Special names are the animation databases'
+// ("ubriefing01", "uspecial14"; the interface plays 1 to 13 and 0x21, a briefing script any number); the skills' names are from the use sources (UseSource) and the sounds (heroes\human\skills\*.wav); the
+// four SearchBody animations ("loot.wav") differ by the movement mode (2 or another) and whether the weapon is
+// ranged.
 enum class SkillAnimation : int {
+    Briefing01 = 0x1,
+    Briefing02 = 0x2,
+    Briefing03 = 0x3,
+    Briefing04 = 0x4,
+    Briefing05 = 0x5,
+    Briefing06 = 0x6,
+    Briefing07 = 0x7,
+    Briefing08 = 0x8,
+    Briefing09 = 0x9,
+    Briefing10 = 0xA,
+    Briefing11 = 0xB,
+    Briefing12 = 0xC,
+    Briefing13 = 0xD,
+    Special14 = 0x21,   // the heroes' pose in the camp and the hero screen ("cspecial14" of the creatures)
     Tame = 0x13,    // "tame.wav"
     Steal = 0x14,   // "steal.wav"
     Use = 0x15,     // "science.wav"
@@ -442,15 +462,14 @@ public:
     AnimationDatabase* Animations();
     // Animation `key & 0xFF` of the database, or null (no database, or beyond its count).
     FigureAnimation* AnimationAt(std::uint32_t key);
-    // The first animation of kind 0x40000 whose number (key bits 22-29) is `number`, or null (the hero preview
-    // asks for 0x21; so do the interface's models).
-    FigureAnimation* FindSkillAnimation(int number);
-    // A random animation for `key`: the database's entries whose key has the same bits above 0x7FFF and all
+    // The first animation of kind Special whose number (key bits 22-29) is `number`, or null.
+    FigureAnimation* FindSkillAnimation(SkillAnimation number);
+    // A random animation for `key`: the database's entries whose key has the same bits above kAnimationVariantBits and all
     // of key's low 15 bits (none when key has none) and that AcceptsAnimation accepts; one is returned as it
     // is, several are narrowed to those whose chance is at least a rand() percent and one of them is picked
     // with rand() (the pick made before narrowing when none is left). Null without a database or a match.
     FigureAnimation* RandomAnimation(std::uint32_t key);
-    // As RandomAnimation for the entries whose key's bits above 0x7FFF equal key's, one picked with rand(); no
+    // As RandomAnimation for the entries whose key's bits above kAnimationVariantBits equal key's, one picked with rand(); no
     // chance narrowing.
     FigureAnimation* RandomAnimationOfKind(std::uint32_t key);
     // For units (class id 0x50) with an animation database whose length is neither 0 nor NaN:

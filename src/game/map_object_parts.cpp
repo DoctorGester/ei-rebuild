@@ -104,9 +104,9 @@ FigureAnimation* CObject3D::AnimationAt(std::uint32_t key) {
     return index < animations->count ? &animations->animations[index] : nullptr;
 }
 
-FigureAnimation* CObject3D::FindSkillAnimation(int number) {
+FigureAnimation* CObject3D::FindSkillAnimation(SkillAnimation number) {
     if (!Animations()) return nullptr;
-    std::uint32_t wanted = AnimationNumberBits(number);
+    std::uint32_t wanted = AnimationNumberBits(static_cast<int>(number));
     for (int i = 0; i < static_cast<int>(animations->count); ++i) {
         const FigureAnimation& entry = animations->animations[i];
         if (entry.Kind() == AnimationKind::Special && (entry.key & kAnimationNumberMask) == wanted)

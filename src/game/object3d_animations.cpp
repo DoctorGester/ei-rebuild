@@ -8,7 +8,6 @@
 #include <vector>
 
 namespace {
-constexpr std::uint32_t kKeyLowBits = 0x7FFF;          // variant bits a key may ask for
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 
 bool Accepts(CObject3D* object, const FigureAnimation* animation) {
@@ -21,11 +20,12 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
     std::vector<FigureAnimation*> candidates{};
-    std::uint32_t wanted = key & kKeyLowBits;
+    std::uint32_t wanted = key & kAnimationVariantBits;
     for (int i = 0; i < static_cast<int>(animations->count); ++i) {
         FigureAnimation* entry = &animations->animations[i];
         std::uint32_t entryKey = entry->key;
-        bool variant = wanted == 0 ? (entryKey & kKeyLowBits) == 0 : (~entryKey & key & kKeyLowBits) == 0;
+        bool variant =
+            wanted == 0 ? (entryKey & kAnimationVariantBits) == 0 : (~entryKey & key & kAnimationVariantBits) == 0;
         if (!variant || ((entryKey ^ key) & kKeyKindBits) != 0) continue;
         if (Accepts(this, entry)) candidates.push_back(entry);
     }

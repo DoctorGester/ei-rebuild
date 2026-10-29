@@ -56,7 +56,9 @@ const char* const kExitMovie = "Movies\\Exit.bik";
 const char* const kIntroMovie = "Movies\\Intro.bik";
 
 // The stone animation each region plays while hovered.
-constexpr int kStoneAnimation[6] = {1, 3, 5, 7, 11, 9};
+constexpr SkillAnimation kStoneAnimation[6] = {SkillAnimation::Briefing01, SkillAnimation::Briefing03,
+                                               SkillAnimation::Briefing05, SkillAnimation::Briefing07,
+                                               SkillAnimation::Briefing11, SkillAnimation::Briefing09};
 
 // A random word scaled to [0, scale) (the word read unsigned, as a 64-bit integer).
 double RandomScaled(double scale) { return x87::FromUnsigned(g_random.Next()) * scale; }

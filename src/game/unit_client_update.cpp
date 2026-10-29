@@ -21,7 +21,6 @@
 namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags_
 constexpr int kDeadShownTicks = 50;                   // after the unit's +0x254
-constexpr std::uint32_t kKeyLowBits = 0x7FFF;         // FigureAnimation::key
 constexpr std::uint32_t kKeyMovement = kAnimationMoveMask;
 constexpr std::uint32_t kKeyMovementStill = AnimationKeyOf(AnimationMoveBits::Mode0);
 constexpr float kFadeStep = 0.06666667f;              // 1/15
@@ -67,7 +66,7 @@ bool CUnitClientSpecific::RunTick() {
     if (unit->pathTimeShift == 1) motion.ShiftTime(1);
     if (unit->motionMode == 1) ++unit->animationStart;
     const FigureAnimation* current = unit->Object3D()->animation->current;
-    if (current) ShowWeaponParts((current->key & kKeyLowBits) == 0);
+    if (current) ShowWeaponParts((current->key & kAnimationVariantBits) == 0);
 
     bool drawn;
     if (unit->dead && ObjectWorld(this)->tick_ >

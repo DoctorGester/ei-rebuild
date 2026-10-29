@@ -12,6 +12,7 @@
 #include "spell.h"
 #include "texture.h"
 #include "ui_item_info.h"
+#include "ui_float.h"
 #include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
@@ -78,8 +79,6 @@ itemdb::ItemRecordHead* PartRecord(const CItem* item, LootRecordType recordType)
     default: return nullptr;
     }
 }
-
-double D(float f) { return f; }
 
 constexpr float kPriceZero = 0.0f;
 constexpr float kPriceOne = 1.0f;

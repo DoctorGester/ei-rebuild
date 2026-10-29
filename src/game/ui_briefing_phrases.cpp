@@ -299,7 +299,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     auto* controller = serverUnit->ServerController();
                     controller->StopAction();
                     controller->actionDone = SpeakerAnimationDone;
-                    if (FigureAnimation* played = unit->Object3D()->FindSkillAnimation(animation))
+                    if (FigureAnimation* played = unit->Object3D()->FindSkillAnimation(static_cast<SkillAnimation>(animation)))
                         controller->PlayAnimation(played->name);
                 }
             } else {

@@ -39,7 +39,7 @@
 namespace {
 
 constexpr std::uint32_t kRecordBias = 100000000;   // added to the records' ids while the client world takes them
-constexpr int kIdleAnimation = 0x21;    // the skill animation the heroes play in the camp
+constexpr SkillAnimation kIdleAnimation = SkillAnimation::Special14;    // what the heroes play in the camp
 constexpr int kSchools = 8;
 constexpr int kPriceWeights = 9;
 
