@@ -46,7 +46,7 @@ constexpr int kPortraitSprites = 5;   // sprites per portrait; the fifth (4) is 
 } // namespace
 
 void CBattleScreen::CloseScreen() {
-    g_camera->flags_ |= CCamera::kFree;
+    g_camera.flags_ |= CCamera::kFree;
     worlddata::g_updatePeriod = kDefaultUpdatePeriod;
     g_cursor.SetHeld(0);
     GameStopSounds(1);
@@ -57,7 +57,7 @@ void CBattleScreen::CloseScreen() {
 bool CBattleScreen::ReadyToStopPolling() {
     if (hasHero_) {
         auto& party = party_;
-        if (!party.empty()) g_camera->SetTarget(party[0]);
+        if (!party.empty()) g_camera.SetTarget(party[0]);
         if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), true);
         hasHero_ = false;
         interface_->OpenHelp(0);

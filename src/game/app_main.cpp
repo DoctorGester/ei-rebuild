@@ -301,12 +301,12 @@ void CreateFolders(std::string& path) {
 // The renderer created on the window, its gamma set from the options.
 void CreateRenderer() {
     GameOptions* options = &options::g_options.Get();
-    CCamera* camera = &g_camera.Get();
+    CCamera* camera = &g_camera;
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
-    g_sceneRenderer->CreateRenderer(g_mainWindow, options);
-    g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);
+    g_sceneRenderer.CreateRenderer(g_mainWindow, options);
+    g_sceneRenderer.SetGamma(options->brightness_, options->contrast_, options->gamma_);
 }
 
 // The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes. Returns
@@ -408,10 +408,10 @@ std::uint32_t ClientClockMs() {
 void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {
-        g_sceneRenderer->flags_ |= 1;
+        g_sceneRenderer.flags_ |= 1;
         gameapi::SetCursor(nullptr);
     } else {
-        g_sceneRenderer->flags_ &= ~1u;
+        g_sceneRenderer.flags_ &= ~1u;
         gameapi::InvalidateRect(nullptr, nullptr, TRUE);
     }
     g_activationChanged = 0;
@@ -451,9 +451,9 @@ bool RunWorlds() {
             g_clientBacklog -= tick;
             g_clientTicksMs += tick;
             if (render::SmoothCamera())
-                camera::NoteTargetTick(&g_camera.Get());
+                camera::NoteTargetTick(&g_camera);
             else
-                g_camera->Update(CameraSeconds(tick));
+                g_camera.Update(CameraSeconds(tick));
             net::Pump();
             continue;
         }
@@ -489,7 +489,7 @@ void PrintClientSpeed(float speed, float balance) {
 bool RunPass() {
     TakeActivationChange();
     std::uint32_t elapsed = TimeSinceLastPass();
-    if (!(g_sceneRenderer->flags_ & 1)) {
+    if (!(g_sceneRenderer.flags_ & 1)) {
         GuardPlayerData(0);
         return false;
     }
@@ -528,7 +528,7 @@ bool RunPass() {
         std::uint32_t clientTime = clientClock - g_cameraClientMs;
         g_cameraClientMs = clientClock;
         if (render::SmoothCamera() && clientTime < 0x80000000u) elapsed += clientTime;   // not after a backlog reset
-        CCamera* camera = &g_camera.Get();
+        CCamera* camera = &g_camera;
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {
             camera->Update(CameraSeconds(tick));
@@ -576,8 +576,9 @@ int RunMainLoop(bool interfaceInput) {
 
 // Both worlds emptied (their players disconnected, their sessions and managers released): ShutDown's last step,
 // and an exit function GameMain registers, so that an exit that skips ShutDown (a fatal error's) still empties
-// them before the game's exit functions release the network sessions, the camera and the renderer (the original's
-// world exit functions ran first). The worlds' own destructors run after those.
+// them before the game's exit functions release the network sessions (the original's world exit functions ran
+// first). The worlds' own destructors run after those and do not empty them again: the camera and the scene renderer
+// (plain globals of other files) may be gone by then.
 void EmptyWorlds() {
     g_serverWorld.Destroy();
     g_clientWorld.Destroy();
@@ -590,8 +591,8 @@ void ShutDown() {
     CDirectInputMouse* mouse = g_mouse;
     g_mouse = nullptr;
     if (mouse) ReleaseMouse(mouse);
-    g_sceneRenderer->SetGamma(0.0f, 0.0f, 0.0f);
-    g_sceneRenderer->DestroyRenderer();
+    g_sceneRenderer.SetGamma(0.0f, 0.0f, 0.0f);
+    g_sceneRenderer.DestroyRenderer();
     options::g_options->SaveToRegistry(g_registryRoot.c_str());
     g_clientWorld.SetCamera(nullptr);
     EmptyWorlds();
@@ -640,10 +641,10 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     g_clientWorld.Create();
     g_serverWorld.Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
-    g_camera->Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance_),
+    g_camera.Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance_),
                    std::bit_cast<std::uint32_t>(options->farClipDistance_),
                    std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 * 0.2857142857142857)));
-    g_clientWorld.SetCamera(&g_camera.Get());
+    g_clientWorld.SetCamera(&g_camera);
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();
 
@@ -671,12 +672,12 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     CloseLoadingMovie();
     LoadDatabases();
     g_mouse->Setup(g_mainWindow, instance);
-    g_clientWorld.SetUpGraphics(g_sceneRenderer->device_);
+    g_clientWorld.SetUpGraphics(g_sceneRenderer.device_);
     SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0);
-    g_interface.Create(g_sceneRenderer->device_);
+    g_interface.Create(g_sceneRenderer.device_);
     g_mapDatabase.LoadAll();
     StartFirstMap();
-    g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);
+    g_sceneRenderer.SetGamma(options->brightness_, options->contrast_, options->gamma_);
 
     const int result = RunMainLoop(interfaceTakesInput);
     ShutDown();

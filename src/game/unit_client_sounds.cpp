@@ -82,7 +82,7 @@ void Shake(CUnit* unit) {
     const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)
-        g_camera->Shake(&unit->localPosition_, kShakeDuration, strength,
+        g_camera.Shake(&unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
 }
 
@@ -241,7 +241,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)
-                g_camera->Shake(&unit->localPosition_, kShakeDuration, strength,
+                g_camera.Shake(&unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
         }
         const auto* model = unit->GetPrototypeModel();

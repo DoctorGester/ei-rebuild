@@ -42,7 +42,7 @@ void CBriefingScreen::CloseScreen() {
     options::g_options->borderFogDistance_ = savedEdgeFade_;
     GameStopSounds(1);
     GameStopAmbience();
-    std::uint32_t& flags = g_camera->flags_;
+    std::uint32_t& flags = g_camera.flags_;
     flags = (flags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
 }
 
@@ -100,7 +100,7 @@ void CBriefingScreen::UnitJoined(CUnit* unit) {
 
     leader_ = unit;
     g_clientWorld.Select(unit);
-    g_camera->SetTarget(unit);
+    g_camera.SetTarget(unit);
     MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     std::string prefix;
     prefix = str::Format(kZoneTopicFormat, zone->name);

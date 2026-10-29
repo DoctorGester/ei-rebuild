@@ -113,7 +113,7 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     CLinkFigureLoader* loader;
     {
         std::string resource(FiguresResource());
-        loader = new CLinkFigureLoader(g_sceneRenderer->device_, &resource);
+        loader = new CLinkFigureLoader(g_sceneRenderer.device_, &resource);
     }
     figureLoader_.Assign(loader);
     g_unitDatabase.CountSoundFiles(sounds_);

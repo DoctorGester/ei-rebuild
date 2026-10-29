@@ -118,7 +118,7 @@ int GameFtol(double value) {
 } // namespace
 
 int CWorldClient::UpdateLighting() {
-    auto* display = &g_sceneRenderer.Get();
+    auto* display = &g_sceneRenderer;
     if (!(display->flags_ & 1)) return 1;
     UpdateExitMarkers();
     const double now = HourOfDay(this);

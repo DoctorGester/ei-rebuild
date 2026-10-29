@@ -103,6 +103,6 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
         }
     }
     if (result != 2) mesh_->flags_ |= FigureMeshFlag::Drawn;
-    DrawBounds(&g_sceneRenderer.Get());
+    DrawBounds(&g_sceneRenderer);
     return 1;
 }

@@ -217,7 +217,7 @@ int GroundPrint::Draw() {
     }
     std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha_ * kAlphaRange)));
     colour_ = (colour_ & 0xFFFFFFu) | alpha << 24;
-    CTextureDevice* device = g_sceneRenderer->device_;
+    CTextureDevice* device = g_sceneRenderer.device_;
     device->BindNamedTexture(0, &texture_);
     return device->DrawFlatBlocks(positions_.data(), texCoords_.data(), std::ssize(positions_),
                                   indices_.data(), std::ssize(indices_), colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);

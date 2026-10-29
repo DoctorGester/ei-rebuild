@@ -77,7 +77,7 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     MatrixStack* stacks = pipeline->stacks_;
     // The camera's near and far distances and field of view.
-    const CCamera* cam = &g_camera.Get();
+    const CCamera* cam = &g_camera;
     float zNear, zFar, fov;
     zNear = cam->nearDistance_;
     zFar = cam->farDistance_;

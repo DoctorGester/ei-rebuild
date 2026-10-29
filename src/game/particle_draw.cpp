@@ -23,7 +23,7 @@ inline double D(float f) { return f; }
 // The particles' draw order, reused by every frame.
 std::vector<ParticleDepth> g_drawOrder;
 // The camera's orientation.
-const Quaternion& CameraRotation() { return g_camera->localRotation_; }
+const Quaternion& CameraRotation() { return g_camera.localRotation_; }
 
 // A source attached to a unit (class 0x50) is drawn only while the unit has MapObjectFlag::InParty.
 bool AttachedToHiddenUnit(const CParticleSource* s) {

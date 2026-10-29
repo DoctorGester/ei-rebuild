@@ -102,8 +102,8 @@ void CItemScreen::CreateBase() {
     iconWindow_->Build();
     LoadTexture("modifiers2", TextureKind::Interface);
     LoadTexture("campslots", TextureKind::Interface);
-    g_sceneRenderer->fogColour_ = 0;
-    g_sceneRenderer->pipeline_->transform_->SetDepthRange(99.0f, 100.0f);
+    g_sceneRenderer.fogColour_ = 0;
+    g_sceneRenderer.pipeline_->transform_->SetDepthRange(99.0f, 100.0f);
     // The caches keep 30 entries (the game's 20 were for a card with little texture memory).
     textures_.limit = 30;
     TrimItemCache(&textures_);

@@ -351,7 +351,7 @@ void CGlobalMap::CreateScreen() {
     weather_ = new CGlobalMapClouds();
     weather_->Start();
     // The weather: the display's colour (the original first set 0xFF3C005A) and the clouds' ramp.
-    g_sceneRenderer->fogColour_ = 0xFF00000A;
+    g_sceneRenderer.fogColour_ = 0xFF00000A;
     weather_->SetRamp(0x77, 0xF8, 2.0f);
     Update();
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", true);

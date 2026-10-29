@@ -287,7 +287,7 @@ private:
 // take it from here.
 const float* TransformAmbientColour();
 
-// The scene renderer (the global renderer object, &g_sceneRenderer.Get(); "CVisualizator" in the game's messages).
+// The scene renderer (the global renderer object, &g_sceneRenderer; "CVisualizator" in the game's messages).
 class CSceneRenderer final {
 public:
     CSceneRenderer() = default;

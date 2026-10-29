@@ -401,7 +401,7 @@ bool CWorldClient::RunTick() {
                 lightLevelsCountdown_ = options::g_options->shadowLightingFreq_;
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
-                CLight* sun = g_sceneRenderer->sun_;
+                CLight* sun = g_sceneRenderer.sun_;
                 for (BloodPrint& effect : bloodPrints_) {
                     float level = sun->GetIntensityAt(&worlddata::kOrigin);
                     ObjectListIteratorOf<CLight> lights{};

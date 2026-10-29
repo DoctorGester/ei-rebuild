@@ -490,7 +490,7 @@ bool ScriptRun::Execute(CScript* script) {
             float b = f[2] * scale;
             float g = f[1] * scale;
             float r = f[0] * scale;
-            g_sceneRenderer->SetFogColour(r, g, b);
+            g_sceneRenderer.SetFogColour(r, g, b);
             break;
         }
         case ScriptFunction::RunWorldTime:   // RunWorldTime(time): the configured speed (int)

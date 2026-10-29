@@ -55,7 +55,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         consoleWindow->Show(!consoleWindow->shown_);
         return;
     case 0x46: {  // Scroll Lock: a screenshot
-        CDib* picture = CaptureScreen(g_sceneRenderer->device_);
+        CDib* picture = CaptureScreen(g_sceneRenderer.device_);
         if (!picture) return;
         std::string name;
         name = str::Format("shot%.4d.bmp", g_shotCounter);

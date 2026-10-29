@@ -61,13 +61,13 @@ __forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
 // The two draws share everything but the height function (which returns its result unrounded).
 template <typename Height>
 Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
-    CTransformPipeline* device = g_sceneRenderer->pipeline_;
+    CTransformPipeline* device = g_sceneRenderer.pipeline_;
     if (device->stacks_[CTransformPipeline::kViewStack].count == 0) {
         std::memcpy(out, &worlddata::kOrigin, 12);
         return out;
     }
     PushStackMatrix(device, CTransformPipeline::kPickStack, StackTop(device, CTransformPipeline::kViewStack));
-    const float* m = StackTop(g_sceneRenderer->pipeline_, CTransformPipeline::kPickStack);
+    const float* m = StackTop(g_sceneRenderer.pipeline_, CTransformPipeline::kPickStack);
 
     // The values kept on the FPU stack are doubles here (no rounding to float).
     double sx = screenX;
@@ -139,7 +139,7 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
 
 int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
                                  char animateUnits, char withScripted) {
-    CTransformPipeline* device = g_sceneRenderer->pipeline_;
+    CTransformPipeline* device = g_sceneRenderer.pipeline_;
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
@@ -173,7 +173,7 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
                 matrix[12] = 0.0f;
                 matrix[15] = 1.0f;
                 PushStackMatrix(device, CTransformPipeline::kClipStack, matrix);
-                int where = g_sceneRenderer->pipeline_->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
+                int where = g_sceneRenderer.pipeline_->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
                 device->PopMatrix(CTransformPipeline::kClipStack);
 
                 CMapObject* const& entry = object;

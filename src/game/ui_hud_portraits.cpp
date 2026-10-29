@@ -280,7 +280,7 @@ void CHudPortraits::Update() {
         AsUiMesh(object(1))->localRotation_ = face;
 
         // The selection marker (object 0) sits above the selected unit's portrait (object 5i+4).
-        if (g_camera->targetId_ == unit->id_) {
+        if (g_camera.targetId_ == unit->id_) {
             SceneMesh(0)->visible_ = true;
             float x, y, depth;
             AsUiMesh(object(4))->GetPlacement(&x, &y, &depth);

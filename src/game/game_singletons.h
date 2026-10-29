@@ -7,8 +7,6 @@
 // The global random generator is g_random.
 
 #include <string>
-#include "lib/static_object.h"
-
 
 struct GameFlow;
 class CInterface3D;
@@ -44,13 +42,13 @@ extern CWorldClient g_clientWorld;   // world_construct.cpp
 extern CWorldServer g_serverWorld;   // world_construct.cpp
 
 // The scene renderer.
-extern lib::StaticObject<CSceneRenderer> g_sceneRenderer;   // renderer_lifetime.cpp
+extern CSceneRenderer g_sceneRenderer;   // renderer_lifetime.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
 extern CCursor g_cursor;   // ui_cursor_setup.cpp
 extern CMapDatabase g_mapDatabase;   // map_database.cpp
 CScript* TheMissionScript();
-extern lib::StaticObject<CCamera> g_camera;   // camera_object.cpp
+extern CCamera g_camera;   // camera_object.cpp
 
 // The party manager (the parties by key, the named records and the class templates).
 extern PartyManager g_partyManager;   // app_lifetime.cpp

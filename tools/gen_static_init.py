@@ -609,7 +609,6 @@ REVIEWED_NEAR = {
     0x007ABB68: ('007ABB64', 'the fog dead cells vector 007ABB58 (12 bytes) and its guard byte'),
     0x007AEE68: ('007AEE64', 'the DirectDraw driver list 007AEE64 (gone; its unused initialiser 004ED520 still reads the cell)'),
     0x007AEE98: ('007AEE94', 'the device lock 007AEE78 (CRITICAL_SECTION, 0x18 bytes) and the holder count (dword)'),
-    0x007AF0BC: ('007AF084', 'the scene renderer 007AF060 (CSceneRenderer, members to +0x58) ends at 007AF0BC; 007AF084 is its helper'),
     0x007AF3D8: ('007AF3BC', 'the unit database record tables 007AF358 / 007AF378 / 007AF398 / 007AF3B8 (RecordTable, 0x20 bytes each)'),
     0x007AF410: ('007AF40C', 'the squared radius float (read directly)'),
     0x007AFD9C: ('007AFCAC', 'the client world 007AF5B8 (CWorldClient, 0x7E4 bytes) ends at 007AFD9C; 007AFCAC is its rain / snow layer'),
@@ -780,6 +779,9 @@ UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread 
 # constructor call and the atexit (or the one call); the object's range and the exit function's guard byte are in no
 # named range or source, and nothing reads them.
 UNUSED_INITIALISERS = {
+    # C50b2: the camera and the scene renderer are plain globals of ours.
+    0x0040C880: "the camera 0079B2A8 (exit function 0040C8A0): camera_object.cpp's g_camera",
+    0x00500930: "the scene renderer 007AF060 (exit function 00500950): renderer_lifetime.cpp's g_sceneRenderer",
     # C50b1: the worlds are plain globals of ours (GameMain registers EmptyWorlds for the exit order).
     0x00560620: "the client world 007AF5B8 (exit function 00560640): world_construct.cpp's g_clientWorld",
     0x00589BE0: "the server world 007AFF60 (exit function 00589C00): world_construct.cpp's g_serverWorld",
@@ -1166,7 +1168,7 @@ def generate(img):
 # {@n} is the address of the pattern's n-th instruction (a branch inside the function), {@E} of its
 # last. The C++ is the body of ExitFunction's case over the `d.` operations of the initialisers (a guard is
 # d.Once). A function that matches none stops the script: add a pattern or port it
-# by hand, next to the object it destroys (camera_object.cpp's DestroyCamera, ...).
+# by hand, next to the object it destroys (options_construct.cpp's DestroyGameOptions, ...).
 GUARD_TEST = ['test byte ptr [{F}], {BIT}', 'jne {@E}', 'or byte ptr [{F}], {BIT}']
 GUARD_MOV = ['mov cl, byte ptr [{F}]', 'mov al, {BIT}', 'test al, cl', 'jne {@E}', 'or cl, al', 'mov byte ptr [{F}], cl']
 FREE = ['mov eax, dword ptr [eax - 4]', 'push eax', 'call {D}', 'pop ecx', 'ret']

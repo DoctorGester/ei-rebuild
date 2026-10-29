@@ -105,7 +105,7 @@ void Terrain::ChooseDetail(SectorData* sector) {
                             (sector->maxZ + sector->minZ) * 0.5f};
     // (z^2 + y^2) + x^2. The sum is kept unrounded; the passes run on the main thread (24-bit precision),
     // where the helper's stores change nothing.
-    const float distanceSquared = DistanceSquaredZYX(centre + localPosition_, g_camera->localPosition_);
+    const float distanceSquared = DistanceSquaredZYX(centre + localPosition_, g_camera.localPosition_);
     int level = 2;
     EI_NAN_AUDIT(distanceSquared);
     if (distanceSquared < options::g_options->lod1_ * options::g_options->lod1_ && minDetail <= 0) level = 0;

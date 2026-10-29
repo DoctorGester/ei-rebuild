@@ -67,6 +67,7 @@ CWorldClient::CWorldClient() {
 // ---- The two worlds -------------------------------------------------------------------------------
 
 // Constructed by the C++ runtime (the client first, as the original's static initialisers did) and destroyed
-// after the game's exit functions; GameMain empties them at exit before those run (EmptyWorlds, app_main.cpp).
+// after the game's exit functions; GameMain empties them at exit before those run (EmptyWorlds, app_main.cpp), and
+// their destructors rely on that.
 CWorldClient g_clientWorld;
 CWorldServer g_serverWorld;

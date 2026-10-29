@@ -122,7 +122,6 @@ address,size,name,file
 0079B1B8,4,kHeadingOffset,src/game/core_transform_math.cpp
 0079B298,1,kEmptyText,src/game/game_strings.h
 0079B2A4,4,kHalfPi,src/game/camera.h
-0079B2A8,776,g_camera,src/game/camera_object.cpp
 0079B5B8,16,kIdentityRotation,src/game/camera.h
 0079B5C8,12,kZeroVector,src/game/camera.h
 0079B5D8,4,g_gameClient,src/game/net_classes.h
@@ -186,7 +185,6 @@ address,size,name,file
 007AF054,4,g_bottomV,src/game/renderer_strip.cpp
 007AF058,4,g_topV,src/game/renderer_strip.cpp
 007AF05C,4,g_currentU,src/game/renderer_strip.cpp
-007AF060,92,g_sceneRenderer,src/game/renderer_lifetime.cpp
 007AF100,16,kTrackDefaultRotation,src/game/map_object_animation.h
 007AF110,12,kTrackDefaultPosition,src/game/map_object_animation.h
 007AF1C0,16,kIdentityOrientation,src/game/object3d_lifetime.cpp

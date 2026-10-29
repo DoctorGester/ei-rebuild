@@ -365,8 +365,8 @@ void CHudMap::BuildMarkers() {
 
 void CHudMap::UpdateView() {
     if (const CTransformObject* camera = g_clientWorld.camera_) {
-        centreX_ = g_camera->focus_.x;
-        centreY_ = g_camera->focus_.y;
+        centreX_ = g_camera.focus_.x;
+        centreY_ = g_camera.focus_.y;
         Vector3 axis;
         camera->localRotation_.AxisZ(&axis);
         facingX_ = axis.x;
