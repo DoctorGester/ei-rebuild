@@ -28,15 +28,9 @@ struct FogSprite {
     const FogTile* tile;
 };
 
-// The draw's work arrays (function-local statics): the sprites' centres and sizes and their records, bit 0 / bit 1
-// of the guard set once the records / the points are constructed. Exit handlers free the records and the points.
-constinit std::vector<ParticleVertex> g_points = /*007ABA30*/ {};
-void FreePoints() { lib::FreeStorage(g_points); }
-constinit lib::StaticObject<std::vector<FogSprite>> g_sprites = /*007ABA40*/ {};
-void DestroySprites() { g_sprites.Destroy(); }
-std::uint8_t g_workArrayGuards = /*007ABA54*/ {};
-constexpr std::uint8_t kSpritesConstructed = 1;
-constexpr std::uint8_t kPointsConstructed = 2;
+// The draw's work arrays: the sprites' centres and sizes and their records.
+std::vector<ParticleVertex> g_points;
+std::vector<FogSprite> g_sprites;
 
 constexpr int kWorkRecords = 0x1000;      // the arrays' first size
 constexpr unsigned kBoundsCells = 12000;  // only a fog of more cells gets its bounds computed here
@@ -63,24 +57,14 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     if (cells.size() > kBoundsCells && !boundsValid) ComputeBounds();
     if (renderer->pipeline_->ClipTest(&bounds) == kOutOfView) return 1;
 
-    if (!(g_workArrayGuards & kSpritesConstructed)) {
-        g_workArrayGuards |= kSpritesConstructed;
-        g_sprites.Construct();
-        std::atexit(DestroySprites);
-    }
-    if (!(g_workArrayGuards & kPointsConstructed)) {
-        g_workArrayGuards |= kPointsConstructed;
-        std::construct_at(&g_points);
-        std::atexit(FreePoints);
-    }
-    g_sprites->resize(kWorkRecords);
+    g_sprites.resize(kWorkRecords);
     g_points.resize(kWorkRecords);
-    g_sprites->resize(static_cast<int>(cells.size()));
+    g_sprites.resize(static_cast<int>(cells.size()));
     g_points.resize(static_cast<int>(cells.size()));
 
     int remaining = static_cast<int>(cells.size());
     ParticleVertex* point = g_points.data();
-    FogSprite* sprite = g_sprites->data();
+    FogSprite* sprite = g_sprites.data();
     for (auto& node : cells) {
         if (--remaining < 0) break;
         const FogCell& cell = node.second;
@@ -92,7 +76,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
         ++point;
         ++sprite;
     }
-    return renderer->DrawSprites(0, &g_points, &g_sprites.Get());
+    return renderer->DrawSprites(0, &g_points, &g_sprites);
 }
 
 // ---- Rain and snow ----------------------------------------------------------------------------------------

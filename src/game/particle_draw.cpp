@@ -19,11 +19,8 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// The particles' draw order: built empty by a static initialiser, destroyed at exit.
-constinit lib::StaticObject<std::vector<ParticleDepth>> g_drawOrder = /*007A9C50*/ {};
-void DestroyDrawOrder() {
-    g_drawOrder.Destroy();
-}
+// The particles' draw order, reused by every frame.
+std::vector<ParticleDepth> g_drawOrder;
 // The camera's orientation.
 const Quaternion& CameraRotation() { return g_camera->localRotation_; }
 
@@ -35,11 +32,6 @@ bool AttachedToHiddenUnit(const CParticleSource* s) {
 }
 
 } // namespace
-
-void ConstructDrawOrder() {
-    g_drawOrder.Construct();
-    std::atexit(DestroyDrawOrder);
-}
 
 // The attachment point plus the local position, or the local position alone.
 Vector3* CParticleSource::WorldPosition(Vector3* out) {
@@ -64,7 +56,7 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
 // +0x150 == 1. Returns 0 as soon as a source fails to draw. The manager is held (+4) meanwhile.
 int CParticleManager::DrawAll(CSceneRenderer* renderer) {
     ++refCount_;
-    std::vector<ParticleDepth>& order = *g_drawOrder;
+    std::vector<ParticleDepth>& order = g_drawOrder;
     lib::FreeStorage(order);
     Vector3 axis;
     CameraRotation().AxisZ(&axis);

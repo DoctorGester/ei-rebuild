@@ -782,6 +782,11 @@ UNUSED_INITIALISERS = {
     0x005C4460: "the path smoother's node pool 007C3038 (exit function 005C4480): ai_path_smooth.cpp's g_smoothPool",
     0x005C8F90: "the AI events' pool 007C43A8 (exit function 005C8FB0): ai_events.cpp's g_eventPool",
     0x0067E4C0: "the spells' footprint set 007C8478 (exit function 0067E500): ai_footprint.cpp's g_spellFootprint",
+    # C50b: the draw work arrays are plain globals of ours.
+    0x00498910: "the particles' draw order 007A9C50 (exit function 00498930): particle_draw.cpp's g_drawOrder",
+    0x0051CBD0: "the shadow's ground quad 007AF208 (exit function 0051CC00): map_object_shadow.cpp's g_quads",
+    0x0051CDA0: "the shadow's projected points 007AF1F8 (exit function 0051CDD0, guard bit 0 of 007AF1F0): "
+                "map_object_shadow.cpp's g_points",
     # C50b: the frame's draw lists are plain globals of ours (world_client_view.cpp).
     0x0056A4D0: "the draw list 007AF5A8 (exit function 0056A510): world_client_view.cpp's g_visibleBuildings",
     0x0056A520: "the draw list 007AF598 (exit function 0056A560): world_client_view.cpp's g_visibleOther",
@@ -1122,6 +1127,18 @@ RUNTIME_SITES = set()
 # runtime atexit sites never run, like dead code's. begin -> (end, why).
 RETIRED_STATICS = {
     # C50b
+    0x00467590: (0x004679B0, "CLightning::DrawGlow (lightning_draw.cpp) uses plain globals of ours: the original's "
+                             "sprite records 0079C1E0 and points 0079C1D0 (guard bits 0 / 1 of 0079C1F4, destroyed by "
+                             "00467A10 / 004679F0) are never made"),
+    0x004976B0: (0x00497CE0, "CParticleSource::Draw (particle_render.cpp) uses plain globals of ours: the original's "
+                             "sprites 007A9BE0 and vertices 007A9BD0 (guard bits 0 / 1 of 007A9BF4, destroyed by "
+                             "00497D30 / 00497D10) are never made"),
+    0x004E1AB0: (0x004E1C60, "CVisibilityFog::UpdateCells (effects_weather.cpp) lists the dead cells in a local: the "
+                             "original's static array 007ABB58 (guard bit 0 of 007ABB64, freed by 004E1C50) is never "
+                             "made"),
+    0x004E1EB0: (0x004E2290, "CVisibilityFog::Draw (effects_weather_draw.cpp) uses plain globals of ours: the "
+                             "original's sprites 007ABA40 and points 007ABA30 (guard bits 0 / 1 of 007ABA54, destroyed "
+                             "by 004E2280 / 004E2260) are never made"),
     0x0056C750: (0x0056CE40, "CWorldClient::ProjectDecal (world_client_decals.cpp) uses plain globals of ours: the "
                              "original's decal builder 007AF488 and part points 007AF478 (guard bits 0 / 1 of 007AF504, "
                              "the points freed by 0056CE10) are never made"),

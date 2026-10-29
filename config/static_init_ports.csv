@@ -38,13 +38,7 @@ address,name,file
 004630F0,ConstructLeverTable,src/game/lever_table.cpp
 00463110,DestroyLeverTable,src/game/lever_table.cpp
 004632A0,LeverRecordTable::LeverRecordTable,src/game/lever_table_load.cpp
-004679F0,FreeGlowPoints,src/game/lightning_draw.cpp
-00467A10,DestroySprites,src/game/lightning_draw.cpp
 0047C330,net::CleanUpWinsock,src/game/net_socket_driver.cpp
-00497D10,FreeVertices,src/game/particle_render.cpp
-00497D30,DestroySprites,src/game/particle_render.cpp
-00498910,ConstructDrawOrder,src/game/particle_draw.cpp
-00498930,DestroyDrawOrder,src/game/particle_draw.cpp
 0049B490,FreeLineVertices,src/game/renderer_lines.cpp
 0049B6B0,ConstructLineOutcodes,src/game/renderer_lines.cpp
 0049B6D0,DestroyLineOutcodes,src/game/renderer_lines.cpp
@@ -72,9 +66,6 @@ address,name,file
 004DDD4E,SysInfoStaticRegisterExit,src/game/sys_info.cpp
 004DDD60,SysInfoAtExit,src/game/sys_info.cpp
 004DE855,SysInfoStaticGuard,src/game/sys_info.cpp
-004E1C50,DestroyDeadCells,src/game/effects_weather.cpp
-004E2260,FreePoints,src/game/effects_weather_draw.cpp
-004E2280,DestroySprites,src/game/effects_weather_draw.cpp
 004E3980,WeatherNoiseCurve::Build,src/game/weather_noise.cpp
 004E3B20,BuildWeatherNoise,src/game/weather_noise.cpp
 004E5C70,devicebuffers::FreeOutcodes,src/game/device_buffers.cpp
@@ -101,8 +92,6 @@ address,name,file
 005039F0,DestroyOutcodes,src/game/renderer_sprites.cpp
 00503A00,FreeCorners,src/game/renderer_sprites.cpp
 00503A20,FreeUnused,src/game/renderer_sprites.cpp
-0051CC00,FreeQuads,src/game/map_object_shadow.cpp
-0051CDD0,FreePoints,src/game/map_object_shadow.cpp
 0051FAF0,unitdb::ConstructSkillDatabaseGlobal,src/game/unit_db_destroy.cpp
 0051FB10,SkillDatabase::Construct,src/game/database_construct.cpp
 0051FB40,unitdb::DestroySkillDatabaseGlobal,src/game/unit_db_destroy.cpp

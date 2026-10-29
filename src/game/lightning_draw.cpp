@@ -25,20 +25,16 @@
 
 namespace {
 
-// The glow's static arrays: the sprite records (zero filled) and the 16-byte points, each built on the first draw
-// and destroyed by the exit function it registers.
+// The glow's work arrays: the sprite records (zero filled) and the 16-byte points.
 
 struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     std::uint32_t colour;
     const float* rect;
 };
-constinit lib::StaticObject<std::vector<SpriteRecord>> g_sprites = /*0079C1E0*/ {};
-void DestroySprites() { g_sprites.Destroy(); }
-constinit std::vector<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
-void FreeGlowPoints() { lib::FreeStorage(g_glowPoints); }
-std::uint8_t g_glowGuards = /*0079C1F4*/ {};
+std::vector<SpriteRecord> g_sprites;
+std::vector<LightningPoint> g_glowPoints;
 
-void SizeSprites() { g_sprites->resize(8); }
+void SizeSprites() { g_sprites.resize(8); }
 void SizePoints() { g_glowPoints.resize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
@@ -51,17 +47,6 @@ float RandomOffset() {
 // `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
 // used (the frame comes from the position and the world's counter).
 void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, float size) {
-    if (!(g_glowGuards & 1)) {
-        g_glowGuards |= 1;
-        g_sprites.Construct();
-        std::atexit(DestroySprites);
-    }
-    if (!(g_glowGuards & 2)) {
-        g_glowGuards |= 2;
-        std::vector<LightningPoint>& p = g_glowPoints;
-        std::construct_at(&p);
-        std::atexit(FreeGlowPoints);
-    }
     EnsureTextureLoaded(glowTexture_);
     if (!device->SetTexture(0, glowTexture_)) return;
 
@@ -94,12 +79,12 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, float
         p.y = position->y + along.y;
         p.z = position->z + along.z;
         p.w = static_cast<float>(std::sqrt(1.0f - t * t) * size);
-        SpriteRecord& s = (*g_sprites)[j];
+        SpriteRecord& s = g_sprites[j];
         s.colour = 0xA0FFFFFFu;
         s.rect = frames[frame % 15];
         frame += 2;
     }
-    device->DrawSprites(0, &g_glowPoints, &g_sprites.Get());
+    device->DrawSprites(0, &g_glowPoints, &g_sprites);
 }
 
 // 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
