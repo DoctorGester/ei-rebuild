@@ -1,11 +1,11 @@
 // Meshes: each pass of an old-path device mesh draw becomes a batch with the old device's state of that pass.
 // See docs/notes/renderer.md, "The renderer's source files".
+#include "../game/model.h"   // CTransformPipeline
+#include "../game/texture.h"
+#include "../hook/log.h"
 #include "render.h"
 #include "render_internal.h"
 #include "render_state.h"
-
-#include "../game/texture.h"
-#include "../hook/log.h"
 
 #include <cstring>
 #include <unordered_map>
@@ -540,14 +540,11 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
         g_pending.mesh.normals = nullptr;
         g_pending.mesh.words = nullptr;
     }
-    // The old path fogs the projected vertices by distance (the transform object's range start and 255 / length).
+    // The distance fog's range: the pipeline's (its start and 255 / length).
     g_pending.distanceFog = mesh.distanceFog;
-    const char* pipeline =
-        reinterpret_cast<const char*>(reinterpret_cast<const CTextureDevice*>(g_pending.device)->pipeline_);
-    const char* transform = pipeline ? *reinterpret_cast<char* const*>(pipeline + 0xC) : nullptr;
-    if (transform) {
-        std::memcpy(&g_pending.fogNear, transform + 0x34, 4);
-        std::memcpy(&g_pending.fogScale, transform + 0x3C, 4);
+    if (const CTransformPipeline* pipeline = reinterpret_cast<const CTextureDevice*>(g_pending.device)->pipeline_) {
+        g_pending.fogNear = pipeline->fogStart;
+        g_pending.fogScale = pipeline->fogScale;
     } else {
         g_pending.distanceFog = false;
     }

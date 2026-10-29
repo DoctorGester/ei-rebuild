@@ -5,6 +5,7 @@
 // docs/notes/core.md.
 
 #include "lib/bit_flags.h"
+#include "lib/float_select.h"   // SignBit
 
 #include <cstddef>
 #include <cstdint>
@@ -31,6 +32,35 @@ enum class ClipOutcode : std::uint32_t {
     All = XLow | XHigh | YLow | YHigh | ZNear | ZFar,
 };
 template <> inline constexpr bool lib::kBitFlags<ClipOutcode> = true;
+
+// The outcode of the clip-space point (x, y, z, w): the "< 0" tests are sign tests (-0 is outside), the others
+// count an unordered compare as outside.
+inline std::uint32_t ClipCodeOf(float x, float y, float z, float w) {
+    const float twoW = w + w;
+    const float xw = x + w;
+    const float yw = y + w;
+    std::uint32_t code = 0;
+    if (SignBit(xw)) code |= static_cast<std::uint32_t>(ClipOutcode::XLow);
+    if (!(twoW >= xw)) code |= static_cast<std::uint32_t>(ClipOutcode::XHigh);
+    if (SignBit(yw)) code |= static_cast<std::uint32_t>(ClipOutcode::YLow);
+    if (!(twoW >= yw)) code |= static_cast<std::uint32_t>(ClipOutcode::YHigh);
+    if (SignBit(z)) code |= static_cast<std::uint32_t>(ClipOutcode::ZNear);
+    if (!(w >= z)) code |= static_cast<std::uint32_t>(ClipOutcode::ZFar);
+    return code;
+}
+
+// The verdict on a batch of points from their outcodes: 2 when every point is outside one plane (also for no
+// points), 0 when none is outside any, else 1 (the batch crosses the view's edges).
+struct ClipVerdict {
+    std::uint32_t all = static_cast<std::uint32_t>(ClipOutcode::All);
+    std::uint32_t any = 0;
+
+    void Add(std::uint32_t code) {
+        all &= code;
+        any |= code;
+    }
+    int Result() const { return all != 0 ? 2 : any != 0 ? 1 : 0; }
+};
 
 namespace clip {
 

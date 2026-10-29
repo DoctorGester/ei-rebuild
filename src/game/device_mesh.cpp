@@ -1,11 +1,12 @@
 // The Direct3D device's indexed mesh draws, with one texture and with two: the mesh's positions are projected by
-// the pipeline's transform object for the visibility verdict and the screen rectangle picking reads. The new
+// the pipeline for the visibility verdict and the screen rectangle picking reads. The new
 // renderer gets the mesh in model space once it is visible and clips it. See docs/notes/models.md ("Renderer").
 #include "device_buffers.h"
 #include "figure_mesh.h"
 #include "model.h"
 #include "render/render.h"
 #include "texture.h"
+
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -109,17 +110,18 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     render::BeginMesh(device, m);
 }
 
-// Returns the transform's verdict: 2 nothing on screen, 1 crossing the edges, 0 on screen (drawn: 1).
+// Returns the projection's verdict: 2 nothing on screen, 1 crossing the edges, 0 on screen (drawn: 1). Without flag
+// 2 the mesh is projected with the screen stack and counts as on screen.
 int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
-    ITransformPipeline* transform = device->pipeline_->transform_;
+    const CTransformPipeline* pipeline = device->pipeline_;
     g_projected.resize(a.blocks * 4);
-    int visibility;
+    int visibility = 0;
     if (a.flags & 2) {
         g_outcodes.resize(a.blocks * 4);
-        visibility = transform->ProjectClipped(device->pipeline_->Top(kClipStack), a.positions, g_projected.data(),
-                                               g_outcodes.data(), a.blocks);
+        visibility = pipeline->ProjectClipped(*pipeline->Top(kClipStack), a.positions, g_projected.data(),
+                                              g_outcodes.data(), a.blocks);
     } else {
-        visibility = transform->Project(device->pipeline_->Top(kScreenStack), a.positions, g_projected.data(), a.blocks);
+        CTransformPipeline::Project(*pipeline->Top(kScreenStack), a.positions, g_projected.data(), a.blocks);
     }
     if (visibility == 2) return 2;
     if (a.flags & 4) OverrideColours(device, a);

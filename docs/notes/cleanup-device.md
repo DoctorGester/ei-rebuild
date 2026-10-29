@@ -6,10 +6,8 @@ files.
 
 ## Declarations
 
-- `ITransformPipeline` (3DfpFPU's transform object) lives in `model.h`, before `CTransformPipeline`. Named
-  slots: 8 `ProjectPointsClipped`, 9 `ProjectClipped`, 13 `ProjectPoints`, 14 `Project` (returns the
-  outcode union; 004E9010 reads EAX), 24 `ProjectSprites`, 34 `ToScreenClipped`, 35 `FogVertices`,
-  37 `ClipTriangles` (no caller since R30f: `Unused37`). The others are `UnknownNN`.
+- 3DfpFPU's transform object (`ITransformPipeline`) is gone (R31): `CTransformPipeline`'s own members in
+  projection.cpp project, clip-test, map to the screen and fog (renderer.md section 10).
 - `CDeviceMaterial` (`device_material.h`, 0x24 bytes): reference count, blend, source / dest blend, the
   render preset and the `MaterialStage` list (`texCoordIndex` was `unknown_00`). `WoundsMaterial`
   (map_object_shadow.h) derives from it; `CTextureDevice::material_` points at one. device_draw.cpp's

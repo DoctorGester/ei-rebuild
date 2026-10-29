@@ -2,9 +2,11 @@
 // the pipeline (the visibility verdict); the renderer gets one colour / specular pair, each vertex's texture
 // coordinate and a z scale, and clips what crosses the screen edges. See docs/notes/models.md ("Mesh draws").
 #include "device_buffers.h"
+#include "figure_mesh.h"   // VertexPacket
 #include "model.h"
 #include "render/render.h"
 #include "texture.h"
+
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -19,10 +21,11 @@ constexpr int kScreenStack = 1;
 
 // The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
 // (kScreenStack); each pass the indexed draw then makes hands over the device's state.
-void HandOver(CTextureDevice* device, const void* positions, const void* uvs, int count, const std::uint16_t* indices,
-              int indexCount, const std::uint32_t* colours, const float* zScale, bool clipped) {
+void HandOver(CTextureDevice* device, const VertexPacket* positions, const void* uvs, int count,
+              const std::uint16_t* indices, int indexCount, const std::uint32_t* colours, const float* zScale,
+              bool clipped) {
     render::MeshDraw m{};
-    m.positions = static_cast<const float*>(positions);
+    m.positions = &positions->block[0][0];
     m.positionCount = count;
     m.colours = &colours[0];
     m.speculars = &colours[1];
@@ -40,14 +43,15 @@ void HandOver(CTextureDevice* device, const void* positions, const void* uvs, in
     render::BeginMesh(device, m);
 }
 
-int DrawFlat(CTextureDevice* device, const void* positions, const void* uvs, int blocks, const std::uint16_t* indices,
-             int indexCount, std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale) {
+int DrawFlat(CTextureDevice* device, const VertexPacket* positions, const void* uvs, int blocks,
+             const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
+             const ClipBounds* bounds, float zScale) {
     CTransformPipeline* pipeline = device->pipeline_;
     int count = blocks * 4;
     std::uint32_t colours[2] = {colour, specular};
     g_projected.resize(count);
     g_outcodes.resize(count);
-    // The blocks projected with outcodes; 0 on screen, 1 crossing, 2 outside.
+    // The verdict: 0 on screen, 1 crossing, 2 outside.
     int visibility = pipeline->ProjectBlocks(positions, g_projected.data(), g_outcodes.data(), blocks, bounds);
     if (visibility == 2) return 2;
     HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
@@ -61,9 +65,9 @@ int DrawFlat(CTextureDevice* device, const void* positions, const void* uvs, int
 // `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex, `bounds` passed
 // to the projection (null: crossing), `zScale` multiplies z unless it compares equal to 1. Returns 2 when nothing is
 // visible, else 0.
-int CTextureDevice::DrawFlatBlocks(const void* positions, const void* uvs, int blocks,
-                              const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
-                              const ClipBounds* bounds, float zScale) {
+int CTextureDevice::DrawFlatBlocks(const VertexPacket* positions, const void* uvs, int blocks,
+                                   const std::uint16_t* indices, int indexCount, std::uint32_t colour,
+                                   std::uint32_t specular, const ClipBounds* bounds, float zScale) {
     render::BeginFlatDrawTime(blocks * 4);
     int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, colour, specular, bounds, zScale);
     render::EndMesh();

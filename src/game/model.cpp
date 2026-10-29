@@ -2,17 +2,16 @@
 // test, transform matrices, triangle index buffers and the link-file loader's archive list.
 #include "model.h"
 
-#include "clip.h"   // ClipOutcode
+#include "clip.h"   // ClipOutcode, ClipCodeOf
 #include "core_maths.h"
-#include "link_figure.h"   // ITransformPipeline
 #include "resource.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/float_select.h"
 
-#include <bit>
+#include "ei/x87.h"
+
 #include <cstring>
+#include <windows.h>   // RECT (ViewportMatrix)
 
 namespace {
 
@@ -40,23 +39,12 @@ std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
     return flags;
 }
 
-// Clip code of one corner p under matrix m (ClipOutcode; the "< 0" tests are sign tests): M * (p, 1), rows x, y and
-// w summed ZXY, z ZYX, each rounded to float. The corner coordinates are kept on the FPU stack (the same at the main
-// thread's 24-bit precision).
+// Clip code of one corner p under matrix m (ClipCodeOf): M * (p, 1), rows x, y and w summed ZXY, z ZYX, each rounded
+// to float. The corner coordinates are kept on the FPU stack (the same at the main thread's 24-bit precision).
 static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
     Vector3 c = TransformColumn<Sum3::ZXY, Sum3::ZXY, Sum3::ZYX>(m, p);
     float cw = TransformColumnW<Sum3::ZXY>(m, p);
-    float w2 = static_cast<float>(cw + cw);
-    float xw = static_cast<float>(c.x + cw);
-    float yw = static_cast<float>(c.y + cw);
-    std::uint32_t code = 0;
-    if (SignBit(xw)) code |= ClipOutcode::XLow;
-    if (!(w2 >= xw)) code |= ClipOutcode::XHigh;
-    if (SignBit(yw)) code |= ClipOutcode::YLow;
-    if (!(w2 >= yw)) code |= ClipOutcode::YHigh;
-    if (SignBit(c.z)) code |= ClipOutcode::ZNear;
-    if (!(cw >= c.z)) code |= ClipOutcode::ZFar;
-    return code;
+    return ClipCodeOf(c.x, c.y, c.z, cw);
 }
 
 int CTransformPipeline::ClipTest(const ClipBounds* b) const {
@@ -102,26 +90,11 @@ int CTransformPipeline::ClipTest(const ClipBounds* b) const {
     return 1;
 }
 
-int CTransformPipeline::ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks,
-                                      const ClipBounds* bounds) {
+int CTransformPipeline::ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
+                                      int blocks, const ClipBounds* bounds) const {
     const int where = bounds ? ClipTest(bounds) : 1;
-    if (where == 0) {
-        transform_->Project(Top(1), positions, projected, blocks);
-        return 0;
-    }
-    if (where == 1) return transform_->ProjectClipped(Top(kClipStack), positions, projected, outcodes, blocks);
-    return 2;
-}
-
-int CTransformPipeline::ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count,
-                                       const ClipBounds* bounds) {
-    const int where = bounds ? ClipTest(bounds) : 1;
-    if (where == 0) {
-        transform_->ProjectTerrain(Top(kClipStack), vertices, projected, count);
-        return 0;
-    }
-    if (where == 1) return transform_->ProjectTerrainClipped(Top(kClipStack), vertices, projected, outcodes, count);
-    return 2;
+    if (where == 1) return ProjectClipped(*Top(kClipStack), positions, projected, outcodes, blocks);
+    return where;
 }
 
 Matrix4* ViewportMatrix(Matrix4* out, const tagRECT* rect) {

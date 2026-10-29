@@ -1,28 +1,21 @@
 // Figure mesh loaders: the bounding volume and the FIG mesh data of a figure part, morphed by the figure's
 // three morph coefficients. See docs/notes/world.md ("Figure meshes").
-#include "ei/x87.h"
-#include "core_transform.h"
 #include "figure_mesh.h"
 
 #include "core_maths.h"
-
+#include "core_transform.h"
 #include "link_figure.h"
-
 #include "model.h"
-#include "game_singletons.h"
 #include "render/render.h"
+
 #include "lib/bytes.h"
+
+#include "ei/x87.h"
 
 #include <cstring>
 #include <vector>
 
 namespace {
-
-// The scene renderer's transform object (in 3DfpFPU.dll, a global): fits `bounds` to the vertices.
-void FitBounds(ClipBounds* bounds, VertexPacket* vertices, int count) {
-    auto* renderer = &g_sceneRenderer;
-    renderer->pipeline_->transform_->FitBounds(bounds, vertices, count);
-}
 
 // The floats the file's cursor stands on (read in place; the Morph functions only read them).
 const float* FloatsAt(const char* cursor) { return reinterpret_cast<const float*>(cursor); }
@@ -284,7 +277,7 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
         }
         for (int k = 3; k >= 0; --k) v.block[3][k] = 1.0f;
     }
-    if (!mesh->vertices_.empty()) FitBounds(&mesh->box_.bounds, mesh->vertices_.data(), std::ssize(mesh->vertices_));
+    if (!mesh->vertices_.empty()) mesh->box_.bounds.Fit(mesh->vertices_.data(), std::ssize(mesh->vertices_));
 
     count = ReadCount(cursor);
     mesh->normals_.resize(count);
@@ -429,7 +422,7 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
 
     vertices_.resize(header.vertexCount);
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
-    if (!vertices_.empty()) FitBounds(&box_.bounds, vertices_.data(), std::ssize(vertices_));
+    if (!vertices_.empty()) box_.bounds.Fit(vertices_.data(), std::ssize(vertices_));
 
     normals_.resize(header.normalCount);
     colorsA_.resize(header.normalCount * 4);
@@ -472,7 +465,7 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
 
     vertices_.resize(header.vertexCount);
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
-    if (!vertices_.empty()) FitBounds(&box_.bounds, vertices_.data(), std::ssize(vertices_));
+    if (!vertices_.empty()) box_.bounds.Fit(vertices_.data(), std::ssize(vertices_));
 
     normals_.resize(header.normalCount);
     colorsA_.resize(header.normalCount * 4);
@@ -589,7 +582,7 @@ void CPlainFigureMesh::MirrorX() {
 }
 
 void CFigureMesh::FitVertexBounds() {
-    if (!vertices_.empty()) FitBounds(&box_.bounds, vertices_.data(), std::ssize(vertices_));
+    if (!vertices_.empty()) box_.bounds.Fit(vertices_.data(), std::ssize(vertices_));
 }
 
 void CPlainFigureMesh::MirrorY() {
@@ -629,7 +622,7 @@ void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
 
 void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
 
-int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds) {
+int CFigureMesh::DrawOffset(const Matrix4& matrix, Vector2* points, float* bounds) {
     const VertexPacket* vertices = buffers_.vertices;
     if (!offsets_.empty()) {
         const VertexPacket* source = buffers_.vertices;
@@ -653,7 +646,6 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
         }
         vertices = moved.data();
     }
-    pipeline->transform_->ProjectFlat(matrix, vertices, points, buffers_.vertexCount,
-                                      bounds);
+    ProjectFlat(matrix, vertices, points, buffers_.vertexCount, bounds);
     return buffers_.vertexCount << 2;
 }

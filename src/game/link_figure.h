@@ -137,7 +137,7 @@ public:
                                  std::uint32_t u, std::uint32_t v) = 0;
     // The shadow of part `name`: its points projected with `matrix` (the part's per-vertex offsets added)
     // into `points`, growing `bounds`. Returns the point count (0 when there is no such part).
-    virtual int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,
+    virtual int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const Matrix4& matrix,
                             Vector2* points, float* bounds) = 0;
 
     void AddRef() { ++refCount_; }
@@ -186,8 +186,8 @@ public:
     int DrawPartTextured(const std::string* name, int flags, Surface* first, Surface* second,
                          std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                          std::uint32_t u, std::uint32_t v) override;
-    int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,
-                    Vector2* points, float* bounds) override;
+    int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const Matrix4& matrix, Vector2* points,
+                    float* bounds) override;
 
     // An estimate of the mesh's bytes: 2 * (indices + 3 * corners + 2 * (words + 0x2C
     // + 2 * (texture coordinates + 8 * (vertices + normals) + 6 * parts))), from the element counts.
@@ -217,7 +217,6 @@ public:
     std::vector<std::uint16_t> indices_;
     std::map<std::string, LinkPartRanges> ranges_;
     CLinkFigureLoader* loader_;
-    ITransformPipeline* pipeline_;
 };
 // corners_ is indexed in whole triangles: one element is one 6-byte MeshCorner.
 static_assert(sizeof(MeshCorner) == 6);

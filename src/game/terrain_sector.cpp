@@ -3,15 +3,17 @@
 // Floating point: values kept on the FPU stack are `double` here; every store to a float is a
 // static_cast<float>.
 #include "terrain_sector.h"
-#include "terrain.h"
+
 #include "model.h"
 #include "random.h"
 #include "render/render.h"
+#include "terrain.h"
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -266,11 +268,6 @@ void ComputeBounds(SectorData& s) {
     }
 }
 
-// The vertices a projection takes at most: a quarter's 17 x 17 of both layers, rounded up.
-constexpr int kProjectionVertices = 0x330;
-
-constexpr int kQuarterCells = 16;
-
 } // namespace
 
 // Loading
@@ -428,49 +425,6 @@ void SectorData::Ensure(SectorStage wanted) {
     if (wanted >= SectorStage::Lit && !lib::Has(built, SectorStage::Lit)) Light(false, 0, 0, kLastVertex, kLastVertex);
 }
 
-// Projection
-
 SectorData::~SectorData() { Clear(); }
-
-void SectorData::Project(CTransformPipeline* pipeline) {
-    // The corners in, the projected corners and their outcodes out.
-    static std::vector<Vector4> input(kProjectionVertices);
-    static std::vector<Vector4> output(kProjectionVertices);
-    static std::vector<std::uint8_t> outcodes(kProjectionVertices);
-    const int columnStep = detail >= 1 ? 2 : 1;
-    const int rowStep = detail >= 2 ? 2 : 1;
-    const int layers = hasWater ? 2 : 1;
-    for (int q = 0; q < 4; ++q) {
-        if (quarterMode[q] == kCulled) continue;
-        const int corner = ((q / 2) * kSectorRow + q % 2) * kQuarterCells;
-        Vector4* in = input.data();
-        for (int layer = 0; layer < layers; ++layer)
-            for (int row = 0; row <= kQuarterCells; row += rowStep)
-                for (int column = 0; column <= kQuarterCells; column += columnStep) {
-                    const SectorPosition& p = vertices[layer * kSectorVertices + corner + row * kSectorRow + column];
-                    in->x = p.x;
-                    in->y = p.y;
-                    in->z = p.z;
-                    ++in;
-                }
-        const int count = static_cast<int>(in - input.data());
-        const int mode = pipeline->ProjectTerrain(input.data(), output.data(), outcodes.data(), count, &quarters[q]);
-        quarterMode[q] = mode;
-        if (mode == -1 || mode == kCulled) {
-            quarterMode[q] = kCulled;
-            continue;
-        }
-        const Vector4* out = output.data();
-        const std::uint8_t* outcode = outcodes.data();
-        for (int layer = 0; layer < layers; ++layer)
-            for (int row = 0; row <= kQuarterCells; row += rowStep)
-                for (int column = 0; column <= kQuarterCells; column += columnStep) {
-                    SectorVertex& record = records[layer * kSectorVertices + corner + row * kSectorRow + column];
-                    record.projected = *out;
-                    record.outcode = mode == kCrossing ? *outcode++ : 0;
-                    ++out;
-                }
-    }
-}
 
 } // namespace terrain

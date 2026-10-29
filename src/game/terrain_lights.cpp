@@ -4,9 +4,9 @@
 // 16-byte LightRef nodes); the lighting (SectorData::Light, terrain_lighting.cpp) adds those lights to the
 // vertex colours. Adding, removing or moving a light updates the lists of the area's built sectors and
 // relights its lit ones; a sector built later picks up the lights covering it (LightSector).
+#include "spell.h"
 #include "terrain.h"
 #include "terrain_sector.h"
-#include "spell.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"
@@ -152,10 +152,9 @@ void SectorVertex::ReleaseLights() {
 }
 
 SectorVertex::SectorVertex(SectorVertex&& from) noexcept
-    : projected(from.projected), outcode(from.outcode), colour(from.colour), specular(from.specular),
-      position(from.position), waterMaterial(from.waterMaterial), depth(from.depth), normal(from.normal),
-      lit(from.lit), materialColour(from.materialColour), materialByte(from.materialByte),
-      lights(std::exchange(from.lights, nullptr)) {}
+    : colour(from.colour), specular(from.specular), position(from.position), waterMaterial(from.waterMaterial),
+      depth(from.depth), normal(from.normal), lit(from.lit), materialColour(from.materialColour),
+      materialByte(from.materialByte), lights(std::exchange(from.lights, nullptr)) {}
 
 void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area, bool remove) {
     VertexRange range = RangeIn(area, sector->sx, sector->sy);

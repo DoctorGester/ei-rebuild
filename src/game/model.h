@@ -5,8 +5,8 @@
 
 #include "chunk_archive.h"
 #include "maths.h"
-#include "renderer_base.h"
 #include "render/render_state.h"
+#include "renderer_base.h"
 #include "script.h"   // ScriptStream
 #include "water_tweens.h"
 
@@ -43,6 +43,8 @@ enum class OccluderKind : std::int8_t;   // sector_map.h
 inline OccluderKind BoundsOccluderKind(std::uint32_t flags) { return static_cast<OccluderKind>((flags >> 3) & 7); }
 inline std::int8_t BoundsTransparency(std::uint32_t flags) { return static_cast<std::int8_t>((flags >> 6) & 0xF); }
 
+struct VertexPacket;
+
 // Bounding volume of a figure part, tested against the view frustum.
 struct ClipBounds {
     std::uint32_t flags;   // BoundsFlag
@@ -53,6 +55,9 @@ struct ClipBounds {
 
     // Sets the box and its flag; returns the new flags.
     std::uint32_t SetBox(const float* min, const float* max);
+    // Fits the box to the points of `blocks` packets of four (the centre midway between their extremes, the box
+    // around it) and the sphere around the box (its half diagonal), and sets both flags.
+    void Fit(const VertexPacket* packets, int blocks);
 };
 
 // A box of an object's model that blocks the AI map: the part's bounds with the part's position when it was
@@ -71,87 +76,24 @@ struct MatrixStack {
     int count = 0;          // the top is matrices[count - 1]
 };
 
-struct VertexPacket;
 struct TLVertex;
+struct LightningPoint;
 class CLight;
 
-// The transform object of 3DfpFPU.dll (GetTLPipeline; CTransformPipeline::transform_), as far as
-// the code calls it.
-class ITransformPipeline {
-public:
-    virtual void Unused0();
-    virtual void SetViewportSize(float width, float height);
-    // The sun for the next LightMesh (its localDirection_).
-    virtual void AddSun(CLight* sun);
-    virtual void SetAmbient(float r, float g, float b);
-    virtual void SetProjection(float* transposed);
-    // The depth range (the options' fog start and far clip distances).
-    virtual void SetDepthRange(float first, float second);
-    virtual void Unused6();
-    // Fits `bounds` around `count` vertex packets.
-    virtual void FitBounds(ClipBounds* bounds, const VertexPacket* vertices, int count);
-    // `count` points (16 bytes each: x, y, z and one more) projected with `matrix` into
-    // `projected` (x, y, z, w), a flag byte per point set when it is off screen; 2 when every point
-    // is, else 0 or 1 (the ribbon draw).
-    virtual int ProjectPointsClipped(const Matrix4* matrix, const void* points, void* projected, std::uint8_t* flags,
-                                     int count);
-    // Projects `blocks` blocks of four positions with `matrix` into `projected`, writing their
-    // clip outcodes; the result is the caller's (on screen / crossing / outside).
-    virtual int ProjectClipped(const Matrix4* matrix, const void* positions, void* projected, void* outcodes,
-                               int blocks);
-    virtual void Unused10();
-    virtual void Unused11();
-    virtual void Unused12();
-    // The same without clipping (the ribbon draw's mode 0).
-    virtual void ProjectPoints(const Matrix4* matrix, const void* points, void* projected, int count);
-    // The same without clipping (every block on screen); the result as the clipping one's.
-    virtual int Project(const Matrix4* matrix, const void* positions, void* projected, int blocks);
-    virtual void Unused15();
-    virtual void Unused16();
-    virtual void Unused17();
-    // The same for the terrain's vertices.
-    virtual int ProjectTerrainClipped(const Matrix4* matrix, const void* vertices, void* projected, void* outcodes,
-                                      int count);
-    virtual void ProjectTerrain(const Matrix4* matrix, const void* vertices, void* projected, int count);
-    virtual void Unused20();
-    virtual void Unused21();
-    virtual void Unused22();
-    virtual void Unused23();
-    // `count` screen-facing sprites (`points`: centre x, y, z and size each) placed with the transposed view
-    // matrix as four TL vertices each into `corners` (positions only), with an outcode byte per corner: 0 all
-    // on screen, 1 some off screen, else none.
-    virtual int ProjectSprites(const void* transposedView, const void* points, TLVertex* corners,
-                               std::uint8_t* outcodes, int count);
-    virtual void Unused25();
-    // The `blocks` packets of four positions times the (transposed) matrix, as points (x, y, z, w) into `out`.
-    virtual void TransformPoints(const Matrix4* transposed, const VertexPacket* vertices, Vector4* out, int blocks);
-    virtual void Unused27();
-    virtual void Unused28();
-    // The `blocks` packets projected with `matrix` into `points` (x, y per vertex), `bounds` (min x, min y,
-    // max x, max y) grown around them.
-    virtual void ProjectFlat(const float* matrix, const VertexPacket* vertices, Vector2* points, int blocks,
-                             float* bounds);
-    virtual void Unused30();
-    virtual void Unused31();
-    // `count` projected vertices (x, y, z, w in the first 16 bytes) to the screen: 1 / w kept as rhw, x and y
-    // scaled to the viewport, z divided.
-    virtual void ToScreen(TLVertex* vertices, int count);
-    virtual void Unused33();
-    // The same, a vertex with w 0 taking 1000000 as its 1 / w.
-    virtual void ToScreenClipped(TLVertex* vertices, int count);
-    // The distance fog of `count` screen vertices: the specular's alpha lowered to the depth's fog factor.
-    virtual void FogVertices(TLVertex* vertices, int count);
-    virtual void Unused36();
-    virtual void Unused37();
-    virtual void Unused38();
-    virtual void Unused39();
-    // Lights a figure mesh: its vertex packets and normals, the colours written (one per normal), its words,
-    // the lights (their localPosition_, colours set for the material) and the material's light vector.
-    virtual void LightMesh(const void* vertices, const void* normals, std::uint32_t* colours, const void* words,
-                           int wordCount, CLight** lights, int lightCount, const std::uint32_t* vector);
+// A screen-facing sprite's centre and size (CSceneRenderer::DrawSprites' points).
+struct SpritePoint {
+    float x, y, z, size;
 };
 
-// The transform pipeline of the 3D library: the matrix stacks and 3DfpFPU's transform object.
+// `m` times the point (x, y, z, 1), each row's sum adding the translation first
+// (((x m[4i] + m[4i + 3]) + y m[4i + 1]) + z m[4i + 2]): the projections' clip space.
+Vector4 ToClip(const Matrix4& m, float x, float y, float z);
+// The points of `blocks` packets of four projected with `m` into `points` (x, y each; the translation added
+// last), `bounds` (min x, min y, max x, max y) grown around them (the shadows' projection).
+void ProjectFlat(const Matrix4& m, const VertexPacket* positions, Vector2* points, int blocks, float* bounds);
+
+// The transform pipeline of the 3D library: the matrix stacks, and the projections of points to clip space and
+// to the screen, with the viewport and the fog's depth range they map with (docs/notes/renderer.md, section 10).
 class CTransformPipeline final : public CRendererBase {
 public:
     // Stack 2 holds the matrix ClipTest projects with; 14 the decal projector's platform objects
@@ -169,15 +111,10 @@ public:
     // Pushes `m` onto stack `index`: an empty stack gets `m` itself, otherwise the new top is the old top
     // times `m` (no capacity check).
     void PushMatrix(const float* m, int index);
-    // Projects `blocks` blocks of four positions as ClipTest classifies `bounds` (null: crossing): on screen
-    // with stack 1's top (0), crossing with stack 2's (ProjectClipped's result), else nothing (2).
-    int ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks, const ClipBounds* bounds);
-    // The same for terrain vertices, both with stack 2.
-    int ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count, const ClipBounds* bounds);
-    // Loads 3DfpFPU.dll from `folder` and takes its transform object (throws without either); also the
-    // processor's CPUID function 1 into the globals.
-    explicit CTransformPipeline(const char* folder);
-    ~CTransformPipeline() override;
+    // The verdict on `blocks` packets of four positions as ClipTest classifies `bounds` (null: crossing): 0 on
+    // screen, 2 outside, and when crossing ProjectClipped's with stack 2's top (writing `projected` and `outcodes`).
+    int ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes, int blocks,
+                      const ClipBounds* bounds) const;
     // PushMatrix as the draw code inlines it: the new top by Matrix4::Multiply, whose elements sum in
     // another order.
     void PushMatrixProduct(const Matrix4& m, int index) {
@@ -196,13 +133,44 @@ public:
         if (stacks_[index].count != 0) --stacks_[index].count;
     }
 
+    // The viewport the projections map clip space to: the screen's size.
+    void SetViewportSize(float width, float height);
+    // The distance fog's depth range: where it starts and where it is full.
+    void SetDepthRange(float start, float end);
+
+    // The positions of `blocks` packets of four projected with `m` (a screen matrix: stack 1's top) into
+    // `projected`: x, y and z divided by w, and 1 / w (each row's sum adding the translation last).
+    static void Project(const Matrix4& m, const VertexPacket* positions, Vector4* projected, int blocks);
+    // The positions of `blocks` packets of four to clip space with `m` (ToClip) into `projected`, an outcode
+    // each; returns the verdict (ClipVerdict). On screen (0) they are taken to the screen (ToScreen).
+    int ProjectClipped(const Matrix4& m, const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
+                       int blocks) const;
+    // The same for `count` ribbon points: Project's division without clipping (with ToClip's sums), and
+    // ProjectClipped's.
+    static void ProjectPoints(const Matrix4& m, const LightningPoint* points, Vector4* projected, int count);
+    int ProjectPointsClipped(const Matrix4& m, const LightningPoint* points, Vector4* projected, std::uint8_t* outcodes,
+                             int count) const;
+    // `count` screen-facing sprites, their centres to clip space with `m` (the clip stack's top), as four
+    // corners each (positions only; `size` the half side at w 1) and an outcode per corner; returns the verdict.
+    int ProjectSprites(const Matrix4& m, const SpritePoint* points, TLVertex* corners, std::uint8_t* outcodes,
+                       int count) const;
+    // A clip-space point on the screen: x right and y down from the top left corner, z / w, and 1 / w.
+    Vector4 ToScreen(const Vector4& p) const;
+    // ToScreen on the first 16 bytes (x, y, z, w) of `count` vertices.
+    void ToScreen(TLVertex* vertices, int count) const;
+    // The distance fog of `count` screen vertices: the specular's alpha lowered to 255 less the fog of the
+    // vertex's depth (none before the range's start, full at its end).
+    void FogVertices(TLVertex* vertices, int count) const;
+
     // Counted (CRendererBase): holders drop a reference, and the last one deletes it.
 
-    ITransformPipeline* transform_;   // 3DfpFPU.dll's transform object (projects and clips vertices)
-    void* library_;                   // 3DfpFPU.dll's module (FreeLibrary in the destructor)
     MatrixStack stacks_[16];    // (models.md: stacks 0-2, 5-10 and 14 are in use)
+    float halfWidth = 0.0f;     // the viewport's half size (SetViewportSize)
+    float halfHeight = 0.0f;
+    float fogStart = 0.0f;   // the fog's depth range's start, and 255 over its length (SetDepthRange)
+    float fogScale = 0.0f;
+    Matrix4 projection{};   // the projection matrix (the fog's depth from a screen z)
 };
-
 struct tagRECT;
 class CTextureDevice;
 namespace options {
@@ -212,7 +180,6 @@ class CTexture;
 class CFigureMesh;
 class CMaterial;
 struct LineBatch;
-struct LightningPoint;
 
 // A render state preset the renderer's helper keeps (counted): the passes of a material's draw. The first pass
 // sets the texture stages of the first `stages_` states and turns the next stage off; each further pass is one of
@@ -277,10 +244,9 @@ private:
     CRenderPreset* presets_[kPresetCount] = {};   // counted
 };
 
-// The ambient colour (r, g, b in 0..1) SetBaseColour last gave the transform object: 3DfpFPU's object
-// is one for every renderer, and its LightMesh lit the figure parts with it; the parts lit on the GPU
-// take it from here.
-const float* TransformAmbientColour();
+// The ambient colour (r, g, b in 0..1) CSceneRenderer::SetColour set last (one for every renderer): the figure
+// parts lit on the GPU take it from here.
+const float* AmbientColour();
 
 // The scene renderer (the global renderer object, &g_sceneRenderer; "CVisualizator" in the game's messages).
 class CSceneRenderer final {
@@ -346,7 +312,7 @@ public:
     // The fog (and clear) colour from r, g, b in 0..1 (each rounded to the nearest integer), stored and set
     // through SetFogColourState.
     void SetFogColour(float r, float g, float b);
-    // The sun becomes `light` (counted; the old one released) and goes to the transform object (AddSun).
+    // The sun becomes `light` (counted; the old one released).
     void SetSun(CLight* light);
     // SetSun, then the colour from r, g, b in 0..1, packed as SetFogColour packs them.
     void SetSunAndAmbient(CLight* light, float r, float g, float b);
@@ -370,8 +336,8 @@ public:
 
 private:
     // The creation's first step: a new transform pipeline.
-    void CreatePipeline(const options::GameOptions* settings);
-    // Drops the sun (telling the transform object) and the pipeline.
+    void CreatePipeline();
+    // Drops the sun and the pipeline.
     void ReleasePipeline();
 };
 
@@ -427,7 +393,6 @@ struct FigureModel {
 // 1e-5 (squared distance) unless asked for a fresh one. Parts come from the figure's own archive set when
 // there is one, else from the open archives as "<figure><part>.fig".
 class CLinkMesh;
-class ITransformPipeline;
 
 class CLinkFigureLoader final {
 public:
@@ -491,10 +456,9 @@ public:
     void RemorphOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
 
     int refCount_ = 0;
-    ITransformPipeline* pipeline_;    // the renderer's pipeline's transform object
     std::list<LinkArchive> archives_;
     std::unordered_map<std::string, FigureModel*> figureSets_;    // by figure name
-    Ref<CTextureDevice> renderer_;    // the device object; meshes take their pipeline from it
+    Ref<CTextureDevice> renderer_;                                // the device object
     std::multimap<std::string, CLinkMesh*> cache_;    // each entry holds a reference
 };
 

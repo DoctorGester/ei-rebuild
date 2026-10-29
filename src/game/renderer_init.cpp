@@ -4,18 +4,20 @@
 // and depth range, the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
 #include "app.h"
-#include "render/render_state.h"
-#include "ei/x87.h"
 #include "camera.h"
-#include "model.h"         // CSceneRenderer, CTransformPipeline, ITransformPipeline, CRenderHelper
+#include "game_singletons.h"
+#include "model.h"   // CSceneRenderer, CTransformPipeline, CRenderHelper
 #include "options.h"
-#include "spell.h"         // CLight, CLightFactory
-#include "texture.h"       // CTextureDevice
+#include "render/render_state.h"
+#include "spell.h"     // CLight, CLightFactory
+#include "texture.h"   // CTextureDevice
+#include "world.h"
+
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "game_singletons.h"
-#include "world.h"
 #include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstdint>
@@ -61,18 +63,6 @@ constexpr int kStackD = 5;   // the same
 constexpr int kProductStacks[2] = {kStackA, kStackB};
 constexpr int kSwapStacks[2] = {kStackC, kStackD};
 
-// Transposes a 4x4 float matrix: the upper-triangle elements move
-// through the FPU, the lower ones as plain bit copies.
-void Transpose(float* m) {
-    static constexpr int kPairs[6][2] = {{1, 4}, {2, 8}, {3, 12}, {6, 9}, {7, 13}, {11, 14}};
-    for (const auto& p : kPairs) {
-        std::uint32_t lower;
-        lower = std::bit_cast<std::uint32_t>(m[p[1]]);
-        m[p[1]] = m[p[0]];
-        m[p[0]] = std::bit_cast<float>(lower);
-    }
-}
-
 void FillMatrixStacks(CSceneRenderer* renderer) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     MatrixStack* stacks = pipeline->stacks_;
@@ -99,26 +89,17 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
         StackPush(stacks[stack], StackTop(stacks[kAxisSwap]));
         StackPush(stacks[stack], StackTop(stacks[kProjection]));
     }
-    // The projection, transposed, to the pipeline's transform object.
-    Matrix4 transposed;
-    std::memcpy(&transposed, StackTop(stacks[kProjection]), sizeof(Matrix4));
-    Transpose(transposed.m);
-    Matrix4 copy;
-    std::memcpy(&copy, &transposed, sizeof(Matrix4));
-    pipeline->transform_->SetProjection(copy.m);
+    // The projection, for the fog's depth.
+    pipeline->projection = *StackTop(stacks[kProjection]);
 }
 
-// The pipeline's viewport size (floats) and depth range (the options' fog start and far clip distances, moved
-// bit for bit; both arguments must be passed, or the callee's stack cleanup unbalances the stack).
+// The pipeline's viewport size and depth range (the options' fog start and far clip distances).
 void SetViewport(CSceneRenderer* renderer, const GameOptions* settings) {
     const RECT& screen = renderer->device_->screen_;
     float width = static_cast<float>(screen.right - screen.left);
     float height = static_cast<float>(screen.bottom - screen.top);
-    renderer->pipeline_->transform_->SetViewportSize(width, height);
-    float first, second;
-    first = settings->fogDayStartDistance_;
-    second = settings->farClipDistance_;
-    renderer->pipeline_->transform_->SetDepthRange(first, second);
+    renderer->pipeline_->SetViewportSize(width, height);
+    renderer->pipeline_->SetDepthRange(settings->fogDayStartDistance_, settings->farClipDistance_);
 }
 
 // The texture filters of the stages: Filtering picks point (0) or linear (1, 2) min / mag filters; the mip filter
@@ -176,7 +157,7 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 
 void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState = {};   // a new device's
-    CreatePipeline(settings);
+    CreatePipeline();
     // (The options' driver, refresh rate and depth buffer bits choose nothing: the new renderer draws.)
     CTextureDevice* device = new CTextureDevice(static_cast<HWND>(window), settings->fullScreen_ != 0,
                                                 settings->resolutionX_, settings->resolutionY_, settings->colourDepth_);

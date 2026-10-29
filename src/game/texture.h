@@ -29,7 +29,7 @@ struct VertexPacket;
 struct NormalPacket;
 struct TexCoord;
 struct MeshCorner;
-namespace devicebuffers { struct ProjectedVertex; }
+struct Vector4;
 
 // The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
 // draws' state. Made once by the scene renderer's creation (renderer_init.cpp); the new renderer (src/render) draws
@@ -37,8 +37,9 @@ namespace devicebuffers { struct ProjectedVertex; }
 class CTextureDevice final : public CRendererBase {
 public:
     int SetMaterial(CDeviceMaterial* material);
-    int DrawFlatBlocks(const void* positions, const void* uvs, int blocks, const std::uint16_t* indices, int indexCount,
-                 std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale);
+    int DrawFlatBlocks(const VertexPacket* positions, const void* uvs, int blocks, const std::uint16_t* indices,
+                       int indexCount, std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds,
+                       float zScale);
     int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const VertexPacket* positions, int blocks,
                   const NormalPacket* normals, int colourCount, std::uint32_t* colours, std::uint32_t* speculars,
                   const TexCoord* uvs, int unused10, const MeshCorner* corners, int cornerCount,
@@ -52,7 +53,7 @@ public:
     int DrawIndexed();
     // Draw flag 1's rectangle: the bounds of the projected `positions` (screen positions, or with `clipSpace` the
     // clip-space ones inside the depth range, mapped to the screen) clamped to the screen.
-    void BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions, bool clipSpace);
+    void BoundsOfProjected(const std::vector<Vector4>* positions, bool clipSpace);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices, int indexCount);
     // The holder the renderer draws the stage with. Returns 1.
     int BindSurface(int stage, Surface* holder);

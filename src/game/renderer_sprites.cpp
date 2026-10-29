@@ -2,21 +2,21 @@
 // More: docs/notes/comments-c22i.md, "renderer_sprites.cpp".
 #include "clip.h"
 #include "model.h"
+#include "render/render.h"
+#include "render/render_state.h"
 #include "texture.h"
 
-#include "render/render_state.h"
-#include "render/render.h"
-#include "ei/x87.h"
-#include "device_buffers.h"
 #include "lib/containers.h"
+#include "lib/vecmath.h"
+
+#include "ei/x87.h"
+
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <utility>
-#include "lib/vecmath.h"
-
-#include <cstdlib>
 #include <vector>
 
 // One record of the back-to-front sort (16 bytes).
@@ -35,9 +35,6 @@ namespace {
 
 // --- The arguments -------------------------------------------------------------------------------
 
-struct SpritePoint {          // 16 bytes: the centre and the size
-    float x, y, z, size;
-};
 struct Sprite {               // 8 bytes
     std::uint32_t color;      // ARGB
     const float* uv;          // the texture rectangle: u0, v0, u1, v1
@@ -46,8 +43,6 @@ struct Sprite {               // 8 bytes
 // --- The statics ---------------------------------------------------------------------------------
 
 // The sprite draw's work buffers: vectors of vertices, corner outcodes and indices.
-using devicebuffers::ProjectedVertex;
-std::vector<ProjectedVertex> g_unused;   // sized only
 std::vector<TLVertex> g_corners;         // 4 per sprite
 std::vector<std::uint8_t> g_outcodes;    // a byte per corner
 std::vector<std::uint16_t> g_indices;
@@ -61,26 +56,6 @@ TLVertex* CornerData() { return g_corners.data(); }
 std::uint16_t* IndexData() { return g_indices.data(); }
 
 // --- The steps -----------------------------------------------------------------------------------
-
-// A float copied through the FPU: exact, except that a signalling NaN comes out quiet.
-std::uint32_t ThroughFpu(std::uint32_t bits) {
-    bool nan = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x7FFFFFu) != 0;
-    return nan ? bits | 0x00400000u : bits;
-}
-
-// The top of the pipeline's matrix stack (data) / +0x28 (count), transposed. The lower
-// triangle moves up as integers and the upper one down through the FPU.
-void TransposedTop(CTransformPipeline* pipeline, std::uint32_t (&m)[16]) {
-    const Matrix4* top = pipeline->Top(CTransformPipeline::kClipStack);
-    std::memcpy(m, top, sizeof(m));
-    for (int r = 0; r < 4; ++r) {
-        for (int c = r + 1; c < 4; ++c) {
-            std::uint32_t upper = m[r * 4 + c];
-            m[r * 4 + c] = m[c * 4 + r];
-            m[c * 4 + r] = ThroughFpu(upper);
-        }
-    }
-}
 
 void SetCorner(TLVertex& v, std::uint32_t color, const float* u, const float* t) {
     v.color = color;
@@ -269,20 +244,17 @@ void SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord**
 }
 
 // With `additive` the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and restored).
-// The view matrix is the top of the clip stack, transposed. Returns 1, or 0 when a draw fails (the blend is
+// The sprites are projected with the top of the clip stack. Returns 1, or 0 when a draw fails (the blend is
 // then left as it is).
 int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* spriteArray) {
     const char additive = static_cast<char>(additiveArgument);   // only its low byte counts
     const auto* points = static_cast<const std::vector<SpritePoint>*>(pointArray);
     const auto* sprites = static_cast<const std::vector<Sprite>*>(spriteArray);
-    CTransformPipeline* pipeline = pipeline_;
-    ITransformPipeline* transform = pipeline->transform_;
-    g_unused.resize(0x200);
+    const CTransformPipeline* pipeline = pipeline_;
     g_corners.resize(0x2000);
     g_outcodes.resize(0x800);
     g_indices.resize(0x3000);
-    std::uint32_t view[16];
-    TransposedTop(pipeline, view);
+    const Matrix4& clip = *pipeline->Top(CTransformPipeline::kClipStack);
 
     const SpritePoint* point = points->data();
     int remaining = std::ssize(*points);
@@ -299,7 +271,7 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
         int count = FillCorners(sprite, remaining);
         g_corners.resize(count * 4);
         // 0: all corners on screen, 1: some off screen, else nothing to draw.
-        int visibility = transform->ProjectSprites(view, point, g_corners.data(), g_outcodes.data(), count);
+        int visibility = pipeline->ProjectSprites(clip, point, g_corners.data(), g_outcodes.data(), count);
         point += count;
         int kept = SortBackToFront();
         if (visibility == 1) {

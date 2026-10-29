@@ -36,7 +36,7 @@ The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndSc
 | CPU-written textures used by sprites | `CopyImage` 005FFFB0 (16 sites in 8 files: portraits, HUD icons, help pictures) and `ItemFigureTexture` 005EC020 draw on the GPU (R28); the save / load pictures and the global-map clouds (`CGlobalMapClouds::Draw`, every frame: noise and blend in shaders) too (R28b) | — | GPU (done) |
 
 Notes on the inventory:
-- The `3DfpFPU.dll` work in the interface is limited to the mesh path's CPU projection for picking bounds (2DintMMX's picture and texture conversion, 004F0060 and the decoder at 007AF06C slot 5, is gone since R28). Neither does per-frame window pixel work.
+- The CPU projection work in the interface (3DfpFPU's in the original, plain C++ since R31) is limited to the mesh path's projection for picking bounds (2DintMMX's picture and texture conversion, 004F0060 and the decoder at 007AF06C slot 5, is gone since R28). Neither does per-frame window pixel work.
 - Tooltips, edit boxes, list boxes, the console and chat are all CPU surfaces.
 - The minimap and global map are GPU meshes, except for the pick readback, the clouds texture and the one-pixel dot.
 

@@ -4,23 +4,23 @@
 // Kept as the game has it: the vertices' colour and specular are never written (what the buffer held stays, the distance
 // fog only lowers the specular's alpha), the packets' w neither; the rain's height uses the snow's rise (kSnowRise; both
 // are 40); a height that is not a number would loop forever in the rain's wrap.
-#include "effects.h"
-
 #include "ai_motion.h"
 #include "camera.h"
 #include "clip.h"
 #include "core_maths.h"
+#include "effects.h"
 #include "figure_mesh.h"
 #include "link_figure.h"
 #include "model.h"
+#include "render/render.h"
 #include "texture.h"
 #include "weather_noise.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "render/render.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cmath>
@@ -139,9 +139,9 @@ void Project(CRainSnow& layer, CSceneRenderer* renderer) {
     layer.positions.resize((layer.particleCount + 3) >> 2);
     layer.projected.resize(std::ssize(layer.positions) * 4);
     layer.outcodes.resize(std::ssize(layer.positions) * 4);
-    CTransformPipeline* pipeline = renderer->pipeline_;
-    pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), layer.positions.data(),
-                                         layer.projected.data(), layer.outcodes.data(), std::ssize(layer.positions));
+    const CTransformPipeline* pipeline = renderer->pipeline_;
+    pipeline->ProjectClipped(*pipeline->Top(CTransformPipeline::kClipStack), layer.positions.data(),
+                             layer.projected.data(), layer.outcodes.data(), std::ssize(layer.positions));
 }
 
 void SetCorner(TLVertex& vertex, const Vector4& projected) { std::memcpy(&vertex, &projected, sizeof(projected)); }
@@ -160,7 +160,7 @@ void SetFrame(TLVertex* triangle, std::uint8_t frame, float top, float bottom) {
 // The vertices kept (three per particle on screen) and taken to the screen.
 int Finish(CRainSnow& layer, CSceneRenderer* renderer, int used) {
     layer.vertices.resize(used);
-    if (used != 0) renderer->pipeline_->transform_->ToScreen(layer.vertices.data(), std::ssize(layer.vertices));
+    if (used != 0) renderer->pipeline_->ToScreen(layer.vertices.data(), std::ssize(layer.vertices));
     return used;
 }
 

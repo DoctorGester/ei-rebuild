@@ -5,7 +5,7 @@
 
 namespace devicebuffers {
 
-std::vector<ProjectedVertex> g_projected;
+std::vector<Vector4> g_projected;
 std::vector<std::uint8_t> g_outcodes;
 
 } // namespace devicebuffers
