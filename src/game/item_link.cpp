@@ -1,5 +1,4 @@
-// The item link record (CItemLink, item.h; a counted value the world server hangs on an item's +0x1C); its first
-// virtual is the counted value's deleting destructor.
+// The item link record (CItemLink, item.h): a counted value the world server hangs on an item (CItem::link_).
 #include "item.h"
 
 CItemLink::CItemLink() {

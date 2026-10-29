@@ -56,7 +56,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             std::string model = spell->PictureName();
             AddSpell(model, image);
         }
-        g_clientWorld.texts_->GetItemTexts(spell, &tip, &description, &description);
+        tip = g_clientWorld.texts_->GetItemTexts(spell).name;
 
         // The spell's numbers below its name: one line per label of the panel's table.
         CSpell* data = spell->spell_;   // the spell item's spell

@@ -146,9 +146,6 @@ public:
     void SerializeLevers(int id, std::vector<LeverRecord>* list);
 
     // The item database's vectors, one chunk 1 per record.
-    void SerializeQuickItems(int id, std::vector<itemdb::QuickItemRecord>* records);
-    void SerializeLoot(int id, std::vector<itemdb::QuestItemRecord>* records);
-    void SerializeQuestItems(int id, std::vector<itemdb::LootItemRecord>* records);
     void SerializeMaterials(int id, std::vector<itemdb::MaterialRecordHead>* records);
     void SerializeWeapons(int id, std::vector<itemdb::WeaponRecord>* records);
     void SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* records);

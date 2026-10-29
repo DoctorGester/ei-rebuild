@@ -38,7 +38,7 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         out->damageMax = WeaponMaxDamage(weapon);
         out->weaponType = WeaponType(weapon);
         out->damageType = WeaponDamageType(weapon);
-        out->speed = WeaponAttack(weapon);
+        out->speed = WeaponWeight(weapon);
         const itemdb::WeaponRecord* record = itemdb::WeaponAt(PrototypeIndex(weapon));
         // The bonus is stored to a float before the weapon's figure is added; _ftol truncates.
         float bonus = static_cast<float>(params->WeaponSkillBonus(out->weaponType, record));

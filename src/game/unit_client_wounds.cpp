@@ -205,10 +205,10 @@ bool CUnitClientSpecific::LoadFaceTexture() {
 // --- The weapon point -------------------------------------------------------------------------
 
 bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
-    std::string node;
     std::uint32_t slot = unit->activeWeapon;
     std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoItemId;
-    if (!WeaponBaseFigure(weapon, &node)) node = kHandNode;
+    std::string node = WeaponBaseFigure(weapon);
+    if (node.empty()) node = kHandNode;
     const FigureBone* found = unit->Object3D()->animation->FindBone(node);
     if (!found) return false;
     // The bone's position in figure space.

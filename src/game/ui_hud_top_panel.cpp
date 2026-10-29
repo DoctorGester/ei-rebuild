@@ -71,7 +71,7 @@ void CHudTopPanel::Setup(int page, bool shown) {
 void CHudTopPanel::AddPickedUp(CItem* item, bool crippled) {
     std::string name;
     std::string kind;
-    g_clientWorld.texts_->FormatItemName(item, &name);
+    name = g_clientWorld.texts_->FormatItemName(item);
     const char* key = crippled ? "combat_crippled" : "combat_picked_up";
     g_clientWorld.texts_->GetString(key, &kind);
     std::string line = kind;

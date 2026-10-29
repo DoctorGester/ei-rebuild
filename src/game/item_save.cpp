@@ -10,12 +10,6 @@
 
 #include <cstdint>
 
-namespace {
-
-constexpr std::uint32_t kDword = 4;
-
-} // namespace
-
 void CItem::Load(CStream* stream) {
     stream->ReadValue(prototypeId_);
     stream->ReadValue(condition_);

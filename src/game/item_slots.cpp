@@ -5,14 +5,9 @@
 
 #include "lib/nan_audit.h"
 
-#include <bit>
 #include <cstring>
 
 using namespace itemdb;
-
-namespace {
-
-} // namespace
 
 // --- GetUse -----------------------------------------------------------------------------------
 
@@ -42,8 +37,8 @@ bool CItemArmor::IsSameAs(CItem* item) {
     if (!CItem::IsSameAs(item)) return false;
     auto* other = AsArmor(item);
     // Both absorption rows and the layer masks, compared by their bits.
-    static_assert(offsetof(CItemArmor, layerMask_) + sizeof(layerMask_) - offsetof(CItemArmor, absorb_) == 0x40);
-    return std::memcmp(absorb_, other->absorb_, 0x40) == 0;
+    return std::memcmp(absorb_, other->absorb_, sizeof(absorb_)) == 0 &&
+           std::memcmp(layerMask_, other->layerMask_, sizeof(layerMask_)) == 0;
 }
 
 bool CItemQuick::IsSameAs(CItem* other) {

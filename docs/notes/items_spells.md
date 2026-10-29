@@ -80,8 +80,8 @@ SpellListRecord in item_db.h).
 ## Item rules (scenario items)
 
 Pure/getter slots (P): `CItem::GetPrototype/GetCategory`, `CItemWeapon::GetType`, `IsSameAs` (slot 14; base 0069FE90),
-`GetTypeGroup`, `CItemLoot::GetPrice` (slot 16); the fastcall stat helpers WeaponType, MinDamage, MaxDamage, Attack,
-DamageType, Stat84, Stat88, ArmorFieldB8 take a packed id / index (P with float bits). `GetDamageTypes`, `Recharge` (slot
+`GetTypeGroup`, `CItemLoot::GetPrice` (slot 16); the fastcall stat helpers WeaponType, MinDamage, MaxDamage, Weight (the original's "Attack"),
+DamageType, AttackBonus, DefenceBonus, ArmorLayer take a packed id / index (P with float bits). `GetDamageTypes`, `Recharge` (slot
 6), `RollDamage` (declared `double`, unrounded ST0; ISAAC state restored between runs) are S. `InitFromRecord` (slot 13) is S
 on a scratch copy; constructors are S on seeded scratch except the scroll's (O: a CALL within 5 bytes, no trampoline)
 (`item_lifetime.cpp`); `CreateItem`/`DestroyItem` (slots 2 / 3) and the per-class destructors (slot 0, one byte-identical
@@ -106,16 +106,26 @@ S on text), `WeaponBaseFigure`, `ArmorModelName` (S), `CSpellManager::CreateSpel
 `CItemManager::MakeItem` 006AD000 (item_constructor.cpp; CItemManager derives CResourceManager, context slot 16 on
 CManagerContext; O).
 
-- Build's temporary record is a `std::unique_ptr<ItemRecordHead>` of the item's kind (the head's destructor is virtual
-  since C50c2; the original destroyed only the head and leaked the quick / quest records' members, empty there). Build reads operands into locals before multiplying;
-  `InitFromRecord` copies +0x40 / +0x48 through FLD / FSTP so a signalling NaN is quieted the same way.
-- Name builders with an unknown weapon / armor type: the original formats an uninitialised 4-byte stack buffer, ours ""
-  (no such types in the databases).
-- `ArmorModelName` formats "%s_%.2d.%s.%d" (type code "hl","pl","lg","sh","pt","bt","gl"; type compared unsigned with 6). The
-  original copies the code into the stack slot of its material-index argument and formats that slot, so a type without a code
-  yields the index's own bytes (reproduced). Callers: unit skins 00536670 / 00568800 / 005685E0. `WeaponBaseFigure` is reached
-  through the weapon's 006A0F50 from the unit effect point 00532860 (effects, spells_cast); its 4-byte number buffer would
-  overrun above 999 (not in the database, not reproduced).
+- Making an item: `CItemConstructor::BuildItem(manager, kind, prototype, material, spell, count)` runs the original's
+  sequence (SetManager, BeginCreateItem, the records, EndCreateItem, SetManager(null)) in one call. Only the trader
+  stock's GenerateItems still runs the steps itself: it creates the item before it draws the material, and a cancelled
+  draw has used up an object id (moving the creation after the draw would shift every later item id). Object ids are
+  per manager and come from maxId_ + 1 (the random fallback needs 2e9 ids), so creating an item before or after a
+  spell (spell manager) or a CRT draw changes nothing. Kept quirk dropped: the original left a failed build's spell in
+  the constructor for the next build (only CreateItem of a weapon with a spell and no material under Rebirth's
+  FixCreateItem); BuildItem sets the spell every time.
+- `MagicCapacityOf(kind, prototype, material)`: what the trader stock's random spell checks (none for a weapon or
+  armour without a material).
+- FillItem's temporary record is a `std::unique_ptr<ItemRecordHead>` of the item's kind (the head's destructor is virtual
+  since C50c2; the original destroyed only the head and leaked the quick / quest records' members, empty there).
+- Name builders with an unknown weapon / armor type (`TypeCode`, item_db.h): the original formats an uninitialised
+  4-byte stack buffer (ArmorModelName / WeaponModelName: the material index's own bytes), ours "" (no such types in
+  the databases). `RecordModelName` is the one model-name builder ("%s_%.2d.%s.%d"; "" without a prototype or material,
+  where the original's record-based WeaponRecordModelName faulted). Callers: unit skins 00536670 / 00568800 /
+  005685E0. `WeaponBaseFigure` ("" for none) is reached through the weapon's 006A0F50 from the unit effect point
+  00532860 (effects, spells_cast); the original's 4-byte number buffer would overrun above 999 (not in the database).
+- Default-initialised items: `CItemManager::NewObject` uses `new CItemQuick` (not `()`), so the subclasses' own
+  fields stay as the heap had them, as in the original; InitFromRecord or Load sets them.
 
 ## Party item lists and CopyTo (O, counts and order checked)
 
@@ -184,11 +194,11 @@ item_weapon_shape, item_armor_shape_upper / _lower, item_wand_shape), 3 `spell `
 the display name is `format_item1` (kind, name) or `format_item2` (kind, name, count) when the item's +0x48 stack count is
 above 1.
 
-Functions: `IsPastEnd` (P), `GetString`, `GetItemTexts`, `FormatItemName` (S into scratch CStrings aliased like the real
-outputs: 0063CEE0 and 0063E820 pass one CString as both description and kind), `TextSourceList::Begin`,
+Functions: `IsPastEnd` (P), `GetString`, `GetItemTexts`, `FormatItemName`, `TextSourceList::Begin`,
 `TextSourceIterator::CopyTo/Erase/Insert` (O; node on top of the 0x18 free list 0079B22C, written directly). GetItemTexts
-always returns 1 (FormatItemName's failure branch is dead); FormatItemName reuses the description string for the format
-text; GetString on a missing text copies the key itself into `out` (shown as is in the UI); the text manager never closes
+returns an `ItemTexts` (name, description, kind); the original wrote three CStrings, and the quick item, spell column
+and battle panels passed one CString as both description and kind, then overwrote it before reading (ours take
+`.name`). GetString on a missing text copies the key itself into `out` (shown as is in the UI); the text manager never closes
 files from CMappedResource::GetFile (reference counts only grow, twice as fast in the verify build). Not rewritten:
 004DEBC0, 004DC400, 004DE930 (add archive), 004DEAF0 (remove archive), 004E15C0 (node creation).
 
@@ -472,7 +482,7 @@ CParty's slots 0065F4B0..0065F550, 00661140..00661180, the empty `ret` slots of 
 Smaller ports (names in the code; V as above), grouped by what they are:
 - Lists and creation: `CItemManager::ListMaterialNames/ListWeaponNames/ListArmorNames/ListQuickItemNames` and
   `CSpellManager::ListSpellNames/ListModifierNames` (`this` unused; every new game through 004A7080; S, texts compared),
-  `CItemManager::CreateSpellItem` (the scroll of a spell text, O), `CItemConstructor::MagicCapacity` (trader_stock; S on
+  `CItemManager::CreateSpellItem` (the scroll of a spell text, O), `MagicCapacityOf` (CItemConstructor::MagicCapacity; trader_stock; S on
   scratch floats), the item records' slot 0 (kinds 0x3004 / 5 / 6 / 9 / 7; P), `ItemStock::AddArmor / AddWeapon / AddQuickItem /
   AddSpell / AddModifier / AddMaterial` (`push_back`; O: present once, size +1 only when new), the item
   manager's Create (slot 2) and NewObject (slot 14: kinds 0x3004..0x3009 to weapon / armour / quick / loot / scroll / quest;

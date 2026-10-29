@@ -13,7 +13,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -23,10 +23,20 @@ class CStream;
 
 inline std::uint32_t PrototypeIndex(std::uint32_t packedId) { return packedId >> 16; }
 inline std::uint32_t MaterialIndex(std::uint32_t packedId) { return packedId & 0xFFFF; }
+inline std::uint32_t PackItemId(std::uint32_t prototypeIndex, std::uint32_t materialIndex) {
+    return prototypeIndex << 16 | (materialIndex & 0xFFFF);
+}
 
 // The packed id of no item (an empty slot), and the half of a packed id that names no prototype / material.
 constexpr std::uint32_t kNoItemId = 0xFFFFFFFFu;
 constexpr std::uint32_t kNoIndex = 0xFFFF;
+
+// The prototype record of an item of `kind` at `index` (scrolls: the quick item table); null for another kind or
+// an index out of range.
+itemdb::ItemRecordHead* PrototypeAt(ItemKind kind, std::uint32_t index);
+
+// Armour types 0-2 are worn on the upper body.
+inline bool IsUpperBodyArmor(int type) { return type == 0 || type == 1 || type == 2; }
 
 class CItemLink;
 
@@ -45,7 +55,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     // The classes call it first: price_, weight_, unreadValue_, charge_ and chargeMax_, magicLevel_, condition_
-    // and conditionMax_ from the record (see CItemConstructor::Build); chargeRate_ 0.001.
+    // and conditionMax_ from the record (see CItemConstructor::FillItem); chargeRate_ 0.001.
     virtual void InitFromRecord(const itemdb::ItemRecordHead* record);
     // 1 for the item itself; else the same kind, packed id, magicLevel_ and (equal or unordered floats)
     // condition_..chargeMax_ and weight_..unreadValue_, and both without a spell or both with one of the same
@@ -62,7 +72,6 @@ public:
     // The key the item works as on a lock (AcceptsKey, a lever's or a trap's ApplyScience): zeros; the quest
     // item's has its id.
     virtual LockKey GetUse();
-    bool IsSameAsSlot(CItem* other) { return IsSameAs(other); }
 
     // A new item of the same kind from the owning manager, given this one's values through the copy virtual
     // with the spell manager `spells`; when that fails the new item is released and the result is null.
@@ -72,7 +81,7 @@ public:
     // other kinds and indices out of range.
     itemdb::ItemRecordHead* GetPrototype();
 
-    // INT_MAX if there is no prototype.
+    // QuickItemCategory::NoPrototype without a prototype.
     QuickItemCategory GetCategory();
     // type_ read as the item's kind.
     ItemKind Kind() const { return static_cast<ItemKind>(type_); }
@@ -88,8 +97,8 @@ public:
     // item), the HUD's ItemTurn.
     Ref<CRefObject> link_;
     CItemLink* ServerLink() const;
-    // the condition and its maximum (both from the prototype's; -1 bits, a NaN,
-    // until then): at 0 or below (rounded) the item is broken.
+    // the condition and its maximum (both from the prototype's; -1.0 until then): at 0 or below (rounded) the
+    // item is broken.
     float condition_;
     float conditionMax_;
     float charge_;
@@ -98,8 +107,7 @@ public:
     float weight_;                // the prototype's weight
     float price_;                 // includes the attached spell's price
     float unreadValue_;           // the prototype's unreadValue; only saved, loaded and compared by IsSameAs
-    // the level of spell the item can hold (the prototype's magicLevel plus the material's;
-    // CItemConstructor::MagicCapacity).
+    // the level of spell the item can hold (the prototype's magicLevel plus the material's; MagicCapacityOf).
     std::uint32_t magicLevel_;
     Ref<CSpell> spell_;           // the spell carried by the item (scrolls, wands)
     std::uint32_t count_;         // the stack's count
@@ -130,8 +138,8 @@ public:
     // The weapon type from the prototype (faults if the index is out of range).
     int GetType();
 
-    // Zeros without a prototype.
-    void GetDamageTypes(float* out);
+    // The prototype's damage type weights; zeros without a prototype.
+    void GetDamageTypes(float (&out)[kDamageTypeCount]);
 
     // damage_ + a random fraction of damageSpread_ (the global ISAAC generator), unrounded: callers round when
     // they store it. double so the value is not rounded to float on return when the FPU runs at more than
@@ -160,15 +168,14 @@ public:
 
 class CItemArmor : public CItem {
 public:
-    CItemArmor();
     const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The armor type from the prototype (faults if the index is out of range).
     int GetType();
 
-    // 2 for armor types 0, 1 and 2, 1 for every other type.
-    int GetTypeGroup();
+    // The unit's armour layer group the piece adds to (UnitStatLayer): 2 for upper body armour, else 1.
+    int GetTypeGroup() { return IsUpperBodyArmor(GetType()) ? 2 : 1; }
 
     // The same four names as CItemWeapon's, with the armor types ("hl", "pl",
     // ...) and the picture name "initar<type><number>armor".
@@ -185,13 +192,12 @@ public:
 
     // What the piece adds to the body slots it covers (UnitStats::AddArmourLayer): [0] for the
     // first covered slot, [1] for the others.
-    float absorb_[2][7];            // per damage type
-    std::uint32_t layerMask_[2];
+    float absorb_[2][kDamageTypeCount] = {};
+    std::uint32_t layerMask_[2] = {};
 };
 
 class CItemQuick : public CItem {
 public:
-    CItemQuick();
     const char* ClassName() override;
     ClassId GetClassId() override;
 
@@ -212,7 +218,6 @@ public:
 
 class CItemQuest : public CItem {
 public:
-    CItemQuest();
     const char* ClassName() override;
     ClassId GetClassId() override;
 
@@ -231,10 +236,9 @@ public:
     std::uint32_t questItemId_;
 };
 
-// A scroll, a spell container: a quick item with its own copy, names, class name and id.
+// A scroll, a spell container: a quick item with its own names, class name and id.
 class CItemSpell : public CItemQuick {
 public:
-    CItemSpell();
     const char* ClassName() override;
     ClassId GetClassId() override;
 
@@ -242,12 +246,10 @@ public:
     std::string FigureName() override;
     // "initqi1item".
     std::string PictureName() override;
-    bool CopyTo(CItem* target, CSpellManager* spells) override;
 };
 
 class CItemLoot : public CItem {
 public:
-    CItemLoot();
     const char* ClassName() override;
     ClassId GetClassId() override;
 
@@ -265,8 +267,7 @@ public:
     // The base's, then kind_, recordType_ and index_.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     bool IsSameAs(CItem* other) override;
-    // CItem's, then kind_, recordType_ and index_. Load reads the first two through the storage of
-    // `stream` (a read that writes nothing leaves the pointer's value, then the previous value).
+    // CItem's, then kind_, recordType_ and index_.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -280,49 +281,62 @@ public:
 int WeaponType(std::uint32_t packedId);
 float WeaponMinDamage(std::uint32_t packedId);
 float WeaponMaxDamage(std::uint32_t packedId);
-float WeaponAttack(std::uint32_t packedId);
+// The prototype's weight times the material's weightFactor; the unit's attack info shows it as the speed.
+float WeaponWeight(std::uint32_t packedId);
 int WeaponDamageType(std::uint32_t packedId);    // first non-zero weight, else 6
 float WeaponAttackBonus(std::uint32_t packedId);
 float WeaponDefenceBonus(std::uint32_t packedId);
 
-// The base figure (skeleton) a weapon prototype (by index) is animated with, into `out` (emptied first):
-// "basesword", "baseaxe", "basedagger", "basepike", "baseclub" with the prototype's number as "%.2d"
-    // appended, "basearrow00" / "basearrow01" for types 5 / 6, else "baser_hand3". False for kNoItemId (an empty weapon
-    // slot's id) or out of range (only the low byte set).
-bool WeaponBaseFigure(std::uint32_t index, std::string* out);
+// The base figure (skeleton) a weapon prototype (by index) is animated with: "basesword", "baseaxe",
+// "basedagger", "basepike", "baseclub" with the prototype's number as "%.2d" appended, "basearrow00" /
+// "basearrow01" for types 5 / 6, else "baser_hand3". "" for an index out of range (kNoItemId, an empty weapon
+// slot's id, among them).
+std::string WeaponBaseFigure(std::uint32_t index);
 
-// The armour model name "<type>_<number>.<material name>.<variant>" of armour prototype `armorIndex` in
-// material `materialIndex` into `out` (emptied first; left empty when either is out of range). The type
-// code is copied into the storage of `materialIndex`, so for a type without a code the index's own bytes
-// are the code.
-void ArmorModelName(std::string* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
-// The same for weapon prototype `weaponIndex` ("sw", "ax", ...).
-void WeaponModelName(std::string* out, std::uint32_t weaponIndex, std::uint32_t materialIndex);
-// The same from the records themselves (no null checks, `out` not emptied first); for a type without a code
-// the code is the bytes of `out`'s address.
-void WeaponRecordModelName(std::string* out, const itemdb::WeaponRecord* weapon,
-                                      const itemdb::MaterialRecordHead* material);
+// The model name "<type code>_<number>.<material name>.<variant>" of a weapon or armour prototype in a material
+// (`codes` kWeaponCodes or kArmorCodes; "" as the code of a type without one); "" when either record is missing.
+std::string RecordModelName(const itemdb::ItemRecordHead* prototype, const char* const (&codes)[7],
+                            const itemdb::MaterialRecordHead* material);
+// The same by armour / weapon prototype index and material index.
+std::string ArmorModelName(std::uint32_t armorIndex, std::uint32_t materialIndex);
+std::string WeaponModelName(std::uint32_t weaponIndex, std::uint32_t materialIndex);
 
 // The armour prototype's layer by prototype index; 0 if out of range.
 int ArmorLayer(std::uint32_t index);
 
 // --- Item construction -------------------------------------------------
 
-// The item constructor: the manager creates an item object (BeginCreateItem), the caller names the prototype and
-// material records and optionally a spell, and EndCreateItem fills the item from a record combining them (Build).
+// What an item built from `prototype` and `material` can hold: the level of spell (the prototype's magicLevel
+// plus the material's, unsigned, as a float) and the power (the prototype's charge plus the material's
+// magicPower); without a material the prototype's values alone.
+struct MagicCapacity {
+    float level;
+    float power;
+};
+// None for a weapon or armour (`kind`) without a material.
+std::optional<MagicCapacity> MagicCapacityOf(ItemKind kind, const itemdb::ItemRecordHead* prototype,
+                                             const itemdb::MaterialRecordHead* material);
+
+// The item constructor (the world and every party own one). BuildItem makes an item in one call; the steps it
+// runs are public for the trader stock, which creates the item before it draws the material (a cancelled draw
+// still uses up an object id): BeginCreateItem (the manager creates the empty item object), the records and
+// spell, then EndCreateItem, which fills the item from a record combining them (FillItem).
 class CItemConstructor : public CEngineObject {
 public:
-    // count_ is left as it is.
-    CItemConstructor();
     ~CItemConstructor() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The reset: the manager forgotten (its count dropped), the item released, the records and spell cleared.
-    // Returns 1.
     void Create() override;
 
     void Destroy() override;
+
+    // An item of `kind` from `manager`, filled from `prototype` and `material` (FillItem), with `spell`
+    // attached and `count` as its count. Null when the manager cannot create the item (after a fatal error the
+    // game carries on from) or the build fails.
+    CItem* BuildItem(CBaseManager* manager, ItemKind kind, itemdb::ItemRecordHead* prototype,
+                     itemdb::MaterialRecordHead* material = nullptr, CSpell* spell = nullptr, int count = 1);
 
     // Counts a reference to `manager`, dropping the previous one's (no release).
     void SetManager(CBaseManager* manager);
@@ -331,10 +345,6 @@ public:
     // set. False after a fatal error the game carries on from (Rebirth's DisableExitOnCrashReport).
     bool BeginCreateItem(ItemKind kind);
 
-    void SetMaterial(itemdb::MaterialRecordHead* material) { material_ = material; }
-    void SetPrototype(itemdb::ItemRecordHead* prototype) { prototype_ = prototype; }
-    void SetSpellObject(CSpell* spell) { spell_ = spell; }   // not counted
-
     // Builds the item. On failure releases it and returns null; otherwise hands it over
     // (its count dropped without release, flag 8 cleared) and returns it.
     CItem* EndCreateItem();
@@ -342,22 +352,18 @@ public:
     // Releases the item; records and spell cleared.
     void Cancel();
 
-    // Fills the item from a temporary database record: the prototype's values combined with the material's,
-    // then the item's InitFromRecord; attaches the prototype's spell (wands, category 8) or the given one;
-    // sets the packed id and the count. Returns 0 for a weapon or armor without a material, else 1.
-    bool Build();
-
-    // Whether the item being built can hold a spell: not a weapon or armour (class 0x11 / 0x12) without a
-    // material. `level` gets the prototype's magicLevel plus the material's (unsigned, as a float), `power` the
-    // prototype's charge plus the material's magicPower; without a material the prototype's values alone.
-    bool MagicCapacity(float* level, float* power);
-
-    CBaseManager* manager_;   // the item manager; counted but never released
-    itemdb::MaterialRecordHead* material_;
-    itemdb::ItemRecordHead* prototype_;
+    CBaseManager* manager_ = nullptr;   // the item manager; counted but never released
+    itemdb::MaterialRecordHead* material_ = nullptr;
+    itemdb::ItemRecordHead* prototype_ = nullptr;
     Ref<CItem> item_;
-    CSpell* spell_;
-    int count_;               // copied to the item's count_
+    CSpell* spell_ = nullptr;           // not counted
+    int count_;                         // copied to the item's count_; set by BeginCreateItem
+
+private:
+    // Fills the item from a temporary database record: the prototype's values combined with the material's,
+    // then the item's InitFromRecord; attaches the prototype's spell (potions) or the given one; sets the
+    // packed id and the count. False for a weapon or armor without a material.
+    bool FillItem();
 };
 
 // The item with id `id` in an item manager (a party's, the world's item factory), or null.
@@ -386,8 +392,6 @@ inline CItemQuest* AsQuest(CItem* item) { return static_cast<CItemQuest*>(item);
 // The item manager (the world and every party make one); context_ holds its item constructor and its spell
 // manager.
 struct CItemManager : CResourceManager {
-    static constexpr std::size_t kSize = 0xBC;
-
     CItemManager();
     ~CItemManager() override;
     const char* ClassName() override;
@@ -405,10 +409,10 @@ struct CItemManager : CResourceManager {
     CItem* MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material);
 
     // An item from its name, "prototype[.material][[extra]]" (lowercased): "spell container[spell]" makes a
-    // scroll; otherwise the prototype is looked up in the weapon, armor, quick, class-0x14 and class-0x15
-    // tables (none: FatalError, null) and built with the material, the bracket part as a spell (or, for
-    // prototypes of type "material", as the count); a class-0x15 item of kind 2 gets the table index of the
-    // second name part as index_. A failed build reports FatalError and the game crashes; Rebirth's
+    // scroll; otherwise the prototype is looked up in the weapon, armor, quick, quest and loot tables (none:
+    // FatalError, null) and built with the material, the bracket part as a spell (or, for prototypes named
+    // "material", as the count); a loot item standing for a record gets the table index of the second name
+    // part as index_. A failed build reports FatalError and the game crashes; Rebirth's
     // FixCreateItem returns null in both cases without FatalError.
     CItem* CreateItem(std::string_view name);
 
@@ -416,12 +420,11 @@ struct CItemManager : CResourceManager {
     // null when the spell or the item cannot be made (the spell is then left as it is).
     CItem* CreateSpellItem(std::string_view spellText, CSpellManager* spells);
 
-    // `names` resized to the table's record count and filled with the records' names: the materials' keys,
-    // the others' name.
-    void ListMaterialNames(std::vector<std::string>* names);
-    void ListWeaponNames(std::vector<std::string>* names);
-    void ListArmorNames(std::vector<std::string>* names);
-    void ListQuickItemNames(std::vector<std::string>* names);
+    // The table's record names in table order: the materials' keys, the others' name.
+    std::vector<std::string> ListMaterialNames();
+    std::vector<std::string> ListWeaponNames();
+    std::vector<std::string> ListArmorNames();
+    std::vector<std::string> ListQuickItemNames();
 };
 
 // --- Weapon model parts------------------------------------------------------

@@ -42,6 +42,13 @@ struct TextSources {
     std::list<TextSource> archives;
 };
 
+// An item's texts (CTextManager::GetItemTexts); a part that is not found stays empty.
+struct ItemTexts {
+    std::string name;
+    std::string description;
+    std::string kind;          // "item_weapon", ... looked up as a string (GetString)
+};
+
 class CTextManager : public CEngineObject {
 public:
     CTextManager();
@@ -66,13 +73,12 @@ public:
     // very buffer) and the result is 0. Either way the cursor is cleared afterwards.
     bool GetString(std::string_view name, std::string* out);
 
-    // The name, description and kind ("item_weapon", ...) of an item, each looked up
-    // in the texts; parts that are not found stay empty.
-    void GetItemTexts(CItem* item, std::string* name, std::string* description, std::string* kind);
+    // The name, description and kind of an item, each looked up in the texts.
+    ItemTexts GetItemTexts(CItem* item);
 
     // The item's display name: "format_item1" (or "format_item2" with the stack count when count_ is above
     // 1) applied to the kind and the name.
-    void FormatItemName(CItem* item, std::string* out);
+    std::string FormatItemName(CItem* item);
 
     // The line reader (text_reader.cpp): finds a text in the resource archives and walks its lines with cursor_.
     // Texts are MBCS: a character is one byte, or a lead byte (_ismbblead) and a trail byte. Lines end with LF

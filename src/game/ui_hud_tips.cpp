@@ -40,7 +40,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             std::string model = weapon->PictureName();
             AddWeapon(model, image);
         }
-        g_clientWorld.texts_->GetItemTexts(weapon, &tip, &description, &line);
+        tip = g_clientWorld.texts_->GetItemTexts(weapon).name;
         tip += "\n";
 
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
@@ -84,9 +84,8 @@ std::string CHudQuickItems::ItemTip(unsigned index) {
     std::string text;
     CItem* item = unit_->GetQuickItem(index);
     if (!item) return text;
+    text = g_clientWorld.texts_->GetItemTexts(item).name;
     std::string line;
-    // (The original passes one string as the description and the kind.)
-    g_clientWorld.texts_->GetItemTexts(item, &text, &line, &line);
     CSpell* data = item->spell_;
     if (!data) return text;
     const float one = 1.0f;

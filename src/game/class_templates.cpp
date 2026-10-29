@@ -56,22 +56,22 @@ void ClassTemplateFill(ClassTemplate* t) {
     CSpellManager* spells = t->SpellsParty()->SpellManager();
 
     itemdb::ItemDatabase& db = g_itemDatabase;
-    items->ListWeaponNames(&names);
+    names = items->ListWeaponNames();
     for (const std::string& name : names) {
         itemdb::WeaponRecord* record = db.weapons.Named(name);
         if (record && Allowed(t, record->classMask)) AllList(t)->AddWeapon(record);
     }
-    items->ListArmorNames(&names);
+    names = items->ListArmorNames();
     for (const std::string& name : names) {
         itemdb::ArmorRecord* record = db.armors.Named(name);
         if (record && Allowed(t, record->classMask)) AllList(t)->AddArmor(record);
     }
-    items->ListQuickItemNames(&names);
+    names = items->ListQuickItemNames();
     for (const std::string& key : names) {
         itemdb::QuickItemRecord* record = db.quickItems.names[key];
         if (record && Allowed(t, record->classMask)) AllList(t)->AddQuickItem(record);
     }
-    items->ListMaterialNames(&names);
+    names = items->ListMaterialNames();
     for (const std::string& key : names) {
         itemdb::MaterialRecordHead* record = db.materials.names[key];
         if (record && Allowed(t, record->classMask)) t->allowed.AddMaterial(record, 0x14, 0x32);
@@ -82,7 +82,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     for (const std::string& name : names) {
         const char* code = SpellCodeByName(name);
         std::string key(code);
-        itemdb::SpellRecord* record = stock::SpellsByName()[key];
+        itemdb::SpellRecord* record = g_spellDatabase.spells.byCode[key];
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddSpell(record);
             AllList(t)->AddSpell(record);
@@ -92,7 +92,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     for (const std::string& name : names) {
         const char* code = SpellModifierCodeByName(name);
         std::string key(code);
-        auto* record = stock::ModifiersByName()[key];
+        auto* record = g_spellDatabase.modifiers.byCode[key];
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddModifier(record);
             AllList(t)->AddModifier(record);

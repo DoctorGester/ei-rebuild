@@ -667,16 +667,7 @@ bool CCampPages::CanMakeItem() {
     if (!blueprint || !part) return false;
     if (static_cast<int>(part->materialUnits) != blueprintCount) return false;
     if (text::CompareIgnoringCase(part->materialClass, blueprint->soundName) != 0) return false;
-    constructor->SetManager(factory);
-    if (!constructor->BeginCreateItem(type)) {
-        constructor->SetManager(nullptr);
-        return false;
-    }
-    constructor->SetPrototype(part);
-    constructor->SetMaterial(blueprint);
-    constructor->SetSpellObject(spell);
-    itemMade_.Assign(constructor->EndCreateItem());
-    constructor->SetManager(nullptr);
+    itemMade_.Assign(constructor->BuildItem(factory, type, part, blueprint, spell));
     return itemMade_.Get() != nullptr;
 }
 

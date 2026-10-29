@@ -10,24 +10,26 @@ using namespace itemdb;
 
 namespace {
 
-
 WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }
 MaterialRecordHead* MaterialOf(std::uint32_t packedId) { return MaterialAt(MaterialIndex(packedId)); }
 
 } // namespace
 
-ItemRecordHead* CItem::GetPrototype() {
-    std::uint32_t index = PrototypeIndex(prototypeId_);
-    ItemRecordHead* record = nullptr;
-    switch (Kind()) {
-    case ItemKind::Weapon: record = WeaponAt(index); break;
-    case ItemKind::Armor: record = ArmorAt(index); break;
-    case ItemKind::Quick: record = QuickItemAt(index); break;
-    case ItemKind::Loot: record = LootAt(index); break;
-    case ItemKind::Quest: record = QuestItemAt(index); break;
-    default: break;
+ItemRecordHead* PrototypeAt(ItemKind kind, std::uint32_t index) {
+    switch (kind) {
+    case ItemKind::Weapon: return WeaponAt(index);
+    case ItemKind::Armor: return ArmorAt(index);
+    case ItemKind::Quick:
+    case ItemKind::Spell: return QuickItemAt(index);
+    case ItemKind::Loot: return LootAt(index);
+    case ItemKind::Quest: return QuestItemAt(index);
+    default: return nullptr;
     }
-    return record;
+}
+
+ItemRecordHead* CItem::GetPrototype() {
+    if (Kind() == ItemKind::Spell) return nullptr;
+    return PrototypeAt(Kind(), PrototypeIndex(prototypeId_));
 }
 
 QuickItemCategory CItem::GetCategory() {
@@ -52,13 +54,11 @@ int CItemWeapon::GetType() {
     return WeaponAt(PrototypeIndex(prototypeId_))->type;
 }
 
-void CItemWeapon::GetDamageTypes(float* out) {
-    WeaponRecord* prototype = WeaponAt(PrototypeIndex(prototypeId_));
-    if (prototype) {
-        std::memcpy(out, prototype->damageTypes, 7 * sizeof(float));
-        return;
-    }
-    std::memset(out, 0, 7 * sizeof(float));
+void CItemWeapon::GetDamageTypes(float (&out)[kDamageTypeCount]) {
+    if (const WeaponRecord* prototype = WeaponAt(PrototypeIndex(prototypeId_)))
+        std::memcpy(out, prototype->damageTypes, sizeof(out));
+    else
+        std::memset(out, 0, sizeof(out));
 }
 
 double CItemWeapon::RollDamage() {
@@ -67,10 +67,10 @@ double CItemWeapon::RollDamage() {
     float high = damageSpread_ + damage_;   // stored as float
     float low = damage_;                     // read back from memory for the subtraction and the add
     std::uint32_t roll = g_random.Next();
-    volatile std::int64_t roll64 = roll;               // exact
-    // The double 0x3DF0000000100000, about 1 / (2^32 - 1).
+    volatile std::int64_t roll64 = roll;
+    // About 1 / (2^32 - 1).
     constexpr double kRollScale = 0x1.0000000100000p-32;
-    // ((high - low) * roll) * scale + low, all unrounded; returned as a double.
+    // ((high - low) * roll) * scale + low, all in double.
     return (static_cast<double>(high) - static_cast<double>(low)) * static_cast<double>(roll64) * kRollScale +
            static_cast<double>(low);
 }
@@ -88,11 +88,6 @@ bool CItemWeapon::IsSameAs(CItem* item) {
 
 int CItemArmor::GetType() {
     return ArmorAt(PrototypeIndex(prototypeId_))->type;
-}
-
-int CItemArmor::GetTypeGroup() {
-    int type = ArmorAt(PrototypeIndex(prototypeId_))->type;
-    return (type == 0 || type == 1 || type == 2) ? 2 : 1;
 }
 
 float CItemLoot::GetPrice() {
@@ -126,19 +121,18 @@ float WeaponMaxDamage(std::uint32_t packedId) {
     return (weapon->damageSpread + weapon->damage) * MaterialOf(packedId)->damageFactor;
 }
 
-float WeaponAttack(std::uint32_t packedId) {
+float WeaponWeight(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     return weapon->weight * MaterialOf(packedId)->weightFactor;
 }
 
 int WeaponDamageType(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
-    for (int i = 0; i < 7; ++i) {
-        // Stop at the first weight not equal to zero.
+    for (int i = 0; i < kDamageTypeCount; ++i) {
         EI_NAN_AUDIT(weapon->damageTypes[i]);
         if (weapon->damageTypes[i] != 0.0f) return i;
     }
-    return 6;
+    return kDamageTypeCount - 1;
 }
 
 float WeaponAttackBonus(std::uint32_t packedId) {

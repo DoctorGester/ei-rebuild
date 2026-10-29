@@ -1,7 +1,5 @@
 // The spell database's and the item database's loads from their archive at startup and at every switch of the
-// resource database. Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are
-// the vanilla functions and install in the vanilla launch only (rule 9); callers go through
-// SpellTablesLoadOriginal / ItemDatabaseLoadOriginal. As unit_db_load.cpp; see docs/notes/items_spells.md.
+// resource database. As unit_db_load.cpp; see docs/notes/items_spells.md.
 #include "chunk_archive.h"
 #include "item_db.h"
 
@@ -82,7 +80,9 @@ int SpellDatabase::Load(const std::string& folder, const std::string& archive) {
     // The three lists through one archive, built and destroyed in place.
     ChunkArchive ar;
     ar.Open(stream, 1, 1);
-    for (int i = 0; i < 3; ++i) ar.SerializeSpellLists(kFirstListChunk + i, &lists[i]);
+    ar.SerializeSpellLists(kFirstListChunk, &scrollRecipes);
+    ar.SerializeSpellLists(kFirstListChunk + 1, &armorRecipes);
+    ar.SerializeSpellLists(kFirstListChunk + 2, &weaponRecipes);
     ar.Close(stream);
     resource.Get()->CMappedResource::CloseFile(data);
     resource.Get()->CMappedResource::CloseResource();

@@ -214,7 +214,7 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
     list_.clear();
     // The original inlines the array's SetSize in the second loop.
     auto append = [&](CItem* entry) {
-        if (wanted->IsSameAsSlot(entry)) found = static_cast<float>(list_.size());
+        if (wanted->IsSameAs(entry)) found = static_cast<float>(list_.size());
         int index = std::ssize(list_);
         list_.resize(index + 1);
         list_[index] = entry;
