@@ -5,7 +5,7 @@
 // docs/notes/renderer.md, section 9.
 // More: docs/notes/comments-c22i.md, "present_window.h".
 
-#include <windows.h>
+#include "lib/win_types.h"
 
 class TextureDevice;
 

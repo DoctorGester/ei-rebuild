@@ -6,10 +6,10 @@
 
 #include "resource.h"
 
-#include "lib/gameapi.h"
-
 #include <cstdint>
 #include <string>
+
+struct HMMIO__;   // mmsystem.h's HMMIO is an HMMIO__*
 
 // Opens loose files for the sound system (a member of SoundManager) through mmio. (The original was a
 // ResourceBase that could also read an entry of an archive; it never opened one.)
@@ -29,7 +29,7 @@ public:
     long Seek(long offset, int origin);
 
 private:
-    HMMIO file = nullptr;
+    HMMIO__* file = nullptr;
 };
 
 // Matches `name` against `pattern` (* ends the match successfully, ? matches any

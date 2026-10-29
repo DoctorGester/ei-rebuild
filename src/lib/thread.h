@@ -3,7 +3,7 @@
 // The game's worker threads (the music stream, the cursor), as MFC's AfxBeginThread started them: created
 // suspended, the priority set, then running.
 
-#include <windows.h>
+#include "lib/win_types.h"
 
 namespace lib {
 

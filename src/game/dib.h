@@ -3,11 +3,12 @@
 // docs/notes/models.md ("Dib").
 #pragma once
 
-#include "lib/gameapi.h"
+#include "lib/win_types.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <wingdi.h>   // RGBQUAD, BITMAPINFOHEADER
 
 namespace lib {
 class File;

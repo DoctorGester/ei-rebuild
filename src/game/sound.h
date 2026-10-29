@@ -9,8 +9,8 @@
 
 #include "lib/containers.h"
 #include "lib/hash_map.h"
-#include "lib/import_prototypes.h"
 #include "lib/vecmath.h"
+#include "lib/win_types.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -19,7 +19,14 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <windows.h>
+
+// Miles' handles (as lib/import_prototypes.h declares them; the sample is defined below).
+namespace miles {
+struct Sample;
+struct Sequence;
+struct DigitalDriver;
+struct MidiDriver;
+} // namespace miles
 
 // A volume envelope: the music stream's and the MIDI sequence's.
 struct SoundFader {

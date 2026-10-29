@@ -16,13 +16,13 @@
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
+#include "lib/win_types.h"   // RECT (dirtyRect)
 
 #include <cstddef>
 #include <cstdint>
 #include <list>
 #include <string>
 #include <vector>
-#include <windows.h>   // RECT (dirtyRect)
 
 class CObject3D;
 class ParticleSource;

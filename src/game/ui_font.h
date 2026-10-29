@@ -4,7 +4,7 @@
 // into the executable (render_text.h: Liberation Serif for Times New Roman, Liberation Mono for Courier New). See
 // docs/notes/ui-native.md, "P8 done".
 
-#include <windows.h>
+#include "lib/win_types.h"
 
 #include <string>
 #include <string_view>

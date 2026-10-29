@@ -2,8 +2,8 @@
 
 // The battle camera's input (ui_camera_keys.cpp, ui_camera_input.cpp).
 
-#include <windows.h>
 #include "ui.h"
+#include "lib/win_types.h"
 
 // The battle camera's input side (one of the battle screen's extra input sides). Keys move the camera along
 // x / y / z (set by the key-down, cleared by the key-up); the right button turns the view while held.

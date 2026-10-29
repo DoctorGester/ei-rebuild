@@ -6,7 +6,7 @@
 // on either side. With the flag off, or a mode addon would refuse, everything is the original's. The list of what moves
 // is in docs/notes/rebirth.md, "WideScreen module overview".
 
-#include <windows.h>
+#include "lib/win_types.h"
 
 class UiWindow;
 
