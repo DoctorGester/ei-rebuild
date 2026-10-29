@@ -63,6 +63,10 @@
 //                             only the left / right button's press or release there (a button held
 //                             over frames, e.g. the camp trade panel's repeated school purchase, the
 //                             global map turned by a right-button drag)
+//   mousedrag <dx> <dy>       from the next frame on, after each frame the game's DirectInput mouse moves by
+//                             (dx, dy) counts and a WM_MOUSEMOVE at the harness's mouse follows: a drag at a
+//                             steady speed, e.g. the camera turned with the right button held (rdown /
+//                             rup; camera_spin); "mousedrag 0 0" ends it
 //   wheel <x> <y> <delta>    turn the mouse wheel by <delta> (120 a notch; negative: towards the
 //                             user) with the mouse at (x, y) in the 800x600 layout
 //   clickregion <n>, rclickregion <n>, dblclickregion <n>, moveregion <n>
@@ -168,12 +172,8 @@
 //                             output that follows posted keys, which a busy machine handles later)
 //   frametime <ms>            on the virtual clock: each main loop frame takes <ms> (default 0: five
 //                             world updates, the most one pass runs); e.g. 8 for a 120 Hz screen's frames
-//   smoothcamera on|off       the image's smooth camera (render::SetSmoothCamera, R18: the camera moved
-//                             once a frame by time, its target followed between ticks), from the next
-//                             pass; "render smoothcamera" turns it on from the start. Ignored in
-//                             a run of the original code
-//   camtrace start|stop <name>, camsame <a> <b> <kind> <fraction>, camsmooth <name> <kind> [jerky]
-//                             the camera's motion frame by frame and its checks (harness_camera.h, R18)
+//   camtrace start [log] | stop <name>, camsame / camsteadier <a> <b> <kind> <fraction>, camsmooth <name> <kind> [jerky]
+//                             the camera's motion frame by frame and its checks (harness_camera.h, R18, R35a)
 //   speed <ms>                run one world update per <ms> of real time (game default 55, its own
 //                             speed-up key 27; smaller is faster); 0 leaves it to the game
 //   waitfor <seconds> <expression>
@@ -745,6 +745,8 @@ BOOL WINAPI NoCursorMove(int, int) { return TRUE; }
 // the last position a move/click step posted (client coordinates), the window's centre until then.
 decltype(&::GetCursorPos) g_getCursorPos;
 volatile LONG g_mouseX = -1, g_mouseY = -1;
+// The "mousedrag" step's motion a frame (DirectInput counts; 0, 0: none).
+int g_dragX = 0, g_dragY = 0;
 HWND GameWindow();
 BOOL WINAPI HarnessCursorPos(LPPOINT point) {
     if (!point) return FALSE;
@@ -3020,6 +3022,8 @@ void RunSteps() {
             HeldModifiers held(&s.argument);
             if (sscanf_s(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
             else Log("harness: %s needs <x> <y>", s.verb.c_str());
+        } else if (s.verb == "mousedrag") {
+            if (sscanf_s(s.argument.c_str(), "%d %d", &g_dragX, &g_dragY) != 2) g_failures.push_back("mousedrag needs <dx> <dy>");
         } else if (s.verb == "wheel") {
             int x = 0, y = 0, delta = 0;
             HeldModifiers held(&s.argument);
@@ -3207,13 +3211,6 @@ void RunSteps() {
         } else if (s.verb == "frametime") {
             if (!clock::Virtual()) g_failures.push_back("frametime needs the virtual clock (deterministic)");
             else clock::SetFrameTime(std::strtoul(s.argument.c_str(), nullptr, 10));
-        } else if (s.verb == "smoothcamera") {
-            if (!ei::Standalone())
-                Log("harness: smoothcamera %s: the original code: ignored", s.argument.c_str());
-            else if (s.argument == "on" || s.argument == "off")
-                image::SetSmoothCamera(s.argument == "on");
-            else
-                g_failures.push_back("smoothcamera needs on or off");
         } else if (camera_trace::UsedBy(s.verb)) {
             camera_trace::Step(s.verb, s.argument, &g_failures, &g_capturedFrames);
         } else if (s.verb == "speed") {
@@ -3836,6 +3833,10 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
         timing::FrameEnd();
         timing::Scope scope(timing::PairWait);
         pair::FrameDone(g_frames);   // a pair's games take turns a frame at a time (harness_pair.h)
+        if (g_dragX || g_dragY) {
+            input::AddMotion(g_dragX, g_dragY);
+            PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, MAKELPARAM(g_mouseX, g_mouseY));
+        }
     }
     // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
     // depends on the real messages it gets (Miles' 50 ms WM_TIMER, WM_PAINT), and a step that

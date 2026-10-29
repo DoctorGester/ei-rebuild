@@ -7,14 +7,10 @@
 
 #include <cstdint>
 
-class CTransformObject;
-
 namespace view {
 
-// The view matrix of a camera: rows are its rotation's X, Y and Z
-// axes, column 3 minus the position projected on each.
-void CameraViewMatrix(float* out, const CTransformObject* camera);
-// The same from a position and rotation (the smooth view's pose, camera::DrawnView).
+// The view matrix of a camera at `position` turned by `rotation` (the world's draw passes the pose it shows,
+// camera::DrawnView): rows are the rotation's X, Y and Z axes, column 3 minus the position projected on each.
 void ViewMatrix(float* out, const Vector3& position, const Quaternion& rotation);
 // The rotation about Z that turns +X onto (dir.x, dir.y): the angle is
 // acos of the normalised x (clamped to [-1, 1]), the axis -Z when the normalised y is positive

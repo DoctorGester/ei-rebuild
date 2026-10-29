@@ -37,7 +37,6 @@
 #include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "render/render.h"
 #include "world_glue.h"
 #include "../hook/log.h"
 #include "game_data.h"
@@ -387,19 +386,6 @@ ei::mainloop::HarnessHooks::WorldUpdate ClientSegment() {
     return &RunClientSegment;
 }
 
-// The smooth camera's clock (render::SmoothCamera; docs/notes/renderer.md section 14): the
-// client's time in ms, a tick for each client tick run plus the part of the next tick it has
-// (its backlog, up to a tick). Without the option each client tick moves the camera by a tick (in
-// RunWorlds) on top of the frame's real time: half of every pan, turn and zoom arrives in jumps of
-// a tick 18 times a second. With it the frame moves the camera by its real time plus what this
-// clock advanced since the last frame's camera update: the same time in all, spread over the frames.
-std::uint32_t g_clientTicksMs = 0;     // our own state, not the game's
-std::uint32_t g_cameraClientMs = 0;    // the clock at the last frame's camera update
-std::uint32_t ClientClockMs() {
-    const std::uint32_t tick = TickLength();
-    return g_clientTicksMs + (g_clientBacklog < tick ? g_clientBacklog : tick);
-}
-
 // A change of the window's activation taken up: active again, every surface is restored (when the renderer
 // was created) and the renderer runs; inactive, the renderer stops and the desktop is repainted.
 void TakeActivationChange() {
@@ -431,8 +417,8 @@ std::uint32_t TimeSinceLastPass() {
 
 // The worlds run for the time that has passed: the server a tick at a time while it has a whole
 // tick, the client likewise while it has one and either server updates wait or its view is not in
-// mode 2 (each client tick also moves the camera by a tick; with the smooth camera it notes the
-// camera target's place instead). False when a world stops the frame.
+// mode 2 (each client tick also moves the camera by a tick, and notes that step for the drawn view:
+// camera::NoteViewTick). False when a world stops the frame.
 bool RunWorlds() {
     for (;;) {
         bool settled = true;
@@ -446,14 +432,9 @@ bool RunWorlds() {
             if (!ClientSegment()(&g_clientWorld, nullptr)) return false;
             const std::uint32_t tick = TickLength();
             g_clientBacklog -= tick;
-            g_clientTicksMs += tick;
-            const bool smoothView = render::SmoothView() != render::ViewSmoothing::Off;   // an experiment
-            if (smoothView) camera::NoteViewBeforeTick(&g_camera);
-            if (render::SmoothCamera())
-                camera::NoteTargetTick(&g_camera);
-            else
-                g_camera.Update(CameraSeconds(tick));
-            if (smoothView) camera::NoteViewTick(&g_camera, g_clientTicksMs, g_cameraClientMs, tick);
+            camera::NoteViewBeforeTick(&g_camera);
+            g_camera.Update(CameraSeconds(tick));
+            camera::NoteViewTick(&g_camera);
             net::Pump();
             continue;
         }
@@ -522,13 +503,9 @@ bool RunPass() {
         g_clientSpeed = SpeedForBalance(balance, roundedBalance);
         if (g_showClientSpeed) PrintClientSpeed(g_clientSpeed, roundedBalance);
 
-        // The camera runs on the real time of the pass, a tick at a time (the smooth camera: also on
-        // the client time that passed, which the client's ticks moved it by without the option).
-        const std::uint32_t clientClock = ClientClockMs();
-        std::uint32_t clientTime = clientClock - g_cameraClientMs;
-        g_cameraClientMs = clientClock;
-        if (render::SmoothView() != render::ViewSmoothing::Off) camera::SetViewTime(clientClock - TickLength(), elapsed);
-        if (render::SmoothCamera() && clientTime < 0x80000000u) elapsed += clientTime;   // not after a backlog reset
+        // The camera runs on the real time of the pass, a tick at a time; the draw spreads the last tick's
+        // step over the part of the next tick the client has had (camera::DrawnView).
+        camera::SetViewProgress(fraction, CameraSeconds(elapsed));
         CCamera* camera = &g_camera;
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {

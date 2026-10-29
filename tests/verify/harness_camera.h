@@ -1,22 +1,27 @@
 #pragma once
 
-// The camera's motion frame by frame (verify build only; harness_camera.cpp, R18): the smooth camera's
-// check (render::SmoothCamera, docs/notes/renderer.md section 14). Steps:
-//   camtrace start            record the battle camera's focus, heading and distance after each frame's
-//                             last camera update from now on (the main loop's per-frame call, which the
-//                             harness takes over for this: HeldCameraUpdate)
-//   camtrace stop <name>      end the recording and keep it as <name>: per kind (pan: the focus' path
-//                             on the map, turn: the heading's, in radians, zoom: the distance's) the
-//                             total, the largest step and the jumps: frames whose step is more than
-//                             twice both neighbours' (logged, and in the report)
+// The camera's motion frame by frame (verify build only; harness_camera.cpp, R18, R35a): the drawn view's checks
+// (camera::DrawnView, docs/notes/renderer.md section 14). Each frame samples the pose the world's draw shows and
+// the camera's own (in game.exe the original's camera through exe_objects.h, which draws its own pose). Steps:
+//   camtrace start [log]      record after each frame's last camera update from now on (the main loop's
+//                             per-frame call, which the harness takes over for this: HeldCameraUpdate); with
+//                             "log" each frame's poses go to the log ("harness: camframe ...")
+//   camtrace stop <name>      end the recording and keep the drawn view as <name> and the camera's own as
+//                             <name>.camera: per kind (pan: the focus' path on the map, turn: the heading's, in
+//                             radians, zoom: the distance's, height: the camera's height) the total, the largest
+//                             step and the jumps: frames whose step is more than twice both neighbours'
+//                             (logged, and in the report)
 //   camsame <a> <b> <kind> <fraction>
 //                             require recordings <a> and <b> to have moved by the same total of <kind>
-//                             (pan, turn or zoom) within <fraction> of the larger, and by something
+//                             within <fraction> of the larger, and by something
+//   camsteadier <a> <b> <kind> <fraction>
+//                             require recording <a>'s largest step of <kind> to be at most <fraction> of <b>'s
+//                             (and <b> to have moved), e.g. the drawn height against the camera's own, where
+//                             the game's own small changes within a frame (no jump of a tick) are left
 //   camsmooth <name> <kind> [jerky]
 //                             require recording <name> to have moved in <kind>, without a jump (with
-//                             "jerky": with at least one, the game's camera without the option at a
-//                             frame time shorter than a tick)
-// Skipped in a run of the original code (the option is the image's).
+//                             "jerky": with at least one, e.g. the camera's own at a frame time shorter than a
+//                             tick, where each client tick moves it by a tick at once)
 
 #include <string>
 #include <vector>

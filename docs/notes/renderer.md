@@ -69,7 +69,7 @@ A lost device that is made again (R9c1) is recovery, not a fallback, and stays. 
 every entry point draws. Only the image runs it: in game.exe (the harness and the vector recorders run inside the
 original's process) nothing of ours draws, and the harness asks `ei::Standalone()` (R26a folded HarnessRenderActive into it; a renderer failure ends the game, so
 there is no "failed" state to poll): captures there read the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
-comma-separated list of options: `smoothcamera` (the smooth camera, R18, section 14), `smoothview` / `smoothviewspread` (section 14a), the harness build's `removable` (R9c5) and `checkall`; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
+comma-separated list of options: the harness build's `removable` (R9c5) and `checkall`; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
 DirectDraw surface (no holder has one).
 
@@ -1574,104 +1574,80 @@ of the 0.5-1.6 ms hand-over).
   shadows, filtering), so the quadrants sit where the original draws them (a flipped or channel-swapped page would
   differ over the 60% of the frame the pages cover).
 
-## 14. The smooth camera (R18)
+## 14. The drawn view (smooth camera motion)
 
 User 2026-10-21: at 1x speed on a 120 Hz screen the battle camera moved jerkily. Why: the world ticks every 55 ms
 (0078FF34). The main loop (`RunPass`, src/game/app_main.cpp) moves the camera once a frame by the frame's real time
 (cut into whole ticks), and `RunWorlds` moves it again by a whole tick after each client tick, so half of every pan,
-turn and zoom arrives in jumps of 55 ms of motion about 18 times a second. `CCamera::Update`'s tracking drift (a fifth
-of the way to the tracked object, kTrackGain 0073BAD4) and focus height lag (a tenth, kHeightLag 0073B850) are per
-call, so they grow with the frame rate, and a followed unit's position changes only at its ticks.
+turn and zoom arrives in jumps of 55 ms of motion about 18 times a second. The original does the same.
 
-- **The option**, off by default (goldens and every scenario run without it): EI_RENDER's word `smoothcamera` (read at
-  the first use) or `render::SetSmoothCamera` (from the next pass; ST2's options screen can call it,
-  ST1 keep it); `render::SmoothCamera()` reads it. It lives with the renderer's options although only the main loop
-  and `CCamera::Update` read it. In a run: `render new,present,smoothcamera` or the harness step `smoothcamera on`.
-- **One update a frame by time.** RunWorlds no longer updates the camera at a client tick
-  (`camera::NoteTargetTick` instead, below). The main loop keeps a clock of the client's time of its own
-  (`ClientClockMs`: a tick for each client tick run plus the backlog, up to a tick; never the game's state) and gives
-  the frame's update the real time plus what that clock advanced since the last frame's update: over any stretch the
-  camera gets the same time as without the option (each client tick's 55 ms), spread over the frames by the
-  backlog. A backlog reset (0x4000000) gives nothing; a stalled client (multiplayer, mode 2: its backlog past a tick)
-  holds the clock at a tick and the ticks it then runs arrive at once, as without the option. The frame's time is
-  still cut into whole ticks.
-- **Gains by time:** 1 - (1 - g)^(dt / reference) (`TimeGain`, camera.cpp; x87::fexp / flog), dt in camera time (1 a
-  tick). The reference (`kGainReference`, 0.465 ticks = 25.6 ms) is the time one call took in the original at 60
-  frames a second (a second's 1000 / 55 ticks and 60 frames share 2000 / 55 ticks of camera time over 78 calls): at
-  60 Hz the drift and lag match the original's, at 120 Hz they are as at 60 (the original's were faster there). A
-  choice, not a measurement: the developers' frame rate is unknown. Only these two gains were per call; the pan, turn,
-  tilt, zoom and their easing (`Approach`, the pan's velocity) were already per time. The pan scale's `+ kTrackGain`
-  is not a gain and stays.
-- **Following between ticks:** after each client tick `camera::NoteTargetTick` keeps the camera target's
-  `localPosition_` and `position.z` (the height lag's ground) after its last two ticks (`TargetTicks`, reset when the
-  target changes or is gone). `Update` uses them blended by the client's `tickFraction_` (clamped to 0..1): the
-  tracking drift, the follow mode's (flag 0x8) position and the height lag's target height. Not blended (the live
-  position): fewer than two ticks kept, the target no longer where its last tick left it, or a jump of more than 8
-  map units in one tick (a teleport). The followed place lags the unit's by up to a tick; R19 draws the unit itself
-  between its ticks, and until then a followed unit moves on the screen by its tick steps while the ground stays
-  smooth.
-- **Check** (scenario `camera_smooth`, image only, vanilla and Rebirth): on the virtual clock at a fixed frame time of
-  8 ms (`frametime 8`, a 120 Hz screen) the camera pans (`keydown left`, 110 frames = 16 ticks, then 60 frames to
-  rest), turns (Ctrl held) and zooms (Page Down, 55 frames) once without the option and once with it, each undone
-  before the next. `camtrace` records the focus, heading and distance after each frame's last update (the per-frame
-  call the harness takes over, HeldCameraUpdate); the frames' update time doubles with the option (24.7 -> 49.5 ticks
-  over 170 frames: the ticks' share moved into the frames). `camsame` (3%): pan 13.91 / 13.63 map units (2.0% apart:
-  the pan velocity's explicit easing runs in steps of 0.15 and 1 tick without the option, of 0.29 with it), turn
-  2.358 / 2.367 rad (0.4%), zoom 14.71 / 14.69 (0.2%). `camsmooth`: a jump is a frame whose step is more than twice
-  both neighbours'; without the option pan 23, turn 20, zoom 16 jumps (every tick), with it none, and none while the
-  camera follows the walking hero (`follow_smooth`; without the option that showed 1).
+The camera (`CCamera`: its timing, tracking, height lag, the sound listener) stays as the game has it; only the pose
+the world's draw shows changes (always on, no option). User 2026-10-29 played it at 120 Hz and kept it. (R18's
+option moved the camera itself once a frame by time and changed the game state: with it all 121 goldens differed
+from boot tick 20. A second variant drew between the poses of the last two ticks and lagged 5 frames. Both are gone.)
+
+- **Spread:** around each client tick's camera update RunWorlds notes the pose before it and the step it made
+  (`camera::NoteViewBeforeTick` / `NoteViewTick`: position, focus, distance; the turns as the rotations that undo
+  them). Once a pass `camera::SetViewProgress` takes the client's part of the next tick (its backlog over a tick,
+  0..1). `camera::DrawnView` is the camera's own pose less the step times the part not reached: all of the step just
+  after the tick, none a tick later. No tick for longer (a paused or stalled client): the backlog passes a tick and
+  the camera's own pose is drawn. A pass longer than a tick (fewer frames than ticks, where each frame sees whole
+  ticks anyway) spreads less, linearly to none at two ticks: the harness's default pass of five ticks draws the
+  camera's own pose. That matters to the goldens: picking reads the drawn view, and with the last step held back on
+  such frames (R35a's first try) 7 of 121 differed (a click or a client unit a step off).
+- **Cut:** a tick whose update moved the focus by more than 8 map units, or the camera nearer to its focus or
+  farther from it by more, placed it anew (a map change, a jump of the focus): no step, shown at once. A turn, pan,
+  tilt, zoom or lift stays within both in a tick however fast it goes. (R35's test, more than 8 units of travel or about 0.4 rad of
+  turn in a tick, took a fast spin for a cut: see "Spinning".)
+- **Where it is read:** `CWorldClient::Render` takes the frame's pose once at its start (`camera::TakeFrameView`);
+  what the world's draw places by the camera reads `camera::FrameView()`: the view matrix (`view::ViewMatrix`), the
+  sky dome, particle billboards (particle_draw.cpp), lightning's glow (lightning_draw.cpp), rain and snow's band
+  (weather_particles.cpp), the lighting's eye (`HandOverSceneLights`) and the old shadows' axis. The terrain's
+  visible sectors (`SetVisibleSectors`) and their level of detail (terrain_passes.cpp `ChooseDetail`) keep the
+  camera's own position (within a sector of the drawn one; keeping them on the camera is one less thing that could
+  reach the game state). The listener stays with the camera. Picking reads the last drawn frame's matrices (the
+  view stack `Render` pushes, and the objects' `dirtyRect`s drawn by them), so a click picks what the screen shows.
+- **Lag:** the drawn view trails the camera by up to a tick's step (on `camera_smooth`, R35: the path fits the
+  camera's 2 frames (16 ms) later; up to 30 px apart on a pan, 71 px on a turn at 1280x720).
+
+### Spinning (user 2026-10-29: "spinning the camera sometimes shakes a lot")
+
+Measured on `camera_spin` (8 ms frames; harness `camtrace start log` writes each frame's own and drawn pose,
+`mousedrag` turns the camera by a right-button drag; the same steps run on game.exe with the camera read through
+exe_objects.h):
+
+- **The original's part:** zoomed in (distance 10) and tilted low (30 degrees), a turn swings the camera over the
+  ground and houses behind it. `ClampAboveObjects` (0040E4C0) keeps it above the highest terrain within 2 units and
+  the objects within 16 (fading over 10) plus CameraMinHeight, and `ApplyView` then aims it back down at the focus:
+  over one turn it rose from 18.98 to 27.39 and its pitch went from -30 to -53 degrees and back. At 120 Hz each
+  tick's turn arrives at once, so the lift came in steps of up to 1.3 units and 5 degrees 18 times a second (the
+  camera's height: largest second difference 1.29-1.45 per frame^2 over four spins). game.exe's camera and ours were
+  the same to the last digit over all 1760 frames of the four spins (keyboard): the bobbing and its tick steps are
+  the original's. The focus does not move in a spin (its height stays), so the ground under the look point plays no
+  part.
+- **What the drawn view did:** it spreads those tick steps (largest second difference 0.23-0.27 in height, 0.016
+  rad in pitch against 0.098), and adds nothing at keyboard speed (the same travel, fewer reversals). But its cut
+  test took any tick that turned the camera more than about 0.4 rad or moved it more than 8 units for a cut and
+  drew that tick's step at once. A brisk drag zoomed out crosses it (drag 160 counts a frame at 1280x720: 0.43 rad
+  a tick): the drawn view then jumped at every tick (45 jumps in 340 frames, as many as the camera's own), and with a
+  real mouse's uneven counts some ticks cross it and some do not, so the view alternates between smooth and jerky:
+  the shake. Ours; fixed by the cut test above (now 0 jumps for the same drag).
+- The mouse turn's rate is the drag in layout pixels (the counts scaled from the screen to 800x600): the same counts
+  turn the camera 3 times faster at 1280x720 than at 3840x2160 (the original's runs here). The original's.
+
+### Checks
+
+- `camera_smooth` (image only, vanilla and Rebirth): pan (an arrow key, 110 frames, then 60 to rest), turn (Ctrl),
+  zoom (Page Down) and follow (Home, the hero walking). `camtrace` keeps each recording as the drawn view (`pan`)
+  and the camera's own (`pan.camera`). `camsame` (3%): the drawn view covers what the camera does (pan 13.93 / 13.91,
+  turn and zoom the same). `camsmooth`: the drawn view without a jump, the camera with (pan 23, turn 20, zoom 15: a
+  jump is a frame whose step is more than twice both neighbours').
+- `camera_spin` (image only): the low keyboard spin (turn without jumps; `camsteadier`: the drawn height's largest
+  step at most 0.35 of the camera's, measured about 0.26; what is left are the game's own changes within a frame)
+  and the fast drag zoomed out (turn without jumps, the camera's own jerky).
 - Harness for it: `keydown` / `keyup` (a key held over frames; the navigation keys extended as from a keyboard, which
-  the game's key table needs: held without the bit, the arrows did not pan at all), `frametime <ms>`,
-  `smoothcamera on|off`, `camtrace` / `camsame` / `camsmooth` (tests/verify/harness_camera.h).
-
-## 14a. The smooth view (an experiment)
-
-User 2026-10-29: R18's option changes the game state (with `EI_RENDER_EXTRA=smoothcamera` all 121 goldens differ
-from boot tick 20: something that depends on the camera draws from the random generators). The smooth view leaves
-the camera (CCamera: its timing, tracking, the listener) as the game has it and changes only the pose the world's
-draw shows. Temporary EI_RENDER words, off by default; R18's option is kept.
-
-- **Where:** camera.cpp (`camera::NoteViewBeforeTick` / `NoteViewTick` around each client tick's camera update in
-  RunWorlds, `SetViewTime` once a pass, `DrawnView`); the view matrix hand-over in `CWorldClient::Render`
-  (world_client_draw.cpp: `view::ViewMatrix` of the drawn pose, and the sky dome at the drawn position);
-  render.h `render::SmoothView()` (`ViewSmoothing`). The rest of the draw reads the camera itself: particle
-  billboards' rotation (particle_draw.cpp), lightning, terrain level-of-detail distance, visible sectors, the
-  weather's eye, the shadow casters' camera; off by up to a tick's motion.
-- **Between** (`smoothview`): the poses after the last two client ticks, drawn at the client clock less a tick
-  (lerp of the position, slerp of the rotation). A tick's pose is timed halfway between the tick's client time and
-  the last frame update's (half the camera's motion comes from each). A cut (a tick that moved the camera more than
-  8 map units or turned it more than about 0.4 rad, or a tick after more than two ticks of real time without one)
-  fills both with the new pose; with no tick for two ticks of real time the camera's own pose is drawn.
-- **Spread** (`smoothviewspread`): the camera's own pose less the part of the last tick's step (the change its
-  camera update made: position, focus, distance; rotations as the turn that undoes it) that the frame has not
-  reached: all of it just after the tick, none a tick later. No step for a cut. With R18's option the ticks do not
-  move the camera, so it draws the camera's own pose.
-- **Picking** reads the last drawn frame's matrices (PickPoint: the view stack, which `Render` pushes; objects:
-  their `dirtyRect`, drawn by those), so with either variant clicks pick what the screen shows. Picking from the
-  camera would miss by the offsets below.
-
-Measured on `camera_smooth` (1280x720, 8 ms frames on the virtual clock), the drawn view through `camtrace`
-(image::Camera reads `DrawnView` while a variant is on, and logs both poses and their pixel offset a frame:
-"harness: smoothview"). Steps over the steady part: mean and coefficient of variation (cv; the game's camera:
-pan 1.23, turn 1.21, zoom 1.22). Lag: the frame shift that best fits the drawn path to the camera's. Offset: the
-largest screen distance between where the camera and the drawn view put the focus and four ground points at half
-the camera's distance around it.
-
-| | jumps pan / turn / zoom / follow | cv pan / turn / zoom / follow | lag | offset max (mean) pan / turn / zoom px |
-|---|---|---|---|---|
-| game | 23 / 20 / 16 / 1 | 1.23 / 1.21 / 1.22 / 0.29 | - | - |
-| R18 option | 0 / 0 / 0 / 0 | 0.09 / 0.00 / 0.10 / 0.33 | 0 | (the camera itself) |
-| Between | 0 / 0 / 0 / 0 | 0.12 / 0.01 / 0.20 / 0.03 | 5 frames (40 ms); zoom starts 4 frames late | 59 (31) / 140 (73) / 44 (16) |
-| Spread | 0 / 0 / 0 / 0 | 0.09 / 0.00 / 0.13 / 0.06 | 2 frames (16 ms); no late start | 30 (11) / 71 (25) / 21 (5) |
-
-- Goldens: all 121 the same with `EI_RENDER_EXTRA=smoothview` and with `smoothviewspread` (picking on the drawn
-  view); only `camera_smooth` fails, on its "jerky" checks of the game's camera (none left to see). The goldens
-  click with the camera at rest, so they do not test a click while it moves.
-- Totals (camsame against the game's camera): pan 13.89 / 13.93, turn 2.368 / 2.358, zoom 14.72 / 14.71
-  (Between / Spread), as without (the camera is the same).
-- Open: how it feels at 120 Hz in play (`set EI_RENDER=smoothviewspread` before play.cmd); the shake is sampled at
-  the ticks by Between (a 4.5 Hz wave at 18 Hz), Spread keeps the frames' part of it; a pass with two ticks
-  (frames longer than a tick) spreads only the last tick's step.
+  the game's key table needs), `frametime <ms>`, `mousedrag <dx> <dy>`, `camtrace` / `camsame` / `camsteadier` /
+  `camsmooth` (tests/verify/harness_camera.h). camtrace also runs on game.exe (no check there needs it).
 
 ## 15. The performance overlay (R21)
 

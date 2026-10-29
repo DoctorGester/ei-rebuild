@@ -218,13 +218,9 @@ inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 
 #define CAM_DEGREE ei::kRadiansPerDegree                             // one degree in radians (pi * 1/180 at 24 bits)
 #define CAM_RIGHT_ANGLE static_cast<float>(CAM_DEGREE * CAM_NINETY)
 
-// The smooth camera (render::SmoothCamera; docs/notes/renderer.md section 14): the main loop
-// calls this after each of the client's ticks instead of CCamera::Update. It keeps the position of
-// the camera's target after its last two ticks, which Update blends by the client's tickFraction_.
-void NoteTargetTick(const CCamera* camera);
-
-// The smooth view (an experiment, render::SmoothView; docs/notes/renderer.md section 14a): the camera
-// keeps its own timing and the world's draw shows a pose between the camera's last two client ticks.
+// The drawn view (docs/notes/renderer.md section 14): the camera keeps the game's timing (each client tick
+// moves it by a tick, each frame by its time), and the world's draw shows its pose less the part of the last
+// tick's step the frame has not reached yet, so the tick's jump is spread over the frames up to the next tick.
 struct ViewPose {
     Vector3 position;       // CTransformObject::localPosition_
     Quaternion rotation;    // CTransformObject::localRotation_
@@ -232,18 +228,22 @@ struct ViewPose {
     Quaternion heading;
     float distance;
 };
-// Around a client tick's camera update: the pose before it, then after it. `ticksMs`: the client's ticks'
-// time with this one; `frameMs`: the client time of the last frame's camera update (half the camera's motion
-// comes from each); `tickMs`: a tick.
+// Around a client tick's camera update: the pose before it, then the step it made.
 void NoteViewBeforeTick(const CCamera* camera);
-void NoteViewTick(const CCamera* camera, std::uint32_t ticksMs, std::uint32_t frameMs, std::uint32_t tickMs);
-// Once a pass: the client time the frame shows (a tick behind the client's clock) and the real time
-// the pass took.
-void SetViewTime(std::uint32_t timeMs, std::uint32_t passMs);
-// The pose the world's draw shows (render::ViewSmoothing): Between, between the last two kept ticks at
-// the view time; Spread, the camera's own less the part of the last tick's step that the view time has not
-// reached. The camera's own when no tick is kept or none came for two ticks of real time.
+void NoteViewTick(const CCamera* camera);
+// Once a pass, after the worlds ran: the part of a tick the client has had since its last tick (its backlog over
+// a tick; clamped to 0..1) and the pass's real time in ticks. A pass of up to a tick spreads the step; a longer
+// one (fewer frames than ticks: each frame sees whole ticks anyway) spreads less, and from two ticks on the
+// camera's own pose is drawn.
+void SetViewProgress(float reached, float passTicks);
+// The pose the world's draw shows: the camera's own less the part of its last tick's step not reached yet.
 ViewPose DrawnView(const CCamera* camera);
+// CWorldClient::Render takes the frame's drawn view once at its start (TakeFrameView); what the world's draw
+// places by the camera reads it from FrameView: the view matrix, the sky, particle billboards, lightning, rain
+// and snow, the lighting's eye and the old shadows' axis (the terrain's visible sectors and their level of
+// detail keep the camera's own position).
+void TakeFrameView(const CCamera* camera);
+const ViewPose& FrameView();
 } // namespace camera
 
 int CameraCloseFile(CCamera* self);

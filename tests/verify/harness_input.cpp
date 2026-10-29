@@ -35,6 +35,7 @@ constexpr GUID kSysMouse = {0x6F1D2B60, 0xD5A0, 0x11CF, {0xBF, 0xC7, 0x44, 0x45,
 std::atomic<unsigned> g_reads{0};        // state reads of the game's mouse
 std::atomic<unsigned> g_moved{0};        // ... that had real motion or buttons, zeroed
 std::atomic<unsigned> g_hitTests{0};     // the real cursor over the game window
+std::atomic<int> g_motionX{0}, g_motionY{0};   // the harness's motion not read yet (AddMotion)
 
 template <class T>
 void PatchSlot(void* address, T replacement, T& original) {
@@ -65,6 +66,11 @@ HRESULT STDMETHODCALLTYPE QuietGetDeviceState(IDirectInputDevice7A* device, DWOR
         }
     }
     std::memset(data, 0, size);
+    if (size >= sizeof(DIMOUSESTATE)) {
+        auto* state = static_cast<DIMOUSESTATE*>(data);
+        state->lX = g_motionX.exchange(0);
+        state->lY = g_motionY.exchange(0);
+    }
     return result;
 }
 
@@ -112,6 +118,11 @@ bool RealMouse(HWND, UINT message, WPARAM, LPARAM lParam, LRESULT* result) {
             GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
     *result = HTNOWHERE;
     return true;
+}
+
+void AddMotion(int dx, int dy) {
+    g_motionX += dx;
+    g_motionY += dy;
 }
 
 void Report(FILE* f) {

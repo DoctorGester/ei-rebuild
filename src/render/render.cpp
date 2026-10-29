@@ -45,8 +45,6 @@ using namespace detail;
 bool g_configured = false;
 int g_msaa = 1;         // the render quality (SetMsaa, SetAnisotropy); not EI_RENDER's
 int g_anisotropy = 1;
-bool g_smoothCamera = false;
-ViewSmoothing g_smoothView = ViewSmoothing::Off;   // the smooth view (an experiment)
 #if defined(EI_RENDER_VALIDATION)
 bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12
 bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
@@ -54,8 +52,6 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 
 // EI_RENDER's words (render.h).
 void ParseSpec(const char* spec) {
-    g_smoothCamera = false;
-    g_smoothView = ViewSmoothing::Off;
 #if defined(EI_RENDER_VALIDATION)
     g_removable = false;
     g_checkAll = false;
@@ -67,14 +63,12 @@ void ParseSpec(const char* spec) {
         std::string word = s.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
         while (!word.empty() && word.front() == ' ') word.erase(word.begin());
         while (!word.empty() && word.back() == ' ') word.pop_back();
-        if (word == "smoothcamera") g_smoothCamera = true;
-        else if (word == "smoothview") g_smoothView = ViewSmoothing::Between;
-        else if (word == "smoothviewspread") g_smoothView = ViewSmoothing::Spread;
+        bool known = false;
 #if defined(EI_RENDER_VALIDATION)
-        else if (word == "removable") g_removable = true;
-        else if (word == "checkall") g_checkAll = true;
+        if (word == "removable") g_removable = known = true;
+        else if (word == "checkall") g_checkAll = known = true;
 #endif
-        else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
+        if (!known && !word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
@@ -1054,22 +1048,6 @@ bool QualitySettingsSupported() {
 #else
     return true;
 #endif
-}
-
-void SetSmoothCamera(bool on) {
-    EnsureConfigured();
-    if (on != g_smoothCamera) ei::Log("render: the smooth camera turned %s", on ? "on" : "off");
-    g_smoothCamera = on;
-}
-
-bool SmoothCamera() {
-    EnsureConfigured();
-    return g_smoothCamera;
-}
-
-ViewSmoothing SmoothView() {
-    EnsureConfigured();
-    return g_smoothView;
 }
 
 void BeginWorld() {

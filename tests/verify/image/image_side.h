@@ -186,7 +186,6 @@ void ConfigureRenderer(const char* spec);
 void SetWaitForVsync(bool on);
 void LoseDevice();
 bool RemoveDevice();
-void SetSmoothCamera(bool on);
 void EndFrame();
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
 // The renderer's steps (terrainlevels .. renderstats; harness.cpp, IsRenderStep): false for another verb.
@@ -231,11 +230,18 @@ int& GamePort();   // net::g_gamePort
 
 // ---- the camera trace (harness_camera.cpp; image/harness_objects_image.cpp)
 
-// What the trace samples of a CCamera: its focus, its view rotation's z and w, its distance and its flags.
-struct CameraState {
-    float focusX = 0, focusY = 0;
+// A pose of the camera as the trace samples it: the focus, the heading (the view rotation's z and w), the distance,
+// the position and the rotation (w, x, y, z).
+struct CameraPose {
+    float focusX = 0, focusY = 0, focusZ = 0;
     float turnZ = 0, turnW = 1;
     float distance = 0;
+    float position[3] = {};
+    float rotation[4] = {1, 0, 0, 0};
+};
+// What the trace samples of a CCamera: its own pose, the pose the world's draw shows (camera::DrawnView) and its flags.
+struct CameraState {
+    CameraPose own, drawn;
     unsigned flags = 0;
 };
 CameraState Camera(const void* camera);
