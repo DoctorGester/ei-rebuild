@@ -299,11 +299,11 @@ Terrain members: `materials` (+0x12C in the original), `waterLevels` (+0xAE8; pe
 but never read (C62): the draw and world matrices, the "Wood" page materials (each page made a material of kind 0x12 that
 nothing used), page / tile sizes, the highest light id, the extra page count, `minDetail`, the per-row visible column
 vectors (one rectangle now), and `lightingSector / X / Y` (+0x24C, the ray march's). `CDib` (dib.h; the original's 0x3C bytes): colour table, bits (a
-`std::vector`), header (`::operator new`, owned), image size, colour count, mask bytes, palette. Gone (C58a): the
+`std::vector`), header (`::operator new`, owned), image size, colour count, mask bytes. Gone (C58a): the
 owner fields (bits and header were only ever ours; the global-memory header and the mapped file never set), the
-unused HBITMAP. Kept: AllocateBits sizes the
-block without row padding while Write writes `imageSize` (rows padded to four bytes): a screenshot whose row is not a
-multiple of four bytes is written from past the block's end. The captures (`CDXSurface` holder in ECX, the rectangle in
+unused HBITMAP; (C58b) the GDI palette (MakePalette, which nothing read). AllocateBits and the capture size the rows with
+`DibRowBytes` (padded to four bytes, as `imageSize` counts them; the original sized them unpadded, so a screenshot whose
+row is not a multiple of four bytes was written from past the block's end and its rows were skewed). The captures (`CDXSurface` holder in ECX, the rectangle in
 EDX for 006D6D40): GetPixelFormat, a read Lock under the device lock 007AEE78, a new CDib in the surface's depth with its
 channel masks, the rows copied from the last to the first (16, 24 and 32 bits only), Unlock; a failed DirectDraw call is
 reported and the capture goes on. They read the DirectDraw surface as before: a holder without one (the renderer's

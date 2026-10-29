@@ -58,7 +58,6 @@ int CDib::Read(lib::File* input) {
         return 0;
     }
     colourCount = ColourCount(header, colourCount);
-    MakePalette();
     return 1;
 }
 
