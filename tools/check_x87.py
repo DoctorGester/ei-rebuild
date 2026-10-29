@@ -1,18 +1,51 @@
-"""Fails when the compiled game (ei-rebuild.exe) converts unsigned 32-bit values to floating point the modern way.
+"""The x87 rules hold in the x87 code only, and the SSE2 code keeps none of them.
 
-MSVC turns `static_cast<double>(uint32)` into FILD dword + FADD 2^32 (for values >= 2^31). That FADD
-rounds at the FPU's precision control, so the result can differ from the original's exact FILD of
-the zero-extended qword (the original exe never references a 2^32 constant). Use x87::FromUnsigned.
-The SSE2 code is left out (C30a): the renderer and the drawing-only game code (the ei_render and ei_draw libraries)
-and the CRT's conversions only SSE2 code calls (ftol3.obj: __ltod3 and its kin), whose 2^32 is SSE arithmetic.
+1. The x87 code (everything but the ei_render and ei_draw libraries) must not convert unsigned 32-bit values to
+   floating point the modern way: MSVC turns `static_cast<double>(uint32)` into FILD dword + FADD 2^32 (for values
+   >= 2^31). That FADD rounds at the FPU's precision control, so the result can differ from the original's exact
+   FILD of the zero-extended qword (the original exe never references a 2^32 constant). Use x87::FromUnsigned.
+   Checked in the compiled game (ei-rebuild.exe and its map). The SSE2 code is left out (C30a): the renderer, the
+   drawing-only game code and the CRT's conversions only SSE2 code calls (ftol3.obj: __ltod3 and its kin), whose
+   2^32 is SSE arithmetic.
+2. The SSE2 sources (src/render and CMakeLists' EI_SSE2_GAME_SOURCES but EI_X87_DRAW_SOURCES) write plain float
+   maths: no x87:: helpers (but the control word render.cpp's FpuGuard puts back), no libcrt::Ftol and no D()
+   double registers (C30c). Checked in the sources.
 
 usage: python tools/check_x87.py [build/release]   (exit 1 when a reference is found)
 """
-import bisect, os, re, struct, sys
+import bisect, glob, os, re, struct, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # The map's object column of the SSE2 code: library:object.
 SSE2_OBJECTS = ('ei_render:', 'ei_draw:', 'libcmt:ftol3.obj')
+# What the SSE2 sources must not use (comments left out): the x87 helpers but the control word, the CRT's _ftol, D().
+SSE2_BANNED = re.compile(r'\bx87::(?!(?:Set)?ControlWord\b)\w+|\blibcrt::Ftol\b|(?<![\w.>:])D\(')
+
+
+def sse2_sources():
+    """The files built for SSE2, from CMakeLists.txt (the same lists the build uses)."""
+    text = open(os.path.join(ROOT, 'CMakeLists.txt'), encoding='utf-8').read()
+    found = set()
+    globs = re.search(r'file\(GLOB EI_SSE2_GAME_SOURCES CONFIGURE_DEPENDS(.*?)\)', text, re.S).group(1).split()
+    for pattern in globs:
+        found.update(os.path.normpath(f) for f in glob.glob(os.path.join(ROOT, pattern)))
+    for name in re.search(r'list\(APPEND EI_SSE2_GAME_SOURCES(.*?)\)', text, re.S).group(1).split():
+        found.add(os.path.normpath(os.path.join(ROOT, name)))
+    for name in re.search(r'set\(EI_X87_DRAW_SOURCES(.*?)\)', text, re.S).group(1).split():
+        found.discard(os.path.normpath(os.path.join(ROOT, 'src', 'game', name + '.cpp')))
+    found.update(os.path.normpath(f) for f in glob.glob(os.path.join(ROOT, 'src', 'render', '*.cpp')))
+    return sorted(found)
+
+
+def source_problems():
+    problems = 0
+    for path in sse2_sources():
+        for number, line in enumerate(open(path, encoding='utf-8', errors='replace'), 1):
+            m = SSE2_BANNED.search(line.split('//', 1)[0])
+            if m:
+                print(f'{os.path.relpath(path, ROOT)}:{number}: {m.group(0)} in an SSE2 file (plain float maths there)')
+                problems += 1
+    return problems
 
 
 def main():
@@ -54,7 +87,7 @@ def main():
             syms.append((int(m.group(2), 16), m.group(1), m.group(3)))
     syms.sort()
     addrs = [a for a, _, _ in syms]
-    problems = 0
+    problems = source_problems()
     for h in sorted(hits):
         i = bisect.bisect_right(addrs, h) - 1
         name, obj = (syms[i][1], syms[i][2]) if i >= 0 else ('?', '')
