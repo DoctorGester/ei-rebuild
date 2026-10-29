@@ -140,10 +140,10 @@ By file:
 - 005C9310 (the event table's add, Rebirth-patched: ResOverride). 005D7970 (the fear order's operator=: only the original 005D30A0 calls
   it; our Fear inlines it). 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000 (AI helpers of other systems: voice, groups) and
   005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.
-- Run only by static initialisers (before the hooks), ported and compared once at start-up with what the original built
-  (`EI_STARTUP_CHECK`, verify_ai_static_tables.cpp; world.md "Rewritten"): the smoothing tables 005C42B0 with 005C3690, 005C3840,
-  005C3A00, 005C3E10, 005C4050 (`ai_path_smooth.cpp`), the spiral 005BF8F0 / 005BF5F0 (`sector_map.cpp`), the shape cache 005B32E0 /
-  005B31F0 (`ai_shape_cache.cpp`). 005C4F30, 005C5930, 005C5AB0, 005C5A80 are MFC and the shape cache helpers 005BCCB0, 005BE320,
+- Run only by game.exe's static initialisers; ours build on first use, compared with game.exe's by the path vectors'
+  @PathTables (tests/vectors/replay_path.cpp; world.md "Rewritten"): the smoothing tables 005C42B0 with 005C3690, 005C3840,
+  005C3A00, 005C3E10, 005C4050 (`ai_path_smooth.cpp` SmoothTables), the spiral 005BF8F0 / 005BF5F0 (`sector_spiral.cpp`
+  SectorSpiralTables). The shape cache 005B32E0 / 005B31F0 (`ai_shape_cache.cpp`). 005C4F30, 005C5930, 005C5AB0, 005C5A80 are MFC and the shape cache helpers 005BCCB0, 005BE320,
   005BE450, 005BE730 STLport hash_map instantiations (config/library.csv).
 
 ## Risks

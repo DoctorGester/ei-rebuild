@@ -43,13 +43,13 @@ struct AIViewer {
     // the noise of the ground at `position` (the AI map's terrain type). Returns 0 (no presence record).
     AIEventPresence* StepNoise(const Vector3* position, CUnitServer* source);
 
-    CAIMap* map;
-    int tick;                       // the world's event table: its tick (AIEventTable::Advance)
-    Vector3 eye;
-    Vector3 facing;
-    int cellX;                      // AI map cell of the eye
-    int cellY;
-    std::uint8_t ready;             // Prepare has run
+    CAIMap* map = nullptr;
+    int tick = 0;                   // the world's event table: its tick (AIEventTable::Advance)
+    Vector3 eye{};
+    Vector3 facing{};
+    int cellX = 0;                  // AI map cell of the eye
+    int cellY = 0;
+    std::uint8_t ready = 0;         // Prepare has run
 };
 
 // The cells `seer` sees as `observer` would be seen, into `grid` (cleared to one cell first): within
@@ -70,7 +70,6 @@ struct AIEvent {
     AIEvent* prev;                  // null for the cell's first
     AIEvent* nextInSlot;            // the wheel slot's list
 };
-// The pool's destructor (at exit): empties the list.
 
 // A map cell of the event grid: the newest event of each side (lists through AIEvent::next).
 struct AIEventCell {

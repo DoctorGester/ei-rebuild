@@ -1,9 +1,11 @@
 // The path smoother (PathSmoother, in CAIMap): a dynamic programme over the path's cells that may move each
 // cell to a neighbour when that makes the path cheaper, counting step costs and turns. Its 81 transition tables
-// are built once by a static initialiser. See ai_map.h and docs/notes/ai.md.
+// are built on first use. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "ei/x87.h"
+
+#include <array>
 #include <cstdint>
 
 namespace {
@@ -274,7 +276,14 @@ void SmoothTable::Build(const SmoothEdges* from, const SmoothEdges* to) {
     }
 }
 
-void BuildSmoothTablesAt(SmoothTable* tables) {
+namespace {
+
+using SmoothTableSet = std::array<SmoothTable, kStates * kStates>;
+
+// The tables as the original's static initialiser builds them: for every pair of directions the states of the
+// previous step (moved back by that step) against those of the next.
+SmoothTableSet BuildSmoothTables() {
+    SmoothTableSet tables;
     for (int previous = 0; previous < kStates; ++previous) {
         for (int next = 0; next < kStates; ++next) {
             SmoothEdges from, to;
@@ -295,12 +304,16 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
             tables[previous * kStates + next].Build(&from, &to);
         }
     }
+    return tables;
 }
 
-// The static initialiser's second half, after the 81 tables have been constructed empty.
-void BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables); }
+} // namespace
 
-// ---- The pool and the tables ----------------------------------------------------------
+const SmoothTable* SmoothTables() {
+    static const SmoothTableSet tables = BuildSmoothTables();
+    return tables.data();
+}
+
+// ---- The pool ---------------------------------------------------------------------------------
 
 SmoothPool g_smoothPool;
-SmoothTable g_smoothTables[81];

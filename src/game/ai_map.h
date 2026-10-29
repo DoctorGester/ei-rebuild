@@ -517,8 +517,7 @@ struct SmoothEdges : std::vector<SmoothEdge> {
     void BuildEdges(int direction, bool incoming);
 };
 
-// One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end), built by a
-// static initialiser.
+// One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end).
 struct SmoothTable {
     // The table between a cell with the states `from` and the next one with the
     // states `to`: a copy for every state both have, a step from every `from` state to every `to`
@@ -538,16 +537,12 @@ struct SmoothPool {
     SmoothNode* next = nullptr;         // the next free node
 };
 extern SmoothPool g_smoothPool;
-// Built by a static initialiser (BuildSmoothTables, ai_path_smooth.cpp).
-extern SmoothTable g_smoothTables[81];
-inline const SmoothTable* SmoothTables() { return g_smoothTables; }
+// The 81 transition tables, built on first use (ai_path_smooth.cpp).
+const SmoothTable* SmoothTables();
 // The direction (1..8 counter-clockwise from (0, -1), 0 for none) of the step (dx, dy) in -1..1:
 // DirectionSteps()[dy * 3 + dx], from the middle of the table.
 inline constexpr int kDirectionSteps[9] = /*00791978*/ {2, 1, 8, 3, 0, 7, 4, 5, 6};
 inline const int* DirectionSteps() { return kDirectionSteps + 4; }
-// What the table initialiser does, on any 81 constructed tables: for every pair of directions the states of
-// the previous step (moved back by that step) against those of the next.
-void BuildSmoothTablesAt(SmoothTable* tables);
 
 struct PathSmoother {
     // Re-plans the path's cells (at least three; else 0) through a trellis of the eight directions per cell:
@@ -582,6 +577,8 @@ struct UnitLayerNode {
 // large-unit one the signed bytes of CAIMap::waterDepth.
 class CUnitLayer {
 public:
+    explicit CUnitLayer(CAIMap* owner) : map(owner) {}
+
     virtual void Set(const UnitLayerNode* block) = 0;
     virtual void Merge(const UnitLayerNode* block) = 0;
 
@@ -594,17 +591,19 @@ public:
     std::list<UnitLayerNode> nodes;
     UnitLayerNode* buckets[1024] = {};  // by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes = nullptr; // unused nodes
-    CAIMap* map = nullptr;              // the owner's to set
+    CAIMap* const map;                  // the owner
 };
 
 class CSmallUnitLayer : public CUnitLayer {
 public:
+    using CUnitLayer::CUnitLayer;
     void Set(const UnitLayerNode* block) override;
     void Merge(const UnitLayerNode* block) override;
 };
 
 class CLargeUnitLayer : public CUnitLayer {
 public:
+    using CUnitLayer::CUnitLayer;
     void Set(const UnitLayerNode* block) override;
     void Merge(const UnitLayerNode* block) override;
 };
@@ -827,8 +826,8 @@ public:
     // the standing levels' special areas (ClearUnmarkedArea): RefreshArea reads the first list for levels
     // 0..4, the second for 5 and 6, the third for 7 (the other three are not read there).
     std::vector<AreaOffset> areaLists[6];
-    CSmallUnitLayer unitLayerSmall;     // unit occupancy
-    CLargeUnitLayer unitLayerLarge;
+    CSmallUnitLayer unitLayerSmall{this};   // unit occupancy
+    CLargeUnitLayer unitLayerLarge{this};
     PathSmoother smoother;
     CRegionMap regionMap;
     LocalSearch forwardSearch;

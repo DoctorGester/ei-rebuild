@@ -8,8 +8,6 @@
 
 CAIMap::CAIMap() {
     ResizeGrid(waterDepth, 1, 1);
-    unitLayerSmall.map = this;
-    unitLayerLarge.map = this;
     ResizeGrid(cells, 1, 1, &AllocateCellGrid);
     ResizeGrid(occluders, 1, 1, &AllocateOccluderGrid);
     ResizeGrid(marks, 1, 1);

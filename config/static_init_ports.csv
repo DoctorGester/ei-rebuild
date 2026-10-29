@@ -56,9 +56,6 @@ address,name,file
 00589C00,DestroyServerWorld,src/game/world_construct.cpp
 00589ED0,CWorldServer::CWorldServer,src/game/world_construct.cpp
 005B2FB0,InitDampScale,src/game/ai_refresh.cpp
-005BF8E0,BuildSectorSpiralStatic,src/game/sector_map.cpp
-005BF8F0,BuildSectorSpiral,src/game/sector_map.cpp
-005C42B0,BuildSmoothTables,src/game/ai_path_smooth.cpp
 005CDFB0,ConstructLogicSettings,src/game/logic_settings.cpp
 005CDFC0,LogicSettings::Construct,src/game/logic_settings.cpp
 005DC1E0,ConstructAiLogBuf,src/game/console_streams.cpp

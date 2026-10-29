@@ -274,91 +274,16 @@ Facts a worker needs that the code comments do not say:
   `AttachTerrain`: open marks, cost tables, water depths, searches, region map, events, sector map, the refresh.
   `ClimbTable` is `CArray<int>`, the terrain types `AlignedArray<AITerrainType>` (+0x104 cost, +0x114 open-cell
   marks), the grids have `SearchGrid` accessors, +0 is `loaded`.
-- Static initialisers run before the hooks are installed, so their ports are registered at their addresses but a running
-  game calls only the exit halves: the smoother's 81 transition tables 007C3058 (BuildSmoothTables 005C42B0, BuildSmoothEdges
-  005C3690 with the state lists 005C3840 / 005C3A00, SmoothTable::Build 005C3E10, MakeSmoothStep 005C4050 with cost factors
-  0x400 / 0x5A8 / 0x479 / 0x46E / 0x648 / 0x200 / 0, Destruct 005C4250), the sector spiral 005BF8F0 (441 offsets of a 21 x 21
-  square sorted by sector distance with the game's qsort, a length per distinct distance, last radius 1e30) with
-  RadiusTree::Build 005BF5F0, and the shape cache `UnitShapeCache` (game.exe's an STLport hash_map of handle to shape, ours a
-  std::unordered_map by height, core.md C14q; Construct 005B32E0, Destruct 005B31F0 releases every shape as its owner). `EI_STARTUP_CHECK`
-  (include/ei/hook.h) runs a check once at the end of `InstallHooks` while the initialisers' output is still untouched;
-  verify_ai_static_tables.cpp builds each table with our code and compares (the cache's functor bytes are stack garbage and
-  skipped). The checks call `Report` at the precision the process starts with (53 bits): the spiral's square roots need it.
-- `UpdateLighting` 00566360 (Render, zone load, message 0x71): fog start, sun direction and colour, ambient, sky colour by
-  hour; caves (`cave_` +0x6E0) use hour 0 and a fixed sun; the terrain's sun 006C8ED0 is called once per hour and is not
-  idempotent (a wrapper must hide the terrain). The tables `sunlight_` / `ambient_` / `sky_` are at +0x22C / +0x3AC / +0x52C
-  (LoadLights 00563930). `UpdateExitMarkers` 00567680 turns the exit particle sources red when "z.<zone>" is 1.
-- `SaveWorld` 00597BD0: 00661C10 XORs gold with a fresh random word, so a comparison must restore the random generator.
-- `CWorldClient` +0x1B4 `numbers_` is the `CFlyingHitPoints*` (Construct 005E1710 / Destruct 005E17E0), +0x6F4 the `CRainSnow`
-  (abstract like every engine object, so the world keeps its 0xC8 bytes and `RainSnow()` is the object), +0x108 `lineLists_` (DrawLineLists 00569D60).
-- `CWorld::NightLevel` 0055FC50: 1 before 8, 0 until 20, then (hours - 20) / 4. `CWorld::SetPaused` is the old
-  CWorldServer::SetUnknown6C (the client copy 00566350).
-- `CUnitShape` (ai_unit_layer.h; a real class since C28e): constructor 005B3440 (disc levels), OnShutdown 005B3540, Clone 005B34F0,
-  CreateUnitShape 005B33D0 (the shape cache's slot 0). `Sector` has its members (two object lists, `freeOccluder`,
-  `occluders` as `CArray<SectorOccluder>`); ai_occluders.cpp uses them.
-- `UnitTextureRecords` 005683D0 (`unit_skins.cpp`): the body list is [0] body, [1] empty, [2..7] items[1..6].
-- `StepNoise` 005C9770 multiplies in the order read from the exe; not confirmed by a run.
-- Dead code (no caller in the exe, Rebirth's binaries hold the addresses): RemoveAllUnits 005939E0, 00579FB0, 00566CB0.
-  Functions under 5 bytes (the getters 0055EB20-0055EC50, 005795A0-00579680 and the like) cannot be hooked and stay.
-- Byte-identical copies (39 in A-W12, more later) are registered beside their rewrites; `config/library.csv` lists the
-  compiler-generated and library code (STLport / MFC instantiations, deleting destructors, ConstructElements fills).
-- Scenarios: `newgame` and every scenario after it run the zone start; `console` covers GenerateAcks; `levers` the platform
-  faces and the synchronised list; `ui_quest_notice` the bird; `world_load` and `spells_hero` the client teardown. No
-  scenario reaches ReadWaterLevels / SetWaterLevel, MapFileExists, WriteMapFile (multiplayer client), LoadMobFile (zone1's
-  scripts use no AddMob), FinishQuestMap or SetNetworkZone (network games only).
-
-## Original bugs and oddities kept
-
-- `CountLivingMercs` returns living - 1 (0 when the player is missing, so -1 with no living units). `RemoveTimedObject` looks
-  the id up again after Release; `Tick` reads a timed object's `next` after its slot 6 and Release ran; the missile walk saves
-  `next` before Update. `NearestVisibleUnit`, `LocalPlayer*` do not null-check the session / view; `DepthLess` asks each
-  object's IsDead up to three times.
-- `InvokeAlarm` stops at the first map entry with a null object and does not check the controller for null; `InvokeAlarm(0,
-  ..., force)` clears all five alarms including padding. `ClearMapObjects` / `SaveMapObjects` stop at the first null map
-  entry; `LoadMapObjects` / `LoadMobFile` return what `FatalError` returns on failure (LoadMobFile treats non-zero as
-  success); `SetZoneExits` re-reads the source size each iteration; SEH frames of the loaders are not reproduced.
-- `LoadSave`: shared-object elements are copied from a local whose first three dwords are never written; the player list
-  iterator comes from the heap (`operator new(8)`), as in `SaveWorld`. `LoadSavedMapObjects` marks every part changed when
-  any change was saved (tests `1 << i`, not `changed & bit`) and uses the object before its null test. `SyncPlayer` passes
-  0066EC10 a dword whose upper bytes are the dirty flags. `CreateUnits` places a unit near the requested position, not near
-  its line position.
-- CastSpell / Loot / CreateMissile / record syncs / RecreateClientSession / CopyItem write +4 (the count) of a new allocation
-  before testing it for null; `AwardExperience`'s solo branch needs the player list's +0x2C non-zero; `AddSharedObject`'s
-  second argument is unused; `LootDeadUnits` does not stop at an empty map entry and calls Loot / RemoveObject on the global
-  server, not `this`; `MultiplayerZoneInto` maps game types above 3 (unsigned) to bz1mpg.
-- Figure meshes: 005A4D60 does not test the loaded flag; `DrawOffset`'s shared buffer grows without copying and allocates an
-  empty block for 0 vertices; the old-format loader rounds the box minimum differently for class 0x41 and 0x42; FLD / FSTP
-  copies quiet a signalling NaN (ours may copy bits). `AddFace` copies 0x4C bytes of uninitialised stack over the new record
-  first. Client: picking runs 100 + 100 height queries when |dz| never drops to 0.01; `ObjectsInRange`'s dz is the point's z
-  minus itself (0 or NaN).
-- ReferenceItemsAndSpells tests the item factory twice and never the spell manager before walking the spells.
-- UpdateLighting writes stack garbage as the sunlight's fourth float (+0x6D8) and the sky colour's fourth argument (ours
-  leave +0x6D8 alone and pass 0); a black ambient entry (0 or NaN in all three) takes 0.8 x the sunlight; NaN hours take
-  the night formulas.
-- With every flag off the Rebirth-patched rewrites keep the vanilla behaviour (`rebirth.md`).
-
-## Floating point
-
-Files with float code use `float_control(precise, on)` (world_units, world_weather, world_update, world_spells, world_party,
-parts of world_save / world_quests, world_client_*): stores to float where the original stores (`StoreFloat`), FPU-stack
-values as doubles, NaN branches as the original's FCOMP tests (`!(a >= b)` forms), random words through
-`x87::FromUnsigned`, truncation through the game's `_ftol` (006E853C). `Redeploy`'s facing uses FPATAN through a naked
-helper. `DepthLess`'s `a + b + c + offset` must stay `(a + b) + (c + offset)`. Plain C++ (rule 7) for the rest: a rotated
-normal exactly at z = 0.8 or a distance exactly on a radius may rarely differ. world_save.cpp's UpdatePlayerTimes lost its
-pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset, faddp gtime, fstp float, the same order.
-
-## Open items
-
-- Nothing of 5 bytes or more is unported in 0x00540000-0x005E0000 (46 functions under 5 bytes cannot be hooked).
-- The checks of A-W14 and A-W15 were never run in a game session. The first vanilla run should watch, in this order: the
-  three start-up checks ("static initialiser: ..." in the log, right after the hooks), then LoadZoneQuests,
-  CWorldClient::LoadZone and "CAIMap::Load" / "CAIMap::Load exact" at `newgame`, then the zone start ones (Setup, NewZone,
-  BuildZoneTable, MapsFolder, MapPath) and StepNoise.
-- CAIMap::Load: `AttachTerrain` is not exercised by the wrapper (it cannot run twice on the real map; each function it calls
-  has its own check). "CAIMap::Load exact" must pass on every map (X31 below); a failure prints the first cell whose ground
-  level differs and the height scale.
-- The exit halves of the static initialisers (SmoothTable::Destruct, UnitShapeCache::Destruct) and the loaders that run ours
-  only have no comparison. UnitShapeCache::Destruct walks the live cache at exit: a fault there shows as a crash on quit.
+- The AI's tables that game.exe's static initialisers build are built on first use in ours (C50a1): the smoother's 81
+  transition tables (ai_path_smooth.cpp SmoothTables; game.exe's 007C3058 by 005C42B0, BuildSmoothEdges 005C3690 with the
+  state lists 005C3840 / 005C3A00, SmoothTable::Build 005C3E10, MakeSmoothStep 005C4050 with cost factors 0x400 / 0x5A8 /
+  0x479 / 0x46E / 0x648 / 0x200 / 0) and the sector spiral (sector_spiral.cpp SectorSpiralTables; game.exe's 005BF8F0:
+  441 offsets of a 21 x 21 square sorted by sector distance with the game's qsort, a length per distinct distance, last
+  radius 1e30, RadiusTree::Build 005BF5F0). The path vectors' @PathTables record holds game.exe's tables; the replay
+  compares ours with them. The shape cache `UnitShapeCache` (game.exe's an STLport hash_map of handle to shape, ours a
+  std::unordered_map by height, core.md C14q) releases every shape as its owner at exit: a fault there shows as a crash
+  on quit. "CAIMap::Load exact" must pass on every map (X31 below); a failure prints the first cell whose ground level
+  differs and the height scale.
 - Not hooked because they are not functions: the initialiser stubs 005C41C0 / 005C41F0 / 005C42A0 / 005BF8E0 / 005B31C0 /
   005B31E0, the tables' element constructor 005C4210 (`SmoothTable::Construct` is its body), the spiral's sort comparison
   005BFC10 (ours is passed to the game's qsort). Static initialisers before the hooks: 0057F480, 005809A0, 00581070.
