@@ -45,6 +45,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace {
 
@@ -257,26 +258,26 @@ void UnitModes(const SSCCmd* cmd) {
     brain->RemoveModesOfType(AIModeType::Fear);
     switch (Round(cmd->floatArgs[0])) {
     case 0:
-        brain->AddMode(new FearMode(1));
-        brain->AddMode(new SuspectionMode());
-        brain->AddMode(new CorpseWatcherMode());
+        brain->AddMode(std::make_unique<FearMode>(true));
+        brain->AddMode(std::make_unique<SuspectionMode>());
+        brain->AddMode(std::make_unique<CorpseWatcherMode>());
         break;
     case 1:
-        brain->AddMode(new FearMode(0));
-        brain->AddMode(new SuspectionMode());
-        brain->AddMode(new CorpseWatcherMode());
+        brain->AddMode(std::make_unique<FearMode>(false));
+        brain->AddMode(std::make_unique<SuspectionMode>());
+        brain->AddMode(std::make_unique<CorpseWatcherMode>());
         break;
     case 2:
-        brain->AddMode(new AggressionMode(1));
-        brain->AddMode(new FearMode(0));
-        brain->AddMode(new SuspectionMode());
-        brain->AddMode(new CorpseWatcherMode());
+        brain->AddMode(std::make_unique<AggressionMode>(true));
+        brain->AddMode(std::make_unique<FearMode>(false));
+        brain->AddMode(std::make_unique<SuspectionMode>());
+        brain->AddMode(std::make_unique<CorpseWatcherMode>());
         break;
     case 3:
-        brain->AddMode(new AggressionMode());
-        brain->AddMode(new FearMode(0));
-        brain->AddMode(new SuspectionMode());
-        brain->AddMode(new CorpseWatcherMode());
+        brain->AddMode(std::make_unique<AggressionMode>());
+        brain->AddMode(std::make_unique<FearMode>(false));
+        brain->AddMode(std::make_unique<SuspectionMode>());
+        brain->AddMode(std::make_unique<CorpseWatcherMode>());
         break;
     default:
         break;
@@ -792,7 +793,7 @@ bool ScriptRun::Execute(CScript* script) {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            BrainOf(state)->AddMode(new SentryMode(point));
+            BrainOf(state)->AddMode(std::make_unique<SentryMode>(point));
             break;
         }
         case ScriptFunction::UMGuard:     // UMGuard(unit, x, y, radius)
@@ -804,20 +805,20 @@ bool ScriptRun::Execute(CScript* script) {
             float radius2;
             if (function == ScriptFunction::UMGuard) radius2 = -1.0f;
             else radius2 = f[3];
-            BrainOf(state)->AddMode(new GuardMode(point, radius, radius2));
+            BrainOf(state)->AddMode(std::make_unique<GuardMode>(point, radius, radius2));
             break;
         }
         case ScriptFunction::UMFollow: {   // UMFollow(unit, leader)
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             CMapObject* leader = ObjectSlots(Arg(cmd, 1));
-            BrainOf(state)->AddMode(new FollowMode(leader));
+            BrainOf(state)->AddMode(std::make_unique<FollowMode>(leader));
             break;
         }
         case ScriptFunction::UMPatrol: {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            BrainOf(state)->AddMode(new PatrolMode());
+            BrainOf(state)->AddMode(std::make_unique<PatrolMode>());
             break;
         }
         case ScriptFunction::UMPatrolClear: {
@@ -844,7 +845,7 @@ bool ScriptRun::Execute(CScript* script) {
             PatrolPoint* last = patrol->LastPoint();
             if (!last) break;
             // The arguments are the angle, the wait and the turning time.
-            last->looks.push_back(AILook{f[0], f[2], f[1], 0});
+            last->looks.push_back(AILook{f[0], f[2], f[1], false});
             break;
         }
         case ScriptFunction::UMPlayer: {
@@ -852,7 +853,7 @@ bool ScriptRun::Execute(CScript* script) {
             if (!state) break;
             AIBrain* brain = BrainOf(state);
             brain->ClearModes();
-            brain->AddMode(new PlayerMode());
+            brain->AddMode(std::make_unique<PlayerMode>());
             brain->StopAction();
             break;
         }
@@ -863,40 +864,40 @@ bool ScriptRun::Execute(CScript* script) {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             AIBrain* brain = BrainOf(state);
-            brain->AddMode(new AggressionMode());
-            brain->AddMode(new SuspectionMode());
-            brain->AddMode(new CorpseWatcherMode());
+            brain->AddMode(std::make_unique<AggressionMode>());
+            brain->AddMode(std::make_unique<SuspectionMode>());
+            brain->AddMode(std::make_unique<CorpseWatcherMode>());
             break;
         }
         case ScriptFunction::UMAggression: {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            BrainOf(state)->AddMode(new AggressionMode());
+            BrainOf(state)->AddMode(std::make_unique<AggressionMode>());
             break;
         }
         case ScriptFunction::UMRevenge: {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            BrainOf(state)->AddMode(new AggressionMode(1));
+            BrainOf(state)->AddMode(std::make_unique<AggressionMode>(true));
             break;
         }
         case ScriptFunction::UMFear: {   // UMFear(unit, on)
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             int on = IsZero(f[0]) ? 0 : 1;
-            BrainOf(state)->AddMode(new FearMode(static_cast<std::uint8_t>(on)));
+            BrainOf(state)->AddMode(std::make_unique<FearMode>(on != 0));
             break;
         }
         case ScriptFunction::UMSuspection: {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            BrainOf(state)->AddMode(new SuspectionMode());
+            BrainOf(state)->AddMode(std::make_unique<SuspectionMode>());
             break;
         }
         case ScriptFunction::UMCorpseWatcher: {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            BrainOf(state)->AddMode(new CorpseWatcherMode());
+            BrainOf(state)->AddMode(std::make_unique<CorpseWatcherMode>());
             break;
         }
 

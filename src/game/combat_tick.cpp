@@ -45,10 +45,6 @@ constexpr std::uint32_t kMinClosingBits = 0x3DCCCCCDu;              // 0.1: the 
 constexpr float kFarBits = 1000000.0f;                     // 1e6: no limit for a path
 
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr int kStateIdle = 0;
-constexpr int kStateTurning = 2;
-constexpr int kStateCasting = 5;
-constexpr int kStateChasing = 6;
 constexpr int kModeStop = 4;
 constexpr int kModeWalk = 1;
 constexpr int kModeRun = 2;
@@ -106,7 +102,7 @@ void LeaveMoveMode(CUnitServer* self) {
 }
 
 // Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
-// updates. Not while turning (state 2).
+// updates. Not while Turning.
 void StandIdle(CUnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
     if (!self->queue.SameAs(idle)) {
@@ -117,7 +113,7 @@ void StandIdle(CUnitServer* self) {
         self->PlaySteps(idle);
     }
     self->StandStill();
-    self->SetState(2);
+    self->SetState(UnitState::Turning);
 }
 
 // The queued order replaces the current one (copy, then reset of the queued order).
@@ -184,7 +180,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
 void UnitAction::Reset() {
     kind = UnitOrderKind::None;
     target.Reset();
-    pointIsUseSpot = 0;
+    pointIsUseSpot = false;
     param = 0;
     modifier = 0;
 }
@@ -228,7 +224,7 @@ void CUnitServer::TakeQueuedOrder() {
     action.modifier = action2.modifier;
     action2.kind = UnitOrderKind::None;
     action2.target.Reset();
-    action2.pointIsUseSpot = 0;
+    action2.pointIsUseSpot = false;
     action2.param = 0;
     action2.modifier = 0;
     if (action.modifier && moveMode.mode != kModeRun) {
@@ -309,7 +305,7 @@ bool CUnitServer::StartQueuedOrder() {
         action.Assign(&action2);
         ClearAction(&action2);
         LeaveMoveMode(this);
-        if (state != kStateTurning) StandIdle(this);
+        if (state != UnitState::Turning) StandIdle(this);
         return true;
 
     case UnitOrderKind::Move:
@@ -323,7 +319,7 @@ bool CUnitServer::StartQueuedOrder() {
         motion.StandAndTurn(now, unit, action.point, static_cast<std::uint32_t>(time));
         unit->RefreshMotion();
         PlayIdle();
-        SetState(1);
+        SetState(UnitState::Moving);
         return true;
     }
 
@@ -380,7 +376,7 @@ bool CUnitServer::StartQueuedOrder() {
         }
         TakeOver(this);
         LeaveMoveMode(this);
-        if (state != kStateTurning) StandIdle(this);
+        if (state != UnitState::Turning) StandIdle(this);
         return true;
 
     default:
@@ -400,7 +396,7 @@ void CUnitServer::UpdateOrders() {
     switch (action.kind) {
     case UnitOrderKind::Move:
     case UnitOrderKind::Turn:
-        if (state != kStateChasing) return;
+        if (state != UnitState::Stopped) return;
         if (stoodBlocked) {
             orderStopped = 1;
             if (!brain.LeaderOrFollowed() && unit->player) TellParty(unit, AckKind::NoPath);
@@ -466,7 +462,7 @@ void CUnitServer::ContinueAction() {
     }
     action.kind = UnitOrderKind::None;
     action.target.Reset();
-    action.pointIsUseSpot = 0;
+    action.pointIsUseSpot = false;
     action.param = 0;
     action.modifier = 0;
     if (action2.kind == UnitOrderKind::None && action.kind != UnitOrderKind::Idle) DropQueuedOrder();
@@ -588,7 +584,7 @@ void CUnitServer::ApproachTarget() {
         // A point: walk there; fail when there is no way or the order cannot be done from there.
         Vector3 goal;
         goal = action.point;
-        if (state == kStateIdle) {
+        if (state == UnitState::Idle) {
             EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(goal, motion.goal));
             if (DistanceSquaredXYUnrounded<double>(goal, motion.goal) <= kNearPoint) return;
         }
@@ -625,7 +621,7 @@ void CUnitServer::ApproachTarget() {
         if (static_cast<double>(reach) * reach >= DistanceSquaredXYUnrounded<double>(aim, unit->localPosition_) &&
             CanActFrom(&action, &aim.x, now)) {
             // In reach of a standing target: wait.
-            if (state != kStateTurning) StandIdle(this);
+            if (state != UnitState::Turning) StandIdle(this);
             return;
         }
     }
@@ -644,13 +640,13 @@ void CUnitServer::ApproachTarget() {
                 double distance = LengthXYZ(offset);
                 double ticks = (distance - reach) / closing;
                 if (static_cast<double>(lead) > ticks) {
-                    if (state != kStateTurning) StandIdle(this);
+                    if (state != UnitState::Turning) StandIdle(this);
                     return;
                 }
             }
         }
     }
-    if (!(state == kStateChasing || state == kStateTurning) && interceptTime - now >= kAttackLead) return;
+    if (!(state == UnitState::Stopped || state == UnitState::Turning) && interceptTime - now >= kAttackLead) return;
 
     // Chase: the target, or the unit the party leader is attacking it with.
     CMapObject* chased = target;
@@ -659,7 +655,7 @@ void CUnitServer::ApproachTarget() {
         auto* theirs = leader->ServerController();
         if (theirs->action.target == target &&
             (theirs->action.kind == UnitOrderKind::Attack || theirs->action.kind == UnitOrderKind::CastAt || theirs->action.kind == UnitOrderKind::CastOn) &&
-            theirs->state != kStateCasting) {
+            theirs->state != UnitState::Acting) {
             chased = leader;
         } else {
             followsLeader = 0;
@@ -710,7 +706,7 @@ void CUnitServer::ApproachTarget() {
     Vector3 goal;
     lib::LoadBytes(goal, future);
 
-    if (state == kStateIdle) {
+    if (state == UnitState::Idle) {
         double close = (static_cast<double>(distance) + 1.0f) * kPointOne;
         if (close * close > DistanceSquaredXYUnrounded<double>(goal, motion.goal)) {
             // Still heading close enough to it: only the patience (the path goal's z) changes.
@@ -756,7 +752,7 @@ void CUnitServer::ApproachTarget() {
         back.z = -axis.z;
         if (path->Start(unit->localPosition_, back, time)) unit->RefreshMotion();
         ClearStanding();
-        state = kStateChasing;
+        state = UnitState::Stopped;
         unit->UpdateSizeClass();
         if (effectObject) {
             g_serverWorld.RemoveTimedObject(effectObject->id_);

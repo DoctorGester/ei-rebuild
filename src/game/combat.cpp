@@ -629,7 +629,7 @@ void CUnitServer::UpdateMoveFactors() {
     } else if (unit->moveMode == 1) {
         moveFactors[2] = kMode1Factor2;
     }
-    if (state == 0) {
+    if (state == UnitState::Idle) {
         if (unit->moveMode == 0) moveFactors[0] = kIdleMode0Factor0;
         else if (unit->moveMode == 1) moveFactors[0] = kIdleMode1Factor0;
         if (unit->moveMode == 3) {
@@ -639,12 +639,12 @@ void CUnitServer::UpdateMoveFactors() {
     } else {
         moveFactors[0] = 0.0f;
     }
-    if (state == 5 && (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn)) {
+    if (state == UnitState::Acting && (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn)) {
         CSpell* spell = SpellOfSource(action.source);
         if (spell && spell->GetPrototype()->castType != 1)
             moveFactors[2] = kCastingFactor2 * moveFactors[2];
     }
-    if (state != 0) {
+    if (state != UnitState::Idle) {
         speedClass = 15;
         return;
     }

@@ -44,7 +44,7 @@ void SaveLooks(const std::vector<AILook>* looks, CStream* stream) {
 }
 
 void AIMemory::Load(CStream* stream) {
-    noticedKind = -1;
+    noticedDecay = -1;
     CountedListLoad(&nearby, stream, &g_serverWorld);
     CountedListLoad(&visible, stream, &g_serverWorld);
     CountedListLoad(&seenCorpses, stream, &g_serverWorld);
@@ -69,7 +69,7 @@ void AIMemory::Load(CStream* stream) {
         call.text = stream->ReadString();
         stream->ReadValue(call.hostileMask);
     }
-    stream->ReadValue(noticedKind);
+    stream->ReadValue(noticedDecay);
 }
 
 void AIMemory::Save(CStream* stream) {
@@ -92,5 +92,5 @@ void AIMemory::Save(CStream* stream) {
         stream->WriteString(call.text);
         stream->WriteValue(call.hostileMask);
     }
-    stream->WriteValue(noticedKind);
+    stream->WriteValue(noticedDecay);
 }

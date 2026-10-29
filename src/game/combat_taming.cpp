@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <list>
+#include <memory>
 
 namespace {
 
@@ -54,7 +55,7 @@ bool CUnitServer::TryTame(CUnit* tamer, float roll) {
         tamerPlayer->ReleaseTamedUnits();
         unit->SetSide(tamer->side);
         unit->SetPlayer(tamerPlayer);
-        brain.AddMode(new TamedMode());
+        brain.AddMode(std::make_unique<TamedMode>());
         brain.memory.seenCorpses.clear();
         brain.memory.corpses.clear();
         tameStage = 3;
@@ -68,7 +69,7 @@ bool CUnitServer::TryTame(CUnit* tamer, float roll) {
     if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) {
         action2.kind = UnitOrderKind::None;
         action2.target.Reset();
-        action2.pointIsUseSpot = 0;
+        action2.pointIsUseSpot = false;
         action2.param = 0;
         action2.modifier = 0;
         action2.kind = UnitOrderKind::Idle;

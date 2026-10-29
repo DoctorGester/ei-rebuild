@@ -23,7 +23,6 @@ constexpr int kCurrentModeBonus = 100;             // the mode in charge keeps i
 constexpr float kMoveTime = 1000000.0f;
 
 // CUnitServer::state while the planned action runs (combat_update.cpp): the brain does not think meanwhile.
-constexpr int kControllerActing = 5;
 
 // The mode names of the "new motivation" message.
 const char* ModeName(AIModeType type) {
@@ -70,8 +69,8 @@ void AIBrain::Think() {
     CUnit* unit = owner->unit;
     memory.seesEnemy = std::ranges::any_of(memory.visible, [unit](CUnit* other) { return unit->IsHostileTo(other) && !other->IsDead(); });
 
-    if (owner->state == kControllerActing) return;
-    if (memory.seesEnemy && !alerted && (alertMode == 0 || alertMode == 2)) alerted = 1;
+    if (owner->state == UnitState::Acting) return;
+    if (memory.seesEnemy && !alerted && (alertMode == 0 || alertMode == 2)) alerted = true;
 
     // Choose the mode: the one in charge keeps it with a bonus.
     AIMode* best = nullptr;
@@ -83,26 +82,25 @@ void AIBrain::Think() {
             bestPriority = priority;
         }
     }
-    for (auto node = modes.begin(); node != modes.end();) {
-        AIMode* mode = *node;
-        ++node;
-        if (mode == current) continue;
+    for (const std::unique_ptr<AIMode>& mode : modes) {
+        if (mode.get() == current) continue;
         int priority = mode->Evaluate(this);
         if (priority > bestPriority) {
             bestPriority = priority;
-            best = mode;
+            best = mode.get();
         }
     }
 
     if (best != current) {
         if (best) {
             console::EndLine(kAiLog << str::Format("Unit %i new motivation %s with power of %i", owner->unit->id_,
-                                                   ModeName(best->GetType()), bestPriority));
-            if (IsAlertMode(best->GetType()) && alertMode == 2 && !alerted) alerted = 1;
+                                                   ModeName(best->type), bestPriority));
+            if (IsAlertMode(best->type) && alertMode == 2 && !alerted) alerted = true;
         }
         if (current) current->Leave(this);
         if (best) best->Enter(this);
-        current.Assign(best);
+        current = best;
+        removedCurrent.reset();
     }
 
     if (current) {
@@ -153,8 +151,8 @@ void AIBrain::Think() {
 // --- Mode lookups --------------------------------------------------------------------------------
 
 AIMode* AIBrain::FindMode(AIModeType type) {
-    for (AIMode* mode : modes)
-        if (mode->GetType() == type) return mode;
+    for (const std::unique_ptr<AIMode>& mode : modes)
+        if (mode->type == type) return mode.get();
     return nullptr;
 }
 
@@ -214,11 +212,7 @@ void AIBrain::SetOwner(CUnitServer* newOwner) {
 }
 
 void AIBrain::OnObjectDeleted(CEngineObject* object) {
-    for (auto node = modes.begin(); node != modes.end();) {
-        AIMode* mode = *node;
-        ++node;
-        mode->OnObjectDeleted(object);
-    }
+    for (const std::unique_ptr<AIMode>& mode : modes) mode->OnObjectDeleted(object);
     if (target == object) target.Reset();
     if (seen == object) seen.Reset();
     memory.Forget(object);
@@ -363,6 +357,6 @@ void AIBrain::SetSeen(CMapObject* object) {
     } else if (!IsAlliedUnit(object)) {
         CallAllies(object->localPosition_);
     }
-    if (!alerted && alertMode == 1) alerted = 1;
+    if (!alerted && alertMode == 1) alerted = true;
     if (CUnit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);
 }

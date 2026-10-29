@@ -470,7 +470,7 @@ struct AIMemory {
     float noticedX;                         // +0x10
     float noticedY;                         // +0x14
     int noticedLevel;                       // +0x18
-    int noticedKind;                        // +0x1C
+    int noticedDecay;                        // +0x1C
     std::uint8_t unknown20[0x4];
     List<CUnit*> nearby;                    // +0x24
     List<CUnit*> visible;                   // +0x40
@@ -498,8 +498,8 @@ struct AIBrain {
     float callRadius;                       // +0x38
     int alertMode;                          // +0x3C
     int alarmCountdown;                     // +0x40
-    float nearX;                            // +0x44
-    float nearY;                            // +0x48
+    float nearRange;                            // +0x44
+    float farRange;                            // +0x48
     float decay;                            // +0x4C
     std::uint8_t unknown50[0x18];
     int standCooldown;                      // +0x68

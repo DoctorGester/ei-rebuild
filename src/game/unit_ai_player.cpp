@@ -46,13 +46,12 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     // The commanded target first, when it can be reached from here.
     if (target && target->IsDead() == 0) {
         AITargetChoice choice{kWeaponPart, static_cast<CUnit*>(target.Get())};   // taken as a unit
-        if (brain->attention.CanReach(brain, &choice, true)) {
+        if (brain->CanReach(&choice, true)) {
             brain->AttackTarget(target);
             return;
         }
     }
 
-    AITargetChoice best;
     float radius;
     if (state == kStateMoveTo) {
         radius = g_logicSettings.swarmRadius;
@@ -78,7 +77,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     AddPartyTargets(brain, &candidates);
     unit->flags_ |= MapObjectFlag::ChoosingTarget;
-    brain->attention.Choose(brain, &best, &candidates, unit->localPosition_, false, false);
+    AITargetChoice best = brain->Choose(&candidates, unit->localPosition_, false, false);
     unit->flags_ &= ~MapObjectFlag::ChoosingTarget;
 
     CUnit* chosen = best.object;
@@ -97,7 +96,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 theirs->StopAction();
             }
         }
-        AITargetChoice now = brain->attention.CurrentAttack(brain);
+        AITargetChoice now = brain->CurrentAttack();
         if (now.object != best.object || now.part != best.part) brain->AttackTarget(chosen);
         target.Reset();
     }

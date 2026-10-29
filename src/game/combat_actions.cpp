@@ -34,7 +34,6 @@ namespace {
 constexpr float kHitNoiseScale = 2.0f;
 constexpr float kSkillNoiseScale = 1.5f;
 constexpr std::uint32_t kOneBits = 0x3F800000u;                 // 1.0f, compared by its bits
-constexpr int kNoiseKind = 0x1A;
 
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
@@ -68,7 +67,7 @@ void PlayerMessage(CPlayerServer* messages, CUnit* unit, AckKind kind) {
 void CUnitServer::DropQueuedOrder() {
     action2.kind = UnitOrderKind::None;
     action2.target.Reset();
-    action2.pointIsUseSpot = 0;
+    action2.pointIsUseSpot = false;
     action2.param = 0;
     action2.modifier = 0;
     action2.kind = UnitOrderKind::Idle;
@@ -108,7 +107,7 @@ void CUnitServer::FinishAction(int location) {
         }
         action.kind = UnitOrderKind::None;
         action.target.Reset();
-        action.pointIsUseSpot = 0;
+        action.pointIsUseSpot = false;
         action.param = 0;
         action.modifier = 0;
         if (action2.kind == UnitOrderKind::None && action.kind != UnitOrderKind::Idle) DropQueuedOrder();
@@ -144,7 +143,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kHitNoiseScale);
-        world->aiMap_.events.Noise(this, loudness, kNoiseKind, unit->localPosition_);
+        world->aiMap_.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition_);
     }
 }
 
@@ -338,7 +337,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         if (CPlayer* player = unit->player) g_serverWorld.Loot(looted, player);
         g_serverWorld.RemoveObject(target->id_);
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kSkillNoiseScale);
-        world->aiMap_.events.Noise(this, loudness, kNoiseKind, unit->localPosition_);
+        world->aiMap_.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition_);
         return;
     }
     UseSource skill = action.Skill();

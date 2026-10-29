@@ -50,7 +50,7 @@ void NoticeAt(AIMemory* memory, CUnit* at, int level, int decay) {
     memory->noticedX = at->localPosition_.x;
     memory->noticedLevel = level;
     memory->noticedY = at->localPosition_.y;
-    memory->noticedKind = decay;
+    memory->noticedDecay = decay;
 }
 
 } // namespace

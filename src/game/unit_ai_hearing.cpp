@@ -45,7 +45,7 @@ void AIHeardCalls::RemoveClaims() {
 void AIMemory::HearCall(const Vector3& point, int delay, std::string_view text) { calls.Hear(point, delay, text); }
 void AIMemory::AddClaim(std::uint32_t mask, int delay, std::string_view text) { calls.AddClaim(mask, delay, text); }
 
-void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3& at) {
+void AIViewer::Noise(CUnitServer* source, float loudness, int delay, const Vector3& at) {
     CUnit* unit = source->unit;
     std::list<CUnit*> units = map->sectorMap.FindUnitsInRadius(at, kNoiseRadius);
     for (auto node = units.begin(); node != units.end();) {
@@ -65,17 +65,14 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
             const double between = vecmath::Distance<Sum3::XYZ>(other->localPosition_, unit->localPosition_);
             text = str::Format(kHeardFormat, other->id_, unit->id_, between);
         }
-        brain->memory.calls.Hear(unit->localPosition_, kind, text);
+        brain->memory.calls.Hear(unit->localPosition_, delay, text);
     }
-    // The list emptied, no element destruction.
-    units.clear();
 }
 
 AIEventPresence* AIViewer::StepNoise(const Vector3& position, CUnitServer* source) {
-    constexpr int kStepNoise = 0x1A;
     const AITerrainType* ground = g_serverWorld.aiMap_.MaterialRecordAt(position);
     float loudness = source->moveFactors[0] * source->stats.conspicuity[3].current;
     loudness *= ground->noise;
-    Noise(source, loudness, kStepNoise, source->unit->localPosition_);
+    Noise(source, loudness, AIBrain::kCallDelay, source->unit->localPosition_);
     return nullptr;
 }

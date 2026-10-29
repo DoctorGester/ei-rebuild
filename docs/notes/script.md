@@ -154,12 +154,13 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
   )`; then the quest name is emptied (the objectives stay; QStart frees them). The quest kill table (`QuestTable`, 007C87A8,
   hash_map by name at +0x0C) is looked up by QuestComplete through `QuestTable::Find` 004C9C90 (operator[]: a missing name
   gets a null entry).
-- Unit mode constructors (`script_unit_modes.cpp`, the classes in `unit_ai.h`): 004BA1C0 `GuardMode` (0073D128) then
+- Unit mode constructors (the classes in `unit_ai.h`): 004BA1C0 `GuardMode` (0073D128) then
   `Set(point, radius, wander)`, 004BA360 `SentryMode` (0073D190), 004BA450 `FollowMode` (base 0073D15C, then the leader
   referenced, 0073D1C4), 004BA610 `SuspectionMode` (0073D1F8), 004BA710 / 004BA830 `AggressionMode` (0073D260; the second
   with `fixed` = UMRevenge), 004BA920 `CorpseWatcherMode` (0073D294), 004BA1A0 `AILook` (UMPatrolLook). None of the
-  original's sets the count (+4): the commands write 0 there after operator new; ours clear it in `AIMode`'s constructor.
-- Their own slots (A-S10, same file; `verify_script_unit_mode_slots.cpp`): Clone (slot 3) 004BA250 / 004BA3B0 / 004BA4A0 /
+  original's sets the count (+4): the commands write 0 there after operator new; ours have no count (the brain owns its
+  modes, docs/notes/unit_ai.md).
+- Their own slots (A-S10; ours `unit_ai.h` / `unit_ai_modes.cpp`, no clones): Clone (slot 3) 004BA250 / 004BA3B0 / 004BA4A0 /
   004BA630 / 004BA730 / 004BA930, Reset (slot 2, OnShutdown: references dropped, constructor values back, EAX untouched)
   004BA2D0 / 004BA3F0 / 004BA510 / 004BA6B0 / 004BA7C0 / 004BA950, deleting destructors 004BA300 / 004BA340 / 004BA420 /
   004BA590 / 004BA680 / 004BA6E0 / 004BA8A0 / 004BA990 and bodies (004BA5B0 / 004BA8C0 release the leader / enemy; the rest
@@ -188,7 +189,7 @@ loaders, defines, qualified names), `script_exec*.cpp` (Execute 004B6760, bind c
 FreeTemporaries), `script_load.cpp` / `script_save.cpp` / `script_vars.cpp` (savers, loaders, the variables' appends and
 lookups), `script_group.cpp` (the groups' set operations), `script_construct.cpp` / `script_cleanup.cpp` /
 `script_reset.cpp` (CScript's constructor and destructor, ScriptReset, PurgeDeletedObjects, ResetZone), `script_effects.cpp` (CreateFX, CreateLightning, particle sources, point
-lights), `script_quest.cpp` (QStart, QObj, QFinish, `QuestTable::Find`), `script_unit_modes.cpp` (the unit mode commands),
+lights), `script_quest.cpp` (QStart, QObj, QFinish, `QuestTable::Find`), the unit mode commands (`script_exec.cpp`),
 the object references, groups and variables at 004B24B0-004B3940, areas 004B1ED0-004BCF30, the text reader below.
 
 - Rebirth patches these, so they hook in the vanilla launch only unless the patch is behind a flag: 004B6760 Execute,

@@ -18,7 +18,6 @@
 
 namespace {
 constexpr float kCastNoiseScale = 2.0f;
-constexpr int kNoiseKind = 0x1A;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
 constexpr int kWeaponBow = 5;
@@ -33,7 +32,7 @@ constexpr float kReachHeight = 1.5f;
 void ResetOrder(UnitAction* order) {
     order->kind = UnitOrderKind::None;
     order->target.Reset();
-    order->pointIsUseSpot = 0;
+    order->pointIsUseSpot = false;
     order->param = 0;
     order->modifier = 0;
 }
@@ -121,7 +120,7 @@ void CUnitServer::FinishCast() {
     world->CastSpell(spell, unit, unit->localPosition_, action.target, at, 0);
     if (spell->GetPrototype()->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kCastNoiseScale);
-        world->aiMap_.events.Noise(this, loudness, kNoiseKind, unit->localPosition_);
+        world->aiMap_.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition_);
     }
     action.source = kNoSource;
 }
@@ -182,7 +181,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
                     TellParty(unit, AckKind::OutOfReach);
                     action2.kind = UnitOrderKind::None;
                     ReleaseTarget(&action2);
-                    action2.pointIsUseSpot = 0;
+                    action2.pointIsUseSpot = false;
                     action2.param = 0;
                     action2.modifier = 0;
                     return;
@@ -218,7 +217,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int ru
     }
     action2.kind = UnitOrderKind::None;
     ReleaseTarget(&action2);
-    action2.pointIsUseSpot = 0;
+    action2.pointIsUseSpot = false;
     action2.param = 0;
     action2.modifier = 0;
     action2.kind = UnitOrderKind::CastAt;
