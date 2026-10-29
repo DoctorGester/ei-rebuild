@@ -64,7 +64,7 @@ LONG CALLBACK OnTrap(EXCEPTION_POINTERS* e) {
                   static_cast<unsigned>(slot),
                   i && !i->reached ? "no code was found to call (rerun python tools/gen_iat.py)" : "did not resolve",
                   caller);
-    std::fprintf(stderr, "ei_standalone: %s\n", what);
+    std::fprintf(stderr, "ei-rebuild: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);
@@ -84,7 +84,7 @@ HMODULE LoadImport(const char* name) {
 }
 
 void Fail(const char* what) {
-    std::fprintf(stderr, "ei_standalone: %s\n", what);
+    std::fprintf(stderr, "ei-rebuild: %s\n", what);
     std::fflush(stderr);
     Log("standalone: %s", what);
 }

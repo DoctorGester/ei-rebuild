@@ -1,4 +1,4 @@
-"""Tests of resolve_crash.py (X40a) without games: a made-up ei_standalone.exe and game.exe (a few functions with
+"""Tests of resolve_crash.py (X40a) without games: a made-up ei-rebuild.exe and game.exe (a few functions with
 calls between them), their map and function lists, and a crash log with the stack words of a throw plus stale
 words around it.
 
@@ -38,7 +38,7 @@ class FakeImage:
         return bytes(self.code[rva:rva + n])
 
 
-MAP = """ ei_standalone
+MAP = """ ei-rebuild
 
  Timestamp is 6ad15282 (Fri Oct 16 00:24:02 2026)
 
@@ -82,7 +82,7 @@ def make_log(words):
              '[00:00:01.000] harness: 5 MB free on the run folder\'s disk',
              '[00:00:01.000]   in C:\\Windows\\System32\\KERNELBASE.dll+13B702 (thread 1)']
     for kind, a in words:
-        lines.append('[00:00:01.000]   stack ' + (f'ei_standalone+{a:X}' if kind == 'ei' else f'{a:08X} (game.exe)'))
+        lines.append('[00:00:01.000]   stack ' + (f'ei-rebuild+{a:X}' if kind == 'ei' else f'{a:08X} (game.exe)'))
     return '\n'.join(lines) + '\n'
 
 
@@ -94,7 +94,7 @@ class Fixture(unittest.TestCase):
         os.makedirs(os.path.join(self.root, 'tests', 'coverage'))
         write(os.path.join(self.root, 'config', 'functions.csv'), FUNCTIONS)
         write(os.path.join(self.root, 'tests', 'coverage', 'coverage.csv'), COVERAGE)
-        self.map = os.path.join(self.root, 'ei_standalone.map')
+        self.map = os.path.join(self.root, 'ei-rebuild.map')
         write(self.map, MAP)
 
         ei = FakeImage(0)
@@ -181,14 +181,14 @@ class Chain(Fixture):
     def test_a_throw_free_crash_starts_at_its_address(self):
         words = [('ei', self.ra_write), ('ei', self.ra_compose), ('game', self.ra_dress)]   # the first is stale: Write called the throw
         lines = make_log(words).splitlines()
-        lines.insert(3, '[00:00:01.000]   at ei_standalone+210')
+        lines.insert(3, '[00:00:01.000]   at ei-rebuild+210')
         got = [(k, a) for _, k, a in rc.frames(rc.stack_words(lines, 0), self.stack())]
         self.assertEqual(got, [('ei', 0x210), ('ei', self.ra_compose), ('game', self.ra_dress)])
 
     def test_named_stack_text(self):
         d = os.path.join(self.root, 'run-vanilla')
         os.makedirs(d)
-        write(os.path.join(d, 'ei_hook.log'), make_log(self.words))
+        write(os.path.join(d, 'ei-rebuild.log'), make_log(self.words))
         # resolve() reads the dll and exe from files; with none beside, the words are named but not judged
         # (the throw rule still applies)
         text = rc.named_stack(d, build=self.root, game_exe=os.path.join(self.root, 'none.exe'), root=self.root)
@@ -200,7 +200,7 @@ class Chain(Fixture):
     def test_no_crash(self):
         d = os.path.join(self.root, 'run-vanilla')
         os.makedirs(d)
-        write(os.path.join(d, 'ei_hook.log'), '[00:00:01.000] harness: fine\n')
+        write(os.path.join(d, 'ei-rebuild.log'), '[00:00:01.000] harness: fine\n')
         self.assertEqual(rc.resolve(d, build=self.root, root=self.root), ['no crash logged'])
 
 
@@ -208,7 +208,7 @@ class RunAll(Fixture):
     def test_note_under_a_crashed_run(self):
         d = os.path.join(self.root, 'runs', 'x-vanilla')
         os.makedirs(d)
-        write(os.path.join(d, 'ei_hook.log'), make_log(self.words))
+        write(os.path.join(d, 'ei-rebuild.log'), make_log(self.words))
         note = run_all.crash_stack_note(d, self.root, ['ei_launch', '--exe', os.path.join(self.root, 'none.exe')], self.root)
         self.assertTrue(note.startswith('stack: ') and 'CFile::Write' in note, note)
 
@@ -225,7 +225,7 @@ class RealRun(unittest.TestCase):
 
     def test_disk_full_stack(self):
         d = os.path.join(rc.ROOT, 'build', 'verify', 'runs', 'harness_disk_full-standalone')
-        if not all(os.path.exists(os.path.join(rc.ROOT, 'build', 'verify', f)) for f in ('ei_standalone.map', 'ei_standalone.exe'))                 or not os.path.exists(os.path.join(d, 'ei_hook.log')):
+        if not all(os.path.exists(os.path.join(rc.ROOT, 'build', 'verify', f)) for f in ('ei-rebuild.map', 'ei-rebuild.exe'))                 or not os.path.exists(os.path.join(d, 'ei-rebuild.log')):
             self.skipTest('no verify build or run of harness_disk_full here')
         text = rc.named_stack(d)
         names = text.split(' -> ')

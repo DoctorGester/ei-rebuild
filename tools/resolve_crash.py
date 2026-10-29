@@ -1,8 +1,8 @@
-"""Resolves the harness crash log in ei_hook.log to function names (tickets X40, X40a).
+"""Resolves the harness crash log in ei-rebuild.log to function names (tickets X40, X40a).
 
 The harness logs fatal exceptions with the code addresses found on the stack: game.exe addresses
-as is ("stack 006936BE (game.exe)"), ours as <module>+offset: ei_standalone+offset in the image (the game and the
-harness linked into ei_standalone.exe), ei_harness+offset in game.exe (ei_harness.dll). This names each with the
+as is ("stack 006936BE (game.exe)"), ours as <module>+offset: ei-rebuild+offset in the image (the game and the
+harness linked into ei-rebuild.exe), ei_harness+offset in game.exe (ei_harness.dll). This names each with the
 module's .map symbol (undecorated) or the game function list (tests/coverage/coverage.csv names the
 rewritten functions, config/functions.csv the rest).
 
@@ -22,8 +22,8 @@ import bisect, csv, os, re, struct, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOISE_PREFIXES = ('__ehhandler$', '__catch$', '__unwind$', '__tryend$', '__ehfuncinfo$', '??_C@')
-# An address in our code as the harness logs it: <module>+offset (ei_standalone, ei_harness; ei_hook in older logs).
-OWN_ADDRESS = re.compile(r'\b(ei_(?:standalone|harness|hook))\+([0-9A-F]+)')
+# An address in our code as the harness logs it: <module>+offset (ei-rebuild, ei_harness; ei_standalone and ei_hook in older logs).
+OWN_ADDRESS = re.compile(r'\b(ei-rebuild|ei_(?:standalone|harness|hook))\+([0-9A-F]+)')
 
 
 def code_sections(path):
@@ -315,12 +315,12 @@ def stack_words(lines, start):
 
 
 def own_module(lines, start):
-    """The name of our module the crash at lines[start] names (ei_standalone, ei_harness; ei_hook in older logs)."""
+    """The name of our module the crash at lines[start] names (ei-rebuild, ei_harness; ei_standalone and ei_hook in older logs)."""
     for line in lines[start:]:
         m = OWN_ADDRESS.search(line)
         if m:
             return m.group(1)
-    return 'ei_standalone'
+    return 'ei-rebuild'
 
 
 def find_crash(lines):
@@ -340,11 +340,11 @@ def guess_game_exe(logdir, root=ROOT):
 
 
 def resolve(logdir, build=None, game_exe=None, raw=False, root=ROOT):
-    """Lines of the named stack of the last crash in logdir/ei_hook.log (see the module text), or
+    """Lines of the named stack of the last crash in logdir/ei-rebuild.log (see the module text), or
     ['no crash logged']. build: the folder with our module's map and binary (<module>.map and .exe or .dll; default:
     logdir when it holds the map, else build/verify). game_exe: the run's game.exe (default: run/<install>/game.exe by
     the folder's name). Without our binary or the exe the words of that module are not judged."""
-    with open(os.path.join(logdir, 'ei_hook.log'), errors='replace') as f:
+    with open(os.path.join(logdir, 'ei-rebuild.log'), errors='replace') as f:
         lines = f.read().splitlines()
     start = find_crash(lines)
     if start is None:

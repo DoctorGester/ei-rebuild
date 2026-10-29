@@ -33,7 +33,7 @@ if errorlevel 1 (
 )
 set PLAY=%~dp0run\play
 if not exist "%PLAY%" mkdir "%PLAY%"
-for %%f in (ei_launch.exe ei_launch.pdb ei_standalone.exe ei_standalone.pdb third_party_notices.txt) do (
+for %%f in (ei_launch.exe ei_launch.pdb ei-rebuild.exe ei-rebuild.pdb third_party_notices.txt) do (
     copy /y "%~dp0build\play\%%f" "%PLAY%\%%f" >nul 2>&1 || echo play: %%f in use, playing the copy already there
 )
 rem The Rebirth flags: ei_rebirth.ini next to the exe (docs/notes/rebirth.md).
@@ -47,5 +47,5 @@ if /i "%MODE%"=="vanilla" (
     copy /y "%~dp0config\ei_rebirth_standalone.ini" "%PLAY%\ei_rebirth.ini" >nul
 )
 cd /d "%PLAY%"
-rem No --exe: ei_launch starts the ei_standalone.exe next to it, so the settings file is run\play's too.
+rem No --exe: ei_launch starts the ei-rebuild.exe next to it, so the settings file is run\play's too.
 "%PLAY%\ei_launch.exe" --game "%GAME%" --standalone

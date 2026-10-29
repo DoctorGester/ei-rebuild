@@ -6,7 +6,7 @@
 # surfaces and the menu's windows have no DirectDraw surfaces either, nor do the cursor's holders
 # and its images (005E4EB0 builds their masks from the new renderer's memory). Captures are the new
 # frames: the main menu, the titles (the movie's frame and the scrolling text must both show), the
-# main menu again. ei_hook.log says once "cpuwindows: surface holders in the switch-over get no
+# main menu again. ei-rebuild.log says once "cpuwindows: surface holders in the switch-over get no
 # DirectDraw surface".
 render checkall
 reject Script error

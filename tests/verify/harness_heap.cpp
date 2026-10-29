@@ -224,7 +224,7 @@ void JitterFill(void* p, SIZE_T bytes, DWORD flags) {
     for (SIZE_T i = 0; i < bytes; ++i) b[i] = static_cast<unsigned char>(JitterNext() >> 11);
 }
 
-// EI_HEAP_FILL=<byte>[,from,to[,offFrom,offTo]] (SV7b7; or the same in heapfill.txt beside our module, ei_standalone.exe or ei_harness.dll): the main
+// EI_HEAP_FILL=<byte>[,from,to[,offFrom,offTo]] (SV7b7; or the same in heapfill.txt beside our module, ei-rebuild.exe or ei_harness.dll): the main
 // thread's new blocks in the reservation (not HEAP_ZERO_MEMORY) numbered from..to-1 (counted from 0, every run the
 // same) get `byte` at offsets offFrom..offTo-1, with or without the jitter; `r<seed>` for the byte fills seeded
 // bytes instead, each block's from its number (so a block gets the same bytes whatever else is filled). A range of

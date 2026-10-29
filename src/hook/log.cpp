@@ -1,4 +1,4 @@
-// ei_hook.log and the output folder (log.h): the standalone image's and ei_harness.dll's in game.exe.
+// ei-rebuild.log and the output folder (log.h): the standalone image's and ei_harness.dll's in game.exe.
 #include "ei/hook.h"
 #include "log.h"
 
@@ -27,9 +27,9 @@ void OutputPath(const char* name, char* out) {
     std::snprintf(out + used, MAX_PATH - used, "\\%s", name);
 }
 
-// ei_hook.log in the output folder. Set on first use: static constructors (the harness, the image's data mover) log
+// ei-rebuild.log in the output folder. Set on first use: static constructors (the harness, the image's data mover) log
 // first.
-static void InitLogPath() { OutputPath("ei_hook.log", g_logPath); }
+static void InitLogPath() { OutputPath("ei-rebuild.log", g_logPath); }
 
 // The file stays open for the whole run and each line is flushed as it is written (a crash loses
 // nothing). Opening and closing it per line made the antivirus scan it on every close: about 10,000

@@ -121,7 +121,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    source had: C3 (`TEST AH,0x40`) is `==`, C0 (`TEST AH,1`) `<`, C0|C3 (`TEST AH,0x41`) `<=` (its negation `>`), C0 as a
    select mask `a < b ? x : y`. The original counted a NaN operand as equal and less; the plain comparison follows IEEE, a
    behaviour change only for NaN (none reaches these places in the suite). Next to a comparison whose result changes for a
-   NaN, `EI_NAN_AUDIT(values...)` (`lib/nan_audit.h`) logs the first NaN per site to ei_hook.log in the verify and debug
+   NaN, `EI_NAN_AUDIT(values...)` (`lib/nan_audit.h`) logs the first NaN per site to ei-rebuild.log in the verify and debug
    builds. Where an equally plain form keeps the original's NaN result (`a > b`; `x < low ? x : low` for a bound a NaN never
    replaces; `if (!(gap > limit)) break;` for a loop a NaN must still end), prefer it. addon.dll was built by an IEEE
    compiler (its tests read C2): its status tests are exact plain comparisons. A select whose C0 mask picks `ifLess` is

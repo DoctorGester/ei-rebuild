@@ -1,6 +1,6 @@
 // The hook framework: game.exe's side (the vector recorders) and what the standalone image's start-up shares with it.
 //
-// The standalone image (ei_standalone.exe, docs/notes/standalone.md section 2) runs without game.exe: the game is
+// The standalone image (ei-rebuild.exe, docs/notes/standalone.md section 2) runs without game.exe: the game is
 // linked into it and keeps game.exe's data in its own storage; our code calls every function by name, nothing stands
 // at game.exe's code addresses. In game.exe, which runs only as the original game (the original's harness, from
 // ei_harness.dll), nothing of ours is installed but the vector recorders (EI_RECORD, with EI_VECTORS=1).
@@ -51,10 +51,10 @@ const char* HarnessPatchAt(std::uintptr_t address, std::size_t size);
 // (SV6).
 int UnexpectedSkips();
 
-// True inside ei_standalone.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): nothing of
+// True inside ei-rebuild.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): nothing of
 // game.exe at its addresses, its data in the image's storage, its resources the exe's own. standalone.cpp.
 bool Standalone();
-// Our code's module as the logs name its addresses (<name>+offset; tools/resolve_crash.py): "ei_standalone" in the
+// Our code's module as the logs name its addresses (<name>+offset; tools/resolve_crash.py): "ei-rebuild" in the
 // image (the game and the harness linked in), "ei_harness" in game.exe (ei_harness.dll). standalone.cpp.
 const char* OwnModuleName();
 // Called with a line naming it when the standalone image reaches game code that has no rewrite (the guarded

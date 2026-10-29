@@ -1,7 +1,7 @@
 #pragma once
 
 // Watches for tickets SV7b4 / SV3f (verify build; all off by default). Lines go to watch.txt in the
-// run folder; addresses print as game.exe's, addon.dll's as A+offset, ours (ei_standalone.exe's, ei_harness.dll's) as H+offset.
+// run folder; addresses print as game.exe's, addon.dll's as A+offset, ours (ei-rebuild.exe's, ei_harness.dll's) as H+offset.
 //
 // EI_WATCH_CUNIT=<id>: which code writes a client unit's orientation. After each world update,
 // while the client world has a unit with that id, the main thread's four debug registers watch its

@@ -44,7 +44,7 @@
 // (docs/notes/standalone-verification.md, SV7a). Off by default; goldens are recorded without it.
 //
 // EI_HEAP_FILL=<byte|r<seed>>[,from,to[,offFrom,offTo]] (SV7b7; read from heapfill.txt beside
-// our module (ei_standalone.exe, ei_harness.dll) when the variable is not set, since a variable moves the game's blocks): the main thread's blocks
+// our module (ei-rebuild.exe, ei_harness.dll) when the variable is not set, since a variable moves the game's blocks): the main thread's blocks
 // numbered from..to-1 (resized ones too: their new bytes) get that byte, or seeded bytes per block, at those
 // offsets, with or without the jitter.
 // Bisecting the range finds the block and field whose unwritten bytes a run reads.

@@ -3,7 +3,7 @@
 // The NaN audit (docs/notes/cleanup-tooling.md, "SSE2 build"). The game's comparisons are plain
 // C++: a NaN operand compares as IEEE says, where the x87 compare treated an
 // unordered result as "equal" or "less". No NaN reaches those comparisons in the scenario suite; one
-// that does is a bug upstream. EI_NAN_AUDIT(values...) next to such a comparison logs to ei_hook.log,
+// that does is a bug upstream. EI_NAN_AUDIT(values...) next to such a comparison logs to ei-rebuild.log,
 // once per site, when one of the values is NaN, in the verify and debug builds; in release it is
 // nothing. Code whose purpose is detecting NaN (data checks) tests it itself (x87::IsNaN).
 

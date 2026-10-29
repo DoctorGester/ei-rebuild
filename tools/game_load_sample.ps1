@@ -1,7 +1,7 @@
 # Samples the machine's load while harness games run (tools/game_load.py starts it; WB13).
 # One JSON line per sample (about every 2 s) to -Out: the GPU (nvidia-smi: memory used, utilisation, power,
 # temperature, clock, performance state), the adapter's dedicated memory, total CPU, free RAM, and for every
-# game process (ei_standalone.exe, game.exe; started after -Since, so an old leftover game is left out) its
+# game process (ei-rebuild.exe, game.exe; started after -Since, so an old leftover game is left out) its
 # private bytes, working set, CPU seconds so far, dedicated GPU memory and 3D engine utilisation.
 # Read-only: it reads counters and process lists; it stops when -Stop exists or after -MaxSeconds.
 param([string]$Out, [string]$Stop, [int]$MaxSeconds = 1800, [string]$Since = '')
@@ -25,7 +25,7 @@ while (-not (Test-Path $Stop) -and ((Get-Date) - $started).TotalSeconds -lt $Max
         elseif ($p -like '*processor(_total)*') { $cpu = $c.CookedValue }
         elseif ($p -like '*available mbytes') { $avail = $c.CookedValue }
     }
-    $games = @(Get-Process -Name ei_standalone, game | Where-Object { $_.StartTime -gt $since } | ForEach-Object {
+    $games = @(Get-Process -Name ei-rebuild, game | Where-Object { $_.StartTime -gt $since } | ForEach-Object {
         [ordered]@{ pid = $_.Id; exe = $_.ProcessName; priv_mb = [math]::Round($_.PrivateMemorySize64 / 1MB, 1)
                     ws_mb = [math]::Round($_.WorkingSet64 / 1MB, 1); cpu_s = $_.TotalProcessorTime.TotalSeconds
                     gpu_mb = [math]::Round(($gpuMem[$_.Id] + 0) / 1MB, 1); gpu_3d = [math]::Round(($gpu3d[$_.Id] + 0), 2) } })

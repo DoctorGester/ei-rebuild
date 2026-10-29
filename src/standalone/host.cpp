@@ -1,5 +1,5 @@
-// ei_standalone: the rebuilt game, without game.exe. See docs/notes/standalone.md, "The image's source files".
-// usage: ei_standalone [--check] [-- <game arguments>]
+// ei-rebuild: the rebuilt game, without game.exe. See docs/notes/standalone.md, "The image's source files".
+// usage: ei-rebuild [--check] [-- <game arguments>]
 //   The game folder is the exe's own (under ei_launch: the data folder it names, EI_GAME_ROOT). With --check the exe
 //   builds the image, takes the registrations, checks them and exits: no window, nothing of the game runs. What
 //   follows "--" is the game's command line, as typed (WinMain's).
@@ -48,11 +48,11 @@ int main(int argc, char** argv) {
         if (!std::strcmp(argv[i], "--check")) run = false;
         else if (!std::strcmp(argv[i], "--")) break;
         else {
-            std::fprintf(stderr, "usage: ei_standalone [--check] [-- <game arguments>]\n");
+            std::fprintf(stderr, "usage: ei-rebuild [--check] [-- <game arguments>]\n");
             return 2;
         }
     }
     const int result = ei::StandaloneMain(run, GameArguments().c_str());
-    std::printf("ei_standalone: %s %d\n", run ? "the game returned" : "check", result);
+    std::printf("ei-rebuild: %s %d\n", run ? "the game returned" : "check", result);
     return result;
 }

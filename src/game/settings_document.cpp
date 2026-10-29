@@ -154,7 +154,7 @@ bool ParseValue(const char* p, Value* v) {
 }
 
 constexpr const char* kHeader =
-    "; Evil Islands' settings for ei_standalone.exe, in place of its registry keys under HKEY_CURRENT_USER.\r\n"
+    "; Evil Islands' settings for ei-rebuild.exe, in place of its registry keys under HKEY_CURRENT_USER.\r\n"
     "; [key below HKEY_CURRENT_USER], then \"name\"=value: dword:<hex> (REG_DWORD), \"text\" (REG_SZ, \\\\ and \\\"\r\n"
     "; escaped), float:<number> (a 4-byte REG_BINARY float), hex:<bytes> (REG_BINARY), hex(<type>):<bytes>.\r\n"
     "; @ is a key's default value. The game rewrites this file when it saves its options.\r\n";

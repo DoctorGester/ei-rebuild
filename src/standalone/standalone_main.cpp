@@ -63,7 +63,7 @@ LONG CALLBACK OnOldCode(EXCEPTION_POINTERS* e) {
     DescribeCode(at, code, sizeof(code));
     std::snprintf(what, sizeof(what), "%s of game.exe's code at %08X by %s: the image's code section is guarded",
                   r->ExceptionInformation[0] == 1 ? "write" : "read", static_cast<unsigned>(data), code);
-    std::fprintf(stderr, "ei_standalone: %s\n", what);
+    std::fprintf(stderr, "ei-rebuild: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);
@@ -77,7 +77,7 @@ LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* e) {
 }
 
 // ---- game.exe's module, as the image's code sees it ------------------------------------------------
-// The game's module is the host's: WinMain's hInstance and GetModuleHandleA(NULL) are ei_standalone.exe, which
+// The game's module is the host's: WinMain's hInstance and GetModuleHandleA(NULL) are ei-rebuild.exe, which
 // has none of game.exe's resources (the strings are literals in our code), so DirectInput and the window class
 // take the handle as it is, and GetModuleFileNameA(NULL) names the host. WinMain gets the game's arguments; no
 // code of the image asks for GetCommandLineA.
@@ -178,7 +178,7 @@ void EnterGameFolder() {
 // then run WinMain.
 int StandaloneMain(bool run, const char* arguments) {
     g_arguments = arguments ? arguments : "";
-    Log("ei_standalone started, pid %lu", GetCurrentProcessId());
+    Log("ei-rebuild started, pid %lu", GetCurrentProcessId());
     RedirectSettingsPaths();
     SetProcessDPIAware();
     // The missing-code report first: the start-up actions run before WinMain (WideScreen's parses its resolution),
@@ -190,7 +190,7 @@ int StandaloneMain(bool run, const char* arguments) {
     Log("standalone: Miles's loads%s routed; arguments: '%s'", routed ? "" : " not", g_arguments.c_str());
     const int missingImports = ImageImportsMissing();
     if (!run) return routed && missingImports == 0 ? 0 : 1;
-    if (missingImports != 0) {   // as the system loader: no start without every import (ei_hook.log names them)
+    if (missingImports != 0) {   // as the system loader: no start without every import (ei-rebuild.log names them)
         ReportImageFailure("game.exe's imports did not all resolve");
         return 1;
     }

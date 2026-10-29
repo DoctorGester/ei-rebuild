@@ -1,12 +1,12 @@
 # Renderer: the sidecar renderer, the hand-over from the game, and the switch-over
 
 The game's own renderer (DirectDraw 7 / Direct3D 7) is replaced by a new renderer in a sidecar module, and only the
-standalone image runs it (`ei_standalone.exe`, docs/notes/standalone.md). game.exe runs the original
+standalone image runs it (`ei-rebuild.exe`, docs/notes/standalone.md). game.exe runs the original
 code only, on dgVoodoo: its runs are the reference (goldens, function vectors, widescreen frames), never our
 renderer's.
 
 1. Game code that called the renderer is rewritten and hands its data to a **new renderer in a sidecar
-   module** (`src/render/`, static library `ei_render` linked into ei_hook): camera and matrices, object
+   module** (`src/render/`, static library `ei_render` linked into ei-rebuild.exe): camera and matrices, object
    transforms, figure meshes, terrain sectors, particles, textures, the interface windows' CPU surfaces
    (uploaded as textures), movie frames. Game code makes no Direct3D 7 or DirectDraw call and includes no DirectDraw /
    Direct3D 7 header (R27c; section 9); only the gamma ramp's DDGAMMARAMP is left (renderer_gamma.cpp, R27d).
@@ -44,7 +44,7 @@ keep their pixels in memory the new renderer owns (sections 6, 7), and captures 
 
 **When the renderer fails (R26, the user's rule 2026-10-28: no fallbacks).** The game cannot run without the renderer,
 and no code path draws any other way: when it cannot start or cannot go on, the game ends. `render::detail::Fatal`
-(render.cpp) logs "render: fatal: <reason>" to ei_hook.log, shows the reason in the game's error box
+(render.cpp) logs "render: fatal: <reason>" to ei-rebuild.log, shows the reason in the game's error box
 (`app::ShowMessageBox`, MB_ICONHAND; the harness ends the run on it) and exits with -1, also with Rebirth's
 DisableExitOnCrashReport (which makes `game::FatalError` carry on; the renderer's failure must not). The cases:
 - no device at the start (`Start`, at the first use: 004EDD70's `render::StartPresenting` in a normal start): "Can't
@@ -456,7 +456,7 @@ was already blitted or updated in this frame (sokol allows one update per image 
 at the end of the frame; then a new one replaces it after the present).
 `render::Fill` (the movie player's black) is a solid rectangle command, drawn with the depth clear's shader
 (`solid.hlsl`) through a pipeline that writes the colour only (R30c).
-Harness build: counts per purpose in ei_hook.log (`render: images ...`, every 300 frames and at exit) and every
+Harness build: counts per purpose in ei-rebuild.log (`render: images ...`, every 300 frames and at exit) and every
 in-place upload is read back from the GPU and compared with the pixels written (`render: MISMATCH` on a difference;
 sampled like the gamma ramp check: the first 64 of each kind, then every 16th, all with `checkall`).
 
@@ -855,7 +855,7 @@ Behaviour differences (one path for every sprite):
   models sampled anisotropically, each with its own level, as the user's Rebirth dgVoodoo setup draws at the most
   (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x) except for the interface.
   - **Settings** (user 2026-10-29: from the file, separately, with levels): in ei_settings.ini next to
-    ei_standalone.exe (play.cmd's is run\play\ei_settings.ini), the key of the overlay and vsync (section 15):
+    ei-rebuild.exe (play.cmd's is run\play\ei_settings.ini), the key of the overlay and vsync (section 15):
     ```
     [Software\Nival Interactive\EvilIslands\Standalone]
     "Msaa"=dword:00000008          1 (off), 2, 4 or 8
@@ -1047,7 +1047,7 @@ across runs; the goldens check the game state.
    classic 0.81 / 0.78, town classic 0.63 / 0.72, fight 1.28 / 1.25, town 0.97 / 0.95, map 0.78 / 1.56 (noisy;
    GenerateMips of 12-17 small textures is not measurable). Images made a frame: 12-17 classic shadows to none (after
    the first use of each holder), the map's 341 KB to none (renderstats' "memory textures" count stays: it counts
-   uploads, made or in place; ei_hook.log's `render: images` lines tell them apart). In place with CPU levels (UpdateSubresource per level)
+   uploads, made or in place; ei-rebuild.log's `render: images` lines tell them apart). In place with CPU levels (UpdateSubresource per level)
    was tried: 0.76-0.89 of remake's time against GenerateMips' 0.33-0.45. Check: render_scene, render_shadows,
    render_options_shadows, ui_global_map_pick captured in place and `memorytextures remake` at one frozen moment, 8 /
    0.5% (largest channel difference 2). The memory textures are gone since R28b (section 7).
@@ -1726,7 +1726,7 @@ exe_objects.h):
 
 User 2026-10-22: a small performance overlay in the standalone, switched on from the settings file, no UI.
 
-- **Switch**: in ei_settings.ini next to ei_standalone.exe (docs/notes/standalone.md, "Settings file"; play.cmd's is
+- **Switch**: in ei_settings.ini next to ei-rebuild.exe (docs/notes/standalone.md, "Settings file"; play.cmd's is
   run\play\ei_settings.ini):
   ```
   [Software\Nival Interactive\EvilIslands\Standalone]

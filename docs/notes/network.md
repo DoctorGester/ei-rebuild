@@ -153,7 +153,7 @@ function does; this file keeps what is not visible in the code.
   one's server and loses it when that game quits (the "disconnect" box, N0c); harness games each get a
   port of their own (`tests/verify/harness_net.h`), except the two games of a pair, which share a
   network of virtual ports where the second game joins the first (`tests/verify/harness_pair.h`). Our `Open`, `ClientBase::RemoveClient` and the frame's
-  disconnect box log a line to ei_hook.log (diagnostics only).
+  disconnect box log a line to ei-rebuild.log (diagnostics only).
 - Lobby: client base 004413E0-00442AD0 (server list, direct queries, join request / retry, ping /
   info / accepted / refused, FlushBits 00442570), server base 00442C60-00443590 (pings answered,
   joins accepted / refused, pending joins aged), the 0x2C-byte query 00443770-00444270. The master's

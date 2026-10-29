@@ -4,7 +4,7 @@ Readable C++ source for the Russian `game.exe` 1.06 of Evil Islands, rebuilt wit
 identical game behaviour, not identical bytes: the same world, saves and network play as the original, with a new
 renderer and the Rebirth edition's fixes on top.
 
-The product is the standalone game: `ei_standalone.exe`, one exe that holds all of the game's code. Dropped into an
+The product is the standalone game: `ei-rebuild.exe`, one exe that holds all of the game's code. Dropped into an
 installed game's folder (GOG or Rebirth) it plays from there, with no other file of ours; it needs no `game.exe`. The original `game.exe` is used only by the
 test harness, as the reference our code is compared with.
 
@@ -42,7 +42,7 @@ The work queue is `docs/tickets.md` (generated from `docs/tickets.toml` by `tool
 ## Build
 
 ```
-build.cmd release        the game: build\release\ei_standalone.exe (and ei_launch.exe, the tools' launcher)
+build.cmd release        the game: build\release\ei-rebuild.exe (and ei_launch.exe, the tools' launcher)
 build.cmd verify         the game with the test harness linked in, and ei_harness.dll (the harness for the original
                          game.exe), into build\verify (what the tests run)
 ```
@@ -57,10 +57,10 @@ play.cmd vanilla    the same on the GOG install's data, with Rebirth's bug fixes
 launch-vanilla.cmd  plays the last release build on the GOG install's data, default options
 ```
 
-Or copy `build\release\ei_standalone.exe` into the game's folder and start it there: it writes `ei_settings.ini`
+Or copy `build\release\ei-rebuild.exe` into the game's folder and start it there: it writes `ei_settings.ini`
 beside itself with the defaults and picks the Rebirth flags from the folder (Rebirth's profile where Rebirth's plugin
 is, else the bug fixes and widescreen; an `ei_rebirth.ini` beside it overrides that). It writes into that folder
-(settings, saves, `ei_hook.log`), so use a copy of the install if you want the original kept as it is.
+(settings, saves, `ei-rebuild.log`), so use a copy of the install if you want the original kept as it is.
 
 For example, with the game somewhere else:
 
@@ -74,7 +74,7 @@ The game plays from a copy of the build in `run\play`, so a game left open never
 setting at its best; the registry is never read). The render quality (MSAA samples,
 anisotropy), the performance overlay and vsync are set there (comments at the top of `play.cmd`;
 `docs/notes/renderer.md` sections 11 and 15). The log is
-`run\play\ei_hook.log`.
+`run\play\ei-rebuild.log`.
 
 ## Test
 
