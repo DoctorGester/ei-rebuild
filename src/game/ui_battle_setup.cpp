@@ -184,7 +184,7 @@ void CBattleScreen::Draw(CSceneRenderer* pass) {
         pass->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
-    Input()->MouseMove(0, g_cursor->position_.x, g_cursor->position_.y);
+    Input()->MouseMove(0, g_cursor.position_.x, g_cursor.position_.y);
     // The depth buffer is cleared before the panels draw.
     ClearUiDepth(1.0f);
     // Rebirth's AddNewConsoleCommands (call redirected): "nogui" shows or hides the

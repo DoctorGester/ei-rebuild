@@ -97,7 +97,7 @@ void AddMakerPictures(CConstructorPage* page) {
     frame->flatColour_ = 0x96FFFFFF;
     SetPlainFlag(frame);
     frame->texture_ = nullptr;
-    frame->visible_ = 0;
+    frame->visible_ = false;
 }
 
 } // namespace
@@ -159,7 +159,7 @@ void CHeroStatsPanel::DrawStats() {
     CUiSurface* draw = surfaces_[0];
     draw->Clear();
     RECT title = {0, 0x1B, 0xC8, 0x2B};
-    draw->DrawLine(title_, &title, 1, 0xFFFFFF, 1, 1);
+    draw->DrawTextIn(title_, &title, 1, 0xFFFFFF, 1, 1);
 
     auto hero = [this]() { return owner_->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
@@ -197,12 +197,12 @@ void CHeroStatsPanel::DrawStats() {
             double value = static_cast<double>(values[i]);
             storedStats[i] = static_cast<float>(value);
             std::uint32_t colour = value > minimum ? kBright : kGrey;
-            draw->DrawLine("-", &rect, 0, colour, 1, 1);
+            draw->DrawTextIn("-", &rect, 0, colour, 1, 1);
             Down(&rect);
         }
         Down(&rect);
         Down(&rect);
-        draw->DrawLine("-", &rect, 0, points_ <= 0 ? kGrey : kBright, 1, 1);
+        draw->DrawTextIn("-", &rect, 0, points_ <= 0 ? kGrey : kBright, 1, 1);
 
         // "+": while below 35 and points are left.
         int left = static_cast<int>(libcrt::Ftol(D(75.0f) - D(sumF)));
@@ -212,16 +212,16 @@ void CHeroStatsPanel::DrawStats() {
             EI_NAN_AUDIT(storedStats[i]);
             bool below = D(storedStats[i]) < maximum;
             std::uint32_t colour = below && left > 0 ? kBright : kGrey;
-            draw->DrawLine("+", &rect, 0, colour, 1, 1);
+            draw->DrawTextIn("+", &rect, 0, colour, 1, 1);
             Down(&rect);
         }
         Down(&rect);
         Down(&rect);
-        draw->DrawLine("+", &rect, 0, points_ >= 100 ? kGrey : kBright, 1, 1);
+        draw->DrawTextIn("+", &rect, 0, points_ >= 100 ? kGrey : kBright, 1, 1);
     } else if (page_ == 0) {
         rect = RECT{0x14, 0x41, 0xAF, 0x50};
         texts->GetString("infoitem_25", &text);
-        draw->DrawLine(text, &rect, 0, kBright, 0, 1);
+        draw->DrawTextIn(text, &rect, 0, kBright, 0, 1);
         Down(&rect);
         DrawPart(rect, "skull", 0);
         Down(&rect);
@@ -235,30 +235,30 @@ void CHeroStatsPanel::DrawStats() {
         if (static_cast<int>(hero()->weaponIndex) == -1) {
             for (int i = 0; i < 5; ++i) Down(&rect);
         } else {
-            draw->DrawLine(texts_[3], &rect, 0, kBright, 0, 1);
+            draw->DrawTextIn(texts_[3], &rect, 0, kBright, 0, 1);
             Down(&rect);
             AttackParams info;
             unit->Controller()->GetAttackParams(&info);
             line = str::Format("     %s", texts_[0]);
-            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
+            draw->DrawTextIn(line, &rect, 0, kBright, 0, 1);
             line = str::Format("%d", info.attack);
-            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
+            draw->DrawTextIn(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             line = str::Format("     %s", texts_[1]);
-            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
+            draw->DrawTextIn(line, &rect, 0, kBright, 0, 1);
             line = str::Format("%d", info.defence);
-            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
+            draw->DrawTextIn(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
                 line = str::Format("damage_%d", info.damageType);
                 texts->GetString(line, &text);
             }
             line = str::Format("     %s %s", texts_[2], text);
-            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
+            draw->DrawTextIn(line, &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(libcrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(libcrt::Ftol(D(info.damageMin)));
             line = str::Format("%d-%d", low, high);
-            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
+            draw->DrawTextIn(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             Down(&rect);
         }
@@ -266,9 +266,9 @@ void CHeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(libcrt::Ftol(D(stats->capacity)));
         DrawRow(rect, "Encumbrance", weight, capacity);
         Down(&rect);
-        if (weight > capacity) draw->DrawLine(texts_[4], &rect, 0, 0xFF, 2, 1);
+        if (weight > capacity) draw->DrawTextIn(texts_[4], &rect, 0, 0xFF, 2, 1);
         Down(&rect);
-        draw->DrawLine(texts_[7], &rect, 0, kBright, 0, 1);
+        draw->DrawTextIn(texts_[7], &rect, 0, kBright, 0, 1);
     } else {
         rect = RECT{0x14, 0x41, 0xB4, 0x50};
         DrawRow(rect, "Strength", static_cast<int>(libcrt::Ftol(D(stats->strength))), -1);
@@ -297,7 +297,7 @@ void CHeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(libcrt::Ftol(D(stats->capacity)));
         DrawRow(rect, "Encumbrance", weight, capacity);
         Down(&rect);
-        if (weight > capacity) draw->DrawLine(texts_[4], &rect, 0, 0xFF, 2, 1);
+        if (weight > capacity) draw->DrawTextIn(texts_[4], &rect, 0, 0xFF, 2, 1);
         Down(&rect);
     }
 }
@@ -315,18 +315,18 @@ void CHeroEquipPanel::Build(bool body) {
         SetPlainFlag(frame);
         frame->flatColour_ = 0xFF8B8B37;
         frame->texture_ = nullptr;
-        frame->visible_ = 0;
+        frame->visible_ = false;
     }
     // The slots' frames: four on the left half, four on the right, each half with its strip.
     float cell = 100.0f;
     for (int i = 0; i < 4; ++i)
         AddBlankSprite()->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0xE, 0xE, 0x72, 0x72);
-    AddBlankSprite()->SetGridVanilla(16.0f, 100.0f, 0.0f, 0.0f, 400.0f, 100.0f, 0xE, 0xE, 0x72, 0x72, 4, 1);
+    AddBlankSprite()->SetGrid(16.0f, 100.0f, 0.0f, 0.0f, 400.0f, 100.0f, 0xE, 0xE, 0x72, 0x72, 4, 1);
     for (int i = 4; i < 8; ++i)
         AddBlankSprite()->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0x8E, 0xE, 0xF2, 0x72);
-    AddBlankSprite()->SetGridVanilla(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
+    AddBlankSprite()->SetGrid(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
     if (body_) {
         const int* xs = kBodySlotX;
         const int* ys = kBodySlotY;
@@ -428,8 +428,8 @@ void CHeroQuickStrip::Build(bool top) {
     frame->flatColour_ = 0xFF8B8B37;
     SetPlainFlag(frame);
     frame->texture_ = nullptr;
-    frame->visible_ = 0;
-    AddBlankSprite()->SetGridVanilla(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
+    frame->visible_ = false;
+    AddBlankSprite()->SetGrid(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
                                  0x8E, 0x72, 0xF2, 8, 1);
 }
 

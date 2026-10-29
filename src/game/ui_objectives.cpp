@@ -578,7 +578,7 @@ void CObjectivesWindow::DrawQuestList() {
         else if (state == 3) mark->textureOffsetU_ = 0.0f;
         else mark->visible_ = 0;
         if (row == selectedQuest_) {
-            mesh(2)->PlaceBody(215.0f, static_cast<float>(y + 29), 3.0f);
+            mesh(2)->Place(215.0f, static_cast<float>(y + 29), 3.0f);
             mesh(2)->visible_ = 1;
         }
         RECT rect{36, y, 320, y + 21};

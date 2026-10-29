@@ -37,10 +37,10 @@ void CTradePanel::ClampScroll() {
     if (perkTop_ < 0) perkTop_ = 0;
     if (learnableTop_ > static_cast<int>(learnable_.size()) - kLearnableRows) learnableTop_ = static_cast<int>(learnable_.size()) - kLearnableRows;
     if (learnableTop_ < 0) learnableTop_ = 0;
-    SceneMesh(0)->visible_ = perkTop_ > 0 ? 1 : 0;
-    SceneMesh(1)->visible_ = perkTop_ < static_cast<int>(perks_.size()) - kHeldRows ? 1 : 0;
-    SceneMesh(2)->visible_ = learnableTop_ > 0 ? 1 : 0;
-    SceneMesh(3)->visible_ = learnableTop_ < static_cast<int>(learnable_.size()) - kLearnableRows ? 1 : 0;
+    SceneMesh(0)->visible_ = perkTop_ > 0;
+    SceneMesh(1)->visible_ = perkTop_ < static_cast<int>(perks_.size()) - kHeldRows;
+    SceneMesh(2)->visible_ = learnableTop_ > 0;
+    SceneMesh(3)->visible_ = learnableTop_ < static_cast<int>(learnable_.size()) - kLearnableRows;
     DrawLists();
 }
 

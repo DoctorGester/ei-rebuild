@@ -69,7 +69,8 @@ handlers, and the constant 00742B08 (the clock's x centre, 800). Our code reprod
 
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`)
 
-`CInterface3D` (Create 005F4990; constructor 005F46A0 is a static initialiser, not ported) keeps the active windows in an
+`CInterface3D` (Create 005F4990; the original's constructor 005F46A0 ran from a static initialiser; ours, `g_interface`, and
+the cursor `g_cursor` are plain globals that construct themselves) keeps the active windows in an
 STLport vector (top receives input). `CUiWindow` (ctor 005FE700, dtor 005FE930, vtables 00740F60 / 00740F2C) starts with a
 0x54-byte CTransformObject kept opaque and holds five aligned pointer arrays (+0xF8 referenced engine objects, +0x108
 scene objects (both released through slot 4), +0x118 surfaces, +0x128 regions, +0x138 models). `UiPtrArray<T>`: storage
@@ -137,7 +138,7 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
   string pointers), `OnQuestVariable` (at 1 the name's third '.' part becomes savedText_), news for the top window
   (slots 28-32, 36, 37 as `CUiWindow::Virtual*`), the bottom window's slot 40 (save game), the chat overlay's AddLine
   (005F82D0 / 005F82F0 / 005F8310 multiplayer only; S via a slot recorder, removed in C19 batch 20).
-- Cursor (`ui_cursor*.cpp`): `CCursor::Init` / `AddShape`, `ChangeShape` (callers keep `SetShape` through the address),
+- Cursor (`ui_cursor*.cpp`): `CCursor::Init` / `AddShape`, `SetShape`,
   `TakeLock` / `ReleaseLock` (mode 2 only), `Start` (thread 005E52A0 unless mode 1), `UpdatePosition` (frames every
   125 ms; +0x08 the DirectInput mouse, +0x98 the thread). Frame draw, thread and image construct (the blend 005E5C40 is not ported):
   renderer.md (R9c2).

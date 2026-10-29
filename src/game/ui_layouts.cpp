@@ -36,8 +36,6 @@
 
 // --- Helpers ------------------------------------------------------------------------------------
 
-void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
-
 namespace {
 
 void SetSpriteTexture(CUiMesh* sprite, CTexture* texture) { sprite->texture_ = texture; }
@@ -92,16 +90,6 @@ const char* OptionGroupName(int index) {
                                                             "actions", "camera", "items",  "spells",  "cshots",
                                                             "windows", "debug1", "debug2"};
     return kNames[index];
-}
-
-int BoxText(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour, int format, int flag) {
-    return surface->DrawTextIn(text, rect, font, colour, format, flag);
-}
-
-SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size;
 }
 
 
@@ -348,7 +336,7 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         std::string text;
         g_clientWorld->texts_->CTextManager::GetString("reserved_04", &text);
-        g_interface->ShowStatusText(text);
+        g_interface.ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound);
         ui->PushWindow(new CMpHeroScreen(ui), 1, 1);
@@ -369,17 +357,17 @@ void CMessageBox::CreateScreen() {
     int font = result_ != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     RECT rect = {15, 0, 385, 200};
-    int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
+    int titleHeight = surface->DrawTextIn(title_, &rect, 2, 0, 0x411, 1);
     rect = RECT{15, 0, 385, 400};
-    int textHeight = BoxText(surface, text_, &rect, font, 0, 0x411, 1);
+    int textHeight = surface->DrawTextIn(text_, &rect, font, 0, 0x411, 1);
     // An edit field takes one line of the font (the extent of "A").
     if (flags_ & 4)
         textHeight =
-            TextExtent(interface_, "A", font).cy;
+            interface_->TextExtent("A", font).cy;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 35, 385, 450};
-    BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
+    surface->DrawTextIn(title_, &rect, 2, 0x31B3FF, 0x11, 1);
     if (flags_ & 4) {
         edit_ = new CUiEditField(interface_, RECT{215, top + titleHeight + 30, 585, height + top + 30});
         edit_->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
@@ -387,7 +375,7 @@ void CMessageBox::CreateScreen() {
         AddChild(edit_);
     } else {
         rect = RECT{15, top + titleHeight - 20, 385, 450};
-        BoxText(surface, text_, &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
+        surface->DrawTextIn(text_, &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
     }
 
     int bottom = top + height + 0x3C;
@@ -421,35 +409,35 @@ void CDifficultyBox::CreateScreen() {
     AddSurface(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     RECT rect = {15, 0, 385, 200};
-    int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
+    int titleHeight = surface->DrawTextIn(title_, &rect, 2, 0, 0x411, 1);
     std::string explanation;
     int textHeight = 0;
     if (g_clientWorld->texts_->Open("tip option_difficulty") != 0) {
         g_clientWorld->texts_->ReadToHash(&explanation, 1);
         str::TrimRight(explanation, "\r\n");
         rect = RECT{15, 0, 385, 300};
-        textHeight = BoxText(surface, explanation, &rect, 1, 0, 0x410, 1);
+        textHeight = surface->DrawTextIn(explanation, &rect, 1, 0, 0x410, 1);
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 0x55, 385, 450};
-    BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
+    surface->DrawTextIn(title_, &rect, 2, 0x31B3FF, 0x11, 1);
     rect = RECT{15, titleHeight + top - 7, 385, 450};
-    BoxText(surface, explanation, &rect, 1, 0xA7D7E4, 0x10, 1);
+    surface->DrawTextIn(explanation, &rect, 1, 0xA7D7E4, 0x10, 1);
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     std::string easy;
     std::string hard;
     g_clientWorld->texts_->GetString("difficulty_easy", &easy);
     g_clientWorld->texts_->GetString("difficulty_hard", &hard);
-    SIZE easySize = TextExtent(interface_, easy, 2);
-    SIZE hardSize = TextExtent(interface_, hard, 2);
+    SIZE easySize = interface_->TextExtent(easy, 2);
+    SIZE hardSize = interface_->TextExtent(hard, 2);
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
     rect = RECT{0xE6 - half, row - 100, 385, 450};
-    BoxText(surface, easy, &rect, 2, 0xA7D7E4, 0, 1);
+    surface->DrawTextIn(easy, &rect, 2, 0xA7D7E4, 0, 1);
     rect = RECT{0xE6 - half, row - 0x4C, 385, 450};
-    BoxText(surface, hard, &rect, 2, 0xA7D7E4, 0, 1);
+    surface->DrawTextIn(hard, &rect, 2, 0xA7D7E4, 0, 1);
     easy_ = 0;
 
     // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted by
@@ -485,7 +473,7 @@ void CCreditsScreen::CreateScreen() {
         g_clientWorld->sounds_->StopAll(1);
         g_clientWorld->music_->Stop();
     }
-    g_cursor->ShowImage(0);
+    g_cursor.ShowImage(0);
     app::PlayMovies((name + "fin"), 0);
     nextLineAt_ = 0.0f;
 

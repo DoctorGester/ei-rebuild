@@ -138,8 +138,8 @@ ItemHoverInfo CHeroStatsPanel::HoverInfo(int x, int y) {
 
 void CHeroStatsPanel::SetHero(int heroIndex, std::optional<std::string_view> title) {
     bool party = std::ssize(LocalPlayerData()->members_) > 1;
-    SceneMesh(0)->visible_ = party ? 1 : 0;
-    SceneMesh(1)->visible_ = party ? 1 : 0;
+    SceneMesh(0)->visible_ = party;
+    SceneMesh(1)->visible_ = party;
     regions_[0]->SetTip(party ? kTipPreviousHero : 0);
     regions_[1]->SetTip(party ? kTipNextHero : 0);
     heroIndex_ = heroIndex;

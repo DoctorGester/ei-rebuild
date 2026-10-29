@@ -55,12 +55,12 @@ void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
 }
 
 void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, const TradeRow& school) {
-    draw->DrawLine(school.name, row, 0, kBright, 0, 1);
+    draw->DrawTextIn(school.name, row, 0, kBright, 0, 1);
     RECT levelRect = *row;
     gameapi::OffsetRect(&levelRect, -40, 0);
-    draw->DrawLine(str::Format("%d", school.level), &levelRect, 0, kBright, 2, 1);
+    draw->DrawTextIn(str::Format("%d", school.level), &levelRect, 0, kBright, 2, 1);
     if (school.level < 100) {
-        draw->DrawLine(CTradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience_), 2, 1);
+        draw->DrawTextIn(CTradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience_), 2, 1);
         PriceSprite(panel, *row, 350.0f, 390.0f);
     }
 }
@@ -150,11 +150,11 @@ void CTradePanel::DrawLists() {
     while (std::ssize(sceneObjects_) > 4) RemoveSceneObjectAt(std::ssize(sceneObjects_) - 1);
 
     RECT title = {0, 10, 200, 25};
-    draw->DrawLine(texts_[0], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawTextIn(texts_[0], &title, 0, 0xFFFFFF, 1, 1);
     title = {0, 205, 200, 220};
-    draw->DrawLine(texts_[1], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawTextIn(texts_[1], &title, 0, 0xFFFFFF, 1, 1);
     title = {200, 10, 400, 25};
-    draw->DrawLine(texts_[2], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawTextIn(texts_[2], &title, 0, 0xFFFFFF, 1, 1);
 
     RECT row = {15, 35, 180, 50};
     for (unsigned i = 0; i < 6; ++i) {
@@ -173,9 +173,9 @@ void CTradePanel::DrawLists() {
     unsigned index = static_cast<unsigned>(perkTop_);
     for (int shown = 0; shown < 10 && index < perks_.size(); ++shown, ++index) {
         const TradeRow& perk = perks_[index];
-        draw->DrawLine(perk.name, &row, 0, kBright, 0, 1);
+        draw->DrawTextIn(perk.name, &row, 0, kBright, 0, 1);
         if (!perk.nextKey.empty()) {
-            draw->DrawLine(FormatPrice(perk.price), &row, 0, PriceColour(perk.price, experience_), 2, 1);
+            draw->DrawTextIn(FormatPrice(perk.price), &row, 0, PriceColour(perk.price, experience_), 2, 1);
             PriceSprite(this, row, 350.0f, 390.0f);
         }
         Down(&row);
@@ -191,8 +191,8 @@ void CTradePanel::DrawLists() {
             textColour = kBright;
             priceColour = PriceColour(perk.price, experience_);
         }
-        draw->DrawLine(perk.name, &row, 0, textColour, 0, 1);
-        draw->DrawLine(FormatPrice(perk.price), &row, 0, priceColour, 2, 1);
+        draw->DrawTextIn(perk.name, &row, 0, textColour, 0, 1);
+        draw->DrawTextIn(FormatPrice(perk.price), &row, 0, priceColour, 2, 1);
         PriceSprite(this, row, 550.0f, 590.0f);
         Down(&row);
     }

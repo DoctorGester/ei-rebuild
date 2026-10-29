@@ -279,7 +279,7 @@ void CHudPortraits::MouseMove(int, int x, int y) {
         if (region < std::ssize(owner->party_)) owner->HoverUnit(owner->party_[region], 0, 0);
         return;
     }
-    if (region >= 0 && region < count_) g_cursor->SetShape(0);
+    if (region >= 0 && region < count_) g_cursor.SetShape(0);
 }
 
 // --- Map ---------------------------------------------------------------------------------------
@@ -480,7 +480,7 @@ void CHudMovePanel::ShowMode(int mode) {
     widescreen::EnterLeftPanel();    // addon's handler; another at the end
     mode_ = mode;
     auto* marker = SceneMesh(0);
-    marker->visible_ = mode < 0 ? 0 : 1;
+    marker->visible_ = mode >= 0;
     for (int i = 0; i < 4; ++i) {
         CEngineObject* button = sceneObjects_[1 + i];
         if (mode_ != i) {
@@ -494,7 +494,7 @@ void CHudMovePanel::ShowMode(int mode) {
         marker->localRotation_ = *turn.SetAxisAngle(axis, angle);
         const float y = static_cast<float>(kMarkerCentreY - x87::fsin(angle) * kMarkerRadius);
         const float x = static_cast<float>(x87::fcos(angle) * kMarkerRadius);
-        SceneMesh(0)->PlaceBody(x, y, kMarkerDepth);
+        SceneMesh(0)->Place(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
     widescreen::LeavePanel();

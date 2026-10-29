@@ -31,12 +31,6 @@ constexpr int kTypedFont = 1;
 // A chat message stays on the client's timers list for 60 s (the float's bits).
 constexpr std::uint32_t kSayLifetime = 0x42700000;
 
-int TextWidth(CInterface3D* ui, const std::string& text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size.cx;
-}
-
 
 // A chat line for the server (SayMessage) carrying `text`, kept 60 s on the client's timers.
 void SendSay(const std::string& text) {
@@ -104,14 +98,14 @@ void CChatOverlay::AddLine(const char* text) {
             wordFormatted += ch;
             mark = true;
         } else {
-            if (TextWidth(interface_, line + word + ch, kLineFont) > kLineWidth) {
+            if (interface_->TextExtent(line + word + ch, kLineFont).cx > kLineWidth) {
                 if (line.size() != 0) {
                     plain.push_back(line);
                     formatted.push_back(lineFormatted);
                 }
                 line.clear();
                 lineFormatted.clear();
-                if (TextWidth(interface_, word + ch, kLineFont) > kLineWidth) {
+                if (interface_->TextExtent(word + ch, kLineFont).cx > kLineWidth) {
                     if (word.size() != 0) {
                         plain.push_back(word);
                         formatted.push_back(wordFormatted);
@@ -140,7 +134,7 @@ void CChatOverlay::AddLine(const char* text) {
         ChatLine& added = lines_.emplace_back();
         added.name = plain[i];
         added.time = now;
-        const int width = TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad;
+        const int width = interface_->TextExtent(plain[i], kLineFont).cx + kLineSurfacePad;
         CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, kLineSurfaceFormat, 1);
         surface->Clear();
         const std::string& codes = formatted[i];
@@ -152,7 +146,7 @@ void CChatOverlay::AddLine(const char* text) {
             piece = str::Mid(codes, start, at - start);
             DrawPiece(surface, piece, x, colour);
             drawn += piece;
-            x = TextWidth(interface_, drawn, kLineFont);
+            x = interface_->TextExtent(drawn, kLineFont).cx;
             colour = MarkColour(codes[at + 1]);
             start = at + 2;
         }
@@ -191,7 +185,7 @@ void CChatOverlay::DrawTyped() {
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
     surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
-    int width = TextWidth(interface_, str::Left(typed_, caret_), kTypedFont);
+    int width = interface_->TextExtent(str::Left(typed_, caret_), kTypedFont).cx;
     if (width < kMaxTypedWidth) {
         POINT top{width, 0};
         POINT bottom{width, kCaretBottom};
@@ -252,7 +246,7 @@ void CChatOverlay::Char(int key, int, int) {
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one.
     if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
-        TextWidth(interface_, line, kTypedFont) < kMaxTypedWidth) {
+        interface_->TextExtent(line, kTypedFont).cx < kMaxTypedWidth) {
         typed_ = line;
         caret_ += text::TypedLength(key);
     }

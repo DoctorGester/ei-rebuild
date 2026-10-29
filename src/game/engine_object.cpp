@@ -33,13 +33,3 @@ CBaseManager* CEngineObject::SetOwner(CBaseManager* owner) {
     owner_ = owner;
     return previous;
 }
-
-
-void CEngineObject::ClearFields() {
-    refCount_ = 0;
-    id_ = -1;
-    prototypeId_ = 0;
-    type_ = 0;
-    flags_ = 0;
-    owner_ = nullptr;
-}

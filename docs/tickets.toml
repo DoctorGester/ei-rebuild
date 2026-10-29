@@ -5667,7 +5667,7 @@ id = "C50e"
 title = "C50d rest in the interface: ClearFields, CBinkVideo, the disc / data folders"
 group = "cleanup"
 depends = ["C50d"]
-note = "C50d follow-up, after C54 (src/game/ui_* was off limits). CEngineObject constructs itself since C50d; CUiWindow's constructor (ui_window.cpp) still calls ClearFields, the last caller: drop the call and CEngineObject::ClearFields (engine_object.h/.cpp). g_dataFolder / g_discFolder (game_folders.cpp) stay lib::StaticObject because the interface spells them *g_x: retype them (whole tree) to plain std::string like g_textFolder, add initialisers 0055E7E0 / 0055E860 to gen_static_init's UNUSED_INITIALISERS (the guard byte 007AF438 and DestroyOnce go with them), drop their static_init_ports rows and run named_data.py --update. Goldens unchanged. (CBinkVideo's constructor / destructor and the credits screen's archive went in C54f.)"
+note = "C50d follow-up. Left: g_dataFolder / g_discFolder (game_folders.cpp) stay lib::StaticObject because the interface spells them *g_x: retype them (whole tree) to plain std::string like g_textFolder, add initialisers 0055E7E0 / 0055E860 to gen_static_init's UNUSED_INITIALISERS (the guard byte 007AF438 and DestroyOnce go with them), drop their static_init_ports rows and run named_data.py --update. Goldens unchanged. (ClearFields went in C54g; CBinkVideo's constructor / destructor and the credits screen's archive in C54f.)"
 
 [[ticket]]
 id = "C50d1"
@@ -5721,3 +5721,11 @@ title = "C54f rest: the interface's int flags, TakePosition's out-parameter and 
 group = "cleanup"
 depends = ["C54f"]
 note = "C54f follow-up. (1) CInterface3D::PushWindow(window, int, int), OpenHelp(int) and ShowMessage(int) take bool flags (whole-tree callers; ui_create_screen.cpp tests the low byte). (2) CUiScrollbar::TakePosition(int*) and CUiSpin::GetValue(int*): the position is always written and several callers ignore the moved flag (ui_saveload FillEntries, ui_connect_screen, ui_hero_screen_click, ui_menu_keys, ui_scroll_text): a Position() read plus a TakeMoved() flag, or std::optional. (3) ui_screens.h: UiCapture / UiShiftDown (still used by CMpHeroScreen::LeftUp in ui_screens.cpp and the hero screen files unless C54d removed them), CMpHeroScreen::CallShowHero, SavedHero / SavedHeroCount, the lib/static_object.h include. (4) PlayMovie's char flags (bink_video.h) and GameFlow::StartServer's char unlisted. (5) Default member initialisers for CChatWindow, CBriefingScreen, CMainMenu, CCreditsScreen (CreateScreen sets them). (6) CUiScrollText::Tokenize / NextToken take const std::string& (ui_scroll_text.cpp, C54g's file). Goldens unchanged + ei_ui_check."
+
+[[ticket]]
+id = "C54g1"
+title = "C54g rest: the interface core's leftovers"
+group = "cleanup"
+model = "sonnet"
+depends = ["C54g"]
+note = "Left by C54g. (1) The other StaticObjects the interface spells with -> (g_gameFlow, g_savedParties, g_partyManager, g_saveStream; docs/notes/standalone.md 'Plain globals'): plain globals like g_interface / g_cursor (C54g's recipe: UNUSED_INITIALISERS, static_init_ports / named_data / global_objects rows, whole-tree g_x-> -> g_x. retype). (2) CUiMesh::visible_ is bool: the 0 / 1 writes left in C54f's files (ui_briefing_create, ui_connect_list, ui_connect_screen, ui_help_page, ui_objectives*, ui_options, ui_saveload) to false / true. (3) CUiWindow::Show(int) and its overrides, ShowSurfaces / ShowChildren(int): bool (virtual, change together). (4) ui_layouts' SetSpriteTexture / SetSpriteColour / SetSpritePlain one-line field setters folded. (5) CUiSurface's format (flags_ low bits, the int format parameter): name the formats (4, 5, 0x1E ...). (6) CCursor::enabled_ (uint8) and CDirectInputMouse::SetActive(char) to bool; CUiTooltip / CUiRegion's tip state 0..3 as an enum. Goldens unchanged (golden suite) + ei_ui_check."

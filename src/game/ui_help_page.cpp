@@ -227,7 +227,7 @@ void CHelpWindow::ShowPage() {
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
                     picture->textureOffsetU_ = static_cast<float>(cellX) * kTexel;
                     picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * kTexel;
-                    picture->PlaceBody(static_cast<float>(page.left + 47),
+                    picture->Place(static_cast<float>(page.left + 47),
                                         static_cast<float>(y + page.top + 95), 3.0f);
                     picture->texture_ = objects_[1];
                     pictures_.push_back(picture);

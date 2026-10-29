@@ -56,28 +56,28 @@ void TrimItemCache(ItemObjectCache<Object>* cache) {
 
 void CItemIconWindow::Build() {
     auto sprite = [this] { return AddBlankSprite(); };
-    sprite()->SetGridVanilla(8.0f, 100.0f, 0.0f, 100.0f, 800.0f, 500.0f, 0xE, 0xE, 0x72, 0x72, 8, 4);
+    sprite()->SetGrid(8.0f, 100.0f, 0.0f, 100.0f, 800.0f, 500.0f, 0xE, 0xE, 0x72, 0x72, 8, 4);
     // Four 200-wide columns: two side strips, and corners at the top and bottom of each half.
     for (int x = 0; x < 800; x += 200) {
         float left = static_cast<float>(x);
-        sprite()->SetGridVanilla(7.9f, 100.0f, left, 100.0f, static_cast<float>(D(left) + D(21.0f)), 500.0f, 0xFE, 0x4C, 0xE9,
+        sprite()->SetGrid(7.9f, 100.0f, left, 100.0f, static_cast<float>(D(left) + D(21.0f)), 500.0f, 0xFE, 0x4C, 0xE9,
                         0xB0, 1, 4);
         float right = static_cast<float>(x + 200);
-        sprite()->SetGridVanilla(7.9f, 100.0f, static_cast<float>(D(left) + D(179.0f)), 100.0f, right, 500.0f, 0xE9, 0x4C, 0xFE,
+        sprite()->SetGrid(7.9f, 100.0f, static_cast<float>(D(left) + D(179.0f)), 100.0f, right, 500.0f, 0xE9, 0x4C, 0xFE,
                         0xB0, 1, 4);
         float middle = static_cast<float>(D(left) + D(100.0f));
-        sprite()->SetRectangleVanilla(7.8f, 100.0f, left, 100.0f, middle, 130.0f, 0xFE, 2, 0x9A, 0x20);
-        sprite()->SetRectangleVanilla(7.8f, 100.0f, left, 470.0f, middle, 500.0f, 0xFE, 0x20, 0x9A, 2);
+        sprite()->SetRectangle(7.8f, 100.0f, left, 100.0f, middle, 130.0f, 0xFE, 2, 0x9A, 0x20);
+        sprite()->SetRectangle(7.8f, 100.0f, left, 470.0f, middle, 500.0f, 0xFE, 0x20, 0x9A, 2);
         float half = static_cast<float>(x + 100);
-        sprite()->SetRectangleVanilla(7.8f, 100.0f, half, 100.0f, right, 130.0f, 0x9A, 2, 0xFE, 0x20);
-        sprite()->SetRectangleVanilla(7.8f, 100.0f, half, 470.0f, right, 500.0f, 0x9A, 0x20, 0xFE, 2);
+        sprite()->SetRectangle(7.8f, 100.0f, half, 100.0f, right, 130.0f, 0x9A, 2, 0xFE, 0x20);
+        sprite()->SetRectangle(7.8f, 100.0f, half, 470.0f, right, 500.0f, 0x9A, 0x20, 0xFE, 2);
     }
-    sprite()->SetRectangleVanilla(7.8f, 100.0f, 0.0f, 380.0f, 100.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->SetRectangleVanilla(7.8f, 100.0f, 100.0f, 380.0f, 200.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
-    sprite()->SetRectangleVanilla(7.8f, 100.0f, 600.0f, 380.0f, 700.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->SetRectangleVanilla(7.8f, 100.0f, 700.0f, 380.0f, 800.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
-    sprite()->SetRectangleVanilla(7.8f, 100.0f, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->SetRectangleVanilla(7.8f, 100.0f, 300.0f, 280.0f, 400.0f, 320.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->SetRectangle(7.8f, 100.0f, 0.0f, 380.0f, 100.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->SetRectangle(7.8f, 100.0f, 100.0f, 380.0f, 200.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->SetRectangle(7.8f, 100.0f, 600.0f, 380.0f, 700.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->SetRectangle(7.8f, 100.0f, 700.0f, 380.0f, 800.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->SetRectangle(7.8f, 100.0f, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->SetRectangle(7.8f, 100.0f, 300.0f, 280.0f, 400.0f, 320.0f, 0x9A, 0x22, 0xFE, 0x4A);
 }
 
 // --- The first two bars moved ------------------------------------------------------------

@@ -9,20 +9,9 @@
 
 #include <bit>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <initializer_list>
-#include <memory>
 #include <new>
-
-// --- The battle screen's members constructed by CreateScreen 1 ---------------------------------------
-
-LockKey* LockKey::ConstructItemUseKey() {
-    mask = 1;
-    id = 0;
-    level = 0;
-    return this;
-}
 
 // --- Default answers of the windows' slots ---------------------------------------------------------------
 
@@ -52,39 +41,8 @@ void CUiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix_.m[5] = std::bit_c
 
 // --- Member constructors and destructors -----------------------------------------------------------------
 
-CScreenFade::CScreenFade() {
-    alpha_ = 0.0f;
-    active_ = 0;
-    letterbox_ = 0;
-}
-
-CInterface3D* CInterface3D::Construct() {
-    std::construct_at(&stack_);
-    std::construct_at(&messages_);
-    std::construct_at(&helpTopics_);
-    std::construct_at(&messageText_);
-    std::construct_at(&savedText_);
-    return this;
-}
-
-// The interface manager, zero at the start: built by a static initialiser in the list's order and destroyed
-// by the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<CInterface3D> g_interface = /*007C7D50*/ {};
-
-namespace {
-void DestroyInterface() { g_interface->DestroyBody(); }
-} // namespace
-
-void ConstructInterface() {
-    g_interface->Construct();
-    std::atexit(DestroyInterface);
-}
-
-void CUiMesh::DestroySprite() {
-    material_ = nullptr;
-    texture_ = nullptr;
-    CPlainFigureMesh::Destroy();
-}
+// The interface manager.
+CInterface3D g_interface;
 
 void ItemTurn::OnShutdown() {}
 

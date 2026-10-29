@@ -478,11 +478,11 @@ public:
     // height past it, the speed and the kept offset become 0 (RichEdit's EM_FORMATRANGE end in the original).
     void RenderText();
 
-    float startTime_;
-    int offsetX_;               // twips
-    int offset_;                // twips scrolled
-    float speed_;               // 0 once the text has scrolled through
-    int endOffset_;             // offset_ when the end of the text came into view (0: not yet)
+    float startTime_ = 0.0f;
+    int offsetX_ = 0;           // twips
+    int offset_ = 0;            // twips scrolled
+    float speed_ = 0.0f;        // 0 once the text has scrolled through
+    int endOffset_ = 0;         // offset_ when the end of the text came into view (0: not yet)
     std::unique_ptr<render::text::RichLayout> text_;   // the loaded text laid out (null before LoadRtf)
 };
 

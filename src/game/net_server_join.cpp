@@ -78,9 +78,7 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     }
     if (host) record->host_ = 1;
 
-    std::string announcement;
-    std::string* formatted = g_interface->MessageText(&announcement, 0, name->data());
-    self->Announce(*formatted, nullptr);
+    self->Announce(g_interface.MessageText(0, name->data()), nullptr);
 }
 
 // The player record of a login, through its binding.

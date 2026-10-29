@@ -53,7 +53,7 @@ void CUiItemStrip::SetupFigures(std::vector<std::string>* names, bool top, bool 
         regions_[1]->SetTip(0x9DD1);
     }
     tabsEnabled_ = false;
-    for (int i = 2; i < 8; ++i) SceneMesh(i)->visible_ = 0;
+    for (int i = 2; i < 8; ++i) SceneMesh(i)->visible_ = false;
 }
 
 // --- The figure strips' slots ----------------------------------------------------------------------
@@ -70,11 +70,11 @@ void CFigureStrip::Draw(CSceneRenderer* pass) {
                                  scale_);
     }
     CUiMesh* frame = SceneMesh(8);
-    frame->visible_ = 0;
+    frame->visible_ = false;
     if (selected_ >= 0 && selected_ < count_) {
         int cell = selected_ - first;
         if (cell >= 0 && cell < 8) {
-            frame->visible_ = 1;
+            frame->visible_ = true;
             frame->Place(((static_cast<float>(cell) - frac) + 1.0f) * kCell, static_cast<float>(top_) + kHalfCell,
                          scale_ * kFrameDepth);
         }

@@ -34,11 +34,7 @@ int HeightInTwips(const CUiScrollingSurface* surface) { return PixelsToTwips(sur
 } // namespace
 
 CUiScrollingSurface::CUiScrollingSurface(CInterface3D* ui, const RECT* rect) : CUiSurface(ui, rect, kSurfaceFormat) {
-    offsetX_ = 0;
     background_ = kWhite;
-    speed_ = 0.0f;
-    offset_ = 0;
-    endOffset_ = 0;
 }
 
 CUiScrollingSurface::~CUiScrollingSurface() = default;

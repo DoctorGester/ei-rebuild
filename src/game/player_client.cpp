@@ -80,7 +80,7 @@ const char* QuestPrefix() { return "q."; }
 // The quest log refreshed with an empty list built and destroyed on the stack.
 void RefreshQuestLog() {
     std::list<CItem*> none;
-    g_interface->OnItemsPicked(&none, 0, false);
+    g_interface.OnItemsPicked(&none, 0, false);
 }
 
 // The client world shows a number over a unit (id, value, kind).
@@ -276,7 +276,7 @@ int CPlayerClient::OnSetVariable() {
     variables.Get(name);
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
-        g_interface->OnQuestVariable(name, std::bit_cast<float>(value));
+        g_interface.OnQuestVariable(name, std::bit_cast<float>(value));
         g_clientWorld->OnQuestVariable(name, std::bit_cast<float>(value));
     }
     return 1;
@@ -287,7 +287,7 @@ int CPlayerClient::OnDeleteVariable() {
     in_.ReadString(&name);
     player_->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
-        g_interface->OnQuestVariable(name, 0.0f);
+        g_interface.OnQuestVariable(name, 0.0f);
         g_clientWorld->OnQuestVariable(name, 0.0f);
     }
     return 1;
@@ -389,7 +389,7 @@ int CPlayerClient::OnItemsReceived() {
     }
     if (result != 0) {
         player_->GiveItems(&items, flag);
-        g_interface->OnItemsPicked(&items, money - before, flag != 0);
+        g_interface.OnItemsPicked(&items, money - before, flag != 0);
     }
     items.clear();
     return result;
@@ -483,7 +483,7 @@ int CPlayerClient::OnPathMarker() {
 int CPlayerClient::OnStringEvent() {
     std::string text;
     ReadText(&text);
-    g_interface->OnStringEvent(text);
+    g_interface.OnStringEvent(text);
     return 1;
 }
 

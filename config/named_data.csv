@@ -250,13 +250,11 @@ address,size,name,file
 007C76D0,1108,g_aiLogBuf,src/game/console_streams.cpp
 007C7B64,1,g_cheatEnabled,src/game/console.h
 007C7B68,4,g_filterMask,src/game/console.h
-007C7BD8,184,g_cursor,src/game/ui_cursor_setup.cpp
 007C7C90,4,g_cursorWidth,src/game/ui_cursor.h
 007C7C94,4,g_cursorHeight,src/game/ui_cursor.h
 007C7CD8,16,kIdentityOrientation,src/game/ui_mesh_draw.cpp
 007C7D20,4,kFullTurn,src/game/ui_item_view.cpp
 007C7D24,4,kTilt,src/game/ui_hero_preview.cpp
-007C7D50,176,g_interface,src/game/ui_small_members.cpp
 007C7E24,4,g_shotCounter,src/game/ui_interface_keys.cpp
 007C7E58,16,kIdentityRotation,src/game/ui_window.cpp
 007C7EE8,4,kCampFullTurn,src/game/ui_camp.cpp

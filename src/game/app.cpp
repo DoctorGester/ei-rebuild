@@ -49,7 +49,7 @@ LRESULT OnActivate(WPARAM wParam) {
     if (state == 0) {   // WA_INACTIVE
         g_active = 0;
         g_activationChanged = 1;
-        g_cursor->ShowImage(0);
+        g_cursor.ShowImage(0);
         if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(0);
         if (sounds) sounds->PauseAll();
         gameapi::ShowWindow(g_mainWindow, SW_MINIMIZE);
@@ -69,9 +69,9 @@ LRESULT OnActivate(WPARAM wParam) {
             ResetCursors(options::g_options->fpsIndependentCursor_ != 0, g_mouse, 0);
         }
     }
-    g_cursor->ShowImage(1);
+    g_cursor.ShowImage(1);
     if (sounds) sounds->ResumeAll();
-    g_interface->ResetInput();
+    g_interface.ResetInput();
     return 1;
 }
 
@@ -97,7 +97,7 @@ UINT AutoPlayMessage() {
 }
 
 LRESULT Handled() {
-    g_interface->CloseAllPending();
+    g_interface.CloseAllPending();
     return 1;
 }
 
@@ -164,7 +164,7 @@ LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
     // (present_window.h; unchanged otherwise). The game's own wheel message (0xCC54) is not mapped.
     lParam = present_window::MouseToGame(message, lParam);
-    CInterface3D* input = &g_interface.Get();
+    CInterface3D* input = &g_interface;
     input->CloseAllPending();
     int w = static_cast<int>(wParam);
     switch (message) {

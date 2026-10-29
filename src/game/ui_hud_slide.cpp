@@ -60,7 +60,7 @@ float RightEdge(float x) { return x + static_cast<float>(widescreen::EdgeShift()
 float LeftEdge(float x) { return x - static_cast<float>(widescreen::EdgeShift()); }
 
 void Place(CUiWindow* window, int index, float x, float y, float depth) {
-    AsUiMesh(window->sceneObjects_[index])->PlaceBody(x, y, depth);
+    AsUiMesh(window->sceneObjects_[index])->Place(x, y, depth);
 }
 
 void SetTint(CEngineObject* object, float value) {
@@ -102,7 +102,7 @@ void PlaceSling(CEngineObject* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     AsUiMesh(sling)->localRotation_ = *turn.SetAxisAngle(axis, angle);
-    AsUiMesh(sling)->PlaceBody(x, kSlingY, kSlingDepthBits);
+    AsUiMesh(sling)->Place(x, kSlingY, kSlingDepthBits);
 }
 
 constexpr const char* kArrowSprite = "in25arrow";
@@ -275,7 +275,7 @@ void CHudUnitPanel::Setup(int bodyPart, bool slid) {
     back->texture_ = nullptr;
     back->flags_ |= kPlainColour;
     back->flatColour_ = 0x50000000;
-    back->visible_ = 0;
+    back->visible_ = false;
     CUiMesh* edge = AddBlankSprite();
     edge->SetRectangle(20.0f, 100.0f, 0.0f, 0.0f, 20.0f, 220.0f, 0, 0, 256, 256);
     edge->texture_ = nullptr;
@@ -294,11 +294,11 @@ void CHudUnitPanel::Setup(int bodyPart, bool slid) {
     AddBlankSprite()->SetFrame(10.0f, 80.0f, -5.0f, -5.0f, 185.0f, 225.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     // 8: a strip of twenty cells down the edge; 9: the "more effects" mark. Both hidden.
     CUiMesh* strip = AddBlankSprite();
-    strip->SetGridVanilla(4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
-    strip->visible_ = 0;
+    strip->SetGrid(4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
+    strip->visible_ = false;
     CUiMesh* more = AddBlankSprite();
     more->SetRectangle(4.0f, 100.0f, 164.0f, 204.0f, 180.0f, 220.0f, 0xD3, 2, 0xE3, 0x12);
-    more->visible_ = 0;
+    more->visible_ = false;
     // 10-13: the health and the mana bar, each over its frame.
     AddBlankSprite()->SetRectangle(4.0f, 100.0f, 40.0f, 190.0f, 140.0f, 195.0f, 0x40, 0x9A, 0xA4, 0x9F);
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 35.0f, 190.0f, 145.0f, 195.0f, 0x3B, 0x93, 0xA9, 0x98);
@@ -419,7 +419,7 @@ void CHudMap::Setup(float zoom, bool slid) {
     area->texture_ = objects_[1];
     area->tint_[0] = area->tint_[1] = area->tint_[2] = 1.0f;
     CUiMesh* markers = AddBlankSprite();
-    markers->PlaceBody(700.0f, 80.0f, 12.0f);
+    markers->Place(700.0f, 80.0f, 12.0f);
     markers->SetScale(static_cast<float>(static_cast<float>(kDepthUnit * halfSide_) * kMarkersScale));
     markers->ResetColours();
     markers->SetUvCount(4);
@@ -447,7 +447,7 @@ void CHudMap::Setup(float zoom, bool slid) {
     CUiMesh* needle = AddSprite(kArrowSprite);
     needle->textureOffsetU_ = 0.22265625f;
     needle->textureOffsetV_ = 0.140625f;
-    needle->PlaceBody(900.0f, 80.0f, kSlingDepthBits);
+    needle->Place(900.0f, 80.0f, kSlingDepthBits);
     needle->SetScale(0.8f);
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 

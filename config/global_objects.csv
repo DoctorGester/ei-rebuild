@@ -7,5 +7,3 @@ address,size,name,type
 007AF5B8,0x7E4,g_clientWorld,CWorldClient
 007AFE20,0x84,g_gameFlow,GameFlow
 007AFF60,0x12E7C,g_serverWorld,CWorldServer
-007C7BD8,0xB8,g_cursor,CCursor
-007C7D50,0xB0,g_interface,CInterface3D

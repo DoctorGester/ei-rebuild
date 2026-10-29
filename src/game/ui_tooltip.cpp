@@ -45,11 +45,6 @@ constexpr int kSurfaceFormat = 5;
 constexpr float kAppearTime = 0.0f;
 constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
-SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size;
-}
 } // namespace
 
 // The virtuals: drawn and redrawn only while shown; the input side's defaults.
@@ -71,10 +66,10 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view tex
         SIZE size;
         int width;
         if (lines_[i].empty() && i < static_cast<int>(lines_.size()) - 1) {
-            size = TextExtent(interface_, std::string(EmptyLineSample()), kFont);
+            size = interface_->TextExtent(std::string(EmptyLineSample()), kFont);
             width = 0;
         } else {
-            size = TextExtent(interface_, lines_[i], kFont);
+            size = interface_->TextExtent(lines_[i], kFont);
             width = size.cx;
         }
         if (width > width_) width_ = width;
@@ -134,7 +129,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
         if (extra_) {
             keyName_ = static_cast<const char*>(FindCommandByKey(extra_));
             if (keyName_) {
-                keyWidth_ = TextExtent(interface_, lines_[0] + KeyOpen() + keyName_ + KeyClose(), kFont).cx + kPaddingX;
+                keyWidth_ = interface_->TextExtent(lines_[0] + KeyOpen() + keyName_ + KeyClose(), kFont).cx + kPaddingX;
             }
         }
         state_ = kAppearing;

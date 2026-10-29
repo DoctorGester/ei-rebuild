@@ -96,7 +96,7 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
         return 1;
     }
     gameapi::BinkSetVolume(bink, options::g_options->audioStreaming_ * 0x7FF6 / 100);
-    g_cursor->ShowImage(0);
+    g_cursor.ShowImage(0);
     // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
@@ -161,7 +161,7 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
     }
     gameapi::BinkClose(bink);
     SetQuitAllowed(1);
-    g_cursor->ShowImage(1);
+    g_cursor.ShowImage(1);
     return escaped ? 0 : 1;
 }
 
@@ -170,7 +170,7 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
 void ShowLoadingMovie(int progress) {
     net::Pump();
     if (g_loadingMovieOff) return;
-    g_cursor->ShowImage(0);
+    g_cursor.ShowImage(0);
     if (!g_loadingBink) {
         std::string path = DataFolderText();
         path += "Movies\\";
@@ -199,13 +199,13 @@ void ShowLoadingMovie(int progress) {
         bink = g_loadingBink;
         if (bink->frames == bink->lastFrame) break;
     }
-    g_cursor->TakeLock();
+    g_cursor.TakeLock();
     bink = g_loadingBink;
     const void* key = &g_loadingScreen;   // the loading movie in the new renderer
     if (decoded) render::MovieFrame(key, frame.data(), static_cast<int>(bink->width), static_cast<int>(bink->height));
     render::MovieBlit(key, ToRender(g_loadingScreen));
     PresentMovieFrame();
-    g_cursor->ReleaseLock();
+    g_cursor.ReleaseLock();
 }
 
 // --- Opening a movie for the frame's player ----------------------------------------------
@@ -224,7 +224,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);
         return 0;
     }
-    g_cursor->ShowImage(0);
+    g_cursor.ShowImage(0);
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
     gameapi::CopyRect(&screen, &g_sceneRenderer->device_->screen_);
@@ -248,7 +248,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
 void CloseLoadingMovie() {
     gameapi::BinkClose(g_loadingBink);
     g_loadingBink = nullptr;
-    g_cursor->ShowImage(1);
+    g_cursor.ShowImage(1);
 }
 
 void CBinkVideo::Close() {
@@ -256,5 +256,5 @@ void CBinkVideo::Close() {
         gameapi::BinkClose(bink);
         bink = nullptr;
     }
-    g_cursor->ShowImage(1);
+    g_cursor.ShowImage(1);
 }

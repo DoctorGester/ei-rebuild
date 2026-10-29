@@ -28,8 +28,8 @@ render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.righ
 // frames come often enough); the drawn rectangle follows as the DirectDraw blits made it.
 void MoveBetweenFrames(CCursor* self) {
     gameapi::EnterCriticalSection(&self->lock_);
-    char moved = self->UpdatePosition();
-    if (self->imageShown_ != 0 && moved != 0) {
+    const bool moved = self->UpdatePosition();
+    if (self->imageShown_ && moved) {
         CursorImage* image = self->image_;
         render::CursorBetweenFrames(image->holder, image->saved, ToRender(self->from_), ToRender(self->rect_));
         self->drawn_ = self->rect_;
@@ -46,7 +46,7 @@ void CursorDrawFrame(CCursor* self) {
     self->UpdatePosition();
     RECT* rect = &self->rect_;
     if (gameapi::IsRectEmpty(rect)) return;
-    if (self->imageShown_ == 0) return;
+    if (!self->imageShown_) return;
     CursorImage* image = self->image_;
     render::Cursor(image->holder, image->saved, ToRender(self->from_), ToRender(*rect));
     self->drawn_ = *rect;

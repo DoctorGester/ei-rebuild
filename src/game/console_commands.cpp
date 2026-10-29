@@ -49,7 +49,7 @@ bool ServerActive(net::ClientSession* server) { return server && !(server->flags
 
 void SetConsoleRect(int left, int top, int right, int bottom) {
     RECT rect = {left, top, right, bottom};
-    g_interface->SetConsoleRect(&rect);
+    g_interface.SetConsoleRect(&rect);
 }
 
 // join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
@@ -80,7 +80,7 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
             // Our binding's player record: only the host gets the window.
             net::BindingMessage* binding = server->binding_;
             if (binding->Player()->host_)
-                ScreenOf(g_interface->GetActiveWindow())->PlayerList(windowMode);
+                ScreenOf(g_interface.GetActiveWindow())->PlayerList(windowMode);
             return;
         }
     }
@@ -148,7 +148,7 @@ void ConsolePos(std::vector<std::string>* args) {
 // History <lines>.
 void History(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("Invalid parameters");
-    g_interface->SetConsoleHistory(str::ToInt((*args)[0]));
+    g_interface.SetConsoleHistory(str::ToInt((*args)[0]));
 }
 
 // Filter (prints the shown categories), filter <type> (shows only that one), filter <type> 1|on|0|off.
@@ -291,7 +291,7 @@ void Give(std::vector<std::string>* args) {
         return state->SendParty();
     }
     if (ArgIs(args, 1, "assortment")) {
-        ScreenOf(g_interface->GetActiveWindow())->DebugFill();
+        ScreenOf(g_interface.GetActiveWindow())->DebugFill();
         return;
     }
     PrintLine("Give what?");
@@ -323,7 +323,7 @@ void LootAll(std::vector<std::string>*) {
 // Fadeout <milliseconds>.
 void FadeOut(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("FADEOUT nMillSec");
-    g_interface->fade_->Start(str::ToInt((*args)[0]));
+    g_interface.fade_->Start(str::ToInt((*args)[0]));
     PrintLine("Ok");
 }
 
@@ -445,8 +445,8 @@ void Ban(std::vector<std::string>* args) { KickOrBan(args, 2, 3); }
 // Fps 1|on|0|off (anything else: nothing).
 void Fps(std::vector<std::string>* args) {
     if (args->size() < 1) return PrintLine("Invalid number of parameters for command \"FPS\"");
-    if (ArgOn(args, 0)) g_interface->ShowFps(1);
-    else if (ArgOff(args, 0)) g_interface->ShowFps(0);
+    if (ArgOn(args, 0)) g_interface.ShowFps(1);
+    else if (ArgOff(args, 0)) g_interface.ShowFps(0);
 }
 
 // Rate <bytes per second>.

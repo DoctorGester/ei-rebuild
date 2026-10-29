@@ -12,17 +12,10 @@
 
 namespace {
 
-// The extent of `text` in interface font `font` (CInterface3D::TextExtent).
-SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size;
-}
-
 } // namespace
 
 int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour,
-                                int format, int flag) {
+                                UINT format, bool shadow) {
     if (!holder_) return 0;
     int width = rect->right - rect->left;
     std::string ch, word, line;
@@ -35,7 +28,7 @@ int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int max
         const char c = *p;
         ch.assign(1, c);
         if (c == '\n') {
-            if (TextExtent(interface_, line + word, font).cx > width) {
+            if (interface_->TextExtent(line + word, font).cx > width) {
                 lines.push_back(line);
                 lines.push_back(word);
             } else {
@@ -45,7 +38,7 @@ int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int max
             line.clear();
             word.clear();
         } else if (c == ' ') {
-            if (TextExtent(interface_, line + word, font).cx > width) {
+            if (interface_->TextExtent(line + word, font).cx > width) {
                 lines.push_back(line);
                 line = word + game::SpaceText();
             } else {
@@ -61,7 +54,7 @@ int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int max
     int height = rect->bottom - rect->top;
     const int count = static_cast<int>(lines.size());
     for (int i = 0; i < maxLines && i < count; ++i) {
-        DrawLine(lines[i], &at, font, colour, format, flag);   // through its address
+        DrawTextIn(lines[i], &at, font, colour, format, shadow);
         gameapi::OffsetRect(&at, 0, height);
     }
     return count;

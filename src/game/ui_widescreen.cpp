@@ -140,41 +140,37 @@ void LeavePanel() {
 
 // addon's layout-to-screen scaling: x scaled by the 4:3 part's width plus the margin (with `margin`), y by
 // the mode's height.
-int RectToScreen(RECT* rect, bool margin) {
+void RectToScreen(RECT* rect, bool margin) {
     const Layout& l = Get();
     const int shift = margin ? l.margin : 0;
     rect->left = MulDiv64(l.width43, rect->left, kLayoutWidth) + shift;
     rect->top = MulDiv64(l.height, rect->top, kLayoutHeight);
     rect->right = MulDiv64(l.width43, rect->right, kLayoutWidth) + shift;
     rect->bottom = MulDiv64(l.height, rect->bottom, kLayoutHeight);
-    return rect->bottom;
 }
 
 // addon's scaling of points and rectangles.
-int PointToScreen(POINT* point, bool margin) {
+void PointToScreen(POINT* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(l.width43, point->x, kLayoutWidth) + (margin ? l.margin : 0);
     point->y = MulDiv64(l.height, point->y, kLayoutHeight);
-    return point->y;
 }
 
 // addon's code for the screen-to-layout scaling: left, right, top, bottom in that order.
-int RectFromScreen(RECT* rect, bool margin) {
+void RectFromScreen(RECT* rect, bool margin) {
     const Layout& l = Get();
     const int shift = margin ? l.margin : 0;
     rect->left = MulDiv64(rect->left - shift, kLayoutWidth, l.width43);
     rect->right = MulDiv64(rect->right - shift, kLayoutWidth, l.width43);
     rect->top = MulDiv64(rect->top, kLayoutHeight, l.height);
     rect->bottom = MulDiv64(rect->bottom, kLayoutHeight, l.height);
-    return rect->bottom;
 }
 
 // addon's code for the screen-to-layout scaling of a point (two entries, one jumping to the other).
-int PointFromScreen(POINT* point, bool margin) {
+void PointFromScreen(POINT* point, bool margin) {
     const Layout& l = Get();
     point->x = MulDiv64(point->x - (margin ? l.margin : 0), kLayoutWidth, l.width43);
     point->y = MulDiv64(kLayoutHeight, point->y, l.height);
-    return point->y;
 }
 
 // addon's text extent code.

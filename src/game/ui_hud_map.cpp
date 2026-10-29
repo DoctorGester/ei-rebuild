@@ -499,10 +499,10 @@ void CHudMap::UpdateView() {
     if (rightRaw > 1.0f) right = 1.0f;   // the original compares the value still on the FPU stack
     bottom = bottom >= -1.0f ? bottom : -1.0f;
     if (left >= right || bottom >= top) {
-        bounds->visible_ = 0;
+        bounds->visible_ = false;
         return;
     }
-    bounds->visible_ = 1;
+    bounds->visible_ = true;
     VertexPacket& b = bounds->vertices_[0];
     b.x()[0] = left;
     b.y()[0] = bottom;

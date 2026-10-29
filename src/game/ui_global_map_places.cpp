@@ -116,8 +116,8 @@ void CGlobalMap::RefreshSelection() {
     g_sceneRenderer->fogColour_ = colour;
     surfaces_[1]->Freeze(1, 0);
     ShowAllButZones(true);
-    SceneMesh(markerCount_ + 6)->visible_ = 0;
-    SceneMesh(markerCount_ + 7)->visible_ = 0;
+    SceneMesh(markerCount_ + 6)->visible_ = false;
+    SceneMesh(markerCount_ + 7)->visible_ = false;
     backdrop_->CaptureScreen();
     SelectZone(-1, false);
 }

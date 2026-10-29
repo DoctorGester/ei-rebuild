@@ -18,10 +18,6 @@ struct LockKey {
     // Reads / writes the three dwords.
     void ReadFrom(CStream* stream);
     void WriteTo(CStream* stream) const;
-    // The constructor of the battle screen's item key
-    // (CBattleScreen::itemUseKey_): {1, 0, 0}.
-    LockKey* ConstructItemUseKey();
-
     std::uint32_t mask;
     std::uint32_t id;
     std::uint32_t level;

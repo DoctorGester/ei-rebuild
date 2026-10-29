@@ -57,7 +57,7 @@ void CBattleScreen::ToggleMember(int index) {
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* portraits = portraits_;
         std::uint32_t value = chosen[i];
-        portraits->SceneMesh(i * 5 + 4)->visible_ = static_cast<int>(value);
+        portraits->SceneMesh(i * 5 + 4)->visible_ = value != 0;
         Quaternion turn;
         const Quaternion* rest = &kHudRestRotation;
         if (value != 0) {

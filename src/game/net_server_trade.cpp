@@ -30,9 +30,7 @@ PartyMessage* FindPartnerOffer(const std::list<CountedRefTo<PartyMessage>>& list
 void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     CRefObject* partner = offer->partner_.ptr;
     const char* name = offer->player_.Get()->name_.data();
-    std::string line;
-    std::string* formatted = g_interface->MessageText(&line, text, name);
-    self->Announce(*formatted, partner);
+    self->Announce(g_interface.MessageText(text, name), partner);
 }
 
 } // namespace

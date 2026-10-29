@@ -330,7 +330,7 @@ bool CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, {}};
     int frames = ++ticksRun_;
     if (frames == 10) {
-        g_interface->OnStringEvent(worlddata::AutosaveEventText());
+        g_interface.OnStringEvent(worlddata::AutosaveEventText());
         sounds_->SetEffectsVolume(options::g_options->audioSfx_);
         sounds_->SetSpeechVolume(options::g_options->audioSpeech_);
         sounds_->SetMusicVolume(options::g_options->audioStreaming_);
@@ -379,7 +379,7 @@ bool CWorldClient::Segment() {
         if (bird_) bird_->RunTick();
     }
     if (IsMultiplayerClient()) {
-        if (static_cast<int>(std::ssize(g_interface->stack_)) > 1) {
+        if (static_cast<int>(std::ssize(g_interface.stack_)) > 1) {
             float time = static_cast<float>(tick_) + tickFraction_;
             float now = time;
             for (auto node = dynamicObjects_.begin(); node != dynamicObjects_.end();) {

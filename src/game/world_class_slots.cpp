@@ -23,9 +23,7 @@ constexpr const char* kTerrainName = "CTerrain";
 constexpr const char* kLightningManagerName = "CLightningManager";
 constexpr const char* kVisFogManagerName = "CVisFogManager";
 constexpr const char* kFigureManagerName = "CFigureManager";
-constexpr const char* kI3DFigureName = "CI3DFigure";
 constexpr const char* kFigureClientSpecificName = "CFigureClientSpecific";
-constexpr const char* kUiObjectName = "Sorry, no other way.";
 constexpr const char* kFiguresFolderName = "figures";
 
 } // namespace
@@ -58,12 +56,8 @@ const char* CFigureManager::ClassName() { return kFigureManagerName; }
 ClassId CFigureManager::GetClassId() { return ClassId::FigureManager; }
 const char* CFigureManager::GetFolderName() { return kFiguresFolderName; }
 
-const char* I3DFigureClassName(CEngineObject*) { return kI3DFigureName; }
-
 const char* FigureClientSpecificClassName(CEngineObject*) { return kFigureClientSpecificName; }
 
-void UiObjectCreate(CEngineObject*) {}
-const char* UiObjectClassName(CEngineObject*) { return kUiObjectName; }
 
 bool CWorldServer::IsServer() { return true; }
 

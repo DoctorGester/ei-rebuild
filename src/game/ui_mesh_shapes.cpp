@@ -102,7 +102,7 @@ float MovedX(float x) { return x + static_cast<float>(widescreen::PanelOffset())
 
 } // namespace
 
-void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0,
+void CUiMesh::SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0,
                                   int v0, int u1, int v1) {
     SetFlatNormals(this, 4);
     corners_.resize(4);
@@ -142,7 +142,7 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     RefreshBuffers();
 }
 
-void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
+void CUiMesh::SetGrid(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1, int columns, int rows) {
     SetFlatNormals(this, 4);
     // The points, row by row from the top left, a cell apart in units of `scale`.

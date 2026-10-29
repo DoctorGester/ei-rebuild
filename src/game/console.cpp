@@ -101,7 +101,7 @@ void ConsoleStreambuf::Overflow(int c) {
 void ConsoleStreambuf::Sync() {
     Overflow(-1);
     if (g_consoleLineObserver) g_consoleLineObserver(line_.c_str());
-    g_interface->ConsoleAddText(line_);
+    g_interface.ConsoleAddText(line_);
     line_ = game::kEmptyText;
 }
 

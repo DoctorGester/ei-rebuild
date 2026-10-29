@@ -32,8 +32,6 @@ void ReleaseHolder(Surface*& slot) {
     if (old) old->Release();
 }
 
-void DestroyGameCursor() { g_cursor->DestroyBody(); }
-
 // The current image's current frame as the part shown.
 void ShowFrame(CCursor* cursor) {
     const CursorImage* image = cursor->image_;
@@ -45,8 +43,8 @@ void ShowFrame(CCursor* cursor) {
 
 } // namespace
 
-void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors) {
-    const LONG size = static_cast<std::uint8_t>(smallCursors) ? kSmallSize : kLargeSize;
+void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, bool smallCursors) {
+    const LONG size = smallCursors ? kSmallSize : kLargeSize;
     g_cursorWidth = size;
     g_cursorHeight = size;
     position_.x = 0;
@@ -57,7 +55,7 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
     imageSpare_ = 0;
     thread_ = nullptr;
     shape_ = -1;
-    imageShown_ = 1;
+    imageShown_ = true;
     enabled_ = 1;
     mode_ = 0;
     stopped_ = gameapi::CreateEventA(nullptr, FALSE, FALSE, nullptr);
@@ -82,31 +80,17 @@ CursorImage::~CursorImage() {
     if (holder) holder->Release();
 }
 
-CCursor* CCursor::Construct() {
-    device_ = nullptr;
-    std::construct_at(&images_);
-    gameapi::InitializeCriticalSection(&lock_);
-    enabled_ = 0;
-    return this;
-}
+CCursor::CCursor() { gameapi::InitializeCriticalSection(&lock_); }
 
-void CCursor::DestroyBody() {
+CCursor::~CCursor() {
     gameapi::DeleteCriticalSection(&lock_);
-    lib::FreeStorage(images_);
     if (device_) device_->Release();
 }
 
-// The cursor, zero at the start: built by the static initialiser in the list's order and destroyed by the exit
-// function it registers (docs/notes/standalone.md,
-// "The static initialisers' objects").
-constinit lib::StaticObject<CCursor> g_cursor = /*007C7BD8*/ {};
+// The software cursor.
+CCursor g_cursor;
 
-void ConstructGameCursor() {
-    g_cursor->Construct();
-    std::atexit(DestroyGameCursor);
-}
-
-int CCursor::ChangeShape(int shape) {
+int CCursor::SetShape(int shape) {
     const int previous = shape_;
     if (previous == -1 || !enabled_) return -1;
     gameapi::EnterCriticalSection(&lock_);
@@ -117,17 +101,17 @@ int CCursor::ChangeShape(int shape) {
     return previous;
 }
 
-void CCursor::ShowImage(int shown) {
+void CCursor::ShowImage(bool shown) {
     if (!enabled_) return;
     gameapi::EnterCriticalSection(&lock_);
     imageShown_ = shown;
     gameapi::LeaveCriticalSection(&lock_);
 }
 
-void CCursor::SetHeld(char held) {
+void CCursor::SetHeld(bool held) {
     if (!enabled_) return;
     gameapi::EnterCriticalSection(&lock_);
-    held_ = static_cast<std::uint8_t>(held);
+    held_ = held;
     gameapi::LeaveCriticalSection(&lock_);
 }
 
@@ -180,12 +164,12 @@ void CCursor::Shutdown() {
     enabled_ = 0;
 }
 
-char CCursor::UpdatePosition() {
+bool CCursor::UpdatePosition() {
     // The frame: one step per 125 ms since frameTime_ (unsigned), wrapped by the frame count.
     const DWORD steps = (gameapi::timeGetTime() - frameTime_) / kFramePeriod;
     image_->frame = static_cast<int>(static_cast<unsigned>(image_->frame + steps) % static_cast<unsigned>(image_->frames));
     frameTime_ += steps * kFramePeriod;
-    char moved = steps != 0;
+    bool moved = steps != 0;
 
     const LONG* state = mouse_->Poll();
     motion_.x += state[0];
@@ -201,7 +185,7 @@ char CCursor::UpdatePosition() {
     if (point.y < 0) point.y = 0;
     if (point.x > bounds_.right) point.x = bounds_.right;
     if (point.y > bounds_.bottom) point.y = bounds_.bottom;
-    if (position_.x != point.x || position_.y != point.y) moved = 1;
+    if (position_.x != point.x || position_.y != point.y) moved = true;
 
     ShowFrame(this);
     const LONG left = position_.x - image_->hotX;

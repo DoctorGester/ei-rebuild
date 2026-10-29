@@ -71,7 +71,7 @@ void SetMasterHost(const char* host) { options::g_options->masterServerName_ = h
 void SetWaterWaves(bool on) { options::g_options->enableWaterWaves_ = on; }
 
 CursorState Cursor() {
-    const CCursor* cursor = &g_cursor.Get();
+    const CCursor* cursor = &g_cursor;
     CursorState state;
     state.mode = cursor->mode_;
     state.thread = cursor->thread_ != nullptr;
@@ -84,10 +84,10 @@ CursorState Cursor() {
     return state;
 }
 
-void* QueuedWindow() { return g_interface->queuedWindow_; }
-bool CloseAllPending() { return g_interface->closeAll_; }
+void* QueuedWindow() { return g_interface.queuedWindow_; }
+bool CloseAllPending() { return g_interface.closeAll_; }
 bool ScreenFade(bool* running, float* alpha) {
-    const CScreenFade* fade = g_interface->fade_;
+    const CScreenFade* fade = g_interface.fade_;
     if (!fade) return false;
     *running = fade->active_ != 0;
     *alpha = fade->alpha_;
@@ -191,19 +191,19 @@ bool Region(void* window, int index, RegionInfo* region) {
 }
 void ScaleToScreen(long* x, long* y) {
     POINT point{*x, *y};
-    g_interface->ScalePointToScreenEntry(&point);
+    g_interface.ScalePointToScreenEntry(&point);
     *x = point.x;
     *y = point.y;
 }
 void InterfaceSize(int* width, int* height) {
-    *width = g_interface->width_;
-    *height = g_interface->height_;
+    *width = g_interface.width_;
+    *height = g_interface.height_;
 }
 bool SaveLoadSliding(void* window) { return static_cast<CSaveLoadWindow*>(window)->sliding_; }
 bool OptionsSliding(void* window) { return static_cast<COptionsWindow*>(window)->sliding_; }
-bool HasChatOverlay() { return g_interface->root_ != nullptr; }
-void ChatKeyEnter() { g_interface->ChatKeyEnter(); }
-void CloseChat() { g_interface->root_->SetOpen(false); }
+bool HasChatOverlay() { return g_interface.root_ != nullptr; }
+void ChatKeyEnter() { g_interface.ChatKeyEnter(); }
+void CloseChat() { g_interface.root_->SetOpen(false); }
 bool HasClassTemplate(int id) { return g_partyManager->templates.Find(id) != nullptr; }
 const void* FindMap(const char* name) { return g_mapDatabase->FindMap(name); }
 int MapKind(const void* record) { return static_cast<const MapRecord*>(record)->kind; }

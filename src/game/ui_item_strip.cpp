@@ -44,9 +44,9 @@ void CUiItemStrip::Build(bool top) {
     const float hundred = 100.0f;
     // The ends' faces.
     float depth = scale_ * 0.8f;
-    AddBlankSprite()->SetRectangleVanilla(depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
+    AddBlankSprite()->SetRectangle(depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
     depth = scale_ * 0.8f;
-    AddBlankSprite()->SetRectangleVanilla(depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
+    AddBlankSprite()->SetRectangle(depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
     // The tab buttons (y + 5, 35, 65, 95; depth scale * 0.6).
     const float y5 = 5.0f, y35 = 35.0f, y65 = 65.0f,
                 y95 = 95.0f;
@@ -61,7 +61,7 @@ void CUiItemStrip::Build(bool top) {
         static constexpr int kV[3][2] = {{0x82, 0xAA}, {0xAC, 0xD4}, {0xD6, 0xFE}};
         for (int i = 0; i < 3; ++i) {
             depth = scale_ * 0.6f;
-            AddBlankSprite()->SetRectangleVanilla(depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i], tab.u0, kV[i][0], tab.u1, kV[i][1]);
+            AddBlankSprite()->SetRectangle(depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i], tab.u0, kV[i][0], tab.u1, kV[i][1]);
         }
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
@@ -70,9 +70,9 @@ void CUiItemStrip::Build(bool top) {
     frame->flags_ |= 0x100;
     frame->flatColour_ = 0xFF8B8B37;
     frame->texture_ = nullptr;
-    frame->visible_ = 0;
+    frame->visible_ = false;
     // The background: eight cells between the ends (depth scale * 2), then a frame per 100 pixels.
-    AddBlankSprite()->SetGridVanilla(scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
+    AddBlankSprite()->SetGrid(scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
     const float fifty = 50.0f, hundredFifty = 150.0f;
     for (int x = 0; x < 800; x += 100) {
         CUiMesh* cell = AddBlankSprite();
@@ -136,7 +136,7 @@ void CForwardingStrip::Draw(CSceneRenderer* pass) {
         if (count == 1) continue;
         text = str::Format(kNumber, count);
         RECT rect = cellRect(i);
-        counts->DrawLine(text, &rect, 1, 0xA7D7E4, 2, 1);
+        counts->DrawTextIn(text, &rect, 1, 0xA7D7E4, 2, 1);
     }
     CUiSurface* numbers = surfaces_[1];
     numbers->Clear();
@@ -146,7 +146,7 @@ void CForwardingStrip::Draw(CSceneRenderer* pass) {
         if (!owner_->CanEquip(item, mode_)) continue;     // whether the strip's mode takes the item
         text = str::Format(kNumber, owner_->Price(item, slots_));   // the number shown under it
         RECT rect = cellRect(i);
-        numbers->DrawLine(text, &rect, 1, 0xA7D7E4, 1, 1);
+        numbers->DrawTextIn(text, &rect, 1, 0xA7D7E4, 1, 1);
     }
 }
 

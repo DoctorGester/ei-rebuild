@@ -77,5 +77,5 @@ void CCreditsScreen::CloseScreen() {
     lines_.clear();
     g_sceneRenderer->fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
     app::g_interfaceHasScreen = 1;
-    g_cursor->ShowImage(1);
+    g_cursor.ShowImage(1);
 }

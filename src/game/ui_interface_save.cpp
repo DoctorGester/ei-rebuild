@@ -74,16 +74,12 @@ void CInterface3D::LoadState(CStream* stream) {
 
 char g_pauseMessageKey[12] = /*007930EC*/ {"reserved_02"};
 
-std::string* CInterface3D::MessageText(std::string* out, int id, const char* value) {
-    std::string key, text;
+std::string CInterface3D::MessageText(int id, const char* value) {
+    std::string key;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
-    CTextManager* table = g_clientWorld->texts_;
-    table->CTextManager::GetString(key, &key);
-    if (value)
-        text = str::Format(key, value);
-    else
-        text = key;
-    *out = text; return out;
+    g_clientWorld->texts_->CTextManager::GetString(key, &key);
+    if (value) return str::Format(key, value);
+    return key;
 }
 
 // --- The saved state written -----------------------------------------------------------

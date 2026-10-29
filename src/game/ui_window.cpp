@@ -6,7 +6,6 @@
 #include "texture.h"
 #include "ui.h"
 #include "ui_widescreen.h"
-#include "world_class_slots.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -41,17 +40,18 @@ CFigureMesh* NewModelObject(std::string_view name) {
 
 constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 
-void PrepareMaterial(CMaterial* material, float value) {
+constexpr const char* kClassName = "Sorry, no other way.";
+
+// A new material of kind 0x16 (filled by the manager) glowing `value` in every channel, referenced.
+CMaterial* NewGlowMaterial(float value) {
+    CMaterialManager* materials = g_clientWorld->materialManager_;
+    CMaterial* material = materials->NewMaterial(0x16);
+    materials->FillMaterial(material, 0x16);
     material->colors.emissive.x = value;
     material->colors.emissive.y = value;
     material->colors.emissive.z = value;
     ++material->refCount_;
-}
-
-// The constructor's empty pointer array (data, growth step, capacity, size in its order).
-template <typename T>
-void ClearArray(std::vector<T*>& array) {
-    std::construct_at(&array);
+    return material;
 }
 
 } // namespace
@@ -60,12 +60,12 @@ void ClearArray(std::vector<T*>& array) {
 
 // --- CUiRegion -------------------------------------------------------------------------------
 
-BOOL CUiRegion::HitTest(int x, int y) const {
+bool CUiRegion::HitTest(int x, int y) const {
     x -= offsetX_;
     y -= offsetY_;
-    if (!enabled_) return 0;
-    if (!gameapi::PtInRect(&bounds_, POINT{x, y})) return 0;
-    if (rectOnly_) return 1;
+    if (!enabled_) return false;
+    if (!gameapi::PtInRect(&bounds_, POINT{x, y})) return false;
+    if (rectOnly_) return true;
     // Convex polygon: the point must not lie on the outer side of any edge a -> b. The products wrap at 32
     // bits like the original's.
     int count = std::ssize(points_);
@@ -75,13 +75,13 @@ BOOL CUiRegion::HitTest(int x, int y) const {
         const UiPoint& b = points_[i % count];
         int lhs = Mul(y, b.x) + Mul(b.y, a.x) + Mul(a.y, x);
         int rhs = Mul(a.y, b.x) + Mul(y, a.x) + Mul(b.y, x);
-        if (lhs < rhs) return 0;
+        if (lhs < rhs) return false;
     }
-    return 1;
+    return true;
 }
 
-BOOL CUiRegion::HasActiveTip() const {
-    if (!tip_) return 0;
+bool CUiRegion::HasActiveTip() const {
+    if (!tip_) return false;
     int state = tip_->state_;
     return state != 0 && state != 1;
 }
@@ -124,7 +124,7 @@ void CUiRegion::AddPoint(int x, int y) {
 
 void CUiRegion::OnMouseMove(int x, int y) {
     if (!tip_) return;
-    BOOL inside = HitTest(x, y);
+    const bool inside = HitTest(x, y);
     int state = tip_->state_;
     if (inside) {
         if (state == 0 || state == 1) tip_->state_ = 1;
@@ -145,10 +145,10 @@ int CUiWindow::RegionAt(int x, int y) const {
     return -1;
 }
 
-BOOL CUiWindow::ContainsPoint(int x, int y) const {
+bool CUiWindow::ContainsPoint(int x, int y) const {
     POINT point{x, y};
     interface_->ScalePointFromScreenEntry(&point);
-    return gameapi::PtInRect(&rect_, point);
+    return gameapi::PtInRect(&rect_, point) != FALSE;
 }
 
 void CUiWindow::UpdateRegionTips() {
@@ -212,16 +212,16 @@ void CUiWindow::RemoveObjectAt(int index) {
     objects_.erase(objects_.begin() + index);
 }
 
-BOOL CUiWindow::RemoveSceneObject(CEngineObject* object) {
+bool CUiWindow::RemoveSceneObject(CEngineObject* object) {
     for (int i = 0; i < std::ssize(sceneObjects_); ++i) {
         if (sceneObjects_[i] == object) {
             // Unlike RemoveObject, the slot is removed before the release.
             sceneObjects_.erase(sceneObjects_.begin() + i);
             object->Release();
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 void CUiWindow::RemoveSceneObjectAt(int index) {
@@ -284,20 +284,18 @@ CTexture* CUiWindow::CreateTexture(int width, int height, int kind) {
 void CUiWindow::ShowSurfaces(int show) {
     for (int i = 0; i < std::ssize(surfaces_); ++i) {
         CUiSurface* surface = surfaces_[i];
-        if (show == 0 || surface->Shown()) surface->CallSwapContents(show);
+        if (show == 0 || surface->Shown()) surface->SwapContents(show != 0);
     }
 }
 
-void CUiSurface::CallSwapContents(int restore) { SwapContents(restore); }
-
-void CUiSurface::Freeze(int frozen, int restore) {
+void CUiSurface::Freeze(bool frozen, bool restore) {
     if (frozen) {
         flags_ |= kShown;
-        if (kept_) CallSwapContents(1);
+        if (kept_) SwapContents(true);
         return;
     }
     flags_ &= ~kShown;
-    if (restore) CallSwapContents(0);
+    if (restore) SwapContents(false);
 }
 
 CUiRegion* CUiWindow::AddRegion() {
@@ -379,37 +377,16 @@ CUiMesh* CUiWindow::AddSceneObject(CFigureMesh* object) {
 
 // --- The constructor ---------------------------------------------------------------------------------
 
+// The original's closing Show(1) reaches CUiWindow's own (the surfaces' list is empty): left out.
 CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
-    ClearFields();
-    localRotation_.SetIdentity();   // two identity rotations
-    worldRotation_.SetIdentity();
-    ClearArray(objects_);
-    ClearArray(sceneObjects_);
-    ClearArray(surfaces_);
-    ClearArray(regions_);
-    ClearArray(models_);
-    flags_ = 0;
-    rect_ = RECT{0, 0, 0, 0};
     localRotation_ = kIdentityRotation;
-    localPosition_.x = 0.0f;
-    heldObject_ = nullptr;
-    localPosition_.y = 0.0f;
-    localPosition_.z = 0.0f;
-    CMaterialManager* materials = g_clientWorld->materialManager_;
-    CMaterial* white = materials->NewMaterial(0x16);
-    whiteMaterial_ = white;
-    materials->FillMaterial(white, 0x16);
-    PrepareMaterial(white, 1.0f);
-    CMaterial* black = materials->NewMaterial(0x16);
-    blackMaterial_ = black;
-    materials->FillMaterial(black, 0x16);
-    PrepareMaterial(black, 0.0f);
-    enabled_ = 1;
-    Show(1);
+    worldRotation_.SetIdentity();
+    localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
+    whiteMaterial_ = NewGlowMaterial(1.0f);
+    blackMaterial_ = NewGlowMaterial(0.0f);
 }
 
-void CUiWindow::Create() { UiObjectCreate(this); }
-const char* CUiWindow::ClassName() { return UiObjectClassName(this); }
+const char* CUiWindow::ClassName() { return kClassName; }
 ClassId CUiWindow::GetClassId() { return ClassId::UiWindow; }
 
 // --- CUiContainer::AddChild ------------------------------------------------------------------------

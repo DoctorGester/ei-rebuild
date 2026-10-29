@@ -30,7 +30,7 @@ namespace {
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
 void ScreenDraw(CUiContainer* self, CSceneRenderer* pass, bool mouseMove) {
     GameRender();
-    if (mouseMove) self->Input()->MouseMove(0, g_cursor->position_.x, g_cursor->position_.y);
+    if (mouseMove) self->Input()->MouseMove(0, g_cursor.position_.x, g_cursor.position_.y);
     ClearUiDepth(1.0f);
     self->CUiContainer::Draw(pass);
 }
@@ -59,18 +59,18 @@ void CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t quick = hero->weaponIndex;
     if (quick < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
-        frame(0)->visible_ = 1;
+        frame(0)->visible_ = true;
         // The unsigned slot * 100 + 50 is converted as a 64-bit integer.
         frame(0)->Place(static_cast<float>(x87::FromUnsigned(quick * 100u + 50u)), 50.0f, 3.0f);
     } else {
-        frame(0)->visible_ = 0;
+        frame(0)->visible_ = false;
     }
     int selected = selected_;
     if (selected >= 0 && selected < std::ssize(hero->quickItems)) {
-        frame(1)->visible_ = 1;
+        frame(1)->visible_ = true;
         frame(1)->Place(static_cast<float>(750 - selected * 100), 50.0f, 3.0f);
     } else {
-        frame(1)->visible_ = 0;
+        frame(1)->visible_ = false;
     }
     DrawBase(pass);
     CItemScreen* owner = owner_;

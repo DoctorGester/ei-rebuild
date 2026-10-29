@@ -20,8 +20,8 @@ the `__declspec(novtable)` classes and `...Hook` slot shims still here are C28's
 
 - `CEngineObject`: slots 2, 3, 11, 12 pure (`_purecall` in 0073B8E0), `owner_` a `CBaseManager*`, non-virtual `DeletingDestruct` (00402D20); a
   constructor of default member initialisers (the stores the original inlines in every derived constructor, C50d). A spare
-  that a manager hands out again is not constructed again (CreateObject sets its fields). `ClearFields` stays for the
-  interface window's constructor only (C50e).
+  that a manager hands out again is not constructed again (CreateObject sets its fields). `ClearFields` went with
+  its last caller, the interface window's constructor (C54g).
 - `CBaseManager`: the whole layout named (tables each followed by their highest key), slots 13-24 virtual in order; `ObjectListIterator` lives
   here. `CResourceManager : CBaseManager` (slots 3 and 16-22 overrides; `CloseFile` returns `bool`).
 - `CStream` (all eight slots; `reading_`, `ok_`, `version_`; `Rewind()`), `CMemoryStream : CStream` (slots 1-7 overrides; `bits_`, `bitMask_`
