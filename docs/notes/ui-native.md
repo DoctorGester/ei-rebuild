@@ -397,6 +397,30 @@ lines, the typed line); the fill, the selection and the caret are identical. The
 ui-census.md): it was checked once with a temporary `Show(1)` in `ShowFps` (not committed): 143 uiboth checks of 4 surfaces, 0
 differing, and under `uinative` the same places as the default path with unhinted, a little heavier glyphs.
 
+### P3b done (2026-10-29): the HUD
+
+**Families adopted** (one `Adopt` where each surface is made, before anything draws on it):
+| Family | Surface (file) |
+|---|---|
+| `unitpanel` | the unit panel's surface (`CHudUnitPanel`'s setup, ui_hud_slide.cpp): the name (006462A0's `DrawWrappedText`), health and mana numbers, the info page's lines, the effects' names and times; redrawn every frame |
+| `messagelog` | the battle screen's message log, a `CUiScrollText` adopted by `CBattleScreen` right after it is made (ui_battle_setup.cpp; the scroll text draws nothing before its first Draw); the top panel's pages are this log's text |
+| `tooltip` | every `CUiTooltip`'s surface (ui_tooltip.cpp): the HUD's, and the menus', hero list's and global map's tips too (one class); Fill, FrameRect and text all recorded already |
+| `hudmap` | the HUD map's dot (`CHudMap`'s setup, ui_hud_slide.cpp): its one SetPixel also recorded (`ui_native::Pixel`, new: `render::ui::Pixel`) |
+
+The clock, the quick items, the top panel's frame, the movement panel and the other HUD panels have no surfaces (sprites only):
+nothing to adopt. The camp's and hero screen's quick strip is P3c's (ui_panel_draws.cpp).
+
+**Still GDI.** Nothing in these families: they draw only through DrawTextIn, Clear / Fill, FrameRect and the dot's SetPixel, all
+recorded. The checks below are vanilla standalone runs; Rebirth launches were not run with the canvases.
+
+**Checks** (2026-10-29). `EI_RENDER_EXTRA=uiboth`: the 45 `ui_*` pass, 0 differing (ui_hud: 230 checks of 11 surfaces, the unit
+panel 156 of them). `ui_compare`'s options A/B shows a native tooltip over the options now (0.82% of the frame; limit 1%). Under
+`EI_RENDER_EXTRA=uinative` the gallery's, ui_saveload's and ui_quicksave's frames against the default path's: the same layout
+(no line wrapped or moved: the tooltip's four wrapped lines, the log's justified line), only glyph shapes differ: the unit
+panel's name and numbers in every HUD frame (about 0.02%), the message log's quest line (quest_notice, 0.08% more), the HUD tip
+0.18%, the hero list's tip 0.03%; the map dot is identical. The menus' help_tip frame shows no tooltip at its capture (the same
+frame as help), so the menus' tips are covered by ui_compare only.
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -462,7 +486,7 @@ they depend on.
 
 The interface surfaces drawn on GPU canvases (ticket P1; docs/notes/ui-native.md, "P1"). A surface of a
 family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status, menu, msgbox,
-difficulty, options, objectives, credits so far) gets a canvas for its holder when it is made (Adopt), and
+difficulty, options, objectives, credits, console, debug, unitpanel, messagelog, tooltip, hudmap so far) gets a canvas for its holder when it is made (Adopt), and
 the surface functions record their drawing on it
 beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
 truth (a lost device brings canvases back black). The blit draws the canvas when

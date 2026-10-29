@@ -43,6 +43,8 @@ void FrameRect(const CUiSurface* surface, const RECT& rect, COLORREF colour);
 // MoveTo (x0, y0), LineTo (x1, y1) with a solid pen of `width` (GDI's pixels for the game's 1 and 2 pixel pens,
 // horizontal or vertical: render_ui.h's Line); the console's caret.
 void Line(const CUiSurface* surface, int x0, int y0, int x1, int y1, int width, COLORREF colour);
+// SetPixel (x, y): the HUD map's dot.
+void Pixel(const CUiSurface* surface, int x, int y, COLORREF colour);
 // Text through the glyph atlas (ticket P2; docs/notes/ui-native.md, "P2 done"). A native surface's text is
 // laid out by render_text.h's DrawText rules in TextFontOf(font) and drawn on the canvas: `text` (UTF-8) in
 // `rect` (surface pixels, the game's scaling done) by DrawText's `format`, first in the shadow colour one

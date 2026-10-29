@@ -7,6 +7,7 @@
 #include "map_object.h"
 #include "object_tables.h"
 #include "ui_gdi.h"
+#include "ui_native.h"
 #include "ui_widescreen.h"
 #include "unit.h"
 #include "world.h"
@@ -321,7 +322,9 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
         icon->texture_ = objects_[1];
     }
 
-    AddSurface(new CUiSurface(interface_, 20, 0, 180, 220, 5, 1));
+    CUiSurface* panel = new CUiSurface(interface_, 20, 0, 180, 220, 5, 1);
+    ui_native::Adopt(panel, "unitpanel");
+    AddSurface(panel);
 
     bodyPart_ = bodyPart;
     for (int i = 0; i < 4; ++i) SetTint(sceneObjects_[3 + i], bodyPart_ == i ? 1.0f : 0.5f);
@@ -452,9 +455,11 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
     CUiSurface* dot = new CUiSurface(interface_, 700, 80, 705, 85, 5, 1);
+    ui_native::Adopt(dot, "hudmap");
     AddSurface(dot);
     HDC dc = UiSurfaceGetDC(dot);
     gameapi::SetPixel(dc, 0, 0, 0xFFFFFF);
+    ui_native::Pixel(dot, 0, 0, 0xFFFFFF);
     UiSurfaceReleaseDC(dot);
 
     const CUiMesh* disc = SceneMesh(1);
