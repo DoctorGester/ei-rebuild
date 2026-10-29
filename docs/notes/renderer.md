@@ -767,8 +767,8 @@ resolution must have the machine to themselves and serialised the suites.
 the decals' TransformPoints, slot 26, is this with the matrix untransposed), `ProjectClipped` / `ProjectPointsClipped`
 (slots 9 / 8: an outcode per point, `clip.h`'s `ClipCodeOf`, and the batch's verdict, `ClipVerdict`; on screen the
 points go on to `ToScreen`), `Project` / `ProjectPoints` (14 / 13, the screen matrix's division), `ProjectSprites`
-(24), `ToScreen` (32; ToScreenClipped 34 is the same call now), `FogVertices` (35), `ClipBounds::Fit` (7) and
-`ProjectFlat` (29, the shadows' flat projection). The pipeline keeps the viewport's half size, the fog's range and the
+(24), `ToScreen` (32; ToScreenClipped 34 is the same call now), `FogVertices` (35) and `ClipBounds::Fit` (7);
+`ProjectFlat` (29, the shadows' flat projection) went with the shadow's projection (R37f). The pipeline keeps the viewport's half size, the fog's range and the
 projection matrix itself (`SetViewportSize`, `SetDepthRange`, `projection`). Gone with the DLL: the loader (004F0B90,
 CPUID, the "FPU Transform release library loaded." debug line and the "can't load" errors), the calls nothing read
 back (`AddSun` with its counted hold on the sun, `SetAmbient`; LightMesh had no caller left), and the terrain's own
@@ -1187,9 +1187,9 @@ across runs; the goldens check the game state.
    only that sphere is read: projection, build and the decal's flat draw (which BeginMesh
    drops) are 0.72 ms of zone1's frame, 1.40 of the fight's and 2.1 of the town's.
    **R16e1 (done): with the map the classic texture and the decal's draw are left out; R26 deleted their code.**
-   DrawShadow 0051CE60 (map_object_shadow.cpp): RenderShadow still projects the parts' points (bounds, quad), reads
-   whether a part is keyed (`KeyedParts`, which the original read in the raster's loop) and projects the decal (its
-   sphere); the texture (MakeTexture: the render surface's lock, RasterisePart / FigureMesh::Rasterise, BlurShadow /
+   DrawShadow 0051CE60 (map_object_shadow.cpp): RenderShadow still projected the parts' points (bounds, quad), read
+   whether a part is keyed (`KeyedParts`, which the original read in the raster's loop) and projected the decal
+   (its sphere; R37f removed that too); the texture (MakeTexture: the render surface's lock, RasterisePart / FigureMesh::Rasterise, BlurShadow /
    BlurShadow2, the copy, LoadPixelsFrom, `render::TexturePixels`; NewShadowTexture / ShadowRenderSurface, the
    texture pixels 007AF1E0 / 007AEEB8 / 007C2E00 and their exit functions) and, after SetTexture and EdgeFade, the
    decal's DrawFlatBlocks are gone. The half's `shadowMade` stands for the original's "texture made" test: the
@@ -1204,13 +1204,27 @@ across runs; the goldens check the game state.
    points' projection; the decal projections, 0.3-0.9 ms, are counted apart and stay). Check: render_shadows (at
    the start and in the town the map's frame with and without them, 0 pixels differ; the classic frame after the
    switch against the one after `shadows rebuild`, 8 / 0.01%: 0 differ, and 0.12% without the switch's rebuild;
-   R16i removed those comparisons with the option), render_options_shadows, goldens. R16e2 (the user's call) would take a sphere around the
-   decal's box instead of the projected mesh, dropping the projection too, but lists more objects out of view for
-   shadows. Facts for a later GPU decal path: the CPU volume is a prism along the direction through the quad's u, v
+   R16i removed those comparisons with the option), render_options_shadows, goldens.
+   **R16e2 / R37f (done, the user's call: approved if the extra casters add little GPU load): the projection is
+   gone.** DrawShadow fits the shadow's sphere from the object's bounds (map_objects.md, "Shadows": the bounding
+   sphere swept along the lights' direction to the ground, a box around it); the parts' projection, the quad,
+   ProjectDecal for shadows, the half's decal arrays and light-view bounds, FigureMesh::DrawOffset,
+   LinkMesh::ProjectPart, ProjectFlat and view::LightRotation / LightShearMatrix are deleted. The sweep lists more
+   objects out of view (shadow builds a frame: zone1 22 -> 32, town at night 44 -> 58, with the crowd 57 -> 70),
+   but a listed object out of view hands over no mesh: the map's casters out of view come from the outside walk
+   (world_client_shadow_casters.cpp), which tests its own sphere, so the GPU's work is the same. Measured with R37's
+   probe (Rebirth, 4K, msaa 8, two runs each before / after, per frame): main thread CPU zone1 2.05-2.15 ->
+   1.54-1.61 ms (pitch 30: 2.38-2.77 -> 1.59-2.04), town at night 2.56-2.74 -> 1.75-1.90, with the crowd
+   4.91-4.94 -> 3.69-4.03; the game's shadow work (builds + decal projections) zone1 0.64-0.68 -> 0.005 ms, town
+   0.73-0.86 -> 0.010, crowd 1.05-1.06 -> 0.015; sun caster draws the same (zone1 61 in view + 130 outside, town
+   169 + 178, crowd 442 + 130), point caster draws the same (town 134 a frame, crowd 415); GPU shadow pass (sun
+   map + range passes + point map) zone1 0.156-0.160 -> 0.145-0.149 ms, crowd 0.63-0.65 -> 0.62-0.63, town at
+   night 0.46-0.49 -> 0.20 (the same draws and triangles: a gap between the probe's stamps, not work). Check:
+   goldens (the lists feed no game state), render_shadows* and render_shadows_outside captures.
+   Facts for a later GPU decal path: the CPU volume is a prism along the direction through the quad's u, v
    in [0, 1], cut by one plane at the point minus depth * 0.33 along the direction and open beyond it (a print
-   lands on the ground under a bridge too, unless `skipOnPlatform` and the point is on a platform); receivers are
-   the terrain and, with `objects`, the platform objects' link-figure parts (an object shadow with keyed parts:
-   the terrain only); DrawPass 0056AFE0 draws all objects and figures, then the prints, the shadows and the
+   lands on the ground under a bridge too, unless the point is on a platform); receivers are the terrain and the
+   platform objects' link-figure parts; DrawPass 0056AFE0 draws all objects and figures, then the prints, the shadows and the
    selection markers, then water and particles come after; the frame's depth is D32 without stencil (kDepthFormat),
    so keeping decals off figures and other objects needs a stencil format or a receiver mask, and reading depth
    needs a pass break (and the multisampled depth with the smooth option). Revisit if decals become many more.
@@ -1255,9 +1269,8 @@ across runs; the goldens check the game state.
    0.6 of the fight's 331 mesh draws (12 corners), none in zone1, the town or the menu (renderstats' "morphed
    meshes"), and a profile of render_stats has no sample in Evaluate or the copies. Its result is also read by game
    code, so it would stay on the CPU: the device's projection of the moved positions (DrawMesh 004E9010: the
-   visibility verdict and, with draw flag 1, the part's screen rectangle for picking) and the object shadow's
-   (FigureMesh::DrawOffset 005A0CD0, LinkMesh::ProjectPart 004F4680: the raster whose bounds feed the shadow
-   lists). What a GPU path could take is the renderer's reading and upload of the few moved corners (R16d already
+   visibility verdict and, with draw flag 1, the part's screen rectangle for picking); the object shadow's
+   projection of them (FigureMesh::DrawOffset 005A0CD0, LinkMesh::ProjectPart 004F4680) is gone since R37f. What a GPU path could take is the renderer's reading and upload of the few moved corners (R16d already
    uploads only the changed range). The "moved" meshes in the table above were the classic shadows' decals (R16e).
    Where a many-figure frame's main-thread time goes instead (render_stats, vanilla 4K, harness build; main thread
    CPU / wall ms per frame, renderstats): fight 18.6 / 19.0, mostly the server's AI path search (LocalSearch,
@@ -1436,8 +1449,8 @@ across runs; the goldens check the game state.
     0.63 (before, main's run: 0.65 / 0.73, 1.01 / 0.68, 0.76 / -); the map's pass with the range passes 0.12-0.16
     ms (0.03-0.06 before; the reduction reads the whole 64 MB map). Side by side (classic | map before | map
     after): build\R16j2\compare_*.png on E:.
-    The game's own shadows (64 x 64 decals, R16e1) are not ported (R26); its shadow building (`RenderShadow`, the
-    decal's projection) still runs: the decal's bounds feed the shadow lists. The map is the only shadow look (no
+    The game's own shadows (64 x 64 decals, R16e1) are not ported (R26); since R37f its shadow building is only
+    a sphere from the object's bounds for the shadow lists (item 5 of section 13). The map is the only shadow look (no
     option: goldens hold no frames).
     Cost when R16j landed (render_stats, vanilla 4K, per frame, map / the old decals): CPU hand-over + textures + end
     of frame + map in zone1 1.48 / 1.88 ms, fight 3.24 / 5.82, town 1.78 / 5.84; the map's own CPU time 0.3-0.6 ms
@@ -1591,7 +1604,8 @@ of the 0.5-1.6 ms hand-over).
     - **Casters per light**: sun 83-290 objects, 190-570 caster draws (in view + outside); the town's 4 mapped point
       lights 4.25 faces each, 44 draws a light (crowd 113, most 397), redrawn every frame though lamps and buildings
       never move (R37a).
-    Follow-ups by expected gain: R37f (the game's projection replaced by a sphere, the user's call: 0.3-1.2 ms), R37a /
+    Follow-ups by expected gain: R37f (the game's projection replaced by a sphere, the user's call: 0.3-1.2 ms;
+    done, item 5: 0.5-1.0 ms of main thread saved, no GPU growth), R37a /
     R37b (point shadows kept across frames, their preparation: up to 0.6 ms in the crowd), R37g (the frustum test:
     0.2-0.5 ms in forests), R37c (caster boxes and outside casters kept: 0.2-0.4), R37e (shadow casters' calls: 0.3),
     R37d (the fit: 0.1-0.25), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility).

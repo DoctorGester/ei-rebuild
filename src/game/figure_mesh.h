@@ -133,9 +133,6 @@ public:
         int count;
     };
     void SetOffsets(const OffsetSpan* offsets);
-    // Projects the vertices flat (ProjectFlat: `matrix`, the points out, the bounds grown) with the vertices moved
-    // by offsets when there are any (into a shared buffer). Returns the vertex count (4 per packet).
-    int DrawOffset(const Matrix4& matrix, Vector2* points, float* bounds);
 
     // The create virtual of every figure class: no drawer, flags, buffers or bounds; white flat colours.
     // Returns 1.

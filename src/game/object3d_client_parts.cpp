@@ -79,10 +79,6 @@ Object3DClientSpecific::Object3DClientSpecific() {
     std::memset(&sphere, 0, sizeof(sphere));
     materialCursor = -1;
     ClearWoundsMaterial();
-    bounds[3] = 0.0f;
-    bounds[2] = 0.0f;
-    bounds[1] = 0.0f;
-    bounds[0] = 0.0f;
     pulseClock = 0.0f;
 }
 
@@ -92,10 +88,6 @@ void Object3DClientSpecific::Create() {
     shadowMade = false;
     woundsTexture.Reset();
     ClearWoundsMaterial();
-    bounds[3] = 0.0f;
-    bounds[2] = 0.0f;
-    bounds[1] = 0.0f;
-    bounds[0] = 0.0f;
     std::memset(&sphere, 0, sizeof(sphere));
     partSets[0] = nullptr;
     partSets[1] = nullptr;

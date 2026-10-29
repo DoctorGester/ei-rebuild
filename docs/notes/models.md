@@ -78,12 +78,12 @@ Facts not in the code comments:
   rasterise its shadow); 005A7A70's `this` is a `FigureMeshDrawer` (+0x1C the FigureMesh, +0x20 its screen rect);
   FigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; CLight (a TransformObject) +0x28 worldPosition / +0x108 position / direction
   in the lit mesh's space, +0xD4 the direction; *007AF748 is `LightFactory` (spell.h). FigurePart (map_object_figures.h)
-  and FigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. map_object_shadow.cpp (C9b): the ground quads are `VertexPacket`s, the texture's name `CTexture::Name()`. (The
+  and FigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. map_object_shadow.cpp (C9b): the ground quads were `VertexPacket`s (gone with the projection, R37f), the texture's name `CTexture::Name()`. (The
   shadow rasteriser's `RasterTarget`, the DLL's keyed triangle path and `keyTexels` are gone, R27e; R28 removed 2DintMMX's interface.) The unit's
   controller through `static_cast<CUnit*>` (CUnit : CMapObject : CObject3D). The work buffers are (C14e / C14h: vectors) of
   `Vector2` and `VertexPacket` (SetSizeDiscard / SetSize equal the inlined resizes; 004545A0,
-  004F65B0, 00452E70 allocate 32-byte aligned blocks); the callees take them typed (C9d: ProjectFlat, 004F4680 and
-  005A0CD0 `Vector2*`).
+  004F65B0, 00452E70 allocate 32-byte aligned blocks); the callees took them typed (C9d: ProjectFlat, 004F4680 and
+  005A0CD0 `Vector2*`; all gone with the shadow's projection, R37f).
 - **Mesh draws**: callers are figures (005A7A70, 005A7640) and the 3D library's meshes (004F3C60 ...); flag 4 overwrites the
   mesh's own colour and specular arrays with the device's +0x150 colour / alpha << 24; `DeviceDrawFlat` is used by shadows
   (0051CE60), the renderer (00503A40) and 006CEDE0.

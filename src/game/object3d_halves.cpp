@@ -3,7 +3,6 @@
 // the copies of a named texture and a material stage. Layouts: map_object_shadow.h, map_object_figures.h.
 #include "core_refcount.h"
 #include "figure_mesh.h"    // VertexPacket
-#include "ground_decal.h"   // DecalTexCoord
 #include "ground_print.h"   // NamedTexture
 #include "lib/gameapi.h"
 #include "link_figure.h"   // LinkMesh::screenRect
@@ -49,14 +48,7 @@ std::uint32_t Object3DClientSpecific::ShadowsShown() {
 }
 
 void Object3DClientSpecific::ClearShadow() {
-    vertices.clear();
-    texCoords.clear();
-    lib::FreeStorage(indices);
     shadowMade = false;
-    bounds[3] = 0.0f;
-    bounds[2] = 0.0f;
-    bounds[1] = 0.0f;
-    bounds[0] = 0.0f;
     std::memset(&sphere, 0, sizeof(sphere));
 }
 

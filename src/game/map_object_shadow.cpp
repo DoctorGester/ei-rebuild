@@ -1,11 +1,9 @@
-// The shadow of a 3D object on the client: the renderer's shadow map draws it (CastsShadow); the game's own
-// build still projects the decal, whose sphere decides the shadow's visibility out of view (ShadowInView). See
-// map_object_shadow.h and docs/notes/map_objects.md ("Shadows").
+// The shadow of a 3D object on the client: the renderer's shadow map draws it (CastsShadow); the game keeps a
+// sphere around the object and its shadow on the ground, which decides the shadow's visibility out of view
+// (ShadowInView). See map_object_shadow.h and docs/notes/map_objects.md ("Shadows").
 #include "map_object_shadow.h"
 
-#include "figure_mesh.h"
 #include "game_singletons.h"
-#include "link_figure.h"   // LinkMesh
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "maths.h"
@@ -16,10 +14,8 @@
 #include "spell.h"                // CLight
 #include "unit.h"                 // CUnit
 #include "unit_client_models.h"   // UnitClientSpecific
-#include "view_matrices.h"
 #include "world.h"   // g_clientWorld
 
-#include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
@@ -27,15 +23,13 @@
 
 #include "ei/x87.h"
 
+#include <algorithm>
 #include <bit>
-#include <cstddef>
+#include <cmath>
 #include <cstdint>
-#include <cstring>
-#include <string>
-#include <vector>
 
-// The original keeps intermediate values on the FPU stack (double locals here) and rounds where it stores to a
-// float (float locals); the order of every operation is the original's.
+// The lights' direction is the original's: it keeps intermediate values on the FPU stack (double locals here)
+// and rounds where it stores to a float (float locals); the order of every operation is the original's.
 
 namespace {
 
@@ -45,15 +39,11 @@ int ShadowSwitch(ClassId classId) {
     return options::g_options.buildingShadow;
 }
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
-// The work buffers: the parts' points projected into the light's view and the ground quad (one block of four
-// corners).
-std::vector<Vector2> g_points;
-std::vector<VertexPacket> g_quads;
 constexpr int kTypePointLight = 0x31;
-constexpr std::uint32_t kFlagRefresh = 8;           // this->flags: build the shadow again
-constexpr int kPointBufferSize = 0x1000;
-constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;
-constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
+constexpr std::uint32_t kFlagRefresh = 8;           // this->flags: fit the shadow's sphere again
+// The least downward share of a direction LightDirection gives (sin 20 degrees is 0.342); below it (only NaN)
+// the sweep goes straight down.
+constexpr double kLeastDown = 0.3;
 
 constexpr float kRed = 0.3f;
 static_assert(std::bit_cast<std::uint32_t>(kRed) == 0x3E99999Au);
@@ -64,19 +54,12 @@ static_assert(std::bit_cast<std::uint32_t>(kBlue) == 0x3DCCCCCDu);
 constexpr float kStrongFactor = 10.0f;
 constexpr float kTiltSlope = -0.36397f;  // -tan(20 degrees)
 static_assert(std::bit_cast<std::uint32_t>(kTiltSlope) == 0xBEBA5A47u);
-constexpr float kFarSquared = 1e10f;
 
 // pi, 1/180 and 20: volatile, so the product is formed at run time with the FPU's precision like the
 // original's.
 volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_minimumTilt = 20.0;
-
-
-// The pipeline's stack the shadow is rendered with.
-constexpr int kShadowStack = 10;
-
-const Matrix4& TopMatrix(const TransformPipeline* pipeline) { return *pipeline->Top(kShadowStack); }
 
 // The light's brightness: 0.1 blue + 0.6 green + 0.3 red, unrounded.
 double Brightness(const CLight* light) {
@@ -149,38 +132,12 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
     direction->z = static_cast<float>(inverse * z);
 }
 
-// Parts beyond 1e10 from the object are skipped (NaN is not).
-bool PartTooFar(const FigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition) > kFarSquared; }
-
-FigureMesh* PartAt(const CObject3D* object, int i) { return object->parts[i]; }
-
-
-// One corner's x and y in the light's rotation `m` (3x4 rows of 4).
-double CornerX(const float* m, float a, float b) {
-    return static_cast<double>(m[1]) * a + static_cast<double>(b) * m[0];
-}
-float CornerY(const float* m, float a, float b) {
-    return static_cast<float>(static_cast<double>(a) * m[5] + static_cast<double>(m[4]) * b);
-}
-
-// Whether any of the object's parts (but those too far, hidden or not) has keyed texels: the decal then skips
-// the platforms (the original reads it in the raster's loop; the raster changes no flag).
-int KeyedParts(const CObject3D* object) {
-    int keyedParts = 0;
-    for (int i = 0; i < std::ssize(object->parts); ++i) {
-        const FigureMesh* part = PartAt(object, i);
-        if (PartTooFar(part)) continue;
-        keyedParts |= lib::Has(part->box.bounds.flags, BoundsFlag::Base) ? 1 : 0;
-    }
-    return keyedParts;
-}
-
-// The shadow built again: the lights' direction, the parts' points from there (their bounds in the light's view),
-// the bounds' square on the ground and the decal's projection of it (its sphere). No shadow texture is rasterised:
-// the shadow map draws the shadow (docs/notes/map_objects.md, "Shadows").
-void RenderShadow(Object3DClientSpecific* self, SceneRenderer* context) {
-    TransformPipeline* pipeline = context->pipeline;
-
+// The shadow's sphere about the object (the original projected the parts from the lights' direction and
+// the square of their bounds onto the ground, and took the projected decal's sphere): the object's bounding
+// sphere in the world swept along the lights' direction down to the ground, taken as level at the lower of the
+// object's origin and its sphere's bottom; a box around the sweep and the sphere around the box, the centre
+// relative to the object. Only ShadowInView reads it; plain double maths.
+void FitShadowSphere(Object3DClientSpecific* self) {
     // The lights reaching the object.
     Vector3 sum;
     sum = kDefaultLight;
@@ -197,145 +154,59 @@ void RenderShadow(Object3DClientSpecific* self, SceneRenderer* context) {
         sum.y = static_cast<float>(static_cast<double>(share.y) + sum.y);
         sum.z = static_cast<float>(static_cast<double>(share.z) + sum.z);
     }
+    if (lights.manager) lights.manager->ForgetReference();
     Vector3 direction;
     LightDirection(sum, &direction);
-
-    // Look from the light; the object turned to face it.
-    Matrix4 view;
-    view::LightShearMatrix(view.m, direction);   // (on the pipeline, not read)
-    pipeline->PushMatrixProduct(view, kShadowStack);
-    // The buffer grows without keeping its contents.
-    g_points.resize(kPointBufferSize);
-    int count = 0;
-    Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
-    view::LightRotation(direction, &turn);   // (likewise)
-    CObject3D* object = self->object;
-    // The original turns the object back with the conjugate (PreMultiply), which is not exact: each re-rendered
-    // shadow moved the orientation by an ulp, as often as the frame timing ran it. Ours keeps the orientation
-    // and puts it back (a determinism fix; harness_shadow_turn.h does the same in the original).
-    const Quaternion kept = object->localRotation;
-    object->localRotation.PreMultiply(turn);
-    ObjectWorldMatrix(&object->localRotation, object->localPosition, &object->worldMatrix);
-    turn.x = -turn.x;   // the turn back, still used for the projector below
-    turn.y = -turn.y;
-    turn.z = -turn.z;
-    self->object->localRotation = kept;
-    view = self->object->worldMatrix;
-    self->bounds[0] = std::bit_cast<float>(kFloatMax);
-    self->bounds[2] = std::bit_cast<float>(kFloatLowest);
-    self->bounds[1] = std::bit_cast<float>(kFloatMax);
-    self->bounds[3] = std::bit_cast<float>(kFloatLowest);
-    view.m[11] = 0.0f;
-    view.m[7] = 0.0f;
-    view.m[3] = 0.0f;
-    pipeline->PushMatrixProduct(view, kShadowStack);
-
-    // Project the parts' points.
-    for (int i = 0; i < std::ssize(self->object->parts); ++i) {
-        FigureMesh* part = PartAt(self->object, i);
-        if (PartTooFar(part)) continue;
-        if (part->flags & FigureMeshFlag::Hidden) continue;
-        ObjectWorldMatrix(&part->localRotation, part->localPosition, &part->worldMatrix);
-        view = PartAt(self->object, i)->worldMatrix;
-        pipeline->PushMatrixProduct(view, kShadowStack);
-        if (LinkMesh* figure = self->object->figure) {
-            const char* name = PartAt(self->object, i)->GetName();
-            std::string key(name);
-            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets, TopMatrix(pipeline), &g_points[count],
-                                         self->bounds);
-        } else {
-            count += PartAt(self->object, i)->DrawOffset(TopMatrix(pipeline), &g_points[count], self->bounds);
-        }
-        pipeline->PopMatrix(kShadowStack);
-    }
-    pipeline->PopMatrix(kShadowStack);
-    pipeline->PopMatrix(kShadowStack);
-    g_points.resize(count);
-
-    // Whether any part is keyed: the decal then skips the platforms.
-    const int keyedParts = KeyedParts(self->object);
-
-    // The light's rotation as a matrix.
-    double x2 = static_cast<double>(turn.x) + turn.x;
-    float y2 = static_cast<float>(static_cast<double>(turn.y) + turn.y);
-    float z2 = static_cast<float>(static_cast<double>(turn.z) + turn.z);
-    Vector3 at;
-    at = self->object->localPosition;
-    float wx = static_cast<float>(x2 * turn.w);
-    float wy = static_cast<float>(static_cast<double>(y2) * turn.w);
-    float wz = static_cast<float>(static_cast<double>(z2) * turn.w);
-    double xx = x2 * turn.x;
-    double xy = static_cast<double>(y2) * turn.x;
-    float xz = static_cast<float>(static_cast<double>(z2) * turn.x);
-    float yy = static_cast<float>(static_cast<double>(y2) * turn.y);
-    float yz = static_cast<float>(static_cast<double>(z2) * turn.y);
-    double zzExact = static_cast<double>(z2) * turn.z;
-    float zz = static_cast<float>(zzExact);
-    float* m = view.m;
-    m[0] = static_cast<float>(1.0f - (zzExact + yy));
-    m[1] = static_cast<float>(xy - wz);
-    m[2] = static_cast<float>(static_cast<double>(xz) + wy);
-    m[4] = static_cast<float>(xy + wz);
-    m[5] = static_cast<float>(1.0f - (static_cast<double>(zz) + xx));
-    m[6] = static_cast<float>(static_cast<double>(yz) - wx);
-    m[8] = static_cast<float>(static_cast<double>(xz) - wy);
-    m[9] = static_cast<float>(static_cast<double>(yz) + wx);
-    m[10] = static_cast<float>(1.0f - (static_cast<double>(yy) + xx));
-
-    // The bounds' square on the ground: corner 0 at (minimum x, maximum y), then clockwise.
-    g_quads.resize(1);   // keeps the contents when growing
-    {
-        float a = self->bounds[3];
-        float b = self->bounds[0];
-        float z = static_cast<float>(static_cast<double>(b) * m[8] + static_cast<double>(a) * m[9]);
-        float y = CornerY(m, a, b);
-        float x = static_cast<float>(CornerX(m, a, b));
-        (void)z;   // computed for the corner's Vector3, never used
-        VertexPacket* quad = g_quads.data();   // rows x, y, z, w; lane 0
-        quad->block[0][0] = static_cast<float>(static_cast<double>(at.x) + x);
-        quad->block[1][0] = static_cast<float>(static_cast<double>(at.y) + y);
-        quad->block[2][0] = at.z;
-        quad->block[3][0] = 1.0f;
-    }
-    const float corners[3][2] = {{self->bounds[3], self->bounds[2]},
-                                 {self->bounds[1], self->bounds[2]},
-                                 {self->bounds[1], self->bounds[0]}};
-    for (int c = 0; c < 3; ++c) {
-        float a = corners[c][0];
-        float b = corners[c][1];
-        float y = CornerY(m, a, b);
-        double x = CornerX(m, a, b);
-        VertexPacket* quad = g_quads.data();
-        quad->block[0][1 + c] = static_cast<float>(x + at.x);
-        quad->block[1][1 + c] = static_cast<float>(static_cast<double>(y) + at.y);
-        quad->block[2][1 + c] = at.z;
-        quad->block[3][1 + c] = 1.0f;
-    }
-
-    // The point the shadow falls from: the object's offset point through its matrix.
-    // Each row of the world matrix times the bounds' centre: (y + z) + x, unrounded.
-    const float* w = self->object->worldMatrix.m;
-    const Vector3& c = self->object->bounds.center;
-    auto product = [](float a, float b) { return static_cast<double>(a) * b; };
-    double pz = (product(w[9], c.y) + product(w[10], c.z)) + product(w[8], c.x);
-    float py = static_cast<float>((product(w[5], c.y) + product(w[6], c.z)) + product(w[4], c.x));
-    float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
-    Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
-                     static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
-    g_clientWorld.ProjectDecal(direction, point, self->object->bounds.radius, g_quads[0],
-                               &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
-
-    if (!self->vertices.empty()) {
-        self->sphere.Fit(self->vertices.data(), std::ssize(self->vertices));
-        const Vector3& position = self->object->localPosition;
-        self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position.x);
-        self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position.y);
-        self->sphere.center.z = static_cast<float>(static_cast<double>(self->sphere.center.z) - position.z);
-    } else {
-        self->sphere.flags = 0;
-    }
     self->flags &= ~kFlagRefresh;
-    if (lights.manager) lights.manager->ForgetReference();
+
+    const CObject3D* object = self->object;
+    const ClipBounds& bounds = object->bounds;
+    ClipBounds& sphere = self->sphere;
+    if (!(bounds.flags & static_cast<std::uint32_t>(BoundsFlag::Sphere))) {
+        sphere.flags = 0;   // no bounds: ClipTest calls it crossing the view
+        return;
+    }
+    // The sweep goes down whichever way the direction's height points.
+    double dx = direction.x, dy = direction.y, down = std::fabs(static_cast<double>(direction.z));
+    if (!(down >= kLeastDown)) {
+        dx = 0.0;
+        dy = 0.0;
+        down = 1.0;
+    }
+    Matrix4 placement;
+    ObjectWorldMatrix(&object->localRotation, object->localPosition, &placement);
+    const Vector3& scale = self->figureScale;
+    const double local[3] = {static_cast<double>(bounds.center.x) * scale.x, static_cast<double>(bounds.center.y) * scale.y,
+                             static_cast<double>(bounds.center.z) * scale.z};
+    double centre[3];
+    for (int i = 0; i < 3; ++i) {
+        const float* row = placement.m + i * 4;
+        centre[i] = DotUnrounded<Sum3::XYZ, double>(row[0], row[1], row[2], local[0], local[1], local[2]) + row[3];
+    }
+    const double radius = bounds.radius * (std::max)({std::fabs(static_cast<double>(scale.x)), std::fabs(static_cast<double>(scale.y)),
+                                                      std::fabs(static_cast<double>(scale.z))});
+    const Vector3& at = object->localPosition;
+    const double ground = (std::min)(static_cast<double>(at.z), centre[2] - radius);
+    const double length = (centre[2] - ground + radius) / down;
+    const double end[3] = {centre[0] + dx * length, centre[1] + dy * length, centre[2] - down * length};
+    const double origin[3] = {at.x, at.y, at.z};
+    double middle[3], half[3];
+    for (int i = 0; i < 3; ++i) {
+        const double low = (std::min)(centre[i], end[i]) - radius;
+        const double high = (std::max)(centre[i], end[i]) + radius;
+        middle[i] = (low + high) * 0.5 - origin[i];
+        half[i] = (high - low) * 0.5;
+    }
+    const double diagonal = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(half[0], half[1], half[2]));
+    if (!std::isfinite(diagonal) || !std::isfinite(middle[0]) || !std::isfinite(middle[1]) || !std::isfinite(middle[2])) {
+        sphere.flags = 0;
+        return;
+    }
+    sphere.center = {static_cast<float>(middle[0]), static_cast<float>(middle[1]), static_cast<float>(middle[2])};
+    sphere.boxMax = {static_cast<float>(half[0]), static_cast<float>(half[1]), static_cast<float>(half[2])};
+    sphere.boxMin = {-sphere.boxMax.x, -sphere.boxMax.y, -sphere.boxMax.z};
+    sphere.radius = static_cast<float>(diagonal);
+    sphere.flags = static_cast<std::uint32_t>(BoundsFlag::Sphere | BoundsFlag::Box);
 }
 
 } // namespace
@@ -352,21 +223,21 @@ bool ShadowCastStrength(CObject3D* object, float* strength) {
     return true;
 }
 
-int Object3DClientSpecific::DrawShadow(SceneRenderer* context) {
+int Object3DClientSpecific::DrawShadow() {
     // The game shows this object's shadow: in the renderer's shadow map its meshes cast, a unit as strongly as it
     // has faded in. No shadow texture or decal is drawn.
     float strength = 1.0f;
     if (!ShadowCastStrength(object, &strength)) return 1;
     render::CastsShadow(object, strength);
 
-    // The build: its decal's sphere decides the object's shadow visibility (ShadowInView). Built the first time
-    // after Create / ClearShadow, for an object not drawn static and when the half asks (flag 8).
+    // The shadow's sphere decides the object's shadow visibility (ShadowInView). Fitted the first time after
+    // Create / ClearShadow, for an object not drawn static and when the half asks (flag 8).
     const bool drawnStatic = lib::Has(object->flags, MapObjectFlag::Stationary) && lib::Has(object->flags, MapObjectFlag::Static);
     const bool gameBuilds = !shadowMade || !drawnStatic || (flags & kFlagRefresh);
     shadowMade = true;
     if (gameBuilds) {
         render::BeginShadowBuildTime();
-        RenderShadow(this, context);
+        FitShadowSphere(this);
         render::EndShadowBuildTime();
     }
     return 1;

@@ -1,13 +1,12 @@
 #pragma once
 
-// The client's half of a 3D object and the shadow it casts: the renderer's shadow map draws it; the game still
-// projects the figure from the strongest light direction onto the ground under the object (the decal's sphere
-// decides the shadow's visibility out of view). See docs/notes/map_objects.md ("Shadows").
+// The client's half of a 3D object and the shadow it casts: the renderer's shadow map draws it; the game keeps a
+// sphere around the object and its shadow on the ground along the lights' direction (it decides the shadow's
+// visibility out of view). See docs/notes/map_objects.md ("Shadows").
 
 #include "ref.h"
 #include "device_material.h"   // DeviceMaterial, MaterialStage
 #include "engine_object.h"
-#include "ground_decal.h"         // DecalTexCoord
 #include "map_object_figures.h"   // CObject3D, Object3DSpecific (the base half)
 #include "material.h"             // Material
 #include "maths.h"
@@ -58,14 +57,14 @@ public:
     ClassId GetClassId() override;
     // `context` is the scene renderer.
     int DrawParts(SceneRenderer* context, tagRECT* dirty) override { return Draw(context, dirty); }
-    int DrawPartsShadow(SceneRenderer* context) override { return DrawShadow(context); }
+    int DrawPartsShadow(SceneRenderer* /*context*/) override { return DrawShadow(); }
     int PartsIntersectRect(const tagRECT* rect) override { return PartRectsMeet(rect); }
     // The object's shadow when shadows are on for its kind and the object is shown: its meshes cast into the
     // renderer's shadow map (render::CastsShadow, units as strongly as they have faded in). Unless the shadow is
-    // still valid, the lights reaching the object give a direction (at least 20 degrees above the ground), the
-    // figure's parts are projected from there and the square of their bounds is projected onto the ground (the
-    // decal's vertices and sphere); no shadow texture or decal draw. Returns 1.
-    int DrawShadow(SceneRenderer* context);
+    // still valid, the lights reaching the object give a direction (at least 20 degrees above the ground) and the
+    // object's bounding sphere swept along it to the ground gives `sphere` (the original projected the
+    // figure's parts and a decal under them); no shadow texture or decal draw. Returns 1.
+    int DrawShadow();
 
     // Draws the object (`dirty` receives the screen rectangle the parts flagged 0x40 covered, or null): its
     // state and animation updated, the lights within their range + 10 collected, and every part of the two
@@ -142,10 +141,10 @@ public:
     // class 0x52, others each have one). With shadows off only the low byte is cleared (the original's XOR
     // AL, AL on the setting's value).
     std::uint32_t ShadowsShown();
-    // Drops the shadow: its geometry, bounds and sphere (the next draw builds it again).
+    // Drops the shadow's sphere (the next draw fits it again).
     void ClearShadow();
-    // Whether the shadow can be seen: shadows are on for the kind and the half is flagged 0x20 or its bounds,
-    // moved to the object, are not outside the view.
+    // Whether the shadow can be seen: shadows are on for the kind and the half is flagged 0x20 or its sphere,
+    // moved to the object, is not outside the view (not fitted yet: listed).
     bool ShadowInView();
 
     // The two part sets Draw walks: the first has the skin texture (its colour key is the shadow colour key),
@@ -154,14 +153,8 @@ public:
     std::vector<CTexture*> textures;     // the sets' textures (counted)
     std::vector<Material*> materials;   // the groups' materials (counted): fade-in, tints
     int materialCursor;             // the iteration's index, -1 when there are none
-    // The projected shadow (the projector fills the three; only its sphere is read): blocks of four positions,
-    // their texture coordinates, the triangles' indices.
-    std::vector<VertexPacket> vertices;
-    std::vector<DecalTexCoord> texCoords;
-    std::vector<std::uint16_t> indices;
-    bool shadowMade;                // built since Create / ClearShadow
-    float bounds[4];                // minimum x, y and maximum x, y in the light's view
-    ClipBounds sphere;              // the shadow's bounds, the centre relative to the object
+    bool shadowMade;                // the sphere fitted since Create / ClearShadow
+    ClipBounds sphere;              // the object and its shadow (box and sphere), the centre relative to the object
     RECT drawnRect;                 // the screen area of the dirty parts Draw drew
     Ref<CTexture> woundsTexture;    // the wounds texture (ShowWounds loads it)
     Ref<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
