@@ -370,11 +370,11 @@ void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpe
 void GenerateAcks(std::vector<std::string>*) {
     lib::TextFile file;
     {
-        std::string path = *g_dataFolder + "scenack.txt";
+        std::string path = g_dataFolder + "scenack.txt";
         if (!file.Open(path, "w")) return;
     }
     lib::TextFile* out = &file;
-    acks::AckDatabase& database = *g_ackDatabase;
+    acks::AckDatabase& database = g_ackDatabase;
     for (acks::UnitAcks& record : database.units.records) {
         for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);
         WriteEnvironmentSpeechLines(out, &record.environmentSpeeches);

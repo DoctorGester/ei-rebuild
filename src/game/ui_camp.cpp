@@ -626,7 +626,7 @@ bool CCampPages::CanMakeSpell() {
     }
     CSpell* made = constructor->container_->spell_.Clone(manager);
     constructor->SetManager(nullptr);
-    itemdb::QuickItemTable& quickItems = g_itemDatabase->quickItems;
+    itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
     CItem* container = factory->MakeItem(ItemKind::Spell, index, 0, -1);
     if (container) container->AttachSpell(made);

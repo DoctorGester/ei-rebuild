@@ -97,7 +97,7 @@ PartyUnitRecord* CParty::AddMember(std::string_view name, std::string_view proto
 }
 
 void CParty::FillFromPrototype(PartyUnitRecord* record) {
-    auto* prototype = g_unitDatabase->prototypes.FindByName(record->texts[5]);
+    auto* prototype = g_unitDatabase.prototypes.FindByName(record->texts[5]);
     auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     record->texts[2] = model->figureName;
     BuildNpcStats(&record->stats, record->texts[5]);
@@ -142,7 +142,7 @@ bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
             list->erase(list->begin() + 0, list->begin() + (0 + 1));
         }
     }
-    auto* npc = g_unitDatabase->npcs.byName[std::string(record->texts[5])];
+    auto* npc = g_unitDatabase.npcs.byName[std::string(record->texts[5])];
     if (!npc) return false;
 
     const std::vector<std::string>& spellNames = npc->startSpells;
@@ -183,11 +183,11 @@ bool CParty::RemoveMember(int key) {
 
 void CParty::OpenEdgeExits() {
     std::string variable;
-    MapRecord* zone = g_mapDatabase->FindMap(zone_);
+    MapRecord* zone = g_mapDatabase.FindMap(zone_);
     if (zone == nullptr || zone->kind != kZoneKindEdge) return;
     NamedFloatTable& variables = variables_;
     for (int i = 0; i < std::ssize(zone->exits); ++i) {
-        MapRecord* target = g_mapDatabase->FindMap(zone->exits[i].target);
+        MapRecord* target = g_mapDatabase.FindMap(zone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
         variable = str::Format(ZoneVariableFormat(), target->name);
         float value = variables.Get(variable);

@@ -80,7 +80,7 @@ public:
     // lookup that could fail, a missing prototype, cannot happen after the record was read.)
     void FillFromPrototype(PartyUnitRecord* record);
     // The multiplayer hero's starting equipment: `record`'s spells and weapons released and removed (from the
-    // front), then, from the NPC record of its prototype (text 5; g_unitDatabase->npcs' operator[], which adds an empty
+    // front), then, from the NPC record of its prototype (text 5; g_unitDatabase.npcs' operator[], which adds an empty
     // entry for an unknown name), copies of the start spells (appended), quick items and weapons (each at its
     // list's count, SetAtGrow), the start money added to the party's, the start experience to the record's
     // statistics, and text 6 = text 5. 0 without an NPC record (after the lists were emptied), else 1.

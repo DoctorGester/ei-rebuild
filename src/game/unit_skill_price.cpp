@@ -40,7 +40,7 @@ int SchoolPrice(int from, int to) {
 }
 
 int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
-    int index = g_skillDatabase->IndexOfLevel(level);
+    int index = g_skillDatabase.IndexOfLevel(level);
     double worth = Worth(level->WorthExponent());
     double below;
     if (index % 3 > 0) {

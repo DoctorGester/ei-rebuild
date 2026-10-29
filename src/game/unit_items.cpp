@@ -95,7 +95,7 @@ void CUnit::SendEquipment() {
 }
 
 std::uint32_t CUnit::SetSecondPrototypeByName(std::string_view prototypeName) {
-    UnitPrototypeRecord* record = g_unitDatabase->prototypes.FindByName(prototypeName);
+    UnitPrototypeRecord* record = g_unitDatabase.prototypes.FindByName(prototypeName);
     if (!record) {
         secondPrototype = -1;
         return 0xFFFFFFFFu;

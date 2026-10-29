@@ -101,7 +101,7 @@ void CBriefingScreen::UnitJoined(CUnit* unit) {
     leader_ = unit;
     g_clientWorld->Select(unit);
     g_camera->SetTarget(unit);
-    MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
+    MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     std::string prefix;
     prefix = str::Format(kZoneTopicFormat, zone->name);
     NamedFloatTable variables;

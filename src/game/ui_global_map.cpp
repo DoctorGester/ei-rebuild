@@ -170,8 +170,8 @@ void CGlobalMap::CreateScreen() {
     else if (g_clientWorld->LocalView()->player_->lastScreen_ != 5)
         autosave = true;
 
-    MapRecord* current = g_mapDatabase->FindMap(LocalPlayerZone());
-    AllodRecord* allod = g_mapDatabase->FindAllod(current->allod);
+    MapRecord* current = g_mapDatabase.FindMap(LocalPlayerZone());
+    AllodRecord* allod = g_mapDatabase.FindAllod(current->allod);
     allodTitle_ = PlaceTitle("allod ", allod->name);
     position_ = MapPosition("#zone ", current->name, true).value_or(Vector3{});
     const std::string& allodName = allod->name;
@@ -210,7 +210,7 @@ void CGlobalMap::CreateScreen() {
 
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
     for (int i = 0; i < std::ssize(allod->maps); ++i) {
-        MapRecord* zone = &g_mapDatabase->maps[allod->maps[i]];
+        MapRecord* zone = &g_mapDatabase.maps[allod->maps[i]];
         if (zone->kind != 0 || zone->figure.empty()) continue;
         variable = str::Format("z.%s", zone->name);
         GlobalMapZone& entry = zones_.emplace_back();
@@ -249,9 +249,9 @@ void CGlobalMap::CreateScreen() {
 
     // The ways out of each zone the player may take ("z.<way>" = 2), with a region each.
     for (int i = 0; i < zoneCount_; ++i) {
-        MapRecord* zone = g_mapDatabase->FindMap(zones_[i].name);
+        MapRecord* zone = g_mapDatabase.FindMap(zones_[i].name);
         for (int e = 0; e < std::ssize(zone->exits); ++e) {
-            MapRecord* way = g_mapDatabase->FindMap(zone->exits[e].target);
+            MapRecord* way = g_mapDatabase.FindMap(zone->exits[e].target);
             if (!way) continue;
             variable = str::Format("z.%s", way->name);
             if (way->kind != 2) continue;

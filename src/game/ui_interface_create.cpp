@@ -121,7 +121,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     lib::TextFile file;
     bool opened;
     {
-        std::string path = *g_dataFolder + game::TutorialIniText();
+        std::string path = g_dataFolder + game::TutorialIniText();
         opened = file.Open(path, "r") != 0;
     }
     if (opened) {

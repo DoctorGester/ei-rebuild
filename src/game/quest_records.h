@@ -7,7 +7,6 @@
 
 #include "unit_db.h"   // InlineStrings
 
-#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -85,7 +84,7 @@ struct QuestDatabase {
     std::unordered_map<std::string, QuestRecord*> questsByName;
     QuestBriefingTable briefings;
 };
-extern lib::StaticObject<QuestDatabase> g_questDatabase;   // database_globals.cpp
+extern QuestDatabase g_questDatabase;   // database_globals.cpp
 
 
 class CFileRegistry;

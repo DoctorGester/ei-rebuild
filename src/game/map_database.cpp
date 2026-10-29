@@ -217,15 +217,5 @@ bool CMapDatabase::LoadAll() {
     return Load("map-LMP.txt");
 }
 
-// The map database, zero at the start: built by a static initialiser in the list's order and destroyed by the
-// exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<CMapDatabase> g_mapDatabase = /*0079BF00*/ {};
-
-namespace {
-void DestroyMapDatabase() { g_mapDatabase.Destroy(); }
-} // namespace
-
-void ConstructMapDatabase() {
-    g_mapDatabase.Construct();
-    std::atexit(DestroyMapDatabase);
-}
+// The map database (a plain global: the C++ runtime builds it empty and destroys it).
+CMapDatabase g_mapDatabase;

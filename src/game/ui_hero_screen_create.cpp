@@ -198,7 +198,7 @@ void CMpHeroScreen::CreateScreen() {
     std::vector<std::string>& women = names_;
     std::vector<MpVoiceEntry>& maleVoices = voiceLists_[0];
     std::vector<MpVoiceEntry>& femaleVoices = voiceLists_[1];
-    const NpcPrototypeTable& creatures = g_unitDatabase->npcs;
+    const NpcPrototypeTable& creatures = g_unitDatabase.npcs;
     const int count = static_cast<int>(creatures.records.size());
     for (int i = 0; i < count; ++i) {
         // The vector's checked access, repeated like the original.
@@ -301,7 +301,7 @@ void CMpHeroScreen::CreateScreen() {
 
     // The saved heroes, from the "mp" folder of the game's data.
     SavedParties* heroes = &g_savedParties.Get();
-    heroes->folder_ = *g_dataFolder + "mp\\";
+    heroes->folder_ = g_dataFolder + "mp\\";
     heroes->Reload();
     RefreshHeroScroll();
     DrawHeroList();

@@ -106,7 +106,7 @@ std::uint32_t FillClass(ClassId classId, ItemRecordHead* record, const ItemRecor
         to->damage = damage * factor;
         float spread = from->damageSpread, factor2 = material->damageFactor;
         to->damageSpread = spread * factor2;
-        return IndexIn(g_itemDatabase->weapons, prototype);
+        return IndexIn(g_itemDatabase.weapons, prototype);
     }
     case ClassId::ItemArmor: {
         auto* to = RecordAs<ArmorRecord>(record);
@@ -121,15 +121,15 @@ std::uint32_t FillClass(ClassId classId, ItemRecordHead* record, const ItemRecor
             float d = from->absorbOthers[k], e = material->absorbFactors[k], f = from->othersFactor;
             to->absorbOthers[k] = d * e * f;
         }
-        return IndexIn(g_itemDatabase->armors, prototype);
+        return IndexIn(g_itemDatabase.armors, prototype);
     }
     case ClassId::ItemQuick:
     case ClassId::ItemSpell:
         RecordAs<QuickItemRecord>(record)->actionValue = RecordAs<QuickItemRecord>(prototype)->actionValue;
-        return IndexIn(g_itemDatabase->quickItems, prototype);
+        return IndexIn(g_itemDatabase.quickItems, prototype);
     case ClassId::ItemQuest:
         record->category = prototype->category;
-        return IndexIn(g_itemDatabase->questItems, prototype);
+        return IndexIn(g_itemDatabase.questItems, prototype);
     case ClassId::ItemLoot: {
         auto* to = RecordAs<LootItemRecord>(record);
         auto* from = RecordAs<LootItemRecord>(prototype);
@@ -140,7 +140,7 @@ std::uint32_t FillClass(ClassId classId, ItemRecordHead* record, const ItemRecor
             to->index = material->number;
         else
             to->index = from->index;
-        return IndexIn(g_itemDatabase->loot, prototype);
+        return IndexIn(g_itemDatabase.loot, prototype);
     }
     default:
         return 0;   // not reached: the record of an unknown class is null and faulted above
@@ -162,8 +162,8 @@ int TableIndex(const Table& table, const Record* record) {
 int LootTableIndex(LootRecordType which, std::string_view name) {
     if (which > LootRecordType::Modifier) return 0;
     std::string key(name);
-    ItemDatabase& items = *g_itemDatabase;
-    SpellDatabase& spells = *g_spellDatabase;
+    ItemDatabase& items = g_itemDatabase;
+    SpellDatabase& spells = g_spellDatabase;
     switch (which) {
     case LootRecordType::Weapon:
         return TableIndex(items.weapons, items.weapons.names[key]);
@@ -353,7 +353,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
         CSpell* spell = context->SpellManager()->CreateSpellFromText(extra);
         CItem* item = nullptr;
         if (spell) {
-            QuickItemTable& quickItems = g_itemDatabase->quickItems;
+            QuickItemTable& quickItems = g_itemDatabase.quickItems;
             int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
             item = (CItem*)MakeItem(ItemKind::Spell, index, 0, -1);
             if (item) item->AttachSpell(spell);
@@ -363,7 +363,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
 
     // "prototype[.material]".
     const std::string& prototypeName = parts[0];
-    ItemDatabase& items = *g_itemDatabase;
+    ItemDatabase& items = g_itemDatabase;
     ItemRecordHead* prototype = items.weapons.Named(prototypeName);
     if (!prototype) prototype = items.armors.Named(prototypeName);
     if (!prototype) prototype = items.quickItems.Named(prototypeName);
@@ -450,7 +450,7 @@ CItem* CItemManager::MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t 
 CItem* CItemManager::CreateSpellItem(std::string_view spellText, CSpellManager* spells) {
     CSpell* spell = spells->CreateSpellFromText(spellText);
     if (!spell) return nullptr;
-    QuickItemTable& quickItems = g_itemDatabase->quickItems;
+    QuickItemTable& quickItems = g_itemDatabase.quickItems;
     int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
     CItem* item = (CItem*)MakeItem(ItemKind::Spell, index, 0, -1);
     if (item) item->AttachSpell(spell);
@@ -458,12 +458,12 @@ CItem* CItemManager::CreateSpellItem(std::string_view spellText, CSpellManager* 
 }
 
 void CItemManager::ListMaterialNames(std::vector<std::string>* names) {
-    ListRecordNames(g_itemDatabase->materials, names, [](const MaterialRecordHead* record) { return &record->key; });
+    ListRecordNames(g_itemDatabase.materials, names, [](const MaterialRecordHead* record) { return &record->key; });
 }
-void CItemManager::ListWeaponNames(std::vector<std::string>* names) { ListRecordNames(g_itemDatabase->weapons, names, HeadName); }
-void CItemManager::ListArmorNames(std::vector<std::string>* names) { ListRecordNames(g_itemDatabase->armors, names, HeadName); }
+void CItemManager::ListWeaponNames(std::vector<std::string>* names) { ListRecordNames(g_itemDatabase.weapons, names, HeadName); }
+void CItemManager::ListArmorNames(std::vector<std::string>* names) { ListRecordNames(g_itemDatabase.armors, names, HeadName); }
 void CItemManager::ListQuickItemNames(std::vector<std::string>* names) {
-    ListRecordNames(g_itemDatabase->quickItems, names, HeadName);
+    ListRecordNames(g_itemDatabase.quickItems, names, HeadName);
 }
 
 bool CItemConstructor::MagicCapacity(float* level, float* power) {

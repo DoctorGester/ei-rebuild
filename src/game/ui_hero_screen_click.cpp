@@ -370,14 +370,14 @@ void CMpHeroScreen::PlayVoice() {
     UnitPrototypeRecord* prototype;
     {
         std::string key(hero->texts[6]);
-        prototype = g_unitDatabase->prototypes.byName[key];
+        prototype = g_unitDatabase.prototypes.byName[key];
     }
     if (!prototype) return;
     acks::UnitAcks* set;
     {
         std::string key(prototype->name);
         // The sound sets (the units' acks) by name: operator[] inserts a null entry for an unknown name.
-        set = g_ackDatabase->units.byName[key];
+        set = g_ackDatabase.units.byName[key];
     }
     if (!set) return;
     // The voice entries are counted and found again by their rank (no allocation; the original gathers

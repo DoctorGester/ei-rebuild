@@ -117,7 +117,7 @@ void CSpellContainer::Build() {
     spell->castTime_ = proto->castTime;
     spell->effectPower_ = 0x10;
 
-    itemdb::SpellTable& spells = g_spellDatabase->spells;
+    itemdb::SpellTable& spells = g_spellDatabase.spells;
     int index = spells.IndexOf(spells.FindByCode(proto->code));
     proto = prototype_;
     spell->prototypeIndex_ = static_cast<std::uint8_t>(index);
@@ -178,7 +178,7 @@ void CSpellContainer::Build() {
         spell->manaCost_ = modifier->mana + spell->manaCost_;
         spell->price_ = modifier->price + spell->price_;
 
-        itemdb::SpellModifierTable& modifiers = g_spellDatabase->modifiers;
+        itemdb::SpellModifierTable& modifiers = g_spellDatabase.modifiers;
         int modifierIndex = modifiers.IndexOf(modifiers.FindByCode(modifier->code));
         char code = static_cast<char>(modifierIndex + 1);
         codes_.push_back(code);

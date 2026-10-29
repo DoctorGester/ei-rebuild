@@ -44,14 +44,14 @@ void CGlobalMap::SearchWays(const std::string& target) {
     arrivals_.clear();
     found_ = false;
     beyondTarget_ = false;
-    FindPaths(g_mapDatabase->FindMap(LocalPlayerZone()));
+    FindPaths(g_mapDatabase.FindMap(LocalPlayerZone()));
 }
 
 void CGlobalMap::FindPaths(MapRecord* from) {
     std::string variable;   // one string for every "z.<zone>" name
     for (int i = 0; i < std::ssize(from->exits); ++i) {
         bool goesBeyond = false;
-        MapRecord* zone = g_mapDatabase->FindMap(from->exits[i].target);
+        MapRecord* zone = g_mapDatabase.FindMap(from->exits[i].target);
         if (!zone) continue;
         float passTime = from->exits[i].passTime;
         if (str::Compare(zone->name, target_) == 0) {

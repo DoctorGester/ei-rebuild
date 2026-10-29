@@ -11,8 +11,6 @@ address,name,file
 00455DF0,app::ReleaseMouseAtExit,src/game/app_main.cpp
 00458700,options::ConstructGameOptions,src/game/options_construct.cpp
 00458720,options::DestroyGameOptions,src/game/options_construct.cpp
-0045E6C0,ConstructMapDatabase,src/game/map_database.cpp
-0045E6E0,DestroyMapDatabase,src/game/map_database.cpp
 0047C330,net::CleanUpWinsock,src/game/net_socket_driver.cpp
 004A56D0,ConstructPartyManager,src/game/app_lifetime.cpp
 004A56F0,DestroyPartyManager,src/game/app_lifetime.cpp
@@ -37,14 +35,6 @@ address,name,file
 00500930,ConstructSceneRenderer,src/game/renderer_lifetime.cpp
 00500950,DestroySceneRenderer,src/game/renderer_lifetime.cpp
 00500A70,CSceneRenderer::CSceneRenderer,src/game/renderer_lifetime.cpp
-0051FAF0,unitdb::ConstructSkillDatabaseGlobal,src/game/unit_db_lifetime.cpp
-0051FB40,unitdb::DestroySkillDatabaseGlobal,src/game/unit_db_lifetime.cpp
-005399F0,unitdb::ConstructUnitDatabaseGlobal,src/game/unit_db_lifetime.cpp
-0053A040,unitdb::DestroyUnitDatabaseGlobal,src/game/unit_db_lifetime.cpp
-0055E7E0,ConstructDataFolder,src/game/game_folders.cpp
-0055E800,DestroyDataFolder,src/game/game_folders.cpp
-0055E860,ConstructDiscFolder,src/game/game_folders.cpp
-0055E880,DestroyDiscFolder,src/game/game_folders.cpp
 00560620,ConstructClientWorld,src/game/world_construct.cpp
 00560640,DestroyClientWorld,src/game/world_construct.cpp
 005612F0,CWorldClient::CWorldClient,src/game/world_construct.cpp
@@ -86,12 +76,4 @@ address,name,file
 0065F2A0,ConstructSavedParties,src/game/party_file.cpp
 0065F2C0,DestroySavedParties,src/game/party_file.cpp
 0066C4F0,CMemoryStream::CMemoryStream,src/game/core_streams.cpp
-00684360,ConstructSpellDatabase,src/game/database_globals.cpp
-00684380,DestroySpellDatabase,src/game/database_globals.cpp
-006A6540,ConstructItemDatabase,src/game/database_globals.cpp
-006A6560,DestroyItemDatabase,src/game/database_globals.cpp
-006ADF10,ConstructQuestDatabase,src/game/database_globals.cpp
-006ADF30,DestroyQuestDatabase,src/game/database_globals.cpp
-006D7080,ConstructAckDatabase,src/game/database_globals.cpp
-006D70A0,DestroyAckDatabase,src/game/database_globals.cpp
 006E6106,gameapi::WSAStartup,src/lib/gameapi.h

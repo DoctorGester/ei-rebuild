@@ -9,7 +9,6 @@
 #include <string>
 #include "maths.h"
 
-#include "lib/static_object.h"
 #include "unit_create.h"
 
 #include <bit>
@@ -209,16 +208,16 @@ struct UnitDatabase {
     UnitLevelTable levels;
 };
 
-extern lib::StaticObject<UnitDatabase> g_unitDatabase;
+extern UnitDatabase g_unitDatabase;
 namespace unitdb {
 // The record named `name` (an unknown name gets a null entry), or null.
-inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return g_unitDatabase->prototypes.byName[name]; }
+inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return g_unitDatabase.prototypes.byName[name]; }
 // The byte distance of `record` from the first prototype record: what the originals divide by
 // 0x120 themselves (a null record included, which gives a negative distance).
 inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
-    return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(g_unitDatabase->prototypes.records.data()));
+    return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(g_unitDatabase.prototypes.records.data()));
 }
-inline UnitModelRecord* ModelNamed(const std::string& name) { return g_unitDatabase->models.byName[name]; }
+inline UnitModelRecord* ModelNamed(const std::string& name) { return g_unitDatabase.models.byName[name]; }
 } // namespace unitdb
 
 // The skill (perk) database (loaded from "perks.pdb" at startup): the skills, then the skill level records
@@ -279,20 +278,20 @@ struct SkillDatabase {
     std::vector<SkillRecord> skills;
     std::vector<SkillLevelRecord> levels;
 };
-extern lib::StaticObject<SkillDatabase> g_skillDatabase;
+extern SkillDatabase g_skillDatabase;
 // What raising a school from level value `from` to `to` costs (unit_skill_price.cpp).
 int SchoolPrice(int from, int to);
 namespace unitdb {
 inline SkillLevelRecord* SkillLevelAt(std::uint32_t index) {
-    std::vector<SkillLevelRecord>& levels = g_skillDatabase->levels;
+    std::vector<SkillLevelRecord>& levels = g_skillDatabase.levels;
     return index < levels.size() ? &levels[index] : nullptr;
 }
 inline SkillRecord* SkillAt(std::uint32_t index) {
-    std::vector<SkillRecord>& skills = g_skillDatabase->skills;
+    std::vector<SkillRecord>& skills = g_skillDatabase.skills;
     return index < skills.size() ? &skills[index] : nullptr;
 }
 inline UnitLevelRecord* ModelLevelAt(std::uint32_t index) {
-    UnitLevelTable& levels = g_unitDatabase->levels;
+    UnitLevelTable& levels = g_unitDatabase.levels;
     return index < levels.records.size() ? &levels.records[index] : nullptr;
 }
 } // namespace unitdb

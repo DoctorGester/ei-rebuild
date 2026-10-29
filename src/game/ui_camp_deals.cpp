@@ -93,7 +93,7 @@ void StockSpells(CCampPages* camp, CParty* list) {
     for (CItem* item : list->items_) {
         item->Repair();
         if (IsSpellContainer(item))
-            stock->AddSpell(g_spellDatabase->spells.Named(item->spell_->GetPrototype()->code.c_str()));
+            stock->AddSpell(g_spellDatabase.spells.Named(item->spell_->GetPrototype()->code.c_str()));
         else if (IsSpell(item))
             stock->AddSpell(itemdb::SpellAt(AsLoot(item)->index_));
         else if (IsModifier(item))
@@ -169,7 +169,7 @@ void CCampPages::DeconstructItem() {
             AddLoot(results, item, std::nullopt);
     }
     if (copy->spell_) {
-        itemdb::QuickItemTable& quickItems = g_itemDatabase->quickItems;
+        itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;
         int index = quickItems.IndexOf(quickItems.Named("spell container"));
         Ref<CItem> container;
         container.Assign(results->ItemFactory()->MakeItem(ItemKind::Spell, index, 0, -1));

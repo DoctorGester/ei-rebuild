@@ -50,7 +50,7 @@ extern _RTL_CRITICAL_SECTION g_deviceLock;   // renderer_lifetime.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
 extern CCursor g_cursor;   // ui_cursor_setup.cpp
-extern lib::StaticObject<CMapDatabase> g_mapDatabase;   // map_database.cpp
+extern CMapDatabase g_mapDatabase;   // map_database.cpp
 CScript* TheMissionScript();
 extern lib::StaticObject<CCamera> g_camera;   // camera_object.cpp
 
@@ -62,7 +62,7 @@ extern lib::StaticObject<PartyManager> g_partyManager;   // app_lifetime.cpp
 // is its characters for printf-style arguments).
 extern std::string g_registryRoot;
 extern std::string g_startFolder;
-extern lib::StaticObject<std::string> g_discFolder;
+extern std::string g_discFolder;
 extern std::string g_textFolder;
-extern lib::StaticObject<std::string> g_dataFolder;
-inline const char* DataFolderText() { return g_dataFolder->c_str(); }
+extern std::string g_dataFolder;
+inline const char* DataFolderText() { return g_dataFolder.c_str(); }

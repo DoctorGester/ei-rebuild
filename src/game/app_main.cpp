@@ -258,8 +258,8 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
 // disc folder (when it is not the data folder) is not on a volume with the options' label. False
 // when the player cancels.
 bool CheckDrives(const std::vector<std::string>& messages) {
-    std::string discFolder = *g_discFolder;
-    std::string dataFolder = *g_dataFolder;
+    std::string discFolder = g_discFolder;
+    std::string dataFolder = g_dataFolder;
     double freeBytes;
     if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 && freeBytes < 314572800.0) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
@@ -290,11 +290,11 @@ void CreateMouse() {
 }
 
 void CreateFolders(std::string& path) {
-    path = str::Format("%ssaves\\", *g_dataFolder);
+    path = str::Format("%ssaves\\", g_dataFolder);
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
-    path = str::Format("%smp\\", *g_dataFolder);
+    path = str::Format("%smp\\", g_dataFolder);
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
-    path = str::Format("%stextures\\", *g_dataFolder);
+    path = str::Format("%stextures\\", g_dataFolder);
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
 }
 
@@ -314,8 +314,8 @@ void CreateRenderer() {
 std::uintptr_t OpenSound() {
     GameOptions* options = &options::g_options.Get();
     std::string textFolder = g_textFolder;
-    std::string dataFolder = *g_dataFolder;
-    std::string discFolder = *g_discFolder;
+    std::string dataFolder = g_dataFolder;
+    std::string discFolder = g_discFolder;
     g_clientWorld->sounds_->Open(g_mainWindow, 1, -1, 44100);
     {
         std::string registry = textFolder + "streamsn.reg";
@@ -343,13 +343,13 @@ std::uintptr_t OpenSound() {
 void LoadDatabases() {
     const std::string archive = "database.res";
     GameOptions* options = &options::g_options.Get();
-    g_skillDatabase->Load(options->resourcesPath_, archive);
-    g_questDatabase->Load(options->resourcesPath_);
-    g_unitDatabase->Load(options->resourcesPath_, archive);
-    g_spellDatabase->Load(options->resourcesPath_, archive);
-    g_itemDatabase->Load(options->resourcesPath_, archive);
+    g_skillDatabase.Load(options->resourcesPath_, archive);
+    g_questDatabase.Load(options->resourcesPath_);
+    g_unitDatabase.Load(options->resourcesPath_, archive);
+    g_spellDatabase.Load(options->resourcesPath_, archive);
+    g_itemDatabase.Load(options->resourcesPath_, archive);
     g_leverTable.Load(options->resourcesPath_);
-    g_ackDatabase->Load(options->resourcesPath_);
+    g_ackDatabase.Load(options->resourcesPath_);
     g_printsDatabase.Load(options->resourcesPath_);
 }
 
@@ -665,7 +665,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     g_clientWorld->SetUpGraphics(g_sceneRenderer->device_);
     SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0);
     g_interface.Create(g_sceneRenderer->device_);
-    g_mapDatabase->LoadAll();
+    g_mapDatabase.LoadAll();
     StartFirstMap();
     g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);
 

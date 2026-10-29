@@ -205,7 +205,7 @@ bool HasChatOverlay() { return g_interface.root_ != nullptr; }
 void ChatKeyEnter() { g_interface.ChatKeyEnter(); }
 void CloseChat() { g_interface.root_->SetOpen(false); }
 bool HasClassTemplate(int id) { return g_partyManager->templates.Find(id) != nullptr; }
-const void* FindMap(const char* name) { return g_mapDatabase->FindMap(name); }
+const void* FindMap(const char* name) { return g_mapDatabase.FindMap(name); }
 int MapKind(const void* record) { return static_cast<const MapRecord*>(record)->kind; }
 void LeaveToZone(void* connection, const char* name, int exit) {
     static_cast<CPlayerServer*>(connection)->LeaveToZone(name, exit);

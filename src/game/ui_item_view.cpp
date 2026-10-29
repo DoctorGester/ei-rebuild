@@ -336,7 +336,7 @@ HeroFaceNames FaceNames(const char* prototype) {
     UnitPrototypeRecord* unit;
     {
         std::string key(prototype);
-        unit = g_unitDatabase->prototypes.byName[key];   // an unknown name gets a null entry
+        unit = g_unitDatabase.prototypes.byName[key];   // an unknown name gets a null entry
     }
     UnitModelRecord* figure;
     {

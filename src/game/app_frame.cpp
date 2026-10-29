@@ -85,12 +85,12 @@ void PlayMovies(const std::string& section, int a) {
     CIniFile ini;
     {
         std::string path;
-        ini.SetPath((*ConcatText(&path, &g_dataFolder.Get(), "config\\movie.ini")));
+        ini.SetPath((*ConcatText(&path, &g_dataFolder, "config\\movie.ini")));
     }
     ini.GetList(section.c_str(), "movies", &list, ',');
     for (const std::string& movie : list) {
         {
-            const std::string full = g_discFolder->c_str() + std::string("Movies\\") + movie;
+            const std::string full = g_discFolder.c_str() + std::string("Movies\\") + movie;
             PlayMovie(full, 0, 1, 0, 0, static_cast<char>(a));
         }
     }

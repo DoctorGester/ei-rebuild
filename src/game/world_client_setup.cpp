@@ -89,7 +89,7 @@ int CWorldClient::LoadLights(const std::string& file) {
     std::vector<std::uint32_t> values{};
     CIniFile ini;   // the empty path, freed at the end
     {
-        std::string folder = *g_dataFolder + ConfigFolder();
+        std::string folder = g_dataFolder + ConfigFolder();
         std::string path = folder + file;
         ini.SetPath(path);
     }
@@ -116,7 +116,7 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
         loader = new CLinkFigureLoader(g_sceneRenderer->device_, &resource);
     }
     figureLoader_.Assign(loader);
-    g_unitDatabase->CountSoundFiles(sounds_);
+    g_unitDatabase.CountSoundFiles(sounds_);
 }
 
 // ---- The sky --------------------------------------------------------------------------

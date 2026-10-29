@@ -92,9 +92,9 @@ const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 
 // The array takes the table's count, then element i the name of record i while i is below the count (read
 // again each time).
-void CSpellManager::ListSpellNames(std::vector<std::string>* names) { ListRecordNames(g_spellDatabase->spells, names); }
+void CSpellManager::ListSpellNames(std::vector<std::string>* names) { ListRecordNames(g_spellDatabase.spells, names); }
 void CSpellManager::ListModifierNames(std::vector<std::string>* names) {
-    ListRecordNames(g_spellDatabase->modifiers, names);
+    ListRecordNames(g_spellDatabase.modifiers, names);
 }
 
 // The spell and the name are members, constructed before the body (the game builds them after the code

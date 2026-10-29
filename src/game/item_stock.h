@@ -35,12 +35,12 @@ using StockRecipeMap = lib::HashMap<std::string, std::list<void*>, lib::TextHash
 
 namespace stock {
 // The spell database's recipe lists for weapons, armors and scrolls (FillSpellMaps' argument).
-inline const std::vector<itemdb::SpellListRecord>* WeaponSpellRecipes() { return &g_spellDatabase->lists[2]; }
-inline const std::vector<itemdb::SpellListRecord>* ArmorSpellRecipes() { return &g_spellDatabase->lists[1]; }
-inline const std::vector<itemdb::SpellListRecord>* ScrollSpellRecipes() { return &g_spellDatabase->lists[0]; }
+inline const std::vector<itemdb::SpellListRecord>* WeaponSpellRecipes() { return &g_spellDatabase.lists[2]; }
+inline const std::vector<itemdb::SpellListRecord>* ArmorSpellRecipes() { return &g_spellDatabase.lists[1]; }
+inline const std::vector<itemdb::SpellListRecord>* ScrollSpellRecipes() { return &g_spellDatabase.lists[0]; }
 // The spell and modifier maps by name (operator[] inserts a null record: NamedRecord).
-inline std::unordered_map<std::string, itemdb::SpellRecord*>& SpellsByName() { return g_spellDatabase->spells.byCode; }
-inline std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifiersByName() { return g_spellDatabase->modifiers.byCode; }
+inline std::unordered_map<std::string, itemdb::SpellRecord*>& SpellsByName() { return g_spellDatabase.spells.byCode; }
+inline std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifiersByName() { return g_spellDatabase.modifiers.byCode; }
 // The material draw's factors of the prototype's price: a seventh and 0.2.
 inline constexpr float kSeventhFactor = 0.14285715f;
 inline constexpr float kFifthFactor = 0.2f;

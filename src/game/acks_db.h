@@ -13,7 +13,6 @@
 #include <unordered_map>
 
 #include "ack_kind.h"
-#include "lib/static_object.h"
 #include "unit_client_models.h"
 
 namespace acks {
@@ -101,7 +100,7 @@ struct AckDatabase {
     AckTable<ExtraAcks> extras;
 };
 } // namespace acks
-extern lib::StaticObject<acks::AckDatabase> g_ackDatabase;
+extern acks::AckDatabase g_ackDatabase;
 namespace acks {
 
 // The unit says ack `kind` (see acks_db.cpp). Returns the speech given to the controller's Say, or null.

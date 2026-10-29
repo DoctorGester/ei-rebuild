@@ -74,7 +74,7 @@ void CTradePanel::BuildLists() {
     stats->ResetToBase(0.0f);
     owner_->RefreshStats();
     CTextManager* texts = g_clientWorld->texts_;
-    std::vector<SkillLevelRecord>& levels = g_skillDatabase->levels;
+    std::vector<SkillLevelRecord>& levels = g_skillDatabase.levels;
     perks_.clear();
     learnable_.clear();
     schools_.clear();
@@ -127,7 +127,7 @@ void CTradePanel::BuildLists() {
 
     for (unsigned index = 0; index < levels.size(); index += 3) {
         SkillLevelRecord* record = &levels[index];
-        if (!stats->CanLearn(&g_skillDatabase.Get(), record)) continue;
+        if (!stats->CanLearn(&g_skillDatabase, record)) continue;
         TradeRow& row = learnable_.emplace_back();
         row.name = OpenPerkText(texts, PerkBaseName(record)) ? ReadPerkLine(texts) : record->displayName;
         row.price = stats->SkillPrice(record);

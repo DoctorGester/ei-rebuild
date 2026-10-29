@@ -116,7 +116,7 @@ void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecord
     CItemConstructor* ctor = ConstructorOf(stock);
     CItemManager* manager = PartyOf(stock)->ItemFactory();
     const std::vector<itemdb::ItemRecordHead*> taken = source;
-    itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(prototypeName);
+    itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
     for (itemdb::ItemRecordHead* p : taken) {
         if (skip && str::Compare(PrototypeName(p), skip) == 0) continue;
         ctor->SetManager(manager);
@@ -133,7 +133,7 @@ void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecord
 }
 
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
-    return g_spellDatabase->spells.Named(name);
+    return g_spellDatabase.spells.Named(name);
 }
 
 // Created null when missing.
@@ -197,12 +197,12 @@ void SaveItemRecords(CStream* stream, const std::vector<itemdb::ItemRecordHead*>
 }
 
 int SpellIndex(const itemdb::SpellRecord* record) {
-    itemdb::SpellTable& spells = g_spellDatabase->spells;
+    itemdb::SpellTable& spells = g_spellDatabase.spells;
     return spells.IndexOf(spells.FindByCode(record->code));
 }
 int ModifierIndex(const itemdb::SpellModifierRecord* record) {
     const char* code = record->code;
-    itemdb::SpellModifierTable& modifiers = g_spellDatabase->modifiers;
+    itemdb::SpellModifierTable& modifiers = g_spellDatabase.modifiers;
     return modifiers.IndexOf(modifiers.FindByCode(code));
 }
 
@@ -215,7 +215,7 @@ void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& sou
     CItemConstructor* ctor = ConstructorOf(stock);
     CItemManager* manager = PartyOf(stock)->ItemFactory();
     const std::vector<Record*> taken = source;
-    itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(prototypeName);
+    itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
     for (Record* record : taken) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(ItemKind::Loot, -1);
@@ -324,7 +324,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
     } else {
         taken = materials;
     }
-    itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(game::MaterialText());
+    itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(game::MaterialText());
     for (auto& e : taken) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(ItemKind::Loot, -1);
@@ -340,18 +340,18 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
 }
 
 void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateInstructions(this, weapons, game::InstructionWeaponText(), g_itemDatabase->weapons, nullptr, minCount,
+    GenerateInstructions(this, weapons, game::InstructionWeaponText(), g_itemDatabase.weapons, nullptr, minCount,
                          maxCount, out);
 }
 
 void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateInstructions(this, armors, game::InstructionArmorText(), g_itemDatabase->armors, nullptr, minCount,
+    GenerateInstructions(this, armors, game::InstructionArmorText(), g_itemDatabase.armors, nullptr, minCount,
                          maxCount, out);
 }
 
 // Quick items named "scroll" get no instruction.
 void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateInstructions(this, quickItems, game::InstructionQuickItemText(), g_itemDatabase->quickItems,
+    GenerateInstructions(this, quickItems, game::InstructionQuickItemText(), g_itemDatabase.quickItems,
                          game::ScrollText(), minCount, maxCount, out);
 }
 
@@ -459,7 +459,7 @@ void ItemStock::GenerateSpells(std::list<HeldRef<CSpell>>* out, const float* lev
 void ItemStock::LoadLists(CStream* stream) {
     std::string name;
     unsigned count = 0;
-    itemdb::ItemDatabase& items = *g_itemDatabase;
+    itemdb::ItemDatabase& items = g_itemDatabase;
     LoadRecords(stream, name, count, items.armors, armors);
     LoadRecords(stream, name, count, items.weapons, weapons);
     LoadRecords(stream, name, count, items.quickItems, quickItems);
@@ -541,7 +541,7 @@ void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
         if (list.size() >= spells.size()) break;
         if (++tries >= kScrollTries) break;
     }
-    itemdb::QuickItemRecord* prototype = g_itemDatabase->quickItems.Named(game::SpellContainerText());
+    itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named(game::SpellContainerText());
     for (CSpell* spell : list) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(ItemKind::Spell, -1);
