@@ -17,9 +17,8 @@ struct TweenEntry {
 };
 static_assert(sizeof(TweenEntry) == 16);
 
-// The world's array of TweenEntry: new entries zero-filled, never constructed. Emptying
-// and resizing are the template's; the rest are members.
-struct WaterTweens : std::vector<TweenEntry> {
+// The world's water level changes, in the order they were first set.
+struct WaterTweens {
     // The entry for `key` (made when there is none) moves to `target` over
     // `steps` updates (at least one).
     void SetTarget(int key, float target, int steps);
@@ -32,7 +31,9 @@ struct WaterTweens : std::vector<TweenEntry> {
     void Load(ByteStream* stream, terrain::Terrain* terrain);
     // Reads the array only (the resize of another array instantiation).
     void LoadEntries(ByteStream* stream);
-    // The read part of both loads: the count (0 if the stream writes nothing), SetSize, then the
-    // entries.
+    // The read part of both loads: the count (0 if the stream writes nothing), the array resized to it, then
+    // the entries.
     void ReadEntries(ByteStream* stream);
+
+    std::vector<TweenEntry> entries;
 };

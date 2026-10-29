@@ -10,7 +10,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 
-#include <list>
 #include <string>
 #include <vector>
 #include <windows.h>
@@ -308,7 +307,7 @@ public:
     // Deletes the oldest cached textures while the cache holds more than kCacheLimit.
     void TrimCache();
 
-    std::list<CTexture*> cache;    // released textures kept for reuse
+    std::vector<CTexture*> cache;  // released textures kept for reuse, the oldest first
     int cachedBytes;            // the cached textures' CTexture::uploadResult
     TextureDevice* device;
     std::uint16_t mipLevel;     // first mip level to load

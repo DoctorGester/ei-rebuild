@@ -10,8 +10,8 @@
 
 #include "game_singletons.h"
 
+#include <deque>
 #include <iterator>
-#include <list>
 
 namespace {
 constexpr int kQueuedDelay = 3;
@@ -56,11 +56,6 @@ void SetTalking(int unitId, bool talking) {
     else serverUnit->flags &= ~MapObjectFlag::Blocked;
 }
 
-// Erases the queued speeches `filter` picks.
-template <typename Pick>
-void EraseWhere(std::list<ClientSpeech>& queue, Pick pick) {
-    for (auto it = queue.begin(); it != queue.end();) it = pick(&*it) ? queue.erase(it) : std::next(it);
-}
 } // namespace
 
 bool SpeechFilter::Replaced(const ClientSpeech* queued) const {
@@ -76,9 +71,9 @@ bool SpeechFilter::Finished(const ClientSpeech* queued) const {
 void UnitClientSpecific::Say(const SpeechRecord* record, AckKind kind) {
     if (!record) return;
     SpeechFilter replacing{0, kind};
-    EraseWhere(speech, [&](const ClientSpeech* queued) { return replacing.Replaced(queued); });
+    std::erase_if(speech, [&](const ClientSpeech& queued) { return replacing.Replaced(&queued); });
     SpeechFilter finishing{unit->id, AckKind::Selected};
-    EraseWhere(speech, [&](const ClientSpeech* queued) { return finishing.Finished(queued); });
+    std::erase_if(speech, [&](const ClientSpeech& queued) { return finishing.Finished(&queued); });
     bool empty = speech.empty();
     if (!empty && !Important(kind)) return;
     ClientSpeech said{};

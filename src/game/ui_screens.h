@@ -16,7 +16,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -509,9 +508,9 @@ public:
     UiScrollingSurface* textSurface = nullptr;    // the scrolling text
     UiSurface* headerSurface = nullptr;
     MappedResource archive;    // "outro.res"
-    std::list<TitleLine> lines;
+    std::vector<TitleLine> lines;
     float nextLineAt = 0.0f;           // game time the current line ends (0 from Build and for scrolls)
-    std::list<TitleLine>::iterator currentLine;    // the next line (end() at the end)
+    std::size_t nextLine = 0;          // the index of the next line (lines.size() at the end)
     std::string name;          // ("Titles")
     BinkVideo player;          // the movie player
     bool fromGame;              // opened in a game (pending value 0xCCCCCCCC) or the menu

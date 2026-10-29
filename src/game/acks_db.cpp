@@ -85,11 +85,11 @@ template ExtraAcks* AckTable<ExtraAcks>::RecordAt(std::uint32_t);
 // ClientRand() draws as gathering them into a temporary vector first.
 const SpeechRecord* Speeches::Pick(int roll) const {
     int count = 0;
-    for (const SpeechRecord& s : *this)
+    for (const SpeechRecord& s : records)
         if (s.chance >= roll) ++count;
     if (count == 0) return nullptr;
     int chosen = ClientRandBelow(count);
-    for (const SpeechRecord* s = data();; ++s)
+    for (const SpeechRecord* s = records.data();; ++s)
         if (s->chance >= roll && chosen-- == 0) return s;
 }
 
@@ -98,11 +98,11 @@ const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int rol
         return (s.environment & environment) == environment && s.speech.chance >= roll;
     };
     int count = 0;
-    for (const EnvironmentSpeech& s : *this)
+    for (const EnvironmentSpeech& s : entries)
         if (eligible(s)) ++count;
     if (count == 0) return nullptr;
     int chosen = ClientRandBelow(count);
-    for (const EnvironmentSpeech* s = data();; ++s)
+    for (const EnvironmentSpeech* s = entries.data();; ++s)
         if (eligible(*s) && chosen-- == 0) return &s->speech;
 }
 
@@ -182,7 +182,7 @@ const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     UnitAcks* record = g_ackDatabase.units.Find(prototype->name);
     if (!record) return nullptr;
     std::size_t length = std::strlen(name);
-    for (const SpeechRecord& s : record->namedSpeeches) {
+    for (const SpeechRecord& s : record->namedSpeeches.records) {
         if (s.name.size() == length && std::memcmp(s.name.data(), name, length) == 0) {
             unit->Controller()->Say(&s, alternate ? AckKind::ScenarioTalking : AckKind::Scenario);
             return &s;
@@ -199,11 +199,11 @@ using namespace acks;
 
 void ChunkArchive::SerializeSpeechList(int id, Speeches* list) {
     ChunkArchive* ar = this;
-    RecordChunks(ar, id, static_cast<std::vector<SpeechRecord>*>(list), SpeechFields);
+    RecordChunks(ar, id, &list->records, SpeechFields);
 }
 void ChunkArchive::SerializeEnvironmentSpeeches(int id, EnvironmentSpeeches* list) {
     ChunkArchive* ar = this;
-    RecordChunks(ar, id, static_cast<std::vector<EnvironmentSpeech>*>(list), [](EnvironmentSpeech& speech, ChunkArchive* ar) {
+    RecordChunks(ar, id, &list->entries, [](EnvironmentSpeech& speech, ChunkArchive* ar) {
         SpeechFields(speech.speech, ar);
         ar->Field(10, &speech.environment);
     });

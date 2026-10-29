@@ -74,7 +74,7 @@ void Interface3D::OnQuestVariable(std::string_view name, float value) {
 
 // --- News for the top window -------------------------------------
 
-void Interface3D::OnItemsPicked(std::list<Item*>* items, int money, bool crippled) {
+void Interface3D::OnItemsPicked(const std::vector<Item*>& items, int money, bool crippled) {
     if (!stack.empty()) ScreenOf(stack.back())->ItemsPicked(items, money, crippled);
 }
 

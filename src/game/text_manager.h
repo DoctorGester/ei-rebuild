@@ -11,7 +11,6 @@
 #include "engine_object.h"
 
 #include <cstdint>
-#include <list>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -44,7 +43,7 @@ struct TextSources {
     void* FindKeyText(std::string_view key, std::uint32_t* size);
     std::vector<std::string> ListKeys(const char* pattern);
 
-    std::list<TextSource> archives;
+    std::vector<TextSource> archives;
 };
 
 // An item's texts (TextManager::GetItemTexts); a part that is not found stays empty.

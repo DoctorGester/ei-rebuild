@@ -17,10 +17,12 @@
 
 namespace acks {
 
-struct Speeches : std::vector<SpeechRecord> {
+struct Speeches {
     // A random speech among those whose chance is at least `roll` (ClientRand()); null, without drawing,
     // when there is none. A null list answers null too.
     const SpeechRecord* Pick(int roll) const;
+
+    std::vector<SpeechRecord> records;
 };
 
 // A speech that also depends on the surroundings: eligible when the world's environment flags for the unit
@@ -30,9 +32,11 @@ struct EnvironmentSpeech {
     std::uint32_t environment;
 };
 
-struct EnvironmentSpeeches : std::vector<EnvironmentSpeech> {
+struct EnvironmentSpeeches {
     // The same among the speeches whose environment flags include `environment`.
     const SpeechRecord* Pick(std::uint32_t environment, int roll) const;
+
+    std::vector<EnvironmentSpeech> entries;
 };
 
 // The part every record type starts with. By default an empty name and an empty map. A copy's map still points

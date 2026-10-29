@@ -73,7 +73,7 @@ void Normalise(Vector3* v) {
 
 // The first mover of `person` is dropped; its target goes to `place` / `direction` unless the
 // dialogue waited for it.
-void DropMover(std::list<BriefingMover>& movers, const CUnit* person, Vector3* place, Vector3* direction) {
+void DropMover(std::vector<BriefingMover>& movers, const CUnit* person, Vector3* place, Vector3* direction) {
     for (auto node = movers.begin(); node != movers.end(); ++node) {
         if (node->person != person) continue;
         if (!node->waited) {

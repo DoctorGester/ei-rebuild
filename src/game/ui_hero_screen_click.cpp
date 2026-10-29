@@ -380,7 +380,7 @@ void MpHeroScreen::PlayVoice() {
     // The voice entries are counted and found again by their rank (no allocation; the original gathers
     // them in a temporary vector).
     int count = 0;
-    const acks::EnvironmentSpeeches& entries = set->environmentSpeeches;
+    const std::vector<acks::EnvironmentSpeech>& entries = set->environmentSpeeches.entries;
     for (const acks::EnvironmentSpeech& e : entries)
         if (IsVoice(e)) ++count;
     if (count == 0) return;

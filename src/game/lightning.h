@@ -14,7 +14,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <vector>
 
 // One polyline point (16 bytes: the fourth float is never written here).
@@ -128,5 +127,5 @@ public:
     // Create (lightning.cpp): loads the noise table on the first call, then the base manager's Create.
     void Create() override;
 
-    std::list<Lightning*> newBolts;    // (each entry holds a reference)
+    std::vector<Lightning*> newBolts;  // (each entry holds a reference)
 };

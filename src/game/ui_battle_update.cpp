@@ -28,7 +28,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -255,8 +254,8 @@ void BattleScreen::Update() {
     // The selection box: party units inside it are marked (MapObjectFlag::BoxMarked and their figure's select virtual
     // with 1), the others unmarked (with 0); selected ones are left alone.
     if (boxSelecting) {
-        std::list<CMapObject*> units = g_clientWorld.UnitsInBox(&selectionBox);
-        std::list<std::uintptr_t> inside;
+        std::vector<CMapObject*> units = g_clientWorld.UnitsInBox(&selectionBox);
+        std::vector<std::uintptr_t> inside;
         for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*currentParty); ++i) {
                 if ((*currentParty)[i] != unit) continue;
@@ -323,8 +322,8 @@ void BattleScreen::LeftUp(int buttons, int x, int y) {
     auto* currentParty = &party;
     auto unitAt = [&](int i) { return (*currentParty)[i]; };
     int first = -1;
-    std::list<CMapObject*> units = world->UnitsInBox(&selectionBox);
-    std::list<std::uintptr_t> inside;
+    std::vector<CMapObject*> units = world->UnitsInBox(&selectionBox);
+    std::vector<std::uintptr_t> inside;
     if (!units.empty()) {
         for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*currentParty); ++i) {

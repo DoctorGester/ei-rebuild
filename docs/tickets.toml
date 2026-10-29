@@ -6176,7 +6176,7 @@ title = "Containers, client world and interface: std::list to std::vector, Speec
 group = "cleanup"
 model = "opus"
 depends = ["C30b"]
-note = "C63's method for the client side, after C30b (it rewrites the SSE2 files): world_client_* (world_client_maps.cpp 31), map_object*, sound*, camera*, model.h, terrain.h, ui.h / ui_*.h and the EI_SSE2_GAME_SOURCES files (14 uses), about 95 std::list uses with the other small headers (chunk_archive.h, text_manager.h, counted_ref.cpp, link_loader.cpp). Types inheriting from containers: Speeches, EnvironmentSpeeches (acks_db.h) and WaterTweens (water_tweens.h): composition. Goldens unchanged. From C63b: Interface3D::OnItemsPicked / ItemsPicked (ui.h, ui_interface_glue.cpp, ui_battle_setup.cpp) take a std::list<Item*>: a vector, then PlayerClient::OnItemsReceived passes its vector directly and RefreshQuestLog an empty vector."
+note = "C63's method for the client side, after C30b (it rewrites the SSE2 files): world_client_* (world_client_maps.cpp 31), map_object*, sound*, camera*, model.h, terrain.h, ui.h / ui_*.h and the EI_SSE2_GAME_SOURCES files (14 uses), about 95 std::list uses with the other small headers (chunk_archive.h, text_manager.h, counted_ref.cpp, link_loader.cpp). Types inheriting from containers: Speeches, EnvironmentSpeeches (acks_db.h) and WaterTweens (water_tweens.h): composition. Goldens unchanged. From C63b: Interface3D::OnItemsPicked / ItemsPicked (ui.h, ui_interface_glue.cpp, ui_battle_setup.cpp) take a std::list<Item*>: a vector, then PlayerClient::OnItemsReceived passes its vector directly and RefreshQuestLog an empty vector. Done: std::list in src 152 -> 57 (dashboard: lines naming std::list). Vectors: the client world's platform faces (new at the front), screen entries, selected ids, heroes, filed objects, deferred units (CollectVisible files one object), ground prints (movable: NamedTexture holds a HeldRef), the fog list, UnitsInBox / ObjectsInRange; the interface's help page, chat lines (unique_ptr surface), flying numbers, titles (an index), briefing movers / shown, HUD merged items; camera shakes, particles (erased before the update: UpdateGlow reads the count), new bolts, figure bones / children / effect sources, archive and wave source lists, the sector cache, the texture cache. Deques: interface messages, chunk archive stack (parent pointer kept across PushChunk) and saved queue, free particles, a figure's animation queue, the unit speech queue. OnItemsPicked / ItemsPicked take a const std::vector<Item*>&. Speeches / EnvironmentSpeeches hold records / entries, WaterTweens its entries. Kept lists: dynamicObjects (dynamicNodes keeps iterators), the sound wave cache (cache keeps nodes), the sector grid cells (world_client_shadow_casters.cpp names the type: C63g). Goldens 122 the same / 32 without a golden; --rebirth-only: terrain_water_waves standalone-rebirth differs from record 0 (speculars), as C30c's note says (its Rebirth golden stays the original's), the rest the same."
 
 [[ticket]]
 id = "C63f"
@@ -6199,6 +6199,13 @@ group = "cleanup"
 model = "opus"
 depends = ["C30c"]
 note = "C30c stayed out of render_shadows.cpp, render_mesh*.cpp, render_terrain.cpp, render_point_shadows.cpp and world_client_shadow_casters.cpp while R37c/R37d changed them: their double locals, D()-free static_cast<double> / static_cast<float> pairs and *Unrounded<..., double> calls as plain float maths, with C30c's scratch floats.py then C30b's casts.py (docs/notes/cleanup-tooling.md 'The SSE2 files by hand (C30c)'). Check: goldens unchanged (drawing only), check_x87 0."
+
+[[ticket]]
+id = "C63g"
+title = "Containers: the sector grid cells to vectors"
+group = "cleanup"
+depends = ["C63e"]
+note = "Left by C63e because world_client_shadow_casters.cpp (R37c+d's file then) names the cell type: SectorGrid's cells (world.h) become std::vector<HeldRef<CMapObject>> (nothing keeps a cell's iterators or adds to a cell while it is walked: CollectVisible files one object, a first pass only appends units to g_deferredUnits; SectorGrid::Move erases and appends). Then CellFor / Allocate (world_client_maps.cpp) and the two walks in world_client_shadow_casters.cpp (const auto&), and the comment on SectorGrid. Goldens unchanged."
 
 [[ticket]]
 id = "R34c"

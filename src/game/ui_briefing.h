@@ -16,7 +16,6 @@
 #include <string>
 
 #include <cstddef>
-#include <list>
 #include <vector>
 
 // A person walking to the place a dialogue gives them.
@@ -195,7 +194,7 @@ public:
     Vector3 thirdDirection = {};
     Vector3 personHome = {};              // where the person stood when the dialogue started (noWalk)
     Vector3 personHomeDirection = {};
-    std::list<BriefingMover> movers;
+    std::vector<BriefingMover> movers;   // the newest first
     bool firstPhrase = false;                // the first phrase lasts a second longer
     std::string dialogueText;        // shown whole when skipped
     float phraseTime = 0.0f;                // time left of a phrase without a voice
@@ -206,7 +205,7 @@ public:
     int topicTop = 0;                    // first topic row shown
     float savedEdgeFade = 0.0f;             // the map edge fade Create replaced
     std::map<int, std::string> personTexts;       // "pers" texts by text key
-    std::list<BriefingShownItem> shown;
+    std::vector<BriefingShownItem> shown;   // the newest first
     bool immediate = false;                  // the dialogue's people are placed at once
     bool noWalk = false;                     // the zone's map record's cage: the leader does not walk
     bool autosave = false;                   // unless loading or back from the camp

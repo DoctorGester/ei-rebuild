@@ -98,10 +98,8 @@ void WorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, f
 
     TransformPipeline* pipeline = g_sceneRenderer.pipeline;
     PartData data;
-    for (auto face = platforms.list.begin(); face != platforms.list.end();) {
-        auto next = std::next(face);
-        CObject3D* object = ObjectWithId(face->id);
-        face = next;
+    for (const Platform& face : platforms.list) {
+        CObject3D* object = ObjectWithId(face.id);
         if (!object) continue;
         // The object's bounding sphere about its origin, then about its centre.
         if (!builder.Touches(object->localPosition, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))

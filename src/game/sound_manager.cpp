@@ -1346,13 +1346,10 @@ void SoundManager::Create() {
     Reset();
 }
 
-// The head taken off the list, then the archive's deleting destructor.
+// Every archive deleted, the first first.
 void SoundManager::ClearWaveSources() {
-    while (!waveSources.empty()) {
-        MappedResource* source = waveSources.front();
-        waveSources.pop_front();
-        delete source;
-    }
+    for (MappedResource* source : waveSources) delete source;
+    waveSources.clear();
 }
 
 // Called at startup for the two sound archives. A failed allocation is not tested (the open call goes

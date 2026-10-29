@@ -78,7 +78,7 @@ void BriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector3
         return;
     }
     if (serverUnit->flags & kUnitBlocked) return;
-    movers.push_front(BriefingMover{target, direction, BriefingMover::kWalking, unit, waited, 0.0f});
+    movers.insert(movers.begin(), BriefingMover{target, direction, BriefingMover::kWalking, unit, waited, 0.0f});
     controller->brain.Walk(target, run);
 }
 
@@ -150,5 +150,5 @@ void BriefingScreen::ShowItem(std::string_view name, int index) {
     turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kTurnedOver);
     item->localRotation = turn;
 
-    shown.push_front(BriefingShownItem{std::string(name), item, back, frame});
+    shown.insert(shown.begin(), BriefingShownItem{std::string(name), item, back, frame});
 }

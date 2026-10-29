@@ -38,10 +38,10 @@
 #include <cmath>
 #include <cstring>
 #include <iterator>
-#include <list>
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 // ---- Heights -------------------------------------------------------------------------------------
 
@@ -207,10 +207,10 @@ const char* QuestPrefixText() { return "q."; }
 
 void SessionDisconnect(CPlayer* session) { session->Disconnect(); }
 
-// One print list ticked: the prints whose tick returns 0 are erased.
+// One print vector ticked in order: the prints whose tick returns 0 are erased.
 template <typename T>
-void RunEffects(std::list<T>& list) {
-    for (auto it = list.begin(); it != list.end();) it = it->Tick() == 0 ? list.erase(it) : std::next(it);
+void RunEffects(std::vector<T>& prints) {
+    std::erase_if(prints, [](T& print) { return print.Tick() == 0; });
 }
 
 void EndWalk(ObjectListIterator& it) {

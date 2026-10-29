@@ -355,13 +355,13 @@ void Net(std::vector<std::string>* args) {
 void WriteSpeechLines(lib::TextFile* file, const acks::Speeches* list) {
     if (!list) return;
     std::string line;
-    for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
+    for (const SpeechRecord& speech : list->records) WriteSpeech(file, line, speech);
 }
 
 void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
     std::string line;
-    for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);
+    for (const acks::EnvironmentSpeech& entry : list->entries) WriteSpeech(file, line, entry.speech);
 }
 
 // Generateacks. Writes <data folder>scenack.txt: for every record of the three ack

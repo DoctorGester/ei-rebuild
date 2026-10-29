@@ -509,7 +509,7 @@ void Camera::Update(float dt) {
 
     if (shakes.empty()) return;
     float offset = 0.0f;
-    for (std::list<CameraShake>::iterator node = shakes.begin(); node != shakes.end();) {
+    for (auto node = shakes.begin(); node != shakes.end();) {
         CameraShake* s = &(*node);
         double damping = x87::fexp(-(D(s->decay) * s->elapsed));
         double wave = x87::fcos(D(camera::kHalfPi) * s->elapsed * kShakeFrequency);
@@ -651,5 +651,5 @@ void Camera::Shake(const Vector3& source, float duration, float amplitude, float
     entry.duration = static_cast<float>(D(duration) * kShakeTicks);
     entry.amplitude = static_cast<float>(strength);
     entry.decay = decay;
-    shakes.insert(shakes.end(), entry);
+    shakes.push_back(entry);
 }

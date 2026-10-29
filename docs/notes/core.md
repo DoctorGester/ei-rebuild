@@ -440,16 +440,19 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 ## Containers: the record and held lists (C14s)
 
-- The sector grids' cells, the client's heroes and the frame's deferred units are `SectorList`
-  (`std::list<HeldRef<CMapObject>>`, world.h): an insert takes a reference, an erase or clear drops it. `RemoveHeld`
+- The sector grids' cells (`std::list<HeldRef<CMapObject>>`, world.h), the client's heroes and the frame's deferred
+  units (`std::vector<HeldRef<CMapObject>>`): an insert takes a reference, an erase or clear drops it. `RemoveHeld`
   (world_client_maps.cpp) holds the object while its entries are erased, as the game's remove(value) did. A grid is
   `unique_ptr` cells and row pointers; `SectorGrid::Free` destroys the cells from the last, and the client's destructor
-  frees both grids where the original did (the second grid still holds objects then). The client's filed objects
-  (`MapObjectList`, `std::list<CMapObject*>`) keep their reference by hand: the original's destructor freed that list
-  without releasing (Destroy has released and emptied it by then).
+  frees both grids where the original did (the second grid still holds objects then). The cells stay lists only until
+  the shadow casters' walk (world_client_shadow_casters.cpp) takes another type (C63g). The client's filed objects
+  (`std::vector<CMapObject*>`) keep their reference by hand: the original's destructor freed that list without
+  releasing (Destroy has released and emptied it by then). CollectVisible files one object; DrawPass walks the cells,
+  the deferred units and the heroes (a first pass only appends units to the deferred vector, the later passes add
+  nothing).
 - The connection's lists: `SentItem` holds an `EntryRef`, `SentPacket` its items as `std::list<SentItem>`; the
   history, chunk and freed-id lists are members. Splices are std::list::splice.
-- `LinkArchive` (model.h; the loader's `std::list<LinkArchive>`), `TextSources::archives` (text_manager.h) and the
+- `LinkArchive` (model.h; the loader's `std::vector<LinkArchive>`), `TextSources::archives` (text_manager.h) and the
   loopback link's `StreamQueue` (`std::list<MemoryStream>`): Send appends an empty stream and copies into it. The
   link's copy constructor keeps the game's queue copy (a new stream of the source's size whose Read takes the
   source's buffer: the fresh bytes are read into the source).
@@ -547,8 +550,22 @@ instantiations were, for reading game.exe (config/library.csv names them):
   pointers' releases (the compiler's destructor then frees empty lists); ClientBase's list is the compiler's.
 - The flow's changed variables (UpdateFromServer) are sorted with std::stable_sort by stamp: the server gives every
   set its own serial (g_variableSerial), so no two variables share one and the STLport introsort's order is the same.
-- Also std: the briefing screen's movers and shown (std::list members, built with push_front), the container's
+- Also std: the briefing screen's movers and shown (vectors, new entries inserted at the front), the container's
   extra input sides (`std::vector<UiInputSide*> inputs`), the world's local id lists (std::list<unsigned>). The
   original's node allocator has no port (standalone.md, "STLport"); `lib::IntroSort` (lib/intro_sort.h) is the sort.
+- The client side (C63e): vectors hold the client world's platform faces (new faces inserted at the front: AddFace's
+  record pointer is used before the next face), screen entries (HitCollector walks the vector), selected ids (DrawPass's
+  marker walk is one std::erase_if, in order), ground prints (GroundPrint moves: its texture is a HeldRef; static_asserts
+  keep the moves noexcept), the fog list, UnitsInBox / ObjectsInRange; the interface's help page sprites and entries,
+  chat lines (ChatLine owns its surface by unique_ptr), flying numbers, titles (an index of the next line), the HUD's
+  merged items; camera shakes, lightning's new bolts, figure bones and children, a figure's effect sources, the
+  archive lists, wave sources, the terrain's sector cache (most recently used first), the texture cache (the oldest
+  first). Interface3D::OnItemsPicked takes a `const std::vector<Item*>&`. Queues are deques: the interface's messages,
+  the chunk archive's stack (PushRecordChunk keeps the parent's pointer across PushChunk) and saved objects (Close
+  adds while it takes), the free particles, a figure's animation queue, a unit's speech queue. A source's particles
+  are a vector erased while UpdateParticles walks it: the erase comes before the update because UpdateGlow reads the
+  count. Stay lists: the server world's projectiles, dynamicObjects (dynamicNodes keeps iterators), the sound
+  manager's wave cache (`cache` keeps nodes) and the grid cells (above). Speeches / EnvironmentSpeeches (acks_db.h)
+  hold their vector (`records` / `entries`), WaterTweens (water_tweens.h) its `entries`.
 - The harness's netstate reader walks both sides with begin / end (game.exe's view of the server's connections is a
   StlpList<RefPtr>, exe_objects.h; `HeldObject` reads either side's element).

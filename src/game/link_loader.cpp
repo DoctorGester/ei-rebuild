@@ -12,7 +12,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <map>
 #include <memory>
 #include <new>
@@ -52,7 +51,7 @@ const char* FileData(MappedResource* archive, const char* name) {
 }
 
 // The data of `name` in the first open archive that has it, or null.
-const char* FindInArchives(const std::list<LinkArchive>& archives, const char* name) {
+const char* FindInArchives(const std::vector<LinkArchive>& archives, const char* name) {
     for (const LinkArchive& archive : archives)
         if (const char* data = FileData(archive.resource, name)) return data;
     return nullptr;

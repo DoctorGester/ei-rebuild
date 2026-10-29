@@ -16,7 +16,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -452,7 +451,7 @@ public:
     void RemorphOldPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
 
     int refCount = 0;
-    std::list<LinkArchive> archives;
+    std::vector<LinkArchive> archives;
     std::unordered_map<std::string, FigureModel*> figureSets;     // by figure name
     Ref<TextureDevice> renderer;                                 // the device object
     std::multimap<std::string, LinkMesh*> cache;     // each entry holds a reference

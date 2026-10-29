@@ -67,58 +67,49 @@ void PrintRecord2::Serialize(ChunkArchive* ar) {
 
 void WaterTweens::SetTarget(int key, float target, int steps) {
     if (steps < 1) steps = 1;
-    int count = std::ssize(*this);
-    for (int i = 0; i < count; ++i) {
-        if ((*this)[i].key != key) continue;
-        (*this)[i].step = (target - (*this)[i].value) / steps;
-        (*this)[i].steps = steps;
+    for (TweenEntry& e : entries) {
+        if (e.key != key) continue;
+        e.step = (target - e.value) / steps;
+        e.steps = steps;
         return;
     }
-    // A new entry; every field is overwritten below.
-    resize(count + 1);
-    TweenEntry& e = (*this)[std::ssize(*this) - 1];
-    e.key = key;
-    e.value = 0.0f;
-    e.steps = steps;
-    e.step = (target - (*this)[count].value) / steps;
+    // A new entry, from 0.
+    entries.push_back(TweenEntry{key, steps, 0.0f, target / steps});
 }
 
 bool WaterTweens::Tick() {
     bool moving = false;
-    for (int i = 0; i < std::ssize(*this); ++i) {
-        TweenEntry* e = &(*this)[i];
+    for (auto e = entries.begin(); e != entries.end();) {
         EI_NAN_AUDIT(e->value);
         if (e->steps > 0) {
             --e->steps;
             moving = true;
             e->value = e->step + e->value;
         } else if (e->value == 0.0f) {
-            // Finished and back at zero: remove it.
-            int after = std::ssize(*this) - i - 1;
-            if (after != 0) std::memmove(e, e + 1, static_cast<unsigned>(after) << 4);
-            pop_back();
-            --i;
+            // Finished and back at zero: removed.
+            e = entries.erase(e);
+            continue;
         }
+        ++e;
     }
     return moving;
 }
 
 void WaterTweens::Save(ByteStream* stream) const {
-    int count = std::ssize(*this);
-    stream->WriteValue(count);
-    for (int i = 0; i < std::ssize(*this); ++i) stream->WriteValue((*this)[i]);
+    stream->WriteValue(static_cast<int>(entries.size()));
+    for (const TweenEntry& e : entries) stream->WriteValue(e);
 }
 
 void WaterTweens::ReadEntries(ByteStream* stream) {
     int count = 0;
     stream->ReadValue(count);
-    resize(count);
-    for (int i = 0; i < std::ssize(*this); ++i) stream->ReadValue((*this)[i]);
+    entries.resize(count);
+    for (TweenEntry& e : entries) stream->ReadValue(e);
 }
 
 void WaterTweens::Load(ByteStream* stream, terrain::Terrain* terrain) {
     ReadEntries(stream);
-    for (int i = 0; i < std::ssize(*this); ++i) terrain->SetWaterLevel((*this)[i].key, (*this)[i].value);
+    for (const TweenEntry& e : entries) terrain->SetWaterLevel(e.key, e.value);
 }
 
 void WaterTweens::LoadEntries(ByteStream* stream) {

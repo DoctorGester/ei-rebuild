@@ -31,7 +31,6 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
-#include <list>
 #include <memory>
 #include <new>
 #include <string>
@@ -239,8 +238,8 @@ bool BattleScreen::ReadyToStopPolling() {
     return true;
 }
 
-void BattleScreen::ItemsPicked(std::list<Item*>* items, int money, bool crippled) {
-    for (Item* item : *items) topPanel->AddPickedUp(item, crippled);
+void BattleScreen::ItemsPicked(const std::vector<Item*>& items, int money, bool crippled) {
+    for (Item* item : items) topPanel->AddPickedUp(item, crippled);
     topPanel->AddMoney(money);
     topPanel->ShowItems();
     RefreshSelection();

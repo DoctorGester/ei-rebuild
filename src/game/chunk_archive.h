@@ -13,9 +13,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <iterator>
-#include <list>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -153,14 +153,15 @@ public:
 
     MemoryStream indexStream;     // chunk 0
     MemoryStream dataStream;      // the chunk data (chunk 2 while loading the records)
-    std::list<Ref> stack;                   // the last chunk is the current one
+    // The last chunk is the current one. A deque: PushRecordChunk keeps the parent's pointer across PushChunk.
+    std::deque<Ref> stack;
     std::int32_t version;          // 1 when constructed; field 2 of the root chunk
     std::uint8_t loading;          // Open stores the low byte of its argument
     LoadedObjects loaded;
     // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
     // instead of the object's address.
     std::unordered_map<const RefCounted*, std::uint32_t> numbers;
-    std::list<RefCounted*> saved;               // the objects whose records Close writes
+    std::deque<RefCounted*> saved;              // the objects whose records Close writes (it adds while it takes)
 };
 extern ChunkArchive::ClassRegistry g_classRegistry;   // chunk_archive.cpp
 

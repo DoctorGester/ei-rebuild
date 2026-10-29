@@ -14,7 +14,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <string>
 #include <vector>
 
@@ -165,7 +164,7 @@ public:
     float distance;
     Quaternion viewRotation;    // heading
     float pitch;                // degrees
-    std::list<CameraShake> shakes;
+    std::vector<CameraShake> shakes;
     Vector3 boundsCenter;
     float boundsRadius;
     int targetId;

@@ -201,12 +201,12 @@ SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, bool create) {
             return nullptr;
         }
         sector->lastUsed = frame;
-        sectorCache.push_front(sector);
+        sectorCache.insert(sectorCache.begin(), sector);
         cell = sector;
     } else if (sector->lastUsed < frame) {
         sector->lastUsed = frame;
-        sectorCache.remove(sector);
-        sectorCache.push_front(sector);
+        std::erase(sectorCache, sector);
+        sectorCache.insert(sectorCache.begin(), sector);
     }
     if (create) sector->Ensure(wanted);
     return lib::Has(sector->built, wanted) ? sector : nullptr;
@@ -248,11 +248,8 @@ void Terrain::BuildVertexTiles() {
 
 void Terrain::ClearMap() {
     StopAmbientLoops();
-    while (!sectorCache.empty()) {
-        SectorData* sector = sectorCache.front();
-        sectorCache.pop_front();
-        delete sector;
-    }
+    for (SectorData* sector : sectorCache) delete sector;
+    sectorCache.clear();
     for (CTexture* texture : pageTextures) texture->Release();
     pageTextures.clear();
     archive.CloseResource();

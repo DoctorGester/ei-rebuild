@@ -479,7 +479,7 @@ void CreditsScreen::CreateScreen() {
     std::uint32_t size = 0;
     void* data = currentArchive->GetFile("credits.scr", &size);
     if (!data) {
-        currentLine = lines.end();
+        nextLine = lines.size();
     } else {
         std::string script;
         std::memmove(str::SetLength(script, static_cast<int>(size)), data, size);
@@ -508,7 +508,7 @@ void CreditsScreen::CreateScreen() {
             lines.push_back(record);
             newLines.Next();
         }
-        currentLine = lines.begin();
+        nextLine = 0;
         currentArchive->CloseFile(data);
     }
 
