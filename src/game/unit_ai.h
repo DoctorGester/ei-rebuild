@@ -404,10 +404,10 @@ public:
     // Adds to `targets` (once each) the units that party members within [Logic] PlayerCallForHelp are
     // attacking (action 3), unless they belong to the same player.
     void AddPartyTargets(AIBrain* brain, UnitList* targets);
-    // `party` emptied, then the unit, the chain of leaders above it (Player mode's leader, or the followed
-    // unit), and repeatedly every unit of its player whose leader is listed (the player's units in hash
-    // order, up to the first null one).
-    void CollectParty(AIBrain* brain, UnitList* party);
+    // The unit, the chain of leaders above it (Player mode's leader, or the followed unit), and repeatedly
+    // every unit of its player whose leader is listed (the player's units in hash order, up to the first
+    // null one).
+    UnitList CollectParty(AIBrain* brain);
     // False when a unit of the player whose (first) Player mode follows this unit is farther than [Logic]
     // FollowMaxDist x (2 while `moving`, else 1.4) + 1 (3D).
     bool StaysWithParty(AIBrain* brain, bool moving);

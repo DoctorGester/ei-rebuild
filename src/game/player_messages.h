@@ -184,7 +184,7 @@ public:
     // the party manager (single player) or sent (multiplayer); then message 0x08 and a flush.
     void LeaveToZone(std::string_view zone, int entrance);
     int OnRefreshParty();      // Message 0x02: ForgetKnownObjects, SendParty
-    int OnTakeExit();          // Message 0x03: exit index -> GetZoneExit -> LeaveToZone (0 when none)
+    int OnTakeExit();          // Message 0x03: exit index -> FindZoneExit -> LeaveToZone (0 when none)
     // Message 0x05: state 2 -> 1, the session kind, Redeploy with the placements, PlayerDirty::GameState.
     int OnJoined();
     int OnLeaveToZone();       // Message 0x06: zone text, entrance -> LeaveToZone

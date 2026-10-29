@@ -551,9 +551,8 @@ void CUnitServer::TickItemSpells() {
 }
 
 void CUnitServer::RefreshItemSpells() {
-    std::list<CItem*> items{};
-    std::list<CSpell*> others{};
-    unit->CollectItems(&items, &others);
+    ItemsAndSpells held = unit->CollectItems();
+    std::list<CItem*>& items = held.items;
     // Weapons other than the one in use do not count.
     for (auto node = items.begin(); node != items.end();) {
         std::list<CItem*>::iterator current = node;
@@ -596,6 +595,6 @@ void CUnitServer::RefreshItemSpells() {
         if (current->worn != 0) continue;
         armourSpells.erase(current);
     }
-    others.clear();
+    held.spells.clear();
     items.clear();
 }

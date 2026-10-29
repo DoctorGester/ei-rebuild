@@ -257,8 +257,7 @@ void CBattleScreen::Update() {
     // The selection box: party units inside it are marked (MapObjectFlag::BoxMarked and their figure's select virtual
     // with 1), the others unmarked (with 0); selected ones are left alone.
     if (boxSelecting_) {
-        std::list<CMapObject*> units;
-        g_clientWorld.UnitsInBox(&selectionBox_, &units);
+        std::list<CMapObject*> units = g_clientWorld.UnitsInBox(&selectionBox_);
         std::list<std::uintptr_t> inside;
         for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*party); ++i) {
@@ -326,8 +325,7 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
     auto* party = &party_;
     auto unitAt = [&](int i) { return (*party)[i]; };
     int first = -1;
-    std::list<CMapObject*> units;
-    world->UnitsInBox(&selectionBox_, &units);
+    std::list<CMapObject*> units = world->UnitsInBox(&selectionBox_);
     std::list<std::uintptr_t> inside;
     if (!units.empty()) {
         for (CMapObject* unit : units) {

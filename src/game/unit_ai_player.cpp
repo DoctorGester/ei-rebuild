@@ -85,8 +85,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     if (chosen) {
         if (!PartyInDanger(brain->owner->unit)) {
             // The other followers that are not fighting stop following.
-            UnitList party;
-            CollectParty(brain, &party);
+            UnitList party = CollectParty(brain);
             for (auto node = party.begin(); node != party.end();) {
                 auto* other = *node;
                 ++node;
@@ -121,18 +120,18 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
     }
 }
 
-void PlayerMode::CollectParty(AIBrain* brain, UnitList* party) {
-    party->clear();
+UnitList PlayerMode::CollectParty(AIBrain* brain) {
+    UnitList party;
     CUnit* unit = brain->owner->unit;
-    if (!unit) return;
-    party->push_back(unit);
+    if (!unit) return party;
+    party.push_back(unit);
     CPlayer* player = unit->player;
-    if (!player) return;
+    if (!player) return party;
     // The chain of leaders above the unit.
     for (const CUnit* member = unit;;) {
         CUnit* above = LeaderOf(member);
-        if (!above || lib::Contains(*party, above)) break;
-        party->push_back(above);
+        if (!above || lib::Contains(party, above)) break;
+        party.push_back(above);
         member = above;
     }
     // Everyone following someone listed, until nobody is added.
@@ -142,11 +141,12 @@ void PlayerMode::CollectParty(AIBrain* brain, UnitList* party) {
         for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
             CUnit* member = node->second;
             CUnit* followed = LeaderOf(member);
-            if (!lib::Contains(*party, followed) || lib::Contains(*party, member)) continue;
-            party->push_back(member);
+            if (!lib::Contains(party, followed) || lib::Contains(party, member)) continue;
+            party.push_back(member);
             added = true;
         }
     } while (added);
+    return party;
 }
 
 bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {

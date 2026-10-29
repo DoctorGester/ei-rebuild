@@ -138,11 +138,9 @@ void CWorld::SetServerPaused(std::uint8_t value) {
     SetPaused(value);
 }
 
-bool CWorldServer::GetZoneExit(int index, std::string* target, int* entrance) {
-    if (index < 0 || index >= std::ssize(exits_)) return false;
-    *target = exits_[index].target;
-    *entrance = exits_[index].entrance;
-    return true;
+const ZoneExit* CWorldServer::FindZoneExit(int index) const {
+    if (index < 0 || index >= std::ssize(exits_)) return nullptr;
+    return &exits_[index];
 }
 
 void CWorldServer::AddTimedObject(CEffect* effect) {

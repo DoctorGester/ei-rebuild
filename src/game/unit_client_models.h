@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <list>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -118,7 +119,7 @@ public:
 
     // The skin layers: `detailed`: the unit's own skin (0x32) and its seven armour slots; else two layers,
     // armour slot 0 and the weapon in hand.
-    void BuildSkinLayers(int detailed, std::vector<SkinLayer>* out);
+    std::vector<SkinLayer> BuildSkinLayers(int detailed);
 
     // Composes the unit's skin texture through the texture manager from the skin layers and the textures
     // "<prototype>skin_<nn>.mmp" and "<prototype><armour or weapon texture>.mmp", named "mo<id>p" /
@@ -218,18 +219,17 @@ public:
     // The sounds of the animation playing between the last update's frame and now (attacks, deaths, skills, idles, hits,
     // footsteps); see docs/notes/units.md, "Animation sounds".
     void PlayStepSounds();
-    // The footstep sound on ground kind `terrain` into `out`, for units whose prototype's model has sounds
-    // for it: on a platform 0.01 or more away from the ground the kind is 2; crawling (movement mode 0)
-    // except on kinds 6 / 14 gives "steps\human\crawl\<1..6>.wav", else "<the kind's name>\<1..count>.wav"
-    // (one rand() each). Returns 1, or 0 (no prototype, model or sounds; `out` untouched).
-    int FootstepSound(int terrain, std::string* out);
-    // The sound of `animation`'s action into `out` (emptied first) when its sound frame (not 0) lies in
-    // [from, to): "weapons\miss.wav" for `miss`, else one of its sound numbers (rand()) in the folder of the
-    // second prototype or its model: idle (kind 0x180000, by the model's idle chance), skill sounds (0x40000:
-    // tame, steal, science, loot), attack (0x80000: "weapons\<n>.wav" for a hero with a bow or crossbow, else
-    // by the attack chance), death (0x1C0000), hit (0x200000). Returns 1 for those kinds (also when a chance
-    // left `out` empty), else 0.
-    int ActionSound(const FigureAnimation* animation, float from, float to, std::string* out, std::uint8_t miss);
+    // The footstep sound on ground kind `terrain`, for units whose prototype's model has sounds for it: on a
+    // platform 0.01 or more away from the ground the kind is 2; crawling (movement mode 0) except on kinds
+    // 6 / 14 gives "steps\human\crawl\<1..6>.wav", else "<the kind's name>\<1..count>.wav" (one rand() each).
+    // None without a prototype, model or sounds.
+    std::optional<std::string> FootstepSound(int terrain);
+    // The sound of `animation`'s action when its sound frame (not 0) lies in [from, to): "weapons\miss.wav"
+    // for `miss`, else one of its sound numbers (rand()) in the folder of the second prototype or its model:
+    // idle (kind 0x180000, by the model's idle chance), skill sounds (0x40000: tame, steal, science, loot),
+    // attack (0x80000: "weapons\<n>.wav" for a hero with a bow or crossbow, else by the attack chance), death
+    // (0x1C0000), hit (0x200000). Empty when a chance said no; none for other kinds or frames.
+    std::optional<std::string> ActionSound(const FigureAnimation* animation, float from, float to, std::uint8_t miss);
 
     // The wound level of each of the six body parts (head, body, hands, legs) into (*levels)[0..5]: 0 for a
     // part without state or maximum, at full durability, or at 75% or more; 1 above 33%, 2 above one point, 3

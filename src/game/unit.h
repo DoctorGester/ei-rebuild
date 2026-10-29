@@ -198,6 +198,15 @@ public:
     CUnit* unit;   // the unit it controls (CUnit::AttachCompanion sets and clears it)
 };
 
+// Items and the spells they carry, gathered in order.
+struct ItemsAndSpells {
+    // `item` (none for null) joins `items` and its spell, when it has one, `spells`.
+    void Add(CItem* item);
+
+    std::list<CItem*> items;
+    std::list<CSpell*> spells;
+};
+
 // The prototype name is CObject3D::name, the figure's build its scale.y, the packed vitals (hit points, mana)
 // CMapObject::packedVitals.
 class CUnit : public CMapObject {
@@ -364,9 +373,8 @@ public:
     void AddCarried(CItem* item);
     // Releases carried item `index` and closes the gap. Returns the new count.
     int RemoveCarried(int index);
-    // Empties both lists, then adds every item the unit holds to `items` (empty slots skipped) and each one's
-    // spell to `spells` when it has one.
-    void CollectItems(std::list<CItem*>* items, std::list<CSpell*>* itemSpells);
+    // Every item the unit holds (empty slots skipped) and their spells.
+    ItemsAndSpells CollectItems();
     // Fresh vitals and statistics (reset, then the owner's BuildFromPrototype for `prototype`), packed into the
     // vitals and parameters.
     void TakePrototype(std::string_view prototype) override;
@@ -845,8 +853,6 @@ struct PartyUnitRecord {
 // Wears `item` by `amount` (shared by its count_ pieces); the owner says `brokenRemark` when its condition
 // rounds to 0 or less, `wornRemark` when it drops below the itemDurabilityCritical share of its maximum.
 void WearItem(CItem* item, CUnit* unit, float amount, AckKind brokenRemark, AckKind wornRemark);
-// `item` joins `items` and its spell `spells`.
-void GatherItem(std::list<CItem*>* items, std::list<CSpell*>* spells, CItem* item);
 // Text-key units: the armour pieces covering hit location `location` at layer `layer` (1 or 2) wear by
 // `amount`.
 void WearArmour(CUnit* unit, int location, int layer, float amount);

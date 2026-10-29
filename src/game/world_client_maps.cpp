@@ -486,13 +486,15 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-void CWorldClient::UnitsInBox(const tagRECT* rect, std::list<CMapObject*>* out) {
+std::list<CMapObject*> CWorldClient::UnitsInBox(const tagRECT* rect) {
+    std::list<CMapObject*> inside;
     for (auto& node : screenEntries_) {
         CMapObject* object = objectManager_->FindMapObject(node.objectId);
         if (!object) continue;
         if (!object->Object3D()->attached->PartsIntersectRect(rect)) continue;
-        out->push_back(object);
+        inside.push_back(object);
     }
+    return inside;
 }
 
 // The figure's part names (worlddata::HeroPartText): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
@@ -553,7 +555,8 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
     }
 }
 
-void CWorldClient::ObjectsInRange(const Vector3& point, float radius, std::list<CObject3D*>* out) {
+std::list<CObject3D*> CWorldClient::ObjectsInRange(const Vector3& point, float radius) {
+    std::list<CObject3D*> found;
     float maxX = terrain_->width - 1.0f;
     float maxY = terrain_->height - 1.0f;
     float y1 = MinKeepB(MaxKeepA(0.0f, point.y + radius), maxY);
@@ -584,16 +587,15 @@ void CWorldClient::ObjectsInRange(const Vector3& point, float radius, std::list<
             double distance = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
             double limit = reach * reach;
             // Skipped when the limit is below (or unordered).
-            if (limit >= distance) {
-                out->insert(out->end(), object);
-            }
+            if (limit >= distance) found.push_back(object);
         }
         if (++x > lastX) {
             x = firstX;
-            if (++y > lastY) return;
+            if (++y > lastY) return found;
         }
         cell = &grid.rows_[y][x];
     }
+    return found;
 }
 
 int PlatformSet::AddFace(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& normal, Platform** out) {

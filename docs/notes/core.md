@@ -180,8 +180,8 @@ SaveObjectRef 0040A440, ObjectRef 0040A5A0).
   C14d's move to lib::File, byte for byte: every file the image suite's runs leave in harness_saves (the saves, info
   and shot files, the texture cache, keyboard.ini, tutorial.ini) the same as main's runs of the same scenario
   (the image's saves are byte-for-byte repeatable: two scenarios' autosaves at the same point are identical).
-- Kept: `ReadQuad` returns the file's values in the order 2, 0, 3, 1; `ReadVector3` copies x and z
-  through the FPU (a signalling NaN becomes quiet; `FpuCopyBits`), y as an integer; `ForEachChild` reads
+- Kept: `ReadQuad` returns the file's values in the order 2, 0, 3, 1 (`ReadVector3` returns the bits as read:
+  the original's FPU copy of x and z would quiet a signalling NaN); `ForEachChild` reads
   the parent without a null check; `CMemoryStream`'s destructor leaves the freed pointer;
   `SaveObjectRef` registers the object (list and number) while loading too and then searches the field without using it (nothing calls it loading);
   `ObjectRef` writes key 0 when saving; `LeaveChunk` (writing) takes the child's content pointer before
@@ -300,10 +300,9 @@ instantiations were, for reading game.exe (config/library.csv names them):
   (CString::TrimLeft(TCHAR)), the trims (byte stepping, ASCII white space: `text::IsSpace`, what `_ismbcspace` answered),
   `MbsLess` (`_mbscmp < 0` on the text up to its first zero byte: the order of the maps keyed by name), `Buffer` /
   `CutAtNull` / `SetLength` for GetBuffer / ReleaseBuffer(-1) / GetBufferSetLength.
-- String lists are `std::vector<std::string>` (out parameters `std::vector<std::string>*`; the clears and appends keep
-  the original CStringArray calls' order: ListFilesPlain empties its out parameter, modfolders::ListFiles and
-  GetList append to it, so with Rebirth's ResOverride a reused scratch vector grows over the archives as game.exe's
-  array did). `console::Arguments` is the console's command arguments. Text that crosses a std::string (a hash of a
+- String lists are `std::vector<std::string>`, returned by value. `CMappedResource::ListFiles` keeps its out parameter:
+  the vanilla body replaces the list, Rebirth's ResOverride (modfolders::ListFiles) appends to it, so the reused scratch
+  vector of TextSources::ListKeys and CSoundManager::ListWaveFiles grows over the archives as game.exe's array did. `console::Arguments` is the console's command arguments. Text that crosses a std::string (a hash of a
   name) hashes its bytes as the CString did, up to the first zero byte.
 - A reader of the original's `CString::ReadString` (CStdioFile): 128-byte chunks through a local buffer, fgets given 129
   as MFC gave it, each chunk counted up to its first zero byte (ReleaseBuffer(-1)), FALSE when the last fgets read
