@@ -63,7 +63,7 @@ void CCreditsScreen::Draw(CSceneRenderer* pass) {
     }
     if (!player_.Frame() && finished_) {
         player_.Close();
-        app::PlayMovies((name_ + kOutroSuffix), 0);
+        app::PlayMovies((name_ + kOutroSuffix), false);
         app::g_interfaceHasScreen = 0;
         Close();
         return;

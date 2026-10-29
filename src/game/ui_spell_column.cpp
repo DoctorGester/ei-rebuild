@@ -3,6 +3,7 @@
 #include "item_db_text.h"
 #include "spell.h"
 #include "ui.h"
+#include "ui_float.h"
 
 #include "ei/x87.h"
 #include <cstdint>
@@ -33,9 +34,6 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
     return spell->GetPrototype();
 }
 
-
-// The original truncates through _ftol.
-int Truncate(float value) { return static_cast<int>(value); }
 
 } // namespace
 

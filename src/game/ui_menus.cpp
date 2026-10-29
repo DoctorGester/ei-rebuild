@@ -138,12 +138,11 @@ void CSaveLoadWindow::Update() {
         slide_ = static_cast<float>(slide);
         if (slide > 1.0f) {
             sliding_ = false;
-            interface_->OpenHelp(0);
+            interface_->OpenHelp(false);
         }
     }
-    int position;
-    if (scrollbar_->TakePosition(&position)) {
-        firstVisible_ = position;
+    if (scrollbar_->TakeMoved()) {
+        firstVisible_ = scrollbar_->Position();
         RefreshListVanilla();
     }
 }
@@ -218,8 +217,7 @@ void COptionsWindow::LeftDouble(int buttons, int x, int y) {
             waitingForKey_ = true;
             RefreshRows();
         } else if (row.setting_ && row.setting_->spin_) {
-            int value;
-            row.setting_->spin_->GetValue(&value);
+            const int value = row.setting_->spin_->TakeValue();
             RegionRow(region).setting_->spin_->SetValue(value + 1);
             interface_->PlaySound(kSoundOk);
             RefreshRows();
@@ -267,12 +265,12 @@ void COptionsWindow::Update() {
         slide_ = static_cast<float>(slide);
         if (slide > 1.0f) {
             sliding_ = false;
-            interface_->OpenHelp(0);
+            interface_->OpenHelp(false);
         }
     }
     for (int i = 0; i < kSettingCount; ++i) {
-        int value;
-        if (settings_[i].bar_ && settings_[i].bar_->TakePosition(&value)) {
+        if (settings_[i].bar_ && settings_[i].bar_->TakeMoved()) {
+            const int value = settings_[i].bar_->Position();
             settings_[i].value_ = value;
             unsigned id = static_cast<unsigned>(settings_[i].definition_->id_);
             if (id == kSettingVolumeA) {
@@ -289,7 +287,8 @@ void COptionsWindow::Update() {
                 g_sceneRenderer->SetGamma(r, g, b);
             }
         }
-        if (settings_[i].spin_ && settings_[i].spin_->GetValue(&value)) {
+        if (settings_[i].spin_ && settings_[i].spin_->TakeChanged()) {
+            const int value = settings_[i].spin_->Value();
             settings_[i].value_ = value;
             int id = settings_[i].definition_->id_;
             if (id >= 7) {
@@ -304,11 +303,15 @@ void COptionsWindow::Update() {
 
 // --- Scroll bar --------------------------------------------------------------------------------
 
-bool CUiScrollbar::TakePosition(int* position) {
-    *position = position_;
+bool CUiScrollbar::TakeMoved() {
     if (!moved_) return false;
     moved_ = false;
     return true;
+}
+
+int CUiScrollbar::TakePosition() {
+    moved_ = false;
+    return position_;
 }
 
 void CUiScrollbar::Update() {

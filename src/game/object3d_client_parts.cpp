@@ -298,7 +298,7 @@ void CObject3DClientSpecific::ApplyMaterials() {
         SetSkins(skinName, secondSkinName);
 }
 
-void CObject3DClientSpecific::SetMaterialsLit(int lit) {
+void CObject3DClientSpecific::SetMaterialsLit(bool lit) {
     if (lit) {
         for (int i = 0; i < std::ssize(materials); ++i) {
             CMaterial* material = materials[i];
@@ -318,4 +318,4 @@ void CObject3DClientSpecific::SetMaterialsLit(int lit) {
     }
 }
 
-void CObject3DClientSpecific::SetLit(int lit) { SetMaterialsLit(lit); }
+void CObject3DClientSpecific::SetLit(bool lit) { SetMaterialsLit(lit); }

@@ -135,8 +135,8 @@ public:
     void ApplyMaterials() override;
     // With `lit` every material's emissive colour is pushed on its stack and set to white (alpha kept);
     // without, each takes back the colour last pushed (if any).
-    void SetMaterialsLit(int lit);
-    void SetLit(int lit) override;
+    void SetMaterialsLit(bool lit);
+    void SetLit(bool lit) override;
     void Unused25(int) override {}
     // Whether shadows are drawn for the object's kind: the option above 0 and the switch of its class (units,
     // class 0x52, others each have one). With shadows off only the low byte is cleared (the original's XOR

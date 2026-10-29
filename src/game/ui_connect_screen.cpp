@@ -92,7 +92,7 @@ void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(fr
 
 void OpenBox(CInterface3D* ui, std::string_view title, const char* text, std::uint32_t result, int flags) {
     CMessageBox* box = new CMessageBox(ui, title, text, result, flags, kBoxFormat);
-    ui->PushWindow(box, 1, 1);
+    ui->PushWindow(box, true, true);
 }
 
 
@@ -152,7 +152,7 @@ void CMpConnectScreen::Update() {
             std::string key;
             key = RefusalKey(client->refusal_);
             std::string text = key + kMessageSuffix;
-            interface_->PushWindow(new CMessageBox(interface_, key, text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), 1, 1);
+            interface_->PushWindow(new CMessageBox(interface_, key, text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), true, true);
             return;
         }
     }
@@ -177,13 +177,12 @@ void CMpConnectScreen::Update() {
         DrawListVanilla();
     }
 
-    int position;
-    if (scroll_->TakePosition(&position)) {
-        scrollTop_ = position;
+    if (scroll_->TakeMoved()) {
+        scrollTop_ = scroll_->Position();
         DrawListVanilla();
     }
-    if (playersSlider_->TakePosition(&position)) {
-        maxPlayers_ = position + 1;
+    if (playersSlider_->TakeMoved()) {
+        maxPlayers_ = playersSlider_->Position() + 1;
         DrawListVanilla();
     }
     bool renamed = nameEdit_->changed_;
@@ -325,7 +324,7 @@ void CMpConnectScreen::SelectAndScroll() {
     if (!(scrollTop_ + kRows > row)) scrollTop_ = row - (kRows - 1);
     if (scrollTop_ > row) scrollTop_ = row;
     scroll_->SetPosition(scrollTop_);
-    scroll_->TakePosition(&scrollTop_);
+    scrollTop_ = scroll_->TakePosition();
     DrawListVanilla();
 }
 
@@ -333,13 +332,11 @@ void CMpConnectScreen::Connect() {
     interface_->PlaySound(kOkSound);
     int row = selected_;
     if (row == 0) {
-        int players;
-        playersSlider_->TakePosition(&players);
-        ++players;
+        const int players = playersSlider_->TakePosition() + 1;
         std::string name = nameEdit_->text_;
         if (name.size() == 0) name = kDefaultGameName;
         SaveAddressBook();
-        g_gameFlow.StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), static_cast<char>(unlisted_),
+        g_gameFlow.StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), unlisted_,
                                    static_cast<int>(net::g_gameClient->queries_.extra));
         return;
     }
@@ -384,8 +381,8 @@ void CMpConnectScreen::MasterRequest() {
         master.Parse(options::g_options->masterServerName_.c_str(), kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries_.extra : 0;
-    interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra), 1,
-                           1);
+    interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra), true,
+                           true);
 }
 
 void CMpConnectScreen::SaveAddressBook() {
@@ -457,8 +454,7 @@ void CMpConnectScreen::RebuildList() {
 
     unsigned rows = static_cast<unsigned>(entries_.size());
     if (rows > static_cast<unsigned>(kRows)) {
-        int position;
-        scroll_->TakePosition(&position);
+        const int position = scroll_->TakePosition();
         scroll_->SetMaximum(static_cast<int>(entries_.size()) - kRows);
         scroll_->SetPosition(position);
     } else {
@@ -623,7 +619,7 @@ void CMpConnectScreen::CreateScreen() {
     selectedAddress_ = net::NetAddress{};
     RebuildList();
     DrawListVanilla();
-    interface_->OpenHelp(0);
+    interface_->OpenHelp(false);
     refreshTimer_ = 0.0f;
     CUiSurface* note = AddSurface(NewSurface(interface_, 0, 0, 300, 20));
     note->Clear();

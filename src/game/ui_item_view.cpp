@@ -4,6 +4,7 @@
 // unrounded (or truncated with the game's _ftol), values it stores as float are rounded with
 // static_cast<float>, products keep their operand order (precise floating point).
 #include "app.h"
+#include "ui_float.h"
 #include "core_refcount.h"
 #include "texture.h"
 #include "ui_item_info.h"
@@ -35,7 +36,6 @@
 
 namespace {
 
-inline double D(float f) { return f; }
 constexpr float kFullTurn = /*007C7D20*/ 6.2831855f;   // a static initialiser: pi + pi
 
 

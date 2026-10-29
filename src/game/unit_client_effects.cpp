@@ -191,7 +191,7 @@ void CUnitClientSpecific::Wound() {
     source->Attach(unit);
     source->attachPoint = kSparkAttach;
     auto* half = unit->Object3D()->ClientSpecific();
-    if (flashCountdown == 0) half->SetMaterialsLit(1);
+    if (flashCountdown == 0) half->SetMaterialsLit(true);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }
 

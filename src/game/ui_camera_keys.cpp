@@ -8,6 +8,7 @@
 #include "options.h"
 
 #include "ui.h"
+#include "ui_float.h"
 
 #include "camera.h"
 
@@ -19,8 +20,14 @@
 
 namespace {
 
-inline double D(float f) { return f; }
 float GameFloat(const float& setting) { return static_cast<const volatile float&>(setting); }
+
+// A camera motion's keyboard power times its speed, in double: the key handler multiplies the direction
+// in with it and rounds to float once. (ui_camera_input.cpp's KeyboardSpeed rounds power * speed to float
+// first, which gives different results: keep both.)
+double KeyboardSpeedProduct(const options::CameraMotionOptions& motion) {
+    return D(GameFloat(motion.powerKeyboard)) * D(GameFloat(motion.speed));
+}
 
 bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_; }
 
@@ -55,19 +62,19 @@ void CCameraInput::KeyDown(int, int, int flags) {
     if (!ModifierHeld(interface_)) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.
         float left = -x_;
-        float speed = static_cast<float>(D(GameFloat(options::g_options->cameraScroll_.powerKeyboard)) * D(GameFloat(options::g_options->cameraScroll_.speed)));
+        float speed = static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraScroll_));
         direction.x = static_cast<float>(D(y_) * D(speed));
         direction.y = static_cast<float>(D(left) * D(speed));
         g_camera->Pan(&direction);
         g_camera->SetTurnRate(0.0f);
-        g_camera->SetZoomTarget(static_cast<float>(D(GameFloat(options::g_options->cameraZoom_.powerKeyboard)) * D(GameFloat(options::g_options->cameraZoom_.speed)) * D(z_)));
+        g_camera->SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraZoom_) * D(z_)));
         g_camera->SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
     g_camera->Pan(&direction);
-    g_camera->SetTurnRate(static_cast<float>(D(GameFloat(options::g_options->cameraRotate_.powerKeyboard)) * D(GameFloat(options::g_options->cameraRotate_.speed)) * D(y_)));
-    g_camera->SetZoomTarget(static_cast<float>(D(GameFloat(options::g_options->cameraZoom_.powerKeyboard)) * D(GameFloat(options::g_options->cameraZoom_.speed)) * D(z_)));
+    g_camera->SetTurnRate(static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraRotate_) * D(y_)));
+    g_camera->SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraZoom_) * D(z_)));
     g_camera->SetTiltRate(
-        static_cast<float>(D(GameFloat(options::g_options->cameraPitch_.powerKeyboard)) * D(GameFloat(options::g_options->cameraPitch_.speed)) * D(x_) * D(50.0f)));
+        static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraPitch_) * D(x_) * D(50.0f)));
 }

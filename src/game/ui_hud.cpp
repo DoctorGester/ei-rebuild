@@ -406,9 +406,7 @@ void CHudClock::LeftUp(int, int x, int y) {
     switch (region) {
     case 0: {   // the pause button
         handled_ = true;
-        interface_->PlaySound(kSoundClock);
-        const bool paused = g_clientWorld->paused_;
-        GameSendFlag10(paused ? 0 : 1);
+        TogglePause();
         return;
     }
     case 1:     // the normal speed
@@ -417,10 +415,7 @@ void CHudClock::LeftUp(int, int x, int y) {
         // Rebirth's MPSpeedControl (the JNEs aimed at the next instruction).
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         if (g_clientWorld->paused_) GameSendFlag10(0);
-        fast_ = region == 2;
-        worlddata::g_updatePeriod = fast_ ? kFastPeriod : kNormalPeriod;
-        interface_->fastGame_ = fast_;
-        interface_->PlaySound(kSoundClock);
+        SetSpeed(region == 2);
         return;
     case 3:     // the objectives
         handled_ = true;
@@ -435,12 +430,25 @@ void CHudClock::MouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
 
+void CHudClock::TogglePause() {
+    interface_->PlaySound(kSoundClock);
+    const bool paused = g_clientWorld->paused_;
+    GameSendFlag10(paused ? 0 : 1);
+}
+
+void CHudClock::SetSpeed(bool fast) {
+    fast_ = fast;
+    worlddata::g_updatePeriod = fast ? kFastPeriod : kNormalPeriod;
+    interface_->fastGame_ = fast;
+    interface_->PlaySound(kSoundClock);
+}
+
 void CHudClock::OpenObjectives() {
     highlight_ = false;
     interface_->PlaySound(kSoundClick);
     auto* window = new CObjectivesWindow(interface_);
     window->Setup(LocalPlayerZone(), nullptr, false, false);
-    interface_->PushWindow(window, 1, 1);
+    interface_->PushWindow(window, true, true);
 }
 
 // --- Movement panel ----------------------------------------------------------------------------
@@ -460,13 +468,16 @@ void CHudMovePanel::LeftUp(int, int x, int y) {
         ToggleFlag();
         return;
     }
-    int mode = region - 1;
-    if (!g_clientWorld->LocalView()) return;
+    SetMode(region - 1);
+}
+
+void CHudMovePanel::SetMode(int mode) {
+    CPlayerClient* view = g_clientWorld->LocalView();
+    if (!view) return;
     if (mode >= 0 && mode < 4) {
         interface_->PlaySound(kSoundClick);
-        for (int i = 0; i < std::ssize(owner_->party_); ++i) {
-            CUnit* unit = owner_->party_[i];
-            if (unit->flags_ & 0x10) g_clientWorld->LocalView()->SetMoveMode(unit, mode);
+        for (CUnit* unit : owner_->party_) {
+            if (unit->flags_ & 0x10) view->SetMoveMode(unit, mode);
         }
     }
     ShowMode(mode);

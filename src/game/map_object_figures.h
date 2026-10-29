@@ -199,7 +199,7 @@ public:
     // Whether the point is in the screen rectangle of a part with flag 0x40 (PickAt2).
     virtual int PartsContainPoint(const long* point);
     virtual void Unused25(int) {}                   // empty in the base and the client
-    virtual void SetLit(int) {}                     // the object's light is on / off (client); base: nothing
+    virtual void SetLit(bool) {}                     // the object's light is on / off (client); base: nothing
 
     CObject3D* object;              // the object it belongs to
 };

@@ -70,8 +70,8 @@ public:
     void LeftDown(int buttons, int x, int y) override;
     void MouseMove(int buttons, int x, int y) override;
 
-    int listed_;
-    int portraits_;
+    int listed_ = 0;
+    int portraits_ = 0;
     std::vector<CountedPtr<CRefObject>> players_;   // PlayerMessage records
     std::vector<std::string> texts_;
 };
@@ -96,7 +96,7 @@ public:
     // or last without one. The first record's unit becomes the leader, and the first "b.<zone>..." variable
     // equal to 1 with three parts starts its topic (the third part) at once.
     void UnitJoined(CUnit* unit) override;
-    void GameOver(int) override;
+    void GameOver(bool) override;
     // The interface command "briefing <name>": dialogue `name` starts at once.
     void ShowBriefing(std::string_view name) override;
     // One zero dword.
@@ -175,44 +175,44 @@ public:
     // record's rewards. See docs/notes/ui.md, "Behaviour moved out of header comments".
     void NextPhrase(bool skip);
 
-    int exit_;                      // the exit a "leave_zone" answer leaves through
-    bool exitPending_;
-    int state_;                      // dialogue state (above)
+    int exit_ = 0;                      // the exit a "leave_zone" answer leaves through
+    bool exitPending_ = false;
+    int state_ = 0;                      // dialogue state (above)
     std::vector<std::string> topics_;   // "goodbye" last
     std::string topic_;              // the dialogue running
-    int hoveredTopic_;               // or -1
-    bool briefingStarted_;           // a dialogue started by itself
+    int hoveredTopic_ = -1;               // or -1
+    bool briefingStarted_ = false;           // a dialogue started by itself
     std::vector<CUnit*> party_;
-    CUnit* leader_;                  // the unit the camera follows (the hero speaker)
-    CUnit* person_;                  // the person the dialogue is with
-    CUnit* third_;                   // or null
+    CUnit* leader_ = nullptr;                  // the unit the camera follows (the hero speaker)
+    CUnit* person_ = nullptr;                  // the person the dialogue is with
+    CUnit* third_ = nullptr;                   // or null
     // [0] person_, [1] leader_, [2] third_.
-    Vector3 places_[3];
-    Vector3 directions_[3];
-    Vector3 savedCamera_;            // the camera position when the phrases started
-    Vector3 lookAt_;                 // position + the camera rotation's z axis then
-    Vector3 thirdPlace_;             // where the third speaker goes when hidden
-    Vector3 thirdDirection_;
-    Vector3 personHome_;             // where the person stood when the dialogue started (noWalk_)
-    Vector3 personHomeDirection_;
+    Vector3 places_[3] = {};
+    Vector3 directions_[3] = {};
+    Vector3 savedCamera_ = {};            // the camera position when the phrases started
+    Vector3 lookAt_ = {};                 // position + the camera rotation's z axis then
+    Vector3 thirdPlace_ = {};             // where the third speaker goes when hidden
+    Vector3 thirdDirection_ = {};
+    Vector3 personHome_ = {};             // where the person stood when the dialogue started (noWalk_)
+    Vector3 personHomeDirection_ = {};
     std::list<BriefingMover> movers_;
-    bool firstPhrase_;               // the first phrase lasts a second longer
+    bool firstPhrase_ = false;               // the first phrase lasts a second longer
     std::string dialogueText_;       // shown whole when skipped
-    float phraseTime_;               // time left of a phrase without a voice
-    int voice_;                      // sound id, -1 none
-    CUnit* speaking_;                // or null
-    CUiScrollText* text_;
-    CUiScrollbar* topicBar_;
-    int topicTop_;                   // first topic row shown
-    float savedEdgeFade_;            // the map edge fade Create replaced
+    float phraseTime_ = 0.0f;               // time left of a phrase without a voice
+    int voice_ = -1;                      // sound id, -1 none
+    CUnit* speaking_ = nullptr;                // or null
+    CUiScrollText* text_ = nullptr;
+    CUiScrollbar* topicBar_ = nullptr;
+    int topicTop_ = 0;                   // first topic row shown
+    float savedEdgeFade_ = 0.0f;            // the map edge fade Create replaced
     std::map<int, std::string> personTexts_;      // "pers" texts by text key
     std::list<BriefingShownItem> shown_;
-    bool immediate_;                 // the dialogue's people are placed at once
-    bool noWalk_;                    // the zone's map record's cage: the leader does not walk
-    bool autosave_;                  // unless loading or back from the camp
-    CChatWindow* chat_;              // a network client's only
+    bool immediate_ = false;                 // the dialogue's people are placed at once
+    bool noWalk_ = false;                    // the zone's map record's cage: the leader does not walk
+    bool autosave_ = false;                  // unless loading or back from the camp
+    CChatWindow* chat_ = nullptr;              // a network client's only
     std::vector<int> people_;       // ids of the local player's objects that are text keys
-    float markPhase_;                // kept below 1
+    float markPhase_ = 0.0f;                // kept below 1
     std::vector<BriefingSpeaker> speakers_;
     int chatActive_;                 // the chat window takes the input
 };

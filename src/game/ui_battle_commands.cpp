@@ -92,31 +92,33 @@ void CBattleScreen::ToggleMember(int index) {
 
 // --- the selected members ordered at a unit ------------------------------------------------------
 
+std::vector<int> CBattleScreen::SelectedIndexes() const {
+    std::vector<int> indexes;
+    for (int i = 0; i < std::ssize(party_); ++i) {
+        const CUnit* member = party_[i];
+        if (member && (member->flags_ & kFlagSelected)) indexes.push_back(i);
+    }
+    return indexes;
+}
+
 void CBattleScreen::AttackUnit(CUnit* target, bool ctrl) {
-    auto* party = &party_;
-    auto unitAt = [party](int i) { return (*party)[i]; };
     int kind = 0;
     while (kind < 6 && orderKeys_[kind] == 0) ++kind;
 
     std::vector<CUnit*> units;
-    for (int i = 0; i < std::ssize(*party); ++i) {
-        CUnit* member = unitAt(i);
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
+    for (int i : SelectedIndexes()) {
+        CUnit* member = party_[i];
         units.push_back(member);
         portraits_->Wobble(i, kWobbleNod);
-        int targetLevel = target->Level();
-        int memberLevel = unitAt(i)->Level();
-        if (targetLevel - memberLevel > 5) Speech(unitAt(i)->id_, AckKind::BigAttack, nullptr);
+        if (target->Level() - member->Level() > 5) Speech(member->id_, AckKind::BigAttack, nullptr);
     }
     if (!units.empty()) g_clientWorld->LocalView()->SendAttack(&units, target, kind, ctrl);
 }
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
     std::vector<CUnit*> units;
-    for (int i = 0; i < std::ssize(party_); ++i) {
-        CUnit* member = party_[i];
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
-        units.push_back(member);
+    for (int i : SelectedIndexes()) {
+        units.push_back(party_[i]);
         portraits_->Wobble(i, kWobbleNod);
     }
     if (!units.empty()) g_clientWorld->LocalView()->SendUseDead(&units, target, ctrl);
@@ -125,32 +127,26 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
 // --- the pending spell or quick item used --------------------------------------------------------
 
 void CBattleScreen::UseOnUnit(CUnit* target, bool quick, bool ctrl) {
-    auto* party = &party_;
-    auto unitAt = [party](int i) { return (*party)[i]; };
-    for (int i = 0; i < std::ssize(*party); ++i) {
-        CUnit* member = unitAt(i);
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
-        int refused;
+    for (int i : SelectedIndexes()) {
+        CUnit* member = party_[i];
+        bool able;
         if (!quick) {
             g_clientWorld->LocalView()->SendCastOnUnit(pendingSlot_, member, target, ctrl);
-            refused = unitAt(i)->CanCastSpell(pendingSlot_);
+            able = member->CanCastSpell(pendingSlot_);
         } else {
             g_clientWorld->LocalView()->SendItemOnUnit(pendingSlot_, member, target, ctrl);
-            quickItems_->SetUnit(unitAt(i));
-            refused = unitAt(i)->CanUseQuickItem(pendingSlot_);
+            quickItems_->SetUnit(member);
+            able = member->CanUseQuickItem(pendingSlot_);
         }
-        if (refused == 0) portraits_->Wobble(i, kWobbleNod);
+        if (able) portraits_->Wobble(i, kWobbleNod);
     }
     SetPendingAction(kPendingNone, -1, -1);
 }
 
 // The shift below stays for the later members.
 void CBattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
-    auto* party = &party_;
-    auto unitAt = [party](int i) { return (*party)[i]; };
-    for (int i = 0; i < std::ssize(*party); ++i) {
-        CUnit* member = unitAt(i);
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
+    for (int i : SelectedIndexes()) {
+        CUnit* member = party_[i];
         if (member == unit) {
             Vector3 axis;
             unit->localRotation_.AxisY(&axis);
@@ -159,16 +155,16 @@ void CBattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
             point.y = point.y + -axis.y * k;
             point.z = point.z + -axis.z * k;
         }
-        int refused;
+        bool able;
         if (quick) {
-            g_clientWorld->LocalView()->SendItemAtPoint(pendingSlot_, unitAt(i), &point, 0);
-            quickItems_->SetUnit(unitAt(i));
-            refused = unitAt(i)->CanUseQuickItem(pendingSlot_);
+            g_clientWorld->LocalView()->SendItemAtPoint(pendingSlot_, member, &point, 0);
+            quickItems_->SetUnit(member);
+            able = member->CanUseQuickItem(pendingSlot_);
         } else {
-            g_clientWorld->LocalView()->SendCastAtPoint(pendingSlot_, unitAt(i), &point, 0);
-            refused = unitAt(i)->CanCastSpell(pendingSlot_);
+            g_clientWorld->LocalView()->SendCastAtPoint(pendingSlot_, member, &point, 0);
+            able = member->CanCastSpell(pendingSlot_);
         }
-        if (refused == 0) portraits_->Wobble(i, kWobbleNod);
+        if (able) portraits_->Wobble(i, kWobbleNod);
     }
     SetPendingAction(kPendingNone, -1, -1);
 }

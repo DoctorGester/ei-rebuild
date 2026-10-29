@@ -5,6 +5,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "ui.h"
+#include "ui_float.h"
 #include "ui_widescreen.h"
 
 #include "maths.h"
@@ -22,8 +23,6 @@
 #include "lib/vecmath.h"
 
 namespace {
-
-inline double D(float f) { return f; }
 
 
 // The constants are read from memory at run time; Rebirth rewrites one of them (the clock's x,

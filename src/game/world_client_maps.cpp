@@ -175,7 +175,7 @@ void Unhighlight(CMapObject* object) {
     CObject3DSpecific* half = object->attached;
     half->Unused25(0);
     half = object->attached;
-    half->SetLit(0);
+    half->SetLit(false);
 }
 
 // A new object (its class's operator new and constructor), stored and referenced.
@@ -751,7 +751,7 @@ void CWorldClient::Select(CMapObject* object) {
     if (!object) return;
     object->Object3D()->UpdatePartBounds();
     if (!(object->flags_ & MapObjectFlag::Selected)) {
-        if (!(object->flags_ & MapObjectFlag::BoxMarked)) object->attached->SetLit(1);
+        if (!(object->flags_ & MapObjectFlag::BoxMarked)) object->attached->SetLit(true);
         object->flags_ |= MapObjectFlag::Selected;
         object->attached->Unused25(1);
     }

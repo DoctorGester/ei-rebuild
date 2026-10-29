@@ -6,6 +6,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "ui.h"
+#include "ui_float.h"
 
 #include "maths.h"
 #include "random.h"
@@ -25,16 +26,6 @@
 #include "lib/vecmath.h"
 
 namespace {
-
-inline double D(float f) { return f; }
-
-float FloatFromBits(std::uint32_t bits) {
-    float f;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FloatFromBits(T) = delete;
 
 bool GamePaused() { return g_clientWorld->paused_ != 0; }
 

@@ -52,7 +52,7 @@ void CBriefingScreen::MessageResult(int result) {
         GameLeaveThroughExit(exit_);
         break;
     case kGameOverLoad: {
-        interface_->PushWindow(new CSaveLoadWindow(interface_, false, false), 1, 1);
+        interface_->PushWindow(new CSaveLoadWindow(interface_, false, false), true, true);
         break;
     }
     case kGameOverQuit:
@@ -131,10 +131,10 @@ void CBriefingScreen::UnitLeft(CUnit* unit) {
     party_.pop_back();
 }
 
-void CBriefingScreen::GameOver(int) {
+void CBriefingScreen::GameOver(bool) {
     interface_->PlaySound("buttons\\gameover.wav");
     CMessageBox* box = new CMessageBox(interface_, "game_over", "game_over_msg", kGameOverResult, 3, 1);
-    interface_->PushWindow(box, 1, 1);
+    interface_->PushWindow(box, true, true);
 }
 
 void CBriefingScreen::ShowBriefing(std::string_view name) {

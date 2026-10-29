@@ -239,7 +239,7 @@ void CBattleScreen::Update() {
     if (IsMultiplayerClient()) RebuildClientParty(this);
 
     CUiContainer::Update();
-    interface_->ShowMessage(0);
+    interface_->ShowMessage(false);
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending_) {
@@ -251,7 +251,7 @@ void CBattleScreen::Update() {
             lib::SetAtGrow(records, std::ssize(records), &data->members_[i]);
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             CMessageBox* box = new CMessageBox(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
-            interface_->PushWindow(box, 1, 1);
+            interface_->PushWindow(box, true, true);
             exitPending_ = false;
         }
     }
@@ -268,7 +268,7 @@ void CBattleScreen::Update() {
                 inside.push_back(static_cast<std::uintptr_t>(i));
             }
         }
-        auto mark = [](CUnit* unit, int on) { unit->Object3D()->attached->SetLit(on); };
+        auto mark = [](CUnit* unit, bool on) { unit->Object3D()->attached->SetLit(on); };
         for (int i = 0; i < std::ssize(*party); ++i) {
             auto* unit = (*party)[i];
             std::uint32_t flags = unit->flags_;
@@ -349,7 +349,7 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
                 std::uint32_t flags = unit->flags_;
                 if (!(flags & 0x10) && (flags & 0x100)) {
                     unit->flags_ = flags & ~0x100u;
-                    unit->Object3D()->attached->SetLit(0);
+                    unit->Object3D()->attached->SetLit(false);
                 }
                 marker(i)->visible_ = false;
                 slot(i).restB_ = kHudRestRotation;

@@ -10,10 +10,6 @@
 #include <string_view>
 #include <vector>
 
-namespace {
-
-} // namespace
-
 int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour,
                                 UINT format, bool shadow) {
     if (!holder_) return 0;

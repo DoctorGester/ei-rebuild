@@ -206,16 +206,15 @@ void CObjectivesWindow::RefreshQuests() {
     if (firstRow_ + kVisibleRows <= row) firstRow_ = row - (kVisibleRows - 1);
     if (row < firstRow_) firstRow_ = row;
     bar_->SetPosition(firstRow_);
-    bar_->TakePosition(&firstRow_);
+    firstRow_ = bar_->TakePosition();
     DrawQuestList();
     ShowQuest();
 }
 
 void CObjectivesWindow::Update() {
     CUiContainer::Update();
-    int first;
-    if (bar_->TakePosition(&first)) {
-        firstRow_ = first;
+    if (bar_->TakeMoved()) {
+        firstRow_ = bar_->Position();
         DrawQuestList();
     }
     // The sum stays unrounded for the alphas; the stored time is rounded to a float.

@@ -3,6 +3,7 @@
 // _ftol are converted the same way; the statistics functions' results that the original leaves unrounded are declared
 // double, so no rounding happens in between. Compiled with precise floating point so that products keep the original's order.
 #include "party.h"
+#include "ui_float.h"
 #include "ui_screens.h"
 #include "text_reader.h"
 #include "text_split.h"
@@ -36,8 +37,6 @@
 
 namespace {
 
-
-inline double D(float f) { return f; }
 
 
 int FtolOf(float value) { return static_cast<int>(libcrt::Ftol(D(value))); }

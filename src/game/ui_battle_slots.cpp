@@ -61,7 +61,7 @@ bool CBattleScreen::ReadyToStopPolling() {
         if (!party.empty()) g_camera->SetTarget(party[0]);
         if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), true);
         hasHero_ = false;
-        interface_->OpenHelp(0);
+        interface_->OpenHelp(false);
     }
     return true;
 }
@@ -178,7 +178,7 @@ void CBattleScreen::MessageResult(int result) {
         GameLeaveThroughExit(pendingExit_);
         break;
     case kGameOverLoad: {
-        interface_->PushWindow(new CSaveLoadWindow(interface_, false, false), 1, 1);
+        interface_->PushWindow(new CSaveLoadWindow(interface_, false, false), true, true);
         break;
     }
     case kGameOverQuit:
@@ -193,7 +193,7 @@ void CBattleScreen::MessageResult(int result) {
     }
 }
 
-void CBattleScreen::GameOver(int won) {
+void CBattleScreen::GameOver(bool won) {
     GameStopSounds(1);
     GameStopAmbience();
     CMessageBox* box;
@@ -203,5 +203,5 @@ void CBattleScreen::GameOver(int won) {
     } else {
         box = new CMessageBox(interface_, "end_of_game", "end_of_game_msg", 0xFFFF0000u, 3, 1);
     }
-    interface_->PushWindow(box, 1, 1);
+    interface_->PushWindow(box, true, true);
 }

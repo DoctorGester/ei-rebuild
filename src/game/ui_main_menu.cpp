@@ -203,5 +203,5 @@ void CMainMenu::MouseMove(int buttons, int x, int y) {
 void CMainMenu::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key != VK_ESCAPE) return;
-    interface_->PushWindow(new CMessageBox(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1), 1, 1);
+    interface_->PushWindow(new CMessageBox(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1), true, true);
 }

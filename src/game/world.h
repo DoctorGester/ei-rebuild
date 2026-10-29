@@ -1127,7 +1127,7 @@ struct GameFlow {
     // 127.0.0.1 with the password (20 bytes) as hello, then the server's name ("Server" when empty),
     // maxPlayers, password, listing (not `unlisted`) and masterKey are set (both between calls patched by
     // Rebirth).
-    void StartServer(const char* name, int maxPlayers, int gameType, const char* password, char unlisted, int masterKey);
+    void StartServer(const char* name, int maxPlayers, int gameType, const char* password, bool unlisted, int masterKey);
     void StartClient();
     void JoinServer(const net::NetAddress* address, const char* password);
     // The flow's requests: the state (state_) the flow's update acts on next, the zone or save name
@@ -1225,6 +1225,8 @@ struct SavedParties {
     // Room for one more record the way the original's vector grew: doubled, the old records copied before the
     // new one is made. A record's copy loads its party again, which draws object ids and random numbers.
     void ReserveOne();
+    int Count() const { return static_cast<int>(entries_.size()); }
+    MpHeroRecord* Hero(int index) { return &entries_[index]; }
 
     std::string folder_;
     std::vector<MpHeroRecord> entries_;

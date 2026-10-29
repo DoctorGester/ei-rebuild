@@ -82,6 +82,6 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
     if (!stack_.empty()) WindowKeyDown(stack_.back(), key, repeat, flags);
     if (!stack_.empty() && !stack_.back()->Input()->handled_ &&
         KeyCharacter(scan) == ';') {
-        OpenHelp(1);
+        OpenHelp(true);
     }
 }

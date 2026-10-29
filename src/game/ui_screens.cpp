@@ -393,14 +393,14 @@ void CCampPages::TopicClicked(int page) {
 
 void CMpHeroScreen::ClampHeroSelection() {
     if (heroIndex_ < 0) heroIndex_ = 0;
-    auto count = static_cast<std::uint32_t>(SavedHeroCount());
+    auto count = static_cast<std::uint32_t>(g_savedParties.Count());
     if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
     int selected = heroIndex_;
     // Ten rows are visible.
     if (heroTop_ + 10 <= selected) heroTop_ = selected - 9;
     if (heroTop_ > selected) heroTop_ = selected;
     heroScroll_->SetPosition(heroTop_);
-    heroScroll_->TakePosition(&heroTop_);
+    heroTop_ = heroScroll_->TakePosition();
     ShowHero(heroIndex_);
 }
 
@@ -413,7 +413,7 @@ void CMpHeroScreen::ClampVoiceSelection() {
     if (voiceTop_ + 11 <= selected) voiceTop_ = selected - 10;
     if (voiceTop_ > selected) voiceTop_ = selected;
     voiceScroll_->SetPosition(voiceTop_);
-    voiceScroll_->TakePosition(&voiceTop_);
+    voiceTop_ = voiceScroll_->TakePosition();
     // Each voice is {file, name}; the hero keeps the file name in texts[6].
     const std::string& file = voices_->begin()[voiceIndex_].file;
     HeroRecord()->texts[6] = file;

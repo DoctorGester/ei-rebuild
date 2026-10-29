@@ -470,7 +470,7 @@ int CWorldClient::DrawPass() {
                         object->flags_ &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
                         // The side half's empty virtual and SetLit with 0: the marker light goes off.
                         object->attached->Unused25(0);
-                        object->attached->SetLit(0);
+                        object->attached->SetLit(false);
                     }
                     selected.erase(node);
                 }

@@ -13,7 +13,6 @@
 
 #include "game_data.h"
 #include "resource.h"
-#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,11 +29,6 @@ class CTradePanel;
 namespace render::text {
 struct RichLayout;
 } // namespace render::text
-
-// The input sub-object that captured the mouse (scroll arrows held down), or null.
-inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
-// A shift key is held (set by the key-down dispatch).
-inline bool UiShiftDown(const CInterface3D* ui) { return ui->shiftDown_ != 0; }
 
 // The item predicates of the camp screens. Loot items (type ItemKind::Loot, CItemLoot) are sorted by kind and record
 // type.
@@ -423,9 +417,6 @@ public:
     CUiMesh* bar_;
 };
 
-inline MpHeroRecord* SavedHero(int index) { return &g_savedParties.entries_[index]; }
-inline int SavedHeroCount() { return static_cast<int>(g_savedParties.entries_.size()); }
-
 // --- In-game escape menu ----------------------------------------------------------------------
 // Opened by Esc during a game. Regions, built from the EscMenu layout: 0 save, 1 load, 2 resume, 3 quit
 // (message box), 4 options.
@@ -510,17 +501,17 @@ public:
     // A window above closed: the movie player is closed.
     void MessageResult(int result) override;
 
-    CUiScrollingSurface* textSurface_;   // the scrolling text
-    CUiSurface* headerSurface_;
+    CUiScrollingSurface* textSurface_ = nullptr;   // the scrolling text
+    CUiSurface* headerSurface_ = nullptr;
     CMappedResource archive_;   // "outro.res"
     std::list<TitleLine> lines_;
-    float nextLineAt_;          // game time the current line ends (0 from Build and for scrolls)
+    float nextLineAt_ = 0.0f;          // game time the current line ends (0 from Build and for scrolls)
     std::list<TitleLine>::iterator currentLine_;   // the next line (end() at the end)
     std::string name_;         // ("Titles")
     CBinkVideo player_;         // the movie player
     bool fromGame_;             // opened in a game (pending value 0xCCCCCCCC) or the menu
-    bool finished_;             // the last line has gone (cleared by Build)
-    int savedDisplay_;          // the renderer's fog colour while the titles run
+    bool finished_ = false;             // the last line has gone (cleared by Build)
+    int savedDisplay_ = 0;          // the renderer's fog colour while the titles run
 };
 
 // --- Main menu ----------------------------------------------------------------------------------
@@ -557,11 +548,11 @@ public:
     // The container's handler, then Esc asks to quit (a message box "quit" / "quit_msg", flags 0x10000).
     void KeyDown(int key, int repeat, int flags) override;
 
-    int hovered_;                    // the region under the mouse (-1 none)
-    bool rain_;
-    bool daylight_;                  // the hour was between 7 and 21 when the menu opened
-    float hour_;                     // the time of day at the last update
-    float savedEdgeFade_;            // the map edge fade before the menu
+    int hovered_ = -1;                    // the region under the mouse (-1 none)
+    bool rain_ = false;
+    bool daylight_ = false;                  // the hour was between 7 and 21 when the menu opened
+    float hour_ = 0.0f;                     // the time of day at the last update
+    float savedEdgeFade_ = 0.0f;            // the map edge fade before the menu
 };
 
 // Trading between two players (screen 9, Xch_* texts). Multiplayer only.

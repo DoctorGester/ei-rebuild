@@ -142,13 +142,12 @@ void CMpHeroScreen::Update() {
         double angle = rotating_ == 1 ? step + turn_ : turn_ - step;
         turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(kFullTurn)));
     }
-    int position;
-    if (heroScroll_->TakePosition(&position)) {
-        heroTop_ = position;
+    if (heroScroll_->TakeMoved()) {
+        heroTop_ = heroScroll_->Position();
         DrawHeroList();
     }
-    if (voiceScroll_->TakePosition(&position)) {
-        voiceTop_ = position;
+    if (voiceScroll_->TakeMoved()) {
+        voiceTop_ = voiceScroll_->Position();
         if (mode_ != kModeNewHero) return;
         DrawVoices();
     }
@@ -187,7 +186,7 @@ void CMpHeroScreen::DrawHeroList() {
     CUiMesh* frame = SceneMesh(kSelectionFrame);
     frame->visible_ = false;
     RECT rect = {12, 13, 265, 33};
-    const auto count = static_cast<std::uint32_t>(SavedHeroCount());
+    const auto count = static_cast<std::uint32_t>(g_savedParties.Count());
     std::uint32_t index = static_cast<std::uint32_t>(heroTop_);
     for (int y = 262; y < 502; y += 24, ++index) {
         if (index >= count) break;
@@ -196,7 +195,7 @@ void CMpHeroScreen::DrawHeroList() {
             frame->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
         // A hero record is a party; its name the first member's text 0.
-        surface->DrawTextIn(SavedHero(static_cast<int>(index))->Party()->members_[0].texts[0], &rect, 1, kListColour,
+        surface->DrawTextIn(g_savedParties.Hero(static_cast<int>(index))->Party()->members_[0].texts[0], &rect, 1, kListColour,
                             kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 24);
     }
@@ -267,10 +266,10 @@ void CMpHeroScreen::ShowHero(int index) {
         GameRemoveUnitsOf(&records);
     }
     heroIndex_ = -1;
-    if (index >= 0 && index < SavedHeroCount()) {
+    if (index >= 0 && index < g_savedParties.Count()) {
         heroIndex_ = index;
-        player->Assign(SavedHero(index)->Party());
-        g_savedParties.Select(SavedHero(index));
+        player->Assign(g_savedParties.Hero(index)->Party());
+        g_savedParties.Select(g_savedParties.Hero(index));
     }
     MakePreview(true);
     auto* hero = HeroRecord();

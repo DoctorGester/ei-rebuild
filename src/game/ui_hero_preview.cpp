@@ -4,6 +4,7 @@
 // static_cast<float>, values it keeps on the FPU stack stay unrounded (double), products and sums
 // keep its operand order, constants are read from the exe's memory.
 #include "ui.h"
+#include "ui_float.h"
 #include "texture.h"
 #include "map_object_shadow.h"
 #include "model.h"
@@ -21,7 +22,6 @@
 
 namespace {
 
-inline double D(float f) { return f; }
 constexpr float kTilt = /*007C7D24*/ 1.5707964f;   // a static initialiser: pi * 0.5
 // The wide preview's six rectangles cleared to the far plane (800 x 600 layout), one table per edge.
 constexpr LONG kWideClearLeft[6] = /*007402F8*/ {290, 272, 272, 510, 510, 510};

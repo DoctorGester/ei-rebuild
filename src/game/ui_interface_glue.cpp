@@ -87,7 +87,7 @@ void CInterface3D::OnUnitLeft(CUnit* unit) {
 }
 
 void CInterface3D::OnGameLost() {
-    if (!stack_.empty()) ScreenOf(stack_.back())->GameOver(0);
+    if (!stack_.empty()) ScreenOf(stack_.back())->GameOver(false);
 }
 
 void CInterface3D::OnUnitSpeech(int id, AckKind kind) {

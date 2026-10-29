@@ -110,9 +110,10 @@ public:
     // `flags`: WM_KEYDOWN lParam bits (scan code in the low 9, bit 14 repeat). The key under Esc toggles the
     // console; Scroll Lock saves "shot<nnnn>.bmp"; an unhandled ';' shows help.
     void OnKeyDown(int key, int repeat, int flags);
-    // Opens `window` on top of the stack (null is fatal). The first window keeps the server flag; `a` set
-    // and `b` clear / both set pick backdrop mode 3 / 1.
-    void PushWindow(CUiWindow* window, int a, int b);
+    // Opens `window` on top of the stack (null is fatal). The first window keeps the server flag. `behind`
+    // set and `pauseFrame` clear picks backdrop mode 3 (the screen below kept as the backdrop); both set
+    // do so as mode 1 when only one window is open.
+    void PushWindow(CUiWindow* window, bool behind, bool pauseFrame);
     // Closes and deletes every window, then opens `window` as PushWindow does.
     void Activate(CUiWindow* window);
     // Reads the interface's saved state from `stream`: flags and two values; from save version 0x47 one
@@ -122,14 +123,14 @@ public:
     // The text of message `id` (0-12: "lmp_player_connected" .. "reserved_02"; others an empty key) from
     // the text table, formatted with `value` unless 0.
     std::string MessageText(int id, const char* value);
-    // Without `force`, takes the next queued message into the current text or returns when there is
+    // Without `forced`, takes the next queued message into the current text or returns when there is
     // none. A non-empty text opens the message window over the others, unless the option is off and it
     // was not forced.
-    void ShowMessage(int force);
+    void ShowMessage(bool forced);
     // The active window's help topic (none: nothing): the map counts topics seen (an unseen one is
-    // entered with 0, giving -1 here); the help window opens when forced (`flag`), or when the option is
+    // entered with 0, giving -1 here); the help window opens when `forced`, or when the option is
     // on and the topic was not seen.
-    void OpenHelp(int flag);
+    void OpenHelp(bool forced);
     // A 2D sound at priority 1000, volume 100; returns its handle.
     int PlaySound(std::string_view name, bool loop = false);
     void StopSound(int handle);
@@ -1024,6 +1025,10 @@ public:
     void Update() override;
     // The objectives window of the current zone (one button, no exits, no zone list).
     void OpenObjectives();
+    // The pause button and its key: the clock sound, then the server flag 10 flipped (pause / resume).
+    void TogglePause();
+    // The normal / fast speed (button and keys): the update period 55 / 27 ms and the clock sound.
+    void SetSpeed(bool fast);
     // Rebirth-patched (WideScreen behind its flag: the clock at the screen's right edge). Regions 0-2 the
     // pause, normal and fast sectors, 3 the objectives quarter disc.
     void Setup(bool fast);
@@ -1048,6 +1053,9 @@ public:
     void ToggleFlag();
     // WideScreen behind its flag (the left panels' offset). A negative mode hides the marker.
     void ShowMode(int mode);
+    // A mode button and its keys: the click sound and the mode 0-3 for the selected party units (nothing
+    // without the local player's view), then the marker moved there.
+    void SetMode(int mode);
     // Rebirth-patched (WideScreen behind its flag: the panel at the screen's left edge).
     void Build() override;
 
@@ -1118,7 +1126,7 @@ public:
     virtual void ItemsPicked(std::list<CItem*>*, int, bool) {}         // items picked up (items, money, crippled)
     virtual void UnitJoined(CUnit*) {}
     virtual void UnitLeft(CUnit*) {}
-    virtual void GameOver(int) {}
+    virtual void GameOver(bool) {}
     virtual void Speech(int, AckKind, char*) {}                        // a unit speaks
     virtual void QuestVariable(std::string_view, float) {}                  // a quest variable changed
     virtual void ShowBriefing(std::string_view) {}                          // a "briefing <name>" string event
@@ -1235,6 +1243,8 @@ public:
     // Nothing on a network client or past the party. With the modifier key the member flips, else it alone
     // is chosen. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void ToggleMember(int index);
+    // The party indexes of the selected members (flag 0x10), in order.
+    std::vector<int> SelectedIndexes() const;
     // The order kind is the first order key held (6 for none); a member more than five levels below the
     // target speaks (speech event 10).
     void AttackUnit(CUnit* target, bool ctrl);
@@ -1271,7 +1281,7 @@ public:
     // load window; 0x20002, 0x90001 and 0x100001 leave the game.
     void MessageResult(int result) override;
     // Lost (`won` 0): the box "game_over" (result 0x20000); won: "end_of_game" (0xFFFF0000).
-    void GameOver(int won) override;
+    void GameOver(bool won) override;
     // A portrait click picks a player while it is not 0.
     void PlayerList(int mode) override { portraitMode_ = mode; }
     explicit CBattleScreen(CInterface3D* ui);
@@ -1330,8 +1340,11 @@ public:
 // 2 the track.
 class CUiScrollbar : public CUiWindow {
 public:
-    // The position into `position`; whether it moved since the last call (the flag cleared).
-    bool TakePosition(int* position);
+    int Position() const { return position_; }
+    // Whether the position moved since the last call (the flag cleared).
+    bool TakeMoved();
+    // The position, the moved flag cleared unread.
+    int TakePosition();
     // `speed` in lines per second; position 0.
     CUiScrollbar(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
     ~CUiScrollbar() override;
@@ -1433,11 +1446,11 @@ public:
     // token ends the line and sets the next lines' font. Then the scroll bar's maximum.
     void Layout();
     // One format token before each run of newline, BEL C<rgb> and BEL F<digit> tokens.
-    void Tokenize(const std::string* text);
+    void Tokenize(const std::string& text);
     // The token at `pos` (spaces and tabs skipped): a BEL F / BEL C format (3 / 5 characters), a newline, or
     // up to the next space, tab, BEL or newline. Returns the position after it, or -1 at the end (`out`
     // untouched). `this` is not read.
-    int NextToken(const std::string* text, int pos, std::string* out);
+    int NextToken(const std::string& text, int pos, std::string* out);
     // From `scroll` pixels down. A line is justified when align_ is not 1, it is not the last, not ended by
     // a newline, and of two or more tokens.
     void DrawLines(int scroll);
@@ -1460,9 +1473,12 @@ public:
     CUiSpin(CInterface3D* ui, RECT rect, const char* text);
     ~CUiSpin() override;
     void AddText(std::string_view text);
-    // Returns whether it changed since the last call. SetValue: 0 when not below the text count (a negative
-    // one is kept).
-    bool GetValue(int* value);
+    int Value() const { return value_; }
+    // Whether it changed since the last call (the flag cleared).
+    bool TakeChanged();
+    // The value, the changed flag cleared unread.
+    int TakeValue();
+    // 0 when not below the text count (a negative one is kept).
     void SetValue(int value);
     // The next value, wrapping.
     void LeftDown(int flags, int x, int y) override;

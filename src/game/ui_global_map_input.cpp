@@ -157,7 +157,7 @@ void CGlobalMap::MouseMove(int, int x, int y) {
 void CGlobalMap::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
-        interface_->PushWindow(new CEscMenu(interface_), 1, 1);
+        interface_->PushWindow(new CEscMenu(interface_), true, true);
         handled_ = true;
     }
     if (handled_) return;

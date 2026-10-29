@@ -14,6 +14,7 @@
 #include "text_reader.h"
 #include "text_split.h"
 #include "ui.h"
+#include "ui_float.h"
 #include "world.h"
 #include "world_glue.h"
 
@@ -38,16 +39,6 @@
 #include <vector>
 
 namespace {
-
-inline double D(float f) { return f; }
-
-float Bits(std::uint32_t bits) {
-    float f;
-    std::memcpy(&f, &bits, sizeof(f));
-    return f;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float Bits(T) = delete;
 
 // --- Game data ----------------------------------------------------------------------------------
 
@@ -141,7 +132,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
     picture->texture_ = objects_[2];
 
     // The exits that lead somewhere: a marker (triangle pointing out of the picture) and a region.
-    float nearest = Bits(kFarAway);
+    float nearest = FloatFromBits(kFarAway);
     nearestExit_ = -1;
     bool anyKnown = false;
     exits_.clear();
@@ -547,7 +538,7 @@ void CObjectivesWindow::CreateScreen() {
         }
         ShowZone(zones_[zoneIndex_]);
     }
-    interface_->OpenHelp(0);
+    interface_->OpenHelp(false);
 }
 void CObjectivesWindow::DrawQuestList() {
     CTextManager* texts = g_clientWorld->texts_;

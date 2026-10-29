@@ -5743,3 +5743,9 @@ title = "C54g1 rest: the interface's texture kinds and battle unit flags named"
 group = "cleanup"
 depends = ["C54g1"]
 note = "Left by C54g1. (1) CUiWindow::LoadTexture / CreateTexture's kind is the texture manager's object type (texture.h: NewTexture's 0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4; LoadTexture's 3 and the global map's kMapTextureKind; CreateObject's 0x3E-0x40): one enum in texture.h for the manager's types, used by texture_blank's table, the interface's callers and the local kTextureKind copies (ui_briefing_create, ui_chat_window, ui_connect_screen, ui_hero_screen_create, ...). (2) ui_battle_update.cpp's selection box marks units with bare 0x10 / 0x100 (MapObjectFlag::BoxMarked and its neighbour): the MapObjectFlag names. Goldens unchanged (golden suite) + ei_ui_check."
+
+[[ticket]]
+id = "C54e2"
+title = "C54e rest 2: remaining HUD design calls"
+group = "cleanup"
+note = "From C54e1: the selected-members loops now share CBattleScreen::SelectedIndexes (a snapshot taken before the sends; goldens unchanged). Not done: ui_camp.cpp and ui_global_map.cpp still define their own D() (C54b1/C54c1 and C45d6a branches touch them): switch them to ui_float.h after those merge. ui_hud_frame.cpp's Bits(float) (float to bits) and ui_scrollbar.cpp / unit_client_blink.cpp's Truncate(double) differ from the shared helpers and stay."

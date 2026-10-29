@@ -191,7 +191,7 @@ int CPlayerClient::OnUnitControl() {
         const bool lit = (unit->flags_ & kUnitFlagLit) != 0;
         if (lit == (kind == 1)) return 1;
         unit->flags_ ^= kUnitFlagLit;
-        unit->Object3D()->attached->SetLit(kind == 1 ? 1 : 0);
+        unit->Object3D()->attached->SetLit(kind == 1);
         return 1;
     }
     case 3:

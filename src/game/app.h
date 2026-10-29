@@ -56,7 +56,7 @@ int StartFirstMap();
 // One frame: the interface drawn and the scene presented, nothing while the application is inactive.
 void FrameStep(bool draw, bool cursor);
 // Plays the movies listed under `section` of config\movie.ini.
-void PlayMovies(const std::string& section, int a);
+void PlayMovies(const std::string& section, bool loadingStep);
 // The game's message box over the main window, under the window's title; the cursor that was set is put back
 // afterwards. Returns MessageBoxA's answer.
 int ShowMessageBox(const char* text, int flags);

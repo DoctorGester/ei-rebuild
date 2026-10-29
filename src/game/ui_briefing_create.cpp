@@ -271,9 +271,8 @@ void CBriefingScreen::Update() {
         SceneMesh(kTopicBackdrop)->visible_ = true;
         SceneMesh(kTopicFrame)->visible_ = true;
         topicBar_->SetEnabled(true);
-        int position;
-        if (topicBar_->TakePosition(&position)) {
-            topicTop_ = position;
+        if (topicBar_->TakeMoved()) {
+            topicTop_ = topicBar_->Position();
             DrawTopics();
         }
         MarkPeople();

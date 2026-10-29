@@ -46,21 +46,18 @@ constexpr int kScrollbarSprites = 4;
 constexpr int kFontSlots = 10;
 
 void TokenizeText(CUiScrollText* self, std::string_view text) {
-    std::string copy(text);
-    self->Tokenize(&copy);
+    self->Tokenize(std::string(text));
 }
 void LayOut(CUiScrollText* self) { self->Layout(); }
 
 } // namespace
 
-int CUiScrollText::NextToken(const std::string* text, int pos, std::string* out) {
-    int length = text->size();
-    const char* chars = (*text).c_str();
+int CUiScrollText::NextToken(const std::string& text, int pos, std::string* out) {
+    int length = text.size();
+    const char* chars = text.c_str();
     while (pos < length && (chars[pos] == ' ' || chars[pos] == '\t')) ++pos;
     if (pos >= length) return -1;
-    // GetBuffer(0) on the text, as the original (a shared text gets its own copy).
-    char* buffer = str::Buffer(*(const_cast<std::string*>(text)), 0);
-    std::string rest = buffer + pos;
+    std::string rest = chars + pos;
     const char* r = rest.c_str();
     int count;
     if (r[0] == kEscape) {
@@ -84,12 +81,12 @@ int CUiScrollText::NextToken(const std::string* text, int pos, std::string* out)
     return pos + count;
 }
 
-void CUiScrollText::Tokenize(const std::string* text) {
+void CUiScrollText::Tokenize(const std::string& text) {
     std::string token;
     int font = kDefaultFont;
     COLORREF colour = kDefaultColour;
     int pos = 0;
-    if (!(text->size() > 0)) return;
+    if (text.empty()) return;
     do {
         if (pos == -1) break;
         UiFormatToken* format = nullptr;
@@ -131,7 +128,7 @@ void CUiScrollText::Tokenize(const std::string* text) {
             w->text_ = token;
             Append(tokens_, w);
         }
-    } while (pos < static_cast<int>(text->size()));
+    } while (pos < static_cast<int>(text.size()));
 }
 
 void CUiScrollText::DrawLines(int scroll) {
@@ -256,9 +253,8 @@ CUiScrollText::~CUiScrollText() {
 
 void CUiScrollText::AddText(std::string_view text) {
     SetPosition(maxPosition_);
-    int position;
     moved_ = true;
-    TakePosition(&position);
+    const int position = TakePosition();
     int before = maxPosition_;
     TokenizeText(this, text);
     LayOut(this);
@@ -278,8 +274,7 @@ void CUiScrollText::SetRect(const RECT* rect) {
 }
 
 void CUiScrollText::Draw(CSceneRenderer* pass) {
-    int position;
-    if (TakePosition(&position)) DrawLines(position);
+    if (TakeMoved()) DrawLines(Position());
     DrawBase(pass);
 }
 

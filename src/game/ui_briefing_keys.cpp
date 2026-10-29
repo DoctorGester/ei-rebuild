@@ -45,7 +45,7 @@ void OpenObjectives(CInterface3D* ui) {
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
         auto* window = new CObjectivesWindow(ui);
         window->Setup(LocalPlayerZone(), nullptr, false, true);
-        ui->PushWindow(window, 1, 1);
+        ui->PushWindow(window, true, true);
         break;
     }
 }
@@ -81,7 +81,7 @@ void CBriefingScreen::KeyDown(int key, int repeat, int flags) {
         return;
     case VK_ESCAPE:
         if (state_ == 0) {
-            interface_->PushWindow(new CEscMenu(interface_), 1, 1);
+            interface_->PushWindow(new CEscMenu(interface_), true, true);
         } else if (state_ == 3) {
             interface_->PlaySound(kClickSound);
             while (state_ == 3) NextPhrase(true);

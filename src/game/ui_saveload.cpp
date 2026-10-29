@@ -95,7 +95,7 @@ constexpr const char* kEveryFile = "\\*.*";
 // original does).
 void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
     CUiWindow* box = new CMessageBox(ui, name, text, result, 3, 1);
-    ui->PushWindow(box, 1, 1);
+    ui->PushWindow(box, true, true);
 }
 
 } // namespace
@@ -169,7 +169,7 @@ void CSaveLoadWindow::SaveGame() {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
             CUiWindow* box = new CMessageBox(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
-            interface_->PushWindow(box, 1, 1);
+            interface_->PushWindow(box, true, true);
             return;
         }
     }
@@ -305,8 +305,7 @@ void CSaveLoadWindow::FillEntries() {
     }
 
     if (static_cast<unsigned>(EntryCount()) > static_cast<unsigned>(kVisibleRows)) {
-        int position;
-        scrollbar_->TakePosition(&position);
+        const int position = scrollbar_->TakePosition();
         scrollbar_->SetMaximum(EntryCount() - kVisibleRows);
         scrollbar_->SetPosition(position);
     } else {
