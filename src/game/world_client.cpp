@@ -377,9 +377,8 @@ bool WorldClient::RunTick() {
             CMapObject* object = *current;
             if (object->RunTick()) continue;
             auto key = static_cast<std::uint32_t>(object->id);
-            std::list<CMapObject*>::iterator position{};
-            if (dynamicNodes.Lookup(&key, &position)) {
-                dynamicObjects.erase(position);
+            if (auto found = dynamicNodes.find(key); found != dynamicNodes.end()) {
+                dynamicObjects.erase(found->second);
                 hash400::RemoveKey(dynamicNodes, key);
             }
         }

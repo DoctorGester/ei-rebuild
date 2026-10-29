@@ -57,7 +57,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <list>
 #include <memory>
 #include <new>
 #include <string>
@@ -821,12 +820,10 @@ void GameFlow::JoinServer(const net::NetAddress* address, const char* password) 
 }
 
 void WorldServer::AcceptNewPlayers(PlayerSource* lobby) {
-    std::list<HeldRef<netlink::NetLink>> joined;
+    std::vector<HeldRef<netlink::NetLink>> joined;
     if (gameResult == 0) return;
     lobby->TakeNew(&joined);
-    for (auto node = joined.begin(); node != joined.end();) {
-        auto next = std::next(node);
-        netlink::NetLink* connection = *node;
+    for (netlink::NetLink* connection : joined) {
         CPlayer* player = players->CreateSessionPlayer();
         player->Connect(connection);
         player->dirty = kPlayerDirtyAll;
@@ -834,9 +831,7 @@ void WorldServer::AcceptNewPlayers(PlayerSource* lobby) {
         player->Server()->lastPosition = startPosition;
         int playerId = player->playerId;
         console::EndLine(console::g_netLogOut << kAcceptedPlayer << playerId);
-        node = next;
     }
-    // The list's destructor: every reference released, then the blocks.
 }
 
 std::vector<std::string> PickZones(int id, const char* exclude) {

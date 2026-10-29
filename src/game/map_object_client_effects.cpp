@@ -147,7 +147,7 @@ void DropLight(MapObjectClientSpecific* self) {
     self->HideLight();
     self->light->flags |= LightFlag::Held;
     int id = self->light->id;
-    g_clientWorld.lightFactory->litIds.remove(id);
+    std::erase(g_clientWorld.lightFactory->litIds, id);
     self->light.Reset();
 }
 
@@ -405,7 +405,7 @@ void MapObjectClientSpecific::SetLightMode(int mode) {
         }
         light->flags |= LightFlag::Held;
         int lightId = light->id;
-        g_clientWorld.lightFactory->litIds.insert(g_clientWorld.lightFactory->litIds.end(), lightId);
+        g_clientWorld.lightFactory->litIds.push_back(lightId);
         return;
     }
     if (mode == 2 && light) DropLight(this);

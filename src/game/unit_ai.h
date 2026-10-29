@@ -15,7 +15,6 @@
 #include "unit.h"
 
 #include <cstdint>
-#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -421,7 +420,6 @@ public:
 };
 
 // A count read from `stream`, then that many counted references appended to `list`, each loaded in `context`.
-void CountedListLoad(std::list<CUnit*>* list, ByteStream* stream, CWorld* context);
 void CountedListLoad(HeldUnits* list, ByteStream* stream, CWorld* context);
 
 // The AI's perception log: the AI stream.

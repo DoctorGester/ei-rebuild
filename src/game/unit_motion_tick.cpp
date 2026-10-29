@@ -122,9 +122,9 @@ void HitWhileTurning(UnitServer* c) {
 // A hit while moving: unless the queue's first animation (a hit) is still running, the current animation
 // followed by the fall of the last blow replaces the queue.
 void HitWhileMoving(UnitServer* c) {
-    if (!c->queue.empty()) {
-        std::uint32_t key = (static_cast<std::uint32_t>(c->queue.size()) & 0xFFFFFF00u) |
-                            (*&c->queue)[0].animation;
+    if (!c->queue.steps.empty()) {
+        std::uint32_t key = (static_cast<std::uint32_t>(c->queue.steps.size()) & 0xFFFFFF00u) |
+                            c->queue.steps[0].animation;
         const FigureAnimation* entry = c->unit->AnimationEntry(key);
         if (entry && entry->Kind() == AnimationKind::Hit) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(c->queue.extra);
@@ -135,7 +135,7 @@ void HitWhileMoving(UnitServer* c) {
     AnimationSteps fall;
     c->BuildMoveSteps(&current, 0);
     c->BuildDeathAnimation(&fall, c->hitDirection, 0, 1);
-    for (const AnimationStep& step : current) {
+    for (const AnimationStep& step : current.steps) {
         // The dwords at step + 1 / step + 0 are passed; AddEmote / AddStep keep their low byte only (the
         // variant / the animation).
         if (step.animation == AnimationStep::kNone) {
@@ -143,10 +143,10 @@ void HitWhileMoving(UnitServer* c) {
         } else if (step.variant == AnimationStep::kNone) {
             fall.AddStep(step.animation, step.duration);
         } else {
-            fall.push_back(step);
+            fall.steps.push_back(step);
         }
     }
-    *&c->queue = fall;
+    c->queue = fall;
     if (c->queue.extra == -1) c->queue.extra = c->World()->tick;
     c->PopFinishedSteps();
     c->ShowCurrentStep();

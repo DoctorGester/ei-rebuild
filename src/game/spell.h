@@ -14,7 +14,6 @@
 
 #include "lib/bit_flags.h"
 
-#include <list>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -464,7 +463,7 @@ public:
     CLight* CreateLight(int lightType, int lightId = -1) { return CreateObjectAs<CLight>(lightType, lightId); }
 
     EngineObject* held;            // released by the destructor
-    std::list<int> litIds;
+    std::vector<int> litIds;
 };
 
 // Case-insensitive; null if none.

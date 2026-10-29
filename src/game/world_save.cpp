@@ -343,7 +343,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
                 EngineObject* item = itemManager->FindObject(objectId);
                 if (!item) continue;
                 item->AddRef();
-                counted.push_front(item);
+                counted.insert(counted.begin(), item);
             }
 
             if (PlayerList()) LoadPlayers(this, stream);
@@ -456,12 +456,9 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     for (auto& node : timedObjects.map) stream->WriteValue(node.second->id);
     stream->WriteValue(-1);
 
-    for (auto node = projectiles.begin(); node != projectiles.end();) {
-        auto next = std::next(node);
-        SpellEffect* missile = *node;
+    for (SpellEffect* missile : projectiles) {
         stream->WriteValue(static_cast<std::uint8_t>(1));
         missile->Save(stream);
-        node = next;
     }
     stream->WriteValue(static_cast<std::uint8_t>(0));
 
@@ -472,11 +469,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     stream->WriteValue(cave);
     countdowns.Save(stream);
 
-    for (auto node = counted.begin(); node != counted.end();) {
-        auto next = std::next(node);
-        stream->WriteValue((*node)->id);
-        node = next;
-    }
+    for (EngineObject* object : counted) stream->WriteValue(object->id);
     stream->WriteValue(-1);
 
     if (PlayerList()) SavePlayers(this, stream);

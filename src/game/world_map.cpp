@@ -22,7 +22,6 @@
 #include "lib/text_case.h"
 
 #include <bit>
-#include <list>
 #include <string>
 #include <vector>
 
@@ -120,9 +119,7 @@ void WorldServer::ResetZone() {
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     projectiles.clear();
-    for (EngineObject* object : counted)
-        if (object) object->Release();
-    counted.clear();
+    ReleaseAndClear(counted);
 
     if (PlayerList()) {
         PlayerIterator it;
@@ -186,7 +183,7 @@ void WorldServer::TeardownZone() {
 // ---- SendFreshObjects -------------------------------------------------------------------------
 
 void WorldServer::SendFreshObjects() {
-    std::list<EngineObject*> fresh;
+    std::vector<EngineObject*> fresh;
     ByteStream* header = &zoneHeader;
     header->Clear();
 
@@ -197,17 +194,14 @@ void WorldServer::SendFreshObjects() {
         if (!mapObjects.map.contains(objectId)) continue;
         if (object->IsSynchronised()) continue;
         sentObjects.Set(static_cast<unsigned>(object->id), object);
-        auto entry = fresh.emplace(fresh.end());
-        *entry = object;
+        fresh.push_back(object);
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
     CPlayer* temporary = players->CreateSessionPlayer();
     PlayerServer* state = temporary->Server();
     std::vector<EngineObject*> newObjects;
-    for (auto node = fresh.begin(); node != fresh.end();) {
-        auto next = std::next(node);
-        EngineObject* object = *node;
+    for (EngineObject* object : fresh) {
         unsigned objectId = static_cast<unsigned>(object->id);
         hash400::RemoveKey(mapObjects.map, objectId);
         objectId = static_cast<unsigned>(object->id);
@@ -216,13 +210,11 @@ void WorldServer::SendFreshObjects() {
             hash400::RemoveKey(otherMapObjects.map, objectId);
         }
         newObjects.push_back(object);
-        node = next;
     }
     state->SendObjectsAdded(&newObjects);
     state->WriteTo(header);
     PlayerList()->ReleasePlayer(temporary);
     lib::FreeStorage(newObjects);
-    fresh.clear();
 }
 
 void WorldServer::ResetState() {

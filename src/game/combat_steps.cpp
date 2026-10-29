@@ -238,7 +238,7 @@ bool UnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fro
     if (!animation) return false;
     std::uint8_t index = animation->index;
     int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
-    AnimationStep& added = steps->emplace_back();
+    AnimationStep& added = steps->steps.emplace_back();
     added.animation = index;
     added.duration = duration;
     return true;
@@ -269,13 +269,13 @@ void UnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrder
         MoveModeState to{};
         to.mode = 1;
         if (BuildTransition(&out, &moveMode, &to)) {
-            steps->push_back(out[0]);
-            *duration += out[0].duration;
+            steps->steps.push_back(out.steps[0]);
+            *duration += out.steps[0].duration;
         }
     }
     std::uint8_t index = animation->index;
     int length = EntryTicks(unit, index, &FigureAnimation::frameCount);
-    AnimationStep& added = steps->emplace_back();
+    AnimationStep& added = steps->steps.emplace_back();
     added.animation = animation->index;
     added.duration = length;
     *duration += EntryTicks(unit, animation->index, &FigureAnimation::moment);
@@ -283,7 +283,7 @@ void UnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrder
         AnimationSteps back;
         MoveModeState from{};
         from.mode = 1;
-        if (BuildTransition(&back, &from, &moveMode)) steps->push_back(back[0]);
+        if (BuildTransition(&back, &from, &moveMode)) steps->steps.push_back(back.steps[0]);
     }
 }
 
@@ -319,11 +319,11 @@ void UnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrderK
         // A pause for the extra time, then the animation; the action at its moment.
         *duration = EntryTicks(unit, index, &FigureAnimation::moment);
         int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);
-        AnimationStep& first = steps->emplace_back();
+        AnimationStep& first = steps->steps.emplace_back();
         first.animation = AnimationStep::kNone;
         first.duration = pause;
         int length = EntryTicks(unit, index, &FigureAnimation::frameCount);
-        AnimationStep& second = steps->emplace_back();
+        AnimationStep& second = steps->steps.emplace_back();
         second.animation = index;
         second.duration = length;
         *duration = *duration + pause;
@@ -334,18 +334,18 @@ void UnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrderK
     int moment = EntryTicks(unit, index, &FigureAnimation::moment);
     *duration = moment;
     int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);
-    AnimationStep& first = steps->emplace_back();
+    AnimationStep& first = steps->steps.emplace_back();
     first.animation = index;
     first.duration = moment;
-    AnimationStep& second = steps->emplace_back();
+    AnimationStep& second = steps->steps.emplace_back();
     second.animation = AnimationStep::kNone;
     second.duration = pause;
     int rest = EntryTicks(unit, index, &FigureAnimation::frameCount) - *duration;
-    AnimationStep& third = steps->emplace_back();
+    AnimationStep& third = steps->steps.emplace_back();
     third.animation = AnimationStep::kNone;
     third.duration = rest;
     steps->SetStepFlags(0);
-    (*steps)[1].kind = 1;
+    steps->steps[1].kind = 1;
     *duration = *duration + pause;
 }
 
@@ -524,10 +524,10 @@ void UnitServer::BuildDeathAnimation(AnimationSteps* steps, BlowSide direction, 
     if (add) {
         std::uint8_t index = animation->index;
         int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
-        AnimationStep& added = steps->emplace_back();
+        AnimationStep& added = steps->steps.emplace_back();
         added.animation = animation->index;
         added.duration = duration;
     }
     if (isFall)
-        for (AnimationStep& step : *steps) step.kind = kStepLying;
+        for (AnimationStep& step : steps->steps) step.kind = kStepLying;
 }

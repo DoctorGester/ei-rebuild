@@ -27,9 +27,9 @@
 
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -113,28 +113,20 @@ int WorldServer::LoadMobFile(std::string_view file) {
 // ---- Clearing and saving the map objects ----------------------------------------------------
 
 void WorldServer::ClearMapObjects() {
-    // The objects are collected first (a list, block size 10), then removed one by one.
-    std::list<EngineObject*> pending;
+    // The objects are collected first, then removed one by one.
+    std::vector<EngineObject*> pending;
     for (auto& node : mapObjects.map) {
         EngineObject* object = node.second;
         if (!object) break;   // the walk stops at the first empty entry
         pending.push_back(object);
     }
-    for (auto node = pending.begin(); node != pending.end();) {
-        auto next = std::next(node);
-        RemoveObject((*node)->id);
-        node = next;
-    }
+    for (EngineObject* object : pending) RemoveObject(object->id);
 
     projectiles.clear();
 
-    for (auto node = counted.begin(); node != counted.end(); ++node)
-        if (*node) (*node)->Release();
-    counted.clear();
+    ReleaseAndClear(counted);
 
     countdowns.clear();
-
-    pending.clear();   // the list destructor's body
 }
 
 void WorldServer::SaveMapObjects(ByteStream* out) {

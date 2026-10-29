@@ -267,13 +267,6 @@ HitCollector* HitCollector::CollectParts(std::list<ScreenEntry>::iterator first,
     return CollectHits(this, first, last, found, x, y, manager, &Object3DSpecific::PartsContainPoint);
 }
 
-int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const {
-    auto node = find(*key);
-    if (node == end()) return 0;
-    *value = node->second;
-    return 1;
-}
-
 int WorldClient::AddObject(CMapObject* object) {
     for (CMapObject* filed : objects) {
         if (filed->id == object->id) {
@@ -417,7 +410,7 @@ void WorldClient::RemoveObject(int objectId) {
         if (node->id == objectId) newPlatforms.erase(node);
         node = next;
     }
-    PendingIndex& ids = dynamicNodes;
+    auto& ids = dynamicNodes;
     if (auto entry = ids.find(static_cast<std::uint32_t>(objectId)); entry != ids.end()) {
         std::list<CMapObject*>& kept = dynamicObjects;
         std::list<CMapObject*>::iterator node = entry->second;

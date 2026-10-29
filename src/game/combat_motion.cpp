@@ -46,8 +46,8 @@ UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; 
 
 void ShowHead(UnitServer* self) {
     AnimationSteps& queue = self->queue;
-    if (queue.empty()) return;
-    const AnimationStep& head = queue[0];
+    if (queue.steps.empty()) return;
+    const AnimationStep& head = queue.steps[0];
     if (!head.IsBlank()) self->unit->SetAnimationEntries(head.animation, head.variant, self->queue.extra, head.flags);
 }
 
@@ -70,8 +70,8 @@ int UnitModeOf(const MoveModeState& state) { return (state.wasMode3 & 1) ? 3 : s
 
 // A pause step for an emote (`value` as its variant byte, open-ended), reusing a trailing one.
 void AddEmote(AnimationSteps* steps, std::uint8_t value) {
-    if (steps->empty() || steps->back().variant != AnimationStep::kNone) steps->emplace_back();
-    AnimationStep& last = steps->back();
+    if (steps->steps.empty() || steps->steps.back().variant != AnimationStep::kNone) steps->steps.emplace_back();
+    AnimationStep& last = steps->steps.back();
     last.variant = value;
     last.duration = -1;
 }
@@ -226,12 +226,12 @@ void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
             AddEmote(steps, index);
         } else {
             int duration = AnimationDuration(index);
-            AnimationStep& last = steps->emplace_back();
+            AnimationStep& last = steps->steps.emplace_back();
             last.animation = index;
             last.duration = duration;
         }
     }
-    for (AnimationStep& step : *steps) step.kind = 2;
+    for (AnimationStep& step : steps->steps) step.kind = 2;
 }
 
 AnimationSteps* UnitServer::NextAnimation() {
@@ -259,17 +259,17 @@ AnimationSteps* UnitServer::NextAnimation() {
     BuildMoveSteps(&loop, 0);
     AnimationSteps& steps = moveAnimation;
     BuildMoveSteps(&steps, 1);
-    for (const AnimationStep& step : loop) {
+    for (const AnimationStep& step : loop.steps) {
         if (step.animation == AnimationStep::kNone) {
             // A pause: an emote of its variant byte (the original passes a misaligned dword; AddEmote keeps its low byte
             // only).
             steps.AddEmote(step.variant);
         } else if (step.variant == AnimationStep::kNone) {
-            AnimationStep& last = steps.emplace_back();   // padding 0, not a stack byte (the harness zeroes the original's)
+            AnimationStep& last = steps.steps.emplace_back();   // padding 0, not a stack byte (the harness zeroes the original's)
             last.animation = step.animation;
             last.duration = step.duration;
         } else {
-            steps.push_back(step);
+            steps.steps.push_back(step);
         }
     }
     return &steps;
@@ -279,7 +279,7 @@ AnimationSteps* UnitServer::NextAnimation() {
 
 void UnitServer::StartAction(char follow, char stepFlags) {
     OrderPlan& plan = currentPlan;
-    for (AnimationStep& step : plan.animation) step.flags = static_cast<std::uint8_t>(stepFlags);
+    for (AnimationStep& step : plan.animation.steps) step.flags = static_cast<std::uint8_t>(stepFlags);
     if (state != UnitState::Idle && state != UnitState::Moving && state != UnitState::Turning) {
         std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
         if (idleKey == key) {
@@ -446,7 +446,7 @@ bool UnitServer::PathTo(const Vector3& point, float range) {
         // Moving already: the movement animation goes on unless it is the same one-step loop.
         const AnimationSteps& moving = *NextAnimation();
         AnimationSteps& current = queue;
-        if (current.size() != 1 || moving.size() != 1 || current[0].variant != moving[0].variant) {
+        if (current.steps.size() != 1 || moving.steps.size() != 1 || current.steps[0].variant != moving.steps[0].variant) {
             current = moving;
             StartQueueIfUnset();
             PopFinishedSteps();
@@ -568,7 +568,7 @@ void UnitServer::ResyncWithUnit() {
     }
     if (!queue.SameAs(&idleAnimation)) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
-        if (queue.empty() && queue.extra == -1)
+        if (queue.steps.empty() && queue.extra == -1)
             idleAnimation.extra = World()->tick - static_cast<int>(g_random.Next() % 0x33);
         queue = idleAnimation;
         StartQueueIfUnset();

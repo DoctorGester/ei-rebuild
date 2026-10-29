@@ -105,7 +105,7 @@ void LeaveMoveMode(UnitServer* self) {
 void StandIdle(UnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
     if (!self->queue.SameAs(idle)) {
-        if (self->queue.empty() && self->queue.extra == -1) {
+        if (self->queue.steps.empty() && self->queue.extra == -1) {
             int now = self->World()->tick;
             idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
         }

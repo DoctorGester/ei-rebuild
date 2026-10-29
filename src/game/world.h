@@ -541,8 +541,9 @@ public:
     ObjectIdMap timedObjects;
     // The zone header SendFreshObjects sends to a temporary player.
     MemoryStream zoneHeader;
+    // A list: a missile's hit can cast the struck unit's item spells (CreateMissile appends) while Tick walks it.
     std::list<HeldRef<SpellEffect>> projectiles;
-    std::list<EngineObject*> counted; // counted references (released on clear)
+    std::vector<EngineObject*> counted; // counted references (released on clear)
     std::vector<SharedObject> sharedObjects;
 };
 
@@ -636,11 +637,6 @@ struct SectorGrid {
     void Move(CMapObject* object, const float* position);
 };
 
-// The client's pending map from an object id to its node in the pending list.
-struct PendingIndex : std::unordered_map<std::uint32_t, std::list<CMapObject*>::iterator> {
-    int Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const;
-};
-
 // The worlds' counted helpers: player sources (player_source.h; Query false, the client's Segment calls Pump every
 // tick). The server's hands its pending link over once (TakeNew).
 class WorldHandle final : public PlayerSource {
@@ -650,7 +646,7 @@ public:
     void OnShutdown() override;
     WorldHandle* Clone() override;
     bool Query() override { return false; }
-    void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;
+    void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) override;
 
     Ref<netlink::NetLink> pendingLink;      // handed over by TakeNew
 };
@@ -662,7 +658,7 @@ public:
     ClientHandle* Clone() override;
     bool Query() override { return false; }
     // The client takes no connections: every link of the list is released and the list emptied.
-    void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;
+    void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) override;
 };
 
 // A window rectangle of the frame (the client's screen list and hit vector).
@@ -972,9 +968,9 @@ public:
     std::list<HeldRef<CMapObject>> heroes;                    // heroes with a text-key id (counted)
     std::list<CMapObject*> objects;                // every filed object (one reference each)
     // The objects answering IsSynchronised, with their nodes by id in dynamicNodes and the highest id
-    // in dynamicMaxId (Segment drops those whose update returns 0).
+    // in dynamicMaxId (Segment drops those whose update returns 0). A list: dynamicNodes keeps its iterators.
     std::list<CMapObject*> dynamicObjects;
-    PendingIndex dynamicNodes;              // id -> its node in dynamicObjects
+    std::unordered_map<std::uint32_t, std::list<CMapObject*>::iterator> dynamicNodes;   // id -> its node in dynamicObjects
     int dynamicMaxId;
     std::list<ScreenEntry> screenEntries;    // the window rectangles of the frame
     std::vector<ScreenEntry> hits;                      // the entries under the point (PickAt)

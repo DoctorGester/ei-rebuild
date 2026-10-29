@@ -13,25 +13,25 @@ constexpr std::uint32_t kNoRange = 0x7E967699u;   // 1e38: OrderPlan::rangeSq of
 } // namespace
 
 void AnimationSteps::AddStep(int animation, int duration) {
-    AnimationStep& last = emplace_back();
+    AnimationStep& last = steps.emplace_back();
     last.animation = static_cast<std::uint8_t>(animation);
     last.duration = duration;
 }
 
 void AnimationSteps::AddEmote(int emote) {
-    if (empty() || back().variant != kNone) emplace_back();
-    AnimationStep& last = back();
+    if (steps.empty() || steps.back().variant != kNone) steps.emplace_back();
+    AnimationStep& last = steps.back();
     last.variant = static_cast<std::uint8_t>(emote);
     last.duration = -1;
 }
 
 void AnimationSteps::SetStepFlags(int value) {
-    for (AnimationStep& step : *this) step.kind = value;
+    for (AnimationStep& step : steps) step.kind = value;
 }
 
 int AnimationSteps::Duration() const {
     int total = 0;
-    for (const AnimationStep& step : *this) {
+    for (const AnimationStep& step : steps) {
         if (step.duration < 0) return -1;
         total += step.duration;
     }
@@ -39,10 +39,10 @@ int AnimationSteps::Duration() const {
 }
 
 bool AnimationSteps::SameAs(const AnimationSteps* other) const {
-    if (size() != other->size()) return false;
-    for (std::size_t i = 0; i < size(); ++i) {
-        const AnimationStep& a = (*this)[i];
-        const AnimationStep& b = (*other)[i];
+    if (steps.size() != other->steps.size()) return false;
+    for (std::size_t i = 0; i < steps.size(); ++i) {
+        const AnimationStep& a = steps[i];
+        const AnimationStep& b = other->steps[i];
         if (a.animation != b.animation || a.variant != b.variant || a.duration != b.duration ||
             a.kind != b.kind || a.flags != b.flags)
             return false;
@@ -53,15 +53,15 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
 void AnimationSteps::Load(ByteStream* stream) {
     int newCount = 0;
     stream->ReadValue(newCount);
-    resize(newCount);
-    for (AnimationStep& step : *this) stream->ReadValue(step);
+    steps.resize(newCount);
+    for (AnimationStep& step : steps) stream->ReadValue(step);
     stream->ReadValue(extra);
 }
 
 void AnimationSteps::Save(ByteStream* stream) const {
-    int written = static_cast<int>(size());
+    int written = static_cast<int>(steps.size());
     stream->WriteValue(written);
-    for (const AnimationStep& step : *this) stream->WriteValue(step);
+    for (const AnimationStep& step : steps) stream->WriteValue(step);
     int last = extra;
     stream->WriteValue(last);
 }

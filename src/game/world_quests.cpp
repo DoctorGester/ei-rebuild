@@ -33,7 +33,6 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <string>
 #include <vector>
 
@@ -116,7 +115,7 @@ double Weight(UnitServer* controller) {
 // Without a player: the single heroes of every player share `amount` in proportion to their weights.
 void ShareAmongSoloPlayers(WorldServer* world, float amount) {
     if (world->PlayerList()->objects.size() == 0) return;
-    std::list<Share> list{};
+    std::vector<Share> list{};
     auto soloUnit = [&](CPlayer* p) -> CUnit* {
         if (!p->Server() || std::ssize(p->Party()->members) != 1) return nullptr;
         return world->FindUnit(static_cast<int>(MercRecord(p, 0).unitId));
@@ -129,10 +128,8 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
         if (!unit) continue;
         UnitServer* controller = unit->ServerController();
         if (!controller) continue;
-        auto node = list.emplace(list.end());
-        (*node).controller = controller;
-        (*node).share = 0.0f;
-        total = static_cast<float>(Weight((*node).controller) + total);
+        list.push_back({controller, 0.0f});
+        total = static_cast<float>(Weight(controller) + total);
         float stored = total;   // stored into the float total
         total = stored;
     }
@@ -140,20 +137,17 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
     minimum = kMinimumWeight;
     float divisor = total >= minimum ? total : minimum;   // branch-free select
 
-    for (auto node = list.begin(); node != list.end();) {
-        auto next = std::next(node);
-        float share = static_cast<float>(Weight(node->controller) * amount / divisor);
+    for (Share& entry : list) {
+        float share = static_cast<float>(Weight(entry.controller) * amount / divisor);
         float stored = share;
-        node->share = stored;
-        node->controller->AddExperience(stored);
-        node = next;
+        entry.share = stored;
+        entry.controller->AddExperience(stored);
     }
     auto cursor = list.begin();
     for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CUnit* unit = soloUnit(p);
         if (!unit || !unit->ServerController()) continue;
-        auto node = cursor++;
-        MercRecord(p, 0).stats.AddScaledExperience((*node).share);
+        MercRecord(p, 0).stats.AddScaledExperience((cursor++)->share);
     }
     for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         PlayerServer* state = p->Server();

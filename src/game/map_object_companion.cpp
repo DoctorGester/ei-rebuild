@@ -168,7 +168,7 @@ MapObjectClientSpecific::~MapObjectClientSpecific() {
             }
         }
         int lightId = light->id;
-        g_clientWorld.lightFactory->litIds.remove(lightId);
+        std::erase(g_clientWorld.lightFactory->litIds, lightId);
         light.Reset();
     }
     owner = nullptr;
