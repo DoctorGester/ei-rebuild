@@ -141,6 +141,9 @@ public:
     // The extent of `text` in interface font `font` (ui_font.h's TextExtent) scaled to the layout (cx * 800 /
     // width, cy * 600 / height). Rebirth-patched; WideScreen behind its flag.
     SIZE TextExtent(std::string_view text, int font) const;
+    // `text` word-wrapped to `width` layout units in `font` (CUiSurface::DrawWrappedText's lines: breaks at
+    // spaces and '\n', a line keeps the space after its last word).
+    std::vector<std::string> WrapText(std::string_view text, int width, int font) const;
     // When there is a console window.
     void ConsoleAddText(std::string_view text);
     void SetConsoleRect(const RECT* rect);

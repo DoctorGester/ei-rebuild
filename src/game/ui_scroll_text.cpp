@@ -40,6 +40,7 @@ void DrawWord(CUiSurface* surface, std::string_view text, RECT* rect, int font, 
 constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
 constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
 constexpr int kJustified = 2;
+constexpr int kMaxStretch = 3;               // a justified line's gaps at most this many normal gaps
 constexpr int kScrollbarSprites = 4;
 // The layout measures fonts 0-2; a format token may name any digit. The original reads its other
 // stack memory (font 3: its return address) for the others; here they are 0.
@@ -181,19 +182,28 @@ void CUiScrollText::DrawLines(int scroll) {
         int end = line == std::ssize(lines_) - 1 ? std::ssize(tokens_) : lines_[line + 1]->firstToken_;
 
         int wordsWidth = 0;
-        for (int t = begin; t < end; ++t)
-            if (tokens_[t]->type_ == kWordType) wordsWidth += tokens_[t]->AsWord()->width_;
-        // Left aligned (a third of the font's height apart), or justified over the width. The
-        // last token is read before the count is checked, as in the original. (A font above 2
-        // reads past `heights`; the original reads its other stack memory there.)
-        int gap;
-        const UiTextToken* last = align_ != kAlignLeft ? tokens_[end - 1] : nullptr;
-        if (align_ == kAlignLeft ||
-            (last->type_ == kFormatType && last->AsFormat()->newline_) || end - begin < 2 ||
-            end == std::ssize(tokens_))
-            gap = heights[font] / 3;
-        else
-            gap = (textRect_.right - textRect_.left - wordsWidth) / (end - begin - 1);
+        int words = 0;
+        for (int t = begin; t < end; ++t) {
+            if (tokens_[t]->type_ == kWordType) {
+                wordsWidth += tokens_[t]->AsWord()->width_;
+                ++words;
+            }
+        }
+        // Left aligned (a third of the font's height apart), or justified over the width: the room
+        // the words leave shared between the gaps between words (the original divided by the line's
+        // tokens less one, format tokens too, so a line holding one fell short of the right edge). A
+        // line ending a paragraph or the text, of one word, or whose gaps would stretch past
+        // kMaxStretch normal gaps stays left aligned (the original stretched every line, a line of
+        // three long words to gaps of eight normal ones). (A font above 2 reads past `heights`; the
+        // original reads its other stack memory there.)
+        const int normalGap = heights[font] / 3;
+        int gap = normalGap;
+        const UiTextToken* last = tokens_[end - 1];
+        if (align_ != kAlignLeft && !(last->type_ == kFormatType && last->AsFormat()->newline_) && words >= 2 &&
+            end != std::ssize(tokens_)) {
+            const int stretched = (textRect_.right - textRect_.left - wordsWidth) / (words - 1);
+            if (stretched <= kMaxStretch * normalGap) gap = stretched;
+        }
 
         RECT word = row;
         for (int t = begin; t < end; ++t) {

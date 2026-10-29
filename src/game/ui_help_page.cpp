@@ -20,6 +20,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <list>
 #include <vector>
@@ -49,11 +50,18 @@ constexpr int kPictureSize = 64;
 constexpr int kMaxPictures = 16;                   // the picture texture's cells
 constexpr int kWrapFormat = DT_WORDBREAK | DT_EXPANDTABS;
 
-// A "#text" entry of the page: the text's key and its picture's name (empty: none). The original
-// keeps an STLport list of pair<string, string>.
+// The body's texts: their left edge without a picture and beside one, and the room the original left
+// on the right (the width the texts wrap to is the page's less both).
+constexpr int kTextLeft = 15;
+constexpr int kPictureTextLeft = 90;
+constexpr int kTextRightMargin = 30;
+
+// A "#text" entry of the page: the text's key, its picture's name (empty: none) and the text read
+// for the key.
 struct PageEntry {
     std::string key;
     std::string picture;
+    std::string text;
 };
 
 void SetTint(CUiMesh* sprite, float value) { sprite->tint_[0] = sprite->tint_[1] = sprite->tint_[2] = value; }
@@ -193,11 +201,33 @@ void CHelpWindow::ShowPage() {
             // The next line's first word is the text's key.
             words = texts->Split(true);
             if (words.size() > 0) {
-                const PageEntry entry{words[0], picture};
+                const PageEntry entry{words[0], picture, {}};
                 entries.push_back(entry);
             }
         }
     }
+
+    // The texts, and the block they make on the last pass: its widest line, from the texts' left edge.
+    // The block is centred in the page (the original left it 15 units from the page's left, with 30
+    // units and the lines' ragged ends on the right); the texts wrap to the original's width, so the
+    // lines break and the page is as high as before. A text has its picture's place on the last pass
+    // when the first pass (none with a row count) made fewer than all the pictures' cells.
+    int pictured = 0;
+    for (PageEntry& entry : entries) {
+        if (texts->Open(std::string(kTutorSection) + entry.key.data())) entry.text = texts->ReadToHash();
+        str::TrimRight(entry.text, kLineEnds);
+        if (entry.picture.size() != 0) ++pictured;
+    }
+    const int madePictures = rowsGiven ? 0 : (std::min)(pictured, kMaxPictures);
+    int block = 0;
+    for (const PageEntry& entry : entries) {
+        const int left = entry.picture.size() != 0 && madePictures < kMaxPictures ? kPictureTextLeft : kTextLeft;
+        for (std::string wrapped : interface_->WrapText(entry.text, width - kTextRightMargin - left, 1)) {
+            str::TrimRight(wrapped, ' ');
+            block = (std::max)(block, left - kTextLeft + static_cast<int>(interface_->TextExtent(wrapped, 1).cx));
+        }
+    }
+    const int shift = (std::max)(0, (width - block) / 2 - kTextLeft);
 
     // Surface 1: the texts, one under the other. Without a row count the first pass makes the
     // pictures and measures; its surface is dropped and the page's bottom follows the height.
@@ -205,7 +235,7 @@ void CHelpWindow::ShowPage() {
     for (int pass = rowsGiven ? 1 : 0; pass < 2; ++pass) {
         CUiSurface* body = NewSurface(interface_, page.left, page.top + kStripHeight, page.right, page.bottom - kStripHeight);
         AddSurface(body);
-        RECT row{15, 0, width - 30, kRowHeight};
+        RECT row{kTextLeft + shift, 0, width - kTextRightMargin + shift, kRowHeight};
         int y = 0;
         body->Clear();
         for (const PageEntry& entry : entries) {
@@ -224,23 +254,20 @@ void CHelpWindow::ShowPage() {
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
                     picture->textureOffsetU_ = static_cast<float>(cellX) * kTexel;
                     picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * kTexel;
-                    picture->Place(static_cast<float>(page.left + 47),
+                    picture->Place(static_cast<float>(page.left + 47 + shift),
                                         static_cast<float>(y + page.top + 95), 3.0f);
                     picture->texture_ = objects_[1];
                     pictures_.push_back(picture);
                     ++pictures;
                 }
-                row.left = 90;
+                row.left = kPictureTextLeft + shift;
                 withPicture = true;
             } else {
-                row.left = 15;
+                row.left = kTextLeft + shift;
             }
             row.top = y;
             row.bottom = y + kRowHeight;
-            text.clear();
-            if (texts->Open(std::string(kTutorSection) + entry.key.data())) text = texts->ReadToHash();
-            str::TrimRight(text, kLineEnds);
-            int height = body->DrawWrappedText(text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
+            int height = body->DrawWrappedText(entry.text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.
             if (withPicture && height <= 80) height = 80;
             y += height;
