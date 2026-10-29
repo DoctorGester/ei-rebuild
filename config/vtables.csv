@@ -427,7 +427,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00741B24,13,,game,0060C870 0060E210 00613EA0 0062C250,00613D50,CUiItemPanel,src/game/ui.h,the blank item panel's input side (CUiItemPanel::ConstructBlank)
 00741B58,26,,game,0060C870 0060E210 00613EA0 0062C250,0060E240,CUiItemPanel,src/game/ui.h,the blank item panel (CUiItemPanel::ConstructBlank; the item strips' base)
 00741BC0,3,,game,0060E2B0 00613670 00613A30 0062C250,007005E3,ItemStripArrayClass,-,CArray (an item strip's CArray<char*>); stored only by game.exe (ours is a std::vector)
-00741BF4,27,,game,00613EA0 0062C250,006157D0,CFigureStrip,src/game/ui_screens.h,the figure strip (CUiItemStrip::SetupFigures: the hero screen's and the exchange's)
+00741BF4,27,,game,00613EA0 0062C250,006157D0,CFigureStrip,src/game/ui_screens.h,the figure strip (CFigureStrip::SetupFigures: the hero screen's and the exchange's)
 00741C60,13,,game,00613EA0 0062C250,0061B210,CFigureStrip,src/game/ui_screens.h,the figure strip's input side (CUiItemStrip)
 00741C9C,13,,game,006183B0,0061B220,CMpConnectScreen,src/game/ui_screens.h,the connection screen's input side
 00741CD0,42,,game,006183B0,00618550,CMpConnectScreen,src/game/ui_screens.h,the multiplayer connection screen (CMpConnectScreen)

@@ -282,7 +282,7 @@ Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `
   the Rebirth run): regions 0-3 scroll, 4-9 a school level, 10 science, 11-33 a learnable perk, 34 up a held perk.
   `FormatPrice` is "%d" / "%.1fk" / "%dk" / "%.1fm" / "%dm" / "%.1fg", negative as 0x7FFFFFFF.
 - Item strip (`CUiItemStrip`, the forwarding strip of camp and exchange): `Update` scroll physics compared to 4 ULPs;
-  `SetupFigures` (name list shares +0x194 with `filter_`); figure strips (00741BF4) `DrawFigures`, `CountFigures`,
+  `CFigureStrip::SetupFigures` (the name list; was the union with `filter_`); figure strips (00741BF4) `DrawFigures`, `CountFigures`,
   `CFigureStrip::LeftDown` (`ui_item_strip_setup.cpp`; ui_hero_screen mode 10, unconfirmed that its clicks land).
   the item predicates `Is*` (ui_screens.h; 005EE050-005EE130, P), `CItemScreen::MoveItem` (RET 0x18) and `ReturnAll` (RET 8;
   `ui_item_screen.cpp`), `ScrollToItem` (RET 4).

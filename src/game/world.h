@@ -1208,9 +1208,9 @@ struct MpHeroRecord {
     // false when the file does not read, else the party loaded (with its variables) and the memory
     // stream's ok flag.
     bool ReadFile(const std::string& folder);
-    CParty* Party() { return party.Get(); }
+    CParty* Party() { return &party; }
 
-    lib::InPlace<CParty> party;
+    CParty party;
     std::string file;
 };
 
