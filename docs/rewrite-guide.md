@@ -214,6 +214,18 @@ does not need a second pass:
 (config/cleanup_baseline.csv; a new file starts at zero). After a cleanup ticket lowers them, run
 `python tools/check_cleanup.py --update`.
 
+## Names and files
+
+- Members have plain names, no trailing `_` (`size`, `owner`, `refCount`): `private` already marks what a class
+  guards. Where a member and a parameter or local would share a name, rename the parameter or local (`newSize`,
+  `ownerWindow`); never write `this->` to tell them apart. /W4's C4458 (a declaration hides a class member) finds
+  the clashes.
+- Classes, structs and enums have no `C` prefix (`Unit`, `WorldClient`, `ItemScreen`).
+- Rename a type, a member or a file wherever a better name makes the code easier to read; the rename goes
+  through the whole tree in one step, the compiler as the checker.
+- Files are grouped by feature, not by the original's address order or vtable slot: a class's members live in
+  its own subsystem's files, and no file exists only for a slot range, a lifetime or a few small records.
+
 ## Verification
 
 A change is held to the original's behaviour by the two checks below. Neither depends on the heap or
