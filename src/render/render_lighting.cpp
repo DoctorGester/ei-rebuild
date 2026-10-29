@@ -18,6 +18,8 @@ using namespace detail;
 
 // Until the first hand-over: a sun from above, half ambient.
 LightParams g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}, {}, {}};
+// Per kept point light: it casts point shadows (ScenePointLight::shadows).
+bool g_shadows[kMostSceneLights] = {};
 
 } // namespace
 
@@ -43,6 +45,7 @@ void SceneLighting(const SceneLights& lights) {
     }
     std::stable_sort(order.begin(), order.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
     int count = std::min(static_cast<int>(order.size()), kMostSceneLights);
+    bool shadows[kMostSceneLights] = {};
     for (int k = 0; k < count; ++k) {
         const ScenePointLight& l = lights.points[order[static_cast<std::size_t>(k)].second];
         p.points[k][0][0] = l.position.x;
@@ -51,9 +54,11 @@ void SceneLighting(const SceneLights& lights) {
         for (int j = 0; j < 3; ++j) p.points[k][1][j] = l.colour[j];
         p.points[k][0][3] = l.inverseRangeSquared;
         p.points[k][1][3] = l.specular ? 1.0f : 0.0f;
+        shadows[k] = l.shadows;
     }
     p.counts[0] = static_cast<float>(count);
     g_params = p;
+    std::copy(std::begin(shadows), std::end(shadows), g_shadows);
 }
 
 namespace detail {
@@ -132,6 +137,8 @@ const float (*SceneLightPoints(int* count))[2][4] {
     *count = static_cast<int>(g_params.counts[0]);
     return g_params.points;
 }
+
+bool SceneLightCastsShadows(int k) { return k >= 0 && k < kMostSceneLights && g_shadows[k]; }
 
 int SceneLightIndex(const Vector3& position) {
     const int count = static_cast<int>(g_params.counts[0]);

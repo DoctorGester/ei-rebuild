@@ -214,6 +214,8 @@ void LightUniforms(LightParams* params);
 // The kept point lights, laid out as LightParams::points. SceneLightIndex: the kept light at `position`
 // exactly (the same CLight's), -1 none.
 const float (*SceneLightPoints(int* count))[2][4];
+// The kept light `k` casts point shadows (ScenePointLight::shadows: not an object's own light).
+bool SceneLightCastsShadows(int k);
 int SceneLightIndex(const Vector3& position);
 // The shadow map's light for the sun `sun`: at least 20 degrees above the horizon, unit. False without a
 // direction. Receivers lit on the GPU weigh the map's darkening by their facing to it.

@@ -82,6 +82,7 @@ struct ScenePointLight {
     float inverseRangeSquared;
     float colour[3];
     bool specular;      // light flag 0x40
+    bool shadows;       // casts point shadows: not an object's own light (LightFlag::Off)
 };
 struct SceneLights {
     Vector3 sunDirection;
