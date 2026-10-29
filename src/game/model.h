@@ -138,16 +138,12 @@ public:
     // scaled to the viewport, z divided.
     virtual void ToScreen(TLVertex* vertices, int count);
     virtual void Unused33();
-    // The vertices ClipTriangles left, projected to the screen as ToScreen does.
+    // The same, a vertex with w 0 taking 1000000 as its 1 / w.
     virtual void ToScreenClipped(TLVertex* vertices, int count);
     // The distance fog of `count` screen vertices: the specular's alpha lowered to the depth's fog factor.
     virtual void FogVertices(TLVertex* vertices, int count);
     virtual void Unused36();
-    // Clips the triangles `indices` (`*indexCount` indices) of the `*vertexCount` vertices with
-    // their `outcodes` against the screen: the vertices it adds are appended (the callers make room
-    // for ten times the input), the triangles left written to `clippedIndices`, both counts updated.
-    virtual int ClipTriangles(TLVertex* vertices, std::uint8_t* outcodes, const std::uint16_t* indices,
-                              std::uint16_t* clippedIndices, int* vertexCount, int* indexCount);
+    virtual void Unused37();
     virtual void Unused38();
     virtual void Unused39();
     // Lights a figure mesh: its vertex packets and normals, the colours written (one per normal), its words,

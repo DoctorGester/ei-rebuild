@@ -115,7 +115,12 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
   picking, never server state or timing.**
 - **Picking** uses screen rectangles written during the object draw from projected vertices (004E8900 / 004E86B0 into
   the device's +0x15C, copied by 005A7A70 into node and figure pieces). Whatever draws the objects
-  must still produce them (approximate is fine, from projected bounds).
+  must still produce them (approximate is fine, from projected bounds). Since R30f (`device_bounds.cpp`
+  `BoundsOfCrossing`) a mesh crossing the screen's edges is not clipped on the CPU: its rectangle is the bounds of
+  its clip-space positions inside the depth range and of its triangle edges' cuts through the near and far planes,
+  mapped as ToScreen does and clamped to the screen (the original: the bounds of the clipped triangles). The same
+  where a mesh crosses one edge; larger by the corner it misses where it passes a screen corner. Bounds off the
+  screen hand over no pass (the clipper's empty result); the GPU clips the rest.
 - **One real state change in a draw path:** the terrain page draw applies pending water level changes (006C30E0 from
   006BFF40); the water layer is what height queries read. DrawSectorPage applies them before handing over (the
   game's own draw of the page is gone, R11a).
@@ -472,10 +477,8 @@ come first, then what holds for the present path (the subsection names are cited
   removable device) validates or measures the renderer itself and has a scenario; the A/B against the old device draws
   went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
-- Trimming after P8 / R28 (R30's survey, build/style_review/renderer_trim.md): R30f mesh draws without the CPU clip.
 - No ticket yet: weather's old draw
-  (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
-  from projected bounds; the 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before
+  (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; the 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before
   clipping) want plain C++ replacements; several steps (holders, saved pictures, interface
   draws, movies, textures) are checked by goldens and harness scenarios, never by a person in game.
 
@@ -1452,14 +1455,17 @@ across runs; the goldens check the game state.
 11. **R16k, R26c The device's mesh draws without the work nothing reads (done).** `device_mesh.cpp`, `device_shadow.cpp`,
     `device_draw.cpp`. The mesh draws 004E9010 / 004E9A50 and the flat draw 004EA4A0 project (the visibility verdict),
     override the colours (flag 4: the hand-over reads them), take the screen rectangle for draw flag 1 (picking:
-    BoundsOfProjected, or for a crossing mesh BoundsOfVertices of the clipped vertices projected to the screen), clip
-    a crossing mesh (the clipper's vertex and index counts go to the device's counters, and an empty result draws no pass;
-    its input is the corners' projected positions alone) and hand every pass to the device by its counts
-    (`DrawIndexed(vertexCount, indexCount)` / `DrawTwoTextures(first, second, vertexCount, indexCount)`: the pass state the
-    new renderer reads, the counters). Not made: the TL vertices of a mesh on screen, the fog, the colours and texture
-    coordinates of the clipper's vertices, the z scale, the projection to the screen of a clipped mesh without flag 1
-    (R26c took out the arguments of the Direct3D 7 draws and the work only they needed; until then a harness verb
-    `meshcorners full|read` switched back to all the old work for an A/B check, 0 pixels different; R26d dropped the verb).
+    BoundsOfProjected, or for a crossing mesh BoundsOfCrossing of its clip-space positions, section 3) and hand every
+    pass to the device (`DrawIndexed()` / `DrawTwoTextures(first, second)`: the pass state the new renderer reads).
+    Not made: TL vertices, the fog, the z scale, and since R30f the CPU clip of a crossing mesh (ClipTriangles,
+    ToScreenClipped; its only readers were the rectangle and the empty result's "no pass", which the bounds give; the
+    flat draw hands a crossing shadow's pass over unclipped). R26c took out the arguments of the Direct3D 7 draws and
+    the work only they needed; until then a harness verb `meshcorners full|read` switched back to all the old work
+    for an A/B check, 0 pixels different; R26d dropped the verb.
+    R30f measured (render_stats, vanilla 4K, harness build, one run each, main's run of the same morning as before):
+    "device mesh draws" ms a frame menu 0.249 -> 0.205, zone1 0.194 -> 0.165, fight 0.352 -> 0.286, town 0.747 ->
+    0.394, town at night 0.586 -> 0.332; flat draws unchanged (0.01-0.1 ms); main-thread CPU within its noise (town
+    11.28 -> 9.43, fight 20.11 -> 17.79). The goldens (picking reads the rectangles) stayed the same.
     Measured (render_stats, vanilla 4K, harness build, two runs; ms a frame; "device mesh draws" read / full in the
     same run, the full stretch between two read ones): zone1 0.094-0.104 / 0.111-0.115, fight 0.23-0.26 / 0.27-0.29,
     town 0.31-0.34 / 0.49-0.51, so 0.02 / 0.04 / 0.18 ms saved. Main-thread CPU (read, full, read again; the

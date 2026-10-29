@@ -54,7 +54,8 @@ to vertex buffers, +0x16C / +0x170 / +0x174 vertex, triangle and call counters),
 007AEDE0 clip output, 007AEE00 TL vertices, 007AEE10 projected vertices (16 bytes each), 007AEE20 corner outcodes, 007AEE30
 vertex outcode bytes (all ..007AEE3C); the vertex buffer path 004E7820 was dead (always returned null; gone since R9b3). Ribbon / sprite
 buffers are function-local statics (007AF000..007AF05C, 007AEF60..007AEFF8). Ours are plain globals (the ribbon's
-texture coordinates 007AF054..007AF05C stay named).
+texture coordinates 007AF054..007AF05C stay named); of the mesh / flat draws' only the projected vertices and their
+outcodes are left (device_buffers.h): the clip output, TL vertices and corner outcodes went with the CPU clip (R30f).
 
 Rewritten (grep the address): `RendererCreate` 00500B70 (slot 2, RET 8), `DrawRibbon` 00501D90 (slot 16, RET 0x18), `DrawTlTriangles`
 00502A20 and `DrawIndexed` 00503680 (holder thiscall; RET 0x1C), `EmitSection` 00502AC0 (naked transcription), `StripDirection`

@@ -877,6 +877,13 @@ depends = ["C54a"]
 files = ["src/render/render_ui.h", "src/game/surface.h", "src/game/ui_surface_create.cpp", "src/game/ui_surface_pixels.cpp"]
 note = "Left from R30d (src/game/ui_* was C54a's): surface.h PixelFormat and render_ui.h render::ui::PixelFormat (bits + masks) are converted field by field at ui_surface_create.cpp and ui_surface_pixels.cpp; PixelAt packs with ui::Pack and unpacks with ChannelLayout::FromNative (one function could return the pixel's 8-bit channels). One type (render::ui taking surface.h's, or the game using the renderer's), no behaviour change. Check: build, ei_ui_check, ui_compare, goldens."
 
+[[ticket]]
+id = "R30f1"
+title = "A picking scenario at the screen's edges and corners"
+group = "renderer"
+depends = ["R30f"]
+note = "Found by R30f: no golden scenario picks a unit or object whose mesh crosses the screen edge, so the goldens did not reach BoundsOfCrossing's difference from the original's clipped bounds (device_bounds.cpp; equal across one edge, larger past a corner). A scenario with the cursor over a unit cut by the left / bottom edge and one past a corner (golden from the original), to fix which picks the image gives there."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
