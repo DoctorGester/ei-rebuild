@@ -5259,3 +5259,19 @@ group = "cleanup"
 model = "opus"
 depends = ["P8"]
 note = "Style review Tier 2 (G9-G15) for src/game/ui_*.* and src/render/render_ui*, left out of C49-C53 for the native UI track. Whatever the P tickets did not already rewrite."
+
+[[ticket]]
+id = "C49a"
+title = "Ref<T> for the network RefPtr family and the interface aliases"
+group = "cleanup"
+model = "opus"
+depends = ["P8"]
+note = "C49 follow-up. The RefPtr family in core_refcount.h (RefPtr, RefPtrTo, CountedRefPtr, SharedRefPtr, SharedRefTo, CountedRefTo; 35 non-interface files, mostly net_* and ScriptEffect) to Ref<T>/HeldRef<T>; the interface files read their .ptr, so after P8 (or with C54). Then drop the aliases HeldObject (engine_object.h, for ui_camp.cpp) and CountedPtr (core_refcount.h, for ui_briefing.h), move CItem::spell_ to Ref<CSpell> (ui_camp_deals.cpp reads it with auto*), and the 25 ++/-- count sites in ui_* to AddRef/Release. Goldens unchanged."
+
+[[ticket]]
+id = "C49b"
+title = "Ref<T> for the remaining raw counted slots"
+group = "cleanup"
+model = "opus"
+depends = ["C49"]
+note = "C49 follow-up outside the interface files. The 52 AssignCounted/ReleaseCounted calls on raw slots (unit item slots, net link_/pendingLink_, g_patch CUnitShape, item link_, the party/world managers) to Ref fields, then delete both helpers. The hand-counted std::list<T*> lists (effectSources, parts, pendingParts and similar) to std::list<HeldRef<T>> where the release order stays the same. Leave the deliberate decrement-without-release sites ('sic') as they are, named. Goldens unchanged."
