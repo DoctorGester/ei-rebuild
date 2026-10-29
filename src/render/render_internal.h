@@ -558,6 +558,9 @@ constexpr std::size_t kCachedVertexBytes = 32;   // a kept corner's geometry: po
 void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
+// Changes whenever the kept mesh's corners (positions, texture coordinates) or triangles change; no two kept
+// meshes ever share one (render_point_shadows.cpp keeps faces drawn from them).
+std::uint32_t CachedMeshVersion(const CachedMesh& mesh);
 void UploadCachedMeshes(const Frame& frame);
 bool BindCachedMesh(const CachedMesh& mesh, sg_bindings& b, int* firstIndex);
 void MeshCacheFrameDone();
