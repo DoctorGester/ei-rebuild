@@ -236,7 +236,7 @@ address,size,name,file
 007C8808,4,kHalfPi,src/game/sound_manager.cpp
 007C8840,4,g_blocksWithFree,src/game/terrain_lights.cpp
 007C8844,4,g_fullBlocks,src/game/terrain_lights.cpp
-007C8908,4,kWaterFalloff,src/game/terrain_lighting.cpp
+007C8908,4,kWaterFalloff,src/game/terrain_sector.h
 007C8930,4,kHalfPi,src/game/terrain_ambience.cpp
 007C8964,4,kSunStepScale,src/game/terrain_animation.cpp
 007C8968,4,kWaveSpeedScale,src/game/terrain_landscape.cpp

@@ -124,9 +124,9 @@ prints.db / acks.db loaders themselves (Rebirth-patched), STLport instantiations
 
 ## Terrain sectors, lighting, prints (006BE3A0-006CFEA0)
 
-Code: `terrain_sector.h/.cpp` (`terrain::SectorData` / `TerrainFields` are views of terrain.h's `TerrainSector` / `Terrain`;
-the sector file format is in the code), `terrain.cpp` (PlaneHeight, VertexAt, HeightAt), `terrain_draw.cpp`
-(`DrawSectorPage`). Reached by every scenario (zone1 loads several sectors, water sectors only where the map has water; the
+Code: `terrain_sector.h/.cpp` (`terrain::SectorData`; the sector file format and its sizes are named in terrain_sector.h),
+`terrain.cpp` (PlaneHeight, VertexAt, HeightAt, SurfaceHeight, SurfaceClass), `terrain_passes.cpp` (the passes and
+`SectorData::DrawPage`, which hands the page to src/render). Reached by every scenario (zone1 loads several sectors, water sectors only where the map has water; the
 terrain pass draws every visible page each frame). Sound parts of the range are in `sound.md`.
 
 Map (R = Direct3D / renderer calls, left original): 006BF5F0 / 006BF8A0 `SectorData` ctor / dtor (0x394 bytes); 006BFC80
@@ -142,23 +142,20 @@ with the vertices they reach (pooled 16-byte LightRef nodes, blocks of 1000 at 0
 006CF370-006CFEA0 foot / blood / fire prints.
 
 Rewritten (grep the address): `SectorData::Build` 006C1C00 (the random generator and the owner's water row matter), `Load` 006C13A0,
-`ApplyWaterLevels` 006C30E0, `Ensure` 006C3DD0 (calls Build through its original address), `TileUv` 006C53C0, `SurfaceClass`
-006C8D40, `GroundAndWaterDepth` 006C8930, `Construct` 006BF5F0 (sizes the shared projection buffers 007C88F8 / 007C88E8 / 007C88D0
-to 0x330), `Project` 006BFC80 (RET 4: the pipeline; the pass 006C6460: per quarter not culled, positions at the LOD step through
+`ApplyWaterLevels` 006C30E0 (one pass over the sector's water materials), `Ensure` 006C3DD0, `TileUv` 006C53C0, `SurfaceClass`
+006C8D40, `GroundAndWaterDepth` 006C8930 (`Terrain::SurfaceHeight`: the ground raised to the water surface), `Construct`
+006BF5F0 (default member initialisers; the projection's work arrays are function-local statics of `Project`, 0x330 vertices),
+`Project` 006BFC80 (RET 4: the pipeline; the pass 006C6460: per quarter not culled, positions at the LOD step through
 004F29F0 against the quarter box (a ClipBounds prefix); records +0x00 projected, +0x10 outcode), `DrawSectorPage` 006BFF40
-(`__fastcall` for the thiscall with four stack arguments: context, unused, texture page, unused), `Light` 006C3A00
-(terrain_lighting.cpp; chop rounding through the game's `_controlfp` 006EBBB4; the GPU lights the colours, so `ShadeSun` /
-`LightVertex` 006C36B0 / 006C31C0 are not ported since R26: Light keeps the edge fade and the water's specular word).
+(`SectorData::DrawPage(renderer, page)`; the original's two unused arguments and constant return are gone), `Light` 006C3A00
+(terrain_lighting.cpp; chop rounding through `x87::ScopedRounding`; the GPU lights the colours, so `ShadeSun` /
+`LightVertex` 006C36B0 / 006C31C0 are not ported since R26: Light keeps the edge fade and the water's specular word, which
+`LightSpecular` packs for the water layer only; its specular lights' channels are 0 without one, so the original's
+"a specular light was seen" flag is not kept).
 
-Facts: terrain_sector.cpp is compiled with `float_control(precise, on)` (running x / y, heights in flight and bounding box
-intermediates are doubles; constants read from the exe; HeightAt taken unrounded through a double-returning forwarder to
-006C8680). `DrawSectorPage` returns 1 at once when sector +0x60 is 2; its function-local statics (guard byte 007C88A0:
-vertex buffer 007C8890, index CWordArray 007C8878, clipped indices 007C8860, per-vertex CByteArray 007C8848; clipped-vertex
-arrays 007C88B8 / 007C88A8, guard 007C88C8; exit handlers 006C1370 / 006C1360 / 006C1350 / 006C1340 / 006C1320 / 006C1300)
-are built on first use and the last two arrays do not keep their contents when they grow; level-of-detail tables 0079699C /
-007969A8 are read from the exe, an out-of-range level reads past them as the original does; the vertex buffer's element is 32
-bytes, so it is four times larger than needed (as in the original); render state 0x1D goes through `*007AF080 + 0x54`.
-Kept: Load passes the error message to FatalError as its format string; Build's texture class index is compared against
+Facts: in terrain_sector.cpp running x / y, heights in flight and bounding box intermediates are doubles. `DrawSectorPage`
+does nothing for a culled sector; the original's draw statics (007C8848..007C88C8) are never built (render_terrain.cpp
+draws the page). Kept: Load passes the error message to FatalError as its format string; Build's texture class index is compared against
 perPage * pages (not 16) before falling back to 15; Load picks a vertex's water material by lowest priority, Build the first
 found (Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48: rewrite guide rule 1).
 Lighting: owner (`TerrainFields`) +0x94 flags (4 edge fade, 0x10 sun shadows), +0x224 ambient, +0x24C..+0x254 the vertex
@@ -279,21 +276,24 @@ Rewritten (grep the address): `Terrain::DrawGround` 006C6230 / `DrawWater` 006C6
 1 around the pages), `DrawPages` 006C6460 (per visible sector: detail, clip test, seams, projection; per page: texture,
 DrawSectorPage; callees through their addresses), `ChooseDetail` 006C66E0, `SectorData::SetDetail` 006C1390, `SunReaches` 006C92C0
 (the sun shadow ray over the vertex grid, from ShadeSun), `EdgeFade` 006CB020 (the map edge's fade byte), `CombineRotation`
-006C6070 (slot 14: the base's, then the world matrix +0x98), `SetLightInterval` 006C9290, `SetWaterLevel` 006CC7F0,
+006C6070 (slot 14: the base's, then the world matrix +0x98, which nothing read: not overridden), `SetLightInterval` 006C9290, `SetWaterLevel` 006CC7F0,
 `BuildTileUv` 006C7940; `CDib` Create / ConstructSized / Construct / CreateObject (006D4BA0, 006D4B30, 006D4AA0, 006D49E0),
 AllocateBits 006D6AB0, MakePalette 006D54D0, Empty / Destruct / Delete (slot 1) / Serialize (slot 2), Size 006D4D10,
 GetRuntimeClass 006D4A60 (slot 0), `CaptureSurfaceRect` 006D6D40 (surface_capture.cpp), `CaptureSurface` 006D6FC0 (the whole
 surface, through 006D6D40), `acks::AckTable<ExtraAcks>::RecordAt` 006D8E30 (from the loader at startup). The CDib functions and
 the captures are reached by `camera` (Scroll Lock screenshot).
 
-Facts. The two passes differ only in the page range: ground 0..pages+1, water pages+2..pages*2+3; a page's texture is
-`pageTextures[page % (pages + 2)]`, bound at the first sector that has tiles on it. They do not touch the device (matrix
+Facts. The two passes differ only in the page range: ground 0..LayerPages()-1, water LayerPages()..2*LayerPages()-1
+(LayerPages() = pages + the two extra pages); a page's texture is `pageTextures[page % LayerPages()]`, bound at the first
+sector that has tiles on it. They do not touch the device (matrix
 pushes, the renderer's SetTexture, DrawSectorPage), so they are ported; the sector's clip test 006BFB20 and seams 006BFB80
 (below 006C0000) are ported there too (A-Z1, items_spells.md). Level of detail: 0 / 1 below the squared distances 0079BD2C /
-0079BD30 from the camera to the sector's centre unless `minDetail` (+0xAA0) forbids it, else 2. The shadow ray: a
+0079BD30 from the camera to the sector's centre, else 2 (the original's `minDetail` +0xAA0 was always 0). The shadow ray: a
 crossing into the next sector in x skips that iteration's y step; a negative slope gives the sign of the sun's z.
-Terrain members named: `drawMatrix` +0x54, `worldMatrix` +0x98, `materials` +0x12C, `lightingSector / X / Y` +0x24C,
-`minDetail` +0xAA0, `waterLevels` +0xAE8 (per sector, per material). `CDib` (0x3C bytes, dib.h): colour table, bits,
+Terrain members: `materials` (+0x12C in the original), `waterLevels` (+0xAE8; per sector, per material). Gone as written
+but never read (C62): the draw and world matrices, the "Wood" page materials (each page made a material of kind 0x12 that
+nothing used), page / tile sizes, the highest light id, the extra page count, `minDetail`, the per-row visible column
+vectors (one rectangle now), and `lightingSector / X / Y` (+0x24C; SunReaches takes the sector and vertex). `CDib` (0x3C bytes, dib.h): colour table, bits,
 header, who owns them (1 new, 2 global memory), image size, mapped file handles, palette. Kept: AllocateBits sizes the
 block without row padding while Write writes `imageSize` (rows padded to four bytes): a screenshot whose row is not a
 multiple of four bytes is written from past the block's end. The captures (`CDXSurface` holder in ECX, the rectangle in

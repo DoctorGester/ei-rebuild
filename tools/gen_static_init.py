@@ -1309,7 +1309,7 @@ RETIRED_STATICS = {
                              "made"),
     0x005B7EF0: (0x005B80BD, "CAIMap::StampWaterPatch (ai_water_patch.cpp) keeps its patch in a function-local static of "
                              "ours: the original's 007C2F64 (guard bit 0 of 007C2F68, released by 005B80C0) is never made"),
-    0x006BFF40: (0x006C1390, "terrain::SectorData::DrawPage (terrain_draw.cpp) hands the page to src/render: the "
+    0x006BFF40: (0x006C1390, "terrain::SectorData::DrawPage (terrain_passes.cpp) hands the page to src/render: the "
                              "original's tile arrays and triangle lists 007C8848..007C88C8 are never built"),
     0x0047ADF0: (0x0047B119, "ObjectSetSortUnique (world_object_sets.cpp) sorts by object id with std::sort: the "
                              "original's radix sort scratch array 007A9738 (freed by 0047B1D0) is never made"),

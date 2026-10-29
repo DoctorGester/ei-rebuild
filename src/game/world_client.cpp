@@ -53,6 +53,15 @@ float CWorldClient::ClampedGroundHeight(float x, float y) {
     return terrain_->HeightAt(cx, cy, 0);
 }
 
+double CWorldClient::RawSurfaceHeightAt(float x, float y) { return terrain_->SurfaceHeight(x, y); }
+
+const char* CWorldClient::AmbienceTimeOfDay() const {
+    float hour = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, 24.0));
+    if (!(hour < 6.0f || hour > 18.0f)) return "day";   // also NaN
+    if (hour >= 22.0f || hour <= 2.0f) return "night";
+    return hour < 6.0f ? "morning" : "evening";
+}
+
 float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
     for (auto& node : list) {
         const Platform& p = node;

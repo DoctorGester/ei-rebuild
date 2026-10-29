@@ -32,7 +32,7 @@ constexpr int kLod0Entries[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 constexpr int kLod1Entries[6] = {0, 2, 3, 5, 6, 8};
 constexpr int kLod2Entries[4] = {0, 2, 6, 8};
 // Triangles per tile, relative to the tile's first emitted vertex; the variants leave out the
-// triangles along an edge to a coarser neighbour (tile edge flags, see terrain_draw.cpp).
+// triangles along an edge to a coarser neighbour (tile edge flags, see FillTiles in terrain_sector.cpp).
 constexpr std::uint16_t kLod0[24] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 3, 4, 7, 3, 7, 6, 4, 5, 8, 4, 8, 7};
 constexpr std::uint16_t kLod0Edge1[21] = {0, 2, 4, 0, 4, 3, 2, 5, 4, 3, 4, 7, 3, 7, 6, 4, 5, 8, 4, 8, 7};
 constexpr std::uint16_t kLod0Edge2[21] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4, 3, 4, 6, 4, 8, 6, 4, 5, 8};
@@ -46,7 +46,7 @@ void PutTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, const std
     for (int k = 0; k < N; ++k) out.push_back(base + pattern[k]);
 }
 
-// The triangles of one tile, as FillIndices (terrain_draw.cpp) picks them.
+// The triangles of one tile, as the original draw picked them.
 void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod, bool seams, const SectorData* s,
                    std::uint8_t edge) {
     if (lod == 2) {
@@ -64,13 +64,13 @@ void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod,
 
 // --- Game memory -------------------------------------------------------------------------------------
 
-// The landscape's page textures: Terrain::pageTextures, an array of CTexture*, indexed page % (pages + 2)
-// (they are bound so before each page).
+// The landscape's page texture of `page` (Terrain::pageTextures, indexed page % LayerPages(); they are bound
+// so before each page).
 const void* PageTexture(const SectorData* s, int page) {
-    const char* owner = reinterpret_cast<const char*>(s->owner);
-    if (!owner || s->pages + 2 <= 0) return nullptr;
-    void* const* textures = *reinterpret_cast<void* const* const*>(owner + 0xD8);
-    return textures ? textures[page % (s->pages + 2)] : nullptr;
+    if (!s->owner || s->LayerPages() <= 0) return nullptr;
+    const std::vector<CTexture*>& textures = s->owner->pageTextures;
+    const int index = page % s->LayerPages();
+    return index < std::ssize(textures) ? textures[index] : nullptr;
 }
 
 // The game's changes to a sector (render::TerrainChanged): how often it was built again (tile lists,
@@ -95,16 +95,12 @@ struct PageVertex {
 };
 static_assert(sizeof(PageVertex) == 36);
 
-// 1 / the water depth scale (terrain_lighting.cpp's kWaterFalloff).
-constexpr float kWaterFalloff = 0.06666667f;
-
-
-// The ground record `index` lies under the sector's water (as ShadeSun and LightVertex test it): its
-// water record, else null.
+// The ground record `index` lies under the sector's water (a water material above it, the depth not negative):
+// its water record, else null.
 const SectorVertex* WaterAbove(const SectorData* s, int index) {
     if (!s->hasWater || index >= kWaterRecords || index + kWaterRecords >= std::ssize(s->records)) return nullptr;
     const SectorVertex& water = s->records[index + kWaterRecords];
-    if (water.waterMaterial == 0xFFFF || SignBit(s->records[index].depth)) return nullptr;
+    if (water.waterMaterial == SectorVertex::kNoWaterMaterial || SignBit(s->records[index].depth)) return nullptr;
     return &water;
 }
 
@@ -117,7 +113,7 @@ PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e) {
             const Terrain* owner = s->owner;
             if (owner && water->waterMaterial < std::ssize(owner->materials)) {
                 float absorption = owner->materials[water->waterMaterial].absorption;
-                v.loss = kWaterFalloff * absorption * record.depth * record.depth;
+                v.loss = terrain::kWaterFalloff * absorption * record.depth * record.depth;
             }
         }
     }
@@ -805,7 +801,7 @@ TerrainCacheInfo TerrainCacheState() {
 }
 #endif
 
-void TerrainPage(const SectorData* s, void* renderer, int page) {
+void TerrainPage(const SectorData* s, const CSceneRenderer* renderer, int page) {
     if (!s || !renderer) return;
     StatsTimer timer(&FrameStats::terrainMs);
     ++g_stats.terrainPages;
@@ -813,7 +809,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     if (f.terrainPieces.size() > 1'000'000) return;   // no present for a long time: drop the rest
     // The clip matrix: the top of the transform pipeline's stack, which the old path transforms the sector's
     // vertices with (the landscape's model matrix pushed by the terrain passes on top of the view).
-    const CTransformPipeline* pipeline = static_cast<const CSceneRenderer*>(renderer)->pipeline_;
+    const CTransformPipeline* pipeline = renderer->pipeline_;
     if (!pipeline) return;
     const MatrixStack& clipStack = pipeline->stacks_[CTransformPipeline::kClipStack];
     const int depth = clipStack.count;
@@ -823,7 +819,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     if (!f.haveFog) ReadFog(f);
     int matrix = AddMatrix(clipStack.matrices[depth - 1]);
     const void* texture = PageTexture(s, page);
-    bool water = page >= s->pages + 2;
+    bool water = page >= s->LayerPages();
     bool seams = lod != 2 && (s->seamBefore != 0 || s->seamAfter != 0);
     bool inView = false;
     for (int q = 0; q < 4 && !inView; ++q) {

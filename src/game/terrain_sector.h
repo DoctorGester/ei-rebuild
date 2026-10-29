@@ -16,12 +16,36 @@
 #include "lib/vecmath.h"
 
 class CLight;
+class CSceneRenderer;
 class CTransformPipeline;
 
 namespace terrain {
 
-constexpr int kSectorRow = 33;                         // vertices per sector row
+constexpr int kSectorCells = 32;                       // cells per sector side, one unit each
+constexpr int kSectorRow = kSectorCells + 1;           // vertices per sector row
+constexpr int kLastVertex = kSectorCells;              // the last vertex of a row / column
 constexpr int kSectorVertices = kSectorRow * kSectorRow;   // per layer
+constexpr int kSectorTiles = 16;                       // tiles per sector side (2 x 2 cells each)
+constexpr int kLayerTiles = kSectorTiles * kSectorTiles;
+
+// Texture pages: the map's `pages` pages hold `perPage` tile textures each, then come kExtraPages pages
+// (<map>L00, <map>L01) of kExtraPageTextures each. The ground tiles use pages 0 .. LayerPages() - 1, the
+// water tiles the same pages numbered after them.
+constexpr int kExtraPages = 2;
+constexpr int kExtraPageTextures = 8;
+constexpr int kMaxPages = 256;                         // room for both layers' pages in the tile counts
+
+// The sector file (<map>XXXYYY.sec): a header (magic, flags), the vertices of each layer (ground, and water
+// with flag 1), the tile words of each tile layer (ground, and water tiles with flag 1 or 2), and with water
+// the water material of each tile.
+constexpr int kSectorHeaderBytes = 5;
+constexpr int kVertexBytes = 8;                        // x, y displacement, height, packed normal
+constexpr int kLayerBytes = kSectorVertices * kVertexBytes;
+constexpr int kTileLayerBytes = kLayerTiles * 2;
+// A tile word: the texture in the low bits, the quarter turns in the top two; kNoTile none.
+constexpr std::uint16_t kTileTextureMask = 0x3FFF;
+constexpr int kTileRotationShift = 14;
+constexpr std::uint16_t kNoTile = 0xFFFF;
 
 struct LightRefBlock;
 
@@ -106,42 +130,70 @@ constexpr int kCulled = 2;
 
 struct SectorPosition : Vector3 {};
 
+// Light lost under water per squared depth and absorption (1 / 15): the GPU lighting's dimming of the ground
+// under water (render_terrain.cpp).
+inline constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;
+
+// A colour word: alpha in the top byte, then red, green, blue (each value shifted into place, not masked).
+constexpr std::uint32_t PackArgb(std::uint32_t a, std::uint32_t r, std::uint32_t g, std::uint32_t b) {
+    return a << 24 | r << 16 | g << 8 | b;
+}
+
+// The sun's ray over the vertex grid (Terrain::SunReaches) turned to rise in both directions: the steps
+// along x and y, their directions (+-1) and the height gained per step.
+struct SunRay {
+    int stepX, stepY;
+    int directionX, directionY;
+    float slopeX, slopeY;
+    // A ray that does not rise takes no step.
+    bool Flat() const;
+    int Length() const { return stepY > stepX ? stepY : stepX; }
+};
+SunRay SunRayOf(const Terrain& terrain);
+
 // `light` is removed from a vertex's list when `remove` is set or the vertex is not nearer than its range to
 // `position`; otherwise it is added at the list's head when missing.
 void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area, bool remove);
 
 struct SectorData {
-    int DrawPage(void* context, int page);
-    std::uint8_t hasSpecular;           // a specular light reached a vertex (Light clears it)
-    SectorStage built;
-    int sx, sy;
-    int hasWater;
-    int hasWaterTiles;                  // a second tile layer (water tiles)
-    const std::uint8_t* data;           // the .sec file after its 5-byte header
-    Terrain* owner;
-    int pages;                          // the owner's
-    int perPage;                        // the owner's
-    SectorBox box;
-    int clipMode;                       // the box's clip test verdict (kCrossing, kCulled)
-    SectorBox quarters[4];
-    int quarterMode[4];
-    float minZ;
-    float maxZ;
+    SectorStage built = SectorStage::None;
+    int sx = -1, sy = -1;
+    bool hasWater = false;
+    bool hasWaterTiles = false;         // a second tile layer (water tiles)
+    const std::uint8_t* data = nullptr;   // the .sec file after its header
+    Terrain* owner = nullptr;
+    int pages = -1;                     // the owner's
+    int perPage = -1;                   // the owner's
+    SectorBox box{};
+    int clipMode = kCulled;             // the box's clip test verdict (kCrossing, kCulled)
+    SectorBox quarters[4]{};
+    int quarterMode[4] = {};
+    float minZ = 0.0f;
+    float maxZ = 0.0f;
     std::vector<std::uint8_t> waterMaterials;
     // The level of detail (0 every vertex, 1 every second column, 2 every second row too) and the seams
     // towards the sectors before / after it.
-    int detail, seamBefore, seamAfter;
+    int detail = 0;
+    bool seamBefore = false, seamAfter = false;
     std::vector<SectorPosition> vertices;
     std::vector<SectorVertex> records;   // ground, then water (zeroed when made)
     std::vector<int> tileTextures;      // per tile, ground then water tiles
-    std::uint8_t tileRotation[0x100];
+    std::uint8_t tileRotation[kLayerTiles] = {};
     std::vector<int> waterTiles;        // water material per tile, -1 none
     std::vector<std::vector<std::uint8_t>> tileFlags[4];  // per quarter, per page
     std::vector<std::vector<TileVertex>> tiles[4];       // per quarter, per page (9 per tile)
     std::vector<AnimatedTile> animated;
     std::vector<int> classCounts;       // 16 texture classes
-    int lastUsed;                       // owner frame of the last use
-    int relightCountdown;               // frames until the lighting is dropped (RelightTick), -1 none
+    int lastUsed = 0;                   // owner frame of the last use
+    int relightCountdown = 0;           // frames until the lighting is dropped (RelightTick), -1 none
+
+    SectorData() = default;
+    ~SectorData();
+    SectorData(const SectorData&) = delete;
+    SectorData& operator=(const SectorData&) = delete;
+
+    // The texture pages of one tile layer.
+    int LayerPages() const { return pages + kExtraPages; }
 
     // Vertex positions and water tiles. Returns 1, or FatalError's result for a missing or malformed file.
     int Load(CMappedResource* archive, int sx, int sy, int pages, int perPage, const char* prefix, Terrain* owner);
@@ -153,38 +205,36 @@ struct SectorData {
     void ApplyWaterLevels();
 
     // `wanted`: SectorStage::Built, SectorStage::Lit. Builds what of it is missing.
-    void Ensure(SectorStage wanted, Terrain* owner);
-
-    // Also sizes the shared projection buffers (positions, projected, outcodes) for 0x330 vertices.
-    SectorData();
-    ~SectorData();
-    SectorData(const SectorData&) = delete;
-    SectorData& operator=(const SectorData&) = delete;
+    void Ensure(SectorStage wanted);
 
     // The quarters not culled, at `detail`, ground then water: each quarter's mode becomes its clip result
-    // (2 for -1); a crossing quarter's records get their outcodes, the others 0. Returns clipMode.
-    int Project(CTransformPipeline* pipeline);
+    // (2 for -1); a crossing quarter's records get their outcodes, the others 0.
+    void Project(CTransformPipeline* pipeline);
+    // Page `page` to the renderer, the pending water levels applied first; nothing when culled.
+    void DrawPage(const CSceneRenderer* renderer, int page);
 
     // The vertices x0..x1, y0..y1 (inclusive, 0..32) of the water layer (where it has a material), then of
     // the ground, with the FPU in chop rounding. Without skipSun relightCountdown becomes -1 (and the sun's ray
     // march runs where it can change the sector cache).
-    void Light(Terrain* owner, bool skipSun, int x0, int y0, int x1, int y1);
-    // The water layer's specular word (maxima per channel of the flag 0x40 lights, the edge fade above them);
-    // the GPU lights the colours.
-    void LightSpecular(const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
+    void Light(bool skipSun, int x0, int y0, int x1, int y1);
+    // Water record `i`'s specular word: the edge fade, then per channel the maximum of the specular lights
+    // (LightFlag::Specular); the GPU lights the colours.
+    void LightSpecular(int i);
 
-    // The per-quarter arrays keep their sizes.
+    // The records and tile lists emptied (the per-quarter arrays keep their sizes); no sector (-1, -1),
+    // nothing built, culled, pages / perPage -1, the rest of the scalar state 0. Build sets the boxes and
+    // heights again.
     void Clear();
-    // Sector (-1, -1), pages / perPage -1, clipMode 2, the rest 0.
-    void ResetFields();
     // Starts or shortens the relight countdown to `frames`.
     void ScheduleRelight(int frames);
     // At 0 the lighting is dropped, so the next draw relights the sector.
     void RelightTick();
-    // Every third frame, with owner flag 2, the animated tiles step to their next frame (one whose frame is 0
-    // and whose speed is below 1000 only when an ISAAC draw % 1000 + 1 is within the speed); with owner flag 1
-    // and water, the water vertices move with the waves and the crests get a specular colour.
-    void Animate(Terrain* owner, int frame);
+    // Every third frame, with LandscapeFlag::AnimatedTiles, the animated tiles step to their next frame (one
+    // whose frame is 0 and whose speed is below 1000 only when an ISAAC draw % 1000 + 1 is within the speed).
+    void AnimateTiles(int frame);
+    // With LandscapeFlag::Waves and water, the water vertices move with the waves and the crests get a
+    // specular colour.
+    void AnimateWaves();
 
     // Whether the last clip test did not cull the sector.
     bool IsDrawn() const;
@@ -196,7 +246,8 @@ struct SectorData {
 };
 
 struct TerrainMaterial {
-    int kind;                           // 4: water that keeps the ground's x, y
+    static constexpr int kKeepsGroundXY = 4;   // the kind of water whose vertices keep the ground's x, y
+    int kind;
     Vector3 waveColour;                 // specular of the wave crests (Animate)
     float opacity;                      // as the map file has it
     float absorption;                   // light lost per squared depth under water (lighting): 1 / (1 - opacity)

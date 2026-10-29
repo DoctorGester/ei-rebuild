@@ -125,6 +125,26 @@ __declspec(naked) inline void __cdecl SetControlWord(std::uint32_t /*word*/) {
     __asm ret
 }
 
+// The FPU's rounding mode switched to `rounding` (kRoundNear .. kRoundChop) for the scope; the word is
+// loaded only when it changes, and put back only then.
+class ScopedRounding {
+public:
+    explicit ScopedRounding(std::uint32_t rounding) : saved_(ControlWord()) {
+        const std::uint32_t wanted = (saved_ & ~kRoundingBits) | rounding;
+        changed_ = wanted != saved_;
+        if (changed_) SetControlWord(wanted);
+    }
+    ~ScopedRounding() {
+        if (changed_) SetControlWord(saved_);
+    }
+    ScopedRounding(const ScopedRounding&) = delete;
+    ScopedRounding& operator=(const ScopedRounding&) = delete;
+
+private:
+    std::uint32_t saved_;
+    bool changed_;
+};
+
 // FISTP: float to int using the FPU's current rounding mode (round-to-nearest by default), unlike
 // a C++ cast, which truncates. Inlined at each call (R16c4): the same FLD / FISTP dword under the same
 // control word as the naked function it replaced, without the call (a quarter of SectorData::Animate's
