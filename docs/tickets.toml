@@ -953,7 +953,7 @@ title = "Native interface by default under present"
 group = "native-ui"
 size = 1
 depends = ["P3a", "P3b", "P3c", "P3d", "P4", "P5", "P6"]
-note = "Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated."
+note = "Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated.  Text metrics: GDI's until here (user 2026-10-29); P8 switches to our own metrics in ui_native_fonts.cpp, needs P2a's fonts beside the exe."
 
 [[ticket]]
 id = "N0a"

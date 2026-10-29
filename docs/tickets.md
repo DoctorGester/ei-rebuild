@@ -106,14 +106,14 @@ Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with th
 
 Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src/render, own font loading (user 2026-10-14).
 
-- **P3a** Native menus and dialogs (ready; 1 session). Main menu, message box, difficulty, options, objectives, credits text, escape-menu backdrop and save picture. After: P2.
+- **P3a** Native menus and dialogs (running since 2026-10-29; opus, 1 session). Main menu, message box, difficulty, options, objectives, credits text, escape-menu backdrop and save picture. After: P2.
+- **P4** Native console and debug panel (running since 2026-10-29; sonnet, 1 session). After: P1, N2.
 - **P3b** Native HUD (ready; 1 session). Unit-panel name, top panel and message log, tooltips, quick strip, clock. 006462A0 native only in vanilla until W3. After: P2.
 - **P3c** Native camp, hero, trade and item info (ready; 1.5 sessions). Under Rebirth the camp / hero screens wait for W4. After: P2.
 - **P3d** Native briefing, global map titles, help page, chat (ready; 1 session). Help page and global map wait for W4 under Rebirth. After: P2.
-- **P4** Native console and debug panel (ready; 1 session). After: P1, N2.
 - **P5** Native edit, chat, connect and save/load lines and carets (ready; 1 session). After: P1, W2.
 - **P2a** Font files with the product (ready). Native text loads Liberation from EI_FONT_DIR (the source tree's third_party/fonts). Install the fonts beside ei_standalone.exe (build.cmd, play.cmd's build\play) and call render::text::SetFontDirectory at start-up before P8 makes native text the default; a missing file falls back to GDI today (ui-native.md, P2 done). After: P2.
-- **P8** Native interface by default under present (waiting on P3a, P3b, P3c, P3d, P4, P5; 1 session). Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated.
+- **P8** Native interface by default under present (waiting on P3a, P3b, P3c, P3d, P4, P5; 1 session). Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated.  Text metrics: GDI's until here (user 2026-10-29); P8 switches to our own metrics in ui_native_fonts.cpp, needs P2a's fonts beside the exe.
 - **N0** Census of interface drawing per window and surface (done 2026-10-14; 1 session). Interface drawing census: no uncaught drawing, addon.dll makes no GDI calls; docs/notes/ui-census.md, EI_UI_CENSUS=1 EI_RENDER=new,cpuwindows, tools/ui_census_report.py --summary. Files: `tests/verify/ui_census.cpp`, `src/game/ui_surface_dc.cpp`, `src/game/ui_window.cpp`.
 - **N1** 2D canvas layer (done 2026-10-21; 2 sessions). Render targets, command queue, fill / frame / line / pixel / glyph run / copy frame / greyscale / readback, a Canvas command in the frame, 16-bit quantise. Few lines in render.cpp (SV1 edits it too). Files: `src/render/render_ui.{h,cpp}`, `src/render/render.cpp`, `src/render/render_internal.h`. After: SV1.
 - **N2** Font loading, glyph atlas and DrawText-compatible layout (done 2026-10-14; 2 sessions). render::text (stb_truetype with Liberation Serif / Mono, GlyphAtlas, Layout, TextExtent, DecodeCp1251); ei_text_check has --rules, --gdi and --report; not pixel-exact with GDI. Files: `src/render/render_text.{h,cpp}`, `third_party/stb`, `third_party/fonts`.
