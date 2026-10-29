@@ -29,9 +29,9 @@ constexpr float kFogTileSize = 0.25f;
 // zero, an empty cell map; null when the allocation fails.
 CEngineObject* ClientArrayManager::NewObject(int) { return new CVisibilityFog(); }
 
-// The texture, the tile table, then the manager's own Create (its result).
-void VisFogManagerCreate(ClientArrayManager* self) {
-    LoadNamedTexture(self->texture, kFogTextureKind, FogTextureName());
+// The texture, the tile table, then the manager's own Create.
+void ClientArrayManager::Create() {
+    LoadNamedTexture(texture, kFogTextureKind, FogTextureName());
     FogTile* tiles = g_fogTiles;
     for (int i = 0; i < kFogTiles; ++i) {
         FogTile& tile = tiles[i];
@@ -40,7 +40,7 @@ void VisFogManagerCreate(ClientArrayManager* self) {
         tile.u1 = tile.u0 + kFogTileSize;
         tile.v1 = tile.v0 + kFogTileSize;
     }
-    self->CBaseManager::Create();
+    CBaseManager::Create();
 }
 
 // The texture dropped (null, then released), every fog released, the list emptied.
@@ -51,24 +51,20 @@ void VisFogManagerDestroy(ClientArrayManager* self) {
 }
 
 // Every fog's tick; one that returns false (no cells left) leaves the list and is released.
-void VisFogManagerTick(ClientArrayManager* self) {
-    for (auto node = self->list.begin(); node != self->list.end();) {
+bool ClientArrayManager::RunTick() {
+    for (auto node = list.begin(); node != list.end();) {
         CEngineObject* fog = *node;
         if (fog->RunTick()) {
             ++node;
             continue;
         }
-        node = self->list.erase(node);
+        node = list.erase(node);
         fog->Release();
     }
-}
-
-void ClientArrayManager::Create() { VisFogManagerCreate(this); }
-void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
-bool ClientArrayManager::RunTick() {
-    VisFogManagerTick(this);
     return false;
 }
+
+void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
 
 // A new fog (CreateObject(0, -1): registered and created), counted, at the list's end.
 CEngineObject* VisFogManagerAdd(ClientArrayManager* self) {

@@ -47,10 +47,9 @@ CMapObjectManager::~CMapObjectManager() {}
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
 const char* CMapObjectManager::ClassName() { return kClassName; }
 ClassId CMapObjectManager::GetClassId() { return ClassId::MapObjectManager; }
-void CMapObjectManager::Create() { CreateManager(); }
 CEngineObject* CMapObjectManager::CreateObject(int type, int id) { return CreateMapObject(type, id); }
 
-void CMapObjectManager::CreateManager() {
+void CMapObjectManager::Create() {
     std::string folder = g_textFolder;
     CBaseManager::Create();
     AddArchive((folder + "database.res"));
@@ -88,7 +87,7 @@ FigureAnimation* CMapObjectManager::FindAnimation(const std::string* figure, std
     return nullptr;
 }
 
-int CMapObjectManager::GiveDefaults(CMapObject* object) {
+void CMapObjectManager::GiveDefaults(CMapObject* object) {
     // The vitals and statistics start zeroed, so the fields Reset and SetDefaults leave (the shares and factors,
     // fixedMaxHitPoints, builtFlags, the layers' spare values, ...) are 0, not what the stack held: a determinism
     // fix. The original's were CWorldServer::CreateObject's earlier callees' leftovers, heap addresses among them,
@@ -107,5 +106,4 @@ int CMapObjectManager::GiveDefaults(CMapObject* object) {
     }
     object->ScaleEffectChanged(false);
     object->prototypeId_ = 0;
-    return 1;
 }

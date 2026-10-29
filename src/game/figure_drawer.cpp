@@ -54,16 +54,12 @@ FigureMeshDrawer::FigureMeshDrawer() = default;
 
 FigureMeshDrawer::~FigureMeshDrawer() { flags_ = 0; }
 
-void FigureMeshDrawer::CreateDrawer() {
-    flags_ = 0;
-}
-
 void FigureMeshDrawer::DestroyDrawer() {
     mesh_ = nullptr;
     flags_ = 0;
 }
 
-void FigureMeshDrawer::Create() { CreateDrawer(); }
+void FigureMeshDrawer::Create() { flags_ = 0; }
 void FigureMeshDrawer::Destroy() { DestroyDrawer(); }
 const char* FigureMeshDrawer::ClassName() { return FigureClientSpecificClassName(this); }
 ClassId FigureMeshDrawer::GetClassId() { return ClassId::FigureMeshDrawer; }

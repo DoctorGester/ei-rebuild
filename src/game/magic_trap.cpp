@@ -258,7 +258,7 @@ void MagicTrap::LoadTrap(CStream* stream) {
 
 // --- Create, Destroy, the update, firing, forgetting a removed object -------------
 
-void MagicTrap::CreateTrap() {
+void MagicTrap::Create() {
     CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
@@ -279,7 +279,7 @@ void MagicTrap::DestroyTrap() {
     ClearVictims(this);
 }
 
-bool MagicTrap::UpdateTrap() {
+bool MagicTrap::RunTick() {
     CMapObject::Update();
     auto* world = WorldContext();
     if (!world->IsServer() || !spell) return true;

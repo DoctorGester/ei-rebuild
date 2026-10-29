@@ -88,7 +88,7 @@ here is gone. Facts a worker needs:
   0073B8E0, no owner). CObject3D slots 14 CombineRotation3D (0040CB80's body), 20 CopyFigure, 19 AttachSpecific, 5
   RemoveAllEffectSources, 22-24 DrawFigure / DrawCollectDirty / DrawFigureShadow (object3d_slots.cpp). Map object Load / Save
   0050F7A0 / 0050F900, server 005159D0 / 00515AC0 (slots 9 / 10); CMapObjectServer Create / Destroy 005157C0 / 005157E0 (2 / 3),
-  CompanionQuery 0050E460 (31), CUnitClientSpecific HasWeaponModels / HasArmourModels 005391B0 / 005391E0 (36 / 37),
+  CUnitClientSpecific HasWeaponModels / HasArmourModels 005391B0 / 005391E0 (36 / 37),
   ApplyScience 0050F0F0 (41: logs, false) / FreeArray (44), CreateClientCompanion 00510770 (2), DeleteClient 00533E80 (0).
 - Animation: `AnimationTrack::Evaluate` 0050ACD0 (class 0x300B, vtable 0073D9D8, 0x78 bytes; `frames` +0x38 and `vertices` +0x68 are
   AlignedArrays; LoadKeyFrames 0050AAF0: rotations, positions, frame and vertex counts from the model entry, arrays sized without

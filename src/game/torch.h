@@ -18,7 +18,9 @@ public:
     // The spec released (the pointer kept), then the map object's destructor.
     ~CTorchObject() override;
 
-    void Create() override { CreateTorch(); }
+    // The map object's Create, the spec released and cleared, 5 network fields (SetSize inlined), then
+    // DeltaState::Reset (map_object_create.cpp).
+    void Create() override;
     void Destroy() override { DestroyTorch(); }
     bool RunTick() override { return true; }   // no map object update
     void Load(CStream* stream) override;                      // LoadTorch
@@ -30,10 +32,7 @@ public:
     std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }
     void WriteNetState() override { WriteTorchNetState(); }
 
-    // map_object_create.cpp. Create: the map object's Create,
-    // the spec released and cleared, 5 network fields (SetSize inlined), then
-    // DeltaState::Reset. Returns 1.
-    void CreateTorch();
+    // map_object_create.cpp.
     // Destroy. The spec released and cleared, the network state reset
     // then the map object's Destroy.
     void DestroyTorch();

@@ -40,7 +40,7 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
     if (anm) animations->OpenFromMemory(anm);
 }
 
-void CFigureManager::CreateWithArchives() {
+void CFigureManager::Create() {
     CBaseManager::Create();
     // Rebirth's ResOverride: the mod's figure archives come first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {

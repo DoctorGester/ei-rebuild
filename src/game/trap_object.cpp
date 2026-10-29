@@ -31,12 +31,12 @@ CTrapObject::CTrapObject() {
     flags_ &= ~MapObjectFlag::NotDrawn;
 }
 
-void CTrapObject::CreateTrap() {
+void CTrapObject::Create() {
     CreateMapObject();
     flags_ &= ~MapObjectFlag::NotDrawn;
 }
 
-bool CTrapObject::UpdateTrap() {
+bool CTrapObject::RunTick() {
     Update();
     if (!(flags_ & MapObjectFlag::Armed)) return false;
     if (!WorldContext()->IsServer()) return false;

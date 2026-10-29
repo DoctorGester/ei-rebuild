@@ -85,12 +85,12 @@ Every function carries its address in its source comment (grep it); the per-func
   (RET 0x20) / Play3D 006B8600 (RET 0x1C), LoadSample 006B89F0 (RET 0x10), AllocateVoice 006B7D10 (first free voice, else steals the
   lowest priority below `priority`; a looping sound is deferred with its sample position; -1 only when all voices play at >= priority),
   StopAll(stopStream) 006B71C0 (originals_ui.h's `LoadingStepOriginal` is this), WaveLength 006B96E0 (7 bytes).
-- `CMusicSystem`: `LoadThemes` 006B4710 (named so: Create is a CEngineObject virtual, rule 4), Construct 006B4350, DestructBody 006B44B0,
+- `CMusicSystem`: `Create` 006B4710 (loads the themes), Construct 006B4350, DestructBody 006B44B0,
   DeletingDestruct 006B4490, `ResetThemes` 006B4690 (slot 3; strings become "none" 007846F0, theme +0x3C kept), class name / id 0xE
   006B4470 / 006B4480, FadeOut / FadeIn 006B4E10 / 006B4E20 (the manager's stream; ECX unused), SetZoneMode 006B4E30, Stop / PlayBriefing /
   PlayConstructor / PlayCredits / PlayMainMenu / PlayJingle 006B4F70-006B5270, UpdateMusic 006B5350 (slot 6; returns 1, inCombat follows
   the fight state). CMusicSystem and CSoundManager derive from CEngineObject.
-- `CSoundManager` lifetime: class name / id 0xE 006B6290 / 006B62A0, CurrentStreamName 006BAEA0, CreateBody 006B6D70 (slot 2: Reset, 1),
+- `CSoundManager` lifetime: class name / id 0xE 006B6290 / 006B62A0, CurrentStreamName 006BAEA0, Create 006B6D70 (slot 2: Reset),
   DeletingDestruct 006B62B0, ClearWaveSources, AddWaveSource, LoadWaveFile, SetPath 006BAE20 (startup 00456440 calls SetPath and
   AddWaveSource), SoundStreamRead 006BA950 (the stream file's read callback, stream thread), Construct 006B6040, DestructBody 006B65D0,
   ResetStream 006BA9C0 (runs on the manager's +0x100, a `__fastcall` shim), `Open` 006B6A30 (RET 0x14: window, reverb, DirectSound device
@@ -104,7 +104,7 @@ original's first compare is "below 70 or unordered"); a silent one-shot returns 
 initialised but not playing; Play3D's deferred record leaves volume, base volume, pan and length as
 operator new returned them. LoadSample's 4th argument means "the file is an MP3" (Play2D passes its
 last argument, Play3D 0); a cached MP3 loads nothing; the cache trim keeps waves used within 60 s
-while cache + new wave stays under 8 MB, otherwise frees a node with no uses. LoadThemes calls the
+while cache + new wave stays under 8 MB, otherwise frees a node with no uses. Create calls the
 registry through forwarders (00694520 / 00694540 / 006945A0 / 00694880 / 00694D20 / 006958E0) so the
 registry's wrappers stay in the path; the theme array grows with SetSize(n+1, -1) 006B59A0 and the
 assignment 006B4D40.

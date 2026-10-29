@@ -760,8 +760,7 @@ public:
     void Destroy() override;
     // The client's tick. True; false when the session's view has lost its connection (the session is
     // disconnected, FatalError; Rebirth's DisableExitOnCrashReport keeps the session).
-    bool Segment();
-    bool RunTick() override { return Segment(); }
+    bool RunTick() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     const char* TexturePath() override;

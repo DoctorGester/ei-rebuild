@@ -772,12 +772,11 @@ public:
     ~CVisibilityFog() override;
     void Create() override;
     void Destroy() override { ClearCells(); }
-    bool RunTick() override { return UpdateCells(); }
+    bool RunTick() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
     void ComputeBounds();
-    bool UpdateCells();
     void Reveal(const FogGrid* grid);
     // Every cell freed (nodes back to the pool), the bounds invalid.
     void ClearCells();

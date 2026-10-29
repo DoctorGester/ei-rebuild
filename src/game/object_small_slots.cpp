@@ -40,10 +40,6 @@ void CMapObjectServer::Destroy() {
     owner = nullptr;
 }
 
-int CMapObject::CompanionQuery(int first, int second) {
-    return companion->Query(first, second);
-}
-
 // The game's function reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not
 // weaponIds: the name is provisional. Found when zone bz1g's units mismatched.
 bool CUnitClientSpecific::HasOtherArmour() {

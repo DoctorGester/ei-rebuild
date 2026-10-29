@@ -132,7 +132,6 @@ int CUnit::Level() {
 
 // --- The virtuals -------------------------------------------------------------
 
-void CUnit::Create() { CreateUnit(); }
 void CUnit::Destroy() { DestroyUnit(); }
 void CUnit::ClearState() { ReleaseUnit(); }
 bool CUnit::RunTick() {

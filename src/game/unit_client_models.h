@@ -81,7 +81,7 @@ public:
     ~CUnitClientSpecific() override;
 
     // No sources, times, animation or motion order, weapon / arrow shown, heading snapped, fully faded in, no sounds,
-    // speech, flash, footprint or blink, every armour and weapon model -1, the face texture released. Returns 1.
+    // speech, flash, footprint or blink, every armour and weapon model -1, the face texture released.
     void Create() override;
     void Destroy() override;
     const char* ClassName() override;
@@ -130,7 +130,7 @@ public:
     // animation has no such node.
     bool WeaponPoint(Vector3* out);
 
-    // The per-tick update on the client; see docs/notes/units.md, "CUnitClientModels per-tick update". Returns 1.
+    // The per-tick update on the client; see docs/notes/units.md, "CUnitClientModels per-tick update".
     bool RunTick() override;
     // The blink. With a face texture and a skin texture (the client half's material), unless the eyes already
     // are so (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye rectangle
@@ -146,8 +146,8 @@ public:
     // The level from the packed experience: ln(experience / considerModifier) / ln(considerLogBase) stored as
     // a float and rounded to nearest (0x80000000 for experience 0).
     int Level() override;
-    // When the wounds texture is needed the client half shows "mo<unit id>w", else none. Returns 1.
-    int RefreshWounds() override;
+    // When the wounds texture is needed the client half shows "mo<unit id>w", else none.
+    void RefreshWounds() override;
     // Hides (`hidden`) or shows the figure parts of the weapon in hand (flags_ 0x80) unless weaponHidden
     // already says so; weaponHidden and arrowHidden take the new state.
     void ShowWeaponParts(bool hidden);

@@ -21,7 +21,7 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
   PartRectsMeet; `FindPart` / `SetLit` on it are the base's slots 16 / 26.
 - `CObject3DClientSpecific::Draw` / `DrawShadow` take the `CSceneRenderer*` (model.h). Draw uses the pipeline's matrix stacks (PushMatrix,
   PushMatrixProduct, PopMatrix on stacks 1-3); the shadow uses stack 10. `FigurePart` has `orientation` (+0x34) and `worldMatrix` (+0x54);
-  `ObjectWorldMatrix` is shared by the draw and the shadow. `CTorchObject::CreateTorch` is a member (`map_object_create.cpp`).
+  `ObjectWorldMatrix` is shared by the draw and the shadow. `CTorchObject::Create` is a member (`map_object_create.cpp`).
   `CObject3D::figure` is a `Ref<CLinkMesh>` (`figure.Assign` is 00519580) and `DirtyRect()` replaces hand-made casts. `LightManager()` is one copy in map_object.h; the
   client file uses spell.h's `TheLightFactory()->litIds_`. The shadow's naked `Fpatan` is `x87::fpatan`.
 
@@ -45,6 +45,6 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
   unknown_00` is unnamed (cleanup-figures.md). `CompanionOwner()` is still used by `map_object_client_effects.cpp`, whose locals cache the owner.
 - `ShowHit` (slot 16) and the server's `TakeHit` (slot 20, past the declared slots) are not overrides. These stay free functions registered at
   several addresses: the shared stub bodies in `map_object_stub_slots.cpp` and the companion's empty slots (`CompanionIgnore`,
-  `CompanionNothing`, `CompanionQuery`, `CompanionHit`).
+  `CompanionNothing`, `CompanionHit`).
 - Forwarders that could become direct calls: `LightViewMatrix` / `LightRotation` (004F1440 / 004F15C0) in the shadow; `CallCreate3D` is kept
   deliberately so the verify wrapper runs.

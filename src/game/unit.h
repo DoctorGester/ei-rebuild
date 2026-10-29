@@ -162,7 +162,7 @@ public:
     // After the items changed; the client reloads a hero's two figure textures when their names change.
     virtual void RefreshEquipment() {}
     virtual int RefreshModel() { return 0; }     // after a weapon change
-    virtual int RefreshWounds() { return 0; }
+    virtual void RefreshWounds() {}
     // Count capped at 7.
     virtual void SetArmourModels(const std::uint32_t*, int) {}
     // Count capped at 4.
@@ -405,9 +405,6 @@ public:
     // (one IsaacRandom draw) is emptied; marks part 5. Returns the item, null when there is none (nothing
     // changes then).
     CItem* TakeRandomItem();
-
-    // The map object's Create, Reset, then 14 network fields.
-    void CreateUnit();
 
     // An animation entry of the unit's figure for `key` (bits: docs/notes/combat.md), only for units (type_
     // 0x32..0x34): a random entry matching the key, else one matching the key without its low 15 bits, else

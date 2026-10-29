@@ -238,7 +238,7 @@ UnitNpcRecord* NpcPrototypeTable::FindByName(std::string_view name) {
 
 // --- Builders ---------------------------------------------------------------------------------
 
-int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
+void CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     if (!stats) {
         vitals->hitPoints = kThousand;
         vitals->maxHitPoints = kThousand;
@@ -250,7 +250,7 @@ int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
             protection.current = kHundred;
             protection.base = kHundred;
         }
-        return 1;
+        return;
     }
     stats->experience = 0.0f;
     stats->strengthBase = kDefaultStat;
@@ -282,7 +282,6 @@ int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
             std::memset(layer.absorb, 0, sizeof(layer.absorb));
         }
     }
-    return 1;
 }
 
 int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, std::string_view name) {
@@ -360,11 +359,14 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     return 1;
 }
 
-int BuildNpcStats(UnitStats* stats, const std::string& name) {
+void BuildNpcStats(UnitStats* stats, const std::string& name) {
     const UnitPrototypeRecord* prototype = FindPrototype(name);
     const UnitModelRecord* model = ModelOf(prototype);   // reads the prototype before the null test
     const UnitNpcRecord* npc = FindNpc(name);
-    if (!prototype) return game::FatalError("Can't find prototype \"%s\" for new HERO.\n", name);
+    if (!prototype) {
+        game::FatalError("Can't find prototype \"%s\" for new HERO.\n", name);
+        return;
+    }
     if (!npc) game::DebugLog("Can't find NPC prototype \"%s\" for new HERO.\n", name);
     stats->Reset();
 
@@ -419,7 +421,6 @@ int BuildNpcStats(UnitStats* stats, const std::string& name) {
     stats->ResetToBase(1.0f);
     stats->RefillSlots();
     stats->ResetToBase(1.0f);
-    return 1;
 }
 
 MapObjectType PrototypeObjectClass(std::string_view name) {
@@ -547,7 +548,7 @@ bool UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1;
 }
 
-int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& name) {
+void CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& name) {
     UnitVitals vitals{};   // zeroed (the stack's old contents are not kept)
     UnitStats stats{};
     const UnitPrototypeRecord* prototype = FindPrototype(name);
@@ -564,7 +565,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& nam
         object->ScaleEffectChanged(false);
         object->prototypeId_ = 0;
         game::DebugLog("Can't find prototype \"%s\" for object %d.\n", name, object->id_);
-        return 1;
+        return;
     }
     const UnitModelRecord* model = ModelOf(prototype);
     if (object->GetClassId() == ClassId::Unit) {
@@ -588,7 +589,6 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& nam
     }
     UnitPrototypeRecord* record = g_unitDatabase.prototypes.FindByName(name);
     object->prototypeId_ = record ? static_cast<std::uint32_t>(record - g_unitDatabase.prototypes.records.data()) : 0xFFFFFFFFu;
-    return 1;
 }
 
 // --- The factory ------------------------------------------------------------------------------

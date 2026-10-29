@@ -18,8 +18,12 @@ class CTrapObject : public CMapObject {
 public:
     CTrapObject();
 
-    void Create() override { CreateTrap(); }
-    bool RunTick() override { return UpdateTrap(); }
+    void Create() override;                                   // the map object's Create, flags_ bit 0x40 cleared
+    // The map object's update; then, armed (flags_ 0x80000) on the server (the
+    // context's query): the units within 1 of the position (the sector map). With any, the
+    // world script above runs (on the mission script, z = what the world's virtual gives at x, y)
+    // and the trap disarms; with none, flags_ 0x100000 is cleared. False.
+    bool RunTick() override;
     void Load(CStream* stream) override;                      // LoadTrapObject
     void Save(CStream* stream) override;                      // SaveTrapObject
     const char* ClassName() override;                         // "CTrapObject"
@@ -30,13 +34,6 @@ public:
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     bool AcceptsKey(const LockKey* key) override { return KeyFits(key); }
 
-    // The map object's Create, flags_ bit 0x40 cleared; returns Create's result.
-    void CreateTrap();
-    // The map object's update; then, armed (flags_ 0x80000) on the server (the
-    // context's query): the units within 1 of the position (the sector map). With any, the
-    // world script above runs (on the mission script, z = what the world's virtual gives at x, y)
-    // and the trap disarms; with none, flags_ 0x100000 is cleared. Returns 0.
-    bool UpdateTrap();
     // An armed trap disarms when `key` accepts (always); returns true. The second argument is not read.
     bool Disarm(const LockKey* key);
     // The check's result (1).

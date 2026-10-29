@@ -36,7 +36,9 @@ public:
     CFigureManager();
     ~CFigureManager() override;
 
-    void Create() override { CreateWithArchives(); }
+    // Create (Rebirth patches it; vanilla only): the base's Create, then the archives "figures.res" and
+    // "menus.res" and the menus' rectangles.
+    void Create() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
@@ -57,9 +59,6 @@ public:
     // CBaseManager::CreateObject; a new figure (classes 0x41-0x44) also gets a drawer: a
     // class 0x45 object (id -1) of the context's specific manager.
     CEngineObject* CreateFigureObject(int type, int id);
-    // Create (Rebirth patches it; vanilla only): the base's Create, then the archives "figures.res" and
-    // "menus.res" and the menus' rectangles. Returns 1.
-    void CreateWithArchives();
 
     // (The interface's model manager too.) A figure object, loaded from "<name>.fig" when named (released and null
     // when the file is missing); the empty object without a name.

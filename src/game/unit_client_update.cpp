@@ -145,7 +145,7 @@ int CUnitClientSpecific::Level() {
     return x87::RoundToInt(level);
 }
 
-int CUnitClientSpecific::RefreshWounds() {
+void CUnitClientSpecific::RefreshWounds() {
     if (ComposeWoundsTexture()) {
         char name[0x80];
         std::snprintf(name, sizeof(name), "mo%dw", unit->id_);
@@ -153,5 +153,4 @@ int CUnitClientSpecific::RefreshWounds() {
     } else {
         unit->ClientSpecific()->HideWounds();
     }
-    return 1;
 }
