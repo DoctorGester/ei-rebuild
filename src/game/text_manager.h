@@ -1,19 +1,23 @@
 #pragma once
 
-// Item names and descriptions from the game's text resources. A text manager holds a list of resource
-// archives (CMappedResource) and a read cursor into the last text it found. A text is looked up by key
-// ("string format_item1", "weapon SWORD IRON", ...): the first archive that knows the key wins, and the cursor
-// is set to the start of the file's data. Then one line is read from the cursor (the name) or up to a '#' (the
+// The text manager: texts from the game's text resources (strings, item names and descriptions, the texts the
+// script, quest and help code read line by line). A text manager holds a list of resource archives
+// (CMappedResource) and a read cursor into the last text it found. A text is looked up by key ("string
+// format_item1", "weapon SWORD IRON", ...): the first archive that knows the key wins, and the cursor is set to the
+// start of the file's data. Then one line is read from the cursor (the name) or up to a '#' (the
 // description). Item keys are the record's name, spaces replaced by '_' and upper-cased, after a prefix that
 // depends on the item kind.
 
-#include "item.h"
+#include "engine_object.h"
 
 #include <cstdint>
 #include <list>
 #include <string>
 #include <string_view>
 #include <vector>
+
+class CItem;
+class CMappedResource;
 
 // An archive the texts are looked up in.
 struct TextSource {

@@ -5,7 +5,7 @@
 // text, the sprites' Place, SetRectangle and SetFrame, the regions' SetRect. See docs/notes/items_spells.md.
 #include "ui.h"
 
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "object_tables.h"      // FindCommandByKey
 #include "ui_widescreen.h"
 

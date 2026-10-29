@@ -2,12 +2,13 @@
 // See docs/notes/ui.md ("Camp, global map, hero screens").
 // Floating point follows the x87 code of the original game: `double` for values it keeps on the FPU
 // stack, static_cast<float> where it stores to a float. Constants are read from memory.
+#include "item_manager.h"
 #include "ui.h"
 #include "ui_float.h"
 #include "ui_camp.h"
 
 #include "console.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"

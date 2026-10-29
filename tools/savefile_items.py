@@ -7,7 +7,7 @@ CBaseManager::SaveObjects (00404860) writes each object's Save (virtual slot 10)
     0x5A CEffectWall 00679ED0, 0x5B CEffectArrowFigure 0067C290, 0x5E CEffectShowVisibility 0067C910,
     99 CEffectSoundSeq 00677430, 100 CEffectMoshka (the base's slot 10: nothing), 0x65 CEffectTornado 0067E070
   spell (manager4C, CSpellManager): 0x3002 CSpell::SaveSpell 0068B920, 0x3003 CSpellContainer (00402D10: nothing)
-  item (the item manager): CItem::Save 006A0360 and the subclasses' (item_save.cpp): 0x3004 weapon 006A2EB0,
+  item (the item manager): CItem::Save 006A0360 and the subclasses' (item.cpp): 0x3004 weapon 006A2EB0,
     0x3005 armour 006A3AA0, 0x3006 quick 006A3CA0, 0x3007 loot 006A5680, 0x3008 spell item (CItemQuick's
     006A3CA0), 0x3009 quest 006A4590
 Then SaveWorld's lists: the missiles (CSpellEffect::Save 0067E960), the AI events (AIEventTable::Save
@@ -190,7 +190,7 @@ def read_spell(r):
     r.i32('skillNeeded')
 
 
-# ---- items (item_save.cpp) --------------------------------------------------------------------------------
+# ---- items (item.cpp) --------------------------------------------------------------------------------
 
 def read_item(r):
     """CItem::Save (006A0360)."""

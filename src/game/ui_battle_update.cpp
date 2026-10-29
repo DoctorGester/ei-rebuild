@@ -4,7 +4,7 @@
 #include "camera.h"
 #include "game_singletons.h"
 #include "item.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_classes.h"

@@ -4,7 +4,7 @@
 #include "ui.h"
 #include "ui_float.h"
 
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "maths.h"
 
 #include <bit>

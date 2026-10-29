@@ -11,7 +11,7 @@
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "item_db.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "mob_script_decoder.h"
 #include "mod_folders.h"
 #include "net_classes.h"

@@ -5,6 +5,7 @@
 // docs/notes/world.md.
 #include "item.h"
 #include "item_db.h"
+#include "item_names.h"
 #include "model.h"
 #include "texture.h"
 #include "unit.h"

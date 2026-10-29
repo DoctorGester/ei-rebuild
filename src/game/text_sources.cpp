@@ -1,6 +1,6 @@
 // The text manager's archive list: adding, removing and clearing the
-// archives the texts are looked up in. The list and its node helpers are in item_db_text.h.
-#include "item_db_text.h"
+// archives the texts are looked up in. The list and its node helpers are in text_manager.h.
+#include "text_manager.h"
 #include "resource.h"
 
 #include "asset_text.h"

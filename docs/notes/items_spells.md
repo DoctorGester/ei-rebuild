@@ -8,9 +8,10 @@ screen pieces are in `ui.md` (sections 7 and 8); players and their message handl
 
 | Subsystem | Code | Scenario |
 |---|---|---|
-| Item rules | item, item_slots, item_lifetime, item_save | items |
-| Item parts, constructor, names | item_parts, item_constructor, item_names, item_model_names | items, ui_camp |
-| Item texts | item_db_text | items |
+| Item and spell databases | item_db, spell_db | all (startup) |
+| Item rules | item | items |
+| Item construction and names | item_manager, item_names | items, ui_camp |
+| Item texts | text_manager | items |
 | Spell rules, construction | spell, spell_cast, spell_text | spells |
 | Spell effects | spell_effect, spell_effect_start, spell_effect_update | spells, spells_cast |
 | Quest database | quest_database, quest_records | any new game in zone1 |
@@ -39,26 +40,20 @@ charge), 8 for the potions ("tiny potion 1" .. "potion shrink", spellText e.g. "
 danger sensor. Category 2 (`QuickItemCategory::Consumable`, used up by order kind 10) has no prototype in the data. A loot
 prototype's field 0x15 is its `LootKind` (2, LootKind::Record, for the "instruction ..." blueprints).
 
-**Naming (fixed in C2i):** the game treats 0x3007 as the loot item ("litem", item_loot, CItemLoot kind at +0x4C, table
-007C8778, 0x78-byte records) and 0x3009 as the quest item ("questitem", item_quest, table 007C8758, 0x7C). `item.h` /
-`item_db.h` used to name them the other way; they now follow the game (`ItemKind::Loot` = 0x3007, `Loot()` = 007C8778, `kLootSize`
-0x78; `ItemKind::Quest` = 0x3009, `QuestItems()` = 007C8758, `kQuestItemSize` 0x7C). The file-local forwarders in item_db_load.cpp /
-item_db_open.cpp and `ChunkArchive::SerializeLoot` / `SerializeQuestItems` keep the old sense.
+**Naming:** the game treats 0x3007 as the loot item ("litem", item_loot, CItemLoot, `ItemDatabase::loot`) and 0x3009 as
+the quest item ("questitem", item_quest, CItemQuest, `ItemDatabase::questItems`); `ItemKind::Loot` / `ItemKind::Quest` follow
+it.
 
 Weapon stats as the unit stats code (00538960) combines them: min damage = weapon damage x material damage, max = (spread +
 damage) x material damage, attack = weapon attack x material attack, damage type = first non-zero weight (6 if none).
 
-Record values (item_db_records.cpp; O, every run: the vectors grow while the databases load): `ItemRecordHead::Assign`
-006A8F20 copies three strings, +0x0C, +0x14..+0x1C, +0x34..+0x4C, byte +0x68 and `CStringArray::Copy` of +0x20 (+0x50,
-+0x64, +0x6C not copied); the five kinds' uninitialized_copy / uninitialized_fill_n are `__fastcall`, RET 8, the second stack
-argument an unused tag: weapons 006AB9C0 / 006ABB50 (vtable 00744068; own bytes +0x6C..+0x83, +0x8C..+0xB4), armour 006ABCD0
-/ 006ABE20 (00744064; +0x6C..+0xB4), quick 006ABF60 / 006AC0D0 (0074405C; +0x70 and +0x80..+0x8A, the string +0x7C
-constructed empty, the category not copied), the 0x7C kind 006AC240 / 006AC3B0 (00744058; +0x6C, its zone vector +0x70 left
-empty), the 0x78 kind 006AC520 / 006AC640 (00744054; +0x6C..+0x77); the weapon record's operator= 006A8FB0
-`WeaponRecord::AssignWeapon` skips +0x50..+0x67 (called by STLport inserts). The copies drop the fields listed as not
-copied. The six record destructors 006A88F0..006A8BD0 are in library.csv.
+Record copies: nothing copies a record. The tables' vectors are cleared and resized from empty while the databases
+load (RecordChunks), so no element is ever copied or moved; the original's copy constructors (each skipped some fields:
+the weapon's attack and defence bonus, the quick item's category and spell text, the quest item's zones) never ran, and
+the records take the default copy (protected in `ItemRecordHead`). The kinds' constructors leave the fields the archive
+fills as they are; the weapon's zeroes skillBonus and the bytes after it, the quick item's attributeBonus.
 
-Record Serialize (A-H23, item_db_serialize.cpp; loading read twice, ours then the original, digests compared; saving O):
+Record Serialize (item_db.cpp, spell_db.cpp):
 `SerializeHead` (fields 0-15), weapon, armour (two 9-dword rows at +0x6C / +0x90 that straddle the declared members),
 quick, the 0x7C kind (zone list through InlineStrings), the 0x78 kind (fields 0x15-0x17).
 
@@ -67,15 +62,28 @@ index, a typed hash map of `string` to `Record*` looked up like the spell tables
 record size, signed, as the original computes it, also for a null record), `Named` (the by-name lookups 004AB720 etc.:
 a null record filed under a new name). The trader stock's vectors hold typed record pointers (item_stock.h).
 
-Loading (item_db_load.cpp; O; startup, every scenario): `QuickItemTable / QuestItemTable / LootItemTable::Load`
-(a stack archive: a `ChunkArchive` local, Open, the vector serialisers, Close; then each record filed under its name with
-find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h; Rebirth's patched 006A67A0 calls them by address),
-`ChunkArchive::SerializeQuickItems / SerializeLoot / SerializeQuestItems` (the quest_records.cpp pattern; the loads call
-them by address), `SerializeMaterials / Weapons / Armors`, `ItemDatabase::DestructBody` 006A6570 (007C86D8; six tables last
-to first: index clear + buckets, or the materials' index destructor 006A6C20; on exit). Spell database (A-H21,
-verify_spell_db_load): the spell, modifier and 0x34 list records' Serialize 00683B80 / 00683AF0 / 00683D40,
-`ChunkArchive::IntVectorField` 00683EB0, the vectors 00684EF0 / 00684FE0 / 00684C50 (SpellRecord / SpellModifierRecord /
-SpellListRecord in item_db.h).
+Loading (item_db.cpp, spell_db.cpp; startup, every scenario): every table loads the same way
+(`NamedRecordTable::Load`, `CodeIndexedTable::Load`): an archive of its own over the file's memory stream (Open for
+loading, RecordChunks, Close), then each record filed in the index (a material under its key, an item prototype under its
+name, a spell or modifier under its code; a later record of the same text replaces the earlier). A modifier's code is a
+`char[4]` read as a C string for its key. The spell database's three recipe lists share one archive. The record lists
+inside records (a spell's two id lists, a recipe's modifier names, a quest item's zones) are emptied and refilled with
+one value per field chunk (IntListField, InlineStrings).
+
+## Item classes
+
+- `CItem : CEngineObject` and six classes: weapon, armour, quick item, quest item, loot, scroll (`CItemSpell`, a "spell
+  container"; it derives from the quick item for its actionValue_ and its InitFromRecord / IsSameAs / CopyTo / Load /
+  Save). item.h holds the classes and the weapon stats by packed id, item_manager.h the item constructor and the item
+  manager (the factory), item_names.h the name builders by record index; their code is item.cpp, item_manager.cpp and
+  item_names.cpp.
+- `CItem::unreadValue_` is the prototype's unreadValue (archive field 9): saved, loaded and compared by IsSameAs; nothing
+  else reads it, and its meaning is unknown.
+- The original's slot 18 (FirstListName) is not in our CItem: nothing called it, and the record lists it read were never
+  filled.
+- Open (style review, build/style_review/items.md): L26, one CItem with a kind switch instead of the six classes (needs a
+  decision on the engine factory and the virtual Load / Save); L28, `CItemSpell` / `ItemKind::Spell` named as the scroll
+  (`CItemScroll`), and the member naming mix (`CItem::count_`, `CItemLink::value`, `ItemStock::party`).
 
 ## Item rules (scenario items)
 
@@ -84,8 +92,8 @@ Pure/getter slots (P): `CItem::GetPrototype/GetCategory`, `CItemWeapon::GetType`
 DamageType, AttackBonus, DefenceBonus, ArmorLayer take a packed id / index (P with float bits). `GetDamageTypes`, `Recharge` (slot
 6), `RollDamage` (declared `double`, unrounded ST0; ISAAC state restored between runs) are S. `InitFromRecord` (slot 13) is S
 on a scratch copy; constructors are S on seeded scratch except the scroll's (O: a CALL within 5 bytes, no trampoline)
-(`item_lifetime.cpp`); `CreateItem`/`DestroyItem` (slots 2 / 3) and the per-class destructors (slot 0, one byte-identical
-copy per class, each storing CItem's vtable) are O. `Load`/`Save` (slots 9 / 10, `item_save.cpp`): Save S into capture
+(`item.cpp`); `CreateItem`/`DestroyItem` (slots 2 / 3) and the per-class destructors (slot 0, one byte-identical
+copy per class, each storing CItem's vtable) are O. `Load`/`Save` (slots 9 / 10, `item.cpp`): Save S into capture
 streams; Load O, then the original Save must write back the bytes read (every new game's autosave; world_load,
 ui_saveload).
 
@@ -103,7 +111,7 @@ their record fields (the quest item takes the head's +0x6C).
 (006A5B20-006A5D30: destructor body, Reset, Detach, SetManager, SetItem, Begin/EndCreateItem, Cancel, SetMaterial /
 SetPrototype / SetSpellObject, Build; O), the per-class `ModelName / FirstListName / FigureName / PictureName` (slots 17-20;
 S on text), `WeaponBaseFigure`, `ArmorModelName` (S), `CSpellManager::CreateSpellFromText` 00689030 (spell_text.cpp, O),
-`CItemManager::MakeItem` 006AD000 (item_constructor.cpp; CItemManager derives CResourceManager, context slot 16 on
+`CItemManager::MakeItem` 006AD000 (item_manager.cpp; CItemManager derives CResourceManager, context slot 16 on
 CManagerContext; O).
 
 - Making an item: `CItemConstructor::BuildItem(manager, kind, prototype, material, spell, count)` runs the original's
@@ -136,8 +144,10 @@ list minus class 0x14; every new game), `ReleaseAllItems` (multiplayer exchange 
 +0x760).
 
 Clone = the owning manager's CreateObject(kind, -1) (slot 23), then the source's slot 15; on failure the new item gets a
-reference and is released. CopyTo destroys the target (slot 3), gives it +0x18 and dwords +0x20..+0x40, a CSpell::Clone
-(0068B410) of the attached spell or none, count 1; the overrides call the base through its address (`CItem::CallCopyTo`). The
+reference and is released. CopyTo (item.cpp) destroys the target, gives it the packed id, condition_..magicLevel_
+(the floats bit for bit through `x87::CopyBits`, as the original's dword copy: a loaded item's values may be any bit
+pattern), a CSpell::Clone (0068B410) of the attached spell or none, count 1; the overrides add their own fields the same
+way. The
 record adds clone with the world's spell manager (CWorld slot 22, 0055EBA0: +0x4C). The party's adds merge with a held item
 that is the same (slot 14), else the party's slot 24 (0055E940: the factory makes the item, the source copies itself into it)
 gives the copy; array growth is AlignedPtrArray::SetSize (00519D70). Reached by ui_camp (0060FCA0 / 0060FE40 / 0060E900),
@@ -172,7 +182,7 @@ Clear(1, 0) after Create re-attaches the spell manager. Global 007C8344 = the pa
 StatsSave are in originals_units.h. Destroy drops the four objects by count and deletes them whatever the count;
 AddMember assigns the stack record's uninitialised statistics to the new record (BuildNpcStats overwrites them).
 
-## Item texts (004E0000-004E15C0; item_db_text, scenario items)
+## Item texts (004E0000-004E15C0; text_manager, scenario items)
 
 The range holds item names / descriptions from the text resources and the text manager's archive list. The item databases
 are filled elsewhere (00456440 Rebirth-patched, 0057CB50, 0057DEE0). The "can't parse color/percentage" strings at 004A0xxx
@@ -496,8 +506,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   null check) / FindOrLoad` (O), `ReloadAll` (after a lost device: no scenario), `TrimCache` (cached bytes against
   videoMemoryTenth_, signed; every 32 client ticks; O), the effect base's out-of-line destructor, slot 0, constructor, missile
   Reset, default RunTick, ReadSavedStrings (effects.md; O, RunTick P, constructor and ReadSavedStrings S).
-- Records: `ArmorRecord / QuickItemRecord / QuestItemRecord / LootItemRecord` assignment (item_db_records.cpp; O),
-  `ItemRecordHead::ConstructBase` (vtable 00744060), `MaterialRecordHead::CopyConstruct` (S), `QuestBriefingTable::Add`
+- Records: `QuestBriefingTable::Add`
   (quest_records.h: the database's +0x20, vector + index by name; push_back 006B0780, clear 006B0590, find 006B0930 through
   their addresses; O), `PartyUnitRecord::CarriedWeight` (CItem +0x34 is the weight; weapons, quick items, spells, armour in
   one running float sum; P with CheckNear), `CParty::ArchiveParty` (a memory stream as the archive's stream field 1; loading
@@ -556,7 +565,8 @@ obvious.
   thread (only caller 0053A8E0, UnitDatabase::CountSoundFiles).
 - Database loads (O: counts, every record's key leads to a record of that key; every start and each switch of the resource
   database (0057CB50)): 00684550 `SpellDatabase::Load` ("spells.sdb": spells, modifiers, three lists) and 006A67A0
-  `ItemDatabase::Load` ("items.idb": materials, weapons, armors, then quick items, loot, quest items) in item_db_open.cpp;
+  `ItemDatabase::Load` ("items.idb": materials, weapons, armors, then quick items, quest items, loot) in spell_db.cpp /
+  item_db.cpp;
   006D0630 `PrintsDatabase::Load` and 006D7620 `acks::AckDatabase::Load` (model_db_open.cpp; models.md); 006AE3A0
   `QuestDatabase::Load` (quest_db_open.cpp; the database at 007C87A8 is `QuestDatabase` in quest_records.h: quests + index,
   briefings + index). 0068E640 `CMaterialManager::Create` (slot 2, material.cpp; O): "materials.res" added, the eight kinds of

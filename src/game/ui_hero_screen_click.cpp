@@ -5,7 +5,7 @@
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "item.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "map_object_figures.h"
 #include "party.h"
 #include "ui.h"

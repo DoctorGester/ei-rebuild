@@ -2,7 +2,7 @@
 #include "ui.h"
 
 #include "core_streams.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 
 #include <cstdint>
 #include <string>

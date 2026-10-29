@@ -6,7 +6,7 @@
 #include "console.h"
 #include "game_singletons.h"
 #include "game_strings.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "maths.h"
 #include "object_tables.h"
 #include "quest_records.h"

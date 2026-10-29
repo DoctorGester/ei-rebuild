@@ -1,5 +1,6 @@
 // The unit record applied to a new unit. See unit_record.h.
 #include "item.h"
+#include "item_manager.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "unit_record.h"

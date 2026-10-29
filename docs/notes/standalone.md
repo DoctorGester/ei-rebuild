@@ -1151,7 +1151,7 @@ the `--no-hooks` suite) keeps the registry.
   the script's FloatToStr "%.*f" are str::Format). Since C35k a `str::Format` with a literal format and no float
   conversion is `std::format` (171 calls); str::Format keeps the named and run-time formats (the game's texts), the
   float ones, and eight "%.2d" of database ints (an item's number, a prototype's skin and hair, an armour's number:
-  "%.2d" of -5 is "-05", `{:02}` "-5"; unit_client_models.cpp, unit_skins.cpp, item_model_names.cpp). Moving a call
+  "%.2d" of -5 is "-05", `{:02}` "-5"; unit_client_models.cpp, unit_skins.cpp, item_names.cpp). Moving a call
   reads its argument types, as `%d` and `{}` differ: a char prints as a character and an unsigned above 0x7FFFFFFF
   unsigned (cast to int unless it is known small), a null `const char*` throws where %s printed "(null)" (every %s
   argument moved is a std::string, a `c_str()` / `.data()`, a table's text or a literal), and a std::string prints whole where %s

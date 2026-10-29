@@ -276,7 +276,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F18C,42,,game,0055EAB0 0055EC80,0055EC60,CWorld,src/game/world.h,the worlds' base (CWorld)
 0073F234,3,,game,0055EAB0 0055EC80 0055EE20 005604B0,007005E3,CountdownArrayClass,-,CArray (the world's countdowns); stored only by game.exe (ours is a std::vector)
 0073F240,7,,game,0055EE40 0055F1A0 0055F1E0 0055F280,0055F260,CWorldHandle,src/game/world.h,the server world's counted helper (a player source)
-0073F25C,26,,game,0055EE40 0055F400 006614F0,0055F3E0,CItemManager,src/game/item.h,
+0073F25C,26,,game,0055EE40 0055F400 006614F0,0055F3E0,CItemManager,src/game/item_manager.h,
 0073F2C4,25,,game,0055EE40 0055F3A0,0055F380,CEffectManager,src/game/base_manager.h,
 0073F328,25,,game,0055EE40 0055F350,0055F330,CPlayerManager,src/game/player_manager.h,
 0073F38C,7,,game,0055F1A0 0055F410 0055F550 0055F6B0,0055F2F0,CPlayerSource,src/game/player_source.h,the player sources' base
@@ -295,7 +295,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F644,25,,game,00561E50 005627C0,005627A0,CParticleManager,src/game/effects.h,
 0073F6A8,16,,game,00561E50 00562B80,00562B60,Terrain,src/game/terrain.h,the client's terrain
 0073F6E8,2,,lib,006E81C2,00401510,Terrain,src/game/terrain.h,the tail of 0073F6A8 (a byte match in 006E81C2)
-0073F6F0,13,,game,00561E50 005629B0,00562990,CTextManager,src/game/item_db_text.h,the client's text manager
+0073F6F0,13,,game,00561E50 005629B0,00562990,CTextManager,src/game/text_manager.h,the client's text manager
 0073F724,3,,game,00562B80 00570EA0 00570ED0,007005E3,ClientList2Class,-,CList (00570EA0's list); stored only by game.exe (ours is a std::list)
 0073F730,3,,game,00562B80 005711C0 005711E0,007005E3,ClientMapArrayClass,-,CArray (the client world's water levels); stored only by game.exe (ours is a std::vector)
 0073F73C,3,,game,00562DF0 005715D0 00571600,007005E3,ClientList3Class,-,CList (005715D0's list); stored only by game.exe (ours is a std::list)
@@ -538,7 +538,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00743F04,22,,game,006A43A0,006A4400,CItemQuest,src/game/item.h,quest item
 00743F5C,22,,game,006A49A0,006A49E0,CItemLoot,src/game/item.h,loot
 00743FB4,22,,game,006A56E0,006A5720,CItemSpell,src/game/item.h,scroll
-00744020,13,,game,006A5AB0 006A5B20,006A5B00,CItemConstructor,src/game/item.h,item constructor
+00744020,13,,game,006A5AB0 006A5B20,006A5B00,CItemConstructor,src/game/item_manager.h,item constructor
 00744054,1,,game,006A5D60 006A8790 006A9B00 006AAED0 006AC520 006AC640,006A6470,LootItemRecord,src/game/item_db.h,a loot item record
 00744058,1,,game,006A5D60 006A85A0 006A9830 006AAB80 006AC240 006AC3B0,006A6460,QuestItemRecord,src/game/item_db.h,a quest item record
 0074405C,1,,game,006A5D60 006A83F0 006A9420 006AA8D0 006ABF60 006AC0D0,006A6450,QuickItemRecord,src/game/item_db.h,a quick item record

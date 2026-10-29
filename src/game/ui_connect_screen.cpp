@@ -18,7 +18,7 @@
 #include "random.h"
 #include "unit.h"
 #include "world.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"

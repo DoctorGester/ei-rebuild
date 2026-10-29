@@ -6,7 +6,7 @@
 #include "combat.h"
 #include "ui_briefing.h"
 
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "map_object.h"
 #include "maths.h"
 #include "unit.h"

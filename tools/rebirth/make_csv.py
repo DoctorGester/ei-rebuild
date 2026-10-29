@@ -90,7 +90,7 @@ STATUS = {
  'FixProgressNames': 'implemented: new rewrite SelectLoadingMovie 00595080 (src/game/world_zone.cpp)',
  'FixRemoveMapObject': 'implemented: new rewrite CWorldServer::RemoveObject 005935C0 (src/game/world_server.cpp)',
  'AllowScriptsInMainMenu': 'implemented: new rewrite GameFlow::StartZone 0057C460 (src/game/world_game.cpp)',
- 'FixCreateItem': 'implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/item_constructor.cpp)',
+ 'FixCreateItem': 'implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/item_manager.cpp)',
  'FixAddMapObject': 'implemented: new rewrite CWorldServer::CreateObject 005927C0 (src/game/world_units.cpp)',
  'NewStringEvents': 'implemented: new rewrite CInterface3D::OnStringEvent 005F8070 (src/game/ui_interface_frame.cpp)',
  'ImproveConsole': 'implemented: new rewrite ConsoleWindow::OnChar 005E44A0 (src/game/ui_console_window.cpp)',

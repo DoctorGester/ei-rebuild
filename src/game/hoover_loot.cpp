@@ -5,6 +5,7 @@
 // the unit and put on the drop list. A unit is looted once (flag 0x100000). Plain float maths for the amounts
 // (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "item.h"
+#include "item_manager.h"
 #include "object.h"
 #include "object_tables.h"
 #include "random.h"

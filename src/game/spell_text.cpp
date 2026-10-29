@@ -1,5 +1,7 @@
 // Spells from text: "healing{e2;e2}" as the scripts' CastSpellUnit / CastSpellPoint and
 // the potions' prototypes (CItemConstructor::FillItem) write them.
+#include "item_manager.h"
+#include "manager_context.h"
 #include "spell.h"
 
 #include "console.h"

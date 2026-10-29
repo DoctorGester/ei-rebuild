@@ -10,7 +10,7 @@
 
 #include "base_manager.h"
 #include "core_maths.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "map_object_figures.h"
 #include "random.h"
 #include "unit_create.h"

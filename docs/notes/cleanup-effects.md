@@ -24,7 +24,7 @@ reach other classes after the cleanup, and what is left. The classes themselves 
 - spell_effect_start.cpp `StartHealing`: the controller's slot 21 (`Heal(float)`) stays an `ei::VCall` with the amount's bits. The original pushes the
   bits (`MOV` / `PUSH`), and a float argument would go through the FPU (`FLD` / `FSTP`).
 - Duplicate forwarders left to the forwarder ticket: 006B8600 (Play3D: world_effect.cpp and map_object_companion.cpp); 006FE11F / 006FE216 (CString
-  TrimRight / TrimLeft: spell_text.cpp, ini_file.cpp, item_constructor.cpp, originals_library.h).
+  TrimRight / TrimLeft: spell_text.cpp, ini_file.cpp, item_manager.cpp, originals_library.h).
 - The naked x87 helpers in spell_effect_internal.h call the world's height slots 27 / 28 by number. (The prototype's hidden offsets are typed
   fields now, and world.h's `Projectile` became `CSpellEffect` (C15).)
 - `CSpellEffect::spell_` stays bytes with `Spell()` casting it: CSpell is abstract, so `lib::InPlace` cannot hold it. world_effect.h's embedded

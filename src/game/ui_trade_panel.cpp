@@ -1,6 +1,6 @@
 // The camp's trade panel (the level-up page): its layout, its lists of schools and perks and their drawing.
 // See docs/notes/ui.md ("Camp, global map, hero screens").
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "world.h"
 #include "ui_camp.h"
 #include "party.h"

@@ -8,6 +8,7 @@
 #include "combat_plan.h"
 #include "game_singletons.h"
 #include "item.h"
+#include "item_manager.h"
 #include "map_object.h"
 #include "maths.h"
 #include "object_diplomacy.h"

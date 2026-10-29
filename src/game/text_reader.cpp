@@ -1,8 +1,8 @@
-// The text manager's line reader (CTextManager, item_db_text.h).
+// The text manager's line reader (CTextManager, text_manager.h).
 // The game inlines the same few loops many times with small differences (the end test inline
 // or through IsPastEnd, the character code inline or through a helper); `Advance` below
 // reproduces each variant by its call pattern.
-#include "item_db_text.h"
+#include "text_manager.h"
 
 #include "resource.h"
 

@@ -5,6 +5,7 @@
 #include "game_strings.h"
 #include "item.h"
 #include "item_db.h"
+#include "item_manager.h"
 #include "party.h"
 #include "random.h"
 #include "spell.h"
@@ -74,7 +75,7 @@ CSpell* RollItemSpell(ItemStock* stock, ItemKind kind, const itemdb::ItemRecordH
     if (g_random.Next() % 101 >= 50) return nullptr;
     std::optional<MagicCapacity> capacity = MagicCapacityOf(kind, prototype, material);
     if (!capacity) return nullptr;
-    float levels[8];
+    float levels[kSchoolCount];
     for (float& l : levels) l = capacity->level;
     stock->GenerateSpells(&spells, levels, 0);
     unsigned count = static_cast<unsigned>(spells.size());
@@ -227,8 +228,8 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
 }
 
 void ItemStock::SetLevels(const float* base, const float* scroll) {
-    std::copy_n(base, 8, baseLevels);
-    std::copy_n(scroll, 8, scrollLevels);
+    std::copy_n(base, kSchoolCount, baseLevels);
+    std::copy_n(scroll, kSchoolCount, scrollLevels);
 }
 
 void ItemStock::GenerateWeapons(int minCount, int maxCount, std::list<CItem*>* out) {

@@ -4,6 +4,7 @@
 #include "core_refcount.h"
 #include "figure_manager.h"
 #include "item.h"
+#include "item_manager.h"
 #include "model.h"
 #include "net_link.h"
 #include "player_manager.h"

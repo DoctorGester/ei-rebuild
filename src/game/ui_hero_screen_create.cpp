@@ -7,7 +7,7 @@
 #include "ui_screens.h"
 
 #include "core_transform.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "ui_widescreen.h"

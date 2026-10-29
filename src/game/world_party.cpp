@@ -1,5 +1,6 @@
 // CWorldServer: the party arriving in a zone (Redeploy) and the quest items it brings back. See world.h and
 // docs/notes/world.md.
+#include "item_manager.h"
 #include "script.h"
 #include "world.h"
 

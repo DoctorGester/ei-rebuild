@@ -6,7 +6,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "game_strings.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "object_tables.h"
 #include "world.h"
 

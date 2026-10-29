@@ -4,7 +4,7 @@
 // docs/notes/ui.md ("Interface manager and window base").
 #include "ui.h"
 
-#include "item_db_text.h"
+#include "text_manager.h"
 
 #include "lib/crt.h"
 #include <string>

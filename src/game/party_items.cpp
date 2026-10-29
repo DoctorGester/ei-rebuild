@@ -1,15 +1,12 @@
-// Item copies and item lists: CItem::Clone / CopyTo and the subclasses' CopyTo, the party's item list and the party
-// unit records' four item lists. See party.h, item.h, unit.h and docs/notes/items_spells.md ("Party item lists").
-#include "base_manager.h"
+// Item lists: the party's item list and the party unit records' four item lists. See party.h, item.h, unit.h and
+// docs/notes/items_spells.md ("Party item lists").
 #include "item.h"
 #include "party.h"
 #include "spell.h"
 #include "unit.h"
 #include "world.h"
 
-#include <cstddef>
 #include <cstdint>
-#include <cstring>
 
 namespace {
 
@@ -55,63 +52,6 @@ void AddListWeight(float& weight, const std::vector<CItem*>& list) {
 } // namespace
 
 
-CItem* CItem::Clone(CSpellManager* spells) {
-    auto* copy = owner_->CreateObjectAs<CItem>(type_, -1);
-    if (CopyTo(copy, spells)) return copy;
-    copy->AddRef();
-    copy->Release();
-    return nullptr;
-}
-
-bool CItem::CopyTo(CItem* target, CSpellManager* spells) {
-    if (target->type_ != type_) return false;
-    target->Destroy();
-    target->prototypeId_ = prototypeId_;
-    // +0x20..+0x40 copied bit for bit.
-    std::memcpy(&target->condition_, &condition_, offsetof(CItem, spell_) - offsetof(CItem, condition_));
-    target->spell_.Assign(spell_ ? spell_->Clone(spells) : nullptr);
-    target->count_ = 1;
-    return true;
-}
-
-
-// The subclasses' copy virtual: the base copy, then their own dwords.
-bool CItemWeapon::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
-    CItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon
-    std::memcpy(&weapon->actionValue_, &actionValue_, sizeof(CItemWeapon) - offsetof(CItemWeapon, actionValue_));
-    return true;
-}
-
-bool CItemArmor::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
-    auto* armor = AsArmor(target);
-    std::memcpy(armor->absorb_, absorb_, sizeof(absorb_));
-    armor->layerMask_[0] = layerMask_[0];
-    armor->layerMask_[1] = layerMask_[1];
-    return true;
-}
-
-bool CItemQuick::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
-    AsQuick(target)->actionValue_ = actionValue_;
-    return true;
-}
-
-bool CItemQuest::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
-    AsQuest(target)->questItemId_ = questItemId_;
-    return true;
-}
-
-bool CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
-    auto* loot = AsLoot(target);
-    loot->kind_ = kind_;
-    loot->recordType_ = recordType_;
-    loot->index_ = index_;
-    return true;
-}
 
 // --- The party's items --------------------------------------------------------------------------
 

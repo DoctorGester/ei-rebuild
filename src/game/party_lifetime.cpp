@@ -5,6 +5,7 @@
 // here. See party.h and docs/notes/items_spells.md ("Party").
 #include "game_strings.h"
 #include "item.h"
+#include "item_manager.h"
 #include "party.h"
 #include "spell.h"
 #include "unit.h"

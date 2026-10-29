@@ -1,8 +1,11 @@
-// Item construction: CItemConstructor, the item manager's ways of making items, and the CItem methods the
-// construction drives. BuildItem has the manager create the empty item object (BeginCreateItem), then
-// EndCreateItem fills it from a temporary database record: the prototype's values combined with the material's.
+// Item construction: CItemConstructor and the item manager (its factory and its ways of making items).
+// BuildItem has the manager create the empty item object (BeginCreateItem), then EndCreateItem fills it from a
+// temporary database record: the prototype's values combined with the material's. See item_manager.h.
+#include "item_manager.h"
+
 #include "console.h"
 #include "item.h"
+#include "manager_context.h"
 #include "spell.h"
 #include "text_split.h"
 
@@ -11,7 +14,6 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 
-#include <bit>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -23,9 +25,6 @@ namespace {
 constexpr std::uint32_t kFlagConstructing = 8;
 
 const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
-
-// The charge rate every item starts with.
-constexpr float kDefaultChargeRate = 0.001f;
 
 // --- The temporary database record ---------------------------------------------------------------
 // FillItem creates a record of the item's kind, fills only the fields the item's InitFromRecord reads, and
@@ -159,26 +158,6 @@ std::vector<std::string> RecordNames(const NamedRecordTable<Record>& table) {
 }
 
 } // namespace
-
-// --- CItem ---------------------------------------------------------------------------------------
-
-void CItem::InitFromRecord(const ItemRecordHead* head) {
-    conditionMax_ = head->condition;
-    condition_ = head->condition;
-    chargeRate_ = kDefaultChargeRate;
-    chargeMax_ = head->charge;
-    charge_ = head->charge;
-    weight_ = head->weight;
-    price_ = head->price;
-    unreadValue_ = head->unreadValue;
-    magicLevel_ = head->magicLevel;
-}
-
-void CItem::AttachSpell(CSpell* spell) {
-    if (CSpell* previous = spell_) price_ = price_ - std::bit_cast<float>(previous->price_);
-    spell_.Assign(spell);
-    if (spell_) price_ = spell_->price_ + price_;
-}
 
 std::optional<MagicCapacity> MagicCapacityOf(ItemKind kind, const ItemRecordHead* prototype,
                                              const MaterialRecordHead* material) {
@@ -374,3 +353,21 @@ std::vector<std::string> CItemManager::ListMaterialNames() {
 std::vector<std::string> CItemManager::ListWeaponNames() { return RecordNames(g_itemDatabase.weapons); }
 std::vector<std::string> CItemManager::ListArmorNames() { return RecordNames(g_itemDatabase.armors); }
 std::vector<std::string> CItemManager::ListQuickItemNames() { return RecordNames(g_itemDatabase.quickItems); }
+
+// --- The item manager's factory ------------------------------------------------------------------
+
+// Default-initialised: the subclasses' own fields are set by InitFromRecord or Load.
+CEngineObject* CItemManager::NewObject(int kind) {
+    CEngineObject* object;
+    switch (static_cast<ItemKind>(kind)) {
+    case ItemKind::Weapon: object = new CItemWeapon; break;
+    case ItemKind::Armor: object = new CItemArmor; break;
+    case ItemKind::Quick: object = new CItemQuick; break;
+    case ItemKind::Loot: object = new CItemLoot; break;
+    case ItemKind::Spell: object = new CItemSpell; break;
+    case ItemKind::Quest: object = new CItemQuest; break;
+    default: return nullptr;
+    }
+    object->type_ = kind;
+    return object;
+}

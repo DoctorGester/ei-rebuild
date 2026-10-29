@@ -4,7 +4,7 @@
 #include "ui_float.h"
 
 #include "item.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "spell.h"
 #include "unit.h"
 

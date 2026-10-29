@@ -7,6 +7,7 @@
 #include "base_manager.h"
 #include "game_singletons.h"
 #include "item.h"
+#include "item_manager.h"
 #include "object_tables.h"
 #include "party.h"
 #include "random.h"

@@ -1,4 +1,5 @@
 // The camp's two action buttons and taking a spell container apart. See docs/notes/ui.md, section 5.
+#include "item_manager.h"
 #include "item_stock.h"
 #include "ui_camp.h"
 #include "game_strings.h"

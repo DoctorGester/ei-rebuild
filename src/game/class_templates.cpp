@@ -7,6 +7,7 @@
 #include "core_refcount.h"
 #include "item.h"
 #include "item_db.h"
+#include "item_manager.h"
 #include "item_stock.h"
 #include "party.h"
 #include "party_manager.h"

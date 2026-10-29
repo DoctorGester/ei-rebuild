@@ -1,13 +1,14 @@
 // The camp's page switch and the camp panels' layout code (see docs/notes/ui.md, "Camp,
 // global map, hero screens").
 #include "game_strings.h"
+#include "item_manager.h"
 #include "ui.h"
 #include "unit_create.h"
 #include "item.h"
 #include "ui_camp.h"
 
 #include "item_db.h"
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "party.h"
 #include "spell.h"
 #include "texture.h"

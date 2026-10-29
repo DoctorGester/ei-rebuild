@@ -1,11 +1,9 @@
 #pragma once
 
-// The item and spell databases: fixed-size records loaded from the game's .db files, held in globals as
-// STLport vectors (only begin/end are read here). Records are looked up by index; every lookup does the same
-// bounds check against (end - begin) / stride, a signed division compared unsigned. Many callers then read a
-// field of the record without checking for null, so an index out of range reads near address 0 and crashes.
-// Field() keeps that behaviour (a real read through the null record) rather than inventing a default.
-
+// The item and spell databases (items.idb and spells.sdb of the resource archive; item_db.cpp, spell_db.cpp):
+// records in tables held in globals, indexed by name or code. A lookup by index gives null out of range; many
+// callers then read a field of the record without checking for null, so an index out of range faults, as in the
+// game.
 
 #include <bit>
 #include <cstddef>
@@ -17,8 +15,6 @@
 
 class CStream;
 class ChunkArchive;
-
-// 0/1 in all 32 bits: callers test all of them.
 
 // CEngineObject::type_ of an item: which database its prototype lives in.
 enum class ItemKind : int {
@@ -55,6 +51,9 @@ enum class LootRecordType : std::uint32_t {
     Spell = 3,
     Modifier = 4,
 };
+
+// The spell schools (SpellRecord::school; the trader stock's levels per school).
+inline constexpr int kSchoolCount = 8;
 
 namespace itemdb {
 
@@ -137,10 +136,7 @@ public:
 
     virtual ~ItemRecordHead() = default;
 
-    // classMask and the category are not copied.
-    ItemRecordHead* Assign(const ItemRecordHead* source);
     void SerializeHead(ChunkArchive* ar);
-
 
     std::string name;                   // the name the tables file the record under
     std::string family;                 // the item's family ("wand", "scroll"; what the trader stock skips by)
@@ -169,8 +165,8 @@ public:
 
 protected:
     ItemRecordHead() : buildable(1) {}
-    ItemRecordHead(const ItemRecordHead&) = delete;
-    ItemRecordHead& operator=(const ItemRecordHead&) = delete;
+    ItemRecordHead(const ItemRecordHead&) = default;
+    ItemRecordHead& operator=(const ItemRecordHead&) = default;
 };
 
 // A record (or null) as the kind's record it is (WeaponRecord, ArmorRecord, QuickItemRecord,
@@ -180,23 +176,18 @@ Record* RecordAs(ItemRecordHead* record) { return static_cast<Record*>(record); 
 template <class Record>
 const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const Record*>(record); }
 
-// The record kinds. A copy constructor builds the head and the kind's own members, then runs the head's Assign
-// and copies the kind's own fields; bytes not copied are left as constructed (or as they were, for bytes no
-// constructor sets).
+// The record kinds. Their constructors leave the fields the archive fills as they are.
 
 // A weapon prototype: what CItemWeapon takes besides the head.
 struct WeaponRecord : ItemRecordHead {
-    WeaponRecord();
-    WeaponRecord(const WeaponRecord& from);
-    ItemKind Kind() override;
-    // category..skillBonus and reach..damageTypes: attackBonus and defenceBonus are not copied.
-    void CopyOwn(const WeaponRecord* source);
+    WeaponRecord() {}
+    ItemKind Kind() override { return ItemKind::Weapon; }
     // The head, then fields 0x15-0x1E.
     void Serialize(ChunkArchive* ar);
 
     std::uint8_t unreadFields[11];      // archive fields 0x16 (8 bytes) and 0x1B (3); nothing reads them
-    std::uint8_t skillBonus[2];         // the wielder's weapon skill bonus (skill 0 / 1)
-    std::uint8_t unused_7D[0x84 - 0x7D];
+    std::uint8_t skillBonus[2] = {};    // the wielder's weapon skill bonus (skill 0 / 1)
+    std::uint8_t unused_7D[0x84 - 0x7D] = {};
     float attackBonus;                  // added to the wielder's attack (WeaponAttackBonus)
     float defenceBonus;                 // added to the wielder's defence (WeaponDefenceBonus; 0 for types 5, 6)
     float reach;                        // CItemWeapon::reach_
@@ -207,11 +198,8 @@ struct WeaponRecord : ItemRecordHead {
 
 // An armour prototype: the two absorption rows CItemArmor takes.
 struct ArmorRecord : ItemRecordHead {
-    ArmorRecord() {}                            // (user-provided: new ArmorRecord() leaves the bytes as they are)
-    ArmorRecord(const ArmorRecord& from);
-    ItemKind Kind() override;
-    // category..othersFlags; showsWounds and the rest are not copied.
-    void CopyOwn(const ArmorRecord* source);
+    ArmorRecord() {}
+    ItemKind Kind() override { return ItemKind::Armor; }
     // The head, then the two rows, showsWounds, layer and unreadFields.
     void Serialize(ChunkArchive* ar);
     float FirstFactor() const { return std::bit_cast<float>(category); }
@@ -231,12 +219,8 @@ struct ArmorRecord : ItemRecordHead {
 
 // A quick item prototype (potions, wands, scrolls).
 struct QuickItemRecord : ItemRecordHead {
-    QuickItemRecord();
-    QuickItemRecord(const QuickItemRecord& from);
-    ItemKind Kind() override;
-    // actionValue and attributeBonus; the category, unreadFields and spellText are not copied (spellText is constructed
-    // empty).
-    void CopyOwn(const QuickItemRecord* source);
+    QuickItemRecord() {}
+    ItemKind Kind() override { return ItemKind::Quick; }
     // The head, then category (0x15), actionValue (0x16), unreadFields (0x17, 0x18), spellText (0x19), attributeBonus
     // (0x1A) and unreadFields (0x1B).
     void Serialize(ChunkArchive* ar);
@@ -245,16 +229,13 @@ struct QuickItemRecord : ItemRecordHead {
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
     std::uint8_t unreadFields[16];
     std::string spellText;                // the spell text of a QuickItemCategory::Potion item (CItemConstructor::FillItem)
-    std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
+    std::uint8_t attributeBonus[3] = {};   // per attribute (UnitStats::AttributeWithItems)
 };
 
 // A quest item prototype with a list of zone names (QuestItemInfo reads the list).
 struct QuestItemRecord : ItemRecordHead {
-    QuestItemRecord() {  }
-    QuestItemRecord(const QuestItemRecord& from);
-    ItemKind Kind() override;
-    // The category only: the zone list is constructed empty, not copied.
-    void CopyOwn(const QuestItemRecord* source);
+    QuestItemRecord() {}
+    ItemKind Kind() override { return ItemKind::Quest; }
     // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
     void Serialize(ChunkArchive* ar);
 
@@ -264,10 +245,7 @@ struct QuestItemRecord : ItemRecordHead {
 // The prototype of a CItemLoot: kind (the head's category), record type, index.
 struct LootItemRecord : ItemRecordHead {
     LootItemRecord() {}
-    LootItemRecord(const LootItemRecord& from);
-    ItemKind Kind() override;
-    // category, recordType and index.
-    void CopyOwn(const LootItemRecord* source);
+    ItemKind Kind() override { return ItemKind::Loot; }
     // The head, then category, recordType, index.
     void Serialize(ChunkArchive* ar);
 
@@ -314,10 +292,9 @@ inline const char* TypeCode(const char* const (&codes)[7], int type) {
 // the name index (records with the same name: the last one). Rebirth patches the load.
 template <typename Record>
 struct NamedRecordTable {
-    // For the quick item, quest item and loot tables: the records of chunk `field` read from `source`
-    // through an archive built on the stack (Open for loading, the vector's chunk serialiser, Close), then
-    // every record filed in the index under its name.
-    void Load(CStream* source, int field);
+    // The records of chunk `chunk` read from `source` through an archive of their own, then every record filed in
+    // the index under its name (a material under its key).
+    void Load(CStream* source, int chunk);
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
@@ -347,6 +324,9 @@ using LootItemTable = NamedRecordTable<LootItemRecord>;
 // The spell and spell modifier tables: the records and the index by code (Rebirth patches the load).
 template <typename Record>
 struct CodeIndexedTable {
+    // The records of chunk `chunk` read from `source` through an archive of their own, then every record filed in
+    // the index under its code.
+    void Load(CStream* source, int chunk);
     // The record filed under `code`: the index's operator[] with a copy of the key, so an unknown code is
     // filed with null.
     Record* FindByCode(std::string_view code);

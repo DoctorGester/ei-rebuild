@@ -7,6 +7,7 @@
 #include "game_data.h"
 #include "game_strings.h"
 #include "item.h"
+#include "item_manager.h"
 #include "map_object.h"
 #include "object_tables.h"
 #include "party.h"

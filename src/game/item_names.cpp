@@ -1,12 +1,20 @@
-// Names the items build from their database records (virtuals of the item classes): model, figure and picture
-// (inventory icon) names such as "sw_03.iron.1", "unhumasw_03.iron.1", "initwesw3weapon", "qitem0012.uq".
+// The names items build from their database records: model, figure and picture (inventory icon) names such as
+// "sw_03.iron.1", "unhumasw_03.iron.1", "initwesw3weapon", "qitem0012.uq"; the weapon and armour model names (unit
+// skins and models build the texture of a worn piece with them), the base figure and the figure parts a weapon is
+// drawn with. See item_names.h and item.h.
+#include "item_names.h"
+
 #include "item.h"
 #include "spell.h"
 
 #include "lib/str.h"
 #include "lib/text_case.h"
 
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <string>
+#include <vector>
 
 using namespace itemdb;
 
@@ -25,9 +33,75 @@ std::string WeaponOrArmorPicture(bool weapon, const ItemRecordHead* record) {
     return str::Format("initar%s%darmor", TypeCode(kArmorCodes, record->type), record->number);
 }
 
+// One part name: prefix + the weapon's two-digit number + suffix, or a fixed name.
+struct PartName {
+    const char* prefix;
+    bool numbered;
+    const char* suffix;
+};
+
+constexpr PartName kSword[] = {{"rh3.sword", true, ""}};
+constexpr PartName kAxe[] = {{"rh3.axe", true, ""}};
+constexpr PartName kDagger[] = {{"rh3.dagger", true, ""}};
+constexpr PartName kPike[] = {{"rh3.pike", true, ""}};
+constexpr PartName kClub[] = {{"rh3.club", true, ""}};
+constexpr PartName kBow[] = {
+    {"lh3.bwpartb", true, ""}, {"bwparta", true, ""}, {"bwtetivaa", true, ""}, {"bwtetivab", true, ""},
+    {"quiver", false, ""},     {"arrows", false, ""}, {"rh3.arrow00", false, ""},
+};
+constexpr PartName kCrossbow[] = {
+    {"rh3.crbow", true, "main"},   {"crbow", true, "part01"}, {"crbow", true, "part02"},
+    {"crbow", true, "tetiva01"},   {"crbow", true, "tetiva02"}, {"quiver", false, ""},
+    {"arrows", false, ""},
+};
+
+struct PartSpan {
+    const PartName* parts;
+    int count;
+};
+
+template <int N> constexpr PartSpan List(const PartName (&parts)[N]) { return {parts, N}; }
+
+// By weapon type; other types have no parts.
+constexpr PartSpan kPartsByType[] = {List(kSword), List(kAxe),  List(kDagger),  List(kPike),
+                                     List(kClub),  List(kBow),  List(kCrossbow)};
+
+// Calls add(name) for each part of the weapon prototype `record` (not null), in the game's order.
+template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
+    char number[8];
+    std::snprintf(number, sizeof(number), "%.2d", head->number);
+    std::uint32_t type = static_cast<std::uint32_t>(head->type);
+    if (type >= sizeof(kPartsByType) / sizeof(kPartsByType[0])) return;
+    const PartSpan& list = kPartsByType[type];
+    for (int i = 0; i < list.count; ++i) {
+        const PartName& part = list.parts[i];
+        if (!part.numbered) {
+            add(part.prefix);
+            continue;
+        }
+        char name[64];
+        char* end = name;
+        const char* pieces[] = {part.prefix, number, part.suffix};
+        for (const char* piece : pieces) {
+            std::size_t n = std::strlen(piece);
+            std::memcpy(end, piece, n);
+            end += n;
+        }
+        *end = '\0';
+        add(static_cast<const char*>(name));
+    }
+}
+
 } // namespace
 
-// --- Weapons and armors ---------------------------------------------------------------------------
+// --- CItem ---------------------------------------------------------------------------------------
+
+// A plain item has no names.
+std::string CItem::ModelName() { return {}; }
+std::string CItem::FigureName() { return {}; }
+std::string CItem::PictureName() { return {}; }
+
+// --- Weapons and armors --------------------------------------------------------------------------
 
 std::string CItemWeapon::ModelName() {
     return WeaponModelName(PrototypeIndex(prototypeId_), MaterialIndex(prototypeId_));
@@ -44,17 +118,6 @@ std::string CItemArmor::ModelName() {
 std::string CItemArmor::FigureName() { return HumanFigureName(this); }
 
 std::string CItemArmor::PictureName() { return WeaponOrArmorPicture(false, ArmorAt(PrototypeIndex(prototypeId_))); }
-
-std::string WeaponBaseFigure(std::uint32_t index) {
-    const WeaponRecord* weapon = WeaponAt(index);
-    if (!weapon) return {};
-    static const char* const kBases[5] = {"basesword", "baseaxe", "basedagger", "basepike", "baseclub"};
-    std::uint32_t type = static_cast<std::uint32_t>(weapon->type);
-    if (type < 5) return kBases[type] + str::Format("%.2d", weapon->number);
-    if (type == 5) return "basearrow00";
-    if (type == 6) return "basearrow01";
-    return "baser_hand3";
-}
 
 // --- Quick items, quest items, scrolls -----------------------------------------------------------
 
@@ -113,4 +176,49 @@ std::string CItemLoot::PictureName() {
     case LootRecordType::Modifier: return "initqi1item";
     default: return {};
     }
+}
+
+// --- Model names, base figure and parts by record ------------------------------------------------
+
+std::string RecordModelName(const ItemRecordHead* prototype, const char* const (&codes)[7],
+                            const MaterialRecordHead* material) {
+    if (!prototype || !material) return {};
+    return str::Format("%s_%.2d.%s.%d", TypeCode(codes, prototype->type), prototype->number, material->name,
+                       prototype->variant);
+}
+
+std::string ArmorModelName(std::uint32_t armorIndex, std::uint32_t materialIndex) {
+    return RecordModelName(ArmorAt(armorIndex), kArmorCodes, MaterialAt(materialIndex));
+}
+
+std::string WeaponModelName(std::uint32_t weaponIndex, std::uint32_t materialIndex) {
+    return RecordModelName(WeaponAt(weaponIndex), kWeaponCodes, MaterialAt(materialIndex));
+}
+
+std::string WeaponBaseFigure(std::uint32_t index) {
+    const WeaponRecord* weapon = WeaponAt(index);
+    if (!weapon) return {};
+    static const char* const kBases[5] = {"basesword", "baseaxe", "basedagger", "basepike", "baseclub"};
+    std::uint32_t type = static_cast<std::uint32_t>(weapon->type);
+    if (type < 5) return kBases[type] + str::Format("%.2d", weapon->number);
+    if (type == 5) return "basearrow00";
+    if (type == 6) return "basearrow01";
+    return "baser_hand3";
+}
+
+std::vector<std::string> WeaponModelParts(std::uint32_t index) {
+    std::vector<std::string> parts;
+    const WeaponRecord* record = WeaponAt(index);
+    if (!record) return parts;
+    ForEachPart(record, [&parts](const char* name) { parts.push_back(name); });
+    return parts;
+}
+
+void AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out) {
+    const WeaponRecord* record = WeaponAt(PrototypeIndex(packedId));
+    if (!record) return;
+    ForEachPart(record, [out](const char* name) {
+        std::string s(name);
+        out->push_back(s);
+    });
 }

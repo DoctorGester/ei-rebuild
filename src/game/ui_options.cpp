@@ -2,7 +2,7 @@
 // (ui.h: COptionsWindow, CUiSlider; docs/notes/ui.md "Objectives, save/load, options").
 #include "ui.h"
 
-#include "item_db_text.h"
+#include "text_manager.h"
 #include "maths.h"
 #include "world.h"
 

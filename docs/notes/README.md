@@ -23,5 +23,5 @@ history is in git. Each fact lives in one file; others link to it by file name a
 - `harness.md`: running scenarios, the scenario steps, what a harness run does and leaves alone.
 - `standalone-verification.md`: how changes are checked (goldens, function vectors, WideScreen references), what makes runs repeat, the harness's isolation and diagnostic tools.
 - `inventory.md` (library / dead code classification), `cleanup-tooling.md` (checks, progress counts, shared forwarder
-  headers), `cleanup-engine-base.md` / `cleanup-network.md` / `cleanup-map-objects.md` / `cleanup-units.md` / `cleanup-items.md` / `cleanup-effects.md` / `cleanup-ui.md` /
+  headers), `cleanup-engine-base.md` / `cleanup-network.md` / `cleanup-map-objects.md` / `cleanup-units.md` / `cleanup-effects.md` / `cleanup-ui.md` /
   `cleanup-world.md` / `cleanup-figures.md` / `cleanup-ai.md` / `cleanup-script.md` / `cleanup-device.md` (how those classes are declared after cleanup phase 1).
