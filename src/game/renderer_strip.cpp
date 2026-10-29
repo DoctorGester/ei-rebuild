@@ -48,9 +48,9 @@ void SetUv(TLVertex* vertex, const float& v) {
 // rounded to floats, k = (width * rhw * 15, rounded) / hypot(dx, dy) unrounded; vertex 1 moved by (k*dy,
 // -k*dx) as in EmitSection, vertex 2 by (-(float)(k*dy), k*dx) (its x offset rounded first).
 void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** array, int* count, std::uint32_t widthBits) {
-    const float dx = static_cast<float>(static_cast<double>(next->x) - first->x);
-    const float dy = static_cast<float>(static_cast<double>(next->y) - first->y);
-    const float scale = static_cast<float>(static_cast<double>(std::bit_cast<float>(widthBits)) * first->rhw * kWidthScale);
+    const float dx = next->x - first->x;
+    const float dy = next->y - first->y;
+    const float scale = std::bit_cast<float>(widthBits) * first->rhw * kWidthScale;
     const double k = scale / libcrt::Hypot(dx, dy);
     TLVertex* top = *array + (*count)++;
     *top = *first;
@@ -62,7 +62,7 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
     SetUv(top, g_topV);
     TLVertex* bottom = *array + (*count)++;
     *bottom = *first;
-    bottom->x = static_cast<float>(static_cast<double>(bottom->x) - offsetX);
+    bottom->x = bottom->x - offsetX;
     bottom->y = static_cast<float>(acrossY + bottom->y);
     SetUv(bottom, g_bottomV);
 }
@@ -91,7 +91,7 @@ TLVertex* StripAt(int i) { return g_strip.data() + i; }
 // bottom, both with the current u. Appends both to `*array` at `*count`.
 void EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
-    const float scale = static_cast<float>(static_cast<double>(width) * src->rhw * kWidthScale);
+    const float scale = width * src->rhw * kWidthScale;
     const double k = scale / libcrt::Hypot(direction[0], direction[1]);
     *top = *src;
     top->x = static_cast<float>(k * direction[1] + top->x);
@@ -156,7 +156,7 @@ int SceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, floa
     if (pointCount < 2) return 1;
 
     g_currentU = 0.0f;
-    float step = static_cast<float>(uLength / static_cast<double>(pointCount - 1));
+    float step = uLength / (pointCount - 1);
     float zero = 0.0f;
     EI_NAN_AUDIT(uLength);
     if (uLength == zero) g_currentU = 0.875f;

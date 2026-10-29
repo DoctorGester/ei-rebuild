@@ -85,10 +85,10 @@ constexpr float kSchoolGlow[8][4] = /*00740358*/ {
     {1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}};
 
 std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
-    const double advanced = static_cast<double>(dt) * 5.0 + turn->glow;
-    const double pi = 3.141592653589793;
-    const double phase = std::fmod(advanced, pi + pi);
-    turn->glow = static_cast<float>(phase);
+    const float advanced = dt * 5.0f + turn->glow;
+    const float pi = 3.1415927f;
+    const float phase = std::fmod(advanced, pi + pi);
+    turn->glow = phase;
     const double strength = (std::sin(phase) + 1.0) * 0.15000000596046448;
     const auto channel = [&](int i) { return libcrt::Ftol(strength * colour[i] * 255.0f); };
     const std::uint32_t r = channel(0);
@@ -103,13 +103,13 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
 void Turn(ItemTurn* turn, float dt, bool hovered) {
     EI_NAN_AUDIT(turn->speed);
     if (hovered) {
-        turn->speed = static_cast<float>(D(8.0f) * D(dt) + D(turn->speed));
+        turn->speed = 8.0f * dt + turn->speed;
     } else if (turn->speed < 0.1f) {
         turn->angle = 0.0f;
         turn->speed = 0.0f;
     } else {
-        double pi = D(3.1415927f);
-        turn->speed = static_cast<float>((pi + pi - D(turn->angle)) * D(4.0f));
+        float pi = 3.1415927f;
+        turn->speed = (pi + pi - turn->angle) * 4.0f;
     }
     if (turn->speed > 5.0f) turn->speed = 5.0f;
     // The angle is stored and compared unrounded with 2 pi: wraps while above, not when equal or unordered.
@@ -132,17 +132,17 @@ Quaternion HalfTurn(float ax, float ay, float az) {
 Quaternion ProductA(const Quaternion& a, const Quaternion& b) {   // weapons
     Quaternion r;
     r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::XYZ, double>(a.x, a.y, a.z, b.x, b.y, b.z));
-    r.x = static_cast<float>(((D(b.y) * D(a.z) - D(a.y) * D(b.z)) + D(a.w) * D(b.x)) + D(a.x) * D(b.w));
-    r.y = static_cast<float>(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(a.y) * D(b.w));
-    r.z = static_cast<float>(((D(a.y) * D(b.x) - D(a.x) * D(b.y)) + D(b.w) * D(a.z)) + D(a.w) * D(b.z));
+    r.x = ((b.y * a.z - a.y * b.z) + a.w * b.x) + a.x * b.w;
+    r.y = ((a.x * b.z - b.x * a.z) + a.w * b.y) + a.y * b.w;
+    r.z = ((a.y * b.x - a.x * b.y) + b.w * a.z) + a.w * b.z;
     return r;
 }
 Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
     Quaternion r;
     r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
-    r.x = static_cast<float>(((D(b.y) * D(a.z) - D(b.z) * D(a.y)) + D(a.w) * D(b.x)) + D(b.w) * D(a.x));
-    r.y = static_cast<float>(((D(b.z) * D(a.x) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(b.w) * D(a.y));
-    r.z = static_cast<float>(((D(b.x) * D(a.y) - D(b.y) * D(a.x)) + D(a.z) * D(b.w)) + D(a.w) * D(b.z));
+    r.x = ((b.y * a.z - b.z * a.y) + a.w * b.x) + b.w * a.x;
+    r.y = ((b.z * a.x - b.x * a.z) + a.w * b.y) + b.w * a.y;
+    r.z = ((b.x * a.y - b.y * a.x) + a.z * b.w) + a.w * b.z;
     return r;
 }
 
@@ -184,7 +184,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
 
     model->texture = texture;
     model->Place(cell.x, cell.y, cell.depth);
-    model->SetScale(static_cast<float>(D(0.48157462f) * D(cell.size) * D(cell.depth) * D(0.0009375f)));
+    model->SetScale(0.48157462f * cell.size * cell.depth * 0.0009375f);
     model->material = blackMaterial;
 
     if (ItemTurnOf(item) == nullptr) {
@@ -201,12 +201,12 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
         const Vector3& extents = model->box.bounds.boxMax;
         EI_NAN_AUDIT(extents.y, extents.x);
         float extent = extents.x < extents.y ? extents.y : extents.x;
-        double half = 0.5;
-        float y = static_cast<float>(D(model->box.bounds.center.y) * D(cell.size) * half + D(cell.y));
-        float x = static_cast<float>(D(cell.x) - D(model->box.bounds.center.x) * D(cell.size) * half);
+        float half = 0.5f;
+        float y = model->box.bounds.center.y * cell.size * half + cell.y;
+        float x = cell.x - model->box.bounds.center.x * cell.size * half;
         model->Place(x, y, cell.depth);
-        model->SetScale(static_cast<float>(D(0.48157462f) * D(cell.size) * D(cell.depth) *
-                                        D(0.00125f) / D(extent)));
+        model->SetScale(0.48157462f * cell.size * cell.depth *
+                                        0.00125f / extent);
     } else {
         SetShade(model, 1.0f);
         float dt = static_cast<float>(FrameTime());
@@ -242,11 +242,11 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
             model->localRotation = ProductB(a, b);
         }
 
-        float frameDepth = static_cast<float>(D(cell.depth) * D(1.3f));
+        float frameDepth = cell.depth * 1.3f;
         UiMesh* frame = AddBlankSprite();
-        double half = D(35.0f);
-        frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
-                            static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
+        float half = 35.0f;
+        frame->SetRectangle(frameDepth, 100.0f, cell.x - half, cell.y - half,
+                            cell.x + half, cell.y + half, 0x9D, 0x9D, 0xE3, 0xE3);
         frame->texture = objects[2];
         frame->Draw(pass);
         RemoveSceneObject(frame);
@@ -264,25 +264,25 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
         model->GetPlacement(&px, &py, &pz);
         float scale = model->scaleMatrix.m[0];
         UiMesh* mark = AddBlankSprite();
-        mark->SetRectangle(static_cast<float>(D(pz) * D(0.9f)), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
+        mark->SetRectangle(pz * 0.9f, 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                            0x20, 0x20);
         mark->texture = objects[1];
         mark->SetScale(scale);
         SetShade(mark, cell.mode == 9 ? 0.5f : 1.0f);
-        float step = static_cast<float>(D(scale) * D(550.0f));
+        float step = scale * 550.0f;
         for (int i = 0; i < spell->GetModifierCount(); ++i) {
             int code = spell->modifiers[i] - 1;    // the modifier's index (stored as index + 1)
-            double cellSize = D(0.125f);
-            mark->textureOffsetU = static_cast<float>(static_cast<double>(code & 7) * cellSize);
-            mark->textureOffsetV = static_cast<float>(static_cast<double>(-(code >> 3)) * cellSize);
-            double d = D(step) / D(pz);
+            float cellSize = 0.125f;
+            mark->textureOffsetU = (code & 7) * cellSize;
+            mark->textureOffsetV = (-(code >> 3)) * cellSize;
+            float d = step / pz;
             float dx;
             if (i == 0 || i == 4)
                 dx = 0.0f;
             else if (i == 5 || i == 6 || i == 7)
-                dx = -static_cast<float>(d);
+                dx = -d;
             else
-                dx = static_cast<float>(d);
+                dx = d;
             double dy;
             if (i == 2 || i == 6)
                 dy = 0.0;
@@ -290,20 +290,20 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
                 dy = -d;
             else
                 dy = d;
-            float depth = static_cast<float>(D(pz) * D(0.9f));
-            mark->Place(static_cast<float>(D(dx) + D(px)), static_cast<float>(dy + D(py)), depth);
+            float depth = pz * 0.9f;
+            mark->Place(dx + px, static_cast<float>(dy + D(py)), depth);
             mark->Draw(pass);
         }
         RemoveSceneObject(mark);
     }
 
     if (cell.mode != 9 && !CanEquip(item, cell.mode)) {
-        float depth = static_cast<float>(D(cell.depth) * D(1.25f));
-        if (LiesFlat(item)) depth = static_cast<float>(D(cell.depth) * D(0.8f));
+        float depth = cell.depth * 1.25f;
+        if (LiesFlat(item)) depth = cell.depth * 0.8f;
         UiMesh* shade = AddBlankSprite();
-        double half = D(35.0f);
-        shade->SetRectangle(depth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
-                            static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0, 0, 0x100, 0x100);
+        float half = 35.0f;
+        shade->SetRectangle(depth, 100.0f, cell.x - half, cell.y - half,
+                            cell.x + half, cell.y + half, 0, 0, 0x100, 0x100);
         shade->texture = nullptr;
         shade->flags |= FigureMeshFlag::Flat;
         shade->flatColour = 0x82804040;
@@ -314,8 +314,8 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
 
 void ItemInfoPanel::Draw(SceneRenderer* pass) {
     if (Item* item = FirstItem()) {
-        const ItemCell cell{item, static_cast<float>(static_cast<double>(x) + D(100.0f)),
-                            static_cast<float>(static_cast<double>(y) + D(200.0f)), 3.0f, 120.0f, 9};
+        const ItemCell cell{item, x + 100.0f,
+                            y + 200.0f, 3.0f, 120.0f, 9};
         owner->DrawItem(pass, cell);
     }
 }
@@ -361,21 +361,21 @@ void ItemScreen::DrawHeroFace(SceneRenderer* pass, const HeroFaceCell& cell) {
 
     model->texture = texture;
     model->Place(cell.x, cell.y, cell.depth);
-    model->SetScale(static_cast<float>(D(cell.size) * D(cell.depth) * D(0.48157462f) * D(0.0009375f)));
+    model->SetScale(cell.size * cell.depth * 0.48157462f * 0.0009375f);
     model->material = blackMaterial;
     SetShade(model, 1.0f);
     Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion tilt;
-    tilt.SetAxisAngle(axis, static_cast<float>((D(cell.y) - D(300.0f)) * D(0.001f)));
+    tilt.SetAxisAngle(axis, (cell.y - 300.0f) * 0.001f);
     Quaternion orientation;
     model->localRotation = *MultiplyQuaternions(&orientation, &tilt, &turn);
 
-    float frameDepth = static_cast<float>(D(cell.depth) * D(1.3f));
+    float frameDepth = cell.depth * 1.3f;
     UiMesh* frame = AddBlankSprite();
-    double half = D(35.0f);
-    frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
-                        static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
+    float half = 35.0f;
+    frame->SetRectangle(frameDepth, 100.0f, cell.x - half, cell.y - half,
+                        cell.x + half, cell.y + half, 0x9D, 0x9D, 0xE3, 0xE3);
     frame->texture = objects[2];
     frame->Draw(pass);
     RemoveSceneObject(frame);

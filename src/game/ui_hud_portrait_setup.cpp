@@ -100,7 +100,7 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
     const int right = x + width;
 
     if (face) {
-        face->Place(static_cast<float>(static_cast<double>(x + right) * 0.5f), 548.0f, 7.0f);
+        face->Place((x + right) * 0.5f, 548.0f, 7.0f);
         face->SetScale(width < 0x32 ? 0.22f : 0.3f);
         Quaternion turn;
         slots[count].restA = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
@@ -119,8 +119,8 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
         face->tint[1] = 0.5f;
         face->tint[2] = 0.5f;
     }
-    face->textureOffsetU = static_cast<float>(u) * kTexel;
-    face->textureOffsetV = static_cast<float>(v + 0x80) * kTexel;
+    face->textureOffsetU = u * kTexel;
+    face->textureOffsetV = (v + 0x80) * kTexel;
     face->texture = objects[std::ssize(objects) - 1];
 
     // The health and mana bars (hidden for a player), the frame and the hit flash.

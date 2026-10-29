@@ -88,7 +88,7 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
 }
 
 void ScreenFade::Start(int ms) {
-    rate = kOpaque / static_cast<float>(ms);
+    rate = kOpaque / ms;
     alpha = ms > 0 ? 0.0f : kOpaque;
     lastTime = gameapi::timeGetTime();
     active = true;
@@ -133,7 +133,7 @@ void Interface3D::DrawOverlays() {
         if (fpsSurface) {
             std::string rate;
             float perSecond =
-                static_cast<float>(fpsFrames) * 1000.0f / static_cast<float>(static_cast<int>(elapsed));
+                fpsFrames * 1000.0f / static_cast<int>(elapsed);
             rate = str::Format("%.1f", static_cast<double>(perSecond));
             fpsSurface->Clear();
             RECT rect{0, 0, 60, 18};

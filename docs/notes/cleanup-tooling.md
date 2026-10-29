@@ -178,6 +178,41 @@ the two cannot be stacked per file.
   kept on the voice but read by nothing; the harness ends samples by Miles' length on the virtual clock; no save
   holds music state.
 
+### Plain float maths in the SSE2 files (C30b)
+
+The SSE2 files (the list above and src/render) lost the x87 era's spellings by script, in two steps; the x87 files
+and the shared headers' inline helpers (`D` in particle_common.h, camera.h) are untouched.
+- **The helpers** (a text rewrite): `x87::fsin / fcos / fpatan / flog / fexp` -> `std::sin / cos / atan2 / log / exp`,
+  `x87::fistp(static_cast<float>(e))` -> `std::lround(e)`, `x87::FromUnsigned(u)` -> `static_cast<double>(u)` (exact on
+  SSE2; a float would drop the low bits of millisecond times), `x87::CopyBits(a, b)` -> `a = b`. `std::lround` rounds
+  halves away from zero where FISTP rounds them to even: an exact .5 now goes up (ui_camp's
+  `std::lround(item->condition) <= 0` sell test is the one site whose integer is more than a colour or a count).
+- **The casts** (driven by clang's AST: zig's clang in clang-cl mode, i686-msvc, `-ast-dump=json`; offsets are bytes,
+  and a location carrying `includedFrom` is a header's, not the file's): a `static_cast<float>` of a float dropped; of an
+  int dropped where it is an operand of an arithmetic or comparison operator whose other side is a float that is not
+  a cast too (two dropped in one division made `value / maximum` an int division); of a double expression rewritten
+  as float maths when every leaf can be a float: `D(x)` / `static_cast<double>(x)` of a float -> `x`, of an int ->
+  `static_cast<float>(i)`, double literals -> their float spelling, the std maths of such -> the float overload; and a
+  local `double` that is only read and whose initialiser converts became a `float`. Parentheses stay where the cast
+  sat in an operator. Re-parsed until nothing changes (1,769 edits in 66 files, before terrain_shadow went back).
+- **Counts** (code, comments left out; the 186 SSE2 files): `static_cast<float>` 2,226 -> 815, `static_cast<double>`
+  322 -> 141, `D(` 2,750 -> 704, `double` 1,099 -> 613, `x87::` 193 -> 6 (render.cpp's `FpuGuard`, terrain_animation,
+  terrain_shadow).
+- **Left for hand review (C30c)**, by why the script stopped: a double variable, member or constant among the leaves
+  (335: `kPi`-style `constexpr double` constants, double locals that are written, double members), an int cast whose
+  context is not a float operator (241: initialisers, arguments, an int against a double), a double-returning call
+  (107: `Unsigned`, `Range`, `FrameTime`, the `*Unrounded` vector helpers, `fmod`), a double macro (81: the particle
+  files' `EI_*` constants), a 32-bit unsigned or 64-bit int (14: times and random words would lose bits as floats),
+  3 others; ui_connect_screen (clang rejects bit_flags.h's `operator|` template there) and the two files below were
+  not run. The file comments that say "`double` for values the original keeps on the FPU stack" describe what is left.
+- **Golden that sent files back:** `terrain_water_waves` (the water sectors' vertices are in its dumps):
+  terrain_animation (positions and speculars: `std::lround` without the float rounding picks another sine-table
+  entry and colour byte) and terrain_shadow (speculars from record 0: `EdgeFade`'s alpha, FISTP's half-to-even
+  against `std::lround`). Both are as C30a left them, x87 helpers included; any rewrite there needs that golden
+  re-recorded or the exact rounding kept.
+- The scripts (one-off, not in tools/): `renames.py`, `casts.py`, `clang_ast.py`, `files.py` in the C30b scratch
+  folder named in the hand-back.
+
 ### The whole image on SSE2 (C16 experiment)
 
 What an `/arch:SSE2` image costs against the goldens, and which `x87::` helpers convert for free (2026-10-21). The build switches

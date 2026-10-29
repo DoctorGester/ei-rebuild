@@ -92,8 +92,8 @@ void EnsureConfigured() {
 std::uint32_t GameClearColour() { return g_sceneRenderer.fogColour; }
 
 sg_color FromD3DColour(std::uint32_t c) {
-    return sg_color{static_cast<float>((c >> 16) & 0xFF) / 255.0f, static_cast<float>((c >> 8) & 0xFF) / 255.0f,
-                    static_cast<float>(c & 0xFF) / 255.0f, 1.0f};
+    return sg_color{((c >> 16) & 0xFF) / 255.0f, ((c >> 8) & 0xFF) / 255.0f,
+                    (c & 0xFF) / 255.0f, 1.0f};
 }
 
 
@@ -743,8 +743,8 @@ bool DrawPending() {
     }
     // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further: the 3D
     // draws move their positions by half a pixel (Frame::pixelShift); sokol takes whole pixels only.
-    g_frame.pixelShift[0] = 1.0f / static_cast<float>(width);
-    g_frame.pixelShift[1] = -1.0f / static_cast<float>(height);
+    g_frame.pixelShift[0] = 1.0f / width;
+    g_frame.pixelShift[1] = -1.0f / height;
     std::size_t k = g_drawnCommands, end = g_frame.commands.size();
     bool multisampling = g_targetSamples > 1;
     std::size_t split = SIZE_MAX;   // the first world run ends here (SmoothOrder::Split)

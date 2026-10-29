@@ -31,14 +31,14 @@ WeatherNoiseCurve g_swayXByHeight = /*007AE398*/ {};
 void WeatherNoiseCurve::Build(float amplitude) {
     for (float& sample : samples) sample = static_cast<float>(ClientRand() - kRandCentre);
 
-    const double weight = kSmoothingWeight;
-    const double keep = 1.0 - weight;
-    for (int i = 1; i < kSamples; ++i) samples[i] = static_cast<float>(keep * samples[i - 1] + weight * samples[i]);
+    const float weight = kSmoothingWeight;
+    const float keep = 1.0f - weight;
+    for (int i = 1; i < kSamples; ++i) samples[i] = keep * samples[i - 1] + weight * samples[i];
     // Backwards from the last sample to the third. The last one's neighbour is the float after the
     // samples, the first segment's value.
     for (int i = kSamples - 1; i >= 2; --i) {
         const float next = i + 1 < kSamples ? samples[i + 1] : segments[0].value;
-        samples[i] = static_cast<float>(keep * next + weight * samples[i]);
+        samples[i] = keep * next + weight * samples[i];
     }
     std::memmove(samples, samples + kShift, (kSamples - kShift) * sizeof(float));
 
@@ -47,19 +47,19 @@ void WeatherNoiseCurve::Build(float amplitude) {
     const double scale = amplitude / std::sqrt(squares * kSampleShare);
     for (float& sample : samples) sample = static_cast<float>(scale * sample);
 
-    const double half = 0.5;
+    const float half = 0.5f;
     for (int i = 0; i < kSamples - 1; ++i) {
-        const double slopeIn = i == 0 ? static_cast<double>(samples[1]) - samples[0]
-                                      : (static_cast<double>(samples[i + 1]) - samples[i - 1]) * half;
-        const double slopeOut = i == kSamples - 2 ? static_cast<double>(samples[i + 1]) - samples[i]
-                                                  : (static_cast<double>(samples[i + 2]) - samples[i]) * half;
+        const float slopeIn = i == 0 ? samples[1] - samples[0]
+                                      : (samples[i + 1] - samples[i - 1]) * half;
+        const float slopeOut = i == kSamples - 2 ? samples[i + 1] - samples[i]
+                                                  : (samples[i + 2] - samples[i]) * half;
         WeatherNoiseSegment& segment = segments[i];
         segment.value = samples[i];
-        segment.slope = static_cast<float>(slopeIn);
-        const float bend = static_cast<float>(((static_cast<double>(samples[i + 1]) - segment.value) - slopeIn) * 2.0);
-        const double cubic = (slopeOut - slopeIn) - bend;
-        segment.cubic = static_cast<float>(cubic);
-        segment.quadratic = static_cast<float>((bend - (cubic + cubic)) * half);
+        segment.slope = slopeIn;
+        const float bend = ((samples[i + 1] - segment.value) - slopeIn) * 2.0f;
+        const float cubic = (slopeOut - slopeIn) - bend;
+        segment.cubic = cubic;
+        segment.quadratic = (bend - (cubic + cubic)) * half;
     }
 }
 

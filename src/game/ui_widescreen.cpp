@@ -59,7 +59,7 @@ Layout Compute() {
     if (w < kLayoutWidth || h < kLayoutHeight || w * 3 <= h * 4) return layout;
     layout.width43 = h * kLayoutWidth / kLayoutHeight;
     layout.margin = (w - layout.width43) / 2;
-    float units = static_cast<float>(layout.margin * 800.0 / layout.width43);
+    float units = layout.margin * 800.0f / layout.width43;
     layout.extra = static_cast<int>(std::ceil(static_cast<double>(units)));
     // As addon computes them: width43 / width stored to a float (addon's 10024954), and width * 0.0075f (a
     // float constant widened to a double: 0.0074999998) / height stored to a float (10024902).
@@ -84,8 +84,8 @@ void Startup() {
     g_computed = true;
     if (!g_layout.active) return;
     // addon: extra + 800.0 / 695.0 summed as doubles, stored as floats.
-    g_layoutWidth = static_cast<float>(g_layout.extra + 800.0);
-    g_panelRight = static_cast<float>(g_layout.extra + 695.0);
+    g_layoutWidth = g_layout.extra + 800.0f;
+    g_panelRight = g_layout.extra + 695.0f;
     ei::Log("WideScreen: %dx%d, 4:3 part %d, margin %d pixels = %d layout units; layout width %g, panel right %g",
             g_layout.width, g_layout.height, g_layout.width43, g_layout.margin, g_layout.extra,
             g_layoutWidth, g_panelRight);
@@ -193,7 +193,7 @@ void AddCurtains(UiWindow* window, int visible) {
     left->SetRectangle(2.0f, 100.0f, static_cast<float>(-margin), 0.0f, 0.0f, 600.0f, 0xE3, 0x3E, 0x100, 0xB0);
     SetCurtainLook(left, visible);
     UiMesh* right = window->AddBlankSprite();
-    right->SetRectangle(2.0f, 100.0f, 800.0f, 0.0f, static_cast<float>(margin + 800.0), 600.0f, 0x100, 0xB0, 0xE3, 0x3E);
+    right->SetRectangle(2.0f, 100.0f, 800.0f, 0.0f, margin + 800.0f, 600.0f, 0x100, 0xB0, 0xE3, 0x3E);
     SetCurtainLook(right, visible);
 }
 

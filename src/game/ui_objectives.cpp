@@ -113,18 +113,18 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
     }
 
     LoadTexture(map->picture2, TextureKind::Interface);
-    float width = static_cast<float>(static_cast<double>(map->sizeX));
-    float height = static_cast<float>(static_cast<double>(map->sizeY));
+    float width = static_cast<float>(map->sizeX);
+    float height = static_cast<float>(map->sizeY);
     float larger = width < height ? height : width;
-    double widthShare = D(width) / D(larger);
-    float heightShare = static_cast<float>(D(height) / D(larger));
-    float halfHeight = static_cast<float>(D(heightShare) * kPictureHalf);
-    float halfWidth = static_cast<float>(widthShare * kPictureHalf);
+    float widthShare = width / larger;
+    float heightShare = height / larger;
+    float halfHeight = heightShare * kPictureHalf;
+    float halfWidth = widthShare * kPictureHalf;
     int u1 = static_cast<int>(libcrt::Ftol(widthShare * kTexels));
     int v0 = static_cast<int>(libcrt::Ftol((1.0f - D(heightShare)) * kTexels));
     UiMesh* picture = SceneMesh(3);
-    picture->SetRectangle(10.0f, 100.0f, static_cast<float>(kPictureCentreX - D(halfWidth)), static_cast<float>(kPictureCentreY - D(halfHeight)),
-                          static_cast<float>(D(halfWidth) + kPictureCentreX), static_cast<float>(D(halfHeight) + kPictureCentreY), 0, v0, u1,
+    picture->SetRectangle(10.0f, 100.0f, kPictureCentreX - halfWidth, kPictureCentreY - halfHeight,
+                          halfWidth + kPictureCentreX, halfHeight + kPictureCentreY, 0, v0, u1,
                           0x100);
     picture->texture = objects[2];
 
@@ -141,8 +141,8 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         int index = std::ssize(exits);
         ObjectiveExit* exit = &exits.emplace_back();
         exit->exit = i;
-        exit->x = static_cast<float>((D(source.deploy[2]) + D(source.deploy[0])) * 0.5f);
-        exit->y = static_cast<float>((D(source.deploy[3]) + D(source.deploy[1])) * 0.5f);
+        exit->x = (source.deploy[2] + source.deploy[0]) * 0.5f;
+        exit->y = (source.deploy[3] + source.deploy[1]) * 0.5f;
         exit->distance = 0.0f;
         exit->flag = false;
         if (exitDistances) {
@@ -166,23 +166,23 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
             if (value != 1.0f) exit->flag = true;
         }
 
-        float worldWidth = static_cast<float>(static_cast<double>(map->sizeX << 5));
-        float worldHeight = static_cast<float>(static_cast<double>(map->sizeY << 5));
+        float worldWidth = static_cast<float>(map->sizeX << 5);
+        float worldHeight = static_cast<float>(map->sizeY << 5);
         float span = worldWidth < worldHeight ? worldHeight : worldWidth;
         exit = &exits[index];
-        double dx = D(exit->x) - D(worldWidth) * 0.5f;
-        float dy = static_cast<float>(D(exit->y) - D(worldHeight) * 0.5f);
-        float sideX = static_cast<float>(dx / D(worldWidth));
-        float sideY = static_cast<float>(D(dy) / D(worldHeight));
-        double mapX = dx * kPictureSpan / D(span) + kPictureCentreX;
-        float x = static_cast<float>(mapX);
-        float y = static_cast<float>(kPictureCentreY - D(dy) * kPictureSpan / D(span));
-        exit->mapX = static_cast<float>(mapX);
+        float dx = exit->x - worldWidth * 0.5f;
+        float dy = exit->y - worldHeight * 0.5f;
+        float sideX = dx / worldWidth;
+        float sideY = dy / worldHeight;
+        float mapX = dx * kPictureSpan / span + kPictureCentreX;
+        float x = mapX;
+        float y = kPictureCentreY - dy * kPictureSpan / span;
+        exit->mapX = mapX;
         exit->mapY = y;
 
         UiMesh* marker = AddBlankSprite();
-        float base = static_cast<float>(D(y) + kMarkerHeight);
-        marker->SetTriangle(5.0f, 100.0f, x, y, static_cast<float>(D(x) - kMarkerHalfWidth), base, static_cast<float>(D(x) + kMarkerHalfWidth),
+        float base = y + kMarkerHeight;
+        marker->SetTriangle(5.0f, 100.0f, x, y, x - kMarkerHalfWidth, base, x + kMarkerHalfWidth,
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
         markerScale = marker->scaleMatrix.m[0];
         RECT area;
@@ -363,17 +363,17 @@ void ObjectivesWindow::ShowQuest() {
     while (std::ssize(regions) > std::ssize(exits) + 9) RemoveRegionAt(std::ssize(exits) + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
     for (unsigned i = 0; i < static_cast<unsigned>(questPlaces.end() - questPlaces.begin()); ++i) {
-        float worldWidth = static_cast<float>(static_cast<double>(map->sizeX << 5));
-        float worldHeight = static_cast<float>(static_cast<double>(map->sizeY << 5));
+        float worldWidth = static_cast<float>(map->sizeX << 5);
+        float worldHeight = static_cast<float>(map->sizeY << 5);
         float span = worldWidth < worldHeight ? worldHeight : worldWidth;
         const UiPointF& place = questPlaces[i];
-        float x = static_cast<float>((D(place.x) - D(worldWidth) * 0.5f) * kPictureSpan / D(span) + kPictureCentreX);
-        float y = static_cast<float>(kPictureCentreY - (D(place.y) - D(worldHeight) * 0.5f) * kPictureSpan / D(span));
+        float x = (place.x - worldWidth * 0.5f) * kPictureSpan / span + kPictureCentreX;
+        float y = kPictureCentreY - (place.y - worldHeight * 0.5f) * kPictureSpan / span;
         UiMesh* marker = AddBlankSprite();
-        float bottom = static_cast<float>(D(y) + kMarkerHalfWidth);
-        float right = static_cast<float>(D(x) + kMarkerHalfWidth);
-        float top = static_cast<float>(D(y) - kMarkerHalfWidth);
-        float left = static_cast<float>(D(x) - kMarkerHalfWidth);
+        float bottom = y + kMarkerHalfWidth;
+        float right = x + kMarkerHalfWidth;
+        float top = y - kMarkerHalfWidth;
+        float left = x - kMarkerHalfWidth;
         marker->SetRectangle(5.0f, 100.0f, left, top, right, bottom, 0, 0, 0x80, 0x80);
         marker->texture = objects[1];
         std::memcpy(marker->tint, red, sizeof(red));

@@ -30,7 +30,7 @@ void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& l
     for (int i = 0; i < std::ssize(list); ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
-        ItemCell cell{list[i], static_cast<float>(x) + 250.0f, static_cast<float>(y) + yOffset,
+        ItemCell cell{list[i], x + 250.0f, y + yOffset,
                       i <= 3 ? bigSize : smallSize, 100.0f, grid->mode};
         grid->owner->DrawItem(pass, cell);
         int pieces = static_cast<int>(cell.item->count);

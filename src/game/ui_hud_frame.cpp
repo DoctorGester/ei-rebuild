@@ -93,21 +93,21 @@ void HudClock::Update() {
             blink = static_cast<float>(next);
         } while (next >= 1.0f);
     }
-    float pulse = static_cast<float>(std::cos(D(kHudFullTurn) * D(blink)) * kPulseAmplitude + kPulseMiddle);
+    float pulse = std::cos(kHudFullTurn * blink) * kPulseAmplitude + kPulseMiddle;
 
     float handAngle;
     if (GamePaused()) {
-        SetTint(face, static_cast<float>(kBlinkBase - D(pulse)));
-        handAngle = static_cast<float>(D(kPi) * kPausedHand);
+        SetTint(face, kBlinkBase - pulse);
+        handAngle = kPi * kPausedHand;
         AsUiMesh(scene[1])->visible = blink > 0.5f;
     } else {
         SetTint(face, 1.0f);
         double step;
         if (fast != 0) {
-            handAngle = static_cast<float>(D(kPi) * kFastHand);
+            handAngle = kPi * kFastHand;
             step = UiContainer::FrameTime();
         } else {
-            handAngle = static_cast<float>(D(kPi) * kNormalHand);
+            handAngle = kPi * kNormalHand;
             step = UiContainer::FrameTime() * 0.5f;
         }
         dial = static_cast<float>(step + D(dial));
@@ -115,36 +115,36 @@ void HudClock::Update() {
     }
 
     // The dial turns by whole notches' worth and wraps.
-    float notch = static_cast<float>(D(kPi) * kDialStep);
+    float notch = kPi * kDialStep;
     if (dial > notch) {
         double next;
         do {
             next = D(dial) - D(notch);
             dial = static_cast<float>(next);
-            notch = static_cast<float>(D(kPi) * kDialStep);
+            notch = kPi * kDialStep;
         } while (next > notch);
     }
 
     // The hand (object 1) about -z, placed on its circle.
     Turn(scene[1], -1.0f, handAngle);
-    double handSin = std::sin(handAngle);
-    float handY = static_cast<float>(kCentreY - handSin * kHandRadius);
-    float handX = static_cast<float>(std::cos(handAngle) * kHandRadius + widescreen::g_layoutWidth);
+    float handSin = std::sin(handAngle);
+    float handY = kCentreY - handSin * kHandRadius;
+    float handX = std::cos(handAngle) * kHandRadius + widescreen::g_layoutWidth;
     AsUiMesh(scene[1])->Place(handX, handY, kHandDepth);
 
     // The face turns with the time of day.
-    Turn(face, 1.0f, static_cast<float>((D(hours) + kFaceOffset) * D(kPi) * kFaceStep));
+    Turn(face, 1.0f, (hours + kFaceOffset) * kPi * kFaceStep);
 
     // The four dial marks (objects 2-5), a notch apart.
-    float angle = static_cast<float>(D(dial) - D(static_cast<float>(D(kPi) * kFaceStep)));
+    float angle = dial - (kPi * kFaceStep);
     for (int k = 2; k < 6; ++k) {
         EngineObject* mark = scene[k];
         Turn(mark, 1.0f, angle);
-        double c = std::cos(angle);
-        float y = static_cast<float>(kCentreY - c * kDialRadius);
-        float x = static_cast<float>(std::sin(angle) * kDialRadius + widescreen::g_layoutWidth);
+        float c = std::cos(angle);
+        float y = kCentreY - c * kDialRadius;
+        float x = std::sin(angle) * kDialRadius + widescreen::g_layoutWidth;
         AsUiMesh(mark)->Place(x, y, kSpriteDepth);
-        angle = static_cast<float>(D(angle) - D(static_cast<float>(D(kPi) * kDialStep)));
+        angle = angle - (kPi * kDialStep);
     }
 
     SetTint(scene[6], highlight ? pulse : 1.0f);
@@ -161,12 +161,12 @@ void HudTopPanel::Update() {
         // Ease in and out: 2s^2 for the first half, 1 - 2(1-s)^2 for the second.
         double eased;
         if (slide < 0.5f) {
-            double s = D(slide);
+            float s = slide;
             eased = s * s;
             eased = eased + eased;
         } else {
-            double r = 1.0f - D(slide);
-            double r2 = r * r;
+            float r = 1.0f - slide;
+            float r2 = r * r;
             eased = 1.0f - (r2 + r2);
         }
         offset = static_cast<int>(libcrt::Ftol(static_cast<double>(travel) * eased));

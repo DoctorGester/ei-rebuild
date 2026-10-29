@@ -51,10 +51,10 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
     const Vector3 bv = {b.x, b.y, b.z};
     const Vector3 cross = Cross(av, bv);
     Quaternion out;
-    out.w = static_cast<float>(a.w * b.w - DotXYZ(av, bv));
-    out.x = static_cast<float>((cross.x + b.w * a.x) + a.w * b.x);
-    out.y = static_cast<float>((cross.y + b.w * a.y) + a.w * b.y);
-    out.z = second ? static_cast<float>((cross.z + b.w * a.z) + a.w * b.z) : static_cast<float>((cross.z + a.w * b.z) + b.w * a.z);
+    out.w = a.w * b.w - DotXYZ(av, bv);
+    out.x = (cross.x + b.w * a.x) + a.w * b.x;
+    out.y = (cross.y + b.w * a.y) + a.w * b.y;
+    out.z = second ? ((cross.z + b.w * a.z) + a.w * b.z) : ((cross.z + a.w * b.z) + b.w * a.z);
     return out;
 }
 
@@ -107,14 +107,14 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
 
             savedPosition = model->localPosition;
             savedOrientation = model->localRotation;
-            unit->AdvanceTime(static_cast<float>(g_clientWorld.tick) + g_clientWorld.tickFraction);
+            unit->AdvanceTime(g_clientWorld.tick + g_clientWorld.tickFraction);
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
             // WideScreen: 100 - shift.
-            const float x = static_cast<float>((static_cast<float>(100 - widescreen::EdgeShift() - offset) * kLayoutUnit - 1.0f) *
-                                         kDepthUnit * kModelDepth);
-            const float y = static_cast<float>(height / size - static_cast<float>(kDepthUnit * kModelDepth) * kModelDrop);
+            const float x = ((100 - widescreen::EdgeShift() - offset) * kLayoutUnit - 1.0f) *
+                                         kDepthUnit * kModelDepth;
+            const float y = height / size - (kDepthUnit * kModelDepth) * kModelDrop;
             model->localPosition = Vector3{x, y, kModelDepth};
             // Turned with the sling buttons' angle: about z, about x, about z again.
             const Vector3 axisZ = {0.0f, 0.0f, 1.0f};
@@ -126,7 +126,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             Quaternion* q3 = third.SetAxisAngle(axisZ, kHudQuarterTurn * kSecondTurnAboutZ);
             model->localRotation = Product(tilted, *q3, true);
 
-            const float scale = static_cast<float>(1.0f / size);
+            const float scale = 1.0f / size;
             unit->Object3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};
             // The first page draws the model in full colour, the others at half.
             model->SetPartsFlatColour(bodyPart == 0 ? 0xFFFFFFFFu : 0xFF808080u);
@@ -154,11 +154,11 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             ShowHealth(unit);
             // The height bar (scene object 8): the model's fifteen layout units, from the panel's
             // bottom.
-            const float barScale = static_cast<float>(kBarHeight / size);
+            const float barScale = kBarHeight / size;
             std::uint32_t bits;
             bits = std::bit_cast<std::uint32_t>(barScale);
             SceneMesh(kHeightBar)->SetScaleYBits(bits);
-            const float barY = static_cast<float>(kPanelHeight - barScale * kPanelHeight);
+            const float barY = kPanelHeight - barScale * kPanelHeight;
             SceneMesh(kHeightBar)->Place(static_cast<float>(20 - offset), barY, 4.0f);
             SceneMesh(kHeightBar)->visible = true;
             break;

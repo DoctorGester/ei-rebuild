@@ -101,7 +101,7 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     float length = Length2D(flat);
     float along = Dot2D(forward, flat);
     if (along > length) return 0.0f;
-    float c = static_cast<float>(along / length);
+    float c = along / length;
     if (c > 1.0f) c = 1.0f;
     else c = c >= -1.0f ? c : -1.0f;   // -1 also for NaN
     double angle = libcrt::CiAcos(c);
@@ -130,10 +130,10 @@ void PlayOneShot(SoundManager* sounds, const Cell (&cells)[3][3], int soundClass
                                          variant % static_cast<std::uint32_t>(variants) + 1);
     Vector3 position = listener + pick->offset;
     float spot = kSpotCells;
-    float spotLow = static_cast<float>(-spot);
+    float spotLow = -spot;
     position.x = static_cast<float>((spot - spotLow) * static_cast<double>(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.x);
     position.y = static_cast<float>((spot - spotLow) * static_cast<double>(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.y);
-    sounds->Play3D(name, 1, &position.x, static_cast<float>(spot + spot), kRadiusCells, 0);
+    sounds->Play3D(name, 1, &position.x, spot + spot, kRadiusCells, 0);
 }
 
 } // namespace
@@ -165,15 +165,15 @@ void Terrain::PlayAmbience() {
                 cell.weight = 0.0f;
                 continue;
             }
-            cell.x = static_cast<float>((sx + 0.5f) * kSectorCells);
-            cell.y = static_cast<float>((sy + 0.5f) * kSectorCells);
+            cell.x = (sx + 0.5f) * kSectorCells;
+            cell.y = (sy + 0.5f) * kSectorCells;
             float ground = HeightAt(cell.x, cell.y, Layer::Ground);
             float water = HeightAt(cell.x, cell.y, Layer::Water);
             cell.z = water >= ground ? water : ground;
-            cell.offset = {static_cast<float>(cell.x - listener.x), static_cast<float>(cell.y - listener.y),
-                           static_cast<float>(cell.z - listener.z)};
+            cell.offset = {cell.x - listener.x, cell.y - listener.y,
+                           cell.z - listener.z};
             float weights[kClasses];
-            for (int i = 0; i < kClasses; ++i) weights[i] = static_cast<float>(sector->classCounts[i] * kAmbientSounds[i].weight);
+            for (int i = 0; i < kClasses; ++i) weights[i] = sector->classCounts[i] * kAmbientSounds[i].weight;
             float best = -1.0f;
             for (int i = 0; i < kClasses; ++i) {
                 EI_NAN_AUDIT(weights[i]);
@@ -182,11 +182,11 @@ void Terrain::PlayAmbience() {
                     cell.soundClass = i;
                 }
             }
-            float distance = static_cast<float>(LengthSquared2D(Vector2{cell.offset.x, cell.offset.y}));
+            float distance = LengthSquared2D(Vector2{cell.offset.x, cell.offset.y});
             float within = distance >= radiusSquared ? radiusSquared : distance;
-            cell.weight = static_cast<float>((radiusSquared - within) / radiusSquared * kPercent);
+            cell.weight = (radiusSquared - within) / radiusSquared * kPercent;
             ClassVotes& vote = votes[cell.soundClass];
-            vote.weightSum = static_cast<float>(cell.weight * cell.weight + vote.weightSum);
+            vote.weightSum = cell.weight * cell.weight + vote.weightSum;
             vote.offset = cell.offset;
             ++vote.count;
         }
@@ -200,19 +200,19 @@ void Terrain::PlayAmbience() {
             for (int column = 0; column < 3; ++column) {
                 const Cell& cell = cells[column][row];
                 if (cell.soundClass != vote.soundClass) continue;
-                float dx = static_cast<float>(cell.weight * cell.offset.x);
-                float dy = static_cast<float>(cell.weight * cell.offset.y);
-                double dz = cell.weight * cell.offset.z;
-                vote.offset.x = static_cast<float>(dx + vote.offset.x);
-                vote.offset.y = static_cast<float>(dy + vote.offset.y);
-                vote.offset.z = static_cast<float>(dz + vote.offset.z);
+                float dx = cell.weight * cell.offset.x;
+                float dy = cell.weight * cell.offset.y;
+                float dz = cell.weight * cell.offset.z;
+                vote.offset.x = dx + vote.offset.x;
+                vote.offset.y = dy + vote.offset.y;
+                vote.offset.z = dz + vote.offset.z;
             }
         }
         vote.volume = std::lround(std::sqrt(vote.weightSum));
         if (vote.volume > kMaxVolume) vote.volume = kMaxVolume;
         float pan = PanOf(vote.offset, axis);
         float limit = kAmbientSounds[vote.soundClass].panLimit;
-        float low = static_cast<float>(-limit);
+        float low = -limit;
         pan = pan >= low ? pan : low;
         pan = limit >= pan ? pan : limit;
         vote.pan = std::lround(pan);

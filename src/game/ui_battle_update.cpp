@@ -62,9 +62,9 @@ void HudQuickItems::SetUnit(CUnit* newUnit) {
         EngineObject* sprite = sceneObjects[shownCount - 1];
         const float right = widescreen::g_panelRight;
         if (slot < 4)
-            AsUiMesh(sprite)->Place(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
+            AsUiMesh(sprite)->Place(right - (slot * 50), 575.0f, 20.0f);
         else
-            AsUiMesh(sprite)->Place(right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
+            AsUiMesh(sprite)->Place(right - (slot * 50 - 200), 525.0f, 20.0f);
         int last = shownCount - 1;
         regionItem[slot] = last;
         if (last >= 0 && last < shownCount) {
@@ -397,7 +397,7 @@ void BattleScreen::QuestVariable(std::string_view name, float value) {
         if (!IsMultiplayerClient()) {
             const char* dot = ".";
             std::string variable = parts[0] + dot + parts[1] + dot + parts[2];
-            double current = LocalPlayerVariable(variable);
+            float current = LocalPlayerVariable(variable);
             // The unrounded result compared with 0.
             EI_NAN_AUDIT(current);
             if (current == 0.0) return;

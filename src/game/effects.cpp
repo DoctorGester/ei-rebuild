@@ -109,7 +109,7 @@ int ParticleSource::UpdateFalling(Particle* p) {
     p->pos.y = p->drift.y + p->pos.y;
     p->pos.z = p->drift.z + p->pos.z;
     p->size = p->velocity.x * p->size;
-    float fall = static_cast<float>(p->velocity.z + p->drift.z);
+    float fall = p->velocity.z + p->drift.z;
     p->drift.z = fall >= terminal ? fall : terminal;
     return 1;
 }
@@ -144,7 +144,7 @@ int ParticleSource::UpdateSmoke(Particle* p) {
             p->frameTimer = frameDelay << 2;
             if ((g_clientRandom.Next() & 3) == 0) return 0;
         }
-        if (p->frame == 8) p->drift.z = static_cast<float>(p->drift.z * 0.5);
+        if (p->frame == 8) p->drift.z = p->drift.z * 0.5f;
     }
     // The risen z stays on the FPU stack for the second addition (both sums are the same value).
     int frame = p->frame;
@@ -179,13 +179,13 @@ int ParticleSource::EmitSmoke(Particle* p, int) {
     p->size = size;
     if (g_clientRandom.Next() % 100 + 1 <= 40) {
         p->size = size * 0.5f;
-        extra = static_cast<float>(size * kPointThree);
+        extra = size * kPointThree;
     }
-    float hi = static_cast<float>(extra + spreadMax.x);
-    float lo = static_cast<float>(spreadMin.x - extra);
+    float hi = extra + spreadMax.x;
+    float lo = spreadMin.x - extra;
     p->velocity.x = static_cast<float>(Unsigned(g_clientRandom.Next()) * (hi - lo) * kRandomScale + lo);
-    hi = static_cast<float>(extra + spreadMax.y);
-    lo = static_cast<float>(spreadMin.y - extra);
+    hi = extra + spreadMax.y;
+    lo = spreadMin.y - extra;
     std::uint32_t r = g_clientRandom.Next();
     p->velocity.z = 0.0f;
     p->velocity.y = static_cast<float>(Unsigned(r) * (hi - lo) * kRandomScale + lo);
@@ -252,13 +252,13 @@ int ParticleSource::UpdateOrbit(Particle* p) {
     float y = p->velocity.y;
     // Both are computed before either store; the plane test below reloads the stored floats.
     float ny = c * y + x * s;
-    p->velocity.x = static_cast<float>(c * x - s * y);
-    p->velocity.y = static_cast<float>(ny);
+    p->velocity.x = c * x - s * y;
+    p->velocity.y = ny;
     Vector3 offset;
     float d = elements[0].sphere.speed;
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
-        float t = static_cast<float>(-(DotZYX(p->velocity, n) / d));
+        float t = -(DotZYX(p->velocity, n) / d);
         t = t >= 1.0f ? 1.0f : t;
         t = t >= 0.0f ? t : 0.0f;
         Vector3 along;
@@ -268,8 +268,8 @@ int ParticleSource::UpdateOrbit(Particle* p) {
         offset = p->velocity;
     }
     const Vector3& center = elements[0].pos;
-    float by = static_cast<float>(origin.y + center.y);
-    float bz = static_cast<float>(origin.z + center.z);
+    float by = origin.y + center.y;
+    float bz = origin.z + center.z;
     p->size = 1.0f;
     float px = (origin.x + center.x) + offset.x;
     p->pos.y = offset.y + by;

@@ -58,7 +58,7 @@ void SkyObject::Light(const float* direction, SkyColour ambient, SkyColour light
         distances.resize(count);
         for (int i = 0; i < std::ssize(distances); ++i) {
             const float z = Row(vertices, i, 2);
-            distances[i] = static_cast<float>(z >= kHorizon ? std::sqrt(-Row(normals, i, 2)) : 0.0f);
+            distances[i] = z >= kHorizon ? std::sqrt(-Row(normals, i, 2)) : 0.0f;
         }
     }
     for (int i = 0; i < std::ssize(colorsA); ++i) {
@@ -102,7 +102,7 @@ void Sky::Draw(SceneRenderer* renderer, const Vector3& eye) {
         Quaternion turn;
         // The world time in ticks: whole ticks plus
         // the fraction of the current one.
-        object->localRotation = *turn.SetAxisAngle(up, static_cast<float>(static_cast<double>(GameTime()) * kSkyTurnRate));
+        object->localRotation = *turn.SetAxisAngle(up, GameTime() * kSkyTurnRate);
     }
     object->localPosition = Vector3{x, y, z};
     float* m = object->worldMatrix.m;

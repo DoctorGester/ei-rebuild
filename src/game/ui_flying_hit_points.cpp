@@ -117,7 +117,7 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     const float width = static_cast<float>(screen.right), height = static_cast<float>(screen.bottom);
     for (const FlyingHitPoint& point : points) {
         // The age as a fraction of the lifetime, stored as float.
-        float age = static_cast<float>(static_cast<float>(static_cast<int>(now - point.time)) * kPerMillisecond);
+        float age = static_cast<int>(now - point.time) * kPerMillisecond;
         if (age > 1.0f || age < 0.0f) continue;   // integer-sourced: never NaN
         auto* unit = GameFindClientUnit(point.target);
         if (!unit) continue;
@@ -129,10 +129,10 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
 
         if (point.flags & kMarker) {
             // 32 x 10 pixels centred 20 pixels above the middle.
-            float x0 = static_cast<float>(static_cast<float>(middleX) - kMarkerWidth * 0.5f);
-            float y0 = static_cast<float>(static_cast<float>(middleY - 20) - kMarkerHeight * 0.5f);
+            float x0 = middleX - kMarkerWidth * 0.5f;
+            float y0 = (middleY - 20) - kMarkerHeight * 0.5f;
             if (x0 < 0.0f) continue;   // integer-sourced, as below: never NaN
-            float x1 = static_cast<float>(x0 + kMarkerWidth);
+            float x1 = x0 + kMarkerWidth;
             if (width < x1) continue;
             if (y0 < 0.0f) continue;
             float y1 = y0 + kMarkerHeight;
@@ -158,11 +158,11 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
             if (boxWidth <= 64) boxWidth = 64;
             boxHeight = row.flag == kLabelA ? 22 : boxHeight + 10;
         }
-        float x0 = static_cast<float>(static_cast<float>(middleX) - static_cast<float>(boxWidth) * 0.5f);
+        float x0 = middleX - boxWidth * 0.5f;
         float boxHeightF = static_cast<float>(boxHeight);
-        float y0 = static_cast<float>(static_cast<float>(middleY) - boxHeightF * 0.5f);
+        float y0 = middleY - boxHeightF * 0.5f;
         if (x0 < 0.0f) continue;   // integer-sourced: never NaN
-        if (width < static_cast<float>(boxWidth) + x0) continue;
+        if (width < boxWidth + x0) continue;
         if (y0 < 0.0f) continue;
         if (height < boxHeightF + y0) continue;
 
@@ -172,23 +172,23 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
         colour |= alpha << 24;
 
         QuadBuffer quads;
-        float x = static_cast<float>(boxWidth - length * static_cast<int>(kDigitWidth)) * 0.5f + x0;
-        float digitsBottom = static_cast<float>(y0 + kDigitHeight);
+        float x = (boxWidth - length * static_cast<int>(kDigitWidth)) * 0.5f + x0;
+        float digitsBottom = y0 + kDigitHeight;
         for (int i = 0; i < length; ++i) {
             int value = static_cast<signed char>(text[i]) - '0';
-            float u0 = static_cast<float>(value & 3) * kDigitU;
-            float top = static_cast<float>(1.0f - static_cast<float>(value >> 2) * kDigitV);
-            float next = static_cast<float>(x + kDigitWidth);
-            quads.Add(x, y0, next, digitsBottom, u0, top, static_cast<float>(u0 + kDigitU), top - kDigitV, colour);
+            float u0 = (value & 3) * kDigitU;
+            float top = 1.0f - (value >> 2) * kDigitV;
+            float next = x + kDigitWidth;
+            quads.Add(x, y0, next, digitsBottom, u0, top, u0 + kDigitU, top - kDigitV, colour);
             x = next;
         }
         // The label rows under the digits, centred in the box.
         float y = y0 + kDigitHeight;
         for (const LabelRow& row : kLabelRows) {
             if (!(point.flags & row.flag)) continue;
-            float left = static_cast<float>(boxWidth - static_cast<int>(kLabelWidth)) * 0.5f + x0;
+            float left = (boxWidth - static_cast<int>(kLabelWidth)) * 0.5f + x0;
             float bottom = y + kLabelHeight;
-            quads.Add(left, y, static_cast<float>(left + kLabelWidth), bottom, 0.0f, row.top, 1.0f, row.bottom, colour);
+            quads.Add(left, y, left + kLabelWidth, bottom, 0.0f, row.top, 1.0f, row.bottom, colour);
             y = bottom;
         }
         quads.Inset(kNumberInset);

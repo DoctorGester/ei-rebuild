@@ -90,10 +90,10 @@ Vector3* ParticleSource::AttachmentOffset(Vector3* out, float* radius) {
     if (lib::Has(object->bounds.flags, BoundsFlag::Sphere)) {
         *radius = object->bounds.radius;
     } else {
-        double dz = object->bounds.boxMax.z - object->bounds.boxMin.z;
-        double dx = object->bounds.boxMax.x - object->bounds.boxMin.x;
-        double dy = object->bounds.boxMax.y - object->bounds.boxMin.y;
-        *radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)) * 0.5);
+        float dz = object->bounds.boxMax.z - object->bounds.boxMin.z;
+        float dx = object->bounds.boxMax.x - object->bounds.boxMin.x;
+        float dy = object->bounds.boxMax.y - object->bounds.boxMin.y;
+        *radius = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)) * 0.5f;
     }
     out->x = 0.0f;
     out->y = 0.0f;

@@ -692,9 +692,9 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     params.light = receives ? f.shadow.lights[0] : f.matrices[static_cast<std::size_t>(batch.matrix)];
     ShadowUniforms(f, receives, &params.shadow);
     params.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
-    params.fog[0] = static_cast<float>((f.fogColour >> 16) & 0xFF) / 255.0f;
-    params.fog[1] = static_cast<float>((f.fogColour >> 8) & 0xFF) / 255.0f;
-    params.fog[2] = static_cast<float>(f.fogColour & 0xFF) / 255.0f;
+    params.fog[0] = ((f.fogColour >> 16) & 0xFF) / 255.0f;
+    params.fog[1] = ((f.fogColour >> 8) & 0xFF) / 255.0f;
+    params.fog[2] = (f.fogColour & 0xFF) / 255.0f;
     params.flags[0] = mode;
     params.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
     params.flags[2] = f.pixelShift[0];

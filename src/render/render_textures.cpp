@@ -408,16 +408,16 @@ StagePatch PatchOf(const void* holder) {
     p.to[1] = static_cast<float>(patch.to[1]) / static_cast<float>(th);
     p.to[2] = static_cast<float>(patch.to[2]) / static_cast<float>(tw);
     p.to[3] = static_cast<float>(patch.to[3]) / static_cast<float>(th);
-    p.map[0] = kx * static_cast<float>(tw) / static_cast<float>(sw);
-    p.map[1] = ky * static_cast<float>(th) / static_cast<float>(sh);
-    p.map[2] = (static_cast<float>(patch.from[0]) - kx * static_cast<float>(patch.to[0])) / static_cast<float>(sw);
-    p.map[3] = (static_cast<float>(patch.from[1]) - ky * static_cast<float>(patch.to[1])) / static_cast<float>(sh);
+    p.map[0] = kx * tw / sw;
+    p.map[1] = ky * th / sh;
+    p.map[2] = (patch.from[0] - kx * patch.to[0]) / sw;
+    p.map[3] = (patch.from[1] - ky * patch.to[1]) / sh;
     // Half a texel in from the source rectangle's edges: no texel next to it filtered in (the face's
     // open and closed rectangles touch).
-    p.inside[0] = (static_cast<float>(patch.from[0]) + 0.5f) / static_cast<float>(sw);
-    p.inside[1] = (static_cast<float>(patch.from[1]) + 0.5f) / static_cast<float>(sh);
-    p.inside[2] = (static_cast<float>(patch.from[2]) - 0.5f) / static_cast<float>(sw);
-    p.inside[3] = (static_cast<float>(patch.from[3]) - 0.5f) / static_cast<float>(sh);
+    p.inside[0] = (patch.from[0] + 0.5f) / sw;
+    p.inside[1] = (patch.from[1] + 0.5f) / sh;
+    p.inside[2] = (patch.from[2] - 0.5f) / sw;
+    p.inside[3] = (patch.from[3] - 0.5f) / sh;
     p.texture = SurfaceView(patch.source);
     return p;
 }

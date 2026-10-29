@@ -41,10 +41,10 @@ void SetFlatNormals(FigureMesh* mesh, int corners) {
 void SetTexelCorners(UiMesh* sprite, int u0, int v0, int u1, int v1) {
     sprite->texCoords.resize(4);
     TexCoord* texels = sprite->texCoords.data();
-    float left = static_cast<float>(u0) * kTexel;
-    float top = 1.0f - static_cast<float>(v0) * kTexel;
-    float bottom = 1.0f - static_cast<float>(v1) * kTexel;
-    float right = static_cast<float>(u1) * kTexel;
+    float left = u0 * kTexel;
+    float top = 1.0f - v0 * kTexel;
+    float bottom = 1.0f - v1 * kTexel;
+    float right = u1 * kTexel;
     texels[0].u = left;
     texels[0].v = top;
     texels[1].u = left;
@@ -98,7 +98,7 @@ void SetLayoutScale(UiMesh* sprite, float depth, float scale) {
 
 // Rebirth's WideScreen: addon's code at the four sites adds its panel offset (an int, FIADD) to the
 // layout x before the scaling: once to a left edge or a point, twice to a sum of two edges.
-float MovedX(float x) { return x + static_cast<float>(widescreen::PanelOffset()); }
+float MovedX(float x) { return x + widescreen::PanelOffset(); }
 
 } // namespace
 
@@ -146,8 +146,8 @@ void UiMesh::SetGrid(float depth, float scale, float left, float top, float righ
                              int u1, int v1, int columns, int rows) {
     SetFlatNormals(this, 4);
     // The points, row by row from the top left, a cell apart in units of `scale`.
-    float stepX = (right - left) / scale / static_cast<float>(columns);
-    float stepY = (bottom - top) / scale / static_cast<float>(rows);
+    float stepX = (right - left) / scale / columns;
+    float stepY = (bottom - top) / scale / rows;
     const int points = (columns + 1) * (rows + 1);
     const int packets = points / 4 + (points % 4 != 0 ? 1 : 0);
     vertices.resize(packets);
@@ -156,8 +156,8 @@ void UiMesh::SetGrid(float depth, float scale, float left, float top, float righ
     for (int i = 0; i < packets; ++i) {
         VertexPacket& packet = vertices[i];
         for (int k = 0; k < 4; ++k) {
-            packet.x()[k] = static_cast<float>(column) * stepX;
-            packet.y()[k] = static_cast<float>(row) * stepY;
+            packet.x()[k] = column * stepX;
+            packet.y()[k] = row * stepY;
             packet.z()[k] = 0.0f;
             packet.w()[k] = 1.0f;
             // (The points left over in the last packet go on along the last row.)

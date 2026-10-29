@@ -174,7 +174,7 @@ Matrix4 FaceMatrix(const CubeFace& face, const Vector3& at, double range) {
 bool InFace(const CubeFace& face, const Vector3& c, float radius) {
     const double f = vecmath::Dot<Sum3::XYZ>(face.forward, c), x = vecmath::Dot<Sum3::XYZ>(face.right, c),
                  y = vecmath::Dot<Sum3::XYZ>(face.up, c);
-    const double r = radius * 1.41421356;
+    const float r = radius * 1.41421356f;
     return f + radius > kNear && f - x + r >= 0.0 && f + x + r >= 0.0 && f - y + r >= 0.0 && f + y + r >= 0.0;
 }
 
@@ -233,7 +233,7 @@ void PreparePointShadows(Frame& f) {
         const float* colour = scene[k][1];
         const float brightest = std::max({colour[0], colour[1], colour[2]});
         if (!SceneLightCastsShadows(k) || !(at[3] > 0.0f) || brightest < kLeastColour) continue;
-        const double range = 1.0 / std::sqrt(static_cast<double>(at[3]));
+        const float range = 1.0f / std::sqrt(at[3]);
         const Vector3 position{at[0], at[1], at[2]};
         if (range <= kNear * 4.0 || !InView(camera, position, range)) continue;
         candidates.push_back(Candidate{k, position, range, brightest * range});
@@ -391,7 +391,7 @@ void DrawPointShadows(Frame& f) {
                 CasterFs fs{};
                 if ((s.alphaTest || s.blend) && st.hasTexture) {
                     fs.alpha[0] = 1.0f;
-                    fs.alpha[1] = s.alphaTest ? (static_cast<float>(s.alphaReference) + 0.5f) / 255.0f : 0.5f;
+                    fs.alpha[1] = s.alphaTest ? (s.alphaReference + 0.5f) / 255.0f : 0.5f;
                 }
                 b.views[0] = st.texture.id ? st.texture : SurfaceView(nullptr);
                 b.samplers[0] = StageSampler(st);

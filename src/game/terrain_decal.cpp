@@ -34,13 +34,13 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad)
     float previous = origin.z;
     int x0 = INT_MAX, y0 = INT_MAX, x1 = 0, y1 = 0;
     for (;;) {
-        float shift = static_cast<float>(previous - lowest);
+        float shift = previous - lowest;
         v = slope * shift + v;
         origin = slope * shift + origin;
         u = slope * shift + u;
         // The fourth corner's x and y (u + v - origin).
-        float fourthX = static_cast<float>(u.x + v.x - origin.x);
-        float fourthY = static_cast<float>(u.y + v.y - origin.y);
+        float fourthX = u.x + v.x - origin.x;
+        float fourthY = u.y + v.y - origin.y;
         int bound = CellBound(MinKeepA(MinKeepA(MinKeepA(fourthX, u.x), v.x), origin.x) - kMargin);
         if (x0 >= bound) x0 = bound;
         bound = CellBound(MinKeepA(MinKeepA(MinKeepA(fourthY, u.y), v.y), origin.y) - kMargin);

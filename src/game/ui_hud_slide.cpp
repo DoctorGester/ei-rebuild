@@ -49,8 +49,8 @@ constexpr float kSlingY = 20.0f;
 
 // WideScreen's layout constants (addon's operands, exact integers as floats): moved right for the
 // map, left for the unit panel.
-float RightEdge(float x) { return x + static_cast<float>(widescreen::EdgeShift()); }
-float LeftEdge(float x) { return x - static_cast<float>(widescreen::EdgeShift()); }
+float RightEdge(float x) { return x + widescreen::EdgeShift(); }
+float LeftEdge(float x) { return x - widescreen::EdgeShift(); }
 
 void Place(UiWindow* window, int index, float x, float y, float depth) {
     AsUiMesh(window->sceneObjects[index])->Place(x, y, depth);
@@ -79,12 +79,12 @@ void AdvanceSlide(Panel* panel) {
     panel->slide = static_cast<float>(moved);
     if (moved > 1.0) panel->slide = 1.0f;
     if (panel->slide < 0.0f) panel->slide = 0.0f;
-    const double s = panel->slide;
+    const float s = panel->slide;
     double eased;
     if (panel->slide < 0.5f) {
         eased = 2.0 * (s * s);
     } else {
-        const double rest = 1.0 - s;
+        const float rest = 1.0f - s;
         eased = 1.0 - 2.0 * (rest * rest);
     }
     panel->offset = static_cast<int>(libcrt::Ftol(panel->travel * eased));
@@ -101,7 +101,7 @@ void PlaceSling(EngineObject* sling, float angle, float x) {
 constexpr const char* kArrowSprite = "in25arrow";
 constexpr const char* kInfoTextFormat = "infounit_%d";
 constexpr const char* kPartLabelKeys[4] = {"hl_skull", "hl_torso", "hl_leg", "hl_arm"};
-float StripScale() { return static_cast<float>(100.0f / 0.48157462f); }
+float StripScale() { return 100.0f / 0.48157462f; }
 constexpr int kUnitTravel = 180;
 constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
 constexpr int kWideUnitRight = 52;
@@ -207,8 +207,8 @@ void HudUnitPanel::Layout() {
     Place(this, 12, middle, 207.5f, 4.0f);
     Place(this, 13, middle, 207.5f, 5.0f);
     for (int i = 0; i < kParts; ++i) {
-        const float y = static_cast<float>(kPartY[i]) + kUnitPartDown;
-        const float x = static_cast<float>(kPartX[i] + 50) - slideOffset;
+        const float y = kPartY[i] + kUnitPartDown;
+        const float x = (kPartX[i] + 50) - slideOffset;
         Place(this, 14 + 2 * i, x, y, 4.0f);
         Place(this, 15 + 2 * i, x, y, 5.0f);
     }
@@ -348,8 +348,8 @@ void HudMap::Setup(float newZoom, bool slid) {
 
     // The world's extent and the map's picture (referenced object 1), from the zone's record.
     if (const MapRecord* zone = LocalZone()) {
-        worldWidth = static_cast<float>(zone->sizeX) * kZoneUnit;
-        worldHeight = static_cast<float>(zone->sizeY) * kZoneUnit;
+        worldWidth = zone->sizeX * kZoneUnit;
+        worldHeight = zone->sizeY * kZoneUnit;
         LoadTexture(zone->picture, TextureKind::Interface);
     } else {
         worldWidth = 32.0f;
@@ -379,7 +379,7 @@ void HudMap::Setup(float newZoom, bool slid) {
     // FSIN themselves are not rounded), so the point under the centre is 80 down, not 79 (see OnArc).
     UiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
-        const float angle = static_cast<float>(static_cast<float>(static_cast<float>(i) * kPi) * kOutlineStep);
+        const float angle = (i * kPi) * kOutlineStep;
         const float down = static_cast<float>(std::cos(static_cast<double>(angle)) * kOutlineRadius);
         const int y = static_cast<int>(libcrt::Ftol(static_cast<float>(down + kOutlineCentreY)));
         const float across = static_cast<float>(std::sin(static_cast<double>(angle)) * kOutlineRadius);
@@ -404,14 +404,14 @@ void HudMap::Setup(float newZoom, bool slid) {
     bounds->SetRectangle(18.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
     bounds->texture = objects[1];
     bounds->tint[0] = bounds->tint[1] = bounds->tint[2] = 0.8f;
-    bounds->SetScale(static_cast<float>(static_cast<float>(kDepthUnit * halfSide) * kBoundsScale));
+    bounds->SetScale((kDepthUnit * halfSide) * kBoundsScale);
     UiMesh* area = AddBlankSprite();
     area->Disc(14.0f, 80.0f, 700.0f, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
     area->texture = objects[1];
     area->tint[0] = area->tint[1] = area->tint[2] = 1.0f;
     UiMesh* markers = AddBlankSprite();
     markers->Place(700.0f, 80.0f, 12.0f);
-    markers->SetScale(static_cast<float>(static_cast<float>(kDepthUnit * halfSide) * kMarkersScale));
+    markers->SetScale((kDepthUnit * halfSide) * kMarkersScale);
     markers->ResetColours();
     markers->SetUvCount(4);
     const TexCoord markerTexels[4] = {
@@ -427,7 +427,7 @@ void HudMap::Setup(float newZoom, bool slid) {
     UiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU = 0.22265625f;
     slingButton->textureOffsetV = 0.140625f;
-    PlaceSling(slingButton, static_cast<float>(kPi * kSlingQuarter), 850.0f);
+    PlaceSling(slingButton, kPi * kSlingQuarter, 850.0f);
     slingButton->SetScale(0.8f);
     // 6 and 7: the view buttons; 8: the ring round the map; 9: the frame; 10: the compass needle;
     // 11: "camera north".

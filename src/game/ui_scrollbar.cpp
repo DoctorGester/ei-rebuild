@@ -59,8 +59,8 @@ void UiScrollbar::SetPosition(int newPosition) {
     // half, 0, where a C++ cast would give 0x80000000.
     int offset = maximum == 0 ? 0
                               : static_cast<int>(static_cast<double>((track.bottom - track.top) * newPosition) / maximum);
-    SceneMesh(kThumb)->Place(static_cast<float>(track.left + static_cast<double>(kThumbInset)),
-                                static_cast<float>(static_cast<double>(offset) + track.top), depth - kThumbLift);
+    SceneMesh(kThumb)->Place(track.left + kThumbInset,
+                                static_cast<float>(offset) + track.top, depth - kThumbLift);
     thumb.left = track.left;
     thumb.right = track.left + 10;
     int centre = track.top + offset;
@@ -109,8 +109,8 @@ void UiScrollbar::MouseMove(int, int x, int y) {
 
 void UiScrollbar::Wheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == kTrackRegion) {
-        double step = static_cast<double>(static_cast<short>(delta)) * speed * kWheelStep;
-        accumulated = static_cast<float>(accumulated - step);
+        float step = static_cast<short>(delta) * speed * kWheelStep;
+        accumulated = accumulated - step;
         handled = true;
     }
 }
@@ -125,7 +125,7 @@ void UiSlider::SetPosition(int newPosition) {
     // Truncated by _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
     int offset = Truncate(static_cast<double>((track.right - track.left) * newPosition) / maximum);
     SceneMesh(kThumb)->Place(static_cast<float>(track.left + offset),
-                                static_cast<float>(track.top + static_cast<double>(kThumbInset)), depth - kThumbLift);
+                                track.top + kThumbInset, depth - kThumbLift);
     thumb.top = track.top;
     thumb.bottom = track.top + kSliderThumbHeight;
     int centre = track.left + offset;

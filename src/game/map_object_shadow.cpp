@@ -79,9 +79,9 @@ const Matrix4& TopMatrix(const TransformPipeline* pipeline) { return *pipeline->
 
 // The light's brightness: 0.1 blue + 0.6 green + 0.3 red, unrounded.
 double Brightness(const CLight* light) {
-    double blue = static_cast<double>(light->color[2]) * kBlue;
-    double green = static_cast<double>(light->color[1]) * kGreen;
-    double red = static_cast<double>(light->color[0]) * kRed;
+    float blue = light->color[2] * kBlue;
+    float green = light->color[1] * kGreen;
+    float red = light->color[0] * kRed;
     return (blue + green) + red;
 }
 
@@ -90,24 +90,24 @@ double Brightness(const CLight* light) {
 bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
     const Vector3& at = object->localPosition;
     const Vector3& from = light->localPosition;
-    double dx = static_cast<double>(at.x) - from.x;
-    double dy = static_cast<double>(at.y) - from.y;
-    double dz = static_cast<double>(at.z) - from.z;
-    float distanceSquared = static_cast<float>(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
+    float dx = at.x - from.x;
+    float dy = at.y - from.y;
+    float dz = at.z - from.z;
+    float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
     if (distanceSquared >= light->rangeSquared) return false;    // NaN counts as in range
-    double falloff = 1.0f - static_cast<double>(light->inverseRangeSquared) * distanceSquared;
+    float falloff = 1.0f - light->inverseRangeSquared * distanceSquared;
     float intensity = static_cast<float>(Brightness(light) * falloff);
-    Vector3 towards = {static_cast<float>(static_cast<double>(at.x) - from.x),
-                       static_cast<float>(static_cast<double>(at.y) - from.y),
-                       static_cast<float>(static_cast<double>(at.z) - from.z)};
+    Vector3 towards = {at.x - from.x,
+                       at.y - from.y,
+                       at.z - from.z};
     EI_NAN_AUDIT(distanceSquared);
     if (distanceSquared == 0.0f) {
         towards = kDefaultLight;
     } else {
-        double inverse = 1.0 / std::sqrt(distanceSquared);
-        towards.x = static_cast<float>(towards.x * inverse);
-        towards.y = static_cast<float>(towards.y * inverse);
-        towards.z = static_cast<float>(towards.z * inverse);
+        float inverse = 1.0f / std::sqrt(distanceSquared);
+        towards.x = towards.x * inverse;
+        towards.y = towards.y * inverse;
+        towards.z = towards.z * inverse;
     }
     double scale = intensity;
     if (light->flags & LightFlag::Strong) scale = scale * kStrongFactor;
@@ -138,10 +138,10 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
     }
     float horizontal = static_cast<float>(std::sqrt(LengthSquared2DUnrounded<double>(direction->y, direction->x)));
     float height = AbsBits(direction->z);
-    double elevation = std::atan2(height, horizontal);
+    float elevation = std::atan2(height, horizontal);
     double minimum = g_pi * g_perDegree * g_minimumTilt;
     if (elevation >= minimum) return;   // NaN tilts
-    double z = static_cast<double>(horizontal) * kTiltSlope;
+    float z = horizontal * kTiltSlope;
     double inverse = 1.0f / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction->x, direction->y, z));
     direction->x = static_cast<float>(inverse * direction->x);
     direction->y = static_cast<float>(inverse * direction->y);
@@ -159,7 +159,7 @@ double CornerX(const float* m, float a, float b) {
     return static_cast<double>(m[1]) * a + static_cast<double>(b) * m[0];
 }
 float CornerY(const float* m, float a, float b) {
-    return static_cast<float>(static_cast<double>(a) * m[5] + static_cast<double>(m[4]) * b);
+    return a * m[5] + m[4] * b;
 }
 
 // Whether any of the object's parts (but those too far, hidden or not) has keyed texels: the decal then skips
@@ -192,9 +192,9 @@ void RenderShadow(Object3DClientSpecific* self, SceneRenderer* context) {
         } else {
             DirectionalShare(light, &share);
         }
-        sum.x = static_cast<float>(static_cast<double>(share.x) + sum.x);
-        sum.y = static_cast<float>(static_cast<double>(share.y) + sum.y);
-        sum.z = static_cast<float>(static_cast<double>(share.z) + sum.z);
+        sum.x = share.x + sum.x;
+        sum.y = share.y + sum.y;
+        sum.z = share.z + sum.z;
     }
     Vector3 direction;
     LightDirection(sum, &direction);
@@ -255,44 +255,44 @@ void RenderShadow(Object3DClientSpecific* self, SceneRenderer* context) {
     const int keyedParts = KeyedParts(self->object);
 
     // The light's rotation as a matrix.
-    double x2 = static_cast<double>(turn.x) + turn.x;
-    float y2 = static_cast<float>(static_cast<double>(turn.y) + turn.y);
-    float z2 = static_cast<float>(static_cast<double>(turn.z) + turn.z);
+    float x2 = turn.x + turn.x;
+    float y2 = turn.y + turn.y;
+    float z2 = turn.z + turn.z;
     Vector3 at;
     at = self->object->localPosition;
-    float wx = static_cast<float>(x2 * turn.w);
-    float wy = static_cast<float>(static_cast<double>(y2) * turn.w);
-    float wz = static_cast<float>(static_cast<double>(z2) * turn.w);
-    double xx = x2 * turn.x;
-    double xy = static_cast<double>(y2) * turn.x;
-    float xz = static_cast<float>(static_cast<double>(z2) * turn.x);
-    float yy = static_cast<float>(static_cast<double>(y2) * turn.y);
-    float yz = static_cast<float>(static_cast<double>(z2) * turn.y);
-    double zzExact = static_cast<double>(z2) * turn.z;
-    float zz = static_cast<float>(zzExact);
+    float wx = x2 * turn.w;
+    float wy = y2 * turn.w;
+    float wz = z2 * turn.w;
+    float xx = x2 * turn.x;
+    float xy = y2 * turn.x;
+    float xz = z2 * turn.x;
+    float yy = y2 * turn.y;
+    float yz = z2 * turn.y;
+    float zzExact = z2 * turn.z;
+    float zz = zzExact;
     float* m = view.m;
-    m[0] = static_cast<float>(1.0f - (zzExact + yy));
-    m[1] = static_cast<float>(xy - wz);
-    m[2] = static_cast<float>(static_cast<double>(xz) + wy);
-    m[4] = static_cast<float>(xy + wz);
-    m[5] = static_cast<float>(1.0f - (static_cast<double>(zz) + xx));
-    m[6] = static_cast<float>(static_cast<double>(yz) - wx);
-    m[8] = static_cast<float>(static_cast<double>(xz) - wy);
-    m[9] = static_cast<float>(static_cast<double>(yz) + wx);
-    m[10] = static_cast<float>(1.0f - (static_cast<double>(yy) + xx));
+    m[0] = 1.0f - (zzExact + yy);
+    m[1] = xy - wz;
+    m[2] = xz + wy;
+    m[4] = xy + wz;
+    m[5] = 1.0f - (zz + xx);
+    m[6] = yz - wx;
+    m[8] = xz - wy;
+    m[9] = yz + wx;
+    m[10] = 1.0f - (yy + xx);
 
     // The bounds' square on the ground: corner 0 at (minimum x, maximum y), then clockwise.
     g_quads.resize(1);   // keeps the contents when growing
     {
         float a = self->bounds[3];
         float b = self->bounds[0];
-        float z = static_cast<float>(static_cast<double>(b) * m[8] + static_cast<double>(a) * m[9]);
+        float z = b * m[8] + a * m[9];
         float y = CornerY(m, a, b);
         float x = static_cast<float>(CornerX(m, a, b));
         (void)z;   // computed for the corner's Vector3, never used
         VertexPacket* quad = g_quads.data();   // rows x, y, z, w; lane 0
-        quad->block[0][0] = static_cast<float>(static_cast<double>(at.x) + x);
-        quad->block[1][0] = static_cast<float>(static_cast<double>(at.y) + y);
+        quad->block[0][0] = at.x + x;
+        quad->block[1][0] = at.y + y;
         quad->block[2][0] = at.z;
         quad->block[3][0] = 1.0f;
     }
@@ -306,7 +306,7 @@ void RenderShadow(Object3DClientSpecific* self, SceneRenderer* context) {
         double x = CornerX(m, a, b);
         VertexPacket* quad = g_quads.data();
         quad->block[0][1 + c] = static_cast<float>(x + at.x);
-        quad->block[1][1 + c] = static_cast<float>(static_cast<double>(y) + at.y);
+        quad->block[1][1 + c] = y + at.y;
         quad->block[2][1 + c] = at.z;
         quad->block[3][1 + c] = 1.0f;
     }
@@ -319,17 +319,17 @@ void RenderShadow(Object3DClientSpecific* self, SceneRenderer* context) {
     double pz = (product(w[9], c.y) + product(w[10], c.z)) + product(w[8], c.x);
     float py = static_cast<float>((product(w[5], c.y) + product(w[6], c.z)) + product(w[4], c.x));
     float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
-    Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
-                     static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
+    Vector3 point = {px + at.x,
+                     py + at.y, static_cast<float>(pz + at.z)};
     g_clientWorld.ProjectDecal(direction, point, self->object->bounds.radius, g_quads[0],
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (!self->vertices.empty()) {
         self->sphere.Fit(self->vertices.data(), std::ssize(self->vertices));
         const Vector3& position = self->object->localPosition;
-        self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position.x);
-        self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position.y);
-        self->sphere.center.z = static_cast<float>(static_cast<double>(self->sphere.center.z) - position.z);
+        self->sphere.center.x = self->sphere.center.x - position.x;
+        self->sphere.center.y = self->sphere.center.y - position.y;
+        self->sphere.center.z = self->sphere.center.z - position.z;
     } else {
         self->sphere.flags = 0;
     }

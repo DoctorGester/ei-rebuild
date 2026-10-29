@@ -102,7 +102,7 @@ std::optional<std::string> UnitClientSpecific::FootstepSound(int terrain) {
     Vector3 at{x, y, 0.0f};
     float surface = world->platforms.SurfaceHeight(at, world->ClampedGroundHeight(x, y));
     float gap = ground - surface;
-    if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
+    if (std::fabs(gap) > kPlatformGap) terrain = kTerrainPlatform;
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1)
         return std::format("steps\\human\\crawl\\{}.wav", ClientRandBelow(kCrawlSounds) + 1);
     int count = static_cast<int>(model->SoundCounts()[terrain]);

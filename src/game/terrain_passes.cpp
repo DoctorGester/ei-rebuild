@@ -39,8 +39,8 @@ bool HasTilesOn(const SectorData* sector, int page) {
 // The sector's level of detail from the squared distance of its centre (mid height) to the camera: 0 within
 // the options' lod1, 1 within lod2, else 2.
 void ChooseDetail(const Terrain* terrain, SectorData* sector) {
-    const Vector3 centre = {(static_cast<float>(sector->sx) + 0.5f) * kSectorCells,
-                            (static_cast<float>(sector->sy) + 0.5f) * kSectorCells,
+    const Vector3 centre = {(sector->sx + 0.5f) * kSectorCells,
+                            (sector->sy + 0.5f) * kSectorCells,
                             (sector->maxZ + sector->minZ) * 0.5f};
     // (z^2 + y^2) + x^2. The sum is kept unrounded; the passes run on the main thread (24-bit precision),
     // where the helper's stores change nothing.

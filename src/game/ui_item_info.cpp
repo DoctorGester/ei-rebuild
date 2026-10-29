@@ -59,10 +59,10 @@ int ScaledFtol(float a, float scale) { return Ftol(static_cast<double>(a) * scal
 int DifferenceFtol(float a, float subtrahend) { return Ftol(static_cast<double>(a) - subtrahend); }
 // value * factor * scale in that order, stored as float.
 float ArmourValue(float value, float factor, float scale) {
-    return static_cast<float>(static_cast<double>(value) * factor * scale);
+    return value * factor * scale;
 }
 // 0 + p[0] + p[0x12] + p[0x24] (three armour layers 0x48 bytes apart), stored as float.
-float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
+float LayerSum(const float* p) { return ((0.0f + p[0]) + p[0x12]) + p[0x24]; }
 
 
 
@@ -670,7 +670,7 @@ void ItemInfoPanel::DescribeCarriedSpell() {
         w.line = std::format("{} {}", w.T(11), w.T(22));
     } else {
         // The area: pi * r * r in that order.
-        double radius = D(spell->radius);
+        float radius = spell->radius;
         double area = D(3.1415927f) * radius * radius;
         w.line = str::Format("%s %.1f%s", w.T(11), area, w.T(26));
     }

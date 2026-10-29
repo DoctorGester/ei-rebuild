@@ -1057,7 +1057,7 @@ void DrawShadowMap(Frame& f) {
                 CasterFs fs{};
                 if ((s.alphaTest || s.blend) && st.hasTexture) {
                     fs.alpha[0] = 1.0f;
-                    fs.alpha[1] = s.alphaTest ? (static_cast<float>(s.alphaReference) + 0.5f) / 255.0f : 0.5f;
+                    fs.alpha[1] = s.alphaTest ? (s.alphaReference + 0.5f) / 255.0f : 0.5f;
                 }
                 if (st.hasTexture && st.texture.id) {
                     if (g_cuts.size() >= kMostCuts) g_cuts.clear();

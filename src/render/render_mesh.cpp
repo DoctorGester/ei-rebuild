@@ -52,8 +52,8 @@ void Refuse(Refusal reason, const char* what) {
 // A matrix giving screen pixels after the divide (sx = row0.p / row3.p, sy = row1.p / row3.p) as a
 // clip-space one: ndc x = 2 sx / width - 1, ndc y = 1 - 2 sy / height; z and w unchanged.
 Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
-    float kx = 2.0f / static_cast<float>(width);
-    float ky = 2.0f / static_cast<float>(height);
+    float kx = 2.0f / width;
+    float ky = 2.0f / height;
     const float* s = screen.m;
     Matrix4 clip;
     float* c = clip.m;
@@ -444,13 +444,13 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
         fs.shadowFigure[1] = batch.front;
         vs.normalOffset[0] = 0.0f;
     }
-    fs.fogColour[0] = static_cast<float>((s.fogColour >> 16) & 0xFF) / 255.0f;
-    fs.fogColour[1] = static_cast<float>((s.fogColour >> 8) & 0xFF) / 255.0f;
-    fs.fogColour[2] = static_cast<float>(s.fogColour & 0xFF) / 255.0f;
-    fs.factor[0] = static_cast<float>((s.textureFactor >> 16) & 0xFF) / 255.0f;
-    fs.factor[1] = static_cast<float>((s.textureFactor >> 8) & 0xFF) / 255.0f;
-    fs.factor[2] = static_cast<float>(s.textureFactor & 0xFF) / 255.0f;
-    fs.factor[3] = static_cast<float>((s.textureFactor >> 24) & 0xFF) / 255.0f;
+    fs.fogColour[0] = ((s.fogColour >> 16) & 0xFF) / 255.0f;
+    fs.fogColour[1] = ((s.fogColour >> 8) & 0xFF) / 255.0f;
+    fs.fogColour[2] = (s.fogColour & 0xFF) / 255.0f;
+    fs.factor[0] = ((s.textureFactor >> 16) & 0xFF) / 255.0f;
+    fs.factor[1] = ((s.textureFactor >> 8) & 0xFF) / 255.0f;
+    fs.factor[2] = (s.textureFactor & 0xFF) / 255.0f;
+    fs.factor[3] = ((s.textureFactor >> 24) & 0xFF) / 255.0f;
     const StageState& s0 = s.stages[0];
     const StageState& s1 = s.stages[1];
     fs.colourOps[0] = s0.colourOp;

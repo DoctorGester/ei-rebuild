@@ -36,7 +36,7 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bool demon) {
     int ticks = g_clientWorld.tick;
     float fraction = g_clientWorld.tickFraction;
-    float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f);
+    float time = (ticks + fraction) / 4.0f;
     power = newPower;
     const float strength = AbsBits(newPower);
     amplitude = power > 0.0f ? 0.05f : 0.3f;     // 0.05 : 0.3
@@ -72,9 +72,9 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
         main.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
             float dx = from.x - to.x, dy = from.y - to.y, dz = from.z - to.z;
-            float reach = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f);
+            float reach = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f;
             float low = -reach;
-            const double scale = 2.3283064370807974e-10;
+            const float scale = 2.3283064e-10f;
             float offsetY = static_cast<float>((reach - low) * static_cast<double>(g_clientRandom.Next()) * scale + low);
             float offsetX = static_cast<float>((reach - low) * static_cast<double>(g_clientRandom.Next()) * scale + low);
             float offsetZ = static_cast<float>((reach - low) * static_cast<double>(g_clientRandom.Next()) * scale + low);

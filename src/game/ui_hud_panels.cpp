@@ -213,8 +213,8 @@ void HudUnitPanel::ShowEffects(CUnit* unit) {
         }
         UiMesh* icon = SceneMesh(kFirstIcon + i);
         icon->visible = true;
-        icon->textureOffsetU = static_cast<float>(x) * (1.0f / 256.0f);
-        icon->textureOffsetV = static_cast<float>(y + kIconSize) * (1.0f / 256.0f);
+        icon->textureOffsetU = x * (1.0f / 256.0f);
+        icon->textureOffsetV = (y + kIconSize) * (1.0f / 256.0f);
     }
 }
 

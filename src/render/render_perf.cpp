@@ -419,7 +419,7 @@ void Draw(int width, int height, const Rect& placed) {
     if (!UploadText()) return;
     int scale = Scale(placed.bottom - placed.top);
     float left = static_cast<float>(placed.left + Margin(scale)), top = static_cast<float>(placed.top + Margin(scale));
-    float right = left + static_cast<float>(g_imageWidth * scale), bottom = top + static_cast<float>(g_imageHeight * scale);
+    float right = left + (g_imageWidth * scale), bottom = top + (g_imageHeight * scale);
     sg_apply_viewport(0, 0, width, height, true);
     sg_apply_pipeline(g_pipeline);
     sg_bindings b{};
@@ -458,7 +458,7 @@ Numbers Current() {
             for (int k = 0; k < FrameValues; ++k) sum[k] += s.values[k];
             n.worstFrameMs = std::max(n.worstFrameMs, s.values[Interval]);
         }
-        double count = static_cast<double>(static_cast<int>(g_frames.size()));
+        float count = static_cast<float>(static_cast<int>(g_frames.size()));
         n.frameMs = sum[Interval] / count;
         n.fps = n.frameMs > 0.0 ? 1000.0 / n.frameMs : 0.0;
         n.submitMs = sum[SubmitMs] / count;
@@ -472,7 +472,7 @@ Numbers Current() {
             for (int k = 0; k < GpuValues; ++k) sum[k] += s.values[k];
             n.worstGpuMs = std::max(n.worstGpuMs, s.values[Total]);
         }
-        double count = static_cast<double>(static_cast<int>(g_gpu.size()));
+        float count = static_cast<float>(static_cast<int>(g_gpu.size()));
         n.gpu = true;
         n.gpuMs = sum[Total] / count;
         n.shadowMs = sum[ShadowPass] / count;

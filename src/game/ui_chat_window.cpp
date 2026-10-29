@@ -85,7 +85,7 @@ void ChatWindow::AddPortrait(const std::string& model, std::string_view texture)
     int left = kFirstFaceLeft - portraits * kFaceWidth;
     int right = left + kFaceWidth;
     if (sprite) {
-        sprite->Place(static_cast<float>(left + right) * 0.5f, 32.0f, 7.0f);
+        sprite->Place((left + right) * 0.5f, 32.0f, 7.0f);
         sprite->SetScale(0.3f);
         Vector3 axis{1.0f, 0.0f, 0.0f};
         Quaternion turn;
@@ -97,8 +97,8 @@ void ChatWindow::AddPortrait(const std::string& model, std::string_view texture)
         sprite->SetRectangle(7.0f, 100.0f, static_cast<float>(left), 0.0f, static_cast<float>(right), 60.0f, 0, 0, 0x80,
                              0x80);
     }
-    sprite->textureOffsetU = static_cast<float>(u) * 0.00390625f;
-    sprite->textureOffsetV = static_cast<float>(v + 0x80) * 0.00390625f;
+    sprite->textureOffsetU = u * 0.00390625f;
+    sprite->textureOffsetV = (v + 0x80) * 0.00390625f;
     sprite->texture = objects[std::ssize(objects) - 1];
     ++portraits;
     AddRegion()->SetRect(left, 0, right, 0x50);

@@ -80,9 +80,9 @@ void RainSnow::UpdateFade(float now) {
 }
 
 void RainSnow::SetWind(const Vector3& direction, float strength) {
-    float x = static_cast<float>(strength * direction.x);
-    float y = static_cast<float>(strength * direction.y);
-    float z = static_cast<float>(strength * direction.z);
+    float x = strength * direction.x;
+    float y = strength * direction.y;
+    float z = strength * direction.z;
     wind.x = x;
     wind.y = y;
     wind.z = z;
@@ -155,11 +155,11 @@ void VisibilityFog::ComputeBounds() {
     bounds.boxMin.y = LoadFloat(bounds.boxMin.y) - 0.5f;
     bounds.boxMin.z = LoadFloat(bounds.boxMin.z) - 0.5f;
     // The x sum stays on the FPU stack until it is halved; y and z go through float temporaries.
-    float sy = static_cast<float>(LoadFloat(bounds.boxMin.y) + LoadFloat(bounds.boxMax.y));
-    float sz = static_cast<float>(LoadFloat(bounds.boxMin.z) + LoadFloat(bounds.boxMax.z));
-    float cx = static_cast<float>((LoadFloat(bounds.boxMax.x) + LoadFloat(bounds.boxMin.x)) * 0.5f);
-    float cy = static_cast<float>(sy * 0.5f);
-    float cz = static_cast<float>(sz * 0.5f);
+    float sy = LoadFloat(bounds.boxMin.y) + LoadFloat(bounds.boxMax.y);
+    float sz = LoadFloat(bounds.boxMin.z) + LoadFloat(bounds.boxMax.z);
+    float cx = (LoadFloat(bounds.boxMax.x) + LoadFloat(bounds.boxMin.x)) * 0.5f;
+    float cy = sy * 0.5f;
+    float cz = sz * 0.5f;
     bounds.center.x = cx;
     bounds.center.y = cy;
     bounds.center.z = cz;
@@ -173,7 +173,7 @@ void VisibilityFog::ComputeBounds() {
     float y = LoadFloat(bounds.boxMax.y);
     float z = LoadFloat(bounds.boxMax.z);
     boundsSpare = {0.0f, 0.0f, 0.0f};
-    bounds.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z)));
+    bounds.radius = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
     bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
     boundsValid = 1;
 }

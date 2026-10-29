@@ -17,8 +17,6 @@
 
 namespace {
 
-inline double D(float f) { return f; }
-
 // The particles' draw order, reused by every frame.
 std::vector<ParticleDepth> g_drawOrder;
 // The orientation of the camera the frame shows (camera::FrameView).
@@ -38,12 +36,12 @@ Vector3* ParticleSource::WorldPosition(Vector3* out) {
     if (attachedTo) {
         Vector3 point;
         const Vector3* a = AttachmentPoint(&point, attachedTo);
-        double z = D(a->z) + D(localPosition.z);
-        double y = D(a->y) + D(localPosition.y);
-        double x = D(a->x) + D(localPosition.x);
-        out->x = static_cast<float>(x);
-        out->y = static_cast<float>(y);
-        out->z = static_cast<float>(z);
+        float z = a->z + localPosition.z;
+        float y = a->y + localPosition.y;
+        float x = a->x + localPosition.x;
+        out->x = x;
+        out->y = y;
+        out->z = z;
         return out;
     }
     *out = localPosition;

@@ -230,9 +230,9 @@ void UiItemStrip::ScrollToItem(Item* item) {
     EI_NAN_AUDIT(found);
     if (found >= 0.0f) {
         float& scrollPosition = position[tab];
-        double lowest = static_cast<double>(found) - 8.0 + 2.0;   // kept on the FPU
+        float lowest = found - 8.0f + 2.0f;   // kept on the FPU
         if (lowest > scrollPosition) {
-            scrollPosition = static_cast<float>(lowest);
+            scrollPosition = lowest;
         } else if (scrollPosition > found) {
             scrollPosition = found;
         }
@@ -265,11 +265,11 @@ void UiItemStrip::SettleScroll() {
     float currentPending = pending;
     EI_NAN_AUDIT(currentPending);
     if (currentPending < 0.0f) {
-        float fraction = static_cast<float>(currentPending - static_cast<double>(static_cast<int>(libcrt::Ftol(currentPending))));
+        float fraction = currentPending - static_cast<int>(libcrt::Ftol(currentPending));
         pending = fraction;
         if (fraction > -0.5f) pending = fraction - 1.0f;
     } else if (currentPending > 0.0f) {
-        float fraction = static_cast<float>(currentPending - static_cast<double>(static_cast<int>(libcrt::Ftol(currentPending))));
+        float fraction = currentPending - static_cast<int>(libcrt::Ftol(currentPending));
         pending = fraction;
         if (fraction < 0.5f) pending = fraction + 1.0f;
     }
@@ -312,7 +312,7 @@ void UiItemStrip::MouseMove(int, int x, int y) {
 
 void UiItemStrip::Wheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == 8) {
-        pending = static_cast<float>(static_cast<double>(static_cast<short>(delta) / 120) + pending);
+        pending = (static_cast<short>(delta) / 120) + pending;
         ui->PlaySound(kSoundCampScroll);
     }
 }
