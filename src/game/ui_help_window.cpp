@@ -78,12 +78,12 @@ void HelpWindow::CloseScreen() {
 
 void HelpWindow::Update() {
     UiContainer::Update();
-    double time = FrameTime() + pulseTime;
-    pulseTime = static_cast<float>(time);
-    double wave = (std::cos(time * 5.0f) + 1.0f) * 0.5f;
-    double alpha = wave * 255.0f;
-    float alphaStored = static_cast<float>(alpha);   // stored to a float
-    double rest = (1.0f - wave) * 80.0f;
+    float time = FrameTime() + pulseTime;
+    pulseTime = time;
+    float wave = (std::cos(time * 5.0f) + 1.0f) * 0.5f;
+    float alpha = wave * 255.0f;
+    float alphaStored = alpha;   // stored to a float
+    float rest = (1.0f - wave) * 80.0f;
     // _ftol truncates.
     std::uint32_t a = static_cast<std::uint32_t>(Clamp255(static_cast<int>(alpha)));
     std::uint32_t r = static_cast<std::uint32_t>(Clamp255(static_cast<int>(rest + alphaStored)));

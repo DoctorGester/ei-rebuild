@@ -217,11 +217,11 @@ void ObjectivesWindow::Update() {
         firstRow = bar->Position();
         DrawQuestList();
     }
-    // The sum stays unrounded for the alphas; the stored time is rounded to a float.
-    const double time = FrameTime() + blinkTime;
-    blinkTime = static_cast<float>(time);
-    const std::uint32_t slow = libcrt::Ftol((std::cos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
-    const std::uint32_t fast = libcrt::Ftol((std::cos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
+    blinkTime += FrameTime();
+    const std::uint32_t slow =
+        static_cast<std::uint32_t>((std::cos(blinkTime * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
+    const std::uint32_t fast =
+        static_cast<std::uint32_t>((std::cos(blinkTime * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
     for (int i = std::ssize(exits) + kFirstExitSprite; i < std::ssize(sceneObjects); ++i) {
         UiMesh* place = SceneMesh(i);
         place->flags |= FigureMeshFlag::Flat;

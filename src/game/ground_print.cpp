@@ -42,8 +42,8 @@ constexpr float kSpinDegrees = 30.0f;
 
 constexpr float kHalfPi = /*007C899C*/ 1.5707964f;
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
-// pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the game).
-constexpr double kPerDegree = 0.005555555555555556;
+// pi / 180.
+constexpr float kPerDegree = 0.0055555557f;
 bool BloodPrintsOn() { return options::g_options.enableBloodprints != 0; }
 bool FootprintsOn() { return options::g_options.enableFootprints != 0; }
 bool ScorchMarksOn() { return options::g_options.enableFireprints != 0; }
@@ -202,12 +202,12 @@ int GroundPrint::Draw() {
             DecalTexCoord& uv = texCoords[i];
             float du = uv.u - 0.5f;
             float dv = uv.v - 0.5f;
-            double u = (du * uc - dv * us) + 0.5f;
-            double v = (dv * uc + du * us) + 0.5f;
-            if ((i & 3) == 3) u = static_cast<float>(u);
-            else v = static_cast<float>(v);
-            uv.u = static_cast<float>(u * uvScale.x + uvOffset.x);
-            uv.v = static_cast<float>(v * uvScale.y + uvOffset.y);
+            float u = (du * uc - dv * us) + 0.5f;
+            float v = (dv * uc + du * us) + 0.5f;
+            if ((i & 3) == 3) u = u;
+            else v = v;
+            uv.u = u * uvScale.x + uvOffset.x;
+            uv.v = v * uvScale.y + uvOffset.y;
         }
         for (int i = 0; i < std::ssize(positions); ++i)
             for (float& height : positions[i].block[2]) height = height + kLift;

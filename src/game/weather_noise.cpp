@@ -1,8 +1,6 @@
 // The weather's noise curves (and the static initialisers that clear and build them). See
 // weather_noise.h. The curves are named globals: their zeros take the place of the initialiser's fills
 // of the segments, and the second initialiser builds them at its place in the initialiser list.
-// The arithmetic is the game's x87 sequence: sums and products stay at the FPU's precision (53
-// bits at start-up) and are rounded to a float only where the game stores one.
 #include "weather_noise.h"
 #include "random.h"
 
@@ -42,10 +40,10 @@ void WeatherNoiseCurve::Build(float amplitude) {
     }
     std::memmove(samples, samples + kShift, (kSamples - kShift) * sizeof(float));
 
-    double squares = 0.0;
-    for (const float sample : samples) squares += static_cast<double>(sample) * sample;
-    const double scale = amplitude / std::sqrt(squares * kSampleShare);
-    for (float& sample : samples) sample = static_cast<float>(scale * sample);
+    float squares = 0.0f;
+    for (const float sample : samples) squares += sample * sample;
+    const float scale = amplitude / std::sqrt(squares * kSampleShare);
+    for (float& sample : samples) sample = scale * sample;
 
     const float half = 0.5f;
     for (int i = 0; i < kSamples - 1; ++i) {

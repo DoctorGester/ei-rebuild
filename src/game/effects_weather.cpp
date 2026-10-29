@@ -17,31 +17,22 @@
 #include <memory>
 #include <vector>
 
-// Rain/snow fading and the visibility fog cells. The order of operations is fixed (the goldens depend on it; see
-// effects.cpp).
+// Rain/snow fading and the visibility fog cells.
 
 namespace {
 
 constexpr float kQuarter = 0.25f;
-constexpr double kFadePi = std::bit_cast<double>(0x400921F9F01B866Eull);  // 3.14159, sic
+constexpr float kFadePi = 3.14159f;   // sic
 constexpr float kVolumeScale = 100.0f;
 constexpr float kDensityScale = 64.0f;
 constexpr float kFogMinAlpha = 0.01f;
 static_assert(std::bit_cast<std::uint32_t>(kFogMinAlpha) == 0x3C23D70Au);
-// Random jitter of a fog cell centre (2^-33 with its last bit set).
-constexpr double kFogJitter = std::bit_cast<double>(0x3DE0000000100000ull);
+constexpr float kFogJitter = 1.1641532e-10f;   // 2^-33: a fog cell centre's random jitter
 constexpr float kFar = 1e30f;
 static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CAu);
 
 
-// Reads a float back from memory after storing it (the compiler would otherwise reuse the unrounded register
-// value).
-float LoadFloat(const float& f) { return *static_cast<const volatile float*>(&f); }
-
-double Unsigned(std::uint32_t value) {
-    volatile std::int64_t wide = value;
-    return static_cast<double>(wide);
-}
+float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
 
 constexpr int kWeatherTextureKind = static_cast<int>(TextureKind::Effects);
 constexpr int kRainPriority = 1000;
@@ -62,8 +53,8 @@ void RainSnow::UpdateFade(float now) {
         mode = targetMode;
         if (targetMode == 1 && sound) g_clientWorld.sounds->SetSoundVolume(sound, 100, 0);
     } else if ((now - fadeStart) / fadeDuration <= 1.0f) {
-        double c = std::cos((now - fadeStart) / fadeDuration * kFadePi);
-        float level = static_cast<float>((targetMode == 0 ? c + 1.0f : 1.0f - c) * 0.5f);
+        float c = std::cos((now - fadeStart) / fadeDuration * kFadePi);
+        float level = (targetMode == 0 ? c + 1.0f : 1.0f - c) * 0.5f;
         if (sound) g_clientWorld.sounds->SetSoundVolume(sound, std::lround(level * kVolumeScale), 0);
         density = std::lround(level * kDensityScale);
         return;
@@ -148,30 +139,29 @@ void VisibilityFog::ComputeBounds() {
         bounds.boxMax.y = bounds.boxMax.y >= p.y ? bounds.boxMax.y : p.y;
         bounds.boxMax.z = bounds.boxMax.z >= p.z ? bounds.boxMax.z : p.z;
     }
-    bounds.boxMax.x = LoadFloat(bounds.boxMax.x) + 0.5f;
-    bounds.boxMax.y = LoadFloat(bounds.boxMax.y) + 0.5f;
-    bounds.boxMax.z = LoadFloat(bounds.boxMax.z) + 0.5f;
-    bounds.boxMin.x = LoadFloat(bounds.boxMin.x) - 0.5f;
-    bounds.boxMin.y = LoadFloat(bounds.boxMin.y) - 0.5f;
-    bounds.boxMin.z = LoadFloat(bounds.boxMin.z) - 0.5f;
-    // The x sum stays on the FPU stack until it is halved; y and z go through float temporaries.
-    float sy = LoadFloat(bounds.boxMin.y) + LoadFloat(bounds.boxMax.y);
-    float sz = LoadFloat(bounds.boxMin.z) + LoadFloat(bounds.boxMax.z);
-    float cx = (LoadFloat(bounds.boxMax.x) + LoadFloat(bounds.boxMin.x)) * 0.5f;
+    bounds.boxMax.x = bounds.boxMax.x + 0.5f;
+    bounds.boxMax.y = bounds.boxMax.y + 0.5f;
+    bounds.boxMax.z = bounds.boxMax.z + 0.5f;
+    bounds.boxMin.x = bounds.boxMin.x - 0.5f;
+    bounds.boxMin.y = bounds.boxMin.y - 0.5f;
+    bounds.boxMin.z = bounds.boxMin.z - 0.5f;
+    float sy = bounds.boxMin.y + bounds.boxMax.y;
+    float sz = bounds.boxMin.z + bounds.boxMax.z;
+    float cx = (bounds.boxMax.x + bounds.boxMin.x) * 0.5f;
     float cy = sy * 0.5f;
     float cz = sz * 0.5f;
     bounds.center.x = cx;
     bounds.center.y = cy;
     bounds.center.z = cz;
-    bounds.boxMin.x = LoadFloat(bounds.boxMin.x) - cx;
-    bounds.boxMin.y = LoadFloat(bounds.boxMin.y) - cy;
-    bounds.boxMin.z = LoadFloat(bounds.boxMin.z) - cz;
-    bounds.boxMax.x = LoadFloat(bounds.boxMax.x) - cx;
-    bounds.boxMax.y = LoadFloat(bounds.boxMax.y) - cy;
-    bounds.boxMax.z = LoadFloat(bounds.boxMax.z) - cz;
-    float x = LoadFloat(bounds.boxMax.x);
-    float y = LoadFloat(bounds.boxMax.y);
-    float z = LoadFloat(bounds.boxMax.z);
+    bounds.boxMin.x = bounds.boxMin.x - cx;
+    bounds.boxMin.y = bounds.boxMin.y - cy;
+    bounds.boxMin.z = bounds.boxMin.z - cz;
+    bounds.boxMax.x = bounds.boxMax.x - cx;
+    bounds.boxMax.y = bounds.boxMax.y - cy;
+    bounds.boxMax.z = bounds.boxMax.z - cz;
+    float x = bounds.boxMax.x;
+    float y = bounds.boxMax.y;
+    float z = bounds.boxMax.z;
     boundsSpare = {0.0f, 0.0f, 0.0f};
     bounds.radius = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
     bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
@@ -189,7 +179,7 @@ bool VisibilityFog::RunTick() {
         else
             cell.alpha = cell.alpha * 0.5f;
         EI_NAN_AUDIT(cell.alpha);
-        if (LoadFloat(cell.alpha) < kFogMinAlpha) {
+        if (cell.alpha < kFogMinAlpha) {
             dead.push_back(key);
         }
         cell.frame = static_cast<std::int8_t>((cell.frame + 1) % 15);
@@ -219,13 +209,12 @@ void VisibilityFog::Reveal(const FogGrid* grid) {
             cell->x = static_cast<std::int16_t>(grid->x0 + col);
             cell->y = static_cast<std::int16_t>(grid->y0 + row);
             std::uint32_t r = g_clientRandom.Next();
-            cell->pos.x = static_cast<float>((Unsigned(r) * kFogJitter + cell->x - kQuarter) * 0.5f);
+            cell->pos.x = (Unsigned(r) * kFogJitter + cell->x - kQuarter) * 0.5f;
             r = g_clientRandom.Next();
-            cell->pos.y = static_cast<float>((Unsigned(r) * kFogJitter + cell->y - kQuarter) * 0.5f);
-            // The water surface height, used unrounded.
-            double ground = World()->SurfaceHeightAt(LoadFloat(cell->pos.x), LoadFloat(cell->pos.y));
+            cell->pos.y = (Unsigned(r) * kFogJitter + cell->y - kQuarter) * 0.5f;
+            float ground = static_cast<float>(World()->SurfaceHeightAt(cell->pos.x, cell->pos.y));
             cell->alpha = 0.0f;
-            cell->pos.z = static_cast<float>(ground + 0.5f);
+            cell->pos.z = ground + 0.5f;
             cell->frame = static_cast<std::int8_t>(g_clientRandom.Next() % 15);
             boundsValid = 0;
         }

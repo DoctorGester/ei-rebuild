@@ -59,8 +59,7 @@ void HeroEquipPanel::Draw(SceneRenderer* pass) {
     std::uint32_t shown = hero->weaponIndex;
     if (shown < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
         frame(0)->visible = true;
-        // The unsigned slot * 100 + 50 is converted as a 64-bit integer.
-        frame(0)->Place(static_cast<float>(static_cast<double>(shown * 100u + 50u)), 50.0f, 3.0f);
+        frame(0)->Place(static_cast<float>(shown * 100u + 50u), 50.0f, 3.0f);
     } else {
         frame(0)->visible = false;
     }

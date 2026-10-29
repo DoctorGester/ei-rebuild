@@ -1,10 +1,6 @@
 // The hero preview of the camp and the multiplayer hero screen.
 // See ui.h (UiWindow::DrawHeroPreview) and docs/notes/ui.md ("Camp, global map, hero screens").
-// Floating point follows the original's x87 code: values it stores as float are rounded with
-// static_cast<float>, values it keeps on the FPU stack stay unrounded (double), products and sums
-// keep its operand order, constants are read from the exe's memory.
 #include "ui.h"
-#include "ui_float.h"
 #include "texture.h"
 #include "map_object_shadow.h"
 #include "model.h"
@@ -28,8 +24,8 @@ constexpr LONG kWideClearTop[6] = /*00740310*/ {100, 190, 340, 190, 290, 390};
 constexpr LONG kWideClearRight[6] = /*00740328*/ {510, 290, 290, 528, 528, 528};
 constexpr LONG kWideClearBottom[6] = /*00740340*/ {500, 260, 410, 210, 310, 410};
 
-// The game's vector helpers as the original calls them (dot, unrounded; scale; cross; sum; results stored as float).
-double DotCall(const Vector3& a, const Vector3& b) { return DotUnrounded<Sum3::ZYX, double>(a, b); }
+// The game's vector helpers as the original calls them (dot; scale; cross; sum).
+float DotCall(const Vector3& a, const Vector3& b) { return DotZYX(a, b); }
 Vector3 Scale(const Vector3& v, float s) { return {s * v.x, s * v.y, s * v.z}; }
 Vector3 CrossStored(const Vector3& a, const Vector3& b) {
     float z = a.x * b.y - a.y * b.x;
@@ -51,9 +47,9 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
     out.y = ((q.z * r.x - q.x * r.z) + q.y * r.w) + q.w * r.y;
     out.x = ((q.y * r.z - q.z * r.y) + q.x * r.w) + q.w * r.x;
     if (!second)
-        out.w = static_cast<float>(D(q.w) * D(r.w) - DotUnrounded<Sum3::ZYX, double>(q.x, q.y, q.z, r.x, r.y, r.z));
+        out.w = q.w * r.w - DotUnrounded<Sum3::ZYX>(q.x, q.y, q.z, r.x, r.y, r.z);
     else
-        out.w = static_cast<float>(D(q.w) * D(r.w) - DotUnrounded<Sum3::XYZ, double>(q.x, q.y, q.z, r.x, r.y, r.z));
+        out.w = q.w * r.w - DotUnrounded<Sum3::XYZ>(q.x, q.y, q.z, r.x, r.y, r.z);
     return out;
 }
 
@@ -75,7 +71,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
         ClearUiDepth(1.0f, rects, 6);
     } else {
         RECT r;
-        if (D(depth) > D(400.0f))
+        if (depth > 400.0f)
             r = {410, 100, 700, 500};
         else
             r = {200, 100, 600, 500};
@@ -95,9 +91,8 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
     renderer->SetColour(0xFFFFFFFFu);
     model->flags |= MapObjectFlag::NoEdgeFade;
     {
-        std::uint32_t now = gameapi::timeGetTime();
-        float time = static_cast<float>(static_cast<double>(now) * D(0.0009765625f) * D(15.0f));
-        model->AdvanceTime(time);
+        // In animation frames: milliseconds / 1024 * 15 (a double: the milliseconds since the system started).
+        model->AdvanceTime(static_cast<float>(gameapi::timeGetTime() * (15.0 / 1024.0)));
     }
 
     // The turn about y, applied to the origin (the game's rotation of a vector by a quaternion:
@@ -108,13 +103,13 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
     Vector3 v = {q.x, q.y, q.z};
     Vector3 origin = {0.0f, 0.0f, 0.0f};
     float ww = q.w * q.w;
-    Vector3 along = Scale(v, static_cast<float>(DotCall(v, origin) + DotCall(v, origin)));
+    Vector3 along = Scale(v, DotCall(v, origin) + DotCall(v, origin));
     Vector3 across = Scale(CrossStored(v, origin), q.w + q.w);
-    Vector3 rotated = Sum(Sum(Scale(origin, static_cast<float>(D(ww) - DotCall(v, v))), across), along);
+    Vector3 rotated = Sum(Sum(Scale(origin, ww - DotCall(v, v)), across), along);
     // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
     float dx = ((depth * 0.0025f - 1.0f) * 0.48157462f) *
                 6.0f;
-    float dy = 0.48157462f * 2.1f;   // rounded to 24 bits as the FPU does (the compiler folds it at 53)
+    float dy = 0.48157462f * 2.1f;
     float px = rotated.x + dx;
     float py = rotated.y + dy;
     float pz = rotated.z + 6.0f;
@@ -125,7 +120,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
     Vector3 xAxis = {1.0f, 0.0f, 0.0f};
     Quaternion tilt;
     q = Product(q, *tilt.SetAxisAngle(xAxis, kTilt), false);
-    if (D(depth) > D(400.0f)) {
+    if (depth > 400.0f) {
         Vector3 zAxis = {0.0f, 0.0f, -1.0f};
         Quaternion side;
         q = Product(q,

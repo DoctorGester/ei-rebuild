@@ -398,7 +398,6 @@ void BattleScreen::QuestVariable(std::string_view name, float value) {
             const char* dot = ".";
             std::string variable = parts[0] + dot + parts[1] + dot + parts[2];
             float current = LocalPlayerVariable(variable);
-            // The unrounded result compared with 0.
             EI_NAN_AUDIT(current);
             if (current == 0.0) return;
         }

@@ -40,8 +40,8 @@ constexpr float kMenuEdgeFade = 6.0f;
 constexpr float kWeatherStrength = 20.0f;
 constexpr int kWeatherClear = 0;
 constexpr int kWeatherRain = 1;
-constexpr double kDawn = 7.0;
-constexpr double kDusk = 21.0;
+constexpr float kDawn = 7.0f;
+constexpr float kDusk = 21.0f;
 constexpr int kRainStartHour = 0;
 constexpr int kRainEndHour = 7;
 constexpr int kLightningBeforeHour = 6;
@@ -59,8 +59,8 @@ constexpr SkillAnimation kStoneAnimation[6] = {SkillAnimation::Briefing01, Skill
                                                SkillAnimation::Briefing05, SkillAnimation::Briefing07,
                                                SkillAnimation::Briefing11, SkillAnimation::Briefing09};
 
-// A random word scaled to [0, scale) (the word read unsigned, as a 64-bit integer).
-double RandomScaled(double scale) { return static_cast<double>(g_clientRandom.Next()) * scale; }
+// A random word scaled to [0, scale).
+float RandomScaled(float scale) { return g_clientRandom.Next() * scale; }
 
 } // namespace
 
@@ -110,7 +110,7 @@ void MainMenu::CreateScreen() {
     savedEdgeFade = options::g_options.borderFogDistance;
     options::g_options.borderFogDistance = kMenuEdgeFade;
     rain = (g_clientRandom.Next() & 1) == 1;
-    // The hour is read three times (the unrounded result is compared each time).
+    // The hour is read three times.
     EI_NAN_AUDIT(GameServerTimeOfDay());
     daylight = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
     if (GameServerTimeOfDay() < kDawn && rain)
@@ -137,10 +137,10 @@ void MainMenu::Update() {
             if (g_clientRandom.Next() % 41 == 4) {
                 // A bolt from a random point high above the map to one near it on the ground; each
                 // coordinate is stored as a float before it is used again.
-                float fromX = static_cast<float>(RandomScaled(4.656612874161595e-09));
-                float fromY = static_cast<float>(RandomScaled(1.3969838622484784e-08));
-                float toX = static_cast<float>(RandomScaled(9.31322574832319e-10) + fromX - 2.0);
-                float toY = static_cast<float>(RandomScaled(9.31322574832319e-10) + fromY - 2.0);
+                float fromX = RandomScaled(4.656613e-09f);
+                float fromY = RandomScaled(1.3969839e-08f);
+                float toX = RandomScaled(9.313226e-10f) + fromX - 2.0f;
+                float toY = RandomScaled(9.313226e-10f) + fromY - 2.0f;
                 ShowBolt(Vector3{fromX, fromY, 17.0f}, Vector3{toX, toY, 1.0f});
             }
         }

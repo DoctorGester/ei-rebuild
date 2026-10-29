@@ -13,7 +13,6 @@
 #include "spell.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/float_select.h"
 #include "lib/vecmath.h"
 
@@ -24,9 +23,7 @@
 namespace terrain {
 namespace {
 
-// Table entries per radian: 256 / pi (doubles) as the division leaves it at 24-bit precision (not the folded
-// double).
-constexpr float kSineIndex = static_cast<float>(256.0 / 3.141592653589793);
+constexpr float kSineIndex = 256.0f / 3.14159265f;        // table entries per radian
 constexpr float kQuarterTurn = 0.785398126f;
 constexpr float kTimeScale = 0.05f;                        // the circling waves' speed per world tick
 constexpr float kGlowScale = 50.0f;
@@ -35,16 +32,14 @@ constexpr float kCircleScale = 3.0f;
 constexpr int kTileFrameEvery = 3;                         // animated tiles step every third frame
 constexpr int kAlwaysSteps = 1000;                         // a tile speed that steps every time
 
-// The sine table entry at `phase` radians: (phase * 256 / pi) stored as a float and rounded to nearest, mod 512.
-inline float Sine(const Terrain* owner, double phase) {
-    return owner->sine[x87::fistp(static_cast<float>(phase * kSineIndex)) & 0x1FF];
-}
+// The sine table entry at `phase` radians: phase * 256 / pi rounded to nearest, mod 512.
+inline float Sine(const Terrain* owner, float phase) { return owner->sine[std::lround(phase * kSineIndex) & 0x1FF]; }
 
-inline std::uint32_t ColourByte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
+inline std::uint32_t ColourByte(float v) { return static_cast<std::uint32_t>(std::lround(v)) & 0xFF; }
 
 // The circling waves' sine per column (and per row: the same values) at the world time, once per call.
 void CircleSines(const Terrain* owner, float* sines) {
-    float time = static_cast<float>((g_clientWorld.tick + g_clientWorld.tickFraction) * kTimeScale);
+    float time = (g_clientWorld.tick + g_clientWorld.tickFraction) * kTimeScale;
     for (int i = 0; i < kSectorRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
 }
 
@@ -97,9 +92,9 @@ void SectorData::AnimateWaves() {
     Vector2 direction = {owner->waveDirection.x, owner->waveDirection.y};
     float height = owner->waveHeight;
     float phase = owner->wavePhase;
-    float fullTurn = static_cast<float>(kPi + kPi);
+    float fullTurn = kPi + kPi;
     Vector2 first = {positions[0].x, positions[0].y};
-    float rowStart = static_cast<float>(std::fmod(Dot2D(direction, first) + fullTurn, static_cast<double>(fullTurn)));
+    float rowStart = std::fmod(Dot2D(direction, first) + fullTurn, fullTurn);
 
     int lastMaterial = -1;
     float lastTurn = 0.0f;
@@ -117,16 +112,15 @@ void SectorData::AnimateWaves() {
             if (material != SectorVertex::kNoWaterMaterial) {
                 if (material != lastMaterial) {
                     const TerrainMaterial& m = owner->materials[material];
-                    amplitude = static_cast<float>(height * m.priority);
+                    amplitude = height * m.priority;
                     kind = m.kind;
-                    double glow = owner->waveGlow * m.priority * kGlowScale;
-                    crest = {static_cast<float>(glow * m.waveColour.x), static_cast<float>(glow * m.waveColour.y),
-                             static_cast<float>(glow * m.waveColour.z)};
-                    double turn = std::fmod(static_cast<double>(phase * m.priority), 2.0 * kPi);
-                    float delta = static_cast<float>(turn - lastTurn);
-                    lastTurn = static_cast<float>(turn);
-                    rowStart = static_cast<float>(delta + rowStart);
-                    along = static_cast<float>(delta + along);
+                    float glow = owner->waveGlow * m.priority * kGlowScale;
+                    crest = {glow * m.waveColour.x, glow * m.waveColour.y, glow * m.waveColour.z};
+                    float turn = std::fmod(phase * m.priority, fullTurn);
+                    float delta = turn - lastTurn;
+                    lastTurn = turn;
+                    rowStart += delta;
+                    along += delta;
                     lastMaterial = material;
                 }
                 float wave = Sine(owner, along + *phaseOffset);
@@ -136,14 +130,14 @@ void SectorData::AnimateWaves() {
                 } else {
                     record.specular &= 0xFF000000u;
                 }
-                double lift = wave * amplitude;
+                float lift = wave * amplitude;
                 if (kind == TerrainMaterial::kKeepsGroundXY) {
                     if (SignBit(record.depth)) {
-                        position.x = static_cast<float>(lift + record.position.x);
-                        position.y = static_cast<float>(lift + record.position.y);
+                        position.x = lift + record.position.x;
+                        position.y = lift + record.position.y;
                     }
                 } else {
-                    position.z = static_cast<float>(lift * kRiseScale + record.position.z);
+                    position.z = lift * kRiseScale + record.position.z;
                     if (!circling) {
                         CircleSines(owner, circle);
                         circling = true;
@@ -152,9 +146,9 @@ void SectorData::AnimateWaves() {
                     position.y = circle[row] * amplitude * kCircleScale + record.position.y;
                 }
             }
-            along = static_cast<float>(along + direction.x);
+            along += direction.x;
         }
-        rowStart = static_cast<float>(rowStart + direction.y);
+        rowStart += direction.y;
     }
     render::TerrainChanged(this, render::TerrainChange::WaterMoved);
 }
@@ -166,7 +160,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
 
 bool Terrain::RunTick() {
     if (lib::Has(landscapeFlags, LandscapeFlag::Ambience)) PlayAmbience();
-    wavePhase = static_cast<float>(waveSpeed + wavePhase);
+    wavePhase += waveSpeed;
     ++frame;
     for (int sy = visible.firstY; sy <= visible.lastY; ++sy) {
         for (int sx = visible.firstX; sx <= visible.lastX; ++sx) {

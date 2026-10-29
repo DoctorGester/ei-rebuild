@@ -76,7 +76,7 @@ constexpr float kRadiusCells = 48.0f;
 constexpr float kSpotCells = 16.0f;         // a one-shot lands within +-16 cells of its sector's offset
 constexpr float kMinWeight = 0.001f;
 constexpr float kPercent = 100.0f;
-constexpr double kTwoToMinus32 = 2.3283064370807974e-10;
+constexpr float kTwoToMinus32 = 2.3283064e-10f;
 constexpr int kMaxVolume = 100;
 
 constexpr float kHalfPi = /*007C8930*/ 1.5707964f;
@@ -104,11 +104,11 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     float c = along / length;
     if (c > 1.0f) c = 1.0f;
     else c = c >= -1.0f ? c : -1.0f;   // -1 also for NaN
-    double angle = libcrt::CiAcos(c);
+    float angle = std::acos(c);
     if (angle > kHalfPi) angle = kPi - angle;
     angle = kPercent / kHalfPi * angle;
     if (axis.x * offset.y > axis.y * offset.x) angle = -angle;
-    return static_cast<float>(angle);
+    return angle;
 }
 
 // Now and then (the class's chance) a one-shot of sound class `soundClass` (of `variants`) in a random sector
@@ -131,8 +131,8 @@ void PlayOneShot(SoundManager* sounds, const Cell (&cells)[3][3], int soundClass
     Vector3 position = listener + pick->offset;
     float spot = kSpotCells;
     float spotLow = -spot;
-    position.x = static_cast<float>((spot - spotLow) * static_cast<double>(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.x);
-    position.y = static_cast<float>((spot - spotLow) * static_cast<double>(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.y);
+    position.x = (spot - spotLow) * g_clientRandom.Next() * kTwoToMinus32 + spotLow + position.x;
+    position.y = (spot - spotLow) * g_clientRandom.Next() * kTwoToMinus32 + spotLow + position.y;
     sounds->Play3D(name, 1, &position.x, spot + spot, kRadiusCells, 0);
 }
 

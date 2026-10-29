@@ -48,8 +48,7 @@ void Resolution(int* width, int* height) {
 }
 
 // addon's apply function (10023AFC): the checks that refuse a mode (logged as failed or disabled),
-// then the values. The layout units are computed at the FPU precision of WinMain's entry (53 bits,
-// as when addon computes them), the quotient rounded to a float before the ceiling.
+// then the values.
 Layout Compute() {
     Layout layout{};
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::WideScreen) || !WideScreenSetting()) return layout;
@@ -60,14 +59,10 @@ Layout Compute() {
     layout.width43 = h * kLayoutWidth / kLayoutHeight;
     layout.margin = (w - layout.width43) / 2;
     float units = layout.margin * 800.0f / layout.width43;
-    layout.extra = static_cast<int>(std::ceil(static_cast<double>(units)));
-    // As addon computes them: width43 / width stored to a float (addon's 10024954), and width * 0.0075f (a
-    // float constant widened to a double: 0.0074999998) / height stored to a float (10024902).
-    volatile double ratio = static_cast<double>(layout.width43) / static_cast<double>(w);
-    layout.axisScale = static_cast<float>(ratio);
-    volatile double perHeight = static_cast<double>(w) * static_cast<double>(0.0075f);
-    perHeight = perHeight / static_cast<double>(h);
-    layout.fontScale = static_cast<float>(perHeight);
+    layout.extra = static_cast<int>(std::ceil(units));
+    // width43 / width (addon's 10024954) and width * 0.0075 / height (10024902; addon divides in double).
+    layout.axisScale = layout.width43 / static_cast<float>(w);
+    layout.fontScale = w * 0.0075f / h;
     layout.active = true;
     return layout;
 }

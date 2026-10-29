@@ -12,7 +12,7 @@ Tools (all in `tools/`; each file's docstring says how to run it) and what the c
 | Tool | What it catches |
 |---|---|
 | `check_stolen.py` | the stolen-byte count of every `EI_RECORD` (vector recorders, which run inside game.exe) ends inside an instruction, is under 5, or copies IP-relative instructions (a wrong count crashes only when the function first runs); a recorder not at a known function start, or a second one at an address |
-| `check_x87.py` (after `release`) | unsigned 32-bit to float done the modern way (`FILD` + `FADD 2^32` rounds at the precision control) in the x87 code: use `x87::FromUnsigned` (the SSE2 code is left out, "SSE2 build" below) |
+| `check_x87.py` (after `release`) | unsigned 32-bit to float done the modern way (`FILD` + `FADD 2^32` rounds at the precision control) in the x87 code: use `x87::FromUnsigned` (the SSE2 code is left out, "SSE2 build" below); in the SSE2 sources an `x87::` helper, `libcrt::Ftol` or `D()` (C30c) |
 | `check_signatures.py` / `check_signatures.cmd` (after `verify`) | a recorder, a forwarder or the rewrite an `EI_RECORD` names (the vectors' replays call it with recorded arguments) whose stack arguments differ from the original's `RET n`; other functions are free (argument order is not checked) |
 | `check_cleanup.py` | per file, the counts of offset access (`At<>` / `Field<>`), `VCall`, `__asm`, `float_control`, raw game addresses and `*At` views may only go down (`config/cleanup_baseline.csv`; a new file starts at zero; `--update` after a cleanup) |
 | `progress.py` | the cleanup artefact counts (below) |
@@ -186,7 +186,7 @@ the two cannot be stacked per file.
 ### Plain float maths in the SSE2 files (C30b)
 
 The SSE2 files (the list above and src/render) lost the x87 era's spellings by script, in two steps; the x87 files
-and the shared headers' inline helpers (`D` in particle_common.h, camera.h) are untouched.
+and the shared headers' inline helpers (`D` in camera.h, ui_float.h) are untouched.
 - **The helpers** (a text rewrite): `x87::fsin / fcos / fpatan / flog / fexp` -> `std::sin / cos / atan2 / log / exp`,
   `x87::fistp(static_cast<float>(e))` -> `std::lround(e)`, `x87::FromUnsigned(u)` -> `static_cast<double>(u)` (exact on
   SSE2; a float would drop the low bits of millisecond times), `x87::CopyBits(a, b)` -> `a = b`. `std::lround` rounds
@@ -203,20 +203,45 @@ and the shared headers' inline helpers (`D` in particle_common.h, camera.h) are 
 - **Counts** (code, comments left out; the 186 SSE2 files): `static_cast<float>` 2,226 -> 815, `static_cast<double>`
   322 -> 141, `D(` 2,750 -> 704, `double` 1,099 -> 613, `x87::` 193 -> 6 (render.cpp's `FpuGuard`, terrain_animation,
   terrain_shadow).
-- **Left for hand review (C30c)**, by why the script stopped: a double variable, member or constant among the leaves
-  (335: `kPi`-style `constexpr double` constants, double locals that are written, double members), an int cast whose
-  context is not a float operator (241: initialisers, arguments, an int against a double), a double-returning call
-  (107: `Unsigned`, `Range`, `FrameTime`, the `*Unrounded` vector helpers, `fmod`), a double macro (81: the particle
-  files' `EI_*` constants), a 32-bit unsigned or 64-bit int (14: times and random words would lose bits as floats),
-  3 others; ui_connect_screen (clang rejects bit_flags.h's `operator|` template there) and the two files below were
-  not run. The file comments that say "`double` for values the original keeps on the FPU stack" describe what is left.
-- **Golden that sent files back:** `terrain_water_waves` (the water sectors' vertices are in its dumps):
-  terrain_animation (positions and speculars: `std::lround` without the float rounding picks another sine-table
-  entry and colour byte) and terrain_shadow (speculars from record 0: `EdgeFade`'s alpha, FISTP's half-to-even
-  against `std::lround`). Both are as C30a left them, x87 helpers included; any rewrite there needs that golden
-  re-recorded or the exact rounding kept.
 - The scripts (one-off, not in tools/): `renames.py`, `casts.py`, `clang_ast.py`, `files.py` in the C30b scratch
   folder named in the hand-back.
+
+### The SSE2 files by hand (C30c)
+
+What C30b's script left, done file by file: the SSE2 files hold plain float maths, and `check_x87.py` now fails on
+an `x87::` helper (but the control word render.cpp's `FpuGuard` puts back), a `libcrt::Ftol` or a `D()` in them.
+- **Whole files to float** (a one-off AST script, `floats.py` in the C30c scratch folder, then C30b's `casts.py`):
+  `double` locals, parameters, returns and constants became `float`, `D(x)` / `static_cast<double>(x)` of a float
+  went, of an int became `static_cast<float>`, double literals and the `EI_*` macros their float spelling. The
+  particle files (callbacks, emitters, create, tick, render), lightning, effects, weather, the HUD and item screens,
+  map_object_shadow (C30b's scripts first: R37f had kept main's copy), world_client_lights, terrain_ambience and
+  the rest; the `Unsigned` / `Range` / `GroundHeight` helpers return float, the volatile reloads (`Load`,
+  `ReadFloat`, `LoadFloat`, map_object_shadow's `g_pi` trio) went, `libcrt::Hypot` / `CiAcos` / `CiPow` became
+  `std::hypot` / `acos` / `pow`, `static_cast<int>(libcrt::Ftol(e))` became `static_cast<int>(e)` (NaN now gives
+  0x80000000 where `_ftol` gave 0: no NaN reaches these displays; ui_scrollbar's `Truncate` and
+  world_client_lights' `HourIndex` keep the 0 where a NaN can arrive).
+- **`UiContainer::FrameTime` is a float** (milliseconds * 0.001f): the product the original rounded at 24 bits, so
+  the x87 callers (the briefing) get the original's value; the SSE2 callers sum it as floats.
+- **Kept double on purpose:** a timeGetTime frame count (`ms * 15 / 1024`: the milliseconds since the system
+  started, ui_hero_screen / ui_camp_create / ui_hero_preview / ui_model), the statistics functions' results the
+  item panel truncates (the unit code returns double), the trade panel's `Reduce` share, disk space and the
+  performance timers. A double-returning call of the x87 code
+  (`RawSurfaceHeightAt`, `MotionCubic::Value`, `BufferRatio`) is narrowed once with `static_cast<float>`.
+- **Accepted rounding differences:** ui_hud_setup's `OnArc` and the round map's outline truncate a float product,
+  so cos(pi / 3) x 34 is 16 where the original's unrounded cosine at 24 bits gave 17 (a region corner one pixel
+  off; main's SSE2 double maths gave 16 already); colour bytes and wave entries at an exact half round away from
+  zero (`std::lround`).
+- **terrain_water_waves** is the image's golden on vanilla (its `# no original: vanilla` line; recorded from four
+  image runs: plain twice, EI_HEAP_JITTER=1 and 2,fill): terrain_animation's waves and terrain_shadow's `EdgeFade`
+  are float maths, so a vertex's sine-table entry, crest byte or edge fade can round the other way from the
+  original's 24-bit sums (the water group's speculars from record 0). The Rebirth golden stays the original's
+  (the image suite runs the scenario on vanilla only).
+- **Left (C30d):** the render files R37c / R37d were changing (render_shadows, render_mesh*, render_terrain,
+  render_point_shadows, world_client_shadow_casters). The other `static_cast<float>` left in the SSE2 files are
+  conversions, mostly an int argument or initialiser (MSVC warns, C4244, without the cast).
+- **Counts** (code, comments left out). The 186 SSE2 files: `static_cast<float>` 839 -> 343, `static_cast<double>`
+  164 -> 36, `D(` 704 -> 0, `double` 673 -> 159, `x87::` 7 -> 3. The dashboard's (src but hook and standalone):
+  `static_cast<float>` 2,504 -> 2,009, `static_cast<double>` 772 -> 643, `x87::` 394 -> 390, `Ftol(` 234 -> 129.
 
 ### The whole image on SSE2 (C16 experiment)
 

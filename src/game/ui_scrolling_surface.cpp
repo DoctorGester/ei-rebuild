@@ -88,7 +88,7 @@ void UiScrollingSurface::Blit() {
     EI_NAN_AUDIT(speed);
     if (speed != 0.0f) {
         const float now = GameTime();
-        offset = static_cast<int>(libcrt::Ftol((static_cast<double>(now) - startTime) * speed + offset));
+        offset = static_cast<int>((now - startTime) * speed + offset);
         startTime = now;
         RenderText();
     }

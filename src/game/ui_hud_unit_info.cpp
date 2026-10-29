@@ -39,8 +39,8 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr int kLineHeight = 15;
 constexpr int kLevelDifferenceLimit = 25;
 
-// The speed shown: (a constant * speed) * a constant unrounded, the speed of the mode (mode 3) for a
-// unit outside the group, else from the current one.
+// The speed shown: the speed of the mode (mode 3) for a unit outside the group, else of the current one,
+// times 7.5.
 double ShownSpeed(CUnit* unit, bool outsideGroup) {
     const double speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
     return speed * 7.5f;

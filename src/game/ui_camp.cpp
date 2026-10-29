@@ -13,7 +13,6 @@
 #include "spell.h"
 #include "texture.h"
 #include "ui_item_info.h"
-#include "ui_float.h"
 #include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
@@ -83,8 +82,8 @@ itemdb::ItemRecordHead* PartRecord(const Item* item, LootRecordType recordType) 
 constexpr float kPriceZero = 0.0f;
 constexpr float kPriceOne = 1.0f;
 
-// The item's base price, left unrounded.
-double ItemPrice(Item* item) {
+// The item's base price.
+float ItemPrice(Item* item) {
     return item->GetPrice();
 }
 
@@ -119,12 +118,12 @@ bool ListHolds(CParty* list, const Item* item) {
     return std::ranges::find(list->items, item) != list->items.end();
 }
 
-// fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, which computes it on the FPU.
+// fmod(turn + sign * 2 * seconds, 2 pi).
 constexpr float kCampFullTurn = /*007C7EE8*/ 6.2831855f;
-float TurnedBy(double seconds, float turn, bool backwards) {
-    const double twice = seconds + seconds;
-    const double turned = backwards ? turn - twice : twice + turn;
-    return static_cast<float>(std::fmod(turned, kCampFullTurn));
+float TurnedBy(float seconds, float turn, bool backwards) {
+    const float twice = seconds + seconds;
+    const float turned = backwards ? turn - twice : twice + turn;
+    return std::fmod(turned, kCampFullTurn);
 }
 
 
@@ -274,12 +273,12 @@ int CampPages::Price(Item* item, int kind) {
     ItemKind itemKind = item->Kind();
     if (itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor || kind == 8) {
         float worn = WornFraction(item);
-        repair = static_cast<float>(ItemPrice(item) * multipliers[8] * worn);
+        repair = ItemPrice(item) * multipliers[8] * worn;
         if (kind == 8) {
             EI_NAN_AUDIT(worn, multipliers[8]);
             if (worn == kPriceZero) return 0;
             if (multipliers[8] == kPriceZero) return 0;
-            int price = static_cast<int>(libcrt::Ftol(D(repair)));
+            int price = static_cast<int>(repair);
             return price > 0 ? price : 1;
         }
     }
@@ -288,10 +287,10 @@ int CampPages::Price(Item* item, int kind) {
         // line): for kind 7 (taking an item apart in the item constructor) the repair cost of the
         // wear is added instead of subtracted.
         if (kind == 7 && ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
-            return static_cast<int>(libcrt::Ftol(ItemPrice(item) * multipliers[kind] + repair));
-        return static_cast<int>(libcrt::Ftol(ItemPrice(item) * multipliers[kind] - repair));
+            return static_cast<int>(ItemPrice(item) * multipliers[kind] + repair);
+        return static_cast<int>(ItemPrice(item) * multipliers[kind] - repair);
     }
-    return static_cast<int>(libcrt::Ftol(ItemPrice(item) * multipliers[kind]));
+    return static_cast<int>(ItemPrice(item) * multipliers[kind]);
 }
 
 bool CampPages::CanEquip(Item* item, int mode) {
@@ -318,7 +317,7 @@ bool CampPages::CanEquip(Item* item, int mode) {
             if (std::ssize(spellResults->items) > 0) return false;
             const itemdb::SpellRecord* record = SpellRecordOf(item);
             PartySkill best = BestPartySkill(record->school);
-            if (best.mana < static_cast<int>(libcrt::Ftol(D(record->mana)))) return false;
+            if (best.mana < static_cast<int>(record->mana)) return false;
             return best.skill >= record->skill;
         }
         if (!IsModifier(item)) return false;
@@ -350,7 +349,7 @@ bool CampPages::CanEquip(Item* item, int mode) {
         int skillTotal = skillSum + modifier->skill;
         PartySkill best = BestPartySkill(school);
         if (best.skill < skillTotal) return false;
-        return best.mana >= static_cast<int>(libcrt::Ftol(D(manaTotal)));
+        return best.mana >= static_cast<int>(manaTotal);
     }
     case 4:     // the item constructor: anything but quest items and magic
         if (item->Kind() == ItemKind::Quest) return false;
@@ -628,7 +627,7 @@ bool CampPages::CanMakeSpell() {
     spellMade.Assign(container);
     if (!container) return false;
     PartySkill best = BestPartySkill(spell->school);
-    if (best.mana < static_cast<int>(libcrt::Ftol(D(made->manaCost)))) return false;
+    if (best.mana < static_cast<int>(made->manaCost)) return false;
     return best.skill >= static_cast<int>(made->skillNeeded);
 }
 
@@ -958,7 +957,6 @@ void CampPages::RefreshStats() {
 
 void CampPages::Update() {
     UiContainer::Update();
-    // The frame time in seconds (unrounded).
     if (turning == 1)
         heroTurn = TurnedBy(FrameTime(), heroTurn, false);
     else if (turning == 2)

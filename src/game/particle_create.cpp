@@ -17,13 +17,8 @@
 
 namespace {
 
-inline double D(float f) { return f; }
-
-// A zero-extended dword as a double (exact).
-double Unsigned(std::uint32_t value) {
-    volatile std::int64_t wide = value;
-    return static_cast<double>(wide);
-}
+// A random word as a float.
+float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
 
 // Constants the original reads from memory at run time.
 #define EI_ONE 1.0f
@@ -35,12 +30,11 @@ double Unsigned(std::uint32_t value) {
 #define EI_SIXTY_FOURTH 0.015625f
 #define EI_UV_INSET 0.001953125f   // 1/512: the frame rectangles are inset by this
 #define EI_COLOR_SCALE 255.0f
-#define EI_SCALE_2 4.656612874161595e-10   // ~2^-31
-#define EI_SCALE_0_4 9.313226580990458e-11   // ~0.4 * 2^-32
-#define EI_RING_STEP 0.62832   // 2 pi / 10
+#define EI_SCALE_2 4.656613e-10f   // ~2^-31
+#define EI_SCALE_0_4 9.3132266e-11f   // ~0.4 * 2^-32
+#define EI_RING_STEP 0.62832f   // 2 pi / 10
 
-// IsaacRandom::Range leaves its result unrounded.
-double Range(float min, float max) { return g_clientRandom.Range(min, max); }
+float Range(float min, float max) { return g_clientRandom.Range(min, max); }
 
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
 const float* SceneLightColor() { return g_sceneRenderer.sun->color; }
@@ -104,35 +98,34 @@ void SetupExplosion(ParticleSource* s) {
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         s->elements[i].pos = {};
         float x, y, z;
-        double lengthSquared;
+        float lengthSquared;
         for (int tries = 10;;) {
-            x = static_cast<float>(Unsigned(g_clientRandom.Next()) * EI_SCALE_2 - D(EI_ONE));
-            y = static_cast<float>(Range(-1.0f, 1.0f));
-            double zUnrounded = Range(-1.0f, 1.0f) + D(EI_POINT_SEVEN);
-            z = static_cast<float>(zUnrounded);
-            lengthSquared = zUnrounded * D(z) + D(y) * D(y) + D(x) * D(x);
-            if (lengthSquared < D(EI_ONE)) break;   // random: never NaN
+            x = Unsigned(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
+            y = Range(-1.0f, 1.0f);
+            z = Range(-1.0f, 1.0f) + EI_POINT_SEVEN;
+            lengthSquared = LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
+            if (lengthSquared < EI_ONE) break;   // random: never NaN
             if (!(--tries > 0)) break;
         }
-        float length = static_cast<float>(std::sqrt(lengthSquared));
+        float length = std::sqrt(lengthSquared);
         Vector3 v;
         v.Construct(x, y, z);
         Vector3 direction;
         DivideVector(&direction, v, length);
-        double speed = Unsigned(g_clientRandom.Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT);
-        float vx = static_cast<float>(D(direction.x) * speed);
-        float vy = static_cast<float>(speed * D(direction.y));
-        double vz = speed * D(direction.z);
+        float speed = Unsigned(g_clientRandom.Next()) * EI_SCALE_0_4 + EI_POINT_EIGHT;
+        float vx = direction.x * speed;
+        float vy = speed * direction.y;
+        float vz = speed * direction.z;
         auto& fragment = s->elements[i].fragment;
         fragment.velocity.x = vx * EI_POINT_EIGHT;
         fragment.velocity.y = vy * EI_POINT_EIGHT;
-        fragment.velocity.z = static_cast<float>(vz * D(EI_POINT_EIGHT));
+        fragment.velocity.z = vz * EI_POINT_EIGHT;
         fragment.age = 0;
         fragment.radius = 0.0f;
         fragment.growth = 0.4f;
         fragment.decay = 0.7f;
-        fragment.frame = static_cast<float>(Unsigned(g_clientRandom.Next() % 6));
-        fragment.sizeFactor = static_cast<float>(Unsigned(g_clientRandom.Next() & 1));
+        fragment.frame = Unsigned(g_clientRandom.Next() % 6);
+        fragment.sizeFactor = Unsigned(g_clientRandom.Next() & 1);
     }
 }
 
@@ -172,11 +165,11 @@ void SetupTornado(ParticleSource* s) {
     s->height = 0.2f;
     // The particle colour: 0x19 alpha, then the scene light's r, g, b (the delay field holds it).
     const float* light = SceneLightColor();
-    std::uint32_t color = libcrt::Ftol(D(light[0]) * D(EI_COLOR_SCALE));
+    std::uint32_t color = static_cast<std::uint32_t>(light[0] * EI_COLOR_SCALE);
     color = (color | 0x1900) << 8;
-    color |= libcrt::Ftol(D(light[1]) * D(EI_COLOR_SCALE));
+    color |= static_cast<std::uint32_t>(light[1] * EI_COLOR_SCALE);
     color <<= 8;
-    color |= libcrt::Ftol(D(light[2]) * D(EI_COLOR_SCALE));
+    color |= static_cast<std::uint32_t>(light[2] * EI_COLOR_SCALE);
     SetBits(&s->frameDelay, color);
     SetupTornadoRings(s);
     s->elements[0].funnel.height = 12.0f;  // 12.0
@@ -255,10 +248,10 @@ void SetupClayRing(ParticleSource* s) {
     SetCallbacks(s, &ParticleSource::EmitClayRing, &ParticleSource::UpdateClayRing, &ParticleSource::TickClayRing);
     s->elements.resize(10);
     for (int i = 0; i < std::ssize(s->elements); ++i) {
-        double angle = static_cast<double>(i) * EI_RING_STEP;
+        float angle = i * EI_RING_STEP;
         float* direction = &s->elements[i].clay.direction.x;
-        direction[0] = static_cast<float>(std::sin(angle));
-        direction[1] = static_cast<float>(std::cos(angle));
+        direction[0] = std::sin(angle);
+        direction[1] = std::cos(angle);
         direction[2] = 0.0f;
         s->elements[i].pos = s->localPosition;
         s->elements[i].clay.previous = s->localPosition;

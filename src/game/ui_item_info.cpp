@@ -1,9 +1,7 @@
 // The item description panel: what the camp, the multiplayer hero screen and the exchange window write about the item or
-// statistic under the mouse (ui_item_info.h, docs/notes/ui.md, "Item descriptions"). Values the game truncates with its
-// _ftol are converted the same way; the statistics functions' results that the original leaves unrounded are declared
-// double, so no rounding happens in between. Compiled with precise floating point so that products keep the original's order.
+// statistic under the mouse (ui_item_info.h, docs/notes/ui.md, "Item descriptions"). The statistics functions'
+// results (double) are truncated as they come.
 #include "party.h"
-#include "ui_float.h"
 #include "ui_screens.h"
 #include "text_split.h"
 #include "ui_item_info.h"
@@ -36,27 +34,20 @@
 
 namespace {
 
-
-
-int FtolOf(float value) { return static_cast<int>(libcrt::Ftol(D(value))); }
-
-// _ftol of a value kept unrounded (a statistic's result).
-int Ftol(double value) { return static_cast<int>(libcrt::Ftol(value)); }
-
 constexpr float kPercentScale = 100.0f;
 constexpr float kStatBase = 25.0f;        // an attribute's neutral value
-constexpr double kIntelligenceGrowth = 1.04;
+constexpr float kIntelligenceGrowth = 1.04f;
 
-// _ftol(_CIpow(base, exponent - subtrahend) * scale), all unrounded.
-int PowFtol(double base, float exponent, float subtrahend, float scale) {
-    const double power = libcrt::CiPow(base, static_cast<double>(exponent) - subtrahend);
-    return Ftol(power * scale);
+// pow(base, exponent - subtrahend) * scale, truncated.
+int PowFtol(float base, float exponent, float subtrahend, float scale) {
+    const float power = std::pow(base, exponent - subtrahend);
+    return static_cast<int>(power * scale);
 }
-// _ftol of b + a (in that order); ScaledFtol the same of a * scale.
-int SumFtol(float a, float b) { return Ftol(static_cast<double>(b) + a); }
-int SumFtolScaled(float a, float b, float scale) { return Ftol((static_cast<double>(b) + a) * scale); }
-int ScaledFtol(float a, float scale) { return Ftol(static_cast<double>(a) * scale); }
-int DifferenceFtol(float a, float subtrahend) { return Ftol(static_cast<double>(a) - subtrahend); }
+// b + a truncated; ScaledFtol the same of a * scale.
+int SumFtol(float a, float b) { return static_cast<int>(b + a); }
+int SumFtolScaled(float a, float b, float scale) { return static_cast<int>((b + a) * scale); }
+int ScaledFtol(float a, float scale) { return static_cast<int>(a * scale); }
+int DifferenceFtol(float a, float subtrahend) { return static_cast<int>(a - subtrahend); }
 // value * factor * scale in that order, stored as float.
 float ArmourValue(float value, float factor, float scale) {
     return value * factor * scale;
@@ -160,7 +151,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
         w.line = std::format("{} {}", w.T(12), w.T(21));
     else
         w.line = str::Format("%s %.1f%s", w.T(12),
-                      static_cast<double>(ticks) * D(0.06666667f), w.T(27));
+                      ticks * 0.06666667f, w.T(27));
     w.Text(w.line);
     w.Down();
 }
@@ -173,19 +164,19 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
     };
     switch (index) {
     case 0:
-        line("%s %d%%", 0, Ftol(stats->StrengthRatio() * kPercentScale));
-        line("%s %d", 1, Ftol(stats->ScaledStrength()));
+        line("%s %d%%", 0, static_cast<int>(stats->StrengthRatio() * kPercentScale));
+        line("%s %d", 1, static_cast<int>(stats->ScaledStrength()));
         w.Down();
         break;
     case 1:
-        line("%s %d%%", 2, Ftol(stats->DexterityRatio() * kPercentScale));
-        line("%s %d", 3, Ftol(stats->RateValue()));
+        line("%s %d%%", 2, static_cast<int>(stats->DexterityRatio() * kPercentScale));
+        line("%s %d", 3, static_cast<int>(stats->RateValue()));
         w.Down();
         break;
     case 2:
         // 1.04 ^ (intelligence - 25) * 100.
         line("%s %d%%", 4, PowFtol(kIntelligenceGrowth, stats->intelligence, kStatBase, kPercentScale));
-        line("%s %d%%", 24, Ftol(stats->Period20() * kPercentScale));
+        line("%s %d%%", 24, static_cast<int>(stats->Period20() * kPercentScale));
         w.Down();
         break;
     default:
@@ -270,21 +261,21 @@ void WeaponLines(Writer& w, const ItemHoverInfo& info) {
     part(29, base);
     int sum = base;
     w.Down();
-    int skill = Ftol(stats->WeaponSkill(type));
+    int skill = static_cast<int>(stats->WeaponSkill(type));
     part(30, skill);
     sum += skill;
     w.Down();
-    int level = Ftol(stats->SkillLevelValue(type));
+    int level = static_cast<int>(stats->SkillLevelValue(type));
     part(31, level);
     sum += level;
     w.Down();
     w.line = std::format("     {}", w.T(32));
     w.Text(w.line);
-    int own = Ftol(WeaponPrototypeSkillBonus(weapon->prototypeId));
+    int own = static_cast<int>(WeaponPrototypeSkillBonus(weapon->prototypeId));
     if (str::Compare(info.text, "defense") == 0)
-        own += Ftol(WeaponDefenceBonus(weapon->prototypeId));
+        own += static_cast<int>(WeaponDefenceBonus(weapon->prototypeId));
     else
-        own += Ftol(WeaponAttackBonus(weapon->prototypeId));
+        own += static_cast<int>(WeaponAttackBonus(weapon->prototypeId));
     w.line = std::format("{}", own);
     w.Value(w.line);
     sum += own;
@@ -302,9 +293,9 @@ DamageLists ItemDamageLists(const float* values, bool integer) {
     float threshold = values[6];
     // EI_Plugin's Fixes: the jump over the integer format is always taken.
     if (integer && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes))
-        lists.threshold = std::format("{}", FtolOf(threshold));
+        lists.threshold = std::format("{}", static_cast<int>(threshold));
     else
-        lists.threshold = str::Format("%.1f", D(threshold));
+        lists.threshold = str::Format("%.1f", threshold);
     for (int i = 0; i < 6; ++i) {
         std::string* list;
         if (values[i] > threshold)
@@ -388,12 +379,12 @@ void ItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
     }
-    if (kind != ItemKind::Quest) w.Number(0, FtolOf(item->Weight()));
+    if (kind != ItemKind::Quest) w.Number(0, static_cast<int>(item->Weight()));
 
     if (kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Wand)) {
         CSpell* spell = item->spell;
         int spellValue = spell ? static_cast<int>(spell->skillNeeded) : 0;
-        w.Number(2, FtolOf(item->chargeMax));
+        w.Number(2, static_cast<int>(item->chargeMax));
         w.line = std::format("{} {}/{}", w.T(14), spellValue, static_cast<int>(item->magicLevel));
         w.Text(w.line);
         w.Down();
@@ -404,8 +395,8 @@ void ItemInfoPanel::DescribeItem() {
     if (kind == ItemKind::Armor || kind == ItemKind::Weapon) {
         // The condition (current only when positive).
         float current = item->condition;
-        int condition = current > 0.0f ? FtolOf(current) : 0;
-        int maximum = FtolOf(item->conditionMax);
+        int condition = current > 0.0f ? static_cast<int>(current) : 0;
+        int maximum = static_cast<int>(item->conditionMax);
         w.line = std::format("{} {}/{}", w.T(3), condition, maximum);
         w.Text(w.line);
         w.Down();
@@ -423,17 +414,17 @@ void ItemInfoPanel::DescribeItem() {
             float low = weapon->damage;
             float spread = weapon->damageSpread;
             int high = SumFtol(low, spread);
-            int lowValue = FtolOf(low);
+            int lowValue = static_cast<int>(low);
             w.line = std::format("{} {}-{} {}", w.T(15), lowValue, high,
                           text);
             w.Text(w.line);
             w.Down();
             w.Number(20, static_cast<int>(item->GetPrototype()->category));
-            w.Number(38, Ftol(WeaponAttackBonus(item->prototypeId)));
+            w.Number(38, static_cast<int>(WeaponAttackBonus(item->prototypeId)));
             if (weapon->GetType() == 5 || weapon->GetType() == 6)
-                w.Number(10, FtolOf(weapon->reach));
+                w.Number(10, static_cast<int>(weapon->reach));
             else
-                w.Number(39, Ftol(WeaponDefenceBonus(item->prototypeId)));
+                w.Number(39, static_cast<int>(WeaponDefenceBonus(item->prototypeId)));
             goto tail;
         }
     }
@@ -484,11 +475,11 @@ void ItemInfoPanel::DescribeMaterial() {
     w.line = texts->GetString("mattype_" + text);
     const std::string typeText = w.line;
     w.Joined(17, typeText);
-    w.Number(0, FtolOf(material->weightFactor));
-    w.Number(2, FtolOf(material->magicPower));
+    w.Number(0, static_cast<int>(material->weightFactor));
+    w.Number(2, static_cast<int>(material->magicPower));
     w.Number(14, static_cast<int>(material->magicLevel));
-    w.Number(3, FtolOf(material->conditionFactor));
-    w.line = str::Format("%s %.1f", w.T(15), D(material->damageFactor));
+    w.Number(3, static_cast<int>(material->conditionFactor));
+    w.line = str::Format("%s %.1f", w.T(15), material->damageFactor);
     w.Text(w.line);
     w.Down();
     float values[7];
@@ -528,12 +519,12 @@ void ItemInfoPanel::DescribeBlueprint() {
                   static_cast<int>(head->materialUnits));
     w.Text(w.line);
     w.Down();
-    w.Number(0, FtolOf(head->weight));
+    w.Number(0, static_cast<int>(head->weight));
     if (sort <= 2) {
-        w.Number(2, FtolOf(head->charge));
+        w.Number(2, static_cast<int>(head->charge));
         w.Number(14, static_cast<int>(head->magicLevel));
     }
-    if (sort <= 1) w.Number(3, FtolOf(head->condition));
+    if (sort <= 1) w.Number(3, static_cast<int>(head->condition));
     if (sort == 0) {
         unsigned first = FirstDamageKind(weapon->damageTypes);
         if (first < 7) {
@@ -547,12 +538,12 @@ void ItemInfoPanel::DescribeBlueprint() {
         w.Text(w.line);
         w.Down();
         w.Number(20, static_cast<int>(head->category));
-        w.Number(38, FtolOf(weapon->attackBonus));
+        w.Number(38, static_cast<int>(weapon->attackBonus));
         int headType = head->type;
         if (headType == 5 || headType == 6)
-            w.Number(10, FtolOf(weapon->reach));
+            w.Number(10, static_cast<int>(weapon->reach));
         else
-            w.Number(39, FtolOf(weapon->defenceBonus));
+            w.Number(39, static_cast<int>(weapon->defenceBonus));
     } else if (sort == 1) {
         float values[7];
         for (int i = 0; i < 7; ++i) values[i] = ArmourValue(armor->absorbFirst[i], armor->FirstFactor(), 10.0f);
@@ -569,20 +560,20 @@ void ItemInfoPanel::DescribeSpellRecord() {
     auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
     w.Head(name, kindText);
-    w.Number(7, FtolOf(record->mana));
+    w.Number(7, static_cast<int>(record->mana));
     w.Number(14, record->skill);
     w.School(record->castType);
     bool known = record->allowedModifiers[3] != 0;
-    SpellLevelLine(w, known, known ? FtolOf(record->damage) : 0);
+    SpellLevelLine(w, known, known ? static_cast<int>(record->damage) : 0);
     float power = record->speed;
     EI_NAN_AUDIT(power);
     if (power < 1.0f)
         w.line = std::format("{} {}", w.T(9), w.T(21));
     else
-        w.line = std::format("{} {}", w.T(9), FtolOf(power));
+        w.line = std::format("{} {}", w.T(9), static_cast<int>(power));
     w.Text(w.line);
     w.Down();
-    w.line = std::format("{} {}{}", w.T(10), FtolOf(record->range),
+    w.line = std::format("{} {}{}", w.T(10), static_cast<int>(record->range),
                   w.T(26));
     w.Text(w.line);
     w.Down();
@@ -591,7 +582,7 @@ void ItemInfoPanel::DescribeSpellRecord() {
     if (radius < 1.0f)
         w.line = std::format("{} {}", w.T(11), w.T(22));
     else
-        w.line = str::Format("%s %.1f%s", w.T(11), D(radius),
+        w.line = str::Format("%s %.1f%s", w.T(11), radius,
                       w.T(26));
     w.Text(w.line);
     w.Down();
@@ -608,7 +599,7 @@ void ItemInfoPanel::DescribeModifierRecord() {
     const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(AsLoot(item)->index);
     Writer w(this);
     w.Head(name, kindText);
-    w.Number(7, FtolOf(record->mana));
+    w.Number(7, static_cast<int>(record->mana));
     w.Number(14, record->skill);
     w.Down();
     w.Wrapped(description, 8);
@@ -622,7 +613,7 @@ void ItemInfoPanel::DescribeQuickItem() {
     w.Head(name, kindText);
     if (CSpell* spell = item->spell) {
         bool known = spell->GetPrototype()->allowedModifiers[3] != 0;
-        SpellLevelLine(w, known, known ? FtolOf(spell->damage) : 0);
+        SpellLevelLine(w, known, known ? static_cast<int>(spell->damage) : 0);
         DurationLine(w, spell->duration);
         w.Down();
     }
@@ -649,20 +640,20 @@ void ItemInfoPanel::DescribeCarriedSpell() {
     Writer w(this);
     std::string text;
     w.Head(title, kindText);
-    w.Number(7, FtolOf(spell->manaCost));
+    w.Number(7, static_cast<int>(spell->manaCost));
     w.Number(14, static_cast<int>(spell->skillNeeded));
     w.School(spell->GetPrototype()->castType);
     bool known = spell->GetPrototype()->allowedModifiers[3] != 0;
-    SpellLevelLine(w, known, known ? FtolOf(spell->damage) : 0);
+    SpellLevelLine(w, known, known ? static_cast<int>(spell->damage) : 0);
     float power = spell->speed;
     EI_NAN_AUDIT(power);
     if (power < 1.0f)
         w.line = std::format("{} {}", w.T(9), w.T(21));
     else
-        w.line = std::format("{} {}", w.T(9), FtolOf(power));
+        w.line = std::format("{} {}", w.T(9), static_cast<int>(power));
     w.Text(w.line);
     w.Down();
-    w.line = std::format("{} {}{}", w.T(10), FtolOf(spell->range),
+    w.line = std::format("{} {}{}", w.T(10), static_cast<int>(spell->range),
                   w.T(26));
     w.Text(w.line);
     w.Down();
@@ -671,7 +662,7 @@ void ItemInfoPanel::DescribeCarriedSpell() {
     } else {
         // The area: pi * r * r in that order.
         float radius = spell->radius;
-        double area = D(3.1415927f) * radius * radius;
+        float area = 3.1415927f * radius * radius;
         w.line = str::Format("%s %.1f%s", w.T(11), area, w.T(26));
     }
     w.Text(w.line);
@@ -743,17 +734,17 @@ void ItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
         break;
     case HoverKind::Skill: {
         int index = info.index;
-        w.line = std::format("{} {}", w.Skill(5), Ftol(stats->SkillBase(index)));
+        w.line = std::format("{} {}", w.Skill(5), static_cast<int>(stats->SkillBase(index)));
         w.Text(w.line);
         w.Down();
         if (index >= 0) {
             bool drawn = true;
             if (index <= 1)
                 w.line = std::format("{} {}", w.Skill(6),
-                              Ftol(stats->SkillWithBonus(static_cast<std::uint32_t>(index))));
+                              static_cast<int>(stats->SkillWithBonus(static_cast<std::uint32_t>(index))));
             else if (index == 2)
                 w.line = std::format("{} {}%", w.Skill(7),
-                              Ftol(stats->BackstabFactor() * kPercentScale));
+                              static_cast<int>(stats->BackstabFactor() * kPercentScale));
             else
                 drawn = false;
             if (drawn) {
@@ -767,11 +758,11 @@ void ItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
     }
     case HoverKind::Science:
         w.line = std::format("{} {}", w.Skill(5),
-                      Ftol(stats->AttributeBase(info.index)));
+                      static_cast<int>(stats->AttributeBase(info.index)));
         w.Text(w.line);
         w.Down();
         if (info.index == 0) {
-            w.line = std::format("{} {}", w.Skill(9), Ftol(stats->AttributeWithBonus(0)));
+            w.line = std::format("{} {}", w.Skill(9), static_cast<int>(stats->AttributeWithBonus(0)));
             w.Text(w.line);
             w.Down();
         }
@@ -794,7 +785,7 @@ void ItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
             text = texts->GetString(w.line);
             w.line = std::format("     {}:", text);
             w.Text(w.line);
-            w.line = str::Format("%.1f", D(sums[i]));
+            w.line = str::Format("%.1f", sums[i]);
             w.Value(w.line);
             w.Down();
         }
@@ -814,7 +805,7 @@ void ItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
             if (school == 4 || school == 6 || school == 7) continue;
             w.line = std::format("     {}", w.T(label++));
             w.Text(w.line);
-            w.line = std::format("{}", Ftol(stats->SpellSchoolSkill(school)));
+            w.line = std::format("{}", static_cast<int>(stats->SpellSchoolSkill(school)));
             w.Value(w.line);
             w.Down();
         }

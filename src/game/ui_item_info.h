@@ -162,7 +162,7 @@ public:
     virtual CUnit* HeroUnit(int index);
     virtual PartyUnitRecord* HeroRecord() { return nullptr; }               // the shown hero
     virtual void ChooseFigure(std::string_view) {}
-    virtual double Weight();
+    virtual float Weight();
     virtual int Price(Item* item, int kind);
     // Draws `cell`'s item: its model (cached, created) with its texture (cached) turning while the mouse is
     // on it, a glow in the colour of the carried spell's school, a frame behind it, the modifier marks of a

@@ -3,8 +3,6 @@
 // model (by the unit's build), the face model's easing towards its rest orientation with an
 // occasional random nod, shake or turn, and the marker under the selected unit's portrait.
 // See docs/notes/ui.md.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
 #include "ui.h"
 #include "ui_float.h"
 
@@ -44,11 +42,10 @@ constexpr float kMode1PictureTime = 4.0f;     // face mode 1
 constexpr float kLowMana = 0.25f;
 constexpr float kThin = 0.2f;
 constexpr float kFat = 0.8f;
-// Doubles the original multiplies random numbers with (about 2^-32, -0.3 * 2^-32 and 2^-31; not
-// exact powers of two), read from the exe.
-constexpr double kRandomScale32 = 2.3283064370807974e-10;
-constexpr double kRandomDelayScale = -6.984919588798148e-11;
-constexpr double kRandomScale31 = 4.656612874161595e-10;
+// The scales the original multiplies random words with (about 2^-32, -0.3 * 2^-32 and 2^-31).
+constexpr float kRandomScale32 = 2.3283064e-10f;
+constexpr float kRandomDelayScale = -6.9849196e-11f;
+constexpr float kRandomScale31 = 4.656613e-10f;
 constexpr float kWobbleRate = 0.33333334f;    // wobbles per second
 constexpr float kTwelfth = 0.083333336f;
 constexpr float kWobbleSpan = 0.2f;
@@ -58,12 +55,12 @@ constexpr float kMarkerRise = 60.0f;
 constexpr float kMarkerDepth = 10.0f;
 
 // A bar: its right edge (x of vertices 2 and 3) moves with the fraction, its texture follows.
-void SetBar(EngineObject* object, double fraction, std::uint32_t v0, std::uint32_t v1) {
+void SetBar(EngineObject* object, float fraction, std::uint32_t v0, std::uint32_t v1) {
     UiMesh* bar = AsUiMesh(object);
-    float u = static_cast<float>(((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel);
-    double right = fraction - 0.5f;
-    bar->vertices[0].x()[2] = static_cast<float>(right);
-    bar->vertices[0].x()[3] = static_cast<float>(right);
+    float u = ((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel;
+    float right = fraction - 0.5f;
+    bar->vertices[0].x()[2] = right;
+    bar->vertices[0].x()[3] = right;
     bar->texCoords[2].u = u;
     bar->texCoords[2].v = FloatFromBits(v0);
     bar->texCoords[3].u = u;
@@ -74,7 +71,7 @@ void SetBar(EngineObject* object, double fraction, std::uint32_t v0, std::uint32
 // component is rounded once. The wobble target: q1 (about y) times q2 (about x).
 Quaternion TargetProduct(const Quaternion& q1, const Quaternion& q2) {
     Quaternion r;
-    r.w = static_cast<float>(D(q1.w) * D(q2.w) - DotUnrounded<Sum3::ZYX, double>(q1.x, q1.y, q1.z, q2.x, q2.y, q2.z));
+    r.w = q1.w * q2.w - DotUnrounded<Sum3::ZYX>(q1.x, q1.y, q1.z, q2.x, q2.y, q2.z);
     r.x = ((q2.y * q1.z - q1.y * q2.z) + q1.w * q2.x) + q1.x * q2.w;
     r.y = ((q1.x * q2.z - q2.x * q1.z) + q1.w * q2.y) + q1.y * q2.w;
     r.z = ((q1.y * q2.x - q1.x * q2.y) + q2.w * q1.z) + q2.z * q1.w;
@@ -84,7 +81,7 @@ Quaternion TargetProduct(const Quaternion& q1, const Quaternion& q2) {
 // The face's rest orientation from the slot's two parts (a, b).
 Quaternion RestProduct(const Quaternion& a, const Quaternion& b) {
     Quaternion r;
-    r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    r.w = a.w * b.w - DotUnrounded<Sum3::ZYX>(a.x, a.y, a.z, b.x, b.y, b.z);
     r.x = ((a.y * b.z - a.z * b.y) + a.x * b.w) + b.x * a.w;
     r.y = ((a.z * b.x - a.x * b.z) + a.y * b.w) + a.w * b.y;
     r.z = ((a.x * b.y - b.x * a.y) + a.z * b.w) + b.z * a.w;
@@ -94,7 +91,7 @@ Quaternion RestProduct(const Quaternion& a, const Quaternion& b) {
 // The eased face orientation f with the wobble w applied.
 Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
     Quaternion r;
-    r.w = static_cast<float>(D(f.w) * D(w.w) - DotUnrounded<Sum3::ZYX, double>(f.x, f.y, f.z, w.x, w.y, w.z));
+    r.w = f.w * w.w - DotUnrounded<Sum3::ZYX>(f.x, f.y, f.z, w.x, w.y, w.z);
     r.x = ((w.z * f.y - f.z * w.y) + w.x * f.w) + f.x * w.w;
     r.y = ((f.z * w.x - w.z * f.x) + w.y * f.w) + f.y * w.w;
     r.z = ((w.y * f.x - w.x * f.y) + w.z * f.w) + f.z * w.w;
@@ -102,7 +99,7 @@ Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
 }
 
 float RandomTilt(std::uint32_t r) {
-    return static_cast<float>((static_cast<double>(r) * kRandomScale31 - 1.0f) * D(kHudQuarterTurn) * kTwelfth);
+    return (r * kRandomScale31 - 1.0f) * kHudQuarterTurn * kTwelfth;
 }
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
@@ -115,12 +112,12 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 } // namespace
 
 void HudPortraits::Wobble(int index, int kind) {
-    slots[index].wobbleTime = static_cast<float>(static_cast<double>(g_clientRandom.Next()) * kRandomDelayScale);
+    slots[index].wobbleTime = g_clientRandom.Next() * kRandomDelayScale;
     slots[index].wobbleKind = kind;
 }
 
 void HudPortraits::Update() {
-    float dt = GamePaused() ? 0.0f : static_cast<float>(UiContainer::FrameTime());
+    float dt = GamePaused() ? 0.0f : UiContainer::FrameTime();
     SceneMesh(0)->visible = false;    // the selection marker
 
     for (int i = 0; i < std::ssize(owner->party); ++i) {
@@ -137,11 +134,11 @@ void HudPortraits::Update() {
                             : 0.0f;
         SetBar(object(2), health, kHealthV0, kHealthV1);
         std::uint16_t maxMana = unit->packedVitals.maxMana;
-        double mana = 0.0;
+        float mana = 0.0f;
         if (maxMana != 0) {
             float current = static_cast<float>(unit->packedVitals.mana);   // exact (16 bits)
             float positive = 0.0f < current ? current : 0.0f;
-            mana = D(positive) / static_cast<double>(static_cast<int>(maxMana));
+            mana = positive / static_cast<int>(maxMana);
         }
         SetBar(object(3), mana, kManaV0, kManaV1);
 
@@ -158,7 +155,7 @@ void HudPortraits::Update() {
         EngineObject* flash = object(5);
         if (slot.flash > 0.0f) {
             AsUiMesh(flash)->visible = true;
-            int alpha = static_cast<int>(libcrt::Ftol(D(slot.flash) * kFlashAlpha));
+            int alpha = static_cast<int>(slot.flash * kFlashAlpha);
             std::uint32_t colour = static_cast<std::uint32_t>(alpha) << 24 | 0xFF0000u;
             AsUiMesh(flash)->flatColour = colour;
         } else {
@@ -179,7 +176,7 @@ void HudPortraits::Update() {
         if (state == 0) {
             std::uint16_t maximum = unit->packedVitals.maxMana;
             if (maximum == 0 ||
-                static_cast<double>(static_cast<int>(unit->packedVitals.mana)) / static_cast<double>(static_cast<int>(maximum)) <
+                static_cast<float>(static_cast<int>(unit->packedVitals.mana)) / static_cast<float>(static_cast<int>(maximum)) <
                     kLowMana)   // integers: never NaN
                 state = 3;
         }
@@ -213,15 +210,15 @@ void HudPortraits::Update() {
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind == 0 && dt > 0.0f) {
             std::uint32_t roll = g_clientRandom.Next();
-            if (D(dt) * kWobbleRate > static_cast<double>(roll) * kRandomScale32) {
-                slot.wobbleTime = static_cast<float>(static_cast<double>(g_clientRandom.Next()) * kRandomDelayScale);
+            if (dt * kWobbleRate > roll * kRandomScale32) {
+                slot.wobbleTime = g_clientRandom.Next() * kRandomDelayScale;
                 slot.wobbleKind = 3;
                 std::uint32_t r1 = g_clientRandom.Next();
                 std::uint32_t r2 = g_clientRandom.Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget = TargetProduct(q1, q2);
-                slot.wobbleSpeed = static_cast<float>(static_cast<double>(g_clientRandom.Next()) * kRandomScale31 + 1.0f);
+                slot.wobbleSpeed = g_clientRandom.Next() * kRandomScale31 + 1.0f;
             }
         }
         if (slot.wobbleKind != 0) {
@@ -244,7 +241,7 @@ void HudPortraits::Update() {
                         slot.wobbleKind = 0;
                     break;
                 case 3:   // turn towards the target and back
-                    if (D(kHudFullTurn) / D(slot.wobbleSpeed) > D(t)) {
+                    if (kHudFullTurn / slot.wobbleSpeed > t) {
                         float w = 0.5f - std::cos(t * slot.wobbleSpeed) * 0.5f;
                         wobble.Slerp(w, kHudRestRotation, slot.wobbleTarget);
                     } else {

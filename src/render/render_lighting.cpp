@@ -26,21 +26,21 @@ bool g_shadows[kMostSceneLights] = {};
 void SceneLighting(const SceneLights& lights) {
     LightParams p{};
     const Vector3& d = lights.sunDirection;
-    const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(d));
+    const float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(d));
     const float sun[3] = {d.x, d.y, d.z};
     for (int k = 0; k < 3; ++k) {
-        p.sun[k] = length > 1e-9 ? static_cast<float>(sun[k] / length) : (k == 2 ? -1.0f : 0.0f);
+        p.sun[k] = length > 1e-09f ? sun[k] / length : (k == 2 ? -1.0f : 0.0f);
         p.sunColour[k] = lights.sunColour[k];
         p.ambient[k] = lights.ambientColour[k];
     }
     // The nearest point lights: by how far the camera is outside each one's reach.
-    static std::vector<std::pair<double, int>> order;
+    static std::vector<std::pair<float, int>> order;
     order.clear();
     for (int i = 0; i < lights.pointCount && lights.points; ++i) {
         const ScenePointLight& l = lights.points[i];
         if (!(l.inverseRangeSquared > 0.0f)) continue;
-        const double distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(l.position - lights.camera));
-        const double outside = distance - 1.0 / std::sqrt(static_cast<double>(l.inverseRangeSquared));
+        const float distance = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(l.position - lights.camera));
+        const float outside = distance - 1.0f / std::sqrt(l.inverseRangeSquared);
         order.emplace_back(outside, i);
     }
     std::stable_sort(order.begin(), order.end(), [](const auto& a, const auto& b) { return a.first < b.first; });

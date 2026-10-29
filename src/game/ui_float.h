@@ -1,5 +1,6 @@
-// The float helpers the interface files share. The interface multiplies in double where the
-// original did (the x87 registers) and reads some constants as raw bits.
+// The float helpers the interface files share: D() for the interface files still built for x87 (CMakeLists'
+// EI_X87_DRAW_SOURCES), which multiply in double where the original did (its x87 registers); constants read as
+// raw bits; truncation.
 #pragma once
 
 #include <bit>

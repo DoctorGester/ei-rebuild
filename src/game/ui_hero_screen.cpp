@@ -39,6 +39,8 @@ const char* const kSelectVoiceKey = "lmp_select_voice";
 
 // The preview's full turn (2 pi), the modulus of its angle.
 constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
+// Animation frames per millisecond of timeGetTime (15 / 1024; a double: the milliseconds since the system started).
+constexpr double kFramesPerMillisecond = 15.0 / 1024.0;
 
 constexpr int kFirstVoiceRegion = 9;
 constexpr int kVoiceRegionEnd = 20;
@@ -134,10 +136,8 @@ void MpHeroScreen::Draw(SceneRenderer* pass) {
 void MpHeroScreen::Update() {
     UiContainer::Update();
     if (rotating == 1 || rotating == 2) {
-        double step = FrameTime();
-        step += step;
-        double angle = rotating == 1 ? step + turn : turn - step;
-        turn = static_cast<float>(std::fmod(angle, static_cast<double>(kFullTurn)));
+        float step = FrameTime() * 2.0f;
+        turn = std::fmod(rotating == 1 ? step + turn : turn - step, kFullTurn);
     }
     if (heroScroll->TakeMoved()) {
         heroTop = heroScroll->Position();
@@ -240,15 +240,14 @@ void MpHeroScreen::MakePreview(bool allArmour) {
         FigureAnimation* animation = unit->FindSkillAnimation(kPreviewAnimation);
         if (animation) {
             std::uint32_t random = g_clientRandom.Next();
-            double frames = static_cast<double>(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
+            double frames = gameapi::timeGetTime() * kFramesPerMillisecond;
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
         UnitController* controller = unit->Controller();
         controller->ShowWeapon(kNoWeaponSlot);
         controller->RefreshModel();
-        double now = static_cast<double>(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
-        controller->RestartAnimation(static_cast<float>(now - 1.0f));
+        controller->RestartAnimation(static_cast<float>(gameapi::timeGetTime() * kFramesPerMillisecond - 1.0));
         unit->SetFromStats(&player->members.data()->stats);
         unit->Controller()->RefreshWounds();
     }

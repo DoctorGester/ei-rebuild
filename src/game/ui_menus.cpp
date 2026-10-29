@@ -32,8 +32,8 @@ constexpr int kResultOverwrite = 0x20001;
 constexpr int kResultLoad = 0x30001;
 
 // The windows slide in: the model's y goes from 700 to its resting place with an ease-in-out
-// curve over the slide (0..1). x87, unrounded until the float argument is stored.
-double Ease(float slide) {
+// curve over the slide (0..1).
+float Ease(float slide) {
     EI_NAN_AUDIT(slide);
     if (slide < 0.5f) {
         float s = slide;
@@ -41,7 +41,7 @@ double Ease(float slide) {
         return e + e;
     }
     float r = 1.0f - slide;
-    double e = r * r;
+    float e = r * r;
     e = e + e;
     return 1.0f - e;
 }
@@ -123,19 +123,19 @@ void SaveLoadWindow::Draw(SceneRenderer* pass) {
         return;
     }
     surfaces[0]->Hide(false);
-    double e = Ease(slide);
+    float e = Ease(slide);
     UiModel* model = models[0];
     if (!model) return;
-    double y = isSave ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
-    model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
+    float y = isSave ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
+    model->SetScreenPosition(400.0f, y, 4.8f);
     model->Draw(pass);
 }
 
 void SaveLoadWindow::Update() {
     UiContainer::Update();
     if (sliding) {
-        double slideAt = FrameTime() / 0.5f + slide;
-        slide = static_cast<float>(slideAt);
+        float slideAt = FrameTime() / 0.5f + slide;
+        slide = slideAt;
         if (slideAt > 1.0f) {
             sliding = false;
             ui->OpenHelp(false);
@@ -234,11 +234,11 @@ void OptionsWindow::Draw(SceneRenderer* pass) {
         return;
     }
     surfaces[0]->Hide(false);
-    double e = Ease(slide);
+    float e = Ease(slide);
     UiModel* model = models[0];
     if (!model) return;
-    double y = (480.0f - 700.0f) * e + 700.0f;
-    model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
+    float y = (480.0f - 700.0f) * e + 700.0f;
+    model->SetScreenPosition(400.0f, y, 4.8f);
     model->Draw(pass);
 }
 
@@ -261,8 +261,8 @@ const char* OptionsWindow::HelpTopic() {
 void OptionsWindow::Update() {
     UiContainer::Update();
     if (sliding) {
-        double slideAt = FrameTime() / kSlideSeconds + static_cast<double>(slide);
-        slide = static_cast<float>(slideAt);
+        float slideAt = FrameTime() / kSlideSeconds + slide;
+        slide = slideAt;
         if (slideAt > 1.0f) {
             sliding = false;
             ui->OpenHelp(false);
@@ -317,28 +317,28 @@ int UiScrollbar::TakePosition() {
 void UiScrollbar::Update() {
     if (state == 2 || state == 3) {
         // The container's FrameTime does not use the window.
-        double step = UiContainer::FrameTime() * speed * 16.0f;
+        float step = UiContainer::FrameTime() * speed * 16.0f;
         if (state == 2) step = -step;
-        accumulated = static_cast<float>(step + accumulated);
+        accumulated = step + accumulated;
     }
     int steps = 0;
     if (accumulated > 0.0f) {    // zero, negative and NaN take the other branch
         if (accumulated < 1.0f) return;
         // Whole steps; subtracting 1 is exact, so the register precision does not matter.
-        double rest = accumulated;
+        float rest = accumulated;
         do {
             rest -= 1.0f;
             ++steps;
         } while (rest >= 1.0f);
-        accumulated = static_cast<float>(rest);
+        accumulated = rest;
     } else {
         if (accumulated > -1.0f) return;
         EI_NAN_AUDIT(accumulated);
-        double rest;
+        float rest;
         do {
-            rest = accumulated + 1.0;
+            rest = accumulated + 1.0f;
             --steps;
-            accumulated = static_cast<float>(rest);
+            accumulated = rest;
         } while (rest <= -1.0f);   // ends on a NaN (the original's did not)
     }
     if (steps != 0) SetPosition(position + steps);

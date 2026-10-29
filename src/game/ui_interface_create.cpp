@@ -86,7 +86,7 @@ void Interface3D::Create(TextureDevice* device) {
     const float scale = fonts[0].pixels * widescreen::FontScale();    // 0.01
     for (int i = 0; i < 3; ++i) {
         float size = (width * kFontShares[i]) / scale * 0.00125f;    // 1 / 800
-        if (!MakeFont(fonts[i], static_cast<int>(libcrt::Ftol(size)))) return;
+        if (!MakeFont(fonts[i], static_cast<int>(size))) return;
     }
 
     ChooseKeyboardLayout();

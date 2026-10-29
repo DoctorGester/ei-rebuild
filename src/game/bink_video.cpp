@@ -107,7 +107,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     RECT to;
     if (options::g_options.video == 2) {
         int screenWidth = screen.right - screen.left;
-        int shown = static_cast<int>(static_cast<double>(screenWidth) * (static_cast<double>(height) / static_cast<double>(width)));
+        int shown = screenWidth * height / width;
         to.left = 0;
         to.right = screenWidth;
         to.top = (screen.bottom - screen.top - shown) / 2;
@@ -234,7 +234,7 @@ char BinkVideo::Open(const char* name, char loadingStep) {
         to = RECT{x, y, width + x, height + y};
     } else {
         int screenWidth = screen.right - screen.left;
-        int shown = static_cast<int>(static_cast<double>(height) / static_cast<double>(width) * static_cast<double>(screenWidth));
+        int shown = screenWidth * height / width;
         to.left = 0;
         to.right = screenWidth;
         to.top = (screen.bottom - screen.top - shown) / 2;

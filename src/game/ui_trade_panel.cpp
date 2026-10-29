@@ -136,7 +136,7 @@ void TradePanel::BuildLists() {
     }
 
     // Experience left: pending plus earned minus spent, truncated (the game's _ftol).
-    experience = static_cast<int>(static_cast<double>(stats->pendingExperience) + stats->experience -
+    experience = static_cast<int>(stats->pendingExperience + stats->experience -
                                    stats->spentExperience);
 
     ClampScroll();
@@ -329,9 +329,9 @@ std::string TradePanel::FormatPrice(int price) {
     constexpr float kBillionth = 1e-9f;
     if (price < 0) price = 0x7FFFFFFF;   // shown in billions
     else if (price < 1000) return std::format("{}", price);
-    else if (price < 10000) return str::Format("%.1fk", static_cast<double>(price) * kThousandth);
+    else if (price < 10000) return str::Format("%.1fk", price * kThousandth);
     else if (price < 1000000) return std::format("{}k", price / 1000);
-    else if (price < 10000000) return str::Format("%.1fm", static_cast<double>(price) * kMillionth);
+    else if (price < 10000000) return str::Format("%.1fm", price * kMillionth);
     else if (price < 1000000000) return std::format("{}m", price / 1000000);
-    return str::Format("%.1fg", static_cast<double>(price) * kBillionth);
+    return str::Format("%.1fg", price * kBillionth);
 }

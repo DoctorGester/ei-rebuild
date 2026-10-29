@@ -33,8 +33,8 @@ std::uint32_t Colour(int alpha, int red, int blue) {
     return static_cast<std::uint32_t>(((Channel(alpha) << 8 | Channel(red)) << 8 | Channel(red)) << 8 | Channel(blue));
 }
 
-// The highlight's pulse: the page's time advanced by the frame time (stored as float, the sum kept
-// unrounded), (cos(5 t) + 1) / 2 stored as float; then the colour's three values, truncated: the
+// The highlight's pulse: the page's time advanced by the frame time, p = (cos(5 t) + 1) / 2; then the
+// colour's three values, truncated: the
 // alpha 130 (1 - p) + 240 p, `low` 80 (1 - p) and `high` 160 p + 80 (1 - p).
 struct Pulse {
     int alpha;
@@ -42,12 +42,11 @@ struct Pulse {
     int high;
 };
 Pulse Advance(ConstructorPage* page) {
-    double t = UiContainer::FrameTime() + page->pulse;
-    page->pulse = static_cast<float>(t);
-    float p = static_cast<float>((std::cos(t * 5.0) + 1.0) * 0.5);
+    page->pulse += UiContainer::FrameTime();
+    float p = (std::cos(page->pulse * 5.0f) + 1.0f) * 0.5f;
     float a = 1.0f - p;
     float low = a * 80.0f;
-    return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};
+    return Pulse{static_cast<int>(a * 130.0f + p * 240.0f), static_cast<int>(low), static_cast<int>(p * 160.0f + low)};
 }
 
 void DrawSprite(UiMesh* sprite, SceneRenderer* pass, float x, float y) {

@@ -43,7 +43,7 @@ void GlobalMapClouds::SetRamp(int start, int width, float newSpeed) {
     speed = newSpeed;
     for (int i = 0; i < 0x100; ++i) {
         const int exponent = i - start < 0 ? 0 : i - start;
-        const double value = 255.0 - std::pow(static_cast<double>(base), static_cast<double>(exponent)) * 255.0;
+        const float value = 255.0f - std::pow(base, static_cast<float>(exponent)) * 255.0f;
         ramp[i] = static_cast<std::uint8_t>(static_cast<int>(value));
     }
 }
