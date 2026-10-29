@@ -100,9 +100,9 @@ struct TitlesTokenizer : TextTokenizer {
 
 void CSaveLoadWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
-    LoadTexture("saveload", 3);
+    LoadTexture("saveload", TextureKind::Interface);
     // The selected save's picture (5:6:5).
-    CreateTexture(0x100, 0x100, 0x1E);
+    CreateTexture(0x100, 0x100, TextureKind::Blank565);
 
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
@@ -168,8 +168,8 @@ void CSaveLoadWindow::CreateScreen() {
 
 void COptionsWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
-    LoadTexture("saveload", 3);
-    CreateTexture(0x100, 0x100, 0x1E);
+    LoadTexture("saveload", TextureKind::Interface);
+    CreateTexture(0x100, 0x100, TextureKind::Blank565);
 
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
@@ -347,7 +347,7 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
 // --- Message box -----------------------------------------------------------------------
 
 void CMessageBox::CreateScreen() {
-    LoadTexture("saveload", 3);
+    LoadTexture("saveload", TextureKind::Interface);
     CUiSurface* surface = NewSurface(interface_, 200, 50, 600, 500);
     AddSurface(surface);
     int font = result_ != 0xFFFF0000u ? 2 : 1;
@@ -400,7 +400,7 @@ void CMessageBox::CreateScreen() {
 // --- Difficulty question ---------------------------------------------------------------
 
 void CDifficultyBox::CreateScreen() {
-    LoadTexture("saveload", 3);
+    LoadTexture("saveload", TextureKind::Interface);
     CUiSurface* surface = NewSurface(interface_, 200, 100, 600, 500);
     AddSurface(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).

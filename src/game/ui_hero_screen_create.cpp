@@ -32,8 +32,6 @@ namespace {
 
 constexpr float kMenuTilt = /*007C7F14*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-constexpr int kTextureKind = 3;
-constexpr std::uint32_t kPlainSprite = 0x100;
 constexpr std::uint32_t kSelectionColour = 0xC8A06800;
 constexpr std::uint32_t kBackColour = 0xA0000000;
 constexpr std::uint32_t kRenameColour = 0xA7D7E4;
@@ -71,7 +69,7 @@ bool ModelNameIsFemale(const std::string& model) {
 
 void CMpHeroScreen::CreateScreen() {
     g_gameFlow.UseResources(true);
-    LoadTexture("campinfo", kTextureKind);
+    LoadTexture("campinfo", TextureKind::Interface);
     CUiModel* model = AddModel();
     model->Load("unmoco2", "MainMenu00", "MainMenu00labels");
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
@@ -100,7 +98,7 @@ void CMpHeroScreen::CreateScreen() {
     region(180, 184, 310, 208);
 
     CreateBase();
-    LoadTexture("saveload", kTextureKind);
+    LoadTexture("saveload", TextureKind::Interface);
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         CUiMesh* added = AddBlankSprite();
@@ -109,7 +107,7 @@ void CMpHeroScreen::CreateScreen() {
     };
     auto plain = [](CUiMesh* mesh, std::uint32_t colour) {
         mesh->texture_ = nullptr;
-        mesh->flags_ |= kPlainSprite;
+        mesh->flags_ |= FigureMeshFlag::Flat;
         mesh->flatColour_ = colour;
     };
     auto texture = [this](int index) { return objects_[index]; };
@@ -122,10 +120,10 @@ void CMpHeroScreen::CreateScreen() {
         frame->visible_ = false;
     }
     // 3-6: the quarters of the frame around the figure.
-    LoadTexture("campm1", kTextureKind);
-    LoadTexture("campm2", kTextureKind);
-    LoadTexture("campm3", kTextureKind);
-    LoadTexture("campm4", kTextureKind);
+    LoadTexture("campm1", TextureKind::Interface);
+    LoadTexture("campm2", TextureKind::Interface);
+    LoadTexture("campm3", TextureKind::Interface);
+    LoadTexture("campm4", TextureKind::Interface);
     sprite(7.0f, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture);
     sprite(7.0f, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 1);
     sprite(7.0f, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 2);

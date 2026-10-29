@@ -147,10 +147,16 @@ PixelFormat TextureFormat(std::uint32_t id);
 
 // A texture's kind: its type_, the texture manager's object type. Neither the data nor the strings name them; the
 // callers pass a figure part's meshType_ (1..0x10, CObject3DClientSpecific's part sets; 1 and 2 also the units'
-// composed skins "mo%dp" / "mo%ds"), 3 the interface's, 6 the effects', 0xB the terrain pages, 0x1E / 0x20 / 0x21
-// the blank textures' formats (NewTexture) and 0x3D the sky and the faces. CreateObject gives three more kinds their
-// own flag (TextureFlag::Type3E..Type40); nothing creates them.
+// composed skins "mo%dp" / "mo%ds") or one of these. CreateObject gives three more kinds their own flag
+// (TextureFlag::Type3E..Type40); nothing creates them.
 enum class TextureKind : int {
+    Interface = 3,      // the interface's pictures (CUiWindow::LoadTexture)
+    Effects = 6,        // the effects', the ground prints', the fog, the wounds and the hit numbers
+    TerrainPage = 0xB,  // the terrain pages
+    Blank565 = 0x1E,    // NewTexture's blank 5:6:5 texture
+    Blank1555 = 0x20,   // NewTexture's blank 1:5:5:5 texture
+    Blank4444 = 0x21,   // NewTexture's blank 4:4:4:4 texture
+    SkyFace = 0x3D,     // the sky and the units' faces
     Type3E = 0x3E,
     Type3F = 0x3F,
     Type40 = 0x40,
@@ -173,7 +179,7 @@ enum class TextureFlag : std::uint32_t {
     Alpha4 = 0x10000,
     Alpha8 = 0x20000,
     AlphaBits = Alpha0 | Alpha1 | Alpha4 | Alpha8,
-    Keep = 0x40000,         // the hit numbers' digits texture (CWorldClient::SetUpGraphics); nothing reads it
+    Keep = 0x40000,         // CWorldClient::SetUpGraphics's digits texture, CUiWindow::CreateTexture's; nothing reads it
 };
 template <> inline constexpr bool lib::kBitFlags<TextureFlag> = true;
 
@@ -262,10 +268,10 @@ public:
     // From the composed texture `name`, else from the archives. Returns 0 (and an empty buffer) when neither
     // has it.
     int LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out);
-    // A texture the game fills on the CPU, in the format of `kind` (0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4;
+    // A texture the game fills on the CPU, in the format of `kind` (Blank565, Blank1555, Blank4444;
     // another kind keeps a zero format), square at `width`. FatalError's result when the device has no such
     // format.
-    CTexture* NewTexture(int width, int height, int kind);
+    CTexture* NewTexture(int width, int height, TextureKind kind);
     // A registered texture with a TextureFlag::Cacheable bit goes into the cache, any other is destroyed and kept as a
     // spare. Returns 0.
     int ReleaseObject(CEngineObject* object) override;

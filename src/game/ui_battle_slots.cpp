@@ -30,7 +30,6 @@ constexpr int kDefaultUpdatePeriod = 55;
 bool AutoSaveEnabled() { return options::g_options->autosave_ != 0; }
 const char* AutoSaveName() { return "savea"; }
 
-constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
 
 // The portraits' selected-face turn: pi / 2 times (1/7).
 float SelectedFaceAngle() {
@@ -96,11 +95,11 @@ void CBattleScreen::SaveState() {
     // The ids go through an array first; the bytes written are the same.
     int count = 0;
     for (int i = 0; i < std::ssize(party); ++i)
-        if (party[i]->flags_ & kUnitSelected) ++count;
+        if (party[i]->flags_ & MapObjectFlag::Selected) ++count;
     stream->WriteValue(count);
     for (int i = 0; i < std::ssize(party); ++i) {
         auto* unit = party[i];
-        if (unit->flags_ & kUnitSelected) stream->WriteValue(unit->id_);
+        if (unit->flags_ & MapObjectFlag::Selected) stream->WriteValue(unit->id_);
     }
     stream->WriteValue(map_->zoom_);
     stream->WriteValue(interface_->serverFlag_);

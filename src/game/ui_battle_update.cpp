@@ -217,7 +217,7 @@ void CBattleScreen::Update() {
     int selected = 0;
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* unit = (*party)[i];
-        if (unit && (unit->flags_ & 0x10)) {
+        if (unit && (unit->flags_ & MapObjectFlag::Selected)) {
             if (!first) first = unit;
             ++selected;
         }
@@ -256,8 +256,8 @@ void CBattleScreen::Update() {
         }
     }
 
-    // The selection box: party units inside it are marked (flag 0x100 and their figure's select virtual
-    // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
+    // The selection box: party units inside it are marked (MapObjectFlag::BoxMarked and their figure's select virtual
+    // with 1), the others unmarked (with 0); selected ones are left alone.
     if (boxSelecting_) {
         std::list<CMapObject*> units;
         g_clientWorld->UnitsInBox(&selectionBox_, &units);
@@ -272,16 +272,16 @@ void CBattleScreen::Update() {
         for (int i = 0; i < std::ssize(*party); ++i) {
             auto* unit = (*party)[i];
             std::uint32_t flags = unit->flags_;
-            if (!(flags & 0x10) && (flags & 0x100)) {
-                unit->flags_ = flags & ~0x100u;
+            if (!(flags & MapObjectFlag::Selected) && (flags & MapObjectFlag::BoxMarked)) {
+                unit->flags_ = flags & ~MapObjectFlag::BoxMarked;
                 mark(unit, 0);
             }
         }
         for (auto& node : inside) {
             auto* unit = (*party)[node];
             std::uint32_t flags = unit->flags_;
-            if (!(flags & 0x10) && !(flags & 0x100)) {
-                unit->flags_ = flags | 0x100;
+            if (!(flags & MapObjectFlag::Selected) && !(flags & MapObjectFlag::BoxMarked)) {
+                unit->flags_ = flags | MapObjectFlag::BoxMarked;
                 mark(unit, 1);
             }
         }
@@ -320,7 +320,7 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
         // The (x, y) pair is read back through its address.
         POINT point = {x, y};
         CUnit* unit = world->UnitAt(&point);
-        if (unit && !(unit->flags_ & 0x400000)) unit = nullptr;
+        if (unit && !(unit->flags_ & MapObjectFlag::InParty)) unit = nullptr;
         SelectUnit(unit, point.x, point.y);
         return;
     }
@@ -347,8 +347,8 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
             for (int i = 0; i < std::ssize(*party); ++i) {
                 CUnit* unit = unitAt(i);
                 std::uint32_t flags = unit->flags_;
-                if (!(flags & 0x10) && (flags & 0x100)) {
-                    unit->flags_ = flags & ~0x100u;
+                if (!(flags & MapObjectFlag::Selected) && (flags & MapObjectFlag::BoxMarked)) {
+                    unit->flags_ = flags & ~MapObjectFlag::BoxMarked;
                     unit->Object3D()->attached->SetLit(0);
                 }
                 marker(i)->visible_ = false;
@@ -454,7 +454,7 @@ void CBattleScreen::RefreshSelection() {
     int selected = 0;
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* unit = (*party)[i];
-        if (!unit || !(unit->flags_ & 0x10)) continue;
+        if (!unit || !(unit->flags_ & MapObjectFlag::Selected)) continue;
         if (!first) first = unit;
         ++selected;
     }

@@ -524,7 +524,7 @@ void CMpHeroScreen::AddNewHero() {
     for (int i = std::ssize(hero->spells) - 1; i >= 0; --i)
         if (hero->spells[i] != spellContainer_)
             hero->RemoveSpell(hero->spells[i]);
-    hero->weaponIndex = !hero->weapons.empty() ? 0 : 0xFFFFFFFFu;
+    hero->weaponIndex = !hero->weapons.empty() ? 0 : kNoWeaponSlot;
     if (!hero->spells.empty()) {
         auto* container = hero->spells[0];
         CSpell* spell = container->spell_;

@@ -41,8 +41,6 @@ constexpr int kMoreMark = 9;
 constexpr int kFirstDisplay = 10;     // 10..31: the bars, the body parts and the effects' pictures
 constexpr int kDisplaysEnd = 32;
 constexpr int kInfoPage = 2;          // bodyPart_: the page of texts, without the model
-constexpr std::uint32_t kPartHighlight = 0x100;    // a part's flags_: drawn with its highlight colours
-constexpr std::uint32_t kPreviewDraw = 0x800;      // the unit's flags_ while the interface draws it
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 // The quaternion product a * b, inlined twice in the original: w = a.w b.w - a.b (the dot's sum
@@ -133,8 +131,8 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
             // The first page draws the model in full colour, the others at half.
             model->SetPartsFlatColour(bodyPart_ == 0 ? 0xFFFFFFFFu : 0xFF808080u);
             model->SetPartsFlatSpecular(0xFF000000u);
-            model->SetPartFlags(kPartHighlight);
-            unit->flags_ |= kPreviewDraw;
+            model->SetPartFlags(lib::Bits(FigureMeshFlag::Flat));
+            unit->flags_ |= MapObjectFlag::NoEdgeFade;
 
             // Texture stage 0's mip filter off around the model's draw.
             render::TextureStage& stage0 = render::g_renderState.stages[0];
@@ -143,8 +141,8 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
             unit->DrawFigure(pass);
             stage0.mipFilter = mipFilter;
 
-            unit->flags_ &= ~kPreviewDraw;
-            model->ClearPartFlags(kPartHighlight);
+            unit->flags_ &= ~MapObjectFlag::NoEdgeFade;
+            model->ClearPartFlags(lib::Bits(FigureMeshFlag::Flat));
             ClearUiDepth(1.0f, rects, 3);
         }
 

@@ -35,7 +35,7 @@ const char* SunlightSection() { return "sunlight"; }
 const char* AmbientSection() { return "ambient"; }
 const char* SkySection() { return "sky"; }
 
-constexpr int kNumbersKind = 6;
+constexpr int kNumbersKind = static_cast<int>(TextureKind::Effects);
 
 const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return options::g_options->resourcesPath_.c_str(); }

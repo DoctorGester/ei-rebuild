@@ -25,7 +25,6 @@
 
 namespace {
 
-constexpr std::uint32_t kFlagSelected = 0x10;
 // HudPortraitSlot::wobbleKind_.
 constexpr int kWobbleNod = 1;
 constexpr int kWobbleShake = 2;
@@ -43,7 +42,7 @@ void CBattleScreen::ToggleMember(int index) {
     std::vector<std::uint32_t> chosen{};
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
-        lib::SetAtGrow(chosen, std::ssize(chosen), member ? (member->flags_ & kFlagSelected) : 0);
+        lib::SetAtGrow(chosen, std::ssize(chosen), member ? (member->flags_ & MapObjectFlag::Selected) : 0);
     }
     if (interface_->shiftDown_) {
         chosen[index] = chosen[index] == 0 ? 1u : 0u;
@@ -101,7 +100,7 @@ void CBattleScreen::AttackUnit(CUnit* target, bool ctrl) {
     std::vector<CUnit*> units;
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
         units.push_back(member);
         portraits_->Wobble(i, kWobbleNod);
         int targetLevel = target->Level();
@@ -115,7 +114,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
     std::vector<CUnit*> units;
     for (int i = 0; i < std::ssize(party_); ++i) {
         CUnit* member = party_[i];
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
         units.push_back(member);
         portraits_->Wobble(i, kWobbleNod);
     }
@@ -129,7 +128,7 @@ void CBattleScreen::UseOnUnit(CUnit* target, bool quick, bool ctrl) {
     auto unitAt = [party](int i) { return (*party)[i]; };
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
         int refused;
         if (!quick) {
             g_clientWorld->LocalView()->SendCastOnUnit(pendingSlot_, member, target, ctrl);
@@ -150,7 +149,7 @@ void CBattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
     auto unitAt = [party](int i) { return (*party)[i]; };
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
         if (member == unit) {
             Vector3 axis;
             unit->localRotation_.AxisY(&axis);

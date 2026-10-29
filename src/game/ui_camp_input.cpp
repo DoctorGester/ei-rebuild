@@ -95,7 +95,7 @@ void CCampPages::MessageResult(int result) {
     CItem* weapon = hero->weapons[0];
     CItem* item = LocalPlayerData()->AddItem(weapon, 0, 1);
     hero->RemoveWeapon(weapon);   // the weapon list's Remove
-    hero->weaponIndex = 0xFFFFFFFFu;
+    hero->weaponIndex = kNoWeaponSlot;
     itemStrip_->ScrollToItem(item);
     RefreshWeapons();
 }

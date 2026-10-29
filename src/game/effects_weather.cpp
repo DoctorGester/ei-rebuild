@@ -44,7 +44,7 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-constexpr int kWeatherTextureKind = 6;
+constexpr int kWeatherTextureKind = static_cast<int>(TextureKind::Effects);
 constexpr int kRainPriority = 1000;
 constexpr int kFullDensity = 64;
 const char* WeatherTextureName() { return "RainSnow"; }

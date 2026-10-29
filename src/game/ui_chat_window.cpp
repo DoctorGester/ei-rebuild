@@ -37,7 +37,6 @@ constexpr int kWeOffer = 4, kTheyOffer = 5;
 
 constexpr const char* kOnOffSound = "buttons\\battle\\on_off.wav";
 
-constexpr int kTextureKind = 0x20;
 constexpr int kFaceWidth = 0x38;
 constexpr int kFirstFaceLeft = 0x2E8;
 constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 with EI_Plugin's NPlayers
@@ -74,7 +73,7 @@ void CChatWindow::AddPortrait(const std::string& model, std::string_view texture
     // Four faces share a 256 x 256 texture, one quarter each.
     int u = 0, v = 0;
     switch (portraits_ % 4) {
-    case 0: CreateTexture(0x100, 0x100, kTextureKind); break;
+    case 0: CreateTexture(0x100, 0x100, TextureKind::Blank1555); break;
     case 1: u = 0x80; break;
     case 2: v = 0x80; break;
     case 3: u = 0x80; v = 0x80; break;

@@ -24,7 +24,6 @@ namespace {
 constexpr const char* kFolderName = "map objects";
 constexpr const char* kClassName = "CMapObjectManager";
 constexpr const char* kNoDatabaseText = "Can't find animation database file for \"%s\".\n";
-constexpr int kNoId = -1;
 
 constexpr std::uint32_t kKeyVariantBits = 0x7FFF;      // an entry must have every one the key asks for
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
@@ -66,11 +65,11 @@ CEngineObject* CMapObjectManager::CreateMapObject(int type, int id) {
     auto* object = static_cast<CMapObject*>(CBaseManager::CreateObject(type, id));
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
-    object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(FigureObjectType::AnimationState, kNoId));
+    object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(FigureObjectType::AnimationState, kNoObjectId));
     CBaseManager* halves = manager->ContextAsWorld()->SpecificManager();
-    object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::Object3D, kNoId));
-    object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::MapObject, kNoId));
-    if (auto half = ThirdHalfOf(kind)) object->AttachObject(halves->CreateObjectAs<CEngineObject>(*half, kNoId));
+    object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::Object3D, kNoObjectId));
+    object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::MapObject, kNoObjectId));
+    if (auto half = ThirdHalfOf(kind)) object->AttachObject(halves->CreateObjectAs<CEngineObject>(*half, kNoObjectId));
     return object;
 }
 

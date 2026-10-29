@@ -32,7 +32,7 @@ float Row(const std::vector<NormalPacket>& packets, int vertex, int row) {
 // _ftol: truncation.
 std::uint32_t Truncate(float v) { return static_cast<std::uint32_t>(static_cast<int>(v)); }
 
-constexpr int kSkyTextureKind = 0x3D;
+constexpr int kSkyTextureKind = static_cast<int>(TextureKind::SkyFace);
 const char* const kSkyTextureName = "sky00";
 constexpr float kSkyDrop = 16.0f;                // the dome sits this far below the eye
 constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // radians per world tick

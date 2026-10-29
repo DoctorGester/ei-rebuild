@@ -8,7 +8,6 @@
 
 namespace {
 
-constexpr int kTextureKind = 3;
 
 // The thumb sits slightly in front of the track (0.1) and 5 to the right of the track's left edge.
 constexpr float kThumbLift = 0.1f;
@@ -40,7 +39,7 @@ CUiScrollbar::CUiScrollbar(CInterface3D* ui, RECT rect, float depth, int maximum
     moved_ = true;
     state_ = 0;
     position_ = -1;
-    LoadTexture("Scrollbar", kTextureKind);
+    LoadTexture("Scrollbar", TextureKind::Interface);
     for (int i = 0; i < 4; ++i) AddBlankSprite();
     for (int i = 0; i < 3; ++i) AddRegion();
     CUiScrollbar::SetRect(&rect);

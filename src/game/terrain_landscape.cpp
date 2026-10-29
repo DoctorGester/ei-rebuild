@@ -59,7 +59,7 @@ constexpr float kWaveHeightScale = /*007C8970*/ 0.3f;
 constexpr float kWaveDirectionScale = /*007C896C*/ 0.44879898f;   // pi / 7
 constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
 
-constexpr int kPageTexture = 0xB;     // texture kind of the terrain pages
+constexpr int kPageTexture = static_cast<int>(TextureKind::TerrainPage);     // texture kind of the terrain pages
 constexpr int kPageMaterial = 0x12;   // material kind
 constexpr int kExtraPages = 2;        // <map>L00, <map>L01
 

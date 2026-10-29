@@ -40,7 +40,6 @@ constexpr const char* kQuickSaveName = "saveq";
 constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
-constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
 constexpr int kKeyRepeated = 0x4000;            // the key was already down
 constexpr int kScanCodeMask = 0x1FF;
 
@@ -161,7 +160,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     case kActionCameraToUnit:
         // The camera follows the first selected member, or nobody.
         for (int i = 0; i < std::ssize(party_); ++i) {
-            if (party_[i]->flags_ & kUnitSelected) {
+            if (party_[i]->flags_ & MapObjectFlag::Selected) {
                 camera->SetTarget(party_[i]);
                 return;
             }
@@ -189,7 +188,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
         if (CPlayerClient* view = g_clientWorld->LocalView()) {
             interface_->PlaySound(kSoundClick);
             for (CUnit* unit : party_) {
-                if (unit->flags_ & kUnitSelected) view->SetMoveMode(unit, mode);
+                if (unit->flags_ & MapObjectFlag::Selected) view->SetMoveMode(unit, mode);
             }
             movePanel_->ShowMode(mode);
         }

@@ -96,9 +96,9 @@ void CBattleScreen::CreateScreen() {
     UiInputSide* input = new UiInertInput(interface_);
     AddInput(input);
 
-    CreateTexture(0x100, 0x100, 0x20);
-    CreateTexture(0x100, 0x100, 0x20);
-    LoadTexture("battle00", 3);
+    CreateTexture(0x100, 0x100, TextureKind::Blank1555);
+    CreateTexture(0x100, 0x100, TextureKind::Blank1555);
+    LoadTexture("battle00", TextureKind::Interface);
 
     // Panels built by their own constructors (Rebirth-patched: reproduced behind its flags, rule 9).
     weaponBar_ = new CHudWeaponBar(interface_, this);

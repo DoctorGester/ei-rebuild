@@ -101,11 +101,11 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     bounds_.boxMax.z += 1.0f;
     bounds_.radius = bounds_.boxMax.Length();
     if (demon) {
-        LoadNamedTexture(glowTexture_, 6, "DemonLight");
-        LoadNamedTexture(texture_, 6, "DemonLightning");
+        LoadNamedTexture(glowTexture_, static_cast<int>(TextureKind::Effects), "DemonLight");
+        LoadNamedTexture(texture_, static_cast<int>(TextureKind::Effects), "DemonLightning");
     } else {
-        LoadNamedTexture(glowTexture_, 6, "SmtgLight");
-        LoadNamedTexture(texture_, 6, "Lightning");
+        LoadNamedTexture(glowTexture_, static_cast<int>(TextureKind::Effects), "SmtgLight");
+        LoadNamedTexture(texture_, static_cast<int>(TextureKind::Effects), "Lightning");
     }
 }
 

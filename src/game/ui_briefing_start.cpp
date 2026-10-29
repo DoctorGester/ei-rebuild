@@ -221,7 +221,7 @@ void CBriefingScreen::FinishDialogue() {
         model->BlinkOpen(true);
         auto* serverUnit = g_serverWorld->FindUnit(unit->id_);
         if (!serverUnit) continue;
-        serverUnit->SetFlag40000000Off(true);
+        serverUnit->ShowHelmet(true);
         GameSetUnitHeight(unit->id_, 0.0f);
         auto* controller = serverUnit->ServerController();
         controller->actionDone = nullptr;

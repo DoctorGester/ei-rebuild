@@ -70,11 +70,11 @@ bool ShowsWounds(std::uint32_t id) {
 
 std::uint8_t Worse(std::uint8_t a, std::uint8_t b) { return a > b ? a : b; }
 
-constexpr int kWoundsTextureKind = 6;
+constexpr int kWoundsTextureKind = static_cast<int>(TextureKind::Effects);
 constexpr unsigned kWoundsPreset = 4;
 constexpr const char* kNoWoundsTexture = "Can't create wounds texture for object \"%s\" ID = %d\n";
 
-constexpr int kFaceTextureKind = 0x3D;
+constexpr int kFaceTextureKind = static_cast<int>(TextureKind::SkyFace);
 constexpr const char* kHeroFace = "%smouth_%.2d";
 constexpr const char* kFace = "%smouth";
 

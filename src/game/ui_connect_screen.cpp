@@ -86,7 +86,6 @@ constexpr int kNewGameType = 4;
 constexpr int kStateAsked = 1;   // net::ServerEntryBase::kAsked
 constexpr int kBoxFlagsOk = 1, kBoxFlagsEdit = 7, kBoxFlagsCancel = 2, kBoxFormat = 1;
 constexpr std::uint32_t kBarColour = 0xFFA06800;
-constexpr std::uint32_t kPlainSprite = 0x100;
 
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
@@ -117,7 +116,6 @@ constexpr std::uint32_t kBackColour = 0xA0000000;
 constexpr int kTextCount = 22;
 constexpr int kTextConnecting = 8;
 constexpr int kNameLength = 10;
-constexpr int kTextureKind = 3;
 constexpr int kScrollbarObject = 1;   // objects_: 0 "saveload", 1 "scrollbar"
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
@@ -469,8 +467,8 @@ void CMpConnectScreen::RebuildList() {
 
 void CMpConnectScreen::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
-    LoadTexture(kSaveLoadTexture, kTextureKind);
-    LoadTexture(kScrollbarTexture, kTextureKind);
+    LoadTexture(kSaveLoadTexture, TextureKind::Interface);
+    LoadTexture(kScrollbarTexture, TextureKind::Interface);
     CUiModel* model = AddModel();
     model->Load(kMenuModel, kMenuTexture, kMenuLabels);
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
@@ -506,7 +504,7 @@ void CMpConnectScreen::CreateScreen() {
     };
     auto plain = [](CUiMesh* mesh, std::uint32_t colour) {
         mesh->texture_ = nullptr;
-        mesh->flags_ |= kPlainSprite;
+        mesh->flags_ |= FigureMeshFlag::Flat;
         mesh->flatColour_ = colour;
     };
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
@@ -638,7 +636,7 @@ CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, std::string_view titleKey
     : CMessageBox(ui, titleKey, textKey, result, kBoxFlagsCancel, kBoxFormat), link_(address) {
     bar_ = AddBlankSprite();
     bar_->texture_ = nullptr;
-    bar_->flags_ |= kPlainSprite;
+    bar_->flags_ |= FigureMeshFlag::Flat;
     bar_->flatColour_ = kBarColour;
     BufferPut(&link_.out, &extra, sizeof(extra));
 }

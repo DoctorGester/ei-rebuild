@@ -104,7 +104,7 @@ void CCampPages::BuildPages() {
     if (PlayerSwitch("i.offitemconstr")) itemConstructor_ = false;
     if (PlayerSwitch("i.onitemconstr")) itemConstructor_ = true;
 
-    LoadTexture("campinfo", 3);
+    LoadTexture("campinfo", TextureKind::Interface);
     // The regions: the two action buttons, the two hero turn areas, the eight page buttons (a
     // page the camp does not offer has no tip).
     auto region = [this](int left, int top, int right, int bottom, int tip) {
@@ -284,7 +284,7 @@ void CCampPages::BuildPages() {
             int start = static_cast<int>(libcrt::Ftol(frames - static_cast<int>(random % 51)));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
-        unit->Controller()->ShowWeapon(0xFFFFFFFF);
+        unit->Controller()->ShowWeapon(kNoWeaponSlot);
         unit->Controller()->RefreshModel();
         CUnitController* controller = unit->Controller();
         controller->RestartAnimation(static_cast<float>(FramesNow()));

@@ -22,8 +22,6 @@
 
 namespace {
 
-constexpr std::uint32_t kFlagSelected = 0x10;
-constexpr std::uint32_t kFlagShowInPanel = 0x400000;
 
 // Cursor shapes ('s index).
 constexpr int kCursorAttack = 1;
@@ -61,10 +59,10 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     };
 
     // The unit panel's hover block (hoverUnit_, viewSize_[1] / viewHeight_[1] copied bit for bit from
-    // its prototype's +0x20 / +0x24, strings_[1]). A unit without flag 0x400000 counts as none
+    // its prototype's +0x20 / +0x24, strings_[1]). A unit without MapObjectFlag::InParty counts as none
     // below; a dead one is kept.
     CHudUnitPanel* panel = unitPanel_;
-    if (unit && !(unit->flags_ & kFlagShowInPanel)) unit = nullptr;
+    if (unit && !(unit->flags_ & MapObjectFlag::InParty)) unit = nullptr;
     if (unit && !unitDead(unit)) {
         if (unit != panel->hoverUnit_) {
             panel->hoverUnit_ = unit;
@@ -82,7 +80,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     int selected = 0;
     for (int i = 0; i < count; ++i) {
         CUnit* member = party_[i];
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
         if (!first) first = member;
         ++selected;
     }

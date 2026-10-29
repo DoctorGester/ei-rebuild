@@ -388,7 +388,7 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, const HeroFaceCell& cell) {
 
 CTexture* ItemFigureTexture(std::string_view name) {
     CTextureManager* manager = g_clientWorld->textureManager_;
-    CTexture* texture = manager->NewTexture(0x100, 0x100, 0x20);
+    CTexture* texture = manager->NewTexture(0x100, 0x100, TextureKind::Blank1555);
     if (!texture) return nullptr;
     ++texture->refCount_;
     const std::string file = std::string(name) + ".mmp";

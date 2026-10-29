@@ -42,7 +42,8 @@ const itemdb::ArmorRecord* Armour(std::uint32_t index) {
 }
 const char* ModelPrefix(const UnitModelRecord* model) { return model->figureName.c_str(); }
 
-constexpr std::uint32_t kNone = 0xFFFFFFFFu;
+// The texture records' kind and item type of an empty record.
+constexpr std::uint32_t kNoRecordField = 0xFFFFFFFFu;
 
 // --- Helpers -------------------------------------------------------------------------------------
 
@@ -92,7 +93,7 @@ void AddItem(SkinRequest& set, const UnitModelRecord* model, std::uint32_t id) {
 
 // The weapons (items 1 and 2): the one whose armour layer is lower first when both exist.
 void AddWeapons(SkinRequest& set, const UnitModelRecord* model, const std::uint32_t* items) {
-    if (items[1] != kNone && items[2] != kNone) {
+    if (items[1] != kNoItemId && items[2] != kNoItemId) {
         const itemdb::ArmorRecord* second = Armour(items[2] >> 16);
         const itemdb::ArmorRecord* first = Armour(items[1] >> 16);
         if (second->layer < first->layer) {
@@ -104,8 +105,8 @@ void AddWeapons(SkinRequest& set, const UnitModelRecord* model, const std::uint3
         }
         return;
     }
-    std::uint32_t id = items[1] == kNone ? items[2] : items[1];
-    if (id != kNone) AddItem(set, model, id);
+    std::uint32_t id = items[1] == kNoItemId ? items[2] : items[1];
+    if (id != kNoItemId) AddItem(set, model, id);
 }
 
 // The extra weapon picked by the record's index byte in its list: weapon and material records named together.
@@ -115,7 +116,7 @@ void AddExtraWeapon(SkinRequest& set, const UnitModelRecord* model, DressedUnitR
     int index = record->extraWeapon;
     if (!(static_cast<std::uint32_t>(count) > static_cast<std::uint32_t>(index))) return;
     std::uint32_t id = list[index];
-    if (id == kNone) return;
+    if (id == kNoItemId) return;
     char buffer[0x100];
     {
         const itemdb::WeaponRecord* weapon = itemdb::WeaponAt(id >> 16);
@@ -154,7 +155,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         }
         set.textures.push_back(skin);
         for (int slot = 3; slot <= 6; ++slot) {
-            if (items[slot] != kNone) AddItem(set, model, items[slot]);
+            if (items[slot] != kNoItemId) AddItem(set, model, items[slot]);
         }
         AddWeapons(set, model, items);
 
@@ -169,7 +170,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         UnitTextureRecords(0, record, &list);
         CopyRecords(set, list);
         set.textures.clear();
-        if (items[0] != kNone) AddItem(set, model, items[0]);
+        if (items[0] != kNoItemId) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (record->modelNumber != -1) {
             name = str::Format("mo%ds", record->modelNumber);
@@ -223,16 +224,16 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<
     list->clear();
     auto& items = const_cast<std::vector<std::uint32_t>&>(record->items);
     if (items.empty()) return;
-    const TextureRecord empty = {0, kNone, kNone};
+    const TextureRecord empty = {0, kNoRecordField, kNoRecordField};
     const std::uint32_t* ids = items.data();
     if (body) {
         list->resize(8, empty);
         TextureRecord* out = list->data();
         out[0].id = record->prototype;
         out[0].kind = kBody;
-        out[0].itemType = kNone;
+        out[0].itemType = kNoRecordField;
         for (int i = 1; i < 7; ++i) {
-            if (ids[i] == kNone) continue;
+            if (ids[i] == kNoItemId) continue;
             out[i + 1].id = ids[i];
             out[i + 1].kind = static_cast<std::uint32_t>(ItemKind::Armor);
             out[i + 1].itemType = static_cast<std::uint32_t>(Armour(ids[i] >> 16)->type);
@@ -241,7 +242,7 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<
     }
     list->resize(2, empty);
     TextureRecord* out = list->data();
-    if (ids[0] != kNone) {
+    if (ids[0] != kNoItemId) {
         out[0].id = ids[0];
         out[0].kind = static_cast<std::uint32_t>(ItemKind::Armor);
         out[0].itemType = static_cast<std::uint32_t>(Armour(ids[0] >> 16)->type);
@@ -251,7 +252,7 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<
     const auto index = static_cast<std::uint32_t>(static_cast<int>(record->extraWeapon));
     if (index >= count) return;
     const std::uint32_t weapon = extra[index];
-    if (weapon == kNone) return;
+    if (weapon == kNoItemId) return;
     out[1].id = weapon;
     out[1].kind = static_cast<std::uint32_t>(ItemKind::Weapon);
     out[1].itemType = static_cast<std::uint32_t>(

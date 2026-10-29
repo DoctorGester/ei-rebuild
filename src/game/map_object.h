@@ -70,6 +70,8 @@ enum class MapObjectFlag : std::uint32_t {
     Stationary = 0x200,         // client objects but units: the figure's parts are FigureMeshFlag::Stationary; only
                                 // such objects are drawn static and have their models kept loaded
     Static = 0x400,             // client: drawn static (every part kept its lighting; no object matrix pushed)
+    NoEdgeFade = 0x800,         // client: drawn at full light, not darkened by the terrain's edge fade (the
+                                // interface's figures)
     Detached = 0x1000,          // its parts are passed to the figure manager
     Invisible = 0x10000,        // HideObject
     Synchronised = 0x20000,     // IsSynchronised

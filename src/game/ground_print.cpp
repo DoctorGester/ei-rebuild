@@ -29,7 +29,7 @@
 
 namespace {
 
-constexpr int kTextureKind = 6;                  // the texture manager's kind of the prints' textures
+constexpr int kTextureKind = static_cast<int>(TextureKind::Effects);                  // the texture manager's kind of the prints' textures
 constexpr int kMaxSpreadTicks = 0x2D;
 constexpr int kNameCapacity = 0x100;             // Load's name buffer
 constexpr float kQuarter = 0.25f;

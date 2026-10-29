@@ -21,7 +21,6 @@ constexpr std::uint8_t kWalk = 0x30, kAttack = 0x31, kCastAtPoint = 0x32, kCastO
                        kJoined = 0x05, kGoToZone = 0x06, kResume = 0x09, kPartyUpdate = 0x50;
 constexpr int kStateBetweenZones = 3, kStateJoining = 2;
 constexpr std::uint32_t kItemSlot = 0x80000000u;   // a quick item, not a spell
-constexpr int kNoId = -1;
 
 #pragma pack(push, 1)
 struct OnUnitBlock {        // 13 bytes
@@ -49,7 +48,7 @@ void WriteUnits(CMemoryStream& out, const std::vector<CUnit*>* units) {
     int count = std::ssize(*units);
     out.WriteValue(count);
     for (int i = 0; i < std::ssize(*units); ++i) {
-        int id = (*units)[i] ? (*units)[i]->id_ : kNoId;
+        int id = (*units)[i] ? (*units)[i]->id_ : kNoObjectId;
         out.WriteValue(id);
     }
 }
@@ -146,7 +145,7 @@ int CPlayerClient::SetUnitFightAtWill(CUnit* unit, int value) {
 }
 
 int CPlayerClient::SendFollow(CUnit* unit, CEngineObject* target) {
-    int ids[2] = {unit->id_, target ? target->id_ : kNoId};
+    int ids[2] = {unit->id_, target ? target->id_ : kNoObjectId};
     WriteType(out_, kFollow);
     out_.Write(ids, sizeof(ids));
     return 1;
@@ -163,7 +162,7 @@ int CPlayerClient::SendUseOrder(CUnit* unit, CEngineObject* target, int kind, in
     WriteType(out_, kUseOrder);
     int count = 1;
     out_.WriteValue(count);
-    int id = unit ? unit->id_ : kNoId;
+    int id = unit ? unit->id_ : kNoObjectId;
     out_.WriteValue(id);
     out_.WriteValue(flag);
     out_.WriteValue(kind);
@@ -179,7 +178,7 @@ int CPlayerClient::SendUseDead(const std::vector<CUnit*>* units, CEngineObject* 
     out_.WriteValue(flag);
     int kind = static_cast<int>(UseSource::SearchBody);
     out_.WriteValue(kind);
-    int value = kNoId;
+    int value = kNoObjectId;
     out_.WriteValue(value);
     int targetId = target->id_;
     out_.WriteValue(targetId);
