@@ -12,6 +12,7 @@
 #include "game_data.h"
 #include "game_strings.h"
 #include "lib/bytes.h"
+#include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
