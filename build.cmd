@@ -34,27 +34,8 @@ set OUT=%~dp0build\%CFG%
 
 cmake -S "%~dp0." -B "%OUT%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% -DEI_ASAN=%ASAN% || exit /b 1
 cmake --build "%OUT%" || exit /b 1
-rem Cleanup-plan patterns (offsets, VCall, __asm, raw addresses) may only go down per file.
-python "%~dp0tools\check_cleanup.py" || exit /b 1
-rem Addresses and ticket ids in comments may only go down per file (docs/comment-guide.md, C22).
-python "%~dp0tools\comments.py" check || exit /b 1
-rem Game data by address only through the data seam (src/game/game_data.h, S18): sealed sections none raw,
-rem the rest per file no more than config/data_seam.csv allows.
-python "%~dp0tools\data_seam.py" --check || exit /b 1
-rem game.exe's side of the harness reads game.exe's objects through its own views, ours only through
-rem tests/verify/image: no class of ours in the reference cache's key (tools/run_all.py, harness_files; H30b).
-python "%~dp0tools\check_harness_key.py" || exit /b 1
-rem Generated and listed files against what they come from, without game.exe (C25d): the import files (gameapi.h by
-rem hand, a harness route on a slot), the named ranges' csv and their rules, the retired vtables and committed cells.
-python "%~dp0tools\gen_iat.py" --check || exit /b 1
-python "%~dp0tools\named_data.py" --check || exit /b 1
-python "%~dp0tools\gen_image_cells.py" --check || exit /b 1
-rem Every row of config/static_init_ports.csv names a definition in its file (tools/gen_static_init.py, C56).
-python "%~dp0tools\gen_static_init.py" --check-ports || exit /b 1
-rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
-"%OUT%\ei_vectors.exe" || exit /b 1
-rem The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
-"%OUT%\ei_ui_check.exe" || exit /b 1
-rem The performance overlay (src/render/render_perf) on a WARP device: text, pixels, GPU timestamps (tools/perf_check).
-"%OUT%\ei_perf_check.exe" || exit /b 1
+rem The checks (tools/build_checks.py, side by side): the cleanup and comment counts, the data seam, the harness key,
+rem the generated and listed files, the function vectors (ei_vectors), the interface canvases (ei_ui_check) and the
+rem performance overlay (ei_perf_check).
+python "%~dp0tools\build_checks.py" "%OUT%" || exit /b 1
 echo Built: %OUT%

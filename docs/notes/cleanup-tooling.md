@@ -5,8 +5,9 @@ Tools (all in `tools/`; each file's docstring says how to run it) and what the c
 
 ## Checks
 
-`build.cmd` runs `check_cleanup`, `comments.py` and the data checks (a failure stops the
-build; the list and why each runs are in build.cmd). The others are run by hand before handing work back.
+`build.cmd` runs `check_cleanup`, `comments.py`, the data checks and the three check executables through
+`tools/build_checks.py`, side by side (a failure stops the build; the list and why each runs are in build_checks.py;
+`--times` prints each one's seconds). The others are run by hand before handing work back.
 
 | Tool | What it catches |
 |---|---|
