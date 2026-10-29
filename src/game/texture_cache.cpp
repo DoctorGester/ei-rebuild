@@ -7,6 +7,7 @@
 #include "texture.h"
 
 #include "lib/crt.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -36,18 +37,13 @@ int CTextureManager::ReleaseObject(EngineObject* object) {
 }
 
 CTexture* CTextureManager::TakeFromCache(int textureType, std::string_view name) {
-    for (auto node = cache.begin(); node != cache.end();) {
-        auto next = std::next(node);
-        CTexture* texture = *node;
-        if (texture->type == textureType && texture->name == name) {
-            cache.erase(node);
-            cachedBytes -= texture->uploadResult;
-            RegisterInstant(texture);
-            return texture;
-        }
-        node = next;
-    }
-    return nullptr;
+    auto node = std::ranges::find_if(cache, [&](const CTexture* texture) { return texture->type == textureType && texture->name == name; });
+    if (node == cache.end()) return nullptr;
+    CTexture* texture = *node;
+    cache.erase(node);
+    cachedBytes -= texture->uploadResult;
+    RegisterInstant(texture);
+    return texture;
 }
 
 // Details kept: a texture taken back from the cache here is not subtracted from
@@ -62,16 +58,11 @@ CTexture* CTextureManager::FindTexture(std::string_view name) {
         }
     }
     if (!found) {
-        for (auto node = cache.begin(); node != cache.end();) {
-            auto next = std::next(node);
-            CTexture* texture = *node;
-            if (texture->name == name) {
-                cache.erase(node);
-                RegisterInstant(texture);
-                found = texture;
-                break;
-            }
-            node = next;
+        auto node = std::ranges::find_if(cache, [&](const CTexture* texture) { return texture->name == name; });
+        if (node != cache.end()) {
+            found = *node;
+            cache.erase(node);
+            RegisterInstant(found);
         }
     }
     if (registered.manager) --registered.manager->refCount;

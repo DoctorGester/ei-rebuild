@@ -21,7 +21,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
+#include <deque>
 #include <vector>
 
 struct VertexPacket;
@@ -405,7 +405,7 @@ public:
     // load).
     void ReleaseUnheld();
 
-    std::list<Particle*> freeParticles;
+    std::deque<Particle*> freeParticles;   // taken from the front, returned to the back
     HeldMap held;                                   // id -> source holding a reference
     int maxHeldId;                                  // highest key of held
     int quietStart;                                 // see CreateSource; never set non-zero in src
@@ -651,7 +651,7 @@ public:
     // the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
     // boundsMax less the centre) relative to the centre; the radius is not written.
     ClipBounds clip;
-    std::list<Particle*> particles;
+    std::vector<Particle*> particles;
     std::vector<SourceFrame> frames;
     EmitCallback emitFn;
     UpdateCallback updateFn;

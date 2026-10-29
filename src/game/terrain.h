@@ -10,7 +10,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <span>
 #include <string>
 #include <vector>
@@ -169,7 +168,7 @@ public:
     std::vector<TileUv> uvTablesLast[4];   // the same for the extra pages
     std::vector<VertexTiles> vertexTiles;   // 33 x 33
     std::vector<SectorData*> sectorGrid;      // [sx * sectorsY + sy]: the cached sector, or null
-    std::list<SectorData*> sectorCache;        // most recently used first
+    std::vector<SectorData*> sectorCache;      // most recently used first
     int frame;
     Vector4 ambient;
     CLight* sun;

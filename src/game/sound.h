@@ -169,7 +169,7 @@ struct SoundManager : EngineObject {
     ResourceStream streamReader;       // reads the music stream's files
     std::string soundPath;             // ending in a backslash
     FileRegistry soundRegistry;
-    std::list<MappedResource*> waveSources;   // the archives LoadSample looks in
+    std::vector<MappedResource*> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
     volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
     miles::Sample* streamSample;
@@ -218,7 +218,8 @@ struct SoundManager : EngineObject {
     std::uint32_t emitterTick;
     SoundSequence sequences[8];
     std::int32_t cacheBytes;            // bytes held by the wave cache
-    std::list<WaveRecord> cacheList;                 // the cached waves, most recently used first
+    // The cached waves, most recently used first (a list: `cache` keeps its nodes).
+    std::list<WaveRecord> cacheList;
     std::unordered_map<std::string, std::list<WaveRecord>::iterator> cache;                    // wave name -> its cache list node
     DeferredMap deferred;
     std::int32_t enabled;

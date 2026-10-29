@@ -217,7 +217,7 @@ std::uint32_t SavedNumber(const ChunkArchive* a, const RefCounted* object) {
 // then stores the number; reading looks the field up and ignores it.
 void ChunkArchive::SaveObjectRef(int id, RefCounted* object) {
     if (!numbers.contains(object)) {
-        saved.insert(saved.end(), object);
+        saved.push_back(object);
         std::uint32_t& number = numbers[object];
         number = static_cast<std::uint32_t>(numbers.size());
     }
@@ -317,7 +317,7 @@ void ChunkArchive::Open(ByteStream* stream, int newLoading, int newVersion) {
         index->ReadValue(key);
         Factory factory = g_classRegistry.factories[classId];
         RefCounted* object = factory ? factory() : nullptr;
-        saved.insert(saved.end(), object);
+        saved.push_back(object);
         loaded[key] = object;
     }
     if (newVersion == 1) Field(2, &version);

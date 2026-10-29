@@ -11,7 +11,6 @@
 #include "world_data.h"   // the text resources' folder
 
 #include <cstring>
-#include <list>
 #include <new>
 #include <string>
 
@@ -231,16 +230,11 @@ CTexture* CTextureManager::FindOrLoad(int textureType, std::string_view name) {
 }
 
 void CTextureManager::TrimCache() {
-    const auto overLimit = [this] { return cachedBytes > kCacheLimit; };
-    if (!overLimit()) return;
-    for (auto node = cache.begin(); node != cache.end();) {
-        auto next = std::next(node);
-        CTexture* texture = *node;
-        cache.erase(node);
+    while (cachedBytes > kCacheLimit && !cache.empty()) {
+        CTexture* texture = cache.front();
+        cache.erase(cache.begin());
         cachedBytes -= texture->uploadResult;
-        if (texture) delete texture;
-        if (!overLimit()) return;
-        node = next;
+        delete texture;
     }
 }
 

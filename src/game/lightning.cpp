@@ -383,7 +383,7 @@ int LightningManager::DrawAll(SceneRenderer* device) {
     // The manager's object list (the bolts, in creation order).
     auto node = objectList.begin();
     while (node != objectList.end()) {
-        std::list<EngineObject*>::iterator  current = node;
+        auto current = node;
         ++node;
         static_cast<Lightning*>(*current)->Draw(device);
     }

@@ -15,7 +15,6 @@
 #include <bit>
 #include <cmath>
 #include <cstring>
-#include <list>
 
 namespace {
 
@@ -133,17 +132,19 @@ struct TickSteps {
             (s->*s->elementFn)(s->elements.data() + i);
     }
 
-    // Updates every particle. A particle the previous tick rejected is unlinked and returned to
-    // the pool first, but (as in the original) is still updated and counted in the bounds.
+    // Updates every particle. A particle the previous tick rejected is erased and returned to the
+    // pool first, but (as in the original) is still updated and counted in the bounds. The erase comes
+    // before the update: UpdateGlow reads the particle count.
     void UpdateParticles() {
         ParticleManager* pool = s->Manager();
         auto node = s->particles.begin();
         while (node != s->particles.end()) {
-            auto next = std::next(node);
             Particle* p = *node;
             if (p->dead) {
-                s->particles.erase(node);
+                node = s->particles.erase(node);
                 pool->ReleaseParticle(p);
+            } else {
+                ++node;
             }
             SavePrevious(p);
             if (!(s->*s->updateFn)(p)) {
@@ -151,7 +152,6 @@ struct TickSteps {
                 RestorePrevious(p);
             }
             GrowBounds(s->boundsMin, s->boundsMax, p->pos);
-            node = next;
         }
     }
 

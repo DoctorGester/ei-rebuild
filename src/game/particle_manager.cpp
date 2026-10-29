@@ -2,7 +2,6 @@
 // letting go of the held ones. See effects.h (ParticleManager) and docs/notes/particles.md.
 #include "effects.h"
 
-#include <list>
 
 namespace {
 
@@ -15,7 +14,7 @@ template <typename Pick>
 void ReleaseHeld(ParticleManager* manager, Pick drop) {
     ObjectListIterator it{nullptr, {}};
     EngineObject* object = it.First(manager);
-    std::list<int> ids;
+    std::vector<int> ids;
     for (; object; object = it.Next()) {
         if (!drop(object)) continue;
         int id = object->id;

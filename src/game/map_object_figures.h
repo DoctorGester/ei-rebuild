@@ -19,7 +19,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
+#include <deque>
 #include <string>
 #include <vector>
 #include <windows.h>   // RECT (dirtyRect)
@@ -278,7 +278,7 @@ struct FigureBone : EngineObject {
     std::string name2;                     // its parent's name (empty for the root)
     std::string name3;                     // the figure's model name (LinkBone)
     FigureBone* parent;                     // null for the root
-    std::list<FigureBone*> children;
+    std::vector<FigureBone*> children;
     FigureMesh* mesh;                      // the part the bone places, or null
     AnimationTrack* pose;                   // the animator whose values place the bone
     AnimationTrack* animator;               // counted, made on first use; Play copies it to `pose`
@@ -386,10 +386,10 @@ public:
 
     CObject3D* owner;
     FigureBone* root;               // the skeleton's root bone (FindRoot)
-    std::list<FigureBone*> bones;   // LinkBone adds
+    std::vector<FigureBone*> bones;   // LinkBone adds
     FigureAnimation* current;       // the animation playing, or null
     // The animations queued after it (the client update keeps fewer than 3).
-    std::list<FigureAnimation*> queue;
+    std::deque<FigureAnimation*> queue;
     float time;                     // the frame reached
     // Called each time an animation's end is passed, or null.
     void(*onEnd)(CObject3D* owner);
@@ -547,7 +547,7 @@ public:
     FigureAnimationState* animation;   // the figure's animation state
     AnimationDatabase* animations;  // loaded on first use
     std::string name;               // the figure's name
-    std::list<HeldRef<ParticleSource>> effectSources;   // the particle sources attached to the object
+    std::vector<HeldRef<ParticleSource>> effectSources;   // the particle sources attached to the object
     Vector3 scale;
     // the figure's parts (counted; CopyFigure shares them uncounted, Destroy3D drops them without a release)
     std::vector<HeldRef<FigureMesh>> parts;

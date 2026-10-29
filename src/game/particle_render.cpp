@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <list>
 #include <memory>
 #include <vector>
 #include "model.h"

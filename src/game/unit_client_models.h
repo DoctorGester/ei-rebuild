@@ -10,7 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
+#include <deque>
 #include <optional>
 #include <string>
 #include <vector>
@@ -265,7 +265,7 @@ public:
     int speechSound;                // the sound of the last speech that waits (-1 none)
     const SpeechRecord* lastSpeech; // the speech played last
     std::uint32_t lastSpeechTime;   // when (timeGetTime)
-    std::list<ClientSpeech> speech; // the speech queue
+    std::deque<ClientSpeech> speech; // the speech queue
     std::uint32_t armourIds[7];     // packed ids of the armour worn, -1 none
     std::uint32_t weaponIds[4];
     Ref<CTexture> faceTexture;      // the face texture the blink changes

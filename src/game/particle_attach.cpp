@@ -29,11 +29,8 @@ void SetPosition(Vector3* out, const float* p) {
 } // namespace
 
 void ParticleSource::ReleaseAllParticles() {
-    while (!particles.empty()) {
-        Particle* p = particles.front();
-        particles.pop_front();
-        Manager()->ReleaseParticle(p);
-    }
+    for (Particle* p : particles) Manager()->ReleaseParticle(p);
+    particles.clear();
 }
 
 Vector3* ParticleSource::PartPoint(Vector3* out, CObject3D* object, const char* prefix) {
