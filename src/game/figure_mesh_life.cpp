@@ -12,13 +12,6 @@
 #include <memory>
 #include <new>
 
-namespace {
-
-constexpr int kFirstFigureClass = 0x41;
-constexpr int kLastFigureClass = 0x44;
-
-} // namespace
-
 // --- Construction -------------------------------------------------------------------------------
 
 void CFigureMesh::SetUpFigure() {
@@ -153,7 +146,8 @@ CEngineObject* CFigureManager::NewObject(int type) {
 
 CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObject(type, id);
-    if (type < kFirstFigureClass || type > kLastFigureClass || object == nullptr) return object;
+    const auto kind = static_cast<FigureObjectType>(type);
+    if (kind < FigureObjectType::SharedFigureMesh || kind > FigureObjectType::SkyObject || object == nullptr) return object;
     CBaseManager* drawers = context_->SpecificManager();
     auto* drawer = drawers->CreateObjectAs<FigureMeshDrawer>(SideObjectType::Drawer, -1);
     static_cast<CFigureMesh*>(object)->SetDrawer(drawer);

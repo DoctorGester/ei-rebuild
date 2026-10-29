@@ -85,7 +85,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
 
             rec->materialByte = 0xFF;
             rec->materialColour = {0.0f, 0.0f, 0.0f};
-            rec->waterMaterial = 0xFFFF;
+            rec->waterMaterial = SectorVertex::kNoWaterMaterial;
             if (layer == 1) {
                 // The first water material among the vertex's tiles.
                 const VertexTiles& around = s.owner->vertexTiles[vi];
@@ -418,7 +418,7 @@ void SectorData::Build() {
         // The water materials present in the sector, then their levels.
         for (int i = 0; i < kSectorVertices; ++i) {
             unsigned id = records[kSectorVertices + i].waterMaterial;
-            if (id == 0xFFFF) continue;
+            if (id == SectorVertex::kNoWaterMaterial) continue;
             int k = 0;
             while (k < std::ssize(waterMaterials) && waterMaterials[k] != id) ++k;
             if (k == std::ssize(waterMaterials))

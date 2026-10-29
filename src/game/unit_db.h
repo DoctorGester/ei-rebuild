@@ -254,6 +254,8 @@ struct SkillLevelRecord {
     std::uint32_t values[10];
     std::uint8_t learnable;         // 22 (one byte; UnitStats::CanLearn)
 
+    // RequiredSkill's value in the data for no skill byte: such a level cannot be learnt (UnitStats::CanLearn).
+    static constexpr int kNoSkill = 0x7FFFFFFF;
     int RequiredSkill() const { return static_cast<int>(values[0]); }
     std::uint32_t RequiredSkillValue() const { return values[2]; }
     // stat 0 strength, 1 dexterity, 2 intelligence.

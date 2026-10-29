@@ -27,9 +27,9 @@ void CItem::Load(CStream* stream) {
     stream->ReadValue(price_);
     stream->ReadValue(unreadValue_);
     CSpellManager* spells = WorldContext()->SpellManager();
-    std::uint32_t id = 0;
+    std::int32_t id = 0;
     stream->ReadValue(id);
-    CSpell* spell = id == 0xFFFFFFFFu ? nullptr : spells->FindObjectAs<CSpell>(id);
+    CSpell* spell = id == kNoObjectId ? nullptr : spells->FindObjectAs<CSpell>(static_cast<unsigned>(id));
     SetSpell(spell);
     stream->ReadValue(count_);
     stream->ReadValue(magicLevel_);
@@ -45,7 +45,7 @@ void CItem::Save(CStream* stream) {
     stream->WriteValue(weight_);
     stream->WriteValue(price_);
     stream->WriteValue(unreadValue_);
-    std::int32_t spellId = spell_ != nullptr ? spell_->id_ : -1;
+    std::int32_t spellId = spell_ != nullptr ? spell_->id_ : kNoObjectId;
     stream->WriteValue(spellId);
     stream->WriteValue(count_);
     stream->WriteValue(magicLevel_);

@@ -29,8 +29,8 @@ int CResourceBase::FindEntry(std::string_view name) const {
         const ResEntry& e = entries_[index];
         if (length == e.nameLength && text::CompareIgnoringCase(name.data(), names_ + e.nameOffset, length) == 0)
             return static_cast<int>(index);
-        index = static_cast<std::uint32_t>(entries_[index].next);
-        if (index == 0xFFFFFFFF) return -1;
+        if (e.next == ResEntry::kChainEnd) return -1;
+        index = static_cast<std::uint32_t>(e.next);
     }
 }
 
@@ -280,7 +280,7 @@ bool CMappedFile::Open(const std::string& path, bool writable) {
     }
 
     size_ = gameapi::GetFileSize(file_, nullptr);
-    if (size_ == 0xFFFFFFFF) {
+    if (size_ == INVALID_FILE_SIZE) {
         game::FatalError("CMappedFile::Open().\nUnable to determine file size.\n");
     } else if (size_ > 0x80000000) {
         game::FatalError("CMappedFile::Open().\nToo large file to map.\n");

@@ -159,7 +159,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
             SectorVertex& record = water[row * kSectorRow + column];
             SectorPosition& position = positions[row * kSectorRow + column];
             int material = record.waterMaterial;
-            if (material != 0xFFFF) {
+            if (material != SectorVertex::kNoWaterMaterial) {
                 if (material != lastMaterial) {
                     const TerrainMaterial& m = landscape->materials[material];
                     amplitude = static_cast<float>(height * m.priority);

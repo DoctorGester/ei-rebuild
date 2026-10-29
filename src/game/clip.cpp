@@ -117,7 +117,7 @@ int ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, std::uint16_t
     int combined = c0 | c1 | c2;
     g_workWords.resize(0x20);
     *indexCount = 3;
-    if (c0 & c1 & c2 & 0x3F) {
+    if (c0 & c1 & c2 & ClipOutcode::All) {
         *indexCount = 0;
         return -1;
     }

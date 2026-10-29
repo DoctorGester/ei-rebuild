@@ -11,6 +11,18 @@
 #include <cstdint>
 #include <unordered_map>
 
+// The figure manager's object types (CreateObject / type_), named after their classes.
+enum class FigureObjectType : int {
+    SharedFigureMesh = 0x41,      // CSharedFigureMesh: a part whose buffers point into the file data
+    PlainFigureMesh = 0x42,       // CPlainFigureMesh: an attached part, owning its buffers
+    UiMesh = 0x43,                // CUiMesh: a whole figure (NewBlankFigure)
+    SkyObject = 0x44,             // CSkyObject
+    AnimationTrack = 0x300B,      // AnimationTrack: a bone's animator
+    FigureBone = 0x300C,          // FigureBone
+    AnimationState = 0x300D,      // CFigureAnimationState: a map object's skeleton
+};
+
+// The figure factory: a new object of figure type `classId` with type_ set, or null for another type.
 void* CreateFigureObject(int classId);
 
 // The menus' button rectangles (menus.reg): the main menu's six (new game, load, exit, options, credits,

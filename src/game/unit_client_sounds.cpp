@@ -31,7 +31,6 @@ constexpr int kTerrainNoCrawl1 = 6;          // kinds crawling does not change
 constexpr int kTerrainNoCrawl2 = 0xE;
 constexpr float kPlatformGap = 0.01f;
 constexpr int kCrawlSounds = 6;
-constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
@@ -150,8 +149,8 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
         if (const char* name = SkillSound(static_cast<SkillAnimation>(animation->Number()))) *out = name;
         return 1;
     case AnimationKind::Attack: {
-        std::uint32_t hand = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNone;
-        if (unit->MapType() == MapObjectType::Hero && unit->activeWeapon < 4 && hand != kNone &&
+        std::uint32_t hand = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNoItemId;
+        if (unit->MapType() == MapObjectType::Hero && unit->activeWeapon < 4 && hand != kNoItemId &&
             (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow)) {
             *out = str::Format("weapons\\%d.wav", sound);
             return 1;

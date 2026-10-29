@@ -14,12 +14,12 @@ namespace {
 constexpr const char* kClassName = "CTextureManager";
 constexpr const char* kFolder = "textures";
 
-// The flag CreateObject gives a new texture of `type` (0x3D and unknown types 0x40).
+// The flag CreateObject gives a new texture of `type` (TextureKind).
 TextureFlag CreateFlag(int type) {
-    switch (type) {
-    case 0x3E: return TextureFlag::Type3E;
-    case 0x3F: return TextureFlag::Type3F;
-    case 0x40: return TextureFlag::Type40;
+    switch (static_cast<TextureKind>(type)) {
+    case TextureKind::Type3E: return TextureFlag::Type3E;
+    case TextureKind::Type3F: return TextureFlag::Type3F;
+    case TextureKind::Type40: return TextureFlag::Type40;
     default: return TextureFlag::OtherType;
     }
 }

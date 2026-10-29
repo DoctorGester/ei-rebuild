@@ -13,6 +13,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
+#include <algorithm>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -24,16 +25,12 @@ constexpr const char* kNoneText = "none";
 // "Adding new primary texture set with one exist\nFor object \"%s\" with ID=%d!\n"
 constexpr const char* kSecondPrimarySetText = "Adding new primary texture set with one exist\nFor object \"%s\" with ID=%d!\n";
 
-// Whether a texture of `kind` belongs to the first part set (a table for kinds 1..0x10;
-// any other kind goes to the second).
-bool IsPrimaryKind(int kind) {
-    switch (kind) {
-    case 1: case 3: case 4: case 6: case 7: case 8: case 9: case 0xB: case 0xD: case 0xE: case 0xF: case 0x10:
-        return true;
-    default:
-        return false;
-    }
-}
+// The texture kinds (a part's meshType_, TextureKind) whose parts make the first part set; any other kind makes the
+// second. The data does not say what they have in common.
+constexpr int kPrimaryKinds[] = {1, 3, 4, 6, 7, 8, 9, 0xB, 0xD, 0xE, 0xF, 0x10};
+
+// Whether a texture of `kind` belongs to the first part set.
+bool IsPrimaryKind(int kind) { return std::ranges::find(kPrimaryKinds, kind) != std::end(kPrimaryKinds); }
 
 // `part` taken out of the group that holds it (the tail moved down) and released: true, or false
 // when no group of either set holds it.

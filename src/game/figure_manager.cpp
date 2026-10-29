@@ -21,11 +21,9 @@
 
 namespace {
 
-constexpr int kFigureClass = 0x43;
 constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG"
 constexpr const char* kFiguresArchive = "figures.res";
 constexpr const char* kMenusArchive = "menus.res";
-constexpr int kSharedPartClass = 0x41;             // a part whose buffers point into the file data; 0x42 owns them
 
 // Copies `text` with its terminator to `end`; returns the new end (at the terminator).
 char* Append(char* end, const char* text) {
@@ -55,13 +53,13 @@ void CFigureManager::CreateWithArchives() {
 }
 
 CFigureMesh* CFigureManager::NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached) {
-    auto* part = CreateObjectAs<CFigureMesh>(kSharedPartClass + (attached != 0), -1);
+    auto* part = CreateObjectAs<CFigureMesh>(attached ? FigureObjectType::PlainFigureMesh : FigureObjectType::SharedFigureMesh, -1);
     part->name_ = partName;
     part->directory_ = modelName;
     return part;
 }
 
-CFigureMesh* CFigureManager::NewBlankFigure() { return CreateObjectAs<CFigureMesh>(kFigureClass, -1); }
+CFigureMesh* CFigureManager::NewBlankFigure() { return CreateObjectAs<CFigureMesh>(FigureObjectType::UiMesh, -1); }
 
 CFigureMesh* CFigureManager::NewFigure(std::string_view name) {
     auto* figure = NewBlankFigure();

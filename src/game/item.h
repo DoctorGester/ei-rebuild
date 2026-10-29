@@ -24,6 +24,10 @@ class CStream;
 inline std::uint32_t PrototypeIndex(std::uint32_t packedId) { return packedId >> 16; }
 inline std::uint32_t MaterialIndex(std::uint32_t packedId) { return packedId & 0xFFFF; }
 
+// The packed id of no item (an empty slot), and the half of a packed id that names no prototype / material.
+constexpr std::uint32_t kNoItemId = 0xFFFFFFFFu;
+constexpr std::uint32_t kNoIndex = 0xFFFF;
+
 class CItemLink;
 
 // Base of every item. The six item classes override its virtuals (each calls CItem's first).
@@ -287,8 +291,8 @@ float WeaponDefenceBonus(std::uint32_t packedId);
 
 // The base figure (skeleton) a weapon prototype (by index) is animated with, into `out` (emptied first):
 // "basesword", "baseaxe", "basedagger", "basepike", "baseclub" with the prototype's number as "%.2d"
-    // appended, "basearrow00" / "basearrow01" for types 5 / 6, else "baser_hand3". False for index -1 or out of
-    // range (only the low byte set).
+    // appended, "basearrow00" / "basearrow01" for types 5 / 6, else "baser_hand3". False for kNoItemId (an empty weapon
+    // slot's id) or out of range (only the low byte set).
 bool WeaponBaseFigure(std::uint32_t index, std::string* out);
 
 // The armour model name "<type>_<number>.<material name>.<variant>" of armour prototype `armorIndex` in

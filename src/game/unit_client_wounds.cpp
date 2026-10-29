@@ -79,7 +79,6 @@ constexpr const char* kHeroFace = "%smouth_%.2d";
 constexpr const char* kFace = "%smouth";
 
 constexpr std::uint32_t kWeaponSlots = 4;
-constexpr std::uint32_t kNoWeapon = 0xFFFFFFFF;
 constexpr const char* kHandNode = "baserh3";
 
 } // namespace
@@ -208,7 +207,7 @@ bool CUnitClientSpecific::LoadFaceTexture() {
 bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
     std::string node;
     std::uint32_t slot = unit->activeWeapon;
-    std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoWeapon;
+    std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoItemId;
     if (!WeaponBaseFigure(weapon, &node)) node = kHandNode;
     const FigureBone* found = unit->Object3D()->animation->FindBone(node);
     if (!found) return false;

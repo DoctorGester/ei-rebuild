@@ -66,7 +66,8 @@ struct SectorVertex {
     std::uint32_t colour;               // A (materialByte) R G B, the lighting stage
     std::uint32_t specular;             // edge fade << 24, then the specular lights' R G B
     Vector3 position;                   // water layer: the vertex position
-    std::uint16_t waterMaterial;        // water layer: material index, 0xFFFF none
+    static constexpr std::uint16_t kNoWaterMaterial = 0xFFFF;
+    std::uint16_t waterMaterial;        // water layer: material index, or kNoWaterMaterial
     float depth;                        // ground layer: water z - ground z
     Vector3 normal;
     Vector3 lit;                        // ambient and sun light

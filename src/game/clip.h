@@ -4,6 +4,8 @@
 // re-triangulated as a fan into the caller's index list, new vertices appended to the caller's vertex array. See
 // docs/notes/core.md.
 
+#include "lib/bit_flags.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -15,6 +17,20 @@ struct TLVertex {
 };
 static_assert(sizeof(TLVertex) == 0x20);
 static_assert(offsetof(TLVertex, color) == 0x10);
+
+// A point's clip outcode: a bit per clip plane it is outside of (CTransformPipeline::ClipTest's corners, model.cpp).
+// The transform's projections write a byte of six outside bits per vertex (ClipTriangle); which plane each is
+// there is not read.
+enum class ClipOutcode : std::uint32_t {
+    XLow = 0x1,     // X + W < 0
+    XHigh = 0x2,    // 2W < X + W (or unordered)
+    YLow = 0x4,     // Y + W < 0
+    YHigh = 0x8,    // 2W < Y + W (or unordered)
+    ZNear = 0x10,   // Z < 0
+    ZFar = 0x20,    // W < Z (or unordered)
+    All = XLow | XHigh | YLow | YHigh | ZNear | ZFar,
+};
+template <> inline constexpr bool lib::kBitFlags<ClipOutcode> = true;
 
 namespace clip {
 
@@ -40,7 +56,7 @@ int ClipZBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices
 int ClipZAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
 
 // Clips the triangle `tri[0..2]` to 0 <= x <= xMax, 0 <= y <= yMax, 0 <= z <= 1.
-// `outcodes[i]` holds vertex i's six outside bits. Returns -1 (all three outside one plane:
+// `outcodes[i]` holds vertex i's six outside bits (ClipOutcode::All). Returns -1 (all three outside one plane:
 // *indexCount = 0), 0 (all inside: *indexCount = 3) or 1 (clipped: `tri` holds *indexCount
 // indices, a fan of triangles).
 int ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, std::uint16_t* tri,

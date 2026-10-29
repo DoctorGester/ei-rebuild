@@ -216,14 +216,14 @@ void CUnitServer::UpdateState() {
     if (state == kStateActing && !ActionInReach()) EndOrder(0);
     if (unit->flags_ & MapObjectFlag::Frozen) {
         frozen = 1;
-        hitDirection = 0xFFFFFFFFu;
+        hitDirection = kNoHitDirection;
         return;
     }
     if (keepHitDirection != 0) {
         // A hit reaction plays: when it is over, the saved queue comes back.
         if (!Queue(this).empty()) {
             animationHeld = 1;
-            hitDirection = 0xFFFFFFFFu;
+            hitDirection = kNoHitDirection;
             return;
         }
         Queue(this) = SavedQueue(this);
@@ -247,7 +247,7 @@ void CUnitServer::UpdateState() {
     case kStateTurning:
     case kStateWaiting:
         SwitchWeaponIfWanted(unit);
-        if (hitDirection != 0xFFFFFFFFu) PlayHitReaction();
+        if (hitDirection != kNoHitDirection) PlayHitReaction();
         break;
     case kStateRecovering:
         if (Queue(this).empty()) {
@@ -266,7 +266,7 @@ void CUnitServer::UpdateState() {
     default:
         break;
     }
-    hitDirection = 0xFFFFFFFFu;
+    hitDirection = kNoHitDirection;
 }
 
 // --- The animation queue ---------------------------------------------------------------------

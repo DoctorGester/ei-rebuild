@@ -5,6 +5,7 @@
 // allocated at the game's sizes. The new object's type_ gets the class id; an unknown id or a failed
 // allocation returns null. See docs/notes/models.md.
 #include "engine_object.h"   // CEngineObject
+#include "figure_manager.h"   // FigureObjectType
 #include "figure_mesh.h"     // CFigureMesh
 #include "map_object_animation.h"
 #include "map_object_figures.h"
@@ -19,20 +20,20 @@
 namespace {
 
 void* Create(int classId) {
-    switch (classId) {
-    case 0x41:
+    switch (static_cast<FigureObjectType>(classId)) {
+    case FigureObjectType::SharedFigureMesh:
         return new CSharedFigureMesh();
-    case 0x42:
+    case FigureObjectType::PlainFigureMesh:
         return new CPlainFigureMesh();
-    case 0x43:
+    case FigureObjectType::UiMesh:
         return new CUiMesh();
-    case 0x44:
+    case FigureObjectType::SkyObject:
         return new CSkyObject();
-    case 0x300B:
+    case FigureObjectType::AnimationTrack:
         return new AnimationTrack();
-    case 0x300C:
+    case FigureObjectType::FigureBone:
         return new FigureBone();
-    case 0x300D:
+    case FigureObjectType::AnimationState:
         return new CFigureAnimationState();
     default:
         return nullptr;

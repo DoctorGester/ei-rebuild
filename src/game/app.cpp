@@ -128,6 +128,9 @@ int TypedCharacter(WPARAM unit) {
 void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
 constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
+// The game's own wheel message (a fixed number in the registered messages' range; nothing here sends it): wParam is
+// the delta.
+constexpr UINT kGameWheelMessage = 0xCC54;
 int g_fatalErrorCount = /*007A9B9C*/ {};
 
 const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
@@ -162,7 +165,7 @@ LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lP
 
 LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
-    // (present_window.h; unchanged otherwise). The game's own wheel message (0xCC54) is not mapped.
+    // (present_window.h; unchanged otherwise). The game's own wheel message (kGameWheelMessage) is not mapped.
     lParam = present_window::MouseToGame(message, lParam);
     CInterface3D* input = &g_interface;
     input->CloseAllPending();
@@ -220,7 +223,7 @@ LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     case WM_MOUSEWHEEL:
         input->OnWheel(Low(static_cast<LPARAM>(wParam)), HighUnsigned(static_cast<LPARAM>(wParam)), Low(lParam), HighUnsigned(lParam));
         return Handled();
-    case 0xCC54:   // the game's own wheel message: wParam is the delta
+    case kGameWheelMessage:
         input->OnWheel(0, w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     }

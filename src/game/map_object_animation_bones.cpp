@@ -19,8 +19,6 @@
 
 namespace {
 
-constexpr int kBoneClass = 0x300C;   // FigureBone's class id
-
 // A bone's mesh is a counted figure part (CFigureMesh, an engine object).
 CFigureMesh* AsMesh(CEngineObject* part) { return static_cast<CFigureMesh*>(part); }
 
@@ -109,7 +107,7 @@ FigureBone* CFigureAnimationState::FindBone(std::string_view boneName) {
 
 int CFigureAnimationState::LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName) {
     CBaseManager* manager = FigureManagerOf(this);
-    auto* bone = manager->CreateObjectAs<FigureBone>(kBoneClass, -1);
+    auto* bone = manager->CreateObjectAs<FigureBone>(FigureObjectType::FigureBone, -1);
     bone->name = child;
     bone->name2 = parentName;
     return LinkBone(model, bone);

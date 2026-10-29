@@ -340,7 +340,7 @@ void UpdateMotion(CUnitServer* c) {
 
     if (!turning && c->movingAnimation == 0) QueueNextAnimation(c);
 
-    if (c->hitDirection != 0xFFFFFFFFu) {
+    if (c->hitDirection != CUnitServer::kNoHitDirection) {
         if (turning) {
             HitWhileTurning(c);
             return;
