@@ -356,7 +356,8 @@ void MovieBlit(const void* key, const Rect& to);
 void Fill(const Rect& to, std::uint32_t colour);
 
 // The software cursor: the part `from` of the cursor image with its mask (the image's full width, the
-// surface's pixel format) at `to`; texels whose mask is not zero are left out.
+// surface's pixel format) at `to`; texels whose mask is not zero are left out. The picture with its mask goes to the
+// GPU once, at its first draw.
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
 
 // The software cursor between frames (renderer.md section 9): from the cursor thread, the cursor's lock

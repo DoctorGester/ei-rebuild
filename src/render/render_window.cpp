@@ -71,7 +71,8 @@ WindowPresentInfo g_info;
 Rect g_lastCursor{0, 0, 0, 0};   // verify build: where the last present drew the cursor (the ramp check leaves it out)
 
 // The present shader's fragment uniforms (shaders/present.hlsl, cursor_params): the cursor's rectangle in the
-// frame (right <= left: none), the frame's size and the cursor texels per frame pixel, the cursor texture's size.
+// frame (right <= left: none), the frame's size and the cursor texels per frame pixel, the size and the top left
+// corner of the cursor's part of its picture.
 struct CursorParams {
     float to[4];
     float frame[4];
@@ -407,13 +408,14 @@ bool DrawToWindow(const BlitBatch* cursor) {
         const Rect& to = cursor->destination;
         int dw = to.right - to.left, dh = to.bottom - to.top;
         int sw = cursor->source.right - cursor->source.left, sh = cursor->source.bottom - cursor->source.top;
-        if (dw > 0 && dh > 0 && sw > 0 && sh > 0 && cursor->source.left == 0 && cursor->source.top == 0) {
+        if (dw > 0 && dh > 0 && sw > 0 && sh > 0) {
             cursorView = cursor->texture;
             cp = CursorParams{{static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
                                static_cast<float>(to.bottom)},
                               {static_cast<float>(frameWidth), static_cast<float>(frameHeight),
                                static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
-                              {static_cast<float>(cursor->textureWidth), static_cast<float>(cursor->textureHeight), 0.0f, 0.0f}};
+                              {static_cast<float>(sw), static_cast<float>(sh), static_cast<float>(cursor->source.left),
+                               static_cast<float>(cursor->source.top)}};
             g_lastCursor = to;
         }
     }

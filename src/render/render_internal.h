@@ -609,13 +609,14 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height);
 void DrawFill(const FillBatch& fill, int width, int height);
 void RetireFrameImages();
 void DestroyBlits();
-struct Picture;
-// render::Cursor's image: the whole cursor picture (all its frames side by side) as RGBA8, alpha 255 where
-// the mask (`maskBytes` per pixel) is clear; kept for the cursor thread. The part `from` copied into `rgba`;
-// false when the picture or the rectangle does not fit.
-bool CursorPicturePart(const void* holder, const void* mask, int maskBytes, const Picture& picture, const Rect& from,
-                 std::vector<std::uint8_t>* rgba);
-// The device is lost: DestroyBlits, and every image kept across frames (movies, the cursor's and fills' cache).
+// The cursor picture the frames draw (render::Cursor): `view` the whole picture (width x height, all its frames side
+// by side) with its mask as alpha, made once; the cursor thread draws the same texture. DropCursorSheet: the
+// holder is gone (the cursor thread forgets its picture).
+void SetCursorSheet(const void* holder, const void* mask, int width, int height, sg_view view);
+void DropCursorSheet(const void* holder);
+// The holder is gone: its cursor picture's image let go.
+void ForgetCursor(const void* holder);
+// The device is lost: DestroyBlits, and every image kept across frames (movies, the cursor's pictures).
 void DropBlits();
 
 // The counts of the frame being built (summed at Present). StatsTimer adds its scope's CPU time to a field; a
