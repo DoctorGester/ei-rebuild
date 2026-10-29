@@ -69,7 +69,7 @@ A lost device that is made again (R9c1) is recovery, not a fallback, and stays. 
 every entry point draws. Only the image runs it: in game.exe (the harness and the vector recorders run inside the
 original's process) nothing of ours draws, and the harness asks `ei::Standalone()` (R26a folded HarnessRenderActive into it; a renderer failure ends the game, so
 there is no "failed" state to poll): captures there read the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
-comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `smoothcamera` (the smooth camera, R18, section 14), the harness build's `removable` (R9c5) and `checkall`; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
+comma-separated list of options: `smoothcamera` (the smooth camera, R18, section 14), `smoothview` / `smoothviewspread` (section 14a), the harness build's `removable` (R9c5) and `checkall`; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
 DirectDraw surface (no holder has one).
 
@@ -819,18 +819,32 @@ Behaviour differences (one path for every input; none of them is in a golden):
   Rebirth); limit 80. Against the harness original's `far` frame, the tree crowns (2750, 550)-(3250, 950) at
   3840 x 2160: 1.30% of the pixels differed (tolerance 8, shift 1; largest 150) before, 0.24% after (leaf edges).
 
-- **The smooth option (R12a)**, user's decision 2026-10-20: off by default; on, the image draws as the user's
-  Rebirth dgVoodoo setup (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x) except for the interface. One
-  switch: `smooth` in EI_RENDER (read once, at the first use: the harness's `render` step or the environment), or
-  `render::SetSmooth` (from the next frame; ST2's options screen can call it, ST1 keep it in the settings file);
-  `render::Smooth()` reads it. Goldens and frame checks run with it off.
+- **Render quality (R12a's smooth option; R33 split it into two levels)**: the world view multisampled (MSAA) and its
+  models sampled anisotropically, each with its own level, as the user's Rebirth dgVoodoo setup draws at the most
+  (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x) except for the interface.
+  - **Settings** (user 2026-10-29: from the file, separately, with levels): in ei_settings.ini next to
+    ei_standalone.exe (play.cmd's is run\play\ei_settings.ini), the key of the overlay and vsync (section 15):
+    ```
+    [Software\Nival Interactive\EvilIslands\Standalone]
+    "Msaa"=dword:00000008          1 (off), 2, 4 or 8
+    "Anisotropy"=dword:00000010    1 (off) .. 16
+    ```
+    Read once the renderer starts (`QualitySetting`, device_object.cpp, after `render::StartPresenting`); a value
+    missing or not a DWORD is written with its default (8 and 16: the look play.cmd's `smooth` gave before R33), so
+    the file always shows both. `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the
+    target takes at most the device's samples; `render::SetAnisotropy` clamps to 1..16 (`kMostAnisotropy`). Both from
+    the next frame (ST2's options screen can call them); `Msaa()` / `Anisotropy()` read them. **Never in a harness
+    run**: `render::QualitySettingsSupported()` is false in the harness build (the pinned settings file lacks the
+    values, a read of a missing value fails a run), so a run starts with both off (1) and goldens and frame checks
+    keep that look; the harness steps `msaa <samples>` / `anisotropy <level>` set them. EI_RENDER's `smooth` is gone.
   - The world view (`CWorldClient::Render` 00569E40 between `render::BeginWorld` / `EndWorld`: sky, terrain,
     objects, shadows, water, effects, flying hit points) is a range of the frame's commands (`Frame::worldRanges`).
-    Its models (`MeshBatch::model`: BeginMesh draws, not the pre-transformed ones) take `AnisotropicSampler` for both
-    stages (point filters stay point, Mipmapping 0 keeps level 0); the interface's sprites and previews keep
-    `StageSampler`.
-  - The world's runs of commands draw into a multisampled colour and depth target of 8 samples (`kSmoothSamples`;
-    fewer when `CheckMultisampleQualityLevels` refuses 8 for RGBA8 or D32, none when the target cannot be made: logged),
+    With anisotropy above 1 its models (`MeshBatch::model`: BeginMesh draws, not the pre-transformed ones) take
+    `AnisotropicSampler` at that level for both stages (point filters stay point, Mipmapping 0 keeps level 0); the
+    interface's sprites and previews keep `StageSampler`. The terrain pages always sample anisotropically at 16,
+    whatever the setting (their seams, above).
+  - With msaa above 1 the world's runs of commands draw into a multisampled colour and depth target of that many samples
+    (fewer when `CheckMultisampleQualityLevels` refuses the device's most for RGBA8 or D32, none when the target cannot be made: logged),
     and each such pass resolves into the frame target (sokol's resolve attachment) at its end; the other runs draw
     into the frame target as without the option, so the interface's edges and window surfaces are unchanged (a 3D
     draw's edges run through pixel centres, D3D7's convention: multisampled, every sprite would get half-covered
@@ -842,13 +856,17 @@ Behaviour differences (one path for every input; none of them is in a golden):
     (R13) finds the last frame there.
   - Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`; mesh and
     terrain pipelines keyed by it, the blit and depth clear made for it at first use): sokol's validation skips a
-    draw whose pipeline's count differs from the pass's. A change of the option remakes the targets at a frame's
+    draw whose pipeline's count differs from the pass's. A change of the sample count remakes the targets at a frame's
     first pass.
-  - Check (scenario `render_smooth`, image only, vanilla and Rebirth): on from the start; in zone1 at one frozen
-    moment the frame with the option, without it (`smooth off`) and with it again (`smooth on`): the two with it
-    match (samecapture); `smoothcheck plain smooth 0.002 0.2` requires the option on, the world multisampled with the
-    device's samples (8 here) in the last frame, anisotropic world models, and the frames to differ in 0.2% .. 20% of
-    the pixels (a black or stale frame fails); the quick save's picture (`checksave`, R13) matches the smooth frame.
+  - Check (scenario `render_smooth`, image only, vanilla and Rebirth): msaa 8 and anisotropy 16 from the start; in
+    zone1 at one frozen moment the frame with them, with both 1 (`plain`) and with them again: the two with them
+    match (samecapture); `smoothcheck plain smooth 0.002 0.2` requires the levels drawn (the world multisampled with
+    as many samples as asked, at most the device's, 8 here; anisotropic world models only when anisotropy is above 1)
+    and the frames to differ in 0.2% .. 20% of the pixels (a black or stale frame fails); the quick save's picture
+    (`checksave`, R13) matches the smooth frame. R33's levels, each against `plain`: msaa 4 with anisotropy 4, msaa 2
+    alone, anisotropy 8 alone (1280 x 720: 3.24% of the pixels differ at 8 / 16, 3.18% at 4 / 4, 0.70% at msaa 2
+    alone, 2.56% at anisotropy 8 alone; each required 0.2% .. 20%, anisotropy alone 0.5%). `renderstats` lines end with
+    the levels and the samples drawn.
   - The copy into every sample (R12a1): the game never reaches it (its world view is a frame's first draw), so the
     harness build's `smoothorder before|split` (`render::SetSmoothOrder`) draws the frozen frame's passes in other
     orders: an empty frame pass before the world (copies the cleared target in), or the world's first run cut at
@@ -1522,7 +1540,7 @@ of the way to the tracked object, kTrackGain 0073BAD4) and focus height lag (a t
 call, so they grow with the frame rate, and a followed unit's position changes only at its ticks.
 
 - **The option**, off by default (goldens and every scenario run without it): EI_RENDER's word `smoothcamera` (read at
-  the first use, like `smooth`) or `render::SetSmoothCamera` (from the next pass; ST2's options screen can call it,
+  the first use) or `render::SetSmoothCamera` (from the next pass; ST2's options screen can call it,
   ST1 keep it); `render::SmoothCamera()` reads it. It lives with the renderer's options although only the main loop
   and `CCamera::Update` read it. In a run: `render new,present,smoothcamera` or the harness step `smoothcamera on`.
 - **One update a frame by time.** RunWorlds no longer updates the camera at a client tick

@@ -280,7 +280,7 @@ struct Frame {
     std::vector<CanvasBatch> canvasBatches;
     std::vector<Command> commands;
 // The world view's commands (render::BeginWorld .. EndWorld), the last range open (end SIZE_MAX) while the
-// world view draws. With the smooth option they are drawn multisampled with anisotropic models.
+// world view draws. The render quality draws them multisampled and their models anisotropically.
     struct Range {
         std::size_t first, end;
     };
@@ -539,7 +539,8 @@ void DropTerrainCasters();
 
 bool CreateMeshShader();
 void UploadMeshes(const Frame& frame);
-void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, bool anisotropic);
+// `anisotropy` above 1: the stages sampled anisotropically at that level (AnisotropicSampler).
+void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, int anisotropy);
 void DestroyMeshes();
 
 // The buffers a mesh batch draws from (the frame's stream, or the kept meshes' pool) and its first index;
@@ -742,10 +743,11 @@ void BeginWindowPresent();
 void EndWindowPresent(bool presented);
 void DropCursorPresents();
 sg_sampler StageSampler(const StageState& stage);
-// Linear filters asked for: anisotropic with linear mips; point filters as the stage says. Always for the
-// terrain pages, with the smooth option for the world's models too.
-constexpr std::uint32_t kAnisotropy = 16;
-sg_sampler AnisotropicSampler(const StageState& stage);
+// Linear filters asked for: anisotropic at `level` (2..kMostAnisotropy) with linear mips; point filters as the
+// stage says. Always for the terrain pages (at kMostAnisotropy, whatever the render quality), at the render
+// quality's anisotropy for the world's models when it is above 1.
+constexpr std::uint32_t kMostAnisotropy = 16;
+sg_sampler AnisotropicSampler(const StageState& stage, std::uint32_t level);
 // After a present: images replaced during the frame destroyed, entries unused for a long time dropped.
 void RetireTextures();
 void DestroyTextures();
@@ -770,7 +772,7 @@ private:
 constexpr sg_pixel_format kColourFormat = SG_PIXELFORMAT_RGBA8;
 constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
 
-// The smooth option's multisampling (docs/notes/renderer.md section 11): the world commands are drawn into a
+// The render quality's multisampling (docs/notes/renderer.md section 11): the world commands are drawn into a
 // multisampled target resolved into the frame target. PassSampleCount: the sample count of the pass being
 // drawn; every pipeline drawing into it is made for it.
 int PassSampleCount();

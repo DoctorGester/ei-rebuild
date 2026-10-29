@@ -64,8 +64,9 @@ play.cmd
 ```
 
 The game plays from a copy of the build in `run\play`, so a game left open never locks the build. Its settings are
-`run\play\ei_settings.ini` (imported once from the registry the first time). The performance overlay and vsync are
-switched there (comments at the top of `play.cmd`; `docs/notes/renderer.md` section 15). The log is
+`run\play\ei_settings.ini` (imported once from the registry the first time). The render quality (MSAA samples,
+anisotropy), the performance overlay and vsync are set there (comments at the top of `play.cmd`;
+`docs/notes/renderer.md` sections 11 and 15). The log is
 `run\play\ei_hook.log`.
 
 ## Test

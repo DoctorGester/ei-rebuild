@@ -5,8 +5,8 @@
 // cannot go on (a sokol panic, a lost device not made again, no swap chain), the game ends with the reason in the
 // game's error box (renderer.md, "When the renderer fails"). Nothing calls it in game.exe's process (harness,
 // vector recorders). See docs/notes/renderer.md.
-// EI_RENDER (or the harness step "render <spec>") is a comma-separated list: "smooth", "smoothcamera", the
-// harness build's "removable" and "checkall".
+// EI_RENDER (or the harness step "render <spec>") is a comma-separated list: "smoothcamera", "smoothview",
+// "smoothviewspread", the harness build's "removable" and "checkall".
 
 #include "lib/vecmath.h"
 
@@ -28,17 +28,22 @@ void Configure(const char* spec);
 // (saves 0.15 s of each start).
 void PrepareDevice();
 
-// The smooth option (off by default): 16x anisotropic sampling of the world view's models and 8x
-// multisampling of the world view, as the user's dgVoodoo setup draws it (renderer.md, "The smooth
-// option"). EI_RENDER's "smooth" at the start, or SetSmooth from the next frame.
-void SetSmooth(bool on);
-bool Smooth();
+// The render quality (renderer.md section 11, "Render quality"), each from the next frame: the world view
+// multisampled with `samples` (1: off; 2, 4 or 8, fewer when the device draws fewer) and its models sampled
+// anisotropically at `level` (1: off, as their stage says; up to 16). Both off unless set: the product sets
+// them from the settings file (device_object.cpp), a harness run by its steps "msaa" and "anisotropy".
+void SetMsaa(int samples);
+int Msaa();
+void SetAnisotropy(int level);
+int Anisotropy();
+// False in the harness build: its pinned settings file lacks the values (a read of a missing value fails a run).
+bool QualitySettingsSupported();
 // The world view's draws (CWorldClient::Render) come between BeginWorld and EndWorld.
 void BeginWorld();
 void EndWorld();
-// The smooth option's state in the last presented frame.
+// The render quality's state in the last presented frame: the levels asked for and what was drawn.
 struct SmoothInfo {
-    bool on = false;
+    int msaa = 1, anisotropy = 1;
     int deviceSamples = 1, targetSamples = 1;
     int multisampledPasses = 0;
     int copiesInto = 0, depthCopiesBack = 0;

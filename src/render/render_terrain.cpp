@@ -669,7 +669,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     sg_apply_pipeline(pipeline);
     CountPipeline(pipeline);
     b.views[0] = TextureView(batch.texture);
-    b.samplers[0] = AnisotropicSampler(batch.state.stages[0]);
+    b.samplers[0] = AnisotropicSampler(batch.state.stages[0], kMostAnisotropy);
     float mode = batch.water ? 1.0f : 0.0f;
 #if defined(EI_RENDER_VALIDATION)
     if (g_levelMode != TerrainLevelMode::Off && !batch.water) {

@@ -39,7 +39,7 @@ enum PipelineKind { kBlit, kClearDepth, kFill, kPipelineKinds };
 
 sg_shader g_blitShader{}, g_solidShader{};
 sg_pipeline g_pipelines[kPipelineKinds]{};
-// For the smooth option's multisampled passes (render_smooth.cpp), made at their first use.
+// For the render quality's multisampled passes (render_smooth.cpp), made at their first use.
 sg_pipeline g_multisampled[kPipelineKinds]{};
 int g_multisampledSamples = 0;
 sg_sampler g_nearest{};

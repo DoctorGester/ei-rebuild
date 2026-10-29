@@ -182,7 +182,7 @@ int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued) {
 
 int CWorldClient::Render() {
     render::RenderState& state = render::g_renderState;
-    // The world view for the new renderer's smooth option (multisampled, models sampled
+    // The world view for the new renderer's render quality (multisampled, models sampled
     // anisotropically); the interface draws after it.
     render::BeginWorld();
     CTextureDevice* renderer = g_sceneRenderer.device_;

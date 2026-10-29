@@ -142,7 +142,7 @@ static_assert(sizeof(FsParams) == 96);
 bool g_pipelinesTried = false, g_pipelinesMade = false;
 sg_shader g_solidShader{}, g_glyphShader{}, g_composeShader{}, g_greyShader{}, g_copyShader{}, g_rgb565Shader{}, g_blitShader{};
 sg_pipeline g_solid{}, g_glyph{}, g_compose{}, g_grey{}, g_copy{}, g_rgb565{};
-// The frame blit per sample count of the pass (1, or the smooth option's multisampled one).
+// The frame blit per sample count of the pass (1, or the render quality's multisampled one).
 struct BlitPipeline {
     int samples;
     sg_pipeline pipeline;

@@ -140,9 +140,11 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         Log("harness: %s", text);
         frames->push_back(text);
         if (check.levels == 0 || check.worst > most) failures->push_back(text);
-    } else if (verb == "smooth") {
-        if (argument == "on" || argument == "off") render::SetSmooth(argument == "on");
-        else failures->push_back("smooth needs on or off");
+    } else if (verb == "msaa" || verb == "anisotropy") {
+        int level = 0;
+        if (sscanf_s(argument.c_str(), "%d", &level) < 1) failures->push_back(verb + " needs a level");
+        else if (verb == "msaa") render::SetMsaa(level);
+        else render::SetAnisotropy(level);
     } else if (verb == "smoothcheck") {
         char plain[64] = "", smooth[64] = "";
         double least = 0, most = 1;
@@ -156,18 +158,24 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         int largest = 0;
         const char* why = "";
         bool compared = capture::Compare(plain, smooth, 8, &differing, &largest, &why);
-        char text[320];
+        char text[360];
         std::snprintf(text, sizeof(text),
-                      "smoothcheck %s %s: option %s, %d samples (the device gives %d), last frame %d multisampled "
-                      "passes, %d models anisotropic, %d as their stage; %.3f%% of the pixels differ by more than 8 "
-                      "(largest %d; allowed %.3f%% .. %.3f%%)",
-                      plain, smooth, info.on ? "on" : "off", info.targetSamples, info.deviceSamples, info.multisampledPasses,
-                      info.anisotropicModels, info.plainModels, 100.0 * differing, largest, 100.0 * least, 100.0 * most);
+                      "smoothcheck %s %s: msaa %d, anisotropy %d; %d samples (the device gives %d), last frame %d "
+                      "multisampled passes, %d models anisotropic, %d as their stage; %.3f%% of the pixels differ by more "
+                      "than 8 (largest %d; allowed %.3f%% .. %.3f%%)",
+                      plain, smooth, info.msaa, info.anisotropy, info.targetSamples, info.deviceSamples,
+                      info.multisampledPasses, info.anisotropicModels, info.plainModels, 100.0 * differing, largest,
+                      100.0 * least, 100.0 * most);
         Log("harness: %s", text);
         frames->push_back(text);
+        // The levels asked for are what was drawn: as many samples as asked (at least 2: the suites' devices
+        // give 8), anisotropic world models exactly when asked.
+        const int samples = info.msaa < info.deviceSamples ? info.msaa : info.deviceSamples;
+        const bool drawn = info.msaa > 1 ? samples >= 2 && info.targetSamples == samples && info.multisampledPasses >= 1
+                                         : info.targetSamples == 1 && info.multisampledPasses == 0;
+        const bool sampled = info.anisotropy > 1 ? info.anisotropicModels >= 1 : info.anisotropicModels == 0;
         if (!compared) failures->push_back(std::string("smoothcheck ") + plain + " " + smooth + ": " + why);
-        else if (!info.on || info.targetSamples < 2 || info.targetSamples != info.deviceSamples ||
-                 info.multisampledPasses < 1 || info.anisotropicModels < 1 || differing < least || differing > most)
+        else if (!drawn || !sampled || differing < least || differing > most)
             failures->push_back(text);
     } else if (verb == "smoothorder") {
         static render::SmoothOrder order = render::SmoothOrder::Game;
@@ -184,13 +192,13 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         render::SmoothInfo info = render::SmoothState();
         char text[240];
         std::snprintf(text, sizeof(text),
-                      "smoothorder check (%s): option %s, %d samples, last frame %d multisampled passes, %d copies into "
+                      "smoothorder check (%s): msaa %d, %d samples, last frame %d multisampled passes, %d copies into "
                       "them, %d depth copies back",
                       order == render::SmoothOrder::Game ? "game" : order == render::SmoothOrder::Before ? "before" : "split",
-                      info.on ? "on" : "off", info.targetSamples, info.multisampledPasses, info.copiesInto, info.depthCopiesBack);
+                      info.msaa, info.targetSamples, info.multisampledPasses, info.copiesInto, info.depthCopiesBack);
         Log("harness: %s", text);
         frames->push_back(text);
-        bool ok = info.on && info.targetSamples >= 2;
+        bool ok = info.msaa > 1 && info.targetSamples >= 2;
         if (order == render::SmoothOrder::Game) ok = ok && info.multisampledPasses >= 1 && info.copiesInto == 0;
         else if (order == render::SmoothOrder::Before) ok = ok && info.multisampledPasses >= 1 && info.copiesInto >= 1;
         else ok = ok && info.multisampledPasses >= 2 && info.copiesInto >= 1 && info.depthCopiesBack >= 2;
@@ -289,6 +297,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         auto kb = [n](std::uint64_t bytes) { return static_cast<double>(bytes) / 1024.0 / n; };
         auto per = [n](std::uint64_t count) { return static_cast<double>(count) / n; };
         using F = render::FrameStats;
+        const render::SmoothInfo quality = render::SmoothState();
         char text[2400];
         std::snprintf(
             text, sizeof(text),
@@ -303,7 +312,8 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "decals projected: %.1f shadows %.3f ms, %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f, %.3f ms "
             "(%.0f vertices); shadow builds %.1f, %.3f ms; "
             "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f; morphed meshes %.1f "
-            "(%.0f corners); main thread ms CPU %.2f / wall %.2f",
+            "(%.0f corners); main thread ms CPU %.2f / wall %.2f; quality: msaa %d (%d samples, the device gives %d), "
+            "anisotropy %d",
             argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
             per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
             per(t.transformedDraws), per(t.blits), per(t.depthClears), per(t.stateReads), per(t.matrices),
@@ -319,7 +329,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             per(t.flatDraws), t.flatMs / n, per(t.flatDrawVertices), per(t.shadowBuilds), t.shadowBuildMs / n,
             per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
             t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
-            frameWallMs / n);
+            frameWallMs / n, quality.msaa, quality.targetSamples, quality.deviceSamples, quality.anisotropy);
         Log("harness: %s", text);
         frames->push_back(text);
     } else {

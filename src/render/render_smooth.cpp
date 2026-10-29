@@ -1,4 +1,4 @@
-// The smooth option's multisampling (docs/notes/renderer.md section 11): render.cpp draws the world view's
+// The render quality's multisampling (docs/notes/renderer.md section 11): render.cpp draws the world view's
 // commands into a multisampled colour and depth target and resolves the colour into the frame target at the
 // end of each such pass; the interface draws into the frame target as without the option. Here: the sample
 // count the device gives and the two copies between the targets where the frame changes from one to the other
@@ -101,7 +101,7 @@ bool PrepareSmoothCopies(int samples) {
     g_from = CopyPipeline(g_fromShader, 1, false, "ei-depth-from-multisampled");
     bool ok = sg_query_pipeline_state(g_into) == SG_RESOURCESTATE_VALID && sg_query_pipeline_state(g_from) == SG_RESOURCESTATE_VALID;
     if (!ok) {
-        ei::Log("render: the smooth option: the copies between the targets could not be made (see the sokol messages above)");
+        ei::Log("render: msaa: the copies between the targets could not be made (see the sokol messages above)");
         DestroySmooth();
         return false;
     }

@@ -1,4 +1,4 @@
-// The smooth option's copy into the multisampled targets (render_smooth.cpp): a triangle covering the
+// The multisampling's copy into the multisampled targets (render_smooth.cpp): a triangle covering the
 // target; the pixel shader reads the source at its own pixel.
 float4 vs_main(uint id : SV_VertexID) : SV_Position {
     float2 p = float2((id << 1) & 2, id & 2);

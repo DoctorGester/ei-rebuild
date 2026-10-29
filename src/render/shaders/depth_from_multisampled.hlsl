@@ -1,4 +1,4 @@
-// The smooth option's copy of sample 0 of the multisampled depth into the frame target's depth
+// The multisampling's copy of sample 0 of the multisampled depth into the frame target's depth
 // SAMPLES: the sample count (shader model 4 wants the multisampled texture's count
 // in its type); compiled once for each count the device can give (CMakeLists.txt).
 float4 vs_main(uint id : SV_VertexID) : SV_Position {

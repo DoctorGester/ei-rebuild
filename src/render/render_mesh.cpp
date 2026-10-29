@@ -386,7 +386,7 @@ bool BindMeshBatch(const MeshBatch& batch, sg_bindings& b, int* firstIndex) {
     return g_geometry.Bind(b);
 }
 
-void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
+void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     sg_bindings b{};
     int first = 0;
     if (batch.indexCount <= 0 || !BindMeshBatch(batch, b, &first)) return;
@@ -398,7 +398,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     for (int t = 0; t < 2; ++t) {
         const StageState& st = s.stages[t];
         b.views[t] = st.texture.id ? st.texture : SurfaceView(nullptr);
-        b.samplers[t] = anisotropic ? AnisotropicSampler(st) : StageSampler(st);
+        b.samplers[t] = anisotropy > 1 ? AnisotropicSampler(st, static_cast<std::uint32_t>(anisotropy)) : StageSampler(st);
     }
     b.views[2] = s.patch.texture.id ? s.patch.texture : SurfaceView(nullptr);   // sampled as stage 0
     b.samplers[2] = b.samplers[0];

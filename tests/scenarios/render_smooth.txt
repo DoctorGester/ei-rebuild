@@ -1,18 +1,22 @@
-# The smooth option (R12a; docs/notes/renderer.md section 11): turned on from the start (EI_RENDER's
-# "smooth"), the image draws the world view with 8x multisampling, resolved into the frame before the
-# interface, every present and every screen copy, and samples the world's models anisotropically.
-# At one frozen moment of zone1: the frame with the option (smooth), without it (plain) and with it
-# again (smooth2). The two with it match; smoothcheck requires the option's world passes and
-# anisotropic models in the frame and the smooth frame to differ from the plain one only in a few
-# pixels (the world's edges and textures: nothing black or stale). The quick save's picture (R13, a
-# screen copy between frames) must still show that frame. R16c: the smooth frame with the terrain pages
-# built and uploaded again (smooth_fresh) matches the one with them kept on the GPU. R12a1: the copy of
-# the frame target into every sample, which the game's order never reaches (the world view is a
-# frame's first draw): with an empty pass before the world (smooth_before) the frame matches exactly;
-# with the world split in two at its middle command (smooth_split, the later half drawn over the copy
-# of the resolved first half) only where both halves' edges meet in a pixel.
-# no original: vanilla rebirth (the smooth option is our renderer's)
-render smooth,checkall
+# The render quality (R12a, R33; docs/notes/renderer.md section 11): msaa 8 and anisotropy 16 from the start
+# (the product's defaults; a run has both off unless set), the image draws the world view with 8x
+# multisampling, resolved into the frame before the interface, every present and every screen copy, and
+# samples the world's models anisotropically at 16.
+# At one frozen moment of zone1: the frame with both (smooth), with both off (plain) and with both again
+# (smooth2). The two with them match; smoothcheck requires the levels' world passes and anisotropic models
+# in the frame and the smooth frame to differ from the plain one only in a few pixels (the world's edges and
+# textures: nothing black or stale). The quick save's picture (R13, a screen copy between frames) must still
+# show that frame. R16c: the smooth frame with the terrain pages built and uploaded again (smooth_fresh)
+# matches the one with them kept on the GPU. R12a1: the copy of the frame target into every sample, which
+# the game's order never reaches (the world view is a frame's first draw): with an empty pass before the
+# world (smooth_before) the frame matches exactly; with the world split in two at its middle command
+# (smooth_split, the later half drawn over the copy of the resolved first half) only where both halves'
+# edges meet in a pixel. R33: other levels, each alone: msaa 4 with anisotropy 4, msaa 2 alone, anisotropy 8
+# alone (smoothcheck: as many samples as asked, anisotropic models only when asked).
+# no original: vanilla rebirth (the render quality is our renderer's)
+render checkall
+msaa 8
+anisotropy 16
 reject Script error
 waitmenu
 console thingamabob
@@ -26,9 +30,11 @@ move 400 20
 frames 5
 freeze
 capture smooth
-smooth off
+msaa 1
+anisotropy 1
 capture plain
-smooth on
+msaa 8
+anisotropy 16
 capture smooth2
 terraincache off
 capture smooth_fresh
@@ -50,8 +56,24 @@ smoothorder check
 smoothorder game
 samecapture smooth smooth_before 1 0
 samecapture smooth smooth_split 8 0.002
+msaa 4
+anisotropy 4
+capture smooth4
+smoothcheck plain smooth4 0.002 0.2
+msaa 2
+anisotropy 1
+capture msaa2
+smoothcheck plain msaa2 0.002 0.2
+msaa 1
+anisotropy 8
+capture anisotropy8
+smoothcheck plain anisotropy8 0.005 0.2
+msaa 8
+anisotropy 16
 unfreeze
+renderstats -
 frames 5
+renderstats quality
 terraincache check
 check IsAlive(GetLeader())
 report

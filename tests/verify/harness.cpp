@@ -281,25 +281,27 @@
 //                             level 0, both box-filtered to 4 x 4 (render::CheckMmpLevels: levels read
 //                             from the wrong bytes drew bright green strips over the trees, R12b).
 //                             Skipped in a run of the original code
-//   smooth on|off             the image's smooth option (render::SetSmooth, R12a: the world view
-//                             multisampled, its models sampled anisotropically), from the next frame;
-//                             "render smooth" turns it on from the start. Ignored in a
-//                             run of the original code
+//   msaa <samples>            the image's render quality (R12a, R33; off in a run unless set): the world
+//   anisotropy <level>        view multisampled with <samples> (1 off, 2, 4, 8: render::SetMsaa), its
+//                             models sampled anisotropically at <level> (1 off .. 16:
+//                             render::SetAnisotropy), from the next frame. Ignored in a run of the
+//                             original code
 //   smoothcheck <plain> <smooth> <least> <most>
-//                             require the smooth option on, the last frame's world drawn multisampled
-//                             (as many samples as the device gives, at least 2) and resolved, models
-//                             in it sampled anisotropically, and frames\<smooth>.bmp to differ from
-//                             frames\<plain>.bmp (the same frozen moment without the option) in a
-//                             fraction of its pixels (by more than 8) within <least>..<most>: the
+//                             require the last frame drawn at the render quality's levels: with msaa
+//                             above 1 its world multisampled (as many samples as asked, at most the
+//                             device's, at least 2) and resolved, else not; with anisotropy above 1
+//                             models in it sampled anisotropically, else none; and frames\<smooth>.bmp
+//                             to differ from frames\<plain>.bmp (the same frozen moment with both off)
+//                             in a fraction of its pixels (by more than 8) within <least>..<most>: the
 //                             world's edges and textures, nothing black or stale. Skipped in a run of
 //                             the original code
 //   smoothorder game|before|split|check
-//                             the image's smooth option's passes in an order the game never draws
+//                             the image's multisampled passes in an order the game never draws
 //                             (render::SetSmoothOrder, R12a1), from the next frame: an empty pass on
 //                             the frame target before the world (before), or the world split in two at
 //                             its middle command with an empty pass between (split): the world's later
 //                             run starts from the copy of the frame target into every sample. check
-//                             requires the last frame drawn so: the option on, multisampled, and copies
+//                             requires the last frame drawn so: msaa above 1, multisampled, and copies
 //                             into the multisampled target (none for game; split also two depth copies
 //                             back). Ignored in a run of the original code
 //   shadowcheck <casters>     require the last frame's shadow map made with at least <casters> objects
@@ -2195,7 +2197,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "smooth" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "renderstats";
 }
 
 // The steps that post input messages to the game window.

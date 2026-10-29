@@ -43,7 +43,8 @@ using namespace detail;
 // --- The switch ------------------------------------------------------------------------------------
 
 bool g_configured = false;
-bool g_smooth = false;
+int g_msaa = 1;         // the render quality (SetMsaa, SetAnisotropy); not EI_RENDER's
+int g_anisotropy = 1;
 bool g_smoothCamera = false;
 ViewSmoothing g_smoothView = ViewSmoothing::Off;   // the smooth view (an experiment)
 #if defined(EI_RENDER_VALIDATION)
@@ -53,7 +54,6 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 
 // EI_RENDER's words (render.h).
 void ParseSpec(const char* spec) {
-    g_smooth = false;
     g_smoothCamera = false;
     g_smoothView = ViewSmoothing::Off;
 #if defined(EI_RENDER_VALIDATION)
@@ -67,8 +67,7 @@ void ParseSpec(const char* spec) {
         std::string word = s.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
         while (!word.empty() && word.front() == ' ') word.erase(word.begin());
         while (!word.empty() && word.back() == ' ') word.pop_back();
-        if (word == "smooth") g_smooth = true;
-        else if (word == "smoothcamera") g_smoothCamera = true;
+        if (word == "smoothcamera") g_smoothCamera = true;
         else if (word == "smoothview") g_smoothView = ViewSmoothing::Between;
         else if (word == "smoothviewspread") g_smoothView = ViewSmoothing::Spread;
 #if defined(EI_RENDER_VALIDATION)
@@ -280,7 +279,7 @@ int g_width = 0, g_height = 0;
 sg_image g_colour{}, g_depth{};
 sg_view g_colourAttachment{}, g_colourTexture{}, g_depthAttachment{};
 bool g_haveFrame = false;
-// With the smooth option the world's runs of commands draw into a multisampled target of
+// With multisampling (SetMsaa) the world's runs of commands draw into a multisampled target of
 // g_targetSamples (render_smooth.cpp) whose colour each such pass resolves into g_colour; the frame
 // target's depth has a texture view then (copied into the multisampled one before a world run).
 int g_targetSamples = 1;
@@ -357,10 +356,10 @@ bool MakeMultisampled(int width, int height, int samples) {
     return true;
 }
 
-// The frame target of the game's size; the multisampled one beside it when the smooth option is on.
-// The option's change takes effect at a frame's first pass (`mayChange`).
+// The frame target of the game's size; the multisampled one beside it when the render quality asks for
+// multisampling (SetMsaa: at most the device's samples). A change takes effect at a frame's first pass (`mayChange`).
 bool EnsureTarget(int width, int height, bool mayChange) {
-    int samples = g_smooth ? g_deviceSamples : 1;
+    int samples = g_msaa < g_deviceSamples ? g_msaa : g_deviceSamples;
     if (width == g_width && height == g_height && g_colour.id && (samples == g_targetSamples || !mayChange)) return true;
     DestroyTarget();
     sg_image_desc colour{};
@@ -397,12 +396,12 @@ bool EnsureTarget(int width, int height, bool mayChange) {
     g_width = width;
     g_height = height;
     if (samples > 1 && !MakeMultisampled(width, height, samples)) {
-        ei::Log("render: the smooth option: no %d-sample %dx%d target; the world is drawn without multisampling", samples, width, height);
+        ei::Log("render: msaa: no %d-sample %dx%d target; the world is drawn without multisampling", samples, width, height);
         g_deviceSamples = 1;
     }
-    if (g_smooth)
-        ei::Log("render: the smooth option: the world drawn with %d samples into the %dx%d frame, its models sampled "
-                "anisotropically (%u)", g_targetSamples, width, height, kAnisotropy);
+    if (g_msaa > 1)
+        ei::Log("render: msaa %d: the world drawn with %d samples into the %dx%d frame (the device gives %d)", g_msaa,
+                g_targetSamples, width, height, g_deviceSamples);
     return true;
 }
 
@@ -714,11 +713,11 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
         case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
         case Command::Mesh: {
             const MeshBatch& batch = g_frame.meshBatches[i];
-            // The smooth option: the world's models sampled anisotropically; the interface's sprites and
-            // previews and the pre-transformed draws as the stage says.
-            bool anisotropic = g_smooth && batch.model && InWorld(k);
-            if (batch.model) ++(anisotropic ? g_counts.anisotropicModels : g_counts.plainModels);
-            DrawMeshBatch(g_frame, batch, anisotropic);
+            // The render quality's anisotropy: the world's models sampled anisotropically at its level; the
+            // interface's sprites and previews and the pre-transformed draws as the stage says.
+            int anisotropy = batch.model && InWorld(k) ? g_anisotropy : 1;
+            if (batch.model) ++(anisotropy > 1 ? g_counts.anisotropicModels : g_counts.plainModels);
+            DrawMeshBatch(g_frame, batch, anisotropy);
             break;
         }
         case Command::Blit: DrawBlitBatch(g_frame, g_frame.blitBatches[i], width, height); break;
@@ -731,7 +730,7 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
 
 // Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first clearing
 // it. A frame is drawn in more than one pass when a copy of it is taken in its middle (CopyFrameTo), and with
-// the smooth option one pass per run of world and other commands. The interface canvases' queued drawing goes first.
+// multisampling one pass per run of world and other commands. The interface canvases' queued drawing goes first.
 bool DrawPending() {
     perf::BeginGpuFrame();
     RunCanvasCommands();
@@ -1032,15 +1031,29 @@ void EndShadowBuildTime() {
 
 void StartPresenting() { Start(); }
 
-void SetSmooth(bool on) {
-    EnsureConfigured();
-    if (on != g_smooth) ei::Log("render: the smooth option turned %s", on ? "on" : "off");
-    g_smooth = on;
+void SetMsaa(int samples) {
+    int level = 1;   // the largest power of two up to `samples`, at most kSmoothSamples
+    while (level * 2 <= samples && level * 2 <= kSmoothSamples) level *= 2;
+    if (level != g_msaa) ei::Log("render: msaa %d (asked %d)", level, samples);
+    g_msaa = level;
 }
 
-bool Smooth() {
-    EnsureConfigured();
-    return g_smooth;
+int Msaa() { return g_msaa; }
+
+void SetAnisotropy(int level) {
+    int clamped = level < 1 ? 1 : level > static_cast<int>(kMostAnisotropy) ? static_cast<int>(kMostAnisotropy) : level;
+    if (clamped != g_anisotropy) ei::Log("render: anisotropy %d (asked %d)", clamped, level);
+    g_anisotropy = clamped;
+}
+
+int Anisotropy() { return g_anisotropy; }
+
+bool QualitySettingsSupported() {
+#if defined(EI_RENDER_VALIDATION)
+    return false;   // the harness build: its pinned settings file lacks the values; its steps set them
+#else
+    return true;
+#endif
 }
 
 void SetSmoothCamera(bool on) {
@@ -1266,14 +1279,15 @@ int PassSampleCount() { return g_passSamples; }
 void SetSmoothOrder(SmoothOrder order) {
     static const char* const kNames[] = {"as the game draws", "an empty pass on the frame target before the world",
                                          "the world split in two at its middle command"};
-    if (order != g_smoothOrder) ei::Log("render: the smooth option's passes: %s", kNames[static_cast<int>(order)]);
+    if (order != g_smoothOrder) ei::Log("render: the multisampled passes: %s", kNames[static_cast<int>(order)]);
     g_smoothOrder = order;
 }
 #endif
 
 SmoothInfo SmoothState() {
     SmoothInfo info = g_lastCounts;
-    info.on = Smooth();
+    info.msaa = g_msaa;
+    info.anisotropy = g_anisotropy;
     info.deviceSamples = g_deviceSamples;
     info.targetSamples = g_targetSamples;
     return info;

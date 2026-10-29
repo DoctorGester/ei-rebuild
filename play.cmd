@@ -7,10 +7,13 @@ rem                      the bug fixes)
 rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default F:\games\EvilIslands) with the default flags (the bug fixes)
 rem                      and widescreen
 rem The release build (build\play, apart from the builds the suites use) is copied to run\play, so a
-rem game left open never locks a build, and drawn with the smooth option and the smooth camera. The settings are
+rem game left open never locks a build, and drawn with the smooth camera. The settings are
 rem run\play\ei_settings.ini, next to the exe (imported once from the registry; the starter's WideScreen is the switch).
-rem The performance overlay (FPS, frame and GPU times, draws; docs/notes/renderer.md section 15): add to that file
+rem The render quality (docs/notes/renderer.md section 11) is in that file, written with its defaults at the first start:
 rem   [Software\Nival Interactive\EvilIslands\Standalone]
+rem   "Msaa"=dword:00000008          the world's multisampling: 1 (off), 2, 4 or 8 (at most what the device gives)
+rem   "Anisotropy"=dword:00000010    the world's models' anisotropic sampling: 1 (off) .. 16 (hex: 10)
+rem The performance overlay (FPS, frame and GPU times, draws; docs/notes/renderer.md section 15): add to that key
 rem   "PerfOverlay"=dword:00000001
 rem Vsync (docs/notes/renderer.md section 15a): on by default; to run unlocked (tearing where the system allows it) add
 rem   "VSync"=dword:00000000
@@ -41,7 +44,7 @@ if /i "%MODE%"=="vanilla" (
 ) else (
     copy /y "%~dp0config\ei_rebirth_standalone.ini" "%PLAY%\ei_rebirth.ini" >nul
 )
-set EI_RENDER=smooth,smoothcamera
+set EI_RENDER=smoothcamera
 cd /d "%PLAY%"
 rem No --exe: ei_launch starts the ei_standalone.exe next to it, so the settings file is run\play's too.
 "%PLAY%\ei_launch.exe" --game "%GAME%" --standalone
