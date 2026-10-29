@@ -9,23 +9,11 @@
 
 namespace net {
 
-namespace {
-
-// The release a counted pointer's destructor inlines: one reference less, deleted at zero.
-void ReleaseInline(void* slot) {
-    auto* object = static_cast<CRefObject*>(slot);
-    if (!object) return;
-    --object->refs_;
-    if (object->refs_ == 0 && object) delete object;
-}
-
-} // namespace
-
 // The client base's part and the session base follow (their destructors).
 ClientSession::~ClientSession() {
     parties_[1].Get()->CParty::~CParty();
     parties_[0].Get()->CParty::~CParty();
-    if (trade_) trade_->Release();
+    trade_.Reset();
     tradeRecords_.clear();   // here, where the original destroys it
     offers_.clear();
     DestroyOwned(party_);
@@ -34,9 +22,9 @@ ClientSession::~ClientSession() {
     DestroyOwned(player_);
     variables_.clear();
     zones_.clear();
-    ReleaseInline(map_);
-    ReleaseInline(binding_);
-    ReleaseInline(info_);
+    map_.Reset();
+    binding_.Reset();
+    info_.Reset();
     fileRequests_.clear();
     chunks_.clear();
     files_.clear();

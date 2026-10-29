@@ -31,22 +31,6 @@ namespace {
 std::uint32_t FearDistanceBits() { return 0x41200000u; }
 
 
-// The mode list's elements are owning pointers: released with DestroyOwned, added with ShareOwned
-// (which may hand out a clone).
-
-// Empties the mode list, each element released first.
-void ReleaseAllModes(std::list<AIMode*>& modes) {
-    for (auto& node : modes) DestroyOwned(node);
-    modes.clear();
-}
-
-// Removes one node: unlink, release the element, return the node to the free list (the last
-// node frees the blocks).
-void RemoveModeNode(std::list<AIMode*>& modes, std::list<AIMode*>::iterator  node) {
-    DestroyOwned(*node);
-    modes.erase(node);
-}
-
 // The tail both standard sets share.
 void AddAlertModes(AIBrain* brain) {
     brain->AddSuspectionMode();
@@ -90,28 +74,24 @@ void AIBrain::AddMode(AIMode* mode) {
         AIMode* old = *node;
         if (old->GetType() == type || (exclusive && old->Exclusive())) {
             if (current == *node) current.Reset();
-            RemoveModeNode(modes, node);
+            modes.erase(node);
             break;
         }
         node = next;
     }
-    auto node = modes.emplace(modes.end());
-    if (mode != *node) {
-        DestroyOwned(*node);
-        ShareOwned(*node, mode);
-    }
+    modes.emplace_back(mode);
 }
 
 void AIBrain::RemoveModesOfType(AIModeType type) {
     for (auto node = modes.begin(); node != modes.end();) {
         auto next = std::next(node);
-        if ((*node)->GetType() == type) RemoveModeNode(modes, node);
+        if ((*node)->GetType() == type) modes.erase(node);
         node = next;
     }
 }
 
 void AIBrain::ClearModes() {
-    ReleaseAllModes(modes);
+    modes.clear();
     current.Reset();
     nearX = kNearPointCleared;
     nearY = kNearPointCleared;
@@ -119,7 +99,7 @@ void AIBrain::ClearModes() {
 }
 
 void AIBrain::Reset() {
-    ReleaseAllModes(modes);
+    modes.clear();
     current.Reset();
     nearX = kNearPointCleared;
     nearY = kNearPointCleared;
@@ -133,7 +113,7 @@ void AIBrain::Reset() {
 }
 
 void AIBrain::Init() {
-    ReleaseAllModes(modes);
+    modes.clear();
     current.Reset();
     nearX = kNearPointCleared;
     nearY = kNearPointCleared;
@@ -345,7 +325,7 @@ bool AIReports::Contains(CEngineObject* object) const {
 // --- Save games -----------------------------------------------------------------------------------
 
 void AIBrain::Load(CStream* stream) {
-    ReleaseAllModes(modes);
+    modes.clear();
     current.Reset();
     nearX = kNearPointCleared;
     decay = 1.0f;
@@ -376,9 +356,7 @@ void AIBrain::Load(CStream* stream) {
         AIMode* mode = NewModeOfType(type);
         if (!mode) return;      // an unknown type leaves Load at once (the switch's default)
         mode->Load(stream);
-        // Appends a node holding the mode (ShareAssignOwned).
-        auto node = modes.emplace(modes.end());
-        ShareAssignOwned(*node, mode);
+        modes.emplace_back(mode);
         if (i == currentIndex) current.Assign(modes.back());
     }
     memory.Load(stream);

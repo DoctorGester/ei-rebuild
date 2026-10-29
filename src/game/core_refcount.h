@@ -57,7 +57,7 @@ public:
 // copy-on-share object hands out a clone, and the owner's release of a still-shared object detaches it and shuts
 // it down first (the others see it is gone with IsLive). The network messages, sessions, server entries and links
 // and the AI's modes and unit shapes are held this way: a field as a Ref (released with DestroyOwned), a container
-// element as a SharedRef; the AI's mode list holds raw pointers (the T*& overloads).
+// element as a SharedRef.
 
 // The owner's release: a still-shared object is detached and shut down first, then the slot's content (reloaded:
 // the shutdown may have changed it) is released and the slot emptied.
@@ -114,37 +114,3 @@ public:
     }
     ~SharedRef() { DestroyOwned(*this); }
 };
-
-// The same three on a raw slot (the AI's mode list). DestroyOwned leaves the slot as it was; ShareOwned stores
-// null for a null or detached object.
-template <typename T>
-void DestroyOwned(T*& slot) {
-    static_assert(std::is_base_of_v<CRefObject, T>);
-    T* object = slot;
-    if (!object) return;
-    if (object->refs_ != 1) {
-        object->flags7_ |= CRefCounted::kDetached;
-        object->AddRef();
-        object->OnShutdown();
-        --object->refs_;
-    }
-    if (T* reloaded = slot) reloaded->Release();
-}
-template <typename T>
-void ShareOwned(T*& slot, T* object) {
-    static_assert(std::is_base_of_v<CRefObject, T>);
-    if (!object || (object->flags7_ & CRefCounted::kDetached)) {
-        slot = nullptr;
-        return;
-    }
-    if (object->flags6_ & CRefCounted::kCopyOnShare) object = static_cast<T*>(object->Clone());
-    slot = object;
-    object->AddRef();
-    object->flags6_ |= CRefCounted::kCopyOnShare;
-}
-template <typename T>
-void ShareAssignOwned(T*& slot, T* object) {
-    if (object == slot) return;
-    DestroyOwned(slot);
-    ShareOwned(slot, object);
-}

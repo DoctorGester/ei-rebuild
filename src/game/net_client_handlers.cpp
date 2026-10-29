@@ -50,33 +50,6 @@ void RemoveRaw(List& list, Message* message) {
     RemoveValue(list, message);
 }
 
-// Counted pointers as the handlers inline them.
-template <typename T>
-struct SlotOf {
-    using Type = T;
-};
-// The counted slot `slot` holds `object` (one more reference); the previous object released.
-template <typename T>
-void AssignRef(T** slot, typename SlotOf<T>::Type* object) {
-    T*& holder = *slot;
-    T* previous = holder;
-    holder = object;
-    if (object) object->AddRef();
-    if (previous) {
-        --previous->refs_;
-        if (previous->refs_ == 0) delete previous;
-    }
-}
-template <typename T>
-void ClearRef(T** slot) {
-    T*& holder = *slot;
-    T* previous = holder;
-    holder = nullptr;
-    if (previous) {
-        --previous->refs_;
-        if (previous->refs_ == 0) delete previous;
-    }
-}
 template <typename List>
 void RemoveCounted(List& list, Message* message) {
     HeldRef<CRefObject> held(message);
@@ -152,10 +125,10 @@ void ClientDropParty(ClientSession* self) { DropParty(self); }
 // and the original's binding does not refresh: the base screen's faces followed the heap. Ours
 // (address_order.h) refreshes the list when players came before the binding, as if it came first.
 void ClientOnBinding(ClientSession* self, BindingMessage* message) {
-    AssignRef(&self->binding_, message);
+    self->binding_.Assign(message);
     if (!self->players_.empty()) g_interface.OnPlayersChanged(1);
 }
-void ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
+void ClientOnBindingGone(ClientSession* self, Message*) { self->binding_.Reset(); }
 // The players, with the interface's player list refreshed.
 void ClientOnPlayer(ClientSession* self, Message* message) {
     Append(self->players_, message);
@@ -173,8 +146,8 @@ void ClientOnLine(ClientSession* self, LineMessage* message) {
 }
 void ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }
 // The host message kept.
-void ClientOnInfo(ClientSession* self, HostMessage* message) { AssignRef(&self->info_, message); }
-void ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }
+void ClientOnInfo(ClientSession* self, HostMessage* message) { self->info_.Assign(message); }
+void ClientOnInfoGone(ClientSession* self, Message*) { self->info_.Reset(); }
 // The zones offered, passed to the game flow.
 void ClientOnZone(ClientSession* self, ZoneMessage* message) {
     Append(self->zones_, message);
@@ -186,13 +159,13 @@ void ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
 }
 // The current map; without a server of our own the flow loads it.
 void ClientOnMap(ClientSession* self, MapMessage* message) {
-    AssignRef(&self->map_, message);
+    self->map_.Assign(message);
     ServerSession* server = g_gameServer;
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(&g_gameFlow, message->text_.data());
     g_gameFlow.RegisterQuests(message->text_.data());
 }
-void ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }
+void ClientOnMapGone(ClientSession* self, Message*) { self->map_.Reset(); }
 // The script variables; the flow is told of every change.
 void ClientOnVariable(ClientSession* self, Message* message) {
     Append(self->variables_, message);
@@ -285,7 +258,7 @@ void ClientOnMember(ClientSession* self, Message*) {
 }
 // The trade: a new one empties the trade records and resets both parties.
 void ClientOnTrade(ClientSession* self, TradeMessage* message) {
-    AssignRef(&self->trade_, message);
+    self->trade_.Assign(message);
     ClearTradeRecords(self);
     self->parties_[0].Get()->Clear(1, 0);
     self->parties_[1].Get()->Clear(1, 0);
@@ -308,13 +281,13 @@ void ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {
             break;
         }
     }
-    ClearRef(&self->trade_);
+    self->trade_.Reset();
     DropParty(self);
     ClearTradeRecords(self);
 }
 void ClientOnTradeGone(ClientSession* self, Message* message) {
     if (self->trade_ != message) return;
-    ClearRef(&self->trade_);
+    self->trade_.Reset();
     DropParty(self);
     ClearTradeRecords(self);
 }

@@ -35,10 +35,6 @@ ClientBase::ClientBase() {
 }
 
 ClientSession::ClientSession() {
-    info_ = nullptr;
-    binding_ = nullptr;
-    map_ = nullptr;
-    trade_ = nullptr;
     PartyConstruct(&parties_[0]);
     PartyConstruct(&parties_[1]);
 
