@@ -109,7 +109,7 @@ address,size,name,file
 00791978,36,kDirectionSteps,src/game/ai_map.h
 00791EE0,4,g_loadingMovieName,src/game/app_main.cpp
 007930EC,12,g_pauseMessageKey,src/game/ui_interface_save.cpp
-00793378,8,kFolders,src/game/ui_briefing_phrases.cpp
+00793378,8,kVoiceFolders,src/game/ui_briefing_phrases.cpp
 00793AD8,4,g_connectTextColour,src/game/ui_screens.h
 00793BD4,28,kNames,src/game/ui_camp.h
 00793BF0,32,kNames,src/game/ui_camp.h
@@ -270,8 +270,6 @@ address,size,name,file
 007C8144,4,kHudQuarterTurn,src/game/ui.h
 007C8150,16,kHudRestRotation,src/game/ui.h
 007C8170,4,kExitTurn,src/game/ui_objectives.cpp
-007C8174,1,g_lastQuestDestroyed,src/game/ui_objectives.cpp
-007C8178,4,g_lastQuest,src/game/ui_objectives.cpp
 007C81A0,4,kOptionsTilt,src/game/ui_layouts.cpp
 007C81C8,4,kSaveLoadTilt,src/game/ui_layouts.cpp
 007C8210,4,kQuarterTurn,src/game/ui_options.cpp

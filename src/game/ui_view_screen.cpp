@@ -17,8 +17,6 @@
 
 namespace {
 
-constexpr int kVkControl = 0x11;
-constexpr int kVkSpace = 0x20;
 constexpr int kCursorNormal = 0;
 constexpr int kCursorCtrl = 1;
 constexpr int kAttackHow = 6;
@@ -32,17 +30,6 @@ float TurnAngle() {
     return static_cast<float>(pi * perDegree * degrees);
 }
 
-// A one-unit order list as the original builds it on the stack: SetSize(1), the unit stored.
-// Freed with Release (the vtable written back, the data deleted).
-struct OneUnit {
-    explicit OneUnit(CUnit* unit) {
-        units.resize(1);
-        units[0] = unit;
-    }
-    ~OneUnit() {
-    }
-    std::vector<CUnit*> units{};
-};
 } // namespace
 
 // --- CViewScreen -------------------------------------------------------------
@@ -71,12 +58,6 @@ void CViewScreen::CloseScreen() { g_camera->flags_ |= CCamera::kFree; }
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 
-UnitPickInput::UnitPickInput(CInterface3D* ui) : UiInputSide(ui) {
-    picked_ = std::vector<std::uint32_t>{};
-}
-
-UnitPickInput::~UnitPickInput() = default;
-
 void UnitPickInput::LeftDown(int, int x, int y) {
     CWorldClient* world = &g_clientWorld.Get();
     const POINT point = {x, y};
@@ -94,15 +75,15 @@ void UnitPickInput::LeftDown(int, int x, int y) {
         for (int i = 0; i < std::ssize(picked_); ++i) {
             auto* member = GameFindClientUnit(picked_[i]);
             if (!member) continue;
-            OneUnit order(member);
-            world->LocalView()->SendWalk(&order.units, &ground, 0);
+            std::vector<CUnit*> order{member};
+            world->LocalView()->SendWalk(&order, &ground, 0);
         }
     } else if (unit) {
         for (int i = 0; i < std::ssize(picked_); ++i) {
             auto* member = GameFindClientUnit(picked_[i]);
             if (!member) continue;
-            OneUnit order(member);
-            world->LocalView()->SendAttack(&order.units, unit, kAttackHow, 0);
+            std::vector<CUnit*> order{member};
+            world->LocalView()->SendAttack(&order, unit, kAttackHow, 0);
         }
     }
 }
@@ -113,13 +94,13 @@ void UnitPickInput::RightDown(int, int, int) {
 }
 
 void UnitPickInput::KeyDown(int key, int, int) {
-    if (key == kVkControl) {
+    if (key == VK_CONTROL) {
         g_cursor->SetShape(kCursorCtrl);
-    } else if (key == kVkSpace) {
+    } else if (key == VK_SPACE) {
         GameSetServerPaused(g_serverWorld->paused_ == 0);
     }
 }
 
 void UnitPickInput::KeyUp(int key, int, int) {
-    if (key == kVkControl) g_cursor->SetShape(kCursorNormal);
+    if (key == VK_CONTROL) g_cursor->SetShape(kCursorNormal);
 }

@@ -31,9 +31,7 @@ const char* const kSoundMenuStone = "buttons\\menu\\stone.wav";
 const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
 const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 
-// Item fields read by the strips: a loot item's record type and record index.
-std::uint32_t ItemRecord(const CItem* item) { return AsLoot(item)->index_; }
-
+// The tab keys select the strips' tabs (the "switch_filters" option).
 bool TabKeysEnabled() { return options::g_options->switchFilters_ != 0; }
 
 // The item as loot (type ItemKind::Loot), or null.
@@ -80,10 +78,6 @@ bool IsBuildable(const CItem* item) {
     return prototype &&
            text::CompareIgnoringCase(prototype->materialClass, game::NoneText()) != 0;
 }
-
-namespace uiorig {
-void LeaveGame() { g_gameFlow->CloseSessions(); }
-} // namespace uiorig
 
 // --- CUiItemStrip -----------------------------------------------------------------------------
 
@@ -150,7 +144,7 @@ int CUiItemStrip::ItemTab(const CItem* item) {
 int CUiItemStrip::SpellTab(const CItem* item) {
     if (IsSpell(item)) {
         // A record out of range is read through null, as in the original.
-        const itemdb::SpellRecord* spell = itemdb::SpellAt(ItemRecord(item));
+        const itemdb::SpellRecord* spell = itemdb::SpellAt(AsLoot(item)->index_);
         switch (spell->castType) {
         case 0: return 0;
         case 1: return 1;
@@ -159,7 +153,7 @@ int CUiItemStrip::SpellTab(const CItem* item) {
         }
     }
     if (IsModifier(item)) {
-        const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(ItemRecord(item));
+        const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index_);
         return (static_cast<int>(modifier->kind) > 5) + 3;
     }
     return 5;
@@ -170,7 +164,7 @@ int CUiItemStrip::ArmorTab(const CItem* item) {
         switch (AsLoot(item)->recordType_) {
         case LootRecordType::Weapon: return 0;
         case LootRecordType::Armor: {
-            auto* armor = itemdb::ArmorAt(ItemRecord(item));
+            auto* armor = itemdb::ArmorAt(AsLoot(item)->index_);
             return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
         }
         case LootRecordType::Quick: return 3;
@@ -280,16 +274,16 @@ void CUiItemStrip::SettleScroll() {
     }
     scrollDirection_ = 0;
     scrollTimer_ = 0.0f;
-    UiCapture(interface_) = nullptr;
+    interface_->mouseCapture_ = nullptr;
 }
 
 void CUiItemStrip::LeftDown(int, int x, int y) {
     CInterface3D* ui = interface_;
     int region = RegionAt(x, y);
     if (region == 0 || region == 1) {
-        if (!UiShiftDown(ui)) {
+        if (!ui->shiftDown_) {
             ui->PlaySound(kSoundCampScroll);
-            UiCapture(ui) = Input();
+            ui->mouseCapture_ = Input();
             scrollDirection_ = region == 0 ? 1 : 2;
         } else {
             // Shift jumps to the start or (clamped later) the end.
@@ -543,7 +537,7 @@ void CEscMenu::MessageResult(int result) {
     } else if (static_cast<std::uint32_t>(result) >= 0x100001) {
         interface_->SetPendingValue(0);
     } else if (result == 0x10001) {
-        uiorig::LeaveGame();
+        g_gameFlow->CloseSessions();
     }
 }
 
@@ -551,7 +545,7 @@ void CEscMenu::MessageResult(int result) {
 
 void CCreditsScreen::Close() {
     if (fromGame_) interface_->SetPendingValue(0xCCCCCCCC);
-    else uiorig::LeaveGame();
+    else g_gameFlow->CloseSessions();
 }
 
 void CCreditsScreen::LeftDown(int, int, int) { Close(); }

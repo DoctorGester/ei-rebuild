@@ -7,6 +7,7 @@
 #include "ui.h"
 #include "ui_briefing.h"
 #include "world.h"
+#include "world_glue.h"
 
 #include "lib/text_case.h"
 
@@ -15,9 +16,9 @@
 
 namespace {
 
-const char* ClickSound() { return "buttons\\base\\click1.wav"; }
-const char* QuickSaveName() { return "saveq"; }
-const char* QuestPrefix() { return "q."; }
+constexpr const char* kClickSound = "buttons\\base\\click1.wav";
+constexpr const char* kQuickSaveName = "saveq";
+constexpr const char* kQuestPrefix = "q.";
 
 
 constexpr int kScanCodeMask = 0x1FF;
@@ -28,27 +29,22 @@ constexpr int kActionQuickLoad = '6';
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 constexpr int kQuestNameParts = 3;               // "q", zone, quest
 
-std::uint32_t Bits(float value) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(value);
-    return bits;
-}
-
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
 // active.
 void OpenObjectives(CInterface3D* ui) {
     MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
     if (!zone) return;
     std::vector<std::string> parts;
-    BriefingVariables quests(QuestPrefix());
+    NamedFloatTable quests;
+    PlayerZeroVariables(kQuestPrefix, &quests);
     for (auto& node : quests) {
         text::Split(node.first, &parts, '.');
-        if (parts.size() != kQuestNameParts || Bits(node.second) != kOneBits) continue;
+        if (parts.size() != kQuestNameParts || std::bit_cast<std::uint32_t>(node.second) != kOneBits) continue;
         MapRecord* questZone = g_mapDatabase->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
         auto* window = new CObjectivesWindow(ui);
-        window->Setup(LocalPlayerZone(), nullptr, 0, 1);
+        window->Setup(LocalPlayerZone(), nullptr, false, true);
         ui->PushWindow(window, 1, 1);
         break;
     }
@@ -75,10 +71,10 @@ void CBriefingScreen::KeyDown(int key, int repeat, int flags) {
         if (IsMultiplayerClient()) {
             interface_->ChatKeyEnter();
         } else if (state_ == 3) {
-            interface_->PlaySound(ClickSound());
-            while (state_ == 3) NextPhrase(1);
+            interface_->PlaySound(kClickSound);
+            while (state_ == 3) NextPhrase(true);
         } else if (state_ == 4) {
-            interface_->PlaySound(ClickSound());
+            interface_->PlaySound(kClickSound);
             FinishDialogue();
         }
         handled_ = true;
@@ -87,13 +83,13 @@ void CBriefingScreen::KeyDown(int key, int repeat, int flags) {
         if (state_ == 0) {
             interface_->PushWindow(new CEscMenu(interface_), 1, 1);
         } else if (state_ == 3) {
-            interface_->PlaySound(ClickSound());
-            while (state_ == 3) NextPhrase(1);
+            interface_->PlaySound(kClickSound);
+            while (state_ == 3) NextPhrase(true);
         } else if (state_ == 4) {
-            interface_->PlaySound(ClickSound());
+            interface_->PlaySound(kClickSound);
             FinishDialogue();
         } else if (state_ == 2) {
-            StartDialogue(1, 0);
+            StartDialogue(true, false);
         } else if (state_ == 1) {
             state_ = 0;
         }
@@ -101,13 +97,13 @@ void CBriefingScreen::KeyDown(int key, int repeat, int flags) {
         return;
     case VK_SPACE:
         if (state_ == 3) {
-            interface_->PlaySound(ClickSound());
-            NextPhrase(0);
+            interface_->PlaySound(kClickSound);
+            NextPhrase(false);
         } else if (state_ == 4) {
-            interface_->PlaySound(ClickSound());
+            interface_->PlaySound(kClickSound);
             FinishDialogue();
         } else if (state_ == 2) {
-            StartDialogue(1, 0);
+            StartDialogue(true, false);
         }
         handled_ = true;
         return;
@@ -124,10 +120,10 @@ void CBriefingScreen::KeyDown(int key, int repeat, int flags) {
         handled_ = true;
         break;
     case kActionQuickSave:
-        ::QuickSave(QuickSaveName(), static_cast<char>(0));
+        ::QuickSave(kQuickSaveName, false);
         break;
     case kActionQuickLoad:
-        QuickLoad(QuickSaveName());
+        QuickLoad(kQuickSaveName);
         break;
     default:
         break;

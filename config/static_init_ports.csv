@@ -92,8 +92,6 @@ address,name,file
 005F4680,ConstructInterface,src/game/ui_small_members.cpp
 005F46A0,CInterface3D::Construct,src/game/ui_small_members.cpp
 005F4780,DestroyInterface,src/game/ui_small_members.cpp
-0064BE00,ConstructLastQuest,src/game/ui_objectives.cpp
-0064BE20,DestroyLastQuest,src/game/ui_objectives.cpp
 0065F2A0,ConstructSavedParties,src/game/party_file.cpp
 0065F2C0,DestroySavedParties,src/game/party_file.cpp
 0066C4F0,CMemoryStream::CMemoryStream,src/game/core_streams.cpp

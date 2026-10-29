@@ -251,11 +251,6 @@ void CloseLoadingMovie() {
     g_cursor->ShowImage(1);
 }
 
-CBinkVideo* CBinkVideo::Construct() {
-    bink = nullptr;
-    return this;
-}
-
 void CBinkVideo::Close() {
     if (bink) {
         gameapi::BinkClose(bink);
@@ -263,5 +258,3 @@ void CBinkVideo::Close() {
     }
     g_cursor->ShowImage(1);
 }
-
-void CBinkVideo::Destruct() { Close(); }

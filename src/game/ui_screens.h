@@ -36,11 +36,6 @@ inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
 // A shift key is held (set by the key-down dispatch).
 inline bool UiShiftDown(const CInterface3D* ui) { return ui->shiftDown_ != 0; }
 
-namespace uiorig {
-// Leaves the running game for the main menu (the game object global).
-void LeaveGame();
-} // namespace uiorig
-
 // The item predicates of the camp screens. Loot items (type ItemKind::Loot, CItemLoot) are sorted by kind and record
 // type.
 bool IsPart(const CItem* item);             // kind 2, record type 0-2 (blueprint parts)
@@ -326,11 +321,8 @@ inline std::uint32_t g_connectTextColour = /*00793AD8*/ 0xA7D7E4;
 
 class CMpConnectScreen : public CUiContainer {
 public:
-    explicit CMpConnectScreen(CInterface3D* ui) : CUiContainer(ui) {
-        selectedAddress_ = net::NetAddress{};
-    }
+    using CUiContainer::CUiContainer;
     void CloseScreen() override {}
-    void MessageResult(int result) override { OnBoxResult(static_cast<std::uint32_t>(result)); }
 
     // The message box results: the kinds the screen opens boxes with, ORed with 1 (OK) or 2 (cancel) when
     // they come back.
@@ -355,7 +347,7 @@ public:
     // address book written, the list drawn; the master request ending (0x40002) draws the list; the new
     // game's password (0x30001 / 0x30002) is kept and its switch shows whether there is one; a join password
     // (0x50001) joins the selected server with it and sets the client's game type from the row.
-    void OnBoxResult(std::uint32_t result);
+    void MessageResult(int result) override;
     // By region (above): 0 Connect, 1 back (the cancel sound, the address book written, the network sessions dropped, the
     // screen closed with 0x1000001), 2 MasterRequest, 3 EditAddress, 4 the unlisted switch, 5 the password (none: a box for
     // one; else it is dropped), 6-9 the sort column (a second click reverses it), 10-13 the game type (only with row 0
@@ -395,7 +387,7 @@ public:
     float refreshTimer_;           // seconds since the last refresh (0.5 s period)
     std::vector<MpAddressEntry> entries_;
     int selected_;                 // row
-    net::NetAddress selectedAddress_;   // the selected row's address (0: row 0)
+    net::NetAddress selectedAddress_{};   // the selected row's address (0: row 0)
     int scrollTop_;                // the first row shown
     CUiScrollbar* scroll_;
     CUiSlider* playersSlider_;     // the new game's maximum players - 1
@@ -408,7 +400,6 @@ public:
     std::vector<std::string> allodNames_; // "lmp_allod_name %d" texts (the game type tabs)
     bool joining_;                 // the client was asking a host last frame
     std::vector<std::string> texts_;      // "lmp_connection %d" texts (22)
-    int spare_;                    // 0 from Create; nothing else touches it
     int sortKey_;                  // 0 none; 1..8 the column pairs (odd ascending)
     bool newGameTips_;             // the unlisted and password regions have their tips (DrawList; 0 from Create)
 };
@@ -472,14 +463,14 @@ public:
     // Loads the text file `name` of `archive` into the surface (LoadRtf); whether it was found.
     bool Load(CMappedResource* archive, const char* name);
     // Reads the RTF block and lays it out at the surface's width (render_rich_text.h), the offset 0, the text
-    // rendered. Returns true.
-    bool LoadRtf(const void* data, std::uint32_t size);
+    // rendered.
+    void LoadRtf(const void* data, std::uint32_t size);
     // While the speed is not 0 the offset moves by the game time passed times the speed (truncated) and the
     // text is rendered again; then the surface's own draw.
     void Blit() override;
     // Starts the text at `speed` (0: still), from below the surface when `fromBelow` (the offset minus the surface's height in
     // twips); the end offset 0, the start time the game time.
-    void Start(float speed, char fromBelow);
+    void Start(float speed, bool fromBelow);
     // Draws the text onto the canvas, white first, its top `offset_` twips above the surface's. The first time the whole
     // text fits above 1000 twips below the surface the offset is kept; once the offset has moved 1000 twips plus the
     // height past it, the speed and the kept offset become 0 (RichEdit's EM_FORMATRANGE end in the original).
@@ -496,7 +487,6 @@ public:
 class CCreditsScreen : public CUiContainer {
 public:
     CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name);
-    ~CCreditsScreen() override;
     void LeftDown(int flags, int x, int y) override;
     void KeyDown(int key, int repeat, int flags) override;
     // Ends the titles: back to where they were opened from.
@@ -520,7 +510,7 @@ public:
 
     CUiScrollingSurface* textSurface_;   // the scrolling text
     CUiSurface* headerSurface_;
-    lib::InPlace<CMappedResource> archive_;   // "outro.res" (built and destroyed by hand)
+    CMappedResource archive_;   // "outro.res"
     std::list<TitleLine> lines_;
     float nextLineAt_;          // game time the current line ends (0 from Build and for scrolls)
     std::list<TitleLine>::iterator currentLine_;   // the next line (end() at the end)
@@ -538,7 +528,8 @@ class CMainMenu : public CUiContainer {
 public:
     explicit CMainMenu(CInterface3D* ui) : CUiContainer(ui) {}
     void Draw(CSceneRenderer* pass) override;
-    void CloseScreen() override { Close(); }
+    // The map edge fade put back, the sounds and the ambience stopped.
+    void CloseScreen() override;
     // By region: 0 the difficulty question (a message box), 1 load (the save/load window), 2 the exit movie and quit, 3
     // options, 4 the titles (surfaces cleared, opened over the menu), 5 multiplayer (status "reserved_04", the server flag, the
     // hero screen). Then the container's handler.
@@ -554,8 +545,6 @@ public:
     // changing); at night before 6 with rain and an option bit, every 100 ms a 1 in 41 chance of a lightning
     // bolt at random; the hour kept.
     void Update() override;
-    // The map edge fade put back, then two interface calls.
-    void Close();
     // A message box's answer (the flow's party step 0 and the server flag cleared first): 0x10001 (the quit
     // box's yes) the exit movie and quit, 0x20001 the intro movie and the flow's state 3, 0xCCCCCCCC (the
     // titles closed) the version line again.

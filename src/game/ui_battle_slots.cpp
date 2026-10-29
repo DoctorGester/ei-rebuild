@@ -59,7 +59,7 @@ bool CBattleScreen::ReadyToStopPolling() {
     if (hasHero_) {
         auto& party = party_;
         if (!party.empty()) g_camera->SetTarget(party[0]);
-        if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), static_cast<char>(1));
+        if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), true);
         hasHero_ = false;
         interface_->OpenHelp(0);
     }
@@ -186,7 +186,7 @@ void CBattleScreen::MessageResult(int result) {
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
         g_gameFlow->DropSessions();
-        uiorig::LeaveGame();
+        g_gameFlow->CloseSessions();
         break;
     default:
         break;

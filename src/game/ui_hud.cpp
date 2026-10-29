@@ -439,7 +439,7 @@ void CHudClock::OpenObjectives() {
     highlight_ = false;
     interface_->PlaySound(kSoundClick);
     auto* window = new CObjectivesWindow(interface_);
-    window->Setup(LocalPlayerZone(), nullptr, 0, 0);
+    window->Setup(LocalPlayerZone(), nullptr, false, false);
     interface_->PushWindow(window, 1, 1);
 }
 

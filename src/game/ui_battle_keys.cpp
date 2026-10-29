@@ -270,7 +270,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
         map_->sliding_ = true;
         return;
     case kActionQuickSave:
-        ::QuickSave(kQuickSaveName, static_cast<char>(0));
+        ::QuickSave(kQuickSaveName, false);
         return;
     case kActionQuickLoad:
         QuickLoad(kQuickSaveName);

@@ -109,7 +109,3 @@ void CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     }
     ClearUiDepth(1.0f);
 }
-
-void CObjectivesWindow::RestoreAlphaRef() {
-    render::g_renderState.alphaReference = savedAlphaRef_;
-}

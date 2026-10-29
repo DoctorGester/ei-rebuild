@@ -59,11 +59,6 @@ struct PageEntry {
     std::string picture;
 };
 
-bool Same(std::string_view word, std::string_view text) {
-    return text::CompareIgnoringCase(word,
-                           text) == 0;
-}
-
 void SetTint(CUiMesh* sprite, float value) { sprite->tint_[0] = sprite->tint_[1] = sprite->tint_[2] = value; }
 
 void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
@@ -81,8 +76,6 @@ void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int
     sprite->SetRectangle(3.0f, 100.0f, static_cast<float>(rect.left), static_cast<float>(rect.top),
                          static_cast<float>(rect.right), static_cast<float>(rect.bottom), u0, v0, u1, v1);
 }
-
-void SetRegion(CUiRegion* region, const RECT& rect) { region->SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 
 // Rebirth's WideScreen (addon's handler, a context hook over the first AddSprite of a
 // "#rectangle" line): on a message window (message_), the page "<text_>:<page_>" of the
@@ -117,12 +110,7 @@ void CHelpWindow::ShowPage() {
 
     CTextManager* texts = g_clientWorld->texts_;
     std::vector<std::string> words;
-    BOOL found;
-    {
-        std::string section = std::string(kTutorialSection) + text_;
-        found = texts->Open(section);
-    }
-    if (!found) {
+    if (!texts->Open(std::string(kTutorialSection) + text_)) {
         interface_->SetPendingValue(0);
         return;
     }
@@ -188,8 +176,8 @@ void CHelpWindow::ShowPage() {
     std::list<PageEntry> entries;
     while (texts->FindHeader()) {
         texts->Split(&words, 1);
-        if (Same(words[0], kScreenLine)) break;
-        if (Same(words[0], kRectangleLine) && words.size() > 4) {
+        if (text::CompareIgnoringCase(words[0], kScreenLine) == 0) break;
+        if (text::CompareIgnoringCase(words[0], kRectangleLine) == 0 && words.size() > 4) {
             const int top = str::ToInt(words[2]);
             const int bottom = str::ToInt(words[4]);
             const int shift = TutorialFrameShift(this);
@@ -200,7 +188,7 @@ void CHelpWindow::ShowPage() {
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
             SetPlain(mark, 0x82FF0000);
             pulsing_.push_back(mark);
-        } else if (Same(words[0], kTextLine)) {
+        } else if (text::CompareIgnoringCase(words[0], kTextLine) == 0) {
             std::string picture;
             if (words.size() > 1) {
                 picture = words[1];
@@ -253,12 +241,7 @@ void CHelpWindow::ShowPage() {
             row.top = y;
             row.bottom = y + kRowHeight;
             text.clear();
-            BOOL open;
-            {
-                std::string section = std::string(kTutorSection) + entry.key.data();
-                open = texts->Open(section);
-            }
-            if (open) texts->ReadToHash(&text, 1);
+            if (texts->Open(std::string(kTutorSection) + entry.key.data())) texts->ReadToHash(&text, 1);
             str::TrimRight(text, kLineEnds);
             int height = body->DrawWrappedText(text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.
@@ -280,15 +263,15 @@ void CHelpWindow::ShowPage() {
     const int gap = (width - 150) / 6;
     gameapi::OffsetRect(&button, gap + page.left, 0);
     const int step = 2 * gap - button.left + button.right;
-    SetRegion(AddRegion(), button);
+    AddRegion()->SetRectFrom(button);
     SetRectangle(previous, button, 2, 0x33, 0x34, 0x47);
     gameapi::OffsetRect(&button, step, 0);
     CUiRegion* okRegion = AddRegion();
-    SetRegion(okRegion, button);
+    okRegion->SetRectFrom(button);
     okRegion->SetTip(0x7594);
     SetRectangle(ok, button, 2, 0x5D, 0x34, 0x71);
     gameapi::OffsetRect(&button, step, 0);
-    SetRegion(AddRegion(), button);
+    AddRegion()->SetRectFrom(button);
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.

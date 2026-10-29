@@ -23,10 +23,10 @@
 
 namespace {
 
-const char* ClickSound() { return "buttons\\base\\click1.wav"; }
-const char* TopicPrefixKey() { return "topic_prefix"; }
-const char* GoodbyeTopic() { return "goodbye"; }
-const char* TopicSeparator() { return " "; }
+constexpr const char* kClickSound = "buttons\\base\\click1.wav";
+constexpr const char* kTopicPrefixKey = "topic_prefix";
+constexpr const char* kGoodbyeTopic = "goodbye";
+constexpr const char* kTopicSeparator = " ";
 
 constexpr std::uint32_t kUnitBlocked = 0x800000;   // CEngineObject::flags_: script BlockUnit
 constexpr int kTopicRows = 5;
@@ -58,16 +58,13 @@ constexpr int kLabelOffsetX = 0x7D;
 constexpr int kLabelOffsetY = 0x14;
 constexpr std::uint32_t kLabelColour = 0xA7D7E4;
 
-const char* NoZone() { return "none"; }
-const char* ZoneVariablePrefix() { return "z."; }
-
-// The server's unit with the id of a client object, or null.
-CUnit* ServerUnit(int id) { return g_serverWorld->FindUnit(id); }
+constexpr const char* kNoZone = "none";
+constexpr const char* kZoneVariablePrefix = "z.";
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
 bool CanTalk(CEngineObject* person) {
-    CUnit* unit = ServerUnit(person->id_);
+    CUnit* unit = g_serverWorld->FindUnit(person->id_);
     if (!unit || !unit->controller) return true;
     CUnitServer* controller = unit->ServerController();
     return (controller->action.kind == UnitOrderKind::Stop || controller->action.kind == UnitOrderKind::Idle) &&
@@ -80,12 +77,12 @@ bool IsPerson(CMapObject* object) { return object && object->IsDead() == 0; }
 } // namespace
 
 // The leader walks (or runs) to the ground point under the screen point (x, y), unless blocked.
-static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
+static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, bool run) {
     Vector3 picked;
     Vector3* p = g_clientWorld->PickSurface(&picked, x, y);
     Vector3 point{p->x, p->y, p->z};
     if (!screen->leader_) return;
-    CUnit* unit = ServerUnit(screen->leader_->id_);
+    CUnit* unit = g_serverWorld->FindUnit(screen->leader_->id_);
     if (!unit || (unit->flags_ & kUnitBlocked)) return;
     unit->ServerController()->brain.Walk(&point, run, 0);
 }
@@ -104,29 +101,29 @@ void CBriefingScreen::LeftDown(int buttons, int x, int y) {
         CUnit* object = g_clientWorld->UnitAt2(&point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
-                interface_->PlaySound(ClickSound());
+                interface_->PlaySound(kClickSound);
                 OpenTopics(object);
             }
             return;
         }
-        if (!noWalk_) WalkLeaderTo(this, x, y, 0);
+        if (!noWalk_) WalkLeaderTo(this, x, y, false);
         return;
     }
     case 1: {
         int region = RegionAt(x, y);
-        if (region < 0 || region >= kTopicRows || region + topicTop_ >= TopicCount()) return;
-        interface_->PlaySound(ClickSound());
+        if (region < 0 || region >= kTopicRows || region + topicTop_ >= std::ssize(topics_)) return;
+        interface_->PlaySound(kClickSound);
         topic_ = topics_[region + topicTop_];
         ClearRegions();
-        StartDialogue(0, 1);
+        StartDialogue(false, true);
         return;
     }
     case 3:
-        interface_->PlaySound(ClickSound());
-        NextPhrase(0);
+        interface_->PlaySound(kClickSound);
+        NextPhrase(false);
         return;
     case 4:
-        interface_->PlaySound(ClickSound());
+        interface_->PlaySound(kClickSound);
         FinishDialogue();
         return;
     default:
@@ -146,7 +143,7 @@ void CBriefingScreen::MouseMove(int buttons, int x, int y) {
     if (state_ == 1) {
         int region = RegionAt(x, y);
         int hovered = -1;
-        if (region >= 0 && region < kTopicRows && region + topicTop_ < TopicCount()) hovered = region + topicTop_;
+        if (region >= 0 && region < kTopicRows && region + topicTop_ < std::ssize(topics_)) hovered = region + topicTop_;
         if (hovered != hoveredTopic_) {
             hoveredTopic_ = hovered;
             DrawTopics();
@@ -185,9 +182,9 @@ void CBriefingScreen::MouseMove(int buttons, int x, int y) {
     if (!g_clientWorld->FindExitAt(&ground.x, &exit)) return;
     std::string zone = GameExitTarget(exit_);
     if (text::CompareIgnoringCase(zone,
-                        NoZone()) == 0)
+                        kNoZone) == 0)
         return;
-    std::string variable = ZoneVariablePrefix();
+    std::string variable = kZoneVariablePrefix;
     variable += zone;
     float visited = PlayerZeroVariable(variable);
     EI_NAN_AUDIT(visited);
@@ -211,7 +208,7 @@ void CBriefingScreen::LeftDouble(int buttons, int x, int y) {
         Input()->LeftDown(buttons, x, y);
         return;
     }
-    if (!noWalk_) WalkLeaderTo(this, x, y, 1);
+    if (!noWalk_) WalkLeaderTo(this, x, y, true);
 }
 
 
@@ -222,13 +219,14 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
         return;
     }
     if (leader_ && !noWalk_) {
-        CUnit* unit = ServerUnit(leader_->id_);
+        CUnit* unit = g_serverWorld->FindUnit(leader_->id_);
         if (unit && !(unit->flags_ & kUnitBlocked)) unit->ServerController()->brain.StopAction();
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
         AddRegion()->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
-    topics_.push_back(GoodbyeTopic());
-    topicBar_->SetMaximum(TopicCount() > kTopicRows ? TopicCount() - kTopicRows : 0);
+    topics_.push_back(kGoodbyeTopic);
+    const int count = std::ssize(topics_);
+    topicBar_->SetMaximum(count > kTopicRows ? count - kTopicRows : 0);
     topicBar_->SetPosition(0);
     topicTop_ = 0;
     hoveredTopic_ = -1;
@@ -239,19 +237,17 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
 
 void CBriefingScreen::DrawTopics() {
     std::string prefix;
-    g_clientWorld->texts_->GetString(TopicPrefixKey(), &prefix);
+    g_clientWorld->texts_->GetString(kTopicPrefixKey, &prefix);
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
     int row = topicTop_;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {
-        if (row >= TopicCount()) break;
+        if (row >= std::ssize(topics_)) break;
         RECT rect{kRowTextLeft, bottom - kRowTextHeight, kRowTextRight, bottom};
         std::uint32_t colour = row != hoveredTopic_ ? kTopicColour : kHoveredTopicColour;
-        std::string title;
-        TopicTitle(&title, topics_[row]);
         std::string text = prefix;
-        text += TopicSeparator();
-        text += title;
+        text += kTopicSeparator;
+        text += TopicTitle(topics_[row]);
         surface->DrawTextIn(text, &rect, kTextFormat, colour, 0, 1);
     }
 }

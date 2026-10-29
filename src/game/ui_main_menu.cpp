@@ -150,7 +150,7 @@ void CMainMenu::Update() {
 
 // --- Close -----------------------------------------------------------------
 
-void CMainMenu::Close() {
+void CMainMenu::CloseScreen() {
     options::g_options->borderFogDistance_ = savedEdgeFade_;
     GameStopSounds(1);
     GameStopAmbience();

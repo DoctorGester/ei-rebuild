@@ -41,10 +41,10 @@ void CCreditsScreen::Draw(CSceneRenderer* pass) {
             finished_ = true;
         } else {
             const TitleLine& line = *currentLine_;
-            textSurface_->Load(archive_.Get(), line.style.c_str());
-            textSurface_->Start(0.0f, 0);
+            textSurface_->Load(&archive_, line.style.c_str());
+            textSurface_->Start(0.0f, false);
             if (line.scroll) {
-                textSurface_->Start(line.speed, 1);
+                textSurface_->Start(line.speed, true);
                 headerSurface_->Clear();
                 // Centred over the whole surface with its shadow, without smoothing: the original switched the
                 // system's font smoothing off for the titles.

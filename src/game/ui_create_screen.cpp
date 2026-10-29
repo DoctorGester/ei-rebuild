@@ -16,7 +16,6 @@
 #include "render/render_state.h"
 #include "lib/crt.h"
 #include <cstdint>
-#include <new>
 #include <string>
 #include "world_glue.h"
 #include "game_singletons.h"
@@ -91,12 +90,6 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     ui->mouseCapture_ = nullptr;
     g_cursor->SetShape(0);
 }
-
-void DeleteBackdrop(CUiSurface* surface) {
-    if (!surface) return;
-    delete surface;
-}
-
 } // namespace
 
 void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
@@ -136,11 +129,9 @@ void CInterface3D::Activate(CUiWindow* window) {
         CloseAll();
     }
     g_cursor->SetShape(3);
-    CUiSurface* backdrop = backdrop_;
-    DeleteBackdrop(backdrop);
-    backdrop = secondBackdrop_;
+    delete backdrop_;
     backdrop_ = nullptr;
-    DeleteBackdrop(backdrop);
+    delete secondBackdrop_;
     secondBackdrop_ = nullptr;
     backdropMode_ = 0;
     serverFlag_ = 0;
@@ -200,18 +191,9 @@ void CInterface3D::OpenHelp(int flag) {
     PushWindow(new CHelpWindow(this, false, topic, seen), 1, 0);
 }
 
-// --- Screens 8 and 9: constructors and screen 8's destructor body -----------------------------------
+// --- Screens 8 and 9: constructors -------------------------------------------------------------------
 
 CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {}
 
-CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name) : CUiContainer(ui) {
-    new (archive_.Get()) CMappedResource();
-    name_ = name;
-    player_.Construct();
-    fromGame_ = fromGame;
-}
-
-CCreditsScreen::~CCreditsScreen() {
-    player_.Destruct();
-    archive_.Get()->CMappedResource::Destroy();
-}
+CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name)
+    : CUiContainer(ui), name_(name), fromGame_(fromGame) {}

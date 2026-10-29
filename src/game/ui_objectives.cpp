@@ -22,7 +22,6 @@
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
-#include "lib/static_object.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -52,39 +51,8 @@ template <std::floating_point T> float Bits(T) = delete;
 
 // --- Game data ----------------------------------------------------------------------------------
 
-// A zone of the map database: its picture (picture2, the texture shown here), its size in map
-// cells and its exits (the deploy rectangle x1, y1, x2, y2 and the target zone, "none" when it
-// leads nowhere).
-MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }
-
-int FindText(std::string_view key) { return g_clientWorld->texts_->Open(key); }
-
-// The quest the window last selected (a global string): built empty by its static initialiser in the list's
-// order, destroyed once by the exit function it registers. Both are defined on their names
-// (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<std::string> g_lastQuest = /*007C8178*/ {};
-constinit std::uint8_t g_lastQuestDestroyed = /*007C8174*/ 0;
-
-void DestroyLastQuest() {
-    if (g_lastQuestDestroyed & 1) return;
-    g_lastQuestDestroyed = static_cast<std::uint8_t>(g_lastQuestDestroyed | 1);
-    g_lastQuest.Destroy();
-}
-class VariableTable {
-public:
-    void Fill(std::string_view prefix) { GameLocalPlayerVariables(prefix, &table_); }
-
-    NamedFloatTable::const_iterator begin() const { return table_.begin(); }
-    NamedFloatTable::const_iterator end() const { return table_.end(); }
-
-private:
-    NamedFloatTable table_;
-};
-
-int SizeOf(const std::vector<std::string>& v) { return static_cast<int>(v.end() - v.begin()); }
-void PushBack(std::vector<std::string>* v, const std::string& x) {
-    v->push_back(x);
-}
+// The quest the window last selected: the next window over the same zone selects it again.
+std::string g_lastQuest;
 
 // The zone's quests (the names of the "q.<zone>.<quest>" variables) by their quest record's order, the highest
 // first, and a name without a record before all (also before itself, so not a strict weak ordering: the game's
@@ -99,14 +67,8 @@ void SortQuests(std::string* first, std::string* last) {
     });
 }
 
+constexpr std::uint32_t kPlainFlag = 0x100;   // CUiMesh::flags_: drawn in flatColour_
 
-int SurfaceText(CUiSurface* surface, std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
-    return surface->DrawTextIn(text, rect, font, colour, format, flag);
-}
-
-void SetSpriteTexture(CUiMesh* sprite, CTexture* texture) { sprite->texture_ = texture; }
-void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->flatColour_ = argb; }
-void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 void Turn(CUiMesh* sprite, float angle) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion q;
@@ -138,26 +100,13 @@ constexpr std::uint32_t kFarAway = 0x5A0E1BCA;   // 1e16
 constexpr float kExitTurn = /*007C8170*/ 1.5707964f;   // a static initialiser: pi * 0.5
 constexpr float kExitTurnDown = 3.1415927f;
 
-std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return g_questDatabase->questsByName; }
-
-QuestRecord* FindQuestRecord(std::string_view name) {
-    std::string key(name);
-    return QuestIndex()[key];
-}
-
-bool SameText(std::string_view a, std::string_view b) {
-    return text::CompareIgnoringCase(a, b) == 0;
-}
+// The quest database's record of `name` (the index's operator[] adds a null entry for a new name).
+QuestRecord* FindQuestRecord(std::string_view name) { return g_questDatabase->questsByName[std::string(name)]; }
 
 const char* const kGlobalMapTopic = "quest_global_map";
 const char* const kMissionTopic = "quest_mission";
 
 } // namespace
-
-void ConstructLastQuest() {
-    g_lastQuest.Construct();
-    std::atexit(DestroyLastQuest);
-}
 
 // --- The zone page ----------------------------------------------------------------------
 
@@ -167,7 +116,9 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
     while (std::ssize(sceneObjects_) > 0x15) RemoveSceneObjectAt(0x15);
     while (std::ssize(regions_) > 9) RemoveRegionAt(9);
 
-    MapRecord* map = FindZone(shownZone_);
+    // The zone's picture (picture2), its size in map cells and its exits (the deploy rectangle x1, y1, x2, y2 and the
+    // target zone, "none" when it leads nowhere).
+    MapRecord* map = g_mapDatabase->FindMap(shownZone_);
     if (!map) {
         interface_->SetPendingValue(0);
         return;
@@ -187,23 +138,20 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
     picture->SetRectangle(10.0f, 100.0f, static_cast<float>(kPictureCentreX - D(halfWidth)), static_cast<float>(kPictureCentreY - D(halfHeight)),
                           static_cast<float>(D(halfWidth) + kPictureCentreX), static_cast<float>(D(halfHeight) + kPictureCentreY), 0, v0, u1,
                           0x100);
-    SetSpriteTexture(picture, objects_[2]);
+    picture->texture_ = objects_[2];
 
     // The exits that lead somewhere: a marker (triangle pointing out of the picture) and a region.
     float nearest = Bits(kFarAway);
     nearestExit_ = -1;
     bool anyKnown = false;
-    std::vector<ObjectiveExit>* exitArray = &exits_;
-    exitArray->clear();
+    exits_.clear();
     for (int i = 0; i < std::ssize(map->exits); ++i) {
         const ZoneExit& source = map->exits[i];
         if (text::CompareIgnoringCase(source.target,
                             "none") == 0)
             continue;
         int index = std::ssize(exits_);
-        ObjectiveExit blank = {};
-        lib::SetAtGrow(*exitArray, index, blank);
-        ObjectiveExit* exit = &exits_[index];
+        ObjectiveExit* exit = &exits_.emplace_back();
         exit->exit_ = i;
         exit->x_ = static_cast<float>((D(source.deploy[2]) + D(source.deploy[0])) * 0.5f);
         exit->y_ = static_cast<float>((D(source.deploy[3]) + D(source.deploy[1])) * 0.5f);
@@ -276,7 +224,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
     SelectExit(nearestExit_);
-    if (twoButtons_ != 0 && !anyKnown) {
+    if (twoButtons_ && !anyKnown) {
         SceneMesh(0)->visible_ = 0;
         regions_[0]->SetTip(0);
     }
@@ -286,30 +234,29 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
     {
         std::string prefix;
         std::vector<std::string> parts;
-        alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
-        auto* table = new (tableStorage) VariableTable();
+        NamedFloatTable table;
         prefix = str::Format("q.%s", shownZone_);
-        table->Fill(prefix);
+        GameLocalPlayerVariables(prefix, &table);
         std::vector<std::string> found;
-        for (auto node = table->begin(); node != table->end(); ++node) {
+        for (auto node = table.begin(); node != table.end(); ++node) {
             EI_NAN_AUDIT(node->second);
             if (node->second == 0.0f) continue;
             text::Split(node->first, &parts, '.');
-            if (parts.size() == 3) PushBack(&found, parts[2]);
+            if (parts.size() == 3) found.push_back(parts[2]);
         }
         shownQuest_ = -1;
         selectedQuest_ = 0;
-        if (SizeOf(found) == 0) {
+        if (found.empty()) {
             selectedQuest_ = -1;
-            g_lastQuest->clear();
+            g_lastQuest.clear();
         } else {
             SortQuests(found.data(), found.data() + found.size());
             for (auto& s : found) {
                 quests.push_back(s);
-                const std::string& current = listZones_ == 0 ? *g_lastQuest : interface_->savedText_;
+                const std::string& current = !listZones_ ? g_lastQuest : interface_->savedText_;
                 if (text::CompareIgnoringCase(current, s) == 0) selectedQuest_ = static_cast<int>(quests.size()) - 1;
             }
-            *g_lastQuest = quests[selectedQuest_];
+            g_lastQuest = quests[selectedQuest_];
         }
         int rows = static_cast<int>(quests.size());
         bar_->SetMaximum(rows > 5 ? rows - 5 : 0);
@@ -320,11 +267,11 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         {
             std::string text; // (declared first: the title is released first)
             std::string title;
-            int foundText;
+            bool foundText;
             {
                 std::string zoneKey("zone ");
                 std::string key = zoneKey + shownZone_;
-                foundText = FindText(key);
+                foundText = g_clientWorld->texts_->Open(key);
             }
             if (foundText) {
                 g_clientWorld->texts_->ReadLine(&title, 1);
@@ -332,13 +279,11 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
                 CUiSurface* surface = surfaces_[1];
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
-                SurfaceText(surface, title, &titleRect, 1, 0x31B3FF, 1, 1);
+                surface->DrawTextIn(title, &titleRect, 1, 0x31B3FF, 1, 1);
                 RECT textRect = {10, 25, 330, 140};
-                SurfaceText(surface, text, &textRect, 1, 0xA7D7E4, 0x11, 1);
+                surface->DrawTextIn(text, &textRect, 1, 0xA7D7E4, 0x11, 1);
             }
         }
-
-        table->~VariableTable();
     }
 }
 
@@ -356,7 +301,7 @@ void CObjectivesWindow::ShowQuest() {
     static_cast<CUiScrollText*>(children_[0])->Clear();
     std::vector<std::string>& quests = quests_;
     if (selectedQuest_ < 0 || selectedQuest_ >= static_cast<int>(quests.size())) return;
-    *g_lastQuest = quests[selectedQuest_];
+    g_lastQuest = quests[selectedQuest_];
 
     std::string completed;
     std::string failed;
@@ -370,7 +315,7 @@ void CObjectivesWindow::ShowQuest() {
     {
         std::string questWord("quest ");
         std::string key = questWord + quests[selectedQuest_];
-        found = FindText(key) != 0;
+        found = texts->Open(key);
     }
     if (!found) return;
 
@@ -399,8 +344,8 @@ void CObjectivesWindow::ShowQuest() {
     while (texts->FindHeader()) {
         texts->Split(&fields, 1);
         if (fields.size() < 2) continue;
-        if (SameText(fields[0], "#quest")) break;
-        if (!SameText(fields[0], "#subobj")) continue;
+        if (text::CompareIgnoringCase(fields[0], "#quest") == 0) break;
+        if (text::CompareIgnoringCase(fields[0], "#subobj") != 0) continue;
         variable = str::Format("q.%s.%s.%s", shownZone_, quests[selectedQuest_],
                         fields[1]);
         int state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
@@ -424,7 +369,7 @@ void CObjectivesWindow::ShowQuest() {
     texts->Close();
     static_cast<CUiScrollText*>(children_[0])->SetText(text);
 
-    MapRecord* map = FindZone(shownZone_);
+    MapRecord* map = g_mapDatabase->FindMap(shownZone_);
     if (!map) return;
     LoadQuestPlaces(quests[selectedQuest_]);
     while (std::ssize(sceneObjects_) > std::ssize(exits_) + 0x15) RemoveSceneObjectAt(std::ssize(exits_) + 0x15);
@@ -443,7 +388,7 @@ void CObjectivesWindow::ShowQuest() {
         float top = static_cast<float>(D(y) - kMarkerHalfWidth);
         float left = static_cast<float>(D(x) - kMarkerHalfWidth);
         marker->SetRectangle(5.0f, 100.0f, left, top, right, bottom, 0, 0, 0x80, 0x80);
-        SetSpriteTexture(marker, objects_[1]);
+        marker->texture_ = objects_[1];
         std::memcpy(marker->tint_, red, sizeof(red));
         CUiRegion* region = AddRegion();
         int bottomPixel = static_cast<int>(libcrt::Ftol(D(bottom)));
@@ -456,6 +401,8 @@ void CObjectivesWindow::ShowQuest() {
 }
 
 // --- Create ------------------------------------------------------------------------------
+
+void CObjectivesWindow::CloseScreen() { render::g_renderState.alphaReference = savedAlphaRef_; }
 
 void CObjectivesWindow::CreateScreen() {
     savedAlphaRef_ = render::g_renderState.alphaReference;
@@ -490,16 +437,16 @@ void CObjectivesWindow::CreateScreen() {
     if (!twoButtons_) second->visible_ = 0;
     CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 60.0f, 30.0f, 370.0f, 54.0f, 0, 0, 0x100, 0x100);
-    SetSpriteTexture(highlight, nullptr);
-    SetSpriteColour(highlight, 0xC8A06800);
-    SetSpritePlain(highlight);
+    highlight->texture_ = nullptr;
+    highlight->flatColour_ = 0xC8A06800;
+    highlight->flags_ |= kPlainFlag;
     highlight->visible_ = 0;
     AddBlankSprite();   // object 3: the zone picture, set up by the zone page
     CUiMesh* bottomShade = AddBlankSprite();
     bottomShade->SetRectangle(15.0f, 100.0f, 285.0f, 541.0f, 515.0f, 579.0f, 0, 0, 0x100, 0x100);
-    SetSpriteTexture(bottomShade, nullptr);
-    SetSpritePlain(bottomShade);
-    SetSpriteColour(bottomShade, 0xA0000000);
+    bottomShade->texture_ = nullptr;
+    bottomShade->flags_ |= kPlainFlag;
+    bottomShade->flatColour_ = 0xA0000000;
     AddBlankSprite()->SetFrame(3.0f, 100.0f, 280.0f, 536.0f, 520.0f, 584.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     const float shades[4][4] = {{50.0f, 20.0f, 390.0f, 160.0f},
                                 {50.0f, 180.0f, 390.0f, 520.0f},
@@ -508,9 +455,9 @@ void CObjectivesWindow::CreateScreen() {
     for (const auto& s : shades) {
         CUiMesh* shade = AddBlankSprite();
         shade->SetRectangle(15.0f, 100.0f, s[0], s[1], s[2], s[3], 0, 0, 0x100, 0x100);
-        SetSpriteTexture(shade, nullptr);
-        SetSpritePlain(shade);
-        SetSpriteColour(shade, 0xA0000000);
+        shade->texture_ = nullptr;
+        shade->flags_ |= kPlainFlag;
+        shade->flatColour_ = 0xA0000000;
     }
     const float frames[4][4] = {{45.0f, 15.0f, 395.0f, 165.0f},
                                 {45.0f, 175.0f, 395.0f, 525.0f},
@@ -529,7 +476,7 @@ void CObjectivesWindow::CreateScreen() {
         mark->SetRectangle(2.8f, 100.0f, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,
                            0xA4, 0x48, 0xFC);
         mark->visible_ = 0;
-        SetSpriteTexture(mark, objects_[1]);
+        mark->texture_ = objects_[1];
     }
 
     // Regions 0-3: the buttons and the two arrows; 4-8: the list rows.
@@ -543,10 +490,10 @@ void CObjectivesWindow::CreateScreen() {
     for (int top = 30; top < 150; top += 24) AddRect(this, 60, top, 360, top + 24)->SetTip(0x138EF);
     blinkTime_ = 0.0f;
 
-    if (listZones_ == 0) {
+    if (!listZones_) {
         ShowZone(zoneName_);
     } else {
-        MapRecord* allodZone = FindZone(zoneName_);
+        MapRecord* allodZone = g_mapDatabase->FindMap(zoneName_);
         if (!allodZone) {
             interface_->SetPendingValue(0);
             return;
@@ -555,12 +502,10 @@ void CObjectivesWindow::CreateScreen() {
         // the zone the interface's current quest belongs to.
         std::string current;
         std::vector<std::string> parts;
-        alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
-        auto* table = new (tableStorage) VariableTable();
-        table->Fill("q.");
-        std::vector<std::string>* zones = &zones_;
+        NamedFloatTable table;
+        GameLocalPlayerVariables("q.", &table);
         const std::string& interfaceQuest = interface_->savedText_;
-        for (auto node = table->begin(); node != table->end(); ++node) {
+        for (auto node = table.begin(); node != table.end(); ++node) {
             text::Split(node->first, &parts, '.');
             if (parts.size() != 3) continue;
             if (text::CompareIgnoringCase(interfaceQuest,
@@ -569,43 +514,38 @@ void CObjectivesWindow::CreateScreen() {
             std::uint32_t one;
             one = std::bit_cast<std::uint32_t>(node->second);
             if (one != 0x3F800000) continue;
-            MapRecord* zone = FindZone(parts[1]);
+            MapRecord* zone = g_mapDatabase->FindMap(parts[1]);
             if (!zone) continue;
             if (!IsMultiplayerClient() &&
                 text::CompareIgnoringCase(zone->allod,
                                 allodZone->allod) != 0)
                 continue;
             bool listed = false;
-            for (std::string* z = zones->data(); z != zones->data() + zones->size(); ++z)
-                if (str::Compare(zone->name, *z) == 0) {
+            for (const std::string& z : zones_)
+                if (str::Compare(zone->name, z) == 0) {
                     listed = true;
                     break;
                 }
-            if (!listed) PushBack(zones, zone->name);
+            if (!listed) zones_.push_back(zone->name);
         }
-        if (SizeOf(*zones) == 0 && static_cast<int>(current.size()) != 0)
-            PushBack(zones, current);
-        if (SizeOf(*zones) == 0) {
+        if (zones_.empty() && !current.empty()) zones_.push_back(current);
+        if (zones_.empty()) {
             interface_->SetPendingValue(0);
-            table->~VariableTable();
             return;
         }
         zoneIndex_ = 0;
-        for (int i = 0; i < SizeOf(*zones); ++i)
-            if (text::CompareIgnoringCase(current,
-                                zones->begin()[i]) ==
-                0) {
+        for (int i = 0; i < std::ssize(zones_); ++i)
+            if (text::CompareIgnoringCase(current, zones_[i]) == 0) {
                 zoneIndex_ = i;
                 break;
             }
-        if (SizeOf(*zones) > 1) {
+        if (std::ssize(zones_) > 1) {
             SceneMesh(14)->visible_ = 1;
             SceneMesh(15)->visible_ = 1;
             regions_[2]->SetTip(0x13948);
             regions_[3]->SetTip(0x13949);
         }
-        ShowZone(zones->begin()[zoneIndex_]);
-        table->~VariableTable();
+        ShowZone(zones_[zoneIndex_]);
     }
     interface_->OpenHelp(0);
 }
@@ -628,7 +568,7 @@ void CObjectivesWindow::DrawQuestList() {
         {
             std::string questWord("quest ");
             std::string key = questWord + quests[row];
-            found = FindText(key) != 0;
+            found = texts->Open(key);
         }
         if (found) texts->ReadLine(&title, 1);
         else title = quests[row];
@@ -648,10 +588,10 @@ void CObjectivesWindow::DrawQuestList() {
 
 // --- What the window is opened for, and its help topic --------------------
 
-void CObjectivesWindow::Setup(std::string_view zone, void* exitDistances, int twoButtons, int listZones) {
+void CObjectivesWindow::Setup(std::string_view zone, std::map<int, float>* exitDistances, bool twoButtons, bool listZones) {
     zoneName_ = zone;
     twoButtons_ = twoButtons;
-    exitDistances_ = static_cast<std::map<int, float>*>(exitDistances);
+    exitDistances_ = exitDistances;
     listZones_ = listZones;
 }
 

@@ -31,8 +31,6 @@ constexpr int kInputHeight = 0x1F;     // the input strip at the bottom
 constexpr UINT kDrawLine = 0x800;      // DT_NOPREFIX
 constexpr UINT kDrawMark = 0x802;      // DT_NOPREFIX | DT_RIGHT
 
-std::string Left(const std::string& s, int count) { return str::Left(s, count); }
-
 int Clamp(int value, int high) {
     if (value > high) value = high;
     if (value < 0) value = 0;
@@ -41,7 +39,7 @@ int Clamp(int value, int high) {
 
 // Width in pixels of the prompt and the first `count` characters of the input in `font`.
 int PromptWidth(const UiFont& font, const std::string& input, int count) {
-    return TextExtent(font, std::string(game::consoletexts::Prompt()) + Left(input, count)).cx;
+    return TextExtent(font, std::string(game::consoletexts::Prompt()) + str::Left(input, count)).cx;
 }
 
 constexpr int kHistoryDepth = 30;
@@ -51,7 +49,6 @@ void FillArea(CUiSurface* surface, int x, int y, int width, int height, COLORREF
     surface->FillRect(RECT{x, y, x + width, y + height}, colour);
 }
 
-std::string MidOf(const std::string& s, int first) { return str::Mid(s, first); }
 // Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted from UTF-8 (addon's helpers convert
 // with the ANSI code page).
 void CopyToClipboard(const char* first, const char* last) {
@@ -174,14 +171,14 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         if (anchor_ == caret_) {
             if (caret_ < static_cast<int>(input_.size())) {
                 std::string rest = str::Mid(input_, ::text::NextCharacter(input_, caret_));
-                input_ = Left(input_, caret_) + rest;
+                input_ = str::Left(input_, caret_) + rest;
                 DrawInput();
             }
         } else {
             int low = anchor_ < caret_ ? anchor_ : caret_;
             int high = anchor_ > caret_ ? anchor_ : caret_;
             std::string rest = str::Mid(input_, high);
-            input_ = Left(input_, low) + rest;
+            input_ = str::Left(input_, low) + rest;
             caret_ = low;
             anchor_ = low;
             DrawInput();
@@ -209,15 +206,15 @@ void ConsoleWindow::OnChar(int key, int, int) {
         if (anchor_ != caret_) {
             int first = anchor_ < caret_ ? anchor_ : caret_;
             int last = anchor_ > caret_ ? anchor_ : caret_;
-            std::string rest = MidOf(input_, last);
-            input_ = Left(input_, first) + rest;
+            std::string rest = str::Mid(input_, last);
+            input_ = str::Left(input_, first) + rest;
             caret_ = first;
             anchor_ = first;
         } else {
             if (caret_ == 0) return;
             const int previous = ::text::PreviousCharacter(input_, caret_);
-            std::string rest = MidOf(input_, caret_);
-            input_ = Left(input_, previous) + rest;
+            std::string rest = str::Mid(input_, caret_);
+            input_ = str::Left(input_, previous) + rest;
             caret_ = previous;
             anchor_ = caret_;
         }
@@ -261,8 +258,8 @@ void ConsoleWindow::OnChar(int key, int, int) {
             const char* text = input_.c_str();
             CopyToClipboard(text + low, text + high);
             if (letter == 'x') {
-                std::string rest = MidOf(input_, high);
-                std::string head = Left(input_, low);
+                std::string rest = str::Mid(input_, high);
+                std::string head = str::Left(input_, low);
                 input_ = head + rest;
                 caret_ = low;
                 anchor_ = low;
@@ -271,9 +268,9 @@ void ConsoleWindow::OnChar(int key, int, int) {
         } else if (letter == 'v') {
             std::string clip = ClipboardText();
             int cut = str::FindOneOf(clip, "\r\n");
-            if (cut >= 0) clip = Left(clip, cut);
-            std::string rest = MidOf(input_, high);
-            std::string head = Left(input_, low);
+            if (cut >= 0) clip = str::Left(clip, cut);
+            std::string rest = str::Mid(input_, high);
+            std::string head = str::Left(input_, low);
             input_ = (head + clip) + rest;
             int position = static_cast<int>(clip.size()) - (anchor_ != caret_ ? 1 : 0) + high;
             position = ::text::CharacterStart(input_, position);   // never inside a character
@@ -283,8 +280,8 @@ void ConsoleWindow::OnChar(int key, int, int) {
         }
     }
     if (ctrl_) return;
-    std::string rest = MidOf(input_, high);
-    std::string head = Left(input_, low);
+    std::string rest = str::Mid(input_, high);
+    std::string head = str::Left(input_, low);
     input_ = ::text::Typed(head, key) + rest;
     caret_ = low + ::text::TypedLength(key);
     anchor_ = caret_;

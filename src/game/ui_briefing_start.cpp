@@ -33,14 +33,11 @@
 
 namespace {
 
-const char* GoodbyeTopic() { return "goodbye"; }
-const char* ConstructorTopic() { return "constr"; }
-const char* BriefingSection() { return "briefing "; }
-const char* ShowLine() { return "#show"; }
-const TemplateTable* ClassTemplates() { return &g_partyManager->templates; }
-const char* TopicPrefix() { return "b."; }
-
-CPlayer* LocalServerPlayer() { return g_serverWorld->GetPlayer(0); }
+constexpr const char* kGoodbyeTopic = "goodbye";
+constexpr const char* kConstructorTopic = "constr";
+constexpr const char* kBriefingSection = "briefing ";
+constexpr const char* kShowLine = "#show";
+constexpr const char* kTopicPrefix = "b.";
 
 constexpr int kStateWalking = 0;
 constexpr int kEventEnds = 0;
@@ -51,8 +48,6 @@ constexpr int kConstructorNumber = 7;    // where the constructor's number start
 constexpr int kCampScreen = 5;
 constexpr int kStateStarting = 2;
 constexpr float kSpacing = 2.5f;         // added to the prototype's viewDistance
-
-Vector3 Position(const CUnit* unit) { return Vector3{unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z}; }
 
 Vector3 Facing(const CUnit* unit) {
     Vector3 axis;
@@ -101,13 +96,13 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         briefingStarted_ = false;
         return;
     }
-    if (text::CompareIgnoringCase(topic_, GoodbyeTopic()) == 0) {
+    if (text::CompareIgnoringCase(topic_, kGoodbyeTopic) == 0) {
         state_ = 0;
         return;
     }
-    if (text::CompareIgnoringCase(str::Left(topic_, kConstructorPrefix), ConstructorTopic()) == 0) {
+    if (text::CompareIgnoringCase(str::Left(topic_, kConstructorPrefix), kConstructorTopic) == 0) {
         int constructor = str::ToInt(str::Mid(topic_, kConstructorNumber));
-        if (ClassTemplates()->Find(constructor)) {
+        if (g_partyManager->templates.Find(constructor)) {
             GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
             GameSendLeave04(kCampScreen);
         }
@@ -117,14 +112,14 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     person_ = nullptr;
     third_ = nullptr;
     CTextManager* texts = g_clientWorld->texts_;
-    std::string key = BriefingSection();
+    std::string key = kBriefingSection;
     if (!texts->Open((key + topic_))) {
         state_ = 0;
         briefingStarted_ = false;
         return;
     }
     std::vector<std::string> words;
-    while (texts->FindLine(ShowLine())) {
+    while (texts->FindLine(kShowLine)) {
         texts->Split(&words, 1);
         if (words.size() < 2) continue;
         int id = TextKeyFromName(words[1]);
@@ -153,7 +148,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     Vector3& walkingPlace = noWalk_ ? personPlace : leaderPlace;
     Vector3 axis;
     standing->localRotation_.AxisY(&axis);
-    Vector3 at = Position(standing);
+    Vector3 at = standing->localPosition_;
     float stepY = static_cast<float>(axis.y * reach);
     float stepX = static_cast<float>(axis.x * reach);
     walkingPlace = Vector3{at.x - stepX, at.y - stepY, at.z - axis.z * reach};
@@ -165,16 +160,14 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     thirdPlace.y = (middle.x - personPlace.x) + middle.y;
     if (noWalk_) {
         if (remember) {
-            personHome_ = Position(person_);
+            personHome_ = person_->localPosition_;
             personHomeDirection_ = Facing(person_);
         }
     } else {
-        MovePerson(leader_, leaderPlace.x, leaderPlace.y, leaderPlace.z,
-                                   personPlace.x - leaderPlace.x, personPlace.y - leaderPlace.y,
-                                   personPlace.z - leaderPlace.z, 1, immediate_, 0);
+        MovePerson(leader_, leaderPlace, Difference(personPlace, leaderPlace), true, immediate_, false);
     }
     if (third_ && remember) {
-        thirdPlace_ = Position(third_);
+        thirdPlace_ = third_->localPosition_;
         thirdDirection_ = Facing(third_);
     }
 
@@ -189,14 +182,11 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     if (third_) DropMover(movers_, third_, &thirdPlace_, &thirdDirection_);
     if (noWalk_) DropMover(movers_, person_, &personHome_, &personHomeDirection_);
     if (third_) {
-        Vector3 facing = Difference(Middle(personPlace, leaderPlace), thirdPlace);
-        MovePerson(third_, thirdPlace.x, thirdPlace.y, thirdPlace.z, facing.x, facing.y,
-                                   facing.z, 1, immediate_, 0);
+        MovePerson(third_, thirdPlace, Difference(Middle(personPlace, leaderPlace), thirdPlace), true, immediate_,
+                   false);
     }
     if (noWalk_) {
-        MovePerson(person_, personPlace.x, personPlace.y, personPlace.z,
-                                   leaderPlace.x - personPlace.x, leaderPlace.y - personPlace.y,
-                                   leaderPlace.z - personPlace.z, 1, immediate_, 0);
+        MovePerson(person_, personPlace, Difference(leaderPlace, personPlace), true, immediate_, false);
     }
     if (immediate_)
         StartPhrases();
@@ -224,7 +214,7 @@ void CBriefingScreen::FinishDialogue() {
 
     for (const BriefingSpeaker& speaker : speakers_) {
         CUnit* unit = speaker.unit;
-        CPlayerServer* server = LocalServerPlayer()->Server();
+        CPlayerServer* server = g_serverWorld->GetPlayer(0)->Server();
         if (server) server->SendPair19(kEventLeaves, unit->id_);
         CUnitClientSpecific* model = unit->ClientController();
         model->blinks = 0;
@@ -244,16 +234,15 @@ void CBriefingScreen::FinishDialogue() {
     if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
     if (person_) GameSetUnitHeight(person_->id_, 0.0f);
     if (third_) {
-        MovePerson(third_, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,
-                                   thirdDirection_.y, thirdDirection_.z, 0, 0, 0);
+        MovePerson(third_, thirdPlace_, thirdDirection_, false, false, false);
         third_ = nullptr;
     }
     if (noWalk_ && person_) {
-        MovePerson(person_, personHome_.x, personHome_.y, personHome_.z,
-                                   personHomeDirection_.x, personHomeDirection_.y, personHomeDirection_.z, 0, 0, 0);
+        MovePerson(person_, personHome_, personHomeDirection_, false, false, false);
     }
 
-    BriefingVariables variables(TopicPrefix());
+    NamedFloatTable variables;
+    PlayerZeroVariables(kTopicPrefix, &variables);
     std::vector<std::string> parts;
     for (auto& node : variables) {
         text::Split(node.first, &parts, '.');
@@ -263,14 +252,14 @@ void CBriefingScreen::FinishDialogue() {
     }
 
     state_ = kStateWalking;
-    CPlayerServer* server = LocalServerPlayer()->Server();
+    CPlayerServer* server = g_serverWorld->GetPlayer(0)->Server();
     if (server) server->SendPair19(kEventEnds, leader_->id_);
-    Vector3 at = Position(leader_);
+    Vector3 at = leader_->localPosition_;
     if (briefingStarted_) {
-        LocalServerPlayer()->Server()->SendPosition04(&at, 0, 1);
+        g_serverWorld->GetPlayer(0)->Server()->SendPosition04(&at, 0, 1);
         g_camera->flags_ &= ~CCamera::kFree;
         briefingStarted_ = false;
     } else {
-        LocalServerPlayer()->Server()->SendPosition0F(&savedCamera_, &lookAt_, 0);
+        g_serverWorld->GetPlayer(0)->Server()->SendPosition0F(&savedCamera_, &lookAt_, 0);
     }
 }

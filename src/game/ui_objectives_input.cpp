@@ -22,13 +22,13 @@
 
 namespace {
 
-const char* OkSound() { return "buttons\\tutorial\\ok.wav"; }
-const char* CancelSound() { return "buttons\\messbox\\cancel.wav"; }
-const char* SelectSound() { return "buttons\\objectives\\select.wav"; }
-const char* EnterSound() { return "buttons\\objectives\\enter.wav"; }
-const char* MessageOkSound() { return "buttons\\messbox\\ok.wav"; }
-const char* MapText() { return "map.txt"; }
-const char* QuestHeader() { return "#quest %s"; }
+constexpr const char* kOkSound = "buttons\\tutorial\\ok.wav";
+constexpr const char* kCancelSound = "buttons\\messbox\\cancel.wav";
+constexpr const char* kSelectSound = "buttons\\objectives\\select.wav";
+constexpr const char* kEnterSound = "buttons\\objectives\\enter.wav";
+constexpr const char* kMessageOkSound = "buttons\\messbox\\ok.wav";
+constexpr const char* kMapText = "map.txt";
+constexpr const char* kQuestHeader = "#quest %s";
 
 constexpr int kRegionOk = 0;
 constexpr int kRegionCancel = 1;
@@ -36,9 +36,6 @@ constexpr int kRegionPreviousZone = 2;
 constexpr int kRegionNextZone = 3;
 constexpr int kRegionFirstRow = 4;
 constexpr int kRegionFirstExit = 9;
-
-// The quest database's index (operator[] adds an empty slot for an unknown name).
-std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return g_questDatabase->questsByName; }
 
 constexpr int kKeyEnter = 0x0D, kKeyEsc = 0x1B, kKeyPageUp = 0x21, kKeyPageDown = 0x22, kKeyUp = 0x26, kKeyDown = 0x28;
 constexpr int kActionObjectives = 4;   // "obj" in the key table
@@ -54,10 +51,6 @@ constexpr float kSlowRate = 2.5f, kSlowAmplitude = 0.3f, kSlowBase = 0.5f;
 constexpr float kFastRate = 5.0f, kFastAmplitude = 0.4f, kFastBase = 0.6f;
 constexpr float kAlphaScale = 255.0f;
 
-CUiMesh* Sprite(const CObjectivesWindow* window, int index) {
-    return window->SceneMesh(index);
-}
-
 } // namespace
 
 void CObjectivesWindow::LeftDown(int buttons, int x, int y) {
@@ -66,8 +59,8 @@ void CObjectivesWindow::LeftDown(int buttons, int x, int y) {
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones_.end() - zones_.begin());
     switch (region) {
     case kRegionOk:
-        interface_->PlaySound(OkSound());
-        if (twoButtons_ == 0) {
+        interface_->PlaySound(kOkSound);
+        if (!twoButtons_) {
             interface_->SetPendingValue(0);
         } else if (nearestExit_ >= 0) {
             const ObjectiveExit& exit = exits_[nearestExit_];
@@ -77,18 +70,18 @@ void CObjectivesWindow::LeftDown(int buttons, int x, int y) {
         }
         return;
     case kRegionCancel:
-        if (twoButtons_ != 0) {
-            interface_->PlaySound(CancelSound());
+        if (twoButtons_) {
+            interface_->PlaySound(kCancelSound);
             interface_->SetPendingValue(0);
         }
         return;
     case kRegionPreviousZone:
-        if (listZones_ == 0 || zoneCount <= 1) return;
+        if (!listZones_ || zoneCount <= 1) return;
         if (--zoneIndex_ < 0) zoneIndex_ = static_cast<int>(zoneCount) - 1;
         ShowZone(zones_[zoneIndex_]);
         return;
     case kRegionNextZone:
-        if (listZones_ == 0 || zoneCount <= 1) return;
+        if (!listZones_ || zoneCount <= 1) return;
         if (static_cast<std::uint32_t>(++zoneIndex_) >= zoneCount) zoneIndex_ = 0;
         ShowZone(zones_[zoneIndex_]);
         return;
@@ -99,7 +92,7 @@ void CObjectivesWindow::LeftDown(int buttons, int x, int y) {
     if (region < kRegionFirstExit) {
         int row = firstRow_ + region - kRegionFirstRow;
         if (row >= 0 && row < static_cast<int>(quests_.size())) {
-            interface_->PlaySound(SelectSound());
+            interface_->PlaySound(kSelectSound);
             selectedQuest_ = row;
             DrawQuestList();
             ShowQuest();
@@ -108,12 +101,12 @@ void CObjectivesWindow::LeftDown(int buttons, int x, int y) {
     }
     if (region >= std::ssize(exits_) + kRegionFirstExit) return;
     int exit = region - kRegionFirstExit;
-    if (twoButtons_ != 0 && exits_[exit].flag_) {
-        interface_->PlaySound(EnterSound());
+    if (twoButtons_ && exits_[exit].flag_) {
+        interface_->PlaySound(kEnterSound);
         SelectExit(exit);
         return;
     }
-    interface_->PlaySound(CancelSound());
+    interface_->PlaySound(kCancelSound);
 }
 
 void CObjectivesWindow::KeyDown(int key, int repeat, int flags) {
@@ -121,8 +114,8 @@ void CObjectivesWindow::KeyDown(int key, int repeat, int flags) {
     int step = 0;
     switch (key) {
     case kKeyEnter:
-        interface_->PlaySound(OkSound());
-        if (twoButtons_ == 0) {
+        interface_->PlaySound(kOkSound);
+        if (!twoButtons_) {
             interface_->SetPendingValue(0);
         } else if (nearestExit_ >= 0) {
             const ObjectiveExit& exit = exits_[nearestExit_];
@@ -133,7 +126,7 @@ void CObjectivesWindow::KeyDown(int key, int repeat, int flags) {
         handled_ = true;
         break;
     case kKeyEsc:
-        interface_->PlaySound(twoButtons_ == 0 ? OkSound() : CancelSound());
+        interface_->PlaySound(!twoButtons_ ? kOkSound : kCancelSound);
         interface_->SetPendingValue(0);
         handled_ = true;
         break;
@@ -144,13 +137,13 @@ void CObjectivesWindow::KeyDown(int key, int repeat, int flags) {
     default: break;
     }
     if (step != 0) {
-        interface_->PlaySound(SelectSound());
+        interface_->PlaySound(kSelectSound);
         selectedQuest_ += step;
         RefreshQuests();
         handled_ = true;
     }
-    if (!handled_ && g_keyActions[flags & 0x1FF] == kActionObjectives && twoButtons_ == 0) {
-        interface_->PlaySound(MessageOkSound());
+    if (!handled_ && g_keyActions[flags & 0x1FF] == kActionObjectives && !twoButtons_) {
+        interface_->PlaySound(kMessageOkSound);
         interface_->SetPendingValue(0);
     }
 }
@@ -159,8 +152,8 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     std::vector<UiPointF>& places = questPlaces_;
     places.clear();
     if (IsMultiplayerClient()) {
-        std::string key(name);
-        QuestRecord* record = QuestIndex()[key];
+        // (The index's operator[] adds a null entry for a new name.)
+        QuestRecord* record = g_questDatabase->questsByName[std::string(name)];
         if (record == nullptr) return;
         for (std::uint32_t i = 1; i < record->places.size(); i += 2)
             places.push_back(UiPointF{record->places[i - 1], record->places[i]});
@@ -169,8 +162,8 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     std::string header;
     std::vector<std::string> words;
     CTextManager* texts = g_clientWorld->texts_;
-    texts->Open(MapText());
-    header = str::Format(QuestHeader(), std::string(name));
+    texts->Open(kMapText);
+    header = str::Format(kQuestHeader, std::string(name));
     if (texts->FindLine(header)) {
         TextNextLine(texts);
         TextNextLine(texts);
@@ -191,7 +184,7 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
 void CObjectivesWindow::SelectExit(int index) {
     nearestExit_ = index;
     for (int i = 0; i < std::ssize(exits_); ++i) {
-        CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
+        CUiMesh* marker = SceneMesh(kFirstExitSprite + i);
         if (i == index) {
             marker->SetScale(markerScale_ * kNearestScale);
             marker->textureOffsetU_ = 0.0f;
@@ -201,8 +194,8 @@ void CObjectivesWindow::SelectExit(int index) {
             marker->textureOffsetU_ = exits_[i].flag_ ? 0.0f : kOtherExitU;
         }
     }
-    Sprite(this, 4)->visible_ = 0;
-    Sprite(this, 5)->visible_ = 0;
+    SceneMesh(4)->visible_ = 0;
+    SceneMesh(5)->visible_ = 0;
 }
 
 void CObjectivesWindow::RefreshQuests() {
@@ -232,12 +225,12 @@ void CObjectivesWindow::Update() {
     const std::uint32_t slow = libcrt::Ftol((x87::fcos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
     const std::uint32_t fast = libcrt::Ftol((x87::fcos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
     for (int i = std::ssize(exits_) + kFirstExitSprite; i < std::ssize(sceneObjects_); ++i) {
-        CUiMesh* place = Sprite(this, i);
+        CUiMesh* place = SceneMesh(i);
         place->flags_ |= kPlainColour;
         place->flatColour_ = fast << 24 | 0xFF0000u;
     }
     for (int i = 0; i < std::ssize(exits_); ++i) {
-        CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
+        CUiMesh* marker = SceneMesh(kFirstExitSprite + i);
         marker->flags_ |= kPlainColour;
         marker->flatColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
     }

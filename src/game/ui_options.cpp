@@ -24,18 +24,18 @@
 
 namespace {
 
-const char* TextOptionPrefix() { return "option_"; }
-const char* TextActionPrefix() { return "action_"; }
-const char* TextTipOption() { return "tip option_%s"; }
-const char* TextTipAction() { return "tip action_%s"; }
-const char* TextOptionOff() { return "option_off"; }
-const char* TextOptionOn() { return "option_on"; }
-const char* TextOffDefault() { return "OFF"; }
-const char* TextOnDefault() { return "ON"; }
-const char* TextDifficultyHard() { return "difficulty_hard"; }
-const char* TextDifficultyEasy() { return "difficulty_easy"; }
-const char* TextKeySeparator() { return "  |  "; }    // after each key name
-const char* TextKeyTrim() { return " |"; }         // trimmed from the right
+constexpr const char* kTextOptionPrefix = "option_";
+constexpr const char* kTextActionPrefix = "action_";
+constexpr const char* kTextTipOption = "tip option_%s";
+constexpr const char* kTextTipAction = "tip action_%s";
+constexpr const char* kTextOptionOff = "option_off";
+constexpr const char* kTextOptionOn = "option_on";
+constexpr const char* kTextOffDefault = "OFF";
+constexpr const char* kTextOnDefault = "ON";
+constexpr const char* kTextDifficultyHard = "difficulty_hard";
+constexpr const char* kTextDifficultyEasy = "difficulty_easy";
+constexpr const char* kTextKeySeparator = "  |  ";    // after each key name
+constexpr const char* kTextKeyTrim = " |";         // trimmed from the right
 
 constexpr int kOptionGroups = 11;
 constexpr int kOptionRows = 14;
@@ -87,31 +87,27 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
     {25, "difficulty", 1, 2, 3, 0},
 };
 
-CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
-
-void DrawRowText(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour, int format) {
-    surface->DrawTextIn(text, rect, font, colour, format, 1);
+// The text `key` up to the next '#', or the key itself without one.
+std::string TipText(const std::string& key) {
+    std::string tip = key;
+    if (g_clientWorld->texts_->CTextManager::Open(key.c_str())) g_clientWorld->texts_->ReadToHash(&tip, 1);
+    return tip;
 }
 
-void ReadTip(std::string* text) {
-    if (g_clientWorld->texts_->CTextManager::Open(text->c_str()) != 0) g_clientWorld->texts_->ReadToHash(text, 1);
-}
-
-void ShownName(std::string* out, const char* prefix, const char* name) {
+// The text `prefix` + `name`, or the name itself without one.
+std::string ShownName(const char* prefix, const char* name) {
     std::string text;
-    if (g_clientWorld->texts_->GetString((std::string(prefix) + name), &text))
-        *out = text;
-    else
-        *out = name;
+    if (g_clientWorld->texts_->GetString(std::string(prefix) + name, &text)) return text;
+    return name;
 }
 
 void RebuildKeysText(OptionBinding& binding) {
     binding.keysText_.clear();
     for (std::size_t k = 0; k < binding.keys_.size(); ++k) {
         binding.keysText_ += binding.keys_[k]->name_;
-        binding.keysText_ += TextKeySeparator();
+        binding.keysText_ += kTextKeySeparator;
     }
-    str::TrimRight(binding.keysText_, TextKeyTrim());
+    str::TrimRight(binding.keysText_, kTextKeyTrim);
 }
 
 void TurnQuarter(CUiMesh* sprite) {
@@ -125,35 +121,35 @@ void TurnQuarter(CUiMesh* sprite) {
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
-    SceneSprite(this, kHighlightSprite)->visible_ = 0;
+    SceneMesh(kHighlightSprite)->visible_ = 0;
 
     RECT title = {10, 60, 140, 80};
     for (int group = 0; group < kOptionGroups; ++group) {
-        CUiMesh* button = SceneSprite(this, kFirstGroupSprite + group);
+        CUiMesh* button = SceneMesh(kFirstGroupSprite + group);
         float tint = group == group_ ? 1.0f : 0.5f;
         button->tint_[0] = tint;
         button->tint_[1] = tint;
         button->tint_[2] = tint;
-        DrawRowText(surface, groupNames_[group], &title, 1, group == group_ ? kColourText : kColourDim, 1);
+        surface->DrawTextIn(groupNames_[group], &title, 1, group == group_ ? kColourText : kColourDim, 1, 1);
         gameapi::OffsetRect(&title, 0, 24);
     }
     RECT heading = {0, 10, 600, 34};
-    DrawRowText(surface, groupNames_[group_], &heading, 2, kColourText, 1);
+    surface->DrawTextIn(groupNames_[group_], &heading, 2, kColourText, 1, 1);
 
     RECT name = {160, 60, 420, 80};
     RECT keys = {430, 60, 590, 80};
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
         if (row == selectedRow_) {
-            CUiMesh* highlight = SceneSprite(this, kHighlightSprite);
+            CUiMesh* highlight = SceneMesh(kHighlightSprite);
             highlight->visible_ = 1;
             highlight->Place(471.0f, static_cast<float>(y), 3.0f);
         }
         if (OptionBinding* binding = rows_[row].binding_) {
             COLORREF colour = row == selectedRow_ && waitingForKey_ ? kColourWaiting : kColourText;
-            DrawRowText(surface, binding->name_, &name, 1, colour, 0);
-            DrawRowText(surface, binding->keysText_, &keys, 1, colour, 0);
+            surface->DrawTextIn(binding->name_, &name, 1, colour, 0, 1);
+            surface->DrawTextIn(binding->keysText_, &keys, 1, colour, 0, 1);
         } else if (OptionSetting* setting = rows_[row].setting_) {
-            DrawRowText(surface, setting->text_, &name, 1, kColourText, 0);
+            surface->DrawTextIn(setting->text_, &name, 1, kColourText, 0, 1);
         }
         gameapi::OffsetRect(&name, 0, 24);
         gameapi::OffsetRect(&keys, 0, 24);
@@ -161,7 +157,6 @@ void COptionsWindow::RefreshRows() {
 }
 
 void COptionsWindow::ShowGroup(int group) {
-    std::string tip;
     if (group < 0)
         group = 0;
     else if (group >= kOptionGroups)
@@ -177,17 +172,13 @@ void COptionsWindow::ShowGroup(int group) {
         const OptionDefinition& definition = kOptionDefinitions[i];
         if (definition.group_ != group) continue;
         rows_[definition.row_].setting_ = &settings_[i];
-        tip = str::Format(TextTipOption(), definition.name_);
-        ReadTip(&tip);
-        regions_[kFirstRowRegion + definition.row_]->SetTipString(tip);
+        regions_[kFirstRowRegion + definition.row_]->SetTipString(TipText(str::Format(kTextTipOption, definition.name_)));
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition& action = kActionDefinitions[i + 1];
         if (action.group_ != group) continue;
         rows_[action.row_].binding_ = &bindings_[i];
-        tip = str::Format(TextTipAction(), action.name_);
-        ReadTip(&tip);
-        regions_[kFirstRowRegion + action.row_]->SetTipString(tip);
+        regions_[kFirstRowRegion + action.row_]->SetTipString(TipText(str::Format(kTextTipAction, action.name_)));
     }
 
     for (int i = 0; i < kOptionDefinitionCount; ++i)
@@ -224,7 +215,7 @@ void COptionsWindow::BuildSettings() {
         const OptionDefinition* definition = &kOptionDefinitions[i];
         setting.value_ = 0;
         setting.definition_ = definition;
-        ShownName(&setting.text_, TextOptionPrefix(), definition->name_);
+        setting.text_ = ShownName(kTextOptionPrefix, definition->name_);
 
         int top = definition->row_ * 24;
         if (definition->kind_ == kSliderKind) {
@@ -236,13 +227,13 @@ void COptionsWindow::BuildSettings() {
             setting.spin_ = nullptr;
         } else if (definition->kind_ == kSpinKind) {
             std::string text;
-            text = TextOffDefault();
-            g_clientWorld->texts_->GetString(TextOptionOff(), &text);
-            if (i == kDifficultySetting) g_clientWorld->texts_->GetString(TextDifficultyHard(), &text);
+            text = kTextOffDefault;
+            g_clientWorld->texts_->GetString(kTextOptionOff, &text);
+            if (i == kDifficultySetting) g_clientWorld->texts_->GetString(kTextDifficultyHard, &text);
             setting.spin_ = new CUiSpin(interface_, RECT{530, top + 160, 690, top + 176}, text.c_str());
-            text = TextOnDefault();
-            g_clientWorld->texts_->GetString(TextOptionOn(), &text);
-            if (i == kDifficultySetting) g_clientWorld->texts_->GetString(TextDifficultyEasy(), &text);
+            text = kTextOnDefault;
+            g_clientWorld->texts_->GetString(kTextOptionOn, &text);
+            if (i == kDifficultySetting) g_clientWorld->texts_->GetString(kTextDifficultyEasy, &text);
             setting.spin_->AddText(text);
             AddChild(setting.spin_);
             setting.bar_ = nullptr;
@@ -257,7 +248,7 @@ void COptionsWindow::BuildBindings() {
         const ActionDefinition* action = &kActionDefinitions[i + 1];
         OptionBinding& binding = bindings_.emplace_back();
         binding.action_ = action;
-        ShownName(&binding.name_, TextActionPrefix(), action->name_);
+        binding.name_ = ShownName(kTextActionPrefix, action->name_);
 
         binding.keys_.clear();
         for (int scan = 0; scan < kKeyActionCount; ++scan) {
@@ -267,12 +258,7 @@ void COptionsWindow::BuildBindings() {
                 if (name->scan_ == scan && binding.keys_.size() < 1) binding.keys_.push_back(name);
             }
         }
-        binding.keysText_.clear();
-        for (std::size_t k = 0; k < binding.keys_.size(); ++k) {
-            binding.keysText_ += binding.keys_[k]->name_;
-            binding.keysText_ += TextKeySeparator();
-        }
-        str::TrimRight(binding.keysText_, TextKeyTrim());
+        RebuildKeysText(binding);
     }
 }
 
@@ -407,23 +393,23 @@ void CUiSlider::SetRect(const RECT* rect) {
     track_.left = rect->left + 26;
     track_.right = rect->right - 26;
 
-    CUiMesh* track = SceneSprite(this, 0);
+    CUiMesh* track = SceneMesh(0);
     track->SetRectangle(depth_, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(rect->right - rect->left - 8), 8, 4, 0x20,
                         0xFC);
     track->Place(static_cast<float>((rect->right + rect->left) * 0.5),
                  static_cast<float>(rect->bottom - 5), depth_);
     TurnQuarter(track);
 
-    CUiMesh* thumb = SceneSprite(this, 1);
+    CUiMesh* thumb = SceneMesh(1);
     thumb->SetRectangle(depth_ - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
     TurnQuarter(thumb);
 
-    CUiMesh* right = SceneSprite(this, 2);
+    CUiMesh* right = SceneMesh(2);
     right->SetRectangle(depth_, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
     right->Place(static_cast<float>(rect->right - 6), static_cast<float>(rect->bottom - 5), depth_);
     TurnQuarter(right);
 
-    CUiMesh* left = SceneSprite(this, 3);
+    CUiMesh* left = SceneMesh(3);
     left->SetRectangle(depth_, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
     left->Place(static_cast<float>(rect->left + 6), static_cast<float>(rect->bottom - 5), depth_);
     TurnQuarter(left);

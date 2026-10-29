@@ -29,8 +29,8 @@
 namespace {
 
 constexpr float kTurnedOver = 3.1415927f;   // pi
-const char* ItemFigureFormat() { return "initqu%ditem"; }
-const char* ItemImageFormat() { return "quitem%04d"; }
+constexpr const char* kItemFigureFormat = "initqu%ditem";
+constexpr const char* kItemImageFormat = "quitem%04d";
 // The seven speakers' places (800 x 600 layout).
 constexpr int kSlotXs[7] = /*0074111C*/ {300, 500, 200, 400, 600, 75, 725};
 constexpr int kSlotYs[7] = /*00741138*/ {300, 300, 300, 300, 300, 500, 500};
@@ -48,39 +48,38 @@ constexpr int kTintFrom = 8;             // items from index 8 on are tinted
 constexpr std::uint32_t kUnitBlocked = 0x800000;
 
 // A copy of `v`, normalised unless its length is zero.
-Vector3 Normalised(float x, float y, float z) {
-    Vector3 out{x, y, z};
-    float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z)));
+Vector3 Normalised(const Vector3& v) {
+    Vector3 out = v;
+    float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(v.x, v.y, v.z)));
     EI_NAN_AUDIT(length);
     if (length == 0.0f) return out;
     float inverse = 1.0f / length;
-    out.x = static_cast<float>(x * inverse);
-    out.y = static_cast<float>(y * inverse);
-    out.z = static_cast<float>(z * inverse);
+    out.x = static_cast<float>(v.x * inverse);
+    out.y = static_cast<float>(v.y * inverse);
+    out.z = static_cast<float>(v.z * inverse);
     return out;
 }
 
 } // namespace
 
 
-void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited,
-                                 bool immediate, int run) {
-    (void)z;   // the server unit's height is used instead
+void CBriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector3& direction, bool waited,
+                                 bool immediate, bool run) {
     auto* serverUnit = g_serverWorld->FindUnit(unit->id_);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     if (!controller) return;
-    Vector3 target{x, y, serverUnit->localPosition_.z};
+    Vector3 target{place.x, place.y, serverUnit->localPosition_.z};
     if (immediate) {
         g_serverWorld->aiMap_.sectorMap.Move(serverUnit, &target);
-        Vector3 facing = Normalised(dx, dy, dz);
+        Vector3 facing = Normalised(direction);
         serverUnit->SetHeading(&facing.x);
         unit->SetHeading(&facing.x);
         controller->ResyncWithUnit();
         return;
     }
     if (serverUnit->flags_ & kUnitBlocked) return;
-    movers_.push_front(BriefingMover{target, Vector3{dx, dy, dz}, BriefingMover::kWalking, unit, waited != 0, 0.0f});
+    movers_.push_front(BriefingMover{target, direction, BriefingMover::kWalking, unit, waited, 0.0f});
     controller->brain.Walk(&target, run, 0);
 }
 
@@ -104,7 +103,7 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
     // An item: one shown under this name goes first.
     for (const BriefingShownItem& shown : shown_) {
         if (text::CompareIgnoringCase(shown.name, name) != 0) continue;
-        HideSpeaker(name, 0, 0);
+        HideSpeaker(name, false, false);
         break;
     }
     std::string key(name);
@@ -131,7 +130,7 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
                         0xF9);
     }
     std::string figure;
-    figure = str::Format(ItemFigureFormat(), record->number);
+    figure = str::Format(kItemFigureFormat, record->number);
     CUiMesh* item = AddSprite(figure);
     if (!item) {
         if (back) RemoveSceneObject(back);
@@ -143,7 +142,7 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
         item->flags_ |= kPlainFlag;
     }
     std::string image;
-    image = str::Format(ItemImageFormat(), record->number);
+    image = str::Format(kItemImageFormat, record->number);
     CTexture* texture = CreateTexture(0x100, 0x100, 0x20);
     CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0);
     item->texture_ = texture;

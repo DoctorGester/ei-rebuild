@@ -32,21 +32,13 @@ constexpr int kLeaveAnswer = 0x90001;
 constexpr int kLoadWindowClosed = 0x100001;
 constexpr int kGameOverResult = 0x20000;
 
-int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unitId); }
-
-const char* ZoneTopicFormat() { return "b.%s"; }
+constexpr const char* kZoneTopicFormat = "b.%s";
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 constexpr int kTopicNameParts = 3;
 
 } // namespace
 
-// --- The variable copies ------------------------------------------------------------------------
-
-BriefingVariables::BriefingVariables(const char* prefix) { PlayerZeroVariables(prefix, &table_); }
-
-BriefingVariables::~BriefingVariables() = default;
-
-void CBriefingScreen::Close() {
+void CBriefingScreen::CloseScreen() {
     options::g_options->borderFogDistance_ = savedEdgeFade_;
     GameStopSounds(1);
     GameStopAmbience();
@@ -68,7 +60,7 @@ void CBriefingScreen::MessageResult(int result) {
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
         g_gameFlow->DropSessions();
-        uiorig::LeaveGame();
+        g_gameFlow->CloseSessions();
         break;
     default:
         break;
@@ -83,7 +75,7 @@ void CBriefingScreen::UnitJoined(CUnit* unit) {
     int place = 0;
     int record = 0;
     for (; record < count; ++record) {
-        int id = RecordUnitId(player->members_[record]);
+        int id = static_cast<int>(player->members_[record].unitId);
         if (unit->id_ == id) break;
         if (place < std::ssize(party_) && party_[place]->id_ == id) ++place;
     }
@@ -104,15 +96,16 @@ void CBriefingScreen::UnitJoined(CUnit* unit) {
         party_.resize(size + 1);
         party_[size] = unit;
     }
-    if (unit->id_ != RecordUnitId(player->members_[0])) return;
+    if (unit->id_ != static_cast<int>(player->members_[0].unitId)) return;
 
     leader_ = unit;
     g_clientWorld->Select(unit);
     g_camera->SetTarget(unit);
     MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
     std::string prefix;
-    prefix = str::Format(ZoneTopicFormat(), zone->name);
-    BriefingVariables variables(prefix.c_str());
+    prefix = str::Format(kZoneTopicFormat, zone->name);
+    NamedFloatTable variables;
+    PlayerZeroVariables(prefix.c_str(), &variables);
     std::vector<std::string> parts;
     for (auto& node : variables) {
         std::uint32_t bits;
@@ -122,7 +115,7 @@ void CBriefingScreen::UnitJoined(CUnit* unit) {
         if (parts.size() != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;
-        StartDialogue(1, 1);
+        StartDialogue(true, true);
         break;
     }
 }
@@ -146,10 +139,10 @@ void CBriefingScreen::GameOver(int) {
 
 void CBriefingScreen::ShowBriefing(std::string_view name) {
     topic_ = std::string(name);
-    StartDialogue(1, 1);
+    StartDialogue(true, true);
 }
 
-void CBriefingScreen::ShowChat(char show) {
+void CBriefingScreen::PlayersChanged(int show) {
     if (IsMultiplayerClient() && show && chat_) chat_->ShowPlayers();
 }
 
@@ -157,5 +150,3 @@ void CBriefingScreen::SaveState() {
     int zero = 0;
     g_saveStream->WriteValue(zero);
 }
-
-void CBriefingScreen::LoadPersonTexts() { ::LoadPersonTexts(&personTexts_); }

@@ -48,22 +48,6 @@ struct BriefingShownItem {
     CEngineObject* frame;
 };
 
-
-// A copy of the local player's variables whose names start with a prefix, walked in the table's order.
-class BriefingVariables {
-public:
-    explicit BriefingVariables(const char* prefix);
-    ~BriefingVariables();
-    BriefingVariables(const BriefingVariables&) = delete;
-    BriefingVariables& operator=(const BriefingVariables&) = delete;
-
-    NamedFloatTable::const_iterator begin() const { return table_.begin(); }
-    NamedFloatTable::const_iterator end() const { return table_.end(); }
-
-private:
-    NamedFloatTable table_;
-};
-
 // A network client's player list on the base screen: the players' faces along the top right, a surface under
 // them with each one's status and offer. Multiplayer only.
 class CChatWindow : public CUiWindow {
@@ -96,12 +80,13 @@ class CBriefingScreen : public CUiContainer {
 public:
     explicit CBriefingScreen(CInterface3D* ui);
     void Draw(CSceneRenderer* pass) override;
-    void CloseScreen() override { Close(); }
-    bool ReadyToStopPolling() override { return true; }
-    void PlayersChanged(int show) override { ShowChat(static_cast<char>(show)); }
-    void PlayerList(int mode) override { SetChatActive(mode); }
     // The camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
-    void Close();
+    void CloseScreen() override;
+    bool ReadyToStopPolling() override { return true; }
+    // A network client's chat window shows the players again (not for 0).
+    void PlayersChanged(int show) override;
+    // The chat window's pick mode (chatActive_).
+    void PlayerList(int mode) override { chatActive_ = mode; }
     // 0x10001 leaves through exit_; 0x20001 (game over: load) opens the load window; 0x20002, 0x90001,
     // 0x100001 close every window, drop the sessions and leave the game. A network client then shows its chat
     // window again.
@@ -114,7 +99,6 @@ public:
     void GameOver(int) override;
     // The interface command "briefing <name>": dialogue `name` starts at once.
     void ShowBriefing(std::string_view name) override;
-    void ShowChat(char show);
     // One zero dword.
     void SaveState() override;
     // A saved game's screen part is dropped.
@@ -151,10 +135,8 @@ public:
     // client sorts them), and last the last "constr..." one found.
     void FindTopics(int personId);
     // The first line of the text "briefing <topic>" (lowercased; "constr..." topics share "briefing constr"),
-    // empty without one. `out` is constructed here.
-    std::string* TopicTitle(std::string* out, std::string_view topic);
-
-    void LoadPersonTexts();
+    // empty without one.
+    std::string TopicTitle(std::string_view topic);
 
     // Without a text "briefing <topic_>" back to state 0. Otherwise the server hears dialogue event 3, the
     // camera is kept (savedCamera_, lookAt_), state 3.
@@ -170,8 +152,8 @@ public:
     // 2, 3, 6, 7 and 12.
     void ViewPreset(int preset);
     // "#hide <name>": the server hears event 2; its server unit gets flag 0x40000000 back. The third speaker
-    // walks to thirdPlace_ and is forgotten. A name that is no unit removes the shown item of that name.
-    void HideSpeaker(std::string_view name, int immediate, int time);
+    // walks (or runs) to thirdPlace_ and is forgotten. A name that is no unit removes the shown item of that name.
+    void HideSpeaker(std::string_view name, bool immediate, bool run);
 
     // "goodbye" (or no leader) back to state 0; a "constr..." topic opens the camp (screen 5) with constructor N
     // when that class template exists. See docs/notes/ui.md, "Behaviour moved out of header comments".
@@ -180,15 +162,13 @@ public:
     // itself puts the camera on the leader and frees it, otherwise it goes back to savedCamera_ / lookAt_. See
     // docs/notes/ui.md, "Behaviour moved out of header comments".
     void FinishDialogue();
-    // `z` is not read: the server unit's height is kept. Unless `immediate`, a server unit that is blocked
-    // (0x800000) does not move.
-    void MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited, bool immediate,
-                    int run);
+    // To `place` (its z is not read: the server unit's height is kept), facing `direction`. Unless `immediate`, a
+    // server unit that is blocked (0x800000) does not move.
+    void MovePerson(CUnit* unit, const Vector3& place, const Vector3& direction, bool waited, bool immediate, bool run);
     // "#show <name>": a person joins the speakers (the leader's server unit gets flag 0x40000000). Anything
     // else with `index` >= 0 is a loot item. See docs/notes/ui.md, "Behaviour moved out of header comments".
     void ShowItem(std::string_view name, int index);
     void ClearShownItems();
-    void SetChatActive(int mode);
 
     // Lines up to the next "#phrase <speaker> [voice]" are carried out ("#nolips", "#show", "#hide",
     // "#animation n", "#camera n [angle distance height]"). After the last phrase: state 4 and the briefing
@@ -199,7 +179,6 @@ public:
     bool exitPending_;
     int state_;                      // dialogue state (above)
     std::vector<std::string> topics_;   // "goodbye" last
-    int TopicCount() const { return static_cast<int>(topics_.size()); }
     std::string topic_;              // the dialogue running
     int hoveredTopic_;               // or -1
     bool briefingStarted_;           // a dialogue started by itself

@@ -39,10 +39,6 @@ CMessageBox::CMessageBox(CInterface3D* ui, std::string_view titleKey, const char
 
 // --- The objectives window ----------------------------------------------------------------------------
 
-CObjectivesWindow::CObjectivesWindow(CInterface3D* ui) : CUiContainer(ui) {
-    exitDistances_ = nullptr;
-}
-
 // --- The portraits panel ------------------------------------------------------------------------------
 
 CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {

@@ -18,29 +18,23 @@
 
 namespace {
 
-const char* SaveLoadTexture() { return "saveload"; }
-const char* TutorialSection() { return "tutorial "; }
-const char* ScreenLine() { return "#screen"; }
-const char* TutorSection() { return "tutor "; }
-const char* LineEnds() { return "\r\n"; }          // the line end
-const char* NextSound() { return "buttons\\tutorial\\next.wav"; }
-const char* OkSound() { return "buttons\\tutorial\\ok.wav"; }
+constexpr const char* kSaveLoadTexture = "saveload";
+constexpr const char* kTutorialSection = "tutorial ";
+constexpr const char* kScreenLine = "#screen";
+constexpr const char* kTutorSection = "tutor ";
+constexpr const char* kLineEnds = "\r\n";          // the line end
+constexpr const char* kNextSound = "buttons\\tutorial\\next.wav";
+constexpr const char* kOkSound = "buttons\\tutorial\\ok.wav";
 
 constexpr char kHelpAction = ';';   // the help key's action (g_keyActions)
 
-// Opens text `section` + `key` and, when it is there, replaces `text` with it up to the next '#'
-// (the line ends trimmed).
-template <typename Text>
-void ReadTutorText(CTextManager* texts, const std::string& key, Text* text) {
-    BOOL found;
-    {
-        std::string section = std::string(TutorSection()) + key;
-        found = texts->Open(section);
-    }
-    if (!found) return;
+// Opens text "tutor " + `key` and, when it is there, replaces `text` with it up to the next '#' (the line ends
+// trimmed).
+void ReadTutorText(CTextManager* texts, const std::string& key, std::string* text) {
+    if (!texts->Open(std::string(kTutorSection) + key)) return;
     std::string read;
     texts->ReadToHash(&read, 1);
-    str::TrimRight(read, LineEnds());
+    str::TrimRight(read, kLineEnds);
     *text = read.c_str();
 }
 
@@ -49,22 +43,17 @@ int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 } // namespace
 
 void CHelpWindow::CreateScreen() {
-    LoadTexture(SaveLoadTexture(), 3);
+    LoadTexture(kSaveLoadTexture, 3);
     CreateTexture(0x100, 0x100, 0x20);
     CTextManager* texts = g_clientWorld->texts_;
-    BOOL found;
-    {
-        std::string section = std::string(TutorialSection()) + text_;
-        found = texts->Open(section);
-    }
-    if (!found) {
+    if (!texts->Open(std::string(kTutorialSection) + text_)) {
         interface_->SetPendingValue(0);
         return;
     }
     std::string line;
     texts->ReadLine(&line, 1);
     title_ = line.c_str();
-    while (texts->FindLine(ScreenLine())) {
+    while (texts->FindLine(kScreenLine)) {
         TextNextLine(texts);
         texts->ReadLine(&line, 1);
         lines_.push_back(line);
@@ -82,7 +71,7 @@ void CHelpWindow::CreateScreen() {
     ShowPage();
 }
 
-void CHelpWindow::Close() {
+void CHelpWindow::CloseScreen() {
     pulsing_.clear();
     pictures_.clear();
     ClearSurfaces();
@@ -107,7 +96,7 @@ void CHelpWindow::Update() {
 }
 
 void CHelpWindow::Finish() {
-    interface_->PlaySound(OkSound());
+    interface_->PlaySound(kOkSound);
     if (!message_)
         interface_->helpTopics_[text_] = page_;
     else
@@ -120,7 +109,7 @@ void CHelpWindow::LeftDown(int buttons, int x, int y) {
     switch (RegionAt(x, y)) {
     case 0:
         if (page_ > 0) {
-            interface_->PlaySound(NextSound());
+            interface_->PlaySound(kNextSound);
             --page_;
             ShowPage();
         }
@@ -130,7 +119,7 @@ void CHelpWindow::LeftDown(int buttons, int x, int y) {
         break;
     case 2:
         if (page_ < static_cast<int>(lines_.size()) - 1) {
-            interface_->PlaySound(NextSound());
+            interface_->PlaySound(kNextSound);
             ++page_;
             ShowPage();
         }
@@ -143,7 +132,7 @@ void CHelpWindow::LeftDown(int buttons, int x, int y) {
 void CHelpWindow::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_RETURN && page_ < static_cast<int>(lines_.size()) - 1) {
-        interface_->PlaySound(NextSound());
+        interface_->PlaySound(kNextSound);
         ++page_;
         ShowPage();
         handled_ = true;
