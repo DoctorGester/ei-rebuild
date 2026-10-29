@@ -6088,5 +6088,4 @@ id = "C30a"
 title = "Drawing-only files on /arch:SSE2 (flags only, code untouched)"
 group = "cleanup"
 model = "opus"
-depends = ["C30"]
 note = "Step 1 of C30's plan (read C30's note). Per-file /arch:SSE2 for the drawing-only list, golden-checked; files that change a golden go back to IA32, listed with the golden; frame time before/after on R37's scenes."
