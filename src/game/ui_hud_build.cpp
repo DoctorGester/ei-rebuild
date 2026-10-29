@@ -11,12 +11,12 @@
 
 #include <cstdint>
 #include <string>
-#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "world.h"
 
 #include <vector>
+#include <format>
 
 namespace {
 
@@ -40,7 +40,7 @@ std::vector<std::string> Labels(const int (&ids)[N]) {
     std::vector<std::string> labels;
     std::string text;
     for (int id : ids) {
-        text = str::Format("infoitem_%d", id);
+        text = std::format("infoitem_{}", id);
         texts->GetString(text, &text);
         labels.push_back(text);
     }

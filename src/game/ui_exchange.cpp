@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <string>
+#include <format>
 
 namespace {
 const char* const kBuySound = "buttons\\camp\\buy.wav";
@@ -220,7 +221,7 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
     texts->GetString("xch_current_money", &text);
-    line = str::Format("%s %d", text, LocalPlayerData()->money_);
+    line = std::format("{} {}", text, LocalPlayerData()->money_);
     RECT rect{0, 0, 200, 0x14};
     surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
     texts->GetString("xch_accept", &text);
@@ -242,7 +243,7 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
         texts->GetString("xch_money_remote", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-        line = str::Format("%d", partnerOffer_->money_);
+        line = std::format("{}", partnerOffer_->money_);
         rect = RECT{0, 0x28, 200, 0x3C};
         surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
     }

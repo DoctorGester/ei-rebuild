@@ -16,9 +16,9 @@
 #include <cstdint>
 #include <string>
 #include "game_data.h"
-#include "lib/str.h"
 
 #include <cstring>
+#include <format>
 
 namespace {
 
@@ -152,7 +152,7 @@ void CMpConnectScreen::DrawListVanilla() {
         g_connectTextColour = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
-            text = str::Format("%s %s", label(7), nameEdit_->text_);
+            text = std::format("{} {}", label(7), nameEdit_->text_);
             if (extended)
                 DrawEllipsis(surface, text, &row, kFormatNoPrefix);
             else
@@ -166,16 +166,16 @@ void CMpConnectScreen::DrawListVanilla() {
                 DrawLabel(surface, entry.name, &row, kFormatNoPrefix);
             }
             row.left = 142;
-            text = str::Format("%d/%d", entry.players, entry.maxPlayers);
+            text = std::format("{}/{}", entry.players, entry.maxPlayers);
             DrawLabel(surface, text, &row, 0);
             row.left = 170;
             if (entry.gameType == kNewGameType)
                 text = "?";
             else
-                text = str::Format("%s", allod(entry.gameType));
+                text = std::format("{}", allod(entry.gameType));
             DrawLabel(surface, text, &row, 0);
             row.left = layout.rowLeftPing;
-            text = str::Format("%d", entry.ping);
+            text = std::format("{}", entry.ping);
             DrawLabel(surface, text, &row, kFormatRight);
             row.left = 12;
         }
@@ -193,7 +193,7 @@ void CMpConnectScreen::DrawListVanilla() {
             DrawLabel(surface, label(0), &row, 0);
             Down(&row);
             Down(&row);
-            text = str::Format("%s %d", label(2), maxPlayers_);
+            text = std::format("{} {}", label(2), maxPlayers_);
             DrawLabel(surface, text, &row, 0);
             Down(&row);
             Down(&row);
@@ -210,7 +210,7 @@ void CMpConnectScreen::DrawListVanilla() {
             Down(&row);
             DrawLabel(surface, label(17), &row, 0);
         } else {
-            text = str::Format("%s %s", label(0), entry.name);
+            text = std::format("{} {}", label(0), entry.name);
             if (extended) {
                 // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
                 int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, g_connectTextColour, 0, 1);
@@ -220,23 +220,23 @@ void CMpConnectScreen::DrawListVanilla() {
                 DrawLabel(surface, text, &row, 0);
             }
             Down(&row);
-            text = str::Format("%s %d / %d", label(1), entry.players, entry.maxPlayers);
+            text = std::format("{} {} / {}", label(1), entry.players, entry.maxPlayers);
             DrawLabel(surface, text, &row, 0);
             Down(&row);
             if (entry.gameType == kNewGameType)
                 text = texts_[3] + " ?";
             else
-                text = str::Format("%s %s", label(3), allod(entry.gameType));
+                text = std::format("{} {}", label(3), allod(entry.gameType));
             DrawLabel(surface, text, &row, 0);
             Down(&row);
-            text = str::Format("%s %s", label(4), entry.description);
+            text = std::format("{} {}", label(4), entry.description);
             int lines = surface->DrawWrappedText(text, &row, 3, kFont, g_connectTextColour, 0, 1);
             for (; lines != 0; --lines) Down(&row);
             std::string address = entry.address.ToString();
-            text = str::Format("%s %s", label(5), address.data());
+            text = std::format("{} {}", label(5), address.data());
             DrawLabel(surface, text, &row, 0);
             Down(&row);
-            text = str::Format("%s %d", label(6), entry.ping);
+            text = std::format("{} {}", label(6), entry.ping);
             DrawLabel(surface, text, &row, 0);
             Down(&row);
             if (entry.password) {

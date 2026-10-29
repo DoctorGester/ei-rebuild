@@ -16,6 +16,7 @@
 #include "world_glue.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
+#include <format>
 
 namespace {
 
@@ -58,7 +59,7 @@ void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, const TradeRow&
     draw->DrawTextIn(school.name, row, 0, kBright, 0, 1);
     RECT levelRect = *row;
     gameapi::OffsetRect(&levelRect, -40, 0);
-    draw->DrawTextIn(str::Format("%d", school.level), &levelRect, 0, kBright, 2, 1);
+    draw->DrawTextIn(std::format("{}", school.level), &levelRect, 0, kBright, 2, 1);
     if (school.level < 100) {
         draw->DrawTextIn(CTradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience_), 2, 1);
         PriceSprite(panel, *row, 350.0f, 390.0f);
@@ -110,7 +111,7 @@ void CTradePanel::BuildLists() {
             texts->ReadLine(&text, 1);
         else
             text = record->displayName;
-        row.name = level > 1 ? str::Format("%s (%s%d)", text, perkLevel, level) : text;
+        row.name = level > 1 ? std::format("{} ({}{})", text, perkLevel, level) : text;
         if (level < 3) {
             // The next level's record (null past the end: the original reads its name through
             // null then, as here).
@@ -329,10 +330,10 @@ std::string CTradePanel::FormatPrice(int price) {
     constexpr float kMillionth = 1e-6f;
     constexpr float kBillionth = 1e-9f;
     if (price < 0) price = 0x7FFFFFFF;   // shown in billions
-    else if (price < 1000) return str::Format("%d", price);
+    else if (price < 1000) return std::format("{}", price);
     else if (price < 10000) return str::Format("%.1fk", static_cast<double>(price) * kThousandth);
-    else if (price < 1000000) return str::Format("%dk", price / 1000);
+    else if (price < 1000000) return std::format("{}k", price / 1000);
     else if (price < 10000000) return str::Format("%.1fm", static_cast<double>(price) * kMillionth);
-    else if (price < 1000000000) return str::Format("%dm", price / 1000000);
+    else if (price < 1000000000) return std::format("{}m", price / 1000000);
     return str::Format("%.1fg", static_cast<double>(price) * kBillionth);
 }

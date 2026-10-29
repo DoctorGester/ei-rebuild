@@ -34,6 +34,7 @@
 
 #include <cstdlib>
 #include <new>
+#include <format>
 
 // --- Helpers ------------------------------------------------------------------------------------
 
@@ -188,7 +189,7 @@ void COptionsWindow::CreateScreen() {
         CUiRegion* region = AddRect(this, 100, top, 250, top + 24);
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
-        text = str::Format("tip option_group_%s", OptionGroupName(k));
+        text = std::format("tip option_group_{}", OptionGroupName(k));
         if (g_clientWorld.texts_->Open(text) != 0) g_clientWorld.texts_->ReadToHash(&text, 1);
         region->SetTipString(text);
         {

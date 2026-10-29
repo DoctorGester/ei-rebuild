@@ -30,6 +30,7 @@
 #include <new>
 #include <string>
 #include <vector>
+#include <format>
 
 namespace {
 
@@ -540,8 +541,8 @@ void CMpHeroScreen::AddNewHero() {
     MpHeroRecord* record = &heroes.back();
     heroIndex_ = static_cast<int>(heroes.size()) - 1;
 
-    const int highest = HighestFileNumber(str::Format("%s*.mp", g_savedParties.folder_));
-    record->file = str::Format("%d.mp", highest + 1);
+    const int highest = HighestFileNumber(std::format("{}*.mp", g_savedParties.folder_));
+    record->file = std::format("{}.mp", highest + 1);
     record->Party()->Assign(LocalPlayerData());
     record->WriteFile(g_savedParties.folder_);
     RefreshHeroScroll();

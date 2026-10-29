@@ -17,10 +17,10 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/str.h"
 #include "lib/vecmath.h"
 
 #include <cstdint>
+#include <format>
 
 namespace {
 
@@ -178,9 +178,9 @@ void CHudPortraits::Rebuild(bool wide) {
         else if (figureBuild > kFat)
             build = "fa";
         const char* figure = unit->name.c_str();
-        model = str::Format("infa%s%s%dface", figure, build,
+        model = std::format("infa{}{}{}face", figure, build,
                      unit->GetPrototype()->hair + 1);
-        picture = str::Format("face%s%02d", sex, skin);
+        picture = std::format("face{}{:02}", sex, skin);
         AddPortrait(model, picture, wide, false);
 
         if (owner_->party_[i]->flags_ & MapObjectFlag::Selected) {
@@ -192,9 +192,9 @@ void CHudPortraits::Rebuild(bool wide) {
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
         slots_[i].faceName_ = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].modelPrefix_ = str::Format("infa%s", unit->name);
+        slots_[i].modelPrefix_ = std::format("infa{}", unit->name);
         const int hair = unit->GetPrototype()->hair;
-        slots_[i].modelSuffix_ = str::Format("%dface", hair + 1);
+        slots_[i].modelSuffix_ = std::format("{}face", hair + 1);
         slots_[i].build_ = figureBuild;
         slots_[i].playerId_ = -1;
         const int tipId = 0x37 + i;
@@ -218,8 +218,8 @@ void CHudPortraits::Rebuild(bool wide) {
         const UnitModelRecord* figure = unitdb::ModelNamed(std::string(prototype->modelName));
         SexOf(figure->figureName, sex);
         build = "me";
-        model = str::Format("infa%s%s%dface", figure->figureName, build, prototype->hair + 1);
-        picture = str::Format("face%s%02d", sex, prototype->skin);
+        model = std::format("infa{}{}{}face", figure->figureName, build, prototype->hair + 1);
+        picture = std::format("face{}{:02}", sex, prototype->skin);
         AddPortrait(model, picture, wide, true);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;
