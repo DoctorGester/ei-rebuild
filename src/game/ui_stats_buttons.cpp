@@ -25,8 +25,8 @@ constexpr float kMaxTotal = 75.0f;
 constexpr float kStep = 1.0f;
 constexpr int kMaxHeight = 99;
 constexpr float kHeightScale = 0.01f;
-constexpr double kRepeatDelay = 0.25;
-constexpr float kFirstHold = -0.5f;
+constexpr int kRepeatTicks = 250;            // a step every frame from 250 ms
+constexpr int kFirstHoldTicks = -500;        // the first step waits 750 ms
 
 // An attribute pair (its base and current value, kept equal on this page).
 void SetAttribute(float& base, float& current, float value) {
@@ -41,7 +41,7 @@ bool HeroStatsPanel::StepPoint(int region) {
     UnitStats* stats = &hero->stats;
     int total = static_cast<int>(stats->strengthBase) + static_cast<int>(stats->intelligenceBase) +
                 static_cast<int>(stats->dexterityBase);
-    bool roomLeft = static_cast<float>(total) < kMaxTotal;
+    bool roomLeft = total < kMaxTotal;
     switch (region - kFirstButton) {
     case 0:
         EI_NAN_AUDIT(stats->strengthBase);
@@ -61,7 +61,7 @@ bool HeroStatsPanel::StepPoint(int region) {
     case 3:
         if (points < 1) return false;
         --points;
-        hero->height = static_cast<float>(points) * kHeightScale;
+        hero->height = points * kHeightScale;
         return true;
     case 4:
         if (stats->strengthBase >= kMaxAttribute || !roomLeft) return false;
@@ -78,7 +78,7 @@ bool HeroStatsPanel::StepPoint(int region) {
     case 7:
         if (points > kMaxHeight) return false;
         ++points;
-        hero->height = static_cast<float>(points) * kHeightScale;
+        hero->height = points * kHeightScale;
         return true;
     default:
         return false;
@@ -89,15 +89,14 @@ bool HeroStatsPanel::StepPoint(int region) {
 
 void HeroStatsPanel::Update() {
     if (page != kNewHeroPage || heldRegion < 0) return;
-    double held = UiContainer::FrameTime() + holdTime;
-    holdTime = static_cast<float>(held);
-    if (held < kRepeatDelay) return;   // less (a NaN goes on)
+    holdTicks += UiContainer::FrameTicks();
+    if (holdTicks < kRepeatTicks) return;
     bool stepped = StepPoint(heldRegion);
     owner->RefreshStats();
     if (!stepped) {
         ui->mouseCapture = nullptr;
         heldRegion = -1;
-        holdTime = 0.0f;
+        holdTicks = 0;
     }
 }
 
@@ -113,7 +112,7 @@ void HeroStatsPanel::LeftDown(int, int x, int y) {
             owner->RefreshStats();
         }
         if (heldRegion > 0) {
-            holdTime = kFirstHold;
+            holdTicks = kFirstHoldTicks;
             CaptureMouse();
         }
         return;
@@ -130,5 +129,5 @@ void HeroStatsPanel::LeftDown(int, int x, int y) {
 void HeroStatsPanel::LeftUp(int, int, int) {
     ui->mouseCapture = nullptr;
     heldRegion = -1;
-    holdTime = 0.0f;
+    holdTicks = 0;
 }

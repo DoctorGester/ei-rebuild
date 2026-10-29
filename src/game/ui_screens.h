@@ -91,10 +91,14 @@ public:
 
     // Settles the pending scroll on release.
     void SettleScroll();
+    // The list index under the scaled pixel column `x`: 100-pixel cells from x 50 plus the current tab's position snapped
+    // once to a whole pixel (its floor, so the sum truncates as the original's (x - 50) * 0.01 + position did, but for
+    // an exact cell edge). Not range-checked.
+    int SlotAt(int x) const;
 
     int tab;                    // 0-5
     int scrollDirection;        // 0 none, 1 left arrow held, 2 right arrow held
-    float scrollTimer;
+    int scrollTicks;            // milliseconds into the held arrow's repeat (0 not held yet)
     float position[6];          // scroll position of each tab, in slots
     float pending;              // scroll still to apply, in slots
     float velocity;

@@ -1158,6 +1158,8 @@ public:
 
     // Seconds since the last frame (milliseconds * 0.001f, left unrounded).
     static double FrameTime();
+    // The last frame's whole milliseconds (the ticks the held buttons' repeats count).
+    static int FrameTicks();
     // Null is ignored.
     void AddChild(UiWindow* child);
     void AddInput(UiInputSide* input);

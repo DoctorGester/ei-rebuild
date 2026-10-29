@@ -16,7 +16,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include <cstdint>
@@ -67,12 +66,12 @@ constexpr SkillAnimation kPreviewAnimation = SkillAnimation::Special14;      // 
 
 int TradePanel::Experience() const {
     const TradeStatsRecord& record = Record();
-    return static_cast<int>(static_cast<double>(record.pendingExperience) + record.experience - record.spentExperience);
+    return static_cast<int>(record.pendingExperience + record.experience - record.spentExperience);
 }
 
 int TradePanel::PurchaseCost() {
     PartyUnitRecord* hero = owner->HeroRecord();
-    return static_cast<int>(static_cast<double>(hero->stats.spentExperience) - Record().spentExperience);
+    return static_cast<int>(hero->stats.spentExperience - Record().spentExperience);
 }
 
 // --- Draw ------------------------------------------------------------------------------
@@ -153,7 +152,7 @@ void MpHeroScreen::Update() {
 
     std::string name = nameEdit->text;
     const UnitStats* stats = &HeroRecord()->stats;
-    double points = static_cast<double>(stats->intelligenceBase) + stats->dexterityBase + stats->strengthBase;
+    float points = stats->intelligenceBase + stats->dexterityBase + stats->strengthBase;
     float target = kAttributePoints;
     EI_NAN_AUDIT(points, target);
     bool equal = points == target;
@@ -215,7 +214,7 @@ void MpHeroScreen::DrawVoices() {
         if (index >= currentVoices.size()) break;
         if (static_cast<int>(index) == voiceIndex) {
             frame->visible = true;
-            float y = static_cast<float>(static_cast<double>(offset) + kVoiceFrameTop);
+            float y = offset + kVoiceFrameTop;
             frame->Place(97.5f, y, kFrameDepth);
         }
         surface->DrawTextIn(currentVoices[index].name, &area, 0, kListColour, kListFormat, 1);
@@ -241,14 +240,14 @@ void MpHeroScreen::MakePreview(bool allArmour) {
         FigureAnimation* animation = unit->FindSkillAnimation(kPreviewAnimation);
         if (animation) {
             std::uint32_t random = g_clientRandom.Next();
-            double frames = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
+            double frames = static_cast<double>(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
         UnitController* controller = unit->Controller();
         controller->ShowWeapon(kNoWeaponSlot);
         controller->RefreshModel();
-        double now = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
+        double now = static_cast<double>(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
         controller->RestartAnimation(static_cast<float>(now - 1.0f));
         unit->SetFromStats(&player->members.data()->stats);
         unit->Controller()->RefreshWounds();

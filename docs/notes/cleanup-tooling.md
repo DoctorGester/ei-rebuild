@@ -163,12 +163,17 @@ the two cannot be stacked per file.
   rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
   choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
-  camera keys and mouse, the figure strips), the briefing (camera moves, phrase timing), the hero screen's points and
-  the held buttons' repeat counts (ui_stats_buttons, ui_trade_panel_input), device_object (sets the 24-bit precision),
+  camera keys and mouse), the briefing (camera moves, phrase timing), device_object (sets the 24-bit precision),
   the terrain's heights, sectors and loading, and sound_manager (below).
-- **Golden that sent a file back:** ui_item_strip_setup (`ui_hero_screen`: the figure strip's click
-  `(x - 50) * kSlotsPerPixel + position` in double picked the neighbouring figure, record 11). ui_item_strip (its
-  eased scroll position feeds that sum) went back with it without a golden of its own.
+- **Hit tests in whole pixels (C30a3):** the item and figure strips went back to x87 in C30a because the figure strip's
+  click `(x - 50) * 0.01f + position`, truncated, picked the neighbouring figure in double (`ui_hero_screen` record 11:
+  x 250 is 200 pixels in, 200 * 0.01f is 1.99999996 in double and 2.0 at PC24). The rule since: a hit test is integer
+  (pixels and cell widths, a float position snapped once: `UiItemStrip::SlotAt`), and a held button's repeat counts
+  whole milliseconds of the frame (`UiContainer::FrameTicks`: the strip arrows' `scrollTicks`, the stats panel's and
+  the trade panel's `holdTicks`), not a float sum of seconds. Results match the original's but on an exact border
+  (pixel or millisecond). With that ui_item_strip_setup, ui_item_strip, ui_hero_screen, ui_hero_screen_click,
+  ui_stats_buttons and ui_trade_panel_input are on SSE2 and through C30b's rewrite; the trade panel's experience
+  sums (`Experience`, `PurchaseCost`) are float maths, the original's PC24 sums exactly.
 - **Sound:** a speech's handle reaches the game: `UnitClientSpecific::Say` / `SpeechFilter::Finished` clear the server
   unit's talking flag (`MapObjectFlag::Blocked`) when the speech's voice is no longer busy, and Play2D answers -1 when
   every voice plays at the speech's priority or above. Whether a voice is free follows from Play3D's level

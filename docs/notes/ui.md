@@ -269,7 +269,8 @@ operator+ instead of two, a "spell container" through 00613820 instead of the in
 Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `ui_stats_rows.cpp`, `ui_equip_panels.cpp`,
 `ui_panel_draws.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel*.cpp`, `ui_item_strip*.cpp`):
 - `HeroStatsPanel::SetHero` stores +0x170 = height * 100 truncated (an edge height may differ at another precision).
-  The panel's page 10 -/+ regions 6-13: a hold starts at -0.5 s with the capture, repeat after 0.25 s (ui_hero_stats,
+  The panel's page 10 -/+ regions 6-13: a hold starts at -500 ms with the capture, a step every frame from 250 ms
+  (whole milliseconds of the frame, `UiContainer::FrameTicks`; the original summed float seconds) (ui_hero_stats,
   coordinates unconfirmed); regions 0 / 1 previous / next hero. `DrawPart` armour "%.1f" = the largest of the first six
   damage types' three-layer sums; a NaN keeps the old maximum. `HeroEquipPanel::RightDown` does not mark the event
   used.
@@ -280,8 +281,14 @@ Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `
   tests the low byte of `keep`), `RestoreRecord` (HealSlots by old hp / old max * new max - Reduce(new max), the maxima
   stored as float). `LeftDown` (`ui_trade_panel_input.cpp`; ui_trade_hold with `ldown` / `lup`, purchases only in
   the Rebirth run): regions 0-3 scroll, 4-9 a school level, 10 science, 11-33 a learnable perk, 34 up a held perk.
+  A held school or science row repeats as the stats panel's -/+ (from -500 ms, every frame from 250 ms, whole ticks).
   `FormatPrice` is "%d" / "%.1fk" / "%dk" / "%.1fm" / "%dm" / "%.1fg", negative as 0x7FFFFFFF.
 - Item strip (`UiItemStrip`, the forwarding strip of camp and exchange): `Update` scroll physics compared to 4 ULPs;
+  a held arrow's repeat counted in whole milliseconds (`scrollTicks`, one slot at once, then one per 100 ms past the
+  first millisecond). The click (`SlotAt`, both `ForwardingStrip::ItemAt` and `FigureStrip::LeftDown`) is integer:
+  `(x - 50 + floor(position * 100)) / 100`, where the original truncated `(x - 50) * 0.01f + position` in double. The
+  floor of the snapped position keeps every pixel's answer; only a pixel exactly on a cell edge can differ (the
+  original's 0.01f is a little under 0.01, so at PC24 (x87) and in double (SSE2) such a pixel fell either way).
   `FigureStrip::SetupFigures` (the name list; was the union with `filter`); figure strips (00741BF4) `DrawFigures`, `CountFigures`,
   `FigureStrip::LeftDown` (`ui_item_strip_setup.cpp`; ui_hero_screen mode 10, unconfirmed that its clicks land).
   the item predicates `Is*` (ui_screens.h; 005EE050-005EE130, P), `ItemScreen::MoveItem` (RET 0x18) and `ReturnAll` (RET 8;

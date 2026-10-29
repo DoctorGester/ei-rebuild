@@ -14,6 +14,13 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
+namespace {
+
+constexpr int kFirstCellX = 50;     // the items' region starts here
+constexpr int kCellPixels = 100;    // one slot
+
+} // namespace
+
 void UiItemStrip::Build(bool atTop) {
     top = atTop ? 0 : 500;
     scale = atTop ? 8.0f : 4.0f;
@@ -21,7 +28,7 @@ void UiItemStrip::Build(bool atTop) {
     for (float& tabPosition : position) tabPosition = 0.0f;
     pending = 0.0f;
     velocity = 0.0f;
-    scrollTimer = 0.0f;
+    scrollTicks = 0;
     scrollDirection = 0;
     count = 0;
     selected = -1;
@@ -89,17 +96,17 @@ void UiItemStrip::Build(bool atTop) {
 void ForwardingStrip::Draw(SceneRenderer* pass) {
     const float scrollPosition = position[tab];
     const int first = static_cast<int>(scrollPosition);
-    const float frac = static_cast<float>(scrollPosition - static_cast<float>(first));
+    const float frac = scrollPosition - first;
     const float hundred = 100.0f, fifty = 50.0f, one = 1.0f;
     // The scroll arrows (sprites 0 and 1) show their dim frame while the strip can move that way.
     const float dim = 0.1953125f;
     SceneMesh(0)->textureOffsetU = position[tab] > 0.0f ? dim : 0.0f;
-    SceneMesh(1)->textureOffsetU = static_cast<float>(std::ssize(list) - 7) > position[tab] ? dim : 0.0f;
+    SceneMesh(1)->textureOffsetU = (std::ssize(list) - 7) > position[tab] ? dim : 0.0f;
 
     SceneMesh(9)->Place(fifty - frac * hundred, static_cast<float>(top), scale + scale);
     for (int i = 0; i < 8; ++i) {
         SceneMesh(10 + i)
-            ->Place(((static_cast<float>(i) - frac) + one) * hundred, static_cast<float>(top) + fifty, scale);
+            ->Place(((i - frac) + one) * hundred, top + fifty, scale);
     }
     DrawBase(pass);
 
@@ -111,14 +118,14 @@ void ForwardingStrip::Draw(SceneRenderer* pass) {
             continue;
         }
         shown[i] = list[index];
-        const ItemCell cell{list[index], ((static_cast<float>(i) - frac) + one) * hundred, static_cast<float>(top) + fifty,
+        const ItemCell cell{list[index], ((i - frac) + one) * hundred, top + fifty,
                             scale * 1.5f, 100.0f, mode};
         owner->DrawItem(pass, cell);
     }
 
     // The text rectangle of cell i: 70 x 20 from 15 pixels into the cell.
     auto cellRect = [&](int i) {
-        int x = static_cast<int>((static_cast<float>(i) - frac) * hundred);
+        int x = static_cast<int>((i - frac) * hundred);
         RECT rect;
         rect.left = x + 0xF;
         rect.top = 0;
@@ -150,11 +157,16 @@ void ForwardingStrip::Draw(SceneRenderer* pass) {
     }
 }
 
+int UiItemStrip::SlotAt(int x) const {
+    const int scrolled = static_cast<int>(std::floor(position[tab] * kCellPixels));
+    return (x - kFirstCellX + scrolled) / kCellPixels;
+}
+
 // --- The strip's per-frame scroll ---------------------------------------------------
 
 void UiItemStrip::Update() {
     const float zero = 0.0f;
-    const float repeat = 0.1f;      // seconds per slot while an arrow is held
+    const int repeatTicks = 100;    // milliseconds per slot while an arrow is held
     const float nearDistance = 0.5f;  // slots: closer than this the scroll eases out
     const float easeDivisor = 0.25f;
     const float accel = 15.0f;       // slots/s^2
@@ -166,21 +178,20 @@ void UiItemStrip::Update() {
     const float one = 1.0f;
     const float dt = static_cast<float>(UiContainer::FrameTime());
 
-    // An arrow held: one slot at once, then one more every `repeat` seconds.
+    // An arrow held: one slot at once, then one more every `repeatTicks` milliseconds (counted from 1).
     if (scrollDirection != 0) {
         int steps = 0;
-        EI_NAN_AUDIT(scrollTimer);
-        if (scrollTimer == zero) {
+        if (scrollTicks == 0) {
             steps = 1;
-            scrollTimer = 0.001f;
+            scrollTicks = 1;
         } else {
-            scrollTimer = static_cast<float>(dt + scrollTimer);
-            while (scrollTimer > repeat) {
-                scrollTimer = static_cast<float>(scrollTimer - repeat);
+            scrollTicks += UiContainer::FrameTicks();
+            while (scrollTicks > repeatTicks) {
+                scrollTicks -= repeatTicks;
                 ++steps;
             }
         }
-        pending = scrollDirection == 1 ? pending - static_cast<float>(steps) : static_cast<float>(steps) + pending;
+        pending = scrollDirection == 1 ? pending - steps : steps + pending;
     }
 
     EI_NAN_AUDIT(pending);
@@ -192,31 +203,31 @@ void UiItemStrip::Update() {
             const float gain = accel * dt;
             float limited;
             if (pending > zero) {
-                velocity = static_cast<float>(gain + velocity);
+                velocity = gain + velocity;
                 if (velocity > maxSpeed) velocity = maxSpeed;
-                const float limit = static_cast<float>((pending - nearDistance) / dt);
+                const float limit = (pending - nearDistance) / dt;
                 const float current = velocity;
                 limited = current >= limit ? limit : current;
             } else {
-                velocity = static_cast<float>(velocity - gain);
+                velocity = velocity - gain;
                 const float minSpeed = -maxSpeed;
                 velocity = velocity >= minSpeed ? velocity : minSpeed;
-                const float limit = static_cast<float>((nearDistance + pending) / dt);
+                const float limit = (nearDistance + pending) / dt;
                 const float current = velocity;
                 limited = limit >= current ? limit : current;
             }
             speed = (limited + velocity) * half;
         } else if (pending > zero) {
             // Near: the speed that eases out (sqrt(0.5 d) / 0.25).
-            speed = static_cast<float>(std::sqrt(static_cast<double>(nearDistance * pending)) / easeDivisor);
+            speed = std::sqrt(nearDistance * pending) / easeDivisor;
         } else {
-            speed = -static_cast<float>(std::sqrt(static_cast<double>(-(nearDistance * pending))) / easeDivisor);
+            speed = -(std::sqrt(-(nearDistance * pending)) / easeDivisor);
         }
-        velocity = static_cast<float>(speed);
-        float step = static_cast<float>(speed * dt);
+        velocity = speed;
+        float step = speed * dt;
         step = std::fabs(pending) >= std::fabs(step) ? step : pending;
-        position[tab] = static_cast<float>(step + position[tab]);
-        pending = static_cast<float>(pending - step);
+        position[tab] = step + position[tab];
+        pending = pending - step;
 
         // Settle on a whole slot when the remaining scroll is tiny and the position is within
         // 0.01 above or 0.01 below one.
@@ -229,7 +240,7 @@ void UiItemStrip::Update() {
             done = true;
         }
         if (!done && position[tab] - whole > snapHigh && std::fabs(pending) < snapPending) {
-            position[tab] = static_cast<float>(whole + one);
+            position[tab] = whole + one;
             pending = 0.0f;
         }
     }

@@ -432,7 +432,7 @@ void MpHeroScreen::CreateHero() {
     std::string name = nameEdit->text;
     auto* hero = HeroRecord();
     auto* stats = &hero->stats;
-    double sum = static_cast<double>(stats->intelligenceBase) + stats->dexterityBase + stats->strengthBase;
+    float sum = stats->intelligenceBase + stats->dexterityBase + stats->strengthBase;
     float points = kAttributePoints;
     EI_NAN_AUDIT(sum, points);
     if (sum != points || static_cast<int>(name.size()) == 0) {
