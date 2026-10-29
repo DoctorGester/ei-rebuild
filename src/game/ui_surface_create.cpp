@@ -20,9 +20,7 @@
 
 void CUiSurface::MakeCanvas() {
     if (!holder_) return;
-    const PixelFormat screen = ScreenFormat(holder_->bitsPerPixel);
-    render::ui::Canvas(holder_, width_, height_,
-                       render::ui::PixelFormat{screen.bitsPerPixel, screen.redMask, screen.greenMask, screen.blueMask});
+    render::ui::Canvas(holder_, width_, height_, ScreenFormat(holder_->bitsPerPixel));
 }
 
 // The destructor: drops the contents put aside and the holder (its canvas with it) and empties the screen

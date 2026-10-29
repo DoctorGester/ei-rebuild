@@ -16,7 +16,7 @@
 namespace {
 
 // The screen's pixel format of the holder's device.
-PixelFormat ScreenFormatOf(const Surface* holder) { return ScreenFormat(holder->device->bitsPerPixel_); }
+render::PixelFormat ScreenFormatOf(const Surface* holder) { return ScreenFormat(holder->device->bitsPerPixel_); }
 
 constexpr std::uint32_t kFormat8888 = 0x8888;
 
@@ -62,12 +62,12 @@ std::uint32_t Shl(std::uint32_t value, std::uint32_t count) { return value << (c
 
 // ---- Pixel formats ------------------------------------------------------------------------------------
 
-PixelFormat ScreenFormat(int bitsPerPixel) {
-    if (bitsPerPixel == 16) return PixelFormat{16, 0xF800, 0x07E0, 0x001F, 0};
-    return PixelFormat{32, 0xFF0000, 0xFF00, 0xFF, 0};
+render::PixelFormat ScreenFormat(int bitsPerPixel) {
+    if (bitsPerPixel == 16) return render::PixelFormat{16, 0xF800, 0x07E0, 0x001F, 0};
+    return render::PixelFormat{32, 0xFF0000, 0xFF00, 0xFF, 0};
 }
 
-bool ChannelLayout::Split(const PixelFormat& format) {
+bool ChannelLayout::Split(const render::PixelFormat& format) {
     *this = {};
     if (!format.bitsPerPixel) {
         game::DebugLog("Format have no RGB information.\n");

@@ -6,7 +6,7 @@
 // game's error box (renderer.md, "When the renderer fails"). Nothing calls it in game.exe's process (harness,
 // vector recorders). See docs/notes/renderer.md.
 // EI_RENDER (or the harness step "render <spec>") is a comma-separated list: "smooth", "smoothcamera", the
-// harness build's "removable" and "checkall"; "new", "present" and "cpuwindows" are accepted and change nothing.
+// harness build's "removable" and "checkall".
 
 #include "lib/vecmath.h"
 
@@ -331,6 +331,13 @@ void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
 // A rectangle of the frame or of a surface, in pixels.
 struct Rect {
     int left, top, right, bottom;
+};
+
+// A pixel format (the screen's, a texture's, an interface canvas's): 16 or 32 bits a pixel with the channels at their
+// masks (`alphaMask` 0: no alpha). All zero: no format (a compressed texture's).
+struct PixelFormat {
+    int bitsPerPixel = 0;
+    std::uint32_t redMask = 0, greenMask = 0, blueMask = 0, alphaMask = 0;
 };
 
 // A movie's decoded frame (R, G, B, X bytes), kept for `key` (the video object) until the next one.

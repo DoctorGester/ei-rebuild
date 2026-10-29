@@ -32,13 +32,13 @@ std::uint32_t QuantiseChannel(std::uint32_t value, int bits) {
 }
 // `colour` (a COLORREF) as a surface of `format` keeps it (each channel's top bits) widened back to 8 bits a
 // channel, as 0x00RRGGBB: what the canvas holds and the blit shows.
-std::uint32_t Quantise(std::uint32_t colour, const ui::PixelFormat& format) {
+std::uint32_t Quantise(std::uint32_t colour, const PixelFormat& format) {
     std::uint32_t r = colour & 0xFF, g = (colour >> 8) & 0xFF, b = (colour >> 16) & 0xFF;
     return (QuantiseChannel(r, Channel(format.redMask).bits) << 16) | (QuantiseChannel(g, Channel(format.greenMask).bits) << 8) |
            QuantiseChannel(b, Channel(format.blueMask).bits);
 }
 // A pixel of `format` (a colour key) widened to 0x00RRGGBB.
-std::uint32_t Widen(std::uint32_t pixel, const ui::PixelFormat& format) {
+std::uint32_t Widen(std::uint32_t pixel, const PixelFormat& format) {
     std::uint32_t out = 0;
     const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
     for (int i = 0; i < 3; ++i) out = (out << 8) | Channel(masks[i]).Widen(pixel);
@@ -73,7 +73,7 @@ constexpr std::size_t kMaxHistory = 256;
 struct CanvasState {
     unsigned id = 0;   // queued commands name the canvas they were made for
     int width = 0, height = 0;
-    ui::PixelFormat format;
+    PixelFormat format;
     std::uint32_t bits[3] = {8, 8, 8};   // red, green, blue (at most 8)
     std::uint32_t greyMode = 2;          // ps_grey: 0 5:6:5, 1 5:5:5, 2 on 8-bit channels
     CanvasImage gpu;                     // made by RunCanvasCommands
@@ -582,6 +582,17 @@ std::uint32_t Pack(std::uint32_t rgb, const PixelFormat& format) {
         if (!c.bits) continue;
         std::uint32_t v = (rgb >> (16 - 8 * i)) & 0xFF;
         out |= (c.bits >= 8 ? v << (c.shift + c.bits - 8) : (v >> (8 - c.bits)) << c.shift) & c.mask;
+    }
+    return out;
+}
+
+std::uint32_t TopBits(std::uint32_t rgb, const PixelFormat& format) {
+    std::uint32_t out = 0;
+    const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
+    for (int i = 0; i < 3; ++i) {
+        const int bits = std::min(Channel(masks[i]).bits, 8);
+        const std::uint32_t v = (rgb >> (16 - 8 * i)) & 0xFF;
+        out = (out << 8) | (bits ? v & (0xFFu << (8 - bits)) & 0xFF : 0);
     }
     return out;
 }

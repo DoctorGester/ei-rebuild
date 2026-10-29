@@ -170,7 +170,7 @@
 //                             world updates, the most one pass runs); e.g. 8 for a 120 Hz screen's frames
 //   smoothcamera on|off       the image's smooth camera (render::SetSmoothCamera, R18: the camera moved
 //                             once a frame by time, its target followed between ticks), from the next
-//                             pass; "render new,present,smoothcamera" turns it on from the start. Ignored in
+//                             pass; "render smoothcamera" turns it on from the start. Ignored in
 //                             a run of the original code
 //   camtrace start|stop <name>, camsame <a> <b> <kind> <fraction>, camsmooth <name> <kind> [jerky]
 //                             the camera's motion frame by frame and its checks (harness_camera.h, R18)
@@ -283,7 +283,7 @@
 //                             Skipped in a run of the original code
 //   smooth on|off             the image's smooth option (render::SetSmooth, R12a: the world view
 //                             multisampled, its models sampled anisotropically), from the next frame;
-//                             "render new,present,smooth" turns it on from the start. Ignored in a
+//                             "render smooth" turns it on from the start. Ignored in a
 //                             run of the original code
 //   smoothcheck <plain> <smooth> <least> <most>
 //                             require the smooth option on, the last frame's world drawn multisampled
@@ -3397,7 +3397,7 @@ void RunSteps() {
             if (!g_newDeviceRemoved) {
                 image::LoseDevice();
             } else if (!image::RemoveDevice()) {
-                g_failures.push_back("removedevice: the device is not removable (\"render new,present,removable\")");
+                g_failures.push_back("removedevice: the device is not removable (\"render removable\")");
                 continue;
             }
             g_newDeviceDeadline = Now() + static_cast<DWORD>(seconds) * 1000;

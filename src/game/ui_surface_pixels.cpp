@@ -55,14 +55,10 @@ void CUiSurface::SwapContents(bool restore) {
 }
 
 // The pixel at (x, y) of the surface as 0x00RRGGBB, each channel's bits of the screen's format at the top of its
-// byte (as the format converter gives it); 0 outside the surface or without one.
+// byte, the low bits 0; 0 outside the surface or without one.
 std::uint32_t CUiSurface::PixelAt(int x, int y) {
     if (!holder_ || x < 0 || y < 0 || x >= width_ || y >= height_) return 0;
     std::uint32_t rgb = 0;
     if (!render::ui::ReadPixel(holder_, x, y, &rgb)) return 0;
-    const PixelFormat screen = ScreenFormat(holder_->bitsPerPixel);
-    ChannelLayout layout;
-    layout.Split(screen);
-    return layout.FromNative(
-        render::ui::Pack(rgb, render::ui::PixelFormat{screen.bitsPerPixel, screen.redMask, screen.greenMask, screen.blueMask}));
+    return render::ui::TopBits(rgb, ScreenFormat(holder_->bitsPerPixel));
 }

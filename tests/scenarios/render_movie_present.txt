@@ -1,4 +1,4 @@
-# The movie players outside the game's frame in the switch-over ("render new,present"; ticket R6,
+# The movie players outside the game's frame in the switch-over (ticket R6,
 # docs/notes/renderer.md): the loading movie (005DA400) during the new game's load, and the blocking
 # player (005DB3F0: its message loop and the screen fill 005DB9E0) through the script's PlayMovie with
 # a short movie (crdtfin.bik, 27 frames at 15 fps). They fill no DirectDraw surface and draw nothing
@@ -8,7 +8,7 @@
 # Captures cannot be taken inside the movie (the console step that starts it runs it to its end);
 # the capture after it checks the game's frames still come. (render_movie, the same beside the old
 # path, went with S21a: on the image it was this run, and its golden this one's.)
-render new,present,checkall
+render checkall
 reject Script error
 waitmenu
 console thingamabob

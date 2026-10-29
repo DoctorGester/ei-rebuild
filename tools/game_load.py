@@ -36,7 +36,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKLOAD = ['world_loot', 'ui_hud', 'zone_gz15h_tornado', 'combat', 'render_scene', 'script_exec', 'ui_camp',
             'unit_ai', 'spells_cast', 'ui_trade_hold', 'effects', 'zone_base_bz1g', 'ui_saveload', 'particles',
             'models', 'levers', 'ui_quick_items', 'unit_ai_cast', 'trader_stock', 'world_load', 'ui_describe',
-            'magic_traps', 'render_cpuwindows', 'sandbox_map', 'ui_base_dialogue', 'units', 'terrain_water_load',
+            'magic_traps', 'frames_basic', 'sandbox_map', 'ui_base_dialogue', 'units', 'terrain_water_load',
             'zone_gz3g', 'ui_hero_screen', 'combat_more', 'script_quest', 'map_objects', 'ui_main_menu',
             'unit_ai_heal', 'effects_bow', 'ground_prints', 'ui_options_bind', 'camera', 'spells_hero',
             'zone_gz2g_traps', 'ui_camp_deals', 'movement', 'render_present', 'world_client', 'ui_objectives',

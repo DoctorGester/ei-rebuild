@@ -41,7 +41,7 @@ if /i "%MODE%"=="vanilla" (
 ) else (
     copy /y "%~dp0config\ei_rebirth_standalone.ini" "%PLAY%\ei_rebirth.ini" >nul
 )
-set EI_RENDER=new,present,smooth,smoothcamera
+set EI_RENDER=smooth,smoothcamera
 cd /d "%PLAY%"
 rem No --exe: ei_launch starts the ei_standalone.exe next to it, so the settings file is run\play's too.
 "%PLAY%\ei_launch.exe" --game "%GAME%" --standalone

@@ -2,7 +2,7 @@
 # user's review and the frame checks. zone1's start (a slope beside the ruins), a fight of creatures
 # around the hero, zone1 at night, the town bz1g by day and at night (its campfire). Frames only (image).
 # no original: vanilla rebirth (the lighting is our renderer's)
-render new,present,checkall
+render checkall
 timeout 180
 reject Script error
 waitmenu

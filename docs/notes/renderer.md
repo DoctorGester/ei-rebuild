@@ -69,8 +69,7 @@ A lost device that is made again (R9c1) is recovery, not a fallback, and stays. 
 every entry point draws. Only the image runs it: in game.exe (the harness and the vector recorders run inside the
 original's process) nothing of ours draws, and the harness asks `ei::Standalone()` (R26a folded HarnessRenderActive into it; a renderer failure ends the game, so
 there is no "failed" state to poll): captures there read the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
-comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `smoothcamera` (the smooth camera, R18, section 14) and the harness build's `removable` (R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
-and change nothing; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
+comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `smoothcamera` (the smooth camera, R18, section 14), the harness build's `removable` (R9c5) and `checkall`; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
 DirectDraw surface (no holder has one).
 
@@ -234,8 +233,7 @@ error is thrown (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFor
 | 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy, save picture, Greyscale on the GPU (R28a, "Screen copies on the GPU" below); SwapContents (the canvas put aside on the GPU), pixel read (from the GPU): no Lock / GetSurfaceDesc |
 | 005FDA80, 005E54A0 / 005E5690 / 005E6630, 005DBD80 / 005DB3F0 / 005DA400 | the original's Blt, composition 005E5C40, background save, Lock / BinkCopyToBuffer / Unlock are gone (R11a); the new renderer gets the blits, the cursor and the frames |
 
-Scenarios: render_cpuwindows, render_present / render_present_cpuwindows, render_titles_present, render_movie_present,
-ui_compare, render_device_lost.
+Scenarios: render_present, render_titles_present, render_movie_present, ui_compare, ui_saveload, render_device_lost.
 Not reproduced: the unwinding when 004EFC60 / 004EF7B0 throw and the fallback to 004EF7B0 when 004EFA60's
 video-memory holder throws (only with 00784756 0; 004EFA60, the holder from a DirectDraw description, and 004EFEA0
 are not ported: config/dead_code.csv, R11b). The original quirks kept (failed Locks returning with the device
@@ -268,7 +266,8 @@ format's own bits, 005FE440's formulas), and the blit draws the canvas. Rgb565Co
 R16_UINT target of the picture's size (`ps_rgb565`: the pixel under each centre, (2x+1) * source / (2 * size), each
 channel's top bits) and reads only that back (`render::ui::ReadRgb565`, a row copy): the escape menu's 256x192
 `screenCopy_` and the quick save's shot.sav keep their 5:6:5 format. PixelAt 005FD240 on such a surface reads its
-one pixel from the GPU (`ReadPixel`, packed to the memory's format: the pick picture's zone colours exact), and
+one pixel from the GPU (`ReadPixel`, each channel cut to the screen format's top bits by `render::ui::TopBits`: the
+pick picture's zone colours exact), and
 SwapContents 005FD7A0 (the camp's backdrop put aside in mode 3) moves the canvas aside under the surface's address
 and back (`MoveCanvas`) instead of keeping the bytes (the CPU loops and `render::CopyFrameTo` are gone). Once a
 copy is drawn the canvas's pixels are read back as its history (P8), so a lost device brings it back as it was.
@@ -283,7 +282,8 @@ textures 00691D80 makes (kinds 0x1E, 0x20, 0x21) and the .bmp textures only the 
 **Texture formats (R27b).** A texture keeps the id of the format it is held in (`CTexture::format_`: 0x5650, 0x5551,
 0x4444, 0x8888 or a DXT1..DXT5 code; 0 none). The list is fixed (texture.cpp `IsTextureFormat`, what the old device
 offered; DXT5 must stay: Rebirth's battle00 and footprints are DXT5) and `TextureFormat(id)` gives an RGB one's
-`PixelFormat` (bits and channel masks, surface.h). An .mmp file is held in its
+`render::PixelFormat` (bits and channel masks, render.h; the interface canvases take the same type). An .mmp file
+is held in its
 own format, a DXT code outside the list in the RGB format its channel bit counts name (`MmpHeader::HeldFormat`; none:
 the original's "Can't find texture format" error); a .bmp texture by its kind (1:5:5:5, 4:4:4:4 or 5:6:5). The file
 formats (MMP, BMP, shot.sav's 5:6:5 picture) are read and written as before; the renderer uploads a DXT .mmp file's
@@ -461,7 +461,8 @@ come first, then what holds for the present path (the subsection names are cited
   code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows, so re-add
   them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
   the DDSURFACEDESC2 layout of `DirectPixels` (now `SurfacePixels`). R27b: the holder is `Surface` (no surface pointer),
-  pixel formats are `PixelFormat` (bits and channel masks, surface.h) and the texture formats one fixed list
+  pixel formats are `render::PixelFormat` (bits and channel masks, render.h; R30g: the canvases' too) and the texture
+  formats one fixed list
   (`TextureFormat`, section 7); no format enumeration, display-mode format read or depth format. R27c: no device
   layer at all (R9a below): device.h, the switch-over device and its tokens are gone. R27d: the gamma ramp is one uint16 table.
   R27e: app_dxversion.cpp's version probe of the system's DDRAW.DLL and the DirectDraw / Direct3D rows of dx_errors.cpp's
@@ -471,7 +472,7 @@ come first, then what holds for the present path (the subsection names are cited
   removable device) validates or measures the renderer itself and has a scenario; the A/B against the old device draws
   went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
-- Trimming after P8 / R28 (R30's survey, build/style_review/renderer_trim.md): R30g one PixelFormat for the game and the canvases (after C54a), R30e EI_RENDER's no-op words, R30f mesh draws without the CPU clip.
+- Trimming after P8 / R28 (R30's survey, build/style_review/renderer_trim.md): R30f mesh draws without the CPU clip.
 - No ticket yet: weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before
@@ -523,7 +524,7 @@ no stand-in for any of them (R27c):
   game's active flag (0079BC5C) and the renderer's bit 0 stay 0 and no frame is drawn. The harness sends one WM_ACTIVATE
   (active) once the device object exists. A player's own start is in the foreground and gets the activation from
   Windows.
-- Scenarios: render_present, render_movie_present, render_present_cpuwindows, render_titles_present and ui_saveload.
+- Scenarios: render_present, render_movie_present, render_titles_present and ui_saveload.
 
 ### R9c: everything the player sees through the new renderer's present
 
