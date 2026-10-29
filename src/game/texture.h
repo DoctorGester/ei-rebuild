@@ -52,7 +52,10 @@ public:
     int DrawIndexed();
     int BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions,
                           const std::uint8_t* outcodes);
-    int BoundsOfVertices(const std::vector<TLVertex>* vertices, const std::uint8_t* outcodes);
+    // A mesh crossing the view's edges: its clip-space `positions` (ProjectClipped's) and triangles (`indexCount`
+    // `indices` into the `corners`). False when none of it is on screen; else, with `keep`, its rectangle.
+    bool BoundsOfCrossing(const std::vector<devicebuffers::ProjectedVertex>* positions, const MeshCorner* corners,
+                          const std::uint16_t* indices, int indexCount, bool keep);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices, int indexCount);
     // The holder the renderer draws the stage with. Returns 1.
     int BindSurface(int stage, Surface* holder);

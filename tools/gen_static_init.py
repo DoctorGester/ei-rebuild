@@ -939,10 +939,10 @@ UNUSED_INITIALISERS = {
     0x0049B6E0: "the line lists' projected points 007A9CB8 (exit function 0049B710): renderer_lines.cpp's "
                 "g_lineProjected",
     0x004E5C40: "the device's outcodes 007AEE30 (exit function 004E5C70): device_buffers.cpp's g_outcodes",
-    0x004E5C90: "the device's corner outcodes 007AEE20 (exit function 004E5CC0): device_buffers.cpp's g_cornerOutcodes",
+    0x004E5C90: "the device's corner outcodes 007AEE20 (exit function 004E5CC0): gone (R30f: the mesh draws clip on the GPU)",
     0x004E5CE0: "the device's projected vertices 007AEE10 (exit function 004E5D10): device_buffers.cpp's g_projected",
-    0x004E5D30: "the device's vertices 007AEE00 (exit function 004E5D60): device_buffers.cpp's g_vertices",
-    0x004E5DD0: "the device's clip indices 007AEDE0 (exit function 004E5E00): device_buffers.cpp's g_clipIndices",
+    0x004E5D30: "the device's vertices 007AEE00 (exit function 004E5D60): gone (R30f: the mesh draws clip on the GPU)",
+    0x004E5DD0: "the device's clip indices 007AEDE0 (exit function 004E5E00): gone (R30f: the mesh draws clip on the GPU)",
     0x004F2AF0: "the moved packets 007AEED0 (exit function 004F2B20): link_mesh_draw.cpp's g_movedPackets",
     0x005A0C80: "the offset vertices 007C2E18 (exit function 005A0CB0): figure_mesh.cpp's g_offsetVertices",
     0x006BFA00: "the terrain projection's input 007C88F8 (exit function 006BFA30, bit 0 of 007C88C9): "

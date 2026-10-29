@@ -1,9 +1,6 @@
 // The Direct3D device's indexed mesh draws, with one texture and with two: the mesh's positions are projected by
-// the pipeline's transform object, meshes crossing the screen edges are clipped (the clipper's counts and the
-// screen rectangle picking reads are what the old path leaves). The new renderer gets the mesh in model space once
-// it is visible. See docs/notes/models.md ("Renderer").
-#include "clip.h"
-
+// the pipeline's transform object for the visibility verdict and the screen rectangle picking reads. The new
+// renderer gets the mesh in model space once it is visible and clips it. See docs/notes/models.md ("Renderer").
 #include "device_buffers.h"
 #include "figure_mesh.h"
 #include "model.h"
@@ -12,7 +9,6 @@
 #include "lib/nan_audit.h"
 
 #include <cstdint>
-#include <cstring>
 
 namespace {
 
@@ -47,11 +43,7 @@ struct Textures {
 
 // --- The buffers ---------------------------------------------------------------------------------
 
-using devicebuffers::ProjectedVertex;
-using devicebuffers::g_vertices;
-using devicebuffers::g_clipIndices;
 using devicebuffers::g_projected;
-using devicebuffers::g_cornerOutcodes;
 using devicebuffers::g_outcodes;
 
 // The pipeline's screen stack (1) and clip-space stack (2), whose top matrices project the mesh.
@@ -69,14 +61,6 @@ void OverrideColours(CTextureDevice* device, const MeshArgs& a) {
     for (int i = 0; i < count; ++i) a.speculars[i] = specular;
 }
 
-// The corners' projected positions as TL vertices (copied as two qwords): the clipper's input; its vertices'
-// colour, specular and texture coordinates are read by nothing (the renderer draws from the hand-over).
-void FillCorners(const MeshArgs& a) {
-    TLVertex* v = g_vertices.data();
-    const ProjectedVertex* projected = g_projected.data();
-    for (int i = 0; i < a.cornerCount; ++i, ++v) std::memcpy(&v->x, &projected[a.corners[i].position], 16);
-}
-
 // One counted draw per pass (the device's vertex-buffer batch never gave a buffer: nothing is batched).
 void Submit(CTextureDevice* device, const Textures* textures) {
     if (textures) {
@@ -86,33 +70,16 @@ void Submit(CTextureDevice* device, const Textures* textures) {
     }
 }
 
-// On screen: nothing to project or clip; the passes go to the device with the corner and index counts.
+// On screen: the passes go to the device; draw flag 1's rectangle from the projected positions.
 void DrawOnScreen(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
     if (a.flags & 1) device->BoundsOfProjected(&g_projected, 0);
     Submit(device, textures);
 }
 
-// Some vertices off screen: room for ten times the corners and indices, the corners' outcodes, the transform
-// object's clipper writes the clipped triangles to g_clipIndices (an empty result
-// draws no pass); the vertices are projected to the screen only for draw flag 1's rectangle.
-void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
-    int capacity = a.cornerCount * 10;
-    g_vertices.resize(capacity);
-    g_clipIndices.resize(a.indexCount * 10);
-    FillCorners(a);
-    g_cornerOutcodes.resize(capacity);
-    for (int i = 0; i < a.cornerCount; ++i) g_cornerOutcodes[i] = g_outcodes[a.corners[i].position];
-
-    int vertexCount = a.cornerCount;
-    int indexCount = a.indexCount;
-    transform->ClipTriangles(g_vertices.data(), g_cornerOutcodes.data(), a.indices, g_clipIndices.data(), &vertexCount,
-                             &indexCount);
-    if (indexCount == 0 || vertexCount == 0) return;
-    if (a.flags & 1) {
-        g_vertices.resize(vertexCount);
-        transform->ToScreenClipped(g_vertices.data(), vertexCount);
-        device->BoundsOfVertices(&g_vertices, g_cornerOutcodes.data());
-    }
+// Some vertices off screen: the clip-space positions' screen bounds decide whether anything is on screen (no
+// pass when not) and give draw flag 1's rectangle; the GPU clips the hand-over.
+void DrawCrossing(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
+    if (!device->BoundsOfCrossing(&g_projected, a.corners, a.indices, a.indexCount, (a.flags & 1) != 0)) return;
     Submit(device, textures);
 }
 
@@ -148,7 +115,7 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     render::BeginMesh(device, m);
 }
 
-// Returns the transform's verdict: 2 nothing on screen, 1 clipped, 0 on screen (drawn: 1).
+// Returns the transform's verdict: 2 nothing on screen, 1 crossing the edges, 0 on screen (drawn: 1).
 int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
     ITransformPipeline* transform = device->pipeline_->transform_;
     g_projected.resize(a.blocks * 4);
@@ -170,7 +137,7 @@ int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* te
         DrawOnScreen(device, a, textures);
         result = 1;
     } else if (visibility == 1) {
-        DrawClipped(device, transform, a, textures);
+        DrawCrossing(device, a, textures);
     }
     render::EndMesh();
     return result;
