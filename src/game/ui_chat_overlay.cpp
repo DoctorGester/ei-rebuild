@@ -12,6 +12,7 @@
 #include "lib/gameapi.h"
 #include "lib/str.h"
 
+#include <algorithm>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -66,8 +67,6 @@ constexpr int kCaretBottom = 0x10;
 constexpr COLORREF kTypedColour = 0xFFFFFF;
 
 } // namespace
-
-ChatLine::~ChatLine() { delete surface; }
 
 // --- a chat line added ---------------------------------------------------------------------------
 
@@ -128,7 +127,7 @@ void ChatOverlay::AddLine(const char* text) {
     const int count = static_cast<int>(plain.size());
 
     // The oldest lines go.
-    for (int i = 0; i < count + before - kMaxLines; ++i) lines.pop_front();
+    lines.erase(lines.begin(), lines.begin() + std::clamp(count + before - kMaxLines, 0, before));
 
     std::uint32_t now = gameapi::timeGetTime();
     COLORREF colour = kWhite;
@@ -137,7 +136,8 @@ void ChatOverlay::AddLine(const char* text) {
         added.name = plain[i];
         added.time = now;
         const int width = ui->TextExtent(plain[i], kLineFont).cx + kLineSurfacePad;
-        UiSurface* surface = new UiSurface(ui, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
+        added.surface = std::make_unique<UiSurface>(ui, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
+        UiSurface* surface = added.surface.get();
         surface->Clear();
         const std::string& codes = formatted[i];
         std::string drawn;
@@ -154,7 +154,6 @@ void ChatOverlay::AddLine(const char* text) {
         }
         piece = str::Mid(codes, start);
         if (piece.size() != 0) DrawPiece(surface, piece, x, colour);
-        added.surface = surface;
     }
 }
 

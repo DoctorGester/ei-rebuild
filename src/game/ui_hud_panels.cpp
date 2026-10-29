@@ -19,7 +19,6 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
-#include <list>
 #include <cstring>
 #include <format>
 
@@ -256,7 +255,7 @@ void HudTopPanel::ShowPage() {
 void HudTopPanel::ShowItems() {
     TextManager* texts = g_clientWorld.texts;
     // A local list of the world's copies.
-    std::list<Item*> merged{};
+    std::vector<Item*> merged{};
     CPlayer* player = g_clientWorld.LocalView()->player;
     std::string line;
     std::string format;

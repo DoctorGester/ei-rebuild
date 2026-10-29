@@ -3,7 +3,7 @@
 // The numbers that fly up from units hit (the world client's).
 
 #include <cstdint>
-#include <list>
+#include <vector>
 
 #include "ref.h"
 #include "texture.h"
@@ -34,5 +34,5 @@ public:
     void Draw(SceneRenderer* renderer);
 
     Ref<CTexture> texture;    // the digits texture
-    std::list<FlyingHitPoint> points;
+    std::vector<FlyingHitPoint> points;
 };

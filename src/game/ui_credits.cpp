@@ -37,10 +37,10 @@ void CreditsScreen::Draw(SceneRenderer* pass) {
         nextLineAt = 0.0f;
         textSurface->Hide(false);
         headerSurface->Hide(false);
-        if (currentLine == lines.end()) {
+        if (nextLine >= lines.size()) {
             finished = true;
         } else {
-            const TitleLine& line = *currentLine;
+            const TitleLine& line = lines[nextLine];
             textSurface->Load(&archive, line.style.c_str());
             textSurface->Start(0.0f, false);
             if (line.scroll) {
@@ -58,7 +58,7 @@ void CreditsScreen::Draw(SceneRenderer* pass) {
                 nextLineAt = GameTime() + line.speed;
             }
             textSurface->Show();
-            ++currentLine;
+            ++nextLine;
         }
     }
     if (!player.Frame() && finished) {

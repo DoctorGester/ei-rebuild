@@ -21,7 +21,6 @@
 #include "lib/str.h"
 
 #include <iterator>
-#include <list>
 #include <memory>
 
 namespace {
@@ -111,7 +110,7 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
         return;
     }
 
-    points.remove_if([now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
+    std::erase_if(points, [now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
     if (!options::g_options.drawFlyingHp) return;
 
     const float width = static_cast<float>(screen.right), height = static_cast<float>(screen.bottom);
@@ -196,5 +195,5 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     }
 
     // Markers are shown once.
-    points.remove_if([](const FlyingHitPoint& point) { return (point.flags & kMarker) != 0; });
+    std::erase_if(points, [](const FlyingHitPoint& point) { return (point.flags & kMarker) != 0; });
 }

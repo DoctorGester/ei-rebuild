@@ -22,7 +22,6 @@
 
 #include <algorithm>
 #include <cstdlib>
-#include <list>
 #include <vector>
 
 namespace {
@@ -178,7 +177,7 @@ void HelpWindow::ShowPage() {
     header->DrawTextIn(titleText, &line, 1, kTitleColour, DT_CENTER, 1);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
-    std::list<PageEntry> entries;
+    std::vector<PageEntry> entries;
     while (texts->FindHeader()) {
         words = texts->Split(true);
         if (text::CompareIgnoringCase(words[0], kScreenLine) == 0) break;

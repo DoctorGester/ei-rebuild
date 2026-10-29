@@ -14,7 +14,6 @@
 #include "net_classes.h"
 
 #include <iterator>
-#include <list>
 #include <vector>
 #include "ui_cursor.h"
 #include "world.h"
@@ -138,7 +137,7 @@ void Interface3D::OnStringEvent(std::string_view event) {
             ScreenOf(top())->Speech(number, kind, const_cast<char*>(words[1].c_str()));
     } else if (str::Compare(words[0], "tutorial") == 0) {   // queued
         if (words.size() < 2) return;
-        messages.insert(messages.end(), words[1]);
+        messages.push_back(words[1]);
     } else if (str::Compare(words[0], "briefing") == 0) {
         if (words.size() < 2 || stack.empty()) return;
         ScreenOf(top())->ShowBriefing(words[1]);

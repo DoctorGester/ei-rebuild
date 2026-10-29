@@ -23,10 +23,11 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
+#include <deque>
 #include <map>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 #include <windows.h>
 
@@ -157,7 +158,7 @@ public:
     // News for the top window (nothing without a window), each reaching its virtual of that name: items
     // picked up, a unit joined / left the party, the game lost, a unit speaks, the players changed, an
     // exchange between players ended; SaveWindowState has the bottom window save its state.
-    void OnItemsPicked(std::list<Item*>* items, int money, bool crippled);
+    void OnItemsPicked(const std::vector<Item*>& items, int money, bool crippled);
     void OnUnitJoined(CUnit* unit);
     void OnUnitLeft(CUnit* unit);
     void OnGameLost();
@@ -242,7 +243,7 @@ public:
     bool rightDown = false;
     // The top window is asked every frame until it agrees ("autosave" sets it).
     bool pollTop = false;
-    std::list<std::string> messages;    // queued message texts (ShowMessage takes the first)
+    std::deque<std::string> messages;   // queued message texts (ShowMessage takes the first)
     bool disconnected = false;
     // The state saved with a game (LoadState), cleared by ResetSavedState. The HUD panels keep theirs
     // here every frame.
@@ -1128,7 +1129,7 @@ public:
     virtual void CreateScreen();
     virtual void CloseScreen();
     virtual void MessageResult(int) {}                                 // the value a window above left pending when it closed
-    virtual void ItemsPicked(std::list<Item*>*, int, bool) {}         // items picked up (items, money, crippled)
+    virtual void ItemsPicked(const std::vector<Item*>&, int, bool) {}   // items picked up (items, money, crippled)
     virtual void UnitJoined(CUnit*) {}
     virtual void UnitLeft(CUnit*) {}
     virtual void GameOver(bool) {}
@@ -1271,7 +1272,7 @@ public:
     // Polled every frame by the interface until it answers true. After a new game (hasHero): the camera
     // follows the first party unit and the autosave "savea" when the option is on.
     bool ReadyToStopPolling() override;
-    void ItemsPicked(std::list<Item*>* items, int money, bool crippled) override;
+    void ItemsPicked(const std::vector<Item*>& items, int money, bool crippled) override;
     // A network client instead empties the top panel's page-0 text.
     void UnitLeft(CUnit* unit) override;
     // The count and ids of the selected party units, the map's zoom, the server flag (a byte), the local
@@ -1902,8 +1903,8 @@ public:
     std::string title;
     std::vector<std::string> lines;      // the pages' texts
     int page;                            // the page shown (the topic's or message's saved page)
-    std::list<UiMesh*> pulsing;        // sprites whose plain colour pulses (Update)
-    std::list<UiMesh*> pictures;       // the entries' picture sprites
+    std::vector<UiMesh*> pulsing;      // sprites whose plain colour pulses (Update)
+    std::vector<UiMesh*> pictures;     // the entries' picture sprites
     float pulseTime;
 
 private:
@@ -1913,16 +1914,12 @@ private:
 
 // A line of the in-game chat overlay: the text, the speaker, a value and the line's own surface.
 struct ChatLine {
-    ChatLine() = default;
-    ChatLine(const ChatLine&) = delete;
-    ChatLine& operator=(const ChatLine&) = delete;
-    ~ChatLine();   // the surface deleted
-
     std::string text;          // AddLine leaves it empty
     std::string name;          // the line's text without its colour codes
     std::uint32_t time = 0;     // timeGetTime when it was added
-    UiSurface* surface = nullptr;
+    std::unique_ptr<UiSurface> surface;
 };
+static_assert(std::is_nothrow_move_constructible_v<ChatLine>);
 
 // The in-game chat overlay: the interface's root window, updated after the top window every frame; in a
 // multiplayer client it holds the chat line, which takes the keys while it is open.
@@ -1947,7 +1944,7 @@ public:
     void Update() override;
     void Redraw() override;
 
-    std::list<ChatLine> lines;
+    std::vector<ChatLine> lines;
     bool chatOpen;                   // a multiplayer client's chat line is open (it takes the keys)
     std::string typed;
     int caret;                       // in the typed line (a byte offset at a character's start: U4)

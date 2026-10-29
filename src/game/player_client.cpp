@@ -37,7 +37,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <list>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -76,11 +75,8 @@ void WriteByte(MemoryStream* out, std::uint8_t value) { out->WriteValue(value); 
 
 const char* QuestPrefix() { return "q."; }
 
-// The quest log refreshed with an empty list built and destroyed on the stack.
-void RefreshQuestLog() {
-    std::list<Item*> none;
-    g_interface.OnItemsPicked(&none, 0, false);
-}
+// The quest log refreshed: no items picked up.
+void RefreshQuestLog() { g_interface.OnItemsPicked({}, 0, false); }
 
 // The client world shows a number over a unit (id, value, kind).
 constexpr int kNumberExperience = 8;
@@ -376,8 +372,7 @@ int PlayerClient::OnItemsReceived() {
     }
     if (result != 0) {
         player->GiveItems(&items, flag);
-        std::list<Item*> picked(items.begin(), items.end());   // OnItemsPicked takes a list
-        g_interface.OnItemsPicked(&picked, money - before, flag != 0);
+        g_interface.OnItemsPicked(items, money - before, flag != 0);
     }
     items.clear();
     return result;
