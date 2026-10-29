@@ -186,6 +186,7 @@ struct PathOrder {
 
 // A unit's path: its order and next steps (PathOrder), the rest of the cells and the search's state.
 struct AIPath : PathOrder {
+    AIPath() { Clear(); }
     void LoadPath(CStream* stream);
     void SavePath(CStream* stream);
     void StandAndTurn(int time, const CMapObject* unit, const Vector3* direction, std::uint32_t rateBits);
@@ -197,8 +198,6 @@ struct AIPath : PathOrder {
     // follows steps (kind 2) the rest of the path appended, repeats removed, every step's speed 0x200 and the
     // target set.
     void ToMotionOrder(PathOrder* out) const;
-    AIPath* Construct();
-    void Destruct();
     // The search's target cell (targetX, targetY) in world units, z 0.
     Vector3* TargetPoint(Vector3* out) const;
 

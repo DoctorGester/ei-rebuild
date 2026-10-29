@@ -98,8 +98,6 @@ CSpellEffect::~CSpellEffect() {
     if (sound) sound->Release();
     if (visual) visual->Release();
     Spell()->CSpell::~CSpell();
-    caster.Reset();
-    target.Reset();
 }
 
 // --- The cast's start values and the object it forgets ------------------------------------

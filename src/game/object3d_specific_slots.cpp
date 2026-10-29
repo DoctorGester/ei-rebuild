@@ -78,8 +78,6 @@ CFigureMesh* CObject3DClientSpecific::FindPartOfType(int type) { return object->
 CFigureMesh* CObject3D::FindPartOfType(int type) {
     for (int i = 0; i < std::ssize(parts); ++i)
         if (parts[i]->type_ == type) return parts[i];
-    for (int i = 0; i < std::ssize(pendingParts); ++i)
-        if (pendingParts[i]->type_ == type) return pendingParts[i];
     return nullptr;
 }
 

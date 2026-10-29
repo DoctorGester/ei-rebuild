@@ -76,8 +76,6 @@ CEffectMoshka::CEffectMoshka() {
 CEffectMoshka::~CEffectMoshka() {
     Reset();
     Reset();   // again, the virtual
-    if (source_ != nullptr) source_->Release();
-    bird_.Reset();
 }
 
 void CEffectMoshka::Reset() {

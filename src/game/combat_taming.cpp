@@ -56,8 +56,8 @@ bool CUnitServer::TryTame(CUnit* tamer, float roll) {
         unit->SetSide(tamer->side);
         unit->SetPlayer(tamerPlayer);
         brain.AddMode(new TamedMode());
-        ReleaseAndClear(brain.memory.seenCorpses);
-        ReleaseAndClear(brain.memory.corpses);
+        brain.memory.seenCorpses.clear();
+        brain.memory.corpses.clear();
         Stage(this) = 3;
         break;
     }

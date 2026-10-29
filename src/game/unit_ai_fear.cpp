@@ -171,7 +171,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         double best = kFar;
         Vector3 nearest{};      // left unset when there is none (then 1e30 is never inside)
         for (auto& node : brain->memory.visible) {
-            auto* other = node;
+            CUnit* other = node;
             if (!other->player) continue;
             const Vector3* me = &brain->owner->unit->localPosition_;
             double oy = static_cast<double>(me->y) - other->localPosition_.y;
@@ -270,7 +270,7 @@ void FearMode::Execute(AIBrain* brain) {
 
     if (brain->action == AIBrain::kActionNone) {
         // Fight back when there is something worth it (helping allies too).
-        CountedUnits candidates{};
+        UnitList candidates{};
         AITargetChoice best{-1, nullptr};
         Vector3 at = brain->owner->unit->localPosition_;
         brain->ChooseTarget(&best, &candidates, &at, 1, 1);

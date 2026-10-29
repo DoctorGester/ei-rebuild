@@ -136,11 +136,7 @@ void CObject3DClientSpecific::Destroy() {
     flags_ = 0;
 }
 
-CObject3DClientSpecific::~CObject3DClientSpecific() {
-    CObject3DClientSpecific::Destroy();
-    if (woundsMaterial) woundsMaterial->Release();
-    if (woundsTexture) woundsTexture->Release();
-}
+CObject3DClientSpecific::~CObject3DClientSpecific() { CObject3DClientSpecific::Destroy(); }
 
 // --- Parts, textures and materials ----------------------------------------------------------------
 

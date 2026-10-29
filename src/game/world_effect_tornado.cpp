@@ -63,7 +63,6 @@ CEffectTornado::CEffectTornado() {
 CEffectTornado::~CEffectTornado() {
     Reset();   // inline
     Reset();   // the virtual
-    if (source_ != nullptr) source_->Release();
 }
 
 void CEffectTornado::Reset() {

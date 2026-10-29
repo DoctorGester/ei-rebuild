@@ -179,7 +179,7 @@ STATIC_OBJECT_BYTES = {
     'CCursor': 0xB8, 'CInterface3D': 0xB0, 'GameFlow': 0x84, 'options::GameOptions': 0x26C,
     # game.exe's CArrays are 0x14 bytes and its CLists 0x1C; ours (std::vector 12, std::list 8) start zero all the same
     'std::vector<int>': 0x14, 'std::vector<std::uint8_t>': 0x14, 'std::vector<std::uint16_t>': 0x14, 'RadiusTree': 0x1C, 'std::vector<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
-    'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'std::vector<FogSprite>': 0x14, 'std::vector<SpriteRecord>': 0x14, 'std::vector<ParticleSprite>': 0x14, 'std::vector<BlockPoint>': 0x14, 'CountedUnits': 0x1C, 'std::vector<ParticleDepth>': 0x14, 'UnitShapeCache': 0x1C,
+    'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'std::vector<FogSprite>': 0x14, 'std::vector<SpriteRecord>': 0x14, 'std::vector<ParticleSprite>': 0x14, 'std::vector<BlockPoint>': 0x14, 'UnitList': 0x1C, 'std::vector<ParticleDepth>': 0x14, 'UnitShapeCache': 0x1C,
     'std::list<AIEvent>': 0x1C, 'std::vector<ScriptQuestObjective>': 0x14,
     'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,   # game.exe's streambuf (ours has no lock or get area)
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,

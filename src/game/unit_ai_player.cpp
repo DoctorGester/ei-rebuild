@@ -29,7 +29,7 @@ constexpr float kNoRadius = -1.0f;
 
 
 // A list on the stack.
-void InitList(CountedUnits& list) {
+void InitList(UnitList& list) {
     list = {};
 }
 
@@ -65,7 +65,6 @@ AckKind AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
         order.MakeAttack(object);
     }
     if (brain->owner->CanReachAndPlan(&order)) flags = AckKind::None;
-    order.target.Reset();
     return flags;
 }
 
@@ -90,7 +89,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         }
     }
 
-    CountedUnits candidates;
+    UnitList candidates;
     InitList(candidates);
     AITargetChoice best{-1, nullptr};
     float radius;
@@ -125,7 +124,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     if (chosen) {
         if (!DirectlyControlled(brain->owner->unit)) {
             // The other followers that are not fighting stop following.
-            CountedUnits party;
+            UnitList party;
             InitList(party);
             CollectParty(brain, &party);
             for (auto node = party.begin(); node != party.end();) {
@@ -153,8 +152,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     candidates.clear();
 }
 
-void PlayerMode::AddPartyTargets(AIBrain* brain, CountedUnits* targets) {
-    CountedUnits nearby;
+void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
+    UnitList nearby;
     InitList(nearby);
     CUnit* unit = brain->owner->unit;
     g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &nearby,
@@ -174,7 +173,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, CountedUnits* targets) {
     nearby.clear();
 }
 
-void PlayerMode::CollectParty(AIBrain* brain, CountedUnits* party) {
+void PlayerMode::CollectParty(AIBrain* brain, UnitList* party) {
     party->clear();
     CUnit* unit = brain->owner->unit;
     if (!unit) return;

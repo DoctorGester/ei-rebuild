@@ -27,9 +27,6 @@
 #include <string>
 
 namespace {
-constexpr float kNearPointCleared = 100000.0f;
-
-constexpr float kInitialCallRadius = 10.0f;
 // A new fear mode's distance (copied bit for bit).
 std::uint32_t FearDistanceBits() { return 0x41200000u; }
 
@@ -50,15 +47,6 @@ void RemoveModeNode(std::list<AIMode*>& modes, std::list<AIMode*>::iterator  nod
     modes.erase(node);
 }
 
-// Releases a counted object pointer of the memory lists, then empties the list.
-void ReleaseAllObjects(std::list<CUnit*>& list) {
-    for (auto& node : list) {
-        if (node) node->Release();
-        node = nullptr;
-    }
-    list.clear();
-}
-
 // The tail both standard sets share.
 void AddAlertModes(AIBrain* brain) {
     brain->AddSuspectionMode();
@@ -69,17 +57,9 @@ void AddAlertModes(AIBrain* brain) {
     brain->action = AIBrain::kActionNone;
 }
 
-// Removes one node of a memory list: unlink, release the element, free the node.
-void RemoveObjectNode(std::list<CUnit*>& list, std::list<CUnit*>::iterator  node) {
-    if (*node) (*node)->Release();
-    *node = nullptr;
-    list.erase(node);
-}
-
-// Removes every element holding `object` (each time searching again from the head).
-void RemoveAllOf(std::list<CUnit*>& list, CEngineObject* object) {
-    for (auto node = std::ranges::find(list, object); node != list.end(); node = std::ranges::find(list, object))
-        RemoveObjectNode(list, node);
+// Removes every element holding `object`, head first.
+void RemoveAllOf(HeldUnits& list, CEngineObject* object) {
+    for (auto node = list.begin(); node != list.end();) node = node->Get() == object ? list.erase(node) : std::next(node);
 }
 
 // A new mode of `type` as Load constructs it before reading its data (the fields Load reads stay
@@ -182,10 +162,10 @@ void AIBrain::Init() {
 }
 
 void AIMemory::Reset() {
-    ReleaseAllObjects(nearby);
-    ReleaseAllObjects(visible);
-    ReleaseAllObjects(seenCorpses);
-    ReleaseAllObjects(corpses);
+    nearby.clear();
+    visible.clear();
+    seenCorpses.clear();
+    corpses.clear();
     noticedX = 0.0f;
     noticedY = 0.0f;
     noticedLevel = 0;
@@ -220,10 +200,7 @@ void FearMode::Init(std::uint8_t newFlag) {
     flag = newFlag;
 }
 
-FearMode::FearMode(std::uint8_t newFlag) {
-    ClearFields();   // zeroed (the original leaves what memory held)
-    Init(newFlag);
-}
+FearMode::FearMode(std::uint8_t newFlag) { Init(newFlag); }
 
 void AIBrain::AddFearMode(std::uint8_t flag) { AddMode(new FearMode(flag)); }
 

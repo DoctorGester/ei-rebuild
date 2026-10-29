@@ -693,9 +693,6 @@ void CUnitServer::ResetController() {
     IdleKey(this) = 0x666DEAD;
     IdleSteps(this) = {};
     boredTicks = 0;
-    // The armour spell list emptied, each element's item released.
-    for (auto node = armourSpells.begin(); node != armourSpells.end(); ++node)
-        if (node->item) node->item->Release();
-    armourSpells.clear();
+    armourSpells.clear();   // each element's item released
     actionDone = nullptr;
 }

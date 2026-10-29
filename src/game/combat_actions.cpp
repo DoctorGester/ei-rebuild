@@ -47,12 +47,6 @@ CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
 AIEventTable* AIEventsOf(CWorldServer* world) { return &world->aiMap_.events; }
 
 
-bool ListContains(const std::list<CUnit*>* list, const CUnit* unit) {
-    for (auto node = list->begin(); node != list->end(); ++node)
-        if (*node == unit) return true;
-    return false;
-}
-
 // OnDamaged's search of the party (the player's units, walked as the list's begin() and operator++ do): the
 // first member that is not `self`; a null member ends it.
 CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
@@ -230,7 +224,7 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     return frontStored > 0.0f ? 0x800000 : 0x400000;
 }
 
-void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUnit* murderer) {
+void CUnitServer::WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer) {
     CWorldServer* world = ServerWorld();
     CDiplomacy* diplomacy = DiplomacyOf(unit->ServerWorld());
     int side = unit->side;
@@ -243,16 +237,10 @@ void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUn
         other->flags_ |= MapObjectFlag::SeeAll;
         CUnitServer* controller = other->ServerController();
         AIEventsOf(world)->Update(controller, &controller->brain.memory);
-        std::list<CUnit*>* watched = &controller->brain.memory.visible;
-        if (!ListContains(watched, victim)) continue;
-        if (!ListContains(watched, murderer)) {
-            auto added = watched->emplace(watched->end());
-            if (murderer != *added) {
-                if (*added) (*added)->Release();
-                *added = nullptr;
-                if (murderer) murderer->AddRef();
-                *added = murderer;
-            }
+        HeldUnits& watched = controller->brain.memory.visible;
+        if (!lib::Contains(watched, victim)) continue;
+        if (!lib::Contains(watched, murderer)) {
+            watched.push_back(murderer);
             console::EndLine(*kCombatLog << "Unit " << static_cast<long>(other->id_)
                                        << " has seen murder and is forced to see unit " << static_cast<long>(murderer->id_));
         }

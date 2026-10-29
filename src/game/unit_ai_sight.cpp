@@ -84,10 +84,6 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     int count = 0;
     const std::int16_t* offsets =
         memory->sightCells.Get(static_cast<float>(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
-    for (auto& node : memory->nearby) {
-        if (node) node->Release();
-        node = nullptr;
-    }
     memory->nearby.clear();
     for (int i = 0; i < count; ++i) {
         std::list<CUnit*>* units = map->sectorMap.UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
@@ -98,7 +94,6 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
             // At the head, holding a reference: See walks the list
             // from the head, so the units of the last sector come first.
             memory->nearby.push_front(other);
-            if (other) other->AddRef();
         }
     }
 }
@@ -108,7 +103,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
     bool seesAll = self->player != nullptr || (self->flags_ & MapObjectFlag::SeeAll) != 0;
     self->flags_ &= ~MapObjectFlag::SeeAll;
     for (auto node = memory->nearby.begin(); node != memory->nearby.end();) {
-        auto* other = *node;
+        CUnit* other = *node;
         ++node;
         bool dead = IsDead(other);
         bool hostile = self->IsHostileTo(other) || other->player != nullptr;
@@ -154,13 +149,12 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         }
         if (seen && dead) {
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
-            memory->seenCorpses.AddCountedTail(other);
-            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) memory->corpses.AddCountedTail(other);
+            memory->seenCorpses.push_back(other);
+            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
             continue;
         }
         if (alive) {
             memory->visible.push_front(other);
-            other->AddRef();
             double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
             double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
             double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
@@ -184,7 +178,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     for (auto node = memory->visible.begin(); node != memory->visible.end();) {
         auto current = node;
         ++node;
-        auto* other = *current;
+        CUnit* other = *current;
         Vector3 d{static_cast<float>(static_cast<double>(other->localPosition_.x) - self->localPosition_.x),
                   static_cast<float>(static_cast<double>(other->localPosition_.y) - self->localPosition_.y),
                   static_cast<float>(static_cast<double>(other->localPosition_.z) - self->localPosition_.z)};
@@ -193,12 +187,11 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) {
                 // AddTail (a second copy follows below).
                 memory->seenCorpses.push_back(other);
-                other->AddRef();
                 if (memory->noticedLevel < kCorpseLevel) NoticeAt(memory, other, kCorpseLevel, kCorpseKind);
             }
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
-            memory->seenCorpses.AddCountedTail(other);
-            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) memory->corpses.AddCountedTail(other);
+            memory->seenCorpses.push_back(other);
+            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
             CUnitServer* theirs = other->ServerController();
@@ -213,8 +206,6 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
         }
         console::EndLine(LogPair(self, " lost from sight unit ", other));
         if (self->IsHostileTo(other) && memory->noticedLevel < kLostLevel) NoticeAt(memory, other, kLostLevel, kLostKind);
-        if (*current) (*current)->Release();
-        *current = nullptr;
         memory->visible.erase(current);
     }
     See(self, memory);

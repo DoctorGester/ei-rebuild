@@ -34,7 +34,7 @@ public:
                 int lifetime);
     GroundPrint(const GroundPrint&) = delete;
     GroundPrint& operator=(const GroundPrint&) = delete;
-    virtual ~GroundPrint();   // the texture released
+    virtual ~GroundPrint() = default;
 
     // One tick: life - 1, both half sizes grow by `growth_`, alpha = (1 - max(t, 0))
     // * alphaScale with t = (lifetime - life) / lifetime. Returns the life left.

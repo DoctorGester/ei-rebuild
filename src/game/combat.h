@@ -16,9 +16,9 @@
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
 // under it) take the AIOrder part only: the AI builds just that on the stack.
 struct UnitAction : AIOrder {
-    int param;                  // by kind: a skill's spot (6), a wait's time, an emote's animation,
+    int param = 0;              // by kind: a skill's spot (6), a wait's time, an emote's animation,
                                 // the studied item's id
-    std::uint8_t modifier;      // run (move orders) or a called shot (attacks)
+    std::uint8_t modifier = 0;  // run (move orders) or a called shot (attacks)
 
 // The target is referenced.
     UnitAction* Assign(const UnitAction* from);
@@ -246,7 +246,7 @@ public:
     // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags_ bit 1.
     void OnDamaged(CUnit* attacker, int hitKind);
     // The allied witnesses that see `victim` add `murderer` to their visible list and turn hostile to it.
-    void WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUnit* murderer);
+    void WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer);
     // When the unit's flags_ have 0x80000: clears it, adds its hostile mask to claimedHostile and swaps
     // hostility claims with the allied units nearby.
     void PropagateHostility();

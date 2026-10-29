@@ -34,10 +34,10 @@ struct AIAlarm {
     void Load(CStream* stream);
     void Save(CStream* stream);
 
-    AIRemark level;     // what the group's members raised this step
-    AIRemark pending;   // raised by the unit's own AI since the last step
-    AIRemark active;    // the level being passed on
-    int timer;          // steps left of it
+    AIRemark level = AIRemark::None;     // what the group's members raised this step
+    AIRemark pending = AIRemark::None;   // raised by the unit's own AI since the last step
+    AIRemark active = AIRemark::None;    // the level being passed on
+    int timer = 0;                       // steps left of it
 };
 
 // The step of `state`, the alarm of `owner`.

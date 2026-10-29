@@ -15,7 +15,7 @@
 namespace {
 
 // Each object's counted reference (its id) of a memory list.
-void SaveObjectList(std::list<CUnit*>& list, CStream* stream) {
+void SaveObjectList(const HeldUnits& list, CStream* stream) {
     stream->WriteValue(std::ssize(list));
     for (auto node = list.begin(); node != list.end();) {
         auto next = std::next(node);

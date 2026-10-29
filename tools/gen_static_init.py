@@ -1106,6 +1106,9 @@ RETIRED_STATICS = {
                              "original's radix sort scratch array 007A9738 (freed by 0047B1D0) is never made"),
     0x004F4850: (0x004F4B2A, "CLinkMesh::RasterisePart rasterised a part into the 64 x 64 shadow texture, which is not "
                              "made (R26): its texture pixels 007AEEB8 (freed by 004F4B30) are never made"),
+    0x005D2390: (0x005D2568, "AggressionMode::Evaluate (unit_ai_modes.cpp) takes its candidates in a local list: the "
+                             "original's static list 007C54C8 (guard bit 0 of 007C54E4, destroyed by 005D2570) is "
+                             "never made"),
     0x005A0E80: (0x005A116B, "CFigureMesh::Rasterise rasterised a part into the 64 x 64 shadow texture, which is not "
                              "made (R26): its texture points 007C2E00 (freed by 005A1170) are never made"),
 }

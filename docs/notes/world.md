@@ -391,7 +391,7 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   world_client_view.cpp's own draw-queue view (007AF508, a local DeferredUnits()) that could use world.h `FrameObjects` /
   `g_deferredUnits`.
 - 00564AF0 (`CObject3D::PartBox`) runs on a platform object (AddObject passes it in ECX; it reads CObject3D::parts +0xD0 /
-  +0xD4 and pendingParts +0xE0), not on the client. The client's +0x1F0 list is the platform set's face list (PlatformSet
+  +0xD4 and the always empty second part array +0xE0), not on the client. The client's +0x1F0 list is the platform set's face list (PlatformSet
   +0x1D4: an engine object, then an CList<Platform> at +0x1C; 00573000 carves 0x54-byte nodes; AddFace is AddHead).
 - bird_ (+0x1B0) is the CEffectMoshka SummonBird makes. Unverified: the +0xA0 array's elements are engine
   objects (00570000 calls their slot 4). CWorldServer's +0x170..+0x2838 is its CAIMap (`aiMap_`, its `events` at +0x26C8 the AI event table; sizeof 0x12704):

@@ -609,7 +609,6 @@ void CUnitServer::RefreshItemSpells() {
         auto current = entry;
         ++entry;
         if (current->worn != 0) continue;
-        if (current->item) current->item->Release();   // the node's element destroyed
         armourSpells.erase(current);
     }
     others.clear();

@@ -24,7 +24,7 @@ void FreeStorage(std::vector<T>& v) {
 // CList::Find as a test: whether `c` holds `value`.
 template <typename C, typename T>
 bool Contains(const C& c, const T& value) {
-    return std::ranges::find(c, value) != std::ranges::end(c);
+    return std::find(std::begin(c), std::end(c), value) != std::end(c);
 }
 
 // CArray's SetAtGrow on a vector: grows it to hold `index` (the new elements value-initialised), then sets it.

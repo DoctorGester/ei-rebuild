@@ -54,12 +54,6 @@ constexpr float kFarAway = 1e30f;                     // the nearest-unit search
 
 CUnit* FindUnit(int id) { return g_serverWorld->FindUnit(id); }
 
-// Appends `object` to `list` with a counted reference (as the brain's lists do).
-void AddCounted(std::list<CUnit*>& list, CUnit* object) {
-    list.push_back(object);
-    object->AddRef();
-}
-
 // The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end
 // the game when the leader is gone).
 // The next object id for a new party's record (the party manager stores the party).
@@ -187,13 +181,13 @@ void CPlayerServer::OnLeaderDied() {
     CUnit* revived = FindUnit(newId);
     CUnit* dead = FindUnit(oldId);
     if (!revived || !dead) return;
-    std::list<CUnit*>& known = revived->ServerController()->brain.memory.seenCorpses;
+    HeldUnits& known = revived->ServerController()->brain.memory.seenCorpses;
     for (auto node = dead->ServerController()->brain.memory.seenCorpses.begin(); node != dead->ServerController()->brain.memory.seenCorpses.end();) {
         CUnit* object = *node;
         ++node;
-        if (object && object->GetClassId() == ClassId::Unit && !lib::Contains(known, object)) AddCounted(known, object);
+        if (object && object->GetClassId() == ClassId::Unit && !lib::Contains(known, object)) known.push_back(object);
     }
-    if (!lib::Contains(known, dead)) AddCounted(known, dead);
+    if (!lib::Contains(known, dead)) known.push_back(dead);
 }
 
 // --- Message 0x36, a use order --------------------------------------------------------
@@ -203,13 +197,6 @@ double UseOrderDistanceSquared(const Vector3* a, const Vector3* b) {
     double dy = a->y - b->y;
     double dz = a->z - b->z;
     return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
-}
-
-AIPath* AIPath::Construct() {
-    steps = {};
-    cells = {};
-    Clear();
-    return this;
 }
 
 Vector3* AIPath::TargetPoint(Vector3* out) const {
@@ -264,7 +251,6 @@ int CPlayerServer::OnUseOrder() {
     CUnit* chosen = nullptr;
     if (std::ssize(units) >= 2) {
         AIPath path;
-        path.Construct();
         AIOrder order;
         order.Clear();
         order.MakeUse(object, kind);
@@ -309,7 +295,6 @@ int CPlayerServer::OnUseOrder() {
         }
         if (!accepted) chosen = first;
         order.target.Reset();
-        path.Destruct();
     } else if (std::ssize(units) == 1) {
         chosen = units[0];
     }

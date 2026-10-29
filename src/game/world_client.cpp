@@ -153,8 +153,7 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
 }
 
 FootprintPart* CObject3D::PartBox(int index) {
-    CFigureMesh* part = index < std::ssize(parts) ? parts[index] : pendingParts[index - std::ssize(parts)].Get();
-    return &part->box_;
+    return &parts[index]->box_;
 }
 
 CPlayerClient* CWorldClient::LocalView() {

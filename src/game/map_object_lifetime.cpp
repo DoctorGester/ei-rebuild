@@ -38,8 +38,6 @@ constexpr float kHalf = 0.5f;
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(bits); }
 
-void BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
-
 // The engine object fields every constructor here sets (the base constructor inlined).
 void InitEngineObject(CEngineObject* object) {
     object->refCount_ = 0;
@@ -80,7 +78,6 @@ CObject3D::~CObject3D() { TearDownObject3D(); }
 void CObject3D::TearDownObject3D() {
     Destroy3D();
     figure.Reset();
-    lib::FreeStorage(pendingParts);
     lib::FreeStorage(parts);
 }
 
@@ -197,26 +194,9 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
         light.Reset();
     }
     owner = nullptr;
-    if (light) light->Release();
 }
 
 // --- The server unit controller ---------------------------------------------------------------
 
-CUnitServer::~CUnitServer() {
-    ResetController();
-    AIBrain* b = &brain;
-    b->Init();
-    b->memory.Destruct();
-    if (AIMode* current = b->current) BrainObject8CDestroy(current);
-    for (AIMode*& mode : b->modes) DestroyOwned(mode);   // the owned modes released
-    b->modes.clear();
-    b->seen.Reset();
-    b->target.Reset();
-    for (ArmourSpell& spell : armourSpells)
-        if (spell.item) spell.item->Release();
-    armourSpells.clear();
-    if (CEngineObject* leader = followedLeader) leader->Release();
-    action2.target.Reset();
-    action.target.Reset();
-    if (CEngineObject* effect = effectObject) effect->Release();
-}
+// ResetController empties the brain (Init) and releases every reference the controller holds.
+CUnitServer::~CUnitServer() { ResetController(); }

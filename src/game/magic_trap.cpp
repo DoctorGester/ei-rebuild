@@ -212,7 +212,6 @@ MagicTrap::~MagicTrap() {
     ClearVictims(this);        // the list emptied (each element released)
     // The list's destructor: its vtable, then emptied again.
     ClearVictims(this);
-    if (spell) spell->Release();
 }
 
 void MagicTrap::Load(CStream* stream) { LoadTrap(stream); }
