@@ -32,8 +32,8 @@ constexpr int kNothingDrawn = 2;      // the device's result, also for a part th
 constexpr float kByteScale = 255.0f;
 
 // The positions of a part moved by its per-vertex offsets (one work array for the draws and the shadow's
-// projection). Zero at the start; its exit function frees the block.
-constinit std::vector<VertexPacket> g_movedPackets = /*007AEED0*/ {};
+// projection).
+std::vector<VertexPacket> g_movedPackets;
 
 // The screen rectangle of a part that was not drawn.
 constexpr RECT kNoScreen = /*0073D780*/ {0, 0, 0, 0};
@@ -131,8 +131,6 @@ int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, Surface*
 }
 
 } // namespace
-
-void FreeMovedPackets() { lib::FreeStorage(g_movedPackets); }
 
 // ---- 7 / 8: the colours ----------------------------------------------------------------------------
 

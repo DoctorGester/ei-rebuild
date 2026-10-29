@@ -281,7 +281,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   lexer reads): without that folder ei_vectors loops forever at full CPU. Replay a scratch folder with a timeout.
   ei_vectors links only some of src/game (CMakeLists.txt's ei_vectors sources): a replayed function that calls a
   helper defined elsewhere fails to link there; use a local helper.
-- The device's mesh buffers (007AEDE0-007AEE3C): `src/game/device_buffers.h`. src/render reads the clip stack through
+- The device's mesh buffers (the original's 007AEDE0-007AEE3C; plain globals of ours): `src/game/device_buffers.h`. src/render reads the clip stack through
   the typed `CTransformPipeline::stacks_`; render_terrain.cpp once read it at pipeline +0x24 / +0x28 and drew no
   terrain after a layout change (the goldens did not notice, the render_shadows* / render_terrain_seams /
   render_loose_bmp checks did: run the render_* scenarios after a layout change).

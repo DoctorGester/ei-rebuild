@@ -273,20 +273,10 @@ double RawHeight(Terrain* terrain, float x, float y, int layer) {
     return terrain->HeightAt(x, y, layer);   // used unrounded
 }
 
-constinit std::vector<Vector4> g_projectionInput = /*007C88F8*/ {};
-constinit std::vector<Vector4> g_projectionOutput = /*007C88E8*/ {};
-
-// The exit functions their static initialisers register: each frees its buffer, once (a guard bit each in
-// g_freed; bit 4 is the outcodes' destructor's).
-std::uint8_t g_freed = /*007C88C9*/ {};
-// The projected vertices' outcodes (a byte array): built empty by its static initialiser, destroyed once at
-// exit.
-constinit lib::StaticObject<std::vector<std::uint8_t>> g_projectionOutcodes = /*007C88D0*/ {};
-void DestroyProjectionOutcodes() {
-    if (g_freed & 4) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 4);
-    g_projectionOutcodes.Destroy();
-}
+// The projection's work arrays: the corners in, the projected corners and their outcodes out.
+std::vector<Vector4> g_projectionInput;
+std::vector<Vector4> g_projectionOutput;
+std::vector<std::uint8_t> g_projectionOutcodes;
 constexpr int kProjectionVertices = 0x330;
 
 constexpr int kQuarterCells = 16;
@@ -515,21 +505,6 @@ void SectorData::Ensure(SectorStage wanted, Terrain* terrain) {
 
 // Construction and projection
 
-void FreeProjectionInput() {
-    if (g_freed & 1) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 1);
-    lib::FreeStorage(g_projectionInput);
-}
-void FreeProjectionOutput() {
-    if (g_freed & 2) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 2);
-    lib::FreeStorage(g_projectionOutput);
-}
-void ConstructProjectionOutcodes() {
-    g_projectionOutcodes.Construct();
-    std::atexit(DestroyProjectionOutcodes);
-}
-
 SectorData::SectorData() {
     box = SectorBox{};
     for (SectorBox& quarter : quarters) quarter = SectorBox{};
@@ -551,7 +526,7 @@ SectorData::SectorData() {
     hasSpecular = 0;
     g_projectionInput.resize(kProjectionVertices);
     g_projectionOutput.resize(kProjectionVertices);
-    g_projectionOutcodes->resize(std::ssize(g_projectionInput));
+    g_projectionOutcodes.resize(std::ssize(g_projectionInput));
 }
 
 // Then the members, last first (each record's light list released).
@@ -573,7 +548,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
                     ++in;
                 }
         const int count = static_cast<int>(in - g_projectionInput.data());
-        const int mode = pipeline->ProjectTerrain(g_projectionInput.data(), g_projectionOutput.data(), g_projectionOutcodes->data(),
+        const int mode = pipeline->ProjectTerrain(g_projectionInput.data(), g_projectionOutput.data(), g_projectionOutcodes.data(),
                                                   count, &quarters[q]);
         quarterMode[q] = mode;
         if (mode == -1 || mode == kCulled) {
@@ -581,7 +556,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
             continue;
         }
         const Vector4* out = g_projectionOutput.data();
-        const std::uint8_t* outcode = g_projectionOutcodes->data();
+        const std::uint8_t* outcode = g_projectionOutcodes.data();
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {

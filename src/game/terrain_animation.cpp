@@ -70,11 +70,6 @@ bool SectorBefore(const SectorData* x, const SectorData* y) {
     return x->sx < y->sx;
 }
 
-// SetSun's function-local static (guard bit 1, freed at exit).
-constinit std::vector<SectorData*> g_sortedSectors = /*007C8938*/ {};
-void FreeSortedSectors() { lib::FreeStorage(g_sortedSectors); }
-std::uint8_t g_sortedSectorsGuard = /*007C8948*/ {};
-
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
 // with its sign (_copysign of the double 0.01f).
 float AwayFromZero(float v) { return std::fabs(v) >= kMinComponent ? v : std::copysign(kMinComponent, v); }
@@ -236,12 +231,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
         return;
     }
     // The lit sectors, sorted, get relight countdowns spread evenly over the next interval.
-    auto& sorted = terrain::g_sortedSectors;
-    if ((terrain::g_sortedSectorsGuard & 1) == 0) {
-        terrain::g_sortedSectorsGuard |= 1;
-        std::atexit(terrain::FreeSortedSectors);
-    }
-    sorted.clear();
+    std::vector<SectorData*> sorted;
     for (auto& node : sectorCache) {
         SectorData* sector = node;
         if (lib::Has(sector->built, SectorStage::Lit)) {

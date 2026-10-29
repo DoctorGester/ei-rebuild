@@ -332,9 +332,8 @@ void ReverseWinding(std::vector<std::uint16_t>& indices) {
     }
 }
 
-// The shared buffer DrawOffset moves the vertices into, and the exit function its static initialiser
-// registers: it frees the block.
-constinit std::vector<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
+// The shared buffer DrawOffset moves the vertices into.
+std::vector<VertexPacket> g_offsetVertices;
 
 } // namespace
 
@@ -581,8 +580,6 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
 }
 
 // ---- Mirroring, buffers, vertex offsets ---------------------------------------------------------
-
-void FreeOffsetVertices() { lib::FreeStorage(g_offsetVertices); }
 
 void CPlainFigureMesh::MirrorX() {
     NegateBlock(vertices_, 0);

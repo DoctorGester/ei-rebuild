@@ -20,9 +20,8 @@
 
 namespace {
 
-constinit std::vector<VertexPacket> g_movedPositions = /*007C2E60*/ {};
-void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
-std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
+// The positions with the offsets added.
+std::vector<VertexPacket> g_movedPositions;
 
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
@@ -58,11 +57,6 @@ const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
 int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
                                    RECT* rect) {
     if (mesh_->flags_ & 0x80) return 1;
-    if (!(g_movedPositionsGuard & 1)) {
-        g_movedPositionsGuard |= 1;
-        g_movedPositions = std::vector<VertexPacket>{};
-        std::atexit(FreeMovedPositions);
-    }
     int drawFlags = 0;
     mesh_->flags_ &= ~0x40u;
     int visibility = device->pipeline_->ClipTest(&mesh_->box_.bounds);

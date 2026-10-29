@@ -637,7 +637,9 @@ kinds given.
         static_exit.cpp still runs until the CByteArray 007C88D0 is named, C19), and the function-local statics of
         renderer_strip (007AF000-007AF040), renderer_sprites (007AEF90, 007AEFA0, 007AEFB8-007AEFE8),
         figure_rasterise 007C2E00, the two part draws 007C2E48 / 007C2E60, lightning_draw 0079C1D0, particle_render
-        007A9BD0, effects_weather_draw 007ABA30, link_mesh_draw 007AEEB8 and terrain_animation 007C8938. The hand code's
+        007A9BD0, effects_weather_draw 007ABA30, link_mesh_draw 007AEEB8 and terrain_animation 007C8938 (all plain
+        globals or locals of ours since C50b / C50d, with the line lists', the device's and the terrain projection's
+        arrays and the moved packets / offset vertices). The hand code's
         GameAtExit keeps passing the exit function's address (or the port itself). Not named, because unported code
         reaches them: camera 0079B1E0 / 0079B1F8 / 0079B210 (00402310), terrain 007C8890 / 007C88A8 / 007C88B8
         (006BFF40) and 007C8950 (006C8990); their `free` exit functions stay generated until those functions are ported.
@@ -693,7 +695,7 @@ kinds given.
       TYPES `LogicSettings`; the stats recorder reads game.exe's copy), and the constructed statics as
       `lib::StaticObject<T>` (zero storage, STATIC_OBJECT_BYTES) whose initialiser and exit function are ported on the
       name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc: the
-      terrain's projection outcodes 007C88D0, the sector spiral's builder 005BF8E0. A function-local static's exit
+      sector spiral's builder 005BF8E0. A function-local static's exit
       function is ported beside it and the port registers its own (`GameAtExit(DestroyX)`).
     - **Plain globals and locals instead (C50, C50a-d)**: an object of ours that needs no game order is a plain
       global (constructed and destroyed by the C++ runtime), a function-local static or a local, with no address: the
@@ -704,8 +706,10 @@ kinds given.
       party id set, the zone table and the quest files / folders; the prints database, the network's send and receive
       buffers (C50c); the command line's five strings (app_main.cpp), the registry root, start and text folders
       (game_folders.cpp; the disc and data folders stay static objects while the interface spells them with `*`), the
-      chunk archive's class registry, clip's work words and the console's command maps (C50d; the unread set 007AB8D8,
-      which only the original read, went). Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
+      chunk archive's class registry, clip's work words and the console's command maps; the draws' work arrays (line
+      lists, the device's mesh buffers, sprites, strip, terrain projection, the part draws' moved positions, the moved
+      packets and offset vertices) and SetSun's sorted sectors, a local (C50d; the unread set 007AB8D8, which only the
+      original read, went). Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
       exit functions (net_session.cpp) release the sessions, which send leave packets, so they keep the game's exit
       order; at our CRT's exit the harness's network pair has ended (net_pair_zone's mailbox overflowed). Their initialisers are UNUSED_INITIALISERS (the exit
       functions go with them); a function whose port builds none of the original's function-local statics is in
