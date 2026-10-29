@@ -11,8 +11,8 @@
 #include "unit_db.h"
 #include "text_manager.h"
 
-#include "ei/x87.h"
 #include "lib/gameapi.h"
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include "world.h"
@@ -108,7 +108,7 @@ void HudUnitPanel::DrawUnitInfo(CUnit* unit) {
     panel.DrawLine();
 
     float dayTime = static_cast<float>(g_clientWorld.NightLevel());
-    int vision = x87::fistp(static_cast<float>(params->VisionRange(dayTime)));
+    int vision = std::lround(params->VisionRange(dayTime));
     panel.text = str::Format(kValueUnit, panel.labels[6], vision, panel.labels[13]);
     panel.DrawLine();
 

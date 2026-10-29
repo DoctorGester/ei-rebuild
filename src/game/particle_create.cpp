@@ -12,8 +12,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 
-#include "ei/x87.h"
-
+#include <cmath>
 #include <cstring>
 
 namespace {
@@ -258,8 +257,8 @@ void SetupClayRing(ParticleSource* s) {
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         double angle = static_cast<double>(i) * EI_RING_STEP;
         float* direction = &s->elements[i].clay.direction.x;
-        direction[0] = static_cast<float>(x87::fsin(angle));
-        direction[1] = static_cast<float>(x87::fcos(angle));
+        direction[0] = static_cast<float>(std::sin(angle));
+        direction[1] = static_cast<float>(std::cos(angle));
         direction[2] = 0.0f;
         s->elements[i].pos = s->localPosition;
         s->elements[i].clay.previous = s->localPosition;

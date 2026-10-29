@@ -5,13 +5,13 @@
 #include "object_maths.h"
 #include "random.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/float_select.h"
 
 #include <bit>
+#include <cmath>
 #include <cstring>
 
 // The particle callbacks run for every live particle every frame. The order of operations in each expression is
@@ -124,7 +124,7 @@ int ParticleSource::UpdateCloud(Particle* p) {
     if (flags & ParticleSourceFlag::Emitting) return 1;
     std::uint32_t a = p->color >> 24;
     if (a <= 9) return 0;
-    int step = x87::fistp(alpha * kCloudAlpha);
+    int step = std::lround(alpha * kCloudAlpha);
     if (step < 1) step = 1;
     std::uint32_t rgb = ParticleTypeOf(type) == ParticleType::PoisonCloud ? 0xFFAF7Fu : 0xFFFFFFu;
     p->color = ((static_cast<std::uint32_t>(step) * 255 + a) << 24) | rgb;
@@ -317,7 +317,7 @@ void ParticleSource::TickMushroom(ParticleElement* e) {
     if (ParticleTypeOf(type) == ParticleType::Mushroom && e->ticks == 0 && e == elements.data())
         g_camera.Shake(origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
-    e->pos.x = static_cast<float>(x87::flog(ticks + 1) * size * kMushroomWidth);
+    e->pos.x = static_cast<float>(std::log(ticks + 1) * size * kMushroomWidth);
     e->pos.z = size * kMushroomRise + e->pos.z;
     if (ticks == 30) flags &= ~ParticleSourceFlag::Emitting;
 }

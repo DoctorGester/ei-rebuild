@@ -12,7 +12,6 @@
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include <cstdint>
@@ -72,7 +71,7 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
     EI_NAN_AUDIT(alpha, rate);
     if ((alpha < kOpaque && rate > 0.0f) || (alpha > 0.0f && rate < 0.0f)) {
         const DWORD now = gameapi::timeGetTime();
-        alpha = static_cast<float>(x87::FromUnsigned(now - lastTime) * rate + alpha);
+        alpha = static_cast<float>(static_cast<double>(now - lastTime) * rate + alpha);
         lastTime = gameapi::timeGetTime();
     }
     EI_NAN_AUDIT(alpha);

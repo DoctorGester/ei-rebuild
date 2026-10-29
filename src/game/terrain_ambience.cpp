@@ -9,7 +9,6 @@
 #include "sound.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
@@ -83,7 +82,7 @@ constexpr int kMaxVolume = 100;
 constexpr float kHalfPi = /*007C8930*/ 1.5707964f;
 
 // The sector containing `v` (v rounded to nearest, then / 32 towards zero).
-int SectorOf(float v) { return x87::fistp(v) / kSectorCells; }
+int SectorOf(float v) { return std::lround(v) / kSectorCells; }
 
 // By weight, highest first (an unordered pair sorts "after").
 int ByWeight(const void* a, const void* b) {
@@ -132,8 +131,8 @@ void PlayOneShot(SoundManager* sounds, const Cell (&cells)[3][3], int soundClass
     Vector3 position = listener + pick->offset;
     float spot = kSpotCells;
     float spotLow = static_cast<float>(-spot);
-    position.x = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.x);
-    position.y = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.y);
+    position.x = static_cast<float>((spot - spotLow) * static_cast<double>(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.x);
+    position.y = static_cast<float>((spot - spotLow) * static_cast<double>(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.y);
     sounds->Play3D(name, 1, &position.x, static_cast<float>(spot + spot), kRadiusCells, 0);
 }
 
@@ -209,14 +208,14 @@ void Terrain::PlayAmbience() {
                 vote.offset.z = static_cast<float>(dz + vote.offset.z);
             }
         }
-        vote.volume = x87::fistp(static_cast<float>(std::sqrt(vote.weightSum)));
+        vote.volume = std::lround(std::sqrt(vote.weightSum));
         if (vote.volume > kMaxVolume) vote.volume = kMaxVolume;
         float pan = PanOf(vote.offset, axis);
         float limit = kAmbientSounds[vote.soundClass].panLimit;
         float low = static_cast<float>(-limit);
         pan = pan >= low ? pan : low;
         pan = limit >= pan ? pan : limit;
-        vote.pan = x87::fistp(pan);
+        vote.pan = std::lround(pan);
         PlayOneShot(sounds, cells, vote.soundClass, ambientVariants[vote.soundClass], ambientSet, listener);
     }
 

@@ -17,7 +17,6 @@
 #include "unit_db.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -161,7 +160,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
         w.line = std::format("{} {}", w.T(12), w.T(21));
     else
         w.line = str::Format("%s %.1f%s", w.T(12),
-                      x87::FromUnsigned(ticks) * D(0.06666667f), w.T(27));
+                      static_cast<double>(ticks) * D(0.06666667f), w.T(27));
     w.Text(w.line);
     w.Down();
 }

@@ -10,9 +10,8 @@
 
 #include "lib/nan_audit.h"
 
-#include "ei/x87.h"
-
 #include <bit>
+#include <cmath>
 #include <concepts>
 #include <cstring>
 #include <initializer_list>
@@ -201,7 +200,7 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
         scale = 15.0f;
         count = 72;             // 75.0 rounded, & ~3
     } else {
-        count = x87::fistp(static_cast<float>(static_cast<double>(length) * 5.0)) & ~3;
+        count = std::lround(static_cast<double>(length) * 5.0) & ~3;
         if (count > 400) count = 400;
         else if (count < 4) count = 4;
     }
@@ -317,8 +316,8 @@ void Lightning::Animate() {
         for (int i = 0; i < 6; ++i) {
             LightningSegment& branch = branches[i];
             double reach = static_cast<double>(sway) * branchPos[i];
-            float sideSway = static_cast<float>(x87::fsin(static_cast<double>(time) * frequency[2 * i] * 0.25) * reach);
-            double upSway = x87::fsin(static_cast<double>(time) * frequency[2 * i + 1] * 0.25) * reach;
+            float sideSway = static_cast<float>(std::sin(static_cast<double>(time) * frequency[2 * i] * 0.25) * reach);
+            double upSway = std::sin(static_cast<double>(time) * frequency[2 * i + 1] * 0.25) * reach;
             float ux = static_cast<float>(upSway * main.up.x);
             float uy = static_cast<float>(upSway * main.up.y);
             double uz = upSway * main.up.z;
@@ -332,7 +331,7 @@ void Lightning::Animate() {
             float targetY = static_cast<float>(static_cast<double>(wy) + uy);
             float targetZ = static_cast<float>(static_cast<double>(wz) + uz);
 
-            int index = x87::fistp(static_cast<float>((1.0 - branchPos[i]) * std::ssize(main.points)));
+            int index = std::lround((1.0 - branchPos[i]) * std::ssize(main.points));
             int last = std::ssize(main.points) - 1;
             if (index >= last) index = last;
             const LightningPoint& origin = main.points[index];

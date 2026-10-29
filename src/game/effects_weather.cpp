@@ -9,10 +9,9 @@
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
 
-#include "ei/x87.h"
-
 #include <array>
 #include <bit>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -63,10 +62,10 @@ void RainSnow::UpdateFade(float now) {
         mode = targetMode;
         if (targetMode == 1 && sound) g_clientWorld.sounds->SetSoundVolume(sound, 100, 0);
     } else if ((now - fadeStart) / fadeDuration <= 1.0f) {
-        double c = x87::fcos((now - fadeStart) / fadeDuration * kFadePi);
+        double c = std::cos((now - fadeStart) / fadeDuration * kFadePi);
         float level = static_cast<float>((targetMode == 0 ? c + 1.0f : 1.0f - c) * 0.5f);
-        if (sound) g_clientWorld.sounds->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
-        density = x87::fistp(level * kDensityScale);
+        if (sound) g_clientWorld.sounds->SetSoundVolume(sound, std::lround(level * kVolumeScale), 0);
+        density = std::lround(level * kDensityScale);
         return;
     } else {
         mode = targetMode;

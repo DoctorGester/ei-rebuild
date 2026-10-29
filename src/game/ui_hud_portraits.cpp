@@ -12,9 +12,9 @@
 #include "random.h"
 #include "unit.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include <bit>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -102,7 +102,7 @@ Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
 }
 
 float RandomTilt(std::uint32_t r) {
-    return static_cast<float>((x87::FromUnsigned(r) * kRandomScale31 - 1.0f) * D(kHudQuarterTurn) * kTwelfth);
+    return static_cast<float>((static_cast<double>(r) * kRandomScale31 - 1.0f) * D(kHudQuarterTurn) * kTwelfth);
 }
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
@@ -115,7 +115,7 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 } // namespace
 
 void HudPortraits::Wobble(int index, int kind) {
-    slots[index].wobbleTime = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
+    slots[index].wobbleTime = static_cast<float>(static_cast<double>(g_clientRandom.Next()) * kRandomDelayScale);
     slots[index].wobbleKind = kind;
 }
 
@@ -213,15 +213,15 @@ void HudPortraits::Update() {
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind == 0 && dt > 0.0f) {
             std::uint32_t roll = g_clientRandom.Next();
-            if (D(dt) * kWobbleRate > x87::FromUnsigned(roll) * kRandomScale32) {
-                slot.wobbleTime = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
+            if (D(dt) * kWobbleRate > static_cast<double>(roll) * kRandomScale32) {
+                slot.wobbleTime = static_cast<float>(static_cast<double>(g_clientRandom.Next()) * kRandomDelayScale);
                 slot.wobbleKind = 3;
                 std::uint32_t r1 = g_clientRandom.Next();
                 std::uint32_t r2 = g_clientRandom.Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget = TargetProduct(q1, q2);
-                slot.wobbleSpeed = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomScale31 + 1.0f);
+                slot.wobbleSpeed = static_cast<float>(static_cast<double>(g_clientRandom.Next()) * kRandomScale31 + 1.0f);
             }
         }
         if (slot.wobbleKind != 0) {
@@ -232,20 +232,20 @@ void HudPortraits::Update() {
                 case 1:   // nod
                     if (static_cast<float>(D(kPi) * kWobbleSpan) > t)
                         wobble = AxisAngle(1.0f, 0.0f, 0.0f,
-                                           static_cast<float>(D(kHudQuarterTurn) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
+                                           static_cast<float>(D(kHudQuarterTurn) * std::sin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
                         slot.wobbleKind = 0;
                     break;
                 case 2:   // shake
                     if (static_cast<float>(D(kHudFullTurn) * kWobbleSpan) > t)
                         wobble = AxisAngle(0.0f, 1.0f, 0.0f,
-                                           static_cast<float>(D(kHudQuarterTurn) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
+                                           static_cast<float>(D(kHudQuarterTurn) * std::sin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
                         slot.wobbleKind = 0;
                     break;
                 case 3:   // turn towards the target and back
                     if (D(kHudFullTurn) / D(slot.wobbleSpeed) > D(t)) {
-                        float w = static_cast<float>(0.5f - x87::fcos(D(t) * D(slot.wobbleSpeed)) * 0.5f);
+                        float w = static_cast<float>(0.5f - std::cos(D(t) * D(slot.wobbleSpeed)) * 0.5f);
                         wobble.Slerp(w, kHudRestRotation, slot.wobbleTarget);
                     } else {
                         slot.wobbleKind = 0;

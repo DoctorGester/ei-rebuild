@@ -11,7 +11,6 @@
 #include "unit.h"
 #include "ui_cursor.h"
 
-#include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_state.h"
@@ -61,7 +60,7 @@ void HeroEquipPanel::Draw(SceneRenderer* pass) {
     if (shown < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
         frame(0)->visible = true;
         // The unsigned slot * 100 + 50 is converted as a 64-bit integer.
-        frame(0)->Place(static_cast<float>(x87::FromUnsigned(shown * 100u + 50u)), 50.0f, 3.0f);
+        frame(0)->Place(static_cast<float>(static_cast<double>(shown * 100u + 50u)), 50.0f, 3.0f);
     } else {
         frame(0)->visible = false;
     }

@@ -10,7 +10,6 @@
 
 #include "maths.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -94,7 +93,7 @@ void HudClock::Update() {
             blink = static_cast<float>(next);
         } while (next >= 1.0f);
     }
-    float pulse = static_cast<float>(x87::fcos(D(kHudFullTurn) * D(blink)) * kPulseAmplitude + kPulseMiddle);
+    float pulse = static_cast<float>(std::cos(D(kHudFullTurn) * D(blink)) * kPulseAmplitude + kPulseMiddle);
 
     float handAngle;
     if (GamePaused()) {
@@ -128,9 +127,9 @@ void HudClock::Update() {
 
     // The hand (object 1) about -z, placed on its circle.
     Turn(scene[1], -1.0f, handAngle);
-    double handSin = x87::fsin(handAngle);
+    double handSin = std::sin(handAngle);
     float handY = static_cast<float>(kCentreY - handSin * kHandRadius);
-    float handX = static_cast<float>(x87::fcos(handAngle) * kHandRadius + widescreen::g_layoutWidth);
+    float handX = static_cast<float>(std::cos(handAngle) * kHandRadius + widescreen::g_layoutWidth);
     AsUiMesh(scene[1])->Place(handX, handY, kHandDepth);
 
     // The face turns with the time of day.
@@ -141,9 +140,9 @@ void HudClock::Update() {
     for (int k = 2; k < 6; ++k) {
         EngineObject* mark = scene[k];
         Turn(mark, 1.0f, angle);
-        double c = x87::fcos(angle);
+        double c = std::cos(angle);
         float y = static_cast<float>(kCentreY - c * kDialRadius);
-        float x = static_cast<float>(x87::fsin(angle) * kDialRadius + widescreen::g_layoutWidth);
+        float x = static_cast<float>(std::sin(angle) * kDialRadius + widescreen::g_layoutWidth);
         AsUiMesh(mark)->Place(x, y, kSpriteDepth);
         angle = static_cast<float>(D(angle) - D(static_cast<float>(D(kPi) * kDialStep)));
     }

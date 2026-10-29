@@ -19,8 +19,7 @@
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
-#include "ei/x87.h"
-
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -67,7 +66,7 @@ const Record* EntryAt(const std::vector<Record>& table, WorldClient* world, floa
     return surface < table.size() ? &table[surface] : nullptr;
 }
 
-std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(value * kAlphaRange))); }
+std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(std::lround(value * kAlphaRange)); }
 
 } // namespace
 
@@ -177,8 +176,8 @@ int GroundPrint::Draw() {
         Vector3 at{position.x, position.y, 0.0f};
         float z = static_cast<float>(world->platforms.SurfaceHeight(at, world->ClampedGroundHeight(position.x, position.y)));
         quad.resize(1);
-        double c = x87::fcos(angle);
-        double s = x87::fsin(angle);
+        double c = std::cos(angle);
+        double s = std::sin(angle);
         // Corners (+w, -l), (-w, -l), (-w, +l), (+w, +l) turned by the angle.
         const float across[4] = {halfWidth, -halfWidth, -halfWidth, halfWidth};
         const float along[4] = {-halfLength, -halfLength, halfLength, halfLength};
@@ -196,8 +195,8 @@ int GroundPrint::Draw() {
         // The texture coordinates turned about the tile's centre, then into the tile. The loop is
         // unrolled four times: the fourth vertex stores its u part to a float before scaling
         // it, the others their v part.
-        float uc = static_cast<float>(x87::fcos(uvAngle));
-        float us = static_cast<float>(x87::fsin(uvAngle));
+        float uc = static_cast<float>(std::cos(uvAngle));
+        float us = static_cast<float>(std::sin(uvAngle));
         int vertices = std::ssize(positions) * 4;
         for (int i = 0; i < vertices; ++i) {
             DecalTexCoord& uv = texCoords[i];
@@ -214,7 +213,7 @@ int GroundPrint::Draw() {
             for (float& height : positions[i].block[2]) height = height + kLift;
         built = true;
     }
-    std::uint32_t fadeAlpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha * kAlphaRange)));
+    std::uint32_t fadeAlpha = static_cast<std::uint32_t>(std::lround(alpha * kAlphaRange));
     colour = (colour & 0xFFFFFFu) | fadeAlpha << 24;
     TextureDevice* device = g_sceneRenderer.device;
     device->BindNamedTexture(0, &texture);
@@ -279,7 +278,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     uvScale = {kQuarter, kQuarter};
     uvOffset.y = static_cast<float>(index >> 1) * kQuarter + static_cast<float>(high >> 1) * 0.5f;
     uvAngle = static_cast<float>(RandomQuarter()) * kHalfPi;
-    int steps = x87::fistp(static_cast<float>(kTwoPi * kAngleMilli));
+    int steps = std::lround(kTwoPi * kAngleMilli);
     angle = static_cast<float>(ClientRandBelow(steps)) * kMilli;
     SetTexture("bloodprints");
     int spread = life / 2;

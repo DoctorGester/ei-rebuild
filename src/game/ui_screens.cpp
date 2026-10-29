@@ -15,7 +15,6 @@
 #include "party.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
@@ -23,6 +22,7 @@
 
 #include <algorithm>
 #include <bit>
+#include <cmath>
 #include <string>
 
 namespace {
@@ -327,7 +327,7 @@ void ForwardingStrip::LeftDown(int modifiers, int x, int y) {
 // --- Heroes' skills ---------------------------------------------------------------------------
 
 int HeroSchoolSkill(UnitStats* stats, int school) {
-    return x87::fistp(static_cast<float>(stats->SpellSchoolSkill(school)));
+    return std::lround(stats->SpellSchoolSkill(school));
 }
 
 int HeroManaUnits(UnitStats* stats) {

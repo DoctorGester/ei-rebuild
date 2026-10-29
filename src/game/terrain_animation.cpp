@@ -13,7 +13,6 @@
 #include "spell.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/float_select.h"
 #include "lib/vecmath.h"
 
@@ -37,10 +36,10 @@ constexpr int kAlwaysSteps = 1000;                         // a tile speed that 
 
 // The sine table entry at `phase` radians: (phase * 256 / pi) stored as a float and rounded to nearest, mod 512.
 inline float Sine(const Terrain* owner, double phase) {
-    return owner->sine[x87::fistp(static_cast<float>(phase * kSineIndex)) & 0x1FF];
+    return owner->sine[std::lround(phase * kSineIndex) & 0x1FF];
 }
 
-inline std::uint32_t ColourByte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
+inline std::uint32_t ColourByte(double v) { return static_cast<std::uint32_t>(std::lround(v)) & 0xFF; }
 
 // The circling waves' sine per column (and per row: the same values) at the world time, once per call.
 void CircleSines(const Terrain* owner, float* sines) {

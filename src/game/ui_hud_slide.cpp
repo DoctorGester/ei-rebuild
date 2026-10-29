@@ -380,9 +380,9 @@ void HudMap::Setup(float newZoom, bool slid) {
     UiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
         const float angle = static_cast<float>(static_cast<float>(static_cast<float>(i) * kPi) * kOutlineStep);
-        const float down = static_cast<float>(x87::fcos(static_cast<double>(angle)) * kOutlineRadius);
+        const float down = static_cast<float>(std::cos(static_cast<double>(angle)) * kOutlineRadius);
         const int y = static_cast<int>(libcrt::Ftol(static_cast<float>(down + kOutlineCentreY)));
-        const float across = static_cast<float>(x87::fsin(static_cast<double>(angle)) * kOutlineRadius);
+        const float across = static_cast<float>(std::sin(static_cast<double>(angle)) * kOutlineRadius);
         const int x = static_cast<int>(libcrt::Ftol(static_cast<float>(kOutlineCentreX - across)));
         round->AddPoint(x, y);
     }

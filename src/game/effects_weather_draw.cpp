@@ -9,8 +9,7 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 
-#include "ei/x87.h"
-
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -69,7 +68,7 @@ int VisibilityFog::Draw(SceneRenderer* renderer) {
         const FogCell& cell = node.second;
         lib::StoreBytes(point, cell.pos);
         point->size = kFogSpriteSize;
-        const int alpha = x87::fistp(static_cast<float>(cell.alpha * kColourScale));
+        const int alpha = std::lround(cell.alpha * kColourScale);
         sprite->colour = (static_cast<std::uint32_t>(alpha) << 24) | 0x00FFFFFFu;
         sprite->tile = g_fogTiles + cell.frame;
         ++point;

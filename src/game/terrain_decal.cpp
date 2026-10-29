@@ -6,12 +6,12 @@
 #include "figure_mesh.h"   // VertexPacket
 #include "ground_decal.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "lib/float_select.h"
 
 #include <climits>
+#include <cmath>
 
 namespace terrain {
 namespace {
@@ -19,7 +19,7 @@ namespace {
 constexpr float kMargin = 1.0f;   // one cell around the quad
 
 // A cell bound: (v -/+ the margin) / cell size, stored as a float first and rounded to nearest.
-int CellBound(double v) { return x87::fistp(static_cast<float>(v)); }
+int CellBound(double v) { return std::lround(v); }
 
 Vector3 Corner(const VertexPacket& quad, int corner) { return {quad.x()[corner], quad.y()[corner], quad.z()[corner]}; }
 

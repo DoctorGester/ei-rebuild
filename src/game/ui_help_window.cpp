@@ -80,7 +80,7 @@ void HelpWindow::Update() {
     UiContainer::Update();
     double time = FrameTime() + pulseTime;
     pulseTime = static_cast<float>(time);
-    double wave = (x87::fcos(time * 5.0f) + 1.0f) * 0.5f;
+    double wave = (std::cos(time * 5.0f) + 1.0f) * 0.5f;
     double alpha = wave * 255.0f;
     float alphaStored = static_cast<float>(alpha);   // stored to a float
     double rest = (1.0f - wave) * 80.0f;

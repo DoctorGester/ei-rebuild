@@ -16,7 +16,6 @@
 #include "unit_create.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/gameapi.h"
 #include <cstdint>
 #include <string>
@@ -61,7 +60,7 @@ constexpr SkillAnimation kStoneAnimation[6] = {SkillAnimation::Briefing01, Skill
                                                SkillAnimation::Briefing11, SkillAnimation::Briefing09};
 
 // A random word scaled to [0, scale) (the word read unsigned, as a 64-bit integer).
-double RandomScaled(double scale) { return x87::FromUnsigned(g_clientRandom.Next()) * scale; }
+double RandomScaled(double scale) { return static_cast<double>(g_clientRandom.Next()) * scale; }
 
 } // namespace
 

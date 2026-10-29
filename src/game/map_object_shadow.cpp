@@ -25,9 +25,8 @@
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
-#include "ei/x87.h"
-
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -139,7 +138,7 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
     }
     float horizontal = static_cast<float>(std::sqrt(LengthSquared2DUnrounded<double>(direction->y, direction->x)));
     float height = AbsBits(direction->z);
-    double elevation = x87::fpatan(height, horizontal);
+    double elevation = std::atan2(height, horizontal);
     double minimum = g_pi * g_perDegree * g_minimumTilt;
     if (elevation >= minimum) return;   // NaN tilts
     double z = static_cast<double>(horizontal) * kTiltSlope;

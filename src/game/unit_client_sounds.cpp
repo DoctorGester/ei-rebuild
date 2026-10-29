@@ -19,8 +19,6 @@
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
-#include "ei/x87.h"
-
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -185,7 +183,7 @@ void UnitClientSpecific::PlayStepSounds() {
     case AnimationKind::Attack: {
         if (g_clientWorld.LocalView()->player->sessionKind == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
-        if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
+        if (PassedFrame(static_cast<double>(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->MapType() == MapObjectType::Hero && unit->actionSound) {
             if (std::optional<std::string> miss = ActionSound(current, lastAnimationTime, now, static_cast<std::uint8_t>(unit->actionSound)))
                 sounds->Play3D(*miss, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0);

@@ -10,7 +10,6 @@
 #include "random.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 
 #include <cmath>
@@ -68,7 +67,7 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     EI_NAN_AUDIT(length);
     if (length != 0.0f) towards /= length;
     float scaled = position.x * 15.0f;
-    int shift = x87::fistp(scaled);
+    int shift = std::lround(scaled);
     int frame = (World()->tick + shift) % 15;
     for (int j = 0; j < 8; ++j) {
         float t = static_cast<float>(j) * 0.125f;   // 1/8

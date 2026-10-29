@@ -2,7 +2,6 @@
 // >= 0 -> u <= 1 -> v <= 1, with entry points part way), each stage writing its second triangle into its own
 // function-static buffer. ClipStage is that pipeline with one buffer per stage, so the in-place clipping and
 // the order triangles are emitted in are the same.
-#include "ei/x87.h"
 #include "ground_decal.h"
 
 #include "lib/float_select.h"
@@ -174,11 +173,11 @@ void DecalBuilder::Reserve(int triangles) {
 std::uint16_t DecalBuilder::AddVertex(const DecalVertex* v) {
     int i = vertexCount;
     VertexPacket& packet = (*points)[i / 4];
-    x87::CopyBits(packet.block[0][i & 3], v->position.x);
-    x87::CopyBits(packet.block[1][i & 3], v->position.y);
-    x87::CopyBits(packet.block[2][i & 3], v->position.z);
-    x87::CopyBits((*texCoords)[i].u, v->u);
-    x87::CopyBits((*texCoords)[i].v, v->v);
+    packet.block[0][i & 3] = v->position.x;
+    packet.block[1][i & 3] = v->position.y;
+    packet.block[2][i & 3] = v->position.z;
+    (*texCoords)[i].u = v->u;
+    (*texCoords)[i].v = v->v;
     vertexCount = i + 1;
     return static_cast<std::uint16_t>(i);
 }
@@ -244,9 +243,9 @@ void DecalBuilder::Finish() {
     for (int i = vertexCount; i < std::ssize(*currentPoints) * 4; ++i) {
         VertexPacket& packet = (*currentPoints)[i / 4];
         const VertexPacket& first = (*currentPoints)[0];
-        x87::CopyBits(packet.block[0][i & 3], first.block[0][0]);
-        x87::CopyBits(packet.block[1][i & 3], first.block[1][0]);
-        x87::CopyBits(packet.block[2][i & 3], first.block[2][0]);
+        packet.block[0][i & 3] = first.block[0][0];
+        packet.block[1][i & 3] = first.block[1][0];
+        packet.block[2][i & 3] = first.block[2][0];
     }
     points = nullptr;
     texCoords = nullptr;

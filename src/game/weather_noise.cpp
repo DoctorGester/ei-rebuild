@@ -8,6 +8,7 @@
 
 #include "lib/vecmath.h"
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 

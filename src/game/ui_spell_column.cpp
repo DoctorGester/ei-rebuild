@@ -5,7 +5,6 @@
 #include "ui.h"
 #include "ui_float.h"
 
-#include "ei/x87.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -100,7 +99,7 @@ void HudSpellColumn::SetUnit(CUnit* newUnit) {
                 line = std::format("{} {}  ", currentLabels[6], currentLabels[8]);
             } else {
                 // Ticks to seconds (1/15).
-                double seconds = x87::FromUnsigned(ticks) * 0.06666667f;
+                double seconds = static_cast<double>(ticks) * 0.06666667f;
                 line = str::Format("%s %.1f%s  ", currentLabels[6], seconds, currentLabels[11]);
             }
             tip += line;

@@ -4,8 +4,6 @@
 #include "model.h"
 #include "ui.h"
 
-#include "ei/x87.h"
-
 // --- Construction and destruction --------------------------------------------------------------
 
 UiContainer::~UiContainer() {
@@ -27,7 +25,7 @@ void UiContainer::AddInput(UiInputSide* input) {
 // --- Per-frame slots ---------------------------------------------------------------------------
 
 // The scene renderer's last frame's milliseconds are loaded as an unsigned qword and multiplied by the float 0.001.
-double UiContainer::FrameTime() { return x87::FromUnsigned(g_sceneRenderer.FrameTime()) * static_cast<double>(0.001f); }
+double UiContainer::FrameTime() { return static_cast<double>(g_sceneRenderer.FrameTime()) * static_cast<double>(0.001f); }
 
 void UiContainer::Update() {
     for (int i = 0; i < std::ssize(children); ++i) children[i]->Update();

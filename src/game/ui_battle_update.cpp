@@ -23,8 +23,6 @@
 
 #include "lib/nan_audit.h"
 
-#include "ei/x87.h"
-
 #include <algorithm>
 #include <bit>
 #include <cstddef>

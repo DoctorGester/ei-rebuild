@@ -7,13 +7,13 @@
 
 #include "random.h"
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
 #include "world.h"
 
 #include <bit>
+#include <cmath>
 #include <cstring>
 #include <list>
 
@@ -175,7 +175,7 @@ struct TickSteps {
     // max(emitCount, distance / emitSpacing) tries, each emitting with emitChance percent; a
     // source above 50% that emitted nothing gets one particle anyway.
     void Emit() {
-        int tries = x87::fistp(static_cast<float>(D(s->distance) / D(s->emitSpacing)));
+        int tries = std::lround(D(s->distance) / D(s->emitSpacing));
         if (tries <= s->emitCount) tries = s->emitCount;
         if (!(s->flags & ParticleSourceFlag::Emitting)) return;
         if ((s->flags & ParticleSourceFlag::AttachedOnly) && !s->attachedTo) return;

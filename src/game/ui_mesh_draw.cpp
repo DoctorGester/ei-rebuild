@@ -8,8 +8,7 @@
 
 #include "lib/crt.h"
 
-#include "ei/x87.h"
-
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -31,7 +30,7 @@ constexpr const char* kDrawFailed = "CI3DFigure::Draw.\n CFigure::Draw failed.\n
 
 // One component of the tint as a colour byte: the product stored as a float, then rounded to the nearest
 // integer.
-std::uint32_t ColourByte(float factor) { return static_cast<std::uint32_t>(x87::fistp(factor * kColourScale)); }
+std::uint32_t ColourByte(float factor) { return static_cast<std::uint32_t>(std::lround(factor * kColourScale)); }
 
 // A stack's top dropped, unless it is empty.
 void Pop(MatrixStack& stack) {

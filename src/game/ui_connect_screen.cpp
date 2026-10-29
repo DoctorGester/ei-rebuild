@@ -21,10 +21,10 @@
 #include "text_manager.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -409,7 +409,7 @@ void MpConnectScreen::RebuildList() {
         entry.description = server->description.data();
         entry.players = static_cast<signed char>(server->players);
         entry.maxPlayers = static_cast<signed char>(server->maxPlayers);
-        entry.ping = x87::fistp(server->ping * kMillisecondsPerSecond);
+        entry.ping = std::lround(server->ping * kMillisecondsPerSecond);
         entry.foreign = server->foreign != 0;
         entry.state = static_cast<int>(server->state);
         entry.password = server->password != 0;

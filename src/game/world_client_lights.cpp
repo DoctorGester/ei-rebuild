@@ -14,8 +14,6 @@
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
-#include "ei/x87.h"
-
 #include <bit>
 #include <cmath>
 #include <string>
@@ -175,12 +173,12 @@ int WorldClient::UpdateLighting() {
     const double elevation = SunElevation(hour) * kRadiansPerDegree;
     const double turn = hour * kPerHour;
     const double azimuth = (turn + turn) * kPiDouble;
-    const double cosElevation = x87::fcos(elevation);
+    const double cosElevation = std::cos(elevation);
     Vector3 direction;
     {
-        float x = static_cast<float>(x87::fcos(azimuth) * cosElevation);
-        float y = static_cast<float>(x87::fsin(azimuth) * cosElevation);
-        float z = static_cast<float>(-x87::fsin(elevation));
+        float x = static_cast<float>(std::cos(azimuth) * cosElevation);
+        float y = static_cast<float>(std::sin(azimuth) * cosElevation);
+        float z = static_cast<float>(-std::sin(elevation));
         direction = {x, y, z};
     }
     double whole;

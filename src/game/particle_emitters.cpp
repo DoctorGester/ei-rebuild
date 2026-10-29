@@ -6,7 +6,6 @@
 
 #include "random.h"
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -17,6 +16,7 @@
 #include "lib/float_select.h"
 
 #include <bit>
+#include <cmath>
 #include <cstring>
 
 namespace {
@@ -59,8 +59,8 @@ static_assert(std::bit_cast<std::uint32_t>(kTwoPi) == 0x40C90FD0u);
 void PlaceBoltPoint(ParticleSource* s, int i, Vector3& dir) {
     float radius = static_cast<float>(Range(0.0f, 1.0f));
     double angle = Range(0.0f, kTwoPi);
-    float dx = static_cast<float>(x87::fsin(angle) * D(radius));
-    float dy = static_cast<float>(x87::fcos(angle) * D(radius));
+    float dx = static_cast<float>(std::sin(angle) * D(radius));
+    float dy = static_cast<float>(std::cos(angle) * D(radius));
     dir.x = dx;
     dir.y = dy;
     dir.z = 0.0f;
@@ -135,8 +135,8 @@ int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
     }
     p->drift = {vx, vy, 0.0f};
     p->drift.z = 0.0f;
-    p->drift.x = static_cast<float>(x87::fcos(angle) * D(spread));
-    p->drift.y = static_cast<float>(x87::fsin(angle) * D(spread));
+    p->drift.x = static_cast<float>(std::cos(angle) * D(spread));
+    p->drift.y = static_cast<float>(std::sin(angle) * D(spread));
     double scale = D(s->size) * D(EI_POINT_THREE);
     p->drift.x = static_cast<float>(scale * D(p->drift.x));
     p->drift.y = static_cast<float>(scale * D(p->drift.y));
@@ -148,7 +148,7 @@ int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
     p->size = 0.0f;
     p->pos.z = static_cast<float>(rise);
     p->frameTimer = 0;
-    p->life = x87::fistp(static_cast<float>(D(EI_NINE) - D(spread) * D(EI_THREE)));
+    p->life = std::lround(D(EI_NINE) - D(spread) * D(EI_THREE));
     double roll = Unsigned(g_clientRandom.Next()) * EI_SCALE_0_04 + D(EI_TENTH);
     p->aux0 = static_cast<float>(roll * (D(EI_TWO) - D(spread)) * D(s->size));
     return 1;
@@ -396,7 +396,7 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
 // turned ellipse (radii alpha and typeParam) around the source on the ground, red-tinted when extent.x is set,
 // rising by an amount that is larger near the centre.
 int ParticleSource::EmitZoneExit(Particle* p, int) {
-    int count = x87::fistp(static_cast<float>(D(alpha) * D(typeParam)));
+    int count = std::lround(D(alpha) * D(typeParam));
     if (count > 40) count = 40;
     emitCount = count;
     EI_NAN_AUDIT(extent.x);
@@ -425,7 +425,7 @@ int ParticleSource::EmitZoneExit(Particle* p, int) {
 int ParticleSource::UpdateGlow(Particle* p) {
     if (p->life == -10) p->life = p->frameTimer * 8 / std::ssize(particles) + 7;
     if (--p->life < 0) return 0;
-    int opacity = x87::fistp(static_cast<float>(D(kGlowAlpha[p->life]) * D(EI_BYTE)));
+    int opacity = std::lround(D(kGlowAlpha[p->life]) * D(EI_BYTE));
     p->color = (p->color & 0xFFFFFF) + (static_cast<std::uint32_t>(opacity) << 24);
     return 1;
 }
@@ -505,7 +505,7 @@ int ParticleSource::UpdatePortal(Particle* p) {
     }
     p->size = p->aux2;
     float fade = static_cast<float>((D(EI_EIGHT) - climb) * (D(EI_TWO_HUNDRED) / D(EI_EIGHT)));
-    int opacity = (x87::fistp(fade) + 0x37) >> 2;
+    int opacity = (std::lround(fade) + 0x37) >> 2;
     if (opacity >= 0x40) opacity = 0x40;
     p->color = (static_cast<std::uint32_t>(opacity) << 24) | 0xFFFFFF;
     return 1;
@@ -543,7 +543,7 @@ int ParticleSource::UpdateSparks(Particle* p) {
 // FeebleMind: size * 2 tries per tick; each particle starts one step out from the
 // source in a random horizontal direction.
 int ParticleSource::EmitFeebleMind(Particle* p, int) {
-    emitCount = x87::fistp(static_cast<float>(D(size) + D(size)));
+    emitCount = std::lround(D(size) + D(size));
     p->color = 0x00FFFFFF;
     p->frame = static_cast<int>(g_clientRandom.Next() & 15);
     p->pos = origin;
@@ -553,8 +553,8 @@ int ParticleSource::EmitFeebleMind(Particle* p, int) {
     std::uint32_t roll = g_clientRandom.Next();
     p->velocity.z = 0.0f;
     double angle = Unsigned(roll) * D(twoPi) * EI_SCALE_1;
-    p->velocity.x = static_cast<float>(x87::fcos(angle) * EI_FEEBLE_SPEED);
-    p->velocity.y = static_cast<float>(x87::fsin(angle) * EI_FEEBLE_SPEED);
+    p->velocity.x = static_cast<float>(std::cos(angle) * EI_FEEBLE_SPEED);
+    p->velocity.y = static_cast<float>(std::sin(angle) * EI_FEEBLE_SPEED);
     p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
     p->pos.y = static_cast<float>(D(p->velocity.y) + D(p->pos.y));
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
@@ -567,7 +567,7 @@ int ParticleSource::EmitFeebleMind(Particle* p, int) {
 // FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's position once it is
 // tracked, else the source), drifting in a random direction inside the unit disc, rising.
 int ParticleSource::EmitFeetCloud(Particle* p, int) {
-    emitCount = x87::fistp(static_cast<float>(D(size) * D(EI_FEET_DENSITY)));
+    emitCount = std::lround(D(size) * D(EI_FEET_DENSITY));
     p->color = 0x00FFFFFF;
     p->frame = static_cast<int>(g_clientRandom.Next() & 15);
     int foot = static_cast<int>(g_clientRandom.Next() & 1);
@@ -615,7 +615,7 @@ void ParticleSource::TickStartTrans(ParticleElement* e) {
     }
     e->trans.scale = static_cast<float>(D(size) * D(EI_TRANS_GROWTH) + D(e->trans.scale));
     elements[0].trans.count = static_cast<float>(D(elements[0].trans.count) + D(EI_POINT_FOUR));
-    int count = x87::fistp(elements[0].trans.count);
+    int count = std::lround(elements[0].trans.count);
     emitCount = count;
     if (!(count < 8)) emitCount = 8;
 }

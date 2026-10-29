@@ -10,8 +10,8 @@
 
 #include "lib/containers.h"
 #include "world_data.h"
-#include "ei/x87.h"
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -87,21 +87,21 @@ double CircleAngle(int j, int n) {
 // cos or sin of the angle, times the float at `factor`, divided by the float at `divisor`; stored as float.
 float CircleScaled(int j, int n, bool sine, const float* factor, const float* divisor) {
     const double angle = CircleAngle(j, n);
-    return static_cast<float>((sine ? x87::fsin(angle) : x87::fcos(angle)) * *factor / *divisor);
+    return static_cast<float>((sine ? std::sin(angle) : std::cos(angle)) * *factor / *divisor);
 }
 // The same with (the float at `r` - the float at `w`) as the factor, computed unrounded.
 float CircleScaledInner(int j, int n, bool sine, const float* r, const float* w, const float* divisor) {
     const double factor = static_cast<double>(*r) - *w;
     const double angle = CircleAngle(j, n);
-    return static_cast<float>((sine ? x87::fsin(angle) : x87::fcos(angle)) * factor / *divisor);
+    return static_cast<float>((sine ? std::sin(angle) : std::cos(angle)) * factor / *divisor);
 }
 // A texture coordinate on the circle of radius R around c (integers): (cos * R + c) / 256, or for v
 // 1 - (sin * R + c) / 256 (the scale is the 1/256 texel constant).
 float CircleTexel(int j, int n, bool sine, int radius, int centre) {
     const double angle = CircleAngle(j, n);
     const double scale = 0.00390625f;
-    if (!sine) return static_cast<float>((x87::fcos(angle) * radius + centre) * scale);
-    return static_cast<float>(1.0f - (x87::fsin(angle) * radius + centre) * scale);
+    if (!sine) return static_cast<float>((std::cos(angle) * radius + centre) * scale);
+    return static_cast<float>(1.0f - (std::sin(angle) * radius + centre) * scale);
 }
 
 } // namespace

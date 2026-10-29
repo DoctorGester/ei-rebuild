@@ -6,7 +6,6 @@
 #include "maths.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"

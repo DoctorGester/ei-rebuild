@@ -11,6 +11,7 @@
 #include <d3d11.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <unordered_map>

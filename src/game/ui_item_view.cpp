@@ -19,7 +19,6 @@
 #include "ei/rebirth.h"
 #include "lib/vecmath.h"
 #include "maths.h"
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -74,7 +73,7 @@ Object* CachedObject(ItemObjectCache<Object>* cache, std::string_view name, Obje
 // A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 in that order, stored as
 // float.
 float RandomPhase(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * kFullTurn * 2.3283064370807974e-10);
+    return static_cast<float>(static_cast<double>(random) * kFullTurn * 2.3283064370807974e-10);
 }
 
 // The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the school's
@@ -90,7 +89,7 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
     const double pi = 3.141592653589793;
     const double phase = std::fmod(advanced, pi + pi);
     turn->glow = static_cast<float>(phase);
-    const double strength = (x87::fsin(phase) + 1.0) * 0.15000000596046448;
+    const double strength = (std::sin(phase) + 1.0) * 0.15000000596046448;
     const auto channel = [&](int i) { return libcrt::Ftol(strength * colour[i] * 255.0f); };
     const std::uint32_t r = channel(0);
     const std::uint32_t g = channel(1);

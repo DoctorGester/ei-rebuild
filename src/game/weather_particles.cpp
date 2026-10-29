@@ -20,8 +20,6 @@
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 
-#include "ei/x87.h"
-
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -110,8 +108,8 @@ ParticleFrame Begin(RainSnow& layer, float sink, float rise) {
     const Vector3 eye = camera::FrameView().position;
     // The time a particle takes from `rise` above the camera, and where it starts from then.
     const float time = static_cast<float>((eye.z - rise) / frame.wind.z);
-    frame.baseX = x87::fistp(static_cast<float>((eye.x - frame.wind.x * time) * kCellsPerUnit));
-    frame.baseY = x87::fistp(static_cast<float>((eye.y - frame.wind.y * time) * kCellsPerUnit));
+    frame.baseX = std::lround((eye.x - frame.wind.x * time) * kCellsPerUnit);
+    frame.baseY = std::lround((eye.y - frame.wind.y * time) * kCellsPerUnit);
     layer.particleCount = 0;
     layer.positions.resize(kMaxPackets);
     const float below = static_cast<float>(eye.z - kHalfHeight);
@@ -184,7 +182,7 @@ int RainSnow::BuildRain(SceneRenderer* renderer) {
             const std::uint32_t seed =
                 (kRainSeeds[(column * column + line) & (kSeedCount - 1)] + column * 172u + line * 13u) & 0xFFFF;
             const float phase = static_cast<float>(static_cast<float>(static_cast<int>(seed)) + frame.time);
-            const int cycle = x87::fistp(static_cast<float>(phase / kRainCycle));
+            const int cycle = std::lround(phase / kRainCycle);
             if ((cycle & kDensitySteps) >= density) continue;
             const float fall = phase - static_cast<float>(cycle) * kRainCycle;
             // The height, wrapped into the band around the camera.
@@ -253,7 +251,7 @@ int RainSnow::BuildSnow(SceneRenderer* renderer) {
             const std::uint32_t seed =
                 (kSnowSeeds[(column * column + line) & (kSeedCount - 1)] - column * 30064u + line * 17843u) & 0xFFFF;
             const float phase = static_cast<float>(static_cast<float>(static_cast<int>(seed)) + frame.time);
-            const int cycle = x87::fistp(static_cast<float>(phase / kSnowCycle));
+            const int cycle = std::lround(phase / kSnowCycle);
             if ((cycle & kDensitySteps) >= density) continue;
             const float fall = static_cast<float>(phase - static_cast<float>(cycle) * kSnowCycle);
             float z = static_cast<float>(fall * frame.wind.z + kSnowRise);

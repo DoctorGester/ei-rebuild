@@ -12,7 +12,6 @@
 
 #include "lib/vecmath.h"
 #include "render/render_state.h"
-#include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "game_singletons.h"
@@ -97,7 +96,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, flo
     model->flags |= MapObjectFlag::NoEdgeFade;
     {
         std::uint32_t now = gameapi::timeGetTime();
-        float time = static_cast<float>(x87::FromUnsigned(now) * D(0.0009765625f) * D(15.0f));
+        float time = static_cast<float>(static_cast<double>(now) * D(0.0009765625f) * D(15.0f));
         model->AdvanceTime(time);
     }
 

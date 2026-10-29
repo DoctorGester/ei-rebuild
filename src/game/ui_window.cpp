@@ -12,7 +12,6 @@
 #include "lib/gameapi.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>
