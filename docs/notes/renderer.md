@@ -1607,7 +1607,7 @@ of the 0.5-1.6 ms hand-over).
     Follow-ups by expected gain: R37f (the game's projection replaced by a sphere, the user's call: 0.3-1.2 ms;
     done, item 5: 0.5-1.0 ms of main thread saved, no GPU growth), R37a /
     R37b (point shadows kept across frames, their preparation: up to 0.6 ms in the crowd), R37g (the frustum test:
-    0.2-0.5 ms in forests), R37c (caster boxes and outside casters kept: 0.2-0.4), R37e (shadow casters' calls: 0.3),
+    0.2-0.5 ms in forests; done, docs/notes/models.md: zone7 -0.27 ms, zone11 -0.12 ms, the same answers), R37c (caster boxes and outside casters kept: 0.2-0.4), R37e (shadow casters' calls: 0.3),
     R37d (the fit: 0.1-0.25), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility).
 
 ### Loose .bmp textures (A-I23a)

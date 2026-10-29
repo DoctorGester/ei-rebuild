@@ -38,8 +38,14 @@ Rewritten (grep the address): `TransformPipeline::ClipTest` 004F16A0, `ClipBound
 chunks: `RestoreTop` pops them), `TweenArray` RemoveAll 006D43E0, SetSize 006D4840, SetTarget 006D4410, Tick 006D44E0 (bool in AL),
 Save 006D4570 / 006D47E0 (identical copies), Load 006D45D0, LoadEntries 006D4660.
 
-`ClipTest` and `ProjectionMatrix` are compiled with `float_control(precise)` (/fp:fast regrouped the corner sums);
-`TweenArray::Tick`'s removal test is "value == 0 or unordered", written `!(v < 0) && !(v > 0)`. Acks records are not
+`ClipTest` answers as the original's 8 corner codes of the cube, then of the box (`CubeCorners` / `BoxCorners`, the
+original's sums), but decides first from each clip plane's range over the volume (`PlaneRanges`: the middle's value
+plus or minus the half extents' reach), with a margin of 2^-16 of a bound on every term both sides sum (the rounding
+of either is below 2^-19 of it); the corner codes are computed only when a plane is within the margin of the volume's
+nearest or farthest corner, or a value is NaN or infinite. Checked by comparing old and new on every call (a
+temporary build, 46 drawing scenarios on both installs: 12.6 M calls, 0 differences; the planes decide 99.98% of
+cubes and 99.5% of boxes). The forests' main thread: zone7 -0.27 ms a frame (3.04 -> 2.77), zone11 -0.12 ms (2.18
+-> 2.06; R37's probe, old and new alternating in one game). `TweenArray::Tick`'s removal test is "value == 0 or unordered", written `!(v < 0) && !(v > 0)`. Acks records are not
 rewritten. Under Rebirth the database loaders (006D0630, 006D7620) and the link loader constructor (004F68C0) are patched;
 whether the patched code still calls the rewritten functions is unknown.
 
