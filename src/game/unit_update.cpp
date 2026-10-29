@@ -56,7 +56,7 @@ void CUnit::AttachObject(CEngineObject* object) {
     }
     controller = object;
     Controller()->unit = this;
-    ++controller->refCount_;
+    controller->AddRef();
 }
 
 int CUnit::StatsChanged() {

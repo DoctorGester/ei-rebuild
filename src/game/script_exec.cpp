@@ -233,7 +233,7 @@ void PlayMovie(const SSCCmd* cmd) {
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
     CSpell* spell = g_serverWorld->spellManager_->CreateSpellFromText(Text(cmd, 0));
-    if (spell) ++spell->refCount_;
+    if (spell) spell->AddRef();
     if (spell) {
         const float* f = cmd->floatArgs.data();
         Vector3 from = {f[0], f[1], 0.0f};

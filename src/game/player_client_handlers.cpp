@@ -250,7 +250,7 @@ int CPlayerClient::OnTimedObjectAdded() {
     if (!object->Receive(0, &in_)) return 0;
     if (id > player->maxTimedId_) player->maxTimedId_ = id;
     player->knownTimed_[id] = object;
-    ++object->refCount_;
+    object->AddRef();
     return 1;
 }
 

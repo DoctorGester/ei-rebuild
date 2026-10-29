@@ -81,9 +81,7 @@ void ShowHead(CUnitServer* self) {
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
     g_serverWorld->RemoveTimedObject(self->effectObject->id_);
-    CEngineObject* effect = self->effectObject;
-    self->effectObject = nullptr;
-    if (effect) effect->Release();
+    self->effectObject.Reset();
 }
 
 // The unit stops where it is, facing its direction (the motion restarted with the reversed Y axis of its
@@ -665,9 +663,7 @@ void CUnitServer::ResetController() {
     moveMode2.mode = 2;
     moveMode2.onGuard = 0;
     moveMode2.wasMode3 = 0;
-    CEngineObject* effect = effectObject;
-    effectObject = nullptr;
-    if (effect) effect->Release();
+    effectObject.Reset();
     actingCheckTime = -1;
     action.kind = UnitOrderKind::Idle;
     action2.kind = UnitOrderKind::None;
@@ -676,9 +672,7 @@ void CUnitServer::ResetController() {
     orderStopped = 0;
     deathReported = 0;
     followsLeader = 0;
-    CUnit* waited = followedLeader;
-    followedLeader = nullptr;
-    if (waited) waited->Release();
+    followedLeader.Reset();
     searchingTarget = 0;
     brain.Init();
     voice.Reset();

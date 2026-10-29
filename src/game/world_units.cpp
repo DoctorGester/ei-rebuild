@@ -318,7 +318,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         return (object->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
     };
     auto refuse = [](CMapObject* object) {
-        ++object->refCount_;
+        object->AddRef();
         object->Release();
         return -1;
     };
@@ -328,7 +328,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         companion->strings = spec->parts;
     };
     auto race = [spec](CMapObject* object) {
-        ++object->refCount_;
+        object->AddRef();
         const std::string_view prototype = spec->kind == 5 ? std::string_view(static_cast<UnitSpec*>(spec)->prototype)
                                                            : std::string_view(spec->primaryTexture);
         object->TakePrototype(prototype);
@@ -343,7 +343,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     };
     auto timed = [this](CEffect* object) {
         object->startTick_ = tick_;
-        ++object->refCount_;
+        object->AddRef();
         object->MarkChanged();
         timedObjects_.Set(static_cast<unsigned>(object->id_), object);
         return object->id_;
@@ -370,7 +370,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             at.y = flame->offset.y + base.position.y;
             at.x = flame->offset.x + base.position.x;
             CSpell* spell = SpellManager()->CreateSpellFromText(worlddata::CampfireText());
-            if (spell) ++spell->refCount_;
+            if (spell) spell->AddRef();
             CastSpell(spell, nullptr, const_cast<const Vector3*>(&at), nullptr,
                                    const_cast<const Vector3*>(&at), 0);
             if (spell) spell->Release();
@@ -412,7 +412,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (id == -1) return -1;
         if (base.id == -1) base.id = id;
         base.object = object;
-        ++object->refCount_;
+        object->AddRef();
         object->WriteFullState();
         object->MarkChanged(2);
         object->flags_ |= MapObjectFlag::Hidden;

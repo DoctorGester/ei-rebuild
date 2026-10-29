@@ -148,7 +148,7 @@ BOOL CWorldServer::GetZoneExit(int index, std::string* target, int* entrance) {
 void CWorldServer::AddTimedObject(CEffect* effect) {
     // The timed objects are the world's effects (world_effect.h): the tick they began.
     effect->startTick_ = tick_;
-    ++effect->refCount_;
+    effect->AddRef();
     effect->MarkChanged();   // flags_ |= 2, stamped with the server time
     unsigned id = static_cast<unsigned>(effect->id_);
     timedObjects_.Set(id, effect);
@@ -197,7 +197,7 @@ void CWorldServer::RemoveObject(unsigned id) {
 
     object->ClearState();   // it leaves the server
     CUnit* unit = UnitOrNull(object);
-    ++object->refCount_;   // held to the end, released twice there (with the maps' reference)
+    object->AddRef();   // held to the end, released twice there (with the maps' reference)
     if (unit) unit->SetPlayer(nullptr);
     object->flags_ |= MapObjectFlag::Removed;
     ScriptPurgeDeletedObjects(MainScript());     // what refers to removed objects dropped

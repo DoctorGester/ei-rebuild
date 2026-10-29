@@ -114,7 +114,7 @@ void CSceneRenderer::DestroyRenderer() {
 int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
     CTextureDevice* device = device_;
     Surface*& bound = device->stageSurfaces_[stage];
-    Surface* surface = texture ? texture->surface_ : nullptr;
+    Surface* surface = texture ? texture->surface_.Get() : nullptr;
     if (bound == surface) return 1;
     bound = surface;
     ++device->textureChanges_;

@@ -172,7 +172,7 @@ class ScriptEffect {
 public:
     ScriptEffect() = default;
     explicit ScriptEffect(T* object) : object_(object) {
-        if (object_) ++object_->refCount_;
+        if (object_) object_->AddRef();
     }
     ScriptEffect(ScriptEffect&& other) noexcept : object_(std::exchange(other.object_, nullptr)) {}
     ScriptEffect& operator=(ScriptEffect&& other) noexcept {

@@ -57,7 +57,7 @@ CUnit* FindUnit(int id) { return g_serverWorld->FindUnit(id); }
 // Appends `object` to `list` with a counted reference (as the brain's lists do).
 void AddCounted(std::list<CUnit*>& list, CUnit* object) {
     list.push_back(object);
-    ++object->refCount_;
+    object->AddRef();
 }
 
 // The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end

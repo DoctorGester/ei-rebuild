@@ -197,7 +197,7 @@ CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
     for (int i = 0; i < std::ssize(parts) && !present; ++i) present = parts[i] == part;
     if (!present) {
         parts.push_back(part);
-        ++part->refCount_;
+        part->AddRef();
         part->SetObject(this);
         if (animation) animation->AttachMesh(part);
         if (attached) attached->OnPartAdded(part);

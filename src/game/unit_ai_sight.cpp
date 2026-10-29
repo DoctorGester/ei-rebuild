@@ -98,7 +98,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
             // At the head, holding a reference: See walks the list
             // from the head, so the units of the last sector come first.
             memory->nearby.push_front(other);
-            if (other) ++other->refCount_;
+            if (other) other->AddRef();
         }
     }
 }
@@ -160,7 +160,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         }
         if (alive) {
             memory->visible.push_front(other);
-            ++other->refCount_;
+            other->AddRef();
             double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
             double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
             double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
@@ -193,7 +193,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) {
                 // AddTail (a second copy follows below).
                 memory->seenCorpses.push_back(other);
-                ++other->refCount_;
+                other->AddRef();
                 if (memory->noticedLevel < kCorpseLevel) NoticeAt(memory, other, kCorpseLevel, kCorpseKind);
             }
             console::EndLine(LogPair(self, " sees corpse of unit ", other));

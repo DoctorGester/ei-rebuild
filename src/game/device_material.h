@@ -18,19 +18,12 @@ class CRenderPreset;
 // A texture stage of a material: copied with the texture gaining a reference, destroyed by releasing the texture and
 // freeing the name.
 struct MaterialStage {
-    explicit MaterialStage(CTexture* stageTexture) : name("", ""), texture(stageTexture) {
-        if (texture) ++texture->refCount_;
-    }
-    MaterialStage(const MaterialStage& other) : name(other.name), texture(other.texture) {
-        if (texture) ++texture->refCount_;
-    }
+    explicit MaterialStage(CTexture* stageTexture) : name("", ""), texture(stageTexture) {}
+    MaterialStage(const MaterialStage&) = default;
     MaterialStage& operator=(const MaterialStage&) = delete;
-    ~MaterialStage() {
-        if (texture) texture->Release();
-    }
 
     std::string name;               // the texture's name (empty for the wounds stages)
-    CTexture* texture;              // counted, looked up by name on first use
+    HeldRef<CTexture> texture;      // looked up by name on first use
 };
 
 // A device material (counted; deleted at its last reference). Made by the game's code (the wounds material,

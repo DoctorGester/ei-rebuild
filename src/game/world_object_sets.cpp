@@ -73,7 +73,7 @@ void DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject
         } else {
             (*added)[addedCount++] = now;
             ++c;
-            ++now->refCount_;
+            now->AddRef();
             --currentLeft;
         }
     }
@@ -84,7 +84,7 @@ void DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject
         }
         for (; currentLeft != 0; --currentLeft) {
             (*added)[addedCount++] = *c++;
-            ++c[-1]->refCount_;
+            c[-1]->AddRef();
         }
         *sent = *current;
     }

@@ -212,7 +212,7 @@ void Assign(CSpellEffect* e, T** slot, T* object) {
     if (*slot) e->world->RemoveTimedObject((*slot)->id_);
     T* old = *slot;
     *slot = object;
-    if (object) ++object->refCount_;
+    if (object) object->AddRef();
     if (old) old->Release();
 }
 

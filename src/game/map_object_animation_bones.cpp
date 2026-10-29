@@ -135,7 +135,7 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
         }
     }
     bones.push_back(bone);
-    ++bone->refCount_;
+    bone->AddRef();
     bone->name3 = owner->name;
     bone->morphS = morphS;
     bone->morphT = morphT;
@@ -158,7 +158,7 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     CFigureMesh* old = bone->mesh;
     bone->mesh = AsMesh(part);
     if (part) {
-        ++part->refCount_;
+        part->AddRef();
         bone->mesh->localPosition_ = bone->position;
         bone->mesh->localRotation_ = bone->rotation;
     }

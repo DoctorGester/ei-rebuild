@@ -52,7 +52,7 @@ CPlayer* CPlayerManager::CreateSessionPlayer() {
     if (!player) return nullptr;
     CBaseManager* specific = ContextAsWorld()->SpecificManager();
     player->SetConnection(specific->CreateObjectAs<CPlayerConnection>(SideObjectType::Player, -1));
-    ++player->refCount_;
+    player->AddRef();
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PlayerNumbers))
         player->playerId_ = NextPlayerNumber(player, 0);
     else

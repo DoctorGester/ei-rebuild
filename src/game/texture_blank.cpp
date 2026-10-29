@@ -50,10 +50,7 @@ void CTexture::TakeBlankHolder(CTextureDevice* device, int width, int height, bo
                                      : format.alphaMask == 0x8000 ? render::BlankAlpha::OneBit
                                                                   : render::BlankAlpha::Full;
     render::BlankTexture(holder, width, height, alpha, mipmapped);
-    Surface* previous = surface_;
-    surface_ = holder;
-    ++holder->refs_;
-    if (previous) previous->Release();
+    surface_.Assign(holder);
 }
 
 int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {

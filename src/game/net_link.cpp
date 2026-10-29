@@ -31,7 +31,7 @@ void ReleaseCounted(CRefObject* object) {
 void AssignPeer(LoopbackLink** slot, LoopbackLink* object) {
     LoopbackLink* previous = *slot;
     *slot = object;
-    if (object) ++object->refs_;
+    if (object) object->AddRef();
     ReleaseCounted(previous);
 }
 
@@ -139,7 +139,7 @@ LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
         copy.Read(source.data_, copy.size_);
     }
     peer_ = other.peer_;
-    if (peer_) ++peer_->refs_;
+    if (peer_) peer_->AddRef();
 }
 
 // The first goes to the player's pending link; null for a null player. Without memory for the
@@ -150,7 +150,7 @@ LoopbackLink* LoopbackLink::CreatePair(CWorldHandle* player) {
     LoopbackLink* first = net::NewCounted<LoopbackLink>();
     NetLink* previous = player->pendingLink_;
     player->pendingLink_ = first;
-    if (first) ++first->refs_;
+    if (first) first->AddRef();
     if (previous) previous->Release();
     LoopbackLink* second = net::NewCounted<LoopbackLink>();
     AssignPeer(&first->peer_, second);
@@ -206,7 +206,7 @@ bool LoopbackLink::Receive(CMemoryStream* stream) {
 // Lets go of the peer, then has the peer let go of this one (a reference is held across the peer's call).
 void LoopbackLink::Disconnect() {
     LoopbackLink* peer = peer_;
-    if (peer) ++peer->refs_;
+    if (peer) peer->AddRef();
     LoopbackLink* previous = peer_;
     peer_ = nullptr;
     ReleaseCounted(previous);
@@ -319,7 +319,7 @@ DriverLink::DriverLink() { player_.ptr = nullptr; }
 
 DriverLink::DriverLink(const DriverLink& other) : FramedLink(other) {
     player_.ptr = other.player_.ptr;
-    if (player_.ptr) ++player_.ptr->refs_;
+    if (player_.ptr) player_.ptr->AddRef();
 }
 
 // The inbox's unread bytes, with the player's incoming reliable bytes after them, written back over

@@ -182,7 +182,7 @@ void Unhighlight(CMapObject* object) {
 template <typename T>
 T* NewCounted() {
     T* object = new T();
-    ++object->refCount_;
+    object->AddRef();
     return object;
 }
 
@@ -197,7 +197,7 @@ void GridToFour(SectorGrid& grid) {
 
 void ReferenceEveryObject(CBaseManager* manager) {
     ObjectListIterator walk{};
-    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) ++object->refCount_;
+    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) object->AddRef();
     if (CBaseManager* held = walk.manager) --held->refCount_;
 }
 
@@ -278,7 +278,7 @@ int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::itera
 int CWorldClient::AddObject(CMapObject* object) {
     for (CMapObject* filed : objects_) {
         if (filed->id_ == object->id_) {
-            ++object->refCount_;
+            object->AddRef();
             object->Release();
             return 1;
         }
@@ -305,7 +305,7 @@ int CWorldClient::AddObject(CMapObject* object) {
         if (unit->player == nullptr && ticksRun_ >= 1) unit->Controller()->RestartFadeIn();
     }
 
-    ++object->refCount_;
+    object->AddRef();
     objects_.push_back(object);
 
     if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
@@ -793,9 +793,9 @@ int CWorldClient::Create() {
     sounds_ = NewCounted<CSoundManager>();
 
     texts_ = new CTextManager();
-    ++texts_->refCount_;
+    texts_->AddRef();
     terrain_ = new Terrain();
-    ++terrain_->refCount_;
+    terrain_->AddRef();
     zoneName_ = worlddata::GipathText();
 
     specificManager_ = NewCounted<CClientSpecificManager>();
@@ -809,7 +809,7 @@ int CWorldClient::Create() {
 
     auto* manager = new CParticleManager();
     particleManager_ = manager;
-    ++manager->refCount_;
+    manager->AddRef();
     manager->Init(this);
 
     session_ = players_->CreateSessionPlayer();
@@ -920,7 +920,7 @@ int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
         CEngineObject* object = manager->CreateObject(type, id);
         object->prototypeId_ = extra;
         object->Load(stream);
-        ++object->refCount_;
+        object->AddRef();
     }
 }
 
@@ -974,7 +974,7 @@ ClientArrayManager::ClientArrayManager() {}
 
 ClientArrayManager::~ClientArrayManager() {
     VisFogManagerDestroy(this);
-    if (CTexture* held = texture) held->Release();
+    texture.Reset();
 }
 
 int CWorldClient::LoadZone(CStream* block) {

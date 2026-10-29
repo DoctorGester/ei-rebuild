@@ -26,10 +26,7 @@ struct MotionSegment {
 } // namespace
 
 ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
-    CEngineObject* old = item;
-    item = other->item;
-    if (item) ++item->refCount_;
-    if (old) old->Release();
+    item.Assign(other->item);
     countdown = other->countdown;
     worn = other->worn;
     return this;

@@ -374,8 +374,8 @@ void ChunkArchive::Close(CStream* stream) {
         for (auto& node : loaded_) {
             CRefCounted* object = node.second;
             if (!object) continue;
-            ++object->refs_;
-            if (--object->refs_ == 0) delete object;
+            object->AddRef();
+            object->Release();
         }
     } else {
         ResizeToCurrent();

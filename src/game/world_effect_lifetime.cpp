@@ -114,9 +114,8 @@ CEffectWall::CEffectWall() { Reset(); }
 
 CEffectWall::~CEffectWall() { Reset(); }
 
-// No Reset: only the bolt, the width and the flag.
+// No Reset: only the width and the flag.
 CEffectLightning::CEffectLightning() {
-    bolt_ = nullptr;
     width_ = 0.0f;
     flag_ = 0;
 }

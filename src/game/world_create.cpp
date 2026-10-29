@@ -28,7 +28,7 @@ namespace {
 template <class T>
 T* MakeNew() {
     T* object = new T();
-    ++object->refCount_;
+    object->AddRef();
     return object;
 }
 

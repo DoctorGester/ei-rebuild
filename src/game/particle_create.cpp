@@ -810,7 +810,7 @@ CEngineObject* CParticleManager::NewObject(int type) {
 
 CParticleSource::~CParticleSource() {
     Clear();
-    if (texture) texture->Release();
+    texture.Reset();
     particles.clear();
 }
 

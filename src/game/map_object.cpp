@@ -209,7 +209,7 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
     companion = CompanionSlots(object);
     if (object) {
         CompanionOwner(object) = this;
-        ++companion->refCount_;
+        companion->AddRef();
     }
 }
 
@@ -224,7 +224,7 @@ void CMapObject::AttachObject(CEngineObject* object) {
     }
     companion = CompanionSlots(object);
     CompanionOwner(object) = this;
-    ++companion->refCount_;
+    companion->AddRef();
 }
 
 int CMapObject::PackVitals() {

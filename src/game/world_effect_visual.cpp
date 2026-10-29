@@ -541,9 +541,7 @@ void CEffectLightning::Reset() {
     toObject_ = -1;
     fromObject_ = -1;
     to_ = Vector3{0.0f, 0.0f, 0.0f};
-    CLightning* old = bolt_;
-    bolt_ = nullptr;
-    if (old != nullptr) old->Release();
+    bolt_.Reset();
     flag_ = 0;
 }
 
@@ -563,10 +561,7 @@ void CEffectLightning::UpdateEnds() {
 void CEffectLightning::Start(int update) {
     if (update != 0) return;
     auto* created = g_clientWorld->listManager_->CreateObjectAs<CLightning>(0, -1);
-    CLightning* old = bolt_;
-    bolt_ = created;
-    if (created != nullptr) ++created->refCount_;
-    if (old != nullptr) old->Release();
+    bolt_.Assign(created);
     UpdateEnds();
     bolt_->Start(&from_, &to_, width_, flag_);
 }

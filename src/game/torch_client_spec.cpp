@@ -39,16 +39,12 @@ Vector3 AtTorch(const CMapObject* torch, const float* offset) {
 } // namespace
 
 CTorchObjectClientSpec::CTorchObjectClientSpec() {
-    light_ = nullptr;
     particles_ = nullptr;
 }
 
 CTorchObjectClientSpec::~CTorchObjectClientSpec() {
     HideEffects();
-    if (CLight* old = light_) {
-        light_ = nullptr;
-        old->Release();
-    }
+    light_.Reset();
     if (particles_) particles_->Stop();
     if (CParticleSource* old = particles_) {
         particles_ = nullptr;
@@ -60,10 +56,7 @@ CTorchObjectClientSpec::~CTorchObjectClientSpec() {
 
 int CTorchObjectClientSpec::CreateClient() {
     CreateSpec();
-    if (CLight* old = light_) {
-        light_ = nullptr;
-        old->Release();
-    }
+    light_.Reset();
     if (CParticleSource* old = particles_) {
         particles_ = nullptr;
         ReleaseSource(old);
@@ -74,10 +67,7 @@ int CTorchObjectClientSpec::CreateClient() {
 
 void CTorchObjectClientSpec::DestroyClient() {
     HideEffectsSlot();
-    if (CLight* old = light_) {
-        light_ = nullptr;
-        old->Release();
-    }
+    light_.Reset();
     if (particles_) particles_->Stop();
     if (CParticleSource* old = particles_) {
         particles_ = nullptr;
@@ -126,7 +116,7 @@ void CTorchObjectClientSpec::SetParticles(std::uint32_t type, const float* offse
     CParticleSource* source = g_clientWorld->particleManager_->CreateSource(static_cast<int>(type));
     CParticleSource* old = particles_;
     particles_ = source;
-    if (source) ++source->refCount_;
+    if (source) source->AddRef();
     if (old) ReleaseSource(old);
     particles_->localPosition_ = at;
     particles_->ScaleSize(scale);
@@ -138,15 +128,10 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     const Vector3 at = AtTorch(torch_, offset);
     if (light_) {
         g_clientWorld->terrain_->RemoveLight(light_);
-        CLight* old = light_;
-        light_ = nullptr;
-        if (old) old->Release();
+        light_.Reset();
     }
     CLight* light = g_clientWorld->lightFactory_->CreateLight(kPointLightClass);
-    CLight* old = light_;
-    light_ = light;
-    if (light) ++light->refCount_;
-    if (old) old->Release();
+    light_.Assign(light);
     const Vector3 rgb = {colour[0], colour[1], colour[2]};
     light_->SetPoint(&rgb, &at);
     light_->range_ = radius;

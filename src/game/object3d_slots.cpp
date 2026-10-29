@@ -35,7 +35,7 @@ void CObject3D::AttachSpecific(CEngineObject* half) {
     }
     attached = static_cast<CObject3DSpecific*>(half);
     attached->object = this;
-    ++attached->refCount_;
+    attached->AddRef();
 }
 
 void CObject3D::RemoveAllEffectSources() {

@@ -17,10 +17,10 @@ int TypeRegistry::TypeOf(const std::uint32_t* key) const {
 
 void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     Message* prototype = factory();
-    if (prototype) ++prototype->refs_;
+    if (prototype) prototype->AddRef();
     byVtable[KeyOf(prototype)] = type;
     byType[type] = factory;
-    if (prototype && --prototype->refs_ == 0) delete prototype;
+    if (prototype) prototype->Release();
 }
 
 Message* TypeRegistry::Create(std::uint32_t type) {

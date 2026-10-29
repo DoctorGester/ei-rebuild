@@ -453,7 +453,7 @@ int CPlayerClient::OnPathMarker() {
     in_.ReadValue(value);
     if (kind != kKindNoPath) {
         auto* walker = g_clientWorld->objectManager_->CreateObjectAs<CUnit>(MapObjectType::Hero, -1);
-        ++walker->refCount_;
+        walker->AddRef();
         PathOrder* path = &walker->ClientController()->motion;
         DeltaField* writing = field.BeginWriteB(0);
         path->WriteState(writing);
@@ -606,7 +606,7 @@ int CPlayerClient::OnNewObject() {
     CPlayer* player = player_;
     if (header.id > player->maxObjectId_) player->maxObjectId_ = header.id;
     player->knownObjects_[header.id] = object;
-    ++created->refCount_;
+    created->AddRef();
     if (CUnit* unit = UnitOrNull(created))
         object->TakePrototype(unit->GetPrototype()->name);
     else

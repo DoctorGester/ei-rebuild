@@ -65,7 +65,7 @@ void CObject3D::AddEffectSource(CParticleSource* source) {
     if (lib::Contains(effectSources, source)) return;
     effectSources.push_back(source);
     if (source) {
-        ++source->refCount_;
+        source->AddRef();
         source->Attach(this);
     }
 }

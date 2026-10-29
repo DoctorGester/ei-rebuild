@@ -23,7 +23,7 @@ void LoadEffectObject(CStream* stream, CWorld* world, std::uint32_t& id, T*& fie
     T* object = static_cast<int>(id) == kNoObject ? nullptr : manager->FindObjectAs<T>(id);
     T* old = field;
     field = object;
-    if (object) ++object->refCount_;
+    if (object) object->AddRef();
     if (old) old->Release();
 }
 

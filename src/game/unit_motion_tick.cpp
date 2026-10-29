@@ -90,16 +90,11 @@ constexpr int kBlockedWait = 2;
 // follows).
 void SetWaitingFor(CUnitServer* c, CUnit* blocker) {
     c->followsLeader = 1;
-    CUnit* old = c->followedLeader;
-    c->followedLeader = blocker;
-    ++blocker->refCount_;
-    if (old) old->Release();
+    c->followedLeader.Assign(blocker);
 }
 void ClearWaitingFor(CUnitServer* controller) {
     controller->followsLeader = 0;
-    CUnit* old = controller->followedLeader;
-    controller->followedLeader = nullptr;
-    if (old) old->Release();
+    controller->followedLeader.Reset();
 }
 
 void SetObstacle(CUnitServer* c, int obstacle) {

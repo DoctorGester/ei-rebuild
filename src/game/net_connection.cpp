@@ -337,7 +337,7 @@ void Connection::Track(Replicated* item) {
     entry->type_ = static_cast<std::uint8_t>(type);
     CRefObject* previous = entry->object_.ptr;
     entry->object_.ptr = item->object;
-    if (entry->object_.ptr) ++entry->object_.ptr->refs_;
+    if (entry->object_.ptr) entry->object_.ptr->AddRef();
     if (previous) previous->Release();
     entry->flags_ = static_cast<std::uint8_t>((entry->flags_ & 1) | (item->priority << 1));
     std::uint8_t reliable = g_currentSession->reliable_[type];

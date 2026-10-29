@@ -138,7 +138,7 @@ void CFigureMesh::SetDrawer(FigureMeshDrawer* drawer) {
     drawer_ = drawer;
     if (drawer != nullptr) {
         drawer->mesh_ = this;
-        ++drawer_->refCount_;
+        drawer_->AddRef();
     }
 }
 

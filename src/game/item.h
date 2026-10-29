@@ -99,7 +99,7 @@ public:
     // the level of spell the item can hold (the prototype's magicLevel plus the material's;
     // CItemConstructor::MagicCapacity).
     std::uint32_t magicLevel_;
-    CSpell* spell_;               // the spell carried by the item (scrolls, wands)
+    CSpell* spell_;               // the spell carried by the item (scrolls, wands); counted
     std::uint32_t count_;         // the stack's count
 };
 
@@ -353,7 +353,7 @@ public:
     CBaseManager* manager_;   // the item manager; counted but never released
     itemdb::MaterialRecordHead* material_;
     itemdb::ItemRecordHead* prototype_;
-    CItem* item_;             // counted
+    Ref<CItem> item_;
     CSpell* spell_;
     int count_;               // copied to the item's count_
 };

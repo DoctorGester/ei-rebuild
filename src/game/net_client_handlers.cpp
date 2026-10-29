@@ -50,7 +50,7 @@ void RemoveRaw(List& list, Message* message) {
 
 // Counted pointers as the handlers inline them.
 void AddRef(CRefObject* object) {
-    if (object) ++object->refs_;
+    if (object) object->AddRef();
 }
 template <typename T>
 struct SlotOf {
@@ -62,7 +62,7 @@ void AssignRef(T** slot, typename SlotOf<T>::Type* object) {
     T*& holder = *slot;
     T* previous = holder;
     holder = object;
-    if (object) ++object->refs_;
+    if (object) object->AddRef();
     if (previous) {
         --previous->refs_;
         if (previous->refs_ == 0) delete previous;
@@ -102,7 +102,7 @@ void DropParty(ClientSession* self) {
     if (!state) return;
     if (state->refs_ != 1) {
         state->flags7_ |= CRefObject::kDetached;
-        ++state->refs_;
+        state->AddRef();
         state->OnShutdown();
         --state->refs_;
     }

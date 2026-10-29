@@ -22,7 +22,7 @@ struct VertexPacket;
 // A texture by name. The device binds it by looking the texture up again by name.
 struct NamedTexture {
     std::string name;
-    CTexture* texture;      // counted
+    Ref<CTexture> texture;
 };
 
 // A scorch mark and the base of the other two.

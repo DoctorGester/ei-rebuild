@@ -132,7 +132,7 @@ struct ArmourSpell {
 // `other`'s item is referenced before the old one is released.
     ArmourSpell* Assign(const ArmourSpell* other);
 
-    CItem* item;
+    Ref<CItem> item;
     int countdown;
     std::uint8_t worn;
 };
@@ -531,7 +531,7 @@ public:
     MoveModeState moveMode;
     MoveModeState moveMode2;
     int sneakWait;                  // updates mode 3 was kept without a cheap cell (UpdateSneak)
-    CEngineObject* effectObject;    // (referenced) removed from the world on death
+    Ref<CEngineObject> effectObject;   // removed from the world on death
     int actingCheckTime;            // world tick + 10 when acting starts (StartAction), -1 reset
     int nextAttackTime;             // world tick of the next attack
     int interceptTime;              // the tick a chase aims at (the target's position then); saved
@@ -542,7 +542,7 @@ public:
     UnitAction action;
     UnitAction action2;
     std::uint8_t followsLeader;     // the chase follows `followedLeader`'s target (combat_tick.cpp)
-    CUnit* followedLeader;          // (referenced) the party unit whose attack this one joins
+    Ref<CUnit> followedLeader;      // the party unit whose attack this one joins
     UnitStats stats;                // its flags get bit 0x10 on a hit
     DamageWords protection;         // [0] the defence value, [1..7] the body's protection
                                     // per damage type (UnitStats::PackBodyProtection)

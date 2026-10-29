@@ -63,7 +63,7 @@ void Shuffle(T* first, T* last) {
 // Counted by the caller.
 void Output(std::list<CItem*>* out, CItem* item) { out->insert(out->end(), item); }
 
-void AddReference(CItem* item) { ++item->refCount_; }
+void AddReference(CItem* item) { item->AddRef(); }
 
 const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->family.c_str(); }
 const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass.c_str(); }

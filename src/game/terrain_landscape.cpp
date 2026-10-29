@@ -384,10 +384,10 @@ int Terrain::SetupPages(int count) {
         }
         CTexture* texture = g_clientWorld->textureManager_->FindOrCreate(kPageTexture, name);
         pageTextures[i] = texture;
-        ++texture->refCount_;
+        texture->AddRef();
         CMaterial* material = g_clientWorld->materialManager_->NewMaterial(kPageMaterial);
         pageMaterials[i] = material;
-        ++material->refCount_;
+        material->AddRef();
         material->name = "Wood";
         material->colors.diffuse.x = material->colors.diffuse.y = material->colors.diffuse.z = 0.3f;
         material->colors.ambient.x = material->colors.ambient.y = material->colors.ambient.z = 0.7f;

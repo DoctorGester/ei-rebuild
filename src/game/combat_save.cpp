@@ -22,15 +22,6 @@ constexpr int kSavedConstant = 2;             // written after +0x180, read back
 
 int IdOrNone(const CEngineObject* object) { return object ? object->id_ : -1; }
 
-// Assigns a counted reference, releasing the previous object (two copies in the game).
-template <typename T>
-void AssignCounted(T*& slot, T* object) {
-    T* previous = slot;
-    slot = object;
-    if (object) ++object->refCount_;
-    if (previous) previous->Release();
-}
-
 // Resolves an id read from the stream in `manager` (-1: none).
 CEngineObject* ReadObject(CStream* stream, const CBaseManager* manager) {
     int id;
@@ -108,16 +99,14 @@ void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream) {
     for (int i = 0; i < count; ++i) {
         auto node = list->emplace(list->end());
         // The entry takes a blank one (no item, countdown 0; `worn` is the original's stack byte).
-        CEngineObject* old = (*node).item;
-        (*node).item = nullptr;
-        if (old) old->Release();
+        node->item.Reset();
         (*node).countdown = 0;
         (*node).worn = 0;
     }
     for (auto node = list->begin(); node != list->end();) {
         auto current = node;
         ++node;
-        AssignCounted(current->item, ReadItem(stream, g_serverWorld->itemManager_));
+        current->item.Assign(ReadItem(stream, g_serverWorld->itemManager_));
         stream->ReadValue(current->countdown);
     }
 }
@@ -160,10 +149,10 @@ void CUnitServer::Load(CStream* stream) {
     stream->ReadValue(sinkSpeed);
 
     CBaseManager* effects = WorldContext()->TimedObjectManager();
-    AssignCounted(effectObject, ReadObject(stream, effects));
+    effectObject.Assign(ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->ReadValue(followsLeader);
-    AssignCounted(followedLeader, ReadUnit(stream, g_serverWorld->objectManager_));
+    followedLeader.Assign(ReadUnit(stream, g_serverWorld->objectManager_));
 
     if (stream->version_ < kVersionActingCheckTime) return;
     stream->ReadValue(actingCheckTime);

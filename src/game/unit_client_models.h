@@ -267,7 +267,7 @@ public:
     std::list<ClientSpeech> speech; // the speech queue
     std::uint32_t armourIds[7];     // packed ids of the armour worn, -1 none
     std::uint32_t weaponIds[4];
-    CTexture* faceTexture;          // the face texture the blink changes (counted)
+    Ref<CTexture> faceTexture;      // the face texture the blink changes
     std::uint8_t blinks;
     int blinkTimer;                 // ticks to the next blink change
     int eyesClosed;

@@ -31,7 +31,7 @@ namespace {
 void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
     CTransformPipeline* previous = *holder;
     *holder = pipeline;
-    if (pipeline) ++pipeline->refs_;
+    if (pipeline) pipeline->AddRef();
     if (previous) previous->Release();
 }
 

@@ -322,7 +322,7 @@ public:
     BOOL AddModifier(itemdb::SpellModifierRecord* modifier);
 
     CSpellManager* manager_;        // counted but never released
-    CSpellContainer* container_;
+    Ref<CSpellContainer> container_;
 };
 
 // A light. type_ 0x31 is a point light. localPosition_ is the light's position (where a directional light is

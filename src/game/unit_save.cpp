@@ -50,7 +50,7 @@ CItem* ReadItem(CUnit* unit, CStream* stream) {
     stream->ReadValue(id);
     if (id == -1) return nullptr;
     CItem* item = FindItem(manager, id);
-    if (item) ++item->refCount_;
+    if (item) item->AddRef();
     return item;
 }
 

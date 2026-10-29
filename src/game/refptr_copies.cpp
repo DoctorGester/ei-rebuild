@@ -9,7 +9,7 @@
 // A holder of a raw pointer with a reference added, returning the holder. 2 copies.
 RefPtr* RefPtr::FromRawCounted(CRefObject* object) {
     ptr = object;
-    if (object) ++object->refs_;
+    if (object) object->AddRef();
     return this;
 }
 

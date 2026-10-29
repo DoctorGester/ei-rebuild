@@ -46,12 +46,9 @@ constexpr SpiralCache kEmptySightCache{0, -1.0f};
 
 CUnitServer::CUnitServer() {
     motion.Construct();
-    effectObject = nullptr;
     InitAction(action);
     InitAction(action2);
-    followedLeader = nullptr;
     followsLeader = 0;
-    armourSpells = {};
     moveAnimationKey = kNoAnimationKey;
     idleKey = kNoAnimationKey;
     brain.Construct();

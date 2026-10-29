@@ -188,7 +188,7 @@ void ScriptGroup::CopyToList(std::list<CUnit*>* list) const {
     list->clear();
     for (const ScriptObjectRef& ref : *this) {
         CEngineObject* object = ref.object;
-        if (object) ++object->refCount_;
+        if (object) object->AddRef();
         list->push_back(static_cast<CUnit*>(object));
     }
 }

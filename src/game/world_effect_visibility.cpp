@@ -11,19 +11,7 @@
 
 #include <cstring>
 
-namespace {
-
-void ReleaseFog(CVisibilityFog*& fog) {
-    CVisibilityFog* old = fog;
-    fog = nullptr;
-    if (old != nullptr) old->Release();
-}
-
-} // namespace
-
-
 CEffectShowVisibility::CEffectShowVisibility() {
-    fog_ = nullptr;
     SearchGrid<std::uint8_t>& cells = grid_.cells;
     cells.width = 1;
     cells.height = 1;
@@ -47,7 +35,7 @@ void CEffectShowVisibility::Reset() {
     if (fog_ != nullptr) fog_->Reveal(&grid_);
     observerId_ = -1;
     seerId_ = -1;
-    ReleaseFog(fog_);
+    fog_.Reset();
 }
 
 void CEffectShowVisibility::SetUnits(int observerId, int seerId) {
@@ -58,10 +46,7 @@ void CEffectShowVisibility::SetUnits(int observerId, int seerId) {
 void CEffectShowVisibility::Start(int update) {
     if (update == 0) {
         auto* created = static_cast<CVisibilityFog*>(VisFogManagerAdd(g_clientWorld->arrayManager_));
-        CVisibilityFog* old = fog_;
-        fog_ = created;
-        if (created != nullptr) ++created->refCount_;
-        if (old != nullptr) old->Release();
+        fog_.Assign(created);
     }
     if (fog_ != nullptr) fog_->Reveal(&grid_);
 }

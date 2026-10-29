@@ -32,9 +32,9 @@ CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellM
 // A counted copy of `item` (CItem::Clone with its context's spell manager); `item` is held
 // meanwhile and released after.
 CItem* CountedClone(CItem* item) {
-    if (item) ++item->refCount_;
+    if (item) item->AddRef();
     CItem* copy = item->Clone(SpellManagerOf(item));
-    ++copy->refCount_;
+    copy->AddRef();
     return copy;
 }
 
@@ -61,7 +61,7 @@ void CopyList(std::vector<CItem*>& list, const std::vector<CItem*>& source, CPar
         list[i] = party->CopyItem(item);
         CItem* copy = list[i];
         copy->count_ = item->count_;
-        ++copy->refCount_;
+        copy->AddRef();
     }
 }
 

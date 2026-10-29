@@ -60,7 +60,7 @@ void CParticleManager::Destroy() {
 
 CParticleSource* CParticleManager::CreateSource(int type) {
     CParticleSource* source = CreateObjectAs<CParticleSource>(type, -1);
-    ++source->refCount_;
+    source->AddRef();
     int id = source->id_;
     if (id > maxHeldId_) maxHeldId_ = id;
     held_[id] = source;

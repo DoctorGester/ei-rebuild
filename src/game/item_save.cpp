@@ -30,10 +30,7 @@ void CItem::Load(CStream* stream) {
     std::uint32_t id = 0;
     stream->ReadValue(id);
     CSpell* spell = id == 0xFFFFFFFFu ? nullptr : spells->FindObjectAs<CSpell>(id);
-    CSpell* previous = spell_;
-    spell_ = spell;
-    if (spell != nullptr) ++spell->refCount_;
-    if (previous != nullptr) previous->Release();
+    AssignCounted(spell_, spell);
     stream->ReadValue(count_);
     stream->ReadValue(magicLevel_);
 }

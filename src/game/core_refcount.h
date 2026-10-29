@@ -101,7 +101,7 @@ void DestroyOwned(T*& slot) {
     if (!object) return;
     if (object->refs_ != 1) {
         object->flags7_ |= CRefCounted::kDetached;
-        ++object->refs_;
+        object->AddRef();
         object->OnShutdown();
         --object->refs_;
     }
@@ -119,7 +119,7 @@ void ShareOwned(T*& slot, T* object) {
     }
     if (object->flags6_ & CRefCounted::kCopyOnShare) object = static_cast<T*>(object->Clone());
     slot = object;
-    ++object->refs_;
+    object->AddRef();
     object->flags6_ |= CRefCounted::kCopyOnShare;
 }
 

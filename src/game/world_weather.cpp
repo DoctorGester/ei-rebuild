@@ -78,7 +78,7 @@ void TryLightningStrike(CWorldServer* world) {
     sky.z = ground.z;
     lightning->Launch(&ground, &sky);
     lightning->startTick_ = world->tick_;
-    ++lightning->refCount_;
+    lightning->AddRef();
     lightning->MarkChanged();
     world->timedObjects_.Set(static_cast<unsigned>(lightning->id_), lightning);
 }

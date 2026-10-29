@@ -135,7 +135,7 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
     CLinkMesh* figure = object->figure;
     for (TextureParts* set : half->partSets) {
         if (!set) continue;
-        const void* holder = set->texture ? set->texture->surface_ : nullptr;
+        const void* holder = set->texture ? set->texture->surface_.Get() : nullptr;
         for (int g = 0; g < std::ssize(set->groups); ++g) {
             const PartGroup* group = set->groups[g];
             for (int p = 0; p < std::ssize(group->parts); ++p) {

@@ -149,7 +149,7 @@ void ClientApplyParty(ClientSession* self) {
         CEngineObject* item = party->ItemFactory()->CreateObject(static_cast<int>(type), -1);
         item->prototypeId_ = packedId;
         item->Load(stream);
-        if (item) ++item->refCount_;
+        if (item) item->AddRef();
         items.push_back(item);
     }
     for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(static_cast<CItem*>(items[i]), 1, 1);

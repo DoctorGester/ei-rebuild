@@ -73,10 +73,7 @@ constexpr int kTailFieldCount = 4;
 
 // The spell, a counted reference: the new one's count raised before the old one is released.
 void SetSpell(MagicTrap* trap, CSpell* spell) {
-    CSpell* old = trap->spell;
-    trap->spell = spell;
-    if (spell) ++spell->refCount_;
-    if (old) old->Release();
+    trap->spell.Assign(spell);
 }
 
 
@@ -179,10 +176,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
     CSpellManager* manager = SpellManagerOf(WorldContext());
     CSpell* made = manager->CreateSpellFromText(record->spell);
-    CSpell* old = spell;
-    spell = made;
-    if (made) ++made->refCount_;
-    if (old) old->Release();
+    spell.Assign(made);
     std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // bit for bit
 
     area = record->area;
@@ -198,8 +192,6 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
 // --- Construction, destruction, Save / Load ------------------------------------------
 
 MagicTrap::MagicTrap() {
-    spell = nullptr;
-
     CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;

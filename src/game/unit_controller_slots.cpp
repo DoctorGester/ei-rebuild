@@ -54,17 +54,15 @@ void CUnitClientSpecific::SetMarkers(CParticleSource* path, CParticleSource* mar
     DropMarker(sources[2]);
     if (path) {
         sources[1] = path;
-        ++path->refCount_;
+        path->AddRef();
     }
     if (marker) {
         sources[2] = marker;
-        ++marker->refCount_;
+        marker->AddRef();
     }
 }
 
 void CUnitClientSpecific::DropFaceTexture() {
-    CTexture* texture = faceTexture;
-    faceTexture = nullptr;
-    if (texture) texture->Release();
+    faceTexture.Reset();
     blinks = 0;
 }

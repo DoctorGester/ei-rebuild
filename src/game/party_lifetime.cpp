@@ -62,8 +62,6 @@ void PartyUnitRecord::ClearItems() {
 
 CSpellConstructor::CSpellConstructor() {
     ClearFields();
-    container_ = nullptr;
-    // (The game then releases +0x20, which it has just cleared.)
     manager_ = nullptr;
 }
 
@@ -95,19 +93,19 @@ CSpellManager* CParty::SpellManager() { return spellManager_; }
 
 int CParty::Create() {
     itemManager_ = new CItemManager();
-    ++itemManager_->refCount_;   // not tested for null
+    itemManager_->AddRef();   // not tested for null
     itemManager_->Init(this);
 
     spellManager_ = new CSpellManager();
-    ++spellManager_->refCount_;
+    spellManager_->AddRef();
     spellManager_->Init(this);
 
     itemConstructor_ = new CItemConstructor();
-    ++itemConstructor_->refCount_;
+    itemConstructor_->AddRef();
     itemConstructor_->Create();
 
     spellConstructor_ = new CSpellConstructor();
-    ++spellConstructor_->refCount_;
+    spellConstructor_->AddRef();
     spellConstructor_->Create();
 
     Clear(1, 0);

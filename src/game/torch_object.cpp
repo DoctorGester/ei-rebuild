@@ -51,7 +51,7 @@ void CTorchObject::AttachTorchObject(CEngineObject* object) {
     }
     CTorchObjectSpec* old = spec;
     spec = static_cast<CTorchObjectSpec*>(object);
-    if (spec) ++spec->refCount_;
+    if (spec) spec->AddRef();
     if (old) old->Release();
     if (spec) spec->torch_ = this;   // the spec's owner
 }

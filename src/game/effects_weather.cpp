@@ -133,7 +133,7 @@ CRainSnow::CRainSnow() {
 CRainSnow::~CRainSnow() {
     Clear();
 
-    if (texture) texture->Release();
+    texture.Reset();
 }
 
 const char* CRainSnow::ClassName() { return "CWeather"; }

@@ -672,9 +672,7 @@ void CUnitServer::ApproachTarget() {
             chased = leader;
         } else {
             followsLeader = 0;
-            CUnit* old = followedLeader;
-            followedLeader = nullptr;
-            if (old) old->Release();
+            followedLeader.Reset();
         }
     }
     Vector3 scratch;
@@ -771,9 +769,7 @@ void CUnitServer::ApproachTarget() {
         unit->UpdateSizeClass();
         if (effectObject) {
             g_serverWorld->RemoveTimedObject(effectObject->id_);
-            CEngineObject* old = effectObject;
-            effectObject = nullptr;
-            if (old) old->Release();
+            effectObject.Reset();
         }
         stoodBlocked = 1;
     }

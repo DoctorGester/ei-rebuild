@@ -30,7 +30,7 @@ void RefPtr::Destroy() {
     if (!object) return;
     if (object->refs_ != 1) {
         object->flags7_ |= CRefObject::kDetached;
-        ++object->refs_;
+        object->AddRef();
         object->OnShutdown();
         --object->refs_;
     }

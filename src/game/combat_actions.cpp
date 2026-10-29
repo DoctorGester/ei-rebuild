@@ -108,7 +108,7 @@ void CUnitServer::FinishAction(int location) {
         std::uint32_t slot = action.source;
         auto* item = unit->GetQuickItem(slot);
         if (item && item->GetCategory() == QuickItemCategory::Consumable) {
-            ++item->refCount_;
+            item->AddRef();
             unit->RemoveQuickItem(slot);
             g_serverWorld->UseQuickItem(unit);
             item->Release();
@@ -250,7 +250,7 @@ void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUn
             if (murderer != *added) {
                 if (*added) (*added)->Release();
                 *added = nullptr;
-                if (murderer) ++murderer->refCount_;
+                if (murderer) murderer->AddRef();
                 *added = murderer;
             }
             console::EndLine(*kCombatLog << "Unit " << static_cast<long>(other->id_)
@@ -440,9 +440,7 @@ void CUnitServer::SetDead(int dead) {
     units->Add(unit);
     if (dead && effectObject) {
         world->RemoveTimedObject(effectObject->id_);
-        CEngineObject* old = effectObject;
-        effectObject = nullptr;
-        if (old) old->Release();
+        effectObject.Reset();
     }
     unit->MarkChanged(7);
 }

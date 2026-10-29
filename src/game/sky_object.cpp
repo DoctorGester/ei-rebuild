@@ -90,8 +90,6 @@ void CSky::Light(const float* direction, SkyColour ambient, SkyColour light) {
 }
 
 CSky::CSky() {
-    object = nullptr;
-    material = nullptr;
     turns = 1;
     LoadNamedTexture(texture, kSkyTextureKind, kSkyTextureName);
 }
@@ -130,7 +128,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
 }
 
 CSky::~CSky() {
-    if (texture) texture->Release();
-    if (material) material->Release();
-    if (object) object->Release();
+    texture.Reset();
+    material.Reset();
+    object.Reset();
 }

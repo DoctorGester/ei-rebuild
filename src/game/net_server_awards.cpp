@@ -49,7 +49,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
     auto* award = NewCounted<AwardMessage>();
     CRefObject* previous = award->connection_.ptr;
     award->connection_.ptr = connection;
-    if (connection) ++connection->refs_;
+    if (connection) connection->AddRef();
     if (previous) previous->Release();
     award->kind_ = static_cast<std::uint32_t>(kind);
     x87::CopyBits(award->value_, value);

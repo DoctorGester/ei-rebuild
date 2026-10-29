@@ -142,7 +142,7 @@ void AIBrain::Think() {
         if (best) best->Enter(this);
         AIMode* old = current;
         current = best;
-        if (best) ++best->refs_;
+        if (best) best->AddRef();
         if (old) old->Release();
     }
 

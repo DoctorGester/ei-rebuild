@@ -213,16 +213,13 @@ void CItem::AttachSpell(CSpell* spell) {
     CSpell* previous = spell_;
     if (previous) price_ = price_ - std::bit_cast<float>(previous->price_);
     spell_ = spell;
-    if (spell) ++spell->refCount_;
+    if (spell) spell->AddRef();
     if (previous) previous->Release();
     if (spell_) price_ = spell_->price_ + price_;
 }
 
 void CItem::SetSpell(CSpell* spell) {
-    CSpell* previous = spell_;
-    spell_ = spell;
-    if (spell) ++spell->refCount_;
-    if (previous) previous->Release();
+    AssignCounted(spell_, spell);
 }
 
 // --- CItemConstructor ----------------------------------------------------------------------------
@@ -235,8 +232,7 @@ int CItemConstructor::Create() {
 void CItemConstructor::Destroy() {
     if (manager_) --manager_->refCount_;
     manager_ = nullptr;
-    if (item_) item_->Release();
-    item_ = nullptr;
+    item_.Reset();
     material_ = nullptr;
     prototype_ = nullptr;
     spell_ = nullptr;
@@ -246,7 +242,6 @@ CItemConstructor::CItemConstructor() {
     ClearFields();
     material_ = nullptr;
     prototype_ = nullptr;
-    item_ = nullptr;
     spell_ = nullptr;
     manager_ = nullptr;
 }
@@ -259,15 +254,13 @@ ClassId CItemConstructor::GetClassId() { return ClassId::ItemConstructor; }
 void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager_) --manager_->refCount_;
     manager_ = manager;
-    if (manager) ++manager->refCount_;
+    if (manager) manager->AddRef();
 }
 
 BOOL CItemConstructor::BeginCreateItem(ItemKind kind, int key) {
     CItem* item = manager_->CreateObjectAs<CItem>(kind, key);
     if (!item) return game::FatalError(kCantCreateItem);
-    if (item_) item_->Release();
-    item_ = item;
-    ++item->refCount_;
+    item_.Assign(item);
     material_ = nullptr;
     prototype_ = nullptr;
     count_ = 1;
@@ -292,22 +285,19 @@ BOOL CItemConstructor::SetSpellObject(CSpell* spell) {
 
 CItem* CItemConstructor::EndCreateItem() {
     if (!Build()) {
-        item_->Release();
-        item_ = nullptr;
+        item_.Reset();
         return nullptr;
     }
     flags_ &= ~kFlagConstructing;
-    CItem* item = item_;
+    CItem* item = item_.Take();
     --item->refCount_;
-    item_ = nullptr;
     spell_ = nullptr;
     count_ = 0;
     return item;
 }
 
 BOOL CItemConstructor::Cancel() {
-    if (item_) item_->Release();
-    item_ = nullptr;
+    item_.Reset();
     spell_ = nullptr;
     material_ = nullptr;
     prototype_ = nullptr;

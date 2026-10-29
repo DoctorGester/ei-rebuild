@@ -118,7 +118,7 @@ void CPlayer::SetConnection(CPlayerConnection* connection) {
     connection_ = connection;
     if (connection != nullptr) {
         connection->player_ = this;
-        ++connection_->refCount_;
+        connection_->AddRef();
     }
 }
 
@@ -158,7 +158,7 @@ void CPlayer::Connect(netlink::NetLink* link) {
     if (link_ != nullptr) link_->Disconnect();
     DropLink(link_);
     link_ = link;
-    if (link != nullptr) ++link->refs_;
+    if (link != nullptr) link->AddRef();
     connection_->ResetState();
 }
 
@@ -189,7 +189,7 @@ void CPlayer::GiveItems(const std::list<CItem*>* items, int flag) {
     for (auto node = items->begin(); node != items->end();) {
         CItem* item = *node;
         ++node;
-        ++item->refCount_;
+        item->AddRef();
         items_.push_back(item);
     }
 }
@@ -229,7 +229,7 @@ void CPlayer::AddUnit(CUnit* unit) {
     if (unit == nullptr) return;
     const int id = unit->id_;
     if (units_.contains(id)) return;
-    ++unit->refCount_;
+    unit->AddRef();
     if (maxUnitId_ < id) maxUnitId_ = id;
     units_[id] = unit;
     connection_->UnitChanged(unit);

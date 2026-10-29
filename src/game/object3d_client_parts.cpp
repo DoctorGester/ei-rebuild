@@ -25,15 +25,6 @@ constexpr const char* kNoneText = "none";
 constexpr const char* kSecondPrimarySetText = "Adding new primary texture set with one exist\nFor object \"%s\" with ID=%d!\n";
 constexpr std::uint32_t kTextureFlag2000 = 0x2000;
 
-// *slot = value with counted references; the old one released.
-template <typename T>
-void AssignCounted(T** slot, T* value) {
-    T* old = *slot;
-    *slot = value;
-    if (value) ++value->refCount_;
-    if (old) old->Release();
-}
-
 // Whether a texture of `kind` belongs to the first part set (a table for kinds 1..0x10;
 // any other kind goes to the second).
 bool IsPrimaryKind(int kind) {
@@ -90,9 +81,7 @@ TextureParts::~TextureParts() {
 CObject3DClientSpecific::CObject3DClientSpecific() {
     shadowMade = false;
     std::memset(&sphere, 0, sizeof(sphere));
-    woundsTexture = nullptr;
     materialCursor = -1;
-    AssignCounted<CTexture>(&woundsTexture, nullptr);
     ClearWoundsMaterial();
     bounds[3] = 0.0f;
     bounds[2] = 0.0f;
@@ -105,7 +94,7 @@ int CObject3DClientSpecific::Create() {
     materialCursor = -1;
     flags_ = 0;
     shadowMade = false;
-    AssignCounted<CTexture>(&woundsTexture, nullptr);
+    woundsTexture.Reset();
     ClearWoundsMaterial();
     bounds[3] = 0.0f;
     bounds[2] = 0.0f;
@@ -123,7 +112,7 @@ int CObject3DClientSpecific::Create() {
 
 void CObject3DClientSpecific::Destroy() {
     shadowMade = false;
-    AssignCounted<CTexture>(&woundsTexture, nullptr);
+    woundsTexture.Reset();
     woundsMaterial.Reset();
     for (int k = 0; k < 2; ++k) {
         delete partSets[k];
@@ -167,7 +156,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
         int count = std::ssize(textures);
         textures.resize(count + 1);
         textures[count] = set->texture;
-        ++set->texture->refCount_;
+        set->texture->AddRef();
     } else {
         if (k == 0) game::DebugLog(kSecondPrimarySetText, object->name, object->id_);
         partSets[k]->texture->type_ = kind;
@@ -202,7 +191,7 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
     PartGroup* group = new PartGroup();
     CMaterial* material = ClientWorld()->NewMaterial(materialKind);
     group->material = material;
-    ++material->refCount_;
+    material->AddRef();
     set = partSets[k];
     int count = std::ssize(set->groups);
     set->groups.resize(count + 1);
@@ -210,7 +199,7 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
     count = std::ssize(materials);
     materials.resize(count + 1);
     materials[count] = group->material;
-    ++group->material->refCount_;
+    group->material->AddRef();
     return group->material;
 }
 
@@ -238,7 +227,7 @@ int CObject3DClientSpecific::OnPartAdded(CFigureMesh* part) {
         int count = std::ssize(group->parts);
         group->parts.resize(count + 1);
         group->parts[count] = part;
-        ++part->refCount_;
+        part->AddRef();
         return 1;
     }
     return 1;
@@ -259,7 +248,7 @@ CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
         if (textures[i]->type_ != replacement->type_) continue;
         old = textures[i];
         textures[i] = replacement;
-        ++textures[i]->refCount_;
+        textures[i]->AddRef();
         old->Release();
         break;
     }

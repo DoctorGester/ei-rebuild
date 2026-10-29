@@ -190,7 +190,7 @@ public:
     int uploadResult_;          // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
     std::vector<std::uint8_t> extra_;       // the .mmp file's extra block
     std::uint32_t format_;      // the texture format it is held in (TextureFormat); 0 none
-    Surface* surface_;       // counted
+    Ref<Surface> surface_;
 
     CTextureManager* Manager() const;
 };

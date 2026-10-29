@@ -62,7 +62,7 @@ void ClientSession::ApplyAwards() {
         }
         case 3: {
             auto* item = player->Party()->ItemFactory()->CreateItem(name);
-            if (item) ++item->refCount_;
+            if (item) item->AddRef();
             for (auto position = player->items_.begin(); position != player->items_.end();) {
                 std::list<CItem*>::iterator  current = position;
                 ++position;

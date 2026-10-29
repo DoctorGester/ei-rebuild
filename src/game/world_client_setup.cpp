@@ -83,15 +83,6 @@ constexpr std::uint32_t kSkyObjectFlag = 0x10;
 const char* SkyPartName() { return "nask0"; }
 const char* SkyFigureFile() { return "nask0sky.fig"; }
 
-// A counted slot gets `object` (referenced), the old one is released.
-template <typename T>
-void AssignCounted(T*& slot, T* object) {
-    T* old = slot;
-    slot = object;
-    if (object) ++object->refCount_;
-    if (old) old->Release();
-}
-
 } // namespace
 
 int CWorldClient::LoadLights(const std::string& file) {
@@ -117,7 +108,7 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     numbers_ = new CFlyingHitPoints();
     auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
-        ++texture->refCount_;
+        texture->AddRef();
         TextureManager()->LoadTexture(texture);
         numbers_->texture_ = texture;
         texture->flags_ |= kTextureKeep;
@@ -143,13 +134,13 @@ void CWorldClient::LoadSky() {
     object->directory_ = game::kEmptyText;
     char* data = static_cast<char*>(figures->GetFile(SkyFigureFile(), nullptr));
     if (!data) {
-        ++object->refCount_;
+        object->AddRef();
         object->Release();
         return;
     }
     object->LoadFromMemory(&data, 0.0f, 0.0f, 0.0f);
     object->flags_ |= kSkyObjectFlag;
-    AssignCounted(skyDome_->object, object);
+    skyDome_->object.Assign(object);
     CEngineObject* material = MaterialManager()->NewMaterial(kSkyMaterialType);
-    AssignCounted(skyDome_->material, material);
+    skyDome_->material.Assign(material);
 }

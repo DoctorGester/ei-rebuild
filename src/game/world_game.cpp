@@ -228,7 +228,7 @@ constexpr int kCommandBriefing = 1;
 constexpr int kRequestDone = 3;   // the client's game state request: answered
 
 void ReleaseSession(CRefCounted* session) {
-    if (session && --session->refs_ == 0) delete session;
+    if (session) session->Release();
 }
 
 constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk in a .mob file
@@ -671,7 +671,7 @@ void GameFlow::RecreateClientSession() {
     net::ClientSession* session = net::NewCounted<net::ClientSession>();
     net::ClientSession* previous = global;
     global = session;
-    if (session) ++session->refs_;
+    if (session) session->AddRef();
     ReleaseSession(previous);
 }
 

@@ -29,7 +29,7 @@ int CSceneRenderer::SetBlend(render::Blend source, render::Blend dest) {
 int CTextureDevice::SetMaterial(CDeviceMaterial* material) {
     CDeviceMaterial* old = material_;
     material_ = material;
-    if (material) ++material->refCount;
+    if (material) material->AddRef();
     if (old) old->Release();
     if (!material) {
         render::g_renderState.stages[1].combiner.colourOp = render::TextureOp::Disable;

@@ -134,9 +134,7 @@ void CUnitServer::StopAction() {
     unit->UpdateSizeClass();
     if (effectObject) {
         g_serverWorld->RemoveTimedObject(effectObject->id_);
-        CEngineObject* old = effectObject;
-        effectObject = nullptr;
-        if (old) old->Release();
+        effectObject.Reset();
     }
     OrderPlanReset(&currentPlan);   // SetSize(0, -1) instead of the free, like the original
     StandStill();

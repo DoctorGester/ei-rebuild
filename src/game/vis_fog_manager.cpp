@@ -71,7 +71,7 @@ int ClientArrayManager::RunTick() { return VisFogManagerTick(this); }
 // A new fog (CreateObject(0, -1): registered and created), counted, at the list's end.
 CEngineObject* VisFogManagerAdd(ClientArrayManager* self) {
     CEngineObject* fog = self->CreateObject(0, -1);
-    ++fog->refCount_;
+    fog->AddRef();
     self->list.push_back(fog);
     return fog;
 }

@@ -44,7 +44,7 @@ void ReadItemIds(CStream* stream, std::vector<CItem*>& list, CBaseManager* manag
         stream->ReadValue(id);
         CItem* item = FindItem(manager, id);
         list[i] = item;
-        if (item != nullptr) ++item->refCount_;
+        if (item != nullptr) item->AddRef();
     }
 }
 
