@@ -528,8 +528,9 @@ kinds given.
     replay compares from entry 1 and fills ours). A bound must be decimal: `[0x22]` read as no bound (one element,
     zero bytes) and named nothing; named_data now refuses it. The network globals: net_classes.h's g_gamePort
     00783E30 (8888; the harness writes its free port to ours in the image, game.exe's in --no-hooks), g_netLog,
-    g_currentSession, g_currentConnection, the pump
-    time, the player / variable serials, the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
+    g_currentSession, g_currentConnection, g_gameClient / g_gameServer 0079B5D8 / 0079B5DC (counted pointers: their
+    static initialisers 00412230 / 00412280 and exit functions 00412250 / 004122A0 are ported in net_session.cpp,
+    rows in config/extra_function_sizes.csv), the pump time, the player / variable serials, the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
     readers take `g_serverWorld->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
@@ -701,7 +702,9 @@ kinds given.
       deferred units (world_client_view.cpp), the decal builder, the draw work arrays (particles, glow, fog, shadow,
       draw order), the lever table, the quest's objectives and name, the received messages' stream, the client's
       party id set, the zone table and the quest files / folders; the prints database, the network's send and receive
-      buffers and the game server / client Refs (C50c). Their initialisers are UNUSED_INITIALISERS (the exit
+      buffers (C50c). Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
+      exit functions (net_session.cpp) release the sessions, which send leave packets, so they keep the game's exit
+      order; at our CRT's exit the harness's network pair has ended (net_pair_zone's mailbox overflowed). Their initialisers are UNUSED_INITIALISERS (the exit
       functions go with them); a function whose port builds none of the original's function-local statics is in
       RETIRED_STATICS (Aggression's candidates, LabelRegions' flood lists, ReachesRegion's block list,
       StampWaterPatch's patch, SyncPlayer's diff arrays, UpdateUnits' id lists, the fog's dead cells, the draws' work
