@@ -16,7 +16,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
-#include "lib/str.h"
+#include <format>
 
 
 namespace {
@@ -116,7 +116,7 @@ int CTextureManager::LoadMmpExtra(const char* name, std::vector<std::uint8_t>* o
         *out = composed->extra;
         return 1;
     }
-    std::string path = str::Format("%s%s", name, ".mmp");   // "%s%s", ".mmp"
+    std::string path = std::format("{}.mmp", name);
     auto* fileHeader = static_cast<MmpHeader*>(GetFile(path, nullptr));
     if (!fileHeader) {
         out->clear();

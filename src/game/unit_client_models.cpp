@@ -26,6 +26,7 @@
 #include <new>
 #include <string>
 #include <vector>
+#include <format>
 
 namespace {
 
@@ -98,8 +99,8 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     const CUnit* unit = self->unit;
     int id = unit->id_;
     if (!detailed) {
-        unitKey = str::Format("mo%ds", id);
-        prototypeKey = str::Format("prot%ds", unit->prototypeId_);
+        unitKey = std::format("mo{}s", id);
+        prototypeKey = std::format("prot{}s", static_cast<int>(unit->prototypeId_));
         request.flags = kFlagSimple;
         if (self->armourIds[0] != kNoItemId) AddArmourTexture(request, unit, texture, self->armourIds[0]);
         std::uint32_t hand = unit->activeWeapon;
@@ -110,14 +111,14 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         }
         return;
     }
-    unitKey = str::Format("mo%dp", id);
-    prototypeKey = str::Format("prot%dp", unit->prototypeId_);
+    unitKey = std::format("mo{}p", id);
+    prototypeKey = std::format("prot{}p", static_cast<int>(unit->prototypeId_));
     request.flags = kFlagDetailed;
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
     if (prototype)
         texture = str::Format("%sskin_%.2d.mmp", unit->name, prototype->skin);
     else
-        texture = str::Format("%sskin_00.mmp", unit->name);
+        texture = std::format("{}skin_00.mmp", unit->name);
     AddTexture(request, texture);
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNoItemId) AddArmourTexture(request, unit, texture, self->armourIds[k]);

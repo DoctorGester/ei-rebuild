@@ -18,7 +18,7 @@
 #include "game_singletons.h"
 #include "sector_map.h"
 #include "world.h"
-#include "lib/str.h"
+#include <format>
 
 namespace mapspec {
 
@@ -206,7 +206,7 @@ void ObjectSpec::Apply() {
 
 std::string* ObjectSpec::TypeName(std::string* out) {
     std::string text;
-    text = str::Format("%i", player);
+    text = std::format("{}", player);
     *out = text;
     return out;
 }
@@ -382,7 +382,7 @@ ZoneDiplomacy::ZoneDiplomacy() {
         for (std::int32_t& relation : row) relation = 1;
     }
     for (int i = 0; i < 32; ++i) relations[i][i] = 0;
-    for (int i = 0; i < 32; ++i) names.push_back(str::Format("Player-%i", i));
+    for (int i = 0; i < 32; ++i) names.push_back(std::format("Player-{}", i));
 }
 
 } // namespace mapspec

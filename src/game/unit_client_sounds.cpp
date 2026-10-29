@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstdio>
 #include <string>
+#include <format>
 
 namespace {
 constexpr int kTerrainPlatform = 2;          // the kind used on a platform above the ground
@@ -108,12 +109,12 @@ int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
     float gap = ground - surface;
     if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1) {
-        *out = str::Format("steps\\human\\crawl\\%d.wav", libcrt::RandBelow(kCrawlSounds) + 1);
+        *out = std::format("steps\\human\\crawl\\{}.wav", libcrt::RandBelow(kCrawlSounds) + 1);
         return 1;
     }
     int count = static_cast<int>(model->SoundCounts()[terrain]);
     const std::string& name = model->soundNames.begin()[terrain];
-    *out = str::Format("%s\\%d.wav", name, libcrt::RandBelow(count) + 1);
+    *out = std::format("{}\\{}.wav", name, libcrt::RandBelow(count) + 1);
     return 1;
 }
 
@@ -152,7 +153,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
         std::uint32_t hand = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNoItemId;
         if (unit->MapType() == MapObjectType::Hero && unit->activeWeapon < 4 && hand != kNoItemId &&
             (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow)) {
-            *out = str::Format("weapons\\%d.wav", sound);
+            *out = std::format("weapons\\{}.wav", static_cast<int>(sound));
             return 1;
         }
         if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->attackSoundChance) return 1;

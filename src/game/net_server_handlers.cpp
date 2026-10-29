@@ -13,7 +13,6 @@
 #include "net_second_master.h"
 #include "world.h"   // g_gameFlow
 
-#include "lib/str.h"
 
 #include "ei/rebirth.h"
 
@@ -21,6 +20,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <format>
 
 namespace net {
 
@@ -94,7 +94,7 @@ void ServerOnSay(ServerSession* server, SayMessage* message) {
         if (binding->flags7_ & CRefCounted::kDetached) return;
         auto* player = binding->Player();
         std::string line;
-        line = str::Format("^%i%s^7: %s", player->number_, player->name_.data(), message->text_.data());
+        line = std::format("^{}{}^7: {}", player->number_, player->name_.data(), message->text_.data());
         server->Announce(line, nullptr);
         return;
     }
