@@ -19,11 +19,11 @@ namespace {
 constexpr double kPi = 3.14159265358979323846;
 constexpr double kJump = 2.0;   // a step more than this many times both neighbours' is a jump
 
-enum Kind { Pan, Turn, Zoom, Height, Kinds };
-constexpr const char* kKindNames[Kinds] = {"pan", "turn", "zoom", "height"};
+enum Kind { Pan, Turn, Zoom, Height, Reach, Kinds };
+constexpr const char* kKindNames[Kinds] = {"pan", "turn", "zoom", "height", "reach"};
 
 struct Sample {
-    double x, y, heading, distance, height;
+    double x, y, heading, distance, height, reach;   // reach: the camera's distance from its focus
 };
 
 struct Recording {
@@ -51,7 +51,8 @@ double Step(const Sample& a, const Sample& b, int kind) {
         return std::fabs(d);
     }
     case Zoom: return std::fabs(b.distance - a.distance);
-    default: return std::fabs(b.height - a.height);
+    case Height: return std::fabs(b.height - a.height);
+    default: return std::fabs(b.reach - a.reach);
     }
 }
 
@@ -106,8 +107,10 @@ image::CameraState OriginalCamera(const void* camera) {
 }
 
 Sample SampleOf(const image::CameraPose& pose) {
+    const double dx = static_cast<double>(pose.position[0]) - pose.focusX, dy = static_cast<double>(pose.position[1]) - pose.focusY,
+                 dz = static_cast<double>(pose.position[2]) - pose.focusZ;
     return Sample{pose.focusX, pose.focusY, 2.0 * std::atan2(static_cast<double>(pose.turnZ), static_cast<double>(pose.turnW)),
-                  pose.distance, pose.position[2]};
+                  pose.distance, pose.position[2], std::sqrt(dx * dx + dy * dy + dz * dz)};
 }
 
 void Frame(const void* camera, float seconds) {
@@ -161,11 +164,11 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
             const Sample last = samples.empty() ? Sample{} : samples.back();
             std::snprintf(text, sizeof(text),
                           "camtrace %s: %d frames (last updates %.3f ticks, flags %X); pan %.4f (largest step %.4f, %d jumps), "
-                          "turn %.5f (%.5f, %d), zoom %.4f (%.4f, %d), height %.4f (%.4f, %d); focus (%.2f, %.2f) to (%.2f, "
-                          "%.2f), distance %.2f to %.2f",
+                          "turn %.5f (%.5f, %d), zoom %.4f (%.4f, %d), height %.4f (%.4f, %d), reach %.4f (%.4f, %d); focus "
+                          "(%.2f, %.2f) to (%.2f, %.2f), distance %.2f to %.2f",
                           kept.c_str(), r.frames, g_frameTime, g_flags, r.total[Pan], r.largest[Pan], r.jumps[Pan], r.total[Turn],
                           r.largest[Turn], r.jumps[Turn], r.total[Zoom], r.largest[Zoom], r.jumps[Zoom], r.total[Height],
-                          r.largest[Height], r.jumps[Height], first.x, first.y, last.x, last.y, first.distance, last.distance);
+                          r.largest[Height], r.jumps[Height], r.total[Reach], r.largest[Reach], r.jumps[Reach], first.x, first.y, last.x, last.y, first.distance, last.distance);
             Log("harness: %s", text);
             lines->push_back(text);
         }
@@ -177,7 +180,7 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
         if (sscanf_s(argument.c_str(), "%63s %63s %15s %lf", a, unsigned(sizeof(a)), b, unsigned(sizeof(b)), kindName,
                      unsigned(sizeof(kindName)), &fraction) < 4 ||
             KindOf(kindName) < 0) {
-            failures->push_back(verb + " needs two recordings, pan|turn|zoom|height and a fraction");
+            failures->push_back(verb + " needs two recordings, pan|turn|zoom|height|reach and a fraction");
             return;
         }
         const int kind = KindOf(kindName);
@@ -209,7 +212,7 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
     if (sscanf_s(argument.c_str(), "%63s %15s %15s", name, unsigned(sizeof(name)), kindName, unsigned(sizeof(kindName)), jerky,
                  unsigned(sizeof(jerky))) < 2 ||
         KindOf(kindName) < 0) {
-        failures->push_back("camsmooth needs a recording and pan|turn|zoom|height");
+        failures->push_back("camsmooth needs a recording and pan|turn|zoom|height|reach");
         return;
     }
     if (!g_recordings.count(name)) {

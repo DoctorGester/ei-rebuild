@@ -8,12 +8,13 @@
 //                             "log" each frame's poses go to the log ("harness: camframe ...")
 //   camtrace stop <name>      end the recording and keep the drawn view as <name> and the camera's own as
 //                             <name>.camera: per kind (pan: the focus' path on the map, turn: the heading's, in
-//                             radians, zoom: the distance's, height: the camera's height) the total, the largest
-//                             step and the jumps: frames whose step is more than twice both neighbours'
-//                             (logged, and in the report)
+//                             radians, zoom: the distance's, height: the camera's height, reach: its distance
+//                             from the focus) the total, the largest step and the jumps: frames whose step is
+//                             more than twice both neighbours' (logged, and in the report)
 //   camsame <a> <b> <kind> <fraction>
 //                             require recordings <a> and <b> to have moved by the same total of <kind>
-//                             within <fraction> of the larger, and by something
+//                             within <fraction> of the larger, and by something; e.g. the drawn view's reach
+//                             against the camera's own in a spin (a step spread along the chord pulls it in and out)
 //   camsteadier <a> <b> <kind> <fraction>
 //                             require recording <a>'s largest step of <kind> to be at most <fraction> of <b>'s
 //                             (and <b> to have moved), e.g. the drawn height against the camera's own, where

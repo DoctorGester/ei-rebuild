@@ -1625,14 +1625,30 @@ option moved the camera itself once a frame by time and changed the game state: 
 from boot tick 20. A second variant drew between the poses of the last two ticks and lagged 5 frames. Both are gone.)
 
 - **Spread:** around each client tick's camera update RunWorlds notes the pose before it and the step it made
-  (`camera::NoteViewBeforeTick` / `NoteViewTick`: position, focus, distance; the turns as the rotations that undo
-  them). Once a pass `camera::SetViewProgress` takes the client's part of the next tick (its backlog over a tick,
-  0..1). `camera::DrawnView` is the camera's own pose less the step times the part not reached: all of the step just
-  after the tick, none a tick later. No tick for longer (a paused or stalled client): the backlog passes a tick and
-  the camera's own pose is drawn. A pass longer than a tick (fewer frames than ticks, where each frame sees whole
-  ticks anyway) spreads less, linearly to none at two ticks: the harness's default pass of five ticks draws the
-  camera's own pose. That matters to the goldens: picking reads the drawn view, and with the last step held back on
-  such frames (R35a's first try) 7 of 121 differed (a click or a client unit a step off).
+  (`camera::NoteViewBeforeTick` / `NoteViewTick`: focus, distance, the turns as the rotations that undo them, and
+  the stretch of the camera's reach from its focus, 1 - before / after). Once a pass `camera::SetViewProgress` takes
+  the client's part of the next tick (its backlog over a tick, 0..1). `camera::DrawnView` is the camera's own pose
+  less the step times the part not reached: all of the step just after the tick, none a tick later. The position is
+  not spread on its own: the camera's offset from its focus turns back with the rotation and its length goes back by
+  the stretch, so in a turn the drawn camera stays on the sphere around the drawn focus (spread along the chord, a
+  fast spin pulled it in by d(1 - cos(theta / 2)) at every tick: R35c). With nothing to take back the drawn pose is
+  the camera's own to the bit. No tick for longer (a paused or stalled client): the backlog passes a tick and the
+  camera's own pose is drawn. A pass longer than a tick (fewer frames than ticks, where each frame sees whole ticks
+  anyway) spreads less, linearly to none at two ticks (in real ticks: elapsed / TickLength, 27 ms in fast mode): the
+  harness's default pass of five ticks draws the camera's own pose. That matters to the goldens: picking reads the
+  drawn view, and with the last step held back on such frames (R35a's first try) 7 of 121 differed (a click or a
+  client unit a step off). That fade is taken once, by the pass that ran the tick, and kept for the step: taken
+  each pass, a slow pass (a hitch of 55-110 ms) scaled the step down for its frame only and the next frame drew the
+  view up to 0.6 of a step back (R35c). Later passes only reach further into the step, so the drawn view never
+  moves back.
+- **Placed:** a placement of the camera outside its update forgets the step (`camera::ForgetViewStep`: SetFocus,
+  SetHeading, RestoreView, SetDistancePitch, LookFrom, PlaybackStart, Init, Load: the clicks on the map, the
+  north key, the saved views, scripted placements, zone entry, loads), so the next frame draws the placed pose and
+  not the placed pose less the old step. Inside a tick (the server's placement messages run before the update)
+  the update then notes its own step.
+- **Following** (flag 8, only from a save that has it; nothing in the game sets it): the camera sits on the target
+  and its focus stays where it was, so the drawn position turns about that stale focus with the camera's turn. Not
+  reached in play; left as it is.
 - **Cut:** a tick whose update moved the focus by more than 8 map units, or the camera nearer to its focus or
   farther from it by more, placed it anew (a map change, a jump of the focus): no step, shown at once. A turn, pan,
   tilt, zoom or lift stays within both in a tick however fast it goes. (R35's test, more than 8 units of travel or about 0.4 rad of
@@ -1682,10 +1698,15 @@ exe_objects.h):
   jump is a frame whose step is more than twice both neighbours').
 - `camera_spin` (image only): the low keyboard spin (turn without jumps; `camsteadier`: the drawn height's largest
   step at most 0.35 of the camera's, measured about 0.26; what is left are the game's own changes within a frame)
-  and the fast drag zoomed out (turn without jumps, the camera's own jerky).
+  and the fast drag zoomed out (turn without jumps, the camera's own jerky; `camsame ... reach`: the drawn view's
+  distance from its focus changes as the camera's own does, within 3%: along the chord it was 144.6 against 6.0).
+- `camera_drawn` (golden, vanilla and Rebirth, from the original): the one golden scenario where the drawn view
+  differs from the camera's own pose (frametime 8): the hero walks while the camera pans and turns, and clickunit
+  clicks a wolf mid-pan and mid-turn where the drawn frame's picking finds it. What the drawn view feeds (the Shown
+  flags, the visible and shadow lists, picking) must not reach the world's state.
 - Harness for it: `keydown` / `keyup` (a key held over frames; the navigation keys extended as from a keyboard, which
   the game's key table needs), `frametime <ms>`, `mousedrag <dx> <dy>`, `camtrace` / `camsame` / `camsteadier` /
-  `camsmooth` (tests/verify/harness_camera.h). camtrace also runs on game.exe (no check there needs it).
+  `camsmooth` (tests/verify/harness_camera.h; kinds pan, turn, zoom, height, reach). camtrace also runs on game.exe (no check there needs it).
 
 ## 15. The performance overlay (R21)
 

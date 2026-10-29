@@ -1,0 +1,51 @@
+# The drawn view and the game's state (R35c; docs/notes/renderer.md section 14, "Checks"). At a fixed frame time
+# of 8 ms (a 120 Hz screen's frames on the virtual clock) the world's draw shows the camera's pose less the part of
+# its last tick's step the frame has not reached (camera::DrawnView); the harness's default pass of five ticks draws
+# the camera's own pose, so this is the one golden scenario where the two differ. The hero walks while the camera
+# pans and turns, and clickunit clicks a wolf where the game's picking finds it in the drawn frame (the attack
+# order: the hero walks to it and fights). The golden is the original's (which draws the camera's own pose): what
+# the drawn view feeds (the Shown flags, the visible and shadow lists, picking) must not reach the world's state.
+reject Script error
+timeout 120
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+waitwindow 15 battle
+move 400 300
+console @AddUnitToServer("DrawnWolf","WolfTutor","DrawnWolf",Add(GSGetVar(0,"hx"),2),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("DrawnWolf"))
+console @BlockUnit(GetObjectByName("DrawnWolf"),1)
+waitunit 10 DrawnWolf
+console @BlockUnit(GetLeader(),0)
+frametime 8
+frames 30
+
+# The hero walks west while the camera pans; a click on the wolf mid-pan.
+console @MoveToPoint(GetLeader(),Sub(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"))
+keydown up
+frames 25
+clickunit DrawnWolf
+frames 25
+keyup up
+frames 30
+
+# The camera turns while the hero fights; a second click mid-turn, with Ctrl (the same order).
+hold ctrl
+keydown left
+frames 30
+clickunit DrawnWolf l
+frames 40
+keyup left
+release ctrl
+frames 60
+frametime 0
+frames 5
+check IsAlive(GetLeader())
+console #HP(GetObjectByName("DrawnWolf"))
+report
+quit

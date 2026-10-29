@@ -69,14 +69,19 @@ void Approach(float* rate, const float* target, float response, float dt) {
 // turn, pan, tilt, zoom or lift over the ground stays within both in a tick, however fast the camera turns.
 constexpr float kViewCut = 8.0f;
 
-// The last client tick's step of the camera (the change its update made: position, focus, distance; the
-// turns as the rotations that undo them; nothing for a cut), the pose before that update, and the part
-// of the step the frame has not reached yet.
+// The last client tick's step of the camera (the change its update made: focus and distance; the turns as the
+// rotations that undo them; `stretch`, the part of the camera's reach from its focus the step added, 1 - before /
+// after; nothing for a cut, a placement or a load), the pose before that update, the part of the step the frames
+// spread (`spread`: taken once, by the pass that ran the tick, so it stays the same until the next tick) and the
+// part the frame has not reached yet.
 struct ViewStep {
     camera::ViewPose before{};
-    Vector3 position{}, focus{};
+    Vector3 focus{};
     Quaternion undoRotation{1.0f, 0.0f, 0.0f, 0.0f}, undoHeading{1.0f, 0.0f, 0.0f, 0.0f};
     float distance = 0.0f;
+    float stretch = 0.0f;
+    float spread = 0.0f;
+    bool spreadTaken = true;
     float back = 0.0f;
 };
 ViewStep g_viewStep;
@@ -127,29 +132,44 @@ void camera::NoteViewTick(const Camera* camera) {
     ViewStep& step = g_viewStep;
     const ViewPose now = PoseOf(camera);
     const ViewPose& before = step.before;
-    const bool kept = DistanceSquaredZYX(now.focus, before.focus) <= kViewCut * kViewCut &&
-                      std::fabs(Reach(now) - Reach(before)) <= kViewCut;
-    step.position = kept ? now.position - before.position : kZeroVector;
+    const float reachNow = Reach(now), reachBefore = Reach(before);
+    const bool kept =
+        DistanceSquaredZYX(now.focus, before.focus) <= kViewCut * kViewCut && std::fabs(reachNow - reachBefore) <= kViewCut;
     step.focus = kept ? now.focus - before.focus : kZeroVector;
     step.distance = kept ? now.distance - before.distance : 0.0f;
+    step.stretch = kept && reachNow > 0.0f ? 1.0f - reachBefore / reachNow : 0.0f;
     step.undoRotation = kept ? Undo(before.rotation, now.rotation) : kIdentityRotation;
     step.undoHeading = kept ? Undo(before.heading, now.heading) : kIdentityRotation;
+    step.spreadTaken = false;
 }
+
+void camera::ForgetViewStep() { g_viewStep = ViewStep{}; }
 
 void camera::SetViewProgress(float reached, float passTicks) {
+    ViewStep& step = g_viewStep;
+    if (!step.spreadTaken) {
+        const float spread = 2.0f - passTicks;
+        step.spread = spread > 0.0f ? (spread < 1.0f ? spread : 1.0f) : 0.0f;
+        step.spreadTaken = true;
+    }
     reached = reached > 0.0f ? (reached < 1.0f ? reached : 1.0f) : 0.0f;
-    float spread = 2.0f - passTicks;
-    spread = spread > 0.0f ? (spread < 1.0f ? spread : 1.0f) : 0.0f;
-    g_viewStep.back = (1.0f - reached) * spread;
+    step.back = (1.0f - reached) * step.spread;
 }
 
+// The camera's offset from its focus turns back with its rotation and its length goes back by the step's stretch,
+// so in a turn the drawn camera stays on the sphere around the drawn focus (along the arc, not the chord); with
+// nothing to take back the position is the camera's own to the bit.
 camera::ViewPose camera::DrawnView(const Camera* camera) {
     const ViewStep& step = g_viewStep;
     const float back = step.back;
     ViewPose out = PoseOf(camera);
-    out.position = out.position - step.position * back;
-    out.rotation = TurnedBack(out.rotation, step.undoRotation, back);
+    const Vector3 offset = out.position - out.focus;
+    Quaternion part;
+    part.Slerp(back, kIdentityRotation, step.undoRotation);
+    const Vector3 turned = part.Rotate(offset) * (1.0f - step.stretch * back);
     out.focus = out.focus - step.focus * back;
+    out.position = out.position - (step.focus * back + (offset - turned));
+    out.rotation.PreMultiply(part);
     out.heading = TurnedBack(out.heading, step.undoHeading, back);
     out.distance = out.distance - step.distance * back;
     return out;
@@ -190,6 +210,7 @@ void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float
 
 int Camera::PlaybackStart() {
     if (keys.empty()) return 0;
+    camera::ForgetViewStep();
     localPosition = keys[0].position;
     localRotation = keys[0].rotation;
     return 1;
@@ -278,6 +299,7 @@ void Camera::StopMotion() {
 }
 
 void Camera::SetFocus(const Vector3& p) {
+    camera::ForgetViewStep();
     focus = p;
     float average, low, high;
     SampleTerrain(p, static_cast<float>(D(options::g_options.cameraTerrainArea) * 0.5f), options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea, &average,
@@ -527,6 +549,7 @@ bool Camera::SaveView(unsigned slot) {
 
 bool Camera::RestoreView(unsigned slot) {
     if (slot >= 8) return false;
+    camera::ForgetViewStep();
     distance = views[slot].distance;
     pitch = views[slot].pitch;
     ResetMotion(this);
@@ -534,6 +557,7 @@ bool Camera::RestoreView(unsigned slot) {
 }
 
 void Camera::SetDistancePitch(const CameraView* view) {
+    camera::ForgetViewStep();
     distance = view->distance;
     pitch = view->pitch;
     ResetMotion(this);
@@ -585,6 +609,7 @@ void Camera::ViewsFromSettings(const options::GameOptions* gameOptions) {
 }
 
 void Camera::SetHeading(float angle) {
+    camera::ForgetViewStep();
     Vector3 up = {0.0f, 0.0f, 1.0f};
     viewRotation.FromAxisAngle(up, angle);
     ApplyView();
@@ -598,6 +623,7 @@ void Camera::SetFree(bool on) {
 }
 
 void Camera::LookFrom(const Vector3& from, const Vector3& to) {
+    camera::ForgetViewStep();
     flags |= kFree;
     localPosition = from;
     float dx = static_cast<float>(D(to.x) - from.x);
