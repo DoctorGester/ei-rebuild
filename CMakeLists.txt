@@ -57,8 +57,6 @@ file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
 add_library(ei_render STATIC ${EI_RENDER_SOURCES})
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
 target_link_libraries(ei_render PUBLIC d3d11 dxgi)
-# Interface text (render_text.cpp): the fonts' default folder while developing; a host can change it.
-target_compile_definitions(ei_render PRIVATE EI_FONT_DIR="${CMAKE_SOURCE_DIR}/third_party/fonts")
 if(EI_HARNESS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
@@ -105,6 +103,30 @@ foreach(e solid glyph compose grey copy rgb565 blit)
 endforeach()
 target_sources(ei_render PRIVATE ${EI_SHADER_HEADERS})
 target_include_directories(ei_render PRIVATE ${CMAKE_BINARY_DIR})
+# The interface fonts built into the executable (render_fonts.cpp): third_party/fonts' two Liberation files written
+# as byte arrays into fonts/ in the build folder at build time (src/render/embed.cmake; not committed).
+set(EI_FONT_HEADERS)
+foreach(font LiberationSerif LiberationMono)
+    set(out ${CMAKE_BINARY_DIR}/fonts/${font}.h)
+    set(ttf ${CMAKE_SOURCE_DIR}/third_party/fonts/${font}-Regular.ttf)
+    add_custom_command(OUTPUT ${out}
+        COMMAND ${CMAKE_COMMAND} -DSOURCE=${ttf} -DNAME=k${font} -DOUT=${out} -P ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
+        DEPENDS ${ttf} ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
+        COMMENT "Writing ${font}-Regular.ttf as bytes"
+        VERBATIM)
+    list(APPEND EI_FONT_HEADERS ${out})
+endforeach()
+target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
+# The product's notices (third_party_notices.txt beside the executables; play.cmd copies it): the licences of the
+# third-party code and fonts built in, the fonts' SIL Open Font License among them.
+set(EI_NOTICES)
+foreach(part fonts/README.txt fonts/LICENSE sokol/README.txt sokol/LICENSE stb/README.txt)
+    file(READ ${CMAKE_SOURCE_DIR}/third_party/${part} text)
+    string(APPEND EI_NOTICES "==== third_party/${part}\n\n${text}\n")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/third_party/${part})
+endforeach()
+file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
+     "Third-party software built into ei_standalone.exe and ei_hook.dll, with its licences.\n\n${EI_NOTICES}")
 
 add_library(ei_hook SHARED
     src/hook/cover.cpp

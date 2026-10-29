@@ -1,9 +1,9 @@
 // The fonts native text is drawn in (ui_native.h, TextFontOf; docs/notes/ui-native.md, "P2 done"): the glyphs' shapes
-// from our own font files (render_text.h's stand-ins, Liberation Serif for Times New Roman), placed by the GDI font's
-// metrics: its ascent, descent and average width, each character's advance and the kerning pairs. So the layout
-// (line breaks, alignment, DrawText's value) is the one GDI's DrawText gives and the game's own measuring
-// (CInterface3D::TextExtent, GDI's extent) agrees with what is drawn; only the glyphs' shapes are ours. This is the
-// one place native text asks GDI anything, and it draws nothing with it.
+// from our own fonts (render_text.h's stand-ins built into the executable, Liberation Serif for Times New Roman),
+// placed by the GDI font's metrics: its ascent, descent and average width, each character's advance and the kerning
+// pairs. So the layout (line breaks, alignment, DrawText's value) is the one GDI's DrawText gives and the game's own
+// measuring (CInterface3D::TextExtent, GDI's extent) agrees with what is drawn; only the glyphs' shapes are ours.
+// This is the one place native text asks GDI anything, and it draws nothing with it.
 #include "ui_native.h"
 
 #include "lib/gameapi.h"
@@ -116,13 +116,13 @@ glyphs::TextFont* TextFontOf(HFONT font) {
     }
     const std::string face(described.lfFaceName, ::strnlen(described.lfFaceName, LF_FACESIZE));
     const int pixels = std::abs(described.lfHeight);
-    // Process-wide, as the queued glyph runs keep pointers to the fonts' atlases; null kept for a font without its file.
+    // Process-wide, as the queued glyph runs keep pointers to the fonts' atlases.
     static std::map<std::tuple<std::string, int, int, bool>, std::unique_ptr<glyphs::TextFont>> fonts;
     const auto key = std::make_tuple(face, pixels, static_cast<int>(described.lfWeight), smoothing);
     const auto found = fonts.find(key);
     if (found != fonts.end()) return found->second.get();
     std::unique_ptr<glyphs::TextFont>& slot = fonts[key];
-    if (auto shapes = glyphs::LoadFont(glyphs::FontDirectory() + "/" + glyphs::FontFileForFace(face), pixels)) {
+    if (auto shapes = glyphs::LoadFont(glyphs::FontForFace(face), pixels)) {
         auto placed = std::make_unique<GdiPlacedFont>(described, std::move(shapes));
         if (placed->Valid()) slot = std::make_unique<glyphs::TextFont>(std::move(placed), smoothing);
     }

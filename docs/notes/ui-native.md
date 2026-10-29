@@ -68,8 +68,8 @@ Notes on the inventory:
 ### N2 done (2026-10-14): `src/render/render_text.{h,cpp}` and `tools/text_check`
 
 **What exists** (namespace `render::text`, no GDI and no game code):
-- `Font`: the small font interface (vertical metrics, glyph advance and box, pair kerning, 8-bit coverage). `LoadFont(path, pixels)` implements it with stb_truetype 1.26 (`STB_TRUETYPE_IMPLEMENTATION` in render_text.cpp only). Em scale = pixels / unitsPerEm, which matches GDI's negative lfHeight. Ascent and descent come from OS/2 usWinAscent / usWinDescent. The average width is the old OS/2 weighted 'a'..'z' + space average, because Liberation's xAvgCharWidth is much wider than Times New Roman's, which would put tab stops in the wrong place.
-- Font files: `FontFileForFace` maps "Courier New" to LiberationMono-Regular.ttf and every other face to LiberationSerif-Regular.ttf. `FontDirectory()` is the one place that decides where they live: `SetFontDirectory`, or by default `EI_FONT_DIR` (third_party/fonts, a compile definition on ei_render). A standalone exe or a DLL loading fonts from next to itself calls `SetFontDirectory` once. `PointSizeToPixels(tenths, dpi)` = dpi·tenths/720, as `CreatePointFont`.
+- `Font`: the small font interface (vertical metrics, glyph advance and box, pair kerning, 8-bit coverage). `LoadFont(data, pixels)` implements it with stb_truetype 1.26 on a font's bytes in memory (`STB_TRUETYPE_IMPLEMENTATION` in render_text.cpp only). Em scale = pixels / unitsPerEm, which matches GDI's negative lfHeight. Ascent and descent come from OS/2 usWinAscent / usWinDescent. The average width is the old OS/2 weighted 'a'..'z' + space average, because Liberation's xAvgCharWidth is much wider than Times New Roman's, which would put tab stops in the wrong place.
+- Fonts: `FontForFace` gives Liberation Mono for "Courier New" and Liberation Serif for every other face, both built into the executable (P2a: see "P2a done"). `PointSizeToPixels(tenths, dpi)` = dpi·tenths/720, as `CreatePointFont`.
 - `GlyphAtlas`: one per font, pixel size and smoothing state. It uses shelf packing with 1 px padding and grows by doubling its height; `Generation()` changes when it grows. Smoothing off thresholds coverage at one half.
 - `TextFont`: font + atlas + cached advances and kerning. `GetTextFont(face, pixels, smoothing)` is the process-wide cache and is not thread-safe.
 - `DecodeCp1251` (checked against MultiByteToWideChar: 0 of 256 bytes differ). There are no DBCS lead bytes; the game is 1251 only.
@@ -288,7 +288,7 @@ draw with GDI as before; so without a `ui` word in EI_RENDER nothing changes on 
 families, P8 makes it the default).
 
 **The fonts: our glyphs, GDI's places** (`ui_native_fonts.cpp`). `TextFontOf(HFONT)` makes a `render::text::Font`
-whose glyph shapes (coverage and box) come from our font file standing in for the face (Liberation Serif for Times
+whose glyph shapes (coverage and box) come from our font standing in for the face (Liberation Serif for Times
 New Roman, at the HFONT's -lfHeight) and whose metrics come from the GDI font: ascent, descent, average width, each
 character's advance (GetTextExtentPoint32 less the overhang; control characters as DrawText spaces them) and the
 kerning pairs. These are the inputs N2's `ei_text_check --gdi` fed the layout to match DrawTextA on every game string
@@ -305,7 +305,7 @@ GDI").
 - `Canvas` (`uinative`, and the screen copies in any mode): canvas only; DrawText's value from the layout (GDI's, see
   above). The memory lacks the text (`behind`) until a reader calls `Sync`.
 - `AlsoGdi` (`uiboth`): GDI also draws the memory and its value is returned; the per-surface diff compares the two.
-- `Gdi`: not native, the font file is missing, or the format has a bit the layout does not follow (DT_SINGLELINE,
+- `Gdi`: not native, or the format has a bit the layout does not follow (DT_SINGLELINE,
   DT_END_ELLIPSIS, ...): GDI draws and `TextDrawn` copies its rectangle onto the canvas as in P1 (the memory synced first).
 
 **GetDC no longer reads back.** GDI text no longer lands in a native surface's memory, and nothing copies the memory
@@ -345,9 +345,7 @@ or moved: the menus' help page, options, boxes, the HUD, camp and base screens) 
   DT_CALCRECT): the same numbers as GDI's extent and DrawText.
 - Check a family with `EI_RENDER_EXTRA=uiboth` (the per-surface diff) and frames under `EI_RENDER_EXTRA=uinative`
   against the default path's (`tools/compare_frames.py`): only glyph shapes may differ.
-- Font files: `render::text::FontDirectory()` is the source tree's third_party/fonts (EI_FONT_DIR); a missing file
-  makes `Text` fall back to GDI. The product needs the fonts beside the exe and a `SetFontDirectory` at start-up before
-  P8 makes native text the default.
+- Fonts: built into the executable since P2a (`render::text::FontForFace`); there is no font file to miss.
 
 ### P3a done (2026-10-29): menus and dialogs
 
@@ -387,7 +385,7 @@ extent on the surface's memory DC (`PromptWidth`), and the text is placed by GDI
 Liberation Mono's glyph shapes).
 
 **Still GDI.** The memory DC: the extent for the caret, the fills and the pen are still drawn into the memory too (it stays the
-source of truth; under `uinative` the text is not in it until `Sync`), and `Text`'s fall-back (font file missing, a format the
+source of truth; under `uinative` the text is not in it until `Sync`), and `Text`'s fall-back (a format the
 layout does not follow) draws with GDI and copies the rectangle onto the canvas (`TextDrawn`).
 
 **Checked.** `console`, `utf8_typing` and `ui_gallery_game` under `EI_RENDER_EXTRA=uiboth`: all pass, the console compared 3
@@ -599,8 +597,8 @@ thread that draws the interface.
 
 ### render_text.h
 
-Interface text without GDI (docs/notes/ui-native.md, section 2; ticket N2): TrueType fonts loaded from files
-(stb_truetype), a glyph atlas per font and pixel size, and a layout that follows user32's DrawTextA for the formats
+Interface text without GDI (docs/notes/ui-native.md, section 2; ticket N2): TrueType fonts built into the
+executable (stb_truetype), a glyph atlas per font and pixel size, and a layout that follows user32's DrawTextA for the formats
 the game uses. The same layout gives the text extent (GetTextExtentPoint32A), so wrapping and drawing use one set
 of metrics. Nothing here is pixel-exact with GDI: the fonts are metric-compatible stand-ins (Liberation Serif for
 Times New Roman, Liberation Mono for Courier New) rasterised without hinting. What follows DrawText exactly are the

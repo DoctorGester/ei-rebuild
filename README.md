@@ -99,7 +99,9 @@ The test tools still expect the installs at the default `F:\games` paths (`tools
 ## License
 
 The original work in this repository (the tools, the test harness, the renderer and the rebuilt source as written
-here) is under the MIT license (`LICENSE`). Libraries in `third_party/` keep their own licenses.
+here) is under the MIT license (`LICENSE`). Libraries in `third_party/` keep their own licenses. The interface fonts
+(`third_party/fonts`, Liberation, SIL Open Font License 1.1) are built into the executable; every build writes
+`third_party_notices.txt` beside it with the third-party licences, and `play.cmd` copies it along.
 
 Evil Islands (Проклятые Земли) and its data are the property of their rights holders (Nival). This repository holds no
 game files: no `game.exe`, no resources, no music or video. To build or play it you need your own copy of the game.
