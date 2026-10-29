@@ -13,8 +13,7 @@
 // The picked units' input side (one of screen 7's extra inputs). The other virtuals are the base
 // input side's.
 struct UnitPickInput final : UiInputSide {
-    explicit UnitPickInput(CInterface3D* ui);
-    ~UnitPickInput() override;
+    using UiInputSide::UiInputSide;
 
     // Without Ctrl: a unit under the point is added to the
     // list (its id) and controlled; else each listed unit still in the client world

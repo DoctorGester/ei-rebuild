@@ -57,9 +57,6 @@ constexpr float kSlideSeconds = 0.5f;
 
 } // namespace
 
-// --- Helpers -----------------------------------------------------------------------------------
-
-
 // --- Save/load window --------------------------------------------------------------------------
 
 void CSaveLoadWindow::TakeSelectedTitle() {
@@ -151,7 +148,7 @@ void CSaveLoadWindow::Update() {
     }
 }
 
-void CSaveLoadWindow::CloseDialog() {
+void CSaveLoadWindow::CloseScreen() {
     if (dialog_) dialog_->Release();
     dialog_ = nullptr;
 }
@@ -305,17 +302,13 @@ void COptionsWindow::Update() {
     }
 }
 
-// --- The destructor body ------------------------------------------------------------------
-
-COptionsWindow::~COptionsWindow() {}
-
 // --- Scroll bar --------------------------------------------------------------------------------
 
-BOOL CUiScrollbar::TakePosition(int* position) {
+bool CUiScrollbar::TakePosition(int* position) {
     *position = position_;
-    if (!moved_) return 0;
+    if (!moved_) return false;
     moved_ = false;
-    return 1;
+    return true;
 }
 
 void CUiScrollbar::Update() {

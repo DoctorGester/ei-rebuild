@@ -163,7 +163,7 @@ void CGlobalMap::KeyDown(int key, int repeat, int flags) {
     if (handled_) return;
     int action = g_keyActions[flags & kScanCodeMask];
     if (action == kActionQuickSave)
-        ::QuickSave(kQuickSaveSlot, 0);
+        ::QuickSave(kQuickSaveSlot, false);
     else if (action == kActionQuickLoad)
         QuickLoad(kQuickSaveSlot);
 }

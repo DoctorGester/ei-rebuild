@@ -1345,8 +1345,8 @@ public:
 // 2 the track.
 class CUiScrollbar : public CUiWindow {
 public:
-    // Returns 1 (and clears the flag) when it moved since the last call.
-    BOOL TakePosition(int* position);
+    // The position into `position`; whether it moved since the last call (the flag cleared).
+    bool TakePosition(int* position);
     // `speed` in lines per second; position 0.
     CUiScrollbar(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
     ~CUiScrollbar() override;
@@ -1509,7 +1509,7 @@ struct SaveEntry {
 // The quick and automatic saves (`slot` the save folder's name). Nothing for a multiplayer client or when
 // the disc lacks the space a save needs (0 free space: not checked). Writes info.sav (the "gtime" variable,
 // the zone's map, the zone, the time, an empty title) and shot.sav (the screen as 256x192 5:6:5 pixels).
-void QuickSave(const char* slot, char stepFrame);
+void QuickSave(const char* slot, bool stepFrame);
 // Not for a multiplayer client; only when saves\<slot>\ exists.
 void QuickLoad(const char* slot);
 
@@ -1520,10 +1520,10 @@ public:
         : CUiContainer(ui), isSave_(isSave), sliding_(sliding) {}
     void Draw(CSceneRenderer* pass) override;                      // slides in
     void Update() override;
-    void CloseScreen() override { CloseDialog(); }
+    // The new save's picture released.
+    void CloseScreen() override;
     void LeftDown(int buttons, int x, int y) override;
     void LeftDouble(int buttons, int x, int y) override;
-    void CloseDialog();
     void MessageResult(int result) override;
 
     // A save window saves into the new save (row 0) or asks "overwrite" (message box 0x20000); a load
@@ -1684,9 +1684,9 @@ struct ObjectiveExit {
 // the log; right: the zone picture with its exits; the arrows switch between zones when it lists several.
 class CObjectivesWindow : public CUiContainer {
 public:
-    explicit CObjectivesWindow(CInterface3D* ui);
-    void CloseScreen() override { RestoreAlphaRef(); }
-    void RestoreAlphaRef();
+    using CUiContainer::CUiContainer;
+    // The alpha test's reference Create replaced put back.
+    void CloseScreen() override;
     void CreateScreen() override;
     // Picture, exits, quests and description.
     void ShowZone(std::string_view zone);
@@ -1712,14 +1712,14 @@ public:
     void Update() override;
     // `exitDistances` may be null. The help topic is "quest_global_map" with two buttons, else
     // "quest_mission".
-    void Setup(std::string_view zone, void* exitDistances, int twoButtons, int listZones);
+    void Setup(std::string_view zone, std::map<int, float>* exitDistances, bool twoButtons, bool listZones);
     const char* HelpTopic() override;
 
     std::vector<std::string> zones_;   // the zones listed
     std::string zoneName_;          // the zone it was opened for
-    int twoButtons_;                 // OK on the left and a second button (else OK centred)
-    std::map<int, float>* exitDistances_;   // exit -> distance, or null
-    int listZones_;                  // list the zones of the zone's allod with quests
+    bool twoButtons_;                // OK on the left and a second button (else OK centred)
+    std::map<int, float>* exitDistances_ = nullptr;   // exit -> distance, or null
+    bool listZones_;                 // list the zones of the zone's allod with quests
     int zoneIndex_;
     std::string shownZone_;
     std::vector<ObjectiveExit> exits_;
@@ -1756,7 +1756,6 @@ struct OptionRow {
 class COptionsWindow : public CUiContainer {
 public:
     COptionsWindow(CInterface3D* ui, bool sliding) : CUiContainer(ui), sliding_(sliding) {}
-    ~COptionsWindow() override;
     void Draw(CSceneRenderer* pass) override;                      // slides in
     void Redraw() override;                            // not while sliding
     void CloseScreen() override {}
@@ -1876,10 +1875,10 @@ public:
     CHelpWindow(CInterface3D* ui, bool message, const std::string& text, int page)
         : CUiContainer(ui), message_(message), text_(text), page_(page) {}
     void Draw(CSceneRenderer* pass) override;
-    void CloseScreen() override { Close(); }
+    // The pulsing frames, pictures, surfaces, regions and sprites dropped.
+    void CloseScreen() override;
     // Without the text or without pages the interface's pending value is set to 0 and nothing else happens.
     void CreateScreen() override;
-    void Close();
     // The pulse: v = (cos(5 t) + 1) / 2 gives alpha 255 * v and the colour 80 * (1 - v).
     void Update() override;
     // Region 0 the previous page, 1 OK (Finish), 2 the next page.

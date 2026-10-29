@@ -47,9 +47,6 @@ CItem* CFigureStrip::ItemAt(int, int, int*) { return nullptr; }
 
 // --- One-line setters and readers ------------------------------------------------------------------------
 
-
-void CBriefingScreen::SetChatActive(int mode) { chatActive_ = mode; }
-
 void CUiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix_.m[5] = std::bit_cast<float>(bits); }
 
 

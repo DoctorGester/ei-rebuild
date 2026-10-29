@@ -51,7 +51,7 @@ bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
     return data != nullptr;
 }
 
-bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
+void CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
     const int dpi = Dpi();
     const int width = render::text::TwipsToPixels(PixelsToTwips(rect_.right - rect_.left), dpi);
     // Drawn without smoothing, as RichEdit drew with the titles' font smoothing off.
@@ -59,7 +59,6 @@ bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
         render::text::ReadRtf(std::string_view(static_cast<const char*>(data), size)), width, dpi, false));
     offset_ = 0;
     RenderText();
-    return true;
 }
 
 void CUiScrollingSurface::RenderText() {
@@ -93,7 +92,7 @@ void CUiScrollingSurface::Blit() {
     CUiSurface::Blit();
 }
 
-void CUiScrollingSurface::Start(float speed, char fromBelow) {
+void CUiScrollingSurface::Start(float speed, bool fromBelow) {
     endOffset_ = 0;
     offset_ = fromBelow ? -HeightInTwips(this) : 0;
     speed_ = speed;

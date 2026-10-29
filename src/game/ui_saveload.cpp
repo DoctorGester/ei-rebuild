@@ -50,35 +50,12 @@ constexpr int kVisibleRows = 16;
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// The entry is a folder.
-BOOL IsDirectory(const lib::FileFind& find) { return find.MatchesMask(0x10ul); }
-std::string FilePath(const lib::FileFind& find) { return find.GetFilePath(); }
-std::string FileName(const lib::FileFind& find) { return find.GetFileName(); }
-
-// A file stream on the stack with the reads and writes the save list uses.
-struct LocalFileStream {
-    netlink::FileStream s;
-
-    // The stream's direction byte, then the file's Open.
-    void Open(std::string_view path, unsigned flags, std::uint8_t reading) { s.Open(path, flags, reading); }
-    void Close() { s.Close(); }
-    unsigned Read(void* buffer, unsigned size) { return s.Read(buffer, size); }
-    void Write(const void* buffer, unsigned size) { s.Write(buffer, size); }
-    // A string with its terminating zero.
-    void WriteText(std::string_view text) {
-        s.WriteString(text);
-    }
-};
-
 // The 256x192 5:6:5 picture `pixels` (`bytes` of it: whole rows) drawn into the top of `texture`.
 void DrawPicture(CTexture* texture, const void* pixels, std::uint32_t bytes) {
     const int rows = static_cast<int>(bytes / (kShotWidth * 2));
     const render::TextureImage picture{nullptr, pixels, bytes, kShotWidth, rows, render::ImageLayout::Rgb565};
     if (rows > 0) render::DrawIntoTexture(texture->surface_, &picture, 0, 0, kShotWidth, rows);
 }
-
-// The escape menu's 256x192 5:6:5 copy of the screen, or null.
-const void* SavePicture(CInterface3D* ui) { return ui->screenCopy_; }
 
 constexpr const char* kQuickFolder = "saveq";
 constexpr const char* kAutoFolderA = "savea";
@@ -87,10 +64,6 @@ constexpr const char* kQuickTitle = "save_quick";
 constexpr const char* kAutoEnterTitle = "save_auto_enter";
 constexpr const char* kAutoExitTitle = "save_auto_exit";
 constexpr const char* kPlainFormat = "%s";
-
-bool SameFolder(std::string_view folder, std::string_view name) {
-    return text::CompareIgnoringCase(folder, name) == 0;
-}
 
 constexpr const char* kNotifyLoading = "notify_loading";
 constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout rectangle (immediates)
@@ -107,7 +80,7 @@ std::string SlotFolder(const char* slot) {
 std::string FirstLineOf(const char* prefix, const std::string& suffix) {
     std::string line;
     CTextManager* texts = g_clientWorld->texts_;
-    BOOL found = texts->Open((std::string(prefix) + suffix));
+    bool found = texts->Open(std::string(prefix) + suffix);
     if (found) texts->ReadLine(&line, 1);
     return line;
 }
@@ -144,7 +117,7 @@ void CSaveLoadWindow::ShowPicture() {
     std::string folder;
     folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_);
     lib::FileFind find;
-    BOOL found;
+    bool found;
     {
         std::string path = folder + game::savewords::ShotFile();
         found = find.FindFile(path);
@@ -172,11 +145,11 @@ void SaveEntry::MakeTitle() {
     g_clientWorld->texts_->GetString(kAutoEnterTitle, &autoEnter);
     g_clientWorld->texts_->GetString(kAutoExitTitle, &autoExit);
     auto& title = title_;
-    if (SameFolder(folder_, kQuickFolder)) {
+    if (text::CompareIgnoringCase(folder_, kQuickFolder) == 0) {
         title = str::Format(kPlainFormat, quick);
-    } else if (SameFolder(folder_, kAutoFolderA)) {
+    } else if (text::CompareIgnoringCase(folder_, kAutoFolderA) == 0) {
         title = str::Format(kPlainFormat, autoEnter);
-    } else if (SameFolder(folder_, kAutoFolderB)) {
+    } else if (text::CompareIgnoringCase(folder_, kAutoFolderB) == 0) {
         title = str::Format(kPlainFormat, autoExit);
     } else {
         // The zone name ("zone" + zone_ in the texts, else "save_camp").
@@ -209,7 +182,7 @@ void CSaveLoadWindow::SaveGame() {
     g_cursor->ChangeShape(3);
 
     // info.sav: the new save's entry (the first) with the title being given.
-    LocalFileStream info;
+    netlink::FileStream info;
     {
         std::string path = folder + game::savewords::InfoFile();
         info.Open(path, kOpenWrite, 0);
@@ -222,14 +195,14 @@ void CSaveLoadWindow::SaveGame() {
         entries_.data()->title_ = entry->title_;
     entries_.data()->savedAt_ = lib::CurrentTime();
     SaveEntry* first = entries_.data();
-    info.s.WriteHeader(kInfoMagic, kInfoVersion);
+    info.WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
-    info.s.WriteValue(gameTime);
-    info.WriteText(first->map_);
-    info.WriteText(first->zone_);
+    info.WriteValue(gameTime);
+    info.WriteString(first->map_);
+    info.WriteString(first->zone_);
     std::int32_t savedAt = first->savedAt_;
-    info.s.WriteValue(savedAt);
-    info.WriteText(first->title_);
+    info.WriteValue(savedAt);
+    info.WriteString(first->title_);
     info.Close();
 
     // shot.sav: the game's picture.
@@ -252,17 +225,17 @@ void CSaveLoadWindow::FillEntries() {
     lib::FileFind find;
     entries_.clear();
     int highest = 0;     // the highest number after "save" in the folder names
-    BOOL more = find.FindFile(pattern);
+    bool more = find.FindFile(pattern);
     while (more) {
         more = find.FindNext();
-        if (find.IsDots() || !IsDirectory(find)) continue;
+        if (find.IsDots() || !find.MatchesMask(FILE_ATTRIBUTE_DIRECTORY)) continue;
         // A new entry (the original copies a stack temporary whose numbers are left as the stack held them).
         SaveEntry* entry = &entries_.emplace_back();
-        entry->folder_ = FileName(find);
+        entry->folder_ = find.GetFileName();
         lib::FileFind infoFind;
-        BOOL hasInfo;
+        bool hasInfo;
         {
-            std::string folderPath = FilePath(find);
+            std::string folderPath = find.GetFilePath();
             std::string path = folderPath + game::savewords::InfoInFolder();
             hasInfo = infoFind.FindFile(path);
         }
@@ -271,23 +244,23 @@ void CSaveLoadWindow::FillEntries() {
             entry->title_ = game::savewords::BrokenTitle();
         } else {
             infoFind.FindNext();
-            LocalFileStream info;
-            info.Open(FilePath(infoFind), 0, 1);
-            if (info.s.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
-                info.s.ReadValue(entry->gameTime_);
+            netlink::FileStream info;
+            info.Open(infoFind.GetFilePath(), 0, 1);
+            if (info.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
+                info.ReadValue(entry->gameTime_);
                 {
                     std::string map;
-                    info.s.ReadString(&map);
+                    info.ReadString(&map);
                     entry->map_ = map;
                 }
-                info.s.ReadInto(&entry->zone_);
+                info.ReadInto(&entry->zone_);
                 // The version the header read.
-                if (static_cast<int>(info.s.version_) > 1) {
+                if (static_cast<int>(info.version_) > 1) {
                     std::int32_t savedAt;
-                    info.s.ReadValue(savedAt);
+                    info.ReadValue(savedAt);
                     entry->savedAt_ = savedAt;
                 }
-                if (static_cast<int>(info.s.version_) > 2) info.s.ReadInto(&entry->title_);
+                if (static_cast<int>(info.version_) > 2) info.ReadInto(&entry->title_);
             }
             info.Close();
             if (entry->title_.size() == 0) entry->MakeTitle();
@@ -320,7 +293,8 @@ void CSaveLoadWindow::FillEntries() {
         // The game's picture: a new texture drawn from the escape menu's copy of the screen, the copy kept for shot.sav.
         if (dialog_) dialog_->Release();
         dialog_ = nullptr;
-        if (const auto* copy = static_cast<const std::uint8_t*>(SavePicture(interface_))) {
+        // The escape menu's 256x192 5:6:5 copy of the screen, or null.
+        if (const auto* copy = static_cast<const std::uint8_t*>(interface_->screenCopy_)) {
             CTexture* shot = CreateTexture(0x100, 0x100, 0x1E);
             dialog_ = shot;
             ++shot->refCount_;
@@ -343,7 +317,7 @@ void CSaveLoadWindow::FillEntries() {
 
 // --- Quick and automatic saves ------------------------------------------------------------------------
 
-void QuickSave(const char* slot, char stepFrame) {
+void QuickSave(const char* slot, bool stepFrame) {
     if (IsMultiplayerClient()) return;
     double space = app::DiskFreeSpace(DataFolderText());
     // 0 means unknown: no check.
@@ -369,20 +343,20 @@ void QuickSave(const char* slot, char stepFrame) {
     if (const MapRecord* record = g_mapDatabase->FindMap(zone))
         map = record->allod;
     std::string folder = SlotFolder(slot);
-    LocalFileStream info;
-    info.Open((folder + game::savewords::InfoFile()), kOpenWrite, 0);
-    info.s.WriteHeader(kInfoMagic, kInfoVersion);
-    info.s.WriteValue(gameTime);
-    info.WriteText(map);
-    info.WriteText(zone);
-    info.s.WriteValue(savedAt);
-    info.WriteText(title);
+    netlink::FileStream info;
+    info.Open(folder + game::savewords::InfoFile(), kOpenWrite, 0);
+    info.WriteHeader(kInfoMagic, kInfoVersion);
+    info.WriteValue(gameTime);
+    info.WriteString(map);
+    info.WriteString(zone);
+    info.WriteValue(savedAt);
+    info.WriteString(title);
     info.Close();
 
     // shot.sav: the copied screen at 256x192.
     std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
     lib::File shot;
-    shot.Open((folder + game::savewords::ShotFile()), kOpenWrite);
+    shot.Open(folder + game::savewords::ShotFile(), kOpenWrite);
     shot.Write(pixels, kShotBytes);
     shot.Close();
     delete[] pixels;
@@ -455,10 +429,10 @@ void CSaveLoadWindow::DeleteSave() {
     std::string folder;
     folder = str::Format(kFolderFormat, DataFolderText(), entries_[selected].folder_);
     lib::FileFind find;
-    BOOL more = find.FindFile((folder + kEveryFile));
+    bool more = find.FindFile(folder + kEveryFile);
     while (more) {
         more = find.FindNext();
-        gameapi::DeleteFileA(FilePath(find).c_str());
+        gameapi::DeleteFileA(find.GetFilePath().c_str());
     }
     find.Close();
     gameapi::RemoveDirectoryA(folder.c_str());

@@ -34,37 +34,33 @@
 
 namespace {
 
-const char* NoLipsCommand() { return "#nolips"; }
-const char* ShowCommand() { return "#show"; }
-const char* WeaponWord() { return "weapon"; }
-const char* HideCommand() { return "#hide"; }
-const char* AnimationCommand() { return "#animation"; }
-const char* CameraCommand() { return "#camera"; }
-const char* PhraseCommand() { return "#phrase"; }
+constexpr const char* kNoLipsCommand = "#nolips";
+constexpr const char* kShowCommand = "#show";
+constexpr const char* kWeaponWord = "weapon";
+constexpr const char* kHideCommand = "#hide";
+constexpr const char* kAnimationCommand = "#animation";
+constexpr const char* kCameraCommand = "#camera";
+constexpr const char* kPhraseCommand = "#phrase";
 // The phrase: "\x07C<colour> " name, ":\n\x07C<colour> " (light, or grey with "#nolips"), the text, "\n".
-const char* PhraseHead() { return "\007C\377" "\263" "1 "; }
-const char* PhraseBodyLips() { return ":\n\007C\344\327\247 "; }
-const char* PhraseBodyNoLips() { return ":\n\007C\250\250\250 "; }
-const char* LineEnd() { return "\n"; }
-const char* VoiceFormat() { return "%s\\briefing\\%s\\%d.mp3"; }
-const char* const* VoiceFolders() {
-    static constexpr const char* kFolders[2] = /*00793378*/ {"t", "s"};
-    return kFolders;
-}
+constexpr const char* kPhraseHead = "\007C\377" "\263" "1 ";
+constexpr const char* kPhraseBodyLips = ":\n\007C\344\327\247 ";
+constexpr const char* kPhraseBodyNoLips = ":\n\007C\250\250\250 ";
+constexpr const char* kLineEnd = "\n";
+constexpr const char* kVoiceFormat = "%s\\briefing\\%s\\%d.mp3";
+constexpr const char* kVoiceFolders[2] = /*00793378*/ {"t", "s"};
 // The reward lines.
-const char* ExperienceLabel() { return "brief_get_exp"; }
-const char* GoldLabel() { return "brief_get_money"; }
-const char* ItemLabel() { return "brief_get_item"; }
-const char* LostItemLabel() { return "brief_lost_item"; }
-const char* QuestLabel() { return "brief_get_quest"; }
-const char* QuestDoneLabel() { return "brief_complete_quest"; }
-const char* SpecialsLabel() { return "brief_get_specials_%d"; }
-const char* NumberLine() { return "\007C\377\377\377 %s %d\n"; }
-const char* NameLine() { return "\007C\377\377\377 %s %s\n"; }
-const char* TextLine() { return "\007C\377\377\377 %s\n"; }
-const char* ZonePrefix() { return "z"; }
-const char* QuestSection() { return "quest "; }
-std::unordered_map<std::string, QuestBriefingRecord*>& BriefingRecords() { return worlddata::QuestBriefings(); }
+constexpr const char* kExperienceLabel = "brief_get_exp";
+constexpr const char* kGoldLabel = "brief_get_money";
+constexpr const char* kItemLabel = "brief_get_item";
+constexpr const char* kLostItemLabel = "brief_lost_item";
+constexpr const char* kQuestLabel = "brief_get_quest";
+constexpr const char* kQuestDoneLabel = "brief_complete_quest";
+constexpr const char* kSpecialsLabel = "brief_get_specials_%d";
+constexpr const char* kNumberLine = "\007C\377\377\377 %s %d\n";
+constexpr const char* kNameLine = "\007C\377\377\377 %s %s\n";
+constexpr const char* kTextLine = "\007C\377\377\377 %s\n";
+constexpr const char* kZonePrefix = "z";
+constexpr const char* kQuestSection = "quest ";
 
 constexpr int kStateRewards = 4;
 constexpr int kQuestNameParts = 3;
@@ -80,11 +76,9 @@ constexpr int kViewLeader = 2;
 constexpr int kViewPerson = 3;
 constexpr int kViewThird = 4;
 
-CUnitClientSpecific* Model(CUnit* unit) { return unit->ClientController(); }
-
 // The speaker's eyes: blinking (`blinks`), or open.
 void SetBlink(CUnit* unit, std::uint8_t blinks) {
-    CUnitClientSpecific* model = Model(unit);
+    CUnitClientSpecific* model = unit->ClientController();
     model->blinks = blinks;
     if (!blinks) model->BlinkOpen(true);
 }
@@ -109,24 +103,24 @@ void CBriefingScreen::NextPhrase(bool skip) {
     // The lines up to the next phrase (the cursor stands after the previous one).
     while (texts->FindHeader()) {
         texts->Split(&words, 1);
-        if (text::CompareIgnoringCase(words[0], NoLipsCommand()) == 0) {
+        if (text::CompareIgnoringCase(words[0], kNoLipsCommand) == 0) {
             lips = false;
             continue;
         }
         int count = words.size();
         if (count < 2) continue;
-        if (text::CompareIgnoringCase(words[0], ShowCommand()) == 0) {
-            if (count > 3 && text::CompareIgnoringCase(words[3], WeaponWord()) == 0)
+        if (text::CompareIgnoringCase(words[0], kShowCommand) == 0) {
+            if (count > 3 && text::CompareIgnoringCase(words[3], kWeaponWord) == 0)
                 ShowItem(words[1], str::ToInt(words[2]) - 1);
             if (count > 2)
                 ShowItem(words[1], str::ToInt(words[2]) - 1);
             else
                 ShowItem(words[1], -1);
-        } else if (text::CompareIgnoringCase(words[0], HideCommand()) == 0) {
-            HideSpeaker(words[1], skip, count > 2 ? 1 : 0);
-        } else if (text::CompareIgnoringCase(words[0], AnimationCommand()) == 0) {
+        } else if (text::CompareIgnoringCase(words[0], kHideCommand) == 0) {
+            HideSpeaker(words[1], skip, count > 2);
+        } else if (text::CompareIgnoringCase(words[0], kAnimationCommand) == 0) {
             animation = str::ToInt(words[1]);
-        } else if (text::CompareIgnoringCase(words[0], CameraCommand()) == 0) {
+        } else if (text::CompareIgnoringCase(words[0], kCameraCommand) == 0) {
             if (count >= 5) {
                 angle = static_cast<float>(kRadiansPerDegree * str::ToDouble(words[2]));
                 distance = static_cast<float>(str::ToDouble(words[3]));
@@ -134,7 +128,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 view = true;
             }
             preset = str::ToInt(words[1]);
-        } else if (text::CompareIgnoringCase(words[0], PhraseCommand()) == 0) {
+        } else if (text::CompareIgnoringCase(words[0], kPhraseCommand) == 0) {
             spoke = true;
             break;
         }
@@ -154,10 +148,10 @@ void CBriefingScreen::NextPhrase(bool skip) {
             }
         }
         texts->ReadToHash(&phrase, 1);
-        phrase = std::string(PhraseHead()) + speaker + (lips ? PhraseBodyLips() : PhraseBodyNoLips()) + phrase + LineEnd();
+        phrase = std::string(kPhraseHead) + speaker + (lips ? kPhraseBodyLips : kPhraseBodyNoLips) + phrase + kLineEnd;
         dialogueText_ += phrase;
         const char* cursor = texts->cursor_;
-        if (texts->FindLine(PhraseCommand())) last = false;
+        if (texts->FindLine(kPhraseCommand)) last = false;
         texts->cursor_ = cursor;
         if (voice_ != -1) g_clientWorld->sounds_->StopSound(voice_);
         voice_ = -1;
@@ -166,7 +160,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             if (words.size() > 2 && (number = str::ToInt(words[2])) > 0) {
                 std::string file;
                 int folder = libcrt::RandBelow(2);
-                file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_, number);
+                file = str::Format(kVoiceFormat, kVoiceFolders[folder], topic_, number);
                 voice_ = g_clientWorld->sounds_->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
             phraseTime_ = static_cast<float>(text::CharacterCount(std::string_view(phrase))) *
@@ -184,7 +178,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         QuestBriefingRecord* record;
         {
             std::string key(topic_);
-            record = BriefingRecords()[key];
+            record = worlddata::QuestBriefings()[key];
         }
         if (record) {
             std::vector<std::string> parts;
@@ -201,7 +195,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
-                    line = str::Format(NameLine(), label, name);
+                    line = str::Format(kNameLine, label, name);
                     add();
                     item->Release();
                 }
@@ -210,46 +204,46 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 for (const auto& it : list) {
                     text::Split(it, &parts, '.');
                     if (parts.size() != kQuestNameParts) continue;
-                    if (!texts->Open((std::string(QuestSection()) + parts[2]))) continue;
+                    if (!texts->Open(std::string(kQuestSection) + parts[2])) continue;
                     texts->ReadLine(&name, 1);
-                    line = str::Format(NameLine(), label, name);
+                    line = str::Format(kNameLine, label, name);
                     add();
                 }
             };
             if (record->exp > 0.0f) {
-                texts->GetString(ExperienceLabel(), &label);
-                line = str::Format(NumberLine(), label, static_cast<int>(record->exp));
+                texts->GetString(kExperienceLabel, &label);
+                line = str::Format(kNumberLine, label, static_cast<int>(record->exp));
                 add();
             }
             if (record->money > 0.0f) {
-                texts->GetString(GoldLabel(), &label);
-                line = str::Format(NumberLine(), label, static_cast<int>(record->money));
+                texts->GetString(kGoldLabel, &label);
+                line = str::Format(kNumberLine, label, static_cast<int>(record->money));
                 add();
             }
-            texts->GetString(ItemLabel(), &label);
+            texts->GetString(kItemLabel, &label);
             addItems(record->lists[QuestBriefingRecord::kGiveItems]);
-            texts->GetString(LostItemLabel(), &label);
+            texts->GetString(kLostItemLabel, &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
-            if (IsMultiplayerClient() && !topic_.empty() && text::CompareIgnoringCase(str::Left(topic_, 1), ZonePrefix()) == 0) {
+            if (IsMultiplayerClient() && !topic_.empty() && text::CompareIgnoringCase(str::Left(topic_, 1), kZonePrefix) == 0) {
                 if (auto* player = g_serverWorld->GetPlayer(0)) {
                     for (auto& node : player->items_) {
                         CItem* item = node;
                         if (item->GetClassId() != ClassId::ItemQuest) continue;
                         texts->FormatItemName(item, &name);
-                        line = str::Format(NameLine(), label, name);
+                        line = str::Format(kNameLine, label, name);
                         add();
                     }
                 }
             }
             addItems(record->lists[QuestBriefingRecord::kRemoveItems]);
-            texts->GetString(QuestLabel(), &label);
+            texts->GetString(kQuestLabel, &label);
             addQuests(record->lists[QuestBriefingRecord::kGiveQuests]);
-            texts->GetString(QuestDoneLabel(), &label);
+            texts->GetString(kQuestDoneLabel, &label);
             addQuests(record->lists[QuestBriefingRecord::kCompleteQuests]);
             if (record->specials > 0) {
-                label = str::Format(SpecialsLabel(), record->specials);
+                label = str::Format(kSpecialsLabel, record->specials);
                 texts->GetString(label, &label);
-                line = str::Format(TextLine(), label);
+                line = str::Format(kTextLine, label);
                 add();
             }
         }
@@ -297,7 +291,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         for (std::size_t i = 0; i < speakers_.size(); ++i) {
             CUnit* unit = speakers_[i].unit;
             if (text::CompareIgnoringCase(speakers_[i].name, named()) != 0) {
-                PlaySpeakerAnimation(unit, 0, 0);
+                PlaySpeakerAnimation(unit, false, false);
                 SetBlink(unit, 0);
                 continue;
             }
@@ -310,7 +304,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                         controller->PlayAnimation(played->name);
                 }
             } else {
-                PlaySpeakerAnimation(unit, 1, 0);
+                PlaySpeakerAnimation(unit, true, false);
             }
             SetBlink(unit, lips);
             speaking_ = unit;
@@ -325,7 +319,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         text_->moved_ = true;
         for (const BriefingSpeaker& p : speakers_) {
             SetBlink(p.unit, 0);
-            PlaySpeakerAnimation(p.unit, 0, 0);
+            PlaySpeakerAnimation(p.unit, false, false);
         }
         speaking_ = nullptr;
         ClearShownItems();

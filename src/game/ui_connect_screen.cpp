@@ -44,16 +44,16 @@ namespace {
 
 constexpr float kMenuTilt = /*007C7F40*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-const char* CancelSound() { return "buttons\\messbox\\cancel.wav"; }
-const char* SelectSound() { return "buttons\\save\\select.wav"; }
-const char* OkSound() { return "buttons\\messbox\\ok.wav"; }
-const char* MessageSuffix() { return "_msg"; }
-const char* WrongProtocolKey() { return "lmp_wrong_protocol"; }
-const char* WrongProtocolTextKey() { return "lmp_wrong_protocol_msg"; }
-const char* NewGameText() { return "??"; }    // the new game entry's name and description
-const char* DefaultGameName() { return "?"; }
-const char* EmptyText() { return ""; }
-const char* AddressBookFile() { return "config\\addrbook.ini"; }
+constexpr const char* kCancelSound = "buttons\\messbox\\cancel.wav";
+constexpr const char* kSelectSound = "buttons\\save\\select.wav";
+constexpr const char* kOkSound = "buttons\\messbox\\ok.wav";
+constexpr const char* kMessageSuffix = "_msg";
+constexpr const char* kWrongProtocolKey = "lmp_wrong_protocol";
+constexpr const char* kWrongProtocolTextKey = "lmp_wrong_protocol_msg";
+constexpr const char* kNewGameText = "??";    // the new game entry's name and description
+constexpr const char* kDefaultGameName = "?";
+constexpr const char* kEmptyText = "";
+constexpr const char* kAddressBookFile = "config\\addrbook.ini";
 const char* RefusalKey(int refusal) {
     switch (refusal) {
     case 1: return "lmp_server_full";
@@ -62,7 +62,6 @@ const char* RefusalKey(int refusal) {
     default: return "lmp_cannot_connect";
     }
 }
-const char* MasterHost() { return options::g_options->masterServerName_.c_str(); }
 constexpr int kMasterPort = 28004;
 
 // The switches' sprite frames: off (0.0), on (-0.08984375); the selected game
@@ -97,16 +96,16 @@ void OpenBox(CInterface3D* ui, std::string_view title, const char* text, std::ui
 }
 
 
-const char* SaveLoadTexture() { return "saveload"; }
-const char* ScrollbarTexture() { return "scrollbar"; }
-const char* MenuModel() { return "unmoco2"; }
-const char* MenuTexture() { return "MainMenu00"; }
-const char* MenuLabels() { return "MainMenu00labels"; }
-const char* MenuButtonPart() { return "but03"; }
-const char* MenuButtonLabel() { return "button03_multiplayer"; }
-const char* AllodNameFormat() { return "lmp_allod_name_%d"; }
-const char* ConnectionTextFormat() { return "lmp_connection_%d"; }
-const char* NameEnd() { return "|"; }
+constexpr const char* kSaveLoadTexture = "saveload";
+constexpr const char* kScrollbarTexture = "scrollbar";
+constexpr const char* kMenuModel = "unmoco2";
+constexpr const char* kMenuTexture = "MainMenu00";
+constexpr const char* kMenuLabels = "MainMenu00labels";
+constexpr const char* kMenuButtonPart = "but03";
+constexpr const char* kMenuButtonLabel = "button03_multiplayer";
+constexpr const char* kAllodNameFormat = "lmp_allod_name_%d";
+constexpr const char* kConnectionTextFormat = "lmp_connection_%d";
+constexpr const char* kNameEnd = "|";
 float MenuTurn() { return kMenuTilt * 1.2f; }
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 // ExtendedServerName's values in Create (addon.dll: operands).
@@ -120,7 +119,7 @@ constexpr int kTextCount = 22;
 constexpr int kTextConnecting = 8;
 constexpr int kNameLength = 10;
 constexpr int kTextureKind = 3;
-constexpr int kScrollbarTexture = 1;   // objects_: 0 "saveload", 1 "scrollbar"
+constexpr int kScrollbarObject = 1;   // objects_: 0 "saveload", 1 "scrollbar"
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
     CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
@@ -153,7 +152,7 @@ void CMpConnectScreen::Update() {
             joining_ = false;
             std::string key;
             key = RefusalKey(client->refusal_);
-            std::string text = key + MessageSuffix();
+            std::string text = key + kMessageSuffix;
             interface_->PushWindow(new CMessageBox(interface_, key, text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), 1, 1);
             return;
         }
@@ -193,7 +192,8 @@ void CMpConnectScreen::Update() {
     if (renamed) DrawListVanilla();
 }
 
-void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
+void CMpConnectScreen::MessageResult(int answer) {
+    const auto result = static_cast<std::uint32_t>(answer);
     if (result == (kBoxMaster | kAnswerCancel)) {
         DrawListVanilla();
     } else if (result == (kBoxAddress | kAnswerOk)) {
@@ -220,7 +220,7 @@ void CMpConnectScreen::LeftDown(int buttons, int x, int y) {
         Connect();
         break;
     case kRegionBack:
-        interface_->PlaySound(CancelSound());
+        interface_->PlaySound(kCancelSound);
         SaveAddressBook();
         g_gameFlow->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
@@ -268,7 +268,7 @@ void CMpConnectScreen::LeftDown(int buttons, int x, int y) {
         } else if (region >= kRegionRowFirst) {
             unsigned row = static_cast<unsigned>(scrollTop_ + region - kRegionRowFirst);
             if (row < entries_.size()) {
-                interface_->PlaySound(SelectSound());
+                interface_->PlaySound(kSelectSound);
                 selected_ = static_cast<int>(row);
                 selectedAddress_ = entries_[row].address;
                 DrawListVanilla();
@@ -301,7 +301,7 @@ void CMpConnectScreen::KeyDown(int key, int repeat, int flags) {
         handled_ = true;
         return;
     case VK_ESCAPE:
-        interface_->PlaySound(CancelSound());
+        interface_->PlaySound(kCancelSound);
         g_gameFlow->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         handled_ = true;
@@ -312,7 +312,7 @@ void CMpConnectScreen::KeyDown(int key, int repeat, int flags) {
     case VK_NEXT: step = kRows; break;
     default: return;
     }
-    interface_->PlaySound(SelectSound());
+    interface_->PlaySound(kSelectSound);
     selected_ += step;
     SelectAndScroll();
     handled_ = true;
@@ -331,14 +331,14 @@ void CMpConnectScreen::SelectAndScroll() {
 }
 
 void CMpConnectScreen::Connect() {
-    interface_->PlaySound(OkSound());
+    interface_->PlaySound(kOkSound);
     int row = selected_;
     if (row == 0) {
         int players;
         playersSlider_->TakePosition(&players);
         ++players;
         std::string name = nameEdit_->text_;
-        if (name.size() == 0) name = DefaultGameName();
+        if (name.size() == 0) name = kDefaultGameName;
         SaveAddressBook();
         g_gameFlow->StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), static_cast<char>(unlisted_),
                                    static_cast<int>(net::g_gameClient->queries_.extra));
@@ -346,7 +346,7 @@ void CMpConnectScreen::Connect() {
     }
     if (row < 0 || static_cast<unsigned>(row) >= entries_.size()) return;
     if (entries_[row].foreign) {
-        OpenBox(interface_, WrongProtocolKey(), WrongProtocolTextKey(), kBoxNotice, kBoxFlagsOk);
+        OpenBox(interface_, kWrongProtocolKey, kWrongProtocolTextKey, kBoxNotice, kBoxFlagsOk);
         return;
     }
     SaveAddressBook();
@@ -354,7 +354,7 @@ void CMpConnectScreen::Connect() {
         boxText_[0] = '\0';
         OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxJoinPassword, kBoxFlagsEdit);
     }
-    g_gameFlow->JoinServer(&entries_[selected_].address, EmptyText());
+    g_gameFlow->JoinServer(&entries_[selected_].address, kEmptyText);
     net::g_gameClient->gameType_ = entries_[selected_].gameType;
 }
 
@@ -376,13 +376,13 @@ void CMpConnectScreen::EditAddress() {
 }
 
 void CMpConnectScreen::MasterRequest() {
-    CopyText(boxText_, EmptyText());
+    CopyText(boxText_, kEmptyText);
     net::NetAddress master{};
     // EI_Plugin's NewMaster: with a second master set, the master is tried first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) && net::second_master::Configured())
-        net::second_master::ParseMaster(&master, MasterHost(), kMasterPort);
+        net::second_master::ParseMaster(&master, options::g_options->masterServerName_.c_str(), kMasterPort);
     else
-        master.Parse(MasterHost(), kMasterPort);
+        master.Parse(options::g_options->masterServerName_.c_str(), kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries_.extra : 0;
     interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra), 1,
@@ -392,7 +392,7 @@ void CMpConnectScreen::MasterRequest() {
 void CMpConnectScreen::SaveAddressBook() {
     ChunkArchive archive;
     netlink::FileStream file;
-    if (!file.Open(*g_dataFolder + AddressBookFile(), netlink::FileStream::kOpenWrite, 0)) return;
+    if (!file.Open(*g_dataFolder + kAddressBookFile, netlink::FileStream::kOpenWrite, 0)) return;
     archive.Open(&file, 0, 1);
     net::ClientQueries* queries = &net::g_gameClient->queries_;
     if (archive.EnterChunk(1)) {
@@ -443,8 +443,8 @@ void CMpConnectScreen::RebuildList() {
     MpAddressEntry& newGame = *entries_.emplace(entries_.begin());
     newGame.address = net::NetAddress{};
     newGame.gameType = kNewGameType;
-    newGame.name = NewGameText();
-    newGame.description = NewGameText();
+    newGame.name = kNewGameText;
+    newGame.description = kNewGameText;
     newGame.ping = kNoPing;
     newGame.players = 0;
     newGame.maxPlayers = 0;
@@ -470,10 +470,10 @@ void CMpConnectScreen::RebuildList() {
 
 void CMpConnectScreen::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
-    LoadTexture(SaveLoadTexture(), kTextureKind);
-    LoadTexture(ScrollbarTexture(), kTextureKind);
+    LoadTexture(kSaveLoadTexture, kTextureKind);
+    LoadTexture(kScrollbarTexture, kTextureKind);
     CUiModel* model = AddModel();
-    model->Load(MenuModel(), MenuTexture(), MenuLabels());
+    model->Load(kMenuModel, kMenuTexture, kMenuLabels);
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
         const Vector3 axis = {1.0f, 0.0f, 0.0f};
@@ -481,8 +481,8 @@ void CMpConnectScreen::CreateScreen() {
         model->object_->localRotation_ = *turn.SetAxisAngle(axis, MenuTurn());
     }
     model->ShowAllParts(0);
-    model->ShowPart(MenuButtonPart(), 1);
-    model->ShowPart(MenuButtonLabel(), 1);
+    model->ShowPart(kMenuButtonPart, 1);
+    model->ShowPart(kMenuButtonLabel, 1);
 
     auto region = [this](int left, int top, int right, int bottom, int tip) {
         CUiRegion* added = AddRegion();
@@ -518,7 +518,7 @@ void CMpConnectScreen::CreateScreen() {
           kSelectionColour);
     {
         CUiMesh* arrow = AddBlankSprite();
-        arrow->texture_ = objects_[kScrollbarTexture];
+        arrow->texture_ = objects_[kScrollbarObject];
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
         arrow->visible_ = 0;
     }
@@ -528,7 +528,7 @@ void CMpConnectScreen::CreateScreen() {
     CTextManager* texts = g_clientWorld->texts_;
     std::string text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
-        text = str::Format(AllodNameFormat(), i);
+        text = str::Format(kAllodNameFormat, i);
         texts->CTextManager::GetString(text, &text);
         allodNames_.push_back(text);
         const int bottom = top + 21;
@@ -583,7 +583,7 @@ void CMpConnectScreen::CreateScreen() {
     // The new game's name: the first hero's, to its '|', at most 10 characters.
     std::string name = LocalPlayerData()->members_[0].texts[0];
     {
-        const int end = str::Find(name, NameEnd());
+        const int end = str::Find(name, kNameEnd);
         if (end >= 0) name = str::Left(name, end);
         if (text::CharacterCount(name) > kNameLength) name = str::Left(name, text::CharacterBytes(name, kNameLength));
         str::TrimLeft(name);
@@ -593,17 +593,16 @@ void CMpConnectScreen::CreateScreen() {
         nameEdit_->SetFocused(false);
     }
     for (int i = 0; i < kTextCount; ++i) {
-        text = str::Format(ConnectionTextFormat(), i);
+        text = str::Format(kConnectionTextFormat, i);
         texts->CTextManager::GetString(text, &text);
         texts_.push_back(text);
     }
 
     g_gameFlow->StartClient();
-    spare_ = 0;
     net::ClientQueries queries;
     ChunkArchive archive;
     netlink::FileStream file;
-    if (file.Open(*g_dataFolder + AddressBookFile(), netlink::FileStream::kOpenRead, 1)) {
+    if (file.Open(*g_dataFolder + kAddressBookFile, netlink::FileStream::kOpenRead, 1)) {
         archive.Open(&file, 1, 1);
         if (archive.EnterChunk(1)) {
             queries.Serialize(&archive);

@@ -40,14 +40,12 @@
 
 namespace {
 
-bool LoadingGame() { return g_saveStream->size_ != 0; }
-
-const char* SaveLoadTexture() { return "saveload"; }
-const char* DefaultAllod() { return "gipat"; }
-const char* TopicPrefix() { return "b."; }
-const char* ConstructorTopic() { return "constr"; }
-const char* NoZone() { return "none"; }
-const char* ZoneVariablePrefix() { return "z."; }
+constexpr const char* kSaveLoadTexture = "saveload";
+constexpr const char* kDefaultAllod = "gipat";
+constexpr const char* kTopicPrefix = "b.";
+constexpr const char* kConstructorTopic = "constr";
+constexpr const char* kNoZone = "none";
+constexpr const char* kZoneVariablePrefix = "z.";
 
 constexpr int kFromCamp = 5;              // CPlayer::lastScreen_
 constexpr float kEdgeFade = 4.0f;
@@ -78,16 +76,6 @@ constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;       // "constr"
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 
-MapRecord* FindLocalMap() {
-    return g_mapDatabase->FindMap(LocalPlayerZone());
-}
-
-CPlayer* LocalViewPlayer() {
-    return g_clientWorld->LocalView()->player_;
-}
-
-CUnit* ServerUnit(int id) { return g_serverWorld->FindUnit(id); }
-
 // A copy of `v`, normalised unless its length is zero.
 Vector3 NormalisedUnlessZero(const Vector3& v) {
     Vector3 out{v.x, v.y, v.z};
@@ -103,7 +91,7 @@ Vector3 NormalisedUnlessZero(const Vector3& v) {
 
 // A mover that took too long is put at its place, facing its direction, at once.
 void PlaceMover(BriefingMover* node) {
-    CUnit* unit = ServerUnit(node->person->id_);
+    CUnit* unit = g_serverWorld->FindUnit(node->person->id_);
     if (!unit) return;
     CUnitServer* controller = unit->ServerController();
     Vector3 target{node->target.x, node->target.y, node->target.z};
@@ -121,7 +109,7 @@ void StepWalking(BriefingMover* node) {
     float dx = node->target.x - person->localPosition_.x;
     if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
     node->state = BriefingMover::kTurning;
-    CUnit* unit = ServerUnit(node->person->id_);
+    CUnit* unit = g_serverWorld->FindUnit(node->person->id_);
     if (!unit) return;
     Vector3 facing = NormalisedUnlessZero(node->direction);
     unit->ServerController()->brain.TurnTowards(&facing, 1.0f);
@@ -165,13 +153,13 @@ bool VoiceEnded(int handle) {
 void CBriefingScreen::CreateScreen() {
     chatActive_ = 0;
     autosave_ = false;
-    if (LoadingGame())
+    if (g_saveStream->size_ != 0)   // loading a game
         g_saveStream->Resize(0);
-    else if (LocalViewPlayer()->lastScreen_ != kFromCamp)
+    else if (g_clientWorld->LocalView()->player_->lastScreen_ != kFromCamp)
         autosave_ = true;
-    MapRecord* map = FindLocalMap();
-    LoadPersonTexts();
-    LoadTexture(SaveLoadTexture(), kTextureKind);
+    MapRecord* map = g_mapDatabase->FindMap(LocalPlayerZone());
+    LoadPersonTexts(&personTexts_);
+    LoadTexture(kSaveLoadTexture, kTextureKind);
 
     // The backdrops: a dark one behind the topics with a frame, a lighter one behind the text
     // with a frame.
@@ -209,11 +197,11 @@ void CBriefingScreen::CreateScreen() {
     savedEdgeFade_ = options::g_options->borderFogDistance_;
     options::g_options->borderFogDistance_ = kEdgeFade;
 
-    if (MapRecord* record = FindLocalMap()) {
+    if (MapRecord* record = g_mapDatabase->FindMap(LocalPlayerZone())) {
         g_clientWorld->music_->PlayBriefing(record->allod);
         noWalk_ = record->cage;
     } else {
-        g_clientWorld->music_->PlayBriefing(DefaultAllod());
+        g_clientWorld->music_->PlayBriefing(kDefaultAllod);
         noWalk_ = false;
     }
     GameStartAmbience();
@@ -248,7 +236,7 @@ void CBriefingScreen::CreateScreen() {
 
     // The people of the base: the local player's objects whose ids are text keys. The walk ends
     // at an empty entry.
-    const auto& objects = LocalViewPlayer()->knownObjects_;
+    const auto& objects = g_clientWorld->LocalView()->player_->knownObjects_;
     for (auto node = objects.begin(); node != objects.end() && node->second; ++node) {
         int id = node->second->id_;
         if (IsTextKey(id)) people_.push_back(id);
@@ -312,11 +300,11 @@ void CBriefingScreen::Update() {
         SetMeshesVisible(this, 1, kTextBackdropMesh);
         text_->SetEnabled(true);
         if (voice_ != -1) {
-            if (VoiceEnded(voice_)) NextPhrase(0);
+            if (VoiceEnded(voice_)) NextPhrase(false);
         } else {
             phraseTime_ = static_cast<float>(phraseTime_ - FrameTime());
             EI_NAN_AUDIT(phraseTime_);
-            if (phraseTime_ < 0.0f) NextPhrase(0);
+            if (phraseTime_ < 0.0f) NextPhrase(false);
         }
         break;
     case kRewards:
@@ -337,7 +325,8 @@ void CBriefingScreen::Update() {
 }
 
 void CBriefingScreen::MarkPeople() {
-    BriefingVariables variables(TopicPrefix());
+    NamedFloatTable variables;
+    PlayerZeroVariables(kTopicPrefix, &variables);
     std::vector<std::string> parts;
     // The people with a topic open (the list is sorted and deduplicated; only membership is used).
     std::vector<int> open;
@@ -347,7 +336,7 @@ void CBriefingScreen::MarkPeople() {
         if (bits != kOneBits) continue;
         text::Split(node.first, &parts, '.');
         if (parts.size() != kTopicNameParts) continue;
-        if (text::CompareIgnoringCase(str::Left(parts[2], kConstructorPrefix), ConstructorTopic()) == 0) continue;
+        if (text::CompareIgnoringCase(str::Left(parts[2], kConstructorPrefix), kConstructorTopic) == 0) continue;
         int id = TextKeyFromName(parts[1]);
         if (std::find(people_.begin(), people_.end(), id) == people_.end()) continue;
         open.push_back(id);
@@ -365,8 +354,8 @@ void CBriefingScreen::LeaveIfExitOpen() {
     CParty* party = LocalPlayerData();
     if (!exitPending_ || std::ssize(party->members_) <= 0) return;
     std::string zone = GameExitTarget(exit_);
-    if (text::CompareIgnoringCase(zone, NoZone()) == 0) return;
-    std::string variable = ZoneVariablePrefix();
+    if (text::CompareIgnoringCase(zone, kNoZone) == 0) return;
+    std::string variable = kZoneVariablePrefix;
     variable += zone;
     float visited = PlayerZeroVariable(variable);
     EI_NAN_AUDIT(visited);

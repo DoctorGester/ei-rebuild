@@ -45,8 +45,7 @@ Raw access the counter does not see (a byte pointer kept in a local, `Get` / `Se
   `ui_trade_panel.cpp` (stats +0x700): byte locals. Item fields are read with `Read<>(item, offset)` in ui_camp.cpp, ui_hero_panels.cpp and
   ui_item_info.cpp until the item classes are declared.
 - Declarations: `CCampScreen` (ui_screens.h) repeats `CCampPages`; `CHudQuickItems::entries_` is a raw array (the HUD panels' `labels_` are `std::vector<std::string>`s); `WindowFromInput` / `FromInput` are repeated per file; `AllodView` repeats `AllodRecord`;
-  `CCreditsScreen::archive_` is bytes (a CMappedResource). `MapRecord::kind`: object_tables.h
-  says 1 edge / 2 brief, the global map treats 2 as a way between zones; check. `SpellRecord::unknown_1C` (power, radius, level, duration) and
+  `MapRecord::kind`: object_tables.h says 1 edge / 2 brief, the global map treats 2 as a way between zones; check. `SpellRecord::unknown_1C` (power, radius, level, duration) and
   `ItemRecordHead::unknown_4C` can be named in item_db.h.
 
 ## Unknown fields (ticket F3)

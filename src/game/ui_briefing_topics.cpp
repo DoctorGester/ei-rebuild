@@ -4,6 +4,7 @@
 #include "item_db_text.h"
 #include "text_split.h"
 #include "ui_briefing.h"
+#include "world_glue.h"
 
 #include "lib/intro_sort.h"
 #include "lib/str.h"
@@ -18,31 +19,26 @@
 
 namespace {
 
-const char* TopicPrefix() { return "b."; }
-const char* ConstructorTopic() { return "constr"; }
-const char* BriefingSection() { return "briefing "; }
+constexpr const char* kTopicPrefix = "b.";
+constexpr const char* kConstructorTopic = "constr";
+constexpr const char* kBriefingSection = "briefing ";
 
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 constexpr int kTopicNameParts = 3;               // "b", person, topic
 constexpr int kConstructorPrefixLength = 6;
 
-std::uint32_t Bits(float value) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(value);
-    return bits;
-}
-
 } // namespace
 
 
 void CBriefingScreen::FindTopics(int personId) {
-    BriefingVariables variables(TopicPrefix());
+    NamedFloatTable variables;
+    PlayerZeroVariables(kTopicPrefix, &variables);
     std::vector<std::string> parts;
     std::string name;
     std::string constructor;
     std::vector<std::string> found;
     for (auto& node : variables) {
-        if (Bits(node.second) != kOneBits) continue;
+        if (std::bit_cast<std::uint32_t>(node.second) != kOneBits) continue;
         text::Split(node.first, &parts, '.');
         if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
@@ -50,7 +46,7 @@ void CBriefingScreen::FindTopics(int personId) {
         {
             std::string start = str::Left(name, kConstructorPrefixLength);
             isConstructor = text::CompareIgnoringCase(start,
-                                            ConstructorTopic()) == 0;
+                                            kConstructorTopic) == 0;
         }
         if (isConstructor) {
             constructor = name;
@@ -71,19 +67,19 @@ void CBriefingScreen::FindTopics(int personId) {
     if (constructor.size() != 0) topics_.push_back(constructor);
 }
 
-std::string* CBriefingScreen::TopicTitle(std::string* out, std::string_view topic) {
+std::string CBriefingScreen::TopicTitle(std::string_view topic) {
     std::string title;
     std::string key(topic);
     str::MakeLower(key);
     bool isConstructor;
     {
         std::string start = str::Left(key, kConstructorPrefixLength);
-        isConstructor = str::Compare(start, ConstructorTopic()) == 0;
+        isConstructor = str::Compare(start, kConstructorTopic) == 0;
     }
-    if (isConstructor) key = ConstructorTopic();
+    if (isConstructor) key = kConstructorTopic;
     CTextManager* texts = g_clientWorld->texts_;
-    std::string section = BriefingSection();
+    std::string section = kBriefingSection;
     section += key;
     if (texts->CTextManager::Open(section)) texts->ReadLine(&title, 1);
-    *out = title; return out;
+    return title;
 }

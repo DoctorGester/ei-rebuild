@@ -489,7 +489,7 @@ void CCreditsScreen::CreateScreen() {
     app::PlayMovies((name + "fin"), 0);
     nextLineAt_ = 0.0f;
 
-    CMappedResource* archive = archive_.Get();
+    CMappedResource* archive = &archive_;
     archive->OpenResource((options::g_options->resourcesPath_ + "outro.res"), 0);
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);

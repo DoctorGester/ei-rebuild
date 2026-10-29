@@ -128,7 +128,7 @@ void CGlobalMap::LeftDown(int, int x, int y) {
             // A zone: its objectives and the ways there, to choose from (found or not).
             SearchWays(zone.name);
             auto* window = new CObjectivesWindow(interface_);
-            window->Setup(target_, &arrivals_, 1, 0);
+            window->Setup(target_, &arrivals_, true, false);
             interface_->PushWindow(window, 1, 1);
             return;
         }

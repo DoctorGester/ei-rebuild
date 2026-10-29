@@ -913,6 +913,9 @@ UNUSED_INITIALISERS = {
                 "terrain_sector.cpp's g_projectionOutput",
     0x006BFAC0: "the terrain projection's outcodes 007C88D0 (exit function 006BFAE0, bit 2 of 007C88C9): "
                 "terrain_sector.cpp's g_projectionOutcodes",
+    # C54f: a plain global of ours in place of the static object.
+    0x0064BE00: "the objectives window's last quest 007C8178 (exit function 0064BE20, guard bit 0 of 007C8174): "
+                "ui_objectives.cpp's g_lastQuest",
 }
 
 

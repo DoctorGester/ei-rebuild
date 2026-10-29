@@ -35,10 +35,8 @@
 
 namespace {
 
-const char* BriefingSection() { return "briefing "; }
-const char* HumanPrototype() { return "unhuma"; }
-
-CPlayer* LocalServerPlayer() { return g_serverWorld->GetPlayer(0); }
+constexpr const char* kBriefingSection = "briefing ";
+constexpr const char* kHumanPrototype = "unhuma";
 
 constexpr int kEventPhrases = 3;
 constexpr int kStatePhrases = 3;
@@ -73,13 +71,13 @@ void CBriefingScreen::StartPhrases() {
     if (voice_ != -1) g_clientWorld->sounds_->StopSound(voice_);
     voice_ = -1;
     g_clientWorld->music_->FadeOut();
-    std::string key = BriefingSection();
+    std::string key = kBriefingSection;
     key += topic_;
     if (!g_clientWorld->texts_->CTextManager::Open(key)) {
         state_ = 0;
         return;
     }
-    CPlayerServer* server = LocalServerPlayer()->Server();
+    CPlayerServer* server = g_serverWorld->GetPlayer(0)->Server();
     if (server) server->SendPair19(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
@@ -100,12 +98,12 @@ void CBriefingScreen::StartPhrases() {
     text_->SetText(game::kEmptyText);
     state_ = kStatePhrases;
     firstPhrase_ = true;
-    NextPhrase(0);
+    NextPhrase(false);
 }
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The name is compared through a copy.)
-    bool human = str::Compare(unit->name, HumanPrototype()) == 0;
+    bool human = str::Compare(unit->name, kHumanPrototype) == 0;
     int number;
     if (talking) {
         if (third)
@@ -194,7 +192,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     at.x = static_cast<float>(eye.x + alongX);
     at.y = static_cast<float>(eye.y + alongY);
     at.z = static_cast<float>(eye.z + height);
-    LocalServerPlayer()->Server()->SendPosition0F(&at, &eye, 1);
+    g_serverWorld->GetPlayer(0)->Server()->SendPosition0F(&at, &eye, 1);
 }
 
 void CBriefingScreen::ViewPreset(int preset) {
@@ -252,7 +250,7 @@ void CBriefingScreen::ViewPreset(int preset) {
     }
 }
 
-void CBriefingScreen::HideSpeaker(std::string_view name, int immediate, int time) {
+void CBriefingScreen::HideSpeaker(std::string_view name, bool immediate, bool run) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
         for (auto node = shown_.begin(); node != shown_.end(); ++node) {
@@ -272,7 +270,7 @@ void CBriefingScreen::HideSpeaker(std::string_view name, int immediate, int time
     }
     auto entry = std::find_if(speakers_.begin(), speakers_.end(), [person](const BriefingSpeaker& s) { return s.unit == person; });
     if (entry != speakers_.end()) {
-        CPlayerServer* server = LocalServerPlayer()->Server();
+        CPlayerServer* server = g_serverWorld->GetPlayer(0)->Server();
         if (server) server->SendPair19(kEventLeaves, person->id_);
         CUnitClientSpecific* model = person->ClientController();
         model->blinks = 0;
@@ -288,8 +286,7 @@ void CBriefingScreen::HideSpeaker(std::string_view name, int immediate, int time
         speakers_.erase(entry);
     }
     if (person == third_) {
-        MovePerson(person, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,
-                                   thirdDirection_.y, thirdDirection_.z, 0, immediate, time);
+        MovePerson(person, thirdPlace_, thirdDirection_, false, immediate, run);
         third_ = nullptr;
     }
 }

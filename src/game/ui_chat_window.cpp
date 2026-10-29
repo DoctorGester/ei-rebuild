@@ -24,24 +24,18 @@
 
 namespace {
 
-
-
 // The status texts' keys, in texts_ order.
-const char* TextKey(int i) {
-    const char* const keys[] = {
-        "lmp_status_zone",
-        "lmp_status_base",
-        "lmp_status_camp",
-        "lmp_status_connect",
-        "lmp_exch_we_offer",
-        "lmp_exch_they_offer",
-    };
-    return keys[i];
-}
-constexpr int kTextCount = 6;
+constexpr const char* kTextKeys[] = {
+    "lmp_status_zone",
+    "lmp_status_base",
+    "lmp_status_camp",
+    "lmp_status_connect",
+    "lmp_exch_we_offer",
+    "lmp_exch_they_offer",
+};
 constexpr int kWeOffer = 4, kTheyOffer = 5;
 
-const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
+constexpr const char* kOnOffSound = "buttons\\battle\\on_off.wav";
 
 constexpr int kSurfaceFormat = 5;
 constexpr int kTextureKind = 0x20;
@@ -51,14 +45,8 @@ constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 wit
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kPickCommandA = 4, kPickCommandB = 5;   // the client's command kinds for picks 1 / 2
 
-
 net::PlayerMessage* PlayerOf(CRefObject* object) { return static_cast<net::PlayerMessage*>(object); }
-// The active screen: the briefing, whose chat window this is (its chatActive_ is the pick mode).
-CBriefingScreen* ActiveBriefing(CInterface3D* ui) { return ui->ActiveWindowAs<CBriefingScreen>(); }
 bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
-
-// True when the two texts are equal (strcmp(a, b) == 0).
-bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 } // namespace
 
@@ -73,8 +61,8 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     AddSurface(surface);
     portraits_ = 0;
     std::string text;
-    for (int i = 0; i < kTextCount; ++i) {
-        g_clientWorld->texts_->GetString(TextKey(i), &text);
+    for (const char* key : kTextKeys) {
+        g_clientWorld->texts_->GetString(key, &text);
         texts_.push_back(text);
     }
 }
@@ -160,9 +148,9 @@ void CChatWindow::ShowPlayers() {
             figure = unitdb::ModelNamed(key);
         }
         const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
-        if (fixes ? !pluginfixes::ModelIsFemale(figure->figureName) : SameText(figure->figureName, "unhuma"))
+        if (fixes ? !pluginfixes::ModelIsFemale(figure->figureName) : figure->figureName == "unhuma")
             sex = "m";
-        else if (fixes || SameText(figure->figureName, "unhufe"))
+        else if (fixes || figure->figureName == "unhufe")
             sex = "f";
         build = "me";
         model = str::Format("infa%s%s%dface", figure->figureName, build, prototype->hair + 1);
@@ -222,7 +210,9 @@ void CChatWindow::LeftDown(int, int x, int y) {
     int index = RegionAt(x, y);
     if (index < 0 || static_cast<unsigned>(index) >= players_.size()) return;
     handled_ = true;
-    int pick = ActiveBriefing(interface_)->chatActive_;
+    // The active screen is the briefing, whose chat window this is (its chatActive_ is the pick mode).
+    CBriefingScreen* briefing = interface_->ActiveWindowAs<CBriefingScreen>();
+    int pick = briefing->chatActive_;
     if (pick != 0) {
         char text[0x80];
         std::snprintf(text, sizeof(text), "%d", PlayerOf(players_[index])->serial_);
@@ -230,10 +220,10 @@ void CChatWindow::LeftDown(int, int x, int y) {
             net::g_gameClient->SendCommand(kPickCommandA, text);
         else if (pick == 2)
             net::g_gameClient->SendCommand(kPickCommandB, text);
-        ActiveBriefing(interface_)->chatActive_ = 0;
+        briefing->chatActive_ = 0;
         return;
     }
-    interface_->PlaySound(OnOffSound());
+    interface_->PlaySound(kOnOffSound);
     net::ClientSession* client = net::g_gameClient;
     CRefObject* player = players_[index];
     // The binding is not checked for null here.
@@ -248,6 +238,6 @@ void CChatWindow::LeftDown(int, int x, int y) {
 
 void CChatWindow::MouseMove(int, int x, int y) {
     int index = RegionAt(x, y);
-    int pick = ActiveBriefing(interface_)->chatActive_;
+    int pick = interface_->ActiveWindowAs<CBriefingScreen>()->chatActive_;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players_.size()) g_cursor->SetShape(0);
 }
