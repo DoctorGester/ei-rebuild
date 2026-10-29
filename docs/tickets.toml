@@ -890,6 +890,12 @@ title = "Drop 3DfpFPU: plain C++ projection, the DLL no longer loaded"
 group = "renderer"
 note = "After R30f the GPU draws and clips everything; 3DfpFPU.dll (CTransformPipeline::transform_, model.h ITransformPipeline) is left projecting vertices: ProjectClipped (mesh bounds for the hand-over and the flag-1 picking rectangle, device_bounds.cpp), ProjectTerrain / ProjectTerrainClipped (terrain before hand-over), ProjectFlat (shadows), Project / TransformPoints (particles, weather, lightning, lines), FitBounds (figure load), SetProjection. Replace each with plain C++ on the pipeline's matrices (ClipTest is ours already), drop what only fed the old CPU draw, stop loading the DLL (render_helper TransformLibraryName, renderer_init / renderer_lifetime) and delete ITransformPipeline. Gameplay reads projected positions for picking and the selection box: goldens (and R30f1's edge scenario) decide; any golden difference is reported, not re-recorded. Notes: renderer.md sections 9 / 10 / 13. User asked 2026-10-29 whether the clipping is needed at all."
 
+[[ticket]]
+id = "R32"
+title = "Cursor on the GPU: shapes uploaded once, no per-frame CPU composite"
+group = "renderer"
+note = "User asked 2026-10-29 whether any CPU composition is left in the UI. render::Cursor (render_blit.cpp) builds the cursor's RGBA from the picture and its mask on the CPU every frame (CursorPicturePart, up to 256x256), then CursorBlit looks it up in the image cache or uploads it. Upload each cursor picture with its mask as one texture when it loads and draw the from-rect as a sub-rectangle (the mask test in the shader if the mask is not the picture's alpha); the cursor thread (render_cursor.cpp) draws the same texture. Check: render_cursor_present, the ui_* frames, renderstats cursor image requests 0 after the first frame."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
