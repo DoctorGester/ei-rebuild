@@ -42,9 +42,12 @@ function failureList(b) {
     checkFailures(b).map(l => `<li>${esc(l.trim())}</li>`).join('') + '</ul>';
 }
 const failCount = b => b.failed + checkFailures(b).length;
+// Runs of the original code taken from the reference cache: no game was played, so a batch of them is quick.
+const cachedText = b => b.cached === b.done ? 'all from the reference cache' : `${b.cached} from the reference cache`;
 function batchSummary(b, withId = true) {
   const parts = withId ? [`#${b.id}`, esc(b.state)] : [esc(b.state)];
   if (b.total) parts.push(`${b.done}/${b.total} games`);
+  if (b.cached) parts.push(cachedText(b));
   if (b.running) parts.push(b.games_running && b.games_running !== b.running
     ? `${b.running} running (${b.games_running} games: pairs play two)` : `${b.running} running`);
   if (b.queued && b.state !== 'queued') parts.push(`${b.queued} queued`);
@@ -253,7 +256,7 @@ function runsView() {
     const gkey = 'g-' + b.id, gshown = open.has(gkey);
     const games = `<button class="rowtoggle ${b.failed ? 'bad' : 'ok'}" data-toggle="${gkey}" data-batch="${b.id}" aria-expanded="${gshown}">${b.passed}/${b.total} games passed</button>`;
     const result = b.state === 'cancelled' ? 'cancelled'
-      : games + (checks ? `, <span class="bad">${checks} check${checks > 1 ? 's' : ''} failed</span>` : '');
+      : games + (b.cached ? `<span class="muted">, ${cachedText(b)}</span>` : '') + (checks ? `, <span class="bad">${checks} check${checks > 1 ? 's' : ''} failed</span>` : '');
     return `<tr><td class="num">#${b.id}</td><td>${esc(b.ticket || '-')}</td><td>${batchWhat(b)}` +
       (Object.keys(b.env || {}).length ? `<div class="mono env">env: ${esc(Object.entries(b.env).map(([k, v]) => k + '=' + v).join(' '))}</div>` : '') +
       `</td><td>${result}${b.exit_code && !n ? ` <span class="pill down">exit ${b.exit_code}</span>` : ''}${fails}</td><td>${whenCell(b)}</td></tr>` +
