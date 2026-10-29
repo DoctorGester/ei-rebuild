@@ -46,10 +46,10 @@ capture far_point
 terrainlevels off
 unfreeze
 samecapture far far_fresh
-vanilla levelsteps far_levels 0 0.0005
-rebirth levelsteps far_levels 0 0.004
-vanilla levelsteps far_point 0.001 1
-rebirth levelsteps far_point 0.006 1
+vanilla levelsteps far_levels 0 0.003
+rebirth levelsteps far_levels 0 0.016
+vanilla levelsteps far_point 0.01 1
+rebirth levelsteps far_point 0.024 1
 mmplevels 80
 terraincache check
 
@@ -69,9 +69,9 @@ capture west_point
 terrainlevels off
 unfreeze
 samecapture west west_fresh
-vanilla levelsteps west_levels 0 0.0005
-rebirth levelsteps west_levels 0 0.004
-vanilla levelsteps west_point 0.001 1
-rebirth levelsteps west_point 0.006 1
+vanilla levelsteps west_levels 0 0.003
+rebirth levelsteps west_levels 0 0.016
+vanilla levelsteps west_point 0.01 1
+rebirth levelsteps west_point 0.024 1
 report
 quit

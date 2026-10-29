@@ -14,6 +14,9 @@
 # - The sheriff's middle topic is the map's reject briefing ("z3q2_2" / "z3q1_2"): command 1 -> LeaveZone 00418CC0
 #   (AwardHost 004191C0 with the final award, QueueAward 00419D90, the next zones queued and shared); 60 s later
 #   the Award message reaches this game's client (ClientOnAward 0041EF90).
+# The desktop's size (H31): a clickground lands where the clicked pixel's ray meets the ground and the leader walks
+# to that exact point, so the walk follows the frame's pixel grid; the goldens are the original's, at the desktop.
+resolution desktop
 timeout 300
 peer net_pair_leave
 reject Script error

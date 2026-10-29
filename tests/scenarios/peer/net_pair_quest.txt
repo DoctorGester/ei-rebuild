@@ -1,6 +1,9 @@
 # The peer of net_pair_quest: makes a new hero, joins the host's game (as in net_pair_join) and waits on the
 # base while the host plays the zone and completes it; it gets its share of the zone's awards (waitaward). No
 # streamed music, as the host's.
+# The desktop's size (H31): a clickground lands where the clicked pixel's ray meets the ground and the leader walks
+# to that exact point, so the walk follows the frame's pixel grid; the goldens are the original's, at the desktop.
+resolution desktop
 timeout 480
 music 0
 reject Script error

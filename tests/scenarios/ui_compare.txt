@@ -35,8 +35,8 @@ freeze
 capture options_cpu
 unfreeze
 uimask options
-# (the options', the tooltip's and the frame rate's glyphs, our font against GDI's, are about 0.8% of the frame)
-samecapture options_cpu options_native 0 0.01
+# (the options', the tooltip's and the frame rate's glyphs, our font against GDI's, are about 1.1% of the 1280x720 frame)
+samecapture options_cpu options_native 0 0.015
 
 # The help over the options (backdrop mode 3: the options' greyed backdrop put away by SwapContents after
 # the frame blitted it, a new one copied from that frame), opened once through each path: the native
