@@ -10,7 +10,6 @@ unsigned DebugLog(const char*, ...) { return 0; }
 
 } // namespace game
 
-#ifndef EI_VECTORS_REPLAY   // the ports read the game CRT's data; ei_vectors has its own (replay_crt.cpp)
 namespace libcrt {
 
 namespace {
@@ -35,13 +34,6 @@ void ShortSort(char* lo, char* hi, std::size_t width, Compare compare) {
         }
         SwapElements(largest, hi, width);
     }
-}
-
-RandObserver g_randObserver;
-// The seed rand advances: one per thread (the game CRT's _tiddata::_holdrand).
-unsigned& RandSeed() {
-    thread_local unsigned seed = 1;
-    return seed;
 }
 
 } // namespace
@@ -102,6 +94,18 @@ void Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
     }
 }
 
+#ifndef EI_VECTORS_REPLAY   // no replay reaches rand (tests/vectors/replay_unlinked.cpp)
+namespace {
+
+RandObserver g_randObserver;
+// The seed rand advances: one per thread (the game CRT's _tiddata::_holdrand).
+unsigned& RandSeed() {
+    thread_local unsigned seed = 1;
+    return seed;
+}
+
+} // namespace
+
 void SetRandObserver(RandObserver observer) { g_randObserver = observer; }
 
 int Rand() {
@@ -114,7 +118,6 @@ int Rand() {
 
 void Srand(unsigned seed) { RandSeed() = seed; }
 unsigned& RandState() { return RandSeed(); }
+#endif
 
 } // namespace libcrt
-
-#endif

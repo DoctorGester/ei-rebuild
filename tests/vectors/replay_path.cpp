@@ -100,30 +100,35 @@ bool SameArray(const std::vector<T>& a, const std::vector<T>& b) {
     return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size() * sizeof(T)) == 0);
 }
 
-// The game's tables into the stand-in; then the smoother's tables as ours builds them, against the
-// game's.
+// The game's plain tables into the stand-in; then the spiral's and the smoother's tables as ours builds them
+// (on first use), against the game's.
 bool CheckTables(Reader& r, char* d, std::size_t n) {
-    // The plain ranges into the stand-in; the last one (the radius tree's depth and mask) into ours.
+    const SectorSpiral& spiral = SectorSpiralTables();
+    // The plain ranges into the stand-in; the last one (the radius tree's depth and mask) against ours.
     const std::uint32_t ranges = r.Get<std::uint32_t>();
+    int depthAndMask[2] = {};
     for (std::uint32_t i = 0; i < ranges && r.ok(); ++i) {
         const Range range = r.Get<Range>();
         const std::uint8_t* bytes = r.Bytes(range.size);
         if (!bytes) continue;
-        if (i + 1 == kTableRangeCount && range.size == kRadiusTreeBytes) std::memcpy(&g_spiralRadii.depth, bytes, kRadiusTreeBytes);
+        if (i + 1 == kTableRangeCount && range.size == kRadiusTreeBytes) std::memcpy(depthAndMask, bytes, kRadiusTreeBytes);
         else std::memcpy(ei::ReplayGameData(range.address, range.size), bytes, range.size);
     }
-    // The three CArrays, in the record's order, into ours.
+    // The three CArrays, in the record's order.
+    std::vector<int> lengths;
+    std::vector<float> keys;
+    std::vector<SpiralOffset> offsets;
     const std::uint32_t arrays = r.Get<std::uint32_t>();
     for (std::uint32_t i = 0; i < arrays && r.ok(); ++i) {
         const Range range = r.Get<Range>();
         std::uint32_t count = 0;
         const std::uint8_t* bytes = GetArray(r, range.size, &count);
         if (!bytes && count) break;
-        if (i == 0) FillArray(g_spiralLengths, bytes, count);
-        else if (i == 1) FillArray(g_spiralRadii.keys, bytes, count);
-        else if (i == 2) FillArray(g_spiralOffsets, bytes, count);
+        if (i == 0) FillArray(lengths, bytes, count);
+        else if (i == 1) FillArray(keys, bytes, count);
+        else if (i == 2) FillArray(offsets, bytes, count);
     }
-    SmoothTable* tables = g_smoothTables;
+    std::vector<SmoothTable> tables(kSmoothTableCount);
     for (int i = 0; i < kSmoothTableCount && r.ok(); ++i) {
         std::uint32_t count = 0;
         const std::uint8_t* bytes = GetArray(r, kSmoothCopySize, &count);
@@ -135,8 +140,14 @@ bool CheckTables(Reader& r, char* d, std::size_t n) {
     }
     if (!r.ok()) return true;   // RunBytes reports the short payload
 
-    static SmoothTable ours[kSmoothTableCount];
-    BuildSmoothTablesAt(ours);
+    if (depthAndMask[0] != spiral.radii.depth || depthAndMask[1] != spiral.radii.mask ||
+        !SameArray(lengths, spiral.lengths) || !SameArray(keys, spiral.radii.keys) || !SameArray(offsets, spiral.offsets)) {
+        std::snprintf(d, n, "sector spiral: ours depth %d, %d lengths, %d keys, %d offsets, the game's %d / %d / %d / %d",
+                      spiral.radii.depth, std::ssize(spiral.lengths), std::ssize(spiral.radii.keys), std::ssize(spiral.offsets),
+                      depthAndMask[0], std::ssize(lengths), std::ssize(keys), std::ssize(offsets));
+        return false;
+    }
+    const SmoothTable* ours = SmoothTables();
     for (int i = 0; i < kSmoothTableCount; ++i) {
         if (SameArray(ours[i].copies, tables[i].copies) && SameArray(ours[i].steps, tables[i].steps) &&
             SameArray(ours[i].chained, tables[i].chained))

@@ -64,7 +64,7 @@ struct Sector {
     std::vector<SectorOccluder> occluders;
 };
 
-// The radii of the sector spiral (filled by its static initialiser): a complete
+// The radii of the sector spiral: a complete
 // binary search tree in an array, root at index 1.
 struct RadiusTree {
     // The slot of `radius` (in sectors): `depth` steps down the tree, right
@@ -86,15 +86,15 @@ struct SpiralOffset {
     std::int16_t x, y;
 };
 static_assert(sizeof(SpiralOffset) == 4);
-// The sector spiral's tables, built by the static initialiser: the 441 offsets of a 21 x 21
-// square of sectors ordered by distance, the number of offsets within each distinct
-// distance and the tree that finds a distance's place among them.
-// Defined in sector_spiral.cpp.
-extern std::vector<int> g_spiralLengths;
-extern RadiusTree g_spiralRadii;
-extern std::vector<SpiralOffset> g_spiralOffsets;
-// What the spiral's static initialiser does, on any three constructed tables (sector_map.cpp).
-void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vector<SpiralOffset>* offsets);
+// The sector spiral's tables: the 441 offsets of a 21 x 21 square of sectors ordered by distance, the number of
+// offsets within each distinct distance and the tree that finds a distance's place among them.
+struct SectorSpiral {
+    std::vector<int> lengths;
+    RadiusTree radii;
+    std::vector<SpiralOffset> offsets;
+};
+// The tables, built on first use (sector_spiral.cpp).
+const SectorSpiral& SectorSpiralTables();
 
 // The AI map's sector map (one virtual: the destructor).
 class CSectorMap {

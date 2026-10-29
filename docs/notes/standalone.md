@@ -652,11 +652,12 @@ kinds given.
         file of its own so the path vectors' replay links them) and the path smoother's node pool and 81 transition
         tables (ai_path_smooth.cpp). Since C50a they are plain globals of ours (the C++ runtime constructs and
         destroys them; no address): their initialisers (005BF810, 005BF840, 005BF8B0, 005C41C0, 005C4460) are
-        gen_static_init's UNUSED_INITIALISERS; the builders 005BF8E0 / 005C42B0 still run at their places in the
-        list. The path vectors keep their format:
+        gen_static_init's UNUSED_INITIALISERS. Since C50a1 the tables are function-local statics built on first use
+        (SectorSpiralTables, SmoothTables; the builders' initialisers 005BF8E0 / 005C42A0 are UNUSED_INITIALISERS
+        too). The path vectors keep their format:
         the record reads game.exe's copies through `ei::OriginalGameData` (a type alias where the type has a
-        template argument: the literal check's pattern takes no nested `<>`), the replay fills ours by the
-        record's order.
+        template argument: the literal check's pattern takes no nested `<>`), the replay compares ours with them in
+        the record's order.
       - Not this rule (C19): an object that carries game.exe's vtable: the CArrays 007A9CC8 / 007AA608, the save stream
         (CMemoryStream 007AFDF8). The console's ostreams and their log pointers are named since C18s (below).
     - **Unread objects** (config/unread_data.csv, written by gen_static_init.py): an object nothing but its
@@ -694,13 +695,14 @@ kinds given.
     - **Whole objects with a hand-ported initialiser**: the logic settings (g_logicSettings, its initialiser 005CDFB0;
       TYPES `LogicSettings`; the stats recorder reads game.exe's copy), and the constructed statics as
       `lib::StaticObject<T>` (zero storage, STATIC_OBJECT_BYTES) whose initialiser and exit function are ported on the
-      name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc: the
-      sector spiral's builder 005BF8E0. A function-local static's exit
+      name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc. A
+      function-local static's exit
       function is ported beside it and the port registers its own (`GameAtExit(DestroyX)`).
     - **Plain globals and locals instead (C50, C50a-d)**: an object of ours that needs no game order is a plain
       global (constructed and destroyed by the C++ runtime), a function-local static or a local, with no address: the
       unit shape cache (ai_movement.cpp), the AI events' pool (ai_events.cpp; the free list 007C53F0 stays named), the
-      spells' footprint set, the sector spiral's tables and the smoother's pool and tables; the frame's draw lists and
+      spells' footprint set, the sector spiral's tables and the smoother's pool and tables (the tables built on first
+      use since C50a1); the frame's draw lists and
       deferred units (world_client_view.cpp), the decal builder, the draw work arrays (particles, glow, fog, shadow,
       draw order), the lever table, the quest's objectives and name, the received messages' stream, the client's
       party id set, the zone table and the quest files / folders; the prints database, the network's send and receive
@@ -1089,7 +1091,7 @@ the `--no-hooks` suite) keeps the registry.
   the same order, so those callers are std::sort (C35h): SetSun's lit sectors by (sy, sx) (one per grid cell),
   the script groups by id (the live objects' ids are unique; copies of one reference are equal), and the fake unit
   scene's corner records and pairs (dead code: equal records hold the same fields the sort's reader takes). Qsort
-  stays for the sector spiral's cells by distance (BuildSectorSpiralAt: many cells share a distance and the order
+  stays for the sector spiral's cells by distance (sector_spiral.cpp: many cells share a distance and the order
   among them is the walk order) and the ambience's class votes by weight (two classes can weigh the same; the first
   three heard are taken in that order).
 - **Formatting** (crt_format.cpp, C35c): one printf of ours, `libcrt::Format` (the full text) behind `str::Format` /

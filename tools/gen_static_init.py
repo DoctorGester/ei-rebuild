@@ -784,6 +784,10 @@ UNUSED_INITIALISERS = {
     0x005C41C0: "the path smoother's 81 tables 007C3058 (exit function 005C41F0): ai_path_smooth.cpp's g_smoothTables",
     0x005C4460: "the path smoother's node pool 007C3038 (exit function 005C4480): ai_path_smooth.cpp's g_smoothPool",
     0x005C8F90: "the AI events' pool 007C43A8 (exit function 005C8FB0): ai_events.cpp's g_eventPool",
+    # C50a1: the AI's tables are built on first use (sector_spiral.cpp's SectorSpiralTables, ai_path_smooth.cpp's
+    # SmoothTables).
+    0x005BF8E0: "the sector spiral's builder 005BF8F0: sector_spiral.cpp's SectorSpiralTables",
+    0x005C42A0: "the path smoother's table builder 005C42B0: ai_path_smooth.cpp's SmoothTables",
     0x0067E4C0: "the spells' footprint set 007C8478 (exit function 0067E500): ai_footprint.cpp's g_spellFootprint",
     # C50b: plain globals of ours in place of the static objects.
     0x004630F0: "the lever table 0079C1A0 (exit function 00463110): lever_table.cpp's g_leverTable",

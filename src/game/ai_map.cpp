@@ -30,16 +30,9 @@ const SectorOccluder* OccluderRecords(const CAIMap* map, int x, int y) {
 constexpr float kTransparency[4] = /*00791744*/ {0.0f, 0.98f, 0.99f, 1.0f};
 constexpr float kMinVisibility = 0.0001f;
 
-// The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius (compared
-// as raw float bits) to the number of offsets within it. (sector_map.h's tables, sector_spiral.cpp).
-std::int32_t SpiralKey(std::uint32_t node) {
-    std::int32_t key;
-    key = std::bit_cast<std::int32_t>(g_spiralRadii.keys[node]);
-    return key;
-}
-std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(g_spiralRadii.mask); }
-const int* SpiralLengthTable() { return g_spiralLengths.data(); }
-const std::int16_t* SpiralOffsets() { return &g_spiralOffsets.data()->x; }
+// The spiral of cell offsets ordered by distance (sector_map.h's tables, built on first use): a binary tree
+// mapping a radius (compared as raw float bits) to the number of offsets within it.
+const std::int16_t* SpiralOffsets() { return &SectorSpiralTables().offsets.data()->x; }
 
 
 } // namespace
@@ -301,14 +294,8 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
         *count = length;
         return SpiralOffsets();
     }
-    std::uint32_t node = 1;
-    for (int depth = g_spiralRadii.depth; depth > 0; --depth) {
-        // The radius is compared as an integer with the tree's keys.
-        int bits;
-        bits = std::bit_cast<std::int32_t>(r);
-        node = node * 2 + (bits > SpiralKey(node) ? 1 : 0);
-    }
-    int found = SpiralLengthTable()[SpiralMask() & node];
+    const SectorSpiral& spiral = SectorSpiralTables();
+    int found = spiral.lengths[spiral.radii.Find(r)];
     *count = found;
     length = found;
     radius = r;
