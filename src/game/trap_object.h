@@ -25,10 +25,10 @@ public:
     const char* ClassName() override;                         // "CTrapObject"
     ClassId GetClassId() override;
     bool IsSynchronised() override { return Slot29True(); }
-    int IsUsable() override { return Slot38One(); }
+    bool IsUsable() override { return Slot38One(); }
     // Disarm with the key record.
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
-    int AcceptsKey(const LockKey* key) override { return KeyFits(key); }
+    bool AcceptsKey(const LockKey* key) override { return KeyFits(key); }
 
     // The map object's Create, flags_ bit 0x40 cleared; returns Create's result.
     int CreateTrap();
@@ -46,7 +46,7 @@ public:
     void LoadTrapObject(CStream* stream);
     void SaveTrapObject(CStream* stream);
     bool Slot29True();   // true
-    int Slot38One();     // 1
+    bool Slot38One();    // true
 
     std::uint32_t savedValue_;   // only loaded and saved; nothing sets it (not even the constructor)
 };

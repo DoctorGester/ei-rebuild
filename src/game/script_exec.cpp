@@ -287,13 +287,13 @@ void UnitModes(const SSCCmd* cmd) {
 
 } // namespace
 
-BOOL ScriptRun::Execute(CScript* script) {
+bool ScriptRun::Execute(CScript* script) {
     ++ticks;
-    if (index >= std::ssize(block->commands)) return 0;
+    if (index >= std::ssize(block->commands)) return false;
     vars.RemoveDeletedObjects();
     int cont = 1;
     while (index < std::ssize(block->commands)) {
-        if (!cont) return 1;
+        if (!cont) return true;
         SSCCmd* cmd = &block->commands[index];
         cmd->SetParameters(cmd->localBindings, &vars);
         cmd->SetParameters(cmd->globalBindings, &script->globals_);
@@ -1070,5 +1070,5 @@ BOOL ScriptRun::Execute(CScript* script) {
         ScriptFreeTemporaries(script);
         if (cont) ++index;
     }
-    return 1;
+    return true;
 }

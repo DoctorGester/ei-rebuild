@@ -14,7 +14,7 @@ void CUnit::SetMotionSpeeds(float speed, float turnRate) {
     unitMotion->Build(path);
 }
 
-int CUnit::HasPlayer() const { return player != nullptr; }
+bool CUnit::HasPlayer() const { return player != nullptr; }
 
 double CUnit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
 

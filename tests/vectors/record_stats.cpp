@@ -148,13 +148,13 @@ double __fastcall ReduceKind1Record(UnitStats* self, void*, float value) {
 
 // 00522A80
 Recorded<OpensCall> g_opens("LockKey::Opens");
-BOOL(__fastcall* s_opens)(LockKey*, void*, const LockKey*);
-BOOL __fastcall OpensRecord(LockKey* self, void*, const LockKey* lock) {
+int(__fastcall* s_opens)(LockKey*, void*, const LockKey*);
+int __fastcall OpensRecord(LockKey* self, void*, const LockKey* lock) {
     auto v = Zeroed<OpensCall>();
     v.key = *self;
     v.lock = *lock;
     std::uint16_t cw = ControlWord();
-    BOOL result = s_opens(self, nullptr, lock);
+    int result = s_opens(self, nullptr, lock);
     v.result = result;
     g_opens.sampler.Offer(v, cw);
     return result;
@@ -175,12 +175,12 @@ std::uint32_t __fastcall ResetDamageRecord(DamageInfo* info) {
 
 // 00522B80
 Recorded<ElementalCall> g_elemental("HasElementalDamage");
-BOOL(__fastcall* s_elemental)(const DamageInfo*);
-BOOL __fastcall ElementalRecord(const DamageInfo* info) {
+int(__fastcall* s_elemental)(const DamageInfo*);
+int __fastcall ElementalRecord(const DamageInfo* info) {
     auto v = Zeroed<ElementalCall>();
     for (int i = 0; i < 3; ++i) v.weights[i] = info->typeWeights[3 + i];
     std::uint16_t cw = ControlWord();
-    BOOL result = s_elemental(info);
+    int result = s_elemental(info);
     v.result = result;
     g_elemental.sampler.Offer(v, cw);
     return result;

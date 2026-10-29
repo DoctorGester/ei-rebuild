@@ -12,7 +12,6 @@
 #include <type_traits>
 #include <unordered_map>
 
-using BOOL = int;
 
 struct FigureAnimation;
 class CManagerContext;
@@ -40,19 +39,19 @@ public:
     void Save(CStream* stream) override;
 
     // Keeps the context and creates; a failed create clears the context again. Returns 1 / 0.
-    virtual BOOL Init(CManagerContext* context);
+    virtual bool Init(CManagerContext* context);
     // A new object of `type` (null when the type is unknown).
     virtual CEngineObject* NewObject(int type) = 0;
     // Destroys and releases every object, then empties the registration tables.
     virtual void DestroyAll();
     // The archive interface of the managers that load from resource archives
     // (CResourceManager overrides them); here they do nothing and return 0 / null / false.
-    virtual BOOL AddArchive(const std::string& path);
-    virtual BOOL RemoveArchive(const std::string& path);
-    virtual BOOL RemoveAllArchives();
+    virtual bool AddArchive(const std::string& path);
+    virtual bool RemoveArchive(const std::string& path);
+    virtual bool RemoveAllArchives();
     virtual void* GetFile(std::string_view name, std::uint32_t* size);
     virtual bool CloseFile(void* data);
-    virtual BOOL HasFile(std::string_view name);
+    virtual bool HasFile(std::string_view name);
     virtual void FreeAllFiles();
     // A spare object of `type`, or a new one (NewObject), registered under `id` or, for -1, under a free id;
     // the manager becomes its owner and it is created. Null when NewObject fails.

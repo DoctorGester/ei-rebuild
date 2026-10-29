@@ -591,7 +591,7 @@ struct AIMemory {
     // level and kind first (900 / -3, 800 / -3, 1000 / -2).
     void Update(CUnitServer* owner);
     // 1 when `other` has the unit's side or player or is in the visible list, else 0.
-    int IsEnemy(CUnit* self, CEngineObject* other);
+    bool IsEnemy(CUnit* self, CEngineObject* other);
     // Takes over a noticed point of a higher `level`: 1 when the level rose by more than 100 or the point
     // lies more than sqrt(10) away (with the point's own z, not a difference), else 0; 0 when the level is
     // not higher.

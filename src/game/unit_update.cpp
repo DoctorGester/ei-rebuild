@@ -125,7 +125,7 @@ void CUnit::SetFromStats(UnitStats* stats) {
 }
 
 int CUnit::Level() {
-    if (IsTextKey(id_) & 0xFF) return Controller()->Level();
+    if (IsTextKey(id_)) return Controller()->Level();
     const auto* prototype =
         unitdb::PrototypeRecord(prototypeId_);
     return static_cast<int>(prototype->level);
@@ -147,8 +147,8 @@ Vector3* CUnit::EyePoint(Vector3* out) {
     StandPoint(&out->x);
     return out;
 }
-int CUnit::IsLargeUnit() { return static_cast<int>(obstacle); }
-int CUnit::IsDead() { return dead; }
+bool CUnit::IsLargeUnit() { return obstacle != 0; }
+bool CUnit::IsDead() { return dead; }
 void CUnit::UpdateMoveFactors() { Controller()->MoveFactorsChanged(); }
 void CUnit::RefreshWounds() { Controller()->RefreshWounds(); }
 double CUnit::MoveSpeed() {

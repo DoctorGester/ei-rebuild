@@ -101,7 +101,7 @@ bool ChunkArchive::NextChild(const ChunkArchive::Ref* parent, std::int32_t* curs
     return true;
 }
 
-bool ChunkArchive::AppendChild(ChunkArchive::Ref* chunk, int id, const void* data, std::uint32_t size) {
+void ChunkArchive::AppendChild(ChunkArchive::Ref* chunk, int id, const void* data, std::uint32_t size) {
     dataStream_.Resize(static_cast<std::uint32_t>(chunk->offset) + size + static_cast<std::uint32_t>(chunk->size) + 5);
     std::uint8_t* base = dataStream_.data_ + chunk->offset;
     base[chunk->size] = static_cast<std::uint8_t>(id);
@@ -119,7 +119,6 @@ bool ChunkArchive::AppendChild(ChunkArchive::Ref* chunk, int id, const void* dat
     // A forward copy: a child moves down over its own header when its chunk is closed (LeaveChunk).
     if (to != data) std::memmove(to, data, size);
     chunk->size += static_cast<std::int32_t>(size);
-    return true;
 }
 
 // The callers inline this search in several places (Field, EnterChunk, the field readers).
@@ -296,7 +295,7 @@ bool FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
     return false;
 }
 
-bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
+void WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
     char tag = static_cast<char>(id);
     out->WriteValue(tag);
     std::uint32_t length = from->Size() * 2;
@@ -308,7 +307,6 @@ bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
     }
     std::uint8_t* data = from->data_;
     out->Write(data, from->Size());
-    return true;
 }
 
 void ChunkArchive::Open(CStream* stream, int loading, int version) {

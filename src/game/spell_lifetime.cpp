@@ -116,10 +116,10 @@ void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster,
     silentEnd = newSilentEnd;
 }
 
-BOOL CSpellEffect::Forget(CEngineObject* object) {
-    if (target == object) return 0;
+bool CSpellEffect::Forget(CEngineObject* object) {
+    if (target == object) return false;
     if (caster == object && caster) caster.Reset();
-    return 1;
+    return true;
 }
 
 // --- An effect's tick --------------------------------------------------------------

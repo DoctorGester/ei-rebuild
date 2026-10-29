@@ -78,7 +78,10 @@ public:
     CPlayerServer();
     ~CPlayerServer() override;
 
-    int Create() override { return CreateServer(); }
+    int Create() override {
+        CreateServer();
+        return 1;
+    }
     void Destroy() override { ClearServerState(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -150,7 +153,7 @@ public:
     // sent list (each drop releases it) and message 0x42 goes out; it leaves both groups in any case.
     // Returns 1.
     int ForgetObject(CEngineObject* object);
-    BOOL IsPartyUnit(CEngineObject* object);
+    bool IsPartyUnit(CEngineObject* object);
     // Message 0x80: the party saved (with its variables) as a sized block; the next refresh in 900..1800
     // updates (ISAAC).
     void SendParty();
@@ -252,7 +255,7 @@ public:
     // target and what it sees) and sets it back to -1. Sent with message 0x60.
     std::uint32_t possessedId_;
     // ClearServerState, then the handler table: 256 entries, zeroed, and the 25 handlers by message type.
-    BOOL CreateServer();
+    void CreateServer();
 
     using Handler = int (CPlayerServer::*)();
     std::vector<Handler> handlers_;   // by message type (null: refused; 256 of them)
@@ -283,7 +286,7 @@ static_assert(sizeof(PlayerLoginMessage) == 0x88);
 // 1 when the first `maxLength` bytes of `text` are printable characters, each a valid UTF-8 sequence of a printable
 // code point; a terminator before that gives whether at least `minLength` characters came first; 0 at the first
 // unprintable one. (The original took the game's isprint of each signed char.)
-BOOL IsPrintableText(const char* text, int maxLength, int minLength);
+bool IsPrintableText(const char* text, int maxLength, int minLength);
 
 // |a - b| squared, unrounded (the use order's nearest-unit test).
 double UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
@@ -306,12 +309,15 @@ public:
     CPlayer();
     ~CPlayer() override;
 
-    int Create() override { return CreatePlayer(); }
+    int Create() override {
+        CreatePlayer();
+        return 1;
+    }
     void Destroy() override { DestroyPlayer(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    BOOL CreatePlayer();
+    void CreatePlayer();
     void DestroyPlayer();
     // Empties the given items, both known-object maps, the units (each taken away; the walk stops at the
     // first null) and the recharge list, then the connection's ForgetSentObjects.
@@ -330,18 +336,18 @@ public:
 
     // Whether `unit` is the party's leader: there are records and its id is the first record's key. 0 for
     // null.
-    BOOL IsLeader(const CEngineObject* unit);
+    bool IsLeader(const CEngineObject* unit);
     // The connection's ItemsGiven, then every item of `items` counted and appended to the given items.
     void GiveItems(const std::list<CItem*>* items, int flag);
     // The connection's ItemsTaken, then every given item taken off the head and released.
     void TakeAllItems();
     // 1 when a given loot item (ItemKind::Quest) has `kind` (CItemLoot::kind_), or an item a unit of the player
     // carries has it (any class; the walk stops at a null unit).
-    BOOL HasLoot(int kind);
+    bool HasLoot(int kind);
     // The first given loot item of `kind` / item with id `id`: the connection's ItemTaken, out of the list,
     // released; 1, or 0 when there is none.
-    BOOL TakeLoot(int kind);
-    BOOL TakeItem(int id);
+    bool TakeLoot(int kind);
+    bool TakeItem(int id);
     // A unit not yet in units_ is counted, raises the max id and is put in; then the connection's
     // UnitChanged. Nothing for null or a known unit.
     void AddUnit(CUnit* unit);

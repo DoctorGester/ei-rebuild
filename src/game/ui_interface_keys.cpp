@@ -75,7 +75,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     CChatOverlay* chat = root_;
-    if ((IsMultiplayerClient() & 0xFF) && chat->chatOpen_) {   // the low byte
+    if (IsMultiplayerClient() && chat->chatOpen_) {
         WindowKeyDown(chat, key, repeat, flags);
         return;
     }

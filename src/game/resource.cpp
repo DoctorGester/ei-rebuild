@@ -81,7 +81,7 @@ void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
 
 void CMappedResource::Flush() {}   // 4
 
-BOOL CMappedResource::OpenResource(const std::string& path, BOOL writable) {
+bool CMappedResource::OpenResource(const std::string& path, bool writable) {
     // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
     // which archive this is.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
@@ -97,20 +97,20 @@ BOOL CMappedResource::OpenResource(const std::string& path, BOOL writable) {
         if (header_.magic != kResMagic) {
             game::FatalError("Wrong format resource file \"" + path + "\"");
             CloseResource();
-            return 0;
+            return false;
         }
         unsigned tableSize = header_.count * sizeof(ResEntry);
         entries_ = new ResEntry[header_.count];
         names_ = new char[header_.namesSize];
         if (ReadAt(handle_, header_.tableOffset, entries_, tableSize) &&
             ReadAt(handle_, header_.tableOffset + tableSize, names_, header_.namesSize))
-            return 1;
+            return true;
     }
     CloseResource();
     return game::FatalError("CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"");
 }
 
-BOOL CMappedResource::OpenFromMemory(const void* image) {
+bool CMappedResource::OpenFromMemory(const void* image) {
     CloseResource();
     // GetFile hands out pointers into the image (writable through them).
     char* base = const_cast<char*>(static_cast<const char*>(image));
@@ -259,7 +259,7 @@ void CMappedFile::Close() {
     size_ = 0;
 }
 
-BOOL CMappedFile::Open(const std::string& path, BOOL writable) {
+bool CMappedFile::Open(const std::string& path, bool writable) {
     if (writable) game::DebugLog("CMappedFile::Open().\nMapping file \"%s\" with writting access.\n", path);
 
     // Unbuffered I/O only when the volume's sector size divides the page size.
@@ -320,14 +320,14 @@ void CMappedFile::Flush() {
 }
 
 
-BOOL CMMIOResource::OpenResource(const std::string& path, BOOL writable) {
+bool CMMIOResource::OpenResource(const std::string& path, bool writable) {
     if (!file_.Open(path, writable)) return false;
     if (OpenFromMemory(file_.view_)) return true;
     CloseResource();
     return false;
 }
 
-BOOL CMMIOResource::OpenFromMemory(const void* image) {
+bool CMMIOResource::OpenFromMemory(const void* image) {
     char* base = const_cast<char*>(static_cast<const char*>(image));
     mappedImage_ = base;
     lib::LoadBytes(header_, base);

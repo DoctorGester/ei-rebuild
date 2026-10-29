@@ -74,9 +74,9 @@ void CloseAndDelete(CMappedResource* source) {
 
 } // namespace
 
-BOOL TextSources::Add(const std::string& path, BOOL writable) {
+bool TextSources::Add(const std::string& path, bool writable) {
     for (const TextSource& archive : archives)
-        if (SameName(archive, path)) return 1;
+        if (SameName(archive, path)) return true;
     auto* resource = new CMappedResource();
     archives.push_back(TextSource{path, resource});
     return archives.back().source->OpenResource(path, writable);
@@ -96,7 +96,7 @@ void TextSources::Clear() {
     archives.clear();
 }
 
-BOOL CTextManager::AddSource(const std::string& path) {
+bool CTextManager::AddSource(const std::string& path) {
     return sources_.Add(path, 0);
 }
 

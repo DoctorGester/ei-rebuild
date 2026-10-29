@@ -48,14 +48,14 @@ int CMapObject::CompanionQuery(int first, int second) {
 
 // The game's function reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not
 // weaponIds: the name is provisional. Found when zone bz1g's units mismatched.
-int CUnitClientSpecific::HasOtherArmour() {
+bool CUnitClientSpecific::HasOtherArmour() {
     for (int slot = 3; slot < 7; ++slot)
-        if (armourIds[slot] != kNoModel) return 1;
-    return 0;
+        if (armourIds[slot] != kNoModel) return true;
+    return false;
 }
 
-int CUnitClientSpecific::HasMainArmour() {
+bool CUnitClientSpecific::HasMainArmour() {
     for (int slot = 0; slot < kDressedArmourSlots; ++slot)
-        if (armourIds[slot] != kNoModel) return 1;
-    return 0;
+        if (armourIds[slot] != kNoModel) return true;
+    return false;
 }

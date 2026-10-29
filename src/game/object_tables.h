@@ -12,7 +12,6 @@
 
 #include "lib/hash_map.h"
 
-using BOOL = int;
 
 class CStream;
 
@@ -21,7 +20,7 @@ class CStream;
 int TextKeyFromName(std::string_view name);
 
 // Text keys are 1000000000..1999999999.
-BOOL IsTextKey(int id);
+bool IsTextKey(int id);
 
 // One "#allod" entry of map.txt.
 struct AllodRecord {

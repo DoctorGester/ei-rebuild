@@ -74,7 +74,7 @@ void CInterface3D::OnChar(int key, int repeat, int flags) {
         static_cast<console::ConsoleWindow*>(console_)->OnChar(key, repeat, flags);
         return;
     }
-    if ((IsMultiplayerClient() & 0xFF) && root_->chatOpen_) {   // the low byte
+    if (IsMultiplayerClient() && root_->chatOpen_) {
         root_->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
         return;
     }

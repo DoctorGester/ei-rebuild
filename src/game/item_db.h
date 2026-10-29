@@ -20,7 +20,6 @@ class CStream;
 class ChunkArchive;
 
 // 0/1 in all 32 bits: callers test all of them.
-using BOOL = int;
 
 // CEngineObject::type_ of an item: which database its prototype lives in.
 enum class ItemKind : int {

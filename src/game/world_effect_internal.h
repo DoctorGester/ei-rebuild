@@ -45,9 +45,9 @@ inline float FromBits(std::uint32_t u) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> inline float FromBits(T) = delete;
 // The inline test after every velocity change: moving unless all three components are 0.
-inline int IsMoving(const Vector3& v) {
+inline bool IsMoving(const Vector3& v) {
     EI_NAN_AUDIT(v.x, v.y, v.z);
-    return v.x == 0.0f && v.y == 0.0f && v.z == 0.0f ? 0 : 1;
+    return !(v.x == 0.0f && v.y == 0.0f && v.z == 0.0f);
 }
 
 // `min(value, 1.0)` the way the scorch code selects it: the value when it compares below 1.0 or

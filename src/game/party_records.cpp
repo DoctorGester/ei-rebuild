@@ -120,9 +120,8 @@ bool PartyManager::LoadParty(const int* key, CParty* target) const {
     return true;
 }
 
-bool PartyManager::StoreParty(const int* key, CParty* source) {
+void PartyManager::StoreParty(const int* key, CParty* source) {
     CParty* value = FindParty(parties, *key);
     if (!value) value = PartyAt(parties, *key);
     value->Assign(source);
-    return true;
 }

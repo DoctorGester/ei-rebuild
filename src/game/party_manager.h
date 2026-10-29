@@ -60,5 +60,5 @@ struct PartyManager {
     bool LoadParty(const int* key, CParty* target) const;
     // Copies `source` into the party stored under the key (PartyAt creates it when missing; the copy
     // reads `source` non-const). True.
-    bool StoreParty(const int* key, CParty* source);
+    void StoreParty(const int* key, CParty* source);
 };

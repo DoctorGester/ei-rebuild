@@ -25,7 +25,7 @@ AIBrain* BrainOf(CUnitServer* self) { return &self->brain; }
 
 } // namespace
 
-BOOL CUnitServer::RefreshVitals(char withHitPoints) {
+void CUnitServer::RefreshVitals(char withHitPoints) {
     int now = WorldContext()->tick_;
     float oldRate = stats.rate;
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
@@ -35,7 +35,6 @@ BOOL CUnitServer::RefreshVitals(char withHitPoints) {
         nextAttackTime = x87::RoundToInt(scaled) + now;
     }
     unit->MarkChanged(0);
-    return 1;
 }
 
 void CUnitServer::UpdateProtection() {
@@ -74,10 +73,9 @@ bool CUnitServer::RebuildArmourLayers() {
 
 int CUnitServer::ClearOuterArmourLayers() { return stats.ClearOuterLayers(); }
 
-BOOL CUnitServer::RefreshEquipment() {
+void CUnitServer::RefreshEquipment() {
     RefreshItemSpells();
     BrainOf(this)->attention.Build(unit);
-    return 1;
 }
 
 void CUnitServer::HostileMaskChanged() {
@@ -87,7 +85,7 @@ void CUnitServer::HostileMaskChanged() {
 
 void CUnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(UnitStats)); }
 
-BOOL CUnitServer::AddExperience(float amount) {
+void CUnitServer::AddExperience(float amount) {
     stats.GainExperience(unit, amount);
-    return RefreshVitals(0);
+    RefreshVitals(0);
 }

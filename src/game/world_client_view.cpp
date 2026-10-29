@@ -152,7 +152,7 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
         if (object && Object3D(object)->attached) {
             bool process = true;
             if (object->GetClassId() == ClassId::Unit) {
-                if (object->MapType() == MapObjectType::Hero && (IsTextKey(object->id_) & 0xFF) && !withScripted) {
+                if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id_) && !withScripted) {
                     process = false;
                 } else if (animateUnits) {
                     object->AdvanceTime(animTime);

@@ -89,7 +89,7 @@ public:
     void PopChunk();
 
     bool NextChild(const Ref* parent, std::int32_t* cursor, Ref* out);
-    bool AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size);
+    void AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size);
     // The `occurrence`-th child `id` of `parent` into `out`.
     bool FindChild(const Ref* parent, int id, Ref* out, int occurrence);
     int CountChildrenOf(const Ref* parent, int id);
@@ -225,4 +225,4 @@ bool ReadStreamChunk(CStream* in, char* id, CMemoryStream* to);
 // From the start of the stream, the `occurrence`-th chunk `id` into `to`; on a read error or the end, `to` is
 // cleared and false.
 bool FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence);
-bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from);
+void WriteStreamChunk(CStream* out, int id, CMemoryStream* from);

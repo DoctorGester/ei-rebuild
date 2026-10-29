@@ -147,11 +147,11 @@ void CBaseManager::Destroy() {
     context_ = nullptr;
 }
 
-BOOL CBaseManager::Init(CManagerContext* context) {
+bool CBaseManager::Init(CManagerContext* context) {
     context_ = context;
-    if (Create()) return 1;
+    if (Create()) return true;
     context_ = nullptr;
-    return 0;
+    return false;
 }
 
 // Every object gets a reference, then is destroyed, then released (objects nothing else holds go back to the
@@ -169,12 +169,12 @@ void CBaseManager::DestroyAll() {
 
 // --- No archives --------------------------------------------------------------------------------
 
-BOOL CBaseManager::AddArchive(const std::string&) { return 0; }
-BOOL CBaseManager::RemoveArchive(const std::string&) { return 0; }
-BOOL CBaseManager::RemoveAllArchives() { return 0; }
+bool CBaseManager::AddArchive(const std::string&) { return false; }
+bool CBaseManager::RemoveArchive(const std::string&) { return false; }
+bool CBaseManager::RemoveAllArchives() { return false; }
 void* CBaseManager::GetFile(std::string_view, std::uint32_t*) { return nullptr; }
 bool CBaseManager::CloseFile(void*) { return false; }
-BOOL CBaseManager::HasFile(std::string_view) { return 0; }
+bool CBaseManager::HasFile(std::string_view) { return false; }
 void CBaseManager::FreeAllFiles() {}
 
 // --- Objects in and out -------------------------------------------------------------------------

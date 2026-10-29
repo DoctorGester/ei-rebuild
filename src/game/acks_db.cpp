@@ -119,7 +119,7 @@ const SpeechRecord* SayAck(CUnit* unit, AckKind kind) {
         unit->Controller()->StopSpeech();
         return nullptr;
     }
-    if ((IsTextKey(unit->id_) & 0xFF) && unit->moveMode < 2) kind = PartyKind(kind);
+    if (IsTextKey(unit->id_) && unit->moveMode < 2) kind = PartyKind(kind);
     auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return nullptr;
 

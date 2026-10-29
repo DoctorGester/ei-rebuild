@@ -14,7 +14,7 @@
 namespace {
 
 // Writes one value of `subkey`: 1 (the settings file always takes it).
-BOOL SetValue(void* root, const char* subkey, const char* name, DWORD type, const void* data, DWORD size) {
+bool SetValue(void* root, const char* subkey, const char* name, DWORD type, const void* data, DWORD size) {
     return settings_file::Set(root, subkey, name, type, data, size) == 0;
 }
 
@@ -38,7 +38,7 @@ std::uint32_t GetDWordValue(void* root, const char* subkey, const char* name, st
 }
 
 // The REG_DWORD writers (two copies of the same code).
-BOOL SetDWordValue(void* root, const char* subkey, const char* name, std::uint32_t value) {
+bool SetDWordValue(void* root, const char* subkey, const char* name, std::uint32_t value) {
     return SetValue(root, subkey, name, REG_DWORD, &value, 4);
 }
 
@@ -56,7 +56,7 @@ void CWinRegistry::Destroy() {
 bool CWinRegistry::Open(const char* path, std::uint32_t /*root: HKEY_CURRENT_USER for every caller*/) {
     Close();
     key_ = settings_file::CreateKey(path);
-    return 1;
+    return true;
 }
 
 void CWinRegistry::Close() {

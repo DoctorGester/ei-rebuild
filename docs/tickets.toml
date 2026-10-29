@@ -5319,3 +5319,10 @@ title = "HeldRef for the AI memory lists; pendingParts is never filled"
 group = "cleanup"
 depends = ["C49b"]
 note = "C49b follow-up. AIMemory's nearby / visible / seenCorpses / corpses (std::list<CUnit*>, counted by hand in unit_ai_brain.cpp ReleaseAllObjects / RemoveObjectNode, combat_lifetime.cpp Init/DestroyObjectList, combat_taming ReleaseAndClear, WitnessMurder's std::list<CUnit*>*) to std::list<HeldRef<CUnit>> where the release order stays. CObject3D::pendingParts: nothing in src or tests adds to it (only reads, RemovePart, LoadFigures' sic drop, Destroy3D); check game.exe's writers and delete it with its loops if it is dead. Goldens unchanged."
+
+[[ticket]]
+id = "C51a"
+title = "C51 rest: Create/RunTick/OnShutdown always-1 virtuals, char/int flag params, Slot-true virtuals"
+group = "cleanup"
+depends = ["C51"]
+note = "Left by C51. (1) The engine_object.h virtuals int Create() / int RunTick() and core_refcount.h OnShutdown(): about a hundred overrides return 1 or an ignored value; make them void together (CBaseManager::Create is tested in CPlayerManager::CreatePlayers). (2) int/char flag parameters and members (create, remove, skipSun, wholePage, RefreshVitals' withHitPoints, BeginCreateItem callers). (3) always-true bool virtuals (Slot29True, KeepsMapFlag, AcceptsAnimation, IsSynchronised) once their callers are named. (4) CItemConstructor::SetMaterial/SetPrototype/SetSpellObject/BeginCreateItem and TextClose-style helpers still tested in ui_camp.cpp: finish in C54. (5) other int predicates: CanCastSpell/CanUseQuickItem return codes 0/1/3/4 (not bool), IncomingCount, net link Query/Alive."

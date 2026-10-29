@@ -20,7 +20,6 @@
 #include "lib/static_object.h"
 #include "lib/vecmath.h"
 
-using BOOL = int;
 
 class CUnit;
 class CUnitServer;
@@ -76,7 +75,7 @@ struct ScriptGroup : std::vector<ScriptObjectRef> {
     void InsertAll(const std::list<CUnit*>* list);
     // Replaces the list's contents, as counted references.
     void CopyToList(std::list<CUnit*>* list) const;
-    BOOL Contains(CEngineObject* object) const;
+    bool Contains(CEngineObject* object) const;
     // A count and that many object ids, then sorted.
     void Load(CStream* stream);
 };
@@ -113,9 +112,9 @@ struct ScriptVars {
     // Every value and name dropped.
     void Clear();
     // Any type; case-sensitive.
-    BOOL HasVariable(std::string_view name) const;
+    bool HasVariable(std::string_view name) const;
     // Sets *type (1..4) and *index (-1 when not found).
-    BOOL FindVariable(std::string_view name, int* index, int* type) const;
+    bool FindVariable(std::string_view name, int* index, int* type) const;
     void RemoveDeletedObjects();
 
     ScriptNamedValues<float> floats;
@@ -361,7 +360,7 @@ struct ScriptDefinition {
     // instance's variables; FatalError when a type's count does not match.
     void BindCall(const SSCCmd* call);
     // FALSE when the name is taken.
-    BOOL AddParameter(const std::string* name, int type);
+    bool AddParameter(const std::string* name, int type);
     // Emptied (CScript::Load before each `Script` section).
     void Reset();
 
@@ -383,7 +382,7 @@ struct ScriptRun {
     void Save(CStream* stream) const;
     // Rebirth patches it. Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil,
     // SleepUntilIdle) or the block ends. Returns 0 when the block had already ended on entry, else 1.
-    BOOL Execute(CScript* script);
+    bool Execute(CScript* script);
 
     ScriptDecl* block = nullptr;    // the commands
     int index = 0;                  // next command
@@ -465,35 +464,35 @@ public:
         return Error(script, line, code, format, libprintf::Arg(std::forward<Args>(args))...);
     }
     // See script.md, "Lexer".
-    BOOL Tokenize(const std::string& text, std::list<ScriptToken>* tokens);
-    BOOL ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id);
+    bool Tokenize(const std::string& text, std::list<ScriptToken>* tokens);
+    bool ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
     std::string* QualifyName(std::string* out, const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(std::string_view name);
     // Rebirth patches it. `signature`: the parameter types (lower-case letters). `assignment`: one parameter,
     // no parentheses; `scriptCall`: one extra float and string slot.
-    BOOL LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id,
-                      ScriptVars* locals, const char* signature, BOOL assignment, BOOL scriptCall);
+    bool LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id,
+                      ScriptVars* locals, const char* signature, bool assignment, bool scriptCall);
     // Float functions up to ')'.
-    BOOL LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptToken>::const_iterator* pos,
+    bool LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptToken>::const_iterator* pos,
                         const std::list<ScriptToken>* tokens, ScriptVars* locals);
     // `if(...)then(...)` pairs up to ')'.
-    BOOL LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens);
+    bool LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens);
     // `= value` assigned to global variable `name` (command 0x78).
-    BOOL LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+    bool LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                             ScriptVars* locals, const std::string* name);
     // `name : type, ...)` (parameters or GlobalVars). Returns 0 without an error when the tokens run out.
-    BOOL LoadVariableDeclarations(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos,
-                                  const std::list<ScriptToken>* tokens, BOOL qualify);
+    bool LoadVariableDeclarations(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos,
+                                  const std::list<ScriptToken>* tokens, bool qualify);
     // Rebirth patches it. Commands up to ')'; null `locals` means an empty variable set (For bodies; with
     // Rebirth's AllowScriptArgsInLoops a For body gets the enclosing `locals`).
-    BOOL LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+    bool LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                       ScriptVars* locals);
     // The text is replaced by its #define-expanded form.
-    BOOL Load(std::string* text, BOOL runWorldScript);
+    bool Load(std::string* text, bool runWorldScript);
     // With the WorldScript started; error 0x11 when the file cannot be read.
-    BOOL LoadFile(const std::string& path);
+    bool LoadFile(const std::string& path);
 
     // The id is the block count after it.
     ScriptDecl* NewCommandList();

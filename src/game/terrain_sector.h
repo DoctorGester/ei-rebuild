@@ -190,7 +190,7 @@ struct SectorData {
     void SetDetail(int level);
 
     // Whether the last clip test did not cull the sector.
-    int IsDrawn() const;
+    bool IsDrawn() const;
     // The box, and unless culled its quarters, with the renderer's pipeline.
     void ClipTest(CSceneRenderer* renderer);
     // At detail 0 whether the lit sectors before / after in y are drawn at detail 1, at detail 1 whether

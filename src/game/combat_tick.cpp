@@ -67,8 +67,8 @@ bool IsCastKind(UnitOrderKind kind) { return kind == UnitOrderKind::CastAt || ki
 bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn || kind == UnitOrderKind::Use; }
 
 // The map objects' virtuals. The movement-state virtual is 1 while a unit moves.
-bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
-int IsMoving(CMapObject* object) { return object->IsLargeUnit(); }
+bool IsDead(CMapObject* object) { return object->IsDead(); }
+bool IsMoving(CMapObject* object) { return object->IsLargeUnit(); }
 int WorldTick(const CEngineObject* object) { return ObjectWorld(object)->tick_; }
 float PrototypeHeight(CUnit* unit) { return unit->GetPrototype()->height; }
 CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
@@ -570,7 +570,7 @@ void CUnitServer::ExecuteOrder() {
                 char calledShot = static_cast<char>(plan->notSkill);
                 int location = plan->hitLocation;
                 auto* defender = victim->ServerController();
-                int backstab = unit->IsBehind(victim) & 0xFF;
+                int backstab = unit->IsBehind(victim);
                 if (victim->GetClassId() == ClassId::Unit && defender->moveMode2.onGuard) backstab = 0;
                 CItemWeapon* weapon = ActiveWeapon(unit);
                 if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) backstab = 0;

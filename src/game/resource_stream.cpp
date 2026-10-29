@@ -88,7 +88,7 @@ void CResourceStream::Close() {
     size_ = 0;
 }
 
-BOOL CResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
+bool CResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
     // Close the file opened before (the archive stays open).
     if (offset_ != 0) {
         offset_ = 0;
@@ -107,19 +107,19 @@ BOOL CResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
         if (file_ != nullptr) {
             if (size != nullptr) *size = found.nFileSizeLow;
             offset_ = 1;
-            return 1;
+            return true;
         }
     }
-    if (entries_ == nullptr || names_ == nullptr) return 0;
+    if (entries_ == nullptr || names_ == nullptr) return false;
     int index = FindEntry(name);
-    if (index == -1) return 0;
+    if (index == -1) return false;
     offset_ = static_cast<std::int32_t>(entries_[index].offset);
     if (gameapi::mmioSeek(static_cast<HMMIO>(archive_), offset_, SEEK_SET) == -1) {
         offset_ = 0;
-        return 0;
+        return false;
     }
     if (size != nullptr) *size = entries_[index].size;
-    return 1;
+    return true;
 }
 
 long CResourceStream::Read(char* buffer, long size) {

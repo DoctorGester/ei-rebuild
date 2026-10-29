@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <cstdint>
 
-using BOOL = int;
 
 class CStream;
 class CUnit;
@@ -23,7 +22,7 @@ struct CDiplomacy {
     // Sets how `player` treats `other` (row `player`, bit `other`): 0 allied, 1 neutral,
     // 2 hostile; other values leave the table alone. With `applyToUnits`, every unit of `player`
     // gets bit `other` of its hostile mask set (relation 2) or cleared (anything else).
-    void SetRelation(int player, int other, int relation, BOOL applyToUnits);
+    void SetRelation(int player, int other, int relation, bool applyToUnits);
 
     // 0 if `player` is allied with `other`, else 2 if hostile, else 1.
     int GetRelation(int player, int other) const;

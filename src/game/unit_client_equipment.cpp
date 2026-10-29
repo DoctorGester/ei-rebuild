@@ -39,16 +39,15 @@ bool NeedsReload(void* composed, CTexture* texture, const std::string& name, boo
 }
 } // namespace
 
-int CUnitClientSpecific::RefreshEquipment() {
+void CUnitClientSpecific::RefreshEquipment() {
     std::string name;
     // EI_Plugin's Fixes: the test for a hero is gone, every unit is refreshed.
-    if (unit->MapType() != MapObjectType::Hero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return 1;
+    if (unit->MapType() != MapObjectType::Hero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return;
     auto* half = unit->Object3D()->ClientSpecific();
     CTexture* detailed = SkinTexture(half->partSets[0]);
     if (NeedsReload(ComposeSkin(1, &name), detailed, name, false)) Reload(detailed, name);
     CTexture* simple = SkinTexture(half->partSets[1]);
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
-    return 1;
 }
 
 int CUnitClientSpecific::RefreshModel() {

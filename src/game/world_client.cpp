@@ -179,14 +179,14 @@ bool CWorldClient::IsLocalPlayerIdle() {
 
 // ---- Exits ---------------------------------------------------------------------------------------
 
-BOOL CWorldClient::FindExitAt(const float* point, int* index) {
+bool CWorldClient::FindExitAt(const float* point, int* index) {
     for (int i = 0; i < std::ssize(exits_); ++i) {
         if (!exits_[i].Contains(point[0], point[1])) continue;
         if (str::Compare(exits_[i].target, "none") == 0) continue;
         if (index) *index = i;
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 namespace {
@@ -235,8 +235,8 @@ void CWorldClient::CreateExitMarkers() {
     UpdateExitMarkers();
 }
 
-BOOL CWorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit) {
-    BOOL result = 1;
+bool CWorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit) {
+    bool result = 1;
     int living = 0;
     inExit->clear();
     for (int i = 0; i < std::ssize(*records); ++i) {

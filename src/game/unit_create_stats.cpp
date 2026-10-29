@@ -500,7 +500,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     if (type < 5 || type == 5 || type == 6) {
         int skill = type >= 5 ? 1 : 0;
         float level = LevelAsFloat(this, type);
-        if (!(IsTextKey(unit->id_) & 0xFF)) return static_cast<double>(static_cast<int>(skills[skill])) + level;
+        if (!IsTextKey(unit->id_)) return static_cast<double>(static_cast<int>(skills[skill])) + level;
         float weapon = WeaponBonus(unit, skill);
         float value = static_cast<float>(static_cast<int>(skills[skill]));
         const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
@@ -513,27 +513,27 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         return ((base + value) + weapon) + level;
     }
     if (type == 8) {
-        if (!(IsTextKey(unit->id_) & 0xFF)) return static_cast<double>(static_cast<int>(skills[0]));
+        if (!IsTextKey(unit->id_)) return static_cast<double>(static_cast<int>(skills[0]));
         float weapon = WeaponBonus(unit, 0);
         return SkillWithBonus(0) + weapon;
     }
     return 0.0f;
 }
 
-BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record) {
-    if (!record->learnable) return 0;
+bool UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record) {
+    if (!record->learnable) return false;
     EI_NAN_AUDIT(strength, dexterity, intelligence);
-    if (strength < record->RequiredStat(0)) return 0;
-    if (dexterity < record->RequiredStat(1)) return 0;
-    if (intelligence < record->RequiredStat(2)) return 0;
+    if (strength < record->RequiredStat(0)) return false;
+    if (dexterity < record->RequiredStat(1)) return false;
+    if (intelligence < record->RequiredStat(2)) return false;
     if (NamesRequirement(record->requiredSkillName)) {
         int skill = record->RequiredSkill();
-        if (skill == 0x7FFFFFFF) return 0;
-        if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
+        if (skill == 0x7FFFFFFF) return false;
+        if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return false;   // unchecked
     }
     if (NamesRequirement(record->requiredLevelName)) {
         int required = database->IndexOf(record->requiredLevelName);
-        if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
+        if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return false;
     }
     int group = const_cast<SkillDatabase*>(database)->IndexOfLevel(record) / 3;
     for (int k = 0; k < 26; ++k) {
@@ -541,10 +541,10 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
         if (level == 0) continue;
         const ::SkillLevelRecord* known = LevelRecordAt(static_cast<std::uint32_t>(3 * k + level - 1));
         if (!known || known->exclusionGroup != record->exclusionGroup) continue;
-        if (const_cast<SkillDatabase*>(database)->IndexOfLevel(known) / 3 != group) return 0;
+        if (const_cast<SkillDatabase*>(database)->IndexOfLevel(known) / 3 != group) return false;
     }
     int own = database->IndexOf(record->name);
-    return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
+    return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1;
 }
 
 int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& name) {

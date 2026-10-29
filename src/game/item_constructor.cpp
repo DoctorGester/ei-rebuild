@@ -267,7 +267,7 @@ void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager) manager->AddRef();
 }
 
-BOOL CItemConstructor::BeginCreateItem(ItemKind kind, int key) {
+bool CItemConstructor::BeginCreateItem(ItemKind kind, int key) {
     CItem* item = manager_->CreateObjectAs<CItem>(kind, key);
     if (!item) return game::FatalError(kCantCreateItem);
     item_.Assign(item);
@@ -275,22 +275,22 @@ BOOL CItemConstructor::BeginCreateItem(ItemKind kind, int key) {
     prototype_ = nullptr;
     count_ = 1;
     flags_ |= kFlagConstructing;
-    return 1;
+    return true;
 }
 
-BOOL CItemConstructor::SetMaterial(MaterialRecordHead* material) {
+bool CItemConstructor::SetMaterial(MaterialRecordHead* material) {
     material_ = material;
-    return 1;
+    return true;
 }
 
-BOOL CItemConstructor::SetPrototype(ItemRecordHead* prototype) {
+bool CItemConstructor::SetPrototype(ItemRecordHead* prototype) {
     prototype_ = prototype;
-    return 1;
+    return true;
 }
 
-BOOL CItemConstructor::SetSpellObject(CSpell* spell) {
+bool CItemConstructor::SetSpellObject(CSpell* spell) {
     spell_ = spell;
-    return 1;
+    return true;
 }
 
 CItem* CItemConstructor::EndCreateItem() {
@@ -306,17 +306,16 @@ CItem* CItemConstructor::EndCreateItem() {
     return item;
 }
 
-BOOL CItemConstructor::Cancel() {
+void CItemConstructor::Cancel() {
     item_.Reset();
     spell_ = nullptr;
     material_ = nullptr;
     prototype_ = nullptr;
-    return 1;
 }
 
-BOOL CItemConstructor::Build() {
+bool CItemConstructor::Build() {
     ClassId classId = item_->GetClassId();
-    if ((classId == ClassId::ItemWeapon || item_->GetClassId() == ClassId::ItemArmor) && !material_) return 0;
+    if ((classId == ClassId::ItemWeapon || item_->GetClassId() == ClassId::ItemArmor) && !material_) return false;
 
     const ItemRecordHead* prototype = prototype_;
     const MaterialRecordHead* material = material_;
@@ -341,7 +340,7 @@ BOOL CItemConstructor::Build() {
     else
         item_->prototypeId_ = index << 16;
     item_->count_ = static_cast<std::uint32_t>(count_);
-    return 1;
+    return true;
 }
 
 // --- The item manager's CreateItem ----------------------------------------------------

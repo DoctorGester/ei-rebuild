@@ -41,7 +41,7 @@ struct ClientSpeech {
 
 // What the speech queue's filters compare.
 struct SpeechFilter {
-    int Replaced(const ClientSpeech* queued) const;
+    bool Replaced(const ClientSpeech* queued) const;
     // Has `queued`'s sound ended (it had one)? A talking speech then clears the server unit's flag 0x800000.
     bool Finished(const ClientSpeech* queued) const;
     int unitId;                     // SpeechFinished: the unit whose talking flag ends
@@ -200,14 +200,14 @@ public:
 
     // 1 when a weapon model is held (any weapon id not -1). HasMainArmour: 1 when one of the first three
     // armour slots (body, trousers, helmet) holds a model.
-    int HasOtherArmour() override;
-    int HasMainArmour() override;
+    bool HasOtherArmour() override;
+    bool HasMainArmour() override;
 
     // For heroes the composed skins are renewed: the detailed one (ComposeSkin(1)) into the first part set's
     // texture (read unchecked) and the simple one (ComposeSkin(0)) into the second's (skipped when missing).
     // A texture takes the new name and is reloaded (flags_ 8 cleared, its manager's LoadTexture) when
-    // ComposeSkin returned non-zero or the name differs. Returns 1.
-    int RefreshEquipment() override;
+    // ComposeSkin returned non-zero or the name differs.
+    void RefreshEquipment() override;
     int RefreshModel() override;
     // Every armour slot taken off, the ids cleared, then the first min(count, 7) of `ids` put on.
     void SetArmourModels(const std::uint32_t* ids, int count) override;

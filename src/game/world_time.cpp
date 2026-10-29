@@ -35,11 +35,11 @@ double CWorld::NightLevel() {
     return 1.0;   // also NaN
 }
 
-BOOL CWorld::IsNight() {
+bool CWorld::IsNight() {
     double hours = std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay);
-    if (hours >= 22.0) return 1;
-    if (hours >= 6.0) return 0;
-    return 1;   // also NaN
+    if (hours >= 22.0) return true;
+    if (hours >= 6.0) return false;
+    return true;   // also NaN
 }
 
 void CWorld::GetTime(float* hours, float* speed) {

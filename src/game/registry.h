@@ -23,9 +23,9 @@ public:
     // The destructor body: closes the file (when it owns one).
     void Destroy();
     // Maps the file at `path`. Returns 0 if it cannot be opened or is not a registry.
-    BOOL Open(const std::string& path);
+    bool Open(const std::string& path);
     // Uses a registry image already in memory. Returns 0 if it is not a registry.
-    BOOL Attach(const void* image);
+    bool Attach(const void* image);
     // Closes the mapped file (when it owns one) and forgets the data.
     void Close();
 
@@ -34,8 +34,8 @@ public:
     // then; 0 for an array; for a scalar type it is 1). A wrong type logs and gives null.
     const std::uint8_t* FindData(const char* section, const char* key, unsigned type, int* isScalar);
 
-    // The names of all sections into `out` (in table order). Returns 1.
-    BOOL GetSectionNames(std::vector<std::string>* out);
+    // The names of all sections into `out` (in table order).
+    void GetSectionNames(std::vector<std::string>* out);
 
     // Identical copies. An int value, a float one truncated (_ftol), or `defaultValue`.
     int GetInt(const char* section, const char* key, int defaultValue);
@@ -50,12 +50,12 @@ public:
     void GetStringBuffer(const char* section, const char* key, char* buffer, int* length, const char* defaultValue);
 
     // Int / float array (or a single value) into `out`. Without the key `out` is emptied and the result is 0.
-    BOOL GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out);
-    BOOL GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out);
+    bool GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out);
+    bool GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out);
     // A string array (or a single string) into `out`. Without the key `out` is emptied and the result is 0.
-    BOOL GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
+    bool GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
 
-    BOOL attached_;               // 1: the data is not ours (Attach)
+    bool attached_;               // 1: the data is not ours (Attach)
     CMappedFile file_;
     const std::uint8_t* data_;
 };

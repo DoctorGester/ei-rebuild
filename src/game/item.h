@@ -46,10 +46,10 @@ public:
     // 1 for the item itself; else the same kind, packed id, magicLevel_ and (equal or unordered floats)
     // condition_..chargeMax_ and weight_..unreadValue_, and both without a spell or both with one of the same
     // packed id and modifiers.
-    virtual BOOL IsSameAs(CItem* other);
+    virtual bool IsSameAs(CItem* other);
     // `target`, when of the same kind, gets (after its Destroy) this item's packed id, condition_..magicLevel_,
     // a copy of the spell (CSpell::Clone with `spells`) and count_ 1. 0 for another kind.
-    virtual BOOL CopyTo(CItem* target, CSpellManager* spells);
+    virtual bool CopyTo(CItem* target, CSpellManager* spells);
     virtual float GetPrice() { return price_; }
     // "" for a plain item.
     virtual std::string ModelName();
@@ -58,7 +58,7 @@ public:
     // The key the item works as on a lock (AcceptsKey, a lever's or a trap's ApplyScience): zeros; the quest
     // item's has its id.
     virtual LockKey GetUse();
-    BOOL IsSameAsSlot(CItem* other) { return IsSameAs(other); }
+    bool IsSameAsSlot(CItem* other) { return IsSameAs(other); }
 
     // A new item of the same kind from the owning manager, given this one's values through the copy virtual
     // with the spell manager `spells`; when that fails the new item is released and the result is null.
@@ -138,7 +138,7 @@ public:
     // 24-bit precision (it does under Rebirth).
     double RollDamage();
 
-    BOOL IsSameAs(CItem* other) override;
+    bool IsSameAs(CItem* other) override;
 
     // Names built from the prototype. Model name: "<type>_<number>.<material name>.<variant>" (type "sw",
     // "ax", ...; empty without a prototype or material). Figure name: "unhuma" + the model name. Picture name:
@@ -147,7 +147,7 @@ public:
     std::string FigureName() override;
     std::string PictureName() override;
 
-    BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    bool CopyTo(CItem* target, CSpellManager* spells) override;
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
@@ -176,9 +176,9 @@ public:
     std::string FigureName() override;
     std::string PictureName() override;
 
-    BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    bool CopyTo(CItem* target, CSpellManager* spells) override;
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    BOOL IsSameAs(CItem* other) override;
+    bool IsSameAs(CItem* other) override;
     // CItem's, then the two absorption rows (0x1C bytes each; layerMask_ is not saved).
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
@@ -199,10 +199,10 @@ public:
     // out of range), else "qitem<number>" (-1 without a prototype).
     std::string FigureName() override;
     std::string PictureName() override;
-    BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    bool CopyTo(CItem* target, CSpellManager* spells) override;
     // Also the scrolls'. The base's, then actionValue_.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    BOOL IsSameAs(CItem* other) override;
+    bool IsSameAs(CItem* other) override;
     // Also the scrolls'. CItem's, then actionValue_.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
@@ -218,9 +218,9 @@ public:
 
     std::string FigureName() override;    // "quitem<number>"
     std::string PictureName() override;   // "initqu<number>item"
-    BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    bool CopyTo(CItem* target, CSpellManager* spells) override;
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    BOOL IsSameAs(CItem* other) override;
+    bool IsSameAs(CItem* other) override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     // (8, the id, 0); the other classes return zeros.
@@ -242,7 +242,7 @@ public:
     std::string FigureName() override;
     // "initqi1item".
     std::string PictureName() override;
-    BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    bool CopyTo(CItem* target, CSpellManager* spells) override;
 };
 
 class CItemLoot : public CItem {
@@ -261,10 +261,10 @@ public:
     // "initwe..." / "initar..." / "initqi..." for records, "initqi1item" for spells and modifiers,
     // "initlimt<index>item" for materials, "initlitr<number>item" for the loot itself.
     std::string PictureName() override;
-    BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    bool CopyTo(CItem* target, CSpellManager* spells) override;
     // The base's, then kind_, recordType_ and index_.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    BOOL IsSameAs(CItem* other) override;
+    bool IsSameAs(CItem* other) override;
     // CItem's, then kind_, recordType_ and index_. Load reads the first two through the storage of
     // `stream` (a read that writes nothing leaves the pointer's value, then the previous value).
     void Load(CStream* stream) override;
@@ -329,23 +329,23 @@ public:
 
     // Creates the item through the manager (with `kind`, `key`): counted, records cleared, count 1, flag 8
     // set. Returns 1, or a fatal error's result.
-    BOOL BeginCreateItem(ItemKind kind, int key);
+    bool BeginCreateItem(ItemKind kind, int key);
 
-    BOOL SetMaterial(itemdb::MaterialRecordHead* material);
-    BOOL SetPrototype(itemdb::ItemRecordHead* prototype);
-    BOOL SetSpellObject(CSpell* spell); // not counted
+    bool SetMaterial(itemdb::MaterialRecordHead* material);
+    bool SetPrototype(itemdb::ItemRecordHead* prototype);
+    bool SetSpellObject(CSpell* spell); // not counted
 
     // Builds the item. On failure releases it and returns null; otherwise hands it over
     // (its count dropped without release, flag 8 cleared) and returns it.
     CItem* EndCreateItem();
 
-    // Releases the item; records and spell cleared. Returns 1.
-    BOOL Cancel();
+    // Releases the item; records and spell cleared.
+    void Cancel();
 
     // Fills the item from a temporary database record: the prototype's values combined with the material's,
     // then the item's InitFromRecord; attaches the prototype's spell (wands, category 8) or the given one;
     // sets the packed id and the count. Returns 0 for a weapon or armor without a material, else 1.
-    BOOL Build();
+    bool Build();
 
     // Whether the item being built can hold a spell: not a weapon or armour (class 0x11 / 0x12) without a
     // material. `level` gets the prototype's magicLevel plus the material's (unsigned, as a float), `power` the

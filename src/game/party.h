@@ -15,7 +15,6 @@
 #include <string>
 #include <vector>
 
-using BOOL = int;
 
 class CItem;
 class CItemConstructor;
@@ -77,19 +76,19 @@ public:
     PartyUnitRecord* AddMember(std::string_view name, std::string_view prototype, std::string_view extra);
     // Gives `record` what its prototype (text 5) says: text 2 from its model, the NPC statistics, the three
     // scales, copies (CItem::Clone) of the starting armour, of the two weapons unless
-    // empty or "none", and of the spells; text 6 = text 5. Returns 1. (The lists come from the record: the
+    // empty or "none", and of the spells; text 6 = text 5. (The lists come from the record: the
     // lookup that could fail, a missing prototype, cannot happen after the record was read.)
-    BOOL FillFromPrototype(PartyUnitRecord* record);
+    void FillFromPrototype(PartyUnitRecord* record);
     // The multiplayer hero's starting equipment: `record`'s spells and weapons released and removed (from the
     // front), then, from the NPC record of its prototype (text 5; g_unitDatabase->npcs' operator[], which adds an empty
     // entry for an unknown name), copies of the start spells (appended), quick items and weapons (each at its
     // list's count, SetAtGrow), the start money added to the party's, the start experience to the record's
     // statistics, and text 6 = text 5. 0 without an NPC record (after the lists were emptied), else 1.
-    BOOL EquipFromPrototype(PartyUnitRecord* record);
+    bool EquipFromPrototype(PartyUnitRecord* record);
     // The record of the unit with id `unitId`, or null.
     PartyUnitRecord* Find(int unitId);
     // Destroys the first record whose key is `key` and closes the gap; 1 when there was one, else 0.
-    BOOL RemoveMember(int key);
+    bool RemoveMember(int key);
     // When the party's zone is an edge zone (map.txt kind 1), every exit's target zone of kind 0
     // gets its variable "z.<name>" set to 1 unless it is already nonzero (0 or NaN is set).
     void OpenEdgeExits();

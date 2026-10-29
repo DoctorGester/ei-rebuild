@@ -29,7 +29,7 @@ void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
 
 } // namespace
 
-BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
+bool CUnitServer::TryTame(CUnit* tamer, float roll) {
     float bonus = static_cast<float>(stats.AttributeWithItems(kStatTaming, unit));
     int level = TamingStage();
     float limit = static_cast<float>(level * 10) + bonus;
@@ -37,7 +37,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.
         UndoIfTamedBy(this, tamer);
         ServerWorld()->diplomacy_.OnAttack(tamer, unit);
-        return 0;
+        return false;
     }
     CPlayer* tamerPlayer = tamer->player;
     switch (Stage(this)) {
@@ -78,7 +78,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         }
         action2.modifier = 0;
     }
-    return 1;
+    return true;
 }
 
 void CUnitServer::UndoTaming() {

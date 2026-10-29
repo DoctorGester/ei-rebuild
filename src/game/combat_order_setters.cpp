@@ -144,16 +144,16 @@ void CUnitServer::StopAction() {
     if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) DropQueuedOrder();
 }
 
-BOOL CUnitServer::HasOtherArmour() {
+bool CUnitServer::HasOtherArmour() {
     for (int slot = 3; slot < 7; ++slot)
-        if (unit->armor[slot]) return 1;
-    return 0;
+        if (unit->armor[slot]) return true;
+    return false;
 }
 
-BOOL CUnitServer::HasMainArmour() {
+bool CUnitServer::HasMainArmour() {
     for (int slot = 0; slot < 3; ++slot)
-        if (unit->armor[slot]) return 1;
-    return 0;
+        if (unit->armor[slot]) return true;
+    return false;
 }
 
 FigureAnimation* CBaseManager::FindFigureAnimation(const std::string& figure, const char* name) {

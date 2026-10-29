@@ -42,7 +42,6 @@
 
 inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
-using BOOL = int;
 
 class CParticleSource;
 class CPlayerClient;
@@ -149,7 +148,7 @@ public:
 
     // The world's own virtuals; docs/notes/map_objects.md, "Virtual slot names".
     virtual const char* TexturePath() { return nullptr; }   // the client's "textures\"
-    virtual int IsServer() { return 0; }                    // the server's 1
+    virtual bool IsServer() { return false; }                    // the server's 1
     virtual double GridHeightAt(float x, float y) = 0;
     // The server's AI map height.
     virtual double RawSurfaceHeightAt(float x, float y) = 0;
@@ -175,7 +174,7 @@ public:
     virtual void MoveObject(CMapObject*, const float*) {}
 
     // Whether the hour of the day is before 6 or from 22 on (a NaN counts as night).
-    BOOL IsNight();
+    bool IsNight();
     // The time of day in hours and the time speed (1 / (seconds per tick * 15)), both stored as floats.
     void GetTime(float* hours, float* speed);
     void SetWind(const Vector3* direction, float strength);
@@ -254,7 +253,7 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     CItem* DuplicateItem(CItem* item) override { return CopyItem(item); }
-    int IsServer() override;
+    bool IsServer() override;
     double GridHeightAt(float x, float y) override { return GridHeight(x, y); }
     // RawSurfaceHeightAt: the AI map's top height at (x, y, 0); the other two return GridHeightAt /
     // RawSurfaceHeightAt unclamped.
@@ -292,7 +291,7 @@ public:
     void SetClimate(int value);
     void SetWeather(int weather, float strength);
     // Target zone and entrance of exit `index`; FALSE when out of range.
-    BOOL GetZoneExit(int index, std::string* target, int* entrance);
+    bool GetZoneExit(int index, std::string* target, int* entrance);
     // Registers an object that lives for a limited time (spells, effects) in timedObjects_.
     void AddTimedObject(CEffect* object);
     void RemoveTimedObject(unsigned id);
@@ -786,7 +785,7 @@ public:
     // FALSE without a local view or while the local player's controller is busy.
     bool IsLocalPlayerIdle();
     // Index of the exit whose area contains `point` and that leads somewhere.
-    BOOL FindExitAt(const float* point, int* index);
+    bool FindExitAt(const float* point, int* index);
     float* ExitCentre(float* out, int index);
     // One ZoneExit particle source (0x2038) per exit that leads somewhere, in exitMarkers_ at the exit's index (the old
     // markers released), then UpdateExitMarkers.
@@ -794,7 +793,7 @@ public:
     // Whether the party can leave through `exit`: every living unit of `records` (unit id in the
     // record) stands in an exit (FindExitAt) and that exit is `exit`. Those that do are listed in
     // `inExit` (emptied first). 0 when no unit lives.
-    BOOL PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit);
+    bool PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit);
     // Makes the bird when there is none, resets it and has it follow the unit of the local party's first
     // record.
     void SummonBird();
@@ -1020,7 +1019,7 @@ struct DepthLess {
     bool Less(const ScreenEntry* a, const ScreenEntry* b) const;
 };
 
-BOOL IsMultiplayerClient();
+bool IsMultiplayerClient();
 // Game clock: whole ticks + fraction.
 float GameTime();
 class CParty* LocalPlayerData();

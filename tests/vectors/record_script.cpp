@@ -116,11 +116,11 @@ const char* __fastcall KeywordNameRecord(int id) {
 void PutCString(Writer& w, const exe::CString& s) { w.PutString(static_cast<const char*>(s)); }
 
 // 004CF7A0: PUSH -1; PUSH imm32 (7). Error results keep the script's error.
-BOOL(__fastcall* s_tokenize)(OriginalScript*, void*, const exe::CString*, OriginalScriptTokenList*);
-BOOL __fastcall TokenizeRecord(OriginalScript* self, void*, const exe::CString* source, OriginalScriptTokenList* tokens) {
+int(__fastcall* s_tokenize)(OriginalScript*, void*, const exe::CString*, OriginalScriptTokenList*);
+int __fastcall TokenizeRecord(OriginalScript* self, void*, const exe::CString* source, OriginalScriptTokenList* tokens) {
     OfferFixtures();
     std::uint16_t cw = ControlWord();
-    BOOL result = s_tokenize(self, nullptr, source, tokens);
+    int result = s_tokenize(self, nullptr, source, tokens);
     const std::uint32_t length = Length(*source);
     if (length > kMaxSource) return result;
     Writer w;

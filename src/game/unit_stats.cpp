@@ -176,12 +176,12 @@ std::uint32_t ResetDamageInfo(DamageInfo* info) {
     return kLarge;
 }
 
-BOOL HasElementalDamage(const DamageInfo* info) {
+bool HasElementalDamage(const DamageInfo* info) {
     EI_NAN_AUDIT(info->typeWeights[3], info->typeWeights[4], info->typeWeights[5]);
     if (info->typeWeights[3] == 0.0f && info->typeWeights[4] == 0.0f && info->typeWeights[5] == 0.0f) {
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 std::uint32_t DamageWords::ExcessOver(const DamageWords* protection) const {

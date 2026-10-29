@@ -53,7 +53,7 @@ int CTextureManager::Create() {
     if (!CBaseManager::Create()) return 0;
     ForgetComposedTextures();
     const std::string folder = *g_textFolder;
-    BOOL opened = AddArchive((folder + "textures.res"));
+    bool opened = AddArchive((folder + "textures.res"));
     opened = AddArchive((folder + "redress.res")) && opened ? 1 : 0;
     if (!AddArchive((folder + "menus.res")) || !opened) return 0;
     // Rebirth's ResOverride: when all three opened, the mod's texture archives follow.

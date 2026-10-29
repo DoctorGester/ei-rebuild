@@ -63,9 +63,8 @@ int PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t
 const char* CPlayer::ClassName() { return "CPlayer"; }
 ClassId CPlayer::GetClassId() { return ClassId::Player; }
 
-BOOL CPlayer::CreatePlayer() {
+void CPlayer::CreatePlayer() {
     DestroyPlayer();
-    return 1;
 }
 
 void CPlayer::DestroyPlayer() {
@@ -139,15 +138,15 @@ std::uint32_t ItemWord4C(CItem* item) { return AsQuest(item)->questItemId_; }
 // The first given item `match` accepts: the connection's lookup, its node removed, the item
 // released. 1, or 0 when there is none.
 template <typename Match>
-BOOL TakeFirst(CPlayer* player, Match match) {
+bool TakeFirst(CPlayer* player, Match match) {
     auto node = player->items_.begin();
     while (node != player->items_.end() && !match(*node)) ++node;
-    if (node == player->items_.end()) return 0;
+    if (node == player->items_.end()) return false;
     CEngineObject* item = *node;
     player->connection_->ItemTaken(item);
     player->items_.erase(node);
     item->Release();
-    return 1;
+    return true;
 }
 
 } // namespace
@@ -178,9 +177,9 @@ void CPlayer::ForgetKnownObjects() {
     dirty_ = 0xFFFFFFFFu;
 }
 
-BOOL CPlayer::IsLeader(const CEngineObject* unit) {
+bool CPlayer::IsLeader(const CEngineObject* unit) {
     const std::vector<PartyUnitRecord>& members = Party()->members_;
-    if (std::ssize(members) == 0 || unit == nullptr) return 0;
+    if (std::ssize(members) == 0 || unit == nullptr) return false;
     return static_cast<std::uint32_t>(unit->id_) == members[0].unitId;
 }
 
@@ -204,24 +203,24 @@ void CPlayer::TakeAllItems() {
     items_.clear();
 }
 
-BOOL CPlayer::HasLoot(int kind) {
+bool CPlayer::HasLoot(int kind) {
     for (auto node = items_.begin(); node != items_.end(); ++node)
-        if ((*node)->Kind() == ItemKind::Quest && ItemWord4C(*node) == static_cast<std::uint32_t>(kind)) return 1;
+        if ((*node)->Kind() == ItemKind::Quest && ItemWord4C(*node) == static_cast<std::uint32_t>(kind)) return true;
     for (auto node = units_.begin(); node != units_.end() && node->second != nullptr; ++node) {
         CUnit* unit = node->second;
         for (CItem* item : unit->carried)
-            if (ItemWord4C(item) == static_cast<std::uint32_t>(kind)) return 1;
+            if (ItemWord4C(item) == static_cast<std::uint32_t>(kind)) return true;
     }
-    return 0;
+    return false;
 }
 
-BOOL CPlayer::TakeLoot(int kind) {
+bool CPlayer::TakeLoot(int kind) {
     return TakeFirst(this, [kind](CItem* item) {
         return item->Kind() == ItemKind::Quest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
     });
 }
 
-BOOL CPlayer::TakeItem(int id) {
+bool CPlayer::TakeItem(int id) {
     return TakeFirst(this, [id](CItem* item) { return item->id_ == id; });
 }
 

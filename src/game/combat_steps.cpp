@@ -353,12 +353,12 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrder
 
 // --- Attacks ---------------------------------------------------------------------------------
 
-bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CMapObject* target) {
+void CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CMapObject* target) {
     CUnit* victim = UnitOrNull(target);   // the target is set
     if (!victim) {
         plan->hitLocation = 1;
         BuildOrderSteps(steps, duration, UnitOrderKind::Attack, kKeyNoTarget);
-        return true;
+        return;
     }
 
     // An attack order on the target, as ActionDistance sees it (the target is referenced).
@@ -480,7 +480,6 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     order.target.Reset();
 
     BuildOrderSteps(steps, duration, UnitOrderKind::Attack, key);
-    return true;
 }
 
 // --- Death and falls -------------------------------------------------------------------------

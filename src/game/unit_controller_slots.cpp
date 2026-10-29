@@ -36,10 +36,10 @@ void CUnitController::Destroy() { unit = nullptr; }
 int CUnitController::FiguresLoaded() { return 1; }
 
 // The client's too.
-int CUnitController::RefreshVitals(char) { return 0; }
-int CUnitController::Heal(float) { return 0; }
+void CUnitController::RefreshVitals(char) {}
+bool CUnitController::Heal(float) { return false; }
 
-int CUnitController::TakeHit(DamageInfo*, CUnit*, CUnit*) { return 0; }
+bool CUnitController::TakeHit(DamageInfo*, CUnit*, CUnit*) { return false; }
 
 bool CUnitController::WeaponAdded(std::uint32_t) { return false; }
 bool CUnitController::RemoveWeaponModel(std::uint32_t) { return false; }

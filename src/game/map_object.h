@@ -101,7 +101,7 @@ struct LockKey;
 class CMapObject : public CObject3D {
 public:
     int ScaleEffectChangedDefault();
-    int AcceptsNoKey();
+    bool AcceptsNoKey();
 
     ~CMapObject() override;
     int Create() override { return CreateMapObject(); }
@@ -139,14 +139,14 @@ public:
     virtual void SetServerData(const UnitVitals* data);
     // Empty; units: the controller's size-class virtual.
     virtual void UpdateSizeClasses();
-    virtual int IsUsable();            // 0; traps 1, levers NeedsKey
-    virtual int IsDirectUseBlocked();  // 0; levers their directUseBlocked
+    virtual bool IsUsable();            // 0; traps 1, levers NeedsKey
+    virtual bool IsDirectUseBlocked();  // 0; levers their directUseBlocked
     virtual std::uint32_t KeyId();     // the key it asks for: -123; levers override
     // A skill used on the object (traps Disarm, levers ApplyKey); here logs "Science is applied on wrong object"
     // and returns false.
     virtual bool ApplyScience(const LockKey* key, CEngineObject* user);
     // Whether `key` fits: 0; levers KeyOpens, traps KeyFits.
-    virtual int AcceptsKey(const LockKey* key);
+    virtual bool AcceptsKey(const LockKey* key);
     // True; levers a flag of theirs (a best guess). The AI map's MarkFootprint refreshes units' passage around
     // the object only when it is true.
     virtual bool KeepsMapFlag();
@@ -171,8 +171,8 @@ public:
     // Where the object is at world time `time` (units: along their path; other objects ignore the time).
     virtual Vector3* PositionAt(Vector3* out, int time);
     virtual Vector3* AimPoint(Vector3* out);        // GetPosition2
-    virtual int IsLargeUnit();                      // 0; units their own
-    virtual int IsDead();                           // non-zero when dead or gone
+    virtual bool IsLargeUnit();                      // 0; units their own
+    virtual bool IsDead();                           // non-zero when dead or gone
     // `object` is going away (the world server's RemoveObject tells every object). Empty (0); units: the
     // controller's matching virtual; magic traps override.
     virtual int ForgetObject(CEngineObject* object);
@@ -188,7 +188,7 @@ public:
     // stamps it with the world's change counter.
     void MarkChanged(int part);
     // Has the object an active effect of type `type` (compared with MapEffect::type)?
-    int HasEffect(std::uint32_t type);
+    bool HasEffect(std::uint32_t type);
 
     void SetUpMapObject();
 
@@ -225,8 +225,8 @@ public:
 
     // Bits 16 (invisible: set by the client for effect 0x0F), 18 (stunned: effect 0x19) and 17 of flags_;
     // IsInvisible and the bit-17 test are virtuals.
-    std::uint32_t IsInvisible();
-    std::uint32_t IsStunned();
+    bool IsInvisible();
+    bool IsStunned();
     std::uint32_t Flag20000();
 
     int CreateMapObject();
@@ -247,7 +247,7 @@ public:
     int SetVisibilityLevel(float level);
 
     // Whether the object is dead: the companion's IsDead.
-    int CompanionIsDead();
+    bool CompanionIsDead();
     // The sector map's Remove. The companion's virtual (empty in both); returns 1.
     int NotifyCompanion();
     // The network state written in full / only its changed parts (the statistics, repacked first when part 0 or 4
@@ -310,8 +310,8 @@ public:
     virtual void Hit(int, int) {}
     // Whether the object is dead (server: hit points rounded to 16 bits <= 0; client: the unit's hit points
     // <= 0).
-    virtual int IsDead() = 0;
-    virtual int IsOverkilled() = 0;
+    virtual bool IsDead() = 0;
+    virtual bool IsOverkilled() = 0;
     // The client's sets the object's light mode; the server's is empty.
     virtual void SetLightMode(int) {}
 

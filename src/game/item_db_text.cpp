@@ -60,13 +60,13 @@ bool IsUpperArmor(const ArmorRecord* armor) {
 
 } // namespace
 
-BOOL CTextManager::IsPastEnd(const char* p) {
+bool CTextManager::IsPastEnd(const char* p) {
     // SUB; CMP; SETGE: the distance from the start compared signed with the length.
     int offset = static_cast<int>(p - text_);
     return offset >= static_cast<int>(length_);
 }
 
-BOOL CTextManager::GetString(std::string_view name, std::string* out) {
+bool CTextManager::GetString(std::string_view name, std::string* out) {
     if (cursor_) {
         text_ = nullptr;
         cursor_ = nullptr;
@@ -82,16 +82,16 @@ BOOL CTextManager::GetString(std::string_view name, std::string* out) {
         if (out->data() != name.data()) *out = name;
         text_ = nullptr;
         cursor_ = nullptr;
-        return 0;
+        return false;
     }
     ReadToHash(out, 1);
     str::TrimRight(*out, kLineEnd);
     text_ = nullptr;
     cursor_ = nullptr;
-    return 1;
+    return true;
 }
 
-BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* description, std::string* kind) {
+void CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* description, std::string* kind) {
     std::uint32_t materialIndex = MaterialIndex(item->prototypeId_);
     std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId_);
     std::string recordName;
@@ -206,14 +206,13 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
     default: break;
     }
     if (kindKey) GetString(kindKey, kind);
-    return 1;
 }
 
-BOOL CTextManager::FormatItemName(CItem* item, std::string* out) {
+void CTextManager::FormatItemName(CItem* item, std::string* out) {
     std::string name;
     std::string format;   // first the description, then the format text
     std::string kind;
-    if (!GetItemTexts(item, &name, &format, &kind)) return 0;
+    GetItemTexts(item, &name, &format, &kind);
     if (static_cast<int>(item->count_) > 1) {
         GetString("format_item2", &format);
         *out = str::Format(format, kind, name, item->count_);
@@ -221,6 +220,5 @@ BOOL CTextManager::FormatItemName(CItem* item, std::string* out) {
         GetString("format_item1", &format);
         *out = str::Format(format, kind, name);
     }
-    return 1;
 }
 

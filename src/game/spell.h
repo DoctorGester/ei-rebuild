@@ -44,7 +44,7 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    BOOL InitFromPrototype(const itemdb::SpellRecord* prototype);
+    void InitFromPrototype(const itemdb::SpellRecord* prototype);
 
     // Null if the index is out of range.
     itemdb::SpellRecord* GetPrototype();
@@ -117,7 +117,7 @@ public:
     ~CSpellEffect() override;
 
     // Split between the targets when there are several.
-    BOOL GetDamage(DamageInfo* out);
+    void GetDamage(DamageInfo* out);
 
     // When the spell may affect `unit` (no caster, or CSpell::CanAffect). The attacker is the caster unless
     // flags bit 0 is set.
@@ -170,7 +170,7 @@ public:
     void Init(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* position, CMapObject* target,
               const Vector3* targetPoint, std::uint8_t newSilentEnd);
     // 0 when `object` is the target (the world then drops the effect).
-    BOOL Forget(CEngineObject* object);
+    bool Forget(CEngineObject* object);
 
     // The position, caster and target ids, the target point, the state, the spell, the packed id, the visual
     // / sound / light ids (-1 for none), the timer, the flags and the position again. Load finds the objects
@@ -203,7 +203,7 @@ public:
 
 // Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5
 // (or NaN).
-int IsSpellTarget(CUnit* unit);
+bool IsSpellTarget(CUnit* unit);
 
 // A spell under construction (created by the spell manager as SpellObjectType::Container): a prototype, the modifiers added
 // so far, and the CSpell that Build computes from them.
@@ -221,16 +221,16 @@ public:
     ClassId GetClassId() override;
 
     // Null is a fatal error (its result is returned). Returns 1.
-    BOOL AddModifier(itemdb::SpellModifierRecord* modifier);
+    bool AddModifier(itemdb::SpellModifierRecord* modifier);
 
     // By the modifier's first code letter: a, d, e, r, t read the prototype's flag bytes; others are
     // accepted. 0 without a prototype or modifier.
-    int AllowsModifier(const itemdb::SpellModifierRecord* modifier);
+    bool AllowsModifier(const itemdb::SpellModifierRecord* modifier);
 
     // Area (a), effect (e), mana (m), range (r) scale with the modifier's strength, duration (d) and t add
     // integers, f* add target flags and ic/it cast flags; every modifier adds its price, mana and level. The
-    // area becomes a radius (sqrt(area / pi)); the modifier list is sorted. Returns 1.
-    BOOL Build();
+    // area becomes a radius (sqrt(area / pi)); the modifier list is sorted.
+    void Build();
 
 
     const itemdb::SpellRecord* prototype_;
@@ -313,13 +313,13 @@ public:
     void SetManager(CSpellManager* manager);
 
     // Returns 1, or a fatal error's result without a manager or prototype.
-    BOOL BeginConstruct(const itemdb::SpellRecord* prototype);
+    bool BeginConstruct(const itemdb::SpellRecord* prototype);
 
     // Returns 1, or a fatal error's result.
-    BOOL EndConstruct();
+    bool EndConstruct();
 
     // Rebuilds when the prototype accepts it.
-    BOOL AddModifier(itemdb::SpellModifierRecord* modifier);
+    bool AddModifier(itemdb::SpellModifierRecord* modifier);
 
     CSpellManager* manager_;        // counted but never released
     Ref<CSpellContainer> container_;
@@ -339,10 +339,10 @@ public:
     void Destroy() override;                // flags_ bit 5 cleared
     const char* ClassName() override;
     ClassId GetClassId() override;
-    // Kind 1; flags_ bit 3 (changed). Returns 1.
-    BOOL SetPoint(const Vector3* color, const Vector3* position);
-    // Kind 3; the light also tilts towards `direction`; flags_ bit 3. Returns 1.
-    BOOL SetDirectional(const Vector3* color, const Vector3* direction);
+    // Kind 1; flags_ bit 3 (changed).
+    void SetPoint(const Vector3* color, const Vector3* position);
+    // Kind 3; the light also tilts towards `direction`; flags_ bit 3.
+    void SetDirectional(const Vector3* color, const Vector3* direction);
     // The terrain water layer's specular lighting: `base` plus the light's colour times `scale` and a factor,
     // each channel clamped at 1; w is then not written (the callers do not read it). Unlit, `out` is `base`. The
     // factor: 1 - distance^2 / range^2 (unlit below 0), times 1 + the cosine between `normal` and `toLight` when

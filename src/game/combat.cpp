@@ -103,7 +103,7 @@ float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.man
 std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 
 float Radius(CMapObject* object) { return object->Radius(); }
-int IsDead(CMapObject* object) { return object->IsDead(); }
+bool IsDead(CMapObject* object) { return object->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
 // A zero-extended dword converted as a 64-bit integer (exact; a plain uint32 conversion would add 2^32 in a step
@@ -155,19 +155,19 @@ float CUnitServer::AttackRange() {
     return stats.combat[UnitStats::kReach];
 }
 
-BOOL CUnitServer::HasRangedWeapon() {
+bool CUnitServer::HasRangedWeapon() {
     CItemWeapon* weapon = ActiveWeapon(unit);
-    if (!weapon) return 0;
-    return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow ? 1 : 0;
+    if (!weapon) return false;
+    return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
 }
 
-BOOL CUnitServer::AttacksFromRange() {
+bool CUnitServer::AttacksFromRange() {
     if (!ActiveWeapon(unit)) {
-        return stats.naturalWeapon != kNoNaturalWeapon && stats.combat[UnitStats::kReach] > 1.0f ? 1 : 0;
+        return stats.naturalWeapon != kNoNaturalWeapon && stats.combat[UnitStats::kReach] > 1.0f;
     }
     CItemWeapon* weapon = ActiveWeapon(unit);
-    if (!weapon) return 0;
-    return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow ? 1 : 0;
+    if (!weapon) return false;
+    return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
 }
 
 void CUnitServer::GetDamageByType(DamageWords* out) {
@@ -272,16 +272,16 @@ bool CUnitServer::CanCast(const AIOrder* order) {
     return true;
 }
 
-BOOL CUnitServer::GetMovePoint(float* out) {
+bool CUnitServer::GetMovePoint(float* out) {
     if (action.kind == UnitOrderKind::Move) {
         lib::StoreBytes(out, action.point);
-        return 1;
+        return true;
     }
     if (action2.kind == UnitOrderKind::Move) {
         lib::StoreBytes(out, action2.point);
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 float CUnitServer::ActionDistance(const AIOrder* order) {
@@ -379,7 +379,7 @@ void CUnitServer::EffectsChanged() {
 
 void CUnitServer::GetAttackParams(AttackParams* out) {
     CUnit* self = unit;
-    int keyed = IsTextKey(self->id_) & 0xFF;
+    int keyed = IsTextKey(self->id_);
     CItemWeapon* weapon = ActiveWeapon(self);
     if (keyed && weapon) {
         out->damageMin = weapon->damage_;
@@ -453,9 +453,9 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     return MaxKeepB(0.0f, static_cast<float>(roll));
 }
 
-BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
+bool CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     float roll = kHitMark;
-    if (!(HasElementalDamage(hit) & 0xFF)) {
+    if (!HasElementalDamage(hit)) {
         if (moveMode2.onGuard) hit->backstabFactor = 1.0f;
         if (attacker) {
             bool backstab = hit->backstabFactor > 1.0f;
@@ -471,12 +471,12 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
     float result = static_cast<double>(mine.defence) > roll ? kMissMark : kHitMark;
     hit->attackRoll = result;
-    return result > 0.0f ? 1 : 0;
+    return result > 0.0f;
 }
 
-BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot) {
+void CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot) {
     CUnit* self = unit;
-    int keyed = IsTextKey(self->id_) & 0xFF;
+    int keyed = IsTextKey(self->id_);
     std::memset(out, 0, sizeof(DamageInfo));
     out->multiplier = 1.0f;
     CItemWeapon* weapon = nullptr;
@@ -515,10 +515,9 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     else out->backstabFactor = 1.0f;
     if (self->player && PlayerGodMode(self->player) >= 2) ResetDamageInfo(out);
     out->calledShot = static_cast<std::uint8_t>(calledShot);
-    return 1;
 }
 
-BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
+bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     CWorldServer* world = ServerWorld();
     int dead = IsDead(unit);
     bool hadPlayer = unit->player != nullptr;
@@ -546,8 +545,8 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
 
     CPlayer* player = unit->player;
     if (player) {
-        if (PlayerGodMode(player) != 0) return 0;
-        if (source && source->player && player != source->player) return 0;
+        if (PlayerGodMode(player) != 0) return false;
+        if (source && source->player && player != source->player) return false;
     }
 
     AttackParams mine;
@@ -560,7 +559,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         TriggerItemSpells(1);
         CItem* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
         if (stats.ApplyHit(unit, ServerStatsOf(unit), hit, weapon)) {
-            if (attacker && !(HasElementalDamage(hit) & 0xFF)) {
+            if (attacker && !HasElementalDamage(hit)) {
                 if (attacker->MapType() != MapObjectType::Hero) {
                     LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId_ + 0x10);
                 } else {
@@ -579,15 +578,15 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                 OnDamaged(attacker, hit->hitKind);
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = unit->GetPrototype();
-                    if (IsMultiplayerClient() & 0xFF) {
+                    if (IsMultiplayerClient()) {
                         world->AwardExperience(nullptr, prototype->experienceValue);
-                        return 1;
+                        return true;
                     }
                     CPlayer* killer = source->player;
                     world->AwardExperience(killer, prototype->experienceValue);
                 }
             }
-            return 1;
+            return true;
         }
     }
     if (attacker && attacker->GetClassId() == ClassId::Unit) {
@@ -595,7 +594,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         diplomacy->OnAttack(attacker, unit);
     }
     brain.SetSeen(attacker);
-    return 0;
+    return false;
 }
 
 void CUnitServer::UpdateSizeClasses() {

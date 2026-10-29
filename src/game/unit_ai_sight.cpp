@@ -38,7 +38,7 @@ constexpr int kLostLevel = 1000;
 constexpr int kLostKind = -2;
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
-bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
+bool IsDead(CMapObject* object) { return object->IsDead(); }
 
 bool IsZero(double v) {
     EI_NAN_AUDIT(v);
