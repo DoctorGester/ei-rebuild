@@ -116,8 +116,6 @@ float SpellDamage(const CSpell* spell) { return spell->damage_; }
 float SpellRange(const CSpell* spell) { return spell->range_; }
 float SpellCost(const CSpell* spell) { return spell->manaCost_; }
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
-
 const char* HitLocationName(int location) {
     switch (static_cast<std::uint32_t>(location)) {
     case 0: return "Head!";
@@ -149,22 +147,22 @@ std::int16_t SizeClassOf(double size, float load) {
 
 
 float CUnitServer::AttackRange() {
-    CItemWeapon* weapon = ActiveWeapon(unit);
+    CItemWeapon* weapon = unit->ActiveWeapon();
     if (weapon) return weapon->reach_;
     return stats.combat[UnitStats::kReach];
 }
 
 bool CUnitServer::HasRangedWeapon() {
-    CItemWeapon* weapon = ActiveWeapon(unit);
+    CItemWeapon* weapon = unit->ActiveWeapon();
     if (!weapon) return false;
     return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
 }
 
 bool CUnitServer::AttacksFromRange() {
-    if (!ActiveWeapon(unit)) {
+    if (!unit->ActiveWeapon()) {
         return stats.naturalWeapon != kNoNaturalWeapon && stats.combat[UnitStats::kReach] > 1.0f;
     }
-    CItemWeapon* weapon = ActiveWeapon(unit);
+    CItemWeapon* weapon = unit->ActiveWeapon();
     if (!weapon) return false;
     return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
 }
@@ -315,12 +313,12 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
     if (CUnit* other = UnitOrNull(target)) {
         float floor = kMeleeFloor;
         if (other->player && unit->player) floor = kMeleeFloorParty;
-        CItemWeapon* weapon = ActiveWeapon(unit);
+        CItemWeapon* weapon = unit->ActiveWeapon();
         float range = weapon ? weapon->reach_ : stats.combat[UnitStats::kReach];
         float reach = range >= floor ? range : floor;
         return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + reach);
     }
-    CItemWeapon* weapon = ActiveWeapon(unit);
+    CItemWeapon* weapon = unit->ActiveWeapon();
     float range = weapon ? weapon->reach_ : stats.combat[UnitStats::kReach];
     float own = unit->Radius();
     return static_cast<float>((target->Radius() + static_cast<double>(own)) + range);
@@ -333,7 +331,7 @@ bool CUnitServer::CanReachTarget(const AIOrder* order) {
     if (other->IsDead() != 0) return true;
     if (other->sizeClass != 0) return true;
     if (order->kind == UnitOrderKind::Attack) {
-        CItemWeapon* weapon = ActiveWeapon(unit);
+        CItemWeapon* weapon = unit->ActiveWeapon();
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
     float offset = other->GetPrototype()->height;
@@ -343,7 +341,7 @@ bool CUnitServer::CanReachTarget(const AIOrder* order) {
 }
 
 std::uint32_t CUnitServer::WeaponTypeMask() {
-    CItemWeapon* weapon = ActiveWeapon(unit);
+    CItemWeapon* weapon = unit->ActiveWeapon();
     if (weapon) return AnimationWeaponBit(weapon->GetType());
     int natural = stats.naturalWeapon;
     if (natural < 7) return AnimationWeaponBit(natural);
@@ -379,7 +377,7 @@ void CUnitServer::EffectsChanged() {
 void CUnitServer::GetAttackParams(AttackParams* out) {
     CUnit* self = unit;
     int keyed = IsTextKey(self->id_);
-    CItemWeapon* weapon = ActiveWeapon(self);
+    CItemWeapon* weapon = self->ActiveWeapon();
     if (keyed && weapon) {
         out->damageMin = weapon->damage_;
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
@@ -563,7 +561,7 @@ bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                     LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId_ + 0x10);
                 } else {
                     auto* controller = attacker->ServerController();
-                    CItemWeapon* own = ActiveWeapon(controller->unit);
+                    CItemWeapon* own = controller->unit->ActiveWeapon();
                     if (own) LastDamageSource(unit) = static_cast<std::int16_t>(own->GetType());
                     else LastDamageSource(unit) = static_cast<std::int16_t>(controller->stats.naturalWeapon);
                 }

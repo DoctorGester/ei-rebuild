@@ -73,18 +73,16 @@ const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! C
 
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
-
 // 1 << the active weapon's type, else of the natural weapon (none from type 7 up).
 std::uint32_t WeaponBit(CUnitServer* self) {
-    CItemWeapon* weapon = ActiveWeapon(self->unit);
+    CItemWeapon* weapon = self->unit->ActiveWeapon();
     if (weapon) return AnimationWeaponBit(weapon->GetType());
     int natural = self->stats.naturalWeapon;
     return natural < kNoNaturalWeapon ? AnimationWeaponBit(natural) : 0u;
 }
 
 bool HasRangedWeapon(CUnit* unit) {
-    CItemWeapon* weapon = ActiveWeapon(unit);
+    CItemWeapon* weapon = unit->ActiveWeapon();
     return weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
 }
 
@@ -158,7 +156,7 @@ std::uint32_t OrderKey(CUnitServer* self, UnitOrderKind kind, std::uint32_t sour
             key = SkillKey(HasRangedWeapon(self->unit) ? SkillAnimation::SearchBodyRanged : SkillAnimation::SearchBody);
             *frame = leavesWalk;
         }
-        if (!ActiveWeapon(self->unit) && self->stats.naturalWeapon >= kNoNaturalWeapon) return key | kKeyNoWeapon;
+        if (!self->unit->ActiveWeapon() && self->stats.naturalWeapon >= kNoNaturalWeapon) return key | kKeyNoWeapon;
         return key | WeaponBit(self);
     }
     default:

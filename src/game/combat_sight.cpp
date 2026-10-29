@@ -60,8 +60,6 @@ bool Greater(double a, double b) { return a > b; }
 
 bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
-
 // _ftol of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
 // precision a double holds it exactly).
 int FtolQuotient(double a, double b) { return static_cast<int>(libcrt::Ftol(a / b)); }
@@ -143,9 +141,9 @@ bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point
 bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
     if (order->kind == UnitOrderKind::Use) return true;
     if (order->kind != UnitOrderKind::Attack) return false;
-    CItemWeapon* weapon = ActiveWeapon(self->unit);
+    CItemWeapon* weapon = self->unit->ActiveWeapon();
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return false;
-    weapon = ActiveWeapon(self->unit);
+    weapon = self->unit->ActiveWeapon();
     float reach = weapon ? weapon->reach_ : self->stats.combat[UnitStats::kReach];
     EI_NAN_AUDIT(reach);
     return reach < kMeleeReach;

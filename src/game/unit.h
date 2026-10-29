@@ -303,6 +303,7 @@ public:
 
     // From the player's party record for party units. Null when out of range.
     CItemWeapon* GetWeapon(std::uint32_t slot);
+    CItemWeapon* ActiveWeapon() { return GetWeapon(activeWeapon); }   // the weapon in slot activeWeapon
     CItem* GetQuickItem(std::uint32_t slot);
     CItem* GetSpell(std::uint32_t slot);
     CSpell* GetSpellObject(std::uint32_t slot);
