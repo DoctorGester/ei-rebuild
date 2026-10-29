@@ -1,4 +1,4 @@
-// The companions of map objects (map_object.h): CMapObjectServer (class id 0x39) and CMapObjectClientSpecific
+// The companions of map objects (map_object.h): MapObjectServer (class id 0x39) and MapObjectClientSpecific
 // (0x3A). Both classes are declared in unit.h; each holds the map object it belongs to.
 
 #include "map_object.h"
@@ -39,7 +39,7 @@ bool IsScaleEffect(SpellType type) {
 } // namespace
 
 
-bool CMapObjectServer::RunTick() {
+bool MapObjectServer::RunTick() {
     if (std::ssize(owner->effects) <= 0) return false;
     int i = 0;
     do {
@@ -61,12 +61,12 @@ bool CMapObjectServer::RunTick() {
     return false;
 }
 
-void CMapObjectServer::SetData(const UnitVitals* data) {
+void MapObjectServer::SetData(const UnitVitals* data) {
     lib::LoadBytes(vitals, data);
     owner->MarkChanged(0);
 }
 
-bool CMapObjectServer::TakeHit(const DamageInfo* hit) {
+bool MapObjectServer::TakeHit(const DamageInfo* hit) {
     vitals.TakeHit(hit);
     owner->MarkChanged(0);
     if (IsDead()) {
@@ -76,7 +76,7 @@ bool CMapObjectServer::TakeHit(const DamageInfo* hit) {
     return true;
 }
 
-bool CMapObjectClientSpecific::RunTick() {
+bool MapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
     // to end plays the end sound for text-key objects, unless it is still playing.
     if (std::ssize(CompanionOwner(this)->effects) > 0) {
@@ -87,7 +87,7 @@ bool CMapObjectClientSpecific::RunTick() {
             if (left >= kEndSoundTicks || effect.ending) continue;
             if (!IsTextKey(CompanionOwner(this)->id)) continue;
             int handle = endSound;
-            CSoundManager* soundSystem = g_clientWorld.sounds;
+            SoundManager* soundSystem = g_clientWorld.sounds;
             if (handle != -1 &&
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;

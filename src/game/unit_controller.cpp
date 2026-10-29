@@ -59,7 +59,7 @@ void CUnit::ReleaseUnit() {
     ReleaseSlots(weapons, 4);
     ReleaseSlots(spells, 8);
     ReleaseSlots(armor, 7);
-    for (CItem* item : carried) item->Release();
+    for (Item* item : carried) item->Release();
     carried.clear();
 }
 

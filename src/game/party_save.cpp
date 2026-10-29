@@ -21,16 +21,16 @@
 namespace {
 
 // A list's count, then each item's id (-1 for an empty entry).
-void WriteItemIds(CStream* stream, const std::vector<CItem*>& list) {
+void WriteItemIds(ByteStream* stream, const std::vector<Item*>& list) {
     stream->WriteValue(std::ssize(list));
     for (int i = 0; i < std::ssize(list); ++i) {
-        const CItem* item = list[i];
+        const Item* item = list[i];
         stream->WriteValue(item != nullptr ? item->id : -1);
     }
 }
 
 // Releases what the list holds, then reads a count and that many ids, each resolved in `manager` and counted.
-void ReadItemIds(CStream* stream, std::vector<CItem*>& list, CBaseManager* manager) {
+void ReadItemIds(ByteStream* stream, std::vector<Item*>& list, BaseManager* manager) {
     for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
     int count;
     stream->ReadValue(count);
@@ -38,7 +38,7 @@ void ReadItemIds(CStream* stream, std::vector<CItem*>& list, CBaseManager* manag
     for (int i = 0; i < std::ssize(list); ++i) {
         unsigned id;
         stream->ReadValue(id);
-        CItem* item = FindItem(manager, id);
+        Item* item = FindItem(manager, id);
         list[i] = item;
         if (item != nullptr) item->AddRef();
     }
@@ -49,20 +49,20 @@ constexpr int kVersionRecord77C = 0x5B;
 constexpr int kVersionRecord780 = 0x61;
 constexpr int kVersionRecordText6 = 0x6B;
 
-int Version(const CStream* stream) { return static_cast<int>(stream->version); }
+int Version(const ByteStream* stream) { return static_cast<int>(stream->version); }
 
 void CopyThrough(CParty* target, CParty* source) {
     // Through an empty memory stream, freed afterwards.
-    CMemoryStream copy;
+    MemoryStream copy;
     source->SaveParty(&copy, 1);
-    copy.CMemoryStream::Seek(0);
+    copy.MemoryStream::Seek(0);
     target->LoadParty(&copy, 1);
 }
 
 } // namespace
 
 
-void PartyUnitRecord::Load(CStream* stream) {
+void PartyUnitRecord::Load(ByteStream* stream) {
     ClearItems();
     weaponIndex = 0;
     moveMode2 = 2;
@@ -95,7 +95,7 @@ void PartyUnitRecord::Load(CStream* stream) {
     texts[6] = stream->ReadString();
 }
 
-void PartyUnitRecord::Save(CStream* stream) {
+void PartyUnitRecord::Save(ByteStream* stream) {
     stream->WriteString(texts[0]);
     stream->WriteString(texts[2]);
     stream->WriteString(texts[3]);
@@ -117,7 +117,7 @@ void PartyUnitRecord::Save(CStream* stream) {
     stream->WriteString(texts[6]);
 }
 
-void CParty::LoadParty(CStream* stream, int loadVariables) {
+void CParty::LoadParty(ByteStream* stream, int loadVariables) {
     if (itemManager == nullptr) Create();
     g_loadingParty = this;
     Clear(loadVariables, 0);
@@ -145,7 +145,7 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     spellManager->ReleaseUnused();
 }
 
-void CParty::SaveParty(CStream* stream, int saveVariables) {
+void CParty::SaveParty(ByteStream* stream, int saveVariables) {
     if (itemManager == nullptr) Create();
     stream->WriteString(zone);
     stream->WriteValue(entrance);
@@ -175,7 +175,7 @@ CParty::CParty(CParty& source) : CParty() { CopyThrough(this, &source); }
 
 void CParty::ArchiveParty(ChunkArchive* ar) {
     constexpr int kStreamField = 1;
-    CMemoryStream held;
+    MemoryStream held;
     if (ar->loading) {
         ar->StreamField(kStreamField, &held);
         held.version = static_cast<std::uint32_t>(ar->version);

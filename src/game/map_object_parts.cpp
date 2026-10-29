@@ -14,9 +14,9 @@
 namespace {
 // The first of `parts` that `matches`, or null.
 template <typename Parts, typename Match>
-CFigureMesh* FirstPart(const Parts& parts, Match matches) {
+FigureMesh* FirstPart(const Parts& parts, Match matches) {
     for (int i = 0; i < std::ssize(parts); ++i) {
-        CFigureMesh* part = parts[i];
+        FigureMesh* part = parts[i];
         if (matches(part)) return part;
     }
     return nullptr;
@@ -27,25 +27,25 @@ template <typename Parts>
 void RemoveAt(Parts& parts, int index) { parts.erase(parts.begin() + index); }
 
 template <typename Parts>
-int IndexOf(const Parts& parts, const CFigureMesh* part) {
+int IndexOf(const Parts& parts, const FigureMesh* part) {
     for (int i = 0; i < std::ssize(parts); ++i)
         if (parts[i] == part) return i;
     return -1;
 }
 } // namespace
 
-CFigureMesh* CObject3D::FindPartByPrefix(std::string_view prefix) {
+FigureMesh* CObject3D::FindPartByPrefix(std::string_view prefix) {
     // The original asks for the name twice; the parts return the same string both times.
-    auto startsWith = [prefix](CFigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
+    auto startsWith = [prefix](FigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
     return FirstPart(parts, startsWith);
 }
 
-CFigureMesh* CObject3D::FindPart(std::string_view partName) {
-    auto named = [partName](CFigureMesh* part) { return str::Compare(part->GetName(), partName) == 0; };
+FigureMesh* CObject3D::FindPart(std::string_view partName) {
+    auto named = [partName](FigureMesh* part) { return str::Compare(part->GetName(), partName) == 0; };
     return FirstPart(parts, named);
 }
 
-int CObject3D::RemovePart(CFigureMesh* part) {
+int CObject3D::RemovePart(FigureMesh* part) {
     if (attached) attached->OnPartRemoved(part);
     int index = IndexOf(parts, part);
     if (index < 0) return 0;
@@ -57,14 +57,14 @@ int CObject3D::RemovePart(CFigureMesh* part) {
     return 1;
 }
 
-CFigureMesh* CObject3D::RemovePartNamed(std::string_view partName) {
-    CFigureMesh* part = FindPart(partName);
+FigureMesh* CObject3D::RemovePartNamed(std::string_view partName) {
+    FigureMesh* part = FindPart(partName);
     if (!part) return nullptr;
     RemovePart(part);
     return part;
 }
 
-float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
+float* CObject3D::PartWorldPosition(float* out, const FigureMesh* part) {
     float scaleX, scaleY, scaleZ;
     attached->GetScale(&scaleX, &scaleY, &scaleZ);
     // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).

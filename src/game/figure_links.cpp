@@ -4,7 +4,7 @@
 // that many (child, parent) length-prefixed names (read into strings), each passed to the animation state's
 // LinkPiece with the model; FindRoot finishes it. Returns 1. See docs/notes/models.md.
 #include "figure_manager.h"       // CFigureManager, FigureModel
-#include "map_object_figures.h"   // CFigureAnimationState, FigureBone
+#include "map_object_figures.h"   // FigureAnimationState, FigureBone
 
 #include "lib/crt.h"
 #include <cstdint>
@@ -17,7 +17,7 @@ namespace {
 
 } // namespace
 
-int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, std::string_view name) {
+int CFigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_view name) {
     FigureModel* model;
     {
         std::string key(name);

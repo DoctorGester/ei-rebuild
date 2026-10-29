@@ -8,14 +8,14 @@ stream thread); scenario `tests/scenarios/sound.txt`.
 
 | Range | Contents |
 |---|---|
-| 006B4350-006B5BC0 | CMusicSystem (vtable 00744098): Create 006B4710 (slot 2, reads `music.reg`), Update 006B5350 (slot 6), theme CArray 006B56C0..006B5BC0 |
+| 006B4350-006B5BC0 | MusicSystem (vtable 00744098): Create 006B4710 (slot 2, reads `music.reg`), Update 006B5350 (slot 6), theme CArray 006B56C0..006B5BC0 |
 | 006B5CD0-006B5FF0 | `SoundSlot::End`; SoundFader (0x1C). 006B5D20 / 006B5DB0 have no callers (inlined everywhere) |
-| 006B6040-006B73E0 | CSoundManager (vtable 007440F0, one instance at `*007AF784`): Open 006B6A30 (DirectSound, `_AIL_waveOutOpen`, MP3 stream 006BAAC0, stream thread via AfxBeginThread 007022A0 entry 006B6A10 -> 006BB910; 006B6A20 -> 006BBCB0 is the MIDI thread entry; 15 voices); 006B7110 is Rebirth-patched |
+| 006B6040-006B73E0 | SoundManager (vtable 007440F0, one instance at `*007AF784`): Open 006B6A30 (DirectSound, `_AIL_waveOutOpen`, MP3 stream 006BAAC0, stream thread via AfxBeginThread 007022A0 entry 006B6A10 -> 006BB910; 006B6A20 -> 006BBCB0 is the MIDI thread entry; 15 voices); 006B7110 is Rebirth-patched |
 | 006B75E0 | Miles end-of-sample callback (Miles timer thread): sets the voice's `finished`. Rewritten without a verify wrapper: a check (it logs) inside a Miles callback froze every vanilla run |
 | 006B7610-006B9AA0 | voices, Play2D/3D, LoadSample, AllocateVoice 006B7D10 (steals the lowest priority voice, deferring a looping one), emitters. 006B7610 has no callers |
 | 006B9B10 | Tick (every world frame, from 005641F0) |
 | 006BA140-006BA7C0 | 3D sound sequences |
-| 006BA950-006BB910 | MP3 stream (CSoundManager + 0x100), buffer fill 006BB3A0 (Rebirth-patched; switches files at "Markers1"/"Markers2"), stream thread 006BB910. 006BAD40 has no callers |
+| 006BA950-006BB910 | MP3 stream (SoundManager + 0x100), buffer fill 006BB3A0 (Rebirth-patched; switches files at "Markers1"/"Markers2"), stream thread 006BB910. 006BAD40 has no callers |
 | 006BBA00-006BBDF0 | MIDI sequence, MIDI thread 006BBCB0 |
 | 006BBF30-006BDDB0 | STLport hash_map / list instantiations (wave cache +0x870, deferred sounds +0x884, cache list +0x854) |
 | 006C68B0-006CBE60 | map ambient sounds: day/night waves 006C68B0 (Rebirth-patched), terrain-material ambience 006CB390, day time names 006CBC00 |
@@ -31,7 +31,7 @@ requested switch position); reads timeGetTime only for the fader's hold time. Th
 restarts the sequence at its markers. Neither they nor Miles' callback touch game state or the
 random generator.
 
-The music state machine (`CMusicSystem::Update`, every world frame) and the positional formula (`UpdatePositional`) are summarised in
+The music state machine (`MusicSystem::Update`, every world frame) and the positional formula (`UpdatePositional`) are summarised in
 `sound_music.cpp` / `sound_manager.cpp`. `RequestStream` modes: 1 stop after the current file, 2 stop with a fade (a fight ended), 3 switch at the
 next marker of the current file (combat), 4 switch at the current position (calm); the calm music is due 120..180 s after a jingle or fight. The
 pan is mirrored when `panDirect` is 0 (option "swap stereo").
@@ -41,7 +41,7 @@ pan is mirrored when `panDirect` is 0 (option "swap stereo").
 Not sound code. The AI brain's perception memory (brain + 0xD0, unit_ai.md) holds a CArray of
 0x18-byte delayed sounds at memory + 0xA8 {position, countdown, unit, CString text}, filled by
 `AIBrain::CallAllies` 005D5990 (005CBBA0: position sound, 26 brain ticks, "Unit %i call for help
-...") and `CUnitServer::ClaimHostility` 00552D00 (005CBBC0: unit sound, 30 ticks, "Unit %i claims
+...") and `UnitServer::ClaimHostility` 00552D00 (005CBBC0: unit sound, 30 ticks, "Unit %i claims
 that player %i are ..."), counted down by the brain update 005CB700 -> 005CC9D0 on the world thread.
 On expiry 005CC9D0 prints "Delayed sound: <text>" (position sounds; the memory's noticed point is
 set to it) or "Unit N hear delayed sound: <text>" (unit sounds, then 00552CF0) to the console
@@ -52,7 +52,7 @@ stream that `filter all` shows.
 Sound draws from the shared ISAAC generator (007A9D40) on wall-clock schedules: Tick's ambient
 emitters (every 100 ms of GetTickCount, 0..4 draws per firing emitter), the music's calm delay and
 track choices (timeGetTime), random sequences (PlayNext) and the random start position of
-Play2D/Play3D when CSoundManager + 0x8BC is set, terrain ambience 006CB390. All of these run on the
+Play2D/Play3D when SoundManager + 0x8BC is set, terrain ambience 006CB390. All of these run on the
 main thread, so the harness's virtual clock (tests/verify/harness_clock.cpp, ticket SV1) covers them.
 Two more things made runs part and are handled there too: sample ends (Miles' end-of-sample callback
 006B75E0 on its timer thread sets the slot's `finished`, which ends a unit's speech flag and frees
@@ -75,7 +75,7 @@ and UpdateMusic's draws follow the virtual clock only). A virtual-time stream th
 ## Rewritten (names provisional)
 
 Every function carries its address in its source comment (grep it); the per-function table that used to be here is gone. All in
-`sound_manager.cpp` except the CMusicSystem functions (`sound_music.cpp`) and the lifetime ones (`sound_manager_lifetime.cpp`).
+`sound_manager.cpp` except the MusicSystem functions (`sound_music.cpp`) and the lifetime ones (`sound_manager_lifetime.cpp`).
 - Voices and positions: `UpdatePositional` 006B7FC0, `SoundFader` Update / SetHold / Recalc 006B5EE0 / 006B5E80 / 006B5FF0, FindDeferred
   006B7CB0, MoveEmitter / RemoveEmitter 006B9A30 / 006B9AA0, SetReverb 006B69E0, FadeOutStream / FadeInStream 006BAFA0 / 006BAFE0,
   SetEffectsVolume / SetSpeechVolume / SetListener 006B7740 / 006B78A0 / 006B9750, FindPlaying 006B7C10, SetSoundVolume /
@@ -85,12 +85,12 @@ Every function carries its address in its source comment (grep it); the per-func
   (RET 0x20) / Play3D 006B8600 (RET 0x1C), LoadSample 006B89F0 (RET 0x10), AllocateVoice 006B7D10 (first free voice, else steals the
   lowest priority below `priority`; a looping sound is deferred with its sample position; -1 only when all voices play at >= priority),
   StopAll(stopStream) 006B71C0 (originals_ui.h's `LoadingStepOriginal` is this), WaveLength 006B96E0 (7 bytes).
-- `CMusicSystem`: `Create` 006B4710 (loads the themes), Construct 006B4350, DestructBody 006B44B0,
+- `MusicSystem`: `Create` 006B4710 (loads the themes), Construct 006B4350, DestructBody 006B44B0,
   DeletingDestruct 006B4490, `ResetThemes` 006B4690 (slot 3; strings become "none" 007846F0, theme +0x3C kept), class name / id 0xE
   006B4470 / 006B4480, FadeOut / FadeIn 006B4E10 / 006B4E20 (the manager's stream; ECX unused), SetZoneMode 006B4E30, Stop / PlayBriefing /
   PlayConstructor / PlayCredits / PlayMainMenu / PlayJingle 006B4F70-006B5270, UpdateMusic 006B5350 (slot 6; returns 1, inCombat follows
-  the fight state). CMusicSystem and CSoundManager derive from CEngineObject.
-- `CSoundManager` lifetime: class name / id 0xE 006B6290 / 006B62A0, CurrentStreamName 006BAEA0, Create 006B6D70 (slot 2: Reset),
+  the fight state). MusicSystem and SoundManager derive from EngineObject.
+- `SoundManager` lifetime: class name / id 0xE 006B6290 / 006B62A0, CurrentStreamName 006BAEA0, Create 006B6D70 (slot 2: Reset),
   DeletingDestruct 006B62B0, ClearWaveSources, AddWaveSource, LoadWaveFile, SetPath 006BAE20 (startup 00456440 calls SetPath and
   AddWaveSource), SoundStreamRead 006BA950 (the stream file's read callback, stream thread), Construct 006B6040, DestructBody 006B65D0,
   ResetStream 006BA9C0 (runs on the manager's +0x100, a `__fastcall` shim), `Open` 006B6A30 (RET 0x14: window, reverb, DirectSound device
@@ -144,8 +144,8 @@ goes through a naked helper. Miles is called through game.exe's import table (00
   The constructor's hash maps get zero functor bytes where the original copies three uninitialised stack bytes (unused).
   The hash map members (006BBF90 / 006BC2B0 / 006BCE00 / 006BD100 / 006BC4D0 / 006BC510), DestructElements 006BE210 and
   the element constructors / destructors 006B63D0..006B6400 stay original (library); 006714A0 runs through its address
-  (`MappedResourceDestroyOriginal`, originals_engine.h). CSoundManager now derives from CEngineObject; +0xE4 is a
-  `CTypedPtrList<CMappedResource>` (the wave sources).
+  (`MappedResourceDestroyOriginal`, originals_engine.h). SoundManager now derives from EngineObject; +0xE4 is a
+  `CTypedPtrList<MappedResource>` (the wave sources).
 - Ambient sounds 006C68B0 (Rebirth-patched) and 006CB390 (terrain material ambience, 2 KB): good next
   candidates together with the terrain owner.
 - STLport hash_map / list instantiations 006BBF30-006BDDB0.
@@ -157,7 +157,7 @@ load), `@PlayMusic("victory")` (PlayJingle, RequestStream/StopStream), `@CreateF
 (Play3D, UpdatePositional, SetSoundPosition/StopSound), then a fight with two goblins (combat music
 request and the brain's "Delayed sound" / "hear delayed sound" lines: `expect elayed sound`).
 
-### CSoundManager::ReadStreamVanilla
+### SoundManager::ReadStreamVanilla
 
 The stream thread's reader (`stream` is the manager's +0x100; Rebirth-patched, so hooked in the vanilla launch
 only): fills the spare buffer with the next streamBufferFrames frames. Idle: silence. Else the playing file's

@@ -65,20 +65,20 @@ constexpr SkillAnimation kPreviewAnimation = SkillAnimation::Special14;      // 
 
 // --- The trade panel's experience figures ------------------------------------
 
-int CTradePanel::Experience() const {
+int TradePanel::Experience() const {
     const TradeStatsRecord& record = Record();
     return static_cast<int>(static_cast<double>(record.pendingExperience) + record.experience - record.spentExperience);
 }
 
-int CTradePanel::PurchaseCost() {
+int TradePanel::PurchaseCost() {
     PartyUnitRecord* hero = owner->HeroRecord();
     return static_cast<int>(static_cast<double>(hero->stats.spentExperience) - Record().spentExperience);
 }
 
 // --- Draw ------------------------------------------------------------------------------
 
-void CMpHeroScreen::DrawExperience() {
-    CUiSurface* surface = surfaces[2];
+void MpHeroScreen::DrawExperience() {
+    UiSurface* surface = surfaces[2];
     std::string levelText;
     std::string line;
     surface->Clear();
@@ -94,7 +94,7 @@ void CMpHeroScreen::DrawExperience() {
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
 }
 
-void CMpHeroScreen::Draw(CSceneRenderer* pass) {
+void MpHeroScreen::Draw(SceneRenderer* pass) {
     if (mode == kModeStats) DrawExperience();
     int x = g_cursor.position.x;
     int y = g_cursor.position.y;
@@ -123,7 +123,7 @@ void CMpHeroScreen::Draw(CSceneRenderer* pass) {
         if (descPanel) descPanel->DescribeStats(info);
     }
 
-    CUiContainer::Draw(pass);
+    UiContainer::Draw(pass);
     if (mode == kModeList && heroIndex >= 0)
         DrawHeroPreview(pass, previewModel, turn, kListDepth, false);
     else if (mode == kModeNewHero)
@@ -132,8 +132,8 @@ void CMpHeroScreen::Draw(CSceneRenderer* pass) {
 
 // --- Update ----------------------------------------------------------------------------
 
-void CMpHeroScreen::Update() {
-    CUiContainer::Update();
+void MpHeroScreen::Update() {
+    UiContainer::Update();
     if (rotating == 1 || rotating == 2) {
         double step = FrameTime();
         step += step;
@@ -167,7 +167,7 @@ void CMpHeroScreen::Update() {
 
 // --- Close -----------------------------------------------------------------------------
 
-void CMpHeroScreen::CloseScreen() {
+void MpHeroScreen::CloseScreen() {
     g_savedParties.SaveAll();
     std::vector<PartyUnitRecord*> records;
     for (PartyUnitRecord& record : LocalPlayerData()->members) records.push_back(&record);
@@ -178,10 +178,10 @@ void CMpHeroScreen::CloseScreen() {
 
 // --- The hero list and the voices drawn -----------------------------------------------------
 
-void CMpHeroScreen::DrawHeroList() {
-    CUiSurface* surface = surfaces[0];
+void MpHeroScreen::DrawHeroList() {
+    UiSurface* surface = surfaces[0];
     surface->Clear();
-    CUiMesh* frame = SceneMesh(kSelectionFrame);
+    UiMesh* frame = SceneMesh(kSelectionFrame);
     frame->visible = false;
     RECT area = {12, 13, 265, 33};
     const auto count = static_cast<std::uint32_t>(g_savedParties.Count());
@@ -199,10 +199,10 @@ void CMpHeroScreen::DrawHeroList() {
     }
 }
 
-void CMpHeroScreen::DrawVoices() {
-    CUiSurface* surface = surfaces[2];
+void MpHeroScreen::DrawVoices() {
+    UiSurface* surface = surfaces[2];
     surface->Clear();
-    CUiMesh* frame = SceneMesh(kSelectionFrame);
+    UiMesh* frame = SceneMesh(kSelectionFrame);
     frame->visible = false;
     std::string title;
     RECT area = {10, 5, 190, 20};
@@ -225,7 +225,7 @@ void CMpHeroScreen::DrawVoices() {
 
 // --- The preview's unit -------------------------------------------------------------------
 
-void CMpHeroScreen::MakePreview(bool allArmour) {
+void MpHeroScreen::MakePreview(bool allArmour) {
     previewModel = nullptr;
     auto* player = LocalPlayerData();
     if (player->members.empty()) {
@@ -245,7 +245,7 @@ void CMpHeroScreen::MakePreview(bool allArmour) {
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
-        CUnitController* controller = unit->Controller();
+        UnitController* controller = unit->Controller();
         controller->ShowWeapon(kNoWeaponSlot);
         controller->RefreshModel();
         double now = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
@@ -257,7 +257,7 @@ void CMpHeroScreen::MakePreview(bool allArmour) {
 
 // --- A hero shown -------------------------------------------------------------------------
 
-void CMpHeroScreen::ShowHero(int index) {
+void MpHeroScreen::ShowHero(int index) {
     auto* player = LocalPlayerData();
     if (!player->members.empty()) {
         std::vector<PartyUnitRecord*> records{player->members.data()};

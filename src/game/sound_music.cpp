@@ -1,4 +1,4 @@
-// The music system (CMusicSystem, world/app object + 0x1A8): chooses what the sound manager's MP3 stream
+// The music system (MusicSystem, world/app object + 0x1A8): chooses what the sound manager's MP3 stream
 // plays for the game state. In a zone (state 1) it plays a combat track of the allod's theme while the
 // party fights (combat state == 2) and otherwise, after a random pause of 120..180 s, a calm track; the
 // briefing, constructor, main menu and credits states each play one file. The themes come from music.reg
@@ -42,7 +42,7 @@ const std::string& PickName(const std::vector<std::string>& names) {
 
 // Waits for the stream thread to take up a request (state 2 -> 1), then asks it to stop after
 // that file.
-void WaitAndEndAfter(CSoundManager* snd) {
+void WaitAndEndAfter(SoundManager* snd) {
     while (snd->streamState == 2) gameapi::Sleep(0);
     snd->StopStream(1);
 }
@@ -51,7 +51,7 @@ void WaitAndEndAfter(CSoundManager* snd) {
 
 
 // PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
-void PlayThemeFile(CMusicSystem* music, std::string_view allod, std::string MusicTheme::*file) {
+void PlayThemeFile(MusicSystem* music, std::string_view allod, std::string MusicTheme::*file) {
     auto theme = std::ranges::find_if(music->themes, [allod](const MusicTheme& t) {
         return text::CompareIgnoringCase(t.name, allod) == 0;
     });
@@ -60,15 +60,15 @@ void PlayThemeFile(CMusicSystem* music, std::string_view allod, std::string Musi
     g_clientWorld.sounds->RequestStream(path, 4);
 }
 
-// "CMusicSystem".
+// "MusicSystem".
 const char* MusicClassNameText() { return "CMusicSystem"; }
 
 } // namespace
 
 // The error message names the file without its path, and its text is FatalError's
 // format string (original).
-void CMusicSystem::Create() {
-    CFileRegistry reg;
+void MusicSystem::Create() {
+    FileRegistry reg;
     bool opened;
     {
         std::string folder = g_textFolder;
@@ -78,7 +78,7 @@ void CMusicSystem::Create() {
     if (!opened) {
         {
             std::string file = kMusicReg;
-            std::string message = "CMusicSystem::Create()\nUnable to open file \"" + file;   // "CMusicSystem::Create()\nUnable to open file \""
+            std::string message = "CMusicSystem::Create()\nUnable to open file \"" + file;   // "MusicSystem::Create()\nUnable to open file \""
             std::string full = message + "\"";    // "\""
             game::FatalError(full);
         }
@@ -109,7 +109,7 @@ void CMusicSystem::Create() {
 
 // Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
 // fatal. The calm music is due at once (calmDue 1) after the first world frame clears `holding`.
-void CMusicSystem::SetZoneMode(std::string_view allod, int dungeon) {
+void MusicSystem::SetZoneMode(std::string_view allod, int dungeon) {
     g_clientWorld.sounds->StreamNotify();
     g_clientWorld.sounds->StopStream(4);
     holding = 1;
@@ -130,24 +130,24 @@ void CMusicSystem::SetZoneMode(std::string_view allod, int dungeon) {
     game::FatalError(full);
 }
 
-void CMusicSystem::Stop() {
+void MusicSystem::Stop() {
     state = 0;
     g_clientWorld.sounds->StopStream(4);
 }
 
-void CMusicSystem::PlayBriefing(std::string_view allod) {
+void MusicSystem::PlayBriefing(std::string_view allod) {
     state = 2;
     g_clientWorld.sounds->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::briefing);
 }
 
-void CMusicSystem::PlayConstructor(std::string_view allod) {
+void MusicSystem::PlayConstructor(std::string_view allod) {
     state = 3;
     g_clientWorld.sounds->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::constructor);
 }
 
-void CMusicSystem::PlayMainMenu() {
+void MusicSystem::PlayMainMenu() {
     state = 4;
     g_clientWorld.sounds->StopStream(4);
     std::string path = mainMenu + kMp3;
@@ -156,7 +156,7 @@ void CMusicSystem::PlayMainMenu() {
 
 // A one-off piece in a zone (the PlayMusic script command); the calm/combat choice
 // waits until it has finished.
-void CMusicSystem::PlayJingle(std::string_view name) {
+void MusicSystem::PlayJingle(std::string_view name) {
     if (state != 1) return;
     {
         std::string path(name);
@@ -169,8 +169,8 @@ void CMusicSystem::PlayJingle(std::string_view name) {
 }
 
 // Every world frame. Always 1.
-void CMusicSystem::UpdateMusic() {
-    CSoundManager* snd = g_clientWorld.sounds;
+void MusicSystem::UpdateMusic() {
+    SoundManager* snd = g_clientWorld.sounds;
     if (state != 1 || holding == 1) return;
     std::string current;
     {
@@ -218,11 +218,11 @@ void CMusicSystem::UpdateMusic() {
 
 // ---- Lifetime and the engine object's virtuals ----
 
-CMusicSystem::CMusicSystem() {
+MusicSystem::MusicSystem() {
     ResetThemes();
 }
 
-void CMusicSystem::ResetThemes() {
+void MusicSystem::ResetThemes() {
     state = 0;
     themes.clear();
     jingle = game::NoneText();
@@ -237,13 +237,13 @@ void CMusicSystem::ResetThemes() {
 
 // The strings go after the body (jingle, combatTrack, mainMenu, credits: the game's order, before its theme
 // array's destructor).
-CMusicSystem::~CMusicSystem() {
+MusicSystem::~MusicSystem() {
     ResetThemes();
 }
 
-void CMusicSystem::FadeOut() { g_clientWorld.sounds->FadeOutStream(); }
-void CMusicSystem::FadeIn() { g_clientWorld.sounds->FadeInStream(); }
+void MusicSystem::FadeOut() { g_clientWorld.sounds->FadeOutStream(); }
+void MusicSystem::FadeIn() { g_clientWorld.sounds->FadeInStream(); }
 
 // ClassName and GetClassId.
-const char* CMusicSystem::ClassName() { return MusicClassNameText(); }
-ClassId CMusicSystem::GetClassId() { return ClassId::MusicSystem; }
+const char* MusicSystem::ClassName() { return MusicClassNameText(); }
+ClassId MusicSystem::GetClassId() { return ClassId::MusicSystem; }

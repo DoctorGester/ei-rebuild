@@ -1,4 +1,4 @@
-// The interface's input dispatch (CInterface3D): the input dispatcher closes the
+// The interface's input dispatch (Interface3D): the input dispatcher closes the
 // windows when asked, then hands each mouse message here (on to the
 // input side that took the mouse or the top window's) and each typed character and key release
 // (on to the console, the chat line or the top window). See ui.h and
@@ -12,14 +12,14 @@
 
 #include "game_singletons.h"
 
-UiInputSide* CInterface3D::MouseTarget() const {
+UiInputSide* Interface3D::MouseTarget() const {
     if (mouseCapture) return static_cast<UiInputSide*>(mouseCapture);
     if (stack.begin() != stack.end()) return stack.end()[-1]->Input();
     return nullptr;
 }
 
 namespace {
-void Send(const CInterface3D* ui, int slot, int buttons, int x, int y) {
+void Send(const Interface3D* ui, int slot, int buttons, int x, int y) {
     if (UiInputSide* target = ui->MouseTarget()) target->Event(slot, buttons, x, y);
 }
 
@@ -29,45 +29,45 @@ constexpr int kCursorWait = 3;
 
 } // namespace
 
-void CInterface3D::OnLeftDown(int buttons, int x, int y) {
+void Interface3D::OnLeftDown(int buttons, int x, int y) {
     doubleClick = false;
     Send(this, UiInputSide::kEventLeftDown, buttons, x, y);
 }
 
-void CInterface3D::OnLeftUp(int buttons, int x, int y) {
+void Interface3D::OnLeftUp(int buttons, int x, int y) {
     Send(this, UiInputSide::kEventLeftUp, buttons, x, y);
     doubleClick = false;
 }
 
-void CInterface3D::OnMouseMove(int buttons, int x, int y) { Send(this, UiInputSide::kEventMouseMove, buttons, x, y); }
+void Interface3D::OnMouseMove(int buttons, int x, int y) { Send(this, UiInputSide::kEventMouseMove, buttons, x, y); }
 
-void CInterface3D::OnRightDown(int buttons, int x, int y) {
+void Interface3D::OnRightDown(int buttons, int x, int y) {
     rightDown = true;
     Send(this, UiInputSide::kEventRightDown, buttons, x, y);
 }
 
-void CInterface3D::OnRightUp(int buttons, int x, int y) {
+void Interface3D::OnRightUp(int buttons, int x, int y) {
     rightDown = false;
     Send(this, UiInputSide::kEventRightUp, buttons, x, y);
 }
 
-void CInterface3D::OnLeftDouble(int buttons, int x, int y) {
+void Interface3D::OnLeftDouble(int buttons, int x, int y) {
     doubleClick = true;
     Send(this, UiInputSide::kEventLeftDouble, buttons, x, y);
 }
 
-void CInterface3D::OnRightDouble(int buttons, int x, int y) {
+void Interface3D::OnRightDouble(int buttons, int x, int y) {
     rightDown = true;
     Send(this, UiInputSide::kEventRightDouble, buttons, x, y);
 }
 
-void CInterface3D::OnWheel(int flags, int delta, int x, int y) {
+void Interface3D::OnWheel(int flags, int delta, int x, int y) {
     if (UiInputSide* target = MouseTarget()) target->Wheel(flags, delta, x, y);
 }
 
 // --- Keys ------------------------------------------------------------------
 
-void CInterface3D::OnChar(int key, int repeat, int flags) {
+void Interface3D::OnChar(int key, int repeat, int flags) {
     if ((flags & kScanMask) == kScanConsoleKey) return;
     if (console->shown) {
         static_cast<console::ConsoleWindow*>(console)->OnChar(key, repeat, flags);
@@ -80,7 +80,7 @@ void CInterface3D::OnChar(int key, int repeat, int flags) {
     if (!stack.empty()) stack.back()->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
 }
 
-void CInterface3D::OnKeyUp(int key, int repeat, int flags) {
+void Interface3D::OnKeyUp(int key, int repeat, int flags) {
     if (key == VK_SHIFT)
         shiftDown = 0;
     else if (key == VK_CONTROL)
@@ -103,7 +103,7 @@ void console::ConsoleWindow::OnKeyUp(int key, int, int) {
 
 // --- Every window closed --------------------------------------------------
 
-void CInterface3D::CloseAll() {
+void Interface3D::CloseAll() {
     g_cursor.SetShape(kCursorWait);
     while (!stack.empty()) {
         stack.back()->Input()->Deactivate();
@@ -122,7 +122,7 @@ void CInterface3D::CloseAll() {
     app::g_interfaceHasScreen = 0;
 }
 
-void CInterface3D::CloseAllPending() {
+void Interface3D::CloseAllPending() {
     if (!closeAll) return;
     closeAll = false;
     CloseAll();

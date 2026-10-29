@@ -117,12 +117,12 @@ int GameFtol(double value) {
 
 } // namespace
 
-int CWorldClient::UpdateLighting() {
+int WorldClient::UpdateLighting() {
     auto* display = &g_sceneRenderer;
     if (!(display->flags & 1)) return 1;
     UpdateExitMarkers();
     const double now = HourOfDay(this);
-    CTransformPipeline* pipeline = display->pipeline;
+    TransformPipeline* pipeline = display->pipeline;
 
     if (cave == 1) {
         float stored = static_cast<float>(now);
@@ -226,11 +226,11 @@ int CWorldClient::UpdateLighting() {
     return 1;
 }
 
-void CWorldClient::UpdateExitMarkers() {
+void WorldClient::UpdateExitMarkers() {
     if (exits.size() != exitMarkers.size()) return;
     NamedFloatTable* variables = &session->Party()->variables;
     for (int i = 0; i < std::ssize(exits); ++i) {
-        CParticleSource* marker = exitMarkers[i];
+        ParticleSource* marker = exitMarkers[i];
         if (!marker) continue;
         std::string name("z.");
         name += exits[i].target;

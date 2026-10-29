@@ -1,4 +1,4 @@
-// A network client's player list on the base screen (CChatWindow). See
+// A network client's player list on the base screen (ChatWindow). See
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
 #include "game_data.h"
 #include "game_singletons.h"
@@ -43,19 +43,19 @@ constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 wit
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kPickCommandA = 4, kPickCommandB = 5;   // the client's command kinds for picks 1 / 2
 
-net::PlayerMessage* PlayerOf(CRefObject* object) { return static_cast<net::PlayerMessage*>(object); }
-bool Live(const CRefObject* object) { return object && !(object->flags7 & CRefObject::kDetached); }
+net::PlayerMessage* PlayerOf(RefObject* object) { return static_cast<net::PlayerMessage*>(object); }
+bool Live(const RefObject* object) { return object && !(object->flags7 & RefObject::kDetached); }
 
 } // namespace
 
 // --- the constructor -----------------------------------------------------------------------------
 
 // Its own update; the input side's click and mouse move.
-CChatWindow::CChatWindow(CInterface3D* ownerUi) : CUiWindow(ownerUi) {
+ChatWindow::ChatWindow(Interface3D* ownerUi) : UiWindow(ownerUi) {
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect = RECT{left, 0, 800, 0xA0};
-    CUiSurface* surface = new CUiSurface(ui, left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true);
+    UiSurface* surface = new UiSurface(ui, left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true);
     AddSurface(surface);
     portraits = 0;
     std::string text;
@@ -69,7 +69,7 @@ CChatWindow::CChatWindow(CInterface3D* ownerUi) : CUiWindow(ownerUi) {
 
 // --- a face --------------------------------------------------------------------------------------
 
-void CChatWindow::AddPortrait(const std::string& model, std::string_view texture) {
+void ChatWindow::AddPortrait(const std::string& model, std::string_view texture) {
     // Four faces share a 256 x 256 texture, one quarter each.
     int u = 0, v = 0;
     switch (portraits % 4) {
@@ -81,7 +81,7 @@ void CChatWindow::AddPortrait(const std::string& model, std::string_view texture
     }
     CopyImage(objects[std::ssize(objects) - 1], texture, 0x80, 0x80, 0x80, 0x80, u, v);
 
-    CUiMesh* sprite = AddSprite(model);
+    UiMesh* sprite = AddSprite(model);
     int left = kFirstFaceLeft - portraits * kFaceWidth;
     int right = left + kFaceWidth;
     if (sprite) {
@@ -106,7 +106,7 @@ void CChatWindow::AddPortrait(const std::string& model, std::string_view texture
 
 // --- the players' faces --------------------------------------------------------------------------
 
-void CChatWindow::ShowPlayers() {
+void ChatWindow::ShowPlayers() {
     ClearSceneObjects();
     ClearRegions();
     ClearObjects();
@@ -120,7 +120,7 @@ void CChatWindow::ShowPlayers() {
     const auto& clientPlayers = client->players;
     for (auto node = clientPlayers.begin(); node != clientPlayers.end(); ++node) {
         if (!Live(client->binding)) continue;
-        CRefObject* player = node->Get();
+        RefObject* player = node->Get();
         bool own = client->binding->PlayerRef().Get() == player;
         if (own)
             players.emplace(players.begin(), player);
@@ -160,13 +160,13 @@ void CChatWindow::ShowPlayers() {
 
 // --- Update --------------------------------------------------------------------------------------
 
-void CChatWindow::Update() {
+void ChatWindow::Update() {
     net::ClientSession* client = net::g_gameClient;
     if (Live(client->trade)) {
         GameSendLeave04(9);
         return;
     }
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->Clear();
     std::string status, offer;
     int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? kFirstFaceLeft : kFirstStatusLeft;
@@ -204,12 +204,12 @@ void CChatWindow::Update() {
 
 // --- the input side's left button and mouse move -------------------------------------------------
 
-void CChatWindow::LeftDown(int, int x, int y) {
+void ChatWindow::LeftDown(int, int x, int y) {
     int index = RegionAt(x, y);
     if (index < 0 || static_cast<unsigned>(index) >= players.size()) return;
     handled = true;
     // The active screen is the briefing, whose chat window this is (its chatActive is the pick mode).
-    CBriefingScreen* briefing = ui->ActiveWindowAs<CBriefingScreen>();
+    BriefingScreen* briefing = ui->ActiveWindowAs<BriefingScreen>();
     int pick = briefing->chatActive;
     if (pick != 0) {
         char text[0x80];
@@ -223,7 +223,7 @@ void CChatWindow::LeftDown(int, int x, int y) {
     }
     ui->PlaySound(kOnOffSound);
     net::ClientSession* client = net::g_gameClient;
-    CRefObject* player = players[index];
+    RefObject* player = players[index];
     // The binding is not checked for null here.
     if (client->binding->PlayerRef().Get() == player) return;
     auto* own = client->party.Get();
@@ -234,8 +234,8 @@ void CChatWindow::LeftDown(int, int x, int y) {
     client->StartParty(player);
 }
 
-void CChatWindow::MouseMove(int, int x, int y) {
+void ChatWindow::MouseMove(int, int x, int y) {
     int index = RegionAt(x, y);
-    int pick = ui->ActiveWindowAs<CBriefingScreen>()->chatActive;
+    int pick = ui->ActiveWindowAs<BriefingScreen>()->chatActive;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players.size()) g_cursor.SetShape(0);
 }

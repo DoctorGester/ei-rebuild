@@ -1,5 +1,5 @@
 // The halves of a 3D object besides the client half's part sets: the client half's shadow state, the base
-// half's empty slots, the server half (CObject3DServer, class id 0x38), the wounds material's destructor and
+// half's empty slots, the server half (Object3DServer, class id 0x38), the wounds material's destructor and
 // the copies of a named texture and a material stage. Layouts: map_object_shadow.h, map_object_figures.h.
 #include "core_refcount.h"
 #include "figure_mesh.h"    // VertexPacket
@@ -38,13 +38,13 @@ int ShadowSwitchOf(CObject3D* object) {
 
 // --- The client half's shadow state -----------------------------------------------------------------
 
-std::uint32_t CObject3DClientSpecific::ShadowsShown() {
+std::uint32_t Object3DClientSpecific::ShadowsShown() {
     int setting = worlddata::ShadowSetting();
     if (setting <= 0) return static_cast<std::uint32_t>(setting) & 0xFFFFFF00u;
     return ShadowSwitchOf(object) != 0 ? 1u : 0u;
 }
 
-void CObject3DClientSpecific::ClearShadow() {
+void Object3DClientSpecific::ClearShadow() {
     vertices.clear();
     texCoords.clear();
     lib::FreeStorage(indices);
@@ -56,7 +56,7 @@ void CObject3DClientSpecific::ClearShadow() {
     std::memset(&sphere, 0, sizeof(sphere));
 }
 
-bool CObject3DClientSpecific::ShadowInView() {
+bool Object3DClientSpecific::ShadowInView() {
     if (worlddata::ShadowSetting() <= 0 || ShadowSwitchOf(object) == 0) return false;
     if (flags & kHalfShown) return true;
     const Vector3& at = object->localPosition;
@@ -74,32 +74,32 @@ bool CObject3DClientSpecific::ShadowInView() {
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------
 
 // Nothing is drawn; 0.
-int CObject3DSpecific::DrawParts(CSceneRenderer* /*context*/, tagRECT* /*dirty*/) { return 0; }
-int CObject3DSpecific::DrawPartsShadow(CSceneRenderer*) { return 0; }
-int CObject3DSpecific::BoundsContainPoint(const long*) { return 0; }
-int CObject3DSpecific::PartsIntersectRect(const tagRECT*) { return 0; }
-int CObject3DSpecific::PartsContainPoint(const long*) { return 0; }
+int Object3DSpecific::DrawParts(SceneRenderer* /*context*/, tagRECT* /*dirty*/) { return 0; }
+int Object3DSpecific::DrawPartsShadow(SceneRenderer*) { return 0; }
+int Object3DSpecific::BoundsContainPoint(const long*) { return 0; }
+int Object3DSpecific::PartsIntersectRect(const tagRECT*) { return 0; }
+int Object3DSpecific::PartsContainPoint(const long*) { return 0; }
 
 // --- The server half ---------------------------------------------------------------------------------
 
 // The base half's (the engine object's fields, no object). Deleting form: the base half's.
-CObject3DServer::CObject3DServer() {}
-CObject3DServer::~CObject3DServer() {}
+Object3DServer::Object3DServer() {}
+Object3DServer::~Object3DServer() {}
 
 // No object.
-void CObject3DServer::Create() {}
-void CObject3DServer::Destroy() { object = nullptr; }
+void Object3DServer::Create() {}
+void Object3DServer::Destroy() { object = nullptr; }
 
 // Class name and id.
-const char* CObject3DServer::ClassName() { return kServerClassName; }
-ClassId CObject3DServer::GetClassId() { return ClassId::Object3DServer; }
+const char* Object3DServer::ClassName() { return kServerClassName; }
+ClassId Object3DServer::GetClassId() { return ClassId::Object3DServer; }
 
 // The part virtuals: no parts; 0.
-int CObject3DServer::OnPartAdded(CFigureMesh*) { return 0; }
-CFigureMesh* CObject3DServer::RemoveFromPartSets(const char*) { return nullptr; }
-int CObject3DServer::OnPartRemoved(CFigureMesh*) { return 0; }
-CFigureMesh* CObject3DServer::FindPart(std::string_view) { return nullptr; }
-CFigureMesh* CObject3DServer::FindPartOfType(int) { return nullptr; }
+int Object3DServer::OnPartAdded(FigureMesh*) { return 0; }
+FigureMesh* Object3DServer::RemoveFromPartSets(const char*) { return nullptr; }
+int Object3DServer::OnPartRemoved(FigureMesh*) { return 0; }
+FigureMesh* Object3DServer::FindPart(std::string_view) { return nullptr; }
+FigureMesh* Object3DServer::FindPartOfType(int) { return nullptr; }
 
 // --- The wounds material and the stage copies ---------------------------------------------------------
 

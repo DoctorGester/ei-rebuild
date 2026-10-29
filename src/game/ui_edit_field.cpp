@@ -1,5 +1,5 @@
 // The message box's edit field: its key handler, constructor and character
-// handler, and its drawing (Rebirth's WideScreen behind its flag). See ui.h (CUiEditField) and
+// handler, and its drawing (Rebirth's WideScreen behind its flag). See ui.h (UiEditField) and
 // docs/notes/items_spells.md
 #include "ui.h"
 #include "ui_screens.h"
@@ -45,7 +45,7 @@ std::uint32_t CharClass(int key) {
 
 } // namespace
 
-void CUiEditField::KeyDown(int key, int, int) {
+void UiEditField::KeyDown(int key, int, int) {
     if (!focused) return;
     auto& currentText = text;
     switch (key) {
@@ -101,7 +101,7 @@ void CUiEditField::KeyDown(int key, int, int) {
 }
 
 // The window's slots; the input side's keys and characters.
-CUiEditField::CUiEditField(CInterface3D* ownerUi, RECT rect) : CUiWindow(ownerUi) {
+UiEditField::UiEditField(Interface3D* ownerUi, RECT rect) : UiWindow(ownerUi) {
     charClasses = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
     centred = 0;
     font = 1;
@@ -110,13 +110,13 @@ CUiEditField::CUiEditField(CInterface3D* ownerUi, RECT rect) : CUiWindow(ownerUi
     caretColour = 0xFF;
     ClearSurfaces();
     area = rect;
-    CUiSurface* surface = new CUiSurface(ui, &area, SurfaceBlend::Keyed);
+    UiSurface* surface = new UiSurface(ui, &area, SurfaceBlend::Keyed);
     AddSurface(surface);
     DrawContentsVanilla();
     focused = true;
 }
 
-void CUiEditField::Char(int key, int, int) {
+void UiEditField::Char(int key, int, int) {
     if (!focused) return;
     if (key == kKeyBackspace || key == kKeyTab || key == kKeyEnter || key == kKeyEscape) return;
     if (ui->ctrlDown) return;
@@ -143,7 +143,7 @@ void CUiEditField::Char(int key, int, int) {
 
 // --- the look, the text and the focus ------------------------------------------------------------
 
-void CUiEditField::SetLook(std::uint32_t newCharClasses, char mode, int newFont, int newMaxLength, COLORREF newColour,
+void UiEditField::SetLook(std::uint32_t newCharClasses, char mode, int newFont, int newMaxLength, COLORREF newColour,
                            COLORREF newCaretColour) {
     charClasses = newCharClasses;
     centred = static_cast<std::uint8_t>(mode);
@@ -154,7 +154,7 @@ void CUiEditField::SetLook(std::uint32_t newCharClasses, char mode, int newFont,
     DrawContentsVanilla();
 }
 
-void CUiEditField::SetText(std::string_view newText) {
+void UiEditField::SetText(std::string_view newText) {
     editing = false;
     text = newText;
     changed = true;
@@ -162,15 +162,15 @@ void CUiEditField::SetText(std::string_view newText) {
     DrawContentsVanilla();
 }
 
-void CUiEditField::SetFocused(bool newFocused) { focused = newFocused; }
+void UiEditField::SetFocused(bool newFocused) { focused = newFocused; }
 
 // --- the text and the caret drawn ----------------------------------------------------------------
 
-void CUiEditField::DrawContentsVanilla() {
+void UiEditField::DrawContentsVanilla() {
     auto& currentText = text;
     if (caret > static_cast<int>(currentText.size())) caret = currentText.size();
     if (caret < 0) caret = 0;
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     if (!surface->holder) return;
     surface->Clear();
     const int width = area.right - area.left;

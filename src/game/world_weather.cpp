@@ -1,4 +1,4 @@
-// CWorldServer::UpdateWeather (every 64 ticks from Tick): the day-time value, rain starting and stopping,
+// WorldServer::UpdateWeather (every 64 ticks from Tick): the day-time value, rain starting and stopping,
 // lightning strikes and the lightning bolts during a storm. See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "base_manager.h"
@@ -49,12 +49,12 @@ float UniformOnMap() { return static_cast<float>(x87::FromUnsigned(g_random.Next
 
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
 // away when the ground there is open and the line between them is not fully free.
-void TryLightningStrike(CWorldServer* world) {
+void TryLightningStrike(WorldServer* world) {
     Vector3 ground;
     ground.x = UniformOnMap();
     ground.y = UniformOnMap();
     ground.z = 0.0f;
-    CAIMap* aiMap = &world->aiMap;
+    AIMap* aiMap = &world->aiMap;
     int kind = aiMap->MaterialAt(ground);
     if (kind != 3 && kind != 1) return;
     if (aiMap->InWaterAt(ground)) return;
@@ -70,8 +70,8 @@ void TryLightningStrike(CWorldServer* world) {
     sky.z = ground.z;
     if (aiMap->LargestStepAlong(ground, sky) >= 1.0f) return;   // NaN goes on (C0 set)
 
-    CBaseManager* manager = world->TimedObjectManager();
-    auto* lightning = manager->CreateObjectAs<CEffectTornado>(kTypeLightning, -1);
+    BaseManager* manager = world->TimedObjectManager();
+    auto* lightning = manager->CreateObjectAs<EffectTornado>(kTypeLightning, -1);
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
@@ -83,7 +83,7 @@ void TryLightningStrike(CWorldServer* world) {
 }
 
 // Rain starts (1 in 101 per check) or stops (1 in 31); light rain in kind-1 weather, heavy otherwise.
-void UpdateRain(CWorldServer* world) {
+void UpdateRain(WorldServer* world) {
     if (--g_weatherDelay > 0) return;
     if (world->weather == 0) {
         if (g_random.Next() % 101 != 0) return;
@@ -107,7 +107,7 @@ void UpdateRain(CWorldServer* world) {
 }
 
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.
-void ShowRainBolt(CWorldServer* world) {
+void ShowRainBolt(WorldServer* world) {
     world->lastRainBoltTick = static_cast<std::uint32_t>(world->tick);
     float x = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltScale + 2.0f);
     float y = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltScale + 2.0f);
@@ -123,12 +123,12 @@ void ShowRainBolt(CWorldServer* world) {
 // "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
 // "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
-CScript& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command queue (adds a line)
+Script& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command queue (adds a line)
 
 
 } // namespace
 
-void CWorldServer::UpdateWeather() {
+void WorldServer::UpdateWeather() {
     float day = static_cast<float>(NightLevel());
     nightLevel = day;
     if (sessionKind == kKindSinglePlayer) {

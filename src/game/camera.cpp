@@ -1,4 +1,4 @@
-// The camera (CCamera, camera.h): the per-frame update and view placement, focus and terrain sampling,
+// The camera (Camera, camera.h): the per-frame update and view placement, focus and terrain sampling,
 // panning / zoom / saved views, shakes and recorded camera paths. Floating point
 // follows the game's x87 code: `double` for values the game keeps on the FPU stack, static_cast<float> where
 // it stores to a float.
@@ -82,7 +82,7 @@ struct ViewStep {
 ViewStep g_viewStep;
 camera::ViewPose g_frameView{};   // camera::FrameView
 
-camera::ViewPose PoseOf(const CCamera* c) {
+camera::ViewPose PoseOf(const Camera* c) {
     return camera::ViewPose{c->localPosition, c->localRotation, c->focus, c->viewRotation, c->distance};
 }
 
@@ -107,7 +107,7 @@ Quaternion TurnedBack(const Quaternion& r, const Quaternion& undo, float t) {
 // The camera's distance from its focus in `pose`.
 float Reach(const camera::ViewPose& pose) { return std::sqrt(DistanceSquaredZYX(pose.position, pose.focus)); }
 
-void ResetMotion(CCamera* c) {
+void ResetMotion(Camera* c) {
     c->panVelocity = camera::kZeroVector;
     c->panTarget = camera::kZeroVector;
     const float zero = 0.0f;
@@ -121,9 +121,9 @@ void ResetMotion(CCamera* c) {
 
 } // namespace
 
-void camera::NoteViewBeforeTick(const CCamera* camera) { g_viewStep.before = PoseOf(camera); }
+void camera::NoteViewBeforeTick(const Camera* camera) { g_viewStep.before = PoseOf(camera); }
 
-void camera::NoteViewTick(const CCamera* camera) {
+void camera::NoteViewTick(const Camera* camera) {
     ViewStep& step = g_viewStep;
     const ViewPose now = PoseOf(camera);
     const ViewPose& before = step.before;
@@ -143,7 +143,7 @@ void camera::SetViewProgress(float reached, float passTicks) {
     g_viewStep.back = (1.0f - reached) * spread;
 }
 
-camera::ViewPose camera::DrawnView(const CCamera* camera) {
+camera::ViewPose camera::DrawnView(const Camera* camera) {
     const ViewStep& step = g_viewStep;
     const float back = step.back;
     ViewPose out = PoseOf(camera);
@@ -155,7 +155,7 @@ camera::ViewPose camera::DrawnView(const CCamera* camera) {
     return out;
 }
 
-void camera::TakeFrameView(const CCamera* camera) { g_frameView = DrawnView(camera); }
+void camera::TakeFrameView(const Camera* camera) { g_frameView = DrawnView(camera); }
 
 const camera::ViewPose& camera::FrameView() { return g_frameView; }
 
@@ -188,14 +188,14 @@ void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float
     *average = static_cast<float>(D(*average) / static_cast<double>(count));
 }
 
-int CCamera::PlaybackStart() {
+int Camera::PlaybackStart() {
     if (keys.empty()) return 0;
     localPosition = keys[0].position;
     localRotation = keys[0].rotation;
     return 1;
 }
 
-int CCamera::PlaybackStep(float time) {
+int Camera::PlaybackStep(float time) {
     if (!(flags & kPlaying) || keys.empty()) return 0;
     const CameraKey* newKeys = keys.data();
     if (keyIndex >= std::ssize(keys) - 1) {
@@ -233,7 +233,7 @@ int CCamera::PlaybackStep(float time) {
     return 1;
 }
 
-void CCamera::Pan(const Vector3& direction) {
+void Camera::Pan(const Vector3& direction) {
     Vector3 right;
     localRotation.AxisX(&right);
     const Quaternion& r = localRotation;
@@ -252,7 +252,7 @@ void CCamera::Pan(const Vector3& direction) {
     panTarget.z = 0.0f;
 }
 
-void CCamera::StopMotion() {
+void Camera::StopMotion() {
     Vector3 right, up;
     localRotation.AxisX(&right);
     localRotation.AxisY(&up);
@@ -277,7 +277,7 @@ void CCamera::StopMotion() {
     zoomTarget = 0.0f;
 }
 
-void CCamera::SetFocus(const Vector3& p) {
+void Camera::SetFocus(const Vector3& p) {
     focus = p;
     float average, low, high;
     SampleTerrain(p, static_cast<float>(D(options::g_options.cameraTerrainArea) * 0.5f), options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea, &average,
@@ -285,7 +285,7 @@ void CCamera::SetFocus(const Vector3& p) {
     focus.z = static_cast<float>(D(average) + focusHeight);
 }
 
-void CCamera::ApplyView() {
+void Camera::ApplyView() {
     localRotation = viewRotation;
     Vector3 right;
     localRotation.AxisX(&right);
@@ -329,7 +329,7 @@ void CCamera::ApplyView() {
     localRotation.x = x;
 }
 
-void CCamera::Update(float dt) {
+void Camera::Update(float dt) {
     Vector3 listener;
     listener = localPosition;
     if (!(flags & kPlaced)) {
@@ -345,7 +345,7 @@ void CCamera::Update(float dt) {
     if (flags & kFollowing) {
         if (target) {
             // Behind the target, looking along its heading.
-            const CTransformObject* t = target;
+            const TransformObject* t = target;
             const CObject3D* body = target;
             double lift = D(body->bounds.boxMax.z) + body->bounds.center.z;
             localPosition.x = t->localPosition.x;
@@ -366,7 +366,7 @@ void CCamera::Update(float dt) {
         }
     } else if (target) {
         // Drift the focus a fifth of the way to the tracked object.
-        const CTransformObject* t = target;
+        const TransformObject* t = target;
         double dx = D(t->localPosition.x) - focus.x;
         float dy = static_cast<float>(D(t->localPosition.y) - focus.y);
         float width = g_clientWorld.terrain->width;
@@ -502,7 +502,7 @@ void CCamera::Update(float dt) {
     localPosition.z = static_cast<float>(D(offset) + localPosition.z);
 }
 
-void CCamera::ZoomBy(float steps) {
+void Camera::ZoomBy(float steps) {
     double d = libcrt::CiPow(CAM_ZOOM_STEP, steps) * distance;
     distance = static_cast<float>(d);
     if (!settings) return;
@@ -515,7 +515,7 @@ void CCamera::ZoomBy(float steps) {
     if (d > limits.max) distance = limits.max;
 }
 
-bool CCamera::SaveView(unsigned slot) {
+bool Camera::SaveView(unsigned slot) {
     if (slot >= 8) return false;
     CameraView& v = views[slot];
     v.distance = distance;
@@ -525,7 +525,7 @@ bool CCamera::SaveView(unsigned slot) {
     return true;
 }
 
-bool CCamera::RestoreView(unsigned slot) {
+bool Camera::RestoreView(unsigned slot) {
     if (slot >= 8) return false;
     distance = views[slot].distance;
     pitch = views[slot].pitch;
@@ -533,20 +533,20 @@ bool CCamera::RestoreView(unsigned slot) {
     return true;
 }
 
-void CCamera::SetDistancePitch(const CameraView* view) {
+void Camera::SetDistancePitch(const CameraView* view) {
     distance = view->distance;
     pitch = view->pitch;
     ResetMotion(this);
 }
 
-CameraLimits CCamera::Limits() const {
+CameraLimits Camera::Limits() const {
     const options::GameOptions* s = settings;
     if (flags & kAlternate)
         return {s->briefingMinDistance, s->briefingMaxDistance, s->briefingMinLimitDistance, s->briefingMaxLimitDistance};
     return {s->cameraMinDistance, s->cameraMaxDistance, s->cameraMinLimitDistance, s->cameraMaxLimitDistance};
 }
 
-void CCamera::ViewsToSettings(options::GameOptions* gameOptions) {
+void Camera::ViewsToSettings(options::GameOptions* gameOptions) {
     for (int i = 0; i < 4; ++i) {
         const CameraView& v = views[i];
         options::CameraShortcutOptions& r = gameOptions->cameraShortcuts[i];
@@ -573,7 +573,7 @@ void CCamera::ViewsToSettings(options::GameOptions* gameOptions) {
     }
 }
 
-void CCamera::ViewsFromSettings(const options::GameOptions* gameOptions) {
+void Camera::ViewsFromSettings(const options::GameOptions* gameOptions) {
     for (int i = 0; i < 4; ++i) {
         CameraView& v = views[i];
         const options::CameraShortcutOptions& r = gameOptions->cameraShortcuts[i];
@@ -584,20 +584,20 @@ void CCamera::ViewsFromSettings(const options::GameOptions* gameOptions) {
     }
 }
 
-void CCamera::SetHeading(float angle) {
+void Camera::SetHeading(float angle) {
     Vector3 up = {0.0f, 0.0f, 1.0f};
     viewRotation.FromAxisAngle(up, angle);
     ApplyView();
 }
 
-void CCamera::SetFree(bool on) {
+void Camera::SetFree(bool on) {
     if (on)
         flags |= kFree;
     else
         flags &= ~kFree;
 }
 
-void CCamera::LookFrom(const Vector3& from, const Vector3& to) {
+void Camera::LookFrom(const Vector3& from, const Vector3& to) {
     flags |= kFree;
     localPosition = from;
     float dx = static_cast<float>(D(to.x) - from.x);
@@ -606,13 +606,13 @@ void CCamera::LookFrom(const Vector3& from, const Vector3& to) {
     LookDirection(dx, dy, dz);
 }
 
-void CCamera::SetBounds(const Vector3& center, float radius) {
+void Camera::SetBounds(const Vector3& center, float radius) {
     boundsCenter = center;
     boundsRadius = radius;
     flags |= kBounded;
 }
 
-void CCamera::Shake(const Vector3& source, float duration, float amplitude, float decay) {
+void Camera::Shake(const Vector3& source, float duration, float amplitude, float decay) {
     const Vector3& at = (flags & kPlaced) ? localPosition : focus;
     double newDistance = libcrt::Hypot(D(at.x) - source.x, D(at.y) - source.y);
     float distanceF = static_cast<float>(newDistance);

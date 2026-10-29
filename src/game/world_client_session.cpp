@@ -13,19 +13,19 @@ namespace {
 // The local player's link when it is there and not detached (the dword +4's bit 31), else null.
 netlink::NetLink* ActiveLink(CPlayer* session) {
     netlink::NetLink* link = session->link;
-    if (link && !(link->flags7 & CRefCounted::kDetached)) return link;
+    if (link && !(link->flags7 & RefCounted::kDetached)) return link;
     return nullptr;
 }
 
-void PumpSources(CWorldClient* world) {
-    if (CWorldHandle* source = world->worldHandle.Get()) source->Pump();
-    if (CClientHandle* source = world->handle.Get()) source->Pump();
+void PumpSources(WorldClient* world) {
+    if (WorldHandle* source = world->worldHandle.Get()) source->Pump();
+    if (ClientHandle* source = world->handle.Get()) source->Pump();
     if (netlink::DriverSession* session = world->netSession.Get()) session->PumpDrivers(net::g_gameClient);
 }
 
 } // namespace
 
-void CWorldClient::SetPlayer(CWorldHandle* player) {
+void WorldClient::SetPlayer(WorldHandle* player) {
     CloseSession();
     netlink::NetLink* link = netlink::LoopbackLink::CreatePair(player);
     ClearMaps();
@@ -34,9 +34,9 @@ void CWorldClient::SetPlayer(CWorldHandle* player) {
     session->Connect(link);
 }
 
-bool CWorldClient::JoinGameClient() {
+bool WorldClient::JoinGameClient() {
     net::ClientSession* client = net::g_gameClient;
-    if (!client || (client->flags7 & CRefCounted::kDetached)) return false;
+    if (!client || (client->flags7 & RefCounted::kDetached)) return false;
     if (client->clients.empty()) return false;
     OpenSession();
     netlink::NetLink* link = netSession.Get()->Start(client->clients.front().Get());
@@ -47,19 +47,19 @@ bool CWorldClient::JoinGameClient() {
     return true;
 }
 
-bool CWorldClient::PumpHasIncoming() {
+bool WorldClient::PumpHasIncoming() {
     PumpSources(this);
     netlink::NetLink* link = ActiveLink(session);
     return link ? link->HasIncoming() : false;
 }
 
-int CWorldClient::PumpIncomingCount() {
+int WorldClient::PumpIncomingCount() {
     PumpSources(this);
     netlink::NetLink* link = ActiveLink(session);
     return link ? link->IncomingCount() : 0;
 }
 
-void CWorldClient::DisconnectLocalPlayer() {
-    CPlayerConnection* view = session ? session->connection : nullptr;
+void WorldClient::DisconnectLocalPlayer() {
+    PlayerConnection* view = session ? session->connection : nullptr;
     view->player->Disconnect();
 }

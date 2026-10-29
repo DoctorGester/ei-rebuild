@@ -1,4 +1,4 @@
-// Combat: CUnitServer's weapon and spell queries, the attack hit (damage calculation), the attack
+// Combat: UnitServer's weapon and spell queries, the attack hit (damage calculation), the attack
 // roll and hit resolution. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 #include "console.h"
@@ -103,7 +103,7 @@ float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.man
 
 std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode; }
 
-void AttackParamsOf(CUnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
+void AttackParamsOf(UnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
 // A zero-extended dword converted as a 64-bit integer (exact; a plain uint32 conversion would add 2^32 in a step
 // the precision control rounds).
@@ -146,30 +146,30 @@ std::int16_t SizeClassOf(double size, float load) {
 
 
 
-float CUnitServer::AttackRange() {
-    CItemWeapon* weapon = unit->ActiveWeapon();
+float UnitServer::AttackRange() {
+    ItemWeapon* weapon = unit->ActiveWeapon();
     if (weapon) return weapon->reach;
     return stats.combat[UnitStats::kReach];
 }
 
-bool CUnitServer::HasRangedWeapon() {
-    CItemWeapon* weapon = unit->ActiveWeapon();
+bool UnitServer::HasRangedWeapon() {
+    ItemWeapon* weapon = unit->ActiveWeapon();
     if (!weapon) return false;
     return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
 }
 
-bool CUnitServer::AttacksFromRange() {
+bool UnitServer::AttacksFromRange() {
     if (!unit->ActiveWeapon()) {
         return stats.naturalWeapon != kNoNaturalWeapon && stats.combat[UnitStats::kReach] > 1.0f;
     }
-    CItemWeapon* weapon = unit->ActiveWeapon();
+    ItemWeapon* weapon = unit->ActiveWeapon();
     if (!weapon) return false;
     return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
 }
 
-void CUnitServer::GetDamageByType(DamageWords* out) {
+void UnitServer::GetDamageByType(DamageWords* out) {
     CUnit* self = unit;
-    CItemWeapon* weapon;
+    ItemWeapon* weapon;
     if (self->player && self->activeWeapon < 4 &&
         (weapon = AsWeapon(self->weapons[self->activeWeapon])) != nullptr) {
         float total = weapon->damageSpread + weapon->damage;
@@ -190,7 +190,7 @@ void CUnitServer::GetDamageByType(DamageWords* out) {
     }
 }
 
-void CUnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
+void UnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     CSpell* spell = SpellOfSource(source);
     *out = DamageWords{};
     if (spell) {
@@ -201,7 +201,7 @@ void CUnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     out->words[0] = 0x7FFF;
 }
 
-CItem* CUnitServer::SpellCarrier(std::uint32_t source) {
+Item* UnitServer::SpellCarrier(std::uint32_t source) {
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item) return nullptr;
     if (item->GetClassId() != ClassId::ItemQuick) return nullptr;
@@ -209,7 +209,7 @@ CItem* CUnitServer::SpellCarrier(std::uint32_t source) {
     return nullptr;
 }
 
-bool CUnitServer::IsScrollSource(std::uint32_t source) {
+bool UnitServer::IsScrollSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return false;
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != ClassId::ItemQuick) return false;
@@ -217,7 +217,7 @@ bool CUnitServer::IsScrollSource(std::uint32_t source) {
     return item->GetCategory() == QuickItemCategory::Potion;
 }
 
-CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
+CSpell* UnitServer::SpellOfSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return unit->GetSpellObject(source);
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != ClassId::ItemQuick) return nullptr;
@@ -225,7 +225,7 @@ CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
     return item->spell;
 }
 
-bool CUnitServer::IsFighting() {
+bool UnitServer::IsFighting() {
     if (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn) {
         CSpell* spell = nullptr;
         if (action.source & kQuickItemSource) {
@@ -246,7 +246,7 @@ bool CUnitServer::IsFighting() {
     return action.kind == UnitOrderKind::Attack;
 }
 
-bool CUnitServer::CanCast(const AIOrder* order) {
+bool UnitServer::CanCast(const AIOrder* order) {
     std::uint32_t source = order->source;
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
@@ -269,7 +269,7 @@ bool CUnitServer::CanCast(const AIOrder* order) {
     return true;
 }
 
-bool CUnitServer::GetMovePoint(float* out) {
+bool UnitServer::GetMovePoint(float* out) {
     if (action.kind == UnitOrderKind::Move) {
         lib::StoreBytes(out, action.point);
         return true;
@@ -281,7 +281,7 @@ bool CUnitServer::GetMovePoint(float* out) {
     return false;
 }
 
-float CUnitServer::ActionDistance(const AIOrder* order) {
+float UnitServer::ActionDistance(const AIOrder* order) {
     if (order->pointIsUseSpot) return kPointTwo;
     UnitOrderKind kind = order->kind;
     CMapObject* target = order->target;
@@ -290,7 +290,7 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
         std::uint32_t source = order->source;
         CSpell* spell;
         if (source & kQuickItemSource) {
-            CItem* carrier = SpellCarrier(source);
+            Item* carrier = SpellCarrier(source);
             if (!carrier) return kTen;
             spell = carrier->spell;
         } else {
@@ -313,25 +313,25 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
     if (CUnit* other = UnitOrNull(target)) {
         float floor = kMeleeFloor;
         if (other->player && unit->player) floor = kMeleeFloorParty;
-        CItemWeapon* weapon = unit->ActiveWeapon();
+        ItemWeapon* weapon = unit->ActiveWeapon();
         float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
         float reach = range >= floor ? range : floor;
         return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + reach);
     }
-    CItemWeapon* weapon = unit->ActiveWeapon();
+    ItemWeapon* weapon = unit->ActiveWeapon();
     float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
     float own = unit->Radius();
     return static_cast<float>((target->Radius() + static_cast<double>(own)) + range);
 }
 
-bool CUnitServer::CanReachTarget(const AIOrder* order) {
+bool UnitServer::CanReachTarget(const AIOrder* order) {
     if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return true;
     CUnit* other = UnitOrNull(order->target);
     if (!other) return true;
     if (other->IsDead() != 0) return true;
     if (other->sizeClass != 0) return true;
     if (order->kind == UnitOrderKind::Attack) {
-        CItemWeapon* weapon = unit->ActiveWeapon();
+        ItemWeapon* weapon = unit->ActiveWeapon();
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
     float offset = other->GetPrototype()->height;
@@ -340,15 +340,15 @@ bool CUnitServer::CanReachTarget(const AIOrder* order) {
     return height < kOnePointFive;
 }
 
-std::uint32_t CUnitServer::WeaponTypeMask() {
-    CItemWeapon* weapon = unit->ActiveWeapon();
+std::uint32_t UnitServer::WeaponTypeMask() {
+    ItemWeapon* weapon = unit->ActiveWeapon();
     if (weapon) return AnimationWeaponBit(weapon->GetType());
     int natural = stats.naturalWeapon;
     if (natural < 7) return AnimationWeaponBit(natural);
     return 0;
 }
 
-std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
+std::uint32_t UnitServer::MoveModeMask(const MoveModeState* mode) {
     switch (static_cast<std::uint32_t>(mode->mode)) {
     case 0: return AnimationKeyOf(AnimationMoveBits::Mode0);
     case 1: return AnimationKeyOf(AnimationMoveBits::Mode1);
@@ -360,7 +360,7 @@ std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
     }
 }
 
-int CUnitServer::Level() {
+int UnitServer::Level() {
     float experience = stats.experience;
     float base = g_logicSettings.considerModifier;
     float step = g_logicSettings.considerLogBase;
@@ -369,15 +369,15 @@ int CUnitServer::Level() {
     return x87::fistp(ratio);
 }
 
-void CUnitServer::EffectsChanged() {
+void UnitServer::EffectsChanged() {
     if (unit->HasEffect(SpellType::Feeblemind) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags |= MapObjectFlag::NoCasting;
     else unit->flags &= ~MapObjectFlag::NoCasting;
 }
 
-void CUnitServer::GetAttackParams(AttackParams* out) {
+void UnitServer::GetAttackParams(AttackParams* out) {
     CUnit* self = unit;
     int keyed = IsTextKey(self->id);
-    CItemWeapon* weapon = self->ActiveWeapon();
+    ItemWeapon* weapon = self->ActiveWeapon();
     if (keyed && weapon) {
         out->damageMin = weapon->damage;
         out->damageMax = weapon->damageSpread + weapon->damage;
@@ -421,7 +421,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     out->ScaleForDifficulty(keyed);
 }
 
-float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
+float UnitServer::AttackRoll(UnitServer* attacker, bool backstab) {
     AttackParams theirs;
     AttackParams mine;
     AttackParamsOf(attacker, &theirs);
@@ -450,7 +450,7 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     return MaxKeepB(0.0f, static_cast<float>(roll));
 }
 
-bool CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
+bool UnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     float roll = kHitMark;
     if (!HasElementalDamage(hit)) {
         if (moveMode2.onGuard) hit->backstabFactor = 1.0f;
@@ -471,12 +471,12 @@ bool CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     return result > 0.0f;
 }
 
-void CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot) {
+void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot) {
     CUnit* self = unit;
     int keyed = IsTextKey(self->id);
     std::memset(out, 0, sizeof(DamageInfo));
     out->multiplier = 1.0f;
-    CItemWeapon* weapon = nullptr;
+    ItemWeapon* weapon = nullptr;
     if (keyed && self->activeWeapon < 4) weapon = AsWeapon(self->weapons[self->activeWeapon]);
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
@@ -514,8 +514,8 @@ void CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     out->calledShot = static_cast<std::uint8_t>(calledShot);
 }
 
-bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
-    CWorldServer* world = ServerWorld();
+bool UnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
+    WorldServer* world = ServerWorld();
     int dead = unit->IsDead();
     bool hadPlayer = unit->player != nullptr;
     // |attackRoll| below FLT_MAX: not resolved yet.
@@ -554,14 +554,14 @@ bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         stats.flags |= UnitStatsFlag::Struck;
         unit->MarkChanged(4);
         TriggerItemSpells(1);
-        CItem* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
+        Item* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
         if (stats.ApplyHit(unit, ServerStatsOf(unit), hit, weapon)) {
             if (attacker && !HasElementalDamage(hit)) {
                 if (attacker->MapType() != MapObjectType::Hero) {
                     LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId + 0x10);
                 } else {
                     auto* controller = attacker->ServerController();
-                    CItemWeapon* own = controller->unit->ActiveWeapon();
+                    ItemWeapon* own = controller->unit->ActiveWeapon();
                     if (own) LastDamageSource(unit) = static_cast<std::int16_t>(own->GetType());
                     else LastDamageSource(unit) = static_cast<std::int16_t>(controller->stats.naturalWeapon);
                 }
@@ -594,7 +594,7 @@ bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     return false;
 }
 
-void CUnitServer::UpdateSizeClasses() {
+void UnitServer::UpdateSizeClasses() {
     UnitStats& combat = stats;
     if (combat.movementKind == 2) {
         combat.sizeClass20 = 0;
@@ -613,8 +613,8 @@ void CUnitServer::UpdateSizeClasses() {
     combat.sizeClass60 = SizeClassOf(size * kSizeSmall, load);
 }
 
-void CUnitServer::UpdateMoveFactors() {
-    const CWorldServer* world = ServerWorld();
+void UnitServer::UpdateMoveFactors() {
+    const WorldServer* world = ServerWorld();
     double factor = world->nightLevel;
     double scaled = (factor * stats.perception[1].current) * kWorldFactorScale;
     moveFactors[0] = 1.0f;

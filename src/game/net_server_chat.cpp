@@ -20,7 +20,7 @@ constexpr std::uint32_t kMaxLines = 50;
 
 // Appends a line (the next line number, the text, the connection of `player`'s binding,
 // null for the server's own lines) and drops the oldest past 50.
-void ServerSession::Announce(std::string_view text, CRefObject* player) {
+void ServerSession::Announce(std::string_view text, RefObject* player) {
     auto* line = NewCounted<LineMessage>();
     lines.emplace_back(line);
 
@@ -29,8 +29,8 @@ void ServerSession::Announce(std::string_view text, CRefObject* player) {
     added->number = nextLine;
     ++nextLine;
 
-    CRefObject* connection = nullptr;
-    if (player && !(player->flags7 & CRefObject::kDetached)) {
+    RefObject* connection = nullptr;
+    if (player && !(player->flags7 & RefObject::kDetached)) {
         for (auto& node : bindings) {
             auto* binding = node.Get();
             if (binding->PlayerRef().Get() == player) {
@@ -45,7 +45,7 @@ void ServerSession::Announce(std::string_view text, CRefObject* player) {
 }
 
 // Announce with text `kind` of the text table formatted with `text`.
-void ServerSession::AnnounceText(int textKind, const char* text, CRefObject* player) {
+void ServerSession::AnnounceText(int textKind, const char* text, RefObject* player) {
     Announce(g_interface.MessageText(textKind, text), player);
 }
 

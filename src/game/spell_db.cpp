@@ -97,7 +97,7 @@ void SpellListRecord::Serialize(ChunkArchive* ar) {
 // --- Tables --------------------------------------------------------------------------------------
 
 template <typename Record>
-void CodeIndexedTable<Record>::Load(CStream* source, int chunk) {
+void CodeIndexedTable<Record>::Load(ByteStream* source, int chunk) {
     ChunkArchive archive;
     archive.Open(source, 1, 1);
     RecordChunks(&archive, chunk, &records, &Record::Serialize);
@@ -119,10 +119,10 @@ int SpellDatabase::Load(const std::string& folder, const std::string& archive) {
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("spells.sdb", &size);
+    void* data = resource.Get()->MappedResource::GetFile("spells.sdb", &size);
     if (!data) return game::FatalError("Can't open spells database\n");
 
-    CMemoryStream stream;
+    MemoryStream stream;
     dbfile::FillStream(stream, data, size);
     spells.Load(&stream, kSpellsChunk);
     modifiers.Load(&stream, kModifiersChunk);
@@ -134,8 +134,8 @@ int SpellDatabase::Load(const std::string& folder, const std::string& archive) {
     RecordChunks(&ar, kWeaponRecipesChunk, &weaponRecipes, &SpellListRecord::Serialize);
     ar.Close(&stream);
 
-    resource.Get()->CMappedResource::CloseFile(data);
-    resource.Get()->CMappedResource::CloseResource();
+    resource.Get()->MappedResource::CloseFile(data);
+    resource.Get()->MappedResource::CloseResource();
     return 1;
 }
 

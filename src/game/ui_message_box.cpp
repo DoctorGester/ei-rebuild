@@ -1,4 +1,4 @@
-// The message box's and the difficulty question's input handlers (CMessageBox / CDifficultyBox,
+// The message box's and the difficulty question's input handlers (MessageWindow / DifficultyBox,
 // ui.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
 #include "ui_screens.h"
 #include "asset_text.h"
@@ -23,7 +23,7 @@ const char* ExitMovie() { return "Movies\\Exit.bik"; }
 constexpr std::uint32_t kExitResult = 0xFFFF0000;
 constexpr std::uint32_t kEditField = 4;
 // The callers' buffer for the edit field's text: every box with one is the connection screen's (its address and
-// password boxes, CMpConnectScreen::boxText).
+// password boxes, MpConnectScreen::boxText).
 constexpr std::size_t kEditTextSize = 0x80;
 constexpr std::uint32_t kAnswerOk = 1;
 constexpr std::uint32_t kAnswerCancel = 2;
@@ -38,16 +38,16 @@ void PlayExitMovieAndQuit() {
 
 } // namespace
 
-// --- CMessageBox ---------------------------------------------------------------------------------
+// --- MessageWindow ---------------------------------------------------------------------------------
 
-void CMessageBox::CopyEditText() {
+void MessageWindow::CopyEditText() {
     // The text is copied through a temporary string (strcpy into the caller's buffer).
     // The field's 50 characters can take up to 200 bytes in UTF-8; cut to the buffer at a character's end.
     text::CopyFitting(editText, kEditTextSize, edit->text);
 }
 
-void CMessageBox::LeftDown(int buttons, int x, int y) {
-    CUiContainer::LeftDown(buttons, x, y);
+void MessageWindow::LeftDown(int buttons, int x, int y) {
+    UiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     if (region == 0) {
         if (result == kExitResult) {
@@ -64,8 +64,8 @@ void CMessageBox::LeftDown(int buttons, int x, int y) {
     ui->SetPendingValue(result | static_cast<std::uint32_t>(region + 1));
 }
 
-void CMessageBox::KeyDown(int key, int repeat, int modifiers) {
-    CUiContainer::KeyDown(key, repeat, modifiers);
+void MessageWindow::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (handled) return;
     if (key == VK_RETURN) {
         if (result == kExitResult) {
@@ -84,9 +84,9 @@ void CMessageBox::KeyDown(int key, int repeat, int modifiers) {
     handled = true;
 }
 
-// --- CDifficultyBox ------------------------------------------------------------------------------
+// --- DifficultyBox ------------------------------------------------------------------------------
 
-void CDifficultyBox::LeftDown(int, int x, int y) {
+void DifficultyBox::LeftDown(int, int x, int y) {
     switch (RegionAt(x, y)) {
     case 0:
         options::g_options.difficulty = easy;
@@ -112,8 +112,8 @@ void CDifficultyBox::LeftDown(int, int x, int y) {
     }
 }
 
-void CDifficultyBox::KeyDown(int key, int repeat, int modifiers) {
-    CUiContainer::KeyDown(key, repeat, modifiers);
+void DifficultyBox::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (handled) return;
     if (key == VK_RETURN) {
         options::g_options.difficulty = easy;

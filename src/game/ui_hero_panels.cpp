@@ -27,9 +27,9 @@ namespace {
 
 void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
 
-void AddRect(CUiWindow* window, const RECT& rect) { window->AddRegion()->SetRectFrom(rect); }
+void AddRect(UiWindow* window, const RECT& rect) { window->AddRegion()->SetRectFrom(rect); }
 
-void ShowFrom(CUiWindow* window, int first, bool shown) {
+void ShowFrom(UiWindow* window, int first, bool shown) {
     for (int i = first; i < std::ssize(window->sceneObjects); ++i) window->SceneMesh(i)->visible = shown;
 }
 
@@ -40,7 +40,7 @@ constexpr std::uint32_t kGrey = 0x828282;
 // and a frame per cell, a region per
 // cell, then the surface. Texels alternate between 0x1C and 0x80 across and down; each row's
 // pictures lie twice as deep as their frames, and half as deep as the row above.
-void BuildCellGrid(CUiWindow* window) {
+void BuildCellGrid(UiWindow* window) {
     int u = 0x1C;
     float depth = 32.0f;
     int v = 0x1C;
@@ -52,11 +52,11 @@ void BuildCellGrid(CUiWindow* window) {
             CTexture* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
                                                 : (left <= 300 ? textures[2] : textures[3]);
             int right = left + 100;
-            CUiMesh* picture = window->AddBlankSprite();
+            UiMesh* picture = window->AddBlankSprite();
             picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
                                   static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
             picture->texture = texture;
-            CUiMesh* frame = window->AddBlankSprite();
+            UiMesh* frame = window->AddBlankSprite();
             frame->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
                                    static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
             frame->texture = texture;
@@ -66,7 +66,7 @@ void BuildCellGrid(CUiWindow* window) {
         depth = static_cast<float>(D(depth) * 0.5);   // * 0.5
         v = 0x9C - v;
     }
-    window->AddSurface(new CUiSurface(window->ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
+    window->AddSurface(new UiSurface(window->ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
 }
 
 constexpr int kGridCellsPerList = 8;
@@ -78,19 +78,19 @@ constexpr int kTopicRepair = 0x19;
 
 // The pages' common part: the 2 x 4 grid of regions over 400..600 x 100..500 (column by column),
 // the four quarter pictures (textures 0-3) and a hidden highlight frame.
-void BuildMakerPage(CConstructorPage* page) {
+void BuildMakerPage(ConstructorPage* page) {
     for (int left = 400; left < 600; left += 100)
         for (int top = 100; top < 500; top += 100) AddRect(page, RECT{left, top, left + 100, top + 100});
 }
-void AddMakerPictures(CConstructorPage* page) {
+void AddMakerPictures(ConstructorPage* page) {
     const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
     for (int i = 0; i < 4; ++i) {
-        CUiMesh* picture = page->AddBlankSprite();
+        UiMesh* picture = page->AddBlankSprite();
         picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
                               0xE4, 0xE4);
         picture->texture = page->objects[i];
     }
-    CUiMesh* frame = page->AddBlankSprite();
+    UiMesh* frame = page->AddBlankSprite();
     frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flatColour = 0x96FFFFFF;
     frame->flags |= FigureMeshFlag::Flat;
@@ -102,7 +102,7 @@ void AddMakerPictures(CConstructorPage* page) {
 
 // --- Statistics page ----------------------------------------------------------------------------
 
-void CHeroStatsPanel::ShowStats(int newPage) {
+void HeroStatsPanel::ShowStats(int newPage) {
     RECT area = {0x14, 0xA5, 0xB4, 0xB4};
     page = newPage;
     while (std::ssize(regions) > 2) RemoveRegionAt(2);
@@ -153,8 +153,8 @@ void CHeroStatsPanel::ShowStats(int newPage) {
 
 // --- Statistics drawing ---------------------------------------------------------------------------
 
-void CHeroStatsPanel::DrawStats() {
-    CUiSurface* draw = surfaces[0];
+void HeroStatsPanel::DrawStats() {
+    UiSurface* draw = surfaces[0];
     draw->Clear();
     RECT titleArea = {0, 0x1B, 0xC8, 0x2B};
     draw->DrawTextIn(title, &titleArea, 1, 0xFFFFFF, 1, 1);
@@ -164,7 +164,7 @@ void CHeroStatsPanel::DrawStats() {
     CUnit* unit = owner->HeroUnit(heroIndex);
     std::string line;
     std::string text;
-    CTextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts;
     RECT area;
 
     if (page == 10) {
@@ -302,13 +302,13 @@ void CHeroStatsPanel::DrawStats() {
 
 // --- The equipment panel's Build ---------------------------------------------------------
 
-void CHeroEquipPanel::Build(bool withBody) {
+void HeroEquipPanel::Build(bool withBody) {
     body = withBody;
     rect = RECT{0, 0, 800, withBody ? 500 : 100};
     mode = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, 0, x + 100, 100});
     for (int i = 0; i < 2; ++i) {
-        CUiMesh* frame = AddBlankSprite();
+        UiMesh* frame = AddBlankSprite();
         frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
         frame->flags |= FigureMeshFlag::Flat;
         frame->flatColour = 0xFF8B8B37;
@@ -332,7 +332,7 @@ void CHeroEquipPanel::Build(bool withBody) {
         for (const char* name : {"camp1", "camp2", "camp3", "camp4"}) LoadTexture(name, TextureKind::Interface);
         const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
         for (int i = 0; i < 4; ++i) {
-            CUiMesh* picture = AddBlankSprite();
+            UiMesh* picture = AddBlankSprite();
             picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
                                   0x1C, 0xE4, 0xE4);
             picture->texture = objects[i + 1];
@@ -342,11 +342,11 @@ void CHeroEquipPanel::Build(bool withBody) {
 
 // --- The statistics panel's Build ---------------------------------------------
 
-void CHeroStatsPanel::Build() {
+void HeroStatsPanel::Build() {
     rect = RECT{0, 100, 200, 400};
     AddRect(this, RECT{0, 0x7D, 0x1E, 0x91});      // previous hero
     AddRect(this, RECT{0xAA, 0x7D, 200, 0x91});    // next hero
-    AddSurface(new CUiSurface(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true));
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
@@ -355,7 +355,7 @@ void CHeroStatsPanel::Build() {
     const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
     for (const auto& b : buttons) AddBlankSprite()->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
-    CTextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
                             "lmp_pers_tall", "magic_skills"}) {
@@ -366,7 +366,7 @@ void CHeroStatsPanel::Build() {
 
 // --- The trade grid's Build ----------------------------------------------------------------
 
-void CTradeGrid::Build(std::vector<CItem*>* boughtItems, std::vector<CItem*>* soldItems, bool spells, bool isExchange) {
+void TradeGrid::Build(std::vector<Item*>* boughtItems, std::vector<Item*>* soldItems, bool spells, bool isExchange) {
     bought = boughtItems;
     rect = RECT{200, 100, 600, 500};
     sold = soldItems;
@@ -379,7 +379,7 @@ void CTradeGrid::Build(std::vector<CItem*>* boughtItems, std::vector<CItem*>* so
 
 // --- The item under the mouse ---------------------------------------------------------------
 
-CItem* CTradeGrid::ItemAt(int x, int y, int* topic) {
+Item* TradeGrid::ItemAt(int x, int y, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
     int region = RegionAt(x, y);
@@ -395,7 +395,7 @@ CItem* CTradeGrid::ItemAt(int x, int y, int* topic) {
     return nullptr;
 }
 
-CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
+Item* RepairGrid::ItemAt(int x, int y, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
     int region = RegionAt(x, y);
@@ -406,7 +406,7 @@ CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
 
 // --- The repair grid's Build ---------------------------------------------------------------
 
-void CRepairGrid::Build(std::vector<CItem*>* damaged) {
+void RepairGrid::Build(std::vector<Item*>* damaged) {
     rect = RECT{200, 100, 600, 500};
     mode = 8;
     items = damaged;
@@ -416,12 +416,12 @@ void CRepairGrid::Build(std::vector<CItem*>* damaged) {
 
 // --- The quick strip's Build -------------------------------------------------------------
 
-void CHeroQuickStrip::Build(bool top) {
+void HeroQuickStrip::Build(bool top) {
     y = top ? 0 : 500;
     rect = RECT{0, y, 800, y + 100};
     mode = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, y, x + 100, y + 100});
-    CUiMesh* frame = AddBlankSprite();
+    UiMesh* frame = AddBlankSprite();
     frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flatColour = 0xFF8B8B37;
     frame->flags |= FigureMeshFlag::Flat;
@@ -433,7 +433,7 @@ void CHeroQuickStrip::Build(bool top) {
 
 // --- The constructors' second pages ---------------------------------------------------------------
 
-void CSpellMakerPage::BuildSpellMaker(CParty* party) {
+void SpellMakerPage::BuildSpellMaker(CParty* party) {
     rect = RECT{200, 100, 600, 500};
     mode = 6;
     slots = party;
@@ -444,8 +444,8 @@ void CSpellMakerPage::BuildSpellMaker(CParty* party) {
     AddRect(this, RECT{200, 450, 400, 470});
     AddRect(this, RECT{200, 470, 400, 490});
     AddMakerPictures(this);
-    AddSurface(new CUiSurface(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true));
-    CTextManager* clientWorldTexts = g_clientWorld.texts;
+    AddSurface(new UiSurface(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true));
+    TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
     for (int key : {0x23, 0x24}) {
         text = std::format("infoitem_{}", key);
@@ -454,7 +454,7 @@ void CSpellMakerPage::BuildSpellMaker(CParty* party) {
     }
 }
 
-void CConstructorPage::BuildItemMaker(CParty* party) {
+void ConstructorPage::BuildItemMaker(CParty* party) {
     rect = RECT{200, 100, 600, 500};
     mode = 7;
     slots = party;

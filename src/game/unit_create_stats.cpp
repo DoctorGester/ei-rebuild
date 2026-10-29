@@ -188,7 +188,7 @@ float LevelAsFloat(const UnitStats* stats, int index) {
 }
 
 float WeaponBonus(CUnit* unit, int skill) {
-    CItem* weapon = unit->GetWeapon(unit->activeWeapon);
+    Item* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return 0.0f;
     const auto* record = itemdb::RecordAs<itemdb::WeaponRecord>(weapon->GetPrototype());
     return static_cast<float>(static_cast<int>(record->skillBonus[skill]));
@@ -203,12 +203,12 @@ const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::Sk
 
 struct FactoryEntry {
     MapObjectType type;
-    CEngineObject* (*create)();
+    EngineObject* (*create)();
 };
 // The class's entry: its id and a new object of it.
 template <class T>
 constexpr FactoryEntry Make(MapObjectType type) {
-    return {type, [] () -> CEngineObject* { return new (kZeroed) T(); }};
+    return {type, [] () -> EngineObject* { return new (kZeroed) T(); }};
 }
 constexpr FactoryEntry kFactory[] = {
     Make<CUnit>(MapObjectType::Hero),
@@ -218,11 +218,11 @@ constexpr FactoryEntry kFactory[] = {
     Make<CBuilding>(MapObjectType::Building),
     Make<CStone>(MapObjectType::Stone),
     Make<CStuffObject>(MapObjectType::StuffObject),
-    Make<CTorchObject>(MapObjectType::Torch),
+    Make<TorchObject>(MapObjectType::Torch),
     Make<MagicTrap>(MapObjectType::MagicTrap),
     Make<Lever>(MapObjectType::Lever),
-    Make<CFigureAnimationState>(MapObjectType::AnimationState),
-    Make<CTrapObject>(MapObjectType::Trap),
+    Make<FigureAnimationState>(MapObjectType::AnimationState),
+    Make<TrapObject>(MapObjectType::Trap),
 };
 
 } // namespace
@@ -595,7 +595,7 @@ void CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& na
 
 // Every object starts zeroed (kZeroed): the units' constructors leave exposure and the
 // motion's turn fields, which the saves write.
-CEngineObject* CMapObjectManager::NewObject(int objectType) {
+EngineObject* CMapObjectManager::NewObject(int objectType) {
     for (const FactoryEntry& entry : kFactory) {
         if (entry.type != static_cast<MapObjectType>(objectType)) continue;
         return entry.create();

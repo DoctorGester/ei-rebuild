@@ -29,11 +29,11 @@ double KeyboardSpeedProduct(const options::CameraMotionOptions& motion) {
     return D(GameFloat(motion.powerKeyboard)) * D(GameFloat(motion.speed));
 }
 
-bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown || ui->altDown; }
+bool ModifierHeld(const Interface3D* ui) { return ui->ctrlDown || ui->altDown; }
 
 } // namespace
 
-void CCameraInput::KeyDown(int, int, int flags) {
+void CameraInput::KeyDown(int, int, int flags) {
     int character = g_keyActions[flags & 0x1FF];
     switch (character) {
     case 5: x = 1.0f; handled = true; break;

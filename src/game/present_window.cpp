@@ -15,7 +15,7 @@ namespace present_window {
 namespace {
 
 HWND Window() {
-    CTextureDevice* device = g_sceneRenderer.device;
+    TextureDevice* device = g_sceneRenderer.device;
     return device ? device->window : nullptr;
 }
 
@@ -97,7 +97,7 @@ void CoverMonitor(HWND window) {
 
 } // namespace
 
-void Update(CTextureDevice* device) {
+void Update(TextureDevice* device) {
     if (!device) return;
     MapCursorImports();
     if (device->fullScreen && device->window) CoverMonitor(device->window);

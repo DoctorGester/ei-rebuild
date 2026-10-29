@@ -1,4 +1,4 @@
-// CParticleSource's per-frame tick and the particle pool. Each tick: copy the world's wind, follow the attachment
+// ParticleSource's per-frame tick and the particle pool. Each tick: copy the world's wind, follow the attachment
 // (or the source's own position) and derive the motion since the last tick with a basis (side, up) around it,
 // run the element callback on every element, the update callback on every particle (rebuilding the bounding
 // box), then emit new particles. `double` holds what the original keeps on the FPU stack.
@@ -75,7 +75,7 @@ void RestorePrevious(Particle* p) {
 
 // The tick's steps, as helpers on the source.
 struct TickSteps {
-    CParticleSource* s;
+    ParticleSource* s;
 
     // Motion since the last tick, from the attachment point plus the local position (or the
     // position alone); the emission point moves there.
@@ -144,7 +144,7 @@ struct TickSteps {
     // Updates every particle. A particle the previous tick rejected is unlinked and returned to
     // the pool first, but (as in the original) is still updated and counted in the bounds.
     void UpdateParticles() {
-        CParticleManager* pool = s->Manager();
+        ParticleManager* pool = s->Manager();
         auto node = s->particles.begin();
         while (node != s->particles.end()) {
             auto next = std::next(node);
@@ -165,7 +165,7 @@ struct TickSteps {
 
     // One emission attempt: a particle from the pool, kept when the emit callback accepts it.
     void EmitOne(int index) {
-        CParticleManager* pool = s->Manager();
+        ParticleManager* pool = s->Manager();
         Particle* p = pool->AcquireParticle();
         if (!p) return;
         if ((s->*s->emitFn)(p, index)) s->AddParticle(p);
@@ -214,18 +214,18 @@ struct TickSteps {
 // --- Particle pool --------------------------------------------------------------------------------
 
 // The head of the free list, or a fresh 0x64-byte particle when it is empty.
-Particle* CParticleManager::AcquireParticle() {
+Particle* ParticleManager::AcquireParticle() {
     if (freeParticles.empty()) return new Particle;
     Particle* p = freeParticles.front();
     freeParticles.pop_front();
     return p;
 }
 
-void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.push_back(p); }
+void ParticleManager::ReleaseParticle(Particle* p) { freeParticles.push_back(p); }
 
 // A newly emitted particle: alive, its "prev" fields equal to the current ones, inside
 // the bounds, appended to the list.
-void CParticleSource::AddParticle(Particle* p) {
+void ParticleSource::AddParticle(Particle* p) {
     p->dead = 0;
     SavePrevious(p);
     GrowBounds(boundsMin, boundsMax, p->pos);
@@ -234,9 +234,9 @@ void CParticleSource::AddParticle(Particle* p) {
 
 // Returns 1 while the source is still needed: a free source while it keeps
 // alive (ParticleSourceFlag::KeepAlive) or has particles, an attached one while it emits or has particles.
-bool CParticleSource::RunTick() {
+bool ParticleSource::RunTick() {
     if (hiddenTicks > 0x38 && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
-    const CWorldClient* world = &g_clientWorld;
+    const WorldClient* world = &g_clientWorld;
     lib::LoadBytes(windDirection, world->windDirection);
     windStrength = std::bit_cast<float>(world->windStrength);
     boundsMin.x = kFarBits;

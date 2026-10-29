@@ -11,7 +11,7 @@
 #include <vector>
 #include <windows.h>
 
-class CTextureDevice;
+class TextureDevice;
 
 // The cursor's size in pixels: 32, or 16 for the small cursors (static initialisers set 32).
 inline LONG g_cursorWidth = /*007C7C90*/ 32;
@@ -23,18 +23,18 @@ struct IDirectInputDevice7A;
 
 unsigned __stdcall CursorThreadEntry(void* cursor);
 
-// The harness's view of the DirectInput object (verify builds): CDirectInputMouse::Setup passes it each one it
+// The harness's view of the DirectInput object (verify builds): DirectInputMouse::Setup passes it each one it
 // makes, before the mouse device. In game.exe's runs the harness routes the original's import slot instead.
 extern void (*g_directInputObserver)(IDirectInput7A* input);
 
 // The DirectInput mouse (made by the application's start, which also sets it up).
-class CDirectInputMouse final {
+class DirectInputMouse final {
 public:
-    CDirectInputMouse() {}
-    virtual ~CDirectInputMouse();
+    DirectInputMouse() {}
+    virtual ~DirectInputMouse();
 
-    CDirectInputMouse(const CDirectInputMouse&) = delete;
-    CDirectInputMouse& operator=(const CDirectInputMouse&) = delete;
+    DirectInputMouse(const DirectInputMouse&) = delete;
+    DirectInputMouse& operator=(const DirectInputMouse&) = delete;
 
     // DirectInput 7 for `instance`, its system mouse device with the mouse data format, non-exclusive in the
     // background for `window`, acquired (a failed Acquire is reported and passed over). Each other failure is
@@ -77,14 +77,14 @@ struct CursorImage {
     std::vector<std::uint8_t> saved; // the mask over the whole picture: all ones where the picture is black, else 0
 };
 
-class CCursor {
+class Cursor {
 public:
     // Not enabled, no device; the lock made.
-    CCursor();
+    Cursor();
     // The lock deleted, the device released.
-    ~CCursor();
-    CCursor(const CCursor&) = delete;
-    CCursor& operator=(const CCursor&) = delete;
+    ~Cursor();
+    Cursor(const Cursor&) = delete;
+    Cursor& operator=(const Cursor&) = delete;
 
     // Unless no shape is selected yet or the cursor is not enabled (-1): under the lock, shape `shape` and
     // its image become current with the image's current frame as `from`; returns the previous shape.
@@ -108,12 +108,12 @@ public:
 
     // Sets the cursor up on `device` (a reference taken, the old one's dropped) in `mode` with `mouse`;
     // `smallCursors` picks 16-pixel cursors instead of 32. Makes the end event and the bounds (the screen's size).
-    void Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, bool smallCursors);
+    void Init(TextureDevice* device, int mode, DirectInputMouse* mouse, bool smallCursors);
     void AddShape(const char* name, int hotX, int hotY);
 
     int mode = 0;                    // 2: the background is saved from the primary without an image
-    CTextureDevice* device = nullptr;    // referenced
-    CDirectInputMouse* mouse = nullptr;    // polled for the motion
+    TextureDevice* device = nullptr;    // referenced
+    DirectInputMouse* mouse = nullptr;    // polled for the motion
     bool imageShown = false;         // an image is shown
     CursorImage* image = nullptr;
     std::uint32_t imageSpare = 0;    // 0 from Init and Shutdown (with image); nothing reads it
@@ -135,9 +135,9 @@ public:
     CRITICAL_SECTION lock;
 };
 // The software cursor drawn into the render target before the present.
-void CursorDrawFrame(CCursor* self);
+void CursorDrawFrame(Cursor* self);
 
-extern CCursor g_cursor;
+extern Cursor g_cursor;
 
-void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors);
-void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors);
+void SetUpCursors(bool modeTwo, DirectInputMouse* context, int smallCursors);
+void ResetCursors(bool modeTwo, DirectInputMouse* context, int smallCursors);

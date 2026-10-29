@@ -1,4 +1,4 @@
-// What the client shows when a unit is hit, struck by sparks or dies (CUnitClientSpecific's StatChanged,
+// What the client shows when a unit is hit, struck by sparks or dies (UnitClientSpecific's StatChanged,
 // Wound and Died) and the party light of PlayerChanged. See unit_client_models.h and docs/notes/units.md.
 #include "effects.h"
 #include "game_singletons.h"
@@ -102,7 +102,7 @@ float SmallerExtent(const CUnit* unit) {
 }
 
 // The hero's armour material over `location`, or null.
-const itemdb::MaterialRecordHead* ArmourMaterial(const CUnitClientSpecific* self, int location) {
+const itemdb::MaterialRecordHead* ArmourMaterial(const UnitClientSpecific* self, int location) {
     const std::int32_t* row = kHitArmourRows[location];
     for (int column : kArmourColumns) {
         int slot = row[column];
@@ -124,7 +124,7 @@ std::uint8_t HitSoundKind(CUnit* unit) {
 }
 } // namespace
 
-void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t statFlags) {
+void UnitClientSpecific::StatChanged(int location, float amount, std::uint32_t statFlags) {
     if (statFlags & UnitStatsFlag::Alive) return;
     EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
@@ -180,7 +180,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     g_clientWorld.AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
 
-void CUnitClientSpecific::Wound() {
+void UnitClientSpecific::Wound() {
     auto* source = g_clientWorld.particleManager->CreateSource(kSparks);
     source->localPosition = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->bounds.radius);
@@ -192,7 +192,7 @@ void CUnitClientSpecific::Wound() {
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }
 
-void CUnitClientSpecific::Died() {
+void UnitClientSpecific::Died() {
     unit->MapObject()->ClientCompanion()->HideLight();
     std::uint32_t blood = unit->GetPrototypeModel()->bloodKind;
     if (blood == 0 || blood > kLastDecalBlood) return;
@@ -213,7 +213,7 @@ void CUnitClientSpecific::Died() {
     g_clientWorld.AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
 }
 
-void CUnitClientSpecific::PlayerChanged(void* player) {
+void UnitClientSpecific::PlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};

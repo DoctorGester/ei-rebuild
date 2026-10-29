@@ -1,4 +1,4 @@
-// CInterface3D::CreateScreen: the screens by id. See ui.h and docs/notes/ui.md.
+// Interface3D::CreateScreen: the screens by id. See ui.h and docs/notes/ui.md.
 // The constructors of screens 1, 2, 3 and 7 are inlined here (the container base, their members' constructors
 // and vtables); the others' constructors are called as functions.
 #include "app.h"
@@ -26,38 +26,38 @@
 #include <memory>
 
 // The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
-CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {}
+BattleScreen::BattleScreen(Interface3D* ui) : UiContainer(ui) {}
 
-CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {}
+BriefingScreen::BriefingScreen(Interface3D* ui) : UiContainer(ui) {}
 
-void CInterface3D::CreateScreen(int id) {
-    CUiWindow* screen = nullptr;
+void Interface3D::CreateScreen(int id) {
+    UiWindow* screen = nullptr;
     switch (id) {
     case 0:
         return;
     case 1:   // the in-game screen
-        screen = new CBattleScreen(this);
+        screen = new BattleScreen(this);
         break;
     case 2:   // the main menu
-        screen = new CMainMenu(this);
+        screen = new MainMenu(this);
         break;
     case 3:   // the base / briefing screen
-        screen = new CBriefingScreen(this);
+        screen = new BriefingScreen(this);
         break;
     case 4:
-        screen = new CGlobalMap(this);
+        screen = new GlobalMap(this);
         break;
     case 5:
-        screen = new CCampPages(this, false);
+        screen = new CampPages(this, false);
         break;
     case 7:
-        screen = new CViewScreen(this);
+        screen = new ViewScreen(this);
         break;
     case 8:   // the titles
-        screen = new CCreditsScreen(this, false, "Crdt");
+        screen = new CreditsScreen(this, false, "Crdt");
         break;
     case 9:
-        screen = new CExchangeScreen(this);
+        screen = new ExchangeScreen(this);
         break;
     default:   // 6 and above 9: the original activates the id itself as a window pointer (a crash), here the
                // fatal error of a missing screen
@@ -74,7 +74,7 @@ namespace {
 // The end both PushWindow and Activate share: the window pushed on the stack, the render state the
 // interface draws with (blending by source alpha, the alpha test against 0x80), the window created, the messages
 // pumped, the mouse released.
-void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
+void OpenOnTop(Interface3D* ui, UiWindow* window) {
     ui->stack.push_back(window);
     render::RenderState& state = render::g_renderState;
     state.blend = true;
@@ -90,7 +90,7 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
 }
 } // namespace
 
-void CInterface3D::PushWindow(CUiWindow* window, bool behind, bool pauseFrame) {
+void Interface3D::PushWindow(UiWindow* window, bool behind, bool pauseFrame) {
     g_cursor.SetShape(3);
     if (behind && !pauseFrame) {
         backdropMode = 3;
@@ -119,7 +119,7 @@ void CInterface3D::PushWindow(CUiWindow* window, bool behind, bool pauseFrame) {
 
 // --- Activate ------------------------------------------------------------------------------------
 
-void CInterface3D::Activate(CUiWindow* window) {
+void Interface3D::Activate(UiWindow* window) {
     if (closeAll) {
         closeAll = false;
         CloseAll();
@@ -151,7 +151,7 @@ void CInterface3D::Activate(CUiWindow* window) {
 
 // --- the message window --------------------------------------------------------------------------
 
-void CInterface3D::ShowMessage(bool forced) {
+void Interface3D::ShowMessage(bool forced) {
     if (!forced) {
         if (messages.empty()) return;
         std::string text = messages.front();
@@ -161,14 +161,14 @@ void CInterface3D::ShowMessage(bool forced) {
     }
     if (messageText.size() == 0) return;
     if (options::g_options.showTutorial == 0 && !forced) return;
-    PushWindow(new CHelpWindow(this, true, messageText, messageFlag), true, false);
+    PushWindow(new HelpWindow(this, true, messageText, messageFlag), true, false);
 }
 
 // --- the help window -----------------------------------------------------------------------------
 
-void CInterface3D::OpenHelp(bool forced) {
+void Interface3D::OpenHelp(bool forced) {
     if (stack.empty()) return;
-    CUiWindow* active = stack.back();
+    UiWindow* active = stack.back();
     const char* topic = ScreenOf(active)->HelpTopic();
     if (!topic) return;
     int seen = -1;
@@ -182,12 +182,12 @@ void CInterface3D::OpenHelp(bool forced) {
     } else if (!forced) {
         return;
     }
-    PushWindow(new CHelpWindow(this, false, topic, seen), true, false);
+    PushWindow(new HelpWindow(this, false, topic, seen), true, false);
 }
 
 // --- Screens 8 and 9: constructors -------------------------------------------------------------------
 
-CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {}
+ExchangeScreen::ExchangeScreen(Interface3D* ui) : ItemScreen(ui) {}
 
-CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool newFromGame, const char* newName)
-    : CUiContainer(ui), name(newName), fromGame(newFromGame) {}
+CreditsScreen::CreditsScreen(Interface3D* ui, bool newFromGame, const char* newName)
+    : UiContainer(ui), name(newName), fromGame(newFromGame) {}

@@ -43,16 +43,16 @@ struct BriefingSpeaker {
 // objects; the item's texture is one of its referenced objects.
 struct BriefingShownItem {
     std::string name;
-    CUiMesh* item;
-    CEngineObject* back;
-    CEngineObject* frame;
+    UiMesh* item;
+    EngineObject* back;
+    EngineObject* frame;
 };
 
 // A network client's player list on the base screen: the players' faces along the top right, a surface under
 // them with each one's status and offer. Multiplayer only.
-class CChatWindow : public CUiWindow {
+class ChatWindow : public UiWindow {
 public:
-    explicit CChatWindow(CInterface3D* ui);
+    explicit ChatWindow(Interface3D* ui);
     // Every fourth face first makes a 256 x 256 texture; `texture` is copied into the newest texture's quarter
     // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle.
     void AddPortrait(const std::string& model, std::string_view texture);
@@ -72,14 +72,14 @@ public:
 
     int listed = 0;
     int portraits = 0;
-    std::vector<HeldRef<CRefObject>> players;    // PlayerMessage records
+    std::vector<HeldRef<RefObject>> players;    // PlayerMessage records
     std::vector<std::string> texts;
 };
 
-class CBriefingScreen : public CUiContainer {
+class BriefingScreen : public UiContainer {
 public:
-    explicit CBriefingScreen(CInterface3D* ui);
-    void Draw(CSceneRenderer* pass) override;
+    explicit BriefingScreen(Interface3D* ui);
+    void Draw(SceneRenderer* pass) override;
     // The camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
     void CloseScreen() override;
     bool ReadyToStopPolling() override { return true; }
@@ -128,7 +128,7 @@ public:
     void KeyDown(int key, int repeat, int flags) override;
 
     // None leaves state 0; otherwise the leader stops (unless noWalk), "goodbye" is appended, state 1.
-    void OpenTopics(CEngineObject* person);
+    void OpenTopics(EngineObject* person);
     // "topic_prefix" text + " " + the topic's title, white for hoveredTopic, else 0xA7D7E4.
     void DrawTopics();
     // Every "b.<person>.<topic>" variable equal to 1 (bit compare), in the variable table's order (a network
@@ -201,8 +201,8 @@ public:
     float phraseTime = 0.0f;                // time left of a phrase without a voice
     int voice = -1;                       // sound id, -1 none
     CUnit* speaking = nullptr;                 // or null
-    CUiScrollText* text = nullptr;
-    CUiScrollbar* topicBar = nullptr;
+    UiScrollText* text = nullptr;
+    UiScrollbar* topicBar = nullptr;
     int topicTop = 0;                    // first topic row shown
     float savedEdgeFade = 0.0f;             // the map edge fade Create replaced
     std::map<int, std::string> personTexts;       // "pers" texts by text key
@@ -210,7 +210,7 @@ public:
     bool immediate = false;                  // the dialogue's people are placed at once
     bool noWalk = false;                     // the zone's map record's cage: the leader does not walk
     bool autosave = false;                   // unless loading or back from the camp
-    CChatWindow* chat = nullptr;               // a network client's only
+    ChatWindow* chat = nullptr;               // a network client's only
     std::vector<int> people;        // ids of the local player's objects that are text keys
     float markPhase = 0.0f;                 // kept below 1
     std::vector<BriefingSpeaker> speakers;

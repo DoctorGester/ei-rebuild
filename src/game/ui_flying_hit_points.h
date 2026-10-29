@@ -8,7 +8,7 @@
 #include "ref.h"
 #include "texture.h"
 
-class CSceneRenderer;
+class SceneRenderer;
 
 struct FlyingHitPoint {
     int target;                 // nonzero: the unit's id
@@ -20,7 +20,7 @@ struct FlyingHitPoint {
     std::uint32_t time;         // timeGetTime when it starts
 };
 
-class CFlyingHitPoints {
+class FlyingHitPoints {
 public:
     // Appends a number for `target` (nonzero) and `amount` (not negative),
     // starting now, or 0.5 s from now with flag 8; nothing otherwise.
@@ -31,7 +31,7 @@ public:
     // drifting 120 to the right while it fades (green, red for a player's unit, cyan with flag 8) with the
     // flags' label rows, or a 32x10 marker 20 pixels above the middle for flag 31, kept inside the render
     // target. Then entries with flag 31 are erased.
-    void Draw(CSceneRenderer* renderer);
+    void Draw(SceneRenderer* renderer);
 
     Ref<CTexture> texture;    // the digits texture
     std::list<FlyingHitPoint> points;

@@ -29,7 +29,7 @@ bool g_undecodedLogged = false;
 // A holder with no DirectDraw texture for the levels the new renderer decodes from the file (keyed
 // by the holder). One it does not decode keeps the holder and shows nothing (logged once). Its
 // allocation failing ends the game, like a surface that could not be made.
-Surface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const MmpHeader* data, unsigned mip,
+Surface* DecodedHolder(TextureDevice* device, const CTexture* texture, const MmpHeader* data, unsigned mip,
                        unsigned levels) {
     Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width), static_cast<int>(texture->height),
                                               TextureFormat(texture->format).bitsPerPixel);
@@ -80,7 +80,7 @@ std::uint32_t MmpHeader::FilledBytes(std::uint32_t heldFormat, unsigned mip, uns
 }
 
 
-int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, unsigned mip) {
+int CTexture::CreateFromMmp(TextureDevice* device, const MmpHeader* header, unsigned mip) {
     if (flags & TextureFlag::Loaded) return 1;
     header->MipOffset(mip);   // the result is not used
 

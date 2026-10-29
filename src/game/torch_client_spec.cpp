@@ -4,11 +4,11 @@
 #include "torch_client_spec.h"
 
 #include "core_maths.h"
-#include "effects.h"   // CParticleSource, CParticleManager
+#include "effects.h"   // ParticleSource, ParticleManager
 #include "game_singletons.h"
 #include "map_object.h"   // CMapObject::position
-#include "sound.h"        // CSoundManager
-#include "spell.h"        // CLight, CLightFactory
+#include "sound.h"        // SoundManager
+#include "spell.h"        // CLight, LightFactory
 #include "terrain.h"
 #include "world.h"
 
@@ -28,7 +28,7 @@ const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
 
 // The sources are engine objects: Release drops a reference.
-void ReleaseSource(CParticleSource* source) { source->Release(); }
+void ReleaseSource(ParticleSource* source) { source->Release(); }
 
 // The torch's position plus `offset`, each sum stored as a float.
 Vector3 AtTorch(const CMapObject* torch, const float* offset) {
@@ -37,15 +37,15 @@ Vector3 AtTorch(const CMapObject* torch, const float* offset) {
 
 } // namespace
 
-CTorchObjectClientSpec::CTorchObjectClientSpec() {
+TorchObjectClientSpec::TorchObjectClientSpec() {
     particles = nullptr;
 }
 
-CTorchObjectClientSpec::~CTorchObjectClientSpec() {
+TorchObjectClientSpec::~TorchObjectClientSpec() {
     HideEffects();
     light.Reset();
     if (particles) particles->Stop();
-    if (CParticleSource* old = particles) {
+    if (ParticleSource* old = particles) {
         particles = nullptr;
         ReleaseSource(old);
     }
@@ -53,28 +53,28 @@ CTorchObjectClientSpec::~CTorchObjectClientSpec() {
     // The members' destructors find both null; then the spec's destructor.
 }
 
-void CTorchObjectClientSpec::Create() {
+void TorchObjectClientSpec::Create() {
     CreateSpec();
     light.Reset();
-    if (CParticleSource* old = particles) {
+    if (ParticleSource* old = particles) {
         particles = nullptr;
         ReleaseSource(old);
     }
     sound = 0;
 }
 
-void CTorchObjectClientSpec::DestroyClient() {
+void TorchObjectClientSpec::DestroyClient() {
     HideEffectsSlot();
     light.Reset();
     if (particles) particles->Stop();
-    if (CParticleSource* old = particles) {
+    if (ParticleSource* old = particles) {
         particles = nullptr;
         ReleaseSource(old);
     }
     DestroySpec();
 }
 
-void CTorchObjectClientSpec::ShowEffects() {
+void TorchObjectClientSpec::ShowEffects() {
     if (particles) particles->StartEmitting();
     if (light && (light->flags & LightFlag::Hidden)) {
         light->flags &= ~LightFlag::Hidden;
@@ -85,7 +85,7 @@ void CTorchObjectClientSpec::ShowEffects() {
     sound = g_clientWorld.sounds->Play3D(name, 0, &torch->localPosition.x, kSoundNear, farRadius, 1);
 }
 
-void CTorchObjectClientSpec::HideEffects() {
+void TorchObjectClientSpec::HideEffects() {
     if (particles) particles->StopEmitting();
     if (light && !(light->flags & LightFlag::Hidden)) {
         light->flags |= LightFlag::Hidden;
@@ -97,22 +97,22 @@ void CTorchObjectClientSpec::HideEffects() {
     }
 }
 
-void CTorchObjectClientSpec::WarmUpParticles() {
+void TorchObjectClientSpec::WarmUpParticles() {
     if (!particles) return;
     for (int i = 0; i < kWarmUpTicks; ++i) particles->RunTick();
 }
 
-void CTorchObjectClientSpec::SetParticles(std::uint32_t newType, const float* offset, float scale) {
+void TorchObjectClientSpec::SetParticles(std::uint32_t newType, const float* offset, float scale) {
     SetLight(newType, offset, scale);
     const Vector3 at = AtTorch(torch, offset);
     if (particles) {
         particles->Stop();
-        CParticleSource* old = particles;
+        ParticleSource* old = particles;
         particles = nullptr;
         if (old) ReleaseSource(old);
     }
-    CParticleSource* source = g_clientWorld.particleManager->CreateSource(static_cast<int>(newType));
-    CParticleSource* old = particles;
+    ParticleSource* source = g_clientWorld.particleManager->CreateSource(static_cast<int>(newType));
+    ParticleSource* old = particles;
     particles = source;
     if (source) source->AddRef();
     if (old) ReleaseSource(old);
@@ -121,7 +121,7 @@ void CTorchObjectClientSpec::SetParticles(std::uint32_t newType, const float* of
     particles->Attach(nullptr);
 }
 
-void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const float* colour) {
+void TorchObjectClientSpec::SetLightAt(const float* offset, float radius, const float* colour) {
     SetFlame(offset, radius, colour);
     const Vector3 at = AtTorch(torch, offset);
     if (light) {
@@ -140,7 +140,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     g_clientWorld.terrain->AddLight(light);
 }
 
-void CTorchObjectClientSpec::SetSound(const char* newName) {
+void TorchObjectClientSpec::SetSound(const char* newName) {
     SetName(newName);
     if (sound) g_clientWorld.sounds->StopSound(sound);
     const float farRadius = values[1] * kSetFarFactor;
@@ -149,6 +149,6 @@ void CTorchObjectClientSpec::SetSound(const char* newName) {
 
 // The update returns 1; the class name and id.
 
-bool CTorchObjectClientSpec::RunTick() { return true; }
-const char* CTorchObjectClientSpec::ClassName() { return ClassNameText(); }
-ClassId CTorchObjectClientSpec::GetClassId() { return ClassId::TorchObjectClientSpec; }
+bool TorchObjectClientSpec::RunTick() { return true; }
+const char* TorchObjectClientSpec::ClassName() { return ClassNameText(); }
+ClassId TorchObjectClientSpec::GetClassId() { return ClassId::TorchObjectClientSpec; }

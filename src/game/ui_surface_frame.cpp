@@ -1,4 +1,4 @@
-// What is drawn on an interface surface's canvas (render_ui.h) besides text: a frame (CUiSurface::FrameRect; the
+// What is drawn on an interface surface's canvas (render_ui.h) besides text: a frame (UiSurface::FrameRect; the
 // tooltips draw their border with it), the whole surface filled (Clear, Fill), a filled rectangle, a pen's line and a
 // pixel (the console, the carets and lines of the edit fields, chat, connection and save lists, the HUD map's dot).
 // See docs/notes/ui.md, section 3.
@@ -11,7 +11,7 @@ namespace {
 render::Rect ToRect(const RECT& rect) { return render::Rect{rect.left, rect.top, rect.right, rect.bottom}; }
 } // namespace
 
-void CUiSurface::FrameRect(const RECT* area, COLORREF colour) {
+void UiSurface::FrameRect(const RECT* area, COLORREF colour) {
     if (!holder) return;
     RECT frame;
     if (gameapi::IsRectEmpty(area)) {
@@ -23,23 +23,23 @@ void CUiSurface::FrameRect(const RECT* area, COLORREF colour) {
     render::ui::FrameRect(holder, ToRect(frame), colour);
 }
 
-void CUiSurface::Fill(COLORREF colour) {
+void UiSurface::Fill(COLORREF colour) {
     if (!holder) return;
     RECT whole = rect;
     gameapi::OffsetRect(&whole, -whole.left, -whole.top);
     FillRect(whole, colour);
 }
 
-void CUiSurface::Clear() { Fill(background); }
+void UiSurface::Clear() { Fill(background); }
 
-void CUiSurface::FillRect(const RECT& area, COLORREF colour) {
+void UiSurface::FillRect(const RECT& area, COLORREF colour) {
     if (holder) render::ui::Fill(holder, ToRect(area), colour);
 }
 
-void CUiSurface::Line(int x0, int y0, int x1, int y1, int lineWidth, COLORREF colour) {
+void UiSurface::Line(int x0, int y0, int x1, int y1, int lineWidth, COLORREF colour) {
     if (holder) render::ui::Line(holder, x0, y0, x1, y1, lineWidth, colour);
 }
 
-void CUiSurface::Dot(int x, int y, COLORREF colour) {
+void UiSurface::Dot(int x, int y, COLORREF colour) {
     if (holder) render::ui::Pixel(holder, x, y, colour);
 }

@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-class CTextureDevice;
+class TextureDevice;
 struct ID3D11Buffer;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -307,7 +307,7 @@ std::uint32_t CommitNumber();
 int AddMatrix(const Matrix4& m);
 // The game's fog switch and colour (render_state.h), read once per frame.
 void ReadFog(Frame& f);
-CTextureDevice* DeviceObject();
+TextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
 // sokol is set up: the device and the pipelines made at the first use (a failure ends the game: Fatal).
 void Start();

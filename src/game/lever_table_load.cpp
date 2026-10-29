@@ -26,10 +26,10 @@ int LeverRecordTable::Load(const std::string& folder) {
         return game::FatalError("Can't open database file \"%s\"\n", path);
     }
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("Levers.ldb", &size);
+    void* data = resource.Get()->MappedResource::GetFile("Levers.ldb", &size);
     if (!data) return game::FatalError("Can't open Levers database\n");
 
-    CMemoryStream local;
+    MemoryStream local;
     FillStream(local, data, size);
 
     // The records as chunk 1 of an archive opened for loading, then every record entered under its model's name: a record of a name
@@ -43,7 +43,7 @@ int LeverRecordTable::Load(const std::string& folder) {
         byName[key] = &record;
     }
 
-    resource.Get()->CMappedResource::CloseFile(data);
-    resource.Get()->CMappedResource::CloseResource();
+    resource.Get()->MappedResource::CloseFile(data);
+    resource.Get()->MappedResource::CloseResource();
     return 1;
 }

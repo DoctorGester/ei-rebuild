@@ -1,4 +1,4 @@
-// CInterface3D's per-frame update. See docs/notes/ui.md ("Interface base").
+// Interface3D's per-frame update. See docs/notes/ui.md ("Interface base").
 #include "app.h"
 #include "object_tables.h"
 #include "text_split.h"
@@ -30,7 +30,7 @@ constexpr std::uint32_t kLeaveGame = 0x990001;
 
 } // namespace
 
-void CInterface3D::Update() {
+void Interface3D::Update() {
     // A pending value closes the top window: it is cancelled, deactivated and deleted, the
     // backdrop changes when asked to, the last window closing drops the backdrop and hands the
     // server flag to the world server (single player), and the window below gets the value.
@@ -51,7 +51,7 @@ void CInterface3D::Update() {
         app::PumpMessages();
         if (backdropMode == 4) {
             delete backdrop;
-            CUiSurface* next = secondBackdrop;
+            UiSurface* next = secondBackdrop;
             secondBackdrop = nullptr;
             backdrop = next;
             backdropMode = next ? 2 : 0;
@@ -101,7 +101,7 @@ void CInterface3D::Update() {
         disconnected = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
                 static_cast<unsigned>(net::g_gameClient->joinState));
-        CMessageBox* box = new CMessageBox(this, "disconnect", "disconnect_msg", 0x990000, 1, 1);
+        MessageWindow* box = new MessageWindow(this, "disconnect", "disconnect_msg", 0x990000, 1, 1);
         PushWindow(box, true, true);
     } else if (!stack.empty()) {
         stack.back()->Update();
@@ -110,7 +110,7 @@ void CInterface3D::Update() {
 }
 // ---- String events ------------------------------------------------------------------
 
-void CInterface3D::OnStringEvent(std::string_view event) {
+void Interface3D::OnStringEvent(std::string_view event) {
     std::vector<std::string> words;
     std::string text(event);
     words = text::SplitWords(text, ' ');
@@ -124,7 +124,7 @@ void CInterface3D::OnStringEvent(std::string_view event) {
         PlaySound("buttons\\gameover.wav");
         const std::string_view title = words.size() > 1 ? std::string_view(words[1]) : "game_over";
         const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
-        CMessageBox* window = new CMessageBox(this, title, message, 0x20000, 3, 1);
+        MessageWindow* window = new MessageWindow(this, title, message, 0x20000, 3, 1);
         PushWindow(window, true, true);
         return;
     }

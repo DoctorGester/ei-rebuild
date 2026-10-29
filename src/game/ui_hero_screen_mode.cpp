@@ -1,4 +1,4 @@
-// The multiplayer hero screen's mode (CMpHeroScreen::SetMode): the hero list (9), the new
+// The multiplayer hero screen's mode (MpHeroScreen::SetMode): the hero list (9), the new
 // hero (10) and its statistics page (11) laid out. Rebirth's WideScreen adds the curtains' visibility
 // (widescreen::ShowHeroCurtains) after the original's body, which this does too. See ui_screens.h and
 // docs/notes/ui.md, section 5.
@@ -27,22 +27,22 @@ constexpr float kQuarterDepth = 7.0f;
 constexpr float kFrameDepth = 3.0f;
 constexpr float kScale = 100.0f;
 
-void ShowSprites(CMpHeroScreen* screen, int first, int end, int visible) {
+void ShowSprites(MpHeroScreen* screen, int first, int end, int visible) {
     for (int i = first; i < end; ++i) screen->SceneMesh(i)->visible = visible;
 }
 
 // A quarter of the frame around the figure: texels (u0, 0x1C)-(u1, 0xE4).
-void SetQuarter(CMpHeroScreen* screen, int quarter, float left, float top, float right, float bottom, int u0, int u1) {
+void SetQuarter(MpHeroScreen* screen, int quarter, float left, float top, float right, float bottom, int u0, int u1) {
     screen->SceneMesh(kFirstQuarter + quarter)->SetRectangle(kQuarterDepth, kScale, left, top, right, bottom, u0, 0x1C, u1, 0xE4);
 }
 
 // The selection frame over a list's first row (the whole texture).
-void SetSelectionFrame(CMpHeroScreen* screen, float left, float top, float right, float bottom) {
+void SetSelectionFrame(MpHeroScreen* screen, float left, float top, float right, float bottom) {
     screen->SceneMesh(kSelectionFrame)->SetRectangle(kFrameDepth, kScale, left, top, right, bottom, 0, 0, 0x100, 0x100);
 }
 
 // The rows of a list as regions: `height` apart from `top` down to kRowsBottom.
-void AddRows(CMpHeroScreen* screen, int left, int right, int top, int height) {
+void AddRows(MpHeroScreen* screen, int left, int right, int top, int height) {
     int y = top;
     do {
         const int next = y + height;
@@ -53,8 +53,8 @@ void AddRows(CMpHeroScreen* screen, int left, int right, int top, int height) {
 
 } // namespace
 
-void CMpHeroScreen::SetMode(int newMode) {
-    CUiModel* menu = CUiWindow::models[0];    // the window's models (CItemScreen::models is the item cache)
+void MpHeroScreen::SetMode(int newMode) {
+    UiModel* menu = UiWindow::models[0];    // the window's models (ItemScreen::models is the item cache)
     menu->ShowAllParts(0);
     weaponPanel->SetEnabled(false);
     spellPanel->SetEnabled(false);
@@ -70,7 +70,7 @@ void CMpHeroScreen::SetMode(int newMode) {
     while (std::ssize(regions) > kFixedRegions) RemoveRegionAt(kFixedRegions);
     for (int i = 0; i < std::ssize(regions); ++i) regions[i]->SetTip(0);
 
-    CUiRegion** newRegions = regions.data();
+    UiRegion** newRegions = regions.data();
     if (newMode == kModeList) {
         menu->ShowPart("but03", 1);
         menu->ShowPart("button03_multiplayer", 1);

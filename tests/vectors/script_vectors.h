@@ -16,7 +16,7 @@
 // rest (i32 each, 0x7777 where not asked).
 // FunctionSignature: id and type (i32), the signature (string, null when none).
 // KeywordName: id (i32), the name (string).
-// CScript::Tokenize: the source (u32 length and its bytes), the token list's block size (i32), the
+// Script::Tokenize: the source (u32 length and its bytes), the token list's block size (i32), the
 // result (i32), the error when it is 0 (code and line i32, text string), then the token count (u32),
 // TokenHash of the whole list (u64) and of each token (u32 each).
 // ApplyDefines: the line before (string), the define count (u32) and each define's name and value

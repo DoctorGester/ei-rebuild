@@ -1,4 +1,4 @@
-// A region's tooltip (CUiTooltip): its constructor, which splits the text into lines and measures them, the
+// A region's tooltip (UiTooltip): its constructor, which splits the text into lines and measures them, the
 // destructor body, SetText and the drawing of the lines; and its showing (Rebirth-patched: its WideScreen is
 // reproduced behind the flag). See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
@@ -41,7 +41,7 @@ constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 } // namespace
 
 // The virtuals: drawn and redrawn only while shown; the input side's defaults.
-CUiTooltip::CUiTooltip(CInterface3D* ownerUi, CUiRegion* newRegion, std::string_view text, int command) : CUiWindow(ownerUi) {
+UiTooltip::UiTooltip(Interface3D* ownerUi, UiRegion* newRegion, std::string_view text, int command) : UiWindow(ownerUi) {
     timer = 0.0f;
     region = newRegion;
     // An empty text leaves the measurements and the two arguments unwritten.
@@ -74,17 +74,17 @@ CUiTooltip::CUiTooltip(CInterface3D* ownerUi, CUiRegion* newRegion, std::string_
     height += kPaddingY;
 }
 
-CUiTooltip::~CUiTooltip() = default;
+UiTooltip::~UiTooltip() = default;
 
-void CUiTooltip::SetText(std::string_view text) {
+void UiTooltip::SetText(std::string_view text) {
     if (text.empty()) return;
     lines = text::Split(text, kLineSeparator);
     DrawLines();
 }
 
-void CUiTooltip::DrawLines() {
+void UiTooltip::DrawLines() {
     if (!(!surfaces.empty())) return;
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     if (!surface) return;
     surface->Fill(kBackground);
     RECT whole{0, 0, 0, 0};   // empty: the whole surface
@@ -104,7 +104,7 @@ void CUiTooltip::DrawLines() {
     }
 }
 
-void CUiTooltip::OnMouseMove(int x, int y) {
+void UiTooltip::OnMouseMove(int x, int y) {
     switch (state) {
     case State::Hovered: {
         const float delay = options::g_options.toolTipTime;
@@ -113,7 +113,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
             return;
         }
         if (timer < delay) {
-            timer = static_cast<float>(CUiContainer::FrameTime() + timer);
+            timer = static_cast<float>(UiContainer::FrameTime() + timer);
             return;
         }
         // Shown: the first line is measured again with the key of the tooltip's command.
@@ -142,7 +142,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
             gameapi::OffsetRect(&area, 0, -(area.bottom - y));
             if (area.top < 0) gameapi::OffsetRect(&area, 0, -area.top);
         }
-        CUiSurface* surface = new CUiSurface(ui, &area, SurfaceBlend::Keyed);
+        UiSurface* surface = new UiSurface(ui, &area, SurfaceBlend::Keyed);
         AddSurface(surface);
         return;
     }
@@ -150,7 +150,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
         // The appearing time is zero in the exe: the tooltip is fully shown on the next call.
         if (timer < kAppearTime) {
             DrawLines();
-            timer = static_cast<float>(CUiContainer::FrameTime() + timer);
+            timer = static_cast<float>(UiContainer::FrameTime() + timer);
         } else {
             state = State::Shown;
             timer = kAppearTime;
@@ -160,7 +160,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
     case State::Disappearing:
         if (timer > 0.0f) {
             DrawLines();
-            timer = static_cast<float>(timer - CUiContainer::FrameTime());
+            timer = static_cast<float>(timer - UiContainer::FrameTime());
         } else {
             state = State::Idle;
             ClearSceneObjects();

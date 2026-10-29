@@ -1,4 +1,4 @@
-// CPlayerServer: what the server does for its player beyond the per-tick sync, the leader's death and the
+// PlayerServer: what the server does for its player beyond the per-tick sync, the leader's death and the
 // client's messages (handlers by type, from the table CreateServer builds). See player_messages.h and
 // docs/notes/objects.md ("Players").
 
@@ -51,7 +51,7 @@ constexpr float kUnknownZ = -1313.0f;                 // lastPosition.z after a 
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
-// The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind (1 and 3 end
+// The game mode (1 single player, 2 multiplayer); the campaign mode is WorldServer::sessionKind (1 and 3 end
 // the game when the leader is gone).
 // The next object id for a new party's record (the party manager stores the party).
 int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
@@ -61,7 +61,7 @@ constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
 
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
 // flagged 0x800000 are left out).
-void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
+void ReadUnits(MemoryStream& in, std::vector<CUnit*>* units) {
     int count = 0;
     in.ReadValue(count);
     for (int i = 0; i < count; ++i) {
@@ -74,7 +74,7 @@ void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
 
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, int, bool, const Vector3&);
 int MoveUnits(MoveCommand command) {
-    CMemoryStream& in = g_receivedMessages;
+    MemoryStream& in = g_receivedMessages;
     std::vector<CUnit*> units{};
     std::vector<Vector3> offsets{};
     ReadUnits(in, &units);
@@ -103,11 +103,11 @@ const char* const kResendingParty = "Resending party of player ";
 } // namespace
 
 // The stream the received packets are decompressed into.
-CMemoryStream g_receivedMessages;
+MemoryStream g_receivedMessages;
 
 // --- The leader died ----------------------------------------------------------------------
 
-void CPlayerServer::OnLeaderDied() {
+void PlayerServer::OnLeaderDied() {
     CPlayer* currentPlayer = player;
     CParty* party = currentPlayer->Party();
     if (!IsMultiplayerClient()) {
@@ -206,8 +206,8 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
     return out;
 }
 
-int CPlayerServer::OnUseOrder() {
-    CMemoryStream& in = g_receivedMessages;
+int PlayerServer::OnUseOrder() {
+    MemoryStream& in = g_receivedMessages;
     std::vector<CUnit*> units{};
     int count = 0;
     in.ReadValue(count);
@@ -252,7 +252,7 @@ int CPlayerServer::OnUseOrder() {
             }
             if (!nearest) break;
             if (!first) first = nearest;
-            CUnitServer* controller = nearest->ServerController();
+            UnitServer* controller = nearest->ServerController();
             if (controller->CanReachAndPlan(&order)) {
                 chosen = nearest;
                 accepted = true;
@@ -321,7 +321,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
     }
 }
 
-void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
+void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     if (state != 1) return;
     CPlayer* currentPlayer = player;
     CParty* party = currentPlayer->Party();
@@ -354,7 +354,7 @@ void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     Flush();
 }
 
-void CPlayerServer::LeaveAndFlush() {
+void PlayerServer::LeaveAndFlush() {
     if (state == 1) {
         if (partyDeployed) {
             g_serverWorld.CollectParty(player, nullptr);
@@ -370,13 +370,13 @@ void CPlayerServer::LeaveAndFlush() {
     Flush();
 }
 
-int CPlayerServer::OnRefreshParty() {
+int PlayerServer::OnRefreshParty() {
     player->ForgetKnownObjects();
     SendParty();
     return 1;
 }
 
-int CPlayerServer::OnTakeExit() {
+int PlayerServer::OnTakeExit() {
     int exit = 0;
     g_receivedMessages.ReadValue(exit);
     const ZoneExit* taken = g_serverWorld.FindZoneExit(exit);
@@ -386,7 +386,7 @@ int CPlayerServer::OnTakeExit() {
     return 1;
 }
 
-int CPlayerServer::OnJoined() {
+int PlayerServer::OnJoined() {
     if (state != 2) return 0;
     state = 1;
     CPlayer* currentPlayer = player;
@@ -396,7 +396,7 @@ int CPlayerServer::OnJoined() {
     return 1;
 }
 
-int CPlayerServer::OnLeaveToZone() {
+int PlayerServer::OnLeaveToZone() {
     std::string zone = g_receivedMessages.ReadString();
     int entrance = 0;
     g_receivedMessages.ReadValue(entrance);
@@ -404,13 +404,13 @@ int CPlayerServer::OnLeaveToZone() {
     return 1;
 }
 
-int CPlayerServer::OnBriefingDone() {
+int PlayerServer::OnBriefingDone() {
     std::string name = g_receivedMessages.ReadString();
     g_serverWorld.CompleteBriefing(player->playerId, name);
     return 1;
 }
 
-int CPlayerServer::OnNewParty() {
+int PlayerServer::OnNewParty() {
     CParty local;
     CParty* party = &local;
     party->LoadParty(&g_receivedMessages, 1);
@@ -425,7 +425,7 @@ int CPlayerServer::OnNewParty() {
     return 1;
 }
 
-int CPlayerServer::OnResume() {
+int PlayerServer::OnResume() {
     if (state != 4) return 0;
     state = 1;
     if (!partyDeployed) {
@@ -435,11 +435,11 @@ int CPlayerServer::OnResume() {
     return 1;
 }
 
-int CPlayerServer::OnWalk() { return MoveUnits(&PlayerMode::CommandWalk); }
-int CPlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
+int PlayerServer::OnWalk() { return MoveUnits(&PlayerMode::CommandWalk); }
+int PlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
 
-int CPlayerServer::OnAttack() {
-    CMemoryStream& in = g_receivedMessages;
+int PlayerServer::OnAttack() {
+    MemoryStream& in = g_receivedMessages;
     std::vector<CUnit*> units{};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
@@ -456,11 +456,11 @@ int CPlayerServer::OnAttack() {
     return 1;
 }
 
-int CPlayerServer::OnPartyUpdate() {
-    CMemoryStream block;
-    CMemoryStream& in = g_receivedMessages;
+int PlayerServer::OnPartyUpdate() {
+    MemoryStream block;
+    MemoryStream& in = g_receivedMessages;
     in.ReadSized(&block);
-    block.CMemoryStream::Seek(0);
+    block.MemoryStream::Seek(0);
     if (in.ok) player->Party()->LoadParty(&block, 0);
     return 1;
 }
@@ -480,7 +480,7 @@ bool IsPrintableText(const char* text) {
     return true;
 }
 
-int CPlayerServer::OnLogin() {
+int PlayerServer::OnLogin() {
     PlayerLoginMessage login;
     login.partyId = 0;
     g_receivedMessages.ReadValue(login);
@@ -530,15 +530,15 @@ int CPlayerServer::OnLogin() {
 
 // --- Party resends, message 0x19 -----------------------------------------------------------
 
-void CPlayerServer::SendPartyUpdate() {
-    CMemoryStream block;
+void PlayerServer::SendPartyUpdate() {
+    MemoryStream block;
     player->Party()->SaveParty(&block, 0);
     std::uint8_t messageType = kMessagePartyUpdate;
     out.WriteValue(messageType);
     out.WriteSized(&block);
 }
 
-void CPlayerServer::ResendParty() {
+void PlayerServer::ResendParty() {
     if (state != 1 || !partyDeployed) return;
     CPlayer* currentPlayer = player;
     console::EndLine(console::g_netLogOut << kResendingParty << currentPlayer->playerId);
@@ -547,7 +547,7 @@ void CPlayerServer::ResendParty() {
     g_serverWorld.ClearPlayerItems(currentPlayer);
 }
 
-void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
+void PlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
     std::uint8_t messageType = kMessage19;
     out.WriteValue(messageType);
     out.WriteValue(a);

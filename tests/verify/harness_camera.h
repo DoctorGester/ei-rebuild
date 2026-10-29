@@ -28,7 +28,7 @@
 
 namespace ei::verify::camera_trace {
 
-// After the main loop's last camera update of a frame (`camera`: the CCamera; `seconds`: that call's
+// After the main loop's last camera update of a frame (`camera`: the Camera; `seconds`: that call's
 // camera time).
 void Frame(const void* camera, float seconds);
 

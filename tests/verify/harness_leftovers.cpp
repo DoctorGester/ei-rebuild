@@ -139,8 +139,8 @@ const Site kSites[] = {
     {0x0052EB8A, kStatsReset, reinterpret_cast<const void*>(&ZeroedStatsReset), kStatsCopies},
     {0x0050E9C5, kBuildFromPrototype, reinterpret_cast<const void*>(&ZeroedVitalsBuild), kStatsCopies},   // CMapObject::TakePrototype
     {0x00662901, kPartyRecordConstruct, reinterpret_cast<const void*>(&ZeroedRecordConstruct), kStatsCopies},   // CParty::AddMember
-    // CServerSpecificManager::NewObject 004D6970: the player server, the 3D object server,
-    // CMapObjectServer, CUnitServer (its waitFrame +0x93C, which ResolveBlocker reads) and the torch spec.
+    // ServerSpecificManager::NewObject 004D6970: the player server, the 3D object server,
+    // MapObjectServer, UnitServer (its waitFrame +0x93C, which ResolveBlocker reads) and the torch spec.
     {0x004D69A2, kOperatorNew, kNew, kServerObjects},
     {0x004D69D7, kOperatorNew, kNew, kServerObjects},
     {0x004D6A13, kOperatorNew, kNew, kServerObjects},
@@ -195,7 +195,7 @@ const Site kSites[] = {
     // NewParticleSource 004981B0 (SV7b7): the first Tick reads the emission point (+0x98), which nothing sets
     // before Attach.
     {0x004981CD, kOperatorNew, kNew, kParticleSources},
-    // CLightFactory::NewObjectImpl 0068DA40 (SV7b6a): nothing sets a directional light's position (+0x1C), whose z the
+    // LightFactory::NewObjectImpl 0068DA40 (SV7b6a): nothing sets a directional light's position (+0x1C), whose z the
     // terrain's sun lighting reads under water (ShadeSun 006C36B0).
     {0x0068DA7C, kOperatorNew, kNew, kLights},
 };

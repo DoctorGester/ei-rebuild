@@ -12,7 +12,7 @@
 //   caller.)
 // - A script area part (ScriptAreaPart, 0x14 bytes) has zero padding after isRect, and a round part
 //   (AddRound 004B2070) y2 0: both were stack bytes AddRect 004B1ED0 / AddRound copied into the area.
-// - A sound effect's name (CEffectSound +0x14C, char[0x100], saved whole) is zero past its
+// - A sound effect's name (EffectSound +0x14C, char[0x100], saved whole) is zero past its
 //   terminator: Reset 00676200 clears all of it, not only name[0] (Construct resets too).
 // - The item stock's modifier codes (ItemStock::SaveLists 0069BAC0) end after their four bytes: the
 //   stack copy's fifth byte is 0 (it was never set; the sixth was).

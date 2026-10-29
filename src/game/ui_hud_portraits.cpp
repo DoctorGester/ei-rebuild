@@ -1,4 +1,4 @@
-// The battle HUD's party portraits, per frame (CHudPortraits::Update): each portrait's
+// The battle HUD's party portraits, per frame (HudPortraits::Update): each portrait's
 // health and mana bars, the red flash after a hit, the face picture (normal, hit, low mana) and
 // model (by the unit's build), the face model's easing towards its rest orientation with an
 // occasional random nod, shake or turn, and the marker under the selected unit's portrait.
@@ -58,8 +58,8 @@ constexpr float kMarkerRise = 60.0f;
 constexpr float kMarkerDepth = 10.0f;
 
 // A bar: its right edge (x of vertices 2 and 3) moves with the fraction, its texture follows.
-void SetBar(CEngineObject* object, double fraction, std::uint32_t v0, std::uint32_t v1) {
-    CUiMesh* bar = AsUiMesh(object);
+void SetBar(EngineObject* object, double fraction, std::uint32_t v0, std::uint32_t v1) {
+    UiMesh* bar = AsUiMesh(object);
     float u = static_cast<float>(((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel);
     double right = fraction - 0.5f;
     bar->vertices[0].x()[2] = static_cast<float>(right);
@@ -114,13 +114,13 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 
 } // namespace
 
-void CHudPortraits::Wobble(int index, int kind) {
+void HudPortraits::Wobble(int index, int kind) {
     slots[index].wobbleTime = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
     slots[index].wobbleKind = kind;
 }
 
-void CHudPortraits::Update() {
-    float dt = GamePaused() ? 0.0f : static_cast<float>(CUiContainer::FrameTime());
+void HudPortraits::Update() {
+    float dt = GamePaused() ? 0.0f : static_cast<float>(UiContainer::FrameTime());
     SceneMesh(0)->visible = false;    // the selection marker
 
     for (int i = 0; i < std::ssize(owner->party); ++i) {
@@ -155,7 +155,7 @@ void CHudPortraits::Update() {
             slot.flash = static_cast<float>(D(slot.flash) - D(dt));
         }
         slot.flash = slot.flash >= 0.0f ? slot.flash : 0.0f;
-        CEngineObject* flash = object(5);
+        EngineObject* flash = object(5);
         if (slot.flash > 0.0f) {
             AsUiMesh(flash)->visible = true;
             int alpha = static_cast<int>(libcrt::Ftol(D(slot.flash) * kFlashAlpha));

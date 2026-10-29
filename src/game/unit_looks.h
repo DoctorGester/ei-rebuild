@@ -11,7 +11,7 @@
 
 #include <vector>
 
-class CStream;
+class ByteStream;
 
 // A dressed unit of the zone (the second list read): its prototype, the item ids
 // (armour type << 16 | material; 0xFFFFFFFF for none: [0] the helmet's row, [1] / [2] the weapons,
@@ -20,7 +20,7 @@ class CStream;
 struct DressedUnitRecord {
     // Writes the prototype (2 bytes), each id list's count and dwords (the data written even when empty),
     // the byte and the dword through `stream`'s Write (also called on a FiguredUnitRecord's head).
-    void Write(CStream* stream);
+    void Write(ByteStream* stream);
 
     std::uint16_t prototype;
     std::vector<std::uint32_t> items;

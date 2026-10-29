@@ -5,7 +5,7 @@
 
 #include "figure_mesh.h"
 #include "game_singletons.h"
-#include "link_figure.h"   // CLinkMesh
+#include "link_figure.h"   // LinkMesh
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "maths.h"
@@ -15,7 +15,7 @@
 #include "render/render.h"
 #include "spell.h"                // CLight
 #include "unit.h"                 // CUnit
-#include "unit_client_models.h"   // CUnitClientSpecific
+#include "unit_client_models.h"   // UnitClientSpecific
 #include "view_matrices.h"
 #include "world.h"   // g_clientWorld
 
@@ -76,7 +76,7 @@ volatile double g_minimumTilt = 20.0;
 // The pipeline's stack the shadow is rendered with.
 constexpr int kShadowStack = 10;
 
-const Matrix4& TopMatrix(const CTransformPipeline* pipeline) { return *pipeline->Top(kShadowStack); }
+const Matrix4& TopMatrix(const TransformPipeline* pipeline) { return *pipeline->Top(kShadowStack); }
 
 // The light's brightness: 0.1 blue + 0.6 green + 0.3 red, unrounded.
 double Brightness(const CLight* light) {
@@ -150,9 +150,9 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
 }
 
 // Parts beyond 1e10 from the object are skipped (NaN is not).
-bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition) > kFarSquared; }
+bool PartTooFar(const FigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition) > kFarSquared; }
 
-CFigureMesh* PartAt(const CObject3D* object, int i) { return object->parts[i]; }
+FigureMesh* PartAt(const CObject3D* object, int i) { return object->parts[i]; }
 
 
 // One corner's x and y in the light's rotation `m` (3x4 rows of 4).
@@ -168,7 +168,7 @@ float CornerY(const float* m, float a, float b) {
 int KeyedParts(const CObject3D* object) {
     int keyedParts = 0;
     for (int i = 0; i < std::ssize(object->parts); ++i) {
-        const CFigureMesh* part = PartAt(object, i);
+        const FigureMesh* part = PartAt(object, i);
         if (PartTooFar(part)) continue;
         keyedParts |= lib::Has(part->box.bounds.flags, BoundsFlag::Base) ? 1 : 0;
     }
@@ -178,8 +178,8 @@ int KeyedParts(const CObject3D* object) {
 // The shadow built again: the lights' direction, the parts' points from there (their bounds in the light's view),
 // the bounds' square on the ground and the decal's projection of it (its sphere). No shadow texture is rasterised:
 // the shadow map draws the shadow (docs/notes/map_objects.md, "Shadows").
-void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
-    CTransformPipeline* pipeline = context->pipeline;
+void RenderShadow(Object3DClientSpecific* self, SceneRenderer* context) {
+    TransformPipeline* pipeline = context->pipeline;
 
     // The lights reaching the object.
     Vector3 sum;
@@ -232,13 +232,13 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
 
     // Project the parts' points.
     for (int i = 0; i < std::ssize(self->object->parts); ++i) {
-        CFigureMesh* part = PartAt(self->object, i);
+        FigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
         if (part->flags & FigureMeshFlag::Hidden) continue;
         ObjectWorldMatrix(&part->localRotation, part->localPosition, &part->worldMatrix);
         view = PartAt(self->object, i)->worldMatrix;
         pipeline->PushMatrixProduct(view, kShadowStack);
-        if (CLinkMesh* figure = self->object->figure) {
+        if (LinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             std::string key(name);
             count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets, TopMatrix(pipeline), &g_points[count],
@@ -352,7 +352,7 @@ bool ShadowCastStrength(CObject3D* object, float* strength) {
     return true;
 }
 
-int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
+int Object3DClientSpecific::DrawShadow(SceneRenderer* context) {
     // The game shows this object's shadow: in the renderer's shadow map its meshes cast, a unit as strongly as it
     // has faded in. No shadow texture or decal is drawn.
     float strength = 1.0f;

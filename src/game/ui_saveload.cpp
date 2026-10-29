@@ -1,4 +1,4 @@
-// The save / load window's saving, its entry list and the selected save's picture (ui.h, CSaveLoadWindow). The window shows
+// The save / load window's saving, its entry list and the selected save's picture (ui.h, SaveLoadWindow). The window shows
 // two 256x256 5:6:5 textures; a 256x192 picture (0x18000 bytes, 5:6:5) is drawn into the top of one on the GPU
 // (render::DrawIntoTexture), from shot.sav or the escape menu's copy of the screen, which the window keeps for the
 // save's shot.sav. See docs/notes/ui.md, "Save / load window pictures", and docs/notes/renderer.md, section 6.
@@ -77,7 +77,7 @@ std::string SlotFolder(const char* slot) {
 // The first line of the text `prefix` + `suffix`, or empty when there is none.
 std::string FirstLineOf(const char* prefix, const std::string& suffix) {
     std::string line;
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     bool found = texts->Open(std::string(prefix) + suffix);
     if (found) line = texts->ReadLine(true);
     return line;
@@ -91,15 +91,15 @@ constexpr const char* kEveryFile = "\\*.*";
 
 // A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
 // original does).
-void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
-    CUiWindow* box = new CMessageBox(ui, name, text, result, 3, 1);
+void Ask(Interface3D* ui, const char* name, const char* text, int result) {
+    UiWindow* box = new MessageWindow(ui, name, text, result, 3, 1);
     ui->PushWindow(box, true, true);
 }
 
 } // namespace
 
 
-void CSaveLoadWindow::ShowPicture() {
+void SaveLoadWindow::ShowPicture() {
     SceneMesh(3)->visible = false;
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
@@ -155,7 +155,7 @@ void SaveEntry::MakeTitle() {
     }
 }
 
-void CSaveLoadWindow::SaveGame() {
+void SaveLoadWindow::SaveGame() {
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entries.data() + currentSelected;
@@ -165,7 +165,7 @@ void CSaveLoadWindow::SaveGame() {
     if (space != 0.0) {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
-            CUiWindow* box = new CMessageBox(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
+            UiWindow* box = new MessageWindow(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
             ui->PushWindow(box, true, true);
             return;
         }
@@ -214,7 +214,7 @@ void CSaveLoadWindow::SaveGame() {
     ui->SetPendingValue(kClosed);
 }
 
-void CSaveLoadWindow::FillEntries() {
+void SaveLoadWindow::FillEntries() {
     std::string pattern = str::Format(game::savewords::SavePattern(), DataFolderText());
     lib::FileFind find;
     entries.clear();
@@ -315,7 +315,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
-    CUiSurface* surface = new CUiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
+    UiSurface* surface = new UiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
     surface->CaptureScreen();
     g_cursor.SetShape(3);
     g_interface.serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
@@ -378,7 +378,7 @@ std::string SaveEntry::AllodTitle() const {
     return titleText;
 }
 
-void CSaveLoadWindow::Confirm() {
+void SaveLoadWindow::Confirm() {
     if (selected < 0) return;
     if (!isSave) {
         LoadSelected();
@@ -392,13 +392,13 @@ void CSaveLoadWindow::Confirm() {
     Ask(ui, "overwrite", "overwrite_msg", kAskOverwrite);
 }
 
-void CSaveLoadWindow::AskDelete() {
+void SaveLoadWindow::AskDelete() {
     if (selected < 0 || (isSave && selected == 0)) return;
     ui->PlaySound(kSoundDelete);
     Ask(ui, "delete", "delete_msg", kAskDelete);
 }
 
-void CSaveLoadWindow::LoadSelected() {
+void SaveLoadWindow::LoadSelected() {
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     if (entries.data()[currentSelected].broken) return;
@@ -409,7 +409,7 @@ void CSaveLoadWindow::LoadSelected() {
     g_gameFlow.RequestLoad(entries.data()[selected].folder, 0);
 }
 
-void CSaveLoadWindow::DeleteSave() {
+void SaveLoadWindow::DeleteSave() {
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     std::string folder = str::Format(kFolderFormat, DataFolderText(), entries[currentSelected].folder);

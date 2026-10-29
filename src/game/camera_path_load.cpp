@@ -18,7 +18,7 @@ namespace {
 constexpr float kLeadInGap = 500.0f;
 } // namespace
 
-int CCamera::LoadPath(const char* name, int settle) {
+int Camera::LoadPath(const char* name, int settle) {
     lib::File file;
     int opened;
     {

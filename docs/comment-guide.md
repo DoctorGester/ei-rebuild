@@ -137,7 +137,7 @@ about a fact (a why, a quirk, a layout), keep it, shortened.
    `void SetWind(const Vector3* direction, float strength);`, `// The fog start for `hour`.` over
    `float FogStart(float hour)`, `// Only on the server.` over `if (!world->IsServer()) return;`,
    `// CR LF` after `TrimRight("\r\n")`, a constructor's or destructor's comment that lists what its
-   body assigns or calls, `// "CItemArmor"` after a `ClassName()` declaration.
+   body assigns or calls, `// "ItemArmor"` after a `ClassName()` declaration.
 2. **The same comment twice.** A function commented at its declaration and again at its definition
    keeps one: the header's for what it does, the definition's only for a why the body needs.
 3. **Member-offset trailers and offsets in prose** (`// +0x1C ...`, "(CUnit +0x334)", "+0xCC").
@@ -155,7 +155,7 @@ about a fact (a why, a quirk, a layout), keep it, shortened.
 6. **Number trailers that repeat the literal.** `#define EI_TEN 10.0f /*0073CB98*/ // 10.0`,
    `return 220.0f; } // 220`. A trailer that decodes bits stays (`0x3D23D70A); // 0.04f`). The rdata
    literal tags `0.5f /*0073B86C*/` are gone (C41); the named-data tags after an `=` stay.
-7. **File pointers.** `class CStream;   // core_streams.h`, "(lever_table_load.cpp)", "unit_lever.cpp:
+7. **File pointers.** `class ByteStream;   // core_streams.h`, "(lever_table_load.cpp)", "unit_lever.cpp:
    SetState, UseSpots; lever_object.cpp the rest". Grep finds them. The file header keeps its one
    pointer to docs/notes.
 8. **Rulers** that are bare (`// -----`, `// --- ------`) or titled with the one function that follows
@@ -195,7 +195,7 @@ counts the lines a re-wrap saves).
 Before:
 
 ```cpp
-class CStream;   // core_streams.h
+class ByteStream;   // core_streams.h
 ...
     std::string name;           // +0x00 (field 0)
     float farScale;             // +0x18 (3) the spots' distance factor at +0xCC = 1
@@ -232,7 +232,7 @@ class CStream;   // core_streams.h
 After:
 
 ```cpp
-class CStream;
+class ByteStream;
 ...
     std::string name;           // field 0
     float farScale;             // field 3: the spots' distance factor when scale.z is 1

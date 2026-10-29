@@ -136,7 +136,7 @@ int ReadCount(char** cursor) {
 
 // The part both old-format loaders share: header words, bounds, vertices and records (the records' second colour
 // array is set to opaque black).
-void LoadOldCommon(CFigureMesh* mesh, char** cursor) {
+void LoadOldCommon(FigureMesh* mesh, char** cursor) {
     mesh->materialValue = Read<std::uint32_t>(*cursor);
     mesh->meshType = Read<std::uint32_t>(*cursor);
     ClipBounds& bounds = mesh->box.bounds;
@@ -206,7 +206,7 @@ std::vector<VertexPacket> g_offsetVertices;
 // Each value the original stores to a float is rounded with static_cast<float>; everything else
 // stays on the FPU.
 
-void CFigureMesh::LoadBounds(char** cursor, std::uint32_t magic) {
+void FigureMesh::LoadBounds(char** cursor, std::uint32_t magic) {
     const int versions = magic == kFig8Magic ? kFig8Versions : 1;
     ReadFirstVersion(center, cursor, versions);
     ReadFirstVersion(boxMin, cursor, versions);
@@ -257,7 +257,7 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
     out->SetBox(&boxMin.x, &boxMax.x);
 }
 
-void CPlainFigureMesh::LoadFig(char** cursor) {
+void PlainFigureMesh::LoadFig(char** cursor) {
     if (flags & FigureMeshFlag::Loaded) return;
     FigHeader header;
     lib::LoadBytes(header, *cursor);
@@ -300,7 +300,7 @@ void CPlainFigureMesh::LoadFig(char** cursor) {
     flags |= FigureMeshFlag::Loaded;
 }
 
-void CSharedFigureMesh::LoadFig(char** cursor) {
+void SharedFigureMesh::LoadFig(char** cursor) {
     if (flags & FigureMeshFlag::Loaded) return;
     FigHeader header;
     lib::LoadBytes(header, *cursor);
@@ -342,7 +342,7 @@ void CSharedFigureMesh::LoadFig(char** cursor) {
 
 // ---- Old (non-FIG) format -----------------------------------------------------------------------
 
-void CPlainFigureMesh::LoadOld(char** cursor) {
+void PlainFigureMesh::LoadOld(char** cursor) {
     if (flags & FigureMeshFlag::Loaded) return;
     LoadOldCommon(this, cursor);
     LoadArray(texCoords, cursor, ReadCount(cursor));
@@ -369,7 +369,7 @@ void CPlainFigureMesh::LoadOld(char** cursor) {
     flags |= FigureMeshFlag::Loaded;
 }
 
-void CSharedFigureMesh::LoadOld(char** cursor) {
+void SharedFigureMesh::LoadOld(char** cursor) {
     // Unlike the other three loaders, this one does not test the loaded flag.
     LoadOldCommon(this, cursor);
     // The rest stays in the file data.
@@ -395,7 +395,7 @@ void CSharedFigureMesh::LoadOld(char** cursor) {
 
 // ---- World-space box ----------------------------------------------------------------------------
 
-void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
+void FigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
     // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
     double distance = LengthSquaredXYZ(localPosition);
     if (distance > kFarLimit) return;
@@ -420,25 +420,25 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
 
 // ---- Mirroring, buffers, vertex offsets ---------------------------------------------------------
 
-void CPlainFigureMesh::MirrorX() {
+void PlainFigureMesh::MirrorX() {
     NegateBlock(vertices, 0);
     NegateBlock(normals, 0);
     ReverseWinding(indices);
     BuffersChanged();
 }
 
-void CFigureMesh::FitVertexBounds() {
+void FigureMesh::FitVertexBounds() {
     if (!vertices.empty()) box.bounds.Fit(vertices.data(), std::ssize(vertices));
 }
 
-void CPlainFigureMesh::MirrorY() {
+void PlainFigureMesh::MirrorY() {
     NegateBlock(vertices, 1);
     NegateBlock(normals, 1);
     ReverseWinding(indices);
     BuffersChanged();
 }
 
-void CPlainFigureMesh::RefreshBuffers() {
+void PlainFigureMesh::RefreshBuffers() {
     BuffersChanged();
     buffers.vertices = vertices.data();
     buffers.vertexCount = std::ssize(vertices);
@@ -456,7 +456,7 @@ void CPlainFigureMesh::RefreshBuffers() {
     buffers.indexCount = std::ssize(indices);
 }
 
-void CFigureMesh::SetOffsets(const OffsetSpan* newOffsets) {
+void FigureMesh::SetOffsets(const OffsetSpan* newOffsets) {
     // The positions the new renderer keeps on the GPU move with new offsets: the animation's frame.
     const bool same = std::ssize(offsets) == newOffsets->count &&
                       (newOffsets->count == 0 ||
@@ -466,9 +466,9 @@ void CFigureMesh::SetOffsets(const OffsetSpan* newOffsets) {
     if (!same) render::MeshChanged(this, render::MeshChange::Positions);
 }
 
-void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
+void FigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
 
-int CFigureMesh::DrawOffset(const Matrix4& matrix, Vector2* points, float* bounds) {
+int FigureMesh::DrawOffset(const Matrix4& matrix, Vector2* points, float* bounds) {
     const VertexPacket* buffersVertices = buffers.vertices;
     if (!offsets.empty()) {
         const VertexPacket* source = buffers.vertices;

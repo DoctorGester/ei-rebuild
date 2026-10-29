@@ -4,7 +4,7 @@
 #include <utility>
 
 // The game's counted pointers. T counts its own references: AddRef() takes one, Release() drops one and frees the
-// object with the last (CEngineObject through its owner, CRefCounted, the figures, the device materials, the render
+// object with the last (EngineObject through its owner, RefCounted, the figures, the device materials, the render
 // presets and helper). A site that keeps a raw pointer counts by hand with the same two members.
 
 // A counted pointer: Assign and Reset count, reads see the object, and its destructor drops the reference it

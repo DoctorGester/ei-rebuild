@@ -28,33 +28,33 @@ void ClearUiDepth(float z, const RECT* rects, int count) {
 namespace {
 
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
-void ScreenDraw(CUiContainer* self, CSceneRenderer* pass, bool mouseMove) {
+void ScreenDraw(UiContainer* self, SceneRenderer* pass, bool mouseMove) {
     GameRender();
     if (mouseMove) self->Input()->MouseMove(0, g_cursor.position.x, g_cursor.position.y);
     ClearUiDepth(1.0f);
-    self->CUiContainer::Draw(pass);
+    self->UiContainer::Draw(pass);
 }
 
 } // namespace
 
-void CUiContainer::Draw(CSceneRenderer* pass) {
+void UiContainer::Draw(SceneRenderer* pass) {
     if (!ui->drawing) return;
     render::g_renderState.stages[0].combiner = kAlphaPassStage;
     DrawBase(pass);
     // By index: a child's draw may change the list.
     for (int i = 0; i < std::ssize(children); ++i) {
-        CUiWindow* child = children[i];
+        UiWindow* child = children[i];
         if (child->enabled) child->Draw(pass);
     }
 }
 
-void CBriefingScreen::Draw(CSceneRenderer* pass) { ScreenDraw(this, pass, true); }
+void BriefingScreen::Draw(SceneRenderer* pass) { ScreenDraw(this, pass, true); }
 
-void CMainMenu::Draw(CSceneRenderer* pass) { ScreenDraw(this, pass, false); }
+void MainMenu::Draw(SceneRenderer* pass) { ScreenDraw(this, pass, false); }
 
 // The hero's weapons (the strip's left part), quick items (from the right) and worn armour, with the frames of
 // the shown weapon and the selected quick item.
-void CHeroEquipPanel::Draw(CSceneRenderer* pass) {
+void HeroEquipPanel::Draw(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t shown = hero->weaponIndex;
@@ -73,7 +73,7 @@ void CHeroEquipPanel::Draw(CSceneRenderer* pass) {
         frame(1)->visible = false;
     }
     DrawBase(pass);
-    CItemScreen* currentOwner = owner;
+    ItemScreen* currentOwner = owner;
     for (int i = 0; i < std::ssize(hero->weapons); ++i) {
         ItemCell cell{hero->weapons[i], static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
                       mode};
@@ -98,7 +98,7 @@ void CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     ClearUiDepth(0.0f);
     ClearUiDepth(1.0f, slots, 7);
     for (int i = 0; i < std::ssize(hero->armor); ++i) {
-        CItem* item = hero->armor[i];
+        Item* item = hero->armor[i];
         int armorType = AsArmor(item)->GetType();
         ItemCell cell{item, static_cast<float>(centreX[armorType]), static_cast<float>(centreY[armorType]), 6.0f, 100.0f,
                       mode};

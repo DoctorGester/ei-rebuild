@@ -36,7 +36,7 @@ constexpr int kMaxQuickItems = 8;
 // The tooltips' labels: the texts "infoitem_<id>" in order.
 template <int N>
 std::vector<std::string> Labels(const int (&ids)[N]) {
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::vector<std::string> labels;
     std::string text;
     for (int id : ids) {
@@ -55,12 +55,12 @@ struct IconPlace {
 };
 IconPlace IconAt(int n, int firstColumn) { return {firstColumn + (n / 4) * kIconSize, (n % 4) * kIconSize}; }
 
-void SetOffsets(CUiMesh* sprite, int x, int bottom) {
+void SetOffsets(UiMesh* sprite, int x, int bottom) {
     sprite->textureOffsetU = static_cast<float>(x) * kTexelStep;
     sprite->textureOffsetV = static_cast<float>(bottom) * kTexelStep;
 }
 
-void MakePlain(CUiMesh* sprite) {
+void MakePlain(UiMesh* sprite) {
     sprite->flatColour = kWhite;
     sprite->flags |= FigureMeshFlag::Flat;
 }
@@ -93,7 +93,7 @@ Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
 
 // --- Weapon bar ------------------------------------------------------------------------------------------------
 
-CHudWeaponBar::CHudWeaponBar(CInterface3D* ui, CBattleScreen* newOwner) : CUiWindow(ui), owner(newOwner) {
+HudWeaponBar::HudWeaponBar(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
     // WideScreen: the rectangle and the first region from 80 - shift; the
     // regions still run up to x 240, so the bar has more of them (no tips beyond the fourth).
     const int shift = widescreen::EdgeShift();
@@ -108,13 +108,13 @@ CHudWeaponBar::CHudWeaponBar(CInterface3D* ui, CBattleScreen* newOwner) : CUiWin
     labels = Labels(ids);
 }
 
-void CHudWeaponBar::Highlight(int index, bool on) {
+void HudWeaponBar::Highlight(int index, bool on) {
     widescreen::EnterLeftPanel();   // addon's 100233ED; 10023406 at both returns
     if (index < 0 || index >= count) {
         widescreen::LeavePanel();
         return;
     }
-    CUiMesh* sprite = SceneMesh(index);
+    UiMesh* sprite = SceneMesh(index);
     const int left = (index * 5 + 10) * 8;
     const int right = (index * 5 + 15) * 8;
     if (on) {
@@ -138,13 +138,13 @@ void CHudWeaponBar::Highlight(int index, bool on) {
     widescreen::LeavePanel();
 }
 
-void CHudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
+void HudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
     // Slots 0 and 1 share the texture's first column, 2 and 3 the second; odd slots the lower
     // half. (Left unset for a count over 3, which SetUnit never reaches.)
     const int x = count >= 2 ? kWeaponWidth : 0;
     const int y = (count & 1) ? kWeaponHeight : 0;
     CopyImage(objects[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y);
-    CUiMesh* sprite = AddSprite(model);
+    UiMesh* sprite = AddSprite(model);
     if (sprite) {
         // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and pi * 0.75.
         Quaternion first, second, third;
@@ -173,7 +173,7 @@ void CHudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
 
 // WideScreen: addon enters the right panels before the window's constructor (10023477); the window's reads no
 // panel offset, so here it is the body's first step.
-CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* newOwner) : CUiWindow(ui), owner(newOwner) {
+HudQuickItems::HudQuickItems(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
     widescreen::EnterRightPanel();   // addon's 10023477; 1002348E at the end
     const int shift = widescreen::EdgeShift();
     rect = {520 + shift, 500, 720 + shift, 600};    // WideScreen
@@ -194,11 +194,11 @@ CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* newOwner) : CUiW
     widescreen::LeavePanel();
 }
 
-void CHudQuickItems::AddItem(std::string_view model, std::string_view image) {
+void HudQuickItems::AddItem(std::string_view model, std::string_view image) {
     if (shownCount >= kMaxQuickItems) return;
     const IconPlace at = IconAt(shownCount, 0x80);
     CopyImage(objects[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
-    CUiMesh* sprite = AddSprite(model);
+    UiMesh* sprite = AddSprite(model);
     if (sprite) {
         Quaternion turn;
         sprite->localRotation = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
@@ -214,7 +214,7 @@ void CHudQuickItems::AddItem(std::string_view model, std::string_view image) {
 
 // --- Spell column ----------------------------------------------------------------------------------------------
 
-CHudSpellColumn::CHudSpellColumn(CInterface3D* ui, CBattleScreen* newOwner) : CUiWindow(ui), owner(newOwner) {
+HudSpellColumn::HudSpellColumn(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
     const int shift = widescreen::EdgeShift();
     rect = {760 + shift, 190, 800 + shift, 510};    // WideScreen
     ClearSceneObjects();
@@ -226,7 +226,7 @@ CHudSpellColumn::CHudSpellColumn(CInterface3D* ui, CBattleScreen* newOwner) : CU
     labels = Labels(ids);
 }
 
-void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
+void HudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     widescreen::EnterRightPanel();   // addon's 1002344D; 10023464 at the end
     // What is there moves up a step; the new button takes the bottom place.
     for (int i = 0; i < std::ssize(regions); ++i) {
@@ -240,7 +240,7 @@ void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     }
     const IconPlace at = IconAt(count, 0x80);
     CopyImage(objects[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
-    CUiMesh* sprite = AddSprite(model);
+    UiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;
     sprite->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
@@ -248,7 +248,7 @@ void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     MakePlain(sprite);
     int index = count;
     count = index + 1;
-    CUiMesh* button = SceneMesh(index);
+    UiMesh* button = SceneMesh(index);
     button->SetScale(1.0f);
     button->flatSpecular = kColourOff;
     selected = index;
@@ -257,7 +257,7 @@ void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
 
 // --- Action column ---------------------------------------------------------------------------------------------
 
-CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* newOwner) : CUiWindow(ui), owner(newOwner) {
+HudActionColumn::HudActionColumn(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
     // WideScreen (addon's handler): the panel offset from here on, the rectangle less the shift.
     widescreen::EnterLeftPanel();
     const int shift = widescreen::EdgeShift();
@@ -274,10 +274,10 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* newOwner) : 
     widescreen::LeavePanel();        // addon's 10023430
 }
 
-void CHudActionColumn::AddAction(std::string_view model, std::string_view image, int action) {
+void HudActionColumn::AddAction(std::string_view model, std::string_view image, int action) {
     const IconPlace at = IconAt(count, 0);
     CopyImage(objects[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
-    CUiMesh* sprite = AddSprite(model);
+    UiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;
     sprite->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
@@ -289,7 +289,7 @@ void CHudActionColumn::AddAction(std::string_view model, std::string_view image,
     actions[place] = static_cast<std::uint32_t>(action);
     int index = count;
     count = index + 1;
-    CUiMesh* button = SceneMesh(index);
+    UiMesh* button = SceneMesh(index);
     button->SetScale(1.0f);
     button->flatSpecular = kColourOff;
     selected = index;

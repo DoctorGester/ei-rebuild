@@ -38,7 +38,7 @@ struct QuestBriefingRecord {
     void Serialize(ChunkArchive* ar);
 
     // The lists (lists[k]): item names given and taken, quest variables ("a.b.<quest>") given and
-    // completed, zone variables raised to 1 and set to 2 (CWorldServer::CompleteBriefing).
+    // completed, zone variables raised to 1 and set to 2 (WorldServer::CompleteBriefing).
     enum ListKind { kGiveItems, kRemoveItems, kGiveQuests, kCompleteQuests, kAvailableZones, kCompleteZones };
 
     std::string name;
@@ -87,7 +87,7 @@ struct QuestDatabase {
 extern QuestDatabase g_questDatabase;   // database_globals.cpp
 
 
-class CFileRegistry;
+class FileRegistry;
 // The registry's string list `section` / `key` into `list`: the list emptied, reserved for
 // the strings' count, then every non-empty string appended (the briefings' lists).
-void ReadStringList(CFileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list);
+void ReadStringList(FileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list);

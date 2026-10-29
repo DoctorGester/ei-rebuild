@@ -1,4 +1,4 @@
-// A scrolling text's tokeniser (CUiScrollText::Tokenize): the message log and the objectives window's quest
+// A scrolling text's tokeniser (UiScrollText::Tokenize): the message log and the objectives window's quest
 // log hand it each text they add; and its drawing of the laid out lines (DrawLines); also the rest of the
 // class (constructor, destructor body, texts, layout, drawing), the scroll bar's maximum and the tokens'
 // destructor bodies. See ui.h and docs/notes/items_spells.md.
@@ -33,7 +33,7 @@ const char* FontSampleText() { return "W"; }   // measured for each font's heigh
 constexpr int kMeasuredFonts = 3;
 
 // A word of a line (the surface's text call, Rebirth-patched).
-void DrawWord(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour) {
+void DrawWord(UiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour) {
     surface->DrawTextIn(text, rect, font, colour, 0, 1);
 }
 
@@ -46,14 +46,14 @@ constexpr int kScrollbarSprites = 4;
 // stack memory (font 3: its return address) for the others; here they are 0.
 constexpr int kFontSlots = 10;
 
-void TokenizeText(CUiScrollText* self, std::string_view text) {
+void TokenizeText(UiScrollText* self, std::string_view text) {
     self->Tokenize(std::string(text));
 }
-void LayOut(CUiScrollText* self) { self->Layout(); }
+void LayOut(UiScrollText* self) { self->Layout(); }
 
 } // namespace
 
-int CUiScrollText::NextToken(const std::string& text, int pos, std::string* out) {
+int UiScrollText::NextToken(const std::string& text, int pos, std::string* out) {
     int length = text.size();
     const char* chars = text.c_str();
     while (pos < length && (chars[pos] == ' ' || chars[pos] == '\t')) ++pos;
@@ -82,7 +82,7 @@ int CUiScrollText::NextToken(const std::string& text, int pos, std::string* out)
     return pos + count;
 }
 
-void CUiScrollText::Tokenize(const std::string& text) {
+void UiScrollText::Tokenize(const std::string& text) {
     std::string token;
     int font = kDefaultFont;
     COLORREF colour = kDefaultColour;
@@ -132,8 +132,8 @@ void CUiScrollText::Tokenize(const std::string& text) {
     } while (pos < static_cast<int>(text.size()));
 }
 
-void CUiScrollText::DrawLines(int scroll) {
-    CUiSurface* surface = !surfaces.empty() ? surfaces[0] : nullptr;
+void UiScrollText::DrawLines(int scroll) {
+    UiSurface* surface = !surfaces.empty() ? surfaces[0] : nullptr;
     surface->Clear();
     int lineCount = std::ssize(lines);
     if (lineCount <= 0) {
@@ -228,40 +228,40 @@ void CUiScrollText::DrawLines(int scroll) {
 // --- Construction, texts, layout ----------------------------------------------------------
 
 // The scroll bar's tables with its own drawing and layout.
-CUiScrollText::CUiScrollText(CInterface3D* ownerUi, const char* text, RECT rect, float depth)
-    : CUiScrollbar(ownerUi, rect, depth, 0, kScrollSpeed) {
-    AddSurface(new CUiSurface(ui, &rect, SurfaceBlend::Keyed));
-    CUiScrollbar::SetRect(&rect);
+UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, RECT rect, float depth)
+    : UiScrollbar(ownerUi, rect, depth, 0, kScrollSpeed) {
+    AddSurface(new UiSurface(ui, &rect, SurfaceBlend::Keyed));
+    UiScrollbar::SetRect(&rect);
     PlaceText(rect);
     DeleteTokens();
     tokens.clear();
     TokenizeText(this, text);
     LayOut(this);
     SetPosition(0);
-    CUiScrollbar::SetPosition(0);
+    UiScrollbar::SetPosition(0);
     align = kJustified;
 }
 
-void CUiScrollText::DeleteTokens() {
+void UiScrollText::DeleteTokens() {
     for (int i = 0; i < std::ssize(tokens); ++i)
         if (UiTextToken* token = tokens[i]) delete token;
 }
 
-void CUiScrollText::PlaceText(const RECT& area) {
+void UiScrollText::PlaceText(const RECT& area) {
     if (!surfaces.empty() && surfaces[0]) surfaces[0]->MoveTo(area.left, area.top);
     textRect = {0, 0, area.right - area.left, area.bottom - area.top};
     textRect.right -= kBarWidth;
     LayOut(this);
 }
 
-CUiScrollText::~CUiScrollText() {
+UiScrollText::~UiScrollText() {
     DeleteTokens();
     tokens.clear();
     for (int i = 0; i < std::ssize(lines); ++i) delete lines[i];
     lines.clear();
 }
 
-void CUiScrollText::AddText(std::string_view text) {
+void UiScrollText::AddText(std::string_view text) {
     SetPosition(maxPosition);
     moved = true;
     const int scrollPosition = TakePosition();
@@ -271,29 +271,29 @@ void CUiScrollText::AddText(std::string_view text) {
     SetPosition(maxPosition - before + scrollPosition);
 }
 
-void CUiScrollText::SetText(std::string_view text) {
+void UiScrollText::SetText(std::string_view text) {
     Clear();
     TokenizeText(this, text);
     LayOut(this);
     SetPosition(0);
 }
 
-void CUiScrollText::SetRect(const RECT* newRect) {
-    CUiScrollbar::SetRect(newRect);
+void UiScrollText::SetRect(const RECT* newRect) {
+    UiScrollbar::SetRect(newRect);
     PlaceText(*newRect);
 }
 
-void CUiScrollText::Draw(CSceneRenderer* pass) {
+void UiScrollText::Draw(SceneRenderer* pass) {
     if (TakeMoved()) DrawLines(Position());
     DrawBase(pass);
 }
 
-void CUiScrollText::Clear() {
+void UiScrollText::Clear() {
     DeleteTokens();
     tokens.clear();
 }
 
-void CUiScrollText::Layout() {
+void UiScrollText::Layout() {
     int total = 0;
     int width = textRect.right - textRect.left;
     int font = kDefaultFont;
@@ -337,7 +337,7 @@ void CUiScrollText::Layout() {
 // --- The scroll bar's maximum ------------------------------------------------------------------
 
 
-void CUiScrollbar::SetMaximum(int maximum) {
+void UiScrollbar::SetMaximum(int maximum) {
     if (maximum < 0) maximum = 0;
     maxPosition = maximum;
     moved = true;

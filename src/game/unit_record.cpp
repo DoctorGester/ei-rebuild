@@ -17,11 +17,11 @@ namespace {
 
 // The item and spell factory (the server world's item manager) and the spell manager the spells are made for. The
 // record names its items by their names.
-CItem* CreateItem(CItemManager* factory, std::string_view name) {   // patched by Rebirth
+Item* CreateItem(ItemManager* factory, std::string_view name) {   // patched by Rebirth
     return factory->CreateItem(name);
 }
 
-void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
+void AddItems(const UnitRecord& record, CUnit* unit, ItemManager* factory) {
     for (const std::string& name : record.lists[UnitRecord::kQuickItems])
         unit->AddQuickItem(CreateItem(factory, name));
     for (const std::string& name : record.lists[UnitRecord::kCarried]) unit->AddCarried(CreateItem(factory, name));
@@ -31,7 +31,7 @@ void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
 
 void UnitRecord::ApplyTo(CUnit* target) {
     const UnitRecordStats& r = stats;
-    CItemManager* factory = g_serverWorld.itemManager;
+    ItemManager* factory = g_serverWorld.itemManager;
     CUnit* unit = target;
     const float k0 = 0.0f;
     EI_NAN_AUDIT(r.speed, r.rate);

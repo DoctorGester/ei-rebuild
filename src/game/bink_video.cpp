@@ -1,4 +1,4 @@
-// Bink movies: the frame player (CBinkVideo::Frame, once per frame from the movie screen's draw: the next frame
+// Bink movies: the frame player (BinkVideo::Frame, once per frame from the movie screen's draw: the next frame
 // decoded when due, then blitted into the letterboxed rectangle), the blocking player (PlayMovie) and the
 // loading screen's movie. Every frame goes to the new renderer as a CPU copy (render::MovieFrame / MovieBlit); no
 // surface holds it. See docs/notes/renderer.md, section 8.
@@ -23,7 +23,7 @@
 #include "options.h"
 #include "world.h"
 
-// Set while a .mob file loads (CWorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
+// Set while a .mob file loads (WorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
 std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
 
 namespace {
@@ -62,7 +62,7 @@ int g_movieKey;   // the blocking player's movie in the new renderer
 
 } // namespace
 
-unsigned CBinkVideo::Frame() {
+unsigned BinkVideo::Frame() {
     if (!options::g_options.video) return 0;    // movies off
     BinkHeader* binkHandle = this->bink;
     if (!binkHandle) return 0;
@@ -214,7 +214,7 @@ void ShowLoadingMovie(int progress) {
 // movies are off), the loading screen steps when asked, Bink gets the Miles driver when movie sound is on; the
 // screen rectangle: movies mode 1 centred at the movie's size, otherwise stretched to the screen's width with
 // the height trunc(height / width * screen width), centred vertically (divisions by 2 round towards zero).
-char CBinkVideo::Open(const char* name, char loadingStep) {
+char BinkVideo::Open(const char* name, char loadingStep) {
     if (bink) gameapi::BinkClose(bink);
     if (!options::g_options.video) return 0;
     if (loadingStep) g_clientWorld.sounds->StopAll(1);
@@ -251,7 +251,7 @@ void CloseLoadingMovie() {
     g_cursor.ShowImage(1);
 }
 
-void CBinkVideo::Close() {
+void BinkVideo::Close() {
     if (bink) {
         gameapi::BinkClose(bink);
         bink = nullptr;

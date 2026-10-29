@@ -60,17 +60,17 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
   the key's level + 1 (any key but level -1 opens it).
 - **FixSpellEffectsOverflow**: (#1) `CMapObject::AddEffect` (0050F1E0, slot 45) refuses a 21st effect and, after adding an effect lasting more
   than one tick, removes every older effect of the same type and end flag whose +0x0C is within 0.001, that lasts no longer and whose value
-  is not higher. (#0) a hook in `CWorldServer::UpdateUnits` (0058D670, at 0058D82E) counts every effect down one tick on objects that are
+  is not higher. (#0) a hook in `WorldServer::UpdateUnits` (0058D670, at 0058D82E) counts every effect down one tick on objects that are
   asleep (+0x174 <= 0, out of the update map); one with an expired effect goes back into the update map (0058D5D0).
 - **FixProgressNames**: the loading movie (00595080) picks progres2.bik for "gipat2", progres5.bik for "jigran".
-- **FixSpellSelfCasting**: (#0) `CSpell::IsOffensive` (0068B770) also marks types 0x28 / 0x29 offensive; (#1) `CBattleScreen::SelectUnit`
+- **FixSpellSelfCasting**: (#0) `CSpell::IsOffensive` (0068B770) also marks types 0x28 / 0x29 offensive; (#1) `BattleScreen::SelectUnit`
   (00638EF0) always passes 0 as the flag to 00637500 when casting on a clicked unit.
-- **FixMoveObject**: `CSectorMap::Move` (005C11D0) refuses x < 0, y < 0 or NaN (vanilla computes a negative sector).
+- **FixMoveObject**: `SectorMap::Move` (005C11D0) refuses x < 0, y < 0 or NaN (vanilla computes a negative sector).
 - **FixAddMapObject**: object creation (005927C0): a unit with no prototype record is logged and uses index 0 instead of reading [0+8].
 - **FixPlaingBattleMusicFromAntimagic**: `JMP +8` over the 0x1A test in 0054B580: antimagic no longer starts battle music.
 - **FixRepairPrice**: the camp's price function (0060FAB0): the wear fraction 1 - durability / maximum is clamped to [0, 1] (negative or NaN
   as 0); taking an item apart in the item constructor (deal kind 7) adds the repair cost of its wear instead of subtracting.
-- **FixRemoveMapObject**: `CWorldServer::RemoveObject` (005935C0): an unknown id is logged and the function returns (vanilla crashes).
+- **FixRemoveMapObject**: `WorldServer::RemoveObject` (005935C0): an unknown id is logged and the function returns (vanilla crashes).
 - **FixCreateItem**: the item factory (006AC970): an unknown prototype or invalid prototype / material logs "GiveItem: ..." and returns no
   item instead of FatalError.
 
@@ -78,7 +78,7 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 - **WideScreen** (100 sites, single player; *implemented* (W1-W4: "WideScreen" below): with VIDEORESOLUTION wider
   than 4:3 the 800x600 interface layout is widened: layout widths 00742B08 (800.0) and 007428AC (695.0), `ScaleRectToScreen` /
-  `ScalePointToScreen` (005F7CA0, 005F7D20), 005F7D60, `CUiRegion::SetRect` / `AddPoint`, sprite placement 005E6FA0, the camp and hero
+  `ScalePointToScreen` (005F7CA0, 005F7D20), 005F7D60, `UiRegion::SetRect` / `AddPoint`, sprite placement 005E6FA0, the camp and hero
   screens, the panel builders (0063C050 .. 00649910), panel immediates, the console and minimap rectangles, the cursor clip. These functions
   are why rule 9 of the rewrite guide exists.
 - **ObjectsDrawRadius** (the 100.0 at 0073BAB0 in 0056AFE0 becomes the setting) and **LandscapeDrawRadius** (`PUSH 100.0` in 00569E40), both
@@ -86,8 +86,8 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 ### Scripting and console (8 applied; implemented)
 
-- **AllowScriptArgsInLoops**: the recursive call of `CScript::LoadCommands` for a For / ForIf body passes the enclosing locals instead of 0.
-- **AllowScriptsInMainMenu**: starting the main menu zone (in 0057C460) also sets CWorldServer+0x160 so Tick runs the first command queue.
+- **AllowScriptArgsInLoops**: the recursive call of `Script::LoadCommands` for a For / ForIf body passes the enclosing locals instead of 0.
+- **AllowScriptsInMainMenu**: starting the main menu zone (in 0057C460) also sets WorldServer+0x160 so Tick runs the first command queue.
 - **AddNewScriptCommands** (25 sites; install, hooks and handlers are documented in `script_addon.h` / `script_addon.cpp`): the command table
   (0078BCA0, 0x12C commands) is copied and extended with 69 commands (GiveUnitWeapon, Str*, Rand*, Random, NearestUnit, GiveExp, ResetTarget, GameOver, GetDexterity,
   ShowAllUnits, PauseGame, SetWeather, AddMobEx, IsFileExists, ConsoleString, StartCameraSave ...), seven replacing a game command (ids 73, 75, 95, 99, 100, 126, 232), the
@@ -133,19 +133,19 @@ first. The install runs the Standard mod (no Maps / Res / Movies / Camera / Stre
 their flags (`modfolders::Active`: the flag on). addon's side, as the layer reproduces it:
 - The mod: starter `Settings\AddonPath` + `\` (100BD184). Its `config.reg` (the game's registry format) section [RES]: for twelve archives
   (aiinfo, database, databaseLmp, gfx, materials, outro, redress, sfx, speech, texts, textsLmp, textures) a value (string or array) names
-  mod archives (paths relative to the mod) that `CMappedResource::GetFile` asks before the game's archive; a value starting with `-` makes
+  mod archives (paths relative to the mod) that `MappedResource::GetFile` asks before the game's archive; a value starting with `-` makes
   the game's archive ignored. The key is the lower-case path the game opens: starter `Path Settings\RESOURCES PATH` (`.\Res\`) + name, speech
   under `CD-ROM PATH` + `Res\`. figures.res / menus.res values are also extra figure archives (CFigureManager::Create 005AA544,
-  CLinkFigureLoader::Construct 004F6952, before the game's), textures / redress / menus.res values extra texture archives (CTextureManager::Create
+  LinkFigureLoader::Construct 004F6952, before the game's), textures / redress / menus.res values extra texture archives (CTextureManager::Create
   006915EF, after the game's three when all opened). The mod archives open at the first OpenResource or CMaterialManager::Create (1001FD2E).
 - GetFile (13 calls of 00671B40 and the vtable slot): the mod's archives for this archive, then the archive unless ignored; a `t\` or `s\` name
   not found is tried once more without the prefix (also with the Standard mod). ListFiles (4 calls of 00674AC0): the mod's listings and the
   archive's own are appended to the caller's array, which is not emptied first (also with the Standard mod).
-- Maps: `<mod>\Maps<sub>\*.*` listed once; before each of the nine maps-folder uses (NewZone map / mob, MapPath, CWorldClient::LoadZone,
+- Maps: `<mod>\Maps<sub>\*.*` listed once; before each of the nine maps-folder uses (NewZone map / mob, MapPath, WorldClient::LoadZone,
   BuildZoneTable "*.mq", LoadZoneQuests twice, MapFileExists, WriteMapFile) the file's name selects the folder MapsFolder (0055E990) starts
   from: the mod's when listed (any case; the zone table: the mod's top folder has a `.mq`), else the game's 007AF460. The choice stays until
   the next site (the unhooked caller 00578DE4 sees the last one).
-- CameraPatch (CCamera::LoadPath's CFile::Open 0040ED42), MoviesPatch (every BinkOpen), StreamPatch (SwitchStream's path 006BB628): the mod's
+- CameraPatch (Camera::LoadPath's CFile::Open 0040ED42), MoviesPatch (every BinkOpen), StreamPatch (SwitchStream's path 006BB628): the mod's
   `Camera\`, `Movies\` or `Stream\` file of that name when it exists.
 Check: tests/scenarios/rebirth_mod_folders.txt, with a mod tools/make_test_mod.py writes into the run's harness_saves and the harness step
 `addonpath` (AddonPath for addon.dll and the image): the harness's `modfile` reads gfx.res's files through GetFile (the mod's s19b.txt, `t\`
@@ -157,7 +157,7 @@ scenario (no script handle on the stream's file or a movie's path). Not reproduc
 ### Crash handling and infrastructure (2 of 9 applied)
 
 - **DisableExitOnCrashReport** (single player, implemented): `FatalError` (00480080) logs its text instead of the message box and no longer
-  exits (9 NOPs at 004800C9); `CWorldClient::Segment` (005641F0) no longer calls 00665A10 before its own FatalError.
+  exits (9 NOPs at 004800C9); `WorldClient::Segment` (005641F0) no longer calls 00665A10 before its own FatalError.
 - **SetEiPluginMode**: writes 0xAADD0080 at 0073AF10 for EI_Plugin.asi (*not started*). *Disabled here*: GameExeDebug, CommandLine,
   GraphGenPatches, MenuMultiDisable, MenuSingleDisable, PreventZone1Animation, ForceShowTutorial.
 
@@ -171,12 +171,12 @@ JMPs in 005F13A0, 006093B7, 00640C97, NOPs in 00536100; W4a, W4b: all reproduced
 AutoAim, GraphGen, Test off. It updates itself from hat.gipath.org (a signed manifest, then a new EI_Plugin.asi), so its patch set may change.
 
 S19a (installer at EI_Plugin.asi +0x28DD .. +0x29F9 and +0x2FD0):
-- **Pause** (`CPlayerServer::OnPause` 0066FAC0; `rebirth::PluginPause()`, the ini's mode, 1 here). Modes 1 and 2 jump from 0066FAFE to 14
+- **Pause** (`PlayerServer::OnPause` 0066FAC0; `rebirth::PluginPause()`, the ini's mode, 1 here). Modes 1 and 2 jump from 0066FAFE to 14
   bytes at 0066FB62 that write `'3' - pause` over the last digit of "reserved_02" (007930F6 in .rdata, the key of announcement 12,
-  `CInterface3D::MessageText`) and go on, so resumes are announced too ("reserved_03"); mode 2 also replaces the leader test (0066FB10) by
+  `Interface3D::MessageText`) and go on, so resumes are announced too ("reserved_03"); mode 2 also replaces the leader test (0066FB10) by
   the pausing player's own leader. Mode 3 skips the announcement (0066FB2C) and makes 005942C0 (`CWorld::SetServerPaused`, the server's
   copy of SetPaused) a `RET 4`.
-- **Briefings** (`CWorldServer::CompleteBriefing` 00592090): a network client also queues the completion script (GSSetVar /
+- **Briefings** (`WorldServer::CompleteBriefing` 00592090): a network client also queues the completion script (GSSetVar /
   #OnBriefingComplete) after asking the server: the client path's stack offsets move by 0x14 and it jumps into the server path's tail
   (005924D1). The plugin formats the name from the caller's EBX; the client's only caller (00608851) holds the name there, so ours passes it.
 - **NewMaster**, the game's own code: `GameOptions::SaveToRegistry` 0045C560 does not save the Master Server Name (42 NOPs);
@@ -189,7 +189,7 @@ S19a (installer at EI_Plugin.asi +0x28DD .. +0x29F9 and +0x2FD0):
   plugin 100051B0 at 006330A9) starts a look-up thread (gethostbyname, one at a time, at most every 10 s, until an address is known) and
   waits up to 300 ms, then notes the address and "a.b.c.d:port"; each announcement (0041AA10, plugin 10004E20 at 0041ABDA, after the
   normal send) goes again to it as the same bytes, EF BE AD DE, the number of bindings (a byte) and per binding the player's name as
-  (strlen + 1 as a byte, the name, 0); `CMpConnectScreen::MasterRequest` (0061D0D0, plugin 100052D0 at 0061D138) tries the parsed master
+  (strlen + 1 as a byte, the name, 0); `MpConnectScreen::MasterRequest` (0061D0D0, plugin 100052D0 at 0061D138) tries the parsed master
   with a nonblocking TCP connect (select on writing every 10 ms, up to 1 s; the error-set select gets the emptied set, as in the plugin)
   and, when it cannot be parsed or reached and the address is known, parses the "a.b.c.d:port" text instead (not tried). Not reproduced:
   the click site's Test part (10001000) and its clearing of the Test script commands' list (+0x8B; empty with Test off). Checked offline:
@@ -285,7 +285,7 @@ passes its checks (at least 800x600, wider than 4:3) the 4:3 part `width43 = H *
 margins `(W - width43) / 2` pixels on either side, `extra = ceil((float)(margin * 800.0 / width43))` layout units (at WinMain's 53-bit FPU
 precision). It writes `800 + extra` to 00742B08 and `695 + extra` to 007428AC, scales layout to screen with the margin added and screen to
 layout with it taken off, and moves x by a *panel offset* (addon's 100BD0A0: `-extra` or `+extra` while one of its panel builders runs,
-0 otherwise) in `CUiRegion::SetRect` / `AddPoint` and the sprites' Place; the builders and other sites use the widths and the offset to put
+0 otherwise) in `UiRegion::SetRect` / `AddPoint` and the sprites' Place; the builders and other sites use the widths and the offset to put
 the battle screen's panels at the screen's edges.
 
 All of it is rewritten (W1-W4b, W2a/b) behind `Patch::WideScreen` (`src/game/ui_widescreen.{h,cpp}` and the files named below), each
@@ -294,11 +294,11 @@ function named in the csv's WideScreen rows; WideScreen has no leftovers.
 **Layout and scaling (W1).** The layout is computed from the same settings (read through the game's own RegQueryValueExA import, so
 harness runs can answer them); the two widths are written at hook time (an `EI_STARTUP_ACTION`, `include/ei/hook.h`: runs after the Rebirth
 flags are known and before the hooks are installed); the scaling 005F7CA0 / 005F7D20 / 005F7DA0 / 005F7E00 / 005F7E30, SetRect / AddPoint
-(005FC9E0, 005FCA70) and `CUiMesh::Place` (005E6FA0). 005F7D60 is a dead copy of 005F7D20.
+(005FC9E0, 005FCA70) and `UiMesh::Place` (005E6FA0). 005F7D60 is a dead copy of 005F7D20.
 - addon's scaling tests ECX and adds / takes off the margin only when it is nonzero; its entries 005F7D9E / 005F7DFE (in front of 005F7DA0 /
   005F7E00, written over with its 194-byte #93) clear ECX, and its code at 005FDE94 (in 005FDE20, the text surfaces' draw) calls 005F7CA0
   with ECX 0. The five hooks are `__fastcall` entries (`ScaleRectToScreenEntry` etc., ui.h) that take ECX 0 as "no interface": the wide
-  scaling without the margin (with the flag off ECX 0 never comes). `CInterface3D::CallScale*NoMargin` (ui.h) are the callers that mean it.
+  scaling without the margin (with the flag off ECX 0 never comes). `Interface3D::CallScale*NoMargin` (ui.h) are the callers that mean it.
 
 **Shapes, text, tooltips (W2).** The shape builders' sites (005E70E0+4F1 SetRectangle, 005E7680+60D SetGrid, 005E7D60+5FE SetFrame,
 005E99D0+4A7 SetTriangle: x moved by the panel offset; SetRectangle / SetFrame add it twice to the left + right sum, as addon); the text
@@ -308,13 +308,13 @@ draw 005FDE20+74 and the +0x98 rectangles of the edit field 0065C2E0, the save /
 player game (the overlay's root is drawn only for network clients): the harness's `chat 1|0` step opens it for the wrapper.
 - W2a, the connect list 0061D780 (`ui_connect_list.cpp`) reproduces ExtendedServerName next to WideScreen and declares both. addon's changes
   in it: row right edge 265 -> 278 (0061D9FC), the line under the titles ends at 283 instead of 270 (0061DB23), the selection frame at x
-  244.75 instead of 239 (0061DBEF), the ping column at 233 instead of 220 (0061DD40); the three `CUiSurface::DrawText` calls at 0061DC7F (the
+  244.75 instead of 239 (0061DBEF), the ping column at 233 instead of 220 (0061DD40); the three `UiSurface::DrawText` calls at 0061DC7F (the
   new game row), 0061DC9E (a server's name) and 0061E009 (the details' "name: <server>") go through addon's wrappers: the text copied through
   a 90-byte buffer (strcpy_s there; ours cuts a longer one instead of reaching the CRT's invalid parameter handler) and drawn with
   DT_END_ELLIPSIS | DT_MODIFYSTRING added; the server's name in a copy of the rectangle whose right edge is 140; the details' name through
   `DrawWrappedText` (up to 3 lines) with the rectangle's top and bottom moved down by `24 * (lines - 1)` before the screen's own row step.
   The wrapper (ui_mp_host, where no server answers) appends three synthetic servers for a moment to compare each.
-- W2b, `CMpConnectScreen::Create` 0061B2C0 declares `ExtendedServerName` and `EiPluginNPlayers`. addon's operands: the selection sprite's
+- W2b, `MpConnectScreen::Create` 0061B2C0 declares `ExtendedServerName` and `EiPluginNPlayers`. addon's operands: the selection sprite's
   right edge 370 -> 381.5 (0061B5CE), the name field's rectangle and the players slider's rectangle right edge 650 -> 680 (0061BB51), and the
   name field's `SetLook(3, 0, 1, 10, ...)` -> `SetLook(15, 0, 0, 50, ...)` (0061BC0E classes, 0061BC0B font, 0061BC09 length; the trimming of
   the hero's name to 10 characters stays). EI_Plugin's NPlayers also lies in the function: the slider's maximum (0061BAF7+1, `push 5`)
@@ -360,7 +360,7 @@ computes the floats it writes into the code:
   move to the screen's edges: zt9:0, zt12:0, zt12:1, zt13:0, zt14:0, zt14:2, zt17:0, zt20:0, zt22:0 by `-extra`, zt3:2, zt4:0, zt4:1, zt7:0,
   zt10:0, zt10:1, zt18:0 by `+extra` (both of the `#rectangle` line's x values; addon's 10023702 changes the locals before the first
   AddSprite); `TutorialFrameShift`.
-- W4a, `CMpHeroScreen::Create` 00613EA0 also holds EI_Plugin's Fixes (+D15, +E7B) and declares `WideScreen` and `EiPluginFixes`. The plugin
+- W4a, `MpHeroScreen::Create` 00613EA0 also holds EI_Plugin's Fixes (+D15, +E7B) and declares `WideScreen` and `EiPluginFixes`. The plugin
   patches the figure loop, where the original compares the figure prototype's model name with "unhuma" (strcmp at 00614BB5, 22 bytes) and
   then "unhufe" (00614D1B, 26 bytes): 00614BB5 becomes `cmp word [ecx+4], 0x6566; jne +0E` (to the men's body 00614BCB) `; jmp 00614D35` (the
   women's body) with 9 NOPs, and 00614D1B becomes `jmp 00614E84` with NOPs. So with the flag a model whose characters 4 and 5 are "fe" is a
@@ -369,8 +369,8 @@ computes the floats it writes into the code:
 
 **EI_Plugin's other Fixes and NPlayers (W4b)** (installer at EI_Plugin.asi +0x2E60 and +0x2FD0..: `100031F0`, `10003220`, `10003110`;
 NPlayers +0x2C80, and +0x2D20 for more than 7 players), each behind its flag and declared:
-- *Sex of a face* (`EiPluginFixes`, 005ED889 `FaceNames` (ui_item_view.cpp) for 005ED7B0, 00609427 `CChatWindow::ShowPlayers` 006091C0, 006408E6
-  and 00640D2F `CHudPortraits::Rebuild` 006407E0): the two strcmp tests become `cmp byte [name+4], 0x66`: a model whose fifth character is 'f'
+- *Sex of a face* (`EiPluginFixes`, 005ED889 `FaceNames` (ui_item_view.cpp) for 005ED7B0, 00609427 `ChatWindow::ShowPlayers` 006091C0, 006408E6
+  and 00640D2F `HudPortraits::Rebuild` 006407E0): the two strcmp tests become `cmp byte [name+4], 0x66`: a model whose fifth character is 'f'
   gives "f", every other one "m" (always assigned: the original's `sex` carried over from the last face when the model was neither).
   `pluginfixes::ModelIsFemale` (src/game/plugin_fixes.h).
 - *Unknown unit prototype* (006093B7 in ShowPlayers, 00640C97 in Rebuild; the plugin's stubs 100031F0 / 10003220 call 10003110 when the
@@ -378,10 +378,10 @@ NPlayers +0x2C80, and +0x2D20 for more than 7 players), each behind its flag and
   bucket (bucket order, chains not walked) of the unit prototype map whose name has none of "NPC", "Human", "Orc", "Undead", "Male", "Female"
   in it (case-insensitive substring; an empty name qualifies). `pluginfixes::FallbackPrototype`. Nothing in the shipped data reaches it.
 - 005F13A0 `ItemDamageLists` (005F1401: `je` -> `jmp`): the integer form ("%d") is never taken, the threshold is always "%.1f".
-- 00536100 `CUnitClientSpecific::RefreshSkins` (00536132: the `jne` over the body is NOPed): every unit is refreshed, not only the hero (0x32).
-- *NPlayers* (n = `PluginNPlayers()`, 7 here): 00640069 `CHudPortraits::AddPortrait` `mov edi, 6` -> `max(n, 7)`: the portraits' column is
-  `count % max(n, 7)`; 00608D9D / 00608DE4 `CChatWindow::Construct`: the window's left edge and its surface's x 0x1D0 -> 0; 006095FB
-  `CChatWindow::Update`: the first status column 0x118 -> 0x2E8 (= 0x118 + 0x1D0); 006095A0 holds a site of the feature too, so it is declared.
+- 00536100 `UnitClientSpecific::RefreshSkins` (00536132: the `jne` over the body is NOPed): every unit is refreshed, not only the hero (0x32).
+- *NPlayers* (n = `PluginNPlayers()`, 7 here): 00640069 `HudPortraits::AddPortrait` `mov edi, 6` -> `max(n, 7)`: the portraits' column is
+  `count % max(n, 7)`; 00608D9D / 00608DE4 `ChatWindow::Construct`: the window's left edge and its surface's x 0x1D0 -> 0; 006095FB
+  `ChatWindow::Update`: the first status column 0x118 -> 0x2E8 (= 0x118 + 0x1D0); 006095A0 holds a site of the feature too, so it is declared.
 - *More than 7 players* (`+0x2D20`: six more sites in AddPortrait 0064016B..00640240): not reproduced. The installer (`Check` in
   rebirth_hook.cpp) skips a function holding such a site while NPlayers > 7, so a Rebirth launch with a larger NPlayers keeps the original
   there; the standalone image treats NPlayers above 7 as 7 in the portraits.
@@ -428,15 +428,15 @@ layout units on either side. addon computes these once, when it applies its patc
 the registry (not from the game's screen), and so does this module (Startup, before the hooks are
 installed). Done here: the layout widths (800 -> 800 + extra) and (695 -> 695 + extra), the layout-to-screen
 scaling (+ margin), the screen-to-layout scaling (- margin; addon's entries in front of the first two run
-them without it; every one is without the margin when called with ECX 0), CUiRegion::SetRect / AddPoint and
+them without it; every one is without the margin when called with ECX 0), UiRegion::SetRect / AddPoint and
 the sprites' Place (x + the panel offset); the sprite shapes (x moved by the panel offset), the text extent
 (TextExtentToLayout), and the places addon scales without the margin (ECX 0: the text surfaces' draw, the
 edit field, the connection list, the save / load list, the chat line and the tooltip with its right edge
-LayoutRight; CInterface3D::CallScale*NoMargin, ui.h); the battle screen's panel builders (the map, the unit
+LayoutRight; Interface3D::CallScale*NoMargin, ui.h); the battle screen's panel builders (the map, the unit
 panel, the weapon bar, the quick items, the action and spell columns, the clock, the movement panel:
 ui_hud_*.cpp) set the panel offset (EnterLeftPanel / EnterRightPanel / LeavePanel) and move their layout
 constants by EdgeShift; the projection's x scale (the axis swap: AxisScale), the interface fonts' size
-(CInterface3D::Create: FontScale), the screen backdrop at the mode's size (DrawOverlays), the drags scaled
+(Interface3D::Create: FontScale), the screen backdrop at the mode's size (DrawOverlays), the drags scaled
 without the margin (the camera's and the global map's mouse moves), the global map's pick picture read
 without the margin (through addon's 9 bytes: PickShift), the curtains over the margins of the camp and the
 multiplayer hero screen and the tutorial messages' frames moved with the panels. With the flag off, or a

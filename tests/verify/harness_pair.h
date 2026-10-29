@@ -20,7 +20,7 @@
 //   the menu's first frame, run at once). A game's segment is a turn and the frame step after it; the
 //   segments follow each other in that order as when the frame step was inside the turn, and every
 //   datagram carries its sender's segment (its stamp). The frame step pumps the network too
-//   (CWorldClient::Render 00569E40 calls net::Pump between its drawing stages): its receives take only
+//   (WorldClient::Render 00569E40 calls net::Pump between its drawing stages): its receives take only
 //   datagrams of earlier segments or its own, and it may send only to its own ports, so it sees and does
 //   the same as before whatever the other game has got to; a frame step that would send to the other
 //   game, bind, close or signal fails the run (the guard). So which frame a game's datagram reaches the

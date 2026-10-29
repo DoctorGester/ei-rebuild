@@ -13,8 +13,8 @@ sight), `ai_footprint*.cpp`, `ai_bridges.cpp`, `ai_occluders.cpp`, `ai_refresh.c
 The unit movement tick 00547890 (controller `this`, outside the range) for a moving unit:
 `UnitMotion::Sample` (005C7430) on the trajectory at CUnit + 0x27C with the controller's order
 (controller + 0x3C, the AIPath) and the world time gives the next position, direction and speed;
-`CSectorMap::Remove`; `CanStandAtFromHere` at the new cell; `BlockingUnitAt` (005B7BB0) when it
-cannot stand there; `CSectorMap::Add`; then `CSectorMap::Move` (Rebirth-patched), which lifts and
+`SectorMap::Remove`; `CanStandAtFromHere` at the new cell; `BlockingUnitAt` (005B7BB0) when it
+cannot stand there; `SectorMap::Add`; then `SectorMap::Move` (Rebirth-patched), which lifts and
 re-stamps the unit through `MarkFootprint` -> `UnitShape` (005B8350) and the unit layers (005B36B0 /
 005B3890, whose virtual callbacks write the cell levels). When the path needs new steps
 `ContinuePath` / `AdvancePath` refill them and `SetStepSpeeds` (005BA400) prices them; 0052E9D0 then
@@ -22,7 +22,7 @@ rebuilds the trajectory with `UnitMotion::Build` (005C67D0). 00548520 at the end
 `StandsOnCheapCell` (005BA5A0). Long paths: `PlanLongPath` (005B9C90, region chain, then local
 searches per leg) -> `BuildCellsTo` (005B9A20).
 
-## The map archive (CAIMap::Load)
+## The map archive (AIMap::Load)
 
 `ai_map_load.cpp`. A map archive holds one .mp file (MapHeader, the materials, a type word per tile texture, the
 animated tiles) and a .sec file per sector of 32 x 32 terrain squares (SectorHeader, 33 x 33 vertices, the same again
@@ -32,7 +32,7 @@ one function; ours splits it into LoadTerrain (everything read from the files) a
 locals (archives, registry, strings) are destroyed at the end of the step that uses them instead of at the very end
 (nothing reads them in between). Rebirth patches the function.
 
-## Regions (CRegionMap::ReachesRegion, LabelRegions)
+## Regions (RegionMap::ReachesRegion, LabelRegions)
 
 The region map keeps, per size class, a u16 region per 8x8 block and the block's representative cell (rows of
 bytes: low nibble x, high nibble y in the block). `ReachesRegion` asks whether cell (x, y) can reach a region:
@@ -57,7 +57,7 @@ region grid is cleared, and every block still 0 starts a new region (1, 2, ...) 
   names (model.h BoundsFlag: "CROWN" kind 2, "BASE" a bridge, "EMPTY" no footprint), the spells' walls and clouds
   (kind 3, HasSpellArea) and ApplyBridgeDecks (kind 4); no part gives kind 1, whose cost-table entries (20, damping 2)
   are unused.
-- CUnitLayer (CAIMap + 0x27C small, + 0x12A4 large; 0x1028 bytes): MFC CList of every node ever
+- UnitLayer (AIMap + 0x27C small, + 0x12A4 large; 0x1028 bytes): MFC CList of every node ever
   allocated, 1024 hash buckets by (block x * 17 + block y), 4x4 blocks; vtable 0073FD74 (small) /
   0073FD6C (large), slots 0 Set / 1 Merge. Shape cache: owner 007C2F70, hash_map 007C2F78, shapes
   keyed by standing height rounded up to tenths. Globals: direction table 00791988, class heights
@@ -74,12 +74,12 @@ region grid is cleared, and every block still 0 starts a new region (1, 2, ...) 
   degrees; table 00791988), and the target; one point per path cell, speed = step speed * scale / 512,
   slowed where turning takes longer than the way (`LimitSpeeds`); the unit first turns in place unless
   the first direction is within acos(0.9) of its facing; segments are fitted with two Hermite cubics.
-- Calls to originals so the verify wrappers see them: CSectorMap::Add / Remove / FindUnitsInRadius,
+- Calls to originals so the verify wrappers see them: SectorMap::Add / Remove / FindUnitsInRadius,
   MarkFootprint (from sector_map.cpp, ai_path.cpp), `LineOfSight` (005BC3E0, its ST0 is taken
   unrounded). Virtual callbacks (layer Set / Merge) are free `__fastcall` functions called through the
   vtable (`ei::VCall`).
-- None of this area is in `docs/rebirth-patched-functions.txt` except `CSectorMap::Move` (005C11D0),
-  and `CAIMap::Load` (005B43C0, `ai_map_load.cpp`, A-W15), both installed only in the vanilla run.
+- None of this area is in `docs/rebirth-patched-functions.txt` except `SectorMap::Move` (005C11D0),
+  and `AIMap::Load` (005B43C0, `ai_map_load.cpp`, A-W15), both installed only in the vanilla run.
 
 ## Rewritten
 
@@ -90,11 +90,11 @@ By file:
   005B79D0, IsPassableWithoutSelf 005B7A40, CanStandAt 005B80F0, LineOfSight 005BC3E0, SpiralCache::Get 005BFC40, FindFreeCellNear
   005BA9D0. `ai_footprint*.cpp`: FootprintCellSet, MarkFootprint 005B6A80, Apply / Stamp / ClearFootprint, Begin / EndRefresh, the
   cloud and wall shapes; `ai_bridges.cpp` ApplyBridgeDecks 005B6740 (OccluderKind::BridgeDeck, ground >= deck, terrain type occluder::kBridgeType); `ai_occluders.cpp`;
-  `ai_map_construct.cpp` (CAIMap::CAIMap 005B3C30, CAIMap::Reset 005B5E10: refresh flag off, owner 0, inlined vtables and layer back
+  `ai_map_construct.cpp` (AIMap::AIMap 005B3C30, AIMap::Reset 005B5E10: refresh flag off, owner 0, inlined vtables and layer back
   pointers); `ai_area_lists.cpp`, `ai_cost_tables.cpp`; `ai_refresh.cpp` (RefreshArea 005B8FA0, CellMark, LimitSteepCells,
   ClearUnmarkedArea 005B89F0); `ai_water_patch.cpp` StampWaterPatch 005B7EF0; `ai_alarm.cpp` StepAlarm 005AEA80; `ai_shape_cache.cpp`
   CacheGet 005BD7F0 (object cache lookup for unit shapes); `ai_line_step.cpp` LargestStepAlong 005BC750.
-- `ai_region_reach.cpp` CRegionMap 005AF1C0-005B1180 (BlockSearchPathTo, JoinBlockSearches, FloodRegionFrom, LabelRegions,
+- `ai_region_reach.cpp` RegionMap 005AF1C0-005B1180 (BlockSearchPathTo, JoinBlockSearches, FloodRegionFrom, LabelRegions,
   DominantRegion, ReachesRegion, FindRegionChain, ...); `ai_block_search.cpp` (BlockSearch Attach / Requeue / Relax / PickBest /
   Expand 005AED60-005AF0C0, SeedSearch, AttachSearches, UpdateBlocks 005AFC70).
 - Paths: `ai_path.cpp` (SnapTarget 005BAC10, FindPath 005BB350, ContinuePath 005BB900, AdvancePath 005BB190, PathCellList::NewNode),
@@ -107,20 +107,20 @@ By file:
   LimitSpeeds, MotionCubic::Fit, AIPath Start / Reset / Clear / SetTurn / SetTurnUntil / SetTrack / SetTarget / ShiftTime /
   Destination / ForgetObject, UnitMotion::LoadState / SaveState 005C7860 / 005C79B0 = the unit save at CUnit + 0x27C),
   `ai_movement.cpp` (BlockingUnitAt 005B7BB0, UnitShape 005B8350, CostContext 005B9510, StandsOnCheapCell 005BA5A0,
-  CAIMap::SetStepSpeeds 005BA400, MarkVisibleCells 005BC970, FogGrid::Grow 005C8D40 (Include stays the forwarder)),
-  `ai_unit_layer.cpp` (CUnitLayer Add 005B36B0 / Remove 005B3890, small / large Set / Merge 005B39D0-005B3B90).
-- `sector_map.cpp`: CSectorMap Init 005C06F0, UnitsAt 005C0930, FindUnitsInRadius 005C0BD0, Add 005C0DF0, Remove 005C1010, Move 005C11D0.
-  `ai_events.cpp`: AIEventTable (a CAIMap member after the map, ai_event_table.h) Advance 005C9530 (the time wheel's tick), ForgetUnit 005C97B0 (a dead
+  AIMap::SetStepSpeeds 005BA400, MarkVisibleCells 005BC970, FogGrid::Grow 005C8D40 (Include stays the forwarder)),
+  `ai_unit_layer.cpp` (UnitLayer Add 005B36B0 / Remove 005B3890, small / large Set / Merge 005B39D0-005B3B90).
+- `sector_map.cpp`: SectorMap Init 005C06F0, UnitsAt 005C0930, FindUnitsInRadius 005C0BD0, Add 005C0DF0, Remove 005C1010, Move 005C11D0.
+  `ai_events.cpp`: AIEventTable (a AIMap member after the map, ai_event_table.h) Advance 005C9530 (the time wheel's tick), ForgetUnit 005C97B0 (a dead
   unit's events), Load / Save 005CAE30 / 005CAFA0; AIEvent records come from the pool CList 007C43A8 and the free list 007C53F0.
 
 ## Original bugs and oddities kept on purpose
 
-- Local search (`LocalSearch`, ai_map.h; CAIMap + 0x2594 / + 0x2614): `Requeue` leaves a node that is its bucket's head in
+- Local search (`LocalSearch`, ai_map.h; AIMap + 0x2594 / + 0x2614): `Requeue` leaves a node that is its bucket's head in
   place even when its cost changes. `PathTo` fills the cells' second dword from a stack slot it never writes; its only
   caller (JoinLocalSearches) leaves the forward search's address there (Best pushes ESI), so ours writes that address.
   `ExpandUntil` forms the target's row pointer without a bounds check (only compared). `Recenter` that fails on a
   move of 31 cells or more has already moved the window and row table (the nodes stay); its grid copy (005C4BA0) is inlined.
-- Path smoother (CAIMap + 0x22CC, trellis of nine states per cell over the transition tables 007C3058, node pool 007C3038):
+- Path smoother (AIMap + 0x22CC, trellis of nine states per cell over the transition tables 007C3058, node pool 007C3038):
   the cells it rebuilds get second dwords from two stack slots the original never writes (the tail one, the stepped ones);
   ours give them the old tail's. Which value vanilla leaves depends on FindPath's earlier calls; the steering reads the
   last step's flags as its speed word (see BuildCellsTo). The first-cell climb test is `<= 0`, the later ones `< 0`.
@@ -134,7 +134,7 @@ By file:
   temporary CList in the original, ours in a local array of at most nine entries (heap traffic differs, not the result); ReachesRegion's 3x3 block list is a static CArray (007C2EE0) freed with plain delete every call (ours a local);
   LabelRegions calls the out-of-line SetSize 005B16D0 instead of the inlined one.
 - Sample kind 3 and SamplePath normalise angles with `while` loops that never end on NaN; UnitMotion::Build reads the first trajectory point even for a path with no steps; SamplePath compares the time with |turn / rate|
-  twice (the inner test cannot fail); SetStepSpeeds and StandsOnCheapCell ask the unit for its movement speeds (0052F920) and never use them (ours skips the call). CUnitLayer::Add copies an uninitialised stack element
+  twice (the inner test cannot fail); SetStepSpeeds and StandsOnCheapCell ask the unit for its movement speeds (0052F920) and never use them (ours skips the call). UnitLayer::Add copies an uninitialised stack element
   into each new node and Remove passes its callback a record with an uninitialised first dword (ours zeros); small / large layer Set / Merge check only the block's first cell against the map size and write all 16.
 
 ## Skipped and why

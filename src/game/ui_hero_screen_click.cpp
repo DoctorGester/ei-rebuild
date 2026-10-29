@@ -42,11 +42,11 @@ const char* const kRenameBar = "|";
 bool IsHero(int index) { return index >= 0 && index < g_savedParties.Count(); }
 
 // The first entry of one of a hero record's item arrays, or null when it is empty.
-CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0] : nullptr; }
+Item* FirstOf(const std::vector<Item*>& list) { return !list.empty() ? list[0] : nullptr; }
 
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
-void BackToMainMenu(CInterface3D* ui) {
-    std::string text = g_clientWorld.texts->CTextManager::GetString("reserved_04");
+void BackToMainMenu(Interface3D* ui) {
+    std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
     g_interface.ShowStatusText(text);
     ui->PlaySound(game::CancelSoundText());
     g_gameFlow.EndSession();
@@ -95,13 +95,13 @@ int HighestFileNumber(std::string_view pattern) {
 
 } // namespace
 
-void CMpHeroScreen::CloseRenameEdit() {
+void MpHeroScreen::CloseRenameEdit() {
     surfaces[3]->Hide(false);
     renameEdit->SetEnabled(false);
     renameEdit->SetFocused(false);
 }
 
-void CMpHeroScreen::BackToNewHero() {
+void MpHeroScreen::BackToNewHero() {
     ui->PlaySound(game::CancelSoundText());
     statsPanel->SetHero(0, game::kEmptyText);
     surfaces[0]->Clear();
@@ -110,7 +110,7 @@ void CMpHeroScreen::BackToNewHero() {
     nameEdit->SetText(HeroRecord()->texts[0]);
 }
 
-void CMpHeroScreen::FinishRename() {
+void MpHeroScreen::FinishRename() {
     std::string typed = renameEdit->text;
     str::TrimLeft(typed);
     str::TrimRight(typed);
@@ -132,10 +132,10 @@ void CMpHeroScreen::FinishRename() {
     ShowHero(heroIndex);
 }
 
-void CMpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
-    CUiContainer::KeyDown(key, repeat, modifiers);
+void MpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (handled) return;
-    CInterface3D* currentUi = ui;
+    Interface3D* currentUi = ui;
     bool renaming = renameEdit->focused;
     int heroStep = 0;
     int voiceStep = 0;
@@ -199,11 +199,11 @@ void CMpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
     handled = true;
 }
 
-void CMpHeroScreen::LeftDown(int modifiers, int x, int y) {
+void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
     if (renameEdit->focused) return;
-    CUiContainer::LeftDown(modifiers, x, y);
+    UiContainer::LeftDown(modifiers, x, y);
     if (handled) return;
-    CInterface3D* currentUi = ui;
+    Interface3D* currentUi = ui;
     int region = RegionAt(x, y);
     auto rotate = [&](int direction) {
         currentUi->PlaySound(game::RotateSoundText());
@@ -313,7 +313,7 @@ void CMpHeroScreen::LeftDown(int modifiers, int x, int y) {
         // Delete: asks first ("lmp_deletepers").
         currentUi->PlaySound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
-        CUiWindow* box = new CMessageBox(currentUi, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1);
+        UiWindow* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1);
         currentUi->PushWindow(box, true, true);
         return;
     }
@@ -321,7 +321,7 @@ void CMpHeroScreen::LeftDown(int modifiers, int x, int y) {
         // The hero's inventory: the camp screen.
         currentUi->PlaySound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
-        ui->PushWindow(new CCampPages(ui, true), false, true);
+        ui->PushWindow(new CampPages(ui, true), false, true);
         return;
     }
     default:
@@ -336,7 +336,7 @@ void CMpHeroScreen::LeftDown(int modifiers, int x, int y) {
 
 // --- Rename ---------------------------------------------------------------------------
 
-void CMpHeroScreen::Rename() {
+void MpHeroScreen::Rename() {
     if (!IsHero(heroIndex)) return;
     renameEdit->SetEnabled(true);
     renameEdit->SetFocused(true);
@@ -360,7 +360,7 @@ void CMpHeroScreen::Rename() {
 
 // --- The voice's sound ----------------------------------------------------------------
 
-void CMpHeroScreen::PlayVoice() {
+void MpHeroScreen::PlayVoice() {
     ui->StopSound(voiceSound);
     voiceSound = -1;
     auto* hero = HeroRecord();
@@ -398,21 +398,21 @@ void CMpHeroScreen::PlayVoice() {
 
 // --- Continue -------------------------------------------------------------------------
 
-void CMpHeroScreen::Continue() {
-    CInterface3D* currentUi = ui;
+void MpHeroScreen::Continue() {
+    Interface3D* currentUi = ui;
     currentUi->PlaySound(kSoundOk);
     if (IsHero(heroIndex)) {
         g_savedParties.SaveAll();
-        currentUi->PushWindow(new CMpConnectScreen(currentUi), true, true);
+        currentUi->PushWindow(new MpConnectScreen(currentUi), true, true);
         return;
     }
-    CUiWindow* box = new CMessageBox(currentUi, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1);
+    UiWindow* box = new MessageWindow(currentUi, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1);
     currentUi->PushWindow(box, true, true);
 }
 
 // --- The new hero's statistics and its creation --------------------------------------
 
-void CMpHeroScreen::RefreshStats() {
+void MpHeroScreen::RefreshStats() {
     if (previewModel) {
         auto* hero = HeroRecord();
         auto* stats = &hero->stats;
@@ -428,7 +428,7 @@ void CMpHeroScreen::RefreshStats() {
     statsPanel->DrawStats();
 }
 
-void CMpHeroScreen::CreateHero() {
+void MpHeroScreen::CreateHero() {
     std::string name = nameEdit->text;
     auto* hero = HeroRecord();
     auto* stats = &hero->stats;
@@ -447,7 +447,7 @@ void CMpHeroScreen::CreateHero() {
     SetMode(kModeStats);
 }
 
-void CMpHeroScreen::ShowFirstEquipment() {
+void MpHeroScreen::ShowFirstEquipment() {
     PartyUnitRecord* hero = HeroRecord();
     weapon = FirstOf(hero->weapons);
     weaponPanel->ShowWeapon(weapon);
@@ -469,7 +469,7 @@ MpHeroRecord::~MpHeroRecord() {}
 
 void SavedParties::Select(const MpHeroRecord* hero) { outsideGame = *hero; }
 
-void CMpHeroScreen::DeleteHero() {
+void MpHeroScreen::DeleteHero() {
     if (!IsHero(heroIndex)) return;
     std::string path = g_savedParties.folder + g_savedParties.entries[heroIndex].file;
     gameapi::DeleteFileA(path.c_str());
@@ -480,8 +480,8 @@ void CMpHeroScreen::DeleteHero() {
     ShowHero(heroIndex);
 }
 
-void CMpHeroScreen::RefreshHeroScroll() {
-    CUiScrollbar* bar = heroScroll;
+void MpHeroScreen::RefreshHeroScroll() {
+    UiScrollbar* bar = heroScroll;
     if (g_savedParties.Count() > kListRows) {
         const int position = bar->TakePosition();
         bar->SetMaximum(g_savedParties.Count() - kListRows);
@@ -493,7 +493,7 @@ void CMpHeroScreen::RefreshHeroScroll() {
     }
 }
 
-void CMpHeroScreen::MessageResult(int result) {
+void MpHeroScreen::MessageResult(int result) {
     if (result == kAnswerOk) DeleteHero();
     if (IsHero(heroIndex)) {
         MpHeroRecord* hero = g_savedParties.Hero(heroIndex);
@@ -505,7 +505,7 @@ void CMpHeroScreen::MessageResult(int result) {
 
 // --- The new hero added to the list --------------------------------------------------
 
-void CMpHeroScreen::AddNewHero() {
+void MpHeroScreen::AddNewHero() {
     ui->PlaySound(kSoundOk);
     auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).

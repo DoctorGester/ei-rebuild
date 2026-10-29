@@ -1,4 +1,4 @@
-// The software cursor (CCursor, ui_cursor.h): its set-up Init AddShape (called
+// The software cursor (Cursor, ui_cursor.h): its set-up Init AddShape (called
 // by the cursor set-up, cursor_setup.cpp, at start and after a display reset), its life
 // cycle, shape and lock and the position update the drawing thread runs. See docs/notes/ui.md, section 3.
 #include "ui_cursor.h"
@@ -33,7 +33,7 @@ void ReleaseHolder(Surface*& slot) {
 }
 
 // The current image's current frame as the part shown.
-void ShowFrame(CCursor* cursor) {
+void ShowFrame(Cursor* cursor) {
     const CursorImage* image = cursor->image;
     cursor->from.left = image->frame * image->width;
     cursor->from.top = 0;
@@ -43,7 +43,7 @@ void ShowFrame(CCursor* cursor) {
 
 } // namespace
 
-void CCursor::Init(CTextureDevice* newDevice, int newMode, CDirectInputMouse* newMouse, bool smallCursors) {
+void Cursor::Init(TextureDevice* newDevice, int newMode, DirectInputMouse* newMouse, bool smallCursors) {
     const LONG size = smallCursors ? kSmallSize : kLargeSize;
     g_cursorWidth = size;
     g_cursorHeight = size;
@@ -61,14 +61,14 @@ void CCursor::Init(CTextureDevice* newDevice, int newMode, CDirectInputMouse* ne
     stopped = gameapi::CreateEventA(nullptr, FALSE, FALSE, nullptr);
     mode = newMode;
     mouse = newMouse;
-    CTextureDevice* old = device;
+    TextureDevice* old = device;
     device = newDevice;
     if (newDevice) newDevice->AddRef();
     if (old) old->Release();
     bounds = device->screen;
 }
 
-void CCursor::AddShape(const char* name, int hotX, int hotY) {
+void Cursor::AddShape(const char* name, int hotX, int hotY) {
     const std::string file = std::string(name) + ".mmp";
     images.push_back(new CursorImage(file.c_str(), hotX, hotY));
 }
@@ -79,17 +79,17 @@ CursorImage::~CursorImage() {
     if (holder) holder->Release();
 }
 
-CCursor::CCursor() { gameapi::InitializeCriticalSection(&lock); }
+Cursor::Cursor() { gameapi::InitializeCriticalSection(&lock); }
 
-CCursor::~CCursor() {
+Cursor::~Cursor() {
     gameapi::DeleteCriticalSection(&lock);
     if (device) device->Release();
 }
 
 // The software cursor.
-CCursor g_cursor;
+Cursor g_cursor;
 
-int CCursor::SetShape(int newShape) {
+int Cursor::SetShape(int newShape) {
     const int previous = shape;
     if (previous == -1 || !enabled) return -1;
     gameapi::EnterCriticalSection(&lock);
@@ -100,29 +100,29 @@ int CCursor::SetShape(int newShape) {
     return previous;
 }
 
-void CCursor::ShowImage(bool shown) {
+void Cursor::ShowImage(bool shown) {
     if (!enabled) return;
     gameapi::EnterCriticalSection(&lock);
     imageShown = shown;
     gameapi::LeaveCriticalSection(&lock);
 }
 
-void CCursor::SetHeld(bool newHeld) {
+void Cursor::SetHeld(bool newHeld) {
     if (!enabled) return;
     gameapi::EnterCriticalSection(&lock);
     held = newHeld;
     gameapi::LeaveCriticalSection(&lock);
 }
 
-void CCursor::TakeLock() {
+void Cursor::TakeLock() {
     if (enabled && mode == kModeLocked) gameapi::EnterCriticalSection(&lock);
 }
 
-void CCursor::ReleaseLock() {
+void Cursor::ReleaseLock() {
     if (enabled && mode == kModeLocked) gameapi::LeaveCriticalSection(&lock);
 }
 
-void CCursor::Start() {
+void Cursor::Start() {
     shape = 0;
     if (!enabled) return;
     gameapi::EnterCriticalSection(&lock);
@@ -135,7 +135,7 @@ void CCursor::Start() {
     thread = lib::StartThread(CursorThreadEntry, this, kThreadPriority);
 }
 
-void CCursor::Shutdown() {
+void Cursor::Shutdown() {
     if (thread) {
         stop = 1;
         gameapi::WaitForSingleObject(stopped, INFINITE);
@@ -148,7 +148,7 @@ void CCursor::Shutdown() {
         delete images[i];
     }
     images.clear();
-    CTextureDevice* currentDevice = device;
+    TextureDevice* currentDevice = device;
     device = nullptr;
     if (currentDevice) currentDevice->Release();
     position.x = 0;
@@ -163,7 +163,7 @@ void CCursor::Shutdown() {
     enabled = false;
 }
 
-bool CCursor::UpdatePosition() {
+bool Cursor::UpdatePosition() {
     // The frame: one step per 125 ms since frameTime (unsigned), wrapped by the frame count.
     const DWORD steps = (gameapi::timeGetTime() - frameTime) / kFramePeriod;
     image->frame = static_cast<int>(static_cast<unsigned>(image->frame + steps) % static_cast<unsigned>(image->frames));

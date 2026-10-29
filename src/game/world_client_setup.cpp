@@ -43,7 +43,7 @@ const char* FiguresResource() { return options::g_options.resourcesPath.c_str();
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
 // accumulated colour stays unrounded between the steps (FPU stack), each stored as a float.
-void ReadTable(CIniFile& ini, const char* section, LightColour* table) {
+void ReadTable(IniFile& ini, const char* section, LightColour* table) {
     int previous = 0;
     for (const std::string& key : ini.GetKeyNames(section)) {
         int index = str::ToInt(str::Mid(key, 4, 2));
@@ -78,8 +78,8 @@ const char* SkyFigureFile() { return "nask0sky.fig"; }
 
 } // namespace
 
-int CWorldClient::LoadLights(const std::string& file) {
-    CIniFile ini;   // the empty path, freed at the end
+int WorldClient::LoadLights(const std::string& file) {
+    IniFile ini;   // the empty path, freed at the end
     {
         std::string folder = g_dataFolder + ConfigFolder();
         std::string path = folder + file;
@@ -91,20 +91,20 @@ int CWorldClient::LoadLights(const std::string& file) {
     return 1;
 }
 
-void CWorldClient::SetUpGraphics(CTextureDevice* device) {
+void WorldClient::SetUpGraphics(TextureDevice* device) {
     TextureManager()->SetDevice(device);
     LoadSky();
-    numbers = new CFlyingHitPoints();
+    numbers = new FlyingHitPoints();
     auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
         numbers->texture.Assign(texture);
         TextureManager()->LoadTexture(texture);
         texture->flags |= TextureFlag::Keep;
     }
-    CLinkFigureLoader* loader;
+    LinkFigureLoader* loader;
     {
         std::string resource(FiguresResource());
-        loader = new CLinkFigureLoader(g_sceneRenderer.device, &resource);
+        loader = new LinkFigureLoader(g_sceneRenderer.device, &resource);
     }
     figureLoader.Assign(loader);
     g_unitDatabase.CountSoundFiles(sounds);
@@ -112,11 +112,11 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
 
 // ---- The sky --------------------------------------------------------------------------
 
-void CWorldClient::LoadSky() {
+void WorldClient::LoadSky() {
     if (skyDome) return;
-    skyDome = new CSky();
+    skyDome = new Sky();
     auto* figures = FigureManager();
-    auto* object = figures->CreateObjectAs<CSkyObject>(FigureObjectType::SkyObject, kSkyObjectId);
+    auto* object = figures->CreateObjectAs<SkyObject>(FigureObjectType::SkyObject, kSkyObjectId);
     if (!object) return;
     object->name = SkyPartName();
     object->directory = game::kEmptyText;
@@ -129,6 +129,6 @@ void CWorldClient::LoadSky() {
     object->LoadFromMemory(&data);
     object->flags |= FigureMeshFlag::Lit;
     skyDome->object.Assign(object);
-    CEngineObject* material = MaterialManager()->NewMaterial(kSkyMaterialType);
+    EngineObject* material = MaterialManager()->NewMaterial(kSkyMaterialType);
     skyDome->material.Assign(material);
 }

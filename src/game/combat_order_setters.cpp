@@ -21,7 +21,7 @@
 namespace {
 constexpr int kStyleWalk = 2;
 constexpr int kStyleRun = 3;
-// CEngineObject::prototypeId (not type) of a unit that cannot be tamed (0x32, the value type has for
+// EngineObject::prototypeId (not type) of a unit that cannot be tamed (0x32, the value type has for
 // heroes; the original compares prototypeId).
 constexpr std::uint32_t kUntameable = 0x32;
 
@@ -30,7 +30,7 @@ constexpr std::uint32_t kEmoteKeyBit = AnimationKeyOf(AnimationKeyFlag::Looped);
 
 // The shared tail of the kind 6 setters: the queued order (reset first) becomes a use of `target` with
 // `source`, `spot` and `run`, and is planned; reset again when the planner refuses.
-void QueueUse(CUnitServer* self, CMapObject* target, UseSource source, int spot, int run, AckKind shout) {
+void QueueUse(UnitServer* self, CMapObject* target, UseSource source, int spot, int run, AckKind shout) {
     UnitAction& order = self->action2;
     order.Reset();
     order.kind = UnitOrderKind::Use;
@@ -42,10 +42,10 @@ void QueueUse(CUnitServer* self, CMapObject* target, UseSource source, int spot,
 }
 } // namespace
 
-bool CUnitServer::FitsMoveMode(int mode) {
+bool UnitServer::FitsMoveMode(int mode) {
     int stored = mode == kStyleRun ? kStyleWalk : mode;
     if (stored == moveMode.mode) return true;
-    CAIMap* map = &g_serverWorld.aiMap;
+    AIMap* map = &g_serverWorld.aiMap;
     int saved = unit->moveMode;
     map->sectorMap.Remove(unit);
     unit->moveMode = mode;
@@ -57,7 +57,7 @@ bool CUnitServer::FitsMoveMode(int mode) {
     return fits;
 }
 
-void CUnitServer::SetMoveStyle(int style) {
+void UnitServer::SetMoveStyle(int style) {
     boredTicks = 0;
     unit->moveMode2 = style;
     if (FitsMoveMode(style)) {
@@ -67,34 +67,34 @@ void CUnitServer::SetMoveStyle(int style) {
     if (style != kStyleWalk && style != kStyleRun) action.modifier = 0;
 }
 
-void CUnitServer::SetWantedWeapon(int slot) {
+void UnitServer::SetWantedWeapon(int slot) {
     boredTicks = 0;
     unit->pendingWeapon = slot;
 }
 
-void CUnitServer::OrderSteal(CMapObject* target, int run) {
+void UnitServer::OrderSteal(CMapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
     QueueUse(this, target, UseSource::Steal, 0, run, AckKind::Steal);
 }
 
-void CUnitServer::OrderTame(CMapObject* target, int run) {
+void UnitServer::OrderTame(CMapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
     auto* other = static_cast<CUnit*>(target);
     if (other->player == unit->player || other->prototypeId == kUntameable) return;
     QueueUse(this, target, UseSource::Tame, 0, run, AckKind::UseObject);
 }
 
-void CUnitServer::OrderUse(CMapObject* target, int spot, int run) {
+void UnitServer::OrderUse(CMapObject* target, int spot, int run) {
     if (!target) return;
     QueueUse(this, target, UseSource::Use, spot, run, AckKind::UseObject);
 }
 
-void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
+void UnitServer::OrderSearchBody(CMapObject* target, int run) {
     if (!target || target->IsDead() == 0 || target == unit) return;
     QueueUse(this, target, UseSource::SearchBody, 0, run, AckKind::Loot);
 }
 
-bool CUnitServer::TargetBusy(CMapObject* target) {
+bool UnitServer::TargetBusy(CMapObject* target) {
     if (target->flags & MapObjectFlag::Shared) return !g_serverWorld.IsObjectShared(target->id, unit->id);
     AIBrain* ai = &brain;
     for (auto& node : ai->memory.nearby) {
@@ -109,7 +109,7 @@ bool CUnitServer::TargetBusy(CMapObject* target) {
     return false;
 }
 
-void CUnitServer::PlayAnimation(const char* name) {
+void UnitServer::PlayAnimation(const char* name) {
     const FigureAnimation* entry;
     {
         std::string figure = unit->name;
@@ -126,7 +126,7 @@ void CUnitServer::PlayAnimation(const char* name) {
     action2.kind = (entry->key & kEmoteKeyBit) ? UnitOrderKind::Emote : UnitOrderKind::Animation;
 }
 
-void CUnitServer::StopAction() {
+void UnitServer::StopAction() {
     state = UnitState::Stopped;
     unit->UpdateSizeClass();
     if (effectObject) {
@@ -141,19 +141,19 @@ void CUnitServer::StopAction() {
     if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) DropQueuedOrder();
 }
 
-bool CUnitServer::HasOtherArmour() {
+bool UnitServer::HasOtherArmour() {
     for (int slot = 3; slot < 7; ++slot)
         if (unit->armor[slot]) return true;
     return false;
 }
 
-bool CUnitServer::HasMainArmour() {
+bool UnitServer::HasMainArmour() {
     for (int slot = 0; slot < 3; ++slot)
         if (unit->armor[slot]) return true;
     return false;
 }
 
-FigureAnimation* CBaseManager::FindFigureAnimation(const std::string& figure, const char* name) {
+FigureAnimation* BaseManager::FindFigureAnimation(const std::string& figure, const char* name) {
     AnimationDatabase* database;
     {
         std::string file = figure;

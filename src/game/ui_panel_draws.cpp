@@ -41,8 +41,8 @@ struct Pulse {
     int low;
     int high;
 };
-Pulse Advance(CConstructorPage* page) {
-    double t = CUiContainer::FrameTime() + page->pulse;
+Pulse Advance(ConstructorPage* page) {
+    double t = UiContainer::FrameTime() + page->pulse;
     page->pulse = static_cast<float>(t);
     float p = static_cast<float>((x87::fcos(t * 5.0) + 1.0) * 0.5);
     double a = 1.0 - p;
@@ -50,15 +50,15 @@ Pulse Advance(CConstructorPage* page) {
     return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};
 }
 
-void DrawSprite(CUiMesh* sprite, CSceneRenderer* pass, float x, float y) {
+void DrawSprite(UiMesh* sprite, SceneRenderer* pass, float x, float y) {
     sprite->Place(x, y, 3.0f);
     sprite->Draw(pass);
 }
 
 // A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
 // model, then the screen to 1 again.
-void DrawInSlot(CConstructorPage* page, CSceneRenderer* pass, const ItemCell& cell, RECT slot) {
-    CInterface3D* ui = page->ui;
+void DrawInSlot(ConstructorPage* page, SceneRenderer* pass, const ItemCell& cell, RECT slot) {
+    Interface3D* ui = page->ui;
     ui->ScaleRectToScreenEntry(&slot);
     ClearUiDepth(0.0f);
     ClearUiDepth(1.0f, &slot, 1);
@@ -67,7 +67,7 @@ void DrawInSlot(CConstructorPage* page, CSceneRenderer* pass, const ItemCell& ce
 }
 
 // A part's prototype by its record type (weapons, armour, quick items), or null.
-const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
+const itemdb::ItemRecordHead* PartRecord(const ItemLoot* part) {
     switch (part->recordType) {
     case LootRecordType::Weapon: return itemdb::WeaponAt(part->index);
     case LootRecordType::Armor: return itemdb::ArmorAt(part->index);
@@ -80,7 +80,7 @@ const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
 
 // --- The quick strip ------------------------------------------------------------------
 
-void CHeroQuickStrip::Draw(CSceneRenderer* pass) {
+void HeroQuickStrip::Draw(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
     auto* frame = SceneMesh(0);
     int count = std::ssize(hero->spells);
@@ -100,23 +100,23 @@ void CHeroQuickStrip::Draw(CSceneRenderer* pass) {
 
 // --- The repair grid ------------------------------------------------------------------
 
-void CRepairGrid::Draw(CSceneRenderer* pass) {
-    CInterface3D* currentUi = ui;
+void RepairGrid::Draw(SceneRenderer* pass) {
+    Interface3D* currentUi = ui;
     RECT grid{200, 100, 600, 500};
     currentUi->ScaleRectToScreenEntry(&grid);
     RECT screen{0, 0, currentUi->width, currentUi->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
 
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->Clear();
-    const std::vector<CItem*>& list = *items;
+    const std::vector<Item*>& list = *items;
     for (int i = 0; i < std::ssize(list); ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
         // 1 << (3 - row) as SHL does it (the count masked to five bits).
         auto scale = static_cast<int>(1u << ((3 - (i >> 2)) & 31));
-        CItem* item = list[i];
+        Item* item = list[i];
         ItemCell cell{item, static_cast<float>(x) + 250.0f, static_cast<float>(y) + 150.0f,
                       static_cast<float>(scale) * 6.0f, 100.0f, mode};
         owner->DrawItem(pass, cell);
@@ -134,8 +134,8 @@ void CRepairGrid::Draw(CSceneRenderer* pass) {
 
 // --- The constructors' second pages ----------------------------------------
 
-void CSpellMakerPage::Draw(CSceneRenderer* pass) {
-    const std::vector<CItem*>& newSlots = slots->items;
+void SpellMakerPage::Draw(SceneRenderer* pass) {
+    const std::vector<Item*>& newSlots = slots->items;
     int needed = 0;
     float manaSum = 0.0f;
     float lastMana = 0.0f;
@@ -145,7 +145,7 @@ void CSpellMakerPage::Draw(CSceneRenderer* pass) {
     int row = 0;
     int column = 0;
     for (int i = 0; i < std::ssize(newSlots); ++i) {
-        CItem* item = newSlots[i];
+        Item* item = newSlots[i];
         ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode};
         if (IsSpellContainer(item)) {
             cell.x = 250.0f;
@@ -176,7 +176,7 @@ void CSpellMakerPage::Draw(CSceneRenderer* pass) {
             }
         }
     }
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->Clear();
     RECT first{10, 0, 200, 20};
     RECT second{10, 20, 200, 40};
@@ -193,7 +193,7 @@ void CSpellMakerPage::Draw(CSceneRenderer* pass) {
     }
     DrawBase(pass);
 
-    CUiMesh* highlight = SceneMesh(kHighlight);
+    UiMesh* highlight = SceneMesh(kHighlight);
     highlight->visible = true;
     Pulse beat = Advance(this);
     if (!hasContainer) {
@@ -210,9 +210,9 @@ void CSpellMakerPage::Draw(CSceneRenderer* pass) {
     highlight->visible = false;
 }
 
-void CConstructorPage::Draw(CSceneRenderer* pass) {
+void ConstructorPage::Draw(SceneRenderer* pass) {
     DrawBase(pass);
-    const std::vector<CItem*>& newSlots = slots->items;
+    const std::vector<Item*>& newSlots = slots->items;
     bool hasBlueprint = false;   // or a spell container
     bool hasPart = false;
     const itemdb::ItemRecordHead* part = nullptr;
@@ -220,7 +220,7 @@ void CConstructorPage::Draw(CSceneRenderer* pass) {
     int row = 0;
     int column = 0;
     for (int i = 0; i < std::ssize(newSlots); ++i) {
-        CItem* item = newSlots[i];
+        Item* item = newSlots[i];
         ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode};
         if (IsBuildable(item)) {
             cell.x = 250.0f;
@@ -251,7 +251,7 @@ void CConstructorPage::Draw(CSceneRenderer* pass) {
             }
         }
     }
-    CUiMesh* highlight = SceneMesh(kHighlight);
+    UiMesh* highlight = SceneMesh(kHighlight);
     highlight->visible = true;
     Pulse beat = Advance(this);
     highlight->flatColour = Colour(beat.alpha, beat.high, beat.low);

@@ -16,7 +16,7 @@
 #include <vector>
 
 class CLight;
-class CSceneRenderer;
+class SceneRenderer;
 class CTexture;
 class DecalBuilder;
 struct VertexPacket;
@@ -61,7 +61,7 @@ enum class Layer { Ground, Water };
 
 // Landscape: answers height queries for a world position. The vertex grid has unit spacing, but vertices
 // can be displaced sideways, so a point may lie in a neighbouring cell. The client world's Setup makes it.
-class Terrain final : public CTransformObject {
+class Terrain final : public TransformObject {
 public:
     Terrain();
     ~Terrain() override;
@@ -99,8 +99,8 @@ public:
     int SurfaceClass(float x, float y);
 
     // The ground pages, then (after the objects) the water pages.
-    void DrawGround(CSceneRenderer* renderer);
-    void DrawWater(CSceneRenderer* renderer);
+    void DrawGround(SceneRenderer* renderer);
+    void DrawWater(SceneRenderer* renderer);
 
     float HeightAt(float x, float y, Layer layer);
     // The ground height at (x, y), raised to the water surface where it is under water.
@@ -164,7 +164,7 @@ public:
     // own; its frame count when animated, else 0.
     std::vector<int> textureClass;
     std::vector<int> textureFrames;
-    CMMIOResource archive;          // the map's sector archive
+    MMIOResource archive;          // the map's sector archive
     std::vector<TileUv> uvTables[4];       // per rotation, per texture of a page
     std::vector<TileUv> uvTablesLast[4];   // the same for the extra pages
     std::vector<VertexTiles> vertexTiles;   // 33 x 33
@@ -213,10 +213,10 @@ private:
     void StopAmbientLoops();
     // A pass: the landscape's matrix (rotation, the position in the last column) on the clip and projection
     // stacks around DrawPages.
-    void DrawPass(CSceneRenderer* renderer, int firstPage, int lastPage);
+    void DrawPass(SceneRenderer* renderer, int firstPage, int lastPage);
     // The visible sectors not culled, per page; the page's texture is page % LayerPages(). Nothing without a
     // map.
-    void DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage);
+    void DrawPages(SceneRenderer* renderer, int firstPage, int lastPage);
     // Null outside the map or where the sector has no such layer.
     const Vector3* VertexAt(int ix, int iy, Layer layer);
 };

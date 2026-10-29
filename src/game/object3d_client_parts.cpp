@@ -1,4 +1,4 @@
-// The client half of a 3D object (CObject3DClientSpecific, class id 0x37):
+// The client half of a 3D object (Object3DClientSpecific, class id 0x37):
 // its lifetime, the part sets (the figure's parts grouped by texture and material, which Draw
 // walks), the skin textures and the materials' lit state. Layouts: map_object_shadow.h.
 #include "map_object_shadow.h"
@@ -34,7 +34,7 @@ bool IsPrimaryKind(int kind) { return std::ranges::find(kPrimaryKinds, kind) != 
 
 // `part` taken out of the group that holds it (the tail moved down) and released: true, or false
 // when no group of either set holds it.
-bool RemoveFromGroups(CObject3DClientSpecific* self, CFigureMesh* part) {
+bool RemoveFromGroups(Object3DClientSpecific* self, FigureMesh* part) {
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = self->partSets[k];
         if (!set) continue;
@@ -74,7 +74,7 @@ TextureParts::~TextureParts() {
     }
 }
 
-CObject3DClientSpecific::CObject3DClientSpecific() {
+Object3DClientSpecific::Object3DClientSpecific() {
     shadowMade = false;
     std::memset(&sphere, 0, sizeof(sphere));
     materialCursor = -1;
@@ -86,7 +86,7 @@ CObject3DClientSpecific::CObject3DClientSpecific() {
     pulseClock = 0.0f;
 }
 
-void CObject3DClientSpecific::Create() {
+void Object3DClientSpecific::Create() {
     materialCursor = -1;
     flags = 0;
     shadowMade = false;
@@ -105,7 +105,7 @@ void CObject3DClientSpecific::Create() {
     figureScale.x = 1.0f;
 }
 
-void CObject3DClientSpecific::Destroy() {
+void Object3DClientSpecific::Destroy() {
     shadowMade = false;
     woundsTexture.Reset();
     woundsMaterial.Reset();
@@ -131,11 +131,11 @@ void CObject3DClientSpecific::Destroy() {
     flags = 0;
 }
 
-CObject3DClientSpecific::~CObject3DClientSpecific() { CObject3DClientSpecific::Destroy(); }
+Object3DClientSpecific::~Object3DClientSpecific() { Object3DClientSpecific::Destroy(); }
 
 // --- Parts, textures and materials ----------------------------------------------------------------
 
-CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
+CTexture* Object3DClientSpecific::FindOrAddTexture(int kind) {
     for (int i = 0; i < std::ssize(textures); ++i)
         if (textures[i]->type == kind) return textures[i];
     int k = IsPrimaryKind(kind) ? 0 : 1;
@@ -157,30 +157,30 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
     return set->texture;
 }
 
-CMaterial* CObject3DClientSpecific::FindMaterial(int textureKind, int materialKind) {
+Material* Object3DClientSpecific::FindMaterial(int textureKind, int materialKind) {
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k];
         if (!set || !set->texture || set->texture->type != textureKind) continue;
         for (int g = 0; g < std::ssize(set->groups); ++g) {
-            CMaterial* material = set->groups[g]->material;
+            Material* material = set->groups[g]->material;
             if (material && material->type == materialKind) return partSets[k]->groups[g]->material;
         }
     }
     return nullptr;
 }
 
-CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int materialKind) {
+Material* Object3DClientSpecific::FindOrAddMaterial(int textureKind, int materialKind) {
     int k = 0;
     while (!partSets[k] || !partSets[k]->texture || partSets[k]->texture->type != textureKind) {
         if (++k > 1) return nullptr;
     }
     TextureParts* set = partSets[k];
     for (int g = 0; g < std::ssize(set->groups); ++g) {
-        CMaterial* material = set->groups[g]->material;
+        Material* material = set->groups[g]->material;
         if (material && material->type == materialKind) return set->groups[g]->material;
     }
     PartGroup* group = new PartGroup();
-    CMaterial* material = ClientWorld()->NewMaterial(materialKind);
+    Material* material = ClientWorld()->NewMaterial(materialKind);
     group->material = material;
     material->AddRef();
     set = partSets[k];
@@ -194,7 +194,7 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
     return group->material;
 }
 
-int CObject3DClientSpecific::OnPartAdded(CFigureMesh* part) {
+int Object3DClientSpecific::OnPartAdded(FigureMesh* part) {
     int materialKind = static_cast<int>(part->materialValue);
     int textureKind = static_cast<int>(part->meshType);
     bool known = false;
@@ -224,15 +224,15 @@ int CObject3DClientSpecific::OnPartAdded(CFigureMesh* part) {
     return 1;
 }
 
-int CObject3DClientSpecific::OnPartRemoved(CFigureMesh* part) { return RemoveFromGroups(this, part) ? 1 : 0; }
+int Object3DClientSpecific::OnPartRemoved(FigureMesh* part) { return RemoveFromGroups(this, part) ? 1 : 0; }
 
-CFigureMesh* CObject3DClientSpecific::RemoveFromPartSets(const char* name) {
-    CFigureMesh* part = FindPart(name);
+FigureMesh* Object3DClientSpecific::RemoveFromPartSets(const char* name) {
+    FigureMesh* part = FindPart(name);
     if (!part) return nullptr;
     return RemoveFromGroups(this, part) ? part : nullptr;
 }
 
-CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
+CTexture* Object3DClientSpecific::ReplaceTexture(CTexture* replacement) {
     if (!replacement) return nullptr;
     CTexture* old = nullptr;
     for (int i = 0; i < std::ssize(textures); ++i) {
@@ -253,7 +253,7 @@ CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
 
 // --- Skins and materials --------------------------------------------------------------------------
 
-int CObject3DClientSpecific::SetSkins(std::optional<std::string_view> first, std::optional<std::string_view> second) {
+int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std::optional<std::string_view> second) {
     CTextureManager* manager = WorldContext()->TextureManager();
     skinName = first.value_or("");   // (an absent name was the empty text)
     secondSkinName = second.value_or("");
@@ -279,13 +279,13 @@ int CObject3DClientSpecific::SetSkins(std::optional<std::string_view> first, std
     return 1;
 }
 
-void CObject3DClientSpecific::ApplyMaterials() {
+void Object3DClientSpecific::ApplyMaterials() {
     CMaterialManager* manager = WorldContext()->MaterialManager();
     if (materials.empty()) {
         materialCursor = -1;
     } else {
         materialCursor = 0;
-        for (CMaterial* material = materials[0]; material;) {
+        for (Material* material = materials[0]; material;) {
             manager->FillMaterial(material, static_cast<std::uint32_t>(material->type));
             ++materialCursor;
             if (std::ssize(materials) <= materialCursor) break;
@@ -298,10 +298,10 @@ void CObject3DClientSpecific::ApplyMaterials() {
         SetSkins(skinName, secondSkinName);
 }
 
-void CObject3DClientSpecific::SetMaterialsLit(bool lit) {
+void Object3DClientSpecific::SetMaterialsLit(bool lit) {
     if (lit) {
         for (int i = 0; i < std::ssize(materials); ++i) {
-            CMaterial* material = materials[i];
+            Material* material = materials[i];
             material->entries.push_back(MaterialEntry{material->colors.emissive});
             material = materials[i];
             material->colors.emissive.x = 1.0f;
@@ -311,11 +311,11 @@ void CObject3DClientSpecific::SetMaterialsLit(bool lit) {
         return;
     }
     for (int i = 0; i < std::ssize(materials); ++i) {
-        CMaterial* material = materials[i];
+        Material* material = materials[i];
         if (material->entries.empty()) continue;
         material->colors.emissive = material->entries.back().emissive;
         material->entries.pop_back();
     }
 }
 
-void CObject3DClientSpecific::SetLit(bool lit) { SetMaterialsLit(lit); }
+void Object3DClientSpecific::SetLit(bool lit) { SetMaterialsLit(lit); }

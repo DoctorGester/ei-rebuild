@@ -1,4 +1,4 @@
-// The battle HUD's two sliding side panels, the map (CHudMap) and the unit panel (CHudUnitPanel): their layouts at the
+// The battle HUD's two sliding side panels, the map (HudMap) and the unit panel (HudUnitPanel): their layouts at the
 // current slide offset, their per-frame updates and their setups. Rebirth patches all of them for its WideScreen layout,
 // reproduced behind the flag (ui_widescreen.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
 #include "ui.h"
@@ -52,16 +52,16 @@ constexpr float kSlingY = 20.0f;
 float RightEdge(float x) { return x + static_cast<float>(widescreen::EdgeShift()); }
 float LeftEdge(float x) { return x - static_cast<float>(widescreen::EdgeShift()); }
 
-void Place(CUiWindow* window, int index, float x, float y, float depth) {
+void Place(UiWindow* window, int index, float x, float y, float depth) {
     AsUiMesh(window->sceneObjects[index])->Place(x, y, depth);
 }
 
-void SetTint(CEngineObject* object, float value) {
+void SetTint(EngineObject* object, float value) {
     float* tint = AsUiMesh(object)->tint;
     tint[0] = tint[1] = tint[2] = value;
 }
 
-void MoveRegions(CUiWindow* window, int offsetX) {
+void MoveRegions(UiWindow* window, int offsetX) {
     for (int i = 1; i < std::ssize(window->regions); ++i) {
         window->regions[i]->offsetX = offsetX;
         window->regions[i]->offsetY = 0;
@@ -75,7 +75,7 @@ void MoveRegions(CUiWindow* window, int offsetX) {
 template <typename Panel>
 void AdvanceSlide(Panel* panel) {
     const double moved =
-        CUiContainer::FrameTime() * panel->slideDirection / kSlideTime + panel->slide;
+        UiContainer::FrameTime() * panel->slideDirection / kSlideTime + panel->slide;
     panel->slide = static_cast<float>(moved);
     if (moved > 1.0) panel->slide = 1.0f;
     if (panel->slide < 0.0f) panel->slide = 0.0f;
@@ -91,7 +91,7 @@ void AdvanceSlide(Panel* panel) {
     if (panel->slide == 1.0f || panel->slide == 0.0f) panel->sliding = false;
 }
 
-void PlaceSling(CEngineObject* sling, float angle, float x) {
+void PlaceSling(EngineObject* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     AsUiMesh(sling)->localRotation = *turn.SetAxisAngle(axis, angle);
@@ -126,7 +126,7 @@ const MapRecord* LocalZone() {
     return g_mapDatabase.FindMap(LocalPlayerZone());
 }
 
-void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
+void SetPlain(UiMesh* sprite, std::uint32_t colour) {
     sprite->texture = nullptr;
     sprite->flags |= FigureMeshFlag::Flat;
     sprite->flatColour = colour;
@@ -136,7 +136,7 @@ void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
 
 // --- The map -------------------------------------------------------------------------------------
 
-void CHudMap::Layout() {
+void HudMap::Layout() {
     widescreen::EnterRightPanel();   // addon's 10023366
     const float slideOffset = static_cast<float>(offset);
     const float centre = slideOffset + kMapCentreX;
@@ -157,15 +157,15 @@ void CHudMap::Layout() {
     MoveRegions(this, offset);
 }
 
-void CHudMap::Update() {
+void HudMap::Update() {
     // The zoom runs towards the chosen view's end: up to zoomMax (view 1) or down to 1 (view 2).
     if (view == 1) {
-        const double newZoom = std::pow(kZoomRate, CUiContainer::FrameTime()) * zoom;
+        const double newZoom = std::pow(kZoomRate, UiContainer::FrameTime()) * zoom;
         zoom = static_cast<float>(newZoom);
         if (newZoom > zoomMax) zoom = zoomMax;
     }
     if (view == 2) {
-        const double newZoom = zoom / std::pow(kZoomRate, CUiContainer::FrameTime());
+        const double newZoom = zoom / std::pow(kZoomRate, UiContainer::FrameTime());
         zoom = static_cast<float>(newZoom);
         if (newZoom < 1.0) zoom = 1.0f;
     }
@@ -183,13 +183,13 @@ void CHudMap::Update() {
     }
     ui->hudPanelsIn[2] = slideDirection > 0.0f ? 1 : 0;
 
-    if (northTime > 0.0f) northTime = static_cast<float>(northTime - CUiContainer::FrameTime());
+    if (northTime > 0.0f) northTime = static_cast<float>(northTime - UiContainer::FrameTime());
     SetTint(sceneObjects[11], northTime > 0.0f ? 1.0f : 0.5f);
 }
 
 // --- The unit panel ------------------------------------------------------------------------------
 
-void CHudUnitPanel::Layout() {
+void HudUnitPanel::Layout() {
     widescreen::EnterLeftPanel();    // addon's 100232AF
     const float slideOffset = static_cast<float>(offset);
     const float edge = kUnitEdgeX - slideOffset;
@@ -218,7 +218,7 @@ void CHudUnitPanel::Layout() {
     widescreen::LeavePanel();        // addon's 100232E9
 }
 
-void CHudUnitPanel::Update() {
+void HudUnitPanel::Update() {
     if (sliding) {
         AdvanceSlide(this);
         Layout();
@@ -235,7 +235,7 @@ void CHudUnitPanel::Update() {
 
 // --- The unit panel's setup ----------------------------------------------------------------
 
-void CHudUnitPanel::Setup(int newBodyPart, bool slid) {
+void HudUnitPanel::Setup(int newBodyPart, bool slid) {
     offset = slid ? kUnitTravel : 0;
     slide = slid ? 1.0f : 0.0f;
     slideDirection = slid ? 1.0f : -1.0f;
@@ -251,28 +251,28 @@ void CHudUnitPanel::Setup(int newBodyPart, bool slid) {
     }
     travel = kUnitTravel;
 
-    CUiRegion* sling = AddRegion();
+    UiRegion* sling = AddRegion();
     sling->SetRect(0, 0, 20, 30);
     sling->SetTip(0x2774);
     for (int i = 0; i < 4; ++i) {
-        CUiRegion* part = AddRegion();
+        UiRegion* part = AddRegion();
         part->SetRect(0, 100 + 30 * i, 20, 130 + 30 * i);
         part->SetTip(0x2775 + i, 0x2E + i);
     }
     AddRegion()->SetRect(0, 0, 185, 225);
 
-    CUiMesh* back = AddBlankSprite();
+    UiMesh* back = AddBlankSprite();
     back->SetRectangle(60.0f, 100.0f, 20.0f, 0.0f, 180.0f, 220.0f, 0, 0, 256, 256);
     back->texture = nullptr;
     back->flags |= FigureMeshFlag::Flat;
     back->flatColour = 0x50000000;
     back->visible = false;
-    CUiMesh* edge = AddBlankSprite();
+    UiMesh* edge = AddBlankSprite();
     edge->SetRectangle(20.0f, 100.0f, 0.0f, 0.0f, 20.0f, 220.0f, 0, 0, 256, 256);
     edge->texture = nullptr;
     edge->flags |= FigureMeshFlag::Flat;
     edge->flatColour = 0xB4000000;
-    CUiMesh* slingButton = AddSprite(kArrowSprite);
+    UiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU = 0.22265625f;
     slingButton->textureOffsetV = 0.140625f;
     PlaceSling(slingButton, kHudQuarterTurn, -50.0f);
@@ -284,10 +284,10 @@ void CHudUnitPanel::Setup(int newBodyPart, bool slid) {
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 190.0f, 20.0f, 220.0f, 0xE9, 0x70, 0xFD, 0x8E);
     AddBlankSprite()->SetFrame(10.0f, 80.0f, -5.0f, -5.0f, 185.0f, 225.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     // 8: a strip of twenty cells down the edge; 9: the "more effects" mark. Both hidden.
-    CUiMesh* strip = AddBlankSprite();
+    UiMesh* strip = AddBlankSprite();
     strip->SetGrid(4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
     strip->visible = false;
-    CUiMesh* more = AddBlankSprite();
+    UiMesh* more = AddBlankSprite();
     more->SetRectangle(4.0f, 100.0f, 164.0f, 204.0f, 180.0f, 220.0f, 0xD3, 2, 0xE3, 0x12);
     more->visible = false;
     // 10-13: the health and the mana bar, each over its frame.
@@ -306,12 +306,12 @@ void CHudUnitPanel::Setup(int newBodyPart, bool slid) {
     }
     // 26-31: the effects' pictures, from the panel's icon texture.
     for (int top = 38; top < 218; top += 30) {
-        CUiMesh* icon = AddBlankSprite();
+        UiMesh* icon = AddBlankSprite();
         icon->SetRectangle(5.0f, 30.0f, 28.0f, static_cast<float>(top), 52.0f, static_cast<float>(top + 24), 0, 0, 64, 64);
         icon->texture = objects[1];
     }
 
-    CUiSurface* panel = new CUiSurface(ui, 20, 0, 180, 220, SurfaceBlend::Keyed, true);
+    UiSurface* panel = new UiSurface(ui, 20, 0, 180, 220, SurfaceBlend::Keyed, true);
     AddSurface(panel);
 
     bodyPart = newBodyPart;
@@ -320,7 +320,7 @@ void CHudUnitPanel::Setup(int newBodyPart, bool slid) {
     shownUnit = nullptr;
     hoverUnit = nullptr;
 
-    CTextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
     std::string key;
     for (int i = 0; i < kInfoTexts; ++i) {
@@ -340,7 +340,7 @@ void CHudUnitPanel::Setup(int newBodyPart, bool slid) {
 
 // --- The map's setup ----------------------------------------------------------------------
 
-void CHudMap::Setup(float newZoom, bool slid) {
+void HudMap::Setup(float newZoom, bool slid) {
     widescreen::EnterRightPanel();   // addon's 10023344
     const int shift = widescreen::EdgeShift();
     rect = RECT{615 + shift, 0, 800 + shift, 165};    // WideScreen
@@ -372,12 +372,12 @@ void CHudMap::Setup(float newZoom, bool slid) {
 
     // Regions: 0 the sling button, 1 the round map, 2 the map's square, 3 and 4 the view buttons,
     // 5 "camera north", 6 the whole panel.
-    CUiRegion* sling = AddRegion();
+    UiRegion* sling = AddRegion();
     sling->SetRect(780, 0, 800, 30);
     sling->SetTip(0x283C, 0x34);
     // The round map's outline: each product and sum is a float on the game's FPU (24-bit precision; FCOS /
     // FSIN themselves are not rounded), so the point under the centre is 80 down, not 79 (see OnArc).
-    CUiRegion* round = AddRegion();
+    UiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
         const float angle = static_cast<float>(static_cast<float>(static_cast<float>(i) * kPi) * kOutlineStep);
         const float down = static_cast<float>(x87::fcos(static_cast<double>(angle)) * kOutlineRadius);
@@ -387,29 +387,29 @@ void CHudMap::Setup(float newZoom, bool slid) {
         round->AddPoint(x, y);
     }
     AddRegion()->SetRect(620, 0, 780, 160);
-    CUiRegion* zoomIn = AddRegion();
+    UiRegion* zoomIn = AddRegion();
     zoomIn->SetRect(780, 100, 800, 130);
     zoomIn->SetTip(0x283D);
-    CUiRegion* zoomOut = AddRegion();
+    UiRegion* zoomOut = AddRegion();
     zoomOut->SetRect(780, 130, 800, 160);
     zoomOut->SetTip(0x283E);
-    CUiRegion* north = AddRegion();
+    UiRegion* north = AddRegion();
     north->SetRect(780, 70, 800, 100);
     north->SetTip(0x283F, 0xC);
     AddRegion()->SetRect(615, 0, 800, 165);
 
     // Scene object 0: the world's bounds, in the map's picture; 1: the visible area's disc, in the
     // picture too; 2: the markers, four texels of one colour each.
-    CUiMesh* bounds = AddBlankSprite();
+    UiMesh* bounds = AddBlankSprite();
     bounds->SetRectangle(18.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
     bounds->texture = objects[1];
     bounds->tint[0] = bounds->tint[1] = bounds->tint[2] = 0.8f;
     bounds->SetScale(static_cast<float>(static_cast<float>(kDepthUnit * halfSide) * kBoundsScale));
-    CUiMesh* area = AddBlankSprite();
+    UiMesh* area = AddBlankSprite();
     area->Disc(14.0f, 80.0f, 700.0f, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
     area->texture = objects[1];
     area->tint[0] = area->tint[1] = area->tint[2] = 1.0f;
-    CUiMesh* markers = AddBlankSprite();
+    UiMesh* markers = AddBlankSprite();
     markers->Place(700.0f, 80.0f, 12.0f);
     markers->SetScale(static_cast<float>(static_cast<float>(kDepthUnit * halfSide) * kMarkersScale));
     markers->ResetColours();
@@ -418,13 +418,13 @@ void CHudMap::Setup(float newZoom, bool slid) {
         {0.9375f, 0.984375f}, {0.953125f, 0.984375f}, {0.96875f, 0.984375f}, {0.984375f, 0.984375f}};
     for (int i = 0; i < 4; ++i) markers->texCoords[i] = markerTexels[i];
     // 3 and 4: the map's and the buttons' plain backgrounds.
-    CUiMesh* back = AddBlankSprite();
+    UiMesh* back = AddBlankSprite();
     back->SetRectangle(20.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(back, 0x50000000);
-    CUiMesh* edge = AddBlankSprite();
+    UiMesh* edge = AddBlankSprite();
     edge->SetRectangle(20.0f, 100.0f, 780.0f, 0.0f, 800.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(edge, 0xB4000000);
-    CUiMesh* slingButton = AddSprite(kArrowSprite);
+    UiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU = 0.22265625f;
     slingButton->textureOffsetV = 0.140625f;
     PlaceSling(slingButton, static_cast<float>(kPi * kSlingQuarter), 850.0f);
@@ -435,18 +435,18 @@ void CHudMap::Setup(float newZoom, bool slid) {
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 780.0f, 130.0f, 800.0f, 160.0f, 3, 0x3E, 0x17, 0x5C);
     AddBlankSprite()->Ring(10.0f, 60.0f, 700.0f, 80.0f, 66.0f, kOutlinePoints, 3.0f, 0x1B, 0x6B, 0x5B, 0x70);
     AddBlankSprite()->SetFrame(10.0f, 80.0f, 615.0f, -5.0f, 805.0f, 165.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
-    CUiMesh* needle = AddSprite(kArrowSprite);
+    UiMesh* needle = AddSprite(kArrowSprite);
     needle->textureOffsetU = 0.22265625f;
     needle->textureOffsetV = 0.140625f;
     needle->Place(900.0f, 80.0f, kSlingDepthBits);
     needle->SetScale(0.8f);
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
-    CUiSurface* dot = new CUiSurface(ui, 700, 80, 705, 85, SurfaceBlend::Keyed, true);
+    UiSurface* dot = new UiSurface(ui, 700, 80, 705, 85, SurfaceBlend::Keyed, true);
     AddSurface(dot);
     dot->Dot(0, 0, 0xFFFFFF);
 
-    const CUiMesh* disc = SceneMesh(1);
+    const UiMesh* disc = SceneMesh(1);
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
         for (int corner = 0; corner < 4; ++corner)
             viewPolygon.push_back(UiPointF{disc->vertices[block].x()[corner], disc->vertices[block].y()[corner]});

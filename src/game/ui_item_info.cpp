@@ -72,7 +72,7 @@ constexpr std::uint32_t kText = 0xA7D7E4;
 
 class Writer {
 public:
-    explicit Writer(CItemInfoPanel* newPanel)
+    explicit Writer(ItemInfoPanel* newPanel)
         : draw(newPanel->surfaces[0]), panel(newPanel), rect{15, 10, 185, 25} {}
 
     const std::string& T(int index) const { return panel->itemTexts[index]; }
@@ -126,10 +126,10 @@ public:
 
     std::string line;
 
-    CUiSurface* draw;   // the panel's first surface
+    UiSurface* draw;   // the panel's first surface
 
 private:
-    CItemInfoPanel* panel;
+    ItemInfoPanel* panel;
 
 public:
     RECT rect;
@@ -195,7 +195,7 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
 }
 
 void PerkLines(Writer& w, const ItemHoverInfo& info, std::string& title) {
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::string name = info.text;
     str::TrimRight(name, "0");
     name += "1";
@@ -253,7 +253,7 @@ void PerkLines(Writer& w, const ItemHoverInfo& info, std::string& title) {
 // HoverKind::Weapon, the weapon's attack or defence: its four parts and their sum (or, for the defence of a
 // weapon of type 5 or 6, infoitem_34).
 void WeaponLines(Writer& w, const ItemHoverInfo& info) {
-    CItemWeapon* weapon = info.weapon;
+    ItemWeapon* weapon = info.weapon;
     UnitStats* stats = info.stats;
     int type = weapon->GetType();
     if (str::Compare(info.text, "defense") == 0 && (type == 5 || type == 6)) {
@@ -297,7 +297,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo& info) {
 } // namespace
 
 DamageLists ItemDamageLists(const float* values, bool integer) {
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     DamageLists lists;
     std::string key, text;
     float threshold = values[6];
@@ -324,9 +324,9 @@ DamageLists ItemDamageLists(const float* values, bool integer) {
     return lists;
 }
 
-void CItemInfoPanel::DescribeItem() {
-    CItem* item = FirstItem();
-    CUiSurface* draw = surfaces[0];
+void ItemInfoPanel::DescribeItem() {
+    Item* item = FirstItem();
+    UiSurface* draw = surfaces[0];
     draw->Clear();
     if (!item) return;
 
@@ -360,7 +360,7 @@ void CItemInfoPanel::DescribeItem() {
         return;
     }
 
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
     std::string material = itemdb::MaterialAt(MaterialIndex(item->prototypeId))->key;
     text::ReplaceChar(&material, ' ', '_');
@@ -411,7 +411,7 @@ void CItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
         if (kind == ItemKind::Weapon) {
-            CItemWeapon* weapon = AsWeapon(item);
+            ItemWeapon* weapon = AsWeapon(item);
             // Damage: min-max and the first damage kind with a weight ("damage<n>"; the text
             // keeps the material line's otherwise).
             float weights[7];
@@ -472,9 +472,9 @@ tail:
     }
 }
 
-void CItemInfoPanel::DescribeMaterial() {
-    CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld.texts;
+void ItemInfoPanel::DescribeMaterial() {
+    Item* item = FirstItem();
+    TextManager* texts = g_clientWorld.texts;
     const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(AsLoot(item)->index);
     if (!material) return;
     auto [name, description, kindText] = texts->GetItemTexts(item);
@@ -499,9 +499,9 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Wrapped(description, 4);
 }
 
-void CItemInfoPanel::DescribeBlueprint() {
-    CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld.texts;
+void ItemInfoPanel::DescribeBlueprint() {
+    Item* item = FirstItem();
+    TextManager* texts = g_clientWorld.texts;
     // The record by the blueprint's kind: weapons, armour, quick items. The dispatcher calls this only
     // for kinds 0-2; the original leaves the record and kind uninitialised otherwise (here: none, and it
     // faults reading the record like a missing one).
@@ -563,9 +563,9 @@ void CItemInfoPanel::DescribeBlueprint() {
     w.Wrapped(description, 4);
 }
 
-void CItemInfoPanel::DescribeSpellRecord() {
-    CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld.texts;
+void ItemInfoPanel::DescribeSpellRecord() {
+    Item* item = FirstItem();
+    TextManager* texts = g_clientWorld.texts;
     const itemdb::SpellRecord* record = itemdb::SpellAt(AsLoot(item)->index);
     auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
@@ -602,9 +602,9 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Wrapped(description, 4);
 }
 
-void CItemInfoPanel::DescribeModifierRecord() {
-    CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld.texts;
+void ItemInfoPanel::DescribeModifierRecord() {
+    Item* item = FirstItem();
+    TextManager* texts = g_clientWorld.texts;
     auto [name, description, kindText] = texts->GetItemTexts(item);
     const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(AsLoot(item)->index);
     Writer w(this);
@@ -615,9 +615,9 @@ void CItemInfoPanel::DescribeModifierRecord() {
     w.Wrapped(description, 8);
 }
 
-void CItemInfoPanel::DescribeQuickItem() {
-    CItem* item = FirstItem();
-    CTextManager* texts = g_clientWorld.texts;
+void ItemInfoPanel::DescribeQuickItem() {
+    Item* item = FirstItem();
+    TextManager* texts = g_clientWorld.texts;
     auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
     w.Head(name, kindText);
@@ -630,13 +630,13 @@ void CItemInfoPanel::DescribeQuickItem() {
     w.Wrapped(description, 8);
 }
 
-void CItemInfoPanel::DescribeCarriedSpell() {
-    CItem* item = FirstItem();
+void ItemInfoPanel::DescribeCarriedSpell() {
+    Item* item = FirstItem();
     CSpell* spell = item ? item->spell.Get() : nullptr;
     if (!spell) {
         return;
     }
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::string title, description, kindText;
     {
         std::string key("spell ");
@@ -713,11 +713,11 @@ void CItemInfoPanel::DescribeCarriedSpell() {
 
 // --- The statistic under the mouse ----------------------------------------------------------
 
-void CItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
+void ItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
     itemParty.Clear(1, 0);
     DescribeItem();
     if (info.kind == HoverKind::None) return;
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     Writer w(this);
     std::string text, title, description;
     if (info.kind <= HoverKind::Perk) {
@@ -831,10 +831,10 @@ void CItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
     }
 }
 
-void CItemInfoPanel::ShowHelp(int topic) {
+void ItemInfoPanel::ShowHelp(int topic) {
     itemParty.Clear(1, 0);
     DescribeItem();
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     Writer w(this);
     std::string title, description, key;
     key = std::format("camphelp {}", topic);
@@ -848,7 +848,7 @@ void CItemInfoPanel::ShowHelp(int topic) {
     w.Wrapped(description, 16);
 }
 
-void CItemInfoPanel::Describe(CItem* item) {
+void ItemInfoPanel::Describe(Item* item) {
     if (FirstItem() && item) {
         if (FirstItem()->IsSameAs(item)) return;
     }
@@ -859,20 +859,20 @@ void CItemInfoPanel::Describe(CItem* item) {
 
 // --- Input side: the input virtuals (mouse, key down, key up) ------------------
 
-void CItemInfoPanel::KeyDown(int key, int, int modifiers) {
+void ItemInfoPanel::KeyDown(int key, int, int modifiers) {
     if (key == VK_CONTROL && !(modifiers & 0x4000) && FirstItem()) DescribeItem();
 }
 
-void CItemInfoPanel::KeyUp(int key, int, int) {
+void ItemInfoPanel::KeyUp(int key, int, int) {
     if (key == VK_CONTROL && FirstItem()) DescribeItem();
 }
 
-void CItemInfoPanel::Build(int atX, int atY) {
+void ItemInfoPanel::Build(int atX, int atY) {
     x = atX;
     y = atY;
-    CUiSurface* surface = new CUiSurface(ui, x, y, x + 200, y + 300, SurfaceBlend::Keyed, true);
+    UiSurface* surface = new UiSurface(ui, x, y, x + 200, y + 300, SurfaceBlend::Keyed, true);
     AddSurface(surface);
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::string text, key;
     for (int i = 0; i < 45; ++i) {
         key = std::format("infoitem_{}", i);

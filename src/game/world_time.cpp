@@ -54,21 +54,21 @@ void CWorld::SetWind(const Vector3& direction, float strength) {
     windStrength = std::bit_cast<std::uint32_t>(strength);
 }
 
-void CWorldServer::SetTime(float hours) {
+void WorldServer::SetTime(float hours) {
     if (KeepsPlayerTimes(sessionKind)) UpdatePlayerTimes(0.0f);
     CWorld::SetTime(hours);
     MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
     UpdateWeather();
 }
 
-void CWorldServer::SetTimeSpeed(float speed) {
+void WorldServer::SetTimeSpeed(float speed) {
     if (KeepsPlayerTimes(sessionKind)) UpdatePlayerTimes(0.0f);
     CWorld::SetTimeSpeed(speed);
     MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
     UpdateWeather();
 }
 
-void CWorldServer::ChangeWind(const Vector3& direction, float strength) {
+void WorldServer::ChangeWind(const Vector3& direction, float strength) {
     // Below 0 or NaN gives 0, above 1 gives 1; the value is copied as it is.
     float clamped = strength >= 0.0f ? strength : 0.0f;
     if (1.0f < clamped) clamped = 1.0f;

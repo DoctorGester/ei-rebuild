@@ -32,26 +32,26 @@ namespace {
     { Unlinked(what); }
 
 // The script effects' drop (script_effects.cpp needs the world).
-void ScriptDropEffect(CEngineObject*) EI_UNLINKED("ScriptDropEffect")
+void ScriptDropEffect(EngineObject*) EI_UNLINKED("ScriptDropEffect")
 
-// script_runtime_helpers.cpp's AI map and console helpers (CSectorMap::Add and Remove: replay_path.cpp).
-std::list<CUnit*> CSectorMap::FindUnitsInRadius(const Vector3&, float)
+// script_runtime_helpers.cpp's AI map and console helpers (SectorMap::Add and Remove: replay_path.cpp).
+std::list<CUnit*> SectorMap::FindUnitsInRadius(const Vector3&, float)
     EI_UNLINKED("CSectorMap::FindUnitsInRadius")
 // ai_movement.cpp's shape cache and passability marks (ai_shape_cache.cpp, ai_refresh.cpp).
-CRefObject* UnitShapeCache::Get(void*) EI_UNLINKED("UnitShapeCache::Get")
-CRefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle*) EI_UNLINKED("UnitShapeCache::CreateShape")
-std::uint32_t CAIMap::CellMark(CellMarkState*, int, int, int, int) EI_UNLINKED("CAIMap::CellMark")
+RefObject* UnitShapeCache::Get(void*) EI_UNLINKED("UnitShapeCache::Get")
+RefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle*) EI_UNLINKED("UnitShapeCache::CreateShape")
+std::uint32_t AIMap::CellMark(CellMarkState*, int, int, int, int) EI_UNLINKED("CAIMap::CellMark")
 console::Stream& console::Stream::operator<<(double) EI_UNLINKED("console::Stream::operator<<(double)")
 
 // The script loaders' and destructors' callees outside the interpreter: the object registry
 // (base_manager.cpp), the streams (core_streams.cpp), the world's timed objects (world_server.cpp) and
 // the script effects (script_effects.cpp needs the world).
-CEngineObject* CBaseManager::FindObject(unsigned) const EI_UNLINKED("CBaseManager::FindObject")
-std::string CStream::ReadString() EI_UNLINKED("CStream::ReadString")
-void CStream::WriteString(std::string_view) EI_UNLINKED("CStream::WriteString")
-void CWorldServer::RemoveTimedObject(unsigned) EI_UNLINKED("CWorldServer::RemoveTimedObject")
-void ScriptPointLight::Load(CStream*) EI_UNLINKED("ScriptPointLight::Load")
-void ScriptFxSource::Load(CStream*) EI_UNLINKED("ScriptFxSource::Load")
+EngineObject* BaseManager::FindObject(unsigned) const EI_UNLINKED("CBaseManager::FindObject")
+std::string ByteStream::ReadString() EI_UNLINKED("CStream::ReadString")
+void ByteStream::WriteString(std::string_view) EI_UNLINKED("CStream::WriteString")
+void WorldServer::RemoveTimedObject(unsigned) EI_UNLINKED("CWorldServer::RemoveTimedObject")
+void ScriptPointLight::Load(ByteStream*) EI_UNLINKED("ScriptPointLight::Load")
+void ScriptFxSource::Load(ByteStream*) EI_UNLINKED("ScriptFxSource::Load")
 
 // The game CRT's ports (crt.cpp, crt_x87.cpp read the game CRT's data)
 // that no replay reaches: srand (random.cpp), acos (quaternion.cpp).
@@ -59,17 +59,17 @@ void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 
 // world_construct.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
-// saw the stand-in's zero bytes before C18t named it (no fixture fills it). A constructed CWorldServer would pull in
+// saw the stand-in's zero bytes before C18t named it (no fixture fills it). A constructed WorldServer would pull in
 // its class's vtable and with it the whole world, so the linker resolves the name to zero bytes of its size instead.
 extern "C" {
-alignas(CWorldServer) unsigned char ei_zero_server_world[sizeof(CWorldServer)];
+alignas(WorldServer) unsigned char ei_zero_server_world[sizeof(WorldServer)];
 }
-#pragma comment(linker, "/alternatename:?g_serverWorld@@3VCWorldServer@@A=_ei_zero_server_world")
+#pragma comment(linker, "/alternatename:?g_serverWorld@@3VWorldServer@@A=_ei_zero_server_world")
 
 // The game CRT's rand (crt.cpp's port reads the image's per-thread seed) and the fatal error report (app.cpp).
 int libcrt::Rand() EI_UNLINKED("libcrt::Rand")
 int game::FatalError(const char*, ...) EI_UNLINKED("game::FatalError")
 
 // The object lookup (world_server.cpp) and the sector map's Move (sector_map.cpp).
-CMapObject* CWorldServer::FindObject(unsigned) EI_UNLINKED("CWorldServer::FindObject")
-bool CSectorMap::Move(CMapObject*, const Vector3&) EI_UNLINKED("CSectorMap::Move")
+CMapObject* WorldServer::FindObject(unsigned) EI_UNLINKED("CWorldServer::FindObject")
+bool SectorMap::Move(CMapObject*, const Vector3&) EI_UNLINKED("CSectorMap::Move")

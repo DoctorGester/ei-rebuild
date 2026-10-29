@@ -57,7 +57,7 @@ void SayFormat(const char* format, Args&&... args) {
 
 // listgvar's object text: "null", or "<" class name ":" id ">".
 std::string ObjectText(const ScriptObjectRef& ref) {
-    CEngineObject* object = ref.object;
+    EngineObject* object = ref.object;
     if (!object) return "null";
     const char* name = object->ClassName();
     char id[16];
@@ -223,7 +223,7 @@ void RegisterAddonCommands() {
         Register(r.cheat ? &g_cheatCommands : &g_publicCommands, r.name, r.handler);
 }
 
-void ApplyAddonGuiVisibility(CUiContainer* screen) {
+void ApplyAddonGuiVisibility(UiContainer* screen) {
     if (!g_applyGui) return;
     for (int i = 0; i < std::ssize(screen->children); ++i) screen->children[i]->SetEnabled(g_guiShown, false);
     g_applyGui = !g_guiShown;

@@ -10,7 +10,7 @@
 
 namespace devicebuffers {
 
-// The projected positions (CTransformPipeline::Project / ProjectClipped).
+// The projected positions (TransformPipeline::Project / ProjectClipped).
 extern std::vector<Vector4> g_projected;
 // An outcode per projected vertex.
 extern std::vector<std::uint8_t> g_outcodes;

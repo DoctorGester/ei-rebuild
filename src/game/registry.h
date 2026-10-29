@@ -1,6 +1,6 @@
 #pragma once
 
-// The game's binary registry files (*.reg: quests, item databases, settings), read through CFileRegistry.
+// The game's binary registry files (*.reg: quests, item databases, settings), read through FileRegistry.
 // More: docs/notes/comments-c22i.md, "registry.h".
 
 #include <cstdint>
@@ -16,7 +16,7 @@ enum RegistryType : std::uint8_t {
     kRegArray = 0x80,       // with one of the above
 };
 
-class CFileRegistry {
+class FileRegistry {
 public:
     // Maps the file at `path`. Returns 0 if it cannot be opened or is not a registry.
     bool Open(const std::string& path);
@@ -51,7 +51,7 @@ public:
     bool GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
 
     bool attached = false;        // 1: the data is not ours (Attach)
-    CMappedFile file;
+    MappedFile file;
     const std::uint8_t* data = nullptr;
 };
 

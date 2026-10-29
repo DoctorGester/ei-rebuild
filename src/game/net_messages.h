@@ -93,7 +93,7 @@ public:
 // FileRequestMessage, which differ only in their classes and the names of the pointers.
 class PairMessage : public Message {
 public:
-    Ref<CRefObject> first{};
+    Ref<RefObject> first{};
     Ref<Connection> second{};    // the connection on the server (not sent)
 
 protected:
@@ -119,7 +119,7 @@ public:
 
     static Message* Create();
 
-    Ref<CRefObject>& FileRef() { return first; }
+    Ref<RefObject>& FileRef() { return first; }
     Ref<Connection>& ConnectionRef() { return second; }
 };
 
@@ -137,7 +137,7 @@ public:
 
     static Message* Create();
 
-    std::vector<HeldRef<CRefObject>> members;               // PartyMemberMessages
+    std::vector<HeldRef<RefObject>> members;               // PartyMemberMessages
     std::uint32_t money = 0;         // the offered party's money (CParty::Money)
     std::uint8_t accepted = 0;       // the partner's offer is accepted
     std::uint32_t acceptedRevision = 0;    // the partner's revision accepted
@@ -161,7 +161,7 @@ public:
 
     static Message* Create();
 
-    CMemoryStream stream;
+    MemoryStream stream;
 };
 
 // ---- Server to client ---------------------------------------------------------------------------
@@ -206,7 +206,7 @@ public:
 
     std::uint32_t number;
     std::string text;
-    Ref<CRefObject> connection{};            // the only receiver (null: everyone; not sent)
+    Ref<RefObject> connection{};            // the only receiver (null: everyone; not sent)
 };
 
 // Type 3: where the host's game is (built by AnnounceHost).
@@ -241,7 +241,7 @@ public:
 
     static Message* Create();
 
-    Ref<CRefObject>& PlayerRef() { return first; }
+    Ref<RefObject>& PlayerRef() { return first; }
     Ref<Connection>& ConnectionRef() { return second; }
     PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first.Get()); }
 };
@@ -312,7 +312,7 @@ public:
     std::uint16_t chunkCount;
     std::int32_t size;           // in bytes
     std::string name;
-    std::vector<SharedRef<CRefObject>> chunks;    // the chunk messages (not sent)
+    std::vector<SharedRef<RefObject>> chunks;    // the chunk messages (not sent)
 };
 
 // Type 12: 64 bytes of a shared file.
@@ -350,7 +350,7 @@ public:
 
     static Message* Create();
 
-    Ref<CRefObject> connection{};         // the receiver (not sent)
+    Ref<RefObject> connection{};         // the receiver (not sent)
     std::uint32_t kind;          // 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
     float value;
     std::string text;            // the item's name

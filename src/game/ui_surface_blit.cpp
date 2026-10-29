@@ -1,4 +1,4 @@
-// A window surface's draw (CUiSurface::Blit): when the surface exists and is shown, the part of its screen rectangle
+// A window surface's draw (UiSurface::Blit): when the surface exists and is shown, the part of its screen rectangle
 // inside the screen is blitted onto the render target, with the source colour key background when its blend is Keyed:
 // the surface's canvas is drawn (render::ui::DrawCanvas). See docs/notes/ui.md, "Surface blit".
 #include "texture.h"
@@ -9,7 +9,7 @@
 
 #include <cstdint>
 
-void CUiSurface::Blit() {
+void UiSurface::Blit() {
     if (!holder || !shown) return;
     RECT clipped{0, 0, ui->width, ui->height};
     gameapi::IntersectRect(&clipped, &clipped, &rect);

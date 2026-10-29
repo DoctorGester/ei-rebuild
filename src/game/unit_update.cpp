@@ -42,7 +42,7 @@ void CUnit::LoadFigures() {
     Controller()->FiguresLoaded();
 }
 
-void CUnit::AttachObject(CEngineObject* object) {
+void CUnit::AttachObject(EngineObject* object) {
     if (!object || SideTypeOf(object) != SideObjectType::Unit) {
         CMapObject::AttachObject(object);
         return;
@@ -137,8 +137,8 @@ bool CUnit::RunTick() {
     return true;
 }
 const char* CUnit::GetName() { return scriptName.c_str(); }
-void CUnit::Load(CStream* stream) { LoadUnit(stream); }
-void CUnit::Save(CStream* stream) { SaveUnit(stream); }
+void CUnit::Load(ByteStream* stream) { LoadUnit(stream); }
+void CUnit::Save(ByteStream* stream) { SaveUnit(stream); }
 const char* CUnit::ClassName() { return kUnitClassName; }
 ClassId CUnit::GetClassId() { return ClassId::Unit; }
 bool CUnit::IsSynchronised() { return true; }

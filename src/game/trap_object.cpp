@@ -26,17 +26,17 @@ constexpr float kTriggerRadius = 1.0f;
 
 bool LockKey::AcceptedByTrap() const { return true; }
 
-CTrapObject::CTrapObject() {
+TrapObject::TrapObject() {
     CreateMapObject();
     flags &= ~MapObjectFlag::NotDrawn;
 }
 
-void CTrapObject::Create() {
+void TrapObject::Create() {
     CreateMapObject();
     flags &= ~MapObjectFlag::NotDrawn;
 }
 
-bool CTrapObject::RunTick() {
+bool TrapObject::RunTick() {
     Update();
     if (!(flags & MapObjectFlag::Armed)) return false;
     if (!WorldContext()->IsServer()) return false;
@@ -57,30 +57,30 @@ bool CTrapObject::RunTick() {
     return false;
 }
 
-bool CTrapObject::Disarm(const LockKey* key) {
+bool TrapObject::Disarm(const LockKey* key) {
     if (!(flags & MapObjectFlag::Armed) || !key->AcceptedByTrap()) return false;
     flags &= ~MapObjectFlag::Armed;
     return true;
 }
 
-int CTrapObject::KeyFits(const LockKey* key) { return key->AcceptedByTrap(); }
+int TrapObject::KeyFits(const LockKey* key) { return key->AcceptedByTrap(); }
 
-void CTrapObject::LoadTrapObject(CStream* stream) {
+void TrapObject::LoadTrapObject(ByteStream* stream) {
     LoadMapObject(stream);
     stream->ReadValue(savedValue);
 }
 
-void CTrapObject::SaveTrapObject(CStream* stream) {
+void TrapObject::SaveTrapObject(ByteStream* stream) {
     SaveMapObject(stream);
     std::uint32_t value = savedValue;
     stream->WriteValue(value);
 }
 
-void CTrapObject::Load(CStream* stream) { LoadTrapObject(stream); }
-void CTrapObject::Save(CStream* stream) { SaveTrapObject(stream); }
-bool CTrapObject::ApplyScience(const LockKey* key, CEngineObject*) { return Disarm(key); }
+void TrapObject::Load(ByteStream* stream) { LoadTrapObject(stream); }
+void TrapObject::Save(ByteStream* stream) { SaveTrapObject(stream); }
+bool TrapObject::ApplyScience(const LockKey* key, EngineObject*) { return Disarm(key); }
 
-const char* CTrapObject::ClassName() { return kTrapName; }
-ClassId CTrapObject::GetClassId() { return ClassId::TrapObject; }
+const char* TrapObject::ClassName() { return kTrapName; }
+ClassId TrapObject::GetClassId() { return ClassId::TrapObject; }
 const char* MagicTrap::ClassName() { return kMagicTrapName; }
 ClassId MagicTrap::GetClassId() { return ClassId::MagicTrap; }

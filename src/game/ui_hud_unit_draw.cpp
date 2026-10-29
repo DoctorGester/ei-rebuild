@@ -1,4 +1,4 @@
-// The battle HUD's unit panel: its draw (CHudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced behind
+// The battle HUD's unit panel: its draw (HudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced behind
 // the flag (ui_widescreen.h). It drives the Direct3D device itself; those calls are made as they are and mirrored to the
 // new renderer as the hero preview's are (ui_hero_preview.cpp). See docs/notes/ui.md, "Battle HUD unit panel draw".
 #include "ui.h"
@@ -60,7 +60,7 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
 
 } // namespace
 
-void CHudUnitPanel::Draw(CSceneRenderer* pass) {
+void HudUnitPanel::Draw(SceneRenderer* pass) {
     widescreen::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};

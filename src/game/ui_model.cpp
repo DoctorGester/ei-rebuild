@@ -1,4 +1,4 @@
-// A window's 3D model preview (CUiModel, ui.h): its object's animations, parts and drawing. The
+// A window's 3D model preview (UiModel, ui.h): its object's animations, parts and drawing. The
 // object is a CObject3D (map_object_figures.h). See docs/notes/ui.md, section 2.
 #include "map_object_shadow.h"
 #include "model.h"
@@ -21,8 +21,8 @@ namespace {
 
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 
-void ShowFigurePart(CFigureMesh* part, int show) {
-    CEngineObject* object = part;
+void ShowFigurePart(FigureMesh* part, int show) {
+    EngineObject* object = part;
     if (static_cast<std::uint8_t>(show)) object->flags &= ~FigureMeshFlag::Hidden;
     else object->flags |= FigureMeshFlag::Hidden;
 }
@@ -40,37 +40,37 @@ constexpr int kPreviewId = static_cast<int>(0x88CA6C00u);
 } // namespace
 
 // The object released and forgotten.
-CUiModel::~CUiModel() {
+UiModel::~UiModel() {
     if (object) object->Release();
 }
 
 // Animation `animation` of the object played.
-void CUiModel::Play(SkillAnimation animation) {
+void UiModel::Play(SkillAnimation animation) {
     CObject3D* currentObject = object;
     currentObject->PlayAnimation(currentObject->FindSkillAnimation(animation));
 }
 
 // The rest pose: the object named like the figure of kind 0x80590000 from the object manager, played.
-void CUiModel::Stop() {
+void UiModel::Stop() {
     CObject3D* currentObject = object;
     std::string name(currentObject->name);
     currentObject->PlayAnimation(g_clientWorld.objectManager->FindAnimation(&name, kRestPoseKind));
 }
 
 // The part named `name` shown or hidden (`show`'s low byte).
-void CUiModel::ShowPart(const char* name, int show) {
-    if (CFigureMesh* part = object->FindPart(name)) ShowFigurePart(part, show);
+void UiModel::ShowPart(const char* name, int show) {
+    if (FigureMesh* part = object->FindPart(name)) ShowFigurePart(part, show);
 }
 
 // Every part shown or hidden; null entries skipped.
-void CUiModel::ShowAllParts(int show) {
+void UiModel::ShowAllParts(int show) {
     for (int i = 0; i < std::ssize(object->parts); ++i)
-        if (CFigureMesh* part = object->parts[i]) ShowFigurePart(part, show);
+        if (FigureMesh* part = object->parts[i]) ShowFigurePart(part, show);
 }
 
 // Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface clock,
 // with MapObjectFlag::NoEdgeFade set during the draw.
-void CUiModel::Draw(CSceneRenderer* pass) {
+void UiModel::Draw(SceneRenderer* pass) {
     std::uint32_t saved = pass->colour;
     pass->SetColour(0xFFFFFFFF);
     CObject3D* currentObject = object;
@@ -81,7 +81,7 @@ void CUiModel::Draw(CSceneRenderer* pass) {
     pass->SetColour(saved);
 }
 
-void CUiModel::Load(const char* name, const char* from, const char* to) {
+void UiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = g_clientWorld.MapObjectManager();
     auto* newObject = manager->CreateObjectAs<CObject3D>(MapObjectType::Creature, kPreviewId);
     object = newObject;
@@ -90,7 +90,7 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     newObject->localPosition.x = 0.0f;
     newObject->localPosition.y = 0.0f;
     newObject->localPosition.z = 3.0f;
-    CObject3DClientSpecific* specific = newObject->ClientSpecific();
+    Object3DClientSpecific* specific = newObject->ClientSpecific();
     std::vector<std::string> parts;
     newObject->MakeFigure(name, &parts, 1);
     specific->RegisterPartMaterials();

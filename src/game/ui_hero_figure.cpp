@@ -32,7 +32,7 @@ int IndexOf(const std::vector<std::string>& names, std::string_view name) {
 
 } // namespace
 
-void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
+void MpHeroScreen::ChooseFigure(std::string_view prototype) {
     auto* player = LocalPlayerData();
     // The attributes and height to keep (copied bit for bit).
     float strength = kDefaultAttribute;

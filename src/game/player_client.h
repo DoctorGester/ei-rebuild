@@ -1,7 +1,7 @@
 #pragma once
 
 // The client side of a player's connection: it sends the client's requests compressed to the server and runs
-// the server's messages through its handler table. The single-player game runs it next to CPlayerServer over
+// the server's messages through its handler table. The single-player game runs it next to PlayerServer over
 // the loopback link. See docs/notes/objects.md.
 
 #include "player_messages.h"
@@ -10,10 +10,10 @@
 #include <cstdint>
 #include <vector>
 
-class CPlayerClient final : public CPlayerConnection {
+class PlayerClient final : public PlayerConnection {
 public:
-    CPlayerClient();
-    ~CPlayerClient() override;
+    PlayerClient();
+    ~PlayerClient() override;
 
     void Create() override {
         CreateClient();
@@ -33,13 +33,13 @@ public:
     int SendWalk(const std::vector<CUnit*>* units, const Vector3& to, int run);
     int SendGoTo(const std::vector<CUnit*>* units, const Vector3& to, int run);
     // 0x31 attack: the units, `ctrl`, `how`, the target's id.
-    int SendAttack(const std::vector<CUnit*>* units, CEngineObject* target, int how, int ctrl);
+    int SendAttack(const std::vector<CUnit*>* units, EngineObject* target, int how, int ctrl);
     // 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at `point`, with the low byte of `ctrl`.
-    int SendCastOnUnit(int slot, CUnit* caster, CEngineObject* target, int ctrl);
+    int SendCastOnUnit(int slot, CUnit* caster, EngineObject* target, int ctrl);
     int SendCastAtPoint(int slot, CUnit* caster, const Vector3& point, int ctrl);
     // The same with quick item `slot` (slot | 0x80000000); a potion (category 8) with a count above 0 loses
     // one at once.
-    int SendItemOnUnit(int slot, CUnit* user, CEngineObject* target, int ctrl);
+    int SendItemOnUnit(int slot, CUnit* user, EngineObject* target, int ctrl);
     int SendItemAtPoint(int slot, CUnit* user, const Vector3& point, int ctrl);
     // 0x34 weapon slot / 0x35 movement mode: the unit's id and the value's low byte; the unit keeps the value
     // (pendingWeapon / moveMode2).
@@ -48,14 +48,14 @@ public:
     // CUnit::SetFightAtWill(value), then 0x3B: the id and the value's low byte.
     int SetUnitFightAtWill(CUnit* unit, int value);
     // 0x39: the unit's id and the target's (-1 for none).
-    int SendFollow(CUnit* unit, CEngineObject* target);
+    int SendFollow(CUnit* unit, EngineObject* target);
     // 0x10: whether `value` (a byte) is set.
     int SendFlag10(std::uint8_t value);
     // 0x36 use order for one unit (count 1, its id or -1): `flag`, `kind`, `value`, the target's id
-    // (CPlayerServer::OnUseOrder).
-    int SendUseOrder(CUnit* unit, CEngineObject* target, int kind, int value, int flag);
+    // (PlayerServer::OnUseOrder).
+    int SendUseOrder(CUnit* unit, EngineObject* target, int kind, int value, int flag);
     // 0x36 for `units` on a dead `target`: `flag`, kind UseSource::SearchBody, value -1.
-    int SendUseDead(const std::vector<CUnit*>* units, CEngineObject* target, int flag);
+    int SendUseDead(const std::vector<CUnit*>* units, EngineObject* target, int flag);
     // 0x50: the player's party saved without its variables (CParty::SaveParty, which draws an ISAAC key) as
     // a sized block.
     int SendPartyUpdate();
@@ -87,7 +87,7 @@ public:
     int DispatchMessages();
     // The client world's frame, with the local server's stream. Appends the bytes of `source` (rewound) to
     // the received stream, whose pending bits are stored first; its read position stays.
-    void AppendReceived(CMemoryStream* source);
+    void AppendReceived(MemoryStream* source);
     // One packet from the link, decompressed into in and dispatched: 1 when there was none or it ran
     // through, 0 without a link, when the receive failed or the dispatch returned 0.
     int ReceiveMessages();
@@ -143,7 +143,7 @@ public:
     int OnNewObject();
     // Message 0x13. A text run as the interface's string event.
     int OnStringEvent();
-    // Message 0x60. The party state (CPlayerServer::SendPartyState): the old party units lose
+    // Message 0x60. The party state (PlayerServer::SendPartyState): the old party units lose
     // MapObjectFlag::InParty and their ids go into a set; the world's pause flag (byte); a dword (dropped); the new
     // party ids (partyUnitIds resized without keeping its contents), whose units get the flag and, when new to the
     // party, in a session of kind 1 without an owner and with a game-flow condition, their controller's
@@ -160,7 +160,7 @@ public:
     void StopRecording();
 
     // Message 0x00. Login accepted: a dword, state 2, the player's owner gives the player that id
-    // (CPlayerManager::ChangeId).
+    // (PlayerManager::ChangeId).
     int OnLoginAccepted();
     // Message 0x01. The player disconnects (CPlayer::Disconnect).
     int OnDisconnect();
@@ -221,10 +221,10 @@ public:
     void NotifyUnitChanged(CUnit* unit);
 
     // The base's state: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
-    using Handler = int (CPlayerClient::*)();
+    using Handler = int (PlayerClient::*)();
     std::vector<Handler> handlers;    // by message type (null: refused; 256 of them)
-    CMemoryStream in;                   // the server's messages being run
-    CMemoryStream out;                  // requests for the server
+    MemoryStream in;                   // the server's messages being run
+    MemoryStream out;                  // requests for the server
     // A local session (GameStartLocalSession sets it): a unit's network owner becomes the local
     // player whatever its id (CUnit::ReadNetState), and the game-state message only presses Enter.
     std::uint8_t localSession;

@@ -6,17 +6,17 @@
 
 #include <cstdint>
 
-class CEngineObject;
+class EngineObject;
 
 namespace address_order {
 
 // Whether the object set element `a` sorts before `b` (two object pointers as the sets keep them):
 // the object's id (signed), then the address.
-bool ObjectBefore(const CEngineObject* a, const CEngineObject* b);
+bool ObjectBefore(const EngineObject* a, const EngineObject* b);
 
 // The draw lists' order: the first part set's texture (null first,
 // then by name), then the figure (null first, then by name and morph weights), then the view depth.
 // Objects with the same keys keep the sort's own order.
-bool DrawBefore(CEngineObject* a, CEngineObject* b);
+bool DrawBefore(EngineObject* a, EngineObject* b);
 
 } // namespace address_order

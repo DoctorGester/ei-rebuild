@@ -15,9 +15,9 @@ constexpr float kNoRange = 1e38f;
 static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 } // namespace
 
-// --- CUnitServer --------------------------------------------------------------------------------
+// --- UnitServer --------------------------------------------------------------------------------
 
-CUnitServer::CUnitServer() { ResetController(); }
+UnitServer::UnitServer() { ResetController(); }
 
 // --- OrderPlan ----------------------------------------------------------------------------------
 

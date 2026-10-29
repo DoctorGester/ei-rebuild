@@ -25,9 +25,9 @@ namespace ei::verify::digest {
 template <typename Object>
 int ClassOf(Object* object) { return static_cast<int>(object->GetClassId()); }
 
-// The class ids the digest tells apart (CEngineObject::GetClassId).
-constexpr int kClassMapObjectServer = 0x39;     // CMapObjectServer, a map object's server half
-constexpr int kClassUnitServer = 0x3E;          // CUnitServer, a unit's controller (UnitController)
+// The class ids the digest tells apart (EngineObject::GetClassId).
+constexpr int kClassMapObjectServer = 0x39;     // MapObjectServer, a map object's server half
+constexpr int kClassUnitServer = 0x3E;          // UnitServer, a unit's controller (UnitController)
 constexpr int kClassUnit = 0x50;                // CUnit
 // The world's effects by class id (world_effect.h): their own state goes into "timed<id>".
 constexpr int kClassSound = 0x48, kClassAmbientSound = 0x49, kClassParticle = 0x4A, kClassPointLight = 0x4B,

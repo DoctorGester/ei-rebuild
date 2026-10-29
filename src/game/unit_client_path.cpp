@@ -1,4 +1,4 @@
-// A party unit's client controller (CUnitClientSpecific, class 0x3D) placing its unit on the
+// A party unit's client controller (UnitClientSpecific, class 0x3D) placing its unit on the
 // motion it follows. See docs/notes/units.md ("Client path placement").
 // Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
 // library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
@@ -32,7 +32,7 @@ constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: 
 // once when snapHeading is set, then turns it: at once with MapObjectFlag::NoCasting, else blended toward the
 // motion's direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally animationSpeed
 // from the motion's speed and the figure's current animation.
-static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
+static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     CUnit* unit = self->unit;
     if (unit->flags & MapObjectFlag::Preview) return;
     float toCells = 2.0f;
@@ -112,6 +112,6 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     unit->animationSpeed = static_cast<float>(numerator / denominator);
 }
 
-void CUnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
+void UnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
 
-void CUnitClientSpecific::MotionChanged() { PlaceOnPath(lastTime, 0.0f); }
+void UnitClientSpecific::MotionChanged() { PlaceOnPath(lastTime, 0.0f); }

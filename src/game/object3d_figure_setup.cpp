@@ -110,7 +110,7 @@ void CObject3D::UpdatePartBounds() {
     float highX = -FLT_MAX, highY = -FLT_MAX, highZ = -FLT_MAX;
     float lowX = FLT_MAX, lowY = FLT_MAX, lowZ = FLT_MAX;
     for (int i = 0; i < std::ssize(parts); ++i) {
-        // A part is a figure mesh (figure_mesh.h) on a CTransformObject.
+        // A part is a figure mesh (figure_mesh.h) on a TransformObject.
         parts[i]->UpdateWorld(localRotation, localPosition);
         parts[i]->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
@@ -134,12 +134,12 @@ void CObject3D::UpdatePartBounds() {
 
 // --- Parts by name prefix -----------------------------------------------------------------------
 
-std::vector<CFigureMesh*> CObject3D::CollectPartsByPrefix(std::string_view prefix) {
-    std::vector<CFigureMesh*> found;
+std::vector<FigureMesh*> CObject3D::CollectPartsByPrefix(std::string_view prefix) {
+    std::vector<FigureMesh*> found;
     // The game asks each part for its name twice; parts return the same string both times.
-    auto startsWith = [prefix](CFigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
+    auto startsWith = [prefix](FigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
     for (int i = 0; i < std::ssize(parts); ++i) {
-        CFigureMesh* part = parts[i];
+        FigureMesh* part = parts[i];
         if (!startsWith(part)) continue;
         found.push_back(part);
     }
@@ -148,14 +148,14 @@ std::vector<CFigureMesh*> CObject3D::CollectPartsByPrefix(std::string_view prefi
 
 // --- Loading single parts ---------------------------------------------------------------------
 
-CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
+FigureMesh* CObject3D::LoadPart(std::string_view partName) {
     CFigureManager* manager = FigureManagerOf(this);
-    CFigureMesh* part = manager->NewPart(name, partName, flags & MapObjectFlag::Detached);
+    FigureMesh* part = manager->NewPart(name, partName, flags & MapObjectFlag::Detached);
     if (!part) {
         game::DebugLog(kCantLoadPart, std::string(partName), name);
         return nullptr;
     }
-    if (CLinkMesh* current = figure) {
+    if (LinkMesh* current = figure) {
         // The figure gets the piece (it loads it unless it has it).
         bool loaded;
         {
@@ -216,14 +216,14 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
     if (names->empty() && animation) {
         *names = animation->BoneNames();
         std::string key(model);
-        CLinkMesh* made = WorldContext()->FigureLoader()->LoadLink(&key, scale.x, scale.y, scale.z);
+        LinkMesh* made = WorldContext()->FigureLoader()->LoadLink(&key, scale.x, scale.y, scale.z);
         figure.Assign(made);
     } else {
         // The piece names as the loader's LoadFigure reads them.
         std::vector<std::string> pieces = *names;
         {
             std::string key(model);
-            CLinkMesh* made = WorldContext()->FigureLoader()->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z);
+            LinkMesh* made = WorldContext()->FigureLoader()->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z);
             figure.Assign(made);
         }
     }

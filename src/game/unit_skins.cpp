@@ -109,13 +109,13 @@ void AddExtraWeapon(SkinRequest& set, const UnitModelRecord* model, DressedUnitR
 }
 
 // The texture cache is the client world's texture manager.
-void Compose(CWorldClient* self, std::string& out, SkinRequest& set, const std::string& name, int size, int kind) {
+void Compose(WorldClient* self, std::string& out, SkinRequest& set, const std::string& name, int size, int kind) {
     set.flags = size;
     self->textureManager->Compose(&out, &set, &name, &name, 3, 0x5551);
     self->textureManager->FindOrLoad(kind, name);
 }
 
-void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
+void DressUnit(WorldClient* self, DressedUnitRecord* record) {
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(record->prototype);
     const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     std::vector<TextureRecord> list;
@@ -165,7 +165,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
 // --- The other units -----------------------------------------------------------------------------
 
-void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
+void FigureUnit(WorldClient* self, FiguredUnitRecord* record) {
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(record->prototype);
     const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     std::vector<std::string> first = record->names;
@@ -184,7 +184,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 } // namespace
 
 // `others` and `dressed` are vectors of unit records; the dressed units (the second argument) come first.
-void CWorldClient::BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed) {
+void WorldClient::BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed) {
     for (DressedUnitRecord& r : *dressed) DressUnit(this, &r);
     for (FiguredUnitRecord& r : *others) FigureUnit(this, &r);
 }

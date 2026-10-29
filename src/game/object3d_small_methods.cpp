@@ -7,10 +7,10 @@
 namespace {
 constexpr float kFirstFrame = 0.0f;
 
-CFigureMesh* PartAt(const CObject3D* object, int index) { return object->parts[index]; }
+FigureMesh* PartAt(const CObject3D* object, int index) { return object->parts[index]; }
 } // namespace
 
-void CObject3D::SetSpecific(CObject3DSpecific* half) {
+void CObject3D::SetSpecific(Object3DSpecific* half) {
     if (attached) {
         attached->object = nullptr;
         attached->Release();
@@ -38,7 +38,7 @@ void CObject3D::SetPartsFlatSpecular(std::uint32_t value) {
     for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatSpecular = value;
 }
 
-void CObject3D::SetAnimationState(CFigureAnimationState* state) {
+void CObject3D::SetAnimationState(FigureAnimationState* state) {
     if (animation) {
         animation->owner = nullptr;
         animation->Release();
@@ -54,7 +54,7 @@ void CObject3D::PlayAnimation(FigureAnimation* figureAnimation) {
     if (animation) animation->Play(figureAnimation);
 }
 
-int CObject3D::AttachPartMesh(CEngineObject* part) {
+int CObject3D::AttachPartMesh(EngineObject* part) {
     if (!animation) return 0;
     return animation->AttachMesh(part);
 }

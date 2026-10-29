@@ -11,12 +11,12 @@
 
 #include <cmath>
 
-CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other) {
-    std::memmove(&localPosition, &other.localPosition, sizeof(CTransformObject) - offsetof(CTransformObject, localPosition));
+TransformObject* TransformObject::CopyTransform(const TransformObject& other) {
+    std::memmove(&localPosition, &other.localPosition, sizeof(TransformObject) - offsetof(TransformObject, localPosition));
     return this;
 }
 
-void CTransformObject::CombineRotation(const Quaternion& g) {
+void TransformObject::CombineRotation(const Quaternion& g) {
     const Quaternion& f = localRotation;
     float w = f.w * g.w - DotUnrounded<Sum3::XYZ>(f.x, f.y, f.z, g.x, g.y, g.z);
     float x = ((f.z * g.y - f.y * g.z) + f.x * g.w) + f.w * g.x;
@@ -34,7 +34,7 @@ void CTransformObject::CombineRotation(const Quaternion& g) {
 // recomputed (identically) in each component rather than held in a float local. 2 u.L is written
 // (2u).L, the form /fp:fast gives the written-out ((u.L) * 2): the same value (doubling is exact),
 // and an inlined sum times 2 is regrouped differently (vecmath.h, Dot2DUnrounded).
-void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
+void TransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     CombineRotation(q);
     const float ux = q.x, uy = q.y, uz = q.z;
     const Vector3& l = localPosition;
@@ -59,17 +59,17 @@ void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     worldPosition.z = z;
 }
 
-void CTransformObject::SaveTransform(lib::File* file) {
+void TransformObject::SaveTransform(lib::File* file) {
     file->WriteValue(localPosition);
     file->WriteValue(localRotation);
 }
 
-void CTransformObject::LoadTransform(lib::File* file) {
+void TransformObject::LoadTransform(lib::File* file) {
     file->ReadValue(localPosition);
     file->ReadValue(localRotation);
 }
 
-void CCamera::GroundPoint(Vector3* out) const {
+void Camera::GroundPoint(Vector3* out) const {
     const Quaternion& r = localRotation;
     const Vector3& pos = localPosition;
     // The rotated Z axis (AxisZ's order), every component rounded to float.
@@ -89,21 +89,21 @@ void CCamera::GroundPoint(Vector3* out) const {
     *out = pos;
 }
 
-void CCamera::SetTurnRate(float rate) {
+void Camera::SetTurnRate(float rate) {
     turnTarget = rate;
     EI_NAN_AUDIT(turnRate, rate);
     if (std::fabs(turnRate) < std::fabs(rate)) turnRate = turnTarget;
 }
 
-void CCamera::SetTiltRate(float rate) {
+void Camera::SetTiltRate(float rate) {
     tiltTarget = rate;
     EI_NAN_AUDIT(tiltRate, rate);
     if (std::fabs(tiltRate) < std::fabs(rate)) tiltRate = tiltTarget;
 }
 
-void CCamera::SetZoomTarget(float value) { zoomTarget = value; }
+void Camera::SetZoomTarget(float value) { zoomTarget = value; }
 
-void CCamera::SetTarget(const CEngineObject* target) {
+void Camera::SetTarget(const EngineObject* target) {
     if (!target) {
         targetId = -1;
         return;
@@ -111,7 +111,7 @@ void CCamera::SetTarget(const CEngineObject* target) {
     SetTargetId(target->id);
 }
 
-void CCamera::SetTargetId(int newId) {
+void Camera::SetTargetId(int newId) {
     targetId = newId;
     if (newId != -1) {
         panTarget = camera::kZeroVector;

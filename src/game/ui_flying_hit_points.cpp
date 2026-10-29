@@ -75,7 +75,7 @@ struct QuadBuffer {
             vertices[i].v -= d;
         }
     }
-    void Draw(CSceneRenderer* renderer) {
+    void Draw(SceneRenderer* renderer) {
         renderer->device->DrawTlTriangles(vertices, vertexCount, indices, indexCount);
     }
 };
@@ -84,7 +84,7 @@ struct QuadBuffer {
 // (part flag 0x40), else the unit's; null when it has none of those parts.
 const RECT* UnitScreenRect(CUnit* unit) {
     CObject3D* object = unit->Object3D();
-    CFigureMesh* part = nullptr;
+    FigureMesh* part = nullptr;
     for (int i = 0; i < 3 && !part; ++i) part = object->FindPartByPrefix(worlddata::HeroPartText(i));
     if (!part) return nullptr;
     if (part->flags & FigureMeshFlag::Drawn) return &part->drawer->screen;
@@ -93,7 +93,7 @@ const RECT* UnitScreenRect(CUnit* unit) {
 
 } // namespace
 
-void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
+void FlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     if (!target || amount < 0) return;
     std::uint32_t time = (flags & kDelayed) ? gameapi::timeGetTime() + kDelay : gameapi::timeGetTime();
     points.push_back(FlyingHitPoint{target, amount, flags, time});
@@ -101,7 +101,7 @@ void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
 
 // --- drawing -------------------------------------------------------------------------------------
 
-void CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
+void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     std::string text;
     DWORD now = gameapi::timeGetTime();
     const RECT& screen = renderer->device->screen;

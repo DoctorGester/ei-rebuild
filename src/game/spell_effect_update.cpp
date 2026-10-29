@@ -27,8 +27,8 @@ constexpr int kEndedTimer = -80;                       // the effects linger thi
 // reports a hit the target takes the damage, the missile, sound and light go, and a
 // splash, an end sound and a rising light appear at the target's height. The two spells compute
 // the light's rise differently (the arrow rounds the quotient before scaling it).
-void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool arrow) {
-    auto* missile = e->Visual<CEffectMissile>();
+void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arrow) {
+    auto* missile = e->Visual<EffectMissile>();
     if (!missile) return;
     e->position = missile->localPosition;
     if (missile->arrived == 0) return;
@@ -71,7 +71,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
 // Fireball: the ball explodes when its timer runs out: everything in the radius is hit, a blast
 // (the larger of the area curve and the power), an end sound, a rising light and, with a unit
 // caster, a noise the AI hears. The missile's particle goes once the timer is below zero.
-void FireballFlight(CSpellEffect* e) {
+void FireballFlight(SpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
     if (ticks < 0) {
@@ -106,7 +106,7 @@ void FireballFlight(CSpellEffect* e) {
 // --- State 2 -------------------------------------------------------------------------------------
 
 // The common count-down: ends the effect once the timer was already below zero.
-void CountDown(CSpellEffect* e) {
+void CountDown(SpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
     if (ticks < 0) e->state = 3;
@@ -114,19 +114,19 @@ void CountDown(CSpellEffect* e) {
 
 // After the walls and clouds have ended: the timer keeps running down and the effect is removed
 // 80 ticks later.
-void Linger(CSpellEffect* e) {
+void Linger(SpellEffect* e) {
     int ticks = e->timer;
     if (ticks < kEndedTimer) e->state = 3;
     e->timer = ticks - 1;
 }
 
-void RiseLight(CSpellEffect* e) {
+void RiseLight(SpellEffect* e) {
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     e->light->SetVelocity(rise);   // no null check
 }
 
 // Lightning / CurseMagic: the bolt and sound go when the timer reaches 0, the light rises away.
-void LightningFade(CSpellEffect* e) {
+void LightningFade(SpellEffect* e) {
     if (e->timer == 0) {
         e->ReleaseVisual();
         e->ReleaseSound();
@@ -136,12 +136,12 @@ void LightningFade(CSpellEffect* e) {
 }
 
 // InvokeLightning: the light strike's bolt is dropped every tick; at timer 5 a second bolt strikes from 30 above.
-void LightStrikeEcho(CSpellEffect* e) {
+void LightStrikeEcho(SpellEffect* e) {
     e->ReleaseVisual();
     if (e->timer == 5) {
         Vector3 top = e->position;
         top.z = top.z + ConstAt(worlddata::StrikeHeight());
-        auto* bolt = CreateObject<CEffectLightning>(e, ClassId::EffectLightning);
+        auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
         bolt->SetEnds(top, e->position, kStrikeWidthImmediate);
         e->SetVisual(bolt);
     }
@@ -149,17 +149,17 @@ void LightStrikeEcho(CSpellEffect* e) {
 }
 
 // AcidColumn: the column hits once, at timer 15.
-void AcidColumn(CSpellEffect* e) {
+void AcidColumn(SpellEffect* e) {
     CountDown(e);
     if (e->timer == 15) HitAreaTargets(e);
 }
 
 // FireWall: the wall burns along its direction every 4th tick; at -1 it goes out.
-void FireWall(CSpellEffect* e) {
+void FireWall(SpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
-            e->HitUnitsAlong(e->Visual<CEffectWall>()->direction);
+            e->HitUnitsAlong(e->Visual<EffectWall>()->direction);
             e->flags |= 1;
         }
         e->timer = e->timer - 1;
@@ -178,11 +178,11 @@ void FireWall(CSpellEffect* e) {
 }
 
 // LightningWall: the light wall hits along its bolt every 4th tick; at -1 it goes out.
-void LightWall(CSpellEffect* e) {
+void LightWall(SpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
-            auto* bolt = e->Visual<CEffectLightning>();
+            auto* bolt = e->Visual<EffectLightning>();
             Vector3 along;
             along.x = bolt->to.x - bolt->from.x;
             along.y = bolt->to.y - bolt->from.y;
@@ -203,7 +203,7 @@ void LightWall(CSpellEffect* e) {
 }
 
 // AcidFog: the poison cloud hits every 4th tick; at -1 it goes.
-void PoisonCloud(CSpellEffect* e) {
+void PoisonCloud(SpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0) {
@@ -224,7 +224,7 @@ void PoisonCloud(CSpellEffect* e) {
 }
 
 // Campfire: hits every 4th tick, counting up, forever (until something else ends it).
-void CountingCloud(CSpellEffect* e) {
+void CountingCloud(SpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks + 1;
     if ((ticks & 3) == 0) HitAreaTargets(e);
@@ -232,7 +232,7 @@ void CountingCloud(CSpellEffect* e) {
 
 // Fireworks wake the units around and frighten those in the radius (their AI memory notices
 // the point at a level falling from 300 to 50 over the duration); at -1 they end.
-void Fireworks(CSpellEffect* e) {
+void Fireworks(SpellEffect* e) {
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks >= 0) {
@@ -259,7 +259,7 @@ void Fireworks(CSpellEffect* e) {
 
 // Clairvoyance shows the caster's player every unit in the radius and wakes them; at timer
 // 10 a closing particle and sound. Ends with the timer or without a caster.
-void Clairvoyance(CSpellEffect* e) {
+void Clairvoyance(SpellEffect* e) {
     if (IsUnit(e->caster)) {
         auto* player = e->caster->player;
         if (player) {
@@ -285,7 +285,7 @@ void Clairvoyance(CSpellEffect* e) {
 
 // Possession: the caster's player sees the target, its controller's two lists and its id;
 // the target is flagged (0x2000000) and the units around it wake.
-void Possession(CSpellEffect* e) {
+void Possession(SpellEffect* e) {
     if (!IsUnit(e->caster)) {
         e->state = 3;
         return;
@@ -293,7 +293,7 @@ void Possession(CSpellEffect* e) {
     auto* player = e->caster->player;
     if (player && e->target->GetClassId() == ClassId::Unit) {   // no null check on the target
         CMapObject* target = e->target;
-        CUnitServer* server = ControllerOf(TargetUnit(e));
+        UnitServer* server = ControllerOf(TargetUnit(e));
         ScriptGroup* group = &player->Server()->possessedGroup;
         group->Insert(target);
         group->InsertAll(&server->brain.memory.visible);
@@ -313,7 +313,7 @@ void Possession(CSpellEffect* e) {
 }
 
 // VisionFog lasts while its target is free.
-void VisionFog(CSpellEffect* e) {
+void VisionFog(SpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
     if (ticks < 0 || !e->target || e->target->IsDead() != 0) e->state = 3;
@@ -321,7 +321,7 @@ void VisionFog(CSpellEffect* e) {
 
 // Link: the link lasts while both units are free; it ends with a sound (and a complaint from the
 // caster when a unit got busy).
-void Link(CSpellEffect* e) {
+void Link(SpellEffect* e) {
     bool free = e->target && e->caster && e->target->IsLargeUnit() == 0 &&
                 e->caster->IsLargeUnit() == 0 && e->target->IsDead() == 0 &&
                 e->caster->IsDead() == 0;
@@ -340,7 +340,7 @@ void Link(CSpellEffect* e) {
 // Teleport: when the timer comes down to the spell's duration (at least 1) the caster moves
 // to the target point at its own height, if it fits there (else it complains, 0x10); then it gets
 // the spell's buff record and its controller re-places it.
-void Teleport(CSpellEffect* e) {
+void Teleport(SpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
     if (ticks < 0 || !e->caster || e->caster->IsDead() != 0) {
@@ -367,7 +367,7 @@ void Teleport(CSpellEffect* e) {
 
 } // namespace
 
-int CSpellEffect::Update() {
+int SpellEffect::Update() {
     if (!world) return 0;
     SpellType type = Spell()->Type();
     switch (state) {
@@ -383,7 +383,7 @@ int CSpellEffect::Update() {
     }
 }
 
-void CSpellEffect::UpdateMissile(SpellType type) {
+void SpellEffect::UpdateMissile(SpellType type) {
     switch (type) {
     case SpellType::FireArrow:
     case SpellType::RickMagic:
@@ -399,7 +399,7 @@ void CSpellEffect::UpdateMissile(SpellType type) {
     }
 }
 
-void CSpellEffect::UpdateLasting(SpellType type) {
+void SpellEffect::UpdateLasting(SpellType type) {
     switch (type) {
     case SpellType::FireArrow:
     case SpellType::AcidRay:
@@ -424,8 +424,8 @@ void CSpellEffect::UpdateLasting(SpellType type) {
     }
 }
 
-void CSpellEffect::ReleaseVisual() { Assign<CEffect>(this, &visual, nullptr); }
+void SpellEffect::ReleaseVisual() { Assign<CEffect>(this, &visual, nullptr); }
 
-void CSpellEffect::ReleaseSound() { Assign<CEffect>(this, &sound, nullptr); }
+void SpellEffect::ReleaseSound() { Assign<CEffect>(this, &sound, nullptr); }
 
-void CSpellEffect::ReleaseLight() { Assign<CEffectPointLight>(this, &light, nullptr); }
+void SpellEffect::ReleaseLight() { Assign<EffectPointLight>(this, &light, nullptr); }

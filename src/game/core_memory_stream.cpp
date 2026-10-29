@@ -1,5 +1,5 @@
 // The memory stream's own slots (Read, Write, Seek, CopyFrom), its Resize / SetSize and bit helpers,
-// CStream::CopyFrom and the stream helpers that write and read a sized block or a format header
+// ByteStream::CopyFrom and the stream helpers that write and read a sized block or a format header
 // See core_streams.h and docs/notes/core.md.
 #include "core_streams.h"
 
@@ -17,9 +17,9 @@ constexpr std::int32_t kShortSizeLimit = 30000;
 
 } // namespace
 
-// --- CMemoryStream slots -----------------------------------------------------------------------
+// --- MemoryStream slots -----------------------------------------------------------------------
 
-std::uint32_t CMemoryStream::Read(void* buffer, std::uint32_t byteCount) {
+std::uint32_t MemoryStream::Read(void* buffer, std::uint32_t byteCount) {
     if (position + byteCount > size) {
         std::uint32_t left = size - position;
         ok = 0;
@@ -32,7 +32,7 @@ std::uint32_t CMemoryStream::Read(void* buffer, std::uint32_t byteCount) {
     return byteCount;
 }
 
-void CMemoryStream::Write(const void* buffer, std::uint32_t byteCount) {
+void MemoryStream::Write(const void* buffer, std::uint32_t byteCount) {
     if (g_memoryStreamWriteObserver)
         g_memoryStreamWriteObserver(this, byteCount, static_cast<void* const*>(_AddressOfReturnAddress()));
     if (position + byteCount > data.size()) data.resize((static_cast<std::uint32_t>(data.size()) + byteCount) * 2);
@@ -41,21 +41,21 @@ void CMemoryStream::Write(const void* buffer, std::uint32_t byteCount) {
     if (!(size > position)) size = position;
 }
 
-void CMemoryStream::Seek(std::uint32_t newPosition) {
+void MemoryStream::Seek(std::uint32_t newPosition) {
     position = newPosition;
     EndBits();
 }
 
-void CMemoryStream::CopyFrom(CStream* source) {
+void MemoryStream::CopyFrom(ByteStream* source) {
     source->Seek(0);
     Resize(source->Size());
     source->Read(data.data(), size);
     Seek(0);
 }
 
-// --- CMemoryStream sizes and bits --------------------------------------------------------------
+// --- MemoryStream sizes and bits --------------------------------------------------------------
 
-void CMemoryStream::Resize(std::uint32_t byteCount) {
+void MemoryStream::Resize(std::uint32_t byteCount) {
     if (byteCount <= data.size()) {
         size = byteCount;
         position = 0;
@@ -69,7 +69,7 @@ void CMemoryStream::Resize(std::uint32_t byteCount) {
     bitMask = 0x80;
 }
 
-void CMemoryStream::SetSize(std::uint32_t newSize) {
+void MemoryStream::SetSize(std::uint32_t newSize) {
     if (newSize <= data.size()) {
         size = newSize;
         position = 0;
@@ -81,7 +81,7 @@ void CMemoryStream::SetSize(std::uint32_t newSize) {
     bitMask = 0x80;
 }
 
-void CMemoryStream::StartByte() {
+void MemoryStream::StartByte() {
     if (bitsIndex >= 0) data[bitsIndex] = bits;
     bitsIndex = static_cast<std::int32_t>(position);
     bits = 0;
@@ -89,15 +89,15 @@ void CMemoryStream::StartByte() {
     bitMask = 1;
 }
 
-void CMemoryStream::EndBits() {
+void MemoryStream::EndBits() {
     if (bitsIndex >= 0) data[bitsIndex] = bits;
     bitsIndex = -1;
     bitMask = 0x80;
 }
 
-// --- CStream helpers ---------------------------------------------------------------------------
+// --- ByteStream helpers ---------------------------------------------------------------------------
 
-void CStream::CopyFrom(CStream* source) {
+void ByteStream::CopyFrom(ByteStream* source) {
     std::uint8_t chunk[0x400];
     source->Seek(0);
     source->reading = 1;
@@ -109,7 +109,7 @@ void CStream::CopyFrom(CStream* source) {
     }
 }
 
-void CStream::ReadSized(CStream* to) {
+void ByteStream::ReadSized(ByteStream* to) {
     std::uint32_t size = 0;
     Read(&size, 2);
     if (size & 1) Read(reinterpret_cast<std::uint8_t*>(&size) + 2, 2);
@@ -122,7 +122,7 @@ void CStream::ReadSized(CStream* to) {
     to->Write(block.data(), size);
 }
 
-void CStream::WriteSized(CStream* from) {
+void ByteStream::WriteSized(ByteStream* from) {
     auto size = static_cast<std::int32_t>(from->Size());
     std::uint32_t word;
     if (size > kShortSizeLimit) {
@@ -138,7 +138,7 @@ void CStream::WriteSized(CStream* from) {
     Write(block.data(), static_cast<std::uint32_t>(size));
 }
 
-bool CStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion) {
+bool ByteStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion) {
     std::int32_t value = 0;
     ReadValue(value);
     if (static_cast<std::uint32_t>(value) != magic) return false;
@@ -149,7 +149,7 @@ bool CStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::i
     return true;
 }
 
-void CStream::WriteHeader(std::uint32_t magic, std::uint32_t headerVersion) {
+void ByteStream::WriteHeader(std::uint32_t magic, std::uint32_t headerVersion) {
     WriteValue(magic);
     WriteValue(headerVersion);
     version = headerVersion;

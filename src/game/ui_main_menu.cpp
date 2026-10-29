@@ -1,4 +1,4 @@
-// The main menu (CMainMenu, ui_screens.h): its Create, version line, per-frame update, close, message
+// The main menu (MainMenu, ui_screens.h): its Create, version line, per-frame update, close, message
 // answers, mouse move and keys; the interface's saved-state reset and the regions' SetRect from a
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
 #include "app.h"
@@ -67,7 +67,7 @@ double RandomScaled(double scale) { return x87::FromUnsigned(g_clientRandom.Next
 
 // --- The interface's saved state cleared ----------------------------------------------
 
-void CInterface3D::ResetSavedState() {
+void Interface3D::ResetSavedState() {
     hudPanelsIn[0] = 0;
     hudPanelsIn[1] = 0;
     hudPanelsIn[2] = 0;
@@ -78,14 +78,14 @@ void CInterface3D::ResetSavedState() {
 
 // --- A region's SetRect from a RECT ---------------------------------------------------
 
-void CUiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
+void UiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 
 // --- The version line --------------------------------------------------------------
 
-void CMainMenu::AddVersionLine() {
-    CUiSurface* surface = new CUiSurface(ui, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
+void MainMenu::AddVersionLine() {
+    UiSurface* surface = new UiSurface(ui, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
     surface->Clear();
-    std::string text = g_clientWorld.texts->CTextManager::GetString(kVersionKey);
+    std::string text = g_clientWorld.texts->TextManager::GetString(kVersionKey);
     RECT area = {0, 0, 675, 120};
     surface->DrawTextIn(text, &area, 2, 0xA7D7E4, 2, 1);
     AddSurface(surface);
@@ -93,7 +93,7 @@ void CMainMenu::AddVersionLine() {
 
 // --- Create ----------------------------------------------------------------
 
-void CMainMenu::CreateScreen() {
+void MainMenu::CreateScreen() {
     ui->ResetSavedState();
     g_gameFlow.UseResources(false);
     UiInputSide* inert = new UiInertInput(ui);
@@ -102,7 +102,7 @@ void CMainMenu::CreateScreen() {
     rect = RECT{0, 0, 800, 600};
     AddVersionLine();
     for (int i = 0; i < 6; ++i) {
-        CUiRegion* region = AddRegion();
+        UiRegion* region = AddRegion();
         RECT area;
         gameapi::CopyRect(&area, &g_menuRects[i]);
         region->SetRectFrom(area);
@@ -124,8 +124,8 @@ void CMainMenu::CreateScreen() {
 
 // --- Update (every frame) ---------------------------------------------------
 
-void CMainMenu::Update() {
-    CUiContainer::Update();
+void MainMenu::Update() {
+    UiContainer::Update();
     int serverHour = static_cast<int>(GameServerTimeOfDay());
     if (serverHour != static_cast<int>(hour) && rain) {
         if (serverHour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);
@@ -151,7 +151,7 @@ void CMainMenu::Update() {
 
 // --- Close -----------------------------------------------------------------
 
-void CMainMenu::CloseScreen() {
+void MainMenu::CloseScreen() {
     options::g_options.borderFogDistance = savedEdgeFade;
     GameStopSounds(1);
     GameStopAmbience();
@@ -159,7 +159,7 @@ void CMainMenu::CloseScreen() {
 
 // --- A message box's answer -----------------------------------------------
 
-void CMainMenu::MessageResult(int result) {
+void MainMenu::MessageResult(int result) {
     g_gameFlow.UseResources(false);
     GameSetServerPaused(0);
     if (result == 0x10001) {
@@ -183,7 +183,7 @@ void CMainMenu::MessageResult(int result) {
 
 // --- The mouse move and the keys -------------------------------------------
 
-void CMainMenu::MouseMove(int buttons, int x, int y) {
+void MainMenu::MouseMove(int buttons, int x, int y) {
     if (auto* stones = g_clientWorld.objectManager->FindObjectAs<CObject3D>(kStonesObject)) {
         int region = RegionAt(x, y);
         std::string name(stones->name);
@@ -198,11 +198,11 @@ void CMainMenu::MouseMove(int buttons, int x, int y) {
         }
         hovered = region;
     }
-    CUiContainer::MouseMove(buttons, x, y);
+    UiContainer::MouseMove(buttons, x, y);
 }
 
-void CMainMenu::KeyDown(int key, int repeat, int modifiers) {
-    CUiContainer::KeyDown(key, repeat, modifiers);
+void MainMenu::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (key != VK_ESCAPE) return;
-    ui->PushWindow(new CMessageBox(ui, kQuitTitle, kQuitText, 0x10000, 3, 1), true, true);
+    ui->PushWindow(new MessageWindow(ui, kQuitTitle, kQuitText, 0x10000, 3, 1), true, true);
 }

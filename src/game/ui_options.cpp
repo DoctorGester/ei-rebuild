@@ -1,5 +1,5 @@
 // The options window's settings and key bindings and its slider's layout
-// (ui.h: COptionsWindow, CUiSlider; docs/notes/ui.md "Objectives, save/load, options").
+// (ui.h: OptionsWindow, UiSlider; docs/notes/ui.md "Objectives, save/load, options").
 #include "ui.h"
 
 #include "text_manager.h"
@@ -90,7 +90,7 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
 // The text `key` up to the next '#', or the key itself without one.
 std::string TipText(const std::string& key) {
     std::string tip = key;
-    if (g_clientWorld.texts->CTextManager::Open(key.c_str())) tip = g_clientWorld.texts->ReadToHash();
+    if (g_clientWorld.texts->TextManager::Open(key.c_str())) tip = g_clientWorld.texts->ReadToHash();
     return tip;
 }
 
@@ -108,7 +108,7 @@ void RebuildKeysText(OptionBinding& binding) {
     str::TrimRight(binding.keysText, kTextKeyTrim);
 }
 
-void TurnQuarter(CUiMesh* sprite) {
+void TurnQuarter(UiMesh* sprite) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     sprite->localRotation = *turn.SetAxisAngle(axis, kQuarterTurn);
@@ -116,14 +116,14 @@ void TurnQuarter(CUiMesh* sprite) {
 
 } // namespace
 
-void COptionsWindow::RefreshRows() {
-    CUiSurface* surface = surfaces[0];
+void OptionsWindow::RefreshRows() {
+    UiSurface* surface = surfaces[0];
     surface->Clear();
     SceneMesh(kHighlightSprite)->visible = false;
 
     RECT title = {10, 60, 140, 80};
     for (int groupIndex = 0; groupIndex < kOptionGroups; ++groupIndex) {
-        CUiMesh* button = SceneMesh(kFirstGroupSprite + groupIndex);
+        UiMesh* button = SceneMesh(kFirstGroupSprite + groupIndex);
         float tint = groupIndex == group ? 1.0f : 0.5f;
         button->tint[0] = tint;
         button->tint[1] = tint;
@@ -138,7 +138,7 @@ void COptionsWindow::RefreshRows() {
     RECT keys = {430, 60, 590, 80};
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
         if (row == selectedRow) {
-            CUiMesh* highlight = SceneMesh(kHighlightSprite);
+            UiMesh* highlight = SceneMesh(kHighlightSprite);
             highlight->visible = true;
             highlight->Place(471.0f, static_cast<float>(y), 3.0f);
         }
@@ -154,7 +154,7 @@ void COptionsWindow::RefreshRows() {
     }
 }
 
-void COptionsWindow::ShowGroup(int groupIndex) {
+void OptionsWindow::ShowGroup(int groupIndex) {
     if (groupIndex < 0)
         groupIndex = 0;
     else if (groupIndex >= kOptionGroups)
@@ -202,7 +202,7 @@ void COptionsWindow::ShowGroup(int groupIndex) {
     RefreshRows();
 }
 
-void COptionsWindow::BuildSettings() {
+void OptionsWindow::BuildSettings() {
     settings.clear();    // copy and destructors inlined
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         // The original's temporary has only its string constructed; its other fields are copied
@@ -217,7 +217,7 @@ void COptionsWindow::BuildSettings() {
 
         int top = definition->row * 24;
         if (definition->kind == kSliderKind) {
-            auto* slider = new CUiSlider(ui, RECT{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f);
+            auto* slider = new UiSlider(ui, RECT{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f);
             setting.bar = slider;
             RECT area = {530, top + 163, 680, top + 173};
             slider->SetRect(&area);   // (a failed allocation is called through, as in the original)
@@ -227,7 +227,7 @@ void COptionsWindow::BuildSettings() {
             std::string text = kTextOffDefault;
             text = g_clientWorld.texts->GetString(kTextOptionOff);
             if (i == kDifficultySetting) text = g_clientWorld.texts->GetString(kTextDifficultyHard);
-            setting.spin = new CUiSpin(ui, RECT{530, top + 160, 690, top + 176}, text.c_str());
+            setting.spin = new UiSpin(ui, RECT{530, top + 160, 690, top + 176}, text.c_str());
             text = kTextOnDefault;
             text = g_clientWorld.texts->GetString(kTextOptionOn);
             if (i == kDifficultySetting) text = g_clientWorld.texts->GetString(kTextDifficultyEasy);
@@ -238,7 +238,7 @@ void COptionsWindow::BuildSettings() {
     }
 }
 
-void COptionsWindow::BuildBindings() {
+void OptionsWindow::BuildBindings() {
     bindings.clear();
 
     for (int i = 0; i < kActionDefinitionCount; ++i) {
@@ -259,7 +259,7 @@ void COptionsWindow::BuildBindings() {
     }
 }
 
-void COptionsWindow::CommitBinding() {
+void OptionsWindow::CommitBinding() {
     if (!pressedKey) return;
     OptionBinding* binding = rows[selectedRow].binding;
     if (!binding) return;
@@ -290,7 +290,7 @@ void COptionsWindow::CommitBinding() {
     keyOfScan[pressedKey->scan] = static_cast<signed char>(binding->action->id);
 }
 
-void COptionsWindow::LoadSettings() {
+void OptionsWindow::LoadSettings() {
     std::memcpy(keyOfScan, g_keyActions, sizeof(keyOfScan));
     OptionSetting* s = settings.data();
     const double fromStep = kFromStep;
@@ -335,7 +335,7 @@ void COptionsWindow::LoadSettings() {
     }
 }
 
-void COptionsWindow::Apply() {
+void OptionsWindow::Apply() {
     std::memcpy(g_keyActions, keyOfScan, sizeof(keyOfScan));
     const OptionSetting* s = settings.data();
     const double toStep = kToStep;
@@ -383,30 +383,30 @@ void COptionsWindow::Apply() {
 
 // --- The slider's virtual ------------------------------------------------------------------
 
-void CUiSlider::SetRect(const RECT* newRect) {
+void UiSlider::SetRect(const RECT* newRect) {
     rect = *newRect;
     track.top = newRect->bottom - 10;
     track.bottom = newRect->bottom;
     track.left = newRect->left + 26;
     track.right = newRect->right - 26;
 
-    CUiMesh* trackMesh = SceneMesh(0);
+    UiMesh* trackMesh = SceneMesh(0);
     trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->right - newRect->left - 8), 8, 4, 0x20,
                         0xFC);
     trackMesh->Place(static_cast<float>((newRect->right + newRect->left) * 0.5),
                  static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(trackMesh);
 
-    CUiMesh* thumbMesh = SceneMesh(1);
+    UiMesh* thumbMesh = SceneMesh(1);
     thumbMesh->SetRectangle(depth - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
     TurnQuarter(thumbMesh);
 
-    CUiMesh* right = SceneMesh(2);
+    UiMesh* right = SceneMesh(2);
     right->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
     right->Place(static_cast<float>(newRect->right - 6), static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(right);
 
-    CUiMesh* left = SceneMesh(3);
+    UiMesh* left = SceneMesh(3);
     left->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
     left->Place(static_cast<float>(newRect->left + 6), static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(left);

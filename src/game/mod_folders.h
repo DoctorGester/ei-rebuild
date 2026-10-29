@@ -5,7 +5,7 @@
 // maps-folder user names its file first; the maps folder is the mod's folder when the mod's Maps\ held that
 // name at start, else the game's. - ResOverride (25 sites): the mod's config.reg [Res] lists archives that
 // come before (or, with '-', instead of) the game's twelve archives, plus extra figure and texture archives;
-// every CMappedResource::GetFile and ListFiles goes through addon (its virtual and all their calls). -
+// every MappedResource::GetFile and ListFiles goes through addon (its virtual and all their calls). -
 // MoviesPatch (the BinkOpen import), CameraPatch (the camera path's file open), StreamPatch (the stream
 // file's path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
 // More: docs/notes/comments-c22i.md, "mod_folders.h".
@@ -17,7 +17,7 @@
 #include <string_view>
 #include <vector>
 
-class CMappedResource;
+class MappedResource;
 namespace modfolders {
 
 // Whether the rewritten code applies patch `p` itself: its flag is on.
@@ -28,17 +28,17 @@ const std::string& ModPath();
 
 // OpenResource's entry (+8), before the archive opens: the first call loads the mod's
 // archives; then `res` is recorded as opened from `path` (an archive the mod overrides or ignores).
-void OnOpenResource(CMappedResource* res, const std::string& path);
+void OnOpenResource(MappedResource* res, const std::string& path);
 // The destructor's entry (+2): `res` is forgotten.
-void OnDestroyResource(const CMappedResource* res);
+void OnDestroyResource(const MappedResource* res);
 // CMaterialManager::Create's entry (+8): loads the mod's archives (once).
 void LoadModArchives();
-// CMappedResource::GetFile through addon: the mod's archives for this archive first, then the
+// MappedResource::GetFile through addon: the mod's archives for this archive first, then the
 // archive itself unless the mod ignores it, then "t\" / "s\" names once more without the prefix.
-void* GetFile(CMappedResource* res, std::string_view name, std::uint32_t* size);
-// CMappedResource::ListFiles through addon: appends the mod's archives' names and the archive's own
+void* GetFile(MappedResource* res, std::string_view name, std::uint32_t* size);
+// MappedResource::ListFiles through addon: appends the mod's archives' names and the archive's own
 // (unless ignored) to `out`.
-void ListFiles(const CMappedResource* res, std::vector<std::string>* out, const char* pattern);
+void ListFiles(const MappedResource* res, std::vector<std::string>* out, const char* pattern);
 // The mod's extra archives (their full paths): figures.res / menus.res entries for the figure manager and the
 // link figure loader, textures.res / redress.res / menus.res entries for the texture manager.
 const std::vector<std::string>& FigureArchives();
@@ -57,7 +57,7 @@ void SelectMaps(std::string_view name, MapsSite site);
 const std::string& MapsRoot(const std::string& dataFolder);
 
 // ---- Camera, Stream, Movies ----
-// CameraPatch: `path` (the camera\ file CCamera::LoadPath opens), or the mod's Camera\<last part>.
+// CameraPatch: `path` (the camera\ file Camera::LoadPath opens), or the mod's Camera\<last part>.
 std::string CameraFile(const char* path);
 // StreamPatch: whether the mod's Stream\ has `name` (then the stream opens <mod>Stream\<name>).
 bool StreamInMod(std::string_view name);

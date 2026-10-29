@@ -82,27 +82,27 @@ constexpr int kSwitchAfterFade = 2;
 const char* const kLoopMarkers = "Markers2";
 const char* const kSwitchMarkers = "Markers1";
 
-void CodecSeek(CSoundManager* m, int position) { m->streamCodec->seek(m->streamFile, position); }
+void CodecSeek(SoundManager* m, int position) { m->streamCodec->seek(m->streamFile, position); }
 // The codec's attribute `name` (one of its handles) of the open file.
-int CodecAttribute(CSoundManager* m, void* AsiStage::*name) {
+int CodecAttribute(SoundManager* m, void* AsiStage::*name) {
     return m->streamCodec->attribute(m->streamFile, m->streamCodec->*name);
 }
-void CodecClose(CSoundManager* m) {
+void CodecClose(SoundManager* m) {
     if (m->streamFile == nullptr) return;
     m->streamCodec->close(m->streamFile);
     m->streamFile = nullptr;
 }
-void Silence(CSoundManager* m, std::uint8_t* to, int bytes) {
+void Silence(SoundManager* m, std::uint8_t* to, int bytes) {
     std::memset(to, m->streamSilence, static_cast<std::uint32_t>(bytes));
 }
 // `bytes` of the file; what it does not give is silence.
-void ReadOrSilence(CSoundManager* m, std::uint8_t* to, int bytes) {
+void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
     int got = m->streamCodec->process(m->streamFile, to, bytes);
     if (got < bytes) Silence(m, to + got, bytes - got);
 }
 
 // The next file takes over: `bytes` of it (or silence) to `to`.
-void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
+void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     m->streamReadPosition = 0;
     m->streamState = 0;
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
@@ -155,17 +155,17 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
 
 } // namespace
 
-const char* CSoundManager::ClassName() { return kSoundManagerClassNameAddress; }
-ClassId CSoundManager::GetClassId() { return ClassId::SoundManager; }
+const char* SoundManager::ClassName() { return kSoundManagerClassNameAddress; }
+ClassId SoundManager::GetClassId() { return ClassId::SoundManager; }
 
-void CSoundManager::Create() {
+void SoundManager::Create() {
     Reset();
 }
 
 // The head taken off the list, then the archive's deleting destructor.
-void CSoundManager::ClearWaveSources() {
+void SoundManager::ClearWaveSources() {
     while (!waveSources.empty()) {
-        CMappedResource* source = waveSources.front();
+        MappedResource* source = waveSources.front();
         waveSources.pop_front();
         delete source;
     }
@@ -173,9 +173,9 @@ void CSoundManager::ClearWaveSources() {
 
 // Called at startup for the two sound archives. A failed allocation is not tested (the open call goes
 // through a null object).
-int CSoundManager::AddWaveSource(const std::string& path) {
+int SoundManager::AddWaveSource(const std::string& path) {
     if (enabled == 0) return 1;
-    auto* source = new CMappedResource();
+    auto* source = new MappedResource();
     if (source->OpenResource(path, 0) == 0) {
         delete source;
         return 0;
@@ -185,9 +185,9 @@ int CSoundManager::AddWaveSource(const std::string& path) {
 }
 
 // From the map's ambient sounds.
-void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source) {
+void* SoundManager::LoadWaveFile(const char* name, std::uint32_t* size, MappedResource** source) {
     for (auto node = waveSources.begin(); node != waveSources.end();) {
-        CMappedResource* current = *node;
+        MappedResource* current = *node;
         ++node;
         void* data = current->GetFile(name, size);
         if (data != nullptr) {
@@ -200,11 +200,11 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
 
 // Rebirth redirects its ListFiles call; this is the vanilla body. From the unit database's sound counts, on
 // the game's main thread.
-std::vector<std::string> CSoundManager::ListWaveFiles(const char* pattern) {
+std::vector<std::string> SoundManager::ListWaveFiles(const char* pattern) {
     std::vector<std::string> waves;
     std::vector<std::string> names;
     for (auto node = waveSources.begin(); node != waveSources.end();) {
-        CMappedResource* source = *node;
+        MappedResource* source = *node;
         ++node;
         source->ListFiles(&names, pattern);
         waves.insert(waves.end(), names.begin(), names.end());
@@ -213,7 +213,7 @@ std::vector<std::string> CSoundManager::ListWaveFiles(const char* pattern) {
 }
 
 // Called at startup.
-int CSoundManager::SetPath(std::string_view folder, const std::string& registryPath) {
+int SoundManager::SetPath(std::string_view folder, const std::string& registryPath) {
     if (enabled == 0) return 1;
     soundPath = folder;
     bool missing;
@@ -225,7 +225,7 @@ int CSoundManager::SetPath(std::string_view folder, const std::string& registryP
     return soundRegistry.Open(registryPath) != 0 ? 1 : 0;
 }
 
-std::string CSoundManager::CurrentStreamName() {
+std::string SoundManager::CurrentStreamName() {
     gameapi::EnterCriticalSection(&nameLock);
     std::string name;
     if (streamState == 1 || streamState == 2) name = streamName;
@@ -234,7 +234,7 @@ std::string CSoundManager::CurrentStreamName() {
     return name;
 }
 
-int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, int offset) {
+int __stdcall SoundStreamRead(SoundManager* manager, char* buffer, int size, int offset) {
     if (offset >= 0) {
         manager->streamReader.Seek(offset, 0);
         manager->streamReadPosition = offset;
@@ -249,7 +249,7 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
 // --- Constructor, destructor, stream reset ---------------------------------------------------
 
 // The stream reader, the strings and the archive are members the compiler constructs before the body.
-CSoundManager::CSoundManager() {
+SoundManager::SoundManager() {
     musicFader.volume = kFullVolume;
     musicFader.Recalc();
     musicFader.SetHold(0);
@@ -262,7 +262,7 @@ CSoundManager::CSoundManager() {
 }
 
 // The archive, the strings and the stream reader are destroyed after the body.
-CSoundManager::~CSoundManager() {
+SoundManager::~SoundManager() {
     Close();
     gameapi::AIL_shutdown();
     cacheList.clear();
@@ -272,7 +272,7 @@ CSoundManager::~CSoundManager() {
     waveSources.clear();
 }
 
-void CSoundManager::ResetStream() {
+void SoundManager::ResetStream() {
     streamState = 0;
     streamSample = nullptr;
     streamDecoder = nullptr;
@@ -300,7 +300,7 @@ void CSoundManager::ResetStream() {
 
 // --- Open, Close, Reset ------------------------------------------------------------------
 
-int CSoundManager::CloseStream() {
+int SoundManager::CloseStream() {
     if (streamFile != nullptr && streamCodec != nullptr) streamCodec->close(streamFile);
     if (streamSample != nullptr) gameapi::AIL_release_sample_handle(streamSample);
     if (streamDecoder != nullptr) gameapi::AIL_release_sample_handle(streamDecoder);
@@ -310,7 +310,7 @@ int CSoundManager::CloseStream() {
     return 0;
 }
 
-int CSoundManager::OpenStream(miles::DigitalDriver* driver) {
+int SoundManager::OpenStream(miles::DigitalDriver* driver) {
     void* codec = gameapi::RIB_find_file_provider("ASI codec", "Input file types", ".mp3");
     streamSample = gameapi::AIL_allocate_sample_handle(driver);
     streamDecoder = gameapi::AIL_allocate_sample_handle(driver);
@@ -338,7 +338,7 @@ int CSoundManager::OpenStream(miles::DigitalDriver* driver) {
     return 1;
 }
 
-void CSoundManager::StreamThread() {
+void SoundManager::StreamThread() {
     std::uint32_t last = gameapi::timeGetTime();
     while (threadsQuit == 0) {
         std::uint32_t now = gameapi::timeGetTime();
@@ -367,7 +367,7 @@ void CSoundManager::StreamThread() {
 
 // The stream thread's procedure: the manager's StreamThread, then 0.
 unsigned __stdcall StreamThreadEntry(void* manager) {
-    static_cast<CSoundManager*>(manager)->StreamThread();
+    static_cast<SoundManager*>(manager)->StreamThread();
     return 0;
 }
 
@@ -386,7 +386,7 @@ BOOL CALLBACK AddSoundDevice(LPGUID guid, LPCSTR, LPCSTR, LPVOID devices) {
 // The game leaves "from the beginning again" (a local) unwritten when neither a loop point nor a switch
 // point is in the buffer, and reads it in one such case: a switch at the file's end (mode 1) when the file
 // ends in this buffer. Here that case is the switch, which is what the mode asks for.
-void CSoundManager::ReadStreamVanilla() {
+void SoundManager::ReadStreamVanilla() {
     auto* const buffer = static_cast<std::uint8_t*>(streamBuffers[streamSpareBuffer]);
     const std::int32_t state = streamState;
     if (state == 0) {
@@ -448,7 +448,7 @@ void __stdcall SoundEndOfSample(miles::Sample* sample) {
     reinterpret_cast<SoundSlot*>(gameapi::AIL_sample_user_data(sample, 1))->finished = 1;
 }
 
-int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate) {
+int SoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate) {
     Destroy();   // Close
     const bool waveOut = options::g_options.audio == kWaveOutMode;
     int device = waveOut ? kWaveMapper : 0;
@@ -492,7 +492,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     return 1;
 }
 
-void CSoundManager::Close() {
+void SoundManager::Close() {
     if (streamThread != nullptr) {
         threadsQuit = 1;
         EndThread(streamThread);
@@ -526,7 +526,7 @@ void CSoundManager::Close() {
     Reset();
 }
 
-void CSoundManager::Reset() {
+void SoundManager::Reset() {
     waveDriver = nullptr;
     midiDriver = nullptr;
     ResetStream();

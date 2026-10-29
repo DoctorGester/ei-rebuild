@@ -120,7 +120,7 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
         float range = static_cast<float>(self->ScaledValue(distance));
         float targetRadius = static_cast<float>(object->Radius());
         float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
-        CWorldServer* server = &g_serverWorld;
+        WorldServer* server = &g_serverWorld;
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap.sectorMap.Remove(object);
         if (server->aiMap.FindPath(self, object->localPosition, &path, range, minDistance)) {
@@ -175,10 +175,10 @@ namespace {
 // How good `option` is against `candidate` (`group` the others it would hit or help): by kind, minus 25 per unit of
 // distance beyond the range (x10 outside kinds 0..4) when it reached `threshold`, minus twice the hits needed for
 // attacks. -1e30 when it cannot apply. Unrounded.
-double Score(const Vector3& from, CUnit* self, UnitList* group, CEngineObject* current, CUnit* candidate, float threshold,
+double Score(const Vector3& from, CUnit* self, UnitList* group, EngineObject* current, CUnit* candidate, float threshold,
              const AIAttackOption* option) {
     float score = candidate == current ? kCurrentBonus : 0.0f;
-    CUnitServer* control = candidate->ServerController();
+    UnitServer* control = candidate->ServerController();
     int others = std::ssize(*group) - 1;
     int cap = option->maxCount;
     std::uint32_t damage = 0;

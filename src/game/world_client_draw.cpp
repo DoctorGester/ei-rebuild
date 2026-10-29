@@ -1,4 +1,4 @@
-// CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and ObjectsDrawRadius
+// WorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and ObjectsDrawRadius
 // behind their flags. See world.h and docs/notes/world.md. Both set the renderer's render state
 // (render/render_state.h) and the scene pipeline's matrix stacks (g_sceneRenderer.pipeline) in the original's
 // order.
@@ -128,7 +128,7 @@ float Reload(float v) { return v; }
 int Ftol(float v) { return static_cast<int>(libcrt::Ftol(v)); }
 // The client world's time: (float)(int)tick + the tick's fraction, rounded once.
 float AnimationTime() {
-    const CWorldClient* world = &g_clientWorld;
+    const WorldClient* world = &g_clientWorld;
     return static_cast<float>(static_cast<double>(world->tick) + world->tickFraction);
 }
 
@@ -180,7 +180,7 @@ int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued) {
     return 1;
 }
 
-int CWorldClient::Render() {
+int WorldClient::Render() {
     render::RenderState& state = render::g_renderState;
     // The world view for the new renderer's render quality (multisampled, models sampled
     // anisotropically); the interface draws after it.
@@ -189,8 +189,8 @@ int CWorldClient::Render() {
     // by the camera (camera::FrameView).
     camera::TakeFrameView(&g_camera);
     const camera::ViewPose& drawn = camera::FrameView();
-    CTextureDevice* renderer = g_sceneRenderer.device;
-    CTransformPipeline* device = g_sceneRenderer.pipeline;
+    TextureDevice* renderer = g_sceneRenderer.device;
+    TransformPipeline* device = g_sceneRenderer.pipeline;
     UpdateLighting();
     // The sun the new renderer's shadow map is drawn from: the terrain's (Terrain::SetSun), as this
     // frame's lighting turned it; the GPU lighting's sun, ambient and point lights.
@@ -260,7 +260,7 @@ int CWorldClient::Render() {
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
         state.depthWrite = false;
-        CParticleManager* particles = ClientParticleManager();
+        ParticleManager* particles = ClientParticleManager();
         particles->DrawAll(&g_sceneRenderer);
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
@@ -289,16 +289,16 @@ int CWorldClient::Render() {
     return 1;
 }
 
-int CWorldClient::DrawLineLists() {
+int WorldClient::DrawLineLists() {
     for (auto& node : lineLists) node.second->Draw(g_sceneRenderer.pipeline, g_sceneRenderer.device);
     return 1;
 }
 
-int CWorldClient::DrawPass() {
+int WorldClient::DrawPass() {
     render::RenderState& state = render::g_renderState;
     terrain::Terrain* currentTerrain = terrain;
     if (!currentTerrain || !currentTerrain->mapLoaded) return 0;
-    CTransformPipeline* device = g_sceneRenderer.pipeline;
+    TransformPipeline* device = g_sceneRenderer.pipeline;
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
     g_deferredUnits.clear();
@@ -456,7 +456,7 @@ int CWorldClient::DrawPass() {
                 if (object->IsDead() == 0) {
                     Vector3 point;
                     point = object->localPosition;
-                    if (CFigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
+                    if (FigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
                         const float* at = object->PartWorldPosition(&scratch.x, part);
                         lib::LoadBytes(point, at);

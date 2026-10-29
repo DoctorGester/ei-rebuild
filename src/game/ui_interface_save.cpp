@@ -1,4 +1,4 @@
-// CInterface3D's saved state. See ui.h.
+// Interface3D's saved state. See ui.h.
 #include "ui.h"
 
 #include "core_streams.h"
@@ -17,8 +17,8 @@
 namespace {
 
 // The save stream: reads `size` bytes; version is the save's version.
-void Read(CStream* stream, void* to, int size) { stream->Read(to, static_cast<std::uint32_t>(size)); }
-int Version(const CStream* stream) { return static_cast<int>(stream->version); }
+void Read(ByteStream* stream, void* to, int size) { stream->Read(to, static_cast<std::uint32_t>(size)); }
+int Version(const ByteStream* stream) { return static_cast<int>(stream->version); }
 
 const char* const kMessageKeys[13] = {
     "lmp_player_connected",
@@ -38,7 +38,7 @@ const char* const kMessageKeys[13] = {
 
 } // namespace
 
-void CInterface3D::LoadState(CStream* stream) {
+void Interface3D::LoadState(ByteStream* stream) {
     stream->ReadValue(hudPanelsIn[0]);
     stream->ReadValue(hudPanelsIn[1]);
     stream->ReadValue(hudPanelsIn[2]);
@@ -68,17 +68,17 @@ void CInterface3D::LoadState(CStream* stream) {
 
 char g_pauseMessageKey[12] = /*007930EC*/ {"reserved_02"};
 
-std::string CInterface3D::MessageText(int id, const char* value) {
+std::string Interface3D::MessageText(int id, const char* value) {
     std::string key;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
-    key = g_clientWorld.texts->CTextManager::GetString(key);
+    key = g_clientWorld.texts->TextManager::GetString(key);
     if (value) return str::Format(key, value);
     return key;
 }
 
 // --- The saved state written -----------------------------------------------------------
 
-void CInterface3D::SaveState(CStream* stream) {
+void Interface3D::SaveState(ByteStream* stream) {
     for (std::uint8_t flag : hudPanelsIn) stream->WriteValue(flag);
     int value = hudBodyPart;
     stream->WriteValue(value);

@@ -13,7 +13,7 @@ constexpr int kHistory = 0x100;
 constexpr int kNoCommand = -1;
 } // namespace
 
-ConsoleWindow::ConsoleWindow(CInterface3D* newScreen) {
+ConsoleWindow::ConsoleWindow(Interface3D* newScreen) {
     screen = newScreen;
     surface = nullptr;
     commandIndex = kNoCommand;

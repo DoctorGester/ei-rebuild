@@ -1,4 +1,4 @@
-// The text manager's line reader (CTextManager, text_manager.h).
+// The text manager's line reader (TextManager, text_manager.h).
 // The game inlines the same few loops many times with small differences (the end test inline
 // or through IsPastEnd, the character code inline or through a helper); `Advance` below
 // reproduces each variant by its call pattern.
@@ -19,7 +19,7 @@ const char* const kComment = "##";
 const char* const kHeader = "#";
 
 // The cursor `p` is inside the text (signed compare, as every inlined test).
-bool Inside(const CTextManager* t, const char* p) {
+bool Inside(const TextManager* t, const char* p) {
     return static_cast<int>(p - t->text) < static_cast<int>(t->length);
 }
 
@@ -31,11 +31,11 @@ struct AdvanceKind {
     Test exit;      // the final test (cursor = p at the end, else just past the LF)
 };
 
-bool InsideBy(CTextManager* t, const char* p, Test test) {
+bool InsideBy(TextManager* t, const char* p, Test test) {
     return test == Test::Inline ? Inside(t, p) : !t->IsPastEnd(p);
 }
 
-void Advance(CTextManager* t, const AdvanceKind& kind) {
+void Advance(TextManager* t, const AdvanceKind& kind) {
     const char* p = t->cursor;
     if (!InsideBy(t, p, kind.entry)) return;
     while (InsideBy(t, p, kind.loopEnd) && *p != '\n') ++p;
@@ -55,7 +55,7 @@ bool IsComment(const std::string& word) {
 }
 
 // After a read: the cursor moves past the line, then past every "##" comment line.
-void SkipToNextLine(CTextManager* t) {
+void SkipToNextLine(TextManager* t) {
     Advance(t, kAfterRead);
     while (std::optional<std::string> word = t->PeekWord()) {
         if (!IsComment(*word)) break;
@@ -65,7 +65,7 @@ void SkipToNextLine(CTextManager* t) {
 
 } // namespace
 
-bool CTextManager::Open(std::string_view key) {
+bool TextManager::Open(std::string_view key) {
     if (text) {
         text = nullptr;
         cursor = nullptr;
@@ -77,7 +77,7 @@ bool CTextManager::Open(std::string_view key) {
     return line && length != 0;
 }
 
-bool CTextManager::OpenData(std::string_view key) {
+bool TextManager::OpenData(std::string_view key) {
     if (text) {
         text = nullptr;
         cursor = nullptr;
@@ -88,12 +88,12 @@ bool CTextManager::OpenData(std::string_view key) {
     return data && length != 0;
 }
 
-void CTextManager::Close() {
+void TextManager::Close() {
     text = nullptr;
     cursor = nullptr;
 }
 
-std::optional<std::string> CTextManager::PeekWord() {
+std::optional<std::string> TextManager::PeekWord() {
     const char* p = cursor;
     bool started = false;
     if (!Inside(this, p)) return std::nullopt;
@@ -112,7 +112,7 @@ std::optional<std::string> CTextManager::PeekWord() {
     return word;
 }
 
-bool CTextManager::NextLine() {
+bool TextManager::NextLine() {
     Advance(this, kInline);
     while (std::optional<std::string> word = PeekWord()) {
         if (!IsComment(*word)) return true;
@@ -121,7 +121,7 @@ bool CTextManager::NextLine() {
     return false;
 }
 
-std::string CTextManager::ReadLine(bool advance) {
+std::string TextManager::ReadLine(bool advance) {
     const char* p = cursor;
     std::string line;
     if (!Inside(this, p)) return line;
@@ -135,7 +135,7 @@ std::string CTextManager::ReadLine(bool advance) {
     return line;
 }
 
-std::string CTextManager::ReadToHash() {
+std::string TextManager::ReadToHash() {
     const char* p = cursor;
     std::string line;
     if (!Inside(this, p)) return line;
@@ -148,7 +148,7 @@ std::string CTextManager::ReadToHash() {
     return line;
 }
 
-std::vector<std::string> CTextManager::Split(bool advance) {
+std::vector<std::string> TextManager::Split(bool advance) {
     std::vector<std::string> words;
     std::string word;
     bool inWord = false;
@@ -182,7 +182,7 @@ std::vector<std::string> CTextManager::Split(bool advance) {
     return words;
 }
 
-bool CTextManager::FindHeader() {
+bool TextManager::FindHeader() {
     while (std::optional<std::string> word = PeekWord()) {
         bool header;
         {
@@ -195,7 +195,7 @@ bool CTextManager::FindHeader() {
     return false;
 }
 
-bool CTextManager::FindLine(std::string_view key) {
+bool TextManager::FindLine(std::string_view key) {
     const std::vector<std::string> keyWords = text::Split(key, ' ');
     if (keyWords.size() <= 1) {
         // One word: the line whose first word is the key.

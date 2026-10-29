@@ -49,7 +49,7 @@ void CMapObject::WriteChangedState() {
     flags &= ~MapObjectFlag::Changed;
 }
 
-std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
+std::uint32_t CMapObject::ReadState(int first, MemoryStream* reader) {
     DeltaState* state = &netState;
     state->BeginRead(first, reader);
     std::uint32_t result = ReadNetState(first);
@@ -65,8 +65,8 @@ std::string* CMapObject::SetSecondName(const char* text) {
 // --- The virtuals for the compiler's tables ----------------------------------------------------------------
 // The bodies above and in map_object*.cpp / object_small_slots.cpp, called without dispatch.
 
-void CMapObject::Load(CStream* stream) { LoadMapObject(stream); }
-void CMapObject::Save(CStream* stream) { SaveMapObject(stream); }
+void CMapObject::Load(ByteStream* stream) { LoadMapObject(stream); }
+void CMapObject::Save(ByteStream* stream) { SaveMapObject(stream); }
 bool CMapObject::InvisibleSlot() { return IsInvisible() != 0; }
 void CMapObject::EffectsChanged() {}
 bool CMapObject::IsSynchronised() { return Flag20000() != 0; }
@@ -97,7 +97,7 @@ Vector3* CMapObject::AimPoint(Vector3* out) {
 }
 bool CMapObject::IsLargeUnit() { return false; }
 bool CMapObject::IsDead() { return companion->IsDead(); }
-int CMapObject::ForgetObject(CEngineObject*) { return 0; }
+int CMapObject::ForgetObject(EngineObject*) { return 0; }
 void CMapObject::UpdateMoveFactors() {}
 void CMapObject::RefreshWounds() {}
 double CMapObject::MoveSpeed() { return kNoSpeed; }

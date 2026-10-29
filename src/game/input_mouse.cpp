@@ -1,4 +1,4 @@
-// The DirectInput mouse (CDirectInputMouse): set up at the application's start,
+// The DirectInput mouse (DirectInputMouse): set up at the application's start,
 // acquired with the window's activation and polled by the cursor. See ui_cursor.h.
 #define DIRECTINPUT_VERSION 0x0700
 #include "app.h"
@@ -64,7 +64,7 @@ int Reported(HRESULT result, const char* text) { return app::FatalErrorCode(resu
 
 void (*g_directInputObserver)(IDirectInput7A* input) = nullptr;
 
-const void* CDirectInputMouse::MouseDataFormat() {
+const void* DirectInputMouse::MouseDataFormat() {
     constexpr DWORD kOptional = 0x80000000;   // DIDFT_OPTIONAL (DirectInput 8's headers only)
     static DIOBJECTDATAFORMAT objects[] = {
         {&kGuidXAxis, 0, DIDFT_AXIS | DIDFT_ANYINSTANCE, 0},
@@ -80,7 +80,7 @@ const void* CDirectInputMouse::MouseDataFormat() {
     return &format;
 }
 
-int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
+int DirectInputMouse::Setup(HWND window, HINSTANCE instance) {
     void* newInput = nullptr;
     const auto create = SystemDirectInputCreate();
     HRESULT result = create ? create(instance, kInputVersion, kIidDirectInput7, &newInput, nullptr)
@@ -105,13 +105,13 @@ int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
     return 1;
 }
 
-void CDirectInputMouse::Shutdown() {
+void DirectInputMouse::Shutdown() {
     if (device) device->Unacquire();
     Drop(device);
     Drop(input);
 }
 
-int CDirectInputMouse::SetActive(bool active) {
+int DirectInputMouse::SetActive(bool active) {
     if (!device) return 0;
     if (active) {
         HRESULT result = device->Acquire();
@@ -122,7 +122,7 @@ int CDirectInputMouse::SetActive(bool active) {
     return 1;
 }
 
-const LONG* CDirectInputMouse::Poll() {
+const LONG* DirectInputMouse::Poll() {
     static_assert(sizeof(state) == sizeof(DIMOUSESTATE));
     if (device->GetDeviceState(sizeof(state), state) < 0) std::memset(state, 0, sizeof(state));
     return state;

@@ -14,9 +14,9 @@
 #include <vector>
 #include <windows.h>
 
-class CInterface3D;
-class CUiContainer;
-class CUiSurface;
+class Interface3D;
+class UiContainer;
+class UiSurface;
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }
 namespace lib { class TextFile; }
 
@@ -100,8 +100,8 @@ inline bool g_cheatEnabled = /*007C7B64*/ {};
 // the surface is redrawn from them.
 class ConsoleWindow {
 public:
-    // Made by CInterface3D::Create: a 9-point "Courier New" font, the rectangle (0, 0)-(800, 150), a 256-line history.
-    explicit ConsoleWindow(CInterface3D* screen);
+    // Made by Interface3D::Create: a 9-point "Courier New" font, the rectangle (0, 0)-(800, 150), a 256-line history.
+    explicit ConsoleWindow(Interface3D* screen);
     // The surface and the font deleted; called by the interface's shutdown.
     ~ConsoleWindow();
     ConsoleWindow(const ConsoleWindow&) = delete;
@@ -121,8 +121,8 @@ public:
     // Keeps the last `count` lines.
     void DropOldLines(int count);
 
-    CInterface3D* screen;            // the 3D interface (its width and height in pixels)
-    CUiSurface* surface;             // while shown
+    Interface3D* screen;            // the 3D interface (its width and height in pixels)
+    UiSurface* surface;             // while shown
     UiFont font;                     // the console's text
     std::vector<std::string> commands;    // commands entered (input history), the newest first
     int commandIndex;                // the one shown by up/down (-1 or size: none)
@@ -169,7 +169,7 @@ void RegisterAddonCommands();
 // What RegisterAddonCommands puts in the maps, in its order ("help" replaces the game's, which
 // addon's own "help" calls first).
 extern const CommandRegistration kAddonCommandRegistrations[6];
-void ApplyAddonGuiVisibility(CUiContainer* screen);
+void ApplyAddonGuiVisibility(UiContainer* screen);
 void RunAddonAutoExec();
 // A console line split at spaces (a token in double quotes keeps its spaces and quotes).
 std::vector<std::string> Tokenize(std::string_view text);

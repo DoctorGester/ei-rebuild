@@ -1,4 +1,4 @@
-// The battle HUD's party portraits, built when the party changes: CHudPortraits::Rebuild
+// The battle HUD's party portraits, built when the party changes: HudPortraits::Rebuild
 // drops the old sprites and regions and adds one portrait per party unit (and, in a multiplayer
 // client, per player without a live unit) through AddPortrait; ShowFace copies
 // a face picture into the portrait's quarter of a face texture. See ui.h and docs/notes/items_spells.md.
@@ -41,7 +41,7 @@ void SexOf(const std::string& figure, std::string& sex) {
 
 } // namespace
 
-void CHudPortraits::ShowFace(int index, int state) {
+void HudPortraits::ShowFace(int index, int state) {
     int u;
     int v;
     switch (index % 4) {
@@ -63,7 +63,7 @@ void CHudPortraits::ShowFace(int index, int state) {
         CopyImage(objects[texture], slots[index].faceName, 0x80, 0x80, 0x80, 0x80, u, v);
 }
 
-void CHudPortraits::AddPortrait(const std::string& model, std::string_view picture, bool wide, bool hasPlayer) {
+void HudPortraits::AddPortrait(const std::string& model, std::string_view picture, bool wide, bool hasPlayer) {
     // EI_Plugin's NPlayers: max(players, 7) portraits to a row instead of 6.
     const int perRow = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers)
                            ? (ei::rebirth::PluginNPlayers() < 7 ? 7 : ei::rebirth::PluginNPlayers())
@@ -81,7 +81,7 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     CopyImage(objects[std::ssize(objects) - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v);
     slots.emplace_back();    // identity orientations, empty strings
     slots[count].hasPlayer = hasPlayer;
-    CUiMesh* face = AddSprite(model);
+    UiMesh* face = AddSprite(model);
 
     int x;
     int width;
@@ -125,21 +125,21 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
 
     // The health and mana bars (hidden for a player), the frame and the hit flash.
     const float barScale = static_cast<float>(right - x - 6);
-    CUiMesh* health = AddBlankSprite();
+    UiMesh* health = AddBlankSprite();
     health->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 587.0f, static_cast<float>(right - 3), 592.0f, 9, 9,
                          0x49, 0x16);
     health->texture = objects[0];
     if (hasPlayer) health->visible = false;
-    CUiMesh* mana = AddBlankSprite();
+    UiMesh* mana = AddBlankSprite();
     mana->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 592.0f, static_cast<float>(right - 3), 597.0f, 9, 0x23,
                        0x49, 0x30);
     mana->texture = objects[0];
     if (hasPlayer) mana->visible = false;
-    CUiMesh* frame = AddBlankSprite();
+    UiMesh* frame = AddBlankSprite();
     frame->SetFrame(20.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 3.0f, 0x1B, 0x60, 0x5A,
                     0x65);
     frame->texture = objects[0];
-    CUiMesh* flash = AddBlankSprite();
+    UiMesh* flash = AddBlankSprite();
     flash->SetRectangle(22.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 0, 0, 0x100,
                         0x100);
     flash->texture = nullptr;
@@ -152,7 +152,7 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     AddRegion()->SetRect(x, 510, right, 600);
 }
 
-void CHudPortraits::Rebuild(bool wide) {
+void HudPortraits::Rebuild(bool wide) {
     ClearSceneObjects();
     ClearRegions();
     while (std::ssize(objects) > 1) RemoveObjectAt(1);
@@ -204,7 +204,7 @@ void CHudPortraits::Rebuild(bool wide) {
     if (!IsMultiplayerClient()) return;
     for (auto node = net::g_gameClient->players.begin(); node != net::g_gameClient->players.end(); ++node) {
         auto* player = node->Get();
-        CEngineObject* unit = nullptr;
+        EngineObject* unit = nullptr;
         if (player->id >= 0) unit = g_clientWorld.FindUnit(player->id);
         if (player->state == 0 && player->id >= 0 && unit) continue;
 

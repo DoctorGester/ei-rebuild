@@ -49,12 +49,12 @@ std::vector<std::uint32_t> ReadPixels(int width, int height, const std::uint8_t*
 // the surface's rows; here the rows and pixels past it are left out); a failed open of the alpha
 // file is silent. No texture format: the error for a surface that cannot be made (the staging
 // surface's: sizes zero) ends the game.
-int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath) {
+int CTexture::LoadBmpFiles(TextureDevice* device, const char* path, const char* alphaPath) {
     if (flags & TextureFlag::Loaded) return 1;
     lib::File file;
     lib::File alphaFile;
-    CDib colour;
-    CDib alpha;
+    Dib colour;
+    Dib alpha;
     if (!file.Open(path, lib::File::modeRead)) {
         game::DebugLog(CantLoadText(), GetName());
         return 0;

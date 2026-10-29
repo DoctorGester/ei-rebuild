@@ -15,13 +15,13 @@
 namespace {
 
 // Each object's counted reference (its id) of a memory list.
-void SaveObjectList(const HeldUnits& list, CStream* stream) {
+void SaveObjectList(const HeldUnits& list, ByteStream* stream) {
     stream->WriteValue(static_cast<std::int32_t>(list.size()));
     for (const HeldRef<CUnit>& unit : list) SaveRef(unit, stream);
 }
 } // namespace
 
-void LoadLooks(std::vector<AILook>* looks, CStream* stream) {
+void LoadLooks(std::vector<AILook>* looks, ByteStream* stream) {
     int count;
     stream->ReadValue(count);
     looks->resize(count);
@@ -33,7 +33,7 @@ void LoadLooks(std::vector<AILook>* looks, CStream* stream) {
     }
 }
 
-void SaveLooks(const std::vector<AILook>* looks, CStream* stream) {
+void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream) {
     stream->WriteValue(static_cast<std::int32_t>(looks->size()));
     for (const AILook& look : *looks) {
         stream->WriteValue(look.angle);
@@ -43,7 +43,7 @@ void SaveLooks(const std::vector<AILook>* looks, CStream* stream) {
     }
 }
 
-void AIMemory::Load(CStream* stream) {
+void AIMemory::Load(ByteStream* stream) {
     noticedDecay = -1;
     CountedListLoad(&nearby, stream, &g_serverWorld);
     CountedListLoad(&visible, stream, &g_serverWorld);
@@ -72,7 +72,7 @@ void AIMemory::Load(CStream* stream) {
     stream->ReadValue(noticedDecay);
 }
 
-void AIMemory::Save(CStream* stream) {
+void AIMemory::Save(ByteStream* stream) {
     SaveObjectList(nearby, stream);
     SaveObjectList(visible, stream);
     SaveObjectList(seenCorpses, stream);

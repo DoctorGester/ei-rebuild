@@ -23,7 +23,7 @@ constexpr int kTopicQuickItem = 3;
 constexpr int kTopicEntry = 1;
 
 // `item`'s place in `list`, or -1.
-int IndexIn(const std::vector<CItem*>& list, const CItem* item) {
+int IndexIn(const std::vector<Item*>& list, const Item* item) {
     auto found = std::ranges::find(list, item);
     return found == list.end() ? -1 : static_cast<int>(found - list.begin());
 }
@@ -32,24 +32,24 @@ int IndexIn(const std::vector<CItem*>& list, const CItem* item) {
 
 // --- the shown entries ---------------------------------------------------------------------------
 
-void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
+void HeroEquipPanel::ShowWeapon(Item* weapon) {
     PartyUnitRecord* hero = owner->HeroRecord();
     hero->weaponIndex = static_cast<std::uint32_t>(IndexIn(hero->weapons, weapon));
 }
 
-void CHeroEquipPanel::ShowQuickItem(CItem* item) {
+void HeroEquipPanel::ShowQuickItem(Item* item) {
     PartyUnitRecord* hero = owner->HeroRecord();
     selected = IndexIn(hero->quickItems, item);
 }
 
-void CHeroQuickStrip::ShowEntry(CItem* item) {
+void HeroQuickStrip::ShowEntry(Item* item) {
     PartyUnitRecord* hero = owner->HeroRecord();
     selected = IndexIn(hero->spells, item);
 }
 
 // --- the equipment panel's right button ----------------------------------------------------------
 
-void CHeroEquipPanel::RightDown(int, int x, int y) {
+void HeroEquipPanel::RightDown(int, int x, int y) {
     if (!body || !enabled) return;
     int region = RegionAt(x, y);
     if (region < 0) return;
@@ -63,7 +63,7 @@ void CHeroEquipPanel::RightDown(int, int x, int y) {
 
 // --- the item under a point ----------------------------------------------------------------------
 
-CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
+Item* HeroEquipPanel::ItemAt(int x, int y, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
     int region = RegionAt(x, y);
@@ -80,13 +80,13 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     if (!body || region < kFirstBodySlot || region >= kBodySlotEnd) return nullptr;
     *topic = region - 4;
     for (int i = 0; i < std::ssize(hero->armor); ++i) {
-        CItemArmor* armour = AsArmor(hero->armor[i]);
+        ItemArmor* armour = AsArmor(hero->armor[i]);
         if (armour->GetType() == region - kFirstBodySlot) return armour;
     }
     return nullptr;
 }
 
-CItem* CHeroQuickStrip::ItemAt(int x, int atY, int* topic) {
+Item* HeroQuickStrip::ItemAt(int x, int atY, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
     int region = RegionAt(x, atY);

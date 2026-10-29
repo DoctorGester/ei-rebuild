@@ -18,14 +18,14 @@
 #include <string>
 #include <vector>
 
-class CConstructorPage;
-class CGlobalMapClouds;
-class CHeroEquipPanel;
-class CHeroQuickStrip;
-class CHeroStatsPanel;
-class CRepairGrid;
-class CSpellMakerPage;
-class CTradeGrid;
+class ConstructorPage;
+class GlobalMapClouds;
+class HeroEquipPanel;
+class HeroQuickStrip;
+class HeroStatsPanel;
+class RepairGrid;
+class SpellMakerPage;
+class TradeGrid;
 
 // The hero panel's seven body slots' centres (800 x 600 layout).
 inline constexpr int kBodySlotX[7] = /*00741EC4*/ {250, 250, 250, 550, 550, 550, 550};
@@ -72,10 +72,10 @@ struct GlobalMapStep {
     int exit;
 };
 
-class CGlobalMap : public CUiContainer {
+class GlobalMap : public UiContainer {
 public:
-    using CUiContainer::CUiContainer;
-    void Draw(CSceneRenderer* pass) override;   // the container's, blended
+    using UiContainer::UiContainer;
+    void Draw(SceneRenderer* pass) override;   // the container's, blended
     // The clouds and the backdrop freed, the wind stopped.
     void CloseScreen() override;
     // One zero dword.
@@ -123,7 +123,7 @@ public:
     // Ends a turn by a turn button.
     void LeftUp(int buttons, int x, int y) override;
     // Zones, then quests, then links, then the three layers.
-    CUiMesh* Marker(int index) const { return SceneMesh(3 + index); }
+    UiMesh* Marker(int index) const { return SceneMesh(3 + index); }
     // Scene objects 0..2 and those after the zone markers.
     void ShowAllButZones(bool visible);
     // Zones + quests + links: the layers and the rest follow them.
@@ -150,8 +150,8 @@ public:
     float centreX = 400.0f;          // layout
     float centreY = 280.0f;
     bool selectPending = false;      // the zone selection is refreshed on the next update
-    CUiSurface* backdrop = nullptr; // a full-screen surface (not in the surface list)
-    CGlobalMapClouds* weather = nullptr;
+    UiSurface* backdrop = nullptr; // a full-screen surface (not in the surface list)
+    GlobalMapClouds* weather = nullptr;
     bool dragging = false;           // the map is turned with the mouse
     POINT dragStart{};               // where the drag began (layout)
     float dragAngle = 0.0f;          // angle when the drag began
@@ -187,9 +187,9 @@ struct TradeStatsRecord {
     bool bought = false;             // something was bought on the panel since the snapshot
 };
 
-class CTradePanel : public CUiItemPanel {
+class TradePanel : public UiItemPanel {
 public:
-    CTradePanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {}
+    TradePanel(Interface3D* ui, ItemScreen* owner) : UiItemPanel(ui, owner) {}
     // One statistics record per party member; the selected record -1.
     void Build() override;
     // The schools, the held perks (a level byte per group of three skill records) and every first-level perk
@@ -250,9 +250,9 @@ public:
 // The camp: the party's equipment, trade, repair and the item and spell constructors, with three item
 // strips; also opened by the multiplayer hero screen for a hero's inventory. Pages: 0 equipment, 1 trade, 2
 // spell constructor, 3 its second page, 4 item constructor, 5 and 6 its other pages, 7 leave the camp.
-class CCampPages : public CItemScreen {
+class CampPages : public ItemScreen {
 public:
-    CCampPages(CInterface3D* ui, bool newFromHeroScreen) : CItemScreen(ui), fromHeroScreen(newFromHeroScreen) {}
+    CampPages(Interface3D* ui, bool newFromHeroScreen) : ItemScreen(ui), fromHeroScreen(newFromHeroScreen) {}
     // Hands the local player's unit records back (their ids were raised by 100000000 for the call) and
     // deletes the constructors' part lists except the first of each.
     void CloseScreen() override;
@@ -261,7 +261,7 @@ public:
     // What an item strip or a panel calls with its action mode: 0 off the hero, 1 PutOnFromStrip, 2 / 3 into
     // a constructor's slots, 4 / 5 out of a constructor's trade lists, 6 / 7 out of the makers' slots, 8 out
     // of itemExtra. Refused by CanEquip: the cancel sound.
-    void TakeItem(CItem* item, int mode) override;
+    void TakeItem(Item* item, int mode) override;
     // Camp page `page` (1-21).
     void TopicClicked(int page) override;
     // Not checked.
@@ -281,7 +281,7 @@ public:
     PartyUnitRecord* HeroRecord() override;
     // Whether `item` may go where the strip with action `mode` puts it on the current page (for the
     // constructors: the best hero's skill and mana, at most eight modifiers, matching blueprints).
-    bool CanEquip(CItem* item, int mode) override;
+    bool CanEquip(Item* item, int mode) override;
     // The page's action and its cost against the money (experience on the trade page).
     void UpdateAction();
     // Keeps what the constructor makes in spellMade (itemMade); true when it can be made.
@@ -291,18 +291,18 @@ public:
     // repair cost of their wear. A repair (kind 8) costs at least 1, or 0 for an unworn item. Rebirth's
     // FixRepairPrice clamps the wear to [0, 1] and adds the repair cost instead of subtracting it when an
     // item is taken apart (kind 7).
-    int Price(CItem* item, int kind) override;
+    int Price(Item* item, int kind) override;
     // Also finds what is under the mouse for the description panel.
-    void Draw(CSceneRenderer* pass) override;
+    void Draw(SceneRenderer* pass) override;
     // A weapon, armour, quick item or spell container off the current hero into the player's items (whose
     // result it returns; null for other kinds).
-    CItem* TakeOff(CItem* item);
+    Item* TakeOff(Item* item);
     // A weapon (at most 4), armour (the same body part's taken off first), a quick item (at most 4) or a
     // spell container (at most 8). Other kinds and full slots do nothing.
-    void PutOn(CItem* item);
+    void PutOn(Item* item);
     // Pages 0 / 1 put the item on the hero; the others move it into the page's slots (with Shift and a
     // material the whole stack).
-    void PutOnFromStrip(CItem* item);
+    void PutOnFromStrip(Item* item);
     void RefreshWeapons() override;
     void RefreshStats() override;
     // The hero preview turns while a turn button is held.
@@ -348,25 +348,25 @@ public:
     CParty* itemExtra = nullptr;
     CParty* spellParts[3] = {};
     CParty* spellResults = nullptr;
-    CHeroStatsPanel* statsPanel = nullptr;
-    CItemInfoPanel* helpPanel = nullptr;
-    CUiItemStrip* itemStrip = nullptr;
-    CHeroEquipPanel* equipment = nullptr;
-    CHeroQuickStrip* equipment2 = nullptr;
-    CUiItemStrip* spellStrip = nullptr;
-    CUiItemStrip* partStrip = nullptr;
-    CTradePanel* trade = nullptr;
-    CTradeGrid* spellConstructor1 = nullptr;
-    CSpellMakerPage* spellConstructor2 = nullptr;
-    CTradeGrid* itemConstructor1 = nullptr;
-    CConstructorPage* itemConstructor2 = nullptr;
-    CRepairGrid* itemConstructor3 = nullptr;
+    HeroStatsPanel* statsPanel = nullptr;
+    ItemInfoPanel* helpPanel = nullptr;
+    UiItemStrip* itemStrip = nullptr;
+    HeroEquipPanel* equipment = nullptr;
+    HeroQuickStrip* equipment2 = nullptr;
+    UiItemStrip* spellStrip = nullptr;
+    UiItemStrip* partStrip = nullptr;
+    TradePanel* trade = nullptr;
+    TradeGrid* spellConstructor1 = nullptr;
+    SpellMakerPage* spellConstructor2 = nullptr;
+    TradeGrid* itemConstructor1 = nullptr;
+    ConstructorPage* itemConstructor2 = nullptr;
+    RepairGrid* itemConstructor3 = nullptr;
     int cost = 0;                    // what the action costs (negative: earns)
     bool actionEnabled = false;      // the action button can be pressed
     bool actionShown = false;
     bool deconstructing = false;     // the constructor takes an item apart
-    Ref<CItem> itemMade;             // the item the item constructor would make, or null
-    Ref<CItem> spellMade;            // the spell container the spell constructor would make, or null
+    Ref<Item> itemMade;             // the item the item constructor would make, or null
+    Ref<Item> spellMade;            // the spell container the spell constructor would make, or null
     float priceWeights[9] = {};      // ClassTemplate::weights
     std::vector<std::string> pageTitles;    // the seven pages' titles and "quit"
     bool noConstructor = false;      // the player's "i.noconstr" = 1: second pages hidden
@@ -376,9 +376,9 @@ public:
 
 // --- Hero statistics panel ---
 // The statistics column of the camp and the multiplayer hero screen.
-class CHeroStatsPanel : public CUiItemPanel {
+class HeroStatsPanel : public UiItemPanel {
 public:
-    using CUiItemPanel::CUiItemPanel;
+    using UiItemPanel::UiItemPanel;
     // Page 0 the body parts and the weapon, 10 the new hero's points with -/+ buttons, others the plain
     // values.
     void ShowStats(int page);
@@ -421,70 +421,70 @@ public:
 
 // --- Hero equipment panel ---
 // The eight quick slots along the top, and in the camp the body with its seven equipment slots.
-class CHeroEquipPanel : public CUiItemPanel {
+class HeroEquipPanel : public UiItemPanel {
 public:
-    using CUiItemPanel::CUiItemPanel;
-    void Draw(CSceneRenderer* pass) override;
+    using UiItemPanel::UiItemPanel;
+    void Draw(SceneRenderer* pass) override;
     // With `body` (the camp) the panel is 500 high with the seven body slots.
     void Build(bool body);
     // The place in the hero's weapon list, or -1.
-    void ShowWeapon(CItem* weapon);
+    void ShowWeapon(Item* weapon);
     // The place in the hero's quick item list, or -1.
-    void ShowQuickItem(CItem* item);
+    void ShowQuickItem(Item* item);
     // On the camp's body: a right click on a filled weapon slot (of the first four) shows that weapon. The
     // event is not marked used.
     void RightDown(int buttons, int x, int y) override;
     // Regions 0-3 the weapons (topic 2), 4-7 the quick items from the right (3), body regions 8-14 the armour
     // worn at body part region - 8 (topic region - 4).
-    CItem* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(int x, int y, int* topic) override;
 
     bool body = false;
     int selected = -1;
 };
 
 // The 4 x 4 grid of item cells on the constructors' first pages.
-class CTradeGrid : public CUiItemPanel {
+class TradeGrid : public UiItemPanel {
 public:
-    using CUiItemPanel::CUiItemPanel;
-    void Draw(CSceneRenderer* pass) override;
+    using UiItemPanel::UiItemPanel;
+    void Draw(SceneRenderer* pass) override;
     // `spells` chooses the price kinds (0/1 for the spell constructor, 4/5 for the item one); the
     // exchange window's grid (`exchange`) shows no prices.
-    void Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, bool spells, bool exchange);
+    void Build(std::vector<Item*>* bought, std::vector<Item*>* sold, bool spells, bool exchange);
     // Regions 0-7 the bought list (topic 0x1C on the exchange window, else 0x0B for the item constructor,
     // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12).
-    CItem* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(int x, int y, int* topic) override;
 
-    std::vector<CItem*>* bought = nullptr;
-    std::vector<CItem*>* sold = nullptr;
+    std::vector<Item*>* bought = nullptr;
+    std::vector<Item*>* sold = nullptr;
     int buyKind = 0;
     int sellKind = 0;
     bool exchange = false;
 };
 
 // The repair page's grid: the same cells as the trade grid with textures repair1..4.
-class CRepairGrid : public CUiItemPanel {
+class RepairGrid : public UiItemPanel {
 public:
-    using CUiItemPanel::CUiItemPanel;
-    void Build(std::vector<CItem*>* items);
+    using UiItemPanel::UiItemPanel;
+    void Build(std::vector<Item*>* items);
     // Each item's model in its cell (depth 2^(3 - row) * 6), its count and its repair price.
-    void Draw(CSceneRenderer* pass) override;
+    void Draw(SceneRenderer* pass) override;
     // Topic 0x19 on the 16 cells.
-    CItem* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(int x, int y, int* topic) override;
 
-    std::vector<CItem*>* items = nullptr;
+    std::vector<Item*>* items = nullptr;
 };
 
 // The quick item strip of the hero panels: eight cells along the top (camp) or the bottom of the screen.
-class CHeroQuickStrip : public CUiItemPanel {
+class HeroQuickStrip : public UiItemPanel {
 public:
-    using CUiItemPanel::CUiItemPanel;
+    using UiItemPanel::UiItemPanel;
     // At y 0 (`top`) or 500.
     void Build(bool top);
     // The place in the hero's spell list, or -1.
-    void ShowEntry(CItem* item);
+    void ShowEntry(Item* item);
     // The hero's spell list entry (topic 1).
-    CItem* ItemAt(int x, int y, int* topic) override;
-    void Draw(CSceneRenderer* pass) override;
+    Item* ItemAt(int x, int y, int* topic) override;
+    void Draw(SceneRenderer* pass) override;
 
     int y = 0;
     int selected = -1;
@@ -492,30 +492,30 @@ public:
 
 // The constructors' second pages: the spell maker and the item maker: the slots of what is being made beside
 // a 2 x 4 grid.
-class CConstructorPage : public CUiItemPanel {
+class ConstructorPage : public UiItemPanel {
 public:
-    using CUiItemPanel::CUiItemPanel;
+    using UiItemPanel::UiItemPanel;
     void BuildItemMaker(CParty* slots);
     // Without a blueprint or a container, a pulsing highlight shows where the next part goes.
-    void Draw(CSceneRenderer* pass) override;
+    void Draw(SceneRenderer* pass) override;
     // Region 0 the first item that can be taken apart (0xD), 1 the first part (0xE), 2 the first spell
     // container (0x10), from 3 material region - 3 (0xF).
-    CItem* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(int x, int y, int* topic) override;
 
     CParty* slots = nullptr;
     float pulse = 0.0f;              // the highlight's time
 };
-class CSpellMakerPage : public CConstructorPage {
+class SpellMakerPage : public ConstructorPage {
 public:
-    using CConstructorPage::CConstructorPage;
+    using ConstructorPage::ConstructorPage;
     // Region 0 the first spell container (topic 0x13), 1 the first spell (0x14), 2-9 modifier region - 2
     // (0x15), 10 / 11 the cost lines (0x1A / 0x1B, no item).
-    CItem* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(int x, int y, int* topic) override;
     void BuildSpellMaker(CParty* slots);
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed
     // and the last spell's mana>)" with a spell. Without a container, a pulsing highlight shows where the
     // next part goes.
-    void Draw(CSceneRenderer* pass) override;
+    void Draw(SceneRenderer* pass) override;
 
     std::vector<std::string> texts; // the cost texts ("infoitem_35", "infoitem_36")
 };

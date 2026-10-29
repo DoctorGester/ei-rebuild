@@ -18,7 +18,7 @@
 
 #include <concepts>
 
-void CHudTopPanel::Setup(int newPage, bool shown) {
+void HudTopPanel::Setup(int newPage, bool shown) {
     rect.left = 0xB4;
     offset = shown ? 0x5F : 0;
     rect.top = 0;
@@ -29,7 +29,7 @@ void CHudTopPanel::Setup(int newPage, bool shown) {
     travel = 0x5F;
     slideDirection = shown ? 1.0f : -1.0f;
 
-    CUiRegion* region = AddRegion();
+    UiRegion* region = AddRegion();
     region->SetRect(0x181, 0, 0x19F, 0x14);   // the slide button
     region->SetTip(0x27D8);
     region = AddRegion();
@@ -40,18 +40,18 @@ void CHudTopPanel::Setup(int newPage, bool shown) {
     region->SetTip(0x27DA, 0x33);
     AddRegion()->SetRect(0xB4, 0, 0x26C, 100);
 
-    CUiMesh* back = AddBlankSprite();
+    UiMesh* back = AddBlankSprite();
     back->SetRectangle(20.0f, 100.0f, 180.0f, 20.0f, 620.0f, 95.0f, 0, 0, 0x100, 0x100);
     back->texture = nullptr;
     back->flags |= FigureMeshFlag::Flat;
     back->flatColour = 0x50000000;
-    CUiMesh* bar = AddBlankSprite();
+    UiMesh* bar = AddBlankSprite();
     bar->SetRectangle(20.0f, 100.0f, 180.0f, 0.0f, 620.0f, 20.0f, 0, 0, 0x100, 0x100);
     bar->texture = nullptr;
     bar->flags |= FigureMeshFlag::Flat;
     bar->flatColour = 0xB4000000;
 
-    CUiMesh* arrow = AddSprite("in25arrow");
+    UiMesh* arrow = AddSprite("in25arrow");
     arrow->textureOffsetU = 0.22265625f;
     arrow->textureOffsetV = 0.140625f;
     Quaternion turn;
@@ -68,7 +68,7 @@ void CHudTopPanel::Setup(int newPage, bool shown) {
     Layout();
 }
 
-void CHudTopPanel::AddPickedUp(CItem* item, bool crippled) {
+void HudTopPanel::AddPickedUp(Item* item, bool crippled) {
     std::string name;
     std::string kind;
     name = g_clientWorld.texts->FormatItemName(item);
@@ -83,7 +83,7 @@ void CHudTopPanel::AddPickedUp(CItem* item, bool crippled) {
     if (page == 0) owner->messageLog->AddText(name);
 }
 
-void CHudTopPanel::AddMoney(int money) {
+void HudTopPanel::AddMoney(int money) {
     if (money <= 0) return;
     std::string text;
     std::string picked;

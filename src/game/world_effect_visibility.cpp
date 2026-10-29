@@ -1,4 +1,4 @@
-// CEffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
+// EffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
 // and docs/notes/effects.md ("Missiles and visibility").
 #include "ai_map.h"
 #include "map_object.h"
@@ -11,20 +11,20 @@
 
 #include <cstring>
 
-CEffectShowVisibility::CEffectShowVisibility() {
+EffectShowVisibility::EffectShowVisibility() {
     grid.cells.Resize(1, 1);
     observerId = -1;
     seerId = -1;
 }
 
 // The destructor body resets twice (inline, then the virtual); the grid frees itself.
-CEffectShowVisibility::~CEffectShowVisibility() {
+EffectShowVisibility::~EffectShowVisibility() {
     Reset();
     Reset();
 }
 
 // The base is not reset: only the grid (taken out of the fog first), the units and the fog.
-void CEffectShowVisibility::Reset() {
+void EffectShowVisibility::Reset() {
     grid.Clear();
     if (fog != nullptr) fog->Reveal(&grid);
     observerId = -1;
@@ -32,34 +32,34 @@ void CEffectShowVisibility::Reset() {
     fog.Reset();
 }
 
-void CEffectShowVisibility::SetUnits(int newObserverId, int newSeerId) {
+void EffectShowVisibility::SetUnits(int newObserverId, int newSeerId) {
     observerId = newObserverId;
     seerId = newSeerId;
 }
 
-void CEffectShowVisibility::Start(int update) {
+void EffectShowVisibility::Start(int update) {
     if (update == 0) {
-        auto* created = static_cast<CVisibilityFog*>(VisFogManagerAdd(g_clientWorld.arrayManager));
+        auto* created = static_cast<VisibilityFog*>(VisFogManagerAdd(g_clientWorld.arrayManager));
         fog.Assign(created);
     }
     if (fog != nullptr) fog->Reveal(&grid);
 }
 
-int CEffectShowVisibility::Unpack(int update, DeltaField* field) {
-    CMemoryStream stream;
+int EffectShowVisibility::Unpack(int update, DeltaField* field) {
+    MemoryStream stream;
     if (field->ReadStream(&stream) == 0) return 0;
     grid.Read(&stream);
     Start(update);
     return 1;
 }
 
-void CEffectShowVisibility::Pack(DeltaField* field) {
-    CMemoryStream stream;
+void EffectShowVisibility::Pack(DeltaField* field) {
+    MemoryStream stream;
     grid.Write(&stream);
     field->WriteStreamBoth(&stream);
 }
 
-bool CEffectShowVisibility::RunTick() {
+bool EffectShowVisibility::RunTick() {
     if (!WorldContext()->IsServer()) return true;
     CUnit* seer = World()->FindUnit(seerId);
     CUnit* observer = World()->FindUnit(observerId);
@@ -71,12 +71,12 @@ bool CEffectShowVisibility::RunTick() {
     return true;
 }
 
-void CEffectShowVisibility::Load(CStream* s) {
+void EffectShowVisibility::Load(ByteStream* s) {
     s->ReadValue(observerId);
     s->ReadValue(seerId);
 }
 
-void CEffectShowVisibility::Save(CStream* s) {
+void EffectShowVisibility::Save(ByteStream* s) {
     int copy = observerId;
     s->WriteValue(copy);
     copy = seerId;

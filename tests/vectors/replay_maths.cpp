@@ -186,9 +186,9 @@ EI_VECTOR_CHECK("Quaternion::ToMatrix", ToMatrixCall, CheckToMatrix);
 
 bool CheckPush(const PushMatrixCall& v, char* d, std::size_t n) {
     // A pipeline of raw bytes (never constructed): only its stack 0 is used.
-    alignas(4) static unsigned char storage[sizeof(CTransformPipeline)];
+    alignas(4) static unsigned char storage[sizeof(TransformPipeline)];
     std::memset(storage, 0, sizeof(storage));
-    auto* pipeline = reinterpret_cast<CTransformPipeline*>(storage);
+    auto* pipeline = reinterpret_cast<TransformPipeline*>(storage);
     MatrixStack& stack = pipeline->stacks[0];
     Matrix4* matrices = stack.matrices.data();
     stack.count = v.empty ? 0 : 1;

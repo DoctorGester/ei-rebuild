@@ -1,4 +1,4 @@
-// The camp's Create (CCampPages). Rebirth's WideScreen replaces the function with the game's version followed
+// The camp's Create (CampPages). Rebirth's WideScreen replaces the function with the game's version followed
 // by two curtain sprites over the screen's margins (widescreen::AddCurtains), which this reproduces; nothing
 // in our code calls it but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "app.h"
@@ -43,7 +43,7 @@ constexpr std::uint32_t kRecordBias = 100000000;   // added to the records' ids 
 constexpr SkillAnimation kIdleAnimation = SkillAnimation::Special14;    // what the heroes play in the camp
 constexpr int kPriceWeights = 9;
 
-// The pages (CCampPages::page) and the strips' action modes.
+// The pages (CampPages::page) and the strips' action modes.
 constexpr int kPageEquipment = 0;
 constexpr int kPageSpellConstructor = 2;
 constexpr int kPageItemConstructor = 4;
@@ -55,8 +55,8 @@ constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 // unordered result (a NaN variable) as equal.
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f; }
 
-CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    return new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
+UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
+    return new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
 }
 
 // An item list of the constructors: made through its factory (not checked).
@@ -73,12 +73,12 @@ double FramesNow() {
 
 } // namespace
 
-void CCampPages::CreateScreen() {
+void CampPages::CreateScreen() {
     BuildPages();
     widescreen::AddCurtains(this, 1);
 }
 
-void CCampPages::BuildPages() {
+void CampPages::BuildPages() {
     spellConstructor = false;
     itemConstructor = false;
     spellParts[0] = nullptr;
@@ -108,7 +108,7 @@ void CCampPages::BuildPages() {
     // The regions: the two action buttons, the two hero turn areas, the eight page buttons (a
     // page the camp does not offer has no tip).
     auto region = [this](int left, int top, int right, int bottom, int tip) {
-        CUiRegion* added = AddRegion();
+        UiRegion* added = AddRegion();
         added->SetRect(left, top, right, bottom);
         if (tip) added->SetTip(tip);
     };
@@ -127,7 +127,7 @@ void CCampPages::BuildPages() {
 
     // The buttons' sprites, in the regions' order without the turn areas.
     auto button = [this](float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
-        CUiMesh* sprite = AddBlankSprite();
+        UiMesh* sprite = AddBlankSprite();
         sprite->SetRectangle(3.0f, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
         return sprite;
     };
@@ -135,7 +135,7 @@ void CCampPages::BuildPages() {
     button(148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
     button(620.0f, 430.0f, 660.0f, 460.0f, 0x02, 0xC1, 0x2A, 0xDF);
     button(620.0f, 460.0f, 660.0f, 490.0f, 0x02, 0xE0, 0x2A, 0xFE);
-    CUiMesh* sprite = button(660.0f, 460.0f, 700.0f, 490.0f, 0x2B, 0xE0, 0x53, 0xFE);
+    UiMesh* sprite = button(660.0f, 460.0f, 700.0f, 490.0f, 0x2B, 0xE0, 0x53, 0xFE);
     sprite->visible = spellConstructor;
     sprite = button(700.0f, 460.0f, 740.0f, 490.0f, 0x54, 0xE0, 0x7C, 0xFE);
     sprite->visible = spellConstructor;
@@ -166,26 +166,26 @@ void CCampPages::BuildPages() {
     itemExtra = NewItemList();
 
     // The description panel on the right.
-    CItemInfoPanel* info = new CItemInfoPanel(ui, this);
+    ItemInfoPanel* info = new ItemInfoPanel(ui, this);
     descPanel = info;
     AddChild(info);
     descPanel->Build(600, 100);
 
     // The hero's statistics.
-    auto* stats = new CHeroStatsPanel(ui, this);
+    auto* stats = new HeroStatsPanel(ui, this);
     statsPanel = stats;
     AddChild(stats);
     statsPanel->AddObject(objects[0]);
     statsPanel->Build();
 
     // The help panel on the left.
-    info = new CItemInfoPanel(ui, this);
+    info = new ItemInfoPanel(ui, this);
     helpPanel = info;
     AddChild(info);
     helpPanel->Build(0, 100);
 
     // The party's items.
-    CUiItemStrip* strip = new CForwardingStrip(ui, this);
+    UiItemStrip* strip = new ForwardingStrip(ui, this);
     itemStrip = strip;
     AddChild(strip);
     itemStrip->Setup(&LocalPlayerData()->items, false);
@@ -193,27 +193,27 @@ void CCampPages::BuildPages() {
     itemStrip->SetFilter(kFilterItems);
 
     // The hero's equipment (with the body) and quick items.
-    auto* equipPanel = new CHeroEquipPanel(ui, this);
+    auto* equipPanel = new HeroEquipPanel(ui, this);
     equipment = equipPanel;
     AddChild(equipPanel);
     equipment->AddObject(objects[2]);
     equipment->Build(true);
 
-    auto* quick = new CHeroQuickStrip(ui, this);
+    auto* quick = new HeroQuickStrip(ui, this);
     equipment2 = quick;
     AddChild(quick);
     equipment2->AddObject(objects[2]);
     equipment2->Build(true);
 
     // The skills for experience.
-    auto* tradeWith = new CTradePanel(ui, this);
+    auto* tradeWith = new TradePanel(ui, this);
     trade = tradeWith;
     AddChild(tradeWith);
     trade->AddObject(objects[0]);
     trade->Build();
 
     if (spellConstructor) {
-        strip = new CForwardingStrip(ui, this);
+        strip = new ForwardingStrip(ui, this);
         spellStrip = strip;
         AddChild(strip);
         spellStrip->Setup(&spellParts[0]->items, true);
@@ -221,20 +221,20 @@ void CCampPages::BuildPages() {
         spellStrip->SetFilter(kFilterSpells);
         spellStrip->slots = 0;
 
-        auto* grid = new CTradeGrid(ui, this);
+        auto* grid = new TradeGrid(ui, this);
         spellConstructor1 = grid;
         AddChild(grid);
         spellConstructor1->Build(&spellParts[1]->items, &spellParts[2]->items, true, false);
         spellConstructor1->mode = kModeSpellTrade;
 
-        auto* makerPage = new CSpellMakerPage(ui, this);
+        auto* makerPage = new SpellMakerPage(ui, this);
         spellConstructor2 = makerPage;
         AddChild(makerPage);
         spellConstructor2->BuildSpellMaker(spellResults);
     }
 
     if (itemConstructor) {
-        strip = new CForwardingStrip(ui, this);
+        strip = new ForwardingStrip(ui, this);
         partStrip = strip;
         AddChild(strip);
         partStrip->Setup(&itemParts[0]->items, true);
@@ -242,18 +242,18 @@ void CCampPages::BuildPages() {
         partStrip->SetFilter(kFilterArmour);
         partStrip->slots = 4;
 
-        auto* grid = new CTradeGrid(ui, this);
+        auto* grid = new TradeGrid(ui, this);
         itemConstructor1 = grid;
         AddChild(grid);
         itemConstructor1->Build(&itemParts[1]->items, &itemParts[2]->items, false, false);
         itemConstructor1->mode = kModeItemTrade;
 
-        auto* makerPage = new CConstructorPage(ui, this);
+        auto* makerPage = new ConstructorPage(ui, this);
         itemConstructor2 = makerPage;
         AddChild(makerPage);
         itemConstructor2->BuildItemMaker(itemResults);
 
-        auto* repairs = new CRepairGrid(ui, this);
+        auto* repairs = new RepairGrid(ui, this);
         itemConstructor3 = repairs;
         AddChild(repairs);
         itemConstructor3->Build(&itemExtra->items);
@@ -286,7 +286,7 @@ void CCampPages::BuildPages() {
         }
         unit->Controller()->ShowWeapon(kNoWeaponSlot);
         unit->Controller()->RefreshModel();
-        CUnitController* controller = unit->Controller();
+        UnitController* controller = unit->Controller();
         controller->RestartAnimation(static_cast<float>(FramesNow()));
         PartyUnitRecord* record = &player->members[i];
         unit->SetFromStats(&record->stats);
@@ -303,7 +303,7 @@ void CCampPages::BuildPages() {
     NextHero();
 
     // The pages' titles.
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::string title;
     const char* const titleKeys[] = {
         "mode_weapons",

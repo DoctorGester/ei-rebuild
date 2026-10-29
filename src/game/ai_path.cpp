@@ -18,7 +18,7 @@
 
 namespace {
 
-bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
+bool IsCellPassable(AIMap* map, CUnit* unit, int x, int y) {
     return map->cells[y][x].Passability(unit->sizeClass * 4) != 0;
 }
 
@@ -26,7 +26,7 @@ constexpr float kDiagonal = 0.707f;
 constexpr float kInset = 0.49f;
 } // namespace
 
-bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance) {
+bool AIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance) {
     int tx = WorldToCell(target->x), ty = WorldToCell(target->y);
     target->x = 2.0f * target->x;
     target->y = 2.0f * target->y;
@@ -124,7 +124,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     return false;
 }
 
-void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
+void AIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
     int count = g_serverWorld.tick;
     Vector3 facing;
@@ -156,7 +156,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     SetStepSpeeds(unit, &path->steps);
 }
 
-bool CAIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float range, float minDistance) {
+bool AIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float range, float minDistance) {
     Vector3 from, goal;
     from = unit->localPosition;
     goal = target;
@@ -276,7 +276,7 @@ done:
     return found;
 }
 
-bool CAIMap::ContinuePath(CUnit* unit, AIPath* path) {
+bool AIMap::ContinuePath(CUnit* unit, AIPath* path) {
     bool wasReached = path->reached;
     if (path->failed && std::ssize(path->cells) == 0) return FindPath(unit, path->goal, path, 1000000.0f, 0.0f);
     AdvancePath(unit, path);

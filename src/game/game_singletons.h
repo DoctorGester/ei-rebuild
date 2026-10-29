@@ -9,46 +9,46 @@
 #include <string>
 
 struct GameFlow;
-class CInterface3D;
-class CWorldClient;
-class CWorldServer;
-class CTextManager;
-class CBaseManager;
+class Interface3D;
+class WorldClient;
+class WorldServer;
+class TextManager;
+class BaseManager;
 struct CMapObjectManager;
 class CTextureManager;
 class CFigureManager;
-class CParticleManager;
-class CLightFactory;
+class ParticleManager;
+class LightFactory;
 namespace terrain { class Terrain; }
 class CMaterialManager;
-struct CSoundManager;
-struct CMusicSystem;
-class CTextureDevice;
-class CCursor;
-struct CMapDatabase;
-class CScript;
-class CSectorMap;
-class CSceneRenderer;
-class CCamera;
+struct SoundManager;
+struct MusicSystem;
+class TextureDevice;
+class Cursor;
+struct MapDatabase;
+class Script;
+class SectorMap;
+class SceneRenderer;
+class Camera;
 struct PartyManager;
 
 extern GameFlow g_gameFlow;   // world_game.cpp
 
 // The interface manager (windows, the quest log, status text, the console window).
-extern CInterface3D g_interface;   // ui_small_members.cpp
+extern Interface3D g_interface;   // ui_small_members.cpp
 
-extern CWorldClient g_clientWorld;   // world_construct.cpp
+extern WorldClient g_clientWorld;   // world_construct.cpp
 
-extern CWorldServer g_serverWorld;   // world_construct.cpp
+extern WorldServer g_serverWorld;   // world_construct.cpp
 
 // The scene renderer.
-extern CSceneRenderer g_sceneRenderer;   // renderer_lifetime.cpp
+extern SceneRenderer g_sceneRenderer;   // renderer_lifetime.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
-extern CCursor g_cursor;   // ui_cursor_setup.cpp
-extern CMapDatabase g_mapDatabase;   // map_database.cpp
-CScript* TheMissionScript();
-extern CCamera g_camera;   // camera_object.cpp
+extern Cursor g_cursor;   // ui_cursor_setup.cpp
+extern MapDatabase g_mapDatabase;   // map_database.cpp
+Script* TheMissionScript();
+extern Camera g_camera;   // camera_object.cpp
 
 // The party manager (the parties by key, the named records and the class templates).
 extern PartyManager g_partyManager;   // app_lifetime.cpp

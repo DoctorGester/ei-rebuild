@@ -13,7 +13,7 @@
 namespace {
 
 // The server world's object by id.
-CEngineObject* FindObject(int id) { return g_serverWorld.FindObject(static_cast<unsigned>(id)); }
+EngineObject* FindObject(int id) { return g_serverWorld.FindObject(static_cast<unsigned>(id)); }
 
 
 // The members' order (the game's qsort by object address, unsigned; ours ScriptGroup::After, by id). The live
@@ -24,7 +24,7 @@ bool MemberBefore(const ScriptObjectRef& a, const ScriptObjectRef& b) { return S
 
 // ---- Member order -------------------------------------------------------------------------
 
-bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
+bool ScriptGroup::After(const EngineObject* x, const EngineObject* y) {
     if (!x || !y) return x != nullptr;
     return x->id > y->id;
 }
@@ -33,7 +33,7 @@ CUnit* ScriptObjectRef::AsUnit() const {
     return UnitOrNull(object);
 }
 
-CUnitServer* ScriptObjectRef::GetUnitPerception() const {
+UnitServer* ScriptObjectRef::GetUnitPerception() const {
     CUnit* unit = UnitOrNull(object);
     return unit ? unit->ServerController() : nullptr;
 }
@@ -42,13 +42,13 @@ void ScriptObjectRef::ReleaseIfDeleted() {
     if (object && (object->flags & MapObjectFlag::Removed)) object = nullptr;
 }
 
-void ScriptObjectRef::Load(CStream* stream) {
+void ScriptObjectRef::Load(ByteStream* stream) {
     int id;
     stream->ReadValue(id);
     object = id == -1 ? nullptr : FindObject(id);
 }
 
-void ScriptObjectRef::Save(CStream* stream) const {
+void ScriptObjectRef::Save(ByteStream* stream) const {
     int id = -1;
     if (object) id = object->id;
     stream->WriteValue(id);
@@ -64,13 +64,13 @@ void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
     while (i < aSize) {
         if (j >= bSize) {
             while (i < aSize) {
-                CEngineObject* x = a[i++].object;
+                EngineObject* x = a[i++].object;
                 (*this)[out++].object = x;
             }
             break;
         }
-        CEngineObject* x = a[i].object;
-        CEngineObject* y = b[j].object;
+        EngineObject* x = a[i].object;
+        EngineObject* y = b[j].object;
         if (x == y) {
             (*this)[out++].object = x;
             ++i;
@@ -84,7 +84,7 @@ void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
         }
     }
     while (j < bSize) {
-        CEngineObject* y = b[j++].object;
+        EngineObject* y = b[j++].object;
         (*this)[out++].object = y;
     }
     resize(out);
@@ -97,13 +97,13 @@ void ScriptGroup::Difference(const ScriptGroup& a, const ScriptGroup& b) {
     while (i < aSize) {
         if (j >= bSize) {
             while (i < aSize) {
-                CEngineObject* x = a[i++].object;
+                EngineObject* x = a[i++].object;
                 (*this)[out++].object = x;
             }
             break;
         }
-        CEngineObject* x = a[i].object;
-        CEngineObject* y = b[j].object;
+        EngineObject* x = a[i].object;
+        EngineObject* y = b[j].object;
         if (x == y) {
             ++i;
             ++j;
@@ -122,8 +122,8 @@ void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
     resize(aSize > bSize ? aSize : bSize);
     std::size_t out = 0, i = 0, j = 0;
     while (i < aSize && j < bSize) {
-        CEngineObject* x = a[i].object;
-        CEngineObject* y = b[j].object;
+        EngineObject* x = a[i].object;
+        EngineObject* y = b[j].object;
         if (x == y) {
             (*this)[out++].object = x;
             ++i;
@@ -140,25 +140,25 @@ void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
 void ScriptGroup::Sort() { std::sort(begin(), end(), MemberBefore); }
 
 int ScriptGroup::IndexOf(const ScriptObjectRef& ref) const {
-    CEngineObject* o = ref.object;
+    EngineObject* o = ref.object;
     for (std::size_t i = 0; i < size(); ++i)
         if ((*this)[i].object == o) return static_cast<int>(i);
     return -1;
 }
 
-void ScriptGroup::Remove(CEngineObject* object) {
+void ScriptGroup::Remove(EngineObject* object) {
     auto at = std::find_if(begin(), end(), [object](const ScriptObjectRef& ref) { return ref.object == object; });
     if (at != end()) erase(at);
 }
 
 // A binary search for the place in member order; nothing when the object is there.
-void ScriptGroup::Insert(CEngineObject* object) {
+void ScriptGroup::Insert(EngineObject* object) {
     if (!object) return;
     int low = 0;
     int high = static_cast<int>(size()) - 1;
     while (high - low >= 0) {
         int middle = (high + low) / 2;
-        CEngineObject* current = (*this)[middle].object;
+        EngineObject* current = (*this)[middle].object;
         if (object == current) return;
         if (After(object, current)) low = middle + 1;
         else high = middle - 1;
@@ -185,13 +185,13 @@ void ScriptGroup::CopyToList(std::list<HeldRef<CUnit>>* list) const {
     for (const ScriptObjectRef& ref : *this) list->push_back(static_cast<CUnit*>(ref.object.Get()));
 }
 
-bool ScriptGroup::Contains(CEngineObject* object) const {
+bool ScriptGroup::Contains(EngineObject* object) const {
     for (const ScriptObjectRef& ref : *this)
         if (ref.object == object) return true;
     return false;
 }
 
-void ScriptGroup::Load(CStream* stream) {
+void ScriptGroup::Load(ByteStream* stream) {
     int count;
     stream->ReadValue(count);
     resize(static_cast<std::size_t>(count));

@@ -21,7 +21,7 @@ struct UnitVitals;
 struct UnitPrototypeRecord;
 struct UnitNpcRecord;
 
-// The types the map object manager's factory (NewObject) makes, as CEngineObject::type holds them (saved and sent
+// The types the map object manager's factory (NewObject) makes, as EngineObject::type holds them (saved and sent
 // as the number). Units are 0x32..0x34 (Hero: the player's own units, "mo%d" skins; 0x33 is what a prototype
 // without a model gets), 0x39 is the retired fake unit (none made). The animation state is the figure manager's.
 enum class MapObjectType : int {
@@ -74,15 +74,15 @@ void BuildNpcStats(UnitStats* stats, const std::string& name);
 MapObjectType PrototypeObjectClass(std::string_view name);
 
 // The map object manager ("map objects", class id 0x2D).
-struct CMapObjectManager : CResourceManager {
+struct CMapObjectManager : ResourceManager {
     CMapObjectManager();
     ~CMapObjectManager() override;
     void Create() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     // A new object of the factory's type `type` (a MapObjectType), constructed; null for other ids.
-    CEngineObject* NewObject(int type) override;
-    CEngineObject* CreateObject(int type, int id) override;
+    EngineObject* NewObject(int type) override;
+    EngineObject* CreateObject(int type, int id) override;
     const char* GetFolderName() override;                   // "map objects"
 
     // The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
@@ -91,7 +91,7 @@ struct CMapObjectManager : CResourceManager {
     // The base manager's CreateObject; a new object gets an animation state (the figure manager's) and its side
     // halves from the world's specific manager: Object3D and MapObject, then Unit for the three unit types and
     // Torch for the torch. Returns the object or null.
-    CEngineObject* CreateMapObject(int type, int id);
+    EngineObject* CreateMapObject(int type, int id);
     // The object registered under `id` (null for none); the manager holds only map objects.
     CMapObject* FindMapObject(unsigned id) const;
     // The entry of the animation database "<figure>.adb" matching `key`: the same bits above kAnimationVariantBits
@@ -121,7 +121,7 @@ struct CMapObjectManager : CResourceManager {
     void ApplyPrototype(CMapObject* object, const std::string& name);
 };
 
-inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {
+inline CMapObjectManager* MapObjectManagerOf(const EngineObject* object) {
     return static_cast<CMapObjectManager*>(object->owner);
 }
 

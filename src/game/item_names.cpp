@@ -24,7 +24,7 @@ namespace {
 int Number(const ItemRecordHead* record) { return record ? record->number : -1; }
 
 // "unhuma" + the item's model name.
-std::string HumanFigureName(CItem* item) { return "unhuma" + item->ModelName(); }
+std::string HumanFigureName(Item* item) { return "unhuma" + item->ModelName(); }
 
 // The weapon or armour picture name "initwe<code><number>weapon" / "initar<code><number>armor" (no null check on
 // the record).
@@ -94,34 +94,34 @@ template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
 
 } // namespace
 
-// --- CItem ---------------------------------------------------------------------------------------
+// --- Item ---------------------------------------------------------------------------------------
 
 // A plain item has no names.
-std::string CItem::ModelName() { return {}; }
-std::string CItem::FigureName() { return {}; }
-std::string CItem::PictureName() { return {}; }
+std::string Item::ModelName() { return {}; }
+std::string Item::FigureName() { return {}; }
+std::string Item::PictureName() { return {}; }
 
 // --- Weapons and armors --------------------------------------------------------------------------
 
-std::string CItemWeapon::ModelName() {
+std::string ItemWeapon::ModelName() {
     return WeaponModelName(PrototypeIndex(prototypeId), MaterialIndex(prototypeId));
 }
 
-std::string CItemWeapon::FigureName() { return HumanFigureName(this); }
+std::string ItemWeapon::FigureName() { return HumanFigureName(this); }
 
-std::string CItemWeapon::PictureName() { return WeaponOrArmorPicture(true, WeaponAt(PrototypeIndex(prototypeId))); }
+std::string ItemWeapon::PictureName() { return WeaponOrArmorPicture(true, WeaponAt(PrototypeIndex(prototypeId))); }
 
-std::string CItemArmor::ModelName() {
+std::string ItemArmor::ModelName() {
     return ArmorModelName(PrototypeIndex(prototypeId), MaterialIndex(prototypeId));
 }
 
-std::string CItemArmor::FigureName() { return HumanFigureName(this); }
+std::string ItemArmor::FigureName() { return HumanFigureName(this); }
 
-std::string CItemArmor::PictureName() { return WeaponOrArmorPicture(false, ArmorAt(PrototypeIndex(prototypeId))); }
+std::string ItemArmor::PictureName() { return WeaponOrArmorPicture(false, ArmorAt(PrototypeIndex(prototypeId))); }
 
 // --- Quick items, quest items, scrolls -----------------------------------------------------------
 
-std::string CItemQuick::FigureName() {
+std::string ItemQuick::FigureName() {
     const ItemRecordHead* prototype = GetPrototype();
     if (prototype && text::CompareIgnoringCase(prototype->materialClass, "none") != 0) {
         const MaterialRecordHead* material = MaterialAt(MaterialIndex(prototypeId));
@@ -130,21 +130,21 @@ std::string CItemQuick::FigureName() {
     return str::Format("qitem%04d", Number(prototype));
 }
 
-std::string CItemQuick::PictureName() { return str::Format("initqi%ditem", Number(GetPrototype())); }
+std::string ItemQuick::PictureName() { return str::Format("initqi%ditem", Number(GetPrototype())); }
 
-std::string CItemQuest::FigureName() { return str::Format("quitem%04d", Number(GetPrototype())); }
+std::string ItemQuest::FigureName() { return str::Format("quitem%04d", Number(GetPrototype())); }
 
-std::string CItemQuest::PictureName() { return str::Format("initqu%ditem", Number(GetPrototype())); }
+std::string ItemQuest::PictureName() { return str::Format("initqu%ditem", Number(GetPrototype())); }
 
-std::string CItemScroll::FigureName() {
+std::string ItemScroll::FigureName() {
     return str::Format("spell%04d", SpellAt(PrototypeIndex(spell->prototypeId))->icon);
 }
 
-std::string CItemScroll::PictureName() { return "initqi1item"; }
+std::string ItemScroll::PictureName() { return "initqi1item"; }
 
 // --- Loot ----------------------------------------------------------------------------------------
 
-std::string CItemLoot::FigureName() {
+std::string ItemLoot::FigureName() {
     if (kind == LootKind::Material) return str::Format("material%04d", index);
     if (kind != LootKind::Record) return str::Format("litem%04d", Number(GetPrototype()));
     switch (recordType) {
@@ -162,7 +162,7 @@ std::string CItemLoot::FigureName() {
     }
 }
 
-std::string CItemLoot::PictureName() {
+std::string ItemLoot::PictureName() {
     if (kind == LootKind::Material) return str::Format("initlimt%ditem", index);
     if (kind != LootKind::Record) return str::Format("initlitr%ditem", Number(GetPrototype()));
     switch (recordType) {

@@ -8,7 +8,7 @@
 //
 // A harness game reads the mouse three ways: window messages (WM_MOUSEMOVE and the buttons, through
 // the input dispatcher 00457970), GetCursorPos (the cursor's position, 005E52E0) and the DirectInput
-// mouse (CDirectInputMouse, made by 0065EAD0 non-exclusive in the background, polled by the cursor at
+// mouse (DirectInputMouse, made by 0065EAD0 non-exclusive in the background, polled by the cursor at
 // 005E52E0 through 0065ECB0: the motion it sums at 007C7C60 turns the camera on a right-button drag).
 // The harness answers GetCursorPos with its own mouse (harness.cpp HarnessCursorPos) and posts its
 // own messages, but the user's real mouse still came in by the other two. The original's window under

@@ -1,4 +1,4 @@
-// CPlayerClient: the client's per-tick link traffic (sending the queued requests, receiving and
+// PlayerClient: the client's per-tick link traffic (sending the queued requests, receiving and
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
 #include "player_client.h"
@@ -73,13 +73,13 @@ const char* TextNoHandler() { return "Packet has no handler prevID=%x curID=%x\n
 const char* TextHandlerFailed() { return "Error during parsing update prevID=%x curID=%x\n"; }
 const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
 
-void WriteByte(CMemoryStream* out, std::uint8_t value) { out->WriteValue(value); }
+void WriteByte(MemoryStream* out, std::uint8_t value) { out->WriteValue(value); }
 
 const char* QuestPrefix() { return "q."; }
 
 // The quest log refreshed with an empty list built and destroyed on the stack.
 void RefreshQuestLog() {
-    std::list<CItem*> none;
+    std::list<Item*> none;
     g_interface.OnItemsPicked(&none, 0, false);
 }
 
@@ -147,33 +147,33 @@ bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 // FindPart, then RemovePart when there is one (the original inlines both calls).
 void RemovePartNamed(CObject3D* object, const char* name) {
-    if (CFigureMesh* part = object->FindPart(name)) object->RemovePart(part);
+    if (FigureMesh* part = object->FindPart(name)) object->RemovePart(part);
 }
 
 constexpr int kClientHandlerCount = 0x100;
 
 // The client's message handlers by type.
-constexpr HandlerEntry<CPlayerClient> kClientHandlers[] = {
-    {0x00, &CPlayerClient::OnLoginAccepted}, {0x01, &CPlayerClient::OnDisconnect}, {0x02, &CPlayerClient::OnZone},
-    {0x03, &CPlayerClient::OnWorldBlock3}, {0x04, &CPlayerClient::OnCameraPlacement}, {0x05, &CPlayerClient::OnWorldBlock5},
-    {0x06, &CPlayerClient::OnItemsReceived}, {0x07, &CPlayerClient::OnGameState}, {0x08, &CPlayerClient::OnZoneChange},
-    {0x09, &CPlayerClient::OnGameLost}, {0x0A, &CPlayerClient::OnItemRemoved}, {0x0B, &CPlayerClient::OnUnitSpeech},
-    {0x0C, &CPlayerClient::OnObjectValues}, {0x0D, &CPlayerClient::OnJingle}, {0x0E, &CPlayerClient::OnPathMarker},
-    {0x0F, &CPlayerClient::OnFreeCamera}, {0x12, &CPlayerClient::OnWorldValue}, {0x13, &CPlayerClient::OnStringEvent},
-    {0x14, &CPlayerClient::OnItemValue}, {0x15, &CPlayerClient::OnExperienceAll}, {0x16, &CPlayerClient::OnWeaponRemoved},
-    {0x17, &CPlayerClient::OnQuestItemsChanged}, {0x18, &CPlayerClient::OnExperience}, {0x19, &CPlayerClient::OnUnitControl},
-    {0x40, &CPlayerClient::OnNewObject}, {0x41, &CPlayerClient::OnObjectChanged}, {0x42, &CPlayerClient::OnObjectRemoved},
-    {0x43, &CPlayerClient::OnUnitDied}, {0x50, &CPlayerClient::OnTimedObjectAdded}, {0x51, &CPlayerClient::OnTimedObjectChanged},
-    {0x52, &CPlayerClient::OnTimedObjectRemoved}, {0x60, &CPlayerClient::OnPartyState}, {0x70, &CPlayerClient::OnWeather},
-    {0x71, &CPlayerClient::OnWorldTime}, {0x72, &CPlayerClient::OnWorldPoint}, {0x73, &CPlayerClient::OnWorldStream},
-    {0x80, &CPlayerClient::OnParty}, {0x81, &CPlayerClient::OnSetVariable}, {0x82, &CPlayerClient::OnDeleteVariable},
-    {0x83, &CPlayerClient::OnPartyUpdate},
+constexpr HandlerEntry<PlayerClient> kClientHandlers[] = {
+    {0x00, &PlayerClient::OnLoginAccepted}, {0x01, &PlayerClient::OnDisconnect}, {0x02, &PlayerClient::OnZone},
+    {0x03, &PlayerClient::OnWorldBlock3}, {0x04, &PlayerClient::OnCameraPlacement}, {0x05, &PlayerClient::OnWorldBlock5},
+    {0x06, &PlayerClient::OnItemsReceived}, {0x07, &PlayerClient::OnGameState}, {0x08, &PlayerClient::OnZoneChange},
+    {0x09, &PlayerClient::OnGameLost}, {0x0A, &PlayerClient::OnItemRemoved}, {0x0B, &PlayerClient::OnUnitSpeech},
+    {0x0C, &PlayerClient::OnObjectValues}, {0x0D, &PlayerClient::OnJingle}, {0x0E, &PlayerClient::OnPathMarker},
+    {0x0F, &PlayerClient::OnFreeCamera}, {0x12, &PlayerClient::OnWorldValue}, {0x13, &PlayerClient::OnStringEvent},
+    {0x14, &PlayerClient::OnItemValue}, {0x15, &PlayerClient::OnExperienceAll}, {0x16, &PlayerClient::OnWeaponRemoved},
+    {0x17, &PlayerClient::OnQuestItemsChanged}, {0x18, &PlayerClient::OnExperience}, {0x19, &PlayerClient::OnUnitControl},
+    {0x40, &PlayerClient::OnNewObject}, {0x41, &PlayerClient::OnObjectChanged}, {0x42, &PlayerClient::OnObjectRemoved},
+    {0x43, &PlayerClient::OnUnitDied}, {0x50, &PlayerClient::OnTimedObjectAdded}, {0x51, &PlayerClient::OnTimedObjectChanged},
+    {0x52, &PlayerClient::OnTimedObjectRemoved}, {0x60, &PlayerClient::OnPartyState}, {0x70, &PlayerClient::OnWeather},
+    {0x71, &PlayerClient::OnWorldTime}, {0x72, &PlayerClient::OnWorldPoint}, {0x73, &PlayerClient::OnWorldStream},
+    {0x80, &PlayerClient::OnParty}, {0x81, &PlayerClient::OnSetVariable}, {0x82, &PlayerClient::OnDeleteVariable},
+    {0x83, &PlayerClient::OnPartyUpdate},
 };
 
 constexpr int kSessionKindSingle = 1;
 
 std::unordered_set<int> g_partyIdSet;
-int ReadDword(CMemoryStream* in) {
+int ReadDword(MemoryStream* in) {
     int value;
     in->ReadValue(value);
     return value;
@@ -181,7 +181,7 @@ int ReadDword(CMemoryStream* in) {
 
 } // namespace
 
-bool CPlayerClient::Pump() {
+bool PlayerClient::Pump() {
     netlink::NetLink* link = player->link;
     switch (state) {
     case kStateConnecting: {
@@ -215,12 +215,12 @@ bool CPlayerClient::Pump() {
     }
 }
 
-bool CPlayerClient::SendToServer() {
+bool PlayerClient::SendToServer() {
     netlink::NetLink* link = player->link;
     if (link == nullptr) return true;
     bool sent = false;
     if (link->Connected()) {
-        CMemoryStream packed;
+        MemoryStream packed;
         out.CompressTo(&compressor, &packed);
         if (player->logTraffic != 0) {
             std::uint32_t packedSize = packed.size;
@@ -233,7 +233,7 @@ bool CPlayerClient::SendToServer() {
     return sent;
 }
 
-int CPlayerClient::DispatchMessages() {
+int PlayerClient::DispatchMessages() {
     in.Seek(0);
     in.ok = 1;
     std::uint8_t messageType = 0xFF;
@@ -249,17 +249,17 @@ int CPlayerClient::DispatchMessages() {
     }
 }
 
-int CPlayerClient::ReceiveMessages() {
+int PlayerClient::ReceiveMessages() {
     netlink::NetLink* link = player->link;
     if (link == nullptr) return 0;
     if (!link->HasIncoming()) return 1;
-    CMemoryStream packet;
+    MemoryStream packet;
     if (!link->Receive(&packet)) return 0;
     packet.DecompressTo(&decompressor, &in);
     return DispatchMessages() != 0 ? 1 : 0;
 }
 
-int CPlayerClient::OnSetVariable() {
+int PlayerClient::OnSetVariable() {
     std::string name = in.ReadString();
     std::uint32_t value;
     in.ReadValue(value);
@@ -273,7 +273,7 @@ int CPlayerClient::OnSetVariable() {
     return 1;
 }
 
-int CPlayerClient::OnDeleteVariable() {
+int PlayerClient::OnDeleteVariable() {
     std::string name = in.ReadString();
     player->Party()->variables.Remove(name);
     if (IsQuestVariable(name)) {
@@ -283,7 +283,7 @@ int CPlayerClient::OnDeleteVariable() {
     return 1;
 }
 
-int CPlayerClient::OnZoneChange() {
+int PlayerClient::OnZoneChange() {
     std::string zone = in.ReadString();
     int entrance;
     in.ReadValue(entrance);
@@ -291,35 +291,35 @@ int CPlayerClient::OnZoneChange() {
     return 1;
 }
 
-int CPlayerClient::OnJingle() {
+int PlayerClient::OnJingle() {
     std::string name = in.ReadString();
     g_clientWorld.music->PlayJingle(name);
     return 1;
 }
 
-int CPlayerClient::OnZone() {
-    CMemoryStream block;
+int PlayerClient::OnZone() {
+    MemoryStream block;
     if (in.ReadStream(&block) == 0) return 0;
     player->Clear();
     g_clientWorld.LoadZone(&block);
     return 1;
 }
 
-int CPlayerClient::OnWorldBlock3() {
-    CMemoryStream block;
+int PlayerClient::OnWorldBlock3() {
+    MemoryStream block;
     if (in.ReadStream(&block) == 0) return 0;
     g_clientWorld.LoadItemsAndSpells(&block);
     return 1;
 }
 
-int CPlayerClient::OnWorldBlock5() {
-    CMemoryStream block;
+int PlayerClient::OnWorldBlock5() {
+    MemoryStream block;
     if (in.ReadStream(&block) == 0) return 0;
     g_clientWorld.LoadNewItemsAndSpells(&block);
     return 1;
 }
 
-int CPlayerClient::OnItemRemoved() {
+int PlayerClient::OnItemRemoved() {
     int objectId;
     in.ReadValue(objectId);
     player->TakeItem(objectId);
@@ -327,13 +327,13 @@ int CPlayerClient::OnItemRemoved() {
     return 1;
 }
 
-int CPlayerClient::OnQuestItemsChanged() {
+int PlayerClient::OnQuestItemsChanged() {
     player->TakeAllItems();
     RefreshQuestLog();
     return 1;
 }
 
-int CPlayerClient::OnExperienceAll() {
+int PlayerClient::OnExperienceAll() {
     float amount;
     in.ReadValue(amount);
     CPlayer::UnitMap& units = player->units;
@@ -344,7 +344,7 @@ int CPlayerClient::OnExperienceAll() {
     return 1;
 }
 
-int CPlayerClient::OnExperience() {
+int PlayerClient::OnExperience() {
     int objectId;
     float amount;
     in.ReadValue(objectId);
@@ -356,8 +356,8 @@ int CPlayerClient::OnExperience() {
 
 // --- Items, party, path markers, string events, recording ---------------------------------------
 
-int CPlayerClient::OnItemsReceived() {
-    std::list<CItem*> items;
+int PlayerClient::OnItemsReceived() {
+    std::list<Item*> items;
     int& money = player->Party()->money;
     int before = money;
     in.ReadValue(money);
@@ -373,7 +373,7 @@ int CPlayerClient::OnItemsReceived() {
             break;
         }
         auto* manager = g_clientWorld.itemManager;
-        if (CItem* item = FindItem(manager, static_cast<unsigned>(objectId))) items.push_front(item);
+        if (Item* item = FindItem(manager, static_cast<unsigned>(objectId))) items.push_front(item);
     }
     if (result != 0) {
         player->GiveItems(&items, flag);
@@ -383,19 +383,19 @@ int CPlayerClient::OnItemsReceived() {
     return result;
 }
 
-int CPlayerClient::OnParty() {
+int PlayerClient::OnParty() {
     CParty* party = player->Party();
     NamedFloatTable saved(party->variables);
     {
-        CMemoryStream block;
+        MemoryStream block;
         in.ReadSized(&block);
-        block.CMemoryStream::Seek(0);
+        block.MemoryStream::Seek(0);
         if (in.ok) {
             party->LoadParty(&block, 1);
             std::list<std::uint32_t>& recharging = player->recharging;
             recharging.clear();
-            ObjectListIteratorOf<CItem> walk{};
-            for (CItem* item = walk.First(party->ItemFactory()); item != nullptr; item = walk.Next()) {
+            ObjectListIteratorOf<Item> walk{};
+            for (Item* item = walk.First(party->ItemFactory()); item != nullptr; item = walk.Next()) {
                 if (item->chargeMax > item->charge)
                     recharging.push_back(static_cast<std::uint32_t>(item->id));
             }
@@ -412,17 +412,17 @@ int CPlayerClient::OnParty() {
     return 1;
 }
 
-int CPlayerClient::OnPartyUpdate() {
-    CMemoryStream block;
+int PlayerClient::OnPartyUpdate() {
+    MemoryStream block;
     in.ReadSized(&block);
-    block.CMemoryStream::Seek(0);
+    block.MemoryStream::Seek(0);
     if (in.ok) player->Party()->LoadParty(&block, 0);
     return 1;
 }
 
-int CPlayerClient::OnPathMarker() {
+int PlayerClient::OnPathMarker() {
     DeltaField field;
-    CParticleSource* pathSource = nullptr;
+    ParticleSource* pathSource = nullptr;
     int kind;
     in.ReadValue(kind);
     int flag;
@@ -461,34 +461,34 @@ int CPlayerClient::OnPathMarker() {
     if (MarkersShown()) {
         auto* marker = g_clientWorld.particleManager->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->localPosition = at;
-        CEngineObject* ownerObject = player;
+        EngineObject* ownerObject = player;
         CUnit* unit = ownerObject->WorldContext()->FindUnit(unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
     return 1;
 }
 
-int CPlayerClient::OnStringEvent() {
+int PlayerClient::OnStringEvent() {
     std::string text = in.ReadString();
     g_interface.OnStringEvent(text);
     return 1;
 }
 
-void CPlayerClient::StartRecording(const char* path) {
+void PlayerClient::StartRecording(const char* path) {
     netlink::NetLink* link = player->link;
     if (link == nullptr) return;
     WriteByte(&out, kRequestRecording);
     link->OpenRecording(path);
 }
 
-void CPlayerClient::StopRecording() {
+void PlayerClient::StopRecording() {
     netlink::NetLink* link = player->link;
     if (link != nullptr) link->CloseRecording();
 }
 
 // --- A new map object (message 0x40, multiplayer) ------------------------------------------
 
-int CPlayerClient::OnNewObject() {
+int PlayerClient::OnNewObject() {
     app::DelayedProtectionCheck();
     std::vector<std::string> parts;
     std::string scriptName;
@@ -569,7 +569,7 @@ int CPlayerClient::OnNewObject() {
         for (int i = 0; i < std::ssize(figure->parts); ++i) figure->parts[i]->flags |= FigureMeshFlag::Stationary;
         created->flags |= MapObjectFlag::Stationary;
     }
-    CObject3DClientSpecific* attached = figure->ClientSpecific();
+    Object3DClientSpecific* attached = figure->ClientSpecific();
     attached->RegisterPartMaterials();
     // (The client world's two functions around the texture swap are empty.)
     figure->PlayAnimation(nullptr);
@@ -608,7 +608,7 @@ int CPlayerClient::OnNewObject() {
 
 // --- Clearing the connection ---------------------------------------------------------------
 
-void CPlayerClient::CreateClient() {
+void PlayerClient::CreateClient() {
     state = 0;
     partyUnitIds.clear();
     in.Resize(0);
@@ -623,7 +623,7 @@ void CPlayerClient::CreateClient() {
         handlers[entry.type] = entry.handler;
 }
 
-void CPlayerClient::Clear() {
+void PlayerClient::Clear() {
     state = 0;
     partyUnitIds.clear();
     in.Resize(0);
@@ -636,28 +636,28 @@ void CPlayerClient::Clear() {
 
 // --- Constructor and destructor ------------------------------------------------------------
 
-CPlayerConnection::CPlayerConnection() {
+PlayerConnection::PlayerConnection() {
     player = nullptr;
 }
 
-CPlayerConnection::~CPlayerConnection() { player = nullptr; }
+PlayerConnection::~PlayerConnection() { player = nullptr; }
 
 // The streams are members (constructed before the body; the original builds them after the handler table).
-CPlayerClient::CPlayerClient() {
+PlayerClient::PlayerClient() {
     Clear();
 }
 
 // The streams and coders are members, destroyed after the body (the original frees them before the handler table).
-CPlayerClient::~CPlayerClient() {
+PlayerClient::~PlayerClient() {
     Clear();
 }
 
-const char* CPlayerClient::ClassName() { return "CPlayerClient"; }
-ClassId CPlayerClient::GetClassId() { return ClassId::PlayerClient; }
+const char* PlayerClient::ClassName() { return "CPlayerClient"; }
+ClassId PlayerClient::GetClassId() { return ClassId::PlayerClient; }
 
 // --- The party state ---------------------------------------------------------------------
 
-int CPlayerClient::OnPartyState() {
+int PlayerClient::OnPartyState() {
     CPlayer* currentPlayer = player;
     for (int i = 0; i < std::ssize(partyUnitIds); ++i) {
         g_partyIdSet.insert(partyUnitIds[i]);
@@ -693,7 +693,7 @@ int CPlayerClient::OnPartyState() {
 
 // --- Messages appended to the received stream -----------------------------------------------
 
-void CPlayerClient::AppendReceived(CMemoryStream* source) {
+void PlayerClient::AppendReceived(MemoryStream* source) {
     const std::uint32_t position = in.Position();
     in.Seek(in.Size());
     in.EndBits();

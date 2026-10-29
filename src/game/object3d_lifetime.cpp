@@ -2,9 +2,9 @@
 // See map_object_figures.h and docs/notes/map_objects.md ("Figures").
 #include "effects.h"
 #include "map_object_figures.h"
-#include "link_figure.h"   // CLinkMesh: the figure
+#include "link_figure.h"   // LinkMesh: the figure
 #include "map_object_shadow.h"   // WoundsMaterial: the client half's
-#include "model.h"               // CRenderPreset: the wounds material's
+#include "model.h"               // RenderPreset: the wounds material's
 
 #include <cstring>
 #include <memory>
@@ -38,8 +38,8 @@ void CObject3D::Destroy3D() {
         }
         animation = nullptr;
     }
-    for (HeldRef<CFigureMesh>& part : parts)
-        if (CFigureMesh* forgotten = part.Take()) forgotten->ForgetReference();
+    for (HeldRef<FigureMesh>& part : parts)
+        if (FigureMesh* forgotten = part.Take()) forgotten->ForgetReference();
     parts.clear();
     if (attached) attached->Release();
     attached = nullptr;
@@ -47,16 +47,16 @@ void CObject3D::Destroy3D() {
     flags = 0;
 }
 
-void CObject3D::AddEffectSource(CParticleSource* source) {
-    if (std::ranges::find(effectSources, source, &Ref<CParticleSource>::Get) != effectSources.end()) return;
+void CObject3D::AddEffectSource(ParticleSource* source) {
+    if (std::ranges::find(effectSources, source, &Ref<ParticleSource>::Get) != effectSources.end()) return;
     effectSources.emplace_back(source);
     if (source) source->Attach(this);
 }
 
-void CObject3D::RemoveEffectSource(CParticleSource* source) {
-    auto node = std::ranges::find(effectSources, source, &Ref<CParticleSource>::Get);
+void CObject3D::RemoveEffectSource(ParticleSource* source) {
+    auto node = std::ranges::find(effectSources, source, &Ref<ParticleSource>::Get);
     if (node == effectSources.end()) return;
-    HeldRef<CParticleSource> held = std::move(*node);   // released after the detach
+    HeldRef<ParticleSource> held = std::move(*node);   // released after the detach
     effectSources.erase(node);
     if (source) source->Attach(nullptr);
 }

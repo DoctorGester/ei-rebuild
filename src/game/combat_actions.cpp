@@ -41,7 +41,7 @@ constexpr int kWeaponCrossbow = 6;
 float g_squaredCallRadius = /*007AF40C*/ {};
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 
-CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy; }
+Diplomacy* DiplomacyOf(WorldServer* world) { return &world->diplomacy; }
 
 
 
@@ -60,11 +60,11 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 } // namespace
 
 // Player messages: message `code` about `unit`.
-void PlayerMessage(CPlayerServer* messages, CUnit* unit, AckKind kind) {
+void PlayerMessage(PlayerServer* messages, CUnit* unit, AckKind kind) {
     messages->SendObject0B(unit, kind);
 }
 
-void CUnitServer::DropQueuedOrder() {
+void UnitServer::DropQueuedOrder() {
     action2.kind = UnitOrderKind::None;
     action2.target.Reset();
     action2.pointIsUseSpot = false;
@@ -75,7 +75,7 @@ void CUnitServer::DropQueuedOrder() {
     action2.modifier = 0;
 }
 
-void CUnitServer::FinishAction(int location) {
+void UnitServer::FinishAction(int location) {
     switch (action.kind) {
     case UnitOrderKind::Attack: {
         DeliverAttack(action.target, &pendingHit);
@@ -122,12 +122,12 @@ void CUnitServer::FinishAction(int location) {
     if (action2.kind == UnitOrderKind::None) Idle();
 }
 
-void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
-    CWorldServer* world = ServerWorld();
-    CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
+void UnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
+    WorldServer* world = ServerWorld();
+    ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) {
-        CBaseManager* factory = world->TimedObjectManager();
-        auto* arrow = factory->CreateObjectAs<CEffectArrowFigure>(kMissileObject, -1);
+        BaseManager* factory = world->TimedObjectManager();
+        auto* arrow = factory->CreateObjectAs<EffectArrowFigure>(kMissileObject, -1);
         if (!arrow) return;
         Vector3 position;
         const Vector3* from = unit->EyePoint(&position);
@@ -147,7 +147,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     }
 }
 
-void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
+void UnitServer::TriggerWeaponSpell(CMapObject* target) {
     auto* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return;
     auto* spell = weapon->spell.Get();
@@ -161,7 +161,7 @@ void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     g_serverWorld.CastSpell(spell, self, self->localPosition, target, *at, 0);
 }
 
-void CUnitServer::TriggerItemSpells(char onHit) {
+void UnitServer::TriggerItemSpells(char onHit) {
     for (std::uint32_t slot = 0; slot < 7; ++slot) {
         auto* item = unit->armor[slot];
         if (!item) continue;
@@ -177,22 +177,22 @@ void CUnitServer::TriggerItemSpells(char onHit) {
     }
 }
 
-void CUnitServer::UseItemCharge(CItem* item, float cost) {
+void UnitServer::UseItemCharge(Item* item, float cost) {
     if (!item) return;
-    CWorldServer* world = ServerWorld();
+    WorldServer* world = ServerWorld();
     item->charge = item->charge - cost;
     world->AddCounted(item);
     auto* player = unit->player;
-    const CItemLink* link = item->ServerLink();
+    const ItemLink* link = item->ServerLink();
     if (!player || !link) return;
-    CResourceManager* items = player->Party()->ItemFactory();
-    CItem* copy = FindItem(items, link->value);
+    ResourceManager* items = player->Party()->ItemFactory();
+    Item* copy = FindItem(items, link->value);
     if (!copy) return;
     copy->charge = item->charge;
     player->ItemUsed(copy);
 }
 
-bool CUnitServer::Heal(float amount) {
+bool UnitServer::Heal(float amount) {
     stats.Heal(ServerStatsOf(unit), amount);
     stats.Recompute(ServerStatsOf(unit), unit);
     unit->MarkChanged(0);
@@ -201,7 +201,7 @@ bool CUnitServer::Heal(float amount) {
     return true;
 }
 
-BlowSide CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
+BlowSide UnitServer::HitDirection(CUnit* attacker, int hitKind) {
     if (!attacker) return BlowSide::None;
     if (hitKind) return BlowSide::None;
     const CUnit* self = unit;
@@ -223,9 +223,9 @@ BlowSide CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     return frontStored > 0.0f ? BlowSide::Front : BlowSide::Back;
 }
 
-void CUnitServer::WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer) {
-    CWorldServer* world = ServerWorld();
-    CDiplomacy* diplomacy = DiplomacyOf(unit->ServerWorld());
+void UnitServer::WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer) {
+    WorldServer* world = ServerWorld();
+    Diplomacy* diplomacy = DiplomacyOf(unit->ServerWorld());
     int side = unit->side;
     auto node = witnesses->begin();
     if (node == witnesses->end()) return;
@@ -234,7 +234,7 @@ void CUnitServer::WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUni
         ++node;
         if (!diplomacy->IsAllied(other->side, side)) continue;
         other->flags |= MapObjectFlag::SeeAll;
-        CUnitServer* controller = other->ServerController();
+        UnitServer* controller = other->ServerController();
         world->aiMap.events.Update(controller, &controller->brain.memory);
         HeldUnits& watched = controller->brain.memory.visible;
         if (!lib::Contains(watched, victim)) continue;
@@ -247,16 +247,16 @@ void CUnitServer::WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUni
     } while (node != witnesses->end());
 }
 
-void CUnitServer::PropagateHostility() {
+void UnitServer::PropagateHostility() {
     if (!(unit->flags & MapObjectFlag::RelationsChanged)) return;
     unit->flags &= ~MapObjectFlag::RelationsChanged;
     claimedHostile |= unit->relationsA;
-    CWorldServer* world = ServerWorld();
+    WorldServer* world = ServerWorld();
     double radius = brain.callRadius;
     // The squared radius goes through a global and is compared as an int.
     volatile float* limit = &g_squaredCallRadius;
     *limit = static_cast<float>(radius * radius);
-    CDiplomacy* diplomacy = DiplomacyOf(world);
+    Diplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;
     auto node = brain.memory.nearby.begin();
     while (node != brain.memory.nearby.end()) {
@@ -270,7 +270,7 @@ void CUnitServer::PropagateHostility() {
         float squaredRadius = *limit;
         if (!(std::bit_cast<std::int32_t>(distance) < std::bit_cast<std::int32_t>(squaredRadius))) continue;
         std::uint32_t mine = self->relationsA;
-        CUnitServer* theirController = other->ServerController();
+        UnitServer* theirController = other->ServerController();
         std::uint32_t theirClaims = theirController->claimedHostile;
         if (mine == theirClaims) continue;
         std::uint32_t toThem = ~theirClaims & mine;
@@ -280,8 +280,8 @@ void CUnitServer::PropagateHostility() {
     }
 }
 
-void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
-    CWorldServer* world = ServerWorld();
+void UnitServer::OnDamaged(CUnit* attacker, int hitKind) {
+    WorldServer* world = ServerWorld();
     if (unit->MapType() < MapObjectType::Hero || unit->MapType() > MapObjectType::Building) {
         unit->flags |= MapObjectFlag::Removed;
         return;
@@ -306,7 +306,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             attacker->ServerController()->voice.Raise(AIRemark::Kill);
         }
         if (attacker->GetClassId() == ClassId::Unit) {
-            CUnitServer* theirs = attacker->ServerController();
+            UnitServer* theirs = attacker->ServerController();
             WitnessMurder(&brain.memory.nearby, unit, attacker);
             WitnessMurder(&theirs->brain.memory.nearby, attacker, attacker);
         }
@@ -329,8 +329,8 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     }
 }
 
-void CUnitServer::UseSkill(CMapObject* target) {
-    CWorldServer* world = ServerWorld();
+void UnitServer::UseSkill(CMapObject* target) {
+    WorldServer* world = ServerWorld();
     if (action.kind == UnitOrderKind::Use && action.Skill() == UseSource::SearchBody) {
         CUnit* looted = UnitOrNull(target);
         if (!looted) return;
@@ -367,7 +367,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
     case UseSource::Use: {
         LockKey record = {1, 0, 0};
         auto* items = world->ItemFactory();
-        CItem* studied = FindItem(items, action.param);
+        Item* studied = FindItem(items, action.param);
         record = {1, 0, 0};
         if (studied && studied->GetUse().mask != 0) record = studied->GetUse();
         record.level += x87::fistp(mine);
@@ -379,11 +379,11 @@ void CUnitServer::UseSkill(CMapObject* target) {
     case UseSource::Steal: {
         if (!other) return;
         if (other->player) return;
-        CItem* item = other->TakeRandomItem();
+        Item* item = other->TakeRandomItem();
         if (item) {
             console::EndLine(kCombatLog << "Item has been stolen from");
             if (CPlayer* player = unit->player) {
-                std::list<CItem*> list;
+                std::list<Item*> list;
                 list.push_front(item);
                 player->GiveItems(&list, 0);
                 list.clear();
@@ -412,16 +412,16 @@ void CUnitServer::UseSkill(CMapObject* target) {
     PlayerMessage(self->player->Server(), self, message);
 }
 
-void CUnitServer::Idle() {
+void UnitServer::Idle() {
     if (action.kind == UnitOrderKind::Idle) return;
     if (action2.kind == UnitOrderKind::Animation || action2.kind == UnitOrderKind::Emote) return;
     DropQueuedOrder();
 }
 
-void CUnitServer::SetDead(int dead) {
+void UnitServer::SetDead(int dead) {
     auto* world = ServerWorld();
     if (unit->dead == dead) return;
-    CSectorMap* units = &world->aiMap.sectorMap;
+    SectorMap* units = &world->aiMap.sectorMap;
     units->Remove(unit);
     unit->dead = dead;
     units->Add(unit);

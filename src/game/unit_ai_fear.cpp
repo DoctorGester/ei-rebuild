@@ -99,7 +99,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
 } // namespace
 
 int FearMode::Evaluate(AIBrain* brain) {
-    CUnitServer* owner = brain->owner;
+    UnitServer* owner = brain->owner;
     CUnit* self = owner->unit;
     // The sum rounded first, as the main thread's 24-bit FPU does (under /fp:fast MSVC
     // otherwise distributes the product, spread * 2/3 + 1, and the result drifts by an ulp).
@@ -187,7 +187,7 @@ int FearMode::Evaluate(AIBrain* brain) {
 
 void FearMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
-    CUnitServer* owner = brain->owner;
+    UnitServer* owner = brain->owner;
     const Vector3* here = &owner->unit->localPosition;
 
     // What to run from: the nearest enemy, a shelter to stay in, or the noticed point.

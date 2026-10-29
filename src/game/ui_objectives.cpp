@@ -1,4 +1,4 @@
-// The objectives window (CObjectivesWindow): its Create, the zone page and the selected quest's description
+// The objectives window (ObjectivesWindow): its Create, the zone page and the selected quest's description
 // and places. TAB in a zone opens it for the current zone; opened with `listZones` it lists the zones of the
 // zone's allod in which the player has quests and shows one of them. See docs/notes/ui.md.
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
@@ -59,21 +59,21 @@ void SortQuests(std::string* first, std::string* last) {
 }
 
 
-void Turn(CUiMesh* sprite, float angle) {
+void Turn(UiMesh* sprite, float angle) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
     sprite->localRotation = q;
 }
 
-CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
-    CUiRegion* region = window->AddRegion();
+UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
+    UiRegion* region = window->AddRegion();
     region->SetRect(left, top, right, bottom);
     return region;
 }
 
-CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    return new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
+UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
+    return new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
 }
 
 
@@ -100,7 +100,7 @@ const char* const kMissionTopic = "quest_mission";
 
 // --- The zone page ----------------------------------------------------------------------
 
-void CObjectivesWindow::ShowZone(std::string_view zone) {
+void ObjectivesWindow::ShowZone(std::string_view zone) {
     shownZone = zone;
     while (std::ssize(objects) > 2) RemoveObjectAt(2);
     while (std::ssize(sceneObjects) > 0x15) RemoveSceneObjectAt(0x15);
@@ -124,7 +124,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
     float halfWidth = static_cast<float>(widthShare * kPictureHalf);
     int u1 = static_cast<int>(libcrt::Ftol(widthShare * kTexels));
     int v0 = static_cast<int>(libcrt::Ftol((1.0f - D(heightShare)) * kTexels));
-    CUiMesh* picture = SceneMesh(3);
+    UiMesh* picture = SceneMesh(3);
     picture->SetRectangle(10.0f, 100.0f, static_cast<float>(kPictureCentreX - D(halfWidth)), static_cast<float>(kPictureCentreY - D(halfHeight)),
                           static_cast<float>(D(halfWidth) + kPictureCentreX), static_cast<float>(D(halfHeight) + kPictureCentreY), 0, v0, u1,
                           0x100);
@@ -182,7 +182,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         exit->mapX = static_cast<float>(mapX);
         exit->mapY = y;
 
-        CUiMesh* marker = AddBlankSprite();
+        UiMesh* marker = AddBlankSprite();
         float base = static_cast<float>(D(y) + kMarkerHeight);
         marker->SetTriangle(5.0f, 100.0f, x, y, static_cast<float>(D(x) - kMarkerHalfWidth), base, static_cast<float>(D(x) + kMarkerHalfWidth),
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
@@ -192,7 +192,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         area.top = static_cast<int>(libcrt::Ftol(D(y) - kExitHalf));
         area.right = static_cast<int>(libcrt::Ftol(D(x) + kExitHalf));
         area.bottom = static_cast<int>(libcrt::Ftol(D(y) + kExitHalf));
-        CUiRegion* region = AddRegion();
+        UiRegion* region = AddRegion();
         region->SetTip(0x138EE);
         // The marker points away from the picture's centre: sideways or up/down by the larger
         // offset, and the region moves 10 pixels the same way.
@@ -265,7 +265,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             if (foundText) {
                 title = g_clientWorld.texts->ReadLine(true);
                 text = g_clientWorld.texts->ReadToHash();
-                CUiSurface* surface = surfaces[1];
+                UiSurface* surface = surfaces[1];
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
                 surface->DrawTextIn(title, &titleRect, 1, 0x31B3FF, 1, 1);
@@ -278,8 +278,8 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
 
 // --- The selected quest ------------------------------------------------------------------
 
-void CObjectivesWindow::ShowQuest() {
-    CTextManager* texts = g_clientWorld.texts;
+void ObjectivesWindow::ShowQuest() {
+    TextManager* texts = g_clientWorld.texts;
     std::string line;
     std::string part;
     std::string text;
@@ -287,7 +287,7 @@ void CObjectivesWindow::ShowQuest() {
     std::string variable;
     if (shownQuest == selectedQuest) return;
     shownQuest = selectedQuest;
-    static_cast<CUiScrollText*>(children[0])->Clear();
+    static_cast<UiScrollText*>(children[0])->Clear();
     std::vector<std::string>& currentQuests = quests;
     if (selectedQuest < 0 || selectedQuest >= static_cast<int>(currentQuests.size())) return;
     g_lastQuest = currentQuests[selectedQuest];
@@ -356,7 +356,7 @@ void CObjectivesWindow::ShowQuest() {
         text += "\n \n ";
     }
     texts->Close();
-    static_cast<CUiScrollText*>(children[0])->SetText(text);
+    static_cast<UiScrollText*>(children[0])->SetText(text);
 
     MapRecord* map = g_mapDatabase.FindMap(shownZone);
     if (!map) return;
@@ -371,7 +371,7 @@ void CObjectivesWindow::ShowQuest() {
         const UiPointF& place = questPlaces[i];
         float x = static_cast<float>((D(place.x) - D(worldWidth) * 0.5f) * kPictureSpan / D(span) + kPictureCentreX);
         float y = static_cast<float>(kPictureCentreY - (D(place.y) - D(worldHeight) * 0.5f) * kPictureSpan / D(span));
-        CUiMesh* marker = AddBlankSprite();
+        UiMesh* marker = AddBlankSprite();
         float bottom = static_cast<float>(D(y) + kMarkerHalfWidth);
         float right = static_cast<float>(D(x) + kMarkerHalfWidth);
         float top = static_cast<float>(D(y) - kMarkerHalfWidth);
@@ -379,7 +379,7 @@ void CObjectivesWindow::ShowQuest() {
         marker->SetRectangle(5.0f, 100.0f, left, top, right, bottom, 0, 0, 0x80, 0x80);
         marker->texture = objects[1];
         std::memcpy(marker->tint, red, sizeof(red));
-        CUiRegion* region = AddRegion();
+        UiRegion* region = AddRegion();
         int bottomPixel = static_cast<int>(libcrt::Ftol(D(bottom)));
         int rightPixel = static_cast<int>(libcrt::Ftol(D(right)));
         int topPixel = static_cast<int>(libcrt::Ftol(D(top)));
@@ -391,9 +391,9 @@ void CObjectivesWindow::ShowQuest() {
 
 // --- Create ------------------------------------------------------------------------------
 
-void CObjectivesWindow::CloseScreen() { render::g_renderState.alphaReference = savedAlphaRef; }
+void ObjectivesWindow::CloseScreen() { render::g_renderState.alphaReference = savedAlphaRef; }
 
-void CObjectivesWindow::CreateScreen() {
+void ObjectivesWindow::CreateScreen() {
     savedAlphaRef = render::g_renderState.alphaReference;
     render::g_renderState.alphaReference = 1;
 
@@ -406,9 +406,9 @@ void CObjectivesWindow::CreateScreen() {
     }
 
     // The text column.
-    CUiScrollText* column = new CUiScrollText(ui, game::kEmptyText, RECT{60, 190, 384, 510}, 10.0f);
+    UiScrollText* column = new UiScrollText(ui, game::kEmptyText, RECT{60, 190, 384, 510}, 10.0f);
     AddChild(column);
-    bar = new CUiScrollbar(ui, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
+    bar = new UiScrollbar(ui, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar);
 
     LoadTexture("saveload", TextureKind::Interface);
@@ -421,17 +421,17 @@ void CObjectivesWindow::CreateScreen() {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 536.0f, 237.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
     else
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, 536.0f, 437.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
-    CUiMesh* second = AddBlankSprite();
+    UiMesh* second = AddBlankSprite();
     second->SetRectangle(3.0f, 100.0f, 563.0f, 536.0f, 637.0f, 584.0f, 0xA0, 2, 0xEA, 0x32);
     if (!twoButtons) second->visible = false;
-    CUiMesh* highlight = AddBlankSprite();
+    UiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 60.0f, 30.0f, 370.0f, 54.0f, 0, 0, 0x100, 0x100);
     highlight->texture = nullptr;
     highlight->flatColour = 0xC8A06800;
     highlight->flags |= FigureMeshFlag::Flat;
     highlight->visible = false;
     AddBlankSprite();   // object 3: the zone picture, set up by the zone page
-    CUiMesh* bottomShade = AddBlankSprite();
+    UiMesh* bottomShade = AddBlankSprite();
     bottomShade->SetRectangle(15.0f, 100.0f, 285.0f, 541.0f, 515.0f, 579.0f, 0, 0, 0x100, 0x100);
     bottomShade->texture = nullptr;
     bottomShade->flags |= FigureMeshFlag::Flat;
@@ -442,7 +442,7 @@ void CObjectivesWindow::CreateScreen() {
                                 {410.0f, 20.0f, 750.0f, 360.0f},
                                 {410.0f, 380.0f, 750.0f, 520.0f}};
     for (const auto& s : shades) {
-        CUiMesh* shade = AddBlankSprite();
+        UiMesh* shade = AddBlankSprite();
         shade->SetRectangle(15.0f, 100.0f, s[0], s[1], s[2], s[3], 0, 0, 0x100, 0x100);
         shade->texture = nullptr;
         shade->flags |= FigureMeshFlag::Flat;
@@ -454,14 +454,14 @@ void CObjectivesWindow::CreateScreen() {
                                 {405.0f, 375.0f, 755.0f, 525.0f}};
     for (const auto& f : frames)
         AddBlankSprite()->SetFrame(3.0f, 100.0f, f[0], f[1], f[2], f[3], 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    CUiMesh* left = AddBlankSprite();
+    UiMesh* left = AddBlankSprite();
     left->SetRectangle(3.0f, 100.0f, 414.0f, 384.0f, 443.0f, 404.0f, 2, 0x72, 0x1F, 0x86);
     left->visible = false;
-    CUiMesh* right = AddBlankSprite();
+    UiMesh* right = AddBlankSprite();
     right->SetRectangle(3.0f, 100.0f, 717.0f, 384.0f, 746.0f, 404.0f, 0x21, 0x72, 0x3E, 0x86);
     right->visible = false;
     for (int top = 31; top < 151; top += 24) {
-        CUiMesh* mark = AddBlankSprite();
+        UiMesh* mark = AddBlankSprite();
         mark->SetRectangle(2.8f, 100.0f, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,
                            0xA4, 0x48, 0xFC);
         mark->visible = false;
@@ -538,8 +538,8 @@ void CObjectivesWindow::CreateScreen() {
     }
     ui->OpenHelp(false);
 }
-void CObjectivesWindow::DrawQuestList() {
-    CTextManager* texts = g_clientWorld.texts;
+void ObjectivesWindow::DrawQuestList() {
+    TextManager* texts = g_clientWorld.texts;
     std::string title;
     std::string variable;
     auto mesh = [this](int index) { return SceneMesh(index); };
@@ -551,7 +551,7 @@ void CObjectivesWindow::DrawQuestList() {
     int row = firstRow;
     int y = 13;
     for (int i = 16; i < 21 && row < static_cast<int>(currentQuests.size()); ++i, ++row, y += 24) {
-        CUiMesh* mark = mesh(i);
+        UiMesh* mark = mesh(i);
         mark->visible = true;
         bool found;
         {
@@ -577,11 +577,11 @@ void CObjectivesWindow::DrawQuestList() {
 
 // --- What the window is opened for, and its help topic --------------------
 
-void CObjectivesWindow::Setup(std::string_view zone, std::map<int, float>* newExitDistances, bool newTwoButtons, bool newListZones) {
+void ObjectivesWindow::Setup(std::string_view zone, std::map<int, float>* newExitDistances, bool newTwoButtons, bool newListZones) {
     zoneName = zone;
     twoButtons = newTwoButtons;
     exitDistances = newExitDistances;
     listZones = newListZones;
 }
 
-const char* CObjectivesWindow::HelpTopic() { return twoButtons ? kGlobalMapTopic : kMissionTopic; }
+const char* ObjectivesWindow::HelpTopic() { return twoButtons ? kGlobalMapTopic : kMissionTopic; }

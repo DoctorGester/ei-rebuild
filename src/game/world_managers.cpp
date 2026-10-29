@@ -35,7 +35,7 @@ constexpr const char* kItemsFolderName = "items";
 void CWorld::Destroy() {
     if (SpellManager()) {
         ObjectListIterator objects{nullptr, {}};
-        for (CEngineObject* object = objects.First(SpellManager()); object; object = objects.Next()) object->ClearState();
+        for (EngineObject* object = objects.First(SpellManager()); object; object = objects.Next()) object->ClearState();
         if (objects.manager) --objects.manager->refCount;
     }
     DeleteManager(players);
@@ -56,18 +56,18 @@ void CWorld::Destroy() {
 // ClassName / GetClassId and the destructors of the player manager, the effect manager and the item manager
 // (the item manager's folder name "items" is in world_class_slots.cpp). The deleting destructor adds the delete.
 
-CPlayerManager::CPlayerManager() {}
-CPlayerManager::~CPlayerManager() {}
-const char* CPlayerManager::ClassName() { return kPlayerManagerName; }
-ClassId CPlayerManager::GetClassId() { return ClassId::PlayerManager; }
+PlayerManager::PlayerManager() {}
+PlayerManager::~PlayerManager() {}
+const char* PlayerManager::ClassName() { return kPlayerManagerName; }
+ClassId PlayerManager::GetClassId() { return ClassId::PlayerManager; }
 
-CEffectManager::CEffectManager() {}
-CEffectManager::~CEffectManager() {}
-const char* CEffectManager::ClassName() { return kEffectManagerName; }
-ClassId CEffectManager::GetClassId() { return ClassId::EffectManager; }
+EffectManager::EffectManager() {}
+EffectManager::~EffectManager() {}
+const char* EffectManager::ClassName() { return kEffectManagerName; }
+ClassId EffectManager::GetClassId() { return ClassId::EffectManager; }
 
-CItemManager::CItemManager() {}
-CItemManager::~CItemManager() {}
-const char* CItemManager::ClassName() { return kItemManagerName; }
-ClassId CItemManager::GetClassId() { return ClassId::ItemManager; }
-const char* CItemManager::GetFolderName() { return kItemsFolderName; }
+ItemManager::ItemManager() {}
+ItemManager::~ItemManager() {}
+const char* ItemManager::ClassName() { return kItemManagerName; }
+ClassId ItemManager::GetClassId() { return ClassId::ItemManager; }
+const char* ItemManager::GetFolderName() { return kItemsFolderName; }

@@ -89,7 +89,7 @@ void MagicTrap::UpdateVictims() {
     }
 
     if (!(flags & MapObjectFlag::Armed)) return;
-    CWorldServer* context = ServerWorld();
+    WorldServer* context = ServerWorld();
     std::list<CUnit*> found;
     std::list<CUnit*> newcomers;
     FindTrapVictims(context, &area, sides, &found);
@@ -110,10 +110,10 @@ void MagicTrap::UpdateVictims() {
     found.clear();
 }
 
-void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
+void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
                                 std::list<CUnit*>* out) {
     out->clear();
-    CSectorMap* sectors = &context->aiMap.sectorMap;
+    SectorMap* sectors = &context->aiMap.sectorMap;
     for (int i = 0; i < std::ssize(*area); ++i) {
         const TrapCircle& circle = (*area)[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
@@ -209,10 +209,10 @@ MagicTrap::~MagicTrap() {
     ClearVictims(this);
 }
 
-void MagicTrap::Load(CStream* stream) { LoadTrap(stream); }
-void MagicTrap::Save(CStream* stream) { SaveTrap(stream); }
+void MagicTrap::Load(ByteStream* stream) { LoadTrap(stream); }
+void MagicTrap::Save(ByteStream* stream) { SaveTrap(stream); }
 
-void MagicTrap::SaveTrap(CStream* stream) {
+void MagicTrap::SaveTrap(ByteStream* stream) {
     SaveMapObject(stream);
     std::int32_t value = spell ? spell->id : -1;
     stream->WriteValue(value);
@@ -235,7 +235,7 @@ void MagicTrap::SaveTrap(CStream* stream) {
     }
 }
 
-void MagicTrap::LoadTrap(CStream* stream) {
+void MagicTrap::LoadTrap(ByteStream* stream) {
     LoadMapObject(stream);
     CSpellManager* manager = WorldContext()->SpellManager();
     // The id and the two counts are read into one local: a read that fails leaves the previous value.
@@ -289,7 +289,7 @@ bool MagicTrap::RunTick() {
 }
 
 void MagicTrap::FireAtOccupants() {
-    CWorldServer* context = ServerWorld();
+    WorldServer* context = ServerWorld();
     std::list<CUnit*> found;
     if (flags & MapObjectFlag::Armed) {
         FindTrapVictims(context, &area, sides, &found);
@@ -297,7 +297,7 @@ void MagicTrap::FireAtOccupants() {
     }
 }
 
-int MagicTrap::ForgetObject(CEngineObject* object) {
+int MagicTrap::ForgetObject(EngineObject* object) {
     for (auto node = inside.begin(); node != inside.end();) {
         auto next = std::next(node);
         if (*node == object) {

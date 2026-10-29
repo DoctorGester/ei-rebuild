@@ -76,7 +76,7 @@ void AIEventTable::Advance(int now) {
     }
 }
 
-void AIEventTable::ForgetUnit(CUnitServer* controller) {
+void AIEventTable::ForgetUnit(UnitServer* controller) {
     CUnit* unit = controller->unit;
     const int side = unit->side & kSideMask;
     const int id = unit->id;
@@ -93,7 +93,7 @@ void AIEventTable::ForgetUnit(CUnitServer* controller) {
     }
 }
 
-void AIEventTable::Load(CStream* stream) {
+void AIEventTable::Load(ByteStream* stream) {
     for (;;) {
         char more = 0;
         stream->ReadValue(more);
@@ -130,7 +130,7 @@ void AIEventTable::Load(CStream* stream) {
     }
 }
 
-void AIEventTable::Save(CStream* stream) {
+void AIEventTable::Save(ByteStream* stream) {
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             for (int side = 0; side < kSides; ++side) {
@@ -156,7 +156,7 @@ void AIEventTable::Save(CStream* stream) {
 
 // ---- Setup for a map ----------------------------------------------------------------------------------
 
-int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
+int AIEventTable::Setup(AIMap* aiMap, float sizeX, float sizeY) {
     Clear();
     map = aiMap;
     const float scale = (-0.125f);
@@ -166,28 +166,28 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     height = newHeight;
     cells.assign(static_cast<std::size_t>(width * height), AIEventCell{});
 
-    lib::InPlace<CMappedResource> storage;
-    CMappedResource* archive = storage.Get();
-    new (archive) CMappedResource();
+    lib::InPlace<MappedResource> storage;
+    MappedResource* archive = storage.Get();
+    new (archive) MappedResource();
     bool failed;
     {
         std::string folder = g_textFolder;
         std::string path = folder + kAiInfoArchive;
-        failed = archive->CMappedResource::OpenResource(path, 0) == 0;
+        failed = archive->MappedResource::OpenResource(path, 0) == 0;
     }
     void* data = nullptr;
     const char* error = kCantReadAiInfo;
     if (!failed) {
-        data = archive->CMappedResource::GetFile(kNormalFile, nullptr);
+        data = archive->MappedResource::GetFile(kNormalFile, nullptr);
         error = kCantOpenNormal;
     }
     if (!data) {
         const int result = game::FatalError(error);
-        archive->CMappedResource::Destroy();
+        archive->MappedResource::Destroy();
         return result;
     }
     std::memcpy(g_normalTable, data, kNormalTableSize);
-    archive->CMappedResource::CloseFile(data);
-    archive->CMappedResource::Destroy();
+    archive->MappedResource::CloseFile(data);
+    archive->MappedResource::Destroy();
     return 1;
 }

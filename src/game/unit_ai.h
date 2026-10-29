@@ -22,7 +22,7 @@
 
 struct AIBrain;
 class CSpell;
-class CUnitServer;
+class UnitServer;
 namespace console {
 class Stream;
 extern Stream g_aiLogOut;
@@ -33,7 +33,7 @@ using UnitList = std::list<CUnit*>;
 // A list of units holding a reference to each (the AI memory's lists).
 using HeldUnits = std::list<HeldRef<CUnit>>;
 
-// What an order does (AIOrder::kind). A unit's queued order (CUnitServer::action2) is UnitOrderKind::None when nothing is
+// What an order does (AIOrder::kind). A unit's queued order (UnitServer::action2) is UnitOrderKind::None when nothing is
 // queued; a queued UnitOrderKind::Idle stops the current order and the unit stands.
 enum class UnitOrderKind : int {
     Idle = 0,
@@ -50,7 +50,7 @@ enum class UnitOrderKind : int {
     Stop = 11,
 };
 
-// AIOrder::source of a UnitOrderKind::Use order (CUnitServer::UseSkill).
+// AIOrder::source of a UnitOrderKind::Use order (UnitServer::UseSkill).
 enum class UseSource : std::uint32_t {
     Use = 0,
     Steal = 1,
@@ -95,8 +95,8 @@ struct AILook {
 
 // The looks from / to a save: the count, then angle, time and wait of each and (from version 0x44) the stop
 // flag.
-void LoadLooks(std::vector<AILook>* looks, CStream* stream);
-void SaveLooks(const std::vector<AILook>* looks, CStream* stream);
+void LoadLooks(std::vector<AILook>* looks, ByteStream* stream);
+void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream);
 
 // A move the modes prepare on the stack: where to go and what to look at there.
 struct AIMoveOrder {
@@ -147,12 +147,12 @@ public:
     virtual void Leave(AIBrain*) {}
     // True for most modes; AddMode replaces a mode of another type when both answer true.
     virtual bool Exclusive() { return true; }
-    virtual void OnObjectDeleted(CEngineObject*) {}
+    virtual void OnObjectDeleted(EngineObject*) {}
     // Taken out of the brain while in charge (AIBrain::RemoveModesOfType): the mode stays in charge until another
     // takes over, with the fields the original's shutdown of a still-held mode resets.
     virtual void Detach() {}
-    virtual void Load(CStream*) {}
-    virtual void Save(CStream*) {}
+    virtual void Load(ByteStream*) {}
+    virtual void Save(ByteStream*) {}
 
     const AIModeType type;
 };
@@ -178,8 +178,8 @@ public:
     // there.
     void Execute(AIBrain* brain) override;
     void Detach() override { failures = 0; }
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
     Vector3 point{};
     float radius = 0.0f;
@@ -205,8 +205,8 @@ public:
     PatrolPoint* LastPoint();       // null without points
     // The point count, per point its position, look count and per look angle, time, wait and (from version
     // 0x44) the stop flag byte; then `current`.
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
     // Appends a point with no looks at ((n + 0.5) / 2, z 0) for n = 2x rounded to nearest (so 0..0.5 above
     // `position`, not the middle of its half-cell).
     void AppendPoint(const Vector3& position);
@@ -221,8 +221,8 @@ public:
     SentryMode() : AIMode(AIModeType::Sentry) {}   // a mode AIBrain::Load fills
     explicit SentryMode(const Vector3& at) : SentryMode() { point = at; }
     void Execute(AIBrain* brain) override;
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
     Vector3 point{};
 };
@@ -232,10 +232,10 @@ class FollowMode : public AIMode {
 public:
     explicit FollowMode(CMapObject* newLeader = nullptr) : AIMode(AIModeType::Follow) { leader.Assign(newLeader); }
     void Execute(AIBrain* brain) override;
-    void OnObjectDeleted(CEngineObject* object) override;
+    void OnObjectDeleted(EngineObject* object) override;
     void Detach() override { leader.Reset(); }
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
     Ref<CMapObject> leader;
 };
@@ -252,8 +252,8 @@ public:
     void Enter(AIBrain* brain) override;
     // Clears busy; remark 3.
     void Leave(AIBrain* brain) override;
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
     // The original leaves these unset, but Evaluate keeps a point that compares the same (a NaN always does)
     // and the lower level, so every new mode starts zeroed: a determinism fix (the harness zeroes the
     // original's alike).
@@ -283,10 +283,10 @@ public:
     void Enter(AIBrain* brain) override;
     // Forgets the noticed level when the enemy is gone or dead, drops the enemy, clears busy; remark 4.
     void Leave(AIBrain* brain) override;
-    void OnObjectDeleted(CEngineObject* object) override;
+    void OnObjectDeleted(EngineObject* object) override;
     void Detach() override;
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
     Ref<CMapObject> enemy;
     bool fixed;                     // enemy set by the script (no searching)
@@ -323,8 +323,8 @@ public:
     void Leave(AIBrain* brain) override;
     // The constructor's values again (the rest of the shelter and the flight point stay).
     void Detach() override;
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
     // A new Fear mode's distance, which `distance` returns to.
     static constexpr float kDefaultDistance = 10.0f;
@@ -351,13 +351,13 @@ public:
     // command); state 1: wait for the commanded action to end; state 2: walk to `point` (staying with the party
     // unless it is in danger) and fight on the way.
     void Execute(AIBrain* brain) override;
-    void OnObjectDeleted(CEngineObject* object) override;
+    void OnObjectDeleted(EngineObject* object) override;
     // The references released, the point, state and run flag cleared.
     void Detach() override;
     // The target's and the leader's references, the point and the state. Saves of versions 0x46 .. 0x5D hold
     // a group of objects after them (ScriptGroup::Load), which is read and dropped.
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
 
     // The player's commands (state 1 or 2). Walk to `to` + `offset` (just `to` when the way there is
     // blocked); forgets the leader unless the party is in danger.
@@ -406,7 +406,7 @@ protected:
     explicit PlayerMode(AIModeType modeType) : AIActionMode(modeType) {}
 };
 
-// True when the unit's player's party is in danger (CPlayerServer::danger InDanger: a party unit fights or is an
+// True when the unit's player's party is in danger (PlayerServer::danger InDanger: a party unit fights or is an
 // enemy's target). Its units then fight on their own: they keep their leader on a walk command, do not wait for
 // the followers and do not stop the others to fight.
 bool PartyInDanger(const CUnit* unit);
@@ -421,8 +421,8 @@ public:
 };
 
 // A count read from `stream`, then that many counted references appended to `list`, each loaded in `context`.
-void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context);
-void CountedListLoad(HeldUnits* list, CStream* stream, CWorld* context);
+void CountedListLoad(std::list<CUnit*>* list, ByteStream* stream, CWorld* context);
+void CountedListLoad(HeldUnits* list, ByteStream* stream, CWorld* context);
 
 // The AI's perception log: the AI stream.
 inline constexpr console::Stream& kAiLog = console::g_aiLogOut;
@@ -465,7 +465,7 @@ struct AIReports : std::vector<AIReport> {
 
     // Keeps the larger `ticks` of a listed object, else appends it (with a reference).
     void Report(CMapObject* object, int ticks);
-    bool Contains(CEngineObject* object) const;
+    bool Contains(EngineObject* object) const;
 };
 
 // What an AI attack option does (AIAttackOption::kind). The spells' kinds by spell type: the arrows and the two
@@ -492,8 +492,8 @@ struct AIAttackOption {
     double Weight() const;
     // The option from / to a save. Before version 0x5A only the part, a dropped dword and the damage were
     // saved: the kind becomes part >= 0, the range 1, the rest 0.
-    void Load(CStream* stream);
-    void Save(CStream* stream) const;
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
 
     AIOptionKind kind;
     int part;                       // kWeaponPart, else the spell
@@ -508,7 +508,7 @@ struct AIAttackOption {
 };
 
 // The count, the array sized to it, then each option.
-void LoadAttackOptions(std::vector<AIAttackOption>* options, CStream* stream);
+void LoadAttackOptions(std::vector<AIAttackOption>* options, ByteStream* stream);
 
 // The brain's attention: the unit's attack options (AIBrain::Choose picks a target with them).
 struct AIAttention {
@@ -542,14 +542,14 @@ struct AIMemory {
     // Ages the reports (one tick off each; an entry below 0 is dropped), updates the heard calls and the AI
     // events' view, then adds the noticed decay to the noticed level. Both callees may notice a point first (a
     // call, a corpse, a unit lost from sight).
-    void Update(CUnitServer* owner);
+    void Update(UnitServer* owner);
     // True when the unit can still keep track of `other`: it has the unit's side or player, or it is in sight.
     bool CanTrack(CUnit* self, CUnit* other);
     // Takes over a noticed point of a higher `level`: true when the level rose by more than 100 or the point
     // lies more than sqrt(10) away (with the point's own z, not a difference); false when the level is not
     // higher.
     bool Notice(const Vector3& point, int level, int decay);
-    void Forget(CEngineObject* object);
+    void Forget(EngineObject* object);
     void HearCall(const Vector3& point, int delay, std::string_view text);
     void AddClaim(std::uint32_t mask, int delay, std::string_view text);
     // The visible units hostile to the unit (its IsHostileTo), alive and not reported, in visible-list order
@@ -569,11 +569,11 @@ struct AIMemory {
     // The unit's exposure to the living hostile units nearby into `out` (CUnit::exposure): per kind the
     // smallest distance / range ratio, at most 3 (a zero range counts 3). [0] sight (scaled by the line of
     // sight between the eyes, only within range), [4], [1], [2] three other ranges; [3] stays 3.
-    void MeasureExposure(CUnitServer* self, float* out);
+    void MeasureExposure(UnitServer* self, float* out);
     // From / to a save: the four object lists (appended to on load), the noticed point, level and countdown,
     // the reports, the heard calls (point, delay, text, hostileMask) and the noticed decay (-1 until read).
-    void Load(CStream* stream);
-    void Save(CStream* stream);
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream);
 
     SpiralCache spareCells{0, -1.0f};   // not read
     SpiralCache sightCells{0, -1.0f};   // the cells around the unit it looks for units in
@@ -621,12 +621,12 @@ struct AIBrain {
     CMapObject* AggressionEnemy();
     bool IsNearPath(const Vector3& point, float radius);
     // True when `object` is a unit of a side the brain's unit is allied with.
-    bool IsAlliedUnit(CEngineObject* object);
+    bool IsAlliedUnit(EngineObject* object);
     // Sets the owner; on a change both remembered positions become unset (kUnsetCoordinate, 0, 0).
-    void SetOwner(CUnitServer* newOwner);
+    void SetOwner(UnitServer* newOwner);
     // An object is being deleted: tell every mode, drop it as target or seen object and from the perception
     // memory.
-    void OnObjectDeleted(CEngineObject* object);
+    void OnObjectDeleted(EngineObject* object);
 
     // Adds `mode` at the end of the list after removing the first mode of the same type, or the first exclusive
     // one when `mode` is exclusive (no mode is in charge when it is the one removed).
@@ -646,8 +646,8 @@ struct AIBrain {
     // perception memory, the alarm records, and (by file version) the attack options. Load empties the mode
     // list first, creates each mode by type (stopping at an unknown type, 9 or above 10) and maps a call
     // radius equal to [Logic] CallForHelpRadiusDefault to CallForHelpRadius.
-    void Load(CStream* stream);
-    void Save(CStream* stream);
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream);
     // The standard mode sets of the script's Guard / Sentry commands: ClearModes, then the guard (radius,
     // wander -1: the default) or sentry mode, Suspection, Aggression, CorpseWatcher and Fear(0); the target
     // is released and the action dropped.
@@ -728,7 +728,7 @@ struct AIBrain {
     void CallAllies(const Vector3& point);
     static constexpr int kCallDelay = 0x1A;
 
-    CUnitServer* owner = nullptr;
+    UnitServer* owner = nullptr;
     int action = kActionNone;
     AIMoveOrder move;               // the action point, and what to look at after arriving
     int actionTime = kNoTime;       // game time the current look ends (or kNoTime / kLookStarted)

@@ -7,9 +7,9 @@
 
 // The battle camera's input side (one of the battle screen's extra input sides). Keys move the camera along
 // x / y / z (set by the key-down, cleared by the key-up); the right button turns the view while held.
-class CCameraInput final : public UiInputSide {
+class CameraInput final : public UiInputSide {
 public:
-    explicit CCameraInput(CInterface3D* ui) : UiInputSide(ui) {}
+    explicit CameraInput(Interface3D* ui) : UiInputSide(ui) {}
 
     // A direction key (actions 5-10 of g_keyActions) sets its axis; actions 13-16 restore camera view 0-3,
     // or save it with Ctrl / Alt. Then, when used, the camera's motion is set from the axes as KeyUp does.

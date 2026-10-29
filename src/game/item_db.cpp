@@ -120,7 +120,7 @@ void LootItemRecord::Serialize(ChunkArchive* ar) {
 // --- Tables --------------------------------------------------------------------------------------
 
 template <typename Record>
-void NamedRecordTable<Record>::Load(CStream* source, int chunk) {
+void NamedRecordTable<Record>::Load(ByteStream* source, int chunk) {
     ChunkArchive archive;
     archive.Open(source, 1, 1);
     RecordChunks(&archive, chunk, &records, &Record::Serialize);
@@ -134,10 +134,10 @@ int ItemDatabase::Load(const std::string& folder, const std::string& archive) {
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("items.idb", &size);
+    void* data = resource.Get()->MappedResource::GetFile("items.idb", &size);
     if (!data) return game::FatalError("Can't open items database\n");
 
-    CMemoryStream stream;
+    MemoryStream stream;
     dbfile::FillStream(stream, data, size);
     materials.Load(&stream, kMaterialsChunk);
     weapons.Load(&stream, kWeaponsChunk);
@@ -146,8 +146,8 @@ int ItemDatabase::Load(const std::string& folder, const std::string& archive) {
     questItems.Load(&stream, kQuestItemsChunk);
     loot.Load(&stream, kLootChunk);
 
-    resource.Get()->CMappedResource::CloseFile(data);
-    resource.Get()->CMappedResource::CloseResource();
+    resource.Get()->MappedResource::CloseFile(data);
+    resource.Get()->MappedResource::CloseResource();
     return 1;
 }
 

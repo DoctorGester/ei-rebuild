@@ -1,5 +1,5 @@
 // The briefing / base screen's Create and per-frame Update
-// CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
+// BriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "app.h"
 #include "camera.h"
 #include "combat.h"
@@ -58,7 +58,7 @@ constexpr int kTopicBackdrop = 0;
 constexpr int kTopicFrame = 1;
 constexpr int kTextBackdropMesh = 2;   // the text's backdrop, its frame and the people's slots after it
 
-// The states (CBriefingScreen::state).
+// The states (BriefingScreen::state).
 constexpr int kWalking = 0;
 constexpr int kChoosing = 1;
 constexpr int kStarting = 2;
@@ -90,7 +90,7 @@ Vector3 NormalisedUnlessZero(const Vector3& v) {
 void PlaceMover(BriefingMover* node) {
     CUnit* unit = g_serverWorld.FindUnit(node->person->id);
     if (!unit) return;
-    CUnitServer* controller = unit->ServerController();
+    UnitServer* controller = unit->ServerController();
     Vector3 target{node->target.x, node->target.y, node->target.z};
     g_serverWorld.aiMap.sectorMap.Move(unit, target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
@@ -127,27 +127,27 @@ void StepTurning(BriefingMover* node) {
 }
 
 // Meshes `first` onwards shown or hidden.
-void SetMeshesVisible(CUiWindow* window, int visible, int first = 0) {
+void SetMeshesVisible(UiWindow* window, int visible, int first = 0) {
     for (int i = first; i < std::ssize(window->sceneObjects); ++i)
         window->SceneMesh(i)->visible = visible;
 }
 
-// The speaker's lips stop (CUnitClientSpecific's blink: eyes open).
+// The speaker's lips stop (UnitClientSpecific's blink: eyes open).
 void StopTalking(CUnit* speaker) {
-    CUnitClientSpecific* model = speaker->ClientController();
+    UnitClientSpecific* model = speaker->ClientController();
     model->blinks = 0;
     model->BlinkOpen(true);
 }
 
 // Whether the voice `handle` has ended (neither playing nor waiting).
 bool VoiceEnded(int handle) {
-    CSoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds;
     return !sounds->FindPlaying(handle) && !sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
 } // namespace
 
-void CBriefingScreen::CreateScreen() {
+void BriefingScreen::CreateScreen() {
     chatActive = 0;
     autosave = false;
     if (g_saveStream.size != 0)    // loading a game
@@ -160,7 +160,7 @@ void CBriefingScreen::CreateScreen() {
 
     // The backdrops: a dark one behind the topics with a frame, a lighter one behind the text
     // with a frame.
-    CUiMesh* sprite = AddBlankSprite();
+    UiMesh* sprite = AddBlankSprite();
     sprite->SetRectangle(20.0f, 100.0f, 200.0f, 430.0f, 600.0f, 570.0f, 0, 0, 0x100, 0x100);
     sprite->texture = nullptr;
     sprite->flags |= FigureMeshFlag::Flat;
@@ -175,13 +175,13 @@ void CBriefingScreen::CreateScreen() {
 
     // Surface 0 the topic rows, 1 a person's label.
     for (const RECT& area : {RECT{200, 430, 600, 570}, RECT{0, 0, 250, 30}}) {
-        CUiSurface* surface = new CUiSurface(ui, area.left, area.top, area.right, area.bottom, SurfaceBlend::Keyed, true);
+        UiSurface* surface = new UiSurface(ui, area.left, area.top, area.right, area.bottom, SurfaceBlend::Keyed, true);
         AddSurface(surface);
     }
 
-    topicBar = new CUiScrollbar(ui, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f);
+    topicBar = new UiScrollbar(ui, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f);
     AddChild(topicBar);
-    text = new CUiScrollText(ui, game::kEmptyText, RECT{165, 426, 635, 570}, 10.0f);
+    text = new UiScrollText(ui, game::kEmptyText, RECT{165, 426, 635, 570}, 10.0f);
     AddChild(text);
 
     SetMeshesVisible(this, 0);
@@ -207,24 +207,24 @@ void CBriefingScreen::CreateScreen() {
     // The screen's own input side (its third dword is left as allocated) and the view's.
     UiInputSide* input = new UiInertInput(ui);           // 0x0C bytes
     AddInput(input);
-    AddInput(new CCameraInput(ui));
+    AddInput(new CameraInput(ui));
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null), the alternate limits, no target.
-    CCamera* camera = &g_camera;
-    camera->flags &= ~CCamera::kFree;
+    Camera* camera = &g_camera;
+    camera->flags &= ~Camera::kFree;
     if (map->restricted) {
         Vector3 centre{map->restrictX, map->restrictY, 0.0f};
         camera->SetBounds(centre, map->restrictRadius);
     }
-    camera->flags |= CCamera::kAlternate;
+    camera->flags |= Camera::kAlternate;
     camera->SetTargetId(-1);
     briefingStarted = false;
     voice = -1;
     speaking = nullptr;
 
     if (IsMultiplayerClient()) {
-        chat = new CChatWindow(ui);
+        chat = new ChatWindow(ui);
         AddChild(chat);
         PlayersChanged(1);
     } else {
@@ -241,10 +241,10 @@ void CBriefingScreen::CreateScreen() {
     markPhase = 0.0f;
 }
 
-void CBriefingScreen::Update() {
+void BriefingScreen::Update() {
     markPhase = static_cast<float>(FrameTime() + markPhase);
     while (markPhase >= 1.0f) markPhase = static_cast<float>(markPhase - 1.0f);
-    CUiContainer::Update();
+    UiContainer::Update();
     SetMeshesVisible(this, 0);
     for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide(false);
     children[kTopicBarChild]->SetEnabled(false);
@@ -320,7 +320,7 @@ void CBriefingScreen::Update() {
     }
 }
 
-void CBriefingScreen::MarkPeople() {
+void BriefingScreen::MarkPeople() {
     NamedFloatTable variables;
     PlayerZeroVariables(kTopicPrefix, &variables);
     std::vector<std::string> parts;
@@ -346,7 +346,7 @@ void CBriefingScreen::MarkPeople() {
     open.clear();
 }
 
-void CBriefingScreen::LeaveIfExitOpen() {
+void BriefingScreen::LeaveIfExitOpen() {
     CParty* localParty = LocalPlayerData();
     if (!exitPending || std::ssize(localParty->members) <= 0) return;
     std::string zone = GameExitTarget(exit);

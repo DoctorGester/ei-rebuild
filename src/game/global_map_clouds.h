@@ -9,7 +9,7 @@
 
 #include <cstdint>
 
-class CGlobalMapClouds {
+class GlobalMapClouds {
 public:
     // The first two frames' words.
     void Start();

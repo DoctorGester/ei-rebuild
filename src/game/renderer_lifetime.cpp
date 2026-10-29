@@ -2,13 +2,13 @@
 // constructors and destructors, Destroy, the draw colour and sun, the frame clear, texture binding, the
 // figure draws, the line list draw, the gamma getter, the surfaces' restore after a
 // switch back, and the device object's counted holder (docs/notes/renderer.md).
-#include "figure_mesh.h"   // CFigureMesh
+#include "figure_mesh.h"   // FigureMesh
 #include "game_singletons.h"
 #include "link_figure.h"   // FigureMeshDrawer
-#include "model.h"         // CSceneRenderer, CTransformPipeline
+#include "model.h"         // SceneRenderer, TransformPipeline
 #include "renderer_lines.h"
 #include "spell.h"     // CLight
-#include "texture.h"   // CTextureDevice, CTexture, Surface
+#include "texture.h"   // TextureDevice, CTexture, Surface
 #include "ui.h"
 #include "world.h"
 
@@ -34,18 +34,18 @@ const char* NullTextureText() { return "Final loading data to NULL texture!\n"; 
 
 // --- The renderer -----------------------------------
 
-CSceneRenderer::~CSceneRenderer() {
+SceneRenderer::~SceneRenderer() {
     device.Reset();
     helper.Reset();
     ReleasePipeline();
 }
 
-void CSceneRenderer::ReleasePipeline() {
+void SceneRenderer::ReleasePipeline() {
     sun.Reset();
     pipeline.Reset();
 }
 
-void CSceneRenderer::SetColour(std::uint32_t newColour) {
+void SceneRenderer::SetColour(std::uint32_t newColour) {
     colour = newColour;
     // Each byte (as a 64-bit integer) times the float constant, stored as a float.
     const int red = static_cast<int>((newColour >> 16) & 0xFF);
@@ -59,9 +59,9 @@ void CSceneRenderer::SetColour(std::uint32_t newColour) {
 
 const float* AmbientColour() { return g_ambientColour; }
 
-void CSceneRenderer::SetSun(CLight* light) { sun.Assign(light); }
+void SceneRenderer::SetSun(CLight* light) { sun.Assign(light); }
 
-void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
+void SceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
     // Each product is stored as a float, then it is rounded to the nearest integer.
     const std::uint32_t red = static_cast<std::uint32_t>(x87::fistp(r * kColourScale));
@@ -73,9 +73,9 @@ void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) 
 // The scene renderer: constructed by the C++ runtime and destroyed after the game's exit functions. ShutDown's
 // DestroyRenderer has released its holders by then; on an exit that skips ShutDown its destructor drops the counts
 // (the device object's destructor releases only the pipeline and the material: no device or window call).
-CSceneRenderer g_sceneRenderer;
+SceneRenderer g_sceneRenderer;
 
-void CSceneRenderer::DestroyRenderer() {
+void SceneRenderer::DestroyRenderer() {
     ReleasePipeline();
     flags &= ~2u;
     helper.Reset();
@@ -83,32 +83,32 @@ void CSceneRenderer::DestroyRenderer() {
 }
 
 // The holder is stored (the new renderer draws with it); no device lock.
-int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
+int SceneRenderer::SetTexture(int stage, CTexture* texture) {
     device->stageSurfaces[stage] = texture ? texture->surface.Get() : nullptr;
     return 1;
 }
 
-void CSceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline, device); }
+void SceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline, device); }
 
-int CSceneRenderer::DrawFigure(CFigureMesh* mesh, CMaterial* material, int alpha, tagRECT* screen) {
+int SceneRenderer::DrawFigure(FigureMesh* mesh, Material* material, int alpha, tagRECT* screen) {
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     return mesh->drawer->DrawPlain(device, material, alpha, screen);
 }
 
-int CSceneRenderer::DrawFigureLit(CFigureMesh* mesh, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen,
+int SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<CLight*>* lights, Material* material, int alpha, tagRECT* screen,
                                   CTexture* textureA, CTexture* textureB) {
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     return mesh->drawer->DrawLit(device, lights, material, alpha, screen, textureA, textureB);
 }
 
-void CSceneRenderer::GetGamma(float* outBrightness, float* outContrast, float* outGamma) const {
+void SceneRenderer::GetGamma(float* outBrightness, float* outContrast, float* outGamma) const {
     *outBrightness = brightness;
     *outContrast = contrast;
     *outGamma = gamma;
 }
 
 // There are no DirectDraw surfaces to lose nor a display mode to set again.
-bool CSceneRenderer::RestoreSurfaces() { return device != nullptr; }
+bool SceneRenderer::RestoreSurfaces() { return device != nullptr; }
 
 // --- Texture holders -----------------------------------------------------------------------------
 

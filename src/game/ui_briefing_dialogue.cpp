@@ -1,4 +1,4 @@
-// The briefing / base screen's dialogue (CBriefingScreen, ui_briefing.h): the phrases' start, the
+// The briefing / base screen's dialogue (BriefingScreen, ui_briefing.h): the phrases' start, the
 // speakers' animations and the camera on a speaker. See docs/notes/ui.md, "Briefing / base screen".
 #include "player_messages.h"
 #include "game_strings.h"
@@ -69,21 +69,21 @@ constexpr int kEventLeaves = 2;
 } // namespace
 
 
-void CBriefingScreen::StartPhrases() {
+void BriefingScreen::StartPhrases() {
     if (voice != -1) g_clientWorld.sounds->StopSound(voice);
     voice = -1;
     g_clientWorld.music->FadeOut();
     std::string key = kBriefingSection;
     key += topic;
-    if (!g_clientWorld.texts->CTextManager::Open(key)) {
+    if (!g_clientWorld.texts->TextManager::Open(key)) {
         state = 0;
         return;
     }
-    CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
+    PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
     if (server) server->SendPair19(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
-    const CCamera* camera = &g_camera;
+    const Camera* camera = &g_camera;
     savedCamera = camera->localPosition;
     const Quaternion& q = camera->localRotation;
     double zz = q.z * q.z;
@@ -103,7 +103,7 @@ void CBriefingScreen::StartPhrases() {
     NextPhrase(false);
 }
 
-void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool thirdPerson) {
+void BriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool thirdPerson) {
     // (The name is compared through a copy.)
     bool human = str::Compare(unit->name, kHumanPrototype) == 0;
     SkillAnimation number;
@@ -132,12 +132,12 @@ void SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
     auto* unit = g_clientWorld.FindUnit(serverUnit->id);
     if (!unit) return;
-    auto* screen = g_interface.ActiveWindowAs<CBriefingScreen>();
+    auto* screen = g_interface.ActiveWindowAs<BriefingScreen>();
     for (std::size_t i = 0; i < screen->speakers.size(); ++i)
         if (screen->speakers[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }
 
-void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
+void BriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
     float cosAngle = static_cast<float>(x87::fcos(angle));
     float sinAngle = static_cast<float>(x87::fsin(angle));
     Vector3 eye{};
@@ -197,7 +197,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(at, eye, 1);
 }
 
-void CBriefingScreen::ViewPreset(int preset) {
+void BriefingScreen::ViewPreset(int preset) {
     double dx = static_cast<double>(places[kLeaderPlace].x) - places[kPersonPlace].x;
     double dy = static_cast<double>(places[kLeaderPlace].y) - places[kPersonPlace].y;
     float apart = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx)));
@@ -252,7 +252,7 @@ void CBriefingScreen::ViewPreset(int preset) {
     }
 }
 
-void CBriefingScreen::HideSpeaker(std::string_view name, bool immediately, bool run) {
+void BriefingScreen::HideSpeaker(std::string_view name, bool immediately, bool run) {
     auto* speaker = GameFindClientUnit(TextKeyFromName(name));
     if (!speaker) {
         for (auto node = shown.begin(); node != shown.end(); ++node) {
@@ -272,9 +272,9 @@ void CBriefingScreen::HideSpeaker(std::string_view name, bool immediately, bool 
     }
     auto entry = std::find_if(speakers.begin(), speakers.end(), [speaker](const BriefingSpeaker& s) { return s.unit == speaker; });
     if (entry != speakers.end()) {
-        CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
+        PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
         if (server) server->SendPair19(kEventLeaves, speaker->id);
-        CUnitClientSpecific* model = speaker->ClientController();
+        UnitClientSpecific* model = speaker->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
         if (auto* serverUnit = g_serverWorld.FindUnit(speaker->id)) {

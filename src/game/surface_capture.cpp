@@ -34,7 +34,7 @@ int BytesPerPixel(int bits) {
 // The bitmap is made from the new renderer's last frame (render::ReadFrame), in the screen's depth and channel masks
 // (ScreenFormat), rows bottom-up, the part of the screen outside the frame black. Null (logged) when the new renderer
 // has no frame.
-CDib* CaptureScreen(const CTextureDevice* device) {
+Dib* CaptureScreen(const TextureDevice* device) {
     int frameWidth = 0, frameHeight = 0;
     std::vector<std::uint8_t> frame;
     if (!render::ReadFrame(&frameWidth, &frameHeight, &frame)) {
@@ -46,7 +46,7 @@ CDib* CaptureScreen(const CTextureDevice* device) {
     const int bitsPerPixel = device->bitsPerPixel;
     const render::PixelFormat format = ScreenFormat(bitsPerPixel);
     const int width = device->screen.right, height = device->screen.bottom;
-    auto* dib = new CDib(width, height, bitsPerPixel, format.redMask, format.greenMask, format.blueMask);
+    auto* dib = new Dib(width, height, bitsPerPixel, format.redMask, format.greenMask, format.blueMask);
     std::uint8_t* out = dib->AllocateBits();
     const int pixelBytes = BytesPerPixel(bitsPerPixel);
     if (!out || (pixelBytes != 2 && pixelBytes != 4) || width <= 0 || height <= 0) return dib;

@@ -18,12 +18,12 @@
 namespace net {
 class SessionBase;
 }
-class CWorldHandle;
+class WorldHandle;
 
 namespace netlink {
 
-// A CStream over a file.
-class FileStream : public CStream {
+// A ByteStream over a file.
+class FileStream : public ByteStream {
 public:
     FileStream();
     // A fresh stream; `other` is not read.
@@ -55,7 +55,7 @@ public:
     lib::File file;
 };
 
-class NetLink : public CRefObject {
+class NetLink : public RefObject {
 public:
     ~NetLink() override;
 
@@ -63,8 +63,8 @@ public:
     virtual bool Alive() = 0;                   // something to read, or connected
     virtual bool HasIncoming() = 0;
     virtual int IncomingCount();                // 1 when HasIncoming
-    virtual bool Send(CStream* stream);         // dropped: true
-    virtual bool Receive(CMemoryStream* stream);      // records the stream: true
+    virtual bool Send(ByteStream* stream);         // dropped: true
+    virtual bool Receive(MemoryStream* stream);      // records the stream: true
     virtual void Pump() {}
     virtual void Disconnect() = 0;
 
@@ -73,7 +73,7 @@ public:
     void CloseRecording();
     // What Receive does with a message while recording: the first after OpenRecording is dropped, the others
     // are written to the file with their size.
-    void Record(CStream* stream);
+    void Record(ByteStream* stream);
 
     std::uint8_t recording;
     std::uint8_t skipNext;       // the next recorded message is dropped (set by OpenRecording)
@@ -99,14 +99,14 @@ public:
     bool Alive() override;
     bool HasIncoming() override;
     int IncomingCount() override;
-    bool Send(CStream* stream) override;        // a copy on the peer's queue
-    bool Receive(CMemoryStream* stream) override;     // the front of the queue
+    bool Send(ByteStream* stream) override;        // a copy on the peer's queue
+    bool Receive(MemoryStream* stream) override;     // the front of the queue
     void Disconnect() override;
 
     // Two links joined to each other; the first goes to the player's link, the second is returned.
-    static LoopbackLink* CreatePair(CWorldHandle* player);
+    static LoopbackLink* CreatePair(WorldHandle* player);
 
-    std::list<CMemoryStream> queue;
+    std::list<MemoryStream> queue;
     Ref<LoopbackLink> peer;
 };
 
@@ -125,16 +125,16 @@ public:
 
     bool HasIncoming() override;                // a whole message in the inbox
     int IncomingCount() override;
-    bool Send(CStream* stream) override;        // framed, then SendBytes
-    bool Receive(CMemoryStream* stream) override;
+    bool Send(ByteStream* stream) override;        // framed, then SendBytes
+    bool Receive(MemoryStream* stream) override;
     virtual bool SendBytes(const void* data, std::uint32_t size) = 0;
 
     // `size` bytes appended at the end of the inbox.
     void Append(const void* data, std::uint32_t size);
     // `out` emptied, then given everything in the inbox, which is emptied.
-    void TakeAll(CStream* out);
+    void TakeAll(ByteStream* out);
 
-    CMemoryStream inbox;         // received bytes: {uint32 length, bytes} per message
+    MemoryStream inbox;         // received bytes: {uint32 length, bytes} per message
 
 protected:
     FramedLink();
@@ -162,7 +162,7 @@ public:
 };
 
 // The network session (made by CWorld::OpenSession): a player source with two lists of drivers.
-class DriverSession final : public CPlayerSource {
+class DriverSession final : public PlayerSource {
 public:
     DriverSession();
     ~DriverSession() override;

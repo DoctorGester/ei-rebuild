@@ -41,14 +41,14 @@ const UiKeyName* KeyNamesEnd() { return g_keyNames + kUiKeyNameCount; }
 
 // --- Save/load window ----------------------------------------------------------------------------
 
-bool CSaveLoadWindow::IsReservedSave(int index) {
+bool SaveLoadWindow::IsReservedSave(int index) {
     const std::string& folder = entries[index].folder;
     if (text::CompareIgnoringCase(folder, game::menukeytexts::QuickSave()) == 0) return true;
     if (text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
     return text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveB()) == 0;
 }
 
-void CSaveLoadWindow::ShowSelection() {
+void SaveLoadWindow::ShowSelection() {
     if (selected < 0) selected = 0;
     int count = EntryCount();
     if (!(static_cast<unsigned>(selected) < static_cast<unsigned>(count))) selected = count - 1;
@@ -62,9 +62,9 @@ void CSaveLoadWindow::ShowSelection() {
     ShowPicture();
 }
 
-void CSaveLoadWindow::KeyDown(int key, int repeat, int modifiers) {
+void SaveLoadWindow::KeyDown(int key, int repeat, int modifiers) {
     if (sliding) return;
-    CUiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, repeat, modifiers);
     int step = 0;
     switch (key) {
     case kKeyEnter:
@@ -143,7 +143,7 @@ void CSaveLoadWindow::KeyDown(int key, int repeat, int modifiers) {
     handled = true;
 }
 
-void CSaveLoadWindow::Char(int key, int repeat, int modifiers) {
+void SaveLoadWindow::Char(int key, int repeat, int modifiers) {
     if (!isSave) return;
     switch (key) {
     case kKeyBack:
@@ -176,12 +176,12 @@ void CSaveLoadWindow::Char(int key, int repeat, int modifiers) {
         break;
     }
     }
-    CUiContainer::Char(key, repeat, modifiers);
+    UiContainer::Char(key, repeat, modifiers);
 }
 
-void COptionsWindow::KeyDown(int key, int repeat, int modifiers) {
+void OptionsWindow::KeyDown(int key, int repeat, int modifiers) {
     if (sliding) return;
-    CUiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (waitingForKey) {
         // The key for the selected binding row, by scan code.
         int scan = modifiers & 0x1FF;
@@ -221,7 +221,7 @@ void COptionsWindow::KeyDown(int key, int repeat, int modifiers) {
         }
         if (other && other != binding) {
             // Already bound to another action: ask (the box's result goes to MessageResult).
-            CMessageBox* box = new CMessageBox(ui, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
+            MessageWindow* box = new MessageWindow(ui, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
             std::string format;
             std::string message;
             format = g_clientWorld.texts->GetString(game::menukeytexts::KeyMappedText());

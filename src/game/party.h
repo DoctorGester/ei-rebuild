@@ -16,9 +16,9 @@
 #include <vector>
 
 
-class CItem;
+class Item;
 class CItemConstructor;
-struct CItemManager;
+struct ItemManager;
 class CParty;
 class CSpellConstructor;
 class CSpellManager;
@@ -49,21 +49,21 @@ public:
 
     CItemConstructor* ItemConstructor() override;
     CSpellConstructor* SpellConstructor() override;
-    CItemManager* ItemFactory() override;
+    ItemManager* ItemFactory() override;
     CSpellManager* SpellManager() override;
     // The item factory under the party's name.
     // A new item made like `item` (DuplicateItem: MakeCopyOf).
-    CItem* CopyItem(CItem* item) { return DuplicateItem(item); }
+    Item* CopyItem(Item* item) { return DuplicateItem(item); }
 
     // Puts `item` among the party's items with a count of 1 (with `keepCount`, the item's own count). With
     // `merge`, an item the list already has that is the same only gets the count added and is returned.
     // Otherwise the party's copy gets the count, a reference and the end of the list, and is returned. Null
     // for a null item. The flags are read as bytes (their low bytes).
-    CItem* AddItem(CItem* item, int keepCount, int merge);
+    Item* AddItem(Item* item, int keepCount, int merge);
     // Takes `item` out of the list: when its count is above 1 and not `all`, the count drops by one and the
     // item is returned; otherwise it is released and removed, and the result is null (also when it is not
     // in the list).
-    CItem* RemoveItem(CItem* item, int all);   // `all` read as a byte
+    Item* RemoveItem(Item* item, int all);   // `all` read as a byte
     // Every quest item (class 0x14) taken out with RemoveItem(item, 1), from the back of the list.
     void RemoveQuestItems();
     // Every item released, the list's storage freed and the list emptied (what Destroy and Clear inline).
@@ -75,7 +75,7 @@ public:
     // the record.
     PartyUnitRecord* AddMember(std::string_view name, std::string_view prototype, std::string_view extra);
     // Gives `record` what its prototype (text 5) says: text 2 from its model, the NPC statistics, the three
-    // scales, copies (CItem::Clone) of the starting armour, of the two weapons unless
+    // scales, copies (Item::Clone) of the starting armour, of the two weapons unless
     // empty or "none", and of the spells; text 6 = text 5. (The lists come from the record: the
     // lookup that could fail, a missing prototype, cannot happen after the record was read.)
     void FillFromPrototype(PartyUnitRecord* record);
@@ -103,23 +103,23 @@ public:
     // entrance, both managers (their Load, then LoadObjects), the item ids (resolved in the item manager and
     // counted), the records (PartyUnitRecord::Load), the variables (with `loadVariables`), money (from
     // version 0x6C stored xor a key that follows it); then both managers' ReleaseUnused.
-    void LoadParty(CStream* stream, int loadVariables);
+    void LoadParty(ByteStream* stream, int loadVariables);
     // Create when there is no item manager; the zone name with its zero, entrance, both managers (their Save,
     // then SaveObjects), the item ids (-1 for an empty entry), the record count and records, the variables
     // (with `saveVariables`), then money xor an ISAAC key and the key.
-    void SaveParty(CStream* stream, int saveVariables);
+    void SaveParty(ByteStream* stream, int saveVariables);
     // The party in an archive: a memory stream holding SaveParty's output (with variables) as stream field
     // 1, read back with the archive's version.
     void ArchiveParty(ChunkArchive* ar);
     // Clear(1, 0), then `source` saved into a memory stream and loaded back (variables included).
     CParty* Assign(CParty* source);
 
-    CItemManager* itemManager = nullptr;
+    ItemManager* itemManager = nullptr;
     CItemConstructor* itemConstructor = nullptr;
     CSpellManager* spellManager = nullptr;
     CSpellConstructor* spellConstructor = nullptr;
     std::vector<PartyUnitRecord> members;
-    std::vector<CItem*> items;
+    std::vector<Item*> items;
     int money;                  // the party's money (money; cleared by Clear, saved masked)
     NamedFloatTable variables;    // named variables (the script's "gtime" and the like)
     std::string zone;            // the zone name ("gz1g" after a new game)

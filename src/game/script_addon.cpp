@@ -195,9 +195,9 @@ float Distance(float x0, float y0, float x1, float y1) {
 
 int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }
 
-bool IsUnit(CEngineObject* object) { return object->GetClassId() == ClassId::Unit; }
+bool IsUnit(EngineObject* object) { return object->GetClassId() == ClassId::Unit; }
 
-CUnitServer* UnitData(const ScriptObjectRef* ref) {
+UnitServer* UnitData(const ScriptObjectRef* ref) {
     if (!ref) return nullptr;
     CUnit* unit = UnitOrNull(ref->object);
     return unit ? unit->ServerController() : nullptr;
@@ -274,7 +274,7 @@ void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId) {
     }
 }
 
-void CalcString(SSCCmd* cmd, CScript* script, ScriptVars* vars, std::string* result) {
+void CalcString(SSCCmd* cmd, Script* script, ScriptVars* vars, std::string* result) {
     cmd->PrepareArguments(script, vars);
     Call call{cmd, script, result, nullptr, nullptr};
     if (Dispatch(&call)) return;

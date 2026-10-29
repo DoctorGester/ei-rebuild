@@ -30,7 +30,7 @@ bool AcceptsAreaSpells(CUnit* unit) {
 }
 
 // Delivers `hit` to `unit` unless the spell may not affect it (the loops' common tail).
-void Deliver(CSpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
+void Deliver(SpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
     if (effect->caster && !effect->Spell()->CanAffect(effect->caster, unit)) return;
     CUnit* attacker = (effect->flags & 1) ? nullptr : effect->caster.Get();
     unit->ReceiveHit(hit, attacker, effect->caster);
@@ -39,9 +39,9 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
 
 bool IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit); }
 
-void CSpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
+void SpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
 
-void CSpellEffect::HitUnitsInRadius() {
+void SpellEffect::HitUnitsInRadius() {
     DamageInfo hit;
     GetDamage(&hit);
     std::list<CUnit*> list = world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius);
@@ -53,7 +53,7 @@ void CSpellEffect::HitUnitsInRadius() {
     }
 }
 
-void CSpellEffect::HitUnitsAlong(const Vector3& direction) {
+void SpellEffect::HitUnitsAlong(const Vector3& direction) {
     DamageInfo hit;
     GetDamage(&hit);
 

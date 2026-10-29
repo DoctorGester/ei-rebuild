@@ -27,11 +27,11 @@ int QuestDatabase::Load(const std::string& folder) {
     LocalResource resource;
     if (!dbfile::OpenDatabase(resource, base)) return dbfile::ReportNoDatabase(base);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("quests.qdb", &size);
+    void* data = resource.Get()->MappedResource::GetFile("quests.qdb", &size);
     if (!data) return game::FatalError("Can't open quests database\n");
 
-    CMemoryStream local;
-    CMemoryStream* stream = &local;
+    MemoryStream local;
+    MemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
     LoadTable(stream, kQuestsChunk, &ChunkArchive::SerializeQuests, &quests, [this] {
@@ -41,7 +41,7 @@ int QuestDatabase::Load(const std::string& folder) {
         for (QuestBriefingRecord& record : briefings.records) briefings.index[record.name] = &record;
     });
 
-    resource.Get()->CMappedResource::CloseFile(data);
-    resource.Get()->CMappedResource::CloseResource();
+    resource.Get()->MappedResource::CloseFile(data);
+    resource.Get()->MappedResource::CloseResource();
     return 1;
 }

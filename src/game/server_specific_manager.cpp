@@ -1,9 +1,9 @@
-// CServerSpecificManager and CTorchObjectSpec. See server_specific_manager.h.
+// ServerSpecificManager and TorchObjectSpec. See server_specific_manager.h.
 #include "server_specific_manager.h"
 
 #include "combat.h"
 #include "player_messages.h"
-#include "unit.h"   // CMapObjectServer
+#include "unit.h"   // MapObjectServer
 
 #include <new>
 
@@ -16,39 +16,39 @@ constexpr const char* kTorchSpecClassName = "CTorchObjectSpecific";
 } // namespace
 
 
-CServerSpecificManager::CServerSpecificManager() {}
+ServerSpecificManager::ServerSpecificManager() {}
 
-CServerSpecificManager::~CServerSpecificManager() {}
+ServerSpecificManager::~ServerSpecificManager() {}
 
-const char* CServerSpecificManager::ClassName() { return kManagerClassName; }
-ClassId CServerSpecificManager::GetClassId() { return ClassId::ServerSpecificManager; }
+const char* ServerSpecificManager::ClassName() { return kManagerClassName; }
+ClassId ServerSpecificManager::GetClassId() { return ClassId::ServerSpecificManager; }
 
-// Every object starts zeroed (kZeroed): CUnitServer's constructor leaves waitFrame,
+// Every object starts zeroed (kZeroed): UnitServer's constructor leaves waitFrame,
 // which ResolveBlocker reads, and others the saves write.
-CEngineObject* CServerSpecificManager::NewObject(int objectType) {
+EngineObject* ServerSpecificManager::NewObject(int objectType) {
     switch (static_cast<SideObjectType>(objectType)) {
     case SideObjectType::Object3D:
-        return new (kZeroed) CObject3DServer();
+        return new (kZeroed) Object3DServer();
     case SideObjectType::MapObject:
-        return new (kZeroed) CMapObjectServer();
+        return new (kZeroed) MapObjectServer();
     case SideObjectType::Unit:
-        return new (kZeroed) CUnitServer();
+        return new (kZeroed) UnitServer();
     case SideObjectType::Player:
-        return new (kZeroed) CPlayerServer();
+        return new (kZeroed) PlayerServer();
     case SideObjectType::Torch:
-        return new (kZeroed) CTorchObjectSpec();
+        return new (kZeroed) TorchObjectSpec();
     default:
         return nullptr;
     }
 }
 
-CTorchObjectSpec::CTorchObjectSpec() {
+TorchObjectSpec::TorchObjectSpec() {
     torch = nullptr;
     CreateSpec();
 }
 
-CTorchObjectSpec::~CTorchObjectSpec() { DestroySpec(); }
+TorchObjectSpec::~TorchObjectSpec() { DestroySpec(); }
 
-const char* CTorchObjectSpec::ClassName() { return kTorchSpecClassName; }
-ClassId CTorchObjectSpec::GetClassId() { return ClassId::TorchObjectSpec; }
-bool CTorchObjectSpec::RunTick() { return true; }
+const char* TorchObjectSpec::ClassName() { return kTorchSpecClassName; }
+ClassId TorchObjectSpec::GetClassId() { return ClassId::TorchObjectSpec; }
+bool TorchObjectSpec::RunTick() { return true; }

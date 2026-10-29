@@ -1,4 +1,4 @@
-// Particle emit callbacks (of a CParticleSource) and the element array allocator.
+// Particle emit callbacks (of a ParticleSource) and the element array allocator.
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU stack,
 // static_cast<float> where it stores to a float.
 #include "effects.h"
@@ -56,7 +56,7 @@ static_assert(std::bit_cast<std::uint32_t>(kTwoPi) == 0x40C90FD0u);
 
 // One point of a new bolt: a random offset (none for point 0) around the source, on the ground,
 // with a fork direction.
-void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
+void PlaceBoltPoint(ParticleSource* s, int i, Vector3& dir) {
     float radius = static_cast<float>(Range(0.0f, 1.0f));
     double angle = Range(0.0f, kTwoPi);
     float dx = static_cast<float>(x87::fsin(angle) * D(radius));
@@ -95,7 +95,7 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
 }
 
 // Particles along the bolt: two per point (the odd ones flicker with a random size and frame).
-int EmitAlongBolt(CParticleSource* s, Particle* p, ParticleElement* points) {
+int EmitAlongBolt(ParticleSource* s, Particle* p, ParticleElement* points) {
     int emitted = points[0].bolt.emitted;
     p->frame = 0;
     p->life = 10;
@@ -118,7 +118,7 @@ int EmitAlongBolt(CParticleSource* s, Particle* p, ParticleElement* points) {
 
 // A burst at the impact point: a random direction inside the unit disc (ten tries), spread by a
 // random angle and distance.
-int EmitBurst(CParticleSource* s, Particle* p, ParticleElement* points) {
+int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
     p->color = 0x40FFFFFF;
     p->frame = 8;
     g_clientRandom.Next();
@@ -155,7 +155,7 @@ int EmitBurst(CParticleSource* s, Particle* p, ParticleElement* points) {
 }
 
 // A spark between a random point and its base, at a random fraction of the way.
-int EmitSpark(CParticleSource* s, Particle* p) {
+int EmitSpark(ParticleSource* s, Particle* p) {
     std::uint32_t count = static_cast<std::uint32_t>(std::ssize(s->elements));
     std::uint32_t index = g_clientRandom.Next() % count;
     p->frame = 1;
@@ -195,7 +195,7 @@ void SetBits(void* dst, std::uint32_t bits) { lib::StoreBytes(dst, bits); }
 
 // The axis the points are spread around (their offsets are perpendicular to it); some types also
 // raise or lower the ring (spreadMin.x holds the height).
-Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
+Vector3 ModifierAxis(ParticleSource* s, float twiceRadius) {
     Vector3 axis;
     axis = {};
     switch (s->type - static_cast<int>(ParticleType::Modifier1)) {
@@ -229,7 +229,7 @@ Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
 // Each point: a random direction with its component along the axis removed (retried while that
 // leaves nothing), scaled to the ring's radius (much smaller for a negative size), around the
 // emission point, at the ring's height.
-void PlaceModifierPoints(CParticleSource* s) {
+void PlaceModifierPoints(ParticleSource* s) {
     Vector3 unused;
     float radius;
     s->AttachmentOffset(&unused, &radius);
@@ -314,7 +314,7 @@ double Signed(std::uint32_t roll) { return Unsigned(roll) * EI_SCALE_2 - D(EI_ON
 // LightningBlast: on the first emission the bolt's ten points are placed; then the
 // particles run along the bolt (two per point), then bursts at the impact point (up to five, while
 // the source has fewer than 200 particles), then sparks between the points.
-int CParticleSource::EmitLightning(Particle* p, int) {
+int ParticleSource::EmitLightning(Particle* p, int) {
     if (std::ssize(elements) == 0) {
         elements.resize(10);
         Vector3 dir;
@@ -331,7 +331,7 @@ int CParticleSource::EmitLightning(Particle* p, int) {
 // Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least one) are scattered on a
 // ring around the carrier. Then one particle per point while the fade has not started (frame = the modifier's
 // number), then drifting sparks between a random point and its starting place.
-int CParticleSource::EmitModifier(Particle* p, int index) {
+int ParticleSource::EmitModifier(Particle* p, int index) {
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
     p->frameTimer = frameDelay;
@@ -395,7 +395,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
 // ZoneExit: the density follows alpha * typeParam (at most 40 a tick); particles start at a random point of a
 // turned ellipse (radii alpha and typeParam) around the source on the ground, red-tinted when extent.x is set,
 // rising by an amount that is larger near the centre.
-int CParticleSource::EmitZoneExit(Particle* p, int) {
+int ParticleSource::EmitZoneExit(Particle* p, int) {
     int count = x87::fistp(static_cast<float>(D(alpha) * D(typeParam)));
     if (count > 40) count = 40;
     emitCount = count;
@@ -422,7 +422,7 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
 
 // 0x2039: on its first update (life -10) the particle's lifetime is set from its
 // position in the emission (frameTimer * 8 / particle count + 7); the alpha follows kGlowAlpha.
-int CParticleSource::UpdateGlow(Particle* p) {
+int ParticleSource::UpdateGlow(Particle* p) {
     if (p->life == -10) p->life = p->frameTimer * 8 / std::ssize(particles) + 7;
     if (--p->life < 0) return 0;
     int opacity = x87::fistp(static_cast<float>(D(kGlowAlpha[p->life]) * D(EI_BYTE)));
@@ -432,7 +432,7 @@ int CParticleSource::UpdateGlow(Particle* p) {
 
 // 0x203A/0x203B: dust moving along the ground, never below the plane the source measured (element 0),
 // growing and slowing down.
-int CParticleSource::UpdateGroundDust(Particle* p) {
+int ParticleSource::UpdateGroundDust(Particle* p) {
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(kDustAlpha[p->life]) << 24) + (p->color & 0xFFFFFF);
     p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
@@ -455,7 +455,7 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
 
 // 0x203A/0x203B: on the element's first tick, the ground plane under the source (the normal's z replaced by
 // its reciprocal when non-zero); after the second the source stops emitting.
-void CParticleSource::TickGroundPlane(ParticleElement* e) {
+void ParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         auto& plane = e->plane;
         g_clientWorld.platforms.SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
@@ -466,7 +466,7 @@ void CParticleSource::TickGroundPlane(ParticleElement* e) {
 
 // Portal: particles spiral up (their offset rotated by the turn in velocity.x/y each tick) and fade above 8
 // units; the spare ones (state set) flicker in size while the portal is on.
-int CParticleSource::UpdatePortal(Particle* p) {
+int ParticleSource::UpdatePortal(Particle* p) {
     if (p->state != 0) {
         if (!(flags & ParticleSourceFlag::Emitting)) return 0;
         EI_NAN_AUDIT(size);
@@ -512,11 +512,11 @@ int CParticleSource::UpdatePortal(Particle* p) {
 }
 
 // Portal: |size| * 10 tries per tick (truncated by the game's _ftol).
-void CParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>(libcrt::Ftol(D(size) * D(EI_TEN))); }
+void ParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>(libcrt::Ftol(D(size) * D(EI_TEN))); }
 
 // Sparks: the spare ones (state set) get a random size once and are dropped after; the
 // rest fly along their drift, shrinking and slowing, with the alpha from kSparkAlpha.
-int CParticleSource::UpdateSparks(Particle* p) {
+int ParticleSource::UpdateSparks(Particle* p) {
     if (p->state != 0) {
         EI_NAN_AUDIT(p->size);
         if (p->size != 0.0f) {
@@ -542,7 +542,7 @@ int CParticleSource::UpdateSparks(Particle* p) {
 
 // FeebleMind: size * 2 tries per tick; each particle starts one step out from the
 // source in a random horizontal direction.
-int CParticleSource::EmitFeebleMind(Particle* p, int) {
+int ParticleSource::EmitFeebleMind(Particle* p, int) {
     emitCount = x87::fistp(static_cast<float>(D(size) + D(size)));
     p->color = 0x00FFFFFF;
     p->frame = static_cast<int>(g_clientRandom.Next() & 15);
@@ -566,7 +566,7 @@ int CParticleSource::EmitFeebleMind(Particle* p, int) {
 
 // FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's position once it is
 // tracked, else the source), drifting in a random direction inside the unit disc, rising.
-int CParticleSource::EmitFeetCloud(Particle* p, int) {
+int ParticleSource::EmitFeetCloud(Particle* p, int) {
     emitCount = x87::fistp(static_cast<float>(D(size) * D(EI_FEET_DENSITY)));
     p->color = 0x00FFFFFF;
     p->frame = static_cast<int>(g_clientRandom.Next() & 15);
@@ -607,7 +607,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
 
 // StartTrans: once the element's countdown runs out the source stops (Emitting and KeepAlive off) and detaches; the
 // ring widens, and element 0's trans.count grows by 0.4 a tick and sets the tries per tick (at most 8).
-void CParticleSource::TickStartTrans(ParticleElement* e) {
+void ParticleSource::TickStartTrans(ParticleElement* e) {
     int ticks = e->ticks--;
     if (ticks < 0) {
         flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);

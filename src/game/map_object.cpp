@@ -1,6 +1,6 @@
 #include "map_object.h"
 #include "spell.h"    // SpellType
-#include "unit.h"     // CMapObjectServer
+#include "unit.h"     // MapObjectServer
 #include "world.h"    // CWorld
 
 #include "lib/crt.h"
@@ -109,7 +109,7 @@ void CMapObject::AddEffect(const MapEffect* effect) {
     if (rebirth && effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
 }
 // Site #1 of FixSpellEffectsOverflow; #0 (expiring the effects of units the world update skips) is in
-// CWorldServer::UpdateUnits (original).
+// WorldServer::UpdateUnits (original).
 
 void CMapObject::ClearEffects() {
     effects = {};
@@ -199,7 +199,7 @@ void CMapObject::SetServerData(const UnitVitals* data) {
     ServerCompanion()->SetData(data);
 }
 
-void CMapObject::AttachCompanion(CEngineObject* object) {
+void CMapObject::AttachCompanion(EngineObject* object) {
     if (companion) {
         CompanionOwner(companion) = nullptr;
         companion->Release();
@@ -211,7 +211,7 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
     }
 }
 
-void CMapObject::AttachObject(CEngineObject* object) {
+void CMapObject::AttachObject(EngineObject* object) {
     if (!object || SideTypeOf(object) != SideObjectType::MapObject) {
         CObject3D::AttachSpecific(object);   // the 3D object's attach virtual
         return;

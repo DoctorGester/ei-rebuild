@@ -1,4 +1,4 @@
-// Script loader, part 1: tokens, the lexer (CScript::Tokenize), keyword lookup, #define handling
+// Script loader, part 1: tokens, the lexer (Script::Tokenize), keyword lookup, #define handling
 // and name helpers. The parser proper is in script_parse_load.cpp. See script.h and
 // docs/notes/script.md ("Loader and parser").
 // Rebirth patches the keyword lookups.
@@ -23,7 +23,7 @@ using namespace scriptparse;
 
 
 
-int scriptparse::ScriptErrorV(CScript* script, int line, int code, const char* format, va_list args) {
+int scriptparse::ScriptErrorV(Script* script, int line, int code, const char* format, va_list args) {
     char text[0x400];
     gameapi::wvsprintfA(text, format, args);
     script->errorLine = line;
@@ -351,7 +351,7 @@ const char* KeywordName(int id) {
     return "Unknown command";
 }
 
-bool CScript::Tokenize(const std::string& source, std::list<ScriptToken>* tokens) {
+bool Script::Tokenize(const std::string& source, std::list<ScriptToken>* tokens) {
     const char* p = source.c_str();
 
     tokens->clear();
@@ -419,7 +419,7 @@ bool CScript::Tokenize(const std::string& source, std::list<ScriptToken>* tokens
     return true;
 }
 
-bool CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id) {
+bool Script::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id) {
     if (*pos == tokens->end()) return Error(this, tokens->back().line, 1, "Unexpected end of file");
     const ScriptToken token = *(*pos)++;
     std::string text = token.text;
@@ -429,12 +429,12 @@ bool CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<Scrip
     return true;
 }
 
-std::string CScript::QualifyName(const std::string& name) {
+std::string Script::QualifyName(const std::string& name) {
     if (fileCount == 0) return name;
     return std::format("!{}!{}", fileCount, name);
 }
 
-int CScript::FindScript(std::string_view name) {
+int Script::FindScript(std::string_view name) {
     for (;;) {
         const std::vector<ScriptDefinition>& scripts = definitions;
         for (std::size_t i = 0; i < scripts.size(); ++i)

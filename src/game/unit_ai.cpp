@@ -22,7 +22,7 @@ constexpr float kArrivedDistanceSq = 1.0f;
 constexpr int kCurrentModeBonus = 100;             // the mode in charge keeps it against equal claims
 constexpr float kMoveTime = 1000000.0f;
 
-// CUnitServer::state while the planned action runs (combat_update.cpp): the brain does not think meanwhile.
+// UnitServer::state while the planned action runs (combat_update.cpp): the brain does not think meanwhile.
 
 // The mode names of the "new motivation" message.
 const char* ModeName(AIModeType type) {
@@ -199,19 +199,19 @@ bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     return LengthSquared2DUnrounded(ey, ex) < radiusSq;
 }
 
-bool AIBrain::IsAlliedUnit(CEngineObject* object) {
+bool AIBrain::IsAlliedUnit(EngineObject* object) {
     CUnit* unit = UnitOrNull(object);
     return unit && g_serverWorld.diplomacy.IsAllied(owner->unit->side, unit->side);
 }
 
-void AIBrain::SetOwner(CUnitServer* newOwner) {
+void AIBrain::SetOwner(UnitServer* newOwner) {
     if (newOwner == owner) return;
     owner = newOwner;
     position = Vector3{kUnsetCoordinate, 0.0f, 0.0f};
     previousPosition = position;
 }
 
-void AIBrain::OnObjectDeleted(CEngineObject* object) {
+void AIBrain::OnObjectDeleted(EngineObject* object) {
     for (const std::unique_ptr<AIMode>& mode : modes) mode->OnObjectDeleted(object);
     if (target == object) target.Reset();
     if (seen == object) seen.Reset();

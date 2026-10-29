@@ -1,4 +1,4 @@
-// The camp's statistics column (CHeroStatsPanel) and trade panel (CTradePanel): what the
+// The camp's statistics column (HeroStatsPanel) and trade panel (TradePanel): what the
 // statistics under the mouse are, for the description panel (the camp's Draw
 // and the hero screen's draw ask every frame), and the column's hero. See ui_camp.h and
 // docs/notes/ui.md ("Camp, global map, hero screens").
@@ -42,7 +42,7 @@ constexpr int kTipNextHero = 0x4F4D;
 
 // --- the trade panel -----------------------------------------------------------------------------
 
-ItemHoverInfo CTradePanel::HoverInfo(int x, int y) {
+ItemHoverInfo TradePanel::HoverInfo(int x, int y) {
     ItemHoverInfo info;
     if (!enabled) return info;
     // The region is tested with unsigned compares, so -1 (no region) falls through
@@ -82,7 +82,7 @@ ItemHoverInfo CTradePanel::HoverInfo(int x, int y) {
 
 // --- the statistics column -----------------------------------------------------------------------
 
-ItemHoverInfo CHeroStatsPanel::HoverInfo(int x, int y) {
+ItemHoverInfo HeroStatsPanel::HoverInfo(int x, int y) {
     PartyUnitRecord* hero = owner->HeroRecord();
     ItemHoverInfo info;
     info.stats = &hero->stats;
@@ -136,7 +136,7 @@ ItemHoverInfo CHeroStatsPanel::HoverInfo(int x, int y) {
 
 // --- the column's hero ---------------------------------------------------------------------------
 
-void CHeroStatsPanel::SetHero(int newHeroIndex, std::optional<std::string_view> newTitle) {
+void HeroStatsPanel::SetHero(int newHeroIndex, std::optional<std::string_view> newTitle) {
     bool party = std::ssize(LocalPlayerData()->members) > 1;
     SceneMesh(0)->visible = party;
     SceneMesh(1)->visible = party;
@@ -150,6 +150,6 @@ void CHeroStatsPanel::SetHero(int newHeroIndex, std::optional<std::string_view> 
 
 // --- the camp's hero record ----------------------------------------------------------------------
 
-PartyUnitRecord* CCampPages::HeroRecord() {
+PartyUnitRecord* CampPages::HeroRecord() {
     return &LocalPlayerData()->members[hero];
 }

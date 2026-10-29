@@ -1,4 +1,4 @@
-// CLightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7);
+// Lightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7);
 // random words converted with x87::FromUnsigned. See docs/notes/objects.md ("Rewritten").
 #include "game_singletons.h"
 #include "lightning.h"
@@ -35,7 +35,7 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 
 } // namespace
 
-void CLightning::Start(const Vector3& from, const Vector3& to, float newPower, bool demon) {
+void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bool demon) {
     int ticks = g_clientWorld.tick;
     float fraction = g_clientWorld.tickFraction;
     float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f);
@@ -115,16 +115,16 @@ LightningSegment::LightningSegment() {
 LightningSegment::~LightningSegment() {
 }
 
-CLightning::CLightning() {
+Lightning::Lightning() {
     std::memset(static_cast<void*>(&bounds), 0, sizeof(bounds));
     boundsSpare = {};
-    CLightning::Destroy();
+    Lightning::Destroy();
 }
 
 // The texture references are null after the reset (releasing them again is a no-op).
-CLightning::~CLightning() { CLightning::Destroy(); }
+Lightning::~Lightning() { Lightning::Destroy(); }
 
-const char* CLightning::ClassName() { return "CLightning"; }
-ClassId CLightning::GetClassId() { return ClassId::Lightning; }
+const char* Lightning::ClassName() { return "CLightning"; }
+ClassId Lightning::GetClassId() { return ClassId::Lightning; }
 
-CEngineObject* CLightningManager::NewObject(int /*type*/) { return new CLightning(); }
+EngineObject* LightningManager::NewObject(int /*type*/) { return new Lightning(); }

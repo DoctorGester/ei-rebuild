@@ -24,13 +24,13 @@ CWorld::~CWorld() {
     figureLoader.Reset();
 }
 
-CParticleManager::CParticleManager() {
+ParticleManager::ParticleManager() {
     maxHeldId = 0;
     ParticleManagerClearQuietStart(this);
 }
 
-CParticleManager::~CParticleManager() {
-    CParticleManager::Destroy();
+ParticleManager::~ParticleManager() {
+    ParticleManager::Destroy();
     freeParticles.clear();
 }
 
@@ -40,7 +40,7 @@ Sector::~Sector() {
     objects.clear();
 }
 
-CWorldClient::~CWorldClient() {
+WorldClient::~WorldClient() {
     DestroyOwned(handle);
     scorchMarks.clear();
     footprints.clear();
@@ -53,7 +53,7 @@ CWorldClient::~CWorldClient() {
     exits.clear();
 }
 
-CWorldServer::~CWorldServer() {
+WorldServer::~WorldServer() {
     sharedObjects.clear();
     ReleaseAndClear(counted);
     projectiles.clear();

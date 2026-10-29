@@ -40,10 +40,10 @@ static_assert(sizeof(ResEntry) == 22);
 constexpr std::uint32_t kResMagic = 0x019CE23C;
 
 // A file mapped into memory with CreateFileMapping/MapViewOfFile. 16 bytes.
-class CMappedFile {
+class MappedFile {
 public:
-    CMappedFile();
-    ~CMappedFile() { Close(); }
+    MappedFile();
+    ~MappedFile() { Close(); }
     void Close();                                     // an identical copy of Close's body
     bool Open(const std::string& path, bool writable);
     void Flush();                                     // write back, stamp modification time
@@ -54,7 +54,7 @@ public:
     std::uint32_t size = 0;
 };
 
-// A file loaded from an archive by CMappedResource::GetFile. 0x1C bytes, allocated with operator new.
+// A file loaded from an archive by MappedResource::GetFile. 0x1C bytes, allocated with operator new.
 struct LoadedFile {
     std::string name;       // name as requested
     void* data;             // contents (operator new)
@@ -66,10 +66,10 @@ struct LoadedFile {
 // The base of the archive readers (ResourceBaseClass in the game's messages; the first virtual is the scalar
 // deleting destructor): the archive header and tables. (The game's index table from numbers to
 // entries, CreateAccelTable's, is never built: it has no caller.)
-class CResourceBase {
+class ResourceBase {
 public:
-    CResourceBase();                                // fields cleared
-    virtual ~CResourceBase();
+    ResourceBase();                                // fields cleared
+    virtual ~ResourceBase();
 
     // Index of the entry named `name` (case-insensitive), or -1.
     int FindEntry(std::string_view name) const;
@@ -80,13 +80,13 @@ public:
 };
 
 // Reads an archive with low-level file I/O, loading individual files into memory on request.
-class CMappedResource : public CResourceBase {
+class MappedResource : public ResourceBase {
 public:
-    CMappedResource();
+    MappedResource();
     // Virtual methods, in vtable order.
     // The loaded files freed, the archive
-    // closed, the maps destroyed, then CResourceBase's (the accelerator table freed).
-    ~CMappedResource() override;
+    // closed, the maps destroyed, then ResourceBase's (the accelerator table freed).
+    ~MappedResource() override;
     virtual bool OpenResource(const std::string& path, bool writable);
     virtual bool OpenFromMemory(const void* image);
     virtual void CloseResource();
@@ -119,10 +119,10 @@ public:
 };
 
 // Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual class.
-class CMMIOResource : public CMappedResource {
+class MMIOResource : public MappedResource {
 public:
-    CMMIOResource();
-    ~CMMIOResource() override;
+    MMIOResource();
+    ~MMIOResource() override;
 
     bool OpenResource(const std::string& path, bool writable) override;
     bool OpenFromMemory(const void* image) override;
@@ -132,6 +132,6 @@ public:
     bool CloseFile(void* data) override;                              // (nothing to free)
     void FreeAllFiles() override;                                     // (empty)
 
-    CMappedFile file;
+    MappedFile file;
     char* mappedImage;           // base of the mapped archive
 };

@@ -71,10 +71,10 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
             if (record->host) hosting = true;
             PushReplicated(*out, binding, 2);
         }
-        if (record && !(record->flags7 & CRefObject::kDetached)) {
+        if (record && !(record->flags7 & RefObject::kDetached)) {
             for (auto& n : lines) {
                 auto* line = n.Get();
-                CRefObject* target = line->connection.Get();
+                RefObject* target = line->connection.Get();
                 if ((!target || target == g_currentConnection) &&
                     static_cast<std::int32_t>(line->number) > static_cast<std::int32_t>(record->firstLine))
                     PushReplicated(*out, line, 2);
@@ -86,14 +86,14 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
         for (auto& m : fileRequests) {
             auto* request = m.Get();
             if (request->FileRef().Get() != n.Get() || request->ConnectionRef().Get() != g_currentConnection) continue;
-            for (const SharedRef<CRefObject>& chunk : n.Get()->chunks) PushReplicated(*out, chunk.Get(), 1);
+            for (const SharedRef<RefObject>& chunk : n.Get()->chunks) PushReplicated(*out, chunk.Get(), 1);
             break;
         }
     }
     if (hosting)
         for (auto& n : queuedMaps) PushReplicated(*out, n.Get(), 2);
-    if (CRefObject* object = hostInfo.Get()) PushReplicated(*out, object, 2);
-    if (CRefObject* object = map.Get()) PushReplicated(*out, object, 2);
+    if (RefObject* object = hostInfo.Get()) PushReplicated(*out, object, 2);
+    if (RefObject* object = map.Get()) PushReplicated(*out, object, 2);
     for (auto& n : awards) {
         auto* award = TimedValueOf<AwardMessage>(n);
         if (award->connection.Get() == g_currentConnection) PushReplicated(*out, award, 2);
@@ -103,12 +103,12 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
         if (offer->partner.Get() != record) continue;
         bool complete = true;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members.size()); ++i) {
-            CRefObject* member = offer->members[i].Get();
-            if (!member || (member->flags7 & CRefObject::kDetached)) complete = false;
+            RefObject* member = offer->members[i].Get();
+            if (!member || (member->flags7 & RefObject::kDetached)) complete = false;
         }
         if (!complete) continue;
         PushReplicated(*out, offer, 2);
-        const std::vector<HeldRef<CRefObject>>& members = n.Get()->members;
+        const std::vector<HeldRef<RefObject>>& members = n.Get()->members;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
             PushReplicated(*out, n.Get()->members[i].Get(), 2);
     }

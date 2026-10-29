@@ -1,5 +1,5 @@
 // The objectives window's clicks and its quest places. The window's Build, quest list and
-// zone / quest display are in ui_objectives.cpp. See ui.h (CObjectivesWindow) and
+// zone / quest display are in ui_objectives.cpp. See ui.h (ObjectivesWindow) and
 // docs/notes/ui.md ("Objectives, save/load, options").
 #include "ui.h"
 #include "world_glue.h"
@@ -51,8 +51,8 @@ constexpr float kAlphaScale = 255.0f;
 
 } // namespace
 
-void CObjectivesWindow::LeftDown(int buttons, int x, int y) {
-    CUiContainer::LeftDown(buttons, x, y);
+void ObjectivesWindow::LeftDown(int buttons, int x, int y) {
+    UiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
     switch (region) {
@@ -107,8 +107,8 @@ void CObjectivesWindow::LeftDown(int buttons, int x, int y) {
     ui->PlaySound(kCancelSound);
 }
 
-void CObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
-    CUiContainer::KeyDown(key, repeat, modifiers);
+void ObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
     int step = 0;
     switch (key) {
     case kKeyEnter:
@@ -146,7 +146,7 @@ void CObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
     }
 }
 
-void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
+void ObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     std::vector<UiPointF>& places = questPlaces;
     places.clear();
     if (IsMultiplayerClient()) {
@@ -159,7 +159,7 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     }
     std::string header;
     std::vector<std::string> words;
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     texts->Open(kMapText);
     header = str::Format(kQuestHeader, std::string(name));
     if (texts->FindLine(header)) {
@@ -180,10 +180,10 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
 
 // --- Quest list handlers --------------------------------------------------------
 
-void CObjectivesWindow::SelectExit(int index) {
+void ObjectivesWindow::SelectExit(int index) {
     nearestExit = index;
     for (int i = 0; i < std::ssize(exits); ++i) {
-        CUiMesh* marker = SceneMesh(kFirstExitSprite + i);
+        UiMesh* marker = SceneMesh(kFirstExitSprite + i);
         if (i == index) {
             marker->SetScale(markerScale * kNearestScale);
             marker->textureOffsetU = 0.0f;
@@ -197,7 +197,7 @@ void CObjectivesWindow::SelectExit(int index) {
     SceneMesh(5)->visible = false;
 }
 
-void CObjectivesWindow::RefreshQuests() {
+void ObjectivesWindow::RefreshQuests() {
     const auto& currentQuests = quests;
     if (static_cast<int>(currentQuests.size()) == 0) return;
     if (selectedQuest < 0) selectedQuest = 0;
@@ -211,8 +211,8 @@ void CObjectivesWindow::RefreshQuests() {
     ShowQuest();
 }
 
-void CObjectivesWindow::Update() {
-    CUiContainer::Update();
+void ObjectivesWindow::Update() {
+    UiContainer::Update();
     if (bar->TakeMoved()) {
         firstRow = bar->Position();
         DrawQuestList();
@@ -223,12 +223,12 @@ void CObjectivesWindow::Update() {
     const std::uint32_t slow = libcrt::Ftol((x87::fcos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
     const std::uint32_t fast = libcrt::Ftol((x87::fcos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
     for (int i = std::ssize(exits) + kFirstExitSprite; i < std::ssize(sceneObjects); ++i) {
-        CUiMesh* place = SceneMesh(i);
+        UiMesh* place = SceneMesh(i);
         place->flags |= FigureMeshFlag::Flat;
         place->flatColour = fast << 24 | 0xFF0000u;
     }
     for (int i = 0; i < std::ssize(exits); ++i) {
-        CUiMesh* marker = SceneMesh(kFirstExitSprite + i);
+        UiMesh* marker = SceneMesh(kFirstExitSprite + i);
         marker->flags |= FigureMeshFlag::Flat;
         marker->flatColour = i == nearestExit ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
     }

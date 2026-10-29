@@ -17,7 +17,7 @@
 // open (no message), the fatal error's result when the file is missing, else 1.
 int LoadLightningNoise() {
     LocalResource resource;
-    CMemoryStream local;
+    MemoryStream local;
     bool opened;
     {
         std::string folder = g_textFolder;
@@ -28,14 +28,14 @@ int LoadLightningNoise() {
     if (!opened) return 0;
 
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("lightning.dat", &size);
+    void* data = resource.Get()->MappedResource::GetFile("lightning.dat", &size);
     if (!data) return game::FatalError("Unable to open file gfx.res\\lightning.dat");
 
     FillStream(local, data, size);
-    CStream* stream = &local;
+    ByteStream* stream = &local;
     float* row = g_lightningNoise[0];
     for (int i = 0; i < kLightningNoiseRows; ++i, row += kLightningNoiseRowLength)
         stream->Read(row, kLightningNoiseRowLength * sizeof(float));
-    resource.Get()->CMappedResource::CloseFile(data);
+    resource.Get()->MappedResource::CloseFile(data);
     return 1;
 }

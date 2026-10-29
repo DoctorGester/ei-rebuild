@@ -1,4 +1,4 @@
-// The battle HUD's minimap markers (CHudMap::BuildMarkers): every frame the map panel
+// The battle HUD's minimap markers (HudMap::BuildMarkers): every frame the map panel
 // rebuilds one mesh (its scene object 2) with a marker per party member and visible unit, per
 // marked object, per zone exit and, in multiplayer, per other player. See docs/notes/ui.md.
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
@@ -53,7 +53,7 @@ constexpr std::int16_t kFrameMarked = 3;    // marked objects
 // records and its indices: three for a unit (one triangle), six for the other markers.
 class MarkerWriter {
 public:
-    MarkerWriter(CUiMesh* newMesh, const CHudMap* newMap) : mesh(newMesh), map(newMap) {}
+    MarkerWriter(UiMesh* newMesh, const HudMap* newMap) : mesh(newMesh), map(newMap) {}
 
     void BeginUnit() {
         std::uint16_t* index = mesh->indices.data() + indexPos;
@@ -156,8 +156,8 @@ private:
         ++entry;
     }
 
-    CUiMesh* mesh;
-    const CHudMap* map;
+    UiMesh* mesh;
+    const HudMap* map;
     int entry = 0;       // quad block
     int vertex = 0;      // first vertex of the entry (4 per entry)
     int indexPos = 0;    // next index
@@ -263,14 +263,14 @@ double WheelZoomFactor(int delta) {
 
 } // namespace
 
-void CHudMap::BuildMarkers() {
-    CUiMesh* mesh = SceneMesh(2);
-    CBaseManager* objectManager = g_clientWorld.objectManager;
+void HudMap::BuildMarkers() {
+    UiMesh* mesh = SceneMesh(2);
+    BaseManager* objectManager = g_clientWorld.objectManager;
     // The local view: the ids of the units shown on the map (partyUnitIds) and, in multiplayer, of the other
     // players' units (otherUnitIds).
-    CPlayerClient* localView = g_clientWorld.LocalView();
+    PlayerClient* localView = g_clientWorld.LocalView();
     int unitCount = localView ? std::ssize(localView->partyUnitIds) : 0;
-    CLightFactory* markers = g_clientWorld.lightFactory;
+    LightFactory* markers = g_clientWorld.lightFactory;
     const std::list<int>& marked = markers->litIds;
     const int markedCount = static_cast<int>(marked.size());
     int exitCount = static_cast<int>(std::ssize(g_clientWorld.exits));
@@ -301,7 +301,7 @@ void CHudMap::BuildMarkers() {
         }
         PutArrow(out.Block(), unit, x, y);
         std::int16_t frame = UnitFrame(unit);
-        CBattleScreen* currentOwner = owner;
+        BattleScreen* currentOwner = owner;
         for (int k = 0; k < std::ssize(currentOwner->party); ++k) {
             if (currentOwner->party[k] == unit) {
                 frame = kFrameParty;
@@ -327,7 +327,7 @@ void CHudMap::BuildMarkers() {
 
     // The zone exits that lead somewhere: squares. (The exit record is copied and the target read from
     // the copy, which shares the string.)
-    CWorldClient* world = &g_clientWorld;
+    WorldClient* world = &g_clientWorld;
     for (int i = 0; i < exitCount; ++i) {
         out.BeginQuad();
         float x, y;
@@ -362,8 +362,8 @@ void CHudMap::BuildMarkers() {
 
 // --- The map's polygon clipping ----------------------------------------------------------------------------------
 
-void CHudMap::UpdateView() {
-    if (const CTransformObject* camera = g_clientWorld.camera) {
+void HudMap::UpdateView() {
+    if (const TransformObject* camera = g_clientWorld.camera) {
         centreX = g_camera.focus.x;
         centreY = g_camera.focus.y;
         Vector3 axis;
@@ -528,7 +528,7 @@ void CHudMap::UpdateView() {
 
 // --- The zoom factor ----------------------------------------------------------------------------------
 
-void CHudMap::Wheel(int, int delta, int x, int y) {
+void HudMap::Wheel(int, int delta, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0) return;
     if (region == 0) {

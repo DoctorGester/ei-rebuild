@@ -1,4 +1,4 @@
-// CAIMap::Refresh: recomputes the passability of a rectangle of cells after the map changed: per standing level
+// AIMap::Refresh: recomputes the passability of a rectangle of cells after the map changed: per standing level
 // the cell marks over the rectangle grown by 3 cells, the level's special areas, the second pass and the map
 // border; with the sector map on the objects around it are taken out and put back. See docs/notes/ai.md.
 #include "ai_map.h"
@@ -28,7 +28,7 @@ int AreaList(int level) {
     return 0;
 }
 
-std::uint32_t& CellWord(CAIMap* map, int x, int y) {
+std::uint32_t& CellWord(AIMap* map, int x, int y) {
     return map->cells[y][x].passable;
 }
 
@@ -84,7 +84,7 @@ int MaxStep(const std::vector<int>& table) {
 
 void InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6)); }
 
-void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
+void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (x0 > x1 || y0 > y1) return;
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
@@ -153,7 +153,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     float cy = static_cast<float>(static_cast<double>(oy0 + oy1) * scale * 0.5f);
     centre.x = cx;
     centre.y = cy;
-    CSectorMap* sectors = &sectorMap;
+    SectorMap* sectors = &sectorMap;
     std::list<CUnit*> objects = sectors->FindUnitsInRadius(centre, radius);
     for (auto node = objects.begin(); node != objects.end();) {
         auto next = std::next(node);
@@ -171,7 +171,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
 // ---- CellMark ---------------------------------------------------------------------------------
 
-std::uint32_t CAIMap::CellMark(CellMarkState* s, int level, int levelHeight, int x, int y) {
+std::uint32_t AIMap::CellMark(CellMarkState* s, int level, int levelHeight, int x, int y) {
     AIMapCell* cell = &cells[y][x];
     std::uint32_t* occluder = &occluders[y][x];
     AITerrainType* terrain = &materials[occluder::Type(*occluder)];
@@ -244,7 +244,7 @@ std::uint32_t CAIMap::CellMark(CellMarkState* s, int level, int levelHeight, int
     return worlddata::kMarkTable[row * 16 + column];
 }
 
-void CAIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
+void AIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
     if (x0 < 2) x0 = 2;
     if (y0 < 2) y0 = 2;
     if (cells.width - 3 < x1) x1 = cells.width - 3;
@@ -277,7 +277,7 @@ void CAIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
         }
 }
 
-void CAIMap::ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0, int y1) {
+void AIMap::ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0, int y1) {
     if (-dx > x0) x0 = -dx;
     if (-dy > y0) y0 = -dy;
     if (cells.width - dx - 1 < x1) x1 = cells.width - dx - 1;

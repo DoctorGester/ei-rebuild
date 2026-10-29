@@ -6,13 +6,13 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "core_transform.h"
-#include "effects.h"       // CParticleSource
+#include "effects.h"       // ParticleSource
 #include "engine_object.h"
-#include "link_figure.h"     // CLinkMesh: the figure
+#include "link_figure.h"     // LinkMesh: the figure
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_delta.h"     // DeltaState
-#include "spell.h"         // CLightFactory
+#include "spell.h"         // LightFactory
 #include "terrain.h"
 #include "unit.h"
 #include "unit_ai.h"       // AIBrain
@@ -59,7 +59,7 @@ CObject3D::CObject3D() {
     worldPosition = {};
 }
 
-// The name is destroyed after the body, then CEngineObject's part.
+// The name is destroyed after the body, then EngineObject's part.
 CObject3D::~CObject3D() {
     Destroy3D();
     figure.Reset();
@@ -144,22 +144,22 @@ CUnit::~CUnit() {
     Reset();
 }
 
-CMapObjectServer::CMapObjectServer() {
+MapObjectServer::MapObjectServer() {
     vitals.Reset();
 }
 
-CMapObjectServer::~CMapObjectServer() {
+MapObjectServer::~MapObjectServer() {
     vitals.Reset();
     strings.clear();
     owner = nullptr;
 }
 
-CMapObjectClientSpecific::CMapObjectClientSpecific() {
+MapObjectClientSpecific::MapObjectClientSpecific() {
     lightStateA = 0;
     lightStateB = 0;
 }
 
-CMapObjectClientSpecific::~CMapObjectClientSpecific() {
+MapObjectClientSpecific::~MapObjectClientSpecific() {
     lightStateA = 0;
     lightStateB = 0;
     particles.clear();
@@ -169,7 +169,7 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
             shown->flags |= LightFlag::Hidden;
             g_clientWorld.terrain->RemoveLight(light);
             if (CUnit* unit = Unit()) {
-                if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(false);
+                if (Object3DSpecific* half = unit->Object3D()->attached) half->SetLit(false);
             }
         }
         int lightId = light->id;
@@ -182,4 +182,4 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
 // --- The server unit controller ---------------------------------------------------------------
 
 // ResetController empties the brain (Init) and releases every reference the controller holds.
-CUnitServer::~CUnitServer() { ResetController(); }
+UnitServer::~UnitServer() { ResetController(); }

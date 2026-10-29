@@ -1,7 +1,7 @@
 #pragma once
 
 // The ack kinds: what a unit says (acks.db, acks_db.h) and the code a party message carries about a unit
-// (CPlayerServer::SendObject0B, CUnitServer::Shout, CWorldServer::TellParties; the client's OnUnitSpeech reads it
+// (PlayerServer::SendObject0B, UnitServer::Shout, WorldServer::TellParties; the client's OnUnitSpeech reads it
 // back). One dword on the wire. The names are the folders the speeches' sounds sit in (Acks\<unit>\<folder>\n.wav)
 // of the kind's list in acks.db, with the English words spelt out; where the code's use is clearer it is said.
 

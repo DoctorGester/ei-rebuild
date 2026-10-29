@@ -4,7 +4,7 @@ Code: `particle_tick.cpp` (Tick, AddParticle, pool), `particle_emitters.cpp` (Em
 more), `particle_render.cpp` (Draw), `particle_create.cpp` (`Create` 00485540 as a per-type setup switch, Reset, Clear,
 factory, destructor), `particle_draw.cpp` (draw-all and its depth sort), `particle_callbacks.cpp` (every other per-type
 callback), `particle_manager.cpp` (the manager's own members), `effects.cpp` (the callbacks and source setters listed in `effects.md`), `quaternion.cpp`, `random.cpp`;
-layouts in `effects.h` (CParticleSource, Particle, CParticleManager, the render arrays), shared helpers in
+layouts in `effects.h` (ParticleSource, Particle, ParticleManager, the render arrays), shared helpers in
 `particle_common.h`. Verify: `tests/verify/verify_particle_*.cpp` with the shared wrappers in `particle_verify.h`
 (`RunBoth` / `RunBothEmit` / `RunBothElement` / `RunBothSetup`: capture source, particle, element array and generator,
 run ours, restore, run the original, compare everything). Scenarios: `particles.txt` (creates every source type it
@@ -15,8 +15,8 @@ game.exe for the callbacks.
 
 ## Structure
 
-- `CParticleSource` (vtable 0073CFD0, class id 0xC, 0x1F0 bytes, made by `NewParticleSource` 004981B0; a CTransformObject in the game,
-  declared as a `CEngineObject` subclass, so sources are engine objects without casts). Slot 2 `Create`
+- `ParticleSource` (vtable 0073CFD0, class id 0xC, 0x1F0 bytes, made by `NewParticleSource` 004981B0; a TransformObject in the game,
+  declared as a `EngineObject` subclass, so sources are engine objects without casts). Slot 2 `Create`
   fills the per-type parameters by `type` (0x2000-0x2052; names in the table at 0078B120: name, type, lifetime) and
   stores three callbacks (all `__thiscall` on the source): +0x1E0 emit one particle `(Particle*, int)`, +0x1E4 update one
   particle (0 drops it), +0x1E8 update one element of the array at +0x154 (0x38-byte elements). Slot 6 `Tick`
@@ -25,7 +25,7 @@ game.exe for the callbacks.
   emitSpacing)` particles with `emitChance`% each. `Particle` (0x64 bytes) is pooled by 00498870 / 004987C0.
   Types 0x201B-0x2026 Modifier1-12, 0x2030 LightningBlast, 0x2038 ZoneExit, 0x203E Portal, 0x2043 Sparks, 0x2049
   FeebleMind, 0x204A / B FeetCloud, 0x2051 StartTrans; 0x2039-0x203B are unnamed. 00678EC0 is the world's script
-  particle source (class 0x4A, `CreateParticleSource`): its first tick creates the `CParticleSource` (00498400), every tick
+  particle source (class 0x4A, `CreateParticleSource`): its first tick creates the `ParticleSource` (00498400), every tick
   copies the position and calls `ScaleSize(size / baseSize)`.
 - Address map: 00490130-00496990 per-type callbacks (many are labels, not Ghidra functions); 00496A20-00497EB0 AddParticle, Tick, Draw (shared
   arrays 007A9BD0 / 007A9BE0); 00497EB0-00498E80 element allocator and manager pieces (00498400 create source, 13 callers; 00498480 / 00498630
@@ -41,12 +41,12 @@ Every function carries its address in its source comment (grep it); the per-func
   no elements, no emission), `Draw` 004976B0, `AddParticle` 00496A20, `ParticleSpriteArray::SetSize` 00497D50, pool Release / Acquire 004987C0
   / 00498870, `AllocateElements` 00497EB0, `BindParticleTexture` 00497CE0, `NewParticleSource` 004981B0, `Destruct` 00498310, `DrawAll`
   00498940 with the depth sort (`SetAtGrow` 00499200, introsort 00499380, final sort 004994E0, pop heap 00499C20, make heap 00499CD0).
-- `CParticleManager` (vtable 0073F644, 0xE8: free particles +0xB0, `held` hash_map<id, source> +0xCC, its highest id +0xE0, flag +0xE4)
+- `ParticleManager` (vtable 0073F644, 0xE8: free particles +0xB0, `held` hash_map<id, source> +0xCC, its highest id +0xE0, flag +0xE4)
   00497FC0-00498630: slot 2 `Create`, slot 3 `Destroy` (held sources released, pooled particles deleted, then the base's), `CreateSource`
   (CreateObject(type, -1), one reference held; flag +0xE4 stops 0x2001/3/4), `TickSources` (slot 6 of every source; paused: only flag 8; a
   held source whose tick returned 0 is released), `ReleaseUnheld` (held sources with refCount 1; the client's zone load). 004981A0, the
   manager's own part of its constructor (quietStart cleared), is `ParticleManagerClearQuietStart` in small_accessors.cpp; world_client_maps.cpp
-  reaches it through its forwarder when the client world sets its managers up. `CParticleSource` slots 11 / 12 ("CParticle" 0078B020,
+  reaches it through its forwarder when the client world sets its managers up. `ParticleSource` slots 11 / 12 ("CParticle" 0078B020,
   class id 12) 004982D0 / 004982E0, slot 0 `DeletingDestruct` 004982F0.
 - `Clear` 00484710, `Reset` 004847E0, `WorldPosition` 00484AE0, `Create` 00485540 (slot 2; a 13 KB switch).
 - The per-type callbacks of ~50 effects in 00490130-00496990 (EmitModifier 00490130, EmitLightning 004923B0, UpdatePortal, TickPortal,
@@ -61,7 +61,7 @@ Every function carries its address in its source comment (grep it); the per-func
 
 The `RET 4` no-op element callbacks 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310, 004957D0, 00495A20, 00496260,
 004965D0 are one member, `TickNone`. Create stores member pointers to our callbacks (`EmitCallback`, `UpdateCallback`, `ElementCallback`
-in effects.h: CParticleSource has no base, so each is a plain 4-byte code address, as the original's); the short-function registrations
+in effects.h: ParticleSource has no base, so each is a plain 4-byte code address, as the original's); the short-function registrations
 at the old addresses stay, though nothing in the image calls them now.
 
 ## Floating point

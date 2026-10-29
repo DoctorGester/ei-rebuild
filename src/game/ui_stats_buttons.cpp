@@ -36,7 +36,7 @@ void SetAttribute(float& base, float& current, float value) {
 
 } // namespace
 
-bool CHeroStatsPanel::StepPoint(int region) {
+bool HeroStatsPanel::StepPoint(int region) {
     PartyUnitRecord* hero = owner->HeroRecord();
     UnitStats* stats = &hero->stats;
     int total = static_cast<int>(stats->strengthBase) + static_cast<int>(stats->intelligenceBase) +
@@ -87,9 +87,9 @@ bool CHeroStatsPanel::StepPoint(int region) {
 
 // --- Update --------------------------------------------------------------------------------------
 
-void CHeroStatsPanel::Update() {
+void HeroStatsPanel::Update() {
     if (page != kNewHeroPage || heldRegion < 0) return;
-    double held = CUiContainer::FrameTime() + holdTime;
+    double held = UiContainer::FrameTime() + holdTime;
     holdTime = static_cast<float>(held);
     if (held < kRepeatDelay) return;   // less (a NaN goes on)
     bool stepped = StepPoint(heldRegion);
@@ -103,7 +103,7 @@ void CHeroStatsPanel::Update() {
 
 // --- The left button (input click) -----------------------------------------------------------------
 
-void CHeroStatsPanel::LeftDown(int, int x, int y) {
+void HeroStatsPanel::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (page == kNewHeroPage) {
         heldRegion = -1;

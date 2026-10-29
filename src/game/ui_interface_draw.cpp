@@ -1,5 +1,5 @@
-// The interface's per-frame draw (CInterface3D::Draw, called by the main loop between the
-// scene's BeginScene and EndScene) and the screen fade drawn over it (CScreenFade::Draw).
+// The interface's per-frame draw (Interface3D::Draw, called by the main loop between the
+// scene's BeginScene and EndScene) and the screen fade drawn over it (ScreenFade::Draw).
 // See docs/notes/ui.md, section 3, and docs/notes/renderer.md, section 2.
 #include "app.h"
 #include "ui.h"
@@ -30,7 +30,7 @@ constexpr float kLetterboxShare = 0.217f;
 
 constexpr float kOpaque = 255.0f;
 
-RECT ScreenOf(const CSceneRenderer* renderer) {
+RECT ScreenOf(const SceneRenderer* renderer) {
     RECT screen;
     gameapi::CopyRect(&screen, &renderer->device->screen);
     return screen;
@@ -45,18 +45,18 @@ constexpr int kFpsFont = 1;
 // A new surface for the screen's picture, as the interface's backdrop. Rebirth's WideScreen makes
 // the full-size one the mode's size in pixels, unscaled (addon's operands
 // 1 -> 0, 600 -> height, 800 -> width).
-void MakeBackdrop(CInterface3D* ui) {
+void MakeBackdrop(Interface3D* ui) {
     if (widescreen::Active()) {
         const widescreen::Layout& wide = widescreen::Get();
-        ui->backdrop = new CUiSurface(ui, 0, 0, wide.width, wide.height, SurfaceBlend::Opaque, false);
+        ui->backdrop = new UiSurface(ui, 0, 0, wide.width, wide.height, SurfaceBlend::Opaque, false);
     } else {
-        ui->backdrop = new CUiSurface(ui, 0, 0, 800, 600, SurfaceBlend::Opaque, true);
+        ui->backdrop = new UiSurface(ui, 0, 0, 800, 600, SurfaceBlend::Opaque, true);
     }
 }
 
 } // namespace
 
-void CScreenFade::Draw(CSceneRenderer* renderer) {
+void ScreenFade::Draw(SceneRenderer* renderer) {
     RECT screen = ScreenOf(renderer);
     if (letterbox) {
         const int width = screen.right - screen.left;
@@ -88,21 +88,21 @@ void CScreenFade::Draw(CSceneRenderer* renderer) {
     render::g_renderState.depthTest = true;
 }
 
-void CScreenFade::Start(int ms) {
+void ScreenFade::Start(int ms) {
     rate = kOpaque / static_cast<float>(ms);
     alpha = ms > 0 ? 0.0f : kOpaque;
     lastTime = gameapi::timeGetTime();
     active = true;
 }
 
-void CInterface3D::Draw() {
+void Interface3D::Draw() {
     CloseAllPending();
     if ((backdropMode == 2 || backdropMode == 4 || backdropMode == 3) && backdrop) backdrop->Blit();
     if (!stack.empty()) stack.back()->Draw(&g_sceneRenderer);
     fade->Draw(&g_sceneRenderer);
 }
 
-void CInterface3D::DrawOverlays() {
+void Interface3D::DrawOverlays() {
     if (!stack.empty()) {
         stack.back()->Redraw();        // its surfaces blit themselves
         stack.back()->RedrawTips();    // its tooltips follow the mouse and redraw

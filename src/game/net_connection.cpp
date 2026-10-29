@@ -39,13 +39,13 @@ std::int32_t BufferedSize(GameBuffer* b) {
 
 // The handlers registered for message `type` on `channel` (called with the session and the message). The end
 // is read again after each call.
-void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
+void CallHandlers(SessionBase* session, int channel, std::uint32_t type, RefObject* message) {
     std::vector<MessageHandler>& v = session->handlers[channel][type & 0xFF];
     for (auto& h : v) h(session, message);
 }
 
 // A message's virtual Write and Read over a byte cursor.
-void ReadObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Read(cursor); }
+void ReadObject(RefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Read(cursor); }
 
 } // namespace
 
@@ -126,7 +126,7 @@ void Connection::RollBack(SentPacket* packet) {
     packet->rolledBack = 1;
 }
 
-void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key) {
+void Connection::AttachRecord(RefObject* object, std::uint32_t type, std::int32_t key) {
     AttachedId& newAttached = attached[object];
     newAttached.id = static_cast<std::uint16_t>(key);
     newAttached.type = static_cast<std::uint8_t>(type);
@@ -171,7 +171,7 @@ bool Connection::SendUpdate(int budget) {
             ReplicaEntry* entry = it.second.Get();
             Message* object = entry->Object();
             bool alive;
-            if (object && !(object->flags7 & CRefObject::kDetached)) {
+            if (object && !(object->flags7 & RefObject::kDetached)) {
                 alive = true;
                 if (entry->version == object->version) continue;
                 if (entry->id == 0) {
@@ -189,7 +189,7 @@ bool Connection::SendUpdate(int budget) {
                 alive = false;
                 if (entry->id == 0) continue;
                 if (entry->object.Get()) {
-                    CRefObject* key = entry->object.Get();
+                    RefObject* key = entry->object.Get();
                     byObject.erase(key);
                     entry->object.Assign(nullptr);
                     entry->version = 0;
@@ -256,9 +256,9 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
             LogLine(game::nettexts::SkipRemove());
             return true;
         }
-        Ref<CRefObject>* slot = &found->second.object;
+        Ref<RefObject>* slot = &found->second.object;
         if (slot->Get()) {
-            CRefObject* object = slot->Get();
+            RefObject* object = slot->Get();
             attached.erase(object);
             object = slot->Get();
             session = g_currentSession;
@@ -272,7 +272,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     if (found == records.end()) {
         // A new object.
         Record& record = records[key];
-        CRefObject* object = session->types.Create(type & 0xFF);
+        RefObject* object = session->types.Create(type & 0xFF);
         if (!object) return false;
         ShareAssignOwned(record.object, object);
         record.version = 0;
@@ -286,14 +286,14 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     if (found->second.version >= version) {
         // Older than what was applied: read it into a throwaway object to skip its bytes.
         LogLine(game::nettexts::SkipUpdate());
-        SharedRef<CRefObject> scratch(g_currentSession->types.Create(type & 0xFF));
+        SharedRef<RefObject> scratch(g_currentSession->types.Create(type & 0xFF));
         ReadObject(scratch, cursor);
         return true;
     }
 
-    Ref<CRefObject>* slot = &found->second.object;
+    Ref<RefObject>* slot = &found->second.object;
     if (!slot->Get()) {
-        CRefObject* object = g_currentSession->types.Create(type & 0xFF);
+        RefObject* object = g_currentSession->types.Create(type & 0xFF);
         if (object) {
             ShareAssignOwned(*slot, object);
             found->second.version = 0;
@@ -303,7 +303,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         if (!slot->Get()) return false;
     }
     ReadObject(slot->Get(), cursor);
-    CRefObject* object = slot->Get();
+    RefObject* object = slot->Get();
     CallHandlers(g_currentSession, found->second.version == 0 ? 0 : 1, type, object);
     found->second.version = version;
     return true;
@@ -311,7 +311,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
 
 void Connection::Track(Replicated* item) {
     Message* object = item->object;
-    if (!object || (object->flags7 & CRefObject::kDetached)) return;
+    if (!object || (object->flags7 & RefObject::kDetached)) return;
     auto found = g_currentSession->types.byVtable.find(TypeRegistry::KeyOf(object));
     std::int32_t type = found != g_currentSession->types.byVtable.end() ? static_cast<std::int32_t>(found->second) : -1;
 
@@ -337,7 +337,7 @@ void Connection::CollectChanges() {
     // order (the session's lists), so entries are tracked, and their serials handed out, in an order no
     // allocation decides. An object listed twice would be tracked once (the original's merge tracks the second
     // listing again); the sessions list each object once.
-    std::unordered_set<CRefObject*> listed;
+    std::unordered_set<RefObject*> listed;
     for (const Replicated& item : items) listed.insert(item.object);
 
     // Tracked but no longer listed: never sent -> forgotten; sent -> marked gone. In serial order.
@@ -383,7 +383,7 @@ void BufferCursor::PutBit(std::uint32_t bit) {
 
 namespace net {
 
-void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
+void Connection::WriteObjectRef(BufferCursor* cursor, RefObject* object) {
     if (IsLive(object)) {
         auto found = byObject.find(object);
         if (found != byObject.end()) {
@@ -419,7 +419,7 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
 
 // The original reads the type and id into dwords whose upper bytes it masks off (and passes the
 // type dword on to AttachRecord, which keeps only its low byte in use); they start as zero here.
-CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
+RefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     std::uint32_t sent = cursor->GetBit();
     std::uint32_t type = 0;
     cursor->ReadBytes(&type, 1);
@@ -435,7 +435,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     auto found = records.find(key);
     if (found == records.end()) {
         Record* record = &records[key];
-        CRefObject* object = g_currentSession->types.Create(type & 0xFF);
+        RefObject* object = g_currentSession->types.Create(type & 0xFF);
         if (!object) return nullptr;
         ShareAssignOwned(record->object, object);
         record->version = 0;
@@ -445,9 +445,9 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     if (IsLive(found->second.object.Get())) return found->second.object.Get();
     std::uint32_t typeKey = type & 0xFF;
     MessageFactory factory = g_currentSession->types.byType[typeKey];
-    CRefObject* object = factory ? factory() : nullptr;
+    RefObject* object = factory ? factory() : nullptr;
     if (!object) return nullptr;
-    Ref<CRefObject>* slot = &found->second.object;
+    Ref<RefObject>* slot = &found->second.object;
     ShareAssignOwned(*slot, object);
     found->second.version = 0;
     AttachedId* attachedId = &attached[object];
@@ -599,8 +599,8 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
 void Connection::Close() {
     g_currentConnection = this;
     for (auto& it : records) {
-        Ref<CRefObject>* slot = &it.second.object;
-        if (CRefObject* object = slot->Get()) {
+        Ref<RefObject>* slot = &it.second.object;
+        if (RefObject* object = slot->Get()) {
             SessionBase* session = g_currentSession;
             auto found = session->types.byVtable.find(TypeRegistry::KeyOf(object));
             std::uint32_t type = found != session->types.byVtable.end() ? found->second : 0xFFFFFFFFu;

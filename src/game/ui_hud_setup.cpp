@@ -1,4 +1,4 @@
-// The battle HUD's two corner panels, the game clock (CHudClock) and the movement panel (CHudMovePanel): their setups.
+// The battle HUD's two corner panels, the game clock (HudClock) and the movement panel (HudMovePanel): their setups.
 // Rebirth patches both for its WideScreen layout, reproduced behind the flag (ui_widescreen.h): the clock at the screen's
 // right edge, the movement panel at its left. See ui.h and docs/notes/ui.md, "Battle HUD corner panels".
 #include "ui.h"
@@ -56,7 +56,7 @@ ArcPoint OnArc(int turn, float step, double radius) {
 }
 
 // The hand of both panels: a small triangle pointing along +x from its first corner.
-void SetHand(CUiMesh* sprite) {
+void SetHand(UiMesh* sprite) {
     sprite->SetTriangle(8.0f, 100.0f, 0.0f, 0.0f, 17.0f, 11.0f, 17.0f, -11.0f, 104.0f, 19.0f, 115.0f, 2.0f, 93.0f, 2.0f);
 }
 
@@ -64,14 +64,14 @@ void SetHand(CUiMesh* sprite) {
 
 // --- The clock ---------------------------------------------------------------------------
 
-void CHudClock::Setup(bool newFast) {
+void HudClock::Setup(bool newFast) {
     widescreen::EnterRightPanel();   // addon's 1002332C; 100233E0 at the end
     const int shift = widescreen::EdgeShift();
     rect = RECT{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};    // WideScreen
     AddBlankSprite()->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
     SetHand(AddBlankSprite());
     for (int i = 0; i < 4; ++i) {
-        CUiMesh* arrow = AddSprite(kArrowSprite);
+        UiMesh* arrow = AddSprite(kArrowSprite);
         arrow->textureOffsetU = 0.22265625f;
         arrow->textureOffsetV = 0.140625f;
         arrow->Place(1000.0f, 1000.0f, kArrowDepth);
@@ -82,7 +82,7 @@ void CHudClock::Setup(bool newFast) {
 
     // The pause, normal and fast sectors, each between two radii of the corner.
     for (int i = 0; i < 3; ++i) {
-        CUiRegion* sector = AddRegion();
+        UiRegion* sector = AddRegion();
         const ArcPoint corners[4] = {OnArc(i + 1, kSixth, kInnerRadius), OnArc(i, kSixth, kInnerRadius),
                                      OnArc(i, kSixth, kOuterRadius), OnArc(i + 1, kSixth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(kLayoutRight - corner.across, kLayoutBottom - corner.up);
@@ -93,7 +93,7 @@ void CHudClock::Setup(bool newFast) {
         regions[2]->SetTip(0x28A3, 3);
     }
     // The objectives button: the quarter disc in the corner.
-    CUiRegion* middle = AddRegion();
+    UiRegion* middle = AddRegion();
     middle->AddPoint(kLayoutRight, kLayoutBottom);
     for (int turn = 0; turn <= 3; ++turn) {
         const ArcPoint point = OnArc(turn, kSixth, kMiddleRadius);
@@ -112,12 +112,12 @@ void CHudClock::Setup(bool newFast) {
 
 // --- The movement panel --------------------------------------------------------------------
 
-void CHudMovePanel::Build() {
+void HudMovePanel::Build() {
     widescreen::EnterLeftPanel();    // addon's 10023394; 100233AF at the end
     const int shift = widescreen::EdgeShift();
     rect = RECT{-shift, 520, 80 - shift, kLayoutBottom};    // WideScreen
     // The flag button: the quarter disc in the corner.
-    CUiRegion* middle = AddRegion();
+    UiRegion* middle = AddRegion();
     middle->AddPoint(0, kLayoutBottom);
     for (int turn = 4; turn >= 0; --turn) {
         const ArcPoint point = OnArc(turn, kEighth, kMiddleRadius);
@@ -126,7 +126,7 @@ void CHudMovePanel::Build() {
     middle->SetTip(0x2904, 0x1B);
     // The four movement modes' sectors.
     for (int moveMode = 0; moveMode < 4; ++moveMode) {
-        CUiRegion* sector = AddRegion();
+        UiRegion* sector = AddRegion();
         const ArcPoint corners[4] = {OnArc(moveMode, kEighth, kInnerRadius), OnArc(moveMode + 1, kEighth, kInnerRadius),
                                      OnArc(moveMode + 1, kEighth, kOuterRadius), OnArc(moveMode, kEighth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(corner.across, kLayoutBottom - corner.up);
@@ -136,7 +136,7 @@ void CHudMovePanel::Build() {
     SetHand(AddBlankSprite());
     // The sectors' pictures: triangles from the corner, the texels following the layout points.
     for (int moveMode = 0; moveMode < 4; ++moveMode) {
-        CUiMesh* sector = AddBlankSprite();
+        UiMesh* sector = AddBlankSprite();
         const float endAngle = ArcAngle(moveMode + 1, kEighth);
         const float endUp = static_cast<float>(ArcSin(endAngle) * kSectorRadius);
         const float endAcross = static_cast<float>(ArcCos(endAngle) * kSectorRadius);

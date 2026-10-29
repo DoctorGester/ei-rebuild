@@ -1,4 +1,4 @@
-// The interface manager's end (CInterface3D): the input reset after the windows close, the shutdown from the
+// The interface manager's end (Interface3D): the input reset after the windows close, the shutdown from the
 // main loop's exit (it writes config\tutorial.ini), the destructor body of the global interface run at exit
 // and the console window's destructor body. See ui.h and docs/notes/ui.md, section 3.
 #include "app.h"
@@ -21,13 +21,13 @@ namespace {
 constexpr int kCursorWait = 3;
 
 // A surface the interface owns: its destructor body, then the memory.
-void DeleteSurface(CUiSurface* surface) {
+void DeleteSurface(UiSurface* surface) {
     if (!surface) return;
     delete surface;
 }
 } // namespace
 
-void CInterface3D::ResetInput() {
+void Interface3D::ResetInput() {
     ctrlDown = false;
     altDown = false;
     shiftDown = 0;
@@ -36,7 +36,7 @@ void CInterface3D::ResetInput() {
     if (!stack.empty()) stack.back()->Input()->Deactivate();
 }
 
-void CInterface3D::Shutdown() {
+void Interface3D::Shutdown() {
     g_cursor.SetShape(kCursorWait);
     while (!stack.empty()) {
         stack.back()->Input()->Deactivate();

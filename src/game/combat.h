@@ -1,6 +1,6 @@
 #pragma once
 
-// Combat: the server-side unit controller (CUnitServer, class id 0x3E). Every creature on the server has one;
+// Combat: the server-side unit controller (UnitServer, class id 0x3E). Every creature on the server has one;
 // it keeps the unit's computed statistics, its current orders, and the attack / hit code.
 
 #include "ack_kind.h"
@@ -64,8 +64,8 @@ struct AnimationSteps : std::vector<AnimationStep> {
     bool SameAs(const AnimationSteps* other) const;
     // The count, each step's 12 bytes, extra. A count the stream did not deliver is 0 (the original's was its
     // stack garbage).
-    void Load(CStream* stream);
-    void Save(CStream* stream) const;
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
 
     int extra = -1;
 };
@@ -91,11 +91,11 @@ struct OrderPlan {
 
 void OrderPlanReset(OrderPlan* plan);
 
-class CWorldServer;
+class WorldServer;
 // Whether the spell may hit: spells whose prototype has needsSight need a line of sight of at least 0.1 from
 // `from` (z = the caster's ground + BaseSpeed, a height) to the target (z = its ground + ModeSpeed), or to `at`
 // one unit above the water surface when there is no target.
-bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3& from,
+bool SpellHasLineOfSight(WorldServer* world, CSpell* spell, CUnit* caster, const Vector3& from,
                                     CUnit* target, const Vector3& at);
 
 struct MoveModeState {
@@ -107,12 +107,12 @@ struct MoveModeState {
     std::uint8_t wasMode3;
 };
 
-// What a unit attacks with (CUnitServer::GetAttackParams).
+// What a unit attacks with (UnitServer::GetAttackParams).
 struct AttackParams {
     // Unless `keyed`: attack and defence times the difficulty's factors, truncated.
     void ScaleForDifficulty(int keyed);
 
-    int weaponType;             // CItemWeapon::GetType, or the natural weapon
+    int weaponType;             // ItemWeapon::GetType, or the natural weapon
     int damageType;             // 0..6
     float speed;                // the weapon's, or the natural attack's
     float damageMin;            // scaled by the stats' damage scale
@@ -133,20 +133,20 @@ struct AIEventPresence {
 // worn.
 struct ArmourSpell {
 // The item's id (-1 without one) and the countdown.
-    void Save(CStream* stream) const;
+    void Save(ByteStream* stream) const;
 // `other`'s item is referenced before the old one is released.
     ArmourSpell* Assign(const ArmourSpell* other);
 
-    Ref<CItem> item;
+    Ref<Item> item;
     int countdown;
     std::uint8_t worn;
 };
 
 // `count` entries appended (no item, countdown 0; the original's `worn` byte was stack garbage, ours 0), then
 // each entry from the head takes its item (the item manager's object of the id read, referenced) and countdown.
-void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream);
+void LoadArmourSpells(std::list<ArmourSpell>* list, ByteStream* stream);
 
-// What a unit controller is doing (CUnitServer::state).
+// What a unit controller is doing (UnitServer::state).
 enum class UnitState : int {
     Idle = 0,        // no order acts: the motion runs (a changed one plans its path first)
     Moving = 1,      // the motion runs
@@ -157,10 +157,10 @@ enum class UnitState : int {
     Stopped = 6,     // the unit stands: the order ended or was dropped, ready for the next one
 };
 
-class CUnitServer : public CUnitController {
+class UnitServer : public UnitController {
 public:
-    CUnitServer();
-    ~CUnitServer() override;
+    UnitServer();
+    ~UnitServer() override;
 
     void Create() override;
     void Destroy() override;
@@ -169,15 +169,15 @@ public:
     // The controller's state (animation lists, the motion and plan objects, both orders, the stats copy,
     // movement factors, the brain, the voice, the effect object and the attackers list), version dependent from
     // 0x44 on. Save writes the same at the current version.
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}
     int ShowWeapon(std::uint32_t slot) override { return TakeUpWeapon(static_cast<int>(slot)); }
     bool ArmourTakenOff(std::uint32_t) override { return RebuildArmourLayers(); }
-    void ObjectDeleted(CEngineObject* object) override { OnObjectDeleted(object); }
+    void ObjectDeleted(EngineObject* object) override { OnObjectDeleted(object); }
 
     // The active weapon's reach, else the natural reach.
     float AttackRange();
@@ -189,7 +189,7 @@ public:
     // out[0] = 0x7FFF, out[1 + the spell's damage type] = its truncated damage, the rest 0.
     void GetSpellDamage(std::uint32_t source, DamageWords* out);
     // The quick item of `source` (high bit ignored) if it carries a spell (class 0x13, category 5 or 8).
-    CItem* SpellCarrier(std::uint32_t source);
+    Item* SpellCarrier(std::uint32_t source);
     bool IsScrollSource(std::uint32_t source);
     // A spell slot's spell, or a carrier item's.
     CSpell* SpellOfSource(std::uint32_t source);
@@ -220,7 +220,7 @@ public:
     void GetAttackParams(AttackParams* out) override;
     // Random spread + attack, minus a distance penalty, plus a speed ratio unless `backstab`; at least 0.
     // Draws from the ISAAC generator when the attacker's spread is positive.
-    float AttackRoll(CUnitServer* attacker, bool backstab);
+    float AttackRoll(UnitServer* attacker, bool backstab);
     // Decides whether `hit` (from `attacker`, may be null) hits: attackRoll becomes FLT_MAX (hit) or -FLT_MAX
     // (miss). Elemental hits always hit.
     bool ResolveHit(DamageInfo* hit, CUnit* attacker);
@@ -254,7 +254,7 @@ public:
     // not hit) and have the charge for it.
     void TriggerItemSpells(char onHit);
     // Also updates the party's copy of the item.
-    void UseItemCharge(CItem* item, float cost);
+    void UseItemCharge(Item* item, float cost);
     // Logs "Unit 12 was healed". Returns 1.
     bool Heal(float amount) override;
     // Reacts to damage. Not dead: the armour spells, diplomacy, the AI memory, hostility claims and the hit
@@ -347,7 +347,7 @@ public:
     // The claims dropped (claimedHostile) and the calls heard with a hostility mask.
     void HostileMaskChanged() override;
     void CopyStats(UnitStats* out);
-    // RefreshVitals(false) after (only CUnitServer's vtable has it), whose 1 it returns.
+    // RefreshVitals(false) after (only UnitServer's vtable has it), whose 1 it returns.
     void AddExperience(float amount);
 
     // Kind 9 and cleared, then kind 0 (Idle and FinishAction).
@@ -522,7 +522,7 @@ public:
     // Orders aimed at `object` end (the current one reset, then Idle when the queued one is empty; a queued one
     // is emptied unless an animation), a plan aimed at it ends (EndOrder(0)), the brain forgets it and the
     // leader followed is dropped when it is that object.
-    void OnObjectDeleted(CEngineObject* object);
+    void OnObjectDeleted(EngineObject* object);
     // A living unit is set up again where it stands: off the sector map, its figure, size classes and size
     // class; when it cannot leave its cell it moves to a free cell near it, or with none it takes a default hit
     // (a unit that cannot stand dies); then back on the sector map.
@@ -552,7 +552,7 @@ public:
     MoveModeState moveMode;
     MoveModeState moveMode2;
     int sneakWait;                  // updates mode 3 was kept without a cheap cell (UpdateSneak)
-    Ref<CEngineObject> effectObject;   // removed from the world on death
+    Ref<EngineObject> effectObject;   // removed from the world on death
     int actingCheckTime;            // world tick + 10 when acting starts (StartAction), -1 reset
     int nextAttackTime;             // world tick of the next attack
     int interceptTime;              // the tick a chase aims at (the target's position then); saved
@@ -590,5 +590,5 @@ public:
     AIAlarm voice;                  // the voice / alarm
 };
 
-inline CUnitServer* CUnit::ServerController() const { return static_cast<CUnitServer*>(controller); }
+inline UnitServer* CUnit::ServerController() const { return static_cast<UnitServer*>(controller); }
 

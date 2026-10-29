@@ -1,4 +1,4 @@
-// The multiplayer connection screen's list (CMpConnectScreen::DrawListVanilla): the servers' rows, the new
+// The multiplayer connection screen's list (MpConnectScreen::DrawListVanilla): the servers' rows, the new
 // game's controls and the selected entry's details, drawn on the screen's first surface. Rebirth patches it
 // twice and both are reproduced behind their flags: WideScreen (the line under the titles scaled without the
 // margin) and ExtendedServerName (wider columns, the servers' names and the new game's row drawn shortened
@@ -65,13 +65,13 @@ float SortArrowX(int column) {
     return 0.0f;   // (not reached with keys 1-8)
 }
 
-void DrawLabel(CUiSurface* surface, std::string_view text, RECT* rect, int format) {
+void DrawLabel(UiSurface* surface, std::string_view text, RECT* rect, int format) {
     surface->DrawTextIn(text, rect, kFont, g_connectTextColour, format, 1);
 }
 // addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
 // would hit the CRT's invalid parameter handler, here it is cut at a character's end) and
 // is drawn with an ellipsis.
-void DrawEllipsis(CUiSurface* surface, std::string_view text, RECT* rect, int format) {
+void DrawEllipsis(UiSurface* surface, std::string_view text, RECT* rect, int format) {
     char buffer[kExtendedTextSize];
     text::CopyFitting(buffer, kExtendedTextSize, text);
     DrawLabel(surface, buffer, rect, format | kFormatEllipsis);
@@ -80,7 +80,7 @@ void Down(RECT* rect, int dy = kRowHeight) { gameapi::OffsetRect(rect, 0, dy); }
 
 } // namespace
 
-void CMpConnectScreen::DrawListVanilla() {
+void MpConnectScreen::DrawListVanilla() {
     auto sprite = [this](int index) { return SceneMesh(index); };
     auto label = [this](int index) -> const char* { return texts[index].c_str(); };
     auto allod = [this](int index) -> const char* { return allodNames[index].c_str(); };
@@ -104,7 +104,7 @@ void CMpConnectScreen::DrawListVanilla() {
     const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
     const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
     std::string text;
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->Clear();
     sprite(kSpriteSelection)->visible = false;
     // The two buttons' texts.
@@ -123,7 +123,7 @@ void CMpConnectScreen::DrawListVanilla() {
     DrawLabel(surface, label(15), &row, 0);
     row.left = 12;
     row.right = layout.rowRight;
-    CUiMesh* arrow = sprite(kSpriteSortArrow);
+    UiMesh* arrow = sprite(kSpriteSortArrow);
     if (sortKey % 2 == 0)
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
     else

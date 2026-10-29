@@ -95,7 +95,7 @@ Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
 // The containers and the reliable streams are members, copied before the body (the original copies them in
 // order).
 Connection::Connection(const Connection& other)
-    : CRefObject(), freedIds(other.freedIds), bySentId(other.bySentId), byObject(other.byObject),
+    : RefObject(), freedIds(other.freedIds), bySentId(other.bySentId), byObject(other.byObject),
       priorities(other.priorities), entriesTracked(other.entriesTracked), history(other.history), acknowledged(other.acknowledged),
       records(other.records), attached(other.attached), headers(other.headers), incoming(other.incoming),
       reliableOut(other.reliableOut), reliableIn(other.reliableIn) {
@@ -127,7 +127,7 @@ ReplicaEntry::ReplicaEntry() {
 }
 
 ReplicaEntry::ReplicaEntry(const ReplicaEntry& other)
-    : CRefObject(), version(other.version), id(other.id), type(other.type),
+    : RefObject(), version(other.version), id(other.id), type(other.type),
       flags(other.flags), serial(other.serial) {       // the original merges bit 0 and then the other bits: all of them
     object.Assign(other.object);
 }

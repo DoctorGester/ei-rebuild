@@ -20,6 +20,6 @@ const char* FigureBone::GetName() { return name.c_str(); }
 const char* FigureBone::ClassName() { return kBoneClassName; }
 ClassId FigureBone::GetClassId() { return ClassId::FigureBone; }
 
-const char* CFigureAnimationState::ClassName() { return kStateClassName; }
-ClassId CFigureAnimationState::GetClassId() { return ClassId::FigureAnimationState; }
+const char* FigureAnimationState::ClassName() { return kStateClassName; }
+ClassId FigureAnimationState::GetClassId() { return ClassId::FigureAnimationState; }
 

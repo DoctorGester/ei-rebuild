@@ -7,8 +7,8 @@ namespace {
 const char* const kHooverName = "CHoover";
 } // namespace
 
-CHoover::~CHoover() {}
+Hoover::~Hoover() {}
 
-void CHoover::Create() {}
-const char* CHoover::ClassName() { return kHooverName; }
-ClassId CHoover::GetClassId() { return ClassId::Hoover; }
+void Hoover::Create() {}
+const char* Hoover::ClassName() { return kHooverName; }
+ClassId Hoover::GetClassId() { return ClassId::Hoover; }

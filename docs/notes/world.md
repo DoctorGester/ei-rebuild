@@ -16,7 +16,7 @@ ones); what the notes add is the meaning of fields it still calls `unknown*`, th
   00593AA0, client 0055FAE0), 0055FB00 FindObject restricted to units (class id 0x50), 0055FC10 IsNight (tick +0x64 x
   seconds per tick +0x20 + base +0x1C modulo the day length: before 6 or from 22 h). Slot 27 ground height (server 00594220
   from its coarse grid at +0x280C, client 00563F70 from the terrain), slot 28 surface height (client 00564070 =
-  `TerrainOwner::SurfaceHeight`; TerrainOwner is CWorldClient), slots 29 / 30 (005618E0 / 00561930) combine platforms with
+  `TerrainOwner::SurfaceHeight`; TerrainOwner is WorldClient), slots 29 / 30 (005618E0 / 00561930) combine platforms with
   ground / surface height. CWorld +0x5C is `RefPtr worldHandle`; +0x68 / +0x6C / +0x70 (updateCount, unknown6C_,
   countdowns) are shared by both worlds.
 - Globals: 0079B5D8 multiplayer client session, 0079B5DC game server (+4 bit 31 = inactive), 007AF61C / 007AFCA8 game clock,
@@ -31,11 +31,11 @@ ones); what the notes add is the meaning of fields it still calls `unknown*`, th
   tick at +0x94). `RemoveObjectFromServer` erases from +0x12D70, +0x12DD0, +0x12D88, +0x12DA0, +0x12DB8. Shared objects:
   `sharedObjects` +0x12E60 (an MFC list of {id, player, value, objects}, from a multiplayer client's corpse loot 0066F4C0)
   and +0x12E64 ({id, player index (-1 = everyone)}).
-- Server state: alarms +0x8C (read at 007AFFEC), +0x294 `CSectorMap` (005C0930 returns sector (x, y)'s unit list;
+- Server state: alarms +0x8C (read at 007AFFEC), +0x294 `SectorMap` (005C0930 returns sector (x, y)'s unit list;
   `WakeUnitsAround` uses its own `SpiralCache` 007AFF08), +0x138 game result, +0x160 enables the first command queue, +0x6C
   paused, +0x12D64 game kind (1 single player, 3 no range test, 4 network), +0x12D68 / +0x12D6C .mob / map name. Zone exits
   are 0x3C-byte records (rectangle +0x14, rotation +0x24, target CString +0x28 "none" = no exit, entrance +0x2C).
-- Client: session +0x20C (a `CPlayer`, `CWorldClient::session`; +0x20 its connection, the local view, a CPlayerClient: `Client()`; view +0x1C local
+- Client: session +0x20C (a `CPlayer`, `WorldClient::session`; +0x20 its connection, the local view, a PlayerClient: `Client()`; view +0x1C local
   CPlayer), +0xB4 text-key heroes, +0xB8 every object, +0xBC objects answering slot 29, +0xF0 screen entries (id, RECT),
   ticksRun +0x6EC (Segment counts it), tickFraction +0x6F0. Sector grids (+0x120 objects, +0x150 second; slot 41 005618A0
   / 42 005618C0 move an object in them): cells of 16 x 16 world units (cell = FISTP shifted right by 4 as unsigned, so
@@ -188,10 +188,10 @@ the old cell (counted copy), stores the position, push_backs a counted copy into
 
 `figure_mesh.h/.cpp`. The 0x005A0000-0x005B0000 range holds the game-side figure part mesh (classes 0x41-0x44 of the factory
 005AA8E0) and the figure loader (005AC010), not AI code.
-- `CFigureMesh` (the base "CFigure", the layout of class 0x42: 0x220 bytes). Class 0x42 is `CPlainFigureMesh`; 0x43
-  (`CUiMesh`, "CI3DFigure") and 0x44 (`CSkyObject`) derive from it and share its loaders; class 0x41 (`CSharedFigureMesh`,
+- `FigureMesh` (the base "CFigure", the layout of class 0x42: 0x220 bytes). Class 0x42 is `PlainFigureMesh`; 0x43
+  (`UiMesh`, "CI3DFigure") and 0x44 (`SkyObject`) derive from it and share its loaders; class 0x41 (`SharedFigureMesh`,
   0x1E0 bytes, the same layout up to +0x1E0) has its own loaders. Real virtual classes since C19 batch 6 (standalone.md,
-  "Compiler-made vtables"). A CTransformObject, +0x08 flags (0x20
+  "Compiler-made vtables"). A TransformObject, +0x08 flags (0x20
   loaded), +0x9C MeshBuffers (pointer / count pairs the renderer draws from), +0x128 vertex offsets, +0x138 / +0x148 colour
   arrays (one per normal), +0x158 / +0x15C header words, +0x160 centre, +0x16C / +0x178 box, +0x184 radius, +0x188
   ClipBounds, +0x1C0 vertex packets, +0x1D0 normal packets, +0x1E0 corners, +0x200 corner indices (3 per triangle), +0x210
@@ -247,7 +247,7 @@ vtable 0073D0C4).
 
 Every rewritten function carries its address in its source comment (grep the address); the per-function tables that used to
 be here are gone. Where things live: `world_server.cpp` (lookups, setters, object-map iterators), `world_server_life.cpp`
-(server Setup / Teardown, slots 2 / 3; `hoover` +0x140 is a CHoover), `world_update.cpp` (Tick, Update, AcceptNewPlayers),
+(server Setup / Teardown, slots 2 / 3; `hoover` +0x140 is a Hoover), `world_update.cpp` (Tick, Update, AcceptNewPlayers),
 `world_save.cpp` / `world_map.cpp` / `world_create.cpp` (zone load and save, NewZone, EnsureZone, FindUnit),
 `world_quests.cpp`, `world_party.cpp`, `party_items.cpp`, `world_time.cpp`, `world_game.cpp` (GameFlow), `world_glue.cpp` (the small glue objects), `world_briefing.cpp`,
 `world_map_files.cpp`, `world_savefile.cpp`, `world_sessions.cpp`, `world_class_slots.cpp`, `world_deleting_destructors.cpp`,
@@ -259,8 +259,8 @@ be here are gone. Where things live: `world_server.cpp` (lookups, setters, objec
 Facts a worker needs that the code comments do not say:
 
 - Rebirth-patched (rewrite guide rule 9): MapsFolder 0055E990, MapPath 00595BA0, MapFileExists 005812F0, WriteMapFile 005813A0,
-  CFigureManager::CreateWithArchives 005AA510, AIEventTable::Setup 005C9310, CWorldServer::NewZone 00595480,
-  GameFlow::BuildZoneTable 0057F560, LoadZoneQuests 005809D0, CWorldClient::LoadZone 00567AB0, CAIMap::Load 005B43C0, the
+  CFigureManager::CreateWithArchives 005AA510, AIEventTable::Setup 005C9310, WorldServer::NewZone 00595480,
+  GameFlow::BuildZoneTable 0057F560, LoadZoneQuests 005809D0, WorldClient::LoadZone 00567AB0, AIMap::Load 005B43C0, the
   Bink loading movie close 005DA3C0.
 - Zone start: `AIEventTable::Setup` sizes the grid 1 - ftol(size x -0.125) each way, zeroes the cells and copies "normal.dat"
   of aiinfo.res to 007C43C4. `NewZone` shows the loading movie, progress 0 / 6 / 7, the missing-file texts 00790AD8 /
@@ -269,12 +269,12 @@ Facts a worker needs that the code comments do not say:
 - `LoadZoneQuests` (stdcall, AL): the zone's "<zone>.mq" of the maps folder; a running server shares the file's bytes through
   a growing GameBuffer, the path joins the quest files 007AFDD0 once and the briefing texts 007AF788 add it as a source
   (`GameBuffer::BeginWrite` 00580EE0 lives in buffered_file.cpp).
-- `CWorldClient::LoadZone`: the zone state block (tick, map and .mob names, exits, cave flag, unit looks, `unit_looks.h`);
+- `WorldClient::LoadZone`: the zone state block (tick, map and .mob names, exits, cave flag, unit looks, `unit_looks.h`);
   the old zone's prints, objects, maps, items and spells freed; the terrain's map through `LandscapeLoadMapOriginal` 006C68B0
   with the allod of the local player's zone; sectors of 16 cells, sky, lights table, exit markers, lighting, music, unit
-  skins; loading movie steps 8-11. +0x1A8 is the `CMusicSystem`, +0x184 the allod's name in lower case (00700EFE is
+  skins; loading movie steps 8-11. +0x1A8 is the `MusicSystem`, +0x184 the allod's name in lower case (00700EFE is
   MakeLower).
-- `CAIMap::Load` in two steps. `LoadTerrain`: the archive's .mp description gives the height scale and both climb tables
+- `AIMap::Load` in two steps. `LoadTerrain`: the archive's .mp description gives the height scale and both climb tables
   (1023 costs each: up to 40 degrees for the large classes, 60 at the flat cost for class 0), tileDesc.reg of aiinfo.res the
   sixteen terrain types, the three grids sized 64 x 64 cells per sector, every sector file stamped into them.
   `AttachTerrain`: open marks, cost tables, water depths, searches, region map, events, sector map, the refresh.
@@ -288,7 +288,7 @@ Facts a worker needs that the code comments do not say:
   radius 1e30, RadiusTree::Build 005BF5F0). The path vectors' @PathTables record holds game.exe's tables; the replay
   compares ours with them. The shape cache `UnitShapeCache` (game.exe's an STLport hash_map of handle to shape, ours a
   std::unordered_map by height, core.md C14q) releases every shape as its owner at exit: a fault there shows as a crash
-  on quit. "CAIMap::Load exact" must pass on every map (X31 below); a failure prints the first cell whose ground level
+  on quit. "AIMap::Load exact" must pass on every map (X31 below); a failure prints the first cell whose ground level
   differs and the height scale.
 - Not hooked because they are not functions: the initialiser stubs 005C41C0 / 005C41F0 / 005C42A0 / 005BF8E0 / 005B31C0 /
   005B31E0, the tables' element constructor 005C4210 (`SmoothTable::Construct` is its body), the spiral's sort comparison
@@ -297,21 +297,21 @@ Facts a worker needs that the code comments do not say:
 - Forwarders kept at their addresses so the callees' wrappers see the calls: `LandscapeLoadMapOriginal` 006C68B0
   (originals_world.h); in world_client_maps.cpp for LoadZone 0057F150, 004E5750, 0055A190, 00578730, 00498630, 00692F00,
   006C9290, 00567500, 006B4E30, 00667B40, 00568800, 0066B300; in ai_map_load.cpp the event table's Setup 005C9310; one shared
-  forwarder for CMappedResource::OpenResource 00671730 (originals_engine.h); `FlowLoadQuestsOriginal`, `ClientLoadZone`
+  forwarder for MappedResource::OpenResource 00671730 (originals_engine.h); `FlowLoadQuestsOriginal`, `ClientLoadZone`
   (player_client.cpp), `AIMapLoad` (world_map.cpp).
 - In the overlap with the units area and left to it (units.md / combat.md): 00545FD0, 005461E0, 00546200, 0054E5D0, 00558840.
-- Compiler-generated lifetime code is in library.csv: the CWorldServer constructor 00589ED0, destructor 0058AAD0, member
+- Compiler-generated lifetime code is in library.csv: the WorldServer constructor 00589ED0, destructor 0058AAD0, member
   destructors 0058A140 / 0058A450, CWorld's 0055EC80, the database globals' constructors, destructors and resets
-  0057CBE0-0057E510 (18), CWorldClient's 005612F0 / 00561B00 (its destructor calls our `Teardown`). Left: the coder classes
+  0057CBE0-0057E510 (18), WorldClient's 005612F0 / 00561B00 (its destructor calls our `Teardown`). Left: the coder classes
   00580DD0-00580EE0 (vtables 0073F8C8 / 0073F8A4, used by 005809D0; script.md "Buffered file streams").
 
 ## Cleanup left and unverified points
 
-- Declarations found in cleanup: CMapObjectCompanion slot 17 IsDead, CMapObjectVirtuals slot 40 KeyId, world_effect.h
+- Declarations found in cleanup: MapObjectCompanion slot 17 IsDead, CMapObjectVirtuals slot 40 KeyId, world_effect.h
   CEffect's slots 18-20, Terrain::heightRange, WeaponRecord bonuses / damageTypes; script "danger" is
-  CPlayerServer::danger, GetAIClass reads CUnit::sizeClass, GameTime's fraction is tickFraction; CWorldServer
-  sentObjects (+0x12D88) and zoneHeader (+0x12E00, a CMemoryStream built by 0041DD70 in 00589ED0, called through a
-  CStream* so the slot dispatch stays), MainScript() (the CScript at +0x12874; globals holds "Heroes"); CPlayer link
+  PlayerServer::danger, GetAIClass reads CUnit::sizeClass, GameTime's fraction is tickFraction; WorldServer
+  sentObjects (+0x12D88) and zoneHeader (+0x12E00, a MemoryStream built by 0041DD70 in 00589ED0, called through a
+  CStream* so the slot dispatch stays), MainScript() (the Script at +0x12874; globals holds "Heroes"); CPlayer link
   (+0x1C) / connection (+0x20); Projectile slot 0 DeletingDestructor and its 16-bit reference count; ObjectPtrListVtable()
   0073F530. script_exec's callees are call-only `...Calls` facades.
 - Left: world_game.cpp's `At<int>(World(), 0x5C)` (CWorld::worldHandle: on the server the pending connection source
@@ -324,23 +324,23 @@ Facts a worker needs that the code comments do not say:
 - 00564AF0 (`CObject3D::PartBox`) runs on a platform object (AddObject passes it in ECX; it reads CObject3D::parts +0xD0 /
   +0xD4 and the always empty second part array +0xE0), not on the client. The client's +0x1F0 list is the platform set's face list (PlatformSet
   +0x1D4: an engine object, then an CList<Platform> at +0x1C; 00573000 carves 0x54-byte nodes; AddFace is AddHead).
-- bird (+0x1B0) is the CEffectMoshka SummonBird makes. Unverified: the +0xA0 array's elements are engine
-  objects (00570000 calls their slot 4). CWorldServer's +0x170..+0x2838 is its CAIMap (`aiMap`, its `events` at +0x26C8 the AI event table; sizeof 0x12704):
+- bird (+0x1B0) is the EffectMoshka SummonBird makes. Unverified: the +0xA0 array's elements are engine
+  objects (00570000 calls their slot 4). WorldServer's +0x170..+0x2838 is its AIMap (`aiMap`, its `events` at +0x26C8 the AI event table; sizeof 0x12704):
   the old aiLayer_ (+0x2468, 005B1380's argument) is its region map, occluderReplanTime_ (+0x2804) its footprintTick (the
   world tick StampFootprint stores), the grid at +0x2808 its cells. world.h's SaveFileRead parameters `minimum` / `maximum` are swapped
   in meaning (ReadHeader takes newest, oldest; LoadMission passes 00790260, 00790268).
 - Behaviour risks kept: the torch's slot 16 takes `float` (flame->volume) where the old code pushed the dword, so a
   signalling NaN could be quietened; Setup writes the handle's refs / flags as three stores (one dword in the original).
   Called by name instead of through their hooked address (their wrappers no longer see these calls): PartBox,
-  PlatformSet::AddBox, 004031B0, 00404410 (CBaseManager::FreeSpares), 00404920, 00404960, 0040D3B0, 00417DF0, 00413250,
+  PlatformSet::AddBox, 004031B0, 00404410 (BaseManager::FreeSpares), 00404920, 00404960, 0040D3B0, 00417DF0, 00413250,
   00413270 / 00418BE0, 004A53F0; world_savefile.cpp's coder (0042FCA0 / 00430450 / 00430960 / 0041D930) and
-  CStream::ReadHeader / WriteHeader; AddSharedObject's ServerSession::FindPlayer (0041A2E0). None is Rebirth-patched.
+  ByteStream::ReadHeader / WriteHeader; AddSharedObject's ServerSession::FindPlayer (0041A2E0). None is Rebirth-patched.
 
 ## Lessons from two checks
 
-- LoadSky 00562F70: CSkyObject's own class id is 0x20; 0x44 is the figure factory's class number. UnitTextureRecords
+- LoadSky 00562F70: SkyObject's own class id is 0x20; 0x44 is the figure factory's class number. UnitTextureRecords
   005683D0: the body list is [0] body, [1] empty, [2..7] items[1..6] (the loop at 00568441 starts at record offset 0xC + 0xC).
-- "CAIMap::Load exact" failed on every map (35 ground levels one unit off) because a vertex's altitude unit 0073FD84 is
+- "AIMap::Load exact" failed on every map (35 ground levels one unit off) because a vertex's altitude unit 0073FD84 is
   37800100 (1 / 65534 as a float, 2^-16 + 2^-31) and the port had 1 / 65535 (37800080) without having read the exe: the
   relative error of 1.5e-5 turns about one cell in 500 over a rounding edge. The height maths separates what the original
   stores to a float from what it keeps on the FPU stack (the first vertex's height, the diagonal's quarter, the third

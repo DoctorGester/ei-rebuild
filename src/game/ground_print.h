@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <vector>
 
-class CStream;
+class ByteStream;
 class CTexture;
 struct VertexPacket;
 
@@ -41,10 +41,10 @@ public:
     virtual int Tick();
     // Reads what Save writes (the texture looked up again by its name);
     // the geometry is made again (built cleared).
-    virtual void Load(CStream* stream);
+    virtual void Load(ByteStream* stream);
     // Writes the position, half sizes, growth, life (2 bytes), texture name (with its terminator), uv offset
     // and scale, both angles, lit (1 byte), alpha scale, lifetime and colour.
-    virtual void Save(CStream* stream);
+    virtual void Save(ByteStream* stream);
 
     // Draws the print when visible: the first time, lays the quad on the ground (z from the client world's
     // ground and platforms; the projector clips it to the terrain and the platforms under it) and turns its
@@ -89,8 +89,8 @@ public:
     Footprint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
               int lifetime, std::uint32_t tile, float scale, int visible, int kind);
 
-    void Load(CStream* stream) override;   // GroundPrint's, then scale, kind
-    void Save(CStream* stream) override;   // the same order
+    void Load(ByteStream* stream) override;   // GroundPrint's, then scale, kind
+    void Save(ByteStream* stream) override;   // the same order
 
     float scale;                    // the unit's footprint scale (only saved)
     int kind;                       // -1, or the blood print's kind it was made with
@@ -109,8 +109,8 @@ public:
     // While spreading (spreadTicks counts down) the geometry is made again every
     // tick, after that the growth stops; the angle turns by spin; then GroundPrint's tick.
     int Tick() override;
-    void Load(CStream* stream) override;   // GroundPrint's, then spin, spread, kind, fresh
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;   // GroundPrint's, then spin, spread, kind, fresh
+    void Save(ByteStream* stream) override;
 
     float spin;                     // radians per tick: 30 / life degrees
     std::int16_t spreadTicks;

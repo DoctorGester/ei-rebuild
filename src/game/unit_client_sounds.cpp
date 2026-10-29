@@ -86,18 +86,18 @@ void Shake(CUnit* unit) {
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds;
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
 } // namespace
 
-std::optional<std::string> CUnitClientSpecific::FootstepSound(int terrain) {
+std::optional<std::string> UnitClientSpecific::FootstepSound(int terrain) {
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return std::nullopt;
     const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     if (!model || model->SoundCounts()[terrain] == 0) return std::nullopt;
-    CWorldClient* world = &g_clientWorld;
+    WorldClient* world = &g_clientWorld;
     float x = unit->localPosition.x;
     float y = unit->localPosition.y;
     float ground = world->ClampedGroundHeight(x, y);   // stored as a float
@@ -112,7 +112,7 @@ std::optional<std::string> CUnitClientSpecific::FootstepSound(int terrain) {
     return std::format("{}\\{}.wav", name, ClientRandBelow(count) + 1);
 }
 
-std::optional<std::string> CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to,
+std::optional<std::string> UnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to,
                                                             std::uint8_t miss) {
     const auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return std::nullopt;
@@ -162,8 +162,8 @@ std::optional<std::string> CUnitClientSpecific::ActionSound(const FigureAnimatio
 
 // --- Playing them --------------------------------------------------------------------------------
 
-void CUnitClientSpecific::PlayStepSounds() {
-    const CFigureAnimationState* state = unit->Object3D()->animation;
+void UnitClientSpecific::PlayStepSounds() {
+    const FigureAnimationState* state = unit->Object3D()->animation;
     const FigureAnimation* current = state->current;
     float now = state->time;
     Vector3 position{unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
@@ -176,7 +176,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     EI_NAN_AUDIT(now, lastAnimationTime);
     if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
-    CSoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds;
     AnimationKind kind = current->Kind();
 
     bool action = false;     // ActionSound at `priority`
@@ -244,7 +244,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (model->swapFeet) left = left == 0;
         char partName[16];
         std::snprintf(partName, sizeof(partName), left ? "ll%d" : "rl%d", part);
-        CFigureMesh* foot = unit->Object3D()->FindPartByPrefix(partName);
+        FigureMesh* foot = unit->Object3D()->FindPartByPrefix(partName);
         if (!foot) break;
         Vector3 footAt;
         unit->Object3D()->PartWorldPosition(&footAt.x, foot);

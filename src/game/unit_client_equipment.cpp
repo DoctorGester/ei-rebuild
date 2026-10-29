@@ -39,7 +39,7 @@ bool NeedsReload(void* composed, CTexture* texture, const std::string& name, boo
 }
 } // namespace
 
-void CUnitClientSpecific::RefreshEquipment() {
+void UnitClientSpecific::RefreshEquipment() {
     std::string name;
     // EI_Plugin's Fixes: the test for a hero is gone, every unit is refreshed.
     if (unit->MapType() != MapObjectType::Hero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return;
@@ -50,7 +50,7 @@ void CUnitClientSpecific::RefreshEquipment() {
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
 }
 
-int CUnitClientSpecific::RefreshModel() {
+int UnitClientSpecific::RefreshModel() {
     if (unit->MapType() != MapObjectType::Hero) return 1;
     std::string name;
     auto* half = unit->Object3D()->ClientSpecific();
@@ -59,18 +59,18 @@ int CUnitClientSpecific::RefreshModel() {
     return 1;
 }
 
-void CUnitClientSpecific::SetArmourModels(const std::uint32_t* ids) {
+void UnitClientSpecific::SetArmourModels(const std::uint32_t* ids) {
     for (int slot = 0; slot < kArmourSlots; ++slot) ArmourTakenOff(static_cast<std::uint32_t>(slot));
     for (std::uint32_t& armourId : armourIds) armourId = kNoItemId;
     for (int i = 0; i < kArmourSlots; ++i) ArmourPutOn(ids[i]);
 }
 
-void CUnitClientSpecific::SetWeaponModels(const std::uint32_t* ids) {
+void UnitClientSpecific::SetWeaponModels(const std::uint32_t* ids) {
     for (std::uint32_t& weaponId : weaponIds) weaponId = kNoItemId;
     for (int i = 0; i < kWeaponSlots; ++i) WeaponAdded(ids[i]);
 }
 
-bool CUnitClientSpecific::WeaponAdded(std::uint32_t modelId) {
+bool UnitClientSpecific::WeaponAdded(std::uint32_t modelId) {
     if (modelId == kNoItemId) return false;
     int slot = 0;
     while (slot < kWeaponSlots && weaponIds[slot] != kNoItemId) ++slot;
@@ -80,7 +80,7 @@ bool CUnitClientSpecific::WeaponAdded(std::uint32_t modelId) {
     return true;
 }
 
-bool CUnitClientSpecific::RemoveWeaponModel(std::uint32_t modelId) {
+bool UnitClientSpecific::RemoveWeaponModel(std::uint32_t modelId) {
     for (std::uint32_t& slot : weaponIds) {
         if (slot == modelId) {
             slot = kNoItemId;

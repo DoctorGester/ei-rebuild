@@ -6,8 +6,8 @@
 
 #include <cstdint>
 
-class CStream;
-class CUnitServer;
+class ByteStream;
+class UnitServer;
 
 // The levels an AI raises (AIAlarm::Raise), as the alarm's log names them when the unit takes one up.
 enum class AIRemark : int {
@@ -29,10 +29,10 @@ struct AIAlarm {
     void Raise(AIRemark level);
     // The step: a raised alarm taken up (the unit acknowledges), the level of the owner's group passed on
     // while it lasts.
-    void Step(CUnitServer* owner);
+    void Step(UnitServer* owner);
     // The four values from / to a save (4 bytes each).
-    void Load(CStream* stream);
-    void Save(CStream* stream);
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream);
 
     AIRemark level = AIRemark::None;     // what the group's members raised this step
     AIRemark pending = AIRemark::None;   // raised by the unit's own AI since the last step

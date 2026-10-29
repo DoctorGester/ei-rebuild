@@ -1,4 +1,4 @@
-// CEffectMoshka: the bird that perches near the followed hero, circles it when it comes close and
+// EffectMoshka: the bird that perches near the followed hero, circles it when it comes close and
 // flies off to another perch. See world_effect.h and docs/notes/effects.md ("Moshka").
 #include "ai_map.h"
 #include "base_manager.h"
@@ -67,13 +67,13 @@ bool Same(float a, float b) {
 
 } // namespace
 
-CEffectMoshka::CEffectMoshka() {
+EffectMoshka::EffectMoshka() {
     Reset();
 }
 
-CEffectMoshka::~CEffectMoshka() { Reset(); }
+EffectMoshka::~EffectMoshka() { Reset(); }
 
-void CEffectMoshka::Reset() {
+void EffectMoshka::Reset() {
     CEffect::Reset();
     if (bird != nullptr) g_clientWorld.RemoveObject(bird->id);
     if (source != nullptr) source->Stop();
@@ -83,12 +83,12 @@ void CEffectMoshka::Reset() {
     followedId = -1;
 }
 
-bool CEffectMoshka::RunTick() {
+bool EffectMoshka::RunTick() {
     Update(static_cast<float>(g_clientWorld.tick));
     return false;
 }
 
-Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3& from) {
+Vector3* EffectMoshka::FindPerch(Vector3* out, const Vector3& from) {
     Vector3 eye = from;
     eye.z = static_cast<float>(eye.z + kEyeHeight);
     float perchHeight = kPerchHeight;
@@ -108,7 +108,7 @@ Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3& from) {
     return out;
 }
 
-void CEffectMoshka::Update(float now) {
+void EffectMoshka::Update(float now) {
     if (bird == nullptr) return;
     CMapObject* followedObject = g_clientWorld.ObjectWithId(followedId);
     if (followedObject == nullptr) return;
@@ -209,7 +209,7 @@ void CEffectMoshka::Update(float now) {
     currentBird->animation->Advance(frames);
 }
 
-void CEffectMoshka::Follow(int objectId) {
+void EffectMoshka::Follow(int objectId) {
     followedId = objectId;
     CMapObject* followed = g_clientWorld.ObjectWithId(objectId);
     if (followed == nullptr) return;
@@ -221,7 +221,7 @@ void CEffectMoshka::Follow(int objectId) {
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, like the original.
     CObject3D* currentBird = bird;
-    CObject3DClientSpecific* attached = currentBird->ClientSpecific();
+    Object3DClientSpecific* attached = currentBird->ClientSpecific();
     Vector3 perch;
     FindPerch(&perch, followed->localPosition);
     currentBird->localPosition = perch;
@@ -237,7 +237,7 @@ void CEffectMoshka::Follow(int objectId) {
         currentBird->animation->queue.clear();
         currentBird->animation->Play(first);
     }
-    CParticleSource* particles = g_clientWorld.particleManager->CreateSource(kBirdParticles);
+    ParticleSource* particles = g_clientWorld.particleManager->CreateSource(kBirdParticles);
     source.Assign(particles);
     source->ScaleSize(kBirdParticleScale);
     source->Attach(bird);
@@ -245,4 +245,4 @@ void CEffectMoshka::Follow(int objectId) {
     timer = kPerchedFrames;
 }
 
-int CEffectMoshka::Unpack(int, DeltaField*) { return 1; }
+int EffectMoshka::Unpack(int, DeltaField*) { return 1; }

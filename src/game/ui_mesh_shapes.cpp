@@ -1,4 +1,4 @@
-// The shapes an interface sprite (CUiMesh, ui.h) is given. Rebirth's WideScreen patches each of
+// The shapes an interface sprite (UiMesh, ui.h) is given. Rebirth's WideScreen patches each of
 // them (one site: the x of the sprite's position moved by its panel offset, ui_widescreen.h), which
 // these reproduce behind the flag. docs/notes/ui.md, section 9.
 #include "ui.h"
@@ -24,7 +24,7 @@ constexpr float kViewHalfWidth = 0.48157462f;
 constexpr std::uint16_t kQuadCorners[] = {0, 1, 2, 1, 3, 2};
 
 // One packet of normals facing the viewer (0, 0, 1; the fourth row 1) and a colour pair per corner.
-void SetFlatNormals(CFigureMesh* mesh, int corners) {
+void SetFlatNormals(FigureMesh* mesh, int corners) {
     mesh->normals.resize(1);
     mesh->colorsA.resize(corners);
     mesh->colorsB.resize(corners);
@@ -38,7 +38,7 @@ void SetFlatNormals(CFigureMesh* mesh, int corners) {
 }
 
 // The four texture corners of the texel rectangle (u0, v0)-(u1, v1): v runs up, so 1 - v / 256.
-void SetTexelCorners(CUiMesh* sprite, int u0, int v0, int u1, int v1) {
+void SetTexelCorners(UiMesh* sprite, int u0, int v0, int u1, int v1) {
     sprite->texCoords.resize(4);
     TexCoord* texels = sprite->texCoords.data();
     float left = static_cast<float>(u0) * kTexel;
@@ -56,7 +56,7 @@ void SetTexelCorners(CUiMesh* sprite, int u0, int v0, int u1, int v1) {
 }
 
 // Every texture coordinate moved half a texel into its texel.
-void InsetTexels(CUiMesh* sprite) {
+void InsetTexels(UiMesh* sprite) {
     for (int i = 0; i < std::ssize(sprite->texCoords); ++i) {
         TexCoord* texel = sprite->texCoords.data() + i;
         texel->u = texel->u + kHalfTexel;
@@ -65,7 +65,7 @@ void InsetTexels(CUiMesh* sprite) {
 }
 
 // Corner `corner` of the sprite: point `point` with texture corner `texel`.
-void SetCorner(CUiMesh* sprite, int corner, int point, int texel) {
+void SetCorner(UiMesh* sprite, int corner, int point, int texel) {
     MeshCorner& vertex = sprite->corners[corner];
     vertex.position = static_cast<std::uint16_t>(point);
     vertex.texCoord = static_cast<std::uint16_t>(texel);
@@ -73,13 +73,13 @@ void SetCorner(CUiMesh* sprite, int corner, int point, int texel) {
 }
 
 // The two triangles of the quad whose four corners start at `first`, appended to the indices.
-void AddQuadIndices(CUiMesh* sprite, int first) {
+void AddQuadIndices(UiMesh* sprite, int first) {
     for (std::uint16_t corner : kQuadCorners)
         sprite->indices.push_back(static_cast<std::uint16_t>(first + corner));
 }
 
 // `count` packets of points on the sprite's plane (z 0, the fourth row 1).
-void SetFlatPackets(CUiMesh* sprite, int count) {
+void SetFlatPackets(UiMesh* sprite, int count) {
     sprite->vertices.resize(count);
     for (int i = 0; i < count; ++i)
         for (int k = 0; k < 4; ++k) {
@@ -89,7 +89,7 @@ void SetFlatPackets(CUiMesh* sprite, int count) {
 }
 
 // The three scales of a sprite drawn at `depth` in units of `scale`.
-void SetLayoutScale(CUiMesh* sprite, float depth, float scale) {
+void SetLayoutScale(UiMesh* sprite, float depth, float scale) {
     float size = kViewHalfWidth * depth * scale * 0.0025f;
     sprite->ScaleX() = size;
     sprite->ScaleY() = size;
@@ -102,7 +102,7 @@ float MovedX(float x) { return x + static_cast<float>(widescreen::PanelOffset())
 
 } // namespace
 
-void CUiMesh::SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0,
+void UiMesh::SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0,
                                   int v0, int u1, int v1) {
     SetFlatNormals(this, 4);
     corners.resize(4);
@@ -142,7 +142,7 @@ void CUiMesh::SetRectangle(float depth, float scale, float left, float top, floa
     RefreshBuffers();
 }
 
-void CUiMesh::SetGrid(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
+void UiMesh::SetGrid(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1, int columns, int rows) {
     SetFlatNormals(this, 4);
     // The points, row by row from the top left, a cell apart in units of `scale`.
@@ -196,7 +196,7 @@ void CUiMesh::SetGrid(float depth, float scale, float left, float top, float rig
     RefreshBuffers();
 }
 
-void CUiMesh::SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
+void UiMesh::SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                               int u0, int v0, int u1, int v1) {
     SetFlatNormals(this, 4);
     // Four quads round the frame; each joins an outer and an inner corner to the next pair, the
@@ -247,7 +247,7 @@ void CUiMesh::SetFrame(float depth, float scale, float left, float top, float ri
     RefreshBuffers();
 }
 
-void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
+void UiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
                                  float u0, float v0, float u1, float v1, float u2, float v2) {
     SetFlatNormals(this, 4);
     corners.resize(4);

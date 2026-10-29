@@ -31,14 +31,14 @@ constexpr char kNewLine[] = {'\n', '\0'};
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
 // Text into the panel's first surface (Rebirth-patched).
-void DrawPanelText(CUiWindow* window, std::string_view text, RECT rect, std::uint32_t colour, UINT format, int shadow) {
+void DrawPanelText(UiWindow* window, std::string_view text, RECT rect, std::uint32_t colour, UINT format, int shadow) {
     window->surfaces[0]->DrawTextIn(text, &rect, 0, colour, format, shadow);
 }
 
 // A horizontal bar sprite filled to `ratio` (0..1): its right edge moves to ratio - 0.5 and its
 // texture's right edge to (ratio * `width` + 64) / 256 + 1/512 texels, between the rows `top`
 // and `bottom` of the HUD texture.
-void FillBar(CUiMesh* bar, float ratio, float width, float top, float bottom) {
+void FillBar(UiMesh* bar, float ratio, float width, float top, float bottom) {
     bar->visible = true;
     float u = (ratio * width + 64.0f) * (1.0f / 256.0f) + (1.0f / 512.0f);
     float edge = ratio - 0.5f;
@@ -65,7 +65,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
 
 // --- Unit panel ----------------------------------------------------------------------------------
 
-void CHudUnitPanel::ShowHealth(CUnit* unit) {
+void HudUnitPanel::ShowHealth(CUnit* unit) {
     SceneMesh(11)->visible = true;
     float ratio;
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
@@ -84,7 +84,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
     }
 }
 
-void CHudUnitPanel::ShowParts(CUnit* unit) {
+void HudUnitPanel::ShowParts(CUnit* unit) {
     // Label positions of the six parts.
     static constexpr int kLabelX[6] = {50, 50, 95, 5, 95, 5};
     static constexpr int kLabelY[6] = {35, 105, 70, 70, 140, 140};
@@ -94,7 +94,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
         const UnitParamsSlot& part = unit->params.slots[i];
         if (part.kind == 0) continue;
         SceneMesh(15 + 2 * i)->visible = true;
-        CUiMesh* bar = SceneMesh(14 + 2 * i);
+        UiMesh* bar = SceneMesh(14 + 2 * i);
         float ratio = 0.0f;
         if (part.kind == 3 && part.maximum != 0 && part.current > 0 &&
             BarRatio(part.current, part.maximum, &ratio))
@@ -119,7 +119,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
 
 // --- Movement panel ------------------------------------------------------------------------------
 
-void CHudMovePanel::ToggleFlag() {
+void HudMovePanel::ToggleFlag() {
     ui->PlaySound(kSoundClick);
     // The selected party units' common flag: -1 none selected, -2 mixed.
     int common = -1;
@@ -143,7 +143,7 @@ void CHudMovePanel::ToggleFlag() {
 
 // --- Unit panel: the effects on the unit -----------------------------------------------
 
-void CHudUnitPanel::ShowEffects(CUnit* unit) {
+void HudUnitPanel::ShowEffects(CUnit* unit) {
     constexpr int kPlaces = 6;
     constexpr int kMoreMark = 9;      // scene object: there are more effects than places
     constexpr int kFirstIcon = 26;    // scene objects 26..31, one per listed effect
@@ -153,8 +153,8 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     static constexpr int kPlaceX[kPlaces] = {0, 0, 64, 64, 64, 64};
     static constexpr int kPlaceY[kPlaces] = {128, 192, 0, 64, 128, 192};
 
-    CTextManager* clientWorldTexts = g_clientWorld.texts;
-    CUiSurface* surface = surfaces[0];
+    TextManager* clientWorldTexts = g_clientWorld.texts;
+    UiSurface* surface = surfaces[0];
     std::string code, text, number;
     int icons[kPlaces], places[kPlaces];
     bool taken[kPlaces] = {};
@@ -172,7 +172,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             icons[i] = static_cast<int>(spell->icon);
             code = spell->code.c_str();
             // The texts' section "spell <code>": its first line is the spell's name.
-            bool found = clientWorldTexts->CTextManager::Open((std::string("spell ") + code)) != 0;
+            bool found = clientWorldTexts->TextManager::Open((std::string("spell ") + code)) != 0;
             if (found) text = clientWorldTexts->ReadLine(true);
         }
         surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
@@ -211,7 +211,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             CopyImage(objects[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y);
             effectIcons[free] = icons[i];
         }
-        CUiMesh* icon = SceneMesh(kFirstIcon + i);
+        UiMesh* icon = SceneMesh(kFirstIcon + i);
         icon->visible = true;
         icon->textureOffsetU = static_cast<float>(x) * (1.0f / 256.0f);
         icon->textureOffsetV = static_cast<float>(y + kIconSize) * (1.0f / 256.0f);
@@ -220,12 +220,12 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
 
 // --- Unit panel: the body part buttons -------------------------------------------------
 
-void CHudUnitPanel::ShowBodyPart() {
+void HudUnitPanel::ShowBodyPart() {
     constexpr int kFirstPartButton = 3;
     constexpr int kPartButtons = 4;
     for (int i = 0; i < kPartButtons; ++i) {
         float tint = bodyPart == i ? 1.0f : 0.5f;
-        CUiMesh* button = SceneMesh(kFirstPartButton + i);
+        UiMesh* button = SceneMesh(kFirstPartButton + i);
         button->tint[0] = tint;
         button->tint[1] = tint;
         button->tint[2] = tint;
@@ -234,15 +234,15 @@ void CHudUnitPanel::ShowBodyPart() {
 
 // --- Top panel -----------------------------------------------------------------------------------
 
-void CHudTopPanel::ShowPage() {
+void HudTopPanel::ShowPage() {
     for (int i = 0; i < 2; ++i) {
         float tint = page == i ? 1.0f : 0.5f;
-        CUiMesh* button = SceneMesh(3 + i);
+        UiMesh* button = SceneMesh(3 + i);
         button->tint[0] = tint;
         button->tint[1] = tint;
         button->tint[2] = tint;
     }
-    CUiScrollText* log = owner->messageLog;
+    UiScrollText* log = owner->messageLog;
     if (page == 0) {
         log->SetText(pageTexts[0]);
         log->SetPosition(log->maxPosition);
@@ -253,24 +253,24 @@ void CHudTopPanel::ShowPage() {
     }
 }
 
-void CHudTopPanel::ShowItems() {
-    CTextManager* texts = g_clientWorld.texts;
+void HudTopPanel::ShowItems() {
+    TextManager* texts = g_clientWorld.texts;
     // A local list of the world's copies.
-    std::list<CItem*> merged{};
+    std::list<Item*> merged{};
     CPlayer* player = g_clientWorld.LocalView()->player;
     std::string line;
     std::string format;
     for (auto node = player->items.begin(); node != player->items.end();) {
-        CItem* item = *node;
+        Item* item = *node;
         ++node;
-        CItem* same = nullptr;
+        Item* same = nullptr;
         for (auto entry = merged.begin(); entry != merged.end() && !same; ++entry)
             if ((*entry)->IsSameAs(item)) same = *entry;
         if (same) {
             same->count += item->count;
             continue;
         }
-        CItem* copy = g_clientWorld.MakeCopyOf(item);
+        Item* copy = g_clientWorld.MakeCopyOf(item);
         copy->count = item->count;
         copy->AddRef();
         merged.push_back(copy);
@@ -280,13 +280,13 @@ void CHudTopPanel::ShowItems() {
     text.clear();
     auto* party = LocalPlayerData();
     if (static_cast<int>(party->money) > 0) {
-        format = texts->CTextManager::GetString("format_money");
+        format = texts->TextManager::GetString("format_money");
         line = str::Format(format, static_cast<int>(party->money));
         text += line;
         text += kNewLine;
     }
     for (auto node = merged.begin(); node != merged.end();) {
-        CItem* item = *node;
+        Item* item = *node;
         ++node;
         line = texts->FormatItemName(item);
         text += line;
@@ -295,14 +295,14 @@ void CHudTopPanel::ShowItems() {
     }
     merged.clear();
     if (page == 1) {
-        CUiScrollText* log = owner->messageLog;
+        UiScrollText* log = owner->messageLog;
         log->SetText(text);
         log->SetPosition(0);
     }
     merged.clear();
 }
 
-void CHudTopPanel::Layout() {
+void HudTopPanel::Layout() {
     // Place is Rebirth-patched.
     float slideOffset = static_cast<float>(offset);
     SceneMesh(0)->Place(400.0f, 57.5f - slideOffset, 20.0f);

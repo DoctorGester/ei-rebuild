@@ -13,13 +13,13 @@
 
 // The figure manager's object types (CreateObject / type), named after their classes.
 enum class FigureObjectType : int {
-    SharedFigureMesh = 0x41,      // CSharedFigureMesh: a part whose buffers point into the file data
-    PlainFigureMesh = 0x42,       // CPlainFigureMesh: an attached part, owning its buffers
-    UiMesh = 0x43,                // CUiMesh: a whole figure (NewBlankFigure)
-    SkyObject = 0x44,             // CSkyObject
+    SharedFigureMesh = 0x41,      // SharedFigureMesh: a part whose buffers point into the file data
+    PlainFigureMesh = 0x42,       // PlainFigureMesh: an attached part, owning its buffers
+    UiMesh = 0x43,                // UiMesh: a whole figure (NewBlankFigure)
+    SkyObject = 0x44,             // SkyObject
     AnimationTrack = 0x300B,      // AnimationTrack: a bone's animator
     FigureBone = 0x300C,          // FigureBone
-    AnimationState = 0x300D,      // CFigureAnimationState: a map object's skeleton
+    AnimationState = 0x300D,      // FigureAnimationState: a map object's skeleton
 };
 
 // The figure factory: a new object of figure type `classId` with type set, or null for another type.
@@ -31,7 +31,7 @@ constexpr int kMainMenuRects = 6;
 constexpr int kMenuRects = 11;
 extern RECT g_menuRects[kMenuRects];
 
-class CFigureManager : public CResourceManager {
+class CFigureManager : public ResourceManager {
 public:
     CFigureManager();
     ~CFigureManager() override;
@@ -41,33 +41,33 @@ public:
     void Create() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    CEngineObject* NewObject(int type) override;
+    EngineObject* NewObject(int type) override;
     bool AddArchive(const std::string& path) override { return AddMmioArchive(path); }
-    CEngineObject* CreateObject(int newType, int newId) override { return CreateFigureObject(newType, newId); }
+    EngineObject* CreateObject(int newType, int newId) override { return CreateFigureObject(newType, newId); }
     const char* GetFolderName() override;
 
-    int LoadSkeletonLinks(CFigureAnimationState* state, std::string_view name);
+    int LoadSkeletonLinks(FigureAnimationState* state, std::string_view name);
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
     int LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, std::uint32_t s, std::uint32_t t, std::uint32_t u);
     FigureModel* FindModel(const std::string* name);
     // Sets the animation found by name in model `modelName` on `figure`; 0 when it cannot.
-    int SetFigureAnimation(CFigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
+    int SetFigureAnimation(FigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
     // The menus' button rectangles from "menus.reg" into `rects`; 1, or FatalError's result when the file or an
     // entry cannot be read.
     int LoadMenuRects(RECT* rects);
 
-    // CBaseManager::CreateObject; a new figure (classes 0x41-0x44) also gets a drawer: a
+    // BaseManager::CreateObject; a new figure (classes 0x41-0x44) also gets a drawer: a
     // class 0x45 object (id -1) of the context's specific manager.
-    CEngineObject* CreateFigureObject(int type, int id);
+    EngineObject* CreateFigureObject(int type, int id);
 
     // (The interface's model manager too.) A figure object, loaded from "<name>.fig" when named (released and null
     // when the file is missing); the empty object without a name.
-    CFigureMesh* NewFigure(std::string_view name);
+    FigureMesh* NewFigure(std::string_view name);
     // The empty figure object (no file read).
-    CFigureMesh* NewBlankFigure();
+    FigureMesh* NewBlankFigure();
     // CObject3D::LoadPart. A new figure part (class 0x42 when `attached`, else 0x41) named
     // `partName`; a null part faults, as in the original.
-    CFigureMesh* NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached);
+    FigureMesh* NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached);
     // The bone's animation from "<model><bone><animation>.ast" into `animator`; 0 without an animation or the
     // file. The path is built in a 0x200-byte buffer without a bounds check; the data is not closed.
     int LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation);
@@ -76,10 +76,10 @@ public:
 };
 
 // The figure manager of `object`'s world (every world's is a CFigureManager).
-inline CFigureManager* FigureManagerOf(const CEngineObject* object) {
+inline CFigureManager* FigureManagerOf(const EngineObject* object) {
     return static_cast<CFigureManager*>(object->WorldContext()->FigureManager());
 }
-// The figure manager that made `object` (a bone or an animation track, CEngineObject::owner).
-inline CFigureManager* OwningFigureManager(const CEngineObject* object) {
+// The figure manager that made `object` (a bone or an animation track, EngineObject::owner).
+inline CFigureManager* OwningFigureManager(const EngineObject* object) {
     return static_cast<CFigureManager*>(object->owner);
 }

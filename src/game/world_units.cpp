@@ -1,4 +1,4 @@
-// CWorldServer::CreateUnits: creates units from unit records (script AddUnitToServer,
+// WorldServer::CreateUnits: creates units from unit records (script AddUnitToServer,
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
 #include "ai_map.h"
@@ -127,9 +127,9 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
 }
 
 // An item from an item record, with its counted record holding the item record's id.
-CItem* MakeItem(CWorldServer* world, CItem* itemRecord) {
-    CItem* item = world->DuplicateItem(itemRecord);
-    auto* record = new CItemLink();
+Item* MakeItem(WorldServer* world, Item* itemRecord) {
+    Item* item = world->DuplicateItem(itemRecord);
+    auto* record = new ItemLink();
     record->value = static_cast<std::uint32_t>(itemRecord->id);
     item->link.Assign(record);
     return item;
@@ -144,14 +144,14 @@ constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B,
 constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
 constexpr std::uint32_t kTorchLightKind = static_cast<std::uint32_t>(ParticleType::CampFire);   // the torch's smoke particles
 
-int UpdateCountdown(const CEngineObject* object) { return CWorldServer::UpdateCountdownFor(object); }
+int UpdateCountdown(const EngineObject* object) { return WorldServer::UpdateCountdownFor(object); }
 
 // Copies dwords (floats are not loaded on the FPU).
 void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
 
 } // namespace
 
-void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3& position, Quaternion rotation,
+void WorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3& position, Quaternion rotation,
                                std::vector<UnitPlacement>* placements) {
     // Destroyed after the two strings (declared after it); its destructor is inlined.
     UnitSpec spec;
@@ -215,7 +215,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         CMapObject* slots = unit;
 
         // A player-controlled AI, standing on a free cell near the requested position.
-        CUnitServer* controller = unit->ServerController();
+        UnitServer* controller = unit->ServerController();
         AIBrain* brain = &controller->brain;
         brain->ClearModes();
         brain->AddMode(std::make_unique<PlayerMode>());
@@ -242,7 +242,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         for (int n = 0; n < std::ssize(record->armor); ++n)
             unit->EquipArmour(MakeItem(this, record->armor[n]));
         for (int n = 0; n < std::ssize(record->quickItems); ++n) {
-            CItem* item = MakeItem(this, record->quickItems[n]);
+            Item* item = MakeItem(this, record->quickItems[n]);
             item->count = record->quickItems[n]->count;
             item->charge = item->chargeMax;
             unit->AddQuickItem(item);
@@ -273,7 +273,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
             auto* record = (*records)[i];
             CUnit* unit = FindUnit(static_cast<int>(record->unitId));
             if (!unit) continue;
-            CUnitServer* controller = unit->ServerController();
+            UnitServer* controller = unit->ServerController();
             if (record->leaderId <= 0) continue;
             AIBrain* brain = &controller->brain;
             PlayerMode* follow = brain->FindPlayerMode();
@@ -287,7 +287,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
     if (player) MainScript()->Load(&script, 1);
 }
 
-void CWorldServer::UseQuickItem(CUnit* unit) {
+void WorldServer::UseQuickItem(CUnit* unit) {
     // An object record (a class of its own with the same virtuals).
     ObjectSpec message;
     message.kind = kQuickEffectType;
@@ -300,11 +300,11 @@ void CWorldServer::UseQuickItem(CUnit* unit) {
     std::memcpy(&message.position, &unit->localPosition.x, 12);
     message.position.z = 0.0f;
     int objectId = CreateObject(&message);
-    CEngineObject* effect = ObjectWithId(objectId);
+    EngineObject* effect = ObjectWithId(objectId);
     effect->flags |= kFlagsNewEffect;
 }
 
-int CWorldServer::CreateObject(mapspec::Spec* message) {
+int WorldServer::CreateObject(mapspec::Spec* message) {
     // Every kind starts with the base record (Spec); kinds 1, 5-9 are object records (ObjectSpec), 5 a unit
     // record, 6 a flame, 7 a magic trap, 8 a lever; 2 a light, 3 a sound, 4 a particle source.
     auto* spec = static_cast<ObjectSpec*>(message);
@@ -321,7 +321,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->Release();
         return -1;
     };
-    auto companionTexts = [spec](CMapObjectServer* companion) {
+    auto companionTexts = [spec](MapObjectServer* companion) {
         companion->parentIname = spec->parentIname;
         companion->skinTexture = spec->skinTexture;
         companion->strings = spec->parts;
@@ -347,13 +347,13 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         timedObjects.Set(static_cast<unsigned>(object->id), object);
         return object->id;
     };
-    CBaseManager* timedManager = timedObjectManager;
+    BaseManager* timedManager = timedObjectManager;
     CMapObjectManager* newObjectManager = MapObjectManager();
 
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
         auto* flame = static_cast<mapspec::FlameSpec*>(message);
-        CTorchObject* object = created(std::type_identity<CTorchObject>{});
+        TorchObject* object = created(std::type_identity<TorchObject>{});
         if (!allowed(object)) return refuse(object);
         int objectId = object->id;
         if (objectId == -1) return -1;
@@ -374,7 +374,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             if (spell) spell->Release();
         }
         base.object = object;
-        CTorchObjectSpec* torch = object->spec;
+        TorchObjectSpec* torch = object->spec;
         auto* companion = object->ServerCompanion();
         object->name = spec->texture;
         companionTexts(companion);
@@ -518,7 +518,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (!loadedFresh) return -1;
         auto* sound = static_cast<mapspec::SoundSpec*>(message);
         if (sound->ambient) {
-            auto* ambient = timedManager->CreateObjectAs<CEffectAmbientSound>(kTimedAmbientSound, base.id);
+            auto* ambient = timedManager->CreateObjectAs<EffectAmbientSound>(kTimedAmbientSound, base.id);
             ambient->names = sound->sounds;
             Copy(&ambient->localPosition, &base.position, 12);
             ambient->volume = static_cast<float>(sound->volume);
@@ -527,7 +527,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             ambient->maxInterval = sound->maxInterval;
             return timed(ambient);
         }
-        auto* plain = timedManager->CreateObjectAs<CEffectSound>(kTimedSound, base.id);
+        auto* plain = timedManager->CreateObjectAs<EffectSound>(kTimedSound, base.id);
         if (sound->sounds.empty()) {
             app::ShowLibraryMessageBox(worlddata::NoWaveNameText());
         } else {
@@ -542,7 +542,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     case 2: {   // a light
         if (!loadedFresh) return -1;
         auto* lightSpec = static_cast<mapspec::LightSpec*>(message);
-        auto* light = timedManager->CreateObjectAs<CEffectPointLight>(kTimedLight, base.id);
+        auto* light = timedManager->CreateObjectAs<EffectPointLight>(kTimedLight, base.id);
         Copy(&light->localPosition, &base.position, 12);
         Copy(&light->range, &lightSpec->radius, 4);
         Copy(&light->color, &lightSpec->colour, 12);

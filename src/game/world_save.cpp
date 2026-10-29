@@ -1,4 +1,4 @@
-// CWorldServer: the world part of a save (mission.sav): SaveWorld writes it, LoadSave reads it
+// WorldServer: the world part of a save (mission.sav): SaveWorld writes it, LoadSave reads it
 // back, LoadSavedMapObjects restores the map objects SaveMapObjects wrote, and UpdatePlayerTimes
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
 #include "ai_map.h"
@@ -58,7 +58,7 @@ constexpr int kProgressDone = 7;
 void ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
 template <typename T>
-T ReadAs(CStream* stream) {
+T ReadAs(ByteStream* stream) {
     T value;
     stream->ReadValue(value);
     return value;
@@ -66,7 +66,7 @@ T ReadAs(CStream* stream) {
 
 // The units saved standing where they cannot move (a cell they cannot leave) are put on a free
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
-void RelocateStrandedUnits(CWorldServer* world) {
+void RelocateStrandedUnits(WorldServer* world) {
     std::vector<int> stranded;
     for (auto& node : world->objects.map) {
         CUnit* unit = UnitOrNull(node.second);
@@ -94,19 +94,19 @@ void RelocateStrandedUnits(CWorldServer* world) {
 }
 
 // The players' part of the save (in the player list's order).
-void LoadPlayers(CWorldServer* world, CStream* stream) {
+void LoadPlayers(WorldServer* world, ByteStream* stream) {
     PlayerIterator it;
     for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
-        CPlayerServer* state = player->Server();
+        PlayerServer* state = player->Server();
         stream->ReadValue(player->partyId);
         player->Party()->LoadParty(stream, 1);
         player->lastTick = world->tick;
         stream->ReadValue(player->sessionKind);
-        CBaseManager* items = world->ItemFactory();
+        BaseManager* items = world->ItemFactory();
         for (;;) {
             int id = ReadAs<int>(stream);
             if (id == -1) break;
-            CItem* object = FindItem(items, id);
+            Item* object = FindItem(items, id);
             if (!object) continue;
             player->items.push_back(object);
             object->AddRef();
@@ -133,7 +133,7 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
 }
 
 // The players' part of the save (what LoadPlayers reads).
-void SavePlayers(CWorldServer* world, CStream* stream) {
+void SavePlayers(WorldServer* world, ByteStream* stream) {
     PlayerIterator it;
     for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
         stream->WriteValue(player->partyId);
@@ -174,7 +174,7 @@ bool MapFileMissing(std::string_view name, modfolders::MapsSite site) {
 
 // The sum in the game's order ((elapsed * secondsPerTick + offset) + gtime); plain C++ maths, compared with
 // CheckNear.
-void CWorldServer::UpdatePlayerTimes(float offset) {
+void WorldServer::UpdatePlayerTimes(float offset) {
     const char* name = game::GTimeText();
     int now = tick;
     PlayerIterator it;
@@ -188,7 +188,7 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
     }
 }
 
-void CWorldServer::LoadSavedMapObjects(CStream* stream) {
+void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
     for (;;) {
         int objectId = ReadAs<int>(stream);
         if (objectId == -1) return;
@@ -237,9 +237,9 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
     }
 }
 
-int CWorldServer::LoadSave(CStream* stream, const char* map) {
-    CMemoryStream savedGraph;   // the AI graph state as the zone files have it
-    CMemoryStream graph;        // ... with the save's differences applied
+int WorldServer::LoadSave(ByteStream* stream, const char* map) {
+    MemoryStream savedGraph;   // the AI graph state as the zone files have it
+    MemoryStream graph;        // ... with the save's differences applied
     std::string newMobName;
     std::string newMapName;
     std::string newZoneName;
@@ -303,7 +303,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                 if (objectId == -1) break;
                 int objectType = ReadAs<int>(stream);
                 std::uint32_t value18 = ReadAs<std::uint32_t>(stream);
-                CEngineObject* object = objectManager->CreateObject(objectType, objectId);
+                EngineObject* object = objectManager->CreateObject(objectType, objectId);
                 object->prototypeId = value18;
             }
             timedObjectManager->Load(stream);
@@ -320,7 +320,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             for (;;) {
                 int objectId = ReadAs<int>(stream);
                 if (objectId == -1) break;
-                CEngineObject* object = timedObjectManager->FindObject(objectId);
+                EngineObject* object = timedObjectManager->FindObject(objectId);
                 object->AddRef();
                 static_cast<CEffect*>(object)->MarkChanged();
                 timedObjects.Set(static_cast<unsigned>(object->id), object);
@@ -332,7 +332,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             for (;;) {
                 std::uint8_t more = ReadAs<std::uint8_t>(stream);
                 if (!more) break;
-                auto* missile = new CSpellEffect();
+                auto* missile = new SpellEffect();
                 missile->refs = 0;    // the count and flags are cleared before the null test
                 missile->flags6 = 0;
                 missile->flags7 = 0;
@@ -352,7 +352,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             for (;;) {
                 int objectId = ReadAs<int>(stream);
                 if (objectId < 0) break;
-                CEngineObject* item = itemManager->FindObject(objectId);
+                EngineObject* item = itemManager->FindObject(objectId);
                 if (!item) continue;
                 item->AddRef();
                 counted.push_front(item);
@@ -368,9 +368,9 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                     stream->ReadValue(objectId);
                     if (objectId == -1) break;
                     std::uint32_t value = ReadAs<std::uint32_t>(stream);
-                    CItem* object = FindItem(ItemFactory(), objectId);
+                    Item* object = FindItem(ItemFactory(), objectId);
                     if (!object) continue;
-                    auto* record = new CItemLink();
+                    auto* record = new ItemLink();
                     record->value = value;
                     object->link.Assign(record);
                 }
@@ -412,11 +412,11 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
     return result;
 }
 
-void CWorldServer::SaveWorld(CStream* stream) {
+void WorldServer::SaveWorld(ByteStream* stream) {
     // The AI graph state as the zone files have it (`base`) and as it is now (`current`); only
     // their differences are saved.
-    CMemoryStream base;
-    CMemoryStream current;
+    MemoryStream base;
+    MemoryStream current;
 
     if (sessionKind == 1 || sessionKind == 3) UpdatePlayerTimes(0.0f);
     objectManager->ReleaseUnused();
@@ -451,7 +451,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
 
     // The map objects' identities (the walk stops at the first empty entry).
     for (auto node = mapObjects.map.begin(); node != mapObjects.map.end() && node->second; ++node) {
-        CEngineObject* object = node->second;
+        EngineObject* object = node->second;
         stream->WriteValue(object->id);
         stream->WriteValue(object->type);
         stream->WriteValue(object->prototypeId);
@@ -470,7 +470,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
 
     for (auto node = projectiles.begin(); node != projectiles.end();) {
         auto next = std::next(node);
-        CSpellEffect* missile = *node;
+        SpellEffect* missile = *node;
         stream->WriteValue(static_cast<std::uint8_t>(1));
         missile->Save(stream);
         node = next;
@@ -496,9 +496,9 @@ void CWorldServer::SaveWorld(CStream* stream) {
 
     // The item manager's object records.
     {
-        ObjectListIteratorOf<CItem> it{};
-        for (CItem* item = it.First(ItemFactory()); item; item = it.Next()) {
-            CItemLink* record = item->ServerLink();
+        ObjectListIteratorOf<Item> it{};
+        for (Item* item = it.First(ItemFactory()); item; item = it.Next()) {
+            ItemLink* record = item->ServerLink();
             if (!record) continue;
             stream->WriteValue(item->id);
             stream->WriteValue(record->value);
@@ -516,11 +516,11 @@ void CWorldServer::SaveWorld(CStream* stream) {
         stream->WriteValue(entry.player);
         stream->WriteValue(entry.money);
         stream->WriteValue(static_cast<int>(entry.objects.size()));
-        for (CItem* object : entry.objects) stream->WriteValue(object->id);
+        for (Item* object : entry.objects) stream->WriteValue(object->id);
     }
 }
 
-void SharedObject::Load(CStream* stream) {
+void SharedObject::Load(ByteStream* stream) {
     SharedObject* entry = this;
     stream->ReadValue(entry->objectId);
     stream->ReadValue(entry->player);
@@ -528,16 +528,16 @@ void SharedObject::Load(CStream* stream) {
     int count = ReadAs<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadAs<int>(stream);
-        CItem* object = FindItem(g_serverWorld.itemManager, id);
+        Item* object = FindItem(g_serverWorld.itemManager, id);
         if (object) entry->objects.emplace_back(object);
     }
 }
 
-void CWorldServer::AddSharedObject(int newId, std::uint32_t value, const std::list<CItem*>* newObjects) {
+void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::list<Item*>* newObjects) {
     // The session player record's serial in a multiplayer game, else -1.
     int player = -1;
     net::ServerSession* session = net::g_gameServer;
-    if (session && !(session->flags7 & CRefCounted::kDetached))
+    if (session && !(session->flags7 & RefCounted::kDetached))
         if (net::PlayerMessage* record = session->FindPlayer(newId)) player = record->serial;
 
     // Pushing SharedObject() at the head: the new head copies an empty local (whose first three dwords the
@@ -546,26 +546,26 @@ void CWorldServer::AddSharedObject(int newId, std::uint32_t value, const std::li
     entry.objectId = newId;
     entry.player = player;
     entry.money = value;
-    for (CItem* object : *newObjects) entry.objects.emplace_back(object);
+    for (Item* object : *newObjects) entry.objects.emplace_back(object);
 }
 
-void CWorldServer::PrepareSave() {
+void WorldServer::PrepareSave() {
     for (auto node = mapObjects.map.begin(); node != mapObjects.map.end() && node->second; ++node) {
         CUnit* unit = UnitOrNull(node->second);
         if (!unit || unit->IsDead()) continue;
-        CUnitController* controller = unit->Controller();
+        UnitController* controller = unit->Controller();
         unit->ServerController()->stats.RefillSlots();
         controller->RefreshVitals(false);
     }
 }
 
-int CWorldServer::NewZone(std::string_view map, std::string_view mob, std::optional<std::string_view> zone) {
+int WorldServer::NewZone(std::string_view map, std::string_view mob, std::optional<std::string_view> zone) {
     cave = 0;
     SelectLoadingMovie(zone);
     ShowLoadProgress(kProgressStart);
     if (MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
     if (MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
-    CMemoryStream graph;
+    MemoryStream graph;
     if (!ReadAIGraph(map, mob, &graph))
         return game::FatalError(kCantLoadGraph);
     mobFiles.clear();

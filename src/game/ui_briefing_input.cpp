@@ -1,4 +1,4 @@
-// The briefing / base screen's mouse input and its topic list (CBriefingScreen, ui_briefing.h):
+// The briefing / base screen's mouse input and its topic list (BriefingScreen, ui_briefing.h):
 // the click and double click (the input virtuals), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
@@ -62,10 +62,10 @@ constexpr const char* kZoneVariablePrefix = "z.";
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
-bool CanTalk(CEngineObject* person) {
+bool CanTalk(EngineObject* person) {
     CUnit* unit = g_serverWorld.FindUnit(person->id);
     if (!unit || !unit->controller) return true;
-    CUnitServer* controller = unit->ServerController();
+    UnitServer* controller = unit->ServerController();
     return (controller->action.kind == UnitOrderKind::Stop || controller->action.kind == UnitOrderKind::Idle) &&
            controller->action2.kind == UnitOrderKind::None;
 }
@@ -76,7 +76,7 @@ bool IsPerson(CMapObject* object) { return object && object->IsDead() == 0; }
 } // namespace
 
 // The leader walks (or runs) to the ground point under the screen point (x, y), unless blocked.
-static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, bool run) {
+static void WalkLeaderTo(BriefingScreen* screen, int x, int y, bool run) {
     Vector3 picked;
     Vector3* p = g_clientWorld.PickSurface(&picked, x, y);
     Vector3 point{p->x, p->y, p->z};
@@ -87,12 +87,12 @@ static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, bool run) {
 }
 
 
-void CBriefingScreen::LeftDown(int buttons, int x, int y) {
+void BriefingScreen::LeftDown(int buttons, int x, int y) {
     if (chatActive) {
         if (chat) chat->Input()->LeftDown(buttons, x, y);
         return;
     }
-    CUiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, x, y);
     if (handled) return;
     switch (state) {
     case 0: {
@@ -131,14 +131,14 @@ void CBriefingScreen::LeftDown(int buttons, int x, int y) {
 }
 
 
-void CBriefingScreen::MouseMove(int buttons, int x, int y) {
+void BriefingScreen::MouseMove(int buttons, int x, int y) {
     if (chatActive) {
         g_cursor.SetShape(kCursorChat);
         if (chat) chat->Input()->MouseMove(buttons, x, y);
         return;
     }
     g_cursor.SetShape(kCursorNormal);
-    CUiContainer::MouseMove(buttons, x, y);
+    UiContainer::MouseMove(buttons, x, y);
     if (state == 1) {
         int region = RegionAt(x, y);
         int hovered = -1;
@@ -164,7 +164,7 @@ void CBriefingScreen::MouseMove(int buttons, int x, int y) {
         if (!topics.empty()) g_cursor.SetShape(kCursorTalk);
         auto node = personTexts.find(objectId);
         if (node == personTexts.end()) return;
-        CUiSurface* label = surfaces[1];
+        UiSurface* label = surfaces[1];
         label->Clear();
         RECT area{0, 0, 0, 0};
         label->DrawTextIn(node->second, &area, kTextFormat, kLabelColour, 1, 1);
@@ -191,9 +191,9 @@ void CBriefingScreen::MouseMove(int buttons, int x, int y) {
 }
 
 
-void CBriefingScreen::LeftDouble(int buttons, int x, int y) {
+void BriefingScreen::LeftDouble(int buttons, int x, int y) {
     if (chatActive) return;
-    CUiContainer::LeftDouble(buttons, x, y);
+    UiContainer::LeftDouble(buttons, x, y);
     if (handled) return;
     if (state != 0) {
         Input()->LeftDown(buttons, x, y);
@@ -211,7 +211,7 @@ void CBriefingScreen::LeftDouble(int buttons, int x, int y) {
 }
 
 
-void CBriefingScreen::OpenTopics(CEngineObject* speaker) {
+void BriefingScreen::OpenTopics(EngineObject* speaker) {
     FindTopics(speaker->id);
     if (topics.empty()) {
         state = 0;
@@ -234,9 +234,9 @@ void CBriefingScreen::OpenTopics(CEngineObject* speaker) {
 }
 
 
-void CBriefingScreen::DrawTopics() {
+void BriefingScreen::DrawTopics() {
     std::string prefix = g_clientWorld.texts->GetString(kTopicPrefixKey);
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->Clear();
     int row = topicTop;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {

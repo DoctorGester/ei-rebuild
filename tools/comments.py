@@ -67,7 +67,7 @@ BANNED_COMMON = re.compile(
     r"|\b[Tt]he (?:[\w:]+'s? |[\w:]+' )?inlined\b"
     r"|\bvtable slots?\b|\bvirtual slots?\b"
     r"|\b(?:its|their|the|renderer|input|stream|world's|context's|loader's|helper's|DLL's|connection's|manager's|"
-    r"CSpell|CItem|CUnitClientSpecific|CFigureManager's) [Ss]lots? [0-9]|\b(?:through|via|calls?) slot [0-9]"
+    r"CSpell|CItem|UnitClientSpecific|CFigureManager's) [Ss]lots? [0-9]|\b(?:through|via|calls?) slot [0-9]"
     r"|\([Ss]lots? [0-9]|^//\s*[Ss]lots? [0-9]+(?: [/-] [0-9]+)*[:.]")
 BANNED_GAME = re.compile(
     r"\b(?:CList|CPtrList|CObList|CTypedPtrList|CArrays?|CByteArray|CWordArray|CDWordArray|CObArray|CPtrArray|"

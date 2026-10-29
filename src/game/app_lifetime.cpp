@@ -21,7 +21,7 @@
 
 // ---- The registry's creators ----------------------------------------------------------------------
 
-CRefCounted* CreatePartyRecord() {
+RefCounted* CreatePartyRecord() {
     auto* record = new PartyRecord();
     record->refs = 0;
     record->flags6 = 0;
@@ -29,7 +29,7 @@ CRefCounted* CreatePartyRecord() {
     return record;
 }
 
-CRefCounted* CreateClassTemplate() {
+RefCounted* CreateClassTemplate() {
     auto* created = new ClassTemplate();
     created->refs = 0;
     created->flags6 = 0;
@@ -46,7 +46,7 @@ PartyRecord::~PartyRecord() { party.Destroy(); }
 // ---- The DirectInput mouse ------------------------------------------------------------------------
 
 
-CDirectInputMouse::~CDirectInputMouse() {
+DirectInputMouse::~DirectInputMouse() {
     Shutdown();
     // The two counted pointers' own destructors (Shutdown has cleared both).
     if (device) device->Release();

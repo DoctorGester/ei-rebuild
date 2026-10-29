@@ -51,7 +51,7 @@ constexpr std::uint32_t kReadOnlyFlags = 2;
 // Whether a game server runs (bit 31 of its count word marks one shut down).
 bool ServerRuns() {
     const net::ServerSession* server = net::g_gameServer;
-    return server && !(server->flags7 & CRefCounted::kDetached);
+    return server && !(server->flags7 & RefCounted::kDetached);
 }
 
 // The game server lists the file at `path` under `name` for its clients: the whole file, read
@@ -81,12 +81,12 @@ std::string MapFilePath(const std::string& file) {
 } // namespace
 
 std::string BriefingSpeakerName(const std::string& briefing) {
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     bool missing;
     {
         std::string prefix = game::briefingwords::BriefingSection();
         std::string section = prefix + briefing;
-        missing = texts->CTextManager::Open(section) == 0;
+        missing = texts->TextManager::Open(section) == 0;
     }
     if (missing) return std::string();
     // The first "#show" line whose second word is not "Hero" names the speaker.
@@ -139,7 +139,7 @@ void GameFlow::ForgetBriefing(const char* briefing) {
 }
 
 void UnloadQuestTexts() {
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     if (!texts) return;
     std::vector<std::string>& files = g_questFiles;
     for (auto& file : files) texts->RemoveSource(file);
@@ -198,12 +198,12 @@ namespace {
 
 
 // A session or message still in use (not shut down by its owner).
-bool Active(const CRefCounted* object) { return object && !(object->flags7 & CRefCounted::kDetached); }
+bool Active(const RefCounted* object) { return object && !(object->flags7 & RefCounted::kDetached); }
 
 } // namespace
 
 void GameFlow::RegisterQuests(const std::string& folder) {
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     if (!texts) return;
     if (!LoadZoneQuests(folder)) return;
     std::vector<std::string>& folders = g_questFolders;
@@ -213,7 +213,7 @@ void GameFlow::RegisterQuests(const std::string& folder) {
     {
         std::string base = folder;
         std::string path = base + game::briefingwords::QuestRegistry();
-        // (The registry is binary, read as it is: CTextManager::OpenData.)
+        // (The registry is binary, read as it is: TextManager::OpenData.)
         registered = texts->OpenData(path) != 0;
     }
     if (!registered) return;
@@ -240,12 +240,12 @@ std::string SessionMapName() {
         peer = server->map.Get();
     if (!peer) return std::string();
     name = peer->text.data();
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     int found;
     {
         std::string prefix = game::briefingwords::QuestSection();
         std::string section = prefix + name;
-        found = texts->CTextManager::Open(section);
+        found = texts->TextManager::Open(section);
     }
     if (found) name = texts->ReadLine(true);
     return name;

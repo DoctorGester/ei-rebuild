@@ -15,12 +15,12 @@ constexpr int kSteps = 16;
 
 } // namespace
 
-void CGlobalMapClouds::Start() {
+void GlobalMapClouds::Start() {
     for (int frameStep = 0; frameStep < kSteps; ++frameStep) Generate(&frames[0], frameStep);
     for (int frameStep = 0; frameStep < kSteps; ++frameStep) Generate(&frames[1], frameStep);
 }
 
-void CGlobalMapClouds::Draw(const void* holder, float seconds) {
+void GlobalMapClouds::Draw(const void* holder, float seconds) {
     phase = seconds * speed + phase;
     EI_NAN_AUDIT(phase);
     while (phase >= 1.0f) {    // a NaN phase ends it (it looped for ever in the game)
@@ -38,7 +38,7 @@ void CGlobalMapClouds::Draw(const void* holder, float seconds) {
     render::DrawClouds(holder, frames[0], frames[1], blend, ramp);
 }
 
-void CGlobalMapClouds::SetRamp(int start, int width, float newSpeed) {
+void GlobalMapClouds::SetRamp(int start, int width, float newSpeed) {
     float base = static_cast<float>(width) * (1.0f / 255.0f);
     speed = newSpeed;
     for (int i = 0; i < 0x100; ++i) {
@@ -48,7 +48,7 @@ void CGlobalMapClouds::SetRamp(int start, int width, float newSpeed) {
     }
 }
 
-void CGlobalMapClouds::Generate(render::CloudFrame* frame, int step) {
+void GlobalMapClouds::Generate(render::CloudFrame* frame, int step) {
     if (step < 1 || step > 4) return;
     std::uint32_t* words = frame->words[step - 1];
     IsaacRandom& random = g_clientRandom;

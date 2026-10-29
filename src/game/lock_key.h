@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-class CStream;
+class ByteStream;
 
 struct LockKey {
     // Do the masks overlap, and either (bit 3 in common) the ids match, or (bits 0-2 in
@@ -16,8 +16,8 @@ struct LockKey {
     // Always 1: placed traps take any key.
     bool AcceptedByTrap() const;
     // Reads / writes the three dwords.
-    void ReadFrom(CStream* stream);
-    void WriteTo(CStream* stream) const;
+    void ReadFrom(ByteStream* stream);
+    void WriteTo(ByteStream* stream) const;
     std::uint32_t mask;
     std::uint32_t id;
     std::uint32_t level;

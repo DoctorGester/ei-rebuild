@@ -28,7 +28,7 @@ void SetPosition(Vector3* out, const float* p) {
 
 } // namespace
 
-void CParticleSource::ReleaseAllParticles() {
+void ParticleSource::ReleaseAllParticles() {
     while (!particles.empty()) {
         Particle* p = particles.front();
         particles.pop_front();
@@ -36,8 +36,8 @@ void CParticleSource::ReleaseAllParticles() {
     }
 }
 
-Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char* prefix) {
-    CFigureMesh* part = object->FindPartByPrefix(prefix);
+Vector3* ParticleSource::PartPoint(Vector3* out, CObject3D* object, const char* prefix) {
+    FigureMesh* part = object->FindPartByPrefix(prefix);
     if (!part) part = object->FindPartByPrefix("bd");
     if (part) {
         Vector3 point;
@@ -51,7 +51,7 @@ Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char*
     return out;
 }
 
-Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
+Vector3* ParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
     if (!object) {
         out->x = 0.0f;
         out->y = 0.0f;
@@ -77,7 +77,7 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
     return out;
 }
 
-Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
+Vector3* ParticleSource::AttachmentOffset(Vector3* out, float* radius) {
     CObject3D* object = attachedTo;
     if (!object) {
         out->x = 0.0f;
@@ -101,7 +101,7 @@ Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
     return out;
 }
 
-void CParticleSource::Attach(CObject3D* object) {
+void ParticleSource::Attach(CObject3D* object) {
     CObject3D* old = attachedTo;
     if (old == object) {
         if (!old) origin = localPosition;
@@ -136,7 +136,7 @@ void CParticleSource::Attach(CObject3D* object) {
     origin = point;
 }
 
-void CParticleSource::StopAndClear() {
+void ParticleSource::StopAndClear() {
     ReleaseAllParticles();
     flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     Attach(nullptr);

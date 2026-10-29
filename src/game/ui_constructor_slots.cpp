@@ -1,4 +1,4 @@
-// The constructors' second pages (CConstructorPage, ui_camp.h): the slot item under a point which the camp's
+// The constructors' second pages (ConstructorPage, ui_camp.h): the slot item under a point which the camp's
 // hover and help ask every panel for; the spell maker, the item maker. See docs/notes/ui.md, section 5.
 #include "ui_camp.h"
 
@@ -21,7 +21,7 @@ constexpr int kTopicItemContainer = 0x10;
 
 // The `nth` (from 0) of the slots' items that `matches`, or null.
 template <typename Predicate>
-CItem* NthSlot(CParty* slots, int nth, Predicate matches) {
+Item* NthSlot(CParty* slots, int nth, Predicate matches) {
     const auto& items = slots->items;
     int found = 0;
     for (int i = 0; i < std::ssize(items); ++i) {
@@ -34,7 +34,7 @@ CItem* NthSlot(CParty* slots, int nth, Predicate matches) {
 
 } // namespace
 
-CItem* CSpellMakerPage::ItemAt(int x, int y, int* topic) {
+Item* SpellMakerPage::ItemAt(int x, int y, int* topic) {
     *topic = kTopicNone;
     if (!enabled) return nullptr;
     int region = RegionAt(x, y);
@@ -48,14 +48,14 @@ CItem* CSpellMakerPage::ItemAt(int x, int y, int* topic) {
     }
     if (region >= 2 && region < 10) {
         *topic = kTopicModifier;
-        if (CItem* item = NthSlot(slots, region - 2, IsModifier)) return item;
+        if (Item* item = NthSlot(slots, region - 2, IsModifier)) return item;
     }
     if (region == 10) *topic = kTopicSkillLine;
     else if (region == 11) *topic = kTopicManaLine;
     return nullptr;
 }
 
-CItem* CConstructorPage::ItemAt(int x, int y, int* topic) {
+Item* ConstructorPage::ItemAt(int x, int y, int* topic) {
     *topic = kTopicNone;
     if (!enabled) return nullptr;
     int region = RegionAt(x, y);

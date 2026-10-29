@@ -25,8 +25,8 @@ std::vector<ParticleDepth> g_drawOrder;
 const Quaternion& CameraRotation() { return camera::FrameView().rotation; }
 
 // A source attached to a unit (class 0x50) is drawn only while the unit has MapObjectFlag::InParty.
-bool AttachedToHiddenUnit(const CParticleSource* s) {
-    CEngineObject* object = s->attachedTo;
+bool AttachedToHiddenUnit(const ParticleSource* s) {
+    EngineObject* object = s->attachedTo;
     if (!object) return false;
     return object->GetClassId() == ClassId::Unit && !(object->flags & MapObjectFlag::InParty);
 }
@@ -34,7 +34,7 @@ bool AttachedToHiddenUnit(const CParticleSource* s) {
 } // namespace
 
 // The attachment point plus the local position, or the local position alone.
-Vector3* CParticleSource::WorldPosition(Vector3* out) {
+Vector3* ParticleSource::WorldPosition(Vector3* out) {
     if (attachedTo) {
         Vector3 point;
         const Vector3* a = AttachmentPoint(&point, attachedTo);
@@ -54,7 +54,7 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
 // sources until the first empty entry), sorts it far to near and draws each source that is not
 // hidden (ParticleSourceFlag::NotDrawn) and not on a hidden unit, switching to additive blending for sources with
 // +0x150 == 1. Returns 0 as soon as a source fails to draw. The manager is held (+4) meanwhile.
-int CParticleManager::DrawAll(CSceneRenderer* renderer) {
+int ParticleManager::DrawAll(SceneRenderer* renderer) {
     ++refCount;
     std::vector<ParticleDepth>& order = g_drawOrder;
     lib::FreeStorage(order);
@@ -62,9 +62,9 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
     CameraRotation().AxisZ(&axis);
 
     // The manager's objects are its sources.
-    auto sourceOf = [](CEngineObject* object) { return static_cast<CParticleSource*>(object); };
+    auto sourceOf = [](EngineObject* object) { return static_cast<ParticleSource*>(object); };
     auto node = objectList.begin();
-    CParticleSource* source = node != objectList.end() ? sourceOf(*node) : nullptr;
+    ParticleSource* source = node != objectList.end() ? sourceOf(*node) : nullptr;
     while (source) {
         ++node;
         Vector3 scratch;
@@ -82,7 +82,7 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
 
     bool additive = false;
     for (int i = 0; i < std::ssize(order); ++i) {
-        CParticleSource* s = order[i].source;
+        ParticleSource* s = order[i].source;
         if (s->flags & ParticleSourceFlag::NotDrawn) continue;
         if (AttachedToHiddenUnit(s)) continue;
         int blend;

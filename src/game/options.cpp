@@ -220,7 +220,7 @@ constexpr struct {
 
 class Loader {
 public:
-    Loader(GameOptions* newOptions, CWinRegistry& newKey) : options(newOptions), key(newKey) {}
+    Loader(GameOptions* newOptions, WinRegistry& newKey) : options(newOptions), key(newKey) {}
 
     const char* Key(KeyField field) const { return (options->*field).c_str(); }
     std::string& String(StringField field) { return field(*options); }
@@ -274,13 +274,13 @@ public:
 
 private:
     GameOptions* options;
-    CWinRegistry& key;
+    WinRegistry& key;
 };
 
 // The writer: the same tables in the same order, each value through the setter matching its getter.
 class Saver {
 public:
-    Saver(GameOptions* newOptions, CWinRegistry& newKey) : options(newOptions), key(newKey) {}
+    Saver(GameOptions* newOptions, WinRegistry& newKey) : options(newOptions), key(newKey) {}
 
     const char* Key(KeyField field) const { return (options->*field).c_str(); }
     const std::string& String(StringField field) const { return field(*options); }
@@ -326,14 +326,14 @@ public:
 
 private:
     GameOptions* options;
-    CWinRegistry& key;
+    WinRegistry& key;
 };
 
 } // namespace
 
 void GameOptions::LoadFromRegistry(const char* path) {
     std::string resolution;   // the game's local is constructed first, read later
-    CWinRegistry key;
+    WinRegistry key;
     key.Open(path);
     Loader l(this, key);
 
@@ -372,7 +372,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
 
 void GameOptions::SaveToRegistry(const char* path) {
     std::string resolution;
-    CWinRegistry key;
+    WinRegistry key;
     key.Open(path);
     Saver s(this, key);
 

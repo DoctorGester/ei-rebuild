@@ -1,4 +1,4 @@
-// CWorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
+// WorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
 #include "model.h"
 #include "options.h"
@@ -25,7 +25,7 @@ namespace {
 
 // The scene's transform pipeline: the picking stack, the clip stack an object's matrix is pushed on to classify it,
 // and the view stack.
-float* StackTop(CTransformPipeline* device, int index) {
+float* StackTop(TransformPipeline* device, int index) {
     MatrixStack& stack = device->stacks[index];
     return stack.matrices[stack.count - 1].m;
 }
@@ -39,7 +39,7 @@ const int& g_multiplayerView = options::g_options.drawVisibleOnly;
 const int& g_modelTouchDelay = options::g_options.shadowLightingFreq;
 
 // Pushes `matrix` on the pipeline's stack `index` (multiplied onto its top).
-void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix) {
+void PushStackMatrix(TransformPipeline* device, int index, const float* matrix) {
     MatrixStack& stack = device->stacks[index];
     if (stack.count == 0) {
         stack.count = 1;
@@ -51,7 +51,7 @@ void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix)
 }
 
 CObject3D* Object3D(CMapObject* object) { return object; }
-CObject3DClientSpecific* ModelOf(CMapObject* object) {
+Object3DClientSpecific* ModelOf(CMapObject* object) {
     return Object3D(object)->ClientSpecific();
 }
 
@@ -60,14 +60,14 @@ __forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
 
 // The two draws share everything but the height function (which returns its result unrounded).
 template <typename Height>
-Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
-    CTransformPipeline* device = g_sceneRenderer.pipeline;
-    if (device->stacks[CTransformPipeline::kViewStack].count == 0) {
+Vector3* PickPoint(WorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
+    TransformPipeline* device = g_sceneRenderer.pipeline;
+    if (device->stacks[TransformPipeline::kViewStack].count == 0) {
         std::memcpy(out, &worlddata::kOrigin, 12);
         return out;
     }
-    PushStackMatrix(device, CTransformPipeline::kPickStack, StackTop(device, CTransformPipeline::kViewStack));
-    const float* m = StackTop(g_sceneRenderer.pipeline, CTransformPipeline::kPickStack);
+    PushStackMatrix(device, TransformPipeline::kPickStack, StackTop(device, TransformPipeline::kViewStack));
+    const float* m = StackTop(g_sceneRenderer.pipeline, TransformPipeline::kPickStack);
 
     // The values kept on the FPU stack are doubles here (no rounding to float).
     double sx = screenX;
@@ -126,7 +126,7 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
             } while (steps < 100);
         }
     }
-    device->PopMatrix(CTransformPipeline::kPickStack);
+    device->PopMatrix(TransformPipeline::kPickStack);
     out->x = outX;
     out->y = outY;
     out->z = pz;
@@ -137,9 +137,9 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
+int WorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
                                  char animateUnits, char withScripted) {
-    CTransformPipeline* device = g_sceneRenderer.pipeline;
+    TransformPipeline* device = g_sceneRenderer.pipeline;
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
@@ -172,9 +172,9 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
                 matrix[13] = 0.0f;
                 matrix[12] = 0.0f;
                 matrix[15] = 1.0f;
-                PushStackMatrix(device, CTransformPipeline::kClipStack, matrix);
+                PushStackMatrix(device, TransformPipeline::kClipStack, matrix);
                 int where = g_sceneRenderer.pipeline->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
-                device->PopMatrix(CTransformPipeline::kClipStack);
+                device->PopMatrix(TransformPipeline::kClipStack);
 
                 CMapObject* const& entry = object;
                 if (where != 2) {
@@ -229,13 +229,13 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
 
 // ---- Cursor picking ------------------------------------------------------------------------------
 
-Vector3* CWorldClient::PickGround(Vector3* out, int x, int y) {
+Vector3* WorldClient::PickGround(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
         return terrain->HeightAt(px, py, terrain::Layer::Ground);
     });
 }
 
-Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
+Vector3* WorldClient::PickSurface(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
         return GroundHeightAt(px, py);
     });

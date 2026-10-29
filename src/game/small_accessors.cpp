@@ -19,7 +19,7 @@
 
 // ---- Materials ------------------------------------------------------------------------------------
 
-std::uint32_t CMaterial::GpuLitColour() const {
+std::uint32_t Material::GpuLitColour() const {
     const float alpha = colors.diffuse.w * 255.0f;
     return static_cast<std::uint32_t>(x87::fistp(alpha)) << 24 | 0x00FFFFFFu;
 }
@@ -27,6 +27,6 @@ std::uint32_t CMaterial::GpuLitColour() const {
 
 // The particle manager's own part of its constructor (the client world's manager set-up
 // calls it after the base manager's): quietStart cleared.
-void ParticleManagerClearQuietStart(CParticleManager* manager) {
+void ParticleManagerClearQuietStart(ParticleManager* manager) {
     manager->quietStart = 0;
 }

@@ -50,11 +50,11 @@ bool FootprintsOn() { return options::g_options.enableFootprints != 0; }
 bool ScorchMarksOn() { return options::g_options.enableFireprints != 0; }
 
 template <typename T>
-void Read(CStream* stream, T* value) {
+void Read(ByteStream* stream, T* value) {
     stream->Read(value, sizeof(T));
 }
 template <typename T>
-void Write(CStream* stream, T value) {
+void Write(ByteStream* stream, T value) {
     stream->WriteValue(value);
 }
 
@@ -62,7 +62,7 @@ int RandomQuarter() { return ClientRandBelow(4); }
 
 // The prints.db entry for the ground at (x, y), or null.
 template <typename Record>
-const Record* EntryAt(const std::vector<Record>& table, CWorldClient* world, float x, float y) {
+const Record* EntryAt(const std::vector<Record>& table, WorldClient* world, float x, float y) {
     auto surface = static_cast<std::uint32_t>(world->terrain->SurfaceClass(x, y));
     return surface < table.size() ? &table[surface] : nullptr;
 }
@@ -125,7 +125,7 @@ int GroundPrint::Tick() {
     return life;
 }
 
-void GroundPrint::Load(CStream* stream) {
+void GroundPrint::Load(ByteStream* stream) {
     stream->ReadValue(position.x);
     stream->ReadValue(position.y);
     stream->ReadValue(halfWidth);
@@ -148,7 +148,7 @@ void GroundPrint::Load(CStream* stream) {
     built = false;
 }
 
-void GroundPrint::Save(CStream* stream) {
+void GroundPrint::Save(ByteStream* stream) {
     stream->WriteValue(position.x);
     stream->WriteValue(position.y);
     stream->WriteValue(halfWidth);
@@ -172,7 +172,7 @@ int GroundPrint::Draw() {
     if (!visible) return 1;
     if (!built) {
         // The quad at the height of the ground or the platform under the point.
-        CWorldClient* world = &g_clientWorld;
+        WorldClient* world = &g_clientWorld;
         std::vector<VertexPacket> quad;
         Vector3 at{position.x, position.y, 0.0f};
         float z = static_cast<float>(world->platforms.SurfaceHeight(at, world->ClampedGroundHeight(position.x, position.y)));
@@ -216,7 +216,7 @@ int GroundPrint::Draw() {
     }
     std::uint32_t fadeAlpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha * kAlphaRange)));
     colour = (colour & 0xFFFFFFu) | fadeAlpha << 24;
-    CTextureDevice* device = g_sceneRenderer.device;
+    TextureDevice* device = g_sceneRenderer.device;
     device->BindNamedTexture(0, &texture);
     return device->DrawFlatBlocks(positions.data(), texCoords.data(), std::ssize(positions),
                                   indices.data(), std::ssize(indices), colour, static_cast<std::uint32_t>(lit) << 24);
@@ -251,13 +251,13 @@ Footprint::Footprint(float x, float y, float newHalfWidth, float newHalfLength, 
     growth = 0.0f;
 }
 
-void Footprint::Load(CStream* stream) {
+void Footprint::Load(ByteStream* stream) {
     GroundPrint::Load(stream);
     stream->ReadValue(scale);
     stream->ReadValue(kind);
 }
 
-void Footprint::Save(CStream* stream) {
+void Footprint::Save(ByteStream* stream) {
     GroundPrint::Save(stream);
     stream->WriteValue(scale);
     stream->WriteValue(kind);
@@ -300,7 +300,7 @@ int BloodPrint::Tick() {
     return GroundPrint::Tick();
 }
 
-void BloodPrint::Load(CStream* stream) {
+void BloodPrint::Load(ByteStream* stream) {
     GroundPrint::Load(stream);
     stream->ReadValue(spin);
     stream->ReadValue(spreadTicks);
@@ -308,7 +308,7 @@ void BloodPrint::Load(CStream* stream) {
     stream->ReadValue(fresh);
 }
 
-void BloodPrint::Save(CStream* stream) {
+void BloodPrint::Save(ByteStream* stream) {
     GroundPrint::Save(stream);
     stream->WriteValue(spin);
     stream->WriteValue(spreadTicks);
@@ -318,7 +318,7 @@ void BloodPrint::Save(CStream* stream) {
 
 // ---- The client world's prints ------------------------------------------------------------------
 
-void CWorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSize, std::uint32_t tile, int fresh) {
+void WorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSize, std::uint32_t tile, int fresh) {
     if (!BloodPrintsOn()) return;
     const PrintRecord* entry = EntryAt(g_printsDatabase.blood, this, x, y);
     if (!entry) return;
@@ -330,7 +330,7 @@ void CWorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSiz
                               static_cast<std::uint8_t>(fresh));
 }
 
-int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLength, float angle, std::uint32_t tile,
+int WorldClient::AddFootprint(float x, float y, float halfWidth, float halfLength, float angle, std::uint32_t tile,
                                float scale, int visible, int bloodKind) {
     if (!FootprintsOn()) return -1;
     // Stepping into a blood print (not a fresh hit's) makes bloody footprints of its kind.
@@ -359,7 +359,7 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
     return inBlood ? bloodKind : -1;
 }
 
-void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLength, float angle, float alpha) {
+void WorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLength, float angle, float alpha) {
     if (!ScorchMarksOn()) return;
     const PrintRecord* entry = EntryAt(g_printsDatabase.scorch, this, x, y);
     if (!entry) return;

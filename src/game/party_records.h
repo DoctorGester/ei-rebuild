@@ -14,7 +14,7 @@
 
 class CPlayer;
 
-class PartyRecord : public CRefCounted {
+class PartyRecord : public RefCounted {
 public:
     PartyRecord();
     ~PartyRecord() override;
@@ -29,7 +29,7 @@ public:
 };
 // A new unnamed record with no references (operator new and the constructor: the party constructed and
 // created, an empty name). The application's start registers it with the class registry as class 2.
-CRefCounted* CreatePartyRecord();
+RefCounted* CreatePartyRecord();
 
 // The named records: counted pointers, then two strings.
 struct NamedPartyRecords {

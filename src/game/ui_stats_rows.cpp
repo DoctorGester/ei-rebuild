@@ -32,24 +32,24 @@ constexpr int kLayers = 3;
 
 // --- A labelled value ----------------------------------------------------------------------------
 
-void CHeroStatsPanel::DrawRow(const RECT& area, std::string_view label, int value, int maximum) {
-    CTextManager* clientWorldTexts = g_clientWorld.texts;
+void HeroStatsPanel::DrawRow(const RECT& area, std::string_view label, int value, int maximum) {
+    TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string key = kPerkPrefix;
     key += label;
     std::string name;
-    if (clientWorldTexts->CTextManager::Open(key))
+    if (clientWorldTexts->TextManager::Open(key))
         name = clientWorldTexts->ReadLine(true);
     else
         name = label;
     std::string number = maximum >= 0 ? str::Format(kRangeFormat, value, maximum) : str::Format(kValueFormat, value);
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->DrawTextIn(name, &area, 0, kRowColour, kLeft, 1);
     surface->DrawTextIn(number, &area, 0, kRowColour, kRight, 1);
 }
 
 // --- A body part's armour ------------------------------------------------------------------------
 
-float CHeroStatsPanel::PartArmour(int part) {
+float HeroStatsPanel::PartArmour(int part) {
     const UnitStatSlot& slot = owner->HeroRecord()->stats.slots[part];
     float sums[kDamageTypes];
     for (int damageType = 0; damageType < kDamageTypes; ++damageType) {
@@ -64,12 +64,12 @@ float CHeroStatsPanel::PartArmour(int part) {
     return largest;
 }
 
-void CHeroStatsPanel::DrawPart(const RECT& area, std::string_view name, int part) {
+void HeroStatsPanel::DrawPart(const RECT& area, std::string_view name, int part) {
     std::string key = kPartPrefix;
     key += name;
-    std::string label = g_clientWorld.texts->CTextManager::GetString(key);
+    std::string label = g_clientWorld.texts->TextManager::GetString(key);
     label = kPartIndent + label;
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->DrawTextIn(label, &area, 0, kRowColour, kLeft, 1);
     surface->DrawTextIn(str::Format(kArmourFormat, static_cast<double>(PartArmour(part))), &area, 0, kRowColour,
                         kRight, 1);

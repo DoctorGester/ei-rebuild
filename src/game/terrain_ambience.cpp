@@ -1,7 +1,7 @@
 // The landscape's ambient sounds: every frame with LandscapeFlag::Ambience (Terrain::RunTick) the 3x3 sectors
 // around the sound listener choose up to three sound classes, which keep looping "circle" sounds and now and
 // then play a positioned one-shot. The time of day for the one-shots' folder comes from the client world
-// (CWorldClient::AmbienceTimeOfDay).
+// (WorldClient::AmbienceTimeOfDay).
 #include "terrain.h"
 #include "terrain_sector.h"
 #include "game_singletons.h"
@@ -114,7 +114,7 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
 
 // Now and then (the class's chance) a one-shot of sound class `soundClass` (of `variants`) in a random sector
 // of the class (3x3 draws until one matches), somewhere within kSpotCells of that sector's offset.
-void PlayOneShot(CSoundManager* sounds, const Cell (&cells)[3][3], int soundClass, int variants, const std::string& set,
+void PlayOneShot(SoundManager* sounds, const Cell (&cells)[3][3], int soundClass, int variants, const std::string& set,
                  const Vector3& listener) {
     const AmbientSoundClass& sound = kAmbientSounds[soundClass];
     if (static_cast<int>(g_clientRandom.Next() % 100 + 1) > sound.chance) return;
@@ -140,7 +140,7 @@ void PlayOneShot(CSoundManager* sounds, const Cell (&cells)[3][3], int soundClas
 } // namespace
 
 void Terrain::PlayAmbience() {
-    CSoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds;
     Vector3 listener = {sounds->listener.x, sounds->listener.y, sounds->listener.z};
     Vector3 axis = {sounds->listenerAxis.x, sounds->listenerAxis.y, sounds->listenerAxis.z};
     int centreX = SectorOf(listener.x);

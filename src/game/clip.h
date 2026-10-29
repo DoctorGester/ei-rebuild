@@ -18,7 +18,7 @@ struct TLVertex {
 static_assert(sizeof(TLVertex) == 0x20);
 static_assert(offsetof(TLVertex, color) == 0x10);
 
-// A point's clip outcode: a bit per clip plane it is outside of (CTransformPipeline::ClipTest's corners, model.cpp).
+// A point's clip outcode: a bit per clip plane it is outside of (TransformPipeline::ClipTest's corners, model.cpp).
 // The transform's projections write a byte of six outside bits per vertex; which plane each is there is not read.
 enum class ClipOutcode : std::uint32_t {
     XLow = 0x1,     // X + W < 0

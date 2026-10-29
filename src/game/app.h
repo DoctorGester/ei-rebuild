@@ -11,7 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CDirectInputMouse;
+class DirectInputMouse;
 namespace app {
 
 // The application's globals: what the command line gave, the folder of the movie frames
@@ -22,7 +22,7 @@ extern std::string g_commandLineMap;
 extern std::string g_commandLineMob;
 extern std::string g_commandLineScript;
 extern std::string g_cameraFile;
-extern CDirectInputMouse* g_mouse;
+extern DirectInputMouse* g_mouse;
 
 // The application's flags and handles. The game window's title (from the string table), the
 // instance; the window's activation as the window procedure leaves it; whether the interface shows a screen

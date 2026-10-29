@@ -74,7 +74,7 @@ Vector3* DivideVector(Vector3* out, const Vector3& v, float d) {
 
 // --- Source setters -----------------------------------------------------------------------------
 
-void CParticleSource::ScaleSize(float factor) {
+void ParticleSource::ScaleSize(float factor) {
     spreadMin.x = factor * spreadMin.x;
     spreadMin.y = factor * spreadMin.y;
     spreadMin.z = factor * spreadMin.z;
@@ -87,11 +87,11 @@ void CParticleSource::ScaleSize(float factor) {
     emitSpacing = factor * emitSpacing;
 }
 
-void CParticleSource::StopEmitting() { flags = (flags & ~ParticleSourceFlag::Emitting) | ParticleSourceFlag::KeepAlive; }
+void ParticleSource::StopEmitting() { flags = (flags & ~ParticleSourceFlag::Emitting) | ParticleSourceFlag::KeepAlive; }
 
-void CParticleSource::StartEmitting() { flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive; }
+void ParticleSource::StartEmitting() { flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive; }
 
-void CParticleSource::Stop() {
+void ParticleSource::Stop() {
     flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     Attach(nullptr);
 }
@@ -100,7 +100,7 @@ void CParticleSource::Stop() {
 
 // Falling drops: move by the drift, scale the size, accelerate down to the terminal speed in
 // velocity.y (drift.z = max(drift.z + velocity.z, velocity.y)); dropped once below z = 0.
-int CParticleSource::UpdateFalling(Particle* p) {
+int ParticleSource::UpdateFalling(Particle* p) {
     EI_NAN_AUDIT(p->pos.z);
     if (p->pos.z < 0.0f) return 0;
     float terminal;
@@ -116,7 +116,7 @@ int CParticleSource::UpdateFalling(Particle* p) {
 
 // Clouds: cycle the texture frames; once the source stops emitting, raise the alpha byte (it wraps) until it is at
 // most 9, then drop the particle.
-int CParticleSource::UpdateCloud(Particle* p) {
+int ParticleSource::UpdateCloud(Particle* p) {
     if (--p->frameTimer == 0) {
         if (++p->frame >= frameCount) p->frame = 0;
         p->frameTimer = frameDelay;
@@ -133,7 +133,7 @@ int CParticleSource::UpdateCloud(Particle* p) {
 
 // Smoke puffs: rise and spread for the first two frames, then grow; past frame 7 they drift with
 // the wind and fire smoke dies (other smoke lives on, a quarter of the time each later frame).
-int CParticleSource::UpdateSmoke(Particle* p) {
+int ParticleSource::UpdateSmoke(Particle* p) {
     if (--p->life == 0) return 0;
     if (--p->frameTimer == 0) {
         int frame = ++p->frame;
@@ -170,7 +170,7 @@ int CParticleSource::UpdateSmoke(Particle* p) {
 
 // A new smoke puff: a random offset in the source's spread (smaller puffs, 40% of them, spread
 // wider), half of it applied at once, and a random height up to `height`.
-int CParticleSource::EmitSmoke(Particle* p, int) {
+int ParticleSource::EmitSmoke(Particle* p, int) {
     float extra = 0.0f;
     p->color = 0xFFFFFFFFu;
     p->life = lifetime;
@@ -205,7 +205,7 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
 
 // Nuke debris: fly up and fall back with growing opacity; on landing (falling below the source's
 // mid height) it turns to dust that spreads, grows and fades over 14 ticks.
-int CParticleSource::UpdateDebris(Particle* p) {
+int ParticleSource::UpdateDebris(Particle* p) {
     if (--p->life == 0) return 0;
     if (p->state != 0) {
         if (p->frame >= 14) return 0;
@@ -240,7 +240,7 @@ int CParticleSource::UpdateDebris(Particle* p) {
 // Orbiting particles (spheres, Antimagic): rotate the offset about z by element 1's tilt, flatten it onto the
 // plane through element 1's normal at element 0's distance, and place it around the source; the size follows a
 // curve over the lifetime.
-int CParticleSource::UpdateOrbit(Particle* p) {
+int ParticleSource::UpdateOrbit(Particle* p) {
     if (--p->life == 0) return 0;
     p->frame = (p->frame + 1) % frameCount;
     const ParticleElement* e = elements.data();
@@ -295,7 +295,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
 // --- Element updates ----------------------------------------------------------------------------
 
 // Nuke: halve the emission each tick (down to 8) and stop emitting after 13 ticks.
-void CParticleSource::TickNuke(ParticleElement* e) {
+void ParticleSource::TickNuke(ParticleElement* e) {
     ++e->ticks;
     if (emitCount > 8) emitCount = emitCount / 2;
     if (e->ticks == 13) flags &= ~ParticleSourceFlag::Emitting;
@@ -303,7 +303,7 @@ void CParticleSource::TickNuke(ParticleElement* e) {
 
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
 // the particle limit.
-void CParticleSource::TickTendril(ParticleElement*) {
+void ParticleSource::TickTendril(ParticleElement*) {
     int n = static_cast<int>(libcrt::Ftol(LengthXYZ(extent) * kTendrilDensity));
     emitCount = n;
     int count = n < 6 ? 6 : n;
@@ -313,7 +313,7 @@ void CParticleSource::TickTendril(ParticleElement*) {
 
 // Mushroom cloud: the cap widens with ln(ticks + 1) and rises; the Mushroom shakes the camera on
 // its first tick; emission stops after 30 ticks.
-void CParticleSource::TickMushroom(ParticleElement* e) {
+void ParticleSource::TickMushroom(ParticleElement* e) {
     if (ParticleTypeOf(type) == ParticleType::Mushroom && e->ticks == 0 && e == elements.data())
         g_camera.Shake(origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;

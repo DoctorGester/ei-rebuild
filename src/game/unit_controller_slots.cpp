@@ -1,7 +1,7 @@
-// Small virtuals of a unit's controllers: the abstract base (the server's CUnitServer and the client's
-// CUnitClientSpecific keep most of its empty slots), its lifetime and the client controller's small methods.
-// Slot names: see CUnitController in unit.h.
-#include "effects.h"   // CParticleSource
+// Small virtuals of a unit's controllers: the abstract base (the server's UnitServer and the client's
+// UnitClientSpecific keep most of its empty slots), its lifetime and the client controller's small methods.
+// Slot names: see UnitController in unit.h.
+#include "effects.h"   // ParticleSource
 #include "texture.h"   // CTexture
 #include "unit.h"
 #include "unit_client_models.h"
@@ -12,7 +12,7 @@ namespace {
 constexpr const char* kClientClassName = "CUnitClientSpecific";
 
 // A marker source stopped, released and forgotten.
-void DropMarker(CParticleSource*& marker) {
+void DropMarker(ParticleSource*& marker) {
     if (!marker) return;
     marker->StopAndClear();
     marker->Release();
@@ -22,33 +22,33 @@ void DropMarker(CParticleSource*& marker) {
 
 // --- The base controller's lifetime -----------------------------------------------------------------
 
-CUnitController::~CUnitController() { unit = nullptr; }
+UnitController::~UnitController() { unit = nullptr; }
 
-void CUnitController::Create() {
+void UnitController::Create() {
     unit = nullptr;
 }
-void CUnitController::Destroy() { unit = nullptr; }
+void UnitController::Destroy() { unit = nullptr; }
 
 // --- The base controller's empty slots ---------------------------------------------------------------
 // The server's and the client's vtables share them as listed.
 
-int CUnitController::FiguresLoaded() { return 1; }
+int UnitController::FiguresLoaded() { return 1; }
 
 // The client's too.
-void CUnitController::RefreshVitals(bool) {}
-bool CUnitController::Heal(float) { return false; }
+void UnitController::RefreshVitals(bool) {}
+bool UnitController::Heal(float) { return false; }
 
-bool CUnitController::TakeHit(DamageInfo*, CUnit*, CUnit*) { return false; }
+bool UnitController::TakeHit(DamageInfo*, CUnit*, CUnit*) { return false; }
 
-bool CUnitController::WeaponAdded(std::uint32_t) { return false; }
-bool CUnitController::RemoveWeaponModel(std::uint32_t) { return false; }
+bool UnitController::WeaponAdded(std::uint32_t) { return false; }
+bool UnitController::RemoveWeaponModel(std::uint32_t) { return false; }
 
 // --- The client controller -------------------------------------------------------------------------------
 
-const char* CUnitClientSpecific::ClassName() { return kClientClassName; }
-ClassId CUnitClientSpecific::GetClassId() { return ClassId::UnitClientSpecific; }
+const char* UnitClientSpecific::ClassName() { return kClientClassName; }
+ClassId UnitClientSpecific::GetClassId() { return ClassId::UnitClientSpecific; }
 
-void CUnitClientSpecific::SetMarkers(CParticleSource* path, CParticleSource* marker) {
+void UnitClientSpecific::SetMarkers(ParticleSource* path, ParticleSource* marker) {
     DropMarker(sources[1]);
     DropMarker(sources[2]);
     if (path) {
@@ -61,7 +61,7 @@ void CUnitClientSpecific::SetMarkers(CParticleSource* path, CParticleSource* mar
     }
 }
 
-void CUnitClientSpecific::DropFaceTexture() {
+void UnitClientSpecific::DropFaceTexture() {
     faceTexture.Reset();
     blinks = 0;
 }

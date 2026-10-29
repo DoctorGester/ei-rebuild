@@ -13,7 +13,7 @@
 namespace {
 
 // The stream's format version, compared signed.
-int VersionOf(const CStream* stream) { return static_cast<int>(stream->version); }
+int VersionOf(const ByteStream* stream) { return static_cast<int>(stream->version); }
 
 // The growing buffer's Seek when it has to grow.
 inline void BufferSeek(GrowingBuffer* buffer, int at) { buffer->Grow(static_cast<std::uint32_t>(at)); }
@@ -49,7 +49,7 @@ struct LocalBuffer {
 
 } // namespace
 
-void SaveFileWrite(CStream* file, unsigned magic, CMemoryStream* data) {
+void SaveFileWrite(ByteStream* file, unsigned magic, MemoryStream* data) {
     CoderState coder;
     // A view over the data (flags 2).
     std::uint8_t* begin = data->data.data();
@@ -92,7 +92,7 @@ void SaveFileWrite(CStream* file, unsigned magic, CMemoryStream* data) {
     }
 }
 
-bool SaveFileRead(CMemoryStream* out, unsigned magic, CStream* file) {
+bool SaveFileRead(MemoryStream* out, unsigned magic, ByteStream* file) {
     if (!file->ReadHeader(magic, kSaveVersion, kSaveOldestVersion)) return false;
     if (VersionOf(file) <= kSaveLastUncompressedVersion) {
         int start = static_cast<int>(file->Position());

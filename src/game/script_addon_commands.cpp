@@ -37,7 +37,7 @@ namespace {
 
 const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
 const char* Text(Call* call, int i) { return call->cmd->stringArgs[i].c_str(); }
-CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
+EngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
 
 // The float bits of `value` as the dword the player messages take.
 std::uint32_t Bits(float value) {
@@ -50,7 +50,7 @@ std::uint32_t Bits(float value) {
 bool Equals(float constant, float value) { return constant == value; }
 
 // The server-side object of player 0 (game over), or null.
-CPlayerServer* FirstPlayerState() {
+PlayerServer* FirstPlayerState() {
     CPlayer* player = g_serverWorld.GetPlayer(0);
     return player ? player->Server() : nullptr;
 }
@@ -120,7 +120,7 @@ bool GiveUnitExp(Call* call) {
     data->AddExperience(Floats(call)[0]);
     CUnit* unit = data->unit;
     if (auto* party = unit->player)
-        if (CPlayerServer* state = party->Server())
+        if (PlayerServer* state = party->Server())
             state->SendPair18(static_cast<std::uint32_t>(unit->id), Bits(Floats(call)[0]));
     return true;
 }
@@ -161,7 +161,7 @@ bool Loot(Call* call) {
     int number = Ftol(Floats(call)[0]);
     CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("Loot", "There is no player with number %d", number);
-    CEngineObject* object = ObjectArg(call, 0);
+    EngineObject* object = ObjectArg(call, 0);
     if (!object) return Report("Loot", "Object doesn't exist");
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("Loot", "Object must be a unit");
@@ -173,12 +173,12 @@ bool Loot(Call* call) {
 
 // GameOver / GameOverMSG(title, text): the "gameover" string event to player 0's client.
 bool GameOver(Call*) {
-    if (CPlayerServer* state = FirstPlayerState()) state->SendText13("gameover");
+    if (PlayerServer* state = FirstPlayerState()) state->SendText13("gameover");
     return true;
 }
 
 bool GameOverMsg(Call* call) {
-    if (CPlayerServer* state = FirstPlayerState()) {
+    if (PlayerServer* state = FirstPlayerState()) {
         std::string text = std::string("gameover ") + Text(call, 0) + " " + Text(call, 1);
         state->SendText13(text);
     }
@@ -218,7 +218,7 @@ bool GSListPlayerVars(Call* call) {
 // GiveUnitWeapon(unit, item, override) / GiveUnitArmor: the item made from its name goes to the
 // unit; with override 1 (only for units without a text-key id) the unit's stats are set from it.
 bool GiveUnitWeapon(Call* call) {
-    CEngineObject* object = ObjectArg(call, 0);
+    EngineObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
     if (!object) return Report("GiveUnitWeapon", "Unit doesn't exists");
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
@@ -257,13 +257,13 @@ bool GiveUnitWeapon(Call* call) {
 // 1, 3 and 6 second block) + 0.3 * (armour slots 2, 4, 5), each plus the prototype's protection
 // scale, into both halves of the unit's server-side protection pair c.
 bool GiveUnitArmor(Call* call) {
-    CEngineObject* object = ObjectArg(call, 0);
+    EngineObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
     if (!object) return Report("GiveUnitArmor", "Unit doesn't exists");
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", object->id);
     const char* name = Text(call, 0);
-    CItem* item = g_serverWorld.CreateItemNamed(name);
+    Item* item = g_serverWorld.CreateItemNamed(name);
     if (override && unit->id >= 1000000000) override = false;
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
     unit->EquipArmour(item);
@@ -277,7 +277,7 @@ bool GiveUnitArmor(Call* call) {
             for (int c = 0; c < 7; ++c) blocks[block][c] = from[c] + blocks[block][c];
         };
         for (int slot = 0; slot < 7; ++slot) {
-            CItemArmor* equipped = unit->armor[slot];
+            ItemArmor* equipped = unit->armor[slot];
             if (!equipped) continue;
             switch (slot) {
             case 0: addInto(0, equipped->absorb[0]); break;

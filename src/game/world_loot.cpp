@@ -1,4 +1,4 @@
-// CWorldServer::Loot: a player takes what a dead body or a container holds. See
+// WorldServer::Loot: a player takes what a dead body or a container holds. See
 // world.h and docs/notes/world.md.
 #include "unit.h"
 #include "world.h"
@@ -21,9 +21,9 @@ namespace {
 
 } // namespace
 
-bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
-    std::list<CItem*> items;
-    std::list<CItem*> second;
+bool WorldServer::Loot(CUnit* unit, CPlayer* player) {
+    std::list<Item*> items;
+    std::list<Item*> second;
     int gold;
     // The early returns empty the lists without their destructors' bookkeeping; the others destroy them.
     auto abandon = [&]() {
@@ -51,7 +51,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
             return false;
         }
         // The entry's references go with the items (the original frees the node without releasing them).
-        for (HeldRef<CItem>& item : node->objects) items.push_back(item.Take());
+        for (HeldRef<Item>& item : node->objects) items.push_back(item.Take());
         player->Party()->money += static_cast<int>(node->money);
         player->GiveItems(&items, 0);
         list.erase(node);
@@ -76,10 +76,10 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
             }
         }
         if (first) {
-            std::list<CItem*> quest;
+            std::list<Item*> quest;
             for (auto node = items.begin(); node != items.end();) {
                 auto next = std::next(node);
-                CItem* item = *node;
+                Item* item = *node;
                 if (item->GetClassId() == ClassId::ItemQuest) {
                     quest.push_back(item);
                     items.erase(node);
@@ -87,13 +87,13 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
                 node = next;
             }
             if (!quest.empty()) first->GiveItems(&quest, 0);
-            for (CItem* item : quest)
+            for (Item* item : quest)
                 item->Release();
         }
     }
     player->Party()->money += gold;
     player->GiveItems(&items, 0);
-    for (CItem* item : items)
+    for (Item* item : items)
         item->Release();
     bool found = !items.empty() || gold > 0;
     destroy();
@@ -102,7 +102,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
 
 // ---- LootDeadUnits ----------------------------------------------------------------------------
 
-void CWorldServer::LootDeadUnits() {
+void WorldServer::LootDeadUnits() {
     // The walk starts before the player is looked up; unlike most walks it does not stop at an empty entry.
     auto node = objects.map.begin();
     CPlayer* local = nullptr;
@@ -118,7 +118,7 @@ void CWorldServer::LootDeadUnits() {
 
     std::list<unsigned> dead;
     for (; node != objects.map.end(); ++node) {
-        CEngineObject* object = node->second;
+        EngineObject* object = node->second;
         CUnit* unit = UnitOrNull(object);   // no null test here: the map holds no null
         if (unit && unit->IsDead()) {
             g_serverWorld.Loot(unit, local);

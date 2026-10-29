@@ -43,7 +43,7 @@ struct TexCoord {
 };
 static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
 
-// What the renderer draws from (CFigureMesh::buffers): pointers and counts of the mesh's arrays (type 0x41
+// What the renderer draws from (FigureMesh::buffers): pointers and counts of the mesh's arrays (type 0x41
 // points the last four into the loaded file data instead).
 struct MeshBuffers {
     VertexPacket* vertices;
@@ -61,20 +61,20 @@ struct MeshBuffers {
 };
 
 class CObject3D;
-class CFigureMesh;
+class FigureMesh;
 
 struct FigureMeshDrawer;
 // The flags an animated mesh's drawer gets on top of its own (figure_part_draw*.cpp).
 inline constexpr std::uint32_t kAnimatedDrawerFlags = /*00790C0C*/ 0x200;
 
-// The material a figure part is drawn with (the draw's fourth argument) is a CMaterial: MaterialFlag::KeepSpecular
+// The material a figure part is drawn with (the draw's fourth argument) is a Material: MaterialFlag::KeepSpecular
 // keeps the speculars (draw flag 8), the lights scale colors.diffuse / colors.specular
 // (CLight::SetLitColors) and the GPU lighting adds colors.emissive (render::MeshLighting).
-class CMaterial;
+class Material;
 
 class CLight;
 
-// The bits of CEngineObject::flags on a figure mesh (a part of an object's figure).
+// The bits of EngineObject::flags on a figure mesh (a part of an object's figure).
 enum class FigureMeshFlag : std::uint32_t {
     Stationary = 0x8,   // a part of a non-unit object's figure (CObject3D::LoadFigures, the client's figure creation);
                         // nothing reads it
@@ -88,8 +88,8 @@ enum class FigureMeshFlag : std::uint32_t {
 template <> inline constexpr bool lib::kBitFlags<FigureMeshFlag> = true;
 
 // The figure meshes' base ("CFigure"): the parts of an object's figure (CObject3D::parts). Derived (by the figure manager's type): 0x41
-// CSharedFigureMesh, 0x42 CPlainFigureMesh, 0x43 CUiMesh (ui.h), 0x44 CSkyObject (sky_object.h).
-class CFigureMesh : public CTransformObject {
+// SharedFigureMesh, 0x42 PlainFigureMesh, 0x43 UiMesh (ui.h), 0x44 SkyObject (sky_object.h).
+class FigureMesh : public TransformObject {
 public:
     void Create() override;                 // CreateMesh (the derived classes' Create jumps to it)
     void Destroy() override;               // Clear
@@ -101,11 +101,11 @@ public:
     void UpdateWorld(const Quaternion& rotation, const Vector3& offset) override;
     // Writes the mesh to a file: the name (length then characters), each buffer
     // (buffers) as a count and its elements, a 0, then centre, box, radius and two trailing dwords.
-    // CPlainFigureMesh::LoadTransform reads it back.
+    // PlainFigureMesh::LoadTransform reads it back.
     void SaveTransform(lib::File* file) override;
     // Copies another mesh's transform, name, the shared buffer descriptors (texture coordinates, corners,
     // words, indices) and the bounds.
-    virtual void CopyFigure(const CFigureMesh* other);
+    virtual void CopyFigure(const FigureMesh* other);
     // Loads the mesh from memory at *cursor once (FigureMeshFlag::Loaded set afterwards): data whose first dword starts
     // with "FIG" through LoadFig, other data through LoadOld.
     virtual void LoadFromMemory(char** cursor);
@@ -144,11 +144,11 @@ public:
     void Clear();
     // Lets the old drawer go (released) and takes `drawer` (one more reference, its mesh set).
     void SetDrawer(FigureMeshDrawer* drawer);
-    void SetObject(CTransformObject* owner);
+    void SetObject(TransformObject* owner);
 
 protected:
-    CFigureMesh();
-    ~CFigureMesh() override;
+    FigureMesh();
+    ~FigureMesh() override;
 
 private:
     void SetUpFigure();
@@ -156,14 +156,14 @@ private:
 
 public:
 
-    // CEngineObject: flags the FigureMeshFlag bits; type the figure manager's type (0x41-0x44; the class id is
-    // ClassId::FigureMesh). CTransformObject: localPosition relative to the object (a bone places it),
+    // EngineObject: flags the FigureMeshFlag bits; type the figure manager's type (0x41-0x44; the class id is
+    // ClassId::FigureMesh). TransformObject: localPosition relative to the object (a bone places it),
     // worldPosition UpdateWorld's moved position, localRotation and worldRotation.
     // The part -> object matrix: the rotation, the local position as column 3 (the draws build it,
     // ObjectWorldMatrix in map_object_shadow.h).
     Matrix4 worldMatrix;
     FigureMeshDrawer* drawer;
-    CTransformObject* object;           // the owner whose figure may draw the mesh: a CObject3D, or an interface window (CUiWindow)
+    TransformObject* object;           // the owner whose figure may draw the mesh: a CObject3D, or an interface window (UiWindow)
     MeshBuffers buffers;
     // passed to the draws after the buffers (as their bits): the texture offset (u, v) an animated mesh's
     // drawer sets per frame (FigureMeshDrawer::Animate); an interface sprite's frame of its sprite sheet.
@@ -198,28 +198,28 @@ public:
 
 // Figure type 0x41: a part whose last four buffers point into the loaded file data (the figure manager's parts that
 // are not attached).
-class CSharedFigureMesh : public CFigureMesh {
+class SharedFigureMesh : public FigureMesh {
 public:
-    CSharedFigureMesh();
-    ~CSharedFigureMesh() override;
+    SharedFigureMesh();
+    ~SharedFigureMesh() override;
 
-    // Clear: the vertices and normals emptied, then CFigureMesh's Clear.
+    // Clear: the vertices and normals emptied, then FigureMesh's Clear.
     void Destroy() override;
-    // The FIG loader. CPlainFigureMesh's, but only the vertices and records are copied; the other
+    // The FIG loader. PlainFigureMesh's, but only the vertices and records are copied; the other
     // buffers point into the file data.
     void LoadFig(char** cursor) override;
-    // The older-format loader. CPlainFigureMesh's, the last four buffers pointing into the data.
+    // The older-format loader. PlainFigureMesh's, the last four buffers pointing into the data.
     void LoadOld(char** cursor) override;
 };
 
-// Figure type 0x42: a mesh that owns all its arrays (the figure manager's attached parts). CUiMesh (type 0x43, class id
-// 0x46, ui.h) and CSkyObject (type 0x44, class id 0x20, sky_object.h) derive from it.
-class CPlainFigureMesh : public CFigureMesh {
+// Figure type 0x42: a mesh that owns all its arrays (the figure manager's attached parts). UiMesh (type 0x43, class id
+// 0x46, ui.h) and SkyObject (type 0x44, class id 0x20, sky_object.h) derive from it.
+class PlainFigureMesh : public FigureMesh {
 public:
-    CPlainFigureMesh();
-    ~CPlainFigureMesh() override;
+    PlainFigureMesh();
+    ~PlainFigureMesh() override;
 
-    // Clear: the mesh's own arrays emptied, then CFigureMesh's Clear.
+    // Clear: the mesh's own arrays emptied, then FigureMesh's Clear.
     void Destroy() override;
     void LoadTransform(lib::File* file) override;
     // Loads a "FIG" mesh from memory at *cursor (advanced past it), the first of FIG8's 8 versions of every vertex; once only (flag

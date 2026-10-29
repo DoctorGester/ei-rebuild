@@ -1,4 +1,4 @@
-// The map database loader: CMapDatabase's allods, maps and exits (object_tables.h) filled from map.txt / map-
+// The map database loader: MapDatabase's allods, maps and exits (object_tables.h) filled from map.txt / map-
 // LMP.txt.
 // More: docs/notes/comments-c22i.md, "map_database.cpp".
 #include "angles.h"
@@ -32,7 +32,7 @@ bool Is(const char* word, const char* text) {
 
 class Loader {
 public:
-    Loader(CMapDatabase* newDb, CTextManager* newReader) : db(newDb), reader(newReader), map(static_cast<int>(newDb->maps.size()) - 1) {}
+    Loader(MapDatabase* newDb, TextManager* newReader) : db(newDb), reader(newReader), map(static_cast<int>(newDb->maps.size()) - 1) {}
 
     void Line();
 
@@ -49,8 +49,8 @@ private:
     void AddExit();
     void ExitLine(const char* word);
 
-    CMapDatabase* db;
-    CTextManager* reader;
+    MapDatabase* db;
+    TextManager* reader;
     int map;           // the current map (starts at the last one already loaded)
     int exit = -1;     // the current exit of the current map
     std::vector<std::string> words;
@@ -201,9 +201,9 @@ void Loader::Line() {
 } // namespace
 } // namespace mapdb
 
-bool CMapDatabase::Load(const char* fileName) {
+bool MapDatabase::Load(const char* fileName) {
     using namespace mapdb;
-    CTextManager* reader = g_clientWorld.texts;
+    TextManager* reader = g_clientWorld.texts;
     Loader loader(this, reader);
     if (!reader->Open(fileName)) return false;
     while (reader->FindHeader()) loader.Line();
@@ -212,10 +212,10 @@ bool CMapDatabase::Load(const char* fileName) {
 }
 
 // The map database file names ("map.txt", "map-LMP.txt").
-bool CMapDatabase::LoadAll() {
+bool MapDatabase::LoadAll() {
     Load("map.txt");
     return Load("map-LMP.txt");
 }
 
 // The map database (a plain global: the C++ runtime builds it empty and destroys it).
-CMapDatabase g_mapDatabase;
+MapDatabase g_mapDatabase;

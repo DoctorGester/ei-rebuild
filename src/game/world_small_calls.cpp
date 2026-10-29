@@ -8,29 +8,29 @@
 #include "model.h"
 #include "texture.h"
 
-CTexture* CWorldClient::NewTexture(int textureType) {
+CTexture* WorldClient::NewTexture(int textureType) {
     if (!textureManager) return nullptr;
     return textureManager->NewTextureOfType(textureType);
 }
 
-CMaterial* CWorldClient::NewMaterial(int materialType) {
+Material* WorldClient::NewMaterial(int materialType) {
     if (!materialManager) return nullptr;
     return materialManager->NewMaterial(materialType);
 }
 
-void CWorldClient::SetCamera(CCamera* newCamera) {
+void WorldClient::SetCamera(Camera* newCamera) {
     if (camera) --camera->refCount;
     camera = newCamera;
     if (newCamera) newCamera->AddRef();
 }
 
-void CWorldClient::SetWorldValue(int value) { worldValue = value; }
+void WorldClient::SetWorldValue(int value) { worldValue = value; }
 
-int CWorldClient::ReadWaterLevels(CStream* stream) {
+int WorldClient::ReadWaterLevels(ByteStream* stream) {
     countdowns.Load(stream, terrain);
     return 1;
 }
 
-void CWorldServer::SetWaterLevel(int key, float target, int steps) {
+void WorldServer::SetWaterLevel(int key, float target, int steps) {
     countdowns.SetTarget(key, target, steps);
 }

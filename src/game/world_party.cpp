@@ -1,4 +1,4 @@
-// CWorldServer: the party arriving in a zone (Redeploy) and the quest items it brings back. See world.h and
+// WorldServer: the party arriving in a zone (Redeploy) and the quest items it brings back. See world.h and
 // docs/notes/world.md.
 #include "item_manager.h"
 #include "script.h"
@@ -43,7 +43,7 @@ const MapRecord* FindZone(const std::string& name) {
 }
 
 // AddTail through the game's out-of-line NewNode.
-void AddTail(std::list<CItem*>& list, CItem* object) {
+void AddTail(std::list<Item*>& list, Item* object) {
     auto node = list.emplace(list.end());
     *node = object;
 }
@@ -62,10 +62,10 @@ bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     return found;
 }
 
-CItem* ItemAt(const std::vector<CItem*>* items, int i) { return (*items)[i]; }
+Item* ItemAt(const std::vector<Item*>* items, int i) { return (*items)[i]; }
 
 // Appends to the list: the list holds a reference.
-void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
+void AddCountedTail(std::list<EngineObject*>* list, EngineObject* object) {
     if (object) object->AddRef();
     list->push_back(object);
 }
@@ -73,7 +73,7 @@ void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
 
 } // namespace
 
-void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CItem*>* list) {
+void WorldServer::TakeZoneQuestItems(std::vector<Item*>* items, std::list<Item*>* list) {
     // The quest ids this zone's objects ask for, each once.
     std::vector<int> wanted{};
     for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node) {
@@ -87,7 +87,7 @@ void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CIte
     // description names this zone or whose id an object asks for; otherwise all of them.
     for (int i = 0; i < std::ssize(*items); ++i) {
         if (ItemAt(items, i)->GetClassId() != ClassId::ItemQuest) continue;
-        CItem* item = ItemAt(items, i);
+        Item* item = ItemAt(items, i);
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
         if (sessionKind == kKindSinglePlayer && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName.c_str());
@@ -99,10 +99,10 @@ void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CIte
     }
 }
 
-void CWorldServer::RestorePlayerItems(CPlayer* player) {
-    std::list<CItem*> taken;
+void WorldServer::RestorePlayerItems(CPlayer* player) {
+    std::list<Item*> taken;
     if (sessionKind != kKindNetwork) {
-        std::vector<CItem*>* items = &player->Party()->items;
+        std::vector<Item*>* items = &player->Party()->items;
         if (IsMultiplayerClient()) {
             // A client takes everything back.
             for (int i = 0; i < std::ssize(*items); ++i) AddTail(taken, ItemAt(items, i));
@@ -115,9 +115,9 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
             // one is released.
             for (auto node = taken.begin(); node != taken.end();) {
                 auto next = std::next(node);
-                CItem* item = *node;
-                std::list<CItem*> one;
-                CItem* fresh = DuplicateItem(item);
+                Item* item = *node;
+                std::list<Item*> one;
+                Item* fresh = DuplicateItem(item);
                 fresh->count = item->count;
                 AddTail(one, fresh);
                 player->GiveItems(&one, 0);
@@ -131,7 +131,7 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
     taken.clear();
 }
 
-void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placements, char runScripts) {
+void WorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placements, char runScripts) {
     if (!player) return;
     RestorePlayerItems(player);
     if (!(sessionKind == kKindSinglePlayer || sessionKind == kKindNoRangeTest) || zoneLoaded == 0) return;
@@ -176,7 +176,7 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
 
     CreateUnits(player, &records, start, rotation, placements);
     if (placements) placements->clear();
-    CPlayerServer* state = player->Server();
+    PlayerServer* state = player->Server();
     std::uint32_t lastZ;
     lastZ = std::bit_cast<std::uint32_t>(state->lastPosition.z);
     if (lastZ != kNoStart) {
@@ -193,12 +193,12 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
 
 // ---- CopyItem ---------------------------------------------------------------------------------
 
-CItem* CWorldServer::CopyItem(CItem* source) {
+Item* WorldServer::CopyItem(Item* source) {
     // The game also builds and frees two empty CPtrLists here, unused.
     std::uint32_t packed = source->prototypeId;
     ItemKind itemKind = source->Kind();
-    CItemManager* factory = ItemFactory();
-    CItem* copy = factory->MakeItem(itemKind, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF));
+    ItemManager* factory = ItemFactory();
+    Item* copy = factory->MakeItem(itemKind, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF));
     source->CopyTo(copy, SpellManager());
     copy->charge = source->charge;
     // An item below its maximum is kept on the counted list (once).
@@ -211,24 +211,24 @@ CItem* CWorldServer::CopyItem(CItem* source) {
 // ---- Items and spells by name -------------------------------------------------------------------
 
 // As in CopyItem, the game also builds and frees two empty CPtrLists around the call.
-CItem* CWorldServer::CreateItemNamed(const char* name) { return g_serverWorld.itemManager->CreateItem(name); }
+Item* WorldServer::CreateItemNamed(const char* name) { return g_serverWorld.itemManager->CreateItem(name); }
 
-CItem* CWorldServer::CreateSpellNamed(const char* name) {
-    CItemManager* manager = g_serverWorld.itemManager;    // read first
+Item* WorldServer::CreateSpellNamed(const char* name) {
+    ItemManager* manager = g_serverWorld.itemManager;    // read first
     return manager->CreateSpellItem(name, SpellManager());
 }
 
-void CWorldServer::AddCounted(CEngineObject* item) {
+void WorldServer::AddCounted(EngineObject* item) {
     if (!item || lib::Contains(counted, item)) return;
     AddCountedTail(&counted, item);
 }
 
-void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
+void WorldServer::UseItemUp(CUnit* unit, Item* item) {
     if (unit->player) {
-        if (CItemLink* link = item->ServerLink()) {
+        if (ItemLink* link = item->ServerLink()) {
             CParty* party = unit->player->Party();
             if (party->Find(unit->id)) {
-                CItem* source = FindItem(party->ItemFactory(), link->value);
+                Item* source = FindItem(party->ItemFactory(), link->value);
                 if (source) --source->count;
             }
         }

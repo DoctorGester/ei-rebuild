@@ -32,7 +32,7 @@ constexpr float kHoldRepeat = 0.25f;
 
 // --- The scroll positions clamped ----------------------------------------------------------------------
 
-void CTradePanel::ClampScroll() {
+void TradePanel::ClampScroll() {
     if (perkTop > static_cast<int>(perks.size()) - kHeldRows) perkTop = static_cast<int>(perks.size()) - kHeldRows;
     if (perkTop < 0) perkTop = 0;
     if (learnableTop > static_cast<int>(learnable.size()) - kLearnableRows) learnableTop = static_cast<int>(learnable.size()) - kLearnableRows;
@@ -46,7 +46,7 @@ void CTradePanel::ClampScroll() {
 
 // --- The left button (input click) ---------------------------------------------------------------------
 
-void CTradePanel::LeftDown(int, int x, int y) {
+void TradePanel::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
     switch (region) {
     case kHeldUp: --perkTop; ClampScroll(); return;
@@ -97,7 +97,7 @@ void CTradePanel::LeftDown(int, int x, int y) {
 
 // --- The left button released (input release) -----------------------------------------------------------
 
-void CTradePanel::LeftUp(int, int, int) {
+void TradePanel::LeftUp(int, int, int) {
     ui->mouseCapture = nullptr;
     heldRegion = -1;
     holdTime = 0.0f;
@@ -105,10 +105,10 @@ void CTradePanel::LeftUp(int, int, int) {
 
 // --- The held school / science button (update) ---------------------------------------------------------
 
-void CTradePanel::Update() {
+void TradePanel::Update() {
     if (heldRegion < 0) return;
     // The comparison uses the unrounded sum; the field keeps it rounded.
-    double held = CUiContainer::FrameTime() + holdTime;
+    double held = UiContainer::FrameTime() + holdTime;
     holdTime = static_cast<float>(held);
     EI_NAN_AUDIT(held);
     if (held < kHoldRepeat) return;

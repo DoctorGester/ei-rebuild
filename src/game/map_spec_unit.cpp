@@ -60,8 +60,8 @@ std::uint32_t Bits(float f) {
 
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
-void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data, size); }
-void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
+void StreamRead(ByteStream* stream, void* data, unsigned size) { stream->Read(data, size); }
+void StreamWrite(ByteStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
 
 } // namespace
 
@@ -265,7 +265,7 @@ void UnitSpec::OnChunk() {
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
 
 // The count, the array sized to it, then the raw waypoints.
-void WaypointsRead(std::vector<Waypoint>* a, CStream* stream) {
+void WaypointsRead(std::vector<Waypoint>* a, ByteStream* stream) {
     int n;
     StreamRead(stream, &n, 4);
     a->resize(n);
@@ -273,7 +273,7 @@ void WaypointsRead(std::vector<Waypoint>* a, CStream* stream) {
 }
 
 // The count, then the raw waypoints.
-void WaypointsWrite(const std::vector<Waypoint>* a, CStream* stream) {
+void WaypointsWrite(const std::vector<Waypoint>* a, ByteStream* stream) {
     int n = static_cast<int>(a->size());
     StreamWrite(stream, &n, 4);
     for (const Waypoint& w : *a) StreamWrite(stream, &w, sizeof(Waypoint));
@@ -281,7 +281,7 @@ void WaypointsWrite(const std::vector<Waypoint>* a, CStream* stream) {
 
 // The record from a stream. Files before version 0x53 have no alarm level: it follows
 // from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). unreadChunk is not stored.
-void Behaviour::Read(CStream* stream) {
+void Behaviour::Read(ByteStream* stream) {
     StreamRead(stream, &type, 4);
     int n;
     StreamRead(stream, &n, 4);
@@ -312,7 +312,7 @@ void Behaviour::Read(CStream* stream) {
 }
 
 // The record to a stream (the same fields).
-void Behaviour::Write(CStream* stream) const {
+void Behaviour::Write(ByteStream* stream) const {
     StreamWrite(stream, &type, 4);
     int n = std::ssize(patrols);
     StreamWrite(stream, &n, 4);

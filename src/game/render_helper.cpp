@@ -1,4 +1,4 @@
-// The renderer's helper object (CRenderHelper, model.h: the material presets): its constructor with the nine built-in
+// The renderer's helper object (RenderHelper, model.h: the material presets): its constructor with the nine built-in
 // presets' state lists and its destructor, and its preset (the passes it sets in the renderer's render state). See
 // docs/notes/renderer.md (sections 5 and 12).
 #include "model.h"
@@ -10,7 +10,7 @@
 
 namespace {
 
-using State = CRenderPreset::State;
+using State = RenderPreset::State;
 
 // A texture stage: the colour is `operation` of `argument` and the stage before, the alpha is switched off.
 // The new elements are filled from an uninitialised local with only the two flags cleared and then writes the
@@ -87,21 +87,21 @@ std::vector<State> BuiltInStates(unsigned index) {
 // is a pass of its own. (The game took as many stages as the Direct3D device had and checked their operations
 // against its capabilities; the presets have at most three states, and the device the game ran on (dgVoodoo's) had
 // eight stages and every operation.)
-void CRenderHelper::Record(const std::vector<State>& states, unsigned index, bool singleStage) {
+void RenderHelper::Record(const std::vector<State>& states, unsigned index, bool singleStage) {
     const int count = static_cast<int>(states.size());
     const int stages = singleStage && count > 1 ? 1 : count;
-    auto* preset = new CRenderPreset(states, stages);
+    auto* preset = new RenderPreset(states, stages);
     preset->AddRef();
     presets[index] = preset;
 }
 
-CRenderHelper::CRenderHelper(std::uint32_t flag) {
+RenderHelper::RenderHelper(std::uint32_t flag) {
     for (unsigned index = 0; index < kPresetCount; ++index)
         Record(BuiltInStates(index), index, static_cast<std::uint8_t>(flag) != 0);
 }
 
-CRenderHelper::~CRenderHelper() {
-    for (CRenderPreset*& preset : presets) {
+RenderHelper::~RenderHelper() {
+    for (RenderPreset*& preset : presets) {
         if (preset) preset->Release();
         preset = nullptr;
     }
@@ -110,7 +110,7 @@ CRenderHelper::~CRenderHelper() {
 // ---- The preset -------------------------------------------------------------------------------------
 
 // The renderer draws with two texture stages: what the first pass sets on later ones is not kept.
-void CRenderPreset::ApplyPass(int pass) const {
+void RenderPreset::ApplyPass(int pass) const {
     render::RenderState& state = render::g_renderState;
     constexpr int kStages = static_cast<int>(std::size(state.stages));
     if (pass == 0) {

@@ -109,8 +109,8 @@ int CTextureManager::LoadTexture(CTexture* texture) {
     return 1;
 }
 
-void CTextureManager::SetDevice(CTextureDevice* newDevice) {
-    CTextureDevice* old = device;
+void CTextureManager::SetDevice(TextureDevice* newDevice) {
+    TextureDevice* old = device;
     device = newDevice;
     if (newDevice) newDevice->AddRef();
     if (old) old->Release();
@@ -128,7 +128,7 @@ void CTextureManager::SetDevice(CTextureDevice* newDevice) {
     limitTo512 = 0;    // (the game set 1 for a card whose textures were at most 256 pixels wide or high)
 }
 
-CEngineObject* CTextureManager::NewObject(int textureType) {
+EngineObject* CTextureManager::NewObject(int textureType) {
     auto* texture = new CTexture();
     texture->type = textureType;
     return texture;

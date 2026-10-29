@@ -23,11 +23,11 @@ int LineBatch::AddPoint(const float* point) {
     return count;
 }
 
-int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
+int LineBatch::Draw(TransformPipeline* pipeline, TextureDevice* device) {
     std::vector<Vector4>& projected = g_lineProjected;
     projected.resize(std::ssize(packets) * 4);
     g_lineOutcodes.resize(std::ssize(packets) * 4);
-    int visibility = pipeline->ProjectClipped(*pipeline->Top(CTransformPipeline::kClipStack), packets.data(),
+    int visibility = pipeline->ProjectClipped(*pipeline->Top(TransformPipeline::kClipStack), packets.data(),
                                               projected.data(), g_lineOutcodes.data(), std::ssize(packets));
     if (visibility == 0) {
         const ProjectedPoints points{projected.data(), std::ssize(projected)};

@@ -3,8 +3,8 @@
 // corners lie 0.3 above the given point, in the plane of the unit's x and y axes; the device's
 // flat geometry draw projects them with the scene's matrices. See docs/notes/renderer.md.
 #include "figure_mesh.h"   // VertexPacket
-#include "model.h"         // CSceneRenderer
-#include "texture.h"       // CTextureDevice
+#include "model.h"         // SceneRenderer
+#include "texture.h"       // TextureDevice
 
 #include "lib/vecmath.h"
 
@@ -39,7 +39,7 @@ void SetVertex(VertexPacket* blocks, int index, float x, float y, float z) {
 
 } // namespace
 
-int CSceneRenderer::DrawSelectionMarker(const Vector3& point, float size, const Vector3& axisX, const Vector3& axisY) {
+int SceneRenderer::DrawSelectionMarker(const Vector3& point, float size, const Vector3& axisX, const Vector3& axisY) {
     const Vector3& p = point;
     const Vector3& x = axisX;
     const Vector3& y = axisY;

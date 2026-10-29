@@ -20,7 +20,7 @@ struct ScriptErrorInfo {
     int line;
 };
 
-// The console's script command. Loads `text` into the command script (CScript::Load with the WorldScript
+// The console's script command. Loads `text` into the command script (Script::Load with the WorldScript
 // started), runs it when it loaded and `run` is set (ScriptTick), and copies the script's last error into
 // `error` when given. Returns Load's result.
 int RunScriptText(const std::string& text, char run, ScriptErrorInfo* error);
@@ -37,10 +37,10 @@ void StoreStartFolder();
 // ---- The rest of the glue. `this` is never read. ---------------------
 #include <vector>
 
-class CPlayerClient;
+class PlayerClient;
 class CUnit;
 struct PartyUnitRecord;
-class CTextManager;
+class TextManager;
 
 // The server world's.
 // Player 0's connection, when there is one, sends "constr.current" = `value`.
@@ -48,15 +48,15 @@ void GameSetConstructionVariable(std::uint32_t value);
 void GameSetWeather(int weather, float strength);
 // The server world's time of day in hours (fmod(tick * secondsPerTick + base, 24)).
 double GameServerTimeOfDay();
-// The players' times move on by `offset` (CWorldServer::UpdatePlayerTimes) unless it is negative or a NaN.
+// The players' times move on by `offset` (WorldServer::UpdatePlayerTimes) unless it is negative or a NaN.
 void GamePassTime(float offset);
 void GameEnsureZone(std::string_view map, std::string_view mob);
 // The memory stream of the local server's pending messages (the client's state block hands it over).
-class CMemoryStream;
+class MemoryStream;
 // The server unit with id `id` moves to height `z` (its sector map entry follows, part 2 marked changed)
 // unless it is there already (or NaN).
 void GameSetUnitHeight(int id, float z);
-// The server world's pause flag / CWorldServer::SetPaused.
+// The server world's pause flag / WorldServer::SetPaused.
 void GameSetServerPaused(int paused);
 
 // Recording stops: CameraCloseFile, the client world's flag 0x10 off.
@@ -92,5 +92,5 @@ void GameLeaveThroughExit(int exit);
 void GameSendLeave04(int value);
 void GameRejoin();
 void GameLocalPlayerVariables(std::string_view prefix, NamedFloatTable* out);
-CPlayerClient* GameLocalView();
+PlayerClient* GameLocalView();
 int GameSendFlag10(int value);

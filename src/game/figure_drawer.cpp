@@ -11,7 +11,7 @@
 
 namespace {
 
-// The mesh types (CFigureMesh +0x15C) whose texture is a sheet of frames.
+// The mesh types (FigureMesh +0x15C) whose texture is a sheet of frames.
 constexpr std::uint32_t kTwoRows = 13;     // 8 frames, 4 per row, two rows (v 0 / 0.5)
 constexpr std::uint32_t kSheet4x4 = 14;    // 16 frames
 constexpr std::uint32_t kSheet8x4 = 16;    // 32 frames
@@ -19,7 +19,7 @@ constexpr std::uint32_t kSheet8x4 = 16;    // 32 frames
 } // namespace
 
 void FigureMeshDrawer::Animate(float time) {
-    CFigureMesh* currentMesh = mesh;
+    FigureMesh* currentMesh = mesh;
     const std::uint32_t meshType = currentMesh->meshType;
     if (meshType == kTwoRows) {
         int frame = static_cast<int>(libcrt::Ftol(time) & 7);

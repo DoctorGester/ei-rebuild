@@ -100,7 +100,7 @@ int MulDiv64(int a, int b, int divisor) {
 constexpr int kHeroScreenSprites = 21;   // the hero screen's 19 and the two curtains
 constexpr int kHeroListMode = 9;
 
-void SetCurtainLook(CUiMesh* curtain, int visible) {
+void SetCurtainLook(UiMesh* curtain, int visible) {
     curtain->tint[0] = curtain->tint[1] = curtain->tint[2] = 0.3f;
     curtain->visible = visible;
 }
@@ -186,18 +186,18 @@ float FontScale() { return Active() ? Get().fontScale : 0.01f; }
 int PickShift() { return Active() ? Get().margin / 2 : 0; }
 
 // addon's 100234AB / 100235BA (the right edge's margin + 800.0 summed as a double).
-void AddCurtains(CUiWindow* window, int visible) {
+void AddCurtains(UiWindow* window, int visible) {
     if (!Active()) return;
     const int margin = Get().margin;
-    CUiMesh* left = window->AddBlankSprite();
+    UiMesh* left = window->AddBlankSprite();
     left->SetRectangle(2.0f, 100.0f, static_cast<float>(-margin), 0.0f, 0.0f, 600.0f, 0xE3, 0x3E, 0x100, 0xB0);
     SetCurtainLook(left, visible);
-    CUiMesh* right = window->AddBlankSprite();
+    UiMesh* right = window->AddBlankSprite();
     right->SetRectangle(2.0f, 100.0f, 800.0f, 0.0f, static_cast<float>(margin + 800.0), 600.0f, 0x100, 0xB0, 0xE3, 0x3E);
     SetCurtainLook(right, visible);
 }
 
-void ShowHeroCurtains(CUiWindow* window, int mode) {
+void ShowHeroCurtains(UiWindow* window, int mode) {
     if (!Active() || std::ssize(window->sceneObjects) != kHeroScreenSprites) return;
     const int shown = mode != kHeroListMode ? 1 : 0;
     window->SceneMesh(kHeroScreenSprites - 2)->visible = shown;

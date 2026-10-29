@@ -147,18 +147,18 @@ Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
     return r;
 }
 
-bool IsRecordLoot(const CItem* item, LootRecordType recordType) {
+bool IsRecordLoot(const Item* item, LootRecordType recordType) {
     if (item->Kind() != ItemKind::Loot) return false;
     const auto* loot = AsLoot(item);
     return loot->kind == LootKind::Record && loot->recordType == recordType;
 }
 
-bool LiesFlat(CItem* item) {
+bool LiesFlat(Item* item) {
     if (item->Kind() == ItemKind::Scroll) return true;
     return IsRecordLoot(item, LootRecordType::Spell) || IsRecordLoot(item, LootRecordType::Modifier);
 }
 
-void SetShade(CUiMesh* sprite, float grey) {
+void SetShade(UiMesh* sprite, float grey) {
     sprite->tint[0] = grey;
     sprite->tint[1] = grey;
     sprite->tint[2] = grey;
@@ -177,9 +177,9 @@ render::TextureImage PictureOf(const std::string& file, const MmpHeader* image, 
 
 } // namespace
 
-void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
-    CItem* item = cell.item;
-    CUiMesh* model = CachedObject(&models, item->PictureName(), ItemModel);
+void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
+    Item* item = cell.item;
+    UiMesh* model = CachedObject(&models, item->PictureName(), ItemModel);
     CTexture* texture = CachedObject(&textures, item->FigureName(), ItemFigureTexture);
     if (!model || !texture) return;
 
@@ -244,7 +244,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
         }
 
         float frameDepth = static_cast<float>(D(cell.depth) * D(1.3f));
-        CUiMesh* frame = AddBlankSprite();
+        UiMesh* frame = AddBlankSprite();
         double half = D(35.0f);
         frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
                             static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
@@ -264,7 +264,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
         float px, py, pz;
         model->GetPlacement(&px, &py, &pz);
         float scale = model->scaleMatrix.m[0];
-        CUiMesh* mark = AddBlankSprite();
+        UiMesh* mark = AddBlankSprite();
         mark->SetRectangle(static_cast<float>(D(pz) * D(0.9f)), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                            0x20, 0x20);
         mark->texture = objects[1];
@@ -301,7 +301,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
     if (cell.mode != 9 && !CanEquip(item, cell.mode)) {
         float depth = static_cast<float>(D(cell.depth) * D(1.25f));
         if (LiesFlat(item)) depth = static_cast<float>(D(cell.depth) * D(0.8f));
-        CUiMesh* shade = AddBlankSprite();
+        UiMesh* shade = AddBlankSprite();
         double half = D(35.0f);
         shade->SetRectangle(depth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
                             static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0, 0, 0x100, 0x100);
@@ -313,8 +313,8 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
     }
 }
 
-void CItemInfoPanel::Draw(CSceneRenderer* pass) {
-    if (CItem* item = FirstItem()) {
+void ItemInfoPanel::Draw(SceneRenderer* pass) {
+    if (Item* item = FirstItem()) {
         const ItemCell cell{item, static_cast<float>(static_cast<double>(x) + D(100.0f)),
                             static_cast<float>(static_cast<double>(y) + D(200.0f)), 3.0f, 120.0f, 9};
         owner->DrawItem(pass, cell);
@@ -354,9 +354,9 @@ HeroFaceNames FaceNames(const char* prototype) {
 
 } // namespace
 
-void CItemScreen::DrawHeroFace(CSceneRenderer* pass, const HeroFaceCell& cell) {
+void ItemScreen::DrawHeroFace(SceneRenderer* pass, const HeroFaceCell& cell) {
     const HeroFaceNames names = FaceNames(cell.prototype);
-    CUiMesh* model = CachedObject(&models, names.model, ItemModel);
+    UiMesh* model = CachedObject(&models, names.model, ItemModel);
     CTexture* texture = CachedObject(&textures, names.texture, ItemFigureTexture);
     if (!model || !texture) return;
 
@@ -373,7 +373,7 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, const HeroFaceCell& cell) {
     model->localRotation = *MultiplyQuaternions(&orientation, &tilt, &turn);
 
     float frameDepth = static_cast<float>(D(cell.depth) * D(1.3f));
-    CUiMesh* frame = AddBlankSprite();
+    UiMesh* frame = AddBlankSprite();
     double half = D(35.0f);
     frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
                         static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
@@ -408,7 +408,7 @@ CTexture* ItemFigureTexture(std::string_view name) {
 
 // --- An image into part of a texture -------------------------------------------------------
 
-bool CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
+bool UiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y) {
     CTextureManager* manager = g_clientWorld.textureManager;
     const std::string file = std::string(name) + ".mmp";

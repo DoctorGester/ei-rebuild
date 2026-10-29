@@ -1,4 +1,4 @@
-// CWorldServer's own Create (Setup) and Destroy (Teardown). WinMain calls both on the global server: Setup at
+// WorldServer's own Create (Setup) and Destroy (Teardown). WinMain calls both on the global server: Setup at
 // start-up, Teardown at exit. See world.h and docs/notes/world.md.
 #include "player_messages.h"
 #include "world.h"
@@ -31,7 +31,7 @@ constexpr float kWindStrength = 0.4f;
 
 } // namespace
 
-void CWorldServer::Create() {
+void WorldServer::Create() {
     Destroy();
     CWorld::Create();
     std::string folder = g_textFolder;
@@ -45,10 +45,10 @@ void CWorldServer::Create() {
         return;
     }
 
-    specificManager = new CServerSpecificManager();
+    specificManager = new ServerSpecificManager();
     specificManager->AddRef();    // the reference is counted without testing the pointer
     specificManager->SetContext(this);
-    hoover = new CHoover();
+    hoover = new Hoover();
     hoover->AddRef();
 
     // The wind: along x, no strength yet (three dwords), then 0.4.
@@ -68,7 +68,7 @@ void CWorldServer::Create() {
     mobFiles.clear();
 }
 
-void CWorldServer::Destroy() {
+void WorldServer::Destroy() {
     // Every player disconnected and released. The iterator drops its count of the player list when it goes out
     // of scope: before CWorld::Destroy deletes the list.
     if (PlayerList()) {

@@ -12,27 +12,27 @@
 const char* DirectXErrorText(long result);
 
 // The error object the device layer throws (0xC bytes on the game's heap), by pointer: this compiler's `throw` of a
-// CDXException* makes the game's throw information (the pointer to CDXException, to CGameException and to void), a
+// DXException* makes the game's throw information (the pointer to DXException, to GameException and to void), a
 // handler matches by the decorated names. WinMain catches it; every such throw ends the game.
-class CGameException {
+class GameException {
 public:
-    virtual ~CGameException();
+    virtual ~GameException();
 
 
     std::string message;       // the formatted text
 
 protected:
-    CGameException() {}
-    CGameException(const CGameException&) = delete;
-    CGameException& operator=(const CGameException&) = delete;
+    GameException() {}
+    GameException(const GameException&) = delete;
+    GameException& operator=(const GameException&) = delete;
 };
 
-class CDXException final : public CGameException {
+class DXException final : public GameException {
 public:
     // The wvsprintf text of `format` (variadic).
-    CDXException(const char* format, va_list args);
-    ~CDXException() override;
+    DXException(const char* format, va_list args);
+    ~DXException() override;
 };
 
-// `throw new CDXException(...)`: thrown by pointer (null when the game's heap had no room).
+// `throw new DXException(...)`: thrown by pointer (null when the game's heap had no room).
 [[noreturn]] void ThrowGameError(const char* format, ...);

@@ -1,5 +1,5 @@
-// Missiles: CEffectMissile (the homing base), CEffectArrow (a spell missile carrying a particle
-// source, a light and a sound) and CEffectArrowFigure (a bow shot drawn as a figure). See
+// Missiles: EffectMissile (the homing base), EffectArrow (a spell missile carrying a particle
+// source, a light and a sound) and EffectArrowFigure (a bow shot drawn as a figure). See
 // world_effect.h and docs/notes/effects.md ("Missiles").
 #include "base_manager.h"
 #include "camera.h"
@@ -41,7 +41,7 @@ std::uint32_t Bits(const float& f) {
 
 // The snapshot read against was consumed to its end (Position and Size of the stream, in that order).
 bool SnapshotReadToEnd() {
-    CMemoryStream* snapshot = delta::g_readSnapshot;
+    MemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
     return position == snapshot->Size();
 }
@@ -50,7 +50,7 @@ bool SnapshotReadToEnd() {
 } // namespace
 
 
-int CEffectMissile::Steer() {
+int EffectMissile::Steer() {
     int flying = 1;
     CWorld* world = World();
     CMapObject* target = world->ObjectWithId(targetId);
@@ -90,14 +90,14 @@ int CEffectMissile::Steer() {
     return flying;
 }
 
-void CEffectMissile::SetTarget(int objectId) {
+void EffectMissile::SetTarget(int objectId) {
     arrived = 0;
     targetId = objectId;
 }
 
 
 
-bool CEffectArrow::RunTick() {
+bool EffectArrow::RunTick() {
     fromCaster = 0;
     int flying = Steer();
     localPosition.x = localPosition.x + velocity.x;
@@ -107,15 +107,15 @@ bool CEffectArrow::RunTick() {
     return flying;
 }
 
-void CEffectMissile::Reset() {
+void EffectMissile::Reset() {
     CEffect::Reset();
     arrived = 0;
     targetId = -1;
     fromCaster = 0;
 }
 
-void CEffectArrow::Reset() {
-    CEffectMissile::Reset();
+void EffectArrow::Reset() {
+    EffectMissile::Reset();
     particle.Reset();
     light.Reset();
     sound.Reset();
@@ -126,7 +126,7 @@ void CEffectArrow::Reset() {
     particleSize = 1.0f;
 }
 
-void CEffectArrow::MoveParts() {
+void EffectArrow::MoveParts() {
     particle.localPosition = localPosition;
     light.localPosition = localPosition;
     sound.localPosition = localPosition;
@@ -135,7 +135,7 @@ void CEffectArrow::MoveParts() {
     sound.Start(1);
 }
 
-void CEffectArrow::Start(int update) {
+void EffectArrow::Start(int update) {
     particle.localPosition = localPosition;
     light.localPosition = localPosition;
     sound.localPosition = localPosition;
@@ -155,7 +155,7 @@ void CEffectArrow::Start(int update) {
     sound.Start(update);
 }
 
-int CEffectArrow::Unpack(int update, DeltaField* field) {
+int EffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&targetId, 4);
     field->ReadDelta(&casterId, 4);
     soundName = field->ReadString();
@@ -180,7 +180,7 @@ int CEffectArrow::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void CEffectArrow::Pack(DeltaField* field) {
+void EffectArrow::Pack(DeltaField* field) {
     Steer();
     Vector3 position = localPosition;
     int value = targetId;
@@ -197,7 +197,7 @@ void CEffectArrow::Pack(DeltaField* field) {
     field->WriteDelta(&fromCaster, 1);
 }
 
-void CEffectArrow::Load(CStream* s) {
+void EffectArrow::Load(ByteStream* s) {
     s->ReadValue(localPosition);
     s->ReadValue(targetId);
     s->ReadValue(velocity);
@@ -212,7 +212,7 @@ void CEffectArrow::Load(CStream* s) {
     s->ReadValue(fromCaster);
 }
 
-void CEffectArrow::Save(CStream* s) {
+void EffectArrow::Save(ByteStream* s) {
     std::uint32_t copy;
     s->WriteValue(localPosition);
     std::memcpy(&copy, &targetId, 4);
@@ -233,17 +233,17 @@ void CEffectArrow::Save(CStream* s) {
     s->WriteValue(flag);
 }
 
-CEffectArrow::CEffectArrow() { Reset(); }
+EffectArrow::EffectArrow() { Reset(); }
 
-CEffectArrow::~CEffectArrow() { Reset(); }
+EffectArrow::~EffectArrow() { Reset(); }
 
 // The abstract missile's destructor (no live object has its table).
-CEffectMissile::~CEffectMissile() = default;
+EffectMissile::~EffectMissile() = default;
 
-// --- CEffectArrowFigure --------------------------------------------------------------------------
+// --- EffectArrowFigure --------------------------------------------------------------------------
 
-void CEffectArrowFigure::Reset() {
-    CEffectMissile::Reset();
+void EffectArrowFigure::Reset() {
+    EffectMissile::Reset();
     if (figure != nullptr) g_clientWorld.RemoveObject(figure->id);
     hit = DamageInfo{};
     hit.multiplier = 1.0f;
@@ -251,7 +251,7 @@ void CEffectArrowFigure::Reset() {
     casterId = -1;
 }
 
-bool CEffectArrowFigure::RunTick() {
+bool EffectArrowFigure::RunTick() {
     fromCaster = 0;
     Steer();
     localPosition.x = localPosition.x + velocity.x;
@@ -268,13 +268,13 @@ bool CEffectArrowFigure::RunTick() {
     return arrived == 0;
 }
 
-void CEffectArrowFigure::MoveParts() {
+void EffectArrowFigure::MoveParts() {
     if (figure == nullptr) return;
     g_clientWorld.objectGrid.Move(figure, &localPosition.x);
     figure->RollTowards(velocity);
 }
 
-void CEffectArrowFigure::Start(int update) {
+void EffectArrowFigure::Start(int update) {
     if (update != 0) {
         MoveParts();
         return;
@@ -287,7 +287,7 @@ void CEffectArrowFigure::Start(int update) {
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, like the original.
     CObject3D* currentFigure = figure;
-    CObject3DClientSpecific* attached = currentFigure->ClientSpecific();
+    Object3DClientSpecific* attached = currentFigure->ClientSpecific();
     currentFigure->localPosition = localPosition;
     std::vector<std::string> parts;
     currentFigure->MakeFigure(model, &parts, 1);
@@ -298,7 +298,7 @@ void CEffectArrowFigure::Start(int update) {
     g_clientWorld.AddObject(figure);
 }
 
-int CEffectArrowFigure::Unpack(int update, DeltaField* field) {
+int EffectArrowFigure::Unpack(int update, DeltaField* field) {
     fromCaster = 0;
     field->ReadDelta(&targetId, 4);
     field->ReadDelta(&casterId, 4);
@@ -319,7 +319,7 @@ int CEffectArrowFigure::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void CEffectArrowFigure::Pack(DeltaField* field) {
+void EffectArrowFigure::Pack(DeltaField* field) {
     Steer();
     Vector3 position = localPosition;
     int value = targetId;
@@ -331,7 +331,7 @@ void CEffectArrowFigure::Pack(DeltaField* field) {
     field->WriteDelta(&fromCaster, 1);
 }
 
-void CEffectArrowFigure::Load(CStream* s) {
+void EffectArrowFigure::Load(ByteStream* s) {
     s->ReadValue(localPosition);
     s->ReadValue(targetId);
     s->ReadValue(casterId);
@@ -342,7 +342,7 @@ void CEffectArrowFigure::Load(CStream* s) {
     s->ReadValue(fromCaster);
 }
 
-void CEffectArrowFigure::Save(CStream* s) {
+void EffectArrowFigure::Save(ByteStream* s) {
     std::uint32_t copy;
     s->WriteValue(localPosition);
     std::memcpy(&copy, &targetId, 4);
@@ -358,8 +358,8 @@ void CEffectArrowFigure::Save(CStream* s) {
     s->WriteValue(flag);
 }
 
-CEffectArrowFigure::CEffectArrowFigure() {
+EffectArrowFigure::EffectArrowFigure() {
     Reset();
 }
 
-CEffectArrowFigure::~CEffectArrowFigure() { Reset(); }
+EffectArrowFigure::~EffectArrowFigure() { Reset(); }

@@ -1,4 +1,4 @@
-// The client world's object maps (helpers and the CWorldClient methods that keep the maps). See
+// The client world's object maps (helpers and the WorldClient methods that keep the maps). See
 // docs/notes/world.md ("Client maps"). The client files every object in a sector grid (STLport lists of
 // counted pointers, one per 16x16 cell) and a second grid; most of the helpers are the STLport and library
 // instantiations behind those maps (config/library.csv).
@@ -78,7 +78,7 @@ void RemoveHeld(std::list<HeldRef<CMapObject>>& list, CMapObject* object) {
 }
 
 // The hit test of the object's side half for the point: CollectBounds or CollectParts.
-using HitTest = int (CObject3DSpecific::*)(const long* point);
+using HitTest = int (Object3DSpecific::*)(const long* point);
 
 // The entries of the screen list's nodes [first, last) whose rectangle holds (x, y) and whose
 // object still exists and answers `test` go to `hits`.
@@ -91,7 +91,7 @@ HitCollector* CollectHits(HitCollector* out, std::list<ScreenEntry>::iterator fi
         CMapObject* object = manager->FindMapObject(entry->objectId);
         if (!object) continue;
         LONG point[2] = {x, y};
-        CObject3DSpecific* half = object->Object3D()->attached;
+        Object3DSpecific* half = object->Object3D()->attached;
         if (!(half->*test)(point)) continue;
         hits->push_back(*entry);
     }
@@ -111,7 +111,7 @@ std::list<HeldRef<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
 
 using Collect = HitCollector* (HitCollector::*)(std::list<ScreenEntry>::iterator, std::list<ScreenEntry>::iterator, std::vector<ScreenEntry>*, long, long,
                                                 CMapObjectManager*);
-CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
+CMapObject* Pick(WorldClient* client, const POINT* point, Collect collect) {
     std::vector<ScreenEntry>& hits = client->hits;
     hits.clear();
     CMapObjectManager* manager = client->MapObjectManager();
@@ -122,7 +122,7 @@ CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
 
     // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
     // order, and the first that takes the click wins.
-    DepthLess depth{g_sceneRenderer.pipeline->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
+    DepthLess depth{g_sceneRenderer.pipeline->Top(TransformPipeline::kViewStack)->m, client->MapObjectManager()};
     lib::IntroSort(hits.data(), hits.data() + hits.size(),
                    [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
     ScreenEntry*& cursor = client->hitCursor;
@@ -134,7 +134,7 @@ CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
 
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
 // object is gone or is not a unit; null at the end.
-CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
+CUnit* FirstUnitHit(WorldClient* client, CMapObject* object) {
     while (object->GetClassId() != ClassId::Unit) {
         do {
             if (++client->hitCursor == client->hits.data() + client->hits.size()) return nullptr;
@@ -152,7 +152,7 @@ constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added
 
 template <typename T>
 void DeleteOwned(T*& slot) {
-    if (CEngineObject* object = slot) {
+    if (EngineObject* object = slot) {
         delete object;
         slot = nullptr;
     }
@@ -163,7 +163,7 @@ template <typename T>
 void DropAndDelete(T*& slot) {
     if (slot) {
         --slot->refCount;
-        CEngineObject* object = slot;
+        EngineObject* object = slot;
         if (object) delete object;
         slot = nullptr;
     }
@@ -173,7 +173,7 @@ void DropAndDelete(T*& slot) {
 // with 0 (its light goes off).
 void Unhighlight(CMapObject* object) {
     object->flags &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
-    CObject3DSpecific* half = object->attached;
+    Object3DSpecific* half = object->attached;
     half->Unused25(0);
     half = object->attached;
     half->SetLit(false);
@@ -196,16 +196,16 @@ void GridToFour(SectorGrid& grid) {
     grid.Resize(4, 4);
 }
 
-void ReferenceEveryObject(CBaseManager* manager) {
+void ReferenceEveryObject(BaseManager* manager) {
     ObjectListIterator walk{};
-    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) object->AddRef();
-    if (CBaseManager* held = walk.manager) --held->refCount;
+    for (EngineObject* object = walk.First(manager); object; object = walk.Next()) object->AddRef();
+    if (BaseManager* held = walk.manager) --held->refCount;
 }
 
-void ReleaseEveryObject(CBaseManager* manager) {
+void ReleaseEveryObject(BaseManager* manager) {
     ObjectListIterator walk{};
-    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) object->Release();
-    if (CBaseManager* held = walk.manager) --held->refCount;
+    for (EngineObject* object = walk.First(manager); object; object = walk.Next()) object->Release();
+    if (BaseManager* held = walk.manager) --held->refCount;
 }
 
 constexpr int kSkyTextureKind = static_cast<int>(TextureKind::SkyFace);
@@ -259,12 +259,12 @@ void SectorGrid::Move(CMapObject* object, const float* position) {
 
 HitCollector* HitCollector::CollectBounds(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* found, LONG x,
                                           LONG y, CMapObjectManager* manager) {
-    return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
+    return CollectHits(this, first, last, found, x, y, manager, &Object3DSpecific::BoundsContainPoint);
 }
 
 HitCollector* HitCollector::CollectParts(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* found, LONG x,
                                          LONG y, CMapObjectManager* manager) {
-    return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::PartsContainPoint);
+    return CollectHits(this, first, last, found, x, y, manager, &Object3DSpecific::PartsContainPoint);
 }
 
 int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const {
@@ -274,7 +274,7 @@ int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::itera
     return 1;
 }
 
-int CWorldClient::AddObject(CMapObject* object) {
+int WorldClient::AddObject(CMapObject* object) {
     for (CMapObject* filed : objects) {
         if (filed->id == object->id) {
             object->AddRef();
@@ -313,7 +313,7 @@ int CWorldClient::AddObject(CMapObject* object) {
     return 1;
 }
 
-void CWorldClient::RefreshPlatforms(CMapObject* object) {
+void WorldClient::RefreshPlatforms(CMapObject* object) {
     const int objectId = object->id;
     if (std::ranges::none_of(objects, [objectId](const CMapObject* filed) { return filed->id == objectId; })) return;
     std::list<Platform>& newPlatforms = platforms.list;
@@ -330,7 +330,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
     }
 }
 
-bool CWorldClient::QueueSynchronised(CMapObject* object) {
+bool WorldClient::QueueSynchronised(CMapObject* object) {
     if (dynamicNodes.contains(static_cast<std::uint32_t>(object->id))) return false;
     std::list<CMapObject*>& kept = dynamicObjects;
     auto node = kept.emplace(kept.end(), object);
@@ -339,7 +339,7 @@ bool CWorldClient::QueueSynchronised(CMapObject* object) {
     return true;
 }
 
-void CWorldClient::MarkFootprintsInSight(const float* point, float range) {
+void WorldClient::MarkFootprintsInSight(const float* point, float range) {
     // A footprint is made visible when hypot(position - point) <= its scale * range.
     for (Footprint& print : footprints) {
         double dx = print.position.x - point[0];
@@ -351,13 +351,13 @@ void CWorldClient::MarkFootprintsInSight(const float* point, float range) {
     }
 }
 
-void CWorldClient::ApplyWind(const Vector3& direction, float strength) {
+void WorldClient::ApplyWind(const Vector3& direction, float strength) {
     SetWind(direction, strength);
     if (terrain) terrain->SetWaves(direction, strength);
     rainSnow.SetWind(direction, strength);
 }
 
-int CWorldClient::CentreOn(const Vector3& point) {
+int WorldClient::CentreOn(const Vector3& point) {
     Vector3 focus = point;
     focus.z = camera->focus.z;
     camera->SetFocus(focus);
@@ -366,51 +366,51 @@ int CWorldClient::CentreOn(const Vector3& point) {
     return 1;
 }
 
-double CWorldClient::GroundHeightAt(float x, float y) {
+double WorldClient::GroundHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     float height = static_cast<float>(GridHeightAt(x, y));
     return platforms.SurfaceHeight(point, height);
 }
 
-double CWorldClient::SurfaceHeightAt(float x, float y) {
+double WorldClient::SurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     float height = static_cast<float>(RawSurfaceHeightAt(x, y));
     return platforms.SurfaceHeight(point, height);
 }
 
-void CWorldClient::ShowNumber(int objectId, int value, std::uint32_t kind) {
-    CEngineObject* object = MapObjectManager()->FindObject(static_cast<unsigned>(objectId));
+void WorldClient::ShowNumber(int objectId, int value, std::uint32_t kind) {
+    EngineObject* object = MapObjectManager()->FindObject(static_cast<unsigned>(objectId));
     if (!object || object->GetClassId() != ClassId::Unit) return;
     if (numbers) numbers->Add(objectId, value, kind);
 }
 
-void CWorldClient::LoadUnitFaces() {
+void WorldClient::LoadUnitFaces() {
     for (CMapObject* object : objects) {
         // The pointer is tested after the class call (the list holds no null).
         if (CUnit* unit = UnitOrNull(object)) unit->ClientController()->LoadFaceTexture();
     }
 }
 
-const char* CWorldClient::ExitTarget(int index) { return exits[index].target.c_str(); }
+const char* WorldClient::ExitTarget(int index) { return exits[index].target.c_str(); }
 
-void CWorldClient::RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records) {
+void WorldClient::RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records) {
     for (int i = 0; i < std::ssize(*records); ++i)
         RemoveObject(static_cast<int>((*records)[i]->unitId));
 }
 
-int CWorldClient::SendFlag10(int value) {
+int WorldClient::SendFlag10(int value) {
     return LocalView()->SendFlag10(static_cast<std::uint8_t>(value));
 }
 
-void CWorldClient::DropShadows() {
+void WorldClient::DropShadows() {
     for (CMapObject* object : objects) {
-        CObject3DClientSpecific* half = object->ClientSpecific();
+        Object3DClientSpecific* half = object->ClientSpecific();
         // Only the low byte is tested (ShadowsShown's "off" leaves the setting's upper bytes).
         if (!static_cast<std::uint8_t>(half->ShadowsShown())) half->ClearShadow();
     }
 }
 
-void CWorldClient::RemoveObject(int objectId) {
+void WorldClient::RemoveObject(int objectId) {
     std::list<Platform>& newPlatforms = platforms.list;
     for (auto node = newPlatforms.begin(); node != newPlatforms.end();) {
         auto next = std::next(node);
@@ -436,7 +436,7 @@ void CWorldClient::RemoveObject(int objectId) {
     object->Release();
 }
 
-void CWorldClient::ClearMaps() {
+void WorldClient::ClearMaps() {
     SectorGrid& second = secondGrid;
     for (int x = 0; x < static_cast<int>(second.width); ++x)
         for (int y = 0; y < static_cast<int>(second.height); ++y)
@@ -462,16 +462,16 @@ void CWorldClient::ClearMaps() {
         return true;
     });
     SessionPlayerClear(session);
-    if (CLinkFigureLoader* loader = figureLoader) loader->ClearCache();
+    if (LinkFigureLoader* loader = figureLoader) loader->ClearCache();
     figureManager->FreeSpares();
     objectManager->FreeSpares();
     specificManager->FreeSpares();
 }
 
-CMapObject* CWorldClient::PickAt(const POINT* point) { return Pick(this, point, &HitCollector::CollectBounds); }
-CMapObject* CWorldClient::PickAt2(const POINT* point) { return Pick(this, point, &HitCollector::CollectParts); }
+CMapObject* WorldClient::PickAt(const POINT* point) { return Pick(this, point, &HitCollector::CollectBounds); }
+CMapObject* WorldClient::PickAt2(const POINT* point) { return Pick(this, point, &HitCollector::CollectParts); }
 
-CUnit* CWorldClient::UnitAt(const POINT* point) {
+CUnit* WorldClient::UnitAt(const POINT* point) {
     if (CMapObject* picked = PickAt2(point)) {
         if (CUnit* unit = FirstUnitHit(this, picked)) return unit;
     }
@@ -479,12 +479,12 @@ CUnit* CWorldClient::UnitAt(const POINT* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-CUnit* CWorldClient::UnitAt2(const POINT* point) {
+CUnit* WorldClient::UnitAt2(const POINT* point) {
     CMapObject* picked = PickAt2(point);
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-std::list<CMapObject*> CWorldClient::UnitsInBox(const tagRECT* rect) {
+std::list<CMapObject*> WorldClient::UnitsInBox(const tagRECT* rect) {
     std::list<CMapObject*> inside;
     for (auto& node : screenEntries) {
         CMapObject* object = objectManager->FindMapObject(node.objectId);
@@ -497,7 +497,7 @@ std::list<CMapObject*> CWorldClient::UnitsInBox(const tagRECT* rect) {
 
 // The figure's part names (worlddata::HeroPartText): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
 // with the prototype's number, or left out at -1), "lh1".."rl3".
-void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, char allArmour) {
+void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, char allArmour) {
     std::string hair;
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* record = (*party)[i];
@@ -523,7 +523,7 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         unit->SetSecondPrototypeByName(record->texts[6]);
         unit->flags |= MapObjectFlag::Preview;
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
-        CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
+        Object3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
         figure->RegisterPartMaterials();
         unit->PlayAnimation(nullptr);
         unit->RestartPose();
@@ -538,10 +538,10 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         unit->ReleaseAllItems();
         for (int j = 0; j < std::ssize(record->weapons); ++j)
             unit->AddWeapon(record->weapons[j]);
-        CUnitController* controller = unit->Controller();
+        UnitController* controller = unit->Controller();
         if (!record->weapons.empty()) controller->ShowWeapon(0);
         for (int j = 0; j < std::ssize(record->armor); ++j) {
-            CItem* armour = record->armor[j];
+            Item* armour = record->armor[j];
             if (allArmour || AsArmor(armour)->GetType() != 0) unit->EquipArmour(armour);
         }
         for (int j = 0; j < std::ssize(record->quickItems); ++j)
@@ -553,7 +553,7 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
     }
 }
 
-std::list<CObject3D*> CWorldClient::ObjectsInRange(const Vector3& point, float radius) {
+std::list<CObject3D*> WorldClient::ObjectsInRange(const Vector3& point, float radius) {
     std::list<CObject3D*> found;
     float maxX = terrain->width - 1.0f;
     float maxY = terrain->height - 1.0f;
@@ -662,7 +662,7 @@ void PlatformSet::AddBox(int newId, const FootprintPart* item, const Vector3& po
     }
 }
 
-void CWorldClient::Destroy() {
+void WorldClient::Destroy() {
     g_camera.SetTarget(nullptr);
     delete numbers;
     numbers = nullptr;
@@ -704,7 +704,7 @@ void CWorldClient::Destroy() {
     DropAndDelete(texts);
 }
 
-void CWorldClient::ResetZoneObjects() {
+void WorldClient::ResetZoneObjects() {
     exitMarkers.clear();
     // The second grid's cells emptied (each object released).
     SectorGrid& second = secondGrid;
@@ -712,12 +712,12 @@ void CWorldClient::ResetZoneObjects() {
         for (int y = 0; y < static_cast<int>(second.height); ++y)
             second.rows[y][x].clear();
     ObjectListIterator it{nullptr, {}};
-    for (CEngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
+    for (EngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
     if (bird) bird->Reset();
     if (it.manager) --it.manager->refCount;
 }
 
-void CWorldClient::Deselect() {
+void WorldClient::Deselect() {
     for (int objectId : selectedIds) {
         CMapObject* found = objectManager->FindMapObject(static_cast<unsigned>(objectId));
         if (found && (found->flags & MapObjectFlag::Selected)) Unhighlight(found);
@@ -725,7 +725,7 @@ void CWorldClient::Deselect() {
     selectedIds.clear();
 }
 
-void CWorldClient::Select(CMapObject* object) {
+void WorldClient::Select(CMapObject* object) {
     if (!object) return;
     object->Object3D()->UpdatePartBounds();
     if (!(object->flags & MapObjectFlag::Selected)) {
@@ -760,7 +760,7 @@ void SectorGrid::Resize(int newWidth, int newHeight) {
     Allocate();
 }
 
-void CWorldClient::Create() {
+void WorldClient::Create() {
     CWorld::Create();
     {
         std::string path = g_dataFolder + worlddata::TexturesFolderText();
@@ -768,31 +768,31 @@ void CWorldClient::Create() {
     }
     LoadLights(worlddata::LightsTableText());
     lightingMark = 0;
-    sounds = NewCounted<CSoundManager>();
+    sounds = NewCounted<SoundManager>();
 
-    texts = new CTextManager();
+    texts = new TextManager();
     texts->AddRef();
     terrain = new terrain::Terrain();
     terrain->AddRef();
     zoneName = worlddata::GipathText();
 
-    specificManager = NewCounted<CClientSpecificManager>();
+    specificManager = NewCounted<ClientSpecificManager>();
     specificManager->Init(this);
     textureManager = NewCounted<CTextureManager>();
-    textureManager->CBaseManager::Init(this);
+    textureManager->BaseManager::Init(this);
     materialManager = NewCounted<CMaterialManager>();
     materialManager->Init(this);
-    lightFactory = NewCounted<CLightFactory>();
+    lightFactory = NewCounted<LightFactory>();
     lightFactory->Init(this);
 
-    auto* manager = new CParticleManager();
+    auto* manager = new ParticleManager();
     particleManager = manager;
     manager->AddRef();
     manager->Init(this);
 
     session = players->CreateSessionPlayer();
 
-    ShareAssignOwned(handle, new CClientHandle());
+    ShareAssignOwned(handle, new ClientHandle());
     terrain->Create();
     sounds->Create();
     texts->Create();
@@ -805,13 +805,13 @@ void CWorldClient::Create() {
         texts->AddSource(path);
     }
 
-    auto* lists = new CLightningManager();
+    auto* lists = new LightningManager();
     listManager = lists;
     lists->Init(this);
     auto* arrays = new ClientArrayManager();
     arrayManager = arrays;
     arrays->Init(this);
-    auto* owned = new CMusicSystem();
+    auto* owned = new MusicSystem();
     music = owned;
     owned->Create();
 
@@ -839,13 +839,13 @@ void CWorldClient::Create() {
     lightLevelsCountdown = 0;
 }
 
-void CWorldClient::ReferenceItemsAndSpells() {
+void WorldClient::ReferenceItemsAndSpells() {
     if (ItemFactory()) ReferenceEveryObject(ItemFactory());
     // The item factory is tested again before walking the spells.
     if (ItemFactory()) ReferenceEveryObject(SpellManager());
 }
 
-void CWorldClient::ReleaseItemsAndSpells() {
+void WorldClient::ReleaseItemsAndSpells() {
     if (ItemFactory()) {
         ReleaseEveryObject(ItemFactory());
         ItemFactory()->DestroyAll();
@@ -856,7 +856,7 @@ void CWorldClient::ReleaseItemsAndSpells() {
     }
 }
 
-int CWorldClient::LoadItemsAndSpells(CStream* block) {
+int WorldClient::LoadItemsAndSpells(ByteStream* block) {
     ReleaseItemsAndSpells();
     if (block->Size() != 0) {
         spellManager->Load(block);
@@ -868,7 +868,7 @@ int CWorldClient::LoadItemsAndSpells(CStream* block) {
     return 1;
 }
 
-int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
+int LoadManagerObjects(BaseManager* manager, ByteStream* stream) {
     for (;;) {
         std::uint8_t more;
         stream->ReadValue(more);
@@ -880,18 +880,18 @@ int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
         stream->ReadValue(id);
         stream->ReadValue(type);
         stream->ReadValue(extra);
-        if (CEngineObject* old = manager->FindObject(static_cast<unsigned>(id))) {
+        if (EngineObject* old = manager->FindObject(static_cast<unsigned>(id))) {
             if (old->refCount == 0) old->refCount = 1;
             old->Release();
         }
-        CEngineObject* object = manager->CreateObject(type, id);
+        EngineObject* object = manager->CreateObject(type, id);
         object->prototypeId = extra;
         object->Load(stream);
         object->AddRef();
     }
 }
 
-int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
+int WorldClient::LoadNewItemsAndSpells(ByteStream* block) {
     block->Seek(0);
     block->ok = 1;
     if (!LoadManagerObjects(SpellManager(), block)) return 0;
@@ -910,7 +910,7 @@ PlatformSet::~PlatformSet() {
 
 // What LoadManagerObjects reads back: per object a 1, its id, type and a field, then its own Save; a 0
 // ends the list.
-void SaveListedObject(CEngineObject* object, CStream* stream) {
+void SaveListedObject(EngineObject* object, ByteStream* stream) {
     std::uint8_t more = 1;
     stream->WriteValue(more);
     int id = object->id;
@@ -922,15 +922,15 @@ void SaveListedObject(CEngineObject* object, CStream* stream) {
     object->Save(stream);
 }
 
-void SaveListedObjectsEnd(CStream* stream) {
+void SaveListedObjectsEnd(ByteStream* stream) {
     std::uint8_t more = 0;
     stream->WriteValue(more);
 }
 
-CLightningManager::CLightningManager() {
+LightningManager::LightningManager() {
 }
 
-CLightningManager::~CLightningManager() {
+LightningManager::~LightningManager() {
     for (auto node = newBolts.begin(); node != newBolts.end(); ++node)
         if (*node) (*node)->Release();
     newBolts.clear();
@@ -943,7 +943,7 @@ ClientArrayManager::~ClientArrayManager() {
     texture.Reset();
 }
 
-int CWorldClient::LoadZone(CStream* block) {
+int WorldClient::LoadZone(ByteStream* block) {
     g_gameFlow.UpdateAndAcknowledge();
     std::string map;
     std::string mob;

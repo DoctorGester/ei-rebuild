@@ -24,7 +24,7 @@ void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value,
 
 // Whether the stream read against (delta::g_readSnapshot) is consumed: Position() == Size().
 std::uint32_t SnapshotConsumed() {
-    CMemoryStream* snapshot = delta::g_readSnapshot;
+    MemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
     std::uint32_t size = delta::g_readSnapshot->Size();
     return position == size ? 1u : 0u;
@@ -325,7 +325,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
         } else if (!current || current->id != objectId) {
-            CPlayerClient* view = unit->ClientWorld()->LocalView();
+            PlayerClient* view = unit->ClientWorld()->LocalView();
             CPlayer* local = view->player;
             if ((local->id == objectId || view->localSession) && unit->player != local) {
                 CPlayer* old = unit->player;

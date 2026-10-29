@@ -1,7 +1,7 @@
 // The item strips' setups: the camp's item, spell and part strips and the
 // hero screen's figure strips, called by their screens' Creates after constructing the strip;
 // and the figure strips' draw, count and click.
-// See ui_screens.h (CUiItemStrip::Setup, SetupFigures) and docs/notes/ui.md ("Camp, global map,
+// See ui_screens.h (UiItemStrip::Setup, SetupFigures) and docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui.h"
 #include "ui_item_info.h"
@@ -31,18 +31,18 @@ const char* const kOnOffSound = "buttons\\battle\\on_off.wav";
 
 } // namespace
 
-void CUiItemStrip::Setup(std::vector<CItem*>* newSource, bool newTop) {
+void UiItemStrip::Setup(std::vector<Item*>* newSource, bool newTop) {
     LoadTexture(newTop ? kTopTexture : kBottomTexture, TextureKind::Interface);
     Build(newTop);
     regions[0]->SetTip(0x4FB0);
     regions[1]->SetTip(0x4FB1);
-    AddSurface(new CUiSurface(ui, 50, top + 15, 750, top + 35, SurfaceBlend::Keyed, true));
-    AddSurface(new CUiSurface(ui, 50, top + 65, 750, top + 85, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 50, top + 15, 750, top + 35, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 50, top + 65, 750, top + 85, SurfaceBlend::Keyed, true));
     slots = 9;
     source = newSource;
 }
 
-void CFigureStrip::SetupFigures(std::vector<std::string>* names, bool newTop, bool noArrowTips) {
+void FigureStrip::SetupFigures(std::vector<std::string>* names, bool newTop, bool noArrowTips) {
     figures = names;
     LoadTexture(kFigureTexture, TextureKind::Interface);
     Build(newTop);
@@ -56,7 +56,7 @@ void CFigureStrip::SetupFigures(std::vector<std::string>* names, bool newTop, bo
 
 // --- The figure strips' slots ----------------------------------------------------------------------
 
-void CFigureStrip::Draw(CSceneRenderer* pass) {
+void FigureStrip::Draw(SceneRenderer* pass) {
     const float scrollPosition = position[tab];
     const int first = static_cast<int>(scrollPosition);   // _ftol
     const float frac = static_cast<float>(scrollPosition - static_cast<float>(first));
@@ -67,7 +67,7 @@ void CFigureStrip::Draw(CSceneRenderer* pass) {
         SceneMesh(10 + i)->Place(((static_cast<float>(i) - frac) + 1.0f) * kCell, static_cast<float>(top) + kHalfCell,
                                  scale);
     }
-    CUiMesh* frame = SceneMesh(8);
+    UiMesh* frame = SceneMesh(8);
     frame->visible = false;
     if (selected >= 0 && selected < count) {
         int cell = selected - first;
@@ -87,10 +87,10 @@ void CFigureStrip::Draw(CSceneRenderer* pass) {
     }
 }
 
-void CFigureStrip::RebuildList() { count = static_cast<int>(figures->size()); }
+void FigureStrip::RebuildList() { count = static_cast<int>(figures->size()); }
 
-void CFigureStrip::LeftDown(int buttons, int x, int y) {
-    CUiItemStrip::LeftDown(buttons, x, y);
+void FigureStrip::LeftDown(int buttons, int x, int y) {
+    UiItemStrip::LeftDown(buttons, x, y);
     if (RegionAt(x, y) != 8) return;
     POINT point{x, y};
     ui->ScalePointFromScreenEntry(&point);

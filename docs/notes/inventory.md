@@ -34,7 +34,7 @@ STLport and MFC template instantiations plus a few CRT exception helpers. Recogn
 - **Aligned array template** (no vtable, data at +0 with the raw block at data[-1], allocation `operator new(n*size+0x24)`
   aligned to 32): a `std::vector` in our code (core.md, "Shared containers"); the library rows
   `CArray<LightningPoint>::SetSize` (00468C50) and `... allocate` (00468F70) are this template, not MFC CArray.
-- **Scalar deleting destructors of game classes** calling `CEngineObject::DestructBase`: 557 copies
+- **Scalar deleting destructors of game classes** calling `EngineObject::DestructBase`: 557 copies
   of one 30-byte body (00402D20, ...); one generic helper covers them.
 - **Game RefPtr helpers** inlined everywhere: `Destroy` (family 00413270), release (004141D0),
   assign (004292F0). **Vector-serialisation helper** (families 00465090, 0053DF50): calls
@@ -65,5 +65,5 @@ coincidental pointers ruled out by reading). Facts not in the script:
 ## What remains
 
 `python tools/progress.py` and the "What is left" tables in the area notes; the largest unrewritten functions are mostly
-Rebirth-patched (005B43C0 CAIMap::Load, 0060C870, 00613EA0, 00456440 WinMain, 00659420, 0061B2C0, 0063A560), which can only be
+Rebirth-patched (005B43C0 AIMap::Load, 0060C870, 00613EA0, 00456440 WinMain, 00659420, 0061B2C0, 0063A560), which can only be
 hooked in the vanilla launch (rewrite-guide rule 9).

@@ -90,7 +90,7 @@ void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
     if (void* group = self->party.Get()) {
         PushReplicated(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
-            const std::vector<HeldRef<CRefObject>>& members = self->party.Get()->members;
+            const std::vector<HeldRef<RefObject>>& members = self->party.Get()->members;
             if (i >= static_cast<std::uint32_t>(members.size())) break;
             PushReplicated(*out, members[i].Get(), 1);
         }

@@ -20,7 +20,7 @@ constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the pending
 // action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at a unit, else
 // UseAtPoint at the target's position, with `quick`.
-bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, bool quick) {
+bool UseAtOnce(BattleScreen* screen, Interface3D* ui, CUnit* unit, CSpell* spell, bool quick) {
     CUnit* target = unit;
     if (spell->IsOffensive()) {
         target = g_clientWorld.NearestVisibleUnit(unit);
@@ -42,7 +42,7 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
 
 // --- The pending action ------------------------------------------------------------------------
 
-void CBattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
+void BattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
     pendingSlot = slot;
     pendingAction = mode;
     pendingItem = item;
@@ -71,7 +71,7 @@ void CBattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
 
 // --- A spell button ------------------------------------------------------------------
 
-void CHudSpellColumn::Click(int index) {
+void HudSpellColumn::Click(int index) {
     if (index < 0 || index >= count) return;
     int previous = selected;
     if (previous == index) {
@@ -82,7 +82,7 @@ void CHudSpellColumn::Click(int index) {
     if (previous >= 0 && previous < count) Highlight(previous, false);
     Highlight(index, true);
     ui->PlaySound(kSoundClick);
-    CItem* item = unit->GetSpell(index);
+    Item* item = unit->GetSpell(index);
     if (!item) return;
     CSpell* spell = item->spell;
     if (!spell) return;
@@ -91,7 +91,7 @@ void CHudSpellColumn::Click(int index) {
 
 // --- An action button ----------------------------------------------------------------
 
-void CHudActionColumn::Select(int index) {
+void HudActionColumn::Select(int index) {
     if (index < 0 || index >= count) return;
     int previous = selected;
     if (previous == index) {
@@ -108,9 +108,9 @@ void CHudActionColumn::Select(int index) {
 
 // --- A quick item slot ---------------------------------------------------------------
 
-void CHudQuickItems::Pick(int slot) {
+void HudQuickItems::Pick(int slot) {
     if (!unit) return;
-    CItem* item = unit->GetQuickItem(slot);
+    Item* item = unit->GetQuickItem(slot);
     if (!item) {
         owner->SetPendingAction(kPendingNone, -1, -1);
         return;
@@ -130,9 +130,9 @@ void CHudQuickItems::Pick(int slot) {
 
 // --- A quick item or spell used at once ------------------------------------
 
-void CHudQuickItems::UseNow(int slot) {
+void HudQuickItems::UseNow(int slot) {
     if (!unit) return;
-    CItem* item = unit->GetQuickItem(slot);
+    Item* item = unit->GetQuickItem(slot);
     if (!item) return;
     owner->SetPendingAction(kPendingQuickOnUnit, slot, -1);
     QuickItemCategory category = item->GetCategory();
@@ -142,10 +142,10 @@ void CHudQuickItems::UseNow(int slot) {
     owner->SetPendingAction(kPendingNone, -1, -1);
 }
 
-void CHudSpellColumn::ClickAlternate(int index) {
+void HudSpellColumn::ClickAlternate(int index) {
     if (!unit || index < 0 || index >= count) return;
     owner->SetPendingAction(kPendingSpellOnUnit, index, -1);
-    CItem* item = unit->GetSpell(index);
+    Item* item = unit->GetSpell(index);
     if (item && item->spell)
         if (!UseAtOnce(owner, ui, unit, item->spell, false)) return;
     ui->PlaySound(kSoundClick);

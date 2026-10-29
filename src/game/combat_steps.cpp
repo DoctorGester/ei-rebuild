@@ -74,15 +74,15 @@ const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! C
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
 // 1 << the active weapon's type, else of the natural weapon (none from type 7 up).
-std::uint32_t WeaponBit(CUnitServer* self) {
-    CItemWeapon* weapon = self->unit->ActiveWeapon();
+std::uint32_t WeaponBit(UnitServer* self) {
+    ItemWeapon* weapon = self->unit->ActiveWeapon();
     if (weapon) return AnimationWeaponBit(weapon->GetType());
     int natural = self->stats.naturalWeapon;
     return natural < kNoNaturalWeapon ? AnimationWeaponBit(natural) : 0u;
 }
 
 bool HasRangedWeapon(CUnit* unit) {
-    CItemWeapon* weapon = unit->ActiveWeapon();
+    ItemWeapon* weapon = unit->ActiveWeapon();
     return weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
 }
 
@@ -128,7 +128,7 @@ std::uint32_t EnterBits(const MoveModeState* to, const CUnit* unit) {
 // The animation key of an order of `kind` with `source` (`steps` stands in for the source of an unknown
 // skill, as in the original). Sets *frame when the unit steps out of its movement mode for it (skills, unless
 // walking).
-std::uint32_t OrderKey(CUnitServer* self, UnitOrderKind kind, std::uint32_t source, const AnimationSteps* steps,
+std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t source, const AnimationSteps* steps,
                        std::uint32_t* weaponBit, bool* frame) {
     *weaponBit = 0;
     *frame = false;
@@ -221,13 +221,13 @@ std::uint32_t RandomSide(std::uint32_t key) {
 
 // --- Durations ---------------------------------------------------------------------------------
 
-int CUnitServer::AnimationDuration(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::frameCount); }
+int UnitServer::AnimationDuration(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::frameCount); }
 
-int CUnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::moment); }
+int UnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::moment); }
 
 // --- Movement mode transitions -------------------------------------------------------------
 
-bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
+bool UnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
     *steps = {};
     if (unit->MapType() != MapObjectType::Hero && to->mode != 4 && from->mode != 4) return false;
     if (from->mode == to->mode && (from->mode != 2 || from->onGuard == to->onGuard)) return false;
@@ -246,7 +246,7 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
 
 // --- Orders ----------------------------------------------------------------------------------
 
-void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrderKind kind, std::uint32_t source) {
+void UnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrderKind kind, std::uint32_t source) {
     *steps = {};
     std::uint32_t weaponBit;
     bool frame;
@@ -289,7 +289,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrde
 
 // --- Casts -----------------------------------------------------------------------------------
 
-void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrderKind kind, int value) {
+void UnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrderKind kind, int value) {
     (void)kind;
     *steps = {};
     std::uint32_t key;
@@ -351,7 +351,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrder
 
 // --- Attacks ---------------------------------------------------------------------------------
 
-void CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CMapObject* target) {
+void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CMapObject* target) {
     CUnit* victim = UnitOrNull(target);   // the target is set
     if (!victim) {
         plan->hitLocation = 1;
@@ -482,7 +482,7 @@ void CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
 
 // --- Death and falls -------------------------------------------------------------------------
 
-void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, BlowSide direction, int dying, int fall) {
+void UnitServer::BuildDeathAnimation(AnimationSteps* steps, BlowSide direction, int dying, int fall) {
     bool isDying = static_cast<std::uint8_t>(dying) != 0;
     bool isFall = static_cast<std::uint8_t>(fall) != 0;
     *steps = {};

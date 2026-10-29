@@ -90,7 +90,7 @@ Connection* ServerSession::FindGuestConnection(const std::string* guestName) {
             for (auto other = first; other != currentBindings.end(); ++other) {
                 if (other->Get()->ConnectionRef().Get() != connection) continue;
                 PlayerMessage* owner = PlayerOf(other->Get());
-                if (owner && !(owner->flags7 & CRefObject::kDetached) && owner->host) {
+                if (owner && !(owner->flags7 & RefObject::kDetached) && owner->host) {
                     hostsToo = true;
                     break;
                 }

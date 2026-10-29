@@ -6,11 +6,11 @@
 #include "app.h"
 #include "camera.h"
 #include "game_singletons.h"
-#include "model.h"   // CSceneRenderer, CTransformPipeline, CRenderHelper
+#include "model.h"   // SceneRenderer, TransformPipeline, RenderHelper
 #include "options.h"
 #include "render/render_state.h"
-#include "spell.h"     // CLight, CLightFactory
-#include "texture.h"   // CTextureDevice
+#include "spell.h"     // CLight, LightFactory
+#include "texture.h"   // TextureDevice
 #include "world.h"
 
 #include "lib/crt.h"
@@ -30,8 +30,8 @@ namespace {
 
 
 // The device's pipeline holder takes the pipeline: counted first, then the old one released.
-void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
-    CTransformPipeline* previous = *holder;
+void DeviceSetPipeline(TransformPipeline** holder, TransformPipeline* pipeline) {
+    TransformPipeline* previous = *holder;
     *holder = pipeline;
     if (pipeline) pipeline->AddRef();
     if (previous) previous->Release();
@@ -52,7 +52,7 @@ void StackPush(MatrixStack& stack, const Matrix4* m) {
 }
 const Matrix4* StackTop(const MatrixStack& stack) { return stack.matrices.data() + (stack.count - 1); }
 
-// The pipeline's stacks (CTransformPipeline::stacks) the creation fills.
+// The pipeline's stacks (TransformPipeline::stacks) the creation fills.
 constexpr int kProjection = 6;
 constexpr int kViewport = 8;
 constexpr int kAxisSwap = 7;
@@ -63,11 +63,11 @@ constexpr int kStackD = 5;   // the same
 constexpr int kProductStacks[2] = {kStackA, kStackB};
 constexpr int kSwapStacks[2] = {kStackC, kStackD};
 
-void FillMatrixStacks(CSceneRenderer* renderer) {
-    CTransformPipeline* pipeline = renderer->pipeline;
+void FillMatrixStacks(SceneRenderer* renderer) {
+    TransformPipeline* pipeline = renderer->pipeline;
     MatrixStack* stacks = pipeline->stacks;
     // The camera's near and far distances and field of view.
-    const CCamera* cam = &g_camera;
+    const Camera* cam = &g_camera;
     float zNear, zFar, fov;
     zNear = cam->nearDistance;
     zFar = cam->farDistance;
@@ -94,7 +94,7 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
 }
 
 // The pipeline's viewport size and depth range (the options' fog start and far clip distances).
-void SetViewport(CSceneRenderer* renderer, const GameOptions* settings) {
+void SetViewport(SceneRenderer* renderer, const GameOptions* settings) {
     const RECT& screen = renderer->device->screen;
     float width = static_cast<float>(screen.right - screen.left);
     float height = static_cast<float>(screen.bottom - screen.top);
@@ -134,7 +134,7 @@ void SetRenderState(const GameOptions* settings) {
 
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
 // +0x100 = 1e12, +0x104 = 1e-12.
-void AddDefaultLight(CSceneRenderer* renderer) {
+void AddDefaultLight(SceneRenderer* renderer) {
     CLight* light = g_clientWorld.lightFactory->CreateLight(0x2E);
     Vector3 colour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
@@ -148,18 +148,18 @@ void AddDefaultLight(CSceneRenderer* renderer) {
 
 // The counted helper object. The flag is a byte argument: only its low byte is read (the caller
 // pushes it with the rest of the register left over from operator new).
-void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
+void CreateHelper(SceneRenderer* renderer, const GameOptions* settings) {
     const std::uint32_t flag = settings->driverIndex != 0 ? 1u : 0u;
-    renderer->helper.Assign(new CRenderHelper(flag));
+    renderer->helper.Assign(new RenderHelper(flag));
 }
 
 } // namespace
 
-void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
+void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState = {};   // a new device's
     CreatePipeline();
     // (The options' driver, refresh rate and depth buffer bits choose nothing: the new renderer draws.)
-    CTextureDevice* newDevice = new CTextureDevice(static_cast<HWND>(window), settings->fullScreen != 0,
+    TextureDevice* newDevice = new TextureDevice(static_cast<HWND>(window), settings->fullScreen != 0,
                                                 settings->resolutionX, settings->resolutionY, settings->colourDepth);
     device.Assign(newDevice);
     DeviceSetPipeline(&device->pipeline, pipeline);

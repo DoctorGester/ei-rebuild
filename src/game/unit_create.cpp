@@ -23,10 +23,10 @@ constexpr int kPartStats = 4;          // MarkChanged parts
 constexpr int kPartEquipment = 5;
 constexpr int kPartWeapons = 6;
 
-CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
+PlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 
 // The item's condition rounds to nothing.
-bool IsBroken(const CItem* item) {
+bool IsBroken(const Item* item) {
     return x87::fistp(item->condition) <= 0;
 }
 
@@ -45,7 +45,7 @@ UnitPrototypeRecord* UnitPrototypeTable::FindByName(std::string_view name) {
 
 // --- Server controller ------------------------------------------------------------------------
 
-void CUnitServer::SetStats(const UnitStats* source) {
+void UnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&stats, source, sizeof(UnitStats));
     unit->MarkChanged(kPartStats);
     RefreshVitals(false);
@@ -58,7 +58,7 @@ void CUnitServer::SetStats(const UnitStats* source) {
     companion->vitals.mana = companion->vitals.maxMana;
 }
 
-void CUnitServer::Shout(AckKind kind) {
+void UnitServer::Shout(AckKind kind) {
     if (!IsShoutable(kind)) return;
     if (!unit->player) return;
     PlayerMessages(unit->player)->SendObject0B(unit, kind);
@@ -69,14 +69,14 @@ void CUnitServer::Shout(AckKind kind) {
 void CUnit::DropBrokenEquipment() {
     CPlayer* ownerObject = player;
     if (!ownerObject) return;   // the empty list's destructor has nothing to free
-    std::list<CItem*> broken{};
-    CPlayerServer* messages = PlayerMessages(ownerObject);
+    std::list<Item*> broken{};
+    PlayerServer* messages = PlayerMessages(ownerObject);
 
-    for (CItemArmor*& slot : armor) {
+    for (ItemArmor*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
         slot->AddRef();
         broken.push_back(slot);
-        CItemArmor* piece = slot;
+        ItemArmor* piece = slot;
         slot = nullptr;
         if (piece) {
             Controller()->ArmourTakenOff(static_cast<std::uint32_t>(piece->GetType()));
@@ -88,12 +88,12 @@ void CUnit::DropBrokenEquipment() {
 
     bool weaponLost = false;
     for (int i = 3; i >= 0; --i) {
-        CItem*& slot = weapons[i];
+        Item*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
         messages->SendPair16(static_cast<std::uint32_t>(id), static_cast<std::uint32_t>(i));
         slot->AddRef();
         broken.push_back(slot);
-        CEngineObject* weapon = slot;
+        EngineObject* weapon = slot;
         slot = nullptr;
         if (weapon) weapon->Release();
         MarkChanged(kPartEquipment);

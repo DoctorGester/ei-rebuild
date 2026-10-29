@@ -21,11 +21,11 @@ constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit fie
 
 // --- The message box ----------------------------------------------------------------------------------
 
-CMessageBox::CMessageBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t newResult,
+MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t newResult,
                          std::uint32_t newFlags, std::uint32_t newFormat)
-    : CUiContainer(ui), result(newResult), flags(newFlags), format(newFormat) {
+    : UiContainer(ui), result(newResult), flags(newFlags), format(newFormat) {
     std::string line;
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     line = texts->GetString(titleKey);
     title = line;
     if (flags & kEditField) {
@@ -41,7 +41,7 @@ CMessageBox::CMessageBox(CInterface3D* ui, std::string_view titleKey, const char
 
 // --- The portraits panel ------------------------------------------------------------------------------
 
-CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* newOwner) : CUiWindow(ui), owner(newOwner) {
+HudPortraits::HudPortraits(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
     rect = RECT{250, 440, 550, 600};
     count = 0;
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);

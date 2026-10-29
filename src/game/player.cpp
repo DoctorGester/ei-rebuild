@@ -88,7 +88,7 @@ void CPlayer::DestroyPlayer() {
 
 void CPlayer::Clear() {
     for (auto node = items.begin(); node != items.end();) {
-        CEngineObject* item = *node;
+        EngineObject* item = *node;
         ++node;
         item->Release();
     }
@@ -106,7 +106,7 @@ void CPlayer::Clear() {
     if (connection != nullptr) connection->ForgetSentObjects();
 }
 
-void CPlayer::SetConnection(CPlayerConnection* newConnection) {
+void CPlayer::SetConnection(PlayerConnection* newConnection) {
     if (connection != nullptr) {
         connection->player = nullptr;
         connection->Release();
@@ -130,7 +130,7 @@ void DropLink(netlink::NetLink*& link) {
 }
 
 // The data word every item class keeps (a quest item's id).
-std::uint32_t ItemWord4C(CItem* item) { return AsQuest(item)->questItemId; }
+std::uint32_t ItemWord4C(Item* item) { return AsQuest(item)->questItemId; }
 
 // The first given item `match` accepts: the connection's lookup, its node removed, the item
 // released. 1, or 0 when there is none.
@@ -139,7 +139,7 @@ bool TakeFirst(CPlayer* player, Match match) {
     auto node = player->items.begin();
     while (node != player->items.end() && !match(*node)) ++node;
     if (node == player->items.end()) return false;
-    CEngineObject* item = *node;
+    EngineObject* item = *node;
     player->connection->ItemTaken(item);
     player->items.erase(node);
     item->Release();
@@ -174,16 +174,16 @@ void CPlayer::ForgetKnownObjects() {
     dirty = kPlayerDirtyAll;
 }
 
-bool CPlayer::IsLeader(const CEngineObject* unit) {
+bool CPlayer::IsLeader(const EngineObject* unit) {
     const std::vector<PartyUnitRecord>& members = Party()->members;
     if (std::ssize(members) == 0 || unit == nullptr) return false;
     return static_cast<std::uint32_t>(unit->id) == members[0].unitId;
 }
 
-void CPlayer::GiveItems(const std::list<CItem*>* damaged, int flag) {
+void CPlayer::GiveItems(const std::list<Item*>* damaged, int flag) {
     connection->ItemsGiven(damaged, flag);
     for (auto node = damaged->begin(); node != damaged->end();) {
-        CItem* item = *node;
+        Item* item = *node;
         ++node;
         item->AddRef();
         items.push_back(item);
@@ -193,7 +193,7 @@ void CPlayer::GiveItems(const std::list<CItem*>* damaged, int flag) {
 void CPlayer::TakeAllItems() {
     connection->ItemsTaken();
     while (!items.empty()) {
-        CItem* item = items.front();
+        Item* item = items.front();
         items.pop_front();
         item->Release();
     }
@@ -205,20 +205,20 @@ bool CPlayer::HasLoot(int kind) {
         if ((*node)->Kind() == ItemKind::Quest && ItemWord4C(*node) == static_cast<std::uint32_t>(kind)) return true;
     for (auto node = units.begin(); node != units.end() && node->second != nullptr; ++node) {
         CUnit* unit = node->second;
-        for (CItem* item : unit->carried)
+        for (Item* item : unit->carried)
             if (ItemWord4C(item) == static_cast<std::uint32_t>(kind)) return true;
     }
     return false;
 }
 
 bool CPlayer::TakeLoot(int kind) {
-    return TakeFirst(this, [kind](CItem* item) {
+    return TakeFirst(this, [kind](Item* item) {
         return item->Kind() == ItemKind::Quest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
     });
 }
 
 bool CPlayer::TakeItem(int itemId) {
-    return TakeFirst(this, [itemId](CItem* item) { return item->id == itemId; });
+    return TakeFirst(this, [itemId](Item* item) { return item->id == itemId; });
 }
 
 void CPlayer::AddUnit(CUnit* unit) {
@@ -240,7 +240,7 @@ void CPlayer::RemoveUnit(CUnit* unit) {
     connection->UnitChanged(unit);
 }
 
-void CPlayer::ItemUsed(CEngineObject* item) {
+void CPlayer::ItemUsed(EngineObject* item) {
     std::uint32_t itemId = static_cast<std::uint32_t>(item->id);
     if (!lib::Contains(recharging, itemId)) recharging.push_back(itemId);
     connection->ItemUsed(item);

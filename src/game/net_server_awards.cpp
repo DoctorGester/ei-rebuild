@@ -34,7 +34,7 @@ namespace net {
 
 // Queues an award message for `connection` on the pending awards with a 60 second delay. `text` is the
 // caller's string (made in the argument slot), destroyed here as the callee destroys a by-value argument.
-void ServerSession::QueueAward(CRefObject* connection, int textKind, float value, std::string text) {
+void ServerSession::QueueAward(RefObject* connection, int textKind, float value, std::string text) {
     auto* award = NewCounted<AwardMessage>();
     award->connection.Assign(connection);
     award->kind = static_cast<std::uint32_t>(textKind);
@@ -45,8 +45,8 @@ void ServerSession::QueueAward(CRefObject* connection, int textKind, float value
 
     // Shared three times over: the list keeps a clone of the entry's clone (each share marks the object
     // copy-on-share); the entry's and then the first share are destroyed.
-    SharedRef<CRefObject> shared(award);
-    TimedEntry<SharedRef<CRefObject>> entry(kAwardDelay, shared);
+    SharedRef<RefObject> shared(award);
+    TimedEntry<SharedRef<RefObject>> entry(kAwardDelay, shared);
     awards.push_back(entry);
 }
 
@@ -63,7 +63,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
         if (IsLive(player) && player->host) break;
         ++node;
     }
-    CRefObject* connection = node->Get()->ConnectionRef().Get();
+    RefObject* connection = node->Get()->ConnectionRef().Get();
     if (!IsLive(connection)) return;
 
     const std::vector<std::string>& items = entry->lists[0];   // the items given
@@ -107,7 +107,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
         float award1 = static_cast<float>(value1 / divisor);
 
         for (auto& node : clients) {
-            CRefObject* connection = node.Get();
+            RefObject* connection = node.Get();
             const char* empty = game::kEmptyText;
             QueueAward(connection, 0, award0, std::string(empty));
             QueueAward(connection, 1, award1, std::string(empty));

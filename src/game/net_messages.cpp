@@ -388,7 +388,7 @@ void TradeMessage::Read(BufferCursor* cursor) {
 // zeros here) are read into ours instead of ours being written into it.
 PartyMemberMessage::PartyMemberMessage(const PartyMemberMessage& other) : Message(other) {
     stream.SetSize(other.stream.size);
-    CStream* copy = &stream;
+    ByteStream* copy = &stream;
     copy->Read(const_cast<std::uint8_t*>(other.stream.data.data()), stream.size);
 }
 
@@ -400,7 +400,7 @@ void PartyMemberMessage::OnShutdown() {
     Rebuild(this);
 }
 void PartyMemberMessage::Write(BufferCursor* cursor) {
-    CStream* currentStream = &stream;
+    ByteStream* currentStream = &stream;
     std::uint32_t size = currentStream->Size();
     Put(cursor, static_cast<std::uint16_t>(size));
     PutBytes(cursor, stream.data.data(), size & 0xFFFF);
@@ -454,7 +454,7 @@ void PartyMessage::Read(BufferCursor* cursor) {
 
 // ServerEntryBase and ServerEntry (net_classes.h): made by the server list code.
 
-ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address(other.address) {
+ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : RefObject(), address(other.address) {
     x87::CopyBits(timeout, other.timeout);     // the floats copied bit for bit
     x87::CopyBits(ping, other.ping);
     foreign = other.foreign;

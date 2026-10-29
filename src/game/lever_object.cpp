@@ -74,7 +74,7 @@ bool Lever::RunTick() {
     return false;
 }
 
-void Lever::LoadLever(CStream* stream) {
+void Lever::LoadLever(ByteStream* stream) {
     LoadMapObject(stream);
     stream->ReadValue(state);
     stream->ReadValue(stateCount);
@@ -84,7 +84,7 @@ void Lever::LoadLever(CStream* stream) {
     stream->ReadValue(keepsMapFlag);
 }
 
-void Lever::SaveLever(CStream* stream) {
+void Lever::SaveLever(ByteStream* stream) {
     SaveMapObject(stream);
     std::uint32_t value = static_cast<std::uint32_t>(state);
     stream->WriteValue(value);
@@ -99,17 +99,17 @@ void Lever::SaveLever(CStream* stream) {
     stream->WriteValue(byte);
 }
 
-void Lever::Load(CStream* stream) { LoadLever(stream); }
-void Lever::Save(CStream* stream) { SaveLever(stream); }
-bool Lever::ApplyScience(const LockKey* key, CEngineObject*) { return ApplyKey(key); }
+void Lever::Load(ByteStream* stream) { LoadLever(stream); }
+void Lever::Save(ByteStream* stream) { SaveLever(stream); }
+bool Lever::ApplyScience(const LockKey* key, EngineObject*) { return ApplyKey(key); }
 
-void LockKey::ReadFrom(CStream* stream) {
+void LockKey::ReadFrom(ByteStream* stream) {
     stream->ReadValue(mask);
     stream->ReadValue(id);
     stream->ReadValue(level);
 }
 
-void LockKey::WriteTo(CStream* stream) const {
+void LockKey::WriteTo(ByteStream* stream) const {
     for (std::uint32_t word : {mask, id, level}) stream->WriteValue(word);
 }
 
@@ -140,7 +140,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     field->ReadDelta(&rate, 4);
     std::uint8_t disabled;
     field->ReadDelta(&disabled, 1);
-    CMemoryStream* snapshot = delta::g_readSnapshot;
+    MemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t readTo = snapshot->Position();
     std::uint32_t size = delta::g_readSnapshot->Size();
     complete &= readTo == size ? 1u : 0u;

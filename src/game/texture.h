@@ -18,8 +18,8 @@
 class CTexture;
 class CTextureManager;
 struct ClipBounds;
-class CTransformPipeline;
-class CDeviceMaterial;
+class TransformPipeline;
+class DeviceMaterial;
 struct NamedTexture;
 struct SkinRequest;
 struct ComposedTexture;
@@ -34,9 +34,9 @@ struct Vector4;
 // The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
 // draws' state. Made once by the scene renderer's creation (renderer_init.cpp); the new renderer (src/render) draws
 // and presents. Held by the scene renderer and the texture manager.
-class CTextureDevice final : public CRendererBase {
+class TextureDevice final : public RendererBase {
 public:
-    int SetMaterial(CDeviceMaterial* material);
+    int SetMaterial(DeviceMaterial* material);
     int DrawFlatBlocks(const VertexPacket* positions, const void* uvs, int blocks, const std::uint16_t* indices,
                        int indexCount, std::uint32_t colour, std::uint32_t specular);
     int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const VertexPacket* positions, int blocks,
@@ -64,16 +64,16 @@ public:
 
     // Starts the new renderer (its failure ends the game). `width` x `height` pixels of `bitsPerPixel` (16 or 32) on
     // `window`.
-    CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
-    ~CTextureDevice() override;
+    TextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
+    ~TextureDevice() override;
 
     bool fullScreen = false;    // the window covers the monitor
     RECT screen = {};           // (0, 0, width, height): the screen's size
     HWND window = nullptr;
     int bitsPerPixel = 32;      // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
-    CTransformPipeline* pipeline = nullptr;
+    TransformPipeline* pipeline = nullptr;
     Surface* stageSurfaces[8] = {};    // the holder bound to each texture stage
-    CDeviceMaterial* material = nullptr;
+    DeviceMaterial* material = nullptr;
     std::uint32_t colour = 0xFF000000;    // the renderer's draw colour (mesh draw flag 4)
     // The draws fog their screen vertices by distance when set; cleared around the sky and hit point draws.
     int distanceFog = 0;
@@ -94,7 +94,7 @@ inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modul
                                                         render::kArgTexture, render::kArgCurrent};
 
 // Once a frame: the new renderer's frame shown. Returns 0.
-long DevicePresent(CTextureDevice* device);
+long DevicePresent(TextureDevice* device);
 
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
@@ -145,11 +145,11 @@ bool IsTextureFormat(std::uint32_t id);
 render::PixelFormat TextureFormat(std::uint32_t id);
 
 // A texture's kind: its type, the texture manager's object type. Neither the data nor the strings name them; the
-// callers pass a figure part's meshType (1..0x10, CObject3DClientSpecific's part sets; 1 and 2 also the units'
+// callers pass a figure part's meshType (1..0x10, Object3DClientSpecific's part sets; 1 and 2 also the units'
 // composed skins "mo%dp" / "mo%ds") or one of these. CreateObject gives three more kinds their own flag
 // (TextureFlag::Type3E..Type40); nothing creates them.
 enum class TextureKind : int {
-    Interface = 3,      // the interface's pictures (CUiWindow::LoadTexture)
+    Interface = 3,      // the interface's pictures (UiWindow::LoadTexture)
     Effects = 6,        // the effects', the ground prints', the fog, the wounds and the hit numbers
     TerrainPage = 0xB,  // the terrain pages
     Blank565 = 0x1E,    // NewTexture's blank 5:6:5 texture
@@ -161,7 +161,7 @@ enum class TextureKind : int {
     Type40 = 0x40,
 };
 
-// The bits of CEngineObject::flags on a texture.
+// The bits of EngineObject::flags on a texture.
 enum class TextureFlag : std::uint32_t {
     Loaded = 0x8,
     // With Loaded the mask that makes a released texture cacheable: nothing in the game sets 0x10 or 0x20.
@@ -171,43 +171,43 @@ enum class TextureFlag : std::uint32_t {
     Type3F = 0x100,
     Type40 = 0x200,
     OtherType = 0x40,
-    Tree = 0x2000,          // a tree's part texture (CObject3DClientSpecific's part sets); nothing reads it
+    Tree = 0x2000,          // a tree's part texture (Object3DClientSpecific's part sets); nothing reads it
     // The .mmp header's alpha bit count (MarkLoaded): 0, 1, 4, 8. Nothing reads them.
     Alpha0 = 0x4000,
     Alpha1 = 0x8000,
     Alpha4 = 0x10000,
     Alpha8 = 0x20000,
     AlphaBits = Alpha0 | Alpha1 | Alpha4 | Alpha8,
-    Keep = 0x40000,         // CWorldClient::SetUpGraphics's digits texture, CUiWindow::CreateTexture's; nothing reads it
+    Keep = 0x40000,         // WorldClient::SetUpGraphics's digits texture, UiWindow::CreateTexture's; nothing reads it
 };
 template <> inline constexpr bool lib::kBitFlags<TextureFlag> = true;
 
 // Class id 6, "CTexture".
-class CTexture : public CEngineObject {
+class CTexture : public EngineObject {
 public:
     CTexture();
     ~CTexture() override;
 
     // From mip level `mip` on: a holder for the levels the new renderer decodes; copies the file's extra
     // block. Returns 1.
-    int CreateFromMmp(CTextureDevice* device, const MmpHeader* data, unsigned mip);
+    int CreateFromMmp(TextureDevice* device, const MmpHeader* data, unsigned mip);
     // From mip level `mip` on: a holder for the levels the new renderer composes from the layer textures (no
     // check that the level exists, as the original's load of its cache file); copies the extra block. Returns 1.
-    int CreateComposed(CTextureDevice* device, const ComposedTexture& composed, unsigned mip);
+    int CreateComposed(TextureDevice* device, const ComposedTexture& composed, unsigned mip);
     // The alpha kind from the header (TextureFlag::Alpha0..Alpha8), and the texture loaded.
     void MarkLoaded(const MmpHeader* header);
     // With its alpha from "a_<file>" beside it. 1 without loading when this texture is loaded and named `path`.
-    int LoadBmp(CTextureDevice* device, const char* path);
+    int LoadBmp(TextureDevice* device, const char* path);
     // A square texture header->width wide (the height is not read) the game draws into on the GPU (TakeBlankHolder).
     // Returns 1.
-    int CreateBlank(CTextureDevice* device, const MmpHeader* header);
+    int CreateBlank(TextureDevice* device, const MmpHeader* header);
     // A new holder in surface of a `width` x `height` texture the game draws into on the GPU (render::BlankTexture),
     // keeping what format keeps of the alpha; with `mipmapped` its levels made after each draw. The game's error for
     // a surface that cannot be made when format is none.
-    void TakeBlankHolder(CTextureDevice* device, int width, int height, bool mipmapped);
+    void TakeBlankHolder(TextureDevice* device, int width, int height, bool mipmapped);
     // A 24-bit .bmp and, when `alphaPath` is an 8-bit .bmp, its alpha. 1 (also when already loaded); 0 when
     // the .bmp cannot be opened.
-    int LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath);
+    int LoadBmpFiles(TextureDevice* device, const char* path, const char* alphaPath);
 
     // Back to the constructed state. Returns 1.
     void Create() override;
@@ -246,7 +246,7 @@ struct ComposedTexture {
 void ForgetComposedTextures();
 
 // Class id 0x26.
-class CTextureManager : public CResourceManager {
+class CTextureManager : public ResourceManager {
 public:
 
     CTextureManager();
@@ -257,10 +257,10 @@ public:
     // Rebirth-patched. Also deletes the composed textures and adds the archives "textures.res", "redress.res"
     // and "menus.res"; 1 only when every one opened.
     void Create() override;
-    // As the destructor up to CResourceManager::Destroy (without SetDevice).
+    // As the destructor up to ResourceManager::Destroy (without SetDevice).
     void Destroy() override;
     // flags by type (TextureKind): TextureFlag::Type3E, Type3F, Type40, any other OtherType (no null check).
-    CEngineObject* CreateObject(int type, int id) override;
+    EngineObject* CreateObject(int type, int id) override;
     // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else the composed texture
     // `name` (Compose).
     int LoadTexture(CTexture* texture);
@@ -273,12 +273,12 @@ public:
     CTexture* NewTexture(int width, int height, TextureKind kind);
     // A registered texture with a TextureFlag::Cacheable bit goes into the cache, any other is destroyed and kept as a
     // spare. Returns 0.
-    int ReleaseObject(CEngineObject* object) override;
-    CEngineObject* NewObject(int type) override;
+    int ReleaseObject(EngineObject* object) override;
+    EngineObject* NewObject(int type) override;
     // Without a device: textures limited to 511 pixels and mip level 2. Else the mip level from the texture
     // quality setting, the limit when the device's largest texture is at most 256 pixels (or GetCaps fails),
     // and a tenth of the local video memory for textures.
-    void SetDevice(CTextureDevice* device);
+    void SetDevice(TextureDevice* device);
     // Taken out of the cache and registered again; null when there is none.
     CTexture* TakeFromCache(int type, std::string_view name);
     // The registered texture, else a cached one taken back as TakeFromCache does (but cachedBytes is not
@@ -310,7 +310,7 @@ public:
 
     std::list<CTexture*> cache;    // released textures kept for reuse
     int cachedBytes;            // the cached textures' CTexture::uploadResult
-    CTextureDevice* device;
+    TextureDevice* device;
     std::uint16_t mipLevel;     // first mip level to load
     int limitTo512;             // nonzero: textures are loaded at most 511 pixels wide and high
 };

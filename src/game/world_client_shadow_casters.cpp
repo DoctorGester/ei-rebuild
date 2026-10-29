@@ -62,7 +62,7 @@ Matrix Placement(const Quaternion& rotation, const Vector3& position) {
     return FromFloat(m);
 }
 
-// The object's extra scale (CObject3DClientSpecific::figureScale) as Draw applies it: only when not 1, 1, 1.
+// The object's extra scale (Object3DClientSpecific::figureScale) as Draw applies it: only when not 1, 1, 1.
 bool Scaled(const Vector3& s) {
     constexpr std::uint32_t kOne = 0x3F800000;
     return !(std::bit_cast<std::uint32_t>(s.x) == kOne && std::bit_cast<std::uint32_t>(s.y) == kOne &&
@@ -96,8 +96,8 @@ double TopOf(const CObject3D* object, const Vector3& scale) {
     return object->localPosition.z + std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(cx, cy, cz)) + object->bounds.radius * LargestScale(scale);
 }
 
-// Part `name`'s element ranges in the figure's arrays (CLinkMesh::ranges); null when there is none.
-const LinkPartRanges* RangesOf(const CLinkMesh* figure, const char* name) {
+// Part `name`'s element ranges in the figure's arrays (LinkMesh::ranges); null when there is none.
+const LinkPartRanges* RangesOf(const LinkMesh* figure, const char* name) {
     auto node = figure->ranges.find(std::string(name));
     return node == figure->ranges.end() ? nullptr : &node->second;
 }
@@ -118,7 +118,7 @@ const float* MovedPositions(const VertexPacket* positions, int packets, const st
 
 // Hands over the parts of `object` that were not drawn this frame, placed by `world` (and the extra
 // scale), each with its part set's texture.
-void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matrix& world) {
+void HandOverParts(CObject3D* object, Object3DClientSpecific* half, const Matrix& world) {
     static std::vector<VertexPacket> moved;
     Matrix objectMatrix = world;
     const Vector3& scale = half->figureScale;
@@ -130,14 +130,14 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
         s.m[15] = 1.0;
         objectMatrix = Multiply(world, s);
     }
-    CLinkMesh* figure = object->figure;
+    LinkMesh* figure = object->figure;
     for (TextureParts* set : half->partSets) {
         if (!set) continue;
         const void* holder = set->texture ? set->texture->surface.Get() : nullptr;
         for (int g = 0; g < std::ssize(set->groups); ++g) {
             const PartGroup* group = set->groups[g];
             for (int p = 0; p < std::ssize(group->parts); ++p) {
-                CFigureMesh* part = group->parts[p];
+                FigureMesh* part = group->parts[p];
                 if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;
                 if (LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition) > kNearSquared) continue;
                 if (render::CasterPartDrawn(part)) continue;
@@ -184,13 +184,13 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
 // The highest top of any object on the map (TopOf) and the largest radius, scanned again every
 // kHeightScanEvery frames and for another world: how far back towards the sun a caster can stand.
 struct HighestObject {
-    const CWorldClient* world = nullptr;
+    const WorldClient* world = nullptr;
     std::uint32_t frames = 0;
     double top = 0.0, widest = 0.0;
 };
 HighestObject g_highest;
 
-const HighestObject& Highest(const CWorldClient* world) {
+const HighestObject& Highest(const WorldClient* world) {
     if (g_highest.world == world && g_highest.frames++ % kHeightScanEvery != 0) return g_highest;
     if (g_highest.world != world) g_highest = HighestObject{world, 1, 0.0, 0.0};
     double top = 0.0, widest = 0.0;   // the ground is above 0
@@ -212,7 +212,7 @@ const HighestObject& Highest(const CWorldClient* world) {
 
 } // namespace
 
-void HandOverSceneLights(CWorldClient* world) {
+void HandOverSceneLights(WorldClient* world) {
     terrain::Terrain* terrain = world->terrain;
     CLight* sun = terrain && terrain->sun ? terrain->sun : g_sceneRenderer.sun;
     if (!sun) return;
@@ -227,7 +227,7 @@ void HandOverSceneLights(CWorldClient* world) {
             p.inverseRangeSquared = light->inverseRangeSquared;
             for (int k = 0; k < 3; ++k) p.colour[k] = light->color[k];
             p.specular = lib::Has(light->flags, LightFlag::Specular);
-            // An object's own light (a party unit's at night, a quest light: CMapObjectClientSpecific::CreateLight)
+            // An object's own light (a party unit's at night, a quest light: MapObjectClientSpecific::CreateLight)
             // is Off, which the game's own shadows skip too: it casts no point shadow.
             p.shadows = !lib::Has(light->flags, LightFlag::Off);
             points.push_back(p);
@@ -245,7 +245,7 @@ void HandOverSceneLights(CWorldClient* world) {
     render::SceneLighting(s);
 }
 
-void HandOverTerrainCasters(CWorldClient* world) {
+void HandOverTerrainCasters(WorldClient* world) {
     terrain::Terrain* terrain = world->terrain;
     if (!terrain || !terrain->mapLoaded || !lib::Has(terrain->landscapeFlags, terrain::LandscapeFlag::SunShadows) || terrain->sectorGrid.empty()) return;
     render::ShadowCasterRect area;
@@ -264,7 +264,7 @@ void HandOverTerrainCasters(CWorldClient* world) {
         }
 }
 
-void HandOverOutsideCasters(CWorldClient* world) {
+void HandOverOutsideCasters(WorldClient* world) {
     const std::uint32_t flags = world->flags;
     if (!(flags & WorldClientFlag::DrawShadows) || !(flags & (WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits)) ||
         !world->terrain)
@@ -298,7 +298,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
                 const bool unit = object->GetClassId() == ClassId::Unit;
                 if (!(flags & (unit ? WorldClientFlag::DrawUnits : WorldClientFlag::DrawObjects))) continue;
                 if (unit && !allUnits && !(object->flags & MapObjectFlag::InParty)) continue;
-                CObject3DClientSpecific* half = object->ClientSpecific();
+                Object3DClientSpecific* half = object->ClientSpecific();
                 const Matrix placement = Placement(object->localRotation, object->localPosition);
                 render::ShadowCasterSphere sphere{};
                 if (!WorldSphere(object, placement, half->figureScale, &sphere)) continue;

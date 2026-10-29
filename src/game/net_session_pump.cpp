@@ -65,7 +65,7 @@ DriverLink* DriverSession::Start(net::Connection* player) {
     DriverLink* driver = NewDriver(this, player);
     driver->Pump();
     while (driver->HasIncoming()) {
-        CMemoryStream stream;
+        MemoryStream stream;
         driver->Receive(&stream);
     }
     return driver;

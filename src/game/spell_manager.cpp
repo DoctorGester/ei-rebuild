@@ -53,15 +53,15 @@ CSpell* CSpellManager::CreateSpellObject(int newId) {
     }
     if (low > sequence->maxLow) sequence->maxLow = low;
     // A new entry has no container: CopyTo then faults (this = 0x30), as the game does.
-    CSpellContainer* container = sequence->containers[low];
+    SpellContainer* container = sequence->containers[low];
     container->spell.CopyTo(spell);
     return spell;
 }
 
-CEngineObject* CSpellManager::NewObject(int objectType) {
+EngineObject* CSpellManager::NewObject(int objectType) {
     switch (static_cast<SpellObjectType>(objectType)) {
     case SpellObjectType::Spell: return new CSpell();
-    case SpellObjectType::Container: return new CSpellContainer();
+    case SpellObjectType::Container: return new SpellContainer();
     default: break;
     }
     return nullptr;
@@ -74,7 +74,7 @@ void CSpellManager::Destroy() {
     }
     sequences.clear();
     maxSequenceKey = 0;
-    CResourceManager::Destroy();
+    ResourceManager::Destroy();
 }
 
 CSpellManager::~CSpellManager() {
@@ -84,7 +84,7 @@ CSpellManager::~CSpellManager() {
     }
     sequences.clear();
     maxSequenceKey = 0;
-    CResourceManager::Destroy();
+    ResourceManager::Destroy();
 }
 
 const char* CSpellManager::ClassName() { return kSpellManagerClassName; }
@@ -96,17 +96,17 @@ std::vector<std::string> CSpellManager::ListModifierNames() { return ListRecordN
 
 // The spell and the name are members, constructed before the body (the game builds them after the code
 // string) and destroyed after it (the game: the name and the spell before the string); neither allocates.
-CSpellContainer::CSpellContainer() {
+SpellContainer::SpellContainer() {
     // The code string: empty, with room for 8 bytes.
-    CSpellContainer::Create();
+    SpellContainer::Create();
 }
 
-CSpellContainer::~CSpellContainer() {
+SpellContainer::~SpellContainer() {
     // (ClearState is empty and called directly here.)
     prototype = nullptr;
     modifiers.clear();
     spell.Destroy();
 }
 
-const char* CSpellContainer::ClassName() { return "CSpellContainer"; }
-ClassId CSpellContainer::GetClassId() { return ClassId::SpellContainer; }
+const char* SpellContainer::ClassName() { return "CSpellContainer"; }
+ClassId SpellContainer::GetClassId() { return ClassId::SpellContainer; }

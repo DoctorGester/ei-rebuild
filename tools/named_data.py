@@ -151,7 +151,7 @@ ALIGNED_ARRAY_VECTORS = {
 
 def element_format(type_, address=None):
     """TYPES' format of an element type; a template instantiation's is its template's (`lib::AlignedArray<T>`); a
-    pointer to another type is a pointer element ('P': `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
+    pointer to another type is a pointer element ('P': `DirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
     A std::vector's is the layout of the game.exe container it replaced, by its address (ALIGNED_ARRAY_VECTORS)."""
     if re.fullmatch(r'std::vector<.*>', type_):
         return TYPES['lib::AlignedArray'] if address in ALIGNED_ARRAY_VECTORS else TYPES['stlp::vector']

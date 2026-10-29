@@ -1,6 +1,6 @@
 // Spell construction: what a cast with modifiers runs before the spell exists. The script's CastSpellUnit /
 // CastSpellPoint ("healing{e2;e2}") and the spell constructor screen parse the text and then drive
-// CSpellConstructor: SetManager, BeginConstruct (a new CSpellContainer for the prototype), AddModifier per
+// CSpellConstructor: SetManager, BeginConstruct (a new SpellContainer for the prototype), AddModifier per
 // modifier (each rebuilds the container's spell), EndConstruct, CSpell::Clone into a new spell object,
 // SetManager(null).
 #include "item.h"
@@ -68,28 +68,28 @@ CSpell* CSpell::Clone(CSpellManager* manager) {
     return spell;
 }
 
-void CSpellContainer::Create() {
+void SpellContainer::Create() {
     prototype = nullptr;
     modifiers.clear();
     spell.Create();
 }
 
-void CSpellContainer::Destroy() {
+void SpellContainer::Destroy() {
     ClearState();
     prototype = nullptr;
     modifiers.clear();
     spell.Destroy();
 }
 
-const char* CSpellContainer::GetName() { return name.c_str(); }
+const char* SpellContainer::GetName() { return name.c_str(); }
 
-bool CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
+bool SpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
     modifiers.insert(modifiers.end(), modifier);
     return true;
 }
 
-bool CSpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier) {
+bool SpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier) {
     if (!prototype || !modifier) return false;
     switch (Letter(modifier, 0)) {
     case 'a': return prototype->allowedModifiers[2];
@@ -101,7 +101,7 @@ bool CSpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier
     }
 }
 
-void CSpellContainer::Build() {
+void SpellContainer::Build() {
     CSpell* currentSpell = &spell;
     const itemdb::SpellRecord* proto = prototype;
     currentSpell->speed = proto->speed;
@@ -216,8 +216,8 @@ void CSpellContainer::Build() {
     }
 }
 
-CSpellContainer* CSpellManager::NewContainer() {
-    return CreateObjectAs<CSpellContainer>(SpellObjectType::Container, -1);
+SpellContainer* CSpellManager::NewContainer() {
+    return CreateObjectAs<SpellContainer>(SpellObjectType::Container, -1);
 }
 
 CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::list<itemdb::SpellModifierRecord*>* modifiers) {
@@ -264,7 +264,7 @@ void CSpellConstructor::SetManager(CSpellManager* newManager) {
 bool CSpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
     if (!manager) return game::FatalError(kNoSpellManager);
     if (!prototype) return game::FatalError(kNoSpellPrototype);
-    CSpellContainer* newContainer = manager->NewContainer();
+    SpellContainer* newContainer = manager->NewContainer();
     container.Assign(newContainer);
     container->prototype = prototype;     // no null check
     return true;

@@ -1,4 +1,4 @@
-// CFileRegistry: lookups in the game's binary registry files (see registry.h for the format).
+// FileRegistry: lookups in the game's binary registry files (see registry.h for the format).
 #include "registry.h"
 #include "asset_text.h"
 #include "game_strings.h"
@@ -14,8 +14,8 @@
 
 namespace {
 
-const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registry file.\n";   // "CFileRegistry::IsValid().\nThat is not registry file.\n"
-const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "CFileRegistry::FindData().\nWrong type of entry.\n"
+const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registry file.\n";   // "FileRegistry::IsValid().\nThat is not registry file.\n"
+const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "FileRegistry::FindData().\nWrong type of entry.\n"
 
 // _ftol of a float: the game's _ftol (truncates).
 int FloatToInt(float value) { return static_cast<int>(libcrt::Ftol(value)); }
@@ -47,7 +47,7 @@ std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
 
 // GetIntArray / GetFloatArray: the values are copied bit for bit.
 template <typename T>
-bool GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, std::vector<T>* out) {
+bool GetDwordArray(FileRegistry* registry, const char* section, const char* key, unsigned type, std::vector<T>* out) {
     int isScalar;
     const std::uint8_t* value = registry->FindData(section, key, type, &isScalar);
     if (!value) {
@@ -73,7 +73,7 @@ bool GetDwordArray(CFileRegistry* registry, const char* section, const char* key
 } // namespace
 
 
-bool CFileRegistry::Open(const std::string& path) {
+bool FileRegistry::Open(const std::string& path) {
     if (!file.Open(path, 0)) return false;
     attached = 0;
     data = static_cast<const std::uint8_t*>(file.view);
@@ -85,7 +85,7 @@ bool CFileRegistry::Open(const std::string& path) {
     return false;
 }
 
-bool CFileRegistry::Attach(const void* image) {
+bool FileRegistry::Attach(const void* image) {
     attached = 1;
     data = static_cast<const std::uint8_t*>(image);
     if (U32(data) == kRegistryMagic) return true;
@@ -96,13 +96,13 @@ bool CFileRegistry::Attach(const void* image) {
     return false;
 }
 
-void CFileRegistry::Close() {
+void FileRegistry::Close() {
     if (!attached) file.Close();
     attached = 0;
     data = nullptr;
 }
 
-const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key, unsigned type, int* isScalar) {
+const std::uint8_t* FileRegistry::FindData(const char* section, const char* key, unsigned type, int* isScalar) {
     const std::uint8_t* root = data;
     if (!root) return nullptr;
 
@@ -148,7 +148,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
     return value + 3 + (keyLength & 0xFFFF);
 }
 
-std::vector<std::string> CFileRegistry::SectionNames() {
+std::vector<std::string> FileRegistry::SectionNames() {
     const std::uint8_t* root = data;
     int count = U16(root + 4);
     std::vector<std::string> names(static_cast<std::size_t>(count));
@@ -159,7 +159,7 @@ std::vector<std::string> CFileRegistry::SectionNames() {
     return names;
 }
 
-int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue) {
+int FileRegistry::GetInt(const char* section, const char* key, int defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegInt, nullptr))
         return static_cast<int>(U32(value));
     if (const std::uint8_t* value = FindData(section, key, kRegFloat, nullptr))
@@ -167,7 +167,7 @@ int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue
     return defaultValue;
 }
 
-double CFileRegistry::GetFloat(const char* section, const char* key, float defaultValue) {
+double FileRegistry::GetFloat(const char* section, const char* key, float defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegFloat, nullptr))
         return F32(value);
     if (const std::uint8_t* value = FindData(section, key, kRegInt, nullptr))
@@ -175,7 +175,7 @@ double CFileRegistry::GetFloat(const char* section, const char* key, float defau
     return defaultValue;
 }
 
-std::string CFileRegistry::GetString(const char* section, const char* key, const std::string& defaultValue) {
+std::string FileRegistry::GetString(const char* section, const char* key, const std::string& defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
         std::string text(Chars(value + 2), U16(value));
         text::FromAssetText(&text);
@@ -185,7 +185,7 @@ std::string CFileRegistry::GetString(const char* section, const char* key, const
     return defaultValue;
 }
 
-void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* buffer, int* length,
+void FileRegistry::GetStringBuffer(const char* section, const char* key, char* buffer, int* length,
                                     const char* defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
         // The UTF-8 text is cut to the buffer at a character's end (the original cut the asset's bytes, by their
@@ -203,15 +203,15 @@ void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* 
     *length = static_cast<int>(std::strlen(buffer));
 }
 
-bool CFileRegistry::GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out) {
+bool FileRegistry::GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegInt, out);
 }
 
-bool CFileRegistry::GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out) {
+bool FileRegistry::GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegFloat, out);
 }
 
-bool CFileRegistry::GetStringArray(const char* section, const char* key, std::vector<std::string>* out) {
+bool FileRegistry::GetStringArray(const char* section, const char* key, std::vector<std::string>* out) {
     int isScalar;
     const std::uint8_t* value = FindData(section, key, kRegArray | kRegString, &isScalar);
     if (!value) {

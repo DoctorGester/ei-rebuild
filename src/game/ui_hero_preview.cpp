@@ -1,5 +1,5 @@
 // The hero preview of the camp and the multiplayer hero screen.
-// See ui.h (CUiWindow::DrawHeroPreview) and docs/notes/ui.md ("Camp, global map, hero screens").
+// See ui.h (UiWindow::DrawHeroPreview) and docs/notes/ui.md ("Camp, global map, hero screens").
 // Floating point follows the original's x87 code: values it stores as float are rounded with
 // static_cast<float>, values it keeps on the FPU stack stay unrounded (double), products and sums
 // keep its operand order, constants are read from the exe's memory.
@@ -60,7 +60,7 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
 
 } // namespace
 
-void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, bool wide) {
+void UiWindow::DrawHeroPreview(SceneRenderer* pass, CUnit* hero, float turn, float depth, bool wide) {
     CObject3D* model = hero;
     if (!model) return;
 
@@ -90,7 +90,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     Quaternion savedOrientation;
     savedPosition = model->localPosition;
     savedOrientation = model->localRotation;
-    CSceneRenderer* renderer = pass;
+    SceneRenderer* renderer = pass;
     std::uint32_t savedColour = renderer->colour;
     // White: 255.0 converted three times, packed as 0xFF rr gg bb.
     renderer->SetColour(0xFFFFFFFFu);
@@ -137,7 +137,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     model->localRotation = q;
 
     // Drawn brighter (1.2) with texture stage 0's mip filter off, then everything put back.
-    CObject3DClientSpecific* drawn = model->ClientSpecific();
+    Object3DClientSpecific* drawn = model->ClientSpecific();
     drawn->figureScale.x = 1.2f;
     drawn->figureScale.y = 1.2f;
     drawn->figureScale.z = 1.2f;

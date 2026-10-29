@@ -50,10 +50,10 @@ void FixedSeed(IsaacRandom& random) {
 }
 
 // The unit's slots (thiscall, RET 4) and a weapon's kind, for harness_hud_read.inc.
-CItem* UnitQuickItem(CUnit* unit, std::uint32_t slot) { return unit->GetQuickItem(slot); }
-CItem* UnitSpell(CUnit* unit, std::uint32_t slot) { return unit->GetSpell(slot); }
-CItemWeapon* UnitWeapon(CUnit* unit, std::uint32_t slot) { return unit->GetWeapon(slot); }
-int WeaponType(CItemWeapon* weapon) { return weapon->GetType(); }
+Item* UnitQuickItem(CUnit* unit, std::uint32_t slot) { return unit->GetQuickItem(slot); }
+Item* UnitSpell(CUnit* unit, std::uint32_t slot) { return unit->GetSpell(slot); }
+ItemWeapon* UnitWeapon(CUnit* unit, std::uint32_t slot) { return unit->GetWeapon(slot); }
+int WeaponType(ItemWeapon* weapon) { return weapon->GetType(); }
 
 #include "../harness_hud_read.inc"
 
@@ -71,7 +71,7 @@ void SetMasterHost(const char* host) { options::g_options.masterServerName = hos
 void SetWaterWaves(bool on) { options::g_options.enableWaterWaves = on; }
 
 CursorState Cursor() {
-    const CCursor* cursor = &g_cursor;
+    const ::Cursor* cursor = &g_cursor;
     CursorState state;
     state.mode = cursor->mode;
     state.thread = cursor->thread != nullptr;
@@ -87,7 +87,7 @@ CursorState Cursor() {
 void* QueuedWindow() { return g_interface.queuedWindow; }
 bool CloseAllPending() { return g_interface.closeAll; }
 bool ScreenFade(bool* running, float* alpha) {
-    const CScreenFade* fade = g_interface.fade;
+    const ::ScreenFade* fade = g_interface.fade;
     if (!fade) return false;
     *running = fade->active != 0;
     *alpha = fade->alpha;
@@ -100,13 +100,13 @@ void* SceneDevice() { return g_sceneRenderer.device.Get(); }
 void* DeviceLock() { return nullptr; }
 
 int ServerUpdate(void* server) {
-    static_cast<CWorldServer*>(server)->Update();
+    static_cast<WorldServer*>(server)->Update();
     return 1;
 }
-int ClientSegment(void* client) { return static_cast<CWorldClient*>(client)->RunTick() ? 1 : 0; }
-void CameraUpdate(void* camera, float seconds) { static_cast<CCamera*>(camera)->Update(seconds); }
+int ClientSegment(void* client) { return static_cast<WorldClient*>(client)->RunTick() ? 1 : 0; }
+void CameraUpdate(void* camera, float seconds) { static_cast<::Camera*>(camera)->Update(seconds); }
 void FrameStep(bool draw, bool cursor) { app::FrameStep(draw, cursor); }
-void CursorLock(void* cursor) { static_cast<CCursor*>(cursor)->TakeLock(); }
+void CursorLock(void* cursor) { static_cast<::Cursor*>(cursor)->TakeLock(); }
 
 void ConsoleExecute(const char* text) { console::Execute(text); }
 void SendLeave04(int id) { GameSendLeave04(id); }
@@ -126,61 +126,61 @@ const char* ServerZoneName() { return g_serverWorld.zoneName.c_str(); }
 
 void* PickAt2(void* world, int x, int y) {
     const POINT p{x, y};
-    return static_cast<CWorldClient*>(world)->PickAt2(&p);
+    return static_cast<WorldClient*>(world)->PickAt2(&p);
 }
 void* UnitAt(void* world, int x, int y) {
     const POINT p{x, y};
-    return static_cast<CEngineObject*>(static_cast<CWorldClient*>(world)->UnitAt(&p));
+    return static_cast<EngineObject*>(static_cast<WorldClient*>(world)->UnitAt(&p));
 }
 int ScreenRect(void* world, int id, RECT* rect) {
     int found = 0;
-    for (const ScreenEntry& entry : static_cast<CWorldClient*>(world)->screenEntries) {
+    for (const ScreenEntry& entry : static_cast<WorldClient*>(world)->screenEntries) {
         if (static_cast<int>(entry.objectId) != id) continue;
         *rect = entry.rect;
         found = 1;
     }
     return found;
 }
-int ObjectId(const void* object) { return static_cast<const CEngineObject*>(object)->id; }
-std::uint32_t ObjectFlags(const void* object) { return static_cast<const CEngineObject*>(object)->flags; }
+int ObjectId(const void* object) { return static_cast<const EngineObject*>(object)->id; }
+std::uint32_t ObjectFlags(const void* object) { return static_cast<const EngineObject*>(object)->flags; }
 void* PlayerConnection(void* player) { return static_cast<CPlayer*>(player)->connection; }
-int ConnectionState(void* connection) { return static_cast<CPlayerConnection*>(connection)->state; }
+int ConnectionState(void* connection) { return static_cast<::PlayerConnection*>(connection)->state; }
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types) {
-    auto* pages = static_cast<CCampPages*>(static_cast<CUiWindow*>(camp));
+    auto* pages = static_cast<CampPages*>(static_cast<UiWindow*>(camp));
     *page = pages->page;
-    const std::vector<CItem*>* source = pages->itemStrip ? pages->itemStrip->source : nullptr;
+    const std::vector<Item*>* source = pages->itemStrip ? pages->itemStrip->source : nullptr;
     if (!source) return false;
     for (int i = 0; i < std::ssize(*source); ++i) {
-        CItem* item = (*source)[i];
+        Item* item = (*source)[i];
         items->push_back(item);
         types->push_back(item ? static_cast<unsigned>(item->type) : 0);
     }
     return true;
 }
 void CampTakeItem(void* camp, void* item, int mode) {
-    static_cast<CCampPages*>(static_cast<CUiWindow*>(camp))->TakeItem(static_cast<CItem*>(item), mode);
+    static_cast<CampPages*>(static_cast<UiWindow*>(camp))->TakeItem(static_cast<Item*>(item), mode);
 }
 void PickSurface(void* world, float* out, int x, int y) {
-    static_cast<CWorldClient*>(world)->PickSurface(reinterpret_cast<Vector3*>(out), x, y);
+    static_cast<WorldClient*>(world)->PickSurface(reinterpret_cast<Vector3*>(out), x, y);
 }
-void LoadUnitFaces(void* world) { static_cast<CWorldClient*>(world)->LoadUnitFaces(); }
-void BlinkOpen(void* half) { static_cast<CUnitClientSpecific*>(half)->BlinkOpen(true); }
-void BlinkClose(void* half) { static_cast<CUnitClientSpecific*>(half)->BlinkClose(true); }
+void LoadUnitFaces(void* world) { static_cast<WorldClient*>(world)->LoadUnitFaces(); }
+void BlinkOpen(void* half) { static_cast<UnitClientSpecific*>(half)->BlinkOpen(true); }
+void BlinkClose(void* half) { static_cast<UnitClientSpecific*>(half)->BlinkClose(true); }
 
 bool UnitFaceHalves(std::vector<void*>* halves) {
-    CWorldClient* world = &g_clientWorld;
+    WorldClient* world = &g_clientWorld;
     if (!world) return false;
     for (CMapObject* object : world->objects) {
         if (!object || object->GetClassId() != ClassId::Unit) continue;
-        auto* half = reinterpret_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
+        auto* half = reinterpret_cast<UnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
         if (half && half->faceTexture) halves->push_back(half);
     }
     return true;
 }
 
-int RegionCount(void* window) { return std::ssize(static_cast<CUiWindow*>(window)->regions); }
+int RegionCount(void* window) { return std::ssize(static_cast<UiWindow*>(window)->regions); }
 bool Region(void* window, int index, RegionInfo* region) {
-    const CUiRegion* found = static_cast<CUiWindow*>(window)->regions[index];
+    const UiRegion* found = static_cast<UiWindow*>(window)->regions[index];
     if (!found) return false;
     region->left = found->bounds.left;
     region->top = found->bounds.top;
@@ -201,8 +201,8 @@ void InterfaceSize(int* width, int* height) {
     *width = g_interface.width;
     *height = g_interface.height;
 }
-bool SaveLoadSliding(void* window) { return static_cast<CSaveLoadWindow*>(window)->sliding; }
-bool OptionsSliding(void* window) { return static_cast<COptionsWindow*>(window)->sliding; }
+bool SaveLoadSliding(void* window) { return static_cast<SaveLoadWindow*>(window)->sliding; }
+bool OptionsSliding(void* window) { return static_cast<OptionsWindow*>(window)->sliding; }
 bool HasChatOverlay() { return g_interface.root != nullptr; }
 void ChatKeyEnter() { g_interface.ChatKeyEnter(); }
 void CloseChat() { g_interface.root->SetOpen(false); }
@@ -210,7 +210,7 @@ bool HasClassTemplate(int id) { return g_partyManager.templates.Find(id) != null
 const void* FindMap(const char* name) { return g_mapDatabase.FindMap(name); }
 int MapKind(const void* record) { return static_cast<const MapRecord*>(record)->kind; }
 void LeaveToZone(void* connection, const char* name, int exit) {
-    static_cast<CPlayerServer*>(connection)->LeaveToZone(name, exit);
+    static_cast<PlayerServer*>(connection)->LeaveToZone(name, exit);
 }
 
 bool RestoreSurfaces(long* result) {
@@ -224,24 +224,24 @@ int& GamePort() { return net::g_gamePort; }
 const char* TextFolder() { return g_textFolder.c_str(); }
 
 long ModFile(const char* path, const char* name) {
-    void* memory = ::operator new(sizeof(CMappedResource));
-    std::memset(memory, 0, sizeof(CMappedResource));
-    auto* res = new (memory) CMappedResource();
+    void* memory = ::operator new(sizeof(MappedResource));
+    std::memset(memory, 0, sizeof(MappedResource));
+    auto* res = new (memory) MappedResource();
     long got = -2;   // the archive did not open
-    if (res->CMappedResource::OpenResource(path, 0)) {
+    if (res->MappedResource::OpenResource(path, 0)) {
         std::uint32_t size = 0;
         void* data = res->GetFile(name, &size);   // slot 5 (00671B40, Rebirth's ResOverride)
         got = data ? static_cast<long>(size) : 0;
         if (data) res->CloseFile(data);
     }
-    res->CMappedResource::Destroy();
+    res->MappedResource::Destroy();
     ::operator delete(memory);
     return got;
 }
 
 namespace {
 void (*g_streamWrites)(void* stream, std::uint32_t size, void* const* frame) = nullptr;
-void ObservedStreamWrite(CMemoryStream* stream, std::uint32_t size, void* const* frame) { g_streamWrites(stream, size, frame); }
+void ObservedStreamWrite(MemoryStream* stream, std::uint32_t size, void* const* frame) { g_streamWrites(stream, size, frame); }
 } // namespace
 
 void ObserveStreamWrites(void (*observer)(void* stream, std::uint32_t size, void* const* frame)) {
@@ -273,7 +273,7 @@ CameraPose PoseOf(const camera::ViewPose& v) {
 } // namespace
 
 CameraState Camera(const void* camera) {
-    const auto* c = static_cast<const CCamera*>(camera);
+    const auto* c = static_cast<const ::Camera*>(camera);
     CameraState state;
     state.own = PoseOf(camera::ViewPose{c->localPosition, c->localRotation, c->focus, c->viewRotation, c->distance});
     state.drawn = PoseOf(camera::DrawnView(c));

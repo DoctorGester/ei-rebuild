@@ -1,4 +1,4 @@
-// CEffectTornado: a tornado crossing the map in a straight line, hurting the units it passes.
+// EffectTornado: a tornado crossing the map in a straight line, hurting the units it passes.
 // See world_effect.h and docs/notes/effects.md ("Tornado").
 #include "effects.h"
 #include "game_singletons.h"
@@ -48,24 +48,24 @@ DamageInfo TornadoHit() {
 
 // The snapshot read against was consumed to its end (Position and Size of the stream, in that order).
 bool SnapshotReadToEnd() {
-    CMemoryStream* snapshot = delta::g_readSnapshot;
+    MemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
     return position == snapshot->Size();
 }
 
 } // namespace
 
-CEffectTornado::CEffectTornado() {
+EffectTornado::EffectTornado() {
     sound = -1;
     Reset();   // inline
 }
 
-CEffectTornado::~CEffectTornado() {
+EffectTornado::~EffectTornado() {
     Reset();   // inline
     Reset();   // the virtual
 }
 
-void CEffectTornado::Reset() {
+void EffectTornado::Reset() {
     CEffect::Reset();
     if (source != nullptr) source->StopAndClear();
     if (sound != -1) g_clientWorld.sounds->StopSound(sound);
@@ -73,7 +73,7 @@ void CEffectTornado::Reset() {
     source.Reset();
 }
 
-void CEffectTornado::Launch(const Vector3& from, const Vector3& to) {
+void EffectTornado::Launch(const Vector3& from, const Vector3& to) {
     double speed = x87::FromUnsigned(g_random.Next()) * kRandomScale * kSpeedRange + kSpeedMin;
     Vector3 way{static_cast<float>(to.x - from.x), static_cast<float>(to.y - from.y), static_cast<float>(to.z - from.z)};
     framesLeft = 0;
@@ -94,7 +94,7 @@ void CEffectTornado::Launch(const Vector3& from, const Vector3& to) {
     launchTick = WorldContext()->tick;
 }
 
-bool CEffectTornado::RunTick() {
+bool EffectTornado::RunTick() {
     if (moving != 0) {
         localPosition = Vector3{static_cast<float>(localPosition.x + velocity.x), static_cast<float>(localPosition.y + velocity.y),
                                  static_cast<float>(localPosition.z + velocity.z)};
@@ -117,7 +117,7 @@ bool CEffectTornado::RunTick() {
     return framesLeft >= 0;
 }
 
-int CEffectTornado::Unpack(int update, DeltaField* field) {
+int EffectTornado::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadDelta(&position, 12);
     field->ReadDelta(&framesLeft, 4);
@@ -129,7 +129,7 @@ int CEffectTornado::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void CEffectTornado::Pack(DeltaField* field) {
+void EffectTornado::Pack(DeltaField* field) {
     Vector3 position = localPosition;
     field->WriteDelta(&position, 12);
     int ticks = framesLeft;
@@ -137,7 +137,7 @@ void CEffectTornado::Pack(DeltaField* field) {
     field->WriteDelta(&velocity, 12);
 }
 
-void CEffectTornado::Start(int update) {
+void EffectTornado::Start(int update) {
     if (update == 0 && source != nullptr) {
         source->Stop();
         source.Reset();
@@ -146,7 +146,7 @@ void CEffectTornado::Start(int update) {
     if (sound == -1) {
         sound = g_clientWorld.sounds->Play3D(game::TornadoSoundText(), 0, &localPosition.x, kSoundNear, kSoundFar, 1);
     }
-    CParticleSource* particles = g_clientWorld.particleManager->CreateSource(kTornadoParticles);
+    ParticleSource* particles = g_clientWorld.particleManager->CreateSource(kTornadoParticles);
     source.Assign(particles);
     source->localPosition = localPosition;
     source->ScaleSize(1.0f);
@@ -155,14 +155,14 @@ void CEffectTornado::Start(int update) {
     for (int i = 1; i < behind; ++i) source->RunTick();
 }
 
-void CEffectTornado::Load(CStream* s) {
+void EffectTornado::Load(ByteStream* s) {
     s->ReadValue(localPosition);
     s->ReadValue(velocity);
     s->ReadValue(framesLeft);
     s->ReadValue(launchTick);
 }
 
-void CEffectTornado::Save(CStream* s) {
+void EffectTornado::Save(ByteStream* s) {
     s->WriteValue(localPosition);
     s->WriteValue(velocity);
     int copy = framesLeft;

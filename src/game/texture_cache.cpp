@@ -18,8 +18,8 @@ namespace {
 } // namespace
 
 // Returns 0 (the result is the priority call's, or a list node, on the cache path;
-// CEngineObject::Release, its caller, returns it but no caller reads it).
-int CTextureManager::ReleaseObject(CEngineObject* object) {
+// EngineObject::Release, its caller, returns it but no caller reads it).
+int CTextureManager::ReleaseObject(EngineObject* object) {
     if (!object || object->refCount != 0) return 0;
     auto* texture = static_cast<CTexture*>(object);
     if (auto node = objects.find(static_cast<unsigned>(object->id)); node != objects.end()) {

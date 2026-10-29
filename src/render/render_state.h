@@ -2,7 +2,7 @@
 
 // The render state the game sets for the renderer: what were Direct3D 7's render states and texture stage states, one
 // plain struct the renderer owns. The game's draw code writes g_renderState's members; the renderer's creation
-// (CSceneRenderer::CreateRenderer) puts it back to a new Direct3D 7 device's state; every mesh, terrain and screen
+// (SceneRenderer::CreateRenderer) puts it back to a new Direct3D 7 device's state; every mesh, terrain and screen
 // pass reads it (ReadPassState, render_mesh.cpp). The values keep Direct3D 7's numbers, which the pipelines and the
 // mesh shader take as they are. See docs/notes/renderer.md, section 5.
 

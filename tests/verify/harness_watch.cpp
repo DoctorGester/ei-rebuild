@@ -163,7 +163,7 @@ Watched FindUnit() {
         found.unit = image::ClientUnit(g_id, &found.flags, &found.rotation);
         return found;
     }
-    exe::CWorldClient* c = exe::ClientWorld();
+    exe::WorldClient* c = exe::ClientWorld();
     if (!c->objects.head) return found;
     for (auto* n = c->objects.First(); n != c->objects.End(); n = n->next) {
         exe::CMapObject* object = n->data;

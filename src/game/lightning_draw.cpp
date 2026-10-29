@@ -1,4 +1,4 @@
-// Drawing a lightning bolt (CLightning's renderer virtual; called by DrawAll) and its
+// Drawing a lightning bolt (Lightning's renderer virtual; called by DrawAll) and its
 // glow: the segments as textured strips through the render device, then a
 // glow: the segments as textured strips through the render device, then a
 // the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
@@ -45,7 +45,7 @@ float RandomOffset() {
 
 // `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
 // used (the frame comes from the position and the world's counter).
-void CLightning::DrawGlow(CSceneRenderer* device, const Vector3& position, float size) {
+void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float size) {
     EnsureTextureLoaded(glowTexture);
     if (!device->SetTexture(0, glowTexture)) return;
 
@@ -87,9 +87,9 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3& position, float
 }
 
 // 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
-int CLightning::Draw(CSceneRenderer* device) {
+int Lightning::Draw(SceneRenderer* device) {
     EnsureTextureLoaded(texture);
-    CSceneRenderer* renderer = device;
+    SceneRenderer* renderer = device;
     if (!renderer->SetTexture(0, texture)) return 0;
     int visibility = renderer->pipeline->ClipTest(&bounds);
     if (visibility == 2) return 1;

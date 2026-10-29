@@ -40,7 +40,7 @@ constexpr int kNoSpot = 0x7FFFFFFF;
 // --- Helpers --------------------------------------------------------------------------------------
 
 // The server's AI map's refreshUnits, cleared around path searches, and its sector map.
-CAIMap* MapOf(CWorldServer* world) { return &world->aiMap; }
+AIMap* MapOf(WorldServer* world) { return &world->aiMap; }
 constexpr float kHalfCell = 0.5f;
 
 // A motion order on the stack (the order and its step list), as AIPath::ToMotionOrder fills it. The order part
@@ -77,8 +77,8 @@ void PathMessage(CUnit* unit, PathOrder* motion, const float* point, int kind, i
 
 // --- A use order's spot -----------------------------------------------------------------------
 
-bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
-    CWorldServer* world = ServerWorld();
+bool UnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
+    WorldServer* world = ServerWorld();
     order->point.z = kNoZBits;
     if (order->kind != UnitOrderKind::Use || !order->target || order->source != 0) return true;
     float size = static_cast<float>(unit->Radius());
@@ -89,7 +89,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         int best = kNoSpot;
         Vector3 spot;
         Vector3 bestSpot = {0.0f, 0.0f, 0.0f};
-        CAIMap* map = MapOf(world);
+        AIMap* map = MapOf(world);
         for (int i = 0; i < std::ssize(spots); ++i) {
             spot = spots[i];
             path.Clear();
@@ -118,7 +118,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
 
 // --- The time along a path until an action is possible -----------------------------------------
 
-double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) {
+double UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) {
     const MotionOrder* pathOrder = OrderOf(motionOrder);
     if (pathOrder->kind != kMotionPath) return 0.0f;
     LocalUnitMotion simulated;
@@ -177,7 +177,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
 
 // --- Planning an order's way ---------------------------------------------------------------------
 
-bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
+bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
     CPlayer* player = unit->player;
     if (order->kind != UnitOrderKind::Use && !player) return true;
     float best = kFar;
@@ -203,7 +203,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             CSpell* spell = nullptr;
             bool skip = false;
             if (source & kQuickItemSource) {
-                CItem* carrier = SpellCarrier(source);
+                Item* carrier = SpellCarrier(source);
                 if (!carrier) skip = true;
                 else spell = carrier->spell;
             } else {
@@ -235,7 +235,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
                 g_serverWorld.aiMap.refreshUnits = false;
                 g_serverWorld.aiMap.sectorMap.Remove(target);
             }
-            CWorldServer* world = ServerWorld();
+            WorldServer* world = ServerWorld();
             path.mayExcludeRegions = unit->player == nullptr;
             std::uint32_t savedAltPassCosts = unit->altPassCosts;
             unit->altPassCosts = 1;
@@ -264,13 +264,13 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
 
 // --- A party unit's move -----------------------------------------------------------------------
 
-void CUnitServer::PlanMove(const Vector3& point, int moving, int run, float range) {
-    CWorldServer* world = ServerWorld();
+void UnitServer::PlanMove(const Vector3& point, int moving, int run, float range) {
+    WorldServer* world = ServerWorld();
     AIPath path;
     std::list<CUnit*> lifted = LiftNearby(point, static_cast<char>(moving));
     int mode = unit->moveMode;
-    CSectorMap* sectors = &world->aiMap.sectorMap;
-    CAIMap* map = MapOf(world);
+    SectorMap* sectors = &world->aiMap.sectorMap;
+    AIMap* map = MapOf(world);
     bool running = static_cast<std::uint8_t>(run) != 0;
     if (running && mode != 2 && mode != 3) {
         // A runner plans as walking (mode 2) when it may leave its cell that way.
@@ -281,7 +281,7 @@ void CUnitServer::PlanMove(const Vector3& point, int moving, int run, float rang
         sectors->Add(unit);
     }
     std::uint32_t flag = map->InWaterAt(unit->localPosition);
-    CWorldServer* world2 = ServerWorld();
+    WorldServer* world2 = ServerWorld();
     path.mayExcludeRegions = unit->player == nullptr;
     std::uint32_t savedAltPassCosts = unit->altPassCosts;
     unit->altPassCosts = flag & 0xFF;

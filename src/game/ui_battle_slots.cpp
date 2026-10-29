@@ -1,5 +1,5 @@
 // The battle screen's main virtuals for closing, the first poll, picked-up items, a unit leaving
-// the party and the saved state (CBattleScreen, ui.h). See docs/notes/ui.md, section 6.
+// the party and the saved state (BattleScreen, ui.h). See docs/notes/ui.md, section 6.
 #include "ui.h"
 #include "options.h"
 #include "ui_camp.h"
@@ -45,8 +45,8 @@ constexpr int kPortraitSprites = 5;   // sprites per portrait; the fifth (4) is 
 
 } // namespace
 
-void CBattleScreen::CloseScreen() {
-    g_camera.flags |= CCamera::kFree;
+void BattleScreen::CloseScreen() {
+    g_camera.flags |= Camera::kFree;
     worlddata::g_updatePeriod = kDefaultUpdatePeriod;
     g_cursor.SetHeld(0);
     GameStopSounds(1);
@@ -54,7 +54,7 @@ void CBattleScreen::CloseScreen() {
     party.clear();
 }
 
-bool CBattleScreen::ReadyToStopPolling() {
+bool BattleScreen::ReadyToStopPolling() {
     if (hasHero) {
         auto& currentParty = party;
         if (!currentParty.empty()) g_camera.SetTarget(currentParty[0]);
@@ -65,14 +65,14 @@ bool CBattleScreen::ReadyToStopPolling() {
     return true;
 }
 
-void CBattleScreen::ItemsPicked(std::list<CItem*>* items, int money, bool crippled) {
-    for (CItem* item : *items) topPanel->AddPickedUp(item, crippled);
+void BattleScreen::ItemsPicked(std::list<Item*>* items, int money, bool crippled) {
+    for (Item* item : *items) topPanel->AddPickedUp(item, crippled);
     topPanel->AddMoney(money);
     topPanel->ShowItems();
     RefreshSelection();
 }
 
-void CBattleScreen::UnitLeft(CUnit* unit) {
+void BattleScreen::UnitLeft(CUnit* unit) {
     if (IsMultiplayerClient()) {
         topPanel->pageTexts[0].clear();
         if (topPanel->page == 0) messageLog->SetText(game::kEmptyText);
@@ -89,8 +89,8 @@ void CBattleScreen::UnitLeft(CUnit* unit) {
     RefreshSelection();
 }
 
-void CBattleScreen::SaveState() {
-    CStream* stream = &g_saveStream;
+void BattleScreen::SaveState() {
+    ByteStream* stream = &g_saveStream;
     auto& currentParty = party;
     // The ids go through an array first; the bytes written are the same.
     int count = 0;
@@ -109,7 +109,7 @@ void CBattleScreen::SaveState() {
     stream->WriteValue(pendingExit);
 }
 
-void CBattleScreen::MarkPortrait(int index) {
+void BattleScreen::MarkPortrait(int index) {
     auto* currentPortraits = portraits;
     currentPortraits->SceneMesh(index * kPortraitSprites + 4)->visible = true;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
@@ -117,7 +117,7 @@ void CBattleScreen::MarkPortrait(int index) {
     currentPortraits->slots[index].restB = *turn.SetAxisAngle(axis, SelectedFaceAngle());
 }
 
-void CBattleScreen::UnitJoined(CUnit* unit) {
+void BattleScreen::UnitJoined(CUnit* unit) {
     if (IsMultiplayerClient()) {
         topPanel->pageTexts[0].clear();
         if (topPanel->page == 0) messageLog->SetText(game::kEmptyText);
@@ -171,13 +171,13 @@ void CBattleScreen::UnitJoined(CUnit* unit) {
     RefreshSelection();
 }
 
-void CBattleScreen::MessageResult(int result) {
+void BattleScreen::MessageResult(int result) {
     switch (static_cast<std::uint32_t>(result)) {
     case kLeaveZoneYes:
         GameLeaveThroughExit(pendingExit);
         break;
     case kGameOverLoad: {
-        ui->PushWindow(new CSaveLoadWindow(ui, false, false), true, true);
+        ui->PushWindow(new SaveLoadWindow(ui, false, false), true, true);
         break;
     }
     case kGameOverQuit:
@@ -192,15 +192,15 @@ void CBattleScreen::MessageResult(int result) {
     }
 }
 
-void CBattleScreen::GameOver(bool won) {
+void BattleScreen::GameOver(bool won) {
     GameStopSounds(1);
     GameStopAmbience();
-    CMessageBox* box;
+    MessageWindow* box;
     if (!won) {
         ui->PlaySound("buttons\\gameover.wav");
-        box = new CMessageBox(ui, "game_over", "game_over_msg", 0x20000, 3, 1);
+        box = new MessageWindow(ui, "game_over", "game_over_msg", 0x20000, 3, 1);
     } else {
-        box = new CMessageBox(ui, "end_of_game", "end_of_game_msg", 0xFFFF0000u, 3, 1);
+        box = new MessageWindow(ui, "end_of_game", "end_of_game_msg", 0xFFFF0000u, 3, 1);
     }
     ui->PushWindow(box, true, true);
 }

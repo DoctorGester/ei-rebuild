@@ -1,4 +1,4 @@
-// The blink of the party units' faces (CUnitClientSpecific, unit_client_models.h): the face
+// The blink of the party units' faces (UnitClientSpecific, unit_client_models.h): the face
 // texture ("<model>mouth") holds the open and the closed state, which is copied over a
 // rectangle of the unit's skin texture with DirectDraw blits down the mip chain.
 // No texture has a DirectDraw surface (surface.h; the skins are decoded by the new renderer):
@@ -66,7 +66,7 @@ void BlitMipChain(CTexture* target, const int* at, CTexture* source, const RECT*
     render::TexturePatch(target->surface, to, source->surface, rectangle);
 }
 
-void CUnitClientSpecific::BlinkClose(bool force) {
+void UnitClientSpecific::BlinkClose(bool force) {
     if (!faceTexture) return;
     if (!force && eyesClosed == 1) return;
     CTexture* skin = SkinOf(unit);
@@ -82,7 +82,7 @@ void CUnitClientSpecific::BlinkClose(bool force) {
     eyesClosed = 1;
 }
 
-void CUnitClientSpecific::BlinkOpen(bool force) {
+void UnitClientSpecific::BlinkOpen(bool force) {
     if (!faceTexture) return;
     if (!force && eyesClosed == 0) return;
     CTexture* skin = SkinOf(unit);

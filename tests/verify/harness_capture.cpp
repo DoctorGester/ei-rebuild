@@ -41,7 +41,7 @@ namespace ei::verify::capture {
 namespace {
 
 constexpr std::uintptr_t kCursorLockCall = 0x004580D7;   // CALL 005E65F0 in 00458010
-constexpr std::uintptr_t kCursorLock = 0x005E65F0;       // CCursor::Lock (__fastcall, ECX = 007C7BD8)
+constexpr std::uintptr_t kCursorLock = 0x005E65F0;       // Cursor::Lock (__fastcall, ECX = 007C7BD8)
 
 
 volatile unsigned g_frames = 0;
@@ -238,8 +238,8 @@ void Capture() {
     }
     // game.exe's render target (the device's renderTarget holder's surface); the image's holders have no DirectDraw
     // surface.
-    auto* device = ei::Standalone() ? nullptr : static_cast<exe::CTextureDevice*>(HarnessSceneDevice());
-    exe::CDXSurface* target = device ? device->renderTarget : nullptr;
+    auto* device = ei::Standalone() ? nullptr : static_cast<exe::TextureDevice*>(HarnessSceneDevice());
+    exe::DXSurface* target = device ? device->renderTarget : nullptr;
     auto* surface = target ? static_cast<IDirectDrawSurface7*>(target->surface) : nullptr;
     if (!surface) {
         g_state = State::Failed;
@@ -343,7 +343,7 @@ bool WriteFrame(const char* name, int width, int height, const std::vector<std::
 
 namespace {
 // Reads a BMP into `image` (top-down rows): the 24-bit ones this file wrote, and the game's own
-// (CDib::Write: 16 or 32 bits, BI_BITFIELDS with the three masks after the header, or BI_RGB).
+// (Dib::Write: 16 or 32 bits, BI_BITFIELDS with the three masks after the header, or BI_RGB).
 bool ReadBmpFile(const char* path, Image& image, std::string* how = nullptr) {
     FILE* f = nullptr;
     if (fopen_s(&f, path, "rb") != 0 || !f) return false;

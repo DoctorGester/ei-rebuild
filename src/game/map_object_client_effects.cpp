@@ -1,4 +1,4 @@
-// The client companion's effect visuals (CMapObjectClientSpecific, map_object.h / unit.h): the
+// The client companion's effect visuals (MapObjectClientSpecific, map_object.h / unit.h): the
 // particle sources and looping sounds that follow the object's effect list, and the reset of the
 // parts' alpha / tint when an invisibility or stun effect ends.
 
@@ -101,7 +101,7 @@ const char* SoundFolder(SpellType type) {
 
 // The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
 void SpawnRing(CMapObject* owner, SpellType type, float size, bool negate) {
-    CParticleSource* ring = g_clientWorld.particleManager->CreateSource(type == SpellType::Strengthen || type == SpellType::Weaken ? kScaleRingSource : kRingSource);
+    ParticleSource* ring = g_clientWorld.particleManager->CreateSource(type == SpellType::Strengthen || type == SpellType::Weaken ? kScaleRingSource : kRingSource);
     ring->Attach(owner);
     float factor = size / ring->baseSize;
     ring->ScaleSize(negate ? -factor : factor);
@@ -137,12 +137,12 @@ constexpr float kLightHeight = 2.0f;
 // The default light of mode 1 (r, g, b, radius).
 const float* DefaultLightColour() { return &options::g_options.questLight.red; }
 
-CObject3DSpecific* SideHalf(CMapObject* owner) {
+Object3DSpecific* SideHalf(CMapObject* owner) {
     return owner->attached;
 }
 
 // The light goes out for good: no longer held, hidden, its id off the list, released.
-void DropLight(CMapObjectClientSpecific* self) {
+void DropLight(MapObjectClientSpecific* self) {
     self->light->flags &= ~LightFlag::Held;
     self->HideLight();
     self->light->flags |= LightFlag::Held;
@@ -155,7 +155,7 @@ void DropLight(CMapObjectClientSpecific* self) {
 
 void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, SpellType kind,
                      const char* suffix) {
-    CSoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds;
     if (kind == SpellType::Stench) {
         record->timer = 0;
         return;
@@ -183,12 +183,12 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position
     sounds->Play3D(name, 0, position, kSoundNear, kSoundFar, 0);
 }
 
-void CMapObjectClientSpecific::EffectsChanged(bool first) {
+void MapObjectClientSpecific::EffectsChanged(bool first) {
     UpdateEffectParticles(first);
     UpdateEffectSounds(first);
 }
 
-void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
+void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
     CMapObject* mapObject = CompanionOwner(this);
     // The effects, those of the merging types once each with the highest power.
     std::vector<MapEffect> wanted;
@@ -229,7 +229,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
             EffectParticle& record = particles[i];
             if (!record.present && record.type == spellType && record.source) {
                 record.power = power;
-                CParticleSource* source = particles[i].source;
+                ParticleSource* source = particles[i].source;
                 source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
                 particles[i].present = 1;
                 kept = true;
@@ -258,7 +258,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case SpellType::Shrink:
             break;
         default: {
-            CParticleSource* source = g_clientWorld.particleManager->CreateSource(ParticleSourceType(spellType));
+            ParticleSource* source = g_clientWorld.particleManager->CreateSource(ParticleSourceType(spellType));
             added.source = source;
             source->Attach(CompanionOwner(this));
             source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
@@ -300,7 +300,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     }
 }
 
-void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
+void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
     CMapObject* mapObject = CompanionOwner(this);
     // The effect types, once each.
     SpellType types[256];
@@ -345,13 +345,13 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
     }
 }
 
-void CObject3DClientSpecific::ResetPartAlpha() {
+void Object3DClientSpecific::ResetPartAlpha() {
     for (int i = 0; i < std::ssize(materials); ++i) materials[i]->colors.diffuse.w = 1.0f;
 }
 
-void CObject3DClientSpecific::ClearPartTints() {
+void Object3DClientSpecific::ClearPartTints() {
     for (int i = 0; i < std::ssize(materials); ++i) {
-        CMaterial* part = materials[i];
+        Material* part = materials[i];
         part->colors.specular.x = 0.0f;
         part->colors.specular.y = 0.0f;
         part->colors.specular.z = 0.0f;
@@ -359,7 +359,7 @@ void CObject3DClientSpecific::ClearPartTints() {
     }
 }
 
-void CMapObjectClientSpecific::HideLight() {
+void MapObjectClientSpecific::HideLight() {
     if (!light || (light->flags & LightFlag::Hidden) || (light->flags & LightFlag::Held)) return;
     light->flags |= LightFlag::Hidden;
     g_clientWorld.terrain->RemoveLight(light);
@@ -367,7 +367,7 @@ void CMapObjectClientSpecific::HideLight() {
     if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(false);
 }
 
-void CMapObjectClientSpecific::ShowLight() {
+void MapObjectClientSpecific::ShowLight() {
     if (!light || !(light->flags & LightFlag::Hidden) || (light->flags & LightFlag::Held)) return;
     light->flags &= ~LightFlag::Hidden;
     g_clientWorld.terrain->AddLight(light);
@@ -375,7 +375,7 @@ void CMapObjectClientSpecific::ShowLight() {
     if (mapObject && mapObject->GetClassId() == ClassId::Unit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(true);
 }
 
-void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
+void MapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
     HideLight();
     light.Assign(g_clientWorld.lightFactory->CreateLight(kPointLight));
     Vector3 rgb = {colour[0], colour[1], colour[2]};
@@ -394,7 +394,7 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
     ShowLight();
 }
 
-void CMapObjectClientSpecific::SetLightMode(int mode) {
+void MapObjectClientSpecific::SetLightMode(int mode) {
     if (mode == 1) {
         if (!light) {
             float colour[4] = {DefaultLightColour()[0], DefaultLightColour()[1], DefaultLightColour()[2], 1.0f};
@@ -411,7 +411,7 @@ void CMapObjectClientSpecific::SetLightMode(int mode) {
     if (mode == 2 && light) DropLight(this);
 }
 
-void CMapObjectClientSpecific::Destroy() {
+void MapObjectClientSpecific::Destroy() {
     lightStateA = 0;
     lightStateB = 0;
     particles.clear();

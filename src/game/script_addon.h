@@ -35,7 +35,7 @@ struct Call {
     ScriptGroup* GroupResult() const { return *result.group; }
 
     SSCCmd* cmd;
-    CScript* script;
+    Script* script;
     Result result;
     int* cont;
     ScriptRun* run;
@@ -64,6 +64,6 @@ void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId);
 
 // SSCCmd::CalcString (which the patched CalcParameters calls for a string argument):
 // prepares the arguments, then addon's string function or the game's fatal error.
-void CalcString(SSCCmd* cmd, CScript* script, ScriptVars* vars, std::string* result);
+void CalcString(SSCCmd* cmd, Script* script, ScriptVars* vars, std::string* result);
 
 } // namespace scriptaddon

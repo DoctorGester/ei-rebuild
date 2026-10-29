@@ -31,7 +31,7 @@ std::string TempFile(const std::string& folder) { return folder + TempFileName()
 // The file stream and the memory stream the originals build on the stack (the memory stream torn down first).
 struct LocalStreams {
     netlink::FileStream file;
-    CMemoryStream data;
+    MemoryStream data;
 };
 
 // Whether a file name is "<digits>.<anything>": a '.' and only digits before the last one.

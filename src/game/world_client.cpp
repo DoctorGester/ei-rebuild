@@ -1,4 +1,4 @@
-// CWorldClient: terrain and platform height queries, unit and exit lookups. See world.h.
+// WorldClient: terrain and platform height queries, unit and exit lookups. See world.h.
 #include "core_maths.h"
 #include "effects.h"
 #include "game_data.h"
@@ -42,7 +42,7 @@
 
 // ---- Heights -------------------------------------------------------------------------------------
 
-float CWorldClient::ClampedGroundHeight(float x, float y) {
+float WorldClient::ClampedGroundHeight(float x, float y) {
     // Branch-free (the comparison turned into a select mask); NaN picks the first operand of each comparison.
     float cx = 0.0f >= x ? 0.0f : x;
     float maxX = static_cast<float>(terrain->width - 1.0f);
@@ -53,9 +53,9 @@ float CWorldClient::ClampedGroundHeight(float x, float y) {
     return terrain->HeightAt(cx, cy, terrain::Layer::Ground);
 }
 
-double CWorldClient::RawSurfaceHeightAt(float x, float y) { return terrain->SurfaceHeight(x, y); }
+double WorldClient::RawSurfaceHeightAt(float x, float y) { return terrain->SurfaceHeight(x, y); }
 
-const char* CWorldClient::AmbienceTimeOfDay() const {
+const char* WorldClient::AmbienceTimeOfDay() const {
     float hour = static_cast<float>(std::fmod(static_cast<double>(tick) * secondsPerTick + timeBase, 24.0));
     if (!(hour < 6.0f || hour > 18.0f)) return "day";   // also NaN
     if (hour >= 22.0f || hour <= 2.0f) return "night";
@@ -135,8 +135,8 @@ Vector3 MatrixRows::Transform(const Vector3& v) const { return TransformColumnNo
 
 // ---- Units and players ---------------------------------------------------------------------------
 
-CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
-    CPlayerClient* view = LocalView();
+CUnit* WorldClient::NearestVisibleUnit(CUnit* unit) {
+    PlayerClient* view = LocalView();
     if (!view || !unit) return nullptr;
     float best = 1e38f;
     CUnit* nearest = nullptr;
@@ -162,29 +162,29 @@ FootprintPart* CObject3D::PartBox(int index) {
     return &parts[index]->box;
 }
 
-CPlayerClient* CWorldClient::LocalView() {
-    if (session) return static_cast<CPlayerClient*>(session->connection);
+PlayerClient* WorldClient::LocalView() {
+    if (session) return static_cast<PlayerClient*>(session->connection);
     return nullptr;
 }
 
-bool CWorldClient::IsLocalViewMode2() {
-    CPlayerClient* view = LocalView();
+bool WorldClient::IsLocalViewMode2() {
+    PlayerClient* view = LocalView();
     if (!view) return false;
     return view->state == 2;
 }
 
-bool CWorldClient::IsLocalPlayerIdle() {
+bool WorldClient::IsLocalPlayerIdle() {
     if (!session) return false;
-    CPlayerConnection* view = session->connection;
+    PlayerConnection* view = session->connection;
     if (!view) return false;
     netlink::NetLink* link = view->player->link;
-    if (link && !(link->flags7 & CRefObject::kDetached) && link->Alive()) return false;
+    if (link && !(link->flags7 & RefObject::kDetached) && link->Alive()) return false;
     return true;
 }
 
 // ---- Exits ---------------------------------------------------------------------------------------
 
-bool CWorldClient::FindExitAt(const float* point, int* index) {
+bool WorldClient::FindExitAt(const float* point, int* index) {
     for (int i = 0; i < std::ssize(exits); ++i) {
         if (!exits[i].Contains(point[0], point[1])) continue;
         if (str::Compare(exits[i].target, "none") == 0) continue;
@@ -219,7 +219,7 @@ void EndWalk(ObjectListIterator& it) {
 
 } // namespace
 
-void CWorldClient::CreateExitMarkers() {
+void WorldClient::CreateExitMarkers() {
     exitMarkers.clear();
     exitMarkers.resize(exits.size());
     for (int i = 0; i < std::ssize(exits); ++i) {
@@ -240,7 +240,7 @@ void CWorldClient::CreateExitMarkers() {
     UpdateExitMarkers();
 }
 
-bool CWorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit) {
+bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit) {
     bool result = 1;
     int living = 0;
     inExit->clear();
@@ -264,14 +264,14 @@ bool CWorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int
 
 // ---- The bird and quest variables ----------------------------------------------------------------
 
-void CWorldClient::SummonBird() {
-    if (!bird) bird = new CEffectMoshka();
+void WorldClient::SummonBird() {
+    if (!bird) bird = new EffectMoshka();
     bird->Reset();
     auto* leader = session->Party()->members.data();
     bird->Follow(static_cast<int>(leader->unitId));
 }
 
-void CWorldClient::OnQuestVariable(std::string_view variable, float value) {
+void WorldClient::OnQuestVariable(std::string_view variable, float value) {
     const char* dot = DotText();
     std::string name(variable);
     const int length = name.size();
@@ -285,7 +285,7 @@ void CWorldClient::OnQuestVariable(std::string_view variable, float value) {
     if (value == 2.0f && str::Find(name, dot) < 0) SummonBird();
 }
 
-std::string CWorldClient::ObjectVariableName(std::string_view name) {
+std::string WorldClient::ObjectVariableName(std::string_view name) {
     std::string variable = QuestPrefixText();
     variable += LocalPlayerZone();
     variable += DotText();
@@ -293,7 +293,7 @@ std::string CWorldClient::ObjectVariableName(std::string_view name) {
     return variable;
 }
 
-void CWorldClient::ApplyObjectVariables() {
+void WorldClient::ApplyObjectVariables() {
     NamedFloatTable* variables = &session->Party()->variables;
     for (CMapObject* object : objects) {
         const std::string& name = object->name2;
@@ -302,7 +302,7 @@ void CWorldClient::ApplyObjectVariables() {
     }
 }
 
-float* CWorldClient::ExitCentre(float* out, int index) {
+float* WorldClient::ExitCentre(float* out, int index) {
     const ZoneExit& exit = exits[index];
     float y = (exit.y2 + exit.y1) * 0.5f;
     float x = (exit.x2 + exit.x1) * 0.5f;
@@ -311,7 +311,7 @@ float* CWorldClient::ExitCentre(float* out, int index) {
     return out;
 }
 
-std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
+std::uint32_t WorldClient::EnvironmentFlags(CUnit* unit) {
     std::uint32_t stateFlags = 0;
     switch (static_cast<std::uint32_t>(unit->moveMode2)) {
     case 0: stateFlags = lib::Bits(EnvironmentFlag::MoveMode0); break;
@@ -332,7 +332,7 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
 
 // ---- Segment --------------------------------------------------------------------------
 
-bool CWorldClient::RunTick() {
+bool WorldClient::RunTick() {
     ObjectListIterator objectsIt{nullptr, {}};
     int frames = ++ticksRun;
     if (frames == 10) {
@@ -349,11 +349,11 @@ bool CWorldClient::RunTick() {
     if (!paused) {
         if (arrayManager) arrayManager->RunTick();
     }
-    if (CWorldHandle* source = worldHandle.Get()) source->Pump();
-    if (CClientHandle* source = handle.Get()) source->Pump();
+    if (WorldHandle* source = worldHandle.Get()) source->Pump();
+    if (ClientHandle* source = handle.Get()) source->Pump();
     if (netlink::DriverSession* driver = netSession.Get()) driver->PumpDrivers(net::g_gameClient);
     if (CPlayer* currentSession = session) {
-        CPlayerConnection* view = currentSession->connection;
+        PlayerConnection* view = currentSession->connection;
         if (!paused) currentSession->Tick();
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport
@@ -380,7 +380,7 @@ bool CWorldClient::RunTick() {
                 hash400::RemoveKey(dynamicNodes, key);
             }
         }
-        for (CEngineObject* object = objectsIt.First(TimedObjectManager()); object; object = objectsIt.Next())
+        for (EngineObject* object = objectsIt.First(TimedObjectManager()); object; object = objectsIt.Next())
             object->RunTick();
         if (bird) bird->RunTick();
     }

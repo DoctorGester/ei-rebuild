@@ -1,4 +1,4 @@
-// The window surface's constructors and destructor (CUiSurface). The holder has no DirectDraw surface and no memory:
+// The window surface's constructors and destructor (UiSurface). The holder has no DirectDraw surface and no memory:
 // the surface's pixels are its canvas on the GPU (render_ui.h), made black with it, so the original's colour fill is
 // left out. Making a window asks DirectDraw for nothing. The picture constructor has no caller (config/dead_code.csv).
 // See docs/notes/ui.md, "Surface construction".
@@ -18,14 +18,14 @@
 #include <cstring>
 #include "game_singletons.h"
 
-void CUiSurface::MakeCanvas() {
+void UiSurface::MakeCanvas() {
     if (!holder) return;
     render::ui::Canvas(holder, width, height, ScreenFormat(holder->bitsPerPixel));
 }
 
 // The destructor: drops the contents put aside and the holder (its canvas with it) and empties the screen
 // rectangle.
-CUiSurface::~CUiSurface() {
+UiSurface::~UiSurface() {
     if (kept) render::ui::DropCanvas(this);
     kept = false;
     Surface* currentHolder = holder;
@@ -34,7 +34,7 @@ CUiSurface::~CUiSurface() {
     gameapi::SetRectEmpty(&rect);
 }
 
-CUiSurface::CUiSurface(CInterface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)
+UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)
     : ui(ownerUi), blend(newBlend), rect{left, top, right, bottom} {
     if (scale) ui->ScaleRectToScreenEntry(&rect);
     width = rect.right - rect.left;
@@ -45,5 +45,5 @@ CUiSurface::CUiSurface(CInterface3D* ownerUi, int left, int top, int right, int 
     MakeCanvas();
 }
 
-CUiSurface::CUiSurface(CInterface3D* ui, const RECT* rect, SurfaceBlend blend)
-    : CUiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}
+UiSurface::UiSurface(Interface3D* ui, const RECT* rect, SurfaceBlend blend)
+    : UiSurface(ui, rect->left, rect->top, rect->right, rect->bottom, blend, true) {}

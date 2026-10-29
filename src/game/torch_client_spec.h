@@ -3,7 +3,7 @@
 // The torch's client half, CTorchObjectClientSpecific (the exe's ClassName; class id
 // 0x41; 19 slots; 0x64 bytes; a real virtual class: the compiler makes its vtable): the
 // client-specific manager makes it for type 'K'.
-// It extends the torch's state object (CTorchObjectSpec) with what the torch shows: a
+// It extends the torch's state object (TorchObjectSpec) with what the torch shows: a
 // particle source, a point light and a looping sound, all placed relative to the torch. The
 // spec's setters are overridden to rebuild them; its show and hide virtuals act on them.
 // torch_client_spec.cpp.
@@ -12,18 +12,18 @@
 // (also the sound's far distance divided by 5 / 3) and values[2..5] its colour; name the
 // sound.
 
-#include "server_specific_manager.h"   // CTorchObjectSpec
+#include "server_specific_manager.h"   // TorchObjectSpec
 
 #include <cstddef>
 #include <cstdint>
 
 class CLight;
-class CParticleSource;
+class ParticleSource;
 
-class CTorchObjectClientSpec : public CTorchObjectSpec {
+class TorchObjectClientSpec : public TorchObjectSpec {
 public:
-    CTorchObjectClientSpec();
-    ~CTorchObjectClientSpec() override;
+    TorchObjectClientSpec();
+    ~TorchObjectClientSpec() override;
 
     // CreateSpec, the light and particles dropped (released), sound 0.
     void Create() override;
@@ -64,6 +64,6 @@ public:
     void SetSound(const char* name);
 
     Ref<CLight> light;
-    CParticleSource* particles;     // counted
+    ParticleSource* particles;     // counted
     int sound;                      // the looping sound's handle, 0 when none
 };

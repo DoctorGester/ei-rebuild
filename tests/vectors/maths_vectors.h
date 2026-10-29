@@ -73,7 +73,7 @@ struct MatrixMultiplyCall {   // MatrixMultiply: bit 0 out is a, bit 1 out is b 
     float a[16], b[16], out[16];
     std::uint32_t alias;
 };
-// CTransformPipeline::PushMatrix: the old top (when the stack was not `empty`), m and the new top;
+// TransformPipeline::PushMatrix: the old top (when the stack was not `empty`), m and the new top;
 // `alias` 1 when m was the slot the new top goes to.
 struct PushMatrixCall {
     float top[16], m[16], out[16];

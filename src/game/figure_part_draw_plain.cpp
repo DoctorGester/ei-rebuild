@@ -27,7 +27,7 @@ void AddOffset(const float* offset, float* target) { *target = *offset + *target
 
 // The world time: whole ticks plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
-    const CWorldClient* world = &g_clientWorld;
+    const WorldClient* world = &g_clientWorld;
     *out = static_cast<float>(static_cast<double>(world->tick) + world->tickFraction);
 }
 
@@ -35,7 +35,7 @@ void Fill(std::vector<std::uint32_t>& a, std::uint32_t value) {
     for (int i = 0; i < std::ssize(a); ++i) a[i] = value;
 }
 
-const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
+const VertexPacket* MovedPositionsOf(FigureMesh* mesh) {
     std::vector<VertexPacket>& moved = g_movedPositions;
     int blocks = mesh->buffers.vertexCount;
     moved.resize(blocks);
@@ -54,7 +54,7 @@ const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
 
 // Arguments 2-4 are not read; `alpha` goes to the device draw, `rect` (optional) receives the screen rectangle
 // (empty when off screen). Returns 1.
-int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
+int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha,
                                    RECT* rect) {
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     int drawFlags = 0;
@@ -82,7 +82,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
     const VertexPacket* positions = mesh->buffers.vertices;
     int blocks = mesh->buffers.vertexCount;
     if (!mesh->offsets.empty()) positions = MovedPositionsOf(mesh);
-    CFigureMesh* m = mesh;
+    FigureMesh* m = mesh;
     const MeshBuffers& b = m->buffers;
     // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
     const render::MeshSource source{m, nullptr, !m->offsets.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat)};

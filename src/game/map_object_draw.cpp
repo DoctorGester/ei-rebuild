@@ -1,4 +1,4 @@
-// Drawing a 3D object on the client (CObject3DClientSpecific::Draw). See map_object_shadow.h and
+// Drawing a 3D object on the client (Object3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
 #include "engine_object.h"
 #include "map_object.h"
@@ -8,7 +8,7 @@
 #include "spell.h"                // CLight, TheLightFactory
 #include "terrain.h"
 #include "texture.h"              // RenderDeviceObject
-#include "world.h"                // CWorldClient
+#include "world.h"                // WorldClient
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -42,7 +42,7 @@ bool InReach(const CObject3D* object, const CLight* light) {
     return reach * reach >= distanceSquared;   // NaN does not reach
 }
 
-bool PartTooFar(const CFigureMesh* part) {
+bool PartTooFar(const FigureMesh* part) {
     return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition) > kNearSquared;
 }
 
@@ -65,10 +65,10 @@ void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, M
     out->m[15] = std::bit_cast<float>(kOne);
 }
 
-int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
+int Object3DClientSpecific::Draw(SceneRenderer* context, tagRECT* dirty) {
     if (object->flags & MapObjectFlag::NotDrawn) return 1;
     bool anyDrawn = false;
-    CTransformPipeline* pipeline = context->pipeline;
+    TransformPipeline* pipeline = context->pipeline;
     Vector3 at;
     at = object->localPosition;
     object->LoadFigures();
@@ -136,7 +136,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
         set = partSets[k];
         for (int g = 0; g < std::ssize(set->groups); ++g) {
             for (int p = 0; p < std::ssize(set->groups[g]->parts); ++p) {
-                CFigureMesh* part = set->groups[g]->parts[p];
+                FigureMesh* part = set->groups[g]->parts[p];
                 if (PartTooFar(part)) continue;
                 if (!(object->flags & MapObjectFlag::Static)) part->flags &= ~FigureMeshFlag::Lit;
                 bool pushed = !(part->flags & FigureMeshFlag::Lit);

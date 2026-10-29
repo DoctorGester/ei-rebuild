@@ -1,4 +1,4 @@
-// The battle screen's mouse move, left button down and a unit's name line. See ui.h (CBattleScreen) and
+// The battle screen's mouse move, left button down and a unit's name line. See ui.h (BattleScreen) and
 // docs/notes/ui.md ("Battle screen").
 #include "text_split.h"
 #include "ui.h"
@@ -25,7 +25,7 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 
 // --- the mouse moved over the battle screen ------------------------------------------------------
 
-void CBattleScreen::MouseMove(int buttons, int x, int y) {
+void BattleScreen::MouseMove(int buttons, int x, int y) {
     if (portraitMode != 0) {
         g_cursor.SetShape(kCursorPickPlayer);
         if (portraits) portraits->Input()->MouseMove(buttons, x, y);
@@ -36,7 +36,7 @@ void CBattleScreen::MouseMove(int buttons, int x, int y) {
         int threshold = options::g_options.cameraFrameSelectionArea;
         if (Distance(x, pressX) > threshold || Distance(y, pressY) > threshold) boxSelecting = true;
         if (boxSelecting) {
-            CHudUnitPanel* panel = unitPanel;
+            HudUnitPanel* panel = unitPanel;
             if (panel->hoverUnit) panel->hoverUnit = nullptr;
             selectionBox.left = x < pressX ? x : pressX;
             selectionBox.top = y < pressY ? y : pressY;
@@ -45,7 +45,7 @@ void CBattleScreen::MouseMove(int buttons, int x, int y) {
             return;
         }
     } else {
-        CUiContainer::MouseMove(buttons, x, y);
+        UiContainer::MouseMove(buttons, x, y);
         if (handled) return;
     }
     // The (x, y) pair is read back through its address.
@@ -56,13 +56,13 @@ void CBattleScreen::MouseMove(int buttons, int x, int y) {
 
 // --- the left button went down on the battle screen ----------------------------------------------
 
-void CBattleScreen::LeftDown(int buttons, int x, int y) {
+void BattleScreen::LeftDown(int buttons, int x, int y) {
     if (portraitMode != 0) {
         if (portraits) portraits->Input()->LeftDown(buttons, x, y);
         return;
     }
     if (!viewPressed) {
-        CUiContainer::LeftDown(buttons, x, y);
+        UiContainer::LeftDown(buttons, x, y);
         if (handled) return;
     }
     viewPressed = true;
@@ -74,8 +74,8 @@ void CBattleScreen::LeftDown(int buttons, int x, int y) {
 // --- a unit's name line --------------------------------------------------------------------------
 
 // Each text is copied up to its first NUL.
-std::string CBattleScreen::UnitName(CUnit* unit) {
-    CTextManager* texts = g_clientWorld.texts;
+std::string BattleScreen::UnitName(CUnit* unit) {
+    TextManager* texts = g_clientWorld.texts;
     std::string name = unit->GetName();
     if (name.size() != 0) return name.c_str();
     if (IsTextKey(unit->id)) {

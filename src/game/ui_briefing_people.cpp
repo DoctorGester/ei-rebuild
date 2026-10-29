@@ -1,4 +1,4 @@
-// The briefing / base screen's dialogue people and items (CBriefingScreen, ui_briefing.h): a
+// The briefing / base screen's dialogue people and items (BriefingScreen, ui_briefing.h): a
 // person walking to a place and a dialogue's "#show" line. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "world_glue.h"
@@ -62,7 +62,7 @@ Vector3 Normalised(const Vector3& v) {
 } // namespace
 
 
-void CBriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector3& direction, bool waited,
+void BriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector3& direction, bool waited,
                                  bool immediately, bool run) {
     auto* serverUnit = g_serverWorld.FindUnit(unit->id);
     if (!serverUnit) return;
@@ -82,7 +82,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector
     controller->brain.Walk(target, run);
 }
 
-void CBriefingScreen::ShowItem(std::string_view name, int index) {
+void BriefingScreen::ShowItem(std::string_view name, int index) {
     auto* unit = GameFindClientUnit(TextKeyFromName(name));
     if (unit) {
         // A person joins the speakers (at the end, once).
@@ -116,8 +116,8 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
 
     float x = static_cast<float>(kSlotXs[index % kSlots]);
     float y = static_cast<float>(kSlotYs[index % kSlots]);
-    CUiMesh* back = nullptr;
-    CUiMesh* frame = nullptr;
+    UiMesh* back = nullptr;
+    UiMesh* frame = nullptr;
     if (index < kSlots) {
         back = AddBlankSprite();
         back->SetRectangle(20.0f, 100.0f, x - kSlotBack, y - kSlotBack, x + kSlotBack, y + kSlotBack, 0, 0, 0x100, 0x100);
@@ -130,7 +130,7 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
     }
     std::string figure;
     figure = str::Format(kItemFigureFormat, record->number);
-    CUiMesh* item = AddSprite(figure);
+    UiMesh* item = AddSprite(figure);
     if (!item) {
         if (back) RemoveSceneObject(back);
         if (frame) RemoveSceneObject(frame);

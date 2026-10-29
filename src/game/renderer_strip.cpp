@@ -126,7 +126,7 @@ float* StripDirection(float* out, int index, int mode, const void* array) {
 
 // Draws an indexed triangle list of TL vertices (the new renderer, src/render, takes it); with distanceFog set
 // the pipeline fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
-int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices,
+int TextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices,
                                     int indexCount) {
     if (distanceFog) pipeline->FogVertices(vertices, vertexCount);
     render::TlDraw(this, vertices, render::kFvfTextured, vertexCount, indices, indexCount, render::Primitive::TriangleList);
@@ -137,11 +137,11 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const s
 // the ribbon's screen width; `mode` 0 projects, 1 projects and clips (a section between two points that are
 // both off screen is skipped), 2 only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
 // is 0), v from `vStart` over `vSize`. Returns the draw's result (1 when nothing is drawn).
-int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, float width, int mode, float uLength,
+int SceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, float width, int mode, float uLength,
                               float vStart, float vSize) {
     const LightningPoint* points = pointArray->data();
     const int pointCount = static_cast<int>(std::ssize(*pointArray));
-    const CTransformPipeline* currentPipeline = pipeline;
+    const TransformPipeline* currentPipeline = pipeline;
 
     const auto n = static_cast<std::size_t>(pointCount);
     g_projected.resize(n);
@@ -165,9 +165,9 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
 
     int clipped = mode;
     if (mode == 0) {
-        CTransformPipeline::ProjectPoints(*currentPipeline->Top(1), points, g_projected.data(), pointCount);
+        TransformPipeline::ProjectPoints(*currentPipeline->Top(1), points, g_projected.data(), pointCount);
     } else {
-        clipped = currentPipeline->ProjectPointsClipped(*currentPipeline->Top(CTransformPipeline::kClipStack), points,
+        clipped = currentPipeline->ProjectPointsClipped(*currentPipeline->Top(TransformPipeline::kClipStack), points,
                                                  g_projected.data(), g_clipped.data(), pointCount);
         if (clipped == 2) return 1;
     }

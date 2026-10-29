@@ -1,4 +1,4 @@
-// Script loader, part 2: the parser. CScript::Load preprocesses the text (#define), tokenizes it
+// Script loader, part 2: the parser. Script::Load preprocesses the text (#define), tokenizes it
 // and parses the sections (WorldScript, Script, DeclareScript, GlobalVars); the Load* functions
 // below build the SSCCmd trees. See script.h and docs/notes/script.md ("Loader and parser").
 // Calls between loader functions go through the game's code (Original below): Rebirth
@@ -28,7 +28,7 @@
 using namespace scriptparse;
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors has its own (tests/vectors/replay_script.cpp)
-int CScript::Error(CScript* script, int line, int code, const char* format, ...) {
+int Script::Error(Script* script, int line, int code, const char* format, ...) {
     va_list args;
     va_start(args, format);
     const int result = ScriptErrorV(script, line, code, format, args);
@@ -73,7 +73,7 @@ const char* kTypeLetter[] = {nullptr, "f", "s", "o", "g"};
 } // namespace
 
 
-bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id, ScriptVars* locals,
+bool Script::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id, ScriptVars* locals,
                            const char* signature, bool assignment, bool scriptCall) {
     int paramIndex = 0;
     int floatCount = 0, stringCount = 0, objectCount = 0, groupCount = 0;
@@ -231,7 +231,7 @@ bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
     return Error(this, LastLine(tokens), 1, "Unexpected end of file");
 }
 
-bool CScript::LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+bool Script::LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                              ScriptVars* locals) {
     ScriptToken token;
     std::string text;
@@ -252,7 +252,7 @@ bool CScript::LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptTo
     }
 }
 
-bool CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens) {
+bool Script::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens) {
     ScriptToken token;
     std::string text;
     ScriptIfThen pair;
@@ -300,7 +300,7 @@ bool CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::c
     }
 }
 
-bool CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, ScriptVars* locals,
+bool Script::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, ScriptVars* locals,
                                  const std::string* name) {
     cmd->Clear();
     bool ok;
@@ -329,7 +329,7 @@ bool CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iter
     return result;
 }
 
-bool CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+bool Script::LoadVariableDeclarations(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                                        bool qualify) {
     ScriptToken token;
     std::string name, typeName;
@@ -377,7 +377,7 @@ bool CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
     return result;
 }
 
-bool CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+bool Script::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                            ScriptVars* locals) {
     ScriptToken token;
     std::string text, qualified;
@@ -459,7 +459,7 @@ bool CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
 // For and ForIf stay the only ones.
 
 
-bool CScript::Load(std::string* text, bool runWorldScript) {
+bool Script::Load(std::string* text, bool runWorldScript) {
     std::list<ScriptToken> tokens;
     ScriptDefinition definition;
     ScriptDefinition* decl = &definition;
@@ -590,7 +590,7 @@ bool CScript::Load(std::string* text, bool runWorldScript) {
     return true;
 }
 
-bool CScript::LoadFile(const std::string& path) {
+bool Script::LoadFile(const std::string& path) {
     std::string text;
     if (!ReadTextFile(path, &text)) return Error(this, 0, 17, "Unable to read file \"%s\"", path);   // "Unable to read file \"%s\""
     return Load(&text, 1);

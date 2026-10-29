@@ -1,5 +1,5 @@
 // The spell column's unit: a sprite and a tooltip per spell of the unit. See ui.h
-// (CHudSpellColumn::SetUnit) and docs/notes/ui.md ("Battle HUD panels").
+// (HudSpellColumn::SetUnit) and docs/notes/ui.md ("Battle HUD panels").
 #include "text_manager.h"
 #include "spell.h"
 #include "ui.h"
@@ -38,7 +38,7 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
 
 } // namespace
 
-void CHudSpellColumn::SetUnit(CUnit* newUnit) {
+void HudSpellColumn::SetUnit(CUnit* newUnit) {
     std::string tip;
     std::string description;
     unit = newUnit;
@@ -49,7 +49,7 @@ void CHudSpellColumn::SetUnit(CUnit* newUnit) {
     if (!unit) return;
 
     for (unsigned i = 0; i < 8; ++i) {
-        CItem* spell = unit->GetSpell(i);
+        Item* spell = unit->GetSpell(i);
         if (!spell) continue;
         {
             std::string image = spell->FigureName();
@@ -68,7 +68,7 @@ void CHudSpellColumn::SetUnit(CUnit* newUnit) {
             tip += line;
             line = "Unknown";
             description = std::format("school_{}", SpellPrototypeOf(data)->castType);
-            line = g_clientWorld.texts->CTextManager::GetString(description);
+            line = g_clientWorld.texts->TextManager::GetString(description);
             line = currentLabels[1] + " " + line + " \n";
             tip += line;
             if (SpellPrototypeOf(data)->allowedModifiers[3] == 0)

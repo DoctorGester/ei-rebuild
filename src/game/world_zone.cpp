@@ -1,4 +1,4 @@
-// CWorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map objects), the
+// WorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map objects), the
 // script's AddUnitToServer, and writing the map objects into a save. See world.h and docs/notes/world.md.
 #include "app.h"
 #include "bink_video.h"   // g_loadingMovieOff
@@ -13,7 +13,7 @@
 #include "net_delta.h"
 #include "object_tables.h"
 #include "party.h"
-#include "spell.h"         // CSpellEffect: the missiles
+#include "spell.h"         // SpellEffect: the missiles
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -50,7 +50,7 @@ constexpr const char* kProgres5 = "progres5.bik";
 
 // ---- Zone exits -------------------------------------------------------------------------------
 
-void CWorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
+void WorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
     exits = {};
     for (const ZoneExit& from : *source) {
         if (str::Compare(from.target, game::kEmptyText) == 0) continue;   // leads nowhere
@@ -62,7 +62,7 @@ void CWorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
 
 // ---- Units ------------------------------------------------------------------------------------
 
-void CWorldServer::AddUnitToServer(unsigned newId, const char* prototype, const char* name, const Vector3& position) {
+void WorldServer::AddUnitToServer(unsigned newId, const char* prototype, const char* name, const Vector3& position) {
     CParty party;   // one member
     party.AddMember(game::kEmptyText, prototype, name);
     std::vector<PartyUnitRecord*> records;
@@ -75,7 +75,7 @@ void CWorldServer::AddUnitToServer(unsigned newId, const char* prototype, const 
 
 // ---- .mob object files ------------------------------------------------------------------------
 
-int CWorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
+int WorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     const std::string file(fileName);
     mapspec::MobFile rootChunk;
     mapspec::MobFile* root = &rootChunk;
@@ -93,7 +93,7 @@ int CWorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     return result;   // the file closed with the root
 }
 
-int CWorldServer::LoadMobFile(std::string_view file) {
+int WorldServer::LoadMobFile(std::string_view file) {
     for (const std::string& mobFile : mobFiles)
         if (str::Compare(mobFile, file) == 0) return 1;
     g_loadingMovieOff = 1;
@@ -112,11 +112,11 @@ int CWorldServer::LoadMobFile(std::string_view file) {
 
 // ---- Clearing and saving the map objects ----------------------------------------------------
 
-void CWorldServer::ClearMapObjects() {
+void WorldServer::ClearMapObjects() {
     // The objects are collected first (a list, block size 10), then removed one by one.
-    std::list<CEngineObject*> pending;
+    std::list<EngineObject*> pending;
     for (auto& node : mapObjects.map) {
-        CEngineObject* object = node.second;
+        EngineObject* object = node.second;
         if (!object) break;   // the walk stops at the first empty entry
         pending.push_back(object);
     }
@@ -137,7 +137,7 @@ void CWorldServer::ClearMapObjects() {
     pending.clear();   // the list destructor's body
 }
 
-void CWorldServer::SaveMapObjects(CStream* out) {
+void WorldServer::SaveMapObjects(ByteStream* out) {
     for (auto& node : mapObjects.map) {
         CMapObject* object = node.second;
         if (!object) break;

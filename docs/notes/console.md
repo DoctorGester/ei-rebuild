@@ -38,7 +38,7 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
   `operator[]` is `005E0B20`. The line is split by the tokenizer (`004DC200`: quotes toggle and stay in the token, spaces end a token
   only outside quotes, double-byte lead bytes are taken with their trail byte); the first token is the command. `@x`, `#x`, `$x`
   (cheat word given, not a network game `0057F440`): `005DD800` loads `WorldScript(x args)`, `WorldScript( ConsoleFloat( ... ))`
-  or `WorldScript( ConsoleString( ... ))` into the mission script (`005785D0`: CScript::Load, one tick when it loaded) and prints
+  or `WorldScript( ConsoleString( ... ))` into the mission script (`005785D0`: Script::Load, one tick when it loaded) and prints
   `Script error: <text>` when it does not load. Otherwise command and arguments are lower-cased (`_mbslwr`); `quit` / `exit` call
   `00455F20`; a non-null public handler runs; without the cheat word the command XOR 0x66 is compared with `00740028`
   ("thingamabob"), which sets `007C7B64` and prints `Activated!`; with it the cheat map's handler runs (not in a network game);

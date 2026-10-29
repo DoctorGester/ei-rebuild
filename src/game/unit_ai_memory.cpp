@@ -95,8 +95,8 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
 void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     if (lib::Contains(visible, object)) return;
     CUnit* other = object;
-    CUnitServer* theirs = other->ServerController();
-    CUnitServer* ours = self->ServerController();
+    UnitServer* theirs = other->ServerController();
+    UnitServer* ours = self->ServerController();
     double dx = static_cast<double>(self->localPosition.x) - other->localPosition.x;
     double dy = static_cast<double>(self->localPosition.y) - other->localPosition.y;
     double dz = static_cast<double>(self->localPosition.z) - other->localPosition.z;
@@ -127,7 +127,7 @@ void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     if (g_serverWorld.diplomacy.IsAllied(self->side, corpse->side)) corpses.push_back(corpse);
 }
 
-void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
+void AIMemory::MeasureExposure(UnitServer* self, float* out) {
     for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;
     CUnit* unit = self->unit;
     Vector3 eye;
@@ -135,7 +135,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     for (auto& node : nearby) {
         CUnit* other = node;
         if (other->IsDead() || !unit->IsHostileTo(other)) continue;
-        CUnitServer* theirs = other->ServerController();
+        UnitServer* theirs = other->ServerController();
         double dx = static_cast<double>(other->localPosition.x) - unit->localPosition.x;
         double dy = static_cast<double>(other->localPosition.y) - unit->localPosition.y;
         double dz = static_cast<double>(other->localPosition.z) - unit->localPosition.z;

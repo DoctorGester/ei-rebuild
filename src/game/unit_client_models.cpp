@@ -59,12 +59,12 @@ const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::Arm
 constexpr int kWeaponBow = 5;
 const char* const kBowArrow = "rh3.arrow00";
 
-std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
+std::uint32_t WeaponIdOf(const UnitClientSpecific* self, std::uint32_t slot) {
     return slot < 4 ? self->weaponIds[slot] : kNoItemId;
 }
 
 // The bow's arrow part of a hero holding a bow, or null.
-CEngineObject* BowArrow(CUnitClientSpecific* self) {
+EngineObject* BowArrow(UnitClientSpecific* self) {
     std::uint32_t hand = WeaponIdOf(self, self->unit->activeWeapon);
     if (hand == kNoItemId || ::WeaponType(hand) != kWeaponBow) return nullptr;
     return self->unit->FindPart(kBowArrow);
@@ -95,7 +95,7 @@ void AddArmourTexture(SkinRequest& request, const CUnit* unit, std::string& text
 }
 
 // The layer texture names and the two keys of a skin.
-void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest& request, std::string& unitKey,
+void NameSkinTextures(const UnitClientSpecific* self, int detailed, SkinRequest& request, std::string& unitKey,
                       std::string& prototypeKey, std::string& texture) {
     const CUnit* unit = self->unit;
     int id = unit->id;
@@ -146,7 +146,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
 
 // --- Armour figure parts ----------------------------------------------------------------------
 
-bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
+bool UnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     if (itemId == kNoItemId) return false;
     std::uint32_t prototypeType = PrototypeIndex(itemId);
     if (prototypeType == kNoIndex || MaterialIndex(itemId) == kNoIndex) return false;
@@ -177,7 +177,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
             if (hair == -1) continue;
             part = str::Format("hr.%.2d", hair);
         }
-        CFigureMesh* current = unit->FindPartByPrefix(part);
+        FigureMesh* current = unit->FindPartByPrefix(part);
         armourPart = str::Format("%s.armor%.2d", part, armour->number);
         if (model->mesh->FindEntry(armourPart) != -1) {
             unit->LoadPart(armourPart);
@@ -197,7 +197,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     return true;
 }
 
-bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
+bool UnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
     if (slot >= 7) return false;
     std::uint32_t itemId = armourIds[slot];
     if (itemId == kNoItemId) return false;
@@ -222,7 +222,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             if (hair == -1) continue;
             part = str::Format("hr.%.2d", hair);
         }
-        std::vector<CFigureMesh*> parts = unit->CollectPartsByPrefix(part);
+        std::vector<FigureMesh*> parts = unit->CollectPartsByPrefix(part);
         if (std::ssize(parts) == 1) {
             // One part of that name: replaced only when it is not the plain part already.
             if (str::Compare(part, parts[0]->GetName()) != 0) {
@@ -237,7 +237,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
     return true;
 }
 
-int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
+int UnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     std::uint32_t previous = WeaponIdOf(this, unit->activeWeapon);
     std::uint32_t next = WeaponIdOf(this, slot);
     {
@@ -251,13 +251,13 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     weaponHidden = 0;
     if (next != kNoItemId) {
         for (const std::string& name : WeaponModelParts(next >> 16)) {
-            CEngineObject* part = unit->LoadPart(name);
+            EngineObject* part = unit->LoadPart(name);
             if (part) unit->AttachPartMesh(part);
         }
         arrowHidden = 0;
         std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
         if (hand != kNoItemId && ::WeaponType(hand) == kWeaponBow) {
-            if (CEngineObject* arrow = unit->FindPart(kBowArrow)) {
+            if (EngineObject* arrow = unit->FindPart(kBowArrow)) {
                 arrow->flags |= FigureMeshFlag::Hidden;
                 arrowHidden = 1;
             }
@@ -270,13 +270,13 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
 
 // --- The weapon in hand and the bow's arrow during animations ------------------------------
 
-void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
+void UnitClientSpecific::ShowWeaponParts(bool hidden) {
     if (weaponHidden == static_cast<std::uint8_t>(hidden)) return;
     std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
     std::vector<std::string> names;
     if (hand != kNoItemId) names = WeaponModelParts(hand >> 16);
     for (const std::string& name : names) {
-        if (CEngineObject* part = unit->FindPart(name)) {
+        if (EngineObject* part = unit->FindPart(name)) {
             if (hidden) part->flags |= FigureMeshFlag::Hidden;
             else part->flags &= ~FigureMeshFlag::Hidden;
         }
@@ -285,9 +285,9 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     arrowHidden = hidden;
 }
 
-void CUnitClientSpecific::UpdateArrow() {
+void UnitClientSpecific::UpdateArrow() {
     if (unit->MapType() != MapObjectType::Hero) return;
-    const CFigureAnimationState* state = unit->Object3D()->animation;
+    const FigureAnimationState* state = unit->Object3D()->animation;
     const FigureAnimation* current = state->current;
     if (current && (current->flags & 1)) {
         float now = state->time;
@@ -295,7 +295,7 @@ void CUnitClientSpecific::UpdateArrow() {
         if (now == lastAnimationTime) return;   // the same time
         if (Passed(current->arrowFrom, lastAnimationTime, now)) {
             if (!arrowHidden) return;
-            if (CEngineObject* arrow = BowArrow(this)) {
+            if (EngineObject* arrow = BowArrow(this)) {
                 arrow->flags &= ~FigureMeshFlag::Hidden;
                 arrowHidden = 0;
             }
@@ -304,7 +304,7 @@ void CUnitClientSpecific::UpdateArrow() {
         if (!Passed(current->arrowTo, lastAnimationTime, now)) return;
     }
     if (arrowHidden == 1) return;
-    if (CEngineObject* arrow = BowArrow(this)) {
+    if (EngineObject* arrow = BowArrow(this)) {
         arrow->flags |= FigureMeshFlag::Hidden;
         arrowHidden = 1;
     }
@@ -354,7 +354,7 @@ ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
 
 // --- Skin -------------------------------------------------------------------------------------
 
-std::vector<SkinLayer> CUnitClientSpecific::BuildSkinLayers(int detailed) {
+std::vector<SkinLayer> UnitClientSpecific::BuildSkinLayers(int detailed) {
     const itemdb::ArmorTable& armours = g_itemDatabase.armors;
     if (!detailed) {
         std::vector<SkinLayer> layers(kSimpleLayers);
@@ -392,7 +392,7 @@ std::vector<SkinLayer> CUnitClientSpecific::BuildSkinLayers(int detailed) {
     return layers;
 }
 
-void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
+void* UnitClientSpecific::ComposeSkin(int detailed, void* target) {
     CTextureManager* textureManager = g_clientWorld.textureManager;
     void* result;
     {

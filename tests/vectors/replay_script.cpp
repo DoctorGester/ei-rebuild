@@ -19,7 +19,7 @@
 
 namespace {
 
-// CScript::Error's last report (the replay's Error, below).
+// Script::Error's last report (the replay's Error, below).
 struct ReportedError {
     bool reported = false;
     int line = 0, code = 0;
@@ -120,9 +120,9 @@ bool CheckKeywordName(Reader& r, char* d, std::size_t n) {
 }
 EI_VECTOR_CHECK_BYTES("KeywordName", CheckKeywordName);
 
-// A CScript the lexer can run on: it reads no member, it only reports errors (CScript::Error).
-CScript* NoScript() {
-    static CScript script;
+// A Script the lexer can run on: it reads no member, it only reports errors (Script::Error).
+Script* NoScript() {
+    static Script script;
     return &script;
 }
 
@@ -196,10 +196,10 @@ EI_VECTOR_CHECK_BYTES("ApplyDefines", CheckApplyDefines);
 
 } // namespace
 
-// The replay's CScript::Error (the game's is the original 004CF470, which Rebirth patches): the report
+// The replay's Script::Error (the game's is the original 004CF470, which Rebirth patches): the report
 // is kept for the check and set on the script as ScriptErrorV sets it (wvsprintfA's formats the
 // parser uses, %s and %i, are printf's).
-int CScript::Error(CScript* script, int line, int code, const char* format, ...) {
+int Script::Error(Script* script, int line, int code, const char* format, ...) {
     va_list args;
     va_start(args, format);
     std::vsnprintf(g_error.text, sizeof(g_error.text), format, args);
@@ -222,5 +222,5 @@ bool RejectsMatch(const char*, char) { std::abort(); }
 void SignatureStep(SSCCmd*, const char**, int) { std::abort(); }
 }
 
-// CScript::LoadFile's file reader (script_text_file.cpp needs the game's files): not replayed.
+// Script::LoadFile's file reader (script_text_file.cpp needs the game's files): not replayed.
 int scriptparse::ReadTextFile(const std::string&, std::string*) { std::abort(); } // namespace scriptaddon

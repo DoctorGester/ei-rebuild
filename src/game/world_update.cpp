@@ -1,4 +1,4 @@
-// CWorldServer::Update: one world update. See world.h and docs/notes/world.md.
+// WorldServer::Update: one world update. See world.h and docs/notes/world.md.
 #include "world.h"
 #include "console.h"
 
@@ -18,13 +18,13 @@
 namespace {
 
 // -1 while no Possession spell has taken a unit.
-bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(state->possessedId) < 0; }
+bool NoPendingPossession(const PlayerServer* state) { return static_cast<int>(state->possessedId) < 0; }
 
 // ---- Helpers ----------------------------------------------------------------------------------
 
 // Disconnects a player (its connection and units).
 // A player that lost its connection leaves the game.
-void DropPlayer(CWorldServer* world, CPlayer* player) {
+void DropPlayer(WorldServer* world, CPlayer* player) {
     player->Disconnect();
     world->PlayerList()->ReleasePlayer(player);
     console::EndLine(console::g_netLogOut << worlddata::DisconnectingPlayerText() << player->playerId);
@@ -32,7 +32,7 @@ void DropPlayer(CWorldServer* world, CPlayer* player) {
 
 // Every unit of a connected player wakes the units within its hearing range (as SyncPlayer computes it, with
 // another margin: the server half's movement factor 3 and statistics B0 values 0 and 2).
-void WakeAroundUnits(CWorldServer* world, CPlayer* player) {
+void WakeAroundUnits(WorldServer* world, CPlayer* player) {
     auto& units = player->units;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
@@ -47,7 +47,7 @@ void WakeAroundUnits(CWorldServer* world, CPlayer* player) {
 
 } // namespace
 
-void CWorldServer::Update() {
+void WorldServer::Update() {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         netlink::NetLink* link = player->link;
@@ -57,13 +57,13 @@ void CWorldServer::Update() {
             DropPlayer(this, player);
     }
 
-    if (CWorldHandle* handle = worldHandle.Get()) {
+    if (WorldHandle* handle = worldHandle.Get()) {
         handle->Pump();
         AcceptNewPlayers(handle);
     }
     if (netlink::DriverSession* session = netSession.Get()) {
         net::ServerSession* server = net::g_gameServer;
-        if (server && !(server->flags7 & CRefCounted::kDetached)) session->PumpDrivers(server);
+        if (server && !(server->flags7 & RefCounted::kDetached)) session->PumpDrivers(server);
         AcceptNewPlayers(session);
     }
 
@@ -87,14 +87,14 @@ void CWorldServer::Update() {
         }
     }
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* state = player->Server();
+        PlayerServer* state = player->Server();
         if (!NoPendingPossession(state)) continue;
         ScriptGroup sum;
         sum.Union(state->partyUnits, heroes);
         heroes = std::move(sum);
     }
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* state = player->Server();
+        PlayerServer* state = player->Server();
         if (!NoPendingPossession(state)) continue;
         state->partyUnits = heroes;
     }

@@ -31,7 +31,7 @@ const char kRecordFolder[] = ".\\camera\\";
 
 } // namespace
 
-CCamera::CCamera() {
+Camera::Camera() {
     localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation.SetIdentity();
     viewRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
@@ -63,29 +63,29 @@ CCamera::CCamera() {
     fieldOfView = DefaultAngle();
 }
 
-CCamera::~CCamera() {
+Camera::~Camera() {
     targetId = -1;
 }
 
 // The camera: constructed by the C++ runtime and destroyed after the game's exit functions (the worlds' destructors
 // do not touch it: EmptyWorlds, app_main.cpp, has emptied them by then).
-CCamera g_camera;
+Camera g_camera;
 
-const char* CCamera::ClassName() { return "CCamera"; }
-ClassId CCamera::GetClassId() { return ClassId::Camera; }
+const char* Camera::ClassName() { return "CCamera"; }
+ClassId Camera::GetClassId() { return ClassId::Camera; }
 
-void CCamera::Create() {
+void Camera::Create() {
     targetId = -1;
     nearDistance = 1.0f;
     farDistance = 2000.0f;
     fieldOfView = DefaultAngle();
 }
-void CCamera::Destroy() { targetId = -1; }
+void Camera::Destroy() { targetId = -1; }
 
 // Init(settings, near, far, fov). Takes the views and the start distance and focus from the settings, keeps the
 // three distances / angle as float bit patterns, switches to free placement, and resets views 6 and 7 to the
 // start distance at 45 degrees (the pitch too). Returns 1.
-int CCamera::Init(options::GameOptions* newSettings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
+int Camera::Init(options::GameOptions* newSettings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
     ViewsFromSettings(newSettings);
     settings = newSettings;
     distance = newSettings->cameraDefaultDistance;
@@ -106,8 +106,8 @@ int CCamera::Init(options::GameOptions* newSettings, std::uint32_t nearBits, std
 }
 
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
-const Vector3* CameraAnchor(const CCamera* self) {
-    return (self->flags & CCamera::kPlaced) ? &self->localPosition : &self->focus;
+const Vector3* CameraAnchor(const Camera* self) {
+    return (self->flags & Camera::kPlaced) ? &self->localPosition : &self->focus;
 }
 
 // Starts recording into ".\camera\" + `name`. When ".\camera\camera.cam" exists it is
@@ -115,7 +115,7 @@ const Vector3* CameraAnchor(const CCamera* self) {
 // name's number is read from its title past the fourth character ("ra0005": always 0, so the
 // rename goes to camera0001.cam; kept as the game has it). Sets the client world's
 // WorldClientFlag::RecordingCamera either way. Returns 1 (file name kept in fileName, flag 0x10 set) when the file can be created, else 0.
-int CCamera::OpenFile(const char* name) {
+int Camera::OpenFile(const char* name) {
     lib::FileFind find;
     lib::File file;
     if (find.FindFile(kCurrentRecord) == 1) {
@@ -150,17 +150,17 @@ int CCamera::OpenFile(const char* name) {
         std::string full = folder + name;
         fileName = full;
     }
-    flags |= CCamera::kRecording;
+    flags |= Camera::kRecording;
     file.Close();
     return 1;
 }
 
 // While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to fileName. Returns 1
 // when written, 0 when not recording or the file does not open.
-int CCamera::RecordFrame(std::uint32_t time) {
+int Camera::RecordFrame(std::uint32_t time) {
     CameraKey record;
     lib::File file;
-    if (!(flags & CCamera::kRecording)) return 0;
+    if (!(flags & Camera::kRecording)) return 0;
     if (!file.Open(fileName, lib::File::modeNoTruncate | lib::File::modeWrite)) return 0;    // (an existing file only)
     file.Seek(0, FILE_END);
     record.time = std::bit_cast<float>(time);
@@ -173,15 +173,15 @@ int CCamera::RecordFrame(std::uint32_t time) {
 }
 
 // Closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
-int CameraCloseFile(CCamera* self) {
-    self->flags &= ~CCamera::kRecording;
+int CameraCloseFile(Camera* self) {
+    self->flags &= ~Camera::kRecording;
     self->fileName.clear();
     return 1;
 }
 
 // Loads the camera state saved by Save. Saves before version 0x6F hold all eight
 // views, later ones views 4..7. A followed target is kept when one is saved (its offsets reset).
-void CCamera::Load(CStream* stream) {
+void Camera::Load(ByteStream* stream) {
     stream->ReadValue(focus);
     stream->ReadValue(focusHeight);
     stream->ReadValue(viewRotation);
@@ -209,7 +209,7 @@ void CCamera::Load(CStream* stream) {
 }
 
 // Saves the camera state (focus, rotation, pitch, distance, the rates, flags, target and views 4..7).
-void CCamera::Save(CStream* stream) {
+void Camera::Save(ByteStream* stream) {
     stream->WriteValue(focus);
     stream->WriteValue(focusHeight);
     stream->WriteValue(viewRotation);

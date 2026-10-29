@@ -1,4 +1,4 @@
-// The global map's (CGlobalMap, ui_camp.h) places: the titles and positions of its allod, zones and quests
+// The global map's (GlobalMap, ui_camp.h) places: the titles and positions of its allod, zones and quests
 // from the texts and map.txt, the zone selection's marker colours and the pick picture. See docs/notes/ui.md
 // ("Camp, global map, hero screens").
 #include "model.h"
@@ -27,8 +27,8 @@ constexpr const char* kMissingNumber = "0";
 
 // --- titles and positions ------------------------------------------------------------------------
 
-std::string CGlobalMap::PlaceTitle(std::string_view prefix, std::string_view name) {
-    CTextManager* texts = g_clientWorld.texts;
+std::string GlobalMap::PlaceTitle(std::string_view prefix, std::string_view name) {
+    TextManager* texts = g_clientWorld.texts;
     std::string title;
     std::string key(prefix);
     key += name;
@@ -36,8 +36,8 @@ std::string CGlobalMap::PlaceTitle(std::string_view prefix, std::string_view nam
     return title;
 }
 
-std::optional<Vector3> CGlobalMap::MapPosition(std::string_view prefix, std::string_view name, bool positionLine) {
-    CTextManager* texts = g_clientWorld.texts;
+std::optional<Vector3> GlobalMap::MapPosition(std::string_view prefix, std::string_view name, bool positionLine) {
+    TextManager* texts = g_clientWorld.texts;
     std::string key;
     std::vector<std::string> words;
     texts->Open(kMapText);
@@ -59,7 +59,7 @@ std::optional<Vector3> CGlobalMap::MapPosition(std::string_view prefix, std::str
 
 // --- the selected zone ---------------------------------------------------------------------------
 
-void CGlobalMap::SelectZone(int index, bool isLink) {
+void GlobalMap::SelectZone(int index, bool isLink) {
     int zone = -1;
     int link = -1;
     if (!isLink) {
@@ -70,7 +70,7 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
         if (gipat && index >= 0 && links[index].zone >= 0) zone = links[index].zone;
     }
     for (int i = 0; i < std::ssize(zones); ++i) {
-        CUiMesh* marker = Marker(i);
+        UiMesh* marker = Marker(i);
         int state = zones[i].state;
         if (state == 0) {
             marker->texture = objects[2];
@@ -84,7 +84,7 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
         marker->flags &= ~FigureMeshFlag::Flat;
     }
     for (int i = 0; i < std::ssize(links); ++i) {
-        CUiMesh* marker = Marker(std::ssize(zones) + std::ssize(quests) + i);
+        UiMesh* marker = Marker(std::ssize(zones) + std::ssize(quests) + i);
         for (int k = 0; k < 3; ++k) marker->tint[k] = i == link ? fog[k] : 1.0f;
     }
 }
@@ -93,15 +93,15 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
 
 // Scene objects 0..2 (arrow, base, island) and everything after the zone markers (quests, links,
 // layers and the rest) shown or hidden.
-void CGlobalMap::ShowAllButZones(bool visible) {
+void GlobalMap::ShowAllButZones(bool visible) {
     for (int i = 0; i < 3; ++i) SceneMesh(i)->visible = visible;
     for (int i = std::ssize(zones) + 3; i < std::ssize(sceneObjects); ++i) SceneMesh(i)->visible = visible;
 }
 
-void CGlobalMap::RefreshSelection() {
+void GlobalMap::RefreshSelection() {
     if (!backdrop) return;
     for (int i = 0; i < std::ssize(zones); ++i) {
-        CUiMesh* marker = Marker(i);
+        UiMesh* marker = Marker(i);
         std::uint32_t level = 0x18u + 0x10u * static_cast<std::uint32_t>(i);
         marker->texture = nullptr;
         // Opaque grey (from the 16th zone on the level's ninth bit spills into the next channel, as in the original).

@@ -19,14 +19,14 @@
 #include <unordered_map>
 #include <vector>
 
-class CStream;
-class CWorldServer;
+class ByteStream;
+class WorldServer;
 class CUnit;
 class CMapObject;
 struct MapEffect;
 class CEffect;
 class CEffectParticle;
-class CEffectPointLight;
+class EffectPointLight;
 
 // The spell types: the spell prototype index (the order of the spell database in database.res, CSpell's
 // prototypeId >> 16), also an active effect's type (MapEffect::type: a buff copies its spell's). Names from the
@@ -91,16 +91,16 @@ enum class SpellTargetFlag : std::uint32_t {
     NoMoli = 0x20,              // "fl": not at "unmoli"
     ItemTriggered = 0x10000,    // "it": a weapon casts it at what it hits, armour at its wearer when hit (healing:
                                 // when not)
-    ItemContinuous = 0x20000,   // "ic": an item's lasting spell while it is worn (CUnitServer::RefreshItemSpells)
+    ItemContinuous = 0x20000,   // "ic": an item's lasting spell while it is worn (UnitServer::RefreshItemSpells)
     AtUnits = 0x10000000,       // targetKind 'u'
     AtPoint = 0x20000000,       // targetKind 't': aimed at a point; the missile flies at no object
 };
 template <> inline constexpr bool lib::kBitFlags<SpellTargetFlag> = true;
 inline constexpr std::uint32_t kSpellTargetRestrictions = 0xFFFF;   // the low 16 bits
 
-// A spell instance ("CSpell", class id 0x4F). prototypeId of CEngineObject is the packed id: spell
+// A spell instance ("CSpell", class id 0x4F). prototypeId of EngineObject is the packed id: spell
 // prototype index << 16.
-class CSpell : public CEngineObject {
+class CSpell : public EngineObject {
 public:
     CSpell();
     ~CSpell() override;
@@ -109,8 +109,8 @@ public:
     void Destroy() override;
     // The effect record, the parameters, the modifiers, flags and the last field. Load clears the modifiers
     // first.
-    void Load(CStream* stream) override;
-    void Save(CStream* stream) override;
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
@@ -181,13 +181,13 @@ struct DamageInfo {
 };
 static_assert(sizeof(DamageInfo) == 0x3C);
 
-// A spell being applied (created by CWorldServer::CastSpell): the world server's missiles. It embeds the
+// A spell being applied (created by WorldServer::CastSpell): the world server's missiles. It embeds the
 // CSpell it applies; the spell's duration is also the number of targets the damage is split between, and the
 // lasting effects' ticks.
-class CSpellEffect final : public CRefCounted {
+class SpellEffect final : public RefCounted {
 public:
-    CSpellEffect();
-    ~CSpellEffect() override;
+    SpellEffect();
+    ~SpellEffect() override;
 
     // Split between the targets when there are several.
     void GetDamage(DamageInfo* out);
@@ -212,14 +212,14 @@ public:
     // Nothing without a visual or for other types.
     void UpdateFootprint(SpellType type, int stamp);
     // It becomes the visual.
-    void CreateArrow(const Vector3& from, CEngineObject* target, int particleType, float power, const char* sound,
+    void CreateArrow(const Vector3& from, EngineObject* target, int particleType, float power, const char* sound,
                      const Vector3& color, float range);
     // Types 0x2010 and 0x2014 are walls. `keep`: it becomes the visual, else it is only added to the world's
     // timed objects.
     CEffectParticle* CreateParticle(int keep, int particleType, const Vector3& position, float size, float alpha,
-                                    const Vector3& velocity, CEngineObject* attachTo);
+                                    const Vector3& velocity, EngineObject* attachTo);
     // Nothing without a target; it becomes the visual.
-    void CreateLightning(const Vector3& from, CMapObject* target, CEngineObject* source, float power, int flag);
+    void CreateLightning(const Vector3& from, CMapObject* target, EngineObject* source, float power, int flag);
     // A one-shot sound effect (the effect does not keep it).
     void CreateSound(const char* name, const Vector3& position, const Vector3& velocity, float volume, float radius);
     // `first`, then `pattern` itself (count < 1) or `pattern` formatted with 1..count. It becomes the sound.
@@ -239,18 +239,18 @@ public:
     void ReleaseSound();
     void ReleaseLight();
 
-    void Init(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3& position, CMapObject* target,
+    void Init(WorldServer* world, CSpell* spell, CUnit* caster, const Vector3& position, CMapObject* target,
               const Vector3& targetPoint, std::uint8_t newSilentEnd);
     // 0 when `object` is the target (the world then drops the effect).
-    bool Forget(CEngineObject* object);
+    bool Forget(EngineObject* object);
 
     // The position, caster and target ids, the target point, the state, the spell, the packed id, the visual
     // / sound / light ids (-1 for none), the timer, the flags and the position again. Load finds the objects
     // in g_loadingProjectileWorld and stamps the footprint.
-    void Load(CStream* stream);
-    void Save(CStream* stream);
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream);
 
-    CWorldServer* world = nullptr;
+    WorldServer* world = nullptr;
     std::uint32_t flags = 0;    // bit 0: the caster gets no credit for the hit
     Vector3 position{};
     Ref<CMapObject> target; // a unit or another map object
@@ -260,7 +260,7 @@ public:
     CSpell spell;
     CEffect* visual = nullptr;            // particle source, wall, lightning or missile (counted)
     CEffect* sound = nullptr;             // a sound or a sound sequence (counted)
-    CEffectPointLight* light = nullptr;   // counted
+    EffectPointLight* light = nullptr;   // counted
     std::uint8_t footprintStamped = 0;
     int timer = 0;                        // ticks left in the next state
     std::uint8_t silentEnd = 0;           // copied into the buff record; healing: skip when at full health
@@ -278,11 +278,11 @@ bool IsSpellTarget(CUnit* unit);
 
 // A spell under construction (created by the spell manager as SpellObjectType::Container): a prototype, the modifiers added
 // so far, and the CSpell that Build computes from them.
-class CSpellContainer : public CEngineObject {
+class SpellContainer : public EngineObject {
 public:
     // The name and the spell are destroyed after the string, where the game destroys them before it.
-    CSpellContainer();
-    ~CSpellContainer() override;
+    SpellContainer();
+    ~SpellContainer() override;
 
     void Create() override;
     // As Create, but the spell gets its Destroy.
@@ -318,18 +318,18 @@ struct SpellSequence {
     // The containers released; the walk stops at the first entry without one.
     ~SpellSequence();
 
-    std::unordered_map<std::uint32_t, CSpellContainer*> containers;   // only empty entries ever: no order to keep
+    std::unordered_map<std::uint32_t, SpellContainer*> containers;   // only empty entries ever: no order to keep
     std::uint32_t maxLow;
 };
 
 // The spell manager's object types (CreateObject / type).
 enum class SpellObjectType : int {
     Spell = 0x3002,      // CSpell
-    Container = 0x3003,  // CSpellContainer
+    Container = 0x3003,  // SpellContainer
 };
 
 // The spell manager; context gives the spell constructor.
-class CSpellManager : public CResourceManager {
+class CSpellManager : public ResourceManager {
 public:
     CSpellManager();
     ~CSpellManager() override;
@@ -337,7 +337,7 @@ public:
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // "spells"
 
-    CSpellContainer* NewContainer();
+    SpellContainer* NewContainer();
 
     // For an id other than -1 the spell takes it as its packed id: low half 0 initialises it from prototype
     // (id >> 16) (null when out of range); otherwise the sequence of the high half gives the container to
@@ -345,8 +345,8 @@ public:
     CSpell* CreateSpellObject(int id);
     // The sequences' tables' bucket arrays leak.
     void Destroy() override;
-    // A CSpell (0x3002) or CSpellContainer (0x3003); else null.
-    CEngineObject* NewObject(int type) override;
+    // A CSpell (0x3002) or SpellContainer (0x3003); else null.
+    EngineObject* NewObject(int type) override;
 
     // Up to 8 modifiers, through the context's spell constructor. Returns the new spell, or a fatal error's
     // result.
@@ -367,7 +367,7 @@ public:
     std::uint32_t maxSequenceKey;    // the largest key asked for
 };
 
-class CSpellConstructor : public CEngineObject {
+class CSpellConstructor : public EngineObject {
 public:
     CSpellConstructor();
     ~CSpellConstructor() override;
@@ -392,10 +392,10 @@ public:
     bool AddModifier(itemdb::SpellModifierRecord* modifier);
 
     CSpellManager* manager;         // counted but never released
-    Ref<CSpellContainer> container;
+    Ref<SpellContainer> container;
 };
 
-// The bits of CEngineObject::flags on a light. A point light effect's lightFlags (saved) are ored in: the spells'
+// The bits of EngineObject::flags on a light. A point light effect's lightFlags (saved) are ored in: the spells'
 // and missiles' lights take Specular | Strong.
 enum class LightFlag : std::uint32_t {
     Changed = 0x8,          // SetPoint / SetDirectional; nothing reads it
@@ -413,7 +413,7 @@ template <> inline constexpr bool lib::kBitFlags<LightFlag> = true;
 
 // A light. type 0x31 is a point light. localPosition is the light's position (where a directional light is
 // drawn from); worldPosition holds it in the space of the mesh being lit.
-class CLight : public CTransformObject {
+class CLight : public TransformObject {
 public:
     // Luminance of the colour, falling off with the squared distance for point lights.
     float GetIntensityAt(const Vector3& point);
@@ -449,21 +449,21 @@ public:
 
 // The light factory ("CLightManager"): lights of class 0x2E (the renderer's default light) and 0x31 (point
 // lights).
-class CLightFactory : public CBaseManager {
+class LightFactory : public BaseManager {
 public:
-    CLightFactory();
-    ~CLightFactory() override;
+    LightFactory();
+    ~LightFactory() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
     // Other types are logged and give null.
-    CEngineObject* NewObject(int type) override;
+    EngineObject* NewObject(int type) override;
     // LightFlag::Hidden cleared (no null check).
-    CEngineObject* CreateObject(int type, int id) override;
+    EngineObject* CreateObject(int type, int id) override;
     CLight* LightWithId(unsigned lightId) const { return FindObjectAs<CLight>(lightId); }
     CLight* CreateLight(int lightType, int lightId = -1) { return CreateObjectAs<CLight>(lightType, lightId); }
 
-    CEngineObject* held;            // released by the destructor
+    EngineObject* held;            // released by the destructor
     std::list<int> litIds;
 };
 

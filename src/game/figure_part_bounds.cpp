@@ -3,7 +3,7 @@
 // either the box minimum or the maximum; eight edges, two points each, in the original's order. See
 // docs/notes/models.md ("Figure parts").
 #include "link_figure.h"   // FigureMeshDrawer
-#include "model.h"         // CSceneRenderer
+#include "model.h"         // SceneRenderer
 #include "renderer_lines.h"   // LineBatch
 
 #include "engine_object.h"
@@ -13,13 +13,13 @@
 namespace {
 
 // The owning manager's context (object.cpp; the world, an engine object), and appending a point.
-CEngineObject* ContextOf(FigureMeshDrawer* node) { return reinterpret_cast<CEngineObject*>(node->ManagerContext()); }
+EngineObject* ContextOf(FigureMeshDrawer* node) { return reinterpret_cast<EngineObject*>(node->ManagerContext()); }
 
 constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags
 
 } // namespace
 
-void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
+void FigureMeshDrawer::DrawBounds(SceneRenderer* renderer) {
     if (!(ContextOf(this)->flags & kShowBounds)) return;
     LineBatch lines{{}, 0, 0xFFFF0000u};
     const ClipBounds& bounds = mesh->box.bounds;

@@ -6,27 +6,27 @@ The screens themselves are in `ui.md`. Calls to rewritten code still go through 
 
 ## Declarations
 
-- `CCampPages : CItemScreen`; its parties, panels and hero list are typed (`std::vector<CUnit*> heroes`, `HeroUnit`), the controller slots are
-  called on `CUnit::Controller()`. `CMpHeroScreen` has the item screens' two `ItemObjectCache`s (`models`, `textures`), `CUiEditField*` edit
+- `CampPages : ItemScreen`; its parties, panels and hero list are typed (`std::vector<CUnit*> heroes`, `HeroUnit`), the controller slots are
+  called on `CUnit::Controller()`. `MpHeroScreen` has the item screens' two `ItemObjectCache`s (`models`, `textures`), `CUiEditField*` edit
   windows and slot 52 `VirtualChooseFigure`.
-- `CItemInfoPanel`'s text arrays are `std::vector<std::string>`; the descriptions read `itemdb` records (item heads, materials, weapons, armour,
+- `ItemInfoPanel`'s text arrays are `std::vector<std::string>`; the descriptions read `itemdb` records (item heads, materials, weapons, armour,
   spells) and `UnitStats` slots.
-- Sprites are `CUiMesh` (derived from `CFigureMesh`; `texture`, `plainColour_`, `flags`, `position`, `orientation_`, `tint`, `uOffset`,
-  `vOffset`, `visible`); window vtables are `CUiWindow::vtable` / `inputVtable_`; texture memory is `CTexture::surface` (`Surface`, surface.h)
-  locked through `IDirectDrawSurface7`. Surfaces are `CUiSurface` (`flags`, `holder`, `kept`, `keptSize_`, `width`, `height`).
-- `CInterface3D` names `pollTop` (+0x81), `disconnected` (+0x88), its backdrops (`backdrop`, `secondBackdrop`, `backdropMode`),
+- Sprites are `UiMesh` (derived from `FigureMesh`; `texture`, `plainColour_`, `flags`, `position`, `orientation_`, `tint`, `uOffset`,
+  `vOffset`, `visible`); window vtables are `UiWindow::vtable` / `inputVtable_`; texture memory is `CTexture::surface` (`Surface`, surface.h)
+  locked through `IDirectDrawSurface7`. Surfaces are `UiSurface` (`flags`, `holder`, `kept`, `keptSize_`, `width`, `height`).
+- `Interface3D` names `pollTop` (+0x81), `disconnected` (+0x88), its backdrops (`backdrop`, `secondBackdrop`, `backdropMode`),
   `serverFlag`, the modifier flags (`ctrlDown`, `shiftDown`, `altDown`, `doubleClick`, `rightDown`), `messages`, `helpTopics`
   (`std::map<std::string, int, str::MbsLess>`), the saved HUD state (`hudPanelsIn[3]`, `hudBodyPart`, `hudTopPage`), `fastGame`. The frame calls the windows
-  through `CUiWindow`'s slot helpers (27 `VirtualMessageResult`, 34 `VirtualShowBriefing`, 35 `VirtualReadyToStopPolling`).
+  through `UiWindow`'s slot helpers (27 `VirtualMessageResult`, 34 `VirtualShowBriefing`, 35 `VirtualReadyToStopPolling`).
 - The Direct3D device is `UiD3DDevice` with its stdcall slots (10 `Clear`, 20 / 21 `Set` / `GetRenderState`, 36 / 37 `Get` / `SetTextureStageState`);
-  `UiRenderer` names `device`, `caps_`, `stencil_`, `result`. `CSceneRenderer`'s slots 7 `SetColour` and 19 `DrawRectangle` (model.h) draw the
-  selection box; the fog colour is `CSceneRenderer::fogColour`.
-- The HUD panels built inline by the battle screen are `CHudUnitPanel` / `CHudMap` / `CHudClock` / `CHudMovePanel` / `CHudTopPanel`; the panels'
-  text arrays (`CHeroStatsPanel`, `CSpellMakerPage`, `CTradePanel`, `CHudUnitPanel`, `CCampPages::pageTitles`) are `std::vector<std::string>`.
+  `UiRenderer` names `device`, `caps_`, `stencil_`, `result`. `SceneRenderer`'s slots 7 `SetColour` and 19 `DrawRectangle` (model.h) draw the
+  selection box; the fog colour is `SceneRenderer::fogColour`.
+- The HUD panels built inline by the battle screen are `HudUnitPanel` / `HudMap` / `HudClock` / `HudMovePanel` / `HudTopPanel`; the panels'
+  text arrays (`HeroStatsPanel`, `SpellMakerPage`, `TradePanel`, `HudUnitPanel`, `CampPages::pageTitles`) are `std::vector<std::string>`.
 - The map database is read as `MapRecord` / `ZoneExit` (the objectives picture is `picture2`), quests as `QuestRecord`, the global map's exit
   distances as `std::map<int, float>`. Containers are std: `PersonTextMap = std::map<int, std::string>` (`LoadPersonTexts`
-  a free function), `IdVector`, `MpStringVector` / `MpVoiceVector`, `UnitSoundBank::entries`; `CObjectivesWindow` has `zones`, `exits`
-  (`std::vector<ObjectiveExit>`), `quests` / `objectiveTexts`, `questPlaces` (`std::vector<UiPointF>`); `CGlobalMap::Construct` and
+  a free function), `IdVector`, `MpStringVector` / `MpVoiceVector`, `UnitSoundBank::entries`; `ObjectivesWindow` has `zones`, `exits`
+  (`std::vector<ObjectiveExit>`), `quests` / `objectiveTexts`, `questPlaces` (`std::vector<UiPointF>`); `GlobalMap::Construct` and
   `GlobalMapDestroy` go through `zones` / `links` / `quests`, `path` and `arrivals` (`Count`, `Compare`, `ResetToEmpty`).
 - Shared forwarders: `NamedTableConstructOriginal`, `GameSetWeatherOriginal`, `InterfaceTextExtentOriginal`, `TradePanelSettleOriginal`,
   `CFileFindPathOriginal`, `ConsoleDrawInputOriginal` (005E4A10, originals_ui.h).
@@ -44,7 +44,7 @@ Raw access the counter does not see (a byte pointer kept in a local, `Get` / `Se
   `ui_item_view.cpp`, `ui_hero_screen*.cpp`, `ui_hero_figure.cpp`, `ui_camp.cpp`, `ui_camp_deals.cpp`, `ui_battle_setup.cpp` (player +0x30),
   `ui_trade_panel.cpp` (stats +0x700): byte locals. Item fields are read with `Read<>(item, offset)` in ui_camp.cpp, ui_hero_panels.cpp and
   ui_item_info.cpp until the item classes are declared.
-- Declarations: `CCampScreen` (ui_screens.h) repeats `CCampPages`; `CHudQuickItems::entries` is a raw array (the HUD panels' `labels` are `std::vector<std::string>`s); `WindowFromInput` / `FromInput` are repeated per file; `AllodView` repeats `AllodRecord`;
+- Declarations: `CCampScreen` (ui_screens.h) repeats `CampPages`; `HudQuickItems::entries` is a raw array (the HUD panels' `labels` are `std::vector<std::string>`s); `WindowFromInput` / `FromInput` are repeated per file; `AllodView` repeats `AllodRecord`;
   `MapRecord::kind`: object_tables.h says 1 edge / 2 brief, the global map treats 2 as a way between zones; check. `SpellRecord::unknown_1C` (power, radius, level, duration) and
   `ItemRecordHead::unknown_4C` can be named in item_db.h.
 
@@ -53,15 +53,15 @@ Raw access the counter does not see (a byte pointer kept in a local, `Get` / `Se
 Every `unknown_XXX` member of the interface has a name; alignment padding and blocks nothing in the rebuild touches are `unused_XXX` (the main
 menu's +0x168 / +0x174, the view screen's +0x164, the trade and statistics panels' +0x148, the briefing's +0x258 and the interface's +0x10 were
 checked in the original's slots: nothing reads them). Named:
-- `CBattleScreen` (ui.h): `viewPressed` (+0x1C0), `boxSelecting` (+0x1C1), `questSound` (+0x1FC), `clientParty.camera` (+0x210, the camera id
+- `BattleScreen` (ui.h): `viewPressed` (+0x1C0), `boxSelecting` (+0x1C1), `questSound` (+0x1FC), `clientParty.camera` (+0x210, the camera id
   between the two party id vectors, as `PartyIds::camera`); `spare` (+0x164) is only cleared by Create (00635250+9C4). `itemUseKey` (+0x220) is
   a `LockKey` (unit.h), built by `LockKey::ConstructItemUseKey` as {1, 0, 0}.
-- `CHudQuickItems::shownCount` (+0x14C, the sprites added), `CHudMap::northTime` (+0x1B0), `UiMeshVertex::normal` (+2, MeshCorner's second index;
+- `HudQuickItems::shownCount` (+0x14C, the sprites added), `HudMap::northTime` (+0x1B0), `UiMeshVertex::normal` (+2, MeshCorner's second index;
   the builders write 0).
-- Written, never read in the original (named `*Spare`): `CInterface3D::fpsSpare` (+0x24; ShowFps / DrawOverlays read only +0x20 / +0x28 / +0x2C),
-  `CUiMesh::tintSpare` (+0x230; Draw 005E6D90 reads tint only), `CCursor::imageSpare` (+0x14; the frame step 005E52E0 reads image's +0x14, not
-  the cursor's), `CMpConnectScreen::spare` (+0x254); `BriefingSpeaker::spareFlag` (+0x08) went in C20r2.
-- `CUiWindow::heldObject` (+0xF4): 0 from the constructor, released by the destructor with the two materials; no writer identified among the
+- Written, never read in the original (named `*Spare`): `Interface3D::fpsSpare` (+0x24; ShowFps / DrawOverlays read only +0x20 / +0x28 / +0x2C),
+  `UiMesh::tintSpare` (+0x230; Draw 005E6D90 reads tint only), `Cursor::imageSpare` (+0x14; the frame step 005E52E0 reads image's +0x14, not
+  the cursor's), `MpConnectScreen::spare` (+0x254); `BriefingSpeaker::spareFlag` (+0x08) went in C20r2.
+- `UiWindow::heldObject` (+0xF4): 0 from the constructor, released by the destructor with the two materials; no writer identified among the
   window classes.
 
 How the readers were looked for: a capstone index of every `[reg+disp]` operand per function of the vanilla exe (config/functions.csv sizes),

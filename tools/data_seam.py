@@ -284,7 +284,7 @@ class Scan:
                     pending.append(use)
                     self.ids.setdefault(detail, [])
         # An id is seam when every other mention of its name is a seam or helper argument, or the value of an
-        # alias constant (constexpr std::uintptr_t kStreamVtable = CStream::kVtableAddress;) whose every mention is.
+        # alias constant (constexpr std::uintptr_t kStreamVtable = ByteStream::kVtableAddress;) whose every mention is.
         self.id_failures = {}
         self.alias_memo = {}
         for name in self.ids:

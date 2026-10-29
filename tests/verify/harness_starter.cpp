@@ -162,7 +162,7 @@ void Install(const char* savesDir) {
             music, g_addonPath[0] ? g_addonPath : "(snapshot)");
     }
 }
-// game.exe's CMappedResource (0x58 bytes) in a --no-hooks run: its constructor (00671280), OpenResource (00671730) and
+// game.exe's MappedResource (0x58 bytes) in a --no-hooks run: its constructor (00671280), OpenResource (00671730) and
 // Destroy (006714A0), GetFile (slot 5: 00671B40, Rebirth's ResOverride) and CloseFile (slot 6). The bytes of `name` in
 // the archive at `path`: -2 when the archive does not open, 0 without the file.
 __declspec(naked) void* __fastcall OriginalMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)

@@ -1,4 +1,4 @@
-// CAIMap::LargestStepAlong: the largest ground height step between consecutive cells on the line from `from`
+// AIMap::LargestStepAlong: the largest ground height step between consecutive cells on the line from `from`
 // to `to`, in world height (the AI height units over heightScale). The line is walked in 16.16 fixed point,
 // one step per cell of its 3D length (scaled by 1 / (cell size * 0.5)); 1.0 when that length is 0 (or NaN),
 // 100.0 when the first or last cell lies outside the map. Values kept on the FPU are doubles, and so is the
@@ -9,7 +9,7 @@
 #include "ei/x87.h"
 #include "world_data.h"
 
-double CAIMap::LargestStepAlong(const Vector3& from, const Vector3& to) {
+double AIMap::LargestStepAlong(const Vector3& from, const Vector3& to) {
     float dx = static_cast<float>(to.x - from.x);
     float dy = static_cast<float>(to.y - from.y);
     double dz = static_cast<double>(to.z) - from.z;

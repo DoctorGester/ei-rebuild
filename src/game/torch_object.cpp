@@ -13,46 +13,46 @@ const char* const kTorchClassName = "CTorchObject";
 constexpr int kTorchField = 4;
 } // namespace
 
-CTorchObject::CTorchObject() { spec = nullptr; }
+TorchObject::TorchObject() { spec = nullptr; }
 
-CTorchObject::~CTorchObject() {
+TorchObject::~TorchObject() {
     if (spec) spec->Release();
 }
 
-void CTorchObject::DestroyTorch() {
-    CTorchObjectSpec* old = spec;
+void TorchObject::DestroyTorch() {
+    TorchObjectSpec* old = spec;
     spec = nullptr;
     if (old) old->Release();
     netState.Reset();
     DestroyMapObject();
 }
 
-void CTorchObject::LoadTorch(CStream* stream) {
+void TorchObject::LoadTorch(ByteStream* stream) {
     LoadMapObject(stream);
     spec->Load(stream);
 }
 
-void CTorchObject::SaveTorch(CStream* stream) {
+void TorchObject::SaveTorch(ByteStream* stream) {
     SaveMapObject(stream);
     spec->Save(stream);
 }
 
-void CTorchObject::Load(CStream* stream) { LoadTorch(stream); }
-void CTorchObject::Save(CStream* stream) { SaveTorch(stream); }
+void TorchObject::Load(ByteStream* stream) { LoadTorch(stream); }
+void TorchObject::Save(ByteStream* stream) { SaveTorch(stream); }
 
-void CTorchObject::AttachTorchObject(CEngineObject* object) {
+void TorchObject::AttachTorchObject(EngineObject* object) {
     if (SideTypeOf(object) != SideObjectType::Torch) {
         CMapObject::AttachObject(object);
         return;
     }
-    CTorchObjectSpec* old = spec;
-    spec = static_cast<CTorchObjectSpec*>(object);
+    TorchObjectSpec* old = spec;
+    spec = static_cast<TorchObjectSpec*>(object);
     if (spec) spec->AddRef();
     if (old) old->Release();
     if (spec) spec->torch = this;    // the spec's owner
 }
 
-void CTorchObject::WriteTorchNetState() {
+void TorchObject::WriteTorchNetState() {
     CMapObject::WriteNetState();
     DeltaField* field = netState.BeginField(kTorchField);
     if (!field) return;
@@ -66,7 +66,7 @@ void CTorchObject::WriteTorchNetState() {
     field->EndField();
 }
 
-std::uint32_t CTorchObject::ReadTorchNetState(int first) {
+std::uint32_t TorchObject::ReadTorchNetState(int first) {
     std::uint32_t complete = CMapObject::ReadNetState(first);
     DeltaField* field = netState.BeginField(kTorchField);
     if (!field) return complete;
@@ -78,5 +78,5 @@ std::uint32_t CTorchObject::ReadTorchNetState(int first) {
     return complete;
 }
 
-const char* CTorchObject::ClassName() { return kTorchClassName; }
-ClassId CTorchObject::GetClassId() { return ClassId::TorchObject; }
+const char* TorchObject::ClassName() { return kTorchClassName; }
+ClassId TorchObject::GetClassId() { return ClassId::TorchObject; }

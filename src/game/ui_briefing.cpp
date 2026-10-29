@@ -1,4 +1,4 @@
-// The briefing / base screen's main virtuals (CBriefingScreen, ui_briefing.h): close, message
+// The briefing / base screen's main virtuals (BriefingScreen, ui_briefing.h): close, message
 // box answers, a unit leaving the party, game over, the "briefing" command, the chat window and the
 // saved state. See docs/notes/ui.md, "Briefing / base screen".
 #include "ui_briefing.h"
@@ -38,21 +38,21 @@ constexpr int kTopicNameParts = 3;
 
 } // namespace
 
-void CBriefingScreen::CloseScreen() {
+void BriefingScreen::CloseScreen() {
     options::g_options.borderFogDistance = savedEdgeFade;
     GameStopSounds(1);
     GameStopAmbience();
     std::uint32_t& cameraFlags = g_camera.flags;
-    cameraFlags = (cameraFlags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
+    cameraFlags = (cameraFlags & ~(Camera::kBounded | Camera::kAlternate)) | Camera::kFree;
 }
 
-void CBriefingScreen::MessageResult(int result) {
+void BriefingScreen::MessageResult(int result) {
     switch (result) {
     case kLeaveZoneYes:
         GameLeaveThroughExit(exit);
         break;
     case kGameOverLoad: {
-        ui->PushWindow(new CSaveLoadWindow(ui, false, false), true, true);
+        ui->PushWindow(new SaveLoadWindow(ui, false, false), true, true);
         break;
     }
     case kGameOverQuit:
@@ -68,7 +68,7 @@ void CBriefingScreen::MessageResult(int result) {
     if (IsMultiplayerClient()) PlayersChanged(1);
 }
 
-void CBriefingScreen::UnitJoined(CUnit* unit) {
+void BriefingScreen::UnitJoined(CUnit* unit) {
     CParty* player = LocalPlayerData();
     int count = std::ssize(player->members);
     if (count == 0) return;
@@ -119,7 +119,7 @@ void CBriefingScreen::UnitJoined(CUnit* unit) {
     }
 }
 
-void CBriefingScreen::UnitLeft(CUnit* unit) {
+void BriefingScreen::UnitLeft(CUnit* unit) {
     if (unit == leader) leader = nullptr;
     int count = std::ssize(party);
     int index = 0;
@@ -130,22 +130,22 @@ void CBriefingScreen::UnitLeft(CUnit* unit) {
     party.pop_back();
 }
 
-void CBriefingScreen::GameOver(bool) {
+void BriefingScreen::GameOver(bool) {
     ui->PlaySound("buttons\\gameover.wav");
-    CMessageBox* box = new CMessageBox(ui, "game_over", "game_over_msg", kGameOverResult, 3, 1);
+    MessageWindow* box = new MessageWindow(ui, "game_over", "game_over_msg", kGameOverResult, 3, 1);
     ui->PushWindow(box, true, true);
 }
 
-void CBriefingScreen::ShowBriefing(std::string_view name) {
+void BriefingScreen::ShowBriefing(std::string_view name) {
     topic = std::string(name);
     StartDialogue(true, true);
 }
 
-void CBriefingScreen::PlayersChanged(int show) {
+void BriefingScreen::PlayersChanged(int show) {
     if (IsMultiplayerClient() && show && chat) chat->ShowPlayers();
 }
 
-void CBriefingScreen::SaveState() {
+void BriefingScreen::SaveState() {
     int zero = 0;
     g_saveStream.WriteValue(zero);
 }

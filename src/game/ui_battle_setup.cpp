@@ -42,11 +42,11 @@ bool LoadingGame() { return g_saveStream.size != 0; }
 } // namespace
 
 // The panels Create builds inline (they have no constructors of their own).
-CHudUnitPanel::CHudUnitPanel(CInterface3D* ui, CBattleScreen* newOwner) : CUiWindow(ui), owner(newOwner) {}
+HudUnitPanel::HudUnitPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
 
-CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* newOwner) : CUiWindow(ui), owner(newOwner) {}
+HudMap::HudMap(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
 
-void CBattleScreen::CreateScreen() {
+void BattleScreen::CreateScreen() {
     float mapZoom = 1.0f;
     portraitMode = 0;
     std::string savedText;
@@ -56,7 +56,7 @@ void CBattleScreen::CreateScreen() {
 
     if (LoadingGame()) {
         // The screen's part of the saved game.
-        CMemoryStream* stream = &g_saveStream;
+        MemoryStream* stream = &g_saveStream;
         stream->Seek(0);
         int count;
         stream->ReadValue(count);
@@ -99,53 +99,53 @@ void CBattleScreen::CreateScreen() {
     LoadTexture("battle00", TextureKind::Interface);
 
     // Panels built by their own constructors (Rebirth-patched: reproduced behind its flags, rule 9).
-    weaponBar = new CHudWeaponBar(ui, this);
+    weaponBar = new HudWeaponBar(ui, this);
     AddChild(weaponBar);
     weaponBar->AddObject(objects[0]);
 
-    quickItems = new CHudQuickItems(ui, this);
+    quickItems = new HudQuickItems(ui, this);
     AddChild(quickItems);
     quickItems->AddObject(objects[0]);
 
-    spellColumn = new CHudSpellColumn(ui, this);
+    spellColumn = new HudSpellColumn(ui, this);
     AddChild(spellColumn);
     spellColumn->AddObject(objects[1]);
 
-    actionColumn = new CHudActionColumn(ui, this);
+    actionColumn = new HudActionColumn(ui, this);
     AddChild(actionColumn);
     actionColumn->AddObject(objects[1]);
 
-    portraits = new CHudPortraits(ui, this);
+    portraits = new HudPortraits(ui, this);
     AddChild(portraits);
     portraits->AddObject(objects[2]);
 
-    unitPanel = new CHudUnitPanel(ui, this);
+    unitPanel = new HudUnitPanel(ui, this);
     AddChild(unitPanel);
     unitPanel->AddObject(objects[2]);
     unitPanel->AddObject(objects[1]);
     unitPanel->Setup(ui->hudBodyPart, ui->hudPanelsIn[0] != 0);
 
-    map = new CHudMap(ui, this);
+    map = new HudMap(ui, this);
     AddChild(map);
     map->AddObject(objects[2]);
     map->Setup(mapZoom, ui->hudPanelsIn[2] != 0);
 
-    clock = new CHudClock(ui, this);
+    clock = new HudClock(ui, this);
     AddChild(clock);
     clock->AddObject(objects[2]);
     clock->Setup(ui->fastGame != 0);
 
-    movePanel = new CHudMovePanel(ui, this);
+    movePanel = new HudMovePanel(ui, this);
     AddChild(movePanel);
     movePanel->AddObject(objects[2]);
     movePanel->Build();
 
     // The message log.
-    messageLog = new CUiScrollText(ui, game::kEmptyText, RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f);
+    messageLog = new UiScrollText(ui, game::kEmptyText, RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f);
     AddChild(messageLog);
     messageLog->align = 1;
 
-    topPanel = new CHudTopPanel(ui, this);
+    topPanel = new HudTopPanel(ui, this);
     AddChild(topPanel);
     topPanel->AddObject(objects[2]);
     topPanel->Setup(ui->hudTopPage, ui->hudPanelsIn[1] != 0);
@@ -154,7 +154,7 @@ void CBattleScreen::CreateScreen() {
     if (topPanel->page == 0) messageLog->AddText(savedText);
     topPanel->ShowItems();
 
-    AddInput(new CCameraInput(ui));
+    AddInput(new CameraInput(ui));
 
     g_camera.flags &= ~0x40u;
     pendingAction = kPendingNone;
@@ -176,7 +176,7 @@ void CBattleScreen::CreateScreen() {
     clientParty.camera = -1;
 }
 
-void CBattleScreen::Draw(CSceneRenderer* pass) {
+void BattleScreen::Draw(SceneRenderer* pass) {
     GameRender();
     if (boxSelecting) {    // the selection box, a dark rectangle with an outline
         pass->DrawRectangle(selectionBox.left, selectionBox.top, selectionBox.right,
@@ -188,5 +188,5 @@ void CBattleScreen::Draw(CSceneRenderer* pass) {
     // Rebirth's AddNewConsoleCommands (call redirected): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
-    CUiContainer::Draw(pass);
+    UiContainer::Draw(pass);
 }

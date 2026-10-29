@@ -1,6 +1,6 @@
 # Mission script engine (0x004B0000-0x004D8000), text reader (0x004DEFC0-0x004DFFFF) and the rest of 0x00480000-0x00500000
 
-Files (`src/game/`): `script.h` (the records, std containers with their own special members, and `CScript`),
+Files (`src/game/`): `script.h` (the records, std containers with their own special members, and `Script`),
 `script_*.cpp` (group, vars, eval, parse, parse_load, exec, exec_run, exec_helpers, save, load, construct, blocks, reset,
 cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)), `text_reader.cpp`.
 Verify: `tests/verify/verify_script*.cpp` (+ `script_compare.h`), `verify_text_reader.cpp`. Scenarios: `script_parse`,
@@ -23,11 +23,11 @@ records in std containers (core.md, "MFC CArray and CList to std", batch 3).
   temporaries), groups +0x40 (`ScriptGroup*`); local variable bindings +0x54 and global bindings +0x68 (`{type, argIndex,
   varIndex}`); nested calls +0x7C (`{type, argIndex, SSCCmd*}`); +0x90 a block pointer (called script, or a For / ForIf
   body; its +0x14 is the block id).
-- `ScriptDefinition` (0xC0; CArray at CScript+0x8C): +0 index, +4 qualified name, +8 parameter type letters ("fso"), +0x0C
+- `ScriptDefinition` (0xC0; CArray at Script+0x8C): +0 index, +4 qualified name, +8 parameter type letters ("fso"), +0x0C
   CArray of `ScriptIfThen` {conditions block, commands block}, +0x20 `ScriptVars`. `ScriptRun` (0xB4): block, index, ticks,
   sleep start, kill flag (`int*` to the instance's flag; null for the WorldScript), `ScriptVars` copy at +0x14. Instances
   (CList nodes 0xC8) are copies of a definition whose +0 is the "killed" flag; runs are CList nodes 0xBC.
-- `CScript`: a command block's id is the list's count right after the append (the WorldScript's with bit 31 set); the
+- `Script`: a command block's id is the list's count right after the append (the WorldScript's with bit 31 set); the
   temporaries lists (+0x1B0 groups, +0x1CC object references) always keep one entry (the constructor adds it); +0x1E8 counts
   the For nesting (temporaries are not freed while it is positive); +0x1A8 loaded flag, +0x1AC file counter; +0x1EC / +0x1F0
   / +0x1F4 error text / code / line; +0x68 / +0x6C are -2 after a reset. Areas (+0x194) hold 0x14-byte parts `{u8 isRect; x,
@@ -47,7 +47,7 @@ records in std containers (core.md, "MFC CArray and CList to std", batch 3).
 
 ## Loader and parser (004CF380-004D36F0)
 
-`CScript::Load(text, runWorldScript)` 004D23A0 is the entry for mission files (`LoadFile` 004D36F0 reads a file first),
+`Script::Load(text, runWorldScript)` 004D23A0 is the entry for mission files (`LoadFile` 004D36F0 reads a file first),
 quest scripts and the console. The console (005DC620, cheat word required) turns `@x` into `WorldScript(x)`, `#x` into
 `WorldScript( ConsoleFloat( x ))` and `$x` into `WorldScript( ConsoleString( x ))` and loads it into the mission script
 007C29CC (005785D0, which then runs one script tick, 004BF000); on failure it prints `Script error: <error text>`.
@@ -137,7 +137,7 @@ by comparing its kill-flag pointer with each node's data in 007AA620's instance 
 007AA620 = 0 and the areas (004CAEC0, only read for stream versions >= 0x57). Lists are written as count then each node
 (next read before the call); a variable's name is written with its terminator, or as one zero byte when the name array is
 shorter than the value array. Effect elements: object id (-1 none), then fields; loading looks the id up in the effect
-manager (007AFFA8, `CBaseManager::FindObject` 00403F40) and raises the found object's count inline.
+manager (007AFFA8, `BaseManager::FindObject` 00403F40) and raises the found object's count inline.
 `ScriptLoad` 004C0D00 mirrors it: list loaders read the count, append that many default nodes, then read every node from the
 head (a non-empty list would have its old nodes read again; never the case: the world is new). Block ids resolve in the lists
 of 007C27D4 (`FindBlock` 004BFA50: negative ids in the WorldScript blocks, others in the command blocks; unknown gives null).
@@ -169,7 +169,7 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
   `chosen` without a reference. Not hookable (3 bytes): 004BA220 / 004BA230 (RET 4), 004BA240 (MOV AL,1), 004BA2B0 / 004BA2C0
   / 004BA970 (RET 4), 004BA2F0 (Guard type 0), 004BA620 (MOV AL,0). The accessors 004B9F20-004BA080 and 004BA9C0 are called
   only from the rewritten runtime 004B6760 (not ported).
-- Text manager line reader (`text_reader.cpp` on `CTextManager`; 54 callers of Open in the interface, the map loader's
+- Text manager line reader (`text_reader.cpp` on `TextManager`; 54 callers of Open in the interface, the map loader's
   FindLine / Split, the item texts): the cursor (+0x20) walks the current text (+0x24, +0x28 bytes); every end test is the
   signed `(p - text) < length`; characters are MBCS. Open 004DEFC0 asks each archive (slot 5, GetFile(key, &length)) in list
   order (its wrapper runs GetFile twice: the archive's count rises twice); PeekWord 004DF770 (the cursor does not move);
@@ -188,13 +188,13 @@ CalcGroup is there for Rebirth's AddNewScriptCommands), `script_parse*.cpp` and 
 loaders, defines, qualified names), `script_exec*.cpp` (Execute 004B6760, bind calls, ScriptTick 004BF000,
 FreeTemporaries), `script_load.cpp` / `script_save.cpp` / `script_vars.cpp` (savers, loaders, the variables' appends and
 lookups), `script_group.cpp` (the groups' set operations), `script_construct.cpp` / `script_cleanup.cpp` /
-`script_reset.cpp` (CScript's constructor and destructor, ScriptReset, PurgeDeletedObjects, ResetZone), `script_effects.cpp` (CreateFX, CreateLightning, particle sources, point
+`script_reset.cpp` (Script's constructor and destructor, ScriptReset, PurgeDeletedObjects, ResetZone), `script_effects.cpp` (CreateFX, CreateLightning, particle sources, point
 lights), `script_quest.cpp` (QStart, QObj, QFinish, `QuestTable::Find`), the unit mode commands (`script_exec.cpp`),
 the object references, groups and variables at 004B24B0-004B3940, areas 004B1ED0-004BCF30, the text reader below.
 
 - Rebirth patches these, so they hook in the vanilla launch only unless the patch is behind a flag: 004B6760 Execute,
   004CFBC0 LoadFunction, 004D1330 LoadCommands, 004D0B10 FunctionSignature, 004D0BA0 KeywordName, 004DEC40.
-- QFinish: its CScript::Load is skipped in the original through `scriptverify::g_loadSkip` when the two are compared.
+- QFinish: its Script::Load is skipped in the original through `scriptverify::g_loadSkip` when the two are compared.
 - `Execute` is observed after each command by the harness checks (Sleep / WaitSegment / SleepUntil stop where they
   should, KillScript, calls add a live instance, AddObject keeps the group sorted, SetPlayer / SetEnemy / GodMode); the
   observer reads the instance list's head (+0x144), not the tail (see the gz2g note below).
@@ -235,7 +235,7 @@ the object references, groups and variables at 004B24B0-004B3940, areas 004B1ED0
   copy's command null, as the original does).
 
 Skipped: 004BD310 `CreateFXSource` / `CreateRandomizedFXSource` (for a new id the original leaves spread, min / max delay and
-countdown (+0x24..+0x30) as stack garbage the tick then uses; zero would replace the sound every tick); 004BDE40 `CScript`
+countdown (+0x24..+0x30) as stack garbage the tick then uses; zero would replace the sound every tick); 004BDE40 `Script`
 constructor (runs in the world's static initialiser 00589BE0 before the hooks; standalone build: lights array 0x73D394 resized
 to 256 zeroed slots, list vtables 0x73D388 / 0x73D37C / 0x73D370 / 0x73D364 (blocks and WorldScript blocks) / 0x73D34C /
 0x73D340, block size 10, definitions 0x73D358, areas 0x73D334, globals 004BC690 / 004BC740 / 004BC870 / 004BC950, one temporary
@@ -258,17 +258,17 @@ which is why the Execute observer reads the instance list's head (+0x144), not t
 ## Leftovers: the rest of 0x00480000-0x00500000 outside the script engine (rewritten)
 
 Every function carries its address in its source comment. The files, with the scenarios that reach them (all of it also runs
-in `newgame` unless noted): `core_memory_stream.cpp` (CMemoryStream, CStream::CopyFrom / ReadSized / ReadHeader; every save
+in `newgame` unless noted): `core_memory_stream.cpp` (MemoryStream, ByteStream::CopyFrom / ReadSized / ReadHeader; every save
 and network message), `core_stream_diff.cpp` / `core_stream_chunks.cpp` (WriteDiff, ApplyDiff, ReadTagged, FindTagged,
 ReadText, ReplaceTagged; world_load, ui_saveload), `game_buffer.cpp` / `game_buffer_strings.cpp` / `net_coder.h` (growing
 byte buffer; save compression, multiplayer, net_lobby), `buffered_file.cpp` (005809D0 reads "quest.reg"),
 `matrix_math.cpp` (MatrixMultiply, Quaternion::ToMatrix, PushMatrix; every frame), `view_matrices.cpp` (CameraViewMatrix
 004F0EF0, LightRotation 004F15C0, LightShearMatrix 004F1440 called by address from map_object_shadow.cpp, 004E5660 a byte
 copy of CubicSegment::Evaluate 0040E440, AllocateBlocks32 004E5710 / 8 004F65B0), `text_split.cpp` (Split, SplitWords,
-ReplaceChar, Join; Join has no scenario: loose .bmp only), `text_sources.cpp` (archive list and CTextManager sources;
+ReplaceChar, Join; Join has no scenario: loose .bmp only), `text_sources.cpp` (archive list and TextManager sources;
 briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every frame with shadows), `mob_reader.cpp`,
 `class_template_stock.cpp` (trader_stock, every new game), `script_runtime_helpers.cpp` / `party_script.cpp`,
-`global_map_clouds.cpp` (CGlobalMapClouds; ui_camp, frames_basic), `face_normal.cpp` / `model_names.cpp`, `particle_attach.cpp`
+`global_map_clouds.cpp` (GlobalMapClouds; ui_camp, frames_basic), `face_normal.cpp` / `model_names.cpp`, `particle_attach.cpp`
 (particles, spells_cast), `link_figure.cpp` / `link_loader.cpp` (newgame via 00568800, models, ui_hero_screen),
 `sky_object.cpp` (render_scene), `server_specific_manager.cpp`, `model.cpp` (ProjectBlocks 004F2650; ProjectTerrain
 004F29F0 is gone with the terrain's projection, R31), `party_manager.cpp`, `effects_weather.cpp`, `dx_errors.cpp`.
@@ -285,9 +285,9 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
 - Trader stock: `ClassTemplateSetLevels` 004A6DC0, `GenerateItems` 004A6DF0, `GenerateMagic` 004A6F60 (a list<CItem*>
   sentinel from the node pool, generators, AddItem(1, 1) + Release), `ClassTemplate::Construct` 004A6580 and
   `ItemStock::Construct` 004A66C0 (193-bucket maps).
-- Script runtime helpers: `PartyForScript` 004BAEC0 ("owner::name"), `CAIMap::SetRefreshUnits` 004BA090, the sector map
+- Script runtime helpers: `PartyForScript` 004BAEC0 ("owner::name"), `AIMap::SetRefreshUnits` 004BA090, the sector map
   wrappers 004BA0A0..004BA100 (Move by address: Rebirth), ConsoleFloat's float output 004BA9D0 (`console::Stream << f`),
-  `CSceneRenderer::SetFogColour` 004BA120 (slot 0 00501AB0, `fogColour` +0x14).
+  `SceneRenderer::SetFogColour` 004BA120 (slot 0 00501AB0, `fogColour` +0x14).
 - Party manager archive (A-S9): `PartyManager::Save` / `Load` 004A8560 / 004A8310 (the manager 007AA5A0: parties
   hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); `ChunkArchive::SerializeParties`
   / `SerializePartyEntries` / `SerializeClassTemplates` / `IntField` 004ACEC0 / 004AD0C0 / 004ACDC0 / 004AD2C0,
@@ -295,13 +295,13 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
   (SaveLists 0069BAC0 by address). `BeginRedeploy` / `EndRedeploy` 004A6050 / 004A6360: Begin spreads the variables
   (004A8AD0 operator=), zone and +0x6C to every record; End clears the party when no record matches, then text10 = text0C.
   Scenarios: every save (autosave), world_load, ui_saveload, zone_* (RedeployParty).
-- Rain / snow (`CRainSnow`, CWorldClient +0x6F4): `Clear` 004E3B80 (slot 3 via the thunk 005617B0: rain loop stopped,
+- Rain / snow (`RainSnow`, WorldClient +0x6F4): `Clear` 004E3B80 (slot 3 via the thunk 005617B0: rain loop stopped,
   texture +0x1C released, wind / mode / fade / world +0x20 cleared, density 64), `Start(mode, duration)` 004E3FC0 (texture
   "RainSnow" kind 6 through 00500A00; rain plays the loop "nature\rain\circle.wav" (Play2D, priority 1000); fade start = the
   world's tick). Not ported: the draws 004E4240 / 004E4C80 and buffers 004E3C20 (renderer data); 004E3980 (noise tables,
   only from the static initialiser 004E3B20; ported by A-E2).
-- `CVisibilityFog` (vtable 0073D6B4): slots 2 / 3 004E23D0 / 004E2440 (cells freed to the pool, bounds invalid; slot 2
-  returns 1), 11 / 12 004E24A0 / 004E24B0 ("CVisibilityFog", 0x5F), destructor 004E24E0, slot 0 004E24C0. The fog of the
+- `VisibilityFog` (vtable 0073D6B4): slots 2 / 3 004E23D0 / 004E2440 (cells freed to the pool, bounds invalid; slot 2
+  returns 1), 11 / 12 004E24A0 / 004E24B0 ("VisibilityFog", 0x5F), destructor 004E24E0, slot 0 004E24C0. The fog of the
   show-visibility effect; no scenario known.
 - Misc: `DirectXErrorText` 00480B80 (a sorted table of 149 codes), `app::FatalErrorCode` 004800E0 ("%s (0x%.8X) %s"; always
   exits), the thrown `GameError` (0xC: vtable 0073CAB4 / base 0073CAB0, operator new message, result): constructors
@@ -309,12 +309,12 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
   Only on a DirectX failure.
 - Models: `ComputeFaceNormal` 0049AEC0 (edges from vertex 1 normalised unless below 1e-10 squared, crossed, normalised; zero
   or NaN length takes 007A9C98).
-- Link figures: `CLinkMesh::AddPart` returns a bool in AL; `FindFigureSet` 004FAB00; the loader slots 3-6 004F7150 /
+- Link figures: `LinkMesh::AddPart` returns a bool in AL; `FindFigureSet` 004FAB00; the loader slots 3-6 004F7150 /
   004F7080 / 004F7020 / 004F75E0; `CacheBytes` 004FAAA0 has no scenario.
-- Sky: `CSkyObject::Light` 004D9360, `CSky::Light` 004D9DE0, `CSky::Draw` 004D96E0 (renderer slots 11 `SetTexture` /
+- Sky: `SkyObject::Light` 004D9360, `Sky::Light` 004D9DE0, `Sky::Draw` 004D96E0 (renderer slots 11 `SetTexture` /
   14 `DrawFigure`; the object at the eye lowered by 16).
 - Server-specific manager 004D6900.. : slot 14 `NewObject` builds 0x46-0x49 through their constructors and 0x4B
-  `CTorchObjectSpec` inline + Create through the vtable.
+  `TorchObjectSpec` inline + Create through the vtable.
 
 Facts:
 - Memory stream: Write grows to (capacity + size) * 2 copying the old capacity's bytes; Resize grows to size * 1.5 + 0x10
@@ -334,7 +334,7 @@ Facts:
   input behaves as in the original.
 - MFC naming traps: Mid / Right in core.md ("MFC CString: Mid and Right"); 006FE216 is TrimLeft() and 006FE11F TrimRight()
   (ini_file.cpp's TextOps names them the other way round; the calls are right).
-- Text archive list: Add keeps a failed archive in the list (unlike `CLinkFigureLoader::AddArchive`) and returns
+- Text archive list: Add keeps a failed archive in the list (unlike `LinkFigureLoader::AddArchive`) and returns
   OpenResource's result; nodes go back to the 0x18-byte list (the original's STLport node pool). Not ported: 004DEBC0 (`Find`),
   004DEC40 (Rebirth) and its forwarder 004DEFA0, 004DED20 (setlocale / _setmbcp, slot 2).
 - Zone exit `Contains`: a zero or NaN angle tests the rectangle as is (x1 > x, x > x2, y1 > y, y > y2 reject; NaN passes);
@@ -351,11 +351,11 @@ Facts:
   ((z + y) + x) + offset: the wrapper compares within 1e-3 + 1e-5 relative (`NearClipped`). In the verify build the original
   004D8490 calls the hooked 004D7BD0, so a corner within rounding of a clip line changes the triangles that follow (why X17
   disabled the three).
-- Link figures: `CLinkMesh` (vtable 0073D790, 0xB0, slots 0-6 declared): part headers STLport map<string, LinkPartHeader 0x50>
+- Link figures: `LinkMesh` (vtable 0073D790, 0xB0, slots 0-6 declared): part headers STLport map<string, LinkPartHeader 0x50>
   +0x14, morph coefficients +0x30, six aligned arrays +0x3C (vertex packets, normal packets, texture coordinates, 6-byte
   corners (`AlignedArray<IndexTriangle>`), dwords, words), ranges map<string, 0x30> +0x9C, loader +0xA8, pipeline +0xAC
   (3DfpFPU.dll's transform object, slot 7 FitBounds; ours has none: `ClipBounds::Fit`, R31). The loader (model.h, 7 slots): `figureSets` +0x10, `renderer`
-  +0x24 (the device object, whose +0xAC is the pipeline: `CTextureDevice::pipeline`), the cache `STLport map<string,
+  +0x24 (the device object, whose +0xAC is the pipeline: `TextureDevice::pipeline`), the cache `STLport map<string,
   CLinkMesh*>` +0x28. Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t), lerp(lerp(c4,c5,s),
   lerp(c6,c7,s), t), u), old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u) (`MorphFig8Packet`,
   `MorphOldPacket`). Forwarders: 004F9E50, 004FBD80 (the cache's insert_equal; 004F7B10 inlines the descent and calls
@@ -384,10 +384,10 @@ Facts:
 - Clouds: SetRamp's alpha is trunc(255 - pow(width / 255, max(0, i - start)) * 255) >> 4 with the CRT pow (a last-bit pow
   difference matters only on an exact multiple of 16); Draw's blend is trunc((step + phase) / 16 * 254 + 1); the original's
   third SetRamp argument is the fade speed.
-- `CTransformPipeline` (model.h): the original's +0x0C held 3DfpFPU's object (ours has none since R31); 0059F030 (CFigure's destructor body) is
+- `TransformPipeline` (model.h): the original's +0x0C held 3DfpFPU's object (ours has none since R31); 0059F030 (CFigure's destructor body) is
   `FigureDestructBodyOriginal` (originals_core.h); the figure model forwarders 005A9A50 / 005A9C90 / 005A9EB0 are shared in
   originals_world.h; 004A91B0 is `PartyMapAtOriginal` (originals_gameplay.h); 006617F0 `CParty::ArchiveParty`. Counted
-  pointers are released through `CRefCounted` (`delete` = slot 0 with 1); the party map's party is `PartyInPlace` (`PartyStorage`, party_storage.h).
+  pointers are released through `RefCounted` (`delete` = slot 0 with 1); the party map's party is `PartyInPlace` (`PartyStorage`, party_storage.h).
   The archive on the stack: a plain `ChunkArchive` local (constructor 0053A7B0, destructor 004645A0, chunk_archive.cpp).
 
 Classification of 0x004A0000-0x00500000: library.csv holds the STLport / MFC members (mesh maps, the link loader's cache
@@ -399,14 +399,14 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported b
 ### Next candidates in this range
 
 - Renderer tickets: the D3D state-block manager 004FCA60-004FDFE0, rain / snow draws 004E4240 / 004E4C80 and buffers
-  004E3C20, the fog draw 004E1EB0-004E2290, the CLinkMesh draw slots 7-14 004F3870-004F4850, the device functions
+  004E3C20, the fog draw 004E1EB0-004E2290, the LinkMesh draw slots 7-14 004F3870-004F4850, the device functions
   004E5E50-004EFEA0, the TL library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth), the debug line lists 0049B140 /
   0049B780.
 - Classified: 0049F820 / 0049F840 / 0049F870 / 004E3B20 / 004E3AD0 are static initialisers (before the hooks); 0049F890
   (keyframe track) is reached only from 00448720, which only calls itself (dead). Only reachable from rewritten callers
   (left unported): 004824B0 / 00483D40 (LoadMobFile's record map), the accessors 004B9F20-004BA080 / 004BA9C0 (from
   004B6760). Left: 004BD310 / 004BDE40 (skipped above, ported in A-E1 for the standalone build).
-- Standalone build: `CSysInfo`, the party manager's static constructor 004A5870 and exit destructor 004A5700, CTorchObjectSpec
+- Standalone build: `CSysInfo`, the party manager's static constructor 004A5870 and exit destructor 004A5700, TorchObjectSpec
   Create / Destroy 0052C610 / 0052C680 (not ported; slots 13-15 004D6B20/30/40 are a bare RET).
 
 ### A-E1: the script leftovers below 0x004C0000
@@ -419,12 +419,12 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported b
   element at EBP-0x50 is copied whole into the node, 004CB220); the tick (004BF000) counts such a source down and replaces
   its sound when the countdown reaches zero. Ours writes 0, 0, 0 and INT_MAX: the sound stays, as with any positive
   residue (zero would replace it on every tick). Scenario script_fx.
-- 004BDE40 `CScript::Construct` (`script_construct.cpp`): the member vtables (`scriptvtable::kPointLights` ..
+- 004BDE40 `Script::Construct` (`script_construct.cpp`): the member vtables (`scriptvtable::kPointLights` ..
   `kTempObjectList` in script.h), lists in blocks of 10, the four global variable sets, 256 zeroed light slots, one empty
   temporary group (004C8CE0) and one null temporary reference (004C9210), an empty error text, then `ScriptReset`. Only the
   world's constructor 00589ED0 calls it (twice), from the static initialiser 00589BE0, before the hooks: the hook never
   fires in the hooked game. The rewrite is for the standalone build.
-- 00456360 `CScript::GetError` (text copy-constructed at `out`, code, line; `ScriptErrorInfo` of world_glue.h): reached
+- 00456360 `Script::GetError` (text copy-constructed at `out`, code, line; `ScriptErrorInfo` of world_glue.h): reached
   only when the command line's script fails to load.
 - 004B3200 `ScriptGroup::CopyToList` (script_group.cpp): the group's objects replace a pointer list of counted references
   (each old element released, the list emptied, one counted element per object). The only caller is the server's party
@@ -437,7 +437,7 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported b
 - small_accessors.cpp: the accessors the interpreter calls out of line, as `__fastcall` shims: 004B2520 (the referenced map
   object's companion, null without an object), 004B9F50 / 004B9F60 (bits of the object's flags set / cleared), 004B9F90
   (the map object's position), 004B9FD0 (a counted object exists and is not detached; asked of the game server), 004BA010
-  (FISTP of a number), 004BA030 (`CItem::Repair`), 004BA060 (the unit's controller), 004BA070 / 004BA080 (the carried
+  (FISTP of a number), 004BA030 (`Item::Repair`), 004BA060 (the unit's controller), 004BA070 / 004BA080 (the carried
   items' count and element), 004BA9C0 (the controller's statistics), 004BAA20 (`ObjectListIterator::First`), 004BC1F0 (a
   CString written to a stream with its terminator; the definition's Save). Their only callers are Execute (004B6760) and
   ScriptDefinitionSave (004BBFE0), both rewritten with the same work inline, so no scenario reaches the hooks.
@@ -451,7 +451,7 @@ them is below.
   `GetFile` result (the size through the out pointer); null without one. 004DEC40 `TextSourcesListKeys`: every source's keys
   matching the pattern appended to the caller's array through a temporary `CStringArray` (the original's `CStringArray::Append`,
   006FEB01); Rebirth-patched (ResOverride), so it hooks in the vanilla launch only and
-  `CTextManager::ListKeys` (004DEFA0) calls the original through a forwarder. 004DED20 is `CTextManager`'s Create slot:
+  `TextManager::ListKeys` (004DEFA0) calls the original through a forwarder. 004DED20 is `TextManager`'s Create slot:
   `setlocale(LC_CTYPE, <the pointer at 0079BE94>)`, `_setmbcp(_MB_CP_LOCALE)`, returns 1 (runs on every start). The
   interface's "pers *" listing (00607720, 00635250) has no known scenario.
 - 004D0AF0 `ScriptSubCallClear` (`script_blocks.cpp`): type and argument index zero, the command cleared. Only the original
@@ -471,7 +471,7 @@ them is below.
   write), lines of up to 0x7FF characters appended, the file closed; a caught exception gives 0 (app.md "MFC TRY / CATCH").
   No scenario loads a script text file.
 - The visibility fog's manager (`vis_fog_manager.cpp`; `ClientArrayManager` in world.h is `CVisFogManager`, vtable 0073F554:
-  the "VisionFog" texture at +0xB0 and a CList of counted fogs at +0xB4). 004E2290 (slot 14) makes a `CVisibilityFog`: engine
+  the "VisionFog" texture at +0xB0 and a CList of counted fogs at +0xB4). 004E2290 (slot 14) makes a `VisibilityFog`: engine
   object fields, +0x1C..+0x53 zero, a cell map of 193 buckets (resize(100)); the map's three hash functor bytes at +0x54 are
   left as allocated. 004E2990 (Create): the texture (kind 6), then the tile table at 007ABA58 the fog's draw reads, 16 records
   {u0, v1, u1, v0} with u0 = column / 4, v0 = 1 - (row + 1) / 4 and a quarter added for the other two, then the base

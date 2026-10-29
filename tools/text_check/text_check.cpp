@@ -639,7 +639,7 @@ std::vector<TestString> SyntheticStrings() {
     return out;
 }
 
-// The interface fonts as CInterface3D::Create (005F4990) makes them, and the console's.
+// The interface fonts as Interface3D::Create (005F4990) makes them, and the console's.
 struct FontSpec {
     const char* face;
     int tenths;

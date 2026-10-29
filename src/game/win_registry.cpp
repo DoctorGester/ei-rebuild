@@ -1,4 +1,4 @@
-// CWinRegistry. See win_registry.h.
+// WinRegistry. See win_registry.h.
 #include "win_registry.h"
 
 #include "settings_file.h"
@@ -28,31 +28,31 @@ bool QueryValue(void* root, const char* subkey, const char* name, DWORD* type, v
 
 } // namespace
 
-bool CWinRegistry::Open(const char* path) {
+bool WinRegistry::Open(const char* path) {
     Close();
     key = settings_file::CreateKey(path);
     return true;
 }
 
-void CWinRegistry::Close() {
+void WinRegistry::Close() {
     if (!key) return;
     settings_file::Flush();   // what the key's writes changed
     key = nullptr;
 }
 
-bool CWinRegistry::SetInt(const char* subkey, const char* name, int value) {
+bool WinRegistry::SetInt(const char* subkey, const char* name, int value) {
     return SetValue(key, subkey, name, REG_DWORD, &value, 4);
 }
 
-bool CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t bits) {
+bool WinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t bits) {
     return SetValue(key, subkey, name, REG_BINARY, &bits, 4);
 }
 
-bool CWinRegistry::SetString(const char* subkey, const char* name, const std::string& value) {
+bool WinRegistry::SetString(const char* subkey, const char* name, const std::string& value) {
     return SetValue(key, subkey, name, REG_SZ, value.c_str(), static_cast<DWORD>(static_cast<int>(value.size()) + 1));
 }
 
-int CWinRegistry::GetInt(const char* subkey, const char* name, int defaultValue) {
+int WinRegistry::GetInt(const char* subkey, const char* name, int defaultValue) {
     DWORD type;
     int value;   // left as it was when the value is shorter (not reproduced: the game's is uninitialised)
     if (!QueryValue(key, subkey, name, &type, &value)) return defaultValue;
@@ -63,7 +63,7 @@ int CWinRegistry::GetInt(const char* subkey, const char* name, int defaultValue)
     return value;
 }
 
-double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits) {
+double WinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits) {
     // The value is read into the storage of `subkey`, so a shorter value keeps the pointer's
     // remaining bytes.
     std::uint32_t bits = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(subkey));
@@ -79,7 +79,7 @@ double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_
     return value;
 }
 
-std::string CWinRegistry::GetString(const char* subkey, const char* name, const std::string& defaultValue) {
+std::string WinRegistry::GetString(const char* subkey, const char* name, const std::string& defaultValue) {
     char buffer[0x100];
     DWORD size = sizeof(buffer);
     DWORD type;

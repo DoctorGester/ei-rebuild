@@ -51,7 +51,7 @@ void* EffectSpec::WorldObject() {
     return g_clientWorld.objectManager->FindObject(-3001 - id);
 }
 
-CTransformObject* EffectSpec::Transform() const { return static_cast<CTransformObject*>(object); }
+TransformObject* EffectSpec::Transform() const { return static_cast<TransformObject*>(object); }
 
 void EffectSpec::SetVisible(std::uint8_t newVisible) {
     visible = newVisible;
@@ -160,7 +160,7 @@ void LightSpec::Apply() {
         MakeEffect(this);
         return;
     }
-    auto* light = static_cast<CEffectPointLight*>(effect);
+    auto* light = static_cast<EffectPointLight*>(effect);
     light->color = colour;
     x87::CopyBits(light->range, radius);
     light->localPosition = position;

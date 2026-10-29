@@ -21,7 +21,7 @@ void* OpenPart(CFigureManager* manager, const std::string* name, const char* suf
 }
 
 FigureModel** ModelSlot(std::unordered_map<std::string, FigureModel*>* map, const std::string* name) { return &(*map)[*name]; }
-CMappedResource** AnimationSlot(std::unordered_map<std::string, CMappedResource*>* map, const std::string* name) { return &(*map)[*name]; }
+MappedResource** AnimationSlot(std::unordered_map<std::string, MappedResource*>* map, const std::string* name) { return &(*map)[*name]; }
 
 } // namespace
 
@@ -47,12 +47,12 @@ FigureModel* CFigureManager::FindModel(const std::string* name) {
 // The model's animation of a name, loaded on first use from its animation archive (GetFile with the name) into
 // a new archive over that data (OpenFromMemory); without data nothing is created. The cached entry is looked
 // up again either way.
-CMappedResource* FigureModel::FindAnimation(const std::string* name) {
-    std::unordered_map<std::string, CMappedResource*>* map = &animationCache;
+MappedResource* FigureModel::FindAnimation(const std::string* name) {
+    std::unordered_map<std::string, MappedResource*>* map = &animationCache;
     if (auto found = map->find(*name); found != map->end()) return found->second;
     void* data = animations->GetFile(name->data(), nullptr);
     if (data) {
-        CMappedResource* animation = new CMMIOResource();
+        MappedResource* animation = new MMIOResource();
         *AnimationSlot(map, name) = animation;
         (*AnimationSlot(map, name))->OpenFromMemory(data);
     }
@@ -61,7 +61,7 @@ CMappedResource* FigureModel::FindAnimation(const std::string* name) {
 }
 
 FigureModel::FigureModel() {
-    mesh = new CMMIOResource();
-    bones = new CMMIOResource();
-    animations = new CMMIOResource();
+    mesh = new MMIOResource();
+    bones = new MMIOResource();
+    animations = new MMIOResource();
 }

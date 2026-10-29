@@ -3,11 +3,11 @@
 
 #include "game_singletons.h"
 
-#include "effects.h"          // CParticleManager
+#include "effects.h"          // ParticleManager
 #include "figure_manager.h"   // CFigureManager
-#include "model.h"            // CSceneRenderer
-#include "spell.h"            // CLightFactory
+#include "model.h"            // SceneRenderer
+#include "spell.h"            // LightFactory
 #include "world.h"
 #include "world_data.h"
 
-CScript* TheMissionScript() { return g_serverWorld.MainScript(); }
+Script* TheMissionScript() { return g_serverWorld.MainScript(); }

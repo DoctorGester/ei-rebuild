@@ -88,7 +88,7 @@ struct ResConfig {
 };
 
 // The strings of a [Res] value (a string or an array of them).
-std::vector<std::string> ResValues(CFileRegistry& registry, const char* key) {
+std::vector<std::string> ResValues(FileRegistry& registry, const char* key) {
     std::vector<std::string> values;
     int isScalar = 0;
     const std::uint8_t* value = registry.FindData("Res", key, kRegArray | kRegString, &isScalar);
@@ -114,7 +114,7 @@ ResConfig ReadResConfig() {
     const std::string resources = WithSlash(StarterValue(kPathSettings, "RESOURCES PATH", ".\\Res\\"));
     const std::string cd = WithSlash(StarterValue(kPathSettings, "CD-ROM PATH", ".\\"));
 
-    CFileRegistry registry;
+    FileRegistry registry;
     const std::string file = mod + "config.reg";
     if (!registry.Open(file) || (registry.data[4] | (registry.data[5] << 8)) == 0) {
         return config;
@@ -160,9 +160,9 @@ const ResConfig& Config() {
 // The open archives addon tracks (100BD598 / 100BD5B8 / 100BD5A8 / 100BD5D8).
 struct ResTables {
     bool loaded = false;                                                   // 100BD129
-    std::map<std::string, std::vector<CMappedResource*>> modArchives;     // key -> the mod's archives
-    std::map<const CMappedResource*, std::string> overridden;             // archive -> its key
-    std::set<const CMappedResource*> ignored;
+    std::map<std::string, std::vector<MappedResource*>> modArchives;     // key -> the mod's archives
+    std::map<const MappedResource*, std::string> overridden;             // archive -> its key
+    std::set<const MappedResource*> ignored;
 };
 ResTables& Tables() {
     static ResTables* tables = new ResTables;
@@ -170,13 +170,13 @@ ResTables& Tables() {
 }
 
 // One lookup of 1002005E: the mod's archives for `res`, then `res` itself unless ignored.
-void* FindFile(CMappedResource* res, std::string_view name, std::uint32_t* size) {
+void* FindFile(MappedResource* res, std::string_view name, std::uint32_t* size) {
     ResTables& tables = Tables();
     auto overridden = tables.overridden.find(res);
     if (overridden != tables.overridden.end()) {
         auto mods = tables.modArchives.find(overridden->second);
         if (mods != tables.modArchives.end()) {
-            for (CMappedResource* mod : mods->second)
+            for (MappedResource* mod : mods->second)
                 if (void* data = mod->GetFilePlain(name, size)) return data;
         }
     }
@@ -245,20 +245,20 @@ void LoadModArchives() {
     ResTables& tables = Tables();
     if (tables.loaded) return;
     tables.loaded = true;
-    // 1001FD2E: each mod archive is a new CMappedResource opened read-only through
+    // 1001FD2E: each mod archive is a new MappedResource opened read-only through
     // OpenResource's address (whose entry records it like any other).
     for (const auto& [key, paths] : Config().overrides) {
         for (const std::string& path : paths) {
-            void* memory = ::operator new(sizeof(CMappedResource));
-            std::memset(memory, 0, sizeof(CMappedResource));
-            CMappedResource* res = new (memory) CMappedResource();
+            void* memory = ::operator new(sizeof(MappedResource));
+            std::memset(memory, 0, sizeof(MappedResource));
+            MappedResource* res = new (memory) MappedResource();
             tables.modArchives[key].push_back(res);
-            res->CMappedResource::OpenResource(path, 0);
+            res->MappedResource::OpenResource(path, 0);
         }
     }
 }
 
-void OnOpenResource(CMappedResource* res, const std::string& path) {
+void OnOpenResource(MappedResource* res, const std::string& path) {
     Lock lock;
     LoadModArchives();
     // 100203F0: the path as CharLowerA makes it (addon copies it into 0x104 bytes).
@@ -271,14 +271,14 @@ void OnOpenResource(CMappedResource* res, const std::string& path) {
     if (config.overrides.count(lower) != 0) tables.overridden[res] = lower;
 }
 
-void OnDestroyResource(const CMappedResource* res) {
+void OnDestroyResource(const MappedResource* res) {
     Lock lock;
     ResTables& tables = Tables();
     tables.overridden.erase(res);
     tables.ignored.erase(res);
 }
 
-void* GetFile(CMappedResource* res, std::string_view name, std::uint32_t* size) {
+void* GetFile(MappedResource* res, std::string_view name, std::uint32_t* size) {
     Lock lock;
     void* data = FindFile(res, name, size);
     // 1002012F: a "t\" or "s\" name not found is looked up once more without the prefix.
@@ -286,7 +286,7 @@ void* GetFile(CMappedResource* res, std::string_view name, std::uint32_t* size) 
     return data;
 }
 
-void ListFiles(const CMappedResource* res, std::vector<std::string>* out, const char* pattern) {
+void ListFiles(const MappedResource* res, std::vector<std::string>* out, const char* pattern) {
     Lock lock;
     // 100201FD: each archive's listing is appended to `out`.
     ResTables& tables = Tables();
@@ -294,7 +294,7 @@ void ListFiles(const CMappedResource* res, std::vector<std::string>* out, const 
     if (overridden != tables.overridden.end()) {
         auto mods = tables.modArchives.find(overridden->second);
         if (mods != tables.modArchives.end()) {
-            for (const CMappedResource* mod : mods->second) {
+            for (const MappedResource* mod : mods->second) {
                 const std::vector<std::string> names = mod->ListFilesPlain(pattern);
                 out->insert(out->end(), names.begin(), names.end());
             }

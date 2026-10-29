@@ -22,14 +22,14 @@ constexpr int kStatTaming = 2;
 
 
 // The side that tamed the unit (-1 when not tamed) is the attacker's: the taming is undone.
-void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
+void UndoIfTamedBy(UnitServer* self, CUnit* tamer) {
     int side = self->tameStage == 0 ? -1 : self->tamerSide;
     if (side == tamer->side) self->UndoTaming();
 }
 
 } // namespace
 
-bool CUnitServer::TryTame(CUnit* tamer, float roll) {
+bool UnitServer::TryTame(CUnit* tamer, float roll) {
     float bonus = static_cast<float>(stats.AttributeWithItems(kStatTaming, unit));
     int level = TamingStage();
     float limit = static_cast<float>(level * 10) + bonus;
@@ -81,7 +81,7 @@ bool CUnitServer::TryTame(CUnit* tamer, float roll) {
     return true;
 }
 
-void CUnitServer::UndoTaming() {
+void UnitServer::UndoTaming() {
     if (tameStage == 0) return;
     brain.RemoveModesOfType(AIModeType::Tamed);   // unit_ai.h: the tamed mode (8)
     unit->SetPlayer(nullptr);

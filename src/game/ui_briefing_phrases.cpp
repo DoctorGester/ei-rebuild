@@ -1,4 +1,4 @@
-// The briefing / base screen's phrases (CBriefingScreen::NextPhrase, ui_briefing.h): a dialogue
+// The briefing / base screen's phrases (BriefingScreen::NextPhrase, ui_briefing.h): a dialogue
 // text's commands and phrases, the rewards after the last one, the camera and the speakers'
 // animations. See docs/notes/ui.md, "Briefing / base screen".
 #include "asset_text.h"
@@ -78,16 +78,16 @@ constexpr int kViewThird = 4;
 
 // The speaker's eyes: blinking (`blinks`), or open.
 void SetBlink(CUnit* unit, std::uint8_t blinks) {
-    CUnitClientSpecific* model = unit->ClientController();
+    UnitClientSpecific* model = unit->ClientController();
     model->blinks = blinks;
     if (!blinks) model->BlinkOpen(true);
 }
 
 } // namespace
 
-void CBriefingScreen::NextPhrase(bool skip) {
+void BriefingScreen::NextPhrase(bool skip) {
     std::vector<std::string> words;
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::string speaker;
     std::string phrase;
     bool last = true;       // no "#phrase" follows this one
@@ -191,7 +191,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addItems = [&](const std::vector<std::string>& list) {
                 for (const auto& it : list) {
-                    CItem* item = g_clientWorld.itemManager->CreateItem(it);
+                    Item* item = g_clientWorld.itemManager->CreateItem(it);
                     if (!item) continue;
                     item->AddRef();
                     name = texts->FormatItemName(item);
@@ -227,7 +227,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             if (IsMultiplayerClient() && !topic.empty() && text::CompareIgnoringCase(str::Left(topic, 1), kZonePrefix) == 0) {
                 if (auto* player = g_serverWorld.GetPlayer(0)) {
                     for (auto& node : player->items) {
-                        CItem* item = node;
+                        Item* item = node;
                         if (item->GetClassId() != ClassId::ItemQuest) continue;
                         name = texts->FormatItemName(item);
                         line = str::Format(kNameLine, label, name);

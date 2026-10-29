@@ -1,6 +1,6 @@
 #pragma once
 
-// Lightning bolts: CLightning (class id 0x1E) and the manager that owns and draws them (CLightningManager). A
+// Lightning bolts: Lightning (class id 0x1E) and the manager that owns and draws them (LightningManager). A
 // bolt is a main segment from one end point to the other plus six branches that start at points along it;
 // every segment is a polyline displaced sideways by a smooth random noise. Names are provisional. See
 // docs/notes/objects.md.
@@ -61,10 +61,10 @@ struct LightningSegment {
     LightningSegment& operator=(const LightningSegment&) = delete;
 };
 
-class CLightning final : public CEngineObject {
+class Lightning final : public EngineObject {
 public:
-    CLightning();
-    ~CLightning() override;
+    Lightning();
+    ~Lightning() override;
 
     // Resets the bolt like Destroy, then adds it to the manager's list of new bolts, which holds a
     // reference until the next DrawAll. Returns 1.
@@ -74,9 +74,9 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    void DrawGlow(CSceneRenderer* device, const Vector3& position, float size);
+    void DrawGlow(SceneRenderer* device, const Vector3& position, float size);
     // Draws the bolt (render device virtuals, glow sprites); lightning_draw.cpp.
-    int Draw(CSceneRenderer* device);
+    int Draw(SceneRenderer* device);
     // Grows the bounding box by the points of one segment.
     void ExpandBounds(const LightningSegment* segment);
     // Bounding box and sphere of all segments (centre, box relative to it, radius).
@@ -114,19 +114,19 @@ int LoadLightningNoise();
 
 // The client world's lightning manager. Built by the client world's Setup (world_client_maps.cpp,
 // the constructor inlined there), which also holds its lifetime and slots.
-class CLightningManager : public CBaseManager {
+class LightningManager : public BaseManager {
 public:
-    CLightningManager();
-    ~CLightningManager() override;
+    LightningManager();
+    ~LightningManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     // A new bolt.
-    CEngineObject* NewObject(int type) override;
+    EngineObject* NewObject(int type) override;
     // Draws every bolt it owns (its object list), then drops the references of the new-bolt list and
     // empties it. Returns 1.
-    int DrawAll(CSceneRenderer* device);
+    int DrawAll(SceneRenderer* device);
     // Create (class_slots.cpp): loads the noise table on the first call, then the base manager's Create.
     void Create() override;
 
-    std::list<CLightning*> newBolts;    // (each entry holds a reference)
+    std::list<Lightning*> newBolts;    // (each entry holds a reference)
 };

@@ -1,6 +1,6 @@
 #include "core_refcount.h"
 
-void CRefObject::Shutdown() {
+void RefObject::Shutdown() {
     ++refs;
     OnShutdown();
     --refs;

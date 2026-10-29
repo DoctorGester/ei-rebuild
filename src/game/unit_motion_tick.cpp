@@ -1,4 +1,4 @@
-// The unit movement tick (called twice for the controller, CUnitServer): samples the unit's motion order at
+// The unit movement tick (called twice for the controller, UnitServer): samples the unit's motion order at
 // the world's time, starts the next animation of a finished motion, plays a pending fall or death
 // animation, then moves the unit to the sampled position on the sector map; a blocked step either waits
 // (the blocker is a party member leading, or the unit already waits for it), yields to a slower unit, or
@@ -77,17 +77,17 @@ constexpr int kBlockedWait = 2;
 
 // The counted "waiting for" link (followsLeader / followedLeader: the fields the chase uses for the leader it
 // follows).
-void SetWaitingFor(CUnitServer* c, CUnit* blocker) {
+void SetWaitingFor(UnitServer* c, CUnit* blocker) {
     c->followsLeader = 1;
     c->followedLeader.Assign(blocker);
 }
-void ClearWaitingFor(CUnitServer* controller) {
+void ClearWaitingFor(UnitServer* controller) {
     controller->followsLeader = 0;
     controller->followedLeader.Reset();
 }
 
-void SetObstacle(CUnitServer* c, int obstacle) {
-    CWorldServer* world = c->ServerWorld();
+void SetObstacle(UnitServer* c, int obstacle) {
+    WorldServer* world = c->ServerWorld();
     CUnit* unit = c->unit;
     if (static_cast<int>(unit->obstacle) == obstacle) return;
     world->aiMap.sectorMap.Remove(unit);
@@ -96,7 +96,7 @@ void SetObstacle(CUnitServer* c, int obstacle) {
     c->unit->MarkChanged(7);
 }
 
-void QueueNextAnimation(CUnitServer* c) {
+void QueueNextAnimation(UnitServer* c) {
     *&c->queue = *c->NextAnimation();
     if (c->queue.extra == -1) c->queue.extra = c->World()->tick;
     c->PopFinishedSteps();
@@ -106,7 +106,7 @@ void QueueNextAnimation(CUnitServer* c) {
 
 // A unit hit while turning on the spot: the death (or hit) animation of the last blow is played when
 // it fits. Returns from the tick.
-void HitWhileTurning(CUnitServer* c) {
+void HitWhileTurning(UnitServer* c) {
     AnimationSteps steps;
     if (c->moveMode.mode != 0 || c->state != UnitState::Idle) {
         c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
@@ -121,7 +121,7 @@ void HitWhileTurning(CUnitServer* c) {
 
 // A hit while moving: unless the queue's first animation (a hit) is still running, the current animation
 // followed by the fall of the last blow replaces the queue.
-void HitWhileMoving(CUnitServer* c) {
+void HitWhileMoving(UnitServer* c) {
     if (!c->queue.empty()) {
         std::uint32_t key = (static_cast<std::uint32_t>(c->queue.size()) & 0xFFFFFF00u) |
                             (*&c->queue)[0].animation;
@@ -155,7 +155,7 @@ void HitWhileMoving(CUnitServer* c) {
 // The unit blocking the step: whether to wait for it (2), give way and replan around it (1), or
 // neither (0, then the unit stays). Sets `liftBlocker` when the units around the step must be
 // lifted while replanning.
-int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason) {
+int ResolveBlocker(UnitServer* c, CUnit* blocker, bool* liftBlocker, int reason) {
     CUnit* self = c->unit;
     CPlayer* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
@@ -164,7 +164,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;
 
-    CUnitServer* other = blocker->ServerController();
+    UnitServer* other = blocker->ServerController();
     auto isAction = [](UnitOrderKind kind) { return kind == UnitOrderKind::Attack || kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn; };
     bool sameAttack = blocker->side == self->side && isAction(c->action.kind) &&
                       isAction(other->action.kind) && other->action.target == c->action.target &&
@@ -176,7 +176,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     if (sameAttack) {
         // Both go for the same target: wait behind the other unless the waiting would go round in a
         // circle back to this unit, which breaks the circle and replans.
-        CUnitServer* link = other;
+        UnitServer* link = other;
         while (link->followsLeader) {
             CUnit* waitsFor = link->followedLeader;
             if (!waitsFor) break;
@@ -202,7 +202,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
 
 // The motion is over: a path with no cells left (`reached`) stops facing its way; otherwise the path
 // continues or, at its end, the unit stops facing its way.
-void MotionOver(CUnitServer* c, CWorldServer* world) {
+void MotionOver(UnitServer* c, WorldServer* world) {
     CUnit* unit = c->unit;
     if (c->motion.reached) {
         std::uint8_t wasFlag = c->motion.failed == 1;
@@ -237,7 +237,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
 
 // Replans the path to the order's goal (its z holds the range PathTo asked for), with the units around the
 // blocked step lifted when `liftBlocker`.
-void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3& position) {
+void Replan(UnitServer* c, WorldServer* world, bool liftBlocker, const Vector3& position) {
     if (liftBlocker) {
         world->aiMap.sectorMap.Remove(c->unit);
         world->aiMap.StampWaterPatch(position, 1);
@@ -247,7 +247,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
 
     float range = c->motion.goal.z;
     std::uint32_t saved = c->unit->altPassCosts;
-    CWorldServer* context = c->ServerWorld();
+    WorldServer* context = c->ServerWorld();
     c->motion.mayExcludeRegions = c->unit->player ? 0 : 1;
     std::uint32_t current = c->unit->altPassCosts;
     c->unit->altPassCosts = saved;
@@ -274,7 +274,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
 // Running units of a player tire: the server object's mana is their breath and drains
 // by the maximum times a factor per tick; out of breath they stop running (message 0x1D).
 // Then the tick's end.
-void Exhaustion(CUnitServer* c) {
+void Exhaustion(UnitServer* c) {
     CUnit* unit = c->unit;
     if (unit->obstacle == 0) return;
     if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
@@ -313,8 +313,8 @@ void Exhaustion(CUnitServer* c) {
 
 } // namespace
 
-void UpdateMotion(CUnitServer* c) {
-    CWorldServer* world = c->ServerWorld();
+void UpdateMotion(UnitServer* c) {
+    WorldServer* world = c->ServerWorld();
     Vector3 position;
     std::memcpy(&position, &c->unit->localPosition.x, 12);
     ToHalfCells(&position.x);
@@ -330,7 +330,7 @@ void UpdateMotion(CUnitServer* c) {
 
     if (!turning && c->movingAnimation == 0) QueueNextAnimation(c);
 
-    if (c->hitDirection != CUnitServer::kNoHitDirection) {
+    if (c->hitDirection != UnitServer::kNoHitDirection) {
         if (turning) {
             HitWhileTurning(c);
             return;
@@ -348,7 +348,7 @@ void UpdateMotion(CUnitServer* c) {
     if (cellX < 0) {
         canStand = true;
     } else {
-        CSectorMap* sectors = &world->aiMap.sectorMap;
+        SectorMap* sectors = &world->aiMap.sectorMap;
         sectors->Remove(c->unit);
         canStand = world->aiMap.CanStandAtFromHere(c->unit, cellX, cellY, &blocked);
         if (!canStand) {

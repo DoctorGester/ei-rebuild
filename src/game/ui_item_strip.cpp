@@ -1,6 +1,6 @@
 // The item strip's layout: the camp's and the hero screen's strips of items along the
 // top or bottom edge, and the forwarding strip's draw. See ui_screens.h
-// (CUiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
+// (UiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
@@ -14,7 +14,7 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
-void CUiItemStrip::Build(bool atTop) {
+void UiItemStrip::Build(bool atTop) {
     top = atTop ? 0 : 500;
     scale = atTop ? 8.0f : 4.0f;
     rect = RECT{0, top, 800, top + 100};
@@ -65,7 +65,7 @@ void CUiItemStrip::Build(bool atTop) {
         }
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
-    CUiMesh* frame = AddBlankSprite();
+    UiMesh* frame = AddBlankSprite();
     frame->Framed(scale * 0.9f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flags |= FigureMeshFlag::Flat;
     frame->flatColour = 0xFF8B8B37;
@@ -75,7 +75,7 @@ void CUiItemStrip::Build(bool atTop) {
     AddBlankSprite()->SetGrid(scale + scale, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
     const float fifty = 50.0f, hundredFifty = 150.0f;
     for (int x = 0; x < 800; x += 100) {
-        CUiMesh* cell = AddBlankSprite();
+        UiMesh* cell = AddBlankSprite();
         const float fx = static_cast<float>(x);
         cell->Framed(scale, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
     }
@@ -86,7 +86,7 @@ void CUiItemStrip::Build(bool atTop) {
 
 // `first` is the current tab's position truncated, `frac` what is left of it
 // (kept as a float); the cells sit 100 pixels apart from x 100 - frac * 100.
-void CForwardingStrip::Draw(CSceneRenderer* pass) {
+void ForwardingStrip::Draw(SceneRenderer* pass) {
     const float scrollPosition = position[tab];
     const int first = static_cast<int>(scrollPosition);
     const float frac = static_cast<float>(scrollPosition - static_cast<float>(first));
@@ -103,7 +103,7 @@ void CForwardingStrip::Draw(CSceneRenderer* pass) {
     }
     DrawBase(pass);
 
-    CItem* shown[8];
+    Item* shown[8];
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
         if (index < 0 || index >= std::ssize(list)) {
@@ -128,7 +128,7 @@ void CForwardingStrip::Draw(CSceneRenderer* pass) {
     };
     const char* const kNumber = "%d";
     std::string text;
-    CUiSurface* counts = surfaces[0];
+    UiSurface* counts = surfaces[0];
     counts->Clear();
     for (int i = 0; i < 8; ++i) {
         if (!shown[i]) continue;
@@ -138,10 +138,10 @@ void CForwardingStrip::Draw(CSceneRenderer* pass) {
         RECT area = cellRect(i);
         counts->DrawTextIn(text, &area, 1, 0xA7D7E4, 2, 1);
     }
-    CUiSurface* numbers = surfaces[1];
+    UiSurface* numbers = surfaces[1];
     numbers->Clear();
     for (int i = 0; i < 8; ++i) {
-        CItem* item = shown[i];
+        Item* item = shown[i];
         if (!item || slots == 9) continue;
         if (!owner->CanEquip(item, mode)) continue;       // whether the strip's mode takes the item
         text = str::Format(kNumber, owner->Price(item, slots));     // the number shown under it
@@ -152,7 +152,7 @@ void CForwardingStrip::Draw(CSceneRenderer* pass) {
 
 // --- The strip's per-frame scroll ---------------------------------------------------
 
-void CUiItemStrip::Update() {
+void UiItemStrip::Update() {
     const float zero = 0.0f;
     const float repeat = 0.1f;      // seconds per slot while an arrow is held
     const float nearDistance = 0.5f;  // slots: closer than this the scroll eases out
@@ -164,7 +164,7 @@ void CUiItemStrip::Update() {
     const float snapPending = 0.02f;
     const float snapHigh = 0.99f;
     const float one = 1.0f;
-    const float dt = static_cast<float>(CUiContainer::FrameTime());
+    const float dt = static_cast<float>(UiContainer::FrameTime());
 
     // An arrow held: one slot at once, then one more every `repeat` seconds.
     if (scrollDirection != 0) {

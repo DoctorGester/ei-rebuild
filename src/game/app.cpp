@@ -50,7 +50,7 @@ LRESULT OnActivate(WPARAM wParam) {
         g_active = 0;
         g_activationChanged = 1;
         g_cursor.ShowImage(0);
-        if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(false);
+        if (DirectInputMouse* mouse = g_mouse) mouse->SetActive(false);
         if (sounds) sounds->PauseAll();
         gameapi::ShowWindow(g_mainWindow, SW_MINIMIZE);
         return 1;
@@ -59,8 +59,8 @@ LRESULT OnActivate(WPARAM wParam) {
     g_active = 1;
     g_activationChanged = 1;
     gameapi::ShowWindow(g_mainWindow, SW_RESTORE);
-    if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(true);
-    CTextureDevice* device = g_sceneRenderer.device;
+    if (DirectInputMouse* mouse = g_mouse) mouse->SetActive(true);
+    TextureDevice* device = g_sceneRenderer.device;
     if (device && device->fullScreen) {
         g_sceneRenderer.RestoreSurfaces();
         device = g_sceneRenderer.device;
@@ -167,7 +167,7 @@ LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
     // (present_window.h; unchanged otherwise). The game's own wheel message (kGameWheelMessage) is not mapped.
     lParam = present_window::MouseToGame(message, lParam);
-    CInterface3D* input = &g_interface;
+    Interface3D* input = &g_interface;
     input->CloseAllPending();
     int w = static_cast<int>(wParam);
     switch (message) {
@@ -248,16 +248,16 @@ int StartFirstMap() {
         MenuOpen(&g_gameFlow);
         return 1;
     }
-    CWorldServer* world = &g_serverWorld;
+    WorldServer* world = &g_serverWorld;
     if (!world->NewZone(map, cmdMode, std::nullopt))
         return game::FatalError("Can't load map \"%s\".\n", map);
     world->SetGameResult(1);
-    CWorldClient* client = &g_clientWorld;
+    WorldClient* client = &g_clientWorld;
     client->SetPlayer(g_serverWorld.worldHandle.Get());
     client->LocalView()->sendParty = 0;
     g_serverWorld.sessionKind = 7;
     if (cmdScript.size() == 0) return 1;
-    CScript* script = TheMissionScript();
+    Script* script = TheMissionScript();
     BOOL loaded;
     {
         std::string root = g_dataFolder;

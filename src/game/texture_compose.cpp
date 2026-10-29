@@ -3,7 +3,7 @@
 // the GPU (render::ComposeTexture). The texture manager keeps what each composed texture is made of under its name
 // (the original drew it on the CPU and cached it as <data path>textures\<name>.mmp): its header, the request's layer
 // bytes (the file's extra block, so an unchanged request reuses it) and the layer textures. Callers:
-// CUnitClientSpecific::ComposeSkin, ComposeWoundsTexture, BuildUnitSkins. See docs/notes/items_spells.md ("Composed
+// UnitClientSpecific::ComposeSkin, ComposeWoundsTexture, BuildUnitSkins. See docs/notes/items_spells.md ("Composed
 // textures") and docs/notes/renderer.md (section 7).
 #include "texture.h"
 #include "unit_client_models.h"
@@ -113,7 +113,7 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
     return 1;
 }
 
-int CTexture::CreateComposed(CTextureDevice* device, const ComposedTexture& composed, unsigned mip) {
+int CTexture::CreateComposed(TextureDevice* device, const ComposedTexture& composed, unsigned mip) {
     if (flags & TextureFlag::Loaded) return 1;
     const MmpHeader& header = composed.header;
     unsigned levels = header.mipCount - mip;

@@ -51,8 +51,8 @@ void ServerSession::AnnounceToMaster() {
     info.kind = static_cast<std::uint8_t>(kind);
     const char* empty = game::kEmptyText;
     description.assign(empty);
-    CRefObject* newMap = map.Get();
-    if (newMap && !(newMap->flags7 & CRefCounted::kDetached)) description.assign(SessionMapName());
+    RefObject* newMap = map.Get();
+    if (newMap && !(newMap->flags7 & RefCounted::kDetached)) description.assign(SessionMapName());
     info.players = static_cast<std::uint8_t>(ClientCount());
     info.maxPlayers = static_cast<std::uint8_t>(maxPlayers);
     info.masterToken = masterToken;
@@ -82,13 +82,13 @@ void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
 // everybody as "^<number><name>^7: <text>".
 void ServerOnSay(ServerSession* server, SayMessage* message) {
     Connection* connection = g_currentConnection;
-    if (!connection || (connection->flags7 & CRefCounted::kDetached)) return;
+    if (!connection || (connection->flags7 & RefCounted::kDetached)) return;
     const auto& bindings = server->bindings;
     for (auto& node : bindings) {
         auto* binding = node.Get();
         if (binding->ConnectionRef().Get() != connection) continue;
         // (The original also tests the binding for null here, after having read it.)
-        if (binding->flags7 & CRefCounted::kDetached) return;
+        if (binding->flags7 & RefCounted::kDetached) return;
         auto* player = binding->Player();
         std::string line;
         line = std::format("^{}{}^7: {}", player->number, player->name.data(), message->text.data());

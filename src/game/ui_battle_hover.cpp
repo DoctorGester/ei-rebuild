@@ -1,5 +1,5 @@
 // The battle screen's mouse-over: the unit under the mouse in the unit panel and the
-// cursor shape for what a click would do. See ui.h (CBattleScreen::HoverUnit) and docs/notes/ui.md
+// cursor shape for what a click would do. See ui.h (BattleScreen::HoverUnit) and docs/notes/ui.md
 // ("Battle screen").
 #include "item.h"
 #include "world_glue.h"
@@ -41,7 +41,7 @@ bool IsZero(float value) {
 
 } // namespace
 
-void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
+void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead(); };
     auto pick = [x, y]() {
         Vector3 out;
@@ -61,7 +61,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     // The unit panel's hover block (hoverUnit, viewSize[1] / viewHeight[1] copied bit for bit from
     // its prototype's +0x20 / +0x24, strings[1]). A unit without MapObjectFlag::InParty counts as none
     // below; a dead one is kept.
-    CHudUnitPanel* panel = unitPanel;
+    HudUnitPanel* panel = unitPanel;
     if (unit && !(unit->flags & MapObjectFlag::InParty)) unit = nullptr;
     if (unit && !unitDead(unit)) {
         if (unit != panel->hoverUnit) {
@@ -169,7 +169,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
         if (!first || !first->CanUseQuickItem(pendingSlot)) break;
-        CItem* item = first->GetQuickItem(pendingSlot);
+        Item* item = first->GetQuickItem(pendingSlot);
         if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) break;
         shape = kCursorCast;
         break;

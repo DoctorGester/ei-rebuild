@@ -1,4 +1,4 @@
-// The interface manager's small services to the rest of the game (CInterface3D): interface sounds,
+// The interface manager's small services to the rest of the game (Interface3D): interface sounds,
 // the console window settings, the frame rate surface and quest variable news for
 // the top window. See ui.h and docs/notes/ui.md, section 3.
 #include "app.h"
@@ -31,27 +31,27 @@ constexpr char* kNoExtra = nullptr;
 
 } // namespace
 
-int CInterface3D::PlaySound(std::string_view name, bool loop) {
+int Interface3D::PlaySound(std::string_view name, bool loop) {
     return g_clientWorld.sounds->Play2D(name, kInterfacePriority, kFullVolume, 0, loop, 0, 0, 0);
 }
 
-void CInterface3D::StopSound(int handle) {
+void Interface3D::StopSound(int handle) {
     if (handle != kNoSound) g_clientWorld.sounds->StopSound(handle);
 }
 
-void CInterface3D::ConsoleAddText(std::string_view text) {
+void Interface3D::ConsoleAddText(std::string_view text) {
     if (console) console->AddText(text);
 }
 
-void CInterface3D::SetConsoleRect(const RECT* rect) {
+void Interface3D::SetConsoleRect(const RECT* rect) {
     if (console) console->SetRect(rect);
 }
 
-void CInterface3D::SetConsoleHistory(int lines) {
+void Interface3D::SetConsoleHistory(int lines) {
     if (console) console->SetHistory(lines);
 }
 
-void CInterface3D::ShowFps(int on) {
+void Interface3D::ShowFps(int on) {
     if (!static_cast<std::uint8_t>(on)) {
         if (fpsSurface) {
             delete fpsSurface;
@@ -60,10 +60,10 @@ void CInterface3D::ShowFps(int on) {
         return;
     }
     if (fpsSurface) return;
-    fpsSurface = new CUiSurface(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, SurfaceBlend::Keyed, true);
+    fpsSurface = new UiSurface(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, SurfaceBlend::Keyed, true);
 }
 
-void CInterface3D::OnQuestVariable(std::string_view name, float value) {
+void Interface3D::OnQuestVariable(std::string_view name, float value) {
     if (!stack.empty()) ScreenOf(stack.back())->QuestVariable(name, value);
     std::vector<std::string> parts;
     EI_NAN_AUDIT(value);
@@ -74,45 +74,45 @@ void CInterface3D::OnQuestVariable(std::string_view name, float value) {
 
 // --- News for the top window -------------------------------------
 
-void CInterface3D::OnItemsPicked(std::list<CItem*>* items, int money, bool crippled) {
+void Interface3D::OnItemsPicked(std::list<Item*>* items, int money, bool crippled) {
     if (!stack.empty()) ScreenOf(stack.back())->ItemsPicked(items, money, crippled);
 }
 
-void CInterface3D::OnUnitJoined(CUnit* unit) {
+void Interface3D::OnUnitJoined(CUnit* unit) {
     if (!stack.empty()) ScreenOf(stack.back())->UnitJoined(unit);
 }
 
-void CInterface3D::OnUnitLeft(CUnit* unit) {
+void Interface3D::OnUnitLeft(CUnit* unit) {
     if (!stack.empty()) ScreenOf(stack.back())->UnitLeft(unit);
 }
 
-void CInterface3D::OnGameLost() {
+void Interface3D::OnGameLost() {
     if (!stack.empty()) ScreenOf(stack.back())->GameOver(false);
 }
 
-void CInterface3D::OnUnitSpeech(int id, AckKind kind) {
+void Interface3D::OnUnitSpeech(int id, AckKind kind) {
     if (!stack.empty()) ScreenOf(stack.back())->Speech(id, kind, kNoExtra);
 }
 
-void CInterface3D::OnPlayersChanged(int added) {
+void Interface3D::OnPlayersChanged(int added) {
     if (!stack.empty()) ScreenOf(stack.back())->PlayersChanged(added);
 }
 
-void CInterface3D::OnChatLine(const char* text) {
+void Interface3D::OnChatLine(const char* text) {
     root->AddLine(text);
 }
 
-void CInterface3D::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
+void Interface3D::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
     if (!stack.empty()) ScreenOf(stack.back())->ExchangeDone(partyB, partyA, partyC);
 }
 
 // The bottom window, not the top one (a save is made from the battle screen under the save window).
-void CInterface3D::SaveWindowState() {
+void Interface3D::SaveWindowState() {
     if (!stack.empty()) ScreenOf(stack[0])->SaveState();
 }
 
-void CInterface3D::ShowStatusText(std::string_view text) {
-    statusSurface = new CUiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
+void Interface3D::ShowStatusText(std::string_view text) {
+    statusSurface = new UiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
     statusSurface->Clear();
     RECT rect = {0, 0, kLayoutWidth, kStatusTextHeight};
     statusSurface->DrawTextIn(text, &rect, kStatusTextFormat, kStatusColour, 1, 1);    // Rebirth-patched

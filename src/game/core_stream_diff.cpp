@@ -1,5 +1,5 @@
-// The save game's difference coding between two streams: CStream::WriteDiff
-// and CStream::ApplyDiff. The format is described in core_streams.h. Every stream
+// The save game's difference coding between two streams: ByteStream::WriteDiff
+// and ByteStream::ApplyDiff. The format is described in core_streams.h. Every stream
 // access goes through the stream's virtual functions, in the game's order.
 #include "core_streams.h"
 
@@ -11,7 +11,7 @@ constexpr int kFullRun = 0x100;
 
 // Writes `length` into the run header at `header`, comes back to the end and writes the next run's
 // header (0 for now); returns where that header is.
-std::uint32_t CloseRun(CStream* out, std::uint32_t header, std::uint8_t length) {
+std::uint32_t CloseRun(ByteStream* out, std::uint32_t header, std::uint8_t length) {
     std::uint32_t end = out->Position();
     out->Seek(header);
     out->WriteValue(length);
@@ -23,7 +23,7 @@ std::uint32_t CloseRun(CStream* out, std::uint32_t header, std::uint8_t length) 
 
 } // namespace
 
-void CStream::WriteDiff(CStream* base, CStream* current) {
+void ByteStream::WriteDiff(ByteStream* base, ByteStream* current) {
     if (base->Size() != current->Size()) return;
     base->Seek(0);
     current->Seek(0);
@@ -70,7 +70,7 @@ void CStream::WriteDiff(CStream* base, CStream* current) {
     WriteValue(std::uint8_t{0});
 }
 
-void CStream::ApplyDiff(CStream* base, CStream* diff) {
+void ByteStream::ApplyDiff(ByteStream* base, ByteStream* diff) {
     std::uint32_t length = 0;   // one byte is read into it at a time
     int done = 0;
     const int size = static_cast<int>(base->Size());

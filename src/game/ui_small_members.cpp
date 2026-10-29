@@ -18,32 +18,32 @@
 
 void UiInputSide::Wheel(int, int, int, int) {}
 
-CItem* CUiItemPanel::ItemAt(int, int, int* topic) {
+Item* UiItemPanel::ItemAt(int, int, int* topic) {
     *topic = 0;
     return nullptr;
 }
 
-bool CItemScreen::CanEquip(CItem*, int) { return false; }
+bool ItemScreen::CanEquip(Item*, int) { return false; }
 
-PartySkill CItemScreen::BestPartySkill(int) { return {}; }
+PartySkill ItemScreen::BestPartySkill(int) { return {}; }
 
-CUnit* CItemScreen::HeroUnit(int) { return nullptr; }
+CUnit* ItemScreen::HeroUnit(int) { return nullptr; }
 
-double CItemScreen::Weight() { return 0.0; }
+double ItemScreen::Weight() { return 0.0; }
 
-int CItemScreen::Price(CItem*, int) { return 0; }
+int ItemScreen::Price(Item*, int) { return 0; }
 
-CItem* CFigureStrip::ItemAt(int, int, int*) { return nullptr; }
+Item* FigureStrip::ItemAt(int, int, int*) { return nullptr; }
 
 // --- One-line setters and readers ------------------------------------------------------------------------
 
-void CUiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix.m[5] = std::bit_cast<float>(bits); }
+void UiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix.m[5] = std::bit_cast<float>(bits); }
 
 
 // --- Member constructors and destructors -----------------------------------------------------------------
 
 // The interface manager.
-CInterface3D g_interface;
+Interface3D g_interface;
 
 void ItemTurn::OnShutdown() {}
 
@@ -53,23 +53,23 @@ void console::ConsoleWindow::Blit() {
     if (surface) surface->Blit();
 }
 
-void CInterface3D::ChatKeyEnter() {
+void Interface3D::ChatKeyEnter() {
     if (!root->chatOpen) root->SetOpen(true);
 }
 
-void CInterface3D::ChatKeyBackspace() {
+void Interface3D::ChatKeyBackspace() {
     if (!root->chatOpen) root->ClearLines();
 }
 
-void CHeroStatsPanel::LeftUp(int, int, int) {
+void HeroStatsPanel::LeftUp(int, int, int) {
     ui->mouseCapture = nullptr;
     heldRegion = -1;
     holdTime = 0.0f;
 }
 
-void CEscMenu::CloseScreen() { models[0]->Play(SkillAnimation::Briefing01); }
+void EscMenu::CloseScreen() { models[0]->Play(SkillAnimation::Briefing01); }
 
-void CMessageBox::CloseScreen() {
+void MessageWindow::CloseScreen() {
     ClearSceneObjects();
     ClearSurfaces();
 }

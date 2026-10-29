@@ -1,4 +1,4 @@
-// The help / message window's page (CHelpWindow::ShowPage): everything the
+// The help / message window's page (HelpWindow::ShowPage): everything the
 // window shows is rebuilt from the texts for page page (see ui.h).
 // Rebirth's WideScreen patches it (a context hook: the pulsing frames of some tutorial messages follow the
 // battle screen's panels to the screen's edges), reproduced here. Rebirth-patched callees: the surface's
@@ -64,20 +64,20 @@ struct PageEntry {
     std::string text;
 };
 
-void SetTint(CUiMesh* sprite, float value) { sprite->tint[0] = sprite->tint[1] = sprite->tint[2] = value; }
+void SetTint(UiMesh* sprite, float value) { sprite->tint[0] = sprite->tint[1] = sprite->tint[2] = value; }
 
-void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
+void SetPlain(UiMesh* sprite, std::uint32_t colour) {
     sprite->texture = nullptr;
     sprite->flags |= FigureMeshFlag::Flat;
     sprite->flatColour = colour;
 }
 
-CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
+UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
+    UiSurface* surface = new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
     return surface;
 }
 
-void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int v1) {
+void SetRectangle(UiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int v1) {
     sprite->SetRectangle(3.0f, 100.0f, static_cast<float>(rect.left), static_cast<float>(rect.top),
                          static_cast<float>(rect.right), static_cast<float>(rect.bottom), u0, v0, u1, v1);
 }
@@ -96,7 +96,7 @@ bool Listed(const std::string& page, const char* const* names, std::size_t count
     return false;
 }
 
-int TutorialFrameShift(const CHelpWindow* window) {
+int TutorialFrameShift(const HelpWindow* window) {
     if (!widescreen::Active() || !window->message) return 0;
     const std::string page = std::string(window->text) + ':' + std::to_string(window->page);
     if (Listed(page, kLeftPanelPages, std::size(kLeftPanelPages))) return -widescreen::EdgeShift();
@@ -106,14 +106,14 @@ int TutorialFrameShift(const CHelpWindow* window) {
 
 } // namespace
 
-void CHelpWindow::ShowPage() {
+void HelpWindow::ShowPage() {
     pulsing.clear();
     pictures.clear();
     ClearSurfaces();
     ClearRegions();
     ClearSceneObjects();
 
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::vector<std::string> words;
     if (!texts->Open(std::string(kTutorialSection) + text)) {
         ui->SetPendingValue(0);
@@ -153,22 +153,22 @@ void CHelpWindow::ShowPage() {
     texts->cursor = resume;
 
     // Scene objects 0 the background, 1 the frame, 2-4 the previous, OK and next buttons.
-    CUiMesh* back = AddBlankSprite();
+    UiMesh* back = AddBlankSprite();
     SetPlain(back, message ? 0xFF282313 : 0xFF211B11);
-    CUiMesh* frame = AddBlankSprite();
+    UiMesh* frame = AddBlankSprite();
     if (message) frame->textureOffsetV = 0.02734375f;
-    CUiMesh* previous = AddBlankSprite();
+    UiMesh* previous = AddBlankSprite();
     if (page <= 0) previous->visible = false;
     SetTint(previous, 0.6f);
-    CUiMesh* ok = AddBlankSprite();
+    UiMesh* ok = AddBlankSprite();
     if (page < static_cast<int>(lines.size()) - 1) SetTint(ok, 0.6f);
-    CUiMesh* next = AddBlankSprite();
+    UiMesh* next = AddBlankSprite();
     if (page >= static_cast<int>(lines.size()) - 1) next->visible = false;
 
     // Surface 0: the page's title and the topic's with the page's number.
     std::string titleText;
     const int width = pageArea.right - pageArea.left;
-    CUiSurface* header = NewSurface(ui, pageArea.left, pageArea.top, pageArea.right, pageArea.top + kStripHeight);
+    UiSurface* header = NewSurface(ui, pageArea.left, pageArea.top, pageArea.right, pageArea.top + kStripHeight);
     AddSurface(header);
     header->Clear();
     RECT line{0, 8, width, 30};
@@ -188,7 +188,7 @@ void CHelpWindow::ShowPage() {
             const int shift = TutorialFrameShift(this);
             const int left = str::ToInt(words[1]) + shift;
             const int right = str::ToInt(words[3]) + shift;
-            CUiMesh* mark = AddBlankSprite();
+            UiMesh* mark = AddBlankSprite();
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
             SetPlain(mark, 0x82FF0000);
@@ -233,7 +233,7 @@ void CHelpWindow::ShowPage() {
     // pictures and measures; its surface is dropped and the page's bottom follows the height.
     int pictureCount = 0;
     for (int pass = rowsGiven ? 1 : 0; pass < 2; ++pass) {
-        CUiSurface* body = NewSurface(ui, pageArea.left, pageArea.top + kStripHeight, pageArea.right, pageArea.bottom - kStripHeight);
+        UiSurface* body = NewSurface(ui, pageArea.left, pageArea.top + kStripHeight, pageArea.right, pageArea.bottom - kStripHeight);
         AddSurface(body);
         RECT row{kTextLeft + shift, 0, width - kTextRightMargin + shift, kRowHeight};
         int y = 0;
@@ -250,7 +250,7 @@ void CHelpWindow::ShowPage() {
                         CopyImage(objects[1], name, kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
                                   cellY);
                     }
-                    CUiMesh* picture = AddBlankSprite();
+                    UiMesh* picture = AddBlankSprite();
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
                     picture->textureOffsetU = static_cast<float>(cellX) * kTexel;
                     picture->textureOffsetV = static_cast<float>(cellY + kPictureSize) * kTexel;
@@ -290,7 +290,7 @@ void CHelpWindow::ShowPage() {
     AddRegion()->SetRectFrom(button);
     SetRectangle(previous, button, 2, 0x33, 0x34, 0x47);
     gameapi::OffsetRect(&button, step, 0);
-    CUiRegion* okRegion = AddRegion();
+    UiRegion* okRegion = AddRegion();
     okRegion->SetRectFrom(button);
     okRegion->SetTip(0x7594);
     SetRectangle(ok, button, 2, 0x5D, 0x34, 0x71);
@@ -299,7 +299,7 @@ void CHelpWindow::ShowPage() {
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.
-    CUiSurface* footer = NewSurface(ui, pageArea.left, pageArea.bottom - kStripHeight, pageArea.right, pageArea.bottom);
+    UiSurface* footer = NewSurface(ui, pageArea.left, pageArea.bottom - kStripHeight, pageArea.right, pageArea.bottom);
     AddSurface(footer);
     footer->Clear();
     if (page > 0) {

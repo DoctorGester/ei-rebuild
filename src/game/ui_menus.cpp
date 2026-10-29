@@ -20,7 +20,7 @@ constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";
 constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";
 constexpr const char* kSoundSelect = "buttons\\save\\select.wav";
 
-// Pending values a window hands the interface when it closes (CInterface3D::SetPendingValue):
+// Pending values a window hands the interface when it closes (Interface3D::SetPendingValue):
 // the low word 1 closes the top window, the high word is the result its parent receives.
 constexpr std::uint32_t kCloseSaveLoad = 0x100001;
 constexpr std::uint32_t kCloseSaveLoadLoad = 0x100002;
@@ -59,7 +59,7 @@ constexpr float kSlideSeconds = 0.5f;
 
 // --- Save/load window --------------------------------------------------------------------------
 
-void CSaveLoadWindow::TakeSelectedTitle() {
+void SaveLoadWindow::TakeSelectedTitle() {
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     nameTyped = false;
@@ -67,7 +67,7 @@ void CSaveLoadWindow::TakeSelectedTitle() {
     cursor = name.size();
 }
 
-void CSaveLoadWindow::LeftDown(int buttons, int x, int y) {
+void SaveLoadWindow::LeftDown(int buttons, int x, int y) {
     if (sliding) return;
     int region = RegionAt(x, y);
     switch (region) {
@@ -96,10 +96,10 @@ void CSaveLoadWindow::LeftDown(int buttons, int x, int y) {
         }
         break;
     }
-    CUiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, x, y);
 }
 
-void CSaveLoadWindow::LeftDouble(int buttons, int x, int y) {
+void SaveLoadWindow::LeftDouble(int buttons, int x, int y) {
     if (sliding) return;
     int region = RegionAt(x, y);
     if (region >= 3) {
@@ -112,27 +112,27 @@ void CSaveLoadWindow::LeftDouble(int buttons, int x, int y) {
             Confirm();
         }
     }
-    CUiContainer::LeftDouble(buttons, x, y);
+    UiContainer::LeftDouble(buttons, x, y);
 }
 
-void CSaveLoadWindow::Draw(CSceneRenderer* pass) {
+void SaveLoadWindow::Draw(SceneRenderer* pass) {
     if (!sliding) {
         surfaces[0]->Show();
         models[0]->SetScreenPosition(400.0f, isSave ? 620.0f : 550.0f, 4.8f);
-        CUiContainer::Draw(pass);
+        UiContainer::Draw(pass);
         return;
     }
     surfaces[0]->Hide(false);
     double e = Ease(slide);
-    CUiModel* model = models[0];
+    UiModel* model = models[0];
     if (!model) return;
     double y = isSave ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
     model->Draw(pass);
 }
 
-void CSaveLoadWindow::Update() {
-    CUiContainer::Update();
+void SaveLoadWindow::Update() {
+    UiContainer::Update();
     if (sliding) {
         double slideAt = FrameTime() / 0.5f + slide;
         slide = static_cast<float>(slideAt);
@@ -147,12 +147,12 @@ void CSaveLoadWindow::Update() {
     }
 }
 
-void CSaveLoadWindow::CloseScreen() {
+void SaveLoadWindow::CloseScreen() {
     if (dialog) dialog->Release();
     dialog = nullptr;
 }
 
-void CSaveLoadWindow::MessageResult(int result) {
+void SaveLoadWindow::MessageResult(int result) {
     if (result == kResultDelete)
         DeleteSave();
     else if (result == kResultOverwrite)
@@ -163,7 +163,7 @@ void CSaveLoadWindow::MessageResult(int result) {
 
 // --- Options window ----------------------------------------------------------------------------
 
-void COptionsWindow::RestoreSettings() {
+void OptionsWindow::RestoreSettings() {
     // The values the window saved when it opened.
     g_clientWorld.sounds->SetEffectsVolume(options::g_options.audioSfx);
     g_clientWorld.sounds->SetMusicVolume(options::g_options.audioStreaming);
@@ -173,7 +173,7 @@ void COptionsWindow::RestoreSettings() {
                               options::g_options.gamma);
 }
 
-void COptionsWindow::LeftDown(int buttons, int x, int y) {
+void OptionsWindow::LeftDown(int buttons, int x, int y) {
     if (sliding) return;
     int region = RegionAt(x, y);
     if (region == 0 || region == 1) {
@@ -203,10 +203,10 @@ void COptionsWindow::LeftDown(int buttons, int x, int y) {
             }
         }
     }
-    CUiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, x, y);
 }
 
-void COptionsWindow::LeftDouble(int buttons, int x, int y) {
+void OptionsWindow::LeftDouble(int buttons, int x, int y) {
     if (sliding) return;
     int region = RegionAt(x, y);
     if (region >= 13) {
@@ -223,43 +223,43 @@ void COptionsWindow::LeftDouble(int buttons, int x, int y) {
             RefreshRows();
         }
     }
-    CUiContainer::LeftDouble(buttons, x, y);
+    UiContainer::LeftDouble(buttons, x, y);
 }
 
-void COptionsWindow::Draw(CSceneRenderer* pass) {
+void OptionsWindow::Draw(SceneRenderer* pass) {
     if (!sliding) {
         surfaces[0]->Show();
         models[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
-        CUiContainer::Draw(pass);
+        UiContainer::Draw(pass);
         return;
     }
     surfaces[0]->Hide(false);
     double e = Ease(slide);
-    CUiModel* model = models[0];
+    UiModel* model = models[0];
     if (!model) return;
     double y = (480.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
     model->Draw(pass);
 }
 
-void COptionsWindow::Redraw() {
-    if (!sliding) CUiContainer::Redraw();
+void OptionsWindow::Redraw() {
+    if (!sliding) UiContainer::Redraw();
 }
 
-void COptionsWindow::MessageResult(int result) {
+void OptionsWindow::MessageResult(int result) {
     if (result == 0x10001) CommitBinding();
     RefreshRows();
 }
 
-const char* COptionsWindow::HelpTopic() {
+const char* OptionsWindow::HelpTopic() {
     // "options" unless a key binding waits for its key.
     return waitingForKey ? nullptr : "options";
 }
 
 // The settings the window applies while it is open (their ids, the first int of the definition).
 
-void COptionsWindow::Update() {
-    CUiContainer::Update();
+void OptionsWindow::Update() {
+    UiContainer::Update();
     if (sliding) {
         double slideAt = FrameTime() / kSlideSeconds + static_cast<double>(slide);
         slide = static_cast<float>(slideAt);
@@ -303,21 +303,21 @@ void COptionsWindow::Update() {
 
 // --- Scroll bar --------------------------------------------------------------------------------
 
-bool CUiScrollbar::TakeMoved() {
+bool UiScrollbar::TakeMoved() {
     if (!moved) return false;
     moved = false;
     return true;
 }
 
-int CUiScrollbar::TakePosition() {
+int UiScrollbar::TakePosition() {
     moved = false;
     return position;
 }
 
-void CUiScrollbar::Update() {
+void UiScrollbar::Update() {
     if (state == 2 || state == 3) {
         // The container's FrameTime does not use the window.
-        double step = CUiContainer::FrameTime() * speed * 16.0f;
+        double step = UiContainer::FrameTime() * speed * 16.0f;
         if (state == 2) step = -step;
         accumulated = static_cast<float>(step + accumulated);
     }
@@ -344,7 +344,7 @@ void CUiScrollbar::Update() {
     if (steps != 0) SetPosition(position + steps);
 }
 
-void CUiScrollbar::LeftDown(int, int x, int y) {
+void UiScrollbar::LeftDown(int, int x, int y) {
     POINT point{x, y};
     ui->ScalePointFromScreenEntry(&point);
     if (gameapi::PtInRect(&thumb, point)) {
@@ -363,7 +363,7 @@ void CUiScrollbar::LeftDown(int, int x, int y) {
     handled = true;
 }
 
-void CUiScrollbar::LeftUp(int, int, int) {
+void UiScrollbar::LeftUp(int, int, int) {
     state = 0;
     ui->mouseCapture = nullptr;
     accumulated = 0.0f;
@@ -372,11 +372,11 @@ void CUiScrollbar::LeftUp(int, int, int) {
 
 // --- Tooltip -----------------------------------------------------------------------------------
 
-void CUiTooltip::Draw(CSceneRenderer* pass) {
+void UiTooltip::Draw(SceneRenderer* pass) {
     if (!Shown()) return;
     DrawBase(pass);
 }
 
-void CUiTooltip::Redraw() {
-    if (Shown()) CUiWindow::Redraw();
+void UiTooltip::Redraw() {
+    if (Shown()) UiWindow::Redraw();
 }

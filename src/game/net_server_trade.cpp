@@ -28,7 +28,7 @@ PartyMessage* FindPartnerOffer(const std::list<HeldRef<PartyMessage>>& list, Par
 
 // The partner is told a trade was offered (text 10) or withdrawn (text 11), with the player's name.
 void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
-    CRefObject* partner = offer->partner.Get();
+    RefObject* partner = offer->partner.Get();
     const char* name = offer->player.Get()->name.data();
     self->Announce(g_interface.MessageText(text, name), partner);
 }
@@ -43,7 +43,7 @@ namespace net {
 TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMessage* other) {
     for (auto& node : trades) {
         TradeMessage* trade = node.Get();
-        const CRefObject* first = trade->offer.Get();
+        const RefObject* first = trade->offer.Get();
         if ((first == offer && trade->partnerOffer.Get() == other) || (first == other && trade->partnerOffer.Get() == offer))
             return trade;
     }
@@ -111,12 +111,12 @@ void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     if (!message->trading) TellPartner(self, message, 11);
     if (!IsLive(trade)) return;
     if (trade->done) {
-        HeldRef<CRefObject> held(trade);
-        TimedEntry<HeldRef<CRefObject>> entry(kFinishedDelay, held);
+        HeldRef<RefObject> held(trade);
+        TimedEntry<HeldRef<RefObject>> entry(kFinishedDelay, held);
         self->finishedTrades.push_back(entry);
     }
     // remove(trade): each element holding it erased as the walk reaches it, the trade held meanwhile.
-    HeldRef<CRefObject> removing(trade);
+    HeldRef<RefObject> removing(trade);
     for (auto node = self->trades.begin(); node != self->trades.end();) {
         auto next = std::next(node);
         if (node->Get() == removing.Get()) self->trades.erase(node);

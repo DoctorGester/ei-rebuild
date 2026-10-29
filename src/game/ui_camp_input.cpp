@@ -1,4 +1,4 @@
-// The camp's input side (buttons, keys), its message-result and help-topic slots (CCampPages,
+// The camp's input side (buttons, keys), its message-result and help-topic slots (CampPages,
 // ui_camp.h). See docs/notes/ui.md, section 5.
 #include "party.h"
 #include "ui.h"
@@ -38,8 +38,8 @@ constexpr std::uint32_t kAnswerYes = 0x10001;
 
 } // namespace
 
-void CCampPages::LeftDown(int buttons, int x, int y) {
-    CUiContainer::LeftDown(buttons, x, y);
+void CampPages::LeftDown(int buttons, int x, int y) {
+    UiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     switch (region) {
     case kRegionAction:
@@ -65,13 +65,13 @@ void CCampPages::LeftDown(int buttons, int x, int y) {
     }
 }
 
-void CCampPages::LeftUp(int buttons, int x, int y) {
-    CUiContainer::LeftUp(buttons, x, y);
+void CampPages::LeftUp(int buttons, int x, int y) {
+    UiContainer::LeftUp(buttons, x, y);
     ReleaseMouse();
     turning = 0;
 }
 
-void CCampPages::KeyDown(int key, int repeat, int modifiers) {
+void CampPages::KeyDown(int key, int repeat, int modifiers) {
     if (key == VK_ESCAPE) {
         ShowPage(kLeavePage);
         handled = true;
@@ -85,19 +85,19 @@ void CCampPages::KeyDown(int key, int repeat, int modifiers) {
         handled = true;
         return;
     }
-    CUiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, repeat, modifiers);
 }
 
-void CCampPages::MessageResult(int result) {
+void CampPages::MessageResult(int result) {
     if (static_cast<std::uint32_t>(result) != kAnswerYes) return;
     PartyUnitRecord* heroRecord = HeroRecord();
     if (heroRecord->weapons.empty()) return;
-    CItem* weapon = heroRecord->weapons[0];
-    CItem* item = LocalPlayerData()->AddItem(weapon, 0, 1);
+    Item* weapon = heroRecord->weapons[0];
+    Item* item = LocalPlayerData()->AddItem(weapon, 0, 1);
     heroRecord->RemoveWeapon(weapon);   // the weapon list's Remove
     heroRecord->weaponIndex = kNoWeaponSlot;
     itemStrip->ScrollToItem(item);
     RefreshWeapons();
 }
 
-const char* CCampPages::HelpTopic() { return PageHelpTopic(page); }
+const char* CampPages::HelpTopic() { return PageHelpTopic(page); }

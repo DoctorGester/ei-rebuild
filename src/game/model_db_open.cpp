@@ -69,11 +69,11 @@ int PrintsDatabase::Load(const std::string& folder) {
     LocalResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("prints.db", &size);
+    void* data = resource.Get()->MappedResource::GetFile("prints.db", &size);
     if (!data) return game::FatalError("Can't open terrain prints database\n");
 
-    CMemoryStream local;
-    CMemoryStream* stream = &local;
+    MemoryStream local;
+    MemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
     const auto name = [](auto& record) -> const std::string& { return record.name; };
@@ -84,8 +84,8 @@ int PrintsDatabase::Load(const std::string& folder) {
     LoadTable(stream, kScorchChunk, &ChunkArchive::SerializePrints, &scorch,
               [&] { FileRecords(scorch, scorchByName, name); });
 
-    resource.Get()->CMappedResource::CloseFile(data);
-    resource.Get()->CMappedResource::CloseResource();
+    resource.Get()->MappedResource::CloseFile(data);
+    resource.Get()->MappedResource::CloseResource();
     return 1;
 }
 
@@ -98,11 +98,11 @@ int AckDatabase::Load(const std::string& folder) {
     LocalResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("acks.db", &size);
+    void* data = resource.Get()->MappedResource::GetFile("acks.db", &size);
     if (!data) return game::FatalError("Can't open acks database\n");
 
-    CMemoryStream local;
-    CMemoryStream* stream = &local;
+    MemoryStream local;
+    MemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
     const auto name = [](auto& record) -> const std::string& { return record.head.name; };
@@ -113,8 +113,8 @@ int AckDatabase::Load(const std::string& folder) {
     LoadTable(stream, kExtraAcksChunk, &ChunkArchive::SerializeAcks3, &extras.records,
               [&] { FileRecords(extras.records, extras.byName, name); });
 
-    resource.Get()->CMappedResource::CloseFile(data);
-    resource.Get()->CMappedResource::CloseResource();
+    resource.Get()->MappedResource::CloseFile(data);
+    resource.Get()->MappedResource::CloseResource();
 
     // Every record's map from the ack kind to the list it says it from.
     for (std::size_t i = 0; i < units.records.size(); ++i) {

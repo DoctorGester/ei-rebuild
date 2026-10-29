@@ -40,7 +40,7 @@ void Lever::SetState(int wanted, float duration) {
 
     auto* world = ServerWorld();
     if (!world->IsServer()) return;
-    CSectorMap* sectors = &world->aiMap.sectorMap;
+    SectorMap* sectors = &world->aiMap.sectorMap;
     float reach = bounds.radius + 0.5f;
     std::list<CUnit*> around = sectors->FindUnitsInRadius(localPosition, reach);
     for (auto node = around.begin(); node != around.end();) {
@@ -48,7 +48,7 @@ void Lever::SetState(int wanted, float duration) {
         sectors->Remove(*node);
         node = next;
     }
-    CAIMap* map = &world->aiMap;
+    AIMap* map = &world->aiMap;
     map->refreshUnits = keepsMapFlag;   // the byte as it is
     map->BeginRefresh();
     sectors->Remove(this);

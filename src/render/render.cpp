@@ -916,11 +916,11 @@ bool FrameSize(int* width, int* height) {
     return g_colour.id != 0;
 }
 
-CTextureDevice* DeviceObject() { return g_sceneRenderer.device; }
+TextureDevice* DeviceObject() { return g_sceneRenderer.device; }
 
 // The size of the game's screen (the device object's).
 bool GameTargetSize(int* width, int* height) {
-    const CTextureDevice* device = DeviceObject();
+    const TextureDevice* device = DeviceObject();
     if (!device) return false;
     *width = device->screen.right;
     *height = device->screen.bottom;

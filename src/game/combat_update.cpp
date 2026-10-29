@@ -29,7 +29,7 @@
 #include <cstring>
 #include <list>
 
-void UpdateMotion(CUnitServer*);
+void UpdateMotion(UnitServer*);
 namespace {
 
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags, cleared every update
@@ -52,11 +52,11 @@ void SwitchWeaponIfWanted(CUnit* unit) {
 }
 
 // The unit's standing flag changed, re-registered on the sector map.
-void SetStandingFlag(CUnitServer* self, int standing) {
-    CWorldServer* world = self->ServerWorld();
+void SetStandingFlag(UnitServer* self, int standing) {
+    WorldServer* world = self->ServerWorld();
     CUnit* unit = self->unit;
     if (static_cast<int>(unit->obstacle) == standing) return;
-    CSectorMap* sectors = &world->aiMap.sectorMap;
+    SectorMap* sectors = &world->aiMap.sectorMap;
     sectors->Remove(unit);
     self->unit->obstacle = static_cast<std::uint32_t>(standing);
     sectors->Add(self->unit);
@@ -73,7 +73,7 @@ void EmptyAction(UnitAction* order) {
 }
 
 // The queue replaced by `steps`, then started.
-void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
+void TakeQueue(UnitServer* self, const AnimationSteps* steps) {
     self->queue = *steps;
     self->StartQueueIfUnset();
     self->PopFinishedSteps();
@@ -97,11 +97,11 @@ int TotalDuration(const AnimationSteps& steps) {
 
 } // namespace
 
-void CUnitServer::StartQueueIfUnset() {
+void UnitServer::StartQueueIfUnset() {
     if (queue.extra == -1) queue.extra = World()->tick;
 }
 
-void CUnitServer::DropEffectObject() {
+void UnitServer::DropEffectObject() {
     if (!effectObject) return;
     g_serverWorld.RemoveTimedObject(effectObject->id);
     effectObject.Reset();
@@ -109,7 +109,7 @@ void CUnitServer::DropEffectObject() {
 
 // --- The update ---------------------------------------------------------------------------------
 
-bool CUnitServer::RunTick() {
+bool UnitServer::RunTick() {
     CUnit* self = unit;
     if (self->dead == 0) {
         if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
@@ -135,7 +135,7 @@ bool CUnitServer::RunTick() {
             ++bored;
             if (bored > kBoredTicks && g_random.Next() % kBoredChance == 0) {
                 CPlayer* player = unit->player;
-                if (!player || player->Server()->danger != CPlayerServer::PartyDanger::Safe) {
+                if (!player || player->Server()->danger != PlayerServer::PartyDanger::Safe) {
                     bored = 0;
                 } else {
                     PlayerMessage(player->Server(), unit, AckKind::Bored);
@@ -163,7 +163,7 @@ bool CUnitServer::RunTick() {
 
     // Dead: the body sinks (accelerating) until it is at height 0; once the death animation is
     // over, the death is reported and the orders are dropped.
-    CWorldServer* world = ServerWorld();
+    WorldServer* world = ServerWorld();
     if (self->localPosition.z > 0.0f) {
         float& sinking = sinkSpeed;
         sinking += kSinkAcceleration;
@@ -193,7 +193,7 @@ bool CUnitServer::RunTick() {
 
 // --- The state of the unit's animation --------------------------------------------------------
 
-void CUnitServer::UpdateState() {
+void UnitServer::UpdateState() {
     animationHeld = 0;
     frozen = 0;
     if (state == UnitState::Acting && !ActionInReach()) EndOrder(0);
@@ -254,7 +254,7 @@ void CUnitServer::UpdateState() {
 
 // --- The animation queue ---------------------------------------------------------------------
 
-void CUnitServer::AdvanceAnimation() {
+void UnitServer::AdvanceAnimation() {
     if (frozen != 0) {
         // Frozen: everything waits one more update.
         unit->SetPathTimeShift(1);
@@ -295,7 +295,7 @@ void CUnitServer::AdvanceAnimation() {
     unit->SetMotionMode(kind);
 }
 
-bool CUnitServer::PopFinishedSteps() {
+bool UnitServer::PopFinishedSteps() {
     bool popped = false;
     int now = WorldContext()->tick;
     while (!queue.empty()) {
@@ -323,13 +323,13 @@ bool CUnitServer::PopFinishedSteps() {
     return popped;
 }
 
-void CUnitServer::ShowCurrentStep() {
+void UnitServer::ShowCurrentStep() {
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
     if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
 }
 
-void CUnitServer::PlaySteps(const AnimationSteps* steps) {
+void UnitServer::PlaySteps(const AnimationSteps* steps) {
     queue = *steps;
     StartQueueIfUnset();
     PopFinishedSteps();
@@ -340,7 +340,7 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
 
 // --- States -------------------------------------------------------------------------------------
 
-void CUnitServer::SetState(UnitState newState) {
+void UnitServer::SetState(UnitState newState) {
     state = newState;
     if (newState != UnitState::Acting) {
         unit->UpdateSizeClass();
@@ -350,9 +350,9 @@ void CUnitServer::SetState(UnitState newState) {
     actingCheckTime = WorldContext()->tick + 10;
 }
 
-void CUnitServer::ClearStanding() { SetStandingFlag(this, 0); }
+void UnitServer::ClearStanding() { SetStandingFlag(this, 0); }
 
-void CUnitServer::StandStill() {
+void UnitServer::StandStill() {
     motion.Clear();
     int now = World()->tick;
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
@@ -363,7 +363,7 @@ void CUnitServer::StandStill() {
 
 // --- Hit reactions ------------------------------------------------------------------------------
 
-void CUnitServer::PlayHitReaction() {
+void UnitServer::PlayHitReaction() {
     AnimationSteps reaction;
     if (moveMode.mode == 0 && state == UnitState::Idle) return;
     BuildDeathAnimation(&reaction, hitDirection, 0, 0);
@@ -382,7 +382,7 @@ void CUnitServer::PlayHitReaction() {
 
 // --- The end of an order ------------------------------------------------------------------------
 
-void CUnitServer::EndOrder(char abort) {
+void UnitServer::EndOrder(char abort) {
     int now = WorldContext()->tick;
     bool open = HasOpenStep(queue);
     if (abort != 0 || now < currentPlan.startTime || open) {
@@ -420,8 +420,8 @@ void CUnitServer::EndOrder(char abort) {
 
 // --- Acting -------------------------------------------------------------------------------------
 
-void CUnitServer::TickAction() {
-    CWorldServer* world = ServerWorld();
+void UnitServer::TickAction() {
+    WorldServer* world = ServerWorld();
     int now = world->tick;
     if (now == actingCheckTime) unit->UpdateSizeClass();
     OrderPlan& plan = currentPlan;
@@ -484,7 +484,7 @@ void CUnitServer::TickAction() {
 
 // --- Checks -------------------------------------------------------------------------------------
 
-bool CUnitServer::ActionInReach() {
+bool UnitServer::ActionInReach() {
     UnitOrderKind kind = action.kind;
     bool cast = kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn;
     if (cast && (unit->flags & MapObjectFlag::NoCasting)) return false;
@@ -513,8 +513,8 @@ bool CUnitServer::ActionInReach() {
 
 // --- Item spells --------------------------------------------------------------------------------
 
-void CUnitServer::TickItemSpells() {
-    CWorldServer* world = ServerWorld();
+void UnitServer::TickItemSpells() {
+    WorldServer* world = ServerWorld();
     bool healed = false;
     for (auto node = armourSpells.begin(); node != armourSpells.end();) {
         ArmourSpell* current = &*node;
@@ -523,7 +523,7 @@ void CUnitServer::TickItemSpells() {
             --current->countdown;
             continue;
         }
-        CItem* item = current->item;
+        Item* item = current->item;
         if (!item) continue;
         auto* spell = item->spell.Get();
         float cost = spell->manaCost;
@@ -542,14 +542,14 @@ void CUnitServer::TickItemSpells() {
     }
 }
 
-void CUnitServer::RefreshItemSpells() {
+void UnitServer::RefreshItemSpells() {
     ItemsAndSpells held = unit->CollectItems();
-    std::list<CItem*>& items = held.items;
+    std::list<Item*>& items = held.items;
     // Weapons other than the one in use do not count.
     for (auto node = items.begin(); node != items.end();) {
-        std::list<CItem*>::iterator current = node;
+        std::list<Item*>::iterator current = node;
         ++node;
-        CItem* item = *current;
+        Item* item = *current;
         if (item->GetClassId() != ClassId::ItemWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
         items.erase(current);
     }
@@ -559,7 +559,7 @@ void CUnitServer::RefreshItemSpells() {
     // item's spell (like the original).
     CSpell* spell = nullptr;
     for (auto node = items.begin(); node != items.end();) {
-        CItem* item = *node;
+        Item* item = *node;
         ++node;
         if (item) spell = item->spell;
         if (!spell || (spell->targetFlags & SpellTargetFlag::ItemContinuous) == 0) continue;

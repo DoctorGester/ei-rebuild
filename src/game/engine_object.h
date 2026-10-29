@@ -16,10 +16,10 @@ inline constexpr ZeroFill kZeroed{};
 inline void* operator new(std::size_t size, ZeroFill) { return std::memset(::operator new(size), 0, size); }
 inline void operator delete(void* block, ZeroFill) noexcept { ::operator delete(block); }
 
-// CEngineObject::id of an object no manager registered; the saves' and messages' "no object".
+// EngineObject::id of an object no manager registered; the saves' and messages' "no object".
 inline constexpr int kNoObjectId = -1;
 
-// CEngineObject::GetClassId: the class of an engine object or manager, named kClass + the class's name here
+// EngineObject::GetClassId: the class of an engine object or manager, named kClass + the class's name here
 // (ClassName gives the original's). The effect manager creates its effects by it too. Two classes share
 // 0x0E and two 0x21.
 enum class ClassId : int {
@@ -107,20 +107,20 @@ enum class ClassId : int {
     EffectTornado = 0x65,
 };
 
-class CBaseManager;
+class BaseManager;
 class CManagerContext;
-class CStream;
+class ByteStream;
 class CWorld;
-class CWorldClient;
-class CWorldServer;
+class WorldClient;
+class WorldServer;
 
-// Base of the engine's objects and managers. A spare a manager hands out again (CBaseManager::CreateObject) is not
+// Base of the engine's objects and managers. A spare a manager hands out again (BaseManager::CreateObject) is not
 // constructed again: the manager sets its flags, type, id and owner.
-class CEngineObject {
+class EngineObject {
 public:
-    CEngineObject() = default;
-    virtual ~CEngineObject();
-    virtual void CopyFrom(const CEngineObject& other); // flags, type, prototypeId
+    EngineObject() = default;
+    virtual ~EngineObject();
+    virtual void CopyFrom(const EngineObject& other); // flags, type, prototypeId
     virtual void Create() = 0;
     virtual void Destroy() = 0;
     virtual void Release();                            // refcount; the owner releases it at 0
@@ -128,8 +128,8 @@ public:
     virtual bool RunTick();
     virtual const char* GetName();                     // "noname"
     virtual const char* GetDescription();              // "nodesc"
-    virtual void Load(CStream* stream);
-    virtual void Save(CStream* stream);
+    virtual void Load(ByteStream* stream);
+    virtual void Save(ByteStream* stream);
     virtual const char* ClassName() = 0;
     virtual ClassId GetClassId() = 0;
 
@@ -141,17 +141,17 @@ public:
     // The manager context as the world, for the world's objects (a party's items have the party instead).
     // Templates so that the world's classes need to be complete only where they are used.
     template <class World = CWorld> World* WorldContext() const { return static_cast<World*>(ManagerContext()); }
-    template <class World = CWorldServer> World* ServerWorld() const { return WorldContext<World>(); }
-    template <class World = CWorldClient> World* ClientWorld() const { return WorldContext<World>(); }
+    template <class World = WorldServer> World* ServerWorld() const { return WorldContext<World>(); }
+    template <class World = WorldClient> World* ClientWorld() const { return WorldContext<World>(); }
     // The world the object belongs to, or null without a context.
     CWorld* World() const;
-    CBaseManager* SetOwner(CBaseManager* owner);
+    BaseManager* SetOwner(BaseManager* owner);
 
     int refCount = 0;
     std::uint32_t flags = 0;
     int id = kNoObjectId;   // until a manager registers the object
     int type = 0;           // class-specific kind (texture usage for CTexture)
-    CBaseManager* owner = nullptr;
+    BaseManager* owner = nullptr;
     // The database prototype: items pack its index (high word) with the material (low word), spells keep the
     // index in the high word, units the plain index.
     std::uint32_t prototypeId = 0;
@@ -159,9 +159,9 @@ public:
 
 // A counted engine object's id saved (-1: none) or read back: -1 resets `ref`, any other id is looked up in
 // `world`'s map object manager.
-void SaveRef(const CEngineObject* object, CStream* stream);
+void SaveRef(const EngineObject* object, ByteStream* stream);
 template <typename T>
-void LoadRef(Ref<T>& ref, CStream* stream, CWorld* world);
+void LoadRef(Ref<T>& ref, ByteStream* stream, CWorld* world);
 
 // A list or vector of counted object pointers emptied: each released (head first), then cleared.
 template <typename Container>

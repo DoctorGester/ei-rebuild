@@ -45,7 +45,7 @@ int PromptWidth(const UiFont& font, const std::string& input, int count) {
 constexpr int kHistoryDepth = 30;
 
 // CDC::FillSolidRect of `width` x `height` at (x, y).
-void FillArea(CUiSurface* surface, int x, int y, int width, int height, COLORREF colour) {
+void FillArea(UiSurface* surface, int x, int y, int width, int height, COLORREF colour) {
     surface->FillRect(RECT{x, y, x + width, y + height}, colour);
 }
 
@@ -95,13 +95,13 @@ void ConsoleWindow::Show(bool newShown) {
     shown = newShown;
     if (newShown) {
         if (!surface) {
-            surface = new CUiSurface(screen, &rect, SurfaceBlend::Opaque);
+            surface = new UiSurface(screen, &rect, SurfaceBlend::Opaque);
         }
         DrawLines();
         DrawInput();
         return;
     }
-    if (CUiSurface* currentSurface = surface) {
+    if (UiSurface* currentSurface = surface) {
         delete currentSurface;
     }
     surface = nullptr;
@@ -296,7 +296,7 @@ void ConsoleWindow::DrawLines() {
     if (scroll > lineCount - visibleLines) scroll = lineCount - visibleLines;
     if (scroll < 0) scroll = 0;
     if (!surface || !font) return;
-    CUiSurface* currentSurface = surface;
+    UiSurface* currentSurface = surface;
     FillArea(currentSurface, 0, 0, width, height - kInputHeight, kBackground);
     int line = lineCount - scroll - 1;
     for (int i = 0, y = 0; i < visibleLines && line >= 0; ++i, y += kLineHeight, --line) {
@@ -323,7 +323,7 @@ void ConsoleWindow::DrawInput() {
     caret = Clamp(caret, input.size());
     anchor = Clamp(anchor, input.size());
     if (!surface || !font) return;
-    CUiSurface* currentSurface = surface;
+    UiSurface* currentSurface = surface;
     FillArea(currentSurface, 0, height - kInputHeight, width, kInputHeight, kBackground);
     int caretX = PromptWidth(font, input, caret);
     if (anchor != caret) {

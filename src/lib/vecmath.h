@@ -87,7 +87,7 @@ struct Quaternion {
 static_assert(sizeof(Quaternion) == 16);
 
 // Row-major 4x4 matrix (the transform library's and Direct3D's layout). Two conventions use it:
-// row vectors (v * M, translation in m[12..14]: CTransformObject::WorldMatrix, figures) and column
+// row vectors (v * M, translation in m[12..14]: TransformObject::WorldMatrix, figures) and column
 // vectors (M * v, translation in m[3], m[7], m[11]: the transform pipeline, clip codes, decals).
 // The product is Matrix4::Multiply, which sums each element in its own order.
 // The first three rows of a row-major 4x4 matrix (row stride 16 bytes).

@@ -1,5 +1,5 @@
 // Replay of the script loader's records (script_load_vectors.h) against src/game/script_parse_load.cpp
-// and the script code it calls. Each record gets a CScript built from the recorded state: the error, the
+// and the script code it calls. Each record gets a Script built from the recorded state: the error, the
 // file count and loaded flag, the definitions (their pairs empty: the loader only counts them), the
 // global variables, and the block lists holding as many empty blocks as they had (the loader numbers new
 // blocks by the count; the record hashed the new blocks after them).
@@ -54,14 +54,14 @@ void ReadVars(Reader& r, ScriptVars* v) {
 constexpr std::size_t kMaxBlocks = 0x100000;
 
 struct State {
-    CScript* script = nullptr;
+    Script* script = nullptr;
     std::size_t blocks = 0;
     std::size_t worldBlocks = 0;
 };
 
 State ReadState(Reader& r, std::vector<int>* pairs = nullptr) {
     State state;
-    CScript* s = state.script = new CScript;
+    Script* s = state.script = new Script;
     s->fileCount = r.Get<std::int32_t>();
     s->loaded = r.Get<std::int32_t>();
     state.blocks = r.Get<std::uint32_t>();
@@ -98,13 +98,13 @@ Error ReadError(Reader& r) {
     return e;
 }
 
-void SetError(CScript* s, const Error& e) {
+void SetError(Script* s, const Error& e) {
     s->errorCode = e.code;
     s->errorLine = e.line;
     s->errorText = e.text.c_str();
 }
 
-Error TakeError(CScript* s) { return {s->errorCode, s->errorLine, s->errorText.c_str()}; }
+Error TakeError(Script* s) { return {s->errorCode, s->errorLine, s->errorText.c_str()}; }
 
 bool SameError(const Error& a, const Error& b) { return a.code == b.code && a.line == b.line && a.text == b.text; }
 
@@ -166,7 +166,7 @@ void Describe(char* d, std::size_t n, const char* what, int result0, int result,
 // ---- Checks -------------------------------------------------------------------------------------
 
 bool CheckExpect(Reader& r, char* d, std::size_t n) {
-    CScript* s = new CScript;   // ExpectLexeme reads only the error
+    Script* s = new Script;   // ExpectLexeme reads only the error
     SetError(s, ReadError(r));
     const int id = r.Get<std::int32_t>();
     Run run;
@@ -191,7 +191,7 @@ ScriptVars* ReadLocals(Reader& r) {
 }
 
 bool CheckLoadFunction(Reader& r, char* d, std::size_t n) {
-    CScript* s = ReadState(r).script;
+    Script* s = ReadState(r).script;
     SetError(s, ReadError(r));
     const int id = r.Get<std::int32_t>();
     const std::string signature = r.String();
@@ -225,7 +225,7 @@ EI_VECTOR_CHECK_BYTES("CScript::LoadFunction", CheckLoadFunction);
 
 bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
     const State state = ReadState(r);
-    CScript* s = state.script;
+    Script* s = state.script;
     SetError(s, ReadError(r));
     ScriptVars* locals = ReadLocals(r);
     std::vector<SSCCmd> commands;
@@ -253,7 +253,7 @@ EI_VECTOR_CHECK_BYTES("CScript::LoadCommands", CheckLoadCommands);
 bool CheckLoad(Reader& r, char* d, std::size_t n) {
     std::vector<int> pairs;
     const State state = ReadState(r, &pairs);
-    CScript* s = state.script;
+    Script* s = state.script;
     SetError(s, ReadError(r));
     const std::string source = r.String();
     const bool runWorldScript = r.Get<std::int32_t>();
@@ -303,7 +303,7 @@ EI_VECTOR_CHECK_BYTES("CScript::Load", CheckLoad);
 
 // 004BCC60 ScriptRunWorldScript (it adds a run of the block; the runtime, script_exec_run.cpp, is not
 // replayed): which block Load handed it.
-void CScript::RunWorldScript(ScriptDecl* block) {
+void Script::RunWorldScript(ScriptDecl* block) {
     g_ranWorld = true;
     g_ranWorldId = block->id;
 }

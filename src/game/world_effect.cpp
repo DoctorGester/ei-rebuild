@@ -1,5 +1,5 @@
-// The effect base (CEffect) and the sound effects: CEffectSound, CEffectSoundSeq,
-// CEffectAmbientSound. See world_effect.h for the class map and docs/notes/effects.md.
+// The effect base (CEffect) and the sound effects: EffectSound, EffectSoundSeq,
+// EffectAmbientSound. See world_effect.h for the class map and docs/notes/effects.md.
 
 #include "net_delta.h"
 #include "sound.h"
@@ -52,7 +52,7 @@ void CEffect::SendDelta() {
     state.EndField();
 }
 
-int CEffect::Receive(int update, CMemoryStream* reader) {
+int CEffect::Receive(int update, MemoryStream* reader) {
     DeltaField* field = state.BeginReadB(update, reader);
     int result = Unpack(update, field);
     state.EndField();
@@ -61,7 +61,7 @@ int CEffect::Receive(int update, CMemoryStream* reader) {
 
 void CEffect::Reset() { ClearBase(this); }
 
-void ReadSavedStrings(std::vector<std::string>* array, CStream* stream) {
+void ReadSavedStrings(std::vector<std::string>* array, ByteStream* stream) {
     int count;
     stream->ReadValue(count);
     for (int i = 0; i < count; ++i) {
@@ -92,7 +92,7 @@ Vector3* CEffect::Position(const ScriptGroup*) { return &localPosition; }
 double CEffect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
 
 
-void CEffectSound::Reset() {
+void EffectSound::Reset() {
     ClearBase(this);
     if (sound != -1 && looping != 0) g_clientWorld.sounds->StopSound(sound);
     sound = -1;
@@ -104,7 +104,7 @@ void CEffectSound::Reset() {
     fresh = 1;
 }
 
-bool CEffectSound::RunTick() {
+bool EffectSound::RunTick() {
     std::uint8_t wasFresh = fresh;
     fresh = 0;
     if (moving != 0) {
@@ -115,7 +115,7 @@ bool CEffectSound::RunTick() {
     return looping != 0 || wasFresh != 0;
 }
 
-void CEffectSound::Start(int update) {
+void EffectSound::Start(int update) {
     if (update == 0) {
         sound = g_clientWorld.sounds->Play3D(name, noFade != 0 ? 1000 : 0, &localPosition.x,
                                             volume, radius, looping);
@@ -124,7 +124,7 @@ void CEffectSound::Start(int update) {
     g_clientWorld.sounds->SetSoundPosition(sound, &localPosition.x, volume, radius);
 }
 
-int CEffectSound::Unpack(int update, DeltaField* field) {
+int EffectSound::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
     field->ReadDelta(&looping, 4);
@@ -140,7 +140,7 @@ int CEffectSound::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void CEffectSound::Pack(DeltaField* field) {
+void EffectSound::Pack(DeltaField* field) {
     Vector3 position = localPosition;
     field->WritePosition(position);
     int currentLooping = looping;
@@ -152,7 +152,7 @@ void CEffectSound::Pack(DeltaField* field) {
     field->WriteDelta(&noFade, 1);
 }
 
-void CEffectSound::Load(CStream* stream) {
+void EffectSound::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
     Read(stream, name, 0x100);
     stream->ReadValue(volume);
@@ -165,7 +165,7 @@ void CEffectSound::Load(CStream* stream) {
     stream->ReadValue(noFade);
 }
 
-void CEffectSound::Save(CStream* stream) {
+void EffectSound::Save(ByteStream* stream) {
     stream->WriteValue(localPosition);
     Write(stream, name, 0x100);
     stream->WriteValue(volume);
@@ -175,10 +175,10 @@ void CEffectSound::Save(CStream* stream) {
     stream->WriteValue(noFade);
 }
 
-double CEffectSound::Radius() { return radius; }
+double EffectSound::Radius() { return radius; }
 
 
-void CEffectSoundSeq::Reset() {
+void EffectSoundSeq::Reset() {
     ClearBase(this);
     if (sound != -1) g_clientWorld.sounds->RemoveSequence(sound);
     sound = -1;
@@ -189,7 +189,7 @@ void CEffectSoundSeq::Reset() {
     noFade = 0;
 }
 
-bool CEffectSoundSeq::RunTick() {
+bool EffectSoundSeq::RunTick() {
     if (moving != 0) {
         MoveByVelocity(this);
         if (sound != 0)
@@ -198,7 +198,7 @@ bool CEffectSoundSeq::RunTick() {
     return true;
 }
 
-void CEffectSoundSeq::Pack(DeltaField* field) {
+void EffectSoundSeq::Pack(DeltaField* field) {
     Vector3 position = localPosition;
     field->WritePosition(position);
     field->WriteStringBoth(name);
@@ -211,7 +211,7 @@ void CEffectSoundSeq::Pack(DeltaField* field) {
     field->WriteDelta(&noFade, 1);
 }
 
-void CEffectSoundSeq::Load(CStream* stream) {
+void EffectSoundSeq::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
     stream->ReadValue(velocity);
     name = stream->ReadString();
@@ -223,7 +223,7 @@ void CEffectSoundSeq::Load(CStream* stream) {
     stream->ReadValue(noFade);
 }
 
-void CEffectSoundSeq::Save(CStream* stream) {
+void EffectSoundSeq::Save(ByteStream* stream) {
     stream->WriteValue(localPosition);
     stream->WriteValue(velocity);
     stream->WriteString(name);
@@ -235,10 +235,10 @@ void CEffectSoundSeq::Save(CStream* stream) {
     stream->WriteValue(noFade);
 }
 
-double CEffectSoundSeq::Radius() { return radius; }
+double EffectSoundSeq::Radius() { return radius; }
 
 
-void CEffectAmbientSound::Reset() {
+void EffectAmbientSound::Reset() {
     ClearBase(this);
     if (sound != -1) sound = g_clientWorld.sounds->RemoveEmitter(sound);
     names.clear();
@@ -248,7 +248,7 @@ void CEffectAmbientSound::Reset() {
     maxInterval = 0;
 }
 
-void CEffectAmbientSound::Start(int update) {
+void EffectAmbientSound::Start(int update) {
     if (update == 0) {
         sound = g_clientWorld.sounds->AddEmitter(&names, &localPosition.x, volume, radius,
                              minInterval, maxInterval);
@@ -258,7 +258,7 @@ void CEffectAmbientSound::Start(int update) {
                 maxInterval);
 }
 
-int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
+int EffectAmbientSound::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
     // The count is read into the low byte of the argument slot that held `field`.
@@ -276,7 +276,7 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void CEffectAmbientSound::Pack(DeltaField* field) {
+void EffectAmbientSound::Pack(DeltaField* field) {
     Vector3 position = localPosition;
     field->WritePosition(position);
     std::uint8_t count = static_cast<std::uint8_t>(names.size());
@@ -290,7 +290,7 @@ void CEffectAmbientSound::Pack(DeltaField* field) {
     field->WriteDelta(&value, 4);
 }
 
-void CEffectAmbientSound::Load(CStream* stream) {
+void EffectAmbientSound::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
     ReadSavedStrings(&names, stream);
     stream->ReadValue(volume);
@@ -299,7 +299,7 @@ void CEffectAmbientSound::Load(CStream* stream) {
     stream->ReadValue(maxInterval);
 }
 
-void CEffectAmbientSound::Save(CStream* stream) {
+void EffectAmbientSound::Save(ByteStream* stream) {
     stream->WriteValue(localPosition);
     int count = static_cast<int>(names.size());
     stream->WriteValue(count);
@@ -310,4 +310,4 @@ void CEffectAmbientSound::Save(CStream* stream) {
     stream->WriteValue(maxInterval);
 }
 
-double CEffectAmbientSound::Radius() { return radius; }
+double EffectAmbientSound::Radius() { return radius; }

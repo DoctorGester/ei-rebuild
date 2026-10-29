@@ -19,18 +19,18 @@ namespace net {
 
 namespace {
 
-void WriteDword(CStream* stream, std::uint32_t* scratch, std::uint32_t value) {
+void WriteDword(ByteStream* stream, std::uint32_t* scratch, std::uint32_t value) {
     *scratch = value;
     stream->Write(scratch, 4u);
 }
-CMemoryStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream; }
+MemoryStream* StreamOf(RefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream; }
 
 // The first element in [first, last) whose member stream holds the same bytes as
 // `message`'s (sizes, then a byte compare).
-std::vector<HeldRef<CRefObject>>::iterator FindSameMessage(std::vector<HeldRef<CRefObject>>::iterator first, std::vector<HeldRef<CRefObject>>::iterator last, PartyMemberMessage* message) {
-    CStream* stream = &message->stream;
+std::vector<HeldRef<RefObject>>::iterator FindSameMessage(std::vector<HeldRef<RefObject>>::iterator first, std::vector<HeldRef<RefObject>>::iterator last, PartyMemberMessage* message) {
+    ByteStream* stream = &message->stream;
     for (; first != last; ++first) {
-        CMemoryStream* element = StreamOf(first->Get());
+        MemoryStream* element = StreamOf(first->Get());
         std::uint32_t size = element->Size();
         if (stream->Size() != size) continue;
         const void* a = element->data.data();
@@ -53,16 +53,16 @@ void ClientPublishParty(ClientSession* self) {
     auto state = [self] { return self->party.Get(); };
     if (!state()) return;
     // A copy of the old messages, then the list emptied.
-    std::vector<HeldRef<CRefObject>> previous = state()->members;
+    std::vector<HeldRef<RefObject>> previous = state()->members;
     state()->members.clear();
     state()->money = static_cast<std::uint32_t>(party->money);
 
     std::uint32_t scratch = 0;
     for (int i = 0; i < std::ssize(party->items); ++i) {
         auto* message = NewCounted<PartyMemberMessage>();
-        HeldRef<CRefObject> ref(message);
-        CStream* stream = &message->stream;
-        CItem* item = party->items[i];
+        HeldRef<RefObject> ref(message);
+        ByteStream* stream = &message->stream;
+        Item* item = party->items[i];
         stream->Clear();
         CSpell* spell = item->spell;
         if (spell) {
@@ -100,7 +100,7 @@ PartyMessage* ClientFindParty(ClientSession* self) {
     for (auto& node : self->offers) {
         auto* other = node.Get();
         if (other->partner.Get() != ours->player.Get() || other->player.Get() != ours->partner.Get()) continue;
-        if (other && !(other->flags7 & CRefObject::kDetached)) return other;
+        if (other && !(other->flags7 & RefObject::kDetached)) return other;
     }
     return nullptr;
 }
@@ -123,17 +123,17 @@ void ClientApplyParty(ClientSession* self) {
     if (!remote) return;
     auto count = [remote] { return static_cast<std::uint32_t>(remote->members.size()); };
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CRefObject* message = remote->members[i].Get();
-        if (!message || (message->flags7 & CRefObject::kDetached)) return;
+        RefObject* message = remote->members[i].Get();
+        if (!message || (message->flags7 & RefObject::kDetached)) return;
         if (StreamOf(message)->Size() == 0) return;
     }
 
     CParty* party = self->parties[1].Get();
     party->Clear(1, 0);
     party->money = static_cast<int>(remote->money);
-    std::vector<CEngineObject*> items;   // each holds a reference
+    std::vector<EngineObject*> items;   // each holds a reference
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CStream* stream = StreamOf(remote->members[i].Get());
+        ByteStream* stream = StreamOf(remote->members[i].Get());
         stream->Seek(0);
         std::int32_t id;
         std::uint32_t type, packedId;
@@ -141,25 +141,25 @@ void ClientApplyParty(ClientSession* self) {
         if (id > 0) {
             stream->ReadValue(type);
             stream->ReadValue(packedId);
-            CEngineObject* spell = party->SpellManager()->CreateObject(static_cast<int>(type), id);
+            EngineObject* spell = party->SpellManager()->CreateObject(static_cast<int>(type), id);
             spell->prototypeId = packedId;
             spell->Load(stream);
         }
         stream->ReadValue(type);
         stream->ReadValue(packedId);
-        CEngineObject* item = party->ItemFactory()->CreateObject(static_cast<int>(type), -1);
+        EngineObject* item = party->ItemFactory()->CreateObject(static_cast<int>(type), -1);
         item->prototypeId = packedId;
         item->Load(stream);
         if (item) item->AddRef();
         items.push_back(item);
     }
-    for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(static_cast<CItem*>(items[i]), 1, 1);
+    for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(static_cast<Item*>(items[i]), 1, 1);
 
     std::int32_t revision = static_cast<std::int32_t>(remote->revision);
     std::list<TradeRecord>& records = self->tradeRecords;
     for (auto record = records.begin(); record != records.end();)
         record = static_cast<std::int32_t>(record->acceptedRevision) < revision ? records.erase(record) : std::next(record);
-    for (CEngineObject* item : items)
+    for (EngineObject* item : items)
         if (item) item->Release();
 }
 

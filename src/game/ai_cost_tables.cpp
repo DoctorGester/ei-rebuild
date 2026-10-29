@@ -1,4 +1,4 @@
-// The three passability cost tables of CAIMap, 16 ints each indexed by a cell's passability nibble (entry 0,
+// The three passability cost tables of AIMap, 16 ints each indexed by a cell's passability nibble (entry 0,
 // impassable, is -1): the per-nibble costs, a flat 0x400, and the step costs (PassCostContext and
 // SetStepSpeeds use them). See ai_map.h.
 #include "ai_map.h"
@@ -12,7 +12,7 @@ constexpr int kStepCosts[16] = {-1,    0x200, 0x266, 0x2CC, 0x266, 0x2CC, 0x333,
                                 0x333, 0x399, 0x400, 0x333, 0x399, 0x400, 0x400, 0x4CC};
 } // namespace
 
-void InitCostTables(CAIMap* map) {
+void InitCostTables(AIMap* map) {
     int* costs = map->passCosts;
     int* flat = map->passCostsAlt;
     int* steps = map->stepCosts;

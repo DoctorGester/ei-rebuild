@@ -1,4 +1,4 @@
-// CTransformObject's rotation helpers: the world matrix, turning the local rotation towards a direction
+// TransformObject's rotation helpers: the world matrix, turning the local rotation towards a direction
 // (three variants), rotating about an axis and setting a heading. See core_transform.h and
 // docs/notes/core.md. Floating point follows the game's x87 code: `double` for values the game keeps on the
 // FPU stack, static_cast<float> where it stores to a float (including the floats it pushes to the Vector3
@@ -90,7 +90,7 @@ float AngleBetween(const Vector3& a, const Vector3& b) {
 
 // The world transform as a 4x4 matrix (rows are the rotated axes, the last row the world
 // position). The game keeps 2x, xx, xy and zz on the FPU stack and rounds the other products.
-void CTransformObject::WorldMatrix(float* m) const {
+void TransformObject::WorldMatrix(float* m) const {
     std::memset(m, 0, 16 * sizeof(float));
     m[15] = 1.0f;
     m[10] = 1.0f;
@@ -127,7 +127,7 @@ void CTransformObject::WorldMatrix(float* m) const {
 // Turns the local rotation a tenth of the way from its down axis (minus the rotated Y
 // axis) towards `target` (normalised here): about down x target, by acos(down . target) / 10.
 // No turn when the axis is shorter than 1e-5.
-void CTransformObject::TiltTowards(const Vector3& target) {
+void TransformObject::TiltTowards(const Vector3& target) {
     const Quaternion& q = localRotation;
     Vector3 v;
     v = target;
@@ -159,7 +159,7 @@ void CTransformObject::TiltTowards(const Vector3& target) {
 // Turns the local rotation so that its forward axis (rotated Z) points along `target`:
 // about forward x target (normalised), by acos(forward . target). No turn when the axis is
 // shorter than 1e-5.
-void CTransformObject::TurnTowards(const Vector3& target) {
+void TransformObject::TurnTowards(const Vector3& target) {
     const Quaternion& q = localRotation;
     Vector3 v;
     v = target;
@@ -193,7 +193,7 @@ void CTransformObject::TurnTowards(const Vector3& target) {
 
 // Turns the down axis (minus the rotated Y axis) about the forward axis towards `dir`
 // (its part across the forward axis): Rotate(down x toward, acos(down . toward)).
-void CTransformObject::RollTowards(const Vector3& dir) {
+void TransformObject::RollTowards(const Vector3& dir) {
     const Quaternion& q = localRotation;
     Vector3 down = MakeVector(static_cast<float>(-UpX(q)), static_cast<float>(-D(static_cast<float>(UpY(q)))), static_cast<float>(-UpZ(q)));
     Vector3 forward = MakeVector(static_cast<float>(ForwardX(q)), static_cast<float>(ForwardY(q)), static_cast<float>(ForwardZ(q)));
@@ -209,7 +209,7 @@ void CTransformObject::RollTowards(const Vector3& dir) {
     Rotate(axis, angle);
 }
 
-void CTransformObject::Rotate(const Vector3& axis, float angle) {
+void TransformObject::Rotate(const Vector3& axis, float angle) {
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, axis);
     Quaternion& q = localRotation;
@@ -225,7 +225,7 @@ void CTransformObject::Rotate(const Vector3& axis, float angle) {
 
 // As RollTowards with the up axis (rotated Y) negated once more, so the up axis turns towards `dir`; an angle
 // above pi becomes 2 pi - angle about the opposite axis, and `reduced` scales the angle by 0.4.
-void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
+void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     const Quaternion& q = localRotation;
     Vector3 up = MakeVector(static_cast<float>(UpX(q)), static_cast<float>(UpY(q)), static_cast<float>(UpZ(q)));
     Vector3 from = MakeVector(static_cast<float>(-D(up.x)), static_cast<float>(-D(up.y)), static_cast<float>(-D(up.z)));
@@ -249,7 +249,7 @@ void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
 }
 
 // The local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the heading offset, pi / 2).
-void CTransformObject::SetHeading(const float* dir) {
+void TransformObject::SetHeading(const float* dir) {
     Vector3 axis = MakeVector(0.0f, 0.0f, 1.0f);
     Quaternion heading;
     const Quaternion* r = heading.SetAxisAngle(axis, static_cast<float>(x87::fpatan(dir[1], dir[0]) + D(kHeadingOffset)));

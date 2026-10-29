@@ -31,7 +31,7 @@ template <std::floating_point T> float Float(T) = delete;
 
 // Animation state: rescale to x, y, z.
 void AnimationSetScale(void* state, float x, float y, float z) {
-    static_cast<CFigureAnimationState*>(state)->Rescale(x, y, z);
+    static_cast<FigureAnimationState*>(state)->Rescale(x, y, z);
 }
 
 // The original's branch-free selects: the stored candidate `v` replaces the bound when the comparison sets C0
@@ -49,10 +49,10 @@ struct BoxBits {
 };
 
 // (x * x + y * y) + z * z of the part's position, unrounded.
-double DistanceSquared(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition); }
+double DistanceSquared(const FigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition); }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
-void AddPlacedPart(BoxBits& box, const CFigureMesh* p) {
+void AddPlacedPart(BoxBits& box, const FigureMesh* p) {
     box.low[0] = KeepLower(box.low[0], Sum3(p->box.bounds.boxMin.x, p->localPosition.x, p->box.bounds.center.x));
     box.high[0] = KeepHigher(box.high[0], Sum3(p->box.bounds.boxMax.x, p->localPosition.x, p->box.bounds.center.x));
     box.low[1] = KeepLower(box.low[1], Sum3(p->box.bounds.boxMin.y, p->localPosition.y, p->box.bounds.center.y));
@@ -66,7 +66,7 @@ void AddPlacedPart(BoxBits& box, const CFigureMesh* p) {
 void CObject3D::ComputeBounds() {
     BoxBits box;
     for (int i = 0; i < std::ssize(parts); ++i) {
-        CFigureMesh* part = parts[i];
+        FigureMesh* part = parts[i];
         if (DistanceSquared(part) > kNearSquared) continue;   // NaN distances count as near
         AddPlacedPart(box, part);
     }
@@ -107,12 +107,12 @@ void CObject3D::SetFigureScale(const float* newScale) {
     if (scale.x == newScale[0] && scale.y == newScale[1] && scale.z == newScale[2])
         return;
     lib::LoadBytes(scale, newScale);
-    if (CLinkMesh* current = figure) {
-        CLinkFigureLoader* loader = WorldContext()->FigureLoader();
-        CLinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
+    if (LinkMesh* current = figure) {
+        LinkFigureLoader* loader = WorldContext()->FigureLoader();
+        LinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
         figure.Assign(rebuilt);
         for (int i = 0; i < std::ssize(parts); ++i) {
-            CFigureMesh* part = parts[i];
+            FigureMesh* part = parts[i];
             const char* pieceName = part->GetName();
             std::map<std::string, LinkPartHeader>::const_iterator piece;
             {

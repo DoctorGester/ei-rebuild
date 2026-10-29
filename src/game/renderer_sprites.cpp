@@ -125,7 +125,7 @@ int SortBackToFront() {
 }
 
 // The batch's triangle list through the device object (fogged by distance when it says so). True.
-bool Draw(CSceneRenderer* renderer, int vertexCount, int indexCount) {
+bool Draw(SceneRenderer* renderer, int vertexCount, int indexCount) {
     return renderer->device->DrawTlTriangles(g_corners.data(), vertexCount, g_indices.data(), indexCount) != 0;
 }
 
@@ -136,7 +136,7 @@ void SetTriangle(std::uint16_t* tri, int a, int b, int c) {
 }
 
 // Two triangles per sprite, (0, 2, 1) and (0, 3, 2); the GPU clips the ones that cross the screen's edges.
-bool DrawQuads(CSceneRenderer* renderer, int sprites) {
+bool DrawQuads(SceneRenderer* renderer, int sprites) {
     g_indices.resize(static_cast<std::size_t>(sprites) * 6);
     std::uint16_t* tri = g_indices.data();
     for (int i = 0; i < sprites * 4; i += 4, tri += 6) {
@@ -204,12 +204,12 @@ void SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord**
 // With `additive` the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and restored).
 // The sprites are projected with the top of the clip stack. Returns 1, or 0 when a draw fails (the blend is
 // then left as it is).
-int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* spriteArray) {
+int SceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* spriteArray) {
     const char additive = static_cast<char>(additiveArgument);   // only its low byte counts
     const auto* points = static_cast<const std::vector<SpritePoint>*>(pointArray);
     const auto* sprites = static_cast<const std::vector<Sprite>*>(spriteArray);
-    const CTransformPipeline* currentPipeline = pipeline;
-    const Matrix4& clip = *currentPipeline->Top(CTransformPipeline::kClipStack);
+    const TransformPipeline* currentPipeline = pipeline;
+    const Matrix4& clip = *currentPipeline->Top(TransformPipeline::kClipStack);
 
     const SpritePoint* point = points->data();
     int remaining = std::ssize(*points);

@@ -19,12 +19,12 @@ int g_lightningNoiseLoaded = /*007A9694*/ {};
 
 // ---- The lightning manager --------------------------------------------------------------------------
 
-void CLightningManager::Create() {
+void LightningManager::Create() {
     if (!g_lightningNoiseLoaded) {
         g_lightningNoiseLoaded = 1;
         LoadLightningNoise();
     }
-    CBaseManager::Create();
+    BaseManager::Create();
 }
 
 // ---- CUnit slots ----------------------------------------------------------------------------
@@ -34,7 +34,7 @@ void CUnit::ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) {
 }
 
 // Nothing reads the result.
-int CUnit::ForgetObject(CEngineObject* object) {
+int CUnit::ForgetObject(EngineObject* object) {
     Controller()->ObjectDeleted(object);
     return 0;
 }

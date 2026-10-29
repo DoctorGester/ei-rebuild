@@ -87,7 +87,7 @@ float EffectValueField(const MapEffect& effect) {
 }
 
 UnitVitals* ServerVitals(CUnit* unit) {
-    CMapObjectServer* server = unit->ServerCompanion();
+    MapObjectServer* server = unit->ServerCompanion();
     return server->GetClassId() == ClassId::MapObjectServer ? &server->vitals : nullptr;
 }
 

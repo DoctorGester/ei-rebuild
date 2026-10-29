@@ -54,14 +54,14 @@ constexpr int kAllodIsland = 3;        // the island model
 // A zone of the map database (MapRecord): its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
 
-void SetWhite(CUiMesh* sprite) {
+void SetWhite(UiMesh* sprite) {
     for (float& tint : sprite->tint) tint = 1.0f;
 }
 
 // The window's helpers bound to its fields.
 class MapBuilder {
 public:
-    explicit MapBuilder(CGlobalMap* newMap) : map(newMap) {}
+    explicit MapBuilder(GlobalMap* newMap) : map(newMap) {}
 
     Vector3 Centre() const {
         float depth = map->depth;
@@ -73,19 +73,19 @@ public:
         Vector3 centre = Centre();
         return centre + map->turn.Rotate(local);
     }
-    void Turn(CUiMesh* sprite) const { sprite->localRotation = map->turn; }
+    void Turn(UiMesh* sprite) const { sprite->localRotation = map->turn; }
     CTexture* Texture(int index) const { return map->objects[index]; }
 
-    CUiMesh* Marker(const std::string& figure, const Vector3& local, float scale) const {
-        CUiMesh* sprite = map->AddSprite(figure);
+    UiMesh* Marker(const std::string& figure, const Vector3& local, float scale) const {
+        UiMesh* sprite = map->AddSprite(figure);
         sprite->localPosition = ModelPoint(local);
         sprite->texture = Texture(1);
         sprite->SetScale(scale);
         Turn(sprite);
         return sprite;
     }
-    CUiMesh* Layer(std::uint32_t v0, std::uint32_t u1, std::uint32_t v1, float height) const {
-        CUiMesh* sprite = map->AddBlankSprite();
+    UiMesh* Layer(std::uint32_t v0, std::uint32_t u1, std::uint32_t v1, float height) const {
+        UiMesh* sprite = map->AddBlankSprite();
         sprite->SetRectangle(25.0f, 100.0f, 700.0f, 0.0f, 100.0f, 600.0f, 0, static_cast<int>(v0),
                              static_cast<int>(u1), static_cast<int>(v1));
         sprite->texture = Texture(4);
@@ -95,17 +95,17 @@ public:
     }
 
 private:
-    CGlobalMap* map;
+    GlobalMap* map;
 };
 
-void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, int tip) {
-    CUiRegion* region = window->AddRegion();
+void AddTipRegion(UiWindow* window, int left, int top, int right, int bottom, int tip) {
+    UiRegion* region = window->AddRegion();
     region->SetRect(left, top, right, bottom);
     region->SetTip(tip);
 }
 
 // A link marker's region: 40 x 35 round the marker's place on the screen.
-void SetMarkerRegion(CUiRegion* region, const CUiMesh* sprite) {
+void SetMarkerRegion(UiRegion* region, const UiMesh* sprite) {
     float x, y, depth;
     sprite->GetPlacement(&x, &y, &depth);
     int bottom = static_cast<int>(y + 10.0f);
@@ -130,7 +130,7 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
 }
 
 // A layer's texture frame: the fractional part of time * rate (stored).
-void SetFrameFraction(CEngineObject* layer, float time, float rate) {
+void SetFrameFraction(EngineObject* layer, float time, float rate) {
     float v = time * rate;
     float fraction = v - static_cast<float>(static_cast<int>(v));
     AsUiMesh(layer)->textureOffsetU = fraction;
@@ -140,7 +140,7 @@ void SetFrameFraction(CEngineObject* layer, float time, float rate) {
 
 // --- Create ---------------------------------------------------------------------------
 
-void CGlobalMap::CreateScreen() {
+void GlobalMap::CreateScreen() {
     // Arrived from a zone (not loaded, not back from the camp): saved to "saveb" once built.
     bool autosave = false;
     if (g_saveStream.size != 0)
@@ -171,7 +171,7 @@ void CGlobalMap::CreateScreen() {
         Vector3 above = {position.x, position.y, position.z + 2.0f};
         builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
         builder.Marker(allod->otherNames[kAllodBall], position, 0.8f);
-        CUiMesh* island = AddSprite(allod->otherNames[kAllodIsland]);
+        UiMesh* island = AddSprite(allod->otherNames[kAllodIsland]);
         island->texture = builder.Texture(2);
         island->Place(centreX, centreY, depth);
         builder.Turn(island);
@@ -196,7 +196,7 @@ void CGlobalMap::CreateScreen() {
         entry.state = static_cast<int>(LocalPlayerVariable(variable));
         entry.name = zone->name;
         entry.title = PlaceTitle("zone ", zone->name);
-        CUiMesh* sprite = AddSprite(zone->figure);
+        UiMesh* sprite = AddSprite(zone->figure);
         sprite->Place(centreX, centreY, depth);
         builder.Turn(sprite);
     }
@@ -214,7 +214,7 @@ void CGlobalMap::CreateScreen() {
             quest.zone = i;
             quest.title = PlaceTitle("quest ", parts[2]);
             quest.position = MapPosition("#quest ", parts[2], false).value_or(Vector3{});
-            CUiMesh* sprite = AddSprite(allod->otherNames[kAllodQuestMarker]);
+            UiMesh* sprite = AddSprite(allod->otherNames[kAllodQuestMarker]);
             sprite->localPosition = builder.ModelPoint(quest.position);
             sprite->texture = builder.Texture(1);
             sprite->SetScale(0.3f);
@@ -241,7 +241,7 @@ void CGlobalMap::CreateScreen() {
             link.name = way->name;
             link.title = PlaceTitle("zone ", way->name);
             link.position = MapPosition("#zone ", way->name, true).value_or(Vector3{});
-            CUiMesh* sprite = AddSprite(way->figure);
+            UiMesh* sprite = AddSprite(way->figure);
             sprite->localPosition = builder.ModelPoint(link.position);
             sprite->texture = builder.Texture(1);
             sprite->SetScale(0.3f);
@@ -254,46 +254,46 @@ void CGlobalMap::CreateScreen() {
     // Three plain layers over the model (shadow, haze, glow), in the weather's colours (the original first gave
     // them 0xA08200C8, 0xF0B400FF and 0x4BFFFFFF; its weather table replaced them before the first frame).
     {
-        CUiMesh* shadow = builder.Layer(0x100, 0x100, 0, -0.5f);
+        UiMesh* shadow = builder.Layer(0x100, 0x100, 0, -0.5f);
         shadow->flatColour = 0x649B00E1;
         shadow->textureOffsetV = 0.3f;
         shadow->flags |= FigureMeshFlag::Flat;
-        CUiMesh* haze = builder.Layer(0, 0x100, 0x100, 0.7f);
+        UiMesh* haze = builder.Layer(0, 0x100, 0x100, 0.7f);
         haze->flatColour = 0x6E9B007D;
         haze->textureOffsetV = 0.6f;
         haze->flags |= FigureMeshFlag::Flat;
-        CUiMesh* glow = builder.Layer(0, 0x100, 0x100, 2.0f);
+        UiMesh* glow = builder.Layer(0, 0x100, 0x100, 2.0f);
         glow->flatColour = 0xB9690AC3;
         glow->visible = false;
         glow->flags |= FigureMeshFlag::Flat;
     }
 
     {
-        backdrop = new CUiSurface(ui, 0, 0, 400, 300, SurfaceBlend::Keyed, true);
+        backdrop = new UiSurface(ui, 0, 0, 400, 300, SurfaceBlend::Keyed, true);
         backdrop->SetRect(0, 0, 800, 600);
     }
     {
-        CUiMesh* shade = AddBlankSprite();
+        UiMesh* shade = AddBlankSprite();
         shade->texture = nullptr;
         shade->flags |= FigureMeshFlag::Flat;
         shade->flatColour = 0xA0000000;
         shade->visible = false;
-        CUiMesh* picture = AddBlankSprite();
+        UiMesh* picture = AddBlankSprite();
         picture->visible = false;
         picture->texture = builder.Texture(3);
     }
     {
-        CUiSurface* info = new CUiSurface(ui, 400, 20, 780, 300, SurfaceBlend::Keyed, true);
+        UiSurface* info = new UiSurface(ui, 400, 20, 780, 300, SurfaceBlend::Keyed, true);
         AddSurface(info);
         info->Hide(false);
     }
     {
-        CUiMesh* shade = AddBlankSprite();
+        UiMesh* shade = AddBlankSprite();
         shade->SetRectangle(3.0f, 100.0f, 20.0f, 20.0f, 170.0f, 70.0f, 0, 0, 0x100, 0x100);
         shade->texture = nullptr;
         shade->flatColour = 0xA0000000;
         shade->flags |= FigureMeshFlag::Flat;
-        CUiMesh* frame = AddBlankSprite();
+        UiMesh* frame = AddBlankSprite();
         frame->SetFrame(3.0f, 100.0f, 15.0f, 15.0f, 175.0f, 75.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
         frame->texture = builder.Texture(3);
     }
@@ -308,7 +308,7 @@ void CGlobalMap::CreateScreen() {
     std::string dayText = g_clientWorld.texts->GetString("save_day");
     clock = std::format("{}  {},  {}:{:02}", dayText, day + 1, hour, minutes);
     {
-        CUiSurface* text = new CUiSurface(ui, 20, 20, 170, 70, SurfaceBlend::Keyed, true);
+        UiSurface* text = new UiSurface(ui, 20, 20, 170, 70, SurfaceBlend::Keyed, true);
         AddSurface(text);
         RECT line1 = {0, 5, 150, 25};
         text->DrawTextIn(allodTitle, &line1, 2, 0xA7D7E4, 0x25, 1);
@@ -318,15 +318,15 @@ void CGlobalMap::CreateScreen() {
 
     // The camp button (hidden with "i.nocamp" = 1) and the two turn buttons.
     {
-        CUiMesh* camp = AddBlankSprite();
+        UiMesh* camp = AddBlankSprite();
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         camp->texture = builder.Texture(3);
         noCamp = static_cast<int>(LocalPlayerVariable("i.nocamp")) == 1;
         if (noCamp) camp->visible = false;
-        CUiMesh* left = AddBlankSprite();
+        UiMesh* left = AddBlankSprite();
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
         left->texture = builder.Texture(3);
-        CUiMesh* right = AddBlankSprite();
+        UiMesh* right = AddBlankSprite();
         right->SetRectangle(3.0f, 100.0f, 737.0f, 537.0f, 785.0f, 585.0f, 0x86, 0x37, 0xB6, 0x67);
         right->texture = builder.Texture(3);
     }
@@ -346,7 +346,7 @@ void CGlobalMap::CreateScreen() {
     SelectZone(-1, false);
     GameSetWeather(0, 0.0f);   // clear
     g_clientWorld.music->Stop();
-    weather = new CGlobalMapClouds();
+    weather = new GlobalMapClouds();
     weather->Start();
     // The weather: the display's colour (the original first set 0xFF3C005A) and the clouds' ramp.
     g_sceneRenderer.fogColour = 0xFF00000A;
@@ -359,8 +359,8 @@ void CGlobalMap::CreateScreen() {
 
 // --- Update -----------------------------------------------------------------------------
 
-void CGlobalMap::Update() {
-    CUiContainer::Update();
+void GlobalMap::Update() {
+    UiContainer::Update();
     if (dragging && turning == 0) {
         POINT cursor;
         gameapi::GetCursorPos(&cursor);
@@ -391,12 +391,12 @@ void CGlobalMap::Update() {
         for (int k = 3; k < 6; ++k) builder.Turn(SceneMesh(MarkerCount() + k));
         for (int i = 0; i < std::ssize(zones); ++i) builder.Turn(Marker(i));
         for (int i = 0; i < std::ssize(quests); ++i) {
-            CUiMesh* sprite = Marker(std::ssize(zones) + i);
+            UiMesh* sprite = Marker(std::ssize(zones) + i);
             sprite->localPosition = builder.ModelPoint(quests[i].position);
             builder.Turn(sprite);
         }
         for (int i = 0; i < std::ssize(links); ++i) {
-            CUiMesh* sprite = Marker(std::ssize(zones) + std::ssize(quests) + i);
+            UiMesh* sprite = Marker(std::ssize(zones) + std::ssize(quests) + i);
             sprite->localPosition = builder.ModelPoint(links[i].position);
             builder.Turn(sprite);
             SetMarkerRegion(regions[3 + i], sprite);
@@ -422,12 +422,12 @@ void CGlobalMap::Update() {
 
 // --- Draw -------------------------------------------------------------------------------
 
-void CGlobalMap::Draw(CSceneRenderer* pass) {
+void GlobalMap::Draw(SceneRenderer* pass) {
     render::RenderState& state = render::g_renderState;
     state.blend = true;
     state.alphaTest = false;
     state.sourceBlend = render::Blend::SourceAlpha;
     state.destBlend = render::Blend::InvSourceAlpha;
     state.alphaReference = 1;
-    CUiContainer::Draw(pass);
+    UiContainer::Draw(pass);
 }

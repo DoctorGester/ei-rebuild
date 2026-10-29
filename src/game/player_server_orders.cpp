@@ -1,4 +1,4 @@
-// CPlayerServer: the last client messages: leave, the game state request, pause, casts, weapon and movement
+// PlayerServer: the last client messages: leave, the game state request, pause, casts, weapon and movement
 // style, follow and two small ones. See player_messages.h and docs/notes/objects.md ("Players").
 #include "player_messages.h"
 
@@ -31,7 +31,7 @@ constexpr int kStateJoined = 1;
 constexpr int kStateSendingCamera = 2;
 
 
-// The last digit of "reserved_02", the key of the pause announcement's text (CInterface3D::MessageText,
+// The last digit of "reserved_02", the key of the pause announcement's text (Interface3D::MessageText,
 // message 12). EI_Plugin's Pause writes it: '2' for a pause, '3' ("reserved_03") for a resume.
 void SetPauseTextDigit(std::uint8_t pause) { g_pauseMessageKey[10] = static_cast<char>('3' - pause); }
 
@@ -60,12 +60,12 @@ static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && size
 
 } // namespace
 
-int CPlayerServer::OnLeave() {
+int PlayerServer::OnLeave() {
     Leave();
     return 1;
 }
 
-int CPlayerServer::OnGameStateRequest() {
+int PlayerServer::OnGameStateRequest() {
     if (state != kStateJoined) return 0;
     CPlayer* currentPlayer = player;
     int gameState;
@@ -84,7 +84,7 @@ int CPlayerServer::OnGameStateRequest() {
     return 1;
 }
 
-int CPlayerServer::OnPause() {
+int PlayerServer::OnPause() {
     std::uint8_t pause = 0;
     g_receivedMessages.ReadValue(pause);
     net::ServerSession* server = net::g_gameServer;
@@ -93,7 +93,7 @@ int CPlayerServer::OnPause() {
     // test by the pausing player's own leader; 3 skips the announcement.
     const int mode = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) ? ei::rebirth::PluginPause() : 0;
     const bool announceResume = mode == 1 || mode == 2;
-    if (IsMultiplayerClient() && server && !(server->flags7 & CRefCounted::kDetached) && (pause || announceResume)) {
+    if (IsMultiplayerClient() && server && !(server->flags7 & RefCounted::kDetached) && (pause || announceResume)) {
         if (announceResume) SetPauseTextDigit(pause);
         int leader = server->LeaderId();
         const int own = static_cast<int>(player->Party()->members[0].unitId);
@@ -109,7 +109,7 @@ int CPlayerServer::OnPause() {
     return 1;
 }
 
-int CPlayerServer::OnCastAtObject() {
+int PlayerServer::OnCastAtObject() {
     CastAtObject message;
     g_receivedMessages.ReadValue(message);
     CPlayer* currentPlayer = player;
@@ -123,7 +123,7 @@ int CPlayerServer::OnCastAtObject() {
     return 1;
 }
 
-int CPlayerServer::OnCastAtPoint() {
+int PlayerServer::OnCastAtPoint() {
     CastAtPoint message;
     g_receivedMessages.ReadValue(message);
     CUnit* unit = player->WorldContext()->FindUnit(message.unitId);
@@ -137,7 +137,7 @@ int CPlayerServer::OnCastAtPoint() {
     return 1;
 }
 
-int CPlayerServer::OnWantedWeapon() {
+int PlayerServer::OnWantedWeapon() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
     CUnit* unit = player->WorldContext()->FindUnit(message.unitId);
@@ -145,7 +145,7 @@ int CPlayerServer::OnWantedWeapon() {
     return 1;
 }
 
-int CPlayerServer::OnMoveStyle() {
+int PlayerServer::OnMoveStyle() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
     CUnit* unit = player->WorldContext()->FindUnit(message.unitId);
@@ -153,7 +153,7 @@ int CPlayerServer::OnMoveStyle() {
     return 1;
 }
 
-int CPlayerServer::OnUnitLookup() {
+int PlayerServer::OnUnitLookup() {
     int values[2];
     g_receivedMessages.ReadValue(values[0]);
     g_receivedMessages.ReadValue(values[1]);
@@ -161,7 +161,7 @@ int CPlayerServer::OnUnitLookup() {
     return 1;
 }
 
-int CPlayerServer::OnFollow() {
+int PlayerServer::OnFollow() {
     int ids[2];   // unit, leader
     g_receivedMessages.Read(ids, 8);
     CPlayer* currentPlayer = player;
@@ -173,7 +173,7 @@ int CPlayerServer::OnFollow() {
     return 1;
 }
 
-int CPlayerServer::OnFightAtWill() {
+int PlayerServer::OnFightAtWill() {
     int objectId;
     g_receivedMessages.ReadValue(objectId);
     CUnit* unit = player->WorldContext()->FindUnit(objectId);
@@ -183,7 +183,7 @@ int CPlayerServer::OnFightAtWill() {
     return 1;
 }
 
-int CPlayerServer::OnLastPosition() {
+int PlayerServer::OnLastPosition() {
     std::uint32_t xy[2];   // bit for bit
     g_receivedMessages.Read(xy, 8);
     lastPosition.x = std::bit_cast<float>(xy[0]);

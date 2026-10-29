@@ -33,7 +33,7 @@ constexpr int kWobbleShake = 2;
 
 // --- a party member toggled ----------------------------------------------------------------------
 
-void CBattleScreen::ToggleMember(int index) {
+void BattleScreen::ToggleMember(int index) {
     auto* currentParty = &party;
     auto unitAt = [currentParty](int i) { return (*currentParty)[i]; };
     if (IsMultiplayerClient()) return;
@@ -91,7 +91,7 @@ void CBattleScreen::ToggleMember(int index) {
 
 // --- the selected members ordered at a unit ------------------------------------------------------
 
-std::vector<int> CBattleScreen::SelectedIndexes() const {
+std::vector<int> BattleScreen::SelectedIndexes() const {
     std::vector<int> indexes;
     for (int i = 0; i < std::ssize(party); ++i) {
         const CUnit* member = party[i];
@@ -100,7 +100,7 @@ std::vector<int> CBattleScreen::SelectedIndexes() const {
     return indexes;
 }
 
-void CBattleScreen::AttackUnit(CUnit* target, bool ctrl) {
+void BattleScreen::AttackUnit(CUnit* target, bool ctrl) {
     int kind = 0;
     while (kind < 6 && orderKeys[kind] == 0) ++kind;
 
@@ -114,7 +114,7 @@ void CBattleScreen::AttackUnit(CUnit* target, bool ctrl) {
     if (!units.empty()) g_clientWorld.LocalView()->SendAttack(&units, target, kind, ctrl);
 }
 
-void CBattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
+void BattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
     std::vector<CUnit*> units;
     for (int i : SelectedIndexes()) {
         units.push_back(party[i]);
@@ -125,7 +125,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
 
 // --- the pending spell or quick item used --------------------------------------------------------
 
-void CBattleScreen::UseOnUnit(CUnit* target, bool quick, bool ctrl) {
+void BattleScreen::UseOnUnit(CUnit* target, bool quick, bool ctrl) {
     for (int i : SelectedIndexes()) {
         CUnit* member = party[i];
         bool able;
@@ -143,7 +143,7 @@ void CBattleScreen::UseOnUnit(CUnit* target, bool quick, bool ctrl) {
 }
 
 // The shift below stays for the later members.
-void CBattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
+void BattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
     for (int i : SelectedIndexes()) {
         CUnit* member = party[i];
         if (member == unit) {
@@ -170,7 +170,7 @@ void CBattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
 
 // --- a unit's speech event -----------------------------------------------------------------------
 
-void CBattleScreen::Speech(int unitId, AckKind kind, char* extra) {
+void BattleScreen::Speech(int unitId, AckKind kind, char* extra) {
     CUnit* unit = UnitWithId(g_clientWorld.objectManager, unitId);
     if (!unit) return;
     const SpeechRecord* phrase = (kind == AckKind::Scenario || kind == AckKind::ScenarioTalking)
@@ -180,7 +180,7 @@ void CBattleScreen::Speech(int unitId, AckKind kind, char* extra) {
         // The phrase's text.
         std::string text;
         std::string line = UnitName(unit) + ":\n";
-        CTextManager* texts = g_clientWorld.texts;
+        TextManager* texts = g_clientWorld.texts;
         if (texts->Open(std::string("say ") + phrase->name.data())) {
             text = texts->ReadToHash();
             str::TrimRight(text, "\r\n");

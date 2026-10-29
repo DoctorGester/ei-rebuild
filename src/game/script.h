@@ -1,6 +1,6 @@
 #pragma once
 
-// The mission script engine. A mission script (*.scr text) is parsed by CScript into scripts whose conditions
+// The mission script engine. A mission script (*.scr text) is parsed by Script into scripts whose conditions
 // and commands are trees of SSCCmd nodes; each node is one built-in function or command (ScriptKeyword table)
 // whose arguments are constants, variables (ScriptBinding) or nested calls (ScriptSubCall). Values have four
 // types: 1 float, 2 string, 3 object (a counted reference to a world object), 4 group (a sorted set of object
@@ -21,11 +21,11 @@
 
 
 class CUnit;
-class CUnitServer;
-class CEffectPointLight;
+class UnitServer;
+class EffectPointLight;
 class CEffectParticle;
-class CEffectSound;
-class CEffectLightning;
+class EffectSound;
+class EffectLightning;
 
 enum ScriptType : int {
     kScriptFloat = 1,
@@ -40,13 +40,13 @@ struct ScriptObjectRef {
     // Null for anything but a unit.
     CUnit* AsUnit() const;
     // The unit's server controller (lists what the unit sees), null for non-units.
-    CUnitServer* GetUnitPerception() const;
+    UnitServer* GetUnitPerception() const;
     void ReleaseIfDeleted();
     // An object id (-1 = none), looked up in the world.
-    void Load(CStream* stream);
-    void Save(CStream* stream) const;
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
 
-    HeldRef<CEngineObject> object;
+    HeldRef<EngineObject> object;
 };
 
 // A script group: object references kept sorted, without duplicates. The set operations build the result in
@@ -54,10 +54,10 @@ struct ScriptObjectRef {
 // layout; ours sorts by object id instead, and the harness patches the original to do the same
 // (tests/verify/harness_script_order.cpp).
 struct ScriptGroup : std::vector<ScriptObjectRef> {
-    // The id order: null before every object, then CEngineObject::id (signed). World objects' ids are
-    // unique and never handed out again while an object lives (CBaseManager::NextFreeId counts up from the
+    // The id order: null before every object, then EngineObject::id (signed). World objects' ids are
+    // unique and never handed out again while an object lives (BaseManager::NextFreeId counts up from the
     // highest id), so two members never tie.
-    static bool After(const CEngineObject* x, const CEngineObject* y);
+    static bool After(const EngineObject* x, const EngineObject* y);
 
     void Union(const ScriptGroup& a, const ScriptGroup& b);
     void Difference(const ScriptGroup& a, const ScriptGroup& b);
@@ -66,45 +66,45 @@ struct ScriptGroup : std::vector<ScriptObjectRef> {
     void Sort();
     // -1 if absent.
     int IndexOf(const ScriptObjectRef& ref) const;
-    void Remove(CEngineObject* object);
+    void Remove(EngineObject* object);
     // Unless null or already present.
-    void Insert(CEngineObject* object);
+    void Insert(EngineObject* object);
     // Also empty slots.
     void RemoveDeleted();
     void InsertAll(const std::list<HeldRef<CUnit>>* list);
     // Replaces the list's contents (an AI memory list).
     void CopyToList(std::list<HeldRef<CUnit>>* list) const;
-    bool Contains(CEngineObject* object) const;
+    bool Contains(EngineObject* object) const;
     // A count and that many object ids, then sorted.
-    void Load(CStream* stream);
+    void Load(ByteStream* stream);
 };
 
 // One type's variables in a ScriptVars: the values and their names (the same count, except where a loader
 // appends values without names).
 template <typename T>
 struct ScriptNamedValues {
-    void Load(CStream* stream);
-    void Save(CStream* stream) const;
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
     // The other set's values appended, and for each of its names the name and the value with its index.
     void Append(const ScriptNamedValues<T>& other);
 
     std::vector<T> values;
     std::vector<std::string> names;
 };
-template <> void ScriptNamedValues<float>::Load(CStream* stream);
-template <> void ScriptNamedValues<std::string>::Load(CStream* stream);
-template <> void ScriptNamedValues<ScriptObjectRef>::Load(CStream* stream);
-template <> void ScriptNamedValues<ScriptGroup>::Load(CStream* stream);
-template <> void ScriptNamedValues<float>::Save(CStream* stream) const;
-template <> void ScriptNamedValues<std::string>::Save(CStream* stream) const;
-template <> void ScriptNamedValues<ScriptObjectRef>::Save(CStream* stream) const;
-template <> void ScriptNamedValues<ScriptGroup>::Save(CStream* stream) const;
+template <> void ScriptNamedValues<float>::Load(ByteStream* stream);
+template <> void ScriptNamedValues<std::string>::Load(ByteStream* stream);
+template <> void ScriptNamedValues<ScriptObjectRef>::Load(ByteStream* stream);
+template <> void ScriptNamedValues<ScriptGroup>::Load(ByteStream* stream);
+template <> void ScriptNamedValues<float>::Save(ByteStream* stream) const;
+template <> void ScriptNamedValues<std::string>::Save(ByteStream* stream) const;
+template <> void ScriptNamedValues<ScriptObjectRef>::Save(ByteStream* stream) const;
+template <> void ScriptNamedValues<ScriptGroup>::Save(ByteStream* stream) const;
 
 // A set of named script variables, one value array and one name array per type: a script's local variables
 // and the global variables (GlobalVars).
 struct ScriptVars {
     // The four kinds of variables, each as count, then per variable its value and name.
-    void Load(CStream* stream);
+    void Load(ByteStream* stream);
     void AppendFrom(const ScriptVars& other);
     // Zeroes floats, empties strings, releases objects and empties every group.
     void ResetValues();
@@ -160,7 +160,7 @@ struct ScriptArea {
 // The effects a script places in the world (CreatePointLight, CreateParticleSource, CreateFX...,
 // CreateLightning). Each holds a reference on its effect object, which is also a timed object of the world;
 // dropping one (ScriptDropEffect) removes the timed object and releases the reference.
-void ScriptDropEffect(CEngineObject* object);
+void ScriptDropEffect(EngineObject* object);
 
 // The effect object of one of them: made from a pointer it takes a reference of its own; reset, assigned over or
 // destroyed, it drops the effect. Move-only. Made and read only where the effect classes are complete
@@ -183,7 +183,7 @@ public:
     ~ScriptEffect() { reset(); }
 
     void reset() {
-        if (CEngineObject* dropped = std::exchange(object, nullptr)) ScriptDropEffect(dropped);
+        if (EngineObject* dropped = std::exchange(object, nullptr)) ScriptDropEffect(dropped);
     }
     T* get() const { return static_cast<T*>(object); }
     T* operator->() const { return get(); }
@@ -192,16 +192,16 @@ public:
     int SavedId() const { return object ? object->id : -1; }
 
 private:
-    CEngineObject* object = nullptr;
+    EngineObject* object = nullptr;
 };
 
-// A point light slot (CScript::pointLights, 256 slots); a free slot is all zero.
+// A point light slot (Script::pointLights, 256 slots); a free slot is all zero.
 struct ScriptPointLight {
     // The effect object's id (-1: none), then the fields in order.
-    void Save(CStream* stream) const;
-    void Load(CStream* stream);
+    void Save(ByteStream* stream) const;
+    void Load(ByteStream* stream);
 
-    ScriptEffect<CEffectPointLight> object;   // the light, null when the slot is free
+    ScriptEffect<EffectPointLight> object;   // the light, null when the slot is free
     int id = 0;
     int removeWhenDone = 0;     // MovePointLight: remove the light when the move ends
     int moving = 0;
@@ -212,7 +212,7 @@ struct ScriptPointLight {
 // CreateParticleSource / MoveParticleSource.
 struct ScriptParticleSource {
     // As the point light's.
-    void Save(CStream* stream) const;
+    void Save(ByteStream* stream) const;
 
     ScriptEffect<CEffectParticle> object;
     int id = 0;
@@ -227,10 +227,10 @@ struct ScriptParticleSource {
 // its countdown runs out.
 struct ScriptFxSource {
     // The name with its terminator.
-    void Save(CStream* stream) const;
-    void Load(CStream* stream);
+    void Save(ByteStream* stream) const;
+    void Load(ByteStream* stream);
 
-    ScriptEffect<CEffectSound> object;   // the current sound
+    ScriptEffect<EffectSound> object;   // the current sound
     int id = 0;
     std::string name;
     Vector3 position{};
@@ -246,9 +246,9 @@ struct ScriptFxSource {
 // CreateLightning.
 struct ScriptLightning {
     // As the point light's.
-    void Save(CStream* stream) const;
+    void Save(ByteStream* stream) const;
 
-    ScriptEffect<CEffectLightning> object;
+    ScriptEffect<EffectLightning> object;
     int id = -1;
 };
 
@@ -260,7 +260,7 @@ struct ScriptParticleType {
 };
 constexpr int kScriptParticleTypeCount = 64;
 
-class CScript;
+class Script;
 struct ScriptDecl;
 struct ScriptDefinition;
 struct ScriptRun;
@@ -275,7 +275,7 @@ struct ScriptSubCall {
     ScriptSubCall& operator=(ScriptSubCall&& other) noexcept;
     ~ScriptSubCall();
 
-    void Load(CStream* stream);
+    void Load(ByteStream* stream);
 
     int type = 0;       // ScriptType of the result
     int argIndex = 0;
@@ -288,21 +288,21 @@ class SSCCmd {
 public:
     // The object / group argument slots are left null, bound when run; the called block's id is resolved
     // like FindBlock.
-    void Load(CStream* stream);
+    void Load(ByteStream* stream);
     // Floats and strings by value, objects and groups by address.
     void SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars);
-    void Save(CStream* stream) const;
+    void Save(ByteStream* stream) const;
 
     // Evaluation: each first binds the variables (local, then global) and evaluates the nested calls into the
     // arguments (PrepareArguments), then computes the function `id` into *result.
-    void CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCall* call);
+    void CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCall* call);
     // Conditions are floats: 0 false, else true.
-    void CalcFloat(CScript* script, ScriptVars* vars, float* result);
+    void CalcFloat(Script* script, ScriptVars* vars, float* result);
     // *result is a new temporary of `script`.
-    void CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result);
-    void CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result);
+    void CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result);
+    void CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result);
 
-    void PrepareArguments(CScript* script, ScriptVars* vars);
+    void PrepareArguments(Script* script, ScriptVars* vars);
 
     // Every argument, binding and nested call dropped; id and calledScript become 0.
     void Clear();
@@ -334,7 +334,7 @@ inline ScriptSubCall::~ScriptSubCall() = default;
 // A command block the loader creates for a then-section or a For body.
 struct ScriptDecl {
     // Its id, the command count, each command.
-    void Save(CStream* stream) const;
+    void Save(ByteStream* stream) const;
 
     std::vector<SSCCmd> commands;
     int id = 0;
@@ -343,9 +343,9 @@ struct ScriptDecl {
 // One `if(...)then(...)` pair of a script definition.
 struct ScriptIfThen {
     // Two block ids resolved as FindBlock does.
-    void Load(CStream* stream);
+    void Load(ByteStream* stream);
     // Evaluates the conditions in the instance's variables; when all are nonzero, runs the commands.
-    void Run(CScript* script, ScriptDefinition* instance) const;
+    void Run(Script* script, ScriptDefinition* instance) const;
     ScriptDecl* conditions = nullptr;
     ScriptDecl* commands = nullptr;
 };
@@ -354,13 +354,13 @@ struct ScriptIfThen {
 // `index` is its "killed" flag (KillScript sets it) and its `vars` hold the call's arguments.
 struct ScriptDefinition {
     // Name and parameter string (terminators included), the if-then pairs (block ids), the variables.
-    void Save(CStream* stream) const;
+    void Save(ByteStream* stream) const;
     // A script call's arguments (all but the first float and string, which name the script) into the
     // instance's variables; FatalError when a type's count does not match.
     void BindCall(const SSCCmd* call);
     // FALSE when the name is taken.
     bool AddParameter(const std::string* name, int type);
-    // Emptied (CScript::Load before each `Script` section).
+    // Emptied (Script::Load before each `Script` section).
     void Reset();
 
     int index = 0;                      // 0 after loading
@@ -378,10 +378,10 @@ struct ScriptDefinition {
 struct ScriptRun {
     // Block id, index, ticks, sleep start, the index of its instance in g_streamedScript's instance list (-1
     // when absent), the variables.
-    void Save(CStream* stream) const;
+    void Save(ByteStream* stream) const;
     // Rebirth patches it. Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil,
     // SleepUntilIdle) or the block ends. Returns 0 when the block had already ended on entry, else 1.
-    bool Execute(CScript* script);
+    bool Execute(Script* script);
 
     ScriptDecl* block = nullptr;    // the commands
     int index = 0;                  // next command
@@ -391,31 +391,31 @@ struct ScriptRun {
     ScriptVars vars;                // a copy of the instance's variables
 };
 
-// A script's error as CScript::GetError hands it out: the text (the caller destroys it), the code and the
+// A script's error as Script::GetError hands it out: the text (the caller destroys it), the code and the
 // line.
 struct ScriptErrorInfo;
 
 // The script interpreter state passed to every evaluation. The world has two: its own and the mission script
 // the console uses.
-class CScript {
+class Script {
 public:
     // 256 zeroed point light slots, one empty temporary group and one null temporary reference, then the
     // reset (ScriptReset).
-    CScript();
+    Script();
     // The reset, then the members.
-    ~CScript();
-    CScript(const CScript&) = delete;
-    CScript& operator=(const CScript&) = delete;
+    ~Script();
+    Script(const Script&) = delete;
+    Script& operator=(const Script&) = delete;
 
     // Negative ids in the WorldScript blocks, others in the command blocks; null when absent.
     ScriptDecl* FindBlock(int id) const;
     // Reads what SaveState wrote; the areas only from stream version 0x57 on. g_streamedScript is set while
     // it runs.
-    void LoadState(CStream* stream);
+    void LoadState(ByteStream* stream);
     // Point lights, particle / FX / lightning sources, two counters, the command blocks and WorldScript
     // blocks, the definitions, the globals, the instances, the runs, the loaded flag and file counter, the
     // areas. g_streamedScript is set while it runs.
-    void SaveState(CStream* stream);
+    void SaveState(ByteStream* stream);
     void DeleteArea(int id);
     // Point lights (256 slots): create (id, x, y, z, radius, r, g, b), move (id, x, y, z, steps, remove when
     // done), delete (id).
@@ -455,11 +455,11 @@ public:
     // current token; functions consume tokens through it.
 
     // Formats the message into the error text; returns 0. Rebirth patches it.
-    static int Error(CScript* script, int line, int code, const char* format, ...);
+    static int Error(Script* script, int line, int code, const char* format, ...);
     // With a std::string among the arguments: its text is passed for the %s.
     template <class... Args>
         requires libprintf::HasString<Args...>
-    static int Error(CScript* script, int line, int code, const char* format, Args&&... args) {
+    static int Error(Script* script, int line, int code, const char* format, Args&&... args) {
         return Error(script, line, code, format, libprintf::Arg(std::forward<Args>(args))...);
     }
     // See script.md, "Lexer".
@@ -803,26 +803,26 @@ const char* KeywordName(int id);
 const ScriptKeyword* KeywordTable();
 
 // Outside For loops; keeps one empty group and one released object reference.
-void ScriptFreeTemporaries(CScript* script);
+void ScriptFreeTemporaries(Script* script);
 // When a script is loaded: the waiting runs, every instance's if-then pairs (killed instances dropped), then
 // the timed effects (FX sources, point lights, particle sources).
-void ScriptTick(CScript* script);
+void ScriptTick(Script* script);
 
 // QFinish: one declared script per objective, chaining to the next, loaded with the WorldScript started.
-void ScriptQuestFinish(CScript* script);
+void ScriptQuestFinish(Script* script);
 
 // Frees everything loaded (the point light slots stay, zeroed); error text "Unknown error", the two counters
 // -2.
-void ScriptReset(CScript* script);
+void ScriptReset(Script* script);
 
 
 // ---- Purge and zone reset ----
 // After every removal of a world object: deleted objects dropped from every variable set, then the
 // temporaries freed.
-void ScriptPurgeDeletedObjects(CScript* script);
-void ScriptDropInstancesAndRuns(CScript* script);
+void ScriptPurgeDeletedObjects(Script* script);
+void ScriptDropInstancesAndRuns(Script* script);
 // EnterZone: instances, runs and effects dropped, global values reset, each WorldScript block run again.
-void ScriptResetZone(CScript* script);
+void ScriptResetZone(Script* script);
 
 // ---- Quest construction ----
 // An objective of the quest QStart starts; QFinish turns them into a script.
@@ -834,6 +834,6 @@ struct ScriptQuestObjective {
 extern std::vector<ScriptQuestObjective> g_scriptQuestObjectives;   // script_exec_helpers.cpp
 extern std::string g_scriptQuestName;
 // The script being loaded or saved: the run loader and saver find a run's instance through it.
-inline CScript* g_streamedScript = /*007AA620*/ {nullptr};
+inline Script* g_streamedScript = /*007AA620*/ {nullptr};
 void ScriptQuestStart(const char* name);
 void ScriptQuestAddObjective(int type, const std::string& text, float value);

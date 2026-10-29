@@ -16,16 +16,16 @@ ScriptDecl* AppendBlock(std::list<ScriptDecl>* list, std::uint32_t idBits) {
 
 } // namespace
 
-ScriptDecl* CScript::NewCommandList() {
+ScriptDecl* Script::NewCommandList() {
     return AppendBlock(&blocks, 0);
 }
 
-ScriptDecl* CScript::NewWorldScript() {
+ScriptDecl* Script::NewWorldScript() {
     return AppendBlock(&worldBlocks, 0x80000000u);
 }
 
 // A linear search by id; when absent an empty area with the id is appended.
-ScriptArea* CScript::FindArea(int id) {
+ScriptArea* Script::FindArea(int id) {
     for (ScriptArea& area : areas)
         if (area.id == id) return &area;
     ScriptArea& area = areas.emplace_back();
@@ -34,6 +34,6 @@ ScriptArea* CScript::FindArea(int id) {
 }
 
 // A null reference at the end of the temporaries.
-ScriptObjectRef* CScript::NewTempObject() {
+ScriptObjectRef* Script::NewTempObject() {
     return &tempObjects.emplace_back();
 }

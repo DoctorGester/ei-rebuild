@@ -46,7 +46,7 @@ const CursorShape kShapes[] = {
 
 // Set-up. `modeTwo` picks the cursor's mode 2 (else 1); `context` and
 // `smallCursors` (low byte tested) go to the cursor's Init.
-void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors) {
+void SetUpCursors(bool modeTwo, DirectInputMouse* context, int smallCursors) {
     const bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
     g_cursor.Init(g_sceneRenderer.device, modeTwo ? 2 : 1, context, useSmall);
     for (const CursorShape& shape : kShapes)
@@ -54,7 +54,7 @@ void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors) {
     g_cursor.Start();
 }
 
-void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors) {
+void ResetCursors(bool modeTwo, DirectInputMouse* context, int smallCursors) {
     g_cursor.Shutdown();   // the drawing thread stopped, the shapes released
     SetUpCursors(modeTwo, context, smallCursors);
 }

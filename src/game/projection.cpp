@@ -25,7 +25,7 @@ Vector4 Divided(const Vector4& p) {
 // The points `pointAt(0 .. count - 1)` to clip space with `m` into `projected`, an outcode each, all to the screen
 // when none is outside any plane. Returns the verdict.
 template <typename PointAt>
-int ProjectToClip(const CTransformPipeline& pipeline, const Matrix4& m, PointAt pointAt, Vector4* projected,
+int ProjectToClip(const TransformPipeline& pipeline, const Matrix4& m, PointAt pointAt, Vector4* projected,
                   std::uint8_t* outcodes, int count) {
     ClipVerdict verdict;
     for (int i = 0; i < count; ++i) {
@@ -98,19 +98,19 @@ void ClipBounds::Fit(const VertexPacket* packets, int blocks) {
     flags |= static_cast<std::uint32_t>(BoundsFlag::Sphere | BoundsFlag::Box);
 }
 
-// ---- CTransformPipeline -----------------------------------------------------------------------------
+// ---- TransformPipeline -----------------------------------------------------------------------------
 
-void CTransformPipeline::SetViewportSize(float width, float height) {
+void TransformPipeline::SetViewportSize(float width, float height) {
     halfWidth = width * 0.5f;
     halfHeight = height * 0.5f;
 }
 
-void CTransformPipeline::SetDepthRange(float start, float end) {
+void TransformPipeline::SetDepthRange(float start, float end) {
     fogStart = start;
     fogScale = 255.0f / (end - start);
 }
 
-void CTransformPipeline::Project(const Matrix4& m, const VertexPacket* positions, Vector4* projected, int blocks) {
+void TransformPipeline::Project(const Matrix4& m, const VertexPacket* positions, Vector4* projected, int blocks) {
     for (int i = 0; i < blocks * 4; ++i) {
         const Vector3 p = PacketPoint(positions, i);
         const Vector3 transformed = TransformColumn<Sum3::XYZ>(m, p);
@@ -118,17 +118,17 @@ void CTransformPipeline::Project(const Matrix4& m, const VertexPacket* positions
     }
 }
 
-int CTransformPipeline::ProjectClipped(const Matrix4& m, const VertexPacket* positions, Vector4* projected,
+int TransformPipeline::ProjectClipped(const Matrix4& m, const VertexPacket* positions, Vector4* projected,
                                        std::uint8_t* outcodes, int blocks) const {
     return ProjectToClip(
         *this, m, [positions](int i) { return PacketPoint(positions, i); }, projected, outcodes, blocks * 4);
 }
 
-void CTransformPipeline::ProjectPoints(const Matrix4& m, const LightningPoint* points, Vector4* projected, int count) {
+void TransformPipeline::ProjectPoints(const Matrix4& m, const LightningPoint* points, Vector4* projected, int count) {
     for (int i = 0; i < count; ++i) projected[i] = Divided(ToClip(m, points[i].x, points[i].y, points[i].z));
 }
 
-int CTransformPipeline::ProjectPointsClipped(const Matrix4& m, const LightningPoint* points, Vector4* projected,
+int TransformPipeline::ProjectPointsClipped(const Matrix4& m, const LightningPoint* points, Vector4* projected,
                                              std::uint8_t* outcodes, int count) const {
     return ProjectToClip(
         *this, m, [points](int i) { return Vector3{points[i].x, points[i].y, points[i].z}; }, projected, outcodes,
@@ -137,7 +137,7 @@ int CTransformPipeline::ProjectPointsClipped(const Matrix4& m, const LightningPo
 
 // A sprite's corners lie `size` / w times the viewport's half width to either side of its centre on the screen (the
 // same number of pixels both ways), all at the centre's depth and 1 / w.
-void CTransformPipeline::ProjectSprites(const Matrix4& m, const SpritePoint* points, TLVertex* corners,
+void TransformPipeline::ProjectSprites(const Matrix4& m, const SpritePoint* points, TLVertex* corners,
                                         int count) const {
     for (int i = 0; i < count; ++i) {
         const SpritePoint& point = points[i];
@@ -155,12 +155,12 @@ void CTransformPipeline::ProjectSprites(const Matrix4& m, const SpritePoint* poi
     }
 }
 
-Vector4 CTransformPipeline::ToScreen(const Vector4& p) const {
+Vector4 TransformPipeline::ToScreen(const Vector4& p) const {
     const float rhw = 1.0f / p.w;
     return {(p.x * rhw + 1.0f) * halfWidth, (1.0f - p.y * rhw) * halfHeight, p.z * rhw, rhw};
 }
 
-void CTransformPipeline::ToScreen(TLVertex* vertices, int count) const {
+void TransformPipeline::ToScreen(TLVertex* vertices, int count) const {
     for (int i = 0; i < count; ++i) {
         TLVertex& v = vertices[i];
         const Vector4 screen = ToScreen(Vector4{v.x, v.y, v.z, v.rhw});
@@ -170,7 +170,7 @@ void CTransformPipeline::ToScreen(TLVertex* vertices, int count) const {
 
 // The depth (the camera's distance along the view) from the screen z through the projection's depth row and the
 // homogeneous row; the fog's 0..255 from the range's start, capped, and the alpha only lowered.
-void CTransformPipeline::FogVertices(TLVertex* vertices, int count) const {
+void TransformPipeline::FogVertices(TLVertex* vertices, int count) const {
     const float* p = projection.m;
     for (int i = 0; i < count; ++i) {
         TLVertex& v = vertices[i];

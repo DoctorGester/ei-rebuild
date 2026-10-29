@@ -6,7 +6,7 @@
 
 #include <list>
 
-void ItemsAndSpells::Add(CItem* item) {
+void ItemsAndSpells::Add(Item* item) {
     if (!item) return;
     items.push_back(item);
     if (CSpell* spell = item->spell) spells.push_back(spell);
@@ -25,6 +25,6 @@ ItemsAndSpells CUnit::CollectItems() {
     AddSlots(held, armor, 7);
     AddSlots(held, quickItems, 4);
     AddSlots(held, spells, 8);
-    for (CItem* item : carried) held.Add(item);
+    for (Item* item : carried) held.Add(item);
     return held;
 }

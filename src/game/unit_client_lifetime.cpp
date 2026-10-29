@@ -10,12 +10,12 @@ constexpr int kNone = -1;
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
 
 // Takes the face texture and releases it.
-void ReleaseFace(CUnitClientSpecific* self) {
+void ReleaseFace(UnitClientSpecific* self) {
     self->faceTexture.Reset();
 }
 } // namespace
 
-void CUnitClientSpecific::Create() {
+void UnitClientSpecific::Create() {
     sources[0] = nullptr;
     sources[1] = nullptr;
     sources[2] = nullptr;
@@ -44,8 +44,8 @@ void CUnitClientSpecific::Create() {
     blinks = 0;
 }
 
-void CUnitClientSpecific::Destroy() {
-    for (CParticleSource*& source : sources) {
+void UnitClientSpecific::Destroy() {
+    for (ParticleSource*& source : sources) {
         if (!source) continue;
         source->Stop();
         source->Release();
@@ -55,8 +55,8 @@ void CUnitClientSpecific::Destroy() {
     blinks = 0;
 }
 
-CUnitClientSpecific::~CUnitClientSpecific() {
-    for (CParticleSource*& source : sources) {
+UnitClientSpecific::~UnitClientSpecific() {
+    for (ParticleSource*& source : sources) {
         if (!source) continue;
         source->Stop();
         source->Release();
@@ -67,6 +67,6 @@ CUnitClientSpecific::~CUnitClientSpecific() {
     motion.steps.clear();
 }
 
-CUnitClientSpecific::CUnitClientSpecific() {
+UnitClientSpecific::UnitClientSpecific() {
     fadeIn = 1.0f;
 }

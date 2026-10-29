@@ -1,4 +1,4 @@
-// CWorldServer::LoadMap: loads a zone's map and objects (from NewZone, LoadSave,
+// WorldServer::LoadMap: loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "base_manager.h"
@@ -30,10 +30,10 @@ namespace {
 
 // The timed objects are ended (ClearState) and released, then the map is emptied (the walk stops at the
 // first empty entry).
-void EndTimedObjects(CWorldServer* world) {
+void EndTimedObjects(WorldServer* world) {
     auto& map = world->timedObjects.map;
     for (auto node = map.begin(); node != map.end() && node->second; ++node) {
-        CEngineObject* object = node->second;
+        EngineObject* object = node->second;
         object->ClearState();
         object->Release();
     }
@@ -43,8 +43,8 @@ void EndTimedObjects(CWorldServer* world) {
 
 } // namespace
 
-int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* graph, char fromSave) {
-    CAIMap* currentAiMap = &aiMap;
+int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream* graph, char fromSave) {
+    AIMap* currentAiMap = &aiMap;
     if (text::CompareIgnoringCase(mapName, map) != 0) {
         currentAiMap->Reset();
         currentAiMap->BeginRefresh();
@@ -112,7 +112,7 @@ int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* g
 
 // ---- ResetZone --------------------------------------------------------------------------------
 
-void CWorldServer::ResetZone() {
+void WorldServer::ResetZone() {
     sharedObjects.clear();
     mobFiles.clear();
     countdowns.clear();
@@ -120,7 +120,7 @@ void CWorldServer::ResetZone() {
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     projectiles.clear();
-    for (CEngineObject* object : counted)
+    for (EngineObject* object : counted)
         if (object) object->Release();
     counted.clear();
 
@@ -152,7 +152,7 @@ void CWorldServer::ResetZone() {
 
 // ---- TeardownZone -----------------------------------------------------------------------------
 
-void CWorldServer::TeardownZone() {
+void WorldServer::TeardownZone() {
     // Every player leaves (the list is walked from its start again after each one).
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player;
@@ -185,9 +185,9 @@ void CWorldServer::TeardownZone() {
 
 // ---- SendFreshObjects -------------------------------------------------------------------------
 
-void CWorldServer::SendFreshObjects() {
-    std::list<CEngineObject*> fresh;
-    CStream* header = &zoneHeader;
+void WorldServer::SendFreshObjects() {
+    std::list<EngineObject*> fresh;
+    ByteStream* header = &zoneHeader;
     header->Clear();
 
     // The map objects that are not part of the map itself: also kept in sentObjects.
@@ -203,11 +203,11 @@ void CWorldServer::SendFreshObjects() {
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
     CPlayer* temporary = players->CreateSessionPlayer();
-    CPlayerServer* state = temporary->Server();
-    std::vector<CEngineObject*> newObjects;
+    PlayerServer* state = temporary->Server();
+    std::vector<EngineObject*> newObjects;
     for (auto node = fresh.begin(); node != fresh.end();) {
         auto next = std::next(node);
-        CEngineObject* object = *node;
+        EngineObject* object = *node;
         unsigned objectId = static_cast<unsigned>(object->id);
         hash400::RemoveKey(mapObjects.map, objectId);
         objectId = static_cast<unsigned>(object->id);
@@ -225,7 +225,7 @@ void CWorldServer::SendFreshObjects() {
     fresh.clear();
 }
 
-void CWorldServer::ResetState() {
+void WorldServer::ResetState() {
     ResetZone();
     mapName = game::kEmptyText;
     diplomacy.Reset();
@@ -249,7 +249,7 @@ void CWorldServer::ResetState() {
     startPosition.z = 0.0f;
 }
 
-void CWorldServer::EnsureZone(std::string_view map, std::string_view mob) {
+void WorldServer::EnsureZone(std::string_view map, std::string_view mob) {
     if (str::Compare(mapName, map) == 0 && str::Compare(mobName, mob) == 0) return;
     NewZone(map, mob, std::nullopt);
     TeardownZone();

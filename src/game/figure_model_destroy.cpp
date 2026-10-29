@@ -7,15 +7,15 @@
 
 
 FigureModel::~FigureModel() {
-    std::unordered_map<std::string, CMappedResource*>& table = animationCache;
+    std::unordered_map<std::string, MappedResource*>& table = animationCache;
     for (auto& [name, animation] : table)
         if (animation) delete animation;
     table.clear();
 
-    static constexpr CMappedResource* FigureModel::*kArchives[3] = {&FigureModel::mesh, &FigureModel::bones,
+    static constexpr MappedResource* FigureModel::*kArchives[3] = {&FigureModel::mesh, &FigureModel::bones,
                                                                     &FigureModel::animations};
-    for (CMappedResource* FigureModel::*archive : kArchives) (this->*archive)->CloseResource();
-    for (CMappedResource* FigureModel::*archive : kArchives) delete (this->*archive);
+    for (MappedResource* FigureModel::*archive : kArchives) (this->*archive)->CloseResource();
+    for (MappedResource* FigureModel::*archive : kArchives) delete (this->*archive);
 }
 
 // The figure manager's destructor: every cached model destroyed and freed, the base's clean-up, the model map
@@ -24,5 +24,5 @@ CFigureManager::~CFigureManager() {
     for (auto& [name, model] : models) {
         delete model;
     }
-    CResourceManager::Destroy();   // the base's clean-up
+    ResourceManager::Destroy();   // the base's clean-up
 }

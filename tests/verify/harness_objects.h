@@ -21,16 +21,16 @@
 namespace harness_objects {
 
 // game.exe's objects (their addresses in game.exe 1.06).
-inline ei::verify::exe::CInterface3D* Interface() {
-    return &ei::OriginalGameData<ei::verify::exe::CInterface3D>(0x007C7D50);
+inline ei::verify::exe::Interface3D* Interface() {
+    return &ei::OriginalGameData<ei::verify::exe::Interface3D>(0x007C7D50);
 }
 inline ei::verify::exe::GameFlow* Flow() { return &ei::OriginalGameData<ei::verify::exe::GameFlow>(0x007AFE20); }
 inline ei::verify::exe::options::GameOptions* Options() {
     return &ei::OriginalGameData<ei::verify::exe::options::GameOptions>(0x0079BC70);
 }
-inline ei::verify::exe::CCursor* Cursor() { return &ei::OriginalGameData<ei::verify::exe::CCursor>(0x007C7BD8); }
-inline ei::verify::exe::CSceneRenderer* SceneRenderer() {
-    return &ei::OriginalGameData<ei::verify::exe::CSceneRenderer>(0x007AF060);
+inline ei::verify::exe::Cursor* Cursor() { return &ei::OriginalGameData<ei::verify::exe::Cursor>(0x007C7BD8); }
+inline ei::verify::exe::SceneRenderer* SceneRenderer() {
+    return &ei::OriginalGameData<ei::verify::exe::SceneRenderer>(0x007AF060);
 }
 
 // Sets one of game.exe's strings through its own CString::operator= (00700AF9: game.exe's allocator frees the old
@@ -84,7 +84,7 @@ inline void HarnessSetWaterWaves(bool on) {
 // The cursor's state the cursor check logs and compares.
 inline ei::verify::image::CursorState HarnessCursor() {
     if (ei::Standalone()) return ei::verify::image::Cursor();
-    const ei::verify::exe::CCursor* cursor = harness_objects::Cursor();
+    const ei::verify::exe::Cursor* cursor = harness_objects::Cursor();
     ei::verify::image::CursorState state;
     state.mode = cursor->mode;
     state.thread = cursor->thread != nullptr;
@@ -107,7 +107,7 @@ inline bool HarnessCloseAllPending() {
 }
 inline bool HarnessScreenFade(bool* running, float* alpha) {
     if (ei::Standalone()) return ei::verify::image::ScreenFade(running, alpha);
-    const ei::verify::exe::CScreenFade* fade = harness_objects::Interface()->fade;
+    const ei::verify::exe::ScreenFade* fade = harness_objects::Interface()->fade;
     if (!fade) return false;
     *running = fade->active != 0;
     *alpha = fade->alpha;

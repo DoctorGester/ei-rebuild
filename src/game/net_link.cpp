@@ -5,7 +5,7 @@
 #include "core_streams.h"
 #include "net_connection.h"
 #include "net_messages.h"
-#include "world.h"   // CWorldHandle (CreatePair)
+#include "world.h"   // WorldHandle (CreatePair)
 
 #include "lib/bytes.h"
 #include "lib/file_io.h"
@@ -75,20 +75,20 @@ void FileStream::Clear() { Restart(); }
 NetLink::NetLink() { recording = 0; }
 
 NetLink::NetLink(const NetLink& source)
-    : CRefObject(), recording(source.recording), skipNext(source.skipNext), record(source.record) {}
+    : RefObject(), recording(source.recording), skipNext(source.skipNext), record(source.record) {}
 
 NetLink::~NetLink() {}
 
 int NetLink::IncomingCount() { return HasIncoming() ? 1 : 0; }
 
-bool NetLink::Send(CStream*) { return true; }
+bool NetLink::Send(ByteStream*) { return true; }
 
-bool NetLink::Receive(CMemoryStream* stream) {
+bool NetLink::Receive(MemoryStream* stream) {
     Record(stream);
     return true;
 }
 
-void NetLink::Record(CStream* stream) {
+void NetLink::Record(ByteStream* stream) {
     if (!recording) return;
     if (skipNext) {
         skipNext = 0;
@@ -116,8 +116,8 @@ LoopbackLink::LoopbackLink() = default;
 // The game's queue copy is kept: each copy is a new stream of the source's size whose Read takes the source's
 // buffer, so the new stream's fresh bytes (zeros here) are read into the source (both then hold them).
 LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
-    for (const CMemoryStream& source : other.queue) {
-        CMemoryStream& copy = queue.emplace_back();
+    for (const MemoryStream& source : other.queue) {
+        MemoryStream& copy = queue.emplace_back();
         copy.SetSize(source.size);
         copy.Read(const_cast<std::uint8_t*>(source.data.data()), copy.size);
     }
@@ -127,7 +127,7 @@ LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
 // The first goes to the player's pending link; null for a null player. Without memory for the
 // second the original crashes; so does this. (The original rereads the pending link for the peers:
 // releasing the previous one does not touch it, so it is `first`.)
-LoopbackLink* LoopbackLink::CreatePair(CWorldHandle* player) {
+LoopbackLink* LoopbackLink::CreatePair(WorldHandle* player) {
     if (!player) return nullptr;
     LoopbackLink* first = net::NewCounted<LoopbackLink>();
     player->pendingLink.Assign(first);
@@ -164,7 +164,7 @@ int LoopbackLink::IncomingCount() { return static_cast<int>(queue.size()); }
 
 // A new empty stream at the end of the peer's queue takes a copy of `stream` (CopyFrom). False
 // without a live peer.
-bool LoopbackLink::Send(CStream* stream) {
+bool LoopbackLink::Send(ByteStream* stream) {
     LoopbackLink* currentPeer = peer;
     if (!IsLive(currentPeer)) return false;
     currentPeer->queue.emplace_back().CopyFrom(stream);
@@ -173,7 +173,7 @@ bool LoopbackLink::Send(CStream* stream) {
 
 // The front of the queue copied into `stream` (CopyFrom) and dropped, then recorded as the base
 // does. False when nothing is queued.
-bool LoopbackLink::Receive(CMemoryStream* stream) {
+bool LoopbackLink::Receive(MemoryStream* stream) {
     if (queue.empty()) return false;
     stream->CopyFrom(&queue.front());
     queue.pop_front();
@@ -198,23 +198,23 @@ FramedLink::FramedLink() {}
 // round: the copy's bytes are whatever the allocation held (zeros here) and the source's are overwritten with them. Kept.
 FramedLink::FramedLink(const FramedLink& other) : NetLink(other) {
     inbox.SetSize(other.inbox.size);
-    CStream* stream = &inbox;
+    ByteStream* stream = &inbox;
     stream->Read(const_cast<std::uint8_t*>(other.inbox.data.data()), inbox.size);
 }
 
 FramedLink::~FramedLink() {}
 
 void FramedLink::Append(const void* data, std::uint32_t size) {
-    CStream* currentInbox = &inbox;
+    ByteStream* currentInbox = &inbox;
     std::uint32_t end = currentInbox->Size();
     currentInbox->Seek(end);
     currentInbox->Write(data, size);
 }
 
 // The inbox is emptied only when it held anything.
-void FramedLink::TakeAll(CStream* out) {
+void FramedLink::TakeAll(ByteStream* out) {
     out->Clear();
-    CStream* currentInbox = &inbox;
+    ByteStream* currentInbox = &inbox;
     if (currentInbox->Size() == 0) return;
     const void* data = inbox.data.data();
     std::uint32_t size = currentInbox->Size();
@@ -224,7 +224,7 @@ void FramedLink::TakeAll(CStream* out) {
 
 // Whether the inbox holds a whole message (a length and that many bytes).
 bool FramedLink::HasIncoming() {
-    CStream* currentInbox = &inbox;
+    ByteStream* currentInbox = &inbox;
     if (currentInbox->Size() < 4) return false;
     currentInbox->Seek(0);
     std::uint32_t length = 0;   // the read always fills it
@@ -236,7 +236,7 @@ bool FramedLink::HasIncoming() {
 // The number of whole messages in the inbox, counted from the start; stops at a length that runs
 // past the end or is not positive.
 int FramedLink::IncomingCount() {
-    CStream* currentInbox = &inbox;
+    ByteStream* currentInbox = &inbox;
     int count = 0;
     currentInbox->Seek(0);
     for (;;) {
@@ -256,7 +256,7 @@ int FramedLink::IncomingCount() {
 
 // The message framed (its length, then its bytes, read from the start) in a stack buffer and handed to slot
 // 13; when that fails the link disconnects. False for a message over 0x7FFC bytes or a failed send.
-bool FramedLink::Send(CStream* stream) {
+bool FramedLink::Send(ByteStream* stream) {
     std::uint8_t buffer[kMaxMessage + 4];
     if (stream->Size() > kMaxMessage) return false;
     std::uint32_t size = stream->Size();
@@ -272,8 +272,8 @@ bool FramedLink::Send(CStream* stream) {
 
 // The first message's bytes into `stream` (a memory stream, resized to them), the rest of the inbox
 // moved to its start. False when no whole message is there.
-bool FramedLink::Receive(CMemoryStream* stream) {
-    CStream* currentInbox = &inbox;
+bool FramedLink::Receive(MemoryStream* stream) {
+    ByteStream* currentInbox = &inbox;
     std::uint32_t length = 0;
     currentInbox->Seek(0);
     currentInbox->ReadValue(length);
@@ -298,12 +298,12 @@ DriverLink::DriverLink(const DriverLink& other) : FramedLink(other) {
 // The inbox's unread bytes, with the player's incoming reliable bytes after them, written back over
 // the start of that stream (when there were any and the player is alive); then the player let go.
 void DriverLink::Disconnect() {
-    CMemoryStream pending;
+    MemoryStream pending;
     TakeAll(&pending);
     if (pending.size != 0 && IsLive(player.Get())) {
         pending.Seek(pending.size);
         std::uint32_t count = BufferFill(&player.Get()->reliableIn);
-        CStream* stream = &pending;
+        ByteStream* stream = &pending;
         stream->Write(player.Get()->reliableIn.begin, count);
         player.Get()->reliableIn.Seek(0);
         BufferPut(&player.Get()->reliableIn, pending.data.data(), pending.size);

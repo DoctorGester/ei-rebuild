@@ -7,7 +7,7 @@
 
 namespace {
 // Up to three values of a [DifficultyLevels] array into `out` (copied bit for bit).
-void ReadDifficulties(CFileRegistry& reg, const char* key, float* out) {
+void ReadDifficulties(FileRegistry& reg, const char* key, float* out) {
     std::vector<std::uint32_t> values{};
     reg.GetFloatArray("DifficultyLevels", key, &values);
     int n = std::ssize(values) < 3 ? std::ssize(values) : 3;
@@ -18,7 +18,7 @@ void ReadDifficulties(CFileRegistry& reg, const char* key, float* out) {
 
 void LogicSettings::Load(const std::string& path) {
     if (loaded) return;
-    CFileRegistry reg;
+    FileRegistry reg;
     reg.Open(path);
     auto read = [&reg](const char* section, const char* key, float& value) {
         value = static_cast<float>(reg.GetFloat(section, key, value));

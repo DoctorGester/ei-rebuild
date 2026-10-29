@@ -46,15 +46,15 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 1: {
-            std::list<CItem*> none;
+            std::list<Item*> none;
             localPlayer->Party()->money += static_cast<int>(libcrt::Ftol(award->value));
             localPlayer->GiveItems(&none, 0);
             none.clear();
             break;
         }
         case 2: {
-            std::list<CItem*> items;
-            CItem* item = localPlayer->Party()->ItemFactory()->CreateItem(name);
+            std::list<Item*> items;
+            Item* item = localPlayer->Party()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
             items.push_back(item);
             localPlayer->GiveItems(&items, 0);
@@ -65,9 +65,9 @@ void ClientSession::ApplyAwards() {
             auto* item = localPlayer->Party()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
             for (auto position = localPlayer->items.begin(); position != localPlayer->items.end();) {
-                std::list<CItem*>::iterator  current = position;
+                std::list<Item*>::iterator  current = position;
                 ++position;
-                CItem* owned = *current;
+                Item* owned = *current;
                 if (!owned->IsSameAs(item)) {
                     std::int32_t id = owned->id;
                     if (id >= 0) localPlayer->TakeItem(id);
@@ -80,9 +80,9 @@ void ClientSession::ApplyAwards() {
         case 4:
             localPlayer->Party()->RemoveQuestItems();
             for (auto position = localPlayer->items.begin(); position != localPlayer->items.end();) {
-                std::list<CItem*>::iterator  current = position;
+                std::list<Item*>::iterator  current = position;
                 ++position;
-                CEngineObject* owned = *current;
+                EngineObject* owned = *current;
                 if (owned->GetClassId() == ClassId::ItemQuest) localPlayer->TakeItem(owned->id);
             }
             break;

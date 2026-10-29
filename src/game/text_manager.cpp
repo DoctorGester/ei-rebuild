@@ -27,7 +27,7 @@ std::string KeyName(const std::string& name) {
 }
 
 // Looks up `key`; when found, reads the name line and the description.
-void ReadItemText(CTextManager* texts, const std::string& key, ItemTexts* out) {
+void ReadItemText(TextManager* texts, const std::string& key, ItemTexts* out) {
     if (texts->Open(key)) {
         out->name = texts->ReadLine(true);
         out->description = texts->ReadToHash();
@@ -35,7 +35,7 @@ void ReadItemText(CTextManager* texts, const std::string& key, ItemTexts* out) {
 }
 
 // The text key and kind key of a loot item standing for a record.
-void RecordKeys(const CItemLoot* loot, std::string* key, const char** kindKey) {
+void RecordKeys(const ItemLoot* loot, std::string* key, const char** kindKey) {
     switch (loot->recordType) {
     case LootRecordType::Weapon:
         *key = "instr " + KeyName(WeaponAt(loot->index)->name);
@@ -65,12 +65,12 @@ void RecordKeys(const CItemLoot* loot, std::string* key, const char** kindKey) {
 
 } // namespace
 
-bool CTextManager::IsPastEnd(const char* p) {
+bool TextManager::IsPastEnd(const char* p) {
     int offset = static_cast<int>(p - text);
     return offset >= static_cast<int>(length);
 }
 
-std::optional<std::string> CTextManager::FindString(std::string_view name) {
+std::optional<std::string> TextManager::FindString(std::string_view name) {
     if (cursor) {
         text = nullptr;
         cursor = nullptr;
@@ -85,12 +85,12 @@ std::optional<std::string> CTextManager::FindString(std::string_view name) {
     return line;
 }
 
-std::string CTextManager::GetString(std::string_view name) {
+std::string TextManager::GetString(std::string_view name) {
     std::optional<std::string> line = FindString(name);
     return line ? std::move(*line) : std::string(name);
 }
 
-ItemTexts CTextManager::GetItemTexts(CItem* item) {
+ItemTexts TextManager::GetItemTexts(Item* item) {
     std::uint32_t materialIndex = MaterialIndex(item->prototypeId);
     std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId);
     std::string key;                 // the item's text; none: no name and description
@@ -160,7 +160,7 @@ ItemTexts CTextManager::GetItemTexts(CItem* item) {
     return texts;
 }
 
-std::string CTextManager::FormatItemName(CItem* item) {
+std::string TextManager::FormatItemName(Item* item) {
     ItemTexts texts = GetItemTexts(item);
     if (static_cast<int>(item->count) > 1) return str::Format(GetString("format_item2"), texts.kind, texts.name, item->count);
     return str::Format(GetString("format_item1"), texts.kind, texts.name);

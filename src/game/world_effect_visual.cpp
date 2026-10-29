@@ -1,4 +1,4 @@
-// The visible effects: CEffectPointLight, CEffectParticle, CEffectWall, CEffectLightning. See
+// The visible effects: EffectPointLight, CEffectParticle, EffectWall, EffectLightning. See
 // world_effect.h and docs/notes/effects.md.
 
 #include "camera.h"
@@ -103,7 +103,7 @@ void WallScorchShape(const Vector3& direction, const float* half, float* angleAn
 } // namespace
 
 
-void CEffectPointLight::Reset() {
+void EffectPointLight::Reset() {
     ClearBase(this);
     if (light != nullptr) {
         g_clientWorld.terrain->RemoveLight(light);
@@ -114,7 +114,7 @@ void CEffectPointLight::Reset() {
     lightFlags = 0;
 }
 
-bool CEffectPointLight::RunTick() {
+bool EffectPointLight::RunTick() {
     if (moving == 0) return true;
     float x = localPosition.x + velocity.x;
     float y = localPosition.y + velocity.y;
@@ -126,7 +126,7 @@ bool CEffectPointLight::RunTick() {
     return true;
 }
 
-void CEffectPointLight::Start(int update) {
+void EffectPointLight::Start(int update) {
     if (update == 0) {
         light.Assign(g_clientWorld.lightFactory->CreateLight(0x31));
         Vector3 position;
@@ -162,7 +162,7 @@ void CEffectPointLight::Start(int update) {
         LightFlags(light) |= LightFlag::Off;
 }
 
-int CEffectPointLight::Unpack(int update, DeltaField* field) {
+int EffectPointLight::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
     field->ReadFloat16x3(&color.x);
@@ -176,7 +176,7 @@ int CEffectPointLight::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void CEffectPointLight::Pack(DeltaField* field) {
+void EffectPointLight::Pack(DeltaField* field) {
     Vector3 position = localPosition;
     field->WritePosition(position);
     field->WriteFloat16x3(&color.x);
@@ -185,7 +185,7 @@ void CEffectPointLight::Pack(DeltaField* field) {
     field->WriteDelta(&lightFlags, 4);
 }
 
-void CEffectPointLight::Load(CStream* stream) {
+void EffectPointLight::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
     stream->ReadValue(color);
     stream->ReadValue(range);
@@ -195,7 +195,7 @@ void CEffectPointLight::Load(CStream* stream) {
     stream->ReadValue(lightFlags);
 }
 
-void CEffectPointLight::Save(CStream* stream) {
+void EffectPointLight::Save(ByteStream* stream) {
     stream->WriteValue(localPosition);
     stream->WriteValue(color);
     stream->WriteValue(range);
@@ -203,7 +203,7 @@ void CEffectPointLight::Save(CStream* stream) {
     stream->WriteValue(lightFlags);
 }
 
-double CEffectPointLight::LightRadius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range; }
+double EffectPointLight::LightRadius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range; }
 
 
 void CEffectParticle::Reset() {
@@ -365,7 +365,7 @@ void CEffectParticle::Attach() {
     // Nothing to do when the source already follows that object, or follows none and none is set.
     // Without a source this goes on and reads through the null pointer, like the original.
     if (source != nullptr) {
-        CEngineObject* followed = source->attachedTo;
+        EngineObject* followed = source->attachedTo;
         if (followed != nullptr) {
             if (followed->id == attachedTo) return;
         } else if (attachedTo == -1) {
@@ -379,7 +379,7 @@ void CEffectParticle::Attach() {
     if (object == nullptr) source->localPosition = saved;
 }
 
-void CEffectParticle::Load(CStream* stream) {
+void CEffectParticle::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
     stream->ReadValue(type);
     stream->ReadValue(size);
@@ -395,7 +395,7 @@ void CEffectParticle::Load(CStream* stream) {
     stream->ReadValue(typeParam);
 }
 
-void CEffectParticle::Save(CStream* stream) {
+void CEffectParticle::Save(ByteStream* stream) {
     stream->WriteValue(localPosition);
     stream->WriteValue(type);
     stream->WriteValue(size);
@@ -439,7 +439,7 @@ bool CEffectParticle::RunTick() {
 }
 
 
-void CEffectWall::Reset() {
+void EffectWall::Reset() {
     localPosition = Vector3{0.0f, 0.0f, 0.0f};
     EmptyField(&state);
     startTick = 0;
@@ -460,12 +460,12 @@ void CEffectWall::Reset() {
     direction = Vector3{0.0f, 0.0f, 0.0f};
 }
 
-void CEffectWall::SetDirection(const Vector3& newDirection) {
+void EffectWall::SetDirection(const Vector3& newDirection) {
     direction = newDirection;
     MarkChanged();
 }
 
-int CEffectWall::Unpack(int update, DeltaField* field) {
+int EffectWall::Unpack(int update, DeltaField* field) {
     if (CEffectParticle::Unpack(update, field) == 0) return 0;
     field->ReadFloat16x3(&direction.x);
     if (!SnapshotReadToEnd()) return 0;
@@ -482,7 +482,7 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void CEffectWall::Pack(DeltaField* field) {
+void EffectWall::Pack(DeltaField* field) {
     Vector3 position = localPosition;
     field->WritePosition(position);
     int value = startTick;
@@ -500,18 +500,18 @@ void CEffectWall::Pack(DeltaField* field) {
     field->WriteFloat16x3(&direction.x);
 }
 
-void CEffectWall::Load(CStream* stream) {
+void EffectWall::Load(ByteStream* stream) {
     CEffectParticle::Load(stream);
     stream->ReadValue(direction);
 }
 
-void CEffectWall::Save(CStream* stream) {
+void EffectWall::Save(ByteStream* stream) {
     CEffectParticle::Save(stream);
     stream->WriteValue(direction);
 }
 
 
-void CEffectLightning::Reset() {
+void EffectLightning::Reset() {
     ClearBase(this);
     width = 1.0f;
     from = Vector3{0.0f, 0.0f, 0.0f};
@@ -522,7 +522,7 @@ void CEffectLightning::Reset() {
     flag = 0;
 }
 
-void CEffectLightning::UpdateEnds() {
+void EffectLightning::UpdateEnds() {
     CMapObject* target = World()->ObjectWithId(toObject);
     if (target != nullptr) {
         to = target->localPosition;
@@ -535,15 +535,15 @@ void CEffectLightning::UpdateEnds() {
     }
 }
 
-void CEffectLightning::Start(int update) {
+void EffectLightning::Start(int update) {
     if (update != 0) return;
-    auto* created = g_clientWorld.listManager->CreateObjectAs<CLightning>(0, -1);
+    auto* created = g_clientWorld.listManager->CreateObjectAs<Lightning>(0, -1);
     bolt.Assign(created);
     UpdateEnds();
     bolt->Start(from, to, width, flag);
 }
 
-int CEffectLightning::Unpack(int update, DeltaField* field) {
+int EffectLightning::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
     field->ReadPosition(&from);
@@ -559,7 +559,7 @@ int CEffectLightning::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void CEffectLightning::Pack(DeltaField* field) {
+void EffectLightning::Pack(DeltaField* field) {
     Vector3 position = localPosition;
     field->WritePosition(position);
     field->WritePosition(from);
@@ -572,7 +572,7 @@ void CEffectLightning::Pack(DeltaField* field) {
     field->WriteDelta(&value, 4);
 }
 
-void CEffectLightning::SetEnds(const Vector3& newFrom, const Vector3& newTo, float newWidth) {
+void EffectLightning::SetEnds(const Vector3& newFrom, const Vector3& newTo, float newWidth) {
     from = newFrom;
     to = newTo;
     width = newWidth;
@@ -586,7 +586,7 @@ void CEffectLightning::SetEnds(const Vector3& newFrom, const Vector3& newTo, flo
     MarkChanged();
 }
 
-void CEffectLightning::Load(CStream* stream) {
+void EffectLightning::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
     stream->ReadValue(from);
     stream->ReadValue(to);
@@ -597,7 +597,7 @@ void CEffectLightning::Load(CStream* stream) {
     stream->ReadValue(flag);
 }
 
-void CEffectLightning::Save(CStream* stream) {
+void EffectLightning::Save(ByteStream* stream) {
     stream->WriteValue(localPosition);
     stream->WriteValue(from);
     stream->WriteValue(to);
@@ -607,18 +607,18 @@ void CEffectLightning::Save(CStream* stream) {
     stream->WriteValue(flag);
 }
 
-void CEffectLightning::SetObjects(int newFromObject, int newToObject) {
+void EffectLightning::SetObjects(int newFromObject, int newToObject) {
     toObject = newToObject;
     fromObject = newFromObject;
     MarkChanged();
 }
 
-void CEffectLightning::SetFlag(std::uint8_t newFlag) {
+void EffectLightning::SetFlag(std::uint8_t newFlag) {
     flag = newFlag;
     MarkChanged();
 }
 
-bool CEffectLightning::RunTick() {
+bool EffectLightning::RunTick() {
     if (bolt == nullptr || (toObject == -1 && fromObject == -1)) return true;
     UpdateEnds();
     bolt->SetEndpoints(from, to);

@@ -1,4 +1,4 @@
-// The options window's spin control (CUiSpin): constructor, texts and value. See ui.h and
+// The options window's spin control (UiSpin): constructor, texts and value. See ui.h and
 // docs/notes/items_spells.md.
 
 #include "ui.h"
@@ -19,9 +19,9 @@ const char* const kOkSound = "buttons\\messbox\\ok.wav";
 } // namespace
 
 // The window's virtuals; the input side's click and a left double click that does nothing.
-CUiSpin::CUiSpin(CInterface3D* ui, RECT newRect, const char* text) : CUiWindow(ui) {
+UiSpin::UiSpin(Interface3D* ui, RECT newRect, const char* text) : UiWindow(ui) {
     rect = newRect;
-    CUiSurface* surface = new CUiSurface(ui, &newRect, SurfaceBlend::Keyed);
+    UiSurface* surface = new UiSurface(ui, &newRect, SurfaceBlend::Keyed);
     AddSurface(surface);
     texts.push_back(text ? text : game::kEmptyText);
     changed = false;
@@ -29,22 +29,22 @@ CUiSpin::CUiSpin(CInterface3D* ui, RECT newRect, const char* text) : CUiWindow(u
     SetValue(0);
 }
 
-void CUiSpin::AddText(std::string_view text) { texts.emplace_back(text); }
+void UiSpin::AddText(std::string_view text) { texts.emplace_back(text); }
 
-bool CUiSpin::TakeChanged() {
+bool UiSpin::TakeChanged() {
     if (!changed) return false;
     changed = false;
     return true;
 }
 
-int CUiSpin::TakeValue() {
+int UiSpin::TakeValue() {
     changed = false;
     return value;
 }
 
-void CUiSpin::SetValue(int newValue) {
+void UiSpin::SetValue(int newValue) {
     value = newValue < static_cast<int>(texts.size()) ? newValue : 0;
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->Clear();
     RECT area = layout;
     gameapi::OffsetRect(&area, -layout.left, -layout.top);
@@ -55,7 +55,7 @@ void CUiSpin::SetValue(int newValue) {
 
 // --- A click steps the value ------------------------------------------------------------------------
 
-void CUiSpin::LeftDown(int, int, int) {
+void UiSpin::LeftDown(int, int, int) {
     ui->PlaySound(kOkSound);
     SetValue(value + 1);
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-// Torches (ClassName "CTorchObject", class id 0x57): a map
-// object holding its light / flame description, a CTorchObjectSpec (server_specific_manager.h,
+// Torches (ClassName "TorchObject", class id 0x57): a map
+// object holding its light / flame description, a TorchObjectSpec (server_specific_manager.h,
 // type 0x4B),. Names provisional; torch_object.cpp; Create is in
 // map_object_create.cpp. A real virtual class: the compiler makes its vtable.
 
@@ -10,24 +10,24 @@
 #include <cstddef>
 #include <cstdint>
 
-class CTorchObjectSpec;
+class TorchObjectSpec;
 
-class CTorchObject : public CMapObject {
+class TorchObject : public CMapObject {
 public:
-    CTorchObject();
+    TorchObject();
     // The spec released (the pointer kept), then the map object's destructor.
-    ~CTorchObject() override;
+    ~TorchObject() override;
 
     // The map object's Create, the spec released and cleared, 5 network fields (SetSize inlined), then
     // DeltaState::Reset (map_object_create.cpp).
     void Create() override;
     void Destroy() override { DestroyTorch(); }
     bool RunTick() override { return true; }   // no map object update
-    void Load(CStream* stream) override;                      // LoadTorch
-    void Save(CStream* stream) override;                      // SaveTorch
-    const char* ClassName() override;                         // "CTorchObject"
+    void Load(ByteStream* stream) override;                      // LoadTorch
+    void Save(ByteStream* stream) override;                      // SaveTorch
+    const char* ClassName() override;                         // "TorchObject"
     ClassId GetClassId() override;
-    void AttachObject(CEngineObject* object) override { AttachTorchObject(object); }
+    void AttachObject(EngineObject* object) override { AttachTorchObject(object); }
     bool IsSynchronised() override { return true; }
     std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }
     void WriteNetState() override { WriteTorchNetState(); }
@@ -38,12 +38,12 @@ public:
     void DestroyTorch();
     // Load / Save. The map object part, then the spec's Load / Save
     // (its Load / Save; the spec must exist).
-    void LoadTorch(CStream* stream);
-    void SaveTorch(CStream* stream);
+    void LoadTorch(ByteStream* stream);
+    void SaveTorch(ByteStream* stream);
     // A SideObjectType::Torch object (its type read before any null test) becomes
     // the spec (a reference taken, the old one released) and points back here. Anything else goes to the map
     // object's AttachObject.
-    void AttachTorchObject(CEngineObject* object);
+    void AttachTorchObject(EngineObject* object);
     // The map object's network state, then field 4: the spec's +0x20, +0x28,
     // +0x2C (through stack copies), +0x30 (16 bytes), the two colours and its name (both channels).
     void WriteTorchNetState();
@@ -52,6 +52,6 @@ public:
     // was consumed".
     std::uint32_t ReadTorchNetState(int first);
 
-    CTorchObjectSpec* spec;         // a counted reference
+    TorchObjectSpec* spec;         // a counted reference
 };
 

@@ -21,18 +21,18 @@ namespace dbfile {
 // The archive file, built in place: its constructor directly, its open and its
 // destructor body through their addresses (which Rebirth patches).
 struct LocalResource {
-    LocalResource() { new (Get()) CMappedResource(); }
-    ~LocalResource() { Get()->CMappedResource::Destroy(); }
-    CMappedResource* Get() { return storage.Get(); }
-    int Open(std::string_view path) { return Get()->CMappedResource::OpenResource(std::string(path), 0); }
-    lib::InPlace<CMappedResource> storage;
+    LocalResource() { new (Get()) MappedResource(); }
+    ~LocalResource() { Get()->MappedResource::Destroy(); }
+    MappedResource* Get() { return storage.Get(); }
+    int Open(std::string_view path) { return Get()->MappedResource::OpenResource(std::string(path), 0); }
+    lib::InPlace<MappedResource> storage;
 };
 
 // The file's bytes into `stream`, which is left at its start for reading.
-inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t size) {
+inline void FillStream(MemoryStream& stream, const void* data, std::uint32_t size) {
     stream.reading = 0;
-    stream.CMemoryStream::Write(data, size);
-    stream.CMemoryStream::Seek(0);
+    stream.MemoryStream::Write(data, size);
+    stream.MemoryStream::Seek(0);
     stream.reading = 1;
 }
 
@@ -51,7 +51,7 @@ inline int ReportNoDatabase(const std::string& folder) {
 // `serialize` (the chunk id, the vector), the archive closed; `index` then
 // files the records, and the archive is destroyed.
 template <typename Records, typename Table, typename Index>
-void LoadTable(CMemoryStream* stream, int id, void (ChunkArchive::*serialize)(int, Records*), Table* table, Index index) {
+void LoadTable(MemoryStream* stream, int id, void (ChunkArchive::*serialize)(int, Records*), Table* table, Index index) {
     ChunkArchive archive;
     archive.Open(stream, 1, 1);
     (archive.*serialize)(id, table);

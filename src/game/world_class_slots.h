@@ -6,10 +6,10 @@
 
 #include <cstdint>
 
-class CEngineObject;
+class EngineObject;
 
 // ClassName of the vtable named in the comment.
-const char* FigureClientSpecificClassName(CEngineObject*);   // "CFigureClientSpecific"
+const char* FigureClientSpecificClassName(EngineObject*);   // "CFigureClientSpecific"
 
-// The lightning and fog managers' Init is CBaseManager::Init; the particle, lightning and fog
+// The lightning and fog managers' Init is BaseManager::Init; the particle, lightning and fog
 // managers' class names and ids, the item manager's folder name are their classes' overrides.

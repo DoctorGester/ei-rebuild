@@ -1,4 +1,4 @@
-// The torch's state object, CTorchObjectSpec (server_specific_manager.h): its Create / Destroy,
+// The torch's state object, TorchObjectSpec (server_specific_manager.h): its Create / Destroy,
 // Load / Save and setter slots. The network reader stays
 // the game's own code (it applies the values through its virtual setters, which a client-side spec may override).
 #include "server_specific_manager.h"
@@ -17,7 +17,7 @@ constexpr float kDefaultValue2C = 10.0f;
 constexpr float kDefaultColour[3] = /*007AF2D0*/ {};
 } // namespace
 
-void CTorchObjectSpec::CreateSpec() {
+void TorchObjectSpec::CreateSpec() {
     torch = nullptr;
     lightKind = 0;
     name.clear();
@@ -28,12 +28,12 @@ void CTorchObjectSpec::CreateSpec() {
     std::memcpy(colours[1], kDefaultColour, sizeof(colours[1]));
 }
 
-void CTorchObjectSpec::DestroySpec() {
+void TorchObjectSpec::DestroySpec() {
     torch = nullptr;
     name.clear();
 }
 
-void CTorchObjectSpec::LoadSpec(CStream* stream) {
+void TorchObjectSpec::LoadSpec(ByteStream* stream) {
     stream->ReadValue(lightKind);
     name = stream->ReadString();
     stream->ReadValue(values[0]);
@@ -43,7 +43,7 @@ void CTorchObjectSpec::LoadSpec(CStream* stream) {
     stream->Read(colours[1], 0xC);
 }
 
-void CTorchObjectSpec::SaveSpec(CStream* stream) {
+void TorchObjectSpec::SaveSpec(ByteStream* stream) {
     stream->WriteValue(lightKind);
     stream->WriteString(name);
     std::uint32_t value;
@@ -56,24 +56,24 @@ void CTorchObjectSpec::SaveSpec(CStream* stream) {
     stream->Write(colours[1], 0xC);
 }
 
-void CTorchObjectSpec::Load(CStream* stream) { LoadSpec(stream); }
-void CTorchObjectSpec::Save(CStream* stream) { SaveSpec(stream); }
+void TorchObjectSpec::Load(ByteStream* stream) { LoadSpec(stream); }
+void TorchObjectSpec::Save(ByteStream* stream) { SaveSpec(stream); }
 
-void CTorchObjectSpec::SetLight(std::uint32_t kind, const float* colour, float value) {
+void TorchObjectSpec::SetLight(std::uint32_t kind, const float* colour, float value) {
     lightKind = kind;
     std::memcpy(colours[0], colour, sizeof(colours[0]));
     values[0] = value;
 }
 
-void CTorchObjectSpec::SetFlame(const float* colour, float value, const float* newValues) {
+void TorchObjectSpec::SetFlame(const float* colour, float value, const float* newValues) {
     std::memcpy(colours[1], colour, sizeof(colours[1]));
     values[1] = value;
     std::memcpy(&values[2], newValues, 4 * sizeof(float));
 }
 
-void CTorchObjectSpec::SetName(const char* newName) { name = newName; }
+void TorchObjectSpec::SetName(const char* newName) { name = newName; }
 
-void CTorchObjectSpec::ReadNetState(DeltaField* field) {
+void TorchObjectSpec::ReadNetState(DeltaField* field) {
     std::uint32_t kind;
     field->ReadDelta(&kind, 4);
     lightKind = kind;

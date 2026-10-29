@@ -1,4 +1,4 @@
-// CEffectSoundSeq's Start and Unpack: the sound sequence handed to the sound manager with a
+// EffectSoundSeq's Start and Unpack: the sound sequence handed to the sound manager with a
 // chooser that picks the next name. See world_effect.h and docs/notes/effects.md.
 #include "world_effect.h"
 
@@ -46,7 +46,7 @@ Chooser ChooserFor(int count, bool withFirst) {
 }
 
 bool SnapshotReadToEnd() {
-    CMemoryStream* snapshot = delta::g_readSnapshot;
+    MemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
     return position == snapshot->Size();
 }
@@ -57,8 +57,8 @@ bool SnapshotReadToEnd() {
 // An update moves the sequence through the single-sound call (SetSoundPosition with the sequence id,
 // like the original). A new start lists the first name (when not empty) and the others, and starts the
 // sequence with the chooser for their count.
-void CEffectSoundSeq::Start(int update) {
-    CSoundManager* sounds = g_clientWorld.sounds;
+void EffectSoundSeq::Start(int update) {
+    SoundManager* sounds = g_clientWorld.sounds;
     if (update != 0) {
         sounds->SetSoundPosition(sound, &localPosition.x, volume, radius);
         return;
@@ -74,7 +74,7 @@ void CEffectSoundSeq::Start(int update) {
                                  &localPosition.x, volume, radius, 0, -1, chooser);
 }
 
-int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
+int EffectSoundSeq::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
     name = field->ReadString();

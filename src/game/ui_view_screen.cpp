@@ -32,16 +32,16 @@ float TurnAngle() {
 
 } // namespace
 
-// --- CViewScreen -------------------------------------------------------------
+// --- ViewScreen -------------------------------------------------------------
 
-void CViewScreen::CreateScreen() {
+void ViewScreen::CreateScreen() {
     UiInputSide* inert = new UiInertInput(ui);
     AddInput(inert);
     AddInput(new UnitPickInput(ui));
-    AddInput(new CCameraInput(ui));
+    AddInput(new CameraInput(ui));
 
-    CCamera* camera = &g_camera;
-    camera->flags &= ~CCamera::kFree;
+    Camera* camera = &g_camera;
+    camera->flags &= ~Camera::kFree;
     Vector3 focus{30.0f, 30.0f, 0.0f};
     camera->SetFocus(focus);
     Vector3 axis{1.0f, 0.0f, 0.0f};
@@ -50,16 +50,16 @@ void CViewScreen::CreateScreen() {
     camera->localRotation.PreMultiply(turn);
 }
 
-void CViewScreen::Draw(CSceneRenderer*) {
+void ViewScreen::Draw(SceneRenderer*) {
     GameRender();
 }
 
-void CViewScreen::CloseScreen() { g_camera.flags |= CCamera::kFree; }
+void ViewScreen::CloseScreen() { g_camera.flags |= Camera::kFree; }
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 
 void UnitPickInput::LeftDown(int, int x, int y) {
-    CWorldClient* world = &g_clientWorld;
+    WorldClient* world = &g_clientWorld;
     const POINT point = {x, y};
     CUnit* unit = world->UnitAt2(&point);
     if (!ui->ctrlDown) {

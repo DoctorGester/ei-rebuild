@@ -1,4 +1,4 @@
-// CFigureMesh's own file format (reached through virtuals only): the mesh is written to a file and read
+// FigureMesh's own file format (reached through virtuals only): the mesh is written to a file and read
 // back. The name, then every array as a count and its elements, then the bounding values. See figure_mesh.h
 // and docs/notes/world.md.
 #include "figure_mesh.h"
@@ -27,7 +27,7 @@ int ReadCount(lib::File* file) {
 
 } // namespace
 
-void CFigureMesh::SaveTransform(lib::File* file) {
+void FigureMesh::SaveTransform(lib::File* file) {
     int length = static_cast<int>(name.size());
     WriteCount(file, length);
     Write(file, name.c_str(), length);
@@ -52,7 +52,7 @@ void CFigureMesh::SaveTransform(lib::File* file) {
     Write(file, &meshType, 4);
 }
 
-void CPlainFigureMesh::LoadTransform(lib::File* file) {
+void PlainFigureMesh::LoadTransform(lib::File* file) {
     BuffersChanged();
     int length = ReadCount(file);
     Read(file, str::SetLength(name, length), length);
@@ -86,9 +86,9 @@ void CPlainFigureMesh::LoadTransform(lib::File* file) {
 
 // ---- Copy and pose --------------------------------------------------------------------------------
 
-void CFigureMesh::CopyFigure(const CFigureMesh* other) {
+void FigureMesh::CopyFigure(const FigureMesh* other) {
     BuffersChanged();
-    CTransformObject::CopyTransform(*other);   // the transform base's copy
+    TransformObject::CopyTransform(*other);   // the transform base's copy
     name = other->name;
     buffers.corners = other->buffers.corners;
     buffers.cornerCount = other->buffers.cornerCount;
@@ -108,7 +108,7 @@ void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     meshType = other->meshType;
 }
 
-void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) {
+void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) {
     // The pose virtual stores the quaternion as the world rotation.
     CombineRotation(rotation);
     // The position (+0x1C) rotated by the quaternion (w, v):

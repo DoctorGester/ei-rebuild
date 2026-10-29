@@ -9,9 +9,9 @@
 
 void CManagerContext::Create() {}
 
-CItem* CManagerContext::MakeCopyOf(CItem* item) {
+Item* CManagerContext::MakeCopyOf(Item* item) {
     std::uint32_t packed = item->prototypeId;
-    CItem* copy = ItemFactory()->MakeItem(item->Kind(), packed >> 16, packed & 0xFFFF);
+    Item* copy = ItemFactory()->MakeItem(item->Kind(), packed >> 16, packed & 0xFFFF);
     item->CopyTo(copy, SpellManager());
     return copy;
 }

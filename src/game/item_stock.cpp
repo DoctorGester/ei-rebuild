@@ -125,12 +125,12 @@ std::vector<int> MagicIndices(const std::vector<Record*>& records, int (*indexOf
 // One instruction item per index: kind ItemKind::Loot with the loot prototype named `prototypeName`, no material,
 // index the index and count a random count.
 void GenerateInstructions(ItemStock* stock, const char* prototypeName, const std::vector<int>& indices, int minCount,
-                          int maxCount, std::list<CItem*>* out) {
+                          int maxCount, std::list<Item*>* out) {
     CItemConstructor* ctor = stock->party->ItemConstructor();
-    CItemManager* manager = stock->party->ItemFactory();
+    ItemManager* manager = stock->party->ItemFactory();
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
     for (int index : indices) {
-        CItem* item = ctor->BuildItem(manager, ItemKind::Loot, prototype);
+        Item* item = ctor->BuildItem(manager, ItemKind::Loot, prototype);
         AsLoot(item)->index = static_cast<std::uint32_t>(index);
         item->count = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
         item->AddRef();
@@ -147,7 +147,7 @@ void AddUnique(std::vector<T*>& list, T* record) {
 // A record section: a count, then names lower-cased and looked up in `table`. `name` and `count` are the
 // caller's, reused for every section, so a failed read leaves the previous value.
 template <typename Record>
-void LoadRecords(CStream* stream, std::string& name, unsigned& count, itemdb::NamedRecordTable<Record>& table,
+void LoadRecords(ByteStream* stream, std::string& name, unsigned& count, itemdb::NamedRecordTable<Record>& table,
                  std::vector<itemdb::ItemRecordHead*>& list) {
     stream->ReadValue(count);
     for (unsigned i = 0; i < count; ++i) {
@@ -159,7 +159,7 @@ void LoadRecords(CStream* stream, std::string& name, unsigned& count, itemdb::Na
 
 // A map section: a count, then names (as read) looked up by name.
 template <typename Record, typename Map>
-void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, std::vector<Record*>& list) {
+void LoadMapped(ByteStream* stream, std::string& name, unsigned& count, Map& map, std::vector<Record*>& list) {
     stream->ReadValue(count);
     for (unsigned i = 0; i < count; ++i) {
         name = stream->ReadString();
@@ -167,7 +167,7 @@ void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, s
     }
 }
 
-void SaveItemRecords(CStream* stream, const std::vector<itemdb::ItemRecordHead*>& list) {
+void SaveItemRecords(ByteStream* stream, const std::vector<itemdb::ItemRecordHead*>& list) {
     stream->WriteValue(static_cast<std::uint32_t>(list.size()));
     for (const itemdb::ItemRecordHead* record : list) stream->WriteString(record->name);
 }
@@ -180,9 +180,9 @@ constexpr int kScrollTries = 10;
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced. The item is created before its
 // material is drawn (BuildItem would create it after), so a cancelled item still uses up an object id.
 void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount,
-                              std::list<CItem*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes) {
+                              std::list<Item*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes) {
     CItemConstructor* ctor = party->ItemConstructor();
-    CItemManager* manager = party->ItemFactory();
+    ItemManager* manager = party->ItemFactory();
     if (spellRecipes) FillSpellMaps(*spellRecipes);
 
     int count = RandomCount(minCount, maxCount);
@@ -227,7 +227,7 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
             roll = RollItemSpell(this, prototype->Kind(), prototype, ctor->material);
             if (roll.chosen) ctor->spell = roll.chosen;
         }
-        CItem* item = ctor->EndCreateItem();
+        Item* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         item->AddRef();
         if (item->Kind() == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Potion)
@@ -241,19 +241,19 @@ void ItemStock::SetLevels(const float* base, const float* scroll) {
     std::copy_n(scroll, kSchoolCount, scrollLevels);
 }
 
-void ItemStock::GenerateWeapons(int minCount, int maxCount, std::list<CItem*>* out) {
+void ItemStock::GenerateWeapons(int minCount, int maxCount, std::list<Item*>* out) {
     GenerateItems(&weapons, minCount, maxCount, out, &g_spellDatabase.weaponRecipes);
 }
-void ItemStock::GenerateArmors(int minCount, int maxCount, std::list<CItem*>* out) {
+void ItemStock::GenerateArmors(int minCount, int maxCount, std::list<Item*>* out) {
     GenerateItems(&armors, minCount, maxCount, out, &g_spellDatabase.armorRecipes);
 }
-void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::list<CItem*>* out) {
+void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::list<Item*>* out) {
     GenerateItems(&quickItems, minCount, maxCount, out, nullptr);
 }
 
-void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>* out) {
+void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<Item*>* out) {
     CItemConstructor* ctor = party->ItemConstructor();
-    CItemManager* manager = party->ItemFactory();
+    ItemManager* manager = party->ItemFactory();
     int count = RandomCount(minCount, maxCount);
     std::vector<StockMaterial> taken;
     if (materials.size() > static_cast<std::size_t>(count)) {
@@ -265,33 +265,33 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(game::MaterialText());
     for (const StockMaterial& e : taken) {
         int stackSize = libcrt::RandBelow(e.maxCount - e.minCount + 1) + e.minCount;
-        CItem* item = ctor->BuildItem(manager, ItemKind::Loot, prototype, e.record, nullptr, stackSize);
+        Item* item = ctor->BuildItem(manager, ItemKind::Loot, prototype, e.record, nullptr, stackSize);
         item->AddRef();
         out->push_back(item);
     }
 }
 
-void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
+void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, std::list<Item*>* out) {
     GenerateInstructions(this, game::InstructionWeaponText(), ItemIndices(weapons, g_itemDatabase.weapons), minCount,
                          maxCount, out);
 }
 
-void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
+void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, std::list<Item*>* out) {
     GenerateInstructions(this, game::InstructionArmorText(), ItemIndices(armors, g_itemDatabase.armors), minCount,
                          maxCount, out);
 }
 
-void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
+void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, std::list<Item*>* out) {
     GenerateInstructions(this, game::InstructionQuickItemText(),
                          ItemIndices(quickItems, g_itemDatabase.quickItems, game::ScrollText()), minCount, maxCount,
                          out);
 }
 
-void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
+void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, std::list<Item*>* out) {
     GenerateInstructions(this, game::PrototypeText(), MagicIndices(spells, SpellIndex), minCount, maxCount, out);
 }
 
-void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
+void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::list<Item*>* out) {
     GenerateInstructions(this, game::RuneText(), MagicIndices(modifiers, ModifierIndex), minCount, maxCount, out);
 }
 
@@ -382,7 +382,7 @@ std::list<HeldRef<CSpell>> ItemStock::GenerateSpells(const float* levels, unsign
 
 // Original behaviour kept: a material entry is pushed even when its material is not found (null
 // record), and the two map lookups insert null entries for unknown names.
-void ItemStock::LoadLists(CStream* stream) {
+void ItemStock::LoadLists(ByteStream* stream) {
     std::string name;
     unsigned count = 0;
     itemdb::ItemDatabase& items = g_itemDatabase;
@@ -404,7 +404,7 @@ void ItemStock::LoadLists(CStream* stream) {
     LoadMapped(stream, name, count, g_spellDatabase.modifiers.byCode, modifiers);
 }
 
-void ItemStock::SaveLists(CStream* out) {
+void ItemStock::SaveLists(ByteStream* out) {
     SaveItemRecords(out, armors);
     SaveItemRecords(out, weapons);
     SaveItemRecords(out, quickItems);
@@ -436,9 +436,9 @@ void ItemStock::CopyMagic(const ItemStock* other) {
 }
 
 // Original bug kept: a failed build (null item) is dereferenced.
-void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
+void ItemStock::GenerateScrolls(std::list<Item*>* out) {
     CItemConstructor* ctor = party->ItemConstructor();
-    CItemManager* manager = party->ItemFactory();
+    ItemManager* manager = party->ItemFactory();
     FillSpellMaps(g_spellDatabase.scrollRecipes);
     std::list<HeldRef<CSpell>> list;
     for (int tries = 0; tries < kScrollTries; ++tries) {
@@ -448,7 +448,7 @@ void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
     }
     itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named(game::SpellContainerText());
     for (CSpell* spell : list) {
-        CItem* item = ctor->BuildItem(manager, ItemKind::Scroll, prototype, nullptr, spell);
+        Item* item = ctor->BuildItem(manager, ItemKind::Scroll, prototype, nullptr, spell);
         item->AddRef();
         out->push_back(item);
     }

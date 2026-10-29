@@ -1,4 +1,4 @@
-// The briefing / base screen's dialogue start and end (CBriefingScreen::StartDialogue /
+// The briefing / base screen's dialogue start and end (BriefingScreen::StartDialogue /
 // FinishDialogue, ui_briefing.h): who takes part, where they stand, how they get there and back.
 // See docs/notes/ui.md, "Briefing / base screen".
 #include "camera.h"
@@ -88,7 +88,7 @@ void DropMover(std::list<BriefingMover>& movers, const CUnit* person, Vector3* p
 } // namespace
 
 
-void CBriefingScreen::StartDialogue(bool newImmediate, bool remember) {
+void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     immediate = newImmediate;
     if (!leader) {
         state = 0;
@@ -110,7 +110,7 @@ void CBriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     }
     person = nullptr;
     third = nullptr;
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::string key = kBriefingSection;
     if (!texts->Open((key + topic))) {
         state = 0;
@@ -193,7 +193,7 @@ void CBriefingScreen::StartDialogue(bool newImmediate, bool remember) {
         state = kStateStarting;
 }
 
-void CBriefingScreen::ClearShownItems() {
+void BriefingScreen::ClearShownItems() {
     for (const BriefingShownItem& item : shown) {
         if (item.item) {
             RemoveObject(item.item->texture);
@@ -205,7 +205,7 @@ void CBriefingScreen::ClearShownItems() {
     shown.clear();
 }
 
-void CBriefingScreen::FinishDialogue() {
+void BriefingScreen::FinishDialogue() {
     if (voice != -1) g_clientWorld.sounds->StopSound(voice);
     voice = -1;
     g_clientWorld.music->FadeIn();
@@ -213,9 +213,9 @@ void CBriefingScreen::FinishDialogue() {
 
     for (const BriefingSpeaker& speaker : speakers) {
         CUnit* unit = speaker.unit;
-        CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
+        PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
         if (server) server->SendPair19(kEventLeaves, unit->id);
-        CUnitClientSpecific* model = unit->ClientController();
+        UnitClientSpecific* model = unit->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
         auto* serverUnit = g_serverWorld.FindUnit(unit->id);
@@ -251,12 +251,12 @@ void CBriefingScreen::FinishDialogue() {
     }
 
     state = kStateWalking;
-    CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
+    PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
     if (server) server->SendPair19(kEventEnds, leader->id);
     Vector3 at = leader->localPosition;
     if (briefingStarted) {
         g_serverWorld.GetPlayer(0)->Server()->SendPosition04(at, 0, 1);
-        g_camera.flags &= ~CCamera::kFree;
+        g_camera.flags &= ~Camera::kFree;
         briefingStarted = false;
     } else {
         g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(savedCamera, lookAt, 0);

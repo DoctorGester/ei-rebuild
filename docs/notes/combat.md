@@ -23,7 +23,7 @@ Most of the range is **CUnitServer** (class id 0x3E, vtable 0073EF38, 54 slots, 
 | 00551AE0-00552D00 | taming, side changes, hostility claims 00552D00 |
 | 00552E00-005543B0 | hostility propagation, stats / state slots (19-29, 44-49), death 00553AC0, TakeHit, heal |
 | 00554450-00556760 | order setters; attack parameters and roll; Load 00555D10 / Save 005561C0 |
-| 0055C000-00560000 | world managers ("CPlayerManager", "CEffectManager", "CItemManager", maps), World::FindUnit 0055FB00 |
+| 0055C000-00560000 | world managers ("PlayerManager", "EffectManager", "ItemManager", maps), World::FindUnit 0055FB00 |
 
 ## Facts
 
@@ -70,7 +70,7 @@ FLT_MAX (hit) or -FLT_MAX (miss): elemental hits always hit, else AttackRoll (00
 head or 10 at a limb; the hit lands unless the defender's defence (0 against a backstab) is greater. TakeHit logs ("Unit 12
 was attacked by 34 skill=... damage=... destHL=Body", plus " backstab with power=" / " called shot"; combat.txt `expect`s
 parts of it), refuses it for protected players, applies it (UnitStats::ApplyHit 005254B0), records the source at CUnit
-+0x350, recomputes stats and calls OnDamaged (00553AC0). A miss makes the victim hostile (CDiplomacy::OnAttack) and
++0x350, recomputes stats and calls OnDamaged (00553AC0). A miss makes the victim hostile (Diplomacy::OnAttack) and
 remembered. AttackParams (slot 50, 00555A00): text-key units use the weapon's stats plus the weapon skill bonus (00526C70),
 others their stats scaled by difficulty (0052E0D0); no defence with a bow or crossbow.
 
@@ -111,7 +111,7 @@ others their stats scaled by difficulty (0052E0D0); no defence with a bow or cro
   motion order (+0x3C) at the world time, starts the next animation, plays a pending fall / death animation; a blocked step
   (BlockingUnitAt) waits (a party member leading this unit, or the unit already waited for), waits behind a unit attacking /
   casting at the same target, or replans with nearby units lifted (links leading back clear both; a slower blocker with
-  reason 2, water, also replans); else CSectorMap::Move. Running party units drain "stamina": the server object's
+  reason 2, water, also replans); else SectorMap::Move. Running party units drain "stamina": the server object's
   vitals.mana (+0x14) -= vitals.maxMana (+0x18) * 0073F088; below 0: message 0x1D, walk.
 - OnDamaged(attacker, hitKind): types outside 0x32..0x36 only get flags bit 1. Living: armour spells, attacker hostile and
   remembered (005D7E90), flags 0x80000, PropagateHostility (allied units within the brain's +0x38 radius exchange claims
@@ -126,7 +126,7 @@ others their stats scaled by difficulty (0052E0D0); no defence with a bow or cro
   mode (005D3760, vtable 0073F0C4).
 - World::CreateManagers (0055EE40, from the client init 00561E50 and the server's 0058AE10) makes and references the world's
   managers at +0x38 (0xB0), +0x40 (0xBC, 005125E0), +0x3C (0xD0, 005AA070), +0x48, +0x50 (00683FF0), +0x4C (00688840),
-  +0x58 (006A5AB0), +0x54 (CResourceManager 00674D90), copies the command-line paths (0079BC90..98) to 007AF460 / 45C / 458,
+  +0x58 (006A5AB0), +0x54 (ResourceManager 00674D90), copies the command-line paths (0079BC90..98) to 007AF460 / 45C / 458,
   then IsaacRandom::Init and 006D43E0 on +0x70. CWorld::Destroy (0055F8E0, base slot 3): spell objects get slot 5
   (ClearState), managers deleted whatever their counts.
 
@@ -144,11 +144,11 @@ naked stub in verify_combat.cpp.
 combat_*, magic_trap, unit_skins, unit_lever, unit_client_path, unit_points, unit_client_models, unit_motion_tick and
 net_state have no offsets / VCalls left (the __asm / float_control blocks, magic_trap's vtable constants and unit_skins'
 Text(0x...) strings stay; next by count: unit_create_stats.cpp). map_object.h slot 44 `UseSpots(void* out, float
-userRadius)`, 55 IsDead (units return +0x274), 59 `double MoveSpeed()` (ST0); CUnitController slots 21-50 (ShowWeapon
+userRadius)`, 55 IsDead (units return +0x274), 59 `double MoveSpeed()` (ST0); UnitController slots 21-50 (ShowWeapon
 25, TamingStage 39, GetAttackParams 50, 48 empty); `SpellRecord::unknown_10` (+0x10: 1 casts without noise / slowing the
 caster); `ArmorRecord::layer` (+0xB8); tick globals 007AFFC4 / 007B00D2 / 007B01F4 / 007B2798 = WorldServer()->tick,
 aiMap.refreshUnits, Sectors(), aiMap.events; unit_skins' zone records DressedUnitRecord 0x24 / FiguredUnitRecord 0x3C, its
-figure maker call CLinkFigureLoader::LoadFigure (morph floats as floats).
+figure maker call LinkFigureLoader::LoadFigure (morph floats as floats).
 
 ## Rewritten
 
@@ -179,19 +179,19 @@ here is gone. What it covered, by file:
 - AnimationSteps is a `std::vector<AnimationStep>` with `extra` (C14za); a default step is the blank step (0xFF, 0xFF, 0,
   padding 0, duration -1, kind 0). The original's by-value lists, copy-construct-then-free locals and queues assigned twice
   are plain copies and assignments.
-- Lifetime (`combat_lifetime.cpp`, every spawn): the constructors CUnitServer 00545580, AIBrain 00545990 and the destructors
+- Lifetime (`combat_lifetime.cpp`, every spawn): the constructors UnitServer 00545580, AIBrain 00545990 and the destructors
   AIMemory 00545CB0 (the brain's memory, + 0xD0), AIBrain 005457E0 (only from unwind funclets), AIPath 00546100 (from
-  CPlayerServer::OnUseOrder) are ours: default member initialisers (the values AIBrain::Init and AIMemory::Reset set) and
+  PlayerServer::OnUseOrder) are ours: default member initialisers (the values AIBrain::Init and AIMemory::Reset set) and
   the members' own destructors; the controller's constructor and destructor run ResetController, which empties the
-  brain (Init) and drops every reference. Destructors through 00546230 run at zone changes. `combat_server_slots.cpp`: CUnitServer class name /
+  brain (Init) and drops every reference. Destructors through 00546230 run at zone changes. `combat_server_slots.cpp`: UnitServer class name /
   id 005460C0 / 005460D0, DeletingDestruct 005460E0, MotionSlot, slot 16 / 17, slot 53 = UpdateMoveFactors 00552F30, the UnitAction /
   AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai.h`: priorities 10 /
   100000000, types 6 / 8).
 - World managers: CWorld::Create 0055EE40, CWorld::Destroy 0055F8E0, UnitSetEntryHead::Write 00558FA0
-  (`world_unit_set.cpp`, SendZone's unit set entry head); `world_managers.cpp` CPlayerManager / CEffectManager (0073F2C4) /
-  CItemManager class names, ids and destructors 0055F310-0055F400 (0055F3B0, CItemManager slot 25 "items", left because
-  CResourceManager does not declare slot 25). Player sources (`player_source.h`, `world_sessions.cpp`): CPlayerSource base
-  destructor (vtable 0073F38C), CWorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession
+  (`world_unit_set.cpp`, SendZone's unit set entry head); `world_managers.cpp` PlayerManager / EffectManager (0073F2C4) /
+  ItemManager class names, ids and destructors 0055F310-0055F400 (0055F3B0, ItemManager slot 25 "items", left because
+  ResourceManager does not declare slot 25). Player sources (`player_source.h`, `world_sessions.cpp`): PlayerSource base
+  destructor (vtable 0073F38C), WorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession
   (+0x60, 0073F3A8; was "the game result object"), CWorld::OpenSession 0055F410 (new session ShareAssigned into +0x60).
 - Patterns: functions that start with PUSH / MOV and a relative CALL (005536B0) are reached through the naked stub
   `OriginalUpdateMoveFactors`; slot-implementation bodies are `<Slot>Impl`.

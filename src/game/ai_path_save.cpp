@@ -9,7 +9,7 @@
 
 #include <cstdint>
 
-void AIPath::LoadPath(CStream* stream) {
+void AIPath::LoadPath(ByteStream* stream) {
     int count;
     stream->ReadValue(count);
     for (int i = 0; i < count; ++i) {
@@ -35,7 +35,7 @@ void AIPath::LoadPath(CStream* stream) {
     stream->ReadValue(smoothing);
 }
 
-void AIPath::SavePath(CStream* stream) {
+void AIPath::SavePath(ByteStream* stream) {
     int count = std::ssize(cells);
     stream->WriteValue(count);
     for (const PathCell& cell : cells) stream->WriteValue(cell);
@@ -61,7 +61,7 @@ void AIPath::SavePath(CStream* stream) {
 
 // ---- The order ----------------------------------------------------------
 
-void PathOrder::LoadOrder(CStream* stream) {
+void PathOrder::LoadOrder(ByteStream* stream) {
     MotionOrder* order = OrderOf(this);
     stream->ReadValue(order->kind);
     stream->Read(&order->x, 8);
@@ -79,7 +79,7 @@ void PathOrder::LoadOrder(CStream* stream) {
     }
 }
 
-void PathOrder::SaveOrder(CStream* stream) {
+void PathOrder::SaveOrder(ByteStream* stream) {
     MotionOrder* order = OrderOf(this);
     stream->WriteValue(order->kind);
     stream->Write(&order->x, 8);

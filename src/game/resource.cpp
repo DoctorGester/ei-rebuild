@@ -15,7 +15,7 @@
 
 #include <cstdio>
 
-int CResourceBase::FindEntry(std::string_view name) const {
+int ResourceBase::FindEntry(std::string_view name) const {
     std::uint32_t count = header.count;
     if (count == 0) return -1;
 
@@ -52,16 +52,16 @@ bool WriteAt(void* file, std::uint32_t offset, const void* from, std::uint32_t s
 
 } // namespace
 
-CMappedResource::CMappedResource() {
+MappedResource::MappedResource() {
     image = nullptr;
     handle = INVALID_HANDLE_VALUE;
     writable = 0;
 }
 
-CMappedResource::~CMappedResource() {
+MappedResource::~MappedResource() {
     // Rebirth's ResOverride: addon forgets the archive first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
-    CMappedResource::FreeAllFiles();   // called directly, not through the vtable
+    MappedResource::FreeAllFiles();   // called directly, not through the vtable
     if (handle != INVALID_HANDLE_VALUE) {
         CloseHandle(handle);
         handle = INVALID_HANDLE_VALUE;
@@ -72,14 +72,14 @@ CMappedResource::~CMappedResource() {
     nameTable = {};
     image = nullptr;
     header = ResHeader{};
-    // ~CResourceBase follows.
+    // ~ResourceBase follows.
 }
 
-void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
+void MappedResource::Destroy() { this->MappedResource::~MappedResource(); }
 
-void CMappedResource::Flush() {}   // 4
+void MappedResource::Flush() {}   // 4
 
-bool CMappedResource::OpenResource(const std::string& path, bool forWriting) {
+bool MappedResource::OpenResource(const std::string& path, bool forWriting) {
     // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
     // which archive this is.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
@@ -110,7 +110,7 @@ bool CMappedResource::OpenResource(const std::string& path, bool forWriting) {
     return game::FatalError("CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"");
 }
 
-bool CMappedResource::OpenFromMemory(const void* memoryImage) {
+bool MappedResource::OpenFromMemory(const void* memoryImage) {
     CloseResource();
     // GetFile hands out pointers into the image (writable through them).
     char* base = const_cast<char*>(static_cast<const char*>(memoryImage));
@@ -126,7 +126,7 @@ bool CMappedResource::OpenFromMemory(const void* memoryImage) {
     return true;
 }
 
-void CMappedResource::CloseResource() {
+void MappedResource::CloseResource() {
     FreeAllFiles();
     if (handle != INVALID_HANDLE_VALUE) {
         CloseHandle(handle);
@@ -141,12 +141,12 @@ void CMappedResource::CloseResource() {
 }
 
 // Rebirth's ResOverride sends every call to addon.
-void* CMappedResource::GetFile(std::string_view name, std::uint32_t* size) {
+void* MappedResource::GetFile(std::string_view name, std::uint32_t* size) {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) return modfolders::GetFile(this, name, size);
     return GetFilePlain(name, size);
 }
 
-void* CMappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) {
+void* MappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) {
     if (!entries || !names) return nullptr;
 
     // Already loaded: share it.
@@ -192,7 +192,7 @@ void* CMappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) 
     return nullptr;
 }
 
-bool CMappedResource::CloseFile(void* data) {
+bool MappedResource::CloseFile(void* data) {
     if (image) return true;
     if (!data) return false;
 
@@ -220,7 +220,7 @@ bool CMappedResource::CloseFile(void* data) {
     return true;
 }
 
-void CMappedResource::FreeAllFiles() {
+void MappedResource::FreeAllFiles() {
     if (image) return;
     for (auto& [data, file] : filesByData) {
         ::operator delete(file->data);
@@ -230,9 +230,9 @@ void CMappedResource::FreeAllFiles() {
     filesByName.clear();
 }
 
-CMappedFile::CMappedFile() : file(INVALID_HANDLE_VALUE) {}
+MappedFile::MappedFile() : file(INVALID_HANDLE_VALUE) {}
 
-void CMappedFile::Close() {
+void MappedFile::Close() {
     if (view) {
         gameapi::UnmapViewOfFile(view);
         view = nullptr;
@@ -248,7 +248,7 @@ void CMappedFile::Close() {
     size = 0;
 }
 
-bool CMappedFile::Open(const std::string& path, bool writable) {
+bool MappedFile::Open(const std::string& path, bool writable) {
     if (writable) game::DebugLog("CMappedFile::Open().\nMapping file \"%s\" with writting access.\n", path);
 
     // Unbuffered I/O only when the volume's sector size divides the page size.
@@ -296,7 +296,7 @@ bool CMappedFile::Open(const std::string& path, bool writable) {
     return false;
 }
 
-void CMappedFile::Flush() {
+void MappedFile::Flush() {
     if (!view) return;
     gameapi::FlushViewOfFile(view, 0);
     SYSTEMTIME now;
@@ -309,14 +309,14 @@ void CMappedFile::Flush() {
 }
 
 
-bool CMMIOResource::OpenResource(const std::string& path, bool forWriting) {
+bool MMIOResource::OpenResource(const std::string& path, bool forWriting) {
     if (!file.Open(path, forWriting)) return false;
     if (OpenFromMemory(file.view)) return true;
     CloseResource();
     return false;
 }
 
-bool CMMIOResource::OpenFromMemory(const void* memoryImage) {
+bool MMIOResource::OpenFromMemory(const void* memoryImage) {
     char* base = const_cast<char*>(static_cast<const char*>(memoryImage));
     mappedImage = base;
     lib::LoadBytes(header, base);
@@ -331,7 +331,7 @@ bool CMMIOResource::OpenFromMemory(const void* memoryImage) {
 }
 
 
-void CMMIOResource::CloseResource() {
+void MMIOResource::CloseResource() {
     file.Close();
     entries = nullptr;
     names = nullptr;
@@ -339,9 +339,9 @@ void CMMIOResource::CloseResource() {
     header = ResHeader{};
 }
 
-void CMMIOResource::Flush() { file.Flush(); }
+void MMIOResource::Flush() { file.Flush(); }
 
-void* CMMIOResource::GetFile(std::string_view name, std::uint32_t* size) {
+void* MMIOResource::GetFile(std::string_view name, std::uint32_t* size) {
     if (!entries || !names) return nullptr;
     int index = FindEntry(name);
     if (index == -1) return nullptr;
@@ -349,6 +349,6 @@ void* CMMIOResource::GetFile(std::string_view name, std::uint32_t* size) {
     return mappedImage + entries[index].offset;
 }
 
-bool CMMIOResource::CloseFile(void*) { return true; }
+bool MMIOResource::CloseFile(void*) { return true; }
 
-void CMMIOResource::FreeAllFiles() {}
+void MMIOResource::FreeAllFiles() {}

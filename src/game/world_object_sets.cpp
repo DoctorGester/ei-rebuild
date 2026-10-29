@@ -14,24 +14,24 @@
 #include <functional>
 #include <vector>
 
-bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b) {
+bool address_order::ObjectBefore(const EngineObject* a, const EngineObject* b) {
     int ia = a->id;
     int ib = b->id;
     if (ia != ib) return ia < ib;
-    return std::less<const CEngineObject*>()(a, b);   // the address (an unsigned compare in the game)
+    return std::less<const EngineObject*>()(a, b);   // the address (an unsigned compare in the game)
 }
 
 // Sorts the set and drops the duplicates. The game sorts by address (four byte passes of a radix sort,
 // through a scratch array freed at exit); this sorts by id (address_order::ObjectBefore), a comparison sort
 // without the scratch array.
-void ObjectSetSortUnique(std::vector<CEngineObject*>* self) {
+void ObjectSetSortUnique(std::vector<EngineObject*>* self) {
     if (std::ssize(*self) < 2) return;
     std::sort(self->data(), self->data() + std::ssize(*self), address_order::ObjectBefore);
     // Each element compared with the one before it in place.
-    CEngineObject** end = self->data() + std::ssize(*self);
-    CEngineObject** out = self->data() + 1;
-    for (CEngineObject** p = self->data() + 1; p < end; ++p) {
-        CEngineObject* value = *p;
+    EngineObject** end = self->data() + std::ssize(*self);
+    EngineObject** out = self->data() + 1;
+    for (EngineObject** p = self->data() + 1; p < end; ++p) {
+        EngineObject* value = *p;
         if (value != p[-1]) *out++ = value;
     }
     self->resize(static_cast<int>(out - self->data()));
@@ -40,22 +40,22 @@ void ObjectSetSortUnique(std::vector<CEngineObject*>* self) {
 // `current` is sorted first; `sent` (sorted by an earlier call) is walked beside it. Objects only in
 // `current` go to `added` (referenced once more, +4), objects only in `sent` to `gone` (released by a
 // virtual call), objects in both to `same`. When anything differs `sent` becomes a copy of `current`.
-void DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject*>* current, std::vector<CEngineObject*>* added, std::vector<CEngineObject*>* gone, std::vector<CEngineObject*>* same) {
+void DiffObjectSets(std::vector<EngineObject*>* sent, std::vector<EngineObject*>* current, std::vector<EngineObject*>* added, std::vector<EngineObject*>* gone, std::vector<EngineObject*>* same) {
     ObjectSetSortUnique(current);
     int most = std::ssize(*current) > std::ssize(*sent) ? std::ssize(*current) : std::ssize(*sent);
     added->resize(most);
     gone->resize(most);
     same->resize(most);
 
-    CEngineObject* const* s = sent->data();
-    CEngineObject* const* c = current->data();
+    EngineObject* const* s = sent->data();
+    EngineObject* const* c = current->data();
     int sentLeft = std::ssize(*sent);
     int currentLeft = std::ssize(*current);
     int addedCount = 0, goneCount = 0, sameCount = 0;
     bool changed = false;
     while (sentLeft != 0 && currentLeft != 0) {
-        CEngineObject* old = *s;
-        CEngineObject* now = *c;
+        EngineObject* old = *s;
+        EngineObject* now = *c;
         if (old == now) {
             (*same)[sameCount++] = now;
             ++s;

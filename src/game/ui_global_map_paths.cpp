@@ -1,5 +1,5 @@
 // The global map's way search: from the current zone through the zones the player may
-// pass to the zone clicked (CGlobalMap::target), recording per arrival exit of the target the
+// pass to the zone clicked (GlobalMap::target), recording per arrival exit of the target the
 // shortest summed "#passtime". The click (Rebirth-patched) empties the results, sets
 // the target and calls it with the local player's zone. See docs/notes/ui.md ("Camp, global map,
 // hero screens").
@@ -38,7 +38,7 @@ constexpr int kCampScreen = 5;
 
 } // namespace
 
-void CGlobalMap::SearchWays(const std::string& destination) {
+void GlobalMap::SearchWays(const std::string& destination) {
     target = destination;
     pathTime = 0.0f;
     arrivals.clear();
@@ -47,7 +47,7 @@ void CGlobalMap::SearchWays(const std::string& destination) {
     FindPaths(g_mapDatabase.FindMap(LocalPlayerZone()));
 }
 
-void CGlobalMap::FindPaths(MapRecord* from) {
+void GlobalMap::FindPaths(MapRecord* from) {
     std::string variable;   // one string for every "z.<zone>" name
     for (int i = 0; i < std::ssize(from->exits); ++i) {
         bool goesBeyond = false;
@@ -96,7 +96,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
     }
 }
 
-void CGlobalMap::LeftDown(int, int x, int y) {
+void GlobalMap::LeftDown(int, int x, int y) {
     if (dragging) return;
     const int region = RegionAt(x, y);
     if (region == kRegionTurnLeft || region == kRegionTurnRight) {
@@ -127,7 +127,7 @@ void CGlobalMap::LeftDown(int, int x, int y) {
         if (!gipat || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
             SearchWays(zone.name);
-            auto* window = new CObjectivesWindow(ui);
+            auto* window = new ObjectivesWindow(ui);
             window->Setup(target, &arrivals, true, false);
             ui->PushWindow(window, true, true);
             return;

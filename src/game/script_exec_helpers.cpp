@@ -21,7 +21,7 @@
 
 namespace {
 
-int LightCount(CScript* script) { return static_cast<int>(script->pointLights.size()); }
+int LightCount(Script* script) { return static_cast<int>(script->pointLights.size()); }
 
 // MovePointLight's step: (target - position) / steps per axis. The x difference stays in the FPU,
 // the y and z differences are rounded to float first (the goldens depend on it).
@@ -62,13 +62,13 @@ void ScriptArea::AddRound(float x, float y, float radius) {
 }
 
 // Every area with the id.
-void CScript::DeleteArea(int id) {
+void Script::DeleteArea(int id) {
     std::erase_if(areas, [id](const ScriptArea& area) { return area.id == id; });
 }
 
 // ---- Point lights -------------------------------------------------------------------------------
 
-void CScript::CreatePointLight(const SSCCmd* cmd) {
+void Script::CreatePointLight(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
     int id = x87::fistp(f[0]);
     // The light with this id is replaced, else the first free slot is used (one with the id after
@@ -84,8 +84,8 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     slot->moving = 0;
     slot->id = id;
     slot->removeWhenDone = 0;
-    slot->object = ScriptEffect<CEffectPointLight>(g_serverWorld.timedObjectManager->CreateObjectAs<CEffectPointLight>(0x4B, -1));
-    CEffectPointLight* object = slot->object.get();
+    slot->object = ScriptEffect<EffectPointLight>(g_serverWorld.timedObjectManager->CreateObjectAs<EffectPointLight>(0x4B, -1));
+    EffectPointLight* object = slot->object.get();
     const float scale = 0.003921569f;   // 1 / 255
     float red = f[5] * scale;
     float green = f[6] * scale;
@@ -104,7 +104,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     slot->steps = 0;
 }
 
-void CScript::MovePointLight(const SSCCmd* cmd) {
+void Script::MovePointLight(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
     int id = x87::fistp(f[0]);
     int i = 0;
@@ -120,7 +120,7 @@ void CScript::MovePointLight(const SSCCmd* cmd) {
     LightStep(light, &f[1], &light->object->localPosition.x);
 }
 
-void CScript::DeletePointLight(const SSCCmd* cmd) {
+void Script::DeletePointLight(const SSCCmd* cmd) {
     int id = x87::fistp(cmd->floatArgs[0]);
     for (ScriptPointLight& light : pointLights) {
         if (!light.object || light.id != id) continue;
@@ -137,7 +137,7 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
 //   WorldScript( Su0() )
 // The conditions by objective (%f of the float, %s of the string): QObjArea, QObjSeeObject,
 // QObjSeeUnit, QObjKillUnit, QObjKillGroup, QObjUse, QObjGetItem; another id leaves it empty.
-void ScriptQuestFinish(CScript* script) {
+void ScriptQuestFinish(Script* script) {
     std::string text;
     for (int i = 0; i < QuestObjectiveCount() + 1; ++i) {
         std::string line;

@@ -22,8 +22,8 @@ constexpr int kBottomRow = 4;             // slots 0-3
 constexpr int kQuickSlots = 8;
 
 // The columns' button highlight (both columns share the code).
-void HighlightButton(CUiWindow* column, int* selected, int index, bool on) {
-    CUiMesh* sprite = column->SceneMesh(index);
+void HighlightButton(UiWindow* column, int* selected, int index, bool on) {
+    UiMesh* sprite = column->SceneMesh(index);
     sprite->SetScale(on ? kButtonScaleOn : kButtonScaleOff);
     sprite->flatSpecular = on ? kColourOn : kColourOff;
     *selected = index;
@@ -31,9 +31,9 @@ void HighlightButton(CUiWindow* column, int* selected, int index, bool on) {
 
 // The columns' clearing: every button off, selected passing through
 // each index, then -1.
-void ClearButtons(CUiWindow* column, int count, int* selected) {
+void ClearButtons(UiWindow* column, int count, int* selected) {
     for (int i = 0; i < count; ++i) {
-        CUiMesh* sprite = column->SceneMesh(i);
+        UiMesh* sprite = column->SceneMesh(i);
         sprite->SetScale(kButtonScaleOff);
         sprite->flatSpecular = kColourOff;
         *selected = i;
@@ -45,7 +45,7 @@ void ClearButtons(CUiWindow* column, int count, int* selected) {
 
 // --- A sprite's scale ----------------------------------------------------------------
 
-void CUiMesh::SetScale(float scale) {
+void UiMesh::SetScale(float scale) {
     std::uint32_t bits = std::bit_cast<std::uint32_t>(scale);
     ScaleX() = std::bit_cast<float>(bits);
     ScaleY() = std::bit_cast<float>(bits);
@@ -54,10 +54,10 @@ void CUiMesh::SetScale(float scale) {
 
 // --- A quick item slot ---------------------------------------------------------------
 
-void CHudQuickItems::Highlight(int slot, bool on) {
+void HudQuickItems::Highlight(int slot, bool on) {
     int sprite = regionItem[slot];
     if (sprite < 0 || sprite >= shownCount) return;
-    CUiMesh* mesh = SceneMesh(sprite);
+    UiMesh* mesh = SceneMesh(sprite);
     if (slot < kBottomRow)
         mesh->SetScale(on ? kQuickScaleOn : kQuickScaleOff);
     else
@@ -70,17 +70,17 @@ void CHudQuickItems::Highlight(int slot, bool on) {
     }
 }
 
-void CHudQuickItems::ClearHighlights() {
+void HudQuickItems::ClearHighlights() {
     for (int i = 0; i < kQuickSlots; ++i) Highlight(i, false);
     selected = -1;
 }
 
 // --- The columns' buttons -----------------------------------------------------------------
 
-void CHudSpellColumn::Highlight(int index, bool on) { HighlightButton(this, &selected, index, on); }
+void HudSpellColumn::Highlight(int index, bool on) { HighlightButton(this, &selected, index, on); }
 
-void CHudActionColumn::Highlight(int index, bool on) { HighlightButton(this, &selected, index, on); }
+void HudActionColumn::Highlight(int index, bool on) { HighlightButton(this, &selected, index, on); }
 
-void CHudSpellColumn::ClearHighlights() { ClearButtons(this, count, &selected); }
+void HudSpellColumn::ClearHighlights() { ClearButtons(this, count, &selected); }
 
-void CHudActionColumn::ClearHighlights() { ClearButtons(this, count, &selected); }
+void HudActionColumn::ClearHighlights() { ClearButtons(this, count, &selected); }

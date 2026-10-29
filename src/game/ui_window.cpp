@@ -26,15 +26,15 @@ int Mul(int a, int b) {
 }
 
 // A surface of the window's list, destroyed as a plain surface whatever its class, as the original does (a scrolling
-// surface's own destructor does not run: CUiSurface's is not virtual); the block is freed unsized, since it may be a
+// surface's own destructor does not run: UiSurface's is not virtual); the block is freed unsized, since it may be a
 // derived class's.
-void DestroySurface(CUiSurface* surface) {
-    surface->~CUiSurface();
+void DestroySurface(UiSurface* surface) {
+    surface->~UiSurface();
     ::operator delete(surface);
 }
 
 // A new object of the model manager by name, or null.
-CFigureMesh* NewModelObject(std::string_view name) {
+FigureMesh* NewModelObject(std::string_view name) {
     return g_clientWorld.figureManager->NewFigure(name);
 }
 
@@ -43,9 +43,9 @@ constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f}; 
 constexpr const char* kClassName = "Sorry, no other way.";
 
 // A new material of kind 0x16 (filled by the manager) glowing `value` in every channel, referenced.
-CMaterial* NewGlowMaterial(float value) {
+Material* NewGlowMaterial(float value) {
     CMaterialManager* materials = g_clientWorld.materialManager;
-    CMaterial* material = materials->NewMaterial(0x16);
+    Material* material = materials->NewMaterial(0x16);
     materials->FillMaterial(material, 0x16);
     material->colors.emissive.x = value;
     material->colors.emissive.y = value;
@@ -56,11 +56,11 @@ CMaterial* NewGlowMaterial(float value) {
 
 } // namespace
 
-// --- CUiTooltip ------------------------------------------------------------------------------
+// --- UiTooltip ------------------------------------------------------------------------------
 
-// --- CUiRegion -------------------------------------------------------------------------------
+// --- UiRegion -------------------------------------------------------------------------------
 
-bool CUiRegion::HitTest(int x, int y) const {
+bool UiRegion::HitTest(int x, int y) const {
     x -= offsetX;
     y -= offsetY;
     if (!enabled) return false;
@@ -80,13 +80,13 @@ bool CUiRegion::HitTest(int x, int y) const {
     return true;
 }
 
-bool CUiRegion::HasActiveTip() const {
+bool UiRegion::HasActiveTip() const {
     return tip && tip->Shown();
 }
 
 // Rebirth's WideScreen replaces SetRect and AddPoint (addon's replacements in front of the original's body): x
 // is moved by the panel offset its panel builders set (ui_widescreen.h; 0 outside them).
-void CUiRegion::SetRect(int left, int top, int right, int bottom) {
+void UiRegion::SetRect(int left, int top, int right, int bottom) {
     points.clear();
     if (widescreen::Active()) {
         left += widescreen::PanelOffset();
@@ -100,7 +100,7 @@ void CUiRegion::SetRect(int left, int top, int right, int bottom) {
     rectOnly = true;
 }
 
-void CUiRegion::AddPoint(int x, int y) {
+void UiRegion::AddPoint(int x, int y) {
     if (widescreen::Active()) x += widescreen::PanelOffset();
     if (points.empty()) {
         bounds.left = x;
@@ -120,20 +120,20 @@ void CUiRegion::AddPoint(int x, int y) {
     if (std::ssize(points) > 2) enabled = true;
 }
 
-void CUiRegion::OnMouseMove(int x, int y) {
+void UiRegion::OnMouseMove(int x, int y) {
     if (!tip) return;
     const bool inside = HitTest(x, y);
     if (inside) {
-        if (!tip->Shown()) tip->state = CUiTooltip::State::Hovered;
+        if (!tip->Shown()) tip->state = UiTooltip::State::Hovered;
     } else if (tip->Shown()) {
-        tip->state = CUiTooltip::State::Disappearing;
+        tip->state = UiTooltip::State::Disappearing;
     }
     tip->OnMouseMove(x, y);
 }
 
-// --- CUiWindow -------------------------------------------------------------------------------
+// --- UiWindow -------------------------------------------------------------------------------
 
-int CUiWindow::RegionAt(int x, int y) const {
+int UiWindow::RegionAt(int x, int y) const {
     POINT point{x, y};
     ui->ScalePointFromScreenEntry(&point);
     for (int i = 0; i < std::ssize(regions); ++i) {
@@ -142,58 +142,58 @@ int CUiWindow::RegionAt(int x, int y) const {
     return -1;
 }
 
-bool CUiWindow::ContainsPoint(int x, int y) const {
+bool UiWindow::ContainsPoint(int x, int y) const {
     POINT point{x, y};
     ui->ScalePointFromScreenEntry(&point);
     return gameapi::PtInRect(&rect, point) != FALSE;
 }
 
-void CUiWindow::UpdateRegionTips() {
+void UiWindow::UpdateRegionTips() {
     POINT mouse{ui->mouseX, ui->mouseY};
     ui->ScalePointFromScreenEntry(&mouse);
-    // Inlines CUiRegion::OnMouseMove for every region with a tooltip.
+    // Inlines UiRegion::OnMouseMove for every region with a tooltip.
     for (int i = 0; i < std::ssize(regions); ++i) {
-        CUiRegion* region = regions[i];
+        UiRegion* region = regions[i];
         if (region->tip) region->OnMouseMove(mouse.x, mouse.y);
     }
 }
 
 // The same per region, each tooltip then redrawn (the tooltip is re-read).
-void CUiWindow::RedrawTips() {
+void UiWindow::RedrawTips() {
     POINT mouse{ui->mouseX, ui->mouseY};
     ui->ScalePointFromScreenEntry(&mouse);
     for (int i = 0; i < std::ssize(regions); ++i) {
-        CUiRegion* region = regions[i];
+        UiRegion* region = regions[i];
         if (region->tip) region->OnMouseMove(mouse.x, mouse.y);
-        if (CUiTooltip* tip = regions[i]->tip) tip->Redraw();
+        if (UiTooltip* tip = regions[i]->tip) tip->Redraw();
     }
 }
 
-void CUiWindow::DrawBase(CSceneRenderer* pass) {
+void UiWindow::DrawBase(SceneRenderer* pass) {
     for (int i = 0; i < std::ssize(sceneObjects); ++i)
         SceneMesh(i)->Draw(pass);
     for (int i = 0; i < std::ssize(models); ++i) models[i]->Draw(pass);
 }
 
-void CUiWindow::Redraw() {
+void UiWindow::Redraw() {
     for (int i = 0; i < std::ssize(surfaces); ++i) {
-        CUiSurface* surface = surfaces[i];
+        UiSurface* surface = surfaces[i];
         if (surface->Shown()) surface->Blit();
     }
 }
 
-void CUiWindow::SetEnabled(bool newEnabled, bool notify) {
+void UiWindow::SetEnabled(bool newEnabled, bool notify) {
     enabled = newEnabled;
     if (notify) Show(newEnabled);
 }
 
-void CUiWindow::AddObject(CTexture* texture) {
+void UiWindow::AddObject(CTexture* texture) {
     if (!texture) return;
     objects.push_back(texture);
     texture->AddRef();
 }
 
-void CUiWindow::RemoveObject(CTexture* texture) {
+void UiWindow::RemoveObject(CTexture* texture) {
     if (!texture) return;
     for (int i = 0; i < std::ssize(objects); ++i) {
         if (objects[i] == texture) {
@@ -204,12 +204,12 @@ void CUiWindow::RemoveObject(CTexture* texture) {
     }
 }
 
-void CUiWindow::RemoveObjectAt(int index) {
+void UiWindow::RemoveObjectAt(int index) {
     objects[index]->Release();
     objects.erase(objects.begin() + index);
 }
 
-bool CUiWindow::RemoveSceneObject(CEngineObject* object) {
+bool UiWindow::RemoveSceneObject(EngineObject* object) {
     for (int i = 0; i < std::ssize(sceneObjects); ++i) {
         if (sceneObjects[i] == object) {
             // Unlike RemoveObject, the slot is removed before the release.
@@ -221,42 +221,42 @@ bool CUiWindow::RemoveSceneObject(CEngineObject* object) {
     return false;
 }
 
-void CUiWindow::RemoveSceneObjectAt(int index) {
+void UiWindow::RemoveSceneObjectAt(int index) {
     sceneObjects[index]->Release();
     sceneObjects.erase(sceneObjects.begin() + index);
 }
 
-void CUiWindow::ClearSceneObjects() {
+void UiWindow::ClearSceneObjects() {
     for (int i = 0; i < std::ssize(sceneObjects); ++i) sceneObjects[i]->Release();
     sceneObjects.clear();
 }
 
-void CUiWindow::ClearObjects() {
+void UiWindow::ClearObjects() {
     for (int i = 0; i < std::ssize(objects); ++i) objects[i]->Release();
     objects.clear();
 }
 
 // Returns `surface`, which the original leaves as its result; the titles' Create freezes the surface through
 // it.
-CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
+UiSurface* UiWindow::AddSurface(UiSurface* surface) {
     if (!surface) return nullptr;
     surfaces.push_back(surface);
     return surface;
 }
 
-void CUiWindow::RemoveSurfaceAt(int index) {
-    if (CUiSurface* surface = surfaces[index]) DestroySurface(surface);
+void UiWindow::RemoveSurfaceAt(int index) {
+    if (UiSurface* surface = surfaces[index]) DestroySurface(surface);
     surfaces.erase(surfaces.begin() + index);
 }
 
-void CUiWindow::ClearSurfaces() {
+void UiWindow::ClearSurfaces() {
     for (int i = 0; i < std::ssize(surfaces); ++i) {
-        if (CUiSurface* surface = surfaces[i]) DestroySurface(surface);
+        if (UiSurface* surface = surfaces[i]) DestroySurface(surface);
     }
     surfaces.clear();
 }
 
-CTexture* CUiWindow::LoadTexture(std::string_view name, TextureKind kind) {
+CTexture* UiWindow::LoadTexture(std::string_view name, TextureKind kind) {
     CTextureManager* manager = g_clientWorld.textureManager;
     CTexture* texture = manager->FindOrCreate(static_cast<int>(kind), name);
     if (!texture) return nullptr;
@@ -267,7 +267,7 @@ CTexture* CUiWindow::LoadTexture(std::string_view name, TextureKind kind) {
     return texture;
 }
 
-CTexture* CUiWindow::CreateTexture(int width, int height, TextureKind kind) {
+CTexture* UiWindow::CreateTexture(int width, int height, TextureKind kind) {
     CTexture* texture = g_clientWorld.textureManager->NewTexture(width, height, kind);
     if (!texture) return nullptr;
     int index = std::ssize(objects);
@@ -278,53 +278,53 @@ CTexture* CUiWindow::CreateTexture(int width, int height, TextureKind kind) {
     return texture;
 }
 
-void CUiWindow::Show(bool show) {
+void UiWindow::Show(bool show) {
     for (int i = 0; i < std::ssize(surfaces); ++i) {
-        CUiSurface* surface = surfaces[i];
+        UiSurface* surface = surfaces[i];
         if (!show || surface->Shown()) surface->SwapContents(show);
     }
 }
 
-void CUiSurface::Show() {
+void UiSurface::Show() {
     shown = true;
     if (kept) SwapContents(true);
 }
 
-void CUiSurface::Hide(bool release) {
+void UiSurface::Hide(bool release) {
     shown = false;
     if (release) SwapContents(false);
 }
 
-CUiRegion* CUiWindow::AddRegion() {
-    auto* region = new CUiRegion(ui);
+UiRegion* UiWindow::AddRegion() {
+    auto* region = new UiRegion(ui);
     regions.push_back(region);
     return region;
 }
 
-void CUiWindow::RemoveRegionAt(int index) {
+void UiWindow::RemoveRegionAt(int index) {
     delete regions[index];
     regions.erase(regions.begin() + index);
 }
 
-void CUiWindow::ClearRegions() {
+void UiWindow::ClearRegions() {
     for (int i = 0; i < std::ssize(regions); ++i) {
         delete regions[i];
     }
     regions.clear();
 }
 
-CUiModel* CUiWindow::AddModel() {
-    auto* model = new CUiModel();
+UiModel* UiWindow::AddModel() {
+    auto* model = new UiModel();
     models.push_back(model);
     return model;
 }
 
 // --- ReplaceSceneObject ----------------------------------------------------------------------------
 
-CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, std::string_view name) {
+EngineObject* UiWindow::ReplaceSceneObject(EngineObject* object, std::string_view name) {
     for (int i = 0; i < std::ssize(sceneObjects); ++i) {
         if (sceneObjects[i] != object) continue;
-        CFigureMesh* made = NewModelObject(name);
+        FigureMesh* made = NewModelObject(name);
         if (!made) return nullptr;
         made->AddRef();
         made->SetObject(this);
@@ -350,15 +350,15 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, std::string_
 
 // --- AddSprite -------------------------------------------------------------------------------------
 
-CUiMesh* CUiWindow::AddSprite(std::string_view name) {
-    CFigureMesh* object = NewModelObject(name);
+UiMesh* UiWindow::AddSprite(std::string_view name) {
+    FigureMesh* object = NewModelObject(name);
     if (!object) return nullptr;
     return AddSceneObject(object);
 }
 
-CUiMesh* CUiWindow::AddBlankSprite() { return AddSceneObject(g_clientWorld.figureManager->NewBlankFigure()); }
+UiMesh* UiWindow::AddBlankSprite() { return AddSceneObject(g_clientWorld.figureManager->NewBlankFigure()); }
 
-CUiMesh* CUiWindow::AddSceneObject(CFigureMesh* object) {
+UiMesh* UiWindow::AddSceneObject(FigureMesh* object) {
     bool listed = false;
     for (int i = 0; i < std::ssize(sceneObjects) && !listed; ++i) listed = sceneObjects[i] == object;
     if (!listed) {
@@ -374,8 +374,8 @@ CUiMesh* CUiWindow::AddSceneObject(CFigureMesh* object) {
 
 // --- The constructor ---------------------------------------------------------------------------------
 
-// The original's closing Show(true) reaches CUiWindow's own (the surfaces' list is empty): left out.
-CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
+// The original's closing Show(true) reaches UiWindow's own (the surfaces' list is empty): left out.
+UiWindow::UiWindow(Interface3D* ui) : UiInputSide(ui) {
     localRotation = kIdentityRotation;
     worldRotation.SetIdentity();
     localPosition = Vector3{0.0f, 0.0f, 0.0f};
@@ -383,27 +383,27 @@ CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
     blackMaterial = NewGlowMaterial(0.0f);
 }
 
-const char* CUiWindow::ClassName() { return kClassName; }
-ClassId CUiWindow::GetClassId() { return ClassId::UiWindow; }
+const char* UiWindow::ClassName() { return kClassName; }
+ClassId UiWindow::GetClassId() { return ClassId::UiWindow; }
 
-// --- CUiContainer::AddChild ------------------------------------------------------------------------
+// --- UiContainer::AddChild ------------------------------------------------------------------------
 
-void CUiContainer::AddChild(CUiWindow* child) {
+void UiContainer::AddChild(UiWindow* child) {
     if (!child) return;
     children.push_back(child);
 }
 
 // --- The destructor ---------------------------------------------------------------------------------
 
-CUiWindow::~CUiWindow() {
-    for (CEngineObject** held : {&blackMaterial, &whiteMaterial, &heldObject}) {
+UiWindow::~UiWindow() {
+    for (EngineObject** held : {&blackMaterial, &whiteMaterial, &heldObject}) {
         if (*held) (*held)->Release();
         *held = nullptr;
     }
     for (int i = 0; i < std::ssize(sceneObjects); ++i) sceneObjects[i]->Release();
     sceneObjects.clear();
     for (int i = 0; i < std::ssize(surfaces); ++i) {
-        if (CUiSurface* surface = surfaces[i]) DestroySurface(surface);
+        if (UiSurface* surface = surfaces[i]) DestroySurface(surface);
     }
     surfaces.clear();
     for (int i = 0; i < std::ssize(regions); ++i) {

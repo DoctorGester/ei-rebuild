@@ -1,5 +1,5 @@
 // Small application helpers: the free disk space, the quit flag, the movie mode byte, the copy
-// protection's delayed check and two CEngineObject helpers. See docs/notes/app.md.
+// protection's delayed check and two EngineObject helpers. See docs/notes/app.md.
 #include "app_helpers.h"
 
 #include "app.h"
@@ -58,13 +58,13 @@ bool QuitGame(int exitCode) {
 // The movie mode byte (1 unless the command line changed it; the loop passes it to the frame step).
 std::uint8_t g_movieMode = /*00784752*/ 1;
 
-// Called for every new object of the client (CPlayerClient::OnNewObject): the copy protection's check. It draws a
+// Called for every new object of the client (PlayerClient::OnNewObject): the copy protection's check. It draws a
 // number below 100 and, one time in a hundred, looked through a check list nothing fills; only the draw is left.
 void DelayedProtectionCheck() { static_cast<void>(libcrt::RandBelow(100)); }
 
 } // namespace app
 
-CWorld* CEngineObject::World() const {
+CWorld* EngineObject::World() const {
     auto* context = owner->context;
     return context ? context->ThisWorld() : nullptr;
 }

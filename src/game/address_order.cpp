@@ -18,10 +18,10 @@
 
 namespace {
 
-CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }
+CObject3D* Object3D(EngineObject* object) { return static_cast<CObject3D*>(object); }
 
 // The first part set's texture of a drawn object's model, null without one.
-const CTexture* RankTexture(CObject3DClientSpecific* model) {
+const CTexture* RankTexture(Object3DClientSpecific* model) {
     const TextureParts* rank = model->partSets[0];
     return rank ? rank->texture : nullptr;
 }
@@ -35,7 +35,7 @@ int CompareTextures(const CTexture* a, const CTexture* b) {
     return std::strcmp(aName ? aName : "", bName ? bName : "");
 }
 
-int CompareFigures(const CLinkMesh* a, const CLinkMesh* b) {
+int CompareFigures(const LinkMesh* a, const LinkMesh* b) {
     if (!a || !b) return (a != nullptr) - (b != nullptr);
     if (a->name < b->name) return -1;
     if (b->name < a->name) return 1;
@@ -47,14 +47,14 @@ int CompareFigures(const CLinkMesh* a, const CLinkMesh* b) {
     return 0;
 }
 
-bool DepthBefore(CEngineObject* a, CEngineObject* b) {
+bool DepthBefore(EngineObject* a, EngineObject* b) {
     EI_NAN_AUDIT(Object3D(a)->worldPosition.z, Object3D(b)->worldPosition.z);
     return Object3D(a)->worldPosition.z < Object3D(b)->worldPosition.z;
 }
 
 } // namespace
 
-bool address_order::DrawBefore(CEngineObject* a, CEngineObject* b) {
+bool address_order::DrawBefore(EngineObject* a, EngineObject* b) {
     if (!a || !b) return false;
     auto* groupA = Object3D(a)->ClientSpecific();
     auto* groupB = Object3D(b)->ClientSpecific();

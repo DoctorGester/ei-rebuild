@@ -34,7 +34,7 @@ constexpr float kOverkill = -5.0f;
 constexpr int kPartRelations = 11;
 constexpr int kPartEquipment = 5;
 
-float ItemWeight(const CItem* item) { return item->Weight(); }
+float ItemWeight(const Item* item) { return item->Weight(); }
 
 float SpellCost(const CSpell* spell) { return spell->manaCost; }
 
@@ -47,7 +47,7 @@ bool IsPartyUnit(CUnit* unit) { return unit->controller->GetClassId() == ClassId
 
 // Puts `item` into the first free slot of `slots`, taking a reference: the slot, 1 when it is
 // already there (whatever its slot), -1 when full.
-int AddToSlots(CUnit* unit, CItem** slots, std::uint32_t count, CItem* item) {
+int AddToSlots(CUnit* unit, Item** slots, std::uint32_t count, Item* item) {
     for (std::uint32_t i = 0; i < count; ++i) {
         if (slots[i] == item) return 1;
         if (!slots[i]) {
@@ -60,9 +60,9 @@ int AddToSlots(CUnit* unit, CItem** slots, std::uint32_t count, CItem* item) {
     return -1;
 }
 
-void RemoveFromSlots(CUnit* unit, CItem** slots, std::uint32_t slot) {
+void RemoveFromSlots(CUnit* unit, Item** slots, std::uint32_t slot) {
     if (slot >= 4) return;
-    CItem* item = slots[slot];
+    Item* item = slots[slot];
     slots[slot] = nullptr;
     if (item) item->Release();
     unit->MarkChanged(kPartEquipment);
@@ -172,17 +172,17 @@ void CUnit::GetEquipmentIds(std::uint32_t* out) {
     }
 }
 
-int CUnit::AddWeapon(CItem* item) {
+int CUnit::AddWeapon(Item* item) {
     if (!item) return 0;
     return AddToSlots(this, weapons, 4, item);
 }
 
-int CUnit::AddQuickItem(CItem* item) {
+int CUnit::AddQuickItem(Item* item) {
     if (!item) return 0;
     return AddToSlots(this, quickItems, 4, item);
 }
 
-int CUnit::AddSpell(CItem* item) {
+int CUnit::AddSpell(Item* item) {
     // No null check here: a null item "is already there" at the first empty slot (returns 1).
     return AddToSlots(this, spells, 8, item);
 }
@@ -191,7 +191,7 @@ void CUnit::RemoveWeapon(std::uint32_t slot) { RemoveFromSlots(this, weapons, sl
 
 void CUnit::RemoveQuickItem(std::uint32_t slot) { RemoveFromSlots(this, quickItems, slot); }
 
-CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
+ItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id);
@@ -201,19 +201,19 @@ CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     return slot < 4 ? AsWeapon(weapons[slot]) : nullptr;
 }
 
-CItem* CUnit::GetQuickItem(std::uint32_t slot) {
+Item* CUnit::GetQuickItem(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->quickItems))) return nullptr;
-        CItem* item = record->quickItems[slot];
+        Item* item = record->quickItems[slot];
         if (!item || static_cast<int>(item->count) < 1) return nullptr;
         return item;
     }
     return slot < 4 ? quickItems[slot] : nullptr;
 }
 
-CItem* CUnit::GetSpell(std::uint32_t slot) {
+Item* CUnit::GetSpell(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id);
@@ -237,16 +237,16 @@ CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
 
 double CUnit::TotalItemWeight() {
     double total = 0.0;   // accumulated on the FPU stack
-    for (CItem* item : weapons) {
+    for (Item* item : weapons) {
         if (item) total += ItemWeight(item);
     }
-    for (CItem* item : quickItems) {
+    for (Item* item : quickItems) {
         if (item) total += ItemWeight(item);
     }
-    for (CItem* item : spells) {
+    for (Item* item : spells) {
         if (item) total += ItemWeight(item);
     }
-    for (CItem* item : armor) {
+    for (Item* item : armor) {
         if (item) total += ItemWeight(item);
     }
     return total;   // unrounded
@@ -265,9 +265,9 @@ bool CUnit::CanCastSpell(std::uint32_t slot) {
 }
 
 bool CUnit::CanUseQuickItem(std::uint32_t slot) {
-    CItem* object = GetQuickItem(slot);
+    Item* object = GetQuickItem(slot);
     if (!object || object->GetClassId() != ClassId::ItemQuick) return false;
-    CItem* item = object;
+    Item* item = object;
     if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
     if (item->GetCategory() == QuickItemCategory::Wand) {
         EI_NAN_AUDIT(item->charge, SpellCost(item->spell));
@@ -387,13 +387,13 @@ double UnitParams::Period() { return 25.0f / static_cast<float>(intelligence); }
 
 // --- Map object state ------------------------------------------------------------------------
 
-bool CMapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
+bool MapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
 
-bool CMapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints; }
+bool MapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints; }
 
-bool CMapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
+bool MapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
 
-bool CMapObjectClientSpecific::IsOverkilled() {
+bool MapObjectClientSpecific::IsOverkilled() {
     int maximum = Unit()->packedVitals.maxHitPoints;
     return Unit()->packedVitals.hitPoints < -maximum * 4 - maximum;
 }

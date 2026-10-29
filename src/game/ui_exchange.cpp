@@ -1,4 +1,4 @@
-// The exchange between players (screen 9, CExchangeScreen; multiplayer only). See ui_screens.h and
+// The exchange between players (screen 9, ExchangeScreen; multiplayer only). See ui_screens.h and
 // docs/notes/ui.md, section 4.
 #include "text_manager.h"
 #include "game_strings.h"
@@ -37,8 +37,8 @@ constexpr int kStripActionTake = 1;
 constexpr int kGridMode = 5;
 
 // A text surface of the left column (x 0..200).
-CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
-    return new CUiSurface(ui, 0, top, 200, bottom, SurfaceBlend::Keyed, true);
+UiSurface* NewSurface(Interface3D* ui, int top, int bottom) {
+    return new UiSurface(ui, 0, top, 200, bottom, SurfaceBlend::Keyed, true);
 }
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
@@ -46,7 +46,7 @@ constexpr std::uint32_t kGrey = 0xA7D7E4;
 constexpr int kAlignLeft = 1;     // DrawText's format here
 constexpr int kWrapLines = 2;
 
-void SetTint(CUiMesh* sprite, float value) {
+void SetTint(UiMesh* sprite, float value) {
     sprite->tint[0] = value;
     sprite->tint[1] = value;
     sprite->tint[2] = value;
@@ -62,15 +62,15 @@ constexpr int kOfferLimit = 8;
 
 // --- closing, message box answers ----------------------------------------------------------------
 
-void CExchangeScreen::CloseScreen() {
+void ExchangeScreen::CloseScreen() {
     descPanel->Describe(nullptr);
     delete scratch;    // the deleting destructor
 }
 
 // --- the update ----------------------------------------------------------------------------------
 
-void CExchangeScreen::Update() {
-    CUiContainer::Update();
+void ExchangeScreen::Update() {
+    UiContainer::Update();
     if (!LiveOffer()) {
         ReturnAll(LocalPlayerData(), ownOffer);
         GameRejoin();
@@ -85,8 +85,8 @@ void CExchangeScreen::Update() {
 
 // --- the left button -------------------------------------------------------------------------------
 
-void CExchangeScreen::LeftDown(int buttons, int x, int y) {
-    CUiContainer::LeftDown(buttons, x, y);
+void ExchangeScreen::LeftDown(int buttons, int x, int y) {
+    UiContainer::LeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();
@@ -117,7 +117,7 @@ void CExchangeScreen::LeftDown(int buttons, int x, int y) {
 
 // --- the exchange went through -------------------------------------------------------------------
 
-void CExchangeScreen::ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
+void ExchangeScreen::ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
     CParty* local = LocalPlayerData();
     local->ReleaseAllItems();
     ReturnAll(local, partyC);
@@ -128,9 +128,9 @@ void CExchangeScreen::ExchangeDone(CParty* partyB, CParty* partyA, CParty* party
 
 // --- Create --------------------------------------------------------------------------------------
 
-void CExchangeScreen::CreateScreen() {
+void ExchangeScreen::CreateScreen() {
     LoadTexture("campinfo", TextureKind::Interface);
-    CUiRegion* region = AddRegion();
+    UiRegion* region = AddRegion();
     region->SetRect(12, 450, 52, 490);
     region->SetTip(0xA028);
     region = AddRegion();
@@ -142,7 +142,7 @@ void CExchangeScreen::CreateScreen() {
     // The buttons: accept, take back, a hidden one, leave (shaded).
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
-    CUiMesh* sprite = AddBlankSprite();
+    UiMesh* sprite = AddBlankSprite();
     sprite->SetRectangle(3.0f, 100.0f, 12.0f, 150.0f, 52.0f, 190.0f, 0xA5, 0xAC, 0xCD, 0xD4);
     sprite->visible = false;
     sprite = AddBlankSprite();
@@ -162,30 +162,30 @@ void CExchangeScreen::CreateScreen() {
     ownOffer->Clear(1, 0);
 
     // The description panel (its item list and text arrays constructed in place).
-    descPanel = new CItemInfoPanel(ui, this);
+    descPanel = new ItemInfoPanel(ui, this);
     AddChild(descPanel);
     descPanel->Build(600, 100);
 
     // The local party's items (the strip that hands clicks to this screen).
-    strip = new CForwardingStrip(ui, this);
+    strip = new ForwardingStrip(ui, this);
     AddChild(strip);
     strip->Setup(&LocalPlayerData()->items, false);
     strip->mode = kStripActionTake;
     strip->SetFilter(0);
 
     // The players.
-    figures = new CFigureStrip(ui, this);
+    figures = new FigureStrip(ui, this);
     AddChild(figures);
     figures->SetupFigures(&names, true, true);
 
     // Both offers.
-    grid = new CTradeGrid(ui, this);
+    grid = new TradeGrid(ui, this);
     AddChild(grid);
     grid->Build(&partnerOffer->items, &ownOffer->items, false, true);
     grid->mode = kGridMode;
 
     // The money offered.
-    moneyField = new CUiEditField(ui, RECT{0, 0x15E, 200, 0x16E});
+    moneyField = new UiEditField(ui, RECT{0, 0x15E, 200, 0x16E});
     AddChild(moneyField);
     moneyField->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
     moneyField->SetText("");
@@ -198,7 +198,7 @@ void CExchangeScreen::CreateScreen() {
 
 // --- Draw ----------------------------------------------------------------------------------------
 
-void CExchangeScreen::Draw(CSceneRenderer* pass) {
+void ExchangeScreen::Draw(SceneRenderer* pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem = nullptr;
     int topic = 0;
@@ -213,12 +213,12 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
         descPanel->Describe(nullptr);
     }
 
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::string text, line;
     net::ClientSession* client = net::g_gameClient;
 
     // Surface 0: our money and the accept caption.
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->Clear();
     text = texts->GetString("xch_current_money");
     line = std::format("{} {}", text, LocalPlayerData()->money);
@@ -270,13 +270,13 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     bool partnerAccepted = LiveAccepted(net::ClientFindParty(client));
     SetTint(SceneMesh(2), partnerAccepted ? 0.5f : 1.0f);
 
-    CUiContainer::Draw(pass);
+    UiContainer::Draw(pass);
 }
 
 // --- an item clicked in the strip or the grid ------------------------------------------------------
 
 // (The original first asks CanEquip, which always accepts here.)
-void CExchangeScreen::TakeItem(CItem* item, int mode) {
+void ExchangeScreen::TakeItem(Item* item, int mode) {
     if (mode == kStripActionTake) {
         ui->PlaySound(kPutOnSound);
         MoveItem(item, ownOffer, LocalPlayerData(), kOfferLimit, true, false);
@@ -284,11 +284,11 @@ void CExchangeScreen::TakeItem(CItem* item, int mode) {
         return;
     }
     if (mode != kGridMode) return;
-    const std::vector<CItem*>& offered = ownOffer->items;
+    const std::vector<Item*>& offered = ownOffer->items;
     for (int i = 0; i < std::ssize(offered); ++i) {
         if (offered[i] != item) continue;
         ui->PlaySound(kPutOffSound);
-        CItem* held = MoveItem(item, LocalPlayerData(), ownOffer, 0, true, false);
+        Item* held = MoveItem(item, LocalPlayerData(), ownOffer, 0, true, false);
         strip->ScrollToItem(held);
         net::ClientPublishParty(net::g_gameClient);
         return;

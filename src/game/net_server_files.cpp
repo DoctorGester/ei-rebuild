@@ -33,7 +33,7 @@ void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
 
     // Filled with shares of one chunk: each element a clone of it (it is marked copy-on-share by the first share).
     auto& chunks = file->chunks;
-    chunks.resize(static_cast<std::size_t>(chunkCount), SharedRef<CRefObject>(NewCounted<FileChunkMessage>()));
+    chunks.resize(static_cast<std::size_t>(chunkCount), SharedRef<RefObject>(NewCounted<FileChunkMessage>()));
 
     data->Seek(0);
     std::int32_t remaining = size;

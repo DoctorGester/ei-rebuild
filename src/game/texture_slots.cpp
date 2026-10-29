@@ -71,7 +71,7 @@ CTexture::CTexture() {
     extra.clear();
 }
 
-// The name goes after the body (its destructor), then CEngineObject's.
+// The name goes after the body (its destructor), then EngineObject's.
 CTexture::~CTexture() {
     DropSurface(this);
     flags = 0;

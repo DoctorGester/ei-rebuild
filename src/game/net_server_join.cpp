@@ -71,7 +71,7 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
 
     ClientSession* client = g_gameClient;
     bool host;
-    if (client && !(client->flags7 & CRefObject::kDetached)) {
+    if (client && !(client->flags7 & RefObject::kDetached)) {
         host = msg->host != 0;
     } else {
         host = self->bindings.size() == 1;

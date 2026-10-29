@@ -17,7 +17,7 @@ is still left. The units themselves are in `units.md`; the conventions are those
   EffectsChanged, ApplyBaseScale, LoadFigures, AttachObject, StatsChanged, ScaleEffectChanged, SetStats,
   UpdateSizeClasses, PlaceOnGround, TakePrototype), each registered through a `...Hook` shim; calls that meant the body
   are qualified. `StandPoint` is not an override (it takes `float*`, the slot `Vector3*`).
-- `CUnitController` slots 36 / 37 return `bool` (AL); slot 33 (`SetWeaponModels`) returns EAX, which SendEquipment
+- `UnitController` slots 36 / 37 return `bool` (AL); slot 33 (`SetWeaponModels`) returns EAX, which SendEquipment
   passes on.
 - Field names: `scriptName` is a `std::string`; +0x254..+0x260 `animationEntry`, `secondEntry`, `actionSound`,
   `animationStart`, `motionMode`, `pathTimeShift` (setters SetAnimationEntries / SetMotionMode / SetPathTimeShift);
@@ -35,20 +35,20 @@ is still left. The units themselves are in `units.md`; the conventions are those
 ## Left
 
 - `CUnit::player` is still `char*` (CPlayer, about 145 uses, with `PartyRecords` at +0x70 reached by arithmetic).
-- `UnitStream` duplicates `CStream` (about 110 uses); unit_save converts with `AsStream`.
+- `UnitStream` duplicates `ByteStream` (about 110 uses); unit_save converts with `AsStream`.
 - `UnitParams params` is CUnit's member at +0x330 and `UnitMotion motion` at +0x27C (unit_motion.h, which unit.h
   includes; ai_motion.h keeps OrderOf). The unit panel's "body parts" (+0x374) are the params' slots' kind / current /
   maximum (the maximum is unsigned: the panel, the wounds and the network fraction read it so).
 - `carried` (+0x49C..+0x4AF) and PartyUnitRecord's four item lists are `std::vector`s.
 - `UnequipArmour` / `ReleaseAllItems` call controller slot 27 as `ArmourTakenOff`: the original reads the vtable before
   the item's GetType, the virtual call after it; GetType reads the item only, so nothing can tell.
-- Item fields used as floats through the item family's names: condition `CItem::condition` / `conditionMax` are floats
+- Item fields used as floats through the item family's names: condition `Item::condition` / `conditionMax` are floats
   (unit_hits' WearItem and ApplyHit / DamageSlot take the `CItem*`), count `count`, spell cost `CSpell::unknown_40`; `UnitPrototypeRecord::unknown_24` is
   a height (compared with 1.5 for size class 0). They belong to their families' tickets.
 - `CMapObjectManager` (unit_create.h) reads its world at +0xAC by hand.
 - Unknowns still unnamed in CUnit: `unknown_438` (copied to the party record's +0x780), `unknown_43C` (cell flag 0x80),
   `unknown_278` (slot 54, "large unit").
-- `CObject3D : CTransformObject` was left (the shared fields have other names: a large rename).
+- `CObject3D : TransformObject` was left (the shared fields have other names: a large rename).
 
 ## C2ms: map specs, unit stats, the fake unit, class templates
 
@@ -75,9 +75,9 @@ Left:
 - combat.h's `CombatStats` overlay repeats UnitStats +0x64..+0x10F (`Combat()` reinterprets the stats); its users
   include script_addon_commands.cpp, so the merge waits for that file's owner.
 - unit_create_stats keeps its `__asm` (FpuCopy2, GameFtol) and raw addresses (the record tables, 0x007846F0 "none").
-- `SceneHelper` / `CFigureMesh` declare no virtuals; `ClassTemplate` does not derive from CRefCounted (the delete
+- `SceneHelper` / `FigureMesh` declare no virtuals; `ClassTemplate` does not derive from RefCounted (the delete
   goes through a reinterpret_cast); party_manager.cpp still reinterpret_casts the template parties.
-- The effect spec's world object class is not known (CTransformObject / CEngineObject fields used).
+- The effect spec's world object class is not known (TransformObject / EngineObject fields used).
 
 ## F2: unknown fields of the units, AI and items files (2026-10-14)
 
@@ -91,11 +91,11 @@ them renamed to unused_ and the verify build run with `-k 0`; each compile error
   (model field 5; 2 = on the water), +0x44 `sightCone`, +0x48 `peripheralRange` (prototype field 0x18). The
   prototype's +0x24 (field 0x23) is the unit's `height` (panel view, reach checks); +0x54 `experienceValue`.
   AIBrain +0xF4 `nearby`, +0x12C `seenCorpses`, +0x36 `alarmSlot`, +0x37 `alwaysUpdated`, +0x44/+0x48
-  `nearX`/`nearY`. Stream +0x04 is CStream::reading (`reading`).
+  `nearX`/`nearY`. Stream +0x04 is ByteStream::reading (`reading`).
 - Archive fields nothing reads keep the archive's field number as their name (`field4`, `field1F`, ...), the
   item records' partly used byte gaps are split the same way (WeaponRecord `field16` / `field1B`, ArmorRecord
   `field19` / `field1A`, QuickItemRecord `field17` / `field18` / `field1B`).
-- `refsHigh` is the high word of the reference dword the original zeroes with the count (AIMode, CItemLink,
+- `refsHigh` is the high word of the reference dword the original zeroes with the count (AIMode, ItemLink,
   ClassTemplate, PartyRecord). `spare*`, `sideCone`, `lightStateA/B`, `otherSound`, `spareHandle`, `zeroed`
   are only ever written (zero / -1).
 - unit_db_destroy.cpp's local `SkillLevelRecord` (0x18) / `SkillRecord` (0x44) are unit_db.h's SkillRecord /
@@ -111,7 +111,7 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   non-virtual member, the virtual declared and never defined) exist because a virtual could not be registered (rewrite
   guide rule 4); C28 folds them into real virtuals. Deleting destructors are `DeleteScalar` (slot 0, RET 4,
   `flags` bit 0 frees; the precedent is `CMapObject::DeleteMapObject`); empty slots have distinct names (`IgnoreArgument`,
-  `ReturnZero`, `NothingMore`, ...). Overloaded names cannot be registered (CScript::Load / Save became LoadState /
+  `ReturnZero`, `NothingMore`, ...). Overloaded names cannot be registered (Script::Load / Save became LoadState /
   SaveState). Slots that return a string build it in the caller's result: a member returning it by value is the same
   hidden-pointer ABI. Where a shim took a pointer the original dereferenced, the member takes a reference.
 - **Moving a body into a member.** `self->x` becomes `x`, or `this->x` when a local or parameter of that name exists;
@@ -119,13 +119,13 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   namespace needs qualified helper names, and a helper with the same name as a member needs `::`. The qualified-call rename
   does not see dependent names (`self->Record::Serialize` in a template) or calls on value objects: the linker names them.
 - **What stays a shim**: shims on aliases of library templates (no member can be added); `void*` / `uint8_t*` selfs
-  and pointer-to-pointer selfs; the `!self` tests of the CInterface3D scale entries (ECX 0 is reachable with Rebirth's
+  and pointer-to-pointer selfs; the `!self` tests of the Interface3D scale entries (ECX 0 is reachable with Rebirth's
   code); `EquipBuild` / `QuickStripBuild` (`int` against `bool`); shims whose return value differs from the slot's
-  (CMemoryStream::Write returns `position`, DriverLink::SendBytes `bool ? 1 : 0`); Rebirth-patched input handlers
+  (MemoryStream::Write returns `position`, DriverLink::SendBytes `bool ? 1 : 0`); Rebirth-patched input handlers
   (0063A560, 00630010, 0062F950: check_patched_calls resolves them by symbol name); the `XxxOriginal(a0, nullptr, a2)`
   call-through blocks (no body to move). UI input shims are registered as `InputForward<&Class::Method>::Call` and
   `UiInput::DeleteWindow<&Class::Delete>` (ui_screens.h: the self is the input sub-object, the window found with
-  `WindowFromInput`). Classes added for the factories: `CClientSpecificManager`, `CEffectManager` (base_manager.h).
+  `WindowFromInput`). Classes added for the factories: `ClientSpecificManager`, `EffectManager` (base_manager.h).
 - **Container Abi types are gone.** The src/lib `*Abi` wrappers and the serialiser templates went with the MFC and STLport
   containers (C14); check_cleanup forbids new `...Array` / `...List` / `...Map` struct names in game files, so a
   `using OldName = New;` follows a renamed type.

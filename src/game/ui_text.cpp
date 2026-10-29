@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-std::vector<std::string> CInterface3D::WrapText(std::string_view text, int maxWidth, int font) const {
+std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWidth, int font) const {
     std::string ch, word, line;
     std::string source(text);
     source += game::NewLineText();
@@ -46,7 +46,7 @@ std::vector<std::string> CInterface3D::WrapText(std::string_view text, int maxWi
     return lines;
 }
 
-int CUiSurface::DrawWrappedText(std::string_view text, const RECT* area, int maxLines, int font, COLORREF colour,
+int UiSurface::DrawWrappedText(std::string_view text, const RECT* area, int maxLines, int font, COLORREF colour,
                                 UINT format, bool shadow) {
     if (!holder) return 0;
     const std::vector<std::string> lines = ui->WrapText(text, area->right - area->left, font);

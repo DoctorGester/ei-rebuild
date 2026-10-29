@@ -20,7 +20,7 @@
 
 namespace {
 
-void ReleaseAll(const std::vector<CItem*>& list) {
+void ReleaseAll(const std::vector<Item*>& list) {
     for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
 }
 
@@ -34,7 +34,7 @@ void Drop(T*& object) {
     object = nullptr;
 }
 
-void ReleaseItems(const std::vector<CItem*>& items) {
+void ReleaseItems(const std::vector<Item*>& items) {
     for (int i = 0; i < std::ssize(items); ++i) items[i]->Release();
 }
 
@@ -81,11 +81,11 @@ ClassId CParty::GetClassId() { return ClassId::Party; }
 
 CItemConstructor* CParty::ItemConstructor() { return itemConstructor; }
 CSpellConstructor* CParty::SpellConstructor() { return spellConstructor; }
-CItemManager* CParty::ItemFactory() { return itemManager; }
+ItemManager* CParty::ItemFactory() { return itemManager; }
 CSpellManager* CParty::SpellManager() { return spellManager; }
 
 void CParty::Create() {
-    itemManager = new CItemManager();
+    itemManager = new ItemManager();
     itemManager->AddRef();    // not tested for null
     itemManager->Init(this);
 

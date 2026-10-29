@@ -1,4 +1,4 @@
-// The sound manager (CSoundManager): voice volumes and pans from the listener, the per-handle controls,
+// The sound manager (SoundManager): voice volumes and pans from the listener, the per-handle controls,
 // ambient emitters, 3D sound sequences, the per-frame tick and the music stream requests, and Play2D /
 // Play3D. Floating point follows the x87 order (the goldens depend on it): `double` for values kept on the
 // FPU stack, static_cast<float> where it stores to a float.
@@ -72,7 +72,7 @@ double HeightFactor(float h) {
 }
 
 // The voice loop of the volume setters and SetListener.
-void RefreshVoices(CSoundManager* m) {
+void RefreshVoices(SoundManager* m) {
     SoundSlot* slot = m->slots.get();
     for (int i = 0; i < 15; ++i, ++slot) {
         if (slot->playing == 0) continue;
@@ -83,7 +83,7 @@ void RefreshVoices(CSoundManager* m) {
 }
 
 // Deletes the deferred record of `handle`, if any (StopSound, RemoveSequence).
-void DropDeferred(CSoundManager* m, int handle) {
+void DropDeferred(SoundManager* m, int handle) {
     auto node = m->deferred.find(handle);
     if (node == m->deferred.end()) return;
     DeferredSound* rec = node->second;
@@ -93,17 +93,17 @@ void DropDeferred(CSoundManager* m, int handle) {
 }
 
 // Emitter `index` as the game addresses it: index 16 is accepted (one past the array).
-SoundEmitter* EmitterAt(CSoundManager* m, int index) {
+SoundEmitter* EmitterAt(SoundManager* m, int index) {
     return m->emitters + index;
 }
 
-SoundSequence* SequenceForId(CSoundManager* m, std::uint32_t id) {
+SoundSequence* SequenceForId(SoundManager* m, std::uint32_t id) {
     SoundSequence* s = &m->sequences[id & 0xFF];
     return static_cast<std::uint32_t>(s->id) == id ? s : nullptr;
 }
 
 // Moves a sequence's current sound (MoveSequence / UpdateSequence).
-void MoveSequenceSound(CSoundManager* m, int handle, const float* position, float nearDist, float farDist) {
+void MoveSequenceSound(SoundManager* m, int handle, const float* position, float nearDist, float farDist) {
     SoundSlot* slot = m->SlotForHandle(handle);
     if (slot != nullptr) {
         if (slot->finished != 0) {
@@ -135,7 +135,7 @@ constexpr int kNoVoice = -1;
 
 // The level of a new 2D voice: as FlatVolume, except that a NaN camera height keeps the full level (the
 // test is "below 70 or unordered" first, then "above 30").
-int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech) {
+int NewFlatLevel(const SoundManager* m, int volume, int heightFade, int speech) {
     double v = volume;
     if (heightFade != 0) {
         float h = m->listener.z;
@@ -148,7 +148,7 @@ int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech)
 }
 
 // No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.
-int DeferLooping(CSoundManager* m, std::string_view name, int priority, int volume, int pan, int heightFade, int speech) {
+int DeferLooping(SoundManager* m, std::string_view name, int priority, int volume, int pan, int heightFade, int speech) {
     auto* rec = new DeferredSound;
     rec->name.assign(name);
     rec->baseVolume = volume;
@@ -167,7 +167,7 @@ int DeferLooping(CSoundManager* m, std::string_view name, int priority, int volu
 }
 
 // The common end of Play2D and Play3D once the wave is in the voice. Returns the voice's handle.
-int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
+int StartLoaded(SoundManager* m, SoundSlot* slot, int loop) {
     if (loop != 0) gameapi::AIL_set_sample_loop_count(slot->sample, 0);
     m->ApplyVolumePan(slot);
     gameapi::AIL_register_EOS_callback(slot->sample, SoundEndOfSample);
@@ -186,7 +186,7 @@ constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave i
 constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
 
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(CSoundManager* m, SoundSlot* slot, const std::string& name, std::list<WaveRecord>::iterator node) {
+void UseCached(SoundManager* m, SoundSlot* slot, const std::string& name, std::list<WaveRecord>::iterator node) {
     m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
     WaveRecord& record = *node;
     record.lastUsed = gameapi::GetTickCount();
@@ -197,7 +197,7 @@ void UseCached(CSoundManager* m, SoundSlot* slot, const std::string& name, std::
 
 // Drops unused waves from the least recently used end until the new one fits the budget or the
 // next one was used within the last minute.
-void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
+void Evict(SoundManager* m, int incoming, std::uint32_t now) {
     std::list<WaveRecord>& list = m->cacheList;
     for (auto after = list.end(); after != list.begin();) {
         auto node = std::prev(after);
@@ -219,7 +219,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
 // --- Shared pieces ------------------------------------------------------------------------------
 
 // The volume of a 2D voice (0..127), inlined in every volume setter.
-int CSoundManager::FlatVolume(int level, int fade, int isSpeech) const {
+int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
     double v = level;
     if (fade != 0) {
         float h = listener.z;
@@ -233,7 +233,7 @@ int CSoundManager::FlatVolume(int level, int fade, int isSpeech) const {
 }
 
 // Hands the slot's volume and pan to Miles; the pan is mirrored unless panDirect.
-void CSoundManager::ApplyVolumePan(SoundSlot* slot) const {
+void SoundManager::ApplyVolumePan(SoundSlot* slot) const {
     int direct = panDirect;
     gameapi::AIL_set_sample_volume(slot->sample, slot->volume);
     int p = slot->pan;
@@ -242,7 +242,7 @@ void CSoundManager::ApplyVolumePan(SoundSlot* slot) const {
 }
 
 // Ends a voice: releases its cached wave, stops the sample and frees the slot.
-void CSoundManager::EndSlot(SoundSlot* slot) {
+void SoundManager::EndSlot(SoundSlot* slot) {
     --CacheEntry(cache, slot)->uses;
     gameapi::AIL_end_sample(slot->sample);
     slot->playing = 0;
@@ -251,7 +251,7 @@ void CSoundManager::EndSlot(SoundSlot* slot) {
 }
 
 // The first voice whose handle matches (free voices hold -1), or null.
-SoundSlot* CSoundManager::SlotForHandle(int handle) const {
+SoundSlot* SoundManager::SlotForHandle(int handle) const {
     for (int i = 0; i < 15; ++i)
         if (slots[i].handle == handle) return &slots[i];
     return nullptr;
@@ -262,7 +262,7 @@ SoundSlot* CSoundManager::SlotForHandle(int handle) const {
 // A 3D voice's volume and pan from the listener: full inside nearDistance, falling to 0
 // at farDistance, and the camera height fade; the pan from the angle between the listener axis and
 // the direction to the sound (0 ahead or behind, +-100 to the sides).
-void CSoundManager::UpdatePositional(SoundSlot* slot) {
+void SoundManager::UpdatePositional(SoundSlot* slot) {
     float dx = static_cast<float>(D(slot->position.x) - listener.x);
     double dyRaw = D(slot->position.y) - listener.y;
     float dy = static_cast<float>(dyRaw);
@@ -316,21 +316,21 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
 }
 
 // Options: effects volume 0..100.
-void CSoundManager::SetEffectsVolume(int volume) {
+void SoundManager::SetEffectsVolume(int volume) {
     if (enabled == 0) return;
     effectsVolume = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     RefreshVoices(this);
 }
 
 // Options: speech volume 0..100.
-void CSoundManager::SetSpeechVolume(int volume) {
+void SoundManager::SetSpeechVolume(int volume) {
     if (enabled == 0) return;
     speechVolume = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     RefreshVoices(this);
 }
 
-// The camera's position and direction (CCamera::Update every frame).
-void CSoundManager::SetListener(const float* position, const float* axis) {
+// The camera's position and direction (Camera::Update every frame).
+void SoundManager::SetListener(const float* position, const float* axis) {
     if (enabled == 0) return;
     lib::LoadBytes(listener, position);
     lib::LoadBytes(listenerAxis, axis);
@@ -350,7 +350,7 @@ void CSoundManager::SetListener(const float* position, const float* axis) {
 }
 
 // Options: music volume 0..100 (0 stops the stream).
-void CSoundManager::SetMusicVolume(int volume) {
+void SoundManager::SetMusicVolume(int volume) {
     int v = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     if (enabled == 0) return;
     musicFader.volume = v;
@@ -363,21 +363,21 @@ void CSoundManager::SetMusicVolume(int volume) {
 }
 
 // Reverb parameters for new voices (used when reverbOn).
-void CSoundManager::SetReverb(float room, float level, float time) {
+void SoundManager::SetReverb(float room, float level, float time) {
     reverb[0] = room;
     reverb[1] = level;
     reverb[2] = time;
 }
 
 // The game window lost / regained focus.
-void CSoundManager::PauseAll() {
+void SoundManager::PauseAll() {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
             if (slots[i].playing != 0) gameapi::AIL_stop_sample(slots[i].sample);
     if (enabled != 0 && streamSample != nullptr) gameapi::AIL_stop_sample(streamSample);
 }
 
-void CSoundManager::ResumeAll() {
+void SoundManager::ResumeAll() {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
             if (slots[i].playing != 0) gameapi::AIL_resume_sample(slots[i].sample);
@@ -387,7 +387,7 @@ void CSoundManager::ResumeAll() {
 // --- Per-handle controls --------------------------------------------------------------------------
 
 // The voice playing `handle`; a voice whose sample ended is freed and gives null.
-SoundSlot* CSoundManager::FindPlaying(int handle) {
+SoundSlot* SoundManager::FindPlaying(int handle) {
     if (enabled == 0) return nullptr;
     SoundSlot* slot = SlotForHandle(handle);
     if (slot == nullptr) return nullptr;
@@ -397,14 +397,14 @@ SoundSlot* CSoundManager::FindPlaying(int handle) {
 }
 
 // The deferred record of `handle`, or null.
-DeferredSound* CSoundManager::FindDeferred(std::uint32_t handle) {
+DeferredSound* SoundManager::FindDeferred(std::uint32_t handle) {
     if (enabled == 0) return nullptr;
     auto node = deferred.find(static_cast<std::int32_t>(handle));
     return node != deferred.end() ? node->second : nullptr;
 }
 
 // Makes a sound 2D with the given volume (0..100) and pan.
-int CSoundManager::SetSoundVolume(int handle, int volume, int pan) {
+int SoundManager::SetSoundVolume(int handle, int volume, int pan) {
     if (enabled != 0) {
         SoundSlot* slot = SlotForHandle(handle);
         if (slot != nullptr) {
@@ -434,7 +434,7 @@ int CSoundManager::SetSoundVolume(int handle, int volume, int pan) {
 }
 
 // Makes a sound 3D at `position`.
-int CSoundManager::SetSoundPosition(int handle, const float* position, float nearDist, float farDist) {
+int SoundManager::SetSoundPosition(int handle, const float* position, float nearDist, float farDist) {
     if (enabled != 0) {
         SoundSlot* slot = SlotForHandle(handle);
         if (slot != nullptr) {
@@ -466,7 +466,7 @@ int CSoundManager::SetSoundPosition(int handle, const float* position, float nea
 }
 
 // Stops a sound (or forgets its deferred record); always -1, the "no sound" handle.
-int CSoundManager::StopSound(int handle) {
+int SoundManager::StopSound(int handle) {
     if (enabled != 0) {
         SoundSlot* slot = SlotForHandle(handle);
         if (slot != nullptr) {
@@ -483,7 +483,7 @@ int CSoundManager::StopSound(int handle) {
 
 // --- Ambient emitters -----------------------------------------------------------------------------
 
-void CSoundManager::MoveEmitter(int index, const float* position, float inner, float outer, int minInterval,
+void SoundManager::MoveEmitter(int index, const float* position, float inner, float outer, int minInterval,
                                 int maxInterval) {
     if (index < 0 || index > 16) return;
     SoundEmitter* e = EmitterAt(this, index);
@@ -496,7 +496,7 @@ void CSoundManager::MoveEmitter(int index, const float* position, float inner, f
 }
 
 // Returns the emitter index or -1.
-int CSoundManager::AddEmitter(const std::vector<std::string>* names, const float* position, float inner, float outer,
+int SoundManager::AddEmitter(const std::vector<std::string>* names, const float* position, float inner, float outer,
                               int minInterval, int maxInterval) {
     if (enabled == 0 || names->empty()) return -1;
     int i = 0;
@@ -511,7 +511,7 @@ int CSoundManager::AddEmitter(const std::vector<std::string>* names, const float
 }
 
 // Always -1. The name list is kept.
-int CSoundManager::RemoveEmitter(int index) {
+int SoundManager::RemoveEmitter(int index) {
     if (index < 0 || index > 16) return -1;
     SoundEmitter* e = EmitterAt(this, index);
     if (e->active == 0) return -1;
@@ -530,7 +530,7 @@ int CSoundManager::RemoveEmitter(int index) {
 // --- Sound sequences ------------------------------------------------------------------------------
 
 // Starts the sequence's next sound; false when it is over or the sound did not start.
-int SoundSequence::PlayNext(CSoundManager* manager) {
+int SoundSequence::PlayNext(SoundManager* manager) {
     if (chooser != nullptr) {
         int played = remaining;
         ++remaining;
@@ -554,7 +554,7 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
 }
 
 // Returns the sequence id (generation << 8 | slot) or -1.
-int CSoundManager::AddSequence(const std::vector<std::string>* names, int priority, const float* position, float nearDist,
+int SoundManager::AddSequence(const std::vector<std::string>* names, int priority, const float* position, float nearDist,
                                float farDist, int randomOrder, int count, int(*chooser)(int, int)) {
     if (enabled == 0 || names->empty()) return -1;
     int i = 0;
@@ -583,7 +583,7 @@ int CSoundManager::AddSequence(const std::vector<std::string>* names, int priori
     return -1;
 }
 
-int CSoundManager::MoveSequence(std::uint32_t sequenceId, const float* position) {
+int SoundManager::MoveSequence(std::uint32_t sequenceId, const float* position) {
     if (enabled == 0 || (sequenceId & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, sequenceId);
     if (s == nullptr) return 0;
@@ -592,7 +592,7 @@ int CSoundManager::MoveSequence(std::uint32_t sequenceId, const float* position)
     return 1;
 }
 
-int CSoundManager::UpdateSequence(std::uint32_t sequenceId, const float* position, float nearDist, float farDist, int count) {
+int SoundManager::UpdateSequence(std::uint32_t sequenceId, const float* position, float nearDist, float farDist, int count) {
     if (enabled == 0 || (sequenceId & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, sequenceId);
     if (s == nullptr) return 0;
@@ -605,7 +605,7 @@ int CSoundManager::UpdateSequence(std::uint32_t sequenceId, const float* positio
 }
 
 // Always -1.
-int CSoundManager::RemoveSequence(std::uint32_t sequenceId) {
+int SoundManager::RemoveSequence(std::uint32_t sequenceId) {
     if (enabled == 0 || (sequenceId & 0xFF) >= 8) return -1;
     SoundSequence* s = SequenceForId(this, sequenceId);
     if (s == nullptr) return -1;
@@ -628,7 +628,7 @@ int CSoundManager::RemoveSequence(std::uint32_t sequenceId) {
 // --- The per-frame tick ---------------------------------------------------------------------------
 
 // Ends the voice if it plays (the sequences' check in Tick).
-void SoundSlot::End(CSoundManager* manager) {
+void SoundSlot::End(SoundManager* manager) {
     if (playing == 0) return;
     manager->EndSlot(this);
 }
@@ -637,7 +637,7 @@ void SoundSlot::End(CSoundManager* manager) {
 // free voices, starts the next sound of every sequence whose sound is over, and every 100 ms (GetTickCount)
 // lets the ambient emitters near the listener play a random name of theirs. Emitters and random sequences
 // draw from the client effects' generator (g_clientRandom) on the wall clock's schedule.
-void CSoundManager::Tick() {
+void SoundManager::Tick() {
     if (enabled == 0) return;
     for (int i = 0; i < 15; ++i) {
         SoundSlot* slot = &slots[i];
@@ -758,7 +758,7 @@ void CSoundManager::Tick() {
 // --- Music stream ---------------------------------------------------------------------------------
 
 // Starts a fade of the stream (no lock).
-void CSoundManager::FadeOutStream() {
+void SoundManager::FadeOutStream() {
     if (enabled == 0) return;
     musicFader.mode = 2;
     musicFader.finished = 0;
@@ -767,7 +767,7 @@ void CSoundManager::FadeOutStream() {
     musicFader.holdUntil = 0;
 }
 
-void CSoundManager::FadeInStream() {
+void SoundManager::FadeInStream() {
     if (enabled == 0) return;
     musicFader.mode = 1;
     musicFader.finished = 0;
@@ -780,7 +780,7 @@ void CSoundManager::FadeInStream() {
 // 1 after the current file, 2 now with a fade out, 3 at the next marker of the current file,
 // 4 at the current buffer position; anything else is ignored. Repeating the playing file only
 // cancels a fade out. Returns 0 only when the stream has no codec.
-int CSoundManager::RequestStream(std::string_view name, int mode) {
+int SoundManager::RequestStream(std::string_view name, int mode) {
     if (enabled == 0) return 1;
     if (musicFader.volume == 0) return 1;
     if (streamCodec == nullptr) return 0;
@@ -871,7 +871,7 @@ int CSoundManager::RequestStream(std::string_view name, int mode) {
 
 // Mode 4 stops the stream now (closing the file) and fades the volume back in over 2 s;
 // other modes request silence ("") the RequestStream way.
-void CSoundManager::StopStream(int mode) {
+void SoundManager::StopStream(int mode) {
     if (enabled == 0) return;
     CRITICAL_SECTION* lock = &streamLock;
     gameapi::EnterCriticalSection(lock);
@@ -910,7 +910,7 @@ void CSoundManager::StopStream(int mode) {
 // --- Stopping everything, wave lengths -------------------------------------------------------
 
 // Loading a game, leaving a zone, the main menu: every voice and deferred sound goes.
-void CSoundManager::StopAll(bool stopStream) {
+void SoundManager::StopAll(bool stopStream) {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
             if (slots[i].playing != 0) EndSlot(&slots[i]);
@@ -920,7 +920,7 @@ void CSoundManager::StopAll(bool stopStream) {
 }
 
 // StopAll's loop (Close's is the same with the map's clear() out of line).
-void CSoundManager::DeleteDeferred() {
+void SoundManager::DeleteDeferred() {
     for (auto& [handle, rec] : deferred)
         if (rec != nullptr) FreeDeferred(rec);
     deferred.clear();
@@ -940,7 +940,7 @@ struct miles::SoundInfo {
 };
 static_assert(sizeof(miles::SoundInfo) == 0x24);
 
-double CSoundManager::WaveLength(const void* data) {
+double SoundManager::WaveLength(const void* data) {
     miles::SoundInfo info;
     gameapi::AIL_WAV_info(data, &info);
     std::uint32_t samples;
@@ -1017,7 +1017,7 @@ void SoundFader::Update() {
 
 // --- A voice for a new sound -----------------------------------------------------
 
-int CSoundManager::AllocateVoice(int priority) {
+int SoundManager::AllocateVoice(int priority) {
     int lowest = 0x7FFFFFFF;
     int index = 0;
     for (int i = 0; i < kVoiceCount; ++i) {
@@ -1058,7 +1058,7 @@ int CSoundManager::AllocateVoice(int priority) {
 // and with `heightFade` by the camera height), `pan` -100..100, `loop` endlessly, `compressed` an
 // MP3 to decompress (handed to the wave loader). Returns the sound handle, or -1 (sound off, no voice for a one-shot
 // sound, silent one-shot, or the wave did not load).
-int CSoundManager::Play2D(std::string_view name, int priority, int volume, int pan, int loop, int heightFade, int speech,
+int SoundManager::Play2D(std::string_view name, int priority, int volume, int pan, int loop, int heightFade, int speech,
                           int compressed) {
     if (enabled == 0) return -1;
     int index = AllocateVoice(priority);
@@ -1084,7 +1084,7 @@ int CSoundManager::Play2D(std::string_view name, int priority, int volume, int p
 // Plays `name` at `position`: full volume inside `nearDist`, silent beyond `farDist`, the pan from the
 // listener (UpdatePositional). Returns the handle or -1 as Play2D. A looping sound without a voice is
 // deferred; the record's volume, base volume, pan and length are left as operator new returned them.
-int CSoundManager::Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop) {
+int SoundManager::Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop) {
     if (enabled == 0) return -1;
     int index = AllocateVoice(priority);
     if (index == -1) {
@@ -1125,13 +1125,13 @@ int CSoundManager::Play3D(std::string_view name, int priority, const float* posi
 // from MP3 when `compressed` (kept at the cache's old end), else copied into Miles memory after
 // making room (kept at its front). Sets the voice's length, name, playing flag and a new handle.
 // Returns 0 when no archive has the file or the decompression fails.
-int CSoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compressed) {
+int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compressed) {
     std::string key(name);    // freed on each return
     auto cached = cache.find(key);
     if (cached != cache.end()) {
         if (compressed == 0) UseCached(this, slot, key, cached->second);
     } else {
-        CMappedResource* source = nullptr;
+        MappedResource* source = nullptr;
         void* data = nullptr;
         std::uint32_t fileSize = 0;
         for (auto n = waveSources.begin();;) {
@@ -1184,7 +1184,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compre
     return 1;
 }
 
-void CSoundManager::StreamNotify() {}
+void SoundManager::StreamNotify() {}
 
 int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set) {
     if (state == 1) {

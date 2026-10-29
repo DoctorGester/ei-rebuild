@@ -1,4 +1,4 @@
-// CWorldServer: casting spells into the world (CastSpell) and the missile that carries one (CreateMissile). See
+// WorldServer: casting spells into the world (CastSpell) and the missile that carries one (CreateMissile). See
 // world.h and docs/notes/world.md.
 #include "object_diplomacy.h"
 #include "world.h"
@@ -35,7 +35,7 @@ bool IsHostileType(SpellType type) {
 
 } // namespace
 
-void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target,
+void WorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target,
                                  const Vector3& to, int extra) {
     const Vector3& aim = target ? target->localPosition : to;
     Vector3 end;
@@ -44,7 +44,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f);
     if (caster) from = caster->localPosition;
 
-    auto* missile = new CSpellEffect();
+    auto* missile = new SpellEffect();
     missile->refs = 0;    // the count and flags are cleared before the null test
     missile->flags6 = 0;
     missile->flags7 = 0;
@@ -63,7 +63,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     }
 }
 
-void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, CMapObject* target,
+void WorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, CMapObject* target,
                              const Vector3& to, int extra) {
     if (!spell) return;
     if (sessionKind != kKindSinglePlayer && caster) return;
@@ -77,7 +77,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, 
     }
 
     // Several targets: the units around the caster (or `from`), the requested target first.
-    CPlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
+    PlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
     if (caster) {
         if (CPlayer* ownerObject = caster->player) heroes = ownerObject->Server();
     }

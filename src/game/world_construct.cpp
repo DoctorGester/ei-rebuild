@@ -1,4 +1,4 @@
-// The two worlds (g_serverWorld, g_clientWorld) and their constructors: CWorldServer and CWorldClient. The
+// The two worlds (g_serverWorld, g_clientWorld) and their constructors: WorldServer and WorldClient. The
 // members with C++ constructors (the strings, the zone header) are the compiler's; the others' constructors are
 // written out in the original's order (the ones written out in the constructors) or called (the out-of-line ones).
 #include "world.h"
@@ -10,7 +10,7 @@
 #include "object_diplomacy.h"
 #include "registry.h"
 #include "script.h"
-#include "spell.h"         // CSpellEffect: the missiles
+#include "spell.h"         // SpellEffect: the missiles
 #include "texture.h"       // CTexture: the fog texture (ClientArrayManager)
 
 #include <initializer_list>
@@ -26,12 +26,12 @@ static_assert(lib::Bits(kClientFlags) == 0x3DC0);
 
 } // namespace
 
-CWorldServer::CWorldServer() {
+WorldServer::WorldServer() {
     diplomacy.Reset();
     ResetState();
 }
 
-CWorldClient::CWorldClient() {
+WorldClient::WorldClient() {
     dynamicMaxId = 0;
     lastLineListKey = 0;
     // Both sector grids at 1 x 1 (Create makes them 4 x 4).
@@ -68,5 +68,5 @@ CWorldClient::CWorldClient() {
 // Constructed by the C++ runtime (the client first, as the original's static initialisers did) and destroyed
 // after the game's exit functions; GameMain empties them at exit before those run (EmptyWorlds, app_main.cpp), and
 // their destructors rely on that.
-CWorldClient g_clientWorld;
-CWorldServer g_serverWorld;
+WorldClient g_clientWorld;
+WorldServer g_serverWorld;

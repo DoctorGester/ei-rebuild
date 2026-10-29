@@ -1,6 +1,6 @@
 #pragma once
 
-// CWinRegistry (the name from its own messages): the Windows registry
+// WinRegistry (the name from its own messages): the Windows registry
 // wrapper the options loader and writer use. The object is one open key; every
 // getter and setter reads or writes one value of `subkey` below it. The keys and values are the settings
 // file's (settings_file.h), never the registry's: key is a settings_file::CreateKey handle, and Close
@@ -10,12 +10,12 @@
 #include <cstdint>
 #include <string>
 
-class CWinRegistry {
+class WinRegistry {
 public:
-    CWinRegistry() = default;
-    ~CWinRegistry() { Close(); }
-    CWinRegistry(const CWinRegistry&) = delete;
-    CWinRegistry& operator=(const CWinRegistry&) = delete;
+    WinRegistry() = default;
+    ~WinRegistry() { Close(); }
+    WinRegistry(const WinRegistry&) = delete;
+    WinRegistry& operator=(const WinRegistry&) = delete;
     // Closes the key, then opens the settings file's `path` (the original's HKEY_CURRENT_USER key). Returns 1.
     bool Open(const char* path);
     void Close();

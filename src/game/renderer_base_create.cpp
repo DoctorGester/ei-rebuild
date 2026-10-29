@@ -2,4 +2,4 @@
 // the transform pipeline.
 #include "model.h"
 
-void CSceneRenderer::CreatePipeline() { pipeline.Assign(new CTransformPipeline()); }
+void SceneRenderer::CreatePipeline() { pipeline.Assign(new TransformPipeline()); }

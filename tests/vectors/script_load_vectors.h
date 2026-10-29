@@ -1,7 +1,7 @@
 #pragma once
 
 // Payloads of the script loader's records in the "script" family (vectors.h, script_vectors.h):
-// CScript::ExpectLexeme, LoadFunction, LoadCommands and Load. Recorded by record_script_load.cpp,
+// Script::ExpectLexeme, LoadFunction, LoadCommands and Load. Recorded by record_script_load.cpp,
 // replayed by replay_script_load.cpp. The serialisers below run on game.exe's objects when recording
 // (script_original.h's views) and on the replay's when checking, so both write the same bytes for the same
 // contents.

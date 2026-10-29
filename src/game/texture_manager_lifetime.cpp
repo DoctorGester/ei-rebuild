@@ -44,13 +44,13 @@ static void ReleaseTextures(CTextureManager* manager) {
     manager->cache.clear();
     manager->cachedBytes = 0;
     ForgetComposedTextures();
-    CTextureDevice* device = manager->device;
+    TextureDevice* device = manager->device;
     manager->device = nullptr;
     if (device) device->Release();
 }
 
 void CTextureManager::Create() {
-    CBaseManager::Create();
+    BaseManager::Create();
     ForgetComposedTextures();
     const std::string folder = g_textFolder;
     bool opened = AddArchive((folder + "textures.res"));
@@ -61,25 +61,25 @@ void CTextureManager::Create() {
     }
     // Rebirth's ResOverride: when all three opened, the mod's texture archives follow.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
-        for (const std::string& path : modfolders::TextureArchives()) CResourceManager::AddArchive(path);
+        for (const std::string& path : modfolders::TextureArchives()) ResourceManager::AddArchive(path);
     }
 }
 
 void CTextureManager::Destroy() {
     ReleaseTextures(this);
-    CResourceManager::Destroy();
+    ResourceManager::Destroy();
 }
 
 CTextureManager::~CTextureManager() {
     ReleaseTextures(this);
-    CResourceManager::Destroy();
+    ResourceManager::Destroy();
     SetDevice(nullptr);
     // The members' destructors: both counted pointers are empty by now; the cache's.
     cache.clear();
 }
 
-CEngineObject* CTextureManager::CreateObject(int newType, int newId) {
-    CEngineObject* object = CBaseManager::CreateObject(newType, newId);
+EngineObject* CTextureManager::CreateObject(int newType, int newId) {
+    EngineObject* object = BaseManager::CreateObject(newType, newId);
     object->flags |= CreateFlag(newType);
     return object;
 }

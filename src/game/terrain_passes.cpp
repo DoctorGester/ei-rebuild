@@ -58,7 +58,7 @@ void ChooseDetail(const Terrain* terrain, SectorData* sector) {
 
 bool SectorData::IsDrawn() const { return clipMode == 0 || clipMode == kCrossing; }
 
-void SectorData::ClipTest(CSceneRenderer* renderer) {
+void SectorData::ClipTest(SceneRenderer* renderer) {
     // The verdict as it is stored: -1 counts as outside.
     const auto verdict = [&](const SectorBox& bounds) {
         const int where = renderer->pipeline->ClipTest(&bounds);
@@ -88,7 +88,7 @@ void SectorData::FindSeams() {
     }
 }
 
-void SectorData::DrawPage(const CSceneRenderer* renderer, int page) {
+void SectorData::DrawPage(const SceneRenderer* renderer, int page) {
     if (clipMode == kCulled) return;
     if (hasWater) ApplyWaterLevels();
     render::TerrainPage(this, renderer, page);
@@ -96,7 +96,7 @@ void SectorData::DrawPage(const CSceneRenderer* renderer, int page) {
 
 // --- The passes ------------------------------------------------------------------------------------
 
-void Terrain::DrawPass(CSceneRenderer* renderer, int firstPage, int lastPage) {
+void Terrain::DrawPass(SceneRenderer* renderer, int firstPage, int lastPage) {
     Matrix4 matrix;
     localRotation.ToMatrix(matrix.m);
     matrix.m[3] = localPosition.x;
@@ -104,16 +104,16 @@ void Terrain::DrawPass(CSceneRenderer* renderer, int firstPage, int lastPage) {
     matrix.m[11] = localPosition.z;
     matrix.m[12] = matrix.m[13] = matrix.m[14] = 0.0f;
     matrix.m[15] = 1.0f;
-    CTransformPipeline* pipeline = renderer->pipeline;
-    pipeline->PushMatrixProduct(matrix, CTransformPipeline::kClipStack);
+    TransformPipeline* pipeline = renderer->pipeline;
+    pipeline->PushMatrixProduct(matrix, TransformPipeline::kClipStack);
     pipeline->PushMatrixProduct(matrix, kProjectStack);
     DrawPages(renderer, firstPage, lastPage);
     pipeline = renderer->pipeline;
-    pipeline->PopMatrix(CTransformPipeline::kClipStack);
+    pipeline->PopMatrix(TransformPipeline::kClipStack);
     pipeline->PopMatrix(kProjectStack);
 }
 
-void Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
+void Terrain::DrawPages(SceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return;
     ForVisibleSectors(this, [&](SectorData* sector) {
         ChooseDetail(this, sector);
@@ -135,8 +135,8 @@ void Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     }
 }
 
-void Terrain::DrawGround(CSceneRenderer* renderer) { DrawPass(renderer, 0, LayerPages() - 1); }
+void Terrain::DrawGround(SceneRenderer* renderer) { DrawPass(renderer, 0, LayerPages() - 1); }
 
-void Terrain::DrawWater(CSceneRenderer* renderer) { DrawPass(renderer, LayerPages(), 2 * LayerPages() - 1); }
+void Terrain::DrawWater(SceneRenderer* renderer) { DrawPass(renderer, LayerPages(), 2 * LayerPages() - 1); }
 
 } // namespace terrain

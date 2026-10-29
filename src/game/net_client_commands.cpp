@@ -22,9 +22,9 @@ constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 } // namespace
 
 // Keeps `object` on the timers list for `seconds` (shared into the entry).
-void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
+void ClientSession::AddTimed(RefObject* object, std::uint32_t seconds) {
     // The list's copy shares the entry's share: a clone, as sharing marked the object copy-on-share.
-    TimedEntry<SharedRef<CRefObject>> entry(seconds, SharedRef<CRefObject>(object));
+    TimedEntry<SharedRef<RefObject>> entry(seconds, SharedRef<RefObject>(object));
     timers.push_back(entry);
 }
 
@@ -38,7 +38,7 @@ void ClientSession::SendCommand(int kind, std::string_view text) {
     command->text.assign(text);
 
     // As AddTimed: the list keeps a clone of the entry's share.
-    TimedEntry<SharedRef<CRefObject>> entry(kCommandLifetime, SharedRef<CRefObject>(command));
+    TimedEntry<SharedRef<RefObject>> entry(kCommandLifetime, SharedRef<RefObject>(command));
     self->timers.push_back(entry);
 }
 

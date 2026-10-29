@@ -63,7 +63,7 @@ std::string g_commandLineMap;
 std::string g_commandLineMob;
 std::string g_commandLineScript;
 std::string g_cameraFile;
-constinit CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
+constinit DirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
 
 
 namespace {
@@ -140,7 +140,7 @@ void ReadCommandLine(const char* commandLine) {
     g_commandLineScript.clear();
     g_commandLineMob.clear();
     g_commandLineMap.clear();
-    CWorldClient* client = &g_clientWorld;
+    WorldClient* client = &g_clientWorld;
     GameOptions* options = &options::g_options;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
@@ -273,13 +273,13 @@ bool CheckDrives(const std::vector<std::string>& messages) {
     return true;
 }
 
-void ReleaseMouse(CDirectInputMouse* mouse) {
+void ReleaseMouse(DirectInputMouse* mouse) {
     if (--mouse->references == 0) delete mouse;
 }
 
 void CreateMouse() {
-    auto* mouse = new CDirectInputMouse();
-    CDirectInputMouse* old = g_mouse;
+    auto* mouse = new DirectInputMouse();
+    DirectInputMouse* old = g_mouse;
     g_mouse = mouse;
     if (mouse) ++mouse->references;
     if (old) ReleaseMouse(old);
@@ -297,7 +297,7 @@ void CreateFolders(std::string& path) {
 // The renderer created on the window, its gamma set from the options.
 void CreateRenderer() {
     GameOptions* options = &options::g_options;
-    CCamera* camera = &g_camera;
+    Camera* camera = &g_camera;
     camera->localPosition.x = options->cameraDefaultXDeploy;
     camera->localPosition.y = options->cameraDefaultYDeploy;
     camera->localPosition.z = options->cameraDefaultHeight;
@@ -320,7 +320,7 @@ std::uintptr_t OpenSound() {
     }
     {
         std::string effects = textFolder + "sfx.res";
-        CSoundManager* sound = g_clientWorld.sounds;
+        SoundManager* sound = g_clientWorld.sounds;
         sound->ClearWaveSources();
         sound->AddWaveSource(effects);
     }
@@ -367,16 +367,16 @@ float CameraSeconds(std::uint32_t milliseconds) {
 // Three calls of the loop take a harness hook (ei/main_loop.h, tests/verify/harness_hooks.h) when
 // one is set: the frame's last camera update is held still while a scenario is frozen; the server's
 // update and the client's tick are followed by the harness's "speed" hold. Otherwise the function itself.
-void FrameCameraUpdate(CCamera* camera, float seconds) {
+void FrameCameraUpdate(Camera* camera, float seconds) {
     if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) hook(camera, nullptr, seconds);
     else camera->Update(seconds);
 }
 // Stand-ins in the hook types' convention (__fastcall, include/ei/main_loop.h): in game.exe the harness's hooks are CALL targets.
 int __fastcall UpdateServer(void* server, void*) {
-    static_cast<CWorldServer*>(server)->Update();
+    static_cast<WorldServer*>(server)->Update();
     return 1;
 }
-int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->RunTick() ? 1 : 0; }
+int __fastcall RunClientSegment(void* client, void*) { return static_cast<WorldClient*>(client)->RunTick() ? 1 : 0; }
 ei::mainloop::HarnessHooks::WorldUpdate ServerUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
     return &UpdateServer;
@@ -475,7 +475,7 @@ bool RunPass() {
         return false;
     }
     GuardPlayerData(1);
-    CWorldClient* client = &g_clientWorld;
+    WorldClient* client = &g_clientWorld;
     if (client->IsLocalPlayerIdle()) {
         if (IsMultiplayerClient()) g_gameFlow.RecreateClientSession();
         else g_gameFlow.CloseSessions();
@@ -506,7 +506,7 @@ bool RunPass() {
         // The camera runs on the real time of the pass, a tick at a time; the draw spreads the last tick's
         // step over the part of the next tick the client has had (camera::DrawnView).
         camera::SetViewProgress(fraction, CameraSeconds(elapsed));
-        CCamera* camera = &g_camera;
+        Camera* camera = &g_camera;
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {
             camera->Update(CameraSeconds(tick));
@@ -515,9 +515,9 @@ bool RunPass() {
         }
         FrameCameraUpdate(camera, CameraSeconds(elapsed));
         if (!client->paused) {
-            if (camera->flags & CCamera::kRecording)
+            if (camera->flags & Camera::kRecording)
                 camera->RecordFrame(std::bit_cast<std::uint32_t>(static_cast<float>(static_cast<double>(client->tick) + client->tickFraction)));
-            if (camera->flags & CCamera::kPlaying)
+            if (camera->flags & Camera::kPlaying)
                 camera->PlaybackStep(static_cast<float>(static_cast<double>(client->tick) + client->tickFraction));
         }
     }
@@ -566,7 +566,7 @@ void ShutDown() {
     ForgetComposedTextures();
     g_interface.Shutdown();
     g_cursor.Shutdown();
-    CDirectInputMouse* mouse = g_mouse;
+    DirectInputMouse* mouse = g_mouse;
     g_mouse = nullptr;
     if (mouse) ReleaseMouse(mouse);
     g_sceneRenderer.SetGamma(0.0f, 0.0f, 0.0f);
@@ -580,7 +580,7 @@ void ShutDown() {
 
 // The mouse's reference dropped (ShutDown has already taken it: null at exit).
 void ReleaseMouseAtExit() {
-    if (CDirectInputMouse* mouse = g_mouse)
+    if (DirectInputMouse* mouse = g_mouse)
         if (--mouse->references == 0) delete mouse;
 }
 

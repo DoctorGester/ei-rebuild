@@ -5,9 +5,9 @@
 // The renderer's counted base (one virtual, the deleting destructor, which no object
 // reaches; device_helpers.cpp): the surface holder (Surface), the device object and the transform pipeline derive from it. Holders
 // count references; the last one deletes the object (for a surface holder).
-class CRendererBase {
+class RendererBase {
 public:
-    virtual ~CRendererBase();
+    virtual ~RendererBase();
 
 
     void AddRef() { ++refs; }
@@ -18,7 +18,7 @@ public:
     int refs = 0;
 
 protected:
-    CRendererBase() {}
-    CRendererBase(const CRendererBase&) = delete;
-    CRendererBase& operator=(const CRendererBase&) = delete;
+    RendererBase() {}
+    RendererBase(const RendererBase&) = delete;
+    RendererBase& operator=(const RendererBase&) = delete;
 };

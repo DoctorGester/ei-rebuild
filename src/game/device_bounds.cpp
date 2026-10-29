@@ -1,8 +1,8 @@
 // The Direct3D device's screen rectangle of a mesh draw (mesh draw flag 1): the bounds of its projected positions
 // clamped to the screen, rounded into the device's drawn rectangle (+0x15C), which the figures' and the 3D library's
 // draws read back for picking. See docs/notes/renderer.md (section 3, "Picking").
-#include "model.h"     // CTransformPipeline
-#include "texture.h"   // CTextureDevice
+#include "model.h"     // TransformPipeline
+#include "texture.h"   // TextureDevice
 
 #include "lib/gameapi.h"
 
@@ -38,7 +38,7 @@ struct ScreenBounds {
     }
 
     // The bounds rounded to nearest into the device's rectangle.
-    void Store(CTextureDevice* device) const {
+    void Store(TextureDevice* device) const {
         const int bottom = x87::fistp(maxY);
         const int right = x87::fistp(maxX);
         const int top = x87::fistp(minY);
@@ -57,7 +57,7 @@ bool InDepth(const Vector4& p) { return p.z >= 0.0f && p.w - p.z >= 0.0f; }
 // them (x right and y down from the top left corner, the viewport the screen's size). Past a corner of the screen
 // this is larger than the original's rectangle (the bounds of the clipped triangles), and across one edge it can be
 // wider along that edge: an accepted difference (renderer.md section 3).
-void CTextureDevice::BoundsOfProjected(const std::vector<Vector4>* positions, bool clipSpace) {
+void TextureDevice::BoundsOfProjected(const std::vector<Vector4>* positions, bool clipSpace) {
     const float width = static_cast<float>(screen.right - screen.left);
     const float height = static_cast<float>(screen.bottom - screen.top);
     ScreenBounds bounds;

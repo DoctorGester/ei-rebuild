@@ -60,11 +60,11 @@ public:
 
     // While loading: key -> the object the index names (by the key its record is stored under).
     // (walked in STLport's order by Close: the objects nobody took are deleted in that order)
-    using LoadedObjects = lib::HashMap<std::uint32_t, CRefCounted*>;
+    using LoadedObjects = lib::HashMap<std::uint32_t, RefCounted*>;
 
     // The classes an archive can hold: Close writes an object's class id (found by its vtable) to the index,
     // Open creates the object with the class's factory.
-    using Factory = CRefCounted*(*)();
+    using Factory = RefCounted*(*)();
     struct ClassRegistry {
         std::unordered_map<std::uint32_t, std::int32_t> classIds;     // vtable -> class id
         std::unordered_map<std::uint32_t, Factory> factories;    // class id -> factory
@@ -97,16 +97,16 @@ public:
         Field(id, static_cast<void*>(value), sizeof(T));
     }
     void StringField(int id, std::string* s);
-    void StreamField(int id, CMemoryStream* s);       // chunk `id` {1: size, 2: bytes}
-    void SaveObjectRef(int id, CRefCounted* object);   // object's number, object kept for Close
-    CRefCounted* ObjectRef(int id);                    // the object a saved key stands for
+    void StreamField(int id, MemoryStream* s);       // chunk `id` {1: size, 2: bytes}
+    void SaveObjectRef(int id, RefCounted* object);   // object's number, object kept for Close
+    RefCounted* ObjectRef(int id);                    // the object a saved key stands for
 
     // Starts a load (`loading`, a byte: reads the index chunk 0, data chunk 2 and the
     // object records from `stream`) or a save (`version` kept for Close).
-    void Open(CStream* stream, int loading, int version);
+    void Open(ByteStream* stream, int loading, int version);
     // Ends a save: writes the saved objects' records, the version (field 2) and the index
     // and data chunks to `stream`; or, after a load, drops the loaded objects. Clears everything.
-    void Close(CStream* stream);
+    void Close(ByteStream* stream);
 
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1 per record
     // (`occurrence` selects the record); loading replaces the vector's contents.
@@ -155,16 +155,16 @@ public:
     ChunkArchive(const ChunkArchive&) = delete;
     ChunkArchive& operator=(const ChunkArchive&) = delete;
 
-    CMemoryStream indexStream;     // chunk 0
-    CMemoryStream dataStream;      // the chunk data (chunk 2 while loading the records)
+    MemoryStream indexStream;     // chunk 0
+    MemoryStream dataStream;      // the chunk data (chunk 2 while loading the records)
     std::list<Ref> stack;                   // the last chunk is the current one
     std::int32_t version;          // 1 when constructed; field 2 of the root chunk
     std::uint8_t loading;          // Open stores the low byte of its argument
     LoadedObjects loaded;
     // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
     // instead of the object's address.
-    std::unordered_map<const CRefCounted*, std::uint32_t> numbers;
-    std::list<CRefCounted*> saved;               // the objects whose records Close writes
+    std::unordered_map<const RefCounted*, std::uint32_t> numbers;
+    std::list<RefCounted*> saved;               // the objects whose records Close writes
 };
 extern ChunkArchive::ClassRegistry g_classRegistry;   // chunk_archive.cpp
 
@@ -194,8 +194,8 @@ void RecordChunks(ChunkArchive* ar, int id, std::vector<Record>* records, Fields
 
 // Whole chunks of a stream (the archive's top-level chunks). Reads one chunk header and its bytes into `to` (at
 // most 10,000,000). True when all of it was read.
-bool ReadStreamChunk(CStream* in, char* id, CMemoryStream* to);
+bool ReadStreamChunk(ByteStream* in, char* id, MemoryStream* to);
 // From the start of the stream, the `occurrence`-th chunk `id` into `to`; on a read error or the end, `to` is
 // cleared and false.
-bool FindStreamChunk(CStream* in, int id, CMemoryStream* to);
-void WriteStreamChunk(CStream* out, int id, CMemoryStream* from);
+bool FindStreamChunk(ByteStream* in, int id, MemoryStream* to);
+void WriteStreamChunk(ByteStream* out, int id, MemoryStream* from);

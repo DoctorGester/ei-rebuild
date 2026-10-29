@@ -1,4 +1,4 @@
-// Lights and the light manager: CLight's lifetime and setters, CLightFactory ("CLightManager")
+// Lights and the light manager: CLight's lifetime and setters, LightFactory ("CLightManager")
 // lifetime and object creation. See spell.h and docs/notes/items_spells.md.
 #include "core_transform.h"
 #include "spell.h"
@@ -89,17 +89,17 @@ void CLight::Destroy() { flags &= ~LightFlag::Active; }
 const char* CLight::ClassName() { return "CLight"; }
 ClassId CLight::GetClassId() { return ClassId::Light; }
 
-// --- CLightFactory -------------------------------------------------------------------------------
+// --- LightFactory -------------------------------------------------------------------------------
 
-CLightFactory::CLightFactory() {
+LightFactory::LightFactory() {
     held = nullptr;
 }
 
-CLightFactory::~CLightFactory() {
+LightFactory::~LightFactory() {
     if (held) held->Release();
 }
 
-CEngineObject* CLightFactory::NewObject(int objectType) {
+EngineObject* LightFactory::NewObject(int objectType) {
     if (objectType != kLightDefault && objectType != kLightPoint) {
         game::DebugLog(kUnknownLightType, objectType);
         return nullptr;
@@ -112,11 +112,11 @@ CEngineObject* CLightFactory::NewObject(int objectType) {
     return light;
 }
 
-CEngineObject* CLightFactory::CreateObject(int newType, int newId) {
-    CEngineObject* object = CBaseManager::CreateObject(newType, newId);
+EngineObject* LightFactory::CreateObject(int newType, int newId) {
+    EngineObject* object = BaseManager::CreateObject(newType, newId);
     object->flags &= ~LightFlag::Hidden;
     return object;
 }
 
-const char* CLightFactory::ClassName() { return "CLightManager"; }
-ClassId CLightFactory::GetClassId() { return ClassId::LightFactory; }
+const char* LightFactory::ClassName() { return "CLightManager"; }
+ClassId LightFactory::GetClassId() { return ClassId::LightFactory; }

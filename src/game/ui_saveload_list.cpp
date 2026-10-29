@@ -1,11 +1,11 @@
-// The save/load window's list (CSaveLoadWindow::RefreshList): the visible rows with their dates, the name
+// The save/load window's list (SaveLoadWindow::RefreshList): the visible rows with their dates, the name
 // being typed with its caret, the selection's marker and the selected save's details, all drawn into the
 // window's first surface. Rebirth's WideScreen patches it (the caret's points scaled without the margin),
 // which this reproduces behind the flag. Rebirth-patched callees: the surface's text, the text extent, the
-// point scaling and the sprite's Place. See ui.h (CSaveLoadWindow) and docs/notes/items_spells.md.
+// point scaling and the sprite's Place. See ui.h (SaveLoadWindow) and docs/notes/items_spells.md.
 #include "ui.h"
 
-#include "text_manager.h"       // CTextManager
+#include "text_manager.h"       // TextManager
 #include "game_singletons.h"
 #include "world.h"
 #include "world_glue.h"
@@ -50,13 +50,13 @@ bool SameFolder(std::string_view folder, std::string_view name) {
 
 } // namespace
 
-void CSaveLoadWindow::RefreshListVanilla() {
+void SaveLoadWindow::RefreshListVanilla() {
     auto& currentName = name;
     if (cursor > static_cast<int>(currentName.size())) cursor = currentName.size();
     if (cursor < 0) cursor = 0;
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->Clear();
-    CUiMesh* marker = SceneMesh(kMarkerSprite);
+    UiMesh* marker = SceneMesh(kMarkerSprite);
     marker->visible = false;
 
     // The rows from the scroll position: the title (the typed name for the selected row of a save

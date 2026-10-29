@@ -27,59 +27,59 @@ bool CEffect::RunTick() { return true; }
 
 // --- The class names and ids (ClassName / GetClassId; the exe's strings) ------------------------------------
 
-const char* CEffectSound::ClassName() { return "CEffectSound"; }
-ClassId CEffectSound::GetClassId() { return ClassId::EffectSound; }
-const char* CEffectSoundSeq::ClassName() { return "CEffectSoundSeq"; }
-ClassId CEffectSoundSeq::GetClassId() { return ClassId::EffectSoundSeq; }
-const char* CEffectAmbientSound::ClassName() { return "CEffectAmbientSound"; }
-ClassId CEffectAmbientSound::GetClassId() { return ClassId::EffectAmbientSound; }
-const char* CEffectPointLight::ClassName() { return "CEffectPointLight"; }
-ClassId CEffectPointLight::GetClassId() { return ClassId::EffectPointLight; }
+const char* EffectSound::ClassName() { return "CEffectSound"; }
+ClassId EffectSound::GetClassId() { return ClassId::EffectSound; }
+const char* EffectSoundSeq::ClassName() { return "CEffectSoundSeq"; }
+ClassId EffectSoundSeq::GetClassId() { return ClassId::EffectSoundSeq; }
+const char* EffectAmbientSound::ClassName() { return "CEffectAmbientSound"; }
+ClassId EffectAmbientSound::GetClassId() { return ClassId::EffectAmbientSound; }
+const char* EffectPointLight::ClassName() { return "CEffectPointLight"; }
+ClassId EffectPointLight::GetClassId() { return ClassId::EffectPointLight; }
 const char* CEffectParticle::ClassName() { return "CEffectParticle"; }
 ClassId CEffectParticle::GetClassId() { return ClassId::EffectParticle; }
-const char* CEffectWall::ClassName() { return "CEffectWall"; }
-ClassId CEffectWall::GetClassId() { return ClassId::EffectWall; }
-const char* CEffectLightning::ClassName() { return "CEffectLightning"; }
-ClassId CEffectLightning::GetClassId() { return ClassId::EffectLightning; }
-const char* CEffectArrow::ClassName() { return "CEffectArrow"; }
-ClassId CEffectArrow::GetClassId() { return ClassId::EffectArrow; }
-const char* CEffectArrowFigure::ClassName() { return "CEffectArrowFigure"; }
-ClassId CEffectArrowFigure::GetClassId() { return ClassId::EffectArrowFigure; }
-const char* CEffectShowVisibility::ClassName() { return "CEffectShowVisibility"; }
-ClassId CEffectShowVisibility::GetClassId() { return ClassId::EffectShowVisibility; }
-const char* CEffectMoshka::ClassName() { return "CEffectMoshka"; }
-ClassId CEffectMoshka::GetClassId() { return ClassId::EffectMoshka; }
-const char* CEffectTornado::ClassName() { return "CEffectTornado"; }
-ClassId CEffectTornado::GetClassId() { return ClassId::EffectTornado; }
+const char* EffectWall::ClassName() { return "CEffectWall"; }
+ClassId EffectWall::GetClassId() { return ClassId::EffectWall; }
+const char* EffectLightning::ClassName() { return "CEffectLightning"; }
+ClassId EffectLightning::GetClassId() { return ClassId::EffectLightning; }
+const char* EffectArrow::ClassName() { return "CEffectArrow"; }
+ClassId EffectArrow::GetClassId() { return ClassId::EffectArrow; }
+const char* EffectArrowFigure::ClassName() { return "CEffectArrowFigure"; }
+ClassId EffectArrowFigure::GetClassId() { return ClassId::EffectArrowFigure; }
+const char* EffectShowVisibility::ClassName() { return "CEffectShowVisibility"; }
+ClassId EffectShowVisibility::GetClassId() { return ClassId::EffectShowVisibility; }
+const char* EffectMoshka::ClassName() { return "CEffectMoshka"; }
+ClassId EffectMoshka::GetClassId() { return ClassId::EffectMoshka; }
+const char* EffectTornado::ClassName() { return "CEffectTornado"; }
+ClassId EffectTornado::GetClassId() { return ClassId::EffectTornado; }
 
-CEffectSound::CEffectSound() {
+EffectSound::EffectSound() {
     sound = -1;
     Reset();
 }
 
-CEffectSound::~CEffectSound() { Reset(); }
+EffectSound::~EffectSound() { Reset(); }
 
-CEffectSoundSeq::CEffectSoundSeq() {
+EffectSoundSeq::EffectSoundSeq() {
     sound = -1;
     Reset();
 }
 
-CEffectSoundSeq::~CEffectSoundSeq() { Reset(); }
+EffectSoundSeq::~EffectSoundSeq() { Reset(); }
 
-CEffectAmbientSound::CEffectAmbientSound() {
+EffectAmbientSound::EffectAmbientSound() {
     sound = -1;
     Reset();
 }
 
-CEffectAmbientSound::~CEffectAmbientSound() { Reset(); }
+EffectAmbientSound::~EffectAmbientSound() { Reset(); }
 
-CEffectPointLight::CEffectPointLight() {
+EffectPointLight::EffectPointLight() {
     Reset();
 }
 
-CEffectPointLight::~CEffectPointLight() { Reset(); }
+EffectPointLight::~EffectPointLight() { Reset(); }
 
-// --- CEffectParticle and CEffectWall -------------------------------------------------------------
+// --- CEffectParticle and EffectWall -------------------------------------------------------------
 
 CEffectParticle::CEffectParticle() {
     Reset();
@@ -89,35 +89,35 @@ CEffectParticle::~CEffectParticle() { Reset(); }
 
 // The particle's constructor resets as the particle, then the wall resets as itself; the
 // destructors the other way round.
-CEffectWall::CEffectWall() { Reset(); }
+EffectWall::EffectWall() { Reset(); }
 
-CEffectWall::~CEffectWall() { Reset(); }
+EffectWall::~EffectWall() { Reset(); }
 
 // No Reset: only the width and the flag.
-CEffectLightning::CEffectLightning() {
+EffectLightning::EffectLightning() {
     width = 0.0f;
     flag = 0;
 }
 
-CEffectLightning::~CEffectLightning() { Reset(); }
+EffectLightning::~EffectLightning() { Reset(); }
 
 // --- The effect manager's factory ----------------------------------------------------------------
 
-CEngineObject* CEffectManager::NewObject(int objectType) {
-    CEngineObject* object;
+EngineObject* EffectManager::NewObject(int objectType) {
+    EngineObject* object;
     switch (static_cast<ClassId>(objectType)) {
-    case ClassId::EffectSound: object = new CEffectSound(); break;
-    case ClassId::EffectAmbientSound: object = new CEffectAmbientSound(); break;
+    case ClassId::EffectSound: object = new EffectSound(); break;
+    case ClassId::EffectAmbientSound: object = new EffectAmbientSound(); break;
     case ClassId::EffectParticle: object = new CEffectParticle(); break;
-    case ClassId::EffectPointLight: object = new CEffectPointLight(); break;
-    case ClassId::EffectLightning: object = new CEffectLightning(); break;
-    case ClassId::EffectArrow: object = new CEffectArrow(); break;
-    case ClassId::EffectWall: object = new CEffectWall(); break;
-    case ClassId::EffectArrowFigure: object = new CEffectArrowFigure(); break;
-    case ClassId::EffectShowVisibility: object = new CEffectShowVisibility(); break;
-    case ClassId::EffectSoundSeq: object = new CEffectSoundSeq(); break;
-    case ClassId::EffectMoshka: object = new CEffectMoshka(); break;
-    case ClassId::EffectTornado: object = new CEffectTornado(); break;
+    case ClassId::EffectPointLight: object = new EffectPointLight(); break;
+    case ClassId::EffectLightning: object = new EffectLightning(); break;
+    case ClassId::EffectArrow: object = new EffectArrow(); break;
+    case ClassId::EffectWall: object = new EffectWall(); break;
+    case ClassId::EffectArrowFigure: object = new EffectArrowFigure(); break;
+    case ClassId::EffectShowVisibility: object = new EffectShowVisibility(); break;
+    case ClassId::EffectSoundSeq: object = new EffectSoundSeq(); break;
+    case ClassId::EffectMoshka: object = new EffectMoshka(); break;
+    case ClassId::EffectTornado: object = new EffectTornado(); break;
     default: return nullptr;
     }
     if (object != nullptr) object->type = objectType;

@@ -1,4 +1,4 @@
-// Text on the interface's surfaces: CUiSurface's DrawText and the interface's text extent, both in our own fonts
+// Text on the interface's surfaces: UiSurface's DrawText and the interface's text extent, both in our own fonts
 // (ui_font.h): the text laid out by DrawText's rules (render_text.h's Layout) and drawn as glyph runs on the
 // surface's canvas. Rebirth's WideScreen patches both (the rectangle scaled without the margin; the extent scaled
 // by the 4:3 part), which these reproduce behind the flag (ticket W2, ui_widescreen.h). See docs/notes/ui.md,
@@ -33,7 +33,7 @@ int DrawRun(const Surface* holder, render::text::TextFont& font, std::u32string_
 
 // --- DrawTextIn ---------------------------------------------------------------------------------------
 
-int CUiSurface::DrawTextIn(std::string_view text, const RECT* area, int font, COLORREF colour, UINT format, bool shadow) {
+int UiSurface::DrawTextIn(std::string_view text, const RECT* area, int font, COLORREF colour, UINT format, bool shadow) {
     if (!holder) return 0;
     RECT frame;
     if (gameapi::IsRectEmpty(area)) {
@@ -51,7 +51,7 @@ int CUiSurface::DrawTextIn(std::string_view text, const RECT* area, int font, CO
     return extent.y;
 }
 
-int CUiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const RECT& area, UINT format, COLORREF colour,
+int UiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const RECT& area, UINT format, COLORREF colour,
                                bool shadow) {
     render::text::TextFont* drawn = TextFontOf(font);
     if (!holder || !drawn) return 0;
@@ -73,7 +73,7 @@ int CUiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const 
 
 // --- TextExtent ---------------------------------------------------------------------------------------
 
-SIZE CInterface3D::TextExtent(std::string_view text, int font) const {
+SIZE Interface3D::TextExtent(std::string_view text, int font) const {
     const SIZE size = ::TextExtent(fonts[font], text);
     // WideScreen (addon's replacement): by the 4:3 part's width and the mode's height.
     if (widescreen::Active()) return widescreen::TextExtentToLayout(size);

@@ -45,7 +45,7 @@ constexpr float kHalfCell = 0.5f;
 
 UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 
-void ShowHead(CUnitServer* self) {
+void ShowHead(UnitServer* self) {
     AnimationSteps& queue = self->queue;
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
@@ -54,7 +54,7 @@ void ShowHead(CUnitServer* self) {
 
 // The unit stops where it is, facing its direction (the motion restarted with the reversed Y axis of its
 // rotation), then stands (0) and is Stopped.
-void FaceAndStop(CUnitServer* self) {
+void FaceAndStop(UnitServer* self) {
     self->motion.Clear();
     int now = self->World()->tick;
     Vector3 axis;
@@ -78,13 +78,13 @@ void AddEmote(AnimationSteps* steps, std::uint8_t value) {
 }
 
 // The weapon and movement bits of the unit's animation key for the current movement mode.
-std::uint32_t WeaponAndModeBits(CUnitServer* self) {
+std::uint32_t WeaponAndModeBits(UnitServer* self) {
     return self->WeaponTypeMask() | self->MoveModeMask(&self->moveMode);
 }
 
 // The idle animation into `steps`: a walking hero stands with the emote 0xFE, the others with their idle
 // animation for the key, if any.
-void FillIdle(CUnitServer* self, AnimationSteps* steps) {
+void FillIdle(UnitServer* self, AnimationSteps* steps) {
     *steps = {};
     if (self->moveMode.mode == kModeRun && self->moveMode.onGuard == 0) {
         AddEmote(steps, kEmoteStand);
@@ -107,7 +107,7 @@ struct LocalMotionOrder : PathOrder {
 using PartyMap = CPlayer::UnitMap;
 
 // The two variants differ only in the state they set.
-void Play(CUnitServer* self, const AnimationSteps& steps, UnitState newState) {
+void Play(UnitServer* self, const AnimationSteps& steps, UnitState newState) {
     self->state = newState;
     self->unit->UpdateSizeClass();
     self->DropEffectObject();
@@ -121,9 +121,9 @@ void Play(CUnitServer* self, const AnimationSteps& steps, UnitState newState) {
     self->unit->localRotation.AxisY(&axis);
     Vector3 back = -axis;
     if (self->motion.Start(self->unit->localPosition, back, now)) self->unit->RefreshMotion();
-    CWorldServer* world = self->ServerWorld();
+    WorldServer* world = self->ServerWorld();
     if (self->unit->obstacle != 0) {
-        CSectorMap* sectors = &world->aiMap.sectorMap;
+        SectorMap* sectors = &world->aiMap.sectorMap;
         sectors->Remove(self->unit);
         self->unit->obstacle = 0;
         sectors->Add(self->unit);
@@ -145,7 +145,7 @@ void RecordFromMode(MoveModeState* record, int mode) {
 
 // --- Small checks -------------------------------------------------------------------------------
 
-bool CUnitServer::CanReactFor(int ticks) {
+bool UnitServer::CanReactFor(int ticks) {
     if (action.kind == UnitOrderKind::Attack && state == UnitState::Turning &&
         World()->tick + ticks > nextAttackTime)
         return false;
@@ -154,15 +154,15 @@ bool CUnitServer::CanReactFor(int ticks) {
 
 // --- Playing an animation ----------------------------------------------------------------------
 
-void CUnitServer::PlayAnimationOrder(const AnimationSteps& steps) { Play(this, steps, UnitState::Animating); }
+void UnitServer::PlayAnimationOrder(const AnimationSteps& steps) { Play(this, steps, UnitState::Animating); }
 
-void CUnitServer::PlayEmoteOrder(const AnimationSteps& steps) { Play(this, steps, UnitState::Emote); }
+void UnitServer::PlayEmoteOrder(const AnimationSteps& steps) { Play(this, steps, UnitState::Emote); }
 
 // --- Idle and movement animations --------------------------------------------------------------
 
-void CUnitServer::BuildIdle(AnimationSteps* steps) { FillIdle(this, steps); }
+void UnitServer::BuildIdle(AnimationSteps* steps) { FillIdle(this, steps); }
 
-AnimationSteps* CUnitServer::IdleAnimation() {
+AnimationSteps* UnitServer::IdleAnimation() {
     std::uint32_t key = WeaponAndModeBits(this);
     if (idleKey == key) {
         idleAnimation.extra = -1;
@@ -173,7 +173,7 @@ AnimationSteps* CUnitServer::IdleAnimation() {
     return &idleAnimation;
 }
 
-void CUnitServer::PlayIdle() {
+void UnitServer::PlayIdle() {
     if (state == UnitState::Idle || state == UnitState::Moving || state == UnitState::Turning) return;
     std::uint32_t key = WeaponAndModeBits(this);
     if (idleKey == key) {
@@ -189,7 +189,7 @@ void CUnitServer::PlayIdle() {
     ShowHead(this);
 }
 
-void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
+void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     *steps = {};
     CUnit* self = unit;
     std::uint32_t bits;
@@ -235,7 +235,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     for (AnimationStep& step : *steps) step.kind = 2;
 }
 
-AnimationSteps* CUnitServer::NextAnimation() {
+AnimationSteps* UnitServer::NextAnimation() {
     CUnit* self = unit;
     std::uint32_t key = WeaponAndModeBits(this);
     if (self->moveMode == 3) {
@@ -278,7 +278,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
 
 // --- Starting the planned action ---------------------------------------------------------------
 
-void CUnitServer::StartAction(char follow, char stepFlags) {
+void UnitServer::StartAction(char follow, char stepFlags) {
     OrderPlan& plan = currentPlan;
     for (AnimationStep& step : plan.animation) step.flags = static_cast<std::uint8_t>(stepFlags);
     if (state != UnitState::Idle && state != UnitState::Moving && state != UnitState::Turning) {
@@ -302,9 +302,9 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
         motion.StandAndTrack(now, unit, plan.targetId, until, plan.startTime);
     }
     unit->RefreshMotion();
-    CWorldServer* world = ServerWorld();
+    WorldServer* world = ServerWorld();
     if (unit->obstacle == 0) return;
-    CSectorMap* sectors = &world->aiMap.sectorMap;
+    SectorMap* sectors = &world->aiMap.sectorMap;
     sectors->Remove(unit);
     unit->obstacle = 0;
     sectors->Add(unit);
@@ -313,8 +313,8 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
 
 // --- Movement modes -----------------------------------------------------------------------------
 
-void CUnitServer::UpdateSneak() {
-    CWorldServer* world = ServerWorld();
+void UnitServer::UpdateSneak() {
+    WorldServer* world = ServerWorld();
     int running = stats.MovementState(1);
     if (running != 0 && moveMode2.wasMode3 != 0) {
         // Out of breath: back from the second mode's mode 3, with a remark.
@@ -363,7 +363,7 @@ void CUnitServer::UpdateSneak() {
     motionChanged = 1;
 }
 
-bool CUnitServer::ChangeMoveMode() {
+bool UnitServer::ChangeMoveMode() {
     if (moveMode.mode == moveMode2.mode && moveMode.onGuard == moveMode2.onGuard) return false;
     bool modeChanged = moveMode.mode != moveMode2.mode;
     MoveModeState saved = moveMode;
@@ -415,13 +415,13 @@ bool CUnitServer::ChangeMoveMode() {
 
 // --- Paths --------------------------------------------------------------------------------------
 
-bool CUnitServer::PathTo(const Vector3& point, float range) {
+bool UnitServer::PathTo(const Vector3& point, float range) {
     UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;
     motion.Clear();
     std::uint32_t keep = unit->altPassCosts;
-    CWorldServer* world = ServerWorld();
+    WorldServer* world = ServerWorld();
     motion.mayExcludeRegions = unit->player ? 0 : 1;
     std::uint32_t before = unit->altPassCosts;
     unit->altPassCosts = keep;
@@ -457,8 +457,8 @@ bool CUnitServer::PathTo(const Vector3& point, float range) {
     return true;
 }
 
-std::list<CUnit*> CUnitServer::LiftNearby(const Vector3& point, char moving) {
-    CWorldServer* world = ServerWorld();
+std::list<CUnit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
+    WorldServer* world = ServerWorld();
     CPlayer* player = unit->player;
     std::list<CUnit*> list;
     if (!player || player->sessionKind != 1) return list;
@@ -468,7 +468,7 @@ std::list<CUnit*> CUnitServer::LiftNearby(const Vector3& point, char moving) {
     float dy = point.y - unit->localPosition.y;
     float dz = point.z - unit->localPosition.z;
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f) {
-        CSectorMap* sectors = &world->aiMap.sectorMap;
+        SectorMap* sectors = &world->aiMap.sectorMap;
         list = sectors->FindUnitsInRadius(point, 4.0f);
         const ScriptGroup* group = &player->Server()->partyUnits;
         for (auto node = list.begin(); node != list.end();) {
@@ -499,7 +499,7 @@ std::list<CUnit*> CUnitServer::LiftNearby(const Vector3& point, char moving) {
     return list;
 }
 
-void CUnitServer::ReportPath(AIPath* path, char partial) {
+void UnitServer::ReportPath(AIPath* path, char partial) {
     if (brain.action == AIBrain::kActionFollow) return;   // following reports nothing
     CUnit* self = unit;
     const float* goal = &path->goal.x;
@@ -535,7 +535,7 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
 
 // --- Resync with the unit ---------------------------------------------------------------------
 
-void CUnitServer::ResyncWithUnit() {
+void UnitServer::ResyncWithUnit() {
     action.kind = UnitOrderKind::None;
     action.target.Reset();
     action.pointIsUseSpot = false;
@@ -589,7 +589,7 @@ void CUnitServer::ResyncWithUnit() {
 
 // --- Reset ---------------------------------------------------------------------------------------
 
-void CUnitServer::ResetController() {
+void UnitServer::ResetController() {
     auto releaseRef = [](Ref<CMapObject>& ref) {
         ref.Reset();
     };

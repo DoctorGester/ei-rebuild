@@ -1,5 +1,5 @@
 // The particle manager's own members: create / destroy, making sources it holds, ticking every source and
-// letting go of the held ones. See effects.h (CParticleManager) and docs/notes/particles.md.
+// letting go of the held ones. See effects.h (ParticleManager) and docs/notes/particles.md.
 #include "effects.h"
 
 #include <list>
@@ -12,9 +12,9 @@ void EndWalk(ObjectListIterator& it) {
 }
 
 template <typename Pick>
-void ReleaseHeld(CParticleManager* manager, Pick drop) {
+void ReleaseHeld(ParticleManager* manager, Pick drop) {
     ObjectListIterator it{nullptr, {}};
-    CEngineObject* object = it.First(manager);
+    EngineObject* object = it.First(manager);
     std::list<int> ids;
     for (; object; object = it.Next()) {
         if (!drop(object)) continue;
@@ -31,15 +31,15 @@ void ReleaseHeld(CParticleManager* manager, Pick drop) {
 
 } // namespace
 
-void CParticleManager::Create() {
+void ParticleManager::Create() {
     quietStart = 0;
-    CBaseManager::Create();
+    BaseManager::Create();
 }
 
 // The held sources are released walking the table (a null value ends the walk, as in the original's
 // for_each); the table is cleared (count and highest id 0); every pooled particle is deleted (taken off the list one by one,
 // which frees the list's blocks with the last node).
-void CParticleManager::Destroy() {
+void ParticleManager::Destroy() {
     for (auto node = held.begin(); node != held.end() && node->second; ++node)
         node->second->Release();
     held.clear();
@@ -49,12 +49,12 @@ void CParticleManager::Destroy() {
         freeParticles.pop_front();
         delete p;
     }
-    CBaseManager::Destroy();
+    BaseManager::Destroy();
     quietStart = 0;
 }
 
-CParticleSource* CParticleManager::CreateSource(int newType) {
-    CParticleSource* source = CreateObjectAs<CParticleSource>(newType, -1);
+ParticleSource* ParticleManager::CreateSource(int newType) {
+    ParticleSource* source = CreateObjectAs<ParticleSource>(newType, -1);
     source->AddRef();
     int sourceId = source->id;
     if (sourceId > maxHeldId) maxHeldId = sourceId;
@@ -70,14 +70,14 @@ CParticleSource* CParticleManager::CreateSource(int newType) {
 // The two callers share the walk: the ids of the held sources `drop` picks are listed while the sources are
 // released, then they leave the table.
 
-int CParticleManager::TickSources(char paused) {
-    ReleaseHeld(this, [paused](CEngineObject* object) {
+int ParticleManager::TickSources(char paused) {
+    ReleaseHeld(this, [paused](EngineObject* object) {
         if (paused != 0 && !(object->flags & ParticleSourceFlag::TicksWhilePaused)) return false;
         return !object->RunTick();
     });
     return 0;
 }
 
-void CParticleManager::ReleaseUnheld() {
-    ReleaseHeld(this, [](CEngineObject* object) { return object->refCount == 1; });
+void ParticleManager::ReleaseUnheld() {
+    ReleaseHeld(this, [](EngineObject* object) { return object->refCount == 1; });
 }

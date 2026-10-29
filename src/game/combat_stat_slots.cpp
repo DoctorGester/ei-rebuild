@@ -1,4 +1,4 @@
-// CUnitServer's statistics slots: the vitals and the protection recomputed, the statistics repacked, the
+// UnitServer's statistics slots: the vitals and the protection recomputed, the statistics repacked, the
 // armour layers, the equipment's AI options, experience. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 
@@ -24,7 +24,7 @@ UnitVitals& VitalsOf(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 
 } // namespace
 
-void CUnitServer::RefreshVitals(bool withHitPoints) {
+void UnitServer::RefreshVitals(bool withHitPoints) {
     int now = WorldContext()->tick;
     float oldRate = stats.rate;
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
@@ -36,10 +36,10 @@ void CUnitServer::RefreshVitals(bool withHitPoints) {
     unit->MarkChanged(0);
 }
 
-void CUnitServer::UpdateProtection() {
+void UnitServer::UpdateProtection() {
     stats.PackBodyProtection(unit, &VitalsOf(unit), &protection);
     float factor = unit->player ? 1.0f : DefenceFactors()[options::g_options.difficulty];
-    CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
+    ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (unit->player && weapon) {
         double bonus = stats.WeaponSkillBonus(weapon->GetType(), unit);
         protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(bonus * factor));
@@ -48,7 +48,7 @@ void CUnitServer::UpdateProtection() {
     }
 }
 
-void CUnitServer::RepackStats() {
+void UnitServer::RepackStats() {
     std::uint8_t speedsBefore[sizeof(unit->params.modeSpeeds)];
     std::memcpy(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore));
     stats.Pack(&unit->params);
@@ -58,33 +58,33 @@ void CUnitServer::RepackStats() {
     if (std::memcmp(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore)) != 0) motionChanged = 1;
 }
 
-bool CUnitServer::ArmourPutOn(std::uint32_t key) {
+bool UnitServer::ArmourPutOn(std::uint32_t key) {
     // A key out of range gives no record; the original then faults reading its type, as this does.
     auto* record = itemdb::ArmorAt(key >> 16);
     stats.AddArmourLayer(unit->armor[record->type]);
     return false;
 }
 
-bool CUnitServer::RebuildArmourLayers() {
+bool UnitServer::RebuildArmourLayers() {
     stats.RebuildArmourLayers(unit);
     return true;
 }
 
-int CUnitServer::ClearOuterArmourLayers() { return stats.ClearOuterLayers(); }
+int UnitServer::ClearOuterArmourLayers() { return stats.ClearOuterLayers(); }
 
-void CUnitServer::RefreshEquipment() {
+void UnitServer::RefreshEquipment() {
     RefreshItemSpells();
     brain.attention.Build(unit);
 }
 
-void CUnitServer::HostileMaskChanged() {
+void UnitServer::HostileMaskChanged() {
     claimedHostile = 0;
     brain.memory.calls.RemoveClaims();
 }
 
-void CUnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(UnitStats)); }
+void UnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(UnitStats)); }
 
-void CUnitServer::AddExperience(float amount) {
+void UnitServer::AddExperience(float amount) {
     stats.GainExperience(unit, amount);
     RefreshVitals(false);
 }

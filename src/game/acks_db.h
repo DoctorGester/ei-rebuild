@@ -24,7 +24,7 @@ struct Speeches : std::vector<SpeechRecord> {
 };
 
 // A speech that also depends on the surroundings: eligible when the world's environment flags for the unit
-// (CWorldClient::EnvironmentFlags) include all of `environment`.
+// (WorldClient::EnvironmentFlags) include all of `environment`.
 struct EnvironmentSpeech {
     SpeechRecord speech;
     std::uint32_t environment;

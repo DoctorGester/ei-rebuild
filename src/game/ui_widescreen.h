@@ -8,7 +8,7 @@
 
 #include <windows.h>
 
-class CUiWindow;
+class UiWindow;
 
 namespace widescreen {
 
@@ -30,8 +30,8 @@ const Layout& Get();
 
 // The layout widths addon writes (the game's .rdata floats 800.0 and 695.0; Startup adds `extra` with the
 // wide layout). Every reader reads them from memory (rewrite-guide rule 9).
-extern float g_layoutWidth;   // the layout's right edge: the clock's centre x (CHudClock::Update)
-extern float g_panelRight;    // the bottom panels' right column: the quick items' x (CHudQuickItems::SetUnit)
+extern float g_layoutWidth;   // the layout's right edge: the clock's centre x (HudClock::Update)
+extern float g_panelRight;    // the bottom panels' right column: the quick items' x (HudQuickItems::SetUnit)
 inline bool Active() { return Get().active; }
 
 // addon's panel offset (100BD0A0): added to the x of every region rectangle and point and every
@@ -81,11 +81,11 @@ int PickShift();
 // 0x3E)-(0x100, 0xB0), the right one (800, 0)-(800 + margin, 600) the same texels mirrored (addon takes the
 // margin's pixels as layout units: wider than the margins, harmless), both at depth 2, scale 100, tint 0.3,
 // shown `visible` (the camp 1, the hero screen 0). Nothing while not Active() (addon installs them only then).
-void AddCurtains(CUiWindow* window, int visible);
+void AddCurtains(UiWindow* window, int visible);
 // addon's handler after the hero screen's mode function: when the window has exactly 21 sprites (the 19 of the
 // hero screen and the curtains), the curtains (19, 20) are shown in every mode but the hero list (9). Nothing
 // while not Active().
-void ShowHeroCurtains(CUiWindow* window, int mode);
+void ShowHeroCurtains(UiWindow* window, int mode);
 
 // The layout's right edge with the wide layout, 800 + extra: addon's operands (the tooltip kept on the
 // layout).

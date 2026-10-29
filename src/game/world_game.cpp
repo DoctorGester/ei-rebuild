@@ -80,7 +80,7 @@ using netlink::FileStream;
 
 double VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
 void VariableSet(NamedFloatTable* table, std::string_view name, float value) { table->Set(name, value); }
-void ScriptsReset(CMemoryStream* scripts) { scripts->Resize(0); }
+void ScriptsReset(MemoryStream* scripts) { scripts->Resize(0); }
 
 // Copies saves\current\<zone>.sav of every visited zone that has to be kept (the current map's
 // zones and bz7g) into the slot folder; a zone whose file could not be copied, and every other
@@ -145,7 +145,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
         failed = true;
         return 0;
     }
-    CMemoryStream data;
+    MemoryStream data;
     if (!SaveFileRead(&data, kMagicMission, &file)) {
         game::FatalError(kCorruptSave, fileName);
         failed = true;
@@ -185,7 +185,7 @@ constexpr int kHostPort = 8000;
 constexpr int kServerMessageZone = 8;
 
 
-bool Active(const CRefCounted* object) { return object && !(object->flags7 & CRefCounted::kDetached); }
+bool Active(const RefCounted* object) { return object && !(object->flags7 & RefCounted::kDetached); }
 
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
@@ -251,7 +251,7 @@ constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
 constexpr int kResultPlaying = 1;
 constexpr int kResultMainMenu = 4;
 
-inline CPlayerClient* ClientWorldLocalView(CWorldClient* client) { return client->LocalView(); }
+inline PlayerClient* ClientWorldLocalView(WorldClient* client) { return client->LocalView(); }
 
 // `value` mod 24 through the game's _CIfmod, stored as float.
 float HoursOfDay(double value) { return static_cast<float>(std::fmod(value, 24.0)); }
@@ -293,7 +293,7 @@ int AllodOfMap(std::string_view map) {
 } // namespace
 
 // The game's save stream (core_streams.h).
-CMemoryStream g_saveStream;
+MemoryStream g_saveStream;
 
 int GameFlow::SaveGame(const std::string& slot) {
     FileStream file;
@@ -330,7 +330,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     }
 
     // scenario.sav: the party, the input state, the scripts and the globals.
-    CMemoryStream scenario;
+    MemoryStream scenario;
     scenario.version = static_cast<std::uint32_t>(kSaveVersion);
     g_partyManager.Save(&scenario);
     g_interface.SaveState(&scenario);
@@ -350,7 +350,7 @@ int GameFlow::SaveGame(const std::string& slot) {
             opened = file.Open(path, kOpenWrite, 0);
         }
         if (!opened) return 0;
-        CMemoryStream mission;
+        MemoryStream mission;
         mission.version = static_cast<std::uint32_t>(kSaveVersion);
         g_serverWorld.SaveWorld(&mission);
         SaveFileWrite(&file, kMagicMission, &mission);
@@ -452,7 +452,7 @@ int StartNetworkZone(const std::string& zone) {
         opened = file.Open(fileName, kOpenRead, 1);
     }
     if (opened) {
-        CMemoryStream data;
+        MemoryStream data;
         bool loaded = SaveFileRead(&data, kMagicMission, &file) &&
                       g_serverWorld.LoadSave(&data, nullptr) != 0;
         if (loaded) file.Close();
@@ -507,7 +507,7 @@ int LeaveZone(CParty* records) {
         return 0;
     }
     g_serverWorld.PrepareSave();
-    CMemoryStream data;
+    MemoryStream data;
     data.version = static_cast<std::uint32_t>(kSaveVersion);
     g_serverWorld.SaveWorld(&data);
     SaveFileWrite(&file, kMagicMission, &data);
@@ -655,7 +655,7 @@ void GameFlow::RequestPartyZone6(const char* zone, CParty* party) {
 
 void GameFlow::DisconnectClient() { g_clientWorld.DisconnectLocalPlayer(); }
 
-int CWorldServer::ReadAIGraph(std::string_view map, std::string_view mob, CStream* out) {
+int WorldServer::ReadAIGraph(std::string_view map, std::string_view mob, ByteStream* out) {
     FileStream mobFile;
     int found = 0;
     // The graph chunk of the .mob file.
@@ -689,11 +689,11 @@ int CWorldServer::ReadAIGraph(std::string_view map, std::string_view mob, CStrea
     return found;
 }
 
-void CWorldServer::LoadZoneScripts(std::string_view mob) {
+void WorldServer::LoadZoneScripts(std::string_view mob) {
     FileStream file;
     std::string script;
-    CMemoryStream scripts;
-    CMemoryStream text;
+    MemoryStream scripts;
+    MemoryStream text;
     MobScriptDecoder decoder;
     {
         std::string path = MapPath(mob);
@@ -820,7 +820,7 @@ void GameFlow::JoinServer(const net::NetAddress* address, const char* password) 
     net::g_gameClient->Join(const_cast<net::NetAddress*>(address), &hello);
 }
 
-void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
+void WorldServer::AcceptNewPlayers(PlayerSource* lobby) {
     std::list<HeldRef<netlink::NetLink>> joined;
     if (gameResult == 0) return;
     lobby->TakeNew(&joined);
@@ -866,9 +866,9 @@ std::vector<std::string> PickZones(int id, const char* exclude) {
     return out;
 }
 
-int LoadMission(CStream* file) {
+int LoadMission(ByteStream* file) {
     g_clientWorld.sounds->StopAll(1);
-    CMemoryStream mission;
+    MemoryStream mission;
     if (!SaveFileRead(&mission, kMagicMissionFile, file))
         return 0;
     int version = static_cast<int>(mission.version);
@@ -1130,7 +1130,7 @@ int GameFlow::LoadGame(const std::string& slot) {
     }
 
     // scenario.sav: the party, then (by version) the input, the scripts and the globals.
-    CMemoryStream scenario;
+    MemoryStream scenario;
     if (!SaveFileRead(&scenario, kMagicScenario, &file)) {
         g_interface.closeAll = 1;
         StartZone(kMainMenu, 2);
@@ -1256,7 +1256,7 @@ void GameFlow::AfterServerStart() {
 
 void GameFlow::UpdateFromServer() {
     if (!Active(net::g_gameClient)) return;
-    if (CTextManager* texts = g_clientWorld.texts) {
+    if (TextManager* texts = g_clientWorld.texts) {
         for (const auto& file : g_questFiles) texts->RemoveSource(file);
         g_questFiles.clear();
     }

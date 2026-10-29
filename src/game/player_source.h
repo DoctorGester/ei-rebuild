@@ -2,7 +2,7 @@
 
 // The worlds' player sources (world_sessions.cpp): reference objects the
 // server world's update pumps and asks for new connections (AcceptPlayers).
-// Two kinds: the counted helper at CWorld + 0x5C (CWorldHandle, world.h: hands over a
+// Two kinds: the counted helper at CWorld + 0x5C (WorldHandle, world.h: hands over a
 // pending link once) and the network session at CWorld + 0x60 (netlink::DriverSession, net_link.h).
 
 #include "core_refcount.h"
@@ -14,14 +14,14 @@ namespace netlink {
 class NetLink;
 }
 
-class CPlayerSource : public CRefObject {
+class PlayerSource : public RefObject {
 public:
-    CPlayerSource() {
+    PlayerSource() {
         refs = 0;
         flags6 = 0;
         flags7 = 0;
     }
-    ~CPlayerSource() override;   // The destructor; the base has no fields
+    ~PlayerSource() override;   // The destructor; the base has no fields
 
     // 2 / 3 / 4 / 6 pure in the base.
     virtual bool Query() = 0;           // Virtual 4: the helpers answer 0, the session 1

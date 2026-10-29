@@ -1,4 +1,4 @@
-// The worlds' player sources (player_source.h): the base's destructor, CWorld::worldHandle (CWorldHandle) and
+// The worlds' player sources (player_source.h): the base's destructor, CWorld::worldHandle (WorldHandle) and
 // netSession (netlink::DriverSession): their clones, shutdowns and destructors, and CWorld::OpenSession. The
 // session's lists: drivers owning (SharedRef: DestroyOwned), holders plain (HeldRef: Release).
 #include "core_refcount.h"
@@ -10,25 +10,25 @@
 
 using netlink::DriverSession;
 
-CPlayerSource::~CPlayerSource() {}
+PlayerSource::~PlayerSource() {}
 
 // A new helper with the same pending link (counted).
-CWorldHandle* CWorldHandle::Clone() {
-    auto* copy = new CWorldHandle();
+WorldHandle* WorldHandle::Clone() {
+    auto* copy = new WorldHandle();
     copy->pendingLink.Assign(pendingLink);
     return copy;
 }
 
 // The helper is destroyed and built again in place (the count and flags kept): the link released, none pending.
-void CWorldHandle::OnShutdown() {
+void WorldHandle::OnShutdown() {
     pendingLink.Reset();
 }
 
-CWorldHandle::~CWorldHandle() { pendingLink.Reset(); }
+WorldHandle::~WorldHandle() { pendingLink.Reset(); }
 
-CClientHandle* CClientHandle::Clone() { return new CClientHandle(); }
+ClientHandle* ClientHandle::Clone() { return new ClientHandle(); }
 
-void CClientHandle::TakeNew(std::list<HeldRef<netlink::NetLink>>* links) { links->clear(); }
+void ClientHandle::TakeNew(std::list<HeldRef<netlink::NetLink>>* links) { links->clear(); }
 
 // ---- netlink::DriverSession -----------------------------------------------------------------------
 

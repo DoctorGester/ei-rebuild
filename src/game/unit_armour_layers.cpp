@@ -30,7 +30,7 @@ int CoveredSlot(int type, int which) { return kArmourCoverage[type][which]; }
 
 } // namespace
 
-void UnitStats::AddArmourLayer(CItemArmor* piece) {
+void UnitStats::AddArmourLayer(ItemArmor* piece) {
     for (int which = 0; which < 3; ++which) {
         int slotIndex = CoveredSlot(piece->GetType(), which);
         if (slotIndex == kNoSlot) continue;
@@ -47,7 +47,7 @@ void UnitStats::AddArmourLayer(CItemArmor* piece) {
 void UnitStats::RebuildArmourLayers(CUnit* unit) {
     for (UnitStatSlot& slot : slots) std::memset(&slot.layers[1], 0, 2 * sizeof(UnitStatLayer));
     for (int i = 0; i < kArmourSlots; ++i) {
-        CItemArmor* piece = unit->armor[i];
+        ItemArmor* piece = unit->armor[i];
         if (!piece) continue;
         float condition = piece->condition;
         if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // to nearest
@@ -71,7 +71,7 @@ double UnitStats::AttributeWithItems(int index, CUnit* unit) {
     if (!IsTextKey(unit->id)) return attributes[index];    // any index
     float best = 0.0f;
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {
-        CItem* item = unit->GetQuickItem(i);
+        Item* item = unit->GetQuickItem(i);
         if (!item) continue;
         const auto* prototype = itemdb::RecordAs<itemdb::QuickItemRecord>(item->GetPrototype());
         float bonus = static_cast<float>(prototype->attributeBonus[index]);   // any index

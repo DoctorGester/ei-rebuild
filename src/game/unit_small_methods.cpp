@@ -18,4 +18,4 @@ bool CUnit::HasPlayer() const { return player != nullptr; }
 
 double CUnit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
 
-CItemArmor* CUnit::WornItem(int slot) const { return armor[slot]; }
+ItemArmor* CUnit::WornItem(int slot) const { return armor[slot]; }

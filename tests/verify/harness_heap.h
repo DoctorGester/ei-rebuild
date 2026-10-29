@@ -27,7 +27,7 @@
 // differ between the sides. For the one value the game takes from an address, the update countdown,
 // Install() also has both sides spread it by the object's id instead: the eight places in the
 // original code that compute it are patched (`SAR r,5 / AND r,0xF` becomes `MOV r,[r+0xC] / AND
-// r,0xF`) and ours follows CWorldServer::UpdateCountdownFor. The countdown stays in the game's range
+// r,0xF`) and ours follows WorldServer::UpdateCountdownFor. The countdown stays in the game's range
 // (0x80..0x8F), only which unit gets which value changes.
 //
 // The clock option "lfheap" (EI_HARNESS_CLOCK, run_all.py / compare.py --clock virtual,lfheap)

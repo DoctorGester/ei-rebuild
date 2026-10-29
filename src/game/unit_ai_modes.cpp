@@ -117,14 +117,14 @@ void GuardMode::Execute(AIBrain* brain) {
     brain->StartMove(&order);
 }
 
-void GuardMode::Load(CStream* stream) {
+void GuardMode::Load(ByteStream* stream) {
     stream->ReadValue(radius);
     stream->ReadValue(wander);
     stream->ReadValue(point);
     if (stream->version >= kVersionGuardFailures) stream->ReadValue(failures);
 }
 
-void GuardMode::Save(CStream* stream) {
+void GuardMode::Save(ByteStream* stream) {
     stream->WriteValue(radius);
     stream->WriteValue(wander);
     stream->WriteValue(point);
@@ -163,7 +163,7 @@ void PatrolMode::Detach() {
 
 PatrolPoint* PatrolMode::LastPoint() { return points.empty() ? nullptr : &points.back(); }
 
-void PatrolMode::Load(CStream* stream) {
+void PatrolMode::Load(ByteStream* stream) {
     int count;
     stream->ReadValue(count);
     points.resize(count);
@@ -174,7 +174,7 @@ void PatrolMode::Load(CStream* stream) {
     stream->ReadValue(current);
 }
 
-void PatrolMode::Save(CStream* stream) {
+void PatrolMode::Save(ByteStream* stream) {
     stream->WriteValue(static_cast<std::int32_t>(points.size()));
     for (const PatrolPoint& point : points) {
         stream->WriteValue(point.position);
@@ -199,9 +199,9 @@ void SentryMode::Execute(AIBrain* brain) {
     SetPositions(brain, order.point, kNearRange, kFarRange);
 }
 
-void SentryMode::Load(CStream* stream) { stream->ReadValue(point); }
+void SentryMode::Load(ByteStream* stream) { stream->ReadValue(point); }
 
-void SentryMode::Save(CStream* stream) { stream->WriteValue(point); }
+void SentryMode::Save(ByteStream* stream) { stream->WriteValue(point); }
 
 // --- Follow --------------------------------------------------------------------------------------
 
@@ -210,13 +210,13 @@ void FollowMode::Execute(AIBrain* brain) {
     brain->Follow(leader);
 }
 
-void FollowMode::OnObjectDeleted(CEngineObject* object) {
+void FollowMode::OnObjectDeleted(EngineObject* object) {
     if (leader == object) leader.Reset();
 }
 
-void FollowMode::Load(CStream* stream) { LoadRef(leader, stream, &g_serverWorld); }
+void FollowMode::Load(ByteStream* stream) { LoadRef(leader, stream, &g_serverWorld); }
 
-void FollowMode::Save(CStream* stream) { SaveRef(leader, stream); }
+void FollowMode::Save(ByteStream* stream) { SaveRef(leader, stream); }
 
 // --- Suspection ----------------------------------------------------------------------------------
 
@@ -282,12 +282,12 @@ void SuspectionMode::Leave(AIBrain* brain) {
     brain->owner->voice.Raise(AIRemark::CalmFromSuspicion);
 }
 
-void SuspectionMode::Load(CStream* stream) {
+void SuspectionMode::Load(ByteStream* stream) {
     stream->ReadValue(point);
     stream->ReadValue(level);
 }
 
-void SuspectionMode::Save(CStream* stream) {
+void SuspectionMode::Save(ByteStream* stream) {
     stream->WriteValue(point);
     stream->WriteValue(level);
 }
@@ -346,7 +346,7 @@ void AggressionMode::Leave(AIBrain* brain) {
     brain->owner->voice.Raise(AIRemark::CalmFromAggression);
 }
 
-void AggressionMode::OnObjectDeleted(CEngineObject* object) {
+void AggressionMode::OnObjectDeleted(EngineObject* object) {
     if (enemy == object) enemy.Reset();
 }
 
@@ -356,12 +356,12 @@ void AggressionMode::Detach() {
     fixed = false;
 }
 
-void AggressionMode::Load(CStream* stream) {
+void AggressionMode::Load(ByteStream* stream) {
     LoadRef(enemy, stream, &g_serverWorld);
     stream->ReadValue(fixed);
 }
 
-void AggressionMode::Save(CStream* stream) {
+void AggressionMode::Save(ByteStream* stream) {
     SaveRef(enemy, stream);
     stream->WriteValue(fixed);
 }
@@ -394,7 +394,7 @@ void FearMode::Detach() {
     watchful = false;
 }
 
-void FearMode::Load(CStream* stream) {
+void FearMode::Load(ByteStream* stream) {
     stream->ReadValue(distance);
     stream->ReadValue(spread);
     stream->ReadValue(shelter);
@@ -404,7 +404,7 @@ void FearMode::Load(CStream* stream) {
     }
 }
 
-void FearMode::Save(CStream* stream) {
+void FearMode::Save(ByteStream* stream) {
     stream->WriteValue(distance);
     stream->WriteValue(spread);
     stream->WriteValue(shelter);
@@ -538,7 +538,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
     leader.Assign(newLeader);
 }
 
-void PlayerMode::OnObjectDeleted(CEngineObject* object) {
+void PlayerMode::OnObjectDeleted(EngineObject* object) {
     if (target == object) target.Reset();
     if (leader == object) leader.Reset();
 }
@@ -551,7 +551,7 @@ void PlayerMode::Detach() {
     runs = false;
 }
 
-void PlayerMode::Load(CStream* stream) {
+void PlayerMode::Load(ByteStream* stream) {
     LoadRef(target, stream, &g_serverWorld);
     LoadRef(leader, stream, &g_serverWorld);
     stream->ReadValue(point);
@@ -562,7 +562,7 @@ void PlayerMode::Load(CStream* stream) {
     }
 }
 
-void PlayerMode::Save(CStream* stream) {
+void PlayerMode::Save(ByteStream* stream) {
     SaveRef(target, stream);
     SaveRef(leader, stream);
     stream->WriteValue(point);

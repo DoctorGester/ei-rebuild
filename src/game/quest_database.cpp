@@ -28,7 +28,7 @@ std::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &b
 void PushPlace(QuestRecord* quest, float value) { quest->places.push_back(value); }
 
 // The "quest" section into the quest record.
-void ReadQuest(CFileRegistry& reg, QuestRecord* quest, std::vector<std::string>& places) {
+void ReadQuest(FileRegistry& reg, QuestRecord* quest, std::vector<std::string>& places) {
     quest->unreadField = 0;
     {
         std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), std::string(game::kEmptyText));
@@ -77,7 +77,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
 
 // A briefing's name, exp and money (the "complete" briefing's name is assigned with the
 // C-string assignment, the others' with the range one: the same result).
-void ReadBriefingHeader(CFileRegistry& reg, QuestBriefingRecord* briefing, const char* section) {
+void ReadBriefingHeader(FileRegistry& reg, QuestBriefingRecord* briefing, const char* section) {
     {
         std::string name = reg.GetString(section, game::questwords::Name(), std::string(game::kEmptyText));
         briefing->name.assign(name);
@@ -88,7 +88,7 @@ void ReadBriefingHeader(CFileRegistry& reg, QuestBriefingRecord* briefing, const
 
 // A string list read inline: emptied (erased over its range, or cleared), reserved for the list's
 // size, then every non-empty string appended.
-void ReadListInline(CFileRegistry& reg, const char* section, int list, QuestBriefingRecord* briefing) {
+void ReadListInline(FileRegistry& reg, const char* section, int list, QuestBriefingRecord* briefing) {
     std::vector<std::string> strings;
     reg.GetStringArray(section, game::questwords::ListKey(list), &strings);
     std::vector<std::string>* v = List(briefing, list);
@@ -101,7 +101,7 @@ void ReadListInline(CFileRegistry& reg, const char* section, int list, QuestBrie
 
 // "briefing receive": the lists read inline (the first three erased over their range, the others
 // cleared), added like the quest.
-void ReadReceiveBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
+void ReadReceiveBriefing(FileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     briefing->specials = 0;
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingReceive());
     for (int i = 0; i < 6; ++i) ReadListInline(reg, game::questwords::BriefingReceive(), i, briefing);
@@ -110,7 +110,7 @@ void ReadReceiveBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingRec
 
 // "briefing reject": the item lists read inline (cleared first), the others by ReadStringList; added by
 // QuestBriefingTable::Add (also unless the name is there).
-void ReadRejectBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
+void ReadRejectBriefing(FileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingReject());
     ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing);
     ReadListInline(reg, game::questwords::BriefingReject(), 1, briefing);
@@ -119,7 +119,7 @@ void ReadRejectBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingReco
 }
 
 // "briefing complete": the name assigned as a C string, all six lists by ReadStringList.
-void ReadCompleteBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
+void ReadCompleteBriefing(FileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingComplete());
     for (int i = 0; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingComplete(), game::questwords::ListKey(i), List(briefing, i));
     db->briefings.Add(briefing);
@@ -129,7 +129,7 @@ void ReadCompleteBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingRe
 
 bool QuestDatabase::LoadRegistry(const void* image) {
     QuestDatabase* db = this;
-    CFileRegistry reg;
+    FileRegistry reg;
     if (!reg.Attach(image)) return false;
 
     QuestRecord quest{};
@@ -147,7 +147,7 @@ bool QuestDatabase::LoadRegistry(const void* image) {
 }
 
 // The game inlines the vector's erase, reserve and push_back; the same template members are called here.
-void ReadStringList(CFileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list) {
+void ReadStringList(FileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list) {
     std::vector<std::string> strings;
     registry->GetStringArray(section, key, &strings);
     list->clear();

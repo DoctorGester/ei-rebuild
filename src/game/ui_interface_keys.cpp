@@ -1,4 +1,4 @@
-// The interface's key-down handler (CInterface3D). See ui.h and docs/notes/ui.md.
+// The interface's key-down handler (Interface3D). See ui.h and docs/notes/ui.md.
 // The modifier flags it sets are Ctrl (scan codes 0x1D, 0x11D), Shift (0x2A, 0x36) and Alt (0x38, 0x138).
 #include "ui.h"
 
@@ -25,13 +25,13 @@ std::uint32_t g_shotCounter = /*007C7E24*/ {};
 constexpr int kRepeat = 0x4000;
 
 // The input side's key-down handler of a window.
-void WindowKeyDown(CUiWindow* window, int key, int repeat, int flags) {
+void WindowKeyDown(UiWindow* window, int key, int repeat, int flags) {
     window->Input()->Event(UiInputSide::kEventKeyDown, key, repeat, flags);
 }
 
 } // namespace
 
-void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
+void Interface3D::OnKeyDown(int key, int repeat, int flags) {
     console::ConsoleWindow* consoleWindow = console;
     int scan = flags & 0x1FF;
     switch (scan) {
@@ -54,7 +54,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         consoleWindow->Show(!consoleWindow->shown);
         return;
     case 0x46: {  // Scroll Lock: a screenshot
-        CDib* picture = CaptureScreen(g_sceneRenderer.device);
+        Dib* picture = CaptureScreen(g_sceneRenderer.device);
         if (!picture) return;
         std::string name;
         name = std::format("shot{:04}.bmp", g_shotCounter);
@@ -73,7 +73,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         consoleWindow->OnKeyDown(key, repeat, flags);
         return;
     }
-    CChatOverlay* chat = root;
+    ChatOverlay* chat = root;
     if (IsMultiplayerClient() && chat->chatOpen) {
         WindowKeyDown(chat, key, repeat, flags);
         return;

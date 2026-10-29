@@ -11,10 +11,10 @@ constexpr int kPartItems = 5;     // MarkChanged part
 
 } // namespace
 
-CItem* CUnit::TakeRandomItem() {
+Item* CUnit::TakeRandomItem() {
     if (!carried.empty()) {
         // The first carried item, the rest moved down.
-        CItem* item = carried.front();
+        Item* item = carried.front();
         carried.erase(carried.begin());
         MarkChanged(kPartItems);
         return item;
@@ -27,7 +27,7 @@ CItem* CUnit::TakeRandomItem() {
         if (quickItems[i]) filled[count++] = i;
     if (count == 0) return nullptr;
     int slot = filled[g_random.Next() % count];   // the draw is inlined
-    CItem* item = quickItems[slot];
+    Item* item = quickItems[slot];
     quickItems[slot] = nullptr;
     MarkChanged(kPartItems);
     return item;

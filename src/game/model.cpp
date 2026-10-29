@@ -30,7 +30,7 @@ int Classify(const std::uint32_t (&codes)[8]) {
 
 } // namespace
 
-// ---- ClipBounds / CTransformPipeline ---------------------------------------------------------------
+// ---- ClipBounds / TransformPipeline ---------------------------------------------------------------
 
 std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
     std::memcpy(&boxMin, min, 12);
@@ -47,7 +47,7 @@ static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
     return ClipCodeOf(c.x, c.y, c.z, cw);
 }
 
-int CTransformPipeline::ClipTest(const ClipBounds* b) const {
+int TransformPipeline::ClipTest(const ClipBounds* b) const {
     const MatrixStack& stack = stacks[kClipStack];
     const Matrix4& m = stack.matrices[stack.count - 1];
 
@@ -90,7 +90,7 @@ int CTransformPipeline::ClipTest(const ClipBounds* b) const {
     return 1;
 }
 
-int CTransformPipeline::ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
+int TransformPipeline::ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
                                       int blocks, const ClipBounds* bounds) const {
     const int where = bounds ? ClipTest(bounds) : 1;
     if (where == 1) return ProjectClipped(*Top(kClipStack), positions, projected, outcodes, blocks);
@@ -124,12 +124,12 @@ Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, fl
     return out;
 }
 
-int CLinkFigureLoader::AddArchive(const std::string* path) {
+int LinkFigureLoader::AddArchive(const std::string* path) {
     for (const LinkArchive& archive : archives)
         if (archive.name == *path) return 1;
 
     LinkArchive& archive = archives.emplace_back(*path);
-    CMappedResource* resource = new CMMIOResource();
+    MappedResource* resource = new MMIOResource();
     archive.resource = resource;
     if (resource->OpenResource(path->data(), 0)) return 1;
 

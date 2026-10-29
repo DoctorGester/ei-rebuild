@@ -56,7 +56,7 @@ COLORREF MarkColour(char digit) {
     return ((bits & 1) ? 0xFF0000u : 0u) | ((bits & 2) ? 0xFF00u : 0u) | ((bits & 4) ? 0xFFu : 0u);
 }
 
-void DrawPiece(CUiSurface* surface, std::string_view text, int x, COLORREF colour) {
+void DrawPiece(UiSurface* surface, std::string_view text, int x, COLORREF colour) {
     RECT rect = {x, 0, kLineDrawRight, kLineSurfaceHeight};
     surface->DrawTextIn(text, &rect, kLineFont, colour, kLineDrawFormat, 1);
 }
@@ -71,7 +71,7 @@ ChatLine::~ChatLine() { delete surface; }
 
 // --- a chat line added ---------------------------------------------------------------------------
 
-void CChatOverlay::AddLine(const char* text) {
+void ChatOverlay::AddLine(const char* text) {
     const int before = static_cast<int>(lines.size());
     std::vector<std::string> plain;       // the lines without colour codes
     std::vector<std::string> formatted;   // the same lines with them
@@ -137,7 +137,7 @@ void CChatOverlay::AddLine(const char* text) {
         added.name = plain[i];
         added.time = now;
         const int width = ui->TextExtent(plain[i], kLineFont).cx + kLineSurfacePad;
-        CUiSurface* surface = new CUiSurface(ui, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
+        UiSurface* surface = new UiSurface(ui, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
         surface->Clear();
         const std::string& codes = formatted[i];
         std::string drawn;
@@ -160,7 +160,7 @@ void CChatOverlay::AddLine(const char* text) {
 
 // --- opening the chat line, clearing the lines ---------------------------------------------------
 
-void CChatOverlay::SetOpen(bool open) {
+void ChatOverlay::SetOpen(bool open) {
     chatOpen = open;
     if (open) {
         typed.clear();
@@ -169,13 +169,13 @@ void CChatOverlay::SetOpen(bool open) {
     DrawTyped();
 }
 
-void CChatOverlay::ClearLines() {
+void ChatOverlay::ClearLines() {
     lines.clear();
 }
 
 // --- the typed line drawn (Rebirth-patched: WideScreen reproduced) -------------------------------
 
-void CChatOverlay::DrawTyped() {
+void ChatOverlay::DrawTyped() {
     if (!chatOpen) {
         surfaces[0]->Hide(false);
         return;
@@ -183,7 +183,7 @@ void CChatOverlay::DrawTyped() {
     surfaces[0]->Show();
     if (caret > static_cast<int>(typed.size())) caret = typed.size();
     if (caret < 0) caret = 0;
-    CUiSurface* surface = surfaces[0];
+    UiSurface* surface = surfaces[0];
     surface->Clear();
     RECT area{0, 0, kTypedTextRight, kTypedTextBottom};
     surface->DrawTextIn(typed, &area, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
@@ -200,7 +200,7 @@ void CChatOverlay::DrawTyped() {
 
 // --- the chat line's keys -------------------------------------------------------------------------
 
-void CChatOverlay::KeyDown(int key, int, int) {
+void ChatOverlay::KeyDown(int key, int, int) {
     if (!chatOpen) return;
     handled = true;
     switch (key) {
@@ -240,7 +240,7 @@ void CChatOverlay::KeyDown(int key, int, int) {
     DrawTyped();
 }
 
-void CChatOverlay::Char(int key, int, int) {
+void ChatOverlay::Char(int key, int, int) {
     if (!chatOpen) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
     std::string line = text::Typed(str::Left(typed, caret), key) + str::Mid(typed, caret);
@@ -258,25 +258,25 @@ void CChatOverlay::Char(int key, int, int) {
 // --- the constructor -----------------------------------------------------------------------------
 
 // Its own redraw and update; the input side's keys and characters.
-CChatOverlay::CChatOverlay(CInterface3D* ownerUi) : CUiWindow(ownerUi) {
-    CUiSurface* newTyped = new CUiSurface(ui, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true);
+ChatOverlay::ChatOverlay(Interface3D* ownerUi) : UiWindow(ownerUi) {
+    UiSurface* newTyped = new UiSurface(ui, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true);
     AddSurface(newTyped);
     chatOpen = false;
     caret = 0;
     DrawTyped();
 }
 
-void CChatOverlay::Update() {
+void ChatOverlay::Update() {
     std::uint32_t now = gameapi::timeGetTime();
     std::erase_if(lines, [now](const ChatLine& line) { return static_cast<int>(now - line.time) > kLineLifetime; });
 }
 
-void CChatOverlay::Redraw() {
+void ChatOverlay::Redraw() {
     int y = kTop;
     for (const ChatLine& line : lines) {
         line.surface->MoveTo(kLeft, y);
         line.surface->Blit();
         y += kLineHeight;
     }
-    CUiWindow::Redraw();
+    UiWindow::Redraw();
 }

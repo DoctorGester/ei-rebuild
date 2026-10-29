@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <vector>
 
-class CStream;
+class ByteStream;
 class CWorld;
 struct MotionOrder;
 struct PathOrder;
@@ -67,8 +67,8 @@ struct UnitMotion {
     void LimitSpeeds(float turnRate);
     // The points (count, then 0x1C bytes each), the waypoints (0xC each), the step speeds (4 each), then
     // +0x3C..+0x4C as dwords. Loading sizes each array to the count read and clears `segment` (-1) first.
-    void LoadState(CStream* stream);
-    void SaveState(CStream* stream);
+    void LoadState(ByteStream* stream);
+    void SaveState(ByteStream* stream);
 
     std::vector<MotionPoint> points;
     std::vector<MotionWaypoint> waypoints;

@@ -1,4 +1,4 @@
-// CWorldServer: keeping each player's view of the world up to date (single player too: the local
+// WorldServer: keeping each player's view of the world up to date (single player too: the local
 // player is a client of the server). SyncPlayer runs once per world update for every player
 // SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md.
 #include "combat.h"
@@ -24,9 +24,9 @@
 #include <memory>
 #include <vector>
 
-void DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject*>* current,
-                               std::vector<CEngineObject*>* added, std::vector<CEngineObject*>* gone,
-                               std::vector<CEngineObject*>* same);
+void DiffObjectSets(std::vector<EngineObject*>* sent, std::vector<EngineObject*>* current,
+                               std::vector<EngineObject*>* added, std::vector<EngineObject*>* gone,
+                               std::vector<EngineObject*>* same);
 
 namespace {
 
@@ -37,24 +37,24 @@ constexpr float kHearingMargin = 5.0f;    // added to it
 
 constexpr MapObjectType kTypeNoSync = MapObjectType::MagicTrap;   // never sent
 
-// CPlayerServer::state.
+// PlayerServer::state.
 constexpr int kModePlaying = 1;
 constexpr int kModeJoining = 2;
 constexpr int kModeLeaving = 3;
 constexpr int kModeGone = 4;
 
-constexpr int kKindSinglePlayer = 1;         // CWorldServer::sessionKind
+constexpr int kKindSinglePlayer = 1;         // WorldServer::sessionKind
 constexpr int kKindNoRangeTest = 3;
 
 // Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and `removed`.
-void DiffSets(std::vector<CEngineObject*>* known, std::vector<CEngineObject*>* current, std::vector<CEngineObject*>* added, std::vector<CEngineObject*>* kept,
-              std::vector<CEngineObject*>* removed) {
+void DiffSets(std::vector<EngineObject*>* known, std::vector<EngineObject*>* current, std::vector<EngineObject*>* added, std::vector<EngineObject*>* kept,
+              std::vector<EngineObject*>* removed) {
     ::DiffObjectSets(known, current, added, kept, removed);
 }
 
 // Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The squared distance
 // and the squared range stay on the FPU (dy^2 + dx^2, in that order).
-bool OutOfView(const float* point, const CPlayerServer* state) {
+bool OutOfView(const float* point, const PlayerServer* state) {
     double dx = static_cast<double>(point[0]) - state->lastPosition.x;
     double dy = static_cast<double>(point[1]) - state->lastPosition.y;
     double distance = LengthSquared2DUnrounded(dy, dx);
@@ -65,7 +65,7 @@ bool OutOfView(const float* point, const CPlayerServer* state) {
 // The map objects a player should know: around its camera (or all of them), its own units, the
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // write cursor into the collected array.
-CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerServer* state, CEngineObject** out) {
+EngineObject** CollectMapObjects(WorldServer* world, CPlayer* player, PlayerServer* state, EngineObject** out) {
     if (world->sessionKind == kKindSinglePlayer && options::g_options.drawVisibleOnly == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto node = world->mapObjects.map.begin(); node != world->mapObjects.map.end() && node->second; ++node) {
@@ -118,9 +118,9 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
 
 // The timed objects (spells, effects) a player should know: those whose reach (a virtual, squared) covers its
 // camera.
-CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, CEngineObject** out) {
+EngineObject** CollectTimedObjects(WorldServer* world, PlayerServer* state, EngineObject** out) {
     for (auto node = world->timedObjects.map.begin(); node != world->timedObjects.map.end() && node->second; ++node) {
-        CEngineObject* object = node->second;
+        EngineObject* object = node->second;
         auto* timed = static_cast<CEffect*>(object);
         const Vector3* position = timed->Position(&state->partyUnits);
         double dx = static_cast<double>(position->x) - state->lastPosition.x;
@@ -135,8 +135,8 @@ CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, C
 
 } // namespace
 
-int CWorldServer::SyncPlayer(CPlayer* player) {
-    CPlayerServer* state = player->Server();
+int WorldServer::SyncPlayer(CPlayer* player) {
+    PlayerServer* state = player->Server();
     if (state->state == kModePlaying && zoneLoaded != 0) {
         std::uint32_t dirty = player->dirty;
         if (dirty & PlayerDirty::Zone) {
@@ -166,12 +166,12 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
         if (player->dirty & PlayerDirty::Countdowns) state->SendState73(&countdowns);
 
         // Map objects: room for seven entries per world object.
-        std::vector<CEngineObject*> collected;
-        std::vector<CEngineObject*> added;
-        std::vector<CEngineObject*> kept;
-        std::vector<CEngineObject*> removed;
+        std::vector<EngineObject*> collected;
+        std::vector<EngineObject*> added;
+        std::vector<EngineObject*> kept;
+        std::vector<EngineObject*> removed;
         collected.resize(static_cast<int>(objects.map.size()) * 7);
-        CEngineObject** end = CollectMapObjects(this, player, state, collected.data());
+        EngineObject** end = CollectMapObjects(this, player, state, collected.data());
         collected.resize(static_cast<int>(end - collected.data()));
         DiffSets(&state->sentObjects, &collected, &added, &kept, &removed);
         state->SendObjectsRemoved(&kept);
@@ -188,7 +188,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
 
         if (sessionKind == kKindSinglePlayer && IsMultiplayerClient()) {
             int& timer = state->refreshTimer;
-            if (--timer <= 0 && state->danger == CPlayerServer::PartyDanger::Safe) state->ResendParty();
+            if (--timer <= 0 && state->danger == PlayerServer::PartyDanger::Safe) state->ResendParty();
         }
     }
 
@@ -200,15 +200,15 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
     return state->Flush();
 }
 
-int CWorldServer::SendZone(CPlayer* player) {
-    CMemoryStream message;
+int WorldServer::SendZone(CPlayer* player) {
+    MemoryStream message;
 
-    CPlayerServer* state = player->Server();
+    PlayerServer* state = player->Server();
     int result;
     if (state->state != kModePlaying) {
         result = 1;
     } else {
-        CStream* stream = &message;
+        ByteStream* stream = &message;
         auto write = [&](const void* data, unsigned size) { stream->Write(data, size); };
         int previousTick = tick - 1;
         write(&previousTick, 4);

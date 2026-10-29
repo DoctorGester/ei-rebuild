@@ -58,7 +58,7 @@ std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 // An x87 compare as the original reads it (false for a NaN).
 bool Greater(double a, double b) { return a > b; }
 
-bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
+bool IsUnit(EngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 
 // _ftol of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
 // precision a double holds it exactly).
@@ -72,9 +72,9 @@ int CastDelayTicks(double distanceSq, double flight) {
 
 // The spell a cast order's source names: a quick item's spell, or the unit's own. The boolean is false when a
 // quick item source has no carrier (the original returns there).
-bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
+bool OrderSpell(UnitServer* self, std::uint32_t source, CSpell** spell) {
     if (source & kQuickItemSource) {
-        CItem* carrier = self->SpellCarrier(source);
+        Item* carrier = self->SpellCarrier(source);
         if (!carrier) return false;
         *spell = carrier->spell;
         return true;
@@ -85,7 +85,7 @@ bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
 
 // AI units only act on a target within 1.05 times their sight range: the smaller of two stats values (the
 // movement factor times the sight); the original's select picks the first for a NaN product.
-bool OutOfSightRange(CUnitServer* self, const float* point) {
+bool OutOfSightRange(UnitServer* self, const float* point) {
     float limit = self->stats.perception[2].current;
     float range = self->moveFactors[3] * self->stats.perception[0].current;
     float rangeValue = range;
@@ -102,7 +102,7 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
 // A melee or skill order fails when a living unit other than the target stands between the unit
 // and `point` at `time`: within 0.1..0.9 along the way (in units of the squared distance, sic)
 // and less than 0.3 to the side.
-bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point, int time) {
+bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const float* point, int time) {
     CUnit* unit = self->unit;
     float dx = point[0] - unit->localPosition.x;
     float dy = point[1] - unit->localPosition.y;
@@ -138,10 +138,10 @@ bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point
 }
 
 // Does the order need the way to its target clear of units (melee or skill)?
-bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
+bool NeedsClearWay(UnitServer* self, const AIOrder* order) {
     if (order->kind == UnitOrderKind::Use) return true;
     if (order->kind != UnitOrderKind::Attack) return false;
-    CItemWeapon* weapon = self->unit->ActiveWeapon();
+    ItemWeapon* weapon = self->unit->ActiveWeapon();
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return false;
     weapon = self->unit->ActiveWeapon();
     float reach = weapon ? weapon->reach : self->stats.combat[UnitStats::kReach];
@@ -151,7 +151,7 @@ bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
 
 // The quick item or spell value the cast animation is built with: the spell's castTime scaled by
 // 15 / stats.rate (unscaled when that is 0), rounded.
-int CastValue(CUnitServer* self, CSpell* spell) {
+int CastValue(UnitServer* self, CSpell* spell) {
     double scale = self->stats.rate;
     if (scale != 0.0) scale = kFifteen / scale;   // a NaN stays the same NaN
     volatile std::int64_t wide = spell->castTime;
@@ -176,9 +176,9 @@ void FillCastKind(OrderPlan* plan, CSpell* spell) {
 
 // --- What must be seen -----------------------------------------------------------------------
 
-bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
+bool UnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
     if (order->pointIsUseSpot) return false;
-    CWorldServer* world = ServerWorld();
+    WorldServer* world = ServerWorld();
     CMapObject* target = order->target;
 
     if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
@@ -213,7 +213,7 @@ bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
 
 // --- Can the order be carried out from here ----------------------------------------------------
 
-bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time) {
+bool UnitServer::CanActFrom(const AIOrder* order, const float* point, int time) {
     if (order->target == unit) return true;
     if (order->pointIsUseSpot) return true;
     if (!unit->player && order->target && OutOfSightRange(this, point)) return false;
@@ -243,14 +243,14 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
     eye.y = unit->localPosition.y;
     eye.z = unit->localPosition.z;
     eye.z = static_cast<float>(unit->GroundHeight(eye.x, eye.y) + sight.eyeHeight);
-    CAIMap* map = &ServerWorld()->aiMap;
+    AIMap* map = &ServerWorld()->aiMap;
     double visibility = map->LineOfSight(eye, sight.point);
     return visibility >= kPointOne;
 }
 
 // --- The planner -----------------------------------------------------------------------------
 
-bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
+bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     AnimationSteps steps;
     Vector3 origin;
     std::memcpy(&origin, &unit->localPosition.x, sizeof(origin));
@@ -418,7 +418,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     return false;
 }
 
-bool CUnitServer::CanPlanAction(const AIOrder* order) {
+bool UnitServer::CanPlanAction(const AIOrder* order) {
     OrderPlan plan{};
     CMapObject* target = order->target;
     if (IsUnit(target)) target->flags |= MapObjectFlag::Planned;

@@ -91,7 +91,7 @@ void EndCursor(BufferCursor& c) {
 void AppendServer(ClientBase* self, Ref<ServerEntry>& entry) {
     ServerEntry* raw = entry.Take();
     --raw->refs;
-    raw->flags6 &= static_cast<std::uint8_t>(~CRefCounted::kCopyOnShare);
+    raw->flags6 &= static_cast<std::uint8_t>(~RefCounted::kCopyOnShare);
     self->servers.emplace_back(raw);
 }
 

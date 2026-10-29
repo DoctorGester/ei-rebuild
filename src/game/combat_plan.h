@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// AnimationStep, AnimationSteps and OrderPlan are declared in combat.h (CUnitServer holds a plan).
+// AnimationStep, AnimationSteps and OrderPlan are declared in combat.h (UnitServer holds a plan).
 
 // Where an order must be seen from (0x18 bytes).
 struct SightTarget {

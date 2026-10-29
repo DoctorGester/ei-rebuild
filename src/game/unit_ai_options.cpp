@@ -59,7 +59,7 @@ double AIAttackOption::Weight() const {
     }
 }
 
-void AIAttackOption::Load(CStream* stream) {
+void AIAttackOption::Load(ByteStream* stream) {
     if (stream->version < kVersionSpellOptions) {
         stream->ReadValue(part);
         std::uint32_t dropped;
@@ -81,7 +81,7 @@ void AIAttackOption::Load(CStream* stream) {
     stream->ReadValue(damage);
 }
 
-void AIAttackOption::Save(CStream* stream) const {
+void AIAttackOption::Save(ByteStream* stream) const {
     stream->WriteValue(kind);
     for (std::uint32_t value : {std::bit_cast<std::uint32_t>(part), std::bit_cast<std::uint32_t>(range),
                                 std::bit_cast<std::uint32_t>(maxCount), std::bit_cast<std::uint32_t>(radius),
@@ -193,7 +193,7 @@ void AIAttention::Build(CUnit* unit) {
 }
 
 // The count, the array sized to it (SetSize inlined), then each option.
-void LoadAttackOptions(std::vector<AIAttackOption>* options, CStream* stream) {
+void LoadAttackOptions(std::vector<AIAttackOption>* options, ByteStream* stream) {
     int count;
     stream->ReadValue(count);
     options->resize(count);

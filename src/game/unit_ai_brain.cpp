@@ -31,7 +31,7 @@ void AddAlertModes(AIBrain* brain) {
 }
 
 // Removes every element holding `object`, head first.
-void RemoveAllOf(HeldUnits& list, CEngineObject* object) {
+void RemoveAllOf(HeldUnits& list, EngineObject* object) {
     std::erase_if(list, [object](const HeldRef<CUnit>& unit) { return unit.Get() == object; });
 }
 
@@ -188,8 +188,8 @@ bool AIMemory::Notice(const Vector3& point, int level, int decay) {
     return changed;
 }
 
-void AIMemory::Forget(CEngineObject* object) {
-    HeldRef<CEngineObject> held(object);   // kept while its entries are removed
+void AIMemory::Forget(EngineObject* object) {
+    HeldRef<EngineObject> held(object);   // kept while its entries are removed
     RemoveAllOf(nearby, object);
     RemoveAllOf(visible, object);
     RemoveAllOf(seenCorpses, object);
@@ -226,7 +226,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
     }
 }
 
-void AIMemory::Update(CUnitServer* who) {
+void AIMemory::Update(UnitServer* who) {
     std::erase_if(reports, [](AIReport& entry) { return --entry.ticksLeft < 0; });
     calls.Update(who->unit, this);
     g_serverWorld.aiMap.events.Update(who, this);
@@ -249,13 +249,13 @@ void AIReports::Report(CMapObject* object, int ticks) {
     push_back({object, ticks});
 }
 
-bool AIReports::Contains(CEngineObject* object) const {
+bool AIReports::Contains(EngineObject* object) const {
     return std::ranges::any_of(*this, [object](const AIReport& entry) { return entry.object == object; });
 }
 
 // --- Save games -----------------------------------------------------------------------------------
 
-void AIBrain::Load(CStream* stream) {
+void AIBrain::Load(ByteStream* stream) {
     ClearModes();
     stream->ReadValue(action);
     stream->ReadValue(move.point);
@@ -307,7 +307,7 @@ void AIBrain::Load(CStream* stream) {
     stream->ReadValue(alarmSlot);
 }
 
-void AIBrain::Save(CStream* stream) {
+void AIBrain::Save(ByteStream* stream) {
     stream->WriteValue(action);
     stream->WriteValue(move.point);
     SaveLooks(&move.looks, stream);

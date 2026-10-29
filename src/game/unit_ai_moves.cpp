@@ -126,7 +126,7 @@ bool AIBrain::FindStandPoint(const Vector3& point, float radius, Vector3* out) {
     out->x = static_cast<float>(dx + point.x);
     out->y = static_cast<float>(dy + point.y);
     out->z = 0.0f;
-    CAIMap* map = &g_serverWorld.aiMap;
+    AIMap* map = &g_serverWorld.aiMap;
     if (map->SlopeAt(*out) > kMaxSlope) return false;
 
     // No unit of an allied player may stand near it.
@@ -178,7 +178,7 @@ void AIBrain::UpdateFollow() {
     int now = g_serverWorld.tick;
     float distance = static_cast<float>(
         std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
-    CUnitServer* leaderController = leader->ServerController();
+    UnitServer* leaderController = leader->ServerController();
     float walkTime = static_cast<float>(distance * kRangePerDistance + kRangeBase);
 
     if (leaderController->action.kind != UnitOrderKind::Move && leaderController->action2.kind != UnitOrderKind::Move) {

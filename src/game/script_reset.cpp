@@ -1,11 +1,11 @@
-// CScript reset: empties a script before a zone's mission script is loaded (world
+// Script reset: empties a script before a zone's mission script is loaded (world
 // creation and zone changes call it for both world scripts, from the constructor).
 // See script.h and docs/notes/script.md.
 #include "script.h"
 #include "world_effect.h"
 #include "game_strings.h"
 
-void ScriptReset(CScript* script) {
+void ScriptReset(Script* script) {
     script->loaded = 0;
     script->fileCount = 0;
     script->errorText = "Unknown error";
@@ -37,7 +37,7 @@ void ScriptReset(CScript* script) {
     script->blocks.clear();
 }
 
-// CScript::Load calls it before each `Script` section: the if-then pairs and variables emptied, index 0, the
+// Script::Load calls it before each `Script` section: the if-then pairs and variables emptied, index 0, the
 // parameters and the name empty.
 void ScriptDefinition::Reset() {
     ifThen.clear();

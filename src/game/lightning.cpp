@@ -238,23 +238,23 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
     points.resize(count);
 }
 
-// --- CLightning --------------------------------------------------------------------------------
+// --- Lightning --------------------------------------------------------------------------------
 
-void CLightning::Destroy() {
+void Lightning::Destroy() {
     power = 1.0f;
     amplitude = FromBits(0x3DCCCCCD);    // 0.1f
     texture.Reset();
     glowTexture.Reset();
 }
 
-void CLightning::Create() {
+void Lightning::Create() {
     Destroy();
-    auto* manager = static_cast<CLightningManager*>(owner);
+    auto* manager = static_cast<LightningManager*>(owner);
     manager->newBolts.push_back(this);
     ++refCount;
 }
 
-void CLightning::ExpandBounds(const LightningSegment* segment) {
+void Lightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < std::ssize(segment->points); ++i) {
         const LightningPoint& p = segment->points[i];
         // Minimum: the point when it is smaller or unordered; maximum likewise.
@@ -267,7 +267,7 @@ void CLightning::ExpandBounds(const LightningSegment* segment) {
     }
 }
 
-void CLightning::UpdateBounds() {
+void Lightning::UpdateBounds() {
     const float largest = FromBits(0x7149F2CA);      // 1e30
     const float lowest = FromBits(0xF149F2CA);    // -1e30
     bounds.boxMin.x = largest;
@@ -298,7 +298,7 @@ void CLightning::UpdateBounds() {
     bounds.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(bounds.boxMax)));
 }
 
-void CLightning::Animate() {
+void Lightning::Animate() {
     float sway = amplitude;
     float time = static_cast<float>((static_cast<double>(g_clientWorld.tick) + g_clientWorld.tickFraction) / 4.0);
     main.Animate(time, NoiseAmplitude(power));
@@ -354,7 +354,7 @@ void CLightning::Animate() {
     for (int i = 0; i < 6; ++i) branches[i].Animate(time, NoiseAmplitude(power));
 }
 
-void CLightning::SetEndpoints(const Vector3& from, const Vector3& to) {
+void Lightning::SetEndpoints(const Vector3& from, const Vector3& to) {
     main.Init(from, to);
     EI_NAN_AUDIT(power);
     if (power != 0.0f) {
@@ -407,15 +407,15 @@ void CLightning::SetEndpoints(const Vector3& from, const Vector3& to) {
     UpdateBounds();
 }
 
-// --- CLightningManager --------------------------------------------------------------------------
+// --- LightningManager --------------------------------------------------------------------------
 
-int CLightningManager::DrawAll(CSceneRenderer* device) {
+int LightningManager::DrawAll(SceneRenderer* device) {
     // The manager's object list (the bolts, in creation order).
     auto node = objectList.begin();
     while (node != objectList.end()) {
-        std::list<CEngineObject*>::iterator  current = node;
+        std::list<EngineObject*>::iterator  current = node;
         ++node;
-        static_cast<CLightning*>(*current)->Draw(device);
+        static_cast<Lightning*>(*current)->Draw(device);
     }
     for (auto& n : newBolts) {
         if (n) n->Release();

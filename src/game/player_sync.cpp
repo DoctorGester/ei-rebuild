@@ -1,4 +1,4 @@
-// CPlayerServer: what the server sends a player every world update (CWorldServer::SyncPlayer,
+// PlayerServer: what the server sends a player every world update (WorldServer::SyncPlayer,
 // world_sync.cpp): the map and timed objects that came into view, changed or left, and the flush
 // of the collected messages to the player's link. See player_messages.h and docs/notes/objects.md.
 
@@ -52,7 +52,7 @@ const char* TextNoHandler() { return "Serv packet has no handler prevID=%x curID
 const char* TextHandlerFailed() { return "Serv error during parsing command prevID=%x curID=%x"; }
 const char* TextUnknownType() { return "Serv wrong packet ID prevID=%x curID=%x"; }
 
-constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessedId
+constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // PlayerServer::possessedId
 
 // 2.0: a unit level at most this asks the client to refresh the party.
 constexpr float kLowLevel = 2.0f;
@@ -61,11 +61,11 @@ constexpr float kLowLevel = 2.0f;
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
 
-void WriteByte(CMemoryStream* out, std::uint8_t value) { out->WriteValue(value); }
-void WriteDword(CMemoryStream* out, std::uint32_t value) { out->WriteValue(value); }
+void WriteByte(MemoryStream* out, std::uint8_t value) { out->WriteValue(value); }
+void WriteDword(MemoryStream* out, std::uint32_t value) { out->WriteValue(value); }
 
 // Appends all of `from` (sought to 0) to `out`, the pending bits of `out` stored first.
-void WriteStateStream(CMemoryStream* out, CMemoryStream* from) {
+void WriteStateStream(MemoryStream* out, MemoryStream* from) {
     out->EndBits();
     from->Seek(0);
     std::uint8_t* data = from->data.data();
@@ -96,7 +96,7 @@ constexpr std::uint8_t kMessageItemsGiven = 0x06;
 constexpr int kStateJoined = 1;
 // SaveListedObjects on a typed list.
 template <typename T>
-void SaveListed(const std::list<T*>* list, CStream* stream) {
+void SaveListed(const std::list<T*>* list, ByteStream* stream) {
     for (T* object : *list) SaveListedObject(object, stream);
     SaveListedObjectsEnd(stream);
 }
@@ -104,17 +104,17 @@ void SaveListed(const std::list<T*>* list, CStream* stream) {
 // SyncPlayer's arrays (world_sync.cpp) hold one class per pass: the map objects, then the timed
 // objects (CEffect). The next element as that class; the loops read the data pointer once.
 template <typename T>
-T* NextAs(CEngineObject* const*& next) {
+T* NextAs(EngineObject* const*& next) {
     return static_cast<T*>(*next++);
 }
 
 } // namespace
 
-void CPlayerServer::SendItemsGiven(const std::list<CItem*>* items, int flag) {
+void PlayerServer::SendItemsGiven(const std::list<Item*>* items, int flag) {
     if (state != kStateJoined) return;
     ItemsAndSpells gathered;
     for (auto node = items->begin(); node != items->end(); ++node) gathered.Add(*node);
-    CMemoryStream states;
+    MemoryStream states;
     SaveListed(&gathered.spells, &states);
     SaveListed(&gathered.items, &states);
     WriteByte(&out, kMessageItemStates);
@@ -129,10 +129,10 @@ void CPlayerServer::SendItemsGiven(const std::list<CItem*>* items, int flag) {
     gathered.spells.clear();
 }
 
-int CPlayerServer::Flush() {
+int PlayerServer::Flush() {
     netlink::NetLink* link = player->link;
     if (link == nullptr) return 0;
-    CMemoryStream packed;
+    MemoryStream packed;
     out.CompressTo(&compressor, &packed);
     if (player->logTraffic != 0) {
         std::uint32_t packedSize = packed.size;
@@ -144,8 +144,8 @@ int CPlayerServer::Flush() {
     return sent;
 }
 
-int CPlayerServer::SendObjectsAdded(const std::vector<CEngineObject*>* objects) {
-    CEngineObject* const* next = objects->data();
+int PlayerServer::SendObjectsAdded(const std::vector<EngineObject*>* objects) {
+    EngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* object = NextAs<CMapObject>(next);
         bool isUnit = object->GetClassId() == ClassId::Unit;
@@ -180,8 +180,8 @@ int CPlayerServer::SendObjectsAdded(const std::vector<CEngineObject*>* objects) 
     return 1;
 }
 
-int CPlayerServer::SendObjectsChanged(const std::vector<CEngineObject*>* objects) {
-    CEngineObject* const* next = objects->data();
+int PlayerServer::SendObjectsChanged(const std::vector<EngineObject*>* objects) {
+    EngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(player);
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* object = NextAs<CMapObject>(next);
@@ -194,10 +194,10 @@ int CPlayerServer::SendObjectsChanged(const std::vector<CEngineObject*>* objects
     return 1;
 }
 
-int CPlayerServer::SendObjectsRemoved(const std::vector<CEngineObject*>* objects) {
-    CEngineObject* const* next = objects->data();
+int PlayerServer::SendObjectsRemoved(const std::vector<EngineObject*>* objects) {
+    EngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
-        CEngineObject* object = *next++;
+        EngineObject* object = *next++;
         int objectId = object->id;
         Forget(player->knownObjects, objectId);
         object->Release();
@@ -207,8 +207,8 @@ int CPlayerServer::SendObjectsRemoved(const std::vector<CEngineObject*>* objects
     return 1;
 }
 
-int CPlayerServer::SendTimedAdded(const std::vector<CEngineObject*>* objects) {
-    CEngineObject* const* next = objects->data();
+int PlayerServer::SendTimedAdded(const std::vector<EngineObject*>* objects) {
+    EngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* effect = NextAs<CEffect>(next);
         if (effect->flags & kFlagDeltaPending) effect->SendDelta();
@@ -224,8 +224,8 @@ int CPlayerServer::SendTimedAdded(const std::vector<CEngineObject*>* objects) {
     return 1;
 }
 
-int CPlayerServer::SendTimedChanged(const std::vector<CEngineObject*>* objects) {
-    CEngineObject* const* next = objects->data();
+int PlayerServer::SendTimedChanged(const std::vector<EngineObject*>* objects) {
+    EngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(player);
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* effect = NextAs<CEffect>(next);
@@ -238,10 +238,10 @@ int CPlayerServer::SendTimedChanged(const std::vector<CEngineObject*>* objects) 
     return 1;
 }
 
-int CPlayerServer::SendTimedRemoved(const std::vector<CEngineObject*>* objects) {
-    CEngineObject* const* next = objects->data();
+int PlayerServer::SendTimedRemoved(const std::vector<EngineObject*>* objects) {
+    EngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
-        CEngineObject* object = *next++;
+        EngineObject* object = *next++;
         WriteByte(&out, kMessageTimedRemoved);
         WriteDword(&out, static_cast<std::uint32_t>(object->id));
         Forget(player->knownTimed, object->id);
@@ -251,18 +251,18 @@ int CPlayerServer::SendTimedRemoved(const std::vector<CEngineObject*>* objects) 
 }
 
 // The original calls SendObject14 of this object for each item.
-void CPlayerServer::SendItems() {
+void PlayerServer::SendItems() {
     auto node = player->recharging.begin();
     while (node != player->recharging.end()) {
         auto current = node;
         ++node;
         unsigned objectId = *current;
-        CResourceManager* items = player->Party()->ItemFactory();
-        if (CEngineObject* item = items->FindObject(objectId)) SendObject14(item);
+        ResourceManager* items = player->Party()->ItemFactory();
+        if (EngineObject* item = items->FindObject(objectId)) SendObject14(item);
     }
 }
 
-int CPlayerServer::SendPartyState() {
+int PlayerServer::SendPartyState() {
     danger = PartyDanger::Safe;
     CPlayer* currentPlayer = player;
     const float low = kLowLevel;
@@ -304,7 +304,7 @@ int CPlayerServer::SendPartyState() {
     return 1;
 }
 
-int CPlayerServer::ForgetObject(CEngineObject* object) {
+int PlayerServer::ForgetObject(EngineObject* object) {
     CPlayer::MapObjectMap& known = player->knownObjects;
     if (known.contains(object->id)) {
         Forget(known, object->id);
@@ -323,23 +323,23 @@ int CPlayerServer::ForgetObject(CEngineObject* object) {
     return 1;
 }
 
-bool CPlayerServer::IsPartyUnit(CEngineObject* object) { return partyUnits.Contains(object) != 0; }
+bool PlayerServer::IsPartyUnit(EngineObject* object) { return partyUnits.Contains(object) != 0; }
 
-void CPlayerServer::SendParty() {
-    CMemoryStream party;
+void PlayerServer::SendParty() {
+    MemoryStream party;
     player->Party()->SaveParty(&party, 1);
     WriteByte(&out, kMessageParty);
     out.WriteSized(&party);
     refreshTimer = static_cast<int>(g_random.Next() % kRefreshSpread + kRefreshMinimum);
 }
 
-int CPlayerServer::ReceiveMessages() {
+int PlayerServer::ReceiveMessages() {
     if (state == kStateLeaving) return 0;
     netlink::NetLink* link = player->link;
     if (link == nullptr) return 0;
-    CMemoryStream& in = g_receivedMessages;
+    MemoryStream& in = g_receivedMessages;
     while (link->HasIncoming()) {
-        CMemoryStream packet;
+        MemoryStream packet;
         if (!link->Receive(&packet)) return 0;
         packet.DecompressTo(&decompressor, &in);
         in.Seek(0);
@@ -361,7 +361,7 @@ int CPlayerServer::ReceiveMessages() {
     return 1;
 }
 
-void CPlayerServer::UpdatePartyUnits() {
+void PlayerServer::UpdatePartyUnits() {
     ScriptGroup known;
     ScriptGroup party = possessedGroup;
     CPlayer::UnitMap& units = player->units;

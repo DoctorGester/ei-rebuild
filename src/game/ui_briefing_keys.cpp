@@ -1,4 +1,4 @@
-// The briefing / base screen's key handler (CBriefingScreen::KeyDown). See
+// The briefing / base screen's key handler (BriefingScreen::KeyDown). See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "camera.h"
 #include "game_singletons.h"
@@ -31,7 +31,7 @@ constexpr int kQuestNameParts = 3;               // "q", zone, quest
 
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
 // active.
-void OpenObjectives(CInterface3D* ui) {
+void OpenObjectives(Interface3D* ui) {
     MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     if (!zone) return;
     std::vector<std::string> parts;
@@ -43,7 +43,7 @@ void OpenObjectives(CInterface3D* ui) {
         MapRecord* questZone = g_mapDatabase.FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
-        auto* window = new CObjectivesWindow(ui);
+        auto* window = new ObjectivesWindow(ui);
         window->Setup(LocalPlayerZone(), nullptr, false, true);
         ui->PushWindow(window, true, true);
         break;
@@ -53,12 +53,12 @@ void OpenObjectives(CInterface3D* ui) {
 } // namespace
 
 
-void CBriefingScreen::KeyDown(int key, int repeat, int modifiers) {
+void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
     if (chatActive) {
         if (key == VK_ESCAPE) chatActive = 0;
         return;
     }
-    CUiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, repeat, modifiers);
     switch (key) {
     case VK_BACK:
         if (IsMultiplayerClient()) {
@@ -81,7 +81,7 @@ void CBriefingScreen::KeyDown(int key, int repeat, int modifiers) {
         return;
     case VK_ESCAPE:
         if (state == 0) {
-            ui->PushWindow(new CEscMenu(ui), true, true);
+            ui->PushWindow(new EscMenu(ui), true, true);
         } else if (state == 3) {
             ui->PlaySound(kClickSound);
             while (state == 3) NextPhrase(true);

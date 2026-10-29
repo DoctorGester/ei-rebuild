@@ -1,6 +1,6 @@
-// Per-frame updates of the battle HUD panels: the clock (CHudClock::Update) turns its
+// Per-frame updates of the battle HUD panels: the clock (HudClock::Update) turns its
 // face with the time of day, moves the hand and the speed dial and makes the pause button blink
-// while the game is paused; the top panel (CHudTopPanel::Update) slides in and out.
+// while the game is paused; the top panel (HudTopPanel::Update) slides in and out.
 // See docs/notes/ui.md.
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
@@ -47,11 +47,11 @@ constexpr float kSpriteDepth = 8.106086f;   // 8.106: the dial marks, the top pa
 
 // The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod), stored.
 float TimeOfDay() {
-    const CWorldClient* world = &g_clientWorld;
+    const WorldClient* world = &g_clientWorld;
     return static_cast<float>(std::fmod(static_cast<double>(world->tick) * world->secondsPerTick + world->timeBase, 24.0));
 }
 
-void SetTint(CEngineObject* object, float value) {
+void SetTint(EngineObject* object, float value) {
     float* tint = AsUiMesh(object)->tint;
     tint[0] = value;
     tint[1] = value;
@@ -59,7 +59,7 @@ void SetTint(CEngineObject* object, float value) {
 }
 
 // Turns a sprite about `axis` (z or -z) by `angle`.
-void Turn(CEngineObject* object, float axisZ, float angle) {
+void Turn(EngineObject* object, float axisZ, float angle) {
     Vector3 axis = {0.0f, 0.0f, axisZ};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
@@ -78,14 +78,14 @@ constexpr float kSlingOutY = 83.0f;             // y otherwise
 
 } // namespace
 
-void CHudClock::Update() {
+void HudClock::Update() {
     ui->fastGame = fast;
     float hours = TimeOfDay();
-    CEngineObject** scene = sceneObjects.data();
-    CEngineObject* face = scene[0];
+    EngineObject** scene = sceneObjects.data();
+    EngineObject* face = scene[0];
 
     // The blink phase runs from 0 to 1 once a second.
-    double blinkAt = CUiContainer::FrameTime() + D(blink);
+    double blinkAt = UiContainer::FrameTime() + D(blink);
     blink = static_cast<float>(blinkAt);
     if (blinkAt >= 1.0f) {
         double next;
@@ -106,10 +106,10 @@ void CHudClock::Update() {
         double step;
         if (fast != 0) {
             handAngle = static_cast<float>(D(kPi) * kFastHand);
-            step = CUiContainer::FrameTime();
+            step = UiContainer::FrameTime();
         } else {
             handAngle = static_cast<float>(D(kPi) * kNormalHand);
-            step = CUiContainer::FrameTime() * 0.5f;
+            step = UiContainer::FrameTime() * 0.5f;
         }
         dial = static_cast<float>(step + D(dial));
         AsUiMesh(scene[1])->visible = true;
@@ -139,7 +139,7 @@ void CHudClock::Update() {
     // The four dial marks (objects 2-5), a notch apart.
     float angle = static_cast<float>(D(dial) - D(static_cast<float>(D(kPi) * kFaceStep)));
     for (int k = 2; k < 6; ++k) {
-        CEngineObject* mark = scene[k];
+        EngineObject* mark = scene[k];
         Turn(mark, 1.0f, angle);
         double c = x87::fcos(angle);
         float y = static_cast<float>(kCentreY - c * kDialRadius);
@@ -153,9 +153,9 @@ void CHudClock::Update() {
 
 // --- Top panel ---------------------------------------------------------------------------------
 
-void CHudTopPanel::Update() {
+void HudTopPanel::Update() {
     if (sliding) {
-        double slideAt = CUiContainer::FrameTime() * D(slideDirection) / kSlideTime + D(slide);
+        double slideAt = UiContainer::FrameTime() * D(slideDirection) / kSlideTime + D(slide);
         slide = static_cast<float>(slideAt);
         if (slideAt > 1.0f) slide = 1.0f;
         slide = slide >= 0.0f ? slide : 0.0f;      // NaN too
@@ -174,7 +174,7 @@ void CHudTopPanel::Update() {
         EI_NAN_AUDIT(slide);
         if (Bits(slide) == 0x3F800000 || slide == 0.0f) sliding = false;
         Layout();
-        CEngineObject* sling = sceneObjects[2];
+        EngineObject* sling = sceneObjects[2];
         float y;
         if (Bits(slideDirection) == 0xBF800000) {    // -1: sliding out
             Turn(sling, 1.0f, kPi);

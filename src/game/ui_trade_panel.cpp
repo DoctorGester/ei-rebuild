@@ -21,13 +21,13 @@
 namespace {
 
 // Opens text "perk <name>" (its first line is the row's shown name).
-bool OpenPerkText(CTextManager* texts, std::string_view name) {
+bool OpenPerkText(TextManager* texts, std::string_view name) {
     std::string key("perk ");
     key += name;
-    return texts->CTextManager::Open(key);
+    return texts->TextManager::Open(key);
 }
 // The open perk text's line; the cursor moves to the next line.
-std::string ReadPerkLine(CTextManager* texts) {
+std::string ReadPerkLine(TextManager* texts) {
     std::string line = texts->ReadLine(true);
     return line;
 }
@@ -48,19 +48,19 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 
 // The coin sprite after a price: texels (0x7C, 0x8A)-(0xA4, 0x99) between x `left` and `right`,
 // the row's height lower by 100 (the panel's layout offset).
-void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
-    CUiMesh* sprite = panel->AddBlankSprite();
+void PriceSprite(TradePanel* panel, const RECT& row, float left, float right) {
+    UiMesh* sprite = panel->AddBlankSprite();
     sprite->SetRectangle(6.0f, 100.0f, left, static_cast<float>(row.top + 100), right,
                          static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
 }
 
-void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, const TradeRow& school) {
+void DrawSchool(TradePanel* panel, UiSurface* draw, RECT* row, const TradeRow& school) {
     draw->DrawTextIn(school.name, row, 0, kBright, 0, 1);
     RECT levelRect = *row;
     gameapi::OffsetRect(&levelRect, -40, 0);
     draw->DrawTextIn(std::format("{}", school.level), &levelRect, 0, kBright, 2, 1);
     if (school.level < 100) {
-        draw->DrawTextIn(CTradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience), 2, 1);
+        draw->DrawTextIn(TradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience), 2, 1);
         PriceSprite(panel, *row, 350.0f, 390.0f);
     }
 }
@@ -69,11 +69,11 @@ UnitStats* PartyMemberStats(int index) { return &LocalPlayerData()->members[inde
 
 } // namespace
 
-void CTradePanel::BuildLists() {
+void TradePanel::BuildLists() {
     UnitStats* stats = &owner->HeroRecord()->stats;
     stats->ResetToBase(0.0f);
     owner->RefreshStats();
-    CTextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts;
     std::vector<SkillLevelRecord>& levels = g_skillDatabase.levels;
     perks.clear();
     learnable.clear();
@@ -95,7 +95,7 @@ void CTradePanel::BuildLists() {
         row.price = SchoolPrice(row.level, row.level + 1);
     }
 
-    std::string perkLevel = clientWorldTexts->CTextManager::GetString("perk_level");
+    std::string perkLevel = clientWorldTexts->TextManager::GetString("perk_level");
 
     for (unsigned group = 0; group < 0x6C; group += 3) {
         int level = stats->skillLevels[group / 3];
@@ -143,8 +143,8 @@ void CTradePanel::BuildLists() {
     DrawLists();
 }
 
-void CTradePanel::DrawLists() {
-    CUiSurface* draw = surfaces[0];
+void TradePanel::DrawLists() {
+    UiSurface* draw = surfaces[0];
     draw->Clear();
     while (std::ssize(sceneObjects) > 4) RemoveSceneObjectAt(std::ssize(sceneObjects) - 1);
 
@@ -197,9 +197,9 @@ void CTradePanel::DrawLists() {
     }
 }
 
-void CTradePanel::Build() {
+void TradePanel::Build() {
     rect = RECT{200, 100, 600, 500};
-    AddSurface(new CUiSurface(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
 
     AddRegion()->SetRect(360, 320, 380, 330);
     AddRegion()->SetRect(360, 480, 380, 490);
@@ -227,10 +227,10 @@ void CTradePanel::Build() {
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
-    CTextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
     for (const char* key : {"skills", "perks", "perks_av"}) {
-        text = clientWorldTexts->CTextManager::GetString(key);
+        text = clientWorldTexts->TextManager::GetString(key);
         texts.push_back(text);
     }
     ResetRecords();
@@ -238,7 +238,7 @@ void CTradePanel::Build() {
 
 // --- The records again --------------------------------------------------------------------------------
 
-void CTradePanel::ResetRecords() {
+void TradePanel::ResetRecords() {
     // The vector emptied first (the records hold no resources). The original pushes uninitialised stack bytes;
     // its record filler writes all but a few bytes. Ours pushes zeros.
     records.clear();
@@ -251,7 +251,7 @@ void CTradePanel::ResetRecords() {
 
 // --- The record from the hero ------------------------------------------------------------------------
 
-void CTradePanel::SnapshotRecord() {
+void TradePanel::SnapshotRecord() {
     if (recordIndex < 0) return;
     TradeStatsRecord& record = records[recordIndex];
     const UnitStats* stats = PartyMemberStats(recordIndex);
@@ -267,7 +267,7 @@ void CTradePanel::SnapshotRecord() {
 
 // --- The hero's statistics back from the record -------------------------------------------------------
 
-void CTradePanel::RestoreRecord() {
+void TradePanel::RestoreRecord() {
     if (recordIndex < 0) return;
     TradeStatsRecord& record = records[recordIndex];
     UnitStats* stats = PartyMemberStats(recordIndex);
@@ -292,7 +292,7 @@ void CTradePanel::RestoreRecord() {
 
 // --- Settling and choosing the hero ------------------------------------------------------------------
 
-void CTradePanel::Settle(bool keep, bool all) {
+void TradePanel::Settle(bool keep, bool all) {
     if (all) {
         int saved = recordIndex;
         for (int i = 0; i < std::ssize(records); ++i) {
@@ -314,7 +314,7 @@ void CTradePanel::Settle(bool keep, bool all) {
     BuildLists();
 }
 
-void CTradePanel::SelectHero(int index) {
+void TradePanel::SelectHero(int index) {
     recordIndex = index;
     perkTop = 0;
     learnableTop = 0;
@@ -323,7 +323,7 @@ void CTradePanel::SelectHero(int index) {
 
 // --- A price as text ----------------------------------------------------------------------------------
 
-std::string CTradePanel::FormatPrice(int price) {
+std::string TradePanel::FormatPrice(int price) {
     constexpr float kThousandth = 0.001f;
     constexpr float kMillionth = 1e-6f;
     constexpr float kBillionth = 1e-9f;

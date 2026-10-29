@@ -1,4 +1,4 @@
-// CDib's file reader and writer (dib.h): a .bmp file read from and written to a lib::File.
+// Dib's file reader and writer (dib.h): a .bmp file read from and written to a lib::File.
 // A lib::FileError from the file's calls ends in a message box and a result of 0, as any error of the
 // game's file calls did.
 #include "dib.h"
@@ -33,7 +33,7 @@ int ColourCount(const BITMAPINFOHEADER* header, int current) {
 
 } // namespace
 
-int CDib::Read(lib::File* input) {
+int Dib::Read(lib::File* input) {
     Empty();
     try {
         BITMAPFILEHEADER fileHeader;
@@ -61,7 +61,7 @@ int CDib::Read(lib::File* input) {
     return 1;
 }
 
-int CDib::Write(lib::File* output) {
+int Dib::Write(lib::File* output) {
     BITMAPFILEHEADER fileHeader;
     fileHeader.bfType = kBitmapFileType;
     fileHeader.bfSize = imageSize + maskBytes + sizeof(BITMAPINFOHEADER) + sizeof(fileHeader);

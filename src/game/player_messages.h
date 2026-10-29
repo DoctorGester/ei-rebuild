@@ -1,6 +1,6 @@
 #pragma once
 
-// The server side of a player's connection (CPlayerServer) as far as the message writers use it, and the
+// The server side of a player's connection (PlayerServer) as far as the message writers use it, and the
 // party record lookup. Each writer appends one message to the outgoing stream: a type byte, then the payload.
 // The single-player game runs the same server / client pair, so the per-tick player state, script variables
 // and unit events all go through them. See docs/notes/objects.md.
@@ -22,7 +22,7 @@
 #include <vector>
 
 class CPlayer;
-class CItem;
+class Item;
 class CUnit;
 class CMapObject;
 class CEffect;
@@ -39,7 +39,7 @@ struct HandlerEntry {
     int (Connection::*handler)();
 };
 
-// A unit placement: the unit's id, position, rotation and two unit values (CWorldServer::StoreParty stores
+// A unit placement: the unit's id, position, rotation and two unit values (WorldServer::StoreParty stores
 // them, CreateUnits restores them).
 struct UnitPlacement {
     int id;
@@ -49,35 +49,35 @@ struct UnitPlacement {
     std::uint32_t weapon;           // its active weapon (pendingWeapon on restore)
 };
 
-// A world player's connection to its client (CPlayer::connection): CPlayerServer or CPlayerClient.
-class CPlayerConnection : public CEngineObject {
+// A world player's connection to its client (CPlayer::connection): PlayerServer or PlayerClient.
+class PlayerConnection : public EngineObject {
 public:
-    ~CPlayerConnection() override;
+    ~PlayerConnection() override;
 
     virtual void ForgetSentObjects() = 0;   // server (sent objects, party units); client empty
     virtual void UnitChanged(CUnit*) {}     // client (the unit's controller); server empty
     virtual void ResetState() {}            // server and client versions
     virtual void Leave() {}                 // server (state 3, flushed); client empty
-    virtual void ItemsGiven(const std::list<CItem*>*, int) {}   // server; client empty
+    virtual void ItemsGiven(const std::list<Item*>*, int) {}   // server; client empty
     virtual void ItemsTaken() {}            // server (message 0x17); client empty
-    virtual void ItemTaken(CEngineObject*) {}   // server (message 0x0A); client empty
+    virtual void ItemTaken(EngineObject*) {}   // server (message 0x0A); client empty
     virtual void LeaderDied() {}            // the player's leader died: server; client empty
     virtual void TickDone() {}              // server; client empty
-    virtual void ItemUsed(CEngineObject*) {}    // server (message 0x14); client empty
+    virtual void ItemUsed(EngineObject*) {}    // server (message 0x14); client empty
     virtual int Receive() = 0;              // server and client versions
 
     CPlayer* player;    // the owner (set by CPlayer::SetConnection)
     int state;          // both classes' state (1: joined / logged in; see each class); the harness reads it
 
 protected:
-    CPlayerConnection();
+    PlayerConnection();
 };
 
 // A player's server side (made by the server's specific manager).
-class CPlayerServer final : public CPlayerConnection {
+class PlayerServer final : public PlayerConnection {
 public:
-    CPlayerServer();
-    ~CPlayerServer() override;
+    PlayerServer();
+    ~PlayerServer() override;
 
     void Create() override {
         CreateServer();
@@ -88,19 +88,19 @@ public:
     void ForgetSentObjects() override { ReleaseSentObjects(); }
     void ResetState() override { ClearServerState(); }
     void Leave() override { LeaveAndFlush(); }
-    void ItemsGiven(const std::list<CItem*>* items, int flag) override { SendItemsGiven(items, flag); }
+    void ItemsGiven(const std::list<Item*>* items, int flag) override { SendItemsGiven(items, flag); }
     void ItemsTaken() override { Send17(); }
-    void ItemTaken(CEngineObject* item) override { SendObject0A(item); }
+    void ItemTaken(EngineObject* item) override { SendObject0A(item); }
     void LeaderDied() override { OnLeaderDied(); }
     void TickDone() override { ClearPossessedGroup(); }
-    void ItemUsed(CEngineObject* item) override { SendObject14(item); }
+    void ItemUsed(EngineObject* item) override { SendObject14(item); }
     int Receive() override { return ReceiveMessages(); }
 
     void SetVariable(std::string_view name, std::uint32_t value);        // message 0x81
     void SetVariableMax(std::string_view name, float value);             // raises a variable, 0x81
     void DeleteVariable(const char* name);                          // message 0x82
     void SendGameTime();                                            // message 0x07
-    int SendState02(CMemoryStream* zone);                           // message 0x02, `zone`
+    int SendState02(MemoryStream* zone);                           // message 0x02, `zone`
     int SendState70(std::uint8_t a, std::uint16_t b);               // message 0x70
     int SendState71(std::uint32_t a, std::uint32_t b);              // message 0x71
     int SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w);   // 0x72
@@ -108,19 +108,19 @@ public:
     int SendPosition04(const Vector3& at, std::uint32_t a, std::uint32_t b);   // message 0x04
     std::uint32_t SendPosition0F(const Vector3& at, const Vector3& other, std::uint8_t flag);   // 0x0F
     void Send17();
-    void SendObject0A(const CEngineObject* object);                 // id
+    void SendObject0A(const EngineObject* object);                 // id
     void SendPair16(std::uint32_t a, std::uint32_t b);
-    void SendObject14(const CEngineObject* object);                 // the item's id and charge
+    void SendObject14(const EngineObject* object);                 // the item's id and charge
     void SendText0D(const char* text);
     void SendValue15(std::uint32_t value);
     void SendPair18(std::uint32_t a, std::uint32_t b);
-    void SendObject43(const CEngineObject* object);                 // id, nothing without an object
-    void SendObject0B(const CEngineObject* object, AckKind kind);   // id, the ack kind (message 0x0B)
+    void SendObject43(const EngineObject* object);                 // id, nothing without an object
+    void SendObject0B(const EngineObject* object, AckKind kind);   // id, the ack kind (message 0x0B)
     // Message 0x12, a byte and `value` . The original never writes
     // the byte: whatever its stack holds goes out. Ours sends 0; the client's handler skips the byte.
     void SendValue12(std::uint32_t value);
     void SendText13(std::string_view text);
-    void WriteTo(CStream* target);                                  // target->CopyFrom(out)
+    void WriteTo(ByteStream* target);                                  // target->CopyFrom(out)
     void SetDisconnect();                                           // state 4
     void SetPartyDeployed(std::uint8_t value);
 
@@ -130,20 +130,20 @@ public:
     // Each new map object (message 0x40: header, scale, names, the server companion's names and strings, a
     // unit's name, its full state) / timed object (0x50: id, class, full state) is sent and kept, counted, in
     // the player's map. 1.
-    int SendObjectsAdded(const std::vector<CEngineObject*>* objects);
-    int SendTimedAdded(const std::vector<CEngineObject*>* objects);
+    int SendObjectsAdded(const std::vector<EngineObject*>* objects);
+    int SendTimedAdded(const std::vector<EngineObject*>* objects);
     // The objects changed in this world update (their stamp equals the world's update count) send their delta
     // (0x41 / 0x51: id, then the delta stream). 1.
-    int SendObjectsChanged(const std::vector<CEngineObject*>* objects);
-    int SendTimedChanged(const std::vector<CEngineObject*>* objects);
+    int SendObjectsChanged(const std::vector<EngineObject*>* objects);
+    int SendTimedChanged(const std::vector<EngineObject*>* objects);
     // Objects gone from view: dropped from the player's map and released (0x42 / 0x52: id). 1.
-    int SendObjectsRemoved(const std::vector<CEngineObject*>* objects);
-    int SendTimedRemoved(const std::vector<CEngineObject*>* objects);
+    int SendObjectsRemoved(const std::vector<EngineObject*>* objects);
+    int SendTimedRemoved(const std::vector<EngineObject*>* objects);
     // Every item of the player's item list the party's item manager knows is sent (SendObject14).
     void SendItems();
     // For a joined player (state 1): message 0x05, a stream with the given items' spells and then the items,
     // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
-    void SendItemsGiven(const std::list<CItem*>* items, int flag);
+    void SendItemsGiven(const std::list<Item*>* items, int flag);
     // Message 0x60: the world's pause flag, possessedId, the party units (partyUnits) by id and the party's
     // danger (danger: EnemyNear when a unit of the player has an exposure at most 2, InDanger when a party unit
     // fights or is the enemy of a hostile neighbour), then the objects shared with a
@@ -152,8 +152,8 @@ public:
     // A map object leaves the world: when the client knows it, it is dropped from the player's map and the
     // sent list (each drop releases it) and message 0x42 goes out; it leaves both groups in any case.
     // Returns 1.
-    int ForgetObject(CEngineObject* object);
-    bool IsPartyUnit(CEngineObject* object);
+    int ForgetObject(EngineObject* object);
+    bool IsPartyUnit(EngineObject* object);
     // Message 0x80: the party saved (with its variables) as a sized block; the next refresh in 900..1800
     // updates (ISAAC).
     void SendParty();
@@ -249,7 +249,7 @@ public:
     void LeaveAndFlush();
     // Message 0x0E about a path of `unit` (nothing for null): kind, flag, the point's two dwords, the unit's
     // id and `limitBits`; except for kind 3 the path written through a delta field.
-    void SendPathMessage(CEngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
+    void SendPathMessage(EngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
                          std::uint32_t limitBits);
 
     // -1, or the unit a Possession spell took (its id): the next party refresh then sends possessedGroup (the
@@ -258,17 +258,17 @@ public:
     // ClearServerState, then the handler table: 256 entries, zeroed, and the 25 handlers by message type.
     void CreateServer();
 
-    using Handler = int (CPlayerServer::*)();
+    using Handler = int (PlayerServer::*)();
     std::vector<Handler> handlers;    // by message type (null: refused; 256 of them)
     Vector3 lastPosition;           // sent with 0x04 / 0x0F
     int spare;                      // -1 after Create; nothing reads it
-    CMemoryStream out;                  // messages to the client
+    MemoryStream out;                  // messages to the client
     std::uint8_t partyDeployed;     // the party stands in the world: OnLeaderDied collects it when set, redeploys it when clear
     std::vector<UnitPlacement> placements;
     CoderState compressor;          // for the messages sent (Flush)
     CoderState decompressor;        // for the messages received
-    std::vector<CEngineObject*> sentObjects; // map objects the client has (counted)
-    std::vector<CEngineObject*> sentTimed;    // timed objects the client has (counted)
+    std::vector<EngineObject*> sentObjects; // map objects the client has (counted)
+    std::vector<EngineObject*> sentTimed;    // timed objects the client has (counted)
     ScriptGroup possessedGroup;
     ScriptGroup partyUnits;         // units always sent (message 0x60)
     // How much danger the party is in (SendPartyState; the script's IsPlayerInDanger / IsPlayerInSafety).
@@ -277,7 +277,7 @@ public:
     int refreshTimer;               // updates until the party is sent again
 };
 
-// The client's login message to the world server (not net::LoginMessage; 0x88 bytes, read whole by CPlayerServer::OnLogin).
+// The client's login message to the world server (not net::LoginMessage; 0x88 bytes, read whole by PlayerServer::OnLogin).
 struct PlayerLoginMessage {
     int version;                    // +0x00 0x64
     char name[0x40];                // +0x04
@@ -297,7 +297,7 @@ double UseOrderDistanceSquared(const Vector3& a, const Vector3& b);
 // 2D centroid to each (unnormalised when it is zero). `offsets` is sized to the units.
 void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* offsets);
 
-// The bits of CPlayer::dirty: the state the server still has to send the player (CWorldServer::SyncPlayer),
+// The bits of CPlayer::dirty: the state the server still has to send the player (WorldServer::SyncPlayer),
 // each cleared by its message. kPlayerDirtyAll after a reset or a load.
 enum class PlayerDirty : std::uint32_t {
     Zone = 0x1,                 // message 0x02
@@ -312,7 +312,7 @@ inline constexpr std::uint32_t kPlayerDirtyAll = 0xFFFFFFFFu;
 
 // A world player (CPlayer). The harness's digest reads its fields (tests/verify/harness_digest.cpp), hence the
 // layout asserts.
-class CPlayer final : public CEngineObject {
+class CPlayer final : public EngineObject {
 public:
     // The world objects the player knows, by id, each counted once: the map objects and the timed objects
     // (effects).
@@ -339,7 +339,7 @@ public:
     void Clear();
     // The old connection loses its owner and a reference; the new one gets this player as owner and a
     // reference.
-    void SetConnection(CPlayerConnection* connection);
+    void SetConnection(PlayerConnection* connection);
     void SetPlayerId(int id);
     // With a link the connection leaves; Clear; the old link disconnected and released; `link` taken
     // (counted); then the connection's ResetState.
@@ -351,12 +351,12 @@ public:
 
     // Whether `unit` is the party's leader: there are records and its id is the first record's key. 0 for
     // null.
-    bool IsLeader(const CEngineObject* unit);
+    bool IsLeader(const EngineObject* unit);
     // The connection's ItemsGiven, then every item of `items` counted and appended to the given items.
-    void GiveItems(const std::list<CItem*>* items, int flag);
+    void GiveItems(const std::list<Item*>* items, int flag);
     // The connection's ItemsTaken, then every given item taken off the head and released.
     void TakeAllItems();
-    // 1 when a given loot item (ItemKind::Quest) has `kind` (CItemLoot::kind), or an item a unit of the player
+    // 1 when a given loot item (ItemKind::Quest) has `kind` (ItemLoot::kind), or an item a unit of the player
     // carries has it (any class; the walk stops at a null unit).
     bool HasLoot(int kind);
     // The first given loot item of `kind` / item with id `id`: the connection's ItemTaken, out of the list,
@@ -369,7 +369,7 @@ public:
     // A unit in units is erased, released and given to the connection's UnitChanged.
     void RemoveUnit(CUnit* unit);
     // The item's id joins the recharge list unless there; the connection's ItemUsed.
-    void ItemUsed(CEngineObject* item);
+    void ItemUsed(EngineObject* item);
     // The recharge list emptied, then the party assigned from `source` (CParty::Assign's result).
     CParty* AssignParty(CParty* source);
     // Every unit at a taming stage leaves the player; the walk stops at a null entry.
@@ -380,11 +380,11 @@ public:
     void Tick();
 
     CParty* Party() { return &party; }
-    // The connection as the server's view of it (a CPlayerServer on the server world, null for none).
-    CPlayerServer* Server() const { return static_cast<CPlayerServer*>(connection); }
+    // The connection as the server's view of it (a PlayerServer on the server world, null for none).
+    PlayerServer* Server() const { return static_cast<PlayerServer*>(connection); }
 
     netlink::NetLink* link;                     // the connection to the player's client, null: none
-    CPlayerConnection* connection;              // CPlayerServer / CPlayerClient (counted)
+    PlayerConnection* connection;              // PlayerServer / PlayerClient (counted)
     int playerId;                               // player number (0 = the local player)
     MapObjectMap knownObjects;                  // map objects sent to the client
     int maxObjectId;                            // highest id put in knownObjects
@@ -393,7 +393,7 @@ public:
     TimedObjectMap knownTimed;                  // timed objects (effects) sent to the client
     int maxTimedId;
     CParty party;
-    std::list<CItem*> items;            // items given to the player (counted)
+    std::list<Item*> items;            // items given to the player (counted)
     int partyId;                                // the party's key in the party manager; sent with the client's login
     int sessionKind;                         // 3: the client runs a setup on the controllers of new units
     std::uint32_t lastScreen;                   // the session kind before the last game-state message (5: the camp)

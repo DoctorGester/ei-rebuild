@@ -1,4 +1,4 @@
-// CUnitServer slots about other objects and the unit's own setup (A-U5): hostility claims, taking up a
+// UnitServer slots about other objects and the unit's own setup (A-U5): hostility claims, taking up a
 // weapon, an object being deleted, settling the unit again. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 
@@ -25,11 +25,11 @@ constexpr int kCallClaim = 0x1E;        // the kind of the AI memory's call for 
 constexpr int kPartWeapons = 6;         // CUnit::MarkChanged part
 
 
-// The weapon's condition (CItem +0x20, a float) rounded to nearest is above 0.
-bool Usable(const CItem* weapon) { return weapon && x87::RoundToInt(weapon->condition) > 0; }
+// The weapon's condition (Item +0x20, a float) rounded to nearest is above 0.
+bool Usable(const Item* weapon) { return weapon && x87::RoundToInt(weapon->condition) > 0; }
 } // namespace
 
-void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
+void UnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
     claimedHostile |= mask;
     std::string text;
     for (int player = 0; player < 32; ++player) {
@@ -41,7 +41,7 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
     brain.memory.AddClaim(mask, kCallClaim, text);
 }
 
-bool CUnitServer::TakeUpWeapon(int slot) {
+bool UnitServer::TakeUpWeapon(int slot) {
     auto* weapon = unit->GetWeapon(static_cast<std::uint32_t>(slot));
     int taken = Usable(weapon) ? slot : -1;
     unit->MarkChanged(kPartWeapons);
@@ -52,7 +52,7 @@ bool CUnitServer::TakeUpWeapon(int slot) {
     return Usable(weapon);
 }
 
-void CUnitServer::OnObjectDeleted(CEngineObject* object) {
+void UnitServer::OnObjectDeleted(EngineObject* object) {
     if (!object) return;
     if (action.target == object) {
         action.Reset();
@@ -68,14 +68,14 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
     }
 }
 
-void CUnitServer::Resettle() {
+void UnitServer::Resettle() {
     if (unit->IsDead()) return;
     auto* world = ServerWorld();
     world->aiMap.sectorMap.Remove(unit);
     unit->Object3D()->SetUpAnimatedFigure(unit->name);
     unit->UpdateSizeClasses();
     unit->UpdateSizeClass();
-    CAIMap* map = &world->aiMap;
+    AIMap* map = &world->aiMap;
     if (!map->CanLeaveCell(unit)) {
         auto* position = &unit->localPosition;
         Vector3 spot;
@@ -93,13 +93,13 @@ void CUnitServer::Resettle() {
     g_serverWorld.aiMap.sectorMap.Add(unit);
 }
 
-void CUnitServer::Create() {
+void UnitServer::Create() {
     ResetController();
     brain.SetOwner(this);
 }
 
-void CUnitServer::ClearState() { ResetController(); }
+void UnitServer::ClearState() { ResetController(); }
 
-void CUnitServer::Destroy() { ResetController(); }
+void UnitServer::Destroy() { ResetController(); }
 
-int CUnitServer::TamingStage() { return tameStage; }
+int UnitServer::TamingStage() { return tameStage; }

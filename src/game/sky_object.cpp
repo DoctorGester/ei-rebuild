@@ -1,4 +1,4 @@
-// CSkyObject and CSky's lighting. See sky_object.h.
+// SkyObject and Sky's lighting. See sky_object.h.
 #include "sky_object.h"
 
 #include "render/render.h"   // MeshChanged
@@ -39,16 +39,16 @@ constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // radians per world tick
 
 } // namespace
 
-CSkyObject::CSkyObject() {
+SkyObject::SkyObject() {
     CreateMesh();
 }
 
-CSkyObject::~CSkyObject() {  }
+SkyObject::~SkyObject() {  }
 
-const char* CSkyObject::ClassName() { return kClassName; }
-ClassId CSkyObject::GetClassId() { return ClassId::SkyObject; }
+const char* SkyObject::ClassName() { return kClassName; }
+ClassId SkyObject::GetClassId() { return ClassId::SkyObject; }
 
-void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light) {
+void SkyObject::Light(const float* direction, SkyColour ambient, SkyColour light) {
     const std::uint32_t r = Truncate(ambient.r * kColourScale);
     const std::uint32_t g = Truncate(ambient.g * kColourScale);
     const std::uint32_t b = Truncate(ambient.b * kColourScale);
@@ -85,16 +85,16 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
     render::MeshChanged(this, render::MeshChange::Colours);   // the colours the new renderer keeps
 }
 
-void CSky::Light(const float* direction, SkyColour ambient, SkyColour light) {
+void Sky::Light(const float* direction, SkyColour ambient, SkyColour light) {
     if (object) object->Light(direction, ambient, light);
 }
 
-CSky::CSky() {
+Sky::Sky() {
     turns = 1;
     LoadNamedTexture(texture, kSkyTextureKind, kSkyTextureName);
 }
 
-void CSky::Draw(CSceneRenderer* renderer, const Vector3& eye) {
+void Sky::Draw(SceneRenderer* renderer, const Vector3& eye) {
     if (!object) return;
     const float x = eye.x, y = eye.y, z = eye.z - kSkyDrop;
     if (turns) {
@@ -114,20 +114,20 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3& eye) {
     m[13] = 0.0f;
     m[14] = 0.0f;
     m[15] = 1.0f;
-    CTransformPipeline* pipeline = renderer->pipeline;
-    pipeline->PushMatrix(m, CTransformPipeline::kClipStack);
+    TransformPipeline* pipeline = renderer->pipeline;
+    pipeline->PushMatrix(m, TransformPipeline::kClipStack);
     pipeline->PushMatrix(m, 1);
     EnsureTextureLoaded(texture);
     renderer->SetTexture(0, texture);
     renderer->DrawFigure(object, nullptr, 0xFF, nullptr);
-    const int stacks[2] = {CTransformPipeline::kClipStack, 1};
+    const int stacks[2] = {TransformPipeline::kClipStack, 1};
     for (int stack : stacks) {
         int& count = pipeline->stacks[stack].count;
         if (count != 0) --count;
     }
 }
 
-CSky::~CSky() {
+Sky::~Sky() {
     texture.Reset();
     material.Reset();
     object.Reset();

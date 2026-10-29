@@ -1,8 +1,8 @@
 // The display's gamma ramp: brightness, contrast and gamma from the options become the gamma ramp (the new
 // renderer's, applied as the frame goes to the window). Called by WinMain at start-up and with zeros at exit, and by the options screen when a value
 // changes; no caller reads the result. See docs/notes/renderer.md.
-#include "model.h"     // CSceneRenderer
-#include "texture.h"   // CTextureDevice, Surface
+#include "model.h"     // SceneRenderer
+#include "texture.h"   // TextureDevice, Surface
 
 #include "render/render.h"
 #include "lib/nan_audit.h"
@@ -44,8 +44,8 @@ void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float contrast,
 
 } // namespace
 
-bool CSceneRenderer::SetGamma(float newBrightness, float newContrast, float newGamma) {
-    CTextureDevice* currentDevice = device;
+bool SceneRenderer::SetGamma(float newBrightness, float newContrast, float newGamma) {
+    TextureDevice* currentDevice = device;
     if (!currentDevice) return false;
     // The renderer applies the ramp as the frame goes to the window (render::SetGammaRamp), so there is
     // always gamma control.

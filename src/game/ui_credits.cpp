@@ -1,5 +1,5 @@
 // The titles window's frame and close and its script lines' destructor. The window's Create is in
-// ui_layouts.cpp, its input in ui_screens.cpp. See ui_screens.h (CCreditsScreen) and docs/notes/ui.md ("Main
+// ui_layouts.cpp, its input in ui_screens.cpp. See ui_screens.h (CreditsScreen) and docs/notes/ui.md ("Main
 // menu, dialogs, escape menu, credits").
 #include "app.h"
 #include "app_helpers.h"
@@ -27,11 +27,11 @@ constexpr int kHeaderFont = 2;
 
 // --- a window above the titles closed ------------------------------------------------------------
 
-void CCreditsScreen::MessageResult(int) { player.Close(); }
+void CreditsScreen::MessageResult(int) { player.Close(); }
 
 // --- the frame -----------------------------------------------------------------------------------
 
-void CCreditsScreen::Draw(CSceneRenderer* pass) {
+void CreditsScreen::Draw(SceneRenderer* pass) {
     EI_NAN_AUDIT(textSurface->speed);
     if (GameTime() > nextLineAt && textSurface->speed == 0.0f) {
         nextLineAt = 0.0f;
@@ -68,12 +68,12 @@ void CCreditsScreen::Draw(CSceneRenderer* pass) {
         Close();
         return;
     }
-    CUiContainer::Draw(pass);
+    UiContainer::Draw(pass);
 }
 
 // --- the close -----------------------------------------------------------------------------------
 
-void CCreditsScreen::CloseScreen() {
+void CreditsScreen::CloseScreen() {
     lines.clear();
     g_sceneRenderer.fogColour = static_cast<std::uint32_t>(savedDisplay);
     app::g_interfaceHasScreen = 1;

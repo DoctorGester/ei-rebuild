@@ -37,7 +37,7 @@
 
 // --- the quick item panel's unit -----------------------------------------------------------------
 
-void CHudQuickItems::SetUnit(CUnit* newUnit) {
+void HudQuickItems::SetUnit(CUnit* newUnit) {
     std::string tip;
     unit = newUnit;
     ClearSceneObjects();
@@ -51,7 +51,7 @@ void CHudQuickItems::SetUnit(CUnit* newUnit) {
     if (!unit) return;
 
     // The entry of the sprite just added.
-    auto finish = [&](CItem* item, bool own) {
+    auto finish = [&](Item* item, bool own) {
         entries.resize(shownCount);
         Entry& entry = entries[shownCount - 1];
         entry.own = own;
@@ -61,7 +61,7 @@ void CHudQuickItems::SetUnit(CUnit* newUnit) {
     // The sprite just added: placed in its row (x from the panels' right column, 695; Rebirth moves it), its
     // region pointing at it, scaled, opaque.
     auto place = [&](int slot) {
-        CEngineObject* sprite = sceneObjects[shownCount - 1];
+        EngineObject* sprite = sceneObjects[shownCount - 1];
         const float right = widescreen::g_panelRight;
         if (slot < 4)
             AsUiMesh(sprite)->Place(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
@@ -70,7 +70,7 @@ void CHudQuickItems::SetUnit(CUnit* newUnit) {
         int last = shownCount - 1;
         regionItem[slot] = last;
         if (last >= 0 && last < shownCount) {
-            CEngineObject* shown = sceneObjects[last];
+            EngineObject* shown = sceneObjects[last];
             AsUiMesh(shown)->SetScale(slot < 4 ? 0.55f : 0.85f);
             SceneMesh(last)->flatSpecular = 0xFF000000;
         }
@@ -78,7 +78,7 @@ void CHudQuickItems::SetUnit(CUnit* newUnit) {
 
     // The unit's four quick items in the bottom row.
     for (unsigned slot = 0; slot < 4; ++slot) {
-        CItem* item = unit->GetQuickItem(slot);
+        Item* item = unit->GetQuickItem(slot);
         if (!item) continue;
         {
             std::string image = item->FigureName();
@@ -100,7 +100,7 @@ void CHudQuickItems::SetUnit(CUnit* newUnit) {
     int slot = 4;
     while (node != player->items.rend()) {
         if (slot - 4 >= 4) break;
-        CItem* item = *node;
+        Item* item = *node;
         ++node;
         if (!item || item->Kind() != ItemKind::Quest)
             continue;
@@ -124,17 +124,17 @@ namespace {
 
 // The unit panel's model view for the unit it now shows, copied from the prototype bit for bit (the size
 // from `first`'s, the height from the shown unit's: the same unit), and its name.
-void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
+void ShowPanelView(HudUnitPanel* panel, CUnit* first) {
     panel->viewSize[0] = first->GetPrototype()->panelViewSize;
     panel->viewHeight[0] = std::bit_cast<float>(panel->shownUnit->GetPrototype()->height);
     panel->strings[0] = panel->owner->UnitName(panel->shownUnit);
 }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
-void RebuildClientParty(CBattleScreen* screen) {
+void RebuildClientParty(BattleScreen* screen) {
     net::ClientSession* session = net::g_gameClient;
     const auto& players = session->players;
-    CBattleScreen::PartyIds ids;
+    BattleScreen::PartyIds ids;
     ids.camera = -1;
     for (auto& node : players) {
         net::PlayerMessage* player = node.Get();
@@ -147,7 +147,7 @@ void RebuildClientParty(CBattleScreen* screen) {
             }
             ids.withUnit.push_back(unitId);
             net::BindingMessage* camera = session->binding;
-            if (camera && !(camera->flags7 & CRefCounted::kDetached) &&
+            if (camera && !(camera->flags7 & RefCounted::kDetached) &&
                 camera->first.Get() == player)
                 ids.camera = unitId;
         } else {
@@ -207,7 +207,7 @@ bool Equal(float a, float b) {
 
 } // namespace
 
-void CBattleScreen::Update() {
+void BattleScreen::Update() {
     // The one selected party unit is dead (IsDead): the panels lose their unit and the
     // unit panel shows it.
     auto* currentParty = &party;
@@ -226,7 +226,7 @@ void CBattleScreen::Update() {
             quickItems->SetUnit(nullptr);
             spellColumn->SetUnit(nullptr);
             actionColumn->SetUnit(nullptr, false);
-            CHudUnitPanel* panel = unitPanel;
+            HudUnitPanel* panel = unitPanel;
             if (first != panel->shownUnit) {
                 panel->shownUnit = first;
                 ShowPanelView(panel, first);
@@ -236,7 +236,7 @@ void CBattleScreen::Update() {
 
     if (IsMultiplayerClient()) RebuildClientParty(this);
 
-    CUiContainer::Update();
+    UiContainer::Update();
     ui->ShowMessage(false);
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
@@ -248,7 +248,7 @@ void CBattleScreen::Update() {
         for (int i = 0; i < std::ssize(data->members); ++i)
             lib::SetAtGrow(records, std::ssize(records), &data->members[i]);
         if (GamePartyInExit(&records, pendingExit, &second)) {
-            CMessageBox* box = new CMessageBox(ui, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
+            MessageWindow* box = new MessageWindow(ui, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
             ui->PushWindow(box, true, true);
             exitPending = false;
         }
@@ -299,20 +299,20 @@ void CBattleScreen::Update() {
 
 // --- the party ids compared ----------------------------------------------------------------------
 
-bool CBattleScreen::PartyIds::Equals(const CBattleScreen::PartyIds& other) const {
+bool BattleScreen::PartyIds::Equals(const BattleScreen::PartyIds& other) const {
     return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
 }
 
 // --- the battle screen's left button release -----------------------------------------------------
 
-void CBattleScreen::LeftUp(int buttons, int x, int y) {
+void BattleScreen::LeftUp(int buttons, int x, int y) {
     if (portraitMode != 0) return;
     if (!viewPressed) {
-        CUiContainer::LeftUp(buttons, x, y);
+        UiContainer::LeftUp(buttons, x, y);
         return;
     }
     viewPressed = false;
-    CWorldClient* world = &g_clientWorld;
+    WorldClient* world = &g_clientWorld;
     if (!boxSelecting || IsMultiplayerClient()) {
         // The (x, y) pair is read back through its address.
         POINT point = {x, y};
@@ -371,8 +371,8 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
 
 // --- a quest variable's notice -------------------------------------------------------------------
 
-void CBattleScreen::QuestVariable(std::string_view name, float value) {
-    CTextManager* texts = g_clientWorld.texts;
+void BattleScreen::QuestVariable(std::string_view name, float value) {
+    TextManager* texts = g_clientWorld.texts;
     std::vector<std::string> parts;
     std::string text;
     std::string title;
@@ -390,7 +390,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
         } else {
             key = "combat_get_quest";
         }
-        title = texts->CTextManager::GetString(key);
+        title = texts->TextManager::GetString(key);
         text.clear();
         if (texts->Open(std::string("quest ") + parts[2])) text = texts->ReadLine(true);
         std::string colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
@@ -413,7 +413,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
         } else {
             key = "combat_get_subobj";
         }
-        title = texts->CTextManager::GetString(key);
+        title = texts->TextManager::GetString(key);
         text.clear();
         bool found = false;
         {
@@ -444,7 +444,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
 
 // --- the selection's refresh ---------------------------------------------------------------------
 
-void CBattleScreen::RefreshSelection() {
+void BattleScreen::RefreshSelection() {
     auto* currentParty = &party;
     CUnit* first = nullptr;
     int selected = 0;
@@ -464,7 +464,7 @@ void CBattleScreen::RefreshSelection() {
     actionColumn->SetUnit(shown, selected > 0);
 
     // The unit panel shows the first selected unit (also a dead one, or the first of several).
-    CHudUnitPanel* panel = unitPanel;
+    HudUnitPanel* panel = unitPanel;
     if (first != panel->shownUnit) {
         panel->shownUnit = first;
         if (first) ShowPanelView(panel, first);

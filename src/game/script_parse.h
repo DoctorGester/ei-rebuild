@@ -13,16 +13,16 @@
 
 namespace scriptparse {
 
-// The lexer's constants (CScript::Tokenize, ClassifyToken).
+// The lexer's constants (Script::Tokenize, ClassifyToken).
 inline constexpr char kQuote = '"';
 inline constexpr const char* kCommentOpen = /*0078BC8C*/ "/*";
 inline constexpr const char* kCommentClose = /*0078BC90*/ "*/";
 inline constexpr const char* kLineComment = /*0078BC94*/ "//";
 
 
-// Formats the error message into the CScript's error text and sets code and line;
-// returns 0. (CScript::Error is the same.)
-int ScriptErrorV(CScript* script, int line, int code, const char* format, char* args);
+// Formats the error message into the Script's error text and sets code and line;
+// returns 0. (Script::Error is the same.)
+int ScriptErrorV(Script* script, int line, int code, const char* format, char* args);
 
 // script_text_file.cpp: a text file's lines joined into
 // *text (emptied first). 0 when the file cannot be opened or read.

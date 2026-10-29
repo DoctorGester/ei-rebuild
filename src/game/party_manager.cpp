@@ -41,9 +41,9 @@ void ObjectRefFields(ChunkArchive* ar, int id, std::vector<HeldRef<T>>* objects)
 // `to` becomes a copy of `from` (with variables) through a memory stream, as CParty::Assign without its Clear
 // inlines it.
 void CopyParty(CParty* to, CParty* from) {
-    CMemoryStream local;
+    MemoryStream local;
     from->SaveParty(&local, 1);
-    local.CMemoryStream::Seek(0);
+    local.MemoryStream::Seek(0);
     to->LoadParty(&local, 1);
 }
 
@@ -142,7 +142,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
 // ---- The archived objects (Serialize) ---------------------------------------------------
 
 void PartyRecord::Serialize(ChunkArchive* ar) {
-    CMemoryStream local;
+    MemoryStream local;
     ar->StringField(1, &name);
     CParty* p = Party();
     if (!ar->loading) {
@@ -160,7 +160,7 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(2, &sellsItems);
     ar->Field(3, &sellsSpells);
     ar->Field(4, weights, sizeof(weights) + sizeof(weightsTail));
-    CMemoryStream local;
+    MemoryStream local;
     CParty* itemsParty = ItemsParty();
     CParty* spellsParty = SpellsParty();
     if (!ar->loading) {
@@ -200,18 +200,18 @@ void NamedPartyRecords::EndRedeploy(CParty* party) {
 
 // ---- Load and save --------------------------------------------------------------------------------
 
-void PartyManager::Load(CMemoryStream* from) {
-    CMemoryStream local;
+void PartyManager::Load(MemoryStream* from) {
+    MemoryStream local;
     from->ReadSized(&local);
-    local.CMemoryStream::Seek(0);
+    local.MemoryStream::Seek(0);
     ChunkArchive archive;
     archive.Open(&local, 1, static_cast<int>(from->version));
     ArchiveManager(this, &archive);
     archive.Close(&local);
 }
 
-void PartyManager::Save(CMemoryStream* to) {
-    CMemoryStream local;
+void PartyManager::Save(MemoryStream* to) {
+    MemoryStream local;
     ChunkArchive archive;
     archive.Open(&local, 0, static_cast<int>(to->version));
     ArchiveManager(this, &archive);

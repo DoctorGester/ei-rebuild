@@ -5,7 +5,7 @@
 // unit panel's body parts, the top panel's pages, the map's slide, quick save / load, the party
 // members and the message window. Rebirth's MPSpeedControl (the two JNEs
 // aimed at the next instruction) lets the speed keys work on a network client too. See ui_camp.h
-// (CBattleScreen) and docs/notes/ui.md, section 6.
+// (BattleScreen) and docs/notes/ui.md, section 6.
 #include "ui.h"
 #include "world_glue.h"
 #include "ui_camp.h"
@@ -93,7 +93,7 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
 
 } // namespace
 
-void CBattleScreen::KeyDown(int key, int repeat, int modifiers) {
+void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
     if (portraitMode != 0) {
         if (key == VK_ESCAPE) portraitMode = 0;
         return;
@@ -111,7 +111,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int modifiers) {
             return;
         }
     }
-    CUiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (handled) return;
     if (modifiers & kKeyRepeated) return;
 
@@ -121,13 +121,13 @@ void CBattleScreen::KeyDown(int key, int repeat, int modifiers) {
             SetPendingAction(kPendingNone, -1, -1);
             return;
         }
-        ui->PushWindow(new CEscMenu(ui), true, true);
+        ui->PushWindow(new EscMenu(ui), true, true);
         handled = true;
         return;
     }
 
     const int action = g_keyActions[modifiers & kScanCodeMask];
-    CCamera* camera = &g_camera;
+    Camera* camera = &g_camera;
     switch (action) {
     case kActionPause: {
         clock->TogglePause();
@@ -204,7 +204,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int modifiers) {
     case kActionWeapon + 1:
     case kActionWeapon + 2:
     case kActionWeapon + 3: {
-        CHudWeaponBar* bar = weaponBar;
+        HudWeaponBar* bar = weaponBar;
         const int slot = action - kActionWeapon;
         const int count = bar->count;
         if (count <= slot) return;
@@ -235,13 +235,13 @@ void CBattleScreen::KeyDown(int key, int repeat, int modifiers) {
     case kActionBodyPart + 3: {
         auto* panel = unitPanel;
         SlideKey(panel, panel->bodyPart, action - kActionBodyPart,
-                 [](CHudUnitPanel* shown) { shown->ShowBodyPart(); });
+                 [](HudUnitPanel* shown) { shown->ShowBodyPart(); });
         return;
     }
     case kActionPage:
     case kActionPage + 1: {
         auto* panel = topPanel;
-        SlideKey(panel, panel->page, action - kActionPage, [](CHudTopPanel* shown) { shown->ShowPage(); });
+        SlideKey(panel, panel->page, action - kActionPage, [](HudTopPanel* shown) { shown->ShowPage(); });
         return;
     }
     case kActionMapSlide:

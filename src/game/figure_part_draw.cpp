@@ -42,7 +42,7 @@ void AddOffset(const float* offset, float* target) { *target = *offset + *target
 
 // The world time: whole ticks plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
-    const CWorldClient* world = &g_clientWorld;
+    const WorldClient* world = &g_clientWorld;
     *out = static_cast<float>(static_cast<double>(world->tick) + world->tickFraction);
 }
 
@@ -56,14 +56,14 @@ void Fill(std::vector<std::uint32_t>& a, std::uint32_t value) {
 
 struct Part {
     FigureMeshDrawer* node;
-    CTextureDevice* device;
+    TextureDevice* device;
     const std::vector<CLight*>* lights;
-    CMaterial* material;
+    Material* material;
     int alpha;
     RECT* rect;
     CTexture* textureA;
     CTexture* textureB;
-    CLinkMesh* figure;        // the mesh owner's figure (CObject3D::figure), or null
+    LinkMesh* figure;        // the mesh owner's figure (CObject3D::figure), or null
     int drawFlags;            // 1 rectangle wanted, 2 crossing the view, 8 MaterialFlag::KeepSpecular
     bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
     const render::MeshLighting* lighting = nullptr;   // lit on the GPU (not a flat mesh)
@@ -87,7 +87,7 @@ void FlatColours(Part& part) {
     if (part.figure) {
         const char* name = (part.node->mesh)->GetName();
         std::string s(name);
-        CFigureMesh* mesh = part.node->mesh;
+        FigureMesh* mesh = part.node->mesh;
         part.figure->FlatColours(&s, mesh->flatColour, mesh->flatSpecular, &part.Colours(), &part.Speculars());
         return;
     }
@@ -160,8 +160,8 @@ void Light(Part& part) {
     part.node->mesh->flags |= FigureMeshFlag::Lit;
 }
 
-// The positions with the per-vertex offsets (CFigureMesh::offsets) added.
-const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
+// The positions with the per-vertex offsets (FigureMesh::offsets) added.
+const VertexPacket* MovedPositionsOf(FigureMesh* mesh) {
     std::vector<VertexPacket>& moved = g_movedPositions;
     moved.resize(mesh->buffers.vertexCount);
     std::memcpy(moved.data(), mesh->buffers.vertices, static_cast<std::size_t>(mesh->buffers.vertexCount) * 64);
@@ -177,7 +177,7 @@ const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
 
 // The mesh through the device. FigureMeshFlag::Drawn is only set when a rectangle was asked for.
 void DrawThroughDevice(Part& part) {
-    CFigureMesh* mesh = part.node->mesh;
+    FigureMesh* mesh = part.node->mesh;
     const VertexPacket* positions = mesh->buffers.vertices;
     int blocks = mesh->buffers.vertexCount;
     if (!mesh->offsets.empty()) positions = MovedPositionsOf(mesh);
@@ -214,7 +214,7 @@ void DrawThroughDevice(Part& part) {
 // The mesh through the owner's figure: DrawPartMoved(Textured) with the offsets, DrawPart(Textured)
 // without; the rectangle from the figure's part header of that name.
 void DrawThroughFigure(Part& part) {
-    CFigureMesh* mesh = part.node->mesh;
+    FigureMesh* mesh = part.node->mesh;
     bool moved = !mesh->offsets.empty();
     const char* name = mesh->GetName();
     std::string s(name);
@@ -255,14 +255,14 @@ void DrawThroughFigure(Part& part) {
 // `lights` the light objects, `material` the drawing context (flags, light vector), `alpha` the low byte for
 // the speculars, `rect` (optional) receives the screen rectangle, the textures (their surfaces) select the
 // two-texture draw. Returns 1.
-int FigureMeshDrawer::DrawLit(CTextureDevice* device, const std::vector<CLight*>* lights,
-                              CMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
-    CFigureMesh* currentMesh = mesh;
+int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<CLight*>* lights,
+                              Material* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
+    FigureMesh* currentMesh = mesh;
     currentMesh->flags &= ~FigureMeshFlag::Drawn;
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
-    CTransformObject* ownerObject = mesh->object;
+    TransformObject* ownerObject = mesh->object;
     Part part{this, device, lights, material, alpha, rect, textureA, textureB,
-              ownerObject ? static_cast<CLinkMesh*>(static_cast<CObject3D*>(ownerObject)->figure) : nullptr, 0};
+              ownerObject ? static_cast<LinkMesh*>(static_cast<CObject3D*>(ownerObject)->figure) : nullptr, 0};
 
     int visibility = device->pipeline->ClipTest(&part.node->mesh->box.bounds);
     if (visibility == 2) return 1;

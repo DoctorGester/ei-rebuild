@@ -1,4 +1,4 @@
-// The loot of a dead unit (the server's world calls it on its CHoover, +0x140, which the function does not
+// The loot of a dead unit (the server's world calls it on its Hoover, +0x140, which the function does not
 // use): the prototype's items (new objects from the item manager, put on both lists), the gold (two rolls of
 // the prototype: an amount between a minimum and a maximum, kept when a percent roll is within the chance),
 // the quick items and carried items, and for units with a text key also the armour and weapons, all taken off
@@ -29,13 +29,13 @@ namespace {
 
 // A list's NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
 
-void Append(std::list<CItem*>* list, CItem* object) {
+void Append(std::list<Item*>* list, Item* object) {
     object->AddRef();
     auto node = list->emplace(list->end());
     *node = object;
 }
 // The node appended without a new reference (the prototype items on the second list).
-void AppendShared(std::list<CItem*>* list, CItem* object) {
+void AppendShared(std::list<Item*>* list, Item* object) {
     auto node = list->emplace(list->end());
     *node = object;
 }
@@ -58,16 +58,16 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
-int CHoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<CItem*>* drops, std::list<CItem*>* items, int* gold) {
+int Hoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<Item*>* drops, std::list<Item*>* items, int* gold) {
     bool keyed = IsTextKey(cunit->id);
     if (cunit->flags & MapObjectFlag::LootTaken) return 0;
-    CItemManager* manager = world->ItemFactory();
+    ItemManager* manager = world->ItemFactory();
     const UnitPrototypeRecord* prototype = cunit->GetPrototype();
     *gold = 0;
     if (prototype) {
         const std::vector<std::string>& itemNames = prototype->lootItems;
         for (std::size_t i = 0; i < itemNames.size(); ++i) {   // the end is read again each time
-            CItem* item = manager->CreateItem(itemNames[i]);
+            Item* item = manager->CreateItem(itemNames[i]);
             if (!item) continue;
             Append(drops, item);
             AppendShared(items, item);
@@ -78,22 +78,22 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<CItem*>* drops, 
         if (*gold < 0) *gold = 0;
     }
     for (int slot = 0; slot < 4; ++slot) {
-        if (CItem* item = cunit->GetQuickItem(slot)) Append(drops, item);
+        if (Item* item = cunit->GetQuickItem(slot)) Append(drops, item);
         cunit->RemoveQuickItem(slot);
     }
-    for (CItem* item : cunit->carried) {
+    for (Item* item : cunit->carried) {
         if (item) Append(drops, item);
     }
     while (!cunit->carried.empty()) cunit->RemoveCarried(0);
     if (keyed) {
         for (int slot = 0; slot < 7; ++slot) {
-            CItemArmor* armour = cunit->WornItem(slot);
+            ItemArmor* armour = cunit->WornItem(slot);
             if (!armour) continue;
             Append(drops, armour);
             cunit->UnequipArmour(armour->GetType());
         }
         for (int slot = 0; slot < 4; ++slot) {
-            CItemWeapon* weapon = cunit->GetWeapon(slot);
+            ItemWeapon* weapon = cunit->GetWeapon(slot);
             if (!weapon) continue;
             Append(drops, weapon);
             cunit->RemoveWeapon(slot);

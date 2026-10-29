@@ -35,7 +35,7 @@ T* MakeNew() {
 }
 
 // A manager attached to the world, after the world holds it.
-void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
+void Attach(BaseManager* manager, CWorld* world) { manager->Init(world); }
 
 } // namespace
 
@@ -51,13 +51,13 @@ void CWorld::Create() {
     updateCount = 0;
     windStrength = 0;
 
-    players = MakeNew<CPlayerManager>();
+    players = MakeNew<PlayerManager>();
     Attach(players, this);
     objectManager = MakeNew<CMapObjectManager>();
     Attach(objectManager, this);
     figureManager = MakeNew<CFigureManager>();
     Attach(figureManager, this);
-    timedObjectManager = MakeNew<CEffectManager>();
+    timedObjectManager = MakeNew<EffectManager>();
     Attach(timedObjectManager, this);
     spellConstructor = MakeNew<CSpellConstructor>();
     spellConstructor->Create();
@@ -65,10 +65,10 @@ void CWorld::Create() {
     Attach(spellManager, this);
     itemConstructor = MakeNew<CItemConstructor>();
     itemConstructor->Create();
-    itemManager = MakeNew<CItemManager>();
+    itemManager = MakeNew<ItemManager>();
     Attach(itemManager, this);
 
-    ShareAssignOwned(worldHandle, new CWorldHandle());
+    ShareAssignOwned(worldHandle, new WorldHandle());
     g_random.Init();
     g_clientRandom.InitFrom(g_random);
     countdowns.clear();

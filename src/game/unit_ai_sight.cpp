@@ -41,7 +41,7 @@ bool IsZero(double v) {
 }
 
 // "Unit <self> <text> <other>" (no line end).
-console::Stream& LogPair(CUnit* self, const char* text, CEngineObject* other) {
+console::Stream& LogPair(CUnit* self, const char* text, EngineObject* other) {
     return kAiLog << "Unit " << self->id << text << other->id;
 }
 
@@ -70,7 +70,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     memory->nearbyCountdown = (libcrt::Rand() & 3) + 8;
     int blockX = cellX / 32;
     int blockY = cellY / 32;
-    CUnitServer* control = self->ServerController();
+    UnitServer* control = self->ServerController();
     float hearing = control->stats.perception[2].current;
     float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.perception[0].current);
     float reach = sight >= hearing ? sight : hearing;
@@ -92,7 +92,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
 }
 
 void AIViewer::See(CUnit* self, AIMemory* memory) {
-    CUnitServer* ours = self->ServerController();
+    UnitServer* ours = self->ServerController();
     bool seesAll = self->player != nullptr || (self->flags & MapObjectFlag::SeeAll) != 0;
     self->flags &= ~MapObjectFlag::SeeAll;
     for (auto node = memory->nearby.begin(); node != memory->nearby.end();) {
@@ -111,7 +111,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         Vector3 theirEye;
         other->EyePoint(&theirEye);
         Vector3 d = theirEye - eye;
-        CUnitServer* theirs = other->ServerController();
+        UnitServer* theirs = other->ServerController();
         float coneLimit = ours->stats.sightCone;
         float distance = Length2D({d.x, d.y});
         double sightRaw = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.conspicuity[0].current *
@@ -157,7 +157,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
     }
 }
 
-void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
+void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
     CUnit* self = owner->unit;
     bool hasPlayer = self->player != nullptr;
     float reachFactor = hasPlayer ? 1.0f : kNonPlayerReach;
@@ -187,7 +187,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
-            CUnitServer* theirs = other->ServerController();
+            UnitServer* theirs = other->ServerController();
             AIBrain* theirBrain = &theirs->brain;
             if (theirs->moveMode2.onGuard && theirBrain->target == self) continue;
             double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.conspicuity[0].current *
@@ -216,8 +216,8 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     grid->cells.Resize(1, 1);
     grid->cells.data.assign(grid->cells.data.size(), 0);
 
-    CUnitServer* mine = seer->ServerController();
-    CUnitServer* theirs = observer->ServerController();
+    UnitServer* mine = seer->ServerController();
+    UnitServer* theirs = observer->ServerController();
     float cone = mine->stats.sightCone;
     float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
                                theirs->stats.conspicuity[0].current * mine->stats.perception[0].current);
@@ -225,7 +225,7 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     EI_NAN_AUDIT(sight);
     float radius = 0.0f < sight ? sight : 0.0f;
     float height = static_cast<float>(observer->ModeSpeed());
-    CAIMap* map = &g_serverWorld.aiMap;
+    AIMap* map = &g_serverWorld.aiMap;
     map->MarkVisibleCells(eye, radius, look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.perception[2].current) * theirs->stats.conspicuity[2].current;
     if (!IsZero(hearing)) map->MarkVisibleCells(eye, static_cast<float>(hearing), look, kNoCone, kNoLineOfSight, grid);

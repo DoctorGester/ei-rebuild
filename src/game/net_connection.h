@@ -27,7 +27,7 @@ struct IdPool {
 };
 
 // The tracking record of one replicated object.
-class ReplicaEntry final : public CRefObject {
+class ReplicaEntry final : public RefObject {
 public:
     ReplicaEntry();
     // The same object, one more reference.
@@ -89,7 +89,7 @@ struct FreedId {
 
 // An object received from the peer (the value of records): its share (copied with Share, released as its owner).
 struct Record {
-    SharedRef<CRefObject> object;
+    SharedRef<RefObject> object;
     std::uint32_t version = 0;   // the version last applied
 };
 
@@ -99,7 +99,7 @@ struct AttachedId {
     std::uint8_t type;
 };
 
-class Connection final : public CRefObject {
+class Connection final : public RefObject {
 public:
 
     explicit Connection(std::uint32_t id);
@@ -118,13 +118,13 @@ public:
     // handlers (channel 0 created, 1 changed, 2 removed). False when the object could not be created.
     bool ReadRecord(BufferCursor* cursor, std::uint32_t version);
     // Remembers which (type, id) the received object has (attached).
-    void AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key);
+    void AttachRecord(RefObject* object, std::uint32_t type, std::int32_t key);
     // Writes a reference to `object`: a 0 bit, type and id for an object this side replicates (an id is
     // assigned on first use), a 1 bit, type and id for one received from the peer, or a 0 bit and zeros.
-    void WriteObjectRef(BufferCursor* cursor, CRefObject* object);
+    void WriteObjectRef(BufferCursor* cursor, RefObject* object);
     // Reads such a reference: the peer's replicated object (created from the type's factory when missing or
     // detached) or one this side sent; null for none.
-    CRefObject* ReadObjectRef(BufferCursor* cursor);
+    RefObject* ReadObjectRef(BufferCursor* cursor);
     // Writes the acknowledgements: the last sequence received and a mask of the 32 before it; forgets
     // sequences more than 32 old.
     void WriteAcks(std::uint8_t** p);
@@ -182,13 +182,13 @@ public:
     std::map<std::int32_t, EntryRef> bySentId;     // type << 16 | id -> entry
     // Lookups only; nothing walks it. The original keys both by address (an ordered map each); the priority
     // maps are walked to send, so ours key them by the entry's serial (the order entries were tracked in).
-    std::unordered_map<CRefObject*, EntryRef> byObject;      // object -> entry
+    std::unordered_map<RefObject*, EntryRef> byObject;      // object -> entry
     std::array<std::map<std::uint32_t, EntryRef>, 11> priorities;           // per priority: entry serial -> entry
     std::uint32_t entriesTracked = 0;    // the last serial handed out
     std::list<SentPacket> history;     // packets sent, waiting for an acknowledgement
     std::list<SentPacket> acknowledged;    // lost packets, kept a while for late acknowledgements
     std::map<std::int32_t, Record> records;                  // objects received (key type << 16 | id)
-    std::unordered_map<CRefObject*, AttachedId> attached;    // received object -> (type, id); lookups only
+    std::unordered_map<RefObject*, AttachedId> attached;    // received object -> (type, id); lookups only
     std::uint16_t headerSequence;       // sequence of the next reliable chunk sent
     std::uint16_t incomingSequence;     // sequence of the next reliable chunk expected
     std::list<ReliableChunk> headers;     // reliable chunks waiting to be sent

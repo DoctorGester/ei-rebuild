@@ -54,12 +54,12 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
 
 bool IsMultiplayerClient() {
     net::ClientSession* client = net::g_gameClient;
-    if (client && !(client->flags7 & CRefCounted::kDetached)) return true;
+    if (client && !(client->flags7 & RefCounted::kDetached)) return true;
     return false;
 }
 
 float GameTime() {
-    CWorldClient* client = &g_clientWorld;
+    WorldClient* client = &g_clientWorld;
     return static_cast<float>(client->tick) + client->tickFraction;
 }
 

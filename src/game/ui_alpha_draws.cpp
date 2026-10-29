@@ -11,25 +11,25 @@
 #include <cstdint>
 
 // A container's. The children, each drawn when enabled.
-void CUiContainer::DrawChild(CSceneRenderer* pass) {
+void UiContainer::DrawChild(SceneRenderer* pass) {
     if (!ui->drawing) return;
     render::RenderState& state = render::g_renderState;
     const std::uint8_t savedRef = state.alphaReference;
     state.alphaReference = 1;
     UpdateRegionTips();
-    const std::vector<CUiWindow*>& currentChildren = children;
+    const std::vector<UiWindow*>& currentChildren = children;
     for (int i = 0; i < std::ssize(currentChildren); ++i) {
-        CUiWindow* child = currentChildren[i];
+        UiWindow* child = currentChildren[i];
         if (!child->enabled) continue;
         child->DrawChild(pass);
     }
     state.alphaReference = savedRef;
 }
 
-void CHelpWindow::Draw(CSceneRenderer* pass) {
+void HelpWindow::Draw(SceneRenderer* pass) {
     render::RenderState& state = render::g_renderState;
     const std::uint8_t savedRef = state.alphaReference;
     state.alphaReference = 1;
-    CUiContainer::Draw(pass);
+    UiContainer::Draw(pass);
     state.alphaReference = savedRef;
 }

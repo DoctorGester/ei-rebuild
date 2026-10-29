@@ -1,5 +1,5 @@
 // The global map's input side (right-button drag, mouse, keys), its close and message-result slots
-// (CGlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
+// (GlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
 #include "game_strings.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -54,7 +54,7 @@ Quaternion TiltTimesSpin(const Quaternion& tilt, const Quaternion& spin) {
 
 } // namespace
 
-void CGlobalMap::Deactivate() {
+void GlobalMap::Deactivate() {
     dragging = false;
     selectPending = true;
     // The cursor stops being held and goes back to where the drag began.
@@ -66,7 +66,7 @@ void CGlobalMap::Deactivate() {
     gameapi::SetCursorPos(x, y);
 }
 
-void CGlobalMap::RightDown(int, int x, int y) {
+void GlobalMap::RightDown(int, int x, int y) {
     dragStart = POINT{x, y};
     dragging = true;
     turning = 0;
@@ -77,7 +77,7 @@ void CGlobalMap::RightDown(int, int x, int y) {
     g_cursor.SetHeld(1);
 }
 
-void CGlobalMap::MouseMove(int, int x, int y) {
+void GlobalMap::MouseMove(int, int x, int y) {
     if (dragging) {
         POINT drag{g_cursor.motion.x, g_cursor.motion.y};
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
@@ -145,19 +145,19 @@ void CGlobalMap::MouseMove(int, int x, int y) {
             bottom += kTipLine;
         }
     }
-    CUiMesh* back = SceneMesh(MarkerCount() + kTipBack);
+    UiMesh* back = SceneMesh(MarkerCount() + kTipBack);
     back->SetRectangle(3.0f, 100.0f, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, 0x100, 0x100);
     back->visible = true;
-    CUiMesh* frame = SceneMesh(MarkerCount() + kTipFrame);
+    UiMesh* frame = SceneMesh(MarkerCount() + kTipFrame);
     frame->SetFrame(3.0f, 100.0f, 395.0f, 15.0f, 785.0f, static_cast<float>((lines * 5 + 20) * 4), 5.0f, 2, 0xFE, 0xB4,
                     0xF9);
     frame->visible = true;
 }
 
-void CGlobalMap::KeyDown(int key, int repeat, int modifiers) {
-    CUiContainer::KeyDown(key, repeat, modifiers);
+void GlobalMap::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (key == VK_ESCAPE) {
-        ui->PushWindow(new CEscMenu(ui), true, true);
+        ui->PushWindow(new EscMenu(ui), true, true);
         handled = true;
     }
     if (handled) return;
@@ -168,7 +168,7 @@ void CGlobalMap::KeyDown(int key, int repeat, int modifiers) {
         QuickLoad(kQuickSaveSlot);
 }
 
-void CGlobalMap::MessageResult(int) {
+void GlobalMap::MessageResult(int) {
     int x = g_cursor.position.x;
     int y = g_cursor.position.y;
     turning = 0;
@@ -177,12 +177,12 @@ void CGlobalMap::MessageResult(int) {
     Input()->MouseMove(0, x, y);
 }
 
-void CGlobalMap::LeftUp(int, int, int) {
+void GlobalMap::LeftUp(int, int, int) {
     if (turning != 0) selectPending = true;
     turning = 0;
 }
 
-void CGlobalMap::CloseScreen() {
+void GlobalMap::CloseScreen() {
     delete weather;
     weather = nullptr;
     delete backdrop;
@@ -191,7 +191,7 @@ void CGlobalMap::CloseScreen() {
 }
 
 // The briefing screen's SaveState, byte for byte.
-void CGlobalMap::SaveState() {
+void GlobalMap::SaveState() {
     int zero = 0;
     g_saveStream.WriteValue(zero);
 }

@@ -109,7 +109,7 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
     auto* world = WorldContext();
     if (!world->IsServer()) {
         if (MapType() == MapObjectType::Hero) {
-            if (CFigureMesh* hand = FindPartByPrefix(kRightHand)) {
+            if (FigureMesh* hand = FindPartByPrefix(kRightHand)) {
                 Vector3 at;
                 PartWorldPosition(&at.x, hand);
                 out->x = at.x;

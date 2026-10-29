@@ -1,4 +1,4 @@
-// The client's attack figures of a party unit (CUnitClientSpecific::GetAttackParams) and the copy of the
+// The client's attack figures of a party unit (UnitClientSpecific::GetAttackParams) and the copy of the
 // damage scale it uses. See unit_client_models.h and docs/notes/units.md ("Rewritten").
 #include "unit_client_models.h"
 
@@ -23,12 +23,12 @@ constexpr int kDamageTypes = 7;
 
 
 // The weapon id of the controller's slot `slot`, or none for a slot beyond 3.
-std::uint32_t WeaponIn(const CUnitClientSpecific* self, std::uint32_t slot) {
+std::uint32_t WeaponIn(const UnitClientSpecific* self, std::uint32_t slot) {
     return slot < 4 ? self->weaponIds[slot] : kNoWeapon;
 }
 } // namespace
 
-void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
+void UnitClientSpecific::GetAttackParams(AttackParams* out) {
     CUnit* ownerObject = unit;
     UnitParams* params = &ownerObject->params;
     int keyed = IsTextKey(ownerObject->id);

@@ -12,22 +12,22 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
   ApplyScience 41, AddEffect 45, PlaceOnGround 51; `Lever::KeyId` (40) and `MagicTrap::ForgetObject` (56) are overrides, also registered through
   shims. `Lever::UseSpots` returns the spots (not a slot). `CMapObjectVirtuals` is an alias of CMapObject,
   `ObjectSlots()` returns `CMapObject*`; member +0x178 is `animationSpeed`, the same field as `CUnit::animationSpeed`.
-- `CMapObjectCompanion` (novtable, 0073DC54; slots 13-19, `owner` at +0x1C) is the base of `CMapObjectServer` (0073DD6C) and
-  `CMapObjectClientSpecific` (0073DBEC; reads the owner as a unit through `Unit()`). Both classes' IsDead / IsOverkilled (slots 17 / 18) are
+- `MapObjectCompanion` (novtable, 0073DC54; slots 13-19, `owner` at +0x1C) is the base of `MapObjectServer` (0073DD6C) and
+  `MapObjectClientSpecific` (0073DBEC; reads the owner as a unit through `Unit()`). Both classes' IsDead / IsOverkilled (slots 17 / 18) are
   overrides with shims in `unit.cpp`. The base's Destruct / Delete / Create / Destroy / Update are members (`DestructCompanion`,
   `DeleteCompanion`, ...).
-- `CObject3DClientSpecific : CObject3DSpecific` (map_object_shadow.h; `CObject3D::ClientSpecific()` is a static_cast). Its own bodies are
+- `Object3DClientSpecific : Object3DSpecific` (map_object_shadow.h; `CObject3D::ClientSpecific()` is a static_cast). Its own bodies are
   named apart from the base's slots so none overrides one (rule 4): ApplyWorldMaterials, SetMaterialsLit, DirtyRectContains, PartRectsContain,
   PartRectsMeet; `FindPart` / `SetLit` on it are the base's slots 16 / 26.
-- `CObject3DClientSpecific::Draw` / `DrawShadow` take the `CSceneRenderer*` (model.h). Draw uses the pipeline's matrix stacks (PushMatrix,
+- `Object3DClientSpecific::Draw` / `DrawShadow` take the `CSceneRenderer*` (model.h). Draw uses the pipeline's matrix stacks (PushMatrix,
   PushMatrixProduct, PopMatrix on stacks 1-3); the shadow uses stack 10. `FigurePart` has `orientation` (+0x34) and `worldMatrix` (+0x54);
-  `ObjectWorldMatrix` is shared by the draw and the shadow. `CTorchObject::Create` is a member (`map_object_create.cpp`).
-  `CObject3D::figure` is a `Ref<CLinkMesh>` (`figure.Assign` is 00519580) and `DirtyRect()` replaces hand-made casts. `LightManager()` is one copy in map_object.h; the
+  `ObjectWorldMatrix` is shared by the draw and the shadow. `TorchObject::Create` is a member (`map_object_create.cpp`).
+  `CObject3D::figure` is a `Ref<LinkMesh>` (`figure.Assign` is 00519580) and `DirtyRect()` replaces hand-made casts. `LightManager()` is one copy in map_object.h; the
   client file uses spell.h's `TheLightFactory()->litIds`. The shadow's naked `Fpatan` is `x87::fpatan`.
 
 ## Behaviour notes
 
-- Now that CMapObject's slots are virtual, a derived class that runs the map object's own body must call it qualified (`CTorchObject::
+- Now that CMapObject's slots are virtual, a derived class that runs the map object's own body must call it qualified (`TorchObject::
   AttachTorchObject` calls `CMapObject::AttachObject`). Called unqualified, the slot dispatches back to the override: this recursion once killed
   every scenario at the first torch.
 - The client's slot 13 and 19 bodies keep names other than the virtuals: `OnEffectsChanged` takes a `bool`; `ApplyLightMode` sets no result,
@@ -37,9 +37,9 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
 
 - Remaining VCalls: `map_object_figures.cpp` (the figure cache's slot 6, because slot 5 is unknown); `map_object_shadow.cpp` (the 2DintMMX
   device's slots 11 and 12, +0x2C / +0x30).
-- `CObject3D : CTransformObject` (C15 batch 9): the transform fields are `localPosition` (+0x1C), `worldPosition` (+0x28, the
-  position in view space after CWorldClient::CollectVisible), `localRotation` (+0x34) and `worldRotation` (+0x44); CObject3D overrides
-  only slot 14 (CombineRotation, 00516370). CParticleSource derives from CTransformObject too. CMapObject's `SaveTransformSlot` /
+- `CObject3D : TransformObject` (C15 batch 9): the transform fields are `localPosition` (+0x1C), `worldPosition` (+0x28, the
+  position in view space after WorldClient::CollectVisible), `localRotation` (+0x34) and `worldRotation` (+0x44); CObject3D overrides
+  only slot 14 (CombineRotation, 00516370). ParticleSource derives from TransformObject too. CMapObject's `SaveTransformSlot` /
   `LoadTransformSlot` (00516350 / 00516360) stay non-virtual bodies.
 - The effect array is `CMapObject::effects`, a `std::vector<MapEffect>`. `CMapObject::updateCountdown` (+0x174, 5 after Create): world updates until the effects are next looked at. `MaterialStage::
   unknown_00` is unnamed (cleanup-figures.md). `CompanionOwner()` is still used by `map_object_client_effects.cpp`, whose locals cache the owner.

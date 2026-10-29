@@ -1,7 +1,7 @@
 #pragma once
 
 // How the client dresses a unit: the figure parts of the armour it wears and the composed skin texture of
-// party units. CUnitClientSpecific is the client-side controller of a party unit (class id 0x3D). See
+// party units. UnitClientSpecific is the client-side controller of a party unit (class id 0x3D). See
 // docs/notes/units.md ("Creation, databases, save").
 
 #include "ai_map.h"
@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-class CParticleSource;
+class ParticleSource;
 class CTexture;
 struct tagRECT;
 struct UnitPrototypeRecord;
@@ -76,10 +76,10 @@ struct SkinRequest {
 
 struct AttackParams;
 
-class CUnitClientSpecific : public CUnitController {
+class UnitClientSpecific : public UnitController {
 public:
-    CUnitClientSpecific();
-    ~CUnitClientSpecific() override;
+    UnitClientSpecific();
+    ~UnitClientSpecific() override;
 
     // No sources, times, animation or motion order, weapon / arrow shown, heading snapped, fully faded in, no sounds,
     // speech, flash, footprint or blink, every armour and weapon model -1, the face texture released.
@@ -243,11 +243,11 @@ public:
     int ComposeWoundsTexture();
     // The two marker sources (sources[1], sources[2]) stopped, released and forgotten, then `path` and
     // `marker` kept in their place (each referenced; null: none).
-    void SetMarkers(CParticleSource* path, CParticleSource* marker);
+    void SetMarkers(ParticleSource* path, ParticleSource* marker);
     void DropFaceTexture();
 
 
-    CParticleSource* sources[3];    // particle sources the controller keeps (counted)
+    ParticleSource* sources[3];    // particle sources the controller keeps (counted)
     float lastAnimationTime;        // the animation state's time at the last update
     const FigureAnimation* lastAnimation;   // the animation at the last update
     float lastTime;                 // the world time the unit was last advanced to
@@ -285,4 +285,4 @@ struct ArmourPartNames {
 ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>& armourIds,
                                        const std::vector<std::uint32_t>& weaponIds);
 
-inline CUnitClientSpecific* CUnit::ClientController() const { return static_cast<CUnitClientSpecific*>(controller); }
+inline UnitClientSpecific* CUnit::ClientController() const { return static_cast<UnitClientSpecific*>(controller); }

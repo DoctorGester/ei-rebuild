@@ -119,7 +119,7 @@ bool CSpell::IsOffensive() {
         return false;
     }
 }
-// Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit.
+// Site #0 of FixSpellSelfCasting; site #1 is in BattleScreen::SelectUnit.
 
 bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
     std::uint32_t restricted = targetFlags & kSpellTargetRestrictions;
@@ -143,7 +143,7 @@ bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
     return true;
 }
 
-void CSpellEffect::GetDamage(DamageInfo* out) {
+void SpellEffect::GetDamage(DamageInfo* out) {
     std::memset(out, 0, sizeof(*out));
     out->location = 6;
     out->multiplier = 1.0f;

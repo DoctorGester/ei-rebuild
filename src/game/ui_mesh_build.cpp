@@ -19,7 +19,7 @@
 namespace {
 
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
-void ResetVertexColours(CUiMesh* mesh) {
+void ResetVertexColours(UiMesh* mesh) {
     mesh->normals.resize(1);
     mesh->colorsA.resize(4);
     mesh->colorsB.resize(4);
@@ -33,7 +33,7 @@ void ResetVertexColours(CUiMesh* mesh) {
 }
 
 // A vertex record: the position it uses, 0, and the texture coordinates' index.
-void SetVertex(CUiMesh* mesh, int index, int position, int uv) {
+void SetVertex(UiMesh* mesh, int index, int position, int uv) {
     MeshCorner& v = mesh->corners[index];
     v.position = static_cast<std::uint16_t>(position);
     v.normal = 0;
@@ -42,15 +42,15 @@ void SetVertex(CUiMesh* mesh, int index, int position, int uv) {
 
 // Appends index `value` (the array's SetSize to size + 1, then the store, or its SetAtGrow; the
 // original mixes both).
-void AppendBySize(std::vector<std::uint16_t>* indices, CUiMesh* mesh, int value) {
+void AppendBySize(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) {
     int at = std::ssize(mesh->indices);
     indices->resize(at + 1);
     mesh->indices[at] = static_cast<std::uint16_t>(value);
 }
-void AppendByGrow(std::vector<std::uint16_t>* indices, CUiMesh* mesh, int value) { lib::SetAtGrow(*indices, std::ssize(mesh->indices), static_cast<std::uint16_t>(value)); }
+void AppendByGrow(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) { lib::SetAtGrow(*indices, std::ssize(mesh->indices), static_cast<std::uint16_t>(value)); }
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
-void NudgeAndCommit(CUiMesh* mesh) {
+void NudgeAndCommit(UiMesh* mesh) {
     double half = D(worlddata::kHalfTexel);
     for (int i = 0; i < std::ssize(mesh->texCoords); ++i) {
         mesh->texCoords[i].u = static_cast<float>(D(mesh->texCoords[i].u) + half);
@@ -60,7 +60,7 @@ void NudgeAndCommit(CUiMesh* mesh) {
 }
 
 // The scale every builder sets: 0.48157 * depth * scale * 0.0025, in the three scale fields.
-void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
+void SetBuildScale(UiMesh* mesh, float depth, float scale) {
     float s = static_cast<float>(D(worlddata::kInterfaceView) * D(depth) * D(scale) * D(worlddata::kLayoutY));
     mesh->ScaleX() = s;
     mesh->ScaleY() = s;
@@ -69,7 +69,7 @@ void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
 
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
-void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
+void SetPosition(UiMesh* mesh, double x, double y, float depth) {
     mesh->localPosition.x = static_cast<float>((x - 1.0) * D(worlddata::kInterfaceView) * D(depth));
     mesh->localPosition.y = static_cast<float>((y - D(worlddata::kThreeQuarters)) * D(worlddata::kInterfaceView) * D(depth));
     mesh->localPosition.z = depth;
@@ -106,7 +106,7 @@ float CircleTexel(int j, int n, bool sine, int radius, int centre) {
 
 } // namespace
 
-void CUiMesh::Framed(float depth, float scale, float left, float top, float right, float bottom, float border,
+void UiMesh::Framed(float depth, float scale, float left, float top, float right, float bottom, float border,
                             int u0, int v0, int u1, int v1) {
     ResetVertexColours(this);
     // How far the inner edge lies in texels: the border's share of the width (height) of the texels.
@@ -190,7 +190,7 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     NudgeAndCommit(this);
 }
 
-void CUiMesh::Disc(float depth, float scale, float x, float y, float outerRadius, int count, int u, int v,
+void UiMesh::Disc(float depth, float scale, float x, float y, float outerRadius, int count, int u, int v,
                           int uvRadius) {
     ResetVertexColours(this);
     SetVertexCount(count);
@@ -228,7 +228,7 @@ void CUiMesh::Disc(float depth, float scale, float x, float y, float outerRadius
     NudgeAndCommit(this);
 }
 
-void CUiMesh::Ring(float depth, float scale, float x, float y, float outerRadius, int count, float width, int u0,
+void UiMesh::Ring(float depth, float scale, float x, float y, float outerRadius, int count, float width, int u0,
                           int v0, int u1, int v1) {
     ResetVertexColours(this);
     // Four vertices per segment: outer and inner point of its start and of its end (texture corners
@@ -303,4 +303,4 @@ void CUiMesh::Ring(float depth, float scale, float x, float y, float outerRadius
     NudgeAndCommit(this);
 }
 
-void CUiMesh::ResetColours() { ResetVertexColours(this); }
+void UiMesh::ResetColours() { ResetVertexColours(this); }

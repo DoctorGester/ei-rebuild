@@ -32,7 +32,7 @@ bool IsZero(float value) {
 }
 
 // An effect object took a new position.
-void EffectMoved(CEngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
+void EffectMoved(EngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
 
 // 1 / (2^32 - 1).
 constexpr std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
@@ -49,14 +49,14 @@ float FxOffsetPlus(float radius, std::uint32_t random, float origin) {
     return static_cast<float>(x87::FromUnsigned(random) * (static_cast<double>(radius) - negative) * std::bit_cast<double>(kRandomScaleBits) + negative + origin);
 }
 
-void RespawnFxSources(CScript* script) {
+void RespawnFxSources(Script* script) {
     for (ScriptFxSource& fx : script->fxSources) {
         if (fx.idle) continue;
         if (--fx.countdown > 0) continue;
         int minDelay = fx.minDelay;
         fx.countdown = static_cast<int>(g_random.Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
         fx.object.reset();
-        auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
+        auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
         float yOffset = FxOffset(fx.spread, g_random.Next());
         float x = FxOffsetPlus(fx.spread, g_random.Next(), fx.position.x);
         float y = yOffset + fx.position.y;
@@ -66,14 +66,14 @@ void RespawnFxSources(CScript* script) {
         sound->localPosition.z = z;
         x87::CopyBits(sound->volume, fx.volume);
         x87::CopyBits(sound->radius, fx.radius);
-        fx.object = ScriptEffect<CEffectSound>(sound);
+        fx.object = ScriptEffect<EffectSound>(sound);
         const char* name = fx.name.c_str();
         std::memcpy(sound->name, name, std::strlen(name) + 1);
         g_serverWorld.AddTimedObject(sound);
     }
 }
 
-void UpdatePointLights(CScript* script) {
+void UpdatePointLights(Script* script) {
     for (ScriptPointLight& light : script->pointLights) {
         if (!light.object || !light.moving) continue;
         int count = light.steps;
@@ -91,7 +91,7 @@ void UpdatePointLights(CScript* script) {
     }
 }
 
-void UpdateParticleSources(CScript* script) {
+void UpdateParticleSources(Script* script) {
     auto& list = script->particles;
     for (auto node = list.begin(); node != list.end();) {
         ScriptParticleSource& source = *node;
@@ -146,7 +146,7 @@ void ScriptDefinition::BindCall(const SSCCmd* call) {
     for (std::size_t i = 0; i < call->groupArgs.size(); ++i) vars.groups.values[i] = *call->groupArgs[i];
 }
 
-void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
+void ScriptIfThen::Run(Script* script, ScriptDefinition* instance) const {
     for (SSCCmd& condition : conditions->commands) {
         float result;
         condition.CalcFloat(script, &instance->vars, &result);
@@ -156,7 +156,7 @@ void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
     script->RunCommands(commands, instance);
 }
 
-void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
+void Script::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     ScriptRun run;
     run.block = block;
     if (instance) {
@@ -176,12 +176,12 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
 }
 
 // A new run at the head of the run list, not executed yet.
-void CScript::RunWorldScript(ScriptDecl* block) {
+void Script::RunWorldScript(ScriptDecl* block) {
     ScriptRun& run = runs.emplace_front();
     run.block = block;
 }
 
-void ScriptFreeTemporaries(CScript* script) {
+void ScriptFreeTemporaries(Script* script) {
     if (script->forDepth > 0) return;
     // All but the first of each kind dropped, the first emptied.
     auto& groups = script->tempGroups;
@@ -192,7 +192,7 @@ void ScriptFreeTemporaries(CScript* script) {
     objects.front().object = nullptr;
 }
 
-void ScriptTick(CScript* script) {
+void ScriptTick(Script* script) {
     if (!script->loaded) return;
 
     // Waiting runs: continue each; a run that had already ended is removed.

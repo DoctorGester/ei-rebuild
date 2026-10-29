@@ -1,4 +1,4 @@
-// CDib: construction, the header of a new bitmap and its memory. The file
+// Dib: construction, the header of a new bitmap and its memory. The file
 // reader and writer are in dib_file.cpp.
 #include "dib.h"
 
@@ -28,11 +28,11 @@ std::uint32_t DibRowBytes(const BITMAPINFOHEADER* header) {
 }
 
 
-CDib::CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
+Dib::Dib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
     Create(width, height, bitCount, red, green, blue);
 }
 
-void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
+void Dib::Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
     Empty();
     maskBytes = HasMasks(bitCount) ? kMaskBytes : 0;
     header = static_cast<BITMAPINFOHEADER*>(::operator new(maskBytes + sizeof(BITMAPINFOHEADER)));
@@ -60,7 +60,7 @@ void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::u
     std::memset(colours, 0, static_cast<std::size_t>(colourCount) * sizeof(RGBQUAD));
 }
 
-void CDib::Empty() {
+void Dib::Empty() {
     ::operator delete(header);
     bits = std::vector<std::uint8_t>();
     header = nullptr;
@@ -70,7 +70,7 @@ void CDib::Empty() {
     maskBytes = 0;
 }
 
-SIZE* CDib::Size(SIZE* out) const {
+SIZE* Dib::Size(SIZE* out) const {
     if (!header) {
         out->cx = 0;
         out->cy = 0;
@@ -81,7 +81,7 @@ SIZE* CDib::Size(SIZE* out) const {
     return out;
 }
 
-std::uint8_t* CDib::AllocateBits() {
+std::uint8_t* Dib::AllocateBits() {
     if (header) bits.resize(static_cast<std::size_t>(header->biHeight) * DibRowBytes(header));
     return bits.data();
 }

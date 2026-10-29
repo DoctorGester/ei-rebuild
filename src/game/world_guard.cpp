@@ -30,7 +30,7 @@ void XorRange(UnitStats* stats, std::uint32_t key) {
 
 } // namespace
 
-void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
+void GuardPlayers(PlayerManager* players, char units, std::uint32_t key) {
     if (!players) return;
     PlayerIterator it;
     for (CPlayer* player = it.First(players); player; player = it.Next()) {

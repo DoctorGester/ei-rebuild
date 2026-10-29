@@ -23,7 +23,7 @@ std::uint32_t ScaleKey(const Vector3& scale) {
 // An item's id (its prototype index in the high word, its material in the low word) when the item
 // is there and both indices are inside their tables (`known` for the prototype), else kNoItemId.
 template <typename Known>
-std::uint32_t ItemId(const CEngineObject* item, Known known) {
+std::uint32_t ItemId(const EngineObject* item, Known known) {
     if (!item) return kNoItemId;
     std::uint32_t id = item->prototypeId;
     if (!known(id >> 16) || !itemdb::MaterialAt(id & 0xFFFF)) return kNoItemId;
@@ -71,8 +71,8 @@ void UnitSet::Add(CUnit* unit) {
     }
     if (!marked) {
         if (unit->MapType() != MapObjectType::Hero) {
-            // The texts the server companion holds (CMapObjectServer's string array).
-            const CMapObjectServer* server = unit->ServerCompanion();
+            // The texts the server companion holds (MapObjectServer's string array).
+            const MapObjectServer* server = unit->ServerCompanion();
             for (const std::string& name : server->strings) record.names.push_back(name);
         }
         record.modelNumber = static_cast<int>(unit->id);

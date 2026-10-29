@@ -85,12 +85,12 @@ world view is 00569E40:
 - terrain ground pages (006C6230 -> 006C6460 -> DrawSectorPage 006BFF40 per page);
 - objects (0056AFE0 -> CollectVisible 0056A990, sort, figure parts 005A7A70 / 005A7640, shadows 0051CE60);
 - terrain water pages (006C6330), blended;
-- effects (flag 0x400): vision fog (004E2700 -> CVisibilityFog 004E1EB0), client slot 36, particles 00498940,
+- effects (flag 0x400): vision fog (004E2700 -> VisibilityFog 004E1EB0), client slot 36, particles 00498940,
   lightning (00468940), rain and snow (004E5680); then 00569D60, flying hit points (005E18E0, flag 0x2000).
-Then the interface window by window (the top window's slot 20 draws its children): sprites (CUiMesh 005E6D90: matrix
+Then the interface window by window (the top window's slot 20 draws its children): sprites (UiMesh 005E6D90: matrix
 pushed on both stacks, colour through renderer slot 7, figure through slot 14 -> 005A7640 -> mesh draw 004E9010), 3D
-models (CUiModel 005FC2F0; the hero preview 005EC300 first clears depth to 0 and its rectangles to 1) and (slot 22,
-005FECC0) surfaces: 005FDA80 blits each shown CUiSurface's surface onto the render target, plain or colour-keyed
+models (UiModel 005FC2F0; the hero preview 005EC300 first clears depth to 0 and its rectangles to 1) and (slot 22,
+005FECC0) surfaces: 005FDA80 blits each shown UiSurface's surface onto the render target, plain or colour-keyed
 (DDBLT_KEYSRCOVERRIDE), no alpha blending. Surfaces are composed on the CPU (GDI text 005FDE20 / 005FDFA0, fills,
 pixel code). The battle screen clears the depth buffer before its panels (00636020). Renderer slot 19 (005041F0)
 draws translucent black rectangles with an outline (rubber band 00636020, fades 005E69C0).
@@ -114,7 +114,7 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
   time, pending figure changes 0050D450, model LRU). **Visibility only gates client-side animation, figure changes and
   picking, never server state or timing.**
 - **Picking** uses screen rectangles written during the object draw from projected vertices (004E8900 / 004E86B0 into
-  the device's +0x15C, copied by 005A7A70 into node and figure pieces; `CWorldClient::UnitAt` / `PickAt2` test the
+  the device's +0x15C, copied by 005A7A70 into node and figure pieces; `WorldClient::UnitAt` / `PickAt2` test the
   parts' rectangles only). Whatever draws the objects must still produce them. The rule (`device_bounds.cpp`
   `BoundsOfProjected`, one path for every mesh): the bounds of the projected positions, clamped to the screen. The
   projection leaves screen positions when the whole mesh is on screen and clip-space ones when it crosses the view's
@@ -144,15 +144,15 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
 | Clip matrix of the current draw | transform pipeline (renderer 007AF060 +8): stacks of 64-byte row-major matrices, `+0x24/+0x28` clip space (axis swap * projection * view * model), `+0x1C` the same times the viewport, `+0x5C/+0x60` view stack | read at hand-over time | used |
 | Terrain sectors | SectorData (`terrain_sector.h`): `vertices` (33x33 per layer, water after ground), `records` (SectorVertex: normal, material colour and byte, the specular word: edge fade, on the water the crests), tile lists per quarter and page `tiles`, edge flags `tileFlags`, quarter verdicts `quarterMode`, `detail`, `seamBefore` / `seamAfter`, `owner`; page textures `Terrain::pageTextures`; the lights `Terrain::lights` | DrawSectorPage 006BFF40 (`SectorData::DrawPage`, terrain_passes.cpp) -> `render::TerrainPage`; `HandOverSceneLights` (world_client_shadow_casters.cpp) -> `render::SceneLighting` | drawn |
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh` | drawn |
-| Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (CTextureDevice::stageSurfaces) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
+| Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (TextureDevice::stageSurfaces) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are not ported (R26), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
-| Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`CTextureDevice::DrawTlTriangles`, `renderer_strip.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
+| Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`TextureDevice::DrawTlTriangles`, `renderer_strip.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
 | Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices | `DrawParticles` (after the fog pass) -> `render::TlDraw` | drawn |
-| Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
+| Interface surfaces | UiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
 | Rectangle fills | renderer slot 19 (005041F0) | `renderer_rect.cpp` -> `render::ScreenDraw` | drawn |
 | Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask built from the file's pixels (R30b) | frame draw 005E54A0 (`ui_cursor_frame.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) presents between frames (section 9, R9c2) |
-| Movies | Bink: BinkCopyToBuffer (32-bit type 4) into a CPU buffer; CBinkVideo 005DBA50 opens, 005DBD80 steps and blits into a letterboxed rectangle | `bink_video.cpp` -> `render::MovieFrame` / `MovieBlit` / `SurfaceBlit`, `render::Fill` | drawn |
+| Movies | Bink: BinkCopyToBuffer (32-bit type 4) into a CPU buffer; BinkVideo 005DBA50 opens, 005DBD80 steps and blits into a letterboxed rectangle | `bink_video.cpp` -> `render::MovieFrame` / `MovieBlit` / `SurfaceBlit`, `render::Fill` | drawn |
 | Present | 004EF610 | `device_present.cpp` -> `render::Present` (the new frame on the window's swap chain, section 9) | done |
 | Clear colour, target size, fog | renderer +0x14; device object 007AF080 -> +0x18; the render state's fog switch and colour (section 5; zone colour through slot 0 00501AB0) | EndFrame / terrain hand-over | done |
 
@@ -180,7 +180,7 @@ device_states, renderer_init, renderer_lines, renderer_rect, renderer_sprites, r
 particle_draw through `SetBlend`, world_client_draw, ui_alpha_draws, ui_container_draws, ui_create_screen,
 ui_help_window, ui_hero_preview, ui_hud, ui_hud_unit_draw, ui_interface_draw, ui_item_view, ui_objectives); the
 original's GetRenderState / GetTextureStageState around a draw (saved and put back) are reads of the members.
-`CSceneRenderer::CreateRenderer` resets it to a new Direct3D 7 device's state (the members' initialisers) before the
+`SceneRenderer::CreateRenderer` resets it to a new Direct3D 7 device's state (the members' initialisers) before the
 game's own settings. Each pass copies it (`ReadPassState`, render_mesh.cpp; the fog once a frame, `ReadFog`). There
 is no other copy: there is no Direct3D device (section 9).
 
@@ -197,7 +197,7 @@ They are constants in texture.h; the 007AEDD4 one (texture x diffuse, alpha text
 | 007AEDD8 | `kAlphaPassStage` | texture x diffuse | texture x diffuse |
 | 007AEDD0 | `kSceneStage` | texture x diffuse | diffuse (SELECTARG1) |
 
-A material's preset (`CRenderPreset`, model.h; render_helper.cpp; the original's 004FD2A0 recorded state blocks)
+A material's preset (`RenderPreset`, model.h; render_helper.cpp; the original's 004FD2A0 recorded state blocks)
 keeps its state list: `ApplyPass(0)` sets the combiners of its first `stages` stages (the enabled ones) and turns
 the next stage off; pass n > 0 sets that state's blend factors (device_draw.cpp's multi-pass draw puts the blend
 back afterwards).
@@ -213,7 +213,7 @@ MODULATE around it) goes to `render::TlDraw` (line strip, FVF 0xC4), not reached
 
 **Interface windows on GPU canvases (P8).** A window surface's pixels live only in its interface canvas
 (`render_ui.cpp`, docs/notes/ui-native.md, "P8 done"): an RGBA8 render target per holder, made with the surface
-(`CUiSurface::MakeCanvas`), drawn into by the surface functions (fills, frames, lines, pixels, glyph runs in our own
+(`UiSurface::MakeCanvas`), drawn into by the surface functions (fills, frames, lines, pixels, glyph runs in our own
 fonts, the screen copy, greying) and blitted by 005FDA80 (`render::ui::DrawCanvas`). There is no
 memory, no DIB section, no GDI, no comparison or upload at a blit. The readers get pixels from the GPU: PixelAt
 (`ReadPixel`), the save picture (`ReadRgb565`); SwapContents moves the canvas aside (`MoveCanvas`). A lost device
@@ -226,7 +226,7 @@ the screen's format, 005E4EB0 read it back for the mask): the mask is built from
 for all 25 cursor pictures before it went; the renderer keeps the picture as RGBA8 (`render::PictureFromMmp`).
 
 **Holders without a surface**: the holder is our own `Surface` (surface.h: device, width, height, bits per pixel; R27b
-replaced `CDXSurface` and its always-null DirectDraw surface pointer): the holders of 004EF7B0 (windows 005FCC00 /
+replaced `DXSurface` and its always-null DirectDraw surface pointer): the holders of 004EF7B0 (windows 005FCC00 /
 005FCDD0 / 005FD7A0: a canvas, no memory; the cursor's background and composition surfaces 005E60B0 made are gone, R30a), the picture holders
 of 004F0060 (cursor images via 004EFC60 from 005E4EB0: size only, no memory; dead picture windows) and the textures
 (section 7); no Lock / Unlock, GetDC, Blt or colour fill. A window of no size is not made: the original's DDSurface
@@ -239,7 +239,7 @@ error is thrown (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFor
 | 004EF7B0 `DXSurfaceConstruct`, 004EFD20 destructor body | holder without memory, no CreateSurface |
 | 004F0060 `DXSurfaceLoadPicture` (RET 8) | 8888 pictures only; the holder takes the picture's size and the screen's bit count, nothing is filled (the original: 32 bits a row copy, 16 bits each pixel cut to the screen format's channels, as 2DintMMX slots 1, 2 did; R30b); only live caller 004EFC60 from 005E4EB0 (flag byte `00784756` is 1 in the exe, never written) |
 | 005E4EB0 `CursorImage::Construct` (`ui_cursor.cpp`) | picture, holder, frames = width / height, hot spot x cursor size (007C7C90 / 94) / 32, mask from the .mmp pixels in the screen's format (16 bits all ones where the 5:6:5 pixel is 0; 32 bits low 24 bits 0) |
-| 005DBA50 `CBinkVideo::Open` | no BinkDDSurfaceType (the holder has no surface): 4, the CPU copy's type |
+| 005DBA50 `BinkVideo::Open` | no BinkDDSurfaceType (the holder has no surface): 4, the CPU copy's type |
 | 005FCC00 / 005FCDD0 / 005FCF80 / 005FD120 | the colour-fill Blt that clears a new window is left out (a new canvas is black) |
 | 005FDC00 / 005FDC60 | gone (P8): no DC; the callers' GetDC / ReleaseDC brackets are left out |
 | 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy, save picture, Greyscale on the GPU (R28a, "Screen copies on the GPU" below); SwapContents (the canvas put aside on the GPU), pixel read (from the GPU): no Lock / GetSurfaceDesc |
@@ -342,12 +342,12 @@ comparison, verify builds). Frames before / after (render_scene, units, models, 
 world; 4K): identical pixel for pixel, the `.mmp textures at exit` line the same (60 made, 28457 KB uploaded, 19588 KB
 held): every RGB file those scenes draw has its whole chain.
 
-Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from the battle screen 00635250, options
+Users of the CPU-written textures: 005FF0B0 (`UiWindow::CreateTexture`, from the battle screen 00635250, options
 006503C0, save / load, global map 0062D350, tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (item screens'
 figure textures); writers 005FFFB0 CopyImage and 005EC020 draw on the GPU (R28, below), the save / load pictures and
 the global map's weather 0062F050 too (R28b, below). The binders (004EB300, 004EBAF0, 00501AF0, 004EB370's inline
 one) pass null to SetTexture (the old device draws nothing in the switch-over; the renderer reads the bound holder,
-CTextureDevice::stageSurfaces). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
+TextureDevice::stageSurfaces). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
 the holder; a holder with neither surface nor memory shows its decoded texture until it goes (`HolderGone` retires its
 texture and window entries).
 
@@ -391,8 +391,8 @@ by hand under the device lock. Colours are 8-bit now (the picture's own instead 
 0x1E, 5:6:5, and 0x21, 4:4:4:4) are blank textures like the item pictures. The save / load pictures: a 256x192 5:6:5
 picture (shot.sav's bytes as stored, or the escape menu's copy `screenCopy`) is drawn into the texture's top with
 `DrawIntoTexture` (`ImageLayout::Rgb565`, decoded to RGBA8 for the draw; an image without a name is not shared); the
-save window keeps the copy (`CSaveLoadWindow::newPicture`) and writes shot.sav from it, so the file's bytes are as
-before. The clouds (`CGlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each of
+save window keeps the copy (`SaveLoadWindow::newPicture`) and writes shot.sav from it, so the file's bytes are as
+before. The clouds (`GlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each of
 a frame's four layers (`render::CloudFrame`, taken at build steps 1-4 as 00499F10's layers took them: the game's
 random numbers are drawn as before), and `render::DrawClouds` each frame draws the texture from two frames, the blend
 and the 256-entry alpha ramp (texture_clouds.hlsl `ps_clouds`: white, alpha ramp[(to x blend + from x (256 - blend))
@@ -413,9 +413,9 @@ Scenarios: render_present*, render_movie_present, render_titles_present, ui_save
 Interface draws (`ui_container_draws.cpp`; each keeps the original's device calls in order, states go to
 `render::g_renderState`, depth clears to `ClearUiDepth` (ui.h), which hands them to `render::ClearDepth`; so do the
 clears of 00636020, 005EC300, 00627390 and the other interface draws). The rewrites:
-00600EF0 (CUiContainer slot 20: stage 0 `kAlphaPassStage`, 005FEB90, children's slot 20); 00602BF0 / 00632A90 (slot 20 of
+00600EF0 (UiContainer slot 20: stage 0 `kAlphaPassStage`, 005FEB90, children's slot 20); 00602BF0 / 00632A90 (slot 20 of
 screen 3, vtable 007405AC / screen 2, 00740688: depth clear then 00600EF0; no scenario reaches them); 00622420
-(CHeroEquipPanel slot 20, vtable 007418E0: highlight frames, quick items' models (005ECA10), in the camp the armour
+(HeroEquipPanel slot 20, vtable 007418E0: highlight frames, quick items' models (005ECA10), in the camp the armour
 models in seven slots between three depth clears, each after a flush of the two batches); 0064D970 (slot 26 of vtable
 007411BC: alpha reference = the window's +0x1EC).
 
@@ -489,14 +489,14 @@ come first, then what holds for the present path (the subsection names are cited
   went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
 - No ticket yet: weather's old draw
-  (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; several steps (holders, saved pictures, interface
+  (`RainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; several steps (holders, saved pictures, interface
   draws, movies, textures) are checked by goldens and harness scenarios, never by a person in game.
 
 ### R9a: the game without DirectDraw
 
 The game has no DirectDraw object, display mode, primary, render target, depth buffer, Direct3D object or device, and
 no stand-in for any of them (R27c):
-- `CTextureDevice` (texture.h, device_object.cpp; the original's CDXDirectDraw base 004EDD70 / 004EE330 and the device
+- `TextureDevice` (texture.h, device_object.cpp; the original's CDXDirectDraw base 004EDD70 / 004EE330 and the device
   object 004E5E50 / 004E68A0 folded into one class) is the screen: window, full-screen flag, screen rectangle, colour
   depth, the transform pipeline, the stages' bound holders and the draws' state. Its constructor (R28: no MMX check
   and no 2DintMMX.dll any more, its last uses gone) starts the new renderer (`render::StartPresenting`: the Direct3D 11
@@ -507,13 +507,13 @@ no stand-in for any of them (R27c):
   hit points' screen) it reads `screen` (R27f); the screenshot and the movie recorder copy the renderer's last frame
   at the screen's size and depth (`CaptureScreen`, surface_capture.cpp).
 - What the game read from the old device's capabilities is constant now, with the values the game saw on dgVoodoo:
-  the material presets take every stage of their states (`CRenderHelper::Record`: eight stages, every texture
+  the material presets take every stage of their states (`RenderHelper::Record`: eight stages, every texture
   operation); the texture manager loads textures up to their size (`limitTo512` 0: 4096-pixel textures) and caches
   released ones up to a tenth of 256 MB (`CTextureManager::kCacheLimit`); mipmapping stays as the options say (the
   device had mipmaps); the little-memory branches (the interface backdrop at 400x300, the item screen's caches of 20)
   are gone (256 MB was never little); start-up's "the interface takes the input" byte, which held the top byte of the
   free non-local video memory without sound, is 1 there (`GameMain`).
-- No scene bracket, viewport, clears or texture binds on a device: `CSceneRenderer::BeginScene` / `EndScene` keep the
+- No scene bracket, viewport, clears or texture binds on a device: `SceneRenderer::BeginScene` / `EndScene` keep the
   last frame's time, a texture bind only records the stage's holder (`stageSurfaces`, which
   the renderer draws with), the interface's depth clears go to `render::ClearDepth`
   (`ClearUiDepth`, ui.h), and the frame clear is the renderer's (its clear colour is the scene renderer's `fogColour`).
@@ -528,7 +528,7 @@ no stand-in for any of them (R27c):
   that rectangle is in physical pixels), stretched over it, `Present(1, 0)`. The movie players and the loading screen
   go through 004EF610 as before.
 - The original's "is this holder the primary / render target" checks (005FDA80's window blits, the three movie
-  players, CUiSurface::CaptureScreen) are gone: no holder stands for the screen. 00504780 (restore after a lost
+  players, UiSurface::CaptureScreen) are gone: no holder stands for the screen. 00504780 (restore after a lost
   device) returns at once. Each Bink frame is copied into memory the renderer owns (`render::MovieFrame`); the
   original's 00784756, written by the game start (00456E35) from the options' driver index, only chose the movie
   holder's memory kind and is gone. Pictures loaded with the video-memory flag
@@ -591,7 +591,7 @@ keeps the size it was made with and only the swap chain follows the window (R9c)
   border scroll, rubber band, three shadow switches (7-9: units, buildings, flora; globals 0079BD14 / 18 / 1C), marks,
   footprints, selection type, path, brightness / contrast / gamma (applied at once through 00504A60, R9c), flying HP,
   tutorial, autosave, tooltip time, filters, camera axes, stereo and difficulty. What our code once called the
-  "display mode" settings (COptionsWindow +0x410) are the shadow switches: OK (Apply 006524A0) with one changed
+  "display mode" settings (OptionsWindow +0x410) are the shadow switches: OK (Apply 006524A0) with one changed
   drops the shadows the switches turned off (0056D7A0); switched on again they are rasterised and uploaded anew.
 - Scenario `render_options_shadows` (vanilla and Rebirth, golden from the original): in zone1 the three switches
   stepped and applied through the Esc menu's options and OK, then back; the captures show the ruins' shadows gone and
@@ -706,11 +706,11 @@ after a movie or a load the cursor thread's clock stands still until the main th
 
 `surface_capture.cpp` (006D6D40, which 006D6FC0 and both users call): the holder (the render target or the primary)
 gets its bitmap from `render::ReadFrame` (the last frame `EndFrame` drew,
-before the gamma ramp and the present's cursor): a CDib of the rectangle's size in the holder's depth with the channel
+before the gamma ramp and the present's cursor): a Dib of the rectangle's size in the holder's depth with the channel
 masks `device::ScreenFormat` gives, rows bottom-up, the part outside the frame black. No frame yet: no bitmap (logged
 once). The callers are unchanged, so the file names (`shot%.4d.bmp` from counter 007C7E24 for Scroll Lock; the
 recorder's `<moviepath>shot%.4d.bmp` from 0079BC58, the movie folder defaulting to `.\capture\`), the format
-(CDib::Write) and the timing are the original's. The recorder wrote through a null bitmap when there was none
+(Dib::Write) and the timing are the original's. The recorder wrote through a null bitmap when there was none
 (`bitmap->Write` before its check): checked now. The recorder's flag (0079BC54) is read by WinMain and the frame
 function and cleared on a write error; nothing in the shipped game's code sets it, so it is unreachable for a player.
 The pixels are checked by the harness: `key scrolllock` (scan 0x46), `record on|off` (sets 0079BC54), `checkshot <n>
@@ -752,7 +752,7 @@ resolution must have the machine to themselves and serialised the suites.
 - Objects: renderer 007AF060 (vtable 0073D93C: slot 0 fog colour, 2 create, 4 / 5 begin / end frame, 8 clear, 11 set
   texture, 12 draw TL triangles, 16 ribbons, 17 sprites), device object 007AF080 (0x17C bytes: +0xC IDirectDraw7, +0x14
   primary, +0x18 render target, +0x54 IDirect3DDevice7, +0xAC transform pipeline, +0x14C current material), surface
-  wrappers (CDXSurface, 0x20 bytes, +0x10 the surface), device lock 007AEE78.
+  wrappers (DXSurface, 0x20 bytes, +0x10 the surface), device lock 007AEE78.
 - **3DfpFPU.dll** (`GetTLPipeline`, 45 slots): projection with outcodes, homogeneous clipping (slots 36-38), viewport
   mapping (31-34), vertex fog into the specular alpha (35), lighting into packed colours (39-44), bounds (6, 7, 29).
   **2DintMMX.dll** (`GetGraphicsProcessor`, 13 slots): 8888 to 16-bit conversion (1, 2), skin compositing blends (3-5),
@@ -763,7 +763,7 @@ resolution must have the machine to themselves and serialised the suites.
 ### R31: the projections in plain C++
 
 `projection.cpp` holds what the game still called through 3DfpFPU's transform object, as members of
-`CTransformPipeline` (model.h) and two free functions: `ToClip` (clip space, the translation added first in each row;
+`TransformPipeline` (model.h) and two free functions: `ToClip` (clip space, the translation added first in each row;
 the decals' TransformPoints, slot 26, is this with the matrix untransposed), `ProjectClipped` / `ProjectPointsClipped`
 (slots 9 / 8: an outcode per point, `clip.h`'s `ClipCodeOf`, and the batch's verdict, `ClipVerdict`; on screen the
 points go on to `ToScreen`), `Project` / `ProjectPoints` (14 / 13, the screen matrix's division), `ProjectSprites`
@@ -869,7 +869,7 @@ Behaviour differences (one path for every sprite):
     run**: `render::QualitySettingsSupported()` is false in the harness build (the pinned settings file lacks the
     values, a read of a missing value fails a run), so a run starts with both off (1) and goldens and frame checks
     keep that look; the harness steps `msaa <samples>` / `anisotropy <level>` set them. EI_RENDER's `smooth` is gone.
-  - The world view (`CWorldClient::Render` 00569E40 between `render::BeginWorld` / `EndWorld`: sky, terrain,
+  - The world view (`WorldClient::Render` 00569E40 between `render::BeginWorld` / `EndWorld`: sky, terrain,
     objects, shadows, water, effects, flying hit points) is a range of the frame's commands (`Frame::worldRanges`).
     With anisotropy above 1 its models (`MeshBatch::model`: BeginMesh draws, not the pre-transformed ones) take
     `AnisotropicSampler` at that level for both stages (point filters stay point, Mipmapping 0 keeps level 0); the
@@ -916,7 +916,7 @@ it is the new renderer's last frame (`render::ReadFrame`: before the gamma ramp 
 the original (`--no-hooks`, dgVoodoo) it is the old render target at the present point (after scene and interface,
 before the software cursor and the flip; a read-only Lock of the render target, GetDC as fallback: a GDI capture of
 the window comes back black with dgVoodoo). `freeze` / `unfreeze` hold timeGetTime / GetTickCount and the camera
-(CCamera::Update at 00457595 runs once per frame even with dt 0 and moves a fixed fraction per call); the main loop
+(Camera::Update at 00457595 runs once per frame even with dt 0 and moves a fixed fraction per call); the main loop
 then runs no world, client or camera update. `samecapture <a> <b> [tolerance] [fraction]` fails the run when two
 captures differ. `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]] [--exclude E1 E2 ...]
 [--exclude-grow N] [--diff OUT]`: per-pixel tolerance (default 8), differing fraction (default limit 0.1%), worst
@@ -956,10 +956,10 @@ File map of the device layer (all in `src/game`; the files' headers name the add
   table 004E6EE0 are not ported; `dx_errors.h` throws the game's error object through `_CxxThrowException` 006E7819);
   `surface.cpp` (the holder 004EF7B0 / 004EFC60 / 004F0060 / 004EFD20, the channel split 004EDAA0 / 004EDC00 /
   004EDC70); `texture.cpp` (the texture formats in place of the lookups 004E7DA0 / 004E7C40); `device_helpers.cpp` (counted holders, list iterator copies, aligned blocks, deleting destructors, the
-  axis swap matrix 004F1330, which Rebirth WideScreen patches: vanilla launch only); `render_helper.cpp` (`CRenderHelper`'s
-  built-in presets); `projection.cpp` (the transform pipeline's projections, R31, section 10); `link_mesh_draw.cpp` (CLinkMesh slots 7-14, 004F3870..004F4850); `weather_particles.cpp` (rain
+  axis swap matrix 004F1330, which Rebirth WideScreen patches: vanilla launch only); `render_helper.cpp` (`RenderHelper`'s
+  built-in presets); `projection.cpp` (the transform pipeline's projections, R31, section 10); `link_mesh_draw.cpp` (LinkMesh slots 7-14, 004F3870..004F4850); `weather_particles.cpp` (rain
   004E4240 and snow 004E4C80); `effects_weather_draw.cpp` (visibility fog draw 004E1EB0, rain / snow buffers 004E3C20);
-  `device_bounds.cpp` (screen bounds 004E86B0 / 004E8900); `link_loader_create.cpp` (`CLinkFigureLoader` constructor
+  `device_bounds.cpp` (screen bounds 004E86B0 / 004E8900); `link_loader_create.cpp` (`LinkFigureLoader` constructor
   004F68C0, vanilla launch only: ResOverride patches it).
 - Weather: 81 x 81 cells around the point the wind carries a particle to the camera from; a cell's hash and the
   world's time give the particle's cycle, fall and texture frame; corners in packets through `ProjectClipped` (stack
@@ -1129,9 +1129,9 @@ across runs; the goldens check the game state.
    animation's per-vertex offsets changed (`SetOffsets` 005A0B10 compares them) or a link figure's part was morphed
    again (004F3800) (`Positions`); its colours when the draw lit or filled them (Light, FlatColours, DrawPlain's fill,
    the device's colour override, flag 4; also when that draw was streamed or never reached a pass), the sky lit itself
-   (CSkyObject::Light, `Colours` on the sky) or a link figure lit or filled a part (004F3870 / 004F3AD0, `Colours` on
+   (SkyObject::Light, `Colours` on the sky) or a link figure lit or filled a part (004F3870 / 004F3AD0, `Colours` on
    the colour array: the original code calls them outside the figure part draws too, the meshes keeping flag 0x10,
-   "lit"). Only the changed range of corners is uploaded. A mesh drawn again in the same frame with other data, interface sprites (CUiMesh::Draw
+   "lit"). Only the changed range of corners is uploaded. A mesh drawn again in the same frame with other data, interface sprites (UiMesh::Draw
    005E6D90: the interface rewrites its quads in place in many places, the original's and Rebirth's code among them;
    `render::SetInterfaceDraw`) and mesh draws without a source are streamed as before. Entries not drawn for 600
    frames are dropped. Measured (render_stats, vanilla 4K, per frame; before = the same scene with `meshcache off`,
@@ -1177,10 +1177,10 @@ across runs; the goldens check the game state.
    Classic shadows add the decals' hand-over: 13 / 20 / 28 flat meshes, 94 / 126 / 288 KB, hand-over CPU +0.02 /
    +0.03 / +0.06 ms. EI_PROFILE=1 agrees (the town with the map, 7.3 ms frames): DrawShadow 30% of the samples,
    RenderShadow 25% (ProjectDecal 7.7: Terrain::AddDecalTriangles 7.2, DecalBuilder::ClipStage 6.3,
-   AddTerrainTriangle 5.4; CLinkMesh::RasterisePartImpl 6.8), DrawFlatBlocks 5.4; zone1 9.5 / 9.2 / 4.2, fight
+   AddTerrainTriangle 5.4; LinkMesh::RasterisePartImpl 6.8), DrawFlatBlocks 5.4; zone1 9.5 / 9.2 / 4.2, fight
    7.0 / 6.7 / 3.5. A ground print is projected once (GroundPrint::Draw's `built`), so what a GPU decal path takes
    is the prints' and markers' flat draws: under 0.07 ms. The object shadows' projection
-   (0.34-0.63 ms) stays either way: its mesh's bounds are the shadow's sphere (`CObject3DClientSpecific::sphere`,
+   (0.34-0.63 ms) stays either way: its mesh's bounds are the shadow's sphere (`Object3DClientSpecific::sphere`,
    FitBounds in RenderShadow), which ShadowInView 0051E300 tests for objects out of view (listed for shadows,
    their pose updated: CollectVisible 0056A990), so the game reads the projection whatever draws the decal.
    What the numbers showed: with the shadow map the whole decal build ran every frame for the moving objects though
@@ -1189,7 +1189,7 @@ across runs; the goldens check the game state.
    **R16e1 (done): with the map the classic texture and the decal's draw are left out; R26 deleted their code.**
    DrawShadow 0051CE60 (map_object_shadow.cpp): RenderShadow still projects the parts' points (bounds, quad), reads
    whether a part is keyed (`KeyedParts`, which the original read in the raster's loop) and projects the decal (its
-   sphere); the texture (MakeTexture: the render surface's lock, RasterisePart / CFigureMesh::Rasterise, BlurShadow /
+   sphere); the texture (MakeTexture: the render surface's lock, RasterisePart / FigureMesh::Rasterise, BlurShadow /
    BlurShadow2, the copy, LoadPixelsFrom, `render::TexturePixels`; NewShadowTexture / ShadowRenderSurface, the
    texture pixels 007AF1E0 / 007AEEB8 / 007C2E00 and their exit functions) and, after SetTexture and EdgeFade, the
    decal's DrawFlatBlocks are gone. The half's `shadowMade` stands for the original's "texture made" test: the
@@ -1251,17 +1251,17 @@ across runs; the goldens check the game state.
    figure parts' positions on the CPU every frame. Creatures animate by their bones: FigureBone::Place (0050C230) gives
    each part a position and rotation, i.e. its matrix, which the GPU already applies. The per-vertex morph
    (AnimationTrack::Evaluate 0050ACD0 blends a track's key-frame vertex sets; Place hands them to the part through
-   CFigureMesh::SetOffsets 005A0B10; the part draws add them into a copy of the positions) is almost unused: per frame
+   FigureMesh::SetOffsets 005A0B10; the part draws add them into a copy of the positions) is almost unused: per frame
    0.6 of the fight's 331 mesh draws (12 corners), none in zone1, the town or the menu (renderstats' "morphed
    meshes"), and a profile of render_stats has no sample in Evaluate or the copies. Its result is also read by game
    code, so it would stay on the CPU: the device's projection of the moved positions (DrawMesh 004E9010: the
    visibility verdict and, with draw flag 1, the part's screen rectangle for picking) and the object shadow's
-   (CFigureMesh::DrawOffset 005A0CD0, CLinkMesh::ProjectPart 004F4680: the raster whose bounds feed the shadow
+   (FigureMesh::DrawOffset 005A0CD0, LinkMesh::ProjectPart 004F4680: the raster whose bounds feed the shadow
    lists). What a GPU path could take is the renderer's reading and upload of the few moved corners (R16d already
    uploads only the changed range). The "moved" meshes in the table above were the classic shadows' decals (R16e).
    Where a many-figure frame's main-thread time goes instead (render_stats, vanilla 4K, harness build; main thread
    CPU / wall ms per frame, renderstats): fight 18.6 / 19.0, mostly the server's AI path search (LocalSearch,
-   CAIMap::FindPath); town 8.8 / 9.1: by profile figure lighting in 3DfpFPU (17% of the samples; R16i), the x87
+   AIMap::FindPath); town 8.8 / 9.1: by profile figure lighting in 3DfpFPU (17% of the samples; R16i), the x87
    control word set around every libcrt math call (the CRT's ctrlfp 9%: Hypot in the camera's ClampAboveObjects;
    gone with SV10i, Hypot 1.6% after), the ground decals' projection and clipping (DecalBuilder; R16e: the object shadows' build, item 5) and the device's per-corner work for meshes
    the new renderer draws from the hand-over anyway (FillCorners, the clipper, fog: R16k, measured smaller than the
@@ -1299,10 +1299,10 @@ across runs; the goldens check the game state.
      times N.L times its falloff, plus the emissive, at most 1, and for a crown part a pull towards the mean over
      the sphere. The part draw (`figure_part_draw.cpp`) now hands that over (`render::MeshLighting`: the model
      matrix (the world stack's top with the scene's camera taken off, `worlddata::SceneCamera`: a static part
-     already lit is not pushed on the object stack, which only the CPU lighting read), the sun, the ambient colour `CSceneRenderer::SetColour` set last (`AmbientColour`), the
+     already lit is not pushed on the object stack, which only the CPU lighting read), the sun, the ambient colour `SceneRenderer::SetColour` set last (`AmbientColour`), the
      material's colours times the objects' lighting coefficient, the draw's lights in reach) with the part's normals
      and corner words; `mesh.hlsl` lights each pixel the same way (the crown's mean analytic: 0.6 of the way). The
-     colour arrays hold white with the material's alpha (`CMaterial::GpuLitColour`); a mesh kept on the GPU
+     colour arrays hold white with the material's alpha (`Material::GpuLitColour`); a mesh kept on the GPU
      (R16d) is no longer relit each frame. The speculars and flag 0x10 (moved / static) are as before.
    - **Shadows in the light.** On the ground a shadow takes away the sun's part: lit = the smaller of the light
      with the sun hidden (the ambient plus the material's own, as the game's ray march left a vertex) and the sunlit
@@ -1337,7 +1337,7 @@ across runs; the goldens check the game state.
      creatures draw untextured (white), the town's people textured. The shadow view writes the mesh's own
      alpha, so blended parts show flat grey triangles there that are not shadow.
    - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour` is saved:
-     GroundPrint::Save); the sky's lighting (CSkyObject::Light, small; a candidate); the sun's reference in the
+     GroundPrint::Save); the sky's lighting (SkyObject::Light, small; a candidate); the sun's reference in the
      part's light list; the terrain's edge fade (the fog factor, also read by the
      figures' draws and the ground prints). The CLight fields only the device read (world position, local
      direction, lit colours) are no longer written.
@@ -1356,8 +1356,8 @@ across runs; the goldens check the game state.
      caster's mesh, through its model matrix into the landscape's space) reaches the light, drawn into each face
      its sphere touches. An object with a mesh sphere within `kHoldMargin` (0.5 units) of the light casts
      nothing for it: the campfire's spit, a lamp's post. An object's own light casts none (R36, the user's
-     playtest): the light a party unit gets at night (CUnitClientSpecific::PlayerChanged ->
-     CMapObjectClientSpecific::CreateLight, radius `heroLight`, 2 units above the unit's position, moved with it
+     playtest): the light a party unit gets at night (UnitClientSpecific::PlayerChanged ->
+     MapObjectClientSpecific::CreateLight, radius `heroLight`, 2 units above the unit's position, moved with it
      by the companion's RunTick) and a quest light (light mode 1, the same CreateLight). It held the unit by the
      margin test alone: measured in zone1 (a log of the hero's smallest mesh-sphere gap to his light), 0.13 units
      standing, 0.15-0.27 running at 8 ms frames and 0.35-0.41 at the harness's default frame steps; where a
@@ -1365,8 +1365,8 @@ across runs; the goldens check the game state.
      frame and his own shadow from it popped in (the user's playtest; the harness's runs of Zak stayed under). CreateLight flags such a light `Off`
      (with Moving), which the game's own shadows skip too; HandOverSceneLights hands `ScenePointLight::shadows`
      = not Off over, and PreparePointShadows takes no light without it (`SceneLightCastsShadows`). Everything
-     else keeps its point shadows: the torches (CTorchObjectClientSpec: the fires, the lamps), the map's
-     lights and the spell effects' (CEffectPointLight, Off only at a negative range). Receivers, only what
+     else keeps its point shadows: the torches (TorchObjectClientSpec: the fires, the lamps), the map's
+     lights and the spell effects' (EffectPointLight, Off only at a negative range). Receivers, only what
      is lit on the GPU: the ground's point loop (`ground_light`: the light's slot from `LightParams::shadowSlots`;
      looked up moved 1.5 texels of its distance along the vertex normal; the ground casts none) and the figure
      parts' (`figure_light`: the mesh's light list carries the scene light's index from the hand-over,
@@ -1458,7 +1458,7 @@ across runs; the goldens check the game state.
     the map).
     **Casters outside the view (R20; the user: shadows popped in at the screen's edge with their objects).** The
     game draws only what it sees, so an object just off screen (or a part of a drawn one that the part's own view
-    test left out) cast nothing onto the visible ground. Now the world's draw (CWorldClient::Render, after its
+    test left out) cast nothing onto the visible ground. Now the world's draw (WorldClient::Render, after its
     object draws; `world_client_shadow_casters.cpp`) walks the objects that can reach the map and hands over the
     meshes the game did not draw, reading the game's objects only (no flag, pose, list or heap block of the game
     changes; nothing the goldens record moves). Which casters: exact up to bounding-box conservativeness, with no
@@ -1474,7 +1474,7 @@ across runs; the goldens check the game state.
     box test. The game's own filters stay: its object draw flags (0x40 objects, 0x80 units), a multiplayer
     spectator's hidden units, CastsShadow's option, class switch, hidden and invisible tests (the strength
     CastsShadow gave this frame when it ran for the object, a unit from half faded in). Each part is placed as
-    CObject3DClientSpecific::Draw (0051B7E0) places it (object placement x extra scale x part placement; parts
+    Object3DClientSpecific::Draw (0051B7E0) places it (object placement x extra scale x part placement; parts
     flagged hidden 0x80 or farther than 0073DE58 skipped; a link figure's part through its ranges, a plain one
     through its buffers, per-vertex offsets added), with its part set's texture; a part the game drew as a
     caster's mesh this frame is left out (`render::CasterPartDrawn`). Cut out by alpha as the on-screen meshes with
@@ -1564,7 +1564,7 @@ of the 0.5-1.6 ms hand-over).
   writes `textures\Zone1000..Zone1007.bmp` (24-bit, four quadrants: red and green above, blue and yellow below) and
   an 8-bit `a_<name>.bmp` ramp for each into the run's overlay (the install has no `textures\*.bmp`; the harness's
   FindFirstFile / CreateFile redirection finds them). `CTextureManager::LoadTexture` 006922A0 then loads zone 1's
-  terrain pages through CTexture::LoadBmp 00690260 -> LoadBmpFiles 0068FBF0 -> CDib Construct / Read / Size /
+  terrain pages through CTexture::LoadBmp 00690260 -> LoadBmpFiles 0068FBF0 -> Dib Construct / Read / Size /
   MakePalette. The pages are format 5:6:5 (no alpha), so the alpha file is read and its depth checked but its bytes
   are unused; a texture of an alpha kind (types 1-4, 8, 6, 13) is not loaded from a .bmp by any scenario yet.
 - Pixels: `hues <frame> <least> <most>` (`capture::HueShares`; skipped in the original's run) needs each of the four
@@ -1581,7 +1581,7 @@ User 2026-10-21: at 1x speed on a 120 Hz screen the battle camera moved jerkily.
 (cut into whole ticks), and `RunWorlds` moves it again by a whole tick after each client tick, so half of every pan,
 turn and zoom arrives in jumps of 55 ms of motion about 18 times a second. The original does the same.
 
-The camera (`CCamera`: its timing, tracking, height lag, the sound listener) stays as the game has it; only the pose
+The camera (`Camera`: its timing, tracking, height lag, the sound listener) stays as the game has it; only the pose
 the world's draw shows changes (always on, no option). User 2026-10-29 played it at 120 Hz and kept it. (R18's
 option moved the camera itself once a frame by time and changed the game state: with it all 121 goldens differed
 from boot tick 20. A second variant drew between the poses of the last two ticks and lagged 5 frames. Both are gone.)
@@ -1599,7 +1599,7 @@ from boot tick 20. A second variant drew between the poses of the last two ticks
   farther from it by more, placed it anew (a map change, a jump of the focus): no step, shown at once. A turn, pan,
   tilt, zoom or lift stays within both in a tick however fast it goes. (R35's test, more than 8 units of travel or about 0.4 rad of
   turn in a tick, took a fast spin for a cut: see "Spinning".)
-- **Where it is read:** `CWorldClient::Render` takes the frame's pose once at its start (`camera::TakeFrameView`);
+- **Where it is read:** `WorldClient::Render` takes the frame's pose once at its start (`camera::TakeFrameView`);
   what the world's draw places by the camera reads `camera::FrameView()`: the view matrix (`view::ViewMatrix`), the
   sky dome, particle billboards (particle_draw.cpp), lightning's glow (lightning_draw.cpp), rain and snow's band
   (weather_particles.cpp), the lighting's eye (`HandOverSceneLights`) and the old shadows' axis. The terrain's
@@ -1765,7 +1765,7 @@ begins the next frame's draws: the frame target is partly drawn until then).
 ### render_mesh.cpp: meshes
 
 Meshes in the new renderer: everything the old path draws through the device's mesh draws (figures and map objects,
-the sky, the interface's sprites (CUiMesh) and 3D previews). The game hands the mesh over in model space with the
+the sky, the interface's sprites (UiMesh) and 3D previews). The game hands the mesh over in model space with the
 matrix it projects it with (BeginMesh); each pass the old path then draws (src/game/device_draw.cpp) becomes a
 batch with the render state of that moment (MeshPass, section 5): blend, alpha test, depth, culling, fog, the two
 texture stages' operations, filters and textures. A figure mesh drawn through the figure part draws is kept on the GPU
@@ -1782,7 +1782,7 @@ built and uploaded again is what the game says changed:
 - the colours, when the draw wrote the colour arrays or the game lit the mesh outside its draw (MeshChanged
   Colours: the sky; a link figure's LightPart / FlatColours) or a draw that wrote them was not kept (NoteMeshDraw):
   read and compared with the kept ones, the changed range uploaded;
-- the positions, when the game moved them (MeshChanged Positions: per-vertex offsets, CFigureMesh::SetOffsets; a
+- the positions, when the game moved them (MeshChanged Positions: per-vertex offsets, FigureMesh::SetOffsets; a
   link figure's part morphed again): read and compared, the changed range uploaded;
 - all of it, when the mesh's buffers changed (MeshChanged Rebuilt) or the draw hands over other arrays or counts
   than it was built from. Interface sprites (render::SetInterfaceDraw) and a mesh drawn again in the same frame
@@ -1917,9 +1917,9 @@ search reads the small cell image, not the map: the map's texels far apart and t
 The casters of the new renderer's shadow map that the game does not draw this frame. The map
 (src/render/render_shadows.cpp, docs/notes/renderer.md section 13 item 10) takes the meshes of the objects the game
 draws; an object outside the view, or a part of a drawn one that the part's own view test left out, can still throw
-its shadow onto the visible ground. After the world's object draws (CWorldClient::Render) every object standing
+its shadow onto the visible ground. After the world's object draws (WorldClient::Render) every object standing
 where such a caster can stand (render::ShadowCasterArea, through the object grid's sectors) whose bounding sphere
 passes the map's test (render::ShadowCasterReaches: inside the map's area seen from the sun, on the sun's side of
 the ground it covers) hands its undrawn parts to the map (render::ShadowCasterMesh), placed as
-CObject3DClientSpecific::Draw places them. Everything here only reads the game's objects: no flag, pose, colour,
+Object3DClientSpecific::Draw places them. Everything here only reads the game's objects: no flag, pose, colour,
 list or heap block of the game changes, so the game's logic and its goldens are those of a run without it.

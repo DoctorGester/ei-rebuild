@@ -12,12 +12,12 @@ constexpr int kDressedArmourSlots = 3;   // body, trousers, helmet
 constexpr int kNoSound = -1;
 } // namespace
 
-bool CMapObject::ApplyScience(const LockKey*, CEngineObject*) {
+bool CMapObject::ApplyScience(const LockKey*, EngineObject*) {
     game::DebugLog("Science is applied on wrong object");
     return false;
 }
 
-void CMapObjectClientSpecific::Create() {
+void MapObjectClientSpecific::Create() {
     lightStateA = 0;
     lightStateB = 0;
     particles.clear();
@@ -25,12 +25,12 @@ void CMapObjectClientSpecific::Create() {
     owner = nullptr;
 }
 
-void CMapObjectServer::Create() {
+void MapObjectServer::Create() {
     owner = nullptr;
     vitals.Reset();
 }
 
-void CMapObjectServer::Destroy() {
+void MapObjectServer::Destroy() {
     vitals.Reset();
     strings.clear();
     owner = nullptr;
@@ -38,13 +38,13 @@ void CMapObjectServer::Destroy() {
 
 // The game's function reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not
 // weaponIds: the name is provisional. Found when zone bz1g's units mismatched.
-bool CUnitClientSpecific::HasOtherArmour() {
+bool UnitClientSpecific::HasOtherArmour() {
     for (int slot = 3; slot < 7; ++slot)
         if (armourIds[slot] != kNoModel) return true;
     return false;
 }
 
-bool CUnitClientSpecific::HasMainArmour() {
+bool UnitClientSpecific::HasMainArmour() {
     for (int slot = 0; slot < kDressedArmourSlots; ++slot)
         if (armourIds[slot] != kNoModel) return true;
     return false;

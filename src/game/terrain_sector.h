@@ -14,7 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
-class CSceneRenderer;
+class SceneRenderer;
 
 namespace terrain {
 
@@ -97,7 +97,7 @@ struct AnimatedTile {
 
 using SectorBox = ClipBounds;
 
-// CTransformPipeline::ClipTest's verdicts as the sector keeps them (clipMode, quarterMode): 0 inside the
+// TransformPipeline::ClipTest's verdicts as the sector keeps them (clipMode, quarterMode): 0 inside the
 // view, 1 crossing its edge, 2 outside (-1 is stored as 2).
 constexpr int kCrossing = 1;
 constexpr int kCulled = 2;
@@ -151,7 +151,7 @@ struct SectorData {
     int LayerPages() const { return owner->LayerPages(); }
 
     // Vertex positions and water tiles. Returns 1, or FatalError's result for a missing or malformed file.
-    int Load(CMappedResource* archive, int sx, int sy, const char* prefix, Terrain* owner);
+    int Load(MappedResource* archive, int sx, int sy, const char* prefix, Terrain* owner);
 
     // Builds the vertex records, tile lists (the animated tiles' start frames drawn from g_clientRandom),
     // bounding boxes and water materials; every vertex's specular word becomes its edge fade (the fog factor; the
@@ -166,7 +166,7 @@ struct SectorData {
     void Ensure(SectorStage wanted);
 
     // Page `page` to the renderer, the pending water levels applied first; nothing when culled.
-    void DrawPage(const CSceneRenderer* renderer, int page);
+    void DrawPage(const SceneRenderer* renderer, int page);
 
     // The records and tile lists emptied (the per-quarter arrays keep their sizes); no sector (-1, -1), no
     // owner, nothing built, culled, the rest of the scalar state 0. Build sets the boxes and
@@ -183,7 +183,7 @@ struct SectorData {
     // Whether the last clip test did not cull the sector.
     bool IsDrawn() const;
     // The box, and unless culled its quarters, with the renderer's pipeline.
-    void ClipTest(CSceneRenderer* renderer);
+    void ClipTest(SceneRenderer* renderer);
     // At detail 0 whether the lit sectors before / after in y are drawn at detail 1, at detail 1 whether
     // those before / after in x are drawn at detail 2.
     void FindSeams();

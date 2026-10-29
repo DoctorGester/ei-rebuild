@@ -36,7 +36,7 @@ CUnit* LeaderOf(const CUnit* unit) {
 
 bool PartyInDanger(const CUnit* unit) {
     CPlayer* player = unit->player;
-    return player && player->Server()->danger == CPlayerServer::PartyDanger::InDanger;
+    return player && player->Server()->danger == PlayerServer::PartyDanger::InDanger;
 }
 
 void PlayerMode::UpdateCombat(AIBrain* brain) {
@@ -64,7 +64,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     for (auto node = candidates.begin(); node != candidates.end();) {
         auto next = std::next(node);
         auto* other = *node;
-        CUnitServer* control = other->ServerController();
+        UnitServer* control = other->ServerController();
         float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.perception[0].current);
         float hearing = control->stats.perception[2].current;
         EI_NAN_AUDIT(sight, hearing);

@@ -1,5 +1,5 @@
 // Layout builders of the windows opened from the Esc menu (their Create virtual): the regions, sprites, surfaces,
-// scroll bar and 3D model each window is made of. Rebirth patches the sprite placement and CUiRegion::SetRect for its
+// scroll bar and 3D model each window is made of. Rebirth patches the sprite placement and UiRegion::SetRect for its
 // widescreen layout. See docs/notes/ui.md.
 #include "app_helpers.h"
 #include "asset_text.h"
@@ -40,26 +40,26 @@
 
 namespace {
 
-CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
-    CUiRegion* region = window->AddRegion();
+UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
+    UiRegion* region = window->AddRegion();
     region->SetRect(left, top, right, bottom);
     return region;
 }
 
-CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-        return new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
+UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
+        return new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
 }
 
-CUiScrollbar* NewScrollbar(CInterface3D* ui, int left, int top, int right, int bottom) {
-    return new CUiScrollbar(ui, RECT{left, top, right, bottom}, 3.0f, 0, 1.0f);
+UiScrollbar* NewScrollbar(Interface3D* ui, int left, int top, int right, int bottom) {
+    return new UiScrollbar(ui, RECT{left, top, right, bottom}, 3.0f, 0, 1.0f);
 }
 
-void Frame(CUiWindow* window, float depth, float left, float top, float right, float bottom) {
+void Frame(UiWindow* window, float depth, float left, float top, float right, float bottom) {
     window->AddBlankSprite()->SetFrame(depth, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 }
 
-void Shade(CUiWindow* window, float depth, float left, float top, float right, float bottom) {
-    CUiMesh* sprite = window->AddBlankSprite();
+void Shade(UiWindow* window, float depth, float left, float top, float right, float bottom) {
+    UiMesh* sprite = window->AddBlankSprite();
     sprite->SetRectangle(depth, 100.0f, left, top, right, bottom, 0, 0, 0x100, 0x100);
     sprite->texture = nullptr;
     sprite->flags |= FigureMeshFlag::Flat;
@@ -72,8 +72,8 @@ constexpr float kEscMenuTilt = /*007C7FB0*/ 1.5707964f;
 constexpr float kOptionsTilt = /*007C81A0*/ 1.5707964f;
 constexpr float kSaveLoadTilt = /*007C81C8*/ 1.5707964f;
 
-CUiModel* AddMenuModel(CUiWindow* window, float angle) {
-    CUiModel* model = window->AddModel();
+UiModel* AddMenuModel(UiWindow* window, float angle) {
+    UiModel* model = window->AddModel();
     model->Load("unmoco1", "escMenu00", "escMenu00labels");
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
@@ -100,7 +100,7 @@ struct TitlesTokenizer : TextTokenizer {
 
 // --- Save/load window -------------------------------------------------------------
 
-void CSaveLoadWindow::CreateScreen() {
+void SaveLoadWindow::CreateScreen() {
     rect = RECT{0, 0, 800, 600};
     LoadTexture("saveload", TextureKind::Interface);
     // The selected save's picture (5:6:5).
@@ -114,10 +114,10 @@ void CSaveLoadWindow::CreateScreen() {
     AddRect(this, 363, 526, 437, 574)->SetTip(0xEAC6);
 
     // The picture of the selected save (texture of the window's second texture object).
-    CUiMesh* picture = AddBlankSprite();
+    UiMesh* picture = AddBlankSprite();
     picture->SetRectangle(3.0f, 100.0f, 410.0f, 100.0f, 700.0f, 320.0f, 0, 0x100, 0x100, 0x40);
     picture->texture = nullptr;
-    CUiMesh* highlight = AddBlankSprite();
+    UiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, 0x100, 0x100);
     highlight->texture = nullptr;
     highlight->flatColour = 0xC8A06800;
@@ -131,12 +131,12 @@ void CSaveLoadWindow::CreateScreen() {
 
     for (int top = 108; top < 492; top += 24) AddRect(this, 108, top, 370, top + 24);
 
-    CUiSurface* list = NewSurface(ui, 100, 100, 700, 500);
+    UiSurface* list = NewSurface(ui, 100, 100, 700, 500);
     AddSurface(list);
     scrollbar = NewScrollbar(ui, 108, 108, 384, 492);
     AddChild(scrollbar);
 
-    CUiModel* model = AddMenuModel(this, kSaveLoadTilt);
+    UiModel* model = AddMenuModel(this, kSaveLoadTilt);
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     model->ShowAllParts(0);
     if (isSave) {
@@ -168,7 +168,7 @@ void CSaveLoadWindow::CreateScreen() {
 
 // --- Options window ------------------------------------------------------------------
 
-void COptionsWindow::CreateScreen() {
+void OptionsWindow::CreateScreen() {
     rect = RECT{0, 0, 800, 600};
     LoadTexture("saveload", TextureKind::Interface);
     CreateTexture(0x100, 0x100, TextureKind::Blank565);
@@ -177,7 +177,7 @@ void COptionsWindow::CreateScreen() {
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     AddRect(this, 213, 526, 287, 574)->SetTip(0x111D4);
     AddRect(this, 513, 526, 587, 574)->SetTip(0x111D5);
-    CUiMesh* highlight = AddBlankSprite();
+    UiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, 0x100, 0x100);
     highlight->texture = nullptr;
     highlight->flatColour = 0xC8A06800;
@@ -186,7 +186,7 @@ void COptionsWindow::CreateScreen() {
     // Regions 2-12: the option groups, each with its button sprite, tooltip and title.
     std::string text;
     for (int k = 0, top = 156; k < kOptionGroups; ++k, top += 24) {
-        CUiRegion* region = AddRect(this, 100, top, 250, top + 24);
+        UiRegion* region = AddRect(this, 100, top, 250, top + 24);
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = std::format("tip option_group_{}", OptionGroupName(k));
@@ -203,10 +203,10 @@ void COptionsWindow::CreateScreen() {
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
-    CUiSurface* surface = NewSurface(ui, 100, 100, 700, 500);
+    UiSurface* surface = NewSurface(ui, 100, 100, 700, 500);
     AddSurface(surface);
 
-    CUiModel* model = AddMenuModel(this, kOptionsTilt);
+    UiModel* model = AddMenuModel(this, kOptionsTilt);
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     model->ShowAllParts(0);
     model->ShowPart("options", 1);
@@ -225,9 +225,9 @@ void COptionsWindow::CreateScreen() {
 
 // --- Esc menu ------------------------------------------------------------------------
 
-void CEscMenu::CreateScreen() {
+void EscMenu::CreateScreen() {
     rect = RECT{0, 0, 800, 600};
-    CUiModel* model = AddModel();
+    UiModel* model = AddModel();
     model->Load("unmoco1", "escMenu00", "escMenu00labels");
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     Vector3 axis = {1.0f, 0.0f, 0.0f};
@@ -239,7 +239,7 @@ void CEscMenu::CreateScreen() {
     // original goes through SetRect with a RECT by value.
     const RECT* rects = g_menuRects + kMainMenuRects;
     for (const RECT* source = rects; source < rects + 5; ++source) {
-        CUiRegion* region = AddRegion();
+        UiRegion* region = AddRegion();
         RECT area;
         gameapi::CopyRect(&area, source);
         region->SetRect(area.left, area.top, area.right, area.bottom);
@@ -250,14 +250,14 @@ void CEscMenu::CreateScreen() {
 
 // --- Esc menu clicks -------------------------------------------------------------------
 
-void CEscMenu::LeftDown(int buttons, int x, int y) {
-    CInterface3D* currentUi = ui;
+void EscMenu::LeftDown(int buttons, int x, int y) {
+    Interface3D* currentUi = ui;
     int region = RegionAt(x, y);
     if (region >= 0) {
         currentUi->PlaySound("buttons\\menu\\ok.wav");
         handled = true;
     }
-    CUiWindow* opened = nullptr;
+    UiWindow* opened = nullptr;
     bool open = true;
     switch (region) {
     case 0:   // save
@@ -266,7 +266,7 @@ void CEscMenu::LeftDown(int buttons, int x, int y) {
             open = false;
             break;
         }
-        opened = new CSaveLoadWindow(currentUi, region == 0, true);
+        opened = new SaveLoadWindow(currentUi, region == 0, true);
         break;
     }
     case 2:   // resume
@@ -274,11 +274,11 @@ void CEscMenu::LeftDown(int buttons, int x, int y) {
         open = false;
         break;
     case 3: { // quit: the message box
-        opened = new CMessageBox(currentUi, "quit", "quit_msg", 0x10000, 3, 1);
+        opened = new MessageWindow(currentUi, "quit", "quit_msg", 0x10000, 3, 1);
         break;
     }
     case 4: { // options
-        opened = new COptionsWindow(currentUi, true);
+        opened = new OptionsWindow(currentUi, true);
         break;
     }
     default:
@@ -286,24 +286,24 @@ void CEscMenu::LeftDown(int buttons, int x, int y) {
         break;
     }
     if (open) currentUi->PushWindow(opened, true, true);
-    CUiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, x, y);
 }
 
 // --- Main menu clicks ------------------------------------------------------------
 
-void CMainMenu::LeftDown(int buttons, int x, int y) {
-    CInterface3D* currentUi = ui;
+void MainMenu::LeftDown(int buttons, int x, int y) {
+    Interface3D* currentUi = ui;
     const char* okSound = "buttons\\menu\\ok.wav";
     switch (RegionAt(x, y)) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
         currentUi->PlaySound(okSound);
-        currentUi->PushWindow(new CDifficultyBox(currentUi), true, true);
+        currentUi->PushWindow(new DifficultyBox(currentUi), true, true);
         break;
     }
     case 1: {
         currentUi->PlaySound(okSound);
-        currentUi->PushWindow(new CSaveLoadWindow(currentUi, false, false), true, true);
+        currentUi->PushWindow(new SaveLoadWindow(currentUi, false, false), true, true);
         break;
     }
     case 2: {
@@ -316,7 +316,7 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
     }
     case 3: {
         currentUi->PlaySound(okSound);
-        currentUi->PushWindow(new COptionsWindow(currentUi, false), true, true);
+        currentUi->PushWindow(new OptionsWindow(currentUi, false), true, true);
         break;
     }
     case 4: {
@@ -325,31 +325,31 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
         GameStopAmbience();
         currentUi->PlaySound(okSound);
         ClearSurfaces();
-        currentUi->PushWindow(new CCreditsScreen(currentUi, true, "Titles"), false, true);
+        currentUi->PushWindow(new CreditsScreen(currentUi, true, "Titles"), false, true);
         break;
     }
     case 5: {
         // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up its
         // second master server.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
-        std::string text = g_clientWorld.texts->CTextManager::GetString("reserved_04");
+        std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
         g_interface.ShowStatusText(text);
         GameSetServerPaused(1);
         currentUi->PlaySound(okSound);
-        currentUi->PushWindow(new CMpHeroScreen(currentUi), true, true);
+        currentUi->PushWindow(new MpHeroScreen(currentUi), true, true);
         break;
     }
     default:
         break;
     }
-    CUiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, x, y);
 }
 
 // --- Message box -----------------------------------------------------------------------
 
-void CMessageBox::CreateScreen() {
+void MessageWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    CUiSurface* surface = NewSurface(ui, 200, 50, 600, 500);
+    UiSurface* surface = NewSurface(ui, 200, 50, 600, 500);
     AddSurface(surface);
     int font = result != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
@@ -366,7 +366,7 @@ void CMessageBox::CreateScreen() {
     area = RECT{15, top - 35, 385, 450};
     surface->DrawTextIn(title, &area, 2, 0x31B3FF, 0x11, 1);
     if (flags & 4) {
-        edit = new CUiEditField(ui, RECT{215, top + titleHeight + 30, 585, height + top + 30});
+        edit = new UiEditField(ui, RECT{215, top + titleHeight + 30, 585, height + top + 30});
         edit->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
         edit->SetText(editText);
         AddChild(edit);
@@ -400,9 +400,9 @@ void CMessageBox::CreateScreen() {
 
 // --- Difficulty question ---------------------------------------------------------------
 
-void CDifficultyBox::CreateScreen() {
+void DifficultyBox::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    CUiSurface* surface = NewSurface(ui, 200, 100, 600, 500);
+    UiSurface* surface = NewSurface(ui, 200, 100, 600, 500);
     AddSurface(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     RECT area = {15, 0, 385, 200};
@@ -443,7 +443,7 @@ void CDifficultyBox::CreateScreen() {
     int boxRight = 0x1A5 - half;
     AddBlankSprite()->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row),
                                static_cast<float>(boxRight), static_cast<float>(row + 0x15), 0xD1, 0x37, 0xE6, 0x4C);
-    CUiMesh* hardBox = AddBlankSprite();
+    UiMesh* hardBox = AddBlankSprite();
     hardBox->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row + 0x18),
                           static_cast<float>(boxRight), static_cast<float>(row + 0x2D), 0xD1, 0x37, 0xE6, 0x4C);
     hardBox->textureOffsetU = kCheckedOffset;
@@ -463,8 +463,8 @@ void CDifficultyBox::CreateScreen() {
 
 // --- Titles ----------------------------------------------------------------------------
 
-void CCreditsScreen::CreateScreen() {
-    CInterface3D* currentUi = ui;
+void CreditsScreen::CreateScreen() {
+    Interface3D* currentUi = ui;
     const std::string& currentName = name;
     if (!fromGame) {
         g_clientWorld.sounds->StopAll(1);
@@ -474,7 +474,7 @@ void CCreditsScreen::CreateScreen() {
     app::PlayMovies((currentName + "fin"), false);
     nextLineAt = 0.0f;
 
-    CMappedResource* currentArchive = &archive;
+    MappedResource* currentArchive = &archive;
     currentArchive->OpenResource((options::g_options.resourcesPath + "outro.res"), 0);
     std::uint32_t size = 0;
     void* data = currentArchive->GetFile("credits.scr", &size);
@@ -515,13 +515,13 @@ void CCreditsScreen::CreateScreen() {
     // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
     {
         RECT area = {10, 0x96, 0x316, 0x1C2};
-        textSurface = new CUiScrollingSurface(currentUi, &area);
+        textSurface = new UiScrollingSurface(currentUi, &area);
         AddSurface(textSurface);
         textSurface->Hide(false);
     }
     {
         RECT area = {10, 0x6E, 0x316, 0x8C};
-        headerSurface = AddSurface(new CUiSurface(currentUi, &area, SurfaceBlend::Keyed));
+        headerSurface = AddSurface(new UiSurface(currentUi, &area, SurfaceBlend::Keyed));
         headerSurface->Hide(false);
     }
     if (fromGame) GameSetServerPaused(0);

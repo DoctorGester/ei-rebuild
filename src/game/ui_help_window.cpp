@@ -1,4 +1,4 @@
-// The help / message window (CHelpWindow, ui.h): its Build, Close, the pulse (Update)
+// The help / message window (HelpWindow, ui.h): its Build, Close, the pulse (Update)
 // and the input side's button and key handlers.
 // The page itself is built by ShowPage (Rebirth-patched; its vanilla body is in ui_help_page.cpp). See
 // docs/notes/ui.md.
@@ -29,7 +29,7 @@ constexpr char kHelpAction = ';';   // the help key's action (g_keyActions)
 
 // Opens text "tutor " + `key` and, when it is there, replaces `text` with it up to the next '#' (the line ends
 // trimmed).
-void ReadTutorText(CTextManager* texts, const std::string& key, std::string* text) {
+void ReadTutorText(TextManager* texts, const std::string& key, std::string* text) {
     if (!texts->Open(std::string(kTutorSection) + key)) return;
     std::string read = texts->ReadToHash();
     str::TrimRight(read, kLineEnds);
@@ -40,10 +40,10 @@ int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 
 } // namespace
 
-void CHelpWindow::CreateScreen() {
+void HelpWindow::CreateScreen() {
     LoadTexture(kSaveLoadTexture, TextureKind::Interface);
     CreateTexture(0x100, 0x100, TextureKind::Blank1555);
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     if (!texts->Open(std::string(kTutorialSection) + text)) {
         ui->SetPendingValue(0);
         return;
@@ -68,7 +68,7 @@ void CHelpWindow::CreateScreen() {
     ShowPage();
 }
 
-void CHelpWindow::CloseScreen() {
+void HelpWindow::CloseScreen() {
     pulsing.clear();
     pictures.clear();
     ClearSurfaces();
@@ -76,8 +76,8 @@ void CHelpWindow::CloseScreen() {
     ClearSceneObjects();
 }
 
-void CHelpWindow::Update() {
-    CUiContainer::Update();
+void HelpWindow::Update() {
+    UiContainer::Update();
     double time = FrameTime() + pulseTime;
     pulseTime = static_cast<float>(time);
     double wave = (x87::fcos(time * 5.0f) + 1.0f) * 0.5f;
@@ -89,10 +89,10 @@ void CHelpWindow::Update() {
     std::uint32_t r = static_cast<std::uint32_t>(Clamp255(static_cast<int>(rest + alphaStored)));
     std::uint32_t gb = static_cast<std::uint32_t>(Clamp255(static_cast<int>(rest)));
     std::uint32_t colour = a << 24 | r << 16 | gb << 8 | gb;
-    for (CUiMesh* mesh : pulsing) mesh->flatColour = colour;
+    for (UiMesh* mesh : pulsing) mesh->flatColour = colour;
 }
 
-void CHelpWindow::Finish() {
+void HelpWindow::Finish() {
     ui->PlaySound(kOkSound);
     if (!message)
         ui->helpTopics[text] = page;
@@ -101,8 +101,8 @@ void CHelpWindow::Finish() {
     ui->SetPendingValue(0);
 }
 
-void CHelpWindow::LeftDown(int buttons, int x, int y) {
-    CUiContainer::LeftDown(buttons, x, y);
+void HelpWindow::LeftDown(int buttons, int x, int y) {
+    UiContainer::LeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case 0:
         if (page > 0) {
@@ -126,8 +126,8 @@ void CHelpWindow::LeftDown(int buttons, int x, int y) {
     }
 }
 
-void CHelpWindow::KeyDown(int key, int repeat, int modifiers) {
-    CUiContainer::KeyDown(key, repeat, modifiers);
+void HelpWindow::KeyDown(int key, int repeat, int modifiers) {
+    UiContainer::KeyDown(key, repeat, modifiers);
     if (key == VK_RETURN && page < static_cast<int>(lines.size()) - 1) {
         ui->PlaySound(kNextSound);
         ++page;

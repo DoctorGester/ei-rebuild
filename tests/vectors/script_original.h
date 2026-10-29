@@ -1,6 +1,6 @@
 #pragma once
 
-// game.exe's CScript and the parts of it the script recorders read, at game.exe's own offsets (the script's MFC 4.2
+// game.exe's Script and the parts of it the script recorders read, at game.exe's own offsets (the script's MFC 4.2
 // arrays and lists, CStrings for text) through tests/verify/exe_objects.h's container views: the record side's
 // serialisers (script_load_vectors.h) read these with the same std calls (size(), [], range-for) as the replay's
 // read our classes (src/game/script.h), whose layout is our own.
@@ -106,7 +106,7 @@ struct OriginalScriptRun {
 };
 static_assert(sizeof(OriginalScriptRun) == 0xB4);
 
-// game.exe's CScript (0x1F8 bytes): the members the loader's recorders read; the effects and temporaries are padding.
+// game.exe's Script (0x1F8 bytes): the members the loader's recorders read; the effects and temporaries are padding.
 struct OriginalScript {
     std::uint8_t effects[0x68];                     // +0x00 point lights, particle / FX / lightning sources
     std::int32_t nextParticleId;                    // +0x68

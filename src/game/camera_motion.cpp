@@ -1,4 +1,4 @@
-// CCamera helpers the per-frame update uses: aiming along a direction, turning the camera upright towards its
+// Camera helpers the per-frame update uses: aiming along a direction, turning the camera upright towards its
 // target and keeping it above nearby objects. See camera.h and docs/notes/core.md. Floating point follows the
 // game's x87 code: `double` for values the game keeps on the FPU stack, static_cast<float> where it stores to
 // a float.
@@ -26,7 +26,7 @@ using camera::D;
 // Aims the camera along (dx, dy, dz): the view heading is the turn about Z that points the camera's X axis
 // along the horizontal part (identity when that is straight along Y), then the local rotation tilts by -(90
 // degrees + elevation) about its own X axis. False (and nothing done) for a direction shorter than 1e-9.
-bool CCamera::LookDirection(float dx, float dy, float dz) {
+bool Camera::LookDirection(float dx, float dy, float dz) {
     double lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz);
     EI_NAN_AUDIT(lengthSquare);
     if (lengthSquare <= CAM_LOOK_EPSILON) return false;
@@ -79,7 +79,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
 // Turns the camera a tenth of the way about its own X-axis-and-horizontal cross product
 // so that its X axis lines up with the horizontal direction across the view (Z axis turned a
 // quarter about +Z); nothing below one degree. Then lifts the camera over nearby objects.
-void CCamera::AlignToTarget() {
+void Camera::AlignToTarget() {
     Quaternion& q = localRotation;
     Vector3 zAxis, xAxis;
     q.AxisZ(&zAxis);
@@ -128,7 +128,7 @@ void CCamera::AlignToTarget() {
 // extents up to 100) counts with its top height, fully when the camera is inside its footprint
 // radius and fading out over the next 10; the camera height becomes at least the highest of these
 // (raised over the highest terrain by at most settings->cameraMaxHeight) plus settings->cameraMinHeight.
-void CCamera::ClampAboveObjects() {
+void Camera::ClampAboveObjects() {
     Vector3* p = &localPosition;
     float average, lowest, highest;
     SampleTerrain(*p, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);

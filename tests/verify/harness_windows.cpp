@@ -15,18 +15,18 @@ std::uintptr_t WindowKind(const void* window) {
 
 void* TopWindow() {
     if (ei::Standalone()) return image::TopWindow();
-    // game.exe's CInterface3D::GetActiveWindow (005F7590, thiscall) on its interface (007C7D50).
+    // game.exe's Interface3D::GetActiveWindow (005F7590, thiscall) on its interface (007C7D50).
     return OriginalCode<void*(__thiscall*)(void*)>(0x005F7590)(&ei::OriginalGameData<std::uint8_t>(0x007C7D50));
 }
 
 int WindowRegionCount(void* window) {
     if (ei::Standalone()) return image::RegionCount(window);
-    return static_cast<const exe::CUiWindow*>(window)->regions.size;
+    return static_cast<const exe::UiWindow*>(window)->regions.size;
 }
 
 bool WindowRegion(void* window, int index, image::RegionInfo* region) {
     if (ei::Standalone()) return image::Region(window, index, region);
-    const exe::CUiRegion* found = static_cast<const exe::CUiWindow*>(window)->regions.data[index];
+    const exe::UiRegion* found = static_cast<const exe::UiWindow*>(window)->regions.data[index];
     if (!found) return false;
     region->left = found->bounds.left;
     region->top = found->bounds.top;

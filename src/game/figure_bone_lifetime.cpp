@@ -9,7 +9,7 @@
 namespace {
 
 // The mesh is a counted engine object (its release virtual).
-void ReleaseMesh(CFigureMesh* mesh) { mesh->Release(); }
+void ReleaseMesh(FigureMesh* mesh) { mesh->Release(); }
 
 } // namespace
 
@@ -38,7 +38,7 @@ void FigureBone::CreateBone() {
 }
 
 void FigureBone::DestroyBone() {
-    CFigureMesh* placed = mesh;
+    FigureMesh* placed = mesh;
     mesh = nullptr;
     if (placed) ReleaseMesh(placed);
     pose = nullptr;

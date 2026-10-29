@@ -1,7 +1,7 @@
 #pragma once
 
 // The save trace (EI_SAVETRACE=1, verify build; ticket SV7a): which code wrote each byte of a saved
-// game. Every Write of a memory stream (CStream slot 2 of the vtables 0073BD90 and 0073C960 in
+// game. Every Write of a memory stream (ByteStream slot 2 of the vtables 0073BD90 and 0073C960 in
 // game.exe's run; in the image the compiled tables' g_memoryStreamWriteObserver, C19) is noted with
 // the stream's position, the size and the first return addresses into game.exe or ei_hook.dll on
 // the stack; a stream written at position 0 starts again.

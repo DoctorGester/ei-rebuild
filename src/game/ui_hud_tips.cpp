@@ -21,7 +21,7 @@
 
 // --- The weapon bar's unit -----------------------------------------------------------
 
-void CHudWeaponBar::SetUnit(CUnit* newUnit) {
+void HudWeaponBar::SetUnit(CUnit* newUnit) {
     std::string tip;
     std::string description;
     std::string line;
@@ -33,7 +33,7 @@ void CHudWeaponBar::SetUnit(CUnit* newUnit) {
     if (!unit) return;
 
     for (unsigned slot = 0; slot < 4; ++slot) {
-        CItemWeapon* weapon = unit->GetWeapon(slot);
+        ItemWeapon* weapon = unit->GetWeapon(slot);
         if (!weapon) continue;
         {
             std::string image = weapon->FigureName();
@@ -66,7 +66,7 @@ void CHudWeaponBar::SetUnit(CUnit* newUnit) {
         // A weapon with a spell: the spell's name ("spell <name>").
         if (CSpell* spell = weapon->spell) {
             description = "Unknown";
-            if (g_clientWorld.texts->CTextManager::Open(std::string("spell ") + spell->GetPrototype()->code))
+            if (g_clientWorld.texts->TextManager::Open(std::string("spell ") + spell->GetPrototype()->code))
                 description = g_clientWorld.texts->ReadLine(true);
             line = std::format("{} {}\n", labels[3], description);
             tip += line;
@@ -80,9 +80,9 @@ void CHudWeaponBar::SetUnit(CUnit* newUnit) {
 
 // --- A quick item's tooltip ----------------------------------------------------------
 
-std::string CHudQuickItems::ItemTip(unsigned index) {
+std::string HudQuickItems::ItemTip(unsigned index) {
     std::string text;
-    CItem* item = unit->GetQuickItem(index);
+    Item* item = unit->GetQuickItem(index);
     if (!item) return text;
     text = g_clientWorld.texts->GetItemTexts(item).name;
     std::string line;
@@ -156,7 +156,7 @@ std::string CHudQuickItems::ItemTip(unsigned index) {
 
 // --- The action column's unit --------------------------------------------------------
 
-void CHudActionColumn::SetUnit(CUnit* newUnit, bool extra) {
+void HudActionColumn::SetUnit(CUnit* newUnit, bool extra) {
     unit = newUnit;
     ClearSceneObjects();
     actions.clear();
@@ -176,9 +176,9 @@ void CHudActionColumn::SetUnit(CUnit* newUnit, bool extra) {
     std::string hint;
     AddAction("initqi1item", "skill0009", 0);
     title = "Science";
-    if (g_clientWorld.texts->CTextManager::Open(std::string("perk ") + title)) tip = g_clientWorld.texts->ReadLine(true);
+    if (g_clientWorld.texts->TextManager::Open(std::string("perk ") + title)) tip = g_clientWorld.texts->ReadLine(true);
     title = std::format("{} {}\n", labels[0], shown->params.attributes[0]);
-    if (g_clientWorld.texts->CTextManager::Open("tip 10511") != 0) hint = g_clientWorld.texts->ReadToHash();
+    if (g_clientWorld.texts->TextManager::Open("tip 10511") != 0) hint = g_clientWorld.texts->ReadToHash();
     tip = tip + "\n" + title + hint;
     regions[count - 1]->SetTipString(tip, 0x1D);
 }

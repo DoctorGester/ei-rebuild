@@ -1,5 +1,5 @@
 // Constructor and destructor bodies of the spell objects: the effect record (MapEffect), the spell
-// (CSpell) and the cast spell (CSpellEffect). See spell.h.
+// (CSpell) and the cast spell (SpellEffect). See spell.h.
 #include "map_object.h"
 #include "spell.h"
 #include "unit.h"
@@ -63,9 +63,9 @@ CSpell::~CSpell() { CSpell::Destroy(); }
 const char* CSpell::ClassName() { return "CSpell"; }
 ClassId CSpell::GetClassId() { return ClassId::Spell; }
 
-CSpellEffect::CSpellEffect() = default;
+SpellEffect::SpellEffect() = default;
 
-CSpellEffect::~CSpellEffect() {
+SpellEffect::~SpellEffect() {
     if (footprintStamped) UpdateFootprint(Spell()->Type(), 0);
     if (visual) world->RemoveTimedObject(static_cast<unsigned>(visual->id));
     Drop(visual);
@@ -75,7 +75,7 @@ CSpellEffect::~CSpellEffect() {
 
 // --- The cast's start values and the object it forgets ------------------------------------
 
-void CSpellEffect::Init(CWorldServer* newWorld, CSpell* newSpell, CUnit* newCaster, const Vector3& newPosition,
+void SpellEffect::Init(WorldServer* newWorld, CSpell* newSpell, CUnit* newCaster, const Vector3& newPosition,
                         CMapObject* newTarget, const Vector3& newTargetPoint, std::uint8_t newSilentEnd) {
     newSpell->CopyTo(Spell());
     world = newWorld;
@@ -87,7 +87,7 @@ void CSpellEffect::Init(CWorldServer* newWorld, CSpell* newSpell, CUnit* newCast
     silentEnd = newSilentEnd;
 }
 
-bool CSpellEffect::Forget(CEngineObject* object) {
+bool SpellEffect::Forget(EngineObject* object) {
     if (target == object) return false;
     if (caster == object && caster) caster.Reset();
     return true;

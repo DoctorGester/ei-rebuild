@@ -68,10 +68,10 @@ bool ModelNameIsFemale(const std::string& model) {
 
 } // namespace
 
-void CMpHeroScreen::CreateScreen() {
+void MpHeroScreen::CreateScreen() {
     g_gameFlow.UseResources(true);
     LoadTexture("campinfo", TextureKind::Interface);
-    CUiModel* model = AddModel();
+    UiModel* model = AddModel();
     model->Load("unmoco2", "MainMenu00", "MainMenu00labels");
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
@@ -102,11 +102,11 @@ void CMpHeroScreen::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
-        CUiMesh* added = AddBlankSprite();
+        UiMesh* added = AddBlankSprite();
         added->SetRectangle(depth, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
         return added;
     };
-    auto plain = [](CUiMesh* mesh, std::uint32_t colour) {
+    auto plain = [](UiMesh* mesh, std::uint32_t colour) {
         mesh->texture = nullptr;
         mesh->flags |= FigureMeshFlag::Flat;
         mesh->flatColour = colour;
@@ -116,7 +116,7 @@ void CMpHeroScreen::CreateScreen() {
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32)->texture = texture(kSaveLoadTexture);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32)->texture = texture(kSaveLoadTexture);
     {
-        CUiMesh* frame = sprite(3.0f, 110.0f, 250.0f, 370.0f, 274.0f, 0, 0, 0x100, 0x100);
+        UiMesh* frame = sprite(3.0f, 110.0f, 250.0f, 370.0f, 274.0f, 0, 0, 0x100, 0x100);
         plain(frame, kSelectionColour);
         frame->visible = false;
     }
@@ -135,7 +135,7 @@ void CMpHeroScreen::CreateScreen() {
     sprite(3.0f, 740.0f, 430.0f, 780.0f, 470.0f, 0x2B, 0x98, 0x53, 0xC0);
     // 10-12: the frames; 13, 14: the backgrounds of the commands and of the list.
     auto frame = [this, &texture](float left, float top, float right, float bottom) {
-        CUiMesh* added = AddBlankSprite();
+        UiMesh* added = AddBlankSprite();
         added->SetFrame(2.0f, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
         added->texture = texture(kSaveLoadTexture);
     };
@@ -146,46 +146,46 @@ void CMpHeroScreen::CreateScreen() {
     plain(sprite(5.0f, 100.0f, 240.0f, 390.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
     // 15-18: the four commands' buttons.
     for (int top = 115; top < 211; top += 24) {
-        CUiMesh* button = sprite(3.0f, 180.0f, static_cast<float>(top), 310.0f, static_cast<float>(top + 19), 0x7A, 0x6C,
+        UiMesh* button = sprite(3.0f, 180.0f, static_cast<float>(top), 310.0f, static_cast<float>(top + 19), 0x7A, 0x6C,
                                  0xFC, 0x7F);
         button->texture = texture(kSaveLoadTexture);
     }
 
     // The description panel on the right (its item list and text arrays constructed in place).
-    descPanel = new CItemInfoPanel(ui, this);
+    descPanel = new ItemInfoPanel(ui, this);
     AddChild(descPanel);
     descPanel->Build(600, 100);
 
     // The hero's statistics.
-    statsPanel = new CHeroStatsPanel(ui, this);
+    statsPanel = new HeroStatsPanel(ui, this);
     AddChild(statsPanel);
     statsPanel->AddObject(texture(kPanelTexture));
     statsPanel->Build();
 
     // The equipment (without the body) and the quick items.
-    weaponPanel = new CHeroEquipPanel(ui, this);
+    weaponPanel = new HeroEquipPanel(ui, this);
     AddChild(weaponPanel);
     weaponPanel->AddObject(texture(kItemTexture));
     weaponPanel->Build(false);
 
-    spellPanel = new CHeroQuickStrip(ui, this);
+    spellPanel = new HeroQuickStrip(ui, this);
     AddChild(spellPanel);
     spellPanel->AddObject(texture(kItemTexture));
     spellPanel->Build(false);
 
     // The skills for experience.
-    tradePanel = new CTradePanel(ui, this);
+    tradePanel = new TradePanel(ui, this);
     AddChild(tradePanel);
     tradePanel->AddObject(texture(kPanelTexture));
     tradePanel->Build();
 
-    heroScroll = new CUiScrollbar(ui, RECT{110, 250, 384, 490}, 3.0f, 0, 1.0f);
+    heroScroll = new UiScrollbar(ui, RECT{110, 250, 384, 490}, 3.0f, 0, 1.0f);
     AddChild(heroScroll);
 
     // The figures a new hero can take, men (model "unhuma") and women ("unhufe"): every creature
     // record whose unit prototype has one of the two models, with a numbered voice when the
     // record has its flag.
-    CTextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts;
     std::string male;
     std::string female;
     std::string figureModel;
@@ -245,7 +245,7 @@ void CMpHeroScreen::CreateScreen() {
 
     // The two figure strips: the men on top, the women below.
     auto figureStrip = [this](int index, std::vector<std::string>& names, bool top) {
-        figureStrips[index] = new CFigureStrip(ui, this);
+        figureStrips[index] = new FigureStrip(ui, this);
         AddChild(figureStrips[index]);
         figureStrips[index]->SetupFigures(&names, top, false);
     };
@@ -253,17 +253,17 @@ void CMpHeroScreen::CreateScreen() {
     figureStrip(1, women, false);
 
     // The edit windows: a listed hero's new name, and the new hero's name.
-    renameEdit = new CUiEditField(ui, RECT{558, 110, 695, 126});
+    renameEdit = new UiEditField(ui, RECT{558, 110, 695, 126});
     AddChild(renameEdit);
     renameEdit->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
     renameEdit->SetEnabled(false);
     renameEdit->SetFocused(false);
-    nameEdit = new CUiEditField(ui, RECT{0, 127, 200, 143});
+    nameEdit = new UiEditField(ui, RECT{0, 127, 200, 143});
     AddChild(nameEdit);
     nameEdit->SetLook(3, 1, 1, kNameLength, kWhite, kCaretColour);
     nameEdit->SetEnabled(false);
     nameEdit->SetFocused(false);
-    voiceScroll = new CUiScrollbar(ui, RECT{10, 325, 190, 490}, 3.0f, 0, 1.0f);
+    voiceScroll = new UiScrollbar(ui, RECT{10, 325, 190, 490}, 3.0f, 0, 1.0f);
     AddChild(voiceScroll);
     voiceScroll->SetEnabled(false);
     voiceSound = -1;
@@ -273,15 +273,15 @@ void CMpHeroScreen::CreateScreen() {
     turn = 0.0f;
     rotating = 0;
 
-    AddSurface(new CUiSurface(ui, 100, 240, 390, 500, SurfaceBlend::Keyed, true));
-    AddSurface(new CUiSurface(ui, 100, 100, 390, 220, SurfaceBlend::Keyed, true));
-    AddSurface(new CUiSurface(ui, 0, 300, 200, 500, SurfaceBlend::Keyed, true));
-    AddSurface(new CUiSurface(ui, 425, 110, 555, 126, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 100, 240, 390, 500, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 100, 100, 390, 220, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 0, 300, 200, 500, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 425, 110, 555, 126, SurfaceBlend::Keyed, true));
     surfaces[kSurfaceRename]->Hide(false);
 
     // The list's four commands.
     std::string line;
-    CUiSurface* commands = surfaces[kSurfaceCommands];
+    UiSurface* commands = surfaces[kSurfaceCommands];
     commands->Clear();
     const char* const commandKeys[] = {
         "lmp_pers_new",

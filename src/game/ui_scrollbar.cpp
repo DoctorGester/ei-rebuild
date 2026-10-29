@@ -1,4 +1,4 @@
-// The plain scroll bar's constructor, position and layout (CUiScrollbar) and the options slider's constructor;
+// The plain scroll bar's constructor, position and layout (UiScrollbar) and the options slider's constructor;
 // also the thumb drags, the wheel and the slider's position. See ui.h and docs/notes/items_spells.md.
 
 #include "ui.h"
@@ -32,7 +32,7 @@ constexpr float kWheelStep = 0.008333334f;
 
 // The virtuals of the scroll bar and of the slider (the slider's create / update virtuals and the drag along
 // x are its own).
-CUiScrollbar::CUiScrollbar(CInterface3D* ui, RECT rect, float newDepth, int maximum, float newSpeed) : CUiWindow(ui) {
+UiScrollbar::UiScrollbar(Interface3D* ui, RECT rect, float newDepth, int maximum, float newSpeed) : UiWindow(ui) {
     maxPosition = maximum;
     speed = newSpeed;
     depth = newDepth;
@@ -42,12 +42,12 @@ CUiScrollbar::CUiScrollbar(CInterface3D* ui, RECT rect, float newDepth, int maxi
     LoadTexture("Scrollbar", TextureKind::Interface);
     for (int i = 0; i < 4; ++i) AddBlankSprite();
     for (int i = 0; i < 3; ++i) AddRegion();
-    CUiScrollbar::SetRect(&rect);
-    CUiScrollbar::SetPosition(0);
+    UiScrollbar::SetRect(&rect);
+    UiScrollbar::SetPosition(0);
     accumulated = 0.0f;
 }
 
-void CUiScrollbar::SetPosition(int newPosition) {
+void UiScrollbar::SetPosition(int newPosition) {
     if (newPosition < 0) newPosition = 0;
     int maximum = maxPosition;
     if (newPosition > maximum) newPosition = maximum;
@@ -68,7 +68,7 @@ void CUiScrollbar::SetPosition(int newPosition) {
     thumb.bottom = centre + 14;
 }
 
-void CUiScrollbar::SetRect(const RECT* newRect) {
+void UiScrollbar::SetRect(const RECT* newRect) {
     rect = *newRect;
     track.left = newRect->right - 10;
     track.right = newRect->right;
@@ -97,7 +97,7 @@ void CUiScrollbar::SetRect(const RECT* newRect) {
 
 // --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
 
-void CUiScrollbar::MouseMove(int, int x, int y) {
+void UiScrollbar::MouseMove(int, int x, int y) {
     if (state == kDragging) {
         POINT point{x, y};
         ui->ScalePointFromScreenEntry(&point);
@@ -107,7 +107,7 @@ void CUiScrollbar::MouseMove(int, int x, int y) {
     handled = true;
 }
 
-void CUiScrollbar::Wheel(int, int delta, int x, int y) {
+void UiScrollbar::Wheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == kTrackRegion) {
         double step = static_cast<double>(static_cast<short>(delta)) * speed * kWheelStep;
         accumulated = static_cast<float>(accumulated - step);
@@ -115,7 +115,7 @@ void CUiScrollbar::Wheel(int, int delta, int x, int y) {
     }
 }
 
-void CUiSlider::SetPosition(int newPosition) {
+void UiSlider::SetPosition(int newPosition) {
     if (newPosition < 0) newPosition = 0;
     int maximum = maxPosition;
     if (newPosition > maximum) newPosition = maximum;
@@ -133,7 +133,7 @@ void CUiSlider::SetPosition(int newPosition) {
     thumb.right = centre + kSliderThumbHalfWidth;
 }
 
-void CUiSlider::MouseMove(int, int x, int y) {
+void UiSlider::MouseMove(int, int x, int y) {
     if (state == kDragging) {
         POINT point{x, y};
         ui->ScalePointFromScreenEntry(&point);

@@ -41,9 +41,9 @@ namespace {
 
 // `results` is re-read every time: a made item goes to `owner` and into `strip`, the others to the local
 // player and into the item strip.
-void TakeResults(CCampPages* camp, CParty* const& results, CParty* owner, CUiItemStrip* strip) {
+void TakeResults(CampPages* camp, CParty* const& results, CParty* owner, UiItemStrip* strip) {
     while (!results->items.empty()) {
-        CItem* item = results->items[0];
+        Item* item = results->items[0];
         if (IsMade(item))
             strip->ScrollToItem(camp->MoveItem(item, owner, results, 0, true, false));
         else
@@ -52,27 +52,27 @@ void TakeResults(CCampPages* camp, CParty* const& results, CParty* owner, CUiIte
 }
 
 // 1 full, 0.5 half.
-void SetShade(CUiMesh* mesh, float shade) {
+void SetShade(UiMesh* mesh, float shade) {
     mesh->tint[0] = shade;
     mesh->tint[1] = shade;
     mesh->tint[2] = shade;
 }
 
 // A white centred line on a surface (Rebirth-patched).
-void DrawLine(CUiSurface* surface, std::string_view text, const RECT& rect) {
+void DrawLine(UiSurface* surface, std::string_view text, const RECT& rect) {
     surface->DrawTextIn(text, &rect, 1, 0xFFFFFF, 1, 1);
 }
 
 // The database records of the camp's loot items (the record index): spells, spell
 // modifiers and materials (null past the end, which is then read through).
-std::uint32_t Index(const CItem* item) { return AsLoot(item)->index; }
+std::uint32_t Index(const Item* item) { return AsLoot(item)->index; }
 // The loot's record type: the record table it indexes.
-LootRecordType RecordType(const CItem* item) { return AsLoot(item)->recordType; }
-itemdb::SpellRecord* SpellRecordOf(const CItem* item) { return itemdb::SpellAt(Index(item)); }
-itemdb::SpellModifierRecord* ModifierRecordOf(const CItem* item) { return itemdb::SpellModifierAt(Index(item)); }
-itemdb::MaterialRecordHead* BlueprintRecord(const CItem* item) { return itemdb::MaterialAt(Index(item)); }
+LootRecordType RecordType(const Item* item) { return AsLoot(item)->recordType; }
+itemdb::SpellRecord* SpellRecordOf(const Item* item) { return itemdb::SpellAt(Index(item)); }
+itemdb::SpellModifierRecord* ModifierRecordOf(const Item* item) { return itemdb::SpellModifierAt(Index(item)); }
+itemdb::MaterialRecordHead* BlueprintRecord(const Item* item) { return itemdb::MaterialAt(Index(item)); }
 // A part's prototype record by the loot's record type: weapon, armour, quick item.
-itemdb::ItemRecordHead* PartRecord(const CItem* item, LootRecordType recordType) {
+itemdb::ItemRecordHead* PartRecord(const Item* item, LootRecordType recordType) {
     switch (recordType) {
     case LootRecordType::Weapon: return itemdb::WeaponAt(Index(item));
     case LootRecordType::Armor: return itemdb::ArmorAt(Index(item));
@@ -85,13 +85,13 @@ constexpr float kPriceZero = 0.0f;
 constexpr float kPriceOne = 1.0f;
 
 // The item's base price, left unrounded.
-double ItemPrice(CItem* item) {
+double ItemPrice(Item* item) {
     return item->GetPrice();
 }
 
 // How worn the item is: 1 - durability / maximum. Rebirth's FixRepairPrice treats a
 // negative (or NaN) durability or maximum as 0 and clamps the result to [0, 1] (NaN stays).
-float WornFraction(const CItem* item) {
+float WornFraction(const Item* item) {
     float durability = item->condition, maximum = item->conditionMax;
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
         return static_cast<float>(static_cast<double>(kPriceOne) - static_cast<double>(durability) / maximum);
@@ -104,7 +104,7 @@ float WornFraction(const CItem* item) {
 }
 
 // The stack count of an item.
-int Count(const CItem* item) { return static_cast<int>(item->count); }
+int Count(const Item* item) { return static_cast<int>(item->count); }
 
 constexpr std::uint32_t kRecordBias = 100000000;
 
@@ -116,7 +116,7 @@ void RebuildArmourLayers(PartyUnitRecord* hero) {
 }
 
 // Whether `list` holds `item`.
-bool ListHolds(CParty* list, const CItem* item) {
+bool ListHolds(CParty* list, const Item* item) {
     return std::ranges::find(list->items, item) != list->items.end();
 }
 
@@ -151,7 +151,7 @@ int FindHero(int start, Step step) {
 
 } // namespace
 
-void CCampPages::ShowPage(int newPage) {
+void CampPages::ShowPage(int newPage) {
     equipment->SetEnabled(false);
     equipment2->SetEnabled(false);
     trade->SetEnabled(false);
@@ -246,7 +246,7 @@ void CCampPages::ShowPage(int newPage) {
         page = newPage;
         statsPanel->ShowStats(newPage);
         trade->SelectHero(hero);
-        CUiSurface* title = surfaces[1];
+        UiSurface* title = surfaces[1];
         title->Clear();
         DrawLine(title, pageTitles[page], RECT{0, 10, 200, 30});
     }
@@ -269,7 +269,7 @@ void CCampPages::ShowPage(int newPage) {
     ui->OpenHelp(false);
 }
 
-int CCampPages::Price(CItem* item, int kind) {
+int CampPages::Price(Item* item, int kind) {
     const float* multipliers = priceWeights;
     float repair = kPriceZero;
     ItemKind itemKind = item->Kind();
@@ -295,7 +295,7 @@ int CCampPages::Price(CItem* item, int kind) {
     return static_cast<int>(libcrt::Ftol(ItemPrice(item) * multipliers[kind]));
 }
 
-bool CCampPages::CanEquip(CItem* item, int mode) {
+bool CampPages::CanEquip(Item* item, int mode) {
     switch (page) {
     case 0: {   // equipment: weapons, armour, spell containers (worn-out ones not to a hero)
         ItemKind itemKind = item->Kind();
@@ -327,7 +327,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         float manaSum = 0.0f;
         bool hasSpell = false;
         int school = 0;
-        for (CItem* slot : spellResults->items) {
+        for (Item* slot : spellResults->items) {
             if (IsSpellContainer(slot)) return false;
             if (IsSpell(slot)) {
                 hasSpell = true;
@@ -365,7 +365,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             const itemdb::ItemRecordHead* part = nullptr;
             const itemdb::MaterialRecordHead* firstMaterial = nullptr;
             if (itemResults->items.empty()) return false;
-            for (CItem* slot : itemResults->items) {
+            for (Item* slot : itemResults->items) {
                 if (IsBuildable(slot)) return false;
                 if (IsPart(slot)) {
                     LootRecordType recordType = RecordType(slot);
@@ -403,7 +403,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
     }
 }
 
-void CCampPages::UpdateAction() {
+void CampPages::UpdateAction() {
     std::string action;
     std::string label("camp_current_money");
     cost = 0;
@@ -416,14 +416,14 @@ void CCampPages::UpdateAction() {
         action = text;
         actionEnabled = true;
         actionShown = true;
-        for (CItem* item : bought->items) cost += Price(item, buyKind) * Count(item);
-        for (CItem* item : sold->items) cost -= Price(item, sellKind) * Count(item);
+        for (Item* item : bought->items) cost += Price(item, buyKind) * Count(item);
+        for (Item* item : sold->items) cost -= Price(item, sellKind) * Count(item);
     };
     // A constructor's page: its slots' cost; a finished item in the slots is taken apart,
     // otherwise the constructor makes what the slots allow.
-    auto construct = [&](Ref<CItem>& made, CParty* slots, int slotKind, int recordKind, int apartKind,
-                         bool (*isFinished)(const CItem*), bool (*isMaterial)(const CItem*),
-                         bool (CCampPages::*canMake)(), const char* apartText, const char* makeText, int topic) {
+    auto construct = [&](Ref<Item>& made, CParty* slots, int slotKind, int recordKind, int apartKind,
+                         bool (*isFinished)(const Item*), bool (*isMaterial)(const Item*),
+                         bool (CampPages::*canMake)(), const char* apartText, const char* makeText, int topic) {
         made.Reset();
         deconstructing = false;
         bool described = false;
@@ -431,7 +431,7 @@ void CCampPages::UpdateAction() {
             actionShown = true;
             // By index: canMake builds items through the slots' managers.
             for (int i = 0; i < std::ssize(slots->items); ++i) {
-                CItem* item = slots->items[i];
+                Item* item = slots->items[i];
                 cost += Price(item, slotKind);
                 if (IsMade(item)) cost += Price(item, recordKind);
                 if (isFinished(item)) {
@@ -462,8 +462,8 @@ void CCampPages::UpdateAction() {
         // Repair all the hero's weapons and armour (where the item constructor works).
         if (itemConstructor && !noConstructor) {
             PartyUnitRecord* heroRecord = HeroRecord();
-            for (CItem* weapon : heroRecord->weapons) cost += Price(weapon, 8);
-            for (CItem* armour : heroRecord->armor) cost += Price(armour, 8);
+            for (Item* weapon : heroRecord->weapons) cost += Price(weapon, 8);
+            for (Item* armour : heroRecord->armor) cost += Price(armour, 8);
             actionEnabled = cost > 0;
             if (actionEnabled) action = "camp_repair_all";
         }
@@ -481,14 +481,14 @@ void CCampPages::UpdateAction() {
         tradeWith(spellParts[1], 0, spellParts[2], 1, "camp_spell_trade");
         break;
     case 3:
-        construct(spellMade, spellResults, 2, 0, 3, &IsSpellContainer, &IsSpell, &CCampPages::CanMakeSpell,
+        construct(spellMade, spellResults, 2, 0, 3, &IsSpellContainer, &IsSpell, &CampPages::CanMakeSpell,
                   "camp_spell_deconstr", "camp_spell_constr", 0x67);
         break;
     case 4:
         tradeWith(itemParts[1], 4, itemParts[2], 5, "camp_item_trade");
         break;
     case 5:
-        construct(itemMade, itemResults, 6, 4, 7, &IsBuildable, &IsPart, &CCampPages::CanMakeItem,
+        construct(itemMade, itemResults, 6, 4, 7, &IsBuildable, &IsPart, &CampPages::CanMakeItem,
                   "camp_item_deconstr", "camp_item_constr", 0x66);
         break;
     case 6:
@@ -496,7 +496,7 @@ void CCampPages::UpdateAction() {
             action = "camp_item_repair";
             actionEnabled = true;
             actionShown = true;
-            for (CItem* item : itemExtra->items) cost += Price(item, 8) * Count(item);
+            for (Item* item : itemExtra->items) cost += Price(item, 8) * Count(item);
         }
         break;
     default:
@@ -513,8 +513,8 @@ void CCampPages::UpdateAction() {
 
     std::string text;
     std::string line;
-    CTextManager* texts = g_clientWorld.texts;
-    CUiSurface* draw = surfaces[0];
+    TextManager* texts = g_clientWorld.texts;
+    UiSurface* draw = surfaces[0];
     draw->Clear();
     if (action.size() != 0) {
         text = texts->GetString(action);
@@ -533,7 +533,7 @@ void CCampPages::UpdateAction() {
     SetShade(SceneMesh(1), actionShown ? 1.0f : 0.5f);
 }
 
-void CCampPages::Draw(CSceneRenderer* pass) {
+void CampPages::Draw(SceneRenderer* pass) {
     int x = g_cursor.position.x;    // the mouse in screen pixels
     int y = g_cursor.position.y;
     hoveredItem = nullptr;
@@ -551,7 +551,7 @@ void CCampPages::Draw(CSceneRenderer* pass) {
     default: break;
     }
     // Panel by panel until an item is found or a topic is set.
-    auto probe = [&](CUiItemPanel* panel) {
+    auto probe = [&](UiItemPanel* panel) {
         if (!hoveredItem && topic == 0) hoveredItem = panel->ItemAt(x, y, &topic);
     };
     probe(equipment);
@@ -581,15 +581,15 @@ void CCampPages::Draw(CSceneRenderer* pass) {
         if (descPanel) descPanel->DescribeStats(info);
     }
     UpdateAction();
-    CUiContainer::Draw(pass);
+    UiContainer::Draw(pass);
     if (page == 0) DrawHeroPreview(pass, heroes[hero], heroTurn, 400.0f, true);
 }
 
 // --- what the constructors would make ------------------------------------------------------------
 
-bool CCampPages::CanMakeSpell() {
+bool CampPages::CanMakeSpell() {
     CSpellConstructor* maker = spellResults->SpellConstructor();
-    CItemManager* factory = spellResults->ItemFactory();
+    ItemManager* factory = spellResults->ItemFactory();
     CSpellManager* manager = spellResults->SpellManager();
     const itemdb::SpellRecord* spell = nullptr;
     // The modifiers are kept in an 8-entry stack array (more would overwrite its
@@ -598,7 +598,7 @@ bool CCampPages::CanMakeSpell() {
     int modifierCount = 0;
     if (std::ssize(spellResults->items) <= 0) return false;
     for (int i = 0; i < std::ssize(spellResults->items); ++i) {
-        CItem* item = spellResults->items[i];
+        Item* item = spellResults->items[i];
         if (IsSpell(item))
             spell = SpellRecordOf(item);
         else if (IsModifier(item) && modifierCount < 32)
@@ -624,7 +624,7 @@ bool CCampPages::CanMakeSpell() {
     maker->SetManager(nullptr);
     itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
-    CItem* container = factory->MakeItem(ItemKind::Scroll, index, 0);
+    Item* container = factory->MakeItem(ItemKind::Scroll, index, 0);
     if (container) container->AttachSpell(made);
     spellMade.Assign(container);
     if (!container) return false;
@@ -633,9 +633,9 @@ bool CCampPages::CanMakeSpell() {
     return best.skill >= static_cast<int>(made->skillNeeded);
 }
 
-bool CCampPages::CanMakeItem() {
+bool CampPages::CanMakeItem() {
     CItemConstructor* maker = itemResults->ItemConstructor();
-    CResourceManager* factory = itemResults->ItemFactory();
+    ResourceManager* factory = itemResults->ItemFactory();
     CSpellManager* manager = itemResults->SpellManager();
     itemdb::ItemRecordHead* part = nullptr;
     Ref<CSpell> spell;   // a copy of the container's spell, released on the way out
@@ -643,7 +643,7 @@ bool CCampPages::CanMakeItem() {
     int blueprintCount = 0;
     ItemKind itemKind{};         // uninitialised until a part sets it
     if (itemResults->items.empty()) return false;
-    for (CItem* item : itemResults->items) {
+    for (Item* item : itemResults->items) {
         if (IsSpellContainer(item)) {
             spell.Assign(item->spell->Clone(manager));
         } else if (IsPart(item)) {
@@ -674,7 +674,7 @@ bool CCampPages::CanMakeItem() {
 
 // --- leaving the camp ----------------------------------------------------------------------------
 
-void CCampPages::CloseScreen() {
+void CampPages::CloseScreen() {
     GameSetServerPaused(0);
     // The local player's unit records, their keys raised meanwhile.
     std::vector<PartyUnitRecord*> records;
@@ -701,18 +701,18 @@ void CCampPages::CloseScreen() {
 
 // --- taking an item off the hero -----------------------------------------------------------------
 
-CItem* CCampPages::TakeOff(CItem* item) {
+Item* CampPages::TakeOff(Item* item) {
     ui->PlaySound(game::PutOffSoundText());
     ItemKind kind = item->Kind();
     if (kind < ItemKind::Weapon || (kind > ItemKind::Quick && kind != ItemKind::Scroll)) return nullptr;
     PartyUnitRecord* heroRecord = HeroRecord();
     // The item among the player's items.
-    CItem* result = LocalPlayerData()->AddItem(item, 0, 1);
+    Item* result = LocalPlayerData()->AddItem(item, 0, 1);
     switch (item->Kind()) {
     case ItemKind::Weapon: {
         // The chosen weapon moves back when the item lies before it.
         int count = std::ssize(heroRecord->weapons);
-        CItem** weapons = heroRecord->weapons.data();
+        Item** weapons = heroRecord->weapons.data();
         for (int i = 0; i < count; ++i) {
             if (weapons[i] != item) continue;
             if (static_cast<std::uint32_t>(i) < heroRecord->weaponIndex) --heroRecord->weaponIndex;
@@ -751,7 +751,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
 
 // --- putting an item on the hero -----------------------------------------------------------------
 
-void CCampPages::PutOn(CItem* item) {
+void CampPages::PutOn(Item* item) {
     ui->PlaySound(game::PutOnSoundText());
     PartyUnitRecord* heroRecord = HeroRecord();
     switch (item->Kind()) {
@@ -769,7 +769,7 @@ void CCampPages::PutOn(CItem* item) {
                 TakeOff(heroRecord->armor[i]);
         }
         if (heroes[hero]) {
-            CItem* worn = heroRecord->AddArmor(item);
+            Item* worn = heroRecord->AddArmor(item);
             heroes[hero]->EquipArmour(worn);
             heroes[hero]->Controller()->RefreshEquipment();
         }
@@ -793,7 +793,7 @@ void CCampPages::PutOn(CItem* item) {
 
 // --- moving an item between the camp's lists -----------------------------------------------------
 
-void CCampPages::PutOnFromStrip(CItem* item) {
+void CampPages::PutOnFromStrip(Item* item) {
     switch (page) {
     case 0:
     case 1:
@@ -828,17 +828,17 @@ void CCampPages::PutOnFromStrip(CItem* item) {
     ui->PlaySound(game::PutOnSoundText());
 }
 
-void CCampPages::TakeItem(CItem* item, int mode) {
+void CampPages::TakeItem(Item* item, int mode) {
     if (!CanEquip(item, mode)) {
         ui->PlaySound(game::CancelSoundText());
         return;
     }
     // Back to the player's items and the item strip (from `list`).
-    auto toPlayer = [&](CItem* it, CParty* list) {
+    auto toPlayer = [&](Item* it, CParty* list) {
         itemStrip->ScrollToItem(MoveItem(it, LocalPlayerData(), list, 0, true, false));
     };
     // A made item back to the constructor's parts and its strip, the others to the player.
-    auto back = [&](CItem* it, CParty* ownerParty, CParty* list, CUiItemStrip* strip) {
+    auto back = [&](Item* it, CParty* ownerParty, CParty* list, UiItemStrip* strip) {
         if (IsMade(it))
             strip->ScrollToItem(MoveItem(it, ownerParty, list, 0, true, false));
         else
@@ -933,7 +933,7 @@ void CCampPages::TakeItem(CItem* item, int mode) {
 
 // --- the hero's unit after a change --------------------------------------------------------------
 
-void CCampPages::RefreshWeapons() {
+void CampPages::RefreshWeapons() {
     PartyUnitRecord* heroRecord = HeroRecord();
     CUnit* unit = heroes[hero];
     unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
@@ -946,7 +946,7 @@ void CCampPages::RefreshWeapons() {
     RefreshStats();
 }
 
-void CCampPages::RefreshStats() {
+void CampPages::RefreshStats() {
     if (heroes[hero]) {
         PartyUnitRecord* heroRecord = HeroRecord();
         heroes[hero]->SetFromStats(&heroRecord->stats);
@@ -957,8 +957,8 @@ void CCampPages::RefreshStats() {
 
 // --- turning and choosing the hero ---------------------------------------------------------------
 
-void CCampPages::Update() {
-    CUiContainer::Update();
+void CampPages::Update() {
+    UiContainer::Update();
     // The frame time in seconds (unrounded).
     if (turning == 1)
         heroTurn = TurnedBy(FrameTime(), heroTurn, false);
@@ -966,14 +966,14 @@ void CCampPages::Update() {
         heroTurn = TurnedBy(FrameTime(), heroTurn, true);
 }
 
-void CCampPages::NextHero() {
+void CampPages::NextHero() {
     int i = FindHero(hero, [](int at, int count) { return at + 1 >= count ? 0 : at + 1; });
     if (i == hero) return;
     hero = i;
     ShowHero();
     RefreshWeapons();
 }
-void CCampPages::PreviousHero() {
+void CampPages::PreviousHero() {
     int i = FindHero(hero, [](int at, int count) { return at - 1 < 0 ? count - 1 : at - 1; });
     if (i == hero) return;
     hero = i;
@@ -981,9 +981,9 @@ void CCampPages::PreviousHero() {
     RefreshWeapons();
 }
 
-void CCampPages::ShowHero() {
+void CampPages::ShowHero() {
     CUnit* unit = heroes[hero];
-    CTextManager* table = g_clientWorld.texts;
+    TextManager* table = g_clientWorld.texts;
     std::string name;
     std::string own = unit->GetName();
     if (own.size() == 0) {

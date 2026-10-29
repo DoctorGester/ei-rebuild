@@ -84,7 +84,7 @@ int KindOf(const char* name) {
 
 // game.exe's camera through its view (exe_objects.h); the original draws its own pose.
 image::CameraState OriginalCamera(const void* camera) {
-    const auto* c = static_cast<const exe::CCamera*>(camera);
+    const auto* c = static_cast<const exe::Camera*>(camera);
     image::CameraState state;
     image::CameraPose& pose = state.own;
     pose.focusX = c->focus.x;

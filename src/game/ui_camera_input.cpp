@@ -1,5 +1,5 @@
 // The battle camera's input side: key release, right-button turning, deactivation and the wheel
-// (CCameraInput, ui_camera_keys.h; the key press is in ui_camera_keys.cpp). See docs/notes/ui.md,
+// (CameraInput, ui_camera_keys.h; the key press is in ui_camera_keys.cpp). See docs/notes/ui.md,
 // section 2 ("").
 #include "ui_camera_keys.h"
 #include "options.h"
@@ -28,7 +28,7 @@ float MouseSpeed(const options::CameraMotionOptions& motion) { return Option(mot
 // The wheel's steps per delta unit (read from the exe, rule 9).
 constexpr float kWheelStep = -0.008333334f;
 
-bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown || ui->altDown; }
+bool ModifierHeld(const Interface3D* ui) { return ui->ctrlDown || ui->altDown; }
 
 // Layout units to a part of the screen and the rates' scales
 constexpr float kPerWidth = 0.0025f;
@@ -62,7 +62,7 @@ constexpr int kScanCodeMask = 0x1FF;
 } // namespace
 
 
-void CCameraInput::KeyUp(int, int, int flags) {
+void CameraInput::KeyUp(int, int, int flags) {
     switch (g_keyActions[flags & kScanCodeMask]) {
     case 5:
     case 6:
@@ -83,7 +83,7 @@ void CCameraInput::KeyUp(int, int, int flags) {
         break;
     }
     if (!handled) return;
-    CCamera* camera = &g_camera;
+    Camera* camera = &g_camera;
     if (!ModifierHeld(ui)) {
         float left = static_cast<float>(-x);
         float speed = KeyboardSpeed(options::g_options.cameraScroll);
@@ -101,7 +101,7 @@ void CCameraInput::KeyUp(int, int, int flags) {
     camera->SetTiltRate(KeyboardSpeed(options::g_options.cameraPitch) * x);
 }
 
-void CCameraInput::RightDown(int, int atX, int atY) {
+void CameraInput::RightDown(int, int atX, int atY) {
     pressScreen = POINT{atX, atY};
     pressLayout = POINT{atX, atY};
     turning = true;
@@ -112,9 +112,9 @@ void CCameraInput::RightDown(int, int atX, int atY) {
     handled = true;
 }
 
-void CCameraInput::RightUp(int, int, int) {
+void CameraInput::RightUp(int, int, int) {
     turning = false;
-    CCamera* camera = &g_camera;
+    Camera* camera = &g_camera;
     camera->SetTurnRate(0.0f);
     camera->SetTiltRate(0.0f);
     Vector3 still = {0.0f, 0.0f, 0.0f};
@@ -128,8 +128,8 @@ void CCameraInput::RightUp(int, int, int) {
     handled = true;
 }
 
-void CCameraInput::MouseMove(int, int atX, int atY) {
-    CCamera* camera = &g_camera;
+void CameraInput::MouseMove(int, int atX, int atY) {
+    Camera* camera = &g_camera;
     if (turning) {
         POINT point{atX, atY};
         POINT drag{g_cursor.motion.x, g_cursor.motion.y};
@@ -199,7 +199,7 @@ void CCameraInput::MouseMove(int, int atX, int atY) {
     pressLayout = POINT{atX, atY};
 }
 
-void CCameraInput::Deactivate() {
+void CameraInput::Deactivate() {
     turning = false;
     x = 0.0f;
     y = 0.0f;
@@ -210,7 +210,7 @@ void CCameraInput::Deactivate() {
     g_camera.StopMotion();
 }
 
-void CCameraInput::Wheel(int, int delta, int, int) {
+void CameraInput::Wheel(int, int delta, int, int) {
     int steps = static_cast<short>(delta);
     g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom) * static_cast<float>(steps) * kWheelStep);
 }

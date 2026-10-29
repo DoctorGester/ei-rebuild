@@ -49,7 +49,7 @@ void RemoveRaw(List& list, Message* message) {
 
 template <typename List>
 void RemoveCounted(List& list, Message* message) {
-    HeldRef<CRefObject> held(message);
+    HeldRef<RefObject> held(message);
     RemoveValue(list, held.Get());
 }
 
@@ -104,7 +104,7 @@ void ClientSession::RecordTrade(const void* tradeParty) {
 
 // Starts our trade offer to `partner` when the binding and its player are
 // live: kept, from the binding's player.
-void ClientSession::StartParty(CRefObject* partner) {
+void ClientSession::StartParty(RefObject* partner) {
     BindingMessage* currentBinding = binding;
     if (!IsLive(currentBinding)) return;
     if (!IsLive(currentBinding->PlayerRef().Get())) return;
@@ -158,7 +158,7 @@ void ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
 void ClientOnMap(ClientSession* self, MapMessage* message) {
     self->map.Assign(message);
     ServerSession* server = g_gameServer;
-    if (server && !(server->flags7 & CRefObject::kDetached)) return;
+    if (server && !(server->flags7 & RefObject::kDetached)) return;
     LoadZoneQuests(message->text.data());
     g_gameFlow.RegisterQuests(message->text.data());
 }

@@ -27,7 +27,7 @@ Rewritten (grep the address): `AddVectors` 0040CDC0, `NegateVector` 00402200, `S
 00410770, `ClampUnit` 004022D0 ([-1, 1], NaN gives -1), `Vector3::AddInPlace` 00410750 (returns its argument),
 `Quaternion::SetIdentity` 0040CB00 (returns this), `PreMultiply` 004018A0 (`*this = r * *this`), `AxisX/Y/Z` 0040D940 / 0040F560 /
 0040D6B0, `SetAngleAxis` 0049E790, `SetAxisAngle` 0049E800, `PreMultiplyConjugate` 0049E870, `MultiplyByConjugate` 0049E950, `Slerp`
-0049ED20, `CubicSegment::SetBSpline` 0040E3D0 / `Evaluate` 0040E440 (`CubicCurve3::Evaluate` 0040E460 and its struct: no port, nothing calls them), `CTransformObject` slots 13-17
+0049ED20, `CubicSegment::SetBSpline` 0040E3D0 / `Evaluate` 0040E440 (`CubicCurve3::Evaluate` 0040E460 and its struct: no port, nothing calls them), `TransformObject` slots 13-17
 (CopyTransform 00401490, CombineRotation 0040CB80, UpdateWorld 0040CC30, SaveTransform 00401510, LoadTransform 00401540), WorldMatrix
 00401570 (4x4), TiltTowards 00401680 (down axis a tenth of the way to a target), TurnTowards 00401940 (forward axis onto a target),
 RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetHeading 00402220 (atan2 about +Z), `IsaacRandom::Next`
@@ -39,7 +39,7 @@ the game's (`InitFrom`: Init with the game's memory words as the seed, no file, 
 only reaches the picture or the sound (`ClientRand()` for the ones that drew `rand()`). The list of the moved sites and how they
 were found: standalone-verification.md section 5 and harness_client_effects.cpp (the original's functions, patched alike).
 
-- `CTransformObject` (vtable 0073BA38, abstract, 0x54 bytes): CEngineObject + local position (+0x1C),
+- `TransformObject` (vtable 0073BA38, abstract, 0x54 bytes): EngineObject + local position (+0x1C),
   world position (+0x28), local rotation (+0x34), world rotation (+0x44). Slots 13-17 are the five
   methods above, shared by ~90 vtables; slot 14 is overridden by 00516370 in the unit classes
   (writes the world rotation only). Slots 16 / 17 take a `lib::File*` and Write / Read it (the original: an MFC `CFile*`, its slots 14 / 13).
@@ -52,13 +52,13 @@ were found: standalone-verification.md section 5 and harness_client_effects.cpp 
 
 File `core_refcount.cpp`, `core_refcount.h`.
 
-- `CRefCounted` (vtable 0073BB68: 16-bit count at +4, copy-on-share flag at +6 bit 0, detached flag at
-  +7 bit 7, slot 0 deleting destructor, slot 1 Serialize). `CRefObject` (0073BB58) derives from it
+- `RefCounted` (vtable 0073BB68: 16-bit count at +4, copy-on-share flag at +6 bit 0, detached flag at
+  +7 bit 7, slot 0 deleting destructor, slot 1 Serialize). `RefObject` (0073BB58) derives from it
   and adds slot 2 shutdown, slot 3 clone. The network sessions derive from the root because their
   slot 2 is RemoveClient. The original's `RefPtr` is the one-dword owning pointer: ours is a `Ref<T>` with the
   owner's operations as free functions (`DestroyOwned`, `ShareOwned`, `ShareAssignOwned`) and `SharedRef<T>` as
   the container element that owns its share.
-- Rewritten: 0040A3A0 `CRefObject::Release`, 00417DF0 `Shutdown`, 00419CD0 `RefPtr::Assign`, 00418BE0
+- Rewritten: 0040A3A0 `RefObject::Release`, 00417DF0 `Shutdown`, 00419CD0 `RefPtr::Assign`, 00418BE0
   `Share`, 00413270 `Destroy` (dry run on stand-in objects whose vtable records the destructor /
   shutdown / clone calls: headers, call records, return value and pointer compared).
 - The compiler emitted ~100 out-of-line copies of these helpers all over 0x400000-0x480000 (21 of
@@ -72,11 +72,11 @@ File `core_refcount.cpp`, `core_refcount.h`.
 
 ### Counted pointers
 
-- Every counted class has `AddRef()` and `Release()`: CEngineObject (int refCount; at 0 the owner's ReleaseObject),
-  CRefCounted (int16 refs; deleted at 0), CLinkMeshBase, CLinkFigureLoader, CDeviceMaterial, CRenderPreset,
-  CRenderHelper and CRendererBase (deleted at 0). A site that keeps a raw pointer counts with these, not `++refCount`.
+- Every counted class has `AddRef()` and `Release()`: EngineObject (int refCount; at 0 the owner's ReleaseObject),
+  RefCounted (int16 refs; deleted at 0), LinkMeshBase, LinkFigureLoader, DeviceMaterial, RenderPreset,
+  RenderHelper and RendererBase (deleted at 0). A site that keeps a raw pointer counts with these, not `++refCount`.
   The original's drops without the release at zero (sic: the object-list iterators' manager, the constructor's handed-back
-  item, the figure's parts) are `CEngineObject::ForgetReference()`.
+  item, the figure's parts) are `EngineObject::ForgetReference()`.
 - A counted field is a `Ref<T>` (src/game/ref.h): `Assign(p)` takes p's reference first, then drops the old one (nothing
   when p is held already); `Reset()` nulls the field, then drops the reference; `Take()` hands the reference on. There
   is no store of a raw pointer, so the compiler lists every hand-counted store. A Ref starts null and its destructor
@@ -88,14 +88,14 @@ File `core_refcount.cpp`, `core_refcount.h`.
   moved.
 - Ids: `SaveRef(object, stream)` writes the id (-1: none), `LoadRef(ref, stream, world)` looks it up in the world's map
   objects (engine_object.h, counted_ref.cpp).
-- Shared objects (core_refcount.h): a field that owns its share of a CRefObject is a `Ref<T>` released with
+- Shared objects (core_refcount.h): a field that owns its share of a RefObject is a `Ref<T>` released with
   `DestroyOwned` (a still-shared object is detached and shut down first, then the Ref emptied) and set with `ShareOwned` /
   `ShareAssignOwned` (a clone of a copy-on-share object; the object held is marked copy-on-share); a container element
   that owns its share is a `SharedRef<T>` (copy: share, destructor: DestroyOwned). The network messages' plain counted
   fields are `Ref<T>` (the copy constructors Assign), their plain lists `HeldRef<T>`. The AI brain's `modes` are a
   `std::list<SharedRef<AIMode>>` (AddMode and Load emplace_back the new mode; erase and clear release).
-- CItem's `spell` (Ref<CSpell>) and `link` (Ref<CRefObject>: the server's CItemLink or the interface's ItemTurn) are
-  Refs. CObject3D's `parts` are a `std::vector<HeldRef<CFigureMesh>>` whose references the original never releases
+- Item's `spell` (Ref<CSpell>) and `link` (Ref<RefObject>: the server's ItemLink or the interface's ItemTurn) are
+  Refs. CObject3D's `parts` are a `std::vector<HeldRef<FigureMesh>>` whose references the original never releases
   through the vector: CopyFigure copies the pointers uncounted (the old ones taken without a release, each copy's
   reference forgotten again), Destroy3D takes each and forgets its reference, RemovePart takes the element and releases
   it after the detach.
@@ -107,11 +107,11 @@ File `core_refcount.cpp`, `core_refcount.h`.
   removal that must release after a later step moves the element out first (RemoveEffectSource detaches before the
   release). The candidate and party lists the AI builds on the stack hold no references (`UnitList`).
 
-## Object manager (CEngineObject, CBaseManager)
+## Object manager (EngineObject, BaseManager)
 
 File `engine_object.cpp`, `base_manager.cpp`, `hash_tables_400.cpp`. Verify `verify_base_manager`.
 
-- `CBaseManager` (vtable 0073B870, 25 slots) layout: +0x1C objects (STLport hash_map id -> object,
+- `BaseManager` (vtable 0073B870, 25 slots) layout: +0x1C objects (STLport hash_map id -> object,
   highest id at +0x30), +0x34 MFC CPtrList of registered objects, +0x50 id -> list position, +0x68 type
   -> CPtrList* of spare objects, +0x80 type -> spare count (each table is followed by its highest
   key), +0x98 / +0x9C id range [low, limit) for new ids, +0xA0 / +0xA4 (-1 constructed, 0 / 300 after
@@ -119,7 +119,7 @@ File `engine_object.cpp`, `base_manager.cpp`, `hash_tables_400.cpp`. Verify `ver
   Load / Save, 13 Init, 14 NewObject, 15 DestroyAll, 23 CreateObject, 24 ReleaseObject.
 - Objects are never freed while the manager lives: RemoveObject turns them into spares of their type
   (id -1) and CreateObject takes a spare before asking slot 14. Ids are maxId + 1 while that fits the
-  range, else `rand()` probing (100000 tries, then the fatal "CBaseManager::RegisterInstant" and id -1).
+  range, else `rand()` probing (100000 tries, then the fatal "BaseManager::RegisterInstant" and id -1).
 - Rewritten: ConstructBase 00402B20, DestructBody 00402DF0, deleting destructors 00402DD0 / 00402D20, CopyFrom 00402D40, name / description 00402CE0 / 00402CF0, Create
   00403020, Init 004031B0, Destroy 004031E0, DestroyAll 004034E0, CreateObject 00403730, RemoveObject 00404040, Unregister 004039B0, RegisterInstant 00403BD0, FreeRecords
   00404410, Load / Save 004046E0 / 00404760, LoadObjects / SaveObjects 004047E0 / 00404860 (end mark -0x521), ReleaseUnused 004048F0, `ObjectListIterator::First / Next`
@@ -139,7 +139,7 @@ File `engine_object.cpp`, `base_manager.cpp`, `hash_tables_400.cpp`. Verify `ver
 File `core_streams.cpp`, `chunk_stream.cpp`, `chunk_archive.cpp`, `net_coder.cpp` (GameBuffer).
 Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
 
-- `CStream` (vtable 0073BDB0): +4 direction byte, +5 ok, +8 limit / save format version (2000000000
+- `ByteStream` (vtable 0073BDB0): +4 direction byte, +5 ok, +8 limit / save format version (2000000000
   when constructed). Slots 0 destructor, 1 Read, 2 Write, 3 Seek, 4 Size, 5 Position, 6 Clear (memory
   streams empty, file streams rewind), 7 CopyFrom (004A4D40).
 - Typed values (C44): one value is `stream->ReadValue(x)` / `stream->WriteValue(x)` (sizeof(x) bytes, trivially copyable; also
@@ -147,12 +147,12 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   floats or a struct read as one block of 8 / 12 / 0x1C bytes, a dword of a wider record) stays `Read(&x, N)` / `Write(&x, N)` with the size
   written out: `grep -rE "(->|\.)(Read|Write)\(&"` lists them. Bytes in a raw buffer (file image, network cursor) are
   `lib::LoadBytes(x, src)` / `lib::StoreBytes(dst, x)` (lib/bytes.h; not for floats: x87::CopyBits).
-- `CMemoryStream` (0073BD90; the queue variant 0073C960): +0xC byte being assembled, +0x10 mask of the
+- `MemoryStream` (0073BD90; the queue variant 0073C960): +0xC byte being assembled, +0x10 mask of the
   last bit (0x80: a new byte is due), +0x14 index of the byte the bits go to (-1: none), +0x1C
   capacity. Slots 1 Read 004A5380, 2 Write 004A53F0 (grows to twice the need), 3 Seek 004A5490 (also stores
   pending bits), 4 Size, 5 Position, 6 Clear 00417350, 7 CopyFrom 004A55D0. `Resize` 004A54D0 keeps the
   contents (1.5x + 0x10), `SetSize` 004A5570 is exact and drops them.
-- `FileStream` (0073C8D8, 0x1C): a CStream over a `lib::File` (src/lib/file_io.h; the original: an MFC `CFile` at
+- `FileStream` (0073C8D8, 0x1C): a ByteStream over a `lib::File` (src/lib/file_io.h; the original: an MFC `CFile` at
   +0xC, each slot calling the CFile's virtual: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19
   Close). The save code builds these on the stack. Defined in `net_link.h`. Open takes MFC's CFile open flags
   (lib::File's names: `modeCreate | modeWrite` to save, `modeRead` to load).
@@ -170,8 +170,8 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   reference and takes it back.
 - `CoderState` (0x2828) and the LZ coder are in `network.md` (compression).
 
-Rewritten (grep the address): `CMemoryStream` (a real class since C28e) constructor 0041DD70 / 0066C4F0, destructor 004173D0 / 004790A0
-(two copies) and the deleting copies 004173B0 / 004790D0, Clear 00417350; `CStream` constructor 0047A200, destructor 004174E0 / 00417400; `CRefObject` / `RefValue` base
+Rewritten (grep the address): `MemoryStream` (a real class since C28e) constructor 0041DD70 / 0066C4F0, destructor 004173D0 / 004790A0
+(two copies) and the deleting copies 004173B0 / 004790D0, Clear 00417350; `ByteStream` constructor 0047A200, destructor 004174E0 / 00417400; `RefObject` / `RefValue` base
 destructors and deleting destructors 00412720 / 00413430, 00412730, 00419720, 00412700; `AlignedPointerArrayAlloc` 0047B940 and
 `AlignedObjectArray::Clear` 0047B620 (32-byte aligned blocks, header pointer before the data); CoderState's constructor 0042FCA0; the `Chunk`
 family 0042BEC0-0042D0E0 (Construct, Destruct, Advance, File, Begin/EndWrite, WriteHeader, SkipContent, ReadHeader, ForEachChild, Read / Write
@@ -187,7 +187,7 @@ SaveObjectRef 0040A440, ObjectRef 0040A5A0).
   (the image's saves are byte-for-byte repeatable: two scenarios' autosaves at the same point are identical).
 - Kept: `ReadQuad` returns the file's values in the order 2, 0, 3, 1 (`ReadVector3` returns the bits as read:
   the original's FPU copy of x and z would quiet a signalling NaN); `ForEachChild` reads
-  the parent without a null check; `CMemoryStream`'s destructor leaves the freed pointer;
+  the parent without a null check; `MemoryStream`'s destructor leaves the freed pointer;
   `SaveObjectRef` registers the object (list and number) while loading too and then searches the field without using it (nothing calls it loading);
   `ObjectRef` writes key 0 when saving; `LeaveChunk` (writing) takes the child's content pointer before
   `AppendChild` resizes the stream; a failed `EnterChunk` while loading leaves the chunk pushed.
@@ -208,8 +208,8 @@ File `camera.cpp`, `camera_motion.cpp`, `camera_object.cpp`, header `camera.h`. 
 `verify_camera*.cpp`, scenario `camera.txt` (walks the hero, pans with arrows, F9-F12, the two script
 camera commands, then PlayCamera on `camera\bz3g.cam` until IsCameraPlaying is 0). The camera object
 is at 0079B2A8 (flags at 0079B2B0; 007AF7C8 points to it for the camera-file player). The per-frame
-call is `CCamera::Update` from the game frame 00456440 (WinMain; Rebirth patches the caller).
-`CCamera` ("CCamera", class id 0x43, vtable 0073B9E0) derives from `CTransformObject`.
+call is `Camera::Update` from the game frame 00456440 (WinMain; Rebirth patches the caller).
+`Camera` ("Camera", class id 0x43, vtable 0073B9E0) derives from `TransformObject`.
 
 Layout is in `camera.h` (named members). Not obvious from it: flags 0x8 follow the target, 0x10 file open (recording), 0x20 playing, 0x40 free placement, 0x100
 bounded, 0x200 briefing limits; the view stack at +0x1E0 is a deque (push 00410E70 / pop 00410EF0, no Ghidra functions); keys at +0x2F0 are 0x24 bytes (time, ?,
@@ -292,7 +292,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   ei_vectors links only some of src/game (CMakeLists.txt's ei_vectors sources): a replayed function that calls a
   helper defined elsewhere fails to link there; use a local helper.
 - The device's mesh buffers (the original's 007AEDE0-007AEE3C; plain globals of ours): `src/game/device_buffers.h`. src/render reads the clip stack through
-  the typed `CTransformPipeline::stacks`; render_terrain.cpp once read it at pipeline +0x24 / +0x28 and drew no
+  the typed `TransformPipeline::stacks`; render_terrain.cpp once read it at pipeline +0x24 / +0x28 and drew no
   terrain after a layout change (the goldens did not notice, the render_shadows* / render_terrain_seams /
   render_loose_bmp checks did: run the render_* scenarios after a layout change).
 
@@ -305,9 +305,9 @@ instantiations were, for reading game.exe (config/library.csv names them):
   (CString::TrimLeft(TCHAR)), the trims (byte stepping, ASCII white space: `text::IsSpace`, what `_ismbcspace` answered),
   `MbsLess` (`_mbscmp < 0` on the text up to its first zero byte: the order of the maps keyed by name), `Buffer` /
   `CutAtNull` / `SetLength` for GetBuffer / ReleaseBuffer(-1) / GetBufferSetLength.
-- String lists are `std::vector<std::string>`, returned by value. `CMappedResource::ListFiles` keeps its out parameter:
+- String lists are `std::vector<std::string>`, returned by value. `MappedResource::ListFiles` keeps its out parameter:
   the vanilla body replaces the list, Rebirth's ResOverride (modfolders::ListFiles) appends to it, so the reused scratch
-  vector of TextSources::ListKeys and CSoundManager::ListWaveFiles grows over the archives as game.exe's array did. `console::Arguments` is the console's command arguments. Text that crosses a std::string (a hash of a
+  vector of TextSources::ListKeys and SoundManager::ListWaveFiles grows over the archives as game.exe's array did. `console::Arguments` is the console's command arguments. Text that crosses a std::string (a hash of a
   name) hashes its bytes as the CString did, up to the first zero byte.
 - A reader of the original's `CString::ReadString` (CStdioFile): 128-byte chunks through a local buffer, fgets given 129
   as MFC gave it, each chunk counted up to its first zero byte (ReleaseBuffer(-1)), FALSE when the last fgets read
@@ -316,7 +316,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   - A `const char*` given to a std::string parameter builds the string from it: CString took a null pointer as ""
     where std::string's constructor does not. `GameFlow::SetNetworkZone(nullptr)` crashed net_pair_leave (it stores ""
     for null now); the credits' script tokenizer gave null past a line's last word (`WordOrEmpty`);
-    `CObject3DClientSpecific::SetSkins(first, nullptr)` stores "" for a null name. A crash there is the first place
+    `Object3DClientSpecific::SetSkins(first, nullptr)` stores "" for a null name. A crash there is the first place
     to look.
   - A retyped member makes its class bigger, so everything that knew the old size or offsets breaks without a compile
     error once the layout asserts are gone. Before retyping, grep for the class's old sizeof and the offsets after the
@@ -336,11 +336,11 @@ instantiations were, for reading game.exe (config/library.csv names them):
     braces them where the statement was an if's body: unbraced, the return ran always (BriefingSpeakerInto, 8 MP
     goldens).
   - A pointer into a CString that another CString shares (refcounted buffers) outlived the local copy; a std::string's
-    does not (`CFigureStrip::Draw`'s `name`).
+    does not (`FigureStrip::Draw`'s `name`).
   - The harness digest reads our std::string members through `Text(const std::string&)` in
     tests/verify/image/harness_digest_image.cpp (the shared .inc reads game.exe's CStrings as const char*).
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors
-  (`CScript::Load` / Tokenize / the script copies replay the loader's string handling), both suites with goldens.
+  (`Script::Load` / Tokenize / the script copies replay the loader's string handling), both suites with goldens.
 
 ## Containers: STLport vector and list to std (C14b)
 
@@ -365,8 +365,8 @@ instantiations were, for reading game.exe (config/library.csv names them):
   walk read the freed node); remove(value) is an explicit walk that erases as it goes (the original destroyed each
   element on the way, std::list::remove defers that). "No node" is a value-initialised iterator (`{}`).
 - Elements that move: an element holding a std::string or counted pointer has real special members (a move for
-  DeltaField and CMemoryStream); an element whose destructor needs a complete type its header only declares
-  (EffectParticle's CParticleSource) declares its move and destructor and defaults them in a .cpp that has the type.
+  DeltaField and MemoryStream); an element whose destructor needs a complete type its header only declares
+  (EffectParticle's ParticleSource) declares its move and destructor and defaults them in a .cpp that has the type.
 
 ## Containers: STLport hash_map, map and set to std (C14c)
 
@@ -409,7 +409,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 ## Containers: the kept vectors and lists (C14n)
 
 - Records have real special members or none (the compiler's); the layout only matters for the tests' game.exe views.
-- Counted elements are RAII types: `HeldRef<T>` (ref.h; any class with AddRef / Release: CRefCounted's refs, CEngineObject's
+- Counted elements are RAII types: `HeldRef<T>` (ref.h; any class with AddRef / Release: RefCounted's refs, EngineObject's
   refCount and owner release) and `SharedRef<T>` (core_refcount.h: owning a share: copy ShareOwned, destroy
   DestroyOwned). A move hands the
   reference over, so a reallocation takes and drops none. A SharedRef copy of a copy-on-share object is a clone, as
@@ -428,7 +428,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 - net::Connection's five trees are `std::map` members (Reset destroys them by hand before the placement rebuild): the
   entries by sent id, by object and per priority (`std::array` of 11) hold `EntryRef` (`HeldRef<ReplicaEntry>`), the
-  records `Record` (a `SharedRef<CRefObject>` and the version: copied with Share, released as the owner), the attached ids plain
+  records `Record` (a `SharedRef<RefObject>` and the version: copied with Share, released as the owner), the attached ids plain
   values. Pointer keys compare as the game's unsigned compares, the sent ids signed. The destructor is the compiler's:
   the original's teardown is the reverse member order (the reliable streams, the chunk lists, the maps, the packet
   lists, the freed-id batches). operator[] (`bySentId[key] = entry`) takes the new reference before dropping the old,
@@ -447,7 +447,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 - The connection's lists: `SentItem` holds an `EntryRef`, `SentPacket` its items as `std::list<SentItem>`; the
   history, chunk and freed-id lists are members. Splices are std::list::splice.
 - `LinkArchive` (model.h; the loader's `std::list<LinkArchive>`), `TextSources::archives` (text_manager.h) and the
-  loopback link's `StreamQueue` (`std::list<CMemoryStream>`): Send appends an empty stream and copies into it. The
+  loopback link's `StreamQueue` (`std::list<MemoryStream>`): Send appends an empty stream and copies into it. The
   link's copy constructor keeps the game's queue copy (a new stream of the source's size whose Read takes the
   source's buffer: the fresh bytes are read into the source).
 - The clients' find by address is SessionBase::FindClient's loop.
@@ -457,21 +457,21 @@ instantiations were, for reading game.exe (config/library.csv names them):
 - Every MFC collection of the game is a std container: plain-element ones copy as the original's bytes did (the
   default policy zero-filled and destroyed nothing); elements with a policy have default member initializers for what
   the policy's Init set (Behaviour, ZoneExit, MapRecord, EffectParticle, SkinLayer's 0 / -1 / -1), a move for DeltaField
-  and CMemoryStream, HeldRef for counted pointers (SharedObject::objects, EffectParticle::source, the client's exit
+  and MemoryStream, HeldRef for counted pointers (SharedObject::objects, EffectParticle::source, the client's exit
   markers) and PartyUnitRecord's destructor releases its items (its move assignment releases first, so erase drops a
   record as the original's Destruct + relocate did).
 - The script (script.h): every record has real special members. Object references are
-  `ScriptObjectRef{HeldRef<CEngineObject>}` (a ScriptGroup is a `std::vector<ScriptObjectRef>`, still kept sorted by
+  `ScriptObjectRef{HeldRef<EngineObject>}` (a ScriptGroup is a `std::vector<ScriptObjectRef>`, still kept sorted by
   ScriptGroup::After); the effects (point lights, particle / FX / lightning sources) hold a move-only `ScriptEffect<T>`
   whose reset is ScriptDropEffect (the timed object removed, the reference released); a nested call owns its command
-  (`std::unique_ptr<SSCCmd>`, deep-copied). CScript has a constructor (256 point light slots, one temporary group and
+  (`std::unique_ptr<SSCCmd>`, deep-copied). Script has a constructor (256 point light slots, one temporary group and
   one temporary reference, then ScriptReset) and a destructor (ScriptReset, then the members); the world builds its two
   scripts with construct_at / destroy_at. Tokens are a `std::list<ScriptToken>` and a parse position (ScriptPos) its
   const_iterator; "Unexpected end of file" reports the list's back().line. References are released by the containers'
   destructors, so the order of Release calls within one clear can differ from the original's (no count reaches 0
   earlier than before); a run left unfinished (RunCommands) copies the instance's values only, as the game does. The
   script's vector recorders read game.exe's script through script_original.h's views (exe::Vector / List); the replay
-  (replay_script_load.cpp) builds a real CScript: as many empty blocks as the record's counts (new blocks are hashed
+  (replay_script_load.cpp) builds a real Script: as many empty blocks as the record's counts (new blocks are hashed
   after them) and a token list whose first token carries the tail's line.
 - A record that hands its references on without releasing them (the shared objects' items given at loot: the original
   frees the node and leaks the references) uses `HeldRef::Take()`. Counted elements in a plain list (the world's
@@ -479,7 +479,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   explicit before erase / clear; the original's DestructElements did nothing, so the counts are what they were.
   `ReleaseAndClear(c)` (engine_object.h) releases and clears a list of engine objects.
 - Writes that compile on any pointer and corrupt a std container: memset / memcpy over a struct holding one, a
-  reinterpret_cast of a container to another layout, a function taking a container as `void*` (CSceneRenderer::
+  reinterpret_cast of a container to another layout, a function taking a container as `void*` (SceneRenderer::
   DrawSprites' point and sprite arrays: every caller's container must be retyped together; the lightning glow's records
   stayed another array type and crashed it). Find them with temporary `= delete` overloads for std::vector /
   std::list and a forced-include check that static_asserts memset / memcpy / memmove destinations are trivially
@@ -508,7 +508,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   the nodes freed, the count and maxId cleared (the buckets stay). The world's object map (map close) and the
   player's two maps of sent objects call it through `ObjectMapClearOriginal`. Ours only (objects can go with
   their last reference); the map must end empty.
-- A-E1: `CCamera::LoadPath` (0040ECD0, RET 8, camera_path_load.cpp; Rebirth-patched at its file open
+- A-E1: `Camera::LoadPath` (0040ECD0, RET 8, camera_path_load.cpp; Rebirth-patched at its file open
   0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a lib::File (0 when that fails),
   the keys (a `std::vector<CameraKey>`) resized to length / 36 and filled with one read. With the second
   argument above 1 and below the key count, the first key among that many that is more than 500 time units
@@ -526,7 +526,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 - The sessions' message lists are `std::list<SharedRef<T>>` (copied with Share, released as the owner) and
   `std::list<HeldRef<T>>` (a plain reference). An insert of a raw-held pointer is `emplace_back(object)`: the element's constructor is the policy's copy.
-- The timed lists are `std::list<TimedEntry<SharedRef<CRefObject> / HeldRef<CRefObject>>>` (net_classes.h; the key's bits, then the
+- The timed lists are `std::list<TimedEntry<SharedRef<RefObject> / HeldRef<RefObject>>>` (net_classes.h; the key's bits, then the
   reference). The queueing code keeps the original's temporaries: a share of a share of a copy-on-share object is a
   clone, so the client's timers and the server's awards hold a clone of the entry's share (the awards a clone of a
   clone). `TimedEntry(bits, Holder)` takes the reference by value (one share, moved in).

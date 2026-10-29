@@ -30,7 +30,7 @@ int PrototypeIndexOf(const UnitPrototypeRecord* record) {
 }
 
 template <typename T>
-void WriteItemIds(CStream* stream, T* const* items, int count) {
+void WriteItemIds(ByteStream* stream, T* const* items, int count) {
     for (int i = 0; i < count; ++i) stream->WriteValue<int>(items[i] ? items[i]->id : -1);
 }
 
@@ -43,21 +43,21 @@ UnitPrototypeRecord* PrototypeByName(std::string_view name) {
 
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
-CItem* ReadItem(CUnit* unit, CStream* stream) {
-    CBaseManager* manager = unit->WorldContext()->ItemFactory();
+Item* ReadItem(CUnit* unit, ByteStream* stream) {
+    BaseManager* manager = unit->WorldContext()->ItemFactory();
     int id;
     stream->ReadValue(id);
     if (id == -1) return nullptr;
-    CItem* item = FindItem(manager, id);
+    Item* item = FindItem(manager, id);
     if (item) item->AddRef();
     return item;
 }
 
-void ReadItems(CUnit* unit, CStream* stream, CItem** slots, int count) {
+void ReadItems(CUnit* unit, ByteStream* stream, Item** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = ReadItem(unit, stream);
 }
 // The worn armour: its ids name armour pieces.
-void ReadItems(CUnit* unit, CStream* stream, CItemArmor** slots, int count) {
+void ReadItems(CUnit* unit, ByteStream* stream, ItemArmor** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = AsArmor(ReadItem(unit, stream));
 }
 
@@ -73,7 +73,7 @@ CPlayer* PlayerById(CUnit* unit, int id) {
 }
 } // namespace
 
-void CUnit::LoadUnit(CStream* stream) {
+void CUnit::LoadUnit(ByteStream* stream) {
     LoadMapObject(stream);
     controller->Load(stream);
     flags &= ~MapObjectFlag::Blocked;
@@ -134,7 +134,7 @@ void CUnit::LoadUnit(CStream* stream) {
     secondPrototype = PrototypeIndexOf(second);
 }
 
-void CUnit::SaveUnit(CStream* stream) {
+void CUnit::SaveUnit(ByteStream* stream) {
     SaveMapObject(stream);
     controller->Save(stream);
     stream->WriteString(scriptName);

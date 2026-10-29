@@ -192,7 +192,7 @@ void ChunkArchive::StringField(int id, std::string* s) {
 // (field 2, inlined Field); loading clears the stream and sizes it first. The stream is rewound;
 // then the chunk is left (inlined LeaveChunk). A chunk missing while loading stays pushed, as with
 // EnterChunk.
-void ChunkArchive::StreamField(int id, CMemoryStream* s) {
+void ChunkArchive::StreamField(int id, MemoryStream* s) {
     if (!EnterChunk(id)) return;
     std::uint32_t size = s->Size();
     Field(1, &size);
@@ -207,7 +207,7 @@ void ChunkArchive::StreamField(int id, CMemoryStream* s) {
 
 // The number a save gives an object: its place in the saved list (1, 2, ...), written as the key (the loader maps
 // any key to the object it creates); numbers by first save keep the saves free of heap layout.
-std::uint32_t SavedNumber(const ChunkArchive* a, const CRefCounted* object) {
+std::uint32_t SavedNumber(const ChunkArchive* a, const RefCounted* object) {
     auto node = a->numbers.find(object);
     return node != a->numbers.end() ? node->second : 0;
 }
@@ -215,7 +215,7 @@ std::uint32_t SavedNumber(const ChunkArchive* a, const CRefCounted* object) {
 // An object pointer field. An object not yet in the map joins the saved list (written by Close)
 // and the numbers (also while loading, where nothing reads the number). Writing
 // then stores the number; reading looks the field up and ignores it.
-void ChunkArchive::SaveObjectRef(int id, CRefCounted* object) {
+void ChunkArchive::SaveObjectRef(int id, RefCounted* object) {
     if (!numbers.contains(object)) {
         saved.insert(saved.end(), object);
         std::uint32_t& number = numbers[object];
@@ -232,7 +232,7 @@ void ChunkArchive::SaveObjectRef(int id, CRefCounted* object) {
 
 // An object reference field: the key read (0 when missing; writing stores 0) is looked up in the
 // map (inlined find); returns the object, or null.
-CRefCounted* ChunkArchive::ObjectRef(int id) {
+RefCounted* ChunkArchive::ObjectRef(int id) {
     std::uint32_t key = 0;
     if (!loading) {
         AppendChild(Current(), id, &key, 4);
@@ -254,9 +254,9 @@ ChunkArchive::ChunkArchive() {
 ChunkArchive::~ChunkArchive() {
 }
 
-// ---- Whole archives over a CStream ---------------------------------------------------------------
+// ---- Whole archives over a ByteStream ---------------------------------------------------------------
 
-bool ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
+bool ReadStreamChunk(ByteStream* in, char* id, MemoryStream* to) {
     std::uint32_t length = 0;
     in->Read(id, 1);
     in->Read(&length, 1);
@@ -269,7 +269,7 @@ bool ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
 }
 
 // ReadStreamChunk is inlined here; Open inlines all of this for the index and the records.
-bool FindStreamChunk(CStream* in, int id, CMemoryStream* to) {
+bool FindStreamChunk(ByteStream* in, int id, MemoryStream* to) {
     in->Rewind();
     char readId;
     while (ReadStreamChunk(in, &readId, to)) {
@@ -279,7 +279,7 @@ bool FindStreamChunk(CStream* in, int id, CMemoryStream* to) {
     return false;
 }
 
-void WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
+void WriteStreamChunk(ByteStream* out, int id, MemoryStream* from) {
     char tag = static_cast<char>(id);
     out->WriteValue(tag);
     std::uint32_t length = from->Size() * 2;
@@ -293,10 +293,10 @@ void WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
     out->Write(data, from->Size());
 }
 
-void ChunkArchive::Open(CStream* stream, int newLoading, int newVersion) {
+void ChunkArchive::Open(ByteStream* stream, int newLoading, int newVersion) {
     stack.clear();
-    CMemoryStream* index = &indexStream;
-    CMemoryStream* data = &dataStream;
+    MemoryStream* index = &indexStream;
+    MemoryStream* data = &dataStream;
     index->Clear();
     data->Clear();
     PushChunk();
@@ -316,7 +316,7 @@ void ChunkArchive::Open(CStream* stream, int newLoading, int newVersion) {
         index->ReadValue(classId);
         index->ReadValue(key);
         Factory factory = g_classRegistry.factories[classId];
-        CRefCounted* object = factory ? factory() : nullptr;
+        RefCounted* object = factory ? factory() : nullptr;
         saved.insert(saved.end(), object);
         loaded[key] = object;
     }
@@ -335,7 +335,7 @@ void ChunkArchive::Open(CStream* stream, int newLoading, int newVersion) {
         } else {
             AppendChild(record, 0, &key, 4);
         }
-        CRefCounted* object = loaded[key];
+        RefCounted* object = loaded[key];
         if (object && EnterChunk(1)) {
             object->Serialize(this);
             LeaveChunk();
@@ -347,14 +347,14 @@ void ChunkArchive::Open(CStream* stream, int newLoading, int newVersion) {
     Current()->size = static_cast<std::int32_t>(data->Size());
 }
 
-void ChunkArchive::Close(CStream* stream) {
-    CMemoryStream* index = &indexStream;
-    CMemoryStream* data = &dataStream;
+void ChunkArchive::Close(ByteStream* stream) {
+    MemoryStream* index = &indexStream;
+    MemoryStream* data = &dataStream;
     if (loading) {
         // After a load: each loaded object gets a reference and loses it again (one without other
         // owners is deleted).
         for (auto& node : loaded) {
-            CRefCounted* object = node.second;
+            RefCounted* object = node.second;
             if (!object) continue;
             object->AddRef();
             object->Release();
@@ -365,7 +365,7 @@ void ChunkArchive::Close(CStream* stream) {
         data->Clear();
         Current()->Reset();
         while (!saved.empty()) {
-            CRefCounted* object = saved.front();
+            RefCounted* object = saved.front();
             saved.pop_front();
             std::uint32_t vtable;
             lib::LoadBytes(vtable, object);
@@ -379,7 +379,7 @@ void ChunkArchive::Close(CStream* stream) {
             if (loading) {
                 ChunkArchive::Ref field;
                 field.Reset();
-                object = FindChild(record, 0, &field, record->occurrence) ? ValueAt<CRefCounted*>(dataStream.data.data() + field.offset) : nullptr;
+                object = FindChild(record, 0, &field, record->occurrence) ? ValueAt<RefCounted*>(dataStream.data.data() + field.offset) : nullptr;
             } else {
                 AppendChild(record, 0, &number, 4);
             }

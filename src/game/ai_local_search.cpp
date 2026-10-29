@@ -1,5 +1,5 @@
 // The local search (LocalSearch, ai_map.h): Dijkstra over a 34 x 34 window of AI map cells, used
-// for short paths (CAIMap::JoinLocalSearches runs a forward and a backward one until they meet),
+// for short paths (AIMap::JoinLocalSearches runs a forward and a backward one until they meet),
 // the long-range planner's legs and the region map's block measurements. See docs/notes/ai.md.
 #include "ai_map.h"
 
@@ -213,7 +213,7 @@ void LocalSearch::PathTo(int x, int y, PathCells* out) {
     int wy = y - originY;
     if (wx < 0 || wx >= kWindow || wy < 0 || wy >= kWindow) return;
     // The cells' second dword is a stack word the original never writes. Its only caller,
-    // CAIMap::JoinLocalSearches, leaves the forward search's address there.
+    // AIMap::JoinLocalSearches, leaves the forward search's address there.
     auto stale = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(&map->forwardSearch));
     auto cellAt = [&](int cx, int cy) {
         return PathCell{static_cast<std::int16_t>(originX + cx), static_cast<std::int16_t>(originY + cy),
@@ -330,7 +330,7 @@ void LocalSearch::RestoreLevels() {
     levelsSaved = false;
 }
 
-void CAIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
+void AIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
     out->forwardSpeed = 0.1f;
     out->backwardSpeed = 0.1f;
     out->turnScale = 10.0f;
@@ -342,7 +342,7 @@ void CAIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
     out->costs = unit->altPassCosts ? passCostsAlt : passCosts;
 }
 
-void LocalSearch::Attach(CAIMap* mapArg, bool backwardArg) {
+void LocalSearch::Attach(AIMap* mapArg, bool backwardArg) {
     map = mapArg;
     backward = backwardArg;
     nodes.Resize(kWindow, kWindow);

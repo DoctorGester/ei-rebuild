@@ -41,7 +41,7 @@ bool ZoneExit::Contains(float x, float y) const {
     return turnedY <= y2;
 }
 
-void ZoneExit::Read(CStream* stream) {
+void ZoneExit::Read(ByteStream* stream) {
     stream->ReadValue(passTime);
     for (float& value : deploy) stream->ReadValue(value);
     stream->ReadValue(x1);
@@ -61,7 +61,7 @@ void ZoneExit::Read(CStream* stream) {
     }
 }
 
-void ZoneExit::Write(CStream* stream) const {
+void ZoneExit::Write(ByteStream* stream) const {
     auto put = [stream](const void* field, std::uint32_t size) {
         std::uint32_t copy = 0;
         std::memcpy(&copy, field, size);

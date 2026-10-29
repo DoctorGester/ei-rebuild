@@ -1,6 +1,6 @@
 // A class template's trader stock: the levels setter and the two generators the
 // camp calls when its constructor record is due (items, magic). The generators
-// collect new items in an STLport list<CItem*>, hand each to the template's party and release it.
+// collect new items in an STLport list<Item*>, hand each to the template's party and release it.
 // Names are provisional; see docs/notes/items_spells.md ("Trader stock").
 #include "class_templates.h"
 
@@ -15,8 +15,8 @@
 namespace {
 
 // Each listed item goes to `party` (keeping its count, merged with an equal one) and is released.
-void HandOver(const std::list<CItem*>& list, CParty* party) {
-    for (CItem* item : list) {
+void HandOver(const std::list<Item*>& list, CParty* party) {
+    for (Item* item : list) {
         party->AddItem(item, 1, 1);
         item->Release();
     }
@@ -41,7 +41,7 @@ void ClassTemplate::SetLevels(const float* base, const float* scroll) {
 
 void ClassTemplateGenerateItems(ClassTemplate* t) {
     if (!t->sellsItems) return;
-    std::list<CItem*> list;
+    std::list<Item*> list;
     t->ItemsParty()->Clear(1, 0);
     ItemStock& stock = t->allowed;
     stock.classIndex = t->type - 1;
@@ -59,7 +59,7 @@ void ClassTemplateGenerateItems(ClassTemplate* t) {
 
 void ClassTemplateGenerateMagic(ClassTemplate* t) {
     if (!t->sellsSpells) return;
-    std::list<CItem*> list;
+    std::list<Item*> list;
     t->SpellsParty()->Clear(1, 0);
     ItemStock& stock = t->magic;
     stock.classIndex = t->type - 1;

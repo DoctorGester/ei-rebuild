@@ -135,7 +135,7 @@ void ClientDropParty(ClientSession* self);
 
 // A replicated network object: a connection sends it again whenever its version differs from the one last
 // sent. OnShutdown resets the message (destroyed and built again in place), Clone copies it.
-class Message : public CRefObject {
+class Message : public RefObject {
 public:
     ~Message() override;
     virtual void Write(BufferCursor* cursor) = 0;   // the fields at the cursor's byte position
@@ -145,14 +145,14 @@ public:
 
 protected:
     Message();
-    Message(const Message& other) : CRefObject(), version(other.version) {}
+    Message(const Message& other) : RefObject(), version(other.version) {}
 };
 
 using MessageFactory = Message* (*)();
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
-class ServerEntryBase : public CRefObject {
+class ServerEntryBase : public RefObject {
 public:
     ~ServerEntryBase() override;
     virtual void Write(BufferCursor* cursor) = 0;
@@ -223,7 +223,7 @@ constexpr int kMessageTypes = 0x100;
 
 // A message handler as the session keeps it: its session and the message. The handlers themselves take their
 // own session class and message class (net_handlers.h); AsHandler is the one place they become this.
-using MessageHandler = void(*)(SessionBase*, CRefObject*);
+using MessageHandler = void(*)(SessionBase*, RefObject*);
 template <typename Session, typename MessageType>
 MessageHandler AsHandler(void(*handler)(Session*, MessageType*)) {
     return reinterpret_cast<MessageHandler>(handler);
@@ -236,7 +236,7 @@ struct TypeRegistry {
     std::unordered_map<std::uint32_t, MessageFactory> byType;         // type id -> factory
 
     // The key of a message's class: its vtable (the object's first dword).
-    static std::uint32_t KeyOf(const CRefObject* message) {
+    static std::uint32_t KeyOf(const RefObject* message) {
         std::uint32_t key;
         lib::LoadBytes(key, message);   // read before any null check
         return key;
@@ -303,7 +303,7 @@ inline void PushReplicated(std::vector<Replicated>* v, void* object, std::uint8_
 
 // Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login, 5 info, 6
 // accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after that byte.
-class SessionBase : public CRefCounted {
+class SessionBase : public RefCounted {
 public:
     void RegisterTradeHandler(int channel, MessageHandler handler);
     void RegisterAwardHandler(int channel, MessageHandler handler);
@@ -446,7 +446,7 @@ public:
     // Queues the host's item awards of the briefing `entry` (and, with `withFinal`, the final award).
     void AwardHost(const QuestBriefingRecord* entry, bool withFinal);
     // Queues an award message for `connection` (60 s delay); destroys `text`.
-    void QueueAward(CRefObject* connection, int kind, float value, std::string text);
+    void QueueAward(RefObject* connection, int kind, float value, std::string text);
     // Lists `data` under `name` (unless listed) as a file message with 64-byte chunk messages.
     void ShareFile(const std::string* name, GameBuffer* data);
     // Whether the server is announced to the master server (port 28004).
@@ -456,9 +456,9 @@ public:
     // the session magic. EI_Plugin's NewMaster patches the send; this is the version without it.
     void AnnounceToMaster();
     // Keeps a chat or system line for the clients (`player` null for the server's own; at most 50 lines).
-    void Announce(std::string_view text, CRefObject* player);
+    void Announce(std::string_view text, RefObject* player);
     // Announce with text `kind` of the text table formatted with `text`.
-    void AnnounceText(int kind, const char* text, CRefObject* player);
+    void AnnounceText(int kind, const char* text, RefObject* player);
     // The trade between two offers (either order), or null.
     TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
     int LeaderId();                                       // the first host's id, -1
@@ -490,10 +490,10 @@ public:
     Ref<MapMessage> map;           // the map message while a map is played
     std::list<SharedRef<ZoneMessage>> queuedMaps; // map messages the host may pick next
     std::list<SharedRef<VariableMessage>> variables;
-    std::list<TimedEntry<SharedRef<CRefObject>>> awards;             // {delay, award}
+    std::list<TimedEntry<SharedRef<RefObject>>> awards;             // {delay, award}
     std::list<HeldRef<PartyMessage>> offers; // the players' trade offers
     std::list<HeldRef<TradeMessage>> trades;
-    std::list<TimedEntry<HeldRef<CRefObject>>> finishedTrades;    // {delay, trade}: done trades, kept 60 s
+    std::list<TimedEntry<HeldRef<RefObject>>> finishedTrades;    // {delay, trade}: done trades, kept 60 s
     std::list<NetAddress> banned;
     std::string name;
     std::string mapName;
@@ -585,7 +585,7 @@ public:
     double BufferRatio(GameBuffer* buffer);
     // Reads a server list reply.
     void ReadServerList(GameBuffer* in);
-    void StartParty(CRefObject* partner);
+    void StartParty(RefObject* partner);
     void RecordTrade(const void* party);
 
     ClientSession();
@@ -598,7 +598,7 @@ public:
     // Applies the awards received: experience, gold, items.
     void ApplyAwards();
     // Keeps `object` on the timers list for `seconds`.
-    void AddTimed(CRefObject* object, std::uint32_t seconds);
+    void AddTimed(RefObject* object, std::uint32_t seconds);
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, std::string_view text);
 
@@ -613,7 +613,7 @@ public:
     std::list<HeldRef<ZoneMessage>> zones; // map messages the host may pick
     std::list<HeldRef<VariableMessage>> variables;
     Ref<LoginMessage> player;      // the local player's login record
-    std::list<TimedEntry<SharedRef<CRefObject>>> timers;             // {seconds left, object}: objects kept for a while
+    std::list<TimedEntry<SharedRef<RefObject>>> timers;             // {seconds left, object}: objects kept for a while
     std::list<HeldRef<AwardMessage>> awards; // awards received, applied by ApplyAwards
     Ref<PartyMessage> party;       // our trade offer (party description)
     std::list<HeldRef<PartyMessage>> offers; // the other players' trade offers

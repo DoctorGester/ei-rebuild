@@ -1,5 +1,5 @@
 // The effects a mission script places in the world: point lights, particle sources, sound (FX)
-// sources and lightning bolts (CScript::pointLights, particles, fxSources, lightning). Saving
+// sources and lightning bolts (Script::pointLights, particles, fxSources, lightning). Saving
 // and loading them with the savegame. See script.h and docs/notes/script.md.
 #include "script.h"
 
@@ -88,12 +88,12 @@ constexpr ScriptParticleType kScriptParticleTypes[64] = /*0078B120*/ {
     {"Transform", 0x2052, 200},
 };
 
-// Class ids of the effect objects the script makes (CBaseManager::CreateObject).
+// Class ids of the effect objects the script makes (BaseManager::CreateObject).
 constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
 
 // The effect object saved under `id` (-1: none), as the slot's effect class.
 template <class T>
-ScriptEffect<T> ReadObject(CStream* stream) {
+ScriptEffect<T> ReadObject(ByteStream* stream) {
     int id;
     stream->ReadValue(id);
     if (id == -1) return {};
@@ -113,14 +113,14 @@ T* FindId(std::list<T>& list, int id) {
 } // namespace
 
 // Takes the effect object out of the world's timed objects and drops the reference to it.
-void ScriptDropEffect(CEngineObject* object) {
+void ScriptDropEffect(EngineObject* object) {
     g_serverWorld.RemoveTimedObject(object->id);
     object->Release();
 }
 
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
-void CScript::ScriptCreateFx(const SSCCmd* cmd) {
-    auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
+void Script::ScriptCreateFx(const SSCCmd* cmd) {
+    auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
     const float* f = cmd->floatArgs.data();
     sound->localPosition = {f[0], f[1], f[2]};
     x87::CopyBits(sound->volume, f[3]);
@@ -135,7 +135,7 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
 // is written below except, for CreateFXSource, spread, the delays and the countdown (stack residue in the
 // game): the tick counts such a source down and replaces its sound at zero, so a zero countdown would
 // replace the sound on every tick; INT_MAX keeps the sound, as a positive residue does.
-void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
+void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
     int id = x87::RoundToInt(f[0]);
     if (id < 0) id = nextFxId--;
@@ -164,8 +164,8 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
         source->idle = 1;
         return;
     }
-    auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
-    source->object = ScriptEffect<CEffectSound>(sound);
+    auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
+    source->object = ScriptEffect<EffectSound>(sound);
     sound->localPosition = {source->position.x, source->position.y, source->position.z};
     x87::CopyBits(sound->volume, source->volume);
     x87::CopyBits(sound->radius, source->radius);
@@ -177,15 +177,15 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
 
 // CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
 // next automatic one; others are truncated. The bolt is always added, even when the id exists.
-void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
+void Script::ScriptCreateLightning(const SSCCmd* cmd) {
     ScriptLightning& newLightning = lightning.emplace_back();
 
     const float* f = cmd->floatArgs.data();
     if (f[0] >= 0.0f) newLightning.id = static_cast<int>(f[0]);
     else newLightning.id = nextParticleId--;    // also NaN
 
-    auto* bolt = g_serverWorld.timedObjectManager->CreateObjectAs<CEffectLightning>(ClassId::EffectLightning, -1);
-    newLightning.object = ScriptEffect<CEffectLightning>(bolt);
+    auto* bolt = g_serverWorld.timedObjectManager->CreateObjectAs<EffectLightning>(ClassId::EffectLightning, -1);
+    newLightning.object = ScriptEffect<EffectLightning>(bolt);
     Vector3 to{f[4], f[5], f[6]};
     Vector3 from{f[1], f[2], f[3]};
     bolt->SetEnds(from, to, f[7]);
@@ -194,7 +194,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
 
 // CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
 // negative id takes the next automatic one; an existing source with the id gets the new effect.
-void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
+void Script::ScriptCreateParticleSource(const SSCCmd* cmd) {
     std::string name = cmd->stringArgs[0];
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
@@ -232,7 +232,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
 
 // MoveParticleSource(id, x, y, z, steps, delete when done). The source moves towards the
 // point in `steps` equal steps (one per tick); nothing when no source has the id.
-void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
+void Script::ScriptMoveParticleSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
     ScriptParticleSource* source = FindId(particles, x87::RoundToInt(f[0]));
     if (!source) return;
@@ -247,7 +247,7 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
 }
 
 
-void ScriptPointLight::Save(CStream* stream) const {
+void ScriptPointLight::Save(ByteStream* stream) const {
     stream->WriteValue(object.SavedId());
     stream->WriteValue(id);
     stream->WriteValue(removeWhenDone);
@@ -256,7 +256,7 @@ void ScriptPointLight::Save(CStream* stream) const {
     stream->WriteValue(step);
 }
 
-void ScriptParticleSource::Save(CStream* stream) const {
+void ScriptParticleSource::Save(ByteStream* stream) const {
     stream->WriteValue(object.SavedId());
     stream->WriteValue(id);
     stream->WriteValue(deleteAfterMove);
@@ -266,7 +266,7 @@ void ScriptParticleSource::Save(CStream* stream) const {
     stream->WriteValue(lifetime);
 }
 
-void ScriptFxSource::Save(CStream* stream) const {
+void ScriptFxSource::Save(ByteStream* stream) const {
     stream->WriteValue(object.SavedId());
     stream->WriteValue(id);
     stream->WriteString(name);
@@ -280,14 +280,14 @@ void ScriptFxSource::Save(CStream* stream) const {
     stream->WriteValue(countdown);
 }
 
-void ScriptLightning::Save(CStream* stream) const {
+void ScriptLightning::Save(ByteStream* stream) const {
     stream->WriteValue(object.SavedId());
     stream->WriteValue(id);
 }
 
 
-void ScriptPointLight::Load(CStream* stream) {
-    object = ReadObject<CEffectPointLight>(stream);
+void ScriptPointLight::Load(ByteStream* stream) {
+    object = ReadObject<EffectPointLight>(stream);
     stream->ReadValue(id);
     stream->ReadValue(removeWhenDone);
     stream->ReadValue(moving);
@@ -295,8 +295,8 @@ void ScriptPointLight::Load(CStream* stream) {
     stream->ReadValue(step);
 }
 
-void ScriptFxSource::Load(CStream* stream) {
-    object = ReadObject<CEffectSound>(stream);
+void ScriptFxSource::Load(ByteStream* stream) {
+    object = ReadObject<EffectSound>(stream);
     stream->ReadValue(id);
     name = stream->ReadString();
     stream->ReadValue(position);

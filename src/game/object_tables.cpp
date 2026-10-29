@@ -26,13 +26,13 @@ bool IsTextKey(int id) {
     return id >= 1000000000 && id < 2000000000;
 }
 
-MapRecord* CMapDatabase::FindMap(std::string_view name) {
+MapRecord* MapDatabase::FindMap(std::string_view name) {
     for (MapRecord& map : maps)
         if (text::CompareIgnoringCase(map.name, name) == 0) return &map;
     return nullptr;
 }
 
-AllodRecord* CMapDatabase::FindAllod(std::string_view name) {
+AllodRecord* MapDatabase::FindAllod(std::string_view name) {
     for (AllodRecord& allod : allods)
         if (text::CompareIgnoringCase(allod.name, name) == 0) return &allod;
     return nullptr;
@@ -69,7 +69,7 @@ void NamedFloatTable::CopyPrefixed(std::string_view prefix, NamedFloatTable* out
         if (key.starts_with(prefix)) (*out)[key] = value;
 }
 
-void NamedFloatTable::Load(CStream* stream) {
+void NamedFloatTable::Load(ByteStream* stream) {
     clear();
     for (;;) {
         std::string key = stream->ReadString();
@@ -80,7 +80,7 @@ void NamedFloatTable::Load(CStream* stream) {
     }
 }
 
-void NamedFloatTable::Save(CStream* stream) {
+void NamedFloatTable::Save(ByteStream* stream) {
     for (const auto& [name, value] : *this) {
         stream->WriteString(name);
         stream->WriteValue(value);

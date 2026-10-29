@@ -45,7 +45,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
   ones the harness or the image routes go through the image's import slots). Containers and strings are standard
   types. Add to these only when needed, in small separate additions.
 - `tests/vectors/`: function vectors (recorders, replay checks; see Verification).
-- Shared headers others use: `src/game/engine_object.h` (CEngineObject virtual interface),
+- Shared headers others use: `src/game/engine_object.h` (EngineObject virtual interface),
   `src/lib/vecmath.h` (Vector2/3/4, Quaternion, Matrix4 and inline helpers with named sum
   groupings, docs/notes/vector-math.md; `maths.h` includes it), `ai_map.h`, `resource*.h`,
   `terrain.h`, `base_manager.h`.
@@ -65,7 +65,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
 4. **Virtual methods** are the compiler's (C19): nothing reaches a slot's address.
    The `...Hook` shims and `...Impl` bodies left from registering slots are C28's to fold into the
    virtuals. Constructors and destructors are C++ ones (docs/notes/standalone.md, "Real classes"). Do not give a non-virtual method the same name and signature as a base-class virtual
-   (`CEngineObject::Create`, `Destroy`, `Release`, `Load`, `Save`, `GetName`, ...): it silently
+   (`EngineObject::Create`, `Destroy`, `Release`, `Load`, `Save`, `GetName`, ...): it silently
    becomes an override.
 5. **No forwarders.** Every function of game.exe is ported: call it by name (include its header, or
    declare it there). src has no `EI_ORIGINAL` (C29; `check_cleanup` keeps it at 0). Where the harness
@@ -80,7 +80,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    engine object whose constructor leaves fields the game reads is `new (kZeroed) T(...)` (engine_object.h).
    A heap helper the original freed by hand that becomes a local with a destructor (PlayerIterator drops its
    count of the player list) runs that destructor at the end of its scope, not where the original freed it:
-   scope it so it ends before anything it holds is deleted (CWorldServer::Destroy's iterator outlived the
+   scope it so it ends before anything it holds is deleted (WorldServer::Destroy's iterator outlived the
    list CWorld::Destroy deletes and decremented the freed block, a flaky heap crash at quit). A std::vector is
    read and written within its size: STLport code that read the popped element through end() (IdPool::Allocate) or
    let a helper write past the size into the spare capacity (the sprite clipper's vertices) is undefined on a
@@ -108,7 +108,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
      rather than the x87 one, and gives 0 with errno EDOM where FISTP gives 0x80000000 (SV10j).
    - The game's main thread runs at 24-bit precision (control word 007F, set by Direct3D; measured at every frame boundary in both installs; other
      threads run at 53 bits). A float the original returns unrounded in ST0 must not be rounded on return: declare the function `double` and let
-     callers round when they store (see `CItemWeapon::RollDamage`); it is exact at 24 and 53 bits and callers that keep using ST0 need it
+     callers round when they store (see `ItemWeapon::RollDamage`); it is exact at 24 and 53 bits and callers that keep using ST0 need it
      (docs/notes/rebirth.md).
    - Convert unsigned 32-bit values (random words, tick counts) with `x87::FromUnsigned`, never `static_cast<double>`: MSVC adds 2^32 with an FADD
      that rounds; `tools/check_x87.py` checks this. Where detecting NaN is the code's purpose, test it with `x87::IsNaN` (a bit test; `v != v`
@@ -182,17 +182,17 @@ does not need a second pass:
 - parameters and fields carry their types (C21): no `void*` that every caller and the body cast;
   objects come from `new T` (rule 6), not a `static_cast` of a raw block (tools/progress.py counts the
   pointer casts; check_cleanup does not); objects of a manager come typed from
-  `CBaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
+  `BaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
   `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty; its
-  slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`); a window surface is drawn on through `CUiSurface`'s own members (`DrawTextIn`, `FillRect`, ...), not a
+  slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`); a window surface is drawn on through `UiSurface`'s own members (`DrawTextIn`, `FillRect`, ...), not a
   per-file view struct derived from it. A window class that shares another's layout derives from
-  it (CUiItemStrip : CUiItemPanel, CMpHeroScreen : CItemScreen) instead of holding a `CUiWindow
-  window` member and being punned; the item panels' owner is the CItemScreen. A container's input
-  side is `CUiContainer::ContainerInput()`. An item screen's slots 42-54 are called through
-  `CItemScreen::Virtual*` (VirtualHeroRecord, VirtualPrice, ...), a panel's Build through
-  `CUiWindow::VirtualBuild`, not a `VirtualSlot` with a local function type; three pointers that
+  it (UiItemStrip : UiItemPanel, MpHeroScreen : ItemScreen) instead of holding a `UiWindow
+  window` member and being punned; the item panels' owner is the ItemScreen. A container's input
+  side is `UiContainer::ContainerInput()`. An item screen's slots 42-54 are called through
+  `ItemScreen::Virtual*` (VirtualHeroRecord, VirtualPrice, ...), a panel's Build through
+  `UiWindow::VirtualBuild`, not a `VirtualSlot` with a local function type; three pointers that
   are a vector are a `std::vector<T>` member. The interface's active screen is
-  `CInterface3D::ActiveWindowAs<Screen>()`; a counted helper a world holds is a `Ref<T>` field
+  `Interface3D::ActiveWindowAs<Screen>()`; a counted helper a world holds is a `Ref<T>` field
   released with `DestroyOwned`; the new connections a player source hands over are a `JoinedLinks`
   (`std::list<netlink::NetLink*>`); a window's handled flag is
   its `handled` member (UiInputSide). A counted object is tested with `IsLive(object)` (core_refcount.h: set and
@@ -220,7 +220,8 @@ does not need a second pass:
   guards. Where a member and a parameter or local would share a name, rename the parameter or local (`newSize`,
   `ownerWindow`); never write `this->` to tell them apart. /W4's C4458 (a declaration hides a class member) finds
   the clashes.
-- Classes, structs and enums have no `C` prefix (`Unit`, `WorldClient`, `ItemScreen`).
+- Classes, structs and enums have no `C` prefix (`WorldClient`, `ItemScreen`, `AIMap`); where a member function
+  already has the plain name (`Party()`, `World()`), that function is renamed in the same step.
 - Rename a type, a member or a file wherever a better name makes the code easier to read; the rename goes
   through the whole tree in one step, the compiler as the checker.
 - Files are grouped by feature, not by the original's address order or vtable slot: a class's members live in

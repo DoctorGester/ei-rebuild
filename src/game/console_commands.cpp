@@ -45,7 +45,7 @@ CPlayer* LocalPlayer() {
     return g_clientWorld.LocalView()->player;
 }
 
-bool ServerActive(net::ClientSession* server) { return server && !(server->flags7 & CRefCounted::kDetached); }
+bool ServerActive(net::ClientSession* server) { return server && !(server->flags7 & RefCounted::kDetached); }
 
 void SetConsoleRect(int left, int top, int right, int bottom) {
     RECT rect = {left, top, right, bottom};
@@ -217,7 +217,7 @@ void LoadVar(std::vector<std::string>* args) {
     if (args->size() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
     CPlayer* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
-    CPlayerServer* state = player->Server();
+    PlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
 
     std::string line;
@@ -275,7 +275,7 @@ void Give(std::vector<std::string>* args) {
     }
     CPlayer* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
-    CPlayerServer* state = player->Server();
+    PlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
     if (ArgIs(args, 1, "money") && args->size() > 2) {
         int amount = str::ToInt((*args)[2]);

@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <cstring>
 
-void MapEffect::Load(CStream* stream) {
+void MapEffect::Load(ByteStream* stream) {
     stream->ReadValue(type);
     stream->ReadValue(power);
     stream->ReadValue(ticksLeft);
@@ -16,7 +16,7 @@ void MapEffect::Load(CStream* stream) {
     stream->ReadValue(strength);
 }
 
-void MapEffect::Save(CStream* stream) const {
+void MapEffect::Save(ByteStream* stream) const {
     stream->WriteValue(type);
     stream->WriteValue(power);
     stream->WriteValue(ticksLeft);
@@ -24,7 +24,7 @@ void MapEffect::Save(CStream* stream) const {
     stream->WriteValue(strength);
 }
 
-void CSpell::Load(CStream* stream) {
+void CSpell::Load(ByteStream* stream) {
     std::memset(modifiers, 0, sizeof(modifiers));
     MapEffect record = Effect();
     record.Load(stream);
@@ -44,7 +44,7 @@ void CSpell::Load(CStream* stream) {
     stream->ReadValue(skillNeeded);
 }
 
-void CSpell::Save(CStream* stream) {
+void CSpell::Save(ByteStream* stream) {
     Effect().Save(stream);
     stream->WriteValue(speed);
     stream->WriteValue(range);

@@ -31,12 +31,12 @@ std::uint32_t ModeId(AIMode* mode) {
 
 int PartyItemCount(CParty* party) { return party->items.size; }
 
-std::uint32_t MissileVtable(const CSpellEffect* e) {
+std::uint32_t MissileVtable(const SpellEffect* e) {
     return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(e->vtable));
 }
 
-// A cast spell's missile has CSpellEffect's table (0074399C).
-bool IsSpellEffect(const CSpellEffect* e) {
+// A cast spell's missile has SpellEffect's table (0074399C).
+bool IsSpellEffect(const SpellEffect* e) {
     return e->vtable == &OriginalGameData<const void* const>(0x0074399C);
 }
 

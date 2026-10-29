@@ -15,7 +15,7 @@ constexpr float kMinSight = 0.1f;
 static_assert(std::bit_cast<std::uint32_t>(kMinSight) == 0x3DCCCCCDu);
 } // namespace
 
-bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3& from,
+bool SpellHasLineOfSight(WorldServer* world, CSpell* spell, CUnit* caster, const Vector3& from,
                                     CUnit* target, const Vector3& at) {
     const auto* record = spell->GetPrototype();
     if (!record->needsSight) return true;

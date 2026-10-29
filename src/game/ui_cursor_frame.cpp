@@ -26,7 +26,7 @@ render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.righ
 // when an image is shown and the cursor moved (or its frame stepped), the last frame presented again
 // with the cursor at its new rectangle (render::CursorBetweenFrames; nothing while the main thread's
 // frames come often enough); the drawn rectangle follows as the DirectDraw blits made it.
-void MoveBetweenFrames(CCursor* self) {
+void MoveBetweenFrames(Cursor* self) {
     gameapi::EnterCriticalSection(&self->lock);
     const bool moved = self->UpdatePosition();
     if (self->imageShown && moved) {
@@ -40,7 +40,7 @@ void MoveBetweenFrames(CCursor* self) {
 } // namespace
 
 // (Without an image shown, DirectDraw saves the background from the primary in mode 2: nothing here.)
-void CursorDrawFrame(CCursor* self) {
+void CursorDrawFrame(Cursor* self) {
     if (!SoftwareCursor()) return;
     if (!self->enabled) return;
     self->UpdatePosition();
@@ -56,7 +56,7 @@ void CursorDrawFrame(CCursor* self) {
 // MoveBetweenFrames (DirectDraw: when an image is shown and the cursor moved, its old place's background
 // restored, the new one's saved and the composed cursor blitted to the primary, after the vertical blank). At
 // the end the event `stopped` is set.
-void CursorThread(CCursor* self) {
+void CursorThread(Cursor* self) {
     if (!self->enabled) return;
     gameapi::EnterCriticalSection(&self->lock);
     self->UpdatePosition();
@@ -78,7 +78,7 @@ void CursorThread(CCursor* self) {
 
 // The procedure lib::StartThread starts (the cursor as its parameter): CursorThread, then exit code 0.
 unsigned __stdcall CursorThreadEntry(void* cursor) {
-    CursorThread(static_cast<CCursor*>(cursor));
+    CursorThread(static_cast<Cursor*>(cursor));
     return 0;
 }
 
