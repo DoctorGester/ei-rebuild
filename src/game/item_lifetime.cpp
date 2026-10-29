@@ -1,32 +1,17 @@
-// The items' constructors and destructors, their Create / Destroy slots (2 / 3) and class names
-// (11 / 12). See item.h and docs/notes/items_spells.md ("Item rules").
-#include "core_refcount.h"
+// The items' constructors and destructors, Create / Destroy, class names and ids, and the item manager's
+// factory. See item.h and docs/notes/items_spells.md ("Item rules").
 #include "item.h"
 #include "spell.h"
 
-#include <bit>
-#include <cstring>
-
-namespace {
-
-constexpr float kMinusOne = -1.0f;
-
-template <typename T>
-void SetMinusOne(T& field) {
-    field = std::bit_cast<T>(kMinusOne);
-}
-
-} // namespace
-
 CItem::CItem() {
-    SetMinusOne(condition_);
-    SetMinusOne(conditionMax_);
-    SetMinusOne(charge_);
-    SetMinusOne(chargeMax_);
-    SetMinusOne(chargeRate_);
-    SetMinusOne(weight_);
-    SetMinusOne(price_);
-    SetMinusOne(unreadValue_);
+    condition_ = -1.0f;
+    conditionMax_ = -1.0f;
+    charge_ = -1.0f;
+    chargeMax_ = -1.0f;
+    chargeRate_ = -1.0f;
+    weight_ = -1.0f;
+    price_ = -1.0f;
+    unreadValue_ = -1.0f;
     count_ = 1;
 }
 
@@ -45,25 +30,11 @@ CItem::~CItem() {
 }
 
 CItemWeapon::CItemWeapon() {
-    SetMinusOne(damage_);
-    SetMinusOne(damageSpread_);
-    SetMinusOne(reach_);
+    damage_ = -1.0f;
+    damageSpread_ = -1.0f;
+    reach_ = -1.0f;
     actionValue_ = 0;
 }
-
-CItemArmor::CItemArmor() {
-    std::memset(absorb_, 0, sizeof(absorb_));
-    layerMask_[1] = 0;
-    layerMask_[0] = 0;
-}
-
-CItemQuick::CItemQuick() = default;
-
-CItemQuest::CItemQuest() = default;
-
-CItemLoot::CItemLoot() = default;
-
-CItemSpell::CItemSpell() = default;
 
 const char* CItemWeapon::ClassName() { return "CItemWeapon"; }
 ClassId CItemWeapon::GetClassId() { return ClassId::ItemWeapon; }
@@ -78,19 +49,18 @@ ClassId CItemLoot::GetClassId() { return ClassId::ItemLoot; }
 const char* CItemSpell::ClassName() { return "CItemSpell"; }
 ClassId CItemSpell::GetClassId() { return ClassId::ItemSpell; }
 
-// --- The item manager's Create and factory -------------------------------------------------
+// --- The item manager's factory --------------------------------------------------------------------
 
-
-
+// Default-initialised: the subclasses' own fields are set by InitFromRecord or Load.
 CEngineObject* CItemManager::NewObject(int kind) {
     CEngineObject* object;
     switch (static_cast<ItemKind>(kind)) {
-    case ItemKind::Weapon: object = new CItemWeapon(); break;
-    case ItemKind::Armor: object = new CItemArmor(); break;
-    case ItemKind::Quick: object = new CItemQuick(); break;
-    case ItemKind::Loot: object = new CItemLoot(); break;
-    case ItemKind::Spell: object = new CItemSpell(); break;
-    case ItemKind::Quest: object = new CItemQuest(); break;
+    case ItemKind::Weapon: object = new CItemWeapon; break;
+    case ItemKind::Armor: object = new CItemArmor; break;
+    case ItemKind::Quick: object = new CItemQuick; break;
+    case ItemKind::Loot: object = new CItemLoot; break;
+    case ItemKind::Spell: object = new CItemSpell; break;
+    case ItemKind::Quest: object = new CItemQuest; break;
     default: return nullptr;
     }
     object->type_ = kind;

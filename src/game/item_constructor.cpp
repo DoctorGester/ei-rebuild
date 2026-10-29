@@ -1,24 +1,18 @@
-// Item construction: CItemConstructor and the CItem methods it drives. The item manager's CreateItem paths run
-// BeginCreateItem (the manager creates the empty item object), SetPrototype / SetMaterial / SetSpellObject, then
-// EndCreateItem, whose Build fills the item from a temporary database record: the prototype's values combined with
-// the material's.
+// Item construction: CItemConstructor, the item manager's ways of making items, and the CItem methods the
+// construction drives. BuildItem has the manager create the empty item object (BeginCreateItem), then
+// EndCreateItem fills it from a temporary database record: the prototype's values combined with the material's.
 #include "console.h"
-#include "game_data.h"
 #include "item.h"
 #include "spell.h"
 #include "text_split.h"
 
-#include "lib/crt.h"
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 
 #include <bit>
-#include <cstddef>
 #include <cstdint>
-#include <cstdlib>
-#include <cstring>
 #include <memory>
 #include <string>
 
@@ -26,29 +20,27 @@ using namespace itemdb;
 
 namespace {
 
-
-
 constexpr std::uint32_t kFlagConstructing = 8;
 
 const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 
-// The charge rate every item starts with (0.001).
+// The charge rate every item starts with.
 constexpr float kDefaultChargeRate = 0.001f;
 
 // --- The temporary database record ---------------------------------------------------------------
-// Build creates a record of the item's kind, fills only the fields the item's InitFromRecord reads, and
+// FillItem creates a record of the item's kind, fills only the fields the item's InitFromRecord reads, and
 // destroys it again. The prototype and material records are read without a null check where the game reads them
 // without one (a missing record faults there).
 
-// The temporary record for an item of class `classId`; null for other classes.
-std::unique_ptr<ItemRecordHead> NewRecord(ClassId classId) {
-    switch (classId) {
-    case ClassId::ItemWeapon: return std::make_unique<WeaponRecord>();
-    case ClassId::ItemArmor: return std::make_unique<ArmorRecord>();
-    case ClassId::ItemQuick:
-    case ClassId::ItemSpell: return std::make_unique<QuickItemRecord>();
-    case ClassId::ItemQuest: return std::make_unique<QuestItemRecord>();
-    case ClassId::ItemLoot: return std::make_unique<LootItemRecord>();
+// The temporary record for an item of `kind`; null for other kinds.
+std::unique_ptr<ItemRecordHead> NewRecord(ItemKind kind) {
+    switch (kind) {
+    case ItemKind::Weapon: return std::make_unique<WeaponRecord>();
+    case ItemKind::Armor: return std::make_unique<ArmorRecord>();
+    case ItemKind::Quick:
+    case ItemKind::Spell: return std::make_unique<QuickItemRecord>();
+    case ItemKind::Quest: return std::make_unique<QuestItemRecord>();
+    case ItemKind::Loot: return std::make_unique<LootItemRecord>();
     default: return nullptr;
     }
 }
@@ -58,7 +50,8 @@ std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHea
     return static_cast<std::uint32_t>(table.IndexOf(RecordAs<Record>(record)));
 }
 
-// Build's common part: price, values and charge of the record, from the prototype alone or scaled by the material.
+// FillItem's common part: price, values and charge of the record, from the prototype alone or scaled by the
+// material.
 void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const MaterialRecordHead* material) {
     if (!material) {
         record->price = prototype->price;
@@ -73,56 +66,47 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
     // Price: the prototype's material units (unsigned, through a double) times the material's unit price, plus
     // the prototype's price.
     double units = x87::FromUnsigned(prototype->materialUnits);
-    float unitPrice = material->unitPrice, price = prototype->price;
-    record->price = static_cast<float>(units * unitPrice + price);
-    float weight = prototype->weight, weightFactor = material->weightFactor;
-    record->weight = weight * weightFactor;
+    record->price = static_cast<float>(units * material->unitPrice + prototype->price);
+    record->weight = prototype->weight * material->weightFactor;
     record->unreadValue = prototype->unreadValue;
-    float charge = prototype->charge, extraCharge = material->magicPower;
-    record->charge = charge + extraCharge;
-    float condition = prototype->condition, conditionFactor = material->conditionFactor;
-    record->condition = condition * conditionFactor;
+    record->charge = prototype->charge + material->magicPower;
+    record->condition = prototype->condition * material->conditionFactor;
     record->magicLevel = prototype->magicLevel + material->magicLevel;
     record->materialUnits = prototype->materialUnits;
 }
 
-// Build's per-class part; returns the prototype's index in its table.
-std::uint32_t FillClass(ClassId classId, ItemRecordHead* record, const ItemRecordHead* prototype,
-                        const MaterialRecordHead* material) {
-    switch (classId) {
-    case ClassId::ItemWeapon: {
+// FillItem's per-kind part; returns the prototype's index in its table.
+std::uint32_t FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHead* prototype,
+                       const MaterialRecordHead* material) {
+    switch (kind) {
+    case ItemKind::Weapon: {
         auto* to = RecordAs<WeaponRecord>(record);
         auto* from = RecordAs<WeaponRecord>(prototype);
         to->reach = from->reach;
-        float damage = from->damage, factor = material->damageFactor;
-        to->damage = damage * factor;
-        float spread = from->damageSpread, factor2 = material->damageFactor;
-        to->damageSpread = spread * factor2;
+        to->damage = from->damage * material->damageFactor;
+        to->damageSpread = from->damageSpread * material->damageFactor;
         return IndexIn(g_itemDatabase.weapons, prototype);
     }
-    case ClassId::ItemArmor: {
+    case ItemKind::Armor: {
         auto* to = RecordAs<ArmorRecord>(record);
         auto* from = RecordAs<ArmorRecord>(prototype);
         to->firstFlags = from->firstFlags | material->armourFlags;
         to->othersFlags = from->othersFlags | material->armourFlags;
-        // Seven absorption values in two rows, each scaled by the material's factor for its
-        // damage type and by the row's factor.
-        for (int k = 0; k < 7; ++k) {
-            float a = from->absorbFirst[k], b = material->absorbFactors[k], c = from->FirstFactor();
-            to->absorbFirst[k] = a * b * c;
-            float d = from->absorbOthers[k], e = material->absorbFactors[k], f = from->othersFactor;
-            to->absorbOthers[k] = d * e * f;
+        // Each absorption value scaled by the material's factor for its damage type and by the row's factor.
+        for (int k = 0; k < kDamageTypeCount; ++k) {
+            to->absorbFirst[k] = from->absorbFirst[k] * material->absorbFactors[k] * from->FirstFactor();
+            to->absorbOthers[k] = from->absorbOthers[k] * material->absorbFactors[k] * from->othersFactor;
         }
         return IndexIn(g_itemDatabase.armors, prototype);
     }
-    case ClassId::ItemQuick:
-    case ClassId::ItemSpell:
+    case ItemKind::Quick:
+    case ItemKind::Spell:
         RecordAs<QuickItemRecord>(record)->actionValue = RecordAs<QuickItemRecord>(prototype)->actionValue;
         return IndexIn(g_itemDatabase.quickItems, prototype);
-    case ClassId::ItemQuest:
+    case ItemKind::Quest:
         record->category = prototype->category;
         return IndexIn(g_itemDatabase.questItems, prototype);
-    case ClassId::ItemLoot: {
+    case ItemKind::Loot: {
         auto* to = RecordAs<LootItemRecord>(record);
         auto* from = RecordAs<LootItemRecord>(prototype);
         to->category = from->category;
@@ -135,61 +119,50 @@ std::uint32_t FillClass(ClassId classId, ItemRecordHead* record, const ItemRecor
         return IndexIn(g_itemDatabase.loot, prototype);
     }
     default:
-        return 0;   // not reached: the record of an unknown class is null and faulted above
+        return 0;   // not reached: the record of an unknown kind is null and faulted above
     }
 }
+
+bool NeedsMaterial(ItemKind kind) { return kind == ItemKind::Weapon || kind == ItemKind::Armor; }
 
 const char* const kSpellContainer = "spell container";
 const char* const kMaterialType = "material";
 const char* const kNoPrototype = "Can't find prototype for item \"%s\".\n";
 const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and material names\n";
 
-// Index of `record` in `table` (signed division of the byte offset), -1 for no record.
+// Index of `record` in `table`, -1 for no record.
 template <typename Table, typename Record>
 int TableIndex(const Table& table, const Record* record) {
     return record ? table.IndexOf(record) : -1;
 }
 
-// The table index of a loot item's second name part.
-int LootTableIndex(LootRecordType which, std::string_view name) {
-    if (which > LootRecordType::Modifier) return 0;
-    std::string key(name);
+// The table index of a loot item's second name part (an unknown name is filed in the table's map as null).
+int LootTableIndex(LootRecordType which, const std::string& name) {
     ItemDatabase& items = g_itemDatabase;
     SpellDatabase& spells = g_spellDatabase;
     switch (which) {
-    case LootRecordType::Weapon:
-        return TableIndex(items.weapons, items.weapons.names[key]);
-    case LootRecordType::Armor:
-        return TableIndex(items.armors, items.armors.names[key]);
-    case LootRecordType::Quick:
-        return TableIndex(items.quickItems, items.quickItems.names[key]);
-    case LootRecordType::Spell:
-        return TableIndex(spells.spells, spells.spells.byCode[key]);
-    default:
-        return TableIndex(spells.modifiers, spells.modifiers.byCode[key]);
+    case LootRecordType::Weapon: return TableIndex(items.weapons, items.weapons.names[name]);
+    case LootRecordType::Armor: return TableIndex(items.armors, items.armors.names[name]);
+    case LootRecordType::Quick: return TableIndex(items.quickItems, items.quickItems.names[name]);
+    case LootRecordType::Spell: return TableIndex(spells.spells, spells.spells.byCode[name]);
+    case LootRecordType::Modifier: return TableIndex(spells.modifiers, spells.modifiers.byCode[name]);
+    default: return 0;
     }
 }
 
-// The lists' loop: the array takes the table's count, then every element the name of the record
-// with its index (the count is read again for each; a record out of range would be read at null).
-template <typename Record, typename NameOf>
-void ListRecordNames(const NamedRecordTable<Record>& table, std::vector<std::string>* names, NameOf nameOf) {
-    names->resize(table.Count());
-    for (std::size_t i = 0; i < names->size(); ++i) {
-        const Record* record = table.At(static_cast<std::uint32_t>(i));
-        (*names)[i] = *nameOf(record);
-    }
+template <typename Record>
+std::vector<std::string> RecordNames(const NamedRecordTable<Record>& table) {
+    std::vector<std::string> names;
+    names.reserve(table.records.size());
+    for (const Record& record : table.records) names.push_back(record.name);
+    return names;
 }
-
-const std::string* HeadName(const ItemRecordHead* record) { return &record->name; }
 
 } // namespace
 
 // --- CItem ---------------------------------------------------------------------------------------
 
 void CItem::InitFromRecord(const ItemRecordHead* head) {
-    // The condition and the charge pass through the FPU, which quiets a signalling NaN; the other fields are
-    // copied bit for bit.
     conditionMax_ = head->condition;
     condition_ = head->condition;
     chargeRate_ = kDefaultChargeRate;
@@ -207,6 +180,16 @@ void CItem::AttachSpell(CSpell* spell) {
     if (spell_) price_ = spell_->price_ + price_;
 }
 
+std::optional<MagicCapacity> MagicCapacityOf(ItemKind kind, const ItemRecordHead* prototype,
+                                             const MaterialRecordHead* material) {
+    if (!material) {
+        if (NeedsMaterial(kind)) return std::nullopt;
+        return MagicCapacity{static_cast<float>(x87::FromUnsigned(prototype->magicLevel)), prototype->charge};
+    }
+    return MagicCapacity{static_cast<float>(x87::FromUnsigned(prototype->magicLevel + material->magicLevel)),
+                         prototype->charge + material->magicPower};
+}
+
 // --- CItemConstructor ----------------------------------------------------------------------------
 
 void CItemConstructor::Create() {
@@ -222,17 +205,26 @@ void CItemConstructor::Destroy() {
     spell_ = nullptr;
 }
 
-CItemConstructor::CItemConstructor() {
-    material_ = nullptr;
-    prototype_ = nullptr;
-    spell_ = nullptr;
-    manager_ = nullptr;
-}
-
 CItemConstructor::~CItemConstructor() { CItemConstructor::Destroy(); }
 
 const char* CItemConstructor::ClassName() { return "CItemConstructor"; }
 ClassId CItemConstructor::GetClassId() { return ClassId::ItemConstructor; }
+
+CItem* CItemConstructor::BuildItem(CBaseManager* manager, ItemKind kind, ItemRecordHead* prototype,
+                                   MaterialRecordHead* material, CSpell* spell, int count) {
+    SetManager(manager);
+    if (!BeginCreateItem(kind)) {
+        SetManager(nullptr);
+        return nullptr;
+    }
+    prototype_ = prototype;
+    material_ = material;
+    spell_ = spell;
+    count_ = count;
+    CItem* item = EndCreateItem();
+    SetManager(nullptr);
+    return item;
+}
 
 void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager_) manager_->ForgetReference();
@@ -252,7 +244,7 @@ bool CItemConstructor::BeginCreateItem(ItemKind kind) {
 }
 
 CItem* CItemConstructor::EndCreateItem() {
-    if (!Build()) {
+    if (!FillItem()) {
         item_.Reset();
         return nullptr;
     }
@@ -271,43 +263,35 @@ void CItemConstructor::Cancel() {
     prototype_ = nullptr;
 }
 
-bool CItemConstructor::Build() {
-    ClassId classId = item_->GetClassId();
-    if ((classId == ClassId::ItemWeapon || item_->GetClassId() == ClassId::ItemArmor) && !material_) return false;
+bool CItemConstructor::FillItem() {
+    ItemKind kind = item_->Kind();
+    if (NeedsMaterial(kind) && !material_) return false;
 
-    const ItemRecordHead* prototype = prototype_;
-    const MaterialRecordHead* material = material_;
-    std::unique_ptr<ItemRecordHead> record = NewRecord(item_->GetClassId());
-    FillCommon(record.get(), prototype, material);
-    std::uint32_t index = FillClass(item_->GetClassId(), record.get(), prototype, material);
+    std::unique_ptr<ItemRecordHead> record = NewRecord(kind);
+    FillCommon(record.get(), prototype_, material_);
+    std::uint32_t index = FillKind(kind, record.get(), prototype_, material_);
 
     item_->InitFromRecord(record.get());
-    if (item_->GetClassId() == ClassId::ItemQuick &&
-        static_cast<QuickItemCategory>(prototype->category) == QuickItemCategory::Potion) {
+    if (kind == ItemKind::Quick && static_cast<QuickItemCategory>(prototype_->category) == QuickItemCategory::Potion) {
+        // A potion casts the spell its prototype's text makes (a given spell is not attached).
         CSpellManager* spellManager = manager_->context_->SpellManager();
-        CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->spellText));
+        CSpell* spell = spellManager->CreateSpellFromText(RecordAs<QuickItemRecord>(prototype_)->spellText);
         spell_ = spell;
         item_->spell_.Assign(spell);
     } else if (spell_) {
         item_->AttachSpell(spell_);
     }
 
-    if (material)
-        item_->prototypeId_ = (material->number & 0xFFFF) | index << 16;
-    else
-        item_->prototypeId_ = index << 16;
+    item_->prototypeId_ = PackItemId(index, material_ ? material_->number : 0);
     item_->count_ = static_cast<std::uint32_t>(count_);
     return true;
 }
 
-// --- The item manager's CreateItem ----------------------------------------------------
+// --- The item manager's ways of making items -------------------------------------------------------
 
 CItem* CItemManager::CreateItem(std::string_view name) {
-    auto* context = context_;
-    CItemConstructor* constructor = context->ItemConstructor();
     std::string extra;               // the part in brackets: "name[extra]"
     std::string text(name);
-    std::vector<std::string> parts;      // the name split at '.'
     int bracket = str::Find(text, '[');
     if (bracket != -1) {
         extra = str::Right(text, static_cast<int>(text.size()) - bracket - 1);
@@ -318,22 +302,12 @@ CItem* CItemManager::CreateItem(std::string_view name) {
         text = str::Left(text, bracket);
         str::TrimRight(text);
     }
+    std::vector<std::string> parts;      // the name split at '.'
     text::Split(text, &parts, '.');
     for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (str::Compare(parts[0],
-                        kSpellContainer) == 0) {
-        CSpell* spell = context->SpellManager()->CreateSpellFromText(extra);
-        CItem* item = nullptr;
-        if (spell) {
-            QuickItemTable& quickItems = g_itemDatabase.quickItems;
-            int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
-            item = (CItem*)MakeItem(ItemKind::Spell, index, 0);
-            if (item) item->AttachSpell(spell);
-        }
-        return item;
-    }
+    if (parts[0] == kSpellContainer) return CreateSpellItem(extra, context_->SpellManager());
 
     // "prototype[.material]".
     const std::string& prototypeName = parts[0];
@@ -349,75 +323,35 @@ CItem* CItemManager::CreateItem(std::string_view name) {
             game::FatalError(kNoPrototype, parts[0]);
         return nullptr;
     }
-    constructor->SetManager(this);
-    constructor->BeginCreateItem(prototype->Kind());
-    MaterialRecordHead* material = nullptr;
-    if (parts.size() > 1) material = items.materials.Named(parts[1]);
-    constructor->SetPrototype(prototype);
-    constructor->SetMaterial(material);
-    // The bracket part: a spell for most prototypes, the count for materials.
-    const std::string& type = prototype->name;
-    if (extra.size() != 0 && type != kMaterialType) {
-        CSpellManager* spells = context->SpellManager();
-        if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
-    } else if (type == kMaterialType &&
-               extra.size() != 0) {
-        constructor->count_ = str::ToInt(extra);
+    MaterialRecordHead* material = parts.size() > 1 ? items.materials.Named(parts[1]) : nullptr;
+    // The bracket part: the count for materials, a spell for the other prototypes.
+    CSpell* spell = nullptr;
+    int count = 1;
+    if (!extra.empty()) {
+        if (prototype->name == kMaterialType)
+            count = str::ToInt(extra);
+        else
+            spell = context_->SpellManager()->CreateSpellFromText(extra);
     }
-    CItem* item = constructor->EndCreateItem();
+    CItem* item = context_->ItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
     if (!item) {
         // Rebirth's FixCreateItem: logged, and no item. Without it the error is reported and the code goes on
         // with the null item (and crashes).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem)) return nullptr;
         game::FatalError(kCantCreate, std::string(name));
     }
-    constructor->SetManager(nullptr);
-    auto* loot = AsLoot(item);
-    if (item->GetClassId() == ClassId::ItemLoot && loot->kind_ == LootKind::Record && parts.size() > 1) {
-        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(loot->recordType_, parts[1]));
+    if (item->GetClassId() == ClassId::ItemLoot && parts.size() > 1) {
+        auto* loot = AsLoot(item);
+        if (loot->kind_ == LootKind::Record) loot->index_ = static_cast<std::uint32_t>(LootTableIndex(loot->recordType_, parts[1]));
     }
     return item;
 }
-
-// --- The item manager's MakeItem ----------------------------------------------------------------
 
 CItem* CItemManager::MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material) {
-    CItemConstructor* constructor = context_->ItemConstructor();
-    if (static_cast<std::int16_t>(index) == -1) index = 0;
-    constructor->SetManager(this);
-    constructor->BeginCreateItem(kind);
-    ItemRecordHead* prototype = nullptr;
-    MaterialRecordHead* materialRecord = nullptr;
-    switch (kind) {
-    case ItemKind::Weapon:
-        prototype = WeaponAt(index);
-        materialRecord = MaterialAt(material);
-        break;
-    case ItemKind::Armor:
-        prototype = ArmorAt(index);
-        materialRecord = MaterialAt(material);
-        break;
-    case ItemKind::Quick:
-    case ItemKind::Spell:
-        prototype = QuickItemAt(index);
-        break;
-    case ItemKind::Loot:
-        prototype = LootAt(index);
-        break;
-    case ItemKind::Quest:
-        prototype = QuestItemAt(index);
-        break;
-    default:
-        break;
-    }
-    constructor->SetPrototype(prototype);
-    constructor->SetMaterial(materialRecord);
-    CItem* item = constructor->EndCreateItem();
-    constructor->SetManager(nullptr);
-    return item;
+    if ((index & 0xFFFF) == kNoIndex) index = 0;
+    MaterialRecordHead* materialRecord = NeedsMaterial(kind) ? MaterialAt(material) : nullptr;
+    return context_->ItemConstructor()->BuildItem(this, kind, PrototypeAt(kind, index), materialRecord);
 }
-
-// --- The scroll of a spell text, the name lists, the constructor's magic capacity ----------------
 
 // The "spell container" record is looked up by name each time; without one the index is that of a
 // null record (kept: MakeItem then finds no prototype).
@@ -426,30 +360,17 @@ CItem* CItemManager::CreateSpellItem(std::string_view spellText, CSpellManager* 
     if (!spell) return nullptr;
     QuickItemTable& quickItems = g_itemDatabase.quickItems;
     int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
-    CItem* item = (CItem*)MakeItem(ItemKind::Spell, index, 0);
+    CItem* item = MakeItem(ItemKind::Spell, index, 0);
     if (item) item->AttachSpell(spell);
     return item;
 }
 
-void CItemManager::ListMaterialNames(std::vector<std::string>* names) {
-    ListRecordNames(g_itemDatabase.materials, names, [](const MaterialRecordHead* record) { return &record->key; });
+std::vector<std::string> CItemManager::ListMaterialNames() {
+    std::vector<std::string> names;
+    names.reserve(g_itemDatabase.materials.records.size());
+    for (const MaterialRecordHead& record : g_itemDatabase.materials.records) names.push_back(record.key);
+    return names;
 }
-void CItemManager::ListWeaponNames(std::vector<std::string>* names) { ListRecordNames(g_itemDatabase.weapons, names, HeadName); }
-void CItemManager::ListArmorNames(std::vector<std::string>* names) { ListRecordNames(g_itemDatabase.armors, names, HeadName); }
-void CItemManager::ListQuickItemNames(std::vector<std::string>* names) {
-    ListRecordNames(g_itemDatabase.quickItems, names, HeadName);
-}
-
-bool CItemConstructor::MagicCapacity(float* level, float* power) {
-    if ((item_->GetClassId() == ClassId::ItemWeapon || item_->GetClassId() == ClassId::ItemArmor) && !material_) return false;
-    const ItemRecordHead* prototype = prototype_;
-    const MaterialRecordHead* material = material_;
-    if (material) {
-        *level = static_cast<float>(x87::FromUnsigned(prototype->magicLevel + material->magicLevel));
-        *power = prototype->charge + material->magicPower;
-    } else {
-        *level = static_cast<float>(x87::FromUnsigned(prototype->magicLevel));
-        *power = prototype->charge;
-    }
-    return true;
-}
+std::vector<std::string> CItemManager::ListWeaponNames() { return RecordNames(g_itemDatabase.weapons); }
+std::vector<std::string> CItemManager::ListArmorNames() { return RecordNames(g_itemDatabase.armors); }
+std::vector<std::string> CItemManager::ListQuickItemNames() { return RecordNames(g_itemDatabase.quickItems); }

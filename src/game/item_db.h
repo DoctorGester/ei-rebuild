@@ -30,6 +30,9 @@ enum class ItemKind : int {
     Quest = 0x3009,
 };
 
+// The damage types (a weapon's weights, an armour's absorption rows).
+inline constexpr int kDamageTypeCount = 7;
+
 // The category of a quick item prototype (CItem::GetCategory). The game's data has 0 (the danger sensor), 5 (the
 // wands) and 8 (the potions, and the scrolls' "spell container" prototype).
 enum class QuickItemCategory : int {
@@ -148,7 +151,7 @@ public:
     int number;                         // the number in the item's text keys and names ("item%04d")
     int variant;                        // the model variant
     float price;                        // CItem::price_ (plus materialUnits times the material's unitPrice)
-    // CItem::weight_, times the material's weightFactor; also what WeaponAttack returns, which the unit's attack
+    // CItem::weight_, times the material's weightFactor; also what WeaponWeight returns, which the unit's attack
     // info shows as the weapon's speed.
     float weight;
     float unreadValue;                  // CItem::unreadValue_ (archive field 9, nothing else reads it)
@@ -199,7 +202,7 @@ struct WeaponRecord : ItemRecordHead {
     float reach;                        // CItemWeapon::reach_
     float damage;                       // minimum damage (times the material's damageFactor)
     float damageSpread;                 // maximum damage = damage + spread
-    float damageTypes[7];               // weight of each damage type
+    float damageTypes[kDamageTypeCount];   // weight of each damage type
 };
 
 // An armour prototype: the two absorption rows CItemArmor takes.
@@ -216,10 +219,10 @@ struct ArmorRecord : ItemRecordHead {
     // Two rows of nine dwords: a factor (the first row's is the head's category), the absorption
     // per damage type (each times the row's factor and the material's absorbFactors) and flags
     // (the material's armourFlags or'ed in).
-    float absorbFirst[7];               // item absorb_[0]
+    float absorbFirst[kDamageTypeCount];   // item absorb_[0]
     std::uint32_t firstFlags;
     float othersFactor;
-    float absorbOthers[7];              // item absorb_[1]
+    float absorbOthers[kDamageTypeCount];  // item absorb_[1]
     std::uint32_t othersFlags;
     std::uint8_t showsWounds;           // 0: the piece hides the wounds of the parts it covers
     std::uint32_t layer;                // the lower one's texture goes first (ArmorLayer)
@@ -241,7 +244,7 @@ struct QuickItemRecord : ItemRecordHead {
     std::uint32_t actionValue;              // CItemQuick::actionValue_
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
     std::uint8_t unreadFields[16];
-    std::string spellText;                // the spell text of a QuickItemCategory::Potion item (CItemConstructor::Build)
+    std::string spellText;                // the spell text of a QuickItemCategory::Potion item (CItemConstructor::FillItem)
     std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
 };
 
@@ -281,16 +284,16 @@ struct MaterialRecordHead {
     std::string soundName;             // the material of hit sounds ("Metal", "Bone", ...)
     std::string name;
     std::uint32_t number;               // its index (the packed item id's low half; loot kind 1)
-    // the price per unit of the prototype's materialUnits; the trader stock's material draw
-    //; a loot item of kind 1's price.
+    // the price per unit of the prototype's materialUnits (the trader stock's material draw); a material loot
+    // item's price.
     float unitPrice;
-    float weightFactor;                     // multiplies the prototype's weight (WeaponAttack)
-    float magicPower;                   // added to the prototype's charge (CItemConstructor::MagicCapacity)
+    float weightFactor;                     // multiplies the prototype's weight (WeaponWeight)
+    float magicPower;                   // added to the prototype's charge (MagicCapacityOf)
     std::uint32_t magicLevel;           // added to the prototype's magicLevel
     float conditionFactor;              // multiplies the prototype's condition
     std::uint32_t unreadField;          // archive field 9 (4 bytes); nothing reads it
     float damageFactor;                 // multiplies a weapon's damage and spread
-    float absorbFactors[7];             // multiply an armour's absorption per damage type (one field)
+    float absorbFactors[kDamageTypeCount]; // multiply an armour's absorption per damage type (one field)
     std::uint32_t armourFlags;          // or'ed into the flag dwords of an armour's rows
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 
@@ -301,6 +304,11 @@ struct MaterialRecordHead {
 // The two-letter type codes of weapons and armours, by type (the model and picture names).
 inline constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
 inline constexpr const char* kArmorCodes[7] = {"hl", "pl", "lg", "sh", "pt", "bt", "gl"};
+// The code of `type`; "" for a type without one (none in the databases; the original formats an uninitialised
+// stack buffer then).
+inline const char* TypeCode(const char* const (&codes)[7], int type) {
+    return type >= 0 && type < 7 ? codes[type] : "";
+}
 
 // A table of the item database (materials, weapons, armors, quick items, quest items, loot): the records and
 // the name index (records with the same name: the last one). Rebirth patches the load.
@@ -368,7 +376,10 @@ struct SpellDatabase {
 
     SpellTable spells;
     SpellModifierTable modifiers;
-    std::vector<SpellListRecord> lists[3];
+    // The recipe lists (chunks 3-5): what the trader stock makes scrolls, armour spells and weapon spells from.
+    std::vector<SpellListRecord> scrollRecipes;
+    std::vector<SpellListRecord> armorRecipes;
+    std::vector<SpellListRecord> weaponRecipes;
 };
 
 struct ItemDatabase {
@@ -382,8 +393,8 @@ struct ItemDatabase {
     WeaponTable weapons;
     ArmorTable armors;
     QuickItemTable quickItems;
-    QuestItemTable questItems;      // (QuestItems())
-    LootItemTable loot;             // (Loot())
+    QuestItemTable questItems;
+    LootItemTable loot;
 };
 
 } // namespace itemdb

@@ -5,26 +5,17 @@
 #include "chunk_archive.h"
 #include "core_streams.h"
 
-
-#include <functional>
-#include <type_traits>
 #include <vector>
 
 namespace {
 
 // The records read through an archive, then each filed in the name index under its name (the index's
-// find_or_insert of {name, null}). The chunk serialisers' names cross over: SerializeLoot reads the quest
-// items, SerializeQuestItems the loot.
+// find_or_insert of {name, null}).
 template <typename Record>
 void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int field) {
     ChunkArchive archive;
     archive.Open(source, 1, 1);
-    if constexpr (std::is_same_v<Record, itemdb::QuickItemRecord>)
-        archive.SerializeQuickItems(field, &table->records);
-    else if constexpr (std::is_same_v<Record, itemdb::QuestItemRecord>)
-        archive.SerializeLoot(field, &table->records);
-    else
-        archive.SerializeQuestItems(field, &table->records);
+    RecordChunks(&archive, field, &table->records, &Record::Serialize);
     archive.Close(source);
     for (Record& record : table->records) {
         std::string name = record.name;
@@ -66,16 +57,6 @@ template void LootItemTable::Load(CStream*, int);
 } // namespace itemdb
 
 // --- The tables' vector serialisers ----------------------------------------------------------
-
-void ChunkArchive::SerializeQuickItems(int id, std::vector<itemdb::QuickItemRecord>* records) {
-    RecordChunks(this, id, records, &itemdb::QuickItemRecord::Serialize);
-}
-void ChunkArchive::SerializeLoot(int id, std::vector<itemdb::QuestItemRecord>* records) {
-    RecordChunks(this, id, records, &itemdb::QuestItemRecord::Serialize);
-}
-void ChunkArchive::SerializeQuestItems(int id, std::vector<itemdb::LootItemRecord>* records) {
-    RecordChunks(this, id, records, &itemdb::LootItemRecord::Serialize);
-}
 
 void ChunkArchive::SerializeMaterials(int id, std::vector<itemdb::MaterialRecordHead>* records) {
     RecordChunks(this, id, records, &itemdb::MaterialRecordHead::Serialize);

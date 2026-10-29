@@ -367,8 +367,7 @@ void CItemInfoPanel::DescribeItem() {
     material = itemdb::MaterialAt(MaterialIndex(item->prototypeId_))->key;
     text::ReplaceChar(&material, ' ', '_');
     str::MakeLower(material);
-    std::string name, description, kindText;
-    texts->GetItemTexts(item, &name, &description, &kindText);
+    auto [name, description, kindText] = texts->GetItemTexts(item);
 
     Writer w(this);
     std::string text;
@@ -480,8 +479,7 @@ void CItemInfoPanel::DescribeMaterial() {
     CTextManager* texts = g_clientWorld.texts_;
     const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(AsLoot(item)->index_);
     if (!material) return;
-    std::string name, description, kindText;
-    texts->GetItemTexts(item, &name, &description, &kindText);
+    auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
     w.Head(name, kindText);
     std::string text = material->soundName;
@@ -518,8 +516,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     case LootRecordType::Quick: sort = 2; head = itemdb::QuickItemAt(index); break;
     default: break;
     }
-    std::string name, description, kindText;
-    texts->GetItemTexts(item, &name, &description, &kindText);
+    auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
     w.Head(name, kindText);
     // The material type ("mattype_<NAME>" of the record) and the count. (The weapon and armour views
@@ -572,8 +569,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
     CItem* item = FirstItem();
     CTextManager* texts = g_clientWorld.texts_;
     const itemdb::SpellRecord* record = itemdb::SpellAt(AsLoot(item)->index_);
-    std::string name, description, kindText;
-    texts->GetItemTexts(item, &name, &description, &kindText);
+    auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
     w.Head(name, kindText);
     w.Number(7, FtolOf(record->mana));
@@ -611,8 +607,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
 void CItemInfoPanel::DescribeModifierRecord() {
     CItem* item = FirstItem();
     CTextManager* texts = g_clientWorld.texts_;
-    std::string name, description, kindText;
-    texts->GetItemTexts(item, &name, &description, &kindText);
+    auto [name, description, kindText] = texts->GetItemTexts(item);
     const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(AsLoot(item)->index_);
     Writer w(this);
     w.Head(name, kindText);
@@ -625,8 +620,7 @@ void CItemInfoPanel::DescribeModifierRecord() {
 void CItemInfoPanel::DescribeQuickItem() {
     CItem* item = FirstItem();
     CTextManager* texts = g_clientWorld.texts_;
-    std::string name, description, kindText;
-    texts->GetItemTexts(item, &name, &description, &kindText);
+    auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
     w.Head(name, kindText);
     if (CSpell* spell = item->spell_) {

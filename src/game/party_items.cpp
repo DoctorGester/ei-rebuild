@@ -113,12 +113,6 @@ bool CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
     return true;
 }
 
-bool CItemSpell::CopyTo(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyTo(target, spells)) return false;
-    static_cast<CItemSpell*>(target)->actionValue_ = actionValue_;
-    return true;
-}
-
 // --- The party's items --------------------------------------------------------------------------
 
 CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {

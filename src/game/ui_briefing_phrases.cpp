@@ -193,7 +193,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     CItem* item = g_clientWorld.itemManager_->CreateItem(it);
                     if (!item) continue;
                     item->AddRef();
-                    texts->FormatItemName(item, &name);
+                    name = texts->FormatItemName(item);
                     line = str::Format(kNameLine, label, name);
                     add();
                     item->Release();
@@ -228,7 +228,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     for (auto& node : player->items_) {
                         CItem* item = node;
                         if (item->GetClassId() != ClassId::ItemQuest) continue;
-                        texts->FormatItemName(item, &name);
+                        name = texts->FormatItemName(item);
                         line = str::Format(kNameLine, label, name);
                         add();
                     }

@@ -5829,3 +5829,10 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C52"]
 note = "Rest of G12 after C52 batch 1 (see C52's note for what is done and what was left on purpose). Include src/game/ui_* now that C54 is done. Compiler lists callers, one function at a time, goldens unchanged."
+
+[[ticket]]
+id = "C61a"
+title = "Items area: the style-review findings C61 left"
+group = "cleanup"
+depends = ["C61"]
+note = "build/style_review/items.md, what C61 did not do: L14 file regrouping (all six item classes in item.cpp; CTextManager out of item_db_text.* into text_manager.*; spell database code out of item_db_load/open into spell_db.cpp; CItemConstructor/CItemManager into item_manager.h so 89 files stop pulling them in, L27); L24 rest (item_db_open FileRecords duplicates the name-index loop, three tables via dbfile::LoadTable and three via NamedRecordTable::Load, StringListField/IntVectorField one template, the serialisers' unused third parameter, CodeText overloads, CMemoryStream local+pointer); L25 record copy constructors by byte range (item_db_records.cpp: check whether they run at all, then = default); L17 kSchoolCount for the per-school float[8] arrays (item_stock baseLevels/scrollLevels/levels); L28 CItemSpell/kItemSpell -> CItemScroll naming, member naming mix (count_ vs value vs party); CItem::CopyTo's offset memcpy (party_items.cpp '+0x20..+0x40'); docs/notes/cleanup-items.md is hook-era and wrong (fold its few live facts into items_spells.md, delete it). Design call, not for this ticket: L26 (the six item subclasses as one CItem with a kind switch; needs a decision on the engine factory and virtual Load/Save). Goldens unchanged."

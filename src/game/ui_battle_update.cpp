@@ -39,7 +39,6 @@
 
 void CHudQuickItems::SetUnit(CUnit* unit) {
     std::string tip;
-    std::string description;   // the item's other two texts, not shown
     unit_ = unit;
     ClearSceneObjects();
     shownCount_ = 0;
@@ -112,7 +111,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The same string serves as the second and third texts.
-        g_clientWorld.texts_->GetItemTexts(item, &tip, &description, &description);
+        tip = g_clientWorld.texts_->GetItemTexts(item).name;
         regions_[slot]->SetTipString(tip);
         place(slot);
         ++slot;

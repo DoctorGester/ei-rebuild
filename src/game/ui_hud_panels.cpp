@@ -291,7 +291,7 @@ void CHudTopPanel::ShowItems() {
     for (auto node = merged.begin(); node != merged.end();) {
         CItem* item = *node;
         ++node;
-        texts->FormatItemName(item, &line);
+        line = texts->FormatItemName(item);
         text += line;
         text += kNewLine;
         item->Release();

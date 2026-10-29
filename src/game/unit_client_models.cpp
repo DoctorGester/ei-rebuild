@@ -88,7 +88,7 @@ void AddTexture(SkinRequest& request, const std::string& texture) {
 }
 
 void AddArmourTexture(SkinRequest& request, const CUnit* unit, std::string& texture, std::uint32_t id) {
-    ArmorModelName(&texture, id >> 16, id & 0xFFFF);
+    texture = ArmorModelName(PrototypeIndex(id), MaterialIndex(id));
     AddPrototypePrefix(unit, texture);
     AddTexture(request, texture);
 }
@@ -105,7 +105,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         if (self->armourIds[0] != kNoItemId) AddArmourTexture(request, unit, texture, self->armourIds[0]);
         std::uint32_t hand = unit->activeWeapon;
         if (hand < 4 && self->weaponIds[hand] != kNoItemId) {
-            WeaponModelName(&texture, self->weaponIds[hand] >> 16, self->weaponIds[hand] & 0xFFFF);
+            texture = WeaponModelName(PrototypeIndex(self->weaponIds[hand]), MaterialIndex(self->weaponIds[hand]));
             AddPrototypePrefix(unit, texture);
             AddTexture(request, texture);
         }

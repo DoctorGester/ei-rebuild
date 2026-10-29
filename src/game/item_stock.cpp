@@ -19,12 +19,10 @@
 #include "ei/x87.h"
 
 #include <algorithm>
-#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <iterator>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -40,127 +38,113 @@ int RandomCount(int minCount, int maxCount) {
 
 // STLport random_shuffle with the CRT generator: element i swaps with one at rand() % (i + 1).
 template <typename T>
-void Shuffle(T* first, T* last) {
-    if (first == last) return;
-    for (T* i = first + 1; i != last; ++i) {
-        int r = libcrt::Rand() % (static_cast<int>(i - first) + 1);
-        T held = *i;
-        *i = first[r];
-        first[r] = held;
+void Shuffle(std::vector<T>& v) {
+    for (std::size_t i = 1; i < v.size(); ++i) {
+        int r = libcrt::Rand() % (static_cast<int>(i) + 1);
+        std::swap(v[i], v[r]);
     }
 }
-
-// Counted by the caller.
-void Output(std::list<CItem*>* out, CItem* item) { out->insert(out->end(), item); }
-
-void AddReference(CItem* item) { item->AddRef(); }
-
-int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->materialUnits); }
 
 // Picks the material of a prototype from the candidates (pointers into the stock's entries). Each candidate in
 // turn is taken with a chance by its unitPrice q against the prototype's price p: 10% outside
 // [2p/7 - p/5, p/5], else 110 - |(q - p/7) / (p/7 - p/5)| x 100 percent (truncated). Null when none was taken.
-StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype, const std::vector<StockMaterial*>& c) {
+StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype, const std::vector<StockMaterial*>& candidates) {
     float seventh = static_cast<float>(prototype->price * stock::kSeventhFactor);
     float fifth = static_cast<float>(prototype->price * stock::kFifthFactor);
-    if (c.begin() == c.end()) return nullptr;
+    if (candidates.empty()) return nullptr;
     float low = static_cast<float>((seventh + seventh) - fifth);
-    for (auto& q : c) {
+    for (StockMaterial* candidate : candidates) {
         int chance = 10;
-        float quality = q->record->unitPrice;
+        float quality = candidate->record->unitPrice;
         EI_NAN_AUDIT(fifth);
         if (quality >= low && quality <= fifth) {
             float t = static_cast<float>(((quality - seventh) / (seventh - fifth)) * 100.0f);
-            t = AbsBits(t);
-            chance = static_cast<int>(110.0f - t);
+            chance = static_cast<int>(110.0f - AbsBits(t));
         }
         int roll = libcrt::RandBelow(100) + 1;
-        if (roll < chance) return q;
+        if (roll < chance) return candidate;
     }
     return nullptr;
 }
 
-// The random spell of a weapon or armor: half the time, when the material allows magic, one of the spells
-// generated for the item's level, if within the power limit.
-void AddSpell(ItemStock* stock, CItemConstructor* ctor, std::list<HeldRef<CSpell>>& spells) {
-    if (g_random.Next() % 101 >= 50) return;
-    float level = 0.0f;
-    float power = 0.0f;
-    if (!ctor->MagicCapacity(&level, &power)) return;
+// The random spell of a weapon or armor: half the time (ISAAC), when the material allows magic, one of the
+// spells generated for the item's level (into `spells`), if within the item's power. Null for none.
+CSpell* RollItemSpell(ItemStock* stock, ItemKind kind, const itemdb::ItemRecordHead* prototype,
+                      const itemdb::MaterialRecordHead* material, std::list<HeldRef<CSpell>>& spells) {
+    if (g_random.Next() % 101 >= 50) return nullptr;
+    std::optional<MagicCapacity> capacity = MagicCapacityOf(kind, prototype, material);
+    if (!capacity) return nullptr;
     float levels[8];
-    for (float& l : levels) l = level;
+    for (float& l : levels) l = capacity->level;
     stock->GenerateSpells(&spells, levels, 0);
     unsigned count = static_cast<unsigned>(spells.size());
-    if (count == 0) return;
+    if (count == 0) return nullptr;
     unsigned index = count > 1 ? g_random.Next() % count : 0;
     CSpell* spell = *std::next(spells.begin(), index);
-    float spellPower = spell->manaCost_;
-    EI_NAN_AUDIT(spellPower, power);
-    if (spellPower <= power) ctor->SetSpellObject(spell);
+    EI_NAN_AUDIT(spell->manaCost_, capacity->power);
+    return spell->manaCost_ <= capacity->power ? spell : nullptr;
 }
 
-// The common body of the three instruction generators: over a copy of the source records,
-// each (except one named `skip`) becomes an item of kind ItemKind::Loot with the class-0x15 prototype named at
-// `prototypeName`, no material, index_ the record's index in `table` and count_ a random count.
+// The table index of each record (none of the family `skip`).
 template <typename Record>
-void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecordHead*>& source, const char* prototypeName,
-                          const itemdb::NamedRecordTable<Record>& table, const char* skip, int minCount, int maxCount,
-                          std::list<CItem*>* out) {
-    CItemConstructor* ctor = stock->context->ItemConstructor();
-    CItemManager* manager = stock->context->ItemFactory();
-    const std::vector<itemdb::ItemRecordHead*> taken = source;
+std::vector<int> ItemIndices(const std::vector<itemdb::ItemRecordHead*>& records,
+                             const itemdb::NamedRecordTable<Record>& table, const char* skip = nullptr) {
+    std::vector<int> indices;
+    for (const itemdb::ItemRecordHead* record : records) {
+        if (skip && record->family == skip) continue;
+        indices.push_back(table.IndexOf(static_cast<const Record*>(record)));
+    }
+    return indices;
+}
+
+int SpellIndex(const itemdb::SpellRecord* record) {
+    itemdb::SpellTable& spells = g_spellDatabase.spells;
+    return spells.IndexOf(spells.FindByCode(record->code));
+}
+int ModifierIndex(const itemdb::SpellModifierRecord* record) {
+    itemdb::SpellModifierTable& modifiers = g_spellDatabase.modifiers;
+    return modifiers.IndexOf(modifiers.FindByCode(record->code));
+}
+
+template <typename Record>
+std::vector<int> MagicIndices(const std::vector<Record*>& records, int (*indexOf)(const Record*)) {
+    std::vector<int> indices;
+    for (const Record* record : records) indices.push_back(indexOf(record));
+    return indices;
+}
+
+// One instruction item per index: kind ItemKind::Loot with the loot prototype named `prototypeName`, no material,
+// index_ the index and count_ a random count.
+void GenerateInstructions(ItemStock* stock, const char* prototypeName, const std::vector<int>& indices, int minCount,
+                          int maxCount, std::list<CItem*>* out) {
+    CItemConstructor* ctor = stock->party->ItemConstructor();
+    CItemManager* manager = stock->party->ItemFactory();
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
-    for (itemdb::ItemRecordHead* p : taken) {
-        if (skip && str::Compare(p->family.c_str(), skip) == 0) continue;
-        ctor->SetManager(manager);
-        ctor->BeginCreateItem(ItemKind::Loot);
-        ctor->SetPrototype(prototype);
-        ctor->SetMaterial(nullptr);
-        CItem* item = ctor->EndCreateItem();
-        ctor->SetManager(nullptr);
-        AsLoot(item)->index_ = static_cast<std::uint32_t>(table.IndexOf(static_cast<const Record*>(p)));
+    for (int index : indices) {
+        CItem* item = ctor->BuildItem(manager, ItemKind::Loot, prototype);
+        AsLoot(item)->index_ = static_cast<std::uint32_t>(index);
         item->count_ = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
-        AddReference(item);
-        Output(out, item);
+        item->AddRef();
+        out->push_back(item);
     }
 }
 
-itemdb::SpellRecord* FindSpellPrototype(const char* name) {
-    return g_spellDatabase.spells.Named(name);
-}
-
-// Created null when missing.
-itemdb::SpellModifierRecord*& ModifierSlot(ItemStock* stock, const std::string& name) {
-    return stock->modifierMap[name];
-}
-
-char ModifierKind(const itemdb::SpellModifierRecord* m) { return m->code[0]; }
-
-void AppendModifier(std::list<itemdb::SpellModifierRecord*>& list, itemdb::SpellModifierRecord* modifier) { list.insert(list.end(), modifier); }
-
-void ClearModifierList(std::list<itemdb::SpellModifierRecord*>& list) { list.clear(); }
-
-// The counts and the material values are read into locals reused for every section, so a failed read leaves the
-// previous value.
-void ReadName(CStream* stream, std::string& name) {
-    name = stream->ReadString();
-}
-
+// `record` appended unless null or already listed.
 template <typename T>
 void AddUnique(std::vector<T*>& list, T* record) {
-    if (std::find(list.begin(), list.end(), record) == list.end()) list.push_back(record);
+    if (record && std::find(list.begin(), list.end(), record) == list.end()) list.push_back(record);
 }
 
-// A record section: a count, then names lower-cased and looked up in `table`.
+// A record section: a count, then names lower-cased and looked up in `table`. `name` and `count` are the
+// caller's, reused for every section, so a failed read leaves the previous value.
 template <typename Record>
 void LoadRecords(CStream* stream, std::string& name, unsigned& count, itemdb::NamedRecordTable<Record>& table,
                  std::vector<itemdb::ItemRecordHead*>& list) {
     stream->ReadValue(count);
     for (unsigned i = 0; i < count; ++i) {
-        ReadName(stream, name);
+        name = stream->ReadString();
         str::MakeLower(name);
-        itemdb::ItemRecordHead* record = table.Named(name);
-        if (record) AddUnique(list, record);
+        AddUnique<itemdb::ItemRecordHead>(list, table.Named(name));
     }
 }
 
@@ -169,13 +153,8 @@ template <typename Record, typename Map>
 void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, std::vector<Record*>& list) {
     stream->ReadValue(count);
     for (unsigned i = 0; i < count; ++i) {
-        ReadName(stream, name);
-        Record* record;
-        {
-            std::string key(name);
-            record = map[key];
-        }
-        if (record) AddUnique(list, record);
+        name = stream->ReadString();
+        AddUnique(list, map[name]);
     }
 }
 
@@ -184,203 +163,151 @@ void SaveItemRecords(CStream* stream, const std::vector<itemdb::ItemRecordHead*>
     for (const itemdb::ItemRecordHead* record : list) stream->WriteString(record->name);
 }
 
-int SpellIndex(const itemdb::SpellRecord* record) {
-    itemdb::SpellTable& spells = g_spellDatabase.spells;
-    return spells.IndexOf(spells.FindByCode(record->code));
-}
-int ModifierIndex(const itemdb::SpellModifierRecord* record) {
-    const char* code = record->code;
-    itemdb::SpellModifierTable& modifiers = g_spellDatabase.modifiers;
-    return modifiers.IndexOf(modifiers.FindByCode(code));
-}
-
-// The common body of the spell and modifier instruction generators: the source copied to its scratch vector,
-// then an item of kind ItemKind::Loot with the class-0x15 prototype named at `prototypeName` per record, its index,
-// count_ a random count. The scratch is emptied at the end.
-template <typename Record>
-void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& source, const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
-                               std::list<CItem*>* out) {
-    CItemConstructor* ctor = stock->context->ItemConstructor();
-    CItemManager* manager = stock->context->ItemFactory();
-    const std::vector<Record*> taken = source;
-    itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
-    for (Record* record : taken) {
-        ctor->SetManager(manager);
-        ctor->BeginCreateItem(ItemKind::Loot);
-        ctor->SetPrototype(prototype);
-        ctor->SetMaterial(nullptr);
-        CItem* item = ctor->EndCreateItem();
-        ctor->SetManager(nullptr);
-        AsLoot(item)->index_ = static_cast<std::uint32_t>(indexOf(record));
-        item->count_ = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
-        AddReference(item);
-        Output(out, item);
-    }
-}
-
 constexpr int kScrollTries = 10;
-
-template <typename T>
-void AddUnlessPresent(std::vector<T*>& list, T* record) {
-    if (!record) return;
-    if (std::find(list.begin(), list.end(), record) == list.end()) list.push_back(record);
-}
 
 } // namespace
 
 
-// Original bug kept: a failed build (EndCreateItem null) is dereferenced.
-void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount, std::list<CItem*>* out, int kind) {
-    CItemConstructor* ctor = context->ItemConstructor();
-    CItemManager* manager = context->ItemFactory();
-    if (kind == 0 || kind == 3)
-        FillSpellMaps(stock::WeaponSpellRecipes());
-    else if (kind == 1)
-        FillSpellMaps(stock::ArmorSpellRecipes());
+// Original bug kept: a failed build (EndCreateItem null) is dereferenced. The item is created before its
+// material is drawn (BuildItem would create it after), so a cancelled item still uses up an object id.
+void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount,
+                              std::list<CItem*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes) {
+    CItemConstructor* ctor = party->ItemConstructor();
+    CItemManager* manager = party->ItemFactory();
+    if (spellRecipes) FillSpellMaps(*spellRecipes);
 
     int count = RandomCount(minCount, maxCount);
     std::vector<itemdb::ItemRecordHead*> taken;
     if (prototypes->size() > static_cast<std::size_t>(count)) {
-        Shuffle(prototypes->data(), prototypes->data() + prototypes->size());
+        Shuffle(*prototypes);
         taken.assign(prototypes->begin(), prototypes->begin() + count);
     } else {
         taken = *prototypes;
     }
 
     std::vector<StockMaterial*> candidates;
-    for (itemdb::ItemRecordHead* p : taken) {
-        itemdb::ItemRecordHead* prototype = p;
-        if (str::Compare(prototype->family.c_str(), game::WandText()) == 0) continue;
+    for (itemdb::ItemRecordHead* prototype : taken) {
+        if (prototype->family == game::WandText()) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(prototype->Kind());
-        ctor->SetPrototype(prototype);
-        candidates.clear();   // erase(begin, end)
-        if (text::CompareIgnoringCase(prototype->materialClass.c_str(), game::NoneText()) != 0) {
-            for (StockMaterial* e = materials.data(); e != materials.data() + materials.size(); ++e) {
-                if (str::Compare(prototype->materialClass.c_str(), e->record->soundName) != 0) continue;
-                if (MaterialUnits(prototype) > e->left) continue;
-                candidates.push_back(e);
+        ctor->prototype_ = prototype;
+        bool needsMaterial = text::CompareIgnoringCase(prototype->materialClass.c_str(), game::NoneText()) != 0;
+        candidates.clear();
+        if (needsMaterial) {
+            for (StockMaterial& e : materials) {
+                if (prototype->materialClass != e.record->soundName) continue;
+                if (static_cast<int>(prototype->materialUnits) > e.left) continue;
+                candidates.push_back(&e);
             }
         }
         StockMaterial* chosen = DrawMaterial(prototype, candidates);
-        if (!chosen) {
-            if (text::CompareIgnoringCase(prototype->materialClass.c_str(), game::NoneText()) != 0) {
-                if (candidates.end() == candidates.begin()) {
-                    ctor->Cancel();
-                    ctor->SetManager(nullptr);
-                    continue;
-                }
-                Shuffle(candidates.data(), candidates.data() + candidates.size());
-                chosen = *candidates.begin();
+        if (!chosen && needsMaterial) {
+            if (candidates.empty()) {
+                ctor->Cancel();
+                ctor->SetManager(nullptr);
+                continue;
             }
+            Shuffle(candidates);
+            chosen = candidates.front();
         }
-        if (chosen) {
-            chosen->left -= MaterialUnits(prototype);
-            ctor->SetMaterial(chosen->record);
-        } else {
-            ctor->SetMaterial(nullptr);
-        }
+        if (chosen) chosen->left -= static_cast<int>(prototype->materialUnits);
+        ctor->material_ = chosen ? chosen->record : nullptr;
 
-        std::list<HeldRef<CSpell>> spellList;
-        if (kind == 1 || kind == 3 || kind == 0) ::AddSpell(this, ctor, spellList);
+        std::list<HeldRef<CSpell>> spellList;   // released after the build
+        if (spellRecipes) {
+            if (CSpell* spell = RollItemSpell(this, prototype->Kind(), prototype, ctor->material_, spellList)) ctor->spell_ = spell;
+        }
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
-        AddReference(item);
+        item->AddRef();
         if (item->Kind() == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Potion)
             item->count_ = static_cast<std::uint32_t>(libcrt::RandBelow(30) + 20);
-        Output(out, item);
+        out->push_back(item);
     }
 }
 
 void ItemStock::SetLevels(const float* base, const float* scroll) {
-    for (int i = 0; i < 8; ++i) baseLevels[i] = base[i];
-    for (int i = 0; i < 8; ++i) scrollLevels[i] = scroll[i];
+    std::copy_n(base, 8, baseLevels);
+    std::copy_n(scroll, 8, scrollLevels);
 }
 
-void ItemStock::GenerateWeapons(int minCount, int maxCount, std::list<CItem*>* out) { GenerateItems(&weapons, minCount, maxCount, out, 0); }
-void ItemStock::GenerateArmors(int minCount, int maxCount, std::list<CItem*>* out) { GenerateItems(&armors, minCount, maxCount, out, 1); }
-void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::list<CItem*>* out) { GenerateItems(&quickItems, minCount, maxCount, out, 2); }
+void ItemStock::GenerateWeapons(int minCount, int maxCount, std::list<CItem*>* out) {
+    GenerateItems(&weapons, minCount, maxCount, out, &g_spellDatabase.weaponRecipes);
+}
+void ItemStock::GenerateArmors(int minCount, int maxCount, std::list<CItem*>* out) {
+    GenerateItems(&armors, minCount, maxCount, out, &g_spellDatabase.armorRecipes);
+}
+void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::list<CItem*>* out) {
+    GenerateItems(&quickItems, minCount, maxCount, out, nullptr);
+}
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>* out) {
-    CItemConstructor* ctor = context->ItemConstructor();
-    CItemManager* manager = context->ItemFactory();
+    CItemConstructor* ctor = party->ItemConstructor();
+    CItemManager* manager = party->ItemFactory();
     int count = RandomCount(minCount, maxCount);
     std::vector<StockMaterial> taken;
     if (materials.size() > static_cast<std::size_t>(count)) {
-        Shuffle(materials.data(), materials.data() + materials.size());
+        Shuffle(materials);
         taken.assign(materials.begin(), materials.begin() + count);
     } else {
         taken = materials;
     }
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(game::MaterialText());
-    for (auto& e : taken) {
-        ctor->SetManager(manager);
-        ctor->BeginCreateItem(ItemKind::Loot);
-        ctor->SetPrototype(prototype);
-        ctor->SetMaterial(e.record);
-        int range = e.maxCount - e.minCount + 1;
-        ctor->count_ = libcrt::RandBelow(range) + e.minCount;
-        CItem* item = ctor->EndCreateItem();
-        ctor->SetManager(nullptr);
-        AddReference(item);
-        Output(out, item);
+    for (const StockMaterial& e : taken) {
+        int stackSize = libcrt::RandBelow(e.maxCount - e.minCount + 1) + e.minCount;
+        CItem* item = ctor->BuildItem(manager, ItemKind::Loot, prototype, e.record, nullptr, stackSize);
+        item->AddRef();
+        out->push_back(item);
     }
 }
 
 void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateInstructions(this, weapons, game::InstructionWeaponText(), g_itemDatabase.weapons, nullptr, minCount,
+    GenerateInstructions(this, game::InstructionWeaponText(), ItemIndices(weapons, g_itemDatabase.weapons), minCount,
                          maxCount, out);
 }
 
 void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateInstructions(this, armors, game::InstructionArmorText(), g_itemDatabase.armors, nullptr, minCount,
+    GenerateInstructions(this, game::InstructionArmorText(), ItemIndices(armors, g_itemDatabase.armors), minCount,
                          maxCount, out);
 }
 
-// Quick items named "scroll" get no instruction.
 void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateInstructions(this, quickItems, game::InstructionQuickItemText(), g_itemDatabase.quickItems,
-                         game::ScrollText(), minCount, maxCount, out);
+    GenerateInstructions(this, game::InstructionQuickItemText(),
+                         ItemIndices(quickItems, g_itemDatabase.quickItems, game::ScrollText()), minCount, maxCount,
+                         out);
+}
+
+void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
+    GenerateInstructions(this, game::PrototypeText(), MagicIndices(spells, SpellIndex), minCount, maxCount, out);
+}
+
+void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
+    GenerateInstructions(this, game::RuneText(), MagicIndices(modifiers, ModifierIndex), minCount, maxCount, out);
 }
 
 // Kept bug: the lookup inserts a null entry into the spell map for every recipe name it does not know.
-void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>* recipes) {
+void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>& recipes) {
     spellMap.clear();
     modifierMap.clear();
-    for (const itemdb::SpellListRecord& listed : *recipes) {
-        const itemdb::SpellListRecord* recipe = &listed;
-        if (!(recipe->classMask & (1u << (classIndex & 31)))) continue;
-        itemdb::SpellRecord* spell = stock::SpellsByName()[recipe->spell];   // keyed by the recipe's spell name
-        if (!spell) continue;
-        bool offered = false;
-        for (auto& s : spells) {
-            if (s == spell) {
-                offered = true;
-                break;
-            }
-        }
-        if (!offered) continue;
-        std::list<void*>* entries = &spellMap[recipe->spell];
-        entries->insert(entries->end(), const_cast<itemdb::SpellListRecord*>(recipe));   // the recipe lists hold raw record pointers
+    for (const itemdb::SpellListRecord& recipe : recipes) {
+        if (!(recipe.classMask & (1u << (classIndex & 31)))) continue;
+        itemdb::SpellRecord* spell = g_spellDatabase.spells.byCode[recipe.spell];   // keyed by the recipe's spell name
+        if (!spell || std::find(spells.begin(), spells.end(), spell) == spells.end()) continue;
+        spellMap[recipe.spell].push_back(&recipe);
     }
 
-    for (auto& p : modifiers) {
-        itemdb::SpellModifierRecord* m = p;
-        char letters[2] = {m->code[0], m->code[1]};
-        switch (ModifierKind(m)) {
+    for (itemdb::SpellModifierRecord* m : modifiers) {
+        switch (m->code[0]) {
         case 'a': case 'd': case 'e': case 'm': case 'r': case 't': {
-            std::string key(letters, letters + 1);
-            itemdb::SpellModifierRecord* held = ModifierSlot(this, key);
+            itemdb::SpellModifierRecord*& held = modifierMap[std::string(m->code, 1)];
             // Replaced when the held one's strength is less.
             if (held) EI_NAN_AUDIT(held->strength, m->strength);
-            if (!held || held->strength < m->strength) ModifierSlot(this, key) = m;
+            if (!held || held->strength < m->strength) held = m;
             break;
         }
-        case 'f': case 'i': {
-            std::string key(letters, letters + 2);
-            ModifierSlot(this, key) = m;
+        case 'f': case 'i':
+            modifierMap[std::string(m->code, 2)] = m;
             break;
-        }
         default:
             break;
         }
@@ -388,46 +315,45 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>* recipe
 }
 
 void ItemStock::GenerateSpells(std::list<HeldRef<CSpell>>* out, const float* levels, unsigned threshold) {
-    CSpellManager* spellManager = context->SpellManager();
+    using stock::kMaxSpellModifiers;
+    CSpellManager* spellManager = party->SpellManager();
     std::list<itemdb::SpellModifierRecord*> chosen;
     for (auto& [spellName, recipes] : spellMap) {
-        for (void* entry : recipes) {
+        for (const itemdb::SpellListRecord* recipe : recipes) {
             if (g_random.Next() % 101 < threshold) continue;
-            ClearModifierList(chosen);
+            chosen.clear();
             int count = 0;
-            auto* recipe = static_cast<const itemdb::SpellListRecord*>(entry);
-            itemdb::SpellRecord* prototype = FindSpellPrototype(recipe->spell.data());
+            itemdb::SpellRecord* prototype = g_spellDatabase.spells.Named(recipe->spell);
             int level = prototype->skill;
             int budget = x87::fistp(levels[prototype->school]);
             float cost = prototype->mana;
-            const std::vector<std::string>& required = recipe->required;
-            for (unsigned i = 0; i < required.size(); ++i) {
-                itemdb::SpellModifierRecord* m = ModifierSlot(this, required[i]);
+            for (const std::string& name : recipe->required) {
+                itemdb::SpellModifierRecord* m = modifierMap[name];
                 if (!m) continue;
-                AppendModifier(chosen, m);
+                chosen.push_back(m);
                 cost = static_cast<float>(cost + m->mana);
                 ++count;
                 level += m->skill;
             }
-            if (budget < level || count > 8) continue;
+            if (budget < level || count > kMaxSpellModifiers) continue;
             const std::vector<std::string>& optional = recipe->optional;
-            for (unsigned i = 0; i < optional.size() && count < 8; ++i) {
+            for (unsigned i = 0; i < optional.size() && count < kMaxSpellModifiers; ++i) {
                 if (g_random.Next() % 101 < 50) continue;
-                itemdb::SpellModifierRecord* m = ModifierSlot(this, optional[i]);
+                itemdb::SpellModifierRecord* m = modifierMap[optional[i]];
                 if (!m || budget < m->skill + level) continue;
-                AppendModifier(chosen, m);
+                chosen.push_back(m);
                 cost = static_cast<float>(cost + m->mana);
                 ++count;
                 level += m->skill;
             }
-            itemdb::SpellModifierRecord* repeated = ModifierSlot(this, recipe->repeated);
+            itemdb::SpellModifierRecord* repeated = modifierMap[recipe->repeated];
             if (repeated && budget >= repeated->skill + level) {
-                int reached = level;   // (kept in a register; `level` is not updated)
-                while (count < 8) {
-                    AppendModifier(chosen, repeated);
+                int reached = level;   // the repeat loop counts its own level; `level` stays the recipe's
+                while (count < kMaxSpellModifiers) {
+                    chosen.push_back(repeated);
                     ++count;
                     reached += repeated->skill;
-                    if (ModifierKind(repeated) == 'm') {
+                    if (repeated->code[0] == 'm') {
                         cost = static_cast<float>(repeated->strength * prototype->mana + cost + repeated->mana);
                         EI_NAN_AUDIT(cost, prototype->mana);
                         if (cost <= prototype->mana) break;
@@ -452,22 +378,18 @@ void ItemStock::LoadLists(CStream* stream) {
     LoadRecords(stream, name, count, items.weapons, weapons);
     LoadRecords(stream, name, count, items.quickItems, quickItems);
 
+    // The three ints are reused for every entry, like the counts.
     stream->ReadValue(count);
     int values[3] = {0, 0, 0};
     for (unsigned i = 0; i < count; ++i) {
-        ReadName(stream, name);
+        name = stream->ReadString();
         str::MakeLower(name);
-        StockMaterial entry;
         for (int& v : values) stream->ReadValue(v);
-        entry.record = items.materials.Named(name);
-        entry.minCount = values[0];
-        entry.maxCount = values[1];
-        entry.left = values[2];
-        materials.push_back(entry);
+        materials.push_back(StockMaterial{items.materials.Named(name), values[0], values[1], values[2]});
     }
 
-    LoadMapped(stream, name, count, stock::SpellsByName(), spells);
-    LoadMapped(stream, name, count, stock::ModifiersByName(), modifiers);
+    LoadMapped(stream, name, count, g_spellDatabase.spells.byCode, spells);
+    LoadMapped(stream, name, count, g_spellDatabase.modifiers.byCode, modifiers);
 }
 
 void ItemStock::SaveLists(CStream* out) {
@@ -476,7 +398,7 @@ void ItemStock::SaveLists(CStream* out) {
     SaveItemRecords(out, quickItems);
 
     out->WriteValue(static_cast<std::uint32_t>(materials.size()));
-    for (auto& e : materials) {
+    for (const StockMaterial& e : materials) {
         out->WriteString(e.record->key);
         out->WriteValue(static_cast<std::uint32_t>(e.minCount));
         out->WriteValue(static_cast<std::uint32_t>(e.maxCount));
@@ -484,24 +406,16 @@ void ItemStock::SaveLists(CStream* out) {
     }
 
     out->WriteValue(static_cast<std::uint32_t>(spells.size()));
-    for (auto& p : spells) out->WriteString(p->code);
+    for (const itemdb::SpellRecord* p : spells) out->WriteString(p->code);
 
-    // The modifiers' codes go through a string made from a stack copy of their first four bytes (the game's
-    // fifth byte is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
+    // A modifier's code is up to four letters (the original adds an uninitialised stack byte after a four-letter
+    // code; here the string stops after the four).
     out->WriteValue(static_cast<std::uint32_t>(modifiers.size()));
-    for (auto& p : modifiers) {
-        char code[5] = {};
-        std::memcpy(code, p->code, 4);
-        std::string text = code;
-        out->WriteString(text);
-    }
+    for (const itemdb::SpellModifierRecord* p : modifiers) out->WriteString(std::string(p->code, strnlen(p->code, 4)));
 }
 
 void ItemStock::ResetMaterialUnits() {
-    for (auto& e : materials) {
-        e.left = e.maxCount;
-        if (e.maxCount > e.minCount) e.left = RandomCount(e.minCount, e.maxCount);
-    }
+    for (StockMaterial& e : materials) e.left = RandomCount(e.minCount, e.maxCount);
 }
 
 void ItemStock::CopyMagic(const ItemStock* other) {
@@ -509,54 +423,37 @@ void ItemStock::CopyMagic(const ItemStock* other) {
     modifiers = other->modifiers;
 }
 
-void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateMagicInstructions(this, spells, game::PrototypeText(), SpellIndex, minCount, maxCount, out);
-}
-
-void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateMagicInstructions(this, modifiers, game::RuneText(), ModifierIndex, minCount, maxCount, out);
-}
-
-// Original bug kept: a failed build (EndCreateItem null) is dereferenced.
+// Original bug kept: a failed build (null item) is dereferenced.
 void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
-    CItemConstructor* ctor = context->ItemConstructor();
-    CItemManager* manager = context->ItemFactory();
-    FillSpellMaps(stock::ScrollSpellRecipes());
+    CItemConstructor* ctor = party->ItemConstructor();
+    CItemManager* manager = party->ItemFactory();
+    FillSpellMaps(g_spellDatabase.scrollRecipes);
     std::list<HeldRef<CSpell>> list;
-    for (int tries = 0;;) {
+    for (int tries = 0; tries < kScrollTries; ++tries) {
         list.clear();
-        GenerateSpells(&list, scrollLevels, 0x32);
+        GenerateSpells(&list, scrollLevels, 50);
         if (list.size() >= spells.size()) break;
-        if (++tries >= kScrollTries) break;
     }
     itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named(game::SpellContainerText());
     for (CSpell* spell : list) {
-        ctor->SetManager(manager);
-        ctor->BeginCreateItem(ItemKind::Spell);
-        ctor->SetPrototype(prototype);
-        ctor->SetMaterial(nullptr);
-        ctor->SetSpellObject(spell);
-        CItem* item = ctor->EndCreateItem();
-        ctor->SetManager(nullptr);
-        AddReference(item);
-        Output(out, item);
+        CItem* item = ctor->BuildItem(manager, ItemKind::Spell, prototype, nullptr, spell);
+        item->AddRef();
+        out->push_back(item);
     }
 }
 
 // --- The stock's lists filled by the class template ------------------------------
 
-void ItemStock::AddArmor(itemdb::ArmorRecord* record) { AddUnlessPresent<itemdb::ItemRecordHead>(armors, record); }
-void ItemStock::AddWeapon(itemdb::WeaponRecord* record) { AddUnlessPresent<itemdb::ItemRecordHead>(weapons, record); }
-void ItemStock::AddQuickItem(itemdb::QuickItemRecord* record) { AddUnlessPresent<itemdb::ItemRecordHead>(quickItems, record); }
-void ItemStock::AddSpell(itemdb::SpellRecord* record) { AddUnlessPresent(spells, record); }
-void ItemStock::AddModifier(itemdb::SpellModifierRecord* record) { AddUnlessPresent(modifiers, record); }
+void ItemStock::AddArmor(itemdb::ArmorRecord* record) { AddUnique<itemdb::ItemRecordHead>(armors, record); }
+void ItemStock::AddWeapon(itemdb::WeaponRecord* record) { AddUnique<itemdb::ItemRecordHead>(weapons, record); }
+void ItemStock::AddQuickItem(itemdb::QuickItemRecord* record) { AddUnique<itemdb::ItemRecordHead>(quickItems, record); }
+void ItemStock::AddSpell(itemdb::SpellRecord* record) { AddUnique(spells, record); }
+void ItemStock::AddModifier(itemdb::SpellModifierRecord* record) { AddUnique(modifiers, record); }
 
 void ItemStock::AddMaterial(itemdb::MaterialRecordHead* record, int minCount, int maxCount) {
     if (!record) return;
-    StockMaterial* entry = materials.data();
-    StockMaterial* end = materials.data() + materials.size();
-    while (entry != end && entry->record != record) ++entry;
-    if (entry == end) {
+    auto entry = std::find_if(materials.begin(), materials.end(), [&](const StockMaterial& e) { return e.record == record; });
+    if (entry == materials.end()) {
         materials.push_back(StockMaterial{record, minCount, maxCount, maxCount});
         return;
     }

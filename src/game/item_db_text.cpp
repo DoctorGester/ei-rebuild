@@ -2,66 +2,67 @@
 
 #include "resource.h"
 #include "spell.h"
-
-#include "lib/crt.h"
-#include "lib/text_case.h"
 #include "text_split.h"
+
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include <string>
 
 using namespace itemdb;
 
-
 namespace {
-
-constexpr const char kString[] = "string ";
-constexpr const char kWeapon[] = "weapon ";
-constexpr const char kArmor[] = "armor ";
-constexpr const char kQuickItem[] = "qitem ";
-constexpr const char kLootItem[] = "litem ";
-constexpr const char kQuestItem[] = "questitem ";
-constexpr const char kMaterial[] = "material ";
-constexpr const char kInstruction[] = "instr ";
-constexpr const char kSpell[] = "spell ";
-constexpr const char kModifier[] = "modifier ";
-constexpr const char kSpace[] = " ";
-constexpr const char kNoMaterial[] = "none";
-constexpr const char kUnknown[] = "Unknown";
-constexpr const char kColon[] = ": ";
-constexpr const char kLineEnd[] = "\r\n";
-
-// Clears the current text, looks up `key` and makes it current. True when it was found and is not empty
-// (CTextManager::Open inlined).
-bool OpenText(CTextManager* self, std::string_view key) { return self->Open(key) != 0; }
 
 // The record's name as used in keys: spaces become '_', lower case. `name` is a string field of a database record
 // that may be null (reading it then faults).
-void KeyName(std::string& out, const std::string& name) {
-    out = name;
-    text::ReplaceChar(&out, ' ', '_');
-    str::MakeLower(out);
+std::string KeyName(const std::string& name) {
+    std::string key = name;
+    text::ReplaceChar(&key, ' ', '_');
+    str::MakeLower(key);
+    return key;
 }
 
 // Looks up `key`; when found, reads the name line and the description.
-void ReadItemText(CTextManager* self, const std::string& key, std::string* name, std::string* description) {
-    if (OpenText(self, key)) {
-        self->ReadLine(name, 1);
-        self->ReadToHash(description, 1);
+void ReadItemText(CTextManager* texts, const std::string& key, ItemTexts* out) {
+    if (texts->Open(key)) {
+        texts->ReadLine(&out->name, 1);
+        texts->ReadToHash(&out->description, 1);
     }
 }
 
-// Armor types 0-2 are worn on the upper body.
-bool IsUpperArmor(const ArmorRecord* armor) {
-    int type = armor->type;
-    return type == 0 || type == 1 || type == 2;
+// The text key and kind key of a loot item standing for a record.
+void RecordKeys(const CItemLoot* loot, std::string* key, const char** kindKey) {
+    switch (loot->recordType_) {
+    case LootRecordType::Weapon:
+        *key = "instr " + KeyName(WeaponAt(loot->index_)->name);
+        *kindKey = "item_weapon_shape";
+        break;
+    case LootRecordType::Armor: {
+        const ArmorRecord* armor = ArmorAt(loot->index_);
+        *key = "instr " + KeyName(armor->name);
+        *kindKey = IsUpperBodyArmor(armor->type) ? "item_armor_shape_upper" : "item_armor_shape_lower";
+        break;
+    }
+    case LootRecordType::Quick:
+        *key = "instr " + KeyName(QuickItemAt(loot->index_)->name);
+        *kindKey = "item_wand_shape";
+        break;
+    case LootRecordType::Spell:
+        *key = std::string("spell ") + SpellAt(loot->index_)->code;
+        *kindKey = "item_prototype";
+        break;
+    case LootRecordType::Modifier:
+        *key = std::string("modifier ") + SpellModifierAt(loot->index_)->code;
+        *kindKey = "item_modifier";
+        break;
+    default: break;
+    }
 }
 
 } // namespace
 
 bool CTextManager::IsPastEnd(const char* p) {
-    // SUB; CMP; SETGE: the distance from the start compared signed with the length.
     int offset = static_cast<int>(p - text_);
     return offset >= static_cast<int>(length_);
 }
@@ -71,154 +72,96 @@ bool CTextManager::GetString(std::string_view name, std::string* out) {
         text_ = nullptr;
         cursor_ = nullptr;
     }
-    bool found;
-    {
-        std::string key(kString);
-        key += name;
-        found = OpenText(this, key);
-    }
-    if (!found) {
+    bool found = Open("string " + std::string(name));
+    if (found) {
+        ReadToHash(out, 1);
+        str::TrimRight(*out, "\r\n");
+    } else if (out->data() != name.data()) {
         // `name` may be out's own text (callers pass a string and its address).
-        if (out->data() != name.data()) *out = name;
-        text_ = nullptr;
-        cursor_ = nullptr;
-        return false;
+        *out = name;
     }
-    ReadToHash(out, 1);
-    str::TrimRight(*out, kLineEnd);
     text_ = nullptr;
     cursor_ = nullptr;
-    return true;
+    return found;
 }
 
-void CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* description, std::string* kind) {
+ItemTexts CTextManager::GetItemTexts(CItem* item) {
     std::uint32_t materialIndex = MaterialIndex(item->prototypeId_);
     std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId_);
-    std::string recordName;
-    std::string materialName;
-    name->clear();
-    description->clear();
-    kind->clear();
-
-    const char* kindKey = nullptr;
+    std::string key;                 // the item's text; none: no name and description
+    const char* kindKey = nullptr;   // the kind's string; none: no kind
+    bool wand = false;
     switch (item->Kind()) {
-    case ItemKind::Weapon: {
-        KeyName(materialName, MaterialAt(materialIndex)->key);
-        KeyName(recordName, WeaponAt(prototypeIndex)->name);
-        ReadItemText(this, std::string(kWeapon) + recordName + kSpace + materialName, name, description);
+    case ItemKind::Weapon:
+        key = "weapon " + KeyName(WeaponAt(prototypeIndex)->name) + " " + KeyName(MaterialAt(materialIndex)->key);
         kindKey = "item_weapon";
         break;
-    }
     case ItemKind::Armor: {
-        KeyName(materialName, MaterialAt(materialIndex)->key);
         const ArmorRecord* armor = ArmorAt(prototypeIndex);
-        KeyName(recordName, armor->name);
-        ReadItemText(this, std::string(kArmor) + recordName + kSpace + materialName, name, description);
-        kindKey = IsUpperArmor(armor) ? "item_armor_upper" : "item_armor_lower";
+        key = "armor " + KeyName(armor->name) + " " + KeyName(MaterialAt(materialIndex)->key);
+        kindKey = IsUpperBodyArmor(armor->type) ? "item_armor_upper" : "item_armor_lower";
         break;
     }
     case ItemKind::Quick: {
-        KeyName(recordName, QuickItemAt(prototypeIndex)->name);
-        // A quick item whose prototype has no material (+0x10 "none") is a potion.
+        key = "qitem " + KeyName(QuickItemAt(prototypeIndex)->name);
+        // A quick item whose prototype has no material is a potion.
         const ItemRecordHead* prototype = item->GetPrototype();
-        if (prototype && text::CompareIgnoringCase(prototype->materialClass,
-                                         kNoMaterial) == 0) {
-            ReadItemText(this, std::string(kQuickItem) + recordName, name, description);
+        if (prototype && text::CompareIgnoringCase(prototype->materialClass, "none") == 0) {
             kindKey = "item_potion";
             break;
         }
-        KeyName(materialName, MaterialAt(materialIndex)->key);
-        ReadItemText(this, std::string(kQuickItem) + recordName + kSpace + materialName, name, description);
+        key += " " + KeyName(MaterialAt(materialIndex)->key);
         // Only wands get a kind; their name is followed by the spell's name.
-        if (item->GetCategory() != QuickItemCategory::Wand) break;
-        if (CSpell* spell = item->spell_) {
-            std::string spellName(kUnknown);
-            bool found;
-            {
-                std::string key = std::string(kSpell) + spell->GetPrototype()->code;
-                found = OpenText(this, key);
-            }
-            if (found) ReadLine(&spellName, 1);
-            *name += kColon + spellName;
-        }
-        kindKey = "item_wand";
+        wand = item->GetCategory() == QuickItemCategory::Wand;
+        if (wand) kindKey = "item_wand";
         break;
     }
     case ItemKind::Loot: {
         auto* loot = AsLoot(item);
         if (loot->kind_ == LootKind::Self) {
-            KeyName(recordName, LootAt(prototypeIndex)->name);
-            ReadItemText(this, std::string(kLootItem) + recordName, name, description);
+            key = "litem " + KeyName(LootAt(prototypeIndex)->name);
             kindKey = "item_loot";
         } else if (loot->kind_ == LootKind::Material) {
-            KeyName(materialName, MaterialAt(loot->index_)->key);
-            ReadItemText(this, std::string(kMaterial) + materialName, name, description);
+            key = "material " + KeyName(MaterialAt(loot->index_)->key);
             kindKey = "item_material";
         } else if (loot->kind_ == LootKind::Record) {
-            switch (loot->recordType_) {
-            case LootRecordType::Weapon:
-                KeyName(recordName, WeaponAt(loot->index_)->name);
-                ReadItemText(this, std::string(kInstruction) + recordName, name, description);
-                kindKey = "item_weapon_shape";
-                break;
-            case LootRecordType::Armor: {
-                const ArmorRecord* armor = ArmorAt(loot->index_);
-                KeyName(recordName, armor->name);
-                ReadItemText(this, std::string(kInstruction) + recordName, name, description);
-                kindKey = IsUpperArmor(armor) ? "item_armor_shape_upper" : "item_armor_shape_lower";
-                break;
-            }
-            case LootRecordType::Quick:
-                KeyName(recordName, QuickItemAt(loot->index_)->name);
-                ReadItemText(this, std::string(kInstruction) + recordName, name, description);
-                kindKey = "item_wand_shape";
-                break;
-            case LootRecordType::Spell:
-                ReadItemText(this, std::string(kSpell) + SpellAt(loot->index_)->code, name,
-                             description);
-                kindKey = "item_prototype";
-                break;
-            case LootRecordType::Modifier: {
-                // The modifier's two-letter code is inline in the record (+0x04).
-                ReadItemText(this, std::string(kModifier) + SpellModifierAt(loot->index_)->code, name, description);
-                kindKey = "item_modifier";
-                break;
-            }
-            default: break;
-            }
+            RecordKeys(loot, &key, &kindKey);
         }
         break;
     }
-    case ItemKind::Spell: {
-        CSpell* spell = item->spell_;
-        if (!spell) break;
-        ReadItemText(this, std::string(kSpell) + spell->GetPrototype()->code, name, description);
-        kindKey = "item_spell";
+    case ItemKind::Spell:
+        if (CSpell* spell = item->spell_) {
+            key = std::string("spell ") + spell->GetPrototype()->code;
+            kindKey = "item_spell";
+        }
         break;
-    }
-    case ItemKind::Quest: {
-        // ItemKind::Quest is the quest item ("questitem"); its table is Loot in item_db.h.
-        KeyName(recordName, QuestItemAt(prototypeIndex)->name);
-        ReadItemText(this, std::string(kQuestItem) + recordName, name, description);
+    case ItemKind::Quest:
+        key = "questitem " + KeyName(QuestItemAt(prototypeIndex)->name);
         kindKey = "item_quest";
         break;
-    }
     default: break;
     }
-    if (kindKey) GetString(kindKey, kind);
+
+    ItemTexts texts;
+    if (!key.empty()) ReadItemText(this, key, &texts);
+    if (wand) {
+        if (CSpell* spell = item->spell_) {
+            std::string spellName = "Unknown";
+            if (Open(std::string("spell ") + spell->GetPrototype()->code)) ReadLine(&spellName, 1);
+            texts.name += ": " + spellName;
+        }
+    }
+    if (kindKey) GetString(kindKey, &texts.kind);
+    return texts;
 }
 
-void CTextManager::FormatItemName(CItem* item, std::string* out) {
-    std::string name;
-    std::string format;   // first the description, then the format text
-    std::string kind;
-    GetItemTexts(item, &name, &format, &kind);
+std::string CTextManager::FormatItemName(CItem* item) {
+    ItemTexts texts = GetItemTexts(item);
+    std::string format;
     if (static_cast<int>(item->count_) > 1) {
         GetString("format_item2", &format);
-        *out = str::Format(format, kind, name, item->count_);
-    } else {
-        GetString("format_item1", &format);
-        *out = str::Format(format, kind, name);
+        return str::Format(format, texts.kind, texts.name, item->count_);
     }
+    GetString("format_item1", &format);
+    return str::Format(format, texts.kind, texts.name);
 }
-
