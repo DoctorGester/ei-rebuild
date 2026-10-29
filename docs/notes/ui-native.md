@@ -450,6 +450,63 @@ makers 1.13), the deals 0.82-1.46%, the hero list's tooltip 0.23% (the tooltip i
 the map's titles 0.24%, the hero statistics page 1.71% (`ui_gallery_mp`); the map, the connection and base screens, the chat and
 the briefing are unchanged.
 
+### P3d done (2026-10-29): briefing, global map titles, help page and chat
+
+**Families adopted** (one `Adopt` where each surface is made, before anything draws on it):
+| Family | Surfaces (file) |
+|---|---|
+| `briefing` | the base screen's topic rows and person's label (`CBriefingScreen`'s setup, ui_briefing_create.cpp) and its text, a `CUiScrollText` adopted right after it is made |
+| `globalmap` | the zone tip with its quests (surface 0) and the allod's title and clock (ui_global_map.cpp); not the pick picture `backdrop_` (P6) |
+| `help` | the help page's header, body and footer (`NewSurface`, ui_help_page.cpp): over the options, the objectives and the zone tutorials |
+| `chat` | the player list (`CChatWindow`, ui_chat_window.cpp) and the chat overlay's line surfaces (ui_chat_overlay.cpp; the typed line is P5's) |
+
+The global map's titles are drawn with DT_SINGLELINE | DT_VCENTER | DT_CENTER (0x25), which the layout did not follow (they fell
+back to GDI). `render::text::Layout` now takes DT_SINGLELINE (section "DrawText layout rules"); `ei_text_check --gdi` holds it
+(two more formats, four heights for a single line). Help and global map are adopted under Rebirth's WideScreen too (W4 is
+done); `ui_widescreen*` pass under `uiboth`.
+
+**ui_compare.** No surface is mirrored any more (the help page under the options is native), so `uifault` falls back to a native
+canvas and writes its memory back onto it once the check has found the square (tests/verify/image/harness_ui_image.cpp;
+tests/verify/harness_ui.h's line still says "mirrored": fix it when the harness next changes). The help A/B allows 3% of the
+frame (the help page's native glyphs are 2%).
+
+**Still GDI.** Nothing in these families' own drawing (DrawTextIn, Clear, DrawWrappedText only).
+
+### P5 done (2026-10-29): edit, chat, connect and save / load lines and carets
+
+**Families adopted**, each pen line also recorded on the canvas (`ui_native::Line`, after the game's scaling, the 1-pixel pen's
+rule: end point left out):
+| Family | Surface (file) | Line |
+|---|---|---|
+| `edit` | every `CUiEditField`'s (ui_edit_field.cpp): the message box's, new hero's, hero screen's, exchange's and connection screen's fields | the caret in `caretColour_` |
+| `chat` | the chat overlay's typed line (ui_chat_overlay.cpp) | the caret in white |
+| `connect` | the connection screen's game list and its "connecting" note (`NewSurface`, ui_connect_screen.cpp) | the line under the column titles (ui_connect_list.cpp) |
+| `saveload` | the save / load window's list (`CSaveLoadWindow::CreateScreen`, ui_layouts.cpp) | the save name's caret (ui_saveload_list.cpp) |
+
+The edit field has no selection (only the console has one, P4). **Still GDI:** the pens still draw into the memory too (it stays
+the source of truth until P8), and the connect list's Rebirth names (`DrawEllipsis`, DT_END_ELLIPSIS) take `Text`'s GDI fall-back.
+
+**Checks for P3d and P5** (2026-10-29). `EI_RENDER_EXTRA=uiboth`: the 45 `ui_*` pass with 0 differing surfaces (ui_describe
+needs a lightly loaded machine: the comparison costs about 100 ms a frame in the camp, 47 s of its 60). `--golden`: 121 the same,
+24 without a golden. Frames under `uinative` against the default path's (3840x2160): the same layout everywhere, carets and the
+connect list's line identical, only glyph shapes differ: help over the options 2.02%, over the objectives 1.84%, the hero list
+0.23% and new hero 0.30% (edit field), connect 0.28%, briefing 0.01%, chat typed 0.02% and sent 0.03%, base topics 0.10%,
+phrase 0.09%, rewards 0.45%, save 0.13% / 0.22%, load 0.16-0.21%, the escape menu 0.10%, the global map 0.04% (the title and clock in
+the same places), its zone tip 0.08% and ways 0.30%.
+
+### P2a done (2026-10-29): the fonts inside the executable
+
+The two Liberation files are byte arrays built into the executable (ei_render, so ei_hook.dll and the tools): CMakeLists.txt runs
+`src/render/embed.cmake` on each at build time into fonts/ in the build folder (not committed, no Windows resource, so a port
+keeps it); `render_fonts.cpp` includes them and `render::text::FontForFace(face)` gives the bytes (Liberation Mono for Courier New,
+Liberation Serif else). `LoadFont(data, pixels)` reads memory. EI_FONT_DIR, FontDirectory / SetFontDirectory, text_check's
+`--fonts` and the "font file missing" fall-back to GDI are gone (`Text` still falls back for a format the layout does not follow).
+ei_hook.dll grows by 712,704 bytes (7,173,632 to 7,886,336, release); ei_standalone.exe is unchanged.
+
+**Notices.** Every build writes `third_party_notices.txt` beside the executables (configure time, from third_party's README and
+LICENSE files: the fonts' SIL Open Font License, sokol's zlib licence, stb's note); play.cmd copies it into run\play; README's
+License section says so.
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -468,9 +525,9 @@ they depend on.
 - **P1** (done, section 3 "P1 done") surface plumbing (canvas per native surface, blit, Get/ReleaseDC as the metrics DC, Fill / Clear / FrameRect, readback for
   PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale; first native surfaces: backdrop, FPS, status; needs
   N1, N3). **P2** (done, section 3 "P2 done") text (005FDE20 records glyph runs on native surfaces: our glyphs placed by GDI's metrics; 005FDFA0 unchanged; needs N2, P1).
-  **P3a-d** windows by family (menus and dialogs; HUD; camp, hero, trade and item info; briefing, global map titles, help page, chat
+  **P3a-d** (done) windows by family (menus and dialogs; HUD; camp, hero, trade and item info; briefing, global map titles, help page, chat
   window), mostly native-table entries plus fixes the diff finds; **P4** (done, section 3 "P4 done") console and debug panel (direct FillSolidRect / DrawText,
-  own fonts, the 2-pixel pen caret); **P5** controls with lines and carets (edit field 0065C2E0, chat typed line 005E3700, connect
+  own fonts, the 2-pixel pen caret); **P5** (done, section 3 "P5 done") controls with lines and carets (edit field 0065C2E0, chat typed line 005E3700, connect
   list 0061D780, save/load list 006567A0); **P6** the global-map pick picture (`RefreshSelection` 00630670: frame step, GPU copy,
   readback on click; colours exact, point copy, no dithering) and the camp's backdrop modes 3/4; **P7** (optional) CPU-written
   textures as GPU sub-image uploads, clouds 00499F10 as a shader (done by R28 / R28b); **P8** make `uinative` the default under `present`, drop the DIB
@@ -515,7 +572,8 @@ they depend on.
 
 The interface surfaces drawn on GPU canvases (ticket P1; docs/notes/ui-native.md, "P1"). A surface of a
 family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status, menu, msgbox,
-difficulty, options, objectives, credits, console, debug, unitpanel, messagelog, tooltip, hudmap, camp, hero, trade, iteminfo, itemstrip, exchange so far) gets a canvas for its holder when it is made (Adopt), and
+difficulty, options, objectives, credits, console, debug, unitpanel, messagelog, tooltip, hudmap, camp, hero, trade, iteminfo, itemstrip, exchange, briefing, globalmap, help, chat,
+edit, connect, saveload so far) gets a canvas for its holder when it is made (Adopt), and
 the surface functions record their drawing on it
 beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
 truth (a lost device brings canvases back black). The blit draws the canvas when
@@ -553,6 +611,10 @@ cases in tools/text_check check each of them):
   start; without it a tab has no width and no ink.
 - x: left, right - width, or left + (rect width - width) / 2 rounded down. Lines are the font's
   height apart from the rectangle's top; DT_VCENTER without DT_SINGLELINE changes nothing.
+- DT_SINGLELINE: the whole text is one line (CR and LF are characters, no word breaks), one line high also when the text
+  is empty; with DT_VCENTER its top is the rectangle's top plus half the room left (height less the line's), rounded
+  towards zero, also when the room is negative. DT_VCENTER's return value and DT_CALCRECT's bottom count from the
+  rectangle's top to the line's bottom.
 - Drawing stops after the first line whose bottom is below the rectangle (unless DT_NOCLIP); the
   return value is the height of the lines drawn (one line more when it stopped early and the
   text ends with a line break). DT_CALCRECT lays out every line, returns their height and sets right = left +
@@ -562,6 +624,8 @@ cases in tools/text_check check each of them):
   line's top, from the character's position to the next character's (its advance at the end).
   A prefixed expanded tab is underlined from the pen to its stop one pixel higher; a prefixed
   tab that is not expanded takes the segment's underline away.
+- Not modelled (synthetic cases only): a CR or LF inside a single line at large sizes (4K font 2) moves what follows by
+  a pixel or two; the game's single lines hold none.
 - Not modelled (synthetic cases only; the game's texts have no '&'): a wrapped first word that
   holds a prefix and ends in '&' sometimes keeps the following space on its line in DrawText.
 
