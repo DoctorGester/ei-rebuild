@@ -170,7 +170,7 @@ public:
     void OnShutdown() override;          // both lists emptied
     DriverSession* Clone() override;    // drivers shared, holders counted
     bool Query() override { return true; }
-    void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;   // the live holders' links appended
+    void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) override;   // the live holders' links appended
 
     std::list<SharedRef<DriverLink>> drivers;     // owning
     std::list<HeldRef<DriverLink>> holders;    // plain holders (released, not detached)

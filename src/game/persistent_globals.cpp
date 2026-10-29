@@ -113,7 +113,7 @@ private:
         }
     }
 
-    std::list<Element> list;
+    std::list<Element> list;   // a list: vec keeps iterators into it and Insert splices
     std::vector<std::list<Element>::iterator> vec;
     std::size_t mask = 0;
     std::size_t maxIndex = 0;

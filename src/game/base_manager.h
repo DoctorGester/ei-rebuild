@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <list>
 #include <string>
 #include <string_view>
@@ -30,7 +31,7 @@ public:
     using ObjectMap = lib::HashMap<unsigned, EngineObject*>;
     // Kept order: FreeSpares deletes the spares in it, and their destructors release counted members (a particle
     // source's texture) into other managers' spare lists, which later creations reuse in order.
-    using SpareMap = lib::HashMap<int, std::list<EngineObject*>*>;
+    using SpareMap = lib::HashMap<int, std::deque<EngineObject*>>;
 
     // Empties the tables and sizes them for a new session; returns 1.
     void Create() override;
@@ -92,10 +93,11 @@ protected:
 public:
     ObjectMap objects;              // registered objects by id
     int maxId;                      // highest id registered
-    std::list<EngineObject*> objectList;          // registered objects in registration order (saved so)
+    // The registered objects in registration order (saved so); a list: positions keeps its iterators.
+    std::list<EngineObject*> objectList;
     std::unordered_map<int, std::list<EngineObject*>::iterator> positions;          // id -> its node in objectList
     int maxPositionId;              // highest key of positions (kept by RegisterInstant)
-    SpareMap spares;                // type -> list of spare objects (allocated per type)
+    SpareMap spares;                // type -> its spare objects, taken from the front
     int maxSpareType;               // highest key of spares
     std::unordered_map<int, int> spareCounts;      // type -> number of spares
     int maxSpareCountType;          // highest key of spareCounts

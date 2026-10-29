@@ -8,14 +8,14 @@
 #include "core_refcount.h"
 #include "net_link.h"
 
-void WorldHandle::TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) {
+void WorldHandle::TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) {
     if (pendingLink) joined->emplace_back(pendingLink.Get());
     pendingLink.Reset();
 }
 
 namespace netlink {
 
-void DriverSession::TakeNew(std::list<HeldRef<netlink::NetLink>>* list) {
+void DriverSession::TakeNew(std::vector<HeldRef<netlink::NetLink>>* list) {
     for (const auto& holder : holders) {
         DriverLink* link = holder.Get();
         if (link && !(link->flags7 & RefCounted::kDetached)) list->emplace_back(link);

@@ -122,7 +122,7 @@ void BaseManager::Create() {
 // collected is released; the object list is emptied; every object left is deleted; then the tables are cleared.
 void BaseManager::Destroy() {
     ForEachObject(objects, [](EngineObject* o) { o->AddRef(); });
-    std::list<int> ids;
+    std::vector<int> ids;
     ForEachObject(objects, [&ids](EngineObject* o) {
         ids.push_back(o->id);
         o->Destroy();
@@ -178,12 +178,9 @@ void BaseManager::FreeAllFiles() {}
 EngineObject* BaseManager::CreateObject(int newType, int newId) {
     EngineObject* object = nullptr;
     if (hash400::Entry(spareCounts, maxSpareCountType, newType) > 0) {
-        if (auto found = spares.find(newType); found != spares.end()) {
-            std::list<EngineObject*>* spareList = found->second;
-            if (!spareList->empty()) {
-                object = spareList->front();
-                spareList->pop_front();
-            }
+        if (auto found = spares.find(newType); found != spares.end() && !found->second.empty()) {
+            object = found->second.front();
+            found->second.pop_front();
         }
     }
     if (!object) {
@@ -267,34 +264,17 @@ int BaseManager::RemoveObject(EngineObject* object) {
                 objectList.erase(position);
         }
     }
-    if (auto spare = spares.find(objectType); spare != spares.end()) {
-        AddTail(spare->second, object);
-        object->id = -1;
-        int count = hash400::Entry(spareCounts, maxSpareCountType, objectType) + 1;
-        if (objectType > maxSpareCountType) maxSpareCountType = objectType;
-        spareCounts[objectType] = count;
-        return 0;
-    }
-    auto* list = new std::list<EngineObject*>;
-    if (objectType > maxSpareType) maxSpareType = objectType;
-    spares[objectType] = list;
-    AddTail(list, object);
+    hash400::Entry(spares, maxSpareType, objectType).push_back(object);
     object->id = -1;
-    if (objectType > maxSpareCountType) maxSpareCountType = objectType;
-    int count = spareCounts[objectType] + 1;
-    if (objectType > maxSpareCountType) maxSpareCountType = objectType;
+    int count = hash400::Entry(spareCounts, maxSpareCountType, objectType) + 1;
     spareCounts[objectType] = count;
     return 0;
 }
 
-// Each type's list deletes its objects, is emptied and deleted; then the spares and spare counts tables are
-// emptied.
+// Each type's spares are deleted; then the spares and spare counts tables are emptied.
 void BaseManager::FreeSpares() {
-    for (auto& [objectType, list] : spares) {
-        if (!list) break;
-        for (EngineObject* object : *list) delete object;
-        delete list;
-    }
+    for (auto& [objectType, list] : spares)
+        for (EngineObject* object : list) delete object;
     maxSpareType = 0;
     spares.clear();
     maxSpareCountType = 0;

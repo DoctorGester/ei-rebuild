@@ -28,7 +28,7 @@ WorldHandle::~WorldHandle() { pendingLink.Reset(); }
 
 ClientHandle* ClientHandle::Clone() { return new ClientHandle(); }
 
-void ClientHandle::TakeNew(std::list<HeldRef<netlink::NetLink>>* links) { links->clear(); }
+void ClientHandle::TakeNew(std::vector<HeldRef<netlink::NetLink>>* links) { links->clear(); }
 
 // ---- netlink::DriverSession -----------------------------------------------------------------------
 

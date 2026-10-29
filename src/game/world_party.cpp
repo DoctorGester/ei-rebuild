@@ -22,7 +22,6 @@
 #include <string>
 #include "lib/text_case.h"
 
-#include <list>
 #include <vector>
 #include "ei/x87.h"
 #include "game_singletons.h"
@@ -59,7 +58,7 @@ bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
 Item* ItemAt(const std::vector<Item*>* items, int i) { return (*items)[i]; }
 
 // Appends to the list: the list holds a reference.
-void AddCountedTail(std::list<EngineObject*>* list, EngineObject* object) {
+void AddCountedTail(std::vector<EngineObject*>* list, EngineObject* object) {
     if (object) object->AddRef();
     list->push_back(object);
 }

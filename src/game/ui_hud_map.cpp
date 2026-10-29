@@ -271,7 +271,7 @@ void HudMap::BuildMarkers() {
     PlayerClient* localView = g_clientWorld.LocalView();
     int unitCount = localView ? std::ssize(localView->partyUnitIds) : 0;
     LightFactory* markers = g_clientWorld.lightFactory;
-    const std::list<int>& marked = markers->litIds;
+    const std::vector<int>& marked = markers->litIds;
     const int markedCount = static_cast<int>(marked.size());
     int exitCount = static_cast<int>(std::ssize(g_clientWorld.exits));
     int playerCount = IsMultiplayerClient() ? std::ssize(localView->otherUnitIds) : 0;

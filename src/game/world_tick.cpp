@@ -21,7 +21,6 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <list>
 #include <vector>
 
 namespace {
@@ -45,7 +44,7 @@ void WorldServer::Tick(char force) {
     // Timed objects: each one's Update runs it; those that return 0 are released now and taken out of the map after
     // the walk (the walk reads the node again after the release).
     auto& timed = timedObjects.map;
-    std::list<unsigned> finished;
+    std::vector<unsigned> finished;
     for (auto& node : timed) {
         EngineObject* object = node.second;
         if (!object->RunTick()) {
@@ -156,13 +155,11 @@ void WorldServer::UpdateUnits() {
     }
 
     // The counted objects run too; those whose Update returns 0 leave the list (their reference released).
-    for (auto position = counted.begin(); position != counted.end();) {
-        auto current = position++;
-        if (!(*current)->RunTick()) {
-            (*current)->Release();
-            counted.erase(current);
-        }
-    }
+    std::erase_if(counted, [](EngineObject* object) {
+        if (object->RunTick()) return false;
+        object->Release();
+        return true;
+    });
     for (int i = 0; i < std::ssize(sleepingIds); ++i) {
         if (auto found = updateMap.map.find(sleepingIds[i]); found != updateMap.map.end()) updateMap.map.erase(found);
     }
