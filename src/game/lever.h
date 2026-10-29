@@ -42,7 +42,7 @@ struct LeverRecordTable {
     std::vector<LeverRecord> records;
     std::unordered_map<std::string, LeverRecord*> byName;
 };
-extern lib::StaticObject<LeverRecordTable> g_leverTable;
+extern LeverRecordTable g_leverTable;   // lever_table.cpp
 
 // Levers ("CLeverObject", class id 0x5D); gates are levers too (zone1's "VGate"). scale.y is the shown
 // position (0..1), scale.z a second animation value that scales the spots' distance; flags_ 0x80000

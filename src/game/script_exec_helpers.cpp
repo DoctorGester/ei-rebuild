@@ -36,8 +36,8 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);
 }
 
-ScriptQuestObjective* QuestObjectives() { return g_scriptQuestObjectives->data(); }
-int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives->size()); }
+ScriptQuestObjective* QuestObjectives() { return g_scriptQuestObjectives.data(); }
+int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives.size()); }
 
 // string + string, constructing the result in `out`.
 std::string* ConcatString(std::string* a0, const std::string* a1, const std::string* a2) { *a0 = *a1 + *a2; return a0; }
@@ -53,9 +53,6 @@ public:
 private:
     std::string value_;   // constructed by ConcatString
 };
-
-void DestroyScriptQuestObjectives() { g_scriptQuestObjectives.Destroy(); }
-void DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
 
 } // namespace
 
@@ -167,7 +164,7 @@ void ScriptQuestFinish(CScript* script) {
         std::string condition;
         std::string then;
         std::string tail;
-        const std::string& quest = *g_scriptQuestName;
+        const std::string& quest = g_scriptQuestName;
         head = str::Format("Script Su%i(if(\n", i);                              // "Script Su%i(if(\n"
         then = str::Format("\n)then(\nKillScript()\nSu%i()\nGSSetVar(0,\"q.%s.%s.%i\",2)\n", i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
         if (i == QuestObjectiveCount() - 1) {
@@ -209,28 +206,16 @@ void ScriptQuestFinish(CScript* script) {
     }
     {
         std::string last;
-        const std::string& quest = *g_scriptQuestName;
+        const std::string& quest = g_scriptQuestName;
         last = str::Format("Script Su%i(if()then(KillScript()\nQuestComplete(0,\"%s\")\nGSSetVar(0,\"q.%s.%s\", 2)\n)\n)\n", QuestObjectiveCount(), quest, quest, quest);
         text += last;
     }
     text += "WorldScript( Su0() )\n";   // "WorldScript( Su0() )\n"
     script->Load(&text, 1);
-    *g_scriptQuestName = game::kEmptyText;   // the empty string constant
+    g_scriptQuestName = game::kEmptyText;   // the empty string constant
 }
 
 // ---- The quest's objectives and name (script.h) --------------------------------------------------------------------
 
-// Each built empty by its static initialiser in the list's order (the objectives, then the name), which
-// registers the exit function that destroys it (docs/notes/standalone.md, "The static
-// initialisers' objects").
-constinit lib::StaticObject<std::vector<ScriptQuestObjective>> g_scriptQuestObjectives = /*007AA608*/ {};
-constinit lib::StaticObject<std::string> g_scriptQuestName = /*007AA61C*/ {};
-
-void ConstructScriptQuestObjectives() {
-    g_scriptQuestObjectives.Construct();
-    std::atexit(DestroyScriptQuestObjectives);
-}
-void ConstructScriptQuestName() {
-    g_scriptQuestName.Construct();
-    std::atexit(DestroyScriptQuestName);
-}
+std::vector<ScriptQuestObjective> g_scriptQuestObjectives;
+std::string g_scriptQuestName;

@@ -43,7 +43,7 @@ bool Numbered(const std::string& name) {
     return true;
 }
 
-void DestroySavedParties() { g_savedParties->Destruct(); }
+void DestroySavedParties() { g_savedParties.Destroy(); }
 
 } // namespace
 
@@ -81,21 +81,8 @@ void SavedParties::SaveAll() {
     for (unsigned i = 0; i < static_cast<unsigned>(entries_.size()); ++i) entries_[i].WriteFile(folder_);
 }
 
-SavedParties* SavedParties::Construct() {
-    std::construct_at(&folder_);
-    std::construct_at(&entries_);
-    std::construct_at(&outsideGame_);
-    return this;
-}
-
 void SavedParties::ReserveOne() {
     if (entries_.size() == entries_.capacity()) entries_.reserve(entries_.empty() ? 1 : 2 * entries_.size());
-}
-
-void SavedParties::Destruct() {
-    std::destroy_at(&outsideGame_);
-    std::destroy_at(&entries_);
-    std::destroy_at(&folder_);
 }
 
 // The saved parties, empty at the start: built by a static initialiser in the list's order and destroyed by
@@ -103,6 +90,6 @@ void SavedParties::Destruct() {
 constinit lib::StaticObject<SavedParties> g_savedParties = /*007C82A0*/ {};
 
 void ConstructSavedParties() {
-    g_savedParties->Construct();
+    g_savedParties.Construct();
     std::atexit(DestroySavedParties);
 }

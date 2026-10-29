@@ -522,10 +522,10 @@ public:
     Vector3 startPosition_;               // where joining players start
     CAIMap aiMap_;
     // Its globals_ hold the "Heroes" group.
-    lib::InPlace<CScript> commandsA_;
-    CScript* MainScript() { return commandsA_.Get(); }
-    lib::InPlace<CScript> commandsB_;
-    CScript* SecondScript() { return commandsB_.Get(); }
+    CScript commandsA_;
+    CScript* MainScript() { return &commandsA_; }
+    CScript commandsB_;
+    CScript* SecondScript() { return &commandsB_; }
     CDiplomacy diplomacy_;
     // The session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld updates the
     // players' "gtime" first. Joining players take it (CPlayer::sessionKind_). Also the campaign mode
@@ -1139,20 +1139,18 @@ struct GameFlow {
     // PersistentGlobalVars keeps the "gvar." ones.
     void UpdateFromServer();
 
-    class CParty* RequestParty() { return requestParty_.Get(); }
+    class CParty* RequestParty() { return &requestParty_; }
 
-    GameFlow* Construct();
-    void Destruct();
     // saves\current emptied, the multiplayer zone (multiplayerZone_) named; a host without an active client
     // session starts it when there is a name.
     void SetNetworkZone(const char* zone);
 
-    int state_;                           // the pending request (1..6; ProcessRequest runs it)
+    int state_ = 0;                       // the pending request (1..6; ProcessRequest runs it)
     std::string requestTarget_;           // the request's zone or save name
-    lib::InPlace<CParty> requestParty_;
-    int requestArg_;                      // the entrance (4) or the load flag (2)
+    CParty requestParty_;
+    int requestArg_ = 0;                  // the entrance (4) or the load flag (2)
     std::string multiplayerZone_;         // the multiplayer zone (SwitchMultiplayerZone)
-    char zoneSwitchStarted_;              // set by SwitchMultiplayerZone, cleared by the game's start
+    char zoneSwitchStarted_ = 0;          // set by SwitchMultiplayerZone, cleared by the game's start
 };
 
 extern lib::StaticObject<GameFlow> g_gameFlow;
@@ -1187,8 +1185,6 @@ struct SavedParties {
     // PersistentGlobalVars keeps the "gvar." variables.
     void Reload();
     void SaveAll();
-    void Destruct();
-    SavedParties* Construct();
     void Select(const MpHeroRecord* hero);
     // Room for one more record the way the original's vector grew: doubled, the old records copied before the
     // new one is made. A record's copy loads its party again, which draws object ids and random numbers.
@@ -1279,7 +1275,7 @@ inline std::vector<CMapObject*>& FrameObjects(FrameList list) {
                                               &g_visibleLevers,     &g_visibleOther, &g_visibleBuildings};
     return *kQueues[static_cast<int>(list)];
 }
-extern lib::StaticObject<std::list<HeldRef<CMapObject>>> g_deferredUnits;
+extern std::list<HeldRef<CMapObject>> g_deferredUnits;   // world_client_view.cpp
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.

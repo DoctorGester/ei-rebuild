@@ -47,12 +47,8 @@ int ShadowSwitch(ClassId classId) {
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
 // The work buffers: the parts' points projected into the light's view and the ground quad (one block of four
 // corners).
-constinit std::vector<Vector2> g_points = /*007AF1F8*/ {};
-constinit std::vector<VertexPacket> g_quads = /*007AF208*/ {};
-
-// The exit functions their static initialisers register: each frees its array's block. The points' is guarded
-// by a guard bit, so a second run frees nothing.
-constinit std::uint8_t g_freed = /*007AF1F0*/ 0;
+std::vector<Vector2> g_points;
+std::vector<VertexPacket> g_quads;
 constexpr int kTypePointLight = 0x31;
 constexpr std::uint32_t kFlagRefresh = 8;           // this->flags_: build the shadow again
 constexpr std::uint32_t kObjectHidden = 0x48;       // object->flags_
@@ -351,13 +347,6 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
 }
 
 } // namespace
-
-void FreeQuads() { lib::FreeStorage(g_quads); }
-void FreePoints() {
-    if (g_freed & 1) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 1);
-    lib::FreeStorage(g_points);
-}
 
 // --- The shadow -------------------------------------------------------------------------------
 

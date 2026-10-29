@@ -40,20 +40,6 @@ constexpr const char* kNoExit = "none";
 
 // ---- Helpers ----------------------------------------------------------------------------------
 
-// The unit record AddUnitToServer builds on its stack: a CParty (party.h) given one member; CreateUnits takes a
-// pointer to the member's 0x784-byte record.
-struct UnitRecordBuilder {
-    lib::InPlace<CParty> storage;
-
-    CParty* Party() { return storage.Get(); }
-    void Construct() { new (Party()) CParty(); }
-    void Fill(const char* text, const char* prototype, const char* name) {
-        Party()->AddMember(text, prototype, name);
-    }
-    void Destruct() { Party()->CParty::~CParty(); }
-    PartyUnitRecord* Record() { return Party()->members_.data(); }
-};
-
 bool SameName(std::string_view a, std::string_view b) {
     return str::Compare(a, b) == 0;
 }
@@ -77,16 +63,14 @@ void CWorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
 // ---- Units ------------------------------------------------------------------------------------
 
 void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3* position) {
-    UnitRecordBuilder builder;
-    builder.Construct();
-    builder.Fill(game::kEmptyText, prototype, name);
+    CParty party;   // one member
+    party.AddMember(game::kEmptyText, prototype, name);
     std::vector<PartyUnitRecord*> records;
-    PartyUnitRecord* record = builder.Record();
+    PartyUnitRecord* record = party.members_.data();
     records.resize(1);
     records[0] = record;
     record->unitId = id;
     CreateUnits(nullptr, &records, position, kNewUnitRotation, nullptr);
-    builder.Destruct();
 }
 
 // ---- .mob object files ------------------------------------------------------------------------

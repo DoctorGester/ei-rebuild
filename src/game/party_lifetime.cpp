@@ -69,18 +69,11 @@ CSpellManager::CSpellManager() {
     maxSequenceKey_ = 0;
 }
 
-CParty::CParty() {
-    ClearFields();
-    itemManager_ = nullptr;
-    spellManager_ = nullptr;
-    itemConstructor_ = nullptr;
-    spellConstructor_ = nullptr;
-}
+CParty::CParty() { ClearFields(); }
 
 CParty::~CParty() {
     Clear(1, 1);
     CParty::Destroy();
-    lib::FreeStorage(items_);
 }
 
 const char* CParty::ClassName() { return "CParty"; }

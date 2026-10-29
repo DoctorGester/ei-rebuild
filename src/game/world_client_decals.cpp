@@ -21,10 +21,8 @@
 
 namespace {
 
-DecalBuilder g_builder = /*007AF488*/ {};   // the function-local static of the draw (guard bit 0 of g_guards)
-constinit std::vector<Vector4> g_partPoints = /*007AF478*/ {};
-void FreePartPoints() { lib::FreeStorage(g_partPoints); }
-std::uint8_t g_guards = /*007AF504*/ {};
+DecalBuilder g_builder;
+std::vector<Vector4> g_partPoints;   // a figure part's points, reused by every decal
 
 // A scene node's matrix (an object's or a figure part's) from its rotation and position (the
 // bottom row 0, 0, 0, 1).
@@ -102,15 +100,6 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
                                 std::uint8_t skipOnPlatform, std::uint8_t objects) {
     render::BeginDecalTime(!skipOnPlatform);   // the ground prints skip the ground under a platform
     DecalBuilder& builder = g_builder;
-    if (!(g_guards & 1)) {
-        g_guards |= 1;
-        builder.Construct();
-    }
-    if (!(g_guards & 2)) {
-        g_guards |= 2;
-        g_partPoints = std::vector<Vector4>{};
-        std::atexit(FreePartPoints);
-    }
     auto* quad = reinterpret_cast<float* const*>(corners);
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);
     if (!skipOnPlatform || !platforms_.Contains(point->x, point->y)) terrain_->AddDecalTriangles(&builder, quad);

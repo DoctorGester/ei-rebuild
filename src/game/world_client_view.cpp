@@ -159,7 +159,7 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
                     if (!drawAllUnits && !(object->flags_ & kFlagAlwaysDrawn)) process = false;
                 } else {
                     // First pass: units wait on the deferred list (which holds a reference).
-                    g_deferredUnits->emplace_back(object);
+                    g_deferredUnits.emplace_back(object);
                     process = false;
                 }
             }
@@ -246,29 +246,16 @@ Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
 
 // ---- The frame's draw lists (world.h) ------------------------------------------------------------
 
-// Empty at the start, as the static initialisers leave them (in the list's order: the last list
-// first); the exit functions they register free their storage (lib::FreeStorage; docs/notes/standalone.md,
-// "The static initialisers' objects").
-constinit std::vector<CMapObject*> g_touchedModels = /*007AF508*/ {};
-constinit std::vector<CMapObject*> g_shadowTrees = /*007AF518*/ {};
-constinit std::vector<CMapObject*> g_shadowUnits = /*007AF528*/ {};
-constinit std::vector<CMapObject*> g_shadowLevers = /*007AF538*/ {};
-constinit std::vector<CMapObject*> g_shadowOther = /*007AF548*/ {};
-constinit std::vector<CMapObject*> g_shadowBuildings = /*007AF558*/ {};
-constinit std::vector<CMapObject*> g_visibleTrees = /*007AF568*/ {};
-constinit std::vector<CMapObject*> g_visibleUnits = /*007AF578*/ {};
-constinit std::vector<CMapObject*> g_visibleLevers = /*007AF588*/ {};
-constinit std::vector<CMapObject*> g_visibleOther = /*007AF598*/ {};
-constinit std::vector<CMapObject*> g_visibleBuildings = /*007AF5A8*/ {};
-
-void FreeTouchedModels() { lib::FreeStorage(g_touchedModels); }
-void FreeShadowTrees() { lib::FreeStorage(g_shadowTrees); }
-void FreeShadowUnits() { lib::FreeStorage(g_shadowUnits); }
-void FreeShadowLevers() { lib::FreeStorage(g_shadowLevers); }
-void FreeShadowOther() { lib::FreeStorage(g_shadowOther); }
-void FreeShadowBuildings() { lib::FreeStorage(g_shadowBuildings); }
-void FreeVisibleTrees() { lib::FreeStorage(g_visibleTrees); }
-void FreeVisibleUnits() { lib::FreeStorage(g_visibleUnits); }
-void FreeVisibleLevers() { lib::FreeStorage(g_visibleLevers); }
-void FreeVisibleOther() { lib::FreeStorage(g_visibleOther); }
-void FreeVisibleBuildings() { lib::FreeStorage(g_visibleBuildings); }
+// Plain globals (constructed and destroyed by the C++ runtime).
+std::vector<CMapObject*> g_touchedModels;
+std::vector<CMapObject*> g_shadowTrees;
+std::vector<CMapObject*> g_shadowUnits;
+std::vector<CMapObject*> g_shadowLevers;
+std::vector<CMapObject*> g_shadowOther;
+std::vector<CMapObject*> g_shadowBuildings;
+std::vector<CMapObject*> g_visibleTrees;
+std::vector<CMapObject*> g_visibleUnits;
+std::vector<CMapObject*> g_visibleLevers;
+std::vector<CMapObject*> g_visibleOther;
+std::vector<CMapObject*> g_visibleBuildings;
+std::list<HeldRef<CMapObject>> g_deferredUnits;

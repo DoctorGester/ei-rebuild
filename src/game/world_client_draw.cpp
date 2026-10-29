@@ -299,7 +299,7 @@ int CWorldClient::DrawPass() {
     CTransformPipeline* device = g_sceneRenderer->pipeline_;
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
-    g_deferredUnits->clear();
+    g_deferredUnits.clear();
     static const FrameList kCleared[] = {FrameList::VisibleBuildings, FrameList::VisibleOther, FrameList::VisibleLevers,
                                          FrameList::VisibleUnits, FrameList::VisibleTrees, FrameList::ShadowBuildings,
                                          FrameList::ShadowOther, FrameList::ShadowLevers, FrameList::ShadowUnits,
@@ -342,8 +342,8 @@ int CWorldClient::DrawPass() {
         }
         sector = &objectGrid_.rows_[rangeY_][rangeX_];
     }
-    touched += CollectVisible(&g_deferredUnits.Get(), view, animTime, now, 1, 0);
-    g_deferredUnits->clear();
+    touched += CollectVisible(&g_deferredUnits, view, animTime, now, 1, 0);
+    g_deferredUnits.clear();
     touched += CollectVisible(&heroes_, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
@@ -479,7 +479,7 @@ int CWorldClient::DrawPass() {
         }
     }
 
-    g_deferredUnits->clear();
+    g_deferredUnits.clear();
     static const FrameList kCopied[] = {FrameList::VisibleBuildings, FrameList::VisibleOther, FrameList::VisibleLevers,
                                         FrameList::VisibleUnits, FrameList::VisibleTrees, FrameList::ShadowBuildings,
                                         FrameList::ShadowOther};

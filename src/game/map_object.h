@@ -26,17 +26,15 @@ enum class SpellType : int;   // spell.h
 // An active effect (an array): the record of a buff spell (the buffs CSpellEffect::Start applies) or of Teleport,
 // which stuns its caster like Stun. Strengthen, Weaken, Enlarge and Shrink scale the object.
 struct MapEffect {
-    std::uint8_t type;              // the spell's SpellType (spell.h)
-    std::uint8_t power;
-    int ticksLeft;                  // counted down once per world update; removed at 0
-    std::uint32_t value;            // a float (EffectValue) or a sound handle
-    std::uint32_t strength;         // a float (saved; Rebirth compares it)
-    std::uint8_t ending;            // the client plays no end sound when set
+    std::uint8_t type = 0;          // the spell's SpellType (spell.h)
+    std::uint8_t power = 0;
+    int ticksLeft = 0;              // counted down once per world update; removed at 0
+    std::uint32_t value = 0;        // a float (EffectValue) or a sound handle
+    std::uint32_t strength = 0;     // a float (saved; Rebirth compares it)
+    std::uint8_t ending = 0;        // the client plays no end sound when set
 
     SpellType Type() const { return static_cast<SpellType>(type); }
 
-    // Type, power, ticksLeft, value and ending cleared (strength not).
-    MapEffect* Construct();
     // One tick less; whether any are left (0 / 1).
     int Tick();
     // Type, power, ticksLeft, value and strength, read or written one by one (`ending` is not saved).

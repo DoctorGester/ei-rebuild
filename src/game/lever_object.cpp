@@ -150,7 +150,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     else flags_ &= ~MapObjectFlag::Disabled;
     g_clientWorld->QueueSynchronised(this);
     if (first == 1) {
-        const LeverRecord* record = g_leverTable->Named(name);
+        const LeverRecord* record = g_leverTable.Named(name);
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
             g_clientWorld->sounds_->Play3D(record->sound, 0, &localPosition_.x, kSoundNear, kSoundFar, 0, 0);

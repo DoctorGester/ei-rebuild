@@ -834,8 +834,8 @@ struct ScriptQuestObjective {
     std::string text;       // its string argument (empty for QObjArea / QObjGetItem)
     float value;            // its float argument
 };
-extern lib::StaticObject<std::vector<ScriptQuestObjective>> g_scriptQuestObjectives;
-extern lib::StaticObject<std::string> g_scriptQuestName;
+extern std::vector<ScriptQuestObjective> g_scriptQuestObjectives;   // script_exec_helpers.cpp
+extern std::string g_scriptQuestName;
 // The script being loaded or saved: the run loader and saver find a run's instance through it.
 inline CScript* g_streamedScript = /*007AA620*/ {nullptr};
 void ScriptQuestStart(const char* name);

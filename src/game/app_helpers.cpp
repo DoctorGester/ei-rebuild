@@ -58,34 +58,9 @@ bool QuitGame(int exitCode) {
 // The movie mode byte (1 unless the command line changed it; the loop passes it to the frame step).
 std::uint8_t g_movieMode = /*00784752*/ 1;
 
-// The copy protection's sabotage: the options go back to their defaults and every object
-// of the object manager gets a random number below 0x1000 as its companion and as its specific
-// half (both are pointers; the game fails some time later).
-void ScrambleObjects() {
-    options::OptionsResetDefaults(&options::g_options.Get());
-    ObjectListIteratorOf<CMapObject> it{};
-    for (CMapObject* object = it.First(g_clientWorld->objectManager_); object; object = it.Next()) {
-        object->AttachCompanion(reinterpret_cast<CEngineObject*>(libcrt::RandBelow(0x1000)));
-        object->SetSpecific(reinterpret_cast<CObject3DSpecific*>(libcrt::RandBelow(0x1000)));
-    }
-    if (it.manager) it.manager->ForgetReference();
-}
-
-// Called for every new object of the client (CPlayerClient::OnNewObject). One call in a hundred
-// looks through the protection's check list and scrambles the objects when an entry has failed
-// (its byte is 0). Nothing adds an entry, so the list is empty.
-void DelayedProtectionCheck() {
-    if (libcrt::RandBelow(100) >= 1) return;
-    std::list<std::uint8_t>& checks = *g_protectionChecks;
-    for (auto& node : checks) {
-        if (!node) {
-            ScrambleObjects();
-            return;
-        }
-    }
-}
-
-void ConstructProtectionChecks() { g_protectionChecks.Construct(); }
+// Called for every new object of the client (CPlayerClient::OnNewObject): the copy protection's check. It draws a
+// number below 100 and, one time in a hundred, looked through a check list nothing fills; only the draw is left.
+void DelayedProtectionCheck() { static_cast<void>(libcrt::RandBelow(100)); }
 
 } // namespace app
 

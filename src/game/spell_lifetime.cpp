@@ -22,18 +22,8 @@ void Drop(T*& field) {
 
 } // namespace
 
-MapEffect* MapEffect::Construct() {
-    type = 0;
-    power = 0;
-    ticksLeft = 0;
-    value = 0;
-    ending = 0;
-    return this;
-}
-
 MapEffect CSpell::Effect() const {
     MapEffect record;
-    record.Construct();
     record.type = prototypeIndex_;
     record.power = effectPower_;
     record.ticksLeft = static_cast<int>(duration_);
@@ -74,18 +64,7 @@ CSpell::~CSpell() { CSpell::Destroy(); }
 const char* CSpell::ClassName() { return "CSpell"; }
 ClassId CSpell::GetClassId() { return ClassId::Spell; }
 
-CSpellEffect::CSpellEffect() {
-    new (Spell()) CSpell();
-    visual = nullptr;
-    sound = nullptr;
-    light = nullptr;
-    position = Vector3{0.0f, 0.0f, 0.0f};
-    timer = 0;
-    world = nullptr;
-    flags = 0;
-    silentEnd = 0;
-    footprintStamped = 0;
-}
+CSpellEffect::CSpellEffect() = default;
 
 CSpellEffect::~CSpellEffect() {
     if (footprintStamped) UpdateFootprint(Spell()->Type(), 0);
@@ -93,11 +72,6 @@ CSpellEffect::~CSpellEffect() {
     Drop(visual);
     ReleaseSound();
     ReleaseLight();
-    // The three counted pointers' destructors (empty by now).
-    if (light) light->Release();
-    if (sound) sound->Release();
-    if (visual) visual->Release();
-    Spell()->CSpell::~CSpell();
 }
 
 // --- The cast's start values and the object it forgets ------------------------------------

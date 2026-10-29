@@ -782,6 +782,37 @@ UNUSED_INITIALISERS = {
     0x005C4460: "the path smoother's node pool 007C3038 (exit function 005C4480): ai_path_smooth.cpp's g_smoothPool",
     0x005C8F90: "the AI events' pool 007C43A8 (exit function 005C8FB0): ai_events.cpp's g_eventPool",
     0x0067E4C0: "the spells' footprint set 007C8478 (exit function 0067E500): ai_footprint.cpp's g_spellFootprint",
+    # C50b: plain globals of ours in place of the static objects.
+    0x004630F0: "the lever table 0079C1A0 (exit function 00463110): lever_table.cpp's g_leverTable",
+    0x004B17C0: "the quest's objectives 007AA608 (exit function 004B17E0): script_exec_helpers.cpp's "
+                "g_scriptQuestObjectives",
+    0x004B1790: "the quest's name 007AA61C (exit function 004B17B0): script_exec_helpers.cpp's g_scriptQuestName",
+    0x0066C4D0: "the received messages' stream 007C83D0 (exit function 0066C520, guard bit 0 of 007C83C8): "
+                "player_server_handlers.cpp's g_receivedMessages",
+    0x00668B40: "the client's party id set 007C8370 (exit function 00668B60): player_client.cpp's g_partyIdSet",
+    0x0056A3F0: "the frame's deferred units 007AF5B4 (exit function 0056A4C0): world_client_view.cpp's g_deferredUnits",
+    0x00455E30: "the copy protection's check list 0079BC2C (exit function 00455F00): nothing fills it, so "
+                "DelayedProtectionCheck (app_helpers.cpp) only draws its number",
+    0x0057F460: "the zone table 007AFDE0 (exit function 0057F4A0): world_game.cpp's g_zoneTable",
+    0x00580980: "the quest text files 007AFDD0 (exit function 005809C0): world_briefing.cpp's g_questFiles",
+    0x00581050: "the quest folders 007AFDC0 (exit function 00581090): world_briefing.cpp's g_questFolders",
+    # C50b: the draw work arrays are plain globals of ours.
+    0x00498910: "the particles' draw order 007A9C50 (exit function 00498930): particle_draw.cpp's g_drawOrder",
+    0x0051CBD0: "the shadow's ground quad 007AF208 (exit function 0051CC00): map_object_shadow.cpp's g_quads",
+    0x0051CDA0: "the shadow's projected points 007AF1F8 (exit function 0051CDD0, guard bit 0 of 007AF1F0): "
+                "map_object_shadow.cpp's g_points",
+    # C50b: the frame's draw lists are plain globals of ours (world_client_view.cpp).
+    0x0056A4D0: "the draw list 007AF5A8 (exit function 0056A510): world_client_view.cpp's g_visibleBuildings",
+    0x0056A520: "the draw list 007AF598 (exit function 0056A560): world_client_view.cpp's g_visibleOther",
+    0x0056A570: "the draw list 007AF588 (exit function 0056A5B0): world_client_view.cpp's g_visibleLevers",
+    0x0056A5C0: "the draw list 007AF578 (exit function 0056A600): world_client_view.cpp's g_visibleUnits",
+    0x0056A610: "the draw list 007AF568 (exit function 0056A650): world_client_view.cpp's g_visibleTrees",
+    0x0056A660: "the draw list 007AF558 (exit function 0056A6A0): world_client_view.cpp's g_shadowBuildings",
+    0x0056A6B0: "the draw list 007AF548 (exit function 0056A6F0): world_client_view.cpp's g_shadowOther",
+    0x0056A700: "the draw list 007AF538 (exit function 0056A740): world_client_view.cpp's g_shadowLevers",
+    0x0056A750: "the draw list 007AF528 (exit function 0056A790): world_client_view.cpp's g_shadowUnits",
+    0x0056A7A0: "the draw list 007AF518 (exit function 0056A7E0): world_client_view.cpp's g_shadowTrees",
+    0x0056A7F0: "the draw list 007AF508 (exit function 0056A830): world_client_view.cpp's g_touchedModels",
     0x00444660: "the debug panel 0079B930 (exit function 00444680; the panel went in C55)",
     0x0051CE00: "DrawShadow 0051CE60's texture pixels 007AF1E0 (exit function 0051CE30, guard bit 2 of 007AF1F0): only "
                 "the 64 x 64 shadow texture read them, which is not made (R26)",
@@ -1109,6 +1140,35 @@ RUNTIME_SITES = set()
 # Functions whose port registers none of the original's function-local statics' exit functions (C18): their
 # runtime atexit sites never run, like dead code's. begin -> (end, why).
 RETIRED_STATICS = {
+    # C50b
+    0x0057C700: (0x0057CB50, "GameFlow::ProcessRequest (world_game.cpp) calls UseResources, which the original inlines "
+                             "with its function-local string 007AFDEC (guard bit 0 of 007AFDF0, destroyed by 0057E6A0)"),
+    0x0057DEE0: (0x0057E1A0, "GameFlow::UseResources (world_game.cpp) keeps the resources in use in a function-local "
+                             "static of ours: the original's string 007AFDEC (guard bit 0 of 007AFDF0, destroyed by "
+                             "0057E6A0) is never made"),
+    0x00467590: (0x004679B0, "CLightning::DrawGlow (lightning_draw.cpp) uses plain globals of ours: the original's "
+                             "sprite records 0079C1E0 and points 0079C1D0 (guard bits 0 / 1 of 0079C1F4, destroyed by "
+                             "00467A10 / 004679F0) are never made"),
+    0x004976B0: (0x00497CE0, "CParticleSource::Draw (particle_render.cpp) uses plain globals of ours: the original's "
+                             "sprites 007A9BE0 and vertices 007A9BD0 (guard bits 0 / 1 of 007A9BF4, destroyed by "
+                             "00497D30 / 00497D10) are never made"),
+    0x004E1AB0: (0x004E1C60, "CVisibilityFog::UpdateCells (effects_weather.cpp) lists the dead cells in a local: the "
+                             "original's static array 007ABB58 (guard bit 0 of 007ABB64, freed by 004E1C50) is never "
+                             "made"),
+    0x004E1EB0: (0x004E2290, "CVisibilityFog::Draw (effects_weather_draw.cpp) uses plain globals of ours: the "
+                             "original's sprites 007ABA40 and points 007ABA30 (guard bits 0 / 1 of 007ABA54, destroyed "
+                             "by 004E2280 / 004E2260) are never made"),
+    0x0056C750: (0x0056CE40, "CWorldClient::ProjectDecal (world_client_decals.cpp) uses plain globals of ours: the "
+                             "original's decal builder 007AF488 and part points 007AF478 (guard bits 0 / 1 of 007AF504, "
+                             "the points freed by 0056CE10) are never made"),
+    0x0058B750: (0x0058C4F0, "CWorldServer::SyncPlayer (world_sync.cpp) diffs in local arrays: the original's static "
+                             "arrays 007AFF18..007AFF48 (guard bits 0-3 of 007AFF58, freed by 0058C470..0058C4D0) are "
+                             "never made"),
+    0x0058D3D0: (0x0058D5D0, "CWorldServer::WakeUnitsAround (world_tick.cpp) keeps its spiral cache in a function-local "
+                             "static of ours: the original's 007AFF08 (guard bit 0 of 007AFF10) is never made"),
+    0x0058D670: (0x0058DAF0, "CWorldServer::UpdateUnits (world_tick.cpp) lists the ids in locals: the original's static "
+                             "arrays 007AFEF0 / 007AFEE0 (guard bits 0 / 1 of 007AFF00, freed by 0058DA20 / 0058DA00) "
+                             "are never made"),
     0x005B0050: (0x005B034A, "CRegionMap::LabelRegions (ai_region_reach.cpp) floods with local lists: the original's static "
                              "flood queue 007C2F10 and second list 007C2EF8 (guard bits 0 / 1 of 007C2F24, destroyed by "
                              "005B0360 / 005B0350) are never made"),

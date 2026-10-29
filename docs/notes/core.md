@@ -511,9 +511,9 @@ instantiations were, for reading game.exe (config/library.csv names them):
 - A-E1: constructors of globals that run from static initialisers, before the hooks install (their hooks never
   fire; written so the standalone build has them): the map database (0079BF00, a `lib::StaticObject<CMapDatabase>`
   ConstructMapDatabase constructs; game.exe's 0045E820 builds two empty CArrays), the `LeverRecordTable` constructor (004632A0,
-  the lever table at 0079C1A0: no records, an index of 193 buckets) and `PartyManager::Construct` (004A5870,
-  the party manager at 007AA5A0: a party map of 193 buckets, no entries, records or templates, two empty
-  strings; +0x20 is not written). The unused functor bytes the originals copy from uninitialised stack bytes
+  the lever table at 0079C1A0: no records, an index of 193 buckets; ours is a plain global since C50b) and the party
+  manager's (004A5870, at 007AA5A0: a party map of 193 buckets, no entries, records or templates, two empty
+  strings; +0x20 is not written; ours is PartyManager's implicit constructor since C50b). The unused functor bytes the originals copy from uninitialised stack bytes
   are not written. Ours-only wrappers in verify_static_constructors.cpp. 00458870 was ported by A-E2 (app.md).
 
 ## Containers: the net lists and the last node-pool users (C14t)

@@ -101,13 +101,6 @@ int ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c) 
 
 } // namespace decal
 
-DecalBuilder* DecalBuilder::Construct() {
-    points_ = nullptr;
-    texCoords_ = nullptr;
-    indices_ = nullptr;
-    return this;
-}
-
 void DecalBuilder::Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
                          std::vector<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
                          const Vector3* point, float depth) {

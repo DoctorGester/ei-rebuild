@@ -44,10 +44,6 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-constinit std::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
-std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
-void DestroyDeadCells() { lib::FreeStorage(g_deadCells); }
-
 constexpr int kWeatherTextureKind = 6;
 constexpr int kRainPriority = 1000;
 constexpr int kFullDensity = 64;
@@ -190,12 +186,7 @@ void CVisibilityFog::ComputeBounds() {
 // are dropped below 0.01; every cell steps its texture tile. Returns whether the fog is still
 // needed (referenced elsewhere or has cells).
 bool CVisibilityFog::UpdateCells() {
-    std::vector<std::uint32_t>& dead = g_deadCells;
-    if (!(g_deadCellsGuard & 1)) {
-        g_deadCellsGuard |= 1;
-        std::atexit(DestroyDeadCells);
-    }
-    dead.clear();
+    std::vector<std::uint32_t> dead;
     World();   // called and ignored
     for (auto& [key, cell] : cells) {
         if (cell.visible)

@@ -354,7 +354,7 @@ void LoadDatabases() {
     g_unitDatabase->Load(options->resourcesPath_, archive);
     g_spellDatabase->Load(options->resourcesPath_, archive);
     g_itemDatabase->Load(options->resourcesPath_, archive);
-    g_leverTable->Load(options->resourcesPath_);
+    g_leverTable.Load(options->resourcesPath_);
     g_ackDatabase->Load(options->resourcesPath_);
     g_printsDatabase->Load(options->resourcesPath_);
 }

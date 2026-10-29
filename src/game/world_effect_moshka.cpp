@@ -71,12 +71,7 @@ CEffectMoshka::CEffectMoshka() {
     Reset();
 }
 
-// The destructor resets twice (inline, then the virtual): the inline one clears the source and the
-// figure through counted-pointer assignments; both end as Reset's.
-CEffectMoshka::~CEffectMoshka() {
-    Reset();
-    Reset();   // again, the virtual
-}
+CEffectMoshka::~CEffectMoshka() { Reset(); }
 
 void CEffectMoshka::Reset() {
     CEffect::Reset();
