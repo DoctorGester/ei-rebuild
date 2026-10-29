@@ -106,9 +106,6 @@ struct LockKey;
 // The virtuals' names and their evidence: docs/notes/map_objects.md ("Virtual slot names").
 class CMapObject : public CObject3D {
 public:
-    int ScaleEffectChangedDefault();
-    bool AcceptsNoKey();
-
     ~CMapObject() override;
     void Create() override { CreateMapObject(); }
     void Destroy() override { DestroyMapObject(); }
@@ -251,8 +248,6 @@ public:
     // SetVisibilityMode with mode 0 for `level` 0 (or NaN), 1 for 1, else 2.
     int SetVisibilityLevel(float level);
 
-    // Whether the object is dead: the companion's IsDead.
-    bool CompanionIsDead();
     // The sector map's Remove. The companion's virtual (empty in both); returns 1.
     int NotifyCompanion();
     // The network state written in full / only its changed parts (the statistics, repacked first when part 0 or 4

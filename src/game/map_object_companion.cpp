@@ -33,8 +33,6 @@ constexpr float kStenchFar = 50.0f;
 const char* const kEndSoundName = "magic\\end1.wav";
 const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 
-CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
-
 bool IsScaleEffect(SpellType type) {
     return type == SpellType::Strengthen || type == SpellType::Weaken || type == SpellType::Enlarge ||
            type == SpellType::Shrink;
@@ -82,19 +80,19 @@ bool CMapObjectServer::TakeHit(const DamageInfo* hit) {
 bool CMapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
     // to end plays the end sound for text-key objects, unless it is still playing.
-    if (std::ssize(OwnerOf(this)->effects) > 0) {
-        for (int i = 0; i < std::ssize(OwnerOf(this)->effects); ++i) {
-            MapEffect& effect = OwnerOf(this)->effects[i];
+    if (std::ssize(CompanionOwner(this)->effects) > 0) {
+        for (int i = 0; i < std::ssize(CompanionOwner(this)->effects); ++i) {
+            MapEffect& effect = CompanionOwner(this)->effects[i];
             if (effect.ticksLeft <= 0) continue;
             int left = --effect.ticksLeft;
             if (left >= kEndSoundTicks || effect.ending) continue;
-            if (!IsTextKey(OwnerOf(this)->id_)) continue;
+            if (!IsTextKey(CompanionOwner(this)->id_)) continue;
             int handle = endSound;
             CSoundManager* soundSystem = g_clientWorld.sounds_;
             if (handle != -1 &&
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;
-            endSound = g_clientWorld.sounds_->Play3D(kEndSoundName, 0, &OwnerOf(this)->localPosition_.x,
+            endSound = g_clientWorld.sounds_->Play3D(kEndSoundName, 0, &CompanionOwner(this)->localPosition_.x,
                                                   kEndSoundNear, kEndSoundFar, 0, 0);
         }
     }
@@ -112,9 +110,9 @@ bool CMapObjectClientSpecific::RunTick() {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            g_clientWorld.sounds_->Play3D(name, 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
+            g_clientWorld.sounds_->Play3D(name, 0, &CompanionOwner(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
-            g_clientWorld.sounds_->MoveSequence(sound->handle, &OwnerOf(this)->localPosition_.x);
+            g_clientWorld.sounds_->MoveSequence(sound->handle, &CompanionOwner(this)->localPosition_.x);
         }
     }
 
@@ -124,7 +122,7 @@ bool CMapObjectClientSpecific::RunTick() {
         Vector3 lightPosition;
         lib::LoadBytes(lightPosition, &lamp->localPosition_.x);
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float
-        CMapObject* followed = OwnerOf(this);
+        CMapObject* followed = CompanionOwner(this);
         double dx = static_cast<double>(lightPosition.x) - followed->localPosition_.x;
         double dy = static_cast<double>(lightPosition.y) - followed->localPosition_.y;
         double dz = static_cast<double>(lightZ) - followed->localPosition_.z;
@@ -136,7 +134,7 @@ bool CMapObjectClientSpecific::RunTick() {
             direction.y = followed->localPosition_.y - lightPosition.y;
             direction.z = followed->localPosition_.z - lightZ;
             g_clientWorld.terrain_->MoveLight(lamp, &direction);
-            followed = OwnerOf(this);
+            followed = CompanionOwner(this);
             float* position = &light->localPosition_.x;
             std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));
             position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition_.z);

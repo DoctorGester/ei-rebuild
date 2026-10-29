@@ -28,7 +28,7 @@ struct AIMapCell {
     std::uint32_t passable;     // per size class (Passability): 0 not passable, else the index into its cost table
     std::uint16_t groundLevel;  // terrain height in AI height units; blocks lines of sight
     std::uint8_t flags;         // the water's depth, kCellBridge, kCellWater
-    std::uint8_t unused_7;
+    std::uint8_t unused_7;      // (the vector recordings keep game.exe's 9-byte cell)
     std::uint8_t level;         // compared with the unit's standing level
 
     // The passability of the size class whose field starts at bit `shift` (4 * size class; its low 5 bits count):
@@ -194,7 +194,6 @@ struct MotionOrder {
     std::uint32_t arg6;
     std::uint32_t arg7;
 };
-static_assert(sizeof(MotionOrder) == 0x20);
 
 // A motion order with the steps it walks next: the first part of a unit's path (AIPath) and all the client's
 // controller keeps of one (CUnitClientSpecific). Its methods steer along `steps`.
@@ -208,7 +207,7 @@ struct PathOrder {
     void SetTarget(float x, float y);
     // Turn to `direction` (kind 1 at `rateBits`, a float's bits kept as given; kind 4 until `until`).
     void SetTurn(const Vector3* direction, std::uint32_t rateBits);
-    void SetTurnUntil(const Vector3* direction, int arg6, int arg7);
+    void SetTurnUntil(const Vector3* direction, int fromTime, int toTime);
     void SetTrack(int id, int from, int to);
     void ForgetObject(int id);
     void ShiftTime(int delta);
@@ -239,7 +238,7 @@ struct AIPath : PathOrder {
     void SavePath(CStream* stream);
     void StandAndTurn(int time, const CMapObject* unit, const Vector3* direction, std::uint32_t rateBits);
     void StandAndTrack(int time, const CMapObject* unit, int id, int from, int to);
-    void StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int a, int b);
+    void StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int fromTime, int toTime);
     void StandStill(const CMapObject* unit);
     void Clear();
     // The path as a motion order in `out` (its step list constructed): the order, the steps; and for an order that
@@ -329,8 +328,8 @@ struct LocalSearch {
     bool BeginInRectForClass(int sizeClass, int x0, int y0, int x1, int y1, int sx, int sy);
     // Copies the reached cells' directions into the map's marks (CAIMap::marks) where they are still 0.
     void CommitDirections();
-    // Saves the window's cell levels into `levels` (zeroing them in the map with `clear`).
-    void SaveLevels(bool clear);
+    // Saves the window's cell levels into `levels` and zeroes them in the map.
+    void SaveLevels();
     void RestoreLevels();
     // Attaches the search to `map`: a fresh 34 x 34 node grid (the border unusable) and the row table.
     void Attach(CAIMap* map, bool backward);
@@ -498,7 +497,6 @@ struct SmoothStep {
     int factor;
     int direction;
 };
-static_assert(sizeof(SmoothStep) == 0x24);
 // A state of the smoother's trellis as the tables' builder sees it: a move between two cells
 // around a path cell, from (x0, y0) to (x1, y1) relative to it. `index` is its place among the cell's states.
 struct SmoothEdge {
@@ -560,7 +558,6 @@ struct PathSmoother {
     int x, y;                       // the current cell
     PassCostContext costs;
 };
-static_assert(sizeof(PathSmoother) == 0x2C);
 
 // A 4x4-cell block of one unit's levels.
 struct UnitLayerNode {

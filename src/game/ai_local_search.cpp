@@ -311,7 +311,7 @@ void LocalSearch::CommitDirections() {
     }
 }
 
-void LocalSearch::SaveLevels(bool clear) {
+void LocalSearch::SaveLevels() {
     if (levels.width != kWindow || levels.height != kWindow) {
         FreeGrid(levels);
         levels.width = kWindow;
@@ -322,10 +322,8 @@ void LocalSearch::SaveLevels(bool clear) {
     for (int wy = r.y0; wy <= r.y1; ++wy) {
         for (int wx = r.x0; wx <= r.x1; ++wx) levels.rows[wy][wx] = map->cells[originY + wy][originX + wx].level;
     }
-    if (clear) {
-        for (int wy = r.y0; wy <= r.y1; ++wy) {
-            for (int wx = r.x0; wx <= r.x1; ++wx) map->cells[originY + wy][originX + wx].level = 0;
-        }
+    for (int wy = r.y0; wy <= r.y1; ++wy) {
+        for (int wx = r.x0; wx <= r.x1; ++wx) map->cells[originY + wy][originX + wx].level = 0;
     }
     levelsSaved = true;
 }

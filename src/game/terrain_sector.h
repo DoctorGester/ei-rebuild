@@ -113,7 +113,6 @@ void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* positi
 struct SectorData {
     int DrawPage(void* context, int page);
     std::uint8_t hasSpecular;           // a specular light reached a vertex (Light clears it)
-    std::uint8_t pad_001[3];
     SectorStage built;
     int sx, sy;
     int hasWater;
@@ -187,8 +186,6 @@ struct SectorData {
     // and water, the water vertices move with the waves and the crests get a specular colour.
     void Animate(Terrain* owner, int frame);
 
-    void SetDetail(int level);
-
     // Whether the last clip test did not cull the sector.
     bool IsDrawn() const;
     // The box, and unless culled its quarters, with the renderer's pipeline.
@@ -204,7 +201,6 @@ struct TerrainMaterial {
     float opacity;                      // as the map file has it
     float absorption;                   // light lost per squared depth under water (lighting): 1 / (1 - opacity)
     std::uint8_t opacityByte;           // opacity * 255
-    std::uint8_t pad_19[3];
     Vector3 colour;                     // waveColour * the file's light factor, each capped at 1
     float priority;                     // lowest wins where water materials meet; also scales the waves
     float warpSpeed;                    // from the map file; nothing reads it

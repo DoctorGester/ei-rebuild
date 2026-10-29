@@ -63,8 +63,6 @@ void DrawPass(Terrain* terrain, CSceneRenderer* renderer, int firstPage, int las
 
 } // namespace
 
-void SectorData::SetDetail(int level) { detail = level; }
-
 // --- The sector's part of the passes -------------------------------------
 
 bool SectorData::IsDrawn() const { return clipMode == 0 || clipMode == terrain::kCrossing; }
@@ -110,7 +108,7 @@ void Terrain::ChooseDetail(SectorData* sector) {
     EI_NAN_AUDIT(distanceSquared);
     if (distanceSquared < options::g_options->lod1_ * options::g_options->lod1_ && minDetail <= 0) level = 0;
     else if (distanceSquared < options::g_options->lod2_ * options::g_options->lod2_ && minDetail <= 1) level = 1;
-    sector->SetDetail(level);
+    sector->detail = level;
 }
 
 int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {

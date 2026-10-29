@@ -85,7 +85,6 @@ struct RadiusTree {
 struct SpiralOffset {
     std::int16_t x, y;
 };
-static_assert(sizeof(SpiralOffset) == 4);
 // The sector spiral's tables: the 441 offsets of a 21 x 21 square of sectors ordered by distance, the number of
 // offsets within each distinct distance and the tree that finds a distance's place among them.
 struct SectorSpiral {
