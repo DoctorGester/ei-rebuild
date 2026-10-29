@@ -26,8 +26,7 @@ constexpr double kNear = 0.05;
 constexpr float kLeastColour = 0.02f;
 constexpr float kLeastStrength = 0.5f;
 // An object holds a light (and casts nothing for it) when the light lies within this far of one of its
-// meshes' spheres: the hero's light hangs 0.3 units above his head (zone1 at night), and his head cast a
-// cone of shadow over the ruin around him.
+// meshes' spheres: a lamp's post, the campfire's spit.
 constexpr double kHoldMargin = 0.5;
 
 // The cube's faces: the axis a face looks along and the two across it (its clip x and y). The
@@ -222,7 +221,7 @@ void PreparePointShadows(Frame& f) {
     if (sceneCount == 0 || f.worldRanges.empty() || !WorldCamera(f, &camera, &eye)) return;
     StatsTimer timer(&FrameStats::shadowMs);
 
-    // The lights in view, strongest first (colour times reach).
+    // The lights in view that cast (not an object's own), strongest first (colour times reach).
     struct Candidate {
         int scene;
         Vector3 at;
@@ -233,7 +232,7 @@ void PreparePointShadows(Frame& f) {
         const float* at = scene[k][0];
         const float* colour = scene[k][1];
         const float brightest = std::max({colour[0], colour[1], colour[2]});
-        if (!(at[3] > 0.0f) || brightest < kLeastColour) continue;
+        if (!SceneLightCastsShadows(k) || !(at[3] > 0.0f) || brightest < kLeastColour) continue;
         const double range = 1.0 / std::sqrt(static_cast<double>(at[3]));
         const Vector3 position{at[0], at[1], at[2]};
         if (range <= kNear * 4.0 || !InView(camera, position, range)) continue;

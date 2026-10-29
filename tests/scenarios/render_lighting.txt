@@ -80,6 +80,28 @@ wait 4000
 freeze
 capture light_night
 unfreeze
+# The hero carries his own light at night; a goblin and a wolf beside him, which it lights but must not
+# shadow (an object's own light casts no point shadow).
+console @AddUnitToServer("N1","GoblinF1","N1",Add(GetX(GetLeader()),2),Add(GetY(GetLeader()),1),0)
+console @AddUnitToServer("N2","WolfTutor","N2",Sub(GetX(GetLeader()),2),Add(GetY(GetLeader()),1),0)
+waitfor 15 IsAlive(GetObjectByName("N2"))
+wait 1500
+freeze
+capture light_night_carrier
+unfreeze
+console @RemoveUnitFromServer(GetObjectByName("N1"))
+console @RemoveUnitFromServer(GetObjectByName("N2"))
+# The hero running at night: his own light (a party unit's, LightFlag::Off) held him by a margin test
+# alone, and his own shadow could pop in and out as he ran. Frames as he runs, unfrozen.
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),12),Add(GetY(GetLeader()),2))
+wait 400
+capture light_run_1
+capture light_run_2
+capture light_run_3
+capture light_run_4
+capture light_run_5
+capture light_run_6
+wait 2500
 
 # The town bz1g by day, then at night with its campfire.
 zone bz1g 0

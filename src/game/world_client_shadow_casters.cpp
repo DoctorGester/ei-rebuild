@@ -227,6 +227,9 @@ void HandOverSceneLights(CWorldClient* world) {
             p.inverseRangeSquared = light->inverseRangeSquared_;
             for (int k = 0; k < 3; ++k) p.colour[k] = light->color_[k];
             p.specular = lib::Has(light->flags_, LightFlag::Specular);
+            // An object's own light (a party unit's at night, a quest light: CMapObjectClientSpecific::CreateLight)
+            // is Off, which the game's own shadows skip too: it casts no point shadow.
+            p.shadows = !lib::Has(light->flags_, LightFlag::Off);
             points.push_back(p);
         }
     }

@@ -1347,16 +1347,26 @@ across runs; the goldens check the game state.
      pixel (N.L across a face, not per vertex).
    - **Point-light shadows (R16i1).** `render_point_shadows.cpp`, `shaders/point_shadow.hlsli`. Once a frame
      (PreparePointShadows, from PrepareShadows; drawn from DrawShadowMap, so its CPU time, draws and GPU time count
-     as the shadow map's in render_stats) the kept scene lights (render::SceneLighting's nearest 16) whose reach
-     is in the camera's view are taken strongest first (brightest channel x range), at most `kMostPointShadows`
+     as the shadow map's in render_stats) the kept scene lights (render::SceneLighting's nearest 16) but an object's
+     own light whose reach is in the camera's view are taken strongest first (brightest channel x range), at most `kMostPointShadows`
      (4), and each one that some caster reaches gets a cube of six 512 x 512 D32 faces (perspective, 90 degrees,
      near 0.05, far its range) in one atlas (a light a row, a face a column: 3072 x 2048). Casters: the meshes the
      sun's map takes (objects CastsShadow named this frame, strength at least 0.5, one pass a mesh; cut out by
      alpha alike) whose bounding sphere (the mesh's model-space box, `MeshBatch::box`, now taken for every
      caster's mesh, through its model matrix into the landscape's space) reaches the light, drawn into each face
      its sphere touches. An object with a mesh sphere within `kHoldMargin` (0.5 units) of the light casts
-     nothing for it: the campfire's spit, a torch-bearer, and the hero, whose light hangs 0.3 units above his
-     head (without the margin his head cast a cone of shadow over zone1's ruin at night). Receivers, only what
+     nothing for it: the campfire's spit, a lamp's post. An object's own light casts none (R36, the user's
+     playtest): the light a party unit gets at night (CUnitClientSpecific::PlayerChanged ->
+     CMapObjectClientSpecific::CreateLight, radius `heroLight`, 2 units above the unit's position, moved with it
+     by the companion's RunTick) and a quest light (light mode 1, the same CreateLight). It held the unit by the
+     margin test alone: measured in zone1 (a log of the hero's smallest mesh-sphere gap to his light), 0.13 units
+     standing, 0.15-0.27 running at 8 ms frames and 0.35-0.41 at the harness's default frame steps; where a
+     frame's pose and the light's trail put it past the 0.5 margin, the unit stopped holding his light for that
+     frame and his own shadow from it popped in (the user's playtest; the harness's runs of Zak stayed under). CreateLight flags such a light `Off`
+     (with Moving), which the game's own shadows skip too; HandOverSceneLights hands `ScenePointLight::shadows`
+     = not Off over, and PreparePointShadows takes no light without it (`SceneLightCastsShadows`). Everything
+     else keeps its point shadows: the torches (CTorchObjectClientSpec: the fires, the lamps), the map's
+     lights and the spell effects' (CEffectPointLight, Off only at a negative range). Receivers, only what
      is lit on the GPU: the ground's point loop (`ground_light`: the light's slot from `LightParams::shadowSlots`;
      looked up moved 1.5 texels of its distance along the vertex normal; the ground casts none) and the figure
      parts' (`figure_light`: the mesh's light list carries the scene light's index from the hand-over,
@@ -1379,7 +1389,9 @@ across runs; the goldens check the game state.
      draws), the frame's GPU time and the main thread's CPU within the runs' noise (town at night GPU frame
      1.67-1.94 / 1.91-2.74, main CPU 4.3-4.7 / 4.4-4.7). The candidates are the lights in view at all, so by day
      the town's lamps cast too (their shadows faint: the sun's light is the larger).
-   Check: render_lighting (frames for review: zone1's start, creatures on slopes, a fight, zone1 at night, the town
+   Check: render_lighting (frames for review: zone1's start, creatures on slopes, a fight, zone1 at night, the hero's
+   light at night with a goblin and a wolf beside him (light_night_carrier) and running (light_run_1..6, unfrozen;
+   R36: no point shadows from his own light), the town
    bz1g by day and at night with its campfire), render_shadows*, render_scene, render_stats; the goldens the same
    (the digest's water hash, saves). Cost (render_stats, vanilla 4K, per frame; before = this branch's base,
    main of 2026-10-22, one run; after = two runs alone, the machine shared with other workers' games): main
@@ -1805,13 +1817,14 @@ built and uploaded again is what the game says changed:
 ### render_point_shadows.cpp: point-light shadows
 
 Point-light shadows (docs/notes/renderer.md section 13, item 9). The sun's map (render_shadows.cpp) shadows the sun
-alone; here the few strongest point lights in view (the campfire, the lamps, a torch) get a cube of six depth faces
+alone; here the few strongest point lights in view (the campfire, the lamps; an object's own light, the one a
+party unit carries at night, casts none: ScenePointLight::shadows) get a cube of six depth faces
 each, drawn from the same casters (the objects the game shadows, by their meshes drawn this frame), and the
 receivers lit on the GPU take each such light away where it is hidden: the ground (shaders/scene_lighting.hlsli's
 point loop) and the figure parts (shaders/mesh.hlsl's figure_light). The receivers' rules follow the sun's
 (shaders/point_shadow.hlsli):
-- an object never shadows itself from a light inside it or just beside it (the campfire's spit, the hero's light
-  above his head, a torch-bearer): an object with a mesh whose bounding sphere, grown by kHoldMargin, holds the
+- an object never shadows itself from a light inside it or just beside it (the campfire's spit, a lamp's
+  post): an object with a mesh whose bounding sphere, grown by kHoldMargin, holds the
   light casts nothing for it;
 - a unit's meshes compare from the unit's nearest distance to the light (as the sun map's unit front): no shadow of
   its own, every other caster's on every face;
