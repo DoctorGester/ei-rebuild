@@ -10,6 +10,7 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/in_place.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

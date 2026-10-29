@@ -309,7 +309,7 @@ bool GiveUnitArmor(Call* call) {
 
 // ShowAllUnits(0) sets the "draw all" flag, anything else clears it.
 bool ShowAllUnits(Call* call) {
-    options::g_options->drawVisibleOnly_ = Equals(0.0f, Floats(call)[0]) ? 1 : 0;
+    options::g_options.drawVisibleOnly_ = Equals(0.0f, Floats(call)[0]) ? 1 : 0;
     return true;
 }
 

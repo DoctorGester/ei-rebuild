@@ -11,7 +11,6 @@
 
 #include "lib/file_io.h"
 #include <cstdint>
-#include "lib/static_object.h"
 
 #include <cstddef>
 #include <list>

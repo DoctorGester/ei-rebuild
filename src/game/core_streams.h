@@ -7,7 +7,6 @@
 #include "engine_object.h"
 #include "net_coder.h"
 
-#include "lib/static_object.h"
 #include "lib/containers.h"
 
 #include <cstddef>

@@ -108,8 +108,8 @@ void Terrain::ChooseDetail(SectorData* sector) {
     const float distanceSquared = DistanceSquaredZYX(centre + localPosition_, g_camera.localPosition_);
     int level = 2;
     EI_NAN_AUDIT(distanceSquared);
-    if (distanceSquared < options::g_options->lod1_ * options::g_options->lod1_ && minDetail <= 0) level = 0;
-    else if (distanceSquared < options::g_options->lod2_ * options::g_options->lod2_ && minDetail <= 1) level = 1;
+    if (distanceSquared < options::g_options.lod1_ * options::g_options.lod1_ && minDetail <= 0) level = 0;
+    else if (distanceSquared < options::g_options.lod2_ * options::g_options.lod2_ && minDetail <= 1) level = 1;
     sector->SetDetail(level);
 }
 

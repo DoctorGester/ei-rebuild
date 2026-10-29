@@ -3,8 +3,6 @@
 #include "options.h"
 
 #include <cstdint>
-#include <cstdlib>
-#include <new>
 
 namespace options {
 
@@ -138,15 +136,8 @@ GameOptions::GameOptions() {
     fogDayStartDistance_ = 90.0f;
 }
 
-// The static initialiser and the exit function it registers, defined on the name (g_options,
-// options_global.cpp; docs/notes/standalone.md, "The static initialisers' objects").
-namespace {
-void DestroyGameOptions() { g_options.Destroy(); }
-} // namespace
-
-void ConstructGameOptions() {
-    g_options.Construct();
-    std::atexit(DestroyGameOptions);
-}
+// The game's options: constructed by the C++ runtime before the static initialisers and WinMain (LoadFromRegistry
+// fills them), destroyed after the game's exit functions (ShutDown's SaveToRegistry has written them back).
+GameOptions g_options;
 
 } // namespace options

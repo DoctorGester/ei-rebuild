@@ -9,7 +9,7 @@
 #include "core_streams.h"
 #include "lib/crt.h"
 #include "resource.h"
-#include "lib/static_object.h"
+#include "lib/in_place.h"
 
 #include <cstdint>
 #include <new>

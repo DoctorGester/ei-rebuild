@@ -95,7 +95,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, uns
         }
         levels = header->mipCount - mip;
     }
-    if (!options::g_options->mipmapping_) levels = 1;
+    if (!options::g_options.mipmapping_) levels = 1;
     height_ = height;
     width_ = width;
 

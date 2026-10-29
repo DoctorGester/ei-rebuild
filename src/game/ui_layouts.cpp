@@ -475,7 +475,7 @@ void CCreditsScreen::CreateScreen() {
     nextLineAt_ = 0.0f;
 
     CMappedResource* archive = &archive_;
-    archive->OpenResource((options::g_options->resourcesPath_ + "outro.res"), 0);
+    archive->OpenResource((options::g_options.resourcesPath_ + "outro.res"), 0);
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);
     if (!data) {

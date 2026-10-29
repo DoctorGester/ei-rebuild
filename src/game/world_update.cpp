@@ -1,7 +1,6 @@
 // CWorldServer::Update: one world update. See world.h and docs/notes/world.md.
 #include "world.h"
 #include "console.h"
-#include "lib/static_object.h"
 
 #include "combat.h"
 #include "net_classes.h"

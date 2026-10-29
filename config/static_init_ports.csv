@@ -6,8 +6,6 @@ address,name,file
 0041DD70,CMemoryStream::CMemoryStream,src/game/core_streams.cpp
 0042FAE0,InitCodeTables,src/game/net_coder.cpp
 00455DF0,app::ReleaseMouseAtExit,src/game/app_main.cpp
-00458700,options::ConstructGameOptions,src/game/options_construct.cpp
-00458720,options::DestroyGameOptions,src/game/options_construct.cpp
 0047C330,net::CleanUpWinsock,src/game/net_socket_driver.cpp
 004DA7F0,GrowingBuffer::GrowingBuffer,src/game/game_buffer.cpp
 004E3980,WeatherNoiseCurve::Build,src/game/weather_noise.cpp

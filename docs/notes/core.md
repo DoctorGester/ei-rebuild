@@ -347,7 +347,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 ## Containers: STLport vector and list to std (C14b)
 
 - Lifetimes: a container member of a class with a real constructor and destructor is the compiler's (no
-  construct_at / destroy_at, no clear before the end). A container in raw storage (a StaticObject, a class built by
+  construct_at / destroy_at, no clear before the end). A container in raw storage (a class built by
   `Construct()` on a raw block) is built and destroyed by hand with `std::construct_at` / `std::destroy_at`.
   Destroying a std::list twice frees its sentinel twice; an element loop before a destroy_at of the vector destroys the
   elements twice. The item stock looks raw (Construct / Destruct) but is a member of ClassTemplate: its maps are the
@@ -355,10 +355,8 @@ instantiations were, for reading game.exe (config/library.csv names them):
 - constinit vector globals with game-order exit functions (item_stock's scratch vectors, the frame's draw lists, the
   quest files, the zone table, the fog's dead cells): the exit function is `lib::FreeStorage(v)` (a swap with an empty
   one), so the C++ destructor at our CRT's exit finds nothing to free. A std::list is not constinit (its constructor
-  allocates the sentinel): the global lists are `lib::StaticObject<std::list<T>>` (static_lists.cpp) with Construct /
-  Destroy. named_data's TYPES has `std::vector` ('III', zero is empty); STATIC_OBJECT_BYTES keeps game.exe's list
-  ranges for the std::list StaticObjects (ours are 8 bytes, zero storage; a vector 0x14, a list 0x1C of game.exe's
-  bytes). A std::unordered_map is not valid zeroed; lib::HashMap is (an empty bucket vector).
+  allocates the sentinel): a global list is a plain global with no address. named_data's TYPES has `std::vector`
+  ('III', zero is empty). A std::unordered_map is not valid zeroed; lib::HashMap is (an empty bucket vector).
 - What the inlined STLport bodies did is the std member: reserve / push_back / resize / erase(begin, end) / the list's
   clear and destructor walks. `std::next(end())` is no way to the first node (use begin()). lib::IntroSort takes
   pointers: vectors pass `data()`. Value-initialised elements (`emplace_back()`, `resize`) zero what the original left
@@ -520,8 +518,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   itself (the original loads, the keys are copied, ours loads again; results, counts and key bytes compared).
   Reached when a recorded path is played (the glue 00578820 / 00578880 calls it through its address).
 - A-E1: constructors of globals that run from static initialisers, before the hooks install (their hooks never
-  fire; written so the standalone build has them): the map database (0079BF00, a `lib::StaticObject<CMapDatabase>`
-  ConstructMapDatabase constructs; game.exe's 0045E820 builds two empty CArrays), the `LeverRecordTable` constructor (004632A0,
+  fire; written so the standalone build has them): the map database (0079BF00, game.exe's 0045E820 builds two empty CArrays; ours is a plain global), the `LeverRecordTable` constructor (004632A0,
   the lever table at 0079C1A0: no records, an index of 193 buckets; ours is a plain global since C50b) and the party
   manager's (004A5870, at 007AA5A0: a party map of 193 buckets, no entries, records or templates, two empty
   strings; +0x20 is not written; ours is PartyManager's implicit constructor since C50b). The unused functor bytes the originals copy from uninitialised stack bytes

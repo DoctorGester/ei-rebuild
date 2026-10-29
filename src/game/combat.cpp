@@ -95,7 +95,7 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
 float DifficultyAttackFactor() {
-    int difficulty = options::g_options->difficulty_;
+    int difficulty = options::g_options.difficulty_;
     return g_logicSettings.attack[difficulty];
 }
 

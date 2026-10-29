@@ -1030,7 +1030,7 @@ int CWorldClient::LoadZone(CStream* block) {
         }
     }
     std::string lights = worlddata::LightsPrefixText();
-    const bool effects = worlddata::AudioOption() && options::g_options->audioSfx_;
+    const bool effects = worlddata::AudioOption() && options::g_options.audioSfx_;
     if (cave_ == kCave) {
         lights += worlddata::CaveText();
         if (effects) sounds_->SetReverb(kCaveReverbRoom, kCaveReverbLevel, kCaveReverbTime);
@@ -1045,7 +1045,7 @@ int CWorldClient::LoadZone(CStream* block) {
     CreateExitMarkers();
     worlddata::g_lastLitHour = -1.0f;
     UpdateLighting();
-    if (worlddata::AudioOption() && options::g_options->audioStreaming_) {
+    if (worlddata::AudioOption() && options::g_options.audioStreaming_) {
         if (InFinalZone()) music_->SetZoneMode(worlddata::FinalMusicText(), cave_ == kCave);
         else music_->SetZoneMode(allod, cave_ == kCave);
     }

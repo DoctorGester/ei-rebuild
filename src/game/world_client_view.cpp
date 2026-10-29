@@ -35,8 +35,8 @@ void PushBack(std::vector<CMapObject*>& v, CMapObject* const& value) {
     v.push_back(value);
 }
 
-const int& g_multiplayerView = options::g_options->drawVisibleOnly_;
-const int& g_modelTouchDelay = options::g_options->shadowLightingFreq_;
+const int& g_multiplayerView = options::g_options.drawVisibleOnly_;
+const int& g_modelTouchDelay = options::g_options.shadowLightingFreq_;
 
 // Pushes `matrix` on the pipeline's stack `index` (multiplied onto its top).
 void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix) {

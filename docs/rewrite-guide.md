@@ -152,8 +152,7 @@ does not need a second pass:
 - no new forwarders (rule 5);
 - no one-line getter that only returns a field or a global under another spelling (C38): callers read the public
   field or the named global (`g_random`, `net::g_gameClient`, `g_logicSettings`), also through a dereference or an
-  address (`g_itemDatabase.weapons`, `&g_camera`, `unit->brain.memory`; C38a: a
-  `lib::StaticObject` is built by its static initialiser either way). Getters stay where they are virtual
+  address (`g_itemDatabase.weapons`, `&g_camera`, `unit->brain.memory`). Getters stay where they are virtual
   (ClassName, the manager context's slots), compute or convert (`return this`, `&stack_.back()`), give a base
   class's shared field its meaning in a subclass (a pair message's `ConnectionRef()` for `second_`), or are the
   only const view of a file's state (the renderer's `FrameNumber()`). A field is named by what it means, not
@@ -204,8 +203,7 @@ does not need a second pass:
   `std::list<SharedRef<T>>` / `std::list<HeldRef<T>>`; a map object's
   slots are called on the typed object or through `ObjectSlots(object)`, not a hand-written vtable call or a cast per file.
 - one typed view instead of a cast per accessor (C15): an object embedded in another and built by
-  the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure
-  virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor. A counted
+  the owner's code is a `lib::InPlace<T>` member (`src/lib/in_place.h`), not a byte array with a casting accessor. A counted
   pointer field is a `Ref<T>` (src/game/ref.h: Assign and Reset count, reads see the object, there is no plain store),
   a container element that holds its reference a `HeldRef<T>`, not a `T*` field counted by hand; a site that keeps a
   raw pointer counts with T's `AddRef()` / `Release()`, not `++refCount_` (docs/notes/core.md, "Counted pointers"); a record that starts with another struct's

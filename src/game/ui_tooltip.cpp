@@ -107,7 +107,7 @@ void CUiTooltip::DrawLines() {
 void CUiTooltip::OnMouseMove(int x, int y) {
     switch (state_) {
     case State::Hovered: {
-        const float delay = options::g_options->toolTipTime_;
+        const float delay = options::g_options.toolTipTime_;
         if (lines_.empty() || delay == 0.0f) {
             state_ = State::Idle;
             return;

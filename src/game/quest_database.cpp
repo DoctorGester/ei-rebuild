@@ -9,7 +9,6 @@
 #include "registry.h"
 
 #include <string>
-#include "lib/static_object.h"
 #include "lib/str.h"
 #include "text_split.h"
 

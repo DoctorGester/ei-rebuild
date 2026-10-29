@@ -19,7 +19,6 @@
 #include "unit.h"   // LockKey
 
 #include "lib/containers.h"
-#include "lib/static_object.h"
 #include "lib/str.h"
 
 #include <cstddef>
@@ -1951,11 +1950,11 @@ public:
 
 // The new game's difficulty question (the main menu's region 0): a message box ("option_difficulty", OK and
 // cancel) with two check boxes. Its button handler sets easy_ from the boxes (regions 2 / 3) and copies it to
-// options::g_options->difficulty_ on OK.
+// options::g_options.difficulty_ on OK.
 class CDifficultyBox : public CMessageBox {
 public:
     explicit CDifficultyBox(CInterface3D* ui) : CMessageBox(ui, "option_difficulty", game::kEmptyText, 0x20000, 3, 1) {}
-    // No container handler. Region 0 OK (easy_ to options::g_options->difficulty_), 1 cancel, 2 / 3 check easy / hard.
+    // No container handler. Region 0 OK (easy_ to options::g_options.difficulty_), 1 cancel, 2 / 3 check easy / hard.
     void LeftDown(int buttons, int x, int y) override;
     // Unless a child used the key, Enter answers as OK and Esc as cancel.
     void KeyDown(int key, int repeat, int flags) override;

@@ -19,7 +19,6 @@
 #include "world.h"
 
 #include "lib/bytes.h"
-#include "lib/static_object.h"
 
 #include "game_singletons.h"
 #include "lib/nan_audit.h"

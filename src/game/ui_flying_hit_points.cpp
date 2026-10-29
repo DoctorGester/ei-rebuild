@@ -112,7 +112,7 @@ void CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     }
 
     points_.remove_if([now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
-    if (!options::g_options->drawFlyingHp_) return;
+    if (!options::g_options.drawFlyingHp_) return;
 
     const float width = static_cast<float>(screen.right), height = static_cast<float>(screen.bottom);
     for (const FlyingHitPoint& point : points_) {

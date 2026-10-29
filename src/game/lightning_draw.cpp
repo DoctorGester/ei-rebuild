@@ -3,7 +3,6 @@
 // glow: the segments as textured strips through the render device, then a
 // the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
-#include "lib/static_object.h"
 #include "texture.h"
 
 #include "core_maths.h"

@@ -72,7 +72,7 @@ constexpr int kStepFrames = 4;
 constexpr int kMaxFootPart = 9;
 
 // Footprints show for every unit (else only for MapObjectFlag::InParty units).
-bool AllFootprintsShown() { return options::g_options->drawVisibleOnly_ == 0; }
+bool AllFootprintsShown() { return options::g_options.drawVisibleOnly_ == 0; }
 
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
 // callers have returned on a NaN `now`).

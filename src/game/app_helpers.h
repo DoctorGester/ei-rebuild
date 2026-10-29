@@ -4,7 +4,6 @@
 
 #include "app.h"
 #include "chunk_archive.h"
-#include "lib/static_object.h"
 
 #include <cstdint>
 #include <list>

@@ -4,7 +4,6 @@
 
 #include "lib/containers.h"
 #include <cstdint>
-#include "lib/static_object.h"
 
 #include <cstddef>
 #include <vector>

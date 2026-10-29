@@ -15,7 +15,6 @@
 #include <cstring>
 #include <utility>
 #include "lib/vecmath.h"
-#include "lib/static_object.h"
 
 #include <cstdlib>
 #include <vector>

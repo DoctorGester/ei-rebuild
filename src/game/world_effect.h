@@ -11,7 +11,6 @@
 #include "net_delta.h"
 #include "spell.h"
 
-#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>

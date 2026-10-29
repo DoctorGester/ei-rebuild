@@ -165,12 +165,12 @@ void CSaveLoadWindow::MessageResult(int result) {
 
 void COptionsWindow::RestoreSettings() {
     // The values the window saved when it opened.
-    g_clientWorld.sounds_->SetEffectsVolume(options::g_options->audioSfx_);
-    g_clientWorld.sounds_->SetMusicVolume(options::g_options->audioStreaming_);
-    g_clientWorld.sounds_->SetSpeechVolume(options::g_options->audioSpeech_);
+    g_clientWorld.sounds_->SetEffectsVolume(options::g_options.audioSfx_);
+    g_clientWorld.sounds_->SetMusicVolume(options::g_options.audioStreaming_);
+    g_clientWorld.sounds_->SetSpeechVolume(options::g_options.audioSpeech_);
     // The scene renderer's gamma.
-    g_sceneRenderer.SetGamma(options::g_options->brightness_, options::g_options->contrast_,
-                              options::g_options->gamma_);
+    g_sceneRenderer.SetGamma(options::g_options.brightness_, options::g_options.contrast_,
+                              options::g_options.gamma_);
 }
 
 void COptionsWindow::LeftDown(int buttons, int x, int y) {

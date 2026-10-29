@@ -39,7 +39,7 @@ constexpr int kTopicNameParts = 3;
 } // namespace
 
 void CBriefingScreen::CloseScreen() {
-    options::g_options->borderFogDistance_ = savedEdgeFade_;
+    options::g_options.borderFogDistance_ = savedEdgeFade_;
     GameStopSounds(1);
     GameStopAmbience();
     std::uint32_t& flags = g_camera.flags_;

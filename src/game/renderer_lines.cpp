@@ -7,7 +7,6 @@
 #include "texture.h"
 
 #include "lib/containers.h"
-#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "render/render.h"
 #include "render/render_state.h"

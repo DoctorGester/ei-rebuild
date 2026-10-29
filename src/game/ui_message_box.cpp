@@ -89,7 +89,7 @@ void CMessageBox::KeyDown(int key, int repeat, int flags) {
 void CDifficultyBox::LeftDown(int, int x, int y) {
     switch (RegionAt(x, y)) {
     case 0:
-        options::g_options->difficulty_ = easy_;
+        options::g_options.difficulty_ = easy_;
         interface_->PlaySound(OkSound());
         interface_->SetPendingValue(result_ | kAnswerOk);
         break;
@@ -116,7 +116,7 @@ void CDifficultyBox::KeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (handled_) return;
     if (key == VK_RETURN) {
-        options::g_options->difficulty_ = easy_;
+        options::g_options.difficulty_ = easy_;
         interface_->PlaySound(OkSound());
         interface_->SetPendingValue(result_ | kAnswerOk);
     } else if (key == VK_ESCAPE) {

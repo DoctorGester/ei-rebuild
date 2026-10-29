@@ -191,8 +191,8 @@ void CBriefingScreen::CreateScreen() {
     exitPending_ = true;
     exit_ = 0;
     leader_ = nullptr;
-    savedEdgeFade_ = options::g_options->borderFogDistance_;
-    options::g_options->borderFogDistance_ = kEdgeFade;
+    savedEdgeFade_ = options::g_options.borderFogDistance_;
+    options::g_options.borderFogDistance_ = kEdgeFade;
 
     if (MapRecord* record = g_mapDatabase.FindMap(LocalPlayerZone())) {
         g_clientWorld.music_->PlayBriefing(record->allod);

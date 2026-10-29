@@ -117,7 +117,7 @@ int CTexture::CreateComposed(CTextureDevice* device, const ComposedTexture& comp
     if (flags_ & TextureFlag::Loaded) return 1;
     const MmpHeader& header = composed.header;
     unsigned levels = header.mipCount - mip;
-    if (!options::g_options->mipmapping_) levels = 1;
+    if (!options::g_options.mipmapping_) levels = 1;
     width_ = header.width >> (mip & 31);
     height_ = header.height >> (mip & 31);
     Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(width_), static_cast<int>(height_),

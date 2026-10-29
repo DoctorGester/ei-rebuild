@@ -38,7 +38,7 @@ const char* SkySection() { return "sky"; }
 constexpr int kNumbersKind = static_cast<int>(TextureKind::Effects);
 
 const char* NumbersName() { return "numbers"; }
-const char* FiguresResource() { return options::g_options->resourcesPath_.c_str(); }
+const char* FiguresResource() { return options::g_options.resourcesPath_.c_str(); }
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The

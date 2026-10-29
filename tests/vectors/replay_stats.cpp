@@ -355,7 +355,7 @@ bool CheckProtectionBlock(const ProtectionCall& v, char* d, std::size_t n) {
     std::memset(&vitals, 0, sizeof(vitals));
     std::memcpy(vitals.protection, v.vitals, sizeof(v.vitals));
     if (!v.keyed) {
-        options::g_options->difficulty_ = v.difficulty;
+        options::g_options.difficulty_ = v.difficulty;
         g_logicSettings.absorption[v.difficulty] = v.factor;
     }
     float out[7];

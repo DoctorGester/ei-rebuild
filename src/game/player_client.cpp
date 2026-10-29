@@ -27,7 +27,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "lib/static_object.h"
 #include "lib/str.h"
 
 #include "ei/x87.h"
@@ -106,7 +105,7 @@ constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
 // Path markers are shown.
-bool MarkersShown() { return options::g_options->drawPath_ != 0; }
+bool MarkersShown() { return options::g_options.drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
 constexpr std::uint32_t kHeaderFlagHidden = 8;

@@ -374,9 +374,9 @@ void CMpConnectScreen::MasterRequest() {
     net::NetAddress master{};
     // EI_Plugin's NewMaster: with a second master set, the master is tried first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) && net::second_master::Configured())
-        net::second_master::ParseMaster(&master, options::g_options->masterServerName_.c_str(), kMasterPort);
+        net::second_master::ParseMaster(&master, options::g_options.masterServerName_.c_str(), kMasterPort);
     else
-        master.Parse(options::g_options->masterServerName_.c_str(), kMasterPort);
+        master.Parse(options::g_options.masterServerName_.c_str(), kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries_.extra : 0;
     interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra), true,

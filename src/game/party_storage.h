@@ -6,5 +6,3 @@
 
 #include "party.h"
 
-#include "lib/static_object.h"
-

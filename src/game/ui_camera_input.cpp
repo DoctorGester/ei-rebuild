@@ -86,19 +86,19 @@ void CCameraInput::KeyUp(int, int, int flags) {
     CCamera* camera = &g_camera;
     if (!ModifierHeld(interface_)) {
         float left = static_cast<float>(-x_);
-        float speed = KeyboardSpeed(options::g_options->cameraScroll_);
+        float speed = KeyboardSpeed(options::g_options.cameraScroll_);
         Vector3 direction = {static_cast<float>(y_ * speed), static_cast<float>(left * speed), 0.0f};
         camera->Pan(&direction);
         camera->SetTurnRate(0.0f);
-        camera->SetZoomTarget(KeyboardSpeed(options::g_options->cameraZoom_) * z_);
+        camera->SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom_) * z_);
         camera->SetTiltRate(0.0f);
         return;
     }
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(&still);
-    camera->SetTurnRate(KeyboardSpeed(options::g_options->cameraRotate_) * y_);
-    camera->SetZoomTarget(KeyboardSpeed(options::g_options->cameraZoom_) * z_);
-    camera->SetTiltRate(KeyboardSpeed(options::g_options->cameraPitch_) * x_);
+    camera->SetTurnRate(KeyboardSpeed(options::g_options.cameraRotate_) * y_);
+    camera->SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom_) * z_);
+    camera->SetTiltRate(KeyboardSpeed(options::g_options.cameraPitch_) * x_);
 }
 
 void CCameraInput::RightDown(int, int x, int y) {
@@ -140,20 +140,20 @@ void CCameraInput::MouseMove(int, int x, int y) {
         float along = static_cast<float>(static_cast<float>(drag.y) * kPerHeight);
         if (!ModifierHeld(interface_)) {
             // The turn and tilt speeds times the mouse direction factors.
-            const float turnSpeed = MouseSpeed(options::g_options->cameraRotate_) * Option(options::g_options->cameraFlipX_);
+            const float turnSpeed = MouseSpeed(options::g_options.cameraRotate_) * Option(options::g_options.cameraFlipX_);
             camera->SetTurnRate(turnSpeed * across * 10.0f);
             float width = static_cast<float>(drag.x < 0 ? -drag.x : drag.x);
             float height = static_cast<float>(drag.y < 0 ? -drag.y : drag.y);
             // At rest the camera tilts only when the mouse moves more up or down than sideways.
             const float zero = 0.0f;
             if (Differs(camera->tiltTarget_, zero) || Differs(camera->tiltRate_, zero) || height > width) {
-                const float tiltSpeed = MouseSpeed(options::g_options->cameraPitch_) * Option(options::g_options->cameraFlipY_);
+                const float tiltSpeed = MouseSpeed(options::g_options.cameraPitch_) * Option(options::g_options.cameraFlipY_);
                 camera->SetTiltRate(tiltSpeed * along * 500.0f);
             } else {
                 camera->SetTiltRate(0.0f);
             }
         } else {
-            float speed = MouseSpeed(options::g_options->cameraScroll_);
+            float speed = MouseSpeed(options::g_options.cameraScroll_);
             Vector3 direction{static_cast<float>(across * speed), static_cast<float>(along * speed), 0.0f};
             camera->Pan(&direction);
         }
@@ -165,7 +165,7 @@ void CCameraInput::MouseMove(int, int x, int y) {
         return;
     }
     // The width of the screen edges that pan (0: off).
-    int margin = static_cast<const volatile int&>(options::g_options->cameraBorderScrollArea_);
+    int margin = static_cast<const volatile int&>(options::g_options.cameraBorderScrollArea_);
     if (margin > 0) {
         unsigned edges = 0;
         Vector3 direction{0.0f, 0.0f, 0.0f};
@@ -186,7 +186,7 @@ void CCameraInput::MouseMove(int, int x, int y) {
         if (!ModifierHeld(interface_)) {
             // The keys' pan goes on (KeyUp sets the same).
             float left = static_cast<float>(-x_);
-            float speed = KeyboardSpeed(options::g_options->cameraScroll_);
+            float speed = KeyboardSpeed(options::g_options.cameraScroll_);
             float forward = y_ * speed;
             left = static_cast<float>(left * speed);
             direction.x = static_cast<float>(forward + direction.x);
@@ -212,6 +212,6 @@ void CCameraInput::Deactivate() {
 
 void CCameraInput::Wheel(int, int delta, int, int) {
     int steps = static_cast<short>(delta);
-    g_camera.ZoomBy(MouseSpeed(options::g_options->cameraZoom_) * static_cast<float>(steps) * kWheelStep);
+    g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom_) * static_cast<float>(steps) * kWheelStep);
 }
 

@@ -5,7 +5,6 @@
 #include "player_messages.h"
 #include "console.h"
 #include "game_strings.h"
-#include "lib/static_object.h"
 
 #include "base_manager.h"
 #include "combat.h"

@@ -7,7 +7,6 @@
 #include "texture.h"
 #include "world.h"
 
-#include "lib/static_object.h"
 #include <cstdint>
 #include <string>
 #include "lib/file_io.h"

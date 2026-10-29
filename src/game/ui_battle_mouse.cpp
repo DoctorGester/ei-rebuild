@@ -32,8 +32,8 @@ void CBattleScreen::MouseMove(int buttons, int x, int y) {
         return;
     }
     g_cursor.SetShape(kCursorArrow);
-    if (viewPressed_ && options::g_options->cameraFrameSelectionArea_ > 0 && !IsMultiplayerClient()) {
-        int threshold = options::g_options->cameraFrameSelectionArea_;
+    if (viewPressed_ && options::g_options.cameraFrameSelectionArea_ > 0 && !IsMultiplayerClient()) {
+        int threshold = options::g_options.cameraFrameSelectionArea_;
         if (Distance(x, pressX_) > threshold || Distance(y, pressY_) > threshold) boxSelecting_ = true;
         if (boxSelecting_) {
             CHudUnitPanel* panel = unitPanel_;

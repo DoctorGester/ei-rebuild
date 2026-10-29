@@ -15,7 +15,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "lib/static_object.h"
 #include "lib/str.h"
 
 #include <memory>
@@ -87,7 +86,7 @@ void ReadWeather(Chunk* parent) {
     chunk.ReadFloat();
     CWorldServer* server = &g_serverWorld;
     server->CWorldServer::SetTime(time);
-    float limit = options::g_options->defaultWindForce_;
+    float limit = options::g_options.defaultWindForce_;
     server->ChangeWind(&direction, limit >= strength ? strength : limit);
 }
 

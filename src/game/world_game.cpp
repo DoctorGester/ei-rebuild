@@ -45,7 +45,6 @@
 #include "lib/file_io.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
-#include "lib/static_object.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -276,7 +275,7 @@ float HoursOfDay(double value) { return static_cast<float>(std::fmod(value, 24.0
 constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone = 4, kStatePartyZone = 5,
               kStateNetworkZone = 6;
 
-const char* ResourcesPath() { return options::g_options->resourcesPath_.c_str(); }
+const char* ResourcesPath() { return options::g_options.resourcesPath_.c_str(); }
 
 void StreamLoadScripts(CMemoryStream* a0, CStream* a2) { a0->ReadSized(a2); }
 
@@ -496,7 +495,7 @@ int StartNetworkZone(const std::string& zone) {
     g_serverWorld.SetCave(zoneRecord->cave);
     g_serverWorld.sessionKind_ = 1;
     g_serverWorld.SetGameResult(kGameResultNetwork);
-    options::g_options->drawVisibleOnly_ = 1;
+    options::g_options.drawVisibleOnly_ = 1;
 
     if (Active(net::g_gameServer)) {
         AnnounceHost(zone.c_str());
@@ -984,7 +983,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         mode = kModeMainMenu;
     }
 
-    g_serverWorld.SetTimeSpeed(static_cast<float>(options::g_options->defaultTimeScale_));
+    g_serverWorld.SetTimeSpeed(static_cast<float>(options::g_options.defaultTimeScale_));
     int result;
     if (mode == kModeMainMenu) {
         g_serverWorld.NewZone(kMenuMap, kMenuMob, std::nullopt);
@@ -1014,7 +1013,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
     }
 
     g_serverWorld.sessionKind_ = mode;
-    if (mode == 1) options::g_options->drawVisibleOnly_ = mode;
+    if (mode == 1) options::g_options.drawVisibleOnly_ = mode;
     g_serverWorld.SetGameResult(result);
     // The server world's player source handed to the client world.
     g_clientWorld.SetPlayer(g_serverWorld.worldHandle_.Get());
@@ -1058,11 +1057,11 @@ void GameFlow::UseResources(bool network) {
     lastResources = wanted;
     SwitchResourceDatabases(wanted);
     if (network) {
-        int value = options::g_options->difficulty_;
-        options::g_options->difficulty_ = 0;
-        options::g_options->difficultyStored_ = value;
+        int value = options::g_options.difficulty_;
+        options::g_options.difficulty_ = 0;
+        options::g_options.difficultyStored_ = value;
     } else {
-        options::g_options->difficulty_ = options::g_options->difficultyStored_;
+        options::g_options.difficulty_ = options::g_options.difficultyStored_;
     }
 }
 

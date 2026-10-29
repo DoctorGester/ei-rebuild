@@ -5,7 +5,6 @@
 
 #include "lib/crt.h"
 #include "lib/file_io.h"
-#include "lib/static_object.h"
 
 #include <cstdlib>
 #include <cstring>

@@ -8,7 +8,6 @@
 
 #include "lib/bytes.h"
 #include "lib/containers.h"
-#include "lib/static_object.h"
 
 #include "ei/x87.h"
 

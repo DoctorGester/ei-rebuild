@@ -64,7 +64,7 @@ constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, 
 constexpr int kBloodParticles[8] = {static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4), static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4)};
 
 // The party light (r, g, b; radius).
-const float* PartyLightColour() { return &options::g_options->heroLight_.red; }
+const float* PartyLightColour() { return &options::g_options.heroLight_.red; }
 
 // The hit sound's folder by the weapon class (kinds 7 and 8 and above 15 have none).
 const char* HitSoundFormat(std::uint8_t kind) {
@@ -220,5 +220,5 @@ void CUnitClientSpecific::PlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
-    unit->MapObject()->ClientCompanion()->CreateLight(colour, options::g_options->heroLight_.radius, false);
+    unit->MapObject()->ClientCompanion()->CreateLight(colour, options::g_options.heroLight_.radius, false);
 }

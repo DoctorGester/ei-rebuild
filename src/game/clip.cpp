@@ -8,7 +8,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <vector>
-#include "lib/static_object.h"
 
 namespace {
 

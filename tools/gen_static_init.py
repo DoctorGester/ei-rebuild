@@ -544,13 +544,14 @@ def decode_all(img):
 
 NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
 
-# The named globals this script writes by name (C18u): address -> (C++ name, the header that declares it). Each is
+# The named globals this script writes by name (C18u): address -> (C++ name, the header that declares it, None for
+# static_init.h, which the generated files include anyway). Each is
 # the start of a range of config/named_data.csv that only the generated code reaches. The name takes the address's
 # place where the original's code has it: a guard's flag byte (`d.Once(name, bit)`), the object a call takes as
 # `this` (`d.Thiscall(fn, &name, ...)`) and where a call's result goes (`d.Store(name, d.Stdcall(...))`, kept in list
 # order: named_data.py compares that definition at its zero start). The generated files include the headers.
 GENERATED_NAMES = {
-    0x007CAEE4: ('lib::g_emptyStaticGuard', 'lib/static_object.h'),
+    0x007CAEE4: ('g_emptyStaticGuard', None),   # static_init.h's, in the generated code's namespace
 }
 NAMED_ONCE = re.compile(r'\bd\.Once\((0x[0-9A-F]{8}),')
 NAMED_THIS = re.compile(r'(\bd\.Thiscall\(0x[0-9A-F]{8}, )(0x[0-9A-F]{8})\b')
@@ -563,7 +564,8 @@ def name_operands(text, headers):
         entry = GENERATED_NAMES.get(int(m.group(group), 16))
         if entry is None:
             return m.group(0)
-        headers.add(entry[1])
+        if entry[1]:
+            headers.add(entry[1])
         start, end = m.span(group)
         return m.group(0)[:start - m.start()] + form.format(entry[0]) + m.group(0)[end - m.start():]
     text = NAMED_ONCE.sub(lambda m: named(m, 1, '{}'), text)
@@ -779,6 +781,8 @@ UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread 
 # constructor call and the atexit (or the one call); the object's range and the exit function's guard byte are in no
 # named range or source, and nothing reads them.
 UNUSED_INITIALISERS = {
+    # C50b3: the options are a plain global of ours.
+    0x00458700: "the options 0079BC70 (exit function 00458720): options_construct.cpp's g_options",
     # C50b2: the camera and the scene renderer are plain globals of ours.
     0x0040C880: "the camera 0079B2A8 (exit function 0040C8A0): camera_object.cpp's g_camera",
     0x00500930: "the scene renderer 007AF060 (exit function 00500950): renderer_lifetime.cpp's g_sceneRenderer",
@@ -1168,7 +1172,7 @@ def generate(img):
 # {@n} is the address of the pattern's n-th instruction (a branch inside the function), {@E} of its
 # last. The C++ is the body of ExitFunction's case over the `d.` operations of the initialisers (a guard is
 # d.Once). A function that matches none stops the script: add a pattern or port it
-# by hand, next to the object it destroys (options_construct.cpp's DestroyGameOptions, ...).
+# by hand, next to the object it destroys (net_session.cpp's ReleaseGameServer, ...).
 GUARD_TEST = ['test byte ptr [{F}], {BIT}', 'jne {@E}', 'or byte ptr [{F}], {BIT}']
 GUARD_MOV = ['mov cl, byte ptr [{F}]', 'mov al, {BIT}', 'test al, cl', 'jne {@E}', 'or cl, al', 'mov byte ptr [{F}], cl']
 FREE = ['mov eax, dword ptr [eax - 4]', 'push eax', 'call {D}', 'pop ecx', 'ret']
