@@ -1,18 +1,12 @@
 // The standalone's settings file. See settings_file.h.
 #include "settings_file.h"
 
-#include "system_text.h"
-
 #include "ei/hook.h"
 #include "hook/log.h"
 
 #include <string>
 #include <windows.h>
 
-#include <algorithm>
-#include <array>
-#include <charconv>
-#include <cstdint>
 #include <cstring>
 
 namespace settings_file {
@@ -25,9 +19,10 @@ struct Store {
     std::wstring file;            // empty until loaded: the one next to the exe, or the pinned one
     bool loaded = false;
     bool pinned = false;          // a harness run's file
-    bool readOnly = false;        // pinned and read only: nothing written, nothing imported
+    bool readOnly = false;        // pinned and read only: nothing written, no defaults
     bool dirty = false;
-    RegistrySource* importSource = nullptr;   // the harness's, in place of the registry
+    int desktopWidth = 0;         // the harness's desktop for the defaults (0: the primary monitor's)
+    int desktopHeight = 0;
     MissingHandler missing = nullptr;
     std::vector<ReadFilter> filters;
 };
@@ -93,41 +88,6 @@ void Write(Store& s) {
     s.dirty = false;
 }
 
-// HKEY_CURRENT_USER as the game's ANSI calls read it (text::utf8: UTF-8); read only.
-class Registry : public RegistrySource {
-public:
-    bool ReadKey(const std::string& path, std::vector<Value>* values, std::vector<std::string>* subkeys) override {
-        HKEY key;
-        if (text::utf8::RegOpenKeyExA(HKEY_CURRENT_USER, path.c_str(), 0, KEY_READ, &key) != ERROR_SUCCESS) return false;
-        DWORD longestName = 0, longestKey = 0;
-        RegQueryInfoKeyA(key, nullptr, nullptr, nullptr, nullptr, &longestKey, nullptr, nullptr, &longestName, nullptr,
-                         nullptr, nullptr);
-        std::vector<char> name(static_cast<std::size_t>((std::max)(longestName, longestKey)) + 1);
-        for (DWORD i = 0;; ++i) {
-            DWORD nameSize = static_cast<DWORD>(name.size());
-            const LSTATUS status = RegEnumValueA(key, i, name.data(), &nameSize, nullptr, nullptr, nullptr, nullptr);
-            if (status == ERROR_NO_MORE_ITEMS) break;
-            if (status != ERROR_SUCCESS) continue;
-            DWORD type = 0, size = 0;
-            if (text::utf8::RegQueryValueExA(key, name.data(), nullptr, &type, nullptr, &size) != ERROR_SUCCESS) continue;
-            std::string data(size, '\0');
-            if (text::utf8::RegQueryValueExA(key, name.data(), nullptr, &type, reinterpret_cast<BYTE*>(data.data()),
-                                            &size) != ERROR_SUCCESS)
-                continue;
-            data.resize(size);
-            values->push_back(Value{name.data(), type, std::move(data)});
-        }
-        for (DWORD i = 0;; ++i) {
-            DWORD nameSize = static_cast<DWORD>(name.size());
-            const LSTATUS status = RegEnumKeyExA(key, i, name.data(), &nameSize, nullptr, nullptr, nullptr, nullptr);
-            if (status == ERROR_NO_MORE_ITEMS) break;
-            if (status == ERROR_SUCCESS) subkeys->push_back(name.data());
-        }
-        RegCloseKey(key);
-        return true;
-    }
-};
-
 void Load(Store& s) {
     if (s.loaded) return;
     s.loaded = true;
@@ -147,10 +107,11 @@ void Load(Store& s) {
         ei::Log("settings: the pinned file %ls cannot be read", s.file.c_str());
         return;
     }
-    Registry registry;
-    const int values = ImportTrees(s.document, s.importSource ? *s.importSource : static_cast<RegistrySource&>(registry));
-    ei::Log("settings: %ls missing: %d values imported from %s", s.file.c_str(), values,
-            s.importSource ? "the harness's stand-in" : "the registry");
+    // The primary monitor's size in pixels (the process is DPI aware: standalone_main.cpp), or the harness's.
+    const int width = s.desktopWidth ? s.desktopWidth : GetSystemMetrics(SM_CXSCREEN);
+    const int height = s.desktopWidth ? s.desktopHeight : GetSystemMetrics(SM_CYSCREEN);
+    s.document = DefaultDocument(width, height);
+    ei::Log("settings: %ls missing: written with the defaults (full screen at %dx%d)", s.file.c_str(), width, height);
     Write(s);
 }
 
@@ -233,9 +194,10 @@ void AddReadFilter(ReadFilter filter) {
     S().filters.push_back(filter);
 }
 
-void SetImportSource(RegistrySource* source) {
+void SetDesktopSize(int width, int height) {
     Locked lock;
-    S().importSource = source;
+    S().desktopWidth = width;
+    S().desktopHeight = height;
 }
 
 void Pin(const char* file, MissingHandler missing, bool readOnly) {

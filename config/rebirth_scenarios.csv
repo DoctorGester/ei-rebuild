@@ -11,3 +11,4 @@ zone_gz15h_tornado,1,CEffectTornado launches only on Rebirth's data
 terrain_water_waves,1,Rebirth's zone 1 and town maps (their water) under SectorData::Animate's waves
 render_shadows_mound,1,the user's Rebirth save: the mound and the pine are Rebirth's (R22)
 render_shadows_shimmer,1,the user's Rebirth save "ShadowCorrupt": its camera distance and sun (R25)
+settings_defaults,1,the exit save writes the defaults' options into Rebirth's tree (NivalRegistry): settings_defaults.rebirth.ini

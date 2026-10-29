@@ -6041,3 +6041,10 @@ title = "Unit AI style: the last structural items after C60a"
 group = "cleanup"
 depends = ["C60a"]
 note = "Left by C60a (build/style_review/unit_ai.md). G6: AIHeardCalls / AIReports inherit std::vector (a struct with a container member; the harness digest reads their size(), so keep a size() or change harness_digest_read.inc and run the --no-hooks suite). AIAttention::InitOption / AddWeaponOption / AddSpellOption return a pointer into a vector element: build the option and push_back it. G4/W11 placement: AIOrder::MakeUse / AimPoint live in player_server_handlers.cpp (beside Clear / MakeAttack / MakeCast in unit_ai_targets.cpp); AIBrain::Load / Save in unit_ai_brain.cpp but AIMemory::Load / Save and LoadLooks in unit_ai_save.cpp; unit_ai_attention.cpp (36 lines of AIBrain members) can join unit_ai_targets.cpp. AIMode::Exclusive is virtual but follows the type (Guard / Patrol / Sentry / Follow): a function of AIMode::type. PlayerMode::CommandWalk / CommandGoTo take int inGroup (callers pass a bool). Score's range test (kind < Weapon || kind > Curse) on the enum. The digest keys ai.near.x / ai.near.y / ai.noticedKind and tools/savefile_unit.py's nearX / nearY / noticedKind keep the old names (renaming them changes the golden hashes: only with a golden re-record). Goldens unchanged."
+
+[[ticket]]
+id = "S24a"
+title = "WideScreen layout: the resolution from the game's own options tree"
+group = "standalone"
+depends = ["S24"]
+note = "S24 found: ui_widescreen.cpp reads VIDEORESOLUTION from Software\\Gipat.ru\\EI_Starter\\EvilIslands\\General Settings (addon.dll's key) on either data, but on vanilla data (no NivalRegistry) the game reads and saves its options under Software\\Nival Interactive\\EvilIslands. S24's defaults write the resolution into both trees so a new file works; a later change of the vanilla tree's VideoResolution (by hand, or a future options screen) leaves the layout on the other tree's size. Read the resolution the game itself uses (g_registryRoot's, or GameOptions::resolutionX_/Y_ once loaded) instead. Check: ui_widescreen scenarios unchanged (their starter lines answer both names); a vanilla run with differing trees."

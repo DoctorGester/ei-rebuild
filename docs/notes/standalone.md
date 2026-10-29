@@ -962,17 +962,37 @@ strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureS
 ### Settings file (ST1, 2026-10-22)
 
 The image keeps the settings game.exe keeps under HKEY_CURRENT_USER in **ei_settings.ini next to
-ei_standalone.exe** and never writes the registry (src/game/settings_file.{h,cpp}). game.exe (the original game,
-the `--no-hooks` suite) keeps the registry.
+ei_standalone.exe** and never reads or writes the registry (src/game/settings_file.{h,cpp}). game.exe (the original
+game, the `--no-hooks` suite) keeps the registry.
 - **Format**: a section per key, its path below HKEY_CURRENT_USER (`[Software\Nival Interactive\EvilIslands\General
   Settings]`), a line per value in reg export's syntax: `"FullScreen"=dword:00000001`, `"VideoResolution"="1920x1080"`
   (`\\` and `\"` escaped), `"Brightness"=float:0.5` (a 4-byte REG_BINARY float, written only when the text reads back
   to the same bits), `hex:..` (REG_BINARY), `hex(<type>):..` (anything else, or a string the quoted form cannot
   hold); `@` is a key's default value, `;` starts a comment. Every value round-trips bit for bit: the bytes are what
   the game's ANSI registry call gives (UTF-8). Names and paths compare without case.
-- **Import**: when the file is missing, the first use copies `Software\Nival Interactive\EvilIslands` and Rebirth's
-  `Software\Gipat.Ru\EI_Starter` (every subkey; read only, through text::utf8 as the game's reads) and writes the
-  file. Nothing is merged later: the file is the settings from then on.
+- **Defaults (S24, user 2026-10-29)**: when the file is missing, the first use writes it with
+  `settings_file::DefaultDocument` (settings_document.cpp) for the primary monitor's size (GetSystemMetrics; the process
+  is DPI aware) and goes on with it; the registry is not read (the one-time import of ST1 went: the drop-in exe, S23,
+  needs no registry). Under both option trees (`kOptionTrees`: the game's `Software\Nival Interactive\EvilIslands`, and
+  Rebirth's `Software\Gipat.Ru\EI_Starter\EvilIslands`, which NivalRegistry reads the options from and the WideScreen
+  layout its VIDEORESOLUTION from on either data, so one file serves vanilla and Rebirth data): General Settings
+  VideoResolution `<w>x<h>`, FullScreen 1 (a borderless window over the monitor, present_window.h), 32 bits, Audio 1 and
+  the three volumes 100 (the game's own defaults), Antialiasing 1, Mipmapping 1, Filtering 2 (trilinear), TextureQuality 0
+  (no mip level dropped), ShowParticles 1; Shadow Settings ShadowQuality 2 and the five shadows 1; Terrain Settings LOD1 90
+  / LOD2 130 and EnableWaterWaves 1 (what Rebirth's EIStarter.exe 1.46 writes for its best landscape detail; vanilla's
+  starter.exe defaults 40 / 75), LightingFreq 1000 (the starter's most frequent relighting), self shadowing, dynamic
+  lights, foot / blood / fire prints 1. And what a game install writes where the game's own defaults are placeholders
+  (the original's installer and Rebirth's wrote the same, config/harness/registry.reg): the whole Camera Settings
+  section (rotate speed 0.15 and pitch speed 0.0015 against the code's 1.0, heights 3..70, distances 10..50, pitch
+  30..60, the briefing's, the four shortcuts), ObjectsLightingCoeff 2 (the code's 1 lights objects half as bright),
+  the hero's light 216 216 116 radius 5 and the quest light 120 72 120 radius 5, UseSWCursors 0, SelectionType 1,
+  DefaultMapName / DefaultStreamingSound, the master server a3master.nival.com (the code's is empty).
+  `...\EvilIslands\Standalone`: VSync 1, Msaa 8, Anisotropy 16. `Software\Gipat.Ru\EI_Starter\Settings`: WideScreen 1,
+  ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the original's distances; 5376 draws
+  the whole map and is what the user's starter had). Everything else is left out and read as absent: the game takes
+  its own defaults (paths `.\` and `.\res\` from the working folder, ShowTutorial 1, the other game settings, equal to
+  the install's), Rebirth its own (no mod: AddonPath absent, the console's levels and AutoExec). The game's exit save
+  then adds every option it keeps.
 - **Who uses it**: CWinRegistry (win_registry.cpp: the options loader and writer; `Open` makes the file's key,
   `Close` writes the file when a value changed, atomically through `ei_settings.ini.tmp`) and the direct readers
   through `settings_file::ReadValue` (console_addon's AutoExec lines, mod_folders, script_addon_commands' AddonPath,
@@ -984,7 +1004,7 @@ the `--no-hooks` suite) keeps the registry.
 - **Harness runs** (tests/verify/harness_settings.h): the harness writes `<run folder>\ei_settings.ini` at start
   from config/harness/registry.reg (its HKEY_CURRENT_USER keys) with the scenario's starter lines (resolution,
   widescreen, fullscreen, fpscursor, music, addonpath, CtfMon) in place, and pins it: read only (the game's writes
-  are dropped, as the registry's were), no import, a read of a value the file lacks fails the run unless the
+  are dropped, as the registry's were), a read of a value the file lacks fails the run unless the
   snapshot marks it absent (`"name"=-`). So a standalone run never depends on the machine's registry, and its
   folder shows the settings it played with. The advapi32 hooks stay for anything else that reads the registry.
 - **Playing while the suites run (ST1b)**: WinMain's one-instance check (FindWindowA on the class atom and the title,
@@ -997,21 +1017,20 @@ the `--no-hooks` suite) keeps the registry.
   so on stderr for exit code -1.
 - **Checks (ST1a)**: the product's two file paths, which a read-only pinned run does not reach, are checked without
   the user's registry.
-  - *Format and import, no game*: src/game/settings_document.cpp holds `Document` (Text / Parse), `JoinPath` and the
-    import's walk (`ImportTrees` over a `RegistrySource`: the registry's in settings_file.cpp, `DocumentSource` over a
-    Document for tests). tests/vectors/replay_settings.cpp runs after the vector replays in `ei_vectors.exe`
+  - *Format and defaults, no game*: src/game/settings_document.cpp holds `Document` (Text / Parse), `JoinPath` and
+    `DefaultDocument`. tests/vectors/replay_settings.cpp runs after the vector replays in `ei_vectors.exe`
     (build.cmd fails when a check does): dwords (and a REG_DWORD that is not four bytes), escaped strings and the ones
     that go to `hex(1)`, floats (+-0, denormals, NaN, infinities, a sweep of 20,000 random bit patterns plus every
     exponent: the bits always read back, numbers as `float:`, NaN / infinity as `hex:`), binaries, `hex(7)` and the
     other types, `@` against a value named "@", names without case, keys that merge without case, comments / BOM / line
-    breaks / continuation lines, bad lines (reported and skipped), and the import against a made-up tree and against
-    config/harness/registry.reg itself (its HKEY_CURRENT_USER keys parsed as the stand-in registry: the two trees only,
-    no parents, no sibling keys, every value bit for bit).
-  - *The game's save and the import in a run*: `settingsfile writable` (settings_save.txt) leaves the run's
+    breaks / continuation lines, bad lines (reported and skipped), and the defaults (`Defaults`: each value and type
+    under both option trees, the starter's and the renderer's keys, what is left out, the text written and read back).
+  - *The game's save and the defaults in a run*: `settingsfile writable` (settings_save.txt) leaves the run's
     ei_settings.ini writable with a probe key of odd values; the game's exit save (WinMain's SaveToRegistry, `Flush` at
-    `CWinRegistry::Close`, `.tmp` then moved) rewrites it with water waves switched on in memory. `settingsfile import`
-    (settings_import.txt) starts with no file and imports the snapshot through `settings_file::SetImportSource` (a
-    `DocumentSource`, never HKCU), so the first-use import, `Write` and the game reading the result run for real.
+    `CWinRegistry::Close`, `.tmp` then moved) rewrites it with water waves switched on in memory. `settingsfile defaults`
+    (settings_defaults.txt) starts with no file, its desktop 1280x720 (`settings_file::SetDesktopSize`, so the file
+    does not depend on the monitor), and no missing-value check, so the first-use defaults, `Write`, the game reading
+    them (and its own defaults for the rest) and its exit save run for real.
     `ei_launch` compares the file after the game ended with the scenario's `# settings-file: settings/<name>.ini`
     (tests/scenarios/settings/; line breaks apart), fails the run on a difference or a left `.tmp`, and skips the check
     on the Rebirth install unless `<name>.rebirth.ini` exists. To change an expected file: read the difference in the
@@ -1019,8 +1038,8 @@ the `--no-hooks` suite) keeps the registry.
     registry).
   - Known limits: a value name with a line break or other control character cannot be written (the registry allows
     it; the game has none); a line the parser does not understand is dropped on the next save (logged as
-    "settings: ... not understood"); the real registry source (`Registry` in settings_file.cpp) is the one part of the
-    import no test runs, as it reads HKCU.
+    "settings: ... not understood"); the monitor's size (GetSystemMetrics) is the one input of the defaults no test
+    reads (the harness gives its own).
 
 ### Generated code
 

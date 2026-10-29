@@ -534,13 +534,12 @@ void PinnedMissing(const char* path, const char* name) {
 }
 
 // How the run's settings file is used (the scenario's "settingsfile" line).
-enum class Mode { ReadOnly, Writable, Import };
+enum class Mode { ReadOnly, Writable, Defaults };
 Mode g_mode = Mode::ReadOnly;
 
 // Values of every kind in a key of the game's tree (so the game keeps them as it keeps what it does not know), for
-// the save and the import to carry as they are; with `outside`, also a key outside both trees that an import must
-// leave out.
-void AddProbeKey(std::vector<image::SettingsValue>& document, bool outside) {
+// the save to carry as they are.
+void AddProbeKey(std::vector<image::SettingsValue>& document) {
     const char* key = "Software\\Nival Interactive\\EvilIslands\\ProbeSettings";
     auto dword = [](std::uint32_t value) { return std::string(reinterpret_cast<const char*>(&value), 4); };
     auto set = [&](const char* path, const char* name, unsigned long type, std::string data) {
@@ -556,7 +555,6 @@ void AddProbeKey(std::vector<image::SettingsValue>& document, bool outside) {
     set(key, "expand", REG_EXPAND_SZ, std::string("%TEMP%\\x\0", 9));
     set(key, "control", REG_SZ, std::string("tab\there\0", 9));
     set(key, "", REG_SZ, std::string("default\0", 8));
-    if (outside) set("Software\\Probe Outside", "value", REG_DWORD, dword(1));
 }
 
 // The run's settings file: the snapshot's HKEY_CURRENT_USER keys, each value the scenario's starter lines
@@ -578,17 +576,18 @@ void PinSettingsFile() {
             }
         }
     }
-    if (g_mode != Mode::ReadOnly) AddProbeKey(document, g_mode == Mode::Import);
+    if (g_mode == Mode::Writable) AddProbeKey(document);
     char file[MAX_PATH];
     ei::OutputPath(image::SettingsFileName(), file);
     char temporary[MAX_PATH];
     std::snprintf(temporary, sizeof(temporary), "%s.tmp", file);
     DeleteFileA(temporary);
-    if (g_mode == Mode::Import) {
-        // No file: the first use imports the snapshot (as the stand-in for the registry) and writes it.
+    if (g_mode == Mode::Defaults) {
+        // No file: the first use writes the defaults, for the image runs' 1280x720 desktop (so the file does not
+        // depend on the machine's monitor).
         DeleteFileA(file);
-        image::ImportSettings(document, file, &PinnedMissing);
-        Log("harness: settings imported from the registry snapshot into %s on first use (the user's registry is not read)", file);
+        image::DefaultSettings(file, 1280, 720);
+        Log("harness: no settings file: the first use writes %s with the defaults", file);
         return;
     }
     const std::string text = image::SettingsText(document);
@@ -609,8 +608,8 @@ void PinSettingsFile() {
 bool ParseStep(const std::string& verb, const std::string& argument) {
     if (verb != "settingsfile") return false;
     if (argument == "writable") g_mode = Mode::Writable;
-    else if (argument == "import") g_mode = Mode::Import;
-    else Problem("settingsfile needs writable or import");
+    else if (argument == "defaults") g_mode = Mode::Defaults;
+    else Problem("settingsfile needs writable or defaults");
     return true;
 }
 

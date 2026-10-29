@@ -21,12 +21,9 @@ settings_file::Document Document(const std::vector<SettingsValue>& entries) {
 const char* SettingsFileName() { return settings_file::kFileName; }
 std::string SettingsText(const std::vector<SettingsValue>& document) { return Document(document).Text(); }
 void PinSettings(const char* file, SettingsMissing missing, bool readOnly) { settings_file::Pin(file, missing, readOnly); }
-void ImportSettings(const std::vector<SettingsValue>& document, const char* file, SettingsMissing missing) {
-    static settings_file::Document registry;
-    static settings_file::DocumentSource source(registry);
-    registry = Document(document);
-    settings_file::SetImportSource(&source);
-    settings_file::Pin(file, missing, false);
+void DefaultSettings(const char* file, int width, int height) {
+    settings_file::SetDesktopSize(width, height);
+    settings_file::Pin(file, nullptr, false);
 }
 void AddSettingsReadFilter(SettingsReadFilter filter) { settings_file::AddReadFilter(filter); }
 

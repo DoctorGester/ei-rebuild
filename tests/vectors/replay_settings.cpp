@@ -1,9 +1,8 @@
 // The standalone's settings file without the game (ST1a): Document::Text / Parse round trips of every kind of value,
-// the format's rules (case, comments, continuation lines, bad lines) and the one-time import against stand-in
-// registry sources (a made-up tree, and the harness's committed snapshot config/harness/registry.reg). Not
-// recorded vectors: ei_vectors runs these after the replays and counts their failures (replay_main.cpp).
-// The file save (.tmp, then moved) and the import in a running game are the harness scenarios settings_save and
-// settings_import (tests/scenarios, tools/settings_file_check.py).
+// the format's rules (case, comments, continuation lines, bad lines) and the defaults a missing file is written
+// with. Not recorded vectors: ei_vectors runs these after the replays and counts their failures (replay_main.cpp).
+// The file save (.tmp, then moved) and the defaults in a running game are the harness scenarios settings_save and
+// settings_defaults (tests/scenarios, tools/settings_file_check.py).
 #include "../../src/game/settings_file.h"
 
 #include <windows.h>
@@ -12,8 +11,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <fstream>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -426,150 +423,77 @@ void Whole() {
     CHECK(first.size() >= 2 && first.substr(first.size() - 2) == "\r\n");
 }
 
-// ---- the import ----
+// ---- the defaults ----
 
-std::string ReadWhole(const char* file) {
-    std::ifstream in(file, std::ios::binary);
-    std::ostringstream out;
-    out << in.rdbuf();
-    return out.str();
-}
-
-void ImportMadeUp() {
-    Document registry;
-    std::vector<std::string> problems;
-    registry.Parse(
-        "[Software\\Nival Interactive]\n"
-        "\"outside\"=\"x\"\n"
-        "[Software\\Nival Interactive\\EvilIslands]\n"
-        "\"Top\"=dword:00000001\n"
-        "@=\"default\"\n"
-        "[Software\\Nival Interactive\\EvilIslands\\General Settings]\n"
-        "\"VideoResolution\"=\"1920x1080\"\n"
-        "\"LOD1\"=float:90\n"
-        "\"Weird\"=hex(7):61,00,00,00\n"
-        "[Software\\Nival Interactive\\EvilIslands\\Deep\\Er\\Still]\n"
-        "\"deep\"=dword:00000007\n"
-        "[Software\\Gipat.Ru]\n"
-        "\"outside2\"=dword:00000001\n"
-        "[Software\\Gipat.Ru\\EI_Starter\\Settings]\n"
-        "\"WideScreen\"=dword:00000001\n"
-        "[Software\\Other\\Thing]\n"
-        "\"x\"=dword:00000002\n"
-        "[Software\\Nival Interactive\\EvilIslandsXL]\n"   // a sibling whose name starts like the tree's
-        "\"sibling\"=dword:00000001\n",
-        &problems);
-    CHECK(problems.empty());
-    settings_file::DocumentSource source(registry);
-    Document imported;
-    const int count = settings_file::ImportTrees(imported, source);
-    CHECK_MSG(count == 7, "imported " + std::to_string(count));
-    std::vector<std::string> paths;
-    for (const Key& key : imported.keys) paths.push_back(key.path);
-    const std::vector<std::string> expected = {
-        "Software\\Nival Interactive\\EvilIslands",
-        "Software\\Nival Interactive\\EvilIslands\\General Settings",
-        "Software\\Nival Interactive\\EvilIslands\\Deep",
-        "Software\\Nival Interactive\\EvilIslands\\Deep\\Er",
-        "Software\\Nival Interactive\\EvilIslands\\Deep\\Er\\Still",
-        "Software\\Gipat.Ru\\EI_Starter",
-        "Software\\Gipat.Ru\\EI_Starter\\Settings"};
-    CHECK_MSG(paths == expected, "keys: " + std::to_string(paths.size()));
-    CHECK(imported.FindKey("Software\\Nival Interactive") == nullptr);   // not the parents,
-    CHECK(imported.FindKey("Software\\Other\\Thing") == nullptr);        // nor other trees,
-    CHECK(imported.FindKey("Software\\Nival Interactive\\EvilIslandsXL") == nullptr);   // nor siblings
-    const Value* top = Find(imported, "Software\\Nival Interactive\\EvilIslands", "Top");
-    CHECK(top && top->type == REG_DWORD && top->data == Bytes32(1));
-    const Value* def = Find(imported, "Software\\Nival Interactive\\EvilIslands", "");
-    CHECK(def && def->type == REG_SZ && def->data == std::string("default\0", 8));
-    const Value* lod = Find(imported, "Software\\Nival Interactive\\EvilIslands\\General Settings", "LOD1");
-    CHECK(lod && lod->type == REG_BINARY && lod->data == Bytes32(0x42b40000u));
-    const Value* weird = Find(imported, "Software\\Nival Interactive\\EvilIslands\\General Settings", "Weird");
-    CHECK(weird && weird->type == REG_MULTI_SZ && weird->data == std::string("a\0\0\0", 4));
-    CHECK(Find(imported, "Software\\Gipat.Ru\\EI_Starter\\Settings", "WideScreen") != nullptr);
-    CHECK(SameDocument(imported, Reread(imported)));   // and what is imported is written and read back whole
-    // Importing again changes nothing; an empty source gives nothing.
-    CHECK(settings_file::ImportTrees(imported, source) == 7 && imported.keys.size() == expected.size());
-    Document none, noneSource;
-    settings_file::DocumentSource empty(noneSource);
-    CHECK(settings_file::ImportTrees(none, empty) == 0 && none.keys.empty());
-    // A source that lacks one tree.
-    Document half, halfSource;
-    halfSource.Set("Software\\Gipat.Ru\\EI_Starter\\Settings", "WideScreen", REG_DWORD, Bytes32(0));
-    settings_file::DocumentSource halfRegistry(halfSource);
-    CHECK(settings_file::ImportTrees(half, halfRegistry) == 1 && half.FindKey("Software\\Nival Interactive\\EvilIslands") == nullptr);
-}
-
-// The harness's snapshot (config/harness/registry.reg, reg export's text) as the registry: its HKEY_CURRENT_USER
-// keys, read through DocumentSource, import to the two trees' values bit for bit.
-void ImportSnapshot() {
-    const std::string text = ReadWhole(EI_HARNESS_REGISTRY);
-    CHECK_MSG(!text.empty(), std::string("cannot read ") + EI_HARNESS_REGISTRY);
-    Document snapshot;
-    std::vector<std::string> problems;
-    snapshot.Parse(text, &problems);
-    // The lines the settings format does not know: the header and the entries marked absent ("name"=- and [-key]).
-    int absent = 0;
-    for (std::size_t at = 0; at < text.size();) {
-        std::size_t end = text.find('\n', at);
-        if (end == std::string::npos) end = text.size();
-        std::string line = text.substr(at, end - at);
-        at = end + 1;
-        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
-        if (line.size() >= 2 && line.compare(line.size() - 2, 2, "=-") == 0) ++absent;
+// DefaultDocument: the values the game and Rebirth read, under both option trees, at the desktop's size; written and
+// read back whole.
+void Defaults() {
+    Document document = settings_file::DefaultDocument(2560, 1440);
+    auto dword = [&](const std::string& path, const char* name, std::uint32_t expected) {
+        const Value* value = Find(document, path.c_str(), name);
+        CHECK_MSG(value && value->type == REG_DWORD && value->data == Bytes32(expected), path + "\\" + name);
+    };
+    for (const char* tree : settings_file::kOptionTrees) {
+        const std::string root = tree;
+        const Value* resolution = Find(document, (root + "\\General Settings").c_str(), "VideoResolution");
+        CHECK_MSG(resolution && resolution->type == REG_SZ && resolution->data == std::string("2560x1440\0", 10), root);
+        dword(root + "\\General Settings", "FullScreen", 1);
+        dword(root + "\\General Settings", "VideoColorDepthInBits", 32);
+        dword(root + "\\General Settings", "Audio", 1);
+        for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) dword(root + "\\General Settings", volume, 100);
+        dword(root + "\\General Settings", "Filtering", 2);
+        dword(root + "\\General Settings", "TextureQuality", 0);
+        dword(root + "\\General Settings", "Mipmapping", 1);
+        dword(root + "\\Shadow Settings", "ShadowQuality", 2);
+        for (const char* shadow : {"HeroShadow", "UnitShadow", "BuildingShadow", "FloraShadow", "OtherShadow"})
+            dword(root + "\\Shadow Settings", shadow, 1);
+        for (const char* feature : {"EnableWaterWaves", "EnableSelfShadowing", "EnableDynamicLights"})
+            dword(root + "\\Terrain Settings", feature, 1);
+        dword(root + "\\Terrain Settings", "LightingFreq", 1000);
+        // The LOD distances as the game reads its floats: four-byte REG_BINARY.
+        const Value* lod1 = Find(document, (root + "\\Terrain Settings").c_str(), "LOD1");
+        const Value* lod2 = Find(document, (root + "\\Terrain Settings").c_str(), "LOD2");
+        CHECK(lod1 && lod1->type == REG_BINARY && lod1->data == Bytes32(0x42b40000u));   // 90
+        CHECK(lod2 && lod2->type == REG_BINARY && lod2->data == Bytes32(0x43020000u));   // 130
+        // The install's camera and game settings: floats as four-byte REG_BINARY, the rest as the install has them.
+        const Value* rotate = Find(document, (root + "\\Camera Settings").c_str(), "CameraDefaultRotateSpeed");
+        CHECK(rotate && rotate->type == REG_BINARY && rotate->data == Bytes32(0x3e19999au));   // 0.15
+        const Value* pitch = Find(document, (root + "\\Camera Settings").c_str(), "CameraDefaultPitchSpeed");
+        CHECK(pitch && pitch->type == REG_BINARY && pitch->data == Bytes32(0x3ac49ba6u));      // 0.0015
+        const Value* shortcut = Find(document, (root + "\\Camera Settings").c_str(), "CameraShortcut 3 Pitch");
+        CHECK(shortcut && shortcut->type == REG_BINARY && shortcut->data == Bytes32(0x42340000u));   // 45
+        dword(root + "\\Camera Settings", "CameraBorderScrollArea", 1);
+        const Value* coefficient = Find(document, (root + "\\Game Specific Settings").c_str(), "ObjectsLightingCoeff");
+        CHECK(coefficient && coefficient->type == REG_BINARY && coefficient->data == Bytes32(0x40000000u));   // 2
+        dword(root + "\\Game Specific Settings", "Hero Light B", 116);
+        dword(root + "\\Game Specific Settings", "Quest Light Radius", 5);
+        const Value* master = Find(document, (root + "\\Network Settings").c_str(), "Master Server Name");
+        CHECK(master && master->type == REG_SZ && master->data == std::string("a3master.nival.com\0", 19));
+        // Left to the game's own defaults: the paths (".\" from the working folder), the tutorial.
+        CHECK(document.FindKey(root + "\\Path Settings") == nullptr);
+        CHECK(Find(document, (root + "\\Game Specific Settings").c_str(), "ShowTutorial") == nullptr);
     }
-    CHECK_MSG(problems.size() == static_cast<std::size_t>(absent) + 1,
-              "snapshot lines not understood: " + std::to_string(problems.size()) + " (absent entries " + std::to_string(absent) + ")");
-    CHECK(!problems.empty() && problems[0].find("Windows Registry Editor") != std::string::npos);
-    // Its HKEY_CURRENT_USER keys, the root cut off.
-    const std::string root = "HKEY_CURRENT_USER\\";
-    Document hkcu;
-    int valuesInTrees = 0;
-    for (const Key& key : snapshot.keys) {
-        if (_strnicmp(key.path.c_str(), root.c_str(), root.size()) != 0) continue;
-        const std::string path = key.path.substr(root.size());
-        hkcu.AddKey(path);
-        for (const Value& value : key.values) hkcu.Set(path, value.name.c_str(), value.type, value.data);
-        for (const char* tree : settings_file::kImportedTrees)
-            if (_strnicmp(path.c_str(), tree, std::strlen(tree)) == 0) valuesInTrees += static_cast<int>(key.values.size());
-    }
-    CHECK(hkcu.keys.size() > 10 && valuesInTrees > 100);
-    settings_file::DocumentSource source(hkcu);
-    Document imported;
-    const int count = settings_file::ImportTrees(imported, source);
-    CHECK_MSG(count == valuesInTrees, "imported " + std::to_string(count) + ", the snapshot has " + std::to_string(valuesInTrees));
-    // Each imported value is the snapshot's, each key of the trees is there; the parents are not.
-    for (const Key& key : imported.keys) {
-        const Key* from = nullptr;
-        for (const Key& k : hkcu.keys)
-            if (_stricmp(k.path.c_str(), key.path.c_str()) == 0) from = &k;
-        CHECK_MSG(from && from->values.size() == key.values.size(), "key " + key.path);
-        for (std::size_t v = 0; from && v < key.values.size() && v < from->values.size(); ++v)
-            CHECK_MSG(SameValue(key.values[v], from->values[v]), "value " + key.path + "\\" + key.values[v].name);
-    }
-    CHECK(imported.FindKey("Software\\Nival Interactive") == nullptr && imported.FindKey("Software\\Gipat.Ru") == nullptr);
-    // A few values by name: dword, REG_BINARY float, REG_SZ with escaped backslashes, a default-less key.
-    const Value* waves = Find(imported, "Software\\Nival Interactive\\EvilIslands\\Terrain Settings", "EnableWaterWaves");
-    CHECK(waves && waves->type == REG_DWORD && waves->data == Bytes32(0));
-    const Value* lod = Find(imported, "Software\\Nival Interactive\\EvilIslands\\Terrain Settings", "LOD1");
-    CHECK(lod && lod->type == REG_BINARY && lod->data == Bytes32(0x42b40000u));
-    const Value* frames = Find(imported, "Software\\Nival Interactive\\EvilIslands\\Statistics Output Settings", "NumberOfFrames");
-    CHECK(frames && frames->type == REG_DWORD && frames->data == Bytes32(0xffffffffu));
-    const Value* addon = Find(imported, "Software\\Gipat.Ru\\EI_Starter\\Settings", "AddonPath");
-    CHECK(addon && addon->type == REG_SZ && addon->data == std::string("F:\\games\\Evil Islands (Rebirth)\\starter\\MODS\\Standard") + std::string(1, '\0'));
-    CHECK(Find(imported, "Software\\Gipat.Ru\\EI_Starter\\Settings", "Console AutoExec") == nullptr);   // marked absent
-    // The whole of it written and read back is the same document, and the file's text is stable.
+    // Rebirth's tree by the name its NivalRegistry patch opens (app_main.cpp: "Gipat.ru"), names without case.
+    CHECK(Find(document, "Software\\Gipat.ru\\EI_Starter\\EvilIslands\\General Settings", "VIDEORESOLUTION") != nullptr);
+    dword("Software\\Nival Interactive\\EvilIslands\\Standalone", "VSync", 1);
+    dword("Software\\Nival Interactive\\EvilIslands\\Standalone", "Msaa", 8);
+    dword("Software\\Nival Interactive\\EvilIslands\\Standalone", "Anisotropy", 16);
+    CHECK(Find(document, "Software\\Nival Interactive\\EvilIslands\\Standalone", "PerfOverlay") == nullptr);
+    dword("Software\\Gipat.Ru\\EI_Starter\\Settings", "WideScreen", 1);
+    dword("Software\\Gipat.Ru\\EI_Starter\\Settings", "ObjectsDrawRadius", 5376);
+    dword("Software\\Gipat.Ru\\EI_Starter\\Settings", "LandscapeDrawRadius", 5376);
+    CHECK(Find(document, "Software\\Gipat.Ru\\EI_Starter\\Settings", "AddonPath") == nullptr);   // no mod selected
+    // Written and read back: the same document, the floats as numbers, the text stable.
     std::string first, second;
-    Document back = Reread(imported, &first);
-    CHECK(SameDocument(imported, back));
+    Document back = Reread(document, &first);
+    CHECK(SameDocument(document, back));
     Reread(back, &second);
-    CHECK(first == second);
-    // Every four-byte REG_BINARY of the snapshot is a float written as one (its text reads back to its bits).
-    int floats = 0;
-    for (const Key& key : imported.keys)
-        for (const Value& value : key.values)
-            if (value.type == REG_BINARY && value.data.size() == 4) ++floats;
-    CHECK(floats > 20 && first.find("=float:") != std::string::npos);
+    CHECK(first == second && first.find("\"LOD2\"=float:130\r\n") != std::string::npos);
+    CHECK(first.find("\"VideoResolution\"=\"2560x1440\"\r\n") != std::string::npos);
+    // Another desktop changes the resolution only.
+    Document other = settings_file::DefaultDocument(1920, 1080);
+    const Value* resolution = Find(other, "Software\\Nival Interactive\\EvilIslands\\General Settings", "VideoResolution");
+    CHECK(resolution && resolution->data == std::string("1920x1080\0", 10) && other.keys.size() == document.keys.size());
 }
 
 } // namespace
@@ -587,8 +511,7 @@ int RunSettingsFileChecks() {
     Comments();
     BadLines();
     Whole();
-    ImportMadeUp();
-    ImportSnapshot();
+    Defaults();
     std::printf("ei_vectors: settings file: %d checks, %d failed\n", g_checks, g_failures);
     return g_failures;
 }

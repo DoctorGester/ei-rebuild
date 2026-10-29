@@ -15,8 +15,8 @@
 //
 // The standalone image keeps its settings in a file instead (game/settings_file.h, ST1): its runs get their own,
 // <run folder>\ei_settings.ini, written at start from the snapshot's HKEY_CURRENT_USER keys with the starter
-// lines' answers in place (any key with that value name) and pinned: read only, nothing imported from the
-// registry, and a read of a value the file lacks fails the run as above (unless marked absent). The game paths'
+// lines' answers in place (any key with that value name) and pinned: read only, and a read of a value the file
+// lacks fails the run as above (unless marked absent). The game paths'
 // redirects (hook/paths.cpp, harness_startup.cpp's discprompt) change its reads as they did the registry's.
 //
 // Two scenario lines (ST1a) check the product's file paths instead, in the image only:
@@ -24,9 +24,9 @@
 //                           value type, escapes, NaN and -0 floats), and the game's exit save (WinMain's
 //                           GameOptions::SaveToRegistry, through CWinRegistry::Close's Flush) rewrites it,
 //                           .tmp then moved over it
-//   settingsfile import     no file at the start: the first use imports the snapshot (the two trees, with the
-//                           probe key, and a key outside them that must stay out) through the settings_file
-//                           import seam in place of the registry, writes the file, and the exit save rewrites it
+//   settingsfile defaults   no file at the start: the first use writes it with the defaults
+//                           (settings_file::DefaultDocument, for a 1280x720 desktop: SetDesktopSize), the game
+//                           reads every value they leave out as absent, and the exit save rewrites it
 // tools/settings_file_check.py compares the run folder's ei_settings.ini after the run with the expected file the
 // scenario names in a "# settings-file: <file>" line (tests/scenarios/settings/), and run_all adds the differences
 // to the run's failures. The user's registry is never read or written in either.
@@ -45,7 +45,7 @@ namespace ei::verify::settings {
 // in the standalone image also writes and pins the run's settings file.
 void Install();
 
-// Consumes a "settingsfile writable|import" scenario line (read when the scenario loads); false for any other verb.
+// Consumes a "settingsfile writable|defaults" scenario line (read when the scenario loads); false for any other verb.
 bool ParseStep(const std::string& verb, const std::string& argument);
 
 // The pinned copy of `relative` (a path under the game folder, e.g. "config\keyboard.ini") for this run's

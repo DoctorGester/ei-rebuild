@@ -1,0 +1,17 @@
+# S24: the image's first start without a settings file. The run starts with no ei_settings.ini; the first use of the
+# settings writes it with the defaults (src/game/settings_file.h DefaultDocument: full screen at the desktop's size,
+# here the harness's 1280x720 so the file does not depend on the monitor, every graphics option at its best, the
+# renderer's quality and vsync, Rebirth's starter switches; tests/verify/harness_settings.h), the game reads every
+# value they leave out as absent and takes its own default, and its exit save rewrites the file with all of its
+# options. ei_launch compares the file after the exit with settings/settings_defaults.ini (Rebirth's data:
+# settings_defaults.rebirth.ini, its options in Rebirth's tree). The registry is never read. The unit-style checks
+# of the defaults are in tests/vectors/replay_settings.cpp.
+# no original: vanilla rebirth game.exe keeps its settings in the registry (the settings file is the image's)
+# settings-file: settings/settings_defaults.ini
+timeout 40
+settingsfile defaults
+reject Script error
+waitmenu
+wait 500
+report
+quit

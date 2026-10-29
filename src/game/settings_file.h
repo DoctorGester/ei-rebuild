@@ -4,9 +4,8 @@
 // under HKEY_CURRENT_USER: Software\Nival Interactive\EvilIslands (the options, options.cpp) and Rebirth's
 // Software\Gipat.Ru\EI_Starter (its game settings and the starter's switches). ei_standalone.exe keeps the same
 // keys and values in ei_settings.ini next to the exe instead: CWinRegistry (win_registry.cpp) and the direct
-// readers (ReadValue) use it there, and never write the registry. When the file is missing, the first use reads
-// both trees from the registry once (read only) and writes the file. game.exe (the original game) keeps the
-// registry.
+// readers (ReadValue) use it there, and never read or write the registry. When the file is missing, the first use
+// writes it with the defaults (DefaultDocument). game.exe (the original game) keeps the registry.
 // The file: a section per key (its path below HKEY_CURRENT_USER), a line per value, as reg export writes them:
 //   [Software\Nival Interactive\EvilIslands\General Settings]
 //   "FullScreen"=dword:00000001          REG_DWORD
@@ -18,7 +17,7 @@
 // the bytes are what the game's ANSI registry call gave (UTF-8).
 // Harness runs (verify build, tests/verify/harness_settings.h) pin a file of their own (Pin): written from the
 // committed registry snapshot, read only (or writable, to check the options save), every read of a value it lacks
-// reported. The one-time import reads a RegistrySource, the registry's or a test's stand-in (SetImportSource).
+// reported.
 
 #include <deque>
 #include <string>
@@ -56,33 +55,21 @@ public:
     std::deque<Key> keys;   // a deque: a key stays where it is as others are added (CWinRegistry holds one)
 };
 
-// Where the one-time import reads from: the key `path` (below HKEY_CURRENT_USER) as the game's ANSI registry calls
-// read it. The registry's is in settings_file.cpp; DocumentSource and the harness's stand in for it.
-class RegistrySource {
-public:
-    virtual ~RegistrySource() = default;
-    // false when the key does not exist; else its values and the names of its subkeys (a value that cannot be
-    // read is left out).
-    virtual bool ReadKey(const std::string& path, std::vector<Value>* values, std::vector<std::string>* subkeys) = 0;
-};
+// The trees the options are kept in: the game's, and Rebirth's (its NivalRegistry patch reads the options there; its
+// WideScreen layout reads the resolution there on either data).
+inline constexpr const char* kOptionTrees[] = {"Software\\Nival Interactive\\EvilIslands",
+                                               "Software\\Gipat.Ru\\EI_Starter\\EvilIslands"};
 
-// A source over a Document (its keys' paths below HKEY_CURRENT_USER): a key exists when it or one below it is in
-// the document.
-class DocumentSource : public RegistrySource {
-public:
-    explicit DocumentSource(const Document& document) : document_(document) {}
-    bool ReadKey(const std::string& path, std::vector<Value>* values, std::vector<std::string>* subkeys) override;
-
-private:
-    const Document& document_;
-};
-
-// The trees the game and Rebirth keep their settings in: what the import copies.
-inline constexpr const char* kImportedTrees[] = {"Software\\Nival Interactive\\EvilIslands", "Software\\Gipat.Ru\\EI_Starter"};
-
-// Copies kImportedTrees (every key below them, in the source's order) from `source` into `document`; the number
-// of values copied.
-int ImportTrees(Document& document, RegistrySource& source);
+// The settings a missing file starts with, for a desktop of `width` x `height` pixels. In both option trees: full
+// screen (a borderless window over the monitor) at that size, sound and music at the game's own defaults, and every
+// graphics option at its best (the starters' best detail level: water waves on, LOD distances 90 and 130, the most
+// frequent relighting; trilinear filtering, full-size textures, mipmaps, every shadow, self shadowing), and what a game
+// install writes in place of the game's own placeholder defaults (the camera's section, the objects' lighting, the
+// hero's and the quest light, the master server). The game's Standalone key: Msaa 8 (the device's best when less),
+// Anisotropy 16, VSync on. Rebirth's starter switches: WideScreen on, the draw radii 5376 (the whole map; Rebirth's
+// own default is the original's 100). Everything else (paths, the other options and starter switches) is left out:
+// the game and Rebirth read it as absent and take their own defaults.
+Document DefaultDocument(int width, int height);
 
 // `sub` below `path` as a key path: the parts of both, empty ones (doubled or outer '\') skipped.
 std::string JoinPath(const char* path, const char* sub);
@@ -111,12 +98,12 @@ using ReadFilter = void (*)(const char* name, unsigned long type, std::string& d
 void AddReadFilter(ReadFilter filter);
 
 // Harness runs: `file` in place of the one next to the exe, and each read of a key or value it lacks passed to
-// `missing` (key path, value name). `readOnly`: writes are dropped and a missing file is not imported; else the
-// file is written as in the product (Flush at CWinRegistry::Close, .tmp then moved) and a missing file is
-// imported from the import source. Before the first use.
+// `missing` (key path, value name; may be null). `readOnly`: writes are dropped and a missing file stays missing;
+// else the file is written as in the product (Flush at CWinRegistry::Close, .tmp then moved) and a missing file is
+// written with the defaults. Before the first use.
 using MissingHandler = void (*)(const char* path, const char* name);
 void Pin(const char* file, MissingHandler missing, bool readOnly = true);
-// Harness runs: the import reads `source` (which must outlive the run) in place of the registry.
-void SetImportSource(RegistrySource* source);
+// Harness runs: the desktop size a missing file's defaults take, in place of the primary monitor's.
+void SetDesktopSize(int width, int height);
 
 } // namespace settings_file

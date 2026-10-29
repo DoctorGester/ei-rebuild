@@ -8,8 +8,10 @@ rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default 
 rem                      and widescreen
 rem The release build (build\play, apart from the builds the suites use) is copied to run\play, so a
 rem game left open never locks a build, and drawn with the smooth camera. The settings are
-rem run\play\ei_settings.ini, next to the exe (imported once from the registry; the starter's WideScreen is the switch).
-rem The render quality (docs/notes/renderer.md section 11) is in that file, written with its defaults at the first start:
+rem run\play\ei_settings.ini, next to the exe; when it is missing the first start writes it with the defaults
+rem (docs/notes/standalone.md "Settings file": borderless full screen at the desktop's size, every graphics option
+rem at its best, the starter's WideScreen on; the registry is never read). Delete it to start from them again.
+rem The render quality (docs/notes/renderer.md section 11) is in that file:
 rem   [Software\Nival Interactive\EvilIslands\Standalone]
 rem   "Msaa"=dword:00000008          the world's multisampling: 1 (off), 2, 4 or 8 (at most what the device gives)
 rem   "Anisotropy"=dword:00000010    the world's models' anisotropic sampling: 1 (off) .. 16 (hex: 10)

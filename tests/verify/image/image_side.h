@@ -219,9 +219,10 @@ using SettingsMissing = void (*)(const char* path, const char* name);
 using SettingsReadFilter = void (*)(const char* name, unsigned long type, std::string& data);
 const char* SettingsFileName();                                        // settings_file::kFileName
 std::string SettingsText(const std::vector<SettingsValue>& document);  // the document's file text
-// The file pinned (settings_file::Pin); and pinned writable with `document` as the registry the first use imports.
+// The file pinned (settings_file::Pin); and pinned writable without a file, which the first use writes with the
+// defaults for a `width` x `height` desktop (settings_file::SetDesktopSize), every value absent from them read as absent.
 void PinSettings(const char* file, SettingsMissing missing, bool readOnly);
-void ImportSettings(const std::vector<SettingsValue>& document, const char* file, SettingsMissing missing);
+void DefaultSettings(const char* file, int width, int height);
 void AddSettingsReadFilter(SettingsReadFilter filter);
 
 // ---- the game's UDP port (harness_net.cpp; image/harness_objects_image.cpp)
