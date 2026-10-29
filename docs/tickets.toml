@@ -1000,6 +1000,13 @@ title = "ui_gallery_deals fails on standalone-rebirth (--all-rebirth): the map z
 group = "native-ui"
 note = "Found by C14zj 2026-10-28; fails the same on main (cec35b3d4), so not C14zj's. waitwindow objectives timed out (top window map), then waitwindow map timed out (escmenu). The zone point (140, 277) is gz2g's area on the vanilla global map; Rebirth's map likely draws it elsewhere, or its zones differ. Either mark the scenario vanilla-only or give the Rebirth data its own point. Result: the scenario's click / move are in the harness's 800x600 layout scaled to the whole window; on Rebirth's widescreen layout (the 4:3 interface centred, margin 480 px = 134 layout units at 3840x2160) layout (140, 277) is the left margin, not gz2g. Fixed in tests/scenarios/ui_gallery_deals.txt only: 'rebirth move/click 205 277' (400 + (x - 400) * 0.75 for a 16:9 window), 'vanilla' keeps 140. No code bug. The scenario now carries rebirth lines, so --rebirth runs it (smoke set); passes on standalone and standalone-rebirth (--all-rebirth); no Rebirth golden exists for it."
 
+[[ticket]]
+id = "P2a"
+title = "Font files with the product"
+group = "native-ui"
+depends = ["P2"]
+note = "Native text loads Liberation from EI_FONT_DIR (the source tree's third_party/fonts). Install the fonts beside ei_standalone.exe (build.cmd, play.cmd's build\\play) and call render::text::SetFontDirectory at start-up before P8 makes native text the default; a missing file falls back to GDI today (ui-native.md, P2 done)."
+
 # ---------------------------------------------------------------- widescreen
 
 [[ticket]]
