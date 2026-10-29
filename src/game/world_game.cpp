@@ -227,10 +227,6 @@ constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's 
 constexpr int kCommandBriefing = 1;
 constexpr int kRequestDone = 3;   // the client's game state request: answered
 
-void ReleaseSession(CRefCounted* session) {
-    if (session) session->Release();
-}
-
 constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk in a .mob file
 
 constexpr std::uint32_t kScriptsChunk = 0xA000;          // the .mob file's scripts chunk
@@ -664,15 +660,8 @@ void GameFlow::RequestBriefing(std::string_view briefing) {
 }
 
 void GameFlow::RecreateClientSession() {
-    net::ClientSession*& global = net::g_gameClient;
-    net::ClientSession* old = global;
-    global = nullptr;
-    ReleaseSession(old);
-    net::ClientSession* session = net::NewCounted<net::ClientSession>();
-    net::ClientSession* previous = global;
-    global = session;
-    if (session) session->AddRef();
-    ReleaseSession(previous);
+    net::g_gameClient.Reset();
+    net::g_gameClient.Assign(net::NewCounted<net::ClientSession>());
 }
 
 int GameFlow::SaveGameThunk(const std::string& slot) { return SaveGame(slot); }
@@ -685,14 +674,8 @@ int RequestZone(std::string_view zone, int entrance) {
 
 void GameFlow::DropSessions() {
     g_interface->disconnected_ = 0;
-    net::ServerSession*& server = net::g_gameServer;
-    net::ServerSession* oldServer = server;
-    server = nullptr;
-    ReleaseSession(oldServer);
-    net::ClientSession*& client = net::g_gameClient;
-    net::ClientSession* oldClient = client;
-    client = nullptr;
-    ReleaseSession(oldClient);
+    net::g_gameServer.Reset();
+    net::g_gameClient.Reset();
 }
 
 void GameFlow::EndSession() {
@@ -702,14 +685,8 @@ void GameFlow::EndSession() {
 
 void GameFlow::CloseSessions() {
     g_interface->disconnected_ = 0;
-    net::ServerSession*& server = net::g_gameServer;
-    net::ServerSession* oldServer = server;
-    server = nullptr;
-    ReleaseSession(oldServer);
-    net::ClientSession*& client = net::g_gameClient;
-    net::ClientSession* oldClient = client;
-    client = nullptr;
-    ReleaseSession(oldClient);
+    net::g_gameServer.Reset();
+    net::g_gameClient.Reset();
     state_ = 1;
 }
 
@@ -877,14 +854,8 @@ void GameFlow::StartServer(const char* name, int maxPlayers, int gameType, const
                            int masterKey) {
     BuildZoneTable();
     net::g_netLog = &console::g_netLogOut;
-    {
-        net::ServerSession* server = net::NewCounted<net::ServerSession>(gameType);
-        AssignCounted(net::g_gameServer, server);
-    }
-    {
-        net::ClientSession* client = net::NewCounted<net::ClientSession>();
-        AssignCounted(net::g_gameClient, client);
-    }
+    net::g_gameServer.Assign(net::NewCounted<net::ServerSession>(gameType));
+    net::g_gameClient.Assign(net::NewCounted<net::ClientSession>());
     // The local client connects to the local server with the password as its hello.
     net::NetAddress address = {};
     address.Parse(kLocalHost, net::g_gamePort);
@@ -909,9 +880,8 @@ void GameFlow::StartServer(const char* name, int maxPlayers, int gameType, const
 
 void GameFlow::StartClient() {
     net::g_netLog = &console::g_netLogOut;
-    AssignCounted(net::g_gameServer, static_cast<net::ServerSession*>(nullptr));
-    net::ClientSession* client = net::NewCounted<net::ClientSession>();
-    AssignCounted(net::g_gameClient, client);
+    net::g_gameServer.Reset();
+    net::g_gameClient.Assign(net::NewCounted<net::ClientSession>());
     AfterServerStart();
 }
 
@@ -925,7 +895,7 @@ void GameFlow::JoinServer(const net::NetAddress* address, const char* password) 
 }
 
 void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
-    std::list<netlink::NetLink*> joined;
+    std::list<HeldRef<netlink::NetLink>> joined;
     if (gameResult_ == 0) return;
     lobby->TakeNew(&joined);
     for (auto node = joined.begin(); node != joined.end();) {
@@ -941,8 +911,6 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         node = next;
     }
     // The list's destructor: every reference released, then the blocks.
-    for (auto& node : joined) ReleaseSession(node);
-    joined.clear();
 }
 
 void DestroyZoneTable() { lib::FreeStorage(g_zoneTable); }
@@ -1046,15 +1014,9 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         // An unknown zone: the error, the network sessions closed, the main menu instead.
         game::FatalError(kZoneNotFound, std::string(zone));
         if (Active(net::g_gameClient)) {
-            net::ServerSession*& server = net::g_gameServer;
-            net::ServerSession* oldServer = server;
             g_interface->disconnected_ = 0;
-            server = nullptr;
-            ReleaseSession(oldServer);
-            net::ClientSession*& client = net::g_gameClient;
-            net::ClientSession* oldClient = client;
-            client = nullptr;
-            ReleaseSession(oldClient);
+            net::g_gameServer.Reset();
+            net::g_gameClient.Reset();
         }
         mode = kModeMainMenu;
     }

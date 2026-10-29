@@ -614,7 +614,7 @@ void Read(void* server, Snapshot& s) {
 
     // The missiles by their place in the list.
     int place = 0;
-    for (auto* missile : w->projectiles_) {
+    for (const auto& missile : w->projectiles_) {
         const int at = place++;
         if (!missile) continue;
         b.entity = &Slot(s.state, {kMissile, at});

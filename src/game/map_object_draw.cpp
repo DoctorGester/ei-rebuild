@@ -59,7 +59,7 @@ bool PartTooFar(const CFigureMesh* part) {
 // The end of a draw: the iterator's reference to the light list and the light list itself.
 void Finish(ObjectListIterator& lights, std::vector<CLight*>& list) {
     if (lights.manager) {
-        --lights.manager->refCount_;
+        lights.manager->ForgetReference();
         lights.manager = nullptr;
     }
     lib::FreeStorage(list);

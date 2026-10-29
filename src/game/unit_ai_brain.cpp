@@ -59,13 +59,6 @@ void ReleaseAllObjects(std::list<CUnit*>& list) {
     list.clear();
 }
 
-// The mode in charge loses its reference (RefPtr::Assign(nullptr) / the release).
-void DropCurrent(AIMode*& current) {
-    AIMode* was = current;
-    current = nullptr;
-    if (was) was->Release();
-}
-
 // The tail both standard sets share.
 void AddAlertModes(AIBrain* brain) {
     brain->AddSuspectionMode();
@@ -107,8 +100,6 @@ AIMode* NewModeOfType(int type) {
     }
 }
 
-void AssignCurrent(AIMode*& current, AIMode* mode) { AssignCounted(current, mode); }
-
 } // namespace
 
 void AIBrain::AddMode(AIMode* mode) {
@@ -118,7 +109,7 @@ void AIBrain::AddMode(AIMode* mode) {
         auto next = std::next(node);
         AIMode* old = *node;
         if (old->GetType() == type || (exclusive && old->Exclusive())) {
-            if (current == *node) DropCurrent(current);
+            if (current == *node) current.Reset();
             RemoveModeNode(modes, node);
             break;
         }
@@ -141,7 +132,7 @@ void AIBrain::RemoveModesOfType(AIModeType type) {
 
 void AIBrain::ClearModes() {
     ReleaseAllModes(modes);
-    DropCurrent(current);
+    current.Reset();
     nearX = kNearPointCleared;
     nearY = kNearPointCleared;
     decay = 1.0f;
@@ -149,7 +140,7 @@ void AIBrain::ClearModes() {
 
 void AIBrain::Reset() {
     ReleaseAllModes(modes);
-    DropCurrent(current);
+    current.Reset();
     nearX = kNearPointCleared;
     nearY = kNearPointCleared;
     decay = 1.0f;
@@ -163,7 +154,7 @@ void AIBrain::Reset() {
 
 void AIBrain::Init() {
     ReleaseAllModes(modes);
-    DropCurrent(current);
+    current.Reset();
     nearX = kNearPointCleared;
     nearY = kNearPointCleared;
     decay = 1.0f;
@@ -378,7 +369,7 @@ bool AIReports::Contains(CEngineObject* object) const {
 
 void AIBrain::Load(CStream* stream) {
     ReleaseAllModes(modes);
-    AssignCurrent(current, nullptr);
+    current.Reset();
     nearX = kNearPointCleared;
     decay = 1.0f;
     nearY = kNearPointCleared;
@@ -401,7 +392,7 @@ void AIBrain::Load(CStream* stream) {
     int currentIndex;
     stream->ReadValue(count);
     stream->ReadValue(currentIndex);
-    AssignCurrent(current, nullptr);
+    current.Reset();
     for (int i = 0; i < count; ++i) {
         int type;
         stream->ReadValue(type);
@@ -411,7 +402,7 @@ void AIBrain::Load(CStream* stream) {
         // Appends a node holding the mode (RefPtr::ShareAssign).
         auto node = modes.emplace(modes.end());
         ShareAssignOwned(*node, mode);
-        if (i == currentIndex) AssignCurrent(current, modes.back());
+        if (i == currentIndex) current.Assign(modes.back());
     }
     memory.Load(stream);
     stream->ReadValue(alerted);

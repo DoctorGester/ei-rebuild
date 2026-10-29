@@ -29,15 +29,6 @@ void ReleaseCounted(RefPtr& ref) {
     --object->refs_;
     if (object->refs_ == 0 && object) delete object;
 }
-void AssignCounted(RefPtr& ref, CRefObject* object) {
-    CRefObject* previous = ref.ptr;
-    ref.ptr = object;
-    if (object) object->AddRef();
-    if (previous) {
-        --previous->refs_;
-        if (previous->refs_ == 0) delete previous;
-    }
-}
 
 void AssignEmptyText(std::string& s) {
     const char* text = EmptyText();
@@ -77,7 +68,7 @@ void TakeString(BufferCursor* cursor, std::string& s) {
 }
 // Object references through the connection being written or read.
 void PutObject(BufferCursor* cursor, const RefPtr& ref) { g_currentConnection->WriteObjectRef(cursor, ref.ptr); }
-void TakeObject(BufferCursor* cursor, RefPtr& ref) { AssignCounted(ref, g_currentConnection->ReadObjectRef(cursor)); }
+void TakeObject(BufferCursor* cursor, RefPtr& ref) { ref.Assign(g_currentConnection->ReadObjectRef(cursor)); }
 
 } // namespace
 
@@ -486,7 +477,7 @@ void PartyMessage::Read(BufferCursor* cursor) {
     std::int32_t count;
     Take(cursor, count);
     members_.resize(static_cast<std::size_t>(count));
-    for (std::int32_t i = 0; i < count; ++i) AssignCounted(members_[i], g_currentConnection->ReadObjectRef(cursor));
+    for (std::int32_t i = 0; i < count; ++i) members_[i].Assign(g_currentConnection->ReadObjectRef(cursor));
     Take(cursor, money_);
     Take(cursor, accepted_);
     Take(cursor, acceptedRevision_);

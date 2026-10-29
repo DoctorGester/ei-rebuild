@@ -83,7 +83,6 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
 AIBrain* AIBrain::Construct() {
     move.Clear();
     modes = {};
-    current = nullptr;
     alarmRecords = {};
     attention.weapons = {};
     attention.spells = {};

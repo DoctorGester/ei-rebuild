@@ -67,6 +67,8 @@ File `core_refcount.cpp`, `refptr_copies.cpp`.
 - Every counted class has `AddRef()` and `Release()`: CEngineObject (int refCount_; at 0 the owner's ReleaseObject),
   CRefCounted (int16 refs_; deleted at 0), CLinkMeshBase, CLinkFigureLoader, CDeviceMaterial, CRenderPreset,
   CRenderHelper and CRendererBase (deleted at 0). A site that keeps a raw pointer counts with these, not `++refCount_`.
+  The original's drops without the release at zero (sic: the object-list iterators' manager, the constructor's handed-back
+  item, the figure's parts) are `CEngineObject::ForgetReference()`.
 - A counted field is a `Ref<T>` (src/game/ref.h): `Assign(p)` takes p's reference first, then drops the old one (nothing
   when p is held already); `Reset()` nulls the field, then drops the reference; `Take()` hands the reference on. There
   is no store of a raw pointer, so the compiler lists every hand-counted store. A Ref has no destructor yet: the owner
@@ -76,8 +78,13 @@ File `core_refcount.cpp`, `refptr_copies.cpp`.
   objects (engine_object.h, counted_ref.cpp).
 - Not merged yet: the network family (`RefPtr`, `RefPtrTo<T>`, `CountedRefPtr` / `CountedRefTo<T>`, `SharedRefPtr` /
   `SharedRefTo<T>`; the interface track's files read their `.ptr`), `ScriptEffect<T>` (its reset removes the timed object
-  first) and the raw counted fields still assigned by hand (`AssignCounted` / `ReleaseCounted` on `T*&` slots).
-  `HeldObject` and `CountedPtr` remain as aliases for the interface files.
+  first), and the raw counted fields the interface files read as plain pointers: CItem's `spell_` (SetSpell) and `link_`
+  (SetLink), CObject3D's `parts` (CopyFigure copies them uncounted). `HeldObject` and `CountedPtr` remain as aliases for
+  the interface files.
+- Counted lists outside the interface: the world's missiles, a CObject3D's effect sources and pending parts and the
+  joined links (TakeNew) are lists of `HeldRef`; a removal that must release after a later step moves the element out
+  first (RemoveEffectSource detaches before the release). The AI memory's four `std::list<CUnit*>` lists still count by
+  hand.
 
 ## Object manager (CEngineObject, CBaseManager)
 

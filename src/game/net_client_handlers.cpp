@@ -49,9 +49,6 @@ void RemoveRaw(List& list, Message* message) {
 }
 
 // Counted pointers as the handlers inline them.
-void AddRef(CRefObject* object) {
-    if (object) object->AddRef();
-}
 template <typename T>
 struct SlotOf {
     using Type = T;
@@ -81,10 +78,8 @@ void ClearRef(T** slot) {
 }
 template <typename List>
 void RemoveCounted(List& list, Message* message) {
-    CRefObject* object = message;
-    AddRef(object);
-    RemoveValue(list, object);
-    ReleaseCounted(object);
+    HeldRef<CRefObject> held(message);
+    RemoveValue(list, held.Get());
 }
 
 // Every request for `file` erased (the sentinel read once, the next node taken first).
@@ -213,7 +208,7 @@ void ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
 // The current map; without a server of our own the flow loads it.
 void ClientOnMap(ClientSession* self, MapMessage* message) {
     AssignRef(&self->map_, message);
-    auto* server = g_gameServer;
+    ServerSession* server = g_gameServer;
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(&g_gameFlow.Get(), message->text_.data());
     g_gameFlow->RegisterQuests(message->text_.data());

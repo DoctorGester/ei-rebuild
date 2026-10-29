@@ -345,7 +345,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                 missile->flags6_ = 0;
                 missile->flags7_ = 0;
                 missile->Load(stream);
-                AssignCounted(projectiles_.emplace_back(), missile);
+                projectiles_.emplace_back(missile);
             }
 
             aiMap_.events.Load(stream);

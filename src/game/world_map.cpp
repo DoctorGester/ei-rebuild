@@ -41,18 +41,6 @@ void EndTimedObjects(CWorldServer* world) {
     world->timedObjects_.maxId = 0;
 }
 
-void ClearMissiles(CWorldServer* world) {
-    auto& list = world->projectiles_;
-    for (auto& node : list) ReleaseCounted(node);
-    list.clear();
-}
-
-void ClearMissilePointers(CWorldServer* world) {
-    auto& list = world->projectiles_;
-    for (auto& node : list) ReleaseCounted(node);
-    list.clear();   // the elements were destroyed above; this frees the blocks
-}
-
 } // namespace
 
 int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* graph, char fromSave) {
@@ -79,7 +67,7 @@ int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* g
         ScriptReset(SecondScript());
         diplomacy_.Reset();
         ClearMapObjects();
-        ClearMissiles(this);
+        projectiles_.clear();
         EndTimedObjects(this);
         keepsState_ = 0;
         loadedFresh_ = fromSave == 0;
@@ -132,7 +120,7 @@ void CWorldServer::ResetZone() {
     exits_.clear();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
-    ClearMissilePointers(this);
+    projectiles_.clear();
     for (CEngineObject* object : counted_)
         if (object) object->Release();
     counted_.clear();
@@ -154,7 +142,7 @@ void CWorldServer::ResetZone() {
         map->map.clear();
         map->maxId = 0;
     }
-    ClearMissilePointers(this);
+    projectiles_.clear();
     EndTimedObjects(this);
     mobName_ = game::kEmptyText;
     zoneName_ = game::kEmptyText;
@@ -187,13 +175,8 @@ void CWorldServer::TeardownZone() {
     diplomacy_.Reset();
     ClearMapObjects();
 
-    // The missiles' counted pointers, released inline (16-bit count, deleted at zero).
-    auto& missiles = projectiles_;
-    for (auto& node : missiles) {
-        CSpellEffect* missile = node;
-        if (missile) missile->Release();
-    }
-    missiles.clear();
+    // The missiles released (16-bit count, deleted at zero).
+    projectiles_.clear();
 
     EndTimedObjects(this);
     CloseSession();

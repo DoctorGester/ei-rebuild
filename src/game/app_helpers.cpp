@@ -68,7 +68,7 @@ void ScrambleObjects() {
         object->AttachCompanion(reinterpret_cast<CEngineObject*>(libcrt::RandBelow(0x1000)));
         object->SetSpecific(reinterpret_cast<CObject3DSpecific*>(libcrt::RandBelow(0x1000)));
     }
-    if (it.manager) --it.manager->refCount_;
+    if (it.manager) it.manager->ForgetReference();
 }
 
 // Called for every new object of the client (CPlayerClient::OnNewObject). One call in a hundred

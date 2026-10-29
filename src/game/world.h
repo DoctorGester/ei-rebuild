@@ -541,7 +541,7 @@ public:
     ObjectIdMap timedObjects_;
     // The zone header SendFreshObjects sends to a temporary player.
     CMemoryStream zoneHeader_;
-    std::list<CSpellEffect*> projectiles_;
+    std::list<HeldRef<CSpellEffect>> projectiles_;
     std::list<CEngineObject*> counted_; // counted references (released on clear)
     std::list<SharedObject> sharedObjects_;
 };
@@ -646,15 +646,14 @@ struct PendingIndex : std::unordered_map<std::uint32_t, std::list<CMapObject*>::
 // tick). The server's hands its pending link over once (TakeNew).
 class CWorldHandle final : public CPlayerSource {
 public:
-    CWorldHandle() : pendingLink_(nullptr) {}
     ~CWorldHandle() override;
 
     int OnShutdown() override;
     CWorldHandle* Clone() override;
     bool Query() override { return false; }
-    void TakeNew(std::list<netlink::NetLink*>* joined) override;
+    void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;
 
-    netlink::NetLink* pendingLink_;     // counted; handed over by TakeNew
+    Ref<netlink::NetLink> pendingLink_;     // handed over by TakeNew
 };
 
 // The client world's player source (Setup makes it): it has no state of its own.
@@ -664,7 +663,7 @@ public:
     CClientHandle* Clone() override;
     bool Query() override { return false; }
     // The client takes no connections: every link of the list is released and the list emptied.
-    void TakeNew(std::list<netlink::NetLink*>* joined) override;
+    void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;
 };
 
 // A window rectangle of the frame (the client's screen list and hit vector).

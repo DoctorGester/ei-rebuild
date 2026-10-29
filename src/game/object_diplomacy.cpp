@@ -49,7 +49,7 @@ void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUn
         mask = relation == kRelationHostile ? mask | Bit(other) : mask & ~Bit(other);
         unit->SetHostileMask(mask);
     }
-    if (it.manager) --it.manager->refCount_;
+    if (it.manager) it.manager->ForgetReference();
 }
 
 int CDiplomacy::GetRelation(int player, int other) const {

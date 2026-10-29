@@ -773,7 +773,7 @@ struct AIBrain {
     int standCooldown;              // FindStandPoint fails while above 0 (one off per call)
     int followTimer;                // UpdateFollow acts once it has counted past 8
     std::list<AIMode*> modes;   // (elements are counted references)
-    AIMode* current;
+    Ref<AIMode> current;
     std::vector<mapspec::Behaviour> alarmRecords;
     AIAttention attention;
     AIMemory memory;                // perception memory

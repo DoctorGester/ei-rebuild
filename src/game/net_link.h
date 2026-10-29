@@ -108,7 +108,7 @@ public:
     static LoopbackLink* CreatePair(CWorldHandle* player);
 
     std::list<CMemoryStream> queue_;
-    LoopbackLink* peer_;         // counted
+    Ref<LoopbackLink> peer_;
 };
 
 class ReplayLink final : public NetLink {
@@ -171,7 +171,7 @@ public:
     int OnShutdown() override;          // both lists emptied
     DriverSession* Clone() override;    // drivers shared, holders counted
     bool Query() override { return true; }
-    void TakeNew(std::list<netlink::NetLink*>* joined) override;   // the live holders' links appended
+    void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;   // the live holders' links appended
 
     std::list<SharedRefTo<DriverLink>> drivers_;    // owning
     std::list<CountedRefTo<DriverLink>> holders_;   // plain holders (released, not detached)

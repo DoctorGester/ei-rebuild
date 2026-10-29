@@ -85,6 +85,8 @@ public:
     // a counted link record (a RefPtr slot): the world server's CItemLink (the id the
     // world's save keeps per item, or the party record's item), the HUD's ItemTurn.
     CRefObject* link_;
+    // Holds `link` (counted; the previous one released).
+    void SetLink(CRefObject* link);
     CItemLink* ServerLink() const;
     // the condition and its maximum (both from the prototype's; -1 bits, a NaN,
     // until then): at 0 or below (rounded) the item is broken.

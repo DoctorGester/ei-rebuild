@@ -13,10 +13,9 @@ namespace {
 // timeGetTime() at the previous pump.
 std::uint32_t g_lastPumpTime = /*0079B604*/ {};
 
-// The session pointers' exit functions (each through a copy of the counted pointer's
-// release): the last reference deletes the session.
-void ReleaseGameServer() { ReleaseCounted(net::g_gameServer); }
-void ReleaseGameClient() { ReleaseCounted(net::g_gameClient); }
+// The session pointers' exit functions: the last reference deletes the session.
+void ReleaseGameServer() { net::g_gameServer.Reset(); }
+void ReleaseGameClient() { net::g_gameClient.Reset(); }
 
 // The two growing buffers' exit functions: each destroys its buffer once (bit 0 / bit 1 of their flags).
 std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
@@ -49,11 +48,11 @@ void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
 // Their static initialisers (in the list's order): the counted pointer's constructor
 // clears it, then the exit function is registered.
 void InitGameServerPointer() {
-    net::g_gameServer = nullptr;
+    net::g_gameServer.Reset();
     std::atexit(ReleaseGameServer);
 }
 void InitGameClientPointer() {
-    net::g_gameClient = nullptr;
+    net::g_gameClient.Reset();
     std::atexit(ReleaseGameClient);
 }
 

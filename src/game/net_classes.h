@@ -122,8 +122,8 @@ extern lib::StaticObject<GrowingBuffer> g_sendBuffer;
 extern lib::StaticObject<GrowingBuffer> g_receiveBuffer;
 // The game client and the game server (null when there is none): counted pointers, cleared by their static
 // initialisers and released at exit (net_session.cpp).
-inline ClientSession* g_gameClient = /*0079B5D8*/ {nullptr};
-inline ServerSession* g_gameServer = /*0079B5DC*/ {nullptr};
+inline Ref<ClientSession> g_gameClient = /*0079B5D8*/ {};
+inline Ref<ServerSession> g_gameServer = /*0079B5DC*/ {};
 // The game client's trade offer: publish ours, find the partner's offer that pairs with ours (a
 // PartyMessage, or null), take the acceptance back, drop the offer.
 void ClientPublishParty(ClientSession* self);

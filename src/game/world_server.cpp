@@ -210,10 +210,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     for (auto node = projectiles_.begin(); node != projectiles_.end();) {
         auto current = node++;
         // 0 when the missile's owner left (the missile is then dropped).
-        if (!(*current)->Forget(object)) {
-            ReleaseCounted(*current);
-            projectiles_.erase(current);
-        }
+        if (!(*current)->Forget(object)) projectiles_.erase(current);
     }
     {
         PlayerIterator players;

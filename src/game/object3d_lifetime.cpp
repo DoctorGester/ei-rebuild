@@ -30,7 +30,7 @@ int CObject3D::Create3D() {
 
 void CObject3D::Destroy3D() {
     figure.Reset();
-    while (!effectSources.empty()) RemoveEffectSource(effectSources.front());
+    RemoveAllEffectSources();
     if (animation) {
         animation->DetachMeshes();
         if (animation) {
@@ -42,19 +42,12 @@ void CObject3D::Destroy3D() {
     for (int i = 0; i < std::ssize(parts); ++i) {
         CEngineObject* part = parts[i];
         if (part) {
-            --part->refCount_;   // no release (sic)
+            part->ForgetReference();
             parts[i] = nullptr;
         }
     }
     parts.clear();
-    for (int i = 0; i < std::ssize(pendingParts); ++i) {
-        CEngineObject* part = pendingParts[i];
-        if (part) {
-            part->Release();
-            pendingParts[i] = nullptr;
-        }
-    }
-    lib::FreeStorage(pendingParts);
+    lib::FreeStorage(pendingParts);   // each part released
     if (attached) attached->Release();
     attached = nullptr;
     animations = nullptr;
@@ -62,20 +55,15 @@ void CObject3D::Destroy3D() {
 }
 
 void CObject3D::AddEffectSource(CParticleSource* source) {
-    if (lib::Contains(effectSources, source)) return;
-    effectSources.push_back(source);
-    if (source) {
-        source->AddRef();
-        source->Attach(this);
-    }
+    if (std::ranges::find(effectSources, source, &Ref<CParticleSource>::Get) != effectSources.end()) return;
+    effectSources.emplace_back(source);
+    if (source) source->Attach(this);
 }
 
 void CObject3D::RemoveEffectSource(CParticleSource* source) {
-    auto node = std::ranges::find(effectSources, source);
+    auto node = std::ranges::find(effectSources, source, &Ref<CParticleSource>::Get);
     if (node == effectSources.end()) return;
+    HeldRef<CParticleSource> held = std::move(*node);   // released after the detach
     effectSources.erase(node);
-    if (source) {
-        source->Attach(nullptr);
-        source->Release();
-    }
+    if (source) source->Attach(nullptr);
 }
