@@ -13,8 +13,8 @@
 #include "unit_client_models.h"
 #include "unit_db.h"
 #include "world.h"
+#include "random.h"
 
-#include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -36,7 +36,7 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
 
-// rand() scaled into 0..n-1.
+// ClientRand() scaled into 0..n-1.
 
 
 // The skill sounds by animation (the four SearchBody animations loot).
@@ -106,10 +106,10 @@ std::optional<std::string> CUnitClientSpecific::FootstepSound(int terrain) {
     float gap = ground - surface;
     if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1)
-        return std::format("steps\\human\\crawl\\{}.wav", libcrt::RandBelow(kCrawlSounds) + 1);
+        return std::format("steps\\human\\crawl\\{}.wav", ClientRandBelow(kCrawlSounds) + 1);
     int count = static_cast<int>(model->SoundCounts()[terrain]);
     const std::string& name = model->soundNames.begin()[terrain];
-    return std::format("{}\\{}.wav", name, libcrt::RandBelow(count) + 1);
+    return std::format("{}\\{}.wav", name, ClientRandBelow(count) + 1);
 }
 
 std::optional<std::string> CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to,
@@ -127,13 +127,13 @@ std::optional<std::string> CUnitClientSpecific::ActionSound(const FigureAnimatio
     int count = 0;
     while (count < 4 && animation->sounds[count] != 0) ++count;
     if (count == 0) return std::nullopt;
-    std::uint32_t sound = animation->sounds[libcrt::RandBelow(count)];
+    std::uint32_t sound = animation->sounds[ClientRandBelow(count)];
     std::string folder = model->soundFolder;   // a missing model's soundFolder is read (sic)
     if (prototype->soundFolder.size() != 0) folder = prototype->soundFolder;
     const char* format = nullptr;
     switch (animation->Kind()) {
     case AnimationKind::Idle:
-        if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->idleSoundChance) return std::string();
+        if (static_cast<std::uint32_t>(ClientRandBelow(100)) >= model->idleSoundChance) return std::string();
         format = "%s\\idle\\%d.wav";
         break;
     case AnimationKind::Special: {
@@ -145,7 +145,7 @@ std::optional<std::string> CUnitClientSpecific::ActionSound(const FigureAnimatio
         if (unit->MapType() == MapObjectType::Hero && unit->activeWeapon < 4 && hand != kNoItemId &&
             (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow))
             return std::format("weapons\\{}.wav", static_cast<int>(sound));
-        if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->attackSoundChance) return std::string();
+        if (static_cast<std::uint32_t>(ClientRandBelow(100)) >= model->attackSoundChance) return std::string();
         format = "%s\\attack\\%d.wav";
         break;
     }
@@ -275,7 +275,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         else footprint = -1;
         if (id >= 0) {
             footprint = id;
-            footprintRepeats = libcrt::RandBelow(4) + 4;
+            footprintRepeats = ClientRandBelow(4) + 4;
         }
         break;
     }

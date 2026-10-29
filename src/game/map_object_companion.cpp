@@ -104,7 +104,7 @@ bool CMapObjectClientSpecific::RunTick() {
             --sound->timer;
             if (static_cast<std::int32_t>(sound->timer) >= 0) continue;
             std::string name;
-            std::uint32_t variant = g_random.Next() % 3 + 1;
+            std::uint32_t variant = g_clientRandom.Next() % 3 + 1;
             if (sound->kind == SpellType::Stench) {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;

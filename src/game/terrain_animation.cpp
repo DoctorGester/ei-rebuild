@@ -1,6 +1,5 @@
-// The landscape's per-frame work: the update (Terrain::RunTick), the sun and its staggered relighting
-// (SetSun), the sectors' relight countdowns, animated tiles (SectorData::AnimateTiles) and water waves
-// (SectorData::AnimateWaves). Waves: every water vertex has a phase offset (owner wavePhases); the phase along
+// The landscape's per-frame work: the update (Terrain::RunTick), the sun (SetSun), animated tiles
+// (SectorData::AnimateTiles) and water waves (SectorData::AnimateWaves). Waves: every water vertex has a phase offset (owner wavePhases); the phase along
 // the wave direction runs from the sector's first water vertex (mod 2 pi) and steps by the direction per
 // vertex. The 512-entry sine table at that phase lifts the vertex (by waveHeight times the material's
 // priority) and gives the crest its specular colour; materials of kind kKeepsGroundXY move the vertex sideways
@@ -18,7 +17,6 @@
 #include "lib/float_select.h"
 #include "lib/vecmath.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <vector>
@@ -50,13 +48,6 @@ void CircleSines(const Terrain* owner, float* sines) {
     for (int i = 0; i < kSectorRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
 }
 
-// The relight order, (sy, sx) of the sectors. The cache holds one sector per grid cell (Terrain::SectorAt),
-// so no two are equal and any sort gives the same order.
-bool SectorBefore(const SectorData* x, const SectorData* y) {
-    if (x->sy != y->sy) return x->sy < y->sy;
-    return x->sx < y->sx;
-}
-
 } // namespace
 
 void SectorData::Clear() {
@@ -74,21 +65,8 @@ void SectorData::Clear() {
     owner = nullptr;
     built = SectorStage::None;
     lastUsed = 0;
-    relightCountdown = 0;
     clipMode = kCulled;
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);
-}
-
-void SectorData::ScheduleRelight(int frames) {
-    if (relightCountdown < 0 || frames < relightCountdown) relightCountdown = frames;
-}
-
-void SectorData::RelightTick() {
-    if (relightCountdown < 0) return;
-    if (--relightCountdown <= 0) {
-        relightCountdown = -1;
-        built &= ~SectorStage::Lit;
-    }
 }
 
 void SectorData::AnimateTiles(int frame) {
@@ -96,7 +74,7 @@ void SectorData::AnimateTiles(int frame) {
     bool stepped = false;
     for (AnimatedTile& tile : animated) {
         if (tile.frame == 0 && tile.speed < kAlwaysSteps &&
-            g_random.Next() % kAlwaysSteps + 1 > static_cast<std::uint32_t>(tile.speed)) {
+            g_clientRandom.Next() % kAlwaysSteps + 1 > static_cast<std::uint32_t>(tile.speed)) {
             continue;
         }
         tile.frame = (tile.frame + 1) % tile.frames;
@@ -184,39 +162,15 @@ void SectorData::AnimateWaves() {
 void Terrain::SetSun(CLight* light, const Vector4* colour) {
     ambient = *colour;
     sun = light;
-    if (lightInterval <= 0) {
-        for (SectorData* sector : sectorCache) sector->built &= ~SectorStage::Lit;
-        return;
-    }
-    // The lit sectors, sorted, get relight countdowns spread evenly over the next interval.
-    std::vector<SectorData*> sorted;
-    for (SectorData* sector : sectorCache)
-        if (lib::Has(sector->built, SectorStage::Lit)) sorted.push_back(sector);
-    std::sort(sorted.begin(), sorted.end(), SectorBefore);
-    if (sorted.empty()) return;
-    float step = static_cast<float>(static_cast<double>(lightInterval - 1) / std::ssize(sorted));
-    float at = 0.0f;
-    for (SectorData* sector : sorted) {
-        int frames = x87::fistp(at);
-        at = static_cast<float>(at + step);
-        sector->ScheduleRelight(frames);
-        if (frames == 0) sector->built &= ~SectorStage::Lit;
-    }
 }
 
 bool Terrain::RunTick() {
-    if (lightCountdown > 0 && --lightCountdown == 0) {
-        lightCountdown = lightInterval;
-        SetSun(sun, &ambient);
-    }
-    for (SectorData* sector : sectorCache)
-        if (lib::Has(sector->built, SectorStage::Lit)) sector->RelightTick();
     if (lib::Has(landscapeFlags, LandscapeFlag::Ambience)) PlayAmbience();
     wavePhase = static_cast<float>(waveSpeed + wavePhase);
     ++frame;
     for (int sy = visible.firstY; sy <= visible.lastY; ++sy) {
         for (int sx = visible.firstX; sx <= visible.lastX; ++sx) {
-            SectorData* sector = SectorAt(sx, sy, SectorStage::Lit, false);
+            SectorData* sector = SectorAt(sx, sy, SectorStage::Built, false);
             if (sector && sector->IsDrawn()) {
                 sector->AnimateTiles(frame);
                 sector->AnimateWaves();

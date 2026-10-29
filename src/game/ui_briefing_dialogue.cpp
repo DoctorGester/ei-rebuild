@@ -111,9 +111,9 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
         if (third)
             number = kTalkThird;
         else
-            number = human ? kHumanTalk[g_random.Next() & 3] : kTalk;
+            number = human ? kHumanTalk[g_clientRandom.Next() & 3] : kTalk;
     } else {
-        number = human ? kHumanListen[g_random.Next() & 3] : kListen;
+        number = human ? kHumanListen[g_clientRandom.Next() & 3] : kListen;
     }
     auto* serverUnit = g_serverWorld.FindUnit(unit->id_);
     if (!serverUnit) return;

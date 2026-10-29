@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 9BCE8CC2 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash DC13F695 n 172
 + world world
 world tick 20
 world updates 20
@@ -121,13 +121,13 @@ world allied31 0x80000000
 world hostile31 0x00000000
 + random random
 random isaac.seeded 1
-random isaac.count 132
-random isaac.a 0x04FD013A
-random isaac.b 0x133CFE05
-random isaac.c 0x0000000F
-random isaac.results 0xEA891960
-random isaac.memory 0x85371991
-random crt.rand 0x4D254E1B
+random isaac.count 131
+random isaac.a 0x9CB583D6
+random isaac.b 0xE5190F44
+random isaac.c 0x00000001
+random isaac.results 0x7744D51B
+random isaac.memory 0xB5AE7EF6
+random crt.rand 0x22130EED
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -556,16 +556,11 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone - hash D4DD6A49 n 172
+@ 1 update 40 frame 7 tick 40 zone - hash 829F536E n 172
 world tick 40
 world updates 40
-random isaac.count 60
-random isaac.a 0xCCD97F13
-random isaac.b 0x06F752A7
-random isaac.c 0x00000013
-random isaac.results 0xA3299F22
-random isaac.memory 0xFA47C019
-random crt.rand 0xFF4C846B
+random isaac.count 51
+random crt.rand 0xEA5BFE44
 obj2 #vitals 9EA7DF96
 obj129 #ai 93DFA8A1
 obj129 #place B24EA1FB
@@ -587,16 +582,16 @@ cunit148 #place 18826547
 cunit148 #unit D6FFF600
 cunit187 #place 8FD72F05
 cunit388 #place CC64C5DC
-@ 2 update 60 frame 11 tick 60 zone - hash 0E0E3250 n 172
+@ 2 update 60 frame 11 tick 60 zone - hash 2F72DB92 n 172
 world tick 60
 world updates 60
-random isaac.count 230
-random isaac.a 0x98B37538
-random isaac.b 0xC5B281A2
-random isaac.c 0x00000018
-random isaac.results 0x52789397
-random isaac.memory 0x287F676A
-random crt.rand 0x27427EBB
+random isaac.count 223
+random isaac.a 0xE413B414
+random isaac.b 0xE17CADAA
+random isaac.c 0x00000002
+random isaac.results 0xC3B976FE
+random isaac.memory 0x4195ABD6
+random crt.rand 0xCB2FF391
 obj2 #vitals BB277587
 obj129 #ai CD83E452
 obj129 #place F09335B8
@@ -615,7 +610,7 @@ cunit129 #place DA264953
 cunit129 #unit 91F197F1
 cunit148 #place 8CDC6001
 cunit148 #unit A13719CF
-@ 3 update 80 frame 15 tick 80 zone gz1g hash C0EC9AB4 n 832
+@ 3 update 80 frame 15 tick 80 zone gz1g hash 42A9E7F9 n 832
 world tick 80
 world updates 80
 world timeBase 5.91666651
@@ -638,13 +633,8 @@ world hostile4 0x00000001
 world hostile6 0x00000001
 world hostile7 0x00000001
 world hostile8 0x00000001
-random isaac.count 162
-random isaac.a 0xB2D39820
-random isaac.b 0xC598457E
-random isaac.c 0x00000041
-random isaac.results 0xF003569E
-random isaac.memory 0x0AC42737
-random crt.rand 0x89844C0B
+random isaac.count 64
+random crt.rand 0xBD1A301C
 player0 sessionKind 1
 player0 lastTick 77
 player0 units 1
@@ -919,27 +909,27 @@ obj591 # CE2ECE30
 + obj663 80 unmoog1 ""
 obj663 #ai B691C05A
 obj663 #place 7A56B849
-obj663 #unit 50BEB971
+obj663 #unit 928141E8
 obj663 #vitals C8C47D0C
 + obj666 80 unmogo ""
 obj666 #ai 07BFFC82
 obj666 #place 22C61CE9
-obj666 #unit 5492263E
+obj666 #unit 5ADF625D
 obj666 #vitals 2871DAC1
 + obj668 80 unmogo ""
 obj668 #ai 80E96731
 obj668 #place 01C880C3
-obj668 #unit C378F45D
+obj668 #unit AFF6D1FD
 obj668 #vitals 2871DAC1
 + obj669 80 unmogo ""
 obj669 #ai 80E96731
 obj669 #place 5EDE8E20
-obj669 #unit 4D489DC4
+obj669 #unit 3C635B43
 obj669 #vitals 2871DAC1
 + obj670 80 unmogo ""
 obj670 #ai 80E96731
 obj670 #place 80EF688B
-obj670 #unit 602C1013
+obj670 #unit 1E75F916
 obj670 #vitals 2871DAC1
 + obj699 80 unhuma ""
 obj699 #ai 0F79C16E
@@ -2044,7 +2034,7 @@ obj1764 # E610A603
 + obj1766 80 unmogo ""
 obj1766 #ai 07BFFC82
 obj1766 #place A5167378
-obj1766 #unit 181E940D
+obj1766 #unit 096125BC
 obj1766 #vitals 2871DAC1
 + obj1769 82 naflbu6
 obj1769 # 30E99C32
@@ -2091,7 +2081,7 @@ obj1802 # C9A32C0B
 + obj1803 82 naflbu7
 obj1803 # 4CD09180
 + obj1804 80 unanwiwo ""
-obj1804 #ai DF2B98EC
+obj1804 #ai 93B20A53
 obj1804 #place C32B4FBB
 obj1804 #unit ACE99BC3
 obj1804 #vitals B1788B7B
@@ -2177,7 +2167,7 @@ obj1884 #vitals AE7756AD
 + obj1889 93 stga1
 obj1889 # A88924B6
 + obj1890 80 unanwibo ""
-obj1890 #ai CF9341A4
+obj1890 #ai B952AACF
 obj1890 #place 69B14DE0
 obj1890 #unit A6C89C4A
 obj1890 #vitals B1788B7B
@@ -2194,17 +2184,17 @@ obj1897 # 30126BD0
 + obj1898 80 unmoog1 ""
 obj1898 #ai 91DA03D8
 obj1898 #place D2276D02
-obj1898 #unit C214582E
+obj1898 #unit B200F548
 obj1898 #vitals C8C47D0C
 + obj1900 80 unmoog1 ""
 obj1900 #ai 91DA03D8
 obj1900 #place 9A3A7337
-obj1900 #unit 8F0950A4
+obj1900 #unit 712D945B
 obj1900 #vitals C8C47D0C
 + obj1901 80 unmogo ""
 obj1901 #ai 91DA03D8
 obj1901 #place 5072AD18
-obj1901 #unit 560530CB
+obj1901 #unit 67FB35DA
 obj1901 #vitals 2871DAC1
 + obj1902 83 nast5
 obj1902 # 834C2466
@@ -2229,52 +2219,52 @@ obj1912 # 0A2B65DA
 + obj1913 80 unmogo ""
 obj1913 #ai 91DA03D8
 obj1913 #place 4131A804
-obj1913 #unit D8355952
+obj1913 #unit 847A1202
 obj1913 #vitals 2871DAC1
 + obj1915 80 unanwibo ""
 obj1915 #ai 07BFFC82
 obj1915 #place 4291F58C
-obj1915 #unit D4B47CA5
+obj1915 #unit DBC65327
 obj1915 #vitals 2871DAC1
 + obj1916 80 unanwibo ""
 obj1916 #ai 07BFFC82
 obj1916 #place CF514925
-obj1916 #unit 6B7A102D
+obj1916 #unit 3AD0620A
 obj1916 #vitals 2871DAC1
 + obj1918 80 unanwibo ""
 obj1918 #ai 07BFFC82
 obj1918 #place 449CF903
-obj1918 #unit C663B000
+obj1918 #unit 4721F61B
 obj1918 #vitals 2871DAC1
 + obj1919 80 unanwibo ""
 obj1919 #ai 07BFFC82
 obj1919 #place 2F8FCD31
-obj1919 #unit 67A042BB
+obj1919 #unit F435C805
 obj1919 #vitals 2871DAC1
 + obj1920 80 unanwibo ""
 obj1920 #ai 07BFFC82
 obj1920 #place B2304598
-obj1920 #unit 4721F61B
+obj1920 #unit 7B3ACA7D
 obj1920 #vitals 2871DAC1
 + obj1921 80 unmoto ""
 obj1921 #ai 07BFFC82
 obj1921 #place CA5AB959
-obj1921 #unit 3B2742B6
+obj1921 #unit 2B6798E6
 obj1921 #vitals 5931010B
 + obj1922 80 unmoto ""
 obj1922 #ai 07BFFC82
 obj1922 #place 5581A63C
-obj1922 #unit 0AD947A7
+obj1922 #unit D7D44AEC
 obj1922 #vitals 5931010B
 + obj1923 80 unmoto ""
 obj1923 #ai 07BFFC82
 obj1923 #place B216CF9E
-obj1923 #unit E62A4FFD
+obj1923 #unit 963EE29B
 obj1923 #vitals 5931010B
 + obj1925 80 unmoto ""
 obj1925 #ai 07BFFC82
 obj1925 #place 5DD7F7C5
-obj1925 #unit 36C27BC1
+obj1925 #unit 3B2742B6
 obj1925 #vitals 5931010B
 + obj1926 80 unmoto ""
 obj1926 #ai 07BFFC82
@@ -2284,112 +2274,112 @@ obj1926 #vitals 5931010B
 + obj1927 80 unmoto ""
 obj1927 #ai 07BFFC82
 obj1927 #place 87404F02
-obj1927 #unit 9873A6F8
+obj1927 #unit 64C074F2
 obj1927 #vitals 5931010B
 + obj1928 80 unmoto ""
 obj1928 #ai 07BFFC82
 obj1928 #place 00045DDB
-obj1928 #unit 1931E0E3
+obj1928 #unit 7480AEA2
 obj1928 #vitals 5931010B
 + obj1930 80 unmoto ""
 obj1930 #ai 07BFFC82
 obj1930 #place 0C55B276
-obj1930 #unit 46D6D6A7
+obj1930 #unit 1A999DF7
 obj1930 #vitals 5931010B
 + obj1932 80 unmoto ""
 obj1932 #ai 07BFFC82
 obj1932 #place ABD5A73A
-obj1932 #unit F66A95AD
+obj1932 #unit 4B33EFD0
 obj1932 #vitals 5931010B
 + obj1933 80 unmoto ""
 obj1933 #ai 07BFFC82
 obj1933 #place 3CC898D1
-obj1933 #unit F827D1CE
+obj1933 #unit EAF01D6B
 obj1933 #vitals 5931010B
 + obj1934 80 unmoto ""
 obj1934 #ai 07BFFC82
 obj1934 #place 5166BA4B
-obj1934 #unit 46D6D6A7
+obj1934 #unit 39B05443
 obj1934 #vitals 5931010B
 + obj1935 80 unmoto ""
 obj1935 #ai 07BFFC82
 obj1935 #place 5EF325A6
-obj1935 #unit F918BA2F
+obj1935 #unit C9D9D4DF
 obj1935 #vitals 5931010B
 + obj1936 80 unmoto ""
-obj1936 #ai C67952BB
+obj1936 #ai 54E07DE9
 obj1936 #place 680F4B97
-obj1936 #unit E97C02B7
+obj1936 #unit E08EC616
 obj1936 #vitals C03850B1
 + obj1937 80 unmoto ""
-obj1937 #ai 94B7328E
-obj1937 #place 87A094A0
-obj1937 #unit 9532DFA7
+obj1937 #ai B85A9CD4
+obj1937 #place 2C424FCB
+obj1937 #unit 157775A0
 obj1937 #vitals C03850B1
 + obj1938 80 unanwiwo ""
 obj1938 #ai 07BFFC82
 obj1938 #place 7BDFD764
-obj1938 #unit 47851C53
+obj1938 #unit 861299DE
 obj1938 #vitals 2871DAC1
 + obj1940 80 unanwiwo ""
 obj1940 #ai 07BFFC82
 obj1940 #place 676BE30D
-obj1940 #unit 56FAADE2
+obj1940 #unit C9B575CA
 obj1940 #vitals 2871DAC1
 + obj1943 80 unmogo ""
 obj1943 #ai 07BFFC82
 obj1943 #place F3A2AA56
-obj1943 #unit FCCBB52F
+obj1943 #unit E2C62B1C
 obj1943 #vitals 2871DAC1
 + obj1944 80 unmoba2 ""
 obj1944 #ai 07BFFC82
 obj1944 #place 5A82FA85
-obj1944 #unit E6E9F11F
+obj1944 #unit 77EB6D54
 obj1944 #vitals 3B410D23
 + obj1945 80 unmoba2 ""
 obj1945 #ai 07BFFC82
 obj1945 #place F08CD5E2
-obj1945 #unit 2BA42604
+obj1945 #unit 946A4A8C
 obj1945 #vitals 3B410D23
 + obj1947 80 unanhopi ""
 obj1947 #ai 704545B0
 obj1947 #place CEEA4C16
-obj1947 #unit 6F80ACF7
+obj1947 #unit EC55FC19
 obj1947 #vitals 0D6AE555
 + obj1948 80 unanhopi ""
 obj1948 #ai 704545B0
 obj1948 #place FB192204
-obj1948 #unit E08FAE8F
+obj1948 #unit 824CCF4C
 obj1948 #vitals 0D6AE555
 + obj1949 80 unanhopi ""
 obj1949 #ai 704545B0
 obj1949 #place 5D0B8039
-obj1949 #unit CDEB2358
+obj1949 #unit 5F41C207
 obj1949 #vitals 0D6AE555
 + obj1950 80 unanhopi ""
 obj1950 #ai 704545B0
 obj1950 #place 2B8A455C
-obj1950 #unit 6F80ACF7
+obj1950 #unit 9ED6478A
 obj1950 #vitals 0D6AE555
 + obj1952 80 unanwibo ""
 obj1952 #ai 07BFFC82
 obj1952 #place CBAAB92A
-obj1952 #unit F79DB511
+obj1952 #unit 9B1390B1
 obj1952 #vitals 2871DAC1
 + obj1953 80 unanwibo ""
 obj1953 #ai 07BFFC82
 obj1953 #place F4122B40
-obj1953 #unit 4721F61B
+obj1953 #unit A708ACD7
 obj1953 #vitals 2871DAC1
 + obj1954 80 unanwiwo ""
 obj1954 #ai 07BFFC82
 obj1954 #place D1C6F199
-obj1954 #unit 59888260
+obj1954 #unit C56F275C
 obj1954 #vitals 2871DAC1
 + obj1955 80 unanwiwo ""
 obj1955 #ai 07BFFC82
 obj1955 #place EC46A1C5
-obj1955 #unit D9F5AF9A
+obj1955 #unit 14B87881
 obj1955 #vitals 2871DAC1
 + obj1958 84 stst151
 obj1958 # 6E231626
@@ -2637,16 +2627,16 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place B5FCCE44
 cunit1000011214 #unit E7FB6462
 cunit1000011214 #vitals 7D2D89BA
-@ 4 update 100 frame 19 tick 100 zone gz1g hash C34ECDAF n 832
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 847551E0 n 832
 world tick 100
 world updates 100
-random isaac.count 147
-random isaac.a 0xAC8E0760
-random isaac.b 0x0B907A21
-random isaac.c 0x0000005D
-random isaac.results 0x56DA429F
-random isaac.memory 0x1CCA2F22
-random crt.rand 0x991DFBBC
+random isaac.count 192
+random isaac.a 0xB18A1865
+random isaac.b 0x4B6758B8
+random isaac.c 0x00000003
+random isaac.results 0x72E27AC6
+random isaac.memory 0x607DD697
+random crt.rand 0xE481FDAC
 player0 lastTick 80
 player0 var.gtime 6.00333357
 player0 var.Said1 1.0
@@ -2655,18 +2645,17 @@ player0 var.z.gz1g_gz2g 1.0
 player0 var.z.gz2g_gz3g 1.0
 obj699 #vitals 39A58F25
 obj702 #vitals 39A58F25
-obj1804 #ai 1C512AC7
+obj1804 #ai D57DD68C
 obj1804 #place C464F33E
 obj1804 #vitals 26AA52F3
 obj1884 #vitals 39A58F25
-obj1890 #ai 1C6F4CC3
+obj1890 #ai E8B45443
 obj1890 #place C013BB87
 obj1890 #vitals 26AA52F3
-obj1936 #ai FC2D38ED
+obj1936 #ai 5FEE6E6E
 obj1936 #vitals 57EA8939
-obj1937 #ai E473B881
-obj1937 #place 0A116CF0
-obj1937 #unit D7900880
+obj1937 #ai B7330E43
+obj1937 #place C5073399
 obj1937 #vitals 57EA8939
 obj1000011214 #vitals 536C62BA
 missile0 # 74FDFBC1
@@ -2686,30 +2675,25 @@ cunit1804 #unit 878FF59F
 cunit1884 #place AE30F036
 cunit1000011214 #place 962700A3
 cunit1000011214 #unit 2B30C45F
-@ 5 update 120 frame 7228144 tick 120 zone gz1g hash F4AA142E n 832
+@ 5 update 120 frame 1672882 tick 120 zone gz1g hash EB66D9D9 n 832
 world tick 120
 world updates 120
-random isaac.count 145
-random isaac.a 0x47925A08
-random isaac.b 0xCAFDBBC5
-random isaac.c 0x0000006F
-random isaac.results 0xBB0A1693
-random isaac.memory 0x520CBBA9
-random crt.rand 0x81EA59D0
+random isaac.count 72
+random crt.rand 0x4FC2D12D
 obj699 #vitals F72D441A
 obj702 #vitals F72D441A
-obj1804 #ai BC207E94
+obj1804 #ai 9B355FDA
 obj1804 #place DA332DDE
 obj1804 #unit 5CA548C2
 obj1804 #vitals 98823C26
 obj1884 #vitals F72D441A
-obj1890 #ai CE8634B8
+obj1890 #ai 69DD3B89
 obj1890 #place 1EAC75C3
 obj1890 #vitals 98823C26
-obj1936 #ai 4D2B594D
+obj1936 #ai 5AD5895C
 obj1936 #vitals E3425753
-obj1937 #ai CE19404F
-obj1937 #place 3F3EB57E
+obj1937 #ai 567FCD10
+obj1937 #place 68F32C69
 obj1937 #vitals E3425753
 obj1000011214 #vitals 97F70322
 missile0 # 9DCC28DF
@@ -2720,31 +2704,31 @@ client ticksRun 42
 cunit1804 #place 450BFC7F
 cunit1804 #unit E2CD68C0
 cunit1000011214 #place FF01FC81
-@ 6 update 140 frame 7228148 tick 140 zone gz1g hash BF6124D7 n 832
+@ 6 update 140 frame 1672886 tick 140 zone gz1g hash 24EA1278 n 832
 world tick 140
 world updates 140
-random isaac.count 134
-random isaac.a 0xAB1F6615
-random isaac.b 0x1DF3ABF0
-random isaac.c 0x00000081
-random isaac.results 0x4FEFC30A
-random isaac.memory 0x22F38C34
-random crt.rand 0xF9E3C060
+random isaac.count 211
+random isaac.a 0xBF01EE41
+random isaac.b 0xEC7AF5D6
+random isaac.c 0x00000004
+random isaac.results 0x015BBAC1
+random isaac.memory 0x729E19F0
+random crt.rand 0xEAD494CC
 player0 lastTick 131
 player0 var.gtime 6.06000042
 obj699 #vitals AE7756AD
 obj702 #vitals AE7756AD
-obj1804 #ai 0A7061AA
+obj1804 #ai 2AAB0F81
 obj1804 #vitals B1788B7B
 obj1884 #vitals AE7756AD
-obj1890 #ai 34213392
+obj1890 #ai 5E725AA9
 obj1890 #place 36C41FDC
 obj1890 #vitals B1788B7B
-obj1936 #ai 347D8246
+obj1936 #ai 9FE45C26
 obj1936 #vitals C03850B1
-obj1937 #ai DDD90F04
-obj1937 #place 04EC68A1
-obj1937 #unit A62EB47B
+obj1937 #ai D6D44EAE
+obj1937 #place BA95A906
+obj1937 #unit EAB00584
 obj1937 #vitals C03850B1
 obj1000011214 #vitals C4BEBB32
 missile0 # 260A32EF

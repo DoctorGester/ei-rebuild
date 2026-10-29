@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 9BCE8CC2 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash DC13F695 n 172
 + world world
 world tick 20
 world updates 20
@@ -121,13 +121,13 @@ world allied31 0x80000000
 world hostile31 0x00000000
 + random random
 random isaac.seeded 1
-random isaac.count 132
-random isaac.a 0x04FD013A
-random isaac.b 0x133CFE05
-random isaac.c 0x0000000F
-random isaac.results 0xEA891960
-random isaac.memory 0x85371991
-random crt.rand 0x4D254E1B
+random isaac.count 131
+random isaac.a 0x9CB583D6
+random isaac.b 0xE5190F44
+random isaac.c 0x00000001
+random isaac.results 0x7744D51B
+random isaac.memory 0xB5AE7EF6
+random crt.rand 0x22130EED
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -556,7 +556,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone - hash 43CA8662 n 149
+@ 1 update 40 frame 7 tick 40 zone - hash 5C3DB7ED n 149
 world tick 40
 world updates 40
 world gameResult 0
@@ -567,13 +567,8 @@ world mapObjects 0
 world timedObjects 0
 world updateMap 0
 world projectiles 0
-random isaac.count 57
-random isaac.a 0x59688C84
-random isaac.b 0x05C0F64A
-random isaac.c 0x00000011
-random isaac.results 0x3985745C
-random isaac.memory 0xD598B619
-random crt.rand 0xB1C6456D
+random isaac.count 107
+random crt.rand 0xD6AB65FC
 - player0
 - obj2
 - obj129
@@ -607,19 +602,13 @@ client synchronised 0
 - cunit148
 - cunit187
 - cunit388
-@ 2 update 60 frame 11 tick 60 zone - hash A8437D61 n 149
+@ 2 update 60 frame 11 tick 60 zone - hash A8349F6E n 149
 world tick 60
 world updates 60
-random isaac.count 239
-random isaac.a 0xD3ACD48C
-random isaac.b 0x46F61B65
-random isaac.c 0x00000012
-random isaac.results 0x51AB37E7
-random isaac.memory 0x07E2A63C
 aievents tick 60
 client tick 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 80 zone - hash 0234CEEF n 149
+@ 3 update 80 frame 15 tick 80 zone - hash 02432CE0 n 149
 world tick 80
 world updates 80
 aievents tick 80

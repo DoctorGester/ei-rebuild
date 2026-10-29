@@ -1,12 +1,12 @@
 {
   "scenario": "terrain_water_waves",
   "install": "rebirth",
-  "recorded": "2026-10-21",
-  "commit": "32da11e8",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 3,
-  "reason": "R16c4: water waves on (SectorData::Animate) on Rebirth's data, digest water group",
-  "saves": "4 decoded saves (tools/savefile.py), the same in 3 runs"
+  "repeated_in": 2,
+  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

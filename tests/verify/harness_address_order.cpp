@@ -51,15 +51,6 @@ void __fastcall SortForOriginal(ObjectSet* self) {
     ei::verify::OriginalCode<ResizeFn>(0x0047B880)(self, nullptr, static_cast<int>(out - self->data), -1);
 }
 
-// 006C8E90 (cdecl, two slots of SetSun's sector array): by (sy, sx) of the sectors in the slots.
-int __cdecl CompareSectorsForOriginal(const void* a, const void* b) {
-    const auto* x = *static_cast<const SectorData* const*>(a);
-    const auto* y = *static_cast<const SectorData* const*>(b);
-    if (x->sy != y->sy) return x->sy < y->sy ? -1 : 1;
-    if (x->sx != y->sx) return x->sx < y->sx ? -1 : 1;
-    return 0;
-}
-
 // DiffObjectSets' merge 0047B4C0: CMP ECX,EAX / JZ 0047B511 / MOV [ESP+0x24],1 / JNC 0047B4F5 (ECX the
 // sent element, EAX the current one; below: the sent one is gone, 0047B4CE). EAX, ECX and EDX kept.
 __declspec(naked) void MergeStep() {
@@ -165,8 +156,6 @@ const Site kSites[] = {
      "the object sets' sort 0047ADF0"},
     {0x0047B4C0, {0x3B, 0xC8, 0x74, 0x4D, 0xC7, 0x44, 0x24, 0x24, 0x01, 0x00, 0x00, 0x00, 0x73, 0x27}, 14,
      reinterpret_cast<void*>(&MergeStep), "DiffObjectSets' merge 0047B1F0"},
-    {0x006C8E90, {0x8B, 0x54, 0x24, 0x08, 0x56}, 5, reinterpret_cast<void*>(&CompareSectorsForOriginal),
-     "SetSun's comparator 006C8E90"},
     // The draw lists' sorts, by name (SV7b6). Their insertion sort compares with the
     // first element by address inline, so the comparator 00574300 alone cannot be replaced.
     {0x005740D0, {0x83, 0xEC, 0x18, 0x53, 0x55}, 5, reinterpret_cast<void*>(&IntroSortForOriginal),
@@ -224,7 +213,7 @@ void PatchOriginal() {
         FlushInstructionCache(GetCurrentProcess(), code, site.size);
         ++patched;
     }
-    Log("harness: address orders by object id, sector and name, the player list by binding (%d of %d original sites)", patched, int(sizeof(kSites) / sizeof(kSites[0])));
+    Log("harness: address orders by object id and name, the player list by binding (%d of %d original sites)", patched, int(sizeof(kSites) / sizeof(kSites[0])));
 }
 
 bool CheckPlayerList(std::uintptr_t briefing, std::string* text) {

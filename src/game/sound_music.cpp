@@ -29,7 +29,7 @@ constexpr const char* kMp3 = /*00744094*/ ".mp3";
 
 // Next delay of the calm music: 120..180 s from now. The random value is drawn first.
 std::uint32_t CalmDelay() {
-    std::uint32_t r = g_random.Next() % 60001;
+    std::uint32_t r = g_clientRandom.Next() % 60001;
     return gameapi::timeGetTime() + r + 120000;
 }
 
@@ -37,7 +37,7 @@ std::uint32_t CalmDelay() {
 const std::string& PickName(const std::vector<std::string>& names) {
     std::uint32_t n = static_cast<std::uint32_t>(names.size());
     if (n == 1) return names[0];
-    return names[g_random.Next() % n];
+    return names[g_clientRandom.Next() % n];
 }
 
 // Waits for the stream thread to take up a request (state 2 -> 1), then asks it to stop after
@@ -198,7 +198,7 @@ void CMusicSystem::UpdateMusic() {
     } else if (str::Compare(current, game::kEmptyText) == 0) {
         combatTrack = game::kEmptyText;
         if (calmDue == 0) {
-            std::uint32_t r = g_random.Next();
+            std::uint32_t r = g_clientRandom.Next();
             calmDue = gameapi::timeGetTime() + r % 60001 + 120000;
         }
         if (gameapi::timeGetTime() >= calmDue) {

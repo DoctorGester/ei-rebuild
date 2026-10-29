@@ -1,12 +1,12 @@
 {
   "scenario": "net_pair_master",
   "install": "vanilla",
-  "recorded": "2026-10-21",
-  "commit": "790539fb",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 4,
-  "reason": "SV5d4: the master's server list (bad size, short record, the list) joined through it, and a bad update",
+  "repeated_in": 2,
+  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer",
   "side": "peer"
 }

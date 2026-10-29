@@ -9,11 +9,9 @@
   Unit 1804 new motivation Patrol with power of 50
   Unit 1890 new motivation Patrol with power of 50
   Saved savea
-  Unit 1890 acknowledges with idleSound = AAn4XyU
   1
   1
   1
-  Unit 1937 acknowledges with idleSound = AAn4XyU
   1
   Unit 1936 acknowledges with to Alarm!
   Unit 1936 new motivation Guard with power of 50
@@ -38,7 +36,6 @@
   0
   0
   0
-  Unit 1804 acknowledges with idleSound = AAn4XyU
   0
   0
   0
@@ -92,6 +89,7 @@
   Unit 1884 new motivation Sentry with power of 50
   0
   0
+  Unit 1884 acknowledges with idleSound = AAn4XyU
   0
   0
   0
@@ -114,13 +112,12 @@
   Unit 1804 new motivation Aggression with power of 10000
   Unit 1804 acknowledges with to Aggression
   0
-  Unit 1934 acknowledges with idleSound = AAn4XyU
   1
   Delayed sound: Unit 1000011214 heard unit 1804 from 8.062472m distance
-  Unit 1000011214 was attacked by 1804 skill=3.40282e+038 damage=9.86 destHL=RHand
+  Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=9.34 destHL=Body
   Delayed sound: Unit 1804 heard unit 1000011214 from 2.603962m distance
   20
   10
   1
-  Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=11.57 destHL=RLeg
+  Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=7.93 destHL=RLeg
   Delayed sound: Unit 1000011214 heard unit 1804 from 2.271138m distance

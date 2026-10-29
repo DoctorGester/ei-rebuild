@@ -171,8 +171,9 @@ reach is that failed run's, a lower bound), so goldens come from runs without EI
   (GetDiskFreeSpaceExA through GetProcAddress); CDib's catch handlers (a CFileException from the MFC file's Read / Write:
   a failing disk) and the message boxes they end in. CDib::Read and its helpers run only for a loose
   `textures\<name>.bmp` (A-I23a).
-- Shared files (A-I23): the vanilla offer in net_pair_leave is z9q1 z6q2 z3q2 z7q2 (not z6q1), so its vanilla peer hides
-  z7q2.mq; the received file is written (0041ECC0 -> 005813A0) and `samefile` requires it to be the install's.
+- Shared files (A-I23): the vanilla offer in net_pair_leave is z3q1 z6q3 z7q1 and a z9 zone (R34a), so its vanilla
+  peer hides z7q1.mq (Rebirth's z6q2.mq); the received file is written (0041ECC0 -> 005813A0) and `samefile`
+  requires it to be the install's.
 - Dead (SV5c): the fake unit (class 0x39) and its scene loader: no shipped data makes one, no code reaches slot 62, no
   .amf exists (class ids come from the units database, 0x32-0x34 in every install, and a .mob record's field 0xB003:
   the .mob files hold 0x32-0x37 and 0x3A-0x3C; game.exe passes no immediate 0x39 to a factory and has no
@@ -241,18 +242,20 @@ heap.
 | Save padding, a sound's name tail, the stock's codes, archive keys numbered by first save | harness_save_leftovers | `EI_SAVE_LEFTOVERS=0` | SV7b2a |
 | A heard claim's point 0,0,0 | AIHeardCalls::AddClaim's three loads (005CCF04..) | | S20d |
 | Script groups ordered by object id | comparator 004B2D80, inline compares in Union / Difference / Intersection / Insert (harness_script_order) | | SV7b1 |
-| Object sets by id; lit sectors by (sy, sx) | 0047ADF0, 0047B4C0, 006C8E90 (harness_address_order) | | T2f |
+| Object sets by id | 0047ADF0, 0047B4C0 (harness_address_order) | | T2f |
 | Draw lists by texture / figure name, then depth | 005740D0 and 00574390 jump to ours (both: mixed orders ran off the array) | | SV7b6 |
 | A client's player list refreshed by its binding too (an update's objects come in the server's ReplicaEntry address order; players before the binding were listed as nobody: the base screen's faces) | 0041E430 jumps to a stub (harness_address_order); scenario step `checkplayers` | | UB1 |
 | The shadow's turn undone exactly (no ulp drift per re-render) | CALLs 0051D479 / 0051D4E0 (harness_shadow_turn) | `EI_SHADOW_TURN=0` | SV7b4a |
+| The client effects draw from their own generator (`g_clientRandom`, seeded from the game's at CWorld::Create), not from ISAAC 007A9D40 or rand(): terrain tiles and ambience, particles, lightning shapes, sound and speech picks, decals, the interface's flourishes | the generator operands of 91 client functions point at the harness's client generator, the rand() CALLs of 15 at a draw of it, Init's CALL 0055F165 seeds it (harness_client_effects; deterministic runs) | | R34a |
+| The terrain's sectors lit once, when built (ours: the edge fade at Build; no relight countdowns, no tick without tile animation) | SetSun's relighting 006C908F jumps to its epilogue; SectorAt's Ensure CALLs 006C8234 / 006C84BC light a built sector at once (harness_client_effects) | | R34a |
 
 Script groups order by id because the script engine saves groups by id and ids are unique while referenced; ties cannot
 happen (the harness logs "share id" if one does). 
 
 **Behaviour that only looks random**:
-- Any change in frame count reshuffles the ISAAC draws (the client's particles and the server's AI share the
-  generator), so functions driven by them (zone1's storm, wolf pathing, the bored remark) come and go when a wait is
-  cut. Cut waits only where coverage stays.
+- Any change in frame count reshuffles the ISAAC draws (the server's AI, weather and combat share the generator;
+  the client effects have their own since R34a), so functions driven by them (zone1's storm, wolf pathing, the bored
+  remark) come and go when a wait is cut. Cut waits only where coverage stays.
 - The game reads the heap's address order in more places than the table: a test that allocates around a load can still
   flip a script group's last member if the order patch is off.
 - rebirth_flags' `DistancePointPoint(3,4)` reads four floats past an 8-byte argument block (any value, 1.#INF or NaN):

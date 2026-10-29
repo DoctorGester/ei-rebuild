@@ -9,11 +9,9 @@
   Unit 1804 new motivation Patrol with power of 50
   Unit 1890 new motivation Patrol with power of 50
   Saved savea
-  Unit 1890 acknowledges with idleSound = AAn4XyU
   1
   1
   1
-  Unit 1937 acknowledges with idleSound = AAn4XyU
   Unit 1936 acknowledges with to Alarm!
   Unit 1936 new motivation Guard with power of 50
   Unit 1937 new motivation Guard with power of 50
@@ -26,7 +24,6 @@
   0
   0
   0
-  Unit 1890 acknowledges with idleSound = AAn4XyU
   0
   0
   0
@@ -53,6 +50,7 @@
   Unit 1935 new motivation Guard with power of 50
   0
   Unit 1000011214 sees unit 1884 from 10.4198m distance
+  Unit 1890 acknowledges with idleSound = AAn4XyU
   0
   0
   Unit 1935 hear delayed sound: Unit 1934 claims that player 0 are enemies! 
@@ -61,7 +59,6 @@
   0
   0
   0
-  Unit 1934 acknowledges with idleSound = AAn4XyU
   0
   0
   0
@@ -95,6 +92,7 @@
   0
   0
   0
+  Unit 702 acknowledges with idleSound = AAn4XyU
   0
   0
   Unit 1940 acknowledges with to Alarm!
@@ -108,7 +106,8 @@
   Unit 702 new motivation Sentry with power of 50
   Unit 1884 new motivation Sentry with power of 50
   1
-  Unit 1935 acknowledges with idleSound = AAn4XyU
+  Unit 1884 acknowledges with idleSound = AAn4XyU
+  Unit 1934 acknowledges with idleSound = AAn4XyU
   Unit 1804 sees unit 1000011214 from 8.44143m distance
   Unit 1804 new motivation Aggression with power of 10000
   Unit 1804 acknowledges with to Aggression
@@ -125,7 +124,5 @@
   Unit 1804 damaged to death
   Unit 1000011214 sees corpse of unit 1804
   Unit 1000011214 lost from sight unit 1804
-  Unit 1937 acknowledges with idleSound = AAn4XyU
-  Unit 699 acknowledges with idleSound = AAn4XyU
   10
   1

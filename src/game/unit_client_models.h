@@ -159,7 +159,7 @@ public:
 
     // The unit moves on to world time `time`. Before the last time (or NaN) it is only put back on the ground
     // (plus heightOffset, the world's MoveObject); otherwise the step (more than 500 becomes 500..600, one
-    // IsaacRandom draw) runs the invisible / stunned pulses, places the unit on its path unless pathTimeShift
+    // g_clientRandom draw) runs the invisible / stunned pulses, places the unit on its path unless pathTimeShift
     // (then the animation speed is 1), and advances the animation by the step (times the animation speed in
     // motion mode 2; not in mode 1).
     void AdvanceTime(float time) override;
@@ -221,11 +221,11 @@ public:
     void PlayStepSounds();
     // The footstep sound on ground kind `terrain`, for units whose prototype's model has sounds for it: on a
     // platform 0.01 or more away from the ground the kind is 2; crawling (movement mode 0) except on kinds
-    // 6 / 14 gives "steps\human\crawl\<1..6>.wav", else "<the kind's name>\<1..count>.wav" (one rand() each).
+    // 6 / 14 gives "steps\human\crawl\<1..6>.wav", else "<the kind's name>\<1..count>.wav" (one ClientRand() each).
     // None without a prototype, model or sounds.
     std::optional<std::string> FootstepSound(int terrain);
     // The sound of `animation`'s action when its sound frame (not 0) lies in [from, to): "weapons\miss.wav"
-    // for `miss`, else one of its sound numbers (rand()) in the folder of the second prototype or its model:
+    // for `miss`, else one of its sound numbers (ClientRand()) in the folder of the second prototype or its model:
     // idle (kind 0x180000, by the model's idle chance), skill sounds (0x40000: tame, steal, science, loot),
     // attack (0x80000: "weapons\<n>.wav" for a hero with a bow or crossbow, else by the attack chance), death
     // (0x1C0000), hit (0x200000). Empty when a chance said no; none for other kinds or frames.

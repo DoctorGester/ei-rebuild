@@ -6,8 +6,7 @@
 //
 //   - ours: always (src/game/address_order.h);
 //   - the original: the object sets' sort 0047ADF0 jumps to a sort by id (then address), the
-//     comparison of DiffObjectSets' merge (0047B4C0) to a stub that compares the same way, and
-//     SetSun's comparator 006C8E90 to one that compares the sectors it was meant to, and the draw
+//     comparison of DiffObjectSets' merge (0047B4C0) to a stub that compares the same way, and the draw
 //     lists' sorts 005740D0 / 00574390 to sorts by texture and figure name (address_order::DrawBefore; SV7b6), and the client's
 //     binding handler 0041E430 to a stub that also refreshes the player list when the players came
 //     before the binding (UB1).

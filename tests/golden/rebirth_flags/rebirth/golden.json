@@ -1,12 +1,12 @@
 {
   "scenario": "rebirth_flags",
   "install": "rebirth",
-  "recorded": "2026-10-16",
-  "commit": "4be47015",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 4,
-  "reason": "S20c: re-recorded on main after S21 from four agreeing --no-hooks --fresh passes (two plain, EI_HEAP_JITTER 1 and 2,fill; saves canonical under SV7b2a's rules); withheld in S20 (hooked runs differed), the standalone matches",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+  "repeated_in": 2,
+  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }

@@ -117,23 +117,23 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
 void PlayOneShot(CSoundManager* sounds, const Cell (&cells)[3][3], int soundClass, int variants, const std::string& set,
                  const Vector3& listener) {
     const AmbientSoundClass& sound = kAmbientSounds[soundClass];
-    if (static_cast<int>(g_random.Next() % 100 + 1) > sound.chance) return;
+    if (static_cast<int>(g_clientRandom.Next() % 100 + 1) > sound.chance) return;
     const Cell* pick;
     do {
-        std::uint32_t column = g_random.Next() % 3;
-        std::uint32_t row = g_random.Next() % 3;
+        std::uint32_t column = g_clientRandom.Next() % 3;
+        std::uint32_t row = g_clientRandom.Next() % 3;
         pick = &cells[column][row];
     } while (pick->soundClass != soundClass);
     if (variants == 0) return;
-    std::uint32_t variant = g_random.Next();
+    std::uint32_t variant = g_clientRandom.Next();
     const char* time = g_clientWorld.AmbienceTimeOfDay();
     const std::string name = std::format("ambient\\{}\\{}\\{}\\{}.wav", set, sound.name, time,
                                          variant % static_cast<std::uint32_t>(variants) + 1);
     Vector3 position = listener + pick->offset;
     float spot = kSpotCells;
     float spotLow = static_cast<float>(-spot);
-    position.x = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.x);
-    position.y = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.y);
+    position.x = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.x);
+    position.y = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.y);
     sounds->Play3D(name, 1, &position.x, static_cast<float>(spot + spot), kRadiusCells, 0);
 }
 

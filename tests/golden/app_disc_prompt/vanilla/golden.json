@@ -1,13 +1,13 @@
 {
   "scenario": "app_disc_prompt",
   "install": "vanilla",
-  "recorded": "2026-10-21",
-  "commit": "d5e62271",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 4,
-  "reason": "A-I23: the start-up disc check's second-disc boxes; the vanilla install's game.exe jumps over the check (00456BB5), so the image's own golden",
+  "reason": "R34a: image-only golden re-recorded: client-only effects draw from their own generator, so the game's ISAAC / rand() states move; 4 agreeing image runs: plain x2, EI_HEAP_JITTER 1, 2,fill",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
 }

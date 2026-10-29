@@ -1,12 +1,12 @@
 {
   "scenario": "magic_traps_victims",
   "install": "vanilla",
-  "recorded": "2026-10-15",
-  "commit": "2bafeb16",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 4,
-  "reason": "SV5a: camp maker, trap victims, scripted cast at points, AI corpse and noise (re-recorded on main's SV7b2 zeroed fields)",
+  "repeated_in": 2,
+  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }

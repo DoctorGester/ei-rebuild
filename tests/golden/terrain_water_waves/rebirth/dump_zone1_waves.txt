@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; dump zone1_waves
 # compact (tools/golden.py): objects as hashes of their fields
-@ 18 update 365 frame 73 tick 365 zone gz1g hash 86B08594 n 866
+@ 18 update 365 frame 73 tick 365 zone gz1g hash 247BDC2A n 866
 + world world
 world tick 365
 world updates 365
@@ -12,7 +12,7 @@ world wind.y -0.685364664
 world wind.z 0.0
 world windStrength 0x3E4CCCCD
 world nightLevel 0x3F800000
-world weatherFactor 0x3F800000
+world weatherFactor 0x3F666666
 world alarm0.active 0
 world alarm0.time 0
 world alarm0.x 0.0
@@ -35,11 +35,11 @@ world alarm4.x 0.0
 world alarm4.y 0.0
 world climate 1
 world cave 0
-world weather 0
-world weatherStrength 0.0
+world weather 1
+world weatherStrength 20.0
 world exits 2
 world gameResult 1
-world lastRainBoltTick 0
+world lastRainBoltTick 323
 world zoneLoaded 1
 world scriptsActive 1
 world start.x 0.0
@@ -51,7 +51,7 @@ world objects 815
 world mapObjects 56
 world sentObjects 759
 world timedObjects 4
-world updateMap 14
+world updateMap 12
 world projectiles 2
 world counted 0
 world sharedObjects 0
@@ -121,13 +121,13 @@ world allied31 0x80000000
 world hostile31 0x00000000
 + random random
 random isaac.seeded 1
-random isaac.count 61
-random isaac.a 0xC64FAF90
-random isaac.b 0x83DBFEEF
-random isaac.c 0x00000142
-random isaac.results 0xED394556
-random isaac.memory 0x20AD894C
-random crt.rand 0x3E0BF9E8
+random isaac.count 9
+random isaac.a 0x96E14286
+random isaac.b 0x61BCE66F
+random isaac.c 0x00000009
+random isaac.results 0x6EEF3837
+random isaac.memory 0x68E8B4CB
+random crt.rand 0x9722D36F
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -276,37 +276,37 @@ obj591 # CE2ECE30
 + obj663 80 unmoog1 ""
 obj663 #ai B691C05A
 obj663 #place 7A56B849
-obj663 #unit B77D59C5
+obj663 #unit DBBE3302
 obj663 #vitals C8C47D0C
 + obj666 80 unmogo ""
 obj666 #ai 07BFFC82
 obj666 #place 22C61CE9
-obj666 #unit 07AF42EC
+obj666 #unit 166451BC
 obj666 #vitals 2871DAC1
 + obj668 80 unmogo ""
 obj668 #ai 80E96731
 obj668 #place 01C880C3
-obj668 #unit 1F4A92F7
+obj668 #unit 7D8747DD
 obj668 #vitals 2871DAC1
 + obj669 80 unmogo ""
 obj669 #ai 80E96731
 obj669 #place 5EDE8E20
-obj669 #unit BFB60BAD
+obj669 #unit E179F373
 obj669 #vitals 2871DAC1
 + obj670 80 unmogo ""
 obj670 #ai 80E96731
 obj670 #place 80EF688B
-obj670 #unit 0505CBA8
+obj670 #unit 7A1CBAEB
 obj670 #vitals 2871DAC1
 + obj699 80 unhuma ""
-obj699 #ai C269B926
+obj699 #ai 69F1FD4A
 obj699 #place 2FABAB77
-obj699 #unit 2F1EAF08
+obj699 #unit 26D10C6B
 obj699 #vitals 39A58F25
 + obj702 80 unhufe ""
-obj702 #ai C269B926
+obj702 #ai 69F1FD4A
 obj702 #place 643D63F8
-obj702 #unit B0CC1FED
+obj702 #unit A96B98A3
 obj702 #vitals 39A58F25
 + obj708 84 stbuho6
 obj708 # 641EAEC5
@@ -1401,7 +1401,7 @@ obj1764 # E610A603
 + obj1766 80 unmogo ""
 obj1766 #ai 07BFFC82
 obj1766 #place A5167378
-obj1766 #unit 22D079F2
+obj1766 #unit 1746F2EB
 obj1766 #vitals 2871DAC1
 + obj1769 82 naflbu6
 obj1769 # 30E99C32
@@ -1448,9 +1448,9 @@ obj1802 # C9A32C0B
 + obj1803 82 naflbu7
 obj1803 # 4CD09180
 + obj1804 80 unanwiwo ""
-obj1804 #ai 23C71B5C
+obj1804 #ai 71FA5398
 obj1804 #place DA332DDE
-obj1804 #unit 226AA445
+obj1804 #unit 32F4D177
 obj1804 #vitals 26AA52F3
 + obj1825 84 stst19
 obj1825 # D1DDF6FA
@@ -1527,17 +1527,17 @@ obj1879 # 9EF86DBF
 + obj1881 83 nast8
 obj1881 # 2F1340D7
 + obj1884 80 unhuma ""
-obj1884 #ai C269B926
+obj1884 #ai 69F1FD4A
 obj1884 #place 77A71CC9
-obj1884 #unit 58199F9E
+obj1884 #unit 51D63CFD
 obj1884 #vitals 39A58F25
 + obj1889 93 stga1
 obj1889 # A88924B6
 + obj1890 80 unanwibo ""
-obj1890 #ai 802B1BE1
+obj1890 #ai 5F76EDEE
 obj1890 #place 0DC233CF
-obj1890 #unit 2A8B909B
-obj1890 #vitals 26AA52F3
+obj1890 #unit 2C7CB064
+obj1890 #vitals EF850CB0
 + obj1892 83 nast16
 obj1892 # 848778E9
 + obj1893 82 nafltr59
@@ -1551,17 +1551,17 @@ obj1897 # 30126BD0
 + obj1898 80 unmoog1 ""
 obj1898 #ai 91DA03D8
 obj1898 #place D2276D02
-obj1898 #unit CD6677AC
+obj1898 #unit 8E366683
 obj1898 #vitals C8C47D0C
 + obj1900 80 unmoog1 ""
 obj1900 #ai 91DA03D8
 obj1900 #place 9A3A7337
-obj1900 #unit 68CAB010
+obj1900 #unit B3A6CE23
 obj1900 #vitals C8C47D0C
 + obj1901 80 unmogo ""
 obj1901 #ai 91DA03D8
 obj1901 #place 5072AD18
-obj1901 #unit 806B0DB5
+obj1901 #unit 376BC5F8
 obj1901 #vitals 2871DAC1
 + obj1902 83 nast5
 obj1902 # 834C2466
@@ -1586,167 +1586,167 @@ obj1912 # 0A2B65DA
 + obj1913 80 unmogo ""
 obj1913 #ai 91DA03D8
 obj1913 #place 4131A804
-obj1913 #unit F551D485
+obj1913 #unit FB0F384F
 obj1913 #vitals 2871DAC1
 + obj1915 80 unanwibo ""
 obj1915 #ai 07BFFC82
 obj1915 #place 4291F58C
-obj1915 #unit 384774FF
+obj1915 #unit 11995F85
 obj1915 #vitals 2871DAC1
 + obj1916 80 unanwibo ""
 obj1916 #ai 07BFFC82
 obj1916 #place CF514925
-obj1916 #unit DAF938C6
+obj1916 #unit D13E8947
 obj1916 #vitals 2871DAC1
 + obj1918 80 unanwibo ""
 obj1918 #ai 07BFFC82
 obj1918 #place 449CF903
-obj1918 #unit 56E469F7
+obj1918 #unit 57A85155
 obj1918 #vitals 2871DAC1
 + obj1919 80 unanwibo ""
 obj1919 #ai 07BFFC82
 obj1919 #place 2F8FCD31
-obj1919 #unit 716691A9
+obj1919 #unit F7AAE035
 obj1919 #vitals 2871DAC1
 + obj1920 80 unanwibo ""
 obj1920 #ai 07BFFC82
 obj1920 #place B2304598
-obj1920 #unit 332444CA
+obj1920 #unit 95866639
 obj1920 #vitals 2871DAC1
 + obj1921 80 unmoto ""
 obj1921 #ai 07BFFC82
 obj1921 #place CA5AB959
-obj1921 #unit FD5A7D43
+obj1921 #unit A8FBC1B9
 obj1921 #vitals 5931010B
 + obj1922 80 unmoto ""
 obj1922 #ai 07BFFC82
 obj1922 #place 5581A63C
-obj1922 #unit DE206C2C
+obj1922 #unit 3A4FBFCC
 obj1922 #vitals 5931010B
 + obj1923 80 unmoto ""
 obj1923 #ai 07BFFC82
 obj1923 #place B216CF9E
-obj1923 #unit AB1AB51C
+obj1923 #unit FE0D875F
 obj1923 #vitals 5931010B
 + obj1925 80 unmoto ""
 obj1925 #ai 07BFFC82
 obj1925 #place 5DD7F7C5
-obj1925 #unit 5CCA5723
+obj1925 #unit FE0D875F
 obj1925 #vitals 5931010B
 + obj1926 80 unmoto ""
 obj1926 #ai 07BFFC82
 obj1926 #place 35FAA4FC
-obj1926 #unit FD5A7D43
+obj1926 #unit BCD967DE
 obj1926 #vitals 5931010B
 + obj1927 80 unmoto ""
 obj1927 #ai 07BFFC82
 obj1927 #place 87404F02
-obj1927 #unit 27BDCA70
+obj1927 #unit 4DB66D6E
 obj1927 #vitals 5931010B
 + obj1928 80 unmoto ""
 obj1928 #ai 07BFFC82
 obj1928 #place 00045DDB
-obj1928 #unit 71FD022F
+obj1928 #unit 70BD9A69
 obj1928 #vitals 5931010B
 + obj1930 80 unmoto ""
 obj1930 #ai 07BFFC82
 obj1930 #place 0C55B276
-obj1930 #unit AB1AB51C
+obj1930 #unit 9A4D0EAC
 obj1930 #vitals 5931010B
 + obj1932 80 unmoto ""
 obj1932 #ai 07BFFC82
 obj1932 #place ABD5A73A
-obj1932 #unit 5CCA5723
+obj1932 #unit 1CDBD6BE
 obj1932 #vitals 5931010B
 + obj1933 80 unmoto ""
 obj1933 #ai 07BFFC82
 obj1933 #place 3CC898D1
-obj1933 #unit BE741B1A
+obj1933 #unit 35F287DE
 obj1933 #vitals 5931010B
 + obj1934 80 unmoto ""
 obj1934 #ai 07BFFC82
 obj1934 #place 5166BA4B
-obj1934 #unit 61BDD87F
+obj1934 #unit FB1F9BC7
 obj1934 #vitals 5931010B
 + obj1935 80 unmoto ""
 obj1935 #ai 07BFFC82
 obj1935 #place 5EF325A6
-obj1935 #unit 890C1749
+obj1935 #unit 35F287DE
 obj1935 #vitals 5931010B
 + obj1936 80 unmoto ""
-obj1936 #ai E03CA23C
+obj1936 #ai 9B19A518
 obj1936 #place 680F4B97
-obj1936 #unit 84136884
-obj1936 #vitals 57EA8939
+obj1936 #unit F92DD5CE
+obj1936 #vitals 7A4B06E9
 + obj1937 80 unmoto ""
-obj1937 #ai E3EB735D
-obj1937 #place 6498E644
-obj1937 #unit 8C74CDD6
+obj1937 #ai 6284E1C7
+obj1937 #place EE7E0C7C
+obj1937 #unit AE3EAD7B
 obj1937 #vitals 0D4C367F
 + obj1938 80 unanwiwo ""
 obj1938 #ai 07BFFC82
 obj1938 #place 7BDFD764
-obj1938 #unit 0822F047
+obj1938 #unit 7584F2CD
 obj1938 #vitals 2871DAC1
 + obj1940 80 unanwiwo ""
 obj1940 #ai 07BFFC82
 obj1940 #place 676BE30D
-obj1940 #unit EA269223
+obj1940 #unit 3750124C
 obj1940 #vitals 2871DAC1
 + obj1943 80 unmogo ""
 obj1943 #ai 07BFFC82
 obj1943 #place F3A2AA56
-obj1943 #unit BFB60BAD
+obj1943 #unit C9A750DA
 obj1943 #vitals 2871DAC1
 + obj1944 80 unmoba2 ""
 obj1944 #ai 07BFFC82
 obj1944 #place 5A82FA85
-obj1944 #unit 25E96267
+obj1944 #unit 4A774B87
 obj1944 #vitals 3B410D23
 + obj1945 80 unmoba2 ""
 obj1945 #ai 07BFFC82
 obj1945 #place F08CD5E2
-obj1945 #unit 13FDDD0E
+obj1945 #unit 27E6F599
 obj1945 #vitals 3B410D23
 + obj1947 80 unanhopi ""
 obj1947 #ai 704545B0
 obj1947 #place CEEA4C16
-obj1947 #unit 378D20CB
+obj1947 #unit 19195D48
 obj1947 #vitals 0D6AE555
 + obj1948 80 unanhopi ""
 obj1948 #ai 704545B0
 obj1948 #place FB192204
-obj1948 #unit B40BA8FE
+obj1948 #unit A51F8F6B
 obj1948 #vitals 0D6AE555
 + obj1949 80 unanhopi ""
 obj1949 #ai 704545B0
 obj1949 #place 5D0B8039
-obj1949 #unit 8373A4AD
+obj1949 #unit 8C36DE0B
 obj1949 #vitals 0D6AE555
 + obj1950 80 unanhopi ""
 obj1950 #ai 704545B0
 obj1950 #place 2B8A455C
-obj1950 #unit AF926CC6
+obj1950 #unit 72E4ECA9
 obj1950 #vitals 0D6AE555
 + obj1952 80 unanwibo ""
 obj1952 #ai 07BFFC82
 obj1952 #place CBAAB92A
-obj1952 #unit AFC3E1F6
+obj1952 #unit 6AA3A652
 obj1952 #vitals 2871DAC1
 + obj1953 80 unanwibo ""
 obj1953 #ai 07BFFC82
 obj1953 #place F4122B40
-obj1953 #unit 360A309C
+obj1953 #unit 4DC03DE9
 obj1953 #vitals 2871DAC1
 + obj1954 80 unanwiwo ""
 obj1954 #ai 07BFFC82
 obj1954 #place D1C6F199
-obj1954 #unit 066FB424
+obj1954 #unit 7A39CADF
 obj1954 #vitals 2871DAC1
 + obj1955 80 unanwiwo ""
 obj1955 #ai 07BFFC82
 obj1955 #place EC46A1C5
-obj1955 #unit 203BD11D
+obj1955 #unit 8795EB1A
 obj1955 #vitals 2871DAC1
 + obj1958 84 stst151
 obj1958 # 6E231626
@@ -1923,7 +1923,7 @@ obj1288918 # B0AFE3EF
 + obj1000011214 80 unhuma ""
 obj1000011214 #ai B8966489
 obj1000011214 #place 42E21D1A
-obj1000011214 #unit B4B02E3D
+obj1000011214 #unit 26BF31B9
 obj1000011214 #vitals 536C62BA
 + timed1288822 75 CEffectPointLight
 timed1288822 # 50A40FCC
@@ -2073,8 +2073,8 @@ water1005 positions 0xB8C7CD31
 water1005 speculars 0x285FA548
 + water2000 sector 0 2
 water2000 water 1089
-water2000 positions 0x894026FC
-water2000 speculars 0xB1F55ADC
+water2000 positions 0x578BA0FB
+water2000 speculars 0xB4747508
 + water2001 sector 1 2
 water2001 water 819
 water2001 positions 0xE5159FE0
@@ -2097,16 +2097,16 @@ water2005 positions 0x269E1598
 water2005 speculars 0xDD56D728
 + water3000 sector 0 3
 water3000 water 1089
-water3000 positions 0x2F149D17
-water3000 speculars 0xD1B4A8E5
+water3000 positions 0x45AF8781
+water3000 speculars 0xF5E0C248
 + water3001 sector 1 3
 water3001 water 937
-water3001 positions 0x5666BB87
-water3001 speculars 0xB6677418
+water3001 positions 0xD9565F32
+water3001 speculars 0xD3065A50
 + water3002 sector 2 3
 water3002 water 159
-water3002 positions 0x778A7843
-water3002 speculars 0x84A59628
+water3002 positions 0x84701120
+water3002 speculars 0x474D39F9
 + water3003 sector 3 3
 water3003 water 586
 water3003 positions 0xBCB03507
@@ -2121,12 +2121,12 @@ water3005 positions 0xD2BA2B1D
 water3005 speculars 0x1B0E6568
 + water4000 sector 0 4
 water4000 water 1089
-water4000 positions 0xDD11226F
-water4000 speculars 0x3B2827D1
+water4000 positions 0xED2C4D8D
+water4000 speculars 0x8941E961
 + water4001 sector 1 4
 water4001 water 761
-water4001 positions 0xF4E3E068
-water4001 speculars 0x41EDF89B
+water4001 positions 0xF87E7B7C
+water4001 speculars 0xF64829C2
 + water4003 sector 3 4
 water4003 water 511
 water4003 positions 0x65E68DA9
@@ -2137,12 +2137,12 @@ water4004 positions 0x4E785B97
 water4004 speculars 0x55BDB8B5
 + water5000 sector 0 5
 water5000 water 1089
-water5000 positions 0xA65B3B04
-water5000 speculars 0xF0176C94
+water5000 positions 0x04C718BA
+water5000 speculars 0x4595B1CA
 + water5001 sector 1 5
 water5001 water 463
-water5001 positions 0x6B46E232
-water5001 speculars 0xC52330DA
+water5001 positions 0x1551C76C
+water5001 speculars 0x9933F873
 + water5003 sector 3 5
 water5003 water 447
 water5003 positions 0x819FDE96

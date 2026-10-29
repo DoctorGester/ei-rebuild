@@ -1,12 +1,12 @@
 {
   "scenario": "rebirth_fixes_ui",
   "install": "vanilla",
-  "recorded": "2026-10-20",
-  "commit": "03b6ca50",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 4,
-  "reason": "SV9a: scenarios that reach Rebirth's other fixes, recorded from the original with addon.dll's fixes",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+  "repeated_in": 2,
+  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }

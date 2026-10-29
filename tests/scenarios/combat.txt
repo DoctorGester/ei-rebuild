@@ -47,7 +47,9 @@ wait 1000
 console @Attack(GetObjectByName("Enemy2"),GetLeader())
 wait 1000
 console @Attack(GetObjectByName("Enemy2"),GetLeader())
-waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+# The goblin may miss several times in a row (skill=-3.40282e+038 in its log lines: Rebirth's run missed five
+# times in 20 s after R34a's change of the game's draws), so the wait is long.
+waitfor 60 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
 expect was attacked by
 console #HP(GetLeader())
 # Heal the hero, then fight back until the goblin is dead.

@@ -937,6 +937,15 @@ title = "Terrain: the Lit stage and relight countdowns gone (the terrain's ISAAC
 group = "renderer"
 note = "R34 left SectorData::Light writing only the edge fade, which never changes, yet the Lit stage and the relight countdowns (SetSun spreading them over the LightingFreq interval, RelightTick, ScheduleRelight, SetLightInterval, lightInterval / lightCountdown) stay: on the tick a sector's lighting drops, RunTick skips its AnimateTiles / AnimateWaves, and AnimateTiles draws from the global ISAAC; without the countdowns 15 goldens differ (levers_key, net_pair_join/kick/leave/master/quest/zone, rebirth_fixes_ui, terrain_water_waves, ui_base_dialogue/topic, ui_gallery_base/mp, ui_mp_host, zone_base_bz1g; the random group first; net_pair_quest's waitidle then times out). The patch that removed them is in R34's report (full_removal.patch). Way out without emulation: take the terrain's draws (FillTiles' start frames, AnimateTiles) off the game's ISAAC in both builds (the harness patches game.exe's sites, as address_order does for the relight sort; a harness change: --no-hooks suite, goldens re-recorded for the random group only), then drop the countdowns, the Lit stage (the fade written at Build) and the options' LightingFreq use. User approved 2026-10-29 ('give client only effects its own random'): one client-effects generator for every client-only draw, not only the terrain's: also check the ambient sounds (terrain_ambience.cpp), sound picks, particles and other draws whose count depends on the frame or camera; list each moved site.  Check: goldens, terrain_water_waves."
 
+[[ticket]]
+id = "R34b"
+title = "Server-side visual effect draws: which follow frame timing"
+group = "renderer"
+size = 0.3
+depends = ["R34a"]
+files = ["src/game/effects*.cpp", "src/game/lightning*.cpp", "src/game/world_weather*.cpp"]
+note = "R34a moved every client-only draw to g_clientRandom and left on the game's ISAAC the draws of server-side effect objects (CEffectSoundSeq, CEffectParticle::Spawn, CEffectMoshka, CEffectTornado, ShowBolt, world_weather), which tick with the world and are saved. Check whether any of them still draws a frame- or camera-dependent number of times (a golden that moves with the frame rate would show it); if one does, it goes to the client generator the same way (the harness's client_effects tables)."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
@@ -2551,6 +2560,15 @@ title = "game.exe runs with 'resolution desktop' share the machine"
 group = "harness"
 depends = ["H31"]
 note = "H31: net_pair_leave/_quest/_zone (and their peers) keep the desktop's size with 'resolution desktop' (ground clicks follow the pixel grid, goldens are the original's at 4K). run_all.sets_display_mode makes any 'resolution' line run game.exe alone (3f1935ab4: ui_widescreen's addon runs took other games' surfaces), so a --no-hooks suite on a cache miss now plays the three pairs alone (193 s vs 120-228 s before). 'desktop' is the snapshot's mode, what every other game.exe run uses: check whether such runs can share the machine (not the --widescreen --record addon runs), and keep test_work_sched's runs_alone tests in step."
+
+[[ticket]]
+id = "H32"
+title = "frame_store.py unpack writes an empty BMP"
+group = "harness"
+size = 0.1
+model = "sonnet"
+files = ["tools/frame_store.py"]
+note = "Found in R34a: 'python tools/frame_store.py unpack X.bmp.z' opens X.bmp for writing before read_frame(X.bmp) reads it, so read_frame finds the (now empty) plain file first and the result is 0 bytes. Read first, then write; a test in tools/test_frame_store.py."
 
 # ---------------------------------------------------------------- cleanup
 

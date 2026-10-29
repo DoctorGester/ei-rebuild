@@ -26,6 +26,8 @@ public:
     // Once (while seeded_ is 0): seeds results_ (1 KB of a random file on C:\,
     // mixed with rand()), then the reference randinit(ctx, TRUE) and the first Refill.
     void Init();
+    // Once (while seeded_ is 0): Init with `source`'s memory_ as the seed instead of Seed's (no file, no rand()).
+    void InitFrom(const IsaacRandom& source);
 
     // Fills results_ with seed material: 1 KB read at a random offset (0x201..0x400) of a
     // file of at least 2 KB picked at random on C:\ (FindSeedFile), each word then xored with
@@ -41,8 +43,24 @@ public:
     std::uint32_t results_[256];    // randrsl
     std::uint32_t memory_[256];     // randmem
     std::uint32_t a_, b_, c_;       // randa, randb, randc
+
+private:
+    // Init after the seed: the reference randinit(ctx, TRUE) over results_ and the first Refill.
+    void MixSeed();
 };
 static_assert(sizeof(IsaacRandom) == 0x814);
 
 // The game's generator (random.cpp).
 extern IsaacRandom g_random;
+
+// The client effects' generator: the draws whose results only reach the picture or the sound (the terrain's
+// animated tiles and ambient sounds, particles, lightning shapes, sound picks, decals, the interface's
+// flourishes) and whose count follows frames, the camera or what was drawn. The game drew them from g_random or
+// rand(); apart, the game's draws no longer depend on them. Seeded from g_random's state when that is seeded
+// (CWorld::Create); before that it draws from the zero state, as g_random does unseeded.
+extern IsaacRandom g_clientRandom;
+
+// A draw of g_clientRandom in rand()'s range (0..0x7FFF), for the client effects that drew rand().
+int ClientRand();
+// ClientRand() * n / 0x7FFF % n, as libcrt::RandBelow scales rand() (n > 0).
+inline int ClientRandBelow(int n) { return ClientRand() * n / 0x7FFF % n; }

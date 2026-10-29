@@ -1,13 +1,13 @@
 {
   "scenario": "render_cursor_present",
   "install": "vanilla",
-  "recorded": "2026-10-16",
-  "commit": "1cbb8c63",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 7,
-  "reason": "S20a: image-only golden (the original cannot run it: renderer-only checks); 7 agreeing image runs: plain x3, EI_HEAP_JITTER 1 (x2), 2,fill, 3,fill",
+  "repeated_in": 4,
+  "reason": "R34a: image-only golden re-recorded: client-only effects draw from their own generator, so the game's ISAAC / rand() states move; 4 agreeing image runs: plain x2, EI_HEAP_JITTER 1, 2,fill",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 7 runs"
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
 }

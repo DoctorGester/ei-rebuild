@@ -34,6 +34,11 @@ RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetH
 004667F0, `Refill` 0049EE70, `Init` 0049F150 (the generator is at 007A9D40), `Seed` 0049F660 (1 KB of a random file on drive C, xored with
 `rand()`; A-S10), `FindSeedFile` 0049F4B0 (its recursive CFileFind walk).
 
+The client effects' generator `g_clientRandom` (random.h, R34a) is ours: a second ISAAC that `CWorld::Create` seeds right after
+the game's (`InitFrom`: Init with the game's memory words as the seed, no file, no `rand()`), drawn by every effect whose result
+only reaches the picture or the sound (`ClientRand()` for the ones that drew `rand()`). The list of the moved sites and how they
+were found: standalone-verification.md section 5 and harness_client_effects.cpp (the original's functions, patched alike).
+
 - `CTransformObject` (vtable 0073BA38, abstract, 0x54 bytes): CEngineObject + local position (+0x1C),
   world position (+0x28), local rotation (+0x34), world rotation (+0x44). Slots 13-17 are the five
   methods above, shared by ~90 vtables; slot 14 is overridden by 00516370 in the unit classes

@@ -8,7 +8,10 @@
 # - Public (region 4) with the master on the pair's virtual port 28124 ("masterhost", "fakemaster"): every
 #   announcement (AnnounceToMaster 0041AA10) is answered with a master packet: OnMaster 0041ACA0 keeps its
 #   token, which the next announcement carries back (the report's MASTER: line).
-# - The pair's offer (z3q2 z6q1 z7q1 z9q2 on both installs): the sheriff's fifth topic (region 4) is z9q2,
+# - The pair's offer: the sheriff's fifth topic (region 4) is the zone9 map. Rebirth offers z9q2 at once;
+#   vanilla's first offer has z9q3 (R34a), so its host takes z9q3 (three phrases) and rejects it at once
+#   (the middle topic, z9q3_2: LeaveZone 00418CC0, the next offer queued without z9q3), which offers z9q2.
+#   The fifth topic then takes z9q2,
 #   "Danger near the City of the Dead": the old camp in the north-west of zone9 (the quest place 80.5 264.5)
 #   and its ten undead (1000188..1000197, around 8..55 x 266..309). The briefing is clicked through after the
 #   peer has joined (a guest joining while the host's briefing runs crashes the original and the image alike
@@ -58,6 +61,35 @@ waitwindow 25 briefing
 peersignal hosted
 peerwait 90 joined
 frames 20
+
+# Vanilla: z9q3 taken (the fifth topic) and rejected (the middle topic); the new offer has z9q2.
+vanilla clickground 63 64 dblclick
+vanilla frames 60
+vanilla waitunit 10 Nsheriff
+vanilla clickunit Nsheriff
+vanilla frames 10
+vanilla clickregion 4
+vanilla wait 4000
+vanilla click 400 300
+vanilla wait 800
+vanilla click 400 300
+vanilla wait 800
+vanilla click 400 300
+vanilla wait 800
+vanilla click 400 300
+vanilla wait 800
+vanilla frames 40
+vanilla clickunit Nsheriff
+vanilla frames 10
+vanilla clickregion 1
+vanilla wait 4000
+vanilla click 400 300
+vanilla wait 800
+vanilla click 400 300
+vanilla wait 800
+vanilla click 400 300
+vanilla wait 800
+vanilla frames 40
 
 # The sheriff's fifth topic takes z9q2 (seven phrases).
 clickground 63 64 dblclick

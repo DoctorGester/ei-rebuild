@@ -21,13 +21,13 @@ namespace {
 
 constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
 
-// Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is there once lit.
+// Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is there once built.
 template <typename Visit>
 void ForVisibleSectors(Terrain* terrain, Visit visit) {
     const Terrain::SectorRect& visible = terrain->visible;
     for (int sy = visible.firstY; sy <= visible.lastY; ++sy)
         for (int sx = visible.firstX; sx <= visible.lastX; ++sx)
-            if (SectorData* sector = terrain->SectorAt(sx, sy, SectorStage::Lit, true)) visit(sector);
+            if (SectorData* sector = terrain->SectorAt(sx, sy, SectorStage::Built, true)) visit(sector);
 }
 
 bool HasTilesOn(const SectorData* sector, int page) {
@@ -72,10 +72,10 @@ void SectorData::ClipTest(CSceneRenderer* renderer) {
 void SectorData::FindSeams() {
     seamAfter = false;
     seamBefore = false;
-    // A lit neighbour drawn at the next coarser level: this sector's edge towards it is drawn with
+    // A built neighbour drawn at the next coarser level: this sector's edge towards it is drawn with
     // the seam triangles (render_terrain.cpp). The lookup does not load anything.
     const auto coarser = [&](int nx, int ny, int level) {
-        const SectorData* neighbour = owner->SectorAt(nx, ny, SectorStage::Lit, false);
+        const SectorData* neighbour = owner->SectorAt(nx, ny, SectorStage::Built, false);
         return neighbour && neighbour->detail == level && neighbour->IsDrawn();
     };
     if (detail == 0) {

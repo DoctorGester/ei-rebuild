@@ -12,6 +12,7 @@
 
 // The game's generator: unseeded (the static initialiser zeroes seeded_; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};
+IsaacRandom g_clientRandom = {};
 
 namespace {
 IsaacRandom::SeedHook g_seedHook;
@@ -209,6 +210,16 @@ void IsaacRandom::Seed() {
 void IsaacRandom::Init() {
     if (seeded_ != 0) return;
     Seed();
+    MixSeed();
+}
+
+void IsaacRandom::InitFrom(const IsaacRandom& source) {
+    if (seeded_ != 0) return;
+    std::memcpy(results_, source.memory_, sizeof(results_));
+    MixSeed();
+}
+
+void IsaacRandom::MixSeed() {
     c_ = 0;
     b_ = 0;
     a_ = 0;
@@ -221,3 +232,5 @@ void IsaacRandom::Init() {
     count_ = 256;
     seeded_ = 1;
 }
+
+int ClientRand() { return static_cast<int>(g_clientRandom.Next() & 0x7FFF); }

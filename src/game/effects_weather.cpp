@@ -219,15 +219,15 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
             cell->visible = 1;
             cell->x = static_cast<std::int16_t>(grid->x0 + col);
             cell->y = static_cast<std::int16_t>(grid->y0 + row);
-            std::uint32_t r = g_random.Next();
+            std::uint32_t r = g_clientRandom.Next();
             cell->pos.x = static_cast<float>((Unsigned(r) * kFogJitter + cell->x - kQuarter) * 0.5f);
-            r = g_random.Next();
+            r = g_clientRandom.Next();
             cell->pos.y = static_cast<float>((Unsigned(r) * kFogJitter + cell->y - kQuarter) * 0.5f);
             // The water surface height, used unrounded.
             double ground = World()->SurfaceHeightAt(LoadFloat(cell->pos.x), LoadFloat(cell->pos.y));
             cell->alpha = 0.0f;
             cell->pos.z = static_cast<float>(ground + 0.5f);
-            cell->frame = static_cast<std::int8_t>(g_random.Next() % 15);
+            cell->frame = static_cast<std::int8_t>(g_clientRandom.Next() % 15);
             boundsValid = 0;
         }
     }

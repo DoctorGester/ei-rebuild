@@ -61,7 +61,7 @@ constexpr SkillAnimation kStoneAnimation[6] = {SkillAnimation::Briefing01, Skill
                                                SkillAnimation::Briefing11, SkillAnimation::Briefing09};
 
 // A random word scaled to [0, scale) (the word read unsigned, as a 64-bit integer).
-double RandomScaled(double scale) { return x87::FromUnsigned(g_random.Next()) * scale; }
+double RandomScaled(double scale) { return x87::FromUnsigned(g_clientRandom.Next()) * scale; }
 
 } // namespace
 
@@ -110,7 +110,7 @@ void CMainMenu::CreateScreen() {
     GamePlayMusic(nullptr);
     savedEdgeFade_ = options::g_options.borderFogDistance_;
     options::g_options.borderFogDistance_ = kMenuEdgeFade;
-    rain_ = (g_random.Next() & 1) == 1;
+    rain_ = (g_clientRandom.Next() & 1) == 1;
     // The hour is read three times (the unrounded result is compared each time).
     EI_NAN_AUDIT(GameServerTimeOfDay());
     daylight_ = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
@@ -135,7 +135,7 @@ void CMainMenu::Update() {
         std::uint32_t now = gameapi::GetTickCount();
         if (now > g_nextLightningTick) {
             g_nextLightningTick = now + 100;
-            if (g_random.Next() % 41 == 4) {
+            if (g_clientRandom.Next() % 41 == 4) {
                 // A bolt from a random point high above the map to one near it on the ground; each
                 // coordinate is stored as a float before it is used again.
                 float fromX = static_cast<float>(RandomScaled(4.656612874161595e-09));

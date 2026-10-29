@@ -1,12 +1,12 @@
 {
   "scenario": "net_pair_zone",
   "install": "vanilla",
-  "recorded": "2026-10-20",
-  "commit": "dff556aa",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 3,
-  "reason": "SV5d3: mp folder read from the run's overlay only (the user's own hero Yob had been listed); net_pair_quest new",
+  "repeated_in": 2,
+  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer",
   "side": "peer"
 }

@@ -13,6 +13,7 @@
   Unit 1000011214 new motivation Player with power of 10
   Unit 1804 new motivation Patrol with power of 50
   Unit 1890 new motivation Patrol with power of 50
+  Unit 1804 acknowledges with idleSound = AAn4XyU
   Saved savea
   1
   1

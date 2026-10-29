@@ -218,8 +218,6 @@ constexpr int kProgressZoneReady = 11;
 constexpr float kCaveReverbRoom = 0.3f;
 constexpr float kCaveReverbLevel = 1.0f;
 constexpr float kCaveReverbTime = 3.0f;
-// The LightingFreq option counts milliseconds; the terrain counts frames of this many.
-constexpr int kFrameMilliseconds = 66;
 // Terrain flags the options and the cave decide.
 constexpr int kCave = 1;
 
@@ -1003,7 +1001,6 @@ int CWorldClient::LoadZone(CStream* block) {
     if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~terrain::LandscapeFlag::Waves;
     if (cave == kCave) terrain->landscapeFlags |= terrain::LandscapeFlag::Waves;
     if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~terrain::LandscapeFlag::SunShadows;
-    terrain->SetLightInterval(worlddata::LightingFrequencyOption() / kFrameMilliseconds);
     if (skyDome_) {
         Ref<CTexture>& sky = skyDome_->texture;
         if (cave == kCave) {

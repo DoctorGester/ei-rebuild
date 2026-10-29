@@ -949,7 +949,8 @@ static_assert(sizeof(SectorPosition) == 0xC);
 
 // A cached landscape sector (terrain_sector.h).
 struct SectorData {
-    std::uint8_t unknown0[0x8];
+    std::uint8_t unknown0[0x4];
+    std::uint32_t built;                    // +0x04 SectorStage bits
     int sx;                                 // +0x08
     int sy;                                 // +0x0C
     int hasWater;                           // +0x10
