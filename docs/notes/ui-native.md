@@ -167,7 +167,7 @@ string in ten wraps at a different word than today's GDI at 800x600.
   colour)`, `CopyFrame(source)`, `Greyscale`. `GlyphRun` composes colour × coverage over what is there (max coverage between
   glyphs, underlines full), so over black it is `ComposeAgainstBlack`. `Greyscale` follows 005FE440 on the format's bits (5:6:5,
   5:5:5, else 8-bit channels). `CopyFrame` uses CopyFrameTo's stretch and truncation.
-- `ReadPixels` (0x00RRGGBB) and `ReadBack` (into SurfaceMemory, marked written) run the queue first. `DrawCanvas(holder, dst,
+- `ReadPixels` (0x00RRGGBB) runs the queue first. `DrawCanvas(holder, dst,
   src, keyed, key)` records `Command::Canvas`; it draws like the window blit, with the key compared on the stored colour.
 - **Order.** Commands queue in call order. `DrawPending` runs `RunCanvasCommands` before its passes (hoisting). A command on a
   canvas whose blit is recorded and not drawn calls `SplitFrame` first (the frame so far drawn: the blit shows the old contents).
@@ -180,8 +180,8 @@ string in ten wraps at a different word than today's GDI at 800x600.
   2-px line is one dot. Wider pens and slanted lines are approximate; the game uses only 1 and 2 px, horizontal or vertical.
 
 **Check.** `ei_ui_check` (build.cmd runs it after the vector replay; about 0.3 s on WARP; `--hardware` uses the GPU, `--verbose`
-prints each check and the difference maps). It plays render.cpp's part: its frame, `SplitFrame`, `RunCanvasesNow`, and
-SurfaceMemory are its own. It gates 64 checks exactly. Fills, frames, 1- and 2-px lines and pixels are compared with GDI drawing
+prints each check and the difference maps). It plays render.cpp's part: its frame, `SplitFrame` and `RunCanvasesNow`
+are its own. It gates 64 checks exactly. Fills, frames, 1- and 2-px lines and pixels are compared with GDI drawing
 into a DIB section in 5:6:5, 5:5:5 and 8:8:8. Glyph runs (shadow then text over fills, clipping, underlines, Cyrillic) are
 compared with the CPU rule and `ComposeAgainstBlack`. Also checked: greying against 005FE440's formulas, screen copies against
 CopyFrameTo's, and five frame blits (keyed, stretched, a source part, split, hoisted). Any sokol warning or `ei::Log` line fails.
