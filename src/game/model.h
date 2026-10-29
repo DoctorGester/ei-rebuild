@@ -150,10 +150,9 @@ public:
     static void ProjectPoints(const Matrix4& m, const LightningPoint* points, Vector4* projected, int count);
     int ProjectPointsClipped(const Matrix4& m, const LightningPoint* points, Vector4* projected, std::uint8_t* outcodes,
                              int count) const;
-    // `count` screen-facing sprites, their centres to clip space with `m` (the clip stack's top), as four
-    // corners each (positions only; `size` the half side at w 1) and an outcode per corner; returns the verdict.
-    int ProjectSprites(const Matrix4& m, const SpritePoint* points, TLVertex* corners, std::uint8_t* outcodes,
-                       int count) const;
+    // `count` screen-facing sprites, their centres to the screen with `m` (the clip stack's top), as four
+    // corners each (positions only; `size` the half side at w 1).
+    void ProjectSprites(const Matrix4& m, const SpritePoint* points, TLVertex* corners, int count) const;
     // A clip-space point on the screen: x right and y down from the top left corner, z / w, and 1 / w.
     Vector4 ToScreen(const Vector4& p) const;
     // ToScreen on the first 16 bytes (x, y, z, w) of `count` vertices.

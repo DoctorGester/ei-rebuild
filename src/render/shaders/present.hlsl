@@ -14,7 +14,7 @@ vs_out vs_main(uint id : SV_VertexID) {
 cbuffer cursor_params : register(b0) {
     float4 cursorTo;      // left, top, right, bottom in frame pixels; right <= left: no cursor
     float4 frameInfo;     // x, y: frame width, height; z, w: cursor texels per frame pixel
-    float4 cursorSize;    // x, y: the cursor texture's width, height
+    float4 cursorSize;    // x, y: the width and height of the cursor's part of its picture; z, w: its top left texel
 };
 Texture2D<float4> tex : register(t0);
 Texture2D<float4> ramp : register(t1);
@@ -25,7 +25,7 @@ float3 Composed(int2 p) {
     p = clamp(p, int2(0, 0), int2(frameInfo.xy) - 1);
     float3 colour = tex.Load(int3(p, 0)).rgb;
     if (p.x >= cursorTo.x && p.x < cursorTo.z && p.y >= cursorTo.y && p.y < cursorTo.w) {
-        int2 t = (int2)clamp(floor((float2(p) - cursorTo.xy) * frameInfo.zw), float2(0.0, 0.0), cursorSize.xy - 1.0);
+        int2 t = (int2)(cursorSize.zw + clamp(floor((float2(p) - cursorTo.xy) * frameInfo.zw), float2(0.0, 0.0), cursorSize.xy - 1.0));
         float4 c = cursorTex.Load(int3(t, 0));
         if (c.a >= 0.5) colour = c.rgb;
     }

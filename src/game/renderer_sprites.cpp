@@ -1,6 +1,6 @@
 // The renderer's sprite draw with its helpers (indexed draw, a radix sort pass, a merge sort pass).
 // More: docs/notes/comments-c22i.md, "renderer_sprites.cpp".
-#include "clip.h"
+#include "clip.h"   // TLVertex
 #include "model.h"
 #include "render/render.h"
 #include "render/render_state.h"
@@ -19,12 +19,11 @@
 #include <utility>
 #include <vector>
 
-// One record of the back-to-front sort (16 bytes).
+// One record of the back-to-front sort.
 struct SpriteSortRecord {
     std::int32_t key;             // the first corner's z, as bits (never negative here)
     SpriteSortRecord* next;       // the radix pass's bucket list
     TLVertex* corners;            // the sprite's four corners (in the copy)
-    std::uint32_t outcodes;       // their four outcode bytes
 };
 
 void SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
@@ -42,9 +41,8 @@ struct Sprite {               // 8 bytes
 
 // --- The statics ---------------------------------------------------------------------------------
 
-// The sprite draw's work buffers: vectors of vertices, corner outcodes and indices.
+// The sprite draw's work buffers: vectors of vertices and indices.
 std::vector<TLVertex> g_corners;         // 4 per sprite
-std::vector<std::uint8_t> g_outcodes;    // a byte per corner
 std::vector<std::uint16_t> g_indices;
 // The sort's buffers.
 std::vector<TLVertex> g_cornersCopy;     // the records point here
@@ -64,34 +62,29 @@ void SetCorner(TLVertex& v, std::uint32_t color, const float* u, const float* t)
     v.v = *t;
 }
 
-// The colour and texture coordinates of the next sprites' corners, at most 511 and at most
-// `remaining`; corners (u0,v0), (u1,v0), (u1,v1), (u0,v1). Returns how many.
-int FillCorners(const Sprite*& sprite, int& remaining) {
+// The colour and texture coordinates of `count` sprites' corners: (u0,v0), (u1,v0), (u1,v1), (u0,v1).
+void FillCorners(const Sprite* sprite, int count) {
+    g_corners.resize(static_cast<std::size_t>(count) * 4);
     TLVertex* v = CornerData();
-    int count = 0;
-    while (remaining > 0) {
+    for (int i = 0; i < count; ++i, ++sprite, v += 4) {
         const float* uv = sprite->uv;
         std::uint32_t color = sprite->color;
         SetCorner(v[0], color, &uv[0], &uv[1]);
         SetCorner(v[1], color, &uv[2], &uv[1]);
         SetCorner(v[2], color, &uv[2], &uv[3]);
         SetCorner(v[3], color, &uv[0], &uv[3]);
-        v += 4;
-        ++count;
-        --remaining;
-        ++sprite;
-        if (count >= 0x1FF) break;
     }
-    return count;
 }
 
-// Sorts the batch back to front: a record per sprite whose first corner's z is not negative (its
+// Sorts the batch back to front: a record per sprite whose depth (its corners' z) lies in 0..1 (its
 // bits are the key), sorted largest first by four radix passes above 128 sprites, else by merge
-// passes; the corners and outcodes are then written back in that order. Returns the sprites kept.
+// passes; the corners are then written back in that order. Returns the sprites kept.
 int SortBackToFront() {
+    // The depth range is tested here, not by the GPU: a pre-transformed draw keeps z inside it. A sprite
+    // behind the camera has a z above 1 (1 / w is negative), one at w 0 an infinite or NaN z.
+    constexpr std::int32_t kFarKey = std::bit_cast<std::int32_t>(1.0f);
     g_cornersCopy.resize(std::ssize(g_corners));
     std::memcpy(g_cornersCopy.data(), g_corners.data(), static_cast<std::size_t>(std::ssize(g_corners)) * sizeof(TLVertex));
-    const auto* outcodes = reinterpret_cast<const std::uint32_t*>(g_outcodes.data());   // four bytes per sprite
     TLVertex* corners = g_cornersCopy.data();
     int sprites = std::ssize(g_cornersCopy) / 4;
     g_records.resize(sprites);
@@ -100,9 +93,8 @@ int SortBackToFront() {
     for (int i = 0; i < sprites; ++i, corners += 4) {
         SpriteSortRecord* record = g_records.data() + kept;
         record->key = std::bit_cast<std::int32_t>(corners->z);       // written for dropped sprites too
-        if (record->key < 0) continue;
+        if (record->key < 0 || record->key > kFarKey) continue;
         record->corners = corners;
-        record->outcodes = outcodes[i];
         g_order[kept] = record;
         ++kept;
     }
@@ -130,12 +122,8 @@ int SortBackToFront() {
 
     g_corners.resize(kept * 4);
     TLVertex* out = CornerData();
-    auto* codes = reinterpret_cast<std::uint32_t*>(g_outcodes.data());
-    for (int i = 0; i < kept; ++i) {
-        std::memcpy(out + i * 4, sorted[i]->corners, 4 * sizeof(TLVertex));
-        codes[i] = sorted[i]->outcodes;
-    }
-    return std::ssize(g_corners) / 4;
+    for (int i = 0; i < kept; ++i) std::memcpy(out + i * 4, sorted[i]->corners, 4 * sizeof(TLVertex));
+    return kept;
 }
 
 // The batch's triangle list through the device object (fogged by distance when it says so). True.
@@ -149,8 +137,9 @@ void SetTriangle(std::uint16_t* tri, int a, int b, int c) {
     tri[2] = static_cast<std::uint16_t>(c);
 }
 
-// All corners on screen: two triangles per sprite, (0, 2, 1) and (0, 3, 2).
+// Two triangles per sprite, (0, 2, 1) and (0, 3, 2); the GPU clips the ones that cross the screen's edges.
 bool DrawQuads(CSceneRenderer* renderer, int sprites) {
+    g_indices.resize(static_cast<std::size_t>(sprites) * 6);
     std::uint16_t* tri = IndexData();
     for (int i = 0; i < sprites * 4; i += 4, tri += 6) {
         SetTriangle(tri, i, i + 2, i + 1);
@@ -158,35 +147,6 @@ bool DrawQuads(CSceneRenderer* renderer, int sprites) {
     }
     if (sprites == 0) return true;
     return Draw(renderer, sprites * 4, sprites * 6);
-}
-
-// Some corners off screen: each triangle goes through the clipper, which may append vertices.
-bool DrawClipped(CSceneRenderer* renderer, int sprites) {
-    const RECT& screen = renderer->device_->screen_;
-    float xMax = static_cast<float>(screen.right);
-    float yMax = static_cast<float>(screen.bottom);
-    // The clipper appends its new vertices after the corners (up to two per plane, six planes, two triangles per
-    // sprite): the vector holds them (the original wrote them past its end, into its spare capacity).
-    constexpr int kClipAddedPerSprite = 2 * 6 * 2;
-    g_corners.resize(static_cast<std::size_t>(sprites) * (4 + kClipAddedPerSprite));
-    TLVertex* vertices = CornerData();
-    const auto* outcodes = g_outcodes.data();
-    std::uint16_t* tri = IndexData();
-    int vertexCount = sprites * 4;
-    int indexCount = 0;
-    for (int i = 0; i < sprites * 4; i += 4) {
-        int added;
-        SetTriangle(tri, i, i + 2, i + 1);
-        clip::ClipTriangle(vertices, outcodes, tri, &vertexCount, &added, xMax, yMax);
-        indexCount += added;
-        tri += added;
-        SetTriangle(tri, i, i + 3, i + 2);
-        clip::ClipTriangle(vertices, outcodes, tri, &vertexCount, &added, xMax, yMax);
-        indexCount += added;
-        tri += added;
-    }
-    if (indexCount <= 0) return true;
-    return Draw(renderer, vertexCount, indexCount);
 }
 } // namespace
 
@@ -251,9 +211,6 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
     const auto* points = static_cast<const std::vector<SpritePoint>*>(pointArray);
     const auto* sprites = static_cast<const std::vector<Sprite>*>(spriteArray);
     const CTransformPipeline* pipeline = pipeline_;
-    g_corners.resize(0x2000);
-    g_outcodes.resize(0x800);
-    g_indices.resize(0x3000);
     const Matrix4& clip = *pipeline->Top(CTransformPipeline::kClipStack);
 
     const SpritePoint* point = points->data();
@@ -267,18 +224,15 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
         state.destBlend = render::Blend::One;
     }
 
+    constexpr int kBatch = 0x1FF;   // sprites
     while (remaining > 0) {
-        int count = FillCorners(sprite, remaining);
-        g_corners.resize(count * 4);
-        // 0: all corners on screen, 1: some off screen, else nothing to draw.
-        int visibility = pipeline->ProjectSprites(clip, point, g_corners.data(), g_outcodes.data(), count);
+        const int count = remaining < kBatch ? remaining : kBatch;
+        FillCorners(sprite, count);
+        sprite += count;
+        remaining -= count;
+        pipeline->ProjectSprites(clip, point, g_corners.data(), count);
         point += count;
-        int kept = SortBackToFront();
-        if (visibility == 1) {
-            if (!DrawClipped(this, kept)) return 0;
-        } else if (visibility == 0) {
-            if (!DrawQuads(this, kept)) return 0;
-        }
+        if (!DrawQuads(this, SortBackToFront())) return 0;
     }
 
     if (additive) {

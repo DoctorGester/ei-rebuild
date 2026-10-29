@@ -718,6 +718,7 @@ void HolderGone(const void* holder) {
     detail::g_pictures.erase(holder);
     // What the renderer made for it (a later holder at the same address starts afresh).
     detail::ForgetHolder(holder);
+    detail::ForgetCursor(holder);
     ui::DropCanvas(holder);
 }
 

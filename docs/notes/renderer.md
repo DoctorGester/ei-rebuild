@@ -443,13 +443,17 @@ read resets sokol's state cache after it); `D3DTexture` is a sokol image's textu
 (its 8-bit value: `Widen`), `RectParams` / `ApplyRect` the rectangle shaders' vertex block. The .mmp header is
 texture.h's `MmpHeader` on both sides.
 
-Images kept across frames (`render_blit.cpp`): the cursor's composite and the movie frames are dynamic images updated
-with `sg_update_image`, not made per blit. The cursor's composites are a cache of at most 64
-images (one per size, several of a size when one frame draws different contents), each keeping a copy of its pixels: a
-blit with the same pixels uploads nothing, else a free image of that size (not blitted in this frame, not updated
-since the last commit; sokol allows one update per image and frame, and the blits are drawn at the end of the frame)
-is rewritten; only when every image is in use is a one-frame image made. A movie keeps one image per player, updated
-in place unless it was already blitted or updated in this frame (then a new one replaces it after the present).
+Images kept across frames (`render_blit.cpp`). The cursor (R32): each cursor picture (all its frames side by side)
+goes to the GPU once, at its first draw, with its mask as alpha (255 where the mask is zero), as an immutable image
+per holder; it is made again only when the holder's mask or size changes, let go when the holder goes (HolderGone)
+and dropped with the device. A frame's cursor is that image with `from` as the source rectangle: the present shader
+reads the part (`cursor_params.cursorSize`: its size and top left texel) and the cursor thread draws the same
+texture (its shader view referenced under the sheet lock), so no frame composes or uploads cursor pixels. Before
+R32 the part was cut out on the CPU every frame and uploaded whenever it differed (render_stats: 1 upload, 4 KB, a
+frame in every scene; render_cursor_present: 31 requests, 31 uploads); now render_stats' small uploads are 0 after a
+picture's first frame. A movie keeps one dynamic image per player, updated with `sg_update_image` in place unless it
+was already blitted or updated in this frame (sokol allows one update per image and frame, and the blits are drawn
+at the end of the frame; then a new one replaces it after the present).
 `render::Fill` (the movie player's black) is a solid rectangle command, drawn with the depth clear's shader
 (`solid.hlsl`) through a pipeline that writes the colour only (R30c).
 Harness build: counts per purpose in ei_hook.log (`render: images ...`, every 300 frames and at exit) and every
@@ -682,8 +686,11 @@ the header of `render_cursor.cpp`; the rules worth knowing:
   draws with until the frame's own present: during a frame that drew a pass early (a copy in its middle: quick save),
   the cursor does not move between frames. `CursorBetweenFrames` presents only when nothing was presented on
   the game window for 40 ms (real time: the harness's virtual clock does not reach the renderer).
+- The cursor's texels are the part `from` of its picture's image (section 8, R32): the cursor thread takes the
+  picture the last frame drew (`SetCursorSheet`, its shader view referenced) and presents only when the call names
+  that picture; DropCursorPresents and HolderGone let it go.
 - Harness build: every frame the cursor thread presents is read back from the back buffer and compared with the
-  frame target, the cursor's texels and the ramp as uploaded (one to one placement; "render: cursor between frames: N
+  frame target, the cursor's texels (read back from the picture's image) and the ramp as uploaded (one to one placement; "render: cursor between frames: N
   presented frames checked, M differed" / "render: MISMATCH cursor between frames"). The ramp check of the main
   thread's present (`CheckRamp`) leaves out the points around the cursor.
 
@@ -779,6 +786,31 @@ Behaviour differences (one path for every input; none of them is in a golden):
   1e6; the GPU clips them either way.
 - The sprites' matrix is the clip stack's top as it is; the original transposed it through the FPU first, which
   quieted a signalling NaN (no matrix holds one).
+
+### R31a: sprites clipped by the GPU
+
+The sprite draw (`renderer_sprites.cpp`, 00502CA0) was the last draw clipped on the CPU: ProjectSprites wrote an
+outcode per corner and a crossing batch's triangles went through the screen clipper (clip.cpp, 0042D910..0042E4D0)
+before the TL draw. Now every batch is two triangles per sprite and the GPU clips x and y. A TL draw keeps z inside
+the depth range (the shader clamps it, as Direct3D 7 drew pre-transformed vertices), so the depth range is the
+sort's test: a sprite is kept when its z (all four corners share it) lies in 0..1, which is what the clipper's two z
+planes left of a sprite. Behind the camera 1 / w is negative and z / w lies above 1 (the projection's z row is
+Q (z - n) with Q = f / (f - n) above 1), at w 0 it is infinite or NaN: both dropped.
+
+Behaviour differences (one path for every sprite):
+- The original's outcodes moved the centre's clip x and y by `size` / w where the corners lie `size` clip units
+  away (a factor w short), so a sprite whose centre was just past an edge counted as outside although its quad
+  reached onto the screen: the clipper dropped it (sprites popped in and out at the screen's edges), and a batch whose
+  points all lay past one edge was not drawn at all. Those sprites are drawn now. Measured with a temporary A/B
+  switch in one frozen moment (ten fire and smoke sources around the hero, vanilla): 15 crossing batches, 180
+  on-screen sprites the outcodes dropped; the frames differ on 4.3% of the pixels (0.12% by more than 8, largest
+  36), along the top and bottom edges where smoke and fire cross them.
+- Sprites past the far plane are dropped before the sort, not by the clipper after it: the merge sort's order of
+  sprites at exactly the same depth may differ in such a batch.
+- A sprite at z exactly +0 is drawn (the clipper's near plane kept z above 0 out when the batch crossed).
+- A call with more than 511 sprites lost the colour and texture coordinates of some corners of its second and later
+  batches (the corner vector was resized after they were written, zeroing what lay past the last batch's kept
+  sprites): each batch is sized before it is filled now.
 
 ## 11. Verification and frame capture
 

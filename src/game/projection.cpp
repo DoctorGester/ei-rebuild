@@ -136,19 +136,13 @@ int CTransformPipeline::ProjectPointsClipped(const Matrix4& m, const LightningPo
 }
 
 // A sprite's corners lie `size` / w times the viewport's half width to either side of its centre on the screen (the
-// same number of pixels both ways). Their outcodes are the original's: they test the centre's clip x moved by `size` /
-// w and its clip y by that times the viewport's width over its height (where the screen offset is `size` in clip
-// units), and the top corners' the clip y below the centre (the bottom corners' above).
-int CTransformPipeline::ProjectSprites(const Matrix4& m, const SpritePoint* points, TLVertex* corners,
-                                       std::uint8_t* outcodes, int count) const {
-    ClipVerdict verdict;
+// same number of pixels both ways), all at the centre's depth and 1 / w.
+void CTransformPipeline::ProjectSprites(const Matrix4& m, const SpritePoint* points, TLVertex* corners,
+                                        int count) const {
     for (int i = 0; i < count; ++i) {
         const SpritePoint& point = points[i];
-        const Vector4 clip = ToClip(m, point.x, point.y, point.z);
-        const Vector4 centre = ToScreen(clip);
-        const float clipSize = point.size * centre.w;
-        const float size = halfWidth * clipSize;
-        const float clipSizeY = size / halfHeight;
+        const Vector4 centre = ToScreen(ToClip(m, point.x, point.y, point.z));
+        const float size = halfWidth * (point.size * centre.w);
         const float left = centre.x - size;
         const float right = centre.x + size;
         const float top = centre.y - size;
@@ -158,19 +152,7 @@ int CTransformPipeline::ProjectSprites(const Matrix4& m, const SpritePoint* poin
         SetPosition(corner[1], right, top, centre.z, centre.w);
         SetPosition(corner[2], right, bottom, centre.z, centre.w);
         SetPosition(corner[3], left, bottom, centre.z, centre.w);
-        const float clipLeft = clip.x - clipSize;
-        const float clipRight = clip.x + clipSize;
-        const float clipBelow = clip.y - clipSizeY;
-        const float clipAbove = clip.y + clipSizeY;
-        const std::uint32_t codes[4] = {
-            ClipCodeOf(clipLeft, clipBelow, clip.z, clip.w), ClipCodeOf(clipRight, clipBelow, clip.z, clip.w),
-            ClipCodeOf(clipRight, clipAbove, clip.z, clip.w), ClipCodeOf(clipLeft, clipAbove, clip.z, clip.w)};
-        for (int c = 0; c < 4; ++c) {
-            outcodes[i * 4 + c] = static_cast<std::uint8_t>(codes[c]);
-            verdict.Add(codes[c]);
-        }
     }
-    return verdict.Result();
 }
 
 Vector4 CTransformPipeline::ToScreen(const Vector4& p) const {

@@ -1,8 +1,7 @@
 #pragma once
 
-// Screen-space triangle clipping for the mesh renderer's software clip path: TL vertices; the clipped polygon is
-// re-triangulated as a fan into the caller's index list, new vertices appended to the caller's vertex array. See
-// docs/notes/core.md.
+// The pre-transformed (TL) vertex and the clip-space outcodes of the transform's projections. Nothing clips on the
+// CPU: the GPU clips what crosses the view (docs/notes/renderer.md, section 10).
 
 #include "lib/bit_flags.h"
 #include "lib/float_select.h"   // SignBit
@@ -20,8 +19,7 @@ static_assert(sizeof(TLVertex) == 0x20);
 static_assert(offsetof(TLVertex, color) == 0x10);
 
 // A point's clip outcode: a bit per clip plane it is outside of (CTransformPipeline::ClipTest's corners, model.cpp).
-// The transform's projections write a byte of six outside bits per vertex (ClipTriangle); which plane each is
-// there is not read.
+// The transform's projections write a byte of six outside bits per vertex; which plane each is there is not read.
 enum class ClipOutcode : std::uint32_t {
     XLow = 0x1,     // X + W < 0
     XHigh = 0x2,    // 2W < X + W (or unordered)
@@ -61,35 +59,3 @@ struct ClipVerdict {
     }
     int Result() const { return all != 0 ? 2 : any != 0 ? 1 : 0; }
 };
-
-namespace clip {
-
-// The work buffer: a word array (g_workWords, clip.cpp), the number of indices in it and the last
-// intersection parameter.
-std::uint16_t* Buffer();
-inline int g_bufferCount = /*0079B68C*/ {};
-inline float g_lastRatio = /*0079B664*/ {};
-
-// `out` = a + (b - a) * t for position, rhw and texture coordinates; colour and specular per byte, each step
-// rounded through a float, then to the nearest integer.
-void LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVertex* out);
-
-// The six plane clippers. Each clips the polygon `indices[0..*count)` against one plane, writing the result back
-// to `indices` and `*count`; intersection vertices are appended at `vertices[*vertexCount]`. Returns the new
-// count. The first argument (the triangle's combined outcode) is not used. KeepBelow keeps coordinates <= limit,
-// KeepAbove > limit.
-int ClipXBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int ClipXAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int ClipYBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int ClipYAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int ClipZBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int ClipZAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-
-// Clips the triangle `tri[0..2]` to 0 <= x <= xMax, 0 <= y <= yMax, 0 <= z <= 1.
-// `outcodes[i]` holds vertex i's six outside bits (ClipOutcode::All). Returns -1 (all three outside one plane:
-// *indexCount = 0), 0 (all inside: *indexCount = 3) or 1 (clipped: `tri` holds *indexCount
-// indices, a fan of triangles).
-int ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, std::uint16_t* tri,
-                            int* vertexCount, int* indexCount, float xMax, float yMax);
-
-} // namespace clip

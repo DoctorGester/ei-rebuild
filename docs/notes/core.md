@@ -192,17 +192,10 @@ SaveObjectRef 0040A440, ObjectRef 0040A5A0).
 
 ## Triangle clipping (0x0042D910-0x0042E6A0)
 
-File `clip.cpp`, `verify_clip`. `ClipTriangle` 0042D910 and the six plane clippers 0042DB70 (X below),
-0042DD00, 0042DE90, 0042E020, 0042E1B0, 0042E340 (Z above) and `LerpVertex` 0042E4D0 clip the mesh
-renderer's software path (meshes drawn through slot 17 of vtable 0073D93C, 00502CA0, whose triangles
-cross the viewport). Verified ours first, inputs restored, original, all outputs compared (the original `ClipTriangle`
-calls the clippers through their hooked addresses).
-Compiled with `float_control(precise, on)` (`(b - a) * t + a`); the intersection ratio is computed in
-a small naked helper (`StoreRatio`) because the original stores the float with FST while comparing
-the unrounded quotient with 1.
-Kept: a vertex exactly on a "keep above" plane is kept out but the t = 0 intersection is added; t above
-1, below 0 or NaN emits the edge's end vertex; the 32-index work buffer is not bounds-checked.
-0042E700 / 0042F4C0 / 0042F890 are dead polygon-clipping variants.
+Not in the rebuild: the screen-space clipper (`ClipTriangle` 0042D910, the six plane clippers 0042DB70 (X below)
+.. 0042E340 (Z above), `LerpVertex` 0042E4D0) clipped the crossing triangles of the mesh draws (until R30f) and of
+the sprite draw (slot 17 of vtable 0073D93C, 00502CA0; until R31a). The GPU clips every draw now (renderer.md,
+section 10, "R31a"). 0042E700 / 0042F4C0 / 0042F890 are dead polygon-clipping variants.
 
 ## Camera (0x0040C8B0-0x004114F0)
 

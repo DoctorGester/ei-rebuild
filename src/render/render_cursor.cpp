@@ -13,7 +13,6 @@
 #include <dxgi1_2.h>
 
 #include <cstdint>
-#include <cstring>
 #include <vector>
 
 namespace render {
@@ -65,25 +64,28 @@ T* Referenced(const void* object) {
 
 // --- The cursor's picture (both threads) ------------------------------------------------------------
 
+// The picture the last frame's cursor came from (render_blit.cpp's sheet: alpha 255 the image's texel, 0 the
+// background shows), its texture referenced.
 Lock g_sheetLock;
 struct Sheet {
     const void* holder = nullptr;
     const void* mask = nullptr;
     int width = 0, height = 0;
-    std::vector<std::uint8_t> rgba;   // alpha 255: the image's texel, 0: the background shows
+    ID3D11ShaderResourceView* texture = nullptr;
 } g_sheet;
 
-// The part `from` of the sheet; false when it does not lie inside.
-bool CutSheet(const Rect& from, std::vector<std::uint8_t>* rgba) {
-    if (from.left < 0 || from.top < 0 || from.right > g_sheet.width || from.bottom > g_sheet.height || from.right <= from.left ||
-        from.bottom <= from.top)
-        return false;
-    int w = from.right - from.left, h = from.bottom - from.top;
-    rgba->resize(static_cast<std::size_t>(w) * h * 4);
-    for (int y = 0; y < h; ++y)
-        std::memcpy(&(*rgba)[static_cast<std::size_t>(y) * w * 4],
-                    &g_sheet.rgba[(static_cast<std::size_t>(from.top + y) * g_sheet.width + from.left) * 4], static_cast<std::size_t>(w) * 4);
-    return true;
+void DropSheet() {
+    Release(g_sheet.texture);
+    g_sheet = Sheet{};
+}
+
+// The sheet's texture referenced when it is `holder`'s with `mask` and `from` lies inside it, else null.
+ID3D11ShaderResourceView* SheetTexture(const void* holder, const void* mask, const Rect& from) {
+    Hold hold(g_sheetLock);
+    if (g_sheet.holder != holder || g_sheet.mask != mask || from.left < 0 || from.top < 0 || from.right > g_sheet.width ||
+        from.bottom > g_sheet.height || from.right <= from.left || from.bottom <= from.top)
+        return nullptr;
+    return Referenced<ID3D11ShaderResourceView>(g_sheet.texture);
 }
 
 // --- The swap chain's turns and what the cursor thread draws with ---------------------------------
@@ -194,7 +196,7 @@ bool Refused(Refusal why) {
 // channel off by more than one counts as a difference); kept for the harness (ReadCursorPresent).
 std::vector<std::uint8_t> g_lastBgr;
 int g_lastWidth = 0, g_lastHeight = 0;
-StagingCopy g_readback[2];   // the back buffer and the frame
+StagingCopy g_readback[3];   // the back buffer, the frame and the cursor's part of its picture
 
 ID3D11Texture2D* TextureOf(ID3D11View* view) {
     ID3D11Resource* resource = nullptr;
@@ -207,16 +209,17 @@ ID3D11Texture2D* TextureOf(ID3D11View* view) {
     return texture;
 }
 
-void CheckPresented(const Kit& kit, const Rect& to, const std::vector<std::uint8_t>& cursor) {
+void CheckPresented(const Kit& kit, const Rect& to, const Rect& from, ID3D11ShaderResourceView* sheet) {
     if (kit.placed.left != 0 || kit.placed.top != 0 || kit.placed.right != kit.frameWidth || kit.placed.bottom != kit.frameHeight ||
         kit.clientWidth != kit.frameWidth || kit.clientHeight != kit.frameHeight)
         return;
-    ID3D11Texture2D* sources[2] = {TextureOf(kit.back), TextureOf(kit.frame)};
+    ID3D11Texture2D* sources[3] = {TextureOf(kit.back), TextureOf(kit.frame), TextureOf(sheet)};
     const auto w = static_cast<unsigned>(kit.frameWidth), h = static_cast<unsigned>(kit.frameHeight);
-    if (sources[0] && sources[1] && g_readback[0].Map(kit.context, sources[0], 0, 0, w, h) &&
-        g_readback[1].Map(kit.context, sources[1], 0, 0, w, h)) {
+    if (sources[0] && sources[1] && sources[2] && g_readback[0].Map(kit.context, sources[0], 0, 0, w, h) &&
+        g_readback[1].Map(kit.context, sources[1], 0, 0, w, h) &&
+        g_readback[2].Map(kit.context, sources[2], static_cast<unsigned>(from.left), static_cast<unsigned>(from.top),
+                          static_cast<unsigned>(from.right - from.left), static_cast<unsigned>(from.bottom - from.top))) {
         int width = kit.frameWidth, height = kit.frameHeight;
-        int cw = to.right - to.left;
         int differing = 0;
         g_lastBgr.resize(static_cast<std::size_t>(width) * height * 3);
         const std::uint8_t* table = kit.rampTable;
@@ -227,7 +230,7 @@ void CheckPresented(const Kit& kit, const Rect& to, const std::vector<std::uint8
             for (int x = 0; x < width; ++x) {
                 const std::uint8_t* want = f + x * 4;
                 if (x >= to.left && x < to.right && y >= to.top && y < to.bottom) {
-                    const std::uint8_t* t = &cursor[(static_cast<std::size_t>(y - to.top) * cw + (x - to.left)) * 4];
+                    const std::uint8_t* t = g_readback[2].Row(static_cast<unsigned>(y - to.top)) + (x - to.left) * 4;
                     if (t[3] >= 128) want = t;
                 }
                 int wantB = table[want[2] * 4 + 2], wantG = table[want[1] * 4 + 1], wantR = table[want[0] * 4 + 0];
@@ -251,40 +254,26 @@ void CheckPresented(const Kit& kit, const Rect& to, const std::vector<std::uint8
             ei::Log("render: cursor between frames: %d presented frames checked, %d differed", g_info.checks, g_info.mismatches);
         }
     }
-    g_readback[0].Unmap();
-    g_readback[1].Unmap();
+    for (StagingCopy& r : g_readback) r.Unmap();
     for (ID3D11Texture2D* t : sources)
         if (t) t->Release();
 }
 #endif
 
-// Records and runs the cursor thread's present: the frame target (it holds no cursor) and the cursor at
-// `to` through the gamma ramp into the swap chain's back buffer as the main thread's present draws them
-// (shaders/present.hlsl), Present.
-bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::uint8_t>& cursor) {
-    int w = to.right - to.left, h = to.bottom - to.top;
+// Records and runs the cursor thread's present: the frame target (it holds no cursor) and the part `from` of the
+// cursor's picture (`sheet`) at `to` through the gamma ramp into the swap chain's back buffer as the main thread's
+// present draws them (shaders/present.hlsl), Present.
+bool PresentWithCursor(const Kit& kit, const Rect& to, const Rect& from, ID3D11ShaderResourceView* sheet) {
     ID3D11Device* device = kit.device;
-    D3D11_TEXTURE2D_DESC td{};
-    td.Width = static_cast<UINT>(w);
-    td.Height = static_cast<UINT>(h);
-    td.MipLevels = 1;
-    td.ArraySize = 1;
-    td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    td.SampleDesc.Count = 1;
-    td.Usage = D3D11_USAGE_IMMUTABLE;
-    td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    D3D11_SUBRESOURCE_DATA init{cursor.data(), static_cast<UINT>(w * 4), 0};
-    ID3D11Texture2D* texture = nullptr;
-    ID3D11ShaderResourceView* view = nullptr;
-    // The present's cbuffers (render_window.cpp): the whole frame; the cursor's rectangle, the frame's
-    // size and the cursor texels per frame pixel (one), the cursor texture's size.
+    // The present's cbuffers (render_window.cpp): the whole frame; the cursor's rectangle, the frame's size and the
+    // cursor texels per frame pixel (one), the size and the top left corner of the cursor's part of its picture.
     float presentVs[4] = {0.0f, 0.0f, 1.0f, 1.0f};
     float presentPs[12] = {static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
                            static_cast<float>(to.bottom), static_cast<float>(kit.frameWidth), static_cast<float>(kit.frameHeight),
-                           1.0f, 1.0f, static_cast<float>(w), static_cast<float>(h), 0.0f, 0.0f};
+                           1.0f, 1.0f, static_cast<float>(from.right - from.left), static_cast<float>(from.bottom - from.top),
+                           static_cast<float>(from.left), static_cast<float>(from.top)};
     ID3D11Buffer* buffers[2] = {ConstantBuffer(device, presentVs, sizeof(presentVs)), ConstantBuffer(device, presentPs, sizeof(presentPs))};
-    bool ok = buffers[0] && buffers[1] && SUCCEEDED(device->CreateTexture2D(&td, &init, &texture)) &&
-              SUCCEEDED(device->CreateShaderResourceView(texture, nullptr, &view));
+    bool ok = buffers[0] && buffers[1];
     ID3D11CommandList* list = nullptr;
     if (ok) {
         ID3D11DeviceContext* dc = g_deferred;
@@ -300,7 +289,7 @@ bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::ui
         kit.present.Bind(dc);
         dc->VSSetConstantBuffers(0, 1, &buffers[0]);
         dc->PSSetConstantBuffers(0, 1, &buffers[1]);
-        ID3D11ShaderResourceView* views[3] = {kit.frame, kit.ramp, view};
+        ID3D11ShaderResourceView* views[3] = {kit.frame, kit.ramp, sheet};
         dc->PSSetShaderResources(0, 3, views);
         ID3D11SamplerState* samplers[1] = {kit.linear};
         dc->PSSetSamplers(0, 1, samplers);
@@ -309,12 +298,10 @@ bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::ui
     }
     if (ok) kit.context->ExecuteCommandList(list, TRUE);
     Release(list);
-    Release(view);
-    Release(texture);
     for (ID3D11Buffer*& b : buffers) Release(b);
     if (!ok) return false;
 #if defined(EI_RENDER_VALIDATION)
-    CheckPresented(kit, to, cursor);
+    CheckPresented(kit, to, from, sheet);
 #endif
     HRESULT hr = kit.chain->Present(kit.syncInterval, kit.presentFlags);
     if (FAILED(hr)) {
@@ -330,24 +317,17 @@ bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::ui
 
 namespace detail {
 
-bool CursorPicturePart(const void* holder, const void* mask, int maskBytes, const Picture& picture, const Rect& from,
-                       std::vector<std::uint8_t>* rgba) {
+void SetCursorSheet(const void* holder, const void* mask, int width, int height, sg_view view) {
+    ID3D11ShaderResourceView* texture = static_cast<ID3D11ShaderResourceView*>(const_cast<void*>(sg_d3d11_query_view_info(view).srv));
     Hold hold(g_sheetLock);
-    if (g_sheet.holder != holder || g_sheet.mask != mask || g_sheet.width != picture.width || g_sheet.height != picture.height) {
-        g_sheet.holder = holder;
-        g_sheet.mask = mask;
-        g_sheet.width = picture.width;
-        g_sheet.height = picture.height;
-        g_sheet.rgba = picture.rgba;
-        g_sheet.rgba.resize(static_cast<std::size_t>(picture.width) * picture.height * 4);
-        const auto* m = static_cast<const std::uint8_t*>(mask);
-        for (std::size_t i = 0; i < static_cast<std::size_t>(picture.width) * picture.height; ++i) {
-            std::uint32_t bits = 0;
-            std::memcpy(&bits, m + i * maskBytes, static_cast<std::size_t>(maskBytes));
-            g_sheet.rgba[i * 4 + 3] = bits == 0 ? 255 : 0;   // the mask is all ones where the image is black
-        }
-    }
-    return CutSheet(from, rgba);
+    if (g_sheet.holder == holder && g_sheet.mask == mask && g_sheet.texture == texture) return;
+    DropSheet();
+    g_sheet = Sheet{holder, mask, width, height, Referenced<ID3D11ShaderResourceView>(texture)};
+}
+
+void DropCursorSheet(const void* holder) {
+    Hold hold(g_sheetLock);
+    if (g_sheet.holder == holder) DropSheet();
 }
 
 void ProtectDevice(ID3D11Device* device, ID3D11DeviceContext* context) {
@@ -402,32 +382,35 @@ void DropCursorPresents() {
     for (StagingCopy& r : g_readback) r.Release();
 #endif
     g_protected = false;
+    Hold sheet(g_sheetLock);
+    DropSheet();
 }
 
 } // namespace detail
 
 bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
     if (!imageHolder || !mask) return false;
-    std::vector<std::uint8_t> rgba;
-    bool cut = false;
-    {
-        Hold hold(g_sheetLock);
-        cut = g_sheet.holder == imageHolder && g_sheet.mask == mask && CutSheet(from, &rgba);
-    }
+    ID3D11ShaderResourceView* sheet = SheetTexture(imageHolder, mask, from);
     Hold hold(g_presentLock);
     ++g_info.calls;
-    if (!cut) return Refused(Refusal::Picture);
-    if (!g_kit.valid) return Refused(Refusal::NoFrame);
-    if (GetTickCount64() - g_lastPresent < kBetweenFrames) return Refused(Refusal::Recent);
-    // The cursor's rectangle is clipped to its bounds by the game; kept inside the frame.
-    if (to.left < 0 || to.top < 0 || to.right > g_kit.frameWidth || to.bottom > g_kit.frameHeight ||
-        to.right - to.left != from.right - from.left || to.bottom - to.top != from.bottom - from.top)
-        return Refused(Refusal::Outside);
-    FpuGuard fpu;
-    if (!PresentWithCursor(g_kit, to, rgba)) {
-        DropKit();   // until the main thread's next present
-        return false;
+    bool presented = false;
+    if (!sheet) {
+        Refused(Refusal::Picture);
+    } else if (!g_kit.valid) {
+        Refused(Refusal::NoFrame);
+    } else if (GetTickCount64() - g_lastPresent < kBetweenFrames) {
+        Refused(Refusal::Recent);
+    } else if (to.left < 0 || to.top < 0 || to.right > g_kit.frameWidth || to.bottom > g_kit.frameHeight ||
+               to.right - to.left != from.right - from.left || to.bottom - to.top != from.bottom - from.top) {
+        // The cursor's rectangle is clipped to its bounds by the game; kept inside the frame.
+        Refused(Refusal::Outside);
+    } else {
+        FpuGuard fpu;
+        presented = PresentWithCursor(g_kit, to, from, sheet);
+        if (!presented) DropKit();   // until the main thread's next present
     }
+    Release(sheet);
+    if (!presented) return false;
     ++g_info.presents;
     g_info.lastTo = to;
     return true;
