@@ -111,6 +111,8 @@ public:
 
     void* handle_;               // the archive's file (a HANDLE), INVALID_HANDLE_VALUE when closed
     char* image_;                // archive image when opened with OpenFromMemory
+    std::vector<ResEntry> entryTable;   // the tables OpenResource reads (entries_ and names_ point into them)
+    std::vector<char> nameTable;
     std::uint32_t writable_;
     std::unordered_map<void*, LoadedFile*> filesByData_;
     std::unordered_map<std::string, LoadedFile*> filesByName_;

@@ -60,8 +60,7 @@ void CInterface3D::Update() {
         if (std::ssize(stack_) == 1) {
             delete backdrop_;
             backdrop_ = nullptr;
-            if (screenCopy_) delete[] screenCopy_;
-            screenCopy_ = nullptr;
+            screenCopy_ = {};
             backdropMode_ = 0;
             if (!IsMultiplayerClient()) GameSetServerPaused(serverFlag_);
             serverFlag_ = 0;

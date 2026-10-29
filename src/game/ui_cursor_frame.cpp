@@ -31,7 +31,7 @@ void MoveBetweenFrames(CCursor* self) {
     const bool moved = self->UpdatePosition();
     if (self->imageShown_ && moved) {
         CursorImage* image = self->image_;
-        render::CursorBetweenFrames(image->holder, image->saved, ToRender(self->from_), ToRender(self->rect_));
+        render::CursorBetweenFrames(image->holder, image->saved.data(), ToRender(self->from_), ToRender(self->rect_));
         self->drawn_ = self->rect_;
     }
     gameapi::LeaveCriticalSection(&self->lock_);
@@ -48,7 +48,7 @@ void CursorDrawFrame(CCursor* self) {
     if (gameapi::IsRectEmpty(rect)) return;
     if (!self->imageShown_) return;
     CursorImage* image = self->image_;
-    render::Cursor(image->holder, image->saved, ToRender(self->from_), ToRender(*rect));
+    render::Cursor(image->holder, image->saved.data(), ToRender(self->from_), ToRender(*rect));
     self->drawn_ = *rect;
 }
 

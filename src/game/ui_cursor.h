@@ -70,7 +70,7 @@ struct CursorImage {
     int frame;                       // the frame shown (stepped every 125 ms)
     int hotX;                        // the hot spot, scaled to the cursor's size
     int hotY;
-    std::uint8_t* saved;             // the mask over the whole picture: all ones where the picture is black, else 0
+    std::vector<std::uint8_t> saved; // the mask over the whole picture: all ones where the picture is black, else 0
 };
 
 class CCursor {

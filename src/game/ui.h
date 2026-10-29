@@ -223,7 +223,7 @@ public:
     int backdropMode_ = 0;           // the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
     CUiSurface* backdrop_ = nullptr;
     CUiSurface* secondBackdrop_ = nullptr;
-    void* screenCopy_ = nullptr;     // the 256x192 5:6:5 copy of the screen the escape menu saves with (SavePicture); operator delete[]
+    std::vector<std::uint16_t> screenCopy_;  // the 256x192 5:6:5 copy of the screen the escape menu saves with (SavePicture)
     std::uint8_t serverFlag_ = 0;    // the server flag kept for the first window (PushWindow)
     CUiSurface* statusSurface_ = nullptr;   // only while ShowStatusText runs
     int mouseX_ = 0;
@@ -353,11 +353,11 @@ public:
     void Show();
     void Hide(bool release);
     // SwapContents: `restore` false puts the surface's pixels aside (kept_) and releases the holder; true makes the
-    // holder again and puts them back. Rgb565Copy returns a new[] block of width * height 5:6:5 pixels
-    // (the surface stretched). Greyscale: (2 r + 4 g + b) / 16 per channel.
+    // holder again and puts them back. Rgb565Copy returns width * height 5:6:5 pixels
+    // (the surface stretched; none without a holder). Greyscale: (2 r + 4 g + b) / 16 per channel.
     void SwapContents(bool restore);
     void CaptureScreen();
-    std::uint16_t* Rgb565Copy(int width, int height);
+    std::vector<std::uint16_t> Rgb565Copy(int width, int height);
     void Greyscale();
 
     bool Shown() const { return shown_; }

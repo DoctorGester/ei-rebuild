@@ -289,7 +289,8 @@ void CSaveLoadWindow::FillEntries() {
         if (dialog_) dialog_->Release();
         dialog_ = nullptr;
         // The escape menu's 256x192 5:6:5 copy of the screen, or null.
-        if (const auto* copy = static_cast<const std::uint8_t*>(interface_->screenCopy_)) {
+        if (!interface_->screenCopy_.empty()) {
+            const auto* copy = reinterpret_cast<const std::uint8_t*>(interface_->screenCopy_.data());
             CTexture* shot = CreateTexture(0x100, 0x100, TextureKind::Blank565);
             dialog_ = shot;
             shot->AddRef();
@@ -348,12 +349,11 @@ void QuickSave(const char* slot, bool stepFrame) {
     info.Close();
 
     // shot.sav: the copied screen at 256x192.
-    std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
+    const std::vector<std::uint16_t> pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
     lib::File shot;
     shot.Open(folder + game::savewords::ShotFile(), kOpenWrite);
-    shot.Write(pixels, kShotBytes);
+    shot.Write(pixels.data(), kShotBytes);
     shot.Close();
-    delete[] pixels;
     if (surface != nullptr) {
         delete surface;
     }

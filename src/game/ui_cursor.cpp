@@ -52,7 +52,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     hotX = static_cast<int>(g_cursorWidth) * hotSpotX / 32;
     hotY = static_cast<int>(g_cursorHeight) * hotSpotY / 32;
     std::uint32_t maskBytes = (static_cast<std::uint32_t>(holder->bitsPerPixel) * pictureHeight * pictureWidth) >> 3;
-    saved = new std::uint8_t[maskBytes];
-    BuildMask(picture, holder->bitsPerPixel, saved);
+    saved.assign(maskBytes, 0);
+    BuildMask(picture, holder->bitsPerPixel, saved.data());
     manager->CloseFile(picture);
 }

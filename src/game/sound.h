@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <list>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -209,7 +210,7 @@ struct CSoundManager : CEngineObject {
     CRITICAL_SECTION midiLock;
     HANDLE midiThread;                  // never started
     volatile std::int32_t threadsQuit;  // set by Close; both threads end on it
-    SoundSlot* slots;                   // 15 voices (an operator new[] block: the count before them)
+    std::unique_ptr<SoundSlot[]> slots; // 15 voices while open
     Vector3 listener;                   // listener position (z: camera height)
     Vector3 listenerAxis;               // listener direction, unit length in x/y
     std::int32_t nextHandle;
