@@ -53,9 +53,9 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   (the window title "Evil Islands" and class "EIGAME" in app_main.cpp); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
   no icon (C24). WinMain's hInstance and GetModuleHandleA(NULL) are the host, so DirectInput needs no wrapper;
   GetModuleFileNameA(NULL) names ei_standalone.exe (the
-  message box title; GetCommandLineA's first token too).
+  message box title).
   Then it loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
-  and resolves game.exe's imports as it initialises (S18f; since S18k DDraw, mss32 and binkw32 from the working
+  and resolves the imports of game.exe our code still calls through a slot as it initialises (S18f, S22; since S18k mss32 and binkw32 from the working
   directory, the game folder, else System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
   then the start-up actions run (`RunStartupActions`: the Rebirth flags, WideScreen's resolution), the static
   initialisers and WinMain (`app::GameMain`, called by name: "Code", below). Nothing runs in or jumps through
@@ -195,9 +195,9 @@ each step green on the goldens and removing a measured tie:
   ImportTable member, DLL, function or ordinal) and gameapi.h, all committed; build.cmd runs it with `--check`.
   Right after the move (same init_seg(compiler) object, before the harness's static
   constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
-  dinput always the system's; game.exe's folder came first until S18k) and fills our slots;
-  GetCommandLineA gets its wrapper there (`ImageRoute`, hook/standalone_main.cpp; the resource, module and DirectInput
-  wrappers went with S18j). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
+  dinput always the system's; game.exe's folder came first until S18k) and fills our reached slots (S22, below);
+  a text call's slot gets its UTF-8 version there (`text::SystemRoute`; the command-line, resource, module and
+  DirectInput wrappers are gone: S18j, S22). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
   routed imports and every import of src/lib/import_prototypes.h, the static initialisers'
   `Import(&ei::ImportTable::Sleep, ...)`) or the Windows function itself (below). Every member is typed (C18p): the
   SDK's `decltype(&::X)`, or for what the SDK lacks the `ei::import_fn::X` of import_prototypes.h (Miles with typed
@@ -209,7 +209,7 @@ each step green on the goldens and removing a measured tie:
   only addon_sites.inc's MoviesPatch site (BinkOpen's slot, a Rebirth patch site) is an address. `iat` is sealed in config/data_seam.csv (76 raw uses -> 0;
   data_seam.py's helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
   **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
-  routes it (ImageRoute: GetCommandLineA; the `TEXT_ROUTE` list of game/system_text.cpp), the
+  routes it (the `TEXT_ROUTE` list of game/system_text.cpp), the
   harness takes it (any `ImportTable::X` tests/ names: window focus, cursor, files and saves, profile, registry,
   clocks, heap, Winsock, Miles) or our code takes it by address (`&gameapi::X`: hook/paths.cpp's RegQueryValueExA in
   game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (68, with gen_iat's KEEP:
@@ -230,6 +230,42 @@ each step green on the goldens and removing a measured tie:
   original exists. No pointer
   cell of .rdata or .data holds a slot's address (a scan of game.exe's aligned dwords), and our code reaches slots
   only through `ei::Imports()`, and the harness too (harness_imports.h), which the sealed check covers.
+  **Only the reached slots resolve** (S22): gen_iat.py's `reached()` finds every slot a call of ours can go through,
+  by its member (C18 left no other way): `ImportTable::X` (the harness's routes and its own calls, the static
+  initialisers' `Import`), `Imports().X`, and `gameapi::X` where gameapi.h's X is the slot (`inline auto&`); comments
+  are left out. image_imports.inc's last field says so; `ResolveImageImports` resolves those, leaves every other slot
+  a trap and loads a DLL only for a reached slot of it (the log: "... N traps (no call reaches them); M DLLs loaded").
+  A new `gameapi::X` call of a slot function makes `gen_iat.py --check` fail until `python tools/gen_iat.py` is rerun;
+  a trap that fires anyway names its import and says so. The harness's ones count (the release image resolves them
+  too: one list). `python tools/gen_iat.py --counts` prints the table (UTF-8 route: the slot holds `text::utf8`'s
+  version; harness only: no call of src/ reaches it, only tests/):
+
+| DLL | slots | reached | UTF-8 route | harness only | traps |
+  |---|---|---|---|---|---|
+  | binkw32.dll | 12 | 10 | 0 | 0 | 2 |
+  | mss32.dll | 47 | 40 | 0 | 0 | 7 |
+  | WSOCK32.dll | 22 | 19 | 0 | 0 | 3 |
+  | DSOUND.dll | 1 | 1 | 0 | 0 | 0 |
+  | DDRAW.dll | 2 | 0 | 0 | 0 | 2 |
+  | DINPUT.dll | 1 | 1 | 0 | 0 | 0 |
+  | WINMM.dll | 5 | 2 | 1 | 0 | 3 |
+  | KERNEL32.dll | 159 | 35 | 16 | 12 | 124 |
+  | USER32.dll | 151 | 19 | 9 | 3 | 132 |
+  | GDI32.dll | 83 | 1 | 0 | 1 | 82 |
+  | comdlg32.dll | 1 | 0 | 0 | 0 | 1 |
+  | WINSPOOL.DRV | 3 | 0 | 0 | 0 | 3 |
+  | ADVAPI32.dll | 11 | 3 | 3 | 2 | 8 |
+  | SHELL32.dll | 2 | 0 | 0 | 0 | 2 |
+  | COMCTL32.dll | 1 | 0 | 0 | 0 | 1 |
+  | ole32.dll | 3 | 0 | 0 | 0 | 3 |
+  | all | 504 | 131 | 29 | 18 | 373 |
+
+  Not loaded any more: DDRAW (the renderer creates no DirectDraw object: both slots, DirectDrawCreateEx and
+  DirectDrawEnumerateExA, have no caller; dgVoodoo's ddraw.dll in the game folder stays out of the image), comdlg32,
+  WINSPOOL, SHELL32, COMCTL32, ole32. KERNEL32, USER32, GDI32, ADVAPI32 and WINMM are ei_hook.dll's own imports anyway.
+  GDI32's one slot is the harness's (CreateFontIndirectA); 18 slots are reached only from the harness (heap,
+  profile writes, focus calls), whose patches of them catch nothing of our code (it calls those directly or not at
+  all). Follow-ups per DLL: S22a (DSOUND), S22b (DINPUT), S22c (the harness-only slots); DDRAW needs none.
 
 - **.rdata constants as literals** (S18e, `tools/rdata_literals.py`): a float, double or integer cell that no code writes is
   the value in the source, tagged with its address: `0.5f /*0073B86C*/`, `3.141592653589793 /*0073CAE8*/`, a negative one in
@@ -881,15 +917,16 @@ strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureS
   "EIGAME"; its `cursorcheck` frames show the game's cursor, which is game data, not a resource).
 - **game.exe at run time**: none since S18k ("What comes from game.exe at build time", above). The harness's run_all
   hands ei_launch none (S18k1).
-- **Command line**: `ei_standalone ... -- <game args>` is WinMain's line and GetCommandLineA's after `"<game.exe>"`.
+- **Command line**: `ei_standalone ... -- <game args>` is WinMain's line. No code of the image calls
+  GetCommandLineA (its slot is a trap since S22; the host's own call reads the host's line).
 - **Code bytes read as data**: none left (R9b3). app_frame's cursor lock (004580D7) calls our rewrite directly; the
   harness reaches it and WinMain's camera (00457595), server update (00457314) and client segment (00457368) calls
   through hook points (`ei::mainloop::g_harnessHooks`, ei/main_loop.h; tests/verify/harness_hooks.h). ClassifyToken's
   keyword table (the immediate at 004CF69B, which Rebirth rewrote) is `KeywordTable()`: kScriptKeywords (0078BCA0's
   bytes, C18q) or the add-on's, which script_addon.cpp builds from it under the flag.
   `AddonPanelOffset` returns none.
-- **DirectInput**: DirectInputCreateEx refuses an instance that is not a loaded module, so the image's import goes to
-  a wrapper that passes the host's module. c_dfDIMouse (00745D00) points into game.exe's code section, so
+- **DirectInput**: DirectInputCreateEx refuses an instance that is not a loaded module; the image's hInstance is the
+  host's module, so the import is called as it is (S18j). c_dfDIMouse (00745D00) points into game.exe's code section, so
   `CDirectInputMouse::MouseDataFormat` is our copy of the seven objects. Other dinput.lib data in .text would need
   the same.
 - **Rebirth**: RunStartupActions calls `rebirth_hook::SettingsOnly`: flags from ei_rebirth.ini and EI_REBIRTH,
@@ -1360,9 +1397,10 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 ### U2: the system boundary
 
 - **Where**: src/game/system_text.h. The image's import slot of each ANSI call that takes or gives text holds its
-  UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by `ImageRoute` in
-  hook/standalone_main.cpp when image_imports.cpp resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's
-  `routed()` reads). So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
+  UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by image_imports.cpp as it
+  resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's `routed()` reads). A route whose slot no call
+  reaches (S22: CharUpperA, CharLowerA, LoadCursorFromFileA, LoadStringA, RegOpenKeyExA, called as `text::utf8::`
+  by name instead) stays in the list, so a new `gameapi::` call of it is routed too. So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
   `CStdioFile` and the CRT's `fopen` / `_findfirst` / `_access` (they call through the slots). The harness takes the
   same slots afterwards and wraps the UTF-8 versions, so its saves redirect, overlay and registry snapshot work
   unchanged (they work on the bytes; advapi32's and kernel32's wide exports are taken too: harness_settings.h,
@@ -1373,7 +1411,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   RegCreateKeyEx, RegQueryValueEx and RegSetValueEx: string values as UTF-8, their sizes in UTF-8 bytes),
   CreateWindowEx (a non-ASCII title is set as UTF-16 with `DefWindowProcW(WM_SETTEXT)`), FindWindow, MessageBox,
   GetKeyNameText, LoadString, the window's class and messages (U4), the text draw and fonts (U3), CharUpperA /
-  CharLowerA (U5). The image's log names the routes: "504 resolved (33 routed)" (32 here and the command line).
+  CharLowerA (U5). The image's log names the routes: "131 resolved (29 routed)" (S22: the reached slots).
 - **Direct calls** (not through the slots): our own code calls `text::utf8::<Name>A` by name (mod_folders,
   script_addon_commands, script_addon_strings, console_addon, settings_file, world_client_maps). The console's
   clipboard and addon's AutoExec lines convert with UTF-8; `GetFullPathNameA` (system_text.cpp) takes the current folder
@@ -1575,12 +1613,14 @@ table of ours: every slot of game.exe's import address table (image_imports.inc,
 game.exe's import directory: ImportTable member, DLL, function or ordinal) is resolved here into the storage at the
 data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .rdata), so everything that calls through a
 slot (lib/import_table.h's Imports(): gameapi.h's routed imports, Miles, Bink, Winsock, the static initialisers'
-Import; the harness's slot routes by address) reaches our table. The image's command-line import gets its wrapper
-in place of the export (ImageRoute, hook/standalone_main.cpp); the resource and module imports take the host's
-module as it is. Nothing is at game.exe's own table, as at the rest of the old .rdata (image_data.cpp): the image
+Import; the harness's slot routes by address) reaches our table. Only the slots a call of ours reaches resolve
+(image_imports.inc's last field, gen_iat.py's reached(), S22); the rest stay traps and a DLL with none of them does
+not load. A text call's slot takes its UTF-8 version (text::SystemRoute); the resource and module imports take the
+host's module as it is. Nothing is at game.exe's own table, as at the rest of the old .rdata (image_data.cpp): the image
 runs none of game.exe's code, so a call through an old slot is a use that missed the seam, reported with the slot's
-import and its code address (OnOldData, DescribeImportSlot). A slot of ours whose import did not resolve leads to a
-trap until the run ends (OnTrap; the launch-free check fails on it). Runs from image_data.cpp's mover, before every
+import and its code address (OnOldData, DescribeImportSlot). A slot of ours that no call was found to reach or
+whose import did not resolve leads to a trap until the run ends (OnTrap; the launch-free check fails on an unresolved
+one). Runs from image_data.cpp's mover, before every
 other static constructor of ei_hook.dll: the harness takes import slots in its own. In game.exe (the original's
 runs) nothing happens: the loader filled its table.
 

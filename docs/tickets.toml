@@ -4931,6 +4931,27 @@ title = "Trim game.exe's import table: only the imports the game still reaches"
 group = "standalone"
 note = "User 2026-10-29. The standalone resolves all of game.exe's imports (src/standalone/image_imports.inc: kernel32 159, user32 151, gdi32 83, mss32 47, wsock32 22, binkw32 12, advapi32 11, winmm 5, ole32 3, ddraw 2, shell32 2, dinput, dsound, comctl32, comdlg32), so every listed DLL loads even where our code replaced the calls (gdi32 after P8, ddraw behind the renderer). Count which slots are still reached from game code not yet named in our source (the image's code and data) and which are routed to our wrappers (ImageRoute) or never called; resolve only those, leave the rest as traps (OnTrap already reports a call through an unresolved slot). Report per DLL what is left; a DLL with no reached imports stops loading. Follow-ups per DLL (ddraw, dinput, dsound first) go in as S22a.... Check: goldens unchanged, play.cmd starts, ei_launch the same; no trap fires in the full suite."
 
+[[ticket]]
+id = "S22a"
+title = "DSOUND out of game.exe's import table: DirectSoundEnumerateA called directly"
+group = "standalone"
+depends = ["S22"]
+note = "S22: DSOUND's one slot (DirectSoundEnumerateA, #2) is reached only by sound_manager_lifetime.cpp's device list (gameapi::DirectSoundEnumerateA). Call it as the Windows function (dsound.lib, the SDK's declaration, ei_hook.dll's own import) or take the device list from Miles; then gen_iat's prototype goes and the slot is a trap (python tools/gen_iat.py --counts). Check: goldens unchanged (the sound device is the default in runs), sound in play.cmd."
+
+[[ticket]]
+id = "S22b"
+title = "DINPUT out of game.exe's import table: DirectInputCreateEx direct, the harness's route by export"
+group = "standalone"
+depends = ["S22"]
+note = "S22: DINPUT's one slot (DirectInputCreateEx) is reached by input_mouse.cpp (gameapi::DirectInputCreateEx) and routed by the harness (harness_input.cpp PatchImport). image_imports.cpp loads dinput.dll always from System32 (Rebirth's proxy beside its game.exe loads addon.dll); a direct call through dinput.lib takes the system's too. Call it directly and give the harness a seam of ours instead of the slot (as ei::mainloop::g_harnessHooks); tests/verify changes, so the --no-hooks suite runs. Then DINPUT leaves the image's table. Check: goldens unchanged, the report's MOUSE: line as before."
+
+[[ticket]]
+id = "S22c"
+title = "Harness routes of slots our code never calls (18, S22's harness-only column)"
+group = "standalone"
+depends = ["S22"]
+note = "S22's gen_iat.py --counts: 18 slots are reached only from tests/ (HeapAlloc/ReAlloc/Free/Size/Create/Destroy, CreateThread, GetTimeZoneInformation, GetPrivateProfileIntA / SectionNamesA, WritePrivateProfileStringA, RegCreateKeyExA, RegSetValueExA, SetFileAttributesA, CreateFontIndirectA, GetMessageTime, SetActiveWindow, SetFocus): our code calls those as the Windows function or not at all, so the harness's patches of them catch nothing in the image. Per route: drop it (its check is dead), or move the call in our code back to gameapi:: when the harness's check is wanted (heap accounting, profile writes). tests/verify changes: --no-hooks suite. Then GDI32 leaves the image's table (its one slot is CreateFontIndirectA)."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

@@ -9,7 +9,6 @@
 #include "standalone/static_init.h"
 #include "game/game_data.h"
 #include "game/settings_file.h"
-#include "game/system_text.h"
 #include "lib/crt.h"
 #include "render/render.h"
 
@@ -48,8 +47,7 @@ void ReportImageFailure(const char* what);
 
 namespace {
 
-std::string g_commandLine;      // as the CRT would see game.exe's: "<game.exe>" and the game's arguments
-std::size_t g_argumentsAt = 0;  // where the arguments start in it (WinMain's command line)
+std::string g_arguments;   // WinMain's command line: the game's arguments
 
 
 // An access to game.exe's guarded code section: execution there (a jump or call to an address of game.exe's
@@ -83,19 +81,8 @@ LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* e) {
 // ---- game.exe's module, as the image's code sees it ------------------------------------------------
 // The game's module is the host's: WinMain's hInstance and GetModuleHandleA(NULL) are ei_standalone.exe, which
 // has none of game.exe's resources (the strings are literals in our code), so DirectInput and the window class
-// take the handle as it is, and GetModuleFileNameA(NULL) names the host. Only the command line is routed: the
-// game's arguments after game.exe's path, as the original's.
-
-LPSTR WINAPI ImageCommandLine() { return g_commandLine.data(); }
-
-// The image's import slots that lead to a wrapper here instead of their export (ImageRoute).
-struct Route {
-    const char* dll;
-    const char* function;
-    const void* replacement;
-};
-constexpr int kRoutes = 1;
-bool g_routed[kRoutes];   // zero before any static constructor: ImageRoute runs from image_imports.cpp's
+// take the handle as it is, and GetModuleFileNameA(NULL) names the host. WinMain gets the game's arguments; no
+// code of the image asks for GetCommandLineA.
 
 // Points `base`'s import slots of `dll`!`function` at `replacement` (another module's import table: Miles's).
 // Slots are matched by what they hold (the export the loader resolved), so a module without an import name
@@ -137,47 +124,17 @@ HMODULE WINAPI MilesLoadLibrary(LPCSTR name) {
     return LoadLibraryA(name);
 }
 
-// The image's command-line import and the wrapper that takes its slot.
-const Route* Routes() {
-    static const Route routes[kRoutes] = {
-        {"KERNEL32.dll", "GetCommandLineA", reinterpret_cast<const void*>(&ImageCommandLine)},
-    };
-    return routes;
-}
-
-// Checks that ImageRoute took every route and routes Miles's LoadLibraryA. False when one of them is not so.
-bool RouteImageCalls() {
-    bool ok = true;
-    for (int i = 0; i < kRoutes; ++i) {
-        if (g_routed[i]) continue;
-        Log("standalone: game.exe's import %s!%s not found to route", Routes()[i].dll, Routes()[i].function);
-        ok = false;
-    }
-    if (HMODULE miles = GetModuleHandleA("mss32.dll")) {
-        if (!RouteImport(reinterpret_cast<std::uintptr_t>(miles), "KERNEL32.dll", "LoadLibraryA",
-                         reinterpret_cast<const void*>(&MilesLoadLibrary))) {
-            Log("standalone: mss32.dll's LoadLibraryA not found: EI_Plugin.asi would load");
-            ok = false;
-        }
-    }
-    return ok;
+// Routes Miles's LoadLibraryA (MilesLoadLibrary). False when mss32.dll is loaded and its import is not found.
+bool RouteMilesLoads() {
+    HMODULE miles = GetModuleHandleA("mss32.dll");
+    if (!miles || RouteImport(reinterpret_cast<std::uintptr_t>(miles), "KERNEL32.dll", "LoadLibraryA",
+                              reinterpret_cast<const void*>(&MilesLoadLibrary)))
+        return true;
+    Log("standalone: mss32.dll's LoadLibraryA not found: EI_Plugin.asi would load");
+    return false;
 }
 
 } // namespace
-
-// The wrapper image_imports.cpp puts in the image's slot of `dll`!`function` instead of its export, or nullptr.
-// Called during ei_hook.dll's static initialisation, before this file's: the table is a function's static (made
-// at its first call), the flags are zero-initialised. The calls that take or give text take their UTF-8 versions
-// (game/system_text.h).
-const void* ImageRoute(const char* dll, const char* function) {
-    for (int i = 0; i < kRoutes; ++i) {
-        const Route& r = Routes()[i];
-        if (_stricmp(r.dll, dll) != 0 || std::strcmp(r.function, function) != 0) continue;
-        g_routed[i] = true;
-        return r.replacement;
-    }
-    return text::SystemRoute(dll, function);
-}
 
 // The settings file's reads filtered (paths.cpp: the game's paths in the image's settings file).
 void RedirectSettingsReads(void (*filter)(const char* name, unsigned long type, std::string& data)) {
@@ -191,21 +148,15 @@ void RedirectSettingsReads(void (*filter)(const char* name, unsigned long type, 
 // it is right). `run` 1: then run WinMain.
 extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const char* arguments) {
     using namespace ei;
-    // GetCommandLineA's line: the program, as GetModuleFileNameA(NULL) names it (the host), then the arguments.
-    char program[MAX_PATH];
-    GetModuleFileNameA(nullptr, program, MAX_PATH);
-    const bool hasArguments = arguments && *arguments;
-    g_commandLine = std::string("\"") + program + "\"" + (hasArguments ? " " : "") + (hasArguments ? arguments : "");
-    g_argumentsAt = std::strlen(program) + 2 + (hasArguments ? 1 : 0);
+    g_arguments = arguments ? arguments : "";
     SetProcessDPIAware();
     // The missing-code report first: the start-up actions run before WinMain (WideScreen's parses its resolution),
     // so a jump into game.exe's code there is named too, not a silent end.
     AddVectoredExceptionHandler(1, OnOldCode);
     SetUnhandledExceptionFilter(OnUnhandled);
     RunStartupActions();
-    const bool routed = RouteImageCalls();
-    Log("standalone: the game's command line%s routed; arguments: '%s'", routed ? "" : " not",
-        g_commandLine.c_str() + g_argumentsAt);
+    const bool routed = RouteMilesLoads();
+    Log("standalone: Miles's loads%s routed; arguments: '%s'", routed ? "" : " not", g_arguments.c_str());
     const int missingImports = ImageImportsMissing();
     if (!run) return routed && missingImports == 0 ? 0 : 1;
     if (missingImports != 0) {   // as the system loader: no start without every import (ei_hook.log names them)
@@ -220,8 +171,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
     render::PrepareDevice();   // the renderer's device made while the game starts up
     static_init::RunStaticInitialisers();
-    const int result = app::GameMain(GetModuleHandleA(nullptr), nullptr, g_commandLine.data() + g_argumentsAt,
-                                     SW_SHOWNORMAL);
+    const int result = app::GameMain(GetModuleHandleA(nullptr), nullptr, g_arguments.data(), SW_SHOWNORMAL);
     std::exit(result);
     return result;
 }
