@@ -110,19 +110,17 @@ struct Archive {
     lib::InPlace<CMappedResource> storage;
 };
 
-int Fatal(const std::string& message) { return game::FatalError(message); }
-
 // The .mp file `name`.MP of `archive` into `map`. Returns 1, or the fatal error's result when the
 // file is missing or not a map (its size must be the header's counts).
 int ReadDescription(Archive& archive, const std::string& path, const std::string& name, MapDescription& map) {
     std::uint32_t size;
     void* file = archive.File((name + kMapExtension).c_str(), &size);
-    if (!file) return Fatal(("Unable to open file \"" + path) + "\"");
-    if (size < sizeof(MapHeader)) return Fatal("Wrong file format: " + path);
+    if (!file) return game::FatalError(("Unable to open file \"" + path) + "\"");
+    if (size < sizeof(MapHeader)) return game::FatalError("Wrong file format: " + path);
     std::memcpy(&map.header, file, sizeof(MapHeader));
     const MapHeader& header = map.header;
     const std::uint32_t words = header.animatedTileCount + header.materialCount * (sizeof(MapMaterial) / 4) + header.tileCount;
-    if (header.magic != kMapMagic || size != words * 4 + sizeof(MapHeader)) return Fatal("Wrong file format: " + path);
+    if (header.magic != kMapMagic || size != words * 4 + sizeof(MapHeader)) return game::FatalError("Wrong file format: " + path);
 
     const auto* materials = static_cast<const std::uint8_t*>(file) + sizeof(MapHeader);
     const std::size_t materialBytes = header.materialCount * sizeof(MapMaterial);
@@ -417,8 +415,8 @@ int CAIMap::LoadTerrain(const char* path) {
             std::snprintf(file, sizeof(file), "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
-            if (!sector) return Fatal("Unable to locate resource: " + std::string(file));
-            if (!IsSector(sector, size)) return Fatal("Wrong format resource: " + std::string(file));
+            if (!sector) return game::FatalError("Unable to locate resource: " + std::string(file));
+            if (!IsSector(sector, size)) return game::FatalError("Wrong format resource: " + std::string(file));
             StampSector(*this, description, sector, sectorX * kSectorCells, sectorY * kSectorCells);
             archive.Close(sector);
         }

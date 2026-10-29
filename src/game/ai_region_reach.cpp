@@ -95,7 +95,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     local.backward = true;
     LocalSearch* search = &local;
     search->BeginInRectForClass(sizeClass, x0, y0, x1, y1, x, y);
-    search->SaveLevels(true);
+    search->SaveLevels();
     search->ExpandAll();
     search->RestoreLevels();
 
@@ -149,7 +149,7 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, std::list<
     local.backward = flag;
     LocalSearch* search = &local;
     search->BeginInRectForClass(sizeClass, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, x, y);
-    search->SaveLevels(true);
+    search->SaveLevels();
     search->ExpandAll();
     search->RestoreLevels();
     std::uint8_t** cellRows = cells[sizeClass].rows;

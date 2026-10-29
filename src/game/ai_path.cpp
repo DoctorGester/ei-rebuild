@@ -18,11 +18,6 @@
 
 namespace {
 
-bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, int y1) {
-    return search->Begin(unit, x0, y0, x1, y1);
-}
-
-
 bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
     return map->cells[y][x].Passability(unit->sizeClass * 4) != 0;
 }
@@ -218,8 +213,8 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         if (diff + ((shorter * 0x5A8) >> 10) <= 24) {
             pathCells.clear();
             if (ux != tx || uy != ty) {
-                if (BeginLocalSearch(&forwardSearch, unit, ux, uy, tx, ty)) {
-                    if (!BeginLocalSearch(&backwardSearch, unit, tx, ty, ux, uy)) {
+                if (forwardSearch.Begin(unit, ux, uy, tx, ty)) {
+                    if (!backwardSearch.Begin(unit, tx, ty, ux, uy)) {
                         forwardSearch.Reset();
                     } else {
                         found = JoinLocalSearches(&pathCells, nullptr);

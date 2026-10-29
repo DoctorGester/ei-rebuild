@@ -263,5 +263,3 @@ public:
 
 // The average of the three heights when the triangle is degenerate.
 float PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2);
-
-static_assert(sizeof(void*) == 4, "game.exe is 32-bit");

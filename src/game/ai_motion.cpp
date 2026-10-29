@@ -151,12 +151,12 @@ void PathOrder::SetTrack(int id, int from, int to) {
     order->arg7 = static_cast<std::uint32_t>(to);
 }
 
-void PathOrder::SetTurnUntil(const Vector3* direction, int arg6, int arg7) {
+void PathOrder::SetTurnUntil(const Vector3* direction, int fromTime, int toTime) {
     MotionOrder* order = OrderOf(this);
     order->kind = 4;
-    order->arg7 = static_cast<std::uint32_t>(arg7);
+    order->arg7 = static_cast<std::uint32_t>(toTime);
     float angle = static_cast<float>(x87::fpatan(direction->y, direction->x));
-    order->arg6 = static_cast<std::uint32_t>(arg6);
+    order->arg6 = static_cast<std::uint32_t>(fromTime);
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
 
