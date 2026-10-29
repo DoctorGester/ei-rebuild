@@ -71,7 +71,7 @@ char g_pauseMessageKey[12] = /*007930EC*/ {"reserved_02"};
 std::string CInterface3D::MessageText(int id, const char* value) {
     std::string key;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
-    g_clientWorld.texts_->CTextManager::GetString(key, &key);
+    key = g_clientWorld.texts_->CTextManager::GetString(key);
     if (value) return str::Format(key, value);
     return key;
 }

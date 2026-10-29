@@ -10,6 +10,7 @@
 #include "lib/str.h"
 
 #include <cstring>
+#include <optional>
 #include <string>
 
 namespace {
@@ -55,10 +56,9 @@ bool IsComment(const std::string& word) {
 
 // After a read: the cursor moves past the line, then past every "##" comment line.
 void SkipToNextLine(CTextManager* t) {
-    std::string word;
     Advance(t, kAfterRead);
-    while (t->PeekWord(&word)) {
-        if (!IsComment(word)) break;
+    while (std::optional<std::string> word = t->PeekWord()) {
+        if (!IsComment(*word)) break;
         Advance(t, kInline);
     }
 }
@@ -93,11 +93,11 @@ void CTextManager::Close() {
     cursor_ = nullptr;
 }
 
-bool CTextManager::PeekWord(std::string* out) {
+std::optional<std::string> CTextManager::PeekWord() {
     const char* p = cursor_;
     bool started = false;
-    out->clear();
-    if (!Inside(this, p)) return false;
+    if (!Inside(this, p)) return std::nullopt;
+    std::string word;
     while (Inside(this, p)) {
         const char code = *p;
         if (code == 13 || code == 9) break;
@@ -105,62 +105,61 @@ bool CTextManager::PeekWord(std::string* out) {
             if (started) break;
         } else {
             started = true;
-            out->push_back(*p);
+            word.push_back(*p);
         }
         ++p;
     }
-    return true;
+    return word;
 }
 
 bool CTextManager::NextLine() {
-    std::string word;
     Advance(this, kInline);
-    while (PeekWord(&word)) {
-        if (!IsComment(word)) return true;
+    while (std::optional<std::string> word = PeekWord()) {
+        if (!IsComment(*word)) return true;
         Advance(this, kInline);
     }
     return false;
 }
 
-bool CTextManager::ReadLine(std::string* out, bool advance) {
+std::string CTextManager::ReadLine(bool advance) {
     const char* p = cursor_;
-    out->clear();
-    if (!Inside(this, p)) return false;
+    std::string line;
+    if (!Inside(this, p)) return line;
     while (Inside(this, p)) {
         const char code = *p;
         if (code == 10 || code == 13) break;
-        out->push_back(*p);
+        line.push_back(*p);
         ++p;
     }
     if (advance) SkipToNextLine(this);
-    return true;
+    return line;
 }
 
-bool CTextManager::ReadToHash(std::string* out) {
+std::string CTextManager::ReadToHash() {
     const char* p = cursor_;
-    out->clear();
-    if (!Inside(this, p)) return false;
+    std::string text;
+    if (!Inside(this, p)) return text;
     while (Inside(this, p)) {
         if (*p == '#') break;
-        out->push_back(*p);
+        text.push_back(*p);
         ++p;
     }
     cursor_ = p;
-    return true;
+    return text;
 }
 
-bool CTextManager::Split(std::vector<std::string>* words, bool advance) {
+std::vector<std::string> CTextManager::Split(bool advance) {
+    std::vector<std::string> words;
     std::string word;
     bool inWord = false;
     const char* p = cursor_;
-    words->clear();
-    if (!Inside(this, p)) return false;
+    if (!Inside(this, p)) return words;
     while (Inside(this, p)) {
         const char code = *p;
         if (code == 10 || code == 13) {
             // The line's last word (a word still open when the text ends is not added).
             if (!word.empty()) {
-                words->push_back(word);
+                words.push_back(word);
                 word.clear();
             }
             break;
@@ -169,7 +168,7 @@ bool CTextManager::Split(std::vector<std::string>* words, bool advance) {
             if (inWord) {
                 inWord = false;
                 if (!word.empty()) {
-                    words->push_back(word);
+                    words.push_back(word);
                     word.clear();
                 }
             }
@@ -180,16 +179,15 @@ bool CTextManager::Split(std::vector<std::string>* words, bool advance) {
         ++p;
     }
     if (advance) SkipToNextLine(this);
-    return true;
+    return words;
 }
 
 bool CTextManager::FindHeader() {
-    std::string word;
-    while (PeekWord(&word)) {
+    while (std::optional<std::string> word = PeekWord()) {
         bool header;
         {
-            std::string first = str::Left(word, 1);
-            header = str::Compare(first, kHeader) == 0 && !IsComment(word);
+            std::string first = str::Left(*word, 1);
+            header = str::Compare(first, kHeader) == 0 && !IsComment(*word);
         }
         if (header) return true;
         Advance(this, kFindFirst);
@@ -198,25 +196,23 @@ bool CTextManager::FindHeader() {
 }
 
 bool CTextManager::FindLine(std::string_view key) {
-    std::vector<std::string> keyWords;
-    std::vector<std::string> lineWords;
-    std::string word;
-    text::Split(key, &keyWords, ' ');
+    const std::vector<std::string> keyWords = text::Split(key, ' ');
     if (keyWords.size() <= 1) {
         // One word: the line whose first word is the key.
-        while (PeekWord(&word)) {
-            if (str::Compare(word, key) == 0) return true;
-            std::string next;
+        while (std::optional<std::string> word = PeekWord()) {
+            if (str::Compare(*word, key) == 0) return true;
             Advance(this, kFindFirst);
-            while (PeekWord(&next)) {
-                if (!IsComment(next)) break;
+            while (std::optional<std::string> next = PeekWord()) {
+                if (!IsComment(*next)) break;
                 Advance(this, kFindComment);
             }
         }
         return false;
     }
     // Several words: the line whose first words, lower-cased, are the key's words.
-    while (Split(&lineWords, 0)) {
+    std::string word;
+    while (Inside(this, cursor_)) {
+        const std::vector<std::string> lineWords = Split(false);
         if (lineWords.size() >= keyWords.size()) {
             std::size_t i = 0;
             if (keyWords.empty()) return true;
@@ -227,10 +223,9 @@ bool CTextManager::FindLine(std::string_view key) {
                 if (++i >= keyWords.size()) return true;
             }
         }
-        std::string next;
         Advance(this, kFindMulti);
-        while (PeekWord(&next)) {
-            if (!IsComment(next)) break;
+        while (std::optional<std::string> next = PeekWord()) {
+            if (!IsComment(*next)) break;
             Advance(this, kInline);
         }
     }

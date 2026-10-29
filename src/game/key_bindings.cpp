@@ -64,7 +64,7 @@ void LoadKeyBindings() {
     std::memset(g_keyActions, 0, 0x200);
     if (!file.Open(g_dataFolder + "config\\keyboard.ini", "r")) return;
     while (file.ReadLine(line)) {
-        text::SplitWords(line, &words, ' ');
+        words = text::SplitWords(line, ' ');
         if (words.size() <= 1) continue;
         bool known = false;
         int key = 0;

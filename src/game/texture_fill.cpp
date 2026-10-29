@@ -29,14 +29,14 @@ int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
         game::DebugLog(AlreadyLoadedText(), path);
         return 1;
     }
-    text::Split(path, &pieces, '\\');
+    pieces = text::Split(path, '\\');
     file = pieces.back();
     pieces.pop_back();
     alphaPath = AlphaPrefixText() + file;
     pieces.push_back(alphaPath);
-    text::Join(&alphaPath, pieces, '\\');
+    alphaPath = text::Join(pieces, '\\');
     pieces.pop_back();
     pieces.push_back(file);
-    text::Join(&file, pieces, '\\');
+    file = text::Join(pieces, '\\');
     return LoadBmpFiles(device, file.c_str(), alphaPath.c_str());
 }

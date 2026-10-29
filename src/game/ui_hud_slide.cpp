@@ -326,12 +326,12 @@ void CHudUnitPanel::Setup(int bodyPart, bool slid) {
     for (int i = 0; i < kInfoTexts; ++i) {
         key = str::Format(kInfoTextFormat, i);
         text.clear();
-        texts->GetString(key, &text);
+        text = texts->GetString(key);
         texts_.push_back(text);
     }
     // A missing label keeps the text before it.
     for (const char* labelKey : kPartLabelKeys) {
-        texts->GetString(labelKey, &text);
+        text = texts->GetString(labelKey);
         partLabels_.push_back(text);
     }
     for (int& icon : effectIcons_) icon = -1;

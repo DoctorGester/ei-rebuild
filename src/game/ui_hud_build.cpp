@@ -41,7 +41,7 @@ std::vector<std::string> Labels(const int (&ids)[N]) {
     std::string text;
     for (int id : ids) {
         text = std::format("infoitem_{}", id);
-        texts->GetString(text, &text);
+        text = texts->GetString(text);
         labels.push_back(text);
     }
     return labels;
@@ -269,8 +269,7 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUi
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0);
     unit_ = nullptr;
-    std::string text;
-    g_clientWorld.texts_->GetString("infoitem_16", &text);
+    std::string text = g_clientWorld.texts_->GetString("infoitem_16");
     labels_.push_back(text);
     widescreen::LeavePanel();        // addon's 10023430
 }

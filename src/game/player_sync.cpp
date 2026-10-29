@@ -112,13 +112,11 @@ T* NextAs(CEngineObject* const*& next) {
 
 void CPlayerServer::SendItemsGiven(const std::list<CItem*>* items, int flag) {
     if (state_ != kStateJoined) return;
-    std::list<CSpell*> spells{};
-    std::list<CItem*> gathered{};
-    for (auto node = items->begin(); node != items->end(); ++node)
-        GatherItem(&gathered, &spells, *node);
+    ItemsAndSpells gathered;
+    for (auto node = items->begin(); node != items->end(); ++node) gathered.Add(*node);
     CMemoryStream states;
-    SaveListed(&spells, &states);
-    SaveListed(&gathered, &states);
+    SaveListed(&gathered.spells, &states);
+    SaveListed(&gathered.items, &states);
     WriteByte(&out_, kMessageItemStates);
     out_.WriteStream(&states);
     WriteByte(&out_, kMessageItemsGiven);
@@ -127,8 +125,8 @@ void CPlayerServer::SendItemsGiven(const std::list<CItem*>* items, int flag) {
     for (auto node = items->begin(); node != items->end(); ++node)
         WriteDword(&out_, static_cast<std::uint32_t>((*node)->id_));
     WriteDword(&out_, 0xFFFFFFFFu);
-    gathered.clear();
-    spells.clear();
+    gathered.items.clear();
+    gathered.spells.clear();
 }
 
 int CPlayerServer::Flush() {

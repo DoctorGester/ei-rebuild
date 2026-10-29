@@ -92,7 +92,7 @@ std::string BriefingSpeakerName(const std::string& briefing) {
     // The first "#show" line whose second word is not "Hero" names the speaker.
     std::vector<std::string> words;
     while (texts->FindLine(game::briefingwords::ShowTag())) {
-        texts->Split(&words, 1);
+        words = texts->Split(true);
         if (words.size() >= 2 &&
             text::CompareIgnoringCase(words[1],
                             game::briefingwords::Hero()) != 0) {
@@ -247,6 +247,6 @@ std::string SessionMapName() {
         std::string section = prefix + name;
         found = texts->CTextManager::Open(section);
     }
-    if (found) texts->ReadLine(&name, 1);
+    if (found) name = texts->ReadLine(true);
     return name;
 }

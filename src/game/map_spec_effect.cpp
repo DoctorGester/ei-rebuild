@@ -26,11 +26,6 @@ std::uint32_t Bits(float f) {
     b = std::bit_cast<std::uint32_t>(f);
     return b;
 }
-void ReadInto(Chunk& c, std::string& field) { field = c.ReadString(); }
-void ReadVector(Chunk& c, Vector3& to) {
-    Vector3 v;
-    to = *c.ReadVector3(&v);
-}
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
 // The notification made before a new effect: (kind, family) strings by value, built in their argument slots
@@ -101,9 +96,9 @@ void ParticleSpec::OnChunk() {
     Chunk& c = *this;
     switch (c.id_) {
     case 0xDD02: id = c.ReadInt(); break;
-    case 0xDD03: ReadVector(c, position); break;
-    case 0xDD04: ReadInto(c, comment); break;
-    case 0xDD05: ReadInto(c, name); break;
+    case 0xDD03: position = c.ReadVector3(); break;
+    case 0xDD04: comment = c.ReadString(); break;
+    case 0xDD05: name = c.ReadString(); break;
     case 0xDD06: type = c.ReadInt(); break;
     case 0xDD07: scale = c.ReadFloat(); break;
     default: break;
@@ -149,12 +144,12 @@ void LightSpec::OnChunk() {
     Chunk& c = *this;
     switch (c.id_) {
     case 0xAA02: radius = c.ReadFloat(); break;
-    case 0xAA03: ReadInto(c, name); break;
-    case 0xAA04: ReadVector(c, position); break;
+    case 0xAA03: name = c.ReadString(); break;
+    case 0xAA04: position = c.ReadVector3(); break;
     case 0xAA05: id = c.ReadInt(); break;
     case 0xAA06: shadows = c.ReadByte() != 0; break;
-    case 0xAA07: ReadVector(c, colour); break;
-    case 0xAA08: ReadInto(c, comment); break;
+    case 0xAA07: colour = c.ReadVector3(); break;
+    case 0xAA08: comment = c.ReadString(); break;
     default: break;
     }
 }
@@ -204,14 +199,14 @@ void SoundSpec::OnChunk() {
     Chunk& c = *this;
     switch (c.id_) {
     case 0xCC02: id = c.ReadInt(); break;
-    case 0xCC03: ReadVector(c, position); break;
+    case 0xCC03: position = c.ReadVector3(); break;
     case 0xCC04: volume = c.ReadInt(); break;
-    case 0xCC05: ReadInto(c, name); break;
+    case 0xCC05: name = c.ReadString(); break;
     case 0xCC06: minInterval = c.ReadInt(); break;
     case 0xCC07: maxInterval = c.ReadInt(); break;
-    case 0xCC08: ReadInto(c, comment); break;
+    case 0xCC08: comment = c.ReadString(); break;
     case 0xCC0A:
-        c.ReadStringArray(&sounds);
+        sounds = c.ReadStringArray();
         break;
     case 0xCC0B: radius = c.ReadInt(); break;
     case 0xCC0D: ambient = c.ReadByte() == 1; break;

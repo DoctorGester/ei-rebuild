@@ -113,7 +113,7 @@ void CInterface3D::Update() {
 void CInterface3D::OnStringEvent(std::string_view event) {
     std::vector<std::string> words;
     std::string text(event);
-    text::SplitWords(text, &words, ' ');
+    words = text::SplitWords(text, ' ');
     str::MakeLower(words[0]);
     // Rebirth's NewStringEvents: "gameover [title [text]]" plays
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and

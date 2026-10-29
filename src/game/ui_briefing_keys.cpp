@@ -38,7 +38,7 @@ void OpenObjectives(CInterface3D* ui) {
     NamedFloatTable quests;
     PlayerZeroVariables(kQuestPrefix, &quests);
     for (auto& node : quests) {
-        text::Split(node.first, &parts, '.');
+        parts = text::Split(node.first, '.');
         if (parts.size() != kQuestNameParts || std::bit_cast<std::uint32_t>(node.second) != kOneBits) continue;
         MapRecord* questZone = g_mapDatabase.FindMap(parts[1]);
         if (!questZone) continue;

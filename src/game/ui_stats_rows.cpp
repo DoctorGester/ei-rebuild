@@ -38,7 +38,7 @@ void CHeroStatsPanel::DrawRow(const RECT& rect, std::string_view label, int valu
     key += label;
     std::string name;
     if (texts->CTextManager::Open(key))
-        texts->ReadLine(&name, 1);
+        name = texts->ReadLine(true);
     else
         name = label;
     std::string number = maximum >= 0 ? str::Format(kRangeFormat, value, maximum) : str::Format(kValueFormat, value);
@@ -67,8 +67,7 @@ float CHeroStatsPanel::PartArmour(int part) {
 void CHeroStatsPanel::DrawPart(const RECT& rect, std::string_view name, int part) {
     std::string key = kPartPrefix;
     key += name;
-    std::string label;
-    g_clientWorld.texts_->CTextManager::GetString(key, &label);
+    std::string label = g_clientWorld.texts_->CTextManager::GetString(key);
     label = kPartIndent + label;
     CUiSurface* surface = surfaces_[0];
     surface->DrawTextIn(label, &rect, 0, kRowColour, kLeft, 1);

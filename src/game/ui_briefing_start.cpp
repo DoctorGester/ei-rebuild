@@ -119,7 +119,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     }
     std::vector<std::string> words;
     while (texts->FindLine(kShowLine)) {
-        texts->Split(&words, 1);
+        words = texts->Split(true);
         if (words.size() < 2) continue;
         int id = TextKeyFromName(words[1]);
         if (id == leader_->id_) continue;
@@ -244,7 +244,7 @@ void CBriefingScreen::FinishDialogue() {
     PlayerZeroVariables(kTopicPrefix, &variables);
     std::vector<std::string> parts;
     for (auto& node : variables) {
-        text::Split(node.first, &parts, '.');
+        parts = text::Split(node.first, '.');
         if (parts.size() != kTopicNameParts || text::CompareIgnoringCase(topic_, parts[2]) != 0) continue;
         g_serverWorld.CompleteBriefing(0, node.first);
         break;

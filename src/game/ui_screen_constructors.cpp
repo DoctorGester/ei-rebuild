@@ -26,13 +26,13 @@ CMessageBox::CMessageBox(CInterface3D* ui, std::string_view titleKey, const char
     : CUiContainer(ui), result_(result), flags_(flags), format_(format) {
     std::string text;
     CTextManager* texts = g_clientWorld.texts_;
-    texts->GetString(titleKey, &text);
+    text = texts->GetString(titleKey);
     title_ = text;
     if (flags_ & kEditField) {
         editText_ = const_cast<char*>(textKey);   // the caller's buffer: OK copies the answer into it
     } else {
         editText_ = nullptr;
-        texts->GetString(textKey, &text);
+        text = texts->GetString(textKey);
         text_ = text;
     }
 }

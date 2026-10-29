@@ -144,8 +144,7 @@ void Execute(const std::string& text) {
         Command(r.cheat ? &g_cheatCommands : &g_publicCommands, name) = r.handler;
     }
 
-    std::vector<std::string> args;
-    Tokenize(text, &args);
+    std::vector<std::string> args = Tokenize(text);
     if (args.empty()) return;
     std::string command = args[0];
     args.erase(args.begin());
@@ -194,11 +193,11 @@ void Execute(const std::string& text) {
 
 // States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
 // token).
-int Tokenize(std::string_view source, std::vector<std::string>* out) {
+std::vector<std::string> Tokenize(std::string_view source) {
     const std::string text(source);   // the scan below stops at the terminator
+    std::vector<std::string> tokens;
     std::string token;
     int state = 0;
-    out->clear();
     const char* p = text.c_str();
     for (;;) {
         const char c = *p;
@@ -207,7 +206,7 @@ int Tokenize(std::string_view source, std::vector<std::string>* out) {
             if (state == 1) {
                 state = 0;
                 if (token.size() != 0) {
-                    out->push_back(token);
+                    tokens.push_back(token);
                     token.clear();
                 }
                 ++p;
@@ -226,10 +225,10 @@ int Tokenize(std::string_view source, std::vector<std::string>* out) {
         ++p;
     }
     if (token.size() != 0) {
-        out->push_back(token);
+        tokens.push_back(token);
         token.clear();
     }
-    return 1;
+    return tokens;
 }
 
 // The arguments are joined back with single spaces.

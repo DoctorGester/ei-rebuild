@@ -85,8 +85,7 @@ void CUiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right
 void CMainMenu::AddVersionLine() {
     CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
     surface->Clear();
-    std::string text;
-    g_clientWorld.texts_->CTextManager::GetString(kVersionKey, &text);
+    std::string text = g_clientWorld.texts_->CTextManager::GetString(kVersionKey);
     RECT rect = {0, 0, 675, 120};
     surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
     AddSurface(surface);

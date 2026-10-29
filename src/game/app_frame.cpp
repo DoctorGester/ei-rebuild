@@ -77,11 +77,9 @@ void FrameStep(bool draw, bool cursor) {
 // Plays the movies listed under `section` in the .ini under the movie folder setting (each
 // from the movie directory).
 void PlayMovies(const std::string& section, bool loadingStep) {
-    std::vector<std::string> list;
     CIniFile ini;
     ini.SetPath(g_dataFolder + "config\\movie.ini");
-    ini.GetList(section.c_str(), "movies", &list, ',');
-    for (const std::string& movie : list) {
+    for (const std::string& movie : ini.GetList(section.c_str(), "movies", ',')) {
         {
             const std::string full = g_discFolder.c_str() + std::string("Movies\\") + movie;
             PlayMovie(full, 0, true, false, false, loadingStep);

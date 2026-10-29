@@ -218,7 +218,7 @@ void CHeroStatsPanel::DrawStats() {
         draw->DrawTextIn("+", &rect, 0, points_ >= 100 ? kGrey : kBright, 1, 1);
     } else if (page_ == 0) {
         rect = RECT{0x14, 0x41, 0xAF, 0x50};
-        texts->GetString("infoitem_25", &text);
+        text = texts->GetString("infoitem_25");
         draw->DrawTextIn(text, &rect, 0, kBright, 0, 1);
         Down(&rect);
         DrawPart(rect, "skull", 0);
@@ -249,7 +249,7 @@ void CHeroStatsPanel::DrawStats() {
             Down(&rect);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
                 line = std::format("damage_{}", info.damageType);
-                texts->GetString(line, &text);
+                text = texts->GetString(line);
             }
             line = std::format("     {} {}", texts_[2], text);
             draw->DrawTextIn(line, &rect, 0, kBright, 0, 1);
@@ -359,7 +359,7 @@ void CHeroStatsPanel::Build() {
     std::string text;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
                             "lmp_pers_tall", "magic_skills"}) {
-        texts->GetString(key, &text);
+        text = texts->GetString(key);
         texts_.push_back(text);
     }
 }
@@ -449,7 +449,7 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     std::string text;
     for (int key : {0x23, 0x24}) {
         text = std::format("infoitem_{}", key);
-        texts->GetString(text, &text);
+        text = texts->GetString(text);
         texts_.push_back(text);
     }
 }

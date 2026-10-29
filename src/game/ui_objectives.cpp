@@ -162,8 +162,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
                 }
             }
         } else {
-            std::string name;
-            name = std::format("z.{}", source.target);
+            std::string name = std::format("z.{}", source.target);
             float value = LocalPlayerVariable(name);
             EI_NAN_AUDIT(value);
             if (value != 1.0f) exit->flag_ = true;
@@ -231,7 +230,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         for (auto node = table.begin(); node != table.end(); ++node) {
             EI_NAN_AUDIT(node->second);
             if (node->second == 0.0f) continue;
-            text::Split(node->first, &parts, '.');
+            parts = text::Split(node->first, '.');
             if (parts.size() == 3) found.push_back(parts[2]);
         }
         shownQuest_ = -1;
@@ -264,8 +263,8 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
                 foundText = g_clientWorld.texts_->Open(key);
             }
             if (foundText) {
-                g_clientWorld.texts_->ReadLine(&title, 1);
-                g_clientWorld.texts_->ReadToHash(&text);
+                title = g_clientWorld.texts_->ReadLine(true);
+                text = g_clientWorld.texts_->ReadToHash();
                 CUiSurface* surface = surfaces_[1];
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
@@ -297,10 +296,10 @@ void CObjectivesWindow::ShowQuest() {
     std::string failed;
     std::string costExp;
     std::string costMoney;
-    texts->GetString("obj_completed", &completed);
-    texts->GetString("obj_failed", &failed);
-    texts->GetString("obj_cost_exp", &costExp);
-    texts->GetString("obj_cost_money", &costMoney);
+    completed = texts->GetString("obj_completed");
+    failed = texts->GetString("obj_failed");
+    costExp = texts->GetString("obj_cost_exp");
+    costMoney = texts->GetString("obj_cost_money");
     bool found;
     {
         std::string questWord("quest ");
@@ -312,7 +311,7 @@ void CObjectivesWindow::ShowQuest() {
     // The text: a colour code, the quest's description, its rewards, then each sub-objective the
     // player has (q.<zone>.<quest>.<objective> not 0) with "completed" (2) or "failed" (3).
     texts->NextLine();
-    texts->ReadToHash(&text);
+    text = texts->ReadToHash();
     {
         std::string colour("\007C\344\327\247 ");
         text = colour + text;
@@ -332,7 +331,7 @@ void CObjectivesWindow::ShowQuest() {
         }
     }
     while (texts->FindHeader()) {
-        texts->Split(&fields, 1);
+        fields = texts->Split(true);
         if (fields.size() < 2) continue;
         if (text::CompareIgnoringCase(fields[0], "#quest") == 0) break;
         if (text::CompareIgnoringCase(fields[0], "#subobj") != 0) continue;
@@ -340,7 +339,7 @@ void CObjectivesWindow::ShowQuest() {
                         fields[1]);
         int state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
-        texts->ReadLine(&line, 1);
+        line = texts->ReadLine(true);
         text += "\007C\377\263" "1 ";
         text += line;
         text += " ";
@@ -352,7 +351,7 @@ void CObjectivesWindow::ShowQuest() {
             text += failed;
         }
         text += "\n \n \007C\344\327\247";
-        texts->ReadToHash(&line);
+        line = texts->ReadToHash();
         text += line;
         text += "\n \n ";
     }
@@ -402,7 +401,7 @@ void CObjectivesWindow::CreateScreen() {
     std::string key;
     for (int k = 0; k < 3; ++k) {
         key = std::format("obj_{}", k);
-        g_clientWorld.texts_->GetString(key, &text);
+        text = g_clientWorld.texts_->GetString(key);
         objectiveTexts_.push_back(text);
     }
 
@@ -496,7 +495,7 @@ void CObjectivesWindow::CreateScreen() {
         GameLocalPlayerVariables("q.", &table);
         const std::string& interfaceQuest = interface_->savedText_;
         for (auto node = table.begin(); node != table.end(); ++node) {
-            text::Split(node->first, &parts, '.');
+            parts = text::Split(node->first, '.');
             if (parts.size() != 3) continue;
             if (text::CompareIgnoringCase(interfaceQuest,
                                 parts[2]) == 0)
@@ -560,7 +559,7 @@ void CObjectivesWindow::DrawQuestList() {
             std::string key = questWord + quests[row];
             found = texts->Open(key);
         }
-        if (found) texts->ReadLine(&title, 1);
+        if (found) title = texts->ReadLine(true);
         else title = quests[row];
         variable = std::format("q.{}.{}", shownZone_, quests[row]);
         int state = static_cast<int>(LocalPlayerVariable(variable));

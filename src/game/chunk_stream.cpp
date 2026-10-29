@@ -167,28 +167,20 @@ std::uint8_t Chunk::ReadByte() {
     return value;
 }
 
-// x and z are copied through the FPU, y as an integer.
-Vector3* Chunk::ReadVector3(Vector3* out) {
+// The three floats' bits as read.
+Vector3 Chunk::ReadVector3() {
     std::uint32_t v[3];
     ReadCounted(this, &v[0], 4);
     ReadCounted(this, &v[1], 4);
     ReadCounted(this, &v[2], 4);
-    std::uint32_t x;
-    x = v[0];
-    out->x = std::bit_cast<float>(x);
-    std::uint32_t z;
-    z = v[2];
-    out->z = std::bit_cast<float>(z);
-    out->y = std::bit_cast<float>(v[1]);
-    return out;
+    return {std::bit_cast<float>(v[0]), std::bit_cast<float>(v[1]), std::bit_cast<float>(v[2])};
 }
 
 // A short read leaves the defaults (1, 0, 0, 0) in place.
-float* Chunk::ReadQuaternion(float* out) {
+Quaternion Chunk::ReadQuaternion() {
     std::uint32_t v[4] = {0x3F800000u, 0, 0, 0};
     ReadCounted(this, v, 0x10);
-    std::memcpy(out, v, sizeof(v));
-    return out;
+    return {std::bit_cast<float>(v[0]), std::bit_cast<float>(v[1]), std::bit_cast<float>(v[2]), std::bit_cast<float>(v[3])};
 }
 
 void Chunk::ReadBytes(void* data, int size) {
@@ -243,17 +235,17 @@ void Chunk::WriteString(std::uint32_t id, std::string text) {
     FileWrite(file, text.data(), static_cast<std::uint32_t>(length));
 }
 
-// The array is emptied, then `count` string chunks are read through a child chunk (its constructor
-// inlined) and appended. The count is unsigned.
-void Chunk::ReadStringArray(std::vector<std::string>* array) {
+// `count` string chunks read through a child chunk (its constructor inlined). The count is unsigned.
+std::vector<std::string> Chunk::ReadStringArray() {
     std::uint32_t count;
     ReadCounted(this, &count, 4);
     Chunk child(this);
-    array->clear();
+    std::vector<std::string> array;
     for (std::uint32_t i = count; i != 0; --i) {
         child.ReadHeader();
-        array->push_back(child.ReadString());
+        array.push_back(child.ReadString());
     }
+    return array;
 }
 
 // The size covers the count and every element's chunk. The texts in the asset code page, as WriteString writes them.

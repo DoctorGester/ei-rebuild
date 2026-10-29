@@ -121,7 +121,7 @@ void CUnitServer::FinishCast() {
     world->CastSpell(spell, unit, unit->localPosition_, action.target, at, 0);
     if (spell->GetPrototype()->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kCastNoiseScale);
-        world->aiMap_.events.Noise(this, loudness, kNoiseKind, nullptr);
+        world->aiMap_.events.Noise(this, loudness, kNoiseKind, unit->localPosition_);
     }
     action.source = kNoSource;
 }

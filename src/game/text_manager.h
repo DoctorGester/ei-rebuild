@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <list>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -66,16 +67,17 @@ public:
     ClassId GetClassId() override;
 
     // The first word at the cursor (leading spaces and line ends skipped; it ends at a
-    // space, tab, CR or LF) into `out`; the cursor does not move. 0 when the cursor is at the end.
-    bool PeekWord(std::string* out);
+    // space, tab, CR or LF); the cursor does not move. None when the cursor is at the end.
+    std::optional<std::string> PeekWord();
 
     // Whether `p` is at or past the end of the current text (signed compare).
     bool IsPastEnd(const char* p);
 
-    // Looks up "string " + name and reads it (up to a '#', trailing CR/LF trimmed) into
-    // `out`. When there is no such text `out` becomes `name` itself (unless it already holds that
-    // very buffer) and the result is 0. Either way the cursor is cleared afterwards.
-    bool GetString(std::string_view name, std::string* out);
+    // Looks up "string " + name and reads it (up to a '#', trailing CR/LF trimmed); none when there is no
+    // such text. Either way the cursor is cleared afterwards.
+    std::optional<std::string> FindString(std::string_view name);
+    // FindString's text, or `name` itself when there is none.
+    std::string GetString(std::string_view name);
 
     // The name, description and kind of an item, each looked up in the texts.
     ItemTexts GetItemTexts(CItem* item);
@@ -95,15 +97,15 @@ public:
     bool OpenData(std::string_view key);
     // Clears the current text.
     void Close();
-    // The rest of the current line (up to CR or LF) into `out`; with `advance` the cursor
-    // then moves to the next line that is not a comment. 0 when the cursor is at the end.
-    bool ReadLine(std::string* out, bool advance);
-    // The text up to the next '#' into `out`; with `advance` the cursor moves there.
-    bool ReadToHash(std::string* out);
-    // The current line's words (separated by spaces and tabs; a word still open when the
-    // text ends is dropped) into `words`; with `advance` the cursor moves to the next line that is not
-    // a comment. 0 when the cursor is at the end.
-    bool Split(std::vector<std::string>* words, bool advance);
+    // The rest of the current line (up to CR or LF), empty when the cursor is at the end; with `advance` the
+    // cursor then moves to the next line that is not a comment.
+    std::string ReadLine(bool advance);
+    // The text up to the next '#' (empty when the cursor is at the end); the cursor moves there.
+    std::string ReadToHash();
+    // The current line's words (separated by spaces and tabs; a word still open when the text ends is
+    // dropped), none when the cursor is at the end (IsPastEnd); with `advance` the cursor moves to the next
+    // line that is not a comment.
+    std::vector<std::string> Split(bool advance);
     // Moves the cursor to the line that starts with `key`: one word compares the line's first word; several
     // words (split at spaces) compare the line's words, lower-cased, with them. 1 when found, else 0
     // (cursor at the end).

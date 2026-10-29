@@ -45,10 +45,9 @@ void AIHeardCalls::RemoveClaims() {
 void AIMemory::HearCall(const Vector3& point, int delay, std::string_view text) { calls.Hear(point, delay, text); }
 void AIMemory::AddClaim(std::uint32_t mask, int delay, std::string_view text) { calls.AddClaim(mask, delay, text); }
 
-void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
+void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3& at) {
     CUnit* unit = source->unit;
-    const Vector3* point = at ? at : &unit->localPosition_;
-    std::list<CUnit*> units = map->sectorMap.FindUnitsInRadius(*point, kNoiseRadius);
+    std::list<CUnit*> units = map->sectorMap.FindUnitsInRadius(at, kNoiseRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
@@ -58,7 +57,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         // A unit that noticed something at least as loud as a call hears nothing.
         if (brain->memory.noticedLevel >= kNoticeCallLevel) continue;
         const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.perception[3].current;
-        const float distance = vecmath::Distance<Sum3::XYZ>(*point, other->localPosition_);
+        const float distance = vecmath::Distance<Sum3::XYZ>(at, other->localPosition_);
         EI_NAN_AUDIT(hearing, loudness, distance);
         if (hearing * loudness <= distance) continue;
         std::string text;
@@ -77,6 +76,6 @@ AIEventPresence* AIViewer::StepNoise(const Vector3& position, CUnitServer* sourc
     const AITerrainType* ground = g_serverWorld.aiMap_.MaterialRecordAt(position);
     float loudness = source->moveFactors[0] * source->stats.conspicuity[3].current;
     loudness *= ground->noise;
-    Noise(source, loudness, kStepNoise, nullptr);
+    Noise(source, loudness, kStepNoise, source->unit->localPosition_);
     return nullptr;
 }

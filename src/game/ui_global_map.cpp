@@ -71,9 +71,7 @@ public:
     }
     Vector3 ModelPoint(const Vector3& local) const {
         Vector3 centre = Centre();
-        Vector3 turned;
-        map_->turn_.Rotate(&turned, &local);
-        return centre + turned;
+        return centre + map_->turn_.Rotate(local);
     }
     void Turn(CUiMesh* sprite) const { sprite->localRotation_ = map_->turn_; }
     CTexture* Texture(int index) const { return map_->objects_[index]; }
@@ -209,7 +207,7 @@ void CGlobalMap::CreateScreen() {
         GameLocalPlayerVariables(variable, &vars);
         for (const auto& node : vars) {
             if (std::bit_cast<std::uint32_t>(node.second) != std::bit_cast<std::uint32_t>(1.0f)) continue;
-            text::Split(node.first, &parts, '.');
+            parts = text::Split(node.first, '.');
             if (parts.size() != 3) continue;
             GlobalMapPlace& quest = quests_.emplace_back();
             quest.name = parts[2];
@@ -307,8 +305,7 @@ void CGlobalMap::CreateScreen() {
     int hour = minutes / 60;
     minutes -= hour * 60;
     std::string clock;
-    std::string dayText;
-    g_clientWorld.texts_->GetString("save_day", &dayText);
+    std::string dayText = g_clientWorld.texts_->GetString("save_day");
     clock = std::format("{}  {},  {}:{:02}", dayText, day + 1, hour, minutes);
     {
         CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, SurfaceBlend::Keyed, true);

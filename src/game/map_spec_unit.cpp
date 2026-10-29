@@ -58,11 +58,6 @@ std::uint32_t Bits(float f) {
     return b;
 }
 
-void ReadInto(Chunk& c, std::string& field) { field = c.ReadString(); }
-void ReadVector(Chunk& c, Vector3& to) {
-    Vector3 v;
-    to = *c.ReadVector3(&v);
-}
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
 void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data, size); }
@@ -82,7 +77,7 @@ void WaypointChunk::OnChunk() {
     Waypoint* w = target;
     Chunk& c = *this;
     switch (c.id_) {
-    case 0xBBBE0001: ReadVector(c, target->position); break;
+    case 0xBBBE0001: target->position = c.ReadVector3(); break;
     case 0xBBBE0002: w->lookWait = static_cast<std::int16_t>(c.ReadInt()); break;
     case 0xBBBE0003: target->time = c.ReadFloat(); break;
     case 0xBBBE0004: target->stopFirst = c.ReadByte(); break;
@@ -94,7 +89,7 @@ void WaypointChunk::OnChunk() {
 void PatrolChunk::OnChunk() {
     Chunk& c = *this;
     if (c.id_ == 0xBBBD0001) {
-        ReadVector(c, target->position);
+        target->position = c.ReadVector3();
         return;
     }
     if (c.id_ != 0xBBBE0000) return;
@@ -119,7 +114,7 @@ void BehaviourChunk::OnChunk() {
     case 0xBBBC0002: b->loop = c.ReadByte(); break;
     case 0xBBBC0003: b->type = c.ReadInt(); break;
     case 0xBBBC0004: b->guardRadius = c.ReadFloat(); break;
-    case 0xBBBC0005: ReadVector(c, b->guard); break;
+    case 0xBBBC0005: b->guard = c.ReadVector3(); break;
     case 0xBBBC0006: b->alarmKind = c.ReadByte(); break;
     case 0xBBBC0007: b->enabled = c.ReadByte(); break;
     case 0xBBBC0008:
@@ -243,13 +238,13 @@ void UnitSpec::Save() {
 void UnitSpec::OnChunk() {
     Chunk& c = *this;
     switch (c.id_) {
-    case 0xBBBB0002: ReadInto(c, prototype); break;
+    case 0xBBBB0002: prototype = c.ReadString(); break;
     case 0xBBBB0004: c.ReadBytes(&record.stats, sizeof(record.stats)); break;
     case 0xBBBB0005:
     case 0xBBBB0006:
     case 0xBBBB0007:
     case 0xBBBB0008:
-    case 0xBBBB0009: c.ReadStringArray(&record.lists[c.id_ - 0xBBBB0005]); break;
+    case 0xBBBB0009: record.lists[c.id_ - 0xBBBB0005] = c.ReadStringArray(); break;
     case 0xBBBB000A: record.applyStats = c.ReadByte(); break;
     case 0xBBBC0000: {
         BehaviourChunk reader(this);

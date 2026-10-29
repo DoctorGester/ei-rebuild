@@ -46,7 +46,7 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view tex
     region_ = region;
     // An empty text leaves the measurements and the two arguments unwritten.
     if (text.empty()) return;
-    text::Split(text, &lines_, kLineSeparator);
+    lines_ = text::Split(text, kLineSeparator);
     width_ = 0;
     height_ = 0;
     lineHeight_ = 0;
@@ -78,7 +78,7 @@ CUiTooltip::~CUiTooltip() = default;
 
 void CUiTooltip::SetText(std::string_view text) {
     if (text.empty()) return;
-    text::Split(text, &lines_, kLineSeparator);
+    lines_ = text::Split(text, kLineSeparator);
     DrawLines();
 }
 

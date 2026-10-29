@@ -43,16 +43,11 @@ const char* FiguresResource() { return options::g_options.resourcesPath_.c_str()
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
 // accumulated colour stays unrounded between the steps (FPU stack), each stored as a float.
-void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour, std::vector<std::uint32_t>& values, const char* section,
-               LightColour* table) {
-    keys.clear();
-    ini.GetKeyNames(section, &keys);
+void ReadTable(CIniFile& ini, const char* section, LightColour* table) {
     int previous = 0;
-    for (const std::string& key : keys) {
-        hour = str::Mid(key, 4, 2);
-        int index = str::ToInt(hour);
-        values.clear();      // the sky section frees the block inline (the same state)
-        ini.GetIntArray(section, key.c_str(), &values);
+    for (const std::string& key : ini.GetKeyNames(section)) {
+        int index = str::ToInt(str::Mid(key, 4, 2));
+        const std::vector<std::uint32_t> values = ini.GetIntArray(section, key.c_str());
         LightColour& to = table[index];
         to.r = static_cast<float>(static_cast<double>(static_cast<int>(values[0])) * kByteToUnit);
         to.g = static_cast<float>(static_cast<double>(static_cast<int>(values[1])) * kByteToUnit);
@@ -84,19 +79,15 @@ const char* SkyFigureFile() { return "nask0sky.fig"; }
 } // namespace
 
 int CWorldClient::LoadLights(const std::string& file) {
-    std::vector<std::string> keys;
-    std::string hour;
-    std::vector<std::uint32_t> values{};
     CIniFile ini;   // the empty path, freed at the end
     {
         std::string folder = g_dataFolder + ConfigFolder();
         std::string path = folder + file;
         ini.SetPath(path);
     }
-    ReadTable(ini, keys, hour, values, SunlightSection(), sunlight_);
-    ReadTable(ini, keys, hour, values, AmbientSection(), ambient_);
-    ReadTable(ini, keys, hour, values, SkySection(), sky_);
-    values.clear();
+    ReadTable(ini, SunlightSection(), sunlight_);
+    ReadTable(ini, AmbientSection(), ambient_);
+    ReadTable(ini, SkySection(), sky_);
     return 1;
 }
 

@@ -127,7 +127,7 @@ void CHelpWindow::ShowPage() {
     bool rowsGiven = false;
     const char* resume = texts->cursor_;
     if (texts->FindLine(kPositionLine)) {
-        texts->Split(&words, 1);
+        words = texts->Split(true);
         if (words.size() > 3) {
             page.left = str::ToInt(words[1]);
             page.top = str::ToInt(words[2]);
@@ -172,7 +172,7 @@ void CHelpWindow::ShowPage() {
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
     std::list<PageEntry> entries;
     while (texts->FindHeader()) {
-        texts->Split(&words, 1);
+        words = texts->Split(true);
         if (text::CompareIgnoringCase(words[0], kScreenLine) == 0) break;
         if (text::CompareIgnoringCase(words[0], kRectangleLine) == 0 && words.size() > 4) {
             const int top = str::ToInt(words[2]);
@@ -191,7 +191,7 @@ void CHelpWindow::ShowPage() {
                 picture = words[1];
             }
             // The next line's first word is the text's key.
-            texts->Split(&words, 1);
+            words = texts->Split(true);
             if (words.size() > 0) {
                 const PageEntry entry{words[0], picture};
                 entries.push_back(entry);
@@ -238,7 +238,7 @@ void CHelpWindow::ShowPage() {
             row.top = y;
             row.bottom = y + kRowHeight;
             text.clear();
-            if (texts->Open(std::string(kTutorSection) + entry.key.data())) texts->ReadToHash(&text);
+            if (texts->Open(std::string(kTutorSection) + entry.key.data())) text = texts->ReadToHash();
             str::TrimRight(text, kLineEnds);
             int height = body->DrawWrappedText(text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.
@@ -281,8 +281,7 @@ void CHelpWindow::ShowPage() {
         regions_[0]->SetTip(0x7595);
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
-        std::string hint;
-        texts->GetString(kHelpKeyText, &hint);
+        std::string hint = texts->GetString(kHelpKeyText);
         hint += kSpace;
         hint += key;
         RECT label{width / 3, 5, 2 * width / 3, 25};

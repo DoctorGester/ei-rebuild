@@ -37,7 +37,7 @@ public:
     void Line();
 
 private:
-    void Split() { reader_->Split(&words_, true); }
+    void Split() { words_ = reader_->Split(true); }
     const char* Word(int i) const { return words_[i].c_str(); }
     int Count() const { return static_cast<int>(words_.size()); }
     MapRecord& Map() { return db_->maps[map_]; }

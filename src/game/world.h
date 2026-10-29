@@ -294,8 +294,8 @@ public:
     void SetCave(int value);
     void SetClimate(int value);
     void SetWeather(int weather, float strength);
-    // Target zone and entrance of exit `index`; FALSE when out of range.
-    bool GetZoneExit(int index, std::string* target, int* entrance);
+    // Exit `index` (its target zone and entrance); null when out of range.
+    const ZoneExit* FindZoneExit(int index) const;
     // Registers an object that lives for a limited time (spells, effects) in timedObjects_.
     void AddTimedObject(CEffect* object);
     void RemoveTimedObject(unsigned id);
@@ -917,8 +917,8 @@ public:
     // The same from PickAt2's object only (no second pick).
     CUnit* UnitAt2(const struct tagPOINT* point);
     // Every object of the frame's window list that still exists and whose side half has a drawn part
-    // meeting the screen rectangle `rect` is appended to `out`.
-    void UnitsInBox(const tagRECT* rect, std::list<CMapObject*>* out);
+    // meeting the screen rectangle `rect`.
+    std::list<CMapObject*> UnitsInBox(const tagRECT* rect);
     // Marks the footprints within their scale times `range` of the point (x, y).
     void MarkFootprintsInSight(const float* point, float range);
     // The wind: stored, given to the terrain's waves and to the rain and snow layer.
@@ -940,11 +940,11 @@ public:
     // prototype's number), items, player; each unit is filed with AddObject. Armour of type 0 is put on only with
     // `allArmour`. Stops at the first unit that cannot be created or given a figure.
     void CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, char allArmour);
-    // Appends to the plain pointer list `out` every object of the sector grid's cells around `point`
-    // whose (x, y) lies within radius + hypot(rangeX_, rangeY_) of the point. The cell range (truncated
+    // Every object of the sector grid's cells around `point` whose (x, y) lies within radius +
+    // hypot(rangeX_, rangeY_) of the point. The cell range (truncated
     // and clamped to the terrain) and the walk's cursor are left in rangeFirstX_ .. rangeY_. The
     // original's z difference is the point's z minus itself (0, kept).
-    void ObjectsInRange(const Vector3& point, float radius, std::list<CObject3D*>* out);
+    std::list<CObject3D*> ObjectsInRange(const Vector3& point, float radius);
     // Reads the light colours from config\<file> (an .ini, LightsGipat.ini): each key of [sunlight],
     // [ambient] and [sky] names its hour in characters 4..5 ("hour07") and holds "r, g, b" (0..255,
     // scaled by 1/255, alpha 1); the hours between two keys in file order are filled by linear steps

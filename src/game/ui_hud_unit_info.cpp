@@ -99,7 +99,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
     std::uint8_t moveBonus = params->movementKind;
     if (moveBonus > 1) {
         panel.text = str::Format(kMoveKey, moveBonus - 1);
-        texts->CTextManager::GetString(panel.text, &suffix);
+        suffix = texts->CTextManager::GetString(panel.text);
     } else {
         suffix.clear();
     }
@@ -122,7 +122,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
     panel.DrawLine();
     if (static_cast<std::uint32_t>(combat.damageType) < 7) {
         panel.text = str::Format(kDamageKey, combat.damageType);
-        texts->CTextManager::GetString(panel.text, &suffix);   // else the move text stays
+        suffix = texts->CTextManager::GetString(panel.text);   // else the move text stays
     }
     int damageMax = static_cast<int>(combat.damageMax);
     int damageMin = static_cast<int>(combat.damageMin);
@@ -153,7 +153,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
             } else {
                 suffix = str::Format(kWeaker, -difference);
             }
-            texts->CTextManager::GetString(suffix, &suffix);
+            suffix = texts->CTextManager::GetString(suffix);
             panel.text = str::Format(kTwoTexts, panel.labels[16], suffix);
             panel.DrawLine();
         }
@@ -162,7 +162,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
     }
 
     if (IsMultiplayerClient() && !outside) {
-        texts->CTextManager::GetString(kCampExp, &suffix);
+        suffix = texts->CTextManager::GetString(kCampExp);
         panel.text = str::Format(kValue, suffix, params->unspentExperience);
         panel.DrawLine();
     }

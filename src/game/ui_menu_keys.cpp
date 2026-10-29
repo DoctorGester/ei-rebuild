@@ -224,7 +224,7 @@ void COptionsWindow::KeyDown(int key, int repeat, int flags) {
             CMessageBox* box = new CMessageBox(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
             std::string format;
             std::string message;
-            g_clientWorld.texts_->GetString(game::menukeytexts::KeyMappedText(), &format);
+            format = g_clientWorld.texts_->GetString(game::menukeytexts::KeyMappedText());
             message = str::Format(format, pressed->name_, other->name_);
             // The box's text (a null box is written through, like the original).
             box->text_ = message.c_str();

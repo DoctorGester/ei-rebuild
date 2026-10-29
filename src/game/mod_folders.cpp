@@ -288,21 +288,20 @@ void* GetFile(CMappedResource* res, std::string_view name, std::uint32_t* size) 
 
 void ListFiles(const CMappedResource* res, std::vector<std::string>* out, const char* pattern) {
     Lock lock;
-    // 100201FD: each listing goes to a scratch array (ListFiles refills it) and is appended to `out`.
-    std::vector<std::string> names;
+    // 100201FD: each archive's listing is appended to `out`.
     ResTables& tables = Tables();
     auto overridden = tables.overridden.find(res);
     if (overridden != tables.overridden.end()) {
         auto mods = tables.modArchives.find(overridden->second);
         if (mods != tables.modArchives.end()) {
             for (const CMappedResource* mod : mods->second) {
-                mod->ListFilesPlain(&names, pattern);
+                const std::vector<std::string> names = mod->ListFilesPlain(pattern);
                 out->insert(out->end(), names.begin(), names.end());
             }
         }
     }
     if (tables.ignored.count(res) == 0) {
-        res->ListFilesPlain(&names, pattern);
+        const std::vector<std::string> names = res->ListFilesPlain(pattern);
         out->insert(out->end(), names.begin(), names.end());
     }
 }

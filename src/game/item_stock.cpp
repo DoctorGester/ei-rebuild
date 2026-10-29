@@ -68,22 +68,30 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype, const std::
     return nullptr;
 }
 
+// The spells generated for an item (held until it is built) and the one it gets (null for none).
+struct RolledSpell {
+    std::list<HeldRef<CSpell>> generated;
+    CSpell* chosen = nullptr;
+};
+
 // The random spell of a weapon or armor: half the time (ISAAC), when the material allows magic, one of the
-// spells generated for the item's level (into `spells`), if within the item's power. Null for none.
-CSpell* RollItemSpell(ItemStock* stock, ItemKind kind, const itemdb::ItemRecordHead* prototype,
-                      const itemdb::MaterialRecordHead* material, std::list<HeldRef<CSpell>>& spells) {
-    if (g_random.Next() % 101 >= 50) return nullptr;
+// spells generated for the item's level, if within the item's power.
+RolledSpell RollItemSpell(ItemStock* stock, ItemKind kind, const itemdb::ItemRecordHead* prototype,
+                          const itemdb::MaterialRecordHead* material) {
+    RolledSpell roll;
+    if (g_random.Next() % 101 >= 50) return roll;
     std::optional<MagicCapacity> capacity = MagicCapacityOf(kind, prototype, material);
-    if (!capacity) return nullptr;
+    if (!capacity) return roll;
     float levels[kSchoolCount];
     for (float& l : levels) l = capacity->level;
-    stock->GenerateSpells(&spells, levels, 0);
-    unsigned count = static_cast<unsigned>(spells.size());
-    if (count == 0) return nullptr;
+    roll.generated = stock->GenerateSpells(levels, 0);
+    unsigned count = static_cast<unsigned>(roll.generated.size());
+    if (count == 0) return roll;
     unsigned index = count > 1 ? g_random.Next() % count : 0;
-    CSpell* spell = *std::next(spells.begin(), index);
+    CSpell* spell = *std::next(roll.generated.begin(), index);
     EI_NAN_AUDIT(spell->manaCost_, capacity->power);
-    return spell->manaCost_ <= capacity->power ? spell : nullptr;
+    if (spell->manaCost_ <= capacity->power) roll.chosen = spell;
+    return roll;
 }
 
 // The table index of each record (none of the family `skip`).
@@ -214,9 +222,10 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
         if (chosen) chosen->left -= static_cast<int>(prototype->materialUnits);
         ctor->material_ = chosen ? chosen->record : nullptr;
 
-        std::list<HeldRef<CSpell>> spellList;   // released after the build
+        RolledSpell roll;   // its spells released after the build
         if (spellRecipes) {
-            if (CSpell* spell = RollItemSpell(this, prototype->Kind(), prototype, ctor->material_, spellList)) ctor->spell_ = spell;
+            roll = RollItemSpell(this, prototype->Kind(), prototype, ctor->material_);
+            if (roll.chosen) ctor->spell_ = roll.chosen;
         }
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
@@ -315,8 +324,9 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>& recipe
     }
 }
 
-void ItemStock::GenerateSpells(std::list<HeldRef<CSpell>>* out, const float* levels, unsigned threshold) {
+std::list<HeldRef<CSpell>> ItemStock::GenerateSpells(const float* levels, unsigned threshold) {
     using stock::kMaxSpellModifiers;
+    std::list<HeldRef<CSpell>> made;
     CSpellManager* spellManager = party->SpellManager();
     std::list<itemdb::SpellModifierRecord*> chosen;
     for (auto& [spellName, recipes] : spellMap) {
@@ -364,9 +374,10 @@ void ItemStock::GenerateSpells(std::list<HeldRef<CSpell>>* out, const float* lev
                     if (budget < repeated->skill + reached) break;
                 }
             }
-            out->emplace_back(spellManager->CreateSpell(prototype, &chosen));
+            made.emplace_back(spellManager->CreateSpell(prototype, &chosen));
         }
     }
+    return made;
 }
 
 // Original behaviour kept: a material entry is pushed even when its material is not found (null
@@ -431,8 +442,8 @@ void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
     FillSpellMaps(g_spellDatabase.scrollRecipes);
     std::list<HeldRef<CSpell>> list;
     for (int tries = 0; tries < kScrollTries; ++tries) {
-        list.clear();
-        GenerateSpells(&list, scrollLevels, 50);
+        list.clear();   // the last try's spells released before the next are made
+        list = GenerateSpells(scrollLevels, 50);
         if (list.size() >= spells.size()) break;
     }
     itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named(game::SpellContainerText());

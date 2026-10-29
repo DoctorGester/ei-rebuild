@@ -85,7 +85,6 @@ std::string CBattleScreen::UnitName(CUnit* unit) {
     name = unit->GetPrototype()->name;
     text::ReplaceChar(&name, ' ', '_');
     if (!texts->Open(std::string(kUnitTextPrefix) + name)) return {};
-    std::string line;
-    texts->ReadLine(&line, 1);
+    std::string line = texts->ReadLine(true);
     return line.c_str();
 }

@@ -257,8 +257,7 @@ void CBattleScreen::Update() {
     // The selection box: party units inside it are marked (MapObjectFlag::BoxMarked and their figure's select virtual
     // with 1), the others unmarked (with 0); selected ones are left alone.
     if (boxSelecting_) {
-        std::list<CMapObject*> units;
-        g_clientWorld.UnitsInBox(&selectionBox_, &units);
+        std::list<CMapObject*> units = g_clientWorld.UnitsInBox(&selectionBox_);
         std::list<std::uintptr_t> inside;
         for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*party); ++i) {
@@ -326,8 +325,7 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
     auto* party = &party_;
     auto unitAt = [&](int i) { return (*party)[i]; };
     int first = -1;
-    std::list<CMapObject*> units;
-    world->UnitsInBox(&selectionBox_, &units);
+    std::list<CMapObject*> units = world->UnitsInBox(&selectionBox_);
     std::list<std::uintptr_t> inside;
     if (!units.empty()) {
         for (CMapObject* unit : units) {
@@ -378,7 +376,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
     std::vector<std::string> parts;
     std::string text;
     std::string title;
-    text::Split(name, &parts, '.');
+    parts = text::Split(name, '.');
     const float complete = 2.0f;
     const float failed = 3.0f;
     if (parts.size() == 3) {
@@ -392,9 +390,9 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
         } else {
             key = "combat_get_quest";
         }
-        texts->CTextManager::GetString(key, &title);
+        title = texts->CTextManager::GetString(key);
         text.clear();
-        if (texts->Open(std::string("quest ") + parts[2])) texts->ReadLine(&text, 1);
+        if (texts->Open(std::string("quest ") + parts[2])) text = texts->ReadLine(true);
         std::string colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
         text = colour + title + " " + text;
     } else if (parts.size() == 4) {
@@ -415,7 +413,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
         } else {
             key = "combat_get_subobj";
         }
-        texts->CTextManager::GetString(key, &title);
+        title = texts->CTextManager::GetString(key);
         text.clear();
         bool found = false;
         {
@@ -429,7 +427,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
         }
         if (found) {
             texts->NextLine();
-            texts->ReadLine(&text, 1);
+            text = texts->ReadLine(true);
         }
         std::string colour("\007C\377\263" "1 ");   // colour code 0x31B3FF43 and a space
         text = colour + title + " " + text;

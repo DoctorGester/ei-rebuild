@@ -127,9 +127,8 @@ struct ItemStock {
     // level is within the budget (the prototype school's entry of `levels`, rounded) and they are at most
     // kMaxSpellModifiers; then each optional modifier, while fewer, half the time (ISAAC) when it fits the
     // budget; then the repeated modifier while it fits and fewer (a kind 'm' one scales the cost and stops
-    // once the cost is not above the base cost). The spell built from them (may be null) is appended,
-    // counted, to `out`.
-    void GenerateSpells(std::list<HeldRef<CSpell>>* out, const float* levels, unsigned threshold);
+    // once the cost is not above the base cost). The spells built from them (may be null), held.
+    std::list<HeldRef<CSpell>> GenerateSpells(const float* levels, unsigned threshold);
 
     // Reads five counted name lists from `stream` and appends the records they name, unless already listed:
     // armors, weapons, quick items (names lower-cased, unknown ones skipped); then material entries (name

@@ -377,12 +377,12 @@ int CPlayerServer::OnRefreshParty() {
 }
 
 int CPlayerServer::OnTakeExit() {
-    std::string zone;
     int exit = 0;
-    int entrance = 0;
     g_receivedMessages.ReadValue(exit);
-    if (!g_serverWorld.GetZoneExit(exit, &zone, &entrance)) return 0;
-    LeaveToZone(zone, entrance);
+    const ZoneExit* taken = g_serverWorld.FindZoneExit(exit);
+    if (!taken) return 0;
+    const std::string zone = taken->target;   // a copy: leaving may replace the exits
+    LeaveToZone(zone, taken->entrance);
     return 1;
 }
 

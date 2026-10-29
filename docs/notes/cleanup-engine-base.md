@@ -35,8 +35,6 @@ the `__declspec(novtable)` classes and `...Hook` slot shims still here are C28's
 
 - `unit.h` and `object.h` disagree on the unit's names at +0x24C (`party` / `player`) and +0x250 (`player` / `side`); units ticket.
   `object_tables.cpp` `FindCommandByKey` reads the key-binding tables (0079BF70, 007857B0) by address (belongs with `key_bindings.cpp`).
-- `FpuCopyBits` (ReadVector3's FPU copy of a signalling NaN) stays until the x87
-  cleanup.
 - C5 (folded): `UnitStream` and the unit_ai `AIStream` are `CStream` (members `reading_` / `version_`; the verify capture, recording and replay
   streams derive from `FakeStream`); the `SaveStream` structs of `ui_battle_setup.cpp` / `ui_global_map.cpp` are `CMemoryStream` at 007AFDF8;
   `verify_magic_trap`'s `ReadRecorder` is `unitverify::ReadRecorder`; the 101 per-file string helpers (`Text`, `GameText`, `GameString`,

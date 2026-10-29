@@ -39,7 +39,7 @@ void CBriefingScreen::FindTopics(int personId) {
     std::vector<std::string> found;
     for (auto& node : variables) {
         if (std::bit_cast<std::uint32_t>(node.second) != kOneBits) continue;
-        text::Split(node.first, &parts, '.');
+        parts = text::Split(node.first, '.');
         if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
         bool isConstructor;
@@ -80,6 +80,6 @@ std::string CBriefingScreen::TopicTitle(std::string_view topic) {
     CTextManager* texts = g_clientWorld.texts_;
     std::string section = kBriefingSection;
     section += key;
-    if (texts->CTextManager::Open(section)) texts->ReadLine(&title, 1);
+    if (texts->CTextManager::Open(section)) title = texts->ReadLine(true);
     return title;
 }

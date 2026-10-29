@@ -36,7 +36,7 @@ void ParseSpellText(std::string& text, std::vector<std::string>& codes) {
     str::TrimRight(inner);
     str::TrimRight(inner, '}');
     str::TrimRight(inner);
-    text::Split(inner, &codes, ';');
+    codes = text::Split(inner, ';');
     text = str::Left(text, brace);
     str::TrimLeft(text);
     str::TrimRight(text);

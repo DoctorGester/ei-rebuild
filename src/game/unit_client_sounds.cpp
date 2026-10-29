@@ -92,11 +92,11 @@ bool SoundBusy(int handle) {
 
 } // namespace
 
-int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
+std::optional<std::string> CUnitClientSpecific::FootstepSound(int terrain) {
     const auto* prototype = unit->GetPrototype();
-    if (!prototype) return 0;
+    if (!prototype) return std::nullopt;
     const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-    if (!model || model->SoundCounts()[terrain] == 0) return 0;
+    if (!model || model->SoundCounts()[terrain] == 0) return std::nullopt;
     CWorldClient* world = &g_clientWorld;
     float x = unit->localPosition_.x;
     float y = unit->localPosition_.y;
@@ -105,55 +105,47 @@ int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
     float surface = world->platforms_.SurfaceHeight(at, world->ClampedGroundHeight(x, y));
     float gap = ground - surface;
     if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
-    if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1) {
-        *out = std::format("steps\\human\\crawl\\{}.wav", libcrt::RandBelow(kCrawlSounds) + 1);
-        return 1;
-    }
+    if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1)
+        return std::format("steps\\human\\crawl\\{}.wav", libcrt::RandBelow(kCrawlSounds) + 1);
     int count = static_cast<int>(model->SoundCounts()[terrain]);
     const std::string& name = model->soundNames.begin()[terrain];
-    *out = std::format("{}\\{}.wav", name, libcrt::RandBelow(count) + 1);
-    return 1;
+    return std::format("{}\\{}.wav", name, libcrt::RandBelow(count) + 1);
 }
 
-int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to, std::string* out,
-                                     std::uint8_t miss) {
+std::optional<std::string> CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to,
+                                                            std::uint8_t miss) {
     const auto* prototype = unit->GetSecondPrototype();
-    if (!prototype) return 0;
+    if (!prototype) return std::nullopt;
     const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     int frame = animation->soundFrame;
-    out->clear();
-    if (frame == 0) return 0;
+    if (frame == 0) return std::nullopt;
     double at = frame;
     EI_NAN_AUDIT(from);
-    if (at < from) return 0;   // before `from`
-    if (at >= to) return 0;
-    if (miss) {
-        *out = "weapons\\miss.wav";
-        return 1;
-    }
+    if (at < from) return std::nullopt;   // before `from`
+    if (at >= to) return std::nullopt;
+    if (miss) return std::string("weapons\\miss.wav");
     int count = 0;
     while (count < 4 && animation->sounds[count] != 0) ++count;
-    if (count == 0) return 0;
+    if (count == 0) return std::nullopt;
     std::uint32_t sound = animation->sounds[libcrt::RandBelow(count)];
     std::string folder = model->soundFolder;   // a missing model's soundFolder is read (sic)
     if (prototype->soundFolder.size() != 0) folder = prototype->soundFolder;
     const char* format = nullptr;
     switch (animation->Kind()) {
     case AnimationKind::Idle:
-        if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->idleSoundChance) return 1;
+        if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->idleSoundChance) return std::string();
         format = "%s\\idle\\%d.wav";
         break;
-    case AnimationKind::Special:
-        if (const char* name = SkillSound(static_cast<SkillAnimation>(animation->Number()))) *out = name;
-        return 1;
+    case AnimationKind::Special: {
+        const char* name = SkillSound(static_cast<SkillAnimation>(animation->Number()));
+        return std::string(name ? name : "");
+    }
     case AnimationKind::Attack: {
         std::uint32_t hand = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNoItemId;
         if (unit->MapType() == MapObjectType::Hero && unit->activeWeapon < 4 && hand != kNoItemId &&
-            (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow)) {
-            *out = std::format("weapons\\{}.wav", static_cast<int>(sound));
-            return 1;
-        }
-        if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->attackSoundChance) return 1;
+            (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow))
+            return std::format("weapons\\{}.wav", static_cast<int>(sound));
+        if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->attackSoundChance) return std::string();
         format = "%s\\attack\\%d.wav";
         break;
     }
@@ -163,10 +155,9 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     case AnimationKind::Hit:
         format = "%s\\hit\\%d.wav";
         break;
-    default: return 0;
+    default: return std::nullopt;
     }
-    *out = str::Format(format, folder, sound);
-    return 1;
+    return str::Format(format, folder, sound);
 }
 
 // --- Playing them --------------------------------------------------------------------------------
@@ -195,9 +186,10 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (g_clientWorld.LocalView()->player_->sessionKind_ == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
-        if (unit->MapType() == MapObjectType::Hero && unit->actionSound &&
-            ActionSound(current, lastAnimationTime, now, &sound, static_cast<std::uint8_t>(unit->actionSound)))
-            sounds->Play3D(sound, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0);
+        if (unit->MapType() == MapObjectType::Hero && unit->actionSound) {
+            if (std::optional<std::string> miss = ActionSound(current, lastAnimationTime, now, static_cast<std::uint8_t>(unit->actionSound)))
+                sounds->Play3D(*miss, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0);
+        }
         priority = kPriorityAction;
         action = true;
         break;
@@ -223,7 +215,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     default:
         break;
     }
-    if (action && !ActionSound(current, lastAnimationTime, now, &sound, 0)) sound.clear();
+    if (action) sound = ActionSound(current, lastAnimationTime, now, 0).value_or(std::string());
 
     for (int step = 0; steps && step < kStepFrames; ++step) {
         int frame = static_cast<int>(current->stepFrames[step]) - 1;
@@ -232,7 +224,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (!unit->HasEffect(SpellType::Silence)) {
             auto* world = ClientWorld();
             int ground = world->terrain_->SurfaceClass(position.x, position.y);
-            FootstepSound(ground, &sound);
+            if (std::optional<std::string> footstep = FootstepSound(ground)) sound = std::move(*footstep);   // else the last one stays
         }
         if (unit->moveMode == 0) break;
         const auto* prototype = unit->GetPrototype();
