@@ -10,7 +10,6 @@
 #include "unit.h"
 
 #include "lib/bytes.h"
-#include "lib/static_object.h"
 
 #include <bit>
 #include <cstring>

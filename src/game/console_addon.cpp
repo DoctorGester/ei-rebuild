@@ -29,7 +29,7 @@ namespace console {
 
 namespace {
 
-int* const kSpectator = &options::g_options->drawVisibleOnly_;
+int* const kSpectator = &options::g_options.drawVisibleOnly_;
 
 // addon's state.
 CommandHandler g_gameHelp = nullptr;   // the game's "help", saved at each registration

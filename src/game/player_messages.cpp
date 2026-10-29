@@ -16,7 +16,6 @@
 
 #include "lib/bytes.h"
 #include "lib/nan_audit.h"
-#include "lib/static_object.h"
 
 #include "ei/x87.h"
 

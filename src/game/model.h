@@ -12,7 +12,6 @@
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
-#include "lib/static_object.h"
 
 #include <array>
 #include <cstddef>

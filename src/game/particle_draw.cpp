@@ -10,7 +10,6 @@
 #include "lib/intro_sort.h"
 #include "lib/vecmath.h"
 #include "camera.h"
-#include "lib/static_object.h"
 
 #include <bit>
 #include <cstdlib>

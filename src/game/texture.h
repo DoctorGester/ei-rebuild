@@ -9,7 +9,6 @@
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/static_object.h"
 
 #include <list>
 #include <string>

@@ -41,7 +41,7 @@ constexpr unsigned kFolderBufferSize = 0x400;
 constexpr double kHoursPerDay = 24.0;
 const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
-const char* DefaultMusic() { return options::g_options->defaultStreamingSound_.c_str(); }
+const char* DefaultMusic() { return options::g_options.defaultStreamingSound_.c_str(); }
 CPlayerClient* LocalClient() { return g_clientWorld.LocalView(); }
 
 } // namespace

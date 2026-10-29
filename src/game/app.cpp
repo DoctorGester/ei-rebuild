@@ -66,7 +66,7 @@ LRESULT OnActivate(WPARAM wParam) {
         device = g_sceneRenderer.device_;
         if (device) {
             // ResetCursors after the device was restored. The context is the mouse.
-            ResetCursors(options::g_options->fpsIndependentCursor_ != 0, g_mouse, 0);
+            ResetCursors(options::g_options.fpsIndependentCursor_ != 0, g_mouse, 0);
         }
     }
     g_cursor.ShowImage(1);
@@ -241,7 +241,7 @@ int StartFirstMap() {
     const auto& cmdMode = g_commandLineMob;   // empty: main menu
     const auto& cmdScript = g_commandLineScript;
     std::string map;
-    map = cmdMap.size() != 0 ? cmdMap : options::g_options->defaultMapName_;
+    map = cmdMap.size() != 0 ? cmdMap : options::g_options.defaultMapName_;
     if (str::Compare(cmdMode,
                         game::kEmptyText) == 0) {
         g_gameFlow.CloseSessions();

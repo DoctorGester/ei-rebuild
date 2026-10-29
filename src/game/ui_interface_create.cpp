@@ -41,7 +41,7 @@ bool MakeFont(UiFont& font, int size) {
 }
 
 // The language the keyboard starts in (the option, a Windows language id) and English.
-DWORD KeyboardLanguage() { return static_cast<DWORD>(options::g_options->keyboardLayout_); }
+DWORD KeyboardLanguage() { return static_cast<DWORD>(options::g_options.keyboardLayout_); }
 constexpr DWORD kEnglish = 0x409;
 constexpr int kMaxLayouts = 16;
 

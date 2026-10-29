@@ -109,8 +109,8 @@ void CMainMenu::CreateScreen() {
         region->SetRectFrom(rect);
     }
     GamePlayMusic(nullptr);
-    savedEdgeFade_ = options::g_options->borderFogDistance_;
-    options::g_options->borderFogDistance_ = kMenuEdgeFade;
+    savedEdgeFade_ = options::g_options.borderFogDistance_;
+    options::g_options.borderFogDistance_ = kMenuEdgeFade;
     rain_ = (g_random.Next() & 1) == 1;
     // The hour is read three times (the unrounded result is compared each time).
     EI_NAN_AUDIT(GameServerTimeOfDay());
@@ -153,7 +153,7 @@ void CMainMenu::Update() {
 // --- Close -----------------------------------------------------------------
 
 void CMainMenu::CloseScreen() {
-    options::g_options->borderFogDistance_ = savedEdgeFade_;
+    options::g_options.borderFogDistance_ = savedEdgeFade_;
     GameStopSounds(1);
     GameStopAmbience();
 }

@@ -255,7 +255,7 @@ void CCamera::StopMotion() {
 void CCamera::SetFocus(const Vector3* p) {
     focus_ = *p;
     float average, low, high;
-    SampleTerrain(p, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(options::g_options->cameraTerrainArea_) * 0.5f), options::g_options->cameraTerrainArea_, options::g_options->cameraTerrainArea_, &average,
+    SampleTerrain(p, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(options::g_options.cameraTerrainArea_) * 0.5f), options::g_options.cameraTerrainArea_, options::g_options.cameraTerrainArea_, &average,
                   &low, &high);
     focus_.z = static_cast<float>(D(average) + focusHeight_);
 }
@@ -416,7 +416,7 @@ void CCamera::Update(float dt) {
     // The focus height follows the target's or the ground's, a tenth of the way per call (the
     // smooth camera: as far as a call went in the time a call was tuned for).
     float average, low, high;
-    SampleTerrain(&focus_, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(options::g_options->cameraTerrainArea_) * 0.5f), options::g_options->cameraTerrainArea_, options::g_options->cameraTerrainArea_,
+    SampleTerrain(&focus_, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(options::g_options.cameraTerrainArea_) * 0.5f), options::g_options.cameraTerrainArea_, options::g_options.cameraTerrainArea_,
                   &average, &low, &high);
     double ground = target ? D(targetGround) : D(average);
     const float lag = smooth ? TimeGain(kHeightLag, dt) : kHeightLag;

@@ -66,9 +66,9 @@ std::uint8_t& RecordingFrames() { return app::g_recordingFrames; }
 bool AppActive() { return app::g_active != 0; }
 int& FlowState() { return g_gameFlow.state_; }
 void SetLoadTarget(const char* slot) { g_gameFlow.requestTarget_ = slot; }
-void ClearShowTutorial() { options::g_options->showTutorial_ = 0; }
-void SetMasterHost(const char* host) { options::g_options->masterServerName_ = host; }
-void SetWaterWaves(bool on) { options::g_options->enableWaterWaves_ = on; }
+void ClearShowTutorial() { options::g_options.showTutorial_ = 0; }
+void SetMasterHost(const char* host) { options::g_options.masterServerName_ = host; }
+void SetWaterWaves(bool on) { options::g_options.enableWaterWaves_ = on; }
 
 CursorState Cursor() {
     const CCursor* cursor = &g_cursor;

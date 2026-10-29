@@ -58,8 +58,8 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
   for any unknown class, and `CreateMapObject` returns null with it. The original's functions are rows of config/dead_code.csv.
 - **Options**: ~120 values under HKCU\<path>\<subkey> through the game's registry helper (006972A0-006988A0); the writer uses the
   setter matching each getter (00697D40 int, 00697CA0 dword, 00697E80 floats as REG_BINARY bits, 00697FC0 strings). 00458870
-  (constructor; `options_construct.cpp`, A-E2) runs from a static initializer before the hooks exist: ours is compared at
-  WinMain's entry with the object it built. The layout is named in options.h.
+  (constructor; `options_construct.cpp`, A-E2) ran from game.exe's static initialiser 00458700; ours, `options::g_options`,
+  is a plain global the C++ runtime constructs (C50b3). The layout is named in options.h.
 - **Unit record**: `UnitRecord::ApplyTo` (00477B00) applies the world server's unit record (005927C0): stats, controller fields,
   protection from the prototype model, items, spells, armour, weapons; a record without stats gives only the items.
 - **Player messages**: each player's server connection queues messages for its client in the CMemoryStream at +0x48 (a type byte

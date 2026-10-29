@@ -10,6 +10,11 @@
 
 namespace ei::static_init {
 
+// The once-only guard (bit 0) that game.exe's compiler gave the function-local statics with an empty destructor: 176
+// static initialisers (`Once(g_emptyStaticGuard, 1)`) set it and register the empty exit function; nothing reads it
+// but these tests.
+inline constinit std::uint8_t g_emptyStaticGuard = /*007CAEE4*/ {};
+
 // The once-only guard of a global (a bit in a flag byte): false when the bit is already set.
 inline bool Once(std::uint8_t& flags, std::uint8_t bit) {
     if (flags & bit) return false;

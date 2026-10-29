@@ -164,7 +164,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     DamageInfo copy = *hit;
     if (copy.amount == 0.0f) return 0;
     float difficulty = unit->player ? 1.0f
-                                    : g_logicSettings.absorption[options::g_options->difficulty_];
+                                    : g_logicSettings.absorption[options::g_options.difficulty_];
     float total = 0.0f;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = copy.amount * copy.typeWeights[type] -

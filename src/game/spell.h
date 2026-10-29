@@ -13,7 +13,6 @@
 #include "resource_manager.h"
 
 #include "lib/bit_flags.h"
-#include "lib/static_object.h"
 
 #include <list>
 #include <string>

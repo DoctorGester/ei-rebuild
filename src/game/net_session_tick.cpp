@@ -10,7 +10,6 @@
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "lib/static_object.h"
 
 #include <cstring>
 

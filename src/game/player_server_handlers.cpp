@@ -4,7 +4,6 @@
 
 #include "player_messages.h"
 #include "console.h"
-#include "lib/static_object.h"
 
 #include "ai_map.h"
 #include "core_maths.h"

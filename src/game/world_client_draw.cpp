@@ -110,9 +110,9 @@ constexpr float kShadowLength = -0.02f;
 // The light effect settings (the blood print, footprint and scorch mark lists) and the game mode (1
 // single player).
 int LightEffectsSetting(const int& setting) { return setting; }
-int LightEffects1B8() { return LightEffectsSetting(options::g_options->enableBloodprints_); }
-int LightEffects1BC() { return LightEffectsSetting(options::g_options->enableFootprints_); }
-int LightEffects1C0() { return LightEffectsSetting(options::g_options->enableFireprints_); }
+int LightEffects1B8() { return LightEffectsSetting(options::g_options.enableBloodprints_); }
+int LightEffects1BC() { return LightEffectsSetting(options::g_options.enableFootprints_); }
+int LightEffects1C0() { return LightEffectsSetting(options::g_options.enableFireprints_); }
 const char* MarkerPartName() { return "hp"; }
 
 float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
@@ -442,7 +442,7 @@ int CWorldClient::DrawPass() {
     // Selection markers (selectedIds_ of object ids) in single-player mode 1 with units drawn: a marker at
     // each living object (at its named part when it has one); dead ones leave the list.
     std::list<int>& selected = selectedIds_;
-    if (!selected.empty() && options::g_options->selectionType_ == 1 && (flags_ & WorldClientFlag::DrawUnits)) {
+    if (!selected.empty() && options::g_options.selectionType_ == 1 && (flags_ & WorldClientFlag::DrawUnits)) {
         state.alphaTest = false;
         g_sceneRenderer.SetTexture(0, nullptr);
         CMapObjectManager* manager = objectManager_;

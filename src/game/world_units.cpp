@@ -32,7 +32,6 @@
 #include "unit_db.h"
 #include "world_effect.h"
 
-#include "lib/static_object.h"
 #include "lib/crt.h"
 #include <cstddef>
 #include <cstdint>

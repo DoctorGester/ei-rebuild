@@ -35,7 +35,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "lib/static_object.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
@@ -145,7 +144,7 @@ void ReadCommandLine(const char* commandLine) {
     g_commandLineMob.clear();
     g_commandLineMap.clear();
     CWorldClient* client = &g_clientWorld;
-    GameOptions* options = &options::g_options.Get();
+    GameOptions* options = &options::g_options;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
             client->flags_ &= ~WorldClientFlag::MoviePathOption;
@@ -269,7 +268,7 @@ bool CheckDrives(const std::vector<std::string>& messages) {
         PathParts parts;
         DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (str::Compare(options::g_options->cdLabels_[1], volume) != 0) {
+        while (str::Compare(options::g_options.cdLabels_[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
@@ -300,7 +299,7 @@ void CreateFolders(std::string& path) {
 
 // The renderer created on the window, its gamma set from the options.
 void CreateRenderer() {
-    GameOptions* options = &options::g_options.Get();
+    GameOptions* options = &options::g_options;
     CCamera* camera = &g_camera;
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
@@ -312,7 +311,7 @@ void CreateRenderer() {
 // The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes. Returns
 // the disc folder's text pointer (see the caller).
 std::uintptr_t OpenSound() {
-    GameOptions* options = &options::g_options.Get();
+    GameOptions* options = &options::g_options;
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
     std::string discFolder = g_discFolder;
@@ -342,7 +341,7 @@ std::uintptr_t OpenSound() {
 
 void LoadDatabases() {
     const std::string archive = "database.res";
-    GameOptions* options = &options::g_options.Get();
+    GameOptions* options = &options::g_options;
     g_skillDatabase.Load(options->resourcesPath_, archive);
     g_questDatabase.Load(options->resourcesPath_);
     g_unitDatabase.Load(options->resourcesPath_, archive);
@@ -504,7 +503,7 @@ bool RunPass() {
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
     if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
-        const double frame = Step(1000.0f / static_cast<double>(options::g_options->movieCapturingFps_));
+        const double frame = Step(1000.0f / static_cast<double>(options::g_options.movieCapturingFps_));
         elapsed = libcrt::Ftol(std::ceil(frame));
     }
     g_serverBacklog += elapsed;
@@ -593,7 +592,7 @@ void ShutDown() {
     if (mouse) ReleaseMouse(mouse);
     g_sceneRenderer.SetGamma(0.0f, 0.0f, 0.0f);
     g_sceneRenderer.DestroyRenderer();
-    options::g_options->SaveToRegistry(g_registryRoot.c_str());
+    options::g_options.SaveToRegistry(g_registryRoot.c_str());
     g_clientWorld.SetCamera(nullptr);
     EmptyWorlds();
 }
@@ -626,7 +625,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     ReadCommandLine(commandLine);
     RegisterWindowClass(instance);
 
-    GameOptions* options = &options::g_options.Get();
+    GameOptions* options = &options::g_options;
     // NivalRegistry: Rebirth's patch names its own key instead.
     g_registryRoot = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
                          ? "Software\\Gipat.ru\\EI_Starter\\EvilIslands"

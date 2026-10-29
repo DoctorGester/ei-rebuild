@@ -27,7 +27,7 @@ namespace {
 // The world's update period in milliseconds (the harness's `speed`; the game's default 55).
 constexpr int kDefaultUpdatePeriod = 55;
 // The autosave option (nonzero: save "savea" on entering a zone).
-bool AutoSaveEnabled() { return options::g_options->autosave_ != 0; }
+bool AutoSaveEnabled() { return options::g_options.autosave_ != 0; }
 const char* AutoSaveName() { return "savea"; }
 
 

@@ -17,7 +17,7 @@
 #include <cstring>
 #include <new>
 #include <string>
-#include "lib/static_object.h"
+#include "lib/in_place.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 

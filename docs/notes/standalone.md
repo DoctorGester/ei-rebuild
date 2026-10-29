@@ -295,7 +295,7 @@ gen_iat --check's read of the import directory): each had proved its generated f
 made, and the generators still read game.exe when rerun. What needs no game.exe stays in build.cmd, from the committed files:
 `gen_iat.py --check` (import_table.h, image_imports.inc and gameapi.h regenerated from the committed table and the routes:
 a hand edit or a new harness route fails), `named_data.py --check` (definitions well formed, csv current, no address
-literal inside a named, retired or unread range, global_objects.csv) and `gen_image_cells.py --check` (retired vtables
+literal inside a named, retired or unread range) and `gen_image_cells.py --check` (retired vtables
 against vtables.csv and the sources, the committed cells' targets). The generated static_init.cpp / static_exit.cpp,
 image_cells.inc are only as fresh as their generator's last run: rerun
 it (reads game.exe) after a change that registers or ports what it decodes.
@@ -330,22 +330,13 @@ eh/rtti/runtime class, rdata constant, data object, bss object, other) and by ow
 that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
 kinds given.
 - **Blocks**: an address that looks like a lone object can sit inside a larger one the code reaches by its base: C18f's
-  0079BCF0 and 0079BEC8 are GameOptions members (0079BC70 +0x80, +0x258), read as `options::g_options->...`, not named.
+  0079BCF0 and 0079BEC8 are GameOptions members (0079BC70 +0x80, +0x258), read as `options::g_options.member`, not named.
   A `char` buffer is `char g_x[256] = /*addr*/ {""};` (the tool packs char arrays as names), a function pointer
   `void* g_hook = /*addr*/ {nullptr};` cast at the call.
-- **Global objects (C18n)**: `--check` refuses a named range inside a singleton the code reaches by field offset
-  (config/global_objects.csv: address, size, name, class; empty since C50b2) and says which object and field. The
-  worlds (C50b1), the camera 0079B2A8 and the scene renderer 007AF060 (C50b2) were such objects until they became plain
-  globals with no address: C18i's 007C2CC4
-  is the server world's sessionKind_ (007AFF60 + 0x12D64), which also held TheMissionScript 007C27D4 (commandsA_),
-  007C29CC (commandsB_), TheSectorMap 007B01F4 (sectorMap_), the AI map 007B00D0 and the diplomacy 007C2BC4. Naming the
-  whole object is allowed. `python tools/named_data.py --owner BEGIN [END]` asks the same of any address. The CSV's sizes
-  come from `static_assert(sizeof(T) == N)` where the sources have one (checked against it). A new GamePointer<T>(addr) accessor in
-  game_singletons.h must lie in a listed object. Before naming a lone address, `--owner` it.
 - **C18h (the small areas)**: three kinds of reads went away. (1) Members of blocks read by their base: the logic
   settings 007C53F8 (`GameLogicSettings()`: guard / follow radii, the hit point curve's hpVal, skillVal, lost money /
   experience, durability, absorption / attack / defence per difficulty; 25 literals in unit*, combat*, player_server_handlers)
-  and the options 0079BC70 (`options::g_options->...`: video / audio, texture quality, mipmapping, reverse stereo, flora
+  and the options 0079BC70 (`options::g_options.member`: video / audio, texture quality, mipmapping, reverse stereo, flora
   light, the two LOD distances, the camera's terrain area, keyboard layout, the objects' lighting coefficient, the hero and
   quest lights). Check a new candidate against these two structs first (an offset from 007C53F8 / 0079BC70 is a member).
   (2) Struct tables with string pointers: TYPES has `OptionDefinition` / `ActionDefinition` (ui_options.cpp), `ScriptParticleType`
@@ -587,28 +578,20 @@ kinds given.
       - The exit function: ported on the name, outside any anonymous namespace, with a row in
         config/static_init_ports.csv (function_sizes.inc already has it, gen_static_init wrote it there); the initialiser's atexit stays at its
         place in the list as `std::atexit(Name)` and gen_static_init leaves the ported function out of static_exit.cpp. It goes next to the definition
-        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, options_construct.cpp's DestroyGameOptions).
+        (net_session.cpp's ReleaseGameServer / ReleaseGameClient).
       - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
         `CString(const char*)` allocates) runs in list order: the initialiser is ported on the name and registered at
         its address (a row in config/extra_function_sizes.csv and function_sizes.inc: Ghidra has no function there),
-        so the generator writes `d.Cdecl(address)` in its place. The object is `constinit lib::StaticObject<T>`
-        (lib/static_object.h: zero storage that our CRT neither constructs nor destroys); the initialiser calls
-        `Construct(...)` and registers the exit function by its address (`GameAtExit(ei::Code<...>(exit))`), which
-        calls `Destroy()`. A guarded exit function's guard byte is named with it.
-        named_data compares such a definition with game.exe's bytes (zero): a registered initialiser's stores are
-        not applied (decode_all emits only its call).
+        so the generator writes `d.Cdecl(address)` in its place. Since C50b3 no object is built this way: each is a
+        plain global of ours (below, "Plain globals and locals instead") and its initialiser is UNUSED_INITIALISERS.
       - C18k4 named whole class objects the same way: a class with game.exe's vtable stays with C19, a class
-        without one is `constinit lib::StaticObject<Class> g_x = /*ADDR*/ {};` and the initialiser calls the class's
-        own `Construct(...)`. named_data needs the class's size (STATIC_OBJECT_BYTES in tools/named_data.py maps the
-        T of a StaticObject<T> to it; a template deeper than one level gets an alias, `using IntSet = ...`). Every
-        access goes through the name or a member (`options::g_options->`); a raw address inside the
-        range is refused. Named: ui_objectives' last quest string 007C8178, the
+        without one was a zero-storage object its initialiser constructed (lib::StaticObject, gone in C50b3: all are
+        plain globals now). Every access goes through the name or a member (`options::g_options.difficulty_`). Named: ui_objectives' last quest string 007C8178, the
         protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp; plain globals
         since C50c1), the party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
         and the unread set 007AB8D8. C18k5 (1,717 -> 1,651 game data addresses) named the last four without a vtable: the options
-        0079BC70 (options_global.cpp holds the definition so the vector replay links it; options_construct.cpp the
-        initialiser), GameFlow 007AFE20 (world_game.cpp), CCursor 007C7BD8 (ui_cursor_setup.cpp) and CInterface3D 007C7D50
+        0079BC70 (options_construct.cpp: the vector replay links it with its constructor), GameFlow 007AFE20 (world_game.cpp), CCursor 007C7BD8 (ui_cursor_setup.cpp) and CInterface3D 007C7D50
         (ui_small_members.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
         volumes, difficulty, paths, master server ...), the mouse position and drag motion (CCursor::position_ /
         motion_: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
@@ -692,12 +675,9 @@ kinds given.
       world_singletons.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
       vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
       007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with
-      `named_data.py --owner` and against the logic settings (007C53F8) and the options (0079BC70) first.
-    - **Whole objects with a hand-ported initialiser**: the constructed statics as
-      `lib::StaticObject<T>` (zero storage, STATIC_OBJECT_BYTES) whose initialiser and exit function are ported on the
-      name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc. A
-      function-local static's exit
-      function is ported beside it and the port registers its own (`GameAtExit(DestroyX)`).
+      `named_data.py --refs` and against the logic settings (007C53F8) and the options (0079BC70) first.
+    - **Whole objects with a hand-ported initialiser**: none since C50b3 (the options were the last
+      `lib::StaticObject`); a function-local static's exit function is ported beside it and the port registers its own.
     - **Plain globals and locals instead (C50, C50a-d2)**: an object of ours that needs no game order is a plain
       global (constructed and destroyed by the C++ runtime), a function-local static or a local, with no address: the
       unit shape cache (ai_movement.cpp), the AI events' pool (ai_events.cpp; the free list 007C53F0 stays named), the
@@ -713,7 +693,8 @@ kinds given.
       the save stream (C54g1); the two worlds (C50b1, below); the draws' work arrays (line
       lists, the device's mesh buffers, sprites, strip, terrain projection, the part draws' moved positions, the moved
       packets and offset vertices) and SetSun's sorted sectors, a local (C50d; the unread set 007AB8D8, which only the
-      original read, went); the console's eight streambufs and streams (C50d1, below); the logic settings
+      original read, went); the console's eight streambufs and streams (C50d1, below); the options (g_options, C50b3: constructed before the static initialisers and WinMain's LoadFromRegistry,
+      destroyed after the game's exit functions, ShutDown's SaveToRegistry long done; initialiser 00458700 unused); the logic settings
       (g_logicSettings, C50d2: its defaults are member initialisers, the initialiser 005CDFB0 unused; the stats recorder
       reads game.exe's copy). Gone as unread (C50d2): the system information CSysInfo 007AB8F8 (it collected the
       machine's version, memory and names; with it the CPUID report 007CAED0 and four pi constants), the device lock
@@ -778,7 +759,7 @@ kinds given.
       zero start instead of refusing the unknown store). Only the guard is generated now (static_init.h's `Once` takes
       a `std::uint8_t&`; the generator stops at an operation static_init.h lacks). Each entry must start a range of named_data.csv (the
       generator says so otherwise). Named this way: the function-local statics' guard 007CAEE4
-      (`lib::g_emptyStaticGuard`, static_object.h: 176 generated tests). MFC's globals that only the
+      (`ei::static_init::g_emptyStaticGuard`, static_init.h: 176 generated tests). MFC's globals that only the
       initialisers and exit functions reached (_simpleUserException 007C8BC0, the thread / process locals 007C90BC,
       007C90C0, 007CAA84, 007CAA88, 007CAA8C, _afxDBCS 007CAA98) went in C14zi: their initialisers (and the locals'
       atexits) are UNUSED_INITIALISERS. C18r had added the objects hand code reads too, whose initialisers are

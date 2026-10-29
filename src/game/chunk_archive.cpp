@@ -7,7 +7,6 @@
 #include "hash_tables_400.h"
 
 #include "lib/bytes.h"
-#include "lib/static_object.h"
 
 #include <cstdint>
 #include <cstdlib>

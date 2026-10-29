@@ -66,7 +66,7 @@ bool OutOfView(const float* point, const CPlayerServer* state) {
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // write cursor into the collected array.
 CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerServer* state, CEngineObject** out) {
-    if (world->sessionKind_ == kKindSinglePlayer && options::g_options->drawVisibleOnly_ == 0) {
+    if (world->sessionKind_ == kKindSinglePlayer && options::g_options.drawVisibleOnly_ == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto node = world->mapObjects_.map.begin(); node != world->mapObjects_.map.end() && node->second; ++node) {
             CMapObject* object = node->second;

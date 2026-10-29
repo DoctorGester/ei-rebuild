@@ -62,19 +62,19 @@ void CCameraInput::KeyDown(int, int, int flags) {
     if (!ModifierHeld(interface_)) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.
         float left = -x_;
-        float speed = static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraScroll_));
+        float speed = static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraScroll_));
         direction.x = static_cast<float>(D(y_) * D(speed));
         direction.y = static_cast<float>(D(left) * D(speed));
         g_camera.Pan(&direction);
         g_camera.SetTurnRate(0.0f);
-        g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraZoom_) * D(z_)));
+        g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraZoom_) * D(z_)));
         g_camera.SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
     g_camera.Pan(&direction);
-    g_camera.SetTurnRate(static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraRotate_) * D(y_)));
-    g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraZoom_) * D(z_)));
+    g_camera.SetTurnRate(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraRotate_) * D(y_)));
+    g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraZoom_) * D(z_)));
     g_camera.SetTiltRate(
-        static_cast<float>(KeyboardSpeedProduct(options::g_options->cameraPitch_) * D(x_) * D(50.0f)));
+        static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraPitch_) * D(x_) * D(50.0f)));
 }

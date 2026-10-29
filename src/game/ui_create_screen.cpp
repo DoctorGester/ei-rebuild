@@ -160,7 +160,7 @@ void CInterface3D::ShowMessage(bool forced) {
         messageFlag_ = 0;
     }
     if (messageText_.size() == 0) return;
-    if (options::g_options->showTutorial_ == 0 && !forced) return;
+    if (options::g_options.showTutorial_ == 0 && !forced) return;
     PushWindow(new CHelpWindow(this, true, messageText_, messageFlag_), true, false);
 }
 
@@ -177,7 +177,7 @@ void CInterface3D::OpenHelp(bool forced) {
     auto found = helpTopics_.find(std::string(topic));
     if (found != helpTopics_.end()) seen = found->second;
     else helpTopics_[std::string(topic)] = 0;
-    if (options::g_options->showTutorial_ != 0) {
+    if (options::g_options.showTutorial_ != 0) {
         if (!forced && seen >= 0) return;
     } else if (!forced) {
         return;

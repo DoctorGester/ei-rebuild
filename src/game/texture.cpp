@@ -15,7 +15,7 @@
 
 namespace {
 // Game-wide paths set at startup. Names provisional.
-const std::string& GameRoot() { return options::g_options->workPath_; }
+const std::string& GameRoot() { return options::g_options.workPath_; }
 
 constexpr std::uint32_t kDxtCode = 'D' | ('X' << 8) | ('T' << 16);   // a DXT format's code without its digit
 constexpr std::uint32_t kFormat565 = 0x5650, kFormat1555 = 0x5551, kFormat4444 = 0x4444, kFormat8888 = 0x8888;
@@ -119,7 +119,7 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
         mipLevel_ = 2;
         return;
     }
-    switch (options::g_options->textureQuality_) {
+    switch (options::g_options.textureQuality_) {
     case 0: mipLevel_ = 0; break;
     case 1: mipLevel_ = 1; break;
     case 2: mipLevel_ = 2; break;

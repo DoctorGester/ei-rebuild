@@ -33,7 +33,7 @@ const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
 const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 
 // The tab keys select the strips' tabs (the "switch_filters" option).
-bool TabKeysEnabled() { return options::g_options->switchFilters_ != 0; }
+bool TabKeysEnabled() { return options::g_options.switchFilters_ != 0; }
 
 // The item as loot (type ItemKind::Loot), or null.
 const CItemLoot* LootOrNull(const CItem* item) {

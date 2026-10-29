@@ -22,7 +22,7 @@ void CWorld::SetTimeSpeed(float speed) {
     // The time of day now, stored as a float before the speed changes.
     float now = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay));
     if (speed > 0.0f) secondsPerTick_ = 1.0f / speed;
-    else if (speed < 0.0f) secondsPerTick_ = static_cast<float>(1.0 / options::g_options->defaultTimeScale_);
+    else if (speed < 0.0f) secondsPerTick_ = static_cast<float>(1.0 / options::g_options.defaultTimeScale_);
     else secondsPerTick_ = 0.0f;     // 0 or NaN (equal or unordered)
     secondsPerTick_ = static_cast<float>(secondsPerTick_ * kHoursPerSecond);
     SetTime(now);

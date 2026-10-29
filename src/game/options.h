@@ -6,8 +6,6 @@
 // The object starts with eight registry subkey names that the loader passes to the value getters;
 // the values follow.
 
-#include "lib/static_object.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -171,9 +169,8 @@ public:
     float fogDayStartDistance_;      // FogDayStartDistance
     std::string masterServerName_;  // "Master Server Name"
 };
-// The game's options (options_global.cpp): built by its static initialiser in the list's
-// order, destroyed by the exit function it registers (options_construct.cpp, options_defaults.cpp).
-extern lib::StaticObject<GameOptions> g_options;
+// The game's options (options_construct.cpp).
+extern GameOptions g_options;
 
 // The options' defaults.
 void OptionsResetDefaults(GameOptions* self);

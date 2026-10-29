@@ -6,8 +6,6 @@
 #include "maths.h"
 #include "unit.h"
 
-#include "lib/static_object.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>

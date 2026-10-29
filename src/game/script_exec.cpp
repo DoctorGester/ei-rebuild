@@ -494,7 +494,7 @@ bool ScriptRun::Execute(CScript* script) {
             break;
         }
         case ScriptFunction::RunWorldTime:   // RunWorldTime(time): the configured speed (int)
-            g_serverWorld.SetTimeSpeed(static_cast<float>(options::g_options->defaultTimeScale_));
+            g_serverWorld.SetTimeSpeed(static_cast<float>(options::g_options.defaultTimeScale_));
             g_serverWorld.SetTime(f[0]);
             break;
         case ScriptFunction::FixWorldTime:   // FixWorldTime(time)

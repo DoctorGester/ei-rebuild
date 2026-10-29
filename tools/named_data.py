@@ -37,16 +37,6 @@ the original's arrays lacked const), plain when the code writes it (`float g_bag
 Elements the initialiser leaves out are zero, as in C++ (`{}`: all of them; the zero-filled tail's objects). A range
 in .rdata must be const.
 
-  * no named range falls inside a known global object that game.exe reaches by field offset (C18n; config/
-    global_objects.csv: address, size, name, type; empty since C50b2 made the camera and the renderer plain):
-    a name for part of such an object is a second name for a field, and the code that still reads the object's
-    own name sees something else ("007C2CC4 is inside g_serverWorld 007AFF60 + 0x12D64", C18i's sessionKind_).
-    The object itself may be named whole (a range covering it). The CSV's sizes are compared with the sources'
-    static_asserts (sizeof(T) == N) where they have one, and every GamePointer<T>(address) accessor of
-    src/game/game_singletons.h must lie in a listed object.
-
---owner BEGIN [END]: the global objects (config/global_objects.csv) holding game.exe's address or range, by field.
-
 --split [KIND ...]: the game data addresses src/ still names (progress.py's count), by kind and by owner area;
 the kinds given also list their addresses.
 
@@ -67,7 +57,7 @@ type and the address an element's start, become the name (`NAME`, `(NAME + k)`, 
 (DataId constants, other types, a field's address, tests/) are listed for a person. Without --apply it only lists.
 --check stays the proof of both steps' form; the emitted text packs back to game.exe's bytes (emit says where it differs).
 
-usage: python tools/named_data.py --check | --update | --owner BEGIN [END] | --split [KIND ...] | --refs BEGIN [END]
+usage: python tools/named_data.py --check | --update | --split [KIND ...] | --refs BEGIN [END]
                                   | --emit ADDRESS TYPE COUNT NAME | --rewrite NAME [--apply]  [--exe game.exe]
 """
 import argparse, collections, csv, os, re, struct, sys
@@ -78,8 +68,6 @@ import srcscan  # noqa: E402
 
 ROOT = srcscan.ROOT
 CSV = os.path.join(ROOT, 'config', 'named_data.csv')
-GLOBALS_CSV = os.path.join(ROOT, 'config', 'global_objects.csv')
-SINGLETONS_H = 'src/game/game_singletons.h'
 BASE = 0x00400000
 IMPORTS = (0x0073B000, 0x0073B820)
 RDATA = (0x0073B820, 0x00783000)
@@ -116,9 +104,6 @@ TYPES = {
     'std::vector': 'III',          # MSVC's: first, last, end of storage (zero is empty, as STLport's)
     'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
     'Ref': 'I',                    # ref.h: a counted pointer, null until it is assigned
-    # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
-    # A string's is game.exe's CString, one pointer (ours is a std::string; the range is the original's).
-    'lib::StaticObject<std::string>': 'I',
 }
 # `T name[dims] = /*address*/ {` (T may be a template instantiation: `lib::AlignedArray<TLVertex> g_x = /*addr*/ {};`), for one pointer `const char* const name = /*address*/ "text";`, for one number
 # `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
@@ -163,24 +148,6 @@ ALIGNED_ARRAY_VECTORS = {
     0x007C88E8, 0x007C88F8, 0x007C8938,
 }
 
-# The bytes game.exe's object of a `lib::StaticObject<T>` spans at its address (zero storage). Ours may be larger
-# (std containers in place of the game's).
-STATIC_OBJECT_BYTES = {
-    # game.exe's lists are the 4-byte sentinel pointer; ours (std::list, 8 bytes) start zero all the same
-    'std::list<std::uint8_t>': 4, 'std::list<HeldRef<CMapObject>>': 4,
-    'itemdb::SpellDatabase': 0x64, 'itemdb::ItemDatabase': 0xC0, 'QuestDatabase': 0x40, 'PrintsDatabase': 0x60,
-    'acks::AckDatabase': 0x60, 'SkillDatabase': 0x18, 'UnitDatabase': 0x80, 'LeverRecordTable': 0x20,
-    'PartyManager': 0x44, 'SavedParties': 0x84, 'std::unordered_set<int>': 0x14,
-    'CCursor': 0xB8, 'CInterface3D': 0xB0, 'GameFlow': 0x84, 'options::GameOptions': 0x26C,
-    # game.exe's CArrays are 0x14 bytes and its CLists 0x1C; ours (std::vector 12, std::list 8) start zero all the same
-    'std::vector<int>': 0x14, 'std::vector<std::uint8_t>': 0x14, 'std::vector<std::uint16_t>': 0x14, 
-    'UnitList': 0x1C, 
-    'std::vector<ScriptQuestObjective>': 0x14,
-    'CommandMap': 0xC,
-    'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
-    'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'GrowingBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
-}
-
 
 def element_format(type_, address=None):
     """TYPES' format of an element type; a template instantiation's is its template's (`lib::AlignedArray<T>`); a
@@ -190,9 +157,6 @@ def element_format(type_, address=None):
         return TYPES['lib::AlignedArray'] if address in ALIGNED_ARRAY_VECTORS else TYPES['stlp::vector']
     found = TYPES.get(type_)
     if found is None:
-        inner = re.fullmatch(r'lib::StaticObject<(.*)>', type_)
-        if inner and inner.group(1) in STATIC_OBJECT_BYTES:
-            return 'B' * STATIC_OBJECT_BYTES[inner.group(1)]
         found = TYPES.get(re.sub(r'<.*>$', '', type_))
     if found is None and type_.endswith('*'):
         return 'P'
@@ -555,113 +519,6 @@ def csv_text(defs):
     return '\n'.join(lines) + '\n'
 
 
-# ---- the known global objects (C18n) ----------------------------------------------------------------------------
-
-class GlobalObject:
-    """A row of config/global_objects.csv: an object of game.exe's data that its code (and ours) reaches by field
-    offset from one address, of class `type` (whose static_asserts name its fields' offsets)."""
-    def __init__(self, address, size, name, type_):
-        self.address, self.size, self.name, self.type = address, size, name, type_
-
-    @property
-    def end(self):
-        return self.address + self.size
-
-
-def read_globals():
-    with open(GLOBALS_CSV, newline='') as f:
-        return [GlobalObject(int(r['address'], 16), int(r['size'], 0), r['name'], r['type']) for r in csv.DictReader(f)]
-
-
-STATIC_ASSERT = re.compile(r'static_assert\s*\(([^;]*?)\)\s*;')
-SIZEOF = re.compile(r'sizeof\s*\(\s*([\w:]+)\s*\)\s*==\s*(0[xX][0-9A-Fa-f]+|\d+)')
-OFFSETOF = re.compile(r'offsetof\s*\(\s*([\w:]+)\s*,\s*(\w+)\s*\)\s*==\s*(0[xX][0-9A-Fa-f]+|\d+)')
-ACCESSOR = re.compile(r'GamePointer\s*<\s*([\w:]+)\s*>\s*\(\s*0[xX]00([0-9A-Fa-f]{6})\s*\)')
-
-
-def asserted_layouts(sources):
-    """The sources' static_asserts: ({type: size} from `sizeof(T) == N`, {type: {offset: [member, ...]}} from
-    `offsetof(T, member) == N`)."""
-    sizes, members = {}, collections.defaultdict(lambda: collections.defaultdict(list))
-    for s in sources:
-        for m in STATIC_ASSERT.finditer(s.code):
-            for t, n in SIZEOF.findall(m.group(1)):
-                sizes[t] = int(n, 0)
-            for t, member, n in OFFSETOF.findall(m.group(1)):
-                members[t][int(n, 0)].append(member)
-    return sizes, members
-
-
-def where_in(obj, address, members):
-    """'g_serverWorld 007AFF60 + 0x12D64 (CWorldServer::sessionKind_)': the field at the offset when a static_assert
-    names it, else the last named field before it."""
-    offset = address - obj.address
-    text = f'{obj.name} {obj.address:08X} + 0x{offset:X}'
-    fields = members.get(obj.type, {})
-    if offset in fields:
-        return f'{text} ({obj.type}::{"/".join(fields[offset])})'
-    before = [o for o in fields if o < offset]
-    if before:
-        o = max(before)
-        return f'{text} (in or after {obj.type}::{"/".join(fields[o])} + 0x{o:X})'
-    return text
-
-
-def global_problems(objects, named, members):
-    """Each (where, name, lo, hi) of `named` that overlaps a known global object without covering it whole."""
-    problems = []
-    for where, name, lo, hi in named:
-        for obj in objects:
-            if lo < obj.end and obj.address < hi and not (lo <= obj.address and obj.end <= hi):
-                problems.append(f'{where}: {name} {lo:08X}+{hi - lo} is inside the global object '
-                                f'{where_in(obj, max(lo, obj.address), members)}, which game.exe reaches by field offset: '
-                                'name the field (a member of that class), not a global')
-    return problems
-
-
-def check_globals(sources):
-    """config/global_objects.csv against the sources: sizes, ranges, accessors. Returns (objects, members, problems)."""
-    problems = []
-    if not os.path.exists(GLOBALS_CSV):
-        return [], {}, [f'{os.path.relpath(GLOBALS_CSV, ROOT)} is missing']
-    objects = read_globals()
-    sizes, members = asserted_layouts(sources)
-    for obj in objects:
-        if not (DATA[0] <= obj.address and obj.end <= DATA[1]):
-            problems.append(f'config/global_objects.csv: {obj.name} {obj.address:08X}+{obj.size} is not in .data')
-        if obj.type in sizes and sizes[obj.type] != obj.size:
-            problems.append(f'config/global_objects.csv: {obj.name} is {obj.size} bytes, the sources assert '
-                            f'sizeof({obj.type}) == {sizes[obj.type]}')
-    ordered = sorted(objects, key=lambda o: o.address)
-    for x, y in zip(ordered, ordered[1:]):
-        if y.address < x.end:
-            problems.append(f'config/global_objects.csv: {y.name} {y.address:08X} overlaps {x.name}')
-    for s in sources:
-        if s.path != SINGLETONS_H:
-            continue
-        for m in ACCESSOR.finditer(s.code):
-            a = int(m.group(2), 16)
-            holder = next((o for o in objects if o.address <= a < o.end), None)
-            if holder is None:
-                problems.append(f'{s.path}:{s.line_of(m.start())}: the accessor for {m.group(1)} at {a:08X} is in no '
-                                'object of config/global_objects.csv: add it (address, size, name, type)')
-            elif holder.address == a and holder.type != m.group(1):
-                problems.append(f'{s.path}:{s.line_of(m.start())}: {m.group(1)} at {a:08X} is {holder.type} in '
-                                'config/global_objects.csv')
-    return objects, members, problems
-
-
-def owner(a, b):
-    """--owner: the global objects holding [a, b]."""
-    objects, members, _ = check_globals(srcscan.load_sources())
-    found = [o for o in objects if o.address <= b and a < o.end]
-    for o in found:
-        print(f'{a:08X}: {where_in(o, max(a, o.address), members)}, object {o.address:08X}..{o.end:08X}')
-    if not found:
-        print(f'{a:08X}: in no global object of config/global_objects.csv')
-    return 0
-
-
 class Unread:
     """An object of config/unread_data.csv (tools/gen_static_init.py): only its static initialiser stored into it."""
     def __init__(self, address, size, initialiser):
@@ -730,12 +587,6 @@ def check(update):
             if d.address < u.address + u.size and u.address < d.address + d.size:
                 problems.append(f'{d.where()}: {d.name} overlaps {u.name} at {u.address:08X} (run tools/gen_static_init.py)')
     reached = good + retired + unread
-
-    # A name inside a global object the code reaches by field offset (config/global_objects.csv).
-    objects, members, global_issues = check_globals(sources)
-    problems.extend(global_issues)
-    problems.extend(global_problems(objects, [(d.where(), d.name, d.address, d.address + d.size) for d in good + unread],
-                                    members))
 
     def inside(a):
         for d in reached:
@@ -1147,7 +998,6 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--update', action='store_true')
-    ap.add_argument('--owner', nargs='+', metavar='ADDRESS', help='BEGIN [END]: the global objects holding it')
     ap.add_argument('--split', nargs='*', metavar='KIND')
     ap.add_argument('--refs', nargs='+', metavar='ADDRESS', help='BEGIN [END]: the code reaching game.exe\'s data there')
     ap.add_argument('--emit', nargs=4, metavar=('ADDRESS', 'TYPE', 'COUNT', 'NAME'),
@@ -1158,8 +1008,6 @@ def main():
     a = ap.parse_args()
     if a.rewrite:
         return rewrite(a.rewrite, a.apply)
-    if a.owner:
-        return owner(int(a.owner[0], 16), int(a.owner[-1], 16))
     if not (a.split is not None or a.refs or a.emit):
         return check(a.update)   # --check, --update: no game.exe
     try:

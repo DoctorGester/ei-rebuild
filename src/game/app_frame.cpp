@@ -13,7 +13,6 @@
 #include "lib/gameapi.h"
 #include <cstdint>
 #include <string>
-#include "lib/static_object.h"
 #include "ui.h"
 #include "ui_cursor.h"
 #include "ini_file.h"

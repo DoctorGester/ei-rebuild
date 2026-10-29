@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/static_object.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

@@ -40,9 +40,9 @@
 namespace {
 
 int ShadowSwitch(ClassId classId) {
-    if (classId == ClassId::Unit) return options::g_options->unitShadow_;
-    if (classId == ClassId::Tree) return options::g_options->floraShadow_;
-    return options::g_options->buildingShadow_;
+    if (classId == ClassId::Unit) return options::g_options.unitShadow_;
+    if (classId == ClassId::Tree) return options::g_options.floraShadow_;
+    return options::g_options.buildingShadow_;
 }
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
 // The work buffers: the parts' points projected into the light's view and the ground quad (one block of four
@@ -346,7 +346,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
 // --- The shadow -------------------------------------------------------------------------------
 
 bool ShadowCastStrength(CObject3D* object, float* strength) {
-    if (options::g_options->shadowQuality_ <= 0) return false;
+    if (options::g_options.shadowQuality_ <= 0) return false;
     if (!ShadowSwitch(object->GetClassId())) return false;
     if (object->flags_ & (MapObjectFlag::Hidden | MapObjectFlag::NotDrawn)) return false;
     if (object->InvisibleSlot()) return false;
