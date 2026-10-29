@@ -22,8 +22,8 @@ namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags_
 constexpr int kDeadShownTicks = 50;                   // after the unit's +0x254
 constexpr std::uint32_t kKeyLowBits = 0x7FFF;         // FigureAnimation::key
-constexpr std::uint32_t kKeyMovement = 0x38000;
-constexpr std::uint32_t kKeyMovementStill = 0x30000;
+constexpr std::uint32_t kKeyMovement = kAnimationMoveMask;
+constexpr std::uint32_t kKeyMovementStill = AnimationKeyOf(AnimationMoveBits::Mode0);
 constexpr float kFadeStep = 0.06666667f;              // 1/15
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
 constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::queue.count

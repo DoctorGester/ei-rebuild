@@ -202,9 +202,9 @@ bool CUnitServer::Heal(float amount) {
     return true;
 }
 
-std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
-    if (!attacker) return 0;
-    if (hitKind) return 0;
+BlowSide CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
+    if (!attacker) return BlowSide::None;
+    if (hitKind) return BlowSide::None;
     const CUnit* self = unit;
     float dx = attacker->localPosition_.x - self->localPosition_.x;
     float dy = attacker->localPosition_.y - self->localPosition_.y;
@@ -220,8 +220,8 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     double side = -DotUnrounded<Sum3::ZYX, double>(axisX.x, axisX.y, axisX.z, dx, dy, dz);
     float sideStored = static_cast<float>(side);
     if (AbsBits(sideStored) >= AbsBits(frontStored))
-        return AnimationKeyOf(sideStored > 0.0f ? BlowSide::MinusX : BlowSide::PlusX);
-    return AnimationKeyOf(frontStored > 0.0f ? BlowSide::Front : BlowSide::Back);
+        return sideStored > 0.0f ? BlowSide::MinusX : BlowSide::PlusX;
+    return frontStored > 0.0f ? BlowSide::Front : BlowSide::Back;
 }
 
 void CUnitServer::WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer) {
@@ -293,7 +293,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         brain.SetSeen(attacker);
         unit->flags_ |= MapObjectFlag::RelationsChanged;
         PropagateHostility();
-        std::uint32_t direction = HitDirection(attacker, hitKind);
+        BlowSide direction = HitDirection(attacker, hitKind);
         if (!keepHitDirection) hitDirection = direction;
         return;
     }
@@ -317,7 +317,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     console::EndLine(kCombatLog << "Unit " << static_cast<long>(unit->id_) << " damaged to death");
 
     AnimationSteps animation;
-    std::uint32_t direction = HitDirection(attacker, hitKind);
+    BlowSide direction = HitDirection(attacker, hitKind);
     BuildDeathAnimation(&animation, direction, 1, 0);
     animationHeld = 0;
     frozen = 0;

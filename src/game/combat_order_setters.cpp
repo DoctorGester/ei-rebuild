@@ -26,7 +26,7 @@ constexpr int kStyleRun = 3;
 // heroes; the original compares prototypeId_).
 constexpr std::uint32_t kUntameable = 0x32;
 
-constexpr std::uint32_t kEmoteKeyBit = 0x80000000u;   // FigureAnimation::key: an emote (kind 8)
+constexpr std::uint32_t kEmoteKeyBit = AnimationKeyOf(AnimationKeyFlag::Looped);   // FigureAnimation::key: an emote (kind 8)
 constexpr int kStateActing = 5;                       // CUnitServer::state
 
 CPlayerServer* PlayerConnection(CUnit* unit) { return unit->player->Server(); }

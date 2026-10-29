@@ -346,20 +346,20 @@ bool CUnitServer::CanReachTarget(const AIOrder* order) {
 
 std::uint32_t CUnitServer::WeaponTypeMask() {
     CItemWeapon* weapon = ActiveWeapon(unit);
-    if (weapon) return 1u << (weapon->GetType() & 31);
+    if (weapon) return AnimationWeaponBit(weapon->GetType());
     int natural = stats.naturalWeapon;
-    if (natural < 7) return 1u << (natural & 31);
+    if (natural < 7) return AnimationWeaponBit(natural);
     return 0;
 }
 
 std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
     switch (static_cast<std::uint32_t>(mode->mode)) {
-    case 0: return 0x30000;
-    case 1: return 0x20000;
+    case 0: return AnimationKeyOf(AnimationMoveBits::Mode0);
+    case 1: return AnimationKeyOf(AnimationMoveBits::Mode1);
     case 2:
-        if (mode->onGuard || unit->MapType() != MapObjectType::Hero) return 0x10000;
+        if (mode->onGuard || unit->MapType() != MapObjectType::Hero) return AnimationKeyOf(AnimationMoveBits::Mode2);
         return 0;
-    case 4: return 0x8000;
+    case 4: return AnimationKeyOf(AnimationMoveBits::Mode4);
     default: return 0;
     }
 }

@@ -85,6 +85,33 @@ enum class AnimationKeyFlag : std::uint32_t {
 };
 template <>
 inline constexpr bool lib::kBitFlags<AnimationKeyFlag> = true;
+constexpr std::uint32_t AnimationKeyOf(AnimationKeyFlag flag) { return static_cast<std::uint32_t>(flag); }
+
+// The movement mode's bits of the key (mask 0x38000; CUnitServer::MoveModeMask and the transitions' bits), named by
+// the MoveModeState::mode they stand for. A hero's own walk (mode 2 without onGuard) has none.
+enum class AnimationMoveBits : std::uint32_t {
+    None = 0,
+    Mode4 = 0x8000,
+    Mode2 = 0x10000,
+    Mode1 = 0x20000,
+    Mode0 = 0x30000,    // standing still
+};
+inline constexpr std::uint32_t kAnimationMoveMask = 0x38000;
+constexpr std::uint32_t AnimationKeyOf(AnimationMoveBits bits) { return static_cast<std::uint32_t>(bits); }
+
+// An attack's height band (bits 24..25 of its key): where on the target's body the blow lands. The key's bit
+// kAnimationAttackBlow is set on a blow with a target, on the casts and on a non-hero's attack.
+enum class AttackHeight : std::uint32_t {
+    High = 0x1000000,
+    Middle = 0x2000000,
+    Low = 0x3000000,
+};
+constexpr std::uint32_t AnimationKeyOf(AttackHeight height) { return static_cast<std::uint32_t>(height); }
+inline constexpr std::uint32_t kAnimationAttackBlow = 0x800000;
+
+// The idle a unit asks for while its mode is "special idle" (looped, kind Idle, number 1).
+inline constexpr std::uint32_t kAnimationSpecialIdleKey =
+    AnimationKeyOf(AnimationKeyFlag::Looped) | AnimationKeyOf(AnimationKind::Idle) | AnimationNumberBits(1);
 
 // The skills' animation numbers (Special animations; CUnitServer's use orders, the skill sounds). Names from the
 // use sources (UseSource) and the sounds (heroes\human\skills\*.wav); the four SearchBody animations ("loot.wav")
