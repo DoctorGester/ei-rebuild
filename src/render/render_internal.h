@@ -670,9 +670,9 @@ sg_sampler AnisotropicSampler(const StageState& stage);
 // After a present: images replaced during the frame destroyed, entries unused for a long time dropped.
 void RetireTextures();
 void DestroyTextures();
-// The device is lost: every texture image destroyed (before sg_shutdown). Textures decoded for a holder keep
-// their source and are made again at their next use (`kept`, with `keptBytes` of sources); the rest is read
-// again from its memory.
+// The device is lost: every texture image destroyed (before sg_shutdown). The textures keep their sources: an
+// .mmp texture is made again at its next use (`kept`, with `keptBytes` of sources), a composed or drawn-into one
+// by RemakeComposed.
 void DropTextures(std::size_t* kept, std::size_t* keptBytes);
 
 // Puts the x87 control word back after calls into the driver (the game's main thread runs at 24-bit

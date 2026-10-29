@@ -20,19 +20,6 @@ namespace {
 constexpr LONG kLargeSize = 0x20;
 constexpr LONG kSmallSize = 0x10;
 
-// A surface holder pointer set to `holder` (one reference more), the old one released.
-void AssignHolder(Surface*& slot, Surface* holder) {
-    Surface* old = slot;
-    slot = holder;
-    if (holder) ++holder->refs_;
-    if (old) old->Release();
-}
-
-// A new off-screen surface of the screen's format; null when the allocation fails.
-Surface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
-    return new Surface(device, width, height);
-}
-
 constexpr int kThreadPriority = 2;          // THREAD_PRIORITY_HIGHEST
 constexpr int kModeNoThread = 1;
 constexpr int kModeLocked = 2;              // the thread draws to the primary: the lock is used
@@ -81,8 +68,6 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
     if (device) device->AddRef();
     if (old) old->Release();
     bounds_ = device_->screen_;
-    AssignHolder(under_, NewSurface(device_, g_cursorWidth, g_cursorHeight));
-    AssignHolder(target_, NewSurface(device_, g_cursorWidth * 2, g_cursorHeight * 2));
 }
 
 void CCursor::AddShape(const char* name, int hotX, int hotY) {
@@ -99,8 +84,6 @@ CursorImage::~CursorImage() {
 
 CCursor* CCursor::Construct() {
     device_ = nullptr;
-    under_ = nullptr;
-    target_ = nullptr;
     std::construct_at(&images_);
     gameapi::InitializeCriticalSection(&lock_);
     enabled_ = 0;
@@ -110,8 +93,6 @@ CCursor* CCursor::Construct() {
 void CCursor::DestroyBody() {
     gameapi::DeleteCriticalSection(&lock_);
     lib::FreeStorage(images_);
-    if (target_) target_->Release();
-    if (under_) under_->Release();
     if (device_) device_->Release();
 }
 
@@ -184,8 +165,6 @@ void CCursor::Shutdown() {
         delete images_[i];
     }
     images_.clear();
-    ReleaseHolder(under_);
-    ReleaseHolder(target_);
     CTextureDevice* device = device_;
     device_ = nullptr;
     if (device) device->Release();

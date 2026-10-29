@@ -54,7 +54,7 @@ public:
                           const std::uint8_t* outcodes);
     int BoundsOfVertices(const std::vector<TLVertex>* vertices, const std::uint8_t* outcodes);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices, int indexCount);
-    // Only when the stage has another holder (the change counted). Returns 1.
+    // The holder the renderer draws the stage with. Returns 1.
     int BindSurface(int stage, Surface* holder);
     // A null texture binds none.
     int BindTexture(int stage, CTexture* texture);
@@ -133,7 +133,6 @@ struct MmpHeader {
     void SetNoFormat();
     void SetFormat5551();
     void SetFormat4444();
-    void SetFormat8888();
 };
 static_assert(offsetof(MmpHeader, alphaKind) == 0x20);
 static_assert(offsetof(MmpHeader, blueBits) == 0x44);

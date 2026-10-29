@@ -101,9 +101,8 @@ public:
     char UpdatePosition();
 
     // Sets the cursor up on `device` (a reference taken, the old one's dropped) in `mode` with `mouse`;
-    // `smallCursors` (low byte) picks 16-pixel cursors instead of 32. Makes the end event, the bounds (the
-    // render target's size when there is a primary surface) and the background and composition surfaces
-    // (cursor size and twice that).
+    // `smallCursors` (low byte) picks 16-pixel cursors instead of 32. Makes the end event and the bounds (the
+    // screen's size).
     void Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors);
     void AddShape(const char* name, int hotX, int hotY);
 
@@ -119,8 +118,6 @@ public:
     RECT rect_;                      // the cursor's screen rectangle
     RECT from_;                      // the part of the image shown
     RECT bounds_;
-    Surface* under_;              // the background under the cursor
-    Surface* target_;             // where the cursor is drawn
     std::vector<CursorImage*> images_;   // the shapes (AddShape)
     POINT position_;                 // the position drawn last
     POINT heldPosition_;             // the position kept while held

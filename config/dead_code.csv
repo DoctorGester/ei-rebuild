@@ -833,3 +833,4 @@ address,size,name,evidence
 00569B10,16,FUN_00569b10,"C57, CWorldClient::ShowWorldData (the debug display switches nothing reads): the port and its callers are gone; only game.exe's own code calls it"
 00569B20,49,FUN_00569b20,"C57, CWorldClient::HideWorldData (the debug display switches nothing reads): the port and its callers are gone; only game.exe's own code calls it"
 005DE460,1429,(no Ghidra function),"C57, the console command SHOW (the debug display switches nothing reads): the port and its callers are gone; only game.exe's own code calls it"
+00693910,96,FUN_00693910,"R30a, MmpHeader::SetFormat8888 (the .mmp header set to 8888): no caller of ours (the composed and blank textures set 5551, 4444 or none); the port is gone, only game.exe's own code calls it"

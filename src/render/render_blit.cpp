@@ -1,10 +1,8 @@
-// The interface windows' surfaces in the new renderer. The game composes most of its interface on the CPU:
-// every window (CUiSurface) owns an off-screen surface holder whose pixels (memory the new renderer owns) it
-// fills with GDI text, fills and pixel code, and the blit puts it onto the frame (plainly or with a source
-// colour key) in the windows' draw order, between the sprites and 3D previews of the same windows. The new
-// renderer reads such a surface when its contents changed (render_textures.cpp) and draws it as a screen
-// rectangle that copies texels one to one (a stretch when the sizes differ), keyed texels left out. Also
-// here: the depth clear the game does in the middle of the frame.
+// The image blits: the software cursor's picture (render::Cursor), the movies' frames (MovieFrame / MovieBlit) and
+// the movie player's fill (Fill), each an RGBA8 image drawn as a screen rectangle that copies texels one to one (a
+// stretch when the sizes differ), texels with alpha under a half left out; the images are kept across frames and
+// updated in place. Also here: the depth clear the game does in the middle of the frame. (The interface windows'
+// canvases have their own blit, render_ui.cpp.)
 #include "render.h"
 #include "render_internal.h"
 
@@ -53,7 +51,7 @@ sg_pipeline MakeBlitPipeline(int samples) {
     p.colors[0].pixel_format = kColourFormat;
     p.colors[0].write_mask = SG_COLORMASK_RGB;
     p.sample_count = samples;
-    p.label = "ei-window-blit";
+    p.label = "ei-image-blit";
     return sg_make_pipeline(&p);
 }
 
@@ -309,14 +307,14 @@ bool CreateBlitPipeline() {
     s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
     s.texture_sampler_pairs[0].view_slot = 0;
     s.texture_sampler_pairs[0].sampler_slot = 0;
-    s.label = "ei-window-blit";
+    s.label = "ei-image-blit";
     g_blitShader = sg_make_shader(&s);
     sg_sampler_desc sd{};
     sd.min_filter = SG_FILTER_NEAREST;
     sd.mag_filter = SG_FILTER_NEAREST;
     sd.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
     sd.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
-    sd.label = "ei-window-blit";
+    sd.label = "ei-image-blit";
     g_nearest = sg_make_sampler(&sd);
     g_blit = MakeBlitPipeline(1);
 
@@ -330,7 +328,7 @@ bool CreateBlitPipeline() {
     g_clear = MakeClearPipeline(1);
     bool ok = sg_query_pipeline_state(g_blit) == SG_RESOURCESTATE_VALID &&
               sg_query_pipeline_state(g_clear) == SG_RESOURCESTATE_VALID;
-    if (!ok) ei::Log("render: the window blit or depth clear pipeline could not be created (see the sokol messages above)");
+    if (!ok) ei::Log("render: the image blit or depth clear pipeline could not be created (see the sokol messages above)");
     return ok;
 }
 

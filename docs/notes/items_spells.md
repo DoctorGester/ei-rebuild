@@ -479,7 +479,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   original reads past its code table), `CItemSpell::PictureName` ("initqi1item"), `CItemQuest::GetUse` (slot 21: kind 8, the
   value at +0x4C, 0; P).
 - Effects and textures: `CSpellEffect::Init` (every cast) / `Forget` (an object leaving the world during a cast; O),
-  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444 / 8888` (texture_slots.cpp; S), `CTexture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /
+  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444` (texture_slots.cpp; S; SetFormat8888 00693910 had no caller: R30a), `CTexture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /
   DestructBody / DeletingDestruct (O), `CTextureManager::GetFileData / NewTextureOfType / FindOrCreate (named, not loaded; no
   null check) / FindOrLoad` (O), `ReloadAll` (after a lost device: no scenario), `TrimCache` (cached bytes against
   videoMemoryTenth_, signed; every 32 client ticks; O), the effect base's out-of-line destructor, slot 0, constructor, missile

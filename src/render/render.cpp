@@ -1,7 +1,6 @@
 // The new renderer's frame: the switch, the Direct3D 11 device behind sokol_gfx, the off-screen
 // target the frame is drawn into (the game's resolution) and reading it back for captures. See render.h and docs/notes/renderer.md.
 #include "render.h"
-#include "render_game.h"
 #include "render_internal.h"
 #include "render_perf.h"
 #include "render_ui.h"
@@ -95,9 +94,7 @@ void EnsureConfigured() {
 
 // --- Game memory -----------------------------------------------------------------------------------
 
-HWND GameWindow() { return *game::Where().window; }
-
-std::uint32_t GameClearColour() { return game::Where().renderer->fogColour_; }
+std::uint32_t GameClearColour() { return g_sceneRenderer->fogColour_; }
 
 sg_color FromD3DColour(std::uint32_t c) {
     return sg_color{static_cast<float>((c >> 16) & 0xFF) / 255.0f, static_cast<float>((c >> 8) & 0xFF) / 255.0f,
@@ -924,7 +921,7 @@ bool FrameSize(int* width, int* height) {
     return g_colour.id != 0;
 }
 
-CTextureDevice* DeviceObject() { return game::Where().renderer->device_; }
+CTextureDevice* DeviceObject() { return g_sceneRenderer->device_; }
 
 // The size of the game's screen (the device object's).
 bool GameTargetSize(int* width, int* height) {
@@ -950,13 +947,6 @@ void ReadFog(Frame& f) {
 }
 
 } // namespace detail
-
-namespace game {
-Addresses& Where() {
-    static Addresses addresses = {&app::g_mainWindow, &g_sceneRenderer.Get()};
-    return addresses;
-}
-} // namespace game
 
 #if defined(EI_RENDER_VALIDATION)
 namespace detail {

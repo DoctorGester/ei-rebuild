@@ -38,7 +38,6 @@ struct Texture {
     sg_image image{};
     sg_view view{};
     std::uint32_t checkedFrame = 0xFFFFFFFFu;
-    std::uint32_t usedFrame = 0;
     int width = 0, height = 0;
     TextureSource source;            // what it was made from, to make it again on a new device
     std::size_t bytes = 0;           // .mmp textures: the image's bytes on the GPU
@@ -388,7 +387,6 @@ sg_view SurfaceView(const void* holder) {
         Remake(t);
     }
     if (!t.view.id) return White().view;
-    t.usedFrame = frame;
     return t.view;
 }
 
@@ -397,7 +395,6 @@ sg_view SurfaceView(const void* holder) {
 bool StoreMmp(const void* holder, MmpLevels read, TextureSource source) {
     if (!holder) return false;
     Texture& t = g_textures[holder];
-    t.usedFrame = FrameNumber();
     Retire(t);
     t.image = MakeImage(read.format, read.width, read.height, std::move(read.levels), "ei-mmp-texture", FrameStats::Mmp,
                         &t.bytes);
@@ -420,7 +417,6 @@ sg_view WhiteView() { return White().view; }
 bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe) {
     if (!holder) return false;
     Texture& t = g_textures[holder];
-    t.usedFrame = FrameNumber();
     Retire(t);
     {
         GpuWorkAlone alone;

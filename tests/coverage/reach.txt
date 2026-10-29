@@ -7934,7 +7934,6 @@
 00693820 MmpHeader::SetNoFormat 0
 00693850 MmpHeader::SetFormat5551 7f8ffffffbbfffffdfddffffffdffffd
 006938B0 MmpHeader::SetFormat4444 40ee00000004083c200000024041298
-00693910 MmpHeader::SetFormat8888 0
 00693C60 CTextureManager::FindTexture 7f8fffffffffffffffffffffffffffff
 00693F10 CTextureManager::FindOrLoad 7f8ffffffba3ffffdfddffffffdff7fd
 00693F60 CTextureManager::ReloadAll 100119804008001012371fc08803

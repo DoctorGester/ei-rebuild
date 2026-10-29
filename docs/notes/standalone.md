@@ -733,8 +733,7 @@ kinds given.
       0079B270 (chunk_archive.cpp), clip's work words 0079B668, the network buffers 0079B8E0 / 0079B900, the save stream
       007AFDF8 and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
-      out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow; render_game.h's Addresses hold
-      pointers to it and the renderer), the loading
+      out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow, which the renderer reads too), the loading
       movie's 007C5520 / 007C554C-54, the network buffer flags 0079B8FC, the damping scale 007C2F8C (its initialiser
       005B2FB0, ln 0.6 on the x87, ported in ai_refresh.cpp). The harness reads game.exe's copies through
       harness_objects.h (`ei::Standalone() ? ours : &ei::OriginalGameData<T>(address)`), and in a --no-hooks run calls

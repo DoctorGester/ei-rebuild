@@ -50,6 +50,23 @@ std::uint32_t WidenTop(std::uint32_t top, int bits) {
 std::uint32_t QuantiseChannel(std::uint32_t value, int bits) {
     return bits >= 8 ? value : WidenTop(value >> (8 - bits), bits);
 }
+// `colour` (a COLORREF) as a surface of `format` keeps it (each channel's top bits) widened back to 8 bits a
+// channel, as 0x00RRGGBB: what the canvas holds and the blit shows.
+std::uint32_t Quantise(std::uint32_t colour, const ui::PixelFormat& format) {
+    std::uint32_t r = colour & 0xFF, g = (colour >> 8) & 0xFF, b = (colour >> 16) & 0xFF;
+    return (QuantiseChannel(r, MakeChannel(format.redMask).bits) << 16) | (QuantiseChannel(g, MakeChannel(format.greenMask).bits) << 8) |
+           QuantiseChannel(b, MakeChannel(format.blueMask).bits);
+}
+// A pixel of `format` (a colour key) widened to 0x00RRGGBB.
+std::uint32_t Widen(std::uint32_t pixel, const ui::PixelFormat& format) {
+    std::uint32_t out = 0;
+    const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
+    for (int i = 0; i < 3; ++i) {
+        Channel c = MakeChannel(masks[i]);
+        out = (out << 8) | WidenTop((pixel & c.mask) >> c.shift, c.bits);
+    }
+    return out;
+}
 
 // ---- Canvases and their queue -------------------------------------------------------------------------
 
@@ -123,7 +140,7 @@ void PushSolid(const void* holder, CanvasState& canvas, const Rect& rect, std::u
     Push(std::move(op));
 }
 
-std::uint32_t CanvasColour(std::uint32_t colour, const CanvasState& canvas) { return ui::Quantise(colour, canvas.format); }
+std::uint32_t CanvasColour(std::uint32_t colour, const CanvasState& canvas) { return Quantise(colour, canvas.format); }
 
 // 0x00RRGGBB quantised to the canvas's bits, as the RGBA8 texel the canvas holds (red in the low byte).
 std::uint32_t CanvasTexel(std::uint32_t rgb, const CanvasState& canvas) {
@@ -281,7 +298,7 @@ sg_pipeline BlitPipelineFor(int samples) {
     p.shader = g_blitShader;
     p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
     p.depth.pixel_format = kDepthFormat;
-    p.depth.compare = SG_COMPAREFUNC_ALWAYS;   // as the window blit: the depth buffer ignored and kept
+    p.depth.compare = SG_COMPAREFUNC_ALWAYS;   // as the image blit: the depth buffer ignored and kept
     p.depth.write_enabled = false;
     p.colors[0].pixel_format = kColourFormat;
     p.colors[0].write_mask = SG_COLORMASK_RGB;
@@ -631,22 +648,6 @@ void Compact(const void* holder, CanvasState& canvas) {
 
 namespace ui {
 
-std::uint32_t Quantise(std::uint32_t colour, const PixelFormat& format) {
-    std::uint32_t r = colour & 0xFF, g = (colour >> 8) & 0xFF, b = (colour >> 16) & 0xFF;
-    return (QuantiseChannel(r, MakeChannel(format.redMask).bits) << 16) | (QuantiseChannel(g, MakeChannel(format.greenMask).bits) << 8) |
-           QuantiseChannel(b, MakeChannel(format.blueMask).bits);
-}
-
-std::uint32_t Widen(std::uint32_t pixel, const PixelFormat& format) {
-    std::uint32_t out = 0;
-    const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
-    for (int i = 0; i < 3; ++i) {
-        Channel c = MakeChannel(masks[i]);
-        out = (out << 8) | WidenTop((pixel & c.mask) >> c.shift, c.bits);
-    }
-    return out;
-}
-
 std::uint32_t Pack(std::uint32_t rgb, const PixelFormat& format) {
     std::uint32_t out = 0;
     const std::uint32_t masks[3] = {format.redMask, format.greenMask, format.blueMask};
@@ -688,8 +689,8 @@ bool Canvas(const void* holder, int width, int height, const PixelFormat& format
 bool HasCanvas(const void* holder) { return g_canvases.count(holder) != 0; }
 
 void DropCanvas(const void* holder) {
-    // A blit of it the frame has not drawn yet is drawn first (Target), as the window blits' textures outlive
-    // their holders until drawn: SwapContents puts a backdrop away after the frame blitted it.
+    // A blit of it the frame has not drawn yet is drawn first (Target): the blit reads the canvas when the frame
+    // is drawn, and SwapContents puts a backdrop away after the frame blitted it.
     if (!Target(holder)) return;
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end()) return;

@@ -1,6 +1,6 @@
 // The present (render_window.cpp): the frame, with the software cursor over it, onto the back buffer through the
 // game's gamma ramp. The cursor is not in the frame (the cursor thread draws the same frame with its cursor
-// somewhere else): its texels replace the frame's where their alpha is a half or more, as the window blit
+// somewhere else): its texels replace the frame's where their alpha is a half or more, as the image blit
 // (blit.hlsl) draws them, before the frame is scaled to the back buffer.
 cbuffer params : register(b0) { float4 source; };
 struct vs_out { float2 uv : TEXCOORD0; float4 pos : SV_Position; };

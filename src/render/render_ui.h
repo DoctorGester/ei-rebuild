@@ -23,12 +23,7 @@ struct PixelFormat {
     std::uint32_t redMask = 0xFF0000, greenMask = 0xFF00, blueMask = 0xFF;
 };
 
-// `colour` as a surface of `format` keeps it (each channel's top bits) widened back to 8 bits a
-// channel, as 0x00RRGGBB: what the canvas holds and the blit shows.
-std::uint32_t Quantise(std::uint32_t colour, const PixelFormat& format);
-// A pixel of `format` (a colour key) widened to 0x00RRGGBB; 0x00RRGGBB to a pixel of `format` (the
-// channels' top bits, as CopyFrameTo packs).
-std::uint32_t Widen(std::uint32_t pixel, const PixelFormat& format);
+// 0x00RRGGBB to a pixel of `format` (the channels' top bits).
 std::uint32_t Pack(std::uint32_t rgb, const PixelFormat& format);
 
 // The canvas of `holder`: made (or made again at another size or format) all black, as the original's new

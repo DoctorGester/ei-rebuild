@@ -34,15 +34,6 @@ void MmpHeader::SetFormat4444() {
     format = 0x4444;
 }
 
-void MmpHeader::SetFormat8888() {
-    alphaMask = 0xFF000000, alphaKind = 8, alphaShift = 24;
-    redMask = 0x00FF0000, redBits = 8, redShift = 16;
-    greenMask = 0x0000FF00, greenBits = 8, greenShift = 8;
-    blueMask = 0x000000FF, blueBits = 8, blueShift = 0;
-    bitsPerPixel = 32;
-    format = 0x8888;
-}
-
 namespace {
 // The counted surface pointer set to null: the holder loses a reference (deleted at 0).
 void DropSurface(CTexture* texture) {

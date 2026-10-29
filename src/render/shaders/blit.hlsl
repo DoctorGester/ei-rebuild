@@ -1,5 +1,5 @@
-// The window blit (render_blit.cpp): a rectangle of a window's texture onto the frame, texel for pixel,
-// cut out where the texel's alpha (the colour key) is below a half.
+// The image blit (render_blit.cpp: the cursor, the movies, the fills): a rectangle of an image onto the frame,
+// texel for pixel, cut out where the texel's alpha (the cursor's mask) is below a half.
 cbuffer vs_params : register(b0) {
     float4 rect;     // destination left, top, right, bottom (screen pixels)
     float4 target;   // x, y: frame width, height

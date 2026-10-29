@@ -823,6 +823,51 @@ title = "Renderer trimming after P8: survey and first batch"
 group = "renderer"
 note = "User 2026-10-29: once P8 is done, look for further renderer trimming. With the interface fully on the GPU (P8) and textures composed on the GPU (R28), survey src/render and the DDraw7/D3D7 boundary for code that no longer has a caller or a reason: surface emulation the game never uses, locks/blits/pixel-format conversions only the old UI or CPU texture paths needed, unused device caps and states, duplicate helpers, debug-only paths. Write the survey to build/style_review/renderer_trim.md (each item: lines, why it can go, how it is checked), file the batches as R30a.., and do the first batch. Goldens hold no frames: check with the golden suite plus ei_ui_check / render scenarios; no visual change intended."
 
+[[ticket]]
+id = "R30a"
+title = "Renderer trim batch 1: deletions with no caller or no reason left"
+group = "renderer"
+size = 0.25
+note = "Done in R30's branch (survey: build/style_review/renderer_trim.md, R30a): render::game::Where / render_game.h and render.cpp's unused GameWindow, the cursor's never-drawn background and composition holders (CCursor under_ / target_), Texture::usedFrame (never read), MmpHeader::SetFormat8888 (00693910, no caller: dead_code.csv), render::ui::Quantise / Widen file-local, stale comments (render_blit.cpp header, window blit -> image blit)."
+
+[[ticket]]
+id = "R30b"
+title = "The cursor's pictures without the renderer's memory"
+group = "renderer"
+size = 0.5
+depends = ["R30a"]
+note = "R30 survey: build/style_review/renderer_trim.md, R30b: render::SurfaceMemory (NewSurfaceMemory / SurfaceMemoryOf / FreeSurfaceMemory) has one user, the software cursor's 8888 pictures: surface.cpp fills it (AttachMemory, FillPicture, LoadPicture under g_deviceLock) and CursorImage reads it back (DirectPixels / SurfacePixels) only to build the mask, while the renderer keeps the picture again as RGBA8 (PictureFromMmp). Build the mask from the .mmp pixels (ChannelLayout::ToNative) and delete the memory, DirectPixels, SurfacePixels and the device-lock brackets. Check: render_cursor_present, the ui_* frames; the mask at 16 and 32 bits against the memory path before deleting it."
+
+[[ticket]]
+id = "R30c"
+title = "The renderer always presents itself: no PresentsItself flag; Fill as a solid draw"
+group = "renderer"
+size = 0.25
+depends = ["R30a"]
+note = "R30 survey: build/style_review/renderer_trim.md, R30c: g_presentsItself / render::PresentsItself is false only before the device object's StartPresenting, when nothing draws; its other branches (CursorBlit's cursor as a blit command, EndFrame's else, DrawPendingAlone / RunCanvasesNow / GpuWorkAlone) are unreachable. Drop it and the harness's image::PresentsItself (harness change: --no-hooks suite). render::Fill (only the movie player's black clear) goes through a 1x1 image in the small-image cache: a solid rectangle command instead. Check: render_movie_present, render_titles_present, render_present*, render_cursor_present, goldens; first confirm no entry point runs before the device object."
+
+[[ticket]]
+id = "R30d"
+title = "Renderer duplicate helpers: channels, PixelFormat, MmpFile, staging read-backs"
+group = "renderer"
+size = 0.5
+depends = ["R30a"]
+note = "R30 survey: build/style_review/renderer_trim.md, R30d: pixel-format channel helpers in render_textures.cpp, render_ui.cpp and surface.cpp; two PixelFormat types (surface.h, render::ui) converted field by field; render_textures.cpp's MmpFile / MipOffset duplicating texture.h's MmpHeader; TextureOf and ApplyRect twice; the staging-texture read-back written six times (ReadFrame, CheckUpload, ReadImageLevel, MapRegion, CheckRamp, CheckPresented). One helper each, no behaviour change. Check: build, ei_ui_check, render_device_lost / removed, render_present_shot, render_terrain_seams, render_present_window, render_cursor_present."
+
+[[ticket]]
+id = "R30e"
+title = "EI_RENDER's no-op words new / present / cpuwindows gone"
+group = "renderer"
+size = 0.25
+note = "R30 survey: build/style_review/renderer_trim.md, R30e: ParseSpec accepts and ignores them; 22 scenarios' render lines, run_all.py OUR_RENDERER and help, game_load.py still name them; render_cpuwindows / render_present_cpuwindows run what render_present runs. Editing the scenarios replays their --no-hooks references once: bundle with another harness change."
+
+[[ticket]]
+id = "R30f"
+title = "Mesh draws without the CPU clip: picking bounds from projected positions"
+group = "renderer"
+size = 1
+note = "R30 survey: build/style_review/renderer_trim.md, R30f: device_mesh.cpp still projects every mesh through 3DfpFPU and clips meshes at the screen edge on the CPU (ClipTriangles, ToScreenClipped) though the GPU draws the unclipped hand-over; the clip only decides whether the passes are handed over and the flag-1 picking rectangle (drawnRect_). Bounds from the projected positions would give both (renderer.md open item). Picking at the screen edge may change: goldens decide. Also device_shadow.cpp's flat draws."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

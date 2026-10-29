@@ -6,7 +6,6 @@
 // cursor thread's presents), and presented with the vertical blank. Also where the frame sits in the window, for
 // the game's mouse coordinates (WindowToFrame / FrameToWindow). docs/notes/renderer.md, section 9.
 #include "render.h"
-#include "render_game.h"
 #include "render_internal.h"
 #include "render_perf.h"
 
@@ -19,6 +18,8 @@
 #include <dxgi1_2.h>
 #include <dxgi1_5.h>
 
+#include "../game/app.h"
+
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -29,7 +30,7 @@ namespace {
 
 using namespace detail;
 
-HWND GameWindow() { return *game::Where().window; }
+HWND GameWindow() { return app::g_mainWindow; }
 
 IDXGISwapChain1* g_chain = nullptr;
 ID3D11RenderTargetView* g_view = nullptr;

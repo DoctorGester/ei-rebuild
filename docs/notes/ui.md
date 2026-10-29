@@ -805,8 +805,9 @@ renderer (render::Cursor), which draws it in every frame it presents. See docs/n
 ("Cursor") and docs/notes/renderer.md.
 Also the cursor's draws straight to the primary surface under DirectDraw: the cursor
 thread (redraws the cursor on the primary every 41 ms between frames) and the background
-save. The cursor's holders have no DirectDraw surface: the background saves,
-the composition the holder blits are left out (the two
+save. Ours has neither the background nor the composition surface (005E60B0 made them: nothing drew into them
+since R11a, and R30a deleted them); the background saves and
+the composition's holder blits are left out (the two
 ports, which nothing of ours calls), and the cursor thread moves the cursor between frames by
 presenting the last frame again (render::CursorBetweenFrames);
 not while the image is hidden (the movie players and the loading screen hide it).

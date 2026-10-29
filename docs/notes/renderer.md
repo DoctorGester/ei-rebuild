@@ -215,7 +215,7 @@ channel masks, written by 004F0060 and read by 005E4EB0 through `DirectPixels` (
 
 **Holders without a surface**: the holder is our own `Surface` (surface.h: device, width, height, bits per pixel; R27b
 replaced `CDXSurface` and its always-null DirectDraw surface pointer): the holders of 004EF7B0 (windows 005FCC00 /
-005FCDD0 / 005FD7A0: a canvas, no memory; the cursor's background and composition surfaces 005E60B0), the picture holders
+005FCDD0 / 005FD7A0: a canvas, no memory; the cursor's background and composition surfaces 005E60B0 made are gone, R30a), the picture holders
 of 004F0060 (cursor images via 004EFC60 from 005E4EB0: the renderer's memory; dead picture windows) and the textures
 (section 7); no Lock / Unlock, GetDC, Blt or colour fill. A window of no size is not made: the original's DDSurface
 error is thrown (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` of the device object's colour depth
@@ -461,6 +461,9 @@ come first, then what holds for the present path (the subsection names are cited
   removable device) validates or measures the renderer itself and has a scenario; the A/B against the old device draws
   went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
+- Trimming after P8 / R28 (R30's survey, build/style_review/renderer_trim.md): R30b the cursor's pictures without
+  the renderer's memory, R30c no PresentsItself flag and Fill as a solid draw, R30d the duplicate helpers (channels,
+  PixelFormat, MmpFile, staging read-backs), R30e EI_RENDER's no-op words, R30f mesh draws without the CPU clip.
 - No ticket yet: weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before

@@ -7934,7 +7934,6 @@ address,name,size,status,risk,scenarios,golden,vector,reached_by
 00693820,MmpHeader::SetNoFormat,45,unreached,90,0,,,
 00693850,MmpHeader::SetFormat5551,88,golden,0,117,app_record camera combat combat_more +103,,harness_disk_full net_second_master rebirth_flags +7
 006938B0,MmpHeader::SetFormat4444,84,golden,0,22,combat combat_more effects_bow ground_prints +18,,
-00693910,MmpHeader::SetFormat8888,84,unreached,168,0,,,
 00693C60,CTextureManager::FindTexture,379,golden,0,124,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +7
 00693F10,CTextureManager::FindOrLoad,77,golden,0,113,app_record camera combat combat_more +100,,net_second_master rebirth_flags render_movie +6
 00693F60,CTextureManager::ReloadAll,188,golden,0,27,app_record boot levers_key net_pair_join +20,,harness_disk_full net_second_master render_terrain_seams
