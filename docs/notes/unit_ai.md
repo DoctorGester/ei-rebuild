@@ -37,8 +37,16 @@ Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`, `originals_ai.h`.
   (RefPtr::Share on add, RefPtr::Destroy on removal). Load creates modes by type (Player 6, Tamed 8 0073F0C4); an unknown
   type leaves Load at once (kept).
 - Calls for help: `CallAllies` lists the units within +0x38 of the owner through the server's sector map; each allied one's
-  memory hears kind 0x1A (005CBBA0 -> 005CCD40: earlier unflagged records of kind >= 0x1A are dropped, then {point, kind, 0,
-  text} appended at +0x178).
+  memory hears a call of delay 0x1A (005CBBA0 -> 005CCD40: earlier unflagged records of delay >= 0x1A are dropped, then
+  {point, delay, 0, text} appended at +0x178). A heard call's second field is a countdown (`AICallRecord::delay`; the
+  original's callers pass it as the "kind" of the noise): the call is heard when it runs below 0.
+- Names that were guesses: `AIMemory::CanTrack` (was IsEnemy) answers true for the same side, the same player or a unit in
+  sight; `AIReport::ticksLeft` (was what) counts a report down (`AIReports::kCastStoppedTicks` 0xF, `kRejectedTicks` 0x14);
+  `AIMemory::noticedKind` is the noticed level's decay per update (-1..-3); `AIBrain::nearX` / `nearY` are two distances
+  (35 / 80 plus Guard's radius) that nothing reads but the save, and `decay` only feeds itself and the save.
+  `CPlayerServer::danger_` (was refreshPending_) is the party's danger the script's IsPlayerInDanger / IsPlayerInSafety
+  read; the Player mode's units act on their own while it is InDanger (`PartyInDanger`; the old name said "the player
+  controls the unit directly").
 - The AI's eye `AIViewer` (world server + 0x2838; map, eye, facing, cell, ready): 005CAA00 Update, 005CA1D0 Refresh (nearby
   list every 8..11 ticks from the sector cells of the memory's spiral cache), 005CA5A0 See (sight range x line of sight inside
   the cone `stats.unknown_044`, peripheral `stats.unknown_048`, sense life), 005CA410 Prepare (eye height, facing from the
@@ -65,17 +73,17 @@ address in its source comment; the per-function table that used to be here is go
   005D6230 / StandardSentry 005D64E0 (exactly the five modes in order) with AddGuardMode, AddSuspectionMode, AddAggressionMode,
   AddCorpseWatcherMode, AddFearMode, AddSentryMode (only those two call them); `unit_ai_alarm.cpp` ApplyBehaviour 005D6630,
   SetAlarmRecords 005D6D20 (the .mob loader), the records' SetSize (every zone load, an alarm heard); heard calls: AIHeardCalls::Update
-  005CC9D0 (each tick), AICallRecord::Destruct 00558D00, UnitController::AddHostileMask 00552CF0, SetSize / Add on the template.
-- `unit_ai_memory.cpp` (`AIMemory`; Notice, Forget, Update, IsEnemy and AIReports in `unit_ai_brain.cpp`): CallAllies
+  005CC9D0 (each tick), AICallRecord::Destruct 00558D00, SetSize / Add on the template.
+- `unit_ai_memory.cpp` (`AIMemory`; Notice, Forget, Update, CanTrack and AIReports in `unit_ai_brain.cpp`): CallAllies
   005D5990, Notice 005CBBE0 (Fear's Evaluate, spell effects), Forget, AIReports Report / Contains (+0x94), Update 005CB700
-  (each Think), IsEnemy 005CB7F0, FindEnemies 005CB260, FindEnemiesNear, NearestEnemy, ForceSee ("is
+  (each Think), CanTrack 005CB7F0, FindEnemies 005CB260, FindEnemiesNear, NearestEnemy, ForceSee ("is
   forced to see unit"), AddCountedTail, MeasureExposure 005CB850 (each server tick: five exposure ratios into CUnit + 0x4C8), SeeCorpse
   005CBE90 (OnDamaged). `unit_ai_sight.cpp`: AIViewer Update 005CAA00, Refresh, See, Prepare, MarkSightCells 005CD210 (the
   show-visibility effect). `unit_ai_hearing.cpp`: AIViewer::Noise 005C98C0 (attacks, skills, explosions: hostile units within 50 whose
   hearing x loudness reaches hear kind at the source's position), heard calls Hear 005CCD40 / AddClaim 005CCEA0 / RemoveClaims, the
   memory's HearCall / AddClaim 005CBBA0 / 005CBBC0.
 - `unit_ai_attention.cpp` / `unit_ai_targets.cpp`: AIAttention::CurrentAttack 005CF220, LookAround 005CFE40 (`this` the attention +0xA4, brain passed),
-  AIAttention::Choose 005D0030, Score, IsUsable, AIDistance2, AIOrder Clear / MakeAttack / MakeCast, CanReach 005CF3C0 (spell aimed at
+  AIAttention::Choose 005D0030, Score, IsUsable, AIOrder Clear / MakeAttack / MakeCast, CanReach 005CF3C0 (spell aimed at
   no object vs a large size-class-0 unit: no; else the order check from the unit, or from the end of a path search with the target
   lifted). `unit_ai_options.cpp`: AIAttention::Build 005CEED0 (the option lists, when a unit's controller is set up (005535F0 / 00553610)
   and by 005D6630), InitOption, AddWeaponOption / AddSpellOption, SpellKind (spell type -> kind table), AIAttackOption::Weight, SetSize,
@@ -89,8 +97,7 @@ address in its source comment; the per-function table that used to be here is go
 
 FearMode's unset x is -1313.0f (0xC4A42000). AIMemory::Update's callees take over a noticed point inline (005CC9D0: a delayed
 sound, level 900, kind -3; 005CAA00: a corpse seen, 800 / -3, an enemy lost from sight, 1000 / -2), so the final add uses the
-new level and kind (the check counts CopyPoint2 005CA050 calls to tell the cases apart; a copy-based comparison is impossible:
-the callees use rand(), release objects and share buffers).
+new level and decay.
 
 ## Original bugs and oddities kept on purpose
 
@@ -100,9 +107,9 @@ the callees use rand(), release objects and share buffers).
 - The mode adders (005D6300-005D65B0) write the new mode's +4 before testing the allocation and pass a failed one to AddMode,
   which calls its GetType (ours tests first, then also passes null). A new Suspection mode's point and level and a new Fear
   mode's +0x14..+0x20 stay uninitialised. CallAllies formats its message only for the console filter but always builds it.
-- `IsEnemy` (the name is the old guess) answers 1 for the same side, the same player, or an object in the +0x110 list, so
-  UpdateAttack gives up only on a unit of another side and player that is not listed. AIMemory::Update adds the noticed kind
-  (negative: decay) to the noticed level every tick. LookAround's order for the player check leaves the point uninitialised
+- `CanTrack` answers true for the same side, the same player, or an object in the +0x110 list, so UpdateAttack gives up
+  only on a unit of another side and player that is not listed. AIMemory::Update adds the noticed decay to the noticed level
+  every tick. LookAround's order for the player check leaves the point uninitialised
   (ours zero), like AttackTarget's order for 0054C8B0 (+0x0C..+0x17).
 - Notice measures the distance with the new point's own z (the memory keeps no z); Forget compares the report entries with
   its argument and the list elements with its own counted copy (the same pointer).
@@ -114,7 +121,8 @@ the callees use rand(), release objects and share buffers).
   one succeeds (only success resets the count). Patrol with no points calls FatalError "Unit %i has no patrol points,
   switching to guard" and adds a point at the unit (it does not switch). Suspection's Execute computes the "near the point"
   distance only while a move is under way; its level drops by 5 per tick near the point, by 50 in combat. Aggression's
-  Execute asks for the current attack twice in a row (two 005CF220 calls).
+  Execute asks for the current attack twice in a row (two 005CF220 calls; ours once, through ApplyAttack: the call only
+  reads).
 - AppendPoint rounds 2x to nearest, so its point is (n + 0.5) / 2, 0..0.5 above the asked one, not its half-cell's middle.
   Score's group bonus counts the group minus one for kinds 1 and 4..7, the whole group for 2 and 3; kind 3 multiplies by
   (effect / 4) / 2; the weapons are only scored when `alliesOnly` is off; the order checked for a target off the path has an
@@ -127,7 +135,7 @@ the callees use rand(), release objects and share buffers).
 - Patrol's destructor leaves the point array's pointer and count behind (freed). Fear with `flag` and no player unit in
   sight notices an unset local (ours zero; only matters for a distance above 1e15). StaysWithParty reads a party unit's
   missing Player mode at address 0x0C in the original (a crash; ours skips it); UpdateCombat attacks the chosen target with
-  the weapon even when the choice was a spell.
+  the weapon even when the choice was a spell (AttackTarget; the original builds the same order twice over).
   T2b: a target removed mid-attack leaves the brain at action 3 with its target cleared; Execute hands that to
   UpdateCombat, which (finding nobody) leaves it so, as the original does (checked by running 005D4170 behind the
   wrapper). The verify wrapper's attack-has-target check now applies only when the call changed action or target

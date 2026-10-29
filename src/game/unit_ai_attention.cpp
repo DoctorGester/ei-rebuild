@@ -1,60 +1,36 @@
-// The unit AI brain's attention: what it attacks now and looking for a better target
-#include "unit_ai.h"
+// The unit AI brain's attention: what it attacks now, looking for a better target and taking a chosen one up.
 #include "combat.h"
-
+#include "unit_ai.h"
 #include "world.h"
 
-
-#include <cstddef>
-#include <cstdint>
-
-namespace {
-
-} // namespace
-
-void AIAttention::CurrentAttack(AIBrain* brain, AITargetChoice* choice) {
+AITargetChoice AIAttention::CurrentAttack(AIBrain* brain) {
+    AITargetChoice choice;
     if (brain->action == AIBrain::kActionAttack) {
-        choice->part = -1;
+        choice.part = kWeaponPart;
     } else if (brain->action == AIBrain::kActionCast) {
-        choice->part = brain->actionTime;     // the spell being cast
+        choice.part = brain->actionTime;     // the spell being cast
     } else {
-        choice->object = nullptr;
-        return;
+        return choice;
     }
-    choice->object = UnitOrNull(brain->target);
+    choice.object = UnitOrNull(brain->target);
+    return choice;
 }
 
 void AIAttention::LookAround(AIBrain* brain) {
-    UnitList candidates{};
-    AITargetChoice best{-1, nullptr};
-    Vector3 from = *&brain->owner->unit->localPosition_;
-    brain->attention.Choose(brain, &best, &candidates, &from, true, 0);
-    CUnit* chosen = best.object;
-    if (chosen) {
-        AITargetChoice now{-1, nullptr};
-        CurrentAttack(brain, &now);
-        if (best.object != now.object || best.part != now.part) {
-            int part = best.part;
-            if (part == -1) {
-                brain->action = AIBrain::kActionAttack;
-                brain->target.Assign(chosen);
-                AckKind flags = AckKind::DecidedToAttack;
-                if (brain->owner->unit->player) {
-                    AIOrder order{};
-                    order.kind = UnitOrderKind::Attack;
-                    order.source = 6;
-                    order.target.Assign(chosen);
-                    if (brain->owner->CanReachAndPlan(&order)) flags = AckKind::None;
-                }
-                brain->owner->OrderAttack(brain->target, 6, 0, flags);
-            } else {
-                if (!brain->owner->IsScrollSource(part)) brain->action = AIBrain::kActionCast;
-                brain->target.Assign(chosen);
-                brain->actionTime = part;
-                brain->owner->OrderCast(part, chosen, 0);
-            }
-        }
-    }
-    // The list emptied, no element destruction.
-    candidates.clear();
+    UnitList candidates;
+    AITargetChoice best;
+    Vector3 from = brain->owner->unit->localPosition_;
+    Choose(brain, &best, &candidates, &from, true, false);
+    ApplyAttack(brain, &best);
+}
+
+void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
+    CUnit* object = choice->object;
+    if (!object) return;
+    AITargetChoice now = CurrentAttack(brain);
+    if (object == now.object && choice->part == now.part) return;
+    if (choice->part == kWeaponPart)
+        brain->AttackTarget(object);
+    else
+        brain->CastOn(choice->part, object, 0);
 }

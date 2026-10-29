@@ -32,10 +32,6 @@ constexpr float kNonPlayerReach = 1.05f;        // units without a player keep s
 constexpr float kEyeHeightFactor = 1.8f;
 constexpr float kSightCellsFactor = 2.0f;
 constexpr float kSectorScale = 0.03125f;
-constexpr int kCorpseLevel = 800;
-constexpr int kCorpseKind = -3;
-constexpr int kLostLevel = 1000;
-constexpr int kLostKind = -2;
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
 
@@ -49,14 +45,12 @@ console::Stream& LogPair(CUnit* self, const char* text, CEngineObject* other) {
     return kAiLog << "Unit " << self->id_ << text << other->id_;
 }
 
-// The noticed point taken over inline (Notice's copy).
-void NoticeAt(AIMemory* memory, CUnit* at, int level, int kind) {
-    float copy[2];
-    const float* point = CopyPoint2(copy, &at->localPosition_.x);
-    memory->noticedX = point[0];
+// The noticed point taken over without Notice's checks.
+void NoticeAt(AIMemory* memory, CUnit* at, int level, int decay) {
+    memory->noticedX = at->localPosition_.x;
     memory->noticedLevel = level;
-    memory->noticedY = point[1];
-    memory->noticedKind = kind;
+    memory->noticedY = at->localPosition_.y;
+    memory->noticedKind = decay;
 }
 
 } // namespace
@@ -186,7 +180,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) {
                 // AddTail (a second copy follows below).
                 memory->seenCorpses.push_back(other);
-                if (memory->noticedLevel < kCorpseLevel) NoticeAt(memory, other, kCorpseLevel, kCorpseKind);
+                if (memory->noticedLevel < kNoticeCorpseLevel) NoticeAt(memory, other, kNoticeCorpseLevel, kNoticeCorpseDecay);
             }
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
             memory->seenCorpses.push_back(other);
@@ -204,7 +198,8 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             if (theirBrain->AggressionEnemy() == self) continue;
         }
         console::EndLine(LogPair(self, " lost from sight unit ", other));
-        if (self->IsHostileTo(other) && memory->noticedLevel < kLostLevel) NoticeAt(memory, other, kLostLevel, kLostKind);
+        if (self->IsHostileTo(other) && memory->noticedLevel < kNoticeSeenLevel)
+            NoticeAt(memory, other, kNoticeSeenLevel, kNoticeSeenDecay);
         memory->visible.erase(current);
     }
     See(self, memory);

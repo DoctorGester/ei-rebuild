@@ -311,7 +311,7 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
 
 // ---- Unrounded 2D forms (precise semantics off: nothing is stored) -------------------------------
 // The game keeps many 2D differences and sums on the FPU stack and compares or uses the unrounded value
-// (AIDistance2 returns it). The precise helpers above round their result through memory; these do not:
+// (the AI's target scoring returns it). The precise helpers above round their result through memory; these do not:
 // compiled without precise semantics, an inlined body is the same code as the expression written out in the
 // caller (no store and reload of the differences or the sum). T is the type the site computes in: `double` where
 // the source keeps the x87 value (static_cast<double>(a.x) - b.x), `float` where it uses float locals. Only
@@ -324,7 +324,7 @@ template <typename T>
 __forceinline T LengthSquared2DUnrounded(T x, T y) { return x * x + y * y; }
 
 // dx * dx + dy * dy of dx = a.x - b.x, dy = a.y - b.y, the differences computed in T, dy first (the
-// order VC6 loads them in AIDistance2 its inlined copies).
+// order VC6 loads them in the AI's target scoring).
 template <typename T>
 __forceinline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
     T dy = static_cast<T>(a.y) - b.y;

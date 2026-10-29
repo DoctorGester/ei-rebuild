@@ -264,14 +264,14 @@ void CPlayerServer::SendItems() {
 }
 
 int CPlayerServer::SendPartyState() {
-    refreshPending_ = 0;
+    danger_ = PartyDanger::Safe;
     CPlayer* player = player_;
     const float low = kLowLevel;
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
         const float* levels = node->second->exposure;
         EI_NAN_AUDIT(levels[0], levels[1], levels[2], levels[3], levels[4], low);
         if (levels[0] <= low || levels[1] <= low || levels[2] <= low || levels[3] <= low || levels[4] <= low)
-            refreshPending_ = 1;
+            danger_ = PartyDanger::EnemyNear;
     }
 
     int count = static_cast<int>(partyUnits_.size());
@@ -282,19 +282,19 @@ int CPlayerServer::SendPartyState() {
     std::uint32_t playerBit = 1u << (player->playerId_ & 31);
     for (int i = 0; i < count; ++i) {
         auto* unit = partyUnits_[static_cast<std::size_t>(i)].AsUnit();
-        if (refreshPending_ != 2 && !unit->IsDead()) {
-            if (unit->ServerController()->IsFighting()) refreshPending_ = 2;
+        if (danger_ != PartyDanger::InDanger && !unit->IsDead()) {
+            if (unit->ServerController()->IsFighting()) danger_ = PartyDanger::InDanger;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
             for (auto node = unit->ServerController()->brain.memory.nearby.begin(); node != unit->ServerController()->brain.memory.nearby.end();) {
                 CUnit* other = *node;
                 ++node;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
-                if (other->ServerController()->brain.AggressionEnemy() == unit) refreshPending_ = 2;
+                if (other->ServerController()->brain.AggressionEnemy() == unit) danger_ = PartyDanger::InDanger;
             }
         }
         WriteDword(&out_, static_cast<std::uint32_t>(unit->id_));
     }
-    out_.WriteValue(refreshPending_);
+    out_.WriteValue(danger_);
 
     // The objects shared with the hero of a multiplayer client that plays one.
     ScriptGroup shared;

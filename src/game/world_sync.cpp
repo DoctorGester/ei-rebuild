@@ -189,7 +189,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
 
         if (sessionKind_ == kKindSinglePlayer && IsMultiplayerClient()) {
             int& timer = state->refreshTimer_;
-            if (--timer <= 0 && state->refreshPending_ == 0) state->ResendParty();
+            if (--timer <= 0 && state->danger_ == CPlayerServer::PartyDanger::Safe) state->ResendParty();
         }
     }
 

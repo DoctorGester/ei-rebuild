@@ -1,9 +1,7 @@
 // The unit AI modes' lifetime and constant slots: the Player and Patrol constructors
 // the Patrol and Fear destructors, their
-// GetType slots, the abstract base's Execute and the abstract bases'
-// constructors.
+// GetType slots and the abstract bases' constructors.
 #include "combat.h"
-#include "random.h"
 #include "unit_ai.h"
 
 #include <cstring>
@@ -18,11 +16,6 @@ AIMode::AIMode() {
 }
 
 AIActionMode::AIActionMode() {}
-
-void AIMode::Execute(AIBrain* brain) {
-    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(AIRemark::Idle);
-    brain->attention.LookAround(brain);
-}
 
 AIModeType PatrolMode::GetType() { return AIModeType::Patrol; }
 
@@ -61,8 +54,13 @@ FearMode* FearMode::Clone() {
     return clone;
 }
 
+// The constructor's own stores again (the rest of the shelter and the flight point stay).
 void FearMode::OnShutdown() {
-    Init(0);
+    distance = kDefaultDistance;
+    spread = 3.0f;
+    shelter.x = kUnsetCoordinate;
+    fleePoint.z = 0.0f;
+    flag = 0;
 }
 
 FearMode::~FearMode() {}

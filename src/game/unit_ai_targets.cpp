@@ -33,48 +33,50 @@ constexpr float kHealGroupBase = 2.0f;
 constexpr float kAllyNear2 = 49.0f;             // allies within 7 of an area target
 constexpr float kPathNear = 30.0f;
 constexpr int kNoHitsKnown = 20;
-constexpr int kRejectedReport = 0x14;
+constexpr int kControllerIdle = 0;              // CUnitServer::state: no order runs
 constexpr float kNoScore = -1e30f;
 static_assert(std::bit_cast<std::uint32_t>(kNoScore) == 0xF149F2CAu);
 constexpr float kFloorScore = -1e20f; // and the starting best: -1e20
 static_assert(std::bit_cast<std::uint32_t>(kFloorScore) == 0xE0AD78ECu);
-
-
-// The prototype's height (compared with 0.5: units below it count as small).
-float PrototypeSize(CUnit* unit) {
-    return unit->GetPrototype()->height;
-}
-
+constexpr float kSmallHeight = 0.5f;            // prototypes below this height count as small units
 
 std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
     return option->damage.ExcessOver(&target->ServerController()->protection);
 }
 
-// Cases 2 and 3: the damage summed over the group members within the option's radius of the
-// candidate (NaN distances count).
+// An area attack's damage: summed over the group members within the option's radius of the candidate (NaN
+// distances count).
 std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, CUnit* candidate) {
     std::uint32_t sum = 0;
     if (group->empty()) return sum;
     float radius2 = static_cast<float>(option->radius * option->radius);
     for (auto node = group->begin(); node != group->end(); ++node) {
         auto* member = *node;
-        EI_NAN_AUDIT(AIDistance2(&member->localPosition_, &candidate->localPosition_), radius2);
-        if (AIDistance2(&member->localPosition_, &candidate->localPosition_) <= radius2) sum += Excess(option, member);
+        double distance2 = DistanceSquaredXYUnrounded<double>(member->localPosition_, candidate->localPosition_);
+        EI_NAN_AUDIT(distance2, radius2);
+        if (distance2 <= radius2) sum += Excess(option, member);
     }
     return sum;
 }
 
-// A scored {part, object} the choice keeps (list nodes).
+// A scored {part, object} the choice keeps.
 struct Scored {
     int part;
     CUnit* object;
     float score;
 };
-} // namespace
 
-double AIDistance2(const Vector3* a, const Vector3* b) {
-    return DistanceSquaredXYUnrounded<double>(*a, *b);
+// Whether the controller's order check lets the unit act on `choice` from `from`: an attack for the weapon part,
+// else a cast.
+bool OrderAllowedFrom(AIBrain* brain, const AITargetChoice* choice, const Vector3* from) {
+    AIOrder order;
+    if (choice->part == kWeaponPart)
+        order.MakeAttack(choice->object);
+    else
+        order.MakeCast(choice->part, choice->object);
+    return brain->owner->CanReachAndPlanFrom(&order, from);
 }
+} // namespace
 
 void AIOrder::Clear() {
     kind = UnitOrderKind::None;
@@ -85,7 +87,7 @@ void AIOrder::Clear() {
 void AIOrder::MakeAttack(CMapObject* object) {
     Clear();
     kind = UnitOrderKind::Attack;
-    source = 6;
+    source = kAttackAllParts;
     target.Assign(object);
 }
 
@@ -96,7 +98,7 @@ void AIOrder::MakeCast(int spell, CMapObject* object) {
     source = static_cast<std::uint32_t>(spell);
 }
 
-bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fromHere) {
+bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, bool fromHere) {
     AIPath path;
     CUnit* self = brain->owner->unit;
     CUnit* target = choice->object;
@@ -105,13 +107,13 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
     if (part >= 0) {
         CSpell* spell = self->GetSpellObject(part);
         if (spell && (spell->targetFlags_ & SpellTargetFlag::AtPoint) && target->sizeClass == 0 &&
-            PrototypeSize(target) >= 0.5f)
+            target->GetPrototype()->height >= kSmallHeight)
             return false;
     }
 
     // Where the order is checked from: the unit's place, or the end of a path towards the target.
     Vector3 point;
-    if (self == target || static_cast<char>(fromHere) != 0) {
+    if (self == target || fromHere) {
         point = self->localPosition_;
     } else {
         double dz = static_cast<double>(self->localPosition_.z) - target->localPosition_.z;
@@ -134,15 +136,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         }
         server->aiMap_.sectorMap.Add(target);
     }
-
-    AIOrder order;
-    order.Clear();
-    if (part < 0) {
-        order.MakeAttack(target);
-    } else {
-        order.MakeCast(part, target);
-    }
-    return brain->owner->CanReachAndPlanFrom(&order, &point);
+    return OrderAllowedFrom(brain, choice, &point);
 }
 
 const AIAttackOption* AIAttention::FindOption(int part) const {
@@ -160,17 +154,17 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     const AIAttackOption* option = FindOption(choice->part);
     if (!option) return false;
     if (option->kind != AIOptionKind::AreaAttack && option->kind != AIOptionKind::LastingArea) return true;
-    EI_NAN_AUDIT(PrototypeSize(self));
-    if (self->sizeClass == 0 && PrototypeSize(self) >= 0.5f) return true;
+    EI_NAN_AUDIT(self->GetPrototype()->height);
+    if (self->sizeClass == 0 && self->GetPrototype()->height >= kSmallHeight) return true;
     Vector3 at = target->localPosition_;
     for (auto& node : brain->memory.nearby) {
         CUnit* other = node;
         double dy = static_cast<double>(at.y) - other->localPosition_.y;
         double dx = static_cast<double>(at.x) - other->localPosition_.x;
-        EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
+        EI_NAN_AUDIT(dx, dy, other->GetPrototype()->height);
         if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy_.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
-            if (PrototypeSize(other) < 0.5f) return false;
+            if (other->GetPrototype()->height < kSmallHeight) return false;
         }
     }
     double dy = static_cast<double>(self->localPosition_.y) - at.y;
@@ -198,8 +192,9 @@ double AIAttention::Score(const Vector3* from, CUnit* self, UnitList* group, CEn
         if (option->kind == AIOptionKind::SpellAttack) {
             damage = Excess(option, candidate);
         } else {
-            if (option->kind == AIOptionKind::LastingArea && control->state == 0) return kNoScore;
+            if (option->kind == AIOptionKind::LastingArea && control->state == kControllerIdle) return kNoScore;
             damage = GroupExcess(option, group, candidate);
+            // A lasting area hits once per eighth of its duration (divided as the original does).
             if (option->kind == AIOptionKind::LastingArea) damage *= static_cast<std::uint32_t>(option->effect / 4 / 2);
             ++others;   // the group without the one left out
         }
@@ -258,19 +253,18 @@ double AIAttention::Score(const Vector3* from, CUnit* self, UnitList* group, CEn
 }
 
 void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candidates, const Vector3* from, bool alliesOnly,
-                         int fromHere) {
-    if (std::ssize(spells) == 0 && (candidates->empty() || std::ssize(weapons) == 0)) {
+                         bool fromHere) {
+    if (spells.empty() && (candidates->empty() || weapons.empty())) {
         choice->object = nullptr;
         return;
     }
-    AITargetChoice current{-1, nullptr};
-    brain->attention.CurrentAttack(brain, &current);
+    AITargetChoice current = CurrentAttack(brain);
     if (!IsUsable(brain, &current)) current.object = nullptr;
     CUnit* held = current.object;
     float best = kFloorScore;
     CUnit* self = brain->owner->unit;
     if (held) {
-        if (std::ssize(*candidates) == 1 && std::ssize(spells) == 0) {
+        if (candidates->size() == 1 && spells.empty()) {
             *choice = current;
             return;
         }
@@ -298,9 +292,9 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candi
             }
         }
     }
-    if (std::ssize(spells) != 0) {
+    if (!spells.empty()) {
         // The unit and its allies in sight that are alive and not reported.
-        UnitList allies{};
+        UnitList allies;
         allies.push_back(self);
         for (auto& node : brain->memory.nearby) {
             CUnit* other = node;
@@ -316,7 +310,6 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candi
                 if (s > best) scored.push_back({option->part, ally, static_cast<float>(s)});
             }
         }
-        allies.clear();
     }
 
     while (!scored.empty()) {
@@ -336,23 +329,16 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candi
         if (choice->object == current.object && choice->part == current.part) return;
         CUnit* object = choice->object;
         if (IsUsable(brain, choice)) {
-            bool allowed = true;
-            if (alliesOnly && !brain->IsNearPath(&object->localPosition_, kPathNear)) {
-                AIOrder order{};
-                if (choice->part < 0) {
-                    order.MakeAttack(object);
-                } else {
-                    order.MakeCast(choice->part, object);
-                }
-                allowed = brain->owner->CanReachAndPlanFrom(&order, &self->localPosition_);
-            }
+            // Allies only: a target off the path must be in reach from here.
+            bool allowed = !alliesOnly || brain->IsNearPath(&object->localPosition_, kPathNear) ||
+                           OrderAllowedFrom(brain, choice, &self->localPosition_);
             if (allowed && CanReach(brain, choice, fromHere)) return;
         }
         // Rejected: an object scored only once (and not the current target) is reported.
         int seen = 0;
         for (const Scored& entry : scored)
             if (entry.object == object) ++seen;
-        if (seen == 1 && choice->object != current.object) brain->memory.reports.Report(object, kRejectedReport);
+        if (seen == 1 && choice->object != current.object) brain->memory.reports.Report(object, AIReports::kRejectedTicks);
         scored.erase(scored.begin() + chosen);
     }
     *choice = current;

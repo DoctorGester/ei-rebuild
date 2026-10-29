@@ -4,36 +4,28 @@
 #include "ai_alarm.h"
 #include "combat.h"
 #include "console.h"
-#include "core_refcount.h"
 #include "game_singletons.h"
-#include "random.h"
 #include "world.h"
-#include "world_data.h"
-
-#include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
-
 #include "ei/x87.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
-#include <cstring>
-#include <string>
 
 namespace {
 constexpr float kDecayScale = 30.0f;
 constexpr float kDecayDivisor = 0.032258064f;      // (1 / 31)
 static_assert(std::bit_cast<std::uint32_t>(kDecayDivisor) == 0x3D042108u);
 constexpr float kArrivedDistanceSq = 1.0f;
+constexpr int kCurrentModeBonus = 100;             // the mode in charge keeps it against equal claims
+constexpr float kMoveTime = 1000000.0f;
 
-constexpr int kControllerStateInactive = 5;
+// CUnitServer::state while the planned action runs (combat_update.cpp): the brain does not think meanwhile.
+constexpr int kControllerActing = 5;
 
-
-// The modes' log: the AI stream.
-constexpr console::Stream& kModeLog = console::g_aiLogOut;
-
-// The mode names of the "new motivation" message (passed by address).
+// The mode names of the "new motivation" message.
 const char* ModeName(AIModeType type) {
     switch (type) {
     case AIModeType::Guard: return "Guard";
@@ -46,24 +38,23 @@ const char* ModeName(AIModeType type) {
     case AIModeType::Fear: return "Fear";
     case AIModeType::Tamed: return "Tamed";
     case AIModeType::Follow: return "Follow";
-    default: return nullptr;    // 9 and anything else: the name stays empty
+    default: return "";    // 9 and anything else: the name stays empty
     }
 }
-const char* MotivationFormat() { return "Unit %i new motivation %s with power of %i"; }
 
-
-} // namespace
-
-// --- Helpers -------------------------------------------------------------------------------------
-
-// --- The corpse list ---------------------------------------------------------------
-
-Ref<CUnit>* AIBrain::PopCorpse(Ref<CUnit>* out) {
-    HeldRef<CUnit> head = std::move(memory.corpses.front());
-    memory.corpses.pop_front();
-    out->Assign(head);
-    return out;
+// The modes that alert a brain in alert mode 2 when they take charge.
+bool IsAlertMode(AIModeType type) {
+    switch (type) {
+    case AIModeType::Suspection:
+    case AIModeType::Aggression:
+    case AIModeType::CorpseWatcher:
+    case AIModeType::Fear:
+        return true;
+    default:
+        return false;
+    }
 }
+} // namespace
 
 void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
@@ -77,24 +68,16 @@ void AIBrain::Think() {
     memory.Update(owner);
 
     CUnit* unit = owner->unit;
-    memory.seesEnemy = 0;
-    for (auto node = memory.visible.begin(); node != memory.visible.end();) {
-        CUnit* other = *node;
-        ++node;
-        if (unit->IsHostileTo(other) && other->IsDead() == 0) {
-            memory.seesEnemy = 1;
-            break;
-        }
-    }
+    memory.seesEnemy = std::ranges::any_of(memory.visible, [unit](CUnit* other) { return unit->IsHostileTo(other) && !other->IsDead(); });
 
-    if (owner && owner->state == kControllerStateInactive) return;
+    if (owner->state == kControllerActing) return;
     if (memory.seesEnemy && !alerted && (alertMode == 0 || alertMode == 2)) alerted = 1;
 
-    // Choose the mode: the one in charge keeps it with a bonus of 100.
+    // Choose the mode: the one in charge keeps it with a bonus.
     AIMode* best = nullptr;
     int bestPriority = 1;
     if (current) {
-        int priority = current->Evaluate(this) + 100;
+        int priority = current->Evaluate(this) + kCurrentModeBonus;
         if (priority > 1) {
             best = current;
             bestPriority = priority;
@@ -113,15 +96,9 @@ void AIBrain::Think() {
 
     if (best != current) {
         if (best) {
-            std::string text;
-            std::string name;
-            if (const char* modeName = ModeName(best->GetType())) name = modeName;
-            text = str::Format(MotivationFormat(), owner->unit->id_, name,
-                        bestPriority);
-            console::EndLine(kModeLog << text);
-            AIModeType type = best->GetType();
-            if (type >= AIModeType::Suspection && (type <= AIModeType::CorpseWatcher || type == AIModeType::Fear) && alertMode == 2 && !alerted)
-                alerted = 1;
+            console::EndLine(kAiLog << str::Format("Unit %i new motivation %s with power of %i", owner->unit->id_,
+                                                   ModeName(best->GetType()), bestPriority));
+            if (IsAlertMode(best->GetType()) && alertMode == 2 && !alerted) alerted = 1;
         }
         if (current) current->Leave(this);
         if (best) best->Enter(this);
@@ -131,8 +108,7 @@ void AIBrain::Think() {
     if (current) {
         current->Execute(this);
     } else {
-        target.Reset();
-        action = kActionNone;
+        StopAction();
     }
     seen.Reset();
 
@@ -158,9 +134,8 @@ void AIBrain::Think() {
         return;
     case kActionCast:
         if (owner->HasOrder(UnitOrderKind::CastAt) || owner->HasOrder(UnitOrderKind::CastOn)) return;
-        if (target && owner->orderStopped) memory.reports.Report(target, 0xF);
-        target.Reset();
-        action = kActionNone;
+        if (target && owner->orderStopped) memory.reports.Report(target, AIReports::kCastStoppedTicks);
+        StopAction();
         return;
     case kActionUse:
         target.Reset();
@@ -178,31 +153,14 @@ void AIBrain::Think() {
 // --- Mode lookups --------------------------------------------------------------------------------
 
 AIMode* AIBrain::FindMode(AIModeType type) {
-    for (auto node = modes.begin(); node != modes.end();) {
-        AIMode* mode = *node;
-        ++node;
+    for (AIMode* mode : modes)
         if (mode->GetType() == type) return mode;
-    }
     return nullptr;
 }
 
-PatrolMode* AIBrain::FindPatrolMode() {
-    for (auto node = modes.begin(); node != modes.end();) {
-        AIMode* mode = *node;
-        ++node;
-        if (mode->GetType() == AIModeType::Patrol) return static_cast<PatrolMode*>(mode);
-    }
-    return nullptr;
-}
+PatrolMode* AIBrain::FindPatrolMode() { return static_cast<PatrolMode*>(FindMode(AIModeType::Patrol)); }
 
-PlayerMode* AIBrain::FindPlayerMode() {
-    for (auto node = modes.begin(); node != modes.end();) {
-        AIMode* mode = *node;
-        ++node;
-        if (mode->GetType() == AIModeType::Player) return static_cast<PlayerMode*>(mode);
-    }
-    return nullptr;
-}
+PlayerMode* AIBrain::FindPlayerMode() { return static_cast<PlayerMode*>(FindMode(AIModeType::Player)); }
 
 CMapObject* AIBrain::LeaderOrFollowed() {
     CMapObject* leader = nullptr;
@@ -212,28 +170,19 @@ CMapObject* AIBrain::LeaderOrFollowed() {
 }
 
 CMapObject* AIBrain::AggressionEnemy() {
-    for (auto node = modes.begin(); node != modes.end();) {
-        AIMode* mode = *node;
-        ++node;
-        if (mode->GetType() == AIModeType::Aggression) {
-            if (mode && current == mode) return static_cast<AggressionMode*>(mode)->enemy;
-            return nullptr;
-        }
-    }
-    return nullptr;
+    AIMode* mode = FindMode(AIModeType::Aggression);
+    return mode && mode == current ? static_cast<AggressionMode*>(mode)->enemy.Get() : nullptr;
 }
 
 // --- Positions -----------------------------------------------------------------------------------
 
 bool AIBrain::IsNearPath(const Vector3* point, float radius) {
     float radiusSq = radius * radius;
-    {
-        // Kept on the FPU stack (double holds the 24-bit results exactly).
-        double dx = position.x - point->x;
-        double dy = position.y - point->y;
-        EI_NAN_AUDIT(dy, dx, radiusSq);
-        if (LengthSquared2DUnrounded(dy, dx) < radiusSq) return true;
-    }
+    // Kept on the FPU stack (double holds the 24-bit results exactly).
+    double dx = position.x - point->x;
+    double dy = position.y - point->y;
+    EI_NAN_AUDIT(dy, dx, radiusSq);
+    if (LengthSquared2DUnrounded(dy, dx) < radiusSq) return true;
     // The unit has not moved -> not near.
     EI_NAN_AUDIT(position.x, previousPosition.x, position.y, previousPosition.y);
     if (position.x == previousPosition.x && position.y == previousPosition.y) return false;
@@ -242,28 +191,26 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
     float segX = previousPosition.x - position.x;
     float segY = previousPosition.y - position.y;
     float t = static_cast<float>(((pointX - position.x) * segX + (pointY - position.y) * segY) /
-                                          LengthSquared2DUnrounded<double>(segY, segX));
+                                 LengthSquared2DUnrounded<double>(segY, segX));
     // Clamp to [0, 1] with selects: a NaN t gives 1.
-    float clamped = 0.0f >= t ? 0.0f : static_cast<float>(t);
-    float clampedStored = clamped;                     // stored, then reloaded
-    float u = 1.0f >= clampedStored ? static_cast<float>(clampedStored) : 1.0f;
+    float u = 0.0f >= t ? 0.0f : t;
+    u = 1.0f >= u ? u : 1.0f;
     double ex = position.x - (pointX - u * segX);
     double ey = position.y - (pointY - u * segY);
     EI_NAN_AUDIT(ey, ex);
     return LengthSquared2DUnrounded(ey, ex) < radiusSq;
 }
 
-std::uint32_t AIBrain::SetOwner(CUnitServer* newOwner) {
-    if (newOwner == owner) return reinterpret_cast<std::uint32_t>(newOwner);
+bool AIBrain::IsAlliedUnit(CEngineObject* object) {
+    CUnit* unit = UnitOrNull(object);
+    return unit && g_serverWorld.diplomacy_.IsAllied(owner->unit->side, unit->side);
+}
+
+void AIBrain::SetOwner(CUnitServer* newOwner) {
+    if (newOwner == owner) return;
     owner = newOwner;
-    constexpr std::uint32_t kUnset = 0xC4A42000u;      // -1313.0
-    position.x = std::bit_cast<float>(kUnset);
-    previousPosition.x = std::bit_cast<float>(kUnset);
-    position.y = 0.0f;
-    previousPosition.y = 0.0f;
-    position.z = 0.0f;
-    previousPosition.z = 0.0f;
-    return kUnset;
+    position = Vector3{kUnsetCoordinate, 0.0f, 0.0f};
+    previousPosition = position;
 }
 
 void AIBrain::OnObjectDeleted(CEngineObject* object) {
@@ -272,46 +219,41 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
         ++node;
         mode->OnObjectDeleted(object);
     }
-    if (target == object && target) target.Reset();
-    if (seen == object && seen) seen.Reset();
+    if (target == object) target.Reset();
+    if (seen == object) seen.Reset();
     memory.Forget(object);
 }
 
 // --- Actions -------------------------------------------------------------------------------------
 
 void AIBrain::UpdateMove() {
-    CUnitServer* o = owner;
-    if (o->HasOrder(UnitOrderKind::Move) || o->HasOrder(UnitOrderKind::Turn)) return;
-    if (o->orderStopped) {
-        CUnit* unit = o->unit;
+    if (owner->HasOrder(UnitOrderKind::Move) || owner->HasOrder(UnitOrderKind::Turn)) return;
+    if (owner->orderStopped) {
+        CUnit* unit = owner->unit;
         double dy = move.point.y - unit->localPosition_.y;     // kept on the FPU stack
         double dx = move.point.x - unit->localPosition_.x;
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
-            target.Reset();
-            action = kActionNone;
+            StopAction();
             return;
         }
     }
     if (actionTime == kNoTime) {
         if (move.looks.empty()) {
-            if (target) {
-                target.Reset();
-            }
-            action = kActionNone;
+            StopAction();
             return;
         }
         actionTime = kLookStarted;
-        AILook* look = move.looks.data();
-        double angle = look->angle;
+        const AILook& look = move.looks.front();
+        double angle = look.angle;
         Vector3 direction;
         direction.z = 0.0f;
         direction.x = static_cast<float>(x87::fcos(angle));
         direction.y = static_cast<float>(x87::fsin(angle));
-        o->OrderTurn(&direction.x, std::bit_cast<std::uint32_t>(look->time));   // the float's bits as the time (sic)
+        owner->OrderTurn(&direction.x, std::bit_cast<std::uint32_t>(look.time));   // the float's bits as the time (sic)
         return;
     }
     if (actionTime == kLookStarted) {
-        if (move.looks.front().stopFirst) o->StopQueued();
+        if (move.looks.front().stopFirst) owner->StopQueued();
         float end = static_cast<float>(g_serverWorld.tick_) + move.looks.front().wait;
         actionTime = x87::fistp(end);
         move.looks.erase(move.looks.begin());
@@ -321,31 +263,20 @@ void AIBrain::UpdateMove() {
 }
 
 void AIBrain::UpdateAttack() {
-    if (!target) {
+    if (!target || target->IsDead()) {
         action = kActionNone;
         return;
     }
-    CUnitServer* o = owner;
-    bool giveUp = false;
-    if (o->unit->player != nullptr) {
-        if (target->IsDead() != 0) {
-            action = kActionNone;
-            return;
-        }
-    } else if (target->IsDead() != 0) {
-        giveUp = true;
-    } else if (target->GetClassId() == ClassId::Unit && memory.IsEnemy(owner->unit, target) == 0) {
-        giveUp = true;
-    }
-    if (giveUp) {
-        if (target->IsDead() == 0) memory.Notice(&target->localPosition_, 1000, -2);
+    // A unit without a player gives up a unit it can no longer keep track of and remembers where it was.
+    CUnit* unit = UnitOrNull(target);
+    if (unit && !owner->unit->player && !memory.CanTrack(owner->unit, unit)) {
+        memory.Notice(&target->localPosition_, kNoticeSeenLevel, kNoticeSeenDecay);
         action = kActionNone;
         return;
     }
-    o = owner;
-    if (o->action.kind == UnitOrderKind::Attack && o->action.target == target) return;
-    if (o->action2.kind == UnitOrderKind::Attack && o->action2.target == target) return;
-    if (o->HasOrder(UnitOrderKind::CastAt) || o->HasOrder(UnitOrderKind::CastOn)) return;
+    if (owner->action.kind == UnitOrderKind::Attack && owner->action.target == target) return;
+    if (owner->action2.kind == UnitOrderKind::Attack && owner->action2.target == target) return;
+    if (owner->HasOrder(UnitOrderKind::CastAt) || owner->HasOrder(UnitOrderKind::CastOn)) return;
     action = kActionNone;
 }
 
@@ -359,14 +290,11 @@ void AIBrain::AttackTarget(CMapObject* object) {
     target.Assign(object);
     AckKind flags = AckKind::DecidedToAttack;
     if (owner->unit->player) {
-        AIOrder order{};
-        order.kind = UnitOrderKind::Attack;
-        order.source = 6;
-        order.pointIsUseSpot = 0;
-        order.target.Assign(object);
+        AIOrder order;
+        order.MakeAttack(object);
         if (owner->CanReachAndPlan(&order)) flags = AckKind::None;
     }
-    owner->OrderAttack(target, 6, 0, flags);
+    owner->OrderAttack(target, kAttackAllParts, 0, flags);
 }
 
 void AIBrain::UseOn(CMapObject* object, UseSource kind, int spot, int run) {
@@ -391,9 +319,18 @@ void AIBrain::UseOn(CMapObject* object, UseSource kind, int spot, int run) {
     }
 }
 
+void AIBrain::StartMove(const AIMoveOrder* order) {
+    target.Reset();
+    action = kActionMove;
+    actionTime = kNoTime;
+    move.point = order->point;
+    move.looks = order->looks;
+    owner->OrderMove(&move.point, 0, 0, kMoveTime);
+}
+
 void AIBrain::Walk(const Vector3* point, int run) {
     action = kActionWalk;
-    owner->OrderMove(point, run, 0, 1000000.0f);
+    owner->OrderMove(point, run, 0, kMoveTime);
 }
 
 void AIBrain::TurnTowards(const Vector3* direction, float time) {
@@ -407,6 +344,13 @@ void AIBrain::CastAt(int spell, const Vector3* point, int run) {
     owner->OrderCastAt(spell, point, run);
 }
 
+void AIBrain::CastOn(int spell, CMapObject* object, int run) {
+    if (!owner->IsScrollSource(spell)) action = kActionCast;
+    target.Assign(object);
+    actionTime = spell;
+    owner->OrderCast(spell, object, run);
+}
+
 void AIBrain::Follow(CMapObject* object) {
     action = kActionFollow;
     target.Assign(object);
@@ -414,14 +358,10 @@ void AIBrain::Follow(CMapObject* object) {
 
 void AIBrain::SetSeen(CMapObject* object) {
     seen.Assign(object);
-    if (object) {
-        bool allied = false;
-        if (CUnit* seenUnit = UnitOrNull(seen)) {
-            allied = g_serverWorld.diplomacy_.IsAllied(owner->unit->side, seenUnit->side);
-        }
-        if (!allied) CallAllies(&object->localPosition_);
-    } else {
+    if (!object) {
         CallAllies(&owner->unit->localPosition_);
+    } else if (!IsAlliedUnit(object)) {
+        CallAllies(&object->localPosition_);
     }
     if (!alerted && alertMode == 1) alerted = 1;
     if (CUnit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);

@@ -412,8 +412,10 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = 0.0f;
         CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
         if (!player) return;
-        int danger = player->Server()->refreshPending_;
-        if (function == ScriptFunction::IsPlayerInDanger ? danger == 2 : danger == 0) *result = 1.0f;
+        CPlayerServer::PartyDanger danger = player->Server()->danger_;
+        if (function == ScriptFunction::IsPlayerInDanger ? danger == CPlayerServer::PartyDanger::InDanger
+                                                         : danger == CPlayerServer::PartyDanger::Safe)
+            *result = 1.0f;
         return;
     }
     case ScriptFunction::GetMercsNumber:
