@@ -569,7 +569,6 @@ def install_fingerprint(root, install, environ=None):
     return h.hexdigest()
 
 
-@functools.cache
 def harness_files(root, vectors=False):
     """{path relative to root: content} of the files game.exe's side of the harness builds from: HARNESS_SOURCES,
     HARNESS_SHARED (with vectors, HARNESS_VECTORS) but HARNESS_IMAGE_ONLY, and the files their quoted includes name
@@ -598,14 +597,23 @@ def harness_files(root, vectors=False):
     return files
 
 
-@functools.cache
-def harness_digest(root, vectors=False):
-    """One hash of harness_files(root, vectors)."""
+_harness_digests = {}    # (root, vectors) -> (time, digest)
+
+
+def harness_digest(root, vectors=False, max_age=30.0):
+    """One hash of harness_files(root, vectors), reused for max_age seconds (as work.scenario_revs). Never for a
+    process's life: the scheduler is one process for hours, and a digest it kept from before a merge of a harness
+    change gave main's runs the old key, so the cache served runs of the old harness (H34)."""
+    cached = _harness_digests.get((root, vectors))
+    if cached and time.time() - cached[0] < max_age:
+        return cached[1]
     h = hashlib.sha1()
     for name, content in sorted(harness_files(root, vectors).items()):
         h.update(f'{name}\0{len(content)}\0'.encode())
         h.update(content)
-    return h.hexdigest()
+    digest = h.hexdigest()
+    _harness_digests[(root, vectors)] = (time.time(), digest)
+    return digest
 
 
 def reference_key(name, install, root, clock, environ):

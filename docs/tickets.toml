@@ -6088,6 +6088,12 @@ group = "harness"
 note = "After H33 ei_hook.dll is 5.1 MB (release): .text 2.9 MB (ours 2.6 MB, ei_render 0.33 MB, ucrt 0.15 MB; the iostream / locale code is gone with /OPT:REF), .rdata 1.5 MB. Left: image_data.cpp's kInitialData 384 KB, mostly zeros (the image's .rdata / .data copy with the committed cells): as .bss plus the cells written at start-up, ~380 KB less on disk; render_fonts' two Liberation TTFs 696 KB (compressed or subset to the glyphs the game's code pages can show: ~400-600 KB); the charconv ryu tables 112 KB (floating std::to_chars / format of doubles: who uses it); /OPT:ICF another 316 KB but two identical functions share one address (audit function-pointer comparisons first; crash / profile names become ambiguous)."
 
 [[ticket]]
+id = "H34"
+title = "No-hooks suite served pre-R34c runs: the scheduler kept a stale harness digest"
+group = "harness"
+note = "Main 2026-10-29 after R34c: --no-hooks --golden gave 2 same / 111 differ (record 0, crt.rand). Cause: the scheduler (one process, alive 18:34-19:14) cached run_all.harness_digest/harness_files per root for its whole life (functools.cache). Batch 5250 (19:04, main before R34c's merge) computed main's digest; batch 5260 (19:12, after it) reused it, so reference_key gave the pre-R34c key (…-87b562c880ce) and the cache served runs of the old harness (no idle-pick wrapper; harness logs dated 17:01). Not C30a, not the goldens. Fix: the digest expires after 30 s, as work.scenario_revs does."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"
