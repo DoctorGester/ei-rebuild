@@ -12,11 +12,15 @@
                                      takes) and every import of import_prototypes.h (no import library) through
                                      Imports(), every other one as the Windows function itself.
   src/standalone/image_imports.inc   every import of game.exe with its ImportTable member, DLL and function (or
-                                     ordinal): the standalone image's own import table, which ei_hook.dll resolves
-                                     into its storage (src/standalone/image_imports.cpp, S18f).
+                                     ordinal) and whether a call reaches its slot (reached()): the standalone
+                                     image's own import table, which ei_hook.dll resolves into its storage
+                                     (src/standalone/image_imports.cpp, S18f); a slot no call reaches is a trap
+                                     and a DLL with none of them does not load (S22).
 
-usage: python tools/gen_iat.py [--check]
+usage: python tools/gen_iat.py [--check | --counts]
   (no option)  write the three files (reads game.exe's import directory)
+  --counts     print per DLL its slots, the reached ones (of them taken by the image's UTF-8 routes, reached from the
+               harness only) and the traps, from the committed files (docs/notes/standalone.md, "Own import table")
   --check      exit 1 when a file differs from what the committed import table (import_table.h: a member per slot, its
                DLL and function in the comment) and the routes give; no game.exe (build.cmd). Catches gameapi.h edited
                by hand, a new harness route on a slot, and image_imports.inc and import_table.h that disagree.
@@ -48,6 +52,8 @@ ORDINALS = {('WSOCK32.dll', 1): 'accept', ('WSOCK32.dll', 2): 'bind', ('WSOCK32.
 # Called through the slot although nothing routes them: what the Windows SDK declares deprecated (a direct call
 # warns, C4996).
 KEEP = {'GetVersionExA'}
+# The files that define the slots and name their members rather than call through them.
+DEFINITIONS = (GAMEAPI, IMPORT_TABLE, IMAGE_IMPORTS, PROTOTYPES)
 # game_data.h's kImportsBegin / kImportsEnd: the import address table, the first 0x820 bytes of .rdata.
 IAT_BEGIN, IAT_END = 0x0073B000, 0x0073B820
 
@@ -123,8 +129,30 @@ def committed_table():
     slots = {}
     for index, line in enumerate(l for l in body.split('\n') if l.strip()):
         slots[re.fullmatch(r'    .+ (\w+);   // .*', line).group(1)] = IAT_BEGIN + 4 * index
-    entry = re.compile(r'\{offsetof\(ei::ImportTable, (\w+)\), "([^"]+)", (?:"([^"]+)"|nullptr), (\d+)\},')
+    entry = re.compile(r'\{offsetof\(ei::ImportTable, (\w+)\), "([^"]+)", (?:"([^"]+)"|nullptr), (\d+)(?:, \w+)?\},')
     return [(slots[name], dll, fn or None, int(ordinal)) for name, dll, fn, ordinal in entry.findall(read(IMAGE_IMPORTS))]
+
+
+def counts(table):
+    """Prints per DLL (the import directory's order) its slots, the reached ones, of them the UTF-8 routes and the
+    harness-only ones, and the traps, as a Markdown table."""
+    reach, routes = reached(table), text_routes()
+    rows = {}
+    for _, dll, fn, ordinal in table:
+        row = rows.setdefault(dll, [0, 0, 0, 0, 0])
+        name = member(dll, fn, ordinal)
+        row[0] += 1
+        if name in reach:
+            row[1] += 1
+            row[2] += fn in routes
+            row[3] += reach[name] == {'tests'}
+        else:
+            row[4] += 1
+    print('| DLL | slots | reached | UTF-8 route | harness only | traps |\n|---|---|---|---|---|---|')
+    total = [sum(r[i] for r in rows.values()) for i in range(5)]
+    for dll, row in list(rows.items()) + [('all', total)]:
+        print(f'| {dll} | ' + ' | '.join(str(n) for n in row) + ' |')
+    return 0
 
 
 def layout(table):
@@ -157,20 +185,50 @@ def sources(folder, extensions):
 
 def routed(table):
     """The imports whose slot can hold something other than the export in the image (docs/notes/standalone.md,
-    "Own import table"): the harness's slot routes (any `ImportTable::X` tests/ names), the image's routes
-    (ImageRoute's table in hook/standalone_main.cpp, the UTF-8 routes of game/system_text.cpp), a slot our code takes
-    (`&gameapi::X`), and KEEP."""
+    "Own import table"): the harness's slot routes (any `ImportTable::X` tests/ names), the image's routes (the
+    UTF-8 routes of game/system_text.cpp), a slot our code takes (`&gameapi::X`), and KEEP."""
     names = {member(dll, fn, ordinal): fn for _, dll, fn, ordinal in table}
     out = set(KEEP)
     for path in sources('tests', ('.cpp', '.h', '.inc')):
         for name in re.findall(r'\bImportTable::(\w+)', read(path)):
             if names.get(name):
                 out.add(names[name])
-    out.update(re.findall(r'TEXT_ROUTE\((\w+)\)', read(os.path.join(ROOT, 'src', 'game', 'system_text.cpp'))))
-    out.update(re.findall(r'\{"\w+\.dll", "(\w+)", reinterpret_cast',
-                          read(os.path.join(ROOT, 'src', 'hook', 'standalone_main.cpp'))))
+    out.update(text_routes())
     for path in sources('src', ('.cpp', '.h')):
         out.update(re.findall(r'&gameapi::(\w+)', read(path)))
+    return out
+
+
+def text_routes():
+    """The imports the image's UTF-8 routes take (game/system_text.cpp's TEXT_ROUTE list)."""
+    return set(re.findall(r'TEXT_ROUTE\((\w+)\),', read(os.path.join(ROOT, 'src', 'game', 'system_text.cpp'))))
+
+
+def code(text):
+    """C++ source without its comments."""
+    return re.sub(r'//[^\n]*', '', re.sub(r'/\*.*?\*/', ' ', text, flags=re.S))
+
+
+def reached(table):
+    """{member: the folders ('src', 'tests') whose code reaches its slot}: the slots a call can go through in the
+    image (docs/notes/standalone.md, "Own import table"). Our code and the harness reach a slot only by its member:
+    `ImportTable::X` (the harness's routes, the static initialisers' Import), `Imports().X`, or a gameapi.h function
+    that is the slot (`inline auto& X = ei::Imports().X`) called as `gameapi::X`. Every other import is called as the
+    Windows function itself or not at all, so the image leaves its slot a trap."""
+    members = {member(dll, fn, ordinal) for _, dll, fn, ordinal in table}
+    slot_calls = set(re.findall(r'^inline auto& (\w+) = ei::Imports\(\)', read(GAMEAPI), re.M))
+    skip = {os.path.normcase(p) for p in DEFINITIONS}
+    out = {}
+    for folder in ('src', 'tests'):
+        for path in sources(folder, ('.cpp', '.h', '.inc')):
+            if os.path.normcase(path) in skip:
+                continue
+            text = code(read(path))
+            names = re.findall(r'\bImportTable::(\w+)', text) + re.findall(r'\bImports\(\)\.(\w+)', text)
+            names += [n for n in re.findall(r'\bgameapi::(\w+)', text) if n in slot_calls]
+            for name in names:
+                if name in members:
+                    out.setdefault(name, set()).add(folder)
     return out
 
 
@@ -186,7 +244,8 @@ def import_table_text(table):
             '// game.exe\'s import address table as a struct: one member per slot, in address order (each DLL\'s\n'
             '// slots, then its zero terminator). Imports() is the table through the data seam (game/game_data.h):\n'
             '// in game.exe its own table, in the image ei_hook.dll\'s (src/standalone/image_imports.cpp, S18f).\n'
-            '// A slot holds the export, a route of the image (ImageRoute) or the harness\'s wrapper of either.\n'
+            '// A slot holds the export, a route of the image (its UTF-8 version) or the harness\'s wrapper of\n'
+            '// either; in the image a slot no call reaches is a trap (image_imports.inc).\n'
             '// A member\'s type is its function\'s: the Windows SDK\'s, or lib/import_prototypes.h\'s for an import\n'
             '// the SDK does not declare.\n\n'
             '#include <windows.h>\n#include <mmsystem.h>\n#include <shellapi.h>\n#include <objbase.h>\n\n'
@@ -215,33 +274,40 @@ def gameapi_text(table, routes):
     text = ('#pragma once\n\n// Generated by tools/gen_iat.py. Do not edit.\n'
             '// The imports our code calls where game.exe called them through its import table. An import\n'
             '// whose slot can hold something other than the export in the image (the harness\'s slot routes, the\n'
-            '// image\'s UTF-8 and command-line routes, a slot our code takes; gen_iat.py\'s routed()) is called\n'
-            '// through the slot (lib/import_table.h), and so is every import the Windows SDK does not declare\n'
+            '// image\'s UTF-8 routes, a slot our code takes; gen_iat.py\'s routed()) is called through\n'
+            '// the slot (lib/import_table.h), and so is every import the Windows SDK does not declare\n'
             '// (lib/import_prototypes.h: no import library) but the Interlocked pair (our code uses the\n'
             '// compiler\'s intrinsics); every other one is the Windows function itself.\n\n'
             '#include "lib/import_table.h"\n\n' + libs + '\nnamespace gameapi {\n\n')
     return text + '\n'.join(lines) + '\n\n} // namespace gameapi\n', len(lines)
 
 
-def image_imports_text(table):
+def image_imports_text(table, reach):
     lines = ['// Generated by tools/gen_iat.py from game.exe\'s import directory. Do not edit.',
              '// Every import of game.exe (its import address table): {its member of lib/import_table.h\'s ImportTable,',
-             '// DLL, function (nullptr: by ordinal), ordinal}, in the directory\'s order. The image resolves them into',
-             '// ei_hook.dll\'s storage (src/standalone/image_imports.cpp, S18f).']
+             '// DLL, function (nullptr: by ordinal), ordinal, reached}, in the directory\'s order. The image resolves',
+             '// the reached ones (a call of our code or the harness goes through the slot: gen_iat.py\'s reached())',
+             '// into ei_hook.dll\'s storage and leaves the rest traps (src/standalone/image_imports.cpp, S18f, S22).']
     for slot, dll, fn, ordinal in table:
         name = f'"{fn}"' if fn else 'nullptr'
-        lines.append(f'{{offsetof(ei::ImportTable, {member(dll, fn, ordinal)}), "{dll}", {name}, {ordinal}}},')
+        slot_member = member(dll, fn, ordinal)
+        flag = 'true' if slot_member in reach else 'false'
+        lines.append(f'{{offsetof(ei::ImportTable, {slot_member}), "{dll}", {name}, {ordinal}, {flag}}},')
     return '\n'.join(lines) + '\n'
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--check', action='store_true')
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument('--check', action='store_true')
+    mode.add_argument('--counts', action='store_true')
     args = ap.parse_args()
+    if args.counts:
+        return counts(committed_table())
     table = committed_table() if args.check else imports(exe_path.resolve())
     gameapi, functions = gameapi_text(table, routed(table))
     outputs = [(IMPORT_TABLE, import_table_text(table)), (GAMEAPI, gameapi),
-               (IMAGE_IMPORTS, image_imports_text(table))]
+               (IMAGE_IMPORTS, image_imports_text(table, reached(table)))]
     if args.check:
         stale = []
         for path, text in outputs:

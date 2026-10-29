@@ -2,7 +2,7 @@
 // usage: ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
 //   Run from the game folder (the working directory the game expects). Without --run the host builds
 //   the image, takes the registrations, checks them and exits: no window, nothing of the game runs. What
-//   follows "--" is the game's command line, as typed (WinMain's, and GetCommandLineA's after the exe).
+//   follows "--" is the game's command line, as typed (WinMain's).
 
 #include <windows.h>
 

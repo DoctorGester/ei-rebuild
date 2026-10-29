@@ -143,8 +143,7 @@ std::string Narrow(std::wstring_view wide) {
     return utf8;
 }
 
-const void* SystemRoute(const char* dll, const char* function) {
-    (void)dll;   // the names are unique among the game's imports
+const void* SystemRoute(const char* function) {
     for (const Route& r : kRoutes)
         if (std::strcmp(r.function, function) == 0) return r.utf8;
     return nullptr;

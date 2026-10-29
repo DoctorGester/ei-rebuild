@@ -33,8 +33,9 @@ std::wstring Wide(std::string_view text);
 // UTF-16 as UTF-8.
 std::string Narrow(std::wstring_view wide);
 
-// The UTF-8 version the image's slot of `dll`!`function` takes, else nullptr.
-const void* SystemRoute(const char* dll, const char* function);
+// The UTF-8 version the image's slot of `function` takes, else nullptr (the names are unique among the game's
+// imports).
+const void* SystemRoute(const char* function);
 
 // The UTF-8 versions of the ANSI calls: the same arguments and results, with the text in UTF-8 (the sizes of
 // text buffers in bytes, as the ANSI calls count them).

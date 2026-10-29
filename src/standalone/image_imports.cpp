@@ -2,6 +2,7 @@
 // docs/notes/standalone.md, "The image's source files".
 #include "ei/hook.h"
 #include "game/game_data.h"
+#include "game/system_text.h"
 #include "hook/log.h"
 #include "lib/import_table.h"
 
@@ -17,8 +18,6 @@ namespace ei {
 
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
 void ReportImageFailure(const char* what);
-// The wrapper the image takes in place of `dll`!`function`'s export, or nullptr.
-const void* ImageRoute(const char* dll, const char* function);
 
 namespace {
 
@@ -27,6 +26,7 @@ struct Import {
     const char* dll;
     const char* function;   // nullptr: by ordinal
     unsigned ordinal;
+    bool reached;   // a call of our code or the harness goes through the slot (gen_iat.py's reached()): resolved
 };
 constexpr Import kImports[] = {
 #include "image_imports.inc"
@@ -57,10 +57,13 @@ LONG CALLBACK OnTrap(EXCEPTION_POINTERS* e) {
     if (r->ExceptionCode != EXCEPTION_BREAKPOINT || !g_traps || at - traps >= kSlots) return EXCEPTION_CONTINUE_SEARCH;
     const std::uintptr_t slot = kImportsBegin + 4 * (at - traps);
     char import[160], caller[160], what[480];
-    Describe(ImportAt(slot), import, sizeof(import));
+    const Import* i = ImportAt(slot);
+    Describe(i, import, sizeof(import));
     DescribeCode(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp), caller, sizeof(caller));
-    std::snprintf(what, sizeof(what), "a call of game.exe's import %s (slot %08X), which did not resolve, by %s",
-                  import, static_cast<unsigned>(slot), caller);
+    std::snprintf(what, sizeof(what), "a call of game.exe's import %s (slot %08X), which %s, by %s", import,
+                  static_cast<unsigned>(slot),
+                  i && !i->reached ? "no code was found to call (rerun python tools/gen_iat.py)" : "did not resolve",
+                  caller);
     std::fprintf(stderr, "ei_hook: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
@@ -100,7 +103,7 @@ void ResolveImageImports() {
         VirtualProtect(g_traps, kSlots, PAGE_EXECUTE_READ, &was);
         AddVectoredExceptionHandler(1, OnTrap);
     }
-    int resolved = 0, routed = 0;
+    int resolved = 0, routed = 0, traps = 0, loaded = 0;
     g_missing = 0;
     HMODULE module = nullptr;
     const char* moduleName = nullptr;
@@ -109,9 +112,14 @@ void ResolveImageImports() {
         const std::size_t index = i.offset / 4;
         auto& ours = reinterpret_cast<const void**>(&Imports())[index];
         ours = g_traps ? g_traps + index : nullptr;
+        if (!i.reached) {   // a DLL none of whose slots is reached does not load
+            ++traps;
+            continue;
+        }
         if (!moduleName || _stricmp(moduleName, i.dll) != 0) {
             moduleName = i.dll;
             module = LoadImport(i.dll);
+            loaded += module != nullptr;
             if (!module) {
                 std::snprintf(what, sizeof(what), "cannot load game.exe's import %s (error %lu)", i.dll, GetLastError());
                 Fail(what);
@@ -129,15 +137,15 @@ void ResolveImageImports() {
             ++g_missing;
             continue;
         }
-        const void* route = i.function ? ImageRoute(i.dll, i.function) : nullptr;
+        const void* route = i.function ? text::SystemRoute(i.function) : nullptr;
         ours = route ? route : real;
         ++resolved;
         routed += route != nullptr;
     }
-    Log("standalone: game.exe's %d import slots in ei_hook.dll's table at %08X: %d resolved (%d routed), %d missing; "
-        "game.exe's own table guarded",
+    Log("standalone: game.exe's %d import slots in ei_hook.dll's table at %08X: %d resolved (%d routed), %d missing, "
+        "%d traps (no call reaches them); %d DLLs loaded; game.exe's own table guarded",
         static_cast<int>(sizeof(kImports) / sizeof(kImports[0])), static_cast<unsigned>(GameAddress(kImportsBegin)),
-        resolved, routed, g_missing);
+        resolved, routed, g_missing, traps, loaded);
 }
 
 int ImageImportsMissing() { return g_missing; }
