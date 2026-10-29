@@ -896,6 +896,18 @@ title = "Cursor on the GPU: shapes uploaded once, no per-frame CPU composite"
 group = "renderer"
 note = "User asked 2026-10-29 whether any CPU composition is left in the UI. render::Cursor (render_blit.cpp) builds the cursor's RGBA from the picture and its mask on the CPU every frame (CursorPicturePart, up to 256x256), then CursorBlit looks it up in the image cache or uploads it. Upload each cursor picture with its mask as one texture when it loads and draw the from-rect as a sub-rectangle (the mask test in the shader if the mask is not the picture's alpha); the cursor thread (render_cursor.cpp) draws the same texture. Check: render_cursor_present, the ui_* frames, renderstats cursor image requests 0 after the first frame."
 
+[[ticket]]
+id = "R33"
+title = "Render quality in ei_settings.ini: MSAA samples, anisotropy, smooth camera as separate settings"
+group = "renderer"
+note = "User 2026-10-29: the 'smooth' EI_RENDER word (render.cpp ParseSpec: g_smooth turns on both the device's MSAA count and anisotropic sampling of world models at kAnisotropy) should be settings from a file, each separately and with levels. Add a [Render] section to ei_settings.ini (settings_file.h; written with defaults when missing): Msaa = 1/2/4/8 (clamped to what the device supports), Anisotropy = 1..16 (1 off), SmoothCamera = 0/1. EI_RENDER keeps only the harness words (removable, checkall); smooth / smoothcamera go. Harness runs pin their own settings file, so goldens and frame captures keep today's defaults (MSAA 1, anisotropy off) unless a scenario sets them. Check: render_smooth scenarios at a few levels, renderstats sample counts, goldens unchanged, play.cmd reads the file."
+
+[[ticket]]
+id = "R34"
+title = "Terrain: the CPU lighting leftovers (water specular word, sun ray march) gone"
+group = "renderer"
+note = "SectorData::Light (terrain_lighting.cpp) still runs on the CPU though the GPU lights the terrain (R26): the water layer's specular word (LightSpecular, kept because the harness digest reads it) and the sun's ray march SunReaches (run only where it could change the sector cache: it loads the sectors the ray crosses). Neither is drawn. Find whether anything but the digest and the cache order reads them; if not, stop computing both (the digest drops the field: a harness change, run the --no-hooks suite) and keep only the edge fade if the GPU needs it, or move that into the shader. User rule: no code kept only for an edge case. Check: goldens (the digest change re-recorded only for that field, reported), render_terrain frames, terrain_water_waves."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
