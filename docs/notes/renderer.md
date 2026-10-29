@@ -105,8 +105,8 @@ Conventions taken over: Direct3D clip space (the game's projection already produ
 (3D draws shift their clip positions by half a pixel, `Frame::pixelShift`, because sokol truncates its float viewport
 to whole pixels; a clip -0.5..0.5 square covers pixels 16..47 of 64, a screen-pixel mesh from 8 to 24 covers 8..23),
 D3DCOLOR vertex colours (B, G, R, A bytes), vertex fog in the specular alpha (255 = no fog), specular added after
-texturing. Textures use the .mmp file's own mip levels (not a box filter of level 0): a DXT file's are all its texture
-has, as the original's (section 7, R28c); an RGB file's missing ones are box-filtered from its last.
+texturing. Textures use the .mmp file's own mip levels and no others (no box filter of level 0): the texture has the levels
+its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
 
 ## 3. What the renderer feeds back into game logic
 
@@ -323,6 +323,12 @@ CPU decoder (render_scene, units, models, render_device_lost, render_terrain_sea
 most 79, all on interface sprites drawn smaller than their DXT texture that has one level (the portrait's health and
 mana bars, the minimap's frame: sharper now, the CPU path had box-filtered levels the original lacked); the main
 menu 0.031%; the world the same; the camp frame the same pixel for pixel.
+
+RGB .mmp textures (8888, 4444, 5551, 5650) hold the file's levels only too (R28d; the CPU box filter that added the
+missing ones, `MakeImage`'s halving and `HalveLevel`, is gone; `HalveLevel` stays only in `CheckMmpLevels`'s own
+comparison, verify builds). Frames before / after (render_scene, units, models, render_device_lost's menu, camp and
+world; 4K): identical pixel for pixel, the `.mmp textures at exit` line the same (60 made, 28457 KB uploaded, 19588 KB
+held): every RGB file those scenes draw has its whole chain.
 
 Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from the battle screen 00635250, options
 006503C0, save / load, global map 0062D350, tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (item screens'

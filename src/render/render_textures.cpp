@@ -1,5 +1,5 @@
 // Game textures in the new renderer, keyed by their surface holder: .mmp textures from the file's levels (DXT1-5
-// uploaded as their blocks; RGB of any mask layout decoded, missing levels box-filtered) and textures drawn on the GPU
+// uploaded as their blocks; RGB of any mask layout decoded; the file's levels only) and textures drawn on the GPU
 // (render_compose.cpp), kept as sokol images until the holder goes, with what they were made from for a new
 // device. Also the holders' pixels in memory the renderer owns (render::SurfaceMemory): a window surface is
 // read from it, again into the same image where the memory was marked written and changed.
@@ -171,38 +171,10 @@ bool Convert(const SurfaceMemory& m, const Rect& part, std::vector<std::uint8_t>
 
 Rect Whole(const SurfaceMemory& m) { return Rect{0, 0, m.width, m.height}; }
 
-// The next level of an RGBA8 level as a 2x2 box filter (sizes halved, at least 1; `*width`, `*height` updated).
-std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
-    int w = *width, h = *height;
-    int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
-    std::vector<std::uint8_t> dst(static_cast<std::size_t>(nw) * nh * 4);
-    for (int y = 0; y < nh; ++y) {
-        for (int x = 0; x < nw; ++x) {
-            int x0 = x * 2, y0 = y * 2, x1 = x0 + 1 < w ? x0 + 1 : x0, y1 = y0 + 1 < h ? y0 + 1 : y0;
-            for (int c = 0; c < 4; ++c) {
-                int sum = src[(static_cast<std::size_t>(y0) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y0) * w + x1) * 4 + c] +
-                          src[(static_cast<std::size_t>(y1) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y1) * w + x1) * 4 + c];
-                dst[(static_cast<std::size_t>(y) * nw + x) * 4 + c] = static_cast<std::uint8_t>((sum + 2) / 4);
-            }
-        }
-    }
-    *width = nw;
-    *height = nh;
-    return dst;
-}
-
-// An image of `format` from `levels` (level 0 first). RGBA8: levels not given are box-filtered from the last, down
-// to 1x1. Block-compressed (an .mmp file's DXT blocks): the levels given only, as the original's texture had them.
+// An image of `format` from `levels` (level 0 first): the levels given only, as the .mmp file has them and the
+// original's texture had them (RGBA8 or the file's DXT blocks).
 sg_image MakeImage(sg_pixel_format format, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
                    const char* label, FrameStats::Upload kind, std::size_t* madeBytes = nullptr) {
-    if (format == SG_PIXELFORMAT_RGBA8) {
-        int w = width, h = height;
-        for (std::size_t i = 1; i < levels.size(); ++i) {
-            w = w > 1 ? w / 2 : 1;
-            h = h > 1 ? h / 2 : 1;
-        }
-        while ((w > 1 || h > 1) && levels.size() < SG_MAX_MIPMAPS) levels.push_back(HalveLevel(levels.back(), &w, &h));
-    }
     sg_image_desc desc{};
     desc.width = width;
     desc.height = height;
@@ -1218,6 +1190,28 @@ void PictureFromMmp(const void* holder, const void* data) {
 }
 
 #if defined(EI_RENDER_VALIDATION)
+namespace {
+// The next level of an RGBA8 level as a 2x2 box filter (sizes halved, at least 1; `*width`, `*height` updated).
+std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
+    int w = *width, h = *height;
+    int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
+    std::vector<std::uint8_t> dst(static_cast<std::size_t>(nw) * nh * 4);
+    for (int y = 0; y < nh; ++y) {
+        for (int x = 0; x < nw; ++x) {
+            int x0 = x * 2, y0 = y * 2, x1 = x0 + 1 < w ? x0 + 1 : x0, y1 = y0 + 1 < h ? y0 + 1 : y0;
+            for (int c = 0; c < 4; ++c) {
+                int sum = src[(static_cast<std::size_t>(y0) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y0) * w + x1) * 4 + c] +
+                          src[(static_cast<std::size_t>(y1) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y1) * w + x1) * 4 + c];
+                dst[(static_cast<std::size_t>(y) * nw + x) * 4 + c] = static_cast<std::uint8_t>((sum + 2) / 4);
+            }
+        }
+    }
+    *width = nw;
+    *height = nh;
+    return dst;
+}
+} // namespace
+
 MmpLevelCheck CheckMmpLevels() {
     using namespace detail;
     MmpLevelCheck c;
