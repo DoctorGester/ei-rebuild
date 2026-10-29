@@ -217,7 +217,7 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
         animation->SetModel(model);
     }
     if (names->empty() && animation) {
-        animation->CollectBoneNames(names);
+        *names = animation->BoneNames();
         std::string key(model);
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
         figure.Assign(made);

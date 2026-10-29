@@ -466,7 +466,7 @@ public:
     bool Tokenize(const std::string& text, std::list<ScriptToken>* tokens);
     bool ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
-    std::string* QualifyName(std::string* out, const std::string& name);
+    std::string QualifyName(const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(std::string_view name);
     // Rebirth patches it. `signature`: the parameter types (lower-case letters). `assignment`: one parameter,
@@ -815,8 +815,6 @@ void ScriptQuestFinish(CScript* script);
 // -2.
 void ScriptReset(CScript* script);
 
-// A string as the stream holds it, through a temporary.
-void ScriptStringLoad(std::string* out, CStream* stream);
 
 // ---- Purge and zone reset ----
 // After every removal of a world object: deleted objects dropped from every variable set, then the

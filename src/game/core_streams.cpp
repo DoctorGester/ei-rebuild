@@ -30,13 +30,12 @@ CStream::CStream() {
 
 void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
 
-std::string* CStream::ReadString(std::string* out) {
+std::string CStream::ReadString() {
     std::string text;
     unsigned char byte;
     while (Read(&byte, 1) && byte) text = text + static_cast<char>(byte);
     text::FromAssetText(&text);
-    *out = text;
-    return out;
+    return text;
 }
 
 void CStream::WriteString(std::string_view text) {

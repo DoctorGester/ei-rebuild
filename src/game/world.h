@@ -178,7 +178,7 @@ public:
     bool IsNight();
     // The time of day in hours and the time speed (1 / (seconds per tick * 15)), both stored as floats.
     void GetTime(float* hours, float* speed);
-    void SetWind(const Vector3* direction, float strength);
+    void SetWind(const Vector3& direction, float strength);
     CUnit* FindUnit(int id);
     // How dark the time of day is: 1 before 8 o'clock (and for a NaN), 0 until 20, then rising to 1 by midnight.
     double NightLevel();
@@ -288,7 +288,7 @@ public:
     void CollectSharedObjects(int playerId, ScriptGroup* group);
     void MarkPlayersDirty(std::uint32_t mask);
     // SetWind with the strength clamped to 0..1 (NaN: 0), then the players marked dirty (8).
-    void ChangeWind(const Vector3* direction, float strength);
+    void ChangeWind(const Vector3& direction, float strength);
     // Setters of cave_, climate_ (any weather stops first) and weather_ / weatherStrength_ (the players
     // marked dirty).
     void SetCave(int value);
@@ -339,7 +339,7 @@ public:
     void SetZoneExits(const std::vector<ZoneExit>* source);
     // Script AddUnitToServer: creates a unit of prototype `prototype` named `name`, with id `id` (the name's text
     // key), at `position`.
-    void AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3* position);
+    void AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3& position);
     // Reads the objects of a .mob file (chunked). Returns 1, or what FatalError returns when the file
     // cannot be opened or read.
     int LoadMapObjects(std::string_view file, int keepIds);
@@ -378,8 +378,6 @@ public:
     // While a game runs, every new connection the lobby hands over becomes a player of this game's kind, fully dirty,
     // starting at startPosition_ ("Accepted player <id>" goes to the network log).
     void AcceptNewPlayers(CPlayerSource* lobby);
-
-    std::string* ZoneNameInto(std::string* out);
 
     // Loads map `map` (when it changed), the AI layer state from `graph` and the zone's .mob objects (the
     // same .mob starts the zone over, another one empties the world first; from a save the loaded objects are
@@ -477,7 +475,7 @@ public:
     // entry in `placements` or in a line from `position` along `rotation`, moved to a free cell, under `player`'s
     // control, with its items, spells and AI; heroes get their figure parts, followers their leaders, and with a
     // player the units join the "Heroes" script group.
-    void CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3* position, Quaternion rotation,
+    void CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3& position, Quaternion rotation,
                      std::vector<UnitPlacement>* placements);
     // A quick item (potion) is used by `unit`: the effect object "st.tr.130" (model "unhuma", type 9, flags 0x3010)
     // is created at the unit's position and flagged new (flags_ |= 0x180000). `item` is not used.
@@ -800,12 +798,12 @@ public:
     // `direction` from `point`; the terrain under it adds its triangles unless `skipOnPlatform` is set and the point
     // lies on a platform; with `objects`, the platform faces' objects the decal can touch add the triangles of each
     // part of their figure (once per face).
-    void ProjectDecal(const Vector3* direction, const Vector3* point, float depth, VertexPacket* const* corners,
+    void ProjectDecal(const Vector3& direction, const Vector3& point, float depth, VertexPacket* const* corners,
                       std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
                       std::vector<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
-    // The ambient sounds' time of day into `out`: "day" from 6 to 18 o'clock, "morning" before 6 and
-    // "evening" after 18 within 2..22, else "night". Returns out.
-    std::string* AmbienceTimeOfDay(std::string* out);
+    // The ambient sounds' time of day: "day" from 6 to 18 o'clock, "morning" before 6 and
+    // "evening" after 18 within 2..22, else "night".
+    std::string AmbienceTimeOfDay();
     // Nearest living unit of the local player's group that `unit`'s side can see (the candidate's
     // relation masks); null when none or `unit` is null.
     CUnit* NearestVisibleUnit(CUnit* unit);
@@ -925,7 +923,7 @@ public:
     // Marks the footprints within their scale times `range` of the point (x, y).
     void MarkFootprintsInSight(const float* point, float range);
     // The wind: stored, given to the terrain's waves and to the rain and snow layer.
-    void ApplyWind(const Vector3* direction, float strength);
+    void ApplyWind(const Vector3& direction, float strength);
     // A number over the unit with id `id`; nothing for another object or without them.
     void ShowNumber(int id, int value, std::uint32_t kind);
     // Used in the client's game state 3: every unit has its controller load the face texture.
@@ -937,7 +935,7 @@ public:
     int SendFlag10(int value);
     // The camera looks at the point (x, y) at its own focus height, with its view applied and kept above
     // the objects. Returns 1.
-    int CentreOn(const Vector3* point);
+    int CentreOn(const Vector3& point);
 
     // Creates the party's heroes from their records: the figure from the part names (the hair "hr.%.2d" by the
     // prototype's number), items, player; each unit is filed with AddObject. Armour of type 0 is put on only with
@@ -1082,14 +1080,14 @@ struct GameFlow {
     // field is active. Nothing without an active client session.
     void UpdateMultiplayerVariable();
     // The multiplayer start zone for the client session's game type: "bz2mpg".."bz4mpg" for
-    // 1..3, else "bz1mpg"; into `out`, returned.
-    std::string* MultiplayerZoneInto(std::string* out);
+    // 1..3, else "bz1mpg".
+    std::string MultiplayerZone();
     // Starts a multiplayer game: the party manager is reset, a single party record gets the unit id
     // 0x3B9AF5CE, the party outside a game is sent to the start zone with "z.MPGame1" = 1 and
     // redeployed; the flow loads that zone (state 4) and the client's game state request becomes kind 1.
     void BeginMultiplayerGame();
     // The local player has seen `briefing`: for a name ending in "_N" the zone's quests are loaded first
-    // (with the name without "_N"), then BriefingVariableInto's variable is set to 1.
+    // (with the name without "_N"), then BriefingVariable's variable is set to 1.
     void MarkBriefing(const char* briefing);
     // With an active client session: the local player's party is copied into the party outside a game,
     // redeployed by the party manager, its map transfer sent, then the flow's update.
@@ -1252,8 +1250,8 @@ void ClearSaveFolder(const std::string& path);
 
 // For the zone table entries with `id`, grouped by their second name in order of first appearance: one
 // random entry per group (never the one whose first name is `exclude` when there is a choice; one
-// IsaacRandom draw per group) has its first name appended to `out` (an STLport vector of strings).
-void PickZones(std::vector<std::string>* out, int id, const char* exclude);
+// IsaacRandom draw per group) has its first name returned.
+std::vector<std::string> PickZones(int id, const char* exclude);
 
 // Reads mission.sav from a file stream (magic 0x102) and restores the world (LoadSave); old versions
 // also carry the globals (< 0x52) and the input state (< 0x47). 0 when the file does not read.
@@ -1269,13 +1267,13 @@ inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
 inline constexpr int kSaveOldestVersion = /*00790268*/ 66;
 
 // The mercenary who speaks `briefing` (the second word of the first "#show" line of
-// section "briefing <name>" that is not "Hero"), or "", into `out`. The briefing's
+// section "briefing <name>" that is not "Hero"), or "". The briefing's
 // variable, "b.<speaker>.<briefing>" or, without a speaker, "b.elder.<briefing>".
-std::string* BriefingSpeakerInto(std::string* out, const std::string& briefing);
-std::string* BriefingVariableInto(std::string* out, const std::string& briefing);
+std::string BriefingSpeakerName(const std::string& briefing);
+std::string BriefingVariable(const std::string& briefing);
 // The multiplayer peer's map (the client's session field or the server's), replaced by the first line of its "quest
 // <name>" section when there is one; "" without a peer.
-std::string* SessionMapNameInto(std::string* out);
+std::string SessionMapName();
 // Chooses the loading movie for zone `zone` (may be null) by its allod in the map database:
 // progres2.bik for gipat, progres3.bik for ingos, progres4.bik for suslanger, else progres.bik
 // (Rebirth's FixProgressNames: progres2.bik for gipat2, progres5.bik for jigran); the zones gz1g and

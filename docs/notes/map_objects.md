@@ -101,7 +101,7 @@ here is gone. Facts a worker needs:
   referenced, given the bone's position / rotation, old one released) / DetachMesh / DetachMeshes, PlaceIfChanged / UpdatePose
   0050D3E0 / 0050D450 (tracks evaluated at the frame, then the root places the skeleton at owner AnimationFactor(scale.z) *
   defaultScale: x, y from the factor stored to float, z unrounded), Stop, Rescale 0050D7C0 (morph to every bone and the state, key
-  frames reloaded, `changed` cleared, root placed), CollectBoneNames, ClearBoneTracks / LoadBoneTracks 0050D950 / 0050DA10 (005ACCF0).
+  frames reloaded, `changed` cleared, root placed), BoneNames, ClearBoneTracks / LoadBoneTracks 0050D950 / 0050DA10 (005ACCF0).
   `FigureBone::Place` 0050C230 (class 0x300C skeleton bone, figure_bones.cpp): child = parent position + offset turned by the
   parent's rotation, rotation pose * parent (Hamilton; 00507E80 multiplies the other way); root = pose (times the animation's time
   factor) - origin; the mesh gets both and the pose's vertices (005A0B10); FigureBone Construct 0050AF40, CreateBone 0050B370 (slot 2:

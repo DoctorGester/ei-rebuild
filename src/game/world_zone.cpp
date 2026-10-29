@@ -62,7 +62,7 @@ void CWorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
 
 // ---- Units ------------------------------------------------------------------------------------
 
-void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3* position) {
+void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3& position) {
     CParty party;   // one member
     party.AddMember(game::kEmptyText, prototype, name);
     std::vector<PartyUnitRecord*> records;
@@ -81,8 +81,7 @@ int CWorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     mapspec::MobFile* root = &rootChunk;
     auto* fileObject = &root->file_;
 
-    std::string path;
-    MapPath(&path, file);
+    std::string path = MapPath(file);
     int result;
     if (!root->Open(path, lib::File::modeRead | lib::File::shareDenyWrite)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);

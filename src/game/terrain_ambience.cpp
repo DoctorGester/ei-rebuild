@@ -113,14 +113,14 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
 }
 } // namespace
 
-std::string* CWorldClient::AmbienceTimeOfDay(std::string* out) {
+std::string CWorldClient::AmbienceTimeOfDay() {
     float hour = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, 24.0));
     const char* name;
     if (hour < 6.0f || hour > 18.0f)
         name = hour < 22.0f && hour > 2.0f ? (hour < 6.0f ? "morning" : "evening") : "night";
     else
         name = "day";   // also NaN
-    *out = name; return out;
+    return name;
 }
 
 void Terrain::PlayAmbience() {
@@ -219,13 +219,9 @@ void Terrain::PlayAmbience() {
         } while (cells[pick].soundClass != vote.soundClass);
         if (kind.variants == 0) continue;
         std::uint32_t variant = random.Next();
-        std::string name;
-        {
-            std::string time;   // the empty string, replaced (raw stack storage in the game)
-            g_clientWorld.AmbienceTimeOfDay(&time);
-            name = std::format("ambient\\{}\\{}\\{}\\{}.wav", ambientSet, kind.name, time,
-                               variant % static_cast<std::uint32_t>(kind.variants) + 1);
-        }
+        std::string name = std::format("ambient\\{}\\{}\\{}\\{}.wav", ambientSet, kind.name,
+                                        g_clientWorld.AmbienceTimeOfDay(),
+                                        variant % static_cast<std::uint32_t>(kind.variants) + 1);
         Vector3 position = listener + cells[pick].offset;
         float half = static_cast<float>(kSpotCells);
         float low2 = static_cast<float>(-half);

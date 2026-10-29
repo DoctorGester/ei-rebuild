@@ -187,8 +187,7 @@ int ReadTerrainTypes(CAIMap& map) {
     if (!file) return game::FatalError("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
     CFileRegistry registry;
     if (!registry.Attach(file)) return game::FatalError("CAIMap::Load.\n Can't open aiReg");
-    std::vector<std::string> sections;
-    registry.GetSectionNames(&sections);
+    std::vector<std::string> sections = registry.SectionNames();
 
     map.materials.resize(kTerrainTypes);
     for (int i = 0; i < std::ssize(map.materials); ++i) {

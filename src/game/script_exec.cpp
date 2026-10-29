@@ -468,7 +468,7 @@ bool ScriptRun::Execute(CScript* script) {
         }
         case ScriptFunction::AddUnitToServer: {   // AddUnitToServer(name, prototype, ..., x, y, z)
             Vector3 point = {f[0], f[1], f[2]};
-            g_serverWorld.AddUnitToServer(static_cast<unsigned>(TextKeyFromName(Text(cmd, 0))), Text(cmd, 1), Text(cmd, 2), &point);
+            g_serverWorld.AddUnitToServer(static_cast<unsigned>(TextKeyFromName(Text(cmd, 0))), Text(cmd, 1), Text(cmd, 2), point);
             break;
         }
         case ScriptFunction::RemoveUnitFromServer:     // RemoveUnitFromServer(object)
@@ -482,7 +482,7 @@ bool ScriptRun::Execute(CScript* script) {
             break;
         case ScriptFunction::SetWind: {   // SetWind(x, y, z, strength)
             Vector3 direction = {f[0], f[1], f[2]};
-            g_serverWorld.ChangeWind(&direction, f[3]);
+            g_serverWorld.ChangeWind(direction, f[3]);
             break;
         }
         case ScriptFunction::SetBackGroundColor: {   // SetBackGroundColor(r, g, b): 0..255 scaled by 1/255

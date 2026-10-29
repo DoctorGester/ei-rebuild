@@ -298,8 +298,8 @@ void DeltaField::WriteStringBoth(std::string_view text) {
 
 std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::g_received->Read(data, size); }
 
-std::string* DeltaField::ReadString(std::string* text) {
-    return delta::g_received->ReadString(text);
+std::string DeltaField::ReadString() {
+    return delta::g_received->ReadString();
 }
 
 void DeltaField::WriteStreamBoth(CMemoryStream* from) {
@@ -308,10 +308,9 @@ void DeltaField::WriteStreamBoth(CMemoryStream* from) {
 }
 
 void DeltaField::ReadText(char* text, int size) {
-    std::string storage;
-    std::string* string = ReadString(&storage);
-    if (static_cast<int>(string->size()) < size - 1) {
-        const char* from = (*string).c_str();
+    std::string string = ReadString();
+    if (static_cast<int>(string.size()) < size - 1) {
+        const char* from = string.c_str();
         std::memcpy(text, from, std::strlen(from) + 1);
     } else {
         text[0] = '\0';

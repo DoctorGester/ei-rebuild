@@ -5348,7 +5348,7 @@ title = "Return values instead of out-parameters (G12)"
 group = "cleanup"
 model = "sonnet"
 depends = ["C51"]
-note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G12: std::string* out / vector out-params returned by value; const Vector3* never-null inputs to const Vector3&. One function at a time, the compiler lists callers."
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G12: std::string* out / vector out-params returned by value; const Vector3* never-null inputs to const Vector3&. One function at a time, the compiler lists callers. Batch 1 (outside ui_*, render_ui*, item_*, spell_*, unit_*, combat_*, device files; goldens unchanged): std::string out-params returned by value: MapsFolder/MapPath, BriefingSpeakerName/BriefingVariable/SessionMapName, MultiplayerZone, AmbienceTimeOfDay, CStream/Chunk/DeltaField ReadString and Chunk::ReadEncodedString, CScript::QualifyName, MobScriptDecoder::Decode; vector: PickZones, CFileRegistry::SectionNames, CLinkMesh::PartNames, CFigureAnimationState::BoneNames. Deleted: dead Spec::TypeName virtuals, ScriptStringLoad, ConcatText/ConcatString/Sum, CPlayerClient::ReadText, ZoneNameInto. Vector3 inputs to const Vector3&: DecalBuilder (Begin/Touches/AddTriangle/AddTerrainTriangle), ProjectDecal, EdgeFade, lightning Init/SetEndpoints/Start/DrawGlow, SetWind/ChangeWind/ApplyWind, SetWaves, CentreOn, LookFrom, CreateUnits/AddUnitToServer, UseOrderDistanceSquared, LightRotation/LightShearMatrix. Left (C52a): ReadInto (CStream, 15 callers incl. unit_*/ui_saveload), ListFiles/ListWaveFiles/ListKeys (Rebirth mod ListFiles appends to a reused vector: behaviour decision), ReadLinkString (keeps the old value on length 0), the item/spell/unit/combat/ui_* string and vector out-params, CollectPartsByPrefix (unit_client_models), ai_map.h/camera.h/spell.h/combat.h/world_effect.h const Vector3* inputs (most callers in unit_*/spell_*/combat_*), LightAreaOf/MoveLight (null delta), PlaneHeight (null v01), GetKeyNames/GetList/Tokenize (bool/int results), the render files."
 
 [[ticket]]
 id = "C53"
@@ -5821,3 +5821,11 @@ id = "C62"
 title = "Terrain area to the target style (style review, area-local)"
 group = "cleanup"
 note = "build/style_review/terrain.md (about 60 findings) and REPORT.md Part 2 'Terrain': dead Terrain state (textFC, extraPages, maxLightId, pageSize, tileSize, worldMatrix + CombineRotation, pageMaterials 'Wood' setup, minDetail always 0, one-value visibleColumnFirst/Last vectors), hidden inputs (lightingSector/X/Y for SunReaches with INT_MIN as true; Light / ShadeSun / LightVertex / LightSpecular / Ensure / Animate taking Terrain* and sun that are always the sector's own), raw codes (landscape flags, build stages, sector file sizes from 33x33x8 and 256x2, page arithmetic), duplication (LightVertex / LightSpecular, sun-ray flip, CountTiles, ResetFields vs constructor, colour packing x3), noise (One/VOne/Zero, CellSize x4, DrawPage's unused parameters and always-1 return, s1-s4/t1-t4 locals, FCOMP/FISTP narration). Check against current code first. Opus. Goldens unchanged."
+
+[[ticket]]
+id = "C52a"
+title = "C52 rest: out-parameters and const Vector3* inputs in ui_*, item_*, spell_*, unit_*, combat_* and what C52 batch 1 left"
+group = "cleanup"
+model = "sonnet"
+depends = ["C52"]
+note = "Rest of G12 after C52 batch 1 (see C52's note for what is done and what was left on purpose). Include src/game/ui_* now that C54 is done. Compiler lists callers, one function at a time, goldens unchanged."

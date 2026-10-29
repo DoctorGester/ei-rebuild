@@ -148,14 +148,15 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
     return value + 3 + (keyLength & 0xFFFF);
 }
 
-void CFileRegistry::GetSectionNames(std::vector<std::string>* out) {
+std::vector<std::string> CFileRegistry::SectionNames() {
     const std::uint8_t* root = data_;
     int count = U16(root + 4);
-    out->resize(static_cast<std::size_t>(count));
+    std::vector<std::string> names(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) {
         const std::uint8_t* record = data_ + U32(root + 8 + 6 * i);
-        (*out)[i].assign(Chars(record + 4), U16(record + 2));
+        names[i].assign(Chars(record + 4), U16(record + 2));
     }
+    return names;
 }
 
 int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue) {

@@ -56,13 +56,6 @@ constexpr int kProgressDone = 7;
 
 void ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
-// Reads a string and assigns it to `target` (the temporary is destroyed at once).
-void ReadStringInto(CStream* stream, std::string& target) {
-    std::string storage;
-    std::string* read = stream->ReadString(&storage);
-    target = *read;
-}
-
 template <typename T>
 T ReadAs(CStream* stream) {
     T value;
@@ -171,10 +164,8 @@ constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\
 bool MapFileMissing(std::string_view name, modfolders::MapsSite site) {
     const std::string file(name);
     if (lib::FileExists(file)) return false;
-    std::string folder;
     modfolders::SelectMaps(name, site);
-    MapsFolder(&folder);
-    return !lib::FileExists(folder + file);
+    return !lib::FileExists(MapsFolder() + file);
 }
 
 } // namespace
@@ -203,7 +194,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
         CMapObject* object = objectManager_->FindMapObject(id);
         if (stream->version_ >= kVersionMapObjectName) {
             std::string name;
-            ReadStringInto(stream, name);
+            name = stream->ReadString();
             object->TakePrototype(name);
         }
         object->WriteFullState();
@@ -266,9 +257,9 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
     loaded_ = 0;
     aiMap_.refreshUnits = false;
 
-    ReadStringInto(stream, mobName);
-    ReadStringInto(stream, mapName);
-    ReadStringInto(stream, zoneName);
+    mobName = stream->ReadString();
+    mapName = stream->ReadString();
+    zoneName = stream->ReadString();
     if (map) mapName = map;
     zoneName_ = zoneName;
     SelectLoadingMovie(zoneName);
@@ -397,9 +388,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             if (stream->version_ >= kVersionMobFiles) {
                 int count = ReadAs<int>(stream);
                 for (int i = 0; i < count; ++i) {
-                    std::string storage;
-                    std::string* name = stream->ReadString(&storage);
-                    mobFiles_.push_back(name->c_str());
+                    mobFiles_.push_back(stream->ReadString());
                 }
             } else {
                 mobFiles_.clear();

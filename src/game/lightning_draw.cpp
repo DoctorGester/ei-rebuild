@@ -45,7 +45,7 @@ float RandomOffset() {
 
 // `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
 // used (the frame comes from the position and the world's counter).
-void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, float size) {
+void CLightning::DrawGlow(CSceneRenderer* device, const Vector3& position, float size) {
     EnsureTextureLoaded(glowTexture_);
     if (!device->SetTexture(0, glowTexture_)) return;
 
@@ -63,20 +63,20 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, float
 
     // Towards the camera, normalised unless zero.
     const Vector3& camera = g_camera.localPosition_;
-    Vector3 towards = camera - *position;
+    Vector3 towards = camera - position;
     float length = LengthZYX(towards);
     EI_NAN_AUDIT(length);
     if (length != 0.0f) towards /= length;
-    float scaled = position->x * 15.0f;
+    float scaled = position.x * 15.0f;
     int shift = x87::fistp(scaled);
     int frame = (World()->tick_ + shift) % 15;
     for (int j = 0; j < 8; ++j) {
         float t = static_cast<float>(j) * 0.125f;   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
         LightningPoint& p = g_glowPoints[j];
-        p.x = position->x + along.x;
-        p.y = position->y + along.y;
-        p.z = position->z + along.z;
+        p.x = position.x + along.x;
+        p.y = position.y + along.y;
+        p.z = position.z + along.z;
         p.w = static_cast<float>(std::sqrt(1.0f - t * t) * size);
         SpriteRecord& s = g_sprites[j];
         s.colour = 0xA0FFFFFFu;
@@ -123,7 +123,7 @@ int CLightning::Draw(CSceneRenderer* device) {
         size = low >= size ? low : size;
         size = size >= high ? high : size;
     }
-    if (power_ >= zero) DrawGlow(device, &end, size);
-    if (power_ == zero) DrawGlow(device, &start, size);
+    if (power_ >= zero) DrawGlow(device, end, size);
+    if (power_ == zero) DrawGlow(device, start, size);
     return 1;
 }

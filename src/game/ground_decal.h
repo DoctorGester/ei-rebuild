@@ -28,17 +28,17 @@ public:
     // corners (a row-major 4x4 matrix whose columns 3, 2 and 0 are the origin, the u and the v corner), the
     // direction (normalised in the copy) and the cut-off plane's point, `depth` * 0.33 back along it.
     void Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
-               std::vector<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
-               const Vector3* point, float depth);
+               std::vector<std::uint16_t>* indices, float* const* corners, const Vector3& direction,
+               const Vector3& point, float depth);
     // Whether a sphere around `center` can touch the decal: its u and v ranges widened by radius * the axis
     // lengths overlap [0, 1].
-    bool Touches(const Vector3* center, float radius) const;
+    bool Touches(const Vector3& center, float radius) const;
     // Makes room for `triangles` more triangles (the point array grows by triangles * 3 / 4 + 1 + the vertex
     // count packets).
     void Reserve(int triangles);
     // Two copies of the same code with their own static triangle: clip (a, b, c) and append what is left.
-    void AddTriangle(const Vector3* a, const Vector3* b, const Vector3* c);
-    void AddTerrainTriangle(const Vector3* a, const Vector3* b, const Vector3* c);
+    void AddTriangle(const Vector3& a, const Vector3& b, const Vector3& c);
+    void AddTerrainTriangle(const Vector3& a, const Vector3& b, const Vector3& c);
     // Sets the arrays' sizes (the last packet padded with copies of vertex 0) and drops the array pointers.
     void Finish();
 
@@ -67,7 +67,7 @@ public:
     int indexCount_;
 
 private:
-    void AddCorners(DecalVertex* tri, const Vector3* a, const Vector3* b, const Vector3* c);
+    void AddCorners(DecalVertex* tri, const Vector3& a, const Vector3& b, const Vector3& c);
     void ClipStage(DecalVertex* tri, int stage);
 };
 

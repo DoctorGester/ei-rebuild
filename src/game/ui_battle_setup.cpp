@@ -69,9 +69,7 @@ void CBattleScreen::CreateScreen() {
         if (SaveVersion() >= kVersionBattleText) {
             int money;   // the party's money (SaveState), not used
             stream->ReadValue(money);
-            std::string raw;
-            std::string* text = stream->ReadString(&raw);
-            savedText = *text;
+            savedText = stream->ReadString();
         }
         if (SaveVersion() >= kVersionPendingExit) {
             std::uint8_t exitPending;   // a byte

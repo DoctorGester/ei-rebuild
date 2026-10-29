@@ -184,11 +184,11 @@ void LightningSegment::Animate(float time, float amplitude) {
     }
 }
 
-void LightningSegment::Init(const Vector3* from, const Vector3* to) {
-    start = *from;
-    step.x = static_cast<float>(static_cast<double>(to->x) - from->x);
-    step.y = static_cast<float>(static_cast<double>(to->y) - from->y);
-    step.z = static_cast<float>(static_cast<double>(to->z) - from->z);
+void LightningSegment::Init(const Vector3& from, const Vector3& to) {
+    start = from;
+    step.x = static_cast<float>(static_cast<double>(to.x) - from.x);
+    step.y = static_cast<float>(static_cast<double>(to.y) - from.y);
+    step.z = static_cast<float>(static_cast<double>(to.z) - from.z);
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step)));
 
     // Point count and the length the displacement axes are scaled to.
@@ -354,7 +354,7 @@ void CLightning::Animate() {
     for (int i = 0; i < 6; ++i) branches_[i].Animate(time, NoiseAmplitude(power_));
 }
 
-void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
+void CLightning::SetEndpoints(const Vector3& from, const Vector3& to) {
     main_.Init(from, to);
     EI_NAN_AUDIT(power_);
     if (power_ != 0.0f) {
@@ -362,25 +362,25 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
         for (int i = 0; i < 6; ++i) {
             double along = branchPos_[i];
             double rest = 1.0 - along;
-            float ax = static_cast<float>(rest * to->x);
-            float ay = static_cast<float>(rest * to->y);
-            float az = static_cast<float>(rest * to->z);
-            float bx = static_cast<float>(along * from->x);
-            float by = static_cast<float>(along * from->y);
-            double bz = along * from->z;
+            float ax = static_cast<float>(rest * to.x);
+            float ay = static_cast<float>(rest * to.y);
+            float az = static_cast<float>(rest * to.z);
+            float bx = static_cast<float>(along * from.x);
+            float by = static_cast<float>(along * from.y);
+            double bz = along * from.z;
             Vector3 origin;
             origin.x = static_cast<float>(static_cast<double>(bx) + ax);
             origin.y = static_cast<float>(static_cast<double>(by) + ay);
             origin.z = static_cast<float>(bz + az);
-            branches_[i].Init(&origin, to);
+            branches_[i].Init(origin, to);
         }
     } else {
         // Power 0: six more bolts parallel to the main one, shifted by a random offset of up to
         // 5% of its length on each axis.
         for (int i = 0; i < 6; ++i) {
-            double dx = static_cast<double>(from->x) - to->x;
-            double dy = static_cast<double>(from->y) - to->y;
-            double dz = static_cast<double>(from->z) - to->z;
+            double dx = static_cast<double>(from.x) - to.x;
+            double dy = static_cast<double>(from.y) - to.y;
+            double dz = static_cast<double>(from.z) - to.z;
             double reachExt = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * kOffsetFactor;
             float reach = static_cast<float>(reachExt);
             float low = static_cast<float>(-reachExt);
@@ -392,14 +392,14 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
             double ozExt = (static_cast<double>(reach) - low) * Unsigned(r1) * kRandomScale + low;
             float oz = static_cast<float>(ozExt);
             Vector3 shiftedTo;
-            shiftedTo.z = static_cast<float>(ozExt + to->z);
-            shiftedTo.y = static_cast<float>(static_cast<double>(oy) + to->y);
-            shiftedTo.x = static_cast<float>(static_cast<double>(ox) + to->x);
+            shiftedTo.z = static_cast<float>(ozExt + to.z);
+            shiftedTo.y = static_cast<float>(static_cast<double>(oy) + to.y);
+            shiftedTo.x = static_cast<float>(static_cast<double>(ox) + to.x);
             Vector3 shiftedFrom;
-            shiftedFrom.z = static_cast<float>(static_cast<double>(oz) + from->z);
-            shiftedFrom.y = static_cast<float>(static_cast<double>(oy) + from->y);
-            shiftedFrom.x = static_cast<float>(static_cast<double>(ox) + from->x);
-            branches_[i].Init(&shiftedFrom, &shiftedTo);
+            shiftedFrom.z = static_cast<float>(static_cast<double>(oz) + from.z);
+            shiftedFrom.y = static_cast<float>(static_cast<double>(oy) + from.y);
+            shiftedFrom.x = static_cast<float>(static_cast<double>(ox) + from.x);
+            branches_[i].Init(shiftedFrom, shiftedTo);
         }
     }
     EI_NAN_AUDIT(power_);

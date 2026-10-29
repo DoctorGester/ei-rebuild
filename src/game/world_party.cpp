@@ -173,7 +173,7 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
     Vector3 up{0.0f, 0.0f, 1.0f};
     rotation.FromAxisAngle(up, angle);
 
-    CreateUnits(player, &records, &start, rotation, placements);
+    CreateUnits(player, &records, start, rotation, placements);
     if (placements) placements->clear();
     CPlayerServer* state = player->Server();
     std::uint32_t lastZ;

@@ -247,11 +247,7 @@ void CSaveLoadWindow::FillEntries() {
             info.Open(infoFind.GetFilePath(), 0, 1);
             if (info.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.ReadValue(entry->gameTime_);
-                {
-                    std::string map;
-                    info.ReadString(&map);
-                    entry->map_ = map;
-                }
+                entry->map_ = info.ReadString();
                 info.ReadInto(&entry->zone_);
                 // The version the header read.
                 if (static_cast<int>(info.version_) > 1) {

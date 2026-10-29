@@ -35,7 +35,7 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 
 } // namespace
 
-void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool demon) {
+void CLightning::Start(const Vector3& from, const Vector3& to, float power, bool demon) {
     int ticks = g_clientWorld.tick_;
     float fraction = g_clientWorld.tickFraction_;
     float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f);
@@ -43,8 +43,8 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     const float strength = AbsBits(power);
     amplitude_ = power_ > 0.0f ? 0.05f : 0.3f;   // 0.05 : 0.3
     // A bolt about 30 units high sways less.
-    EI_NAN_AUDIT(to->z, from->z);
-    if (AbsBits(AbsBits(to->z - from->z) - 30.0f) < 0.01f) amplitude_ = 0.05f;
+    EI_NAN_AUDIT(to.z, from.z);
+    if (AbsBits(AbsBits(to.z - from.z) - 30.0f) < 0.01f) amplitude_ = 0.05f;
 
     main_.Init(from, to);
     FreshKeys(main_, time, KeyAmplitude(power_));
@@ -61,10 +61,10 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
             float amplitude = KeyAmplitude(power_);
             float rest = 1.0f - along;
             Vector3 origin;
-            origin.x = along * from->x + rest * to->x;
-            origin.y = along * from->y + rest * to->y;
-            origin.z = along * from->z + rest * to->z;
-            branches_[i].Init(&origin, to);
+            origin.x = along * from.x + rest * to.x;
+            origin.y = along * from.y + rest * to.y;
+            origin.z = along * from.z + rest * to.z;
+            branches_[i].Init(origin, to);
             FreshKeys(branches_[i], time, amplitude);
             double random = x87::FromUnsigned(g_random.Next());
             branches_[i].width = static_cast<float>((random * 1.8626451774202136e-10 + 0.7f) * strength *
@@ -73,7 +73,7 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     } else {
         main_.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
-            float dx = from->x - to->x, dy = from->y - to->y, dz = from->z - to->z;
+            float dx = from.x - to.x, dy = from.y - to.y, dz = from.z - to.z;
             float reach = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f);
             float low = -reach;
             const double scale = 2.3283064370807974e-10;
@@ -81,9 +81,9 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
             float offsetX = static_cast<float>((reach - low) * x87::FromUnsigned(g_random.Next()) * scale + low);
             float offsetZ = static_cast<float>((reach - low) * x87::FromUnsigned(g_random.Next()) * scale + low);
             float amplitude = KeyAmplitude(power_);
-            Vector3 shiftedTo{offsetX + to->x, offsetY + to->y, offsetZ + to->z};
-            Vector3 shiftedFrom{offsetX + from->x, offsetY + from->y, offsetZ + from->z};
-            branches_[i].Init(&shiftedFrom, &shiftedTo);
+            Vector3 shiftedTo{offsetX + to.x, offsetY + to.y, offsetZ + to.z};
+            Vector3 shiftedFrom{offsetX + from.x, offsetY + from.y, offsetZ + from.z};
+            branches_[i].Init(shiftedFrom, shiftedTo);
             FreshKeys(branches_[i], time, amplitude);
             double random = x87::FromUnsigned(g_random.Next());
             branches_[i].width = static_cast<float>(random * 1.8626451774202136e-10 * 3.5f +

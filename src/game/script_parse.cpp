@@ -439,15 +439,9 @@ bool CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<Scrip
     return true;
 }
 
-std::string* CScript::QualifyName(std::string* out, const std::string& name) {
-    if (fileCount_ == 0) {
-        *out = name;
-        return out;
-    }
-    std::string qualified;
-    qualified = std::format("!{}!{}", fileCount_, name);
-    *out = qualified;
-    return out;
+std::string CScript::QualifyName(const std::string& name) {
+    if (fileCount_ == 0) return name;
+    return std::format("!{}!{}", fileCount_, name);
 }
 
 int CScript::FindScript(std::string_view name) {

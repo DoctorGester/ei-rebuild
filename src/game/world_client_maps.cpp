@@ -352,17 +352,14 @@ void CWorldClient::MarkFootprintsInSight(const float* point, float range) {
     }
 }
 
-void CWorldClient::ApplyWind(const Vector3* direction, float strength) {
+void CWorldClient::ApplyWind(const Vector3& direction, float strength) {
     SetWind(direction, strength);
-    if (terrain_) {
-        Vector3 copy = *direction;
-        terrain_->SetWaves(&copy, strength);
-    }
-    rainSnow_.SetWind(*direction, strength);
+    if (terrain_) terrain_->SetWaves(direction, strength);
+    rainSnow_.SetWind(direction, strength);
 }
 
-int CWorldClient::CentreOn(const Vector3* point) {
-    Vector3 focus = *point;
+int CWorldClient::CentreOn(const Vector3& point) {
+    Vector3 focus = point;
     focus.z = camera_->focus_.z;
     camera_->SetFocus(&focus);
     camera_->ApplyView();
@@ -993,10 +990,8 @@ int CWorldClient::LoadZone(CStream* block) {
     ShowLoadingMovie(kProgressZoneCleared);
     Terrain* terrain = terrain_;
     if (static_cast<int>(map.size()) > 1 && map[1] != ':') {
-        std::string folder;
         modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
-        MapsFolder(&folder);
-        map = folder + map;
+        map = MapsFolder() + map;
     }
     terrain->ClearMap();
     // The texture manager is fetched for both calls; the first does not use it.

@@ -8,7 +8,7 @@
 #include <cstring>
 #include <string>
 
-void MobScriptDecoder::Decode(std::string* out) {
+std::string MobScriptDecoder::Decode() {
     const char zero = 0;
     const char* coded = input.data();
     const auto length = static_cast<unsigned>(input.size()) - 4;
@@ -21,6 +21,8 @@ void MobScriptDecoder::Decode(std::string* out) {
         p = static_cast<char>(p ^ static_cast<char>(x >> 16));
     }
     const int size = static_cast<int>(text.size());
-    std::memmove(str::SetLength(*out, size), text.data(), static_cast<std::size_t>(size));
-    str::CutAtNull(*out);
+    std::string out;
+    std::memmove(str::SetLength(out, size), text.data(), static_cast<std::size_t>(size));
+    str::CutAtNull(out);
+    return out;
 }

@@ -93,8 +93,6 @@ public:
     int ReceiveMessages();
 
     // The message handlers; each returns 1 unless noted.
-    // A text from the received stream into `out`.
-    std::string* ReadText(std::string* out);
     // Message 0x81. A variable (name, value bits) set in the party's table (read first, the value dropped); a
     // quest variable ("q.", longer than 2) goes to the quest log and the client world too.
     int OnSetVariable();

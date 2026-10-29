@@ -35,9 +35,9 @@ void CameraViewMatrix(float* out, const CTransformObject* camera) {
     out[15] = 1.0f;
 }
 
-void LightRotation(const Vector3* direction, Quaternion* out) {
-    double x = direction->x;
-    float y = direction->y;
+void LightRotation(const Vector3& direction, Quaternion* out) {
+    double x = direction.x;
+    float y = direction.y;
     double scale = 1.0f / std::sqrt(LengthSquared2DUnrounded<double>(y, x));
     float scaleF = static_cast<float>(scale);
     double cosine = x * scale;
@@ -50,11 +50,11 @@ void LightRotation(const Vector3* direction, Quaternion* out) {
     out->FromAxisAngle(axis, angle);
 }
 
-void LightShearMatrix(float* out, const Vector3* direction) {
+void LightShearMatrix(float* out, const Vector3& direction) {
     Quaternion q = {1.0f, 0.0f, 0.0f, 0.0f};
     LightRotation(direction, &q);
     const Vector3 u = {q.x, q.y, q.z};
-    const Vector3& d = *direction;
+    const Vector3& d = direction;
     double twoDot = DotZXY(u, d) * 2.0f;
     Vector3 along = {static_cast<float>(twoDot * u.x), static_cast<float>(twoDot * u.y), static_cast<float>(u.z * twoDot)};
     Vector3 cross = Cross(u, d);

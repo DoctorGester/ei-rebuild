@@ -201,7 +201,7 @@ void Chunk::ReadBytes(void* data, int size) {
 // --- Text ----------------------------------------------------------------------------------------
 
 // The characters are read one at a time, each counted; the text ends at the first NUL (ReleaseBuffer(-1)).
-std::string* Chunk::ReadString(std::string* out) {
+std::string Chunk::ReadString() {
     std::string text;
     int length = size_ - kHeader;
     char* p = str::SetLength(text, length);
@@ -214,25 +214,20 @@ std::string* Chunk::ReadString(std::string* out) {
     }
     str::CutAtNull(text);
     text::FromAssetText(&text);   // .mob text (unit names, dialogue) in UTF-8
-    *out = text;
-    return out;
+    return text;
 }
 
 // The content read into the decoder's input (resized to it, zero-filled) in one read, then decoded.
-std::string* Chunk::ReadEncodedString(std::string* out) {
+std::string Chunk::ReadEncodedString() {
     std::uint32_t length = static_cast<std::uint32_t>(size_ - kHeader);
     MobScriptDecoder decoder;
     decoder.input.resize(length, 0);
     FileRead(File(), decoder.input.data(), length);
     if (parent_) parent_->Advance(static_cast<int>(length));
     consumed_ += static_cast<int>(length);
-    {
-        std::string text;
-        decoder.Decode(&text);
-        text::FromAssetText(&text);   // the scripts' literals in UTF-8
-        *out = text;
-    }
-    return out;
+    std::string text = decoder.Decode();
+    text::FromAssetText(&text);   // the scripts' literals in UTF-8
+    return text;
 }
 
 // A chunk holding the characters (no terminator), in the asset code page as ReadString reads them. The buffer is
@@ -258,8 +253,7 @@ void Chunk::ReadStringArray(std::vector<std::string>* array) {
     array->clear();
     for (std::uint32_t i = count; i != 0; --i) {
         child.ReadHeader();
-        std::string text;
-        array->push_back(child.ReadString(&text)->c_str());
+        array->push_back(child.ReadString());
     }
 }
 

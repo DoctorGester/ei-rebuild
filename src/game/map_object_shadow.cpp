@@ -203,13 +203,13 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
 
     // Look from the light; the object turned to face it.
     Matrix4 view;
-    view::LightShearMatrix(view.m, &direction);   // (on the pipeline, not read)
+    view::LightShearMatrix(view.m, direction);   // (on the pipeline, not read)
     pipeline->PushMatrixProduct(view, kShadowStack);
     // The buffer grows without keeping its contents.
     g_points.resize(kPointBufferSize);
     int count = 0;
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
-    view::LightRotation(&direction, &turn);   // (likewise)
+    view::LightRotation(direction, &turn);   // (likewise)
     CObject3D* object = self->object;
     // The original turns the object back with the conjugate (PreMultiply), which is not exact: each re-rendered
     // shadow moved the orientation by an ulp, as often as the frame timing ran it. Ours keeps the orientation
@@ -325,7 +325,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
     VertexPacket* quads = g_quads.data();
-    g_clientWorld.ProjectDecal(&direction, &point, self->object->bounds.radius, &quads,
+    g_clientWorld.ProjectDecal(direction, point, self->object->bounds.radius, &quads,
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (!self->vertices.empty()) {

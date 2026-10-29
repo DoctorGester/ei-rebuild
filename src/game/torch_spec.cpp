@@ -82,10 +82,7 @@ void CTorchObjectSpec::ReadNetState(DeltaField* field) {
     field->ReadDelta(&values_[2], 0x10);
     field->ReadDelta(colours_[0], 0xC);
     field->ReadDelta(colours_[1], 0xC);
-    {
-        std::string read;
-        name_ = *field->ReadString(&read);
-    }
+    name_ = field->ReadString();
     SetLightSlot(lightKind_, colours_[0], values_[0]);
     SetFlameSlot(colours_[1], values_[1], &values_[2]);
     SetNameSlot(name_.c_str());

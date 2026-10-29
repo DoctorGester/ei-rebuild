@@ -40,20 +40,6 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
 ScriptQuestObjective* QuestObjectives() { return g_scriptQuestObjectives.data(); }
 int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives.size()); }
 
-// string + string, constructing the result in `out`.
-std::string* ConcatString(std::string* a0, const std::string* a1, const std::string* a2) { *a0 = *a1 + *a2; return a0; }
-
-// operator+'s result, destroyed with the holder.
-class Sum {
-public:
-    Sum(const std::string& a, const std::string& b) { ConcatString(Get(), &a, &b); }
-    Sum(const Sum&) = delete;
-    Sum& operator=(const Sum&) = delete;
-    std::string* Get() { return &value_; }
-
-private:
-    std::string value_;   // constructed by ConcatString
-};
 
 } // namespace
 
@@ -200,10 +186,7 @@ void ScriptQuestFinish(CScript* script) {
         default:
             break;
         }
-        Sum first(head, condition);
-        Sum second(*first.Get(), then);
-        Sum third(*second.Get(), tail);
-        text += *third.Get();
+        text += head + condition + then + tail;
     }
     {
         std::string last;

@@ -49,8 +49,8 @@ void CWorld::GetTime(float* hours, float* speed) {
     *speed = static_cast<float>(1.0 / perSecond);
 }
 
-void CWorld::SetWind(const Vector3* direction, float strength) {
-    std::memcpy(windDirection_, direction, sizeof(windDirection_));
+void CWorld::SetWind(const Vector3& direction, float strength) {
+    std::memcpy(windDirection_, &direction, sizeof(windDirection_));
     windStrength_ = std::bit_cast<std::uint32_t>(strength);
 }
 
@@ -68,7 +68,7 @@ void CWorldServer::SetTimeSpeed(float speed) {
     UpdateWeather();
 }
 
-void CWorldServer::ChangeWind(const Vector3* direction, float strength) {
+void CWorldServer::ChangeWind(const Vector3& direction, float strength) {
     // Below 0 or NaN gives 0, above 1 gives 1; the value is copied as it is.
     float clamped = strength >= 0.0f ? strength : 0.0f;
     if (1.0f < clamped) clamped = 1.0f;

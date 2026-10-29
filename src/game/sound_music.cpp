@@ -88,8 +88,7 @@ void CMusicSystem::Create() {
     credits = reg.GetString(common, "Credits", std::string(game::kEmptyText));
     mainMenu = reg.GetString(common, "MainMenu", std::string(game::kEmptyText));
     {
-        std::vector<std::string> sections;
-        reg.GetSectionNames(&sections);
+        std::vector<std::string> sections = reg.SectionNames();
         for (const std::string& name : sections) {
             const char* section = name.c_str();
             if (text::CompareIgnoringCase(section, "common") == 0) continue;

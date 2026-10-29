@@ -87,7 +87,7 @@ void ReadWeather(Chunk* parent) {
     CWorldServer* server = &g_serverWorld;
     server->CWorldServer::SetTime(time);
     float limit = options::g_options.defaultWindForce_;
-    server->ChangeWind(&direction, limit >= strength ? strength : limit);
+    server->ChangeWind(direction, limit >= strength ? strength : limit);
 }
 
 // 0xDDDDDDD1: the relation table and the player names.
@@ -101,10 +101,7 @@ void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
 
 // The scripts' text, plain or encoded.
 void ReadScripts(Chunk* chunk, std::string* scripts, bool encoded) {
-    std::string text;
-    if (encoded) chunk->ReadEncodedString(&text);
-    else chunk->ReadString(&text);
-    *scripts = text;
+    *scripts = encoded ? chunk->ReadEncodedString() : chunk->ReadString();
 }
 
 } // namespace

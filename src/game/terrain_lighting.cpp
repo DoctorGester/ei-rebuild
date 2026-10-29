@@ -101,7 +101,7 @@ void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* rec
         hasSpecular = 1;
         ref = next;
     }
-    std::uint32_t edge = terrain->EdgeFade(position);
+    std::uint32_t edge = terrain->EdgeFade(*position);
     if (hasSpecular) {
         std::uint32_t word = (edge & 0xFF) << 8 | libcrt::Ftol(specular.x * 255.0f);
         word = word << 8 | libcrt::Ftol(specular.y * 255.0f);
@@ -143,7 +143,7 @@ void SectorData::Light(Terrain* terrain, bool skipSun, int x0, int y0, int x1, i
             int i = y * kSectorRow + x;
             if (march && !quiet && !(quiet = SunMarchTouchesNothing(terrain, this, x, y)))
                 terrain->SunReaches(&vertices[i]);
-            records[i].specular = static_cast<std::uint32_t>(terrain->EdgeFade(&vertices[i])) << 24;
+            records[i].specular = static_cast<std::uint32_t>(terrain->EdgeFade(vertices[i])) << 24;
         }
     }
     built |= SectorStage::Lit;

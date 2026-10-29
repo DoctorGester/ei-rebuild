@@ -45,11 +45,7 @@ void ServerSession::SetMap(const std::string* name) {
     GameFlow* world = &g_gameFlow;
     world->RegisterQuests(name->data());
     world->SetNetworkZone(name->data());
-    {
-        std::string title;
-        const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
-        Announce(g_interface.MessageText(5, mapTitle), nullptr);
-    }
+    Announce(g_interface.MessageText(5, SessionMapName().c_str()), nullptr);
 
     QuestBriefingRecord* entry;
     {
@@ -91,9 +87,7 @@ void ServerSession::SetMap(const std::string* name) {
 // the flow picks for the server's kind after the current map, loading each zone's quests.
 void ServerSession::QueueMapList() {
     UnloadQuestTexts();
-    std::vector<std::string> zones;    // empty
-    PickZones(&zones, kind_, mapName_.data());
-    for (auto& zone : zones) {
+    for (auto& zone : PickZones(kind_, mapName_.data())) {
         {
             std::string key = zone + game::ZoneSuffix1Text();
             auto* message = NewCounted<ZoneMessage>();

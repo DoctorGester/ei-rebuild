@@ -584,12 +584,12 @@ void CCamera::SetFree(bool on) {
         flags_ &= ~kFree;
 }
 
-void CCamera::LookFrom(const Vector3* from, const Vector3* to) {
+void CCamera::LookFrom(const Vector3& from, const Vector3& to) {
     flags_ |= kFree;
-    localPosition_ = *from;
-    float dx = static_cast<float>(D(to->x) - from->x);
-    float dy = static_cast<float>(D(to->y) - from->y);
-    float dz = static_cast<float>(D(to->z) - from->z);
+    localPosition_ = from;
+    float dx = static_cast<float>(D(to.x) - from.x);
+    float dy = static_cast<float>(D(to.y) - from.y);
+    float dz = static_cast<float>(D(to.z) - from.z);
     LookDirection(dx, dy, dz);
 }
 

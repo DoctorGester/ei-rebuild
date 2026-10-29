@@ -38,9 +38,6 @@ void LockCursorAtCallSite() {
     else g_cursor.TakeLock();
 }
 
-// The movie list's .ini path: the folder and the file name joined into `a0`.
-std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) { *a0 = *a1 + a2; return a0; }
-
 std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame file of the movie being written
 
 } // namespace
@@ -82,10 +79,7 @@ void FrameStep(bool draw, bool cursor) {
 void PlayMovies(const std::string& section, bool loadingStep) {
     std::vector<std::string> list;
     CIniFile ini;
-    {
-        std::string path;
-        ini.SetPath((*ConcatText(&path, &g_dataFolder, "config\\movie.ini")));
-    }
+    ini.SetPath(g_dataFolder + "config\\movie.ini");
     ini.GetList(section.c_str(), "movies", &list, ',');
     for (const std::string& movie : list) {
         {

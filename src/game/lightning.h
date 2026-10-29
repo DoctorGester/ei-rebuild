@@ -48,7 +48,7 @@ struct LightningSegment {
 
     // Straight segment between two points: start, step and point count (48 below 10 units, 72 above 15, 5 per
     // unit in between, a multiple of 4), the displacement axes scaled to the length (at most 15).
-    void Init(const Vector3* from, const Vector3* to);
+    void Init(const Vector3& from, const Vector3& to);
     // Advances the noise keys to `time` (one new key per elapsed unit, at most 100) and
     // writes the two noise curves (one value per point) to outSide / outUp.
     void SampleNoise(float time, float* outSide, float* outUp, float amplitude);
@@ -74,7 +74,7 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    void DrawGlow(CSceneRenderer* device, const Vector3* position, float size);
+    void DrawGlow(CSceneRenderer* device, const Vector3& position, float size);
     // Draws the bolt (render device virtuals, glow sprites); lightning_draw.cpp.
     int Draw(CSceneRenderer* device);
     // Grows the bounding box by the points of one segment.
@@ -85,11 +85,11 @@ public:
     void Animate();
     // New end points: main segment, then the branches (spread along the main segment, or random
     // parallel bolts when power is 0); animates when power is negative.
-    void SetEndpoints(const Vector3* from, const Vector3* to);
+    void SetEndpoints(const Vector3& from, const Vector3& to);
     // A new bolt (lightning_start.cpp): power, sway, the main segment and six branches (or six parallel
     // bolts for power 0) with fresh noise, animated once, its bounds, and the textures ("Lightning" /
     // "SmtgLight", or the "Demon" pair).
-    void Start(const Vector3* from, const Vector3* to, float power, bool demon);
+    void Start(const Vector3& from, const Vector3& to, float power, bool demon);
 
     Ref<CTexture> texture_;
     Ref<CTexture> glowTexture_;

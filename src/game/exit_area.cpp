@@ -47,9 +47,7 @@ namespace {
 } // namespace
 
 void CStream::ReadInto(std::string* out) {
-    std::string text;
-    ReadString(&text);
-    *out = text.c_str();   // up to the first zero byte
+    *out = ReadString();
 }
 
 void ZoneExit::Read(CStream* stream) {

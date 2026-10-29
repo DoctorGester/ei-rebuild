@@ -98,7 +98,7 @@ public:
     // Clamped to 0..1: glow, height and speed scale with it; the direction's x and y are scaled by the step
     // asin(1 - s) + pi * 0.50025.
     void SetWaveStrength(float strength);
-    void SetWaves(const Vector3* direction, float strength);
+    void SetWaves(const Vector3& direction, float strength);
     // `count` pages <map>NNN, then up to two extra pages <map>L00 / L01 while their .mmp exists. 0 when a
     // texture does not load, else 1.
     int SetupPages(int count);
@@ -139,7 +139,7 @@ public:
 
     // Flag 4: 255, less 255 * depth / fade for a point `depth` inside the fade band (MapEdgeFade, plus one
     // cell) of the map's borders, corners by the distance.
-    std::uint8_t EdgeFade(const Vector3* point);
+    std::uint8_t EdgeFade(const Vector3& point);
     // Whether the sun reaches vertex lightingX / lightingY of lightingSector from height `position`->z: the
     // ray is walked over the vertex grid, loading the sectors it crosses; 0 when a vertex is above the ray, 1
     // at the ray's end or the map's edge. A sun at or below the horizon: its direction's z sign bit.

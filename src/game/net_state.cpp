@@ -289,10 +289,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(9)) {
-        {
-            std::string text;
-            unit->scriptName = *field->ReadString(&text);
-        }
+        unit->scriptName = field->ReadString();
         complete &= SnapshotConsumed();
         field->EndField();
     }

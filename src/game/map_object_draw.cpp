@@ -115,7 +115,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     std::uint8_t lit = 0xFF;
     if (!(object->flags_ & MapObjectFlag::NoEdgeFade)) {
         Terrain* terrain = ClientWorld()->terrain_;
-        lit = terrain->EdgeFade(&at);   // AL as it is
+        lit = terrain->EdgeFade(at);   // AL as it is
     }
 
     // The parts of both sets.

@@ -240,8 +240,10 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
     if (root) PlaceRoot(this);
 }
 
-void CFigureAnimationState::CollectBoneNames(std::vector<std::string>* out) {
-    for (auto& node : bones) out->push_back(node->name);
+std::vector<std::string> CFigureAnimationState::BoneNames() {
+    std::vector<std::string> names;
+    for (auto& node : bones) names.push_back(node->name);
+    return names;
 }
 
 int CFigureAnimationState::ClearBoneTracks() {
