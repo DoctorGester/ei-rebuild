@@ -6010,9 +6010,9 @@ note = "Kept on purpose by C52b (behaviour depends on the out-parameter): CMappe
 
 [[ticket]]
 id = "R36"
-title = "Lights carried by units cast no shadows"
+title = "The character's own night light casts no shadow"
 group = "renderer"
-note = "User 2026-10-29: at night the characters are often a light source, and that light casts shadows, including the character's own, which looks wrong; such lights should not cast shadows. Point lights cast shadows since R16i1 (render_point_shadows.cpp, point_shadow.hlsli, renderer.md section 13). Make a light attached to a unit (or any moving object: carried torches, spell glows) cast none; keep the shadows of the fixed lights (fires, lamps) only if they still look right, else drop point shadows entirely and say which. Check with frame captures at night with a torch carrier; goldens hold no frames."
+note = "User correction 2026-10-29: not item-carried lights: the character itself emits a light at night (innate per-unit light); idle it casts no shadow of the character, running the character's own shadow pops in and out. That innate light casts no shadow; other lights unchanged. Original note: at night the characters are often a light source, and that light casts shadows, including the character's own, which looks wrong; such lights should not cast shadows. Point lights cast shadows since R16i1 (render_point_shadows.cpp, point_shadow.hlsli, renderer.md section 13). Make a light attached to a unit (or any moving object: carried torches, spell glows) cast none; keep the shadows of the fixed lights (fires, lamps) only if they still look right, else drop point shadows entirely and say which. Check with frame captures at night with a torch carrier; goldens hold no frames."
 
 [[ticket]]
 id = "P8d"
