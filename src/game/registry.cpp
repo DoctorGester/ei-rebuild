@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 #include "lib/text_case.h"
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -17,8 +18,9 @@ namespace {
 const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registry file.\n";   // "FileRegistry::IsValid().\nThat is not registry file.\n"
 const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "FileRegistry::FindData().\nWrong type of entry.\n"
 
-// _ftol of a float: the game's _ftol (truncates).
-int FloatToInt(float value) { return static_cast<int>(libcrt::Ftol(value)); }
+// _ftol of a float: truncated through a 64-bit integer, keeping the low half (a NaN or a value out of the 64-bit
+// range gives 0, where a cast to int gives 0x80000000).
+int FloatToInt(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
 std::uint16_t U16(const std::uint8_t* p) {
     std::uint16_t v;

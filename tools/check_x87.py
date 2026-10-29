@@ -1,13 +1,13 @@
 """The x87 rules hold in the x87 code only, and the SSE2 code keeps none of them.
 
-1. The x87 code (everything but the ei_render and ei_draw libraries) must not convert unsigned 32-bit values to
+1. The x87 code (everything but the ei_render and ei_sse2 libraries) must not convert unsigned 32-bit values to
    floating point the modern way: MSVC turns `static_cast<double>(uint32)` into FILD dword + FADD 2^32 (for values
    >= 2^31). That FADD rounds at the FPU's precision control, so the result can differ from the original's exact
    FILD of the zero-extended qword (the original exe never references a 2^32 constant). Use x87::FromUnsigned.
    Checked in the compiled game (ei-rebuild.exe and its map). The SSE2 code is left out (C30a): the renderer, the
-   drawing-only game code and the CRT's conversions only SSE2 code calls (ftol3.obj: __ltod3 and its kin), whose
+   game code built for SSE2 and the CRT's conversions only SSE2 code calls (ftol3.obj: __ltod3 and its kin), whose
    2^32 is SSE arithmetic.
-2. The SSE2 sources (src/render and CMakeLists' EI_SSE2_GAME_SOURCES but EI_X87_DRAW_SOURCES) write plain float
+2. The SSE2 sources (src/render, and src/game and src/lib but CMakeLists' EI_X87_GAME_SOURCES) write plain float
    maths: no x87:: helpers (but the control word render.cpp's FpuGuard puts back), no libcrt::Ftol and no D()
    double registers (C30c). Checked in the sources.
 
@@ -17,24 +17,22 @@ import bisect, glob, os, re, struct, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # The map's object column of the SSE2 code: library:object.
-SSE2_OBJECTS = ('ei_render:', 'ei_draw:', 'libcmt:ftol3.obj')
+SSE2_OBJECTS = ('ei_render:', 'ei_sse2:', 'libcmt:ftol3.obj')
 # What the SSE2 sources must not use (comments left out): the x87 helpers but the control word, the CRT's _ftol, D().
 SSE2_BANNED = re.compile(r'\bx87::(?!(?:Set)?ControlWord\b)\w+|\blibcrt::Ftol\b|(?<![\w.>:])D\(')
 
 
 def sse2_sources():
-    """The files built for SSE2, from CMakeLists.txt (the same lists the build uses)."""
+    """The files built for SSE2, from CMakeLists.txt (the same lists the build uses): src/render, and src/game and
+    src/lib but EI_X87_GAME_SOURCES."""
     text = open(os.path.join(ROOT, 'CMakeLists.txt'), encoding='utf-8').read()
+    listed = re.search(r'set\(EI_X87_GAME_SOURCES(.*?)\)', text, re.S).group(1)
+    x87 = {os.path.normpath(os.path.join(ROOT, 'src', name + '.cpp'))
+           for name in re.sub(r'#[^\n]*', '', listed).split()}
     found = set()
-    globs = re.search(r'file\(GLOB EI_SSE2_GAME_SOURCES CONFIGURE_DEPENDS(.*?)\)', text, re.S).group(1).split()
-    for pattern in globs:
+    for pattern in ('src/game/*.cpp', 'src/lib/*.cpp', 'src/render/*.cpp'):
         found.update(os.path.normpath(f) for f in glob.glob(os.path.join(ROOT, pattern)))
-    for name in re.search(r'list\(APPEND EI_SSE2_GAME_SOURCES(.*?)\)', text, re.S).group(1).split():
-        found.add(os.path.normpath(os.path.join(ROOT, name)))
-    for name in re.search(r'set\(EI_X87_DRAW_SOURCES(.*?)\)', text, re.S).group(1).split():
-        found.discard(os.path.normpath(os.path.join(ROOT, 'src', 'game', name + '.cpp')))
-    found.update(os.path.normpath(f) for f in glob.glob(os.path.join(ROOT, 'src', 'render', '*.cpp')))
-    return sorted(found)
+    return sorted(found - x87)
 
 
 def source_problems():

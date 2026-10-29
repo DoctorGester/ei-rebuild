@@ -5,8 +5,8 @@
 
 #include "item.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/rounding.h"
 #include "unit_create.h"
 #include "unit_db.h"
 
@@ -33,7 +33,7 @@ void ReleaseSlots(CUnit* unit, Item** slots, int count) {
 
 ItemArmor* CUnit::EquipArmour(Item* item) {
     if (!item) return nullptr;
-    if (x87::fistp(item->condition) <= 0) return nullptr;    // broken
+    if (lib::RoundEven(item->condition) <= 0) return nullptr;    // broken
     ItemArmor* piece = AsArmor(item);
     ItemArmor* previous = armor[piece->GetType()];
     armor[piece->GetType()] = piece;

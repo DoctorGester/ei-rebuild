@@ -2,7 +2,6 @@
 // copy (Clone's), OnShutdown, Clone, Write, Read and destructor; the same for the lobby's server entry
 // (net_classes.h; no factory).
 // More: docs/notes/comments-c22i.md, "net_messages.cpp".
-#include "ei/x87.h"
 #include "net_messages.h"
 #include "asset_text.h"
 #include "net_connection.h"
@@ -258,7 +257,7 @@ void HostMessage::Read(BufferCursor* cursor) {
 
 VariableMessage::VariableMessage() {}
 VariableMessage::VariableMessage(const VariableMessage& other) : Message(other), name(other.name) {
-    x87::CopyBits(value, other.value);
+    value = other.value;
     serial = other.serial;
 }
 
@@ -331,7 +330,7 @@ void FileChunkMessage::Read(BufferCursor* cursor) {
 AwardMessage::AwardMessage() {}
 AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind(other.kind), text(other.text) {
     connection.Assign(other.connection);
-    x87::CopyBits(value, other.value);
+    value = other.value;
 }
 AwardMessage::~AwardMessage() {}
 
@@ -455,8 +454,8 @@ void PartyMessage::Read(BufferCursor* cursor) {
 // ServerEntryBase and ServerEntry (net_classes.h): made by the server list code.
 
 ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : RefObject(), address(other.address) {
-    x87::CopyBits(timeout, other.timeout);     // the floats copied bit for bit
-    x87::CopyBits(ping, other.ping);
+    timeout = other.timeout;     // the floats copied bit for bit
+    ping = other.ping;
     foreign = other.foreign;
     state = other.state;
 }

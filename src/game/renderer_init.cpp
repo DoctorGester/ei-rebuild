@@ -17,8 +17,6 @@
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 
-#include "ei/x87.h"
-
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -177,12 +175,8 @@ void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     lastFrameStart = gameapi::timeGetTime();
     AddDefaultLight(this);
 
-    // The ambient colour: grey 50 from three FISTPs of 50.0.
-    std::uint32_t r = static_cast<std::uint32_t>(x87::fistp(50.0f));
-    std::uint32_t g = static_cast<std::uint32_t>(x87::fistp(50.0f));
-    std::uint32_t b = static_cast<std::uint32_t>(x87::fistp(50.0f));
-    std::uint32_t ambient = ((((r | 0xFFFFFF00u) << 8) | g) << 8) | b;
-    SetColour(ambient);
+    // The ambient colour: grey 50, opaque.
+    SetColour(0xFF323232u);
 
     CreateHelper(this, settings);
 }

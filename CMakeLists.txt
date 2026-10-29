@@ -33,11 +33,11 @@ option(EI_HARNESS "Build the harness: linked into ei-rebuild.exe, and ei_harness
 set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets', the saves' and the network's text")
 add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
 
-# x87 floating point, as in the original: SSE rounds differently and would change behaviour.
+# x87 floating point where the original's rounding still needs it: SSE rounds differently there.
 # /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by
 # an ulp (SV7d1). Precise's extra rounding stores change nothing on the main thread, which runs
-# at 24-bit precision; it calls the CRT for sqrt/sin/cos/atan2/exp/log, so game code uses x87::.
-# The targets with EI_SSE2 set (the renderer and the drawing-only game code, ei_draw below) build for SSE2.
+# at 24-bit precision; it calls the CRT for sqrt/sin/cos/atan2/exp/log, so the x87 code uses x87::.
+# The targets with EI_SSE2 set (the renderer and the game code but the x87 list, ei_sse2 below) build for SSE2.
 add_compile_options("$<IF:$<BOOL:$<TARGET_PROPERTY:EI_SSE2>>,/arch:SSE2,/arch:IA32>" /fp:precise /W4 /permissive- /utf-8)
 
 # AddressSanitizer (build.cmd asan: the verify build with it, into build\asan; docs/notes/harness.md): every target
@@ -50,53 +50,74 @@ if(EI_ASAN)
     file(COPY "${EI_CL_DIR}/clang_rt.asan_dynamic-i386.dll" DESTINATION "${CMAKE_BINARY_DIR}")
 endif()
 
-file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
-
-# The drawing-only game code on SSE2 (C30a, docs/notes/cleanup-tooling.md "SSE2 build"): what only draws, plays
-# sound or lays out the interface, whose floating point reaches no game state (or only as the original's 24-bit
-# float maths: sound_manager's levels, C30a2). Whole families by name (a new file of one joins them), less the files
-# that stay x87 because game state or the goldens read their maths:
-# - picking reads the drawn view and the objects' screen rectangles: the camera, the view and projection (renderer_init,
-#   world_client_draw / _view), the projected meshes (device_mesh, device_bounds, device_shadow, the figure and link
-#   mesh draws), and the screens that turn a pixel into a world point or an order (ui_hud, ui_hud_map, ui_hud_pick,
-#   ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the camera keys and mouse);
-# - the briefing moves the camera to its speakers and times its phrases (ui_briefing*);
-# - terrain heights, sectors and loading (terrain, terrain_sector with its chop rounding, terrain_landscape).
-# A failure this list causes shows in the goldens: a file whose switch changes one goes back here.
-file(GLOB EI_SSE2_GAME_SOURCES CONFIGURE_DEPENDS
-    src/game/ui_*.cpp src/game/particle_*.cpp src/game/texture*.cpp src/game/renderer_*.cpp src/game/lightning*.cpp
-    src/game/weather_*.cpp src/game/effects*.cpp src/game/device_*.cpp src/game/dib*.cpp src/game/surface*.cpp)
-list(APPEND EI_SSE2_GAME_SOURCES
-    src/game/bink_video.cpp
-    src/game/global_map_clouds.cpp
-    src/game/ground_decal.cpp
-    src/game/ground_print.cpp
-    src/game/line_batch.cpp
-    src/game/map_object_shadow.cpp
-    src/game/present_window.cpp
-    src/game/scene_renderer.cpp
-    src/game/sky_object.cpp
-    src/game/sound_manager.cpp
-    src/game/sound_music.cpp
-    src/game/terrain_ambience.cpp
-    src/game/terrain_animation.cpp
-    src/game/terrain_decal.cpp
-    src/game/terrain_passes.cpp
-    src/game/terrain_shadow.cpp
-    src/game/unit_client_sounds.cpp
-    src/game/unit_sound_counts.cpp
-    src/game/world_client_decals.cpp
-    src/game/world_client_lights.cpp
-    src/game/world_client_shadow_casters.cpp)
-set(EI_X87_DRAW_SOURCES
-    ui_battle_commands ui_battle_hover ui_briefing ui_briefing_create ui_briefing_dialogue ui_briefing_input
-    ui_briefing_keys ui_briefing_people ui_briefing_phrases ui_briefing_start ui_briefing_topics ui_camera_input
-    ui_camera_keys ui_global_map ui_global_map_input ui_global_map_paths ui_global_map_places ui_hud ui_hud_map
-    ui_hud_pick ui_view_screen renderer_init device_bounds device_mesh device_object device_shadow)
-list(TRANSFORM EI_X87_DRAW_SOURCES REPLACE "(.+)" "${CMAKE_SOURCE_DIR}/src/game/\\1.cpp")
-list(TRANSFORM EI_SSE2_GAME_SOURCES REPLACE "^src/" "${CMAKE_SOURCE_DIR}/src/")
-list(REMOVE_ITEM EI_SSE2_GAME_SOURCES ${EI_X87_DRAW_SOURCES})
-list(REMOVE_ITEM EI_GAME_SOURCES ${EI_SSE2_GAME_SOURCES})
+# The game code (src/game, src/lib) builds for SSE2 but the files listed here (C30a, C30e; docs/notes/cleanup-tooling.md
+# "SSE2 build", the plan and why each group is still x87). Their floating point reaches game state or the goldens
+# through maths that rounds at the main thread's 24-bit precision in ways plain float maths does not give yet: double
+# registers (D(), double locals), double constants wider than a float, transcendentals (x87::fsin / fexp, the game
+# CRT's pow / acos), the terrain's chop rounding; picking reads the camera's, the view's and the projected meshes'.
+# Each group below is the ticket that moves it with the goldens unchanged; a file split from one of these joins it here.
+set(EI_X87_GAME_SOURCES
+    # C30e1: network, sessions and settings
+    game/address_order game/app_helpers game/console_commands game/key_bindings game/map_database game/mob_reader
+    game/net_client_awards game/net_client_commands game/net_connection game/net_connection_life
+    game/net_connection_tick game/net_delta game/net_lobby game/net_server_awards game/net_server_handlers
+    game/net_server_tick game/net_server_vars game/net_session game/net_session_tick game/net_state game/object_tables
+    game/options game/party_items game/party_members game/persistent_globals game/player_client game/player_messages
+    game/player_server_handlers game/player_sync game/random
+    # C30e2: scripts
+    game/script_addon game/script_addon_commands game/script_addon_math game/script_addon_units game/script_effects
+    game/script_eval game/script_exec game/script_exec_helpers game/script_exec_run game/script_parse
+    # C30e3: items, spells and world objects
+    game/base_manager game/hoover_loot game/item game/item_manager game/item_stock game/lever_object
+    game/lever_table_load game/light game/magic_trap game/map_spec game/map_spec_effect game/material game/spell
+    game/spell_cast game/spell_effect game/torch_client_spec game/vis_fog_manager
+    # C30e4: the transcendental helpers and the spell effects
+    game/exit_area game/spell_effect_start game/spell_effect_update
+    # C30e5: the server world and world effects
+    game/world_effect game/world_effect_missile game/world_effect_moshka game/world_effect_sequence
+    game/world_effect_tornado game/world_effect_visual game/world_game game/world_glue game/world_party
+    game/world_quests game/world_rules game/world_save game/world_server game/world_spells game/world_sync
+    game/world_tick game/world_time game/world_unit_set_add game/world_units game/world_update game/world_weather
+    # C30e6: units
+    game/unit game/unit_armour_layers game/unit_create_stats game/unit_figure_queries game/unit_hits game/unit_lever
+    game/unit_motion_tick game/unit_params_protection game/unit_params_skill game/unit_points game/unit_record
+    game/unit_size_class game/unit_skill_price game/unit_skins game/unit_stat_small game/unit_stats game/unit_stats_pack
+    game/unit_update game/unit_vision game/unit_vitals
+    # C30e7: combat
+    game/combat game/combat_actions game/combat_motion game/combat_orders game/combat_planning game/combat_sight
+    game/combat_spell_sight game/combat_steps game/combat_taming game/combat_tick game/combat_update
+    # C30e8: AI maps, paths and motion
+    game/ai_block_search game/ai_events game/ai_footprint game/ai_footprint_shapes game/ai_line_step game/ai_map
+    game/ai_map_load game/ai_motion game/ai_movement game/ai_path game/ai_path_smooth game/ai_path_stand game/ai_plan
+    game/ai_refresh game/ai_shape_cache game/ai_unit_shape game/ai_water_patch
+    # C30e9: unit AI
+    game/unit_ai game/unit_ai_modes game/unit_ai_senses game/unit_ai_targets
+    # C30e10: geometry and figures
+    game/core_maths game/core_transform game/core_transform_math game/figure_bones game/figure_drawer game/figure_mesh
+    game/figure_mesh_file game/figure_part_bounds game/figure_part_draw game/figure_part_draw_plain game/link_figure
+    game/link_loader game/link_mesh_draw game/maths game/matrix_math game/model game/model_db game/object3d_figure_setup
+    game/object3d_halves game/object_maths game/projection game/quaternion game/skin_quaternion game/view_matrices
+    # C30e11: map objects
+    game/map_object game/map_object_animation game/map_object_animation_bones game/map_object_animation_state
+    game/map_object_cage game/map_object_client_effects game/map_object_companion game/map_object_draw
+    game/map_object_figures game/map_object_parts
+    # C30e12: client units and world
+    game/unit_client_animation game/unit_client_attack game/unit_client_blink game/unit_client_effects
+    game/unit_client_models game/unit_client_path game/unit_client_update game/unit_client_wounds game/world_client
+    game/world_client_draw game/world_client_maps game/world_client_setup game/world_client_view
+    # C30e13: camera, picking and the briefing
+    game/camera game/camera_motion game/camera_path_load game/device_bounds game/device_mesh game/ui_battle_commands
+    game/ui_battle_hover game/ui_briefing_create game/ui_briefing_dialogue game/ui_briefing_input
+    game/ui_briefing_people game/ui_briefing_phrases game/ui_briefing_start game/ui_camera_input game/ui_camera_keys
+    game/ui_global_map game/ui_global_map_input game/ui_global_map_paths game/ui_global_map_places game/ui_hud
+    game/ui_hud_map game/ui_view_screen
+    # C30e14: terrain
+    game/sector_map game/sector_spiral game/terrain game/terrain_landscape game/terrain_sector
+    # C30e15: the main loop and the game CRT
+    game/app_main lib/crt_x87)
+list(TRANSFORM EI_X87_GAME_SOURCES REPLACE "(.+)" "${CMAKE_SOURCE_DIR}/src/\\1.cpp")
+file(GLOB EI_SSE2_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
+list(REMOVE_ITEM EI_SSE2_GAME_SOURCES ${EI_X87_GAME_SOURCES})
 
 # The new renderer (docs/notes/renderer.md): sokol_gfx on Direct3D 11, switched on with EI_RENDER.
 # The harness build turns on sokol's validation layer (messages go to ei-rebuild.log).
@@ -193,7 +214,7 @@ add_executable(ei-rebuild
     src/standalone/startup.cpp
     src/standalone/static_exit.cpp
     src/standalone/static_init.cpp
-    ${EI_GAME_SOURCES})
+    ${EI_X87_GAME_SOURCES})
 set_target_properties(ei-rebuild PROPERTIES WIN32_EXECUTABLE ON)
 target_include_directories(ei-rebuild PRIVATE include src)
 target_link_libraries(ei-rebuild PRIVATE ei_render)
@@ -255,16 +276,16 @@ if(EI_HARNESS)
     file(GLOB EI_HARNESS_IMAGE_SOURCES CONFIGURE_DEPENDS tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE $<TARGET_OBJECTS:ei_harness_shared> ${EI_HARNESS_IMAGE_SOURCES})
 endif()
-# The drawing-only game code (EI_SSE2_GAME_SOURCES above), built for SSE2: a library, whole (every object, as if listed),
+# The game code built for SSE2 (EI_SSE2_GAME_SOURCES above): a library, whole (every object, as if listed),
 # whose objects the linker takes after all of the exe's own. An inline function that files of both kinds keep out of
 # line is taken from the first object that defines it, so the x87 code always gets its x87 copy.
-add_library(ei_draw STATIC ${EI_SSE2_GAME_SOURCES})
-set_target_properties(ei_draw PROPERTIES EI_SSE2 ON)
-target_include_directories(ei_draw PRIVATE include src)
-target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_draw>")
+add_library(ei_sse2 STATIC ${EI_SSE2_GAME_SOURCES})
+set_target_properties(ei_sse2 PROPERTIES EI_SSE2 ON)
+target_include_directories(ei_sse2 PRIVATE include src)
+target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_sse2>")
 # The NaN audit's log (src/lib/nan_audit.h) in the verify and debug builds.
 target_compile_definitions(ei-rebuild PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
-target_compile_definitions(ei_draw PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
+target_compile_definitions(ei_sse2 PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 # /OPT:REF: code and data nothing references are left out (8.2 MB -> 5.1 MB, mostly the per-file copies of
 # gameapi.h's initialisers and unused library code); the static objects' initialisers stay, as .CRT$XCU references
 # them. No /OPT:ICF: folding identical functions would give two functions one address, and a comparison of function
