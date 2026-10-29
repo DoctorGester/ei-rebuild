@@ -490,7 +490,7 @@ no stand-in for any of them (R27c):
   are gone (256 MB was never little); start-up's "the interface takes the input" byte, which held the top byte of the
   free non-local video memory without sound, is 1 there (`GameMain`).
 - No scene bracket, viewport, clears or texture binds on a device: `CSceneRenderer::BeginScene` / `EndScene` keep the
-  frame statistics and the debug panel's counts, a texture bind only records the stage's holder (`stageSurfaces_`, which
+  frame statistics, a texture bind only records the stage's holder (`stageSurfaces_`, which
   the renderer draws with) and counts the change, the interface's depth clears go to `render::ClearDepth`
   (`ClearUiDepth`, ui.h), and the frame clear is the renderer's (its clear colour is the scene renderer's `fogColour_`).
   The deactivation's RestoreDisplayMode, the activation's RestoreAllSurfaces, the message box's FlipToGDISurface and

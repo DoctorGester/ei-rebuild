@@ -22,8 +22,6 @@ namespace {
 // The draw itself, to the new renderer, and the device's counters.
 void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
     render::TlDraw(device, vertices, render::kFvfUntextured, count, nullptr, 0, render::Primitive::LineStrip);
-    device->vertexCount_ += count;
-    device->primitiveCount_ += static_cast<unsigned>(count) / 3;
     device->drawCount_ += 1;
 }
 

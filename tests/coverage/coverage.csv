@@ -1277,22 +1277,10 @@ address,name,size,status,risk,scenarios,golden,vector,reached_by
 00444090,QueryVector::ResizeDefault,475,golden,0,8,net_pair_join net_pair_kick net_pair_leave net_pair_master +3,,net_second_master
 00444270,Query::QueryCopy,53,unreached,106,0,,,
 004442B0,QueryVector::EraseRange,126,golden,0,8,net_pair_join net_pair_kick net_pair_leave net_pair_master +3,,net_second_master
-00444680,ei::static_init::Exit00444680,10,golden,0,30,app_record boot levers_key magic_traps_victims +24,,net_second_master render_terrain_seams
-00444690,StringTableDestruct,161,golden,0,123,app_record boot camera combat +110,,net_second_master rebirth_flags render_movie +6
-00444740,StringTableConstruct,142,startup,0,0,,,
-004447D0,StringTable,6,golden,0,28,app_record boot console levers_key +21,,harness_disk_full net_second_master render_terrain_seams
-004447E0,StringTableSet,441,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
-004449A0,StringTableRemove,208,golden,0,1,console,,
-00444A70,PanelInit,134,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 00444B10,CGdiObject::DeletingDestruct,30,golden,0,31,app_record boot levers_key magic_traps_victims +24,,harness_disk_full net_second_master render_terrain_seams
 00444B30,CGdiObject::Destruct,60,golden,0,31,app_record boot levers_key magic_traps_victims +24,,harness_disk_full net_second_master render_terrain_seams
 00444B70,CGdiObject::DeletingDestruct,30,golden,0,4,magic_traps_victims ui_camp_make unit_ai_corpse unit_cast_at,,
 00444B90,CGdiObject::Destruct,60,golden,0,4,magic_traps_victims ui_camp_make unit_ai_corpse unit_cast_at,,
-00444BD0,PanelRelease,54,golden,0,123,app_record boot camera combat +110,,net_second_master rebirth_flags render_movie +6
-00444C10,PanelSetRect,191,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
-00444CD0,PanelTick,47,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
-00444D00,PanelRedraw,584,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
-00444F50,PanelShow,185,unreached,370,0,,,
 00445010,StringPairs::EraseAt,17,unreached,34,0,,,
 00445030,stlp::TreeIteratorCopy,13,golden,0,27,app_record boot levers_key net_pair_join +20,,harness_disk_full net_second_master render_terrain_seams
 00445040,StringPairs::DestroyValue,110,golden,0,31,app_record boot levers_key magic_traps_victims +24,,harness_disk_full net_second_master render_terrain_seams
@@ -5906,7 +5894,6 @@ address,name,size,status,risk,scenarios,golden,vector,reached_by
 005DC600,ei::static_init::Exit005DC600,20,golden,0,30,app_record boot levers_key magic_traps_victims +24,,net_second_master render_terrain_seams
 005DC620,Execute,4571,golden,0,124,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +7
 005DD800,RunScriptLine,287,golden,0,106,app_record camera combat combat_more +93,,harness_disk_full rebirth_flags render_movie +6
-005DD920,DebugInfo,690,golden,0,1,console,,
 005DDBE0,ConsolePos,921,golden,0,1,console,,
 005DDF80,History,95,golden,0,1,console,,
 005DDFE0,Filter,1137,golden,0,8,combat combat_more console sound +4,,
@@ -6216,7 +6203,6 @@ address,name,size,status,risk,scenarios,golden,vector,reached_by
 005F7EB0,CInterface3D::ConsoleAddText,20,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 005F7ED0,CInterface3D::SetConsoleRect,20,golden,0,1,console,,
 005F7EF0,CInterface3D::SetConsoleHistory,20,golden,0,1,console,,
-005F7F10,CInterface3D::SetDebugInfoRect,18,golden,0,1,console,,
 005F7F30,CInterface3D::OnItemsPicked,38,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 005F7F60,CInterface3D::OnUnitJoined,28,golden,0,113,app_record camera combat combat_more +100,,net_second_master rebirth_flags render_movie +6
 005F7F80,CInterface3D::OnUnitLeft,28,golden,0,113,app_record camera combat combat_more +100,,net_second_master rebirth_flags render_movie +6

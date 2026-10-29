@@ -619,7 +619,7 @@ kinds given.
         their class (g_gameFlow, g_interface, g_cursor) are declared extern in game_singletons.h. **The harness** reads
         them through tests/verify/harness_objects.h (HarnessOptions / HarnessFlow / HarnessInterface / HarnessCursor: ours
         in the image, `ei::OriginalGameData` at the address in --no-hooks runs); the stats recorder reads the
-        difficulty from game.exe's options the same way. Left: string_map 0079B930, CMapDatabase 0079BF00, the renderer
+        difficulty from game.exe's options the same way. Left: CMapDatabase 0079BF00, the renderer
         007AF060 and the other vtable-storing objects (C19).
       - gen_static_init still decodes a hand-ported initialiser (SHADOW) for unread_objects only: its instructions,
         the cells it stores and its exit function's instructions stay the initialisers' own (without that, two unread
@@ -719,7 +719,7 @@ kinds given.
       kModeLog 007C54E8; the files write to them as `console::Stream&`.
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
       007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
-      (renderer_lifetime.cpp), the map database 0079BF00, the debug panel 0079B930 (string_map.cpp), the class registry
+      (renderer_lifetime.cpp), the map database 0079BF00, the class registry
       0079B270 (chunk_archive.cpp), clip's work words 0079B668, the network buffers 0079B8E0 / 0079B900, the save stream
       007AFDF8 and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
@@ -975,7 +975,7 @@ the `--no-hooks` suite) keeps the registry.
   `&Class::Method` of the class a header declares. A function in an anonymous namespace has no name another file can
   reach, and a function with no port none at all: the generator stops with a problem (move it out of the namespace).
   Batch 2 moved 92 out of their anonymous namespaces (right after the block, same enclosing namespaces), batch 3
-  the last 29 (console_streams 18, script_exec_helpers 2, string_map 1, and the files of the old MFC string and collections): nothing is
+  the last 28 (console_streams 18, script_exec_helpers 2, and the files of the old MFC string and collections): nothing is
   called by address any more, so Targets / ReportMissingTargets, Code's Cdecl / Stdcall / Thiscall / Import and
   AtExit by address went. The statements stay in `d.` address form until render, so unread_objects, stored_values and
   named_data.py read them unchanged (the `d.Begin` labels and the Do& template, Code and Run went with C20q1).
@@ -1386,7 +1386,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   `CreateFontIndirectA` take `text::utf8::DrawTextA` / `GetTextExtentPoint32A` (the text, UTF-8 or else
   ANSI-code-page bytes, to UTF-16; the lengths stay byte counts) and `CreateFontIndirectA` (the LOGFONT and its face
   name to `CreateFontIndirectW`). Every interface text draw (the import slot of DrawTextA, called on the surfaces' plain HDCs: the surfaces'
-  `DrawTextIn` 005FDE20, the console's lines and input, the debug panel's map), the interface's extent
+  `DrawTextIn` 005FDE20, the console's lines and input), the interface's extent
   (`CInterface3D::TextExtent` 005F8340, what the editors' width limits use through `InterfaceTextExtentOriginal`)
   and the console's `PromptWidth` go through them. The harness's font slot wrapper (`HarnessCreateFontIndirect`, no
   anti-aliasing) wraps the UTF-8 version, as its file redirects do.

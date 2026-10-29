@@ -904,8 +904,7 @@ public:
     int CentreOn(const Vector3* point);
 
     // The debug display's switches (the console's debug commands; bits 0-3 of debugFlags_): the frame
-    // rate, the render counters, the managers' lines and the world's. Switching one off also takes its
-    // lines out of the debug info panel.
+    // rate, the render counters, the managers' lines and the world's. Nothing reads the bits.
     void ShowFps();
     void HideFps();
     void ShowRenderInfo();

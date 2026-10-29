@@ -20,14 +20,6 @@
 
 namespace {
 
-// height * pitch of the surface's memory (DirectPixels: window and picture holders alike; the
-// original's GetSurfaceDesc); 0 without memory.
-std::uint32_t SurfaceBytes(Surface* holder) {
-    SurfacePixels pixels;
-    DirectPixels(holder, &pixels, true);
-    return static_cast<std::uint32_t>(pixels.height) * static_cast<std::uint32_t>(pixels.pitch);
-}
-
 // Puts `made` (counted once more, may be null) into the surface's holder and drops the previous one's
 // reference through the body of the reference release (the deleting destructor at zero).
 void ReplaceHolder(CUiSurface* self, Surface* made) {
@@ -46,7 +38,6 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
     // (The interface's renderer is the device object.)
     Surface* made = new Surface(self->interface_->renderer_, self->width_, self->height_);
     ReplaceHolder(self, made);
-    g_uiSurfaceBytes += SurfaceBytes(self->holder_);
     self->kept_ = nullptr;
     self->flags_ |= CUiSurface::kShown;
     self->keptSize_ = 0;
@@ -72,9 +63,7 @@ CUiSurface::~CUiSurface() {
     if (std::uint8_t* kept = kept_) {
         delete[] kept;
         kept_ = nullptr;
-        g_uiSurfaceKeptBytes -= keptSize_;
     }
-    if (Surface* holder = holder_) g_uiSurfaceBytes -= SurfaceBytes(holder);
     Surface* holder = holder_;
     holder_ = nullptr;
     if (holder) holder->Release();

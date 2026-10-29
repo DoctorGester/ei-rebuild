@@ -170,8 +170,6 @@ constexpr std::uint32_t kShowRenderInfo = 2;
 constexpr std::uint32_t kShowManagers = 4;
 constexpr std::uint32_t kShowWorldData = 8;
 
-void RemoveDebugLine(const char* key) { strmap::g_debugPanel->Remove(key); }
-
 } // namespace
 
 const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
@@ -303,38 +301,19 @@ int CWorldClient::DrawLineLists() {
 
 void CWorldClient::ShowFps() { debugFlags_ |= kShowFps; }
 
-void CWorldClient::HideFps() {
-    debugFlags_ &= ~kShowFps;
-    RemoveDebugLine("FPS");
-}
+void CWorldClient::HideFps() { debugFlags_ &= ~kShowFps; }
 
 void CWorldClient::ShowRenderInfo() { debugFlags_ |= kShowRenderInfo; }
 
-void CWorldClient::HideRenderInfo() {
-    debugFlags_ &= ~kShowRenderInfo;
-    RemoveDebugLine("triangles submitted");
-    RemoveDebugLine("vertices submitted");
-}
+void CWorldClient::HideRenderInfo() { debugFlags_ &= ~kShowRenderInfo; }
 
 void CWorldClient::ShowManagers() { debugFlags_ |= kShowManagers; }
 
-// Each manager's line is under its class name.
-void CWorldClient::HideManagers() {
-    debugFlags_ &= ~kShowManagers;
-    RemoveDebugLine(figureManager_->ClassName());
-    RemoveDebugLine(objectManager_->ClassName());
-    RemoveDebugLine(textureManager_->ClassName());
-    RemoveDebugLine(particleManager_->ClassName());
-    RemoveDebugLine(lightFactory_->ClassName());
-}
+void CWorldClient::HideManagers() { debugFlags_ &= ~kShowManagers; }
 
 void CWorldClient::ShowWorldData() { debugFlags_ |= kShowWorldData; }
 
-void CWorldClient::HideWorldData() {
-    debugFlags_ &= ~kShowWorldData;
-    RemoveDebugLine("Last Event");
-    RemoveDebugLine("World Time");
-}
+void CWorldClient::HideWorldData() { debugFlags_ &= ~kShowWorldData; }
 
 int CWorldClient::DrawPass() {
     render::RenderState& state = render::g_renderState;

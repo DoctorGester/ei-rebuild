@@ -337,7 +337,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 - `std::map` / `std::multimap` (sorted, so the walks keep their order) where the original had a tree: the link meshes'
   headers and ranges, the mesh cache (a multimap; ClearCache releases from the back as the tree did), the console
-  commands, help topics and debug panel (`str::MbsLess`: _mbscmp order), the person texts, the camp's arrivals, the item
+  commands and help topics (`str::MbsLess`: _mbscmp order), the person texts, the camp's arrivals, the item
   object caches.
 - A hash map whose walk decides something (which object goes first, what is saved or listed in which order, which
   entry a loop stops at) is `lib::HashMap<K, V[, lib::TextHash]>` (src/lib/hash_map.h): STLport's order, the prime
@@ -486,8 +486,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   the lever table at 0079C1A0: no records, an index of 193 buckets) and `PartyManager::Construct` (004A5870,
   the party manager at 007AA5A0: a party map of 193 buckets, no entries, records or templates, two empty
   strings; +0x20 is not written). The unused functor bytes the originals copy from uninitialised stack bytes
-  are not written. Ours-only wrappers in verify_static_constructors.cpp. 00444740 (the debug
-  info panel at 0079B930) and 00458870 were ported by A-E2 (app.md).
+  are not written. Ours-only wrappers in verify_static_constructors.cpp. 00458870 was ported by A-E2 (app.md).
 
 ## Containers: the net lists and the last node-pool users (C14t)
 

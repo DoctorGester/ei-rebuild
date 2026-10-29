@@ -18,9 +18,6 @@ address,name,file
 00432CE0,ConstructReceiveBuffer,src/game/net_session.cpp
 00432D00,DestroyReceiveBuffer,src/game/net_session.cpp
 00434980,net::FreeReplicated,src/game/net_connection.cpp
-00444660,strmap::ConstructDebugPanel,src/game/string_map.cpp
-00444680,strmap::DestroyDebugPanel,src/game/string_map.cpp
-00444740,strmap::CDebugPanel::CDebugPanel,src/game/string_map.cpp
 00455CE0,app::ConstructCameraFile,src/game/app_main.cpp
 00455D00,app::DestroyCameraFile,src/game/app_main.cpp
 00455D10,app::ConstructCommandLineScript,src/game/app_main.cpp

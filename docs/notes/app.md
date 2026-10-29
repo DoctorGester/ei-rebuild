@@ -16,8 +16,7 @@ every scenario.
   zero into a CString; many callers keep forwarders). `key_bindings.cpp`: key bindings file load 00462C10 (key texts from
   `GetKeyNameTextA`, "command key" lines) and save 00462DF0; entries at 00787070 (code, name). `lever_table.cpp`: the atexit destructor
   00463120 of the lever table 0079C1A0 (vector of 0x2C records, hash map of vectors; it indexes the free lists with (0 - 1) >> 3 for a
-  zero-sized record block with a non-null pointer). `string_map.cpp`: the debug information panel at 0079B930 (004447D0-00444F50: set,
-  remove, tick, redraw, show, release). `options.cpp`: `GameOptions::SaveToRegistry` 0045C560 (EI_Plugin's `NewMaster` NOPs 42 bytes at
+  zero-sized record block with a non-null pointer). `options.cpp`: `GameOptions::SaveToRegistry` 0045C560 (EI_Plugin's `NewMaster` NOPs 42 bytes at
   0045D330 inside it: the Master Server Name is no longer saved).
 
 ## WinMain
@@ -143,7 +142,7 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   memory without); `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice.
 - The operator new handler WinMain installs (00455A30, "Memory depleted", returns 0) is gone with `_set_new_handler`
   (C35e): the host's malloc never called it (the game leaves `_newmode` 0).
-- Static initialisers (they run before WinMain): the debug panel 00444740, the options 00458870
+- Static initialisers (they run before WinMain): the options 00458870
   (`options_construct.cpp`; the layout is named in options.h), `CSysInfo`'s unit 004DDCB0-004DE87C
   (`sys_info.cpp`) and the weather's noise curves 004E3980 (`weather_noise.cpp`: rebuilt from `rand` seeded
   with 1, bit for bit).

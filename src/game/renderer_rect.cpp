@@ -16,9 +16,7 @@ void SetStage0Ops(render::TextureOp op) {
     render::g_renderState.stages[0].combiner.alphaOp = op;
 }
 
-void Count(CTextureDevice* device, int vertices, int primitives) {
-    device->vertexCount_ += vertices;
-    device->primitiveCount_ += primitives;
+void Count(CTextureDevice* device) {
     device->drawCount_ += 1;
 }
 
@@ -49,7 +47,7 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
         ++device->textureChanges_;
     }
     render::ScreenDraw(device, v, 4, indices, 6);
-    Count(device, 4, 2);
+    Count(device);
     if (!outline) return 1;
 
     // The frame: white, on the rectangle's own edges, the texture stage off.
@@ -61,7 +59,7 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     v[4].x = x0, v[4].y = y0;
     SetStage0Ops(render::TextureOp::Disable);
     render::ScreenDraw(device, v, 5, nullptr, 0);
-    Count(device, 5, 1);
+    Count(device);
     SetStage0Ops(render::TextureOp::Modulate);
     return 1;
 }

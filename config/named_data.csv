@@ -147,7 +147,6 @@ address,size,name,file
 0079B920,4,g_currentSession,src/game/net_classes.h
 0079B924,4,g_currentConnection,src/game/net_classes.h
 0079B928,8,kSelectTimeout,src/game/net_socket_driver.cpp
-0079B930,68,g_debugPanel,src/game/string_map.cpp
 0079B9F8,4,g_lastTime,src/game/app_main.cpp
 0079B9FC,1,g_lastTimeGuard,src/game/app_main.cpp
 0079BA00,4,g_autoPlayMessage,src/game/app.cpp
@@ -377,8 +376,6 @@ address,size,name,file
 007C7D50,176,g_interface,src/game/ui_small_members.cpp
 007C7E24,4,g_shotCounter,src/game/ui_interface_keys.cpp
 007C7E58,16,kIdentityRotation,src/game/ui_window.cpp
-007C7E74,4,g_uiSurfaceKeptBytes,src/game/ui.h
-007C7E78,4,g_uiSurfaceBytes,src/game/ui.h
 007C7EE8,4,kCampFullTurn,src/game/ui_camp.cpp
 007C7F10,4,kFullTurn,src/game/ui_hero_screen.cpp
 007C7F14,4,kMenuTilt,src/game/ui_hero_screen_create.cpp

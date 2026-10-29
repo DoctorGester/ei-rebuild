@@ -88,12 +88,6 @@ console @NoSuchCommandX(1)
 expect Script error: Unexpected token 'NoSuchCommandX'
 console lastfps
 expect Current FPS:
-console debuginfo
-expect Invalid debug info position
-console debuginfo nowhere
-expect Invalid debug info position
-console debuginfo righttop
-console debuginfo lt
 console console middle
 expect Invalid console position
 console console bottom

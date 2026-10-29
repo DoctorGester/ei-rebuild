@@ -1,6 +1,6 @@
 #pragma once
 
-// GDI objects owned by the code that makes them (the interface's, the console's and the debug panel's fonts, the
+// GDI objects owned by the code that makes them (the interface's and the console's fonts, the
 // carets' and lines' pens, a frame's brush) and the drawing helper the game took from MFC's CDC. The interface draws
 // on plain HDCs (ui_gdi.h); see docs/notes/ui.md, section 3.
 

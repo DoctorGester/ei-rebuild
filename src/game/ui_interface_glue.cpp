@@ -1,5 +1,5 @@
 // The interface manager's small services to the rest of the game (CInterface3D): interface sounds,
-// the console window and debug panel settings, the frame rate surface and quest variable news for
+// the console window settings, the frame rate surface and quest variable news for
 // the top window. See ui.h and docs/notes/ui.md, section 3.
 #include "app.h"
 #include "console.h"
@@ -51,8 +51,6 @@ void CInterface3D::SetConsoleRect(const RECT* rect) {
 void CInterface3D::SetConsoleHistory(int lines) {
     if (console_) console_->SetHistory(lines);
 }
-
-void CInterface3D::SetDebugInfoRect(const RECT* rect) { strmap::g_debugPanel->SetRect(rect); }
 
 void CInterface3D::ShowFps(int on) {
     if (!static_cast<std::uint8_t>(on)) {
