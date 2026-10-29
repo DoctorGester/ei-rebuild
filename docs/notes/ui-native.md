@@ -410,7 +410,7 @@ nothing to adopt. The camp's and hero screen's quick strip is P3c's (ui_panel_dr
 recorded. The checks below are vanilla standalone runs; Rebirth launches were not run with the canvases.
 
 **Checks** (2026-10-29). `EI_RENDER_EXTRA=uiboth`: the 45 `ui_*` pass, 0 differing (ui_hud: 230 checks of 11 surfaces, the unit
-panel 156 of them). `ui_compare`'s options A/B shows a native tooltip over the options now (0.82% of the frame; limit 1%). Under
+panel 156 of them). `ui_compare`'s options A/B shows a native tooltip over the options now (1.1% of the 1280x720 frame, 0.82% of 3840x2160's; limit 1.5%). Under
 `EI_RENDER_EXTRA=uinative` the gallery's, ui_saveload's and ui_quicksave's frames against the default path's: the same layout
 (no line wrapped or moved: the tooltip's four wrapped lines, the log's justified line), only glyph shapes differ: the unit
 panel's name and numbers in every HUD frame (about 0.02%), the message log's quest line (quest_notice, 0.08% more), the HUD tip

@@ -758,11 +758,12 @@ resolution must have the machine to themselves and serialised the suites.
 - Check (scenario `render_terrain_seams`, verify build): `terrainlevels on|point|off` (`render::TerrainLevels`: the
   ground pages draw a texture of the page's size and levels with one grey per level, marked green / blue, through the
   shipped sampler or the old point-mip one) and `levelsteps <frame> <least> <most>` (`capture::LevelSteps`: the
-  fraction of neighbouring level-map pairs whose level jumps). Two frozen views of zone1, vanilla: 0.004% with the
-  shipped sampler (limit 0.05%), 0.32% / 0.38% through point mips (at least 0.1%, so the check sees seams); Rebirth's
-  wide view, further and steeper: 0.10% / 0.15% (limit 0.4%; a triangle's level still jumps where its slopes do, as
-  under dgVoodoo's 16x) against 1.2% / 1.5% (at least 0.6%). The original's run captures its frames and skips both
-  steps.
+  fraction of neighbouring level-map pairs whose level jumps). Two frozen views of zone1 in the image's 1280x720
+  frame (H31; the steps are lines, so the fraction grows about tenfold from 3840x2160's), vanilla: 0.04% / 0.06% with
+  the shipped sampler (limit 0.3%), 2.9% / 3.5% through point mips (at least 1%, so the check sees seams); Rebirth's
+  wide view, further and steeper: 0.96% / 0.66% (limit 1.6%; a triangle's level still jumps where its slopes do, as
+  under dgVoodoo's 16x) against 3.8% / 3.7% (at least 2.4%): only four times apart at this size (ten at 3840x2160).
+  The original's run captures its frames and skips both steps.
 
 - Check (R12b, same scenario): `mmplevels <most>` (`render::CheckMmpLevels`, verify build): every held .mmp texture's
   levels, decoded as drawn (a DXT texture's read back from the GPU: `ReadImageLevel`, render_compose.cpp), against its level 0, both box-filtered to 4 x 4: the largest mean difference per

@@ -726,9 +726,8 @@ HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) {
 }
 
 // Harness runs stay out of the user's way: the game window never takes focus or comes to the front,
-// it opens at a small size (VideoResolution), and the sound is muted. The game's own code still
-// runs (sound included), so scenarios test the same paths.
-constexpr const char* kHarnessResolution = "1280x720";   // 16:9 like the usual desktop (Rebirth widescreen)
+// and the sound is muted (the image's runs also play in a 1280x720 window: harness_starter.h). The
+// game's own code still runs (sound included), so scenarios test the same paths.
 
 decltype(&::SetForegroundWindow) g_setForegroundWindow;
 decltype(&::BringWindowToTop) g_bringWindowToTop;
@@ -737,7 +736,6 @@ decltype(&::SetActiveWindow) g_setActiveWindow;
 decltype(&::ShowWindow) g_showWindow;
 decltype(&::CreateWindowExA) g_createWindowEx;
 decltype(&::SetCursorPos) g_setCursorPos;
-decltype(&::RegQueryValueExA) g_regQueryValueEx;
 using AilWaveOutOpenFn = int(__stdcall*)(void**, void*, int, void*);
 AilWaveOutOpenFn g_ailWaveOutOpen;
 
@@ -788,28 +786,6 @@ HWND WINAPI CreateWithoutActivating(DWORD exStyle, LPCSTR cls, LPCSTR name, DWOR
     }
     input::Install();   // the harness's mouse the game's only one, before the game's DirectInput mouse (harness_input.h)
     return g_createWindowEx(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
-}
-LSTATUS WINAPI SmallVideoResolution(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size) {
-    if (name && _stricmp(name, "VideoResolution") == 0 && size) {
-        DWORD need = static_cast<DWORD>(std::strlen(kHarnessResolution) + 1);
-        if (type) *type = REG_SZ;
-        if (!data) { *size = need; return ERROR_SUCCESS; }
-        if (*size < need) { *size = need; return ERROR_MORE_DATA; }
-        std::memcpy(data, kHarnessResolution, need);
-        *size = need;
-        return ERROR_SUCCESS;
-    }
-    // FullScreen = 0: the game runs in its own window mode (BltFast to the primary instead of Flip),
-    // so no display mode change. Without this a 1280x720 full screen switched the user's display.
-    if (name && _stricmp(name, "FullScreen") == 0 && size) {
-        if (type) *type = REG_DWORD;
-        if (!data) { *size = 4; return ERROR_SUCCESS; }
-        if (*size < 4) { *size = 4; return ERROR_MORE_DATA; }
-        std::memset(data, 0, 4);
-        *size = 4;
-        return ERROR_SUCCESS;
-    }
-    return g_regQueryValueEx(key, name, reserved, type, data, size);
 }
 int __stdcall MutedWaveOutOpen(void** driver, void* waveOut, int deviceId, void* format) {
     int result = g_ailWaveOutOpen(driver, waveOut, deviceId, format);
@@ -4051,9 +4027,8 @@ struct Harness {
         PatchImport(&ImportTable::CreateWindowExA, &CreateWithoutActivating, g_createWindowEx);
         PatchImport(&ImportTable::SetCursorPos, &NoCursorMove, g_setCursorPos);
         PatchImport(&ImportTable::GetCursorPos, &HarnessCursorPos, g_getCursorPos);
-        // VideoResolution / FullScreen overrides (SmallVideoResolution) are off: a 1280x720 full screen
-        // switched the display mode, and the game's window mode never got past the menu. See open-questions.
-        // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
+        // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's 1280x720
+        // window otherwise: harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
         settings::Install();   // the registry snapshot and the pinned install files, never the user's (harness_settings.h)
         netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)

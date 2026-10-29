@@ -2395,6 +2395,13 @@ group = "harness"
 model = "opus"
 note = "User 2026-10-29: try it. Our runs no longer compare frames with the original's (samecapture and uiboth compare within a run); only the WideScreen scenarios' references (recorded from addon at the desktop's 4K) need the desktop's size. Make the image's runs answer VideoResolution 1280x720 (windowed, no display mode change) unless the scenario says 'resolution', and keep the WideScreen scenarios at desktop. The original's --no-hooks references stay at the desktop. Then run the golden suite: list every golden that moves and why (screen-size-dependent logic: culling, on-screen checks, click positions); fix scenario coordinates that assumed 4K, and report any game logic that depends on the screen size before changing a golden. Retune frame thresholds that were measured at 4K (renderer scenarios, ui_compare). Report capture size and suite wall time before and after."
 
+[[ticket]]
+id = "H31a"
+title = "game.exe runs with 'resolution desktop' share the machine"
+group = "harness"
+depends = ["H31"]
+note = "H31: net_pair_leave/_quest/_zone (and their peers) keep the desktop's size with 'resolution desktop' (ground clicks follow the pixel grid, goldens are the original's at 4K). run_all.sets_display_mode makes any 'resolution' line run game.exe alone (3f1935ab4: ui_widescreen's addon runs took other games' surfaces), so a --no-hooks suite on a cache miss now plays the three pairs alone (193 s vs 120-228 s before). 'desktop' is the snapshot's mode, what every other game.exe run uses: check whether such runs can share the machine (not the --widescreen --record addon runs), and keep test_work_sched's runs_alone tests in step."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]

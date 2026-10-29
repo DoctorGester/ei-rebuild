@@ -14,6 +14,9 @@
 #   flow starts the network zone (StartNetworkZone 0057BDF0: the host message to the clients); the peer then
 #   leaves its own base the same way (state 5: JoinGameClient, a DriverSession link over its connection) and
 #   plays z3q2 as a remote player of this game's world. Then the peer quits while this game stays.
+# The desktop's size (H31): a clickground lands where the clicked pixel's ray meets the ground and the leader walks
+# to that exact point, so the walk follows the frame's pixel grid; the goldens are the original's, at the desktop.
+resolution desktop
 timeout 180
 peer net_pair_zone
 reject Script error

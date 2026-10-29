@@ -39,6 +39,10 @@ char g_addonPath[MAX_PATH]; // its full path (Install)
 // Nothing in the game or in the patches reads the switch.
 constexpr DWORD kCtfMon = 0;
 
+// The image's runs without a resolution of their own (H31): small captures and less GPU work per game, in a window
+// (FullScreen 0 unless the scenario says "fullscreen"). Our renderer changes no display mode either way.
+constexpr const char* kImageResolution = "1280x720";
+
 bool SetResolution(const char* text) {
     if (_stricmp(text, "desktop") == 0) {
         DEVMODEA mode{};
@@ -142,6 +146,10 @@ void Install(const char* savesDir) {
     DWORD n = GetEnvironmentVariableA("EI_RESOLUTION", value, sizeof(value));
     if (!g_resolution[0] && n && n < sizeof(value) && !SetResolution(value))
         Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
+    if (!g_resolution[0] && ei::Standalone()) {
+        std::snprintf(g_resolution, sizeof(g_resolution), "%s", kImageResolution);
+        if (g_fullScreen < 0) g_fullScreen = 0;
+    }
     n = GetEnvironmentVariableA("EI_WIDESCREEN", value, sizeof(value));
     if (g_wideScreen < 0 && n && n < sizeof(value)) g_wideScreen = std::atoi(value) != 0 ? 1 : 0;
     if (g_resolution[0] || g_wideScreen >= 0 || g_fullScreen >= 0 || g_fpsCursor >= 0 || g_music >= 0 || g_addonPath[0]) {
