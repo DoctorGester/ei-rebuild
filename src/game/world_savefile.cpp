@@ -16,7 +16,7 @@ namespace {
 int VersionOf(const CStream* stream) { return static_cast<int>(stream->version_); }
 
 // The growing buffer's Seek when it has to grow.
-inline void BufferSeek(GameBuffer* buffer, int at) { buffer->Grow(static_cast<std::uint32_t>(at)); }
+inline void BufferSeek(GrowingBuffer* buffer, int at) { buffer->Grow(static_cast<std::uint32_t>(at)); }
 
 void UpdateHigh(GameBuffer& b) {
     if (b.cur > b.high) b.high = b.cur;
@@ -26,7 +26,7 @@ std::int32_t Length(GameBuffer& b) {
     return b.PositionOf(b.high);
 }
 // Seek to `at` from the start, growing when past the end.
-void SeekTo(GameBuffer& b, std::int32_t at) {
+void SeekTo(GrowingBuffer& b, std::int32_t at) {
     UpdateHigh(b);
     b.cur = b.begin + at;
     if (b.cur > b.end) BufferSeek(&b, at);

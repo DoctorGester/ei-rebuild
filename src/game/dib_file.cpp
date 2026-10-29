@@ -48,13 +48,11 @@ int CDib::Read(lib::File* input) {
         // Everything between the file header and the bits: the info header, then masks or colours.
         const std::uint32_t headerBytes = fileHeader.bfOffBits - sizeof(fileHeader);
         header = static_cast<BITMAPINFOHEADER*>(::operator new(headerBytes));
-        bitsOwner = kNew;
-        headerOwner = kNew;
         input->Read(header, headerBytes);
         imageSize = DibImageSize(header);
         colours = reinterpret_cast<RGBQUAD*>(header + 1);
-        bits = new std::uint8_t[imageSize];
-        input->Read(bits, imageSize);
+        bits.resize(imageSize);
+        input->Read(bits.data(), imageSize);
     } catch (const lib::FileError&) {
         app::ShowLibraryMessageBox("Read error 1");
         return 0;
@@ -74,7 +72,7 @@ int CDib::Write(lib::File* output) {
     try {
         output->WriteValue(fileHeader);
         output->Write(header, maskBytes + sizeof(BITMAPINFOHEADER));
-        output->Write(bits, imageSize);
+        output->Write(bits.data(), imageSize);
     } catch (const lib::FileError&) {
         app::ShowLibraryMessageBox("write error");
         return 0;

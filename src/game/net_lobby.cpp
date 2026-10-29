@@ -596,7 +596,7 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
         std::uint32_t length;
         if (ar->loading_) {
             ar->Field(2, &length);
-            GameBuffer& r = q.reply;
+            GrowingBuffer& r = q.reply;
             r.cur = r.begin;
             r.high = r.begin + length;
             if (r.high > r.end) r.Grow(length);

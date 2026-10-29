@@ -27,40 +27,14 @@ std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header) { return ImageSize(header); }
 
 
-CDib::CDib() {
-    bitsOwner = kNotOwned;
-    headerOwner = kNotOwned;
-    headerMemory = nullptr;
-    bits = nullptr;
-    header = nullptr;
-    colours = nullptr;
-    colourCount = 0;
-    imageSize = 0;
-    view = nullptr;
-    mapping = nullptr;
-    file = nullptr;
-    bitmap = nullptr;
-    palette = nullptr;
-    Empty();
-}
-
 CDib::CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
     Create(width, height, bitCount, red, green, blue);
 }
 
-CDib::~CDib() { Empty(); }
-
 void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
-    // What Empty looks at (the constructor above leaves the object raw).
-    file = nullptr;
-    bitmap = nullptr;
-    palette = nullptr;
-    bitsOwner = kNotOwned;
-    headerOwner = kNotOwned;
     Empty();
     maskBytes = HasMasks(bitCount) ? kMaskBytes : 0;
     header = static_cast<BITMAPINFOHEADER*>(::operator new(maskBytes + sizeof(BITMAPINFOHEADER)));
-    headerOwner = kNew;
     header->biSize = sizeof(BITMAPINFOHEADER);
     header->biWidth = width;
     header->biHeight = height;
@@ -83,38 +57,16 @@ void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::u
     imageSize = ImageSize(header);
     colours = reinterpret_cast<RGBQUAD*>(header + 1);
     std::memset(colours, 0, static_cast<std::size_t>(colourCount) * sizeof(RGBQUAD));
-    bits = nullptr;
 }
 
 void CDib::Empty() {
-    if (file) {
-        UnmapViewOfFile(view);
-        CloseHandle(mapping);
-        CloseHandle(file);
-        file = nullptr;
-    }
-    if (headerOwner == kNew) {
-        ::operator delete(header);
-    } else if (headerOwner == kGlobal) {
-        GlobalUnlock(headerMemory);
-        GlobalFree(headerMemory);
-    }
-    if (bitsOwner == kNew) delete[] bits;
+    ::operator delete(header);
     if (palette) DeleteObject(palette);
-    palette = nullptr;
-    if (bitmap) DeleteObject(bitmap);
-    bitsOwner = kNotOwned;
-    headerOwner = kNotOwned;
-    headerMemory = nullptr;
-    bits = nullptr;
+    bits = std::vector<std::uint8_t>();
     header = nullptr;
     colours = nullptr;
     colourCount = 0;
     imageSize = 0;
-    view = nullptr;
-    mapping = nullptr;
-    file = nullptr;
-    bitmap = nullptr;
     palette = nullptr;
     maskBytes = 0;
 }
@@ -154,8 +106,7 @@ std::uint8_t* CDib::AllocateBits() {
     if (header) {
         const std::uint32_t bytes = static_cast<std::uint32_t>(header->biBitCount >> 3) * header->biPlanes *
                                     header->biHeight * header->biWidth;
-        bits = new std::uint8_t[bytes];
-        bitsOwner = kNew;
+        bits.resize(bytes);
     }
-    return bits;
+    return bits.data();
 }

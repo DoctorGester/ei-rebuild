@@ -298,8 +298,10 @@ pushes, the renderer's SetTexture, DrawSectorPage), so they are ported; the sect
 Terrain members: `materials` (+0x12C in the original), `waterLevels` (+0xAE8; per sector, per material). Gone as written
 but never read (C62): the draw and world matrices, the "Wood" page materials (each page made a material of kind 0x12 that
 nothing used), page / tile sizes, the highest light id, the extra page count, `minDetail`, the per-row visible column
-vectors (one rectangle now), and `lightingSector / X / Y` (+0x24C, the ray march's). `CDib` (0x3C bytes, dib.h): colour table, bits,
-header, who owns them (1 new, 2 global memory), image size, mapped file handles, palette. Kept: AllocateBits sizes the
+vectors (one rectangle now), and `lightingSector / X / Y` (+0x24C, the ray march's). `CDib` (dib.h; the original's 0x3C bytes): colour table, bits (a
+`std::vector`), header (`::operator new`, owned), image size, colour count, mask bytes, palette. Gone (C58a): the
+owner fields (bits and header were only ever ours; the global-memory header and the mapped file never set), the
+unused HBITMAP. Kept: AllocateBits sizes the
 block without row padding while Write writes `imageSize` (rows padded to four bytes): a screenshot whose row is not a
 multiple of four bytes is written from past the block's end. The captures (`CDXSurface` holder in ECX, the rectangle in
 EDX for 006D6D40): GetPixelFormat, a read Lock under the device lock 007AEE78, a new CDib in the surface's depth with its
@@ -363,7 +365,7 @@ CMappedResource (vtable 007432E0), CMMIOResource (00743300), CResourceBase (0074
 WildcardMatch 00674CE0. The sound system's file reader (vtable 00743320, 0x34 bytes, created by 006B6040): CResourceBase
 fields plus +0x24 archive HMMIO, +0x28 entry offset (1 loose file, 0 nothing open), +0x2C entry size, +0x30 loose file HMMIO;
 OpenFile tries a readable loose file first, then the archive's entry; the archive part is dead code (Open 00674310 and
-006745C0 have no callers, so +0x14 / +0x18 stay null).
+006745C0 have no callers, so +0x14 / +0x18 stay null). Ours (C58a) is a plain class over the loose file's HMMIO only.
 
 Rewritten (grep the address): CResourceBase Construct / Destruct / deleting / FreeAccelTable (00674790, 00674810, 006747C0, 00674A90),
 CResourceStream ctor / dtor / deleting / Close / OpenFile / Read / Seek (00674280..006746F0), WildcardMatch 00674CE0,
@@ -372,6 +374,6 @@ ctor / dtor / deleting / slot 3 (00674D90, 00674DF0, 00674DD0, 00674F40).
 
 `CMMIOResource::Destroy` calls our `CMappedResource::Destroy` directly (the original has an inline copy of that destructor, not
 a call to the Rebirth-patched 006714A0). Kept: `CResourceStream::Seek` treats "from the current position" of a loose file as
-"from the start", "from the end" of an archive entry uses +0x2C, which OpenFile never sets; OpenFile leaks the `_findfirst`
-handle; `ListFiles` copies a name into a 1 KB buffer without a length check. Dead code: 00674310, 00674910, 006748F0,
+"from the start"; the original's OpenFile leaks the `_findfirst`
+handle (ours closes it); `ListFiles` copies a name into a 1 KB buffer without a length check. Dead code: 00674310, 00674910, 006748F0,
 006745C0, 00674670. Skipped: STLport instantiations (006713C0-00674070, 00675560-00675690).

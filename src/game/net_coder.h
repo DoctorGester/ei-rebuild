@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 
 // A byte buffer: GrowingBuffer, BufferView (a fixed view over memory owned elsewhere) and BufferedStream (a
 // window onto a file).
@@ -25,8 +26,6 @@ public:
 
     unsigned ReadBytes(void* to, unsigned size);
     GameBuffer* CopyOut(void* to, unsigned size);
-    // Moves the contents to a new block of size * 2 + 0x40 bytes.
-    void Grow(std::uint32_t size);
     // Length-prefixed strings: the length * 2 in one byte, or length * 2 + 1 in four bytes from 0x80 on.
     // Reads one into `s` (assign): false with error bit 3 when it is longer than
     // `maxLength` (> 0). The bytes are read in place (ReserveRead first when they run past `end`), then
@@ -37,8 +36,6 @@ public:
     // A read of `size` bytes past `high`: error bit 3 set, `to` zeroed, then what is left before `high`
     // (through ReadMore when that crosses `end`); the cursor ends at `high`. Returns the bytes read.
     std::uint32_t ReadPastEnd(void* to, std::uint32_t size);
-    // The block replaced by one of `capacity` bytes with the old capacity's bytes; the pointers move with it.
-    void Reallocate(std::uint32_t capacity);
     // Before `size` bytes are written in place: flags bit 0 set, room made (ReserveWrite) when the block ends
     // before them. Returns the cursor.
     std::uint8_t* BeginWrite(std::int32_t size);
@@ -60,6 +57,9 @@ public:
 
 protected:
     GameBuffer() {}
+    // `block` (the derived class's, which [begin, end) views) resized to `capacity` bytes, keeping the bytes
+    // both sizes hold; the pointers keep their offsets.
+    void ResizeBlock(std::vector<std::uint8_t>& block, std::uint32_t capacity);
 };
 // tests/vectors/record_coder.cpp reads game.exe's buffers through this layout.
 static_assert(offsetof(GameBuffer, begin) == 0x04);
@@ -70,11 +70,10 @@ class GrowingBuffer final : public GameBuffer {
 public:
     // Base 0, flags 6, a 0x20-byte block (cursor and high at its start).
     GrowingBuffer();
-    // Base 0, a block of `from`'s capacity with all of its bytes, the same cursor / high offsets and flags.
+    // Base 0, then the assignment.
     GrowingBuffer(const GrowingBuffer& from);
-    // The block freed, then copied as the copy constructor (base kept).
+    // A block of `from`'s capacity with all of its bytes, the same cursor / high offsets and flags (base kept).
     GrowingBuffer& operator=(const GrowingBuffer& from);
-    ~GrowingBuffer() override;
 
     // Both always move the contents to a new block of (base - begin + cur + size) * 2 + 0x40 bytes (callers
     // test the room first).
@@ -86,6 +85,14 @@ public:
     // `high` raised to the cursor, the cursor moved to begin + position; past `end` the contents move to a
     // block of position * 2 + 0x40 bytes. Returns the cursor, or the new capacity when it grew.
     std::uint8_t* Seek(std::int32_t position) override;
+
+    // The block resized to `capacity` bytes (ResizeBlock).
+    void Reallocate(std::uint32_t capacity);
+    // The block resized to size * 2 + 0x40 bytes.
+    void Grow(std::uint32_t size);
+
+private:
+    std::vector<std::uint8_t> block;   // the bytes [begin, end)
 };
 
 // A fixed view (flags 2) over [first, last), as the coder's callers build it.

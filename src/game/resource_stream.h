@@ -6,28 +6,30 @@
 
 #include "resource.h"
 
+#include "lib/gameapi.h"
+
 #include <cstdint>
 #include <string>
 
-// Opens files for the sound system (a member of CSoundManager): a loose file through mmioOpen, or an
-// entry of an archive opened with mmio (the archive part is never opened: its Open, has no
-// callers). ResourceStreamClass (virtual deleting destructor). 0x34 bytes. A real virtual class:
-// the compiler makes its vtable.
-struct CResourceStream : CResourceBase {
-    CResourceStream();                              // no file, no archive
-    ~CResourceStream() override;                    // Close, then CResourceBase's
+// Opens loose files for the sound system (a member of CSoundManager) through mmio. (The original was a
+// CResourceBase that could also read an entry of an archive; it never opened one.)
+class CResourceStream {
+public:
+    CResourceStream() = default;
+    CResourceStream(const CResourceStream&) = delete;
+    CResourceStream& operator=(const CResourceStream&) = delete;
+    ~CResourceStream() { Close(); }
 
-    void* archive_;             // HMMIO of the archive
-    std::int32_t offset_;       // start of the open entry in the archive; 1 for a loose file; 0: none
-    std::int32_t size_;         // size of the open entry (only the unused sets it)
-    void* file_;                // HMMIO of a loose file
-
-    void Close();                                   // closes the file and the archive
-    // Opens `name`: a loose file when one is readable, else the archive entry. Stores
-    // the size when `size` is not null. Returns 1 on success.
+    void Close();                                   // closes the file
+    // Closes the file, then opens `name` when it exists. Stores its size when `size` is not null. Returns
+    // true on success.
     bool OpenFile(const std::string& name, std::uint32_t* size);
     long Read(char* buffer, long size);             // mmioRead; -1 when nothing is open
-    long Seek(long offset, int origin);             // mmioSeek relative to the entry
+    // mmioSeek: `origin` 2 from the end, anything else from the start. -1 when nothing is open.
+    long Seek(long offset, int origin);
+
+private:
+    HMMIO file = nullptr;
 };
 
 // Matches `name` against `pattern` (* ends the match successfully, ? matches any
