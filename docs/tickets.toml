@@ -5791,3 +5791,15 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C53"]
 note = "C53 batch 1 did ai_*, sector_*, terrain_*, map_object_*. Batch 2 (items/spells, units/combat) did: ObjectWorld removed (CMapObject::World / CVisibilityFog::World hiders deleted, callers use World()); ChooseTarget, PlayerModeOf, PlayerServerOf, PatrolMode::AddPoint and the six Add*Mode inlined; ~45 file-local accessor wrappers inlined (script scratchpad C53a/inline.py); constant parameters removed: LookAround, Walk's unknown, MakeItem / BeginCreateItem key, CreateSound keep, CreateSoundSequence volume / hearing, AlongDirection width, SetStanding (now ClearStanding), SetArmourModels / SetWeaponModels count; unknown / a / b parameters named (CommandWalk inGroup, CommandUse spot / runArg, UseOn, SetAnimationEntries). G13 in this scope: nothing to drop, every sizeof assert is on a saved / recorded struct (UnitStats saved whole, DamageInfo, MotionPoint, UnitRecordStats). UnitStats::GetFactors keeps its unused int: the vector recorder replaces the original (check_signatures wants 12 bytes of arguments). Left for later batches: net_* (after C49a), renderer core (not render_ui*), app/scripts/world_*, with their own one-line wrappers (net_state.cpp WorldOf, world_effect_internal.h / world_effect_missile.cpp WorldOf = object->World(), world_units.cpp / party_members.cpp MakeItem helpers), the remaining unknown / unused parameters outside item / spell / unit / combat (OrderMove walk, OrderAttack calledShot are packet-fed or varied: name only), 28 void* unused serializer parameters (none left in item_db_open.cpp; grep the rest), a/b/argN in non-header code, ai_mode_* / AIBrain::AddMode wrappers after C49e, combat_motion.cpp vs combat_update.cpp duplicate StartQueueIfUnset (check which is compiled), UnitStats::GetFactors unused int (needs the recorder changed), PopCorpse (one caller)."
+
+[[ticket]]
+id = "C58"
+title = "Owned arrays: new T[] to std::vector / std::unique_ptr (G17, first part)"
+group = "cleanup"
+note = "Style review G17 (REPORT.md Tier 3): about 1,120 lines with new/delete; start with owned new T[] arrays (float* uvTables[4], iterator** sectorGrid, ...) to std::vector or std::unique_ptr<T[]>, by subsystem, the compiler as checker. Not yet: std::list to vector (needs node-stability checks), types inheriting from std containers (composition). Goldens unchanged, AddressSanitizer at merge."
+
+[[ticket]]
+id = "C59"
+title = "Regroup files by feature and one naming rule (G16, G18)"
+group = "cleanup"
+note = "Style review Tier 3 (REPORT.md G16, G18): 37 *_slots / *_lifetime / *_small_records files, the AI over 16 unit_ai_* files, CItem over 8 by vtable slot, members in another subsystem's file; trailing _ on ~1,311 members vs ~1,134 without, CPrefix on ~450 classes. Needs the naming rule written into docs/rewrite-guide.md first (REPORT suggests plain names on plain-data structs, trailing _ only on classes with invariants, drop C), then scripted renames and merges when no other worker is in the area: conflicts with everything. Ask the user for the naming rule before starting."
