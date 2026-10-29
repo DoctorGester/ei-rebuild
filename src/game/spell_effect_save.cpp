@@ -53,7 +53,7 @@ void CSpellEffect::Load(CStream* stream) {
     stream->ReadValue(timer);
     stream->ReadValue(flags);
     stream->ReadValue(position);
-    UpdateFootprint(static_cast<int>(Spell()->prototypeId_ >> 16), 1);
+    UpdateFootprint(Spell()->Type(), 1);
 }
 
 void CSpellEffect::Save(CStream* stream) {

@@ -40,8 +40,8 @@ constexpr float kSoundNear = 10.0f;
 constexpr float kSoundFar = 50.0f;
 
 // The effect types whose several entries share one particle source (the strongest power wins).
-bool MergesParticles(int type) {
-    switch (SpellTypeOf(type)) {
+bool MergesParticles(SpellType type) {
+    switch (type) {
     case SpellType::ProtectionFromFire: case SpellType::ProtectionFromLightning: case SpellType::ProtectionFromAcid:
     case SpellType::EagleSight: case SpellType::Infravision: case SpellType::DetectLife: case SpellType::Silence:
     case SpellType::Stench: case SpellType::Stun: case SpellType::Antimagic: case SpellType::Strengthen:
@@ -54,8 +54,8 @@ bool MergesParticles(int type) {
 }
 
 // The particle source type of a lasting effect source; unknown types log and take 0x2013.
-int ParticleSourceType(int type) {
-    switch (SpellTypeOf(type)) {
+int ParticleSourceType(SpellType type) {
+    switch (type) {
     case SpellType::ProtectionFromFire: return static_cast<int>(ParticleType::SphereFire);
     case SpellType::ProtectionFromLightning: return static_cast<int>(ParticleType::SphereElectricity);
     case SpellType::ProtectionFromAcid: return static_cast<int>(ParticleType::SphereAcid);
@@ -76,8 +76,8 @@ int ParticleSourceType(int type) {
 }
 
 // The folder of an effect type's sounds ("" for types without).
-const char* SoundFolder(int type) {
-    switch (SpellTypeOf(type)) {
+const char* SoundFolder(SpellType type) {
+    switch (type) {
     case SpellType::ProtectionFromFire: return "magic\\Fireshield";
     case SpellType::ProtectionFromLightning: return "magic\\Lightsheild";
     case SpellType::ProtectionFromAcid: return "magic\\PoisonShield";
@@ -101,18 +101,18 @@ const char* SoundFolder(int type) {
 }
 
 // The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
-void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
-    CParticleSource* ring = g_clientWorld->particleManager_->CreateSource(SpellTypeOf(type) == SpellType::Strengthen || SpellTypeOf(type) == SpellType::Weaken ? kScaleRingSource : kRingSource);
+void SpawnRing(CMapObject* owner, SpellType type, float size, bool negate) {
+    CParticleSource* ring = g_clientWorld->particleManager_->CreateSource(type == SpellType::Strengthen || type == SpellType::Weaken ? kScaleRingSource : kRingSource);
     ring->Attach(owner);
     float factor = size / ring->baseSize;
     ring->ScaleSize(negate ? -factor : factor);
 }
 
 // The ring's size: power / 16, negative for weaken, rounded to a float.
-float RingSize(int type, int power) {
+float RingSize(SpellType type, int power) {
     float size = static_cast<float>(power) * kPowerScale;
     float value = size;
-    if (SpellTypeOf(type) == SpellType::Weaken) {
+    if (type == SpellType::Weaken) {
         size = -value;
         value = size;
     }
@@ -125,7 +125,7 @@ int FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 // Is there a record of `type` other than `index`?
 bool OtherRecordOfType(const std::vector<EffectParticle>& particles, int index, SpellType type) {
     for (int i = 0; i < std::ssize(particles); ++i)
-        if (i != index && SpellTypeOf(particles[i].type) == type) return true;
+        if (i != index && particles[i].type == type) return true;
     return false;
 }
 
@@ -156,14 +156,14 @@ void DropLight(CMapObjectClientSpecific* self) {
 
 } // namespace
 
-void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
-                                const char* suffix) {
+void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, SpellType kind,
+                     const char* suffix) {
     CSoundManager* sounds = g_clientWorld->sounds_;
-    if (SpellTypeOf(kind) == SpellType::Stench) {
+    if (kind == SpellType::Stench) {
         record->timer = 0;
         return;
     }
-    if (SpellTypeOf(kind) == SpellType::Feeblemind) {
+    if (kind == SpellType::Feeblemind) {
         if (record->handle == -1) {
             std::vector<std::string> names{"magic\\FeebleMind\\start.wav", "magic\\FeebleMind\\circle.wav"};
             record->handle = sounds->AddSequence(&names, 0, position,
@@ -201,7 +201,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
             const MapEffect& effect = mapObject->effects[i];
             bool merged = false;
-            if (MergesParticles(effect.type)) {
+            if (MergesParticles(effect.Type())) {
                 for (int j = 0; j < wantedCount; ++j) {
                     if (wanted[j].type != effect.type) continue;
                     if (effect.power > wanted[j].power) wanted[j].power = effect.power;
@@ -217,7 +217,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     for (int i = 0; i < std::ssize(particles); ++i) particles[i].present = 0;
 
     for (int w = 0; w < wantedCount; ++w) {
-        int type = wanted[w].type;
+        SpellType type = wanted[w].Type();
         int power = wanted[w].power;
         // The same effect at the same power keeps its record.
         bool kept = false;
@@ -246,7 +246,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         added.type = type;
         added.power = power;
         added.present = 1;
-        switch (SpellTypeOf(type)) {
+        switch (type) {
         case SpellType::Invisibility:
             CompanionOwner(this)->flags_ |= MapObjectFlag::Invisible;
             break;
@@ -278,7 +278,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     for (int i = 0; i < std::ssize(particles); ++i) {
         EffectParticle* record = &particles[i];
         if (record->present) continue;
-        switch (SpellTypeOf(record->type)) {
+        switch (record->type) {
         case SpellType::Stun:
             if (OtherRecordOfType(particles, i, SpellType::Stun)) break;
             CompanionOwner(this)->flags_ &= ~MapObjectFlag::Stunned;
@@ -310,10 +310,10 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
 void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
     CMapObject* mapObject = CompanionOwner(this);
     // The effect types, once each.
-    std::uint8_t types[256];
+    SpellType types[256];
     int typeCount = 0;
     for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
-        std::uint8_t type = mapObject->effects[i].type;
+        SpellType type = mapObject->effects[i].Type();
         bool known = false;
         for (int j = 0; j < typeCount && !known; ++j) known = types[j] == type;
         if (!known) types[typeCount++] = type;

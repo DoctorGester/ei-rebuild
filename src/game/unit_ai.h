@@ -515,6 +515,9 @@ struct AIAttackOption {
     int maxCount;                   // cap on the group-size bonus
     float radius;                   // the area of an area attack, the healing of AIOptionKind::Heal
     int effect;                     // see AIOptionKind
+
+    // The spell type `effect` holds for a curse, protection or enhancement.
+    SpellType EffectSpell() const { return static_cast<SpellType>(effect); }
     DamageWords damage;             // measured against the target's protection
 };
 

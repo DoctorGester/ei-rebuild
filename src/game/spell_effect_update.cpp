@@ -171,7 +171,7 @@ void FireWall(CSpellEffect* e) {
     if (ticks == -1) {
         Vector3 at = e->position;
         if (e->sound) at = e->sound->localPosition_;
-        e->UpdateFootprint(6, 0);
+        e->UpdateFootprint(SpellType::FireWall, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
         e->CreateSound(0, "magic\\Firewall\\end.wav", &at, &kZeroVector, kVolume, kHearing);
@@ -198,7 +198,7 @@ void LightWall(CSpellEffect* e) {
     }
     if (ticks == -1) {
         RiseLight(e);
-        e->UpdateFootprint(7, 0);
+        e->UpdateFootprint(SpellType::LightningWall, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
     }
@@ -219,7 +219,7 @@ void PoisonCloud(CSpellEffect* e) {
     if (ticks == -1) {
         e->CreateSound(0, "magic\\poison\\end.wav", &e->targetPoint, &kZeroVector, kVolume, kHearing);
         RiseLight(e);
-        e->UpdateFootprint(8, 0);
+        e->UpdateFootprint(SpellType::AcidFog, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
     }
@@ -372,7 +372,7 @@ void Teleport(CSpellEffect* e) {
 
 int CSpellEffect::Update() {
     if (!world) return 0;
-    int type = static_cast<int>(Spell()->prototypeId_ >> 16);
+    SpellType type = Spell()->Type();
     switch (state) {
     case 0: Start(type); return 1;
     case 1: UpdateMissile(type); return 1;
@@ -386,8 +386,8 @@ int CSpellEffect::Update() {
     }
 }
 
-void CSpellEffect::UpdateMissile(int type) {
-    switch (SpellTypeOf(type)) {
+void CSpellEffect::UpdateMissile(SpellType type) {
+    switch (type) {
     case SpellType::FireArrow:
     case SpellType::RickMagic:
         MissileImpact(this, static_cast<int>(ParticleType::FireStar), "magic\\Firearrow\\end.wav", true);
@@ -402,10 +402,10 @@ void CSpellEffect::UpdateMissile(int type) {
     }
 }
 
-void CSpellEffect::UpdateLasting(int type) {
+void CSpellEffect::UpdateLasting(SpellType type) {
     std::list<CUnit*> units;   // the list the fireworks and clairvoyance fill
 
-    switch (SpellTypeOf(type)) {
+    switch (type) {
     case SpellType::FireArrow:
     case SpellType::AcidRay:
     case SpellType::Fireball:

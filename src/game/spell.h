@@ -32,8 +32,7 @@ class CEffectPointLight;
 // prototypeId_ >> 16), also an active effect's type (MapEffect::type: a buff copies its spell's). Names from the
 // prototypes' names (the code name where it differs), the sound folders under magic\ and the Start* functions. The
 // 1.06 database and Rebirth's both have all 42. Shapechange and Comprehend start nothing; Teleport's record on the
-// caster stuns it like Stun's (the client draws no particles for it). An int field holding one is read through
-// SpellTypeOf.
+// caster stuns it like Stun's (the client draws no particles for it). MapEffect::Type() reads the byte.
 enum class SpellType : int {
     FireArrow = 0x00,               // "arrow"
     Lightning = 0x01,               // "Lightning Arc"
@@ -78,8 +77,6 @@ enum class SpellType : int {
     RickMagic = 0x28,               // "rick_magic", school fire: a fire arrow with the RikArrowSmoke trail
     CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
 };
-
-inline SpellType SpellTypeOf(int type) { return static_cast<SpellType>(type); }
 
 // A spell instance ("CSpell", class id 0x4F). prototypeId_ of CEngineObject is the packed id: spell
 // prototype index << 16.
@@ -188,12 +185,12 @@ public:
 
     // The casting state of spell `type` (the prototype index): its effect objects, the instant hits, the
     // next state (1 missile, 2 lasting, 3 done; some failed casts leave it at 0) and the timer.
-    void Start(int type);
+    void Start(SpellType type);
     // The old visual leaves the world's timed objects and is released.
     void SetVisual(CEffect* visual);
     // The walls (FireWall, LightningWall) and the areas (AcidFog, Campfire) block the AI map while they last.
     // Nothing without a visual or for other types.
-    void UpdateFootprint(int type, int stamp);
+    void UpdateFootprint(SpellType type, int stamp);
     // It becomes the visual.
     void CreateArrow(const Vector3* from, CEngineObject* target, int particleType, float power, const char* sound,
                      const Vector3* color, float range);
@@ -216,9 +213,9 @@ public:
     int Update();
     // State 1: the fire arrow (FireArrow, RickMagic) and the acid ray hit their target when the missile reports a
     // hit; the fireball explodes when its timer runs out.
-    void UpdateMissile(int type);
+    void UpdateMissile(SpellType type);
     // State 2: walls and clouds hit every 4th tick; every case counts the timer down and ends the effect.
-    void UpdateLasting(int type);
+    void UpdateLasting(SpellType type);
     void ReleaseVisual();
     void ReleaseSound();
     void ReleaseLight();

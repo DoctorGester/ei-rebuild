@@ -98,8 +98,8 @@ double EffectScale(CUnit* unit, float k);
 
 double EffectScale(CUnit* unit, float k) {
     if (!unit) return 1.0f;
-    float strengthen = static_cast<float>(unit->EffectValue(static_cast<std::uint32_t>(SpellType::Strengthen)) * k + 1.0f);
-    return strengthen / (unit->EffectValue(static_cast<std::uint32_t>(SpellType::Weaken)) * k + 1.0f);
+    float strengthen = static_cast<float>(unit->EffectValue(SpellType::Strengthen) * k + 1.0f);
+    return strengthen / (unit->EffectValue(SpellType::Weaken) * k + 1.0f);
 }
 
 float ScaledAtLeastOne(CUnit* unit, float k, float value) {
@@ -206,7 +206,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
         double regen = hitPointRegen;
         float rate = static_cast<float>((LevelValueOf(stats, kSkillHitPointRegen) * kPercent + 1.0f) * regen);
         if (unit) {
-            double boost = unit->EffectValue(static_cast<std::uint32_t>(SpellType::Regeneration));
+            double boost = unit->EffectValue(SpellType::Regeneration);
             if (boost > 0.0f) rate = static_cast<float>(boost * rate);
         }
         float scale = maxHitPoints;

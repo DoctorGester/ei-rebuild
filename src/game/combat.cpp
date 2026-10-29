@@ -374,7 +374,7 @@ int CUnitServer::Level() {
 }
 
 void CUnitServer::EffectsChanged() {
-    if (unit->HasEffect(static_cast<std::uint32_t>(SpellType::Feeblemind)) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags_ |= MapObjectFlag::NoCasting;
+    if (unit->HasEffect(SpellType::Feeblemind) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags_ |= MapObjectFlag::NoCasting;
     else unit->flags_ &= ~MapObjectFlag::NoCasting;
 }
 

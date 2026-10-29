@@ -26,22 +26,22 @@ namespace {
 // --- The spell types ----------------------------------------------------------------------------
 
 // FireArrow (particle FireArrow) and RickMagic (RikArrowSmoke): the fire arrow, a missile at a unit target.
-Next StartFireArrow(CSpellEffect* e, int type, const Vector3& from) {
+Next StartFireArrow(CSpellEffect* e, SpellType type, const Vector3& from) {
     if (!IsUnit(e->target)) return Next::Done;
     e->timer = 0x96;
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
     float power = Power(e);
-    e->CreateArrow(&from, e->target, SpellTypeOf(type) == SpellType::FireArrow ? static_cast<int>(ParticleType::FireArrow) : static_cast<int>(ParticleType::RikArrowSmoke), power, "magic\\Firearrow\\circle.wav", &color, range);
+    e->CreateArrow(&from, e->target, type == SpellType::FireArrow ? static_cast<int>(ParticleType::FireArrow) : static_cast<int>(ParticleType::RikArrowSmoke), power, "magic\\Firearrow\\circle.wav", &color, range);
     e->CreateSound(0, "magic\\Firearrow\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     e->state = 1;
     return Next::Set;
 }
 
 // Lightning and CurseMagic: lightning from the caster to the target, hitting it at once.
-Next StartLightning(CSpellEffect* e, int type, const Vector3& from) {
+Next StartLightning(CSpellEffect* e, SpellType type, const Vector3& from) {
     float power = Power(e);
-    e->CreateLightning(&from, e->target, e->caster, power, SpellTypeOf(type) == SpellType::CurseMagic ? 1 : 0);
+    e->CreateLightning(&from, e->target, e->caster, power, type == SpellType::CurseMagic ? 1 : 0);
     e->CreateSound(0, "magic\\lightning\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
@@ -365,7 +365,7 @@ Next StartAtGround(CSpellEffect* e) {
 } // namespace
 
 
-void CSpellEffect::Start(int type) {
+void CSpellEffect::Start(SpellType type) {
     flags &= ~1u;
     Vector3 from;
     if (caster) {
@@ -379,7 +379,7 @@ void CSpellEffect::Start(int type) {
     // without touching the state; the others set it themselves.
     Next next = Next::Done;
     bool durationTail = false;
-    switch (SpellTypeOf(type)) {
+    switch (type) {
     case SpellType::FireArrow:
     case SpellType::RickMagic: next = StartFireArrow(this, type, from); break;
     case SpellType::Lightning:
@@ -422,10 +422,10 @@ void CSpellEffect::SetVisual(CEffect* object) {
     world->AddTimedObject(visual);
 }
 
-void CSpellEffect::UpdateFootprint(int type, int stamp) {
+void CSpellEffect::UpdateFootprint(SpellType type, int stamp) {
     if (!visual) return;
     CAIMap* aiMap = &world->aiMap_;
-    switch (SpellTypeOf(type)) {
+    switch (type) {
     case SpellType::FireWall: {
         Vector3 direction;
         direction = (Visual<CEffectWall>()->direction_);

@@ -903,7 +903,7 @@ struct EffectParticle {
     EffectParticle& operator=(EffectParticle&&) noexcept;
     ~EffectParticle();
 
-    int type = 0;                       // the effect type
+    SpellType type{};                   // the effect type
     int power = 0x10;                   // the effect's power byte
     HeldRef<CParticleSource> source;    // null when the effect has no lasting source
     std::uint8_t present = 0;           // set while the effect list is compared
@@ -911,7 +911,7 @@ struct EffectParticle {
 
 // One looping effect sound record.
 struct EffectSoundRecord {
-    int kind = 0;               // the effect type
+    SpellType kind{};           // the effect type
     int spareHandle = -1;       // nothing reads it
     int handle = -1;            // feeble mind's sound sequence, -1 none
     std::uint32_t timer = 0;    // ticks to the next stench sound
@@ -921,8 +921,8 @@ struct EffectSoundRecord {
 // An effect's sound at `position`: "<folder of kind><suffix>" when `play` (types with a folder); stench
 // (0x13) only clears the record's timer; feeble mind (0x20) starts its sound sequence into the record (and
 // the bare suffix) or stops it and plays its end sound.
-void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
-                                const char* suffix);
+void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, SpellType kind,
+                     const char* suffix);
 
 // The client-side companion of a map object (ClassName "CMapObjectClientSpecific"); its owner is a unit for IsDead
 // / IsOverkilled.

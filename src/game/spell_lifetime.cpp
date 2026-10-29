@@ -88,7 +88,7 @@ CSpellEffect::CSpellEffect() {
 }
 
 CSpellEffect::~CSpellEffect() {
-    if (footprintStamped) UpdateFootprint(static_cast<int>(Spell()->prototypeId_ >> 16), 0);
+    if (footprintStamped) UpdateFootprint(Spell()->Type(), 0);
     if (visual) world->RemoveTimedObject(static_cast<unsigned>(visual->id_));
     Drop(visual);
     ReleaseSound();

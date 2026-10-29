@@ -21,6 +21,7 @@ class CMapObjectServer;
 class CMapObjectClientSpecific;
 class CMapObjectCompanion;
 struct DeltaState;
+enum class SpellType : int;   // spell.h
 
 // An active effect (an array): the record of a buff spell (the buffs CSpellEffect::Start applies) or of Teleport,
 // which stuns its caster like Stun. Strengthen, Weaken, Enlarge and Shrink scale the object.
@@ -31,6 +32,8 @@ struct MapEffect {
     std::uint32_t value;            // a float (EffectValue) or a sound handle
     std::uint32_t strength;         // a float (saved; Rebirth compares it)
     std::uint8_t ending;            // the client plays no end sound when set
+
+    SpellType Type() const { return static_cast<SpellType>(type); }
 
     // Type, power, ticksLeft, value and ending cleared (strength not).
     MapEffect* Construct();
@@ -179,7 +182,7 @@ public:
     // stamps it with the world's change counter.
     void MarkChanged(int part);
     // Has the object an active effect of type `type` (compared with MapEffect::type)?
-    bool HasEffect(std::uint32_t type);
+    bool HasEffect(SpellType type);
 
     void SetUpMapObject();
 
@@ -192,7 +195,7 @@ public:
 
     // The largest MapEffect::value (as a float, at least 0) of the effects of type
     // `type` (compared with the whole low byte); 0 without one. NaN values win the comparison.
-    float EffectValue(std::uint32_t type);
+    float EffectValue(SpellType type);
 
     // scale = base scale.
     void ResetScale();

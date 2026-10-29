@@ -253,7 +253,7 @@ double CUnit::TotalItemWeight() {
 
 int CUnit::CanCastSpell(std::uint32_t slot) {
     if (slot >= 8) return 3;
-    if (HasEffect(static_cast<std::uint32_t>(SpellType::Feeblemind))) return 4;
+    if (HasEffect(SpellType::Feeblemind)) return 4;
     CSpell* spell = GetSpellObject(slot);
     if (!spell) return 3;
     float cost = SpellCost(spell);

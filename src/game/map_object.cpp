@@ -72,10 +72,10 @@ void CMapObject::MarkChanged(int part) {
     if (CWorld* world = World()) changeStamp = UpdateCount(world);
 }
 
-bool CMapObject::HasEffect(std::uint32_t type) {
+bool CMapObject::HasEffect(SpellType type) {
     for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect effect = effects[i];   // the whole record is copied
-        if (effect.type == type) return true;
+        if (effect.Type() == type) return true;
     }
     return false;
 }
@@ -101,7 +101,7 @@ void CMapObject::AddEffect(const MapEffect* effect) {
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
-    SpellType type = SpellTypeOf(effect->type);
+    SpellType type = effect->Type();
     bool scales = type == SpellType::Strengthen || type == SpellType::Weaken || type == SpellType::Enlarge ||
                   type == SpellType::Shrink;
     ScaleEffectChanged(scales);
@@ -125,11 +125,11 @@ void CMapObject::ClearEffects() {
     RecomputeScale();
 }
 
-float CMapObject::EffectValue(std::uint32_t type) {
+float CMapObject::EffectValue(SpellType type) {
     std::uint32_t best = 0;
     for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect effect = effects[i];   // the record is copied twice
-        if (effect.type != type) continue;   // the record's first dword & 0xFF
+        if (effect.Type() != type) continue;   // the record's first dword & 0xFF
         float current = std::bit_cast<float>(best);
         float value = std::bit_cast<float>(effect.value);
         best = current >= value ? best : effect.value;   // the C0 mask: a NaN takes the value
@@ -139,11 +139,11 @@ float CMapObject::EffectValue(std::uint32_t type) {
 
 void CMapObject::RecomputeScale() {
     ApplyBaseScale();
-    int strength = (HasEffect(static_cast<std::uint32_t>(SpellType::Strengthen)) ? 1 : 0) -
-                   (HasEffect(static_cast<std::uint32_t>(SpellType::Weaken)) ? 1 : 0);
+    int strength = (HasEffect(SpellType::Strengthen) ? 1 : 0) -
+                   (HasEffect(SpellType::Weaken) ? 1 : 0);
     float strengthLevel = static_cast<float>(strength);   // stored as a float
-    int size = (HasEffect(static_cast<std::uint32_t>(SpellType::Enlarge)) ? 1 : 0) -
-               (HasEffect(static_cast<std::uint32_t>(SpellType::Shrink)) ? 1 : 0);
+    int size = (HasEffect(SpellType::Enlarge) ? 1 : 0) -
+               (HasEffect(SpellType::Shrink) ? 1 : 0);
     double sizeLevel = size;                               // kept unrounded
     float total = static_cast<float>(sizeLevel + strengthLevel);
     if (size == 0) {

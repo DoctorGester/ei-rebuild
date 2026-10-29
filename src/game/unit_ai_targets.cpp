@@ -213,7 +213,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, UnitList* group, CEn
     case AIOptionKind::Curse:
     case AIOptionKind::Protect:
     case AIOptionKind::Enhance: {
-        if (candidate->HasEffect(static_cast<std::uint32_t>(option->effect))) return kNoScore;
+        if (candidate->HasEffect(option->EffectSpell())) return kNoScore;
         double partial = static_cast<double>(score) + 1.0f;
         int count = others < cap ? others : cap;
         score = static_cast<float>(static_cast<double>(count) + partial);

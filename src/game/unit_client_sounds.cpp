@@ -235,7 +235,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         int frame = static_cast<int>(current->stepFrames[step]) - 1;
         if (frame == 0) break;
         if (!PassedFrame(frame, lastAnimationTime, now)) continue;
-        if (!unit->HasEffect(static_cast<std::uint32_t>(SpellType::Silence))) {
+        if (!unit->HasEffect(SpellType::Silence)) {
             auto* world = ClientWorld();
             int ground = world->terrain_->SurfaceClass(position.x, position.y);
             FootstepSound(ground, &sound);

@@ -25,8 +25,6 @@
 namespace {
 constexpr std::uint32_t kFlagHidden = 0x80;          // the light's flags_: not shown
 constexpr int kEndSoundTicks = 0x1E;                 // end sound when fewer ticks are left
-constexpr int kSoundStench = 0x13;
-constexpr int kSoundFeebleMind = 0x20;
 constexpr std::uint32_t kStenchPeriod = 0x10;
 constexpr float kLightHeight = 2.0f;
 constexpr float kEndSoundNear = 8.0f;
@@ -50,7 +48,7 @@ bool CMapObjectServer::RunTick() {
     int i = 0;
     do {
         if (!owner->effects[i].Tick()) {
-            SpellType type = SpellTypeOf(owner->effects[i].type);
+            SpellType type = owner->effects[i].Type();
             owner->effects.erase(owner->effects.begin() + i);
             bool scaleEffect = IsScaleEffect(type);
             if (scaleEffect) owner->RecomputeScale();
@@ -58,8 +56,8 @@ bool CMapObjectServer::RunTick() {
             owner->ScaleEffectChanged(scaleEffect);
             --i;
             owner->EffectsChanged();
-            if (!owner->HasEffect(static_cast<std::uint32_t>(SpellType::Stun)) &&
-                !owner->HasEffect(static_cast<std::uint32_t>(SpellType::Teleport)))
+            if (!owner->HasEffect(SpellType::Stun) &&
+                !owner->HasEffect(SpellType::Teleport))
                 owner->SetStunned(0);
         }
         ++i;
@@ -106,18 +104,18 @@ bool CMapObjectClientSpecific::RunTick() {
     // follows the object.
     for (int i = 0; i < std::ssize(sounds); ++i) {
         EffectSoundRecord* sound = &sounds[i];
-        if (sound->kind == kSoundStench) {
+        if (sound->kind == SpellType::Stench) {
             std::uint32_t timer = sound->timer - 1;
             sound->timer = timer;
             if (!(timer & 0x80000000u)) continue;
             std::string name;
             std::uint32_t variant = g_random.Next() % 3 + 1;
-            if (sound->kind == kSoundStench) {
+            if (sound->kind == SpellType::Stench) {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
             g_clientWorld->sounds_->Play3D(name, 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
-        } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
+        } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
             g_clientWorld->sounds_->MoveSequence(sound->handle, &OwnerOf(this)->localPosition_.x);
         }
     }
