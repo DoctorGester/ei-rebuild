@@ -14,6 +14,7 @@
 #include "text_reader.h"
 #include "text_split.h"
 #include "ui.h"
+#include "ui_native.h"
 #include "world.h"
 #include "world_glue.h"
 
@@ -121,7 +122,9 @@ CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) 
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-        return new CUiSurface(ui, left, top, right, bottom, 5, 1);
+    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, 5, 1);
+    ui_native::Adopt(surface, "objectives");
+    return surface;
 }
 
 
@@ -471,7 +474,10 @@ void CObjectivesWindow::CreateScreen() {
         objectiveTexts_.push_back(text);
     }
 
-    AddChild(new CUiScrollText(interface_, game::kEmptyText, RECT{60, 190, 384, 510}, 10.0f));
+    // The text column (the scroll text draws nothing before its first Draw).
+    CUiScrollText* column = new CUiScrollText(interface_, game::kEmptyText, RECT{60, 190, 384, 510}, 10.0f);
+    ui_native::Adopt(column->surfaces_[0], "objectives");
+    AddChild(column);
     bar_ = new CUiScrollbar(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar_);
 

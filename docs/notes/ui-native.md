@@ -349,6 +349,33 @@ or moved: the menus' help page, options, boxes, the HUD, camp and base screens) 
   makes `Text` fall back to GDI. The product needs the fonts beside the exe and a `SetFontDirectory` at start-up before
   P8 makes native text the default.
 
+### P3a done (2026-10-29): menus and dialogs
+
+**Families adopted** (one `Adopt` where each surface is made, before anything draws on it):
+| Family | Surface (file) |
+|---|---|
+| `menu` | the main menu's version line (`CMainMenu::AddVersionLine`, ui_main_menu.cpp; adopted before AddSurface, as it draws first) |
+| `msgbox` | `CMessageBox::CreateScreen`'s text surface (ui_layouts.cpp): the quit box, the key-binding box, every message box |
+| `difficulty` | `CDifficultyBox::CreateScreen`'s text surface (ui_layouts.cpp) |
+| `options` | the options window's surface (`COptionsWindow::CreateScreen`, ui_layouts.cpp) and each spin's (`CUiSpin`, ui_spin.cpp: only the options make spins) |
+| `objectives` | the objectives' three surfaces (ui_objectives.cpp's `NewSurface`) and its text column, a `CUiScrollText` adopted by the objectives right after it is made (the scroll text draws nothing before its first Draw; the HUD's message log and the briefing's text are the same class, left to P3b / P3d) |
+| `credits` | the titles' header line (`CCreditsScreen::CreateScreen`, ui_layouts.cpp) |
+
+**Still GDI, and why.** The titles' scrolling page (`CUiScrollingSurface`, RichEdit EM_FORMATRANGE): never adopt it (see "P2 done").
+The message box's edit field (`CUiEditField`, flag 4): P5 (lines and carets). Tooltips (`CUiTooltip`, any window's): P3b. The help
+window over the options / objectives: P3d. The escape menu has no surface of its own; its greyed backdrop and the save picture are
+R28a's screen copies (GPU-only in every mode, nothing to adopt).
+
+**Checks** (2026-10-29). `EI_RENDER_EXTRA=uiboth`: the 45 `ui_*` pass, every family above compared in the per-surface diff (the
+gallery's menus: the options, spins, boxes, difficulty, titles header; ui_objectives: the three surfaces and the column), 0
+differing. `ui_compare`'s options A/B now shows native glyphs in the options (0.6% of the frame; its limit is 0.8%). Under
+`EI_RENDER_EXTRA=uinative` the gallery's, ui_saveload's and ui_quicksave's frames against the default path's: the same layout
+everywhere (no line wrapped or moved, the objectives' justified column word for word); only glyph shapes differ, in the frames
+that show these families: options 0.54%, options_keys 0.41%, difficulty 0.41%, bind_box 0.27%, quit_box 0.12%, objectives 0.51%,
+the help over the objectives 0.27% (the objectives' text under it), plus the frame rate's 0.02% in `ui_gallery_game`. The menu
+and titles frames are unchanged (the version string is empty in the harness's install; the titles header is blank at that
+moment).
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -413,8 +440,9 @@ they depend on.
 ## Overview of the surface canvases
 
 The interface surfaces drawn on GPU canvases (ticket P1; docs/notes/ui-native.md, "P1"). A surface of a
-family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status so far) gets a
-canvas for its holder when it is made (Adopt), and the surface functions record their drawing on it
+family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status, menu, msgbox,
+difficulty, options, objectives, credits so far) gets a canvas for its holder when it is made (Adopt), and
+the surface functions record their drawing on it
 beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
 truth (a lost device brings canvases back black). The blit draws the canvas when
 render::ui::DrawsCanvas says so.

@@ -8,6 +8,7 @@
 #include "sound.h"
 #include "text_helpers.h"
 #include "ui.h"
+#include "ui_native.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -216,7 +217,9 @@ void COptionsWindow::CreateScreen() {
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
-    AddSurface(NewSurface(interface_, 100, 100, 700, 500));
+    CUiSurface* surface = NewSurface(interface_, 100, 100, 700, 500);
+    ui_native::Adopt(surface, "options");
+    AddSurface(surface);
 
     CUiModel* model = AddMenuModel(this, kOptionsTilt);
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
@@ -363,6 +366,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 void CMessageBox::CreateScreen() {
     LoadTexture("saveload", 3);
     CUiSurface* surface = NewSurface(interface_, 200, 50, 600, 500);
+    ui_native::Adopt(surface, "msgbox");
     AddSurface(surface);
     UiSurfaceGetDC(surface);
     int font = result_ != 0xFFFF0000u ? 2 : 1;
@@ -418,6 +422,7 @@ void CMessageBox::CreateScreen() {
 void CDifficultyBox::CreateScreen() {
     LoadTexture("saveload", 3);
     CUiSurface* surface = NewSurface(interface_, 200, 100, 600, 500);
+    ui_native::Adopt(surface, "difficulty");
     AddSurface(surface);
     UiSurfaceGetDC(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
@@ -544,6 +549,7 @@ void CCreditsScreen::CreateScreen() {
     {
         RECT rect = {10, 0x6E, 0x316, 0x8C};
         headerSurface_ = AddSurface(new CUiSurface(ui, &rect, 5));
+        ui_native::Adopt(headerSurface_, "credits");
         headerSurface_->Freeze(0, 0);
     }
     if (fromGame_) GameSetServerPaused(0);
