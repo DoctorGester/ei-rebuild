@@ -159,7 +159,7 @@ public:
     void Disconnect() override;                 // the unread bytes given back
     bool SendBytes(const void* data, std::uint32_t size) override;
 
-    RefPtrTo<net::Connection> player_;
+    Ref<net::Connection> player_;
 };
 
 // The network session (made by CWorld::OpenSession): a player source with two lists of drivers.
@@ -173,8 +173,8 @@ public:
     bool Query() override { return true; }
     void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;   // the live holders' links appended
 
-    std::list<SharedRefTo<DriverLink>> drivers_;    // owning
-    std::list<CountedRefTo<DriverLink>> holders_;   // plain holders (released, not detached)
+    std::list<SharedRef<DriverLink>> drivers_;    // owning
+    std::list<HeldRef<DriverLink>> holders_;   // plain holders (released, not detached)
 
     // A driver for every new connection of `session` (the game client or server) with something queued;
     // then each driver pumped, and those whose player is gone erased.

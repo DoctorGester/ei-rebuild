@@ -296,7 +296,7 @@ void CSaveLoadWindow::FillEntries() {
         if (const auto* copy = static_cast<const std::uint8_t*>(interface_->screenCopy_)) {
             CTexture* shot = CreateTexture(0x100, 0x100, TextureKind::Blank565);
             dialog_ = shot;
-            ++shot->refCount_;
+            shot->AddRef();
             RemoveObjectAt(std::ssize(objects_) - 1);
             newPicture_.assign(copy, copy + kShotBytes);
             DrawPicture(dialog_, newPicture_.data(), kShotBytes);

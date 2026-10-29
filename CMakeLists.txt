@@ -209,7 +209,6 @@ add_executable(ei_vectors
     src/game/net_coder.cpp
     src/game/quaternion.cpp
     src/game/random.cpp
-    src/game/refptr_copies.cpp
     src/game/script_blocks.cpp
     src/game/script_construct.cpp
     src/game/script_group.cpp

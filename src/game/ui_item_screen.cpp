@@ -125,9 +125,7 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, b
     from->RemoveItem(item, whole);
     if (turning) {
         if (!ItemTurnOf(moved)) {   // a null item faults here, like the original
-            auto* turn = new ItemTurn();
-            moved->link_ = turn;
-            ++turn->refs_;
+            moved->link_.Assign(new ItemTurn());
         }
         ItemTurnOf(moved)->flag = true;
     }

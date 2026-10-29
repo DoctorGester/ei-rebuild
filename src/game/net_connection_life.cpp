@@ -37,13 +37,6 @@ void DestroyForReset(Connection* c) {
     FreeReceived(c);
 }
 
-// The entry's counted object pointer released as the original inlines it (16-bit count; the virtual destructor
-// deletes at zero).
-void ReleaseEntryObject(ReplicaEntry* e) {
-    CRefObject* object = e->object_.ptr;
-    if (object) object->Release();
-}
-
 } // namespace
 
 // The constructor (id). The containers are members, built before the body (the original builds the reliable
@@ -129,7 +122,6 @@ Connection::Connection(const Connection& other)
 namespace net {
 
 ReplicaEntry::ReplicaEntry() {
-    object_.FromRawCounted(nullptr);
     version_ = 0;
     id_ = 0;
 }
@@ -137,8 +129,7 @@ ReplicaEntry::ReplicaEntry() {
 ReplicaEntry::ReplicaEntry(const ReplicaEntry& other)
     : CRefObject(), version_(other.version_), id_(other.id_), type_(other.type_),
       flags_(other.flags_), serial_(other.serial_) {   // the original merges bit 0 and then the other bits: all of them
-    object_.ptr = other.object_.ptr;
-    if (object_.ptr) object_.ptr->AddRef();
+    object_.Assign(other.object_);
 }
 
 // Entry copy: a copy of the entry sharing the object.
@@ -147,12 +138,11 @@ ReplicaEntry* ReplicaEntry::Clone() { return NewCounted<ReplicaEntry>(*this); }
 // Entry reset: releases the object, then built again in place as the constructor would (object, version and
 // id cleared; type and flags kept). The result means nothing.
 void ReplicaEntry::OnShutdown() {
-    ReleaseEntryObject(this);
-    object_.ptr = nullptr;
+    object_.Reset();
     version_ = 0;
     id_ = 0;
 }
 
-ReplicaEntry::~ReplicaEntry() { ReleaseEntryObject(this); }
+ReplicaEntry::~ReplicaEntry() {}
 
 } // namespace net

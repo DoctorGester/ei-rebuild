@@ -81,16 +81,12 @@ public:
     // previous spell's to the new one's.
     void AttachSpell(CSpell* spell);
 
-    // Attaches `spell` (counted; the previous one released); the price is left alone.
-    void SetSpell(CSpell* spell);
     void Repair() { condition_ = conditionMax_; }
     float Weight() const { return weight_; }
 
-    // a counted link record (a RefPtr slot): the world server's CItemLink (the id the
-    // world's save keeps per item, or the party record's item), the HUD's ItemTurn.
-    CRefObject* link_;
-    // Holds `link` (counted; the previous one released).
-    void SetLink(CRefObject* link);
+    // a link record: the world server's CItemLink (the id the world's save keeps per item, or the party record's
+    // item), the HUD's ItemTurn.
+    Ref<CRefObject> link_;
     CItemLink* ServerLink() const;
     // the condition and its maximum (both from the prototype's; -1 bits, a NaN,
     // until then): at 0 or below (rounded) the item is broken.
@@ -105,7 +101,7 @@ public:
     // the level of spell the item can hold (the prototype's magicLevel plus the material's;
     // CItemConstructor::MagicCapacity).
     std::uint32_t magicLevel_;
-    CSpell* spell_;               // the spell carried by the item (scrolls, wands); counted
+    Ref<CSpell> spell_;           // the spell carried by the item (scrolls, wands)
     std::uint32_t count_;         // the stack's count
 };
 
@@ -123,7 +119,7 @@ public:
 
     std::uint32_t value;
 };
-inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(link_); }
+inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(link_.Get()); }
 
 class CItemWeapon : public CItem {
 public:

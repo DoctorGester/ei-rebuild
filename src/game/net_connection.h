@@ -42,7 +42,7 @@ public:
     std::uint16_t id_;         // 0 until first sent
     std::uint8_t type_;        // message type of the object
     std::uint8_t flags_;       // bit 0 reliable; bits 1..7 priority (0..10)
-    RefPtrTo<Message> object_;   // the object (null once it is gone)
+    Ref<Message> object_;   // the object (null once it is gone)
     std::uint32_t serial_ = 0;   // the connection's count of tracked entries when this one was made: its key in priorities_
 };
 
@@ -89,7 +89,7 @@ struct FreedId {
 
 // An object received from the peer (the value of records_): its share (copied with Share, released as its owner).
 struct Record {
-    SharedRefPtr object;
+    SharedRef<CRefObject> object;
     std::uint32_t version = 0;   // the version last applied
 };
 

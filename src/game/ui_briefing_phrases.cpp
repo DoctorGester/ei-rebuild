@@ -192,7 +192,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 for (const auto& it : list) {
                     CItem* item = g_clientWorld.itemManager_->CreateItem(it);
                     if (!item) continue;
-                    ++item->refCount_;
+                    item->AddRef();
                     texts->FormatItemName(item, &name);
                     line = str::Format(kNameLine, label, name);
                     add();

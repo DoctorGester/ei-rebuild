@@ -15,7 +15,7 @@ namespace {
 
 // A timed entry's message ({seconds, object}).
 template <typename T, typename Entry>
-T* TimedValueOf(const Entry& entry) { return static_cast<T*>(entry.ref.ptr); }
+T* TimedValueOf(const Entry& entry) { return static_cast<T*>(entry.ref.Get()); }
 
 } // namespace
 
@@ -25,8 +25,6 @@ ServerBase::ServerBase() {
 
 ServerSession::ServerSession(std::uint32_t kind) {
     masterAddress_ = NetAddress{};
-    hostInfo_.ptr = nullptr;
-    map_.ptr = nullptr;
     magic_ = kSessionMagic;
     RegisterMessageTypes();
 
@@ -68,7 +66,7 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
     if (!bindings_.empty()) {
         for (auto& n : bindings_) {
             auto* binding = n.Get();
-            if (binding->ConnectionRef().ptr != g_currentConnection) continue;
+            if (binding->ConnectionRef().Get() != g_currentConnection) continue;
             record = binding->Player();
             if (record->host_) hosting = true;
             PushReplicated(*out, binding, 2);
@@ -76,7 +74,7 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
         if (record && !(record->flags7_ & CRefObject::kDetached)) {
             for (auto& n : lines_) {
                 auto* line = n.Get();
-                CRefObject* target = line->connection_.ptr;
+                CRefObject* target = line->connection_.Get();
                 if ((!target || target == g_currentConnection) &&
                     static_cast<std::int32_t>(line->number_) > static_cast<std::int32_t>(record->firstLine_))
                     PushReplicated(*out, line, 2);
@@ -87,40 +85,40 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
         PushReplicated(*out, n.Get(), 2);
         for (auto& m : fileRequests_) {
             auto* request = m.Get();
-            if (request->FileRef().ptr != n.Get() || request->ConnectionRef().ptr != g_currentConnection) continue;
-            for (const SharedRefPtr& chunk : n.Get()->chunks_) PushReplicated(*out, chunk.ptr, 1);
+            if (request->FileRef().Get() != n.Get() || request->ConnectionRef().Get() != g_currentConnection) continue;
+            for (const SharedRef<CRefObject>& chunk : n.Get()->chunks_) PushReplicated(*out, chunk.Get(), 1);
             break;
         }
     }
     if (hosting)
         for (auto& n : queuedMaps_) PushReplicated(*out, n.Get(), 2);
-    if (CRefObject* object = hostInfo_.ptr) PushReplicated(*out, object, 2);
-    if (CRefObject* object = map_.ptr) PushReplicated(*out, object, 2);
+    if (CRefObject* object = hostInfo_.Get()) PushReplicated(*out, object, 2);
+    if (CRefObject* object = map_.Get()) PushReplicated(*out, object, 2);
     for (auto& n : awards_) {
         auto* award = TimedValueOf<AwardMessage>(n);
-        if (award->connection_.ptr == g_currentConnection) PushReplicated(*out, award, 2);
+        if (award->connection_.Get() == g_currentConnection) PushReplicated(*out, award, 2);
     }
     for (auto& n : offers_) {
         auto* offer = n.Get();
-        if (offer->partner_.ptr != record) continue;
+        if (offer->partner_.Get() != record) continue;
         bool complete = true;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members_.size()); ++i) {
-            CRefObject* member = offer->members_[i].ptr;
+            CRefObject* member = offer->members_[i].Get();
             if (!member || (member->flags7_ & CRefObject::kDetached)) complete = false;
         }
         if (!complete) continue;
         PushReplicated(*out, offer, 2);
-        const std::vector<CountedRefPtr>& members = n.Get()->members_;
+        const std::vector<HeldRef<CRefObject>>& members = n.Get()->members_;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
-            PushReplicated(*out, n.Get()->members_[i].ptr, 2);
+            PushReplicated(*out, n.Get()->members_[i].Get(), 2);
     }
     for (auto& n : trades_) {
         auto* trade = n.Get();
-        if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicated(*out, trade, 2);
+        if (trade->player_.Get() == record || trade->partner_.Get() == record) PushReplicated(*out, trade, 2);
     }
     for (auto& n : finishedTrades_) {
         auto* trade = TimedValueOf<TradeMessage>(n);
-        if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicated(*out, trade, 2);
+        if (trade->player_.Get() == record || trade->partner_.Get() == record) PushReplicated(*out, trade, 2);
     }
 }
 

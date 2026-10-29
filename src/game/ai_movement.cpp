@@ -33,13 +33,6 @@ void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
     std::memset(grid->data, 0, static_cast<std::size_t>(grid->width * grid->height));
 }
 
-// The handle's reference dropped (the object deleted with the last).
-void ReleaseHandle(ShapeCacheHandle* handle) {
-    if (CRefObject* ref = handle->ref) {
-        ref->Release();
-    }
-}
-
 } // namespace
 
 CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
@@ -67,14 +60,12 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         const CUnitShape* shape = nullptr;
         EI_NAN_AUDIT(otherHeight);
         if (otherHeight <= kShapeMinHeight) {
-            if (handle.ref) handle.ref->Release();
+            handle.ref.Reset();
         } else {
             int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
             handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
             shape = static_cast<const CUnitShape*>(g_unitShapes.Get(&handle));
-            if (CRefObject* ref = handle.ref) {
-                ref->Release();
-            }
+            handle.ref.Reset();
         }
 
         int level = x87::fistp(static_cast<float>((2.0f - static_cast<double>(unit->standingHeight)) * 16.0f));
@@ -230,6 +221,6 @@ void* CAIMap::UnitShape(float standingHeight) {
     handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
 
     CRefObject* shape = g_unitShapes.Resolve(&handle);
-    ReleaseHandle(&handle);
+    handle.ref.Reset();
     return shape;
 }

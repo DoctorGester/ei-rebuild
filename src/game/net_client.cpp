@@ -38,18 +38,12 @@ ClientSession::ClientSession() {
     info_ = nullptr;
     binding_ = nullptr;
     map_ = nullptr;
-    player_.ptr = nullptr;
-    party_.ptr = nullptr;
     trade_ = nullptr;
     PartyConstruct(&parties_[0]);
     PartyConstruct(&parties_[1]);
 
     // The local player's login.
-    auto* record = NewCounted<LoginMessage>();
-    if (record != player_.ptr) {
-        player_.Destroy();
-        player_.Share(record);
-    }
+    ShareOwned(player_, NewCounted<LoginMessage>());
 
     magic_ = kSessionMagic;
     RegisterMessageTypes();
@@ -94,15 +88,15 @@ ClientSession::ClientSession() {
 // requests, and our trade offer with its members. All priority 1.
 void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
     ClientSession* self = this;
-    PushReplicated(*out, self->player_.ptr, 1);
-    for (auto& n : self->timers_) PushReplicated(*out, n.ref.ptr, 1);
-    for (auto& n : self->fileRequests_) PushReplicated(*out, n.ptr, 1);
-    if (void* group = self->party_.ptr) {
+    PushReplicated(*out, self->player_.Get(), 1);
+    for (auto& n : self->timers_) PushReplicated(*out, n.ref.Get(), 1);
+    for (auto& n : self->fileRequests_) PushReplicated(*out, n.Get(), 1);
+    if (void* group = self->party_.Get()) {
         PushReplicated(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
-            const std::vector<CountedRefPtr>& members = self->party_.Get()->members_;
+            const std::vector<HeldRef<CRefObject>>& members = self->party_.Get()->members_;
             if (i >= static_cast<std::uint32_t>(members.size())) break;
-            PushReplicated(*out, members[i].ptr, 1);
+            PushReplicated(*out, members[i].Get(), 1);
         }
     }
 }

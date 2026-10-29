@@ -51,7 +51,7 @@ void ServerSession::AnnounceToMaster() {
     info.kind = static_cast<std::uint8_t>(kind_);
     const char* empty = game::kEmptyText;
     description.assign(empty);
-    CRefObject* map = map_.ptr;
+    CRefObject* map = map_.Get();
     if (map && !(map->flags7_ & CRefCounted::kDetached)) {
         std::string title;
         description.assign(*SessionMapNameInto(&title));
@@ -89,7 +89,7 @@ void ServerOnSay(ServerSession* server, SayMessage* message) {
     const auto& bindings = server->bindings_;
     for (auto& node : bindings) {
         auto* binding = node.Get();
-        if (binding->ConnectionRef().ptr != connection) continue;
+        if (binding->ConnectionRef().Get() != connection) continue;
         // (The original also tests the binding for null here, after having read it.)
         if (binding->flags7_ & CRefCounted::kDetached) return;
         auto* player = binding->Player();

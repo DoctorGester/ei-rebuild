@@ -105,8 +105,8 @@ functions are STLport's `vector<Query>` instantiation: 004439C0 `_M_insert_overf
   DriverSession's TakeNew append through `AddTail` and count the link.
 - `LoopbackLink::CreatePair` takes the `CWorldHandle*`; every link's Receive takes the `CMemoryStream*`.
 - `SocketDriver::addresses` is a `std::vector<NetAddress>`.
-- The world's helpers are `RefPtrTo<CWorldHandle> worldHandle_`, `RefPtrTo<netlink::DriverSession> netSession_` and
-  `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `g_serverWorld.worldHandle_`.
+- The world's helpers are `Ref<CWorldHandle> worldHandle_`, `Ref<netlink::DriverSession> netSession_` and
+  `Ref<CClientHandle> handle_`; the server's 007AFFBC is `g_serverWorld.worldHandle_`.
 
 ## C21 batch 23: typed server records (2026-10-22)
 
@@ -114,6 +114,6 @@ functions are STLport's `vector<Query>` instantiation: 004439C0 `_M_insert_overf
 - ServerSession's connection functions take and return `Connection*` (FindGuestConnection, FindConnectionBySerial, Kick, Ban,
   ReportDeparture, IsHostConnection, PlayerStateIs3); FindPlayer returns the `PlayerMessage*` (the pause announcement read it as a
   LoginMessage, whose name_ sits at the same offset), FindTrade a `TradeMessage*` of two `PartyMessage*`s. A binding's connection is
-  still a `RefPtr` (`ConnectionOf` casts once, net_server_players.cpp).
+  a `Ref<Connection>` (`ConnectionOf`, net_server_players.cpp).
 - The join handler takes the appended player record and binding with `players_.Back()` / `bindings_.Back()`; the held map message
   is `map_.Get()`.

@@ -22,7 +22,7 @@ template <typename List>
 void EraseValue(List& list, const void* value) {
     for (auto node = list.begin(); node != list.end();) {
         auto next = std::next(node);
-        if (node->ptr == value) list.erase(node);
+        if (node->Get() == value) list.erase(node);
         node = next;
     }
 }
@@ -112,7 +112,7 @@ void ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
             }
         }
     }
-    EraseValue(self->bindings_, message->binding_.ptr);
+    EraseValue(self->bindings_, message->binding_.Get());
 }
 
 } // namespace net

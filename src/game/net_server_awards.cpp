@@ -26,17 +26,6 @@ namespace {
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
-// RefPtr::Destroy as the callers inline it: the release is not null-checked after the shutdown.
-void DestroyInline(RefPtr* p) {
-    if (CRefObject* object = p->ptr) {
-        if (object->refs_ != 1) {
-            object->flags7_ |= CRefObject::kDetached;
-            object->Shutdown();
-        }
-        p->ptr->Release();
-    }
-}
-
 } // namespace
 
 } // namespace net
@@ -47,10 +36,7 @@ namespace net {
 // caller's string (made in the argument slot), destroyed here as the callee destroys a by-value argument.
 void ServerSession::QueueAward(CRefObject* connection, int kind, float value, std::string text) {
     auto* award = NewCounted<AwardMessage>();
-    CRefObject* previous = award->connection_.ptr;
-    award->connection_.ptr = connection;
-    if (connection) connection->AddRef();
-    if (previous) previous->Release();
+    award->connection_.Assign(connection);
     award->kind_ = static_cast<std::uint32_t>(kind);
     x87::CopyBits(award->value_, value);
 
@@ -59,8 +45,8 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
 
     // Shared three times over: the list keeps a clone of the entry's clone (each share marks the object
     // copy-on-share); the entry's and then the first share are destroyed.
-    SharedRefPtr shared(award);
-    TimedEntry<SharedRefPtr> entry(kAwardDelay, shared);
+    SharedRef<CRefObject> shared(award);
+    TimedEntry<SharedRef<CRefObject>> entry(kAwardDelay, shared);
     awards_.push_back(entry);
 }
 
@@ -77,7 +63,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
         if (IsLive(player) && player->host_) break;
         ++node;
     }
-    CRefObject* connection = node->Get()->ConnectionRef().ptr;
+    CRefObject* connection = node->Get()->ConnectionRef().Get();
     if (!IsLive(connection)) return;
 
     const std::vector<std::string>& items = entry->lists[0];   // the items given
@@ -101,7 +87,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
 // empties queuedMaps_, variables_ and files_, and queues the following zones
 void ServerSession::CompleteZone(const std::string* zone) {
     auto* holder = &map_;
-    if (IsLive(holder->ptr)) {
+    if (IsLive(holder->Get())) {
         {
             std::string title;
             const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
@@ -125,7 +111,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
         float award1 = static_cast<float>(value1 / divisor);
 
         for (auto& node : clients_) {
-            CRefObject* connection = node.ptr;
+            CRefObject* connection = node.Get();
             const char* empty = game::kEmptyText;
             QueueAward(connection, 0, award0, std::string(empty));
             QueueAward(connection, 1, award1, std::string(empty));
@@ -133,10 +119,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
         AwardHost(entry, true);
     }
 
-    if (holder->ptr) {
-        DestroyInline(holder);
-        holder->Share(nullptr);
-    }
+    DestroyOwned(*holder);
     queuedMaps_.clear();
     variables_.clear();
     files_.clear();
@@ -149,7 +132,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
 // world's map (with null).
 void ServerSession::LeaveZone() {
     auto* holder = &map_;
-    if (IsLive(holder->ptr)) {
+    if (IsLive(holder->Get())) {
         {
             std::string title;
             const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
@@ -165,10 +148,7 @@ void ServerSession::LeaveZone() {
         if (entry) AwardHost(entry, true);
     }
 
-    if (holder->ptr) {
-        DestroyInline(holder);
-        holder->Share(nullptr);
-    }
+    DestroyOwned(*holder);
     queuedMaps_.clear();
     variables_.clear();
     files_.clear();

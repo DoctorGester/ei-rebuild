@@ -196,11 +196,7 @@ void AnnounceHost(const char* zone) {
     address.Parse(host, kHostPort);
     std::string formatted = address.ToString();
     net::HostMessage* record = net::NewCounted<net::HostMessage>();
-    RefPtr& slot = net::g_gameServer->hostInfo_;
-    if (record != slot.ptr) {
-        slot.Destroy();
-        slot.Share(record);
-    }
+    ShareAssignOwned(net::g_gameServer->hostInfo_, record);
     net::HostMessage* shared = net::g_gameServer->hostInfo_.Get();
     shared->address_ = formatted;
     shared = net::g_gameServer->hostInfo_.Get();
@@ -773,11 +769,7 @@ void GameFlow::SwitchMultiplayerZone() {
             // The host sends command 9 with the announced zone and drops the announcement.
             net::HostMessage* announced = net::g_gameServer->hostInfo_.Get();
             if (Active(announced)) net::g_gameServer->AnnounceToGuests(kServerDropClient, announced->zone_.data());
-            RefPtr& handle = net::g_gameServer->hostInfo_;
-            if (handle.ptr) {
-                handle.Destroy();
-                handle.Share(nullptr);
-            }
+            DestroyOwned(net::g_gameServer->hostInfo_);
         }
         zoneSwitchStarted_ = 0;
         return;

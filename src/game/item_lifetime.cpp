@@ -16,19 +16,9 @@ void SetMinusOne(T& field) {
     field = std::bit_cast<T>(kMinusOne);
 }
 
-CRefCounted* Link(CRefObject* value) { return value; }
-
-void DropSpell(CSpell*& spell) {
-    CSpell* old = spell;
-    spell = nullptr;
-    if (old != nullptr) old->Release();
-}
-
 } // namespace
 
 CItem::CItem() {
-    link_ = nullptr;
-    spell_ = nullptr;
     SetMinusOne(condition_);
     SetMinusOne(conditionMax_);
     SetMinusOne(charge_);
@@ -38,27 +28,20 @@ CItem::CItem() {
     SetMinusOne(price_);
     SetMinusOne(unreadValue_);
     count_ = 1;
-    DropSpell(spell_);
 }
 
 void CItem::Create() {
     count_ = 1;
-    DropSpell(spell_);
+    spell_.Reset();
 }
 
 void CItem::Destroy() {
-    DropSpell(spell_);
-    CRefCounted* link = Link(link_);
-    link_ = nullptr;
-    if (link) link->Release();
+    spell_.Reset();
+    link_.Reset();
 }
 
 CItem::~CItem() {
     CItem::Destroy();
-    // The members' destructors: the spell released and the link's count dropped, without clearing.
-    if (spell_ != nullptr) spell_->Release();
-    CRefCounted* link = Link(link_);
-    if (link) link->Release();
 }
 
 CItemWeapon::CItemWeapon() {

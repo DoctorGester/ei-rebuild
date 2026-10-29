@@ -544,7 +544,8 @@ public:
     std::string name;               // the figure's name
     std::list<HeldRef<CParticleSource>> effectSources;   // the particle sources attached to the object
     Vector3 scale;
-    std::vector<CFigureMesh*> parts;
+    // the figure's parts (counted; CopyFigure shares them uncounted, Destroy3D drops them without a release)
+    std::vector<HeldRef<CFigureMesh>> parts;
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     Ref<CLinkMesh> figure;

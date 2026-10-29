@@ -542,7 +542,7 @@ void CUnitServer::TickItemSpells() {
         }
         CItem* item = current->item;
         if (!item) continue;
-        auto* spell = item->spell_;
+        auto* spell = item->spell_.Get();
         float cost = spell->manaCost_;
         if (cost >= item->charge_) continue;   // a NaN charge or cost goes on
         if (spell->Type() == SpellType::Healing) {

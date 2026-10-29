@@ -204,8 +204,8 @@ public:
     CItemManager* itemManager_;          // items (ItemFactory)
     CItemConstructor* itemConstructor_;  // ItemConstructor
     // A counted helper CWorld::Create shares in.
-    RefPtrTo<CWorldHandle> worldHandle_;
-    RefPtrTo<netlink::DriverSession> netSession_;   // the network session (OpenSession)
+    Ref<CWorldHandle> worldHandle_;
+    Ref<netlink::DriverSession> netSession_;   // the network session (OpenSession)
     int tick_;                            // game time in ticks
     int updateCount_;                     // world updates run (the server's Update)
     // Paused: the server's Update skips the players and the tick while it is set; the client's Segment
@@ -1008,7 +1008,7 @@ public:
     std::list<Footprint> footprints_;
     std::list<GroundPrint> scorchMarks_;
     int lightLevelsCountdown_;            // time left before the blood prints are lit again (Segment); 0 after Setup
-    RefPtrTo<CClientHandle> handle_;      // the client's player source
+    Ref<CClientHandle> handle_;      // the client's player source
     CSoundManager* sounds_;               // the sound manager (owned; the client controller's hit sounds)
     CTextManager* texts_;                 // the text resources (counted)
     PlatformSet platforms_;

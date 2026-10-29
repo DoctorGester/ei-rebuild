@@ -639,7 +639,7 @@ void CItemInfoPanel::DescribeQuickItem() {
 
 void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = FirstItem();
-    CSpell* spell = item ? item->spell_ : nullptr;
+    CSpell* spell = item ? item->spell_.Get() : nullptr;
     if (!spell) {
         return;
     }

@@ -49,6 +49,7 @@ int CObject3D::RemovePart(CFigureMesh* part) {
     if (attached) attached->OnPartRemoved(part);
     int index = IndexOf(parts, part);
     if (index < 0) return 0;
+    parts[index].Take();   // released below, after the detach
     RemoveAt(parts, index);
     part->SetObject(nullptr);
     if (animation) animation->DetachMesh(part);

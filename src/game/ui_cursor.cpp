@@ -41,7 +41,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     MmpHeader* picture = manager->GetFileData(name);
     // (A throw passes the exception on; that ends the game.)
     holder = new Surface(g_sceneRenderer.device_, picture);
-    ++holder->refs_;
+    holder->AddRef();
 
     // The holder took the picture's size and the screen's pixel size or threw.
     std::uint32_t pictureWidth = static_cast<std::uint32_t>(holder->width), pictureHeight = static_cast<std::uint32_t>(holder->height);

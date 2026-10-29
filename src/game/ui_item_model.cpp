@@ -27,6 +27,6 @@ CUiMesh* ItemModel(std::string_view name) {
         model->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);
         model->FitVertexBounds();
     }
-    ++model->refCount_;
+    model->AddRef();
     return model;
 }

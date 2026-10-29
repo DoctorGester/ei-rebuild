@@ -22,8 +22,13 @@ void CObject3D::SaveTransform(lib::File* file) { CTransformObject::SaveTransform
 
 void CObject3D::LoadTransform(lib::File* file) { CTransformObject::LoadTransform(file); }
 
+// The parts are copied uncounted, as the original copies the pointers: the old ones are dropped without a release
+// and the copies take no reference.
 void CObject3D::CopyFigure(const CObject3D* other) {
+    for (HeldRef<CFigureMesh>& part : parts) part.Take();
     parts = other->parts;
+    for (CFigureMesh* part : parts)
+        if (part) part->ForgetReference();
     CTransformObject::CopyTransform(*other);
 }
 

@@ -24,7 +24,7 @@ constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 // Keeps `object` on the timers list for `seconds` (shared into the entry).
 void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
     // The list's copy shares the entry's share: a clone, as sharing marked the object copy-on-share.
-    TimedEntry<SharedRefPtr> entry(seconds, SharedRefPtr(object));
+    TimedEntry<SharedRef<CRefObject>> entry(seconds, SharedRef<CRefObject>(object));
     timers_.push_back(entry);
 }
 
@@ -38,27 +38,12 @@ void ClientSession::SendCommand(int kind, std::string_view text) {
     command->text_.assign(text);
 
     // As AddTimed: the list keeps a clone of the entry's share.
-    TimedEntry<SharedRefPtr> entry(kCommandLifetime, SharedRefPtr(command));
+    TimedEntry<SharedRef<CRefObject>> entry(kCommandLifetime, SharedRef<CRefObject>(command));
     self->timers_.push_back(entry);
 }
 
 // Makes `*out` an empty server entry (no name or description, kind 4, no players).
-void ClientSession::CreateEntry(RefPtr* out) {
-    auto* entry = NewCounted<ServerEntry>();
-    if (entry == out->ptr) return;
-    if (CRefObject* old = out->ptr) {
-        if (old->refs_ != 1) {
-            old->flags7_ |= CRefObject::kDetached;
-            old->AddRef();
-            old->OnShutdown();
-            --old->refs_;
-        }
-        CRefObject* held = out->ptr;
-        --held->refs_;
-        if (held->refs_ == 0 && held) delete held;
-    }
-    out->Share(entry);
-}
+void ClientSession::CreateEntry(Ref<ServerEntry>* out) { ShareAssignOwned(*out, NewCounted<ServerEntry>()); }
 
 // The game flow begins the multiplayer game.
 void ClientSession::OnJoined() { g_gameFlow.BeginMultiplayerGame(); }

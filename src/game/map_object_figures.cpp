@@ -66,7 +66,7 @@ void AddPlacedPart(BoxBits& box, const CFigureMesh* p) {
 void CObject3D::ComputeBounds() {
     BoxBits box;
     for (int i = 0; i < std::ssize(parts); ++i) {
-        auto* part = parts[i];
+        CFigureMesh* part = parts[i];
         if (DistanceSquared(part) > kNearSquared) continue;   // NaN distances count as near
         AddPlacedPart(box, part);
     }
@@ -112,7 +112,7 @@ void CObject3D::SetFigureScale(const float* newScale) {
         CLinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
         figure.Assign(rebuilt);
         for (int i = 0; i < std::ssize(parts); ++i) {
-            auto* part = parts[i];
+            CFigureMesh* part = parts[i];
             const char* pieceName = part->GetName();
             std::map<std::string, LinkPartHeader>::const_iterator piece;
             {

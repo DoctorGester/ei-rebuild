@@ -145,7 +145,7 @@ void CCampPages::DeconstructSpell() {
     Ref<CItem> copy;
     copy.Assign(results->CopyItem(results->items_[0]));
     results->RemoveItem(results->items_[0], 0);
-    auto* spell = copy->spell_;
+    auto* spell = copy->spell_.Get();
 
     AddLoot(results, NewLoot(results, kPrototypeItem), PrototypeIndex(spell));
     for (int i = 0; i < spell->GetModifierCount(); ++i)

@@ -8,14 +8,11 @@
 #include <cstdint>
 #include <unordered_map>
 
-// A handle into the cache: the cache and the object it resolved to, or the height to look up. It starts with
-// nothing resolved: no reference, no cache.
+// A handle into the cache: the cache and the object it resolved to (one reference), or the height to look up. It
+// starts with nothing resolved: no reference, no cache.
 struct ShapeCacheHandle {
     void* cache = nullptr;
-    union {
-        CRefObject* ref = nullptr;
-        RefPtr counted;   // the same dword as the owning pointer it is (Assign adds a reference)
-    };
+    Ref<CRefObject> ref;
     float height = 0.0f;
 };
 
@@ -31,19 +28,19 @@ public:
         CRefObject* shape;
         auto found = shapes.find(handle->height);
         if (found != shapes.end()) {
-            shape = found->second.ptr;
+            shape = found->second.Get();
         } else {
             shape = CreateShape(handle);
-            shapes[handle->height].ShareAssign(shape);
+            ShareAssignOwned(shapes[handle->height], shape);
         }
         handle->cache = this;
-        handle->counted.Assign(shape);
+        handle->ref.Assign(shape);
         return shape;
     }
 
     // By standing height (the game hashed its bits; the heights are tenths, never NaN, so float equality is the
     // game's).
-    std::unordered_map<float, SharedRefPtr> shapes;
+    std::unordered_map<float, SharedRef<CRefObject>> shapes;
 };
 
 // The cache (defined in ai_movement.cpp).

@@ -151,7 +151,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
 void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     auto* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return;
-    auto* spell = weapon->spell_;
+    auto* spell = weapon->spell_.Get();
     if (!spell || !(spell->targetFlags_ & SpellTargetFlag::ItemTriggered)) return;
     float cost = spell->manaCost_;
     if (cost > weapon->charge_) return;
@@ -166,7 +166,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
     for (std::uint32_t slot = 0; slot < 7; ++slot) {
         auto* item = unit->armor[slot];
         if (!item) continue;
-        auto* spell = item->spell_;
+        auto* spell = item->spell_.Get();
         if (!spell || !(spell->targetFlags_ & SpellTargetFlag::ItemTriggered)) continue;
         float cost = spell->manaCost_;
         if (cost > item->charge_) continue;

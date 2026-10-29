@@ -41,7 +41,6 @@ CWorldClient::CWorldClient() {
     secondGrid_.allocatedWidth_ = 1;
     secondGrid_.allocatedHeight_ = 1;
     secondGrid_.Allocate();
-    handle_.ptr = nullptr;
     flags_ |= kClientFlags;
     worldValue_ = -1;
     camera_ = nullptr;

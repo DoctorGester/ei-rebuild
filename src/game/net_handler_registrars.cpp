@@ -14,12 +14,10 @@ namespace net {
 namespace {
 
 void RegisterHandler(SessionBase* self, int channel, MessageHandler handler, Message* (*factory)()) {
-    RefPtr prototype;
-    prototype.Share(factory());
-    const std::uint32_t key = TypeRegistry::KeyOf(prototype.ptr);
+    SharedRef<Message> prototype(factory());
+    const std::uint32_t key = TypeRegistry::KeyOf(prototype);
     int type = self->types_.TypeOf(&key);
     self->AddHandler(channel, static_cast<std::uint32_t>(type), handler);
-    prototype.Destroy();
 }
 
 } // namespace

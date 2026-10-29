@@ -18,17 +18,17 @@ namespace {
 constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 
 // The offer of `offer`'s partner (its player is our partner and its partner our player), or null.
-PartyMessage* FindPartnerOffer(const std::list<CountedRefTo<PartyMessage>>& list, PartyMessage* offer) {
+PartyMessage* FindPartnerOffer(const std::list<HeldRef<PartyMessage>>& list, PartyMessage* offer) {
     for (auto& node : list) {
         auto* other = node.Get();
-        if (other->player_.ptr == offer->partner_.ptr && other->partner_.ptr == offer->player_.ptr) return node.Get();
+        if (other->player_.Get() == offer->partner_.Get() && other->partner_.Get() == offer->player_.Get()) return node.Get();
     }
     return nullptr;
 }
 
 // The partner is told a trade was offered (text 10) or withdrawn (text 11), with the player's name.
 void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
-    CRefObject* partner = offer->partner_.ptr;
+    CRefObject* partner = offer->partner_.Get();
     const char* name = offer->player_.Get()->name_.data();
     self->Announce(g_interface.MessageText(text, name), partner);
 }
@@ -43,8 +43,8 @@ namespace net {
 TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMessage* other) {
     for (auto& node : trades_) {
         TradeMessage* trade = node.Get();
-        const CRefObject* first = trade->offer_.ptr;
-        if ((first == offer && trade->partnerOffer_.ptr == other) || (first == other && trade->partnerOffer_.ptr == offer))
+        const CRefObject* first = trade->offer_.Get();
+        if ((first == offer && trade->partnerOffer_.Get() == other) || (first == other && trade->partnerOffer_.Get() == offer))
             return trade;
     }
     return nullptr;
@@ -54,7 +54,7 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
 void ServerOnObjectRemoved(ServerSession* self, Message* message) {
     for (auto node = self->fileRequests_.begin(); node != self->fileRequests_.end();) {
         auto next = std::next(node);
-        if (node->ptr == message) self->fileRequests_.erase(node);
+        if (node->Get() == message) self->fileRequests_.erase(node);
         node = next;
     }
 }
@@ -72,8 +72,8 @@ void ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     auto* trade = NewCounted<TradeMessage>();
     trade->offer_.Assign(message);
     trade->partnerOffer_.Assign(other);
-    trade->player_.Assign(message->player_.ptr);
-    trade->partner_.Assign(message->partner_.ptr);
+    trade->player_.Assign(message->player_.Get());
+    trade->partner_.Assign(message->partner_.Get());
     self->trades_.emplace_back(trade);
     message->trading_ = 1;
     other->trading_ = 1;
@@ -103,7 +103,7 @@ void ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
 void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     for (auto node = self->offers_.begin(); node != self->offers_.end();) {
         auto next = std::next(node);
-        if (node->ptr == message) self->offers_.erase(node);
+        if (node->Get() == message) self->offers_.erase(node);
         node = next;
     }
     PartyMessage* other = FindPartnerOffer(self->offers_, message);
@@ -111,15 +111,15 @@ void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     if (!message->trading_) TellPartner(self, message, 11);
     if (!IsLive(trade)) return;
     if (trade->done_) {
-        CountedRefPtr held(trade);
-        TimedEntry<CountedRefPtr> entry(kFinishedDelay, held);
+        HeldRef<CRefObject> held(trade);
+        TimedEntry<HeldRef<CRefObject>> entry(kFinishedDelay, held);
         self->finishedTrades_.push_back(entry);
     }
     // remove(trade): each element holding it erased as the walk reaches it, the trade held meanwhile.
-    CountedRefPtr removing(trade);
+    HeldRef<CRefObject> removing(trade);
     for (auto node = self->trades_.begin(); node != self->trades_.end();) {
         auto next = std::next(node);
-        if (node->ptr == removing.ptr) self->trades_.erase(node);
+        if (node->Get() == removing.Get()) self->trades_.erase(node);
         node = next;
     }
 }

@@ -5770,3 +5770,9 @@ title = "The options as a plain global; retire the empty global-objects check"
 group = "cleanup"
 depends = ["C50b2"]
 note = "C50b2 follow-up. options::g_options 0079BC70 (options_global.cpp, initialiser 00458700 / exit 00458720 in options_construct.cpp) is the last lib::StaticObject (static_object.h, STATIC_OBJECT_BYTES in named_data.py). Make it a plain global like the camera and the renderer (check what reads it before GameMain and at exit: SaveToRegistry runs in ShutDown), then delete lib::StaticObject. config/global_objects.csv is empty since C50b2: named_data.py's global-objects check (GlobalObject, check_globals, global_problems, --owner) and its docs (standalone.md 'Global objects (C18n)') can go, or keep --owner if something still uses it."
+
+[[ticket]]
+id = "C49e"
+title = "Ref for the game client's raw counted fields and the AI mode list"
+group = "cleanup"
+note = "C49a follow-up. ClientSession::info_, binding_, map_, trade_ are raw counted pointers (AssignRef / ClearRef / ReleaseInline in net_client_handlers.cpp and net_client_life.cpp): to Ref<T>. AIBrain::modes (std::list<AIMode*>, the T*& DestroyOwned / ShareOwned overloads in core_refcount.h) to std::list<SharedRef<AIMode>>, then delete the raw overloads. ScriptEffect<T> stays (its reset removes the timed object). Goldens unchanged."

@@ -289,11 +289,10 @@ bool FramedLink::Receive(CMemoryStream* stream) {
 
 // DriverLink
 
-DriverLink::DriverLink() { player_.ptr = nullptr; }
+DriverLink::DriverLink() {}
 
 DriverLink::DriverLink(const DriverLink& other) : FramedLink(other) {
-    player_.ptr = other.player_.ptr;
-    if (player_.ptr) player_.ptr->AddRef();
+    player_.Assign(other.player_);
 }
 
 // The inbox's unread bytes, with the player's incoming reliable bytes after them, written back over
@@ -309,14 +308,11 @@ void DriverLink::Disconnect() {
         player_.Get()->reliableIn_.Seek(0);
         BufferPut(&player_.Get()->reliableIn_, pending.data_, pending.size_);
     }
-    net::Connection* player = player_.Get();
-    player_.ptr = nullptr;
-    if (player) player->Release();
+    player_.Reset();
 }
 
 DriverLink::~DriverLink() {
     DriverLink::Disconnect();
-    if (player_.ptr) player_.ptr->Release();
 }
 
 // Destroyed (disconnecting) and built again in place with the constructor's code: the

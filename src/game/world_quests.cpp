@@ -232,7 +232,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
         CItemLink* ref = new CItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id_);
-        item->SetLink(ref);
+        item->link_.Assign(ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
         CItem* item = unit->WornItem(slot);
@@ -240,7 +240,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
         CItemLink* ref = new CItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id_);
-        item->SetLink(ref);
+        item->link_.Assign(ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = unit->GetQuickItem(slot);
@@ -252,10 +252,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         if (entry) entry->Release();
         CItemLink* link = new CItemLink();
         link->value = static_cast<std::uint32_t>(added->id_);
-        CItemLink* old = item->ServerLink();
-        item->link_ = link;
-        if (link) link->AddRef();
-        if (old) old->Release();
+        item->link_.Assign(link);
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {
         CItem* spell = unit->GetSpell(slot);

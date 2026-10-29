@@ -19,7 +19,7 @@ PlayerMessage* PlayerOf(BindingMessage* binding) { return binding->Player(); }
 Connection* ConnectionOf(BindingMessage* binding) { return binding->ConnectionRef().Get(); }
 
 // The connection of the first binding whose player is live and the host, or null.
-Connection* HostConnection(const std::list<SharedRefTo<BindingMessage>>& bindings) {
+Connection* HostConnection(const std::list<SharedRef<BindingMessage>>& bindings) {
     for (auto& node : bindings) {
         PlayerMessage* player = PlayerOf(node.Get());
         if (IsLive(player) && player->host_) return ConnectionOf(node.Get());

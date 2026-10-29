@@ -115,7 +115,7 @@ public:
     bool flag = false;       // set by a move into a list shown turning
     float glow = 0.0f;       // phase of the spell glow
 };
-inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link_); }
+inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link_.Get()); }
 // An item a constructor made: a move into a list shown turning sets its turn's flag.
 inline bool IsMade(CItem* item) {
     const ItemTurn* turn = ItemTurnOf(item);

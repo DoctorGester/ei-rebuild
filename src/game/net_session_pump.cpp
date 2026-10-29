@@ -14,7 +14,7 @@ namespace netlink {
 namespace {
 
 // A new driver for `player`, put at the end of the owning list (shared there).
-DriverLink* NewDriver(DriverSession* self, CRefObject* player) {
+DriverLink* NewDriver(DriverSession* self, net::Connection* player) {
     auto* driver = net::NewCounted<DriverLink>();
     driver->player_.Assign(player);
     self->drivers_.emplace_back(driver);
@@ -28,10 +28,10 @@ DriverLink* NewDriver(DriverSession* self, CRefObject* player) {
 void DriverSession::PumpDrivers(net::SessionBase* session) {
     if (!IsLive(session)) return;
     for (auto& node : session->clients_) {
-        CRefObject* player = node.ptr;
+        net::Connection* player = node.Get();
         bool known = false;
         for (auto& it : drivers_) {
-            if (it.Get()->player_.ptr == player) {
+            if (it.Get()->player_.Get() == player) {
                 known = true;
                 break;
             }
@@ -49,7 +49,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
     }
     for (auto it = drivers_.begin(); it != drivers_.end();) {
         it->Get()->Pump();
-        if (IsLive(it->Get()->player_.ptr)) {
+        if (IsLive(it->Get()->player_.Get())) {
             ++it;
         } else {
             it = drivers_.erase(it);

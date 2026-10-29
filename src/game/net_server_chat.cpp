@@ -3,6 +3,7 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "game_singletons.h"
+#include "net_connection.h"
 #include "net_messages.h"
 #include "ui.h"
 #include "world_data.h"
@@ -32,16 +33,13 @@ void ServerSession::Announce(std::string_view text, CRefObject* player) {
     if (player && !(player->flags7_ & CRefObject::kDetached)) {
         for (auto& node : bindings_) {
             auto* binding = node.Get();
-            if (binding->PlayerRef().ptr == player) {
-                connection = binding->ConnectionRef().ptr;
+            if (binding->PlayerRef().Get() == player) {
+                connection = binding->ConnectionRef().Get();
                 break;
             }
         }
     }
-    CRefObject* previous = added->connection_.ptr;
-    added->connection_.ptr = connection;
-    if (connection) connection->AddRef();
-    if (previous) previous->Release();
+    added->connection_.Assign(connection);
 
     if (lines_.size() > kMaxLines) lines_.erase(lines_.begin());
 }

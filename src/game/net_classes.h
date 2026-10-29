@@ -278,15 +278,15 @@ struct SocketDriver {
 // seconds left (a float; the code that queues an entry stores a constant's bits) and a counted object, held
 // shared (the client's timers, the server's awards) or counted (the server's finished trades). A copy copies
 // the key, then the reference.
-template <typename Ref>
+template <typename Holder>
 struct TimedEntry {
-    TimedEntry(std::uint32_t bits, Ref object) : key(bits), ref(std::move(object)) {}
+    TimedEntry(std::uint32_t bits, Holder object) : key(bits), ref(std::move(object)) {}
 
     union {
         float seconds;
         std::uint32_t key;   // the seconds' bits, as the lists copy them
     };
-    Ref ref;
+    Holder ref;
 };
 
 // What a session replicates to the connection being updated (CollectReplicated fills it).
@@ -317,7 +317,7 @@ public:
     // The count and the flags are the creator's.
     SessionBase();
     ~SessionBase() override;
-    virtual void RemoveClient(std::list<SharedRefTo<Connection>>::iterator node);                     // end() is ignored
+    virtual void RemoveClient(std::list<SharedRef<Connection>>::iterator node);                     // end() is ignored
     virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor);      // kind 0
     virtual void OnGetInfo(const NetAddress* from, BufferCursor* cursor);     // kind 3 (logs an error)
     virtual void OnLogin(const NetAddress* from, BufferCursor* cursor);       // kind 4 (logs an error)
@@ -348,7 +348,7 @@ public:
     void AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler);
 
     // The connection to `address` in clients_, end() when none.
-    std::list<SharedRefTo<Connection>>::iterator FindClient(const NetAddress* address);
+    std::list<SharedRef<Connection>>::iterator FindClient(const NetAddress* address);
     // Logs it, removes a connection to the same address, appends a new connection with `id` and `address`;
     // its send interval follows from `rate`.
     void AddClient(const NetAddress* address, std::uint32_t id, int rate);
@@ -366,7 +366,7 @@ public:
     std::int32_t idReuseTime_;          // 75: seconds before a freed message id is reused
     std::uint32_t frame_;               // 1; Tick counts its calls
     double time_;                       // 0; Tick adds the elapsed time
-    std::list<SharedRefTo<Connection>> clients_;                // the connections
+    std::list<SharedRef<Connection>> clients_;                // the connections
     TypeRegistry types_;
     SocketDriver socket_;
     std::uint8_t reliable_[kMessageTypes];   // per message type: its objects are sent reliably
@@ -397,7 +397,7 @@ public:
     void OnGetInfo(const NetAddress* from, BufferCursor* cursor) override;   // a ping
     void OnLogin(const NetAddress* from, BufferCursor* cursor) override;     // patched by Rebirth
     void Tick(double dt) override;
-    virtual void Describe(RefPtr* out) = 0;                                  // this server's entry into *out
+    virtual void Describe(Ref<ServerEntry>* out) = 0;   // this server's entry into *out
     // Admits everybody. Whether a client from `from` may join: `*password` (the login cursor's next byte,
     // moved past the password when one is checked) and `*reason` (1 full, 2 banned, 3 bad password).
     virtual bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason);
@@ -419,7 +419,7 @@ public:
     void OnClientLeft(Connection* connection) override;                       // text 1
     void CollectReplicated(std::vector<Replicated>** out) override;
     void Tick(double dt) override;
-    void Describe(RefPtr* out) override;
+    void Describe(Ref<ServerEntry>* out) override;
     bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) override;
 
     // Switches the server to map `name`.
@@ -429,9 +429,9 @@ public:
     // When the held map message names `name`: drops it and queues "name_3" instead.
     bool FinishMap(const std::string* name);
     // The variable named `name`, variables_.end() when missing.
-    std::list<SharedRefTo<VariableMessage>>::iterator FindVariable(const std::string* name);
+    std::list<SharedRef<VariableMessage>>::iterator FindVariable(const std::string* name);
     // The variable named `name`, made (value 0) at the front of the list when missing.
-    std::list<SharedRefTo<VariableMessage>>::iterator FindOrAddVariable(const std::string* name);
+    std::list<SharedRef<VariableMessage>>::iterator FindOrAddVariable(const std::string* name);
     void SetVariable(const std::string* name, float value);       // zero removes it
     void RaiseVariable(const std::string* name, float value);     // to the larger value
     void RemoveVariable(const std::string* name);
@@ -479,20 +479,20 @@ public:
                                         // with the next announcement (GameInfoRecord::masterToken)
     NetAddress masterAddress_;          // the master server (port 28004)
     std::uint32_t nextLine_;            // the number of the next chat line
-    std::list<SharedRefTo<PlayerMessage>> players_;
-    std::list<SharedRefTo<LineMessage>> lines_; // chat and system lines, at most 50
-    std::list<SharedRefTo<FileMessage>> files_;
-    std::list<CountedRefTo<FileRequestMessage>> fileRequests_; // the clients' requests (file requests, connections)
+    std::list<SharedRef<PlayerMessage>> players_;
+    std::list<SharedRef<LineMessage>> lines_; // chat and system lines, at most 50
+    std::list<SharedRef<FileMessage>> files_;
+    std::list<HeldRef<FileRequestMessage>> fileRequests_; // the clients' requests (file requests, connections)
     // where the game is hosted (a HostMessage; world_game.cpp's AnnounceHost), replicated to everyone when set
-    RefPtrTo<HostMessage> hostInfo_;
-    std::list<SharedRefTo<BindingMessage>> bindings_; // player <-> connection
-    RefPtrTo<MapMessage> map_;          // the map message while a map is played
-    std::list<SharedRefTo<ZoneMessage>> queuedMaps_; // map messages the host may pick next
-    std::list<SharedRefTo<VariableMessage>> variables_;
-    std::list<TimedEntry<SharedRefPtr>> awards_;            // {delay, award}
-    std::list<CountedRefTo<PartyMessage>> offers_; // the players' trade offers
-    std::list<CountedRefTo<TradeMessage>> trades_;
-    std::list<TimedEntry<CountedRefPtr>> finishedTrades_;   // {delay, trade}: done trades, kept 60 s
+    Ref<HostMessage> hostInfo_;
+    std::list<SharedRef<BindingMessage>> bindings_; // player <-> connection
+    Ref<MapMessage> map_;          // the map message while a map is played
+    std::list<SharedRef<ZoneMessage>> queuedMaps_; // map messages the host may pick next
+    std::list<SharedRef<VariableMessage>> variables_;
+    std::list<TimedEntry<SharedRef<CRefObject>>> awards_;            // {delay, award}
+    std::list<HeldRef<PartyMessage>> offers_; // the players' trade offers
+    std::list<HeldRef<TradeMessage>> trades_;
+    std::list<TimedEntry<HeldRef<CRefObject>>> finishedTrades_;   // {delay, trade}: done trades, kept 60 s
     std::list<NetAddress> banned_;
     std::string name_;
     std::string mapName_;
@@ -514,14 +514,14 @@ public:
 
     ClientBase();
     ~ClientBase() override;
-    void RemoveClient(std::list<SharedRefTo<Connection>>::iterator node) override;
+    void RemoveClient(std::list<SharedRef<Connection>>::iterator node) override;
     bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override;
     void OnInfo(const NetAddress* from, BufferCursor* cursor) override;
     void OnAccepted(const NetAddress* from, BufferCursor* cursor) override;
     void OnRejected(const NetAddress* from, BufferCursor* cursor) override;
     void Tick(double dt) override;
     virtual void OnJoined() {}
-    virtual void CreateEntry(RefPtr* out) = 0;                                 // a new server entry into *out
+    virtual void CreateEntry(Ref<ServerEntry>* out) = 0;   // a new server entry into *out
 
     // A ping (3, the session time) to `address`.
     void SendPing(const NetAddress* address);
@@ -552,7 +552,7 @@ public:
     std::uint8_t refusal_;              // the reason the host gave
     float retryTimer_;                  // seconds to the next join request
     float retryInterval_;               // doubles with every request (0.1 first)
-    std::list<SharedRefTo<ServerEntry>> servers_;
+    std::list<SharedRef<ServerEntry>> servers_;
     ClientQueries queries_;             // servers asked directly
     std::list<NetAddress> waiting_;    // addresses waiting to be asked
     NetAddress alwaysAsk_;              // asked on every refresh (ip 0: none)
@@ -592,7 +592,7 @@ public:
     void CollectReplicated(std::vector<Replicated>** out) override;
     void Tick(double dt) override;
     void OnJoined() override;
-    void CreateEntry(RefPtr* out) override;
+    void CreateEntry(Ref<ServerEntry>* out) override;
 
     // Applies the awards received: experience, gold, items.
     void ApplyAwards();
@@ -601,21 +601,21 @@ public:
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, std::string_view text);
 
-    std::list<CountedRefTo<PlayerMessage>> players_;
-    std::list<CountedRefTo<LineMessage>> lines_;
-    std::list<CountedRefTo<FileMessage>> files_;
-    std::list<CountedRefTo<FileChunkMessage>> chunks_;
-    std::list<SharedRefTo<FileRequestMessage>> fileRequests_; // file requests for the server
+    std::list<HeldRef<PlayerMessage>> players_;
+    std::list<HeldRef<LineMessage>> lines_;
+    std::list<HeldRef<FileMessage>> files_;
+    std::list<HeldRef<FileChunkMessage>> chunks_;
+    std::list<SharedRef<FileRequestMessage>> fileRequests_; // file requests for the server
     HostMessage* info_;                 // the game's description, counted
     BindingMessage* binding_;           // our binding, counted
     MapMessage* map_;                   // the map message, counted
-    std::list<CountedRefTo<ZoneMessage>> zones_; // map messages the host may pick
-    std::list<CountedRefTo<VariableMessage>> variables_;
-    RefPtrTo<LoginMessage> player_;     // the local player's login record
-    std::list<TimedEntry<SharedRefPtr>> timers_;            // {seconds left, object}: objects kept for a while
-    std::list<CountedRefTo<AwardMessage>> awards_; // awards received, applied by ApplyAwards
-    RefPtrTo<PartyMessage> party_;      // our trade offer (party description)
-    std::list<CountedRefTo<PartyMessage>> offers_; // the other players' trade offers
+    std::list<HeldRef<ZoneMessage>> zones_; // map messages the host may pick
+    std::list<HeldRef<VariableMessage>> variables_;
+    Ref<LoginMessage> player_;     // the local player's login record
+    std::list<TimedEntry<SharedRef<CRefObject>>> timers_;            // {seconds left, object}: objects kept for a while
+    std::list<HeldRef<AwardMessage>> awards_; // awards received, applied by ApplyAwards
+    Ref<PartyMessage> party_;      // our trade offer (party description)
+    std::list<HeldRef<PartyMessage>> offers_; // the other players' trade offers
     std::list<TradeRecord> tradeRecords_;
     TradeMessage* trade_;               // the current trade, counted
     std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
