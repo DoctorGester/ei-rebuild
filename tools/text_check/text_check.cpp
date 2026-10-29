@@ -76,6 +76,7 @@ std::string FormatName(unsigned format) {
     add(kRight, "RIGHT");
     add(kVCenter, "VCENTER");
     add(kWordBreak, "WORDBREAK");
+    add(kSingleLine, "SINGLELINE");
     add(kExpandTabs, "EXPANDTABS");
     add(kNoPrefix, "NOPREFIX");
     add(kCalcRect, "CALCRECT");
@@ -663,6 +664,7 @@ std::vector<FontSpec> FontSpecs() {
 
 const unsigned kFormats[] = {
     0, kWordBreak, kWordBreak | kCenter, kWordBreak | kRight, kWordBreak | kExpandTabs, kCenter | kVCenter, kWordBreak | kNoPrefix, kRight,
+    kCenter | kVCenter | kSingleLine, kSingleLine,
 };
 const int kWidths[] = {90, 220, 420};   // in the 800 x 600 layout, scaled to the screen
 
@@ -749,8 +751,10 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
                         // Pixels, for every Nth case (and every synthetic one), in rectangles of a few heights.
                         const bool pixelCase = test.synthetic || (static_cast<int>(index) + variant) % options.pixelsEvery == 0;
                         if (pixelCase && gdiResult < 4000) {
-                            const int heights[3] = {gdiResult + lineHeight, lineHeight, 2 * lineHeight + 1};
-                            for (int h = 0; h < (test.synthetic && (format & kWordBreak) ? 3 : 1); ++h) {
+                            // A single line is placed in heights that leave even, odd and negative room around it.
+                            const int heights[4] = {gdiResult + lineHeight, lineHeight, 2 * lineHeight + 1, std::max(1, lineHeight - 3)};
+                            const int cases = (format & kSingleLine) ? 4 : test.synthetic && (format & kWordBreak) ? 3 : 1;
+                            for (int h = 0; h < cases; ++h) {
                                 const Rect drawRect{8, 4, 8 + rectWidth, 4 + heights[h]};
                                 Dib gdi(rectWidth + 16, heights[h] + 8);
                                 SelectObject(gdi.dc, hfont);

@@ -245,6 +245,10 @@ public:
     Line Next(int begin, int rectWidth) {
         const int size = static_cast<int>(text_.size());
         Line line{begin, begin, begin, false};
+        if (format_ & kSingleLine) {   // the whole text, CR and LF as characters, no word breaks
+            line.end = line.next = size;
+            return line;
+        }
         int at = begin;
         bool wrapped = false;
         if (format_ & kWordBreak) {
@@ -418,7 +422,7 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
     out.clip = rect;
     out.clipped = !(format & kNoClip);
     const bool calc = (format & kCalcRect) != 0;
-    if (text.empty()) {
+    if (text.empty() && !(format & kSingleLine)) {   // (a single line is one line high, empty or not)
         if (calc) {
             out.rect.right = rect.left;
             out.rect.bottom = rect.top;
@@ -433,6 +437,8 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
     GlyphAtlas& atlas = font.Atlas();
     const int size = static_cast<int>(text.size());
     int y = rect.top;
+    // One line centred in the rectangle's height: half the room left, rounded towards zero (also when negative).
+    if ((format & kSingleLine) && (format & kVCenter)) y = rect.top + (rect.bottom - rect.top - metrics.height) / 2;
     int widest = 0;
     int at = 0;
     for (;;) {

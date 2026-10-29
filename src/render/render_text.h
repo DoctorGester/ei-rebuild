@@ -123,12 +123,14 @@ enum Format : unsigned {
     kRight = 0x2,
     kVCenter = 0x4,
     kWordBreak = 0x10,
+    kSingleLine = 0x20,
     kExpandTabs = 0x40,
     kNoClip = 0x100,
     kCalcRect = 0x400,
     kNoPrefix = 0x800,
 };
-constexpr unsigned kSupportedFormats = kCenter | kRight | kVCenter | kWordBreak | kExpandTabs | kNoClip | kCalcRect | kNoPrefix;
+constexpr unsigned kSupportedFormats =
+    kCenter | kRight | kVCenter | kWordBreak | kSingleLine | kExpandTabs | kNoClip | kCalcRect | kNoPrefix;
 
 struct Rect {
     int left = 0, top = 0, right = 0, bottom = 0;
