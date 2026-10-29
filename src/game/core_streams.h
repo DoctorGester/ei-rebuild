@@ -48,8 +48,8 @@ public:
 
     // Text in the streams (the saves, the network's messages and recordings) is in the asset code page, as the
     // original's: converted to UTF-8 where it is read and back where it is written (asset_text.h).
-    // Bytes up to a zero or a failed read, into `out` (in UTF-8).
-    std::string* ReadString(std::string* out);
+    // Bytes up to a zero or a failed read (in UTF-8).
+    std::string ReadString();
     // A text read as ReadString reads it, assigned to `out`.
     void ReadInto(std::string* out);
     // `text` up to its first zero, in the asset code page (a character it has no byte for as '?'), and a zero.

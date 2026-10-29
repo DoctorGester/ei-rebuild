@@ -64,8 +64,8 @@ struct DeltaField {
     void WriteStringBoth(std::string_view text);
     // Reads raw bytes from the reader; returns what the stream's Read returns.
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
-    // Reads a string from the reader into `text` (CStream::ReadString); returns it.
-    std::string* ReadString(std::string* text);
+    // Reads a string from the reader (CStream::ReadString).
+    std::string ReadString();
     // Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
     // string of size - 1 characters or more leaves `text` empty instead.
     void ReadText(char* text, int size);

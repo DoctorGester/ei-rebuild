@@ -145,7 +145,7 @@ Rewritten (grep the address; the per-function table is gone). Facts a worker nee
   0x00), SendValueToAll / SendTextToAll (0x12 via SendValue12 0066D730, through its address / SendText13).
 - CPlayerClient (`player_client.cpp`): Construct 00666D10, Clear (slot 3 00667510 / slot 15 00667600), CoderState::Reset, Pump
   00667680 (slot 4: login message 0 with version 100, "Tango", "Very top secret", the player's +0xFC; state 2 sends the camera
-  anchor as 0x40), SendToServer, DispatchMessages, ReceiveMessages (slot 21, one packet per call). Client handlers: ReadText, 0x81
+  anchor as 0x40), SendToServer, DispatchMessages, ReceiveMessages (slot 21, one packet per call). Client handlers: 0x81
   set variable, 0x82 delete variable, 0x08 zone change (`GameFlow::RequestZoneChange`), 0x0D jingle (`CMusicSystem::PlayJingle`),
   0x02 zone (player cleared, client world 00567AB0, Rebirth-patched, by address), 0x03 / 0x05 world blocks (00567A60 / 00567950),
   0x0A item removed (00665870, then quest log 005F7F30 with an empty CPtrList, vtable 0073BE80), 0x06 items received (money, items

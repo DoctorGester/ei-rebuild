@@ -261,14 +261,8 @@ int CPlayerClient::ReceiveMessages() {
     return DispatchMessages() != 0 ? 1 : 0;
 }
 
-std::string* CPlayerClient::ReadText(std::string* out) {
-    in_.ReadString(out);
-    return out;
-}
-
 int CPlayerClient::OnSetVariable() {
-    std::string name;
-    in_.ReadString(&name);
+    std::string name = in_.ReadString();
     std::uint32_t value;
     in_.ReadValue(value);
     NamedFloatTable& variables = player_->Party()->variables_;
@@ -282,8 +276,7 @@ int CPlayerClient::OnSetVariable() {
 }
 
 int CPlayerClient::OnDeleteVariable() {
-    std::string name;
-    in_.ReadString(&name);
+    std::string name = in_.ReadString();
     player_->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
         g_interface.OnQuestVariable(name, 0.0f);
@@ -293,8 +286,7 @@ int CPlayerClient::OnDeleteVariable() {
 }
 
 int CPlayerClient::OnZoneChange() {
-    std::string zone;
-    ReadText(&zone);
+    std::string zone = in_.ReadString();
     int entrance;
     in_.ReadValue(entrance);
     g_gameFlow.RequestZoneChange(zone, entrance);
@@ -302,8 +294,7 @@ int CPlayerClient::OnZoneChange() {
 }
 
 int CPlayerClient::OnJingle() {
-    std::string name;
-    in_.ReadString(&name);
+    std::string name = in_.ReadString();
     g_clientWorld.music_->PlayJingle(name);
     return 1;
 }
@@ -480,8 +471,7 @@ int CPlayerClient::OnPathMarker() {
 }
 
 int CPlayerClient::OnStringEvent() {
-    std::string text;
-    ReadText(&text);
+    std::string text = in_.ReadString();
     g_interface.OnStringEvent(text);
     return 1;
 }
@@ -509,7 +499,7 @@ int CPlayerClient::OnNewObject() {
     in_.ReadValue(header);
     Vector3 scale;
     in_.ReadValue(scale);
-    in_.ReadString(&secondName);
+    secondName = in_.ReadString();
     if (!in_.ok_) return 0;
     char model[kTextSize];
     char textureFrom[kTextSize];
@@ -525,7 +515,7 @@ int CPlayerClient::OnNewObject() {
         in_.ReadText(part, kTextSize);
         parts[i] = part;
     }
-    in_.ReadString(&scriptName);
+    scriptName = in_.ReadString();
     int prototypeValue;
     in_.ReadValue(prototypeValue);
 

@@ -88,8 +88,8 @@ void LoadLightning(std::list<ScriptLightning>* list, CStream* stream) {
 void LoadInstances(std::list<ScriptDefinition>* list, CStream* stream) {
     LoadList(list, stream, [stream](ScriptDefinition& instance) {
         stream->ReadValue(instance.index);
-        ScriptStringLoad(&instance.name, stream);
-        ScriptStringLoad(&instance.params, stream);
+        instance.name = stream->ReadString();
+        instance.params = stream->ReadString();
         instance.ifThen.resize(ReadCount(stream));
         for (ScriptIfThen& pair : instance.ifThen) pair.Load(stream);
         LoadVariables(&instance.vars, stream);
@@ -125,7 +125,7 @@ template <> void ScriptNamedValues<float>::Load(CStream* stream) {
     names.resize(count);
     for (std::size_t i = 0; i < count; ++i) {
         stream->ReadValue(values[i]);
-        ScriptStringLoad(&names[i], stream);
+        names[i] = stream->ReadString();
     }
 }
 
@@ -134,8 +134,8 @@ template <> void ScriptNamedValues<std::string>::Load(CStream* stream) {
     values.resize(count);
     names.resize(count);
     for (std::size_t i = 0; i < count; ++i) {
-        ScriptStringLoad(&values[i], stream);
-        ScriptStringLoad(&names[i], stream);
+        values[i] = stream->ReadString();
+        names[i] = stream->ReadString();
     }
 }
 
@@ -146,7 +146,7 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Load(CStream* stream) {
     names.resize(count);
     for (std::size_t i = 0; i < count; ++i) {
         values[i].Load(stream);
-        ScriptStringLoad(&names[i], stream);
+        names[i] = stream->ReadString();
     }
 }
 
@@ -157,7 +157,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(CStream* stream) {
     names.resize(count);
     for (std::size_t i = 0; i < count; ++i) {
         values[i].Load(stream);
-        ScriptStringLoad(&names[i], stream);
+        names[i] = stream->ReadString();
     }
 }
 
@@ -173,7 +173,7 @@ void SSCCmd::Load(CStream* stream) {
     for (float& value : floatArgs) stream->ReadValue(value);
 
     stringArgs.resize(ReadCount(stream));
-    for (std::string& text : stringArgs) ScriptStringLoad(&text, stream);
+    for (std::string& text : stringArgs) text = stream->ReadString();
 
     objectArgs.assign(ReadCount(stream), nullptr);
     groupArgs.assign(ReadCount(stream), nullptr);
@@ -193,11 +193,6 @@ void ScriptSubCall::Load(CStream* stream) {
     stream->ReadValue(type);
     stream->ReadValue(argIndex);
     cmd->Load(stream);
-}
-
-void ScriptStringLoad(std::string* out, CStream* stream) {
-    std::string temporary;
-    *out = stream->ReadString(&temporary)->c_str();
 }
 
 // ---- Command blocks and if-then pairs --------------------------------------------------------------
@@ -259,8 +254,8 @@ void CScript::LoadState(CStream* stream) {
     definitions_.resize(ReadCount(stream));
     for (ScriptDefinition& definition : definitions_) {
         stream->ReadValue(definition.index);
-        ScriptStringLoad(&definition.name, stream);
-        ScriptStringLoad(&definition.params, stream);
+        definition.name = stream->ReadString();
+        definition.params = stream->ReadString();
         definition.ifThen.resize(ReadCount(stream));
         for (ScriptIfThen& pair : definition.ifThen) pair.Load(stream);
         definition.vars.Load(stream);

@@ -173,10 +173,10 @@ void CPlayerServer::OnLeaderDied() {
 
 // --- Message 0x36, a use order --------------------------------------------------------
 
-double UseOrderDistanceSquared(const Vector3* a, const Vector3* b) {
-    double dx = a->x - b->x;
-    double dy = a->y - b->y;
-    double dz = a->z - b->z;
+double UseOrderDistanceSquared(const Vector3& a, const Vector3& b) {
+    double dx = a.x - b.x;
+    double dy = a.y - b.y;
+    double dz = a.z - b.z;
     return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
 }
 
@@ -244,7 +244,7 @@ int CPlayerServer::OnUseOrder() {
             CUnit* nearest = nullptr;
             int nearestIndex = 0;
             for (int i = 0; i < std::ssize(units); ++i) {
-                double distance = UseOrderDistanceSquared(&aim, &units[i]->localPosition_);
+                double distance = UseOrderDistanceSquared(aim, units[i]->localPosition_);
                 EI_NAN_AUDIT(distance, best);
                 if (distance < best) {
                     best = static_cast<float>(distance);
@@ -399,12 +399,7 @@ int CPlayerServer::OnJoined() {
 }
 
 int CPlayerServer::OnLeaveToZone() {
-    std::string zone;
-    {
-        std::string text;
-        std::string* read = g_receivedMessages.ReadString(&text);
-        zone = *read;
-    }
+    std::string zone = g_receivedMessages.ReadString();
     int entrance = 0;
     g_receivedMessages.ReadValue(entrance);
     LeaveToZone(zone, entrance);
@@ -412,12 +407,7 @@ int CPlayerServer::OnLeaveToZone() {
 }
 
 int CPlayerServer::OnBriefingDone() {
-    std::string name;
-    {
-        std::string text;
-        std::string* read = g_receivedMessages.ReadString(&text);
-        name = *read;
-    }
+    std::string name = g_receivedMessages.ReadString();
     g_serverWorld.CompleteBriefing(player_->playerId_, name);
     return 1;
 }

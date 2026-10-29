@@ -84,7 +84,7 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& sc
 
 // The place of the `index`th unit when no placement is given: a line from `position` along the
 // rotation's heading.
-void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& rotation, int index) {
+void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& rotation, int index) {
     float rx, ry, rz, rw;
     rx = rotation.w;
     ry = rotation.x;
@@ -107,7 +107,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
 
     Spec& spec = *message;
     float zStep = 0.0f;
-    spec.position = *position;
+    spec.position = position;
     spec.rotation = rotation;
     float cosine = static_cast<float>(x87::fcos(angle));
     double sine = x87::fsin(angle);
@@ -151,7 +151,7 @@ void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n);
 
 } // namespace
 
-void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3* position, Quaternion rotation,
+void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3& position, Quaternion rotation,
                                std::vector<UnitPlacement>* placements) {
     // Destroyed after the two strings (declared after it); its destructor is inlined.
     UnitSpec spec;
@@ -162,9 +162,9 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
     if (text::CompareIgnoringCase(mapName_.c_str(), worlddata::StartZoneText(), 5) == 0) {
-        double dz = position->z;
-        double dy = static_cast<double>(position->y) - worlddata::kHeroStartY;
-        double dx = static_cast<double>(position->x) - worlddata::kHeroStartX;
+        double dz = position.z;
+        double dy = static_cast<double>(position.y) - worlddata::kHeroStartY;
+        double dx = static_cast<double>(position.x) - worlddata::kHeroStartX;
         double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
         EI_NAN_AUDIT(distance);
         atStart = distance < worlddata::kHeroStartRadius2;
@@ -223,7 +223,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         aiMap_.sectorMap.Remove(unit);
         Vector3 free;
         std::memcpy(&free, &unit->localPosition_.x, sizeof(free));
-        aiMap_.FindFreeCellNear(unit, position, &free);
+        aiMap_.FindFreeCellNear(unit, &position, &free);
         std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
         aiMap_.sectorMap.Add(unit);
 

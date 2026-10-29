@@ -50,8 +50,7 @@ int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* g
         aiMap->BeginRefresh();
         bool failed;
         {
-            std::string path;
-            MapPath(&path, map);
+            std::string path = MapPath(map);
             failed = aiMap->Load(path.c_str()) == 0;
         }
         if (failed) return 0;

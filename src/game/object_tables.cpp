@@ -72,12 +72,7 @@ void NamedFloatTable::CopyPrefixed(std::string_view prefix, NamedFloatTable* out
 void NamedFloatTable::Load(CStream* stream) {
     clear();
     for (;;) {
-        std::string key;
-        {
-            std::string raw;
-            std::string* read = stream->ReadString(&raw);
-            key = *read;
-        }
+        std::string key = stream->ReadString();
         if (str::Compare(key, game::kEmptyText) == 0) break;
         float value;
         stream->ReadValue(value);

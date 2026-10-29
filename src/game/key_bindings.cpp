@@ -47,12 +47,9 @@ constexpr int kKeyCount = kUiKeyNameCount;
 constexpr int kActionCount = 60;
 
 
-std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) { *a0 = *a1 + a2; return a0; }
-
 // Opens the bindings file with `mode` (TextFile::Open's).
 bool OpenFile(lib::TextFile& file, const char* mode) {
-    std::string path;
-    return file.Open(*ConcatText(&path, &g_dataFolder, "config\\keyboard.ini"), mode);
+    return file.Open(g_dataFolder + "config\\keyboard.ini", mode);
 }
 
 } // namespace

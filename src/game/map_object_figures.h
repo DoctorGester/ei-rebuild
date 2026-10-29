@@ -370,8 +370,8 @@ public:
     // The morph becomes (s, t, u) on every bone, whose manager reloads its key frames from the owner's model,
     // and on the state (`changed` cleared); then the root places the skeleton as PlaceIfChanged does.
     void Rescale(float s, float t, float u);
-    // Every bone's name appended to `out`.
-    void CollectBoneNames(std::vector<std::string>* out);
+    // Every bone's name.
+    std::vector<std::string> BoneNames();
     // The figure manager's SetAnimation without an animation. Every bone's placing track forgets its animation and
     // key frames (DestroyTrack's reset, the bone kept). `changed` set. Returns 1.
     int ClearBoneTracks();

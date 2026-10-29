@@ -102,10 +102,10 @@ int ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c) 
 } // namespace decal
 
 void DecalBuilder::Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
-                         std::vector<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
-                         const Vector3* point, float depth) {
-    direction_ = *direction;
-    point_ = *point;
+                         std::vector<std::uint16_t>* indices, float* const* corners, const Vector3& direction,
+                         const Vector3& point, float depth) {
+    direction_ = direction;
+    point_ = point;
     points_ = points;
     indices_ = indices;
     texCoords_ = texCoords;
@@ -153,13 +153,13 @@ void DecalBuilder::Begin(std::vector<VertexPacket>* points, std::vector<DecalTex
     planeOffset_ = -Dot(planePoint, normal_);
 }
 
-bool DecalBuilder::Touches(const Vector3* center, float radius) const {
-    double v = DotZYX(vAxis_, *center) + vOffset_;
+bool DecalBuilder::Touches(const Vector3& center, float radius) const {
+    double v = DotZYX(vAxis_, center) + vOffset_;
     double vReach = radius * vLength_;
     if (v - vReach > 1.0f) return false;
     EI_NAN_AUDIT(v, vReach);
     if (v + vReach < 0.0f) return false;
-    double u = DotZYX(uAxis_, *center) + uOffset_;
+    double u = DotZYX(uAxis_, center) + uOffset_;
     double uReach = radius * uLength_;
     if (u - uReach > 1.0f) return false;
     return u + uReach >= 0.0f;
@@ -216,8 +216,8 @@ void DecalBuilder::ClipStage(DecalVertex* tri, int stage) {
 
 void DecalBuilder::ClipPlane(DecalVertex* tri) { ClipStage(tri, 0); }
 
-void DecalBuilder::AddCorners(DecalVertex* tri, const Vector3* a, const Vector3* b, const Vector3* c) {
-    const Vector3* corners[3] = {a, b, c};
+void DecalBuilder::AddCorners(DecalVertex* tri, const Vector3& a, const Vector3& b, const Vector3& c) {
+    const Vector3* corners[3] = {&a, &b, &c};
     for (int k = 0; k < 3; ++k) {
         tri[k].position = *corners[k];
         tri[k].u = Project(uAxis_, tri[k].position, uOffset_);
@@ -225,13 +225,13 @@ void DecalBuilder::AddCorners(DecalVertex* tri, const Vector3* a, const Vector3*
     }
 }
 
-void DecalBuilder::AddTriangle(const Vector3* a, const Vector3* b, const Vector3* c) {
+void DecalBuilder::AddTriangle(const Vector3& a, const Vector3& b, const Vector3& c) {
     DecalVertex tri[3];
     AddCorners(tri, a, b, c);
     ClipPlane(tri);
 }
 
-void DecalBuilder::AddTerrainTriangle(const Vector3* a, const Vector3* b, const Vector3* c) {
+void DecalBuilder::AddTerrainTriangle(const Vector3& a, const Vector3& b, const Vector3& c) {
     DecalVertex tri[3];
     AddCorners(tri, a, b, c);
     ClipPlane(tri);

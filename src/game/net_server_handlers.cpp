@@ -52,10 +52,7 @@ void ServerSession::AnnounceToMaster() {
     const char* empty = game::kEmptyText;
     description.assign(empty);
     CRefObject* map = map_.Get();
-    if (map && !(map->flags7_ & CRefCounted::kDetached)) {
-        std::string title;
-        description.assign(*SessionMapNameInto(&title));
-    }
+    if (map && !(map->flags7_ & CRefCounted::kDetached)) description.assign(SessionMapName());
     info.players = static_cast<std::uint8_t>(ClientCount());
     info.maxPlayers = static_cast<std::uint8_t>(maxPlayers_);
     info.masterToken = masterToken_;

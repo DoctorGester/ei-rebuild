@@ -58,10 +58,7 @@ std::uint32_t Bits(float f) {
     return b;
 }
 
-void ReadInto(Chunk& c, std::string& field) {
-    std::string read;
-    field = c.ReadString(&read)->c_str();
-}
+void ReadInto(Chunk& c, std::string& field) { field = c.ReadString(); }
 void ReadVector(Chunk& c, Vector3& to) {
     Vector3 v;
     to = *c.ReadVector3(&v);

@@ -14,11 +14,7 @@
 namespace {
 
 // A string read up to its terminator.
-std::string ReadText(CStream* stream) {
-    std::string text;
-    stream->ReadString(&text);
-    return text;
-}
+std::string ReadText(CStream* stream) { return stream->ReadString(); }
 
 } // namespace
 

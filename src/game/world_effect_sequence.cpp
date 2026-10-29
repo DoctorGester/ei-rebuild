@@ -77,21 +77,13 @@ void CEffectSoundSeq::Start(int update) {
 int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    {
-        std::string read;
-        field->ReadString(&read);
-        name_ = read;
-    }
+    name_ = field->ReadString();
     // The count is read into the storage of `field` (ReadDelta always stores it).
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(field));
     field->ReadDelta(&count, 4);
     std::vector<std::string>& others = names_;
     others.resize(static_cast<std::size_t>(count));
-    for (std::string& other : others) {
-        std::string read;   // reuses the name's storage, like the original
-        field->ReadString(&read);
-        other = read.c_str();
-    }
+    for (std::string& other : others) other = field->ReadString();
     field->ReadFloat16(&volume_);
     field->ReadFloat16(&radius_);
     field->ReadFloat16x3(&velocity_.x);

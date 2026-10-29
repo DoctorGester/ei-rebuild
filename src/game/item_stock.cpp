@@ -152,9 +152,7 @@ void ClearModifierList(std::list<itemdb::SpellModifierRecord*>& list) { list.cle
 // The counts and the material values are read into locals reused for every section, so a failed read leaves the
 // previous value.
 void ReadName(CStream* stream, std::string& name) {
-    std::string temporary;
-    std::string* read = stream->ReadString(&temporary);
-    name = *read;
+    name = stream->ReadString();
 }
 
 template <typename T>

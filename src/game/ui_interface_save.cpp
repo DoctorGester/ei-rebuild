@@ -22,8 +22,7 @@ int Version(const CStream* stream) { return static_cast<int>(stream->version_); 
 
 // A string read into a temporary, assigned to `field`.
 void ReadInto(CStream* stream, std::string* field) {
-    std::string text;
-    *field = stream->ReadString(&text)->c_str();
+    *field = stream->ReadString();
 }
 
 const char* const kMessageKeys[13] = {

@@ -152,8 +152,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
         return LoadLink(&meshName, s, t, u, false);
     }
     if (!mesh) return nullptr;
-    std::vector<std::string> names;
-    mesh->CollectPartNames(&names);
+    std::vector<std::string> names = mesh->PartNames();
     mesh->SetMorph(s, t, u);
     FigureModel* set;
     {

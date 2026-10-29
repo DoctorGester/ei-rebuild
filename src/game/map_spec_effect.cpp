@@ -26,10 +26,7 @@ std::uint32_t Bits(float f) {
     b = std::bit_cast<std::uint32_t>(f);
     return b;
 }
-void ReadInto(Chunk& c, std::string& field) {
-    std::string read;
-    field = c.ReadString(&read)->c_str();
-}
+void ReadInto(Chunk& c, std::string& field) { field = c.ReadString(); }
 void ReadVector(Chunk& c, Vector3& to) {
     Vector3 v;
     to = *c.ReadVector3(&v);
@@ -89,11 +86,6 @@ ParticleSpec::ParticleSpec() {
     scale = 1.0f;
 }
 
-std::string* ParticleSpec::TypeName(std::string* out) {
-    *out = "Particle source";
-    return out;
-}
-
 void ParticleSpec::Save() {
     BeginWrite(0xDD01);
     WriteInt(0xDD02, id);
@@ -139,11 +131,6 @@ LightSpec::LightSpec() {
     kind = 2;
     radius = 10.0f;
     colour.z = 1.0f;
-}
-
-std::string* LightSpec::TypeName(std::string* out) {
-    *out = "Light";
-    return out;
 }
 
 void LightSpec::Save() {
@@ -196,11 +183,6 @@ SoundSpec::SoundSpec() {
 }
 
 SoundSpec::~SoundSpec() = default;
-
-std::string* SoundSpec::TypeName(std::string* out) {
-    *out = "Sound";
-    return out;
-}
 
 void SoundSpec::Save() {
     BeginWrite(0xCC01);

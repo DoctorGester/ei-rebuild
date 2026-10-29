@@ -24,10 +24,7 @@ void ServerSession::Describe(Ref<ServerEntry>* out) {
     description->assign(game::kEmptyText);
 
     CRefObject* map = map_.Get();
-    if (map && !(map->flags7_ & CRefObject::kDetached)) {
-        std::string title;
-        description->assign(*SessionMapNameInto(&title));   // inlined: overwrite, then cut or append
-    }
+    if (map && !(map->flags7_ & CRefObject::kDetached)) description->assign(SessionMapName());   // overwrite, then cut or append
 
     entry->players_ = static_cast<std::uint8_t>(ClientCount());
     entry->maxPlayers_ = static_cast<std::uint8_t>(maxPlayers_);

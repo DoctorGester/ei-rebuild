@@ -30,8 +30,8 @@ public:
     // then; 0 for an array; for a scalar type it is 1). A wrong type logs and gives null.
     const std::uint8_t* FindData(const char* section, const char* key, unsigned type, int* isScalar);
 
-    // The names of all sections into `out` (in table order).
-    void GetSectionNames(std::vector<std::string>* out);
+    // The names of all sections (in table order).
+    std::vector<std::string> SectionNames();
 
     // Identical copies. An int value, a float one truncated (_ftol), or `defaultValue`.
     int GetInt(const char* section, const char* key, int defaultValue);

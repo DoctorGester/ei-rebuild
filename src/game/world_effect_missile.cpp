@@ -160,11 +160,7 @@ void CEffectArrow::Start(int update) {
 int CEffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&targetId_, 4);
     field->ReadDelta(&casterId_, 4);
-    {
-        std::string name;
-        field->ReadString(&name);
-        soundName_ = name;
-    }
+    soundName_ = field->ReadString();
     field->ReadFloat16x3(&lightColor_.x);
     field->ReadFloat16(&lightRange_);
     field->ReadDelta(&particleType_, 4);

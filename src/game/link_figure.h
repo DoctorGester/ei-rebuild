@@ -102,8 +102,8 @@ public:
     virtual void UpdateScreenRect() = 0;
     // Whether `name` is a part.
     virtual bool HasPart(const std::string* name) = 0;
-    // Appends the part names, in map order, to `out`.
-    virtual void CollectPartNames(std::vector<std::string>* out) = 0;
+    // The part names, in map order.
+    virtual std::vector<std::string> PartNames() = 0;
     // The loader loads part `name` into this mesh.
     virtual bool LoadPart(const std::string* name) = 0;
     // Removes part `name`: false when there is none. The later elements of
@@ -166,7 +166,7 @@ public:
     // Every slot of the base.
     void UpdateScreenRect() override;   // link_figure.cpp
     bool HasPart(const std::string* name) override;
-    void CollectPartNames(std::vector<std::string>* out) override;
+    std::vector<std::string> PartNames() override;
     bool LoadPart(const std::string* name) override;
     bool RemovePart(const std::string* name) override;
     bool GetPartData(const std::string* name, VertexPacket** vertices, MeshCorner** corners,

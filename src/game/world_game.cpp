@@ -506,20 +506,13 @@ int StartNetworkZone(const std::string& zone) {
     return 1;
 }
 
-std::string* CWorldServer::ZoneNameInto(std::string* out) {
-    *out = zoneName_;
-    return out;
-}
-
 // The counterpart of the zone load: saves the current zone into saves\current\<zone>.sav (SaveWorld, header
 // 0x102) and records in the party's variables that it was visited (zs.<zone> = 1) and when it was left
 // (zt.<zone> = gtime). Returns 1, 0 when the file cannot be written (after FatalError).
 int LeaveZone(CParty* records) {
     FileStream file;
     std::string path;
-    std::string zone;
-    g_serverWorld.ZoneNameInto(&zone);
-    // `path` must be destroyed after `zone`: it is declared first.
+    std::string zone = g_serverWorld.zoneName_;
 
     if (g_serverWorld.sessionKind_ == 1) g_camera.SaveView(7);
     else if (g_serverWorld.sessionKind_ == 3) g_camera.SaveView(6);
@@ -574,27 +567,20 @@ void GameFlow::UpdateMultiplayerVariable() {
 
 // ---- Starting a multiplayer game ------------------------------------------------------------------
 
-std::string* GameFlow::MultiplayerZoneInto(std::string* out) {
+std::string GameFlow::MultiplayerZone() {
     unsigned type = net::g_gameClient->gameType_;
-    *out = kMultiplayerZones[type <= 3 ? type : 0]; return out;
+    return kMultiplayerZones[type <= 3 ? type : 0];
 }
 
 void GameFlow::BeginMultiplayerGame() {
     PartyManagerNewGameFour(&g_partyManager);
     if (std::ssize(GlobalParty()->members_) == 1) GlobalParty()->members_.data()->unitId = kMultiplayerHeroId;
-    {
-        std::string zone;
-        GlobalParty()->zone_ = *MultiplayerZoneInto(&zone);
-    }
+    GlobalParty()->zone_ = MultiplayerZone();
     VariableSet(&GlobalParty()->variables_, kMultiplayerVariable, 1.0f);
     g_partyManager.BeginRedeploy(GlobalParty());
-    {
-        std::string zone;
-        MultiplayerZoneInto(&zone);
-        state_ = 4;   // load the zone
-        requestTarget_ = zone;
-        requestArg_ = 0;
-    }
+    state_ = 4;   // load the zone
+    requestTarget_ = MultiplayerZone();
+    requestArg_ = 0;
     zoneSwitchStarted_ = 0;
     net::g_gameClient->player_.Get()->state_ = 1;
     ++net::g_gameClient->player_.Get()->version_;
@@ -693,16 +679,14 @@ int CWorldServer::ReadAIGraph(std::string_view map, std::string_view mob, CStrea
     int found = 0;
     // The graph chunk of the .mob file.
     {
-        std::string path;
-        MapPath(&path, mob);
+        std::string path = MapPath(mob);
         mobFile.Open(path, kOpenRead, 1);
     }
     if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
     mobFile.Close();
     if (found) return found;
     // Otherwise <map without extension>.grp.
-    std::string base;
-    MapPath(&base, map);
+    std::string base = MapPath(map);
     int dot = str::ReverseFind(base, '.');
     if (dot > 0) {
         std::string cut = str::Left(base, dot);
@@ -731,8 +715,7 @@ void CWorldServer::LoadZoneScripts(std::string_view mob) {
     CMemoryStream text;
     MobScriptDecoder decoder;
     {
-        std::string path;
-        MapPath(&path, mob);
+        std::string path = MapPath(mob);
         file.Open(path, kOpenRead, 1);
     }
     file.FindTagged(kScriptsChunk, &scripts);
@@ -742,7 +725,7 @@ void CWorldServer::LoadZoneScripts(std::string_view mob) {
         char zero = 0;
         decoder.input.resize(size, zero);
         std::memmove(decoder.input.data(), data, size);
-        decoder.Decode(&script);
+        script = decoder.Decode();
     } else if (scripts.FindTagged(kScriptPlain, &text)) {
         text.Seek(text.size_);
         char zero = 0;
@@ -759,10 +742,8 @@ void GameFlow::SwitchMultiplayerZone() {
         RequestKind(1);
         bool host = Active(net::g_gameServer);
         {
-            std::string zone;
-            MultiplayerZoneInto(&zone);
             g_interface.closeAll_ = 1;
-            g_clientWorld.LocalView()->RequestZone(zone, 0);
+            g_clientWorld.LocalView()->RequestZone(MultiplayerZone(), 0);
         }
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
@@ -877,7 +858,8 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
     // The list's destructor: every reference released, then the blocks.
 }
 
-void PickZones(std::vector<std::string>* out, int id, const char* exclude) {
+std::vector<std::string> PickZones(int id, const char* exclude) {
+    std::vector<std::string> out;
     const std::vector<ZoneEntry>& table = g_zoneTable;
     int total = static_cast<int>(table.size());
     EntryPicks pending(total);
@@ -902,9 +884,9 @@ void PickZones(std::vector<std::string>* out, int id, const char* exclude) {
                 if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
                 else ++i;
         unsigned pick = ((&g_random))->Next() % static_cast<unsigned>(group.count);
-        std::string name = group.items[pick]->first;
-        out->push_back(name);
+        out.push_back(group.items[pick]->first);
     }
+    return out;
 }
 
 int LoadMission(CStream* file) {
@@ -1325,10 +1307,8 @@ void GameFlow::UpdateFromServer() {
         VariableSet(variables, kTypeVariables[type], 1.0f);
         briefing = kTypeBriefings[type];
     }
-    std::string questVariable;
-    std::string kVariable;
-    BriefingVariableInto(&questVariable, briefing + kBriefingSuffixQuest);
-    BriefingVariableInto(&kVariable, briefing + kBriefingSuffixK);
+    std::string questVariable = BriefingVariable(briefing + kBriefingSuffixQuest);
+    std::string kVariable = BriefingVariable(briefing + kBriefingSuffixK);
     std::string* const names[2] = {&questVariable, &kVariable};
     for (std::string* name : names) {
         float value = static_cast<float>(VariableGet(variables, (*name)));
@@ -1439,10 +1419,8 @@ void GameFlow::BuildZoneTable() {
     lib::FileFind find;
     int more;
     {
-        std::string folder;
         modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
-        MapsFolder(&folder);
-        std::string pattern = folder + kQuestFilePattern;
+        std::string pattern = MapsFolder() + kQuestFilePattern;
         more = find.FindFile(pattern);
     }
     while (more) {

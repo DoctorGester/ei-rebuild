@@ -32,10 +32,7 @@ std::uint32_t Bits(float f) {
 }
 
 // A string chunk into `field` (through a temporary).
-void ReadInto(Chunk& c, std::string& field) {
-    std::string read;
-    field = c.ReadString(&read)->c_str();
-}
+void ReadInto(Chunk& c, std::string& field) { field = c.ReadString(); }
 bool ReadFlag(Chunk& c) { return c.ReadByte() == 1; }
 
 // The chunk's file.
@@ -63,11 +60,6 @@ Spec::Spec() : Chunk(nullptr) {
 }
 
 Spec::~Spec() = default;
-
-std::string* Spec::TypeName(std::string* out) {
-    *out = "error";
-    return out;
-}
 
 void Spec::Remove() { Apply(); }
 void Spec::Refresh() { Apply(); }
@@ -204,13 +196,6 @@ void ObjectSpec::Apply() {
     g_serverWorld.aiMap_.EndRefresh();
 }
 
-std::string* ObjectSpec::TypeName(std::string* out) {
-    std::string text;
-    text = str::Format("%i", player);
-    *out = text;
-    return out;
-}
-
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
     kind = 6;
@@ -260,11 +245,6 @@ TrapSpec::TrapSpec() {
 }
 
 TrapSpec::~TrapSpec() = default;
-
-std::string* TrapSpec::TypeName(std::string* out) {
-    *out = "MagicTrap";
-    return out;
-}
 
 void TrapSpec::Save() {
     BeginWrite(0xBBAB0000);

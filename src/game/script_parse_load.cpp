@@ -127,11 +127,7 @@ bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             }
         }
 
-        {
-            std::string name;
-            QualifyName(&name, text);
-            qualified = name;
-        }
+        qualified = QualifyName(text);
 
         // Literal parameters are stored directly; others bind a local or global variable of
         // the same name, or are parsed as a nested function call.
@@ -363,9 +359,7 @@ bool CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
         }
         if (!ok) return false;
         if (qualify) {
-            std::string qualified;
-            QualifyName(&qualified, name);
-            name = qualified;
+            name = QualifyName(name);
         }
         token = NextToken(pos);
         typeName = token.text;
@@ -433,11 +427,7 @@ bool CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                 if (!LoadCommands(&body->commands, pos, tokens, bodyLocals)) return false;
             }
         } else {
-            {
-                std::string name;
-                QualifyName(&name, text);
-                qualified = name;
-            }
+            qualified = QualifyName(text);
             std::vector<ScriptDefinition>& scripts = definitions_;
             std::size_t index = 0;
             for (; index < scripts.size(); ++index)
@@ -541,11 +531,7 @@ bool CScript::Load(std::string* text, bool runWorldScript) {
             decl->Reset();
             token = NextToken(&pos);
             word = token.text;
-            {
-                std::string name;
-                QualifyName(&name, word);
-                decl->name = name;
-            }
+            decl->name = QualifyName(word);
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return false;
             const int index = FindScript(decl->name);
             if (index < 0) {
@@ -566,11 +552,7 @@ bool CScript::Load(std::string* text, bool runWorldScript) {
             decl->Reset();
             token = NextToken(&pos);
             word = token.text;
-            {
-                std::string name;
-                QualifyName(&name, word);
-                decl->name = name;
-            }
+            decl->name = QualifyName(word);
             if (FindScript(decl->name) != -1) return Error(this, token.line, 15, "Duplicate script %s", word);
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return false;
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return false;

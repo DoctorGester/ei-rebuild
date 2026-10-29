@@ -74,16 +74,13 @@ void ShareQuestFile(const std::string& path, const std::string& name) {
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).
 std::string MapFilePath(const std::string& file) {
-    std::string folder;
     modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
-    MapsFolder(&folder);
-    std::string full = folder + file;
-    return std::string(full);
+    return MapsFolder() + file;
 }
 
 } // namespace
 
-std::string* BriefingSpeakerInto(std::string* out, const std::string& briefing) {
+std::string BriefingSpeakerName(const std::string& briefing) {
     CTextManager* texts = g_clientWorld.texts_;
     bool missing;
     {
@@ -91,10 +88,7 @@ std::string* BriefingSpeakerInto(std::string* out, const std::string& briefing) 
         std::string section = prefix + briefing;
         missing = texts->CTextManager::Open(section) == 0;
     }
-    if (missing) {
-        *out = game::kEmptyText;
-        return out;
-    }
+    if (missing) return std::string();
     // The first "#show" line whose second word is not "Hero" names the speaker.
     std::vector<std::string> words;
     while (texts->FindLine(game::briefingwords::ShowTag())) {
@@ -102,30 +96,20 @@ std::string* BriefingSpeakerInto(std::string* out, const std::string& briefing) 
         if (words.size() >= 2 &&
             text::CompareIgnoringCase(words[1],
                             game::briefingwords::Hero()) != 0) {
-            *out = words[1];
-            return out;
+            return words[1];
         }
     }
-    *out = game::kEmptyText;
-    return out;
+    return std::string();
 }
 
-std::string* BriefingVariableInto(std::string* out, const std::string& briefing) {
-    std::string speaker;
-    BriefingSpeakerInto(&speaker, briefing);
+std::string BriefingVariable(const std::string& briefing) {
+    std::string speaker = BriefingSpeakerName(briefing);
     if (!IsEmpty(speaker)) {
         std::string prefix = game::briefingwords::VariablePrefix();
-        std::string withSpeaker = prefix + speaker;
-        std::string withDot = withSpeaker + flowdata::kDot;
-        std::string variable = withDot + briefing;
-        speaker = variable;
-    } else {
-        std::string prefix = game::briefingwords::ElderPrefix();
-        std::string variable = prefix + briefing;
-        speaker = variable;
+        return prefix + speaker + flowdata::kDot + briefing;
     }
-    *out = speaker;
-    return out;
+    std::string prefix = game::briefingwords::ElderPrefix();
+    return prefix + briefing;
 }
 
 void GameFlow::MarkBriefing(const char* briefing) {
@@ -140,9 +124,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
         }
         LoadZoneQuests(zone);
     }
-    std::string variable;
-    BriefingVariableInto(&variable, briefing);
-    player->Party()->variables_.Set(variable, 1.0f);
+    player->Party()->variables_.Set(BriefingVariable(briefing), 1.0f);
 }
 
 // ---- Forgetting briefings, unloading quest texts --------------------------------------------------
@@ -153,9 +135,7 @@ std::vector<std::string> g_questFolders;
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = g_clientWorld.LocalView()->player_;
-    std::string variable;
-    BriefingVariableInto(&variable, briefing);
-    player->Party()->variables_.Remove(variable);
+    player->Party()->variables_.Remove(BriefingVariable(briefing));
 }
 
 void UnloadQuestTexts() {
@@ -177,10 +157,8 @@ bool LoadZoneQuests(std::string_view zone) {
     bool found;
     {
         lib::FileFind find;
-        std::string folder;
         modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
-        MapsFolder(&folder);
-        std::string pattern = folder + file;
+        std::string pattern = MapsFolder() + file;
         found = find.FindFile(pattern) != 0;
     }
     if (!found) return false;
@@ -250,7 +228,7 @@ void GameFlow::RegisterQuests(const std::string& folder) {
     folders.push_back(name);
 }
 
-std::string* SessionMapNameInto(std::string* out) {
+std::string SessionMapName() {
     std::string name;
     // The peer's map message: the client's, else the server's (the map's name its text).
     const net::MapMessage* peer = nullptr;
@@ -260,10 +238,7 @@ std::string* SessionMapNameInto(std::string* out) {
         peer = client->map_;
     else if (Active(server) && Active(server->map_.Get()))
         peer = server->map_.Get();
-    if (!peer) {
-        *out = game::kEmptyText;
-        return out;
-    }
+    if (!peer) return std::string();
     name = peer->text_.data();
     CTextManager* texts = g_clientWorld.texts_;
     int found;
@@ -273,5 +248,5 @@ std::string* SessionMapNameInto(std::string* out) {
         found = texts->CTextManager::Open(section);
     }
     if (found) texts->ReadLine(&name, 1);
-    *out = name; return out;
+    return name;
 }

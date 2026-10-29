@@ -103,14 +103,14 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
     return 1;
 }
 
-std::uint8_t Terrain::EdgeFade(const Vector3* point) {
+std::uint8_t Terrain::EdgeFade(const Vector3& point) {
     if (!lib::Has(landscapeFlags, LandscapeFlag::EdgeFade)) return 0xFF;
     const float fade = options::g_options.borderFogDistance_;
     // How far inside the band's inner border the point is, per edge (negative: in the band).
-    float left = static_cast<float>(point->x - fade - 1.0f);
-    float bottom = static_cast<float>(point->y - fade - 1.0f);
-    float right = static_cast<float>(width - fade - point->x - 1.0f);
-    float top = static_cast<float>(height - fade - point->y - 1.0f);
+    float left = static_cast<float>(point.x - fade - 1.0f);
+    float bottom = static_cast<float>(point.y - fade - 1.0f);
+    float right = static_cast<float>(width - fade - point.x - 1.0f);
+    float top = static_cast<float>(height - fade - point.y - 1.0f);
     if (!(SignBit(left) || SignBit(bottom) || SignBit(right) || SignBit(top))) return 0xFF;
     left = MinKeepA(0.0f, left);
     bottom = MinKeepA(0.0f, bottom);

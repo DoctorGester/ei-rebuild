@@ -273,8 +273,10 @@ void CLinkMesh::UpdateScreenRect() {
 
 bool CLinkMesh::HasPart(const std::string* name) { return ranges_.find(*name) != ranges_.end(); }
 
-void CLinkMesh::CollectPartNames(std::vector<std::string>* out) {
-    for (const auto& part : ranges_) out->push_back(part.first);
+std::vector<std::string> CLinkMesh::PartNames() {
+    std::vector<std::string> names;
+    for (const auto& part : ranges_) names.push_back(part.first);
+    return names;
 }
 
 bool CLinkMesh::LoadPart(const std::string* name) { return loader_->LoadPartInto(this, name); }

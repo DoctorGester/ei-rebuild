@@ -65,8 +65,7 @@ void ReadSavedStrings(std::vector<std::string>* array, CStream* stream) {
     int count;
     stream->ReadValue(count);
     for (int i = 0; i < count; ++i) {
-        std::string text;
-        array->push_back(stream->ReadString(&text)->c_str());
+        array->push_back(stream->ReadString());
     }
 }
 
@@ -266,10 +265,7 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     std::uint32_t countSlot = reinterpret_cast<std::uintptr_t>(field);
     field->ReadDelta(&countSlot, 1);
     names_.resize(countSlot & 0xFF);
-    for (std::string& name : names_) {
-        std::string text;
-        name = field->ReadString(&text)->c_str();
-    }
+    for (std::string& name : names_) name = field->ReadString();
     field->ReadFloat16(&volume_);
     field->ReadFloat16(&radius_);
     field->ReadDelta(&minInterval_, 4);

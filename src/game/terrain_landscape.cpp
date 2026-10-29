@@ -361,8 +361,8 @@ void Terrain::SetWaveStrength(float strength) {
     waveDirection.y = static_cast<float>(kWaveDirectionScale * waveDirection.y * step);
 }
 
-void Terrain::SetWaves(const Vector3* direction, float strength) {
-    waveDirection = *direction;
+void Terrain::SetWaves(const Vector3& direction, float strength) {
+    waveDirection = direction;
     SetWaveStrength(strength);
 }
 

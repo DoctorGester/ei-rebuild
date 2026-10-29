@@ -65,7 +65,7 @@ int CPlayerClient::OnCameraPlacement() {
     in_.ReadValue(heading);
     int mode;
     const int result = static_cast<int>(in_.Read(&mode, 4));
-    g_clientWorld.CentreOn(&point);
+    g_clientWorld.CentreOn(point);
     CCamera* camera = &g_camera;
     if (player_->Party()->zone_ == FixedViewZone()) {
         CameraView view;
@@ -134,7 +134,7 @@ int CPlayerClient::OnFreeCamera() {
     in_.ReadValue(to);
     std::uint8_t free = 0;
     in_.ReadValue(free);
-    g_camera.LookFrom(&from, &to);
+    g_camera.LookFrom(from, to);
     g_camera.SetFree(free != 0);
     return 1;
 }
@@ -299,7 +299,7 @@ int CPlayerClient::OnWorldPoint() {
     in_.ReadValue(point);
     int value;
     in_.ReadValue(value);
-    g_clientWorld.ApplyWind(&point, std::bit_cast<float>(value));
+    g_clientWorld.ApplyWind(point, std::bit_cast<float>(value));
     return 1;
 }
 

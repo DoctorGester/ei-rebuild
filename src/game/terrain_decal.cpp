@@ -67,8 +67,8 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, float* const* corners) {
             const Vector3* b = VertexAt(x, y + 1, 0);
             const Vector3* c = VertexAt(x + 1, y, 0);
             const Vector3* d = VertexAt(x + 1, y + 1, 0);
-            builder->AddTerrainTriangle(a, c, d);
-            builder->AddTerrainTriangle(a, d, b);
+            builder->AddTerrainTriangle(*a, *c, *d);
+            builder->AddTerrainTriangle(*a, *d, *b);
         }
     }
 }

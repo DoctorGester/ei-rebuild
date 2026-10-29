@@ -563,7 +563,7 @@ void CEffectLightning::Start(int update) {
     auto* created = g_clientWorld.listManager_->CreateObjectAs<CLightning>(0, -1);
     bolt_.Assign(created);
     UpdateEnds();
-    bolt_->Start(&from_, &to_, width_, flag_);
+    bolt_->Start(from_, to_, width_, flag_);
 }
 
 int CEffectLightning::Unpack(int update, DeltaField* field) {
@@ -644,6 +644,6 @@ void CEffectLightning::SetFlag(std::uint8_t flag) {
 bool CEffectLightning::RunTick() {
     if (bolt_ == nullptr || (toObject_ == -1 && fromObject_ == -1)) return true;
     UpdateEnds();
-    bolt_->SetEndpoints(&from_, &to_);
+    bolt_->SetEndpoints(from_, to_);
     return true;
 }

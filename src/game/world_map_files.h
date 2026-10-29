@@ -10,11 +10,11 @@
 
 class GameBuffer;
 
-// The maps folder: the game's data folder + "maps\", into `out`. Returns `out`.
-std::string* MapsFolder(std::string* out);
-// The full path of the map file `name`, into `out`: `name` as it is
-// when its second character is ':' (a drive), else under the maps folder. Returns `out`.
-std::string* MapPath(std::string* out, std::string_view name);
+// The maps folder: the game's data folder + "maps\".
+std::string MapsFolder();
+// The full path of the map file `name`: `name` as it is
+// when its second character is ':' (a drive), else under the maps folder.
+std::string MapPath(std::string_view name);
 // Whether the maps folder has a file `name` (lib::FileFind::FindFile).
 bool MapFileExists(const char* name);
 // Called by the client's file chunk handler. Writes what `buffer` holds (from its start to the highest

@@ -117,8 +117,6 @@ public:
     // The world object with the record's id.
     virtual void* WorldObject();
     virtual void Nothing(int) {}
-    // The type name in `out` (a string returned by value): "error".
-    virtual std::string* TypeName(std::string* out);
     // Moves the record, then Apply.
     virtual void Move(float dx, float dy, float dz);
     // Removes the world object (here: Apply).
@@ -150,7 +148,6 @@ public:
     ~ObjectSpec() override;
 
     void OnChunk() override;                                 // the chunk just read, by its id
-    std::string* TypeName(std::string* out) override;      // the player number ("%i")
     void Remove() override;                                  // removes the world object, then Apply
     // Makes the world object, or updates it from the record (position, rotation, scale,
     // visibility) while it is out of the editor's lists.
@@ -200,7 +197,6 @@ public:
     ~TrapSpec() override;
 
     void OnChunk() override;
-    std::string* TypeName(std::string* out) override;      // "MagicTrap"
     // Chunk BBAB0000: the trap's fields (the arrays as a count and the raw elements), then the common ones.
     void Save() override;
 
@@ -257,7 +253,6 @@ public:
     ~ParticleSpec() override;
 
     void OnChunk() override;
-    std::string* TypeName(std::string* out) override;      // "Particle source"
     void Apply() override;          // makes the source (when it has a type) or updates its effect
     void Save() override;           // chunk DD01
 
@@ -272,7 +267,6 @@ public:
     ~LightSpec() override;
 
     void OnChunk() override;
-    std::string* TypeName(std::string* out) override;      // "Light"
     void Apply() override;          // makes the light or updates its effect (colour, radius, position)
     void Save() override;           // chunk AA01
 
@@ -288,7 +282,6 @@ public:
     ~SoundSpec() override;
 
     void OnChunk() override;
-    std::string* TypeName(std::string* out) override;      // "Sound"
     // Makes the sound (when it has sounds); otherwise moves the world object and makes its effect again.
     void Apply() override;
     void Save() override;           // chunk CC01

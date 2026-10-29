@@ -88,13 +88,13 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMe
         const Vector3 va{a.x, a.y, a.z};
         const Vector3 vb{b.x, b.y, b.z};
         const Vector3 vc{c.x, c.y, c.z};
-        builder.AddTriangle(&va, &vb, &vc);
+        builder.AddTriangle(va, vb, vc);
     }
 }
 
 } // namespace
 
-void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, float depth,
+void CWorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, float depth,
                                 VertexPacket* const* corners, std::vector<VertexPacket>* points,
                                 std::vector<DecalTexCoord>* texCoords, std::vector<std::uint16_t>* indices,
                                 std::uint8_t skipOnPlatform, std::uint8_t objects) {
@@ -102,7 +102,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     DecalBuilder& builder = g_builder;
     auto* quad = reinterpret_cast<float* const*>(corners);
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);
-    if (!skipOnPlatform || !platforms_.Contains(point->x, point->y)) terrain_->AddDecalTriangles(&builder, quad);
+    if (!skipOnPlatform || !platforms_.Contains(point.x, point.y)) terrain_->AddDecalTriangles(&builder, quad);
 
     CTransformPipeline* pipeline = g_sceneRenderer.pipeline_;
     if (objects) {
@@ -113,12 +113,12 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
             face = next;
             if (!object) continue;
             // The object's bounding sphere about its origin, then about its centre.
-            if (!builder.Touches(&object->localPosition_, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
+            if (!builder.Touches(object->localPosition_, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
                 continue;
             BuildNodeMatrix(object->localRotation_, object->localPosition_, object->worldMatrix);
             Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->bounds.center) +
                              object->localPosition_;
-            if (!builder.Touches(&centre, object->bounds.radius)) continue;
+            if (!builder.Touches(centre, object->bounds.radius)) continue;
             PushDecalMatrix(pipeline, object->worldMatrix.m);
             CLinkMesh* figure = object->figure;
             if (figure) {
