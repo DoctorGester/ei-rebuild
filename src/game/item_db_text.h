@@ -81,6 +81,8 @@ public:
     // Ours: Open for a file that is not text (a quest registry read from the cursor): its bytes as they
     // are, never converted to UTF-8.
     bool OpenData(std::string_view key);
+    // Clears the current text.
+    void Close();
     // The rest of the current line (up to CR or LF) into `out`; with `advance` the cursor
     // then moves to the next line that is not a comment. 0 when the cursor is at the end.
     bool ReadLine(std::string* out, bool advance);

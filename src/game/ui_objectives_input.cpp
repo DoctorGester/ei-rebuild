@@ -183,7 +183,7 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
             }
         }
     }
-    TextClose(texts);
+    texts->Close();
 }
 
 // --- Quest list handlers --------------------------------------------------------

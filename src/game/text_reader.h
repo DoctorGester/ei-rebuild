@@ -9,8 +9,6 @@
 
 #include "item_db_text.h"
 
-// Clears the current text.
-void TextClose(CTextManager* self);
 // Moves the cursor past the next LF. 0 (cursor left at the end) when there is none.
 bool TextSkipLine(CTextManager* self);
 // Moves the cursor to the start of the next line that is not a "##" comment. 0 at the end.

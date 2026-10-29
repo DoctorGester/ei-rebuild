@@ -25,6 +25,8 @@
 #include "world.h"
 #include "world_glue.h"
 
+#include "render/render_state.h"
+
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
@@ -34,7 +36,6 @@
 
 #include <bit>
 #include <cmath>
-#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -46,14 +47,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-float Bits(std::uint32_t bits) {
-    float f;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float Bits(T) = delete;
-
 // --- Game data ----------------------------------------------------------------------------------
 
 // An allod of the map database (AllodRecord): its other names are its global map figures, its maps the
@@ -63,33 +56,15 @@ constexpr int kAllodBall = 1;          // its base
 constexpr int kAllodQuestMarker = 2;
 constexpr int kAllodIsland = 3;        // the island model
 
-// A zone of the map database: its figure is its marker on the global map (may be empty), its
+// A zone of the map database (MapRecord): its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
-MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }
-MapRecord* ZoneAt(int index) { return &g_mapDatabase->maps[index]; }
 
-bool NonEmpty(const std::string& text) { return text.size() != 0; }
+// A sprite drawn in its flat colour, without its texture.
+constexpr std::uint32_t kPlainSprite = 0x100;
 
-int SurfaceText(CUiSurface* surface, std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
-    return surface->DrawTextIn(text, rect, font, colour, format, flag);
-}
-
-// The local player's variables, copied by name prefix into a local table, freed afterwards.
-class VariableTable {
-public:
-    NamedFloatTable table_;
-};
-
-// --- Sprite fields set directly -------------------------------------------------------------------
-
-// Float fields are written with their bits (immediate stores).
-void SetTexture(CUiMesh* sprite, CTexture* texture) { sprite->texture_ = texture; }
-void SetPlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
-void SetPosition(CUiMesh* sprite, const Vector3& p) { sprite->localPosition_ = p; }
 void SetWhite(CUiMesh* sprite) {
     for (float& tint : sprite->tint_) tint = 1.0f;
 }
-CUiMesh* AddFigure(CUiWindow* window, const std::string& name) { return window->AddSprite(name); }
 
 // The window's helpers bound to its fields.
 class MapBuilder {
@@ -116,9 +91,9 @@ public:
     CTexture* Texture(int index) const { return map_->objects_[index]; }
 
     CUiMesh* Marker(const std::string& figure, const Vector3& local, float scale) const {
-        CUiMesh* sprite = AddFigure(map_, figure);
-        SetPosition(sprite, ModelPoint(local));
-        SetTexture(sprite, Texture(1));
+        CUiMesh* sprite = map_->AddSprite(figure);
+        sprite->localPosition_ = ModelPoint(local);
+        sprite->texture_ = Texture(1);
         sprite->SetScale(scale);
         Turn(sprite);
         return sprite;
@@ -127,7 +102,7 @@ public:
         CUiMesh* sprite = map_->AddBlankSprite();
         sprite->SetRectangle(25.0f, 100.0f, 700.0f, 0.0f, 100.0f, 600.0f, 0, static_cast<int>(v0),
                              static_cast<int>(u1), static_cast<int>(v1));
-        SetTexture(sprite, Texture(4));
+        sprite->texture_ = Texture(4);
         Turn(sprite);
         Vector3 centre = Centre();
         Vector3 local = {0.0f, 0.0f, height};
@@ -136,7 +111,7 @@ public:
         Vector3 p;
         p.Construct(static_cast<float>(D(centre.x) + D(turned.x)), static_cast<float>(D(centre.y) + D(turned.y)),
                     static_cast<float>(D(centre.z) + D(turned.z)));
-        SetPosition(sprite, p);
+        sprite->localPosition_ = p;
         return sprite;
     }
 
@@ -150,18 +125,16 @@ void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, i
     region->SetTip(tip);
 }
 
-void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
+// A link marker's region: 40 x 35 round the marker's place on the screen.
+void SetMarkerRegion(CUiRegion* region, const CUiMesh* sprite) {
     float x, y, depth;
     sprite->GetPlacement(&x, &y, &depth);
     int bottom = static_cast<int>(libcrt::Ftol(D(y) + D(10.0f)));
     int right = static_cast<int>(libcrt::Ftol(D(x) + D(20.0f)));
     int top = static_cast<int>(libcrt::Ftol(D(y) - D(25.0f)));
     int left = static_cast<int>(libcrt::Ftol(D(x) - D(20.0f)));
-    map->AddRegion()->SetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
 }
-
-// fmod(a, *divisor), stored as float.
-float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
 
 // The product (r = b * a in this operand order), each component stored.
 Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
@@ -190,35 +163,23 @@ void SetFrameFraction(CEngineObject* layer, float time, float rate) {
 // --- Create ---------------------------------------------------------------------------
 
 void CGlobalMap::CreateScreen() {
-    autosave_ = false;
+    // Arrived from a zone (not loaded, not back from the camp): saved to "saveb" once built.
+    bool autosave = false;
     if (g_saveStream->size_ != 0)
         g_saveStream->Resize(0);
     else if (g_clientWorld->LocalView()->player_->lastScreen_ != 5)
-        autosave_ = true;   // not back from the camp
-    depth_ = Bits(0x41200000);     // 10
-    centreX_ = Bits(0x43C80000);   // 400
-    centreY_ = Bits(0x438C0000);   // 280
-    turning_ = 0;
-    bobTime_ = 0.0f;
+        autosave = true;
 
-    MapRecord* current = FindZone(LocalPlayerZone());
+    MapRecord* current = g_mapDatabase->FindMap(LocalPlayerZone());
     AllodRecord* allod = g_mapDatabase->FindAllod(current->allod);
-    {
-        std::string title;
-        allodTitle_ = *AllodTitle(&title, allod->name);
-    }
-    {
-        Vector3 position;
-        ZonePosition(&position, current->name);
-        position_ = position;
-    }
+    allodTitle_ = PlaceTitle("allod ", allod->name);
+    position_ = MapPosition("#zone ", current->name, true).value_or(Vector3{});
     const std::string& allodName = allod->name;
     LoadTexture((allodName + "Map"), 3);
     LoadTexture((allodName + "Sys"), 3);
     LoadTexture((allodName + "MapG"), 3);
     LoadTexture("saveload", 3);
     CreateTexture(0x100, 0x100, 0x21);
-    angle_ = 0.0f;
     {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion q;
@@ -231,10 +192,9 @@ void CGlobalMap::CreateScreen() {
     {
         Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + 2.0)};
         builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
-        Vector3 at = {position_.x, position_.y, position_.z};
-        builder.Marker(allod->otherNames[kAllodBall], at, Bits(0x3F4CCCCD));   // 0.8
-        CUiMesh* island = AddFigure(this, allod->otherNames[kAllodIsland]);
-        SetTexture(island, builder.Texture(2));
+        builder.Marker(allod->otherNames[kAllodBall], position_, 0.8f);
+        CUiMesh* island = AddSprite(allod->otherNames[kAllodIsland]);
+        island->texture_ = builder.Texture(2);
         island->Place(centreX_, centreY_, depth_);
         builder.Turn(island);
     }
@@ -246,30 +206,19 @@ void CGlobalMap::CreateScreen() {
 
     std::string variable;
     std::vector<std::string> parts;
-    VariableTable vars;
-    // New elements are copied from these (their numbers are uninitialised; every
-    // number is overwritten right after).
-    GlobalMapZone zoneTemplate{};
-    GlobalMapPlace linkTemplate{};
-    GlobalMapPlace questTemplate{};
-    linkCount_ = 0;
-    questCount_ = 0;
-    zoneCount_ = 0;
+    NamedFloatTable vars;   // the local player's variables by name prefix
 
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
     for (int i = 0; i < std::ssize(allod->maps); ++i) {
-        MapRecord* zone = ZoneAt(allod->maps[i]);
-        if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
-        zones_.push_back(zoneTemplate);
+        MapRecord* zone = &g_mapDatabase->maps[allod->maps[i]];
+        if (zone->kind != 0 || zone->figure.empty()) continue;
         variable = str::Format("z.%s", zone->name);
-        zones_[zoneCount_].link = -1;
-        zones_[zoneCount_].state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
-        zones_[zoneCount_].name = zone->name;
-        {
-            std::string title;
-            zones_[zoneCount_].title = *ZoneTitle(&title, zone->name);
-        }
-        CUiMesh* sprite = AddFigure(this, zone->figure);
+        GlobalMapZone& entry = zones_.emplace_back();
+        entry.link = -1;
+        entry.state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
+        entry.name = zone->name;
+        entry.title = PlaceTitle("zone ", zone->name);
+        CUiMesh* sprite = AddSprite(zone->figure);
         sprite->Place(centreX_, centreY_, depth_);
         builder.Turn(sprite);
         ++zoneCount_;
@@ -278,48 +227,31 @@ void CGlobalMap::CreateScreen() {
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
         variable = str::Format("q.%s", zones_[i].name);
-        GameLocalPlayerVariables(variable, &vars.table_);
-        const NamedFloatTable& table = vars.table_;
-        for (auto& node : table) {
-            std::uint32_t value;
-            value = std::bit_cast<std::uint32_t>(node.second);
-            if (value == 0x3F800000) {
-                text::Split(node.first, &parts, '.');
-                if (parts.size() == 3) {
-                    int n = questCount_;
-                    quests_.push_back(questTemplate);
-                    GlobalMapPlace& quest = quests_[n];
-                    quest.name = parts[2];
-                    quests_[n].zone = i;
-                    {
-                        std::string title;
-                        quests_[n].title = *QuestTitle(&title, parts[2]);
-                    }
-                    {
-                        Vector3 position;
-                        QuestPosition(&position, parts[2]);
-                        quests_[n].position = position;
-                    }
-                    CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker]);
-                    Vector3 local = quests_[n].position;
-                    SetPosition(sprite, builder.ModelPoint(local));
-                    SetTexture(sprite, builder.Texture(1));
-                    sprite->SetScale(0.3f);
-                    builder.Turn(sprite);
-                    SetWhite(sprite);
-                    float x, y, depth;
-                    sprite->GetPlacement(&x, &y, &depth);
-                    ++questCount_;
-                }
-            }
+        GameLocalPlayerVariables(variable, &vars);
+        for (const auto& node : vars) {
+            if (std::bit_cast<std::uint32_t>(node.second) != std::bit_cast<std::uint32_t>(1.0f)) continue;
+            text::Split(node.first, &parts, '.');
+            if (parts.size() != 3) continue;
+            GlobalMapPlace& quest = quests_.emplace_back();
+            quest.name = parts[2];
+            quest.zone = i;
+            quest.title = PlaceTitle("quest ", parts[2]);
+            quest.position = MapPosition("#quest ", parts[2], false).value_or(Vector3{});
+            CUiMesh* sprite = AddSprite(allod->otherNames[kAllodQuestMarker]);
+            sprite->localPosition_ = builder.ModelPoint(quest.position);
+            sprite->texture_ = builder.Texture(1);
+            sprite->SetScale(0.3f);
+            builder.Turn(sprite);
+            SetWhite(sprite);
+            ++questCount_;
         }
     }
 
     // The ways out of each zone the player may take ("z.<way>" = 2), with a region each.
     for (int i = 0; i < zoneCount_; ++i) {
-        MapRecord* zone = FindZone(zones_[i].name);
+        MapRecord* zone = g_mapDatabase->FindMap(zones_[i].name);
         for (int e = 0; e < std::ssize(zone->exits); ++e) {
-            MapRecord* way = FindZone(zone->exits[e].target);
+            MapRecord* way = g_mapDatabase->FindMap(zone->exits[e].target);
             if (!way) continue;
             variable = str::Format("z.%s", way->name);
             if (way->kind != 2) continue;
@@ -327,50 +259,41 @@ void CGlobalMap::CreateScreen() {
             double two = 2.0;
             EI_NAN_AUDIT(state);
             if (state != two) continue;
-            if (!NonEmpty(way->figure)) continue;
+            if (way->figure.empty()) continue;
             if (zones_[i].state == 2) zones_[i].link = linkCount_;
-            int n = linkCount_;
-            links_.push_back(linkTemplate);
-            links_[n].zone = i;
-            links_[n].name = way->name;
-            {
-                std::string title;
-                links_[n].title = *ZoneTitle(&title, way->name);
-            }
-            {
-                Vector3 position;
-                ZonePosition(&position, way->name);
-                links_[n].position = position;
-            }
-            CUiMesh* sprite = AddFigure(this, way->figure);
-            Vector3 local = links_[n].position;
-            SetPosition(sprite, builder.ModelPoint(local));
-            SetTexture(sprite, builder.Texture(1));
+            GlobalMapPlace& link = links_.emplace_back();
+            link.zone = i;
+            link.name = way->name;
+            link.title = PlaceTitle("zone ", way->name);
+            link.position = MapPosition("#zone ", way->name, true).value_or(Vector3{});
+            CUiMesh* sprite = AddSprite(way->figure);
+            sprite->localPosition_ = builder.ModelPoint(link.position);
+            sprite->texture_ = builder.Texture(1);
             sprite->SetScale(0.3f);
             builder.Turn(sprite);
             SetWhite(sprite);
-            AddMarkerRegion(this, sprite);
+            SetMarkerRegion(AddRegion(), sprite);
             ++linkCount_;
         }
     }
     markerCount_ = questCount_ + linkCount_ + zoneCount_;
 
-    // Three plain layers over the model (shadow, haze, glow).
+    // Three plain layers over the model (shadow, haze, glow), in the weather's colours (the original first gave
+    // them 0xA08200C8, 0xF0B400FF and 0x4BFFFFFF; its weather table replaced them before the first frame).
     {
-        CUiMesh* shadow = builder.Layer(0x100, 0x100, 0, Bits(0xBF000000));   // -0.5
-        shadow->flatColour_ = 0xA08200C8;
-        shadow->textureOffsetV_ = 0.3f;   // 0.3
-        SetPlain(shadow);
-        CUiMesh* haze = builder.Layer(0, 0x100, 0x100, Bits(0x3F333333));    // 0.7
-        haze->flatColour_ = 0xF0B400FF;
-        haze->textureOffsetV_ = 0.6f;     // 0.6
-        SetPlain(haze);
-        CUiMesh* glow = builder.Layer(0, 0x100, 0x100, Bits(0x40000000));    // 2.0
-        glow->flatColour_ = 0x4BFFFFFF;
+        CUiMesh* shadow = builder.Layer(0x100, 0x100, 0, -0.5f);
+        shadow->flatColour_ = 0x649B00E1;
+        shadow->textureOffsetV_ = 0.3f;
+        shadow->flags_ |= kPlainSprite;
+        CUiMesh* haze = builder.Layer(0, 0x100, 0x100, 0.7f);
+        haze->flatColour_ = 0x6E9B007D;
+        haze->textureOffsetV_ = 0.6f;
+        haze->flags_ |= kPlainSprite;
+        CUiMesh* glow = builder.Layer(0, 0x100, 0x100, 2.0f);
+        glow->flatColour_ = 0xB9690AC3;
         glow->visible_ = 0;
-        SetPlain(glow);
+        glow->flags_ |= kPlainSprite;
     }
-    g_sceneRenderer->fogColour_ = 0xFF3C005A;
 
     {
         backdrop_ = new CUiSurface(interface_, 0, 0, 400, 300, 5, 1);
@@ -378,13 +301,13 @@ void CGlobalMap::CreateScreen() {
     }
     {
         CUiMesh* shade = AddBlankSprite();
-        SetTexture(shade, nullptr);
-        SetPlain(shade);
+        shade->texture_ = nullptr;
+        shade->flags_ |= kPlainSprite;
         shade->flatColour_ = 0xA0000000;
         shade->visible_ = 0;
         CUiMesh* picture = AddBlankSprite();
         picture->visible_ = 0;
-        SetTexture(picture, builder.Texture(3));
+        picture->texture_ = builder.Texture(3);
     }
     {
         CUiSurface* info = new CUiSurface(interface_, 400, 20, 780, 300, 5, 1);
@@ -394,12 +317,12 @@ void CGlobalMap::CreateScreen() {
     {
         CUiMesh* shade = AddBlankSprite();
         shade->SetRectangle(3.0f, 100.0f, 20.0f, 20.0f, 170.0f, 70.0f, 0, 0, 0x100, 0x100);
-        SetTexture(shade, nullptr);
+        shade->texture_ = nullptr;
         shade->flatColour_ = 0xA0000000;
-        SetPlain(shade);
+        shade->flags_ |= kPlainSprite;
         CUiMesh* frame = AddBlankSprite();
         frame->SetFrame(3.0f, 100.0f, 15.0f, 15.0f, 175.0f, 75.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-        SetTexture(frame, builder.Texture(3));
+        frame->texture_ = builder.Texture(3);
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
@@ -416,65 +339,49 @@ void CGlobalMap::CreateScreen() {
         CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, 5, 1);
         AddSurface(text);
         RECT line1 = {0, 5, 150, 25};
-        SurfaceText(text, allodTitle_, &line1, 2, 0xA7D7E4, 0x25, 1);
+        text->DrawTextIn(allodTitle_, &line1, 2, 0xA7D7E4, 0x25, 1);
         RECT line2 = {0, 25, 150, 45};
-        SurfaceText(text, clock, &line2, 2, 0xA7D7E4, 0x25, 1);
+        text->DrawTextIn(clock, &line2, 2, 0xA7D7E4, 0x25, 1);
     }
 
     // The camp button (hidden with "i.nocamp" = 1) and the two turn buttons.
     {
         CUiMesh* camp = AddBlankSprite();
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
-        SetTexture(camp, builder.Texture(3));
-        noCamp_ = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("i.nocamp"))));
-        if (noCamp_ == 1) camp->visible_ = 0;
+        camp->texture_ = builder.Texture(3);
+        noCamp_ = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("i.nocamp")))) == 1;
+        if (noCamp_) camp->visible_ = 0;
         CUiMesh* left = AddBlankSprite();
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
-        SetTexture(left, builder.Texture(3));
+        left->texture_ = builder.Texture(3);
         CUiMesh* right = AddBlankSprite();
         right->SetRectangle(3.0f, 100.0f, 737.0f, 537.0f, 785.0f, 585.0f, 0x86, 0x37, 0xB6, 0x67);
-        SetTexture(right, builder.Texture(3));
+        right->texture_ = builder.Texture(3);
     }
 
-    gipat_ = false;
-    fog_[0] = 0.0f;
-    fog_[1] = 1.0f;
-    fog_[2] = 0.0f;
-    if (str::Compare(allod->name,
-                        "ingos") == 0) {
-        fog_[0] = Bits(0x3EBE0000);
-        fog_[1] = Bits(0x3F020000);
-        fog_[2] = Bits(0x3F200000);
-    } else if (str::Compare(allod->name,
-                               "suslanger") == 0) {
-        fog_[0] = Bits(0x3EC80000);
-        fog_[1] = Bits(0x3E480000);
-        fog_[2] = Bits(0x3DB00000);
+    if (str::Compare(allod->name, "ingos") == 0) {
+        fog_[0] = 0.37109375f;
+        fog_[1] = 0.5078125f;
+        fog_[2] = 0.625f;
+    } else if (str::Compare(allod->name, "suslanger") == 0) {
+        fog_[0] = 0.390625f;
+        fog_[1] = 0.1953125f;
+        fog_[2] = 0.0859375f;
     }
-    if (str::Compare(allod->name,
-                        "gipat") == 0)
-        gipat_ = true;
+    if (str::Compare(allod->name, "gipat") == 0) gipat_ = true;
 
-    selectPending_ = 1;
-    SelectZone(-1, 0);
-    dragging_ = false;
+    selectPending_ = true;
+    SelectZone(-1, false);
     GameSetWeather(0, 0.0f);   // clear
     g_clientWorld->music_->Stop();
     weather_ = new CGlobalMapClouds();
     weather_->Start();
-    static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,
-                                     0x77, 0xF8};
-    for (int i = 0; i < 18; ++i) weatherTable_[i] = kWeather[i];
-    for (int i = 0; i < 18; ++i) {
-        weatherIndex_ = i;
-        SetWeather();
-    }
+    // The weather: the display's colour (the original first set 0xFF3C005A) and the clouds' ramp.
+    g_sceneRenderer->fogColour_ = 0xFF00000A;
+    weather_->SetRamp(0x77, 0xF8, 2.0f);
     Update();
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", true);
-    if (autosave_) {
-        if (options::g_options->autosave_ != 0) ::QuickSave("saveb", static_cast<char>(1));
-        autosave_ = false;
-    }
+    if (autosave && options::g_options->autosave_ != 0) ::QuickSave("saveb", 1);
     interface_->OpenHelp(0);
 }
 
@@ -492,8 +399,7 @@ void CGlobalMap::Update() {
         float turned = static_cast<float>(FrameTime() * static_cast<double>(turning_) * D(3.1415927f) *
                                  D(0.25f) +
                              D(angle_));
-        angle_ = turned;
-        angle_ = FmodStored(turned, &kGlobalMapFullTurn);
+        angle_ = static_cast<float>(std::fmod(turned, kGlobalMapFullTurn));
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Vector3 side = {1.0f, 0.0f, 0.0f};
         Quaternion spin;
@@ -509,32 +415,21 @@ void CGlobalMap::Update() {
             turn_.y = -turn_.y;
             turn_.z = -turn_.z;
         }
-        Vector3 at = {position_.x, position_.y, position_.z};
-        SetPosition(SceneMesh(1), builder.ModelPoint(at));
+        SceneMesh(1)->localPosition_ = builder.ModelPoint(position_);
         builder.Turn(SceneMesh(1));
         builder.Turn(SceneMesh(2));
         for (int k = 3; k < 6; ++k) builder.Turn(SceneMesh(markerCount_ + k));
         for (int i = 0; i < zoneCount_; ++i) builder.Turn(SceneMesh(3 + i));
         for (int i = 0; i < questCount_; ++i) {
             CUiMesh* sprite = SceneMesh(3 + zoneCount_ + i);
-            Vector3 local = quests_[i].position;
-            SetPosition(sprite, builder.ModelPoint(local));
+            sprite->localPosition_ = builder.ModelPoint(quests_[i].position);
             builder.Turn(sprite);
-            float x, y, depth;
-            sprite->GetPlacement(&x, &y, &depth);
         }
         for (int i = 0; i < linkCount_; ++i) {
             CUiMesh* sprite = SceneMesh(3 + questCount_ + zoneCount_ + i);
-            Vector3 local = links_[i].position;
-            SetPosition(sprite, builder.ModelPoint(local));
+            sprite->localPosition_ = builder.ModelPoint(links_[i].position);
             builder.Turn(sprite);
-            float x, y, depth;
-            sprite->GetPlacement(&x, &y, &depth);
-            int bottom = static_cast<int>(libcrt::Ftol(D(y) + D(10.0f)));
-            int right = static_cast<int>(libcrt::Ftol(D(x) + D(20.0f)));
-            int top = static_cast<int>(libcrt::Ftol(D(y) - D(25.0f)));
-            int left = static_cast<int>(libcrt::Ftol(D(x) - D(20.0f)));
-            regions_[3 + i]->SetRect(left, top, right, bottom);
+            SetMarkerRegion(regions_[3 + i], sprite);
         }
     }
 
@@ -542,24 +437,27 @@ void CGlobalMap::Update() {
     bobTime_ = static_cast<float>(time);
     double bob = 0.5 - x87::fcos(time * D(5.0f)) * D(0.2f);
     Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
-    SetPosition(SceneMesh(0), builder.ModelPoint(above));
+    SceneMesh(0)->localPosition_ = builder.ModelPoint(above);
     SetFrameFraction(sceneObjects_[markerCount_ + 3], bobTime_, 0.01f);
     SetFrameFraction(sceneObjects_[markerCount_ + 4], bobTime_, 0.016666668f);
     SetFrameFraction(sceneObjects_[markerCount_ + 5], bobTime_, 0.033333335f);
 
-    if (selectPending_ != 0) RefreshSelection();
-    selectPending_ = 0;
+    if (selectPending_) RefreshSelection();
+    selectPending_ = false;
 
     // The weather is drawn into texture 4 on the GPU (the original wrote its pixels under the device lock).
     if (std::ssize(objects_) > 4) weather_->Draw(objects_[4]->surface_, static_cast<float>(FrameTime()));
     g_cursor->ChangeShape(dragging_ ? 0x16 : 0);
 }
 
-CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
-    turn_.w = 1.0f;   // the identity turn
-    turn_.x = 0.0f;
-    turn_.y = 0.0f;
-    turn_.z = 0.0f;
-}
+// --- Draw -------------------------------------------------------------------------------
 
-CGlobalMap::~CGlobalMap() = default;
+void CGlobalMap::Draw(CSceneRenderer* pass) {
+    render::RenderState& state = render::g_renderState;
+    state.blend = true;
+    state.alphaTest = false;
+    state.sourceBlend = render::Blend::SourceAlpha;
+    state.destBlend = render::Blend::InvSourceAlpha;
+    state.alphaReference = 1;
+    CUiContainer::Draw(pass);
+}

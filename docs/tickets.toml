@@ -5661,3 +5661,10 @@ title = "C54b rest: the camp panels' leftovers"
 group = "cleanup"
 depends = ["C54b"]
 note = "Left by C54b: CBattleScreen's empty destructor in ui_window_delete.cpp (C54e ran on the battle screen at the time) and CItemInfoPanel's explicit CParty destructor call there (G11); CUiSurface::DrawLine takes a non-const RECT* (DrawTextIn is const RECT*), so the panels' DrawStats / DrawLists still pass RECT*; CHeroEquipPanel::ShowArmour and ItemAt regions 4-7 read PartyUnitRecord::quickItems though the comments say armour (find out which name is right); the panels' SetPlainFlag (sprite flag 0x100) has no named flag; CTextManager::GetString's std::string* out-param at every panel (G12, with its owner)."
+
+[[ticket]]
+id = "C54c1"
+title = "C54c rest: the text reader's free functions and the global map's counts"
+group = "cleanup"
+depends = ["C54c"]
+note = "TextNextLine / TextSkipLine (text_reader.h, the last free functions on CTextManager; callers ui_battle_update, ui_help_page, ui_help_window, ui_item_info, ui_objectives*, ui_global_map_places) -> CTextManager members (TextSkipLine has no caller outside text_reader.cpp: a local helper), text_reader.h folded into item_db_text.h. CGlobalMap: zoneCount_ / questCount_ / linkCount_ repeat the vectors' sizes (markerCount_ their sum); the D() double casts and Ftol truncations in ui_global_map.cpp (x87 mirroring, golden-check under /arch:IA32); MapBuilder::Layer's Vector3::Construct; RefreshSelection's colour expression. Goldens: ui_camp, ui_global_map_pick, ui_gallery_deals."

@@ -45,8 +45,6 @@ int CItemScreen::Price(CItem*, int) { return 0; }
 
 CItem* CFigureStrip::ItemAt(int, int, int*) { return nullptr; }
 
-const char* CGlobalMap::HelpTopic() { return noCamp_ == 1 ? "global_map_nocamp" : "global_map"; }
-
 // --- One-line setters and readers ------------------------------------------------------------------------
 
 void CBattleScreen::SetPortraitMode(int mode) { portraitMode_ = mode; }
@@ -116,11 +114,6 @@ void CHeroStatsPanel::LeftUp(int, int, int) {
     interface_->mouseCapture_ = nullptr;
     heldRegion_ = -1;
     holdTime_ = 0.0f;
-}
-
-void CGlobalMap::LeftUp(int, int, int) {
-    if (turning_ != 0) selectPending_ = 1;
-    turning_ = 0;
 }
 
 void CEscMenu::CloseScreen() { models_[0]->Play(0); }
