@@ -67,7 +67,6 @@ void SortQuests(std::string* first, std::string* last) {
     });
 }
 
-constexpr std::uint32_t kPlainFlag = 0x100;   // CUiMesh::flags_: drawn in flatColour_
 
 void Turn(CUiMesh* sprite, float angle) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
@@ -124,7 +123,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         return;
     }
 
-    LoadTexture(map->picture2, 3);
+    LoadTexture(map->picture2, TextureKind::Interface);
     float width = static_cast<float>(static_cast<double>(map->sizeX));
     float height = static_cast<float>(static_cast<double>(map->sizeY));
     float larger = width < height ? height : width;
@@ -422,8 +421,8 @@ void CObjectivesWindow::CreateScreen() {
     bar_ = new CUiScrollbar(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar_);
 
-    LoadTexture("saveload", 3);
-    LoadTexture("cross", 3);
+    LoadTexture("saveload", TextureKind::Interface);
+    LoadTexture("cross", TextureKind::Interface);
     AddSurface(NewSurface(interface_, 50, 20, 390, 160));
     AddSurface(NewSurface(interface_, 410, 380, 750, 520));
     AddSurface(NewSurface(interface_, 280, 540, 520, 580));
@@ -439,13 +438,13 @@ void CObjectivesWindow::CreateScreen() {
     highlight->SetRectangle(3.0f, 100.0f, 60.0f, 30.0f, 370.0f, 54.0f, 0, 0, 0x100, 0x100);
     highlight->texture_ = nullptr;
     highlight->flatColour_ = 0xC8A06800;
-    highlight->flags_ |= kPlainFlag;
+    highlight->flags_ |= FigureMeshFlag::Flat;
     highlight->visible_ = false;
     AddBlankSprite();   // object 3: the zone picture, set up by the zone page
     CUiMesh* bottomShade = AddBlankSprite();
     bottomShade->SetRectangle(15.0f, 100.0f, 285.0f, 541.0f, 515.0f, 579.0f, 0, 0, 0x100, 0x100);
     bottomShade->texture_ = nullptr;
-    bottomShade->flags_ |= kPlainFlag;
+    bottomShade->flags_ |= FigureMeshFlag::Flat;
     bottomShade->flatColour_ = 0xA0000000;
     AddBlankSprite()->SetFrame(3.0f, 100.0f, 280.0f, 536.0f, 520.0f, 584.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     const float shades[4][4] = {{50.0f, 20.0f, 390.0f, 160.0f},
@@ -456,7 +455,7 @@ void CObjectivesWindow::CreateScreen() {
         CUiMesh* shade = AddBlankSprite();
         shade->SetRectangle(15.0f, 100.0f, s[0], s[1], s[2], s[3], 0, 0, 0x100, 0x100);
         shade->texture_ = nullptr;
-        shade->flags_ |= kPlainFlag;
+        shade->flags_ |= FigureMeshFlag::Flat;
         shade->flatColour_ = 0xA0000000;
     }
     const float frames[4][4] = {{45.0f, 15.0f, 395.0f, 165.0f},

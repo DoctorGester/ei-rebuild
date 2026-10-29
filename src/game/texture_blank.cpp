@@ -22,17 +22,17 @@ struct Channel {
     std::uint32_t mask, shift, bits;
 };
 struct BlankFormat {
-    int kind;
+    TextureKind kind;
     std::uint32_t id;
     Channel alpha, red, green, blue;
 };
 constexpr BlankFormat kBlankFormats[] = {
-    {0x1E, 0x5650, {0, 0, 0}, {0xF800, 11, 5}, {0x7E0, 5, 6}, {0x1F, 0, 5}},
-    {0x20, 0x5551, {0x8000, 15, 1}, {0x7C00, 10, 5}, {0x3E0, 5, 5}, {0x1F, 0, 5}},
-    {0x21, 0x4444, {0xF000, 12, 4}, {0xF00, 8, 4}, {0xF0, 4, 4}, {0xF, 0, 4}},
+    {TextureKind::Blank565, 0x5650, {0, 0, 0}, {0xF800, 11, 5}, {0x7E0, 5, 6}, {0x1F, 0, 5}},
+    {TextureKind::Blank1555, 0x5551, {0x8000, 15, 1}, {0x7C00, 10, 5}, {0x3E0, 5, 5}, {0x1F, 0, 5}},
+    {TextureKind::Blank4444, 0x4444, {0xF000, 12, 4}, {0xF00, 8, 4}, {0xF0, 4, 4}, {0xF, 0, 4}},
 };
 
-const BlankFormat* FormatOfKind(int kind) {
+const BlankFormat* FormatOfKind(TextureKind kind) {
     for (const BlankFormat& f : kBlankFormats)
         if (f.kind == kind) return &f;
     return nullptr;
@@ -63,8 +63,8 @@ int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
     return 1;
 }
 
-CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
-    CTexture* texture = NewTextureOfType(kind);
+CTexture* CTextureManager::NewTexture(int width, int height, TextureKind kind) {
+    CTexture* texture = NewTextureOfType(static_cast<int>(kind));
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     texture->width_ = static_cast<std::uint32_t>(width);

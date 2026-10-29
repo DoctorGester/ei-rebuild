@@ -120,7 +120,7 @@ std::string CHudQuickItems::ItemTip(unsigned index) {
         text += line;
         line = str::Format("%s %d%s  ", labels_[3], Truncate(data->range_), labels_[9]);
         text += line;
-        if (data->targetFlags_ & 0x10000000) {
+        if (data->targetFlags_ & SpellTargetFlag::AtUnits) {
             line = str::Format("%s %s \n", labels_[4], labels_[8]);
         } else {
             float radius = data->radius_;

@@ -15,8 +15,6 @@
 namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
-// Spell data flag (CSpell flags): the spell is aimed at a unit (kind 'u' in spells.sdb).
-constexpr std::uint32_t kSpellOnUnit = 0x10000000;
 
 // The shared tail of the quick item and the spell use: `spell` (an item's spell) used at once by `unit`'s
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the pending
@@ -34,7 +32,7 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
     } else if (!target) {
         return true;
     }
-    if (spell->targetFlags_ & kSpellOnUnit)
+    if (spell->targetFlags_ & SpellTargetFlag::AtUnits)
         screen->UseOnUnit(target, quick, 0);
     else
         screen->UseAtPoint(target->localPosition_, unit, quick);
@@ -88,7 +86,7 @@ void CHudSpellColumn::Click(int index) {
     if (!item) return;
     CSpell* spell = item->spell_;
     if (!spell) return;
-    owner_->SetPendingAction((spell->targetFlags_ & kSpellOnUnit) ? kPendingSpellOnUnit : kPendingSpellAtPoint, index, -1);
+    owner_->SetPendingAction((spell->targetFlags_ & SpellTargetFlag::AtUnits) ? kPendingSpellOnUnit : kPendingSpellAtPoint, index, -1);
 }
 
 // --- An action button ----------------------------------------------------------------
@@ -126,7 +124,7 @@ void CHudQuickItems::Pick(int slot) {
     if (category != QuickItemCategory::Wand && category != QuickItemCategory::Potion) return;
     PendingAction mode = kPendingNone;
     if (CSpell* spell = item->spell_)
-        mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
+        mode = (spell->targetFlags_ & SpellTargetFlag::AtUnits) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
     owner_->SetPendingAction(mode, slot, -1);
 }
 

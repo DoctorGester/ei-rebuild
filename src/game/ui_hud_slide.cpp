@@ -126,7 +126,6 @@ constexpr float kDepthUnit = 0.48157462f;           // the layout's half height 
 constexpr float kBoundsScale = 0.045f;
 constexpr float kMarkersScale = 0.03f;
 constexpr float kSlingQuarter = -0.5f;        // the sling starts a quarter turn back
-constexpr int kMapTextureKind = 3;
 constexpr int kMapTravel = 180;
 constexpr int kOutlinePoints = 16;
 
@@ -358,11 +357,11 @@ void CHudMap::Setup(float zoom, bool slid) {
     if (const MapRecord* zone = LocalZone()) {
         worldWidth_ = static_cast<float>(zone->sizeX) * kZoneUnit;
         worldHeight_ = static_cast<float>(zone->sizeY) * kZoneUnit;
-        LoadTexture(zone->picture, kMapTextureKind);
+        LoadTexture(zone->picture, TextureKind::Interface);
     } else {
         worldWidth_ = 32.0f;
         worldHeight_ = 32.0f;
-        LoadTexture(kDefaultPicture, kMapTextureKind);
+        LoadTexture(kDefaultPicture, TextureKind::Interface);
     }
     textureSize_ = worldWidth_ < worldHeight_ ? worldHeight_ : worldWidth_;
     scale_ = kMapSide / textureSize_;

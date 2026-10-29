@@ -15,7 +15,7 @@
 namespace {
 
 
-constexpr int kFogTextureKind = 6;
+constexpr int kFogTextureKind = static_cast<int>(TextureKind::Effects);
 const char* FogTextureName() { return "VisionFog"; }
 
 // The fog texture's 4 x 4 tiles (FogTiles, effects.h): filled here, read by the fog's draw.

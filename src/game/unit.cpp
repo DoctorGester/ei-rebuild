@@ -143,8 +143,8 @@ void CUnit::SetMoveModes(int mode, int mode2) {
     MarkChanged(6);
 }
 
-void CUnit::SetFlag40000000Off(bool on) {
-    if (on) {
+void CUnit::ShowHelmet(bool show) {
+    if (show) {
         flags_ &= ~MapObjectFlag::HelmetHidden;
     } else {
         flags_ |= MapObjectFlag::HelmetHidden;

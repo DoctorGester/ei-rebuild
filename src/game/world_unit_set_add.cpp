@@ -11,7 +11,7 @@
 
 namespace {
 
-constexpr std::uint32_t kNoItem = 0xFFFFFFFFu;
+constexpr int kNoModelNumber = -1;   // UnitLookRecord::modelNumber of a record shared by several units
 constexpr float kScaleSteps = 127.0f;
 
 // The figure's scale as a key: each component times 127, truncated (_ftol), 10 bits each, x highest.
@@ -21,12 +21,12 @@ std::uint32_t ScaleKey(const Vector3& scale) {
 }
 
 // An item's id (its prototype index in the high word, its material in the low word) when the item
-// is there and both indices are inside their tables (`known` for the prototype), else kNoItem.
+// is there and both indices are inside their tables (`known` for the prototype), else kNoItemId.
 template <typename Known>
 std::uint32_t ItemId(const CEngineObject* item, Known known) {
-    if (!item) return kNoItem;
+    if (!item) return kNoItemId;
     std::uint32_t id = item->prototypeId_;
-    if (!known(id >> 16) || !itemdb::MaterialAt(id & 0xFFFF)) return kNoItem;
+    if (!known(id >> 16) || !itemdb::MaterialAt(id & 0xFFFF)) return kNoItemId;
     return id;
 }
 bool KnownArmour(std::uint32_t index) { return itemdb::ArmorAt(index) != nullptr; }
@@ -64,7 +64,7 @@ void UnitSet::Add(CUnit* unit) {
     bool marked = false;
     for (auto [it, last] = figured[prototype].equal_range(scaleKey); it != last; ++it) {
         if (SameIds(it->second, record)) {
-            it->second.modelNumber = static_cast<int>(kNoItem);
+            it->second.modelNumber = kNoModelNumber;
             marked = true;
             break;
         }
@@ -85,7 +85,7 @@ void UnitSet::Add(CUnit* unit) {
     // record's head is added.
     for (auto [it, last] = dressed.equal_range(prototype); it != last; ++it) {
         if (SameIds(it->second, record)) {
-            it->second.modelNumber = static_cast<int>(kNoItem);
+            it->second.modelNumber = kNoModelNumber;
             return;
         }
     }

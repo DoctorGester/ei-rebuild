@@ -49,8 +49,6 @@ constexpr const char* kZoneVariablePrefix = "z.";
 
 constexpr int kFromCamp = 5;              // CPlayer::lastScreen_
 constexpr float kEdgeFade = 4.0f;
-constexpr int kTextureKind = 3;
-constexpr std::uint32_t kPlainFlag = 0x100;   // CUiMesh::flags_: drawn in flatColour_
 constexpr std::uint32_t kDarkBackdrop = 0x80000000;
 constexpr std::uint32_t kTextBackdrop = 0xA0000000;
 constexpr int kTopicBarChild = 0;
@@ -158,21 +156,21 @@ void CBriefingScreen::CreateScreen() {
         autosave_ = true;
     MapRecord* map = g_mapDatabase.FindMap(LocalPlayerZone());
     LoadPersonTexts(&personTexts_);
-    LoadTexture(kSaveLoadTexture, kTextureKind);
+    LoadTexture(kSaveLoadTexture, TextureKind::Interface);
 
     // The backdrops: a dark one behind the topics with a frame, a lighter one behind the text
     // with a frame.
     CUiMesh* sprite = AddBlankSprite();
     sprite->SetRectangle(20.0f, 100.0f, 200.0f, 430.0f, 600.0f, 570.0f, 0, 0, 0x100, 0x100);
     sprite->texture_ = nullptr;
-    sprite->flags_ |= kPlainFlag;
+    sprite->flags_ |= FigureMeshFlag::Flat;
     sprite->flatColour_ = kDarkBackdrop;
     AddBlankSprite()->SetFrame(10.0f, 100.0f, 195.0f, 425.0f, 605.0f, 575.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     sprite = AddBlankSprite();
     sprite->SetRectangle(20.0f, 100.0f, 155.0f, 416.0f, 645.0f, 580.0f, 0, 0, 0x100, 0x100);
     sprite->texture_ = nullptr;
     sprite->flatColour_ = kTextBackdrop;
-    sprite->flags_ |= kPlainFlag;
+    sprite->flags_ |= FigureMeshFlag::Flat;
     AddBlankSprite()->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 
     // Surface 0 the topic rows, 1 a person's label.

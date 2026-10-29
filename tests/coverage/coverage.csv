@@ -3950,7 +3950,7 @@ address,name,size,status,risk,scenarios,golden,vector,reached_by
 0052EB30,CUnit::ScaleEffectChangedImpl,28,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 0052EB50,UnitStatsChangedHook,30,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 0052EB70,CUnit::TakePrototypeImpl,101,golden,0,123,app_record boot camera combat +106,,harness_disk_full net_second_master rebirth_flags +10
-0052EBE0,CUnit::SetFlag40000000Off,47,golden,0,4,net_pair_leave net_pair_quest net_pair_zone ui_base_topic,,
+0052EBE0,CUnit::ShowHelmet,47,golden,0,4,net_pair_leave net_pair_quest net_pair_zone ui_base_topic,,
 0052EC10,CUnit::GetEquipmentIds,96,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 0052EC70,UnitWriteNetState,798,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 0052EF90,UnitReadNetState,1962,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10

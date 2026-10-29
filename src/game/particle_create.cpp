@@ -785,7 +785,7 @@ void CParticleSource::Create() {
 
     char name[268];
     std::memcpy(name, textureName, std::strlen(textureName) + 1);
-    LoadNamedTexture(texture, 6, name);
+    LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), name);
     BuildFrames(this);
 }
 

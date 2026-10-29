@@ -94,7 +94,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     std::uint32_t savedColour = renderer->colour_;
     // White: 255.0 converted three times, packed as 0xFF rr gg bb.
     renderer->SetColour(0xFFFFFFFFu);
-    model->flags_ |= 0x800;
+    model->flags_ |= MapObjectFlag::NoEdgeFade;
     {
         std::uint32_t now = gameapi::timeGetTime();
         float time = static_cast<float>(x87::FromUnsigned(now) * D(0.0009765625f) * D(15.0f));
@@ -152,6 +152,6 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     drawn->figureScale.z = 1.0f;
     model->localPosition_ = savedPosition;
     model->localRotation_ = savedOrientation;
-    model->flags_ &= ~0x800u;
+    model->flags_ &= ~MapObjectFlag::NoEdgeFade;
     renderer->SetColour(savedColour);
 }

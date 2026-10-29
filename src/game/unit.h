@@ -37,6 +37,9 @@ enum class UnitStatsFlag : std::uint32_t {
     Struck = 0x10,              // the defence failed against a hit (CUnitServer); the client shows the hit
 };
 template <> inline constexpr bool lib::kBitFlags<UnitStatsFlag> = true;
+
+// The weapon slot of no weapon: ShowWeapon's argument, and CHeroRecord::weaponIndex when the hero shows none.
+inline constexpr std::uint32_t kNoWeaponSlot = 0xFFFFFFFFu;
 struct UnitParams;
 struct UnitPrototypeRecord;
 struct UnitModelRecord;
@@ -251,8 +254,8 @@ public:
     void SetPathTimeShift(int shift);
     // Marks part 6.
     void SetMoveModes(int mode, int mode2);
-    // Clears (on) or sets (off) MapObjectFlag::HelmetHidden; marks part 5.
-    void SetFlag40000000Off(bool on);
+    // Shows the helmet (clears MapObjectFlag::HelmetHidden) or hides it (sets it); marks part 5.
+    void ShowHelmet(bool show);
     // Sets (stunned) or clears flags_ bit 0x1000000. Returns the new flags.
     std::uint32_t SetStunned(int on) override;
 

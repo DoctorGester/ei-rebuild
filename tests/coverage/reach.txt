@@ -3950,7 +3950,7 @@
 0052EB30 CUnit::ScaleEffectChangedImpl 7fffffffffffffffffffffffffffffff
 0052EB50 UnitStatsChangedHook 7fffffffffffffffffffffffffffffff
 0052EB70 CUnit::TakePrototypeImpl 7ffdbffffffff7fffffffffffffdffff
-0052EBE0 CUnit::SetFlag40000000Off 40000000000d000000
+0052EBE0 CUnit::ShowHelmet 40000000000d000000
 0052EC10 CUnit::GetEquipmentIds 7fffffffffffffffffffffffffffffff
 0052EC70 UnitWriteNetState 7fffffffffffffffffffffffffffffff
 0052EF90 UnitReadNetState 7fffffffffffffffffffffffffffffff

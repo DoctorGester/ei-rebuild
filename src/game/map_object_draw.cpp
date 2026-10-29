@@ -23,7 +23,6 @@
 // The light range test keeps its sums on the FPU stack like the original.
 
 namespace {
-constexpr std::uint32_t kObjectUnlit = 0x800;      // object->flags_
 constexpr std::uint32_t kRedrawStatic = 8;          // this->flags_
 constexpr float kNearSquared = 1e9f;
 constexpr float kLightMargin = 10.0f;
@@ -114,7 +113,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
         if (!(object->flags_ & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, kStackObject);
     }
     std::uint8_t lit = 0xFF;
-    if (!(object->flags_ & kObjectUnlit)) {
+    if (!(object->flags_ & MapObjectFlag::NoEdgeFade)) {
         Terrain* terrain = ClientWorld()->terrain_;
         lit = terrain->EdgeFade(&at);   // AL as it is
     }

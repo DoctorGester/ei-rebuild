@@ -81,7 +81,7 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
         } else {
             continue;
         }
-        marker->flags_ &= ~0x100u;
+        marker->flags_ &= ~FigureMeshFlag::Flat;
     }
     for (int i = 0; i < linkCount_; ++i) {
         CUiMesh* marker = Marker(zoneCount_ + questCount_ + i);
@@ -105,7 +105,7 @@ void CGlobalMap::RefreshSelection() {
         std::uint32_t level = 0x18u + 0x10u * static_cast<std::uint32_t>(i);
         marker->texture_ = nullptr;
         marker->flatColour_ = ((((level | 0xFFFFFF00u) << 8) | level) << 8) | level;
-        marker->flags_ |= 0x100u;
+        marker->flags_ |= FigureMeshFlag::Flat;
     }
     surfaces_[1]->Hide(false);
     surfaces_[0]->Hide(false);

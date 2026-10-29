@@ -676,7 +676,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
                   w.T(26));
     w.Text(w.line);
     w.Down();
-    if (spell->targetFlags_ & 0x10000000) {
+    if (spell->targetFlags_ & SpellTargetFlag::AtUnits) {
         w.line = str::Format("%s %s", w.T(11), w.T(22));
     } else {
         // The area: pi * r * r in that order.

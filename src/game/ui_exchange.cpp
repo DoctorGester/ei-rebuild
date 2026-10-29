@@ -128,7 +128,7 @@ void CExchangeScreen::ExchangeDone(CParty* partyB, CParty* partyA, CParty* party
 // --- Create --------------------------------------------------------------------------------------
 
 void CExchangeScreen::CreateScreen() {
-    LoadTexture("campinfo", 3);
+    LoadTexture("campinfo", TextureKind::Interface);
     CUiRegion* region = AddRegion();
     region->SetRect(12, 450, 52, 490);
     region->SetTip(0xA028);

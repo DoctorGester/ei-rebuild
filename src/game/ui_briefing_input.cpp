@@ -28,7 +28,6 @@ constexpr const char* kTopicPrefixKey = "topic_prefix";
 constexpr const char* kGoodbyeTopic = "goodbye";
 constexpr const char* kTopicSeparator = " ";
 
-constexpr std::uint32_t kUnitBlocked = 0x800000;   // CEngineObject::flags_: script BlockUnit
 constexpr int kTopicRows = 5;
 
 // The topic rows (layout): regions at x 210..570 from y 440, 24 high; text rows on surface 0 at
@@ -83,7 +82,7 @@ static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, bool run) {
     Vector3 point{p->x, p->y, p->z};
     if (!screen->leader_) return;
     CUnit* unit = g_serverWorld->FindUnit(screen->leader_->id_);
-    if (!unit || (unit->flags_ & kUnitBlocked)) return;
+    if (!unit || (unit->flags_ & MapObjectFlag::Blocked)) return;
     unit->ServerController()->brain.Walk(&point, run, 0);
 }
 
@@ -220,7 +219,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
     }
     if (leader_ && !noWalk_) {
         CUnit* unit = g_serverWorld->FindUnit(leader_->id_);
-        if (unit && !(unit->flags_ & kUnitBlocked)) unit->ServerController()->brain.StopAction();
+        if (unit && !(unit->flags_ & MapObjectFlag::Blocked)) unit->ServerController()->brain.StopAction();
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
         AddRegion()->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);

@@ -276,7 +276,7 @@ void CBriefingScreen::HideSpeaker(std::string_view name, bool immediate, bool ru
         model->blinks = 0;
         model->BlinkOpen(true);
         if (auto* serverUnit = g_serverWorld->FindUnit(person->id_)) {
-            serverUnit->SetFlag40000000Off(true);
+            serverUnit->ShowHelmet(true);
             GameSetUnitHeight(person->id_, 0.0f);
             auto* controller = serverUnit->ServerController();
             controller->actionDone = nullptr;

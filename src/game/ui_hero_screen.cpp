@@ -249,7 +249,7 @@ void CMpHeroScreen::MakePreview(bool allArmour) {
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
         CUnitController* controller = unit->Controller();
-        controller->ShowWeapon(0xFFFFFFFF);
+        controller->ShowWeapon(kNoWeaponSlot);
         controller->RefreshModel();
         double now = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
         controller->RestartAnimation(static_cast<float>(now - 1.0f));

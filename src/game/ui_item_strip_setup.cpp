@@ -17,7 +17,6 @@ namespace {
 constexpr const char* kTopTexture = "Inventory02";
 constexpr const char* kBottomTexture = "Inventory01";
 constexpr const char* kFigureTexture = "InventoryM01";
-constexpr int kTextureKind = 3;
 
 
 // Layout constants of the strips (the exe's floats).
@@ -33,7 +32,7 @@ const char* const kOnOffSound = "buttons\\battle\\on_off.wav";
 } // namespace
 
 void CUiItemStrip::Setup(std::vector<CItem*>* source, bool top) {
-    LoadTexture(top ? kTopTexture : kBottomTexture, kTextureKind);
+    LoadTexture(top ? kTopTexture : kBottomTexture, TextureKind::Interface);
     Build(top);
     regions_[0]->SetTip(0x4FB0);
     regions_[1]->SetTip(0x4FB1);
@@ -45,7 +44,7 @@ void CUiItemStrip::Setup(std::vector<CItem*>* source, bool top) {
 
 void CUiItemStrip::SetupFigures(std::vector<std::string>* names, bool top, bool noArrowTips) {
     figures_ = names;
-    LoadTexture(kFigureTexture, kTextureKind);
+    LoadTexture(kFigureTexture, TextureKind::Interface);
     Build(top);
     if (!noArrowTips) {
         regions_[0]->SetTip(0x9DD0);

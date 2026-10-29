@@ -41,7 +41,6 @@ constexpr int kSlots = 7;
 constexpr float kSlotBack = 60.0f;
 constexpr float kSlotFrame = 65.0f;
 constexpr float kItemDepth = 12.0f;
-constexpr std::uint32_t kPlainFlag = 0x100;
 constexpr std::uint32_t kSlotBackdrop = 0xA0000000;
 constexpr std::uint32_t kTintedItem = 0x82FFFFFF;
 constexpr int kTintFrom = 8;             // items from index 8 on are tinted
@@ -93,7 +92,7 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
         auto* player = g_serverWorld->GetPlayer(0);
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = g_serverWorld->FindUnit(unit->id_)) {
-            if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
+            if (leader_ && leader_->id_ == unit->id_) serverUnit->ShowHelmet(false);
             serverUnit->ServerController()->actionDone = SpeakerAnimationDone;
         }
         return;
@@ -123,7 +122,7 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
         back = AddBlankSprite();
         back->SetRectangle(20.0f, 100.0f, x - kSlotBack, y - kSlotBack, x + kSlotBack, y + kSlotBack, 0, 0, 0x100, 0x100);
         back->texture_ = nullptr;
-        back->flags_ |= kPlainFlag;
+        back->flags_ |= FigureMeshFlag::Flat;
         back->flatColour_ = kSlotBackdrop;
         frame = AddBlankSprite();
         frame->SetFrame(20.0f, 100.0f, x - kSlotFrame, y - kSlotFrame, x + kSlotFrame, y + kSlotFrame, 5.0f, 2, 0xFE, 0xB4,
@@ -139,11 +138,11 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
     }
     if (index >= kTintFrom) {
         item->flatColour_ = kTintedItem;
-        item->flags_ |= kPlainFlag;
+        item->flags_ |= FigureMeshFlag::Flat;
     }
     std::string image;
     image = str::Format(kItemImageFormat, record->number);
-    CTexture* texture = CreateTexture(0x100, 0x100, 0x20);
+    CTexture* texture = CreateTexture(0x100, 0x100, TextureKind::Blank1555);
     CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0);
     item->texture_ = texture;
     item->Place(x, y, kItemDepth);

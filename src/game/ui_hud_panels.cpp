@@ -127,7 +127,7 @@ void CHudMovePanel::ToggleFlag() {
     int common = -1;
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         CUnit* unit = owner_->party_[i];
-        if (!(unit->flags_ & 0x10)) continue;
+        if (!(unit->flags_ & MapObjectFlag::Selected)) continue;
         if (common == -1)
             common = unit->fightAtWill;
         else if (common != unit->fightAtWill)
@@ -136,7 +136,7 @@ void CHudMovePanel::ToggleFlag() {
     int value = !owner_->party_.empty() && common == 1 ? 0 : 1;
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         CUnit* unit = owner_->party_[i];
-        if (unit->flags_ & 0x10) g_clientWorld->LocalView()->SetUnitFightAtWill(unit, value);
+        if (unit->flags_ & MapObjectFlag::Selected) g_clientWorld->LocalView()->SetUnitFightAtWill(unit, value);
     }
     flag_ = value;
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).

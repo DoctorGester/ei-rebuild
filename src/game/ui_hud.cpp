@@ -77,7 +77,6 @@ void DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
     render::g_renderState.specular = false;
 }
 
-constexpr std::uint32_t kFlagSelected = 0x10;
 constexpr int kWobbleNod = 1;   // HudPortraitSlot::wobbleKind_
 
 // Whether `x` is zero (either sign), as the FPU compare gives it.
@@ -466,7 +465,7 @@ void CHudMovePanel::LeftUp(int, int x, int y) {
         interface_->PlaySound(kSoundClick);
         for (int i = 0; i < std::ssize(owner_->party_); ++i) {
             CUnit* unit = owner_->party_[i];
-            if (unit->flags_ & 0x10) g_clientWorld->LocalView()->SetMoveMode(unit, mode);
+            if (unit->flags_ & MapObjectFlag::Selected) g_clientWorld->LocalView()->SetMoveMode(unit, mode);
         }
     }
     ShowMode(mode);
@@ -509,7 +508,7 @@ void CHudMovePanel::Update() {
     CUnit** units = owner_->party_.data();
     for (int i = 0; i < count; ++i) {
         CUnit* unit = units[i];
-        if (!(unit->flags_ & 0x10)) continue;
+        if (!(unit->flags_ & MapObjectFlag::Selected)) continue;
         if (mode == -1)
             mode = unit->moveMode2;
         else if (mode != unit->moveMode2)
@@ -593,7 +592,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     int selected = 0;
     for (int i = 0; i < count; ++i) {
         CUnit* member = party_[i];
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
         if (!first) {
             first = member;
             firstIndex = i;
@@ -708,7 +707,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         if (!unit || unitDead(unit)) return;
         for (int i = 0; i < std::ssize(party_); ++i) {
             CUnit* member = party_[i];
-            if (!member || !(member->flags_ & kFlagSelected)) continue;
+            if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
             g_clientWorld->LocalView()->SendFollow(member, unit);
             Speech(party_[i]->id_, AckKind::Follow, nullptr);
             portraits_->Wobble(i, kWobbleNod);
@@ -770,7 +769,7 @@ void CBattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     int selected = 0;
     for (int i = 0; i < std::ssize(party_); ++i) {
         CUnit* member = party_[i];
-        if (member && (member->flags_ & kFlagSelected)) ++selected;
+        if (member && (member->flags_ & MapObjectFlag::Selected)) ++selected;
     }
 
     // A point on a zone exit that is open ("z.<zone>" not 1; "none" is no zone): remembered for the
@@ -797,7 +796,7 @@ void CBattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     std::vector<CUnit*> units;
     for (int i = 0; i < std::ssize(party_); ++i) {
         CUnit* member = party_[i];
-        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        if (!member || !(member->flags_ & MapObjectFlag::Selected)) continue;
         units.push_back(member);
         portraits_->Wobble(i, kWobbleNod);
     }

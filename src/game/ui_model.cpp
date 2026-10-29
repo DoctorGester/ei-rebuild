@@ -21,12 +21,10 @@ namespace {
 
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 
-// A part is hidden while bit 0x80 of its flags is set.
-constexpr std::uint32_t kHidden = 0x80;
 void ShowFigurePart(CFigureMesh* part, int show) {
     CEngineObject* object = part;
-    if (static_cast<std::uint8_t>(show)) object->flags_ &= ~kHidden;
-    else object->flags_ |= kHidden;
+    if (static_cast<std::uint8_t>(show)) object->flags_ &= ~FigureMeshFlag::Hidden;
+    else object->flags_ |= FigureMeshFlag::Hidden;
 }
 
 // The interface's animation clock: timeGetTime() * 1/67, the milliseconds loaded as an
@@ -36,12 +34,8 @@ float InterfaceClock() {
     return static_cast<float>(x87::FromUnsigned(gameapi::timeGetTime()) * static_cast<double>(kRate));
 }
 
-// The preview's map object: class 0x33 under a fixed id; flag 0x4000000 on it.
+// The preview's map object: class 0x33 under a fixed id; MapObjectFlag::Preview on it.
 constexpr int kPreviewId = static_cast<int>(0x88CA6C00u);
-constexpr std::uint32_t kPreviewObject = 0x4000000;
-
-// Bit 0x800 of the object's flags is set while a preview draws it.
-constexpr std::uint32_t kPreviewDraw = 0x800;
 
 } // namespace
 
@@ -75,15 +69,15 @@ void CUiModel::ShowAllParts(int show) {
 }
 
 // Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface clock,
-// with flag 0x800 set during the draw.
+// with MapObjectFlag::NoEdgeFade set during the draw.
 void CUiModel::Draw(CSceneRenderer* pass) {
     std::uint32_t saved = pass->colour_;
     pass->SetColour(0xFFFFFFFF);
     CObject3D* object = object_;
-    object->flags_ |= kPreviewDraw;
+    object->flags_ |= MapObjectFlag::NoEdgeFade;
     object->AdvanceTime(InterfaceClock());
     object->DrawCollectDirty(pass);
-    object_->flags_ &= ~kPreviewDraw;
+    object_->flags_ &= ~MapObjectFlag::NoEdgeFade;
     pass->SetColour(saved);
 }
 
@@ -92,7 +86,7 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     auto* object = manager->CreateObjectAs<CObject3D>(MapObjectType::Creature, kPreviewId);
     object_ = object;
     ++object->refCount_;
-    object->flags_ |= kPreviewObject;
+    object->flags_ |= MapObjectFlag::Preview;
     object->localPosition_.x = 0.0f;
     object->localPosition_.y = 0.0f;
     object->localPosition_.z = 3.0f;

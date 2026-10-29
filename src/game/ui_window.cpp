@@ -256,9 +256,9 @@ void CUiWindow::ClearSurfaces() {
     surfaces_.clear();
 }
 
-CTexture* CUiWindow::LoadTexture(std::string_view name, int kind) {
+CTexture* CUiWindow::LoadTexture(std::string_view name, TextureKind kind) {
     CTextureManager* manager = g_clientWorld->textureManager_;
-    CTexture* texture = manager->FindOrCreate(kind, name);
+    CTexture* texture = manager->FindOrCreate(static_cast<int>(kind), name);
     if (!texture) return nullptr;
     int loaded = manager->LoadTexture(texture);
     if (!loaded) return nullptr;
@@ -267,13 +267,13 @@ CTexture* CUiWindow::LoadTexture(std::string_view name, int kind) {
     return texture;
 }
 
-CTexture* CUiWindow::CreateTexture(int width, int height, int kind) {
+CTexture* CUiWindow::CreateTexture(int width, int height, TextureKind kind) {
     CTexture* texture = g_clientWorld->textureManager_->NewTexture(width, height, kind);
     if (!texture) return nullptr;
     int index = std::ssize(objects_);
     objects_.resize(index + 1);
     objects_[index] = texture;
-    texture->flags_ |= 0x40000;
+    texture->flags_ |= TextureFlag::Keep;
     ++texture->refCount_;
     return texture;
 }

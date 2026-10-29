@@ -31,9 +31,6 @@ constexpr std::uint32_t kDelay = 500;   // ms
 constexpr int kLifetime = 3000;                        // ms
 constexpr float kPerMillisecond = 0x1.5d867cp-12f;     // 1/3000
 constexpr std::uint32_t kLabelA = 1, kLabelB = 2, kLabelC = kDelayed, kMarker = 0x80000000u;
-// The unit is drawn this frame (its screen rectangle is valid), not hidden, and can be picked.
-constexpr std::uint32_t kUnitDrawn = 0x20, kUnitHidden = 0x40, kUnitPickable = 0x400000;
-constexpr std::uint32_t kPartOwnMesh = 0x40;
 constexpr std::uint32_t kGreen = 0x40FF40, kRed = 0xFF4040, kCyan = 0x40FFFF, kMarkerColour = 0xFFFFFF00u;
 constexpr std::uint32_t kSpecular = 0xFF000000u;
 constexpr int kMaxQuads = 16;   // the stack buffers hold 64 vertices and 96 indices
@@ -90,7 +87,7 @@ const RECT* UnitScreenRect(CUnit* unit) {
     CFigureMesh* part = nullptr;
     for (int i = 0; i < 3 && !part; ++i) part = object->FindPartByPrefix(worlddata::HeroPartText(i));
     if (!part) return nullptr;
-    if (part->flags_ & kPartOwnMesh) return &part->drawer_->screen_;
+    if (part->flags_ & FigureMeshFlag::Drawn) return &part->drawer_->screen_;
     return &object->dirtyRect;
 }
 
@@ -124,7 +121,7 @@ void CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
         if (age > 1.0f || age < 0.0f) continue;   // integer-sourced: never NaN
         auto* unit = GameFindClientUnit(point.target);
         if (!unit) continue;
-        if (!(unit->flags_ & kUnitDrawn) || (unit->flags_ & kUnitHidden) || !(unit->flags_ & kUnitPickable)) continue;
+        if (!(unit->flags_ & MapObjectFlag::Shown) || (unit->flags_ & MapObjectFlag::NotDrawn) || !(unit->flags_ & MapObjectFlag::InParty)) continue;
         const RECT* rect = UnitScreenRect(unit);
         if (!rect) continue;
         int middleX = (rect->left + rect->right) / 2;

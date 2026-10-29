@@ -14,6 +14,7 @@
 #include "item_db.h"
 #include "object_tables.h"   // g_keyActions
 #include "options.h"
+#include "texture.h"   // TextureKind
 #include "ui_font.h"
 #include "unit.h"   // LockKey
 
@@ -540,9 +541,9 @@ public:
     // The texture manager's texture `name` of `kind` (found or made), loaded and appended to the
     // referenced objects with one more reference; null when either step fails (a texture made but not
     // loaded is kept by the manager).
-    CTexture* LoadTexture(std::string_view name, int kind);
+    CTexture* LoadTexture(std::string_view name, TextureKind kind);
     // A new CPU-filled texture (flag 0x40000) kept with the referenced objects; null when none is made.
-    CTexture* CreateTexture(int width, int height, int kind);
+    CTexture* CreateTexture(int width, int height, TextureKind kind);
     // Object `name` of the model manager added to the scene objects with the black material and the first
     // referenced object as its texture; null when the manager makes none. AddBlankSprite: a new CUiMesh.
     CUiMesh* AddSprite(std::string_view name);

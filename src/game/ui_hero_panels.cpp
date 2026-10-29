@@ -230,7 +230,7 @@ void CHeroStatsPanel::DrawStats() {
         DrawPart(rect, "legs", 4);
         Down(&rect);
         Down(&rect);
-        if (static_cast<int>(hero()->weaponIndex) == -1) {
+        if (hero()->weaponIndex == kNoWeaponSlot) {
             for (int i = 0; i < 5; ++i) Down(&rect);
         } else {
             draw->DrawTextIn(texts_[3], &rect, 0, kBright, 0, 1);
@@ -329,7 +329,7 @@ void CHeroEquipPanel::Build(bool body) {
         const int* xs = kBodySlotX;
         const int* ys = kBodySlotY;
         for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
-        for (const char* name : {"camp1", "camp2", "camp3", "camp4"}) LoadTexture(name, 3);
+        for (const char* name : {"camp1", "camp2", "camp3", "camp4"}) LoadTexture(name, TextureKind::Interface);
         const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
         for (int i = 0; i < 4; ++i) {
             CUiMesh* picture = AddBlankSprite();
@@ -373,7 +373,7 @@ void CTradeGrid::Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, b
     buyKind_ = spells ? 0 : 4;
     sellKind_ = spells ? 1 : 5;
     exchange_ = exchange;
-    for (const char* name : {"trade1", "trade2", "trade3", "trade4"}) LoadTexture(name, 3);
+    for (const char* name : {"trade1", "trade2", "trade3", "trade4"}) LoadTexture(name, TextureKind::Interface);
     BuildCellGrid(this);
 }
 
@@ -410,7 +410,7 @@ void CRepairGrid::Build(std::vector<CItem*>* items) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 8;
     items_ = items;
-    for (const char* name : {"repair1", "repair2", "repair3", "repair4"}) LoadTexture(name, 3);
+    for (const char* name : {"repair1", "repair2", "repair3", "repair4"}) LoadTexture(name, TextureKind::Interface);
     BuildCellGrid(this);
 }
 
@@ -437,7 +437,7 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 6;
     slots_ = slots;
-    for (const char* name : {"constrspell1", "constrspell2", "constrspell3", "constrspell4"}) LoadTexture(name, 3);
+    for (const char* name : {"constrspell1", "constrspell2", "constrspell3", "constrspell4"}) LoadTexture(name, TextureKind::Interface);
     AddRect(this, RECT{200, 250, 300, 350});   // the container
     AddRect(this, RECT{300, 250, 400, 350});   // the spell
     BuildMakerPage(this);
@@ -458,7 +458,7 @@ void CConstructorPage::BuildItemMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 7;
     slots_ = slots;
-    for (const char* name : {"constritem1", "constritem2", "constritem3", "constritem4"}) LoadTexture(name, 3);
+    for (const char* name : {"constritem1", "constritem2", "constritem3", "constritem4"}) LoadTexture(name, TextureKind::Interface);
     AddRect(this, RECT{200, 250, 300, 350});   // the blueprint
     AddRect(this, RECT{300, 200, 400, 300});   // the parts
     AddRect(this, RECT{300, 300, 400, 400});

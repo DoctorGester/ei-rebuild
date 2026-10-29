@@ -72,7 +72,7 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     int u = 0;
     int v = 0;
     switch (count_ % 4) {
-    case 0: CreateTexture(0x100, 0x100, 0x20); break;   // a new face texture every fourth portrait
+    case 0: CreateTexture(0x100, 0x100, TextureKind::Blank1555); break;   // a new face texture every fourth portrait
     case 1: u = 0x80; break;
     case 2: v = 0x80; break;
     case 3: u = 0x80; v = 0x80; break;
@@ -183,7 +183,7 @@ void CHudPortraits::Rebuild(bool wide) {
         picture = str::Format("face%s%02d", sex, skin);
         AddPortrait(model, picture, wide, false);
 
-        if (owner_->party_[i]->flags_ & 0x10) {
+        if (owner_->party_[i]->flags_ & MapObjectFlag::Selected) {
             AsUiMesh(sceneObjects_[i * 5 + 4])->visible_ = true;
             Quaternion turn;
             slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);

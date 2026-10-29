@@ -25,7 +25,6 @@ constexpr float kTexelStep = 0.00390625f;
 // The layout y the columns' bottom button sits at (490).
 constexpr float kColumnBottom = 490.0f;
 
-constexpr std::uint32_t kPlainFlag = 0x100;        // CUiMesh::flags_: drawn in flatColour_
 constexpr std::uint32_t kWhite = 0xFFFFFFFF;
 constexpr std::uint32_t kColourOn = 0xFF282828;    // the weapon bar's highlighted slot
 constexpr std::uint32_t kColourOff = 0xFF000000;
@@ -63,7 +62,7 @@ void SetOffsets(CUiMesh* sprite, int x, int bottom) {
 
 void MakePlain(CUiMesh* sprite) {
     sprite->flatColour_ = kWhite;
-    sprite->flags_ |= kPlainFlag;
+    sprite->flags_ |= FigureMeshFlag::Flat;
 }
 
 // q * r as the weapon bar's first product sums it.

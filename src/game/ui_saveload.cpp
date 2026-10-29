@@ -295,7 +295,7 @@ void CSaveLoadWindow::FillEntries() {
         dialog_ = nullptr;
         // The escape menu's 256x192 5:6:5 copy of the screen, or null.
         if (const auto* copy = static_cast<const std::uint8_t*>(interface_->screenCopy_)) {
-            CTexture* shot = CreateTexture(0x100, 0x100, 0x1E);
+            CTexture* shot = CreateTexture(0x100, 0x100, TextureKind::Blank565);
             dialog_ = shot;
             ++shot->refCount_;
             RemoveObjectAt(std::ssize(objects_) - 1);

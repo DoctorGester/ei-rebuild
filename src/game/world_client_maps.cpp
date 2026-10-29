@@ -207,7 +207,7 @@ void ReleaseEveryObject(CBaseManager* manager) {
     if (CBaseManager* held = walk.manager) --held->refCount_;
 }
 
-constexpr int kSkyTextureKind = 0x3D;
+constexpr int kSkyTextureKind = static_cast<int>(TextureKind::SkyFace);
 // The loading movie's progress steps of the zone load.
 constexpr int kProgressBlockRead = 8;
 constexpr int kProgressZoneCleared = 9;

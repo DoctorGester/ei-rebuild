@@ -59,9 +59,6 @@ constexpr int kAllodIsland = 3;        // the island model
 // A zone of the map database (MapRecord): its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
 
-// A sprite drawn in its flat colour, without its texture.
-constexpr std::uint32_t kPlainSprite = 0x100;
-
 void SetWhite(CUiMesh* sprite) {
     for (float& tint : sprite->tint_) tint = 1.0f;
 }
@@ -175,11 +172,11 @@ void CGlobalMap::CreateScreen() {
     allodTitle_ = PlaceTitle("allod ", allod->name);
     position_ = MapPosition("#zone ", current->name, true).value_or(Vector3{});
     const std::string& allodName = allod->name;
-    LoadTexture((allodName + "Map"), 3);
-    LoadTexture((allodName + "Sys"), 3);
-    LoadTexture((allodName + "MapG"), 3);
-    LoadTexture("saveload", 3);
-    CreateTexture(0x100, 0x100, 0x21);
+    LoadTexture((allodName + "Map"), TextureKind::Interface);
+    LoadTexture((allodName + "Sys"), TextureKind::Interface);
+    LoadTexture((allodName + "MapG"), TextureKind::Interface);
+    LoadTexture("saveload", TextureKind::Interface);
+    CreateTexture(0x100, 0x100, TextureKind::Blank4444);
     {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion q;
@@ -284,15 +281,15 @@ void CGlobalMap::CreateScreen() {
         CUiMesh* shadow = builder.Layer(0x100, 0x100, 0, -0.5f);
         shadow->flatColour_ = 0x649B00E1;
         shadow->textureOffsetV_ = 0.3f;
-        shadow->flags_ |= kPlainSprite;
+        shadow->flags_ |= FigureMeshFlag::Flat;
         CUiMesh* haze = builder.Layer(0, 0x100, 0x100, 0.7f);
         haze->flatColour_ = 0x6E9B007D;
         haze->textureOffsetV_ = 0.6f;
-        haze->flags_ |= kPlainSprite;
+        haze->flags_ |= FigureMeshFlag::Flat;
         CUiMesh* glow = builder.Layer(0, 0x100, 0x100, 2.0f);
         glow->flatColour_ = 0xB9690AC3;
         glow->visible_ = false;
-        glow->flags_ |= kPlainSprite;
+        glow->flags_ |= FigureMeshFlag::Flat;
     }
 
     {
@@ -302,7 +299,7 @@ void CGlobalMap::CreateScreen() {
     {
         CUiMesh* shade = AddBlankSprite();
         shade->texture_ = nullptr;
-        shade->flags_ |= kPlainSprite;
+        shade->flags_ |= FigureMeshFlag::Flat;
         shade->flatColour_ = 0xA0000000;
         shade->visible_ = false;
         CUiMesh* picture = AddBlankSprite();
@@ -319,7 +316,7 @@ void CGlobalMap::CreateScreen() {
         shade->SetRectangle(3.0f, 100.0f, 20.0f, 20.0f, 170.0f, 70.0f, 0, 0, 0x100, 0x100);
         shade->texture_ = nullptr;
         shade->flatColour_ = 0xA0000000;
-        shade->flags_ |= kPlainSprite;
+        shade->flags_ |= FigureMeshFlag::Flat;
         CUiMesh* frame = AddBlankSprite();
         frame->SetFrame(3.0f, 100.0f, 15.0f, 15.0f, 175.0f, 75.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
         frame->texture_ = builder.Texture(3);
