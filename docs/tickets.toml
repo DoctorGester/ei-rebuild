@@ -5390,3 +5390,11 @@ group = "cleanup"
 model = "opus"
 depends = ["C45d"]
 note = "The figure manager's object types (figure_factory.cpp, like SpellObjectType), the texture manager's types (texture_manager_lifetime.cpp), the texture kinds of the first part set (object3d_client_parts.cpp), clip outcodes (clip.cpp, model.cpp), the game's wheel message 0xCC54 (app.cpp), and the none values (0xFFFFFFFF ids, 0xFFFF materials and tiles, 0x7FFFFFFF skills) as named constants (~34). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+
+[[ticket]]
+id = "C45d1a"
+title = "AI map names that need signature changes"
+group = "cleanup"
+model = "sonnet"
+depends = ["C51"]
+note = "Left by C45d1 (no signature changes while C51 ran): CAIMap::CellFlag80At -> InWaterAt (kCellWater), HasKind3Occluder / HasKind3OccluderAt -> a SpellArea name, FootprintCellSet::AddTop / AddBottom and Sector::RemoveOccluder take OccluderKind instead of int8 / int, BoundsOccluderKind returns OccluderKind, ai_refresh's CellMark scratch MarkState typed. Goldens unchanged."
