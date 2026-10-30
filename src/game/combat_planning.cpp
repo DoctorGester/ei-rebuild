@@ -22,6 +22,7 @@
 
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 
 #include <bit>
 #include <cstdint>
@@ -118,7 +119,7 @@ bool UnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
 
 // --- The time along a path until an action is possible -----------------------------------------
 
-double UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) {
+float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) {
     const MotionOrder* pathOrder = OrderOf(motionOrder);
     if (pathOrder->kind != kMotionPath) return 0.0f;
     LocalUnitMotion simulated;
@@ -127,13 +128,13 @@ double UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder)
     bool canSee = FindSightTarget(order, &sight);
     Vector3 previous = {0.0f, 0.0f, -1000.0f};
     Vector3 aim = {0.0f, 0.0f, -1000.0f};
-    double distance = ActionDistance(order);
-    float reachSq = static_cast<float>(distance * distance);
+    float distance = ActionDistance(order);
+    float reachSq = distance * distance;
     if (!order->target) aim = order->point;
     else order->target->AimPoint(&aim);
     float t = 0.0f;
     for (;;) {
-        float time = static_cast<float>(pathOrder->startTime) + t;
+        float time = pc24::Add(static_cast<double>(pathOrder->startTime), t);   // the int exact, one rounding
         bool turning;
         Vector3 position;
         Vector3 direction;
@@ -166,8 +167,8 @@ double UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder)
         EI_NAN_AUDIT(sy, sx, sight.minDistanceSq);
         if (LengthSquared2DUnrounded(sy, sx) < sight.minDistanceSq) break;   // closer
         Vector3 from = {position.x, position.y, position.z};
-        from.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + sight.eyeHeight);
-        double visible = MapOf(ServerWorld())->LineOfSight(from, sight.point);
+        from.z = pc24::Add(unit->GroundHeight(position.x, position.y), sight.eyeHeight);   // a double plus a float
+        float visible = MapOf(ServerWorld())->LineOfSight(from, sight.point);
         EI_NAN_AUDIT(visible);
         if (visible >= 0.1f) break;
         t += 5.0f;
@@ -248,7 +249,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             }
             path.ToMotionOrder(&route);
             ok = actsFromDestination();
-            if (ok) best = static_cast<float>(TimeUntilAction(order, &route));
+            if (ok) best = TimeUntilAction(order, &route);
         } else {
             ok = actsFromDestination();
         }

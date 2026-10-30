@@ -18,11 +18,11 @@
 #include "world.h"
 
 #include "lib/bytes.h"
-#include "lib/crt.h"
 
-#include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
+#include "lib/rounding.h"
 
 #include <bit>
 #include <cstring>
@@ -39,7 +39,7 @@ static_assert(std::bit_cast<std::uint32_t>(kLong) == 0x3A83126Fu);
 constexpr float kFive = 5.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kHeightLimit = 1.5f;
-constexpr double kArrived = 0.02;
+constexpr double kArrived = 0.02;   // a double the FPU compares exactly (0.02f is below it)
 constexpr std::uint32_t kMinClosingBits = 0x3DCCCCCDu;              // 0.1: the slowest closing speed
 constexpr float kFarBits = 1000000.0f;                     // 1e6: no limit for a path
 
@@ -80,7 +80,7 @@ bool CanStillDo(UnitServer* self, UnitAction* order) {
         CUnit* other = UnitOrNull(order->target);
         if (other && !other->IsDead()) {
             if (other->sizeClass == 0 && !(order->kind == UnitOrderKind::Attack && self->HasRangedWeapon())) {
-                double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition.z;
+                float height = PrototypeHeight(other) + other->localPosition.z;
                 if (height >= kHeightLimit) return false;
             }
         }
@@ -130,12 +130,11 @@ int AttackInterval(UnitServer* self, ItemWeapon* weapon) {
     if (weapon) {
         base = static_cast<int>(weapon->GetPrototype()->category);
     } else {
-        double value = self->stats.attackCategory;
-        // _ftol, as the original truncates it.
-        base = static_cast<int>(libcrt::Ftol(value));
+        // _ftol, as the original truncates it: through 64 bits, the low half (0 for a NaN).
+        base = static_cast<int>(static_cast<std::int64_t>(self->stats.attackCategory));
     }
-    float scaled = static_cast<float>(static_cast<double>(base) * factor);
-    return x87::fistp(scaled);
+    float scaled = pc24::Mul(static_cast<double>(base), factor);   // the int exact, one rounding
+    return lib::RoundEven(scaled);
 }
 
 // As an inlining caller has it.
@@ -151,12 +150,12 @@ bool OutOfReachUp(UnitServer* self, const AIOrder* order) {
     if (!other || other->IsDead()) return false;
     if (other->sizeClass != 0) return false;
     if (order->kind == UnitOrderKind::Attack && self->HasRangedWeapon()) return false;
-    double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition.z;
+    float height = PrototypeHeight(other) + other->localPosition.z;
     return height >= kHeightLimit;
 }
 
 // Where the motion is heading: half its two members (as 0.5, the original's constant product).
-constexpr double kHalfScale = 0.5;
+constexpr float kHalfScale = 0.5f;
 
 } // namespace
 
@@ -251,7 +250,7 @@ bool UnitServer::StartMove() {
     offset.x = unit->localPosition.x - action.point.x;
     offset.y = unit->localPosition.y - action.point.y;
     offset.z = unit->localPosition.z - action.point.z;
-    double lengthSq = LengthSquaredZYX(offset);
+    float lengthSq = LengthSquaredZYX(offset);
     EI_NAN_AUDIT(lengthSq);
     if (lengthSq < kArrived) {
         action.Reset();
@@ -270,8 +269,8 @@ bool UnitServer::StartMove() {
         action.param = 0;
         bool close = false;
         if (!found) {
-            double dy = static_cast<double>(action.point.y) - unit->localPosition.y;
-            double dx = static_cast<double>(action.point.x) - unit->localPosition.x;
+            float dy = action.point.y - unit->localPosition.y;
+            float dx = action.point.x - unit->localPosition.x;
             EI_NAN_AUDIT(dx, dy);
             close = LengthSquared2DUnrounded(dx, dy) < kLong;
         }
@@ -580,17 +579,16 @@ void UnitServer::ApproachTarget() {
         Vector3 goal;
         goal = action.point;
         if (state == UnitState::Idle) {
-            EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(goal, motion.goal));
-            if (DistanceSquaredXYUnrounded<double>(goal, motion.goal) <= kNearPoint) return;
+            EI_NAN_AUDIT(DistanceSquaredXYUnrounded<float>(goal, motion.goal));
+            if (DistanceSquaredXYUnrounded<float>(goal, motion.goal) <= kNearPoint) return;
         }
         if (PathTo(goal, kFarBits)) {
-            double h = kHalfScale;
             Vector3 heading;
-            heading.x = static_cast<float>(h * motion.targetX);
-            heading.y = static_cast<float>(h * motion.targetY);
+            heading.x = kHalfScale * motion.targetX;
+            heading.y = kHalfScale * motion.targetY;
             heading.z = 0.0f;
-            double dx = static_cast<double>(heading.x) - goal.x;
-            double dy = static_cast<double>(heading.y) - goal.y;
+            float dx = heading.x - goal.x;
+            float dy = heading.y - goal.y;
             EI_NAN_AUDIT(dy, dx);
             if (LengthSquared2DUnrounded(dy, dx) <= kNearPoint) return;
             if (CanReachTarget(&action)) {
@@ -609,11 +607,11 @@ void UnitServer::ApproachTarget() {
         return;
     }
 
-    float reach = static_cast<float>(ActionDistance(&action));
+    float reach = ActionDistance(&action);
     Vector3 aim;
     target->AimPoint(&aim);
     if (!target->IsLargeUnit()) {
-        if (static_cast<double>(reach) * reach >= DistanceSquaredXYUnrounded<double>(aim, unit->localPosition) &&
+        if (reach * reach >= DistanceSquaredXYUnrounded<float>(aim, unit->localPosition) &&
             CanActFrom(&action, &aim.x, now)) {
             // In reach of a standing target: wait.
             if (state != UnitState::Turning) StandIdle(this);
@@ -630,11 +628,11 @@ void UnitServer::ApproachTarget() {
             offset.x = p[0] - unit->localPosition.x;
             offset.y = p[1] - unit->localPosition.y;
             offset.z = p[2] - unit->localPosition.z;
-            double closing = unit->MoveSpeed() * 0.5f;
+            float closing = static_cast<float>(unit->MoveSpeed()) * 0.5f;   // CUnit::MoveSpeed: a float
             if (closing > 0.0f) {
-                double distance = LengthXYZ(offset);
-                double ticks = (distance - reach) / closing;
-                if (static_cast<double>(lead) > ticks) {
+                float distance = LengthXYZ(offset);
+                float ticks = (distance - reach) / closing;
+                if (static_cast<double>(lead) > ticks) {   // the int and the float compared exactly
                     if (state != UnitState::Turning) StandIdle(this);
                     return;
                 }
@@ -665,35 +663,33 @@ void UnitServer::ApproachTarget() {
     offset.z = where[2] - unit->localPosition.z;
     float distance = LengthZXY(offset);
     float mySpeed = static_cast<float>(unit->MoveSpeed());
-    double closing;
+    float closing;
     if (chased->IsLargeUnit()) {
         // The chased unit's speed along the line between them adds to ours.
         auto* other = static_cast<CUnit*>(chased);
         float vx = other->localPosition.x - unit->localPosition.x;
         float vy = other->localPosition.y - unit->localPosition.y;
-        double dz = static_cast<double>(other->localPosition.z) - unit->localPosition.z;
-        float vz = static_cast<float>(dz);
-        double length = dz * vz;
-        length = length + static_cast<double>(vy) * vy;
-        length = length + static_cast<double>(vx) * vx;
+        float vz = other->localPosition.z - unit->localPosition.z;
+        float length = vz * vz;
+        length = length + vy * vy;
+        length = length + vx * vx;
         length = std::sqrt(length);
         if (length > 0.0f) {
-            vx = static_cast<float>(vx / length);
-            vy = static_cast<float>(vy / length);
-            vz = static_cast<float>(vz / length);
+            vx = vx / length;
+            vy = vy / length;
+            vz = vz / length;
         }
         Vector3 axis;
         other->localRotation.AxisY(&axis);
-        float along = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, vx, vy, vz));
-        closing = other->MoveSpeed() * along + mySpeed;
+        float along = DotUnrounded<Sum3::ZYX>(axis.x, axis.y, axis.z, vx, vy, vz);
+        closing = static_cast<float>(other->MoveSpeed()) * along + mySpeed;
     } else {
         closing = mySpeed;
     }
-    float closingF = static_cast<float>(closing);
     float floor = std::bit_cast<float>(kMinClosingBits);
-    float divisor = std::bit_cast<float>(closingF <= floor ? kMinClosingBits : std::bit_cast<std::uint32_t>(closingF));
-    float eta = static_cast<float>((static_cast<double>(distance) - reach) / divisor);
-    int ticks = x87::fistp(eta);
+    float divisor = std::bit_cast<float>(closing <= floor ? kMinClosingBits : std::bit_cast<std::uint32_t>(closing));
+    float eta = (distance - reach) / divisor;
+    int ticks = lib::RoundEven(eta);
     if (ticks > kChaseMaxTicks) ticks = kChaseMaxTicks;
     else if (ticks < kChaseMinTicks) ticks = kChaseMinTicks;
     int when = ticks + now;
@@ -702,39 +698,38 @@ void UnitServer::ApproachTarget() {
     lib::LoadBytes(goal, future);
 
     if (state == UnitState::Idle) {
-        double close = (static_cast<double>(distance) + 1.0f) * kPointOne;
-        if (close * close > DistanceSquaredXYUnrounded<double>(goal, motion.goal)) {
+        float close = (distance + 1.0f) * kPointOne;
+        if (close * close > DistanceSquaredXYUnrounded<float>(goal, motion.goal)) {
             // Still heading close enough to it: only the patience (the path goal's z) changes.
-            motion.goal.z = static_cast<float>(unit->ScaledValue(distance) + kFive);
+            motion.goal.z = unit->ScaledValue(distance) + kFive;
             return;
         }
     }
-    float patience = static_cast<float>(unit->ScaledValue(distance) + kFive);
+    float patience = unit->ScaledValue(distance) + kFive;
     AIMap* aiMap = &g_serverWorld.aiMap;
     std::uint8_t savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
-    EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition, goal));
-    if (DistanceSquaredXYUnrounded<double>(unit->localPosition, goal) <= kPointOne) return;    // (sic: the path flag stays cleared)
+    EI_NAN_AUDIT(DistanceSquaredXYUnrounded<float>(unit->localPosition, goal));
+    if (DistanceSquaredXYUnrounded<float>(unit->localPosition, goal) <= kPointOne) return;    // (sic: the path flag stays cleared)
 
     g_serverWorld.aiMap.sectorMap.Remove(chased);
-    float farOffset = static_cast<float>(static_cast<double>(goal.y) * kShort);
-    double nearX = static_cast<double>(goal.x) * kShort;
-    float unitY = static_cast<float>(static_cast<double>(unit->localPosition.y) * kLong);
+    float farOffset = goal.y * kShort;
+    float nearX = goal.x * kShort;
+    float unitY = unit->localPosition.y * kLong;
     Vector3 point;
-    point.x = static_cast<float>(static_cast<double>(unit->localPosition.x) * kLong + nearX);
-    point.y = static_cast<float>(static_cast<double>(unitY) + farOffset);
+    point.x = unit->localPosition.x * kLong + nearX;
+    point.y = unitY + farOffset;
     point.z = goal.z;
-    if (!PathTo(point, static_cast<float>(patience)))
+    if (!PathTo(point, patience))
         stoodBlocked = 1;
     g_serverWorld.aiMap.sectorMap.Add(chased);
 
-    double h = kHalfScale;
-    float headX = static_cast<float>(h * motion.targetX);
-    double fy = static_cast<double>(goal.y) - h * motion.targetY;
-    double fx = static_cast<double>(goal.x) - headX;
+    float headX = kHalfScale * motion.targetX;
+    float fy = goal.y - kHalfScale * motion.targetY;
+    float fx = goal.x - headX;
     aiMap->refreshUnits = savedFlag;
     EI_NAN_AUDIT(reach, fx, fy);
-    if (static_cast<double>(reach) * reach < LengthSquared2DUnrounded(fx, fy)) {
+    if (reach * reach < LengthSquared2DUnrounded(fx, fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
         path->Clear();

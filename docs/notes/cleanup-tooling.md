@@ -331,9 +331,13 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   | atan2 stored, plus a float | 200 M each | 0 | 0 / 175 |
   | atan2 times a float | 200 M | 9 | 61,418 |
   | a float and a double: x * c, x + c, x - c, c - x, x / c, c / x | 200 M each | 0 | 15.8 M .. 49.7 M (c as a float) |
+  | sin, cos of a double stored, sin times a float: CiAcos of every float in [0, 1) and -0 | 1,065 M each | 0 | - |
+  | sin, cos of a double: stored, sin times / cos plus a float; 2^-60 .. 2^62, near k pi / 2 | 400 M each | 0 | - |
 
-  The 9: FPATAN of a tiny ratio y / x is the quotient, and this CPU's FPATAN does not round it correctly where it
-  sits within a few hundredths of an ulp of a 64-bit tie (0x842c0719eb680885 for an exact ...0885.503); with operands
+  The double forms (C30e10a) reduce the 53-bit argument by the same 66-bit pi (the 128-bit integers hold it exactly);
+  the float forms go through them, rerun on every float (0 differ). Their test: C30e10a's `eq/` (C30e4's plus the
+  double, Slerp and combat modes). The 9: FPATAN of a tiny ratio y / x is the quotient, and this CPU's FPATAN does
+  not round it correctly where it sits within a few hundredths of an ulp of a 64-bit tie (0x842c0719eb680885 for an exact ...0885.503); with operands
   of few significant bits (the test's half integers) the product with f can lie that near a float rounding boundary.
   Accepted. NaNs: of two NaN
   operands the FPU takes the larger significand (of equal ones the positive), as `Add` .. `Div` do, but a signalling float operand loses to a
@@ -441,8 +445,8 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e4 (done) transcendental helpers, spell effects | 3 | 1,097 | `fexp` / `flog` (spell_effect_start / _update), exit_area's sin / cos; the helpers and their tests |
 | C30e5 server world, world effects | 21 | 6,831 | world_weather's wide constants, moshka / visual / party / units' transcendentals, world_time's fmod |
 | C30e6 (done) units | 20 | 3,820 | stats doubles (unit_vitals 44, unit_create_stats 42), `flog`, `CiPow`, `flog10` |
-| C30e7 combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
-| C30e8 AI maps, paths, motion | 17 | 3,732 | ai_motion (91 doubles, 44 `x87::`), ai_refresh's `fexp` / `flog`, `x87::fistp` 49 |
+| C30e7 (done) combat | 11 | 4,938 | doubles 208 (combat_sight 53, combat_tick 51), `flog`, `fpatan` |
+| C30e8 (done; ai_motion: C30e8a) AI maps, paths, motion | 17 | 3,732 | ai_motion (91 doubles, 44 `x87::`), ai_refresh's `fexp` / `flog`, `x87::fistp` 49 |
 | C30e9 unit AI | 4 | 3,256 | doubles 268 (unit_ai_modes 135), `fsin` / `fcos` / `fpatan` |
 | C30e10 geometry, figures | 24 | 3,665 | core_transform_math / quaternion `D()` 120, `CiAcos`, picking's projected meshes |
 | C30e11 map objects | 10 | 2,360 | doubles 75 (map_object_figures, map_object_cage) |
@@ -482,9 +486,8 @@ minus the angle, `TiltTowards`' arc cosine times 0.1, the mesh draws' tick (an i
 CRT's arc cosine** (`CiAcos`, crt_x87) returns FPATAN's result through a double at PC24 (its control word restore
 stores it), so an SSE2 caller gets the same double: storing it as a float is a plain conversion, an operation on it a
 `pc24::` one. `x87::fistp` -> `lib::RoundEven` (the fog alpha), `Ftol` -> int64 truncation (frame sheets, specular
-bytes), `CopyBits` -> `=`. Kept: quaternion.cpp (C30e10a): `Slerp`'s `1 / fsin(angle)` takes CiAcos's double, and
-`pc24::Sin` takes a float. Reviewed in the objects: the x87 code the compiler leaves in SSE2 objects (a float-returning
-function's sum on ST0: `Dot`, `DotZYX`, `UpX`; an FSUBR on a returned float) is float operations on floats, exact at the
+bytes), `CopyBits` -> `=`. quaternion.cpp followed in C30e10a (below). Reviewed in the objects: the x87 code the
+compiler leaves in SSE2 objects (a float-returning function's sum on ST0: `Dot`, `DotZYX`, `UpX`; an FSUBR on a returned float) is float operations on floats, exact at the
 main thread's PC24; `WaterTweens::SetTarget`'s int steps were rounded to a float in the x87 code too (FILD, FSTP dword).
 Equivalence test (C30e10's `eq/`: HEAD's functions built /arch:IA32 at PC24 against the new ones, one x87 acos shared):
 WorldMatrix, Tilt / Turn / Roll / TurnUpTowards and the turn-up tail above pi, SetHeading, the Rotate product,
@@ -513,6 +516,34 @@ footprints, movement, facing and unit shapes: 4.8 M cases each (14.4 M path samp
 and with wide ones (2^-30 to 2^31, zeros, infinities, NaN); left: which NaN comes out where two meet (the default
 NaN's sign: an infinite angle, NaN and infinite coordinates) and the exponent range (an exponent of Damp's past 88,
 not reachable: ln 0.6 times a fraction times 7).
+
+**C30e10a (quaternion.cpp).** `Slerp`'s angle is the game CRT's arc cosine, a double (FPATAN's 64 bits stored to 53),
+and FSIN loads it whole: `pc24::Sin(double)` (the float forms' reduction on a 53-bit argument). `1 / fsin(angle)`
+rounds at PC24, so `inverseSine` is a float, `pc24::Div(1.0, Sin(angle))`; the weights are `pc24::Mul(Sin(pc24::Mul(1 -
+t, angle)), inverseSine)` and `pc24::Mul(Sin(pc24::Mul(angle, t)), inverseSine)` (the original kept weight B as a
+double: a PC24 product); the dot, the linear weights and the blend are float maths. `1 - cos > 0.0001` compares the
+float difference with the double constant (exact either way). `SetAngleAxis` / `SetAxisAngle` call
+`Quaternion::FromAxisAngle` (maths.cpp, C30e10): the same sequence. Equivalence test (C30e10a's `eq/`, `slerp`):
+every float cosine in [0, 1) and -0 through the x87 arc cosine, a t per cosine: FSIN / FCOS stored, 1 / sin and both
+weights, 0 differ for t in [0, 1] (932 M) and for any t within 2^-100 .. 2^100 (104 M); a t beyond (the products past
+a float's range, where FSIN of |x| >= 2^63 returns x) differs, as the exponent range does everywhere. ei_vectors builds
+quaternion.cpp in ei_vectors_sse2 (the maths family records no Slerp or SetAngleAxis).
+
+**C30e7 (combat; 11 files).** The double locals were PC24 registers (reach, distances, the plan's squares and cones,
+the attack roll, the blow heights, the chase): float maths in the original's order. Through pc24: `Level`'s
+`Div(Log(experience / base), Log(step))`, `PlanAction`'s heading and turn (`Round(Atan2)`, `Sub(Atan2, heading)`), the
+ints the FPU loads exactly (FILD / FIADD: the attack roll's attack, `BuildAttackHit`'s and `RandomHeight`'s random
+pick times 0.01, `CastValue`'s cast time, `AttackInterval`'s base, `RefreshVitals`' wait, `TimeUntilAction`'s start
+tick), the double ground and surface heights plus a float (`CanActFrom`, `FindSightTarget`, `BuildAttackSteps`,
+`TimeUntilAction`, `SpellHasLineOfSight`). A drawn int doubled (the attack roll) and a tick count halved (the plan's
+outer reach) round once on the FPU: the int rounded to a float, then doubled or halved, is the same float.
+`CUnit::MoveSpeed` (a double virtual) returns a float, used as one. Kept double: `StartMove`'s 0.02 (`lengthSq < 0.02`
+compares with the double; 0.02f is below it) and the int-to-float compares (`ResolveHit`, `TakeHit`, the chase's
+lead), all exact. `x87::fistp` / `RoundToInt` -> `lib::RoundEven`, `Ftol` -> int64 truncation (`Truncate`).
+`TimeUntilAction` returns float. Equivalence test (C30e10a's `eq/`, `combat`: the x87 sequences at PC24 against the
+new forms, 200 M random cases each): Level, the attack roll (any dword, any int), an int times a float plus or over a
+float: 0 differ; where an intermediate leaves a float's normal range (e / b, the int product, a denormal quotient)
+they differ, the exponent range again (level: 2.4 M of 5.8 M such cases).
 
 ### The whole image on SSE2 (C16 experiment)
 

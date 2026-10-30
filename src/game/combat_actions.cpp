@@ -23,8 +23,7 @@
 #include "world_effect.h"
 
 #include "lib/float_select.h"
-
-#include "ei/x87.h"
+#include "lib/rounding.h"
 
 #include <bit>
 #include <cstring>
@@ -142,7 +141,7 @@ void UnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     }
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
-        float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kHitNoiseScale);
+        float loudness = stats.conspicuity[3].current * kHitNoiseScale;
         world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
     }
 }
@@ -212,15 +211,12 @@ BlowSide UnitServer::HitDirection(CUnit* attacker, int hitKind) {
     Vector3 axisY;
     rotation->AxisY(&axisY);
     // The unit's Y axis points backwards: "front" is the negated projection on it.
-    double front = -DotUnrounded<Sum3::ZYX, double>(axisY.x, axisY.y, axisY.z, dx, dy, dz);
-    float frontStored = static_cast<float>(front);
-    // The X axis of the rotation, kept on the FPU stack (unrounded).
-    AxisUnrounded<double> axisX = AxisXUnrounded<double>(*rotation);
-    double side = -DotUnrounded<Sum3::ZYX, double>(axisX.x, axisX.y, axisX.z, dx, dy, dz);
-    float sideStored = static_cast<float>(side);
-    if (AbsBits(sideStored) >= AbsBits(frontStored))
-        return sideStored > 0.0f ? BlowSide::MinusX : BlowSide::PlusX;
-    return frontStored > 0.0f ? BlowSide::Front : BlowSide::Back;
+    float front = -DotUnrounded<Sum3::ZYX>(axisY.x, axisY.y, axisY.z, dx, dy, dz);
+    // The X axis of the rotation, computed in place (Quaternion::AxisX's maths in the original's order).
+    AxisUnrounded<float> axisX = AxisXUnrounded<float>(*rotation);
+    float side = -DotUnrounded<Sum3::ZYX>(axisX.x, axisX.y, axisX.z, dx, dy, dz);
+    if (AbsBits(side) >= AbsBits(front)) return side > 0.0f ? BlowSide::MinusX : BlowSide::PlusX;
+    return front > 0.0f ? BlowSide::Front : BlowSide::Back;
 }
 
 void UnitServer::WitnessMurder(const HeldUnits* witnesses, CUnit* victim, CUnit* murderer) {
@@ -252,10 +248,10 @@ void UnitServer::PropagateHostility() {
     unit->flags &= ~MapObjectFlag::RelationsChanged;
     claimedHostile |= unit->relationsA;
     WorldServer* world = ServerWorld();
-    double radius = brain.callRadius;
+    float radius = brain.callRadius;
     // The squared radius goes through a global and is compared as an int.
     volatile float* limit = &g_squaredCallRadius;
-    *limit = static_cast<float>(radius * radius);
+    *limit = radius * radius;
     Diplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;
     auto node = brain.memory.nearby.begin();
@@ -264,9 +260,9 @@ void UnitServer::PropagateHostility() {
         ++node;
         if (!diplomacy->IsAllied(side, other->side)) continue;
         CUnit* self = unit;
-        double dx = static_cast<double>(other->localPosition.x) - self->localPosition.x;
-        double dy = static_cast<double>(other->localPosition.y) - self->localPosition.y;
-        float distance = static_cast<float>(LengthSquared2DUnrounded(dy, dx));
+        float dx = other->localPosition.x - self->localPosition.x;
+        float dy = other->localPosition.y - self->localPosition.y;
+        float distance = LengthSquared2DUnrounded(dy, dx);
         float squaredRadius = *limit;
         if (!(std::bit_cast<std::int32_t>(distance) < std::bit_cast<std::int32_t>(squaredRadius))) continue;
         std::uint32_t mine = self->relationsA;
@@ -336,16 +332,16 @@ void UnitServer::UseSkill(CMapObject* target) {
         if (!looted) return;
         if (CPlayer* player = unit->player) g_serverWorld.Loot(looted, player);
         g_serverWorld.RemoveObject(target->id);
-        float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kSkillNoiseScale);
+        float loudness = stats.conspicuity[3].current * kSkillNoiseScale;
         world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
         return;
     }
     UseSource skill = action.Skill();
     if (skill != UseSource::Steal && skill != UseSource::Use) return;
     CUnit* other = UnitOrNull(target);
-    float mine = static_cast<float>(stats.AttributeWithItems(0, unit));
+    float mine = stats.AttributeWithItems(0, unit);
     float theirs = 0;
-    if (other) theirs = static_cast<float>(other->ServerController()->stats.AttributeWithItems(0, other));
+    if (other) theirs = other->ServerController()->stats.AttributeWithItems(0, other);
 
     kCombatLog << "Unit" << static_cast<long>(unit->id) << " is using skill ";
     const char* name;
@@ -370,7 +366,7 @@ void UnitServer::UseSkill(CMapObject* target) {
         Item* studied = FindItem(items, action.param);
         record = {1, 0, 0};
         if (studied && studied->GetUse().mask != 0) record = studied->GetUse();
-        record.level += x87::fistp(mine);
+        record.level += lib::RoundEven(mine);
         if (target->ApplyScience(&record, unit)) return;
         if (!unit->player) return;
         message = AckKind::ScienceFailed;

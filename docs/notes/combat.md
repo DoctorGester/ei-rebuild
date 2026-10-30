@@ -262,9 +262,10 @@ here is gone. What it covered, by file:
   wrappers; the scenarios are the behavioural check. TakeHit's log line goes through console::Stream (the log stream
   pointer 007AF3E8 = the ai stream at 007C5810) and must match character for character.
 - The CombatStats overlay names bytes of UnitStats that unit.h leaves unnamed; merge if the units area names them.
-  `+0x174`'s naming is a guess (behaviour copied). x87: values kept on the FPU stack are `double` locals (exact at 24 / 53-bit
-  precision, not at 64); FinishCast's clamps select through float loads where the original selects dwords with masks (only
-  an sNaN mana could differ); OnDamaged keeps the death animation in a local AnimationList the original frees from an EH frame.
+  `+0x174`'s naming is a guess (behaviour copied). SSE2 since C30e7: values the original kept on the FPU stack were PC24
+  results, so they are float locals; an int or a double operand goes through lib/pc24.h (cleanup-tooling.md, C30e7);
+  FinishCast's clamps select through float loads where the original selects dwords with masks (only an sNaN mana could
+  differ); OnDamaged keeps the death animation in a local AnimationList the original frees from an EH frame.
 - Scenario hazards: spawn units come from database.res without every variant run (GoblinF1 may beat the starting hero; the
   archer "Human Gipath Brigand A1" may walk up instead of shooting; a wrong prototype name fails `waitfor IsAlive`). An order
   given ~50 ms after AddUnitToServer / SetPlayer is sometimes dropped (about 1 run in 30 with 16 games in parallel):
