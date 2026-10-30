@@ -1,6 +1,7 @@
 // Small text helpers of the engine base (text_helpers.h).
 #include "text_helpers.h"
 
+#include "lib/containers.h"
 #include "lib/str.h"
 
 #include <cstring>
@@ -15,7 +16,7 @@ const char* TextTokenizer::Next() {
     int next;
     if (found == -1) {
         word = str::Mid(*source, position);
-        next = source->size();
+        next = lib::Count(*source);
     } else {
         word = str::Mid(*source, position, found - position);
         next = static_cast<int>(std::strlen(separator)) + found;

@@ -6213,6 +6213,13 @@ model = "opus"
 note = "User 2026-10-30: Miles and Bink are dropped entirely, not kept as backends; our own backends replace them. So the seams carry no Miles or Bink backend: the 32-bit build moves to the new backends too (null until A1 / A2 land, then miniaudio and our Bink decoder), mss32.dll / binkw32.dll are no longer loaded and their imports leave gen_iat's reached list. Check what game logic reads back from audio (end-of-sample callbacks, sample positions, speech length timing) and video (frame count, end of video): those must keep their timing or the goldens move; name any that do. Miles also loaded Rebirth's *.asi providers (standalone_main.cpp MilesLoadLibrary): check what still depends on that. After PL1. sound_manager.cpp / sound.h's Miles calls (AIL_*) and DirectSoundEnumerate behind a platform audio header, bink_video.cpp's Bink calls behind a platform video header, the Miles and Bink backends as today on 32-bit and a null backend (silent, videos skipped) when the DLL is missing or on x64. A1 (miniaudio with its own decoders; sokol_audio is output only, so miniaudio stays the choice) and A2 (our Bink 1 decoder) then become backends of these seams. Goldens unchanged."
 
 [[ticket]]
+id = "A3e"
+title = "play.cmd x64: build and play the x64 exe"
+group = "port"
+depends = ["A3a"]
+note = "From A3a. play.cmd builds build\\play (32-bit) and starts it through ei_launch --standalone, which is 32-bit only (it reads game.exe's threads; CMake leaves it out of the x64 build). Add an x64 mode: build.cmd x64 (or an x64 play configuration) and start the x64 ei-rebuild.exe with EI_GAME_ROOT set as ei_launch does, or build ei_launch for x64 with its thread dump on Wow64GetThreadContext for 32-bit children. No sound or movies on x64 until A1 / A2."
+
+[[ticket]]
 id = "R37"
 title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
 group = "renderer"

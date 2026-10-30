@@ -5,6 +5,7 @@
 #include "asset_text.h"
 #include "console.h"
 
+#include "lib/containers.h"
 #include "lib/file_io.h"
 #include "mob_script_decoder.h"
 #include "lib/str.h"
@@ -229,7 +230,7 @@ void Chunk::WriteString(std::uint32_t chunkId, std::string text) {
     FileWrite(File(), &chunkSize, 4);
     if (parent) parent->Advance(chunkSize);
     consumed += chunkSize;
-    int length = text.size();
+    int length = lib::Count(text);
     lib::File* file = File();
     FileWrite(file, text.data(), static_cast<std::uint32_t>(length));
 }

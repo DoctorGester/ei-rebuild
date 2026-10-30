@@ -1595,6 +1595,36 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   not taken from the image; on Rebirth EI_Plugin.ini's players and pause too). Not golden scenarios: the plain
   profile turns WideScreen on. The verify exe runs there (the harness is linked in), not the release one.
 
+### The x64 build
+
+`build.cmd x64`: the release build for 64-bit Windows (vcvars64, build\x64; CMake's `EI_X64`, from the pointer size).
+- **What it builds**: ei-rebuild.exe, ei_text_check, ei_ui_check and ei_perf_check. 32-bit only: the harness (CMake
+  refuses `EI_HARNESS` there; it runs in game.exe), ei_vectors (its recordings are game.exe's) and ei_launch (it
+  starts game.exe and reads its threads). build_checks.py `--x64` runs every check but the function vectors. No
+  `/arch:SSE2` (x64 has it always).
+- **No Miles, no Bink**: mss32.dll and binkw32.dll are 32-bit DLLs. image_imports.cpp's resolver does not load them on
+  x64 (their slots stay traps; the log says `x64: Miles and Bink (32-bit DLLs) not loaded: no sound, no movies`).
+  The game checks for the DLL, not for the build: SoundManager (sound_manager.cpp, MilesLoaded) does not start Miles
+  and never opens, so every sound call returns at its `enabled` test; bink_video.cpp's MoviesOn treats movies as off
+  and the loading screen's movie does not open. Our own audio and video backends replace both.
+- **What stays 32-bit only in the source** (`#if defined(_M_IX86)`): the static_asserts that describe game.exe's or
+  Miles's layout (net_coder.h's buffers, ScriptKeyword, miles::Sample / SoundInfo), the PC24 control word
+  (device_object.cpp; x64 has no x87 maths), static_init.h's `__stdcall` Call (one convention on x64). FpuGuard keeps
+  MXCSR's control bits on x64 in place of the x87 control word. ImportTable's slots are pointer-sized (gen_iat.py);
+  the exception handlers read the return address through Rsp (standalone_main.cpp ReturnAddress), the profiler
+  Rsp / Rip.
+- **Counts**: a container's size meets the game's int counts and indices through `lib::Count` (lib/containers.h), not
+  `std::ssize` (64-bit on x64; the conversion warnings, C4244 / C4267).
+- **Running it** (no harness, no ei_launch): the exe in a folder made like the game folder (each folder a junction
+  to the install's but `saves` and `cache`, real folders; each file a copy but game.exe) with an ei_settings.ini
+  whose Work path and CD-ROM Path are `.\`: an absolute path there sends the game's writes (saves\current) to the
+  install. FullScreen 0 and a VideoResolution for a window. The exe is DPI-unaware: a script that clicks or captures
+  the window calls SetProcessDPIAware first, or it sees a quarter of a 200% screen's window.
+- **Checked by hand** (vanilla data, windowed 1024x768): the main menu (the 3D scene and the signpost), a new game
+  (the difficulty dialog, the first zone with its hints, Zak in the circle by day), loading a save from the menu
+  (the party, the HUD, the log). Without the x64 data fixes of docs/notes/x64.md (among them the save counts written
+  as 32-bit values) a new game came up at night with no Zak; with them it starts as the 32-bit build's does.
+
 ### The harness's homes (S23)
 
 The harness (tests/verify) runs in both games and so lives in two places, built once (CMake object library
