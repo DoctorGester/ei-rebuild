@@ -398,9 +398,13 @@ extra block: 32-bit 0xAARRGGBB with premultiplied alpha, rows from the top; "PNT
 pixels, where a group's first pixel has alpha 0 and is not 0 that word instead counts target bytes left as they are
 (2DintMMX slot 5's reading; its plain path took pixel 1's alpha for pixel 0 of each group, not kept). The renderer
 decodes an image to RGBA8 once (shared by name while a texture holds it: `DecodeComposeImage`), and draws into a
-Direct3D 11 texture of the full size with every level the texture uses (`ComposeRecipe`): cleared to transparent
+texture of the full size with every level the texture uses (`ComposeRecipe`): cleared to transparent
 black, each image a rectangle drawn texel for texel (shader texture_compose.glsl) with premultiplied blending (ONE,
-INV_SRC_ALPHA, alpha too), then `GenerateMips`; the texture's view starts at level `mip` (the texture quality option),
+INV_SRC_ALPHA, alpha too), then the levels below, each drawn from the one above (`texture_mip`: a linear filter at
+the pixel's centre, the mean of four texels; MAC3g, in place of Direct3D's GenerateMips: the 231 frame captures of
+the vanilla runs the same). A pass may not read the image it draws into, so a level is drawn into a scratch image of half the size and
+copied from there: two small passes a level. The scratch and the level views are kept for the texture drawn last (the
+global map's clouds are drawn every frame). The texture's view starts at level `mip` (the texture quality option),
 so its size is `size >> mip` (HolderSize, texture patches: the blink patches the hero's composed skin). The work runs at
 once from the game's load (not inside a frame pass), with the present's lock held against the cursor thread
 (`GpuWorkAlone`). The entry is owned and keeps its recipe (the decoded images, shared): a new device draws every
@@ -1084,8 +1088,8 @@ across runs; the goldens check the game state.
    was tried: 0.76-0.89 of remake's time against GenerateMips' 0.33-0.45. Check: render_scene, render_shadows,
    render_options_shadows, ui_global_map_pick captured in place and `memorytextures remake` at one frozen moment, 8 /
    0.5% (largest channel difference 2). The memory textures are gone since R28b (section 7).
-3. **R16c Terrain pages resident on the GPU (done).** `render_terrain.cpp`. Each sector page is built once, all four quarters, into a pool of default-usage buffers written with UpdateSubresource
-   (sokol has no partial update): positions and texture coordinates (20 bytes a vertex), the lit colours (8 bytes, a
+3. **R16c Terrain pages resident on the GPU (done).** `render_terrain.cpp`. Each sector page is built once, all four quarters, into a pool of buffers written in place, only the changed ranges
+   (`platform::graphics::UpdateBuffer`: sokol writes a buffer only whole): positions and texture coordinates (20 bytes a vertex), the lit colours (8 bytes, a
    stream of their own) and absolute indices. A frame keeps the visible quarters of each page handed over
    (`TerrainPiece`); ranges that follow each other in the pool are one draw. A page is built again when its tile
    lists, records or animated tiles moved (pointers, sizes) or the game rebuilt the sector
@@ -1150,7 +1154,7 @@ across runs; the goldens check the game state.
    /Ob3 against /Ob2 (three rounds the same way): no gain beyond the noise (fight 18.3 / 18.7, town 6.9 / 7.0, zone1
    5.8 / 5.3 ms means), and one more fold (`SetTimeSpeedImpl` 0058EEE0's 1 / 15), so the build stays at /Ob2.
 4. **R16d Meshes resident on the GPU (done).** `render_mesh_cache.cpp`, the pool shared with the terrain in
-   `render_buffers.cpp` (`GpuPool`: default-usage buffers written with UpdateSubresource, a geometry stream, a colour
+   `render_buffers.cpp` (`GpuPool`: buffers written in place by range (UpdateBuffer), a geometry stream, a colour
    stream and absolute indices; placed in order, started again with the frame's entries when full). Each figure mesh
    drawn through the figure part draws (DrawLit 005A7A70 and DrawPlain 005A7640, either through the device or a link
    figure's part) is kept under the mesh: its corners' model-space positions and texture coordinates (20 bytes), the

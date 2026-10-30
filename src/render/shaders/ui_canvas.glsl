@@ -7,7 +7,7 @@ layout(binding = 1) uniform ui_params {
     vec4 colour;    // ui_solid: the colour (0..1); ui_compose: the text colour (0..255)
     ivec4 bits;     // the surface format's bits of red, green, blue; w: ui_grey's formula
     ivec4 source;   // ui_copy: left, top, width, height in the frame; ui_blit: left, top, texture width, height;
-                    // ui_rgb565: z, w the canvas's width, height; ui_compose: x, y taken off the pixel
+                    // ui_rgb565: z, w the canvas's width, height; ui_compose, ui_move: x, y taken off the pixel
     ivec4 dest;     // ui_copy, ui_rgb565: the target's width, height; ui_blit: the destination's left, top
     vec4 scale;     // ui_blit: source texels per destination pixel (x, y)
     ivec4 key;      // ui_blit: the colour key's red, green, blue (0..255); w: keyed
@@ -118,6 +118,15 @@ void main() {
 }
 @end
 @program ui_copy rect_vs ui_copy_fs
+
+// Texels drawn as they are, each pixel the texel at its position less source.xy: a canvas's texels into a scratch
+// target, an Image's pixels into a canvas.
+@fs ui_move_fs
+@include_block ui_params
+layout(location = 0) out vec4 frag_colour;
+void main() { frag_colour = texelFetch(sampler2D(tex0, smp), ivec2(gl_FragCoord.xy) - source.xy, 0); }
+@end
+@program ui_move rect_vs ui_move_fs
 
 // A canvas (tex0) stretched over an R16_UINT target as 5:6:5 pixels, each channel's top bits: the save's
 // picture. Each pixel takes the canvas pixel under its centre, (2 x + 1) * canvas size / (2 * target size).

@@ -23,7 +23,6 @@
 #include <vector>
 
 class TextureDevice;
-struct ID3D11Buffer;
 
 namespace render::detail {
 
@@ -376,9 +375,10 @@ struct PoolPlace {
 };
 
 // Vertices and indices kept on the GPU across frames (terrain pages, meshes): a geometry stream, a colour
-// stream (kColourPairBytes a vertex) and absolute 32-bit indices, in default-usage buffers written in place
-// with UpdateSubresource (sokol has no partial update). Items are placed one after the other; when one does
-// not fit, the pool starts again (Restart) with the items still needed, larger when they need more than half.
+// stream (kColourPairBytes a vertex) and absolute 32-bit indices, in buffers written in place, only the changed
+// ranges (platform::graphics::UpdateBuffer: sokol writes a buffer only whole). Items are placed one after the
+// other; when one does not fit, the pool starts again (Restart) with the items still needed, larger when they
+// need more than half.
 constexpr std::size_t kColourPairBytes = 2 * sizeof(std::uint32_t);
 class GpuPool {
 public:
@@ -398,7 +398,6 @@ public:
 private:
     struct Buffer {
         sg_buffer buffer{};
-        ID3D11Buffer* d3d = nullptr;   // sokol holds the reference
         bool Make(std::size_t bytes, bool index, const char* label);
         void Write(std::size_t offset, const void* data, std::size_t bytes) const;
         void Drop();   // destroyed after the frame's commit

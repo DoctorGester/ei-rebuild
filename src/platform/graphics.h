@@ -3,12 +3,14 @@
 // The renderer's device and window (docs/notes/platform.md, "Graphics"). sokol_gfx draws everything, and every pass,
 // pipeline, buffer and image is the renderer's (src/render). A backend makes the device sokol draws on, gives it the
 // window's drawable each frame and presents it, presents the last frame again from another thread (the cursor between
-// frames), says when the device is lost, and reads images back and times the GPU for the diagnostics. On Windows: Direct3D 11 (win32/graphics_win32.cpp, which also holds sokol's implementation).
-// No backend type crosses this header.
+// frames), says when the device is lost, writes part of a buffer (which sokol cannot), and reads images back and times
+// the GPU for the diagnostics. On Windows: Direct3D 11 (win32/graphics_win32.cpp, which also holds sokol's
+// implementation). No backend type crosses this header.
 
 #include "platform/platform.h"
 #include "sokol_gfx.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -47,6 +49,13 @@ bool BeginDrawable(NativeWindow window, int width, int height, const PresentMode
 // After the frame's sg_commit: the drawable shown. False when it was not (a failure is logged; a lost device is seen
 // by Lost).
 bool EndDrawable();
+
+// ---- Buffers ------------------------------------------------------------------------------------------------------
+
+// `bytes` of `data` written into `buffer` from byte `offset` on, the rest of it kept: sokol writes a buffer only whole
+// and once a frame. For a buffer made with usage.write_unsealed and sealed at once, without data (render_buffers.cpp's
+// GpuPool). In order with the draws: those recorded before it still read the bytes it replaces.
+void UpdateBuffer(sg_buffer buffer, std::size_t offset, const void* data, std::size_t bytes);
 
 // ---- Presenting again from another thread -------------------------------------------------------------------------
 

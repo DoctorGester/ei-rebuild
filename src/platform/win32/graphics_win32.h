@@ -1,16 +1,12 @@
 #pragma once
 
 // The Direct3D 11 backend's own part (graphics_win32.cpp) beyond graphics.h: the vertical blank switch's rules that
-// tools/perf_check checks on real swap chains, the harness build's removable device, and the Direct3D objects of the
-// render files that still call Direct3D themselves (render_buffers, render_compose, render_ui: their transfers).
+// tools/perf_check checks on real swap chains, and the harness build's removable device.
 
 #include "platform/graphics.h"
 
 #include <cstdint>
 
-struct ID3D11Device;
-struct ID3D11DeviceContext;
-struct ID3D11Texture2D;
 struct IDXGIFactory2;
 
 namespace platform::graphics {
@@ -33,12 +29,5 @@ void MakeRemovable();
 bool Removable();
 bool RequestRemoval();
 int Removals();
-
-// ---- Direct3D objects for the render files that still call Direct3D ------------------------------------------------
-
-ID3D11Device* Device();
-ID3D11DeviceContext* Context();
-// The texture of a sokol image (no reference taken); null for none.
-ID3D11Texture2D* Texture(sg_image image);
 
 } // namespace platform::graphics
