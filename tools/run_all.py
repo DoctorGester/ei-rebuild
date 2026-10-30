@@ -168,8 +168,12 @@ def machine_slot(alone=False, count=1):
 
 @functools.lru_cache(maxsize=None)
 def run_dir(root):
-    """root's run dir (the installs' game.exe copies). A worktree without its own (a worker that forgot the junction,
-    so every game ended NO REPORT) uses the main checkout's: its .git file names <main>/.git/worktrees/<name>."""
+    """root's run dir (the installs' game.exe copies). EI_RUN_DIR names it for a checkout that is not a worktree (the
+    self-hosted runner's, .github/workflows/suites.yml), with no junction for a clean to follow. A worktree without
+    its own (a worker that forgot the junction, so every game ended NO REPORT) uses the main checkout's: its .git file
+    names <main>/.git/worktrees/<name>."""
+    if os.environ.get('EI_RUN_DIR'):
+        return os.environ['EI_RUN_DIR']
     own = os.path.join(root, 'run')
     if os.path.isdir(own):
         return own

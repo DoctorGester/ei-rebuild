@@ -1,0 +1,81 @@
+# Suites: builds and plays the goldens on the self-hosted runner (Kirill's machine, label ei-game), which has the game
+# installs (F:\games\EvilIslands, the Rebirth one) and a GPU. Runs on pushes to claude/** branches (cloud sessions)
+# and by hand (Actions > Suites > Run workflow). Never on pull_request: a fork's workflow must not reach this machine.
+# Games go through the machine's one scheduler (WORK_DB is the main checkout's), so they share its 16 game slots with
+# local work; the install copies are the main checkout's run folder (EI_RUN_DIR), so no junction sits in this checkout.
+name: Suites
+
+on:
+  push:
+    branches: ["claude/**"]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or commit to test"
+        required: false
+        default: main
+      suites:
+        description: "full: every merge build and suite; quick: verify + release, the image suite"
+        type: choice
+        options: [full, quick]
+        default: full
+
+concurrency:
+  group: ei-game
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  suites:
+    runs-on: [self-hosted, ei-game]
+    timeout-minutes: 120
+    env:
+      WORK_DB: E:\workspace\ei\build\live\work.db
+      EI_RUN_DIR: E:\workspace\ei\run
+      SUITES: ${{ inputs.suites || 'full' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          clean: true
+
+      - name: Build
+        shell: bash
+        run: |
+          builds="verify release"
+          [ "$SUITES" = full ] && builds="verify release debug asan play x64 verify-x64"
+          fail=0
+          for c in $builds; do
+            cmd //c ".\\build.cmd $c > build_$c.log 2>&1" || { echo "::error::build $c failed"; tail -40 build_$c.log; fail=1; }
+            grep -h "warning C" build_$c.log | head -5
+          done
+          exit $fail
+
+      - name: Image suite (vanilla)
+        shell: bash
+        run: python tools/work.py test CI --golden --jobs 4 2>&1 | tee suite_image.txt | tail -40
+
+      - name: Rebirth suite
+        if: env.SUITES == 'full'
+        shell: bash
+        run: python tools/work.py test CI --rebirth-only --golden --jobs 4 2>&1 | tee suite_rebirth.txt | tail -40
+
+      - name: x64 suite
+        if: env.SUITES == 'full'
+        shell: bash
+        run: python tools/work.py test CI --x64 --golden --jobs 4 2>&1 | tee suite_x64.txt | tail -40
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          for f in suite_*.txt; do
+            [ -f "$f" ] || continue
+            echo "### ${f%.txt}" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sed -n '/^goldens (tests\/golden)/,$p' "$f" | head -60 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          done
+          ! grep -q "GOLDENS DIFFER" suite_*.txt
