@@ -9,7 +9,6 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include <bit>
 #include <cstdint>
@@ -133,7 +132,7 @@ void BattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             if (text::CompareIgnoringCase(name,
                                 game::NoneText()) != 0) {
                 name = std::string("z.") + name;
-                double value = LocalPlayerVariable(name);
+                float value = LocalPlayerVariable(name);
                 const float one = 1.0f;
                 // equal skips.
                 EI_NAN_AUDIT(value);

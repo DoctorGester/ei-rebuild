@@ -28,7 +28,6 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include "ei/x87.h"
 
 #include <algorithm>
 #include <bit>

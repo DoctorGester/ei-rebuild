@@ -1,51 +1,42 @@
 // Camera helpers the per-frame update uses: aiming along a direction, turning the camera upright towards its
-// target and keeping it above nearby objects. See camera.h and docs/notes/core.md. Floating point follows the
-// game's x87 code: `double` for values the game keeps on the FPU stack, static_cast<float> where it stores to
-// a float.
+// target and keeping it above nearby objects. See camera.h and docs/notes/core.md. Floating point: float maths in
+// the original's order (its x87 registers held floats at the main thread's 24-bit precision); an operation on the
+// CRT's double results through lib/pc24.h.
 #include "camera.h"
 #include "game_singletons.h"
 #include "map_object_figures.h"
 #include "world.h"
 
+#include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 
-#include "ei/x87.h"
-
-#include <bit>
-#include <cstdint>
-#include <cstring>
 #include <iterator>
 #include <vector>
-
-namespace {
-
-using camera::D;
-
-} // namespace
 
 // Aims the camera along (dx, dy, dz): the view heading is the turn about Z that points the camera's X axis
 // along the horizontal part (identity when that is straight along Y), then the local rotation tilts by -(90
 // degrees + elevation) about its own X axis. False (and nothing done) for a direction shorter than 1e-9.
 bool Camera::LookDirection(float dx, float dy, float dz) {
-    double lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz);
+    float lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, float>(dx, dy, dz);
     EI_NAN_AUDIT(lengthSquare);
-    if (lengthSquare <= CAM_LOOK_EPSILON) return false;
-    double inv = CAM_ONE_D / std::sqrt(lengthSquare);
-    float invRounded = static_cast<float>(inv);
-    float nx = static_cast<float>(inv * dx);
-    float ny = static_cast<float>(D(invRounded) * dy);
-    float elevation = static_cast<float>(libcrt::CiAsin(-(D(invRounded) * dz)));
-    float heading = static_cast<float>(libcrt::CiAcos(D(ny) / libcrt::Hypot(nx, ny)));
+    if (lengthSquare <= CAM_LOOK_EPSILON) return false;   // the double constant (exact as a compare)
+    float inv = 1.0f / std::sqrt(lengthSquare);
+    float nx = inv * dx;
+    float ny = inv * dy;
+    float elevation = static_cast<float>(libcrt::CiAsin(-(inv * dz)));
+    // ny over _hypot's double rounds once at 24 bits; the CRT's arc cosine returns a double.
+    float heading = static_cast<float>(libcrt::CiAcos(pc24::Div(ny, libcrt::Hypot(nx, ny))));
     EI_NAN_AUDIT(nx, heading);
     if (nx == CAM_ZERO || heading == CAM_ZERO) {
         viewRotation = camera::kIdentityRotation;
     } else {
-        double side = -D(nx);
+        float side = -nx;
         float z;
         EI_NAN_AUDIT(side);
-        if (side < D(CAM_ZERO)) z = CAM_MINUS_ONE;
-        else if (side > D(CAM_ZERO)) z = CAM_ONE;
+        if (side < CAM_ZERO) z = CAM_MINUS_ONE;
+        else if (side > CAM_ZERO) z = CAM_ONE;
         else z = CAM_ZERO;
         Vector3 axis;
         axis.x = 0.0f;
@@ -55,25 +46,25 @@ bool Camera::LookDirection(float dx, float dy, float dz) {
     }
     localRotation = viewRotation;
     const Quaternion& q = localRotation;
-    double xx = D(q.x) * q.x;
-    double e1 = Dot2DUnrounded<double>(q.w, q.x, q.z, q.y);
-    double e2 = D(q.x) * q.z - D(q.w) * q.y;
+    float xx = q.x * q.x;
+    float e1 = Dot2DUnrounded<float>(q.w, q.x, q.z, q.y);
+    float e2 = q.x * q.z - q.w * q.y;
     Vector3 xAxis;
-    xAxis.x = static_cast<float>((D(q.w) * q.w - (LengthSquared2DUnrounded<double>(q.y, q.z) + xx)) + (xx + xx));
-    xAxis.y = static_cast<float>(e1 + e1);
-    xAxis.z = static_cast<float>(e2 + e2);
-    float angle = static_cast<float>(-(CAM_RIGHT_ANGLE + D(elevation)));
+    xAxis.x = (q.w * q.w - (LengthSquared2DUnrounded<float>(q.y, q.z) + xx)) + (xx + xx);
+    xAxis.y = e1 + e1;
+    xAxis.z = e2 + e2;
+    float angle = -(CAM_RIGHT_ANGLE + elevation);
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, xAxis);
     Quaternion& t = localRotation;
-    double x = ((D(t.z) * r.y - D(t.y) * r.z) + D(r.w) * t.x) + D(t.w) * r.x;
-    float y = static_cast<float>(((D(t.x) * r.z - D(t.z) * r.x) + D(r.w) * t.y) + D(t.w) * r.y);
-    float zz = static_cast<float>(((D(t.y) * r.x - D(r.y) * t.x) + D(r.w) * t.z) + D(t.w) * r.z);
-    double w = D(r.w) * t.w - DotUnrounded<Sum3::ZYX, double>(r.x, r.y, r.z, t.x, t.y, t.z);
+    float x = ((t.z * r.y - t.y * r.z) + r.w * t.x) + t.w * r.x;
+    float y = ((t.x * r.z - t.z * r.x) + r.w * t.y) + t.w * r.y;
+    float zz = ((t.y * r.x - r.y * t.x) + r.w * t.z) + t.w * r.z;
+    float w = r.w * t.w - DotUnrounded<Sum3::ZYX, float>(r.x, r.y, r.z, t.x, t.y, t.z);
     t.z = zz;
     t.y = y;
-    t.w = static_cast<float>(w);
-    t.x = static_cast<float>(x);
+    t.w = w;
+    t.x = x;
     return true;
 }
 
@@ -85,42 +76,39 @@ void Camera::AlignToTarget() {
     Vector3 zAxis, xAxis;
     q.AxisZ(&zAxis);
     q.AxisX(&xAxis);
-    double negZx = -D(zAxis.x);
-    float hy = static_cast<float>(negZx);
+    float hy = -zAxis.x;
     float hz = 0.0f;
-    double inv = D(CAM_ONE) / std::sqrt(negZx * hy + D(zAxis.y) * zAxis.y);
-    float invRounded = static_cast<float>(inv);
-    float hx = static_cast<float>(inv * zAxis.y);
-    hy = static_cast<float>(D(hy) * invRounded);
-    double dot = DotUnrounded<Sum3::ZYX, double>(xAxis.x, xAxis.y, xAxis.z, hx, hy, hz);
-    float cosine = static_cast<float>(dot);
+    float inv = CAM_ONE / std::sqrt(hy * hy + zAxis.y * zAxis.y);
+    float hx = inv * zAxis.y;
+    hy = hy * inv;
+    float dot = DotUnrounded<Sum3::ZYX, float>(xAxis.x, xAxis.y, xAxis.z, hx, hy, hz);
+    float cosine = dot;
     EI_NAN_AUDIT(dot);
-    if (dot > D(CAM_ONE)) cosine = 1.0f;
-    else if (D(cosine) < D(CAM_MINUS_ONE)) cosine = -1.0f;
+    if (dot > CAM_ONE) cosine = 1.0f;
+    else if (cosine < CAM_MINUS_ONE) cosine = -1.0f;
     float angle = static_cast<float>(libcrt::CiAcos(cosine));
-    float magnitude = angle;
-    magnitude = AbsBits(magnitude);
-    if (CAM_DEGREE > D(magnitude)) return;
-    float cx = static_cast<float>(D(xAxis.y) * hz - D(xAxis.z) * hy);
-    float cy = static_cast<float>(D(xAxis.z) * hx - D(hz) * xAxis.x);
-    float cz = static_cast<float>(D(hy) * xAxis.x - D(xAxis.y) * hx);
-    double invC = D(CAM_ONE) / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(cx, cy, cz));
+    float magnitude = AbsBits(angle);
+    if (CAM_DEGREE > magnitude) return;
+    float cx = xAxis.y * hz - xAxis.z * hy;
+    float cy = xAxis.z * hx - hz * xAxis.x;
+    float cz = hy * xAxis.x - xAxis.y * hx;
+    float invC = CAM_ONE / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(cx, cy, cz));
     Vector3 axis;
-    axis.x = static_cast<float>(D(cx) * invC);
-    axis.y = static_cast<float>(D(cy) * invC);
-    axis.z = static_cast<float>(D(cz) * invC);
-    double axisLength = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(axis));
-    if (axisLength > CAM_ALIGN_EPSILON) {
+    axis.x = cx * invC;
+    axis.y = cy * invC;
+    axis.z = cz * invC;
+    float axisLength = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(axis));
+    if (axisLength > CAM_ALIGN_EPSILON) {   // the double constant (exact as a compare)
         Quaternion turn;
-        const Quaternion& r = *turn.SetAngleAxis(static_cast<float>(D(angle) * D(CAM_TENTH)), axis);
-        double x = ((D(r.y) * q.z - D(q.y) * r.z) + D(q.x) * r.w) + D(r.x) * q.w;
-        float y = static_cast<float>(((D(q.x) * r.z - D(r.x) * q.z) + D(q.y) * r.w) + D(r.y) * q.w);
-        float z = static_cast<float>(((D(q.y) * r.x - D(r.y) * q.x) + D(r.w) * q.z) + D(r.z) * q.w);
-        double w = D(r.w) * q.w - DotUnrounded<Sum3::ZXY, double>(q.x, q.y, q.z, r.x, r.y, r.z);
+        const Quaternion& r = *turn.SetAngleAxis(angle * CAM_TENTH, axis);
+        float x = ((r.y * q.z - q.y * r.z) + q.x * r.w) + r.x * q.w;
+        float y = ((q.x * r.z - r.x * q.z) + q.y * r.w) + r.y * q.w;
+        float z = ((q.y * r.x - r.y * q.x) + r.w * q.z) + r.z * q.w;
+        float w = r.w * q.w - DotUnrounded<Sum3::ZXY, float>(q.x, q.y, q.z, r.x, r.y, r.z);
         q.z = z;
         q.y = y;
-        q.w = static_cast<float>(w);
-        q.x = static_cast<float>(x);
+        q.w = w;
+        q.x = x;
     }
     ClampAboveObjects();
 }
@@ -141,33 +129,34 @@ void Camera::ClampAboveObjects() {
         if (object->bounds.boxMax.x > limit || object->bounds.boxMax.y > limit || object->bounds.boxMax.z > limit ||
             object->bounds.center.z > limit)
             continue;
-        float cx = static_cast<float>(D(object->localPosition.x) + object->bounds.center.x);
-        float cy = static_cast<float>(D(object->localPosition.y) + object->bounds.center.y);
+        float cx = object->localPosition.x + object->bounds.center.x;
+        float cy = object->localPosition.y + object->bounds.center.y;
         float cz = p->z;
         double radius = libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y);
-        double dx = D(cx) - p->x;
-        double dy = D(cy) - p->y;
-        double dz = D(cz) - p->z;
-        float outside = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) - radius);
-        double factor = CAM_ZERO;
+        float dx = cx - p->x;
+        float dy = cy - p->y;
+        float dz = cz - p->z;
+        // The distance less _hypot's double, rounded once at 24 bits.
+        float outside = pc24::Sub(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz)), radius);
+        float factor = CAM_ZERO;
         EI_NAN_AUDIT(outside);
         if (outside <= CAM_ZERO) factor = CAM_ONE;
-        else if (outside <= CAM_OBJECT_FADE) factor = D(CAM_ONE) - D(outside) * D(CAM_TENTH);
-        float height = static_cast<float>(((D(object->localPosition.z) + object->bounds.boxMax.z) + object->bounds.center.z) * factor);
+        else if (outside <= CAM_OBJECT_FADE) factor = CAM_ONE - outside * CAM_TENTH;
+        float height = ((object->localPosition.z + object->bounds.boxMax.z) + object->bounds.center.z) * factor;
         best = best >= height ? best : height;
     }
     const options::GameOptions* s = settings;
     float raised;
     if (best > highest) {
-        float over = static_cast<float>(D(best) - D(highest));
+        float over = best - highest;
         float limit = s->cameraMaxHeight;
         float used = over >= limit ? limit : over;
-        float wanted = static_cast<float>((D(used) + highest) + D(s->cameraMinHeight));
+        float wanted = (used + highest) + s->cameraMinHeight;
         float z = p->z;
         raised = z >= wanted ? z : wanted;
     } else {
         float top = best >= highest ? best : highest;
-        float wanted = static_cast<float>(D(top) + D(s->cameraMinHeight));
+        float wanted = top + s->cameraMinHeight;
         float z = p->z;
         raised = z >= wanted ? z : wanted;
     }

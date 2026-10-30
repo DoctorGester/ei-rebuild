@@ -57,12 +57,8 @@ endif()
 # CRT's pow / acos), the terrain's chop rounding; picking reads the camera's, the view's and the projected meshes'.
 # Each group below is the ticket that moves it with the goldens unchanged; a file split from one of these joins it here.
 set(EI_X87_GAME_SOURCES
-    # C30e13: camera, picking and the briefing
-    game/camera game/camera_motion game/camera_path_load game/device_bounds game/device_mesh game/ui_battle_commands
-    game/ui_battle_hover game/ui_briefing_create game/ui_briefing_dialogue game/ui_briefing_input
-    game/ui_briefing_people game/ui_briefing_phrases game/ui_briefing_start game/ui_camera_input game/ui_camera_keys
-    game/ui_global_map game/ui_global_map_input game/ui_global_map_paths game/ui_global_map_places game/ui_hud
-    game/ui_hud_map game/ui_view_screen
+    # C30e13a: Camera::ApplyView's FPATAN of a float and _hypot's double
+    game/camera
     # C30e14: terrain
     game/sector_map game/sector_spiral game/terrain game/terrain_landscape game/terrain_sector
     # C30e15: the main loop and the game CRT

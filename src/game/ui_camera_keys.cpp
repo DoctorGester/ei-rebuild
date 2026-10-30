@@ -8,26 +8,14 @@
 #include "options.h"
 
 #include "ui.h"
-#include "ui_float.h"
 
 #include "camera.h"
 
 #include "game_singletons.h"
 
-#include <bit>
 #include <cstdint>
-#include <cstring>
 
 namespace {
-
-float GameFloat(const float& setting) { return static_cast<const volatile float&>(setting); }
-
-// A camera motion's keyboard power times its speed, in double: the key handler multiplies the direction
-// in with it and rounds to float once. (ui_camera_input.cpp's KeyboardSpeed rounds power * speed to float
-// first, which gives different results: keep both.)
-double KeyboardSpeedProduct(const options::CameraMotionOptions& motion) {
-    return D(GameFloat(motion.powerKeyboard)) * D(GameFloat(motion.speed));
-}
 
 bool ModifierHeld(const Interface3D* ui) { return ui->ctrlDown || ui->altDown; }
 
@@ -62,19 +50,18 @@ void CameraInput::KeyDown(int, int, int flags) {
     if (!ModifierHeld(ui)) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.
         float left = -x;
-        float speed = static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraScroll));
-        direction.x = static_cast<float>(D(y) * D(speed));
-        direction.y = static_cast<float>(D(left) * D(speed));
+        float speed = KeyboardSpeed(options::g_options.cameraScroll);
+        direction.x = y * speed;
+        direction.y = left * speed;
         g_camera.Pan(direction);
         g_camera.SetTurnRate(0.0f);
-        g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraZoom) * D(z)));
+        g_camera.SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom) * z);
         g_camera.SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
     g_camera.Pan(direction);
-    g_camera.SetTurnRate(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraRotate) * D(y)));
-    g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraZoom) * D(z)));
-    g_camera.SetTiltRate(
-        static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraPitch) * D(x) * D(50.0f)));
+    g_camera.SetTurnRate(KeyboardSpeed(options::g_options.cameraRotate) * y);
+    g_camera.SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom) * z);
+    g_camera.SetTiltRate(KeyboardSpeed(options::g_options.cameraPitch) * x * 50.0f);
 }

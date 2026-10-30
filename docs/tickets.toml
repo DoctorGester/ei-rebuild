@@ -6528,3 +6528,11 @@ title = "SSE2 float selects keep the original's tie operand (+0 / -0)"
 group = "cleanup"
 note = "C30e9's equivalence test found that MSVC /fp:precise on SSE2 compiles a >= b ? a : b to MAXSS and a >= b ? b : a to MINSS, which return the second operand on a tie (and on NaN): where +0 meets -0 the zero's sign differs from the x87 original's compare and branch (FCOM / FNSTSW). float_select.h's MaxKeepB / MinKeepA (documented as keeping the tie operand) compile the same way in SSE2 objects, and so do the written-out selects of every moved file (unit AI: AIViewer::Refresh's reach, FearMode::Evaluate's distance, KeepLower; docs/notes/cleanup-tooling.md, C30e9). Make the helpers exact on SSE2 (a CMPLESS / CMPNLTSS mask and a blend through intrinsics, or a form MSVC keeps), route the >= selects of the SSE2 game files through them (a scripted search: ternaries of two floats on >= / <=), check the objects for MAXSS / MINSS left on >= forms, goldens unchanged, an equivalence test of the helpers on every pair of special operands."
 
+[[ticket]]
+id = "C30e13a"
+title = "SSE2: camera.cpp (ApplyView's FPATAN of a float and _hypot's double)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e8a"]
+note = "C30e13 converted src/game/camera.cpp to float / pc24 maths but kept it in EI_X87_GAME_SOURCES (comment C30e13a): Camera::ApplyView, after ClampAboveObjects lifts the camera, aims back down with x87::fpatan(dz, across) where dz is a float difference and across is libcrt::Hypot's double (the full 53 bits: _hypot computes at 64 bits under its own control word), then SetAngleAxis(-(CAM_RIGHT_ANGLE + angle)); pc24::Atan2 took floats only. With C30e8a's pc24::Atan2(double, double): write it as -pc24::Add(CAM_RIGHT_ANGLE, pc24::Atan2(dz, across)) (check the old object: the fpatan result stays in ST0 for the FADD of the float constant), drop the ei/x87.h include and the C30e13a line from the list, sse2check the object (the rest of the file is plain float maths plus pc24::Exp / Cos / Mul / Add, tested in C30e13's eq/). Goldens unchanged (verify and --rebirth-only): the camera's update runs in every scenario."
+

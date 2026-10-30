@@ -21,8 +21,8 @@
 #include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -498,12 +498,12 @@ void HudMovePanel::ShowMode(int newMode) {
             continue;
         }
         // The marker points at the mode's button: turned about -z and put on its circle.
-        const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * kPi * kSixteenth);
+        const float angle = static_cast<float>(2 * i + 1) * kPi * kSixteenth;
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
         marker->localRotation = *turn.SetAxisAngle(axis, angle);
-        const float y = static_cast<float>(kMarkerCentreY - x87::fsin(angle) * kMarkerRadius);
-        const float x = static_cast<float>(x87::fcos(angle) * kMarkerRadius);
+        const float y = kMarkerCentreY - pc24::Mul(pc24::Sin(angle), kMarkerRadius);
+        const float x = pc24::Mul(pc24::Cos(angle), kMarkerRadius);
         SceneMesh(0)->Place(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
@@ -792,7 +792,7 @@ void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
         if (text::CompareIgnoringCase(name,
                             game::NoneText()) != 0) {
             name = std::string(game::ZoneVariablePrefixText()) + name;   // "z."
-            double value = LocalPlayerVariable(name);
+            float value = LocalPlayerVariable(name);
             const float one = 1.0f;
             // Equal skips.
             EI_NAN_AUDIT(value);
