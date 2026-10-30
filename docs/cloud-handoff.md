@@ -60,9 +60,9 @@ Read before changing code:
   failures, the window size and the groundview / clickground lines. Use it before re-recording anything: every
   changed golden needs a cause.
 - **Expected results on main** as of 2026-10-30 (goldens recorded from the image, H40):
-  - Image suite: 152 the same, 3 without a golden (the watchdogs).
-  - Rebirth suite: 32 the same.
-  - x64 suite: 152 the same, 3 without a golden.
+  - Image suite: 154 the same, 3 without a golden (the watchdogs).
+  - Rebirth suite (`--rebirth-only`): 29 the same.
+  - x64 suite: 154 the same, 3 without a golden.
   - A change that should not alter behaviour keeps every golden the same. An intended change re-records the
     affected goldens and says why in the commit.
 - **Limits:**

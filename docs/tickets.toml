@@ -7056,3 +7056,11 @@ group = "port"
 model = "sonnet"
 depends = ["MAC3f"]
 note = "From MAC3r: bit_flags.h enable_if instead of constrained templates (Apple clang), bink_file platform::File instead of std::ifstream (case-folding lookup), spell_effect.cpp <cfloat>, ui_connect_screen.cpp BufferPut without __declspec(noinline). Take each only if main needs it or it is simpler; batch with a MAC3 worker."
+
+[[ticket]]
+id = "MAC3r2"
+title = "macos-port: merge main back after MAC3e-h, MAC3k, MAC3l"
+group = "port"
+model = "opus"
+depends = ["MAC3g"]
+note = "Merge current main into macos-port and rebuild the macOS side on main's shapes (graphics_metal.mm on the slimmer graphics.h with KeepPresent/DropPresent/PresentAgain and UpdateBuffer; sokol-shdc GLSL; glyph_cases module), so only macOS-specific differences remain. Lists of what to change are in the MAC3 hand-backs (copied into the worker brief). Windows checks as MAC1; the user builds the Mac side."
