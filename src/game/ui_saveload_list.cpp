@@ -14,7 +14,7 @@
 #include "lib/calendar.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <string>
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -94,8 +94,8 @@ void SaveLoadWindow::RefreshListVanilla() {
             const std::string date = lib::FormatTime(entry.savedAt, kDateFormat);
             surface->DrawTextIn(date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
         }
-        gameapi::OffsetRect(&titleRect, 0, kRowHeight);
-        gameapi::OffsetRect(&dateRect, 0, kRowHeight);
+        rects::Offset(&titleRect, 0, kRowHeight);
+        rects::Offset(&dateRect, 0, kRowHeight);
         y += kRowHeight;
         if (y >= kRowsEndY) break;
     }
@@ -109,10 +109,10 @@ void SaveLoadWindow::RefreshListVanilla() {
     RECT detailRect{340, 260, 590, 284};
     std::string line = str::Format(kPlainFormat, entry.AllodTitle());
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
-    gameapi::OffsetRect(&detailRect, 0, kRowHeight);
+    rects::Offset(&detailRect, 0, kRowHeight);
     line = str::Format(kPlainFormat, entry.ZoneTitle());
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
-    gameapi::OffsetRect(&detailRect, 0, kRowHeight);
+    rects::Offset(&detailRect, 0, kRowHeight);
 
     const int minutes = static_cast<int>(entry.gameTime * kMinutesPerHour);
     const int day = minutes / kMinutesPerDay;

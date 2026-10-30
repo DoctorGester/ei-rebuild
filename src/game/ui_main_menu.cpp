@@ -16,7 +16,7 @@
 #include "unit_create.h"
 #include "world.h"
 
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "platform/clock.h"
 #include <cstdint>
 #include <string>
@@ -105,7 +105,7 @@ void MainMenu::CreateScreen() {
     for (int i = 0; i < 6; ++i) {
         UiRegion* region = AddRegion();
         RECT area;
-        gameapi::CopyRect(&area, &g_menuRects[i]);
+        rects::Copy(&area, &g_menuRects[i]);
         region->SetRectFrom(area);
     }
     GamePlayMusic(nullptr);

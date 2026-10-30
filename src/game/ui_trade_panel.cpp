@@ -8,7 +8,7 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <cstdint>
 #include <string>
 
@@ -41,7 +41,7 @@ std::string PerkBaseName(const SkillLevelRecord* record) {
     return text;
 }
 
-void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
+void Down(RECT* rect) { rects::Offset(rect, 0, 15); }
 
 constexpr std::uint32_t kBright = 0xA7D7E4;
 constexpr std::uint32_t kGrey = 0x828282;
@@ -58,7 +58,7 @@ void PriceSprite(TradePanel* panel, const RECT& row, float left, float right) {
 void DrawSchool(TradePanel* panel, UiSurface* draw, RECT* row, const TradeRow& school) {
     draw->DrawTextIn(school.name, row, 0, kBright, 0, 1);
     RECT levelRect = *row;
-    gameapi::OffsetRect(&levelRect, -40, 0);
+    rects::Offset(&levelRect, -40, 0);
     draw->DrawTextIn(std::format("{}", school.level), &levelRect, 0, kBright, 2, 1);
     if (school.level < 100) {
         draw->DrawTextIn(TradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience), 2, 1);

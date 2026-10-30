@@ -8,7 +8,7 @@
 
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <cstddef>
 #include <cstring>
 #include <string>
@@ -128,7 +128,7 @@ void OptionsWindow::RefreshRows() {
         button->tint[1] = tint;
         button->tint[2] = tint;
         surface->DrawTextIn(groupNames[groupIndex], &title, 1, groupIndex == group ? kColourText : kColourDim, 1, 1);
-        gameapi::OffsetRect(&title, 0, 24);
+        rects::Offset(&title, 0, 24);
     }
     RECT heading = {0, 10, 600, 34};
     surface->DrawTextIn(groupNames[group], &heading, 2, kColourText, 1, 1);
@@ -148,8 +148,8 @@ void OptionsWindow::RefreshRows() {
         } else if (OptionSetting* setting = rows[row].setting) {
             surface->DrawTextIn(setting->text, &name, 1, kColourText, 0, 1);
         }
-        gameapi::OffsetRect(&name, 0, 24);
-        gameapi::OffsetRect(&keys, 0, 24);
+        rects::Offset(&name, 0, 24);
+        rects::Offset(&keys, 0, 24);
     }
 }
 

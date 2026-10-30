@@ -17,7 +17,7 @@
 #include "ei/rebirth.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "platform/clock.h"
 #include <bit>
 #include <cstdint>
@@ -70,11 +70,11 @@ public:
     const std::string& T(int index) const { return panel->itemTexts[index]; }
     const std::string& Skill(int index) const { return panel->skillTexts[index]; }
 
-    void Down() { gameapi::OffsetRect(&rect, 0, 15); }
+    void Down() { rects::Offset(&rect, 0, 15); }
     void Text(std::string_view text) { draw->DrawTextIn(text, &rect, 0, kText, 0, 1); }
     void Value(std::string_view text) {
         RECT shifted = rect;
-        gameapi::OffsetRect(&shifted, -10, 0);
+        rects::Offset(&shifted, -10, 0);
         draw->DrawTextIn(text, &shifted, 0, kText, 2, 1);
     }
     void Title(std::string_view text) { draw->DrawWrappedText(text, &rect, 2, 0, kWhite, 0x11, 1); }

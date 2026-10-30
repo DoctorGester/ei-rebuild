@@ -4,7 +4,7 @@
 // See docs/notes/ui.md, section 3.
 #include "ui.h"
 
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "render/render_ui.h"
 
 namespace {
@@ -14,7 +14,7 @@ render::Rect ToRect(const RECT& rect) { return render::Rect{rect.left, rect.top,
 void UiSurface::FrameRect(const RECT* area, COLORREF colour) {
     if (!holder) return;
     RECT frame;
-    if (gameapi::IsRectEmpty(area)) {
+    if (rects::IsEmpty(area)) {
         frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
     } else {
         frame = *area;
@@ -26,7 +26,7 @@ void UiSurface::FrameRect(const RECT* area, COLORREF colour) {
 void UiSurface::Fill(COLORREF colour) {
     if (!holder) return;
     RECT whole = rect;
-    gameapi::OffsetRect(&whole, -whole.left, -whole.top);
+    rects::Offset(&whole, -whole.left, -whole.top);
     FillRect(whole, colour);
 }
 

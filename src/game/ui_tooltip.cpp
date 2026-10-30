@@ -7,7 +7,7 @@
 
 #include "lib/crt.h"
 #include "text_split.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <string>
 #include "lib/vecmath.h"
 #include "object_tables.h"       // FindCommandByKey
@@ -100,7 +100,7 @@ void UiTooltip::DrawLines() {
         } else {
             surface->DrawTextIn(lines[i], &row, kFont, colour, 0, 0);
         }
-        gameapi::OffsetRect(&row, 0, step);
+        rects::Offset(&row, 0, step);
     }
 }
 
@@ -131,16 +131,16 @@ void UiTooltip::OnMouseMove(int x, int y) {
         // WideScreen: without the margin; the layout's right edge 800 + extra (addon's operands).
         ui->CallScalePointFromScreenNoMargin(&offset);
         const int layoutRight = widescreen::Active() ? widescreen::LayoutRight() : kLayoutWidth;
-        gameapi::OffsetRect(&area, offset.x, offset.y);
-        gameapi::OffsetRect(&area, x, y);
+        rects::Offset(&area, offset.x, offset.y);
+        rects::Offset(&area, x, y);
         // Kept on the layout: pushed left from the right edge, and above the mouse at the bottom.
         if (area.right > layoutRight) {
-            gameapi::OffsetRect(&area, -(area.right - layoutRight), 0);
-            if (area.left < 0) gameapi::OffsetRect(&area, -area.left, 0);
+            rects::Offset(&area, -(area.right - layoutRight), 0);
+            if (area.left < 0) rects::Offset(&area, -area.left, 0);
         }
         if (area.bottom > kLayoutHeight) {
-            gameapi::OffsetRect(&area, 0, -(area.bottom - y));
-            if (area.top < 0) gameapi::OffsetRect(&area, 0, -area.top);
+            rects::Offset(&area, 0, -(area.bottom - y));
+            if (area.top < 0) rects::Offset(&area, 0, -area.top);
         }
         UiSurface* surface = new UiSurface(ui, &area, SurfaceBlend::Keyed);
         AddSurface(surface);

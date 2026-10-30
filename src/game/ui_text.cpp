@@ -3,7 +3,7 @@
 #include "game_strings.h"
 #include "console.h"
 
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <string>
 
 #include <cstring>
@@ -55,7 +55,7 @@ int UiSurface::DrawWrappedText(std::string_view text, const RECT* area, int maxL
     const int count = static_cast<int>(lines.size());
     for (int i = 0; i < maxLines && i < count; ++i) {
         DrawTextIn(lines[i], &at, font, colour, format, shadow);
-        gameapi::OffsetRect(&at, 0, boxHeight);
+        rects::Offset(&at, 0, boxHeight);
     }
     return count;
 }

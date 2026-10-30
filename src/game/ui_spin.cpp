@@ -7,7 +7,7 @@
 
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 
 namespace {
 
@@ -47,7 +47,7 @@ void UiSpin::SetValue(int newValue) {
     UiSurface* surface = surfaces[0];
     surface->Clear();
     RECT area = layout;
-    gameapi::OffsetRect(&area, -layout.left, -layout.top);
+    rects::Offset(&area, -layout.left, -layout.top);
     // DrawText is Rebirth-patched: through its address.
     surface->DrawTextIn(texts[value], &area, kTextFormat, kTextColour, 0, 1);
     changed = true;

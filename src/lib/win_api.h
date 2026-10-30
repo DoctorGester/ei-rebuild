@@ -90,14 +90,7 @@ __declspec(dllimport) BOOL WINAPI SetEvent(HANDLE event);
 __declspec(dllimport) DWORD WINAPI WaitForSingleObject(HANDLE object, DWORD milliseconds);
 
 // USER32.dll: rectangles.
-__declspec(dllimport) BOOL WINAPI SetRect(LPRECT rect, int left, int top, int right, int bottom);
-__declspec(dllimport) BOOL WINAPI SetRectEmpty(LPRECT rect);
 __declspec(dllimport) BOOL WINAPI CopyRect(LPRECT to, const RECT* from);
-__declspec(dllimport) BOOL WINAPI IsRectEmpty(const RECT* rect);
-__declspec(dllimport) BOOL WINAPI PtInRect(const RECT* rect, POINT point);
-__declspec(dllimport) BOOL WINAPI OffsetRect(LPRECT rect, int dx, int dy);
-__declspec(dllimport) BOOL WINAPI IntersectRect(LPRECT to, const RECT* a, const RECT* b);
-__declspec(dllimport) BOOL WINAPI UnionRect(LPRECT to, const RECT* a, const RECT* b);
 
 // USER32.dll: the window, its messages, the cursor, the keyboard layouts, text.
 __declspec(dllimport) ATOM WINAPI RegisterClassExA(const tagWNDCLASSEXA* windowClass);

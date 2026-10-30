@@ -12,7 +12,7 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "platform/clock.h"
 
 #include "lib/vecmath.h"
@@ -73,8 +73,8 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, tagRECT* dirty) {
     object->LoadFigures();
     if (!(object->flags & MapObjectFlag::Stationary)) object->flags &= ~MapObjectFlag::Static;
     if (dirty) {
-        gameapi::SetRectEmpty(&drawnRect);
-        gameapi::SetRectEmpty(&object->dirtyRect);
+        rects::SetEmpty(&drawnRect);
+        rects::SetEmpty(&object->dirtyRect);
     }
     if (object->animation) object->animation->UpdatePose();
 
@@ -153,9 +153,9 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, tagRECT* dirty) {
                     return result;
                 }
                 anyDrawn = anyDrawn || lib::Has(part->flags, FigureMeshFlag::Drawn);
-                if (dirty && !gameapi::IsRectEmpty(&partRect) && (part->flags & FigureMeshFlag::Drawn)) {
+                if (dirty && !rects::IsEmpty(&partRect) && (part->flags & FigureMeshFlag::Drawn)) {
                     RECT* total = &drawnRect;
-                    gameapi::UnionRect(total, total, &partRect);
+                    rects::Union(total, total, &partRect);
                 }
                 if (pushed) pipeline->PopMatrix(kStackObject);
                 pipeline->PopMatrix(kStackView);

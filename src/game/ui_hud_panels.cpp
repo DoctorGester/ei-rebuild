@@ -10,7 +10,7 @@
 #include "party.h"
 #include "player_client.h"
 
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <cstdint>
 #include <string>
 #include "unit.h"
@@ -175,10 +175,10 @@ void HudUnitPanel::ShowEffects(CUnit* unit) {
             if (found) text = clientWorldTexts->ReadLine(true);
         }
         surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
-        gameapi::OffsetRect(&line, 0, kLineHeight);
+        rects::Offset(&line, 0, kLineHeight);
         number = std::format("{}", effects[i].ticksLeft / 15);
         surface->DrawTextIn(number, &line, 0, kTextColour, 0, 1);
-        gameapi::OffsetRect(&line, 0, kLineHeight);
+        rects::Offset(&line, 0, kLineHeight);
     }
 
     // The pictures already in the texture keep their places (the last one that matches).

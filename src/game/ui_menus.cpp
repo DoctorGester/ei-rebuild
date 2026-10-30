@@ -9,7 +9,7 @@
 #include "texture.h"
 
 #include "lib/containers.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <cstdint>
 
 #include <memory>
@@ -349,7 +349,7 @@ void UiScrollbar::Update() {
 void UiScrollbar::LeftDown(int, int x, int y) {
     POINT point{x, y};
     ui->ScalePointFromScreenEntry(&point);
-    if (gameapi::PtInRect(&thumb, point)) {
+    if (rects::Contains(&thumb, point)) {
         CaptureMouse();
         state = 1;
         grabX = point.x - (thumb.left + thumb.right) / 2;

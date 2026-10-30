@@ -22,7 +22,7 @@
 
 #include "ei/rebirth.h"
 #include "lib/containers.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -241,7 +241,7 @@ void EscMenu::CreateScreen() {
     for (const RECT* source = rects; source < rects + 5; ++source) {
         UiRegion* region = AddRegion();
         RECT area;
-        gameapi::CopyRect(&area, source);
+        rects::Copy(&area, source);
         region->SetRect(area.left, area.top, area.right, area.bottom);
     }
     models[0]->Play(SkillAnimation::Briefing02);

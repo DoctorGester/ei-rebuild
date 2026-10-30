@@ -6,7 +6,7 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 
 #include <cstdint>
 
@@ -53,7 +53,7 @@ int CFigureManager::LoadMenuRects(RECT* rects) {
             lib::FreeStorage(values);
             return result;
         }
-        gameapi::SetRect(&rects[entry.index], values[0], values[1], values[2],
+        rects::Set(&rects[entry.index], values[0], values[1], values[2],
                          values[3]);
     }
     lib::FreeStorage(values);

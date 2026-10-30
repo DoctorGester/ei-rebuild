@@ -11,7 +11,7 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "platform/file.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "lib/nan_audit.h"
 #include "link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "map_object_shadow.h"   // WoundsMaterial: the client half's
@@ -270,7 +270,7 @@ void CObject3D::RemoveAllEffectSources() {
 int CObject3D::DrawFigure(SceneRenderer* context) { return attached ? attached->DrawParts(context, nullptr) : 1; }
 
 int CObject3D::DrawCollectDirty(SceneRenderer* context) {
-    gameapi::SetRectEmpty(&dirtyRect);
+    rects::SetEmpty(&dirtyRect);
     return attached ? attached->DrawParts(context, &dirtyRect) : 1;
 }
 

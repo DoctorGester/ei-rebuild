@@ -9,7 +9,7 @@
 #include "surface.h"
 #include "texture.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "render/render_ui.h"
 #include <cstdint>
 
@@ -29,7 +29,7 @@ UiSurface::~UiSurface() {
     Surface* currentHolder = holder;
     holder = nullptr;
     if (currentHolder) currentHolder->Release();
-    gameapi::SetRectEmpty(&rect);
+    rects::SetEmpty(&rect);
 }
 
 UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)

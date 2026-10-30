@@ -18,7 +18,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
@@ -196,16 +196,16 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         if (AbsBits(sideY) >= AbsBits(sideX)) {
             if (sideY > 0.0f) {
                 Turn(marker, kExitTurnDown);
-                gameapi::OffsetRect(&area, 0, -10);
+                rects::Offset(&area, 0, -10);
             } else {
-                gameapi::OffsetRect(&area, 0, 10);
+                rects::Offset(&area, 0, 10);
             }
         } else if (sideX > 0.0f) {
             Turn(marker, -kExitTurn);
-            gameapi::OffsetRect(&area, 10, 0);
+            rects::Offset(&area, 10, 0);
         } else {
             Turn(marker, kExitTurn);
-            gameapi::OffsetRect(&area, -10, 0);
+            rects::Offset(&area, -10, 0);
         }
         region->SetRect(area.left, area.top, area.right, area.bottom);
     }

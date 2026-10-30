@@ -15,7 +15,7 @@
 #include "world_data.h"
 
 #include "lib/containers.h"
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/text_case.h"
@@ -201,11 +201,11 @@ void DrawThroughDevice(Part& part) {
     if (!part.rect) return;
     RECT* own = &part.node->screen;
     if (result == 2) {
-        gameapi::SetRectEmpty(own);
-        gameapi::SetRectEmpty(part.rect);
+        rects::SetEmpty(own);
+        rects::SetEmpty(part.rect);
         return;
     }
-    gameapi::CopyRect(own, &part.device->drawnRect);
+    rects::Copy(own, &part.device->drawnRect);
     *part.rect = *own;
     part.node->mesh->flags |= FigureMeshFlag::Drawn;
 }
@@ -243,7 +243,7 @@ void DrawThroughFigure(Part& part) {
         std::string key((part.node->mesh)->GetName());
         auto node = part.figure->headers.find(key);
         RECT* own = &part.node->screen;
-        gameapi::CopyRect(own, &node->second.screen);
+        rects::Copy(own, &node->second.screen);
         *part.rect = *own;
     }
     if (result != 2) part.node->mesh->flags |= FigureMeshFlag::Drawn;

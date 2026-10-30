@@ -4,7 +4,7 @@
 #include "texture.h"
 #include "ui.h"
 
-#include "lib/gameapi.h"
+#include "lib/rect.h"
 #include "render/render_ui.h"
 
 #include <cstdint>
@@ -12,8 +12,8 @@
 void UiSurface::Blit() {
     if (!holder || !shown) return;
     RECT clipped{0, 0, ui->width, ui->height};
-    gameapi::IntersectRect(&clipped, &clipped, &rect);
-    if (gameapi::IsRectEmpty(&clipped)) return;
+    rects::Intersect(&clipped, &clipped, &rect);
+    if (rects::IsEmpty(&clipped)) return;
     const render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};
     const int left = clipped.left - rect.left, top = clipped.top - rect.top;
     const render::Rect part{left, top, left + (clipped.right - clipped.left), top + (clipped.bottom - clipped.top)};

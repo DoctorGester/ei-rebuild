@@ -51,6 +51,7 @@
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
+#include "lib/rect.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -88,7 +89,7 @@ HitCollector* CollectHits(HitCollector* out, const std::vector<ScreenEntry>& ent
                           LONG y, CMapObjectManager* manager, HitTest test) {
     for (const ScreenEntry& entry : entries) {
         POINT pt = {x, y};
-        if (!PtInRect(&entry.rect, pt)) continue;
+        if (!rects::Contains(&entry.rect, pt)) continue;
         CMapObject* object = manager->FindMapObject(entry.objectId);
         if (!object) continue;
         LONG point[2] = {x, y};

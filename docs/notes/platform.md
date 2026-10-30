@@ -28,7 +28,8 @@ implementation folder; game code does not change.
   (`platform_files`, "Files calling Windows"): 97 before the layer, 78 after the first areas, 61 after the window
   and input (PL2), 58 after the sockets (PL5), 48 after the files and the start-up (PL3, PL1b). That check looked at `<windows.h>` and
   `gameapi::` only; widened to the other system headers (PL2a) it counted 12 more files (win_types.h, win_user.h,
-  dib.h, ...), and the threads, the key codes and the mouse (PL4, PL2a) took 3 off: 57.
+  dib.h, ...), and the threads, the key codes and the mouse (PL4, PL2a) took 3 off: 57; our own rectangle functions
+  (below) took 31 off: 26.
 - A native window crosses the layer as `void*` (`platform::NativeWindow`); game code keeps an `HWND` only where a
   shared header holds one (`HWND` comes from lib/win_types.h, not `<windows.h>`). app.h's `g_mainWindow` and
   texture.h's device window are `platform::NativeWindow`; the renderer's window code casts it.
@@ -241,12 +242,23 @@ MP3 frame scan) is shared by every backend.
   (`platform::Thread`, `platform::Signal`; lib/thread.h's `StartThread` wraps `Thread` until then) and sound.h's
   `CRITICAL_SECTION` / `HANDLE` members, which keep win_types.h's `CRITICAL_SECTION`. The renderer's own threads and
   lock (render.cpp, render_cursor.cpp) stay its own.
-- Rectangles (`SetRect`, `OffsetRect`, `IntersectRect`, ... in about 30 ui and figure files) go to our own functions
-  (H33h), not to the layer; `wvsprintfA` (app.cpp, dx_errors.cpp, script_parse.cpp) to the CRT's formatting.
+- `wvsprintfA` (app.cpp, dx_errors.cpp, script_parse.cpp) goes to the CRT's formatting.
 - system_text.cpp, the UTF-8 routes themselves, is Windows code that belongs under src/platform/win32 once the
   file and window areas no longer call through the A slots.
 - The import layer's own files (lib/import_table.h, import_prototypes.h, gameapi.h / .cpp, win_api.h) stay in
   src/lib while the harness's reference key holds them.
+
+## Rectangles
+
+`lib/rect.h` (`rects::Set`, `SetEmpty`, `Copy`, `IsEmpty`, `Contains`, `Offset`, `Intersect`, `Union`) is plain integer
+code over `RECT` / `POINT` with USER32's rules, so the UI and figure files no longer call SetRect, OffsetRect,
+IntersectRect ... (not an area of the layer: no system call is left). An empty rectangle has right <= left or
+bottom <= top; `Intersect` and `Union` write the all-zero rectangle when nothing is left and return false (`Union`
+ignores an empty operand); `Contains` excludes the right and bottom edges; `Set`, `Offset` and `Copy` do not
+normalise. The harness routes none of the eight slots. bink_video.cpp's `CopyRect` stays `gameapi::CopyRect` until
+PL6 moves the file (the one rectangle import left in gameapi.h). The edge rules were compared with USER32 on 56
+million edge and random rectangle pairs (H33h's scratch test); `std::min` / `std::max` are written `(std::min)` in the
+header because windows.h defines the macros.
 
 ## What the game depends on (2026-10-09 estimate, kept for scale)
 
