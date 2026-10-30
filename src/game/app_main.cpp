@@ -562,7 +562,8 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     std::string folder;
     CreateFolders(folder);
     g_instance = instance;
-    g_mainWindow = platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY);
+    g_mainWindow = platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY,
+                                              options->fullScreen != 0);
     if (!g_mainWindow) return 0;
     widescreen::Configure(options->resolutionX, options->resolutionY);
     platform::ShowGameWindow(g_mainWindow, show);

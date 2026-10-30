@@ -446,9 +446,9 @@ NativeWindow FindClassWindow(const char* className, const char* title);
 std::uint32_t WindowProcess(NativeWindow window);
 // Brings another program's window to the front, restored from the task bar, unless it is in front already.
 void BringToFront(NativeWindow window);
-// The game window: a popup of the registered class at the screen's top left, `width` x `height`; null when it could
-// not be made. The requested dimensions are window points; on success they become the backing size in pixels.
-NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int& width, int& height);
+// The game window; null when it could not be made. SDL decorates and centres windowed games, while full screen
+// uses a borderless window. Requested dimensions are client points; on success they become backing pixels.
+NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int& width, int& height, bool fullScreen);
 // Shows the window as the program was asked to start (`show`: WinMain's nCmdShow) and has it painted.
 void ShowGameWindow(NativeWindow window, int show);
 bool IsMinimized(NativeWindow window);

@@ -530,14 +530,14 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
         DebugOutput((std::string("platform: no SDL video: ") + SDL_GetError() + "\n").c_str());
 }
 
-NativeWindow CreateGameWindow(NativeInstance, const char* title, int& width, int& height) {
+NativeWindow CreateGameWindow(NativeInstance, const char* title, int& width, int& height, bool fullScreen) {
     const SDL_PropertiesID properties = SDL_CreateProperties();
     SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
-    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, 0);
-    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, 0);
+    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, fullScreen ? 0 : SDL_WINDOWPOS_CENTERED);
+    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, fullScreen ? 0 : SDL_WINDOWPOS_CENTERED);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
-    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, true);
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
 #if defined(__APPLE__)
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN, true);

@@ -42,6 +42,8 @@ python3 tools/run_macos.py --play
 This runs until you quit and reuses `run/macos/` for saves, settings, copied `Config` and logs. The data defaults to
 `~/workspace/ei`; pass `--data` to choose it on the first run. Edit `run/macos/ei_settings.ini` to change resolution
 or other settings; subsequent launches preserve it. Startup movies are skipped unless `--intro` is supplied.
+`[video] FullScreen = false` uses a centred window with the normal macOS title bar and window controls;
+`FullScreen = true` uses a borderless window covering the monitor.
 
 For bounded checks:
 

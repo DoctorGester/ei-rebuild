@@ -180,11 +180,13 @@ swap chain on the window's HWND (`SDL_PROP_WINDOW_WIN32_HWND_POINTER`: the Nativ
 
 What SDL's backend does (platform_sdl.cpp):
 
-- **The window**: a borderless SDL window at the screen's top left, the game's size, hidden until ShowGameWindow;
+- **The window**: a centred, decorated SDL window in windowed mode; a borderless window at the screen's top left
+  in full screen. Its client area is the game's size, hidden until ShowGameWindow;
   `CoverMonitor` moves and sizes it over its display (no display mode change, no SDL full screen). Hints: Alt+F4 is the
   game's (`SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4` 0), closing the window is a request (`SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE`
   0), mouse events only over the window (`SDL_HINT_MOUSE_AUTO_CAPTURE` 0, as Windows gave them). SDL makes the process
-  per-monitor DPI aware (its default, as the loader does): its coordinates are pixels.
+  per-monitor DPI aware (its default, as the loader does). Window/input coordinates are SDL points; on Retina
+  displays the render target uses the backing pixel size.
 - **Window events go to the handler at once**, as the window procedure's sent messages did: focus gained / lost,
   minimised, restored become `Activate` (only on a change of active / minimised), exposed becomes `Paint`, the close
   request (and SDL's quit) `Destroy`. No `SetCursor`, `SystemCommand` or `AutoPlay` events: SDL keeps the hidden cursor

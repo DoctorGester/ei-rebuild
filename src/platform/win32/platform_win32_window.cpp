@@ -220,7 +220,7 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
     g_classAtom = gameapi::RegisterClassExA(&windowClass);
 }
 
-NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int& width, int& height) {
+NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int& width, int& height, bool) {
     return gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_classAtom), title, WS_POPUP | WS_CLIPSIBLINGS, 0, 0, width,
                                     height, nullptr, nullptr, static_cast<HINSTANCE>(instance), nullptr);
 }
