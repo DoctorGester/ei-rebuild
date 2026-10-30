@@ -127,8 +127,8 @@ int StandaloneMain(bool run, const char* arguments) {
     Log("ei-rebuild started, pid %lu", GetCurrentProcessId());
     RedirectSettingsPaths();
     SetProcessDPIAware();
-    // The missing-code report first: the start-up actions run before WinMain (WideScreen's parses its resolution),
-    // so a jump into game.exe's code there is named too, not a silent end.
+    // The missing-code report first: the start-up actions run before WinMain, so a jump into game.exe's code there is
+    // named too, not a silent end.
     AddVectoredExceptionHandler(1, OnOldCode);
     SetUnhandledExceptionFilter(OnUnhandled);
     RunStartupActions();

@@ -4,7 +4,6 @@
 
 #include "ui.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "hook/log.h"
 #include "settings_file.h"
@@ -12,8 +11,6 @@
 
 #include <cmath>
 #include <cstdint>
-#include <cstdio>
-#include <cstring>
 
 namespace widescreen {
 namespace {
@@ -21,10 +18,9 @@ namespace {
 constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
 
-// addon reads its settings with RegQueryValueExW under HKEY_CURRENT_USER; the standalone keeps them in its
-// settings file (settings_file.h; the strings are the same in both).
+// addon reads its starter switch with RegQueryValueExW under HKEY_CURRENT_USER; the standalone keeps it in its
+// settings file (settings_file.h; the string is the same in both).
 constexpr const char* kStarterSettings = "Software\\Gipat.Ru\\EI_Starter\\Settings";
-constexpr const char* kGeneralSettings = "Software\\Gipat.ru\\EI_Starter\\EvilIslands\\General Settings";
 
 // Settings\WideScreen: a DWORD, 1 when the key or the value is missing (addon's default).
 bool WideScreenSetting() {
@@ -35,24 +31,13 @@ bool WideScreenSetting() {
     return value != 0;
 }
 
-// General Settings\VIDEORESOLUTION parsed as addon does ("%dx%d"; what does not parse stays 0).
-void Resolution(int* width, int* height) {
-    *width = 0;
-    *height = 0;
-    char text[64] = {};
-    std::uint32_t size = sizeof(text) - 1, type = 0;
-    if (settings_file::ReadValue(kGeneralSettings, "VIDEORESOLUTION", &type, text, &size) == settings_file::kSuccess && type == settings_file::kTypeString) {
-        // addon: its own CRT's sscanf; ours is the host CRT's.
-        sscanf_s(text, "%dx%d", width, height);
-    }
-}
-
 // addon's apply function (10023AFC): the checks that refuse a mode (logged as failed or disabled),
-// then the values.
-Layout Compute() {
+// then the values, for the mode the game runs in.
+Layout Compute(int width, int height) {
     Layout layout{};
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::WideScreen) || !WideScreenSetting()) return layout;
-    Resolution(&layout.width, &layout.height);
+    layout.width = width;
+    layout.height = height;
     const int w = layout.width, h = layout.height;
     if (static_cast<unsigned>(w - 640) > 0xFD7Fu || static_cast<unsigned>(h - 480) > 0xFE1Fu || w / h < 1) return layout;
     if (w < kLayoutWidth || h < kLayoutHeight || w * 3 <= h * 4) return layout;
@@ -67,25 +52,9 @@ Layout Compute() {
     return layout;
 }
 
-Layout g_layout;
-bool g_computed;
+Layout g_layout;   // inactive until Configure
 
 int g_panelOffset;                 // ours (addon's 100BD0A0)
-
-// Before the jumps are written (a startup action of the image): the layout, and the two widths written
-// as addon writes them.
-void Startup() {
-    g_layout = Compute();
-    g_computed = true;
-    if (!g_layout.active) return;
-    // addon: extra + 800.0 / 695.0 summed as doubles, stored as floats.
-    g_layoutWidth = g_layout.extra + 800.0f;
-    g_panelRight = g_layout.extra + 695.0f;
-    ei::Log("WideScreen: %dx%d, 4:3 part %d, margin %d pixels = %d layout units; layout width %g, panel right %g",
-            g_layout.width, g_layout.height, g_layout.width43, g_layout.margin, g_layout.extra,
-            g_layoutWidth, g_panelRight);
-}
-EI_STARTUP_ACTION(Startup);
 
 // Division of the 64-bit product, as addon's multiply and divide do (no 32-bit wrap).
 int MulDiv64(int a, int b, int divisor) {
@@ -105,13 +74,23 @@ void SetCurtainLook(UiMesh* curtain, int visible) {
 float g_layoutWidth = /*00742B08*/ 800.0f;
 float g_panelRight = /*007428AC*/ 695.0f;
 
-const Layout& Get() {
-    if (!g_computed) {
-        g_layout = Compute();
-        g_computed = true;
-    }
-    return g_layout;
+// The layout for the resolution the game loaded from its options (addon reads VIDEORESOLUTION of its own key, the
+// same value on Rebirth's data; on the original's, the game's own tree), and the two widths written as addon
+// writes them.
+void Configure(int width, int height) {
+    g_layout = Compute(width, height);
+    g_layoutWidth = 800.0f;
+    g_panelRight = 695.0f;
+    if (!g_layout.active) return;
+    // addon: extra + 800.0 / 695.0 summed as doubles, stored as floats.
+    g_layoutWidth = g_layout.extra + 800.0f;
+    g_panelRight = g_layout.extra + 695.0f;
+    ei::Log("WideScreen: %dx%d, 4:3 part %d, margin %d pixels = %d layout units; layout width %g, panel right %g",
+            g_layout.width, g_layout.height, g_layout.width43, g_layout.margin, g_layout.extra,
+            g_layoutWidth, g_panelRight);
 }
+
+const Layout& Get() { return g_layout; }
 
 int PanelOffset() { return g_panelOffset; }
 void SetPanelOffset(int offset) { g_panelOffset = offset; }

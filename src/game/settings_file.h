@@ -77,7 +77,7 @@ public:
 };
 
 // The trees the options are kept in: the game's, and Rebirth's (its NivalRegistry patch reads the options there; its
-// WideScreen layout reads the resolution there on either data).
+// WideScreen layout follows whichever the loaded options came from).
 inline constexpr const char* kOptionTrees[] = {"Software\\Nival Interactive\\EvilIslands",
                                                "Software\\Gipat.Ru\\EI_Starter\\EvilIslands"};
 

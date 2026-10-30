@@ -937,8 +937,8 @@ game, the `--no-hooks` suite) keeps the registry.
   of the primary monitor's device: the physical size whatever the process's DPI awareness, so no reader order matters;
   without a size, no desktop, the defaults for 1024x768 in memory, not written) and goes on with it; the registry is not read (the one-time import of ST1 went: the drop-in exe, S23,
   needs no registry). Under both option trees (`kOptionTrees`: the game's `Software\Nival Interactive\EvilIslands`, and
-  Rebirth's `Software\Gipat.Ru\EI_Starter\EvilIslands`, which NivalRegistry reads the options from and the WideScreen
-  layout its VIDEORESOLUTION from on either data, so one file serves vanilla and Rebirth data): General Settings
+  Rebirth's `Software\Gipat.Ru\EI_Starter\EvilIslands`, which NivalRegistry reads the options from; the WideScreen
+  layout takes the resolution of the options the game loaded, from either tree; one file serves vanilla and Rebirth data): General Settings
   VideoResolution `<w>x<h>`, FullScreen 1 (a borderless window over the monitor, present_window.h), 32 bits, Audio 1 and
   the three volumes 100 (the game's own defaults), Antialiasing 1, Mipmapping 1, Filtering 2 (trilinear), TextureQuality 0
   (no mip level dropped), ShowParticles 1; Shadow Settings ShadowQuality 2 and the five shadows 1; Terrain Settings LOD1 90

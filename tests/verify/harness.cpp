@@ -217,6 +217,12 @@
 //   music <volume>            answer the game's AudioStreaming setting (the streamed music's volume) for
 //                             this run; 0: no streamed music, so the music system's random draws do not
 //                             follow the real-time stream thread (harness_starter.h)
+//   expectlog <text>          require <text> in ei-rebuild.log so far (the code's own log lines, e.g. the WideScreen layout's);
+//                             "if=<word> <text>" / "ifnot=<word> <text>": only when the log has (lacks) <word>, e.g. the
+//                             Rebirth flag NivalRegistry
+//   treeresolution game|starter <W>x<H>
+//                             the image's settings file: the VideoResolution of the game's option tree or of
+//                             Rebirth's starter tree, in place of the "resolution" answer (the trees then differ)
 //   settingsfile writable|defaults
 //                             the image's settings file (ei_settings.ini in the run folder) is not read only:
 //                             "writable" starts from the snapshot's file with a probe key of odd values and lets
@@ -416,6 +422,7 @@
 #include "image/image_side.h"
 #include "../../src/game/game_data.h"
 
+#include <share.h>
 #include <windows.h>
 #include <ddraw.h>
 #include <dwmapi.h>
@@ -3370,6 +3377,35 @@ void RunSteps() {
             Log("harness: expect '%s': %s", s.argument.c_str(), found ? "found" : "MISSING");
             if (!found) g_failures.push_back("expected console output '" + s.argument + "'");
             g_expectFrom = g_console.size();
+        } else if (s.verb == "expectlog") {
+            char logPath[MAX_PATH];
+            ei::OutputPath("ei-rebuild.log", logPath);
+            std::string text;   // the log without the harness's own echoes of its steps
+            FILE* log = nullptr;
+            if ((log = _fsopen(logPath, "rb", _SH_DENYNO)) != nullptr) {   // the log is open for writing
+                char line[4096];
+                while (std::fgets(line, sizeof(line), log))
+                    if (!std::strstr(line, "harness: ")) text += line;
+                std::fclose(log);
+            }
+            // "if=<word> <text>" / "ifnot=<word> <text>": only when the log has <word> (or lacks it), e.g. a Rebirth
+            // flag in its "Rebirth flags on:" line.
+            std::string wanted = s.argument;
+            for (const char* prefix : {"if=", "ifnot="}) {
+                if (wanted.compare(0, std::strlen(prefix), prefix) != 0) continue;
+                const std::size_t space = wanted.find(' ');
+                const bool has = text.find(wanted.substr(std::strlen(prefix), space - std::strlen(prefix))) != std::string::npos;
+                wanted = space == std::string::npos ? std::string() : wanted.substr(space + 1);
+                if (has != (prefix[2] == '=')) {
+                    Log("harness: expectlog skipped (%s): %s", prefix, wanted.c_str());
+                    wanted.clear();
+                }
+                break;
+            }
+            if (wanted.empty()) continue;
+            const bool found = text.find(wanted) != std::string::npos;
+            Log("harness: expectlog '%s': %s", wanted.c_str(), found ? "found" : "MISSING");
+            if (!found) g_failures.push_back("expected ei-rebuild.log line '" + wanted + "'");
         } else if (s.verb == "capture") {
             // The name becomes a file name: letters, digits, '_', '-' and '.' only.
             bool valid = !s.argument.empty() && s.argument.size() < 64;

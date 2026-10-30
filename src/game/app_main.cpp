@@ -20,6 +20,7 @@
 #include "texture.h"
 #include "ui.h"
 #include "ui_cursor.h"
+#include "ui_widescreen.h"
 #include "unit_db.h"
 #include "world.h"
 
@@ -570,6 +571,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
         g_logicSettings.Load(settings);
     }
     options->LoadFromRegistry(g_registryRoot.c_str());
+    widescreen::Configure(options->resolutionX, options->resolutionY);
     std::atexit(EmptyWorlds);
     g_clientWorld.Create();
     g_serverWorld.Create();

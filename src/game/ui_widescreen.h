@@ -15,7 +15,7 @@ namespace widescreen {
 // addon's values (its globals at 100BD094..100BD0A8), valid when `active`.
 struct Layout {
     bool active;   // the flag is on and the settings give a mode wider than 4:3
-    int width;     // VIDEORESOLUTION's width (100BD09C)
+    int width;     // the options' VideoResolution width (100BD09C)
     int height;    // ... and height (100BD098)
     int width43;   // height * 800 / 600: the screen's 4:3 part (100BD0A4)
     int margin;    // (width - width43) / 2: pixels on either side of it (100BD094)
@@ -25,7 +25,11 @@ struct Layout {
     float fontScale;   // (float)(width * (double)0.0075f / height): written into the font scale
 };
 
-// The layout (computed in Startup; on first use if something asks earlier).
+// Computes the layout for the mode the game loaded from its options (GameMain, right after the options load: the
+// resolution of the tree the game itself reads, Rebirth's on its data and the game's own on the original's) and
+// writes the two layout widths. Until then the layout is inactive.
+void Configure(int width, int height);
+
 const Layout& Get();
 
 // The layout widths addon writes (the game's .rdata floats 800.0 and 695.0; Startup adds `extra` with the
