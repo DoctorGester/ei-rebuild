@@ -1460,21 +1460,22 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 - **Where**: src/game/system_text.h. The image's import slot of each ANSI call that takes or gives text holds its
   UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by image_imports.cpp as it
-  resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's `routed()` reads). A route whose slot no call
-  reaches (S22: CharUpperA, CharLowerA, LoadCursorFromFileA, LoadStringA, RegOpenKeyExA, called as `text::utf8::`
-  by name instead; S22c: SetFileAttributesA, RegCreateKeyExA, RegSetValueExA, RegQueryValueExA, which only the harness
-  reached, and our code calls by name or not at all) stays in the list, so a new `gameapi::` call of it is routed too. So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
+  resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's `routed()` reads). The list holds the reached
+  slots only (H33f): the routes and versions of slots no call reaches went (LoadStringA, LoadLibraryA,
+  SetFileAttributesA and the registry's RegOpenKeyExA, RegCreateKeyExA, RegQueryValueExA, RegSetValueExA: the
+  settings are a file, settings_file.h), and CharUpperA, CharLowerA, LoadCursorFromFileA lost their routes but keep
+  their versions, called as `text::utf8::` by name. A new `gameapi::` call of another import that takes or gives
+  text needs its version and route added. So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
   `CStdioFile` and the CRT's `fopen` / `_findfirst` / `_access` (they call through the slots). The harness takes the
   same slots afterwards and wraps the UTF-8 versions, so its saves redirect, overlay and registry snapshot work
   unchanged (they work on the bytes; advapi32's and kernel32's wide exports are taken too: harness_settings.h,
   harness_install.h).
 - **Routed**: files (CreateFile, FindFirstFile / FindNextFile, DeleteFile, MoveFile, CopyFile, Create- /
-  RemoveDirectory, Get- / SetFileAttributes, GetCurrentDirectory, GetFullPathName, GetModuleFileName,
-  GetDiskFreeSpace, GetVolumeInformation, LoadLibrary, LoadCursorFromFile, mmioOpen), the registry (RegOpenKeyEx,
-  RegCreateKeyEx, RegQueryValueEx and RegSetValueEx: string values as UTF-8, their sizes in UTF-8 bytes),
-  CreateWindowEx (a non-ASCII title is set as UTF-16 with `DefWindowProcW(WM_SETTEXT)`), FindWindow, MessageBox,
-  GetKeyNameText, LoadString, the window's class and messages (U4), the text draw and fonts (U3), CharUpperA /
-  CharLowerA (U5). The image's log names the routes: "110 resolved (25 routed)" (S22c: the reached slots).
+  RemoveDirectory, GetFileAttributes, GetCurrentDirectory, GetFullPathName, GetModuleFileName,
+  GetDiskFreeSpace, GetVolumeInformation, mmioOpen), CreateWindowEx (a non-ASCII title is set as UTF-16 with
+  `DefWindowProcW(WM_SETTEXT)`), FindWindow, MessageBox, GetKeyNameText, the window's class and messages (U4); the
+  text draw and fonts (U3) and CharUpperA / CharLowerA (U5, by name). The image's log names the routes: "109
+  resolved (24 routed)" (the reached slots).
 - **Direct calls** (not through the slots): our own code calls `text::utf8::<Name>A` by name (mod_folders,
   script_addon_commands, script_addon_strings, console_addon, settings_file, world_client_maps). The console's
   clipboard and addon's AutoExec lines convert with UTF-8; `GetFullPathNameA` (system_text.cpp) takes the current folder

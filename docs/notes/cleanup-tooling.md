@@ -37,19 +37,31 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   ends are DLLs in it), the trees in turn, the median of 9 (H33d's scratch `per_file.py`). A job object started
   after the process (`AssignProcessToJobObject` on a running cl) can miss children and gives low outliers.
 - Header diet: a header that only holds or passes RECT / POINT / SIZE / HWND / HANDLE / CRITICAL_SECTION includes
-  `lib/win_types.h` (windef.h and minwinbase.h, ~0.02 s) instead of `<windows.h>` (~0.2 s); a file that calls Windows
-  or uses its constants includes `<windows.h>` itself, and `lib/gameapi.h` (windows.h, mmsystem, shellapi, objbase,
-  dsound) only where it calls `gameapi::`. 91 of ~690 objects reach windows.h through a project header (most through
-  `game/system_text.h` and the device headers), 85 gameapi.h. `game/ui.h` takes win_types.h since its member
-  `PlaySound` (a mmsystem.h macro name) is `PlayInterfaceSound`, and `game/ui_item_info.h` no gameapi.h
-  (`TrimItemCache` calls `ItemCacheTime`, ui_item_info.cpp): 199 -> 91 objects reaching windows.h, 138 -> 83
-  gameapi.h; per object ~0.15-0.3 s CPU (ui_spin, ui_stats_buttons, ui_item_strip_setup), ~20 s of a clean build.
+  `lib/win_types.h` (windef.h and minwinbase.h, ~0.02 s) instead of `<windows.h>` (~0.2-0.4 s of front end); only a
+  file that calls Windows includes `<windows.h>`. `lib/gameapi.h` names only the imports our code calls, declared
+  over win_types.h (`lib/win_api.h`, docs/notes/standalone.md "Own import table"), so a file calling only
+  `gameapi::` gets no SDK header. A file that only uses winuser.h's constants as the game's own values (VK_* key
+  codes, DT_* text flags) includes `lib/win_user.h` (winuser.h over win_types.h, ~0.1 s); the settings file's
+  REG_* / ERROR_* codes come from win_types.h (winnt.h) and `<winerror.h>`. Release objects reaching windows.h
+  (directly or through a project header; ninja's deps drop the SDK's own headers, so count by the project files
+  that include it): 199 -> 160 (H33d: ui.h's `PlaySound` member renamed, ui_item_info.h without gameapi.h) -> 67
+  (H33f), mmsystem 93 -> 5, objbase / shellapi / dsound 86 -> 3. Per object (median of 7 cl.exe CPU times, base
+  -> after): ui_spin 1.14 -> 1.00, calendar 0.53 -> 0.31, ui_window 1.72 -> 1.56, net_session 1.23 -> 1.02,
+  ui_item_screen 1.25 -> 1.06, ui_main_menu (win_user.h) 1.34 -> 1.16, model 0.86 -> 0.70, app (keeps windows.h)
+  1.25 -> 1.25: ~0.17 s each, ~15 s of a clean build's ~1,300 s. What still includes windows.h calls Windows: the
+  window, messages and input (app, app_main, present_window, bink_video, ui_console_window's clipboard,
+  ui_edit_field, ui_font), files and mappings (file_io, resource, resource_stream, random, camera_object,
+  world_game, net_link, mod_folders, console_addon, script_addon_commands, settings_file), threads and waits
+  (thread, sound_manager, ui_cursor_setup), text conversion (asset_text, system_text), sockets
+  (net_second_master), MulDiv (ui_scrolling_surface); src/render (D3D11 and DXGI include it anyway), src/standalone
+  (the loader: exception handlers, VirtualAlloc, the environment), src/hook and import_table.h /
+  import_prototypes.h (the harness key: game.exe's side).
 - gameapi.h's slot imports are `extern` references bound once in the generated gameapi.cpp (init_seg(lib)), not
   `inline auto&` references whose dynamic initialiser every including object compiled: 0-0.07 s per object (thread,
   calendar, random), a few s of a clean build; the call code is the same.
 - `lib/import_table.h` and `import_prototypes.h` are in the harness's reference key (run_all `harness_files`,
-  through hook/paths.cpp and tests/verify/harness_imports.h): a change there replays every original run. gameapi.h
-  and gameapi.cpp are not (no file of game.exe's side includes them).
+  through hook/paths.cpp and tests/verify/harness_imports.h): a change there replays every original run. gameapi.h,
+  gameapi.cpp and win_api.h are not (no file of game.exe's side includes them).
 - An include change can change how MSVC inlines `std::basic_string` members, as the precompiled header did: model.h
   without `script.h` changed ~25 objects, party.h without `map_object_figures.h` 3. Check each include change with a
   per-function `dumpbin /disasm` comparison of the objects (only `__LINE__` immediates may differ).

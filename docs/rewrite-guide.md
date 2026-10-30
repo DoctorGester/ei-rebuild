@@ -41,8 +41,9 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
   functions, file I/O),
   `containers.h` (helpers for the std::vector the engine's arrays are), `hash_map.h` (STLport's walk order),
   `intro_sort.h` (the game's std::sort, for the sorts whose order of equal keys is behaviour), `file_io.h`,
-  `gdi.h`, `thread.h`, `calendar.h`, `gameapi.h` (the Win32 imports; generated: the
-  ones the harness or the image routes go through the image's import slots). Containers and strings are standard
+  `gdi.h`, `thread.h`, `calendar.h`, `gameapi.h` (the Win32 imports our code calls; generated: the
+  ones the harness or the image routes go through the image's import slots; declared by `win_api.h` over
+  `win_types.h`, so no windows.h), `win_user.h` (VK_* / DT_* without windows.h). Containers and strings are standard
   types. Add to these only when needed, in small separate additions.
 - `tests/vectors/`: function vectors (recorders, replay checks; see Verification).
 - Shared headers others use: `src/game/engine_object.h` (EngineObject virtual interface),
