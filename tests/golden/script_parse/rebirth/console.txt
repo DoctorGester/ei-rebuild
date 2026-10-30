@@ -35,6 +35,7 @@
   Script error: Expected ','
   Script error: Not enough parameters
   6
+  Script error: Too much parameters
   Script error: Parameter of type float expected
   Script error: Parameter of type string expected
   Script error: Parameter of type object expected

@@ -5,7 +5,6 @@
 #include "player_messages.h"
 #include "world.h"
 
-#include "ei/rebirth.h"
 
 #include <new>
 
@@ -51,10 +50,7 @@ Player* PlayerManager::CreateSessionPlayer() {
     BaseManager* specific = ContextAsWorld()->SpecificManager();
     player->SetConnection(specific->CreateObjectAs<PlayerConnection>(SideObjectType::Player, -1));
     player->AddRef();
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::PlayerNumbers))
-        player->playerId = NextPlayerNumber(player, 0);
-    else
-        player->SetPlayerId(0);
+    player->playerId = NextPlayerNumber(player, 0);   // Rebirth's PlayerNumbers (the original: SetPlayerId(0))
     return player;
 }
 

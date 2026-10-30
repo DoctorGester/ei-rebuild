@@ -43,6 +43,18 @@ on:
         description: "diff: both builds' runs at this window size (EI_RESOLUTION, WxH; a scenario's own resolution line wins)"
         required: false
         default: ""
+      flags:
+        description: "diff: Rebirth flags for this ref's runs only (EI_REBIRTH, e.g. defaults,AddNewScriptCommands)"
+        required: false
+        default: ""
+      records:
+        description: "diff: how many differing digest records to print per run"
+        required: false
+        default: "1"
+      skip:
+        description: "diff: the digest records before this one are not compared (e.g. 1 past a known main menu difference)"
+        required: false
+        default: "0"
 
 concurrency:
   group: ei-game
@@ -227,6 +239,9 @@ jobs:
       BASE: ${{ inputs.diff_base }}
       SCENARIOS: ${{ inputs.scenarios }}
       RESOLUTION: ${{ inputs.resolution }}
+      FLAGS: ${{ inputs.flags }}
+      RECORDS: ${{ inputs.records || '1' }}
+      SKIP: ${{ inputs.skip || '0' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -251,9 +266,15 @@ jobs:
       - name: Play both
         run: |
           [ -z "$RESOLUTION" ] || export EI_RESOLUTION=$RESOLUTION
-          python tools/work.py test CI --golden --jobs 4 $SCENARIOS > diff_head.txt 2>&1 || true
+          (if [ -n "$FLAGS" ]; then export EI_REBIRTH=$FLAGS; fi
+           python tools/work.py test CI --golden --jobs 4 $SCENARIOS > diff_head.txt 2>&1) || true
           (cd build/base && python tools/work.py test CI --golden --jobs 4 $SCENARIOS > ../../diff_base.txt 2>&1) || true
           for f in diff_base.txt diff_head.txt; do echo "== $f"; sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p' $f; done
+          # the runs whose time differs by 3 s or more (run_all's table: scenario, install, result, time)
+          echo "== run times, base -> head (3 s or more apart)"
+          awk 'FNR == 1 { side++ } $4 ~ /^[0-9]+s$/ { t = $4 + 0; k = $1 " " $2; if (side == 1) b[k] = t; else h[k] = t }
+               END { for (k in h) if ((k in b) && (h[k] - b[k] >= 3 || b[k] - h[k] >= 3)) printf "%-34s %4d s -> %4d s\n", k, b[k], h[k] }' \
+            diff_base.txt diff_head.txt | sort || true
 
       - name: Where they part
         run: |
@@ -265,7 +286,7 @@ jobs:
               a=build/base/build/verify/runs/$s-$install${side:+/$side}
               b=build/verify/runs/$s-$install${side:+/$side}
               [ -e "$a/harness_report.txt" ] && [ -e "$b/harness_report.txt" ] || continue
-              out=$(python tools/golden.py diff "$a" "$b" --records 1 --fields 30 --labels "base,head" 2>&1 || true)
+              out=$(python tools/golden.py diff "$a" "$b" --records $RECORDS --skip $SKIP --fields 30 --labels "base,head" 2>&1 || true)
               con=$(diff <(sed -n '/^console output:/,$p' "$a/harness_report.txt") <(sed -n '/^console output:/,$p' "$b/harness_report.txt") | head -12 || true)
               case "$out" in *"records, the same"*) [ -z "$con" ] && continue;; esac
               echo "==== $s ($install${side:+, $side})   base = $BASE, head = $REF (console: < base, > head)"

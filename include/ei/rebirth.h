@@ -5,7 +5,7 @@
 // (docs/notes/rebirth.md lists all of them). Rewritten code reproduces a patch behind a flag named
 // exactly as addon.log names the patch, so a Rebirth patch maps 1:1 to a flag:
 //
-//     if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) { ...patched behaviour... }
+//     if (ei::rebirth::Enabled(ei::rebirth::Patch::CameraPatch)) { ...patched behaviour... }
 //
 // Rebirth's bug fixes and its harmless additions are the rebuilt code's own behaviour (C68) and have no flag. Every
 // flag is off by default and can be switched either way. Every flag is off until Reset, which the standalone image's
@@ -19,7 +19,7 @@
 // ei_settings.ini (a comment is a line of its own: the rest of a value line is its value):
 //     [patches]
 //     ; any name from rebirth_patches.inc, true or false (absent: the profile's)
-//     AllowScriptsInMainMenu = true
+//     CameraPatch = true
 //     ; EI_Plugin's player count and pause mode (absent: the profile's)
 //     NPlayers = 7
 //     Pause = 1

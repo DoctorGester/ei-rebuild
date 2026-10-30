@@ -1,5 +1,5 @@
-# Rebirth's bug fixes (always the rewritten code's since C68) and its option flags (include/ei/rebirth.h,
-# docs/notes/rebirth.md), the flags on.
+# Rebirth's bug fixes and additions (always the rewritten code's since C68; include/ei/rebirth.h,
+# docs/notes/rebirth.md).
 # Vanilla data: the flags on data the original never ran them with. The original could not run it
 # (it never had a golden from game.exe); on the standalone image it is a crash smoke test (user 2026-10-16,
 # S21a): the game must go through the changed code without a failure (hooked, the rewrites that
@@ -12,10 +12,9 @@
 # (FixAddMapObject), addon's console commands and nogui (AddNewConsoleCommands), the AutoExec lines
 # before "exec autoexec.cfg" of the new game (AutoExec), addon's script functions and commands
 # (AddNewScriptCommands; the existing lines also parse with its table and keyword rule), every frame
-# drawn with the starter's draw radii (ObjectsDrawRadius, LandscapeDrawRadius). Rebirth
+# drawn over the whole map (Rebirth's draw radii). Rebirth
 # install: the flags follow addon.dll (the image: config/rebirth_profile.ini), checked by the
 # Rebirth golden recorded from the original with addon.dll (S20c).
-rebirthflags AllowScriptArgsInLoops AllowScriptsInMainMenu AddNewConsoleCommands AddNewScriptCommands ObjectsDrawRadius LandscapeDrawRadius
 reject Script error
 waitmenu
 console thingamabob

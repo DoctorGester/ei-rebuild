@@ -771,11 +771,9 @@ public:
     virtual void MoveObject2(MapObject* object, const float* position);   // the second grid's move
 
     void BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed);
-    // Draws the world view. Returns 1. Rebirth's LandscapeDrawRadius sets the terrain's draw distance (100 in
-    // the game).
+    // Draws the world view, the whole map's terrain clip-tested. Returns 1.
     int Render();
-    // The object passes over the sectors around the camera (Rebirth's ObjectsDrawRadius widens the 100.0
-    // margin). Returns 0 without terrain, else 1.
+    // The object passes over every sector of the map, the objects clip-tested. Returns 0 without terrain, else 1.
     int DrawPass();
     float ClampedGroundHeight(float x, float y);
     // A blood print at (x, y) when the setting is on and prints.db's blood entry for the ground there

@@ -8,7 +8,6 @@
 #include "ui.h"
 #include "world.h"
 #include "world_glue.h"
-#include "ei/rebirth.h"
 #include "lib/str.h"
 #include "platform/platform.h"
 
@@ -147,7 +146,7 @@ void Execute(const std::string& text) {
     args.erase(args.begin());
     bool local = !IsMultiplayerClient();
     // Rebirth's AddNewConsoleCommands: addon's commands, registered again on every call like the game's own.
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) RegisterAddonCommands();
+    RegisterAddonCommands();
     char first = command[0];
     if (first == '@' || first == '#' || first == '$') {
         if (g_cheatEnabled && local) {

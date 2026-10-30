@@ -217,7 +217,7 @@ the object references, groups and variables at 004B24B0-004B3940, areas 004B1ED0
   qualified name.
 - Runtime: `SetSpellAggression` (0x42) does nothing; `KillScript` in the WorldScript reports FatalError and then writes
   through a null pointer; a run keeps a pointer to its instance's killed flag after the instance is removed; `SleepUntilIdle`
-  has no null check; `ResetTarget` (0xE8) on a unit without a target can crash the original (005D6630); `InflictDamage` calls
+  has no null check; `ResetTarget` (0xE8) on a unit without behaviour records (the party's) reads past the list and can crash the original (005D6630; the rebuild applies nothing, C68); `InflictDamage` calls
   TakeHit (vtable +0x50) with three arguments (hit, 0, 0): a two-argument call unbalanced the stack and crashed the first run;
   the mode commands write the count (+4) before testing operator new; a For counter is a global, so nested loops on the same
   counter overwrite it; `CreatePointLight` stops at the first free slot (two lights can share an id; with 256 slots used and no

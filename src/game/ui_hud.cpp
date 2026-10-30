@@ -20,7 +20,6 @@
 #include "ui_widescreen.h"
 #include "lib/vecmath.h"
 #include "render/render_state.h"
-#include "ei/rebirth.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include <bit>
@@ -410,8 +409,8 @@ void HudClock::LeftUp(int, int x, int y) {
     case 1:     // the normal speed
     case 2:     // the fast speed
         handled = true;
-        // Rebirth's MPSpeedControl (the JNEs aimed at the next instruction).
-        if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
+        // A network client too (Rebirth's MPSpeedControl; the original ignored the buttons there): the host's sets
+        // the server's speed, everyone's game.
         if (g_clientWorld.paused) g_clientWorld.SendFlag10(0);
         SetSpeed(region == 2);
         return;

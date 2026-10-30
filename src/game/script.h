@@ -814,7 +814,7 @@ inline void ClassifyToken(const std::string& text, int* id, int* rest) { Classif
 const char* FunctionSignature(int id, int type);
 // Rebirth patches it. "Unknown command" if none.
 const char* KeywordName(int id);
-// kScriptKeywords, or Rebirth's extended one (scriptaddon::Table()) with its AddNewScriptCommands flag.
+// Rebirth's extended table (scriptaddon::Table(): kScriptKeywords and AddNewScriptCommands' additions).
 const ScriptKeyword* KeywordTable();
 
 // Outside For loops; keeps one empty group and one released object reference.

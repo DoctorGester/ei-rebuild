@@ -378,8 +378,10 @@ def where(h):
     return f'record {h["record"]} (world update {h["update"]}, frame {h["frame"]}, tick {h["tick"]}, zone {h["zone"]})'
 
 
-def diff(path_a, path_b, name_a='A', name_b='B', ulps=0, records=1, fields=12, ignore=None, out=print):
-    """Compares two digests; prints the first differing records. 0 the same, 1 a difference."""
+def diff(path_a, path_b, name_a='A', name_b='B', ulps=0, records=1, fields=12, ignore=None, out=print, skip=0):
+    """Compares two digests; prints the first differing records. 0 the same, 1 a difference.
+    skip: the records before this one are not compared (a known difference there, such as the main menu's, would
+    hide the later ones); the first record compared then looks at every entity."""
     da, db = Digest(path_a), Digest(path_b)
     if da.compact != db.compact:
         out(f'digest: {name_a if da.compact else name_b} is compact and the other is not (golden.py compact the other)')
@@ -403,6 +405,11 @@ def diff(path_a, path_b, name_a='A', name_b='B', ulps=0, records=1, fields=12, i
                 out(f'digest: {longer} has more records; the other ends before its {where(h)}')
                 return 1
             break
+        if ha['record'] < skip:
+            da.touched.clear()
+            db.touched.clear()
+            recheck = set(da.state) | set(db.state)
+            continue
         compared += 1
         keys = da.touched | db.touched | recheck
         da.touched.clear()
@@ -995,6 +1002,7 @@ def main():
         p.add_argument('--fields', type=int, default=12)
         p.add_argument('--ignore')
         p.add_argument('--all-fields', action='store_true')
+        p.add_argument('--skip', type=int, default=0, help='records before this one are not compared')
 
     p = sub.add_parser('diff')
     p.add_argument('a')
@@ -1037,7 +1045,7 @@ def main():
             return 2
         label = lambda spec: os.path.basename(os.path.normpath(spec))
         name_a, name_b = args.labels.split(',', 1) if args.labels else (label(args.a), label(args.b))
-        return diff(a, b, name_a, name_b, args.ulps, args.records, args.fields, args.ignore)
+        return diff(a, b, name_a, name_b, args.ulps, args.records, args.fields, args.ignore, skip=args.skip)
     return {'state': state, 'snapshot': snapshot, 'record': record, 'compare': compare,
             'saves': add_saves}[args.command](args)
 

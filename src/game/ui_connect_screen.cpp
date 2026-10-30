@@ -502,9 +502,8 @@ void MpConnectScreen::CreateScreen() {
     };
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    // ExtendedServerName: the selection's right edge 370 -> 381.5.
-    const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
-    plain(sprite(3.0f, 108.0f, 108.0f, extended ? kExtendedSelectionRight : 370.0f, 132.0f, 0, 0, 0x100, 0x100),
+    // The selection's right edge (Rebirth's ExtendedServerName; the original's 370).
+    plain(sprite(3.0f, 108.0f, 108.0f, kExtendedSelectionRight, 132.0f, 0, 0, 0x100, 0x100),
           kSelectionColour);
     {
         UiMesh* arrow = AddBlankSprite();
@@ -552,7 +551,7 @@ void MpConnectScreen::CreateScreen() {
         const int players = ei::rebirth::PluginNPlayers();
         const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
         const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
-        const int right = extended ? kExtendedFieldRight : 650;
+        const int right = kExtendedFieldRight;
         playersSlider = new UiSlider(ui, Rect{450, 196, 650, 206}, 3.0f, maximum, 1.0f);
         AddChild(playersSlider);
         Rect area{450, 196, right, 206};
@@ -561,14 +560,11 @@ void MpConnectScreen::CreateScreen() {
         maxPlayers = 6;
     }
     {
-        nameEdit = new UiEditField(ui, Rect{450, 144, extended ? kExtendedFieldRight : 650, 160});
+        nameEdit = new UiEditField(ui, Rect{450, 144, kExtendedFieldRight, 160});
         AddChild(nameEdit);
-        // ExtendedServerName: the classes 15, font 0, at most 50 characters (the name taken from the hero
-        // below still stops at 10).
-        if (extended)
-            nameEdit->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);
-        else
-            nameEdit->SetLook(3, 0, 1, kNameLength, g_connectTextColour, kCaretColour);
+        // The classes 15, font 0, at most 50 characters (Rebirth's ExtendedServerName; the original's 3, 1, 10). The
+        // name taken from the hero below still stops at 10.
+        nameEdit->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);
     }
     // The new game's name: the first hero's, to its '|', at most 10 characters.
     std::string name = LocalPlayerData()->members[0].texts[0];

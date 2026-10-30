@@ -10,7 +10,6 @@
 #include "script_parse.h"
 #include "script_addon.h"
 
-#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -107,8 +106,8 @@ bool Script::LoadFunction(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator*
         int tokenId;
         ClassifyToken(text, &tokenId, nullptr);
         if (!assignment) {
-            // Rebirth's AddNewScriptCommands: the signature's '?' and '+'.
-            if (scriptaddon::Enabled()) scriptaddon::SignatureStep(cmd, &signature, tokenId);
+            // The signature's '?' and '+' (Rebirth's AddNewScriptCommands).
+            scriptaddon::SignatureStep(cmd, &signature, tokenId);
             if (tokenId == kLexClose) {
                 if (*signature) return Error(this, token.line, 5, "Not enough parameters");
                 return true;
@@ -422,9 +421,9 @@ bool Script::LoadCommands(std::vector<SSCCmd>* commands, std::vector<ScriptToken
                 if (!open) return false;
                 ScriptDecl* body = NewCommandList();
                 cmd->calledScript = body;
-                ScriptVars* bodyLocals =
-                    ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptArgsInLoops) ? locals : nullptr;
-                if (!LoadCommands(&body->commands, pos, tokens, bodyLocals)) return false;
+                // The body sees the script's parameters and locals (Rebirth's AllowScriptArgsInLoops; the
+                // original's saw none: "Unexpected token").
+                if (!LoadCommands(&body->commands, pos, tokens, locals)) return false;
             }
         } else {
             qualified = QualifyName(text);

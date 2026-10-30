@@ -33,14 +33,6 @@ namespace terrain {
 
 namespace {
 
-// A sector bound: the value rounded to nearest, divided by 32 towards zero, clamped to 0..count - 1 in this
-// order (a map without sectors gives -1).
-int SectorBound(float value, int count) {
-    int sector = lib::RoundEven(value) / kSectorCells;
-    if (sector < 0) return 0;
-    if (sector > count - 1) return count - 1;
-    return sector;
-}
 
 // How many frames an unused sector stays cached before a load may reuse or free it.
 constexpr int kSectorAge = 240;
@@ -184,11 +176,8 @@ SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, bool create) {
     return lib::Has(sector->built, wanted) ? sector : nullptr;
 }
 
-void Terrain::SetVisibleSectors(float x, float y, float radius) {
-    visible.firstX = SectorBound(x - radius - 0.5f, sectorsX);
-    visible.lastX = SectorBound(x + radius - 0.5f, sectorsX);
-    visible.firstY = SectorBound(y - radius - 0.5f, sectorsY);
-    visible.lastY = SectorBound(y + radius - 0.5f, sectorsY);
+void Terrain::ShowAllSectors() {
+    visible = SectorRect{0, 0, sectorsX - 1, sectorsY - 1};
 }
 
 // ---- Vertex tiles, the map's end, construction, the waves --------------------------------------------

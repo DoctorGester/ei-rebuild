@@ -455,8 +455,8 @@ far below 2^24. Kept double: `GroundHeight` / `StandPoint`'s world height and th
 threshold compare. ei_vectors builds unit_stats / unit_params_* / unit_skill_price for x87 still, with pc24.cpp in
 `ei_vectors_sse2` (C30e1's split) and crt_x87.cpp for `CiPow`.
 
-**Batches left** (209 files, 57,575 lines; source counts: `double` 1,640, `D(` 472, `x87::` 358, `Ftol(` 120).
-Each one focused area, one worker session, after C30e4 where it has a transcendental:
+**The batches** (all done since C30e15; at the survey: 209 files, 57,575 lines; source counts `double` 1,640, `D(` 472,
+`x87::` 358, `Ftol(` 120). Each one focused area, one worker session, after C30e4 where it has a transcendental:
 
 | Ticket | Files | Lines | What keeps it x87 |
 |---|---|---|---|
@@ -744,9 +744,9 @@ The image keeps the main thread at 24-bit precision from the device's creation (
   original computed it.
 - The UCRT's `log2`, `exp2` and `cbrt` follow the precision control (sin, cos, pow, atan2, hypot, acos, asin, exp,
   log, floor, fmod, frexp, ldexp, fma, lround, lrint, atof do not: C30e15's scratch test at 007F and 027F).
-- Miles and Bink ran under the original's word; their mixing and decoding are not checked at 53 bits.
-render.cpp's `FpuGuard` puts the word back (only when it changed) around the renderer's library calls. The vector
-recorders' FNSTCW and the harness's control-word trace are game.exe's side and stay.
+No DLL with x87 code is loaded any more (sound and Bink are our own code). render.cpp's `FpuGuard` puts the word
+back (only when it changed) around the renderer's library calls; the x64 build guards MXCSR the same way. The
+harness's control-word trace (TraceFpu) logs a change.
 
 ### Selects on `>=` / `<=` (lib/float_select.h, C30e17)
 

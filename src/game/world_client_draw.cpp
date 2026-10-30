@@ -1,5 +1,5 @@
-// WorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and ObjectsDrawRadius
-// behind their flags. See world.h and docs/notes/world.md. Both set the renderer's render state
+// WorldClient's draw path: Render and DrawPass, over the whole map (the views' clip tests pick what is drawn).
+// See world.h and docs/notes/world.md. Both set the renderer's render state
 // (render/render_state.h) and the scene pipeline's matrix stacks (g_sceneRenderer.pipeline) in the original's
 // order.
 #include "address_order.h"
@@ -18,7 +18,6 @@
 #include "render/render.h"
 #include "render/render_state.h"
 #include "renderer_lines.h"
-#include "settings.h"
 #include "sky_object.h"
 #include "spell.h"   // Light
 #include "terrain.h"
@@ -33,14 +32,12 @@
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "lib/float_select.h"
 #include "platform/platform.h"
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
 #include "lib/pc24.h"
 #include "lib/vecmath.h"
 
-#include "ei/rebirth.h"
 
 #include <bit>
 #include <cstdint>
@@ -76,27 +73,8 @@ void PopMatrix(MatrixStack& stack) {
     if (depth) --depth;
 }
 
-// A Rebirth switch ([rebirth] of the settings file, 100 when absent; addon reads the starter's) as addon turns it
-// into the float it patches in: (float)(unsigned)value, read once (addon reads its settings when it loads).
-float StarterDrawRadius(const char* name) {
-    const auto value = static_cast<std::uint32_t>(settings::GetInt(settings::kRebirth, name, 100));
-    float radius = static_cast<float>(static_cast<double>(value));
-    return radius;
-}
-
-float LandscapeDrawRadius() {
-    static const float setting = StarterDrawRadius("LandscapeDrawRadius");
-    return ei::rebirth::Enabled(ei::rebirth::Patch::LandscapeDrawRadius) ? setting : 100.0f;
-}
-
 void VectorClear(std::vector<MapObject*>* v) { v->clear(); }
 
-// The object margin around the camera when collecting what to draw (100.0).
-constexpr float kObjectsDrawMargin = 100.0f;
-float ObjectsDrawRadius() {
-    static const float setting = StarterDrawRadius("ObjectsDrawRadius");
-    return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting : kObjectsDrawMargin;
-}
 constexpr float kMapEdgeMargin = 1.0f;
 // The length of the shadows' projection along the camera's Z axis.
 constexpr float kShadowLength = -0.02f;
@@ -108,7 +86,6 @@ int LightEffects1BC() { return LightEffectsSetting(options::g_options.enableFoot
 int LightEffects1C0() { return LightEffectsSetting(options::g_options.enableFireprints); }
 const char* MarkerPartName() { return "hp"; }
 
-float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
 float SubRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) - b); }
 // a < b, or unordered.
 bool Less(float a, float b) {
@@ -221,7 +198,7 @@ int WorldClient::Render() {
     if ((flags & WorldClientFlag::DrawTerrain) && terrain) {
         Vector3 frame;
         camera->GroundPoint(&frame);
-        terrain->SetVisibleSectors(camera->localPosition.x, camera->localPosition.y, LandscapeDrawRadius());
+        terrain->ShowAllSectors();
         state.stages[0].combiner = kTerrainStage;
         terrain->DrawGround(&g_sceneRenderer);
     }
@@ -230,7 +207,7 @@ int WorldClient::Render() {
     if ((flags & WorldClientFlag::DrawTerrain) && terrain) {
         Vector3 frame;
         camera->GroundPoint(&frame);
-        terrain->SetVisibleSectors(camera->localPosition.x, camera->localPosition.y, LandscapeDrawRadius());
+        terrain->ShowAllSectors();
         state.alphaTest = false;
         state.stages[0].combiner = kSceneStage;
         terrain->DrawWater(&g_sceneRenderer);
@@ -299,32 +276,19 @@ int WorldClient::DrawPass() {
                                          FrameList::ShadowTrees, FrameList::TouchedModels};
     for (FrameList list : kCleared) VectorClear(&FrameObjects(list));
     float animTime = AnimationTime();
-    const float* position = &CameraAnchor(camera)->x;
     if (bird) bird->Update(animTime);
 
-    // The sectors around the camera: the position widened by the margin, clamped to the map
-    // (size - 1) and to 0, in 16-unit sectors.
-    const float margin = ObjectsDrawRadius();
-    const float edge = kMapEdgeMargin;
+    // Every sector of the map's object grid (16-unit sectors up to size - 1): what is drawn is what the clip test
+    // in CollectVisible passes. The game took the sectors within 100 units of the camera; Rebirth's ObjectsDrawRadius
+    // widened that to the whole map.
     currentTerrain = terrain;
-    float yHi = MinKeepB(AddRounded(position[1], margin), SubRounded(currentTerrain->height, edge));
-    float xMax = SubRounded(terrain->width, edge);
-    float xHi = MinKeepB(AddRounded(position[0], margin), xMax);
-    float yMax = SubRounded(terrain->height, edge);
-    float yLo = MaxKeepA(0.0f, Reload(MinKeepB(SubRounded(position[1], margin), yMax)));
-    float xMax2 = SubRounded(terrain->width, edge);
-    float xLo = MaxKeepA(0.0f, Reload(MinKeepB(SubRounded(position[0], margin), xMax2)));
-    std::uint32_t sx0 = static_cast<std::uint32_t>(lib::Truncate(xLo)) >> 4;
-    rangeFirstX = sx0;
-    rangeX = sx0;
-    std::uint32_t sy0 = static_cast<std::uint32_t>(lib::Truncate(yLo)) >> 4;
-    rangeFirstY = sy0;
-    rangeY = sy0;
-    rangeLastX = static_cast<std::uint32_t>(lib::Truncate(xHi)) >> 4;
-    rangeLastY = static_cast<std::uint32_t>(lib::Truncate(yHi)) >> 4;
+    rangeFirstX = rangeX = 0;
+    rangeFirstY = rangeY = 0;
+    rangeLastX = static_cast<std::uint32_t>(lib::Truncate(SubRounded(terrain->width, kMapEdgeMargin))) >> 4;
+    rangeLastY = static_cast<std::uint32_t>(lib::Truncate(SubRounded(terrain->height, kMapEdgeMargin))) >> 4;
 
     int touched = 0;
-    auto* sector = &objectGrid.rows[sy0][sx0];
+    auto* sector = &objectGrid.rows[0][0];
     while (sector) {
         for (MapObject* object : *sector) touched += CollectVisible(object, view, animTime, now, 0, 0);
         std::uint32_t x = ++rangeX;

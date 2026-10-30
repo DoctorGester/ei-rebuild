@@ -931,7 +931,7 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   tables: the original's registry subkeys, General Settings split into video and sound, Joystick in game), renderer
   (Msaa, Anisotropy, VSync, PerfOverlay), patches (Rebirth's patches, `Name = true|false`, and EI_Plugin's NPlayers,
   Pause, SecondMaster: docs/notes/rebirth.md, "The flags"; C66a folded the separate ei_rebirth.ini in), rebirth
-  (Rebirth's starter switches: ObjectsDrawRadius, LandscapeDrawRadius, AddonPath) and autoexec (Rebirth's Console AutoExec lines, one value each, names free). Value
+  (Rebirth's starter switches: AddonPath; the draw radii are gone since C68, the whole map is drawn) and autoexec (Rebirth's Console AutoExec lines, one value each, names free). Value
   names are the original's registry value names. A value is the text after the first `=`, spaces around it trimmed
   (in double quotes when it starts or ends with a space or starts with a quote: the outer pair is dropped); a line
   break inside one is written as a space. Numbers are decimal (up to 4294967295, read as the int of those bits), floats
@@ -956,8 +956,8 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   ObjectsLightingCoeff 2 (the code's 1 lights objects half as bright), the hero's light 216 216 116 radius 5 and the
   quest light 120 72 120 radius 5, UseSWCursors false, SelectionType 1, DefaultMapName / DefaultStreamingSound, the
   master server a3master.nival.com (the code's is empty). renderer: VSync true, Msaa 8, Anisotropy 16, PerfOverlay
-  false. patches: a comment only (every patch takes the game folder's profile). rebirth: ObjectsDrawRadius and LandscapeDrawRadius 5376 (Rebirth's own default is 100, the
-  original's distances; 5376 draws the whole map and is what the user's starter had). autoexec: a comment only.
+  false. patches: a comment only (every patch takes the game folder's profile). rebirth: a comment only (the draw radii's 5376, the whole map, is the
+  code's own since C68). autoexec: a comment only.
   Everything else is left out and read as absent: the game takes its own defaults (paths `.\` and `.\res\` from the
   working folder, the exe's: "The game folder" above, the other game settings, equal to the install's), Rebirth its
   own (no mod: AddonPath absent). The game's exit save then adds every option it keeps.

@@ -14,7 +14,6 @@
 #include "script_addon_handlers.h"
 
 #include "ei/hook.h"
-#include "ei/rebirth.h"
 #include "engine_object.h"
 #include "combat.h"
 #include "unit.h"
@@ -128,6 +127,12 @@ int AsciiStricmp(const char* a, const char* b) {
 bool IsAsciiAlpha(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'); }
 bool IsAsciiAlnum(char c) { return IsAsciiAlpha(c) || (c >= '0' && c <= '9'); }
 
+bool IsVanillaKept(const char* name) {
+    for (const char* kept : {"IsAlive", "IsDead", "ResetTarget"})
+        if (AsciiStricmp(name, kept) == 0) return true;
+    return false;
+}
+
 struct Built {
     std::vector<ScriptKeyword> table;
     signed char recordById[kFirstNewId + kRecordCount];   // id -> record index, -1 for none
@@ -148,6 +153,9 @@ const Built& Build() {
                     existing = &k;
                     break;
                 }
+            // A command the game has keeps the game's own where addon's would change what the game's scripts do
+            // (IsAlive / IsDead: units only and another test; ResetTarget: another reset).
+            if (existing && IsVanillaKept(record.name)) continue;
             if (existing) {
                 existing->function = nullptr;
                 existing->command = nullptr;
@@ -197,7 +205,6 @@ bool InvalidArguments(const char* function) {
 }
 
 
-bool Enabled() { return ei::rebirth::Enabled(ei::rebirth::Patch::AddNewScriptCommands); }
 
 const ScriptKeyword* Table() { return Build().table.data(); }
 
