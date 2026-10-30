@@ -1,5 +1,5 @@
-// Message links over streams (net_link.h): the file stream, the link base, the loopback link, the replay link,
-// the framed link and the per-player driver. See docs/notes/network.md and docs/notes/cleanup-network.md.
+// Message links over streams (net_link.h): the file stream, the link base, the loopback link, the framed
+// link and the per-player driver. See docs/notes/network.md and docs/notes/cleanup-network.md.
 #include "net_link.h"
 
 #include "core_streams.h"
@@ -72,10 +72,9 @@ void FileStream::Clear() { Restart(); }
 
 // NetLink
 
-NetLink::NetLink() { recording = 0; }
+NetLink::NetLink() = default;
 
-NetLink::NetLink(const NetLink& source)
-    : RefObject(), recording(source.recording), skipNext(source.skipNext), record(source.record) {}
+NetLink::NetLink(const NetLink&) : RefObject() {}
 
 NetLink::~NetLink() {}
 
@@ -83,31 +82,7 @@ int NetLink::IncomingCount() { return HasIncoming() ? 1 : 0; }
 
 bool NetLink::Send(ByteStream*) { return true; }
 
-bool NetLink::Receive(MemoryStream* stream) {
-    Record(stream);
-    return true;
-}
-
-void NetLink::Record(ByteStream* stream) {
-    if (!recording) return;
-    if (skipNext) {
-        skipNext = 0;
-        return;
-    }
-    record.WriteSized(stream);
-}
-
-// modeCreate | modeWrite; the stream's ok tells whether the file opened.
-void NetLink::OpenRecording(const char* path) {
-    record.Open(path, FileStream::kOpenWrite, 0);
-    skipNext = 1;
-    recording = 1;
-}
-
-void NetLink::CloseRecording() {
-    record.Close();
-    recording = 0;
-}
+bool NetLink::Receive(MemoryStream*) { return true; }
 
 // LoopbackLink
 
@@ -140,11 +115,10 @@ LoopbackLink* LoopbackLink::CreatePair(WorldHandle* player) {
 LoopbackLink::~LoopbackLink() { peer.Reset(); }
 
 // Torn down (the queue cleared rather than destroyed) and built again in place (the reference count
-// and +9 kept): no peer, an empty queue, a closed file, not recording.
+// kept): no peer, an empty queue.
 void LoopbackLink::OnShutdown() {
     peer.Reset();
     std::destroy_at(&queue);
-    record.~FileStream();
     new (this) LoopbackLink();
 }
 
@@ -171,13 +145,11 @@ bool LoopbackLink::Send(ByteStream* stream) {
     return true;
 }
 
-// The front of the queue copied into `stream` (CopyFrom) and dropped, then recorded as the base
-// does. False when nothing is queued.
+// The front of the queue copied into `stream` (CopyFrom) and dropped. False when nothing is queued.
 bool LoopbackLink::Receive(MemoryStream* stream) {
     if (queue.empty()) return false;
     stream->CopyFrom(&queue.front());
     queue.pop_front();
-    Record(stream);
     return true;
 }
 
@@ -187,8 +159,6 @@ void LoopbackLink::Disconnect() {
     peer.Reset();
     if (currentPeer) currentPeer->Disconnect();
 }
-
-// ReplayLink
 
 // FramedLink
 

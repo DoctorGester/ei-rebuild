@@ -65,32 +65,19 @@ public:
     virtual bool HasIncoming() = 0;
     virtual int IncomingCount();                // 1 when HasIncoming
     virtual bool Send(ByteStream* stream);         // dropped: true
-    virtual bool Receive(MemoryStream* stream);      // records the stream: true
+    virtual bool Receive(MemoryStream* stream);      // true
     virtual void Pump() {}
     virtual void Disconnect() = 0;
 
-    // Starts recording into a new file `path`; the first message is dropped.
-    void OpenRecording(const char* path);
-    void CloseRecording();
-    // What Receive does with a message while recording: the first after OpenRecording is dropped, the others
-    // are written to the file with their size.
-    void Record(ByteStream* stream);
-
-    std::uint8_t recording;
-    std::uint8_t skipNext;       // the next recorded message is dropped (set by OpenRecording)
-    FileStream record;
-
 protected:
-    // The record stream, not recording (the count and skipNext are the creator's).
     NetLink();
-    // `source`'s recording flags, a fresh record stream (the file is not shared).
     NetLink(const NetLink& source);
 };
 
 class LoopbackLink final : public NetLink {
 public:
     LoopbackLink();
-    // A closed file of its own, a copy of every queued stream and the same peer (counted).
+    // A copy of every queued stream and the same peer (counted).
     LoopbackLink(const LoopbackLink& other);
     ~LoopbackLink() override;
 
@@ -109,14 +96,6 @@ public:
 
     std::deque<MemoryStream> queue;     // the peer's messages, taken from the front
     Ref<LoopbackLink> peer;
-};
-
-class ReplayLink final : public NetLink {
-public:
-
-    bool Connected() override { return false; }
-
-    FileStream replay;           // the recording played back
 };
 
 // A link that frames its messages in a byte inbox.

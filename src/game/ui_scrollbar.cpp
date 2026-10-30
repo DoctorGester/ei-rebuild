@@ -5,6 +5,7 @@
 #include "ui_screens.h"
 
 #include <cstdint>
+#include "lib/rounding.h"
 
 namespace {
 
@@ -22,9 +23,6 @@ constexpr int kDragging = 1;
 constexpr int kSliderThumbHalfWidth = 14;
 constexpr int kSliderThumbHeight = 10;
 
-// Truncated through a 64-bit integer, keeping the low half: NaN and overflow give 0 (a zero range's 0 / 0),
-// where a cast to int gives 0x80000000.
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 // The wheel's step per unit of delta: 1/120.
 constexpr float kWheelStep = 0.008333334f;
 
@@ -102,7 +100,7 @@ void UiScrollbar::MouseMove(int, int x, int y) {
         Point point{x, y};
         ui->ScalePointFromScreenEntry(&point);
         int along = point.y - grabY;
-        SetPosition(Truncate(static_cast<float>(along - track.top) * maxPosition / (track.bottom - track.top)));
+        SetPosition(lib::Truncate(static_cast<float>(along - track.top) * maxPosition / (track.bottom - track.top)));
     }
     handled = true;
 }
@@ -123,7 +121,7 @@ void UiSlider::SetPosition(int newPosition) {
     if (position == newPosition) return;
     position = newPosition;
     // Truncated by _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
-    int offset = Truncate(static_cast<float>((track.right - track.left) * newPosition) / maximum);
+    int offset = lib::Truncate(static_cast<float>((track.right - track.left) * newPosition) / maximum);
     SceneMesh(kThumb)->Place(static_cast<float>(track.left + offset),
                                 track.top + kThumbInset, depth - kThumbLift);
     thumb.top = track.top;
@@ -138,7 +136,7 @@ void UiSlider::MouseMove(int, int x, int y) {
         Point point{x, y};
         ui->ScalePointFromScreenEntry(&point);
         int along = point.x - grabX;
-        SetPosition(Truncate(static_cast<float>(along - track.left) * maxPosition / (track.right - track.left)));
+        SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / (track.right - track.left)));
     }
     handled = true;
 }

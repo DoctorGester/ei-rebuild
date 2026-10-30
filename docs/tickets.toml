@@ -6681,6 +6681,13 @@ model = "sonnet"
 note = "Left by C53c (which removed StartRecording / StopRecording, kAutoplay and RequestLoad's flag): the autoplay recording chain below it looks dead: NetLink::OpenRecording / CloseRecording, skipNext, the recording members, ReplayLink (plays back autoplay.apl) and the server's request 2 handler. Check nothing reaches them (the harness's replay is separate: tests/verify), remove, goldens unchanged. Also: about 100 one-return free functions in src/game not yet checked one by one."
 
 [[ticket]]
+id = "C53e"
+title = "World glue facade and shared one-liners"
+group = "cleanup"
+depends = ["C53d"]
+note = "Left by C53d. The Game* forwarders in world_glue.cpp (GameRender, GameFindClientUnit, GameFindExitAt, GameExitTarget, GameLocalView = LocalClient, GameSendFlag10; about 30 callers) are plain forwarders to g_clientWorld members: check whether the UI files can call the world directly. Duplicates left: GlobalParty (world_guard, world_game), Unsigned(uint32 to float) in five particle / effect files, bit_cast float helpers (map_object FloatBits, map_object_figures Float), Version / VersionOf (party_save, world_savefile). ui_float.h's Truncate is a different (plain cast) one. Done by C53d: lib::Truncate for 14 copies, IsLive for 3, VariableGet/Set, UpdateCountdown. After: C53d."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

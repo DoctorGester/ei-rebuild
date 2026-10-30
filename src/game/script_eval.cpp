@@ -58,10 +58,6 @@ int RoundTimeOffset(int time, float extra) {
     return lib::RoundEven(pc24::Add(static_cast<double>(time), extra));
 }
 
-// The game's _ftol: truncating conversion; out-of-range values keep the low 32 bits
-// of the 64-bit result (0 for NaN).
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
-
 constexpr float kMinusOne = -1.0f;
 constexpr float kFar = 1e30f;     // the distance when an object is missing
 static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CA);
@@ -213,7 +209,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::GetLootItemsCount:
     case ScriptFunction::GetMoney: {
         *result = 0.0f;
-        CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
         if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items) : player->Party()->money);
         return;
     }
@@ -257,8 +253,8 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::GetDiplomacy: { // GetDiplomacy: 1 allied, -1 enemies, 0 otherwise
-        int b = Truncate(f[1]);
-        int a = Truncate(f[0]);
+        int b = lib::Truncate(f[1]);
+        int a = lib::Truncate(f[0]);
         int relation = g_serverWorld.diplomacy.GetRelation(a, b);
         *result = 0.0f;
         if (relation == 2) *result = kMinusOne;
@@ -279,7 +275,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         CUnit* unit = UnitOrNull(objectArgs[0]->object);
         *result = 0.0f;
         if (!unit) return;
-        int player = Truncate(f[0]);
+        int player = lib::Truncate(f[0]);
         std::uint32_t mask = 1u << (player & 31);
         bool enemy = (mask & unit->relationsB & unit->relationsA) != 0;
         *result = static_cast<float>(enemy ? 1 : 0);
@@ -387,14 +383,14 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
 
     case ScriptFunction::HaveItem: { // HaveItem(player, item)
         *result = 0.0f;
-        auto* player = g_serverWorld.GetPlayer(Truncate(f[0]));
-        if (player && player->HasLoot(Truncate(f[1]))) *result = 1.0f;
+        auto* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
+        if (player && player->HasLoot(lib::Truncate(f[1]))) *result = 1.0f;
         return;
     }
     case ScriptFunction::IsPlayerInDanger:
     case ScriptFunction::IsPlayerInSafety: {
         *result = 0.0f;
-        CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
         if (!player) return;
         PlayerServer::PartyDanger danger = player->Server()->danger;
         if (function == ScriptFunction::IsPlayerInDanger ? danger == PlayerServer::PartyDanger::InDanger
@@ -403,7 +399,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::GetMercsNumber:
-        *result = static_cast<float>(g_serverWorld.CountLivingMercs(Truncate(f[0])));
+        *result = static_cast<float>(g_serverWorld.CountLivingMercs(lib::Truncate(f[0])));
         return;
     case ScriptFunction::GSGetVar: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
         net::ServerSession* server = IsMultiplayerClient() ? ActiveServer() : nullptr;
@@ -413,7 +409,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
             return;
         }
         *result = 0.0f;
-        CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
         if (player) *result = player->Party()->variables.Get(stringArgs[0]);
         return;
     }
@@ -502,13 +498,13 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
     const ScriptFunction function = static_cast<ScriptFunction>(id);
     switch (function) {
     case ScriptFunction::ScriptGetObject: { // GetObject(id)
-        EngineObject* o = g_serverWorld.FindObject(Truncate(floatArgs[0]));
-        if (!o) game::DebugLog("Object with ID %d not found in function \"%s\".\n", Truncate(floatArgs[0]), "GetObject");
+        EngineObject* o = g_serverWorld.FindObject(lib::Truncate(floatArgs[0]));
+        if (!o) game::DebugLog("Object with ID %d not found in function \"%s\".\n", lib::Truncate(floatArgs[0]), "GetObject");
         (*result)->object = o;
         return;
     }
     case ScriptFunction::GetUnitOfPlayer: { // GetUnitOfPlayer(player, index)
-        CPlayer* player = g_serverWorld.GetPlayer(Truncate(floatArgs[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(floatArgs[0]));
         EngineObject* o = nullptr;
         if (player) {
             const std::vector<PartyUnitRecord>& members = player->Party()->members;
@@ -602,7 +598,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         break;
     }
     case ScriptFunction::PlayerSee: { // PlayerSee(player): the player's seen objects, its units and what they see
-        CPlayer* player = g_serverWorld.GetPlayer(Truncate(floatArgs[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(lib::Truncate(floatArgs[0]));
         if (!player) {
             (*result)->Clear();
             break;

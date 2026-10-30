@@ -46,6 +46,7 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
+#include "lib/rounding.h"
 
 namespace {
 
@@ -120,7 +121,6 @@ bool Less(float a, float b) {
 // t when 0 < t or unordered, else 0.
 // A float copied through the FPU in the original; here the value as it is.
 float Reload(float v) { return v; }
-int Ftol(float v) { return static_cast<int>(static_cast<std::int64_t>(v)); }   // the low half; 0 for NaN
 // The client world's time: the tick (an int) plus the tick's fraction, rounded once.
 float AnimationTime() {
     const WorldClient* world = &g_clientWorld;
@@ -318,14 +318,14 @@ int WorldClient::DrawPass() {
     float yLo = MaxKeepA(0.0f, Reload(MinKeepB(SubRounded(position[1], margin), yMax)));
     float xMax2 = SubRounded(terrain->width, edge);
     float xLo = MaxKeepA(0.0f, Reload(MinKeepB(SubRounded(position[0], margin), xMax2)));
-    std::uint32_t sx0 = static_cast<std::uint32_t>(Ftol(xLo)) >> 4;
+    std::uint32_t sx0 = static_cast<std::uint32_t>(lib::Truncate(xLo)) >> 4;
     rangeFirstX = sx0;
     rangeX = sx0;
-    std::uint32_t sy0 = static_cast<std::uint32_t>(Ftol(yLo)) >> 4;
+    std::uint32_t sy0 = static_cast<std::uint32_t>(lib::Truncate(yLo)) >> 4;
     rangeFirstY = sy0;
     rangeY = sy0;
-    rangeLastX = static_cast<std::uint32_t>(Ftol(xHi)) >> 4;
-    rangeLastY = static_cast<std::uint32_t>(Ftol(yHi)) >> 4;
+    rangeLastX = static_cast<std::uint32_t>(lib::Truncate(xHi)) >> 4;
+    rangeLastY = static_cast<std::uint32_t>(lib::Truncate(yHi)) >> 4;
 
     int touched = 0;
     auto* sector = &objectGrid.rows[sy0][sx0];

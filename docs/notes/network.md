@@ -233,15 +233,13 @@ them back; reached in single player through the loopback.
 
 ## Message links (0x00477E60-0x0047BB80)
 
-`NetLink : RefObject` (0073C8A4, 0x28, abstract): +8 recording, +9 drop the next recorded message, +0xC the
-recording file. Slots 2 reset, 3 clone, 4 connected, 5 alive, 6 has incoming, 7 incoming count, 8 Send (base:
-dropped, true), 9 Receive / record, 10 pump (00478010, empty), 11 disconnect, 12 (00478020, returns 0), 13
+`NetLink : RefObject` (0073C8A4, 0x28, abstract): game.exe's +8 recording flag, +9 drop-next and +0xC recording
+file are gone (nothing opened a recording). Slots 2 reset, 3 clone, 4 connected, 5 alive, 6 has incoming, 7 incoming count, 8 Send (base:
+dropped, true), 9 Receive, 10 pump (00478010, empty), 11 disconnect, 12 (00478020, returns 0), 13
 `FramedLink::SendBytes`. Slots 10 / 12 are shorter than the 5-byte jump and not hooked.
 - `LoopbackLink` (0073C8F8, 0x30): +0x28 incoming queue (list of MemoryStream, vtable 0073C960; ours a deque), +0x2C peer.
-  Send puts a copy at the end of the peer's queue; Receive copies the front out and records.
-- `ReplayLink` (0073C92C, 0x44): a second file stream at +0x28 plays back a recording (each message a size
-  prefix and its bytes); made by 00478960 for `autoplay.apl` or `<name>.apl` (005793E0 from 00602190). Receive does
-  not record.
+  Send puts a copy at the end of the peer's queue; Receive copies the front out.
+- `ReplayLink` (0073C92C, 0x44; plays back an `autoplay.apl` recording): nothing in the game makes one (dead code, config/dead_code.csv); ours is gone.
 - `FramedLink` (0073C9C8, 0x50, abstract): memory stream at +0x28 as inbox (4-byte length + bytes). Send frames
   the stream in a 0x8000-byte stack buffer into slot 13 (disconnects through slot 11 when that fails); Receive
   takes the first message and moves the rest down. `DriverLink` (0073C990, 0x54): a framed link over a

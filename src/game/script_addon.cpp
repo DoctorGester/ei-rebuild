@@ -178,9 +178,6 @@ int TruncateOrMin(float value) {
     return static_cast<int>(wide);
 }
 
-// The game's _ftol: truncation of the 64-bit value, its low 32 bits (0 for NaN).
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
-
 float Distance(float x0, float y0, float x1, float y1) { return Length2D(Vector2{x1, y1} - Vector2{x0, y0}); }
 
 int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }

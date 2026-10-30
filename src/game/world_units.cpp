@@ -142,7 +142,6 @@ constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B,
 constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
 constexpr std::uint32_t kTorchLightKind = static_cast<std::uint32_t>(ParticleType::CampFire);   // the torch's smoke particles
 
-int UpdateCountdown(const EngineObject* object) { return WorldServer::UpdateCountdownFor(object); }
 
 // Copies dwords (floats are not loaded on the FPU).
 void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
@@ -394,7 +393,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         objects.Set(static_cast<unsigned>(objectId), object);
         mapObjects.Set(static_cast<unsigned>(object->id), object);
         if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(static_cast<unsigned>(object->id), object);
-        object->updateCountdown = UpdateCountdown(object);
+        object->updateCountdown = WorldServer::UpdateCountdownFor(object);
         updateMap.Set(static_cast<unsigned>(object->id), object);
         aiMap.sectorMap.Add(object);
         int result = object->id;
@@ -415,7 +414,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         objects.Set(static_cast<unsigned>(object->id), object);
         mapObjects.Set(static_cast<unsigned>(object->id), object);
         if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(static_cast<unsigned>(object->id), object);
-        object->updateCountdown = UpdateCountdown(object);
+        object->updateCountdown = WorldServer::UpdateCountdownFor(object);
         updateMap.Set(static_cast<unsigned>(object->id), object);
         int result = object->id;
         if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
@@ -506,7 +505,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         int result = object->id;
         if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
         if (baseKind >= 8 && baseKind <= 9) {
-            object->updateCountdown = UpdateCountdown(object);
+            object->updateCountdown = WorldServer::UpdateCountdownFor(object);
             updateMap.Set(static_cast<unsigned>(object->id), object);
         }
         if (!object->name2.empty()) namedObjects.Set(static_cast<unsigned>(object->id), object);

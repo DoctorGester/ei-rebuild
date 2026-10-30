@@ -18,9 +18,6 @@ constexpr std::int16_t kResetParams20 = 7;
 // Rounded to the nearest integer after a store to float.
 int RoundStored(float value) { return lib::RoundEven(value); }
 
-// Truncated as _ftol does: the low half of the 64-bit integer (0 for a NaN).
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
-
 // round(value * 255 / 2), at most 255 (unsigned compare: negative values become 255 too).
 std::uint8_t ScaledByte(float value, float scale, float divisor) {
     float scaled = value * scale / divisor;
@@ -94,8 +91,8 @@ void UnitStats::Pack(UnitParams* params) {
     params->capacity = static_cast<std::int16_t>(RoundStored(capacity));
     params->movementKind = static_cast<std::uint8_t>(movementKind);
     for (int i = 0; i < 5; ++i) params->combat[i] = static_cast<std::uint8_t>(RoundStored(combat[i]));
-    params->damage = static_cast<std::uint8_t>(Truncate(damage));
-    params->damageSpread = static_cast<std::uint8_t>(Truncate(damageSpread));
+    params->damage = static_cast<std::uint8_t>(lib::Truncate(damage));
+    params->damageSpread = static_cast<std::uint8_t>(lib::Truncate(damageSpread));
     params->naturalWeapon = static_cast<std::uint8_t>(naturalWeapon);   // its low byte
     for (int i = 0; i < 6; ++i) {
         params->perception[i] = static_cast<std::uint8_t>(RoundStored(perception[i].current));

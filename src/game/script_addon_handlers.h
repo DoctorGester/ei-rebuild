@@ -16,9 +16,6 @@ using Handler = bool (*)(Call* call);
 // _ftol2_sse (10090EB0): truncation toward zero (CVTTSD2SI); NaN and out-of-range values give
 // 0x80000000.
 int TruncateOrMin(float value);
-// _ftol2's x87 path (10090EE6, called directly by NearestUnit and UnitsNearPoint): truncation of
-// the 64-bit value, its low 32 bits (the game's _ftol, the same result).
-int Truncate(float value);
 // 10010CC5: dx = x1 - x0 and dy = y1 - y0 rounded to float, dx * dx + dy * dy rounded to float,
 // then its square root (double) rounded to float.
 float Distance(float x0, float y0, float x1, float y1);

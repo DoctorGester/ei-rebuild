@@ -16,14 +16,12 @@
 #include "render/render.h"
 
 #include <cstdint>
+#include "lib/rounding.h"
 
 namespace {
 
 constexpr float kEyeUnit = 0.00390625f;    // 1/256 of the skin's width
 constexpr int kSkinUnits = 0x100;
-
-// _ftol: truncation through a 64-bit integer, of which the low half is kept.
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
 
 // The skin texture: the first texture of the unit's client half (its material), or null.
@@ -47,9 +45,9 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
     int eyeHeight = static_cast<int>(model->eyeHeight);
     frame.offset = pc24::Sub(pc24::Div(static_cast<double>(face->height), frame.scale),
                              static_cast<double>(eyeHeight + eyeHeight)) / frame.scale;
-    frame.at[0] = Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeLeft)), frame.scale));
+    frame.at[0] = lib::Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeLeft)), frame.scale));
     int fromBottom = kSkinUnits - static_cast<int>(model->eyeBottom) - eyeHeight;
-    frame.at[1] = Truncate(pc24::Mul(static_cast<double>(fromBottom), frame.scale));
+    frame.at[1] = lib::Truncate(pc24::Mul(static_cast<double>(fromBottom), frame.scale));
     return frame;
 }
 
@@ -74,8 +72,8 @@ void UnitClientSpecific::BlinkClose(bool force) {
     EyeFrame frame = Frame(skin, face, model);
     float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    Rect closed = {0, Truncate(frame.offset), Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
-                   Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale)};
+    Rect closed = {0, lib::Truncate(frame.offset), lib::Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
+                   lib::Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale)};
     BlitMipChain(skin, frame.at, face, &closed);
     eyesClosed = 1;
 }
@@ -90,9 +88,9 @@ void UnitClientSpecific::BlinkOpen(bool force) {
     EyeFrame frame = Frame(skin, face, model);
     float scale = frame.scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    Rect open = {0, Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale),
-                 Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
-                 Truncate(pc24::Add(static_cast<double>(eyeHeight + eyeHeight), frame.offset) * scale)};
+    Rect open = {0, lib::Truncate(pc24::Add(static_cast<double>(eyeHeight), frame.offset) * scale),
+                 lib::Truncate(pc24::Mul(static_cast<double>(static_cast<int>(model->eyeWidth)), scale)),
+                 lib::Truncate(pc24::Add(static_cast<double>(eyeHeight + eyeHeight), frame.offset) * scale)};
     BlitMipChain(skin, frame.at, face, &open);
     eyesClosed = 0;
 }

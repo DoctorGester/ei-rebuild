@@ -39,6 +39,7 @@
 #include <string>
 #include <vector>
 #include <format>
+#include "lib/rounding.h"
 
 namespace {
 
@@ -53,10 +54,6 @@ constexpr int kAllodIsland = 3;        // the island model
 
 // A zone of the map database (MapRecord): its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
-
-// _ftol's truncation: the low half of the int64 one (0 for a NaN; the screen places and the script variables
-// truncated here are not bounded).
-int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
 void SetWhite(UiMesh* sprite) {
     for (float& tint : sprite->tint) tint = 1.0f;
@@ -112,10 +109,10 @@ void AddTipRegion(UiWindow* window, int left, int top, int right, int bottom, in
 void SetMarkerRegion(UiRegion* region, const UiMesh* sprite) {
     float x, y, depth;
     sprite->GetPlacement(&x, &y, &depth);
-    int bottom = Truncate(y + 10.0f);
-    int right = Truncate(x + 20.0f);
-    int top = Truncate(y - 25.0f);
-    int left = Truncate(x - 20.0f);
+    int bottom = lib::Truncate(y + 10.0f);
+    int right = lib::Truncate(x + 20.0f);
+    int top = lib::Truncate(y - 25.0f);
+    int left = lib::Truncate(x - 20.0f);
     region->SetRect(left, top, right, bottom);
 }
 
@@ -136,7 +133,7 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
 // A layer's texture frame: the fractional part of time * rate (stored).
 void SetFrameFraction(EngineObject* layer, float time, float rate) {
     float v = time * rate;
-    float fraction = v - static_cast<float>(Truncate(v));
+    float fraction = v - static_cast<float>(lib::Truncate(v));
     AsUiMesh(layer)->textureOffsetU = fraction;
 }
 
@@ -197,7 +194,7 @@ void GlobalMap::CreateScreen() {
         variable = std::format("z.{}", zone->name);
         GlobalMapZone& entry = zones.emplace_back();
         entry.link = -1;
-        entry.state = Truncate(LocalPlayerVariable(variable));
+        entry.state = lib::Truncate(LocalPlayerVariable(variable));
         entry.name = zone->name;
         entry.title = PlaceTitle("zone ", zone->name);
         UiMesh* sprite = AddSprite(zone->figure);
@@ -303,7 +300,7 @@ void GlobalMap::CreateScreen() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = Truncate(LocalPlayerVariable("gtime") * 60.0f);
+    int minutes = lib::Truncate(LocalPlayerVariable("gtime") * 60.0f);
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
@@ -325,7 +322,7 @@ void GlobalMap::CreateScreen() {
         UiMesh* camp = AddBlankSprite();
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         camp->texture = builder.Texture(3);
-        noCamp = Truncate(LocalPlayerVariable("i.nocamp")) == 1;
+        noCamp = lib::Truncate(LocalPlayerVariable("i.nocamp")) == 1;
         if (noCamp) camp->visible = false;
         UiMesh* left = AddBlankSprite();
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);

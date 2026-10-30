@@ -882,9 +882,9 @@ public:
     // The zone's state block (docs/notes/world.md, "Zone state block"). Returns 1, or the fatal error's
     // result when the map does not load.
     int LoadZone(ByteStream* block);
-    // The local session takes a new link: the single-player loopback pair for `player`, a replay of the recording
-    // `path`, or a driver for the game client's first connection (false without an active client or connection). Each
-    // empties the maps and reconnects the session.
+    // The local session takes a new link: the single-player loopback pair for `player`, or a driver for the game
+    // client's first connection (false without an active client or connection). Each empties the maps and
+    // reconnects the session.
     void SetPlayer(WorldHandle* player);
     bool JoinGameClient();
     // The player sources and the network session pumped, then the local player's link (when it is

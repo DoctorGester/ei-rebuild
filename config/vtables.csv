@@ -118,7 +118,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C8A4,13,,game,00477E60 004782E0 004784D0 00478610 00478960 00478A50 00478B10 00479A30 0047CC60,00478030,NetLink,src/game/net_link.h,the link base (NetLink; slots 2-6 and 11 _purecall)
 0073C8D8,8,,game,00477E60 00477FB0 00478050 00478470 004784D0 00478610 004787A0 00478960 00478A50 00478B10 00478CC0 00479B10 00479B90 00479C10 00479D40 0047CD40 0047CEB0 0051FF40 0057A060 0057A780 0057ABA0 0057B3B0 0057BDF0 005813A0 00596140 00596350 0061B2C0 0061D1C0 00655550 00655D40 006570E0 00662AC0 00662DD0,00477F90,FileStream,src/game/net_link.h,the file stream (FileStream; the recordings and the save files)
 0073C8F8,13,,game,004782E0 004784D0 00478610 004787A0,00478780,LoopbackLink,src/game/net_link.h,the loopback link (LoopbackLink)
-0073C92C,13,,game,00478960 00478A50 00478B10 00478CC0,00478CA0,ReplayLink,src/game/net_link.h,the replay link (ReplayLink)
+0073C92C,13,,game,00478960 00478A50 00478B10 00478CC0,00478CA0,ReplayLink,-,"the replay link; stored only by game.exe's 00478960 (dead, config/dead_code.csv; ours deleted in C53d)"
 0073C960,8,,game,00478FF0 00479410 0047A080 0050E2D0 005101A0 00589ED0 00666D10 00667810 00667A30 0066A300 0066C4F0 0066C540 0066D100 0066D270 00675DD0 00677510 00677EC0 0067B050,004790D0,MemoryStream,src/game/core_streams.h,the network queue's memory streams (0066C4F0's copy of CMemoryStream's table; one class here)
 0073C990,14,,game,00479980 00479A30 00479C10 00479D40 0047A030,00479D20,DriverLink,src/game/net_link.h,the driver link (DriverLink)
 0073C9C8,14,,game,00479A30 0047CBF0 0047CC60 0047CFA0,00479B70,FramedLink,src/game/net_link.h,the framed link (FramedLink; slots 2-5 / 11 / 13 _purecall)

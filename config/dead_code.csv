@@ -170,6 +170,17 @@ address,size,name,evidence
 00476F80,42,FUN_00476f80,referenced only from dead code 0046F1F0
 00476FB0,325,FUN_00476fb0,referenced only from dead code 0046F1F0 004A27E0
 004775F0,275,FUN_004775f0,referenced only from dead code 00477710
+004780B0,48,FUN_004780b0,"C53d, the autoplay recording (NetLink::OpenRecording): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+004780E0,18,FUN_004780e0,"C53d, the autoplay recording (NetLink::CloseRecording): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+00478960,226,FUN_00478960,"C53d, the autoplay recording (ReplayLink::Create): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+00478A50,192,FUN_00478a50,"C53d, the autoplay recording (ReplayLink clone): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+00478B10,265,FUN_00478b10,"C53d, the autoplay recording (ReplayLink reset): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+00478C30,31,FUN_00478c30,"C53d, the autoplay recording (ReplayLink alive): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+00478C50,31,FUN_00478c50,"C53d, the autoplay recording (ReplayLink has incoming): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+00478C70,23,FUN_00478c70,"C53d, the autoplay recording (ReplayLink::Receive): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+00478C90,9,FUN_00478c90,"C53d, the autoplay recording (ReplayLink disconnect): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+00478CA0,30,FUN_00478ca0,"C53d, the autoplay recording (ReplayLink deleting destructor): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
+00478CC0,141,FUN_00478cc0,"C53d, the autoplay recording (ReplayLink destructor): nothing opens a recording or plays one back (tests/coverage: unreached); the port is gone, only game.exe's own code calls it"
 00479980,168,FUN_00479980,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047A710,118,FUN_0047a710,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047A800,114,FUN_0047a800,"no references at all (no call/jmp, no absolute pointer in code or data)"
