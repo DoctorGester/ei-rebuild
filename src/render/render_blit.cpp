@@ -3,20 +3,11 @@
 // that copies texels one to one, a stretch when the sizes differ). Also here: the
 // solid rectangles, the depth clear the game does in the middle of the frame and the movie player's fill (Fill).
 // (The interface windows' canvases have their own blit, render_ui.cpp.)
+#include "../game/texture.h"
 #include "../hook/log.h"
+#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#if defined(_WIN32)
-#include <d3d11.h>
-#include <windows.h>
-#else
-#include "render_native.h"
-#endif
-
-#include "../game/texture.h"
 
 #include <cstring>
 #include <unordered_map>
@@ -256,7 +247,7 @@ namespace detail {
 
 bool CreateBlitPipeline() {
     sg_shader_desc s{};
-    SetBytecode(s, kBlitShader);
+    s = ShaderDescription(kBlitShader);
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
     s.uniform_blocks[0].size = sizeof(RectParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
@@ -285,7 +276,7 @@ bool CreateBlitPipeline() {
     g_nearest = sg_make_sampler(&sd);
 
     sg_shader_desc c{};
-    SetBytecode(c, kSolidShader);
+    c = ShaderDescription(kSolidShader);
     c.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
     c.uniform_blocks[0].size = sizeof(SolidParams);
     c.uniform_blocks[0].hlsl_register_b_n = 0;
@@ -384,7 +375,7 @@ void RetireFrameImages() {
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
     if (!key || !rgbx || width <= 0 || height <= 0) return;
     Start();
-    FpuGuard fpu;
+    GpuGuard gpu;
     CountImageRequest(ImageUse::Movie);
     g_movieScratch.assign(rgbx, rgbx + static_cast<std::size_t>(width) * height * 4);
     for (std::size_t i = 3; i < g_movieScratch.size(); i += 4) g_movieScratch[i] = 255;
@@ -437,7 +428,7 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     if (from.left < 0 || from.top < 0 || from.right > picture->width || from.bottom > picture->height ||
         from.right <= from.left || from.bottom <= from.top)
         return;
-    FpuGuard fpu;
+    GpuGuard gpu;
     const CursorSheet* sheet = SheetOf(imageHolder, mask, maskBytes, *picture);
     if (!sheet) return;
     g_frame.cursor = BlitBatch{sheet->view, sheet->width, sheet->height, to, from};

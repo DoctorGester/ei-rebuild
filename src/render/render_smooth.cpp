@@ -5,17 +5,9 @@
 // (the frame target's colour and depth into every sample before a world run that follows interface draws;
 // sample 0 of the multisampled depth into the frame target's depth after a world run).
 #include "../hook/log.h"
+#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#if defined(_WIN32)
-#include <d3d11.h>
-#include <windows.h>
-#else
-#include "render_native.h"
-#endif
 
 namespace render {
 
@@ -30,9 +22,9 @@ sg_sampler g_point{};
 
 // A shader of `code` (shaders/*.hlsl) reading `views` textures (t0..), each paired with one non-filtering sampler
 // (sokol wants every texture paired; the shaders only Load).
-sg_shader CopyShader(const ShaderBytecode& code, int views, bool multisampled, const char* label) {
+sg_shader CopyShader(ShaderProgram code, int views, bool multisampled, const char* label) {
     sg_shader_desc s{};
-    SetBytecode(s, code);
+    s = ShaderDescription(code);
     s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
     s.samplers[0].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
     s.samplers[0].hlsl_register_s_n = 0;
@@ -78,21 +70,6 @@ void Draw(sg_pipeline pipeline, const sg_view* views, int count) {
 
 namespace detail {
 
-int SupportedSamples(ID3D11Device* device) {
-#if defined(_WIN32)
-    for (int samples = kSmoothSamples; samples > 1; samples /= 2) {
-        UINT colour = 0, depth = 0;
-        // kColourFormat (RGBA8) and kDepthFormat (sokol's DEPTH: a D32_FLOAT view of R32_TYPELESS).
-        if (SUCCEEDED(device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, static_cast<UINT>(samples), &colour)) &&
-            SUCCEEDED(device->CheckMultisampleQualityLevels(DXGI_FORMAT_D32_FLOAT, static_cast<UINT>(samples), &depth)) &&
-            colour > 0 && depth > 0)
-            return samples;
-    }
-    return 1;
-#else
-    return NativeSampleCount();
-#endif
-}
 
 bool PrepareSmoothCopies(int samples) {
     if (g_copySamples == samples) return true;

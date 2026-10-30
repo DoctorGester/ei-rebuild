@@ -2,17 +2,9 @@
 #include "render_ui.h"
 
 #include "../hook/log.h"
+#include "platform/graphics.h"
 #include "render_internal.h"
 #include "render_text.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#if defined(_WIN32)
-#include <d3d11.h>
-#include <windows.h>
-#else
-#include "render_native.h"
-#endif
 
 #include <algorithm>
 #include <cmath>
@@ -174,16 +166,13 @@ std::unordered_map<const text::GlyphAtlas*, AtlasTexture> g_atlases;
 sg_buffer g_vertices{};
 std::size_t g_vertexCapacity = 0;
 
-#if defined(_WIN32)
-ID3D11DeviceContext* Context() { return static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context())); }
-#endif
 
 // A shader of ui_canvas.hlsl: the vertex parameters, the fragment parameters, `textures` texture views
 // (t0, t1) loaded directly (a non-filtering sampler paired with each, as sokol wants), and for the glyph
 // shader its vertex (POSITION, float4).
-sg_shader MakeShader(const ShaderBytecode& code, int textures, bool glyphVertex, const char* label) {
+sg_shader MakeShader(ShaderProgram code, int textures, bool glyphVertex, const char* label) {
     sg_shader_desc s{};
-    SetBytecode(s, code);
+    s = ShaderDescription(code);
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
     s.uniform_blocks[0].size = sizeof(RectParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
@@ -353,16 +342,7 @@ void ApplyFs(const UiParams& fs) {
 
 // `r` of the canvas's image copied into g_under at (0, row).
 void CopyUnder(const CanvasState& canvas, const Rect& r, int row) {
-#if defined(_WIN32)
-    ID3D11Texture2D* from = D3DTexture(canvas.gpu.image);
-    ID3D11Texture2D* to = D3DTexture(g_under.image);
-    if (!from || !to) return;
-    D3D11_BOX box{static_cast<unsigned>(r.left),  static_cast<unsigned>(r.top),    0,
-                  static_cast<unsigned>(r.right), static_cast<unsigned>(r.bottom), 1};
-    Context()->CopySubresourceRegion(to, 0, 0, static_cast<unsigned>(row), 0, from, 0, &box);
-#else
-    NativeCopyImage(canvas.gpu.image, g_under.image, r, 0, row);
-#endif
+    platform::graphics::CopyImage(canvas.gpu.image, g_under.image, {r.left, r.top, r.right, r.bottom}, 0, row);
 }
 
 // The canvas's image of its size, all black.
@@ -563,16 +543,8 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
 
 // An Image's pixels written into the canvas's texture.
 void DrawPixels(const CanvasState& canvas, const Op& op) {
-#if defined(_WIN32)
-    ID3D11Texture2D* texture = D3DTexture(canvas.gpu.image);
-    if (!texture) return;
-    const Rect& r = op.rect;
-    D3D11_BOX box{static_cast<unsigned>(r.left),  static_cast<unsigned>(r.top),    0,
-                  static_cast<unsigned>(r.right), static_cast<unsigned>(r.bottom), 1};
-    Context()->UpdateSubresource(texture, 0, &box, op.pixels.data(), static_cast<unsigned>(r.right - r.left) * 4u, 0);
-#else
-    NativeWriteImage(canvas.gpu.image, op.rect, op.pixels.data(), (op.rect.right - op.rect.left) * 4);
-#endif
+    platform::graphics::WriteImage(canvas.gpu.image, {op.rect.left, op.rect.top, op.rect.right, op.rect.bottom},
+                                   op.pixels.data(), (op.rect.right - op.rect.left) * 4);
 }
 
 void DrawGrey(const CanvasState& canvas) {
@@ -849,7 +821,7 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end() || !it->second.gpu.image.id) return false;
     const CanvasState& canvas = it->second;
-    FpuGuard fpu;
+    GpuGuard gpu;
     GpuWorkAlone alone;
     sg_image texture = canvas.gpu.image;
     unsigned w = static_cast<unsigned>(canvas.width), h = static_cast<unsigned>(canvas.height);
@@ -874,7 +846,7 @@ bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb) {
     if (it == g_canvases.end() || !it->second.gpu.image.id) return false;
     const CanvasState& canvas = it->second;
     if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
-    FpuGuard fpu;
+    GpuGuard gpu;
     GpuWorkAlone alone;
     sg_image texture = canvas.gpu.image;
     if (!g_staging.Map(texture, static_cast<unsigned>(x), static_cast<unsigned>(y), 1, 1)) return false;
@@ -890,7 +862,7 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end() || !it->second.gpu.texture.id || !EnsurePipelines()) return false;
     const CanvasState& canvas = it->second;
-    FpuGuard fpu;
+    GpuGuard gpu;
     GpuWorkAlone alone;
     if (!EnsureScratch(g_picture, width, height, SG_PIXELFORMAT_R16UI, "ei-canvas-rgb565")) return false;
     BeginCanvasPass(g_picture.attachment, false, "ei-canvas-rgb565");
@@ -997,7 +969,7 @@ void RunCanvasCommands() {
     }
     g_queue.clear();
     if (readBack) {
-        FpuGuard fpu;
+        GpuGuard gpu;
         for (auto& [holder, canvas] : g_canvases)
             if ((canvas.copied || canvas.history.size() > kMaxHistory) && canvas.gpu.image.id) Compact(holder, canvas);
     }

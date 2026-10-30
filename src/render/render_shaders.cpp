@@ -1,90 +1,60 @@
-// The renderer's shaders as bytecode (render_internal.h, ShaderBytecode): written in src/render/shaders/*.hlsl,
-// compiled at build time by fxc into the headers included here (CMakeLists.txt's ei_shader,
-// src/render/shaders/compile.cmake), with the flags sokol would give d3dcompiler at run time.
+// The build supplies sokol descriptors for each compiled shader, independent of the renderer's backend.
+#include "native_shaders/all_shaders.h"
 #include "render_internal.h"
 
 namespace render::detail {
+sg_shader_desc ShaderDescription(ShaderProgram program) {
+    switch (program) {
+    case ShaderProgram::Blit:
+        return *blit_generated::blit_shader_desc(sg_query_backend());
+    case ShaderProgram::Solid:
+        return *solid_generated::solid_shader_desc(sg_query_backend());
+    case ShaderProgram::Mesh:
+        return *mesh_generated::mesh_shader_desc(sg_query_backend());
+    case ShaderProgram::Terrain:
+        return *terrain_generated::terrain_shader_desc(sg_query_backend());
+    case ShaderProgram::Present:
+        return *present_generated::present_shader_desc(sg_query_backend());
+    case ShaderProgram::IntoMultisampled:
+        return *into_multisampled_generated::into_multisampled_shader_desc(sg_query_backend());
+    case ShaderProgram::Depth2:
+        return *depth_from_multisampled2_generated::depth_from_multisampled2_shader_desc(sg_query_backend());
+    case ShaderProgram::Depth4:
+        return *depth_from_multisampled4_generated::depth_from_multisampled4_shader_desc(sg_query_backend());
+    case ShaderProgram::Depth8:
+        return *depth_from_multisampled8_generated::depth_from_multisampled8_shader_desc(sg_query_backend());
+    case ShaderProgram::Caster:
+        return *shadow_caster_generated::shadow_caster_shader_desc(sg_query_backend());
+    case ShaderProgram::TerrainCaster:
+        return *shadow_terrain_generated::shadow_terrain_shader_desc(sg_query_backend());
+    case ShaderProgram::Reduce:
+        return *shadow_reduce_generated::shadow_reduce_shader_desc(sg_query_backend());
+    case ShaderProgram::Dilate:
+        return *shadow_dilate_generated::shadow_dilate_shader_desc(sg_query_backend());
+    case ShaderProgram::PerfOverlay:
+        return *perf_overlay_generated::perf_overlay_shader_desc(sg_query_backend());
+    case ShaderProgram::TextureCompose:
+        return *texture_compose_generated::texture_compose_shader_desc(sg_query_backend());
+    case ShaderProgram::CloudFrame:
+        return *texture_clouds_frame_generated::texture_clouds_frame_shader_desc(sg_query_backend());
+    case ShaderProgram::Clouds:
+        return *texture_clouds_generated::texture_clouds_shader_desc(sg_query_backend());
+    case ShaderProgram::UiSolid:
+        return *ui_solid_generated::ui_solid_shader_desc(sg_query_backend());
+    case ShaderProgram::UiGlyph:
+        return *ui_glyph_generated::ui_glyph_shader_desc(sg_query_backend());
+    case ShaderProgram::UiCompose:
+        return *ui_compose_generated::ui_compose_shader_desc(sg_query_backend());
+    case ShaderProgram::UiGrey:
+        return *ui_grey_generated::ui_grey_shader_desc(sg_query_backend());
+    case ShaderProgram::UiCopy:
+        return *ui_copy_generated::ui_copy_shader_desc(sg_query_backend());
+    case ShaderProgram::UiRgb565:
+        return *ui_rgb565_generated::ui_rgb565_shader_desc(sg_query_backend());
+    case ShaderProgram::UiBlit:
+        return *ui_blit_generated::ui_blit_shader_desc(sg_query_backend());
 
-namespace {
-
-#include "shaders/blit_vs.h"
-#include "shaders/blit_ps.h"
-#include "shaders/solid_vs.h"
-#include "shaders/solid_ps.h"
-#include "shaders/mesh_vs.h"
-#include "shaders/mesh_ps.h"
-#include "shaders/terrain_vs.h"
-#include "shaders/terrain_ps.h"
-#include "shaders/present_vs.h"
-#include "shaders/present_ps.h"
-#include "shaders/into_multisampled_vs.h"
-#include "shaders/into_multisampled_ps.h"
-#include "shaders/depth_from_multisampled_vs.h"
-#include "shaders/depth_from_multisampled2_ps.h"
-#include "shaders/depth_from_multisampled4_ps.h"
-#include "shaders/depth_from_multisampled8_ps.h"
-#include "shaders/shadow_caster_vs.h"
-#include "shaders/shadow_caster_ps.h"
-#include "shaders/shadow_terrain_vs.h"
-#include "shaders/shadow_terrain_ps.h"
-#include "shaders/shadow_range_vs.h"
-#include "shaders/shadow_reduce_ps.h"
-#include "shaders/shadow_dilate_ps.h"
-#include "shaders/ui_rect_vs.h"
-#include "shaders/ui_glyph_vs.h"
-#include "shaders/ui_solid_ps.h"
-#include "shaders/ui_glyph_ps.h"
-#include "shaders/ui_compose_ps.h"
-#include "shaders/ui_grey_ps.h"
-#include "shaders/ui_copy_ps.h"
-#include "shaders/ui_rgb565_ps.h"
-#include "shaders/ui_blit_ps.h"
-#include "shaders/perf_overlay_vs.h"
-#include "shaders/perf_overlay_ps.h"
-#include "shaders/texture_compose_vs.h"
-#include "shaders/texture_compose_ps.h"
-#include "shaders/texture_clouds_vs.h"
-#include "shaders/texture_clouds_frame_ps.h"
-#include "shaders/texture_clouds_ps.h"
-
-static_assert(kSmoothSamples == 8, "a depth_from_multisampled shader for each count up to it (CMakeLists.txt)");
-
-} // namespace
-
-const ShaderBytecode kBlitShader{SG_RANGE(blit_vs), SG_RANGE(blit_ps)};
-const ShaderBytecode kSolidShader{SG_RANGE(solid_vs), SG_RANGE(solid_ps)};
-const ShaderBytecode kMeshShader{SG_RANGE(mesh_vs), SG_RANGE(mesh_ps)};
-const ShaderBytecode kTerrainShader{SG_RANGE(terrain_vs), SG_RANGE(terrain_ps)};
-const ShaderBytecode kPresentShader{SG_RANGE(present_vs), SG_RANGE(present_ps)};
-const ShaderBytecode kIntoMultisampledShader{SG_RANGE(into_multisampled_vs), SG_RANGE(into_multisampled_ps)};
-const ShaderBytecode kCasterShader{SG_RANGE(shadow_caster_vs), SG_RANGE(shadow_caster_ps)};
-const ShaderBytecode kTerrainCasterShader{SG_RANGE(shadow_terrain_vs), SG_RANGE(shadow_terrain_ps)};
-const ShaderBytecode kReduceShader{SG_RANGE(shadow_range_vs), SG_RANGE(shadow_reduce_ps)};
-const ShaderBytecode kDilateShader{SG_RANGE(shadow_range_vs), SG_RANGE(shadow_dilate_ps)};
-const ShaderBytecode kUiSolidShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_solid_ps)};
-const ShaderBytecode kUiGlyphShader{SG_RANGE(ui_glyph_vs), SG_RANGE(ui_glyph_ps)};
-const ShaderBytecode kUiComposeShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_compose_ps)};
-const ShaderBytecode kUiGreyShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_grey_ps)};
-const ShaderBytecode kUiCopyShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_copy_ps)};
-const ShaderBytecode kUiRgb565Shader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_rgb565_ps)};
-const ShaderBytecode kUiBlitShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_blit_ps)};
-const ShaderBytecode kPerfOverlayShader{SG_RANGE(perf_overlay_vs), SG_RANGE(perf_overlay_ps)};
-const ShaderBytecode kTextureComposeShader{SG_RANGE(texture_compose_vs), SG_RANGE(texture_compose_ps)};
-const ShaderBytecode kCloudFrameShader{SG_RANGE(texture_clouds_vs), SG_RANGE(texture_clouds_frame_ps)};
-const ShaderBytecode kCloudsShader{SG_RANGE(texture_clouds_vs), SG_RANGE(texture_clouds_ps)};
-
-ShaderBytecode DepthFromMultisampledShader(int samples) {
-    switch (samples) {
-    case 2: return {SG_RANGE(depth_from_multisampled_vs), SG_RANGE(depth_from_multisampled2_ps)};
-    case 4: return {SG_RANGE(depth_from_multisampled_vs), SG_RANGE(depth_from_multisampled4_ps)};
-    case 8: return {SG_RANGE(depth_from_multisampled_vs), SG_RANGE(depth_from_multisampled8_ps)};
     default: return {};
     }
 }
-
-void SetBytecode(sg_shader_desc& s, const ShaderBytecode& code) {
-    s.vertex_func.bytecode = code.vs;
-    s.fragment_func.bytecode = code.ps;
 }
-
-} // namespace render::detail

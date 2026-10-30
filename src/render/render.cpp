@@ -1,39 +1,22 @@
-// The new renderer's frame: the switch, the Direct3D 11 device behind sokol_gfx, the off-screen
+// The new renderer's frame: the switch, the device behind sokol_gfx, the off-screen
 // target the frame is drawn into (the game's resolution) and reading it back for captures. See render.h and docs/notes/renderer.md.
 #include "render.h"
 
-#include "../hook/log.h"
-#include "platform/platform.h"
-#include "render_internal.h"
-#include "render_perf.h"
-#include "render_ui.h"
-
-#include "ei/hook.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#if defined(_WIN32)
-#include <d3d11.h>
-#include <float.h>
-#include <windows.h>
-#include <xmmintrin.h>
-#if defined(EI_RENDER_VALIDATION)
-#include <d3d11on12.h>
-#include <d3d12.h>
-#endif
-
-#else
-#include "render_native.h"
-
-#include <cfenv>
-#include <chrono>
-#endif
 #include "../game/app.h"
 #include "../game/game_singletons.h"
 #include "../game/model.h"
 #include "../game/texture.h"
+#include "../hook/log.h"
+#include "platform/graphics.h"
+#include "platform/platform.h"
+#include "render_internal.h"
+#include "render_perf.h"
 #include "render_state.h"
+#include "render_ui.h"
 
+#include "ei/hook.h"
+
+#include <chrono>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -54,8 +37,8 @@ using namespace detail;
 bool g_configured = false;
 int g_msaa = 1;         // the render quality (SetMsaa, SetAnisotropy); not EI_RENDER's
 int g_anisotropy = 1;
+bool g_removable = false;   // requested only by diagnostic builds
 #if defined(EI_RENDER_VALIDATION)
-bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12
 bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
 #endif
 
@@ -107,10 +90,6 @@ sg_color FromD3DColour(std::uint32_t c) {
                     (c & 0xFF) / 255.0f, 1.0f};
 }
 
-#if defined(_WIN32)
-ID3D11Device* g_device = nullptr;
-ID3D11DeviceContext* g_context = nullptr;
-#endif
 int g_deviceSamples = 1;   // the most samples up to kSmoothSamples the device draws the frame with
 
 void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line,
@@ -128,163 +107,9 @@ void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const ch
     if (level == 0) Fatal("The renderer stopped: sokol_gfx panic %u (%s).", item, message ? message : "");
 }
 
-#if defined(EI_RENDER_VALIDATION)
-// --- A device the harness can remove --------------------------------------------------------------
-// EI_RENDER "removable" (harness build only): render::RemoveDevice.
-
-ID3D12Device* g_d3d12 = nullptr;
-ID3D12CommandQueue* g_queue = nullptr;
-bool g_removeAsked = false;   // render::RemoveDevice: removed at the next present (RemoveIfAsked)
-int g_removals = 0;
-
-void ReleaseRemovable() {
-    if (g_queue) g_queue->Release();
-    g_queue = nullptr;
-    if (g_d3d12) {
-        ULONG left = g_d3d12->Release();
-        if (left) ei::Log("render: the Direct3D 12 device under the removable one keeps %lu references", static_cast<unsigned long>(left));
-    }
-    g_d3d12 = nullptr;
-}
-
-HRESULT CreateRemovableDevice(const D3D_FEATURE_LEVEL* levels, UINT count, D3D_FEATURE_LEVEL* got) {
-    HMODULE d3d12 = LoadLibraryExW(L"d3d12.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-    HMODULE d3d11 = GetModuleHandleW(L"d3d11.dll");
-    auto create12 = d3d12 ? reinterpret_cast<PFN_D3D12_CREATE_DEVICE>(GetProcAddress(d3d12, "D3D12CreateDevice")) : nullptr;
-    auto create11on12 =
-        d3d11 ? reinterpret_cast<PFN_D3D11ON12_CREATE_DEVICE>(GetProcAddress(d3d11, "D3D11On12CreateDevice")) : nullptr;
-    if (!create12 || !create11on12) {
-        ei::Log("render: removable device: no D3D12CreateDevice or D3D11On12CreateDevice");
-        return E_NOINTERFACE;
-    }
-    HRESULT hr = create12(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&g_d3d12));
-    if (FAILED(hr)) {
-        ei::Log("render: removable device: D3D12CreateDevice failed (%08lX)", static_cast<unsigned long>(hr));
-        g_d3d12 = nullptr;
-        return hr;
-    }
-    // Direct3D 12 devices are one per adapter while one lives: a removed one still referenced
-    // somewhere would come back here.
-    HRESULT removed = g_d3d12->GetDeviceRemovedReason();
-    if (FAILED(removed)) {
-        ei::Log("render: removable device: D3D12CreateDevice gave a removed device (%08lX)", static_cast<unsigned long>(removed));
-        ReleaseRemovable();
-        return removed;
-    }
-    D3D12_COMMAND_QUEUE_DESC queue{};
-    queue.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    hr = g_d3d12->CreateCommandQueue(&queue, IID_PPV_ARGS(&g_queue));
-    if (SUCCEEDED(hr)) {
-        IUnknown* queues[] = {g_queue};
-        hr = create11on12(g_d3d12, D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels, count, queues, 1, 0, &g_device, &g_context, got);
-    }
-    if (FAILED(hr)) {
-        ei::Log("render: removable device: D3D11On12CreateDevice failed (%08lX)", static_cast<unsigned long>(hr));
-        g_device = nullptr;
-        g_context = nullptr;
-        ReleaseRemovable();
-    }
-    return hr;
-}
-#endif
-
-#if defined(_WIN32)
-const D3D_FEATURE_LEVEL kLevels[] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
-constexpr UINT kLevelCount = static_cast<UINT>(sizeof(kLevels) / sizeof(kLevels[0]));
-
-HRESULT CreatePlainDevice(ID3D11Device** device, ID3D11DeviceContext** context, D3D_FEATURE_LEVEL* got) {
-    return D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT, kLevels, kLevelCount,
-                             D3D11_SDK_VERSION, device, got, context);
-}
-
-// The device made ahead (render::PrepareDevice): on a thread of its own while the game starts up.
-struct PreparedDevice {
-    HANDLE thread = nullptr;
-    HRESULT result = E_FAIL;
-    ID3D11Device* device = nullptr;
-    ID3D11DeviceContext* context = nullptr;
-    D3D_FEATURE_LEVEL got{};
-};
-PreparedDevice g_prepared;
-
-DWORD WINAPI PrepareDeviceThread(void*) {
-    g_prepared.result = CreatePlainDevice(&g_prepared.device, &g_prepared.context, &g_prepared.got);
-    return 0;
-}
-
-bool TakePreparedDevice(HRESULT* result, D3D_FEATURE_LEVEL* got) {
-    if (!g_prepared.thread) return false;
-    WaitForSingleObject(g_prepared.thread, INFINITE);
-    CloseHandle(g_prepared.thread);
-    g_prepared.thread = nullptr;
-    *result = g_prepared.result;
-    g_device = g_prepared.device;
-    g_context = g_prepared.context;
-    *got = g_prepared.got;
-    return true;
-}
-
-// Why the last CreateDevice failed (for the fatal error's message).
-char g_deviceError[160] = "";
-
-bool CreateDevice() {
-    D3D_FEATURE_LEVEL got{};
-    HRESULT hr = S_OK;
-#if defined(EI_RENDER_VALIDATION)
-    if (g_removable) hr = CreateRemovableDevice(kLevels, kLevelCount, &got);
-    else
-#endif
-        if (!TakePreparedDevice(&hr, &got)) hr = CreatePlainDevice(&g_device, &g_context, &got);
-    if (FAILED(hr)) {
-        std::snprintf(g_deviceError, sizeof(g_deviceError), "no Direct3D 11 device (D3D11CreateDevice failed, %08lX)",
-                      static_cast<unsigned long>(hr));
-        ei::Log("render: %s", g_deviceError);
-        return false;
-    }
-    sg_desc desc{};
-    desc.environment.defaults.color_format = kColourFormat;
-    desc.environment.defaults.depth_format = kDepthFormat;
-    desc.environment.defaults.sample_count = 1;
-    desc.environment.d3d11.device = g_device;
-    desc.environment.d3d11.device_context = g_context;
-    desc.logger.func = &SokolLog;
-    // The game's textures, canvases and the images replaced within a frame are far more than sokol's
-    // default pools (128 images, 256 views); a full pool made sg_make_image fail.
-    desc.image_pool_size = 16384;
-    desc.view_pool_size = 16384;
-    desc.buffer_pool_size = 512;
-    desc.pipeline_pool_size = 1024;
-    desc.sampler_pool_size = 256;
-    sg_setup(&desc);
-    if (!sg_isvalid()) {
-        std::snprintf(g_deviceError, sizeof(g_deviceError), "sokol_gfx could not be set up on the Direct3D 11 device");
-        ei::Log("render: %s", g_deviceError);
-        g_context->Release();
-        g_device->Release();
-        g_context = nullptr;
-        g_device = nullptr;
-#if defined(EI_RENDER_VALIDATION)
-        ReleaseRemovable();
-#endif
-        return false;
-    }
-#if defined(EI_RENDER_VALIDATION)
-    if (g_d3d12)
-        ei::Log("render: Direct3D 11 device ready (feature level %X), through D3D11On12 on a Direct3D 12 device: removable",
-                static_cast<unsigned>(got));
-    else
-#endif
-        ei::Log("render: Direct3D 11 device ready (feature level %X)", static_cast<unsigned>(got));
-    g_deviceSamples = SupportedSamples(g_device);
-    ProtectDevice(g_device, g_context);
-    return true;
-}
-
-#else
-char g_deviceError[160] = "Metal device initialization failed";
 bool CreateDevice() {
     sg_desc desc{};
-    if (!NativeEnvironment(&desc.environment)) return false;
+    if (!platform::graphics::CreateEnvironment(&desc.environment, g_removable, &CommitGpu)) return false;
     desc.environment.defaults.color_format = kColourFormat;
     desc.environment.defaults.depth_format = kDepthFormat;
     desc.environment.defaults.sample_count = 1;
@@ -294,11 +119,13 @@ bool CreateDevice() {
     desc.pipeline_pool_size = 1024;
     desc.sampler_pool_size = 256;
     sg_setup(&desc);
-    g_deviceSamples = NativeSampleCount();
-    ei::Log("render: Metal device ready");
-    return sg_isvalid();
+    if (!sg_isvalid()) {
+        platform::graphics::DropDevice();
+        return false;
+    }
+    g_deviceSamples = platform::graphics::SampleCount();
+    return true;
 }
-#endif
 
 // --- The off-screen target ---------------------------------------------------------------------------
 
@@ -451,8 +278,8 @@ void MakePipelines(const char* what) {
 void detail::Start() {
     EnsureConfigured();
     if (g_started) return;
-    FpuGuard fpu;
-    if (!CreateDevice()) Fatal("Can't start the renderer: %s.", g_deviceError);
+    GpuGuard gpu;
+    if (!CreateDevice()) Fatal("Can't start the renderer: %s.", platform::graphics::DeviceError());
     MakePipelines("Can't start the renderer");
     g_started = true;
 }
@@ -473,7 +300,7 @@ bool g_lastLossSimulated = false;
 // window's swap chain and textures are made again as the next frames ask for them (from the file levels kept for
 // them), the interface canvases from the commands each keeps. No new device ends the game.
 void RecreateDevice() {
-    FpuGuard fpu;
+    GpuGuard gpu;
     ++g_losses;
     std::size_t kept = 0, keptBytes = 0;
     DropCursorPresents();
@@ -489,30 +316,17 @@ void RecreateDevice() {
     perf::Release();
     DropTextures(&kept, &keptBytes);
     sg_shutdown();
-#if defined(_WIN32)
-    g_context->ClearState();
-    g_context->Flush();
-    g_context->Release();
-    ULONG left = g_device->Release();
-    g_context = nullptr;
-    g_device = nullptr;
-#if defined(EI_RENDER_VALIDATION)
-    ReleaseRemovable();
-#endif
-    ei::Log("render: the lost Direct3D 11 device released (%lu references left); making a new one (%zu textures to make "
-            "again from %zu KB of their files)",
-            static_cast<unsigned long>(left), kept, keptBytes / 1024);
-#else
-    DropNativeDevice();
-#endif
+    platform::graphics::DropDevice();
+    ei::Log("render: rebuilding the device (%zu textures kept, %zu KB)", kept, keptBytes / 1024);
     // A device right after a driver reset may not be available at once.
     bool made = false;
     for (int attempt = 0; attempt < 5 && !made; ++attempt) {
         if (attempt) platform::Sleep(200);
         made = CreateDevice();
     }
-    if (!made) Fatal("The Direct3D 11 device was lost and no new one could be made: %s.", g_deviceError);
-    MakePipelines("The Direct3D 11 device was lost and made again");
+    if (!made)
+        Fatal("The graphics device was lost and no new one could be made: %s.", platform::graphics::DeviceError());
+    MakePipelines("The graphics device was lost and made again");
     RemakeComposed();
     ++g_recoveries;
     g_deviceLost = false;
@@ -522,21 +336,9 @@ void RecreateDevice() {
 // during the frame, asked for, or found by GetDeviceRemovedReason (a loss nothing reported, e.g.
 // while minimised) makes everything again.
 void CheckDevice() {
-#if defined(_WIN32)
-    if (TakeSimulatedLoss()) ReportDeviceLost(DXGI_ERROR_DEVICE_REMOVED, S_OK);
-#if defined(EI_RENDER_VALIDATION)
-    RemoveIfAsked();   // without a swap chain of the game window's: found by GetDeviceRemovedReason below
-#endif
-    if (!g_deviceLost && g_device) {
-        HRESULT reason = g_device->GetDeviceRemovedReason();
-        if (FAILED(reason)) {
-            ei::Log("render: the Direct3D 11 device was lost (GetDeviceRemovedReason %08lX)", static_cast<unsigned long>(reason));
-            ReportDeviceLost(reason, reason);
-        }
-    }
-#else
-    if (TakeSimulatedLoss()) ReportDeviceLost(-1, 0);
-#endif
+    if (TakeSimulatedLoss()) ReportDeviceLost(platform::graphics::kDeviceRemoved, 0);
+    long result = 0, reason = 0;
+    if (!g_deviceLost && platform::graphics::PollDeviceLoss(&result, &reason)) ReportDeviceLost(result, reason);
     if (g_deviceLost) RecreateDevice();
 }
 
@@ -586,13 +388,9 @@ std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
     }
     return h;
 }
-double g_msPerTick = 0.0;
+constexpr double g_msPerTick = 1000.0 * std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
 
-long long Ticks() {
-    LARGE_INTEGER now{};
-    QueryPerformanceCounter(&now);
-    return now.QuadPart;
-}
+long long Ticks() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
 #endif
 
 void AddFrameStats() {
@@ -878,8 +676,8 @@ void DeviceLossCounts(WindowPresentInfo* info) {
     info->lastLossReason = g_lastLossReason;
     info->lastLossSimulated = g_lastLossSimulated;
 #if defined(EI_RENDER_VALIDATION)
-    info->removable = g_d3d12 != nullptr;
-    info->removals = g_removals;
+    info->removable = platform::graphics::Removable();
+    info->removals = platform::graphics::Removals();
 #endif
 }
 
@@ -891,51 +689,10 @@ void LoseDevice() {
 }
 
 #if defined(EI_RENDER_VALIDATION)
-bool RemoveDevice() {
-    if (!g_started || !g_d3d12) return false;
-    ID3D12Device5* device5 = nullptr;
-    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) {
-        ei::Log("render: RemoveDevice: no ID3D12Device5 (Windows 10 1809 or later)");
-        return false;
-    }
-    device5->Release();
-    g_removeAsked = true;
-    return true;
-}
-
+bool RemoveDevice() { return g_started && platform::graphics::RequestRemoval(); }
 namespace detail {
-
-void RemoveIfAsked() {
-    if (!g_removeAsked || !g_d3d12) return;
-    g_removeAsked = false;
-    ID3D12Device5* device5 = nullptr;
-    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) return;
-    FpuGuard fpu;
-    // The GPU finishes what it was given first. Removed with work in flight, the old device's teardown
-    // (RecreateDevice) crashed in a thread of D3D11On12 / DXGI / the driver, also in a small program that
-    // presented on its own window; with the GPU idle it never did (renderer.md).
-    int waited = 0;
-    D3D11_QUERY_DESC desc{D3D11_QUERY_EVENT, 0};
-    ID3D11Query* idle = nullptr;
-    if (SUCCEEDED(g_device->CreateQuery(&desc, &idle))) {
-        g_context->End(idle);
-        g_context->Flush();
-        BOOL done = FALSE;
-        while (g_context->GetData(idle, &done, sizeof(done), 0) == S_FALSE && waited < 2000) {
-            Sleep(1);
-            ++waited;
-        }
-        idle->Release();
-    }
-    device5->RemoveDevice();
-    device5->Release();
-    ++g_removals;
-    ei::Log("render: the removable device removed (ID3D12Device5::RemoveDevice, the GPU idle after %d ms); its "
-            "GetDeviceRemovedReason now %08lX",
-            waited, static_cast<unsigned long>(g_device->GetDeviceRemovedReason()));
+void RemoveIfAsked() { platform::graphics::RemoveIfAsked(); }
 }
-
-} // namespace detail
 #endif
 
 namespace detail {
@@ -951,38 +708,10 @@ void Fatal(const char* format, ...) {
     std::exit(-1);
 }
 
-// The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU precision");
-// drivers are not expected to change it, but the control word is put back after every call into them anyway
-// (set only when it changed).
-#if defined(_M_IX86)
-FpuGuard::FpuGuard() { __control87_2(0, 0, &saved, nullptr); }
-FpuGuard::~FpuGuard() {
-    unsigned int now = 0;
-    __control87_2(0, 0, &now, nullptr);
-    if (now != saved) __control87_2(saved, _MCW_EM | _MCW_IC | _MCW_RC | _MCW_PC, &now, nullptr);
-}
-#elif defined(_WIN32)
-// MXCSR's control bits (flush to zero, rounding, the exception masks, denormals are zero); the low six are the
-// status flags.
-constexpr unsigned int kMxcsrControl = 0xFFC0;
-FpuGuard::FpuGuard() : saved(_mm_getcsr()) {}
-FpuGuard::~FpuGuard() {
-    const unsigned int now = _mm_getcsr();
-    if ((now ^ saved) & kMxcsrControl) _mm_setcsr((now & ~kMxcsrControl) | (saved & kMxcsrControl));
-}
-#else
-FpuGuard::FpuGuard() : saved(static_cast<unsigned>(std::fegetround())) {}
-FpuGuard::~FpuGuard() { std::fesetround(static_cast<int>(saved)); }
-#endif
-
 Frame g_frame;
 std::uint32_t FrameNumber() { return g_frameNumber; }
 std::uint32_t CommitNumber() { return g_commits; }
 
-#if defined(_WIN32)
-ID3D11Device* D3DDevice() { return g_device; }
-ID3D11DeviceContext* D3DContext() { return g_context; }
-#endif
 void CommitGpu() {
     sg_commit();
     ++g_commits;
@@ -1036,14 +765,8 @@ void Configure(const char* spec) {
 }
 
 void PrepareDevice() {
-#if defined(_WIN32)
     EnsureConfigured();
-    if (g_started || g_prepared.thread) return;
-#if defined(EI_RENDER_VALIDATION)
-    if (g_removable) return;   // made at the first use (CreateRemovableDevice)
-#endif
-    g_prepared.thread = CreateThread(nullptr, 0, &PrepareDeviceThread, nullptr, 0, nullptr);
-#endif
+    if (!g_started) platform::graphics::PrepareDevice(g_removable);
 }
 
 void BeginDeviceMeshTime() {
@@ -1169,11 +892,6 @@ StatsTimer::StatsTimer(double FrameStats::* newField) : field(newField), start(0
 
 StatsTimer::~StatsTimer() {
 #if defined(EI_RENDER_VALIDATION)
-    if (g_msPerTick == 0.0) {
-        LARGE_INTEGER frequency{};
-        QueryPerformanceFrequency(&frequency);
-        g_msPerTick = frequency.QuadPart > 0 ? 1000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
-    }
     double ms = static_cast<double>(Ticks() - start) * g_msPerTick;
     g_stats.*field += ms;
     if (outer) g_stats.*(outer->field) -= ms;      // the outer timer counts its own work only
@@ -1239,13 +957,13 @@ namespace detail {
 
 void SplitFrame() {
     if (!g_started || g_frameDrawn || BetweenFrames()) return;
-    FpuGuard fpu;
+    GpuGuard gpu;
     DrawPendingAlone();
 }
 
 void RunCanvasesNow() {
     Start();
-    FpuGuard fpu;
+    GpuGuard gpu;
     BeginWindowPresent();
     RunCanvasCommands();
     EndWindowPresent(false);
@@ -1263,7 +981,7 @@ void EndFrame() {
     if (g_frameDrawn) return;
     Start();
     g_frameDrawn = true;
-    FpuGuard fpu;
+    GpuGuard gpu;
     StatsTimer timer(&FrameStats::endFrameMs);
     perf::CpuTimer submitTime(perf::Cpu::Submit);
     // Onto the game window through the renderer's swap chain, in turn with the cursor thread's presents, which
@@ -1319,7 +1037,7 @@ void Present() {
     g_lastCounts = g_counts;
     g_counts = SmoothInfo{};
     if (g_started) {
-        FpuGuard fpu;
+        GpuGuard gpu;
         RetireTextures();
         RetireBuffers();
         RetireFrameImages();
@@ -1352,7 +1070,7 @@ SmoothInfo SmoothState() {
 
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
     if (!g_started || !g_haveFrame || !g_colour.id) return false;
-    FpuGuard fpu;
+    GpuGuard gpu;
     StagingCopy copy;
     bool ok = copy.Map(g_colour);
     if (ok) {

@@ -3,6 +3,7 @@
 #include "../game/model.h"
 #include "../game/terrain_sector.h"
 #include "../hook/log.h"
+#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
 
@@ -12,16 +13,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#if defined(_WIN32)
-#include <d3d11.h>
-#endif
 #include <unordered_map>
 #include <vector>
-#if defined(_WIN32)
-#include <windows.h>
-#else
-#include "render_native.h"
-#endif
 
 namespace render {
 
@@ -592,7 +585,7 @@ namespace detail {
 
 bool CreateTerrainShader() {
     sg_shader_desc s{};
-    SetBytecode(s, kTerrainShader);
+    s = ShaderDescription(kTerrainShader);
     const char* const semantics[6] = {"POSITION", "COLOR", "COLOR", "TEXCOORD", "NORMAL", "TEXCOORD"};
     const std::uint8_t indices[6] = {0, 0, 1, 0, 0, 1};
     for (int i = 0; i < 6; ++i) {
@@ -885,7 +878,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     // takes before its draws (it turns SPECULARENABLE on around each, which the shader always adds).
     PassState state;
     {
-        FpuGuard fpu;
+        GpuGuard gpu;
         state = ReadPassState(nullptr);
     }
     if (!f.commands.empty() && f.commands.back().kind == Command::Terrain) {
@@ -914,7 +907,7 @@ void ShadowTerrainSector(const SectorData* s) {
     c.seen = FrameNumber();
     c.cast = false;
     if (c.positions != s->vertices.data() || c.sx != s->sx || c.sy != s->sy || c.rebuilt != rebuilt || c.vertices.empty()) {
-        FpuGuard fpu;
+        GpuGuard gpu;
         BuildCaster(s, c);
         c.positions = s->vertices.data();
         c.sx = s->sx;

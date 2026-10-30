@@ -105,7 +105,8 @@ file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 # The new renderer (docs/notes/renderer.md): sokol_gfx on Direct3D 11, switched on with EI_RENDER.
 # The harness build turns on sokol's validation layer (messages go to ei-rebuild.log).
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
-add_library(ei_render STATIC ${EI_RENDER_SOURCES})
+add_library(ei_render STATIC ${EI_RENDER_SOURCES} src/platform/win32/graphics_win32.cpp)
+target_compile_definitions(ei_render PRIVATE SOKOL_D3D11)
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
 target_link_libraries(ei_render PUBLIC d3d11 dxgi)
 if(EI_HARNESS)
@@ -120,6 +121,7 @@ endif()
 # with the dr_wav / dr_mp3 decoders (src/platform/audio_sdl.cpp); the movies on the Bink decoder in src/platform/bink.
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/*.cpp src/platform/win32/*.cpp src/platform/bink/*.cpp)
 list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/platform_win32_window.cpp)
+list(REMOVE_ITEM EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/win32/graphics_win32.cpp)
 if(EI_HARNESS)
     list(APPEND EI_PLATFORM_SOURCES src/platform/win32/platform_win32_window.cpp)
 else()
@@ -131,7 +133,7 @@ target_include_directories(ei_platform PRIVATE include src third_party)
 target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
 # The renderer's shaders: written in src/render/shaders/*.hlsl, compiled to bytecode here with the Windows
 # SDK's fxc (on the path in the VS build environment) into headers under shaders/ in the build folder, which
-# render_shaders.cpp includes; sokol takes the bytecode, so no shader compiler runs at start (SV10b). The
+# the descriptor header includes; sokol takes the bytecode, so no shader compiler runs at start. The
 # shaders include each other: each header depends on all of them.
 find_program(EI_FXC fxc REQUIRED)
 file(GLOB EI_SHADER_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.hlsl src/render/shaders/*.hlsli)
@@ -171,6 +173,14 @@ foreach(e solid glyph compose grey copy rgb565 blit)
     ei_shader(ui_${e}_ps ui_canvas.hlsl ps_${e} ps_4_0)
 endforeach()
 target_sources(ei_render PRIVATE ${EI_SHADER_HEADERS})
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(EI_SHADER_DESCRIPTORS ${CMAKE_BINARY_DIR}/native_shaders/all_shaders.h)
+add_custom_command(OUTPUT ${EI_SHADER_DESCRIPTORS}
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/port_shaders.py
+            --dxbc-headers ${CMAKE_BINARY_DIR}/shaders --out-dir ${CMAKE_BINARY_DIR}/native_shaders
+    DEPENDS ${EI_SHADER_HEADERS} ${CMAKE_SOURCE_DIR}/tools/port_shaders.py
+    COMMENT "Writing sokol descriptors for the compiled shaders" VERBATIM)
+target_sources(ei_render PRIVATE ${EI_SHADER_DESCRIPTORS})
 target_include_directories(ei_render PRIVATE ${CMAKE_BINARY_DIR})
 # The interface fonts built into the executable (render_fonts.cpp): third_party/fonts' two Liberation files written
 # as byte arrays into fonts/ in the build folder at build time (src/render/embed.cmake; not committed).

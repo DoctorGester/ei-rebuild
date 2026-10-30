@@ -1,5 +1,4 @@
 // Native platform checks with synthetic files only. No installed game files are changed.
-#include "platform/callers.h"
 #include "platform/platform.h"
 
 #include "lib/float_select.h"

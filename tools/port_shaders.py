@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Compile the existing HLSL through Vulkan GLSL and sokol-shdc for Metal/GL.
+"""Package existing HLSL as sokol shader descriptors.
 
-This is the port's shader compilation checkpoint, independent of the D3D renderer.
-The HLSL sources remain authoritative during the migration.
+Metal/GL convert through Vulkan GLSL and sokol-shdc; Windows wraps compiled fxc headers.
+HLSL remains authoritative until the shaders are authored directly for sokol-shdc.
 """
 import argparse
 from pathlib import Path
@@ -95,10 +95,36 @@ def stage_source(args, source, entry, stage, output, defines, fragment_base=1):
     return text
 
 
+def wrap_dxbc(headers, output, programs):
+    """Expose the existing fxc arrays through the same descriptor interface as sokol-shdc."""
+    pairs = []
+    for name, vs, ve, fs, fe, defines in programs:
+        vertex = vs if vs.endswith("_vs") else vs + "_vs"
+        if vs == "ui_canvas":
+            vertex = "ui_glyph_vs" if ve == "vs_glyph" else "ui_rect_vs"
+        fragment = name + "_ps"
+        pairs.append((name, vertex, fragment))
+    arrays = sorted({array for name, vertex, fragment in pairs for array in (vertex, fragment)})
+    for array in arrays:
+        if not (headers / (array + ".h")).is_file():
+            raise RuntimeError("Missing fxc output: " + str(headers / (array + ".h")))
+    text = '#pragma once\n#include "sokol_gfx.h"\nnamespace dxbc_generated {\nusing BYTE = unsigned char;\n'
+    text += "".join('#include "shaders/' + array + '.h"\n' for array in arrays) + "}\n"
+    for name, vertex, fragment in pairs:
+        text += ("namespace " + name + "_generated {\ninline const sg_shader_desc* " + name +
+                 "_shader_desc(sg_backend) {\n    static const sg_shader_desc desc = [] {\n"
+                 "        sg_shader_desc result{};\n        result.vertex_func.bytecode = SG_RANGE(dxbc_generated::" +
+                 vertex + ");\n        result.fragment_func.bytecode = SG_RANGE(dxbc_generated::" + fragment +
+                 ");\n        return result;\n    }();\n    return &desc;\n}\n}\n")
+    output.write_text(text)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", type=Path, required=True)
-    parser.add_argument("--shdc", required=True)
+    compiler = parser.add_mutually_exclusive_group(required=True)
+    compiler.add_argument("--shdc")
+    compiler.add_argument("--dxbc-headers", type=Path, help="Wrap already compiled Windows fxc headers")
     parser.add_argument("--glslang", default="glslangValidator")
     parser.add_argument("--spirv-cross", default="spirv-cross")
     parser.add_argument("--bytecode", action="store_true")
@@ -119,6 +145,9 @@ def main():
     for entry in ["solid", "glyph", "compose", "grey", "copy", "rgb565", "blit"]:
         programs.append(("ui_" + entry, "ui_canvas", "vs_glyph" if entry == "glyph" else "vs_rect",
                          "ui_canvas", "ps_" + entry, []))
+    if args.dxbc_headers:
+        wrap_dxbc(args.dxbc_headers, args.out_dir / "all_shaders.h", programs)
+        return
     includes = []
     for name, vs, ve, fs, fe, defines in programs:
         output = args.out_dir / name

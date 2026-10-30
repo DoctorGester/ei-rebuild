@@ -14,7 +14,10 @@ renderer's.
    2DintMMX's uses went in R28, and 3DfpFPU's projections are plain C++ in game code (`projection.cpp`, R31, section
    10). Results only need to be close (captures are compared with a tolerance); full determinism is out of scope.
 
-Backend: **sokol_gfx** (`third_party/sokol`, commit 2e75443, zlib) on **Direct3D 11**. The new renderer draws, in
+Backends: **sokol_gfx** (`third_party/sokol`, commit 2e75443, zlib) on **Direct3D 11** (Windows) and **Metal**
+(macOS). Shared code in `src/render` owns passes, pipelines, buffers, presentation, gamma and cursors without OS
+branches. `src/platform/graphics.h` exposes native operations sokol leaves to its host; each backend has one
+implementation (`win32/graphics_win32.cpp`, `graphics_metal.mm`), including sokol's implementation. The renderer draws, in
 the game's order, the terrain (ground and water pages), every mesh the game's own draws (figures, map objects, sky,
 interface sprites and 3D previews), the flat geometry (object shadows, selection markers, light decals), the
 interface windows' surfaces, the renderer's rectangles (rubber band, fades), the software cursor, the depth clears
@@ -23,15 +26,19 @@ hit points), the weather (after its builders draw) and the movies (also the play
 menu's and the save game's screen copy comes from the new frame. The game has no DirectDraw or Direct3D 7 device and no
 texture or surface holder of it is a DirectDraw object (section 9).
 
-Shaders (SV10b): written in `src/render/shaders/*.hlsl` (`shadow_receiver.hlsli` is included by the terrain's and
-the meshes'), compiled to bytecode at build time by the Windows SDK's fxc (CMakeLists.txt's `ei_shader`,
-`shaders/compile.cmake`: column-major matrices, `/O3`, the flags sokol would give d3dcompiler; fxc's warnings fail
-the build) into headers that `render_shaders.cpp` turns into `ShaderBytecode` (render_internal.h); the shader
-descriptions take it with `SetBytecode`. No compiler runs at start (it took 0.35 s of every run's start-up); the
-bytecode is what d3dcompiler_47 made at run time to the byte but the recorded compile flags and the checksum. A new
-shader: its `.hlsl`, an `ei_shader` line per function, its arrays in render_shaders.cpp. The Direct3D 11 device is
-made on a thread of its own from the image's start (`render::PrepareDevice`, called by standalone.cpp before
-WinMain; not with "removable") and taken at the renderer's first use.
+Shaders: HLSL in `src/render/shaders`, including shared `.hlsli` files. Windows compiles with the SDK's fxc
+(`ei_shader` in CMakeLists.txt, `shaders/compile.cmake`); `tools/port_shaders.py --dxbc-headers` wraps those arrays
+in sokol descriptors. macOS runs the same sources through glslang, SPIRV-Cross and sokol-shdc for Metal and GL
+(`cmake/native.cmake`). Both produce `native_shaders/all_shaders.h` in the build tree. Shared
+`render_shaders.cpp` selects a descriptor by `ShaderProgram`; each pipeline supplies its layout and bindings.
+The conversion script is a migration bridge: authoring annotated GLSL directly for sokol-shdc would remove its
+source rewriting and the separate fxc packaging. See docs/notes/macos.md for tool versions and native checks.
+
+The Windows device is made on a thread of its own from the image's start (`render::PrepareDevice`, called by
+standalone.cpp before WinMain; not with "removable") and taken at the renderer's first use. Windows driver calls
+preserve the game's floating-point control state through the graphics backend; Metal needs no such adjustment.
+`GpuGuard` serializes sokol access between the main thread and the cursor worker, including resource creation
+and retirement outside a frame's drawing.
 
 ## 1. Always on in the image (no DirectDraw fallback)
 
@@ -438,8 +445,8 @@ sets it).
 
 Shared helpers (render_internal.h): every read-back of a texture (the frame, the canvases, the composed levels, the
 harness build's upload / ramp / cursor checks, also the cursor thread's) goes through `StagingCopy`
-(render_staging.cpp: a staging texture kept and grown, copied into and mapped; no sokol state touched, so a main-thread
-read resets sokol's state cache after it); `D3DTexture` is a sokol image's texture, `Channel` a pixel format's channel
+(render_staging.cpp: a CPU snapshot populated through the selected backend's transfer resources);
+`Channel` describes a pixel format's channel
 (its 8-bit value: `Widen`), `RectParams` / `ApplyRect` the rectangle shaders' vertex block. The .mmp header is
 texture.h's `MmpHeader` on both sides.
 
@@ -637,7 +644,7 @@ is what to read it for.
 - `removable` in EI_RENDER (the scenario's `render new,present,removable`; known only to the harness build,
   `EI_RENDER_VALIDATION`) makes the Direct3D 11 device through `D3D11On12CreateDevice` on a Direct3D 12 device of the
   default adapter and a direct queue (d3d12.dll loaded at run time from System32; nothing installed). The swap chain,
-  the gamma ramp check, the cursor's deferred context and every frame work on it as on the hardware device.
+  the gamma ramp check, the cursor presentation pass and every frame work on it as on the hardware device.
 - `render::RemoveDevice` (harness step `removedevice [seconds]`) asks for a removal; it happens right before the
   next swap chain Present (`RemoveIfAsked`; without a swap chain at the end of the frame): the GPU is let finish
   (an event query, at most 2 s), then `ID3D12Device5::RemoveDevice` removes the Direct3D 12 device, so Present and
@@ -669,8 +676,8 @@ Ours is a present from the cursor thread, not a hardware cursor (that would move
 holds its own still (005E67B0, the camera turned with the right button), is not scaled with the frame in a larger
 window, needs a new HCURSOR per animated frame, ignores the gamma ramp and is invisible to captures). The design is in
 the header of `render_cursor.cpp`; the rules worth knowing:
-- The cursor thread makes no sokol call (a deferred Direct3D 11 context with the raw objects of sokol's pipelines,
-  executed with RestoreContextState so sokol's state cache stays right; ID3D11Multithread protection on).
+- The cursor thread reuses the normal sokol presentation pass under the same recursive GPU lock. The backend
+  opts into worker presentation: Windows supports it; Metal keeps SDL drawable acquisition on the main thread.
 - The swap chain is shared: the main thread's window present and the cursor thread's take turns under one lock
   (`BeginWindowPresent` .. `EndWindowPresent`); a lost device drops the cursor's references under it first
   (`DropCursorPresents`, R9c1). Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present
@@ -679,7 +686,7 @@ the header of `render_cursor.cpp`; the rules worth knowing:
   (`present.hlsl`) draws the cursor over the frame as it goes through the gamma ramp into the back buffer (its texels
   with alpha of a half or more replace the frame's pixel; where the cursor touches the bilinear footprint the filter
   is done by hand over the composed pixels, so a scaled window filters the cursor with the frame as before). The cursor
-  thread runs the same draw (the same raw pipeline) with its own cursor position over the frame target: no copy of the
+  thread runs the same draw (the same presentation pass) with its own cursor position over the frame target: no copy of the
   frame (R16f; there was a whole-frame copy a frame, 33 MB of GPU traffic at 4K). So that the target is whole when it
   reads it, everything that draws into the frame target runs under the present lock (`EndFrame`, and `DrawPendingAlone`
   for the passes of a copy in the middle of a frame, SplitFrame) and `BeginWindowPresent` drops what the cursor thread
@@ -1879,19 +1886,14 @@ What each file does at large, moved from the files' headers.
 
 ### render_cursor.cpp: the cursor between frames
 
-The software cursor between frames in the switch-over without DirectDraw (docs/notes/renderer.md, section 9). The
-game's cursor thread (every 41 ms) drew the cursor straight onto the primary surface when it moved, so it kept
-moving while the main thread drew no frame (a long frame, a blocking load). Without DirectDraw the cursor thread
-hands the move here instead (render::CursorBetweenFrames): the last frame presented on the game window, which holds
-no cursor (the present draws it over the frame), is presented again with the cursor at its new place. The main
-thread keeps using sokol alone. The cursor thread makes no sokol call: it records its present on a Direct3D 11
-deferred context with the raw objects of sokol's present pipeline (the frame target and the cursor through the
-gamma ramp into the back buffer: the draw the main thread's present makes) and runs it as one command list on the
-immediate context (ExecuteCommandList, which puts the context's state back, so sokol's state cache stays right),
-with the device's multithread protection on. The swap chain and the frame target are shared: the main thread's
-frame draw and present on the game window and the cursor thread's present take turns under one lock, and the main
-thread takes the references the cursor thread draws with at the end of each of its presents (and drops them when it
-begins the next frame's draws: the frame target is partly drawn until then).
+The game's cursor thread (every 41 ms) hands moves to `render::CursorBetweenFrames`. It reuses `DrawToWindow`
+to present the last completed frame with the new cursor position, through the same gamma ramp and shaders as
+normal frames. Both threads serialize sokol access with `GpuGuard`; the main thread disables worker presents
+before drawing into the frame and enables them after a successful window present. Worker presents require a
+supported backend, an unchanged cursor sheet, an in-bounds rectangle and at least 40 ms since the main thread's
+last present. Windows supports them; Metal requires drawable acquisition on the main thread, so its cursor is
+presented with normal frames. No native deferred context or separate cursor pipeline is used. Diagnostic builds
+compare the result with CPU-composed frame, cursor and gamma pixels.
 
 ### render_mesh.cpp: meshes
 

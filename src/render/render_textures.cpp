@@ -2,20 +2,11 @@
 // uploaded as their blocks; RGB of any mask layout decoded; the file's levels only) and textures drawn on the GPU
 // (render_compose.cpp), kept as sokol images until the holder goes, with what they were made from for a new
 // device. Also the cursor pictures' pixels as RGBA8 (render::PictureFromMmp).
+#include "../game/texture.h"
 #include "../hook/log.h"
+#include "platform/graphics.h"
 #include "render_internal.h"
 #include "render_ui.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#if defined(_WIN32)
-#include <d3d11.h>
-#include <windows.h>
-#else
-#include "render_native.h"
-#endif
-
-#include "../game/texture.h"
 
 #include <cstdio>
 #include <cstring>
@@ -247,11 +238,12 @@ struct MmpImageCounts {
     std::uint64_t bytes = 0, mostHeld = 0;
     long long ticks = 0;
     ~MmpImageCounts() {
-        LARGE_INTEGER frequency{};
-        QueryPerformanceFrequency(&frequency);
-        ei::Log("render: .mmp textures at exit: %ld made, %llu KB uploaded, at most %llu KB held at once, %.1f ms making them",
+
+        ei::Log("render: .mmp textures at exit: %ld made, %llu KB uploaded, at most %llu KB held at once, %.1f ms "
+                "making them",
                 made, static_cast<unsigned long long>(bytes / 1024), static_cast<unsigned long long>(mostHeld / 1024),
-                static_cast<double>(ticks) * 1000.0 / static_cast<double>(frequency.QuadPart));
+                static_cast<double>(ticks) * 1000.0 * std::chrono::steady_clock::period::num /
+                    std::chrono::steady_clock::period::den);
     }
 } g_mmpImageCounts;
 
@@ -332,6 +324,7 @@ sg_wrap Wrap(std::uint8_t address) {
 } // namespace
 
 sg_view SurfaceView(const void* holder) {
+    GpuGuard gpu;
     StatsTimer timer(&FrameStats::textureMs);
     std::uint32_t frame = FrameNumber();
     auto decoded = holder ? g_textures.find(holder) : g_textures.end();
@@ -434,8 +427,7 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
         return false;
     }
 #if defined(EI_RENDER_VALIDATION)
-    LARGE_INTEGER started{};
-    QueryPerformanceCounter(&started);
+    const auto started = std::chrono::steady_clock::now();
 #endif
     MmpLevels read;
     std::uint32_t first = 0, end = 0;
@@ -454,9 +446,7 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
     source.levels = levels;
     bool made = StoreMmp(holder, std::move(read), std::move(source));
 #if defined(EI_RENDER_VALIDATION)
-    LARGE_INTEGER now{};
-    QueryPerformanceCounter(&now);
-    CountMmpImage(holder, now.QuadPart - started.QuadPart);
+    CountMmpImage(holder, (std::chrono::steady_clock::now() - started).count());
 #endif
     return made;
 }
@@ -612,7 +602,7 @@ namespace render {
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
     if (!holder || !data) return false;
     detail::Start();
-    detail::FpuGuard fpu;
+    detail::GpuGuard gpu;
     detail::StatsTimer timer(&FrameStats::textureMs);
     return detail::TextureFromMmpData(holder, data, mip, levels);
 }
@@ -621,7 +611,7 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
     using namespace detail;
     if (!holder || size <= 0 || size > 4096) return false;
     Start();
-    FpuGuard fpu;
+    GpuGuard gpu;
     StatsTimer timer(&FrameStats::textureMs);
     auto recipe = std::make_shared<ComposeRecipe>();
     recipe->width = recipe->height = size;
@@ -648,7 +638,7 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
     using namespace detail;
     if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
     Start();
-    FpuGuard fpu;
+    GpuGuard gpu;
     StatsTimer timer(&FrameStats::textureMs);
     auto recipe = std::make_shared<ComposeRecipe>();
     recipe->width = width;
@@ -661,7 +651,7 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
 void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height) {
     using namespace detail;
     Start();
-    FpuGuard fpu;
+    GpuGuard gpu;
     StatsTimer timer(&FrameStats::textureMs);
     ComposeStep step;
     step.over = false;
@@ -676,7 +666,7 @@ void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y
 void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
     using namespace detail;
     Start();
-    FpuGuard fpu;
+    GpuGuard gpu;
     StatsTimer timer(&FrameStats::textureMs);
     auto clouds = std::make_shared<CloudsDraw>();
     clouds->from = from;
@@ -727,7 +717,7 @@ void HolderGone(const void* holder) {
 
 void PictureFromMmp(const void* holder, const void* data) {
     if (!holder || !data) return;
-    detail::FpuGuard fpu;
+    detail::GpuGuard gpu;
     detail::PictureFromMmpData(holder, data);
 }
 

@@ -2,15 +2,9 @@
 // (StreamBuffer, GeometryStream) and the pools that keep terrain pages and meshes on the GPU across
 // frames (GpuPool; docs/notes/renderer.md section 13).
 #include "../hook/log.h"
+#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
-
-#if defined(_WIN32)
-#include <d3d11.h>
-#include <windows.h>
-#else
-#include "render_native.h"
-#endif
 
 #include <algorithm>
 #include <cstring>
@@ -112,44 +106,8 @@ void GeometryStream::Destroy() {
 
 // --- Pools -------------------------------------------------------------------------------------------------
 
-#if defined(_WIN32)
-bool GpuPool::Buffer::Make(std::size_t bytes, bool index, const char* label) {
-    D3D11_BUFFER_DESC d{};
-    d.ByteWidth = static_cast<UINT>(bytes);
-    d.Usage = D3D11_USAGE_DEFAULT;
-    d.BindFlags = index ? D3D11_BIND_INDEX_BUFFER : D3D11_BIND_VERTEX_BUFFER;
-    ID3D11Buffer* made = nullptr;
-    if (!D3DDevice() || FAILED(D3DDevice()->CreateBuffer(&d, nullptr, &made)) || !made) return false;
-    sg_buffer_desc s{};
-    s.size = bytes;
-    s.usage.vertex_buffer = !index;
-    s.usage.index_buffer = index;
-    s.d3d11_buffer = made;
-    s.label = label;
-    buffer = sg_make_buffer(&s);
-    made->Release();   // sokol holds the reference
-    if (sg_query_buffer_state(buffer) != SG_RESOURCESTATE_VALID) {
-        if (buffer.id) sg_destroy_buffer(buffer);
-        buffer = sg_buffer{};
-        return false;
-    }
-    d3d = made;
-    return true;
-}
-
-void GpuPool::Buffer::Write(std::size_t offset, const void* data, std::size_t bytes) const {
-    if (!bytes || !d3d) return;
-    D3D11_BOX box{static_cast<UINT>(offset), 0, 0, static_cast<UINT>(offset + bytes), 1, 1};
-    D3DContext()->UpdateSubresource(d3d, 0, &box, data, 0, 0);
-}
-
-void GpuPool::Buffer::Drop() {
-    Retire(buffer);
-    d3d = nullptr;
-}
-
-#else
-bool GpuPool::Buffer::Make(std::size_t bytes, bool newIndex, const char*) {
+bool GpuPool::Buffer::Make(std::size_t bytes, bool newIndex, const char* label) {
+    GpuGuard gpu;
     shadow.assign(bytes, 0);
     index = newIndex;
     dirty = true;
@@ -159,6 +117,7 @@ bool GpuPool::Buffer::Make(std::size_t bytes, bool newIndex, const char*) {
     desc.usage.vertex_buffer = !index;
     desc.usage.index_buffer = index;
     desc.usage.dynamic_update = true;
+    desc.label = label;
     buffer = sg_make_buffer(desc);
     return sg_query_buffer_state(buffer) == SG_RESOURCESTATE_VALID;
 }
@@ -188,7 +147,6 @@ void GpuPool::Buffer::Drop() {
     shadow.clear();
     dirty = false;
 }
-#endif
 
 bool GpuPool::Place(PoolPlace& p, std::uint32_t vertexCount, std::uint32_t indexCount, bool* anew) {
     *anew = false;
@@ -243,11 +201,9 @@ void GpuPool::WriteIndices(const PoolPlace& p, const std::uint32_t* relative, st
 }
 
 void GpuPool::Bind(sg_bindings& b) const {
-#if !defined(_WIN32)
     geometry.Flush();
     colours.Flush();
     indices.Flush();
-#endif
     b.vertex_buffers[0] = geometry.buffer;
     b.vertex_buffers[1] = colours.buffer;
     b.index_buffer = indices.buffer;

@@ -2,6 +2,7 @@
 
 // Internals shared by the renderer's files.
 
+#include "platform/graphics.h"
 #include "render.h"
 #include "sokol_gfx.h"
 
@@ -15,14 +16,6 @@
 #include <vector>
 
 class TextureDevice;
-struct ID3D11Buffer;
-struct ID3D11Device;
-struct ID3D11DeviceContext;
-struct ID3D11RenderTargetView;
-struct ID3D11Texture2D;
-struct IDXGISwapChain1;
-struct IDXGIFactory2;
-
 namespace render::detail {
 
 // The game's transform pipeline matrices are Matrix4: row-major, out = M * (x, y, z, 1), Direct3D clip
@@ -59,24 +52,67 @@ struct StagePatch {
 };
 StagePatch PatchOf(const void* holder);
 
-// Compiled from src/render/shaders/*.hlsl at build time (CMakeLists.txt's ei_shader).
-struct ShaderBytecode {
-    sg_range vs, ps;
-    const sg_shader_desc* (*descriptor)(sg_backend) = nullptr;
+enum class ShaderProgram {
+    None,
+    Blit,
+    Solid,
+    Mesh,
+    Terrain,
+    Present,
+    IntoMultisampled,
+    Depth2,
+    Depth4,
+    Depth8,
+    Caster,
+    TerrainCaster,
+    Reduce,
+    Dilate,
+    PerfOverlay,
+    TextureCompose,
+    CloudFrame,
+    Clouds,
+    UiSolid,
+    UiGlyph,
+    UiCompose,
+    UiGrey,
+    UiCopy,
+    UiRgb565,
+    UiBlit,
 };
-extern const ShaderBytecode kBlitShader, kSolidShader;
-extern const ShaderBytecode kMeshShader;
-extern const ShaderBytecode kTerrainShader;
-extern const ShaderBytecode kPresentShader;
-extern const ShaderBytecode kIntoMultisampledShader;
-extern const ShaderBytecode kCasterShader, kTerrainCasterShader, kReduceShader, kDilateShader;
-extern const ShaderBytecode kPerfOverlayShader;
-extern const ShaderBytecode kTextureComposeShader, kCloudFrameShader, kCloudsShader;
-extern const ShaderBytecode kUiSolidShader, kUiGlyphShader, kUiComposeShader, kUiGreyShader, kUiCopyShader,
-    kUiRgb565Shader, kUiBlitShader;
-// `samples` 2, 4 or 8; null ranges otherwise.
-ShaderBytecode DepthFromMultisampledShader(int samples);
-void SetBytecode(sg_shader_desc& s, const ShaderBytecode& code);
+sg_shader_desc ShaderDescription(ShaderProgram program);
+inline constexpr auto kBlitShader = ShaderProgram::Blit;
+inline constexpr auto kSolidShader = ShaderProgram::Solid;
+inline constexpr auto kMeshShader = ShaderProgram::Mesh;
+inline constexpr auto kTerrainShader = ShaderProgram::Terrain;
+inline constexpr auto kPresentShader = ShaderProgram::Present;
+inline constexpr auto kIntoMultisampledShader = ShaderProgram::IntoMultisampled;
+inline constexpr auto kCasterShader = ShaderProgram::Caster;
+inline constexpr auto kTerrainCasterShader = ShaderProgram::TerrainCaster;
+inline constexpr auto kReduceShader = ShaderProgram::Reduce;
+inline constexpr auto kDilateShader = ShaderProgram::Dilate;
+inline constexpr auto kPerfOverlayShader = ShaderProgram::PerfOverlay;
+inline constexpr auto kTextureComposeShader = ShaderProgram::TextureCompose;
+inline constexpr auto kCloudFrameShader = ShaderProgram::CloudFrame;
+inline constexpr auto kCloudsShader = ShaderProgram::Clouds;
+inline constexpr auto kUiSolidShader = ShaderProgram::UiSolid;
+inline constexpr auto kUiGlyphShader = ShaderProgram::UiGlyph;
+inline constexpr auto kUiComposeShader = ShaderProgram::UiCompose;
+inline constexpr auto kUiGreyShader = ShaderProgram::UiGrey;
+inline constexpr auto kUiCopyShader = ShaderProgram::UiCopy;
+inline constexpr auto kUiRgb565Shader = ShaderProgram::UiRgb565;
+inline constexpr auto kUiBlitShader = ShaderProgram::UiBlit;
+inline ShaderProgram DepthFromMultisampledShader(int samples) {
+    switch (samples) {
+    case 2:
+        return ShaderProgram::Depth2;
+    case 4:
+        return ShaderProgram::Depth4;
+    case 8:
+        return ShaderProgram::Depth8;
+    default:
+        return ShaderProgram::None;
+    }
+}
 
 // The render state of one pass of a mesh draw. Blend, depth and culling make the pipeline; the rest
 // goes to the shader.
@@ -321,27 +357,14 @@ void Start();
 // logged and shown in the game's error box, and the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not.
 // There is no other way to draw: no fallback.
 [[noreturn]] void Fatal(const char* format, ...);
-ID3D11Device* D3DDevice();
-ID3D11DeviceContext* D3DContext();
-// The Direct3D 11 texture of a sokol image (no reference taken); null for none.
-inline ID3D11Texture2D* D3DTexture(sg_image image) {
-    return static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(image).tex2d));
-}
-
-// A texture's first level, or a region of it, read back: copied into a CPU-readable staging texture of its format
-// and mapped (render_staging.cpp). The staging texture is kept for the next read (made again for a larger region or
-// another format) until Release, which every holder calls (no destructor: some are globals that outlive the device).
-// Touches no sokol state; a read on the main thread resets sokol's state cache after it.
+// A texture's first level, or a region of it, read back into a CPU snapshot (render_staging.cpp).
+// The backend owns any transfer resources; Release drops those before the device goes away.
 class StagingCopy {
 public:
     bool Map(sg_image source);
     bool Map(sg_image source, unsigned left, unsigned top, unsigned width, unsigned height);
-    // The whole level / `width` x `height` texels from (left, top); mapped until Unmap. False, nothing mapped, for no
-    // source or when the copy cannot be made or mapped.
-    bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source);
-    bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, unsigned left, unsigned top, unsigned width,
-             unsigned height);
-    // The mapped region's size and row y (the source's texel format).
+    bool MapDrawable(unsigned left, unsigned top, unsigned width, unsigned height);
+    // The snapshot's size and row y (the source's texel format), valid until Unmap or the next Map.
     unsigned Width() const { return mappedWidth; }
     unsigned Height() const { return mappedHeight; }
     const std::uint8_t* Row(unsigned y) const { return data + static_cast<std::size_t>(y) * pitch; }
@@ -349,13 +372,7 @@ public:
     void Release();
 
 private:
-#if defined(_WIN32)
-    ID3D11Texture2D* texture = nullptr;
-    unsigned width = 0, height = 0, format = 0;
-    ID3D11DeviceContext* context = nullptr;    // while mapped
-#else
     std::vector<std::uint8_t> storage;
-#endif
     const std::uint8_t* data = nullptr;
     std::size_t pitch = 0;
     unsigned mappedWidth = 0, mappedHeight = 0;
@@ -404,30 +421,18 @@ sg_view FrameTexture();
 bool FrameSize(int* width, int* height);
 // The frame into the window's swap chain through the gamma ramp, `cursor` (null: none) over it, then Present.
 // False: nothing to present into.
-bool DrawToWindow(const BlitBatch* cursor);
+bool DrawToWindow(const BlitBatch* cursor, bool overlay = true);
 void PresentWindow();
 // What the last DrawToWindow drew with, for the cursor thread's presents. Raw pointers, no references taken;
 // false when there is no swap chain.
 struct WindowParts {
-    IDXGISwapChain1* chain;
-    ID3D11RenderTargetView* view;
-    sg_shader shader;
-    sg_pipeline pipeline;
-    sg_view frame;
-    sg_view ramp;
-    const std::uint8_t* rampTable;   // 256 RGBA8 entries
-    int clientWidth, clientHeight;
-    int frameWidth, frameHeight;
+    sg_view frame, ramp;
+    const std::uint8_t* rampTable;
+    int clientWidth, clientHeight, frameWidth, frameHeight;
     Rect placed;
-    std::uint32_t syncInterval;
-    std::uint32_t presentFlags;
+    bool vsync;
 };
 bool CurrentWindowParts(WindowParts* parts);
-// The vertical blank switch's rules (tools/perf_check checks them).
-bool TearingSupported(IDXGIFactory2* factory);
-std::uint32_t ChainFlagsFor(bool allowTearing, bool tearingSupported);
-std::uint32_t SyncIntervalFor(bool vsync);
-std::uint32_t PresentFlagsFor(bool vsync, std::uint32_t chainFlags);
 // Releases the swap chain and everything the window module made on the device (before sg_shutdown); the next
 // DrawToWindow makes them on the new device.
 void DropWindow();
@@ -492,8 +497,8 @@ struct PoolPlace {
 };
 
 // Vertices and indices kept on the GPU across frames (terrain pages, meshes): a geometry stream, a colour
-// stream (kColourPairBytes a vertex) and absolute 32-bit indices, in default-usage buffers written in place
-// with UpdateSubresource (sokol has no partial update). Items are placed one after the other; when one does
+// stream (kColourPairBytes a vertex) and absolute 32-bit indices, with CPU shadows uploaded through sokol
+// when changed. Items are placed one after the other; when one does
 // not fit, the pool starts again (Restart) with the items still needed, larger when they need more than half.
 constexpr std::size_t kColourPairBytes = 2 * sizeof(std::uint32_t);
 class GpuPool {
@@ -514,15 +519,11 @@ public:
 private:
     struct Buffer {
         mutable sg_buffer buffer{};
-#if defined(_WIN32)
-        ID3D11Buffer* d3d = nullptr;   // sokol holds the reference
-#else
         mutable std::vector<std::uint8_t> shadow;
         bool index = false;
         mutable bool dirty = false;
         mutable std::uint32_t uploaded = 0xFFFFFFFFu;
         void Flush() const;
-#endif
         bool Make(std::size_t bytes, bool index, const char* label);
         void Write(std::size_t offset, const void* data, std::size_t bytes) const;
         void Drop();   // destroyed after the frame's commit
@@ -815,8 +816,8 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
 // again on a new device (no pass in progress).
 bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe);
 void RemakeComposed();
-// GPU work from game code outside the frame's drawing (a texture composed): the cursor thread keeps off the
-// immediate context meanwhile (the present's lock), as for the canvases run at once.
+// GPU work outside the frame's drawing (a texture composed, or canvases run at once): the cursor worker
+// stays off the device, and cannot present again until the main thread completes another frame.
 class GpuWorkAlone {
 public:
     GpuWorkAlone();
@@ -825,12 +826,9 @@ public:
     GpuWorkAlone& operator=(const GpuWorkAlone&) = delete;
 };
 
-// The cursor between frames. The main thread's window present (BeginWindowPresent .. EndWindowPresent) and
-// the cursor thread's take turns on the swap chain's lock. BeginWindowPresent comes before anything draws into
-// the frame target (the cursor thread draws it only while no pass is in progress); EndWindowPresent takes the
-// references the cursor thread draws with. ProtectDevice: the cursor thread's command list runs on the
-// immediate context. DropCursorPresents releases everything before the device goes.
-void ProtectDevice(ID3D11Device* device, ID3D11DeviceContext* context);
+// Both threads share the presentation pass under one recursive lock. BeginWindowPresent invalidates the
+// completed frame before drawing starts; EndWindowPresent enables cursor presents after a successful present.
+// DropCursorPresents clears the worker's resources before the device goes.
 void BeginWindowPresent();
 void EndWindowPresent(bool presented);
 void DropCursorPresents();
@@ -848,14 +846,14 @@ void DestroyTextures();
 // by RemakeComposed.
 void DropTextures(std::size_t* kept, std::size_t* keptBytes);
 
-// Puts the floating-point control state back after calls into the driver: the x87 control word on 32-bit (the
-// game's main thread runs at 24-bit precision, docs/notes/rebirth.md), the SSE control and status word (MXCSR) on x64.
-class FpuGuard {
+// Serializes sokol access with the cursor worker. The backend also preserves floating-point control state
+// across driver calls where needed (Windows' x87 precision and SSE rounding modes).
+class GpuGuard {
 public:
-    FpuGuard();
-    ~FpuGuard();
-    FpuGuard(const FpuGuard&) = delete;
-    FpuGuard& operator=(const FpuGuard&) = delete;
+    GpuGuard();
+    ~GpuGuard();
+    GpuGuard(const GpuGuard&) = delete;
+    GpuGuard& operator=(const GpuGuard&) = delete;
 
 private:
     unsigned int saved;
@@ -870,7 +868,6 @@ constexpr sg_pixel_format kDepthFormat = SG_PIXELFORMAT_DEPTH;
 int PassSampleCount();
 // The most samples up to kSmoothSamples the device renders kColourFormat and kDepthFormat with (1: none).
 constexpr int kSmoothSamples = 8;
-int SupportedSamples(ID3D11Device* device);
 // False (logged) when the copies could not be made: the world is then drawn without multisampling.
 bool PrepareSmoothCopies(int samples);
 // Inside a pass on the multisampled target: the frame target's colour and depth copied into every sample.

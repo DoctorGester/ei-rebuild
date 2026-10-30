@@ -131,8 +131,8 @@ void SplitFrame() {
 void RunCanvasesNow() { RunCanvasCommands(); }
 GpuWorkAlone::GpuWorkAlone() {}
 GpuWorkAlone::~GpuWorkAlone() {}
-FpuGuard::FpuGuard() : saved(0) {}
-FpuGuard::~FpuGuard() {}
+GpuGuard::GpuGuard() : saved(0) {}
+GpuGuard::~GpuGuard() {}
 }   // namespace detail
 }   // namespace render
 
@@ -492,9 +492,8 @@ void CheckPicture() {
 // ---- frame: canvases in the frame, the pass split ---------------------------------------------------------------
 
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
-    auto* context = static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context()));
     detail::StagingCopy copy;
-    bool ok = copy.Map(context, detail::D3DTexture(g_target));
+    bool ok = copy.Map(g_target);
     if (ok) {
         const unsigned w = copy.Width(), h = copy.Height();
         rgb->resize(static_cast<std::size_t>(w) * h);

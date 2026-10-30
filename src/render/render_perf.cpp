@@ -4,17 +4,9 @@
 #include "render_perf.h"
 
 #include "../hook/log.h"
+#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#if defined(_WIN32)
-#include <d3d11.h>
-#include <windows.h>
-#else
-#include "render_native.h"
-#endif
 
 #include <algorithm>
 #include <chrono>
@@ -71,46 +63,24 @@ Pass g_pass = Pass::Ui;
 constexpr int kStamps = 64;   // a frame's; past them the last stamped pass takes the rest of the frame
 constexpr int kSets = 5;      // frames in flight
 
-#if defined(_WIN32)
 struct FrameQueries {
-    ID3D11Query* disjoint = nullptr;
-    ID3D11Query* stamps[kStamps] = {};
-    Pass passes[kStamps] = {};   // the pass from each stamp on
-    int count = 0;               // the stamps taken
-    bool pending = false;        // closed, its results not read yet
+    platform::graphics::Timestamps timestamps;
+    Pass passes[kStamps]{};
+    int count = 0;
+    bool pending = false;
 };
 FrameQueries g_sets[kSets];
-int g_open = -1;            // the set of the frame being drawn
+int g_open = -1;
 bool g_queriesFailed = false;
-
-bool MakeSet(FrameQueries& q) {
-    ID3D11Device* device = D3DDevice();
-    if (!device) return false;
-    D3D11_QUERY_DESC desc{D3D11_QUERY_TIMESTAMP_DISJOINT, 0};
-    if (FAILED(device->CreateQuery(&desc, &q.disjoint))) return false;
-    desc.Query = D3D11_QUERY_TIMESTAMP;
-    for (ID3D11Query*& s : q.stamps)
-        if (FAILED(device->CreateQuery(&desc, &s))) return false;
-    return true;
+void Stamp(FrameQueries& query, Pass pass) {
+    query.passes[query.count++] = pass;
+    query.timestamps.Stamp();
 }
-
-void ReleaseSet(FrameQueries& q) {
-    if (q.disjoint) q.disjoint->Release();
-    for (ID3D11Query*& s : q.stamps) {
-        if (s) s->Release();
-        s = nullptr;
-    }
-    q = FrameQueries{};
+void ReleaseSet(FrameQueries& query) {
+    query.timestamps.Release();
+    query.count = 0;
+    query.pending = false;
 }
-
-void Stamp(FrameQueries& q, Pass pass) {
-    q.passes[q.count] = pass;
-    D3DContext()->End(q.stamps[q.count]);
-    ++q.count;
-}
-
-#endif
-
 // The draws since the last change, to the pass they were made in.
 void CountDraws() {
     const std::uint64_t now = FrameDrawCount();
@@ -118,32 +88,21 @@ void CountDraws() {
     g_drawsCounted = now;
 }
 
-// The closed sets the GPU finished, into the samples (never waiting: a set not ready stays for a later frame).
-#if defined(_WIN32)
 void Collect() {
-    ID3D11DeviceContext* context = D3DContext();
-    for (FrameQueries& q : g_sets) {
-        if (!q.pending) continue;
-        D3D11_QUERY_DATA_TIMESTAMP_DISJOINT d{};
-        if (context->GetData(q.disjoint, &d, sizeof(d), D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK) continue;
-        UINT64 t[kStamps] = {};
-        bool ready = true;
-        for (int k = 0; k < q.count && ready; ++k)
-            ready = context->GetData(q.stamps[k], &t[k], sizeof(t[k]), D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK;
-        if (!ready) continue;
-        q.pending = false;
-        if (d.Disjoint || d.Frequency == 0 || q.count < 2) continue;
-        double ms = 1000.0 / static_cast<double>(d.Frequency);
-        auto span = [&](int from, int to) { return t[to] > t[from] ? static_cast<double>(t[to] - t[from]) * ms : 0.0; };
-        Sample<GpuValues> s;
-        s.when = Now();
-        s.values[GpuTotal] = span(0, q.count - 1);
-        for (int k = 0; k + 1 < q.count; ++k) s.values[GpuPasses + static_cast<int>(q.passes[k])] += span(k, k + 1);
-        Keep(g_gpu, s);
+    for (auto& query : g_sets) {
+        if (!query.pending) continue;
+        std::vector<double> times;
+        if (!query.timestamps.Read(&times)) continue;
+        query.pending = false;
+        if (times.size() < 2) continue;
+        Sample<GpuValues> sample;
+        sample.when = Now();
+        sample.values[GpuTotal] = times.back();
+        for (std::size_t k = 0; k + 1 < times.size(); ++k)
+            sample.values[GpuPasses + static_cast<int>(query.passes[k])] += times[k + 1] - times[k];
+        Keep(g_gpu, sample);
     }
 }
-
-#endif
 
 // ---- The font ------------------------------------------------------------------------------------------------
 
@@ -234,7 +193,7 @@ struct OverlayFs {
 
 bool MakePipeline() {
     sg_shader_desc s{};
-    SetBytecode(s, kPerfOverlayShader);
+    s = ShaderDescription(kPerfOverlayShader);
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
     s.uniform_blocks[0].size = sizeof(OverlayVs);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
@@ -340,49 +299,37 @@ void BeginGpuFrame() {
     g_inFrame = true;
     g_pass = Pass::Ui;
     g_drawsCounted = FrameDrawCount();
-#if defined(_WIN32)
-    if (g_queriesFailed || !D3DContext()) return;
+    if (g_queriesFailed) return;
     Collect();
     for (int k = 0; k < kSets; ++k) {
-        FrameQueries& q = g_sets[k];
-        if (q.pending) continue;
-        if (!q.disjoint && !MakeSet(q)) {
-            ReleaseSet(q);
+        auto& query = g_sets[k];
+        if (query.pending) continue;
+        if (!query.timestamps.Begin()) {
             g_queriesFailed = true;
-            ei::Log("render: the performance overlay has no GPU timestamps (CreateQuery failed)");
             return;
         }
         g_open = k;
-        q.count = 0;
-        D3DContext()->Begin(q.disjoint);
-        Stamp(q, g_pass);
+        query.count = 0;
+        Stamp(query, g_pass);
         return;
     }
-#endif
 }
-
 void Enter(Pass pass) {
     if (!g_inFrame || pass == g_pass) return;
     CountDraws();
     g_pass = pass;
-#if defined(_WIN32)
     if (g_open >= 0 && g_sets[g_open].count < kStamps - 1) Stamp(g_sets[g_open], pass);
-#endif
-    //   // the last for EndGpuFrame
 }
-
 void EndGpuFrame() {
     if (!g_inFrame) return;
     CountDraws();
     g_inFrame = false;
-#if defined(_WIN32)
     if (g_open < 0) return;
-    FrameQueries& q = g_sets[g_open];
-    Stamp(q, g_pass);
-    D3DContext()->End(q.disjoint);
-    q.pending = true;
+    auto& query = g_sets[g_open];
+    Stamp(query, g_pass);
+    query.timestamps.End();
+    query.pending = true;
     g_open = -1;
-#endif
 }
 
 CpuTimer::CpuTimer(Cpu newPart) : part(newPart), start(g_on ? Now() : 0) {}
@@ -440,13 +387,9 @@ void Draw(int width, int height, const Rect& placed) {
 }
 
 void Release() {
-#if defined(_WIN32)
-    for (FrameQueries& q : g_sets) ReleaseSet(q);
-#endif
-#if defined(_WIN32)
+    for (auto& query : g_sets) ReleaseSet(query);
     g_open = -1;
     g_queriesFailed = false;
-#endif
     g_inFrame = false;
     DropImage();
     if (g_pipeline.id) sg_destroy_pipeline(g_pipeline);

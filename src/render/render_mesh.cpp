@@ -283,7 +283,7 @@ void ApplyPassState(sg_pipeline_desc& p, const PassState& s) {
 
 bool CreateMeshShader() {
     sg_shader_desc s{};
-    SetBytecode(s, kMeshShader);
+    s = ShaderDescription(kMeshShader);
     const char* const semantics[5] = {"POSITION", "COLOR", "COLOR", "TEXCOORD", "NORMAL"};
     const std::uint8_t indices[5] = {0, 0, 1, 0, 0};
     for (int i = 0; i < 5; ++i) {
@@ -564,7 +564,7 @@ void MeshPass(void* device) {
         }
     }
     if (g_pending.indexCount > 0) {
-        FpuGuard fpu;
+        GpuGuard gpu;
         MeshBatch batch{};
         batch.matrix = g_pending.matrix;
         batch.firstIndex = g_pending.firstIndex;
@@ -641,7 +641,7 @@ void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
     if (drawn > 0) {
-        FpuGuard fpu;
+        GpuGuard gpu;
         MeshBatch batch{};
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;
@@ -689,7 +689,7 @@ void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
     if (drawn > 0) {
-        FpuGuard fpu;
+        GpuGuard gpu;
         MeshBatch batch{};
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;

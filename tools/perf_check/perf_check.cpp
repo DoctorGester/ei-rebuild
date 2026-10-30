@@ -11,10 +11,6 @@
 //           makes it: the flags it reports, ResizeBuffers with them, a Present with the switch's interval and flags.
 // Any sokol error or warning and any ei::Log line but the switch's fails the check. Exit code 0 when all pass.
 #define NOMINMAX
-#include <windows.h>
-#include <d3d11.h>
-#include <dxgi1_5.h>
-
 #include "render/render_internal.h"
 #include "render/render_perf.h"
 
@@ -24,8 +20,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <d3d11.h>
+#include <dxgi1_5.h>
 #include <string>
 #include <vector>
+#include <windows.h>
 
 namespace perf = render::perf;
 
@@ -65,11 +64,6 @@ void Log(const char* fmt, ...) {
     }
 }
 } // namespace ei
-
-namespace render::detail {
-ID3D11Device* D3DDevice() { return g_device; }
-ID3D11DeviceContext* D3DContext() { return g_context; }
-} // namespace render::detail
 
 std::uint64_t render::perf::FrameDrawCount() { return g_frameDraws; }
 
@@ -175,7 +169,7 @@ void BeginTargetPass(const Target& t) {
 
 bool ReadTarget(const Target& t, std::vector<std::uint8_t>* bgra) {
     render::detail::StagingCopy copy;
-    bool ok = copy.Map(g_context, render::detail::D3DTexture(t.image));
+    bool ok = copy.Map(t.image);
     if (ok) {
         bgra->resize(static_cast<std::size_t>(t.width) * static_cast<std::size_t>(t.height) * 4);
         for (int y = 0; y < t.height; ++y)
@@ -316,7 +310,7 @@ bool StartDevice(bool hardware) {
 // The vertical blank switch (src/render/render_window.cpp, R23): the pure rules, then real chains on a hidden window.
 void CheckVsync() {
     const UINT tearing = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-    namespace d = render::detail;
+    namespace d = platform::graphics;
     Check(d::SyncIntervalFor(true) == 1 && d::SyncIntervalFor(false) == 0, "the sync interval: 1 with the wait, 0 without");
     Check(d::ChainFlagsFor(false, true) == 0 && d::ChainFlagsFor(false, false) == 0 && d::ChainFlagsFor(true, false) == 0 &&
               d::ChainFlagsFor(true, true) == tearing,
@@ -335,7 +329,14 @@ void CheckVsync() {
     HWND window = CreateWindowExW(0, L"STATIC", L"ei_perf_check", WS_POPUP, 0, 0, 320, 240, nullptr, nullptr, nullptr, nullptr);
     Check(window != nullptr, "a hidden window");
     if (ok && window) {
-        const bool supported = d::TearingSupported(factory);
+        IDXGIFactory5* factory5 = nullptr;
+        BOOL tearingSupported = FALSE;
+        if (SUCCEEDED(factory->QueryInterface(__uuidof(IDXGIFactory5), reinterpret_cast<void**>(&factory5)))) {
+            factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &tearingSupported,
+                                          sizeof(tearingSupported));
+            factory5->Release();
+        }
+        const bool supported = tearingSupported != FALSE;
         std::printf("  tearing presents %s on this device\n", supported ? "supported" : "not supported");
         for (int wanted = 0; wanted < 2; ++wanted) {
             const bool allowTearing = wanted != 0;

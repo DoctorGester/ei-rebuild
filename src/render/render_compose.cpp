@@ -4,16 +4,8 @@
 // render_textures.cpp keeps the result by holder and the recipe to make it again on a new device. See
 // docs/notes/renderer.md, section 7 ("Textures composed on the GPU").
 #include "../hook/log.h"
+#include "platform/graphics.h"
 #include "render_internal.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#if defined(_WIN32)
-#include <d3d11.h>
-#include <windows.h>
-#else
-#include "render_native.h"
-#endif
 
 #include <cctype>
 #include <cstring>
@@ -81,10 +73,10 @@ sg_pipeline MakePipeline(bool over, const char* label) {
 // A shader of texture_compose.hlsl or texture_clouds.hlsl: the rectangle's vertex parameters, `fsBytes` of fragment
 // parameters and `textures` texture views (t0, t1) of `sampleType` loaded directly (a non-filtering sampler paired
 // with each, as sokol wants).
-sg_shader MakeShader(const ShaderBytecode& code, std::size_t fsBytes, int textures, sg_image_sample_type sampleType,
+sg_shader MakeShader(ShaderProgram code, std::size_t fsBytes, int textures, sg_image_sample_type sampleType,
                      const char* label) {
     sg_shader_desc s{};
-    SetBytecode(s, code);
+    s = ShaderDescription(code);
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
     s.uniform_blocks[0].size = sizeof(RectParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
@@ -351,16 +343,7 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
     }
     if (recipe.levels > 1) {
         // The levels below the first, from it (a box filter).
-#if defined(_WIN32)
-        ID3D11Texture2D* texture = D3DTexture(target);
-        ID3D11ShaderResourceView* all = nullptr;
-        if (texture && SUCCEEDED(D3DDevice()->CreateShaderResourceView(texture, nullptr, &all))) {
-            D3DContext()->GenerateMips(all);
-            all->Release();
-        }
-#else
-        NativeGenerateMipmaps(target);
-#endif
+        platform::graphics::GenerateMipmaps(target);
     }
 }
 
@@ -395,25 +378,6 @@ bool MakeComposed(const ComposeRecipe& recipe, sg_image* image, sg_view* view) {
     if (!EnsurePipelines() || recipe.width <= 0 || recipe.height <= 0 || recipe.levels < 1 ||
         recipe.firstLevel >= recipe.levels)
         return false;
-#if defined(_WIN32)
-    ID3D11Device* device = D3DDevice();
-    if (!device) return false;
-    D3D11_TEXTURE2D_DESC d{};
-    d.Width = static_cast<UINT>(recipe.width);
-    d.Height = static_cast<UINT>(recipe.height);
-    d.MipLevels = static_cast<UINT>(recipe.levels);
-    d.ArraySize = 1;
-    d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    d.SampleDesc.Count = 1;
-    d.Usage = D3D11_USAGE_DEFAULT;
-    d.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-    d.MiscFlags = recipe.levels > 1 ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
-    ID3D11Texture2D* texture = nullptr;
-    if (FAILED(device->CreateTexture2D(&d, nullptr, &texture))) {
-        if (g_failures++ < 10) ei::Log("render: a %dx%d composed texture could not be made", recipe.width, recipe.height);
-        return false;
-    }
-#endif
     sg_image_desc desc{};
     desc.usage.color_attachment = true;
     desc.width = recipe.width;
@@ -421,13 +385,7 @@ bool MakeComposed(const ComposeRecipe& recipe, sg_image* image, sg_view* view) {
     desc.num_mipmaps = recipe.levels;
     desc.pixel_format = SG_PIXELFORMAT_RGBA8;
     desc.label = "ei-composed-texture";
-#if defined(_WIN32)
-    desc.d3d11_texture = texture;
-#endif
-    *image = sg_make_image(&desc);
-#if defined(_WIN32)
-    texture->Release();   // sokol holds its own reference
-#endif
+    *image = platform::graphics::MakeMipmappedImage(desc);
     if (sg_query_image_state(*image) != SG_RESOURCESTATE_VALID) {
         sg_destroy_image(*image);
         *image = sg_image{};

@@ -1,17 +1,9 @@
 // Object shadows through a sun shadow map. See docs/notes/renderer.md, "The renderer's source files".
 #include "../hook/log.h"
+#include "platform/graphics.h"
 #include "render.h"
 #include "render_internal.h"
 #include "render_perf.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#if defined(_WIN32)
-#include <d3d11.h>
-#include <windows.h>
-#else
-#include "render_native.h"
-#endif
 
 #include <algorithm>
 #include <cmath>
@@ -201,7 +193,7 @@ int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
 bool MakeCasterPipelines() {
     if (g_casterShader.id) return sg_query_pipeline_state(g_casterPipelines[1]) == SG_RESOURCESTATE_VALID;
     sg_shader_desc s{};
-    SetBytecode(s, kCasterShader);
+    s = ShaderDescription(kCasterShader);
     s.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
     s.attrs[0].hlsl_sem_name = "POSITION";
     for (int k = 1; k <= kInstanceAttrs + 1; ++k) {   // the texture coordinates, then the instance's
@@ -260,7 +252,7 @@ bool MakeCasterPipelines() {
 bool MakeTerrainCasterPipeline() {
     if (g_terrainCasterShader.id) return sg_query_pipeline_state(g_terrainCasterPipeline) == SG_RESOURCESTATE_VALID;
     sg_shader_desc s{};
-    SetBytecode(s, kTerrainCasterShader);
+    s = ShaderDescription(kTerrainCasterShader);
     s.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
     s.attrs[0].hlsl_sem_name = "POSITION";
     s.attrs[1].base_type = SG_SHADERATTRBASETYPE_FLOAT;
@@ -358,11 +350,11 @@ sg_sampler RangeSampler() {
 
 // A full-screen pass's shader and pipeline into an RGBA32F image: `fragment` reads view 0 (of
 // `sampleType`, with the point sampler) and, with `uniforms`, 16 bytes of fragment uniforms.
-bool MakeRangePipeline(const ShaderBytecode& code, sg_image_sample_type sampleType, bool uniforms, const char* label,
+bool MakeRangePipeline(ShaderProgram code, sg_image_sample_type sampleType, bool uniforms, const char* label,
                        sg_shader* shader, sg_pipeline* pipeline) {
     if (shader->id) return sg_query_pipeline_state(*pipeline) == SG_RESOURCESTATE_VALID;
     sg_shader_desc s{};
-    SetBytecode(s, code);
+    s = ShaderDescription(code);
     if (uniforms) {
         s.uniform_blocks[0].stage = SG_SHADERSTAGE_FRAGMENT;
         s.uniform_blocks[0].size = 16;
@@ -439,44 +431,28 @@ void EnsureDummy() {
 
 #if defined(EI_RENDER_VALIDATION)
 struct GpuQueries {
-    ID3D11Query* disjoint = nullptr;
-    ID3D11Query* stamps[3] = {};
+    platform::graphics::Timestamps timestamps;
     bool pending = false;
 };
 GpuQueries g_queries[4];
-int g_querySlot = -1;   // the slot of the frame being drawn, -1: none
-
+int g_querySlot = -1;
 void ReleaseQueries() {
-    for (GpuQueries& q : g_queries) {
-        if (q.disjoint) q.disjoint->Release();
-        for (ID3D11Query*& s : q.stamps) {
-            if (s) s->Release();
-            s = nullptr;
-        }
-        q.disjoint = nullptr;
-        q.pending = false;
+    for (auto& query : g_queries) {
+        query.timestamps.Release();
+        query.pending = false;
     }
     g_querySlot = -1;
 }
-
 void CollectQueries() {
-    ID3D11DeviceContext* context = D3DContext();
-    for (GpuQueries& q : g_queries) {
-        if (!q.pending) continue;
-        D3D11_QUERY_DATA_TIMESTAMP_DISJOINT d{};
-        if (context->GetData(q.disjoint, &d, sizeof(d), D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK) continue;
-        UINT64 t[3] = {};
-        bool ready = true;
-        for (int k = 0; k < 3 && ready; ++k)
-            ready = context->GetData(q.stamps[k], &t[k], sizeof(t[k]), D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK;
-        if (!ready) continue;
-        q.pending = false;
-        if (d.Disjoint || d.Frequency == 0) continue;
-        double ms = 1000.0 / static_cast<double>(d.Frequency);
-        FrameStats& s = g_stats;
-        ++s.gpuFrames;
-        s.gpuShadowMs += static_cast<double>(t[1] - t[0]) * ms;
-        s.gpuFrameMs += static_cast<double>(t[2] - t[0]) * ms;
+    for (auto& query : g_queries) {
+        if (!query.pending) continue;
+        std::vector<double> times;
+        if (!query.timestamps.Read(&times)) continue;
+        query.pending = false;
+        if (times.size() != 3) continue;
+        ++g_stats.gpuFrames;
+        g_stats.gpuShadowMs += times[1];
+        g_stats.gpuFrameMs += times[2];
     }
 }
 #endif
@@ -671,7 +647,7 @@ const Fit& FitMap(Frame& f) {
 }
 
 bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
-    FpuGuard fpu;
+    GpuGuard gpu;
     StatsTimer timer(&FrameStats::shadowMs);
     const Fit& fit = FitMap(g_frame);
     if (!fit.ok) return false;
@@ -834,7 +810,7 @@ bool ShadowTerrainArea(float highestTop, ShadowCasterRect* area) {
 
 bool ShadowCasterReaches(const ShadowCasterSphere& sphere) {
     if (!g_fit.ok || g_fit.frame != FrameNumber()) return false;
-    FpuGuard fpu;
+    GpuGuard gpu;
     // The sphere's box in the map's space against the map's area across the light, and in front of
     // the ground's far side along it (nothing limits it towards the sun).
     const Vector3 c{sphere.x, sphere.y, sphere.z};
@@ -1095,30 +1071,18 @@ void PrepareShadows(Frame& f) {
 }
 
 void DrawShadowMap(Frame& f) {
-    FpuGuard fpu;
+    GpuGuard gpu;
 #if defined(EI_RENDER_VALIDATION)
-    {
-        ID3D11Device* device = D3DDevice();
-        ID3D11DeviceContext* context = D3DContext();
-        CollectQueries();
-        g_querySlot = -1;
-        for (int k = 0; k < 4; ++k) {
-            GpuQueries& q = g_queries[k];
-            if (q.pending) continue;
-            bool ok = true;
-            if (!q.disjoint) {
-                D3D11_QUERY_DESC desc{D3D11_QUERY_TIMESTAMP_DISJOINT, 0};
-                ok = SUCCEEDED(device->CreateQuery(&desc, &q.disjoint));
-                desc.Query = D3D11_QUERY_TIMESTAMP;
-                for (ID3D11Query*& s : q.stamps) ok = ok && SUCCEEDED(device->CreateQuery(&desc, &s));
-            }
-            if (ok) g_querySlot = k;
-            break;
+    CollectQueries();
+    g_querySlot = -1;
+    for (int k = 0; k < 4; ++k) {
+        auto& query = g_queries[k];
+        if (query.pending) continue;
+        if (query.timestamps.Begin()) {
+            g_querySlot = k;
+            query.timestamps.Stamp();
         }
-        if (g_querySlot >= 0) {
-            context->Begin(g_queries[g_querySlot].disjoint);
-            context->End(g_queries[g_querySlot].stamps[0]);
-        }
+        break;
     }
 #endif
     EnsureDummy();
@@ -1238,7 +1202,7 @@ void DrawShadowMap(Frame& f) {
     perf::Enter(perf::Pass::Point);
     DrawPointShadows(f);
 #if defined(EI_RENDER_VALIDATION)
-    if (g_querySlot >= 0) D3DContext()->End(g_queries[g_querySlot].stamps[1]);
+    if (g_querySlot >= 0) g_queries[g_querySlot].timestamps.Stamp();
 #endif
 }
 
@@ -1246,8 +1210,8 @@ void ShadowFrameEnd() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_querySlot < 0) return;
     GpuQueries& q = g_queries[g_querySlot];
-    D3DContext()->End(q.stamps[2]);
-    D3DContext()->End(q.disjoint);
+    q.timestamps.Stamp();
+    q.timestamps.End();
     q.pending = true;
     g_querySlot = -1;
 #endif

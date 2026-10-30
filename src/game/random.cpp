@@ -1,6 +1,5 @@
 #include "random.h"
 
-#include "platform/callers.h"
 #include "platform/platform.h"
 
 #include "lib/pc24.h"

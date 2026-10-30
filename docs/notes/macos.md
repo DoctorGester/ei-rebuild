@@ -75,17 +75,22 @@ launcher while testing, so the installed data is left untouched.
   sokol-shdc to Metal and GL 4.3. All 24 programs compile for both outputs. `--bytecode` additionally runs Apple's
   Metal compiler; all 24 were checked that way too. Generated uniform blocks retain the CPU byte layout in a single
   integer-vector array so they fit sokol's GL reflection limits.
-- Drawing uses sokol. Texture copies, readback and mip generation use a small Metal bridge where this sokol
-  revision has no equivalent API. It shares sokol's command queue and flushes only pending command buffers;
+- All render sources are shared across backends, including presentation, cursors, readback and shader selection.
+  Native operations live in `platform/graphics.h` with one implementation per backend (`graphics_metal.mm` or
+  `win32/graphics_win32.cpp`). Texture copies, readback and mip generation use the native API where this sokol
+  revision has no equivalent API. Metal shares sokol's command queue and flushes only pending command buffers;
   empty commits otherwise rotate uniform storage without a fence and corrupt overlapping glyph draws.
 - Retina windows request high pixel density. Window/input coordinates remain SDL points; render targets and font
   rasterization use backing pixels. A 1280x800-point window was verified at 2560x1600 pixels, including menu and
   tutorial clicks. Saved resolution retains points, avoiding size doubling after a restart.
 - `port_platform` covers path folding, file/mapping behavior, INI updates, single-instance exclusion, UDP,
   math edge cases, thread callbacks, caller capture and the existing 20,000+ settings checks. `port_render` runs
-  the same 29 glyph cases as the
-  Windows canvas checker, against its CPU pixel oracle: Cyrillic, shadows, clipping, overlap, batching, stream
-  overflow and 555/565/888 destinations. All pass, with zero differing glyph pixels.
+  the same 29 glyph cases as the Windows canvas checker, against its CPU pixel oracle: Cyrillic, shadows, clipping,
+  overlap, batching, stream overflow and 555/565/888 destinations. It also checks partial uploads, region copies and
+  readback bounds. All pass, with zero differing glyph pixels. Configure with `-DEI_RENDER_CHECKS=ON` to include
+  diagnostic readback checks, verify generated mips, simulate device loss, restore canvas history, and repeat the
+  glyph oracle after recovery (66 checks). Readback also follows sokol's active dynamic-image slot across commits.
+  Normal builds leave these diagnostic checks off.
 
 ## Remaining verification and features
 

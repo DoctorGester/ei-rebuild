@@ -1,9 +1,8 @@
 // Point-light shadows: a cube of six depth faces for each of the few strongest point lights in view. See
 // docs/notes/renderer.md, "The renderer's source files".
+#include "../hook/log.h"
 #include "render.h"
 #include "render_internal.h"
-
-#include "../hook/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -253,7 +252,7 @@ bool MakePipelines() {
     bool ok = true;
     {
         sg_shader_desc s{};
-        SetBytecode(s, kSolidShader);
+        s = ShaderDescription(kSolidShader);
         s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
         s.uniform_blocks[0].size = sizeof(ClearVs);
         s.uniform_blocks[0].hlsl_register_b_n = 0;

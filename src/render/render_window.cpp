@@ -1,88 +1,41 @@
-// The game window's swap chain (render::StartPresenting): the
-// frame is drawn into a flip-model swap chain on the game window, its aspect kept (centred, black
-// bars when the window's client area has another shape), through the display's gamma ramp (the
-// options' brightness / contrast / gamma, SetGammaRamp's table) as a
-// shader step, with the software cursor drawn over it by the same shader (the frame stays without it, for the
-// cursor thread's presents), and presented with the vertical blank. Also where the frame sits in the window, for
-// the game's mouse coordinates (WindowToFrame / FrameToWindow). docs/notes/renderer.md, section 9.
-#include "render.h"
-#include "render_internal.h"
-#include "render_perf.h"
+// Presentation: the common sokol shaders keep the frame's aspect, gamma and software cursor.
+#include "game/app.h"
+#include "hook/log.h"
+#include "platform/graphics.h"
+#include "render/render_internal.h"
+#include "render/render_perf.h"
 
-#include "../hook/log.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#include <d3d11.h>
-#include <dxgi1_2.h>
-#include <dxgi1_5.h>
-
-#include "../game/app.h"
-
-#include <cmath>
-#include <cstdint>
-#include <cstdlib>
 #include <cstring>
-
 namespace render {
-
 namespace {
-
 using namespace detail;
-
-HWND GameWindow() { return static_cast<HWND>(app::g_mainWindow); }
-
-IDXGISwapChain1* g_chain = nullptr;
-ID3D11RenderTargetView* g_view = nullptr;
-int g_chainWidth = 0, g_chainHeight = 0;
-int g_presentFailures = 0;
-// Present waits for the vertical blank (sync interval 1) unless the settings file's "VSync" is 0 (render::
-// SetWaitForVsync, set before the first present) or the harness's virtual clock runs the game, where a frame's length
-// does not depend on the display.
-bool g_waitForVsync = true;
-bool g_allowTearing = false;  // the product's "VSync"=0 (render::SetVsync): the chain may tear (the harness's off does not)
-UINT g_chainFlags = 0;        // the flags the swap chain was made with (ResizeBuffers takes the same, Present's follow)
-bool g_recreated = false;     // the swap chain was made again once after a failed resize
-
+bool g_waitForVsync = true, g_rampDirty = true, g_rampIdentity = true;
+bool g_allowTearing = false, g_checkRamp = false, g_haveWindow = false;
+long g_rampsSet = 0;
+WindowParts g_parts{};
 sg_shader g_shader{};
 sg_pipeline g_pipeline{};
-
-// The gamma ramp as a 256 x 1 lookup (RGBA8: the red, green and blue ramps' entries scaled to 255),
-// identity until the game sets one.
 sg_image g_rampImage{};
 sg_view g_rampView{};
 struct Ramp {
     std::uint8_t entries[256 * 4];
     Ramp() {
         for (int i = 0; i < 256; ++i) {
-            entries[i * 4 + 0] = entries[i * 4 + 1] = entries[i * 4 + 2] = static_cast<std::uint8_t>(i);
-            entries[i * 4 + 3] = 255;
+            entries[4 * i] = entries[4 * i + 1] = entries[4 * i + 2] = i;
+            entries[4 * i + 3] = 255;
         }
     }
-};
-Ramp g_rampTable;   // (kept across devices: the game sets it once, a new device gets it again)
-std::uint8_t (&g_ramp)[256 * 4] = g_rampTable.entries;
-std::uint8_t g_uploaded[256 * 4];   // the ramp in the lookup texture (the cursor thread's checks read it)
-bool g_rampDirty = true;     // to be uploaded before the next present
-bool g_rampIdentity = true;
-long g_rampsSet = 0;          // verify build: ramps set so far (the ramp check is sampled)
-bool g_checkRamp = false;     // verify build: compare the next presented frame with the ramp applied
+} g_rampTable;
+auto& g_ramp = g_rampTable.entries;
+std::uint8_t g_uploaded[256 * 4]{};
+Rect g_lastCursor{};
 WindowPresentInfo g_info;
-Rect g_lastCursor{0, 0, 0, 0};   // verify build: where the last present drew the cursor (the ramp check leaves it out)
-
-// The present shader's fragment uniforms (shaders/present.hlsl, cursor_params): the cursor's rectangle in the
-// frame (right <= left: none), the frame's size and the cursor texels per frame pixel, the size and the top left
-// corner of the cursor's part of its picture.
 struct CursorParams {
-    float to[4];
-    float frame[4];
-    float size[4];
+    float to[4], frame[4], size[4];
 };
-
 bool CreatePipeline() {
     sg_shader_desc s{};
-    SetBytecode(s, kPresentShader);
+    s = ShaderDescription(kPresentShader);
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
     s.uniform_blocks[0].size = 16;
     s.uniform_blocks[0].hlsl_register_b_n = 0;
@@ -139,149 +92,24 @@ bool CreatePipeline() {
     return sg_query_image_state(g_rampImage) == SG_RESOURCESTATE_VALID;
 }
 
-void ReleaseView() {
-    if (g_view) g_view->Release();
-    g_view = nullptr;
-}
-
-void ReleaseChain() {
-    ReleaseView();
-    if (g_chain) g_chain->Release();
-    g_chain = nullptr;
-    g_chainWidth = g_chainHeight = 0;
-    g_chainFlags = 0;
-}
-
-bool CreateView() {
-    ID3D11Texture2D* buffer = nullptr;
-    if (FAILED(g_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&buffer)))) return false;
-    HRESULT hr = D3DDevice()->CreateRenderTargetView(buffer, nullptr, &g_view);
-    buffer->Release();
-    return SUCCEEDED(hr);
-}
-
-bool CreateChain(HWND window, int width, int height) {
-    IDXGIDevice* dxgiDevice = nullptr;
-    IDXGIAdapter* adapter = nullptr;
-    IDXGIFactory2* factory = nullptr;
-    bool ok = SUCCEEDED(D3DDevice()->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice))) &&
-              SUCCEEDED(dxgiDevice->GetAdapter(&adapter)) &&
-              SUCCEEDED(adapter->GetParent(__uuidof(IDXGIFactory2), reinterpret_cast<void**>(&factory)));
-    if (ok) {
-        DXGI_SWAP_CHAIN_DESC1 sd{};
-        sd.Width = static_cast<UINT>(width);
-        sd.Height = static_cast<UINT>(height);
-        sd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-        sd.SampleDesc.Count = 1;
-        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd.BufferCount = 2;
-        sd.Scaling = DXGI_SCALING_STRETCH;
-        sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        sd.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-        sd.Flags = ChainFlagsFor(g_allowTearing, TearingSupported(factory));
-        HRESULT hr = factory->CreateSwapChainForHwnd(D3DDevice(), window, &sd, nullptr, nullptr, &g_chain);
-        if (FAILED(hr)) {
-            ei::Log("render: CreateSwapChainForHwnd failed (%08lX)", static_cast<unsigned long>(hr));
-            g_chain = nullptr;
-            ok = false;
-        } else {
-            g_chainFlags = sd.Flags;
-        }
-        // The game handles Alt+Enter and its window itself.
-        if (ok) factory->MakeWindowAssociation(window, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
-    }
-    if (factory) factory->Release();
-    if (adapter) adapter->Release();
-    if (dxgiDevice) dxgiDevice->Release();
-    if (!ok) return false;
-    if (!CreateView()) {
-        ReleaseChain();
-        return false;
-    }
-    if (!g_pipeline.id && !CreatePipeline()) return false;
-    g_chainWidth = width;
-    g_chainHeight = height;
-    ei::Log("render: presenting on the game window through a flip-model swap chain (%dx%d), %s", width, height,
-            !g_waitForVsync ? ((g_chainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) ? "no vertical blank wait, tearing allowed"
-                                                                                  : "no vertical blank wait (no tearing support)")
-                            : "waiting for the vertical blank");
-    return true;
-}
-
-// The device is gone (removed, reset, hung): every sokol resource with it. Nothing more is drawn
-// into the swap chain; at the end of the frame the device, the swap chain and every image are made
-// again (render.cpp, RecreateDevice).
-void DeviceLost(const char* where, HRESULT hr) {
-    HRESULT reason = D3DDevice()->GetDeviceRemovedReason();
-    ei::Log("render: the Direct3D 11 device was lost (%s: %08lX, reason %08lX)", where, static_cast<unsigned long>(hr),
-            static_cast<unsigned long>(reason));
-    ReportDeviceLost(hr, reason);
-}
-
-bool IsDeviceLost(HRESULT hr) {
-    return hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET || hr == DXGI_ERROR_DEVICE_HUNG ||
-           hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR;
-}
-
-// No swap chain could be made: on a lost device the new one gets it (RecreateDevice at the frame's end, false);
-// on a working device the game cannot go on.
-bool NoChain(const char* what, int width, int height) {
-    HRESULT reason = D3DDevice()->GetDeviceRemovedReason();
-    if (FAILED(reason)) {
-        DeviceLost(what, reason);
-        return false;
-    }
-    Fatal("The renderer cannot present on the game window: %s (%dx%d).", what, width, height);
-}
-
-// Back buffer of `width` x `height`: made, or resized (a failed resize, e.g. after a display mode
-// change, makes the swap chain again once). False: the device was lost (made again at the frame's end).
-bool EnsureChain(HWND window, int width, int height) {
-    if (!g_chain) return CreateChain(window, width, height) || NoChain("no swap chain", width, height);
-    if (width == g_chainWidth && height == g_chainHeight) return true;
-    ReleaseView();
-    sg_reset_state_cache();
-    HRESULT hr = g_chain->ResizeBuffers(0, static_cast<UINT>(width), static_cast<UINT>(height), DXGI_FORMAT_UNKNOWN, g_chainFlags);
-    if (SUCCEEDED(hr) && CreateView()) {
-        g_chainWidth = width;
-        g_chainHeight = height;
-        return true;
-    }
-    if (IsDeviceLost(hr)) {
-        DeviceLost("ResizeBuffers", hr);
-        return false;
-    }
-    ei::Log("render: cannot resize the game window's swap chain to %dx%d (%08lX)%s", width, height,
-            static_cast<unsigned long>(hr), g_recreated ? "" : "; making it again");
-    ReleaseChain();
-    if (g_recreated) return NoChain("the swap chain cannot be resized", width, height);
-    g_recreated = true;
-    return CreateChain(window, width, height) || NoChain("the swap chain cannot be made again", width, height);
-}
-
-// The frame's place in a client area: its aspect kept, as large as fits, centred.
 Rect Placed(int clientWidth, int clientHeight, int frameWidth, int frameHeight) {
     long long a = static_cast<long long>(clientWidth) * frameHeight;
     long long b = static_cast<long long>(clientHeight) * frameWidth;
     int w = clientWidth, h = clientHeight;
-    if (a > b) w = static_cast<int>((static_cast<long long>(clientHeight) * frameWidth + frameHeight / 2) / frameHeight);
-    else if (a < b) h = static_cast<int>((static_cast<long long>(clientWidth) * frameHeight + frameWidth / 2) / frameWidth);
+    if (a > b)
+        w = static_cast<int>((static_cast<long long>(clientHeight) * frameWidth + frameHeight / 2) / frameHeight);
+    else if (a < b)
+        h = static_cast<int>((static_cast<long long>(clientWidth) * frameHeight + frameWidth / 2) / frameWidth);
     int x = (clientWidth - w) / 2, y = (clientHeight - h) / 2;
     return Rect{x, y, x + w, y + h};
 }
 
-// The client area, the frame's size and its place; false when there is no frame or window.
-bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameHeight, Rect* placed) {
-    HWND window = GameWindow();
-    RECT client{};
-    if (!window || !GetClientRect(window, &client)) return false;
-    *clientWidth = client.right - client.left;
-    *clientHeight = client.bottom - client.top;
-    if (*clientWidth <= 0 || *clientHeight <= 0 || !GameTargetSize(frameWidth, frameHeight)) return false;
-    *placed = Placed(*clientWidth, *clientHeight, *frameWidth, *frameHeight);
+bool Placement(int* cw, int* ch, int* fw, int* fh, Rect* placed) {
+    if (!platform::graphics::WindowSize(app::g_mainWindow, cw, ch) || *cw < 1 || *ch < 1 || !GameTargetSize(fw, fh))
+        return false;
+    *placed = Placed(*cw, *ch, *fw, *fh);
     return true;
 }
-
 #if defined(EI_RENDER_VALIDATION)
 // Verify build: the back buffer just drawn against the frame through the ramp, at a grid of points
 // (one to one placement only). Logged once per ramp.
@@ -289,10 +117,8 @@ void CheckRamp(int width, int height) {
     g_checkRamp = false;
     int fw = 0, fh = 0;
     if (!FrameSize(&fw, &fh) || fw != width || fh != height) return;
-    ID3D11Texture2D* back = nullptr;
-    if (FAILED(g_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&back)))) return;
     StagingCopy backCopy, frameCopy;
-    if (backCopy.Map(D3DContext(), back) && frameCopy.Map(D3DContext(), D3DTexture(FrameImage()))) {
+    if (backCopy.MapDrawable(0, 0, width, height) && frameCopy.Map(FrameImage())) {
         int points = 0, differing = 0;
         for (int y = height / 34; y < height; y += height / 17 + 1) {
             for (int x = width / 34; x < width; x += width / 17 + 1) {
@@ -320,7 +146,6 @@ void CheckRamp(int width, int height) {
     }
     backCopy.Release();
     frameCopy.Release();
-    back->Release();
     sg_reset_state_cache();
 }
 
@@ -335,13 +160,10 @@ void CheckCursorDrawn(int width, int height) {
     if (!ReadBackDue(presents++)) return;
     int fw = 0, fh = 0;
     if (!FrameSize(&fw, &fh) || fw != width || fh != height) return;
-    ID3D11Texture2D* back = nullptr;
-    if (FAILED(g_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&back)))) return;
     const auto left = static_cast<unsigned>(c.left), top = static_cast<unsigned>(c.top);
     const auto w = static_cast<unsigned>(c.right - c.left), h = static_cast<unsigned>(c.bottom - c.top);
     StagingCopy backCopy, frameCopy;
-    if (backCopy.Map(D3DContext(), back, left, top, w, h) &&
-        frameCopy.Map(D3DContext(), D3DTexture(FrameImage()), left, top, w, h)) {
+    if (backCopy.MapDrawable(left, top, w, h) && frameCopy.Map(FrameImage(), left, top, w, h)) {
         int differing = 0, total = (c.right - c.left) * (c.bottom - c.top);
         for (int y = 0; y < c.bottom - c.top; ++y) {
             const std::uint8_t* b = backCopy.Row(static_cast<unsigned>(y));
@@ -364,23 +186,29 @@ void CheckCursorDrawn(int width, int height) {
     }
     backCopy.Release();
     frameCopy.Release();
-    back->Release();
     sg_reset_state_cache();
 }
 #endif
 
-} // namespace
-
+}
 namespace detail {
-
-
-bool DrawToWindow(const BlitBatch* cursor) {
+bool DrawToWindow(const BlitBatch* cursor, bool overlay) {
     if (DeviceIsLost()) return false;
     int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
     Rect placed{};
     if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
     if (!FrameTexture().id) return false;
-    if (!EnsureChain(GameWindow(), clientWidth, clientHeight)) return false;
+    if (!g_pipeline.id && !CreatePipeline()) Fatal("Cannot make the presentation pipeline");
+    sg_swapchain drawable{};
+    if (!platform::graphics::AcquireDrawable(app::g_mainWindow, g_waitForVsync, g_allowTearing, &drawable)) {
+        long result = 0, reason = 0;
+        if (platform::graphics::PollDeviceLoss(&result, &reason)) ReportDeviceLost(result, reason);
+        else if (platform::graphics::DeviceError()[0]) Fatal("Cannot present: %s", platform::graphics::DeviceError());
+        return false;
+    }
+    clientWidth = drawable.width;
+    clientHeight = drawable.height;
+    placed = Placed(clientWidth, clientHeight, frameWidth, frameHeight);
     if (g_rampDirty) {
         sg_image_data data{};
         data.mip_levels[0] = sg_range{g_ramp, sizeof(g_ramp)};
@@ -391,12 +219,7 @@ bool DrawToWindow(const BlitBatch* cursor) {
     sg_pass pass{};
     pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;   // the bars black
     pass.action.colors[0].clear_value = sg_color{0.0f, 0.0f, 0.0f, 1.0f};
-    pass.swapchain.width = clientWidth;
-    pass.swapchain.height = clientHeight;
-    pass.swapchain.sample_count = 1;
-    pass.swapchain.color_format = SG_PIXELFORMAT_BGRA8;
-    pass.swapchain.depth_format = SG_PIXELFORMAT_NONE;
-    pass.swapchain.d3d11.render_view = g_view;
+    pass.swapchain = drawable;
     pass.label = "ei-present";
     sg_begin_pass(&pass);
     sg_apply_viewport(placed.left, placed.top, placed.right - placed.left, placed.bottom - placed.top, true);
@@ -414,7 +237,8 @@ bool DrawToWindow(const BlitBatch* cursor) {
             cp = CursorParams{{static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right),
                                static_cast<float>(to.bottom)},
                               {static_cast<float>(frameWidth), static_cast<float>(frameHeight),
-                               static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
+                               static_cast<float>(sw) / static_cast<float>(dw),
+                               static_cast<float>(sh) / static_cast<float>(dh)},
                               {static_cast<float>(sw), static_cast<float>(sh), static_cast<float>(cursor->source.left),
                                static_cast<float>(cursor->source.top)}};
             g_lastCursor = to;
@@ -432,82 +256,64 @@ bool DrawToWindow(const BlitBatch* cursor) {
     sg_range cursorRange{&cp, sizeof(cp)};
     sg_apply_uniforms(1, &cursorRange);
     sg_draw(0, 3, 1);
-    perf::Draw(clientWidth, clientHeight, placed);   // over the frame and the cursor, off unless switched on
+    if (overlay)
+        perf::Draw(clientWidth, clientHeight, placed);   // over the frame and the cursor, off unless switched on
     sg_end_pass();
+    g_parts = WindowParts{FrameTexture(), g_rampView,  g_uploaded, clientWidth,   clientHeight,
+                          frameWidth,     frameHeight, placed,     g_waitForVsync};
+    g_haveWindow = true;
     return true;
 }
 
 void PresentWindow() {
 #if defined(EI_RENDER_VALIDATION)
-    if (g_checkRamp && g_chain) CheckRamp(g_chainWidth, g_chainHeight);
-    if (g_chain) CheckCursorDrawn(g_chainWidth, g_chainHeight);
+    if (g_checkRamp) CheckRamp(g_parts.clientWidth, g_parts.clientHeight);
+    CheckCursorDrawn(g_parts.clientWidth, g_parts.clientHeight);
 #endif
-    // A loss asked for by the harness (render::LoseDevice) stands in for the Present that would
-    // have reported it.
-    HRESULT hr = DXGI_ERROR_DEVICE_REMOVED;
-    if (!TakeSimulatedLoss()) {
-#if defined(EI_RENDER_VALIDATION)
-        // A removal asked for (render::RemoveDevice) happens here, after the frame was drawn on a
-        // working device: this Present reports it.
-        RemoveIfAsked();
-#endif
-        hr = g_chain->Present(SyncIntervalFor(g_waitForVsync), PresentFlagsFor(g_waitForVsync, g_chainFlags));
-    }
-    if (IsDeviceLost(hr)) {
-        DeviceLost("Present", hr);
+    if (TakeSimulatedLoss()) {
+        ReportDeviceLost(platform::graphics::kDeviceRemoved, 0);
         return;
     }
-    // DXGI_STATUS_OCCLUDED (covered or minimised) is a success: nothing to do.
-    if (SUCCEEDED(hr)) ++g_info.presents;
-    if (FAILED(hr) && g_presentFailures++ < 10)
-        ei::Log("render: the game window's Present failed (%08lX)", static_cast<unsigned long>(hr));
+    platform::graphics::RemoveIfAsked();
+    if (platform::graphics::PresentDrawable(g_waitForVsync)) ++g_info.presents;
+    else {
+        long result = 0, reason = 0;
+        if (platform::graphics::PollDeviceLoss(&result, &reason)) ReportDeviceLost(result, reason);
+    }
 }
-
 bool CurrentWindowParts(WindowParts* parts) {
-    if (!g_chain || !g_view || !g_pipeline.id || !g_rampView.id) return false;
-    int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
-    Rect placed{};
-    if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
-    *parts = WindowParts{g_chain,       g_view,       g_shader,      g_pipeline, FrameTexture(), g_rampView,
-                         g_uploaded,    g_chainWidth, g_chainHeight, frameWidth, frameHeight,    placed,
-                         SyncIntervalFor(g_waitForVsync), PresentFlagsFor(g_waitForVsync, g_chainFlags)};
+    if (!g_haveWindow || !FrameTexture().id) return false;
+    *parts = g_parts;
     return true;
 }
-
 void DropWindow() {
-    ReleaseChain();
+    platform::graphics::DropWindow();
+    g_haveWindow = false;
+    g_info.presentsAtRecovery = g_info.presents;
     if (g_rampView.id) sg_destroy_view(g_rampView);
     if (g_rampImage.id) sg_destroy_image(g_rampImage);
     if (g_pipeline.id) sg_destroy_pipeline(g_pipeline);
     if (g_shader.id) sg_destroy_shader(g_shader);
-    g_rampView = sg_view{};
-    g_rampImage = sg_image{};
-    g_pipeline = sg_pipeline{};
-    g_shader = sg_shader{};
-    g_rampDirty = true;   // the ramp the game set goes to the new device's lookup texture
-    g_recreated = false;
-    g_info.presentsAtRecovery = g_info.presents;
+    g_rampView = {};
+    g_rampImage = {};
+    g_pipeline = {};
+    g_shader = {};
+    g_rampDirty = true;
 }
-
-} // namespace detail
-
+}
 void SetWaitForVsync(bool on) { g_waitForVsync = on; }
-
 void SetVsync(bool on) {
     if (!VsyncSwitchSupported()) return;
-    if (on != g_waitForVsync) ei::Log("render: vertical blank wait %s (settings file)", on ? "on" : "off");
     g_waitForVsync = on;
     g_allowTearing = !on;
 }
-
 bool VsyncSwitchSupported() {
 #if defined(EI_RENDER_VALIDATION)
-    return false;   // the harness build: its presents are the virtual clock's (SetWaitForVsync), the pinned settings lack the value
+    return false;
 #else
     return true;
 #endif
 }
-
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue) {
     // The ramp's full scale is the game's 65280 (255 * 256); entries are
     // rounded to the 8 bits a channel of the frame has.
@@ -515,7 +321,8 @@ void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const st
     bool identity = true;
     for (int i = 0; i < 256; ++i) {
         for (int c = 0; c < 3; ++c) {
-            unsigned v = channels[c] ? (static_cast<unsigned>(channels[c][i]) * 255u + 32640u) / 65280u : static_cast<unsigned>(i);
+            unsigned v = channels[c] ? (static_cast<unsigned>(channels[c][i]) * 255u + 32640u) / 65280u
+                                     : static_cast<unsigned>(i);
             if (v > 255) v = 255;
             g_ramp[i * 4 + c] = static_cast<std::uint8_t>(v);
             identity = identity && v == static_cast<unsigned>(i);
@@ -528,22 +335,17 @@ void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const st
     g_rampIdentity = identity;
     g_rampDirty = true;
 #if defined(EI_RENDER_VALIDATION)
-    // Reading the presented frame back stalls on the GPU: sampled (ReadBackDue).
-    g_checkRamp = detail::ReadBackDue(g_rampsSet);
-    ++g_rampsSet;
-#else
-    g_checkRamp = true;
+    g_checkRamp = detail::ReadBackDue(g_rampsSet++);
 #endif
 }
 
 WindowPresentInfo WindowPresents() {
-    WindowPresentInfo info = g_info;
+    auto info = g_info;
     info.rampCheckPending = g_checkRamp;
     info.rampIdentity = g_rampIdentity;
-    DeviceLossCounts(&info);
+    detail::DeviceLossCounts(&info);
     return info;
 }
-
 bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed) {
     int cw = 0, ch = 0;
     return Placement(&cw, &ch, frameWidth, frameHeight, placed);
@@ -572,4 +374,4 @@ void FrameToWindow(int* x, int* y) {
     *y = r.top + static_cast<int>((static_cast<long long>(*y) * h * 2 + h) / (2LL * fh));
 }
 
-} // namespace render
+}
