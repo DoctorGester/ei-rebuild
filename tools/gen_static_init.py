@@ -762,7 +762,7 @@ def hand_literals():
     import named_data
     found = set()
     for rel, full in named_data.other_files():
-        if os.path.normpath(os.path.join(ROOT, rel)) in (OUT, OUT_EXIT) or rel.endswith('image_cells.inc'):
+        if os.path.normpath(os.path.join(ROOT, rel)) in (OUT, OUT_EXIT):
             continue
         with open(full, encoding='utf-8', errors='replace') as f:
             code = named_data.srcscan.blank_comments(f.read())

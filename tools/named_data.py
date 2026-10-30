@@ -6,8 +6,8 @@ whose initialiser carries the original's address as a tag right after the `=`:
     constexpr int kSlotXs[7] = /*0074111C*/ {300, 500, 200, 400, 600, 75, 725};
     constexpr GUID kIidDirectDraw7 = /*00745C90*/ {0x15E65EC0, 0x3B9C, 0x11D2, {0xB9, 0x2F, 0x00, 0x60, ...}};
 
-The code then names the global (kSlotXs[i]), not the address (GamePointer<const int>(0x0074111C)), and the range's
-bytes leave the image's generated copy of the sections (gen_image_cells.py --bytes writes them zero).
+The code then names the global (kSlotXs[i]), not the address (GamePointer<const int>(0x0074111C)), and nothing reads the
+range's bytes (the image's copy of the sections is zero: C20t).
 
 --check (build.cmd; reads no game.exe: the comparisons with its bytes and cells were tools/check_against_exe.cmd's until
 C25d, the proof of each definition when it was made, `--emit` runs it in reverse):
@@ -15,8 +15,7 @@ C25d, the proof of each definition when it was made, `--emit` runs it in reverse
     fields' formats, nested braces flattened), it lies in .rdata past the import table or .data and its zero-filled
     tail, no addon.dll site but NAMED_ADDON_SITES (the ones the image writes itself), no two ranges overlapping, and one
     in .rdata is constexpr;
-  * config/named_data.csv lists exactly the tagged ranges (address, size, name, file): `--update` writes it, and
-    the build's gen_image_cells.py --bytes reads it;
+  * config/named_data.csv lists exactly the tagged ranges (address, size, name, file): `--update` writes it;
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
     one pointer `constexpr const char* kX = /*addr*/ "text";`) names a string literal, another named range (qualified
     or not; or `NAME + k` its element k: _pctype's `kCtypeC + 1`, written by hand), a function of ours (any other
@@ -118,11 +117,6 @@ TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*
 NUMBER = re.compile(r'(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)([fFuUlL]*)')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
 ORIGINAL_READ = re.compile(r'\bOriginalGameData\s*<[^<>()]*>\s*\(\s*$')   # just before a literal
-
-
-def image(path):
-    import gen_image_cells
-    return gen_image_cells.image(path)
 
 
 def braced(text, start):
@@ -426,7 +420,7 @@ Definition.pack_pointers = _pack_pointers
 
 
 class Retired:
-    """A retired vtable (gen_image_cells.retired_vtables): game.exe's vtable of a class whose vtable is the compiler's."""
+    """A retired vtable (retired_vtables.retired_vtables): game.exe's vtable of a class whose vtable is the compiler's."""
     def __init__(self, vtable, slots, cls, path):
         self.address, self.size, self.name, self.path = vtable, 4 * slots, f"{cls}'s retired vtable", path
 
@@ -570,8 +564,8 @@ def check(update):
             problems.append(f'{y.where()}: {y.name} overlaps {x.name} ({x.where()})')
 
     # The retired vtables (config/vtables.csv, C19): no definition, the same proof that nothing reaches them.
-    import gen_image_cells
-    retired = [Retired(v, n, cls, path) for v, n, cls, path in gen_image_cells.retired_vtables()]
+    import retired_vtables
+    retired = [Retired(v, n, cls, path) for v, n, cls, path in retired_vtables.retired_vtables()]
     # addon.dll's sites are game.exe's: addon only runs in game.exe (harness_addon.cpp at WinMain), never in the
     # image, which reproduces its patches behind flags. A retired vtable may hold a site whose slot the image's
     # class reproduces (RETIRED_ADDON_SITES: ResOverride's GetFile slot, CMappedResource::GetFileImpl through
@@ -595,8 +589,6 @@ def check(update):
         return None
 
     for rel, full in other_files():
-        if rel.endswith('image_cells.inc'):
-            continue
         with open(full, encoding='utf-8', errors='replace') as f:
             raw = f.read()
         code = srcscan.blank_comments(raw)
@@ -872,8 +864,6 @@ def rewrite(name, apply_):
     element = plain_type(d.type)
     changed, left = 0, []
     for rel, full in other_files():
-        if rel.endswith('image_cells.inc'):
-            continue
         with open(full, encoding='utf-8', errors='replace', newline='') as f:   # line ends kept
             raw = f.read()
         code = srcscan.blank_comments(raw)
@@ -1012,7 +1002,7 @@ def main():
         return check(a.update)   # --check, --update: no game.exe
     try:
         path = exe_path.find_exe(a.exe)
-        img = image(path)
+        img = exe_path.image(path)
     except exe_path.ExeNotFound as e:
         sys.exit(f'named_data: {e}')
     if a.split is not None:

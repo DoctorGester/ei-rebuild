@@ -94,8 +94,8 @@ def main():
         rows.append([f'{vt:08X}', n, rtti_name(vt), 'lib' if lib else 'game',
                      ' '.join(f'{a:08X}' for a in sorted(users)), f'{u32(vt):08X}'])
 
-    # The class, file and note of a row already listed stay (the retired vtables, C19: tools/gen_image_cells.py);
-    # a new row has none until someone decides it (gen_image_cells --check fails until then).
+    # The class, file and note of a row already listed stay (the retired vtables, C19: tools/retired_vtables.py);
+    # a new row has none until someone decides it (retired_vtables --check fails until then).
     out = os.path.join(ROOT, 'config', 'vtables.csv')
     kept = {}
     if os.path.exists(out):

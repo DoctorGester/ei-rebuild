@@ -172,21 +172,6 @@ else()
     # (image_imports.cpp: Miles, Bink). ASan's runtime is beside the exe, so its build searches as usual.
     target_link_options(ei-rebuild PRIVATE /DEPENDENTLOADFLAG:0x800)
 endif()
-# The initial bytes of the image's own copy of game.exe's .rdata and .data (src/standalone/image_data.cpp, S18d), written
-# at build time into image/ in the build folder (not committed; tools/gen_image_cells.py --bytes): zero but the
-# committed pointer cells. The build reads no game.exe (C25c).
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(EI_IMAGE_DATA ${CMAKE_BINARY_DIR}/image/image_data_bytes.inc)
-add_custom_command(OUTPUT ${EI_IMAGE_DATA}
-    COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py --bytes ${EI_IMAGE_DATA}
-    DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py ${CMAKE_SOURCE_DIR}/config/named_data.csv
-            ${CMAKE_SOURCE_DIR}/config/vtables.csv
-            ${CMAKE_SOURCE_DIR}/src/standalone/image_cells.inc
-    COMMENT "Writing the image's .rdata and .data bytes"
-    VERBATIM)
-target_sources(ei-rebuild PRIVATE ${EI_IMAGE_DATA})
-set_source_files_properties(src/standalone/image_data.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/image
-                            OBJECT_DEPENDS ${EI_IMAGE_DATA})
 # The Rebirth install's profile, which an exe dropped into a Rebirth folder without an ei_rebirth.ini takes
 # (src/standalone/startup.cpp): config/ei_rebirth_standalone.ini's flags as a spec (rebirth::ApplySpec), written at
 # configure time into config/rebirth_profile.inc in the build folder.

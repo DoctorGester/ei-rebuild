@@ -887,7 +887,6 @@ src/game/weather_particles.cpp
 src/game/win_registry.cpp
 src/game/win_registry.h
 src/standalone/host.cpp
-src/standalone/image_cells.inc
 src/standalone/image_data.cpp
 src/standalone/image_imports.cpp
 src/standalone/image_imports.inc
