@@ -6702,6 +6702,13 @@ depends = ["C59a"]
 note = "Part (2) of C59a. C59 removed every *_slots / *_lifetime / small_* file and cut unit_ai_* from 15 to 4 files; still split thin by the original's address order: unit_client_* (12 files), spell_* (11), ui_battle_* (8), texture_* (8), object3d_* (4) next to map_object_figures.cpp (the 3D object base). Merge where one feature is split thin; audit single members sitting in another subsystem's file beyond the grab-bags. Moves only, no signature changes; run alone between other workers (conflicts with everything)."
 
 [[ticket]]
+id = "C65"
+title = "Review leftovers: settings hex terminator, Truncate pinned, harness UTF-8 path, connect key random, x64 C4702"
+group = "cleanup"
+model = "sonnet"
+note = "From V30 (build/reviews/v30c_*.md): settings_key.cpp:94 GetString over-reads a hand-edited hex(1): value with no terminator (terminate in the parser); lib/rounding.h Truncate relies on MSVC's 64-bit conversion for NaN / out of range (pin the result explicitly, same values); tests/verify/harness_addon.cpp LoadFlags passes a GetModuleFileNameA path to rebirth.cpp's UTF-8 reader (use the W call and convert; harness key: --no-hooks suite once); ui_connect_screen.cpp:605's address-book key draws g_random (client-only: g_clientRandom; goldens may move, one re-record if so, per the client random rule); verify-x64's five C4702 in tests/verify/harness_starter.cpp 177-186 (x64 NoOriginalCode stubs)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
