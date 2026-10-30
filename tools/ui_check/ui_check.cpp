@@ -464,6 +464,66 @@ void CheckGlyphs() {
             ++caseIndex;
         }
     }
+    // Runs that overlap none of the others are drawn together (one coverage pass and one compose pass, the runs
+    // stacked in the scratch targets): four of them, one clipped by the canvas's left edge, in different colours.
+    for (const Format& f : kFormats) {
+        const void* holder = &f;
+        text::TextFont* font = text::GetTextFont("Times New Roman", 14, true);
+        if (!font) {
+            Check(false, "font Times New Roman 14 px");
+            continue;
+        }
+        ui::Canvas(holder, w, h, f.format);
+        std::vector<std::uint32_t> expected(static_cast<std::size_t>(w) * h, RefQuantise(RgbOfColorref(RGB(30, 90, 60)), f.format));
+        ui::Fill(holder, Rect{0, 0, w, h}, RGB(30, 90, 60));
+        const Rect rects[] = {{2, 2, 80, 20}, {100, 2, 178, 20}, {2, 28, 178, 46}, {-10, 52, 70, 70}};
+        const char* const texts[] = {"First run", "Second", "A third, longer run of text", "Clipped at the edge"};
+        int runs = 0;
+        for (int i = 0; i < 4; ++i) {
+            text::TextLayout layout;
+            if (!text::Layout(*font, text::DecodeCp1251(texts[i]), rects[i], text::kNoPrefix, layout)) continue;
+            const COLORREF colour = RGB(250 - i * 40, 200, 40 + i * 50);
+            ui::GlyphRun(holder, *font, layout, colour);
+            RefGlyphRun(expected, w, h, *font, layout, colour, f.format);
+            ++runs;
+        }
+        std::vector<std::uint32_t> got;
+        std::string example;
+        int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
+        Check(runs == 4 && differ == 0, std::string(f.name) + " glyph runs drawn together (" + std::to_string(runs) + " laid out): " +
+                                            std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
+        ui::DropCanvas(holder);
+    }
+    // Runs drawn together whose vertices outgrow the stream buffer (about 2,000 glyphs, 190 KB): the buffer is
+    // replaced before the first of them is appended, never between them.
+    {
+        const int bw = 960, bh = 340;
+        const void* holder = &bw;
+        text::TextFont* font = text::GetTextFont("Times New Roman", 14, true);
+        if (font) {
+            ui::Canvas(holder, bw, bh, kFormats[2].format);
+            std::vector<std::uint32_t> expected(static_cast<std::size_t>(bw) * bh, 0);
+            const char* line = "The quick brown fox jumps over the lazy dog; pack my box with five dozen liquor jugs. "
+                               "Sphinx of black quartz, judge my vow: 0123456789 and again 9876543210.";
+            int runs = 0;
+            for (int i = 0; i < 13; ++i) {
+                text::TextLayout layout;
+                if (!text::Layout(*font, text::DecodeCp1251(line), Rect{2, 2 + i * 26, bw - 2, 2 + i * 26 + 24}, text::kNoPrefix, layout))
+                    continue;
+                ui::GlyphRun(holder, *font, layout, RGB(220, 230, 140 + i * 8));
+                RefGlyphRun(expected, bw, bh, *font, layout, RGB(220, 230, 140 + i * 8), kFormats[2].format);
+                ++runs;
+            }
+            std::vector<std::uint32_t> got;
+            std::string example;
+            int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, bw, &example) : -1;
+            Check(runs == 13 && differ == 0, "glyph runs drawn together past the stream buffer (" + std::to_string(runs) + " laid out): " +
+                                                 std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
+            ui::DropCanvas(holder);
+        } else {
+            Check(false, "font Times New Roman 14 px");
+        }
+    }
     // Over black in 8:8:8 the run is ComposeAgainstBlack (render_text's CPU reference).
     {
         const void* holder = &w;

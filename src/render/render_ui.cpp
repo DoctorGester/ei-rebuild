@@ -345,13 +345,13 @@ void ApplyFs(const UiParams& fs) {
     sg_apply_uniforms(1, &range);
 }
 
-// `r` of the canvas's image copied to the same place in g_under.
-void CopyUnder(const CanvasState& canvas, const Rect& r) {
+// `r` of the canvas's image copied into g_under at (0, row).
+void CopyUnder(const CanvasState& canvas, const Rect& r, int row) {
     ID3D11Texture2D* from = D3DTexture(canvas.gpu.image);
     ID3D11Texture2D* to = D3DTexture(g_under.image);
     if (!from || !to) return;
     D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right), static_cast<UINT>(r.bottom), 1};
-    Context()->CopySubresourceRegion(to, 0, static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, from, 0, &box);
+    Context()->CopySubresourceRegion(to, 0, 0, static_cast<UINT>(row), 0, from, 0, &box);
 }
 
 // The canvas's image of its size, all black.
@@ -409,9 +409,9 @@ sg_view AtlasView(const text::GlyphAtlas& atlas) {
     return t.view;
 }
 
-// The vertices appended to the stream buffer (grown when they do not fit): their offset, or -1.
-int AppendVertices(const std::vector<float>& vertices) {
-    std::size_t bytes = vertices.size() * sizeof(float);
+// Room for `bytes` more in the stream buffer this frame: a buffer too small is replaced by a larger one (empty), so
+// the offsets of vertices appended before are void; false when none can be made.
+bool VertexRoom(std::size_t bytes) {
     if (!g_vertices.id || sg_query_buffer_will_overflow(g_vertices, bytes)) {
         if (g_vertices.id) sg_destroy_buffer(g_vertices);
         g_vertexCapacity = std::max<std::size_t>({g_vertexCapacity * 2, bytes * 2, 64 * 1024});
@@ -426,38 +426,71 @@ int AppendVertices(const std::vector<float>& vertices) {
             if (g_vertices.id) sg_destroy_buffer(g_vertices);
             g_vertices = sg_buffer{};
             g_vertexCapacity = 0;
-            return -1;
+            return false;
         }
     }
+    return true;
+}
+
+// The vertices appended to the stream buffer: their offset, or -1 (no room: VertexRoom for all of a pass's first).
+int AppendVertices(const std::vector<float>& vertices) {
+    std::size_t bytes = vertices.size() * sizeof(float);
+    if (!g_vertices.id || sg_query_buffer_will_overflow(g_vertices, bytes)) return -1;
     sg_range range{vertices.data(), bytes};
     int offset = sg_append_buffer(g_vertices, &range);
     return sg_query_buffer_overflow(g_vertices) ? -1 : offset;
 }
 
-void DrawGlyphs(const CanvasState& canvas, const Op& op) {
-    if (!op.atlas || !EnsureScratch(g_coverage, canvas.width, canvas.height, SG_PIXELFORMAT_R8, "ei-canvas-coverage") ||
-        !EnsureScratch(g_under, canvas.width, canvas.height, SG_PIXELFORMAT_RGBA8, "ei-canvas-under"))
+// Glyph runs [from, to) of the queue, all on `canvas` and none overlapping another, drawn together: each run's
+// coverage into g_coverage and what the canvas held under it into g_under, the runs stacked in rows of both (each
+// with its top left corner at the left edge), then each composed into the canvas, in one coverage pass and one
+// compose pass: each pass waits on the GPU for the one before it (the battle screen's six runs a frame took the
+// GPU 0.07 ms drawn one by one, 0.055 ms together; docs/notes/renderer.md section 13).
+void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
+    struct Run {
+        const Op* op;
+        sg_view atlas;
+        int offset;   // its vertices' in g_vertices
+        int row;      // its top row in the scratch targets
+    };
+    std::vector<Run> runs;
+    std::size_t bytes = 0;
+    for (std::size_t k = from; k < to; ++k) bytes += g_queue[k].vertices.size() * sizeof(float);
+    if (!VertexRoom(bytes)) return;
+    int width = 0, height = 0;
+    for (std::size_t k = from; k < to; ++k) {
+        const Op& op = g_queue[k];
+        const int row = height;
+        width = std::max(width, op.rect.right - op.rect.left);
+        height += op.rect.bottom - op.rect.top;
+        if (!op.atlas) continue;
+        sg_view atlas = AtlasView(*op.atlas);
+        int offset = AppendVertices(op.vertices);
+        if (atlas.id && offset >= 0) runs.push_back(Run{&op, atlas, offset, row});
+    }
+    if (runs.empty() || !EnsureScratch(g_coverage, width, height, SG_PIXELFORMAT_R8, "ei-canvas-coverage") ||
+        !EnsureScratch(g_under, width, height, SG_PIXELFORMAT_RGBA8, "ei-canvas-under"))
         return;
-    sg_view atlas = AtlasView(*op.atlas);
-    int offset = AppendVertices(op.vertices);
-    if (!atlas.id || offset < 0) return;
-    // The run's coverage.
+    // The coverage: each run's canvas positions moved to its row (vs_glyph), clipped to it (its bounds within its
+    // clip rectangle).
     BeginCanvasPass(g_coverage.attachment, true, "ei-canvas-coverage");
-    sg_apply_viewport(0, 0, canvas.width, canvas.height, true);
-    sg_apply_scissor_rect(op.scissor.left, op.scissor.top, op.scissor.right - op.scissor.left, op.scissor.bottom - op.scissor.top, true);
     sg_apply_pipeline(g_glyph);
-    sg_bindings b{};
-    b.vertex_buffers[0] = g_vertices;
-    b.vertex_buffer_offsets[0] = offset;
-    b.views[0] = atlas;
-    b.samplers[0] = g_nearest;
-    sg_apply_bindings(&b);
-    ApplyRect(Rect{0, 0, canvas.width, canvas.height}, canvas.width, canvas.height);
-    ApplyFs(CanvasParams(canvas));
-    sg_draw(0, static_cast<int>(op.vertices.size() / 4), 1);
+    for (const Run& run : runs) {
+        const Rect& r = run.op->rect;
+        sg_apply_scissor_rect(0, run.row, r.right - r.left, r.bottom - r.top, true);
+        sg_bindings b{};
+        b.vertex_buffers[0] = g_vertices;
+        b.vertex_buffer_offsets[0] = run.offset;
+        b.views[0] = run.atlas;
+        b.samplers[0] = g_nearest;
+        sg_apply_bindings(&b);
+        ApplyRect(Rect{r.left, r.top - run.row, r.right, r.bottom - run.row}, g_coverage.width, g_coverage.height);
+        ApplyFs(CanvasParams(canvas));
+        sg_draw(0, static_cast<int>(run.op->vertices.size() / 4), 1);
+    }
     sg_end_pass();
-    // What the canvas held there, then the two composed into it.
-    CopyUnder(canvas, op.rect);
+    // What the canvas held there, then the runs composed into it.
+    for (const Run& run : runs) CopyUnder(canvas, run.op->rect, run.row);
     BeginCanvasPass(canvas.gpu.attachment, false, "ei-canvas-compose");
     sg_apply_pipeline(g_compose);
     sg_bindings c{};
@@ -465,14 +498,31 @@ void DrawGlyphs(const CanvasState& canvas, const Op& op) {
     c.views[1] = g_under.texture;
     c.samplers[0] = g_nearest;
     sg_apply_bindings(&c);
-    ApplyRect(op.rect, canvas.width, canvas.height);
-    UiParams fs = CanvasParams(canvas);
-    fs.colour[0] = static_cast<float>(op.colour & 0xFF);
-    fs.colour[1] = static_cast<float>((op.colour >> 8) & 0xFF);
-    fs.colour[2] = static_cast<float>((op.colour >> 16) & 0xFF);
-    ApplyFs(fs);
-    sg_draw(0, 6, 1);
+    for (const Run& run : runs) {
+        const Op& op = *run.op;
+        ApplyRect(op.rect, canvas.width, canvas.height);
+        UiParams fs = CanvasParams(canvas);
+        fs.colour[0] = static_cast<float>(op.colour & 0xFF);
+        fs.colour[1] = static_cast<float>((op.colour >> 8) & 0xFF);
+        fs.colour[2] = static_cast<float>((op.colour >> 16) & 0xFF);
+        fs.source[0] = op.rect.left;
+        fs.source[1] = op.rect.top - run.row;
+        ApplyFs(fs);
+        sg_draw(0, 6, 1);
+    }
     sg_end_pass();
+}
+
+// Whether glyph run `op` can join the runs [from, to) drawn together: on the same canvas, overlapping none of
+// them (each run's composition reads what the canvas held before it), the stacked rows within a target's size.
+bool JoinsRuns(const Op& op, std::size_t from, std::size_t to) {
+    if (op.kind != Op::Glyphs || op.holder != g_queue[from].holder || op.canvas != g_queue[from].canvas) return false;
+    int height = op.rect.bottom - op.rect.top;
+    for (std::size_t k = from; k < to; ++k) {
+        if (!Empty(Intersect(op.rect, g_queue[k].rect))) return false;
+        height += g_queue[k].rect.bottom - g_queue[k].rect.top;
+    }
+    return height <= kMaxCanvas;
 }
 
 void DrawCopy(const CanvasState& canvas, const Op& op) {
@@ -512,7 +562,7 @@ void DrawPixels(const CanvasState& canvas, const Op& op) {
 void DrawGrey(const CanvasState& canvas) {
     if (!EnsureScratch(g_under, canvas.width, canvas.height, SG_PIXELFORMAT_RGBA8, "ei-canvas-under")) return;
     Rect whole{0, 0, canvas.width, canvas.height};
-    CopyUnder(canvas, whole);
+    CopyUnder(canvas, whole, 0);
     BeginCanvasPass(canvas.gpu.attachment, false, "ei-canvas-grey");
     sg_apply_pipeline(g_grey);
     sg_bindings b{};
@@ -919,7 +969,10 @@ void RunCanvasCommands() {
                 ++end;
             DrawSolids(*canvas, k, end);
             break;
-        case Op::Glyphs: DrawGlyphs(*canvas, op); break;
+        case Op::Glyphs:
+            while (end < g_queue.size() && JoinsRuns(g_queue[end], k, end)) ++end;
+            DrawGlyphs(*canvas, k, end);
+            break;
         case Op::Copy: DrawCopy(*canvas, op); break;
         case Op::Grey: DrawGrey(*canvas); break;
         case Op::Pixels: DrawPixels(*canvas, op); break;

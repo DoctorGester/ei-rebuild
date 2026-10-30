@@ -3,14 +3,14 @@
 // bits and widened again), drawn into by GDI-like commands and blitted onto the frame. One file, several
 // entry points (CMakeLists.txt compiles each one).
 cbuffer vs_params : register(b0) {
-    float4 rect;     // vs_rect: left, top, right, bottom (target pixels)
+    float4 rect;     // vs_rect: left, top, right, bottom (target pixels); vs_glyph: x, y taken off the positions
     float4 target;   // x, y: the target's width, height
 };
 cbuffer fs_params : register(b0) {
     float4 colour;   // ps_solid: the colour (0..1); ps_compose: the text colour (0..255)
     uint4 bits;      // the surface format's bits of red, green, blue; w: ps_grey's formula
     int4 source;     // ps_copy: left, top, width, height in the frame; ps_blit: left, top, texture width, height;
-                     // ps_rgb565: z, w the canvas's width, height
+                     // ps_rgb565: z, w the canvas's width, height; ps_compose: x, y taken off the pixel
     int4 dest;       // ps_copy, ps_rgb565: the target's width, height; ps_blit: the destination's left, top
     float4 scale;    // ps_blit: source texels per destination pixel (x, y)
     uint4 key;       // ps_blit: the colour key's red, green, blue (0..255); w: keyed
@@ -32,9 +32,10 @@ struct GlyphVertex {
     float4 position : SV_Position;
     float2 atlas : TEXCOORD0;   // atlas texels; x < 0: an underline (full coverage)
 };
+// A glyph run moved to its row of the coverage target (rect.xy: its corner less the row's top left).
 GlyphVertex vs_glyph(float4 v : POSITION) {
     GlyphVertex o;
-    o.position = ToClip(v.xy);
+    o.position = ToClip(v.xy - rect.xy);
     o.atlas = v.zw;
     return o;
 }
@@ -66,9 +67,9 @@ float4 ps_glyph(GlyphVertex i) : SV_Target0 {
 }
 
 // The run's colour over what the canvas held (tex1, a copy) by its coverage (tex0), rounded as
-// render::text::ComposeAgainstBlack does over black.
+// render::text::ComposeAgainstBlack does over black. Both hold the run in its row (source.xy as in vs_glyph).
 float4 ps_compose(float4 pos : SV_Position) : SV_Target0 {
-    int3 p = int3(pos.xy, 0);
+    int3 p = int3(int2(pos.xy) - source.xy, 0);
     uint cover = (uint)(tex0.Load(p).r * 255.0 + 0.5);
     if (cover == 0) discard;
     uint3 under = Bytes(tex1.Load(p).rgb);
