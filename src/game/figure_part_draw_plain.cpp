@@ -6,6 +6,7 @@
 #include "link_figure.h"
 #include "lib/containers.h"
 #include "lib/gameapi.h"
+#include "lib/pc24.h"
 #include "model.h"
 #include "render/render.h"
 #include "texture.h"
@@ -25,10 +26,10 @@ std::vector<VertexPacket> g_movedPositions;
 
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
-// The world time: whole ticks plus the fraction of the current one, rounded to a float.
+// The world time: whole ticks plus the fraction of the current one, rounded to a float once (the tick exact).
 void TickTime(float* out) {
     const WorldClient* world = &g_clientWorld;
-    *out = static_cast<float>(static_cast<double>(world->tick) + world->tickFraction);
+    *out = pc24::Add(static_cast<double>(world->tick), world->tickFraction);
 }
 
 void Fill(std::vector<std::uint32_t>& a, std::uint32_t value) {

@@ -181,7 +181,7 @@ the two cannot be stacked per file.
   precision (the D3D7 device's), as before, and leaves MXCSR alone.
 - `check_x87.py` skips the SSE2 objects and the CRT's `ftol3.obj` (`__ltod3` and its kin, which only SSE2 code calls:
   their 2^32 is SSE arithmetic, not a FADD at the precision control).
-- **What C30a kept x87 and why** (now groups C30e10, C30e12 and C30e13 of `EI_X87_GAME_SOURCES`): picking reads the drawn view and the objects' screen
+- **What C30a kept x87 and why** (now groups C30e12 and C30e13 of `EI_X87_GAME_SOURCES`; C30e10 moved the figure and link mesh draws): picking reads the drawn view and the objects' screen
   rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
   choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
@@ -437,6 +437,24 @@ whole after it (Range's vectors, all recorded at control word 007F, replay again
 Range for every draw of three ranges and 2^28 random, `ScaledExperience` 2^28 (each of the 256 powers), the map's
 degrees for every 3-decimal text in [-1000, 1000], `BufferRatio` 2^27, the share 2^26, the saver's product on every
 float: 0 differ. Behaviour change: a signalling NaN in a variable table or an award keeps its bits (SSE2 copies).
+
+**C30e10 (geometry and figures; 23 of 24 files moved).** The transform's rotation helpers (core_transform_math), the
+figure meshes' morphs and pose matrix, the bones, the projection: their `D()` registers and double locals held floats
+at PC24, so float maths in the original's order (`MorphVector`'s upper z kept on the FPU is the stored float: its
+`keepZ` switch is gone). Through `lib/pc24.h`: `ProjectionMatrix`'s and `FromAxisAngle`'s FSIN / FCOS (`Mul(Sin(half),
+zFar)`, `Div(Sin(half), length)`, the cosine stored), `SetHeading`'s FPATAN plus pi / 2, `TurnUpTowards`' double 2 pi
+minus the angle, `TiltTowards`' arc cosine times 0.1, the mesh draws' tick (an int, exact) plus its fraction. **The game
+CRT's arc cosine** (`CiAcos`, crt_x87) returns FPATAN's result through a double at PC24 (its control word restore
+stores it), so an SSE2 caller gets the same double: storing it as a float is a plain conversion, an operation on it a
+`pc24::` one. `x87::fistp` -> `lib::RoundEven` (the fog alpha), `Ftol` -> int64 truncation (frame sheets, specular
+bytes), `CopyBits` -> `=`. Kept: quaternion.cpp (C30e10a): `Slerp`'s `1 / fsin(angle)` takes CiAcos's double, and
+`pc24::Sin` takes a float. Reviewed in the objects: the x87 code the compiler leaves in SSE2 objects (a float-returning
+function's sum on ST0: `Dot`, `DotZYX`, `UpX`; an FSUBR on a returned float) is float operations on floats, exact at the
+main thread's PC24; `WaterTweens::SetTarget`'s int steps were rounded to a float in the x87 code too (FILD, FSTP dword).
+Equivalence test (C30e10's `eq/`: HEAD's functions built /arch:IA32 at PC24 against the new ones, one x87 acos shared):
+WorldMatrix, Tilt / Turn / Roll / TurnUpTowards and the turn-up tail above pi, SetHeading, the Rotate product,
+FromAxisAngle and Length, ProjectionMatrix, the morphs, FigureMesh::UpdateWorld, TickTime: 48 M random cases each,
+0 differ. ei_vectors' maths family replays the SSE2 maths / core_maths / matrix_math (pc24.cpp in ei_vectors_sse2).
 
 ### The whole image on SSE2 (C16 experiment)
 

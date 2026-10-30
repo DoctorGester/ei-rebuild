@@ -5,7 +5,6 @@
 
 #include "core_maths.h"
 
-#include "ei/x87.h"
 #include "lib/file_io.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -103,7 +102,7 @@ void FigureMesh::CopyFigure(const FigureMesh* other) {
     center = other->center;
     boxMin = other->boxMin;
     boxMax = other->boxMax;
-    x87::CopyBits(radius, other->radius);
+    radius = other->radius;
     materialValue = other->materialValue;
     meshType = other->meshType;
 }
@@ -115,32 +114,31 @@ void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) 
     // 2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
     Vector3 v{rotation.x, rotation.y, rotation.z};
     auto* p = &localPosition;
-    double dot = DotUnrounded<Sum3::ZYX, double>(v, *p);
-    double twice = dot + dot;
-    float z = static_cast<float>(v.z * twice);
-    float y = static_cast<float>(v.y * twice);
-    float x = static_cast<float>(twice * v.x);
+    float dot = DotUnrounded<Sum3::ZYX>(v, *p);
+    float twice = dot + dot;
+    float z = v.z * twice;
+    float y = v.y * twice;
+    float x = twice * v.x;
     Vector3 along;
     along.Construct(x, y, z);
     float w = rotation.w;
     Vector3 cross, turned, scaled, sum, rotated;
     CrossProduct(&cross, v, *p);
-    ScaleVector(&turned, cross, static_cast<float>(static_cast<double>(w) + w));
-    float ww = static_cast<float>(static_cast<double>(w) * w);
-    float k = static_cast<float>(ww - Dot(v, v));
+    ScaleVector(&turned, cross, w + w);
+    float ww = w * w;
+    float k = ww - Dot(v, v);
     ScaleVector(&scaled, *p, k);
     AddVectors(&sum, scaled, turned);
     AddVectors(&rotated, sum, along);
     float* moved = &worldPosition.x;
-    float mx = static_cast<float>(static_cast<double>(rotated.x) + offset.x);
-    float my = static_cast<float>(static_cast<double>(rotated.y) + offset.y);
-    float mz = static_cast<float>(static_cast<double>(rotated.z) + offset.z);
+    float mx = rotated.x + offset.x;
+    float my = rotated.y + offset.y;
+    float mz = rotated.z + offset.z;
     moved[0] = mx;
     moved[1] = my;
     moved[2] = mz;
 
-    // The rotation matrix (row-major 4x4) from the stored quaternion (w, x, y, z); the products the original
-    // keeps on the FPU stay doubles.
+    // The rotation matrix (row-major 4x4) from the stored quaternion (w, x, y, z).
     float* m = poseMatrix.m;
     std::memset(m, 0, sizeof(poseMatrix));
     m[15] = 1.0f;
@@ -148,29 +146,28 @@ void FigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) 
     m[5] = 1.0f;
     m[0] = 1.0f;
     float qw = worldRotation.w, qx = worldRotation.x, qy = worldRotation.y, qz = worldRotation.z;
-    double x2 = static_cast<double>(qx) + qx;
-    float y2 = static_cast<float>(static_cast<double>(qy) + qy);
-    float z2 = static_cast<float>(static_cast<double>(qz) + qz);
-    float wx = static_cast<float>(x2 * qw);
-    float wy = static_cast<float>(static_cast<double>(y2) * qw);
-    float wz = static_cast<float>(static_cast<double>(z2) * qw);
-    double xx = x2 * qx;
-    double xy = static_cast<double>(y2) * qx;
-    float xz = static_cast<float>(static_cast<double>(z2) * qx);
-    float yy = static_cast<float>(static_cast<double>(y2) * qy);
-    float yz = static_cast<float>(static_cast<double>(z2) * qy);
-    double zz = static_cast<double>(z2) * qz;
-    float zzStored = static_cast<float>(zz);
-    m[0] = static_cast<float>(1.0f - (zz + yy));
-    m[4] = static_cast<float>(xy - wz);
-    m[8] = static_cast<float>(static_cast<double>(wy) + xz);
-    m[1] = static_cast<float>(xy + wz);
-    m[5] = static_cast<float>(1.0f - (static_cast<double>(zzStored) + xx));
-    m[9] = static_cast<float>(static_cast<double>(yz) - wx);
-    m[2] = static_cast<float>(static_cast<double>(xz) - wy);
-    m[6] = static_cast<float>(static_cast<double>(yz) + wx);
-    m[10] = static_cast<float>(1.0f - (static_cast<double>(yy) + xx));
-    x87::CopyBits(m[12], moved[0]);
-    x87::CopyBits(m[13], moved[1]);
-    x87::CopyBits(m[14], moved[2]);
+    float x2 = qx + qx;
+    float y2 = qy + qy;
+    float z2 = qz + qz;
+    float wx = x2 * qw;
+    float wy = y2 * qw;
+    float wz = z2 * qw;
+    float xx = x2 * qx;
+    float xy = y2 * qx;
+    float xz = z2 * qx;
+    float yy = y2 * qy;
+    float yz = z2 * qy;
+    float zz = z2 * qz;
+    m[0] = 1.0f - (zz + yy);
+    m[4] = xy - wz;
+    m[8] = wy + xz;
+    m[1] = xy + wz;
+    m[5] = 1.0f - (zz + xx);
+    m[9] = yz - wx;
+    m[2] = xz - wy;
+    m[6] = yz + wx;
+    m[10] = 1.0f - (yy + xx);
+    m[12] = moved[0];
+    m[13] = moved[1];
+    m[14] = moved[2];
 }
