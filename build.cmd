@@ -1,11 +1,8 @@
 @echo off
-rem Builds the standalone image (ei-rebuild.exe, with ei_harness.dll in the verify build), ei_launch.exe and the tools (32-bit) with
-rem the VS 2022 Build Tools.
+rem Builds the standalone image (ei-rebuild.exe), ei_launch.exe and the tools (32-bit) with the VS 2022 Build Tools.
 rem usage: build.cmd [release|verify|debug|play|asan|x64|verify-x64|play-x64]
 rem   release  the product: the standalone image
-rem   verify   the harness build: the same image plus the harness (tests/verify) and the vector recorders
-rem            (tests/vectors), for run_all / work.py test (the image's runs, and the original game.exe's
-rem            with --no-hooks for goldens and EI_VECTORS recording)
+rem   verify   the harness build: the same image plus the harness (tests/verify), for run_all / work.py test
 rem   debug    the release build unoptimised
 rem   play     the release build into build\play, apart from the builds the suites use (play.cmd)
 rem   asan     the verify build with AddressSanitizer, into build\asan (runs: set EI_BUILD_DIR to it;
