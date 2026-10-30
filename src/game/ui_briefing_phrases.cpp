@@ -23,10 +23,12 @@
 #include "world_glue.h"
 #include "random.h"
 
+#include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
 
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <string_view>
@@ -122,7 +124,7 @@ void BriefingScreen::NextPhrase(bool skip) {
             animation = str::ToInt(words[1]);
         } else if (text::CompareIgnoringCase(words[0], kCameraCommand) == 0) {
             if (count >= 5) {
-                angle = static_cast<float>(kRadiansPerDegree * str::ToDouble(words[2]));
+                angle = pc24::Mul(kRadiansPerDegree, str::ToDouble(words[2]));   // the text's double: one rounding
                 distance = static_cast<float>(str::ToDouble(words[3]));
                 height = static_cast<float>(str::ToDouble(words[4]));
                 view = true;
@@ -212,12 +214,12 @@ void BriefingScreen::NextPhrase(bool skip) {
             };
             if (record->exp > 0.0f) {
                 label = texts->GetString(kExperienceLabel);
-                line = str::Format(kNumberLine, label, static_cast<int>(record->exp));
+                line = str::Format(kNumberLine, label, static_cast<int>(static_cast<std::int64_t>(record->exp)));
                 add();
             }
             if (record->money > 0.0f) {
                 label = texts->GetString(kGoldLabel);
-                line = str::Format(kNumberLine, label, static_cast<int>(record->money));
+                line = str::Format(kNumberLine, label, static_cast<int>(static_cast<std::int64_t>(record->money)));
                 add();
             }
             label = texts->GetString(kItemLabel);

@@ -5,8 +5,7 @@
 #include "texture.h"   // TextureDevice
 
 #include "lib/gameapi.h"
-
-#include "ei/x87.h"
+#include "lib/rounding.h"
 
 #include <cfloat>
 #include <vector>
@@ -39,10 +38,10 @@ struct ScreenBounds {
 
     // The bounds rounded to nearest into the device's rectangle.
     void Store(TextureDevice* device) const {
-        const int bottom = x87::fistp(maxY);
-        const int right = x87::fistp(maxX);
-        const int top = x87::fistp(minY);
-        const int left = x87::fistp(minX);
+        const int bottom = lib::RoundEven(maxY);
+        const int right = lib::RoundEven(maxX);
+        const int top = lib::RoundEven(minY);
+        const int left = lib::RoundEven(minX);
         gameapi::SetRect(&device->drawnRect, left, top, right, bottom);
     }
 };

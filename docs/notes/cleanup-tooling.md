@@ -181,7 +181,7 @@ the two cannot be stacked per file.
   precision (the D3D7 device's), as before, and leaves MXCSR alone.
 - `check_x87.py` skips the SSE2 objects and the CRT's `ftol3.obj` (`__ltod3` and its kin, which only SSE2 code calls:
   their 2^32 is SSE arithmetic, not a FADD at the precision control).
-- **What C30a kept x87 and why** (now groups C30e12 and C30e13 of `EI_X87_GAME_SOURCES`; C30e10 moved the figure and link mesh draws): picking reads the drawn view and the objects' screen
+- **What C30a kept x87 and why** (moved by C30e12 and C30e13 but camera.cpp, C30e13a; C30e10 moved the figure and link mesh draws): picking reads the drawn view and the objects' screen
   rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
   choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
@@ -214,7 +214,7 @@ the two cannot be stacked per file.
 ### Plain float maths in the SSE2 files (C30b)
 
 The SSE2 files (the list above and src/render) lost the x87 era's spellings by script, in two steps; the x87 files
-and the shared headers' inline helpers (`D` in camera.h, ui_float.h) are untouched.
+and the shared headers' inline helpers (`D` in camera.h, ui_float.h; gone since C30e13) are untouched.
 - **The helpers** (a text rewrite): `x87::fsin / fcos / fpatan / flog / fexp` -> `std::sin / cos / atan2 / log / exp`,
   `x87::fistp(static_cast<float>(e))` -> `std::lround(e)`, `x87::FromUnsigned(u)` -> `static_cast<double>(u)` (exact on
   SSE2; a float would drop the low bits of millisecond times), `x87::CopyBits(a, b)` -> `a = b`. `std::lround` rounds
@@ -364,7 +364,7 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   thread runs at 53 bits, where the original's double maths is SSE2's double maths: such code stays double. The other
   threads (the MP3 stream, the cursor, the master server lookup) are SSE2 already or do no float maths.
 - **headers**: a moved file inlines its own SSE2 copies of the header helpers (vecmath.h, unit.h, world.h,
-  spell_effect_internal.h, camera.h's `D()`); their out-of-line copies come from x87 objects first (whole-archive
+  spell_effect_internal.h); their out-of-line copies come from x87 objects first (whole-archive
   order). Float helpers are the same either way; a double one is converted with its last x87 caller, or before.
 - **per batch**: the survey scripts below on the batch's objects before and after (no x87 instruction left, no SSE
   arithmetic but what the review allows), goldens unchanged on the verify suite and `--rebirth-only`, an equivalence
@@ -451,7 +451,7 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e10 geometry, figures | 24 | 3,665 | core_transform_math / quaternion `D()` 120, `CiAcos`, picking's projected meshes |
 | C30e11 map objects | 10 | 2,360 | doubles 75 (map_object_figures, map_object_cage) |
 | C30e12 client units and world | 13 | 3,928 | unit_client_path's `fexp`, world_client_maps' `Hypot`, the view (picking) |
-| C30e13 camera, picking, briefing | 22 | 5,869 | `D()` 328 (camera 122, ui_hud_map 123, camera_motion 72), `CiAcos` / `Hypot` / `CiPow`, `fexp` |
+| C30e13 (done; camera.cpp: C30e13a) camera, picking, briefing | 22 | 5,869 | `D()` 328 (camera 122, ui_hud_map 123, camera_motion 72), `CiAcos` / `Hypot` / `CiPow`, `fexp` |
 | C30e14 terrain | 5 | 1,411 | terrain_sector's chop rounding, terrain_landscape's `CiAsin` / `fsin` |
 | C30e15 main loop, game CRT | 2 | 943 | app_main's frame timing (`fexp`, `FromUnsigned`, `Step`), crt_x87.cpp; then the IA32 option and the x87 helpers go |
 
@@ -568,6 +568,43 @@ every float times 1/15 (2^32 each); every tick 0..2^31 times 8 game rates and pl
 and plus a float (200 M each); every word times the bird's and the tornado's constants (2^32 each) and 2^26 words
 (every 64th) times each of the 7 constants: 0 differ. Keep such sweeps to a few minutes each (`eq words 6` 31 s; the
 2^32 sweeps took 4-5 min each, the tick sweeps 25 min together).
+
+**C30e13 (camera, picking, briefing; 21 of 22 files moved).** The camera's update, pan, limits, saved views and
+recorded paths, the aim along a direction, the turn upright and the lift over objects (camera_motion), the minimap's
+markers, clipping and texture coordinates (ui_hud_map), the speakers' views and the briefing's look-at point, the
+global map's centre and turns, the camera keys' speeds: their `D()` registers and double locals held floats at PC24,
+so float maths in the original's order (camera.h's and ui_float.h's `D()` are gone; `KeyboardSpeed` is one inline
+helper in ui_camera_keys.h). Through pc24: the shake (`Mul(Cos(halfPi * elapsed * 4/15), Exp(-(decay * elapsed)))`
+times the amplitude plus the sum: the cosine stays in ST0 for the FMUL, checked in the old object), the minimap's
+facing (`Round(Atan2(-x, -y))`), the speakers' angle (`Round(Cos)`, `Round(Sin)`), the HUD's mode marker (`600 -
+Mul(Sin(angle), 73)`, `Mul(Cos(angle), 73)`), the global map's bob (`0.5f - Mul(Cos(t * 5), 0.2f)`), and the
+operations on the game CRT's doubles: `_hypot` (`Div(ny, Hypot(nx, ny))` into the arc cosine, `Sub(root, Hypot(extents))`),
+`_CIpow` (`Mul(CiPow(1.05, steps), distance)`, the minimap's wheel), `_CIacos` doubled (`Add(arc, arc)`), the
+listener's height (`Add(RawSurfaceHeightAt, focusHeight)`), the briefing text's degrees (`Mul(kRadiansPerDegree,
+ToDouble(text))`). The view screen's turn is a constant, `ei::kRadiansPerDegree * 225.0f` (the original's PC24 products
+of pi, 1/180 and 225). `x87::fistp` -> `lib::RoundEven` (device_bounds: the projected meshes' screen rectangle,
+picking). The `_ftol` truncations go through int64 (the global map's marker regions, frame fraction, zone states,
+clock and camp flag; the paths' zone state; the briefing's experience and money lines): screen places and script
+variables are not bounded, and MSVC's x87 `static_cast<int>` (`__ftol2_sse`, CVTTSD2SI) gave 0x80000000 for a NaN or
+out of range where VC6's `_ftol` gives the low half, now as the original. The compares with double constants (0.001,
+1e-6, 1e-18, 0.1, the shake's 20 against `_hypot`'s double) stay double compares (exact). **Kept:** camera.cpp on x87
+(C30e13a): `ApplyView`'s FPATAN of a float and `_hypot`'s double, which the float `pc24::Atan2` does not take; the rest
+of the file is converted and its x87 object calls pc24. x87 code MSVC leaves in the SSE2 objects (reviewed): one
+float operation on `FrameTime()`'s ST0 result, stored (the briefing's timers), `MouseSpeed`'s product times a float
+(main thread, PC24), out-of-line copies not called (`MarkerWriter::MapX`, `vecmath::Dot`, `DotXYZ`); the hash tables'
+load factors. Equivalence test (C30e13's `eq/`, the x87 sequences at PC24 against the new forms, `eq all 300` 112 s):
+the shake with game operands (decay 0..10, elapsed 0..600, amplitude 0..5, a sum so far), ny over `_hypot`, the root
+less `_hypot`, the power times a distance, the bob, the minimap's facing, the speakers' cosine and sine, the arc
+doubled: 300 M cases each, 0 differ, also with wide operands (2^-30 .. 2^40, zeros, infinities, NaN) but the shake's
+(below);
+every short's wheel exponent, the four marker angles, every three-decimal degree text in [-1000, 1000], both constants:
+0 differ. `eq floats` (6 min): `_ftol`'s low half against the int64 truncation and FISTP against `RoundEven`, every
+float, 0 differ. **The shake's exponent range:** where the cosine times the exponential falls below 2^-126 (the last
+ticks of a shake, decay times elapsed past ~87) the x87 register keeps the exponent and `pc24::Mul` stores a denormal,
+so the shake offset differs below 2^-96 (the first shake of a frame adds to 0: 52,560 of 22.7 M such cases, and 46 M
+of 277 M, mostly -0 against +0, once the exponential itself underflows; with wide operands 61 of 30 M, a huge amplitude
+lifting such a product back into the normal range, and the operands or the exponential out of range); added to the
+camera's height (metres) it changes nothing. With a nonzero sum (later shakes) 0 of 300 M differ.
 
 ### The whole image on SSE2 (C16 experiment)
 

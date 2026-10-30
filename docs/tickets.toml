@@ -6510,3 +6510,11 @@ group = "cleanup"
 depends = ["C30e16"]
 note = "C30e8 converted src/game/ai_motion.cpp to float / pc24 maths but kept it in EI_X87_GAME_SOURCES (comment C30e8a): UnitMotion::Build's turn order (kind 4) computes x87::fpatan(s, c) - startAngle where s = x87::fsin(angle) and c = x87::fcos(angle) are stored as doubles (53-bit roundings of the 64-bit results; the naked fpatan takes doubles), and pc24::Atan2 takes floats. Add pc24::Atan2(double, double) (or Atan2(Unrounded, Unrounded) rounding each to 53 bits first) with its equivalence test against FPATAN on doubles (sin / cos of every float angle in [-pi, pi] at least, and the minus-a-float form), write the site as pc24::Sub(pc24::Atan2(Sin(angle) rounded to double, Cos(angle) rounded to double), startAngle) (hi + lo is the 53-bit rounding; the c == 0 && s == 0 test on those doubles), drop the x87.h include and the C30e8a line from the list. C30e8's eq/ test (scratch folder) covers the rest of the file. Goldens unchanged (verify and --rebirth-only); ai_motion is in ei_vectors' list (builds into ei_vectors_sse2 once off the x87 list)."
 
+[[ticket]]
+id = "C30e13a"
+title = "SSE2: camera.cpp (ApplyView's FPATAN of a float and _hypot's double)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e8a"]
+note = "C30e13 converted src/game/camera.cpp to float / pc24 maths but kept it in EI_X87_GAME_SOURCES (comment C30e13a): Camera::ApplyView, after ClampAboveObjects lifts the camera, aims back down with x87::fpatan(dz, across) where dz is a float difference and across is libcrt::Hypot's double (the full 53 bits: _hypot computes at 64 bits under its own control word), then SetAngleAxis(-(CAM_RIGHT_ANGLE + angle)); pc24::Atan2 took floats only. With C30e8a's pc24::Atan2(double, double): write it as -pc24::Add(CAM_RIGHT_ANGLE, pc24::Atan2(dz, across)) (check the old object: the fpatan result stays in ST0 for the FADD of the float constant), drop the ei/x87.h include and the C30e13a line from the list, sse2check the object (the rest of the file is plain float maths plus pc24::Exp / Cos / Mul / Add, tested in C30e13's eq/). Goldens unchanged (verify and --rebirth-only): the camera's update runs in every scenario."
+

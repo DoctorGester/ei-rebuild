@@ -81,7 +81,8 @@ void GlobalMap::FindPaths(MapRecord* from) {
         bool passable = false;
         if (zone->kind == 0 || zone->kind == 1 || zone->kind == 2) {
             variable = str::Format(kZoneVariable, zone->name);
-            int state = static_cast<int>(LocalPlayerVariable(variable));   // truncated
+            // Truncated as _ftol: the low half of the int64 truncation (0 for a NaN).
+            int state = static_cast<int>(static_cast<std::int64_t>(LocalPlayerVariable(variable)));
             passable = zone->kind == 0 ? state == 2 : zone->kind == 1 ? state != 1 : state != 0;
         }
         if (passable) {

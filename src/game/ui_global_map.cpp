@@ -26,9 +26,8 @@
 
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/str.h"
-
-#include "ei/x87.h"
 
 #include <bit>
 #include <cmath>
@@ -54,6 +53,10 @@ constexpr int kAllodIsland = 3;        // the island model
 // A zone of the map database (MapRecord): its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
 
+// _ftol's truncation: the low half of the int64 one (0 for a NaN; the screen places and the script variables
+// truncated here are not bounded).
+int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
+
 void SetWhite(UiMesh* sprite) {
     for (float& tint : sprite->tint) tint = 1.0f;
 }
@@ -65,8 +68,8 @@ public:
 
     Vector3 Centre() const {
         float depth = map->depth;
-        float x = static_cast<float>((map->centreX * 0.0025f - 1.0) * 0.48157462f * depth);
-        float y = static_cast<float>((map->centreY * 0.0025f - 0.75f) * 0.48157462f * depth);
+        float x = (map->centreX * 0.0025f - 1.0f) * 0.48157462f * depth;
+        float y = (map->centreY * 0.0025f - 0.75f) * 0.48157462f * depth;
         return Vector3{x, y, depth};
     }
     Vector3 ModelPoint(const Vector3& local) const {
@@ -108,10 +111,10 @@ void AddTipRegion(UiWindow* window, int left, int top, int right, int bottom, in
 void SetMarkerRegion(UiRegion* region, const UiMesh* sprite) {
     float x, y, depth;
     sprite->GetPlacement(&x, &y, &depth);
-    int bottom = static_cast<int>(y + 10.0f);
-    int right = static_cast<int>(x + 20.0f);
-    int top = static_cast<int>(y - 25.0f);
-    int left = static_cast<int>(x - 20.0f);
+    int bottom = Truncate(y + 10.0f);
+    int right = Truncate(x + 20.0f);
+    int top = Truncate(y - 25.0f);
+    int left = Truncate(x - 20.0f);
     region->SetRect(left, top, right, bottom);
 }
 
@@ -121,7 +124,7 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
     float z = ((b.x * a.y - a.x * b.y) + b.z * a.w) + a.z * b.w;
     float y = ((a.x * b.z - b.x * a.z) + b.y * a.w) + b.w * a.y;
     float x = ((a.z * b.y - b.z * a.y) + b.x * a.w) + a.x * b.w;
-    float w = static_cast<float>(b.w * a.w - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    float w = b.w * a.w - DotUnrounded<Sum3::ZYX, float>(a.x, a.y, a.z, b.x, b.y, b.z);
     r.w = w;
     r.x = x;
     r.y = y;
@@ -132,7 +135,7 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
 // A layer's texture frame: the fractional part of time * rate (stored).
 void SetFrameFraction(EngineObject* layer, float time, float rate) {
     float v = time * rate;
-    float fraction = v - static_cast<float>(static_cast<int>(v));
+    float fraction = v - static_cast<float>(Truncate(v));
     AsUiMesh(layer)->textureOffsetU = fraction;
 }
 
@@ -193,7 +196,7 @@ void GlobalMap::CreateScreen() {
         variable = std::format("z.{}", zone->name);
         GlobalMapZone& entry = zones.emplace_back();
         entry.link = -1;
-        entry.state = static_cast<int>(LocalPlayerVariable(variable));
+        entry.state = Truncate(LocalPlayerVariable(variable));
         entry.name = zone->name;
         entry.title = PlaceTitle("zone ", zone->name);
         UiMesh* sprite = AddSprite(zone->figure);
@@ -299,7 +302,7 @@ void GlobalMap::CreateScreen() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = static_cast<int>(LocalPlayerVariable("gtime") * 60.0f);
+    int minutes = Truncate(LocalPlayerVariable("gtime") * 60.0f);
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
@@ -321,7 +324,7 @@ void GlobalMap::CreateScreen() {
         UiMesh* camp = AddBlankSprite();
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         camp->texture = builder.Texture(3);
-        noCamp = static_cast<int>(LocalPlayerVariable("i.nocamp")) == 1;
+        noCamp = Truncate(LocalPlayerVariable("i.nocamp")) == 1;
         if (noCamp) camp->visible = false;
         UiMesh* left = AddBlankSprite();
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
@@ -368,8 +371,8 @@ void GlobalMap::Update() {
     }
     MapBuilder builder(this);
     if (turning != 0 || dragging) {
-        float turned = static_cast<float>(FrameTime() * turning * 3.1415927f * 0.25f + angle);
-        angle = static_cast<float>(std::fmod(turned, kGlobalMapFullTurn));
+        float turned = FrameTime() * static_cast<float>(turning) * 3.1415927f * 0.25f + angle;
+        angle = std::fmod(turned, kGlobalMapFullTurn);
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Vector3 side = {1.0f, 0.0f, 0.0f};
         Quaternion spin;
@@ -403,10 +406,10 @@ void GlobalMap::Update() {
         }
     }
 
-    double time = FrameTime() + bobTime;
-    bobTime = static_cast<float>(time);
-    double bob = 0.5 - x87::fcos(time * 5.0f) * 0.2f;
-    Vector3 above = {position.x, position.y, static_cast<float>(bob + position.z)};
+    float time = FrameTime() + bobTime;
+    bobTime = time;
+    float bob = 0.5f - pc24::Mul(pc24::Cos(time * 5.0f), 0.2f);   // the cosine's 64 bits times 0.2f: one rounding
+    Vector3 above = {position.x, position.y, bob + position.z};
     SceneMesh(0)->localPosition = builder.ModelPoint(above);
     SetFrameFraction(sceneObjects[MarkerCount() + 3], bobTime, 0.01f);
     SetFrameFraction(sceneObjects[MarkerCount() + 4], bobTime, 0.016666668f);
@@ -416,7 +419,7 @@ void GlobalMap::Update() {
     selectPending = false;
 
     // The weather is drawn into texture 4 on the GPU (the original wrote its pixels under the device lock).
-    if (std::ssize(objects) > 4) weather->Draw(objects[4]->surface, static_cast<float>(FrameTime()));
+    if (std::ssize(objects) > 4) weather->Draw(objects[4]->surface, FrameTime());
     g_cursor.SetShape(dragging ? 0x16 : 0);
 }
 

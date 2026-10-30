@@ -20,8 +20,8 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/str.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
@@ -86,15 +86,15 @@ void BriefingScreen::StartPhrases() {
     const Camera* camera = &g_camera;
     savedCamera = camera->localPosition;
     const Quaternion& q = camera->localRotation;
-    double zz = q.z * q.z;
-    double axisZ = (q.w * q.w - (LengthSquared2DUnrounded(q.x, q.y) + zz)) + (zz + zz);
-    float axisY = static_cast<float>((q.y * q.z - q.x * q.w) * 2.0);
+    float zz = q.z * q.z;
+    float axisZ = (q.w * q.w - (LengthSquared2DUnrounded(q.x, q.y) + zz)) + (zz + zz);
+    float axisY = (q.y * q.z - q.x * q.w) * 2.0f;
     // x and y are doubled before multiplying; here the compiler doubles z instead of x,
-    // which gives the same value (doubling is exact). Dot2D(x, y, z, w) * 2.0 would regroup the sum.
-    float axisX = static_cast<float>(Dot2DUnrounded<double>(q.x * 2.0, q.y * 2.0, q.z, q.w));
-    lookAt.x = static_cast<float>(savedCamera.x + axisX);
-    lookAt.y = static_cast<float>(savedCamera.y + axisY);
-    lookAt.z = static_cast<float>(axisZ + savedCamera.z);
+    // which gives the same value (doubling is exact). Dot2D(x, y, z, w) * 2 would regroup the sum.
+    float axisX = Dot2DUnrounded(q.x * 2.0f, q.y * 2.0f, q.z, q.w);
+    lookAt.x = savedCamera.x + axisX;
+    lookAt.y = savedCamera.y + axisY;
+    lookAt.z = axisZ + savedCamera.z;
 
     dialogueText.clear();
     text->SetText(game::kEmptyText);
@@ -138,21 +138,21 @@ void SpeakerAnimationDone(CUnit* serverUnit) {
 }
 
 void BriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
-    float cosAngle = static_cast<float>(x87::fcos(angle));
-    float sinAngle = static_cast<float>(x87::fsin(angle));
+    float cosAngle = pc24::Round(pc24::Cos(angle));
+    float sinAngle = pc24::Round(pc24::Sin(angle));
     Vector3 eye{};
-    double x;   // the facing, kept unrounded
-    double y;
+    float x;   // the facing
+    float y;
     if (!unit) {
         // The middle of the first two places, looked at across the line between them.
-        double sumX = places[kPersonPlace].x + places[kLeaderPlace].x;
-        float sumY = static_cast<float>(places[kPersonPlace].y + places[kLeaderPlace].y);
-        float sumZ = static_cast<float>(places[kPersonPlace].z + places[kLeaderPlace].z);
-        eye.x = static_cast<float>(sumX * 0.5);
-        eye.y = static_cast<float>(sumY * 0.5f);
-        eye.z = static_cast<float>(sumZ * 0.5f);
-        x = static_cast<double>(places[kLeaderPlace].y) - places[kPersonPlace].y;
-        y = static_cast<double>(places[kPersonPlace].x) - places[kLeaderPlace].x;
+        float sumX = places[kPersonPlace].x + places[kLeaderPlace].x;
+        float sumY = places[kPersonPlace].y + places[kLeaderPlace].y;
+        float sumZ = places[kPersonPlace].z + places[kLeaderPlace].z;
+        eye.x = sumX * 0.5f;
+        eye.y = sumY * 0.5f;
+        eye.z = sumZ * 0.5f;
+        x = places[kLeaderPlace].y - places[kPersonPlace].y;
+        y = places[kPersonPlace].x - places[kLeaderPlace].x;
     } else {
         Vector3 place{unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
         Vector3 axis;
@@ -171,38 +171,37 @@ void BriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float
         }
         auto* prototype = unit->GetPrototype();
         float reach = prototype->viewDistance;
-        float reachX = static_cast<float>(facing.x * reach);
-        float reachY = static_cast<float>(facing.y * reach);
-        eye.x = static_cast<float>(reachX + place.x);
-        eye.y = static_cast<float>(place.y + reachY);
-        eye.z = static_cast<float>(place.z + prototype->viewHeight);
+        float reachX = facing.x * reach;
+        float reachY = facing.y * reach;
+        eye.x = reachX + place.x;
+        eye.y = place.y + reachY;
+        eye.z = place.z + prototype->viewHeight;
         x = facing.x;
         y = facing.y;
     }
-    double length = std::sqrt(LengthSquared2DUnrounded(y, x));
+    float length = std::sqrt(LengthSquared2DUnrounded(y, x));
     // Compared with zero.
     EI_NAN_AUDIT(length);
-    if (length != 0.0) {
-        double inverse = 1.0 / length;
+    if (length != 0.0f) {
+        float inverse = 1.0f / length;
         x *= inverse;
         y *= inverse;
     }
     Vector3 at;
-    float alongX = static_cast<float>(x * cosAngle + y * sinAngle);
-    alongX = static_cast<float>(alongX * distance);
-    double alongY = (y * cosAngle - x * sinAngle) * distance;
-    at.x = static_cast<float>(eye.x + alongX);
-    at.y = static_cast<float>(eye.y + alongY);
-    at.z = static_cast<float>(eye.z + height);
+    float alongX = (x * cosAngle + y * sinAngle) * distance;
+    float alongY = (y * cosAngle - x * sinAngle) * distance;
+    at.x = eye.x + alongX;
+    at.y = eye.y + alongY;
+    at.z = eye.z + height;
     g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(at, eye, 1);
 }
 
 void BriefingScreen::ViewPreset(int preset) {
-    double dx = static_cast<double>(places[kLeaderPlace].x) - places[kPersonPlace].x;
-    double dy = static_cast<double>(places[kLeaderPlace].y) - places[kPersonPlace].y;
-    float apart = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx)));
+    float dx = places[kLeaderPlace].x - places[kPersonPlace].x;
+    float dy = places[kLeaderPlace].y - places[kPersonPlace].y;
+    float apart = std::sqrt(LengthSquared2DUnrounded(dy, dx));
     auto view = [this](CUnit* unit, float angle, float distance, float height) {
-        ViewSpeaker(unit, static_cast<float>(angle), static_cast<float>(distance), height);
+        ViewSpeaker(unit, angle, distance, height);
     };
     switch (preset) {
     case 1:

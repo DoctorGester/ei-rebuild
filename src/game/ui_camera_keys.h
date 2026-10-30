@@ -2,8 +2,12 @@
 
 // The battle camera's input (ui_camera_keys.cpp, ui_camera_input.cpp).
 
+#include "options.h"
 #include "ui.h"
 #include "lib/win_types.h"
+
+// A camera motion's speed with the keys: its keyboard power times its speed.
+inline float KeyboardSpeed(const options::CameraMotionOptions& motion) { return motion.powerKeyboard * motion.speed; }
 
 // The battle camera's input side (one of the battle screen's extra input sides). Keys move the camera along
 // x / y / z (set by the key-down, cleared by the key-up); the right button turns the view while held.

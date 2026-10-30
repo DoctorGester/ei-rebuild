@@ -1,7 +1,7 @@
 // The camera (Camera, camera.h): the per-frame update and view placement, focus and terrain sampling,
-// panning / zoom / saved views, shakes and recorded camera paths. Floating point
-// follows the game's x87 code: `double` for values the game keeps on the FPU stack, static_cast<float> where
-// it stores to a float.
+// panning / zoom / saved views, shakes and recorded camera paths. Floating point: float maths in the original's
+// order (its x87 registers held floats at the main thread's 24-bit precision); a transcendental, the CRT's double
+// results and the wide constants through lib/pc24.h (docs/notes/cleanup-tooling.md, "The x87 files to SSE2").
 #include "camera.h"
 
 #include "base_manager.h"
@@ -13,17 +13,13 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 
-#include <bit>
-#include <cstring>
-
 namespace {
-
-using camera::D;
 
 constexpr float kTrackGain = 0.2f;
 constexpr float kPanZoomSpan = 1.125f;
@@ -39,24 +35,24 @@ constexpr float kAxisTiny = 1e-8f;
 // Branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN limit wins.
 float ClampToMap(float v, float last) {
     float low = v >= 0.0f ? v : 0.0f;
-    float limit = static_cast<float>(last - 1.0f);
+    float limit = last - 1.0f;
     return low <= limit ? low : limit;
 }
 
 // Moves `rate` towards `target` by (target - rate) * response * dt; snaps to the target when the
 // step is tiny or the rate's magnitude passes the target's.
 void Approach(float* rate, const float* target, float response, float dt) {
-    float step = static_cast<float>((D(*target) - *rate) * response);
+    float step = (*target - *rate) * response;
     EI_NAN_AUDIT(step);
-    if (D(AbsBits(step)) < 0.001) {
+    if (AbsBits(step) < 0.001) {   // the double constant (exact as a compare)
         *rate = *target;
         return;
     }
-    double before = D(*rate) * *rate;
-    double after = D(step) * dt + *rate;
-    *rate = static_cast<float>(after);
-    float after2 = static_cast<float>(after * after);
-    float target2 = static_cast<float>(D(*target) * *target);
+    float before = *rate * *rate;
+    float after = step * dt + *rate;
+    *rate = after;
+    float after2 = after * after;
+    float target2 = *target * *target;
     EI_NAN_AUDIT(before, after2, target2);
     if ((before < target2 && after2 > target2) || (before > target2 && after2 < target2))
         *rate = *target;
@@ -181,16 +177,16 @@ const camera::ViewPose& camera::FrameView() { return g_frameView; }
 
 void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float* average, float* minimum,
                    float* maximum) {
-    double centre = g_clientWorld.RawSurfaceHeightAt(p.x, p.y);
-    *minimum = static_cast<float>(centre);
-    *maximum = static_cast<float>(centre);
-    *average = static_cast<float>(centre);
+    const float centre = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(p.x, p.y));
+    *minimum = centre;
+    *maximum = centre;
+    *average = centre;
     int count = 1;
-    float x = static_cast<float>(D(p.x) - halfX);
-    while (x <= D(halfX) + p.x) {
+    float x = p.x - halfX;
+    while (x <= halfX + p.x) {
         if (x >= 0.0f && g_clientWorld.terrain->width > x) {
-            float y = static_cast<float>(D(p.y) - halfY);
-            while (y <= D(halfY) + p.y) {
+            float y = p.y - halfY;
+            while (y <= halfY + p.y) {
                 if (y >= 0.0f && g_clientWorld.terrain->height > y) {
                     float h = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(x, y));
                     float low = *minimum;
@@ -198,14 +194,14 @@ void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float
                     float high = *maximum;
                     *maximum = high >= h ? high : h;
                     ++count;
-                    *average = static_cast<float>(D(h) + *average);
+                    *average = h + *average;
                 }
-                y = static_cast<float>(D(y) + step);
+                y = y + step;
             }
         }
-        x = static_cast<float>(D(x) + step);
+        x = x + step;
     }
-    *average = static_cast<float>(D(*average) / static_cast<double>(count));
+    *average = *average / static_cast<float>(count);   // a grid's point count: exact as a float
 }
 
 int Camera::PlaybackStart() {
@@ -224,7 +220,7 @@ int Camera::PlaybackStep(float time) {
         localRotation = newKeys[std::ssize(keys) - 1].rotation;
         return 0;
     }
-    double next = D(newKeys[keyIndex + 1].time) + timeOffset;
+    float next = newKeys[keyIndex + 1].time + timeOffset;
     while (time > next) {
         ++keyIndex;
         if (keyIndex >= std::ssize(keys) - 1) {
@@ -233,23 +229,21 @@ int Camera::PlaybackStep(float time) {
             flags &= ~kPlaying;
             return 0;
         }
-        next = D(newKeys[keyIndex + 1].time) + timeOffset;
+        next = newKeys[keyIndex + 1].time + timeOffset;
     }
     const CameraKey& a = newKeys[keyIndex];
     const CameraKey& b = (&a)[1];
-    float start = static_cast<float>(D(a.time) + timeOffset);
-    double span = next - start;
+    float start = a.time + timeOffset;
+    float span = next - start;
     float u = 0.0f;
     EI_NAN_AUDIT(span);
-    if (span != 0.0) u = static_cast<float>((D(time) - start) / span);
-    double dx = D(b.position.x) - a.position.x;
-    float dy = static_cast<float>(D(b.position.y) - a.position.y);
-    float dz = static_cast<float>(D(b.position.z) - a.position.z);
-    float sy = static_cast<float>(D(dy) * u);
-    float sz = static_cast<float>(D(dz) * u);
-    localPosition.x = static_cast<float>(dx * u + a.position.x);
-    localPosition.y = static_cast<float>(D(sy) + a.position.y);
-    localPosition.z = static_cast<float>(D(sz) + a.position.z);
+    if (span != 0.0f) u = (time - start) / span;
+    float dx = b.position.x - a.position.x;
+    float dy = b.position.y - a.position.y;
+    float dz = b.position.z - a.position.z;
+    localPosition.x = dx * u + a.position.x;
+    localPosition.y = dy * u + a.position.y;
+    localPosition.z = dz * u + a.position.z;
     localRotation.Slerp(u, a.rotation, b.rotation);
     return 1;
 }
@@ -259,17 +253,17 @@ void Camera::Pan(const Vector3& direction) {
     localRotation.AxisX(&right);
     const Quaternion& r = localRotation;
     Vector3 up;
-    up.z = static_cast<float>(Dot2DUnrounded<double>(r.w, r.y, r.x, r.z) * 2.0);
-    up.y = static_cast<float>((D(r.w) * r.w - LengthSquaredUnrounded<Sum3::ZXY, double>(r.x, r.y, r.z)) + D(r.y) * r.y * 2.0);
-    up.x = static_cast<float>((D(r.y) * r.x - D(r.w) * r.z) * 2.0);
-    double k1 = (1.0 / std::sqrt(LengthSquared2DUnrounded<double>(right.y, right.x))) * direction.x;
-    right.x = static_cast<float>(k1 * right.x);
-    double rightY = k1 * right.y;
-    double k2 = (1.0 / std::sqrt(LengthSquared2DUnrounded<double>(up.y, up.x))) * direction.y;
-    up.x = static_cast<float>(k2 * up.x);
-    double upY = k2 * up.y;
-    panTarget.x = static_cast<float>(D(up.x) + right.x);
-    panTarget.y = static_cast<float>(upY + rightY);
+    up.z = Dot2DUnrounded<float>(r.w, r.y, r.x, r.z) * 2.0f;
+    up.y = (r.w * r.w - LengthSquaredUnrounded<Sum3::ZXY, float>(r.x, r.y, r.z)) + r.y * r.y * 2.0f;
+    up.x = (r.y * r.x - r.w * r.z) * 2.0f;
+    float k1 = (1.0f / std::sqrt(LengthSquared2DUnrounded<float>(right.y, right.x))) * direction.x;
+    right.x = k1 * right.x;
+    float rightY = k1 * right.y;
+    float k2 = (1.0f / std::sqrt(LengthSquared2DUnrounded<float>(up.y, up.x))) * direction.y;
+    up.x = k2 * up.x;
+    float upY = k2 * up.y;
+    panTarget.x = up.x + right.x;
+    panTarget.y = upY + rightY;
     panTarget.z = 0.0f;
 }
 
@@ -279,11 +273,11 @@ void Camera::StopMotion() {
     localRotation.AxisY(&up);
     // Multiplies by 0 (keeping NaN and -0), so the zero is read from memory.
     const float zero = CAM_ZERO;
-    right.x = static_cast<float>(D(zero) * right.x);
-    right.y = static_cast<float>(D(right.y) * zero);
+    right.x = zero * right.x;
+    right.y = right.y * zero;
     right.z = 0.0f;
-    up.x = static_cast<float>(D(zero) * up.x);
-    up.y = static_cast<float>(D(up.y) * zero);
+    up.x = zero * up.x;
+    up.y = up.y * zero;
     up.z = 0.0f;
     Vector3 sum;
     AddVectors(&sum, right, up);
@@ -302,9 +296,9 @@ void Camera::SetFocus(const Vector3& p) {
     camera::ForgetViewStep();
     focus = p;
     float average, low, high;
-    SampleTerrain(p, static_cast<float>(D(options::g_options.cameraTerrainArea) * 0.5f), options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea, &average,
+    SampleTerrain(p, options::g_options.cameraTerrainArea * 0.5f, options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea, &average,
                   &low, &high);
-    focus.z = static_cast<float>(D(average) + focusHeight);
+    focus.z = average + focusHeight;
 }
 
 void Camera::ApplyView() {
@@ -312,16 +306,16 @@ void Camera::ApplyView() {
     Vector3 right;
     localRotation.AxisX(&right);
     Quaternion tilt;
-    tilt.SetAngleAxis(static_cast<float>(-(CAM_RIGHT_ANGLE + pitch)), right);
+    tilt.SetAngleAxis(-(CAM_RIGHT_ANGLE + pitch), right);
     localRotation.PreMultiply(tilt);
     Vector3 forward;
     localRotation.AxisZ(&forward);
     const float d = distance;
-    float ox = static_cast<float>(D(forward.x) * d);
-    float oy = static_cast<float>(D(forward.y) * d);
-    float px = static_cast<float>(D(focus.x) - ox);
-    float py = static_cast<float>(D(focus.y) - oy);
-    float pz = static_cast<float>(D(focus.z) - D(d) * forward.z);
+    float ox = forward.x * d;
+    float oy = forward.y * d;
+    float px = focus.x - ox;
+    float py = focus.y - oy;
+    float pz = focus.z - d * forward.z;
     localPosition.x = px;
     localPosition.y = py;
     localPosition.z = pz;
@@ -330,21 +324,23 @@ void Camera::ApplyView() {
     ClampAboveObjects();
     if (before >= localPosition.z) return;
     // Lifted over an object: aim back down at the focus.
-    double dz = D(localPosition.z) - focus.z;
-    double across = libcrt::Hypot(D(localPosition.x) - focus.x, D(localPosition.y) - focus.y);
+    float dz = localPosition.z - focus.z;
+    double across = libcrt::Hypot(localPosition.x - focus.x, localPosition.y - focus.y);
+    // FPATAN of a float and _hypot's double, which the float pc24::Atan2 does not take: this file stays x87 for it
+    // (CMakeLists' list); with a double form, -(right angle + angle) is pc24::Add of the two, negated.
     double angle = x87::fpatan(dz, across);
     localRotation = viewRotation;
     const Quaternion s = localRotation;
     Vector3 axis;
-    axis.x = static_cast<float>((D(s.w) * s.w - LengthSquaredUnrounded<Sum3::ZYX, double>(s.x, s.y, s.z)) + D(s.x) * s.x * 2.0);
-    axis.y = static_cast<float>(Dot2DUnrounded<double>(s.x, s.z, s.y, s.w) * 2.0);
-    axis.z = static_cast<float>((D(s.x) * s.z - D(s.y) * s.w) * 2.0);
+    axis.x = (s.w * s.w - LengthSquaredUnrounded<Sum3::ZYX, float>(s.x, s.y, s.z)) + s.x * s.x * 2.0f;
+    axis.y = Dot2DUnrounded<float>(s.x, s.z, s.y, s.w) * 2.0f;
+    axis.z = (s.x * s.z - s.y * s.w) * 2.0f;
     Quaternion q;
     q.SetAngleAxis(static_cast<float>(-(CAM_RIGHT_ANGLE + angle)), axis);
-    float y = static_cast<float>(((D(q.z) * s.x - D(s.z) * q.x) + D(s.w) * q.y) + D(s.y) * q.w);
-    float z = static_cast<float>(((D(q.x) * s.y - D(s.x) * q.y) + D(s.w) * q.z) + D(s.z) * q.w);
-    float w = static_cast<float>(D(s.w) * q.w - DotUnrounded<Sum3::ZXY, double>(s.x, s.y, s.z, q.x, q.y, q.z));
-    float x = static_cast<float>(((D(s.z) * q.y - D(q.z) * s.y) + D(s.w) * q.x) + D(s.x) * q.w);
+    float y = ((q.z * s.x - s.z * q.x) + s.w * q.y) + s.y * q.w;
+    float z = ((q.x * s.y - s.x * q.y) + s.w * q.z) + s.z * q.w;
+    float w = s.w * q.w - DotUnrounded<Sum3::ZXY, float>(s.x, s.y, s.z, q.x, q.y, q.z);
+    float x = ((s.z * q.y - q.z * s.y) + s.w * q.x) + s.x * q.w;
     localRotation.y = y;
     localRotation.z = z;
     localRotation.w = w;
@@ -356,7 +352,7 @@ void Camera::Update(float dt) {
     listener = localPosition;
     if (!(flags & kPlaced)) {
         listener = focus;
-        if (g_clientWorld.terrain) listener.z = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(focus.x, focus.y) + focusHeight);
+        if (g_clientWorld.terrain) listener.z = pc24::Add(g_clientWorld.RawSurfaceHeightAt(focus.x, focus.y), focusHeight);
     }
     Vector3 forward;
     localRotation.AxisZ(&forward);
@@ -369,19 +365,19 @@ void Camera::Update(float dt) {
             // Behind the target, looking along its heading.
             const TransformObject* t = target;
             const CObject3D* body = target;
-            double lift = D(body->bounds.boxMax.z) + body->bounds.center.z;
+            float lift = body->bounds.boxMax.z + body->bounds.center.z;
             localPosition.x = t->localPosition.x;
             localPosition.y = t->localPosition.y;
-            localPosition.z = static_cast<float>(lift + t->localPosition.z);
+            localPosition.z = lift + t->localPosition.z;
             Vector3 side;
             t->localRotation.AxisY(&side);
-            double nx = -D(side.x);
+            float nx = -side.x;
             Vector3 dir;
             dir.y = -side.y;
             dir.z = 0.0f;
-            float inv = static_cast<float>(1.0 / std::sqrt(D(dir.y) * dir.y + nx * nx));
-            dir.x = static_cast<float>(nx * inv);
-            dir.y = static_cast<float>(D(dir.y) * inv);
+            float inv = 1.0f / std::sqrt(dir.y * dir.y + nx * nx);
+            dir.x = nx * inv;
+            dir.y = dir.y * inv;
             TurnTowards(dir);
             AlignToTarget();
             return;
@@ -389,24 +385,22 @@ void Camera::Update(float dt) {
     } else if (target) {
         // Drift the focus a fifth of the way to the tracked object.
         const TransformObject* t = target;
-        double dx = D(t->localPosition.x) - focus.x;
-        float dy = static_cast<float>(D(t->localPosition.y) - focus.y);
+        float dx = t->localPosition.x - focus.x;
+        float dy = t->localPosition.y - focus.y;
         float width = g_clientWorld.terrain->width;
-        float dyStep = static_cast<float>(D(dy) * kTrackGain);
-        focus.x = ClampToMap(static_cast<float>(dx * kTrackGain + focus.x), width);
+        focus.x = ClampToMap(dx * kTrackGain + focus.x, width);
         float height = g_clientWorld.terrain->height;
-        focus.y = ClampToMap(static_cast<float>(D(dyStep) + focus.y), height);
+        focus.y = ClampToMap(dy * kTrackGain + focus.y, height);
     }
 
     // Pan: the velocity eases towards its target.
     Vector3& velocity = panVelocity;
     const Vector3& wanted = panTarget;
-    Vector3 change = {static_cast<float>(D(wanted.x) - velocity.x), static_cast<float>(D(wanted.y) - velocity.y),
-                      static_cast<float>(D(wanted.z) - velocity.z)};
+    Vector3 change = {wanted.x - velocity.x, wanted.y - velocity.y, wanted.z - velocity.z};
     Vector3 accel;
     ScaleVector(&accel, change, panResponse);
     bool snap = true;
-    if (accel.Length() >= 0.001) {
+    if (accel.Length() >= 0.001) {   // the double constant (exact as a compare)
         float before = static_cast<float>(Dot(velocity, velocity));
         Vector3 step;
         ScaleVector(&step, accel, dt);
@@ -418,32 +412,32 @@ void Camera::Update(float dt) {
     }
     if (snap) velocity = wanted;
 
-    if (LengthSquaredUnrounded<Sum3::XYZ, double>(velocity) > 0.0) {
+    if (LengthSquaredUnrounded<Sum3::XYZ, float>(velocity) > 0.0f) {
         const CameraLimits limits = Limits();
-        double scale = (D(distance) - limits.min) / ((D(limits.max) - limits.min) * kPanZoomSpan) + kTrackGain;
-        double moveX = D(dt) * velocity.x;
-        float moveY = static_cast<float>(D(dt) * velocity.y);
-        float stepX = static_cast<float>(moveX * scale);
-        float stepY = static_cast<float>(D(moveY) * scale);
+        float scale = (distance - limits.min) / ((limits.max - limits.min) * kPanZoomSpan) + kTrackGain;
+        float moveX = dt * velocity.x;
+        float moveY = dt * velocity.y;
+        float stepX = moveX * scale;
+        float stepY = moveY * scale;
         float width = g_clientWorld.terrain->width;
-        focus.x = ClampToMap(static_cast<float>(D(stepX) + focus.x), width);
+        focus.x = ClampToMap(stepX + focus.x, width);
         float height = g_clientWorld.terrain->height;
-        float y = ClampToMap(static_cast<float>(D(stepY) + focus.y), height);
+        float y = ClampToMap(stepY + focus.y, height);
         targetId = -1;
         flags &= ~kFollowing;
         focus.y = y;
         if (flags & kBounded) {
-            double bx = D(focus.x) - boundsCenter.x;
-            double by = D(focus.y) - boundsCenter.y;
-            double d2 = LengthSquared2DUnrounded(by, bx);
-            double radius = boundsRadius;
+            float bx = focus.x - boundsCenter.x;
+            float by = focus.y - boundsCenter.y;
+            float d2 = LengthSquared2DUnrounded(by, bx);
+            float radius = boundsRadius;
             if (d2 > radius * radius) {
-                double inv = 1.0 / std::sqrt(d2);
-                float ux = static_cast<float>(inv * bx);
-                double uy = inv * by;
-                float px = static_cast<float>(radius * ux);
-                float ny = static_cast<float>(radius * uy + boundsCenter.y);
-                focus.x = static_cast<float>(D(px) + boundsCenter.x);
+                float inv = 1.0f / std::sqrt(d2);
+                float ux = inv * bx;
+                float uy = inv * by;
+                float px = radius * ux;
+                float ny = radius * uy + boundsCenter.y;
+                focus.x = px + boundsCenter.x;
                 focus.y = ny;
             }
         }
@@ -451,23 +445,23 @@ void Camera::Update(float dt) {
 
     // The focus height follows the target's or the ground's, a tenth of the way per call.
     float average, low, high;
-    SampleTerrain(focus, static_cast<float>(D(options::g_options.cameraTerrainArea) * 0.5f), options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea,
+    SampleTerrain(focus, options::g_options.cameraTerrainArea * 0.5f, options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea,
                   &average, &low, &high);
     const CObject3D* body = target;
-    double ground = target ? D(body->localPosition.z) : D(average);
-    focus.z = static_cast<float>(((ground + focusHeight) - focus.z) * kHeightLag + focus.z);
+    float ground = target ? body->localPosition.z : average;
+    focus.z = ((ground + focusHeight) - focus.z) * kHeightLag + focus.z;
 
     // Tilt (pitch in degrees, clamped to the settings' range).
     Approach(&tiltRate, &tiltTarget, tiltResponse, dt);
     EI_NAN_AUDIT(tiltRate);
     if (tiltRate != 0.0f) {
-        double newPitch = D(dt) * tiltRate + pitch;
-        pitch = static_cast<float>(newPitch);
+        float newPitch = dt * tiltRate + pitch;
+        pitch = newPitch;
         bool alternate = (flags & kAlternate) != 0;
-        float most = static_cast<float>(D(alternate ? settings->briefingMaxPitch : settings->cameraDefaultMaxPitch) * CAM_DEGREE);
+        float most = (alternate ? settings->briefingMaxPitch : settings->cameraDefaultMaxPitch) * CAM_DEGREE;
         if (newPitch > most) pitch = most;
-        double least = D(alternate ? settings->briefingMinPitch : settings->cameraDefaultMinPitch) * CAM_DEGREE;
-        if (least > pitch) pitch = static_cast<float>(least);
+        float least = (alternate ? settings->briefingMinPitch : settings->cameraDefaultMinPitch) * CAM_DEGREE;
+        if (least > pitch) pitch = least;
     }
 
     Approach(&turnRate, &turnTarget, turnResponse, dt);
@@ -475,12 +469,12 @@ void Camera::Update(float dt) {
     if (turnRate != 0.0f) {
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Quaternion q;
-        q.SetAxisAngle(up, static_cast<float>(D(dt) * turnRate));
+        q.SetAxisAngle(up, dt * turnRate);
         const Quaternion r = viewRotation;
-        float x = static_cast<float>(((D(r.z) * q.y - D(r.y) * q.z) + D(q.w) * r.x) + D(r.w) * q.x);
-        float y = static_cast<float>(((D(r.x) * q.z - D(r.z) * q.x) + D(q.w) * r.y) + D(r.w) * q.y);
-        float z = static_cast<float>(((D(r.y) * q.x - D(q.y) * r.x) + D(r.z) * q.w) + D(r.w) * q.z);
-        float w = static_cast<float>(D(q.w) * r.w - DotUnrounded<Sum3::ZYX, double>(q.x, q.y, q.z, r.x, r.y, r.z));
+        float x = ((r.z * q.y - r.y * q.z) + q.w * r.x) + r.w * q.x;
+        float y = ((r.x * q.z - r.z * q.x) + q.w * r.y) + r.w * q.y;
+        float z = ((r.y * q.x - q.y * r.x) + r.z * q.w) + r.w * q.z;
+        float w = q.w * r.w - DotUnrounded<Sum3::ZYX, float>(q.x, q.y, q.z, r.x, r.y, r.z);
         viewRotation.z = z;
         viewRotation.y = y;
         viewRotation.w = w;
@@ -490,19 +484,18 @@ void Camera::Update(float dt) {
     float currentZoomTarget = zoomTarget;
     Approach(&zoomRate, &currentZoomTarget, zoomResponse, dt);
     EI_NAN_AUDIT(zoomRate);
-    if (zoomRate != 0.0f) distance = static_cast<float>(D(dt) * zoomRate + distance);
+    if (zoomRate != 0.0f) distance = dt * zoomRate + distance;
 
     const CameraLimits limits = Limits();
     EI_NAN_AUDIT(distance, limits.hardMin, limits.min);
     if (distance < limits.hardMin) {
         distance = limits.hardMin;
     } else if (distance < limits.min) {
-        distance = static_cast<float>((D(limits.min) - distance) * dt * kEase / (D(limits.min) - limits.hardMin) + distance);
+        distance = (limits.min - distance) * dt * kEase / (limits.min - limits.hardMin) + distance;
     } else if (distance > limits.hardMax) {
         distance = limits.hardMax;
     } else if (distance > limits.max) {
-        distance =
-            static_cast<float>(D(distance) - (D(distance) - limits.max) * dt * kEase / (D(limits.hardMax) - limits.max));
+        distance = distance - (distance - limits.max) * dt * kEase / (limits.hardMax - limits.max);
     }
 
     ApplyView();
@@ -511,22 +504,23 @@ void Camera::Update(float dt) {
     float offset = 0.0f;
     for (auto node = shakes.begin(); node != shakes.end();) {
         CameraShake* s = &(*node);
-        double damping = x87::fexp(-(D(s->decay) * s->elapsed));
-        double wave = x87::fcos(D(camera::kHalfPi) * s->elapsed * kShakeFrequency);
-        offset = static_cast<float>(wave * damping * s->amplitude + offset);
-        double elapsed = D(dt) + s->elapsed;
-        s->elapsed = static_cast<float>(elapsed);
+        // The cosine (64 bits) times the exponential, then the amplitude and the sum at 24 bits.
+        float damping = pc24::Exp(-(s->decay * s->elapsed));
+        pc24::Unrounded wave = pc24::Cos(camera::kHalfPi * s->elapsed * kShakeFrequency);
+        offset = pc24::Mul(wave, damping) * s->amplitude + offset;
+        float elapsed = dt + s->elapsed;
+        s->elapsed = elapsed;
         if (elapsed >= s->duration)
             node = shakes.erase(node);
         else
             ++node;   // also NaN
     }
-    localPosition.z = static_cast<float>(D(offset) + localPosition.z);
+    localPosition.z = offset + localPosition.z;
 }
 
 void Camera::ZoomBy(float steps) {
-    double d = libcrt::CiPow(CAM_ZOOM_STEP, steps) * distance;
-    distance = static_cast<float>(d);
+    float d = pc24::Mul(libcrt::CiPow(CAM_ZOOM_STEP, steps), distance);
+    distance = d;
     if (!settings) return;
     const CameraLimits limits = Limits();
     EI_NAN_AUDIT(d, limits.min);
@@ -577,17 +571,14 @@ void Camera::ViewsToSettings(options::GameOptions* gameOptions) {
         r.distance = v.distance;
         r.pitch = v.pitch;
         const Quaternion& q = v.rotation;
-        double sum = LengthSquaredUnrounded<Sum3::ZXY, double>(q.x, q.y, q.z);
-        float sumF = static_cast<float>(sum);
+        float sum = LengthSquaredUnrounded<Sum3::ZXY, float>(q.x, q.y, q.z);
         if (sum > kAxisTiny) {
-            double angle = libcrt::CiAcos(q.w);
-            angle = angle + angle;
-            double inv = 1.0 / std::sqrt(sumF);
-            float invF = static_cast<float>(inv);
-            r.axisX = static_cast<float>(inv * q.x);
-            r.axisY = static_cast<float>(D(invF) * q.y);
-            r.axisZ = static_cast<float>(D(invF) * q.z);
-            r.angle = static_cast<float>(angle);
+            const double arc = libcrt::CiAcos(q.w);   // the CRT's double (FPATAN's 64 bits stored)
+            float inv = 1.0f / std::sqrt(sum);
+            r.axisX = inv * q.x;
+            r.axisY = inv * q.y;
+            r.axisZ = inv * q.z;
+            r.angle = pc24::Add(arc, arc);
         } else {
             r.axisX = 1.0f;
             r.axisY = 0.0f;
@@ -626,10 +617,7 @@ void Camera::LookFrom(const Vector3& from, const Vector3& to) {
     camera::ForgetViewStep();
     flags |= kFree;
     localPosition = from;
-    float dx = static_cast<float>(D(to.x) - from.x);
-    float dy = static_cast<float>(D(to.y) - from.y);
-    float dz = static_cast<float>(D(to.z) - from.z);
-    LookDirection(dx, dy, dz);
+    LookDirection(to.x - from.x, to.y - from.y, to.z - from.z);
 }
 
 void Camera::SetBounds(const Vector3& center, float radius) {
@@ -640,16 +628,15 @@ void Camera::SetBounds(const Vector3& center, float radius) {
 
 void Camera::Shake(const Vector3& source, float duration, float amplitude, float decay) {
     const Vector3& at = (flags & kPlaced) ? localPosition : focus;
-    double newDistance = libcrt::Hypot(D(at.x) - source.x, D(at.y) - source.y);
+    double newDistance = libcrt::Hypot(at.x - source.x, at.y - source.y);
     float distanceF = static_cast<float>(newDistance);
-    if (newDistance >= kShakeRange) return;
-    double strength = amplitude;
-    if (distanceF > kShakeFull)
-        strength = (1.0 - (D(distanceF) - kShakeFull) / (D(kShakeRange) - kShakeFull)) * amplitude;
+    if (newDistance >= kShakeRange) return;   // the CRT's double (exact as a compare)
+    float strength = amplitude;
+    if (distanceF > kShakeFull) strength = (1.0f - (distanceF - kShakeFull) / (kShakeRange - kShakeFull)) * amplitude;
     CameraShake entry;
     entry.elapsed = 0.0f;
-    entry.duration = static_cast<float>(D(duration) * kShakeTicks);
-    entry.amplitude = static_cast<float>(strength);
+    entry.duration = duration * kShakeTicks;
+    entry.amplitude = strength;
     entry.decay = decay;
     shakes.push_back(entry);
 }

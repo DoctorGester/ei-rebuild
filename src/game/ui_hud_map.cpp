@@ -1,10 +1,9 @@
 // The battle HUD's minimap markers (HudMap::BuildMarkers): every frame the map panel
 // rebuilds one mesh (its scene object 2) with a marker per party member and visible unit, per
 // marked object, per zone exit and, in multiplayer, per other player. See docs/notes/ui.md.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// Floating point: float maths in the original's order (its x87 registers held floats at the main thread's 24-bit
+// precision); the arc tangent and the zoom's power through lib/pc24.h.
 #include "ui.h"
-#include "ui_float.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"
@@ -14,10 +13,9 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/pc24.h"
 #include "lib/str.h"
-#include <bit>
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
@@ -32,7 +30,7 @@
 namespace {
 
 constexpr float kUnitRadius2 = 0.56f;    // units further out (squared) are not shown
-constexpr double kTinyLength2 = 1e-6;
+constexpr double kTinyLength2 = 1e-6;    // compared as a double (exact)
 constexpr float kArrowAhead = 0.07f;      // tip of a unit's arrow from its position
 constexpr float kArrowWing = 0.04f;       // back corners of the arrow; size of a diamond
 constexpr float kDiagonal = 0.70710677f;  // (its negation is -kDiagonal)
@@ -92,41 +90,38 @@ public:
         Next();
     }
 
-    // Map coordinates of a world point: x stays on the FPU stack, y is stored (after the negation; map y
-    // grows downwards).
-    double MapX(float worldX) const { return (D(worldX) - D(map->centreX)) * D(map->scale); }
-    float MapY(float worldY) const { return static_cast<float>(-((D(worldY) - D(map->centreY)) * D(map->scale))); }
-    double Zoom() const { return D(map->zoom); }
+    // Map coordinates of a world point (map y grows downwards).
+    float MapX(float worldX) const { return (worldX - map->centreX) * map->scale; }
+    float MapY(float worldY) const { return -((worldY - map->centreY) * map->scale); }
 
     // The place of a marked object, an exit or another player: the zoomed position when it lies
     // inside the inner circle, otherwise the unzoomed one when that lies on the rim (outside the
     // rim circle, inside the square); false when neither.
     bool Place(float worldX, float worldY, float* x, float* y) const {
-        double mapX = MapX(worldX);
+        float mapX = MapX(worldX);
         float mapY = MapY(worldY);
-        float zoomedX = static_cast<float>(mapX * Zoom());
-        float zoomedY = static_cast<float>(D(mapY) * Zoom());
+        float zoomedX = mapX * map->zoom;
+        float zoomedY = mapY * map->zoom;
         EI_NAN_AUDIT(zoomedY, zoomedX);
-        if (LengthSquared2DUnrounded<double>(zoomedY, zoomedX) <= kInnerRadius2) {
+        if (LengthSquared2DUnrounded(zoomedY, zoomedX) <= kInnerRadius2) {
             *x = zoomedX;
             *y = zoomedY;
             return true;
         }
-        float rimX = static_cast<float>(mapX);
-        if (D(mapY) * D(mapY) + D(rimX) * D(rimX) < kRimRadius2) return false;
-        if (AbsBits(rimX) > kRimExtent) return false;
+        if (LengthSquared2DUnrounded(mapY, mapX) < kRimRadius2) return false;
+        if (AbsBits(mapX) > kRimExtent) return false;
         if (AbsBits(mapY) > kRimExtent) return false;
-        *x = rimX;
+        *x = mapX;
         *y = mapY;
         return true;
     }
 
     void PutSquare(float x, float y) {
         VertexPacket& b = Block();
-        float left = static_cast<float>(D(x) - kSquareHalf);
-        float top = static_cast<float>(D(y) - kSquareHalf);
-        float right = static_cast<float>(D(x) + kSquareHalf);
-        float bottom = static_cast<float>(D(y) + kSquareHalf);
+        float left = x - kSquareHalf;
+        float top = y - kSquareHalf;
+        float right = x + kSquareHalf;
+        float bottom = y + kSquareHalf;
         b.x()[0] = left;
         b.y()[0] = top;
         b.x()[1] = right;
@@ -140,13 +135,13 @@ public:
     void PutDiamond(float x, float y) {
         VertexPacket& b = Block();
         b.x()[0] = x;
-        b.y()[0] = static_cast<float>(D(y) - kArrowWing);
-        b.x()[1] = static_cast<float>(D(x) + kArrowWing);
+        b.y()[0] = y - kArrowWing;
+        b.x()[1] = x + kArrowWing;
         b.y()[1] = y;
-        b.x()[2] = static_cast<float>(D(x) - kArrowWing);
+        b.x()[2] = x - kArrowWing;
         b.y()[2] = y;
         b.x()[3] = x;
-        b.y()[3] = static_cast<float>(D(y) + kArrowWing);
+        b.y()[3] = y + kArrowWing;
     }
 
 
@@ -187,35 +182,35 @@ void PutArrow(VertexPacket& b, const CUnit* unit, float x, float y) {
     rotation->AxisY(&second);
     float dirY = second.y;
 
-    double length2 = LengthSquared2DUnrounded<double>(dirY, dirX);
-    double nx;
-    double ny;
+    float length2 = LengthSquared2DUnrounded(dirY, dirX);
+    float nx;
+    float ny;
     if (length2 >= kTinyLength2) {
-        float length = static_cast<float>(std::sqrt(length2));
-        nx = D(dirX) / D(length);
-        ny = D(dirY) / D(length);
+        float length = std::sqrt(length2);
+        nx = dirX / length;
+        ny = dirY / length;
     } else {
         nx = 0.0f;
         ny = 1.0f;
     }
 
-    float tipX = static_cast<float>(nx * kArrowAhead + D(x));
-    float tipY = static_cast<float>(ny * kArrowAhead + D(y));
+    float tipX = nx * kArrowAhead + x;
+    float tipY = ny * kArrowAhead + y;
     b.x()[0] = tipX;
     b.y()[0] = tipY;
     b.x()[1] = tipX;
     b.y()[1] = tipY;
 
     // The back corners: the direction turned by +-135 degrees (sums of the scaled components).
-    float sy = static_cast<float>(ny * kDiagonal);
-    float sx = static_cast<float>(nx * kDiagonal);
-    float leftX = static_cast<float>(D(sy) - D(sx));
-    double leftY = nx * -kDiagonal - D(sy);   // kept on the FPU stack
-    b.x()[2] = static_cast<float>(D(leftX) * kArrowWing + D(x));
-    b.y()[2] = static_cast<float>(leftY * kArrowWing + D(y));
-    float rightY = static_cast<float>(D(sx) - D(sy));
-    b.x()[3] = static_cast<float>(leftY * kArrowWing + D(x));
-    b.y()[3] = static_cast<float>(D(rightY) * kArrowWing + D(y));
+    float sy = ny * kDiagonal;
+    float sx = nx * kDiagonal;
+    float leftX = sy - sx;
+    float leftY = nx * -kDiagonal - sy;
+    b.x()[2] = leftX * kArrowWing + x;
+    b.y()[2] = leftY * kArrowWing + y;
+    float rightY = sx - sy;
+    b.x()[3] = leftY * kArrowWing + x;
+    b.y()[3] = rightY * kArrowWing + y;
 }
 
 
@@ -256,9 +251,10 @@ void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
     }
 }
 
-// 2.5^(delta / 1200): _CIpow of a double constant and delta * 0.00083333335f, left unrounded.
-double WheelZoomFactor(int delta) {
-    return libcrt::CiPow(2.5, static_cast<double>(delta) * 0.00083333335f);
+// 2.5^(delta / 1200): _CIpow of a double constant and delta * 0.00083333335f (a short times the float: one
+// rounding), its double as the CRT returns it.
+double WheelZoomFactor(short delta) {
+    return libcrt::CiPow(2.5, static_cast<float>(delta) * 0.00083333335f);
 }
 
 } // namespace
@@ -290,12 +286,9 @@ void HudMap::BuildMarkers() {
             out.Hide();
             continue;
         }
-        double mapX = out.MapX(unit->localPosition.x);
-        float mapY = out.MapY(unit->localPosition.y);
-        float x = static_cast<float>(mapX * out.Zoom());
-        double zoomedY = D(mapY) * out.Zoom();   // the original stores it but squares the register
-        float y = static_cast<float>(zoomedY);
-        if (zoomedY * D(y) + D(x) * D(x) > kUnitRadius2) {
+        float x = out.MapX(unit->localPosition.x) * zoom;
+        float y = out.MapY(unit->localPosition.y) * zoom;
+        if (LengthSquared2DUnrounded(y, x) > kUnitRadius2) {
             out.Hide();
             continue;
         }
@@ -372,16 +365,16 @@ void HudMap::UpdateView() {
         camera->localRotation.AxisZ(&axis);
         facingY = axis.y;
     }
-    double length2 = LengthSquared2DUnrounded<double>(facingX, facingY);
+    float length2 = LengthSquared2DUnrounded(facingX, facingY);
     if (length2 >= kTinyLength2) {
-        double length = std::sqrt(length2);
-        facingX = static_cast<float>(D(facingX) / length);
-        facingY = static_cast<float>(D(facingY) / length);
+        float length = std::sqrt(length2);
+        facingX = facingX / length;
+        facingY = facingY / length;
     } else {
         facingX = 0.0f;
         facingY = 1.0f;
     }
-    float angle = static_cast<float>(x87::fpatan(-D(facingX), -D(facingY)));
+    float angle = pc24::Round(pc24::Atan2(-facingX, -facingY));
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
@@ -393,10 +386,10 @@ void HudMap::UpdateView() {
     points.resize(count);   // the original inlines the same code
     for (int i = 0; i < count; ++i) {
         const UiPointF& v = viewPolygon[i];
-        double x = D(v.x) / D(zoom);
-        float y = static_cast<float>(D(v.y) / D(zoom));
-        points[i].x = static_cast<float>(x / D(scale) + D(centreX));
-        points[i].y = static_cast<float>(D(centreY) - D(y) / D(scale));
+        float x = v.x / zoom;
+        float y = v.y / zoom;
+        points[i].x = x / scale + centreX;
+        points[i].y = centreY - y / scale;
     }
 
     // Clipped to the world rectangle: x >= 0, y >= 0, x <= width, y <= height.
@@ -404,7 +397,7 @@ void HudMap::UpdateView() {
              [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
                  if (!Crosses(p.x, c.x, 0.0f)) return false;
                  out->x = 0.0f;
-                 out->y = static_cast<float>(D(p.y) - (D(c.y) - D(p.y)) * D(p.x) / (D(c.x) - D(p.x)));
+                 out->y = p.y - (c.y - p.y) * p.x / (c.x - p.x);
                  return true;
              },
              [](const UiPointF& v) {
@@ -414,7 +407,7 @@ void HudMap::UpdateView() {
     ClipPass(points,
              [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
                  if (!Crosses(p.y, c.y, 0.0f)) return false;
-                 out->x = static_cast<float>(D(p.x) - (D(c.x) - D(p.x)) * D(p.y) / (D(c.y) - D(p.y)));
+                 out->x = p.x - (c.x - p.x) * p.y / (c.y - p.y);
                  out->y = 0.0f;
                  return true;
              },
@@ -428,14 +421,14 @@ void HudMap::UpdateView() {
              [width](const UiPointF& p, const UiPointF& c, UiPointF* out) {
                  if (!Crosses(p.x, c.x, width)) return false;
                  out->x = width;
-                 out->y = static_cast<float>((D(width) - D(p.x)) * (D(c.y) - D(p.y)) / (D(c.x) - D(p.x)) + D(p.y));
+                 out->y = (width - p.x) * (c.y - p.y) / (c.x - p.x) + p.y;
                  return true;
              },
              [width](const UiPointF& v) { return v.x > width; });
     ClipPass(points,
              [height](const UiPointF& p, const UiPointF& c, UiPointF* out) {
                  if (!Crosses(p.y, c.y, height)) return false;
-                 out->x = static_cast<float>((D(height) - D(p.y)) * (D(c.x) - D(p.x)) / (D(c.y) - D(p.y)) + D(p.x));
+                 out->x = (height - p.y) * (c.x - p.x) / (c.y - p.y) + p.x;
                  out->y = height;
                  return true;
              },
@@ -450,8 +443,8 @@ void HudMap::UpdateView() {
     }
     area->SetUvCount(count);
     for (int i = 0; i < count; ++i) {
-        area->texCoords[i].u = static_cast<float>(D(points[i].x) / D(textureSize));
-        area->texCoords[i].v = static_cast<float>(D(points[i].y) / D(textureSize));
+        area->texCoords[i].u = points[i].x / textureSize;
+        area->texCoords[i].v = points[i].y / textureSize;
     }
     if (count > 2) {
         area->SetIndexCount((count - 2) * 3);
@@ -478,24 +471,22 @@ void HudMap::UpdateView() {
     for (int q = 0; q < quads; ++q) {
         for (int k = 0; k < 4; ++k) {
             const UiPointF& v = points[q * 4 + k];
-            double x = (D(v.x) - D(centreX)) * D(scale);
-            float y = static_cast<float>(-((D(v.y) - D(centreY)) * D(scale)));
-            float mapY = static_cast<float>(D(y) * D(zoom));
-            area->vertices[q].x()[k] = static_cast<float>(x * D(zoom));
-            area->vertices[q].y()[k] = mapY;
+            float x = (v.x - centreX) * scale;
+            float y = -((v.y - centreY) * scale);
+            area->vertices[q].x()[k] = x * zoom;
+            area->vertices[q].y()[k] = y * zoom;
         }
     }
     area->RefreshBuffers();
 
     auto* bounds = SceneMesh(0);
-    float left = static_cast<float>(-D(centreX) * D(scale));
-    float top = static_cast<float>(-(-D(centreY) * D(scale)));
-    double rightRaw = (D(worldWidth) - D(centreX)) * D(scale);
-    float right = static_cast<float>(rightRaw);
-    float bottom = static_cast<float>(-((D(worldHeight) - D(centreY)) * D(scale)));
+    float left = -centreX * scale;
+    float top = -(-centreY * scale);
+    float right = (worldWidth - centreX) * scale;
+    float bottom = -((worldHeight - centreY) * scale);
     left = left >= -1.0f ? left : -1.0f;
     if (top > 1.0f) top = 1.0f;
-    if (rightRaw > 1.0f) right = 1.0f;   // the original compares the value still on the FPU stack
+    if (right > 1.0f) right = 1.0f;
     bottom = bottom >= -1.0f ? bottom : -1.0f;
     if (left >= right || bottom >= top) {
         bounds->visible = false;
@@ -511,10 +502,10 @@ void HudMap::UpdateView() {
     b.y()[2] = bottom;
     b.x()[3] = right;
     b.y()[3] = top;
-    float u0 = static_cast<float>((D(left) / D(scale) + D(centreX)) / D(textureSize));
-    float vTop = static_cast<float>(D(static_cast<float>(D(centreY) - D(top) / D(scale))) / D(textureSize));
-    float u1 = static_cast<float>((D(right) / D(scale) + D(centreX)) / D(textureSize));
-    float vBottom = static_cast<float>(D(static_cast<float>(D(centreY) - D(bottom) / D(scale))) / D(textureSize));
+    float u0 = (left / scale + centreX) / textureSize;
+    float vTop = (centreY - top / scale) / textureSize;
+    float u1 = (right / scale + centreX) / textureSize;
+    float vBottom = (centreY - bottom / scale) / textureSize;
     TexCoord* uv = bounds->texCoords.data();
     uv[0].u = u0;
     uv[0].v = vBottom;
@@ -532,9 +523,9 @@ void HudMap::Wheel(int, int delta, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0) return;
     if (region == 0) {
-        double newZoom = WheelZoomFactor(static_cast<short>(delta)) * D(zoom);
-        zoom = static_cast<float>(newZoom);
-        if (newZoom > D(zoomMax)) zoom = zoomMax;
+        float newZoom = pc24::Mul(WheelZoomFactor(static_cast<short>(delta)), zoom);
+        zoom = newZoom;
+        if (newZoom > zoomMax) zoom = zoomMax;
         zoom = zoom >= 1.0f ? zoom : 1.0f;
     }
     handled = true;

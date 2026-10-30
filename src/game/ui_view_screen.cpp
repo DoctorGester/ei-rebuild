@@ -21,14 +21,9 @@ constexpr int kCursorNormal = 0;
 constexpr int kCursorCtrl = 1;
 constexpr int kAttackHow = 6;
 
-// The view's turn: 225 degrees (pi * 1/180 * 225, formed at run time as the original's FMULs and stored as
-// float) about x.
-float TurnAngle() {
-    volatile double pi = 3.141592653589793;
-    volatile double perDegree = 1.0 / 180.0;
-    volatile double degrees = 225.0;
-    return static_cast<float>(pi * perDegree * degrees);
-}
+// The view's turn about x: 225 degrees, the original's pi * (1 / 180) * 225 in doubles at 24-bit precision (one
+// degree as angles.h has it, times 225).
+constexpr float kTurnAngle = ei::kRadiansPerDegree * 225.0f;
 
 } // namespace
 
@@ -46,7 +41,7 @@ void ViewScreen::CreateScreen() {
     camera->SetFocus(focus);
     Vector3 axis{1.0f, 0.0f, 0.0f};
     Quaternion turn;
-    turn.SetAngleAxis(TurnAngle(), axis);
+    turn.SetAngleAxis(kTurnAngle, axis);
     camera->localRotation.PreMultiply(turn);
 }
 

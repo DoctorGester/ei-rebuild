@@ -187,12 +187,8 @@ public:
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
 const Vector3* CameraAnchor(const Camera* self);
 
-// Names for the game's globals and constants the camera code uses. The floating-point constants
-// are read from the exe at run time (volatile): the game multiplies them at run time and the
-// products round at the FPU's precision, which folding at compile time would not.
+// Names for the game's globals and constants the camera code uses.
 namespace camera {
-
-inline double D(float f) { return f; }
 
 // What static initialisers leave: pi * 0.5 (the shake's wave runs at this rate), the
 // zero vector and the identity rotation the camera copies.
@@ -204,7 +200,6 @@ inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 
 #define CAM_NINETY 90.0
 #define CAM_FORTY_FIVE 45.0
 #define CAM_TWO_SEVENTHS 0.2857142857142857
-#define CAM_ONE_D 1.0
 #define CAM_ZOOM_STEP 1.0499999523162842
 #define CAM_LOOK_EPSILON 1e-18   // squared length
 #define CAM_ALIGN_EPSILON 0.1

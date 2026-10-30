@@ -9,22 +9,15 @@
 #include "ui_cursor.h"
 #include "ui_widescreen.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 
-#include <bit>
-#include <cstring>
-
 namespace {
 
-// The camera speed options (floats in the game's data, read each time).
-float Option(const float& setting) { return static_cast<const volatile float&>(setting); }
-// A camera motion's speed with the keys and with the mouse: its power times its speed.
-float KeyboardSpeed(const options::CameraMotionOptions& motion) { return Option(motion.powerKeyboard) * Option(motion.speed); }
-float MouseSpeed(const options::CameraMotionOptions& motion) { return Option(motion.powerMouse) * Option(motion.speed); }
+// A camera motion's speed with the mouse: its power times its speed.
+float MouseSpeed(const options::CameraMotionOptions& motion) { return motion.powerMouse * motion.speed; }
 // The wheel's steps per delta unit (read from the exe, rule 9).
 constexpr float kWheelStep = -0.008333334f;
 
@@ -140,14 +133,14 @@ void CameraInput::MouseMove(int, int atX, int atY) {
         float along = static_cast<float>(static_cast<float>(drag.y) * kPerHeight);
         if (!ModifierHeld(ui)) {
             // The turn and tilt speeds times the mouse direction factors.
-            const float turnSpeed = MouseSpeed(options::g_options.cameraRotate) * Option(options::g_options.cameraFlipX);
+            const float turnSpeed = MouseSpeed(options::g_options.cameraRotate) * options::g_options.cameraFlipX;
             camera->SetTurnRate(turnSpeed * across * 10.0f);
             float width = static_cast<float>(drag.x < 0 ? -drag.x : drag.x);
             float height = static_cast<float>(drag.y < 0 ? -drag.y : drag.y);
             // At rest the camera tilts only when the mouse moves more up or down than sideways.
             const float zero = 0.0f;
             if (Differs(camera->tiltTarget, zero) || Differs(camera->tiltRate, zero) || height > width) {
-                const float tiltSpeed = MouseSpeed(options::g_options.cameraPitch) * Option(options::g_options.cameraFlipY);
+                const float tiltSpeed = MouseSpeed(options::g_options.cameraPitch) * options::g_options.cameraFlipY;
                 camera->SetTiltRate(tiltSpeed * along * 500.0f);
             } else {
                 camera->SetTiltRate(0.0f);
