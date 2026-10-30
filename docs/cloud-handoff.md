@@ -37,7 +37,8 @@ Read before changing code:
     change.
 - Never edit the status lines or `docs/tickets.md` by hand. The toml is TOML, so escape a backslash as `\\` or write
   `/` in notes.
-- The ticket board, a claude.ai artifact, is published from the machine and is not needed in the cloud.
+- The ticket board, a claude.ai artifact, is published from the machine and is not needed in the cloud. Do not
+  publish it from a session: statuses travel through the committed tsv.
 
 ## Building and testing: the Suites workflow
 
@@ -49,7 +50,15 @@ Read before changing code:
   - full: also debug, asan, play, x64 and verify-x64, plus the Rebirth and x64 suites.
 - **Reading results:** the run's summary page has each suite's goldens block. A failing build prints its last 40
   log lines in the step log. From a session: `gh run list --workflow suites.yml`, `gh run view <id> --log-failed`,
-  or the REST API (`/repos/DoctorGester/ei-rebuild/actions/runs/<id>/jobs`, then `/actions/jobs/<id>/logs`).
+  or the REST API (`/repos/DoctorGester/ei-rebuild/actions/runs/<id>/jobs`, then `/actions/jobs/<id>/logs`). The
+  Summary step also prints each suite's failed runs and goldens block into the log. To wait for a run, poll
+  `https://api.github.com/repos/DoctorGester/ei-rebuild/actions/workflows/suites.yml/runs` from a background command
+  (it finishes when the run does and wakes the session); a scheduled reminder does not wake it.
+- **Where two builds part** (the `diff_base` input, with optional `scenarios` and `resolution`): plays the
+  scenarios on both installs with your branch's verify build and with the base ref's (a worktree in build/base) and
+  prints, for each run that differs, the first differing digest record field by field, the console lines, the
+  failures, the window size and the groundview / clickground lines. Use it before re-recording anything: every
+  changed golden needs a cause.
 - **Expected results on main** as of 2026-10-30 (goldens recorded from the image, H40):
   - Image suite: 152 the same, 3 without a golden (the watchdogs).
   - Rebirth suite: 32 the same.
@@ -65,7 +74,8 @@ Read before changing code:
 - **Golden recording** (H40): run the workflow by hand on your branch (not main) with `record` = both,
   vanilla or rebirth (optionally `scenarios`, space-separated, and `reason`). Its `record` job plays four passes
   (plain twice, two heap jitters), runs `tools/golden.py record` and pushes the goldens to the branch as a commit of
-  its own (`git pull` it). The summary names the new and changed goldens. That push starts no run, so dispatch a full
+  its own (`git pull` it). The summary names the new and changed goldens; a golden whose content is the same is
+  left alone, golden.json included. That push starts no run, so dispatch a full
   run on the branch after it. docs/notes/standalone-verification.md, section 2.
 - **Dispatching from a session:** the GitHub MCP tool `actions_run_trigger` (workflow `suites.yml`, ref your branch,
   inputs as above; the `ref` input can stay main, which then means the branch the run was started on).
@@ -140,15 +150,13 @@ Recently done:
 
 Next, in rough order:
 1. **H40**: own goldens; the harness stops running `game.exe`. Done: the tag `original-oracle` (b06141b), the
-   workflow's `record` input, every golden recorded from the image (all the same as game.exe's but `console`'s
-   help screen, plus 36 new). Left: step 3 (remove the game.exe side: `--no-hooks`, the reference cache,
-   ei_harness.dll and its hooks, the harness key, `# no original` lines, run_all's original installs, the
-   `--widescreen --record` addon references) and step 4 (docs and rules that exist only because of game.exe).
-2. **W12**: one interface layout for any aspect ratio. Its code is on branch `wip/W12` (tested on the old data).
-   It needs new goldens for 5 vanilla 16:9 scenarios (net_pair_leave, net_pair_quest, net_pair_zone,
-   render_pick_edges, render_pick_edges_rule), and the `ui_widescreen*` / `rebirth_flags` vanilla goldens may move
-   too. H40's record path makes that possible now: rebase it on main, run the suites, then record what differs
-   with the workflow's `record` input (`scenarios` set to those names) and check that nothing else changed.
+   workflow's `record` input, every golden recorded from the image, step 3a (no Python tool runs game.exe: no
+   `--no-hooks`, reference cache, harness key or `# no original` lines) and the first part of 3b (no
+   ei_harness.dll; ei_launch starts only the image). Left: 3b's rest, the harness's game.exe branches in
+   tests/verify (`Standalone()` checks, `PatchOriginalImport` routes, harness_original.h, the addon undo,
+   config/harness/registry.reg), and step 4 (docs and rules that exist only because of game.exe).
+2. **W12** is merged (a32e6b8): one layout for every window. Vanilla image runs play at 960x720, Rebirth's at
+   1280x720 with the wide layout; a scenario's `vanilla` / `rebirth` prefix on a window step picks one install.
 3. **C68**: Rebirth's bug fixes always on, plus the harmless options. Waits for W12.
 4. **C69**: `ei_settings.ini` explains itself, with comments and a generated `docs/settings.md`.
 5. **PL11c-f**: the rest of the platform simplification (see PL11's note). **PL11s**: delete the shared-opens
