@@ -504,7 +504,7 @@ void ResetVoice(Voice* voice) {
 }
 
 void SetWave(Voice* voice, const void* wave, std::size_t size) {
-    voice->wave = ReadWaveInfo(wave);
+    voice->wave = ReadWaveInfo(wave, size);
     voice->position = 0;
     Sound decoded;
     Decode(wave, size, voice->wave.samples, &decoded);
@@ -573,6 +573,7 @@ void Stop(Voice* voice) {
         voice->sound.paused = true;
     }
     if (!voice->running || voice->stopped) return;
+    voice->position = Position(voice);
     voice->stopped = true;
     const std::uint32_t now = Milliseconds();
     voice->left = static_cast<std::int32_t>(voice->end - now) > 0 ? voice->end - now : 0;
@@ -585,7 +586,8 @@ void Resume(Voice* voice) {
     }
     if (!voice->running || !voice->stopped) return;
     voice->stopped = false;
-    voice->end = Milliseconds() + voice->left;
+    voice->startedAt = Milliseconds();
+    voice->end = voice->startedAt + voice->left;
 }
 
 void End(Voice* voice) {

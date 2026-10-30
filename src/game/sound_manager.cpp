@@ -184,7 +184,7 @@ void UseCached(SoundManager* m, SoundSlot* slot, std::list<WaveRecord>::iterator
     WaveRecord& record = *node;
     record.lastUsed = platform::TickCount();
     record.uses = record.uses + 1;
-    slot->length = m->WaveLength(record.data.data());
+    slot->length = m->WaveLength(record.data.data(), record.data.size());
     platform::audio::SetWave(slot->voice, record.data.data(), record.data.size());
 }
 
@@ -876,8 +876,8 @@ void SoundManager::DeleteDeferred() {
     deferred.clear();
 }
 
-float SoundManager::WaveLength(const void* data) {
-    const platform::audio::WaveInfo info = platform::audio::ReadWaveInfo(data);
+float SoundManager::WaveLength(const void* data, std::size_t size) {
+    const platform::audio::WaveInfo info = platform::audio::ReadWaveInfo(data, size);
     std::uint32_t samples;
     if (info.format == platform::audio::kImaAdpcm) {
         samples = info.samples;
@@ -1092,7 +1092,7 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
         }
         cache[key] = node;
         platform::audio::SetWave(slot->voice, node->data.data(), node->data.size());
-        slot->length = WaveLength(node->data.data());
+        slot->length = WaveLength(node->data.data(), node->data.size());
     }
     slot->name = key;
     slot->playing = 1;

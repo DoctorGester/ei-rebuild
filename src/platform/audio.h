@@ -32,7 +32,9 @@ struct WaveInfo {
     std::uint32_t blockSize = 0;      // the fmt chunk's block align
     const std::uint8_t* data = nullptr;   // the data chunk; null when the file is not a RIFF WAVE
 };
-WaveInfo ReadWaveInfo(const void* wave);
+// The wave's header; walks the chunks only inside the `size` bytes and clamps the data chunk to them. A buffer with no
+// data chunk in it comes back empty (data null).
+WaveInfo ReadWaveInfo(const void* wave, std::size_t size);
 // How long the wave plays once, in whole milliseconds: the data's bytes over its byte rate (for IMA ADPCM the rate
 // times the block size over the samples in a block, truncated), truncated. Miles' rule, which the harness's runs
 // timed every end by (checked on all 19k waves and briefing voices of the installs); 0 without a wave.

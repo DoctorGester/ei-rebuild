@@ -3,6 +3,7 @@
 #include "platform/audio.h"
 #include "platform/audio_formats.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace platform::audio {
@@ -29,29 +30,32 @@ std::uint32_t WaveBytesPerSecond(const WaveInfo& info) {
     return info.rate * static_cast<std::uint32_t>(info.channels * info.bits) / 8;
 }
 
-WaveInfo ReadWaveInfo(const void* wave) {
+WaveInfo ReadWaveInfo(const void* wave, std::size_t size) {
     WaveInfo info;
     const auto* p = static_cast<const std::uint8_t*>(wave);
-    if (!p || std::memcmp(p, "RIFF", 4) != 0 || std::memcmp(p + 8, "WAVE", 4) != 0) return info;
+    if (!p || size < 12 || std::memcmp(p, "RIFF", 4) != 0 || std::memcmp(p + 8, "WAVE", 4) != 0) return info;
     bool fact = false;
-    for (std::uint32_t at = 12; at < kLongestHeader;) {
+    for (std::uint64_t at = 12; at + 8 <= size && at < kLongestHeader;) {
         const std::uint8_t* chunk = p + at;
         const std::uint32_t length = Read32(chunk + 4);
+        const std::uint64_t body = at + 8;
         if (std::memcmp(chunk, "fmt ", 4) == 0) {
+            if (body + 16 > size) break;
             info.format = Read16(chunk + 8);
             info.channels = Read16(chunk + 10);
             info.rate = Read32(chunk + 12);
             info.blockSize = Read16(chunk + 20);
             info.bits = Read16(chunk + 22);
         } else if (std::memcmp(chunk, "fact", 4) == 0) {
+            if (body + 4 > size) break;
             info.samples = Read32(chunk + 8);
             fact = true;
         } else if (std::memcmp(chunk, "data", 4) == 0) {
-            info.dataLength = length;
+            info.dataLength = static_cast<std::uint32_t>(std::min<std::uint64_t>(length, size - body));
             info.data = chunk + 8;
             break;
         }
-        at += 8 + length + (length & 1);
+        at = body + length + (length & 1);
     }
     if (!info.data) return WaveInfo{};
     if (!fact || info.format != kImaAdpcm) {

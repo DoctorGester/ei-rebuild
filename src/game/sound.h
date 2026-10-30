@@ -231,7 +231,7 @@ struct SoundManager : EngineObject {
     void StopAll(bool stopStream);
     // In seconds: the IMA ADPCM sample count, else data bytes * 8 / (bits * channels), divided by the rate. 0
     // when bits * channels is 0. `this` is unused.
-    float WaveLength(const void* data);
+    float WaveLength(const void* data, std::size_t size);
 
     void ClearWaveSources();
     // 1 (also when sound is off), 0 when the archive cannot be opened.
