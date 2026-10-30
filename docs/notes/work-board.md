@@ -27,8 +27,8 @@ refuses a newer database ("merge main"). Times are local ISO 8601 with offset, t
         submitter: pid of the waiting `work.py test`; env: the submitter's EI_* variables (JSON)
     run(id, batch, scenario, install, hooks, alone, expected, folder, state, attempt, slot, started, seconds,
         result, failures, counts, notes)
-        hooks: 1 for a run of our code (the image); alone: runs with no other game; counts: always empty now
-        (kept because other checkouts and the reference cache share the shape)
+        hooks: 1 for a run of our code (the image; 0 was game.exe's until H40); alone: runs with no other game;
+        counts: always empty now (kept because other checkouts share the shape)
     process(name, pid, started, heartbeat, info)      'scheduler' and 'server'; alive while the heartbeat is < 20 s old
     timing(id, scenario, install, scenario_rev, seconds, time, batch)    every finished game, machine-wide
     ticket_status(ticket, status, started, done, changed, author)        no row: queued
@@ -66,8 +66,8 @@ build/live/scheduler.log) owns the machine's 16 game slots (EI_HARNESS_SLOTS; ru
   every free slot (its `--jobs` is ignored); later batches backfill what it cannot use. An alone run stops new starts,
   gathers every slot and runs by itself. Two runs of one folder never run at once.
 - **Runs**: the game thread calls `run_all.run_with_retries(run(root=worktree, build=build, take_slot=False,
-  slots=GameSlots))`; the slots go back to the loop as soon as ei_launch returns (or the reference cache has the run),
-  so frame packing and the reference copy run without them (SV10h), and a retry's game asks for them again: the loop
+  slots=GameSlots))`; the slots go back to the loop as soon as ei_launch returns,
+  so frame packing runs without them (SV10h), and a retry's game asks for them again: the loop
   grants a waiting retry before anything new starts. An alone run keeps every slot to its end. No new game starts
   while 16 runs are past their game (AFTER_GAME_MAX). The finish line in scheduler.log gives the slot time:
   `<folder> PASS 8s (slot 8s)`. The main thread does every database write. A finished batch stores run_all's summary and exit
@@ -82,7 +82,7 @@ build/live/scheduler.log) owns the machine's 16 game slots (EI_HARNESS_SLOTS; ru
   new game and exits once its own games are done; the waiting `test` starts the new one (`WORK_SCHED_CODE` replaces the
   watched files in tests). Queued runs stay queued.
 - **Nothing of a checkout kept for life**: the scheduler lives for hours and runs every checkout's batches, so what
-  run_all reads from a checkout (scenario revisions, the harness digest of the reference key) is reused for 30 s at
+  run_all reads from a checkout (scenario revisions; until H40 the harness digest of the reference key) is reused for 30 s at
   most, never by `functools.cache`. H34: a digest kept from a batch before R34c's merge gave main's next --no-hooks
   batch the old key, and the cache served runs of the old harness (111 goldens differed).
 - **Unusable arguments** (an old run_all that cannot parse a newer batch): the batch ends with exit code 2 and a
@@ -104,7 +104,7 @@ serve`.
 ## Run data
 
 - Frames: run() packs a run folder's 4K BMP captures as `<name>.bmp.z` (tools/frame_store.py: each byte XORed with the
-  byte one pixel before, then zlib level 3; lossless, 2.3x-4.7x smaller) before the reference cache stores it, in a
+  byte one pixel before, then zlib level 3; lossless, 2.3x-4.7x smaller), in a
   python process of its own (`frame_store.pack_run`: at most EI_PACK_PROCESSES = 4 at once per Python process, two
   frames each, below normal priority; in the runner threads the packing's big-number arithmetic held the GIL and
   slowed every other run, SV10h). The pack checks the compressed bytes read back (0.34 s a 4K frame).

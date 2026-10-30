@@ -183,7 +183,7 @@ default, as a drop-in run: ei_launch sees the line (as `--drop-in`), copies the 
 a folder made like the install, and starts it from the run folder with no EI_GAME_ROOT (docs/notes/standalone.md,
 "The drop-in exe"); goldens of their own since H40. The line is read by ei_launch, not run_all, so the
 scheduler's run_all (main's) runs a worktree's drop-in scenarios with the worktree's ei_launch.
-Harness games never take the foreground (harness.cpp, `noforeground::`), and every run (the image's and the
-original's) keeps every window out of sight (cloaked tool windows: no window, taskbar button or Alt+Tab entry; `EI_HARNESS_SHOW_WINDOW=1` shows
+Harness games never take the foreground (harness.cpp, `noforeground::`), and every run keeps every window
+out of sight (cloaked tool windows: no window, taskbar button or Alt+Tab entry; `EI_HARNESS_SHOW_WINDOW=1` shows
 them to watch a run); the report's `WINDOW:` line and run_all's `game windows:` summary check it
 (docs/notes/standalone-verification.md, section 6).

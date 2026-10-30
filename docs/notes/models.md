@@ -213,7 +213,7 @@ Landscape fields (terrain.h / TerrainFields): +0x94 flags (1 waves, 2 animated t
 interval / countdown (not kept, R34a); +0x234..+0x248 the sun's ray steps (not kept, R34); +0x274..+0x28C waves (direction,
 height, glow, phase, speed); +0x290 per-vertex wave phases; +0x2A0 a 512-entry sine table. SetSun's qsort comparator (006C8E90)
 read +0xC / +8 of the array slots, i.e. the pointers three and two slots on, so the original's relight order followed pointer
-values; the harness's patch of SetSun (harness_client_effects.h) skips that sort now. Animate's sine index uses 256 / pi as a double (the original divides at run time; a .5 edge may rarely differ).
+values; the harness's patch of SetSun (harness_client_effects.h, until H40) skipped that sort in the original's runs. Animate's sine index uses 256 / pi as a double (the original divides at run time; a .5 edge may rarely differ).
 
 Ambience: sound classes at 007969D0 (16 x 0x18: name, variants, weight, class it counts as, pan limit, chance %; read from
 memory, most have variants -1, so the one-shot index is a draw % 0xFFFFFFFF + 1); loop slots +0xAC8 handles / +0xAD4 classes,

@@ -2426,7 +2426,7 @@ id = "T2c"
 title = "PickEnvironmentSpeech coverage (random bored remark)"
 group = "harness"
 size = 1
-note = "Reached only by the server's bored remark (1 in 1001 per update after 500 bored ticks), so no scenario reaches it reliably. Cover it with a SV4 vector recorder or a forced ISAAC state"
+note = "Reached only by the server's bored remark (1 in 1001 per update after 500 bored ticks), so no scenario reaches it reliably. Cover it with a SV4 vector recorder or a forced ISAAC state H40: the vector recorders are gone (recording needs a checkout of the tag original-oracle), so a forced ISAAC state is the way here."
 
 [[ticket]]
 id = "T2d"
@@ -3605,7 +3605,7 @@ group = "cleanup"
 size = 1
 model = "opus"
 files = ["tests/vectors/record_*.cpp"]
-note = "From H30b. tests/vectors/record_*.cpp record our functions' inputs from game.exe's EI_VECTORS=1 runs by reading game.exe's objects as our classes (OriginalGameData<CWorldServer>, <IsaacRandom>, members at our offsets). Once a cleanup moves members (C14a and later), recording vectors again reads wrong fields. Only matters when vectors are recorded again; run_all keys them only in EI_VECTORS=1 runs (HARNESS_VECTORS). Read game.exe through tests/verify/exe_objects.h and build our inputs from the views. Re-review 2026-10-28: still valid: 27 OriginalGameData<our class> reads in record_coder / record_crt_format / record_path / record_script / record_stats, and C37-C40 moved and renamed more members. Only matters if vectors are recorded again; keep parked, do it first if anyone re-records."
+note = "From H30b. tests/vectors/record_*.cpp record our functions' inputs from game.exe's EI_VECTORS=1 runs by reading game.exe's objects as our classes (OriginalGameData<CWorldServer>, <IsaacRandom>, members at our offsets). Once a cleanup moves members (C14a and later), recording vectors again reads wrong fields. Only matters when vectors are recorded again; run_all keys them only in EI_VECTORS=1 runs (HARNESS_VECTORS). Read game.exe through tests/verify/exe_objects.h and build our inputs from the views. Re-review 2026-10-28: still valid: 27 OriginalGameData<our class> reads in record_coder / record_crt_format / record_path / record_script / record_stats, and C37-C40 moved and renamed more members. Only matters if vectors are recorded again; keep parked, do it first if anyone re-records. H40: the recorders were deleted (the tag original-oracle has them); this applies only to recording in such a checkout."
 
 [[ticket]]
 id = "C22g"
