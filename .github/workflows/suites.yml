@@ -64,6 +64,7 @@ jobs:
           clean: false
 
       - name: Build
+        id: build
         run: |
           rm -f suite_*.txt build_*.log
           git clean -ffdq -e build/   # untracked files of an earlier ref, but not the build folders
@@ -80,15 +81,16 @@ jobs:
           done
           exit $fail
 
+      # Each suite runs whenever the builds passed, so one suite's differences never hide another's.
       - name: Image suite (vanilla)
         run: python tools/work.py test CI --golden --jobs 4 2>&1 | tee suite_image.txt | tail -40
 
       - name: Rebirth suite
-        if: env.SUITES == 'full'
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && env.SUITES == 'full' }}
         run: python tools/work.py test CI --rebirth-only --golden --jobs 4 2>&1 | tee suite_rebirth.txt | tail -40
 
       - name: x64 suite
-        if: env.SUITES == 'full'
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && env.SUITES == 'full' }}
         run: python tools/work.py test CI --x64 --golden --jobs 4 2>&1 | tee suite_x64.txt | tail -40
 
       - name: Summary
@@ -96,9 +98,11 @@ jobs:
         run: |
           for f in suite_*.txt; do
             [ -f "$f" ] || continue
-            echo "### ${f%.txt}" >> $GITHUB_STEP_SUMMARY
+            echo "### ${f%.txt}" | tee -a $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            sed -n '/^goldens (tests\/golden)/,$p' "$f" | head -60 >> $GITHUB_STEP_SUMMARY
+            # also into the log (the API gives sessions the log, not the summary page): the failed runs with their
+            # failures and notes, then the goldens block
+            sed -n '/^not passed:/,/^$/p; /^goldens (tests\/golden)/,$p' "$f" | head -400 | tee -a $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           done
           ! grep -q "GOLDENS DIFFER" suite_*.txt
@@ -149,7 +153,7 @@ jobs:
               install=vanilla
               [ $i = --rebirth-only ] && install=rebirth
               EI_HEAP_JITTER=$jitter python tools/work.py test CI $i --golden --jobs 4 $SCENARIOS > pass_${pass}_$install.txt 2>&1 || true
-              grep -E "^[0-9]+ runs in|^ALL PASS|^SOME RUNS FAILED" pass_${pass}_$install.txt | sed "s/^/$pass $install: /" || true
+              sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p; /^ALL PASS/p; /^SOME RUNS FAILED/p' pass_${pass}_$install.txt | sed "s/^/$pass $install: /" || true
               python tools/golden.py snapshot build/record/$pass --install $install $SCENARIOS
             done
           done
