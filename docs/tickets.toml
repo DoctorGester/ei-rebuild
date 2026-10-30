@@ -6252,7 +6252,7 @@ id = "A3f"
 title = "x64 goldens: the three differences left (net_pair_master, client paused ticks)"
 group = "port"
 depends = ["A3c"]
-note = "A3c's x64 runs against a 32-bit image without Miles (docs/notes/x64.md, 'The x64 goldens'): net_pair_master's client lists no server on x64 (rerun on main after A3d / PL5's socket work); render_device_removed (record 4) and rebirth_flags (while paused) differ in the client unit's animationStart (paused client ticks, unit_client_update.cpp RunTick), 33 and 11, repeatably per build, the server state the same: find why the x64 client ticks differently there. After PL6 the goldens themselves can be the reference (both builds without Miles' speech block)."
+note = "Resolved on main after PL6 and the socket work: x64 MAIN --golden 122 the same, 0 differ; x64 --rebirth-only --golden 24 the same, 0 differ (2026-10-30)."
 
 [[ticket]]
 id = "R37"
