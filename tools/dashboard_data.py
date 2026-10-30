@@ -256,6 +256,8 @@ def generated_tables(tree):
     if pointer_cells:
         out['pointer_cells'] = len(CELL.findall(pointer_cells))
         out.setdefault('code_cells', 0)   # retired in C20: game.exe's data keeps no code pointer in the image
+    elif 'tools/retired_vtables.py' in tree.paths:   # retired in C20t with image_cells.inc: none left
+        out.update(pointer_cells=0, code_cells=0)
     # The retired vtables: their own csv until C20 batch 6 folded it into config/vtables.csv (the rows with a class).
     retired = tree.read('config/retired_vtables.csv')
     if retired is None and 'class' in (tree.read('config/vtables.csv') or '').partition('\n')[0].split(','):

@@ -1,5 +1,6 @@
-// game.exe's .rdata and .data in the image's own storage, moved before every other static constructor
-// (init_seg(compiler)). See docs/notes/standalone.md, "The image's source files".
+// game.exe's .rdata and .data in the image's own storage, placed before every other static constructor
+// (init_seg(compiler)): all zero but the import slots the image fills. See docs/notes/standalone.md, "The image's
+// source files".
 #include "ei/hook.h"
 #include "game/game_data.h"
 #include "hook/log.h"
@@ -9,8 +10,6 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
-#include <iterator>
 
 #pragma warning(disable : 4074)   // initialisers put in the compiler's initialisation area: the point
 #pragma init_seg(compiler)
@@ -36,21 +35,6 @@ static_assert(kMovedBegin % kPage == 0 && kMovedEnd % kPage == 0, "the guard is 
 
 // The storage: room to start at an address whose low 16 bits are .rdata's.
 alignas(4096) unsigned char g_dataStorage[kMovedSize + kKeptBits + 1];
-
-// The sections' bytes as game.exe's file holds them (the import slots zero), up to the last nonzero dword (the
-// rest is zero).
-constexpr std::uint32_t kInitialData[] = {
-#include "image_data_bytes.inc"
-};
-static_assert(sizeof(kInitialData) <= kMovedSize);
-
-struct Cell {
-    std::uintptr_t cell;     // a dword of the image's .rdata or .data
-    std::uintptr_t target;   // the .rdata or .data address it holds in game.exe
-};
-constexpr Cell kCells[] = {
-#include "image_cells.inc"
-};
 
 // An access to the old range: a use of game.exe's .rdata or .data that did not go through the seam (a call through
 // game.exe's own import slot among them).
@@ -80,34 +64,21 @@ LONG CALLBACK OnOldData(EXCEPTION_POINTERS* e) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-void MoveData() {
+void PlaceData() {
     if (!Standalone()) return;   // game.exe
     EnterGameFolder();   // the imports' DLLs (ResolveImageImports) are the game folder's
     const auto storage = reinterpret_cast<std::uintptr_t>(g_dataStorage);
     const std::uintptr_t begin = storage + ((kMovedBegin - storage) & kKeptBits);
-    std::memcpy(reinterpret_cast<void*>(begin), kInitialData, sizeof(kInitialData));
     g_dataShift = begin - kMovedBegin;
-    int moved = 0;
-    for (const Cell& c : kCells) {
-        auto& value = GameData<std::uintptr_t>(c.cell);   // a cell inside the moved range is in its new place
-        if (value != c.target) {
-            Log("standalone: the cell %08X holds %08X, not game.exe's %08X: left", static_cast<unsigned>(c.cell),
-                static_cast<unsigned>(value), static_cast<unsigned>(c.target));
-            continue;
-        }
-        value = GameAddress(value);
-        ++moved;
-    }
     AddVectoredExceptionHandler(1, OnOldData);
-    Log("standalone: game.exe's .rdata and .data kept at %08X (shift %08X), %u bytes from the build, %d of %d cells moved",
-        static_cast<unsigned>(begin), static_cast<unsigned>(g_dataShift), static_cast<unsigned>(sizeof(kInitialData)),
-        moved, static_cast<int>(std::size(kCells)));
+    Log("standalone: game.exe's .rdata and .data kept at %08X (shift %08X), all zero", static_cast<unsigned>(begin),
+        static_cast<unsigned>(g_dataShift));
     ResolveImageImports();
 }
 
-struct DataMover {
-    DataMover() { MoveData(); }
-} g_dataMover;
+struct DataPlacer {
+    DataPlacer() { PlaceData(); }
+} g_dataPlacer;
 
 } // namespace
 

@@ -10,12 +10,13 @@ The lookup never writes and never reads F:\\games. Nothing found: one error nami
 usage: python tools/exe_path.py [--exe PATH] [--all]   prints the path (--all: every install's, one per line)
 (The build reads no game.exe: C25c, C25d. The generators, find_* and check_signatures / check_stolen read it.)
 """
-import os, sys
+import os, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INSTALLS = ('vanilla', 'rebirth')   # in this order
+TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTimestamp)
 
 
 class ExeNotFound(Exception):
@@ -60,6 +61,25 @@ def resolve(explicit=None, root=ROOT):
         return find_exe(explicit, root)
     except ExeNotFound as e:
         sys.exit(f'{os.path.basename(sys.argv[0])}: {e}')
+
+
+def image(path):
+    """game.exe 1.06 at `path` as the loader lays it out: a bytearray of the image's size, offset = address - 0x400000,
+    each section's file bytes in place (the rest zero). Another exe ends the tool."""
+    d = open(path, 'rb').read()
+    pe = struct.unpack_from('<I', d, 0x3C)[0]
+    if struct.unpack_from('<I', d, pe + 8)[0] != TIMESTAMP:
+        sys.exit(f'{os.path.basename(sys.argv[0])}: {path} is not game.exe 1.06')
+    count = struct.unpack_from('<H', d, pe + 6)[0]
+    optional = struct.unpack_from('<H', d, pe + 20)[0]
+    size = struct.unpack_from('<I', d, pe + 24 + 56)[0]
+    img = bytearray(size)
+    at = pe + 24 + optional
+    for i in range(count):
+        vsize, va, rsize, raw = struct.unpack_from('<IIII', d, at + 40 * i + 8)
+        n = min(vsize, rsize)
+        img[va:va + n] = d[raw:raw + n]
+    return img
 
 
 def main(argv):

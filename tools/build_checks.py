@@ -25,11 +25,10 @@ def checks(out):
         # tests/verify/image: no class of ours in the reference cache's key (tools/run_all.py, harness_files).
         py + [tool('check_harness_key.py')],
         # Generated and listed files against what they come from, without game.exe: the import files (gameapi.h by
-        # hand, a harness route on a slot), the named ranges' csv and their rules, the retired vtables and committed
-        # cells.
+        # hand, a harness route on a slot), the named ranges' csv and their rules, the retired vtables.
         py + [tool('gen_iat.py'), '--check'],
         py + [tool('named_data.py'), '--check'],
-        py + [tool('gen_image_cells.py'), '--check'],
+        py + [tool('retired_vtables.py'), '--check'],
         # Every row of config/static_init_ports.csv names a definition in its file (tools/gen_static_init.py).
         py + [tool('gen_static_init.py'), '--check-ports'],
         # Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
