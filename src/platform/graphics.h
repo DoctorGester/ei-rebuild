@@ -54,7 +54,9 @@ class Staging;
 
 // Texels read back to the CPU, blocking (captures, the interface canvases' reads, the harness build's checks): copied
 // into a staging copy and mapped until the next read, Unmap or Release. The copy is kept for the next read (made again
-// for a larger region or another format) until Release, which every holder calls before the device goes. Main thread.
+// for a larger region or another format) until Release, which every holder calls before the device goes and after a
+// read it does not keep for later. The destructor never touches the device: some holders are globals, destroyed at
+// exit while the cursor thread still presents. Main thread.
 class Readback {
 public:
     Readback();
@@ -75,7 +77,8 @@ private:
 };
 
 // Timestamps on the GPU between Begin and End, read some frames later without waiting (the performance overlay, the
-// harness build's shadow timings).
+// harness build's shadow timings). Release, as Readback's, before the device goes; the destructor leaves the device
+// alone.
 class GpuTimer {
 public:
     static constexpr int kMostStamps = 64;   // a set's; later stamps are dropped

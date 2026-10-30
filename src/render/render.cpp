@@ -1036,20 +1036,23 @@ bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
     platform::FloatingPointGuard fpu;
     platform::graphics::Readback copy;
     const int w = g_width, h = g_height;
-    if (!copy.Read(g_colour, platform::Rect{0, 0, w, h})) return false;
-    *width = w;
-    *height = h;
-    bgr->resize(static_cast<std::size_t>(w) * h * 3);
-    for (int y = 0; y < h; ++y) {
-        const std::uint8_t* row = copy.Row(y);
-        std::uint8_t* out = bgr->data() + static_cast<std::size_t>(y) * w * 3;
-        for (int x = 0; x < w; ++x) {
-            out[x * 3 + 0] = row[x * 4 + 2];
-            out[x * 3 + 1] = row[x * 4 + 1];
-            out[x * 3 + 2] = row[x * 4 + 0];
+    const bool read = copy.Read(g_colour, platform::Rect{0, 0, w, h});
+    if (read) {
+        *width = w;
+        *height = h;
+        bgr->resize(static_cast<std::size_t>(w) * h * 3);
+        for (int y = 0; y < h; ++y) {
+            const std::uint8_t* row = copy.Row(y);
+            std::uint8_t* out = bgr->data() + static_cast<std::size_t>(y) * w * 3;
+            for (int x = 0; x < w; ++x) {
+                out[x * 3 + 0] = row[x * 4 + 2];
+                out[x * 3 + 1] = row[x * 4 + 1];
+                out[x * 3 + 2] = row[x * 4 + 0];
+            }
         }
     }
-    return true;
+    copy.Release();
+    return read;
 }
 
 } // namespace render

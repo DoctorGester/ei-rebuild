@@ -55,10 +55,9 @@ struct Chain {
 bool CurrentChain(Chain* chain);
 
 // Readback's copy: a texture's region copied into a CPU-readable staging texture of its format and mapped. It touches
-// nothing of sokol's (the cursor thread reads with it).
+// nothing of sokol's (the cursor thread reads with it). Release, as Readback's: no destructor.
 class Staging {
 public:
-    ~Staging();
     bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, const Rect& region);
     const std::uint8_t* Row(int y) const { return data + static_cast<std::size_t>(y) * pitch; }
     void Unmap();

@@ -136,6 +136,7 @@ void CheckUpload(ImageUse use, sg_image image, const std::uint8_t* rgba, int w, 
             ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written",
                     use == ImageUse::Movie ? "movie" : "cursor", w, h);
     }
+    copy.Release();
     if (g_uploadChecks % 20 == 1)
         ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads[0] + g_uploads[1], g_uploadMismatches);
 #else

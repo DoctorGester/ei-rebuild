@@ -734,15 +734,19 @@ void CheckPicture() {
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
     platform::graphics::Readback copy;
     const int w = g_targetWidth, h = g_targetHeight;
-    if (!copy.Read(g_target, platform::Rect{0, 0, w, h})) return false;
-    rgb->resize(static_cast<std::size_t>(w) * h);
-    for (int y = 0; y < h; ++y) {
-        const std::uint8_t* row = copy.Row(y);
-        for (int x = 0; x < w; ++x)
-            (*rgb)[static_cast<std::size_t>(y) * w + x] =
-                (static_cast<std::uint32_t>(row[x * 4]) << 16) | (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
+    const bool read = copy.Read(g_target, platform::Rect{0, 0, w, h});
+    if (read) {
+        rgb->resize(static_cast<std::size_t>(w) * h);
+        for (int y = 0; y < h; ++y) {
+            const std::uint8_t* row = copy.Row(y);
+            for (int x = 0; x < w; ++x)
+                (*rgb)[static_cast<std::size_t>(y) * w + x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) |
+                                                              (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) |
+                                                              row[x * 4 + 2];
+        }
     }
-    return true;
+    copy.Release();
+    return read;
 }
 
 // The blit of `canvas` (its pixels, `cw` wide) onto `target` as ps_blit draws it (exact ratios only).

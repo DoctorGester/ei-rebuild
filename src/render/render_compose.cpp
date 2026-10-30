@@ -443,6 +443,7 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
                             static_cast<std::size_t>(width) * 4);
             read = true;
         }
+        copy.Release();
     }
     sg_destroy_view(attachment);
     sg_destroy_image(target);

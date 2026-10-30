@@ -426,7 +426,10 @@ void Readback::Unmap() {
     if (staging) staging->Unmap();
 }
 
-void Readback::Release() { staging.reset(); }
+void Readback::Release() {
+    if (staging) staging->Release();
+    staging.reset();
+}
 
 struct GpuTimer::Queries {
     bool made = false;   // false: the device has no timestamp queries
@@ -435,7 +438,7 @@ struct GpuTimer::Queries {
     int count = 0;
     bool pending = false;   // ended, not read yet
 
-    ~Queries() {
+    void Release() {
         if (clock) clock->Release();
         for (ID3D11Query* stamp : stamps)
             if (stamp) stamp->Release();
@@ -489,7 +492,10 @@ bool GpuTimer::Read(std::vector<double>* milliseconds) {
     return true;
 }
 
-void GpuTimer::Release() { queries.reset(); }
+void GpuTimer::Release() {
+    if (queries) queries->Release();
+    queries.reset();
+}
 
 // ---- graphics_win32.h ---------------------------------------------------------------------------------------------
 
@@ -551,8 +557,6 @@ bool CurrentChain(Chain* chain) {
     *chain = Chain{g_chain, g_view, SyncIntervalFor(g_mode.vsync), PresentFlagsFor(g_mode.vsync, g_chainFlags)};
     return true;
 }
-
-Staging::~Staging() { Release(); }
 
 bool Staging::Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, const Rect& region) {
     Unmap();

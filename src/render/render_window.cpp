@@ -102,6 +102,9 @@ bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameH
 }
 
 #if defined(EI_RENDER_VALIDATION)
+// The checks' copies of the drawable and of the frame, kept from check to check (released in DropWindow).
+platform::graphics::Readback g_backCopy, g_frameCopy;
+
 // Verify build: the drawable just drawn against the frame through the ramp, at a grid of points (one to one placement
 // only). Logged once per ramp.
 void CheckRamp(int width, int height) {
@@ -109,15 +112,14 @@ void CheckRamp(int width, int height) {
     int fw = 0, fh = 0;
     if (!FrameSize(&fw, &fh) || fw != width || fh != height) return;
     const platform::Rect whole{0, 0, width, height};
-    platform::graphics::Readback backCopy, frameCopy;
-    if (!backCopy.ReadDrawable(whole) || !frameCopy.Read(FrameImage(), whole)) return;
+    if (!g_backCopy.ReadDrawable(whole) || !g_frameCopy.Read(FrameImage(), whole)) return;
     int points = 0, differing = 0;
     for (int y = height / 34; y < height; y += height / 17 + 1) {
         for (int x = width / 34; x < width; x += width / 17 + 1) {
             if (x >= g_lastCursor.left - 1 && x < g_lastCursor.right + 1 && y >= g_lastCursor.top - 1 && y < g_lastCursor.bottom + 1)
                 continue;   // the cursor is over the frame only in the drawable
-            const std::uint8_t* b = backCopy.Row(y) + x * 4;
-            const std::uint8_t* f = frameCopy.Row(y) + x * 4;
+            const std::uint8_t* b = g_backCopy.Row(y) + x * 4;
+            const std::uint8_t* f = g_frameCopy.Row(y) + x * 4;
             // drawable B, G, R; frame R, G, B
             int want[3] = {g_ramp[f[2] * 4 + 2], g_ramp[f[1] * 4 + 1], g_ramp[f[0] * 4 + 0]};
             for (int c = 0; c < 3; ++c) {
@@ -148,12 +150,11 @@ void CheckCursorDrawn(int width, int height) {
     int fw = 0, fh = 0;
     if (!FrameSize(&fw, &fh) || fw != width || fh != height) return;
     const platform::Rect region{c.left, c.top, c.right, c.bottom};
-    platform::graphics::Readback backCopy, frameCopy;
-    if (!backCopy.ReadDrawable(region) || !frameCopy.Read(FrameImage(), region)) return;
+    if (!g_backCopy.ReadDrawable(region) || !g_frameCopy.Read(FrameImage(), region)) return;
     int differing = 0, total = (c.right - c.left) * (c.bottom - c.top);
     for (int y = 0; y < c.bottom - c.top; ++y) {
-        const std::uint8_t* b = backCopy.Row(y);
-        const std::uint8_t* f = frameCopy.Row(y);
+        const std::uint8_t* b = g_backCopy.Row(y);
+        const std::uint8_t* f = g_frameCopy.Row(y);
         for (int x = 0; x < c.right - c.left; ++x) {
             // drawable B, G, R; frame R, G, B, through the ramp
             if (std::abs(static_cast<int>(b[x * 4]) - g_uploaded[f[x * 4 + 2] * 4 + 2]) > 1 ||
@@ -275,6 +276,10 @@ void DropWindow() {
     g_rampDirty = true;   // the ramp the game set goes to the new device's lookup texture
     g_drawableWidth = g_drawableHeight = 0;
     g_info.presentsAtRecovery = g_info.presents;
+#if defined(EI_RENDER_VALIDATION)
+    g_backCopy.Release();
+    g_frameCopy.Release();
+#endif
 }
 
 } // namespace detail

@@ -171,12 +171,15 @@ void BeginTargetPass(const Target& t) {
 
 bool ReadTarget(const Target& t, std::vector<std::uint8_t>* bgra) {
     platform::graphics::Readback copy;
-    if (!copy.Read(t.image, platform::Rect{0, 0, t.width, t.height})) return false;
-    bgra->resize(static_cast<std::size_t>(t.width) * static_cast<std::size_t>(t.height) * 4);
-    for (int y = 0; y < t.height; ++y)
-        std::memcpy(bgra->data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(t.width) * 4, copy.Row(y),
-                    static_cast<std::size_t>(t.width) * 4);
-    return true;
+    const bool read = copy.Read(t.image, platform::Rect{0, 0, t.width, t.height});
+    if (read) {
+        bgra->resize(static_cast<std::size_t>(t.width) * static_cast<std::size_t>(t.height) * 4);
+        for (int y = 0; y < t.height; ++y)
+            std::memcpy(bgra->data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(t.width) * 4,
+                        copy.Row(y), static_cast<std::size_t>(t.width) * 4);
+    }
+    copy.Release();
+    return read;
 }
 
 void CheckDraw(int width, int height) {
