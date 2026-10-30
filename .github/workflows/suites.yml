@@ -38,6 +38,10 @@ on:
         description: "Instead of the suites: play the scenarios on this ref's build and on ref's, and print where each run's state first differs (golden.py diff)"
         required: false
         default: ""
+      resolution:
+        description: "diff: both builds' runs at this window size (EI_RESOLUTION, WxH; a scenario's own resolution line wins)"
+        required: false
+        default: ""
 
 concurrency:
   group: ei-game
@@ -219,6 +223,7 @@ jobs:
       REF: ${{ inputs.ref != 'main' && inputs.ref || github.ref_name }}
       BASE: ${{ inputs.diff_base }}
       SCENARIOS: ${{ inputs.scenarios }}
+      RESOLUTION: ${{ inputs.resolution }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -241,6 +246,7 @@ jobs:
 
       - name: Play both
         run: |
+          [ -z "$RESOLUTION" ] || export EI_RESOLUTION=$RESOLUTION
           python tools/work.py test CI --vanilla-only --golden --jobs 4 $SCENARIOS > diff_head.txt 2>&1 || true
           (cd build/base && python tools/work.py test CI --vanilla-only --golden --jobs 4 $SCENARIOS > ../../diff_base.txt 2>&1) || true
           for f in diff_base.txt diff_head.txt; do echo "== $f"; sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p' $f; done
@@ -262,5 +268,8 @@ jobs:
               [ -z "$con" ] || { echo "console:"; echo "$con"; }
               grep -h "^FAILED" "$a/harness_report.txt" | sed 's/^/base /' || true
               grep -h "^FAILED" "$b/harness_report.txt" | sed 's/^/head /' || true
+              # where the camera looks and what the ground clicks found (harness.cpp groundview, clickground)
+              grep -h "harness: \(ground\|clickground\)" "$a/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/base /' || true
+              grep -h "harness: \(ground\|clickground\)" "$b/ei-rebuild.log" 2>/dev/null | head -12 | sed 's/^/head /' || true
             done
           done
