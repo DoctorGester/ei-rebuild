@@ -1,0 +1,11 @@
+{
+  "scenario": "ui_titles_scroll",
+  "install": "vanilla",
+  "recorded": "2026-10-30",
+  "commit": "19669d2bb",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 1,
+  "reason": "GOG data re-downloaded 2026-10-30 (the old install's data was lost); unit radii differ slightly from the old data"
+}

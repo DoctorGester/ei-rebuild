@@ -1,11 +1,11 @@
 {
   "scenario": "smoke",
   "install": "vanilla",
-  "recorded": "2026-10-29",
-  "commit": "8babcdb85",
+  "recorded": "2026-10-30",
+  "commit": "19669d2bb",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 2,
-  "reason": "R34c: the client's idle animation picks and the hero previews' start frames on the client generator, DelayedProtectionCheck's rand() gone (user-approved re-record of the random group, as R34a)"
+  "repeated_in": 1,
+  "reason": "GOG data re-downloaded 2026-10-30 (the old install's data was lost); unit radii differ slightly from the old data"
 }
