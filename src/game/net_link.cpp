@@ -28,18 +28,6 @@ unsigned BufferFill(GameBuffer* buffer) {
     return static_cast<unsigned>(buffer->PositionOf(buffer->high));
 }
 
-// A write the way these functions inline it: in place (marking the buffer written) when it fits
-// before `end`, otherwise through WriteMore.
-void BufferPut(GameBuffer* buffer, const void* from, unsigned size) {
-    if (buffer->cur + size > buffer->end) {
-        buffer->WriteMore(from, size);
-        return;
-    }
-    buffer->flags |= 1;
-    std::memcpy(buffer->cur, from, size);
-    buffer->cur += size;
-}
-
 } // namespace
 
 // FileStream
@@ -276,7 +264,7 @@ void DriverLink::Disconnect() {
         ByteStream* stream = &pending;
         stream->Write(player.Get()->reliableIn.begin, count);
         player.Get()->reliableIn.Seek(0);
-        BufferPut(&player.Get()->reliableIn, pending.data.data(), pending.size);
+        player.Get()->reliableIn.BufferWrite(pending.data.data(), pending.size);
     }
     player.Reset();
 }
@@ -314,7 +302,7 @@ bool DriverLink::SendBytes(const void* data, std::uint32_t size) {
     if (IsLive(player.Get())) {
         std::uint32_t fill = BufferFill(&player.Get()->reliableOut);
         player.Get()->reliableOut.Seek(static_cast<std::int32_t>(fill));
-        BufferPut(&player.Get()->reliableOut, data, size);
+        player.Get()->reliableOut.BufferWrite(data, size);
     }
     return IsLive(player.Get());
 }
