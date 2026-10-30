@@ -65,7 +65,7 @@ void FrameStep(bool draw, bool cursor) {
     char path[256];
     std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", g_movieFolder.c_str(), g_movieFrame);
     platform::File file;
-    if (!file.Open(path, platform::File::modeCreate | platform::File::modeWrite)) {
+    if (!file.Open(path, platform::FileMode::Create)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
         app::g_recordingFrames = 0;
         return;

@@ -28,10 +28,10 @@ struct TextSource {
 // The archive list (TextManager::sources).
 struct TextSources {
     // Add: unless an archive of that exact name is listed (then 1), appends a new
-    // MappedResource under `path` and returns its OpenResource(path, writable); a failed open stays in the
+    // MappedResource under `path` and returns its OpenResource(path); a failed open stays in the
     // list. Remove: closes, deletes and unlinks the archive named `path`, if any. Clear: closes and deletes
     // every archive, then frees the nodes.
-    bool Add(const std::string& path, bool writable);
+    bool Add(const std::string& path);
     void Remove(const std::string& path);
     void Clear();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which

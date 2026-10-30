@@ -157,8 +157,8 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   contents (1.5x + 0x10), `SetSize` 004A5570 is exact and drops them.
 - `FileStream` (0073C8D8, 0x1C): a ByteStream over a `platform::File` (src/platform/platform.h; the original: an MFC `CFile` at
   +0xC, each slot calling the CFile's virtual: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19
-  Close). The save code builds these on the stack. Defined in `net_link.h`. Open takes MFC's CFile open flags
-  (platform::File's names: `modeCreate | modeWrite` to save, `modeRead` to load).
+  Close). The save code builds these on the stack. Defined in `net_link.h`. Open takes a `platform::FileMode`
+  (`Create` to save, `Read` to load).
 - `Chunk` (vtable 0073BE94, 0x18: vtable, id, consumed, size, start, parent; not the models'
   `ChunkArchive`): slot 0 a handler called for every chunk `ForEachChild` reads (empty in the base),
   slot 1 the file (base asks its parent). Sizes include the 8-byte header; every byte read or

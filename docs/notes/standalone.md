@@ -1756,8 +1756,8 @@ harness takes import slots in its own.
 ### platform/platform.h
 
 The game's files through its import slots (CreateFileA, FindFirstFileA, GetFileAttributesA), so the harness's
-redirection and a mod's hooks apply: `File` (binary, a Win32 handle; MFC's CFile open flags; text lines with
-`WriteLine`), `ReadFile` (a whole file), `FileFind` (a folder search with CFileFind's read-ahead and absolute paths)
+redirection and a mod's hooks apply: `File` (binary, a Win32 handle; three open modes, every open shared; text lines
+with `WriteLine`), `MappedFile` (read only), `ReadFile` (a whole file), `FileFind` (a folder search with CFileFind's read-ahead and absolute paths)
 and `FileExists` (_access). A failed read, write or seek throws `FileError` (the OS error and the path in what()), where
 the game's MFC threw a CFileException*: what the game caught (Dib's reads and writes, the script reader) catches it,
 the rest ends the game as the original (a write to a full disk: tests/scenarios/harness_disk_full.txt).

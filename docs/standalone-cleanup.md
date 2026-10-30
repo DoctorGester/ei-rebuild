@@ -41,7 +41,7 @@ shim, stub or workaround lands.
   dropping one. A literal-size memset can cover a pad after its member: Object3DClientSpecific's
   `memset(&sphere, 0, 0x38)` cleared the bounds and the 12 pad bytes after them, and zeroed `drawnRect` once the pad
   went (now `sizeof(sphere)`); grep `mem(set|cpy)(..., <number>)` near the class too. ParticleElement keeps its views' padding: the union's views alias each other's slots.
-- Placeholder names: `Vector3::Construct`, `MappedFile::Construct` (original constructors written as
+- Placeholder names: `Vector3::Construct`, the old `MappedFile::Construct` (original constructors written as
   methods returning `this` so they could be registered; real constructors), `using BOOL = int` (return
   values the original sets in all of EAX).
 

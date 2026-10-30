@@ -192,7 +192,7 @@ void ListVar(std::vector<std::string>* args) {
     platform::File file;
     bool writing = false;
     if (args->size() > 1) {
-        writing = file.Open((*args)[1], platform::File::modeCreate | platform::File::modeWrite | platform::File::shareDenyNone);
+        writing = file.Open((*args)[1], platform::FileMode::Create);
         if (!writing)   // "Cannot open file <name> for writing"
             EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for writing");
     }
@@ -356,7 +356,7 @@ void WriteEnvironmentSpeechLines(platform::File* file, const acks::EnvironmentSp
 // kinds is written once per kind), and after a unit record's lists its environment speeches.
 void GenerateAcks(std::vector<std::string>*) {
     platform::File file;
-    if (!file.Open(g_dataFolder + "scenack.txt", platform::File::modeCreate | platform::File::modeWrite | platform::File::shareDenyNone)) return;
+    if (!file.Open(g_dataFolder + "scenack.txt", platform::FileMode::Create)) return;
     platform::File* out = &file;
     acks::AckDatabase& database = g_ackDatabase;
     for (acks::UnitAcks& record : database.units.records) {

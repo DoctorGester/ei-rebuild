@@ -85,7 +85,7 @@ void LoadKeyBindings() {
 // key name, action name.
 void SaveKeyBindings() {
     platform::File file;
-    if (!file.Open(g_dataFolder + "config\\keyboard.ini", platform::File::modeCreate | platform::File::modeWrite | platform::File::shareDenyNone)) return;
+    if (!file.Open(g_dataFolder + "config\\keyboard.ini", platform::FileMode::Create)) return;
     for (int scan = 0; scan < 0x200; ++scan) {
         signed char id = g_keyActions[scan];
         if (!id) continue;

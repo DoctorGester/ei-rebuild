@@ -43,15 +43,12 @@ public:
     long Restart();
 
     // The direction byte, then the file's Open; ok tells whether it opened.
-    bool Open(std::string_view path, unsigned flags, std::uint8_t newReading) {
+    bool Open(std::string_view path, platform::FileMode mode, std::uint8_t newReading) {
         reading = newReading;
-        ok = file.Open(path, flags);
+        ok = file.Open(path, mode);
         return ok != 0;
     }
     void Close() { file.Close(); }
-
-    static constexpr unsigned kOpenRead = platform::File::modeRead;
-    static constexpr unsigned kOpenWrite = platform::File::modeCreate | platform::File::modeWrite;
 
     platform::File file;
 };

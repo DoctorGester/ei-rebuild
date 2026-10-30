@@ -58,15 +58,15 @@ std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
 
 void FileStream::Write(const void* buffer, std::uint32_t size) { file.Write(buffer, size); }
 
-long FileStream::SeekFrom(long position) { return file.Seek(position, platform::File::begin); }
+long FileStream::SeekFrom(long position) { return file.Seek(position, platform::SeekFrom::Begin); }
 void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
 
-std::uint32_t FileStream::Size() { return file.GetLength(); }
-std::uint32_t FileStream::Position() { return file.GetPosition(); }
+std::uint32_t FileStream::Size() { return file.Size(); }
+std::uint32_t FileStream::Position() { return file.Position(); }
 
 long FileStream::Restart() {
     ok = 1;
-    return file.Seek(0L, platform::File::begin);
+    return file.Seek(0L, platform::SeekFrom::Begin);
 }
 void FileStream::Clear() { Restart(); }
 

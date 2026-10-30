@@ -26,7 +26,6 @@ constexpr const char* kSeedSearchPattern = /*0073D080*/ "C:\\*.*";
 const char* SubdirectoryPattern() { return "\\*.*"; }
 
 constexpr unsigned long kMinimumFileSize = 0x800;
-constexpr unsigned kOpenReadShared = platform::File::modeRead | platform::File::shareDenyNone;
 constexpr int kSeedBytes = 0x400;
 
 // The game's 284-byte path buffer on its stack.
@@ -174,7 +173,7 @@ void IsaacRandom::Seed() {
         }
         ok = 1;
         platform::File file;
-        if (file.Open(path, kOpenReadShared)) {
+        if (file.Open(path, platform::FileMode::Read)) {
             libcrt::Srand(platform::Milliseconds());
             long offset = kSeedBytes - RandomBelow512();
             if (!file.ReadAt(offset, results, kSeedBytes)) ok = 0;

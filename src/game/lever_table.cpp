@@ -24,7 +24,7 @@ int LeverRecordTable::Load(const std::string& folder) {
     bool opened;
     {
         std::string path = dir + "database.res";
-        opened = resource.Get()->OpenResource(path, 0) != 0;
+        opened = resource.Get()->OpenResource(path) != 0;
     }
     if (!opened) {
         // The message names "databases.res", not the file it tried: as in the game.

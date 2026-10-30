@@ -21,7 +21,6 @@
 #include <windef.h>
 #include <minwinbase.h>
 
-struct _BY_HANDLE_FILE_INFORMATION;
 struct _GUID;
 struct _SYSTEM_INFO;
 struct tagMSG;
@@ -40,9 +39,6 @@ __declspec(dllimport) BOOL WINAPI WriteFile(HANDLE file, LPCVOID buffer, DWORD s
                                             LPOVERLAPPED overlapped);
 __declspec(dllimport) DWORD WINAPI SetFilePointer(HANDLE file, LONG distance, PLONG distanceHigh, DWORD method);
 __declspec(dllimport) DWORD WINAPI GetFileSize(HANDLE file, LPDWORD sizeHigh);
-__declspec(dllimport) BOOL WINAPI GetFileInformationByHandle(HANDLE file, _BY_HANDLE_FILE_INFORMATION* information);
-__declspec(dllimport) BOOL WINAPI SetFileTime(HANDLE file, const FILETIME* creation, const FILETIME* access,
-                                              const FILETIME* write);
 __declspec(dllimport) BOOL WINAPI CloseHandle(HANDLE object);
 __declspec(dllimport) BOOL WINAPI DeleteFileA(LPCSTR name);
 __declspec(dllimport) BOOL WINAPI MoveFileA(LPCSTR from, LPCSTR to);
@@ -55,8 +51,6 @@ __declspec(dllimport) BOOL WINAPI FindNextFileA(HANDLE find, LPWIN32_FIND_DATAA 
 __declspec(dllimport) BOOL WINAPI FindClose(HANDLE find);
 __declspec(dllimport) DWORD WINAPI GetCurrentDirectoryA(DWORD size, LPSTR buffer);
 __declspec(dllimport) DWORD WINAPI GetFullPathNameA(LPCSTR name, DWORD size, LPSTR buffer, LPSTR* filePart);
-__declspec(dllimport) BOOL WINAPI GetDiskFreeSpaceA(LPCSTR root, LPDWORD sectorsPerCluster, LPDWORD bytesPerSector,
-                                                    LPDWORD freeClusters, LPDWORD clusters);
 __declspec(dllimport) BOOL WINAPI GetVolumeInformationA(LPCSTR root, LPSTR volumeName, DWORD volumeNameSize,
                                                         LPDWORD serial, LPDWORD maxComponentLength,
                                                         LPDWORD fileSystemFlags, LPSTR fileSystemName,
@@ -65,7 +59,6 @@ __declspec(dllimport) HANDLE WINAPI CreateFileMappingA(HANDLE file, LPSECURITY_A
                                                        DWORD sizeHigh, DWORD sizeLow, LPCSTR name);
 __declspec(dllimport) LPVOID WINAPI MapViewOfFile(HANDLE mapping, DWORD access, DWORD offsetHigh, DWORD offsetLow,
                                                   SIZE_T size);
-__declspec(dllimport) BOOL WINAPI FlushViewOfFile(LPCVOID base, SIZE_T size);
 __declspec(dllimport) BOOL WINAPI UnmapViewOfFile(LPCVOID base);
 __declspec(dllimport) DWORD WINAPI GetPrivateProfileSectionA(LPCSTR section, LPSTR buffer, DWORD size, LPCSTR file);
 __declspec(dllimport) DWORD WINAPI GetPrivateProfileStringA(LPCSTR section, LPCSTR key, LPCSTR fallback,
@@ -82,8 +75,6 @@ __declspec(dllimport) void WINAPI OutputDebugStringA(LPCSTR text);
 __declspec(dllimport) LPSTR WINAPI lstrcpynA(LPSTR to, LPCSTR from, int size);
 __declspec(dllimport) DWORD WINAPI GetTickCount();
 __declspec(dllimport) void WINAPI GetLocalTime(LPSYSTEMTIME time);
-__declspec(dllimport) void WINAPI GetSystemTime(LPSYSTEMTIME time);
-__declspec(dllimport) BOOL WINAPI SystemTimeToFileTime(const SYSTEMTIME* time, LPFILETIME fileTime);
 __declspec(dllimport) void WINAPI Sleep(DWORD milliseconds);
 __declspec(dllimport) DWORD WINAPI ResumeThread(HANDLE thread);
 __declspec(dllimport) BOOL WINAPI SetThreadPriority(HANDLE thread, int priority);

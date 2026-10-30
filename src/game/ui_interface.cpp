@@ -275,7 +275,7 @@ void Interface3D::Shutdown() {
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 
-    if (platform::File file; file.Open(g_dataFolder + game::TutorialIniText(), platform::File::modeCreate | platform::File::modeWrite | platform::File::shareDenyNone)) {
+    if (platform::File file; file.Open(g_dataFolder + game::TutorialIniText(), platform::FileMode::Create)) {
         for (const auto& [topic, page] : helpTopics) file.WriteLine(str::Format(game::TutorialLineFormat(), topic, page));
     }
 
@@ -440,9 +440,8 @@ void Interface3D::OnKeyDown(int key, int repeat, int flags) {
         std::string name;
         name = std::format("shot{:04}.bmp", g_shotCounter);
         ++g_shotCounter;
-        platform::File file(name, platform::File::modeCreate | platform::File::modeWrite);
-        picture->Write(&file);
-        file.Close();
+        platform::File file;
+        if (file.Open(name, platform::FileMode::Create)) picture->Write(&file);
         delete picture;
         return;
     }

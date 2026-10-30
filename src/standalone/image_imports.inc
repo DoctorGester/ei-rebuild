@@ -245,7 +245,7 @@
 {offsetof(ei::ImportTable, CompareStringW), "KERNEL32.dll", "CompareStringW", 0, false},
 {offsetof(ei::ImportTable, SetEnvironmentVariableA), "KERNEL32.dll", "SetEnvironmentVariableA", 0, false},
 {offsetof(ei::ImportTable, GetProcAddress), "KERNEL32.dll", "GetProcAddress", 0, false},
-{offsetof(ei::ImportTable, GetDiskFreeSpaceA), "KERNEL32.dll", "GetDiskFreeSpaceA", 0, true},
+{offsetof(ei::ImportTable, GetDiskFreeSpaceA), "KERNEL32.dll", "GetDiskFreeSpaceA", 0, false},
 {offsetof(ei::ImportTable, FileTimeToSystemTime), "KERNEL32.dll", "FileTimeToSystemTime", 0, false},
 {offsetof(ei::ImportTable, MoveFileA), "KERNEL32.dll", "MoveFileA", 0, true},
 {offsetof(ei::ImportTable, FileTimeToLocalFileTime), "KERNEL32.dll", "FileTimeToLocalFileTime", 0, false},

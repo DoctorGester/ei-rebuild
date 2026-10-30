@@ -269,7 +269,7 @@ int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* a
     platform::File alphaFile;
     Dib colour;
     Dib alpha;
-    if (!file.Open(path, platform::File::modeRead)) {
+    if (!file.Open(path, platform::FileMode::Read)) {
         game::DebugLog(CantLoadText(), GetName());
         return 0;
     }
@@ -279,7 +279,7 @@ int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* a
     colour.Size(&size);
     const int bmpWidth = size.cx, bmpHeight = size.cy;
     bool withAlpha = false;
-    if (alphaFile.Open(alphaPath, platform::File::modeRead)) {
+    if (alphaFile.Open(alphaPath, platform::FileMode::Read)) {
         alpha.Read(&alphaFile);
         alphaFile.Close();
         std::uint16_t bits = alpha.header->bitCount;

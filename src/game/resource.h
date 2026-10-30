@@ -41,26 +41,13 @@ static_assert(sizeof(ResEntry) == 22);
 
 constexpr std::uint32_t kResMagic = 0x019CE23C;
 
-// A file mapped into memory (unbuffered when its volume's sectors fit the pages, else for random access).
-class MappedFile {
-public:
-    ~MappedFile() { Close(); }
-    void Close();                                     // an identical copy of Close's body
-    bool Open(const std::string& path, bool writable);
-    void Flush();                                     // write back, stamp modification time
-
-    platform::File file;
-    platform::FileMapping mapping;     // its View() is the mapped base address
-    std::uint32_t size = 0;
-};
-
 // A file loaded from an archive by MappedResource::GetFile. 0x1C bytes, allocated with operator new.
 struct LoadedFile {
     std::string name;       // name as requested
     void* data;             // contents (operator new)
     std::uint32_t size;
     int refCount;           // GetFile calls not yet matched by CloseFile
-    std::uint32_t offset;   // offset in the archive, used to write the file back
+    std::uint32_t offset;   // offset in the archive
 };
 
 // The base of the archive readers (ResourceBaseClass in the game's messages; the first virtual is the scalar
@@ -87,10 +74,9 @@ public:
     // The loaded files freed, the archive
     // closed, the maps destroyed, then ResourceBase's (the accelerator table freed).
     ~MappedResource() override;
-    virtual bool OpenResource(const std::string& path, bool writable);
+    virtual bool OpenResource(const std::string& path);
     virtual bool OpenFromMemory(const void* image);
     virtual void CloseResource();
-    virtual void Flush();                                             // (empty)
     virtual void* GetFile(std::string_view name, std::uint32_t* size);
     // GetFile without Rebirth's ResOverride (in the standalone image GetFile goes through
     // mod_folders.h, which calls this one on the game's and the mod's archives).
@@ -113,7 +99,6 @@ public:
     char* image;                 // archive image when opened with OpenFromMemory
     std::vector<ResEntry> entryTable;   // the tables OpenResource reads (entries and names point into them)
     std::vector<char> nameTable;
-    std::uint32_t writable;
     std::unordered_map<void*, LoadedFile*> filesByData;
     std::unordered_map<std::string, LoadedFile*> filesByName;
 };
@@ -124,14 +109,13 @@ public:
     MMIOResource();
     ~MMIOResource() override;
 
-    bool OpenResource(const std::string& path, bool writable) override;
+    bool OpenResource(const std::string& path) override;
     bool OpenFromMemory(const void* image) override;
     void CloseResource() override;
-    void Flush() override;                                            // (flushes file)
     void* GetFile(std::string_view name, std::uint32_t* size) override;
     bool CloseFile(void* data) override;                              // (nothing to free)
     void FreeAllFiles() override;                                     // (empty)
 
-    MappedFile file;
+    platform::MappedFile file;
     char* mappedImage;           // base of the mapped archive
 };

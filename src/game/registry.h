@@ -51,7 +51,7 @@ public:
     bool GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
 
     bool attached = false;        // 1: the data is not ours (Attach)
-    MappedFile file;
+    platform::MappedFile file;
     const std::uint8_t* data = nullptr;
 };
 

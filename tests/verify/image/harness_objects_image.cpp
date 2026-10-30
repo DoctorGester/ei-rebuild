@@ -230,7 +230,7 @@ long ModFile(const char* path, const char* name) {
     std::memset(memory, 0, sizeof(MappedResource));
     auto* res = new (memory) MappedResource();
     long got = -2;   // the archive did not open
-    if (res->MappedResource::OpenResource(path, 0)) {
+    if (res->MappedResource::OpenResource(path)) {
         std::uint32_t size = 0;
         void* data = res->GetFile(name, &size);   // slot 5 (00671B40, Rebirth's ResOverride)
         got = data ? static_cast<long>(size) : 0;

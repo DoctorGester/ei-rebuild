@@ -19,12 +19,11 @@
 
 namespace {
 
-constexpr std::uint32_t kSeekCurrent = 1;
 constexpr int kHeader = 8;
 
 std::uint32_t FileRead(platform::File* file, void* data, std::uint32_t size) { return file->Read(data, size); }
 void FileWrite(platform::File* file, const void* data, std::uint32_t size) { file->Write(data, size); }
-void FileSeek(platform::File* file, std::int32_t offset, std::uint32_t from) { file->Seek(offset, from); }
+void FileSeek(platform::File* file, std::int32_t offset, platform::SeekFrom from) { file->Seek(offset, from); }
 
 // A chunk holding one value: header, then the value (counted with the header).
 void WriteValueChunk(Chunk* chunk, std::uint32_t id, const void* value, std::uint32_t valueSize) {
@@ -59,7 +58,7 @@ platform::File* Chunk::File() { return parent ? parent->File() : nullptr; }
 
 void Chunk::BeginWrite(std::uint32_t newId) {
     FileWrite(File(), &newId, 4);
-    start = File()->GetPosition();
+    start = File()->Position();
     FileWrite(File(), &size, 4);
     consumed = 0;
     if (parent) parent->Advance(kHeader);
@@ -67,10 +66,10 @@ void Chunk::BeginWrite(std::uint32_t newId) {
 }
 
 void Chunk::EndWrite() {
-    std::uint32_t end = File()->GetPosition();
-    FileSeek(File(), static_cast<std::int32_t>(start), 0);
+    std::uint32_t end = File()->Position();
+    FileSeek(File(), static_cast<std::int32_t>(start), platform::SeekFrom::Begin);
     FileWrite(File(), &consumed, 4);
-    FileSeek(File(), static_cast<std::int32_t>(end), 0);
+    FileSeek(File(), static_cast<std::int32_t>(end), platform::SeekFrom::Begin);
 }
 
 void Chunk::WriteHeader(std::uint32_t chunkId, int payload) {
@@ -122,7 +121,7 @@ void Chunk::WriteBlob(std::uint32_t chunkId, const void* data, int byteCount) {
 
 bool Chunk::SkipContent() {
     if (consumed != kHeader || size == kHeader) return false;
-    FileSeek(File(), size - kHeader, kSeekCurrent);
+    FileSeek(File(), size - kHeader, platform::SeekFrom::Current);
     int rest = size - kHeader;
     if (parent) parent->Advance(rest);
     consumed += rest;
@@ -274,8 +273,8 @@ void Chunk::WriteStringArray(std::uint32_t arrayId, const std::vector<std::strin
 
 // --- The root chunk ------------------------------------------------------------------------------
 
-int RootChunk::Open(const std::string& path, unsigned flags) {
-    return file.Open(path, flags & 0xFFFF);
+int RootChunk::Open(const std::string& path, platform::FileMode mode) {
+    return file.Open(path, mode);
 }
 
 platform::File* RootChunk::File() { return &file; }

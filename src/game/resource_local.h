@@ -19,7 +19,7 @@ struct LocalResource {
     LocalResource(const LocalResource&) = delete;
     LocalResource& operator=(const LocalResource&) = delete;
     MappedResource* Get() { return storage.Get(); }
-    bool Open(std::string_view path) { return Get()->MappedResource::OpenResource(std::string(path), false); }
+    bool Open(std::string_view path) { return Get()->MappedResource::OpenResource(std::string(path)); }
     lib::InPlace<MappedResource> storage;
 };
 

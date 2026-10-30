@@ -73,8 +73,8 @@ public:
 
     ~RootChunk();
 
-    // Opens the file: platform::File::Open with the low 16 bits of `flags`.
-    int Open(const std::string& path, unsigned flags);
+    // Opens the file (platform::File::Open).
+    int Open(const std::string& path, platform::FileMode mode);
 
     platform::File file;
 };
