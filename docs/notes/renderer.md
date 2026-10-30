@@ -156,7 +156,7 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
 | Present | 004EF610 | `device_draw.cpp` -> `render::Present` (the new frame on the window's swap chain, section 9) | done |
 | Clear colour, target size, fog | renderer +0x14; device object 007AF080 -> +0x18; the render state's fog switch and colour (section 5; zone colour through slot 0 00501AB0) | EndFrame / terrain hand-over | done |
 
-Their game-side work stays (visibility, LOD, animation, lighting, sorting, water levels); the goldens check it. Not
+Their game-side work stays (visibility, animation, lighting, sorting, water levels); the goldens check it. Not
 handed over directly yet: `figure_part_draw*.cpp` (005A7A70, 005A7640: model matrices and figure data once meshes stop
 going through the old projection), the particle data, materials from the game's data instead of the device state,
 picking rectangles. Neither DLL has a caller: 2DintMMX since R28, 3DfpFPU since R31 (section 10).
@@ -1051,12 +1051,11 @@ across runs; the goldens check the game state.
    was tried: 0.76-0.89 of remake's time against GenerateMips' 0.33-0.45. Check: render_scene, render_shadows,
    render_options_shadows, ui_global_map_pick captured in place and `memorytextures remake` at one frozen moment, 8 /
    0.5% (largest channel difference 2). The memory textures are gone since R28b (section 7).
-3. **R16c Terrain pages resident on the GPU (done).** `render_terrain.cpp`. Each sector page at a level of detail and
-   seam variant is built once, all four quarters, into a pool of default-usage buffers written with UpdateSubresource
+3. **R16c Terrain pages resident on the GPU (done).** `render_terrain.cpp`. Each sector page is built once, all four quarters, into a pool of default-usage buffers written with UpdateSubresource
    (sokol has no partial update): positions and texture coordinates (20 bytes a vertex), the lit colours (8 bytes, a
    stream of their own) and absolute indices. A frame keeps the visible quarters of each page handed over
    (`TerrainPiece`); ranges that follow each other in the pool are one draw. A page is built again when its tile
-   lists, records, edge flags or animated tiles moved (pointers, sizes) or the game rebuilt the sector
+   lists, records or animated tiles moved (pointers, sizes) or the game rebuilt the sector
    (`render::TerrainChanged(s, Rebuilt)` from Build and Clear). When the game only moves texture coordinates
    (Animate's animated tiles: `Moved`; only the pages holding one of the sector's animated tiles) or the water
    layer's positions (Animate's waves, ApplyWaterLevels: `WaterMoved`; only the pages reading a water record) the
@@ -1686,7 +1685,7 @@ from boot tick 20. A second variant drew between the poses of the last two ticks
   what the world's draw places by the camera reads `camera::FrameView()`: the view matrix (`view::ViewMatrix`), the
   sky dome, particle billboards (particle_manager.cpp), lightning's glow (lightning.cpp), rain and snow's band
   (weather_particles.cpp), the lighting's eye (`HandOverSceneLights`) and the old shadows' axis. The terrain's
-  visible sectors (`SetVisibleSectors`) and their level of detail (terrain.cpp `ChooseDetail`) keep the
+  visible sectors (`SetVisibleSectors`) keep the
   camera's own position (within a sector of the drawn one; keeping them on the camera is one less thing that could
   reach the game state). The listener stays with the camera. Picking reads the last drawn frame's matrices (the
   view stack `Render` pushes, and the objects' `dirtyRect`s drawn by them), so a click picks what the screen shows.
@@ -2000,11 +1999,11 @@ renderstats, the caster orders by EI_R37E1_ORDER), timing.sh, summ.py, the scena
 
 The terrain in the new renderer. The game's terrain passes (ground pages, water pages) call DrawSectorPage
 (SectorData::DrawPage, src/game/terrain.cpp) for every visible sector page; it hands the page here. The page's tiles are turned into
-world-space triangles at the sector's level of detail (the same tile entries and index patterns as the old path),
+world-space triangles (every tile's nine vertices and eight triangles, the full detail at any distance: R38 removed the distance levels and the seam variants that joined them),
 with the vertex colours the game's lighting wrote into the sector's vertex records, the tile texture coordinates
 and the page's texture; the clip matrix is the one the old path transforms the same vertices with (the pipeline's
 stack at +0x24). The GPU clips; no software clipping or projection here. The pages stay on the GPU
-(docs/notes/renderer.md section 13): each sector page at a level of detail and seam variant is built once into a
+(docs/notes/renderer.md section 13): each sector page is built once into a
 pool of vertex and index buffers (positions and texture coordinates in one stream, the lit colours in another) and
 built again only when what it was built from changes (the sector's tile lists and records: SectorData::Build,
 render:: TerrainChanged). When the game only moved vertices or texture coordinates (the animated tiles: the pages

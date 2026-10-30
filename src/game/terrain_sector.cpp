@@ -207,10 +207,6 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                         entry->v = 1.0f - uv->v[entryRow * 3 + entryColumn];
                     }
                 }
-                std::uint8_t& flags = s.tileFlags[quarter][page][count];
-                flags = row == 0 ? kFirstRowTile : (row == kSectorTiles - 1 ? kLastRowTile : 0);
-                if (column == 0) flags |= kFirstColumnTile;
-                else if (column == kSectorTiles - 1) flags |= kLastColumnTile;
                 ++count;
             }
         }
@@ -355,11 +351,9 @@ void SectorData::Build() {
     TileCounts counts = {};
     int animatedCount = CountTiles(*this, tileWords, counts);
     for (int quarter = 0; quarter < 4; ++quarter) {
-        tileFlags[quarter].resize(pageCount);
         tiles[quarter].resize(pageCount);
         for (int page = 0; page < pageCount; ++page) {
             int count = counts[quarter][page];
-            tileFlags[quarter][page].resize(count);
             tiles[quarter][page].resize(count * kTileEntries);
         }
     }
