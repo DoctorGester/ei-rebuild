@@ -127,8 +127,12 @@ and the run's settings file names no patch. A scenario's `resolution <WxH|deskto
 and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the starter's settings the game and
 Rebirth read for the run, without writing them (`tests/verify/harness_starter.h`; without one the image's runs play
 in a window (FullScreen 0 unless the scenario says `fullscreen 1`; H31) of 960x720 on the vanilla data and 1280x720 on
-Rebirth's (W12: the interface layout follows the window's shape, so each takes its goldens' shape), game.exe's at the snapshot's
-desktop size, 3840x2160; every other game setting a run
+Rebirth's (W12: the interface layout follows the window's shape, so each takes its goldens' shape; `EI_RESOLUTION=WxH`
+sets another window size for the whole suite, a window too: FullScreen 0 unless the scenario says otherwise, H42), game.exe's at the snapshot's
+desktop size, 3840x2160; a scenario that must aim at the interface in any window shape says `layout click 140 277`
+(`layout <mouse step> <x> <y>`: the 800x600 layout's point in the window's centred 4:3 part; the plain mouse steps
+spread their points over the whole window), and `checksave ... centre` takes the save picture's 4:3 part in a wider window;
+every other game setting a run
 reads comes from the committed snapshot `config/harness/`, never the user's registry or key bindings:
 `tests/verify/harness_settings.h`; `python tools\run_all.py
 --widescreen` compares the image's frames on the Rebirth install with addon's WideScreen, recorded once with

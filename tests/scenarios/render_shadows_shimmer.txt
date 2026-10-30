@@ -9,8 +9,10 @@
 # Frozen: the frame, the shadow alone ("shadowview on": white lit, black fully shadowed) and the shadow
 # alone with the map's origin moved by 7 x 3 texels ("shadowshift 7": the same texels on the world, other
 # cells). The two shadow views differ only by the filter's per-pixel grain and at the map's edge: by more
-# than a quarter of the range on 0.013% of the frame (0.051% with the per-cell reads, the squares moving
-# with the cells). Then a run of frames at 8 ms (the sun turns between them) for the eye.
+# than a quarter of the range on at most 0.04% of the frame: 0.013% on Rebirth's data, 0.006% on the vanilla
+# data at 960x720 and 0.033% at 1280x720 (the 16:9 view brings more foliage and soft shadow edge into the frame
+# in the same place; H42), against 0.051% with the per-cell reads on Rebirth's data (the squares moving with
+# the cells). Then a run of frames at 8 ms (the sun turns between them) for the eye.
 # prepare: copy_save.py tests/saves/shadow_corrupt save2
 render smooth,checkall
 timeout 120
@@ -55,7 +57,7 @@ shadowview off
 capture still2
 unfreeze
 samecapture still still2
-samecapture view view_shift 64 0.0003
+samecapture view view_shift 64 0.0004
 frametime 8
 capture f0
 capture f1
